@@ -9,7 +9,7 @@
 import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
-import { W, H, GRID, parseDrawing, serializeDrawing, type Kind, type Fill, type Shape } from '../lib/drawmodel.ts';
+import { W, H, GRID, COLORS, TEXT_SIZES, paint, parseDrawing, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
 import type { SlInput, SlSelect } from '../lib/shoelace.ts';
 
 
@@ -202,24 +202,25 @@ export class ToDraw extends LitElement {
   }
 
   private renderShape(s: Shape, i: number, ghost = false) {
-    const fill = s.f === 2 ? 'var(--to-ink)' : s.f === 1 ? 'var(--to-surface-2)' : 'var(--to-surface)';
-    const stroke = 'var(--to-ink)';
+    const p = paint(s, 'var(--to-ink)', 'var(--to-surface)', 'var(--to-surface-2)');
+    const fill = p.fill;
+    const stroke = p.stroke;
     const common = { 'data-idx': i, class: 'shape' };
     let body;
     switch (s.k) {
       case 'r':
-        body = svg`<rect x=${s.x} y=${s.y} width=${s.w} height=${s.h} fill=${fill} stroke=${stroke} stroke-width="2" rx="2" />`;
+        body = svg`<rect x=${s.x} y=${s.y} width=${s.w} height=${s.h} fill=${fill} fill-opacity=${p.fillOpacity} stroke=${stroke} stroke-width="2" rx="2" />`;
         break;
       case 'e':
-        body = svg`<ellipse cx=${s.x + s.w / 2} cy=${s.y + s.h / 2} rx=${s.w / 2} ry=${s.h / 2} fill=${fill} stroke=${stroke} stroke-width="2" />`;
+        body = svg`<ellipse cx=${s.x + s.w / 2} cy=${s.y + s.h / 2} rx=${s.w / 2} ry=${s.h / 2} fill=${fill} fill-opacity=${p.fillOpacity} stroke=${stroke} stroke-width="2" />`;
         break;
       case 'd':
-        body = svg`<polygon points="${s.x + s.w / 2},${s.y} ${s.x + s.w},${s.y + s.h / 2} ${s.x + s.w / 2},${s.y + s.h} ${s.x},${s.y + s.h / 2}" fill=${fill} stroke=${stroke} stroke-width="2" stroke-linejoin="round" />`;
+        body = svg`<polygon points="${s.x + s.w / 2},${s.y} ${s.x + s.w},${s.y + s.h / 2} ${s.x + s.w / 2},${s.y + s.h} ${s.x},${s.y + s.h / 2}" fill=${fill} fill-opacity=${p.fillOpacity} stroke=${stroke} stroke-width="2" stroke-linejoin="round" />`;
         break;
       case 'l':
       case 'a':
         body = svg`<line x1=${s.x} y1=${s.y} x2=${s.x + s.w} y2=${s.y + s.h} stroke="transparent" stroke-width="12" />
-          <line x1=${s.x} y1=${s.y} x2=${s.x + s.w} y2=${s.y + s.h} stroke=${stroke} stroke-width="2" marker-end=${s.k === 'a' ? 'url(#arrow)' : nothing} stroke-dasharray=${s.f === 1 ? '6 4' : s.f === 2 ? '2 3' : nothing} />`;
+          <line x1=${s.x} y1=${s.y} x2=${s.x + s.w} y2=${s.y + s.h} stroke=${stroke} stroke-width="2" marker-end=${s.k === 'a' ? `url(#${p.marker})` : nothing} stroke-dasharray=${s.f === 1 ? '6 4' : s.f === 2 ? '2 3' : nothing} />`;
         break;
       case 't':
         body = svg`<rect x=${s.x} y=${s.y} width=${s.w} height=${s.h} fill="transparent" stroke=${ghost || i === this.sel ? '#999' : 'none'} stroke-dasharray="3 2" />`;
@@ -228,8 +229,8 @@ export class ToDraw extends LitElement {
     const isLine = s.k === 'l' || s.k === 'a';
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
-    const textFill = s.f === 2 && !isLine && s.k !== 't' ? 'var(--to-surface)' : 'var(--to-ink)';
-    const halo = isLine ? 'paint-order: stroke; stroke: var(--to-surface); stroke-width: 4px;' : '';
+    const textFill = p.text;
+    const halo = `font-size:${p.px}px;` + (isLine ? 'paint-order: stroke; stroke: var(--to-surface); stroke-width: 4px;' : '');
     const label = s.text
       ? svg`<text x=${cx} y=${cy} text-anchor=${s.k === 't' ? 'start' : 'middle'} dominant-baseline="middle" fill=${textFill} style=${halo}>${s.k === 't' ? svg`<tspan x=${s.x + 4}>${s.text}</tspan>` : s.text}</text>`
       : nothing;
@@ -271,12 +272,24 @@ export class ToDraw extends LitElement {
           @sl-input=${(e: Event) => this.patchSel({ text: (e.target as SlInput).value })}
           @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as SlInput).blur()}
         ></sl-input>
-        ${s && s.k !== 't'
-          ? html`<sl-select class="draw-fill sr-label" size="small" label=${isLine ? 'Line style' : 'Fill'} .value=${String(s.f)} hoist style="width:110px" @sl-change=${(e: Event) => this.patchSel({ f: parseInt((e.target as SlSelect).value as string, 10) as Fill })}>
+        ${/* Always present, so choosing a shape does not make the toolbar (and the canvas under it) jump. */ true
+          ? html`<sl-select class="draw-fill sr-label" size="small" label=${isLine ? 'Line style' : 'Fill'} ?disabled=${!s || s.k === 't'} .value=${String(s?.f ?? 0)} hoist style="width:110px" @sl-change=${(e: Event) => this.patchSel({ f: parseInt((e.target as SlSelect).value as string, 10) as Fill })}>
               <sl-option value="0">${isLine ? 'Solid' : 'No fill'}</sl-option>
               <sl-option value="1">${isLine ? 'Dashed' : 'Grey'}</sl-option>
-              <sl-option value="2">${isLine ? 'Dotted' : 'Black'}</sl-option>
+              <sl-option value="2">${isLine ? 'Dotted' : 'Solid'}</sl-option>
             </sl-select>`
+          : nothing}
+        ${true
+          ? html`<div class="draw-colors" role="radiogroup" aria-label="Colour">
+                <button class="ink" role="radio" title="Black" aria-label="Black" ?disabled=${!s} aria-checked=${s && !s.c ? 'true' : 'false'} @click=${() => this.patchSel({ c: undefined })}></button>
+                ${(Object.keys(COLORS) as Color[]).map((c) => html`<button role="radio" title=${COLORS[c].name} aria-label=${COLORS[c].name} ?disabled=${!s} aria-checked=${s?.c === c ? 'true' : 'false'} style="--c:${COLORS[c].hex}" @click=${() => this.patchSel({ c })}></button>`)}
+              </div>
+              <sl-select class="sr-label" size="small" label="Text size" ?disabled=${!s} .value=${String(s?.z ?? 2)} hoist style="width:104px" @sl-change=${(e: Event) => {
+                const z = parseInt((e.target as SlSelect).value as string, 10) as TextSize;
+                this.patchSel({ z: z === 2 ? undefined : z });
+              }}>
+                ${([1, 2, 3, 4] as TextSize[]).map((z) => html`<sl-option value=${z}>${TEXT_SIZES[z].name}</sl-option>`)}
+              </sl-select>`
           : nothing}
         <sl-button-group label="Arrange">
           <sl-tooltip content="Bring to front" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Bring to front" @click=${() => this.reorder(true)}>${icon(UI.front, 16)}<span class="sr-only">Bring to front</span></sl-button></sl-tooltip>
@@ -302,9 +315,9 @@ export class ToDraw extends LitElement {
             <pattern id="grid" width=${GRID * 2} height=${GRID * 2} patternUnits="userSpaceOnUse">
               <circle cx="1" cy="1" r="0.8" fill="var(--to-border-strong)" />
             </pattern>
-            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--to-ink)" />
-            </marker>
+${[['arrow', 'var(--to-ink)'], ...Object.entries(COLORS).map(([c, v]) => [`arrow-${c}`, v.hex])].map(
+              ([id, fill]) => svg`<marker id=${id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill=${fill} /></marker>`,
+            )}
           </defs>
           <rect width=${W} height=${H} fill="url(#grid)" />
           ${this.shapes.map((sh, i) => this.renderShape(sh, i))}

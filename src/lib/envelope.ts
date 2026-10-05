@@ -9,8 +9,9 @@
  *   <blank line>
  *   <body>
  *
- * Payloads carrying an envelope use the flags "Z" (deflated) and "R" (raw);
- * the lowercase flags from before envelopes existed decode as a bare body.
+ * Payloads carrying an envelope use the codec's flags in capitals: "Y"
+ * (deflated against the dictionary), "Z" (deflated) and "R" (raw). The
+ * lowercase flags from before envelopes existed decode as a bare body.
  */
 import { packDoc, unpackDoc, toBase64Url, fromBase64Url } from './codec.ts';
 
@@ -55,7 +56,7 @@ export function encodeEnvelope(env: Envelope): string {
 }
 
 export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
-  if (flag !== 'Z' && flag !== 'R') {
+  if (flag !== 'Y' && flag !== 'Z' && flag !== 'R') {
     try {
       return { created: null, body: unpackDoc(flag, bytes) };
     } catch {

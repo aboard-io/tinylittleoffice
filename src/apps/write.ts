@@ -8,9 +8,21 @@
 import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
+import { linkToRef, previewOf, svgDataUri } from '../lib/embed.ts';
+import { ICON_SVG } from './anim.ts';
 import { parseDoc, serializeDoc, docText, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
-const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li' };
+const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
+
+/**
+ * An embedded TinyOffice document: a card that cannot be typed in, showing
+ * what the link holds and opening it when clicked.
+ */
+export function embedHtml(ref: string): string {
+  const p = previewOf(ref, ICON_SVG);
+  const inside = p.svg ? `<img src="${esc(svgDataUri(p.svg)).replace(/"/g, '&quot;')}" alt="">` : p.lines.map((l) => `<span>${esc(l)}</span>`).join('');
+  return `<figure class="write-embed" contenteditable="false" data-ref="${esc(ref)}"><a href="${esc(p.hash)}"><b>${esc(p.title)}</b><small>${esc(p.kind)}</small>${inside}</a></figure>`;
+}
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -42,6 +54,10 @@ export function blocksToHtml(blocks: Block[]): string {
     if (wantList && !list) {
       out += `<${wantList}>`;
       list = wantList;
+    }
+    if (b.k === 'e') {
+      out += embedHtml(b.ref!);
+      continue;
     }
     const tag = KIND_TAG[b.k];
     out += `<${tag}>${runsToHtml(b.runs)}</${tag}>`;
@@ -96,6 +112,12 @@ export function domToBlocks(root: HTMLElement): Block[] {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
     const el = node as HTMLElement;
     const tag = el.tagName;
+    if (el.dataset.ref) {
+      // An embed is a block of its own; nothing inside it is text.
+      close();
+      blocks.push({ k: 'e', runs: [], ref: el.dataset.ref });
+      return;
+    }
     if (tag === 'BR') {
       if (!cur) open(k);
       if (!isTrailingBr(el, boundary)) {
@@ -231,7 +253,10 @@ export class ToWrite extends LitElement {
     // Keep pasted content plain: it is the compact, predictable path.
     e.preventDefault();
     const text = e.clipboardData?.getData('text/plain') ?? '';
-    document.execCommand('insertText', false, text);
+    // A TinyOffice link on its own becomes a preview of that document.
+    const ref = linkToRef(text);
+    if (ref) document.execCommand('insertHTML', false, embedHtml(ref) + '<p><br></p>');
+    else document.execCommand('insertText', false, text);
   };
 
   private onKey = (e: KeyboardEvent) => {

@@ -4,7 +4,7 @@ import { shot, reopen, navTo, SHOTS } from './helpers';
 test('navigation works on every screen size', async ({ page }) => {
   await page.goto('/');
   await navTo(page, 'Deck');
-  await expect(page).toHaveURL(/#\/v1\/deck$/);
+  await expect(page).toHaveURL(/#\/v2\/deck$/);
   await expect(page.locator('.to-panel-head h1')).toHaveText(/Deck/);
   await navTo(page, 'Calendar');
   await expect(page.locator('.to-panel-head h1')).toHaveText(/Calendar/);
@@ -14,24 +14,18 @@ test('navigation works on every screen size', async ({ page }) => {
   await shot(page, 'nav');
 });
 
-test('hamburger drawer appears only on small screens', async ({ page, isMobile }) => {
+test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.goto('/#/sheet');
-  const burger = page.locator('.to-burger');
-  if (isMobile) {
-    await expect(burger).toBeVisible();
-    await expect(page.locator('.to-nav')).toBeHidden();
-    await burger.click();
-    const drawer = page.locator('#nav-drawer');
-    await expect(drawer).toHaveAttribute('open');
-    await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(6);
-    await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
-    await shot(page, 'drawer');
-    await page.keyboard.press('Escape');
-    await expect(drawer).not.toHaveAttribute('open');
-  } else {
-    await expect(burger).toBeHidden();
-    await expect(page.locator('.to-nav a')).toHaveCount(5);
-  }
+  await expect(page.locator('.to-here')).toHaveText('Sheet');
+  await page.locator('.to-burger').click();
+  const drawer = page.locator('#nav-drawer');
+  await expect(drawer).toHaveAttribute('open');
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(12);
+  await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
+  await expect(drawer.locator('.to-theme')).toContainText('Theme');
+  await shot(page, 'drawer');
+  await page.keyboard.press('Escape');
+  await expect(drawer).not.toHaveAttribute('open');
 });
 
 test('meter counts down and copies the link', async ({ page }) => {
@@ -57,7 +51,7 @@ test('documents record their creation time', async ({ page }) => {
   await page.keyboard.type('hello');
   await expect(page.locator('.to-panel-head .meta')).toContainText(/\d{4}/);
   const url = page.url();
-  expect(url).toMatch(/#\/v1\/write\/[ZR]/);
+  expect(url).toMatch(/#\/v2\/write\/[YZR]/);
   // Creation time is in the link and survives a reload.
   const created = await page.locator('.to-panel-head .meta').textContent();
   await reopen(page);
@@ -100,7 +94,7 @@ test('signing a document and detecting changes', async ({ page }) => {
   await shot(page, 'signed');
 
   // A tampered link reads as a mismatch, not as valid.
-  const tampered = signedUrl.replace(/#\/v1\/sheet\/Z(.)/, (_m, c: string) => `#/v1/sheet/Z${c === 'A' ? 'B' : 'A'}`);
+  const tampered = signedUrl.replace(/#\/v2\/sheet\/([YZ])(.)/, (_m, f: string, c: string) => `#/v2/sheet/${f}${c === 'A' ? 'B' : 'A'}`);
   await page.goto(tampered);
   const head = page.locator('.to-panel-head');
   await expect(head).not.toContainText(/\bsigned\b(?! mismatch)/);
@@ -141,7 +135,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.to-panel-head')).toContainText('locked');
   const lockedUrl = page.url();
-  expect(lockedUrl).toMatch(/#\/v1\/sheet\/E[A-Za-z0-9_-]+$/);
+  expect(lockedUrl).toMatch(/#\/v2\/sheet\/E[A-Za-z0-9_-]+$/);
   expect(lockedUrl).not.toBe(plainUrl);
 
   // Reopening asks for the password; the content is not shown until it is right.
@@ -161,8 +155,11 @@ test('password-locked documents', async ({ page }) => {
   await expect(page.locator('.to-panel-head')).toContainText('locked');
 
   // Edits stay encrypted, and the password can be removed.
+  const beforeEdit = page.url();
   await page.getByRole('textbox', { name: 'A2', exact: true }).fill('bonus');
-  await expect.poll(() => page.url()).toMatch(/#\/v1\/sheet\/E/);
+  // Sealing is asynchronous: wait for the link to change, not just to look sealed.
+  await expect.poll(() => page.url()).not.toBe(beforeEdit);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/E/);
   const url2 = page.url();
   await page.goto('about:blank');
   await page.goto(url2);
@@ -173,7 +170,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(dialog).not.toContainText('Locked');
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect.poll(() => page.url()).toMatch(/#\/v1\/sheet\/[ZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[YZR]/);
   const plainAgain = page.url();
   await page.goto('about:blank');
   await page.goto(plainAgain);
@@ -183,31 +180,33 @@ test('password-locked documents', async ({ page }) => {
 
 test('links carry a format version, and links from before versions still open', async ({ page }) => {
   await page.goto('/#/write');
-  await expect(page.locator('.to-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v1/deck');
+  await expect(page.locator('.to-drawer-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v2/deck');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Old link');
-  await expect.poll(() => page.url()).toMatch(/#\/v1\/write\/[ZR]/);
-  const legacy = page.url().replace('#/v1/', '#/');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[YZR]/);
+  const legacy = page.url().replace('#/v2/', '#/');
   await page.goto('about:blank');
   await page.goto(legacy);
   await expect(page.getByRole('textbox', { name: 'Document' })).toHaveText('Old link');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('!');
-  await expect.poll(() => page.url()).toMatch(/#\/v1\/write\/[ZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[YZR]/);
   // A link from a future version says so.
-  await page.goto(page.url().replace('#/v1/', '#/v7/'));
+  await page.goto(page.url().replace('#/v2/', '#/v7/'));
   await expect(page.locator('.to-panel-head')).toContainText('newer TinyOffice (v7)');
 });
 
-test('password and signature are one tap from the document', async ({ page }) => {
+test('password and signature live in the privacy menu', async ({ page }) => {
   await page.goto('/#/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('1');
   const dialog = page.locator('#doc-dialog');
-  await page.getByRole('button', { name: 'Password', exact: true }).click();
+  await page.getByRole('button', { name: 'Privacy' }).click();
+  await page.getByRole('menuitem', { name: /Password/ }).click();
   await expect(dialog).toHaveAttribute('open');
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(dialog).not.toHaveAttribute('open');
-  await page.getByRole('button', { name: 'Signature', exact: true }).click();
+  await page.getByRole('button', { name: 'Privacy' }).click();
+  await page.getByRole('menuitem', { name: /Signature/ }).click();
   await expect(dialog).toHaveAttribute('open');
   await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(page.locator('.to-panel-head')).toContainText('signed');
@@ -228,7 +227,7 @@ test('download views: the link itself hands over a file', async ({ page }, testI
   ];
   for (const [app, ext, body, name, check] of docs) {
     await page.goto('about:blank');
-    const [download] = await Promise.all([page.waitForEvent('download'), page.goto(`/#/v1/${app}.${ext}/${encodeEnvelope({ created, body })}`)]);
+    const [download] = await Promise.all([page.waitForEvent('download'), page.goto(`/#/v2/${app}.${ext}/${encodeEnvelope({ created, body })}`)]);
     expect(download.suggestedFilename()).toBe(name);
     const path = testInfo.outputPath(`${ext}-${name}`);
     await download.saveAs(path);
@@ -244,7 +243,7 @@ test('download views: the link itself hands over a file', async ({ page }, testI
   const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /iCalendar/ }).click()]);
   expect(fromMenu.suggestedFilename()).toBe('calendar.ics');
   // An extension the app does not have is reported, not downloaded.
-  await page.goto(`/#/v1/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
+  await page.goto(`/#/v2/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
   await expect(page.locator('.to-toast')).toContainText('No .pptx view here');
 });
 
@@ -252,10 +251,11 @@ test('download views wait for the password', async ({ page }) => {
   test.slow();
   await page.goto('/#/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('secret');
-  await page.getByRole('button', { name: 'Password', exact: true }).click();
+  await page.getByRole('button', { name: 'Privacy' }).click();
+  await page.getByRole('menuitem', { name: /Password/ }).click();
   await page.getByRole('textbox', { name: 'New password' }).fill('pw');
   await page.getByRole('button', { name: 'Lock', exact: true }).click();
-  await expect.poll(() => page.url()).toMatch(/#\/v1\/sheet\/E/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/E/);
   const url = page.url().replace('/sheet/', '/sheet.csv/');
   await page.goto('about:blank');
   await page.goto(url);

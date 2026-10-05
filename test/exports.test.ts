@@ -7,7 +7,7 @@ import { EXPORTS, calendarToIcs, deckToPptx, docToHtml, docToRtf, drawingToSvg, 
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app has a download view, and aliases resolve', () => {
-  assert.deepEqual(Object.keys(EXPORTS).sort(), ['cal', 'deck', 'draw', 'sheet', 'write']);
+  assert.deepEqual(Object.keys(EXPORTS).sort(), ['anim', 'board', 'cal', 'deck', 'draw', 'gantt', 'sheet', 'todo', 'trip', 'tune', 'write']);
   assert.equal(findExport('deck', 'ppt')?.ext, 'pptx');
   assert.equal(findExport('deck', 'PPTX')?.ext, 'pptx');
   assert.equal(findExport('cal', 'ical')?.ext, 'ics');

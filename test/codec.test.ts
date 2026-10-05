@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { deflateSync, strToU8 } from 'fflate';
 import { encodeDoc, decodeDoc, toBase64Url, fromBase64Url, budgetFor, URL_LIMIT } from '../src/lib/codec.ts';
 
 test('base64url round trip', () => {
@@ -19,7 +20,7 @@ test('doc round trip, short and long', () => {
 test('compression kicks in for repetitive text', () => {
   const d = 'The quick brown fox jumps over the lazy dog. '.repeat(40);
   const e = encodeDoc(d);
-  assert.equal(e[0], 'z');
+  assert.equal(e[0], 'y');
   assert.ok(e.length < d.length / 4);
 });
 
@@ -35,4 +36,17 @@ test('garbage decodes to empty', () => {
 test('budget', () => {
   const b = budgetFor('https://example.com/#/sheet/');
   assert.equal(b.available, URL_LIMIT - 'https://example.com/#/sheet/'.length);
+});
+
+test('the dictionary shortens everyday documents, and older links still decode', () => {
+  const memo = '# Quarterly memo\nThe team will meet on Monday to review the launch plan and the budget for next month.\n- Design review';
+  const e = encodeDoc(memo);
+  assert.equal(e[0], 'y');
+  assert.equal(decodeDoc(e), memo);
+  // The same text packed the old way: longer, and still readable.
+  const old = 'z' + toBase64Url(deflateSync(strToU8(memo), { level: 9, mem: 12 }));
+  assert.equal(decodeDoc(old), memo);
+  assert.ok(e.length < old.length * 0.8, `${e.length} vs ${old.length}`);
+  // Frozen: this exact link must decode forever.
+  assert.equal(decodeDoc('y84EUIuDMBkoyoOQCzn7Q8giUQCAZCQA'), 'Launch plan for the team meeting on Monday');
 });

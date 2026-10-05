@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { shot, reopen, navTo, pickOption } from './helpers';
 
-test('launcher lists the five apps', async ({ page }) => {
+test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a');
-  await expect(launcher).toHaveCount(5);
+  await expect(launcher).toHaveCount(11);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });
@@ -22,7 +22,7 @@ test('sheet: formulas compute and persist in the URL', async ({ page }) => {
   await expect(cell('A3')).toHaveValue('84');
   await expect(cell('B1')).toHaveValue('#DIV/0');
   await expect(cell('C2')).toHaveValue('42');
-  expect(page.url()).toMatch(/#\/v1\/sheet\/[ZR][A-Za-z0-9_-]+$/);
+  expect(page.url()).toMatch(/#\/v2\/sheet\/[YZR][A-Za-z0-9_-]+$/);
 
   await reopen(page);
   await expect(cell('A3')).toHaveValue('84');
@@ -138,7 +138,7 @@ test('write: rich text survives the round trip', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.keyboard.type('second');
   await expect(page.locator('.write-foot')).toContainText('7 words');
-  expect(page.url()).toMatch(/#\/v1\/write\/[ZR]/);
+  expect(page.url()).toMatch(/#\/v2\/write\/[YZR]/);
 
   await reopen(page);
   const html = await editor.innerHTML();
@@ -153,6 +153,31 @@ test('write: rich text survives the round trip', async ({ page }) => {
 
 test('deck: slides, icons and presenting', async ({ page }) => {
   await page.goto('/#/deck');
+  // A new deck opens on a title slide: big centred title, subtitle, no bullets.
+  const titleToggle = page.locator('sl-button', { hasText: 'Title slide' });
+  await expect(titleToggle).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
+  await page.getByRole('textbox', { name: 'Bullets' }).fill('What we are shipping');
+  await expect(page.locator('.deck-slide.cover .mirror div.on')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Present' }).click();
+  await expect(page.locator('.deck-show .frame.cover h1')).toHaveText('Spring launch');
+  await expect(page.locator('.deck-show .sub')).toHaveText('What we are shipping');
+  await expect(page.locator('.deck-show li')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await shot(page, 'deck-title');
+  // The toolbar's Icon button opens the same picker as the box on the slide.
+  await page.getByRole('button', { name: 'Icon', exact: true }).click();
+  await expect(page.locator('#icon-picker')).toHaveAttribute('open');
+  await page.getByRole('listbox', { name: 'Icon library' }).getByRole('button', { name: 'star', exact: true }).click();
+  await expect(page.locator('.deck-slide .pick svg')).toBeVisible();
+  await reopen(page);
+  await expect(titleToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveValue('Spring launch');
+
+  await page.goto('about:blank');
+  await page.goto('/#/deck');
+  await titleToggle.click();
+  await expect(titleToggle).toHaveAttribute('aria-pressed', 'false');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Launch plan');
   await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it\nTell people');
   // The slide's own words recommend icons, both on the slide and in the picker.
@@ -253,6 +278,18 @@ test('draw: shapes with labels persist', async ({ page }) => {
   await expect(canvas.locator('g.shape')).toHaveCount(3);
   await expect(canvas.locator('text')).toHaveText(['Start', 'End']);
   await expect(canvas.locator('ellipse[fill="var(--to-ink)"]')).toHaveCount(1);
+
+  // Colour and text size belong to each shape and travel in the link.
+  await canvas.locator('g.shape').nth(0).click();
+  await page.getByRole('radio', { name: 'Blue' }).click();
+  await pickOption(page, 'sl-select[label="Text size"]', '4');
+  await expect(canvas.locator('rect[stroke="#2563eb"]')).toHaveCount(1);
+  await reopen(page);
+  await expect(canvas.locator('rect[stroke="#2563eb"]')).toHaveCount(1);
+  const sizes = await canvas.locator('text').evaluateAll((els) => els.map((el) => getComputedStyle(el).fontSize));
+  expect(sizes).toEqual(['30px', '14px']);
+  await canvas.locator('g.shape').nth(0).click();
+  await expect(page.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');
   await shot(page, 'draw');
 
   await canvas.locator('g.shape').nth(0).click();

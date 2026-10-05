@@ -16,8 +16,21 @@ test('deck round trip', () => {
   assert.deepEqual(parseDeck(s), [slides[0], slides[1], slides[2], { icon: '', title: 'Gap', bullets: ['a', ' ', 'b'] }]);
 });
 
+test('deck title slides', () => {
+  const slides = [
+    { icon: 'rocket', title: 'Big launch', bullets: ['Spring 2027'], cover: true },
+    { icon: '', title: 'Agenda', bullets: ['one'] },
+    { icon: '', title: 'Thanks', bullets: [], cover: true },
+  ];
+  const s = serializeDeck(slides);
+  assert.equal(s, ':rocket:t\nBig launch\nSpring 2027\n\nAgenda\none\n\n::t\nThanks');
+  assert.deepEqual(parseDeck(s), slides);
+  // A new deck opens on a title slide and costs nothing until it is touched.
+  assert.deepEqual(parseDeck(''), [{ icon: '', title: '', bullets: [], cover: true }]);
+  assert.equal(serializeDeck(parseDeck('')), '');
+});
+
 test('deck empties', () => {
-  assert.deepEqual(parseDeck(''), [{ icon: '', title: '', bullets: [] }]);
   assert.equal(serializeDeck([{ icon: '', title: '', bullets: [] }, { icon: '', title: '', bullets: [] }]), '');
   assert.equal(serializeDeck([{ icon: '', title: '', bullets: [] }, { icon: '', title: 'x', bullets: [] }]), '\n\nx');
   assert.equal(parseDeck('\n\nx').length, 2);

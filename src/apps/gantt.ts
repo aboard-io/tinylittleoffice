@@ -1,0 +1,190 @@
+/**
+ * <to-gantt>: tasks as bars on a calendar. Drag a bar to move it, drag its
+ * right edge to change how long it takes.
+ * Document format: see lib/ganttmodel.ts.
+ */
+import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+import { icon, UI } from '../lib/icons.ts';
+import { MAX_TASKS, ganttRange, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
+import { EPOCH_DAY } from '../lib/calmodel.ts';
+import { dayToYmd, ymdString, ymdToDay } from '../lib/tz.ts';
+
+const ROW = 36;
+const HEAD = 44;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const ymd = (day: number) => dayToYmd(EPOCH_DAY + day);
+const toInput = (day: number) => {
+  const { y, m, d } = ymd(day);
+  return ymdString(y, m, d);
+};
+const today = () => {
+  const n = new Date();
+  return ymdToDay(n.getFullYear(), n.getMonth() + 1, n.getDate()) - EPOCH_DAY;
+};
+
+@customElement('to-gantt')
+export class ToGantt extends LitElement {
+  @property() value = '';
+  @state() private tasks: GanttTask[] = [];
+  @state() private cur = 0;
+  /** Pixels per day. */
+  @state() private zoom = 24;
+  private lastEmitted = '';
+  private drag: { i: number; mode: 'move' | 'size'; x0: number; start: number; days: number } | null = null;
+
+  createRenderRoot() {
+    return this;
+  }
+
+  willUpdate(changed: PropertyValues) {
+    if (changed.has('value') && this.value !== this.lastEmitted) {
+      this.tasks = parseGantt(this.value);
+      this.lastEmitted = this.value;
+      this.cur = Math.max(0, Math.min(this.cur, this.tasks.length - 1));
+    }
+  }
+
+  private commit(tasks: GanttTask[]) {
+    this.tasks = tasks;
+    this.lastEmitted = serializeGantt(tasks);
+    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
+  }
+
+  private patch(i: number, p: Partial<GanttTask>) {
+    this.commit(this.tasks.map((t, j) => (j === i ? { ...t, ...p } : t)));
+  }
+
+  private add() {
+    if (this.tasks.length >= MAX_TASKS) return;
+    // A new task starts where the one above it ends.
+    const prev = this.tasks[this.tasks.length - 1];
+    this.commit([...this.tasks, { start: prev ? prev.start + prev.days : today(), days: 3, done: 0, label: '' }]);
+    this.cur = this.tasks.length - 1;
+    this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.gantt-rows tr:last-child input.label')?.focus());
+  }
+
+  private removeTask() {
+    this.commit(this.tasks.filter((_, j) => j !== this.cur));
+    this.cur = Math.max(0, Math.min(this.cur, this.tasks.length - 1));
+  }
+
+  private move(d: number) {
+    const j = this.cur + d;
+    if (j < 0 || j >= this.tasks.length) return;
+    const tasks = [...this.tasks];
+    [tasks[this.cur], tasks[j]] = [tasks[j], tasks[this.cur]];
+    this.commit(tasks);
+    this.cur = j;
+  }
+
+  private onBarDown(e: PointerEvent, i: number, mode: 'move' | 'size') {
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    this.cur = i;
+    this.drag = { i, mode, x0: e.clientX, start: this.tasks[i].start, days: this.tasks[i].days };
+  }
+
+  private onBarMove(e: PointerEvent) {
+    const d = this.drag;
+    if (!d) return;
+    const delta = Math.round((e.clientX - d.x0) / this.zoom);
+    const t = this.tasks[d.i];
+    if (d.mode === 'move') {
+      const start = Math.max(0, d.start + delta);
+      if (start !== t.start) this.patch(d.i, { start });
+    } else {
+      const days = Math.max(1, d.days + delta);
+      if (days !== t.days) this.patch(d.i, { days });
+    }
+  }
+
+  private renderChart() {
+    const range = ganttRange(this.tasks)!;
+    const now = today();
+    const from = range.from - 2;
+    const to = Math.max(range.to + 3, from + 21);
+    const z = this.zoom;
+    const width = (to - from) * z;
+    const height = HEAD + this.tasks.length * ROW;
+    const days = Array.from({ length: to - from }, (_, k) => from + k);
+    // Days until the next month label, so the first one is dropped when there is no room for it.
+    const nextMonth = days.findIndex((day, k) => k > 0 && ymd(day).d === 1) < 0 ? Infinity : days.findIndex((day, k) => k > 0 && ymd(day).d === 1);
+    return svg`<svg class="gantt-chart" width=${width} height=${height} viewBox="0 0 ${width} ${height}" role="img" aria-label="Chart" @pointermove=${this.onBarMove} @pointerup=${() => (this.drag = null)} @pointercancel=${() => (this.drag = null)}>
+      ${days.map((day, k) => {
+        const { d, m, wd } = ymd(day);
+        return svg`
+          ${wd === 0 || wd === 6 ? svg`<rect class="weekend" x=${k * z} y=${HEAD} width=${z} height=${height - HEAD} />` : nothing}
+          ${d === 1 || (k === 0 && nextMonth * z > 70) ? svg`<text class="month" x=${k * z + 4} y="16">${MONTHS[m - 1]} ${ymd(day).y}</text>` : nothing}
+          ${z >= 18 || wd === 1 ? svg`<text class="day" x=${k * z + z / 2} y="36" text-anchor="middle">${d}</text>` : nothing}
+          <line class=${wd === 1 ? 'week' : 'tick'} x1=${k * z} y1=${wd === 1 ? 22 : HEAD} x2=${k * z} y2=${height} />`;
+      })}
+      <line class="head" x1="0" y1=${HEAD} x2=${width} y2=${HEAD} />
+      ${now >= from && now < to ? svg`<line class="today" x1=${(now - from + 0.5) * z} y1="22" x2=${(now - from + 0.5) * z} y2=${height} />` : nothing}
+      ${this.tasks.map((t, i) => {
+        const x = (t.start - from) * z;
+        const w = t.days * z;
+        const y = HEAD + i * ROW + 7;
+        return svg`<g class="bar ${i === this.cur ? 'sel' : ''}" data-idx=${i}>
+          <rect class="track" x=${x} y=${y} width=${w} height=${ROW - 14} rx="5" @pointerdown=${(e: PointerEvent) => this.onBarDown(e, i, 'move')} />
+          ${t.done ? svg`<rect class="done" x=${x} y=${y} width=${(w * t.done) / 100} height=${ROW - 14} rx="5" pointer-events="none" />` : nothing}
+          <rect class="grip" x=${x + w - 8} y=${y} width="12" height=${ROW - 14} @pointerdown=${(e: PointerEvent) => this.onBarDown(e, i, 'size')} />
+          <text x=${x + w + 8} y=${y + (ROW - 14) / 2} dominant-baseline="central" pointer-events="none">${t.label}</text>
+        </g>`;
+      })}
+    </svg>`;
+  }
+
+  render() {
+    const n = this.tasks.length;
+    const range = ganttRange(this.tasks);
+    return html`
+      <div class="to-toolbar">
+        <sl-button size="small" ?disabled=${n >= MAX_TASKS} @click=${this.add}>${icon(UI.plus, 14)} Task</sl-button>
+        <sl-tooltip content="Delete this task" hoist><sl-button class="icon" size="small" aria-label="Delete task" ?disabled=${!n} @click=${this.removeTask}>${icon(UI.trash, 14)}<span class="sr-only">Delete task</span></sl-button></sl-tooltip>
+        <sl-button-group label="Reorder">
+          <sl-button class="icon" size="small" aria-label="Move task up" ?disabled=${this.cur === 0} @click=${() => this.move(-1)}>${icon(UI.up, 14)}<span class="sr-only">Move task up</span></sl-button>
+          <sl-button class="icon" size="small" aria-label="Move task down" ?disabled=${this.cur >= n - 1} @click=${() => this.move(1)}>${icon(UI.down, 14)}<span class="sr-only">Move task down</span></sl-button>
+        </sl-button-group>
+        <span class="to-spacer"></span>
+        ${range ? html`<span class="to-hint">${range.to - range.from} days</span>` : nothing}
+        <sl-button-group label="Zoom">
+          <sl-button class="icon" size="small" aria-label="Zoom out" ?disabled=${this.zoom <= 8} @click=${() => (this.zoom = Math.max(8, this.zoom - 8))}>${icon(UI.zoomOut, 14)}<span class="sr-only">Zoom out</span></sl-button>
+          <sl-button class="icon" size="small" aria-label="Zoom in" ?disabled=${this.zoom >= 40} @click=${() => (this.zoom = Math.min(40, this.zoom + 8))}>${icon(UI.zoomIn, 14)}<span class="sr-only">Zoom in</span></sl-button>
+        </sl-button-group>
+      </div>
+      ${n
+        ? html`<div class="gantt">
+            <table class="gantt-rows">
+              <thead>
+                <tr><th>Task</th><th>Start</th><th>Days</th><th>Done</th></tr>
+              </thead>
+              <tbody>
+                ${this.tasks.map(
+                  (t, i) => html`<tr class=${i === this.cur ? 'sel' : ''} @focusin=${() => (this.cur = i)}>
+                    <td><input class="label" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} /></td>
+                    <td>
+                      <input type="date" aria-label="Start of task ${i + 1}" .value=${toInput(t.start)} @change=${(e: Event) => {
+                        const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec((e.target as HTMLInputElement).value);
+                        if (m) this.patch(i, { start: Math.max(0, ymdToDay(+m[1], +m[2], +m[3]) - EPOCH_DAY) });
+                      }} />
+                    </td>
+                    <td><input class="n" type="number" min="1" max="999" aria-label="Days for task ${i + 1}" .value=${String(t.days)} @change=${(e: Event) => this.patch(i, { days: Math.max(1, Math.min(999, parseInt((e.target as HTMLInputElement).value, 10) || 1)) })} /></td>
+                    <td><input class="n" type="number" min="0" max="100" step="10" aria-label="Percent done for task ${i + 1}" .value=${String(t.done)} @change=${(e: Event) => this.patch(i, { done: Math.max(0, Math.min(100, parseInt((e.target as HTMLInputElement).value, 10) || 0)) })} /></td>
+                  </tr>`,
+                )}
+              </tbody>
+            </table>
+            <div class="gantt-scroll">${this.renderChart()}</div>
+          </div>`
+        : html`<p class="to-empty">No tasks yet.</p>`}
+    `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'to-gantt': ToGantt;
+  }
+}

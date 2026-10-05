@@ -2,7 +2,7 @@
 
 A tiny office suite that lives entirely in the URL.
 
-Five small apps, no server, no accounts, nothing to save. Every document is
+Eleven small apps, no server, no accounts, nothing to save. Every document is
 encoded into the address bar, kept under 2,048 characters. Copy the link and
 you have copied the file.
 
@@ -13,6 +13,12 @@ you have copied the file.
 | Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
 | Calendar | Labelled spans of time on a month grid, shown in any time zone.    |
+| Todo  | Tasks to tick off, with stars and due dates.                          |
+| Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
+| Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize.   |
+| Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
+| Tune  | A two-bar piano roll that plays, and saves as MIDI.                   |
+| Motion | Icons and text that move between the moments you set.                |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
@@ -30,21 +36,34 @@ npm test           # unit tests for the codecs and the formula engine
 npx playwright install chromium && npx playwright test   # browser tests, desktop and phone
 ```
 
-The build is a single `index.html` plus one JavaScript file. Host it on any
-static file server, or open `dist/index.html` straight from disk.
+The build is `index.html`, one stylesheet and two scripts (the map library
+for Trip loads only when Trip is opened), plus icons. Host it on any static
+file server. `VITE_SITE_URL` in `.env` is the address it will be published
+at; the link-preview tags need it. `node scripts/make-icons.mjs` redraws the
+PNG icons and the preview card in `public/`.
+
+Trip is the one app that uses the network while you work: map tiles come
+from openstreetmap.org and place searches go to its Nominatim service. The
+route itself stays in the URL like every other document.
 
 ## How a document fits in a URL
 
-The URL looks like `https://host/#/v1/sheet/ZXQAA...`. `v1` is the version of
-the URL format; links from before versions existed (`#/sheet/...`) are read as
-version 1 and rewritten on the next edit. The part after the app name is the
-document:
+The URL looks like `https://host/#/v2/sheet/YXQAA...`. `v2` is the version of
+the URL format. Version 2 added dictionary compression; it reads everything
+version 1 wrote, and links from before versions existed (`#/sheet/...`) are
+read as version 1. Older links are rewritten on the next edit. The part after
+the app name is the document:
 
 1. Each app serialises its content to a compact text format (below), and the
    shell wraps it in the envelope described under "Creation time and
    signatures".
-2. That text is deflated with [fflate](https://github.com/101arrowz/fflate) and
-   base64url-encoded, prefixed with `z`. For very short documents, where
+2. That text is deflated with [fflate](https://github.com/101arrowz/fflate)
+   against a small shared dictionary (common English words, the apps' own
+   markup, icon names) and base64url-encoded, prefixed with `y`. Because both
+   ends already know the dictionary, short documents come out 20 to 35 percent
+   smaller than plain deflate, which is still read under the prefix `z`. The
+   dictionary in `src/lib/codec.ts` is frozen: changing a byte of it would
+   break every `y` link. For very short documents, where
    compression would cost more than it saves, the raw UTF-8 is base64url-encoded
    instead and prefixed with `r`. The shorter of the two wins. Uppercase `Z`
    and `R` mark payloads that carry an envelope; lowercase ones from older
@@ -67,19 +86,49 @@ as that file the moment it is opened, then shows the editor as usual:
 
 | Link                         | File                                              |
 | ---------------------------- | ------------------------------------------------- |
-| `#/v1/sheet.xlsx/<payload>`  | Excel workbook, formulas intact (`.xls` also works) |
-| `#/v1/sheet.csv/<payload>`   | CSV of the computed values                        |
-| `#/v1/write.rtf/<payload>`   | Rich Text                                         |
-| `#/v1/write.html/<payload>`  | A standalone web page                             |
-| `#/v1/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
-| `#/v1/draw.svg/<payload>`    | SVG image                                         |
-| `#/v1/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
+| `#/v2/sheet.xlsx/<payload>`  | Excel workbook, formulas intact (`.xls` also works) |
+| `#/v2/sheet.csv/<payload>`   | CSV of the computed values                        |
+| `#/v2/write.rtf/<payload>`   | Rich Text                                         |
+| `#/v2/write.html/<payload>`  | A standalone web page                             |
+| `#/v2/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
+| `#/v2/draw.svg/<payload>`    | SVG image                                         |
+| `#/v2/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
+| `#/v2/todo.md/<payload>`     | Markdown checklist                                |
+| `#/v2/board.md/<payload>`, `.csv` | Markdown, or CSV of stage and card           |
+| `#/v2/gantt.csv/<payload>`   | CSV of tasks with start and end dates             |
+| `#/v2/trip.gpx/<payload>`, `.geojson` | GPX route, or GeoJSON                    |
+| `#/v2/tune.mid/<payload>`    | MIDI file                                         |
+| `#/v2/anim.svg/<payload>`    | Animated SVG                                      |
+| `#/v2/<app>.png/<payload>`   | A picture of any document, sized for sharing      |
 
 The same files are under the Download button on every document, and the
 Document dialog has a copy button for each download link. A password-locked
 link downloads once the password is entered. The file is named after the
 document's title when it has one. All of it is built in the browser by
 `src/lib/exports.ts`; nothing is sent anywhere.
+
+### Sharing, and what a link preview can show
+
+A document lives in the fragment (the part after `#`), which browsers never
+send to a server. That is the privacy promise, and it is also why every
+TinyOffice link previews as the same card on social sites: their crawlers
+fetch the page without the fragment and do not run JavaScript, so the only
+tags they see are the static ones in `index.html`. Without a server that is
+handed the document, nothing can change that.
+
+What works without one, from the Share menu: the device's share sheet gets
+the link plus a picture of the document; Bluesky, Mastodon, X, LinkedIn and
+email open their compose box with the link in it; and the `.png` view saves
+the picture to attach by hand. Hovering the meter (or opening the Document
+dialog) shows how much room the link leaves in a Bluesky post, a text
+message, a QR code and so on; the numbers are in `src/lib/limits.ts`.
+
+### Embedding one document in another
+
+Paste a TinyOffice link on its own into Write and it becomes a preview of
+that document: the drawing or animation itself, or the title and first lines
+of anything else. It is stored as one line, `@@<app>/<payload>`, and the web
+page and rich text downloads carry it as a working link.
 
 ### Formats
 
@@ -93,9 +142,11 @@ Every format is plain text, chosen so deflate has something to chew on.
   `+ ` for bulleted and numbered items. Inline toggles `*bold*`, `_italic_`,
   `^underline^`, `~strike~`, with `\` as the escape character.
 - **Deck**: slides separated by a blank line. In each slide an optional
-  `:icon-name` line, then the headline, then one bullet per line.
+  `:icon-name` line, then the headline, then one bullet per line. `:t` after
+  the icon name (`:rocket:t`, or `::t`) makes it a title slide.
 - **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
-  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text.
+  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
+  may carry a colour letter and a text size digit after it (`1b3`).
   Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
 - **Calendar**: an optional `@Zone/Name` line (the zone the document was last
   edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
@@ -180,6 +231,10 @@ src/lib/deckmodel.ts  deck model
 src/lib/drawmodel.ts  drawing model
 src/lib/calmodel.ts   calendar model
 src/lib/tz.ts         time zone helpers on top of Intl
+src/apps/{todo,board,gantt,trip,tune,anim}.ts   the newer apps
+src/lib/{todo,board,gantt,trip,tune,anim}model.ts   and their document formats
+src/lib/limits.ts     how much room a link leaves, service by service
+src/lib/embed.ts      previews of TinyOffice links pasted into Write
 src/lib/icons.ts      Lucide icon helpers and the icon library
 src/lib/iconsearch.ts keywords, search and per-slide suggestions for the icon library
 src/lib/exports.ts    download views: xlsx, csv, rtf, html, pptx, svg, ics

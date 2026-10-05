@@ -14,11 +14,13 @@ import { packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Env
 import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } from './lib/sign.ts';
 import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
 import { icon, iconInner, LIBRARY, UI } from './lib/icons.ts';
-import { EXPORTS, exportName, findExport, type ExportContext } from './lib/exports.ts';
+import { EXPORTS, cardSvg, exportName, findExport, titleOf, type ExportContext } from './lib/exports.ts';
+import { roomFor } from './lib/limits.ts';
+import { ICON_SVG } from './apps/anim.ts';
 import { parseDeck } from './lib/deckmodel.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
-export type AppId = 'sheet' | 'write' | 'deck' | 'draw' | 'cal';
+export type AppId = 'sheet' | 'write' | 'deck' | 'draw' | 'cal' | 'todo' | 'board' | 'gantt' | 'trip' | 'tune' | 'anim';
 
 export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = [
   { id: 'sheet', name: 'Sheet', icon: 'sheet' },
@@ -26,15 +28,48 @@ export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = [
   { id: 'deck', name: 'Deck', icon: 'deck' },
   { id: 'draw', name: 'Draw', icon: 'draw' },
   { id: 'cal', name: 'Calendar', icon: 'cal' },
+  { id: 'todo', name: 'Todo', icon: 'todo' },
+  { id: 'board', name: 'Board', icon: 'board' },
+  { id: 'gantt', name: 'Gantt', icon: 'gantt' },
+  { id: 'trip', name: 'Trip', icon: 'trip' },
+  { id: 'tune', name: 'Tune', icon: 'tune' },
+  { id: 'anim', name: 'Motion', icon: 'anim' },
 ];
+
+type Theme = 'auto' | 'light' | 'dark';
+const THEMES: Theme[] = ['auto', 'light', 'dark'];
+const THEME_NAMES: Record<Theme, string> = { auto: 'Match the device', light: 'Light', dark: 'Dark' };
+
+function storedTheme(): Theme {
+  try {
+    const t = localStorage.getItem('to-theme');
+    return t === 'light' || t === 'dark' ? t : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+/** Light or dark, as chosen; "auto" follows the device (index.html keeps watching it). */
+function applyTheme(theme: Theme) {
+  try {
+    if (theme === 'auto') localStorage.removeItem('to-theme');
+    else localStorage.setItem('to-theme', theme);
+  } catch {
+    /* private mode: the choice lasts for this visit */
+  }
+  const dark = theme === 'dark' || (theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.classList.toggle('sl-theme-dark', dark);
+}
 
 type SigState = 'none' | 'checking' | 'valid' | 'invalid';
 
 /**
- * The version of the URL format, written as "v1" at the front of every link.
- * Links from before versions existed ("#/sheet/...") are read as version 1.
+ * The version of the URL format, written as "v2" at the front of every link.
+ * Version 2 added dictionary compression (see lib/codec.ts); it reads
+ * everything version 1 wrote. Links from before versions existed
+ * ("#/sheet/...") are read as version 1.
  */
-export const URL_VERSION = 1;
+export const URL_VERSION = 2;
 
 export interface Route {
   app: AppId | null;
@@ -44,8 +79,10 @@ export interface Route {
   ext: string;
 }
 
+const ROUTE = new RegExp(`^#/(?:v(\\d+)/)?(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9]+))?(?:/(.*))?$`);
+
 export function parseHash(hash: string): Route {
-  const m = /^#\/(?:v(\d+)\/)?(sheet|write|deck|draw|cal)(?:\.([A-Za-z0-9]+))?(?:\/(.*))?$/.exec(hash);
+  const m = ROUTE.exec(hash);
   if (!m) return { app: null, payload: '', version: URL_VERSION, ext: '' };
   return { app: m[2] as AppId, payload: m[4] ?? '', version: m[1] ? parseInt(m[1], 10) : URL_VERSION, ext: m[3] ?? '' };
 }
@@ -55,23 +92,38 @@ export function routeHash(app: AppId, payload = '', ext = ''): string {
   return `#/v${URL_VERSION}/${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
 }
 
-/** Draw a library icon as a PNG, for file formats that cannot hold SVG. */
-async function iconPng(name: string, size = 256, color = '#4f46e5'): Promise<Uint8Array | null> {
-  const node = LIBRARY[name];
-  if (!node) return null;
-  const src = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconInner(node)}</svg>`;
+/** Rasterise SVG markup, for file formats and share sheets that cannot take SVG. */
+async function svgToPng(src: string, width: number, height: number): Promise<Uint8Array | null> {
   const img = new Image();
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
   try {
     await img.decode();
     const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    canvas.getContext('2d')!.drawImage(img, 0, 0, size, size);
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
     const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/png'));
     return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
   } catch {
     return null;
   }
+}
+
+function iconPng(name: string, size = 256, color = '#4f46e5'): Promise<Uint8Array | null> {
+  const node = LIBRARY[name];
+  if (!node) return Promise.resolve(null);
+  return svgToPng(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconInner(node)}</svg>`, size, size);
+}
+
+function saveFile(name: string, mime: string, data: Uint8Array) {
+  const url = URL.createObjectURL(new Blob([data as BlobPart], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
@@ -96,6 +148,7 @@ export class ToApp extends LitElement {
   @state() private pwError = false;
   @state() private pwBusy = false;
   @state() private version = URL_VERSION;
+  @state() private theme: Theme = storedTheme();
   /** A download view waiting for its document (it may need a password first). */
   private pendingExt = '';
   private toastTimer = 0;
@@ -185,13 +238,18 @@ export class ToApp extends LitElement {
   private async download(ext: string) {
     const app = this.app;
     if (!app) return;
-    const fmt = findExport(app, ext);
-    if (!fmt) {
-      this.showToast(`No .${ext} view here`);
-      return;
-    }
     const body = this.env.body;
-    const ctx: ExportContext = { created: this.env.created, icons: {} };
+    if (ext.toLowerCase() === 'png') {
+      // Every app has a picture view: the card a link preview would show.
+      const png = await svgToPng(cardSvg(app, body), 1200, 630);
+      if (!png) return this.showToast('Could not draw the picture');
+      const name = exportName(app, body, 'png');
+      saveFile(name, 'image/png', png);
+      return this.showToast(`Downloaded ${name}`);
+    }
+    const fmt = findExport(app, ext);
+    if (!fmt) return this.showToast(`No .${ext} view here`);
+    const ctx: ExportContext = { created: this.env.created, icons: {}, iconSvg: ICON_SVG, base: `${location.origin}${location.pathname}` };
     if (app === 'deck') {
       for (const name of new Set(parseDeck(body).map((s) => s.icon))) {
         const png = name ? await iconPng(name) : null;
@@ -199,15 +257,66 @@ export class ToApp extends LitElement {
       }
     }
     const name = exportName(app, body, fmt.ext);
-    const url = URL.createObjectURL(new Blob([fmt.build(body, ctx) as BlobPart], { type: fmt.mime }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    saveFile(name, fmt.mime, fmt.build(body, ctx));
     this.showToast(`Downloaded ${name}`);
+  }
+
+  /* ---------- sharing ---------- */
+
+  private get docTitle(): string {
+    const name = APPS.find((a) => a.id === this.app)?.name ?? 'TinyOffice';
+    return (this.app && titleOf(this.app, this.env.body)) || name;
+  }
+
+  /**
+   * Sharing without a server. The document is in the fragment, which no
+   * crawler ever sees, so a link preview can only be the site's own card.
+   * What we can do from here: hand the link (and a picture of the document)
+   * to the device's share sheet, or open a service's compose box with the
+   * link already in it.
+   */
+  private async share(how: string) {
+    const url = location.href;
+    const title = this.docTitle;
+    const q = encodeURIComponent;
+    if (how === 'native') {
+      const data: ShareData = { title, text: title, url };
+      const png = this.app ? await svgToPng(cardSvg(this.app, this.env.body), 1200, 630) : null;
+      if (png) {
+        const file = new File([png as BlobPart], exportName(this.app!, this.env.body, 'png'), { type: 'image/png' });
+        if (navigator.canShare?.({ files: [file] })) data.files = [file];
+      }
+      try {
+        await navigator.share(data);
+      } catch {
+        /* dismissed */
+      }
+      return;
+    }
+    if (how === 'copy') {
+      await navigator.clipboard.writeText(url).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'));
+      return;
+    }
+    if (how === 'png') return void this.download('png');
+    const to: Record<string, string> = {
+      bluesky: `https://bsky.app/intent/compose?text=${q(`${title} ${url}`)}`,
+      mastodon: `https://mastodonshare.com/?text=${q(title)}&url=${q(url)}`,
+      x: `https://twitter.com/intent/tweet?text=${q(title)}&url=${q(url)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${q(url)}`,
+      email: `mailto:?subject=${q(title)}&body=${q(url)}`,
+    };
+    if (to[how]) window.open(to[how], '_blank', 'noopener');
+  }
+
+  private cycleTheme() {
+    this.theme = THEMES[(THEMES.indexOf(this.theme) + 1) % THEMES.length];
+    applyTheme(this.theme);
+    this.showToast(THEME_NAMES[this.theme]);
+  }
+
+  protected updated() {
+    const title = this.app ? `${this.docTitle} · TinyOffice` : 'TinyOffice';
+    if (document.title !== title) document.title = title;
   }
 
   private onDocChange(e: CustomEvent<string>) {
@@ -351,15 +460,48 @@ export class ToApp extends LitElement {
     return html`
       <header class="to-header">
         <div class="to-header-inner">
-          <sl-button class="to-burger icon" variant="text" size="medium" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
+          <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyOffice</span></a>
-          <nav class="to-nav" aria-label="Apps">
-            ${APPS.map((a) => html`<a href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 15)} ${a.name}</a>`)}
-          </nav>
+          ${current ? html`<a class="to-here" href=${routeHash(current.id)} title="New ${current.name}">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>` : nothing}
           <span class="to-spacer"></span>
           ${current
             ? html`
-                <to-meter .used=${this.payloadLength} .available=${available} .href=${location.href} @to-info=${() => this.dialog()?.show()}></to-meter>
+                <to-meter .used=${this.payloadLength} .available=${available} .href=${location.href} .rooms=${roomFor(location.href)} @to-info=${() => this.dialog()?.show()}></to-meter>
+                ${this.sealed
+                  ? nothing
+                  : html`<div class="to-doc-actions">
+                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.download(e.detail.item.value)}>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Download" title="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
+                        <sl-menu>
+                          <sl-menu-label>Download</sl-menu-label>
+                          ${EXPORTS[current.id].map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
+                          <sl-menu-item value="png">Picture<code slot="suffix">.png</code></sl-menu-item>
+                        </sl-menu>
+                      </sl-dropdown>
+                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Share" title="Share">${icon(UI.share, 16)}<span class="sr-only">Share</span></sl-button>
+                        <sl-menu>
+                          <sl-menu-label>Share</sl-menu-label>
+                          ${'share' in navigator ? html`<sl-menu-item value="native">Share…</sl-menu-item>` : nothing}
+                          <sl-menu-item value="copy">Copy link</sl-menu-item>
+                          <sl-menu-item value="png">Save a picture</sl-menu-item>
+                          <sl-divider></sl-divider>
+                          <sl-menu-item value="bluesky">Bluesky</sl-menu-item>
+                          <sl-menu-item value="mastodon">Mastodon</sl-menu-item>
+                          <sl-menu-item value="x">X</sl-menu-item>
+                          <sl-menu-item value="linkedin">LinkedIn</sl-menu-item>
+                          <sl-menu-item value="email">Email</sl-menu-item>
+                        </sl-menu>
+                      </sl-dropdown>
+                      <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" title="Privacy" variant=${this.locker || this.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.locker ? UI.lock : this.sig === 'invalid' ? UI.shieldOff : this.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
+                        <sl-menu>
+                          <sl-menu-label>Privacy</sl-menu-label>
+                          <sl-menu-item value="password">${icon(UI.lock, 14, 'pre')} Password<span slot="suffix" class="to-hint">${this.locker ? 'Locked' : 'None'}</span></sl-menu-item>
+                          <sl-menu-item value="signature">${icon(UI.shield, 14, 'pre')} Signature<span slot="suffix" class="to-hint">${this.sig === 'valid' ? 'Signed' : this.sig === 'invalid' ? 'Mismatch' : 'None'}</span></sl-menu-item>
+                        </sl-menu>
+                      </sl-dropdown>
+                    </div>`}
                 <sl-tooltip content="New ${current.name}" hoist>
                   <sl-button class="icon" size="small" href=${routeHash(current.id)}>${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
                 </sl-tooltip>
@@ -372,6 +514,7 @@ export class ToApp extends LitElement {
           <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
           ${APPS.map((a) => html`<a href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}</span></a>`)}
         </nav>
+        <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
       </sl-drawer>
       <main class="to-main">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
@@ -386,50 +529,52 @@ export class ToApp extends LitElement {
       <div class="to-panel-head">
         <h1>${icon(UI[current.icon], 16)} ${current.name}</h1>
         <span class="meta">
-          ${this.env.created !== null ? html`${icon(UI.clock, 12)} ${fmtDate(this.env.created)}` : nothing}
+          ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
           ${this.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
           ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
           ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
           ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
           ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyOffice (v${this.version})</sl-tag>` : nothing}
         </span>
-        <span class="to-spacer"></span>
-        ${this.sealed
-          ? nothing
-          : html`<div class="to-doc-actions">
-              <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.download(e.detail.item.value)}>
-                <sl-button slot="trigger" size="small" caret>${icon(UI.download, 14)} Download</sl-button>
-                <sl-menu>
-                  ${EXPORTS[current.id].map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
-                </sl-menu>
-              </sl-dropdown>
-              <sl-button size="small" variant=${this.locker ? 'primary' : 'default'} ?outline=${!!this.locker} @click=${() => this.dialog()?.show()}>${icon(this.locker ? UI.lock : UI.unlock, 14)} Password</sl-button>
-              <sl-button size="small" variant=${this.sig === 'valid' ? 'success' : this.sig === 'invalid' ? 'danger' : 'default'} ?outline=${this.sig === 'valid' || this.sig === 'invalid'} @click=${() => this.dialog()?.show()}>${icon(this.sig === 'invalid' ? UI.shieldOff : UI.shield, 14)} Signature</sl-button>
-            </div>`}
       </div>
       <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
     </section>`;
   }
 
   private renderApp() {
+    const v = this.env.body;
     switch (this.app) {
       case 'sheet':
-        return html`<to-sheet .value=${this.env.body}></to-sheet>`;
+        return html`<to-sheet .value=${v}></to-sheet>`;
       case 'write':
-        return html`<to-write .value=${this.env.body}></to-write>`;
+        return html`<to-write .value=${v}></to-write>`;
       case 'deck':
-        return html`<to-deck .value=${this.env.body}></to-deck>`;
+        return html`<to-deck .value=${v}></to-deck>`;
       case 'draw':
-        return html`<to-draw .value=${this.env.body}></to-draw>`;
+        return html`<to-draw .value=${v}></to-draw>`;
       case 'cal':
-        return html`<to-cal .value=${this.env.body}></to-cal>`;
+        return html`<to-cal .value=${v}></to-cal>`;
+      case 'todo':
+        return html`<to-todo .value=${v}></to-todo>`;
+      case 'board':
+        return html`<to-board .value=${v}></to-board>`;
+      case 'gantt':
+        return html`<to-gantt .value=${v}></to-gantt>`;
+      case 'trip':
+        // The map library is big and only this app needs it, so it loads on demand.
+        void import('./apps/trip.ts');
+        return html`<to-trip .value=${v}></to-trip>`;
+      case 'tune':
+        return html`<to-tune .value=${v}></to-tune>`;
+      case 'anim':
+        return html`<to-anim .value=${v}></to-anim>`;
     }
     return nothing;
   }
 
   private renderHome() {
     return html`<section class="to-home">
-      <h1>TinyOffice</h1>
+      <h1 class="sr-only">TinyOffice</h1>
       <div class="to-launcher">
         ${APPS.map((a) => html`<a href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
       </div>
@@ -482,6 +627,12 @@ export class ToApp extends LitElement {
                 )
               : nothing}
           </div>
+        </dd>
+        <dt title="Room for this link">${icon(UI.send, 14)}</dt>
+        <dd>
+          <table class="to-rooms">
+            ${roomFor(location.href).map((r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th>${r.target.name}</th><td>${r.left < 0 ? `${(-r.left).toLocaleString()} over` : `${r.left.toLocaleString()} left`}</td><td class="to-hint">of ${r.target.max.toLocaleString()} · ${r.target.note}</td></tr>`)}
+          </table>
         </dd>
         <dt title="Password">${icon(UI.lock, 14)}</dt>
         <dd>

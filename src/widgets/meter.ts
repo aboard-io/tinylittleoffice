@@ -5,12 +5,15 @@
  */
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import type { Room } from '../lib/limits.ts';
 
 @customElement('to-meter')
 export class ToMeter extends LitElement {
   @property({ type: Number }) used = 0;
   @property({ type: Number }) available = 1;
   @property() href = '';
+  /** How the link fits in the places links get pasted; shown on hover. */
+  @property({ attribute: false }) rooms: Room[] = [];
 
   createRenderRoot() {
     return this;
@@ -26,16 +29,22 @@ export class ToMeter extends LitElement {
     const state = left < 0 ? 'over' : pct > 85 ? 'warn' : '';
     const title = left < 0 ? `${(-left).toLocaleString()} characters over the URL limit` : `${left.toLocaleString()} of ${this.available.toLocaleString()} URL characters left`;
     return html`<div class="to-meter ${state}" role="group" aria-label="URL space">
+      <sl-tooltip hoist placement="bottom" trigger="hover" style="--max-width: 22rem">
+      <div slot="content" class="to-meter-rooms">
+        ${this.rooms.map((r) => html`<div class=${r.left < 0 ? 'over' : ''}><b>${r.target.name}</b><span>${r.left < 0 ? `${(-r.left).toLocaleString()} over` : `${r.left.toLocaleString()} left`}</span><i>${r.target.note}</i></div>`)}
+      </div>
+      <span class="to-meter-main">
       <sl-progress-ring
         value=${pct}
         label=${title}
-        title=${title}
         role="button"
         tabindex="0"
         @click=${this.info}
         @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && this.info()}
       ></sl-progress-ring>
       <span class="text" @click=${this.info}>${left < 0 ? html`<b>${(-left).toLocaleString()} over</b>` : html`<b>${left.toLocaleString()}</b> left`}</span>
+      </span>
+      </sl-tooltip>
       <sl-copy-button
         value=${this.href}
         copy-label="Copy link"

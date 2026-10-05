@@ -34,7 +34,7 @@ test('a key without a signature is dropped, body may contain blank lines', () =>
 
 test('legacy lowercase payloads decode as a bare body', () => {
   const legacy = encodeDoc('c123\n\nnot an envelope');
-  assert.equal(legacy[0], 'r');
+  assert.equal(legacy[0], legacy[0].toLowerCase());
   assert.deepEqual(decodeEnvelope(legacy), { created: null, body: 'c123\n\nnot an envelope' });
   assert.deepEqual(decodeEnvelope(''), { created: null, body: '' });
   assert.deepEqual(decodeEnvelope('Zgarbage!'), { created: null, body: '' });

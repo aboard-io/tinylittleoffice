@@ -1,5 +1,6 @@
 /**
  * <to-deck>: up to ten slides, each with an optional icon, a headline and bullets.
+ * A title slide centres a big headline over a subtitle.
  * Document format: see lib/deckmodel.ts.
  */
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
@@ -129,6 +130,8 @@ export class ToDeck extends LitElement {
           <sl-button class="icon" size="small" aria-label="Move slide up" ?disabled=${this.cur === 0} @click=${() => this.move(-1)}>${icon(UI.up, 14)}<span class="sr-only">Move slide up</span></sl-button>
           <sl-button class="icon" size="small" aria-label="Move slide down" ?disabled=${this.cur === n - 1} @click=${() => this.move(1)}>${icon(UI.down, 14)}<span class="sr-only">Move slide down</span></sl-button>
         </sl-button-group>
+        <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
+        <sl-tooltip content="Big centred headline with a subtitle" hoist><sl-button size="small" aria-pressed=${s.cover ? 'true' : 'false'} @click=${() => this.patch(this.cur, { cover: !s.cover })}>${icon(UI.h1, 14)} Title slide</sl-button></sl-tooltip>
         <span class="to-spacer"></span>
         <span class="to-hint">${n} / ${MAX_SLIDES}</span>
         <sl-button size="small" variant="primary" @click=${() => (this.showing = 0)}>${icon(UI.play, 14)} Present</sl-button>
@@ -144,18 +147,18 @@ export class ToDeck extends LitElement {
           )}
         </aside>
         <div class="deck-editor">
-          <div class="deck-slide">
+          <div class="deck-slide ${s.cover ? 'cover' : ''}">
             <div class="head">
               <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
-                ${s.icon ? libraryIcon(s.icon, 32) : icon(UI.plus, 20)}
+                ${s.icon ? libraryIcon(s.icon, 32) : html`${icon(UI.smile, 20)}<span>Icon</span>`}
               </button>
-              <input class="title" placeholder="Headline" aria-label="Headline" .value=${s.title} @input=${(e: Event) => this.patch(this.cur, { title: (e.target as HTMLInputElement).value })} />
+              <input class="title" placeholder=${s.cover ? 'Title' : 'Headline'} aria-label="Headline" .value=${s.title} @input=${(e: Event) => this.patch(this.cur, { title: (e.target as HTMLInputElement).value })} />
             </div>
             <div class="bullets">
               <!-- The mirror wraps exactly as the textarea does, so each dot sits on its bullet's first line. -->
               <div class="mirror" aria-hidden="true">${s.bullets.map((b) => html`<div class=${b.trim() ? 'on' : ''}>${b || '\u200b'}</div>`)}</div>
               <textarea
-                placeholder="One bullet per line"
+                placeholder=${s.cover ? 'Subtitle' : 'One bullet per line'}
                 aria-label="Bullets"
                 .value=${s.bullets.join('\n')}
                 @input=${(e: Event) => this.patch(this.cur, { bullets: (e.target as HTMLTextAreaElement).value.split('\n') })}
@@ -203,9 +206,9 @@ export class ToDeck extends LitElement {
     const s = this.slides[this.showing];
     const bullets = s.bullets.filter((b) => b.trim() !== '');
     return html`<div class="deck-show" role="dialog" aria-label="Presentation" @click=${() => this.step(1)}>
-      <div class="frame">
+      <div class="frame ${s.cover ? 'cover' : ''}">
         <div class="head">${LIBRARY[s.icon] ? icon(LIBRARY[s.icon], 96) : nothing}<h1>${s.title}</h1></div>
-        ${bullets.length ? html`<ul>${bullets.map((b) => html`<li>${b}</li>`)}</ul>` : nothing}
+        ${bullets.length ? (s.cover ? html`<p class="sub">${bullets.map((b) => html`<span>${b}</span>`)}</p>` : html`<ul>${bullets.map((b) => html`<li>${b}</li>`)}</ul>`) : nothing}
       </div>
       <sl-button-group class="ctl" @click=${(e: Event) => e.stopPropagation()}>
         <sl-button class="icon" size="small" ?disabled=${this.showing === 0} aria-label="Previous" @click=${() => this.step(-1)}>${icon(UI.left, 14)}<span class="sr-only">Previous</span></sl-button>

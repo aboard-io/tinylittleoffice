@@ -13,16 +13,11 @@ export async function reopen(page: Page) {
   await page.goto(url);
 }
 
-/** Navigate to an app through the header nav, or the drawer on small screens. */
+/** Navigate to an app through the hamburger menu. */
 export async function navTo(page: Page, name: string) {
-  const burger = page.locator('.to-burger');
-  if (await burger.isVisible()) {
-    await burger.click();
-    await page.locator('#nav-drawer .to-drawer-nav a', { hasText: name }).click();
-    await expect(page.locator('#nav-drawer')).not.toHaveAttribute('open');
-  } else {
-    await page.locator('.to-nav a', { hasText: name }).click();
-  }
+  await page.locator('.to-burger').click();
+  await page.locator('#nav-drawer .to-drawer-nav a', { hasText: name }).click();
+  await expect(page.locator('#nav-drawer')).not.toHaveAttribute('open');
 }
 
 /** Pick an option in an sl-select by value. */

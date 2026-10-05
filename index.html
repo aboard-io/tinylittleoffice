@@ -6,13 +6,40 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#4f46e5" />
     <title>TinyOffice</title>
-    <meta name="description" content="A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document." />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 11h14M9 16h14M9 21h8' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <meta name="description" content="A tiny office suite that lives entirely in the URL: spreadsheets, documents, slides, drawings, calendars, to-do lists, kanban boards, Gantt charts, trip routes, tunes and animations. No server, no accounts, no saving: the link is the document." />
+    <meta name="application-name" content="TinyOffice" />
+    <meta name="apple-mobile-web-app-title" content="TinyOffice" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="%VITE_SITE_URL%" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Link previews. A document lives in the part of the address after "#", which is never
+         sent to a server, so every TinyOffice link previews as this same card. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TinyOffice" />
+    <meta property="og:title" content="TinyOffice: the link is the document" />
+    <meta property="og:description" content="A tiny office suite that lives entirely in the URL. No server, no accounts, no saving." />
+    <meta property="og:url" content="%VITE_SITE_URL%" />
+    <meta property="og:image" content="%VITE_SITE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TinyOffice: a tiny office suite that lives entirely in the URL." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"WebApplication","name":"TinyOffice","url":"%VITE_SITE_URL%","applicationCategory":"BusinessApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0"},"description":"A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document."}
+    </script>
     <script>
-      // Follow the system theme. Byron: swap this for a toggle if you like.
+      // Light or dark: the saved choice if there is one, otherwise whatever the device says.
       (function () {
         var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        var apply = function () { document.documentElement.classList.toggle('sl-theme-dark', mq.matches); };
+        var apply = function () {
+          var t = null;
+          try { t = localStorage.getItem('to-theme'); } catch (e) {}
+          document.documentElement.classList.toggle('sl-theme-dark', t ? t === 'dark' : mq.matches);
+        };
         apply();
         mq.addEventListener('change', apply);
       })();
@@ -21,6 +48,10 @@
   </head>
   <body>
     <to-app></to-app>
-    <noscript>TinyOffice needs JavaScript. Everything runs in your browser; nothing is sent to a server.</noscript>
+    <noscript>
+      <h1>TinyOffice</h1>
+      <p>A tiny office suite that lives entirely in the URL: Sheet, Write, Deck, Draw, Calendar, Todo, Board, Gantt, Trip, Tune and Motion.</p>
+      <p>TinyOffice needs JavaScript. Everything runs in your browser; a document is never sent to a server.</p>
+    </noscript>
   </body>
 </html>

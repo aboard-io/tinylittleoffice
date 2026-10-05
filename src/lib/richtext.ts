@@ -3,6 +3,8 @@
  *
  * Blocks: one per line.  Prefixes:  "# " h1, "## " h2, "- " bullet, "+ " numbered.
  * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~ ; "\" escapes.
+ * Embed: a line "@@<app>/<payload>" is another TinyOffice document, shown as
+ * a preview that links to it (see lib/embed.ts).
  */
 export interface Run {
   t: string;
@@ -11,21 +13,29 @@ export interface Run {
   u?: boolean;
   s?: boolean;
 }
-export type BlockKind = 'p' | 'h1' | 'h2' | 'ul' | 'ol';
+export type BlockKind = 'p' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
 export interface Block {
   k: BlockKind;
   runs: Run[];
+  /** For an embed ("e"): the document it points at, as "<app>/<payload>". */
+  ref?: string;
 }
+
+const EMBED = /^@@([a-z]+\/[A-Za-z0-9_-]+)$/;
 
 const FLAGS = ['b', 'i', 'u', 's'] as const;
 const MARK: Record<(typeof FLAGS)[number], string> = { b: '*', i: '_', u: '^', s: '~' };
 const UNMARK: Record<string, (typeof FLAGS)[number]> = { '*': 'b', _: 'i', '^': 'u', '~': 's' };
-const PREFIX: Record<BlockKind, string> = { p: '', h1: '# ', h2: '## ', ul: '- ', ol: '+ ' };
+const PREFIX: Record<BlockKind, string> = { p: '', h1: '# ', h2: '## ', ul: '- ', ol: '+ ', e: '@@' };
 const SPECIAL = /[\\*_^~]/g;
 
 export function serializeDoc(blocks: Block[]): string {
   const lines: string[] = [];
   for (const blk of blocks) {
+    if (blk.k === 'e') {
+      if (blk.ref && EMBED.test('@@' + blk.ref)) lines.push('@@' + blk.ref);
+      continue;
+    }
     let out = PREFIX[blk.k];
     const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
     let first = true;
@@ -39,7 +49,7 @@ export function serializeDoc(blocks: Block[]): string {
       }
       let text = run.t.replace(SPECIAL, (m) => '\\' + m);
       // A paragraph that would start with a prefix marker must be escaped.
-      if (first && blk.k === 'p' && /^(#|- |\+ )/.test(text)) text = '\\' + text;
+      if (first && blk.k === 'p' && /^(#|- |\+ |@@)/.test(text)) text = '\\' + text;
       first = false;
       out += text;
     }
@@ -57,6 +67,11 @@ export function parseDoc(text: string): Block[] {
   const blocks: Block[] = [];
   for (const rawLine of text.split('\n')) {
     let line = rawLine;
+    const embed = EMBED.exec(line);
+    if (embed) {
+      blocks.push({ k: 'e', runs: [], ref: embed[1] });
+      continue;
+    }
     let k: BlockKind = 'p';
     if (line.startsWith('## ')) {
       k = 'h2';

@@ -7,3 +7,8 @@ import './apps/write.ts';
 import './apps/deck.ts';
 import './apps/draw.ts';
 import './apps/cal.ts';
+import './apps/todo.ts';
+import './apps/board.ts';
+import './apps/gantt.ts';
+import './apps/tune.ts';
+import './apps/anim.ts';

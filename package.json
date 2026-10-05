@@ -14,11 +14,13 @@
   "dependencies": {
     "@shoelace-style/shoelace": "^2.20.1",
     "fflate": "^0.8.2",
+    "leaflet": "^1.9.4",
     "lit": "^3.3.0",
     "lucide": "^0.544.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.4",
     "typescript": "^5.9.2",
     "vite": "^7.1.0"
