@@ -78,6 +78,21 @@ export class ToBoard extends LitElement {
     this.commit(stages);
   }
 
+  /** Alt+arrows carry a card along the workflow, or up and down its stage; the card keeps the focus. */
+  private onCardKey(e: KeyboardEvent, i: number, c: number) {
+    if (!e.altKey || !e.key.startsWith('Arrow')) return;
+    e.preventDefault();
+    const n = this.stages[i].cards.length;
+    let [to, at] = [i, c];
+    if (e.key === 'ArrowLeft') to = i - 1;
+    else if (e.key === 'ArrowRight') to = i + 1;
+    else at = c + (e.key === 'ArrowUp' ? -1 : 1);
+    if (to < 0 || to >= this.stages.length || (to === i && (at < 0 || at >= n))) return;
+    if (to !== i) at = this.stages[to].cards.length;
+    this.moveCard(i, c, to, at);
+    this.updateComplete.then(() => this.querySelector<HTMLElement>(`.board-col:nth-of-type(${to + 1}) .board-card:nth-child(${at + 1}) textarea`)?.focus());
+  }
+
   private editCard(i: number, c: number, text: string) {
     this.patchStage(i, { cards: this.stages[i].cards.map((t, k) => (k === c ? text : t)) });
   }
@@ -152,6 +167,7 @@ export class ToBoard extends LitElement {
                     e.dataTransfer?.setData('text/plain', text);
                     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
                   }}
+                  @keydown=${(e: KeyboardEvent) => this.onCardKey(e, i, c)}
                   @dragend=${() => {
                     this.drag = null;
                     this.over = -1;

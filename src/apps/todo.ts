@@ -70,6 +70,18 @@ export class ToTodo extends LitElement {
     this.commit(tasks);
   }
 
+  private onRowKey(e: KeyboardEvent, i: number) {
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      const j = i + (e.key === 'ArrowUp' ? -1 : 1);
+      e.preventDefault();
+      this.move(i, j - i);
+      this.updateComplete.then(() => this.querySelector<HTMLInputElement>(`.todo-list input[aria-label="Task ${Math.max(0, Math.min(this.tasks.length - 1, j)) + 1}"]`)?.focus());
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      this.patch(i, { done: !this.tasks[i].done });
+    }
+  }
+
   render() {
     const done = this.tasks.filter((t) => t.done).length;
     const now = today();
@@ -97,8 +109,8 @@ export class ToTodo extends LitElement {
       </div>
       <ul class="todo-list">
         ${rows.map(
-          ([t, i]) => html`<li class="${t.done ? 'done' : ''} ${t.due !== null && !t.done && t.due < now ? 'late' : ''}">
-            <sl-checkbox ?checked=${t.done} aria-label="Done: ${t.text}" @sl-change=${(e: Event) => this.patch(i, { done: (e.target as HTMLInputElement).checked })}></sl-checkbox>
+          ([t, i]) => html`<li class="${t.done ? 'done' : ''} ${t.due !== null && !t.done && t.due < now ? 'late' : ''}" @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
+            <sl-checkbox ?checked=${t.done} @sl-change=${(e: Event) => this.patch(i, { done: (e.target as HTMLInputElement).checked })}><span class="sr-only">Done: ${t.text}</span></sl-checkbox>
             <input class="text" aria-label="Task ${i + 1}" .value=${t.text} @input=${(e: Event) => this.patch(i, { text: (e.target as HTMLInputElement).value })} />
             <input class="due" type="date" aria-label="Due date" .value=${dayToInput(t.due)} @change=${(e: Event) => this.patch(i, { due: inputToDay((e.target as HTMLInputElement).value) })} />
             <button class="star" aria-label="Star" aria-pressed=${t.star ? 'true' : 'false'} @click=${() => this.patch(i, { star: !t.star })}>${icon(UI.star, 16)}</button>

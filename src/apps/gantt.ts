@@ -6,7 +6,7 @@
 import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
-import { MAX_TASKS, ganttRange, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
+import { MAX_INDENT, MAX_TASKS, ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
 import { EPOCH_DAY } from '../lib/calmodel.ts';
 import { dayToYmd, ymdString, ymdToDay } from '../lib/tz.ts';
 
@@ -55,13 +55,17 @@ export class ToGantt extends LitElement {
     this.commit(this.tasks.map((t, j) => (j === i ? { ...t, ...p } : t)));
   }
 
-  private add() {
+  /** Add a task under row `after` (by default, at the end). It starts where that one ends, at the same level. */
+  private add(after = this.tasks.length - 1) {
     if (this.tasks.length >= MAX_TASKS) return;
-    // A new task starts where the one above it ends.
-    const prev = this.tasks[this.tasks.length - 1];
-    this.commit([...this.tasks, { start: prev ? prev.start + prev.days : today(), days: 3, done: 0, label: '' }]);
-    this.cur = this.tasks.length - 1;
-    this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.gantt-rows tr:last-child input.label')?.focus());
+    const prev = this.tasks[after];
+    const task: GanttTask = { start: prev ? prev.start + prev.days : today(), days: 3, done: 0, label: '' };
+    if (prev?.depth) task.depth = prev.depth;
+    const tasks = [...this.tasks];
+    tasks.splice(after + 1, 0, task);
+    this.commit(tasks);
+    this.cur = after + 1;
+    this.updateComplete.then(() => this.querySelector<HTMLInputElement>(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`)?.focus());
   }
 
   private removeTask() {
@@ -76,6 +80,34 @@ export class ToGantt extends LitElement {
     [tasks[this.cur], tasks[j]] = [tasks[j], tasks[this.cur]];
     this.commit(tasks);
     this.cur = j;
+  }
+
+  /** Put the task under the one above it (or bring it back out). The first task cannot be anyone's part. */
+  private indent(d: number, i = this.cur) {
+    const t = this.tasks[i];
+    if (!t) return;
+    const above = i > 0 ? (this.tasks[i - 1].depth ?? 0) : -1;
+    const depth = Math.max(0, Math.min(MAX_INDENT, above + 1, (t.depth ?? 0) + d));
+    if (depth !== (t.depth ?? 0)) this.patch(i, { depth: depth || undefined });
+  }
+
+  private onRowKey(e: KeyboardEvent, i: number) {
+    const refocus = () => this.updateComplete.then(() => this.querySelector<HTMLInputElement>(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`)?.focus());
+    if (e.key === 'Tab' && (e.target as HTMLElement).classList.contains('label') && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      // Tab indents only when it can; otherwise it moves on as Tab always does.
+      const before = this.tasks[i].depth ?? 0;
+      this.indent(e.shiftKey ? -1 : 1, i);
+      if ((this.tasks[i].depth ?? 0) !== before) e.preventDefault();
+    } else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      this.cur = i;
+      this.move(e.key === 'ArrowUp' ? -1 : 1);
+      refocus();
+    } else if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+      // Return in any field of a task starts the next one, right below it.
+      e.preventDefault();
+      this.add(i);
+    }
   }
 
   private onBarDown(e: PointerEvent, i: number, mode: 'move' | 'size') {
@@ -102,6 +134,7 @@ export class ToGantt extends LitElement {
 
   private renderChart() {
     const range = ganttRange(this.tasks)!;
+    const spans = ganttSpans(this.tasks);
     const now = today();
     const from = range.from - 2;
     const to = Math.max(range.to + 3, from + 21);
@@ -123,9 +156,16 @@ export class ToGantt extends LitElement {
       <line class="head" x1="0" y1=${HEAD} x2=${width} y2=${HEAD} />
       ${now >= from && now < to ? svg`<line class="today" x1=${(now - from + 0.5) * z} y1="22" x2=${(now - from + 0.5) * z} y2=${height} />` : nothing}
       ${this.tasks.map((t, i) => {
-        const x = (t.start - from) * z;
-        const w = t.days * z;
+        const sp = spans[i];
+        const x = (sp.start - from) * z;
+        const w = sp.days * z;
         const y = HEAD + i * ROW + 7;
+        // A task with parts under it is a bracket around them; it moves when they do.
+        if (sp.parent)
+          return svg`<g class="bar parent ${i === this.cur ? 'sel' : ''}" data-idx=${i} @pointerdown=${() => (this.cur = i)}>
+            <path d="M${x} ${y + 4}h${w}v14l-7 -7h${-(w - 14)}l-7 7z" />
+            <text x=${x + w + 8} y=${y + (ROW - 14) / 2} dominant-baseline="central" pointer-events="none">${t.label}</text>
+          </g>`;
         return svg`<g class="bar ${i === this.cur ? 'sel' : ''}" data-idx=${i}>
           <rect class="track" x=${x} y=${y} width=${w} height=${ROW - 14} rx="5" @pointerdown=${(e: PointerEvent) => this.onBarDown(e, i, 'move')} />
           ${t.done ? svg`<rect class="done" x=${x} y=${y} width=${(w * t.done) / 100} height=${ROW - 14} rx="5" pointer-events="none" />` : nothing}
@@ -141,11 +181,15 @@ export class ToGantt extends LitElement {
     const range = ganttRange(this.tasks);
     return html`
       <div class="to-toolbar">
-        <sl-button size="small" ?disabled=${n >= MAX_TASKS} @click=${this.add}>${icon(UI.plus, 14)} Task</sl-button>
+        <sl-button size="small" ?disabled=${n >= MAX_TASKS} @click=${() => this.add()}>${icon(UI.plus, 14)} Task</sl-button>
         <sl-tooltip content="Delete this task" hoist><sl-button class="icon" size="small" aria-label="Delete task" ?disabled=${!n} @click=${this.removeTask}>${icon(UI.trash, 14)}<span class="sr-only">Delete task</span></sl-button></sl-tooltip>
         <sl-button-group label="Reorder">
           <sl-button class="icon" size="small" aria-label="Move task up" ?disabled=${this.cur === 0} @click=${() => this.move(-1)}>${icon(UI.up, 14)}<span class="sr-only">Move task up</span></sl-button>
           <sl-button class="icon" size="small" aria-label="Move task down" ?disabled=${this.cur >= n - 1} @click=${() => this.move(1)}>${icon(UI.down, 14)}<span class="sr-only">Move task down</span></sl-button>
+        </sl-button-group>
+        <sl-button-group label="Indent">
+          <sl-button class="icon" size="small" aria-label="Bring out" ?disabled=${!(this.tasks[this.cur]?.depth ?? 0)} @click=${() => this.indent(-1)}>${icon(UI.outdent, 14)}<span class="sr-only">Bring out</span></sl-button>
+          <sl-button class="icon" size="small" aria-label="Indent under the task above" ?disabled=${this.cur === 0 || !n} @click=${() => this.indent(1)}>${icon(UI.indent, 14)}<span class="sr-only">Indent under the task above</span></sl-button>
         </sl-button-group>
         <span class="to-spacer"></span>
         ${range ? html`<span class="to-hint">${range.to - range.from} days</span>` : nothing}
@@ -162,8 +206,8 @@ export class ToGantt extends LitElement {
               </thead>
               <tbody>
                 ${this.tasks.map(
-                  (t, i) => html`<tr class=${i === this.cur ? 'sel' : ''} @focusin=${() => (this.cur = i)}>
-                    <td><input class="label" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} /></td>
+                  (t, i) => html`<tr class="${i === this.cur ? 'sel' : ''} ${ganttSpans(this.tasks)[i].parent ? 'parent' : ''}" @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
+                    <td><input class="label" style="padding-left:${4 + (t.depth ?? 0) * 18}px" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} /></td>
                     <td>
                       <input type="date" aria-label="Start of task ${i + 1}" .value=${toInput(t.start)} @change=${(e: Event) => {
                         const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec((e.target as HTMLInputElement).value);
@@ -176,7 +220,7 @@ export class ToGantt extends LitElement {
                 )}
               </tbody>
             </table>
-            <div class="gantt-scroll">${this.renderChart()}</div>
+            <div class="gantt-scroll" tabindex="0" role="group" aria-label="Chart, scrolls sideways">${this.renderChart()}</div>
           </div>`
         : html`<p class="to-empty">No tasks yet.</p>`}
     `;

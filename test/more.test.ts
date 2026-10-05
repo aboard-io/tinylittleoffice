@@ -29,7 +29,7 @@ test('formula: text in arithmetic is #VALUE but is skipped inside ranges', () =>
 });
 
 test('formula: errors propagate and lowercase refs work', () => {
-  const v = evaluateGrid(grid([['=1/0', '=a1*2', '=sum(b1:b1)'], ['=c1+c1', '=if(1)', '=ROUND(2.345,2)']]));
+  const v = evaluateGrid(grid([['=1/0', '=a1*2', '=sum(b1:b1)'], ['=c1+c1', '=nope(1)', '=ROUND(2.345,2)']]));
   assert.equal(v[0][1], '#DIV/0');
   assert.equal(v[0][2], '#DIV/0');
   assert.equal(v[1][0], '#DIV/0');
@@ -48,8 +48,9 @@ test('formula: deep chains and a 20-row sum', () => {
 
 test('formula: refs and literals', () => {
   assert.deepEqual(refToRC('C20'), [19, 2]);
-  assert.equal(refToRC('C21'), null);
-  assert.equal(refToRC('D1'), null);
+  assert.deepEqual(refToRC('F30'), [29, 5]);
+  assert.equal(refToRC('C31'), null);
+  assert.equal(refToRC('G1'), null);
   assert.equal(rcToRef(0, 0), 'A1');
   assert.equal(parseLiteral(' 12.5 '), 12.5);
   assert.equal(parseLiteral('1e3'), 1000);

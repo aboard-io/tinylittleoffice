@@ -9,7 +9,7 @@ import {
   Table2, FileText, Presentation, PenTool, Plus, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
   Copy, Link, Play, X, MousePointer2, Square, Circle, Diamond, Minus, MoveRight, Type,
   ArrowUpToLine, ArrowDownToLine, Check, Sparkles, CalendarDays, Menu, ShieldCheck, ShieldAlert, KeyRound, LayoutGrid, LockKeyhole, LockKeyholeOpen, SquareFunction, FoldHorizontal, UnfoldHorizontal, Download,
-  ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, SunMoon,
+  ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, SunMoon, Pencil, Keyboard, IndentIncrease, IndentDecrease, Columns2, ChartColumn, FilePlus2,
   // library
   Rocket, Lightbulb, Target, TrendingUp, TrendingDown, BarChart3, PieChart, Users, User, Heart, Star,
   Flag, Globe, Mail, Phone, Calendar, Clock, MapPin, Home, Building2, Briefcase, DollarSign,
@@ -31,9 +31,9 @@ export const UI = {
   check: Check, sparkles: Sparkles, globe: Globe, cal: CalendarDays, menu: Menu, shield: ShieldCheck, shieldOff: ShieldAlert,
   key: KeyRound, info: Info, clock: Clock, home: LayoutGrid, lock: LockKeyhole, unlock: LockKeyholeOpen,
   fn: SquareFunction, fit: FoldHorizontal, expand: UnfoldHorizontal, download: Download,
-  todo: ListTodo, board: SquareKanban, gantt: ChartGantt, trip: Route, tune: Music, anim: Clapperboard, share: Share2, more: Ellipsis,
+  todo: ListTodo, board: SquareKanban, gantt: ChartGantt, trip: Route, anim: Clapperboard, share: Share2, more: Ellipsis,
   zoomIn: ZoomIn, zoomOut: ZoomOut, pause: Pause, stop: StopSquare, frame: Maximize, image: ImageIcon, send: Send, repeat: Repeat, star: Star, smile: Smile,
-  pin: MapPin, search: Search, locate: Navigation, sun: Sun, moon: Moon, auto: SunMoon,
+  pin: MapPin, search: Search, locate: Navigation, sun: Sun, moon: Moon, auto: SunMoon, pen: Pencil, keys: Keyboard, indent: IndentIncrease, outdent: IndentDecrease, columns: Columns2, chart: ChartColumn, insert: FilePlus2,
 } as const;
 
 export const LIBRARY: Record<string, IconNode> = {
@@ -76,3 +76,6 @@ export function libraryIcon(name: string, size = 16): TemplateResult | '' {
   const node = LIBRARY[name];
   return node ? icon(node, size) : '';
 }
+
+/** Every library icon as SVG markup (24 by 24, stroked), for drawing documents. */
+export const ICON_SVG: Record<string, string> = Object.fromEntries(Object.entries(LIBRARY).map(([name, node]) => [name, iconInner(node)]));

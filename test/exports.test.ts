@@ -2,24 +2,90 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { strFromU8, unzipSync } from 'fflate';
 
-import { EXPORTS, calendarToIcs, deckToPptx, docToHtml, docToRtf, drawingToSvg, exportName, findExport, sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/lib/exports.ts';
+import '../src/apps/index.ts';
+import { apps, appOf, extOf, fileName, docHtml, pageSvg } from '../src/kit/core.ts';
+import { pdf } from '../src/kit/pdf.ts';
+import { calendarToIcs } from '../src/apps/cal.def.ts';
+import { deckToPptx } from '../src/apps/deck.def.ts';
+import { docToHtml, docToRtf } from '../src/apps/write.def.ts';
+import { drawingToSvg } from '../src/apps/draw.def.ts';
+import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.ts';
 
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
-test('every app has a download view, and aliases resolve', () => {
-  assert.deepEqual(Object.keys(EXPORTS).sort(), ['anim', 'board', 'cal', 'deck', 'draw', 'gantt', 'sheet', 'todo', 'trip', 'tune', 'write']);
-  assert.equal(findExport('deck', 'ppt')?.ext, 'pptx');
-  assert.equal(findExport('deck', 'PPTX')?.ext, 'pptx');
-  assert.equal(findExport('cal', 'ical')?.ext, 'ics');
-  assert.equal(findExport('sheet', 'xls')?.ext, 'xlsx');
-  assert.equal(findExport('sheet', 'pptx'), null);
+test('every app is defined, and download names resolve', () => {
+  assert.deepEqual(apps().map((a) => a.id), ['sheet', 'write', 'deck', 'draw', 'cal', 'todo', 'board', 'gantt', 'trip', 'anim']);
+  assert.equal(extOf('ppt'), 'pptx');
+  assert.equal(extOf('PPTX'), 'pptx');
+  assert.equal(extOf('ical'), 'ics');
+  assert.equal(extOf('xls'), 'xlsx');
+  assert.ok(appOf('deck')!.downloads!.some((d) => d.ext === 'pptx'));
+  assert.equal(appOf('tune'), undefined);
 });
 
 test('file names come from the document title', () => {
-  assert.equal(exportName('deck', ':rocket\nLaunch plan — Q3!\none', 'pptx'), 'launch-plan-q3.pptx');
-  assert.equal(exportName('write', '# Café *memo*\nbody', 'rtf'), 'cafe-memo.rtf');
-  assert.equal(exportName('deck', '', 'pptx'), 'deck.pptx');
-  assert.equal(exportName('cal', 'd1,1,x', 'ics'), 'calendar.ics');
+  assert.equal(fileName(appOf('deck')!, ':rocket\nLaunch plan — Q3!\none', 'pptx'), 'launch-plan-q3.pptx');
+  assert.equal(fileName(appOf('write')!, '# Café *memo*\nbody', 'rtf'), 'cafe-memo.rtf');
+  assert.equal(fileName(appOf('deck')!, '', 'pptx'), 'deck.pptx');
+  assert.equal(fileName(appOf('cal')!, 'd1,1,x', 'ics'), 'cal.ics');
+});
+
+test('every app draws itself, and is a web page with preview tags', () => {
+  const samples: Record<string, string> = {
+    sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
+    write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
+    deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
+    draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
+    cal: '@America/New_York\nd2,2,Offsite\ntgo,2i,Call',
+    todo: '- one\nx!@1jk two',
+    board: '#A\nx\ny\n#B|1',
+    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch\n>1jm,3,0,Review',
+    trip: '!m\n3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
+    anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift <off>\t4,14,p,a',
+  };
+  for (const def of apps()) {
+    for (const body of [samples[def.id], '']) {
+      const pages = def.view(body);
+      assert.ok(pages.length >= 1, def.id);
+      for (const p of pages) {
+        assert.ok(p.w > 0 && p.h > 0 && Number.isFinite(p.w + p.h), `${def.id} page size`);
+        assert.ok(!pageSvg(p).includes('NaN') && !pageSvg(p).includes('undefined'), `${def.id} draws cleanly`);
+      }
+      assert.ok(def.view(body, { embed: true }).length >= 1);
+      const page = docHtml({ def, body }, { created: Date.UTC(2026, 0, 2), base: 'https://example.com/' }, 'https://example.com/x/#/v2/x/abc');
+      assert.ok(page.includes(`<meta property="og:image" content="https://example.com/og/${def.id}.png">`), def.id);
+      assert.ok(page.includes('<meta property="og:title"') && page.includes('<meta name="description"'));
+      assert.ok(page.includes('<meta property="article:published_time" content="2026-01-02T00:00:00.000Z">'));
+      assert.ok(page.includes('<main>') && (def.id === 'write' || page.includes('<h1')), `${def.id} is real HTML`);
+    }
+  }
+  // Real HTML where the app has it: a table, a checklist, nested lists.
+  const html = (id: string) => docHtml({ def: appOf(id)!, body: samples[id] }, { created: null });
+  assert.ok(html('sheet').includes('<td class="n">1200</td>') && html('sheet').includes('role="img" aria-label="Chart"'));
+  assert.ok(html('todo').includes('<input type="checkbox" disabled checked> <strong>two</strong>'));
+  assert.ok(html('write').replace(/\n/g, '').includes('<ul><li>one<ul><li>nested</li></ul></li></ul><ol><li>first</li></ol>'));
+  assert.ok(html('trip').includes('<strong>Lisbon</strong>'));
+  // Sheets with a chart are the chart when shown inside another document.
+  assert.equal(appOf('sheet')!.view(samples.sheet).length, 2);
+  assert.ok(appOf('sheet')!.view(samples.sheet, { embed: true })[0].svg.includes('Rent'));
+  // Things that build: a drawing by shape, a table by row.
+  assert.equal(appOf('draw')!.steps!(samples.draw), 2);
+  assert.ok(!appOf('draw')!.view(samples.draw, { step: 1 })[0].svg.includes('marker-end'));
+  assert.equal(appOf('sheet')!.steps!('a\nb\nc'), 3);
+});
+
+test('pdf: one page per picture', () => {
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+  const out = pdf([{ w: 960, h: 600, pw: 1920, ph: 1200, jpeg }, { w: 720, h: 1018, pw: 720, ph: 1018, jpeg }], 'Launch');
+  const text = new TextDecoder('latin1').decode(out);
+  assert.ok(text.startsWith('%PDF-1.4'));
+  assert.ok(text.trimEnd().endsWith('%%EOF'));
+  assert.equal(text.match(/\/Type \/Page /g)!.length, 2);
+  assert.ok(text.includes('/MediaBox [0 0 720 450]') && text.includes('/Width 1920 /Height 1200'));
+  // The cross-reference table points at every object.
+  const xref = Number(/startxref\n(\d+)/.exec(text)![1]);
+  assert.ok(text.slice(xref).startsWith('xref\n0 10\n'));
+  for (const [, off, n] of [...text.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m, i) => [m[0], m[1], i + 1] as const)) assert.ok(text.slice(Number(off)).startsWith(`${n} 0 obj`), `object ${n}`);
 });
 
 test('sheet to csv: computed values, quoting, used range only', () => {
@@ -49,28 +115,27 @@ test('write to rtf and html', () => {
   assert.ok(rtf.includes('\\bullet\\tab one'));
   assert.ok(rtf.includes('1.\\tab first') && rtf.includes('2.\\tab second'));
   assert.ok(docToRtf('😀').includes('\\u-10179?\\u-8704?'));
-  const html = docToHtml(body);
-  assert.ok(html.includes('<title>Memo</title>'));
+  const html = docToHtml(body).replace(/\n/g, '');
   assert.ok(html.includes('<h1>Memo</h1>'));
   assert.ok(html.includes('<strong>bold </strong><strong><em>both</em></strong>'));
-  assert.ok(html.includes('<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n<ol>\n<li>first</li>'));
+  assert.ok(html.includes('<ul><li>one</li><li>two</li></ul><ol><li>first</li>'));
 });
 
 test('deck to pptx: one slide part per slide, icons embedded when supplied', () => {
   const body = ':rocket\nLaunch <plan>\nBuild it\n \nShip & tell\n\nSecond';
   const png = new Uint8Array([137, 80, 78, 71]);
-  const files = unzipSync(deckToPptx(body, { ...ctx, icons: { rocket: png } }));
+  const files = unzipSync(deckToPptx(body, { ...ctx, png: { 'icon-rocket': png } }));
   assert.equal(Object.keys(files)[0], '[Content_Types].xml');
   for (const part of ['ppt/presentation.xml', 'ppt/slideMasters/slideMaster1.xml', 'ppt/slideLayouts/slideLayout1.xml', 'ppt/theme/theme1.xml', 'ppt/slides/slide1.xml', 'ppt/slides/slide2.xml'])
     assert.ok(files[part], part);
   assert.equal(files['ppt/slides/slide3.xml'], undefined);
-  assert.deepEqual([...files['ppt/media/rocket.png']], [...png]);
+  assert.deepEqual([...files['ppt/media/icon-rocket.png']], [...png]);
   const s1 = strFromU8(files['ppt/slides/slide1.xml']);
   assert.ok(s1.includes('<a:t>Launch &lt;plan&gt;</a:t>'));
   assert.ok(s1.includes('<a:t>Build it</a:t>') && s1.includes('<a:t>Ship &amp; tell</a:t>'));
   assert.equal(s1.match(/<a:p>/g)!.length, 3); // headline and two bullets: the blank one is dropped
   assert.ok(s1.includes('r:embed="rId2"'));
-  assert.ok(strFromU8(files['ppt/slides/_rels/slide1.xml.rels']).includes('../media/rocket.png'));
+  assert.ok(strFromU8(files['ppt/slides/_rels/slide1.xml.rels']).includes('../media/icon-rocket.png'));
   assert.ok(!strFromU8(files['ppt/slides/slide2.xml']).includes('<p:pic>'));
   // Without a PNG the slide simply has no picture.
   assert.ok(!strFromU8(unzipSync(deckToPptx(body, ctx))['ppt/slides/slide1.xml']).includes('<p:pic>'));

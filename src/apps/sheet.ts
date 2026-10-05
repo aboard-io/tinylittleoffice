@@ -1,6 +1,9 @@
 /**
- * <to-sheet>: a 20x3 spreadsheet with formulas.
+ * <to-sheet>: a spreadsheet with formulas, and a chart of it if you ask.
  * Document format: rows separated by "\n", cells by "\t", trailing blanks trimmed.
+ *
+ * Drag across cells (or hold Shift) to select a block: it can be copied,
+ * cut, pasted, cleared, or carried on with the handle at its corner.
  *
  * While a formula is being edited, tapping another cell inserts its reference
  * instead of moving there. Column widths are a view setting, not part of the
@@ -9,23 +12,12 @@
  */
 import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { COLS, ROWS, COL_NAMES, evaluateGrid, formatValue, parseGrid, serializeGrid, rcToRef, type Grid, type CellValue } from '../lib/formula.ts';
+import { COLS, ROWS, COL_NAMES, FUNCTIONS, chartOf, evaluateGrid, formatValue, parseGrid, serializeGrid, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, type Grid, type CellValue, type Range } from '../lib/formula.ts';
+import { CHART_KINDS, chartData, chartPage, suggestChart, type ChartKind } from '../lib/chart.ts';
+import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import type { SlSelect } from '../lib/shoelace.ts';
 import { icon, UI } from '../lib/icons.ts';
 import type { SlInput } from '../lib/shoelace.ts';
-
-/** Every function the engine knows: name, example arguments, what it does. */
-export const FUNCTIONS: [string, string, string][] = [
-  ['SUM', 'A1:A5', 'Add up'],
-  ['AVG', 'A1:A5', 'Average'],
-  ['MIN', 'A1:A5', 'Smallest'],
-  ['MAX', 'A1:A5', 'Largest'],
-  ['COUNT', 'A1:A5', 'How many numbers'],
-  ['ROUND', 'A1, 2', 'Round to places'],
-  ['INT', 'A1', 'Whole part'],
-  ['ABS', 'A1', 'Drop the sign'],
-  ['SQRT', 'A1', 'Square root'],
-  ['MOD', 'A1, 3', 'Remainder'],
-];
 
 const MIN_COL = 48;
 /** A reference fits wherever the formula is waiting for a value. */
@@ -37,12 +29,21 @@ export class ToSheet extends LitElement {
   @state() private grid: Grid = parseGrid('');
   @state() private sel: [number, number] = [0, 0];
   @state() private focused = false;
+  /** The far corner of a block of cells; `sel` is the corner it was started from. */
+  @state() private end: [number, number] | null = null;
+  /** While the fill handle is dragged: the block it would fill. */
+  @state() private fillTo: Range | null = null;
+  private dragging = false;
+  /** What we last put on the clipboard, so pasting it back can move formulas' references. */
+  private clip: { text: string; r: number; c: number; cut: boolean } | null = null;
   /** Column widths in px, or null to fit the columns to the page. */
   @state() private widths: number[] | null = null;
+  /** The chart asked for: 'bar', 'line', 'pie' or ''. */
+  @state() private chart = '';
   private computed: CellValue[][] = evaluateGrid(this.grid);
   private lastEmitted = '';
   /** The reference most recently inserted by tapping, so the next tap can replace it. */
-  private picked: { r: number; c: number; start: number; end: number } | null = null;
+  private picked: { r: number; c: number; start: number; end: number; to: [number, number] } | null = null;
   /** Where the caret was when the selected cell last lost focus. */
   private caret: { r: number; c: number; pos: number } | null = null;
 
@@ -53,6 +54,7 @@ export class ToSheet extends LitElement {
   willUpdate(changed: PropertyValues) {
     if (changed.has('value') && this.value !== this.lastEmitted) {
       this.grid = parseGrid(this.value);
+      this.chart = chartOf(this.value);
       this.lastEmitted = this.value;
       this.computed = evaluateGrid(this.grid);
     }
@@ -62,14 +64,100 @@ export class ToSheet extends LitElement {
   private setCell(r: number, c: number, raw: string) {
     const grid = this.grid.map((row) => row.slice());
     grid[r][c] = raw;
+    this.save(grid, this.chart);
+  }
+
+  private save(grid: Grid, chart: string) {
     this.grid = grid;
-    this.lastEmitted = serializeGrid(grid);
+    this.chart = chart;
+    this.lastEmitted = serializeGrid(grid, chart);
     this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
   }
 
-  private focusCell(r: number, c: number) {
+  /** The selected block: one cell unless a far corner has been set. */
+  private get range(): Range {
+    return rangeOf(this.sel, this.end ?? this.sel);
+  }
+  private get many(): boolean {
+    return !!this.end && (this.end[0] !== this.sel[0] || this.end[1] !== this.sel[1]);
+  }
+
+  private cellAt(x: number, y: number): [number, number] | null {
+    const td = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('td[data-r]');
+    return td && this.contains(td) ? [Number(td.dataset.r), Number(td.dataset.c)] : null;
+  }
+
+  /* ---------- clipboard ---------- */
+
+  private onCopy(e: ClipboardEvent) {
+    const input = e.target as HTMLInputElement;
+    const some = input.selectionStart !== input.selectionEnd && !(input.selectionStart === 0 && input.selectionEnd === input.value.length);
+    // Some of a cell's text, picked out, is ordinary text; otherwise it is the cell (or the block) that is copied.
+    if (!this.many && some) return;
+    const g = this.range;
+    const text = copyCells(this.grid, g);
+    e.clipboardData?.setData('text/plain', text);
+    e.preventDefault();
+    this.clip = { text, r: g.r0, c: g.c0, cut: e.type === 'cut' };
+    if (e.type === 'cut') this.save(clearCells(this.grid, g), this.chart);
+  }
+
+  private onPaste(e: ClipboardEvent) {
+    const text = (e.clipboardData?.getData('text/plain') ?? '').replace(/\r\n?/g, '\n');
+    const ours = this.clip && this.clip.text === text.replace(/\n$/, '') ? this.clip : null;
+    const block = /[\t\n]/.test(text.replace(/\n$/, ''));
+    // One value into one cell that is being typed in: let the browser paste text.
+    if (!block && !ours && !this.many) return;
+    e.preventDefault();
+    const g = this.range;
+    // A copy moves its formulas' references by how far it travelled; a cut keeps them as they were.
+    const moved = ours && !ours.cut ? { dr: g.r0 - ours.r, dc: g.c0 - ours.c } : undefined;
+    const done = pasteCells(this.grid, g.r0, g.c0, text, moved, this.many ? g : undefined);
+    this.save(done.grid, this.chart);
+    this.selectRange(done.range);
+  }
+
+  private selectRange(g: Range) {
+    this.end = [g.r1, g.c1];
+    this.focusCell(g.r0, g.c0, true);
+  }
+
+  /* ---------- fill handle ---------- */
+
+  private onFillDown(e: PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const handle = e.currentTarget as HTMLElement;
+    const src = this.range;
+    handle.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const at = this.cellAt(ev.clientX, ev.clientY);
+      if (!at) return;
+      // Fill goes one way: whichever of down/up or across the pointer has gone furthest.
+      const dr = at[0] > src.r1 ? at[0] - src.r1 : at[0] < src.r0 ? at[0] - src.r0 : 0;
+      const dc = at[1] > src.c1 ? at[1] - src.c1 : at[1] < src.c0 ? at[1] - src.c0 : 0;
+      this.fillTo = !dr && !dc ? null : Math.abs(dr) >= Math.abs(dc) ? { ...src, r0: Math.min(src.r0, at[0]), r1: Math.max(src.r1, at[0]) } : { ...src, c0: Math.min(src.c0, at[1]), c1: Math.max(src.c1, at[1]) };
+    };
+    const up = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      const dest = this.fillTo;
+      this.fillTo = null;
+      if (!dest) return;
+      this.save(fillCells(this.grid, src, dest), this.chart);
+      this.sel = [dest.r0, dest.c0];
+      this.end = [dest.r1, dest.c1];
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  }
+
+  private focusCell(r: number, c: number, keepBlock = false) {
     r = Math.max(0, Math.min(ROWS - 1, r));
     c = Math.max(0, Math.min(COLS - 1, c));
+    if (!keepBlock) this.end = null;
     this.sel = [r, c];
     this.updateComplete.then(() => {
       const el = this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
@@ -99,23 +187,81 @@ export class ToSheet extends LitElement {
     el.setSelectionRange(pos, pos);
   }
 
+  /**
+   * Point at a cell while a formula is being edited: its reference goes in
+   * at the caret, replacing the one just pointed at if there was one.
+   * Returns false when the formula is not waiting for a value.
+   */
+  private point(ed: HTMLInputElement, r: number, c: number): boolean {
+    const [sr, sc] = this.sel;
+    const val = this.grid[sr][sc];
+    if (!val.startsWith('=') || (r === sr && c === sc)) return false;
+    let start = ed.selectionStart ?? val.length;
+    const end = ed.selectionEnd ?? start;
+    const p = this.pointing(ed);
+    if (p) start = p.start;
+    else if (!WANTS_REF.test(val.slice(0, start))) return false;
+    const ref = rcToRef(r, c);
+    this.setCell(sr, sc, val.slice(0, start) + ref + val.slice(end));
+    this.picked = { r: sr, c: sc, start, end: start + ref.length, to: [r, c] };
+    this.caretTo(start + ref.length, ed);
+    return true;
+  }
+
+  /** The reference just pointed at, if the caret is still sitting right after it. */
+  private pointing(ed: HTMLInputElement) {
+    const [sr, sc] = this.sel;
+    const p = this.picked;
+    const at = ed.selectionStart;
+    return p && p.r === sr && p.c === sc && at === p.end && ed.selectionEnd === p.end && p.end <= this.grid[sr][sc].length ? p : null;
+  }
+
   /** Tapping a cell while editing a formula elsewhere inserts that cell's reference. */
   private onCellDown(e: MouseEvent, r: number, c: number) {
     const ed = this.editor();
+    if (ed && this.point(ed, r, c)) return e.preventDefault();
+    if (e.shiftKey) {
+      // Shift+click stretches the block to here; the cell it started from keeps the focus.
+      e.preventDefault();
+      this.end = [r, c];
+      return;
+    }
+    this.end = null;
+    this.dragging = true;
+    window.addEventListener('mouseup', () => (this.dragging = false), { once: true });
+  }
+
+  /** Dragging across cells with the mouse selects a block. */
+  private onCellOver(e: MouseEvent, r: number, c: number) {
+    if (!this.dragging || e.buttons !== 1) return;
+    if (r === this.sel[0] && c === this.sel[1] && !this.end) return;
+    this.end = [r, c];
+    getSelection()?.removeAllRanges();
+  }
+
+  /**
+   * Arrow keys while a formula wants a value point at cells the same way a
+   * tap does: the first press points next to the cell being edited, further
+   * presses move the pointer. Left and right only point from the end of the
+   * formula, so they can still move the caret through it.
+   */
+  private pointWithKey(e: KeyboardEvent): boolean {
+    const d: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    const move = d[e.key];
+    const ed = this.editor();
+    if (!move || !ed || e.altKey || e.ctrlKey || e.metaKey) return false;
     const [sr, sc] = this.sel;
-    if (!ed || (r === sr && c === sc)) return;
     const val = this.grid[sr][sc];
-    if (!val.startsWith('=')) return;
-    let start = ed.selectionStart ?? val.length;
-    const end = ed.selectionEnd ?? start;
-    const p = this.picked;
-    if (p && p.r === sr && p.c === sc && start === p.end && end === p.end && p.end <= val.length) start = p.start;
-    else if (!WANTS_REF.test(val.slice(0, start))) return;
+    const at = ed.selectionStart ?? 0;
+    const p = this.pointing(ed);
+    if (!val.startsWith('=') || (!p && !WANTS_REF.test(val.slice(0, at)))) return false;
+    if (move[1] !== 0 && at !== val.length) return false;
+    const [fr, fc] = p ? p.to : [sr, sc];
+    const r = Math.max(0, Math.min(ROWS - 1, fr + move[0]));
+    const c = Math.max(0, Math.min(COLS - 1, fc + move[1]));
     e.preventDefault();
-    const ref = rcToRef(r, c);
-    this.setCell(sr, sc, val.slice(0, start) + ref + val.slice(end));
-    this.picked = { r: sr, c: sc, start, end: start + ref.length };
-    this.caretTo(start + ref.length, ed);
+    this.point(ed, r, c);
+    return true;
   }
 
   private insertFunction(name: string) {
@@ -187,9 +333,28 @@ export class ToSheet extends LitElement {
   }
 
   private onKey(e: KeyboardEvent, r: number, c: number) {
+    if (this.pointWithKey(e)) return;
     const input = e.target as HTMLInputElement;
     const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
     const atEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
+    const all = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+    const arrow: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    if (e.shiftKey && arrow[e.key] && (arrow[e.key][0] !== 0 || all || this.many)) {
+      // Shift+arrows stretch the block. (Sideways, only when not selecting text inside the cell.)
+      const [fr, fc] = this.end ?? this.sel;
+      e.preventDefault();
+      this.end = [Math.max(0, Math.min(ROWS - 1, fr + arrow[e.key][0])), Math.max(0, Math.min(COLS - 1, fc + arrow[e.key][1]))];
+      return;
+    }
+    if (this.many && (e.key === 'Delete' || e.key === 'Backspace')) {
+      e.preventDefault();
+      this.save(clearCells(this.grid, this.range), this.chart);
+      return;
+    }
+    if (this.many && e.key === 'Escape') {
+      this.end = null;
+      return;
+    }
     let move: [number, number] | null = null;
     if (e.key === 'Enter') move = e.shiftKey ? [r - 1, c] : [r + 1, c];
     else if (e.key === 'ArrowDown') move = [r + 1, c];
@@ -207,9 +372,13 @@ export class ToSheet extends LitElement {
     const [sr, sc] = this.sel;
     const w = this.widths;
     const picking = this.grid[sr][sc].startsWith('=');
+    const g = this.range;
+    const fill = this.fillTo;
+    const data = chartData(this.computed);
+    const best = suggestChart(data);
     return html`
       <div class="sheet-bar">
-        <span class="ref" aria-label="Selected cell">${rcToRef(sr, sc)}</span>
+        <span class="ref" aria-label="Selected cells">${rangeRef(this.range)}</span>
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insertFunction(e.detail.item.value)}>
           <sl-button slot="trigger" class="icon" size="small" caret aria-label="Functions">${icon(UI.fn, 14)}<span class="sr-only">Functions</span></sl-button>
           <sl-menu class="sheet-fns">
@@ -225,23 +394,28 @@ export class ToSheet extends LitElement {
           .value=${this.grid[sr][sc]}
           placeholder="="
           @sl-input=${(e: Event) => this.setCell(sr, sc, (e.target as SlInput).value)}
-          @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.focusCell(sr + 1, sc)}
+          @keydown=${(e: KeyboardEvent) => !this.pointWithKey(e) && e.key === 'Enter' && this.focusCell(sr + 1, sc)}
           @sl-blur=${(e: Event) => (this.caret = { r: sr, c: sc, pos: (e.target as SlInput).input.selectionStart ?? 0 })}
         ></sl-input>
+        <sl-select class="sr-label sheet-chart-pick" size="small" label="Chart" placeholder="Chart" hoist .value=${this.chart || 'none'} @sl-change=${(e: Event) => this.save(this.grid, ((e.target as SlSelect).value as string).replace('none', ''))}>
+          <span slot="prefix">${icon(UI.chart, 14)}</span>
+          <sl-option value="none">No chart</sl-option>
+          ${CHART_KINDS.map((k) => html`<sl-option value=${k.id}>${k.name}${k.id === best ? ' (suggested)' : ''}</sl-option>`)}
+        </sl-select>
         <sl-button-group label="Column widths">
           <sl-tooltip content="Fit to page" hoist><sl-button class="icon" size="small" aria-label="Fit to page" aria-pressed=${w ? 'false' : 'true'} @click=${() => (this.widths = null)}>${icon(UI.fit, 14)}<span class="sr-only">Fit to page</span></sl-button></sl-tooltip>
           <sl-tooltip content="Show all text" hoist><sl-button class="icon" size="small" aria-label="Show all text" @click=${this.showAll}>${icon(UI.expand, 14)}<span class="sr-only">Show all text</span></sl-button></sl-tooltip>
         </sl-button-group>
       </div>
       <div class="sheet-scroll">
-        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''}" style=${w ? `width: calc(var(--sheet-row-w) + ${w.reduce((a, b) => a + b, 0)}px)` : ''}>
+        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${this.onCopy} @cut=${this.onCopy} @paste=${this.onPaste} style=${w ? `width: calc(var(--sheet-row-w) + ${w.reduce((a, b) => a + b, 0)}px)` : ''}>
           <colgroup>
             <col />
             ${COL_NAMES.map((_, c) => html`<col style=${w ? `width:${w[c]}px` : ''} />`)}
           </colgroup>
           <thead>
             <tr>
-              <th class="row"></th>
+              <td class="corner"></td>
               ${COL_NAMES.map(
                 (n, c) => html`<th scope="col">
                   ${n}<span class="grip" role="separator" aria-label="Resize column ${n}" title="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
@@ -258,7 +432,9 @@ export class ToSheet extends LitElement {
                   const v = this.computed[r][c];
                   const shown = isSel ? raw : formatValue(v);
                   const cls = typeof v === 'number' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '';
-                  return html`<td class=${r === sr && c === sc ? 'sel' : ''} @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)}>
+                  const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
+                  const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
+                  return html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>
                     <input
                       id="c${r}_${c}"
                       class=${cls}
@@ -267,6 +443,7 @@ export class ToSheet extends LitElement {
                       title=${raw.startsWith('=') ? raw : ''}
                       autocomplete="off"
                       @focus=${() => {
+                        if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
                         this.sel = [r, c];
                         this.focused = true;
                       }}
@@ -277,6 +454,7 @@ export class ToSheet extends LitElement {
                       @input=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
                       @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c)}
                     />
+                    ${r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label="Fill: drag to carry these cells on" title="Drag to fill" @pointerdown=${this.onFillDown}></span>` : ''}
                   </td>`;
                 })}
               </tr>`,
@@ -284,7 +462,13 @@ export class ToSheet extends LitElement {
           </tbody>
         </table>
       </div>
+      ${this.chart ? this.renderChart(data) : ''}
     `;
+  }
+
+  private renderChart(data: ReturnType<typeof chartData>) {
+    const p = chartPage(data, this.chart as ChartKind);
+    return html`<figure class="sheet-chart"><svg viewBox="0 0 ${p.w} ${p.h}" role="img" aria-label="Chart of the table">${unsafeSVG(p.svg)}</svg></figure>`;
   }
 }
 

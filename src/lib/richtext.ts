@@ -2,6 +2,7 @@
  * Rich text model and a compact markup for it.
  *
  * Blocks: one per line.  Prefixes:  "# " h1, "## " h2, "- " bullet, "+ " numbered.
+ * A list item one level in repeats its marker ("-- ", "++ "), up to MAX_DEPTH levels.
  * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~ ; "\" escapes.
  * Embed: a line "@@<app>/<payload>" is another TinyOffice document, shown as
  * a preview that links to it (see lib/embed.ts).
@@ -19,9 +20,13 @@ export interface Block {
   runs: Run[];
   /** For an embed ("e"): the document it points at, as "<app>/<payload>". */
   ref?: string;
+  /** For list items: how far in, 0 (absent) for the outer level. */
+  d?: number;
 }
 
-const EMBED = /^@@([a-z]+\/[A-Za-z0-9_-]+)$/;
+export const MAX_DEPTH = 3;
+
+const EMBED = /^@@([a-z]+\/[A-Za-z0-9_-]*)$/;
 
 const FLAGS = ['b', 'i', 'u', 's'] as const;
 const MARK: Record<(typeof FLAGS)[number], string> = { b: '*', i: '_', u: '^', s: '~' };
@@ -36,7 +41,7 @@ export function serializeDoc(blocks: Block[]): string {
       if (blk.ref && EMBED.test('@@' + blk.ref)) lines.push('@@' + blk.ref);
       continue;
     }
-    let out = PREFIX[blk.k];
+    let out = blk.k === 'ul' || blk.k === 'ol' ? PREFIX[blk.k][0].repeat(1 + Math.min(MAX_DEPTH, blk.d ?? 0)) + ' ' : PREFIX[blk.k];
     const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
     let first = true;
     for (const run of blk.runs) {
@@ -49,7 +54,7 @@ export function serializeDoc(blocks: Block[]): string {
       }
       let text = run.t.replace(SPECIAL, (m) => '\\' + m);
       // A paragraph that would start with a prefix marker must be escaped.
-      if (first && blk.k === 'p' && /^(#|- |\+ |@@)/.test(text)) text = '\\' + text;
+      if (first && blk.k === 'p' && /^(#|-+ |\++ |@@)/.test(text)) text = '\\' + text;
       first = false;
       out += text;
     }
@@ -73,18 +78,18 @@ export function parseDoc(text: string): Block[] {
       continue;
     }
     let k: BlockKind = 'p';
+    let d = 0;
+    const item = /^(-{1,4}|\+{1,4}) /.exec(line);
     if (line.startsWith('## ')) {
       k = 'h2';
       line = line.slice(3);
     } else if (line.startsWith('# ')) {
       k = 'h1';
       line = line.slice(2);
-    } else if (line.startsWith('- ')) {
-      k = 'ul';
-      line = line.slice(2);
-    } else if (line.startsWith('+ ')) {
-      k = 'ol';
-      line = line.slice(2);
+    } else if (item) {
+      k = item[1][0] === '-' ? 'ul' : 'ol';
+      d = item[1].length - 1;
+      line = line.slice(item[0].length);
     }
     const runs: Run[] = [];
     const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
@@ -108,7 +113,7 @@ export function parseDoc(text: string): Block[] {
       }
     }
     flush();
-    blocks.push({ k, runs });
+    blocks.push(d ? { k, runs, d } : { k, runs });
   }
   return blocks;
 }
@@ -116,4 +121,23 @@ export function parseDoc(text: string): Block[] {
 /** Plain-text length of a document, handy for word/char counts. */
 export function docText(blocks: Block[]): string {
   return blocks.map((b) => b.runs.map((r) => r.t).join('')).join('\n');
+}
+
+/**
+ * Web addresses in a piece of text. Nothing is stored for a link: an address
+ * in the text is a link wherever the text is shown.
+ */
+export function linkify(text: string): { t: string; url?: string }[] {
+  const out: { t: string; url?: string }[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"']+/g)) {
+    // Punctuation after an address belongs to the sentence, not the address.
+    const url = m[0].replace(/[.,;:!?)\]]+$/, '');
+    if (url.length < 10) continue;
+    if (m.index > last) out.push({ t: text.slice(last, m.index) });
+    out.push({ t: url, url });
+    last = m.index + url.length;
+  }
+  if (last < text.length) out.push({ t: text.slice(last) });
+  return out;
 }

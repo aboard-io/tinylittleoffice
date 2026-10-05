@@ -24,4 +24,6 @@ export async function navTo(page: Page, name: string) {
 export async function pickOption(page: Page, select: string, value: string) {
   await page.locator(select).click();
   await page.locator(`${select} sl-option[value="${value}"]`).click();
+  // Wait for the list to close, or the next click on the select would land mid-animation.
+  await expect(page.locator(`${select} sl-option[value="${value}"]`)).toBeHidden();
 }

@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types test/*.test.ts"
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "new-app": "node scripts/new-app.mjs",
+    "icons": "node --experimental-strip-types scripts/make-icons.mjs"
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.20.1",
@@ -19,6 +21,7 @@
     "lucide": "^0.544.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.56.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.4",

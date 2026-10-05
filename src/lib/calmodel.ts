@@ -9,7 +9,7 @@
  *                                2020-01-01T00:00Z, an absolute instant
  * Numbers are base 36 to keep them short.
  */
-import { ymdToDay } from './tz.ts';
+import { dayToYmd, ymdString, ymdToDay } from './tz.ts';
 
 export const EPOCH_MS = Date.UTC(2020, 0, 1);
 export const EPOCH_DAY = ymdToDay(2020, 1, 1);
@@ -73,4 +73,10 @@ export function spanEndMs(s: Span): number {
 
 export function sortSpans(spans: Span[]): Span[] {
   return spans.sort((a, b) => spanStartMs(a) - spanStartMs(b) || a.label.localeCompare(b.label));
+}
+
+/** "2026-03-01" for a day counted from 2020-01-01, the way todo and gantt count. */
+export function isoDay(day: number): string {
+  const { y, m, d } = dayToYmd(EPOCH_DAY + day);
+  return ymdString(y, m, d);
 }

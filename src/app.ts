@@ -7,34 +7,37 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, nothing } from 'lit';
+import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
 import { budgetFor, toBase64Url, fromBase64Url } from './lib/codec.ts';
 import { packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } from './lib/sign.ts';
 import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
-import { icon, iconInner, LIBRARY, UI } from './lib/icons.ts';
-import { EXPORTS, cardSvg, exportName, findExport, titleOf, type ExportContext } from './lib/exports.ts';
+import { icon, UI } from './lib/icons.ts';
+import './apps/index.ts';
+import { apps, appOf, extOf, type AppDef, type Shortcut } from './kit/core.ts';
+import { download, formatsOf, loadEditor, picture } from './kit/browser.ts';
 import { roomFor } from './lib/limits.ts';
-import { ICON_SVG } from './apps/anim.ts';
-import { parseDeck } from './lib/deckmodel.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
-export type AppId = 'sheet' | 'write' | 'deck' | 'draw' | 'cal' | 'todo' | 'board' | 'gantt' | 'trip' | 'tune' | 'anim';
+export type AppId = string;
 
-export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = [
-  { id: 'sheet', name: 'Sheet', icon: 'sheet' },
-  { id: 'write', name: 'Write', icon: 'write' },
-  { id: 'deck', name: 'Deck', icon: 'deck' },
-  { id: 'draw', name: 'Draw', icon: 'draw' },
-  { id: 'cal', name: 'Calendar', icon: 'cal' },
-  { id: 'todo', name: 'Todo', icon: 'todo' },
-  { id: 'board', name: 'Board', icon: 'board' },
-  { id: 'gantt', name: 'Gantt', icon: 'gantt' },
-  { id: 'trip', name: 'Trip', icon: 'trip' },
-  { id: 'tune', name: 'Tune', icon: 'tune' },
-  { id: 'anim', name: 'Motion', icon: 'anim' },
+/** The apps, in menu order, straight from their definitions (src/apps/index.ts). */
+export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = apps().map((d) => ({ id: d.id, name: d.name, icon: d.icon as keyof typeof UI }));
+
+/** Shortcuts that work in every app. "Mod" is Ctrl, or Command on a Mac. */
+const GLOBAL_KEYS: Shortcut[] = [
+  { keys: 'Mod+/', does: 'Show these shortcuts' },
+  { keys: 'Mod+K', does: 'Open the menu of apps' },
+  { keys: 'Mod+S', does: 'Download (the first format in the Download menu)' },
+  { keys: 'Mod+P', does: 'Download as PDF' },
+  { keys: 'Mod+Shift+C', does: 'Copy the link' },
+  { keys: 'Mod+Shift+L', does: 'Light, dark, or match the device' },
 ];
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
+/** A shortcut the way this keyboard writes it. */
+const keyLabel = (keys: string) => keys.replace(/Mod/g, MAC ? '⌘' : 'Ctrl').replace(/Alt/g, MAC ? '⌥' : 'Alt');
 
 type Theme = 'auto' | 'light' | 'dark';
 const THEMES: Theme[] = ['auto', 'light', 'dark'];
@@ -92,40 +95,6 @@ export function routeHash(app: AppId, payload = '', ext = ''): string {
   return `#/v${URL_VERSION}/${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
 }
 
-/** Rasterise SVG markup, for file formats and share sheets that cannot take SVG. */
-async function svgToPng(src: string, width: number, height: number): Promise<Uint8Array | null> {
-  const img = new Image();
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
-  try {
-    await img.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/png'));
-    return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
-  } catch {
-    return null;
-  }
-}
-
-function iconPng(name: string, size = 256, color = '#4f46e5'): Promise<Uint8Array | null> {
-  const node = LIBRARY[name];
-  if (!node) return Promise.resolve(null);
-  return svgToPng(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconInner(node)}</svg>`, size, size);
-}
-
-function saveFile(name: string, mime: string, data: Uint8Array) {
-  const url = URL.createObjectURL(new Blob([data as BlobPart], { type: mime }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
-
 const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
 const fmtUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
@@ -163,17 +132,44 @@ export class ToApp extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener('hashchange', this.onHash);
+    window.addEventListener('keydown', this.onGlobalKey);
     this.onHash();
     this.signerApi.fingerprint().then((f) => (this.myKey = f));
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener('hashchange', this.onHash);
+    window.removeEventListener('keydown', this.onGlobalKey);
   }
+
+  /** Shortcuts that work in every app. Listed in GLOBAL_KEYS; shown by Mod+/. */
+  private onGlobalKey = (e: KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const k = e.key.toLowerCase();
+    const act: (() => void) | undefined =
+      k === '/' || k === '?'
+        ? () => this.querySelector<SlDialog>('#keys-dialog')?.show()
+        : k === 'k' && !e.shiftKey
+          ? () => this.drawer()?.show()
+          : k === 's' && !e.shiftKey && this.def
+            ? () => this.download(formatsOf(this.def!)[0].ext)
+            : k === 'p' && !e.shiftKey && this.def
+              ? () => this.download('pdf')
+              : k === 'c' && e.shiftKey && this.def
+                ? () => this.share('copy')
+                : k === 'l' && e.shiftKey
+                  ? () => this.cycleTheme()
+                  : undefined;
+    if (!act) return;
+    e.preventDefault();
+    act();
+  };
 
   private onHash = () => {
     const { app, payload, version, ext } = parseHash(location.hash);
-    this.app = app;
+    // An app's own page (".../deck/") with nothing after it opens a new document there.
+    const page = location.pathname.split('/').slice(-2)[0];
+    this.app = app ?? (!location.hash && appOf(page) ? page : null);
     this.version = version;
     this.pendingExt = ext;
     this.locker = null;
@@ -232,40 +228,38 @@ export class ToApp extends LitElement {
   /** The link that downloads this document as `ext` when opened. */
   private downloadUrl(ext: string): string {
     const { payload } = parseHash(location.hash);
-    return `${location.origin}${location.pathname}${location.search}${routeHash(this.app!, payload, ext)}`;
+    return `${this.root}${location.protocol === 'file:' ? '' : this.app + '/'}${routeHash(this.app!, payload, ext)}`;
+  }
+
+  private get def(): AppDef | undefined {
+    return this.app ? appOf(this.app) : undefined;
+  }
+
+  /** The site's own address, whichever app page we were opened from. */
+  private get root(): string {
+    return new URL(/\/[a-z]+\/$/.test(location.pathname) && appOf(location.pathname.split('/').slice(-2)[0]) ? '..' : '.', location.origin + location.pathname).href;
+  }
+
+  /** The link to this document: from its app's own page, so it previews as that app. */
+  private get link(): string {
+    return this.app ? `${this.root}${location.protocol === 'file:' ? '' : this.app + '/'}${location.hash}` : location.href;
   }
 
   private async download(ext: string) {
-    const app = this.app;
-    if (!app) return;
-    const body = this.env.body;
-    if (ext.toLowerCase() === 'png') {
-      // Every app has a picture view: the card a link preview would show.
-      const png = await svgToPng(cardSvg(app, body), 1200, 630);
-      if (!png) return this.showToast('Could not draw the picture');
-      const name = exportName(app, body, 'png');
-      saveFile(name, 'image/png', png);
-      return this.showToast(`Downloaded ${name}`);
+    const def = this.def;
+    if (!def) return;
+    try {
+      const name = await download(def, this.env.body, ext, { created: this.env.created, base: this.root }, this.link);
+      this.showToast(name ? `Downloaded ${name}` : `No .${extOf(ext)} view here`);
+    } catch (err) {
+      this.showToast(err instanceof Error ? err.message : 'Download failed');
     }
-    const fmt = findExport(app, ext);
-    if (!fmt) return this.showToast(`No .${ext} view here`);
-    const ctx: ExportContext = { created: this.env.created, icons: {}, iconSvg: ICON_SVG, base: `${location.origin}${location.pathname}` };
-    if (app === 'deck') {
-      for (const name of new Set(parseDeck(body).map((s) => s.icon))) {
-        const png = name ? await iconPng(name) : null;
-        if (png) ctx.icons![name] = png;
-      }
-    }
-    const name = exportName(app, body, fmt.ext);
-    saveFile(name, fmt.mime, fmt.build(body, ctx));
-    this.showToast(`Downloaded ${name}`);
   }
 
   /* ---------- sharing ---------- */
 
   private get docTitle(): string {
-    const name = APPS.find((a) => a.id === this.app)?.name ?? 'TinyOffice';
-    return (this.app && titleOf(this.app, this.env.body)) || name;
+    return this.def?.title(this.env.body) || this.def?.name || 'TinyOffice';
   }
 
   /**
@@ -276,14 +270,14 @@ export class ToApp extends LitElement {
    * link already in it.
    */
   private async share(how: string) {
-    const url = location.href;
+    const url = this.link;
     const title = this.docTitle;
     const q = encodeURIComponent;
     if (how === 'native') {
       const data: ShareData = { title, text: title, url };
-      const png = this.app ? await svgToPng(cardSvg(this.app, this.env.body), 1200, 630) : null;
+      const png = this.def ? await picture(this.def, this.env.body) : null;
       if (png) {
-        const file = new File([png as BlobPart], exportName(this.app!, this.env.body, 'png'), { type: 'image/png' });
+        const file = new File([png as BlobPart], `${this.def!.id}.png`, { type: 'image/png' });
         if (navigator.canShare?.({ files: [file] })) data.files = [file];
       }
       try {
@@ -458,15 +452,16 @@ export class ToApp extends LitElement {
     const current = APPS.find((a) => a.id === this.app);
     const { available } = budgetFor(this.urlPrefix);
     return html`
+      <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
       <header class="to-header">
         <div class="to-header-inner">
           <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
-          <a class="to-brand" href="#/"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyOffice</span></a>
+          <a class="to-brand" href="#/" aria-label="TinyOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyOffice</span></a>
           ${current ? html`<a class="to-here" href=${routeHash(current.id)} title="New ${current.name}">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>` : nothing}
           <span class="to-spacer"></span>
           ${current
             ? html`
-                <to-meter .used=${this.payloadLength} .available=${available} .href=${location.href} .rooms=${roomFor(location.href)} @to-info=${() => this.dialog()?.show()}></to-meter>
+                <to-meter .used=${this.payloadLength} .available=${available} .href=${this.link} .rooms=${roomFor(this.link)} @to-info=${() => this.dialog()?.show()} @to-copy=${() => this.share('copy')}></to-meter>
                 ${this.sealed
                   ? nothing
                   : html`<div class="to-doc-actions">
@@ -474,8 +469,7 @@ export class ToApp extends LitElement {
                         <sl-button slot="trigger" class="icon" size="small" aria-label="Download" title="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Download</sl-menu-label>
-                          ${EXPORTS[current.id].map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
-                          <sl-menu-item value="png">Picture<code slot="suffix">.png</code></sl-menu-item>
+                          ${formatsOf(appOf(current.id)!).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
                         </sl-menu>
                       </sl-dropdown>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
@@ -514,11 +508,24 @@ export class ToApp extends LitElement {
           <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
           ${APPS.map((a) => html`<a href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}</span></a>`)}
         </nav>
+        <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
       </sl-drawer>
-      <main class="to-main">${current ? this.renderPanel(current) : this.renderHome()}</main>
+      <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPasswordPrompt()}
+      <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
+        ${[
+          ['Everywhere', GLOBAL_KEYS] as const,
+          ...(this.def?.shortcuts?.length ? [[`In ${this.def.name}`, this.def.shortcuts] as const] : []),
+        ].map(
+          ([heading, keys]) => html`<h3 class="to-keys-head">${heading}</h3>
+            <dl class="to-keys-list">
+              ${keys.map((k) => html`<dt>${keyLabel(k.keys).split(' / ').map((combo, i) => html`${i ? ' / ' : ''}<kbd>${combo}</kbd>`)}</dt><dd>${k.does}</dd>`)}
+            </dl>`,
+        )}
+        <sl-button slot="footer" variant="primary" @click=${() => this.querySelector<SlDialog>('#keys-dialog')?.hide()}>Done</sl-button>
+      </sl-dialog>
       ${this.toast ? html`<div class="to-toast" role="status">${this.toast}</div>` : nothing}
     `;
   }
@@ -542,34 +549,11 @@ export class ToApp extends LitElement {
   }
 
   private renderApp() {
-    const v = this.env.body;
-    switch (this.app) {
-      case 'sheet':
-        return html`<to-sheet .value=${v}></to-sheet>`;
-      case 'write':
-        return html`<to-write .value=${v}></to-write>`;
-      case 'deck':
-        return html`<to-deck .value=${v}></to-deck>`;
-      case 'draw':
-        return html`<to-draw .value=${v}></to-draw>`;
-      case 'cal':
-        return html`<to-cal .value=${v}></to-cal>`;
-      case 'todo':
-        return html`<to-todo .value=${v}></to-todo>`;
-      case 'board':
-        return html`<to-board .value=${v}></to-board>`;
-      case 'gantt':
-        return html`<to-gantt .value=${v}></to-gantt>`;
-      case 'trip':
-        // The map library is big and only this app needs it, so it loads on demand.
-        void import('./apps/trip.ts');
-        return html`<to-trip .value=${v}></to-trip>`;
-      case 'tune':
-        return html`<to-tune .value=${v}></to-tune>`;
-      case 'anim':
-        return html`<to-anim .value=${v}></to-anim>`;
-    }
-    return nothing;
+    if (!this.app) return nothing;
+    // Editors load when first wanted; the element upgrades in place once its code arrives.
+    void loadEditor(this.app);
+    const tag = unsafeStatic(`to-${this.app}`);
+    return html`<${tag} .value=${this.env.body}></${tag}>`;
   }
 
   private renderHome() {
@@ -618,11 +602,11 @@ export class ToApp extends LitElement {
         <dt title="Download">${icon(UI.download, 14)}</dt>
         <dd>
           <div class="row">
-            ${this.app
-              ? EXPORTS[this.app].map(
+            ${this.def
+              ? formatsOf(this.def).map(
                   (f) => html`<span class="to-dl">
                     <sl-button size="small" @click=${() => this.download(f.ext)}>.${f.ext}</sl-button>
-                    <sl-copy-button value=${this.downloadUrl(f.ext)} copy-label="Copy a link that downloads the .${f.ext}" success-label="Copied" hoist></sl-copy-button>
+                    <button class="to-copy" type="button" aria-label="Copy a link that downloads the .${f.ext}" title="Copy a link that downloads the .${f.ext}" @click=${() => navigator.clipboard.writeText(this.downloadUrl(f.ext)).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'))}>${icon(UI.copy, 14)}</button>
                   </span>`,
                 )
               : nothing}
@@ -631,7 +615,7 @@ export class ToApp extends LitElement {
         <dt title="Room for this link">${icon(UI.send, 14)}</dt>
         <dd>
           <table class="to-rooms">
-            ${roomFor(location.href).map((r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th>${r.target.name}</th><td>${r.left < 0 ? `${(-r.left).toLocaleString()} over` : `${r.left.toLocaleString()} left`}</td><td class="to-hint">of ${r.target.max.toLocaleString()} · ${r.target.note}</td></tr>`)}
+            ${roomFor(this.link).map((r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th>${r.target.name}</th><td>${r.left < 0 ? `${(-r.left).toLocaleString()} over` : `${r.left.toLocaleString()} left`}</td><td class="to-hint">of ${r.target.max.toLocaleString()} · ${r.target.note}</td></tr>`)}
           </table>
         </dd>
         <dt title="Password">${icon(UI.lock, 14)}</dt>

@@ -32,6 +32,9 @@ test('calendar: spans, zones and the author-zone shortcut', async ({ page }) => 
   await expect(chip).toHaveAttribute('title', /2:00/);
   await expect(page.getByLabel('Start time')).toHaveValue('14:00');
   await label.fill('Offsite call');
+  // Return is the same as Done.
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.cal-editor')).toHaveCount(0);
 
   await reopen(page);
   await expect(page.locator('.cal-month')).toHaveText('January 2026');

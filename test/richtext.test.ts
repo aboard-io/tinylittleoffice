@@ -34,3 +34,13 @@ test('empty doc', () => {
   assert.deepEqual(parseDoc(''), [{ k: 'p', runs: [] }]);
   assert.equal(serializeDoc([{ k: 'p', runs: [] }]), '');
 });
+
+test('web addresses in text are links, without being stored as anything but text', async () => {
+  const { linkify } = await import('../src/lib/richtext.ts');
+  const { docToHtml, docToRtf } = await import('../src/apps/write.def.ts');
+  assert.deepEqual(linkify('See https://example.com/a?b=1, then (http://x.org/y). Done'), [{ t: 'See ' }, { t: 'https://example.com/a?b=1', url: 'https://example.com/a?b=1' }, { t: ', then (' }, { t: 'http://x.org/y', url: 'http://x.org/y' }, { t: '). Done' }]);
+  assert.deepEqual(linkify('no links here: example.com'), [{ t: 'no links here: example.com' }]);
+  assert.deepEqual(linkify(''), []);
+  assert.ok(docToHtml('Read *https://example.com/x* now').includes('<strong><a href="https://example.com/x">https://example.com/x</a></strong> now'));
+  assert.ok(docToRtf('Read https://example.com/x now').includes('HYPERLINK "https://example.com/x"'));
+});

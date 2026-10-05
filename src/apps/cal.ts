@@ -275,9 +275,9 @@ export class ToCal extends LitElement {
       </div>
       ${sel ? this.renderEditor(sel) : nothing}
       <div class="cal-grid" role="grid" aria-label=${monthName} tabindex="0" @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${this.onGridUp}>
-        ${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}
-        ${Array.from({ length: rows * 7 }, (_, i) => {
-          const day = gridStart + i;
+        <div class="cal-row" role="row">${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}</div>
+        ${Array.from({ length: rows }, (_, week) => html`<div class="cal-row" role="row">${Array.from({ length: 7 }, (_, weekday) => {
+          const day = gridStart + week * 7 + weekday;
           const p = dayToYmd(day);
           const dayStart = partsToUtc(p.y, p.m, p.d, 0, 0, this.zone);
           const dayEnd = partsToUtc(p.y, p.m, p.d + 1, 0, 0, this.zone);
@@ -309,7 +309,7 @@ export class ToCal extends LitElement {
               </div>`;
             })}
           </div>`;
-        })}
+        })}</div>`)}
       </div>
       ${this.cal.spans.length ? this.renderAgenda() : nothing}
     `;
@@ -318,7 +318,8 @@ export class ToCal extends LitElement {
   private renderEditor(s: Span) {
     const f = this.fields(s);
     const timed = s.kind === 't';
-    return html`<div class="cal-editor" role="group" aria-label="Edit span">
+    // Return in any field is the same as Done.
+    return html`<div class="cal-editor" role="group" aria-label="Edit span" @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !e.defaultPrevented && !(e.target as HTMLElement).closest('sl-select, sl-button, button') && (this.sel = -1)}>
       <span class="k">Label</span>
       <div class="row">
         <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="Label" .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
@@ -346,7 +347,7 @@ export class ToCal extends LitElement {
 
   private renderAgenda() {
     return html`<div class="cal-agenda">
-      <h3>Spans</h3>
+      <h2>Spans</h2>
       <ul>
         ${this.cal.spans.map(
           (s, i) => html`<li

@@ -3,7 +3,8 @@
  * and a note.
  * Format: one stop per line: "<lat>,<lon>,<name>" and, if there is a note, a
  * tab and the note. Coordinates are degrees times 100,000 (about a metre),
- * rounded, in signed base 36.
+ * rounded, in signed base 36. An optional first line "!m" or "!k" says the
+ * route is measured in miles or kilometres; without it, in hours.
  */
 export interface Stop {
   lat: number;
@@ -34,9 +35,11 @@ export function parseTrip(text: string): Stop[] {
   return out;
 }
 
-export function serializeTrip(stops: Stop[]): string {
+export function serializeTrip(stops: Stop[], units: Units = 'h'): string {
   const flat = (s: string) => s.replace(/[\n\t]/g, ' ');
-  return stops.map((s) => `${enc(s.lat)},${enc(s.lon)},${flat(s.name)}${s.note.trim() ? '\t' + flat(s.note) : ''}`).join('\n');
+  const lines = stops.map((s) => `${enc(s.lat)},${enc(s.lon)},${flat(s.name)}${s.note.trim() ? '\t' + flat(s.note) : ''}`);
+  if (units !== 'h' && lines.length) lines.unshift('!' + units);
+  return lines.join('\n');
 }
 
 /** Great-circle distance in kilometres. */
@@ -57,4 +60,32 @@ export function routeKm(stops: Stop[]): number {
 export function formatKm(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km < 100 ? km.toFixed(1) : Math.round(km).toLocaleString('en-US')} km`;
+}
+
+export type Units = 'h' | 'm' | 'k';
+export const UNITS: { id: Units; name: string }[] = [
+  { id: 'h', name: 'Hours' },
+  { id: 'm', name: 'Miles' },
+  { id: 'k', name: 'Kilometres' },
+];
+
+export function tripUnits(text: string): Units {
+  const m = /^!([mk])$/.exec(text.split('\n', 1)[0]);
+  return m ? (m[1] as Units) : 'h';
+}
+
+/**
+ * Hours are a driving estimate, since stops are joined by straight lines:
+ * roads run about 1.3 times the straight distance, at about 80 km/h.
+ */
+export const driveHours = (km: number) => (km * 1.3) / 80;
+
+export function formatLeg(km: number, units: Units): string {
+  if (units === 'k') return formatKm(km);
+  if (units === 'm') {
+    const mi = km / 1.609344;
+    return mi < 0.2 ? `${Math.round(mi * 5280)} ft` : `${mi < 100 ? mi.toFixed(1) : Math.round(mi).toLocaleString('en-US')} mi`;
+  }
+  const min = Math.round(driveHours(km) * 60);
+  return min < 60 ? `${Math.max(1, min)} min` : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`;
 }

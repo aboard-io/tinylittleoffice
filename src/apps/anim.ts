@@ -7,14 +7,11 @@
 import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { icon, iconInner, LIBRARY, UI } from '../lib/icons.ts';
+import { icon, LIBRARY, UI } from '../lib/icons.ts';
 import { searchIcons } from '../lib/iconsearch.ts';
-import { animItemSvg } from '../lib/exports.ts';
+import { animItemSvg } from './anim.def.ts';
 import { FPS, GRID, H, MAX_FRAMES, MAX_ITEMS, W, parseAnim, serializeAnim, stateAt, withKey, type Anim, type Item } from '../lib/animmodel.ts';
 import type { SlDialog, SlInput } from '../lib/shoelace.ts';
-
-/** Every library icon as SVG markup, for drawing on the stage and in exports. */
-export const ICON_SVG: Record<string, string> = Object.fromEntries(Object.entries(LIBRARY).map(([name, node]) => [name, iconInner(node)]));
 
 @customElement('to-anim')
 export class ToAnim extends LitElement {
@@ -46,6 +43,33 @@ export class ToAnim extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     cancelAnimationFrame(this.raf);
+  }
+
+  /** The outline around the selected thing hugs it, growing with text as it is typed. */
+  protected updated() {
+    for (const g of this.querySelectorAll<SVGGElement>('.anim-stage g.item')) {
+      const box = (g.lastElementChild as SVGGraphicsElement).getBBox();
+      const hit = g.querySelector('rect.hit')!;
+      const pad = 6;
+      hit.setAttribute('x', String(box.x - pad));
+      hit.setAttribute('y', String(box.y - pad));
+      hit.setAttribute('width', String(box.width + pad * 2));
+      hit.setAttribute('height', String(box.height + pad * 2));
+    }
+  }
+
+  private onKey = (e: KeyboardEvent) => {
+    const typing = (e.target as HTMLElement).closest('input, textarea, sl-input');
+    if (e.key === ' ' && !typing) this.toggle();
+    else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !typing && !this.playing) this.frame = Math.max(0, Math.min(this.anim.frames - 1, this.frame + (e.key === 'ArrowLeft' ? -1 : 1)));
+    else if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && this.sel >= 0) this.removeSel();
+    else return;
+    e.preventDefault();
+  };
+
+  private removeSel() {
+    this.commit({ ...this.anim, items: this.anim.items.filter((_, j) => j !== this.sel) });
+    this.sel = -1;
   }
 
   private commit(anim: Anim) {
@@ -125,7 +149,7 @@ export class ToAnim extends LitElement {
       <div class="to-toolbar">
         <sl-button size="small" ?disabled=${full} @click=${() => { this.query = ''; this.picker()?.show(); }}>${icon(UI.smile, 14)} Icon</sl-button>
         <sl-button size="small" ?disabled=${full} @click=${() => this.add('t', 'Text')}>${icon(UI.text, 14)} Text</sl-button>
-        <sl-tooltip content="Delete the selected thing" hoist><sl-button class="icon" size="small" aria-label="Delete" ?disabled=${!cur} @click=${() => { this.commit({ ...this.anim, items: items.filter((_, j) => j !== this.sel) }); this.sel = -1; }}>${icon(UI.trash, 14)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
+        <sl-tooltip content="Delete the selected thing" hoist><sl-button class="icon" size="small" aria-label="Delete" ?disabled=${!cur} @click=${this.removeSel}>${icon(UI.trash, 14)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
         <span class="to-spacer"></span>
         <sl-input
           class="anim-len"
@@ -143,13 +167,13 @@ export class ToAnim extends LitElement {
         ><span slot="suffix">s</span></sl-input>
         <sl-button size="small" variant="primary" @click=${this.toggle}>${this.playing ? html`${icon(UI.stop, 14)} Stop` : html`${icon(UI.play, 14)} Play`}</sl-button>
       </div>
-      <div class="anim">
+      <div class="anim" tabindex="-1" @keydown=${this.onKey}>
         <svg class="anim-stage" viewBox="0 0 ${W} ${H}" role="application" aria-label="Stage" @pointermove=${this.onMove} @pointerup=${() => (this.drag = null)} @pointercancel=${() => (this.drag = null)} @pointerdown=${(e: PointerEvent) => e.target === e.currentTarget && (this.sel = -1)}>
           ${items.map((it, i) => {
             const k = stateAt(it, now);
             return svg`<g class="item ${i === this.sel && !this.playing ? 'sel' : ''}" data-idx=${i} transform="translate(${k.x} ${k.y}) scale(${k.s})" @pointerdown=${(e: PointerEvent) => this.onItemDown(e, i)}>
               <rect class="hit" x="-30" y="-30" width="60" height="60" rx="8" />
-              ${unsafeSVG(animItemSvg(it, ICON_SVG))}
+              ${unsafeSVG(animItemSvg(it))}
             </g>`;
           })}
         </svg>

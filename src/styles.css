@@ -47,8 +47,9 @@
   --to-border: var(--sl-color-neutral-200);
   --to-border-strong: var(--sl-color-neutral-400);
   --to-ink: var(--sl-color-neutral-900);
-  --to-ink-2: var(--sl-color-neutral-600);
-  --to-ink-3: var(--sl-color-neutral-500);
+  --to-ink-2: var(--sl-color-neutral-700);
+  /* The quietest text still has to be readable on the greyest surface (4.5:1). */
+  --to-ink-3: var(--sl-color-neutral-600);
   --to-accent: var(--sl-color-primary-600);
   --to-accent-soft: var(--sl-color-primary-100);
   --to-danger: var(--sl-color-danger-600);
@@ -96,7 +97,6 @@ to-todo,
 to-board,
 to-gantt,
 to-trip,
-to-tune,
 to-anim,
 to-meter {
   display: block;
@@ -455,12 +455,23 @@ sl-menu-item svg.pre {
 .to-meter.over .text b {
   color: var(--to-danger);
 }
-.to-meter sl-copy-button {
-  --sl-spacing-x-small: 4px;
-}
-.to-meter sl-copy-button::part(button) {
-  padding: 4px;
+.to-meter .copy,
+.to-copy {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
+  background: transparent;
+  color: var(--to-ink-2);
+  cursor: pointer;
+}
+.to-meter .copy:hover,
+.to-copy:hover {
+  background: var(--to-surface-2);
+  color: var(--to-ink);
 }
 
 /* Document dialog */
@@ -689,75 +700,74 @@ table.sheet td.sel input {
 /* Deck */
 .deck-layout {
   display: grid;
-  grid-template-columns: 180px 1fr;
-  min-height: 480px;
+  grid-template-columns: 168px 1fr;
+  min-height: 420px;
 }
 .deck-rail {
-  border-right: 1px solid var(--to-border);
-  background: var(--to-surface-2);
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow: auto;
+  gap: 8px;
+  padding: 10px;
+  border-right: 1px solid var(--to-border);
+  background: var(--to-surface-2);
+  overflow-y: auto;
 }
 .deck-thumb {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  border: 1px solid var(--to-border);
+  position: relative;
+  flex-shrink: 0;
+  padding: 0;
+  border: 2px solid var(--to-border);
   border-radius: var(--to-radius);
-  background: var(--to-surface);
-  color: var(--to-ink);
-  font: inherit;
-  font-size: 13px;
+  background: #fff;
   cursor: pointer;
-  min-height: 40px;
+  overflow: hidden;
 }
-.deck-thumb[aria-pressed='true'] {
+.deck-thumb svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.deck-thumb[aria-current='true'] {
   border-color: var(--to-accent);
-  box-shadow: 0 0 0 1px var(--to-accent);
 }
 .deck-thumb .n {
-  color: var(--to-ink-3);
+  position: absolute;
+  left: 4px;
+  top: 3px;
   font-size: 11px;
-  width: 14px;
-}
-.deck-thumb .t {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  color: #52525b;
 }
 .deck-editor {
   padding: 20px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: center;
+  align-items: flex-start;
 }
+/* The slide is sized in its own width (cqw), so type set at N px on the
+   960px-wide slide the audience sees is the same share of this one. */
 .deck-slide {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 880px;
+  aspect-ratio: 16 / 10;
+  box-sizing: border-box;
+  padding: 6.667cqw;
   border: 1px solid var(--to-border);
   border-radius: var(--sl-border-radius-large);
   box-shadow: var(--sl-shadow-medium);
-  aspect-ratio: 16 / 10;
-  padding: clamp(16px, 4vw, 36px);
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 14px;
+  gap: 2.9cqw;
   background: var(--to-surface);
   position: relative;
 }
 .deck-slide .head {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1.7cqw;
 }
-.deck-slide .pick {
-  width: 60px;
-  height: 60px;
+.deck-slide .pick,
+.deck-slide .big {
   flex-shrink: 0;
   border: 1px solid var(--to-border);
   border-radius: 14px;
@@ -765,9 +775,18 @@ table.sheet td.sel input {
   color: var(--to-accent);
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 2px;
   cursor: pointer;
 }
-.deck-slide .pick.empty {
+.deck-slide .pick {
+  width: 7.5cqw;
+  height: 7.5cqw;
+  min-width: 40px;
+  min-height: 40px;
+}
+.deck-slide .pick.empty,
+.deck-slide .big.empty {
   background: transparent;
   color: var(--to-ink-3);
   border-style: dashed;
@@ -776,66 +795,41 @@ table.sheet td.sel input {
   font-size: 10.5px;
   line-height: 1;
 }
-.deck-slide .pick.empty {
-  gap: 2px;
-  align-content: center;
+.deck-slide .big {
+  align-self: center;
+  justify-self: center;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 24px;
 }
-/* Title slide: everything centred, the lines below the headline are a subtitle. */
-.deck-slide.cover {
-  align-content: center;
-  grid-template-rows: auto auto;
-}
-.deck-slide.cover .head {
-  flex-direction: column;
-}
-.deck-slide.cover input.title {
-  width: 100%;
-  flex: none;
-  text-align: center;
-  font-size: clamp(26px, 4.4vw, 44px);
-}
-.deck-slide.cover .mirror,
-.deck-slide.cover textarea {
-  padding-left: 0;
-  text-align: center;
-  color: var(--to-ink-2);
-}
-.deck-slide.cover .mirror {
-  color: transparent;
-  min-height: 3.1em;
-}
-.deck-slide.cover .mirror div.on::before {
-  content: none;
-}
-.deck-show .frame.cover {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-.deck-show .frame.cover .head {
-  flex-direction: column;
-}
-.deck-show .frame.cover h1 {
-  font-size: 10vmin;
-}
-.deck-show .sub {
-  margin: 0;
-  font-size: 4.5vmin;
-  line-height: 1.4;
-  color: var(--to-ink-2);
-}
-.deck-show .sub span {
-  display: block;
+.deck-slide .big svg {
+  width: 60%;
+  height: 60%;
 }
 .deck-slide input.title {
   flex: 1;
   min-width: 0;
-  font: 650 clamp(22px, 3.2vw, 32px) / 1.2 var(--sl-font-sans);
+  font: 700 calc(var(--title) / 960 * 100cqw) / 1.15 var(--sl-font-sans);
   letter-spacing: -0.02em;
   border: 0;
   background: transparent;
   color: var(--to-ink);
   padding: 4px 0;
+}
+.deck-slide .body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4.2cqw;
+  min-height: 0;
+}
+.deck-slide.lay-2 .body,
+.deck-slide.lay-i .body,
+.deck-slide.has-sub .body {
+  grid-template-columns: 1fr 1fr;
+}
+.deck-slide to-embed {
+  margin: 0;
+  align-self: start;
 }
 .deck-slide .bullets {
   position: relative;
@@ -849,13 +843,13 @@ table.sheet td.sel input {
   width: 100%;
   margin: 0;
   border: 0;
-  padding: 0 0 0 1.4em;
-  font: 18px/1.55 var(--sl-font-sans);
+  padding: 0 0 0 1.1em;
+  font: calc(var(--body) / 960 * 100cqw) / 1.3 var(--sl-font-sans);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .deck-slide .mirror {
-  min-height: 4.65em;
+  min-height: 3.9em;
   color: transparent;
   user-select: none;
 }
@@ -865,8 +859,8 @@ table.sheet td.sel input {
 .deck-slide .mirror div.on::before {
   content: '•';
   position: absolute;
-  left: -1.4em;
-  width: 1.4em;
+  left: -1.1em;
+  width: 1.1em;
   text-align: center;
   color: var(--to-accent);
 }
@@ -879,12 +873,44 @@ table.sheet td.sel input {
   resize: none;
   overflow: hidden;
 }
+/* Title slide: everything centred, the lines below the title are a subtitle. */
+.deck-slide.lay-t {
+  align-content: center;
+  grid-template-rows: auto auto;
+}
+.deck-slide.lay-t .head {
+  flex-direction: column;
+}
+.deck-slide.lay-t input.title {
+  width: 100%;
+  flex: none;
+  text-align: center;
+}
+.deck-slide.lay-t .mirror,
+.deck-slide.lay-t textarea {
+  padding-left: 0;
+  text-align: center;
+  color: var(--to-ink-2);
+}
+.deck-slide.lay-t .mirror {
+  color: transparent;
+  min-height: 2.6em;
+}
+.deck-slide.lay-t .mirror div.on::before {
+  content: none;
+}
 .deck-slide .num {
   position: absolute;
   right: 14px;
   bottom: 10px;
   font-size: 12px;
   color: var(--to-ink-3);
+}
+.deck-layout-pick {
+  width: 142px;
+}
+.deck-transition {
+  width: 96px;
 }
 .deck-suggest {
   position: absolute;
@@ -956,54 +982,67 @@ table.sheet td.sel input {
   background: var(--to-accent-soft);
   color: var(--to-accent);
 }
+/* Presenting: the slide is one picture, as large as the screen allows. */
 .deck-show {
+  user-select: none;
   position: fixed;
   inset: 0;
-  background: var(--to-surface);
+  background: #111;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  overflow: hidden;
 }
 .deck-show .frame {
+  position: relative;
   width: min(100vw, 160vh);
   aspect-ratio: 16 / 10;
-  padding: 6vmin 8vmin;
-  display: flex;
-  flex-direction: column;
-  gap: 4vmin;
+  background: #fff;
 }
-.deck-show .head {
-  display: flex;
-  align-items: center;
-  gap: 3vmin;
-  color: var(--to-accent);
+.deck-show .frame > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-family: var(--sl-font-sans);
 }
-.deck-show h1 {
-  font-size: 7vmin;
-  margin: 0;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  color: var(--to-ink);
-}
-.deck-show ul {
-  font-size: 4vmin;
-  line-height: 1.5;
-  margin: 0;
-  padding-left: 1.2em;
+.deck-show .deck-map {
+  position: absolute;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: grab;
 }
 .deck-show .ctl {
   position: fixed;
   right: 12px;
   top: 12px;
+  opacity: 0.85;
 }
 .deck-show .pos {
   position: fixed;
   left: 14px;
   bottom: 12px;
   font-size: 12px;
-  color: var(--to-ink-3);
+  color: #a1a1aa;
+}
+.deck-show .tr-fade {
+  animation: deck-fade 0.35s ease-out;
+}
+.deck-show .tr-slide {
+  animation: deck-slide 0.35s ease-out;
+}
+.deck-show .tr-zoom {
+  animation: deck-zoom 0.35s ease-out;
+}
+@keyframes deck-fade {
+  from { opacity: 0; }
+}
+@keyframes deck-slide {
+  from { transform: translateX(8%); opacity: 0; }
+}
+@keyframes deck-zoom {
+  from { transform: scale(0.92); opacity: 0; }
 }
 
 /* Draw */
@@ -1177,7 +1216,7 @@ svg.draw-canvas text {
   padding: 10px 14px 14px;
   border-top: 1px solid var(--to-border);
 }
-.cal-agenda h3 {
+.cal-agenda h2 {
   font-size: 11.5px;
   margin: 0 0 6px;
   text-transform: uppercase;
@@ -1254,10 +1293,7 @@ svg.draw-canvas text {
     display: none;
   }
   /* iOS zooms into inputs under 16px. */
-  table.sheet td input,
-  .deck-slide .mirror,
-  .deck-slide textarea,
-  .deck-slide input.title {
+  table.sheet td input {
     font-size: 16px;
   }
   table.sheet {
@@ -1287,16 +1323,10 @@ svg.draw-canvas text {
     overflow-x: auto;
   }
   .deck-thumb {
-    width: auto;
-    min-width: 120px;
-    max-width: 160px;
+    width: 120px;
   }
   .deck-editor {
     padding: 10px;
-  }
-  .deck-slide .pick {
-    width: 44px;
-    height: 44px;
   }
   .cal-month {
     min-width: 0;
@@ -1342,7 +1372,7 @@ svg.draw-canvas text {
 }
 
 
-/* 7. More apps: todo, board, gantt, trip, tune, motion --------------------- */
+/* 7. More apps: todo, board, gantt, trip, motion --------------------- */
 
 .to-empty {
   margin: 0;
@@ -1806,70 +1836,6 @@ svg.gantt-chart {
   white-space: nowrap;
 }
 
-/* Tune */
-.tune-bpm {
-  width: 150px;
-}
-.tune-bpm::part(form-control),
-.anim-len::part(form-control) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.tune-bpm::part(form-control-label),
-.anim-len::part(form-control-label) {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--to-ink-3);
-}
-.tune-scroll {
-  overflow-x: auto;
-  padding: 12px;
-  background: var(--to-surface-2);
-}
-svg.tune-roll {
-  display: block;
-  background: var(--to-surface);
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-  touch-action: pan-x;
-  user-select: none;
-  cursor: pointer;
-}
-.tune-roll .row {
-  fill: transparent;
-}
-.tune-roll .row.black {
-  fill: var(--to-surface-2);
-}
-.tune-roll .key {
-  font: 10px var(--sl-font-sans);
-  fill: var(--to-ink-3);
-}
-.tune-roll .key.c {
-  fill: var(--to-ink);
-  font-weight: 600;
-}
-.tune-roll line.step {
-  stroke: var(--to-border);
-  stroke-width: 0.5;
-}
-.tune-roll line.beat {
-  stroke: var(--to-border-strong);
-  stroke-width: 0.75;
-}
-.tune-roll line.bar {
-  stroke: var(--to-ink-3);
-}
-.tune-roll .note {
-  fill: var(--to-accent);
-}
-.tune-roll .head {
-  fill: var(--to-accent);
-  opacity: 0.18;
-  pointer-events: none;
-}
-
 /* Motion */
 .anim {
   padding: 12px;
@@ -1899,6 +1865,7 @@ svg.anim-stage {
 .anim-stage .hit {
   fill: transparent;
   stroke: transparent;
+  rx: 6px;
 }
 .anim-stage .item.sel .hit {
   stroke: var(--to-accent);
@@ -2052,49 +2019,6 @@ svg.anim-stage {
   }
 }
 
-/* Write: an embedded TinyOffice document */
-.write-embed {
-  margin: 0.8em 0;
-  user-select: none;
-}
-.write-embed a {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--to-border);
-  border-left: 4px solid var(--to-accent);
-  border-radius: var(--to-radius);
-  background: var(--to-surface-2);
-  color: var(--to-ink);
-  text-decoration: none;
-  cursor: pointer;
-}
-.write-embed a:hover {
-  border-color: var(--to-accent);
-}
-.write-embed small {
-  color: var(--to-ink-3);
-  font-size: 12.5px;
-}
-.write-embed span {
-  grid-column: 1 / -1;
-  color: var(--to-ink-2);
-  font-size: 13.5px;
-  line-height: 1.45;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.write-embed img {
-  grid-column: 1 / -1;
-  display: block;
-  max-width: 100%;
-  margin-top: 8px;
-  border-radius: 6px;
-  background: #fff;
-}
-
 @media (max-width: 760px) {
   .to-launcher {
     grid-template-columns: repeat(3, 1fr);
@@ -2106,5 +2030,236 @@ svg.anim-stage {
   }
   .to-launcher b {
     font-size: 14px;
+  }
+}
+
+/* 8. Kit: things every app shares ------------------------------------------ */
+
+/* Keyboard users always see where they are. */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 2px;
+}
+.to-skip {
+  position: fixed;
+  left: 8px;
+  top: -60px;
+  z-index: 200;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--to-radius);
+  background: var(--to-accent);
+  color: #fff;
+  font: 600 14px var(--sl-font-sans);
+}
+.to-skip:focus {
+  top: 8px;
+}
+.to-main:focus {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+.to-keys-head {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--to-ink-2);
+}
+.to-keys-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0 0 18px;
+  font-size: 14px;
+}
+.to-keys-list dt {
+  white-space: nowrap;
+}
+.to-keys-list dd {
+  margin: 0;
+}
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--to-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--to-surface-2);
+  font: 12.5px var(--sl-font-mono);
+}
+sl-drawer::part(footer) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* A document being edited inside another one. */
+sl-dialog.to-sub {
+  --width: min(96vw, 1000px);
+}
+sl-dialog.to-sub::part(body) {
+  padding: 0;
+}
+to-embed[contenteditable='false']:focus {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.write-page to-embed {
+  max-width: 560px;
+}
+
+/* Sheet: chart */
+.sheet-chart-pick {
+  width: 128px;
+}
+.sheet-chart {
+  margin: 0;
+  padding: 16px;
+  border-top: 1px solid var(--to-border);
+  background: #fff;
+}
+.sheet-chart svg {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 0 auto;
+  font-family: var(--sl-font-sans);
+}
+
+/* Gantt: tasks with parts under them */
+.gantt-rows tr.parent input.label {
+  font-weight: 650;
+}
+.gantt-chart .bar.parent path {
+  fill: var(--to-ink);
+  cursor: pointer;
+}
+.gantt-chart .bar.parent.sel path {
+  fill: var(--to-accent);
+}
+
+/* Trip: units, and the map on its own when presenting */
+.trip-units {
+  width: 132px;
+}
+to-trip[present] {
+  display: block;
+}
+to-trip[present] .trip-map {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .deck-editor {
+    padding: 10px;
+  }
+  .deck-rail {
+    flex-direction: row;
+  }
+  .sheet-chart-pick {
+    width: 56px;
+  }
+  .sheet-chart-pick::part(display-input) {
+    display: none;
+  }
+}
+
+table.sheet td.corner {
+  background: var(--to-surface-2);
+  position: sticky;
+  top: 0;
+  width: var(--sheet-row-w);
+}
+
+.cal-row {
+  display: contents;
+}
+.to-here,
+.to-drawer-nav a[aria-current='page'] {
+  color: var(--sl-color-primary-700);
+}
+
+.sl-theme-dark .to-here,
+.sl-theme-dark .to-drawer-nav a[aria-current='page'] {
+  color: var(--to-ink);
+}
+
+@media (max-width: 760px) {
+  /* Phones zoom into anything typed under 16px, so the editor's type stops shrinking there and the slide grows instead. */
+  .deck-slide {
+    aspect-ratio: auto;
+    min-height: 62.5cqw;
+  }
+  .deck-slide input.title {
+    font-size: max(18px, calc(var(--title) / 960 * 100cqw));
+  }
+  .deck-slide .mirror,
+  .deck-slide textarea {
+    font-size: max(16px, calc(var(--body) / 960 * 100cqw));
+  }
+  .deck-slide.lay-2 .body,
+  .deck-slide.lay-i .body,
+  .deck-slide.has-sub .body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Write: web addresses in the text */
+.write-page a {
+  color: var(--to-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: var(--to-accent-soft);
+  border-radius: 3px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+/* Sheet: a block of cells, and the handle that fills from it */
+table.sheet td {
+  position: relative;
+}
+table.sheet td.in {
+  background: var(--to-accent-soft);
+}
+table.sheet td.filling {
+  box-shadow: inset 0 0 0 1px var(--to-accent);
+}
+table.sheet.selecting {
+  user-select: none;
+}
+table.sheet .fill {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border: 2px solid var(--to-surface);
+  border-radius: 2px;
+  background: var(--to-accent);
+  cursor: crosshair;
+  touch-action: none;
+  z-index: 3;
+}
+@media (pointer: coarse) {
+  /* A finger needs more to hold on to. */
+  table.sheet .fill {
+    right: -9px;
+    bottom: -9px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
   }
 }

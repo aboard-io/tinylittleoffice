@@ -18,15 +18,15 @@ test('deck round trip', () => {
 
 test('deck title slides', () => {
   const slides = [
-    { icon: 'rocket', title: 'Big launch', bullets: ['Spring 2027'], cover: true },
+    { icon: 'rocket', title: 'Big launch', bullets: ['Spring 2027'], layout: 't' as const },
     { icon: '', title: 'Agenda', bullets: ['one'] },
-    { icon: '', title: 'Thanks', bullets: [], cover: true },
+    { icon: '', title: 'Thanks', bullets: [], layout: 't' as const },
   ];
   const s = serializeDeck(slides);
   assert.equal(s, ':rocket:t\nBig launch\nSpring 2027\n\nAgenda\none\n\n::t\nThanks');
   assert.deepEqual(parseDeck(s), slides);
   // A new deck opens on a title slide and costs nothing until it is touched.
-  assert.deepEqual(parseDeck(''), [{ icon: '', title: '', bullets: [], cover: true }]);
+  assert.deepEqual(parseDeck(''), [{ icon: '', title: '', bullets: [], layout: 't' }]);
   assert.equal(serializeDeck(parseDeck('')), '');
 });
 

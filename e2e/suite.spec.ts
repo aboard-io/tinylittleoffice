@@ -4,7 +4,7 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a');
-  await expect(launcher).toHaveCount(11);
+  await expect(launcher).toHaveCount(10);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });
@@ -63,7 +63,7 @@ test('sheet: tapping cells builds a formula, and every function is one tap away'
 
   // The function menu starts a formula; taps fill in its arguments.
   await page.getByRole('button', { name: 'Functions' }).click();
-  await expect(page.getByRole('menuitem')).toHaveCount(10);
+  await expect(page.getByRole('menuitem')).toHaveCount(23);
   await page.getByRole('menuitem', { name: /^MAX/ }).click();
   await expect(cell('C1')).toBeFocused();
   await expect(cell('C1')).toHaveValue('=MAX(');
@@ -83,6 +83,139 @@ test('sheet: tapping cells builds a formula, and every function is one tap away'
   await expect(bar).toHaveValue('=A1*A2');
   await page.keyboard.press('Enter');
   await expect(cell('B2')).toHaveValue('320');
+
+  // Arrow keys point at cells the same way: up from D3 is D2, then the pointer keeps moving.
+  await cell('D3').click();
+  await page.keyboard.type('=A1+');
+  await page.keyboard.press('ArrowUp');
+  await expect(cell('D3')).toBeFocused();
+  await expect(cell('D3')).toHaveValue('=A1+D2');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await expect(cell('D3')).toHaveValue('=A1+B2');
+  await page.keyboard.type('*2');
+  // With the formula complete, the arrows move between cells again.
+  await page.keyboard.press('ArrowDown');
+  await expect(cell('D4')).toBeFocused();
+  await expect(cell('D3')).toHaveValue('650');
+
+  // Enough for a small model: conditions and the time value of money.
+  await cell('E1').fill('=IF(B1>40, NPV(0.1, A1:A2), 0)');
+  await cell('E2').fill('=ROUND(PMT(0.05/12, 60, 20000), 2)');
+  await cell('F1').click();
+  await expect(cell('E1')).toHaveValue('35.53719008');
+  await expect(cell('E2')).toHaveValue('-377.42');
+});
+
+test('sheet: blocks of cells are selected, copied, cut, cleared and filled', async ({ page, isMobile }) => {
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  const ref = page.getByLabel('Selected cells');
+  for (const [at, v] of [['A1', '1'], ['A2', '2'], ['B1', '10'], ['B2', '20'], ['C1', '=A1+B1']]) await cell(at).fill(v);
+
+  // Shift+arrows stretch a block from the cell you are in.
+  await cell('C1').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await expect(ref).toHaveText('C1:C2');
+  await expect(page.locator('table.sheet td.in')).toHaveCount(2);
+  await page.keyboard.press('Escape');
+  await expect(ref).toHaveText('C1');
+
+  // Copy a cell, select a block, paste: every copy points at its own neighbours.
+  await cell('C1').click();
+  await page.keyboard.press('Control+c');
+  await cell('C2').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Control+v');
+  await cell('F1').click();
+  await expect(cell('C2')).toHaveValue('22');
+  await cell('C3').click();
+  await expect(cell('C3')).toHaveValue('=A3+B3');
+
+  // Cut a block and paste it elsewhere: it moves, and the old cells are empty.
+  await cell('A1').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(ref).toHaveText('A1:B2');
+  await page.keyboard.press('Control+x');
+  await expect(cell('B2')).toHaveValue('');
+  await cell('D5').click();
+  await page.keyboard.press('Control+v');
+  await expect(ref).toHaveText('D5:E6');
+  await cell('F1').click();
+  await expect(cell('E6')).toHaveValue('20');
+  await expect(cell('D5')).toHaveValue('1');
+
+  // Rows copied from another program arrive as cells.
+  await page.evaluate(() => navigator.clipboard.writeText('North\t100\nSouth\t250\n'));
+  await cell('A10').click();
+  await page.keyboard.press('Control+v');
+  await cell('F1').click();
+  await expect(cell('A11')).toHaveValue('South');
+  await expect(cell('B11')).toHaveValue('250');
+
+  // Delete clears a whole block.
+  await cell('A10').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Delete');
+  await expect(cell('B11')).toHaveValue('');
+  await expect(cell('A10')).toHaveValue('');
+
+  // The handle at the corner of a block carries it on: numbers in step keep counting.
+  await cell('A1').fill('5');
+  await cell('A2').fill('10');
+  await cell('A1').click();
+  await page.keyboard.press('Shift+ArrowDown');
+  const handle = page.locator('table.sheet .fill');
+  await expect(handle).toHaveCount(1);
+  const from = (await handle.boundingBox())!;
+  const to = (await cell('A5').boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 5 });
+  await expect(page.locator('table.sheet td.filling')).toHaveCount(5);
+  await page.mouse.up();
+  await expect(ref).toHaveText('A1:A5');
+  await cell('F1').click();
+  await expect(cell('A3')).toHaveValue('15');
+  await expect(cell('A5')).toHaveValue('25');
+
+  // Dragging across cells with a mouse selects a block too.
+  if (!isMobile) {
+    const a = (await cell('A1').boundingBox())!;
+    const b = (await cell('B3').boundingBox())!;
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await expect(ref).toHaveText('A1:B3');
+  }
+  await shot(page, 'sheet-block');
+  await reopen(page);
+  await expect(cell('A5')).toHaveValue('25');
+});
+
+test('sheet: charts suggest themselves and travel with the sheet', async ({ page }) => {
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  for (const [ref, v] of [['A1', 'Item'], ['B1', 'Cost'], ['A2', 'Rent'], ['B2', '1200'], ['A3', 'Food'], ['B3', '600'], ['A4', 'Fun'], ['B4', '200']]) await cell(ref).fill(v);
+  await cell('C1').click();
+  await expect(page.locator('.sheet-chart')).toHaveCount(0);
+  const pick = page.locator('sl-select.sheet-chart-pick');
+  await pick.click();
+  // Three parts of a whole: a pie is suggested.
+  await expect(pick.locator('sl-option[value="pie"]')).toContainText('suggested');
+  await pick.locator('sl-option[value="pie"]').click();
+  const chart = page.locator('.sheet-chart svg');
+  await expect(chart.locator('path')).toHaveCount(3);
+  await expect(chart).toContainText('Rent');
+  await expect(chart).toContainText('60%');
+  await reopen(page);
+  await expect(chart.locator('path')).toHaveCount(3);
+  await pickOption(page, 'sl-select.sheet-chart-pick', 'bar');
+  await expect(chart.locator('rect[rx="2"]')).toHaveCount(3);
+  await shot(page, 'chart');
 });
 
 test('sheet: columns squeeze to fit or widen to show everything', async ({ page }) => {
@@ -153,86 +286,86 @@ test('write: rich text survives the round trip', async ({ page }) => {
 
 test('deck: slides, icons and presenting', async ({ page }) => {
   await page.goto('/#/deck');
+  const headline = page.getByRole('textbox', { name: 'Headline' });
+  const bullets = page.getByRole('textbox', { name: 'Bullets' });
+  const show = page.getByRole('dialog', { name: 'Presentation' });
+  const slide = show.locator('.frame > svg');
   // A new deck opens on a title slide: big centred title, subtitle, no bullets.
-  const titleToggle = page.locator('sl-button', { hasText: 'Title slide' });
-  await expect(titleToggle).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
-  await page.getByRole('textbox', { name: 'Bullets' }).fill('What we are shipping');
-  await expect(page.locator('.deck-slide.cover .mirror div.on')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Present' }).click();
-  await expect(page.locator('.deck-show .frame.cover h1')).toHaveText('Spring launch');
-  await expect(page.locator('.deck-show .sub')).toHaveText('What we are shipping');
-  await expect(page.locator('.deck-show li')).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  await shot(page, 'deck-title');
+  await expect(page.locator('.deck-slide.lay-t')).toBeVisible();
+  await headline.fill('Spring launch');
+  await bullets.fill('What we are shipping');
   // The toolbar's Icon button opens the same picker as the box on the slide.
   await page.getByRole('button', { name: 'Icon', exact: true }).click();
   await expect(page.locator('#icon-picker')).toHaveAttribute('open');
-  await page.getByRole('listbox', { name: 'Icon library' }).getByRole('button', { name: 'star', exact: true }).click();
+  const library = page.getByRole('group', { name: 'Icon library' });
+  await library.getByRole('button', { name: 'star', exact: true }).click();
   await expect(page.locator('.deck-slide .pick svg')).toBeVisible();
-  await reopen(page);
-  await expect(titleToggle).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveValue('Spring launch');
+  await shot(page, 'deck-title');
 
-  await page.goto('about:blank');
-  await page.goto('/#/deck');
-  await titleToggle.click();
-  await expect(titleToggle).toHaveAttribute('aria-pressed', 'false');
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Launch plan');
-  await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it\nTell people');
-  // The slide's own words recommend icons, both on the slide and in the picker.
+  // A second slide with bullets; the slide's own words recommend icons.
+  await page.getByRole('button', { name: 'Slide', exact: true }).click();
+  await expect(page.locator('.deck-slide.lay-b')).toBeVisible();
+  await headline.fill('Launch plan');
+  await bullets.fill('Build it\nShip it\nTell people');
   await expect(page.getByRole('button', { name: 'Use rocket icon' })).toBeVisible();
   await page.getByRole('button', { name: 'Slide icon' }).click();
-  const library = page.getByRole('listbox', { name: 'Icon library' });
   await expect(page.getByRole('group', { name: 'Suggested', exact: true }).getByRole('button', { name: 'rocket', exact: true })).toBeVisible();
   const search = page.locator('#icon-picker sl-input input');
   await search.fill('zzz');
   await expect(page.locator('.deck-picker-none')).toBeVisible();
-  await search.fill('money');
-  await expect(library.getByRole('button', { name: 'dollar', exact: true })).toBeVisible();
-  await expect(library.getByRole('button', { name: 'rocket', exact: true })).toHaveCount(0);
   await search.fill('rock');
   await library.getByRole('button', { name: 'rocket', exact: true }).click();
   await expect(page.locator('#icon-picker')).not.toHaveAttribute('open');
   await expect(page.locator('.deck-suggest')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Slide', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Second');
   await expect(page.locator('.to-toolbar .to-hint')).toHaveText('2 / 10');
 
-  await reopen(page);
-  const thumbs = page.locator('.deck-rail .deck-thumb');
-  await expect(thumbs).toHaveCount(2);
-  await expect(thumbs.nth(0)).toContainText('Launch plan');
-  await thumbs.nth(0).click();
-  await expect(page.getByRole('textbox', { name: 'Bullets' })).toHaveValue('Build it\nShip it\nTell people');
-  await expect(page.locator('.deck-slide .pick svg')).toBeVisible();
-  // Each dot sits on the first line of its bullet, at any font size, even when a bullet wraps.
-  const bullets = page.getByRole('textbox', { name: 'Bullets' });
-  await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(4).trim() + '\nTell people');
+  // Each dot sits on the first line of its bullet, even when a bullet wraps.
+  await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(3).trim() + '\nTell people');
   const geometry = await page.locator('.deck-slide .bullets').evaluate((el) => {
     const ta = el.querySelector('textarea')!;
     const mirror = el.querySelector('.mirror')!;
     const a = getComputedStyle(ta);
     const b = getComputedStyle(mirror);
-    return {
-      sameFont: a.fontSize === b.fontSize && a.lineHeight === b.lineHeight && a.fontFamily === b.fontFamily,
-      sameBox: Math.abs(ta.getBoundingClientRect().height - mirror.getBoundingClientRect().height) < 1 && Math.abs(ta.getBoundingClientRect().top - mirror.getBoundingClientRect().top) < 1,
-      fits: ta.scrollHeight <= ta.clientHeight + 1,
-      dots: mirror.querySelectorAll('div.on').length,
-      wrapped: mirror.children[1].getBoundingClientRect().height > mirror.children[0].getBoundingClientRect().height * 1.5,
-    };
+    return { sameFont: a.fontSize === b.fontSize && a.fontFamily === b.fontFamily, dots: mirror.querySelectorAll('div.on').length, wrapped: mirror.children[1].getBoundingClientRect().height > mirror.children[0].getBoundingClientRect().height * 1.5 };
   });
-  expect(geometry).toEqual({ sameFont: true, sameBox: true, fits: true, dots: 3, wrapped: true });
-  await shot(page, 'deck');
+  expect(geometry).toEqual({ sameFont: true, dots: 3, wrapped: true });
+  // Type shrinks as the slide fills up, and grows back.
+  // (--body is the size on the 960px slide the audience sees; a phone's editor stops shrinking at 16px so it stays typeable.)
+  const px = () => page.locator('.deck-slide').evaluate((el) => parseFloat(getComputedStyle(el).getPropertyValue('--body')));
   await bullets.fill('Build it\nShip it\nTell people');
+  const roomy = await px();
+  await bullets.fill(Array.from({ length: 12 }, (_, i) => `Point number ${i + 1} with a few more words in it`).join('\n'));
+  expect(await px()).toBeLessThan(roomy * 0.8);
+  await bullets.fill('Build it\nShip it\nTell people');
+  expect(await px()).toBe(roomy);
 
+  await reopen(page);
+  const thumbs = page.locator('.deck-rail .deck-thumb');
+  await expect(thumbs).toHaveCount(2);
+  await expect(thumbs.nth(1)).toContainText('Launch plan');
+  await thumbs.nth(1).click();
+  await expect(bullets).toHaveValue('Build it\nShip it\nTell people');
+  await shot(page, 'deck');
+
+  // Presenting: the title slide appears whole; the next builds a bullet per step.
+  await thumbs.nth(0).click();
   await page.getByRole('button', { name: 'Present' }).click();
-  const show = page.getByRole('dialog', { name: 'Presentation' });
-  await expect(show.locator('h1')).toHaveText('Launch plan');
-  await expect(show.locator('li')).toHaveCount(3);
+  await expect(slide).toContainText('Spring launch');
+  await expect(slide).toContainText('What we are shipping');
   await page.keyboard.press('ArrowRight');
-  await expect(show.locator('h1')).toHaveText('Second');
-  await page.keyboard.press('Escape');
+  await expect(slide).toContainText('Launch plan');
+  await expect(slide).not.toContainText('Build it');
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('Build it');
+  await expect(slide).not.toContainText('Ship it');
+  await page.keyboard.press('ArrowLeft');
+  await expect(slide).not.toContainText('Build it');
+  // A fast double click shows the whole slide at once.
+  await show.dblclick({ position: { x: 300, y: 300 } });
+  await expect(slide).toContainText('Tell people');
+  await shot(page, 'deck-show');
+  // Once everything is out, the next step leaves the last slide and the show.
+  await page.keyboard.press('ArrowRight');
   await expect(show).toHaveCount(0);
 
   for (let i = 0; i < 10; i++) {
@@ -242,6 +375,80 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   }
   await expect(thumbs).toHaveCount(10);
   await expect(page.getByRole('button', { name: 'Slide', exact: true })).toBeDisabled();
+});
+
+test('deck: layouts, a transition, and other documents on a slide', async ({ page }) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two\na,14,4,8,8,0' });
+  const sheet = 'sheet/' + encodeEnvelope({ created: null, body: 'Item\tCost\nRent\t1200\nFood\t600' });
+  const body = ['!fade', '::2\nTwo columns\nleft\n|\nright', ':star:i\nBig icon\nwhy', `Drawing\nfirst\n@@${draw}`, `Table\n@@${sheet}`].join('\n\n');
+  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body }));
+  const thumbs = page.locator('.deck-rail .deck-thumb');
+  await expect(thumbs).toHaveCount(4);
+  await expect(page.locator('sl-select.deck-transition')).toHaveJSProperty('value', 'fade');
+
+  // Two columns: each is its own list.
+  await expect(page.locator('.deck-slide.lay-2')).toBeVisible();
+  await page.getByRole('textbox', { name: 'Right column' }).fill('right\nand more');
+  // Big icon: bullets on the left, the icon large on the right.
+  await thumbs.nth(1).click();
+  await expect(page.locator('.deck-slide.lay-i .big svg')).toBeVisible();
+  // Layout is a choice per slide.
+  // Slide type lists every layout, and everything that can be shown on a slide.
+  const kind = page.getByRole('button', { name: 'Slide type' });
+  await kind.click();
+  await expect(page.getByRole('menuitemcheckbox')).toHaveText(['Bullets', 'Title', 'Two columns', 'Big icon']);
+  for (const name of ['Motion', 'Drawing', 'Table', 'Chart', 'Map']) await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
+  await page.getByRole('menuitemcheckbox', { name: 'Bullets' }).click();
+  await expect(page.locator('.deck-slide.lay-b')).toBeVisible();
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Bullets' })).toBeHidden();
+  await kind.click();
+  await page.getByRole('menuitemcheckbox', { name: 'Big icon' }).click();
+  await expect(page.locator('.deck-slide.lay-i')).toBeVisible();
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Big icon' })).toBeHidden();
+
+  // A slide can show another document; Insert adds one and opens it for editing.
+  await thumbs.nth(2).click();
+  await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
+  await page.locator('.deck-slide to-embed').getByRole('button', { name: /Remove/ }).click();
+  await expect(page.locator('.deck-slide to-embed')).toHaveCount(0);
+  await kind.click();
+  await page.getByRole('menuitem', { name: 'Chart', exact: true }).click();
+  const sub = page.locator('sl-dialog.to-sub');
+  await expect(sub).toHaveAttribute('open');
+  await sub.getByRole('textbox', { name: 'A1', exact: true }).fill('Q1');
+  await sub.getByRole('textbox', { name: 'B1', exact: true }).fill('10');
+  await sub.getByRole('textbox', { name: 'A2', exact: true }).fill('Q2');
+  await sub.getByRole('textbox', { name: 'B2', exact: true }).fill('30');
+  await sub.getByRole('button', { name: 'Done' }).click();
+  await expect(sub).toHaveCount(0);
+  await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
+  await expect(page.locator('.deck-slide to-embed svg rect[rx="2"]')).toHaveCount(2);
+  await reopen(page);
+  await thumbs.nth(2).click();
+  await expect(page.locator('.deck-slide to-embed svg rect[rx="2"]')).toHaveCount(2);
+  await shot(page, 'deck-sub');
+
+  // Presenting a drawing builds it a shape per click; a table fills in by itself.
+  await page.goto('about:blank');
+  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body }));
+  await thumbs.nth(2).click();
+  await page.getByRole('button', { name: 'Present' }).click();
+  const slide = page.locator('.deck-show .frame > svg');
+  await expect(page.locator('.deck-show .frame')).toHaveClass(/tr-fade/);
+  await expect(slide).not.toContainText('first');
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('first');
+  await expect(slide).not.toContainText('One');
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('One');
+  await expect(slide).not.toContainText('Two');
+  await page.keyboard.press('End');
+  await expect(slide).toContainText('Two');
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('Table');
+  await expect(slide).toContainText('Food');
+  await page.keyboard.press('Escape');
 });
 
 test('draw: shapes with labels persist', async ({ page }) => {

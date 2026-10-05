@@ -8,31 +8,33 @@
 import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
-import { linkToRef, previewOf, svgDataUri } from '../lib/embed.ts';
-import { ICON_SVG } from './anim.ts';
-import { parseDoc, serializeDoc, docText, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { linkToRef, makeRef } from '../kit/embed.ts';
+import { editRef, embeddable } from '../kit/browser.ts';
+import { MAX_DEPTH, linkify, parseDoc, serializeDoc, docText, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
-/**
- * An embedded TinyOffice document: a card that cannot be typed in, showing
- * what the link holds and opening it when clicked.
- */
-export function embedHtml(ref: string): string {
-  const p = previewOf(ref, ICON_SVG);
-  const inside = p.svg ? `<img src="${esc(svgDataUri(p.svg)).replace(/"/g, '&quot;')}" alt="">` : p.lines.map((l) => `<span>${esc(l)}</span>`).join('');
-  return `<figure class="write-embed" contenteditable="false" data-ref="${esc(ref)}"><a href="${esc(p.hash)}"><b>${esc(p.title)}</b><small>${esc(p.kind)}</small>${inside}</a></figure>`;
-}
-
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * An embedded TinyOffice document. <to-embed> draws itself in a shadow root
+ * and is not editable, so the text around it treats it as one thing.
+ */
+export function embedHtml(ref: string): string {
+  const r = esc(ref).replace(/"/g, '&quot;');
+  return `<to-embed contenteditable="false" tabindex="0" controls ref="${r}" data-ref="${r}"></to-embed>`;
 }
 
 function runsToHtml(runs: Run[]): string {
   if (!runs.length) return '<br>';
   return runs
     .map((r) => {
-      let h = esc(r.t);
+      // Web addresses show as links; in the document they are just text.
+      let h = linkify(r.t)
+        .map((p) => (p.url ? `<a href="${esc(p.url).replace(/"/g, '&quot;')}">${esc(p.t)}</a>` : esc(p.t)))
+        .join('');
       if (r.s) h = `<s>${h}</s>`;
       if (r.u) h = `<u>${h}</u>`;
       if (r.i) h = `<i>${h}</i>`;
@@ -44,25 +46,28 @@ function runsToHtml(runs: Run[]): string {
 
 export function blocksToHtml(blocks: Block[]): string {
   let out = '';
-  let list: 'ul' | 'ol' | null = null;
+  const open: string[] = []; // the lists we are inside, outermost first
+  const closeTo = (depth: number) => {
+    while (open.length > depth) out += `</li></${open.pop()}>`;
+  };
   for (const b of blocks) {
-    const wantList = b.k === 'ul' || b.k === 'ol' ? b.k : null;
-    if (list && list !== wantList) {
-      out += `</${list}>`;
-      list = null;
-    }
-    if (wantList && !list) {
-      out += `<${wantList}>`;
-      list = wantList;
-    }
-    if (b.k === 'e') {
-      out += embedHtml(b.ref!);
+    if (b.k === 'ul' || b.k === 'ol') {
+      const depth = (b.d ?? 0) + 1;
+      closeTo(depth);
+      if (open.length === depth && open[depth - 1] !== b.k) closeTo(depth - 1);
+      if (open.length === depth) out += '</li>';
+      while (open.length < depth) {
+        out += `<${b.k}>`;
+        open.push(b.k);
+        if (open.length < depth) out += '<li>';
+      }
+      out += `<li>${runsToHtml(b.runs)}`;
       continue;
     }
-    const tag = KIND_TAG[b.k];
-    out += `<${tag}>${runsToHtml(b.runs)}</${tag}>`;
+    closeTo(0);
+    out += b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
   }
-  if (list) out += `</${list}>`;
+  closeTo(0);
   return out || '<p><br></p>';
 }
 
@@ -72,9 +77,12 @@ type Flags = { b: boolean; i: boolean; u: boolean; s: boolean };
 export function domToBlocks(root: HTMLElement): Block[] {
   const blocks: Block[] = [];
   let cur: Block | null = null;
+  /** How many lists deep we are. */
+  let lists = 0;
 
   const open = (k: BlockKind) => {
     cur = { k, runs: [] };
+    if ((k === 'ul' || k === 'ol') && lists > 1) cur.d = Math.min(MAX_DEPTH, lists - 1);
     blocks.push(cur);
   };
   const close = () => {
@@ -145,6 +153,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
     const tag = el.tagName;
     if (tag === 'UL' || tag === 'OL') {
       const k: BlockKind = tag === 'UL' ? 'ul' : 'ol';
+      lists++;
       for (const child of Array.from(el.childNodes)) {
         if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName === 'LI') {
           close();
@@ -153,6 +162,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
           close();
         } else inline(child, plain, k, el);
       }
+      lists--;
       close();
       return;
     }
@@ -171,6 +181,22 @@ export function domToBlocks(root: HTMLElement): Block[] {
   return blocks.length ? blocks : [{ k: 'p', runs: [] }];
 }
 
+/** The embedded document just before or after the caret, if the caret is at that edge of its block. */
+function embedBeside(page: HTMLElement, forward: boolean): HTMLElement | null {
+  const sel = getSelection();
+  if (!sel?.rangeCount || !sel.isCollapsed) return null;
+  let block: Node | null = sel.anchorNode;
+  while (block && block.parentNode !== page) block = block.parentNode;
+  if (!block) return null;
+  const edge = document.createRange();
+  edge.selectNodeContents(block);
+  if (forward) edge.setStart(sel.anchorNode!, sel.anchorOffset);
+  else edge.setEnd(sel.anchorNode!, sel.anchorOffset);
+  if (edge.toString() !== '') return null;
+  const beside = forward ? (block as Element).nextElementSibling : (block as Element).previousElementSibling;
+  return beside instanceof HTMLElement && beside.dataset.ref !== undefined ? beside : null;
+}
+
 function isBlockTag(tag: string): boolean {
   return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'SECTION', 'ARTICLE'].includes(tag);
 }
@@ -183,6 +209,8 @@ export class ToWrite extends LitElement {
   @state() private chars = 0;
   private lastEmitted = '';
   private page?: HTMLElement;
+  /** Where the caret last was in the text, so a menu can insert there. */
+  private caret: Range | null = null;
 
   createRenderRoot() {
     return this;
@@ -231,6 +259,8 @@ export class ToWrite extends LitElement {
 
   private onSelection = () => {
     if (!this.page || !this.page.contains(document.activeElement) && document.activeElement !== this.page) return;
+    const sel = getSelection();
+    if (sel?.rangeCount && this.page.contains(sel.anchorNode)) this.caret = sel.getRangeAt(0).cloneRange();
     const block = (document.queryCommandValue('formatBlock') || 'p').toLowerCase();
     this.fmt = {
       b: document.queryCommandState('bold'),
@@ -255,11 +285,92 @@ export class ToWrite extends LitElement {
     const text = e.clipboardData?.getData('text/plain') ?? '';
     // A TinyOffice link on its own becomes a preview of that document.
     const ref = linkToRef(text);
-    if (ref) document.execCommand('insertHTML', false, embedHtml(ref) + '<p><br></p>');
+    const link = linkify(text.trim());
+    if (ref) this.insertEmbed(ref);
+    // Any other web address on its own goes in as a link you can click.
+    else if (link.length === 1 && link[0].url) document.execCommand('insertHTML', false, `<a href="${esc(link[0].url).replace(/"/g, '&quot;')}">${esc(link[0].t)}</a>&nbsp;`);
     else document.execCommand('insertText', false, text);
   };
 
+  /** Put an embedded document where the caret is (or at the end), as a block of its own. */
+  private insertEmbed(ref: string): HTMLElement | null {
+    const page = this.page!;
+    page.focus();
+    const sel = getSelection()!;
+    if (this.caret && !page.contains(sel.anchorNode)) {
+      sel.removeAllRanges();
+      sel.addRange(this.caret);
+    }
+    let block: Node | null = page.contains(sel.anchorNode) ? sel.anchorNode : null;
+    while (block && block.parentNode !== page) block = block.parentNode;
+    const box = document.createElement('div');
+    box.innerHTML = embedHtml(ref);
+    const el = box.firstElementChild as HTMLElement;
+    const after = document.createElement('p');
+    after.append(document.createElement('br'));
+    // An empty paragraph gives way to the embed; otherwise it goes after the block the caret is in.
+    if (block && block.textContent === '' && !(block as HTMLElement).dataset?.ref) (block as Element).replaceWith(el, after);
+    else if (block) (block as Element).after(el, after);
+    else page.append(el, after);
+    sel.collapse(after, 0);
+    this.onInput();
+    return el;
+  }
+
+  private async insertNew(what: string) {
+    const el = this.insertEmbed(what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, ''));
+    if (el) await this.editEmbed(el);
+  }
+
+  private async editEmbed(el: HTMLElement) {
+    const ref = await editRef(el.dataset.ref!);
+    el.dataset.ref = ref;
+    el.setAttribute('ref', ref);
+    this.onInput();
+  }
+
+  private removeEmbed(el: HTMLElement) {
+    const next = el.nextElementSibling ?? el.previousElementSibling;
+    el.remove();
+    if (!this.page!.firstChild) this.page!.innerHTML = '<p><br></p>';
+    this.page!.focus();
+    if (next?.isConnected) getSelection()?.collapse(next, 0);
+    this.onInput();
+  }
+
+  /** Links in the text open in a new tab (a click in editable text would otherwise just move the caret). */
+  private onClick = (e: MouseEvent) => {
+    const a = (e.target as HTMLElement).closest?.('a');
+    if (!a || !this.page!.contains(a) || a.closest('to-embed')) return;
+    e.preventDefault();
+    window.open(a.href, '_blank', 'noopener');
+  };
+
+  /** Addresses typed by hand become links once you leave the text. */
+  private onBlur = () => {
+    const page = this.page!;
+    if (page.contains(document.activeElement)) return;
+    const html = blocksToHtml(domToBlocks(page));
+    if ((html.match(/<a /g)?.length ?? 0) !== page.querySelectorAll('a').length) page.innerHTML = html;
+  };
+
   private onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      // An embedded document is one thing: one key removes it, whether it has the focus or the caret is next to it.
+      const target = e.target as HTMLElement;
+      const embed = target.dataset?.ref !== undefined ? target : embedBeside(this.page!, e.key === 'Delete');
+      if (embed) {
+        e.preventDefault();
+        this.removeEmbed(embed);
+      }
+      return;
+    }
+    if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey && (this.fmt.block === 'ul' || this.fmt.block === 'ol')) {
+      // In a list, Tab moves the item in a level and Shift+Tab back out.
+      e.preventDefault();
+      this.exec(e.shiftKey ? 'outdent' : 'indent');
+      return;
+    }
     if (!(e.ctrlKey || e.metaKey)) return;
     const k = e.key.toLowerCase();
     const map: Record<string, [string, string?]> = {
@@ -302,7 +413,15 @@ export class ToWrite extends LitElement {
         <sl-button-group label="Lists">
           ${this.btn('Bulleted list', 'ul', f.block === 'ul', 'insertUnorderedList')}
           ${this.btn('Numbered list', 'ol', f.block === 'ol', 'insertOrderedList')}
+          ${this.btn('Bring out', 'outdent', false, 'outdent', undefined, 'Shift+Tab')}
+          ${this.btn('Indent', 'indent', false, 'indent', undefined, 'Tab')}
         </sl-button-group>
+        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insertNew(e.detail.item.value)}>
+          <sl-button slot="trigger" size="small" caret>${icon(UI.insert, 14)} Insert</sl-button>
+          <sl-menu>
+            ${embeddable('write').map((a) => html`<sl-menu-item value=${a.id}>${icon(UI[a.icon as keyof typeof UI], 14, 'pre')} ${a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name}</sl-menu-item>${a.id === 'sheet' ? html`<sl-menu-item value="chart">${icon(UI.chart, 14, 'pre')} Chart</sl-menu-item>` : ''}`)}
+          </sl-menu>
+        </sl-dropdown>
       </div>
       <div
         class="write-page ${this.value ? '' : 'blank'}"
@@ -314,6 +433,10 @@ export class ToWrite extends LitElement {
         @input=${this.onInput}
         @keydown=${this.onKey}
         @paste=${this.onPaste}
+        @click=${this.onClick}
+        @blur=${this.onBlur}
+        @embed-edit=${(e: Event) => this.editEmbed(e.target as HTMLElement)}
+        @embed-remove=${(e: Event) => this.removeEmbed(e.target as HTMLElement)}
         @focus=${this.onSelection}
       ></div>
       <div class="to-foot write-foot">

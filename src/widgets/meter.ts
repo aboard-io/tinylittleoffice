@@ -1,11 +1,12 @@
 /**
  * <to-meter>: how much of the URL budget a document has used, with a copy
- * button for the link. Clicking the ring or the count opens the document
+ * button for the link (the shell listens for "to-copy"). Clicking the ring or the count opens the document
  * dialog (the shell listens for "to-info").
  */
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { Room } from '../lib/limits.ts';
+import { icon, UI } from '../lib/icons.ts';
 
 @customElement('to-meter')
 export class ToMeter extends LitElement {
@@ -45,13 +46,7 @@ export class ToMeter extends LitElement {
       <span class="text" @click=${this.info}>${left < 0 ? html`<b>${(-left).toLocaleString()} over</b>` : html`<b>${left.toLocaleString()}</b> left`}</span>
       </span>
       </sl-tooltip>
-      <sl-copy-button
-        value=${this.href}
-        copy-label="Copy link"
-        success-label="Copied"
-        error-label="Copy failed"
-        hoist
-      ></sl-copy-button>
+      <button class="copy" type="button" aria-label="Copy link" title="Copy link" @click=${() => this.dispatchEvent(new CustomEvent('to-copy', { bubbles: true, composed: true }))}>${icon(UI.copy, 15)}</button>
     </div>`;
   }
 }

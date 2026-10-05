@@ -2,13 +2,13 @@
 
 A tiny office suite that lives entirely in the URL.
 
-Eleven small apps, no server, no accounts, nothing to save. Every document is
+Ten small apps, no server, no accounts, nothing to save. Every document is
 encoded into the address bar, kept under 2,048 characters. Copy the link and
 you have copied the file.
 
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
-| Sheet | A 20-row, 3-column spreadsheet with formulas (`=SUM(A1:A5)*2`).        |
+| Sheet | A 30-row, 6-column spreadsheet: formulas, business functions, charts. |
 | Write | A one-page rich text editor: headings, bold, italic, lists.           |
 | Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
@@ -17,7 +17,6 @@ you have copied the file.
 | Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
 | Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize.   |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
-| Tune  | A two-bar piano roll that plays, and saves as MIDI.                   |
 | Motion | Icons and text that move between the moments you set.                |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
@@ -97,15 +96,16 @@ as that file the moment it is opened, then shows the editor as usual:
 | `#/v2/board.md/<payload>`, `.csv` | Markdown, or CSV of stage and card           |
 | `#/v2/gantt.csv/<payload>`   | CSV of tasks with start and end dates             |
 | `#/v2/trip.gpx/<payload>`, `.geojson` | GPX route, or GeoJSON                    |
-| `#/v2/tune.mid/<payload>`    | MIDI file                                         |
 | `#/v2/anim.svg/<payload>`    | Animated SVG                                      |
-| `#/v2/<app>.png/<payload>`   | A picture of any document, sized for sharing      |
+| `#/v2/<app>.pdf/<payload>`   | PDF of any document, a page per page or slide     |
+| `#/v2/<app>.png/<payload>`   | The whole of any document as one picture          |
+| `#/v2/<app>.html/<payload>`  | Any document as a plain web page with preview tags |
 
 The same files are under the Download button on every document, and the
 Document dialog has a copy button for each download link. A password-locked
 link downloads once the password is entered. The file is named after the
 document's title when it has one. All of it is built in the browser by
-`src/lib/exports.ts`; nothing is sent anywhere.
+the app's definition (see "Adding an app"); nothing is sent anywhere.
 
 ### Sharing, and what a link preview can show
 
@@ -123,27 +123,28 @@ the picture to attach by hand. Hovering the meter (or opening the Document
 dialog) shows how much room the link leaves in a Bluesky post, a text
 message, a QR code and so on; the numbers are in `src/lib/limits.ts`.
 
-### Embedding one document in another
-
-Paste a TinyOffice link on its own into Write and it becomes a preview of
-that document: the drawing or animation itself, or the title and first lines
-of anything else. It is stored as one line, `@@<app>/<payload>`, and the web
-page and rich text downloads carry it as a working link.
-
 ### Formats
 
 Every format is plain text, chosen so deflate has something to chew on.
 
 - **Sheet**: rows separated by newlines, cells by tabs, trailing blanks trimmed.
   Formulas start with `=` and support `+ - * / ^ %`, parentheses, cell
-  references (`B7`), ranges (`A1:C3`) and `SUM AVG MIN MAX COUNT ABS ROUND SQRT
-  INT MOD`. Errors show as `#DIV/0`, `#REF`, `#NAME`, `#CIRC`, `#VALUE`, `#ERR`.
+  references (`B7`), ranges (`A1:C3`), comparisons (`= <> < > <= >=`) and
+  `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN
+  INT ABS SQRT MOD NPV IRR PMT FV PV`. Errors show as `#DIV/0`, `#REF`,
+  `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. A first line `!bar`, `!line` or
+  `!pie` asks for a chart of the table.
 - **Write**: one block per line. Prefixes `# ` and `## ` for headings, `- ` and
-  `+ ` for bulleted and numbered items. Inline toggles `*bold*`, `_italic_`,
-  `^underline^`, `~strike~`, with `\` as the escape character.
+  `+ ` for bulleted and numbered items; repeat the marker to nest (`-- `,
+  `--- `). Inline toggles `*bold*`, `_italic_`, `^underline^`, `~strike~`,
+  with `\` as the escape character. `@@<app>/<payload>` is an embedded
+  document.
 - **Deck**: slides separated by a blank line. In each slide an optional
-  `:icon-name` line, then the headline, then one bullet per line. `:t` after
-  the icon name (`:rocket:t`, or `::t`) makes it a title slide.
+  `:icon-name` line, then the headline, then one bullet per line. A layout
+  may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
+  line `|` starts the right one), `:star:i` bullets beside a big icon. A line
+  `@@<app>/<payload>` shows another document on the slide. A first chunk
+  `!fade`, `!slide` or `!zoom` sets the deck's transition.
 - **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
   rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
   may carry a colour letter and a text size digit after it (`1b3`).
@@ -209,35 +210,90 @@ bookmarks. What it does not: anyone holding the link can try passwords
 offline at full speed, so a short or guessable password gives little. Nothing
 about the password ever leaves the browser.
 
+## Adding an app
+
+```sh
+npm run new-app notes "Notes"
+```
+
+writes a working app (a list you can add lines to), its test, and adds it to
+the menu. An app is two files:
+
+- `src/apps/<id>.def.ts`: the **definition**. Its name, how to read a title
+  out of a document, how to draw it (`view`, pages of SVG), and any formats
+  of its own. It never touches the DOM, so it is tested with plain node.
+- `src/apps/<id>.ts`: the **editor**, a `DocElement`. It is handed the
+  document as text, and calls `commit()` when it changes.
+
+Everything else is driven by the definition, for every app at once: the menu
+and routes, the link, password and signature, `.pdf` / `.png` / `.html`
+downloads, the share menu and card, the list of keyboard shortcuts, and
+being embedded in a text or shown (and built, step by step) on a slide.
+
+One import has everything an editor needs:
+
+```ts
+import { DocElement, defineElement, html, state, tool, icon, UI, isKey } from '../kit.ts';
+```
+
+`src/kit/core.ts` is the pure half (registry, text layout, SVG helpers,
+documents as web pages); `src/kit/browser.ts` the half that needs a browser
+(measuring text, pictures, PDFs, `<to-embed>`, editing a document inside
+another). `npm run icons` redraws the share cards in `public/og/`; give a new
+app a sketch in `scripts/make-icons.mjs`.
+
+## Documents inside documents
+
+A text or a slide can hold another document. It is stored as
+`@@<app>/<payload>` (the part of a link that is the document) and drawn by
+that app's `view`. In Write, paste a TinyOffice link or use Insert; on a
+slide, use Insert. Either way it is one thing: Edit opens its own editor in a
+dialog, Remove (or Backspace) takes it away. A sheet that asks for a chart is
+shown as the chart.
+
+When a deck is presented, a slide reveals one bullet per step and then
+whatever its document builds: a drawing a shape at a time, a table row by
+row by itself, a map flying from stop to stop. A fast double click shows the
+whole slide at once.
+
+## Keyboard and accessibility
+
+Ctrl+/ (or the menu) lists every shortcut: the ones that work everywhere and
+the current app's. Every control has a name, focus is always visible, motion
+respects the reduced-motion setting, and `e2e/apps.spec.ts` runs the axe
+accessibility checker over every app in light and dark. One rule is switched
+off there, with the reason beside it: compact toolbar pickers are named for
+assistive technology but do not show a visible text label.
+
+## Link previews
+
+Each app has a page of its own (`/deck/`, `/sheet/`, ...) made at build time,
+with that app's name, description and card (`public/og/<id>.png`) in its
+tags; copied and shared links go through it, so a shared deck previews as a
+deck. The card is a sketch in grey boxes, not the document: a document lives
+after the `#`, which no server or crawler sees. Downloaded `.html` files carry
+the same tags plus the document's own title and outline.
+
 ## Project layout
 
 ```
-src/styles.css        the only stylesheet
-src/app.ts            the shell: header, drawer nav, routing, document dialog
-src/widgets/meter.ts  <to-meter>: URL space ring + copy button
-src/apps/sheet.ts     <to-sheet>
-src/apps/write.ts     <to-write>
-src/apps/deck.ts      <to-deck>
-src/apps/draw.ts      <to-draw>
-src/apps/cal.ts       <to-cal>
-src/lib/codec.ts      text <-> URL payload (deflate + base64url)
+src/app.ts            the shell: header, menu, routing, document dialog, shortcuts
+src/kit.ts            everything an editor imports
+src/kit/              registry, drawing, PDF, zip, embeds, browser helpers
+src/apps/index.ts     the list of apps
+src/apps/<id>.def.ts  each app's definition: title, picture, downloads
+src/apps/<id>.ts      each app's editor
+src/lib/<id>model.ts  document formats (formula.ts, richtext.ts for sheet and write)
+src/lib/chart.ts      charts from a table
+src/lib/codec.ts      text <-> URL payload (deflate + dictionary + base64url)
 src/lib/envelope.ts   creation time + signature wrapper around a body
 src/lib/sign.ts       WebCrypto keys, signing, verification
 src/lib/crypt.ts      password encryption of the packed envelope
-src/lib/shoelace.ts   the Shoelace components in use
-src/lib/formula.ts    spreadsheet engine
-src/lib/richtext.ts   rich text model and markup
-src/lib/deckmodel.ts  deck model
-src/lib/drawmodel.ts  drawing model
-src/lib/calmodel.ts   calendar model
-src/lib/tz.ts         time zone helpers on top of Intl
-src/apps/{todo,board,gantt,trip,tune,anim}.ts   the newer apps
-src/lib/{todo,board,gantt,trip,tune,anim}model.ts   and their document formats
 src/lib/limits.ts     how much room a link leaves, service by service
-src/lib/embed.ts      previews of TinyOffice links pasted into Write
-src/lib/icons.ts      Lucide icon helpers and the icon library
-src/lib/iconsearch.ts keywords, search and per-slide suggestions for the icon library
-src/lib/exports.ts    download views: xlsx, csv, rtf, html, pptx, svg, ics
+src/lib/icons.ts      Lucide icons; iconsearch.ts finds and suggests them
+src/widgets/meter.ts  <to-meter>: URL space ring + copy button
+src/styles.css        the only stylesheet
+scripts/              new-app, share cards and icons
 test/                 unit tests (node --test)
 e2e/                  Playwright browser tests
 ```

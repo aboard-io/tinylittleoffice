@@ -20,7 +20,7 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(12);
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(11);
   await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
   await expect(drawer.locator('.to-theme')).toContainText('Theme');
   await shot(page, 'drawer');
@@ -37,10 +37,10 @@ test('meter counts down and copies the link', async ({ page }) => {
   await expect(ring).not.toHaveAttribute('value', '0');
   await expect(meter.locator('.text')).toHaveText(/\d[\d,]* left/, { visible: false });
   const before = page.url();
-  await meter.locator('sl-copy-button').click();
-  await expect(meter.locator('sl-copy-button')).toHaveAttribute('data-status', 'success').catch(() => {});
+  await meter.getByRole('button', { name: 'Copy link' }).click();
   const copied = await page.evaluate(() => navigator.clipboard.readText());
-  expect(copied).toBe(before);
+  // The copied link goes through the app's own page, so it previews as a sheet.
+  expect(copied).toBe(before.replace('/#/', '/sheet/#/'));
 });
 
 test('documents record their creation time', async ({ page }) => {
@@ -221,9 +221,15 @@ test('download views: the link itself hands over a file', async ({ page }, testI
     ['sheet', 'xlsx', '10\tTotal\n32\n=SUM(A1:A2)*2\t=AVG(A1:A2)', 'sheet.xlsx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
     ['sheet', 'csv', '10\tTotal\n32\n=SUM(A1:A2)*2', 'sheet.csv', (b) => expect(b.toString()).toBe('\ufeff10,Total\r\n32,\r\n84,\r\n')],
     ['write', 'rtf', '# Memo\nSome *bold* text\n- one\n- two', 'memo.rtf', (b) => expect(b.toString()).toContain('{\\b bold}')],
-    ['write', 'html', '# Memo\nSome *bold* text', 'memo.html', (b) => expect(b.toString()).toContain('<strong>bold</strong>')],
-    ['draw', 'svg', 'r,2,1,12,6,1,Box\na,14,4,8,0,0', 'drawing.svg', (b) => expect(b.toString()).toContain('>Box</text>')],
-    ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'calendar.ics', (b) => expect(b.toString()).toContain('SUMMARY:Offsite')],
+    ['write', 'html', '# Memo\nSome *bold* text', 'memo.html', (b) => { expect(b.toString()).toContain('<strong>bold</strong>'); expect(b.toString()).toContain('<meta property="og:title" content="Memo">'); }],
+    ['draw', 'svg', 'r,2,1,12,6,1,Box\na,14,4,8,0,0', 'draw.svg', (b) => expect(b.toString()).toContain('>Box</text>')],
+    ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'cal.ics', (b) => expect(b.toString()).toContain('SUMMARY:Offsite')],
+    // Every app can also be a PDF, a picture and a web page.
+    ['deck', 'pdf', ':rocket:t\nLaunch plan\nSpring\n\nAgenda\none\ntwo', 'launch-plan.pdf', (b) => { expect(b.subarray(0, 8).toString()).toBe('%PDF-1.4'); expect(b.toString('latin1').match(/\/Type \/Page /g)).toHaveLength(2); }],
+    ['gantt', 'pdf', '1jk,5,1e,Design\n>1jk,2,2s,Sketch', 'gantt.pdf', (b) => expect(b.subarray(0, 5).toString()).toBe('%PDF-')],
+    ['board', 'png', '#To do\nWrite the brief\n#Done', 'board.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
+    ['trip', 'png', '3xa8g,-fuyo,Lisbon\n40000,0,B', 'lisbon-to-b.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
+    ['todo', 'html', '- one\nx two', 'todo.html', (b) => { expect(b.toString()).toContain('<input type="checkbox" disabled checked> two'); expect(b.toString()).toContain('<meta property="og:image" content="http://localhost:4173/og/todo.png">'); }],
   ];
   for (const [app, ext, body, name, check] of docs) {
     await page.goto('about:blank');
@@ -238,10 +244,10 @@ test('download views: the link itself hands over a file', async ({ page }, testI
     await expect(page.locator('.to-toast')).toContainText(`Downloaded ${name}`);
   }
   // The document is still there to edit, and the menu offers the same files.
-  await expect(page.locator('to-cal')).toBeVisible();
+  await expect(page.locator('to-todo')).toBeVisible();
   await page.getByRole('button', { name: 'Download' }).click();
-  const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /iCalendar/ }).click()]);
-  expect(fromMenu.suggestedFilename()).toBe('calendar.ics');
+  const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Markdown/ }).click()]);
+  expect(fromMenu.suggestedFilename()).toBe('todo.md');
   // An extension the app does not have is reported, not downloaded.
   await page.goto(`/#/v2/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
   await expect(page.locator('.to-toast')).toContainText('No .pptx view here');
@@ -262,4 +268,46 @@ test('download views wait for the password', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Password', exact: true }).fill('pw');
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Open' }).click()]);
   expect(download.suggestedFilename()).toBe('sheet.csv');
+});
+
+test('each app has a page of its own, with its own preview card', async ({ page, request }) => {
+  const html = await (await request.get('/deck/')).text();
+  expect(html).toContain('<title>Deck · TinyOffice</title>');
+  expect(html).toMatch(/<meta property="og:image" content="https:\/\/[^"]+\/og\/deck\.png"/);
+  expect(html).toMatch(/<link rel="canonical" href="https:\/\/[^"]+\/deck\/"/);
+  expect((await request.get('/og/deck.png')).status()).toBe(200);
+  // The page opens a new deck, and documents work there as anywhere.
+  await page.goto('/deck/');
+  await expect(page.locator('.to-panel-head h1')).toHaveText(/Deck/);
+  await page.getByRole('textbox', { name: 'Headline' }).fill('From the deck page');
+  await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v2\/deck\/[YZR]/);
+  await reopen(page);
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveValue('From the deck page');
+});
+
+test('keyboard shortcuts are listed, and work everywhere', async ({ page }) => {
+  await page.goto('/#/todo');
+  await page.getByRole('textbox', { name: 'New task' }).fill('Ship it');
+  await page.keyboard.press('Enter');
+  // The menu has the list; so does Ctrl+/.
+  await page.locator('.to-burger').click();
+  await page.locator('#nav-drawer .to-keys').click();
+  const keys = page.locator('#keys-dialog');
+  await expect(keys).toHaveAttribute('open');
+  await expect(keys).toContainText('Everywhere');
+  await expect(keys).toContainText('In Todo');
+  await expect(keys.locator('kbd').first()).toBeVisible();
+  await keys.getByRole('button', { name: 'Done' }).click();
+  await expect(keys).not.toHaveAttribute('open');
+  await page.keyboard.press('Control+/');
+  await expect(keys).toHaveAttribute('open');
+  await page.keyboard.press('Escape');
+  await expect(keys).not.toHaveAttribute('open');
+  // Ctrl+P is a PDF; Ctrl+S the app's first format.
+  const [pdf] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+p')]);
+  expect(pdf.suggestedFilename()).toBe('todo.pdf');
+  const [md] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
+  expect(md.suggestedFilename()).toBe('todo.md');
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
 });
