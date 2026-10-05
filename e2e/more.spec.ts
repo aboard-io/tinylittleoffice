@@ -655,3 +655,175 @@ test('planner: a cover and seven days, filled in like a zine', async ({ page }) 
   await expect(page.locator('.zine-sheet')).toContainText('Sunday');
   await shot(page, 'planner');
 });
+
+test('stock and flow: sliders move the diagram', async ({ page }) => {
+  await page.goto('/#/flow');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const model = page.frameLocator('to-flow iframe');
+  await expect(model.locator('input[type="range"]')).toHaveCount(4);
+  await expect(model.locator('svg path')).toHaveCount(6);
+  await expect(model.locator('svg rect')).toHaveCount(7);
+  // Every stock says how much is in it.
+  await expect(model.locator('svg')).toContainText('Signups');
+  await expect(model.locator('#say')).toContainText('Signups 1,200');
+  const band = () => model.locator('svg path').first().getAttribute('stroke-width').then(Number);
+  const before = await band();
+  // More people sign up: the number changes, and the band to Signups thickens.
+  await model.locator('#s_signup_rate').fill('30');
+  await expect(model.locator('#o_signup_rate')).toHaveText('30%');
+  await expect(model.locator('#say')).toContainText('Signups 6,000');
+  await expect(model.locator('#say')).toContainText('Paying 1,500');
+  expect(await band()).toBeGreaterThan(before * 3);
+  await shot(page, 'flow');
+});
+
+test('pixel art: colour squares by clicking, dragging and from the keyboard', async ({ page }) => {
+  await page.goto('/#/pixel');
+  const cell = (r: number, c: number) => page.getByRole('gridcell', { name: new RegExp(`^Row ${r}, column ${c}:`) });
+  await expect(page.getByRole('gridcell')).toHaveCount(256);
+  await cell(1, 1).click();
+  await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: Black');
+  await page.getByRole('radio', { name: 'Red' }).click();
+  // Drag across a row.
+  const [a, b] = [(await cell(3, 2).boundingBox())!, (await cell(3, 6).boundingBox())!];
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
+  await page.mouse.up();
+  for (const c of [2, 3, 4, 5, 6]) await expect(cell(3, c)).toHaveAccessibleName(`Row 3, column ${c}: Red`);
+  // Arrow keys move; Enter colours.
+  await cell(1, 1).focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(cell(2, 2)).toHaveAccessibleName('Row 2, column 2: Red');
+  await page.getByRole('radio', { name: 'Eraser' }).click();
+  await cell(1, 1).click();
+  await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: empty');
+  await reopen(page);
+  await expect(cell(3, 4)).toHaveAccessibleName('Row 3, column 4: Red');
+  await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: empty');
+  await shot(page, 'pixel');
+  // A stitch pattern is the same thing on a bigger grid.
+  await page.goto('/#/pattern');
+  await expect(page.getByRole('gridcell')).toHaveCount(576);
+});
+
+test('small apps: games and things to share work as pages', async ({ page }) => {
+  const open = async (app: string) => {
+    await page.goto(`/#/${app}`);
+    await page.getByRole('button', { name: 'Start from an example' }).click();
+    return page.frameLocator(`to-${app} iframe`);
+  };
+  // An adventure: choices lead on, endings start again.
+  let f = await open('adventure');
+  await f.getByRole('button', { name: 'Climb to the lamp' }).click();
+  await f.getByRole('button', { name: 'Light it' }).click();
+  await expect(f.locator('#scene')).toContainText('The end.');
+  await f.getByRole('button', { name: 'Start again' }).click();
+  await expect(f.getByRole('button', { name: 'Run to the village' })).toBeVisible();
+  // A hunt: the right answer opens the next clue; a wrong one does not.
+  f = await open('hunt');
+  await f.getByRole('textbox', { name: 'Your answer' }).fill('blue');
+  await f.getByRole('button', { name: 'Try it' }).click();
+  await expect(f.locator('#say')).toHaveText('Not that. Look again.');
+  await f.getByRole('textbox', { name: 'Your answer' }).fill(' Red ');
+  await f.getByRole('button', { name: 'Try it' }).click();
+  await expect(f.locator('#clues li')).toHaveCount(2);
+  await expect(f.locator('#clues li').last()).toContainText('count the stairs');
+  // Trivia keeps score.
+  f = await open('trivia');
+  await f.getByRole('button', { name: 'Give Blues a point' }).click();
+  await f.getByRole('button', { name: 'Give Blues a point' }).click();
+  await expect(f.locator('.team', { hasText: 'Blues' }).locator('output')).toHaveText('2');
+  await f.getByText('What is the capital of Portugal?').click();
+  await expect(f.getByText('Lisbon')).toBeVisible();
+  // Blanks are filled in before the story is seen.
+  f = await open('madlibs');
+  for (const [i, w] of ['purple', 'llama', 'the moon', 'spoons', 'danced'].entries()) await f.locator('form input').nth(i).fill(w);
+  await f.getByRole('button', { name: 'Tell the story' }).click();
+  await expect(f.locator('#story')).toContainText('my purple boss arrived riding a llama');
+  // The wheel picks someone.
+  f = await open('spinner');
+  await f.getByRole('button', { name: 'Spin' }).click();
+  await expect(f.locator('#won')).toHaveText(/Ada|Grace|Alan|Margaret|Linus|Barbara/, { timeout: 8000 });
+  // A card turns over.
+  f = await open('flashcards');
+  await expect(f.locator('#card')).toHaveText('bom dia');
+  await f.locator('#card').click();
+  await expect(f.locator('#card')).toHaveText('good morning');
+  await f.getByRole('button', { name: 'Next' }).click();
+  await expect(f.locator('#card')).toHaveText('obrigado');
+  // A poll counts; adding a line adds a vote.
+  f = await open('poll');
+  await expect(f.locator('li', { hasText: 'Tacos' }).locator('.top span').last()).toHaveText('2');
+  const text = page.getByRole('textbox', { name: 'Poll, as text' });
+  await text.fill((await text.inputValue()) + '\nGrace: Sushi');
+  await expect(f.locator('li', { hasText: 'Sushi' }).locator('.top span').last()).toHaveText('2');
+  // A capsule stays shut until its day.
+  f = await open('capsule');
+  await expect(f.locator('#shut')).toBeVisible();
+  await expect(f.locator('#note')).toBeHidden();
+  // The bill, settled.
+  f = await open('split');
+  await expect(f.locator('.pay')).toHaveText(['Grace pays Paul 92.88', 'Ada pays Paul 47.88', 'Sam pays Paul 6.38']);
+  f = await open('countdown');
+  await expect(f.locator('#t b')).toHaveCount(4);
+  f = await open('bio');
+  await expect(f.getByRole('link', { name: 'Newsletter' })).toHaveAttribute('href', 'https://example.com/news');
+  f = await open('reading');
+  await expect(f.getByRole('img', { name: '5 out of 5' })).toBeVisible();
+  f = await open('log');
+  await expect(f.locator('.sums div').first()).toContainText('22.5 km');
+  // And the ones that print or draw.
+  for (const [app, name, has] of [['wordsearch', 'Word search', 'espresso'], ['card', 'Group card', 'Many happy returns.'], ['habits', 'Habit tracker', 'Walk Biscuit'], ['checklist', 'Checklist', 'Walking boots'], ['chords', 'Chord chart', 'Gently down the']] as const) {
+    await page.goto(`/#/${app}`);
+    await page.getByRole('button', { name: 'Start from an example' }).click();
+    await expect(page.getByRole('img', { name: `${name}, sheet 1` }), app).toContainText(has);
+    await shot(page, app);
+  }
+  for (const [app, n] of [['floor', 6], ['seating', 18], ['family', 6], ['timeline', 10]] as const) {
+    await page.goto(`/#/${app}`);
+    await page.getByRole('button', { name: 'Start from an example' }).click();
+    await expect(page.locator(`to-${app} .pic > svg g.shape, to-${app} .pic > svg > rect, to-${app} .pic > svg > ellipse`).first(), app).toBeVisible();
+    await expect(page.locator(`to-${app} .pic > svg text`).first(), app).toBeVisible();
+    expect(n).toBeGreaterThan(0);
+    await shot(page, app);
+  }
+});
+
+test('the library: documents are kept on the device, in folders', async ({ page }) => {
+  await page.goto('/#/write');
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('Notes from the quay');
+  await page.getByRole('textbox', { name: 'Title' }).fill('Quay notes');
+  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
+  await page.goto('/#/todo');
+  await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[YZR]/);
+  // Home lists them, each in a folder named for its app.
+  await page.goto('/#/');
+  const lib = page.locator('.to-library');
+  await expect(lib.locator('summary')).toHaveText([/Todo\s*1/, /Write\s*1/]);
+  await expect(lib.getByRole('link', { name: /Quay notes/ })).toBeVisible();
+  // Into a folder of your own.
+  page.once('dialog', (d) => d.accept('Harbor project'));
+  await lib.getByRole('button', { name: 'Move Quay notes to another folder' }).click();
+  await expect(lib.locator('summary')).toHaveText([/Harbor project\s*1/, /Todo\s*1/]);
+  // It opens as it was left; changing it keeps it in its folder.
+  await lib.getByRole('link', { name: /Quay notes/ }).click();
+  await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('Notes from the quay');
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(', and more');
+  await page.goto('about:blank');
+  await page.goto('/');
+  await expect(lib.locator('summary')).toHaveText([/Harbor project\s*1/, /Todo\s*1/]);
+  await lib.getByRole('link', { name: /Quay notes/ }).click();
+  await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('and more');
+  await page.goto('/#/');
+  await shot(page, 'library');
+  await lib.getByRole('button', { name: 'Remove Quay notes from this device' }).click();
+  await expect(lib.locator('summary')).toHaveText([/Todo\s*1/]);
+});

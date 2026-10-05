@@ -30,6 +30,12 @@ you have copied the file.
 | Booklet, Programme, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), one sheet folded in half, a trifold. |
 | Comic, Planner | Text in, a folded mini comic or a ruled week out. |
 | Poster, Certificate, Menu, Résumé, Name badges, Recipe cards | A few lines in, letter sheets out, fitted to the page. |
+| Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
+| Pixel art, Stitch pattern | A grid of squares to colour. |
+| Floor plan, Seating chart, Family tree, Timeline | More diagrams from a few lines. |
+| Games | Word search, Adventure, Scavenger hunt, Trivia, Fill in the blanks, Spinner, Flashcards. |
+| Together | Poll, Secret Santa, Group card, Time capsule, Split the bill. |
+| Personal | Habit tracker, Countdown, Links page, Checklist, Log, Reading list, Chord chart. |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and

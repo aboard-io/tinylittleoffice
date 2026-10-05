@@ -197,3 +197,11 @@ export function placeTree(roots: Node[]): Placed[] {
   for (const r of roots) walk(r, -1);
   return out;
 }
+
+/** The "# Title" of a text, and its other lines. */
+export const h1 = (body: string) => /^#\s+(.*)$/m.exec(body)?.[1].trim() ?? '';
+export const rest = (body: string) => body.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('# '));
+/** A value written into a page's script, where nothing in it can end the script. */
+export const js = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c');
+/** A number from a text, the same every time: for shuffles that should not change as you watch. */
+export const seed = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7) >>> 0;

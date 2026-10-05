@@ -277,7 +277,7 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   const { parseDrawing, isLink } = await import('../src/lib/drawmodel.ts');
   const { pageSvg } = await import('../src/kit/core.ts');
   assert.deepEqual(placeTree(outline('A\n  B\n  C\n    D\nE')).map((p) => [p.node.text, p.node.depth, p.across, p.parent]), [['A', 0, 0.5, -1], ['B', 1, 0, 0], ['C', 1, 1, 0], ['D', 2, 1, 2], ['E', 0, 2, -1]]);
-  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky']) {
+  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky', 'floor', 'seating', 'family', 'timeline']) {
     const spec = specOf(id)!;
     const def = appOf(id)!;
     const d = spec.layout!(spec.example);
@@ -423,7 +423,7 @@ test('icons in drawings and diagrams', async () => {
 
 test('page apps: an FAQ, a site, a store, an invoice, a contract', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  for (const id of ['faq', 'site', 'store', 'invoice', 'contract']) {
+  for (const id of ['faq', 'site', 'store', 'invoice', 'contract', 'flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'capsule', 'split', 'countdown', 'bio', 'log', 'reading']) {
     const spec = specOf(id)!;
     const page = spec.page!(spec.example);
     assert.ok(page.startsWith('<!doctype html>') && page.includes('<meta property="og:title"') && page.includes('</html>'), id);
@@ -525,7 +525,7 @@ test('paper that folds: pages land where folding needs them', async () => {
 
 test('things to print: text in, letter sheets out', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  const sizes: Record<string, number[]> = { poster: [816, 1056], certificate: [1056, 816], menu: [816, 1056], resume: [816, 1056], badges: [816, 1056], recipes: [816, 1056] };
+  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], card: [816, 1056], habits: [1056, 816], checklist: [816, 1056], chords: [816, 1056], poster: [816, 1056], certificate: [1056, 816], menu: [816, 1056], resume: [816, 1056], badges: [816, 1056], recipes: [816, 1056] };
   for (const [id, size] of Object.entries(sizes)) {
     const spec = specOf(id)!;
     for (const text of [spec.example, '', 'x']) {
@@ -581,4 +581,68 @@ test('a document on a zine page has the page, at a size to read', async () => {
   assert.ok((17 * +width) / +vw > 10, `${width}/${vw}`);
   // Long tasks wrap rather than being cut short.
   assert.ok(p.svg.includes('spring'));
+});
+
+test('small apps: the sums behind them', async () => {
+  const { specOf } = await import('../src/lib/diagram.ts');
+  // Stock and flow: sliders, and flows worked out from them and from the stocks they fill.
+  const { parseFlow, runFlow } = await import('../src/apps/flow.def.ts');
+  const m = parseFlow(specOf('flow')!.example);
+  assert.deepEqual(m.sliders.map((s) => [s.id, s.value, s.unit, s.max]), [['visitors', 20000, '', 100000], ['signup_rate', 6, '%', 30], ['paid_rate', 25, '%', 100], ['churn', 8, '%', 50]]);
+  assert.deepEqual(runFlow(m, {}), [1200, 18800, 300, 900, 24, 276]);
+  assert.deepEqual(runFlow(m, { visitors: 10000, signup_rate: 10 }).slice(0, 3), [1000, 9000, 250]);
+  // Only arithmetic is ever worked out.
+  assert.deepEqual(runFlow(parseFlow('a = 1\nA > B = alert(1)\nA > C = a + 2'), {}), [0, 3]);
+  assert.ok(specOf('flow')!.page!(specOf('flow')!.example).includes('type="range" id="s_signup_rate" min="0" max="30"'));
+
+  const { settle } = await import('../src/apps/split.def.ts');
+  const s = settle(specOf('split')!.example);
+  assert.equal(s.total, 371.5);
+  assert.deepEqual(s.pays.map((p) => `${p.from}>${p.to}:${p.amount.toFixed(2)}`), ['Grace>Paul:92.88', 'Ada>Paul:47.88', 'Sam>Paul:6.38']);
+
+  const { draw } = await import('../src/apps/santa.def.ts');
+  const names = ['Ada', 'Grace', 'Alan', 'Margaret', 'Linus'];
+  const gives = draw(names);
+  assert.deepEqual(Object.keys(gives).sort(), [...names].sort());
+  assert.deepEqual(Object.values(gives).sort(), [...names].sort());
+  assert.ok(names.every((n) => gives[n] !== n));
+  assert.deepEqual(draw(names), gives);
+  assert.ok(!specOf('santa')!.page!(names.join('\n')).includes(`give to ${gives.Ada}`));
+
+  const { tally } = await import('../src/apps/poll.def.ts');
+  assert.deepEqual(tally(specOf('poll')!.example).map((r) => [r.option, r.who.length]), [['Pizza', 0], ['Sushi', 1], ['Tacos', 2]]);
+  assert.deepEqual(tally('- A\nSam: B').map((r) => r.option), ['A', 'B']);
+
+  const { totals } = await import('../src/apps/log.def.ts');
+  assert.deepEqual(totals(specOf('log')!.example).sums.map((x) => [x.what, x.n, x.unit, x.times]), [['Run', 22.5, 'km', 3], ['Piano', 75, 'min', 2], ['Swim', 40, 'lengths', 1]]);
+
+  const { hide } = await import('../src/apps/wordsearch.def.ts');
+  const { grid, placed } = hide(['espresso', 'filter', 'cup'], 42);
+  assert.deepEqual([grid.length, grid[0].length, placed.length], [14, 14, 3]);
+  assert.ok(grid.flat().every((c) => /^[A-Z]$/.test(c)));
+  const lines = [...grid.map((r) => r.join('')), ...grid[0].map((_, x) => grid.map((r) => r[x]).join(''))].join(' ');
+  const diag = (dy: number) => Array.from({ length: 14 }, (_, y) => Array.from({ length: 14 }, (_, x) => Array.from({ length: 8 }, (_, i) => grid[y + dy * i]?.[x + i] ?? ' ').join('')).join(' ')).join(' ');
+  assert.ok([lines, diag(1), diag(-1)].join(' ').includes('ESPRESSO'));
+  assert.deepEqual(hide(['espresso', 'filter', 'cup'], 42).grid, grid);
+
+  const { transpose } = await import('../src/apps/chords.def.ts');
+  assert.deepEqual(['C', 'Am7/G', 'Bb', 'F#m'].map((c) => transpose(c, 2)), ['D', 'Bm7/A', 'C', 'Abm']);
+  assert.equal(transpose('C', -1), 'B');
+  const song = specOf('chords')!.sheets!('# S\ntranspose: 2\n[C]Row your [G]boat')[0].svg;
+  assert.ok(song.includes('>D</text>') && song.includes('>A</text>') && song.includes('>Row your </text>'));
+
+  // The hunt keeps later clues out of the page's plain text.
+  const hunt = specOf('hunt')!.page!(specOf('hunt')!.example);
+  assert.ok(hunt.includes('What colour is the kettle?') && !hunt.includes('count the stairs') && !hunt.includes('"red"'));
+
+  const { parsePixels, serializePixels } = await import('../src/apps/pixel.def.ts');
+  assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.', 16)), 'ab.c\n\n..d');
+  assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
+  assert.ok(appOf('pattern')!.view('ab\na')[0].svg.includes('>Black 2</text>'));
+  // Rooms to scale; people round their tables; events in order.
+  const floor = specOf('floor')!.layout!('A: 4 x 2 at 0,0\nB: 2 x 2 at 4,0');
+  assert.deepEqual(floor.shapes.map((r) => [r.w, r.h, r.text]), [[144, 72, 'A | 4 × 2'], [72, 72, 'B | 2 × 2']]);
+  assert.equal(floor.shapes[1].x - floor.shapes[0].x, 144);
+  assert.equal(specOf('seating')!.layout!('T1: a, b, c\nT2: d').shapes.length, 6);
+  assert.deepEqual(specOf('timeline')!.layout!('1: a\n2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
 });

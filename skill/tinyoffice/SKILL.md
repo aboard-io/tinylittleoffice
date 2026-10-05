@@ -179,6 +179,20 @@ https://tinylittleoffice.com/comic/#title=Biscuit&doc=%23+Biscuit+Goes+Out%0A%0A
 
 https://tinylittleoffice.com/zine/#title=Small+Joys&doc=%3Acoffee%0ASmall+Joys%0AIssue+one%0A%0ACoffee%0AThe+first+cup+of+the+day%2C+before+anyone+else+is+up.%0A%0ABread%0AStill+warm.
 
+## Small apps
+
+All of these are a few lines of text; the first line is usually `# Title`.
+
+- `flow` (stock and flow, drawn as a Sankey diagram with sliders): `name = 1000 (0 to 5000)` is a number with a slider (`6%` for a rate); `From > To = formula` is a flow. A formula uses slider names and stock names (a stock's name is what has flowed into it so far).
+  https://tinylittleoffice.com/flow/#title=Funnel&doc=%23+Funnel%0Avisitors+%3D+20000+%280+to+100000%29%0Asignup+rate+%3D+6%25+%280+to+30%29%0AVisitors+%3E+Signups+%3D+visitors+%2A+signup+rate%0AVisitors+%3E+Bounced+%3D+visitors+-+visitors+%2A+signup+rate
+- `pixel` (16×16) and `pattern` (24×24 stitch chart): a row per line, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
+- `floor`: `Room: width x depth at left,top`. `seating`: `Table: Ann, Bob, Cy`. `family`: a person or couple per line, children indented. `timeline`: `When: what happened`.
+  https://tinylittleoffice.com/timeline/#title=Computing&doc=1843%3A+Lovelace+publishes+her+notes%0A1936%3A+Turing+describes+his+machine%0A1989%3A+The+web+is+proposed
+- Games: `wordsearch` (a word per line), `adventure` (`## scene`, story lines, `> Choice | scene`), `hunt` (`Clue | answer`), `trivia` (`teams: A, B`, `## Round`, `Question | answer`), `madlibs` (a story with `[blanks]`), `spinner` (a choice per line), `flashcards` (`Front | back`).
+  https://tinylittleoffice.com/adventure/#title=The+Lighthouse&doc=%23+The+Lighthouse%0A%23%23+start%0AThe+lamp+is+out.%0A%3E+Climb+to+the+lamp+%7C+lamp%0A%23%23+lamp%0AYou+light+it.+The+ship+turns.
+- Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line), `card` (`Name: message`), `capsule` (`open: 2030-01-01`, then the note), `split` (`Name: amount, what for`; `between: A, B, C`).
+- Personal: `habits` (a habit per line), `countdown` (a date, `2027-03-01 18:00`), `bio` (`Label | https://...`), `checklist` (`## Section`, a thing per line), `log` (`when, what, how much`), `reading` (`Title | author | stars | note`), `chords` (`[G]words with [C]chords`, `transpose: 2`).
+
 ## Icons in diagrams
 
 In `org`, `mind`, `lanes`, `venn`, `net`, `sticky` and `draw`, a label may start with an icon: `:rocket Launch`, `:user Ada | CEO`. Any Lucide icon name works.

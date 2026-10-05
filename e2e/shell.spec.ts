@@ -20,10 +20,10 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(35);
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(61);
   // Grouped, with the kinds of drawing listed under Draw.
-  await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Documents', 'Visualization', 'Time management', 'Publish and sell', 'Print and fold']);
-  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Database', 'Sticky notes', 'Booklet', 'Programme', 'Brochure', 'Comic', 'Planner', 'Certificate', 'Menu', 'Résumé', 'Name badges', 'Recipe cards']);
+  await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Documents', 'Visualization', 'Time management', 'Publish and sell', 'Print and fold', 'Games', 'Together', 'Personal']);
+  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Database', 'Sticky notes', 'Floor plan', 'Seating chart', 'Family tree', 'Timeline', 'Stitch pattern', 'Booklet', 'Programme', 'Brochure', 'Comic', 'Planner', 'Certificate', 'Menu', 'Résumé', 'Name badges', 'Recipe cards', 'Chord chart']);
   await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
   await expect(drawer.locator('.to-theme')).toContainText('Theme');
   await shot(page, 'drawer');

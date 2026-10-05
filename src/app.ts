@@ -7,6 +7,7 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
+import { folders, forget, keep, moveTo, type Kept } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
@@ -254,6 +255,7 @@ export class ToApp extends LitElement {
     }
     this.sealed = '';
     this.env = this.decode(payload);
+    this.remember();
     this.checkSignature();
     this.downloadPending();
   };
@@ -284,6 +286,13 @@ export class ToApp extends LitElement {
     this.payloadLength = payload.length;
     this.version = URL_VERSION;
     history.replaceState(null, '', routeHash(this.app, payload) + (payload ? '' : '/'));
+    this.remember();
+  }
+
+  /** Keep this document in the browser's own library, in a folder named for its app unless it has been moved. */
+  private remember() {
+    if (!this.app || !this.def || this.embedded || this.env.created === null || !location.hash.includes('/v')) return;
+    keep({ id: `${this.app}:${this.env.created}`, app: this.app, title: this.docTitle, hash: location.hash.replace(/\/v(\d+)\/([a-z]+)\.[a-z0-9]+\//, '/v$1/$2/') }, this.def.name);
   }
 
   /* ---------- download views ---------- */
@@ -712,12 +721,43 @@ export class ToApp extends LitElement {
   private renderHome() {
     return html`<section class="to-home">
       <h1 class="sr-only">TinyLittleOffice</h1>
+      ${this.renderLibrary()}
       ${grouped().map(
         (g) => html`<h2 class="to-group">${g.group}</h2>
           <div class="to-launcher">
             ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
           </div>`,
       )}
+    </section>`;
+  }
+
+  /** What this browser has kept, by folder. */
+  private renderLibrary() {
+    const all = folders();
+    if (!all.length) return nothing;
+    const move = (k: Kept) => {
+      const to = prompt(`Folder for “${k.title}”`, k.folder);
+      if (to === null) return;
+      moveTo(k.id, to);
+      this.requestUpdate();
+    };
+    return html`<section class="to-library" aria-labelledby="library-h">
+      <h2 class="to-group" id="library-h">Your documents</h2>
+      ${all.map(
+        (f) => html`<details open>
+          <summary>${icon(UI.folder, 16)} ${f.folder} <span>${f.docs.length}</span></summary>
+          <ul>
+            ${f.docs.map(
+              (k) => html`<li>
+                <a href=${k.hash}>${icon(UI[(appOf(k.app)?.icon ?? 'write') as keyof typeof UI], 16)}<b>${k.title}</b><small>${fmtDate(k.at)}</small></a>
+                <button aria-label="Move ${k.title} to another folder" title="Move to a folder" @click=${() => move(k)}>${icon(UI.folder, 15)}</button>
+                <button aria-label="Remove ${k.title} from this device" title="Remove from this device" @click=${() => { forget(k.id); this.requestUpdate(); }}>${icon(UI.trash, 15)}</button>
+              </li>`,
+            )}
+          </ul>
+        </details>`,
+      )}
+      <p class="to-hint">Kept in this browser only, and never sent anywhere. Once opened, TinyLittleOffice works without a connection.</p>
     </section>`;
   }
 

@@ -102,6 +102,32 @@ to-deck,
 to-draw,
 to-cal,
 to-zine,
+to-flow,
+to-pixel,
+to-pattern,
+to-floor,
+to-seating,
+to-family,
+to-timeline,
+to-wordsearch,
+to-adventure,
+to-hunt,
+to-trivia,
+to-madlibs,
+to-spinner,
+to-flashcards,
+to-poll,
+to-santa,
+to-card,
+to-capsule,
+to-split,
+to-habits,
+to-countdown,
+to-bio,
+to-checklist,
+to-log,
+to-reading,
+to-chords,
 to-booklet,
 to-programme,
 to-brochure,
@@ -1132,6 +1158,7 @@ svg.draw-canvas {
   background: var(--to-surface);
   border: 1px solid var(--to-border);
   border-radius: var(--to-radius);
+  grid-template-rows: repeat(var(--n), 1fr);
   touch-action: none;
   user-select: none;
 }
@@ -2978,4 +3005,135 @@ sl-dialog.to-icons {
   border-radius: var(--to-radius);
   background: var(--to-surface);
   color: var(--to-ink);
+}
+
+/* Pixel art: the colours, and the squares */
+.pixel-inks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pixel-inks button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--to-surface);
+  outline: 1px solid var(--to-border);
+  background: var(--c);
+  cursor: pointer;
+}
+.pixel-inks button.none {
+  background: linear-gradient(135deg, transparent 46%, var(--to-danger) 46% 54%, transparent 54%);
+}
+.pixel-inks button[aria-checked='true'] {
+  outline: 3px solid var(--to-accent);
+}
+.pixel-grid {
+  display: grid;
+  width: min(100%, 560px);
+  aspect-ratio: 1;
+  margin: 16px auto;
+  border: 1px solid var(--to-border);
+  touch-action: none;
+  user-select: none;
+}
+.pixel-grid [role='row'] {
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+}
+.pixel-grid button {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: inset 0 0 0 0.5px var(--to-border);
+  background: var(--to-surface);
+  cursor: crosshair;
+}
+.pixel-grid button:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -2px;
+  position: relative;
+}
+
+/* The library: documents kept on this device, by folder */
+.to-library {
+  max-width: 920px;
+  margin: 0 auto 8px;
+}
+.to-library details {
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  margin-bottom: 8px;
+}
+.to-library summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.to-library summary span {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--to-ink-3);
+}
+.to-library ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 6px;
+}
+.to-library li {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.to-library li a {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  color: var(--to-ink);
+  text-decoration: none;
+}
+.to-library li a:hover {
+  background: var(--to-surface-2);
+}
+.to-library li b {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.to-library li small {
+  margin-left: auto;
+  flex: none;
+  color: var(--to-ink-3);
+}
+.to-library li button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--to-ink-2);
+  cursor: pointer;
+}
+.to-library li button:hover {
+  background: var(--to-surface-2);
+}
+.to-library .to-hint {
+  white-space: normal;
+  margin: 4px 2px 0;
+}
+@media (max-width: 520px) {
+  .to-library li small {
+    display: none;
+  }
 }

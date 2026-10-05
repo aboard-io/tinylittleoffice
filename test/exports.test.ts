@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet', 'write', 'deck', 'draw', 'cal', 'todo', 'board', 'gantt', 'trip', 'anim', 'org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky', 'faq', 'site', 'store', 'invoice', 'contract', 'zine', 'booklet', 'programme', 'brochure', 'comic', 'planner', 'poster', 'certificate', 'menu', 'resume', 'badges', 'recipes']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet', 'write', 'deck', 'draw', 'cal', 'todo', 'board', 'gantt', 'trip', 'anim', 'org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky', 'faq', 'site', 'store', 'invoice', 'contract', 'zine', 'booklet', 'programme', 'brochure', 'comic', 'planner', 'poster', 'certificate', 'menu', 'resume', 'badges', 'recipes', 'flow', 'pixel', 'pattern', 'floor', 'seating', 'family', 'timeline', 'wordsearch', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'card', 'capsule', 'split', 'habits', 'countdown', 'bio', 'checklist', 'log', 'reading', 'chords']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -47,6 +47,8 @@ test('every app draws itself, and is a web page with preview tags', () => {
     booklet: 'A <book>\nby me\n\nOne\nwords',
     programme: 'Tonight\n\nFirst half\nsongs',
     brochure: 'Visit\n\nWhy\nbecause',
+    pixel: 'ab.c\n.<d',
+    pattern: 'aaa\nb.b',
     planner: 'My <week>\n\nMonday\nGym',
     comic: 'Biscuit <out>\n\n \n:dog Walk? | Monday',
   };

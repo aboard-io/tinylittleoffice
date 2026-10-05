@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { relative, resolve } from 'node:path';
 import './src/apps/index.ts';
 import { apps } from './src/kit/core.ts';
 
@@ -36,6 +37,28 @@ function appPages(site: string): Plugin {
       // The guide to making documents by URL, where programs look for one: /llms.txt.
       // It is the skill in skill/tinyoffice, without the heading a skill needs.
       const skill = readFileSync(resolve(import.meta.dirname, 'skill/tinyoffice/SKILL.md'), 'utf8');
+      // The service worker: every file of the build, fetched once and then served from the device,
+      // so the whole thing works with no connection. (Share cards are for link previews; they stay behind.)
+      const files = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
+        .filter((f) => f.isFile())
+        .map((f) => relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'))
+        .filter((f) => !f.startsWith('og/') && f !== 'sw.js' && f !== 'llms.txt')
+        .sort();
+      const version = createHash('sha256').update(files.map((f) => f + readFileSync(resolve(dist, f)).length).join('|')).digest('hex').slice(0, 12);
+      writeFileSync(
+        resolve(dist, 'sw.js'),
+        `const CACHE = 'tlo-${version}';
+const FILES = ${JSON.stringify(files.map((f) => f.replace(/(^|\/)index\.html$/, '$1')))};
+self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting())));
+self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  // Only this site's own files; anything else (map tiles) goes to the network as it always did.
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request)));
+});
+`,
+      );
       writeFileSync(resolve(dist, 'llms.txt'), skill.replace(/^---[\s\S]*?---\n+/, '').replaceAll('https://tinylittleoffice.com/', site));
     },
   };

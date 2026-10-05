@@ -12,3 +12,6 @@ window.addEventListener('vite:preloadError', (e) => {
   location.reload();
 });
 window.addEventListener('load', () => setTimeout(() => sessionStorage.removeItem('to-reloaded'), 5000));
+
+// Keep the whole of it on the device, so it opens with no connection (see sw.js, written by the build).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) void navigator.serviceWorker.register(new URL('../sw.js', import.meta.url)).catch(() => {});

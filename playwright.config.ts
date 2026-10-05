@@ -5,6 +5,8 @@ export default defineConfig({
   timeout: 30_000,
   retries: 0,
   use: {
+    // The service worker has a test of its own (e2e/offline.spec.ts); everywhere else pages talk to the server directly.
+    serviceWorkers: 'block',
     baseURL: 'http://localhost:4173',
     timezoneId: 'America/New_York',
     locale: 'en-US',
