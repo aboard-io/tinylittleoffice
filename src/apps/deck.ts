@@ -4,9 +4,10 @@
  */
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { icon, libraryIcon, LIBRARY, LIBRARY_NAMES, UI } from '../lib/icons.ts';
+import { icon, libraryIcon, LIBRARY, UI } from '../lib/icons.ts';
 import { MAX_SLIDES, parseDeck, serializeDeck, type Slide } from '../lib/deckmodel.ts';
-import type { SlDialog } from '../lib/shoelace.ts';
+import { searchIcons, suggestIcons } from '../lib/iconsearch.ts';
+import type { SlDialog, SlInput } from '../lib/shoelace.ts';
 
 @customElement('to-deck')
 export class ToDeck extends LitElement {
@@ -14,6 +15,7 @@ export class ToDeck extends LitElement {
   @state() private slides: Slide[] = parseDeck('');
   @state() private cur = 0;
   @state() private showing = -1;
+  @state() private query = '';
   private lastEmitted = '';
 
   createRenderRoot() {
@@ -94,14 +96,31 @@ export class ToDeck extends LitElement {
     return this.querySelector<SlDialog>('#icon-picker');
   }
 
+  private openPicker() {
+    this.query = '';
+    this.picker()?.show();
+  }
+
   private pickIcon(name: string) {
     this.patch(this.cur, { icon: name });
     this.picker()?.hide();
   }
 
+  private onSearchKey(e: KeyboardEvent) {
+    if (e.key !== 'Enter') return;
+    const first = searchIcons(this.query)[0];
+    if (this.query.trim() && first) this.pickIcon(first);
+  }
+
+  private pickerButton(name: string, current: string) {
+    return html`<button title=${name} aria-label=${name} aria-pressed=${current === name ? 'true' : 'false'} @click=${() => this.pickIcon(name)}>${icon(LIBRARY[name], 22)}</button>`;
+  }
+
   render() {
     const s = this.slides[this.cur];
     const n = this.slides.length;
+    const suggested = suggestIcons(s.title, s.bullets);
+    const found = searchIcons(this.query);
     return html`
       <div class="to-toolbar">
         <sl-button size="small" @click=${this.add} ?disabled=${n >= MAX_SLIDES}>${icon(UI.plus, 14)} Slide</sl-button>
@@ -127,31 +146,53 @@ export class ToDeck extends LitElement {
         <div class="deck-editor">
           <div class="deck-slide">
             <div class="head">
-              <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${() => this.picker()?.show()}>
+              <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
                 ${s.icon ? libraryIcon(s.icon, 32) : icon(UI.plus, 20)}
               </button>
               <input class="title" placeholder="Headline" aria-label="Headline" .value=${s.title} @input=${(e: Event) => this.patch(this.cur, { title: (e.target as HTMLInputElement).value })} />
             </div>
             <div class="bullets">
-              <div class="dots" aria-hidden="true">${s.bullets.map((b) => html`<span>${b.trim() ? '•' : ' '}</span>`)}</div>
+              <!-- The mirror wraps exactly as the textarea does, so each dot sits on its bullet's first line. -->
+              <div class="mirror" aria-hidden="true">${s.bullets.map((b) => html`<div class=${b.trim() ? 'on' : ''}>${b || '\u200b'}</div>`)}</div>
               <textarea
                 placeholder="One bullet per line"
                 aria-label="Bullets"
-                rows=${Math.max(3, s.bullets.length + 1)}
                 .value=${s.bullets.join('\n')}
                 @input=${(e: Event) => this.patch(this.cur, { bullets: (e.target as HTMLTextAreaElement).value.split('\n') })}
               ></textarea>
             </div>
+            ${!s.icon && suggested.length
+              ? html`<div class="deck-suggest" role="group" aria-label="Suggested icons">
+                  <span>${icon(UI.sparkles, 12)} Suggested</span>
+                  ${suggested.slice(0, 4).map(
+                    (name) => html`<button title=${`Use ${name}`} aria-label=${`Use ${name} icon`} @click=${() => this.patch(this.cur, { icon: name })}>${icon(LIBRARY[name], 16)}</button>`,
+                  )}
+                </div>`
+              : nothing}
             <span class="num">${this.cur + 1} / ${n}</span>
           </div>
         </div>
       </div>
       <sl-dialog id="icon-picker" label="Icon">
-        <div class="deck-picker" role="listbox" aria-label="Icon library">
-          ${LIBRARY_NAMES.map(
-            (name) => html`<button title=${name} aria-label=${name} aria-pressed=${s.icon === name ? 'true' : 'false'} @click=${() => this.pickIcon(name)}>${icon(LIBRARY[name], 22)}</button>`,
-          )}
-        </div>
+        <sl-input
+          class="deck-search"
+          size="small"
+          type="search"
+          placeholder="Search icons"
+          aria-label="Search icons"
+          autofocus
+          clearable
+          .value=${this.query}
+          @sl-input=${(e: Event) => (this.query = (e.target as SlInput).value)}
+          @keydown=${this.onSearchKey}
+        ><span slot="prefix">${icon(UI.search, 14)}</span></sl-input>
+        ${!this.query.trim() && suggested.length
+          ? html`<div class="deck-picker-label">Suggested for this slide</div>
+              <div class="deck-picker suggested" role="group" aria-label="Suggested">${suggested.map((name) => this.pickerButton(name, s.icon))}</div>
+              <div class="deck-picker-label">All icons</div>`
+          : nothing}
+        <div class="deck-picker" role="listbox" aria-label="Icon library">${found.map((name) => this.pickerButton(name, s.icon))}</div>
+        ${found.length ? nothing : html`<p class="deck-picker-none">No icons match “${this.query.trim()}”.</p>`}
         <sl-button slot="footer" size="small" @click=${() => this.pickIcon('')}>${icon(UI.close, 14)} No icon</sl-button>
       </sl-dialog>
       ${this.showing >= 0 ? this.renderShow() : nothing}

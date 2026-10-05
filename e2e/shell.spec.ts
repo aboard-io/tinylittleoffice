@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { shot, reopen, navTo } from './helpers';
+import { shot, reopen, navTo, SHOTS } from './helpers';
 
 test('navigation works on every screen size', async ({ page }) => {
   await page.goto('/');
   await navTo(page, 'Deck');
-  await expect(page).toHaveURL(/#\/deck$/);
+  await expect(page).toHaveURL(/#\/v1\/deck$/);
   await expect(page.locator('.to-panel-head h1')).toHaveText(/Deck/);
   await navTo(page, 'Calendar');
   await expect(page.locator('.to-panel-head h1')).toHaveText(/Calendar/);
@@ -57,7 +57,7 @@ test('documents record their creation time', async ({ page }) => {
   await page.keyboard.type('hello');
   await expect(page.locator('.to-panel-head .meta')).toContainText(/\d{4}/);
   const url = page.url();
-  expect(url).toMatch(/#\/write\/[ZR]/);
+  expect(url).toMatch(/#\/v1\/write\/[ZR]/);
   // Creation time is in the link and survives a reload.
   const created = await page.locator('.to-panel-head .meta').textContent();
   await reopen(page);
@@ -100,7 +100,7 @@ test('signing a document and detecting changes', async ({ page }) => {
   await shot(page, 'signed');
 
   // A tampered link reads as a mismatch, not as valid.
-  const tampered = signedUrl.replace(/#\/sheet\/Z(.)/, (_m, c: string) => `#/sheet/Z${c === 'A' ? 'B' : 'A'}`);
+  const tampered = signedUrl.replace(/#\/v1\/sheet\/Z(.)/, (_m, c: string) => `#/v1/sheet/Z${c === 'A' ? 'B' : 'A'}`);
   await page.goto(tampered);
   const head = page.locator('.to-panel-head');
   await expect(head).not.toContainText(/\bsigned\b(?! mismatch)/);
@@ -141,7 +141,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.to-panel-head')).toContainText('locked');
   const lockedUrl = page.url();
-  expect(lockedUrl).toMatch(/#\/sheet\/E[A-Za-z0-9_-]+$/);
+  expect(lockedUrl).toMatch(/#\/v1\/sheet\/E[A-Za-z0-9_-]+$/);
   expect(lockedUrl).not.toBe(plainUrl);
 
   // Reopening asks for the password; the content is not shown until it is right.
@@ -162,7 +162,7 @@ test('password-locked documents', async ({ page }) => {
 
   // Edits stay encrypted, and the password can be removed.
   await page.getByRole('textbox', { name: 'A2', exact: true }).fill('bonus');
-  await expect.poll(() => page.url()).toMatch(/#\/sheet\/E/);
+  await expect.poll(() => page.url()).toMatch(/#\/v1\/sheet\/E/);
   const url2 = page.url();
   await page.goto('about:blank');
   await page.goto(url2);
@@ -173,10 +173,93 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(dialog).not.toContainText('Locked');
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect.poll(() => page.url()).toMatch(/#\/sheet\/[ZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v1\/sheet\/[ZR]/);
   const plainAgain = page.url();
   await page.goto('about:blank');
   await page.goto(plainAgain);
   await expect(prompt).not.toHaveAttribute('open');
   await expect(a1).toHaveValue('payroll 2026');
+});
+
+test('links carry a format version, and links from before versions still open', async ({ page }) => {
+  await page.goto('/#/write');
+  await expect(page.locator('.to-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v1/deck');
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('Old link');
+  await expect.poll(() => page.url()).toMatch(/#\/v1\/write\/[ZR]/);
+  const legacy = page.url().replace('#/v1/', '#/');
+  await page.goto('about:blank');
+  await page.goto(legacy);
+  await expect(page.getByRole('textbox', { name: 'Document' })).toHaveText('Old link');
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('!');
+  await expect.poll(() => page.url()).toMatch(/#\/v1\/write\/[ZR]/);
+  // A link from a future version says so.
+  await page.goto(page.url().replace('#/v1/', '#/v7/'));
+  await expect(page.locator('.to-panel-head')).toContainText('newer TinyOffice (v7)');
+});
+
+test('password and signature are one tap from the document', async ({ page }) => {
+  await page.goto('/#/sheet');
+  await page.getByRole('textbox', { name: 'A1', exact: true }).fill('1');
+  const dialog = page.locator('#doc-dialog');
+  await page.getByRole('button', { name: 'Password', exact: true }).click();
+  await expect(dialog).toHaveAttribute('open');
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(dialog).not.toHaveAttribute('open');
+  await page.getByRole('button', { name: 'Signature', exact: true }).click();
+  await expect(dialog).toHaveAttribute('open');
+  await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
+  await expect(page.locator('.to-panel-head')).toContainText('signed');
+});
+
+test('download views: the link itself hands over a file', async ({ page }, testInfo) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const created = Date.UTC(2026, 0, 2, 3, 4);
+  const docs: [string, string, string, string, (bytes: Buffer) => void][] = [
+    ['deck', 'pptx', ':rocket\nLaunch plan\nBuild it\nShip it\n\n:users\nTeam\nEveryone', 'launch-plan.pptx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
+    ['deck', 'ppt', 'Alias', 'alias.pptx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
+    ['sheet', 'xlsx', '10\tTotal\n32\n=SUM(A1:A2)*2\t=AVG(A1:A2)', 'sheet.xlsx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
+    ['sheet', 'csv', '10\tTotal\n32\n=SUM(A1:A2)*2', 'sheet.csv', (b) => expect(b.toString()).toBe('\ufeff10,Total\r\n32,\r\n84,\r\n')],
+    ['write', 'rtf', '# Memo\nSome *bold* text\n- one\n- two', 'memo.rtf', (b) => expect(b.toString()).toContain('{\\b bold}')],
+    ['write', 'html', '# Memo\nSome *bold* text', 'memo.html', (b) => expect(b.toString()).toContain('<strong>bold</strong>')],
+    ['draw', 'svg', 'r,2,1,12,6,1,Box\na,14,4,8,0,0', 'drawing.svg', (b) => expect(b.toString()).toContain('>Box</text>')],
+    ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'calendar.ics', (b) => expect(b.toString()).toContain('SUMMARY:Offsite')],
+  ];
+  for (const [app, ext, body, name, check] of docs) {
+    await page.goto('about:blank');
+    const [download] = await Promise.all([page.waitForEvent('download'), page.goto(`/#/v1/${app}.${ext}/${encodeEnvelope({ created, body })}`)]);
+    expect(download.suggestedFilename()).toBe(name);
+    const path = testInfo.outputPath(`${ext}-${name}`);
+    await download.saveAs(path);
+    const bytes = (await import('node:fs')).readFileSync(path);
+    expect(bytes.length).toBeGreaterThan(20);
+    check(bytes);
+    if (SHOTS) (await import('node:fs')).copyFileSync(path, `${SHOTS}/${testInfo.project.name}-${name}`);
+    await expect(page.locator('.to-toast')).toContainText(`Downloaded ${name}`);
+  }
+  // The document is still there to edit, and the menu offers the same files.
+  await expect(page.locator('to-cal')).toBeVisible();
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /iCalendar/ }).click()]);
+  expect(fromMenu.suggestedFilename()).toBe('calendar.ics');
+  // An extension the app does not have is reported, not downloaded.
+  await page.goto(`/#/v1/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
+  await expect(page.locator('.to-toast')).toContainText('No .pptx view here');
+});
+
+test('download views wait for the password', async ({ page }) => {
+  test.slow();
+  await page.goto('/#/sheet');
+  await page.getByRole('textbox', { name: 'A1', exact: true }).fill('secret');
+  await page.getByRole('button', { name: 'Password', exact: true }).click();
+  await page.getByRole('textbox', { name: 'New password' }).fill('pw');
+  await page.getByRole('button', { name: 'Lock', exact: true }).click();
+  await expect.poll(() => page.url()).toMatch(/#\/v1\/sheet\/E/);
+  const url = page.url().replace('/sheet/', '/sheet.csv/');
+  await page.goto('about:blank');
+  await page.goto(url);
+  await page.getByRole('textbox', { name: 'Password', exact: true }).fill('pw');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Open' }).click()]);
+  expect(download.suggestedFilename()).toBe('sheet.csv');
 });

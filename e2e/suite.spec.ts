@@ -22,7 +22,7 @@ test('sheet: formulas compute and persist in the URL', async ({ page }) => {
   await expect(cell('A3')).toHaveValue('84');
   await expect(cell('B1')).toHaveValue('#DIV/0');
   await expect(cell('C2')).toHaveValue('42');
-  expect(page.url()).toMatch(/#\/sheet\/[ZR][A-Za-z0-9_-]+$/);
+  expect(page.url()).toMatch(/#\/v1\/sheet\/[ZR][A-Za-z0-9_-]+$/);
 
   await reopen(page);
   await expect(cell('A3')).toHaveValue('84');
@@ -37,6 +37,86 @@ test('sheet: formulas compute and persist in the URL', async ({ page }) => {
   await cell('B4').click();
   await expect(cell('A4')).toHaveValue('30');
   await shot(page, 'sheet');
+});
+
+test('sheet: tapping cells builds a formula, and every function is one tap away', async ({ page }) => {
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  await cell('A1').fill('10');
+  await cell('A2').fill('32');
+  await cell('B1').click();
+  await page.keyboard.type('=SUM(');
+  await cell('A2').click();
+  await expect(cell('B1')).toBeFocused();
+  await expect(cell('B1')).toHaveValue('=SUM(A2');
+  // A second tap corrects the first rather than piling up references.
+  await cell('A1').click();
+  await expect(cell('B1')).toHaveValue('=SUM(A1');
+  await page.keyboard.type(':');
+  await cell('A2').click();
+  await page.keyboard.type(')');
+  await expect(cell('B1')).toHaveValue('=SUM(A1:A2)');
+  // Once the formula is complete a tap just moves on.
+  await cell('C1').click();
+  await expect(cell('C1')).toBeFocused();
+  await expect(cell('B1')).toHaveValue('42');
+
+  // The function menu starts a formula; taps fill in its arguments.
+  await page.getByRole('button', { name: 'Functions' }).click();
+  await expect(page.getByRole('menuitem')).toHaveCount(10);
+  await page.getByRole('menuitem', { name: /^MAX/ }).click();
+  await expect(cell('C1')).toBeFocused();
+  await expect(cell('C1')).toHaveValue('=MAX(');
+  await cell('A1').click();
+  await page.keyboard.type(',');
+  await cell('A2').click();
+  await page.keyboard.type(')');
+  await page.keyboard.press('Enter');
+  await expect(cell('C1')).toHaveValue('32');
+
+  // Tapping also works from the formula bar.
+  await cell('B2').click();
+  const bar = page.getByRole('textbox', { name: 'Formula' });
+  await bar.click();
+  await page.keyboard.type('=A1*');
+  await cell('A2').click();
+  await expect(bar).toHaveValue('=A1*A2');
+  await page.keyboard.press('Enter');
+  await expect(cell('B2')).toHaveValue('320');
+});
+
+test('sheet: columns squeeze to fit or widen to show everything', async ({ page }) => {
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  const long = 'A sentence that is far too long for one third of a small page to show';
+  await cell('B1').fill(long);
+  await cell('A1').fill('1');
+  await cell('A2').click();
+  const clipped = () => cell('B1').evaluate((el: HTMLInputElement) => el.scrollWidth > el.clientWidth);
+  const tableWidth = () => page.locator('table.sheet').evaluate((el) => el.getBoundingClientRect().width);
+  const scrollWidth = () => page.locator('.sheet-scroll').evaluate((el) => el.clientWidth);
+  expect(await clipped()).toBe(true);
+  expect(await tableWidth()).toBeLessThanOrEqual((await scrollWidth()) + 1);
+
+  await page.getByRole('button', { name: 'Show all text' }).click();
+  expect(await clipped()).toBe(false);
+  const colA = () => cell('A1').evaluate((el) => el.getBoundingClientRect().width);
+  expect(await colA()).toBeLessThan(80);
+  await shot(page, 'sheet-all');
+
+  // Drag a header edge to widen one column by hand.
+  const grip = page.getByRole('separator', { name: 'Resize column A' });
+  const box = (await grip.boundingBox())!;
+  const before = await colA();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 4 });
+  await page.mouse.up();
+  expect(Math.round((await colA()) - before)).toBe(60);
+
+  await page.getByRole('button', { name: 'Fit to page' }).click();
+  expect(await clipped()).toBe(true);
+  expect(await tableWidth()).toBeLessThanOrEqual((await scrollWidth()) + 1);
 });
 
 test('write: rich text survives the round trip', async ({ page }) => {
@@ -58,7 +138,7 @@ test('write: rich text survives the round trip', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.keyboard.type('second');
   await expect(page.locator('.write-foot')).toContainText('7 words');
-  expect(page.url()).toMatch(/#\/write\/[ZR]/);
+  expect(page.url()).toMatch(/#\/v1\/write\/[ZR]/);
 
   await reopen(page);
   const html = await editor.innerHTML();
@@ -75,9 +155,21 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await page.goto('/#/deck');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Launch plan');
   await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it\nTell people');
+  // The slide's own words recommend icons, both on the slide and in the picker.
+  await expect(page.getByRole('button', { name: 'Use rocket icon' })).toBeVisible();
   await page.getByRole('button', { name: 'Slide icon' }).click();
-  await page.getByRole('button', { name: 'rocket', exact: true }).click();
+  const library = page.getByRole('listbox', { name: 'Icon library' });
+  await expect(page.getByRole('group', { name: 'Suggested', exact: true }).getByRole('button', { name: 'rocket', exact: true })).toBeVisible();
+  const search = page.locator('#icon-picker sl-input input');
+  await search.fill('zzz');
+  await expect(page.locator('.deck-picker-none')).toBeVisible();
+  await search.fill('money');
+  await expect(library.getByRole('button', { name: 'dollar', exact: true })).toBeVisible();
+  await expect(library.getByRole('button', { name: 'rocket', exact: true })).toHaveCount(0);
+  await search.fill('rock');
+  await library.getByRole('button', { name: 'rocket', exact: true }).click();
   await expect(page.locator('#icon-picker')).not.toHaveAttribute('open');
+  await expect(page.locator('.deck-suggest')).toHaveCount(0);
   await page.getByRole('button', { name: 'Slide', exact: true }).click();
   await page.getByRole('textbox', { name: 'Headline' }).fill('Second');
   await expect(page.locator('.to-toolbar .to-hint')).toHaveText('2 / 10');
@@ -89,7 +181,25 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await thumbs.nth(0).click();
   await expect(page.getByRole('textbox', { name: 'Bullets' })).toHaveValue('Build it\nShip it\nTell people');
   await expect(page.locator('.deck-slide .pick svg')).toBeVisible();
+  // Each dot sits on the first line of its bullet, at any font size, even when a bullet wraps.
+  const bullets = page.getByRole('textbox', { name: 'Bullets' });
+  await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(4).trim() + '\nTell people');
+  const geometry = await page.locator('.deck-slide .bullets').evaluate((el) => {
+    const ta = el.querySelector('textarea')!;
+    const mirror = el.querySelector('.mirror')!;
+    const a = getComputedStyle(ta);
+    const b = getComputedStyle(mirror);
+    return {
+      sameFont: a.fontSize === b.fontSize && a.lineHeight === b.lineHeight && a.fontFamily === b.fontFamily,
+      sameBox: Math.abs(ta.getBoundingClientRect().height - mirror.getBoundingClientRect().height) < 1 && Math.abs(ta.getBoundingClientRect().top - mirror.getBoundingClientRect().top) < 1,
+      fits: ta.scrollHeight <= ta.clientHeight + 1,
+      dots: mirror.querySelectorAll('div.on').length,
+      wrapped: mirror.children[1].getBoundingClientRect().height > mirror.children[0].getBoundingClientRect().height * 1.5,
+    };
+  });
+  expect(geometry).toEqual({ sameFont: true, sameBox: true, fits: true, dots: 3, wrapped: true });
   await shot(page, 'deck');
+  await bullets.fill('Build it\nShip it\nTell people');
 
   await page.getByRole('button', { name: 'Present' }).click();
   const show = page.getByRole('dialog', { name: 'Presentation' });

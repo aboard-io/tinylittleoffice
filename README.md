@@ -35,8 +35,10 @@ static file server, or open `dist/index.html` straight from disk.
 
 ## How a document fits in a URL
 
-The URL looks like `https://host/#/sheet/ZXQAA...`. The part after the app name
-is the document:
+The URL looks like `https://host/#/v1/sheet/ZXQAA...`. `v1` is the version of
+the URL format; links from before versions existed (`#/sheet/...`) are read as
+version 1 and rewritten on the next edit. The part after the app name is the
+document:
 
 1. Each app serialises its content to a compact text format (below), and the
    shell wraps it in the envelope described under "Creation time and
@@ -57,6 +59,27 @@ a little more room. Plain English prose fits roughly 500 words; a deck of ten
 slides with a few bullets each fits easily; a sheet full of numbers and
 formulas fits with room to spare. Going over the limit turns the meter red but
 never loses your work.
+
+### Download views
+
+Put a file extension after the app name and the link downloads the document
+as that file the moment it is opened, then shows the editor as usual:
+
+| Link                         | File                                              |
+| ---------------------------- | ------------------------------------------------- |
+| `#/v1/sheet.xlsx/<payload>`  | Excel workbook, formulas intact (`.xls` also works) |
+| `#/v1/sheet.csv/<payload>`   | CSV of the computed values                        |
+| `#/v1/write.rtf/<payload>`   | Rich Text                                         |
+| `#/v1/write.html/<payload>`  | A standalone web page                             |
+| `#/v1/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
+| `#/v1/draw.svg/<payload>`    | SVG image                                         |
+| `#/v1/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
+
+The same files are under the Download button on every document, and the
+Document dialog has a copy button for each download link. A password-locked
+link downloads once the password is entered. The file is named after the
+document's title when it has one. All of it is built in the browser by
+`src/lib/exports.ts`; nothing is sent anywhere.
 
 ### Formats
 
@@ -158,6 +181,8 @@ src/lib/drawmodel.ts  drawing model
 src/lib/calmodel.ts   calendar model
 src/lib/tz.ts         time zone helpers on top of Intl
 src/lib/icons.ts      Lucide icon helpers and the icon library
+src/lib/iconsearch.ts keywords, search and per-slide suggestions for the icon library
+src/lib/exports.ts    download views: xlsx, csv, rtf, html, pptx, svg, ics
 test/                 unit tests (node --test)
 e2e/                  Playwright browser tests
 ```

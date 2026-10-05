@@ -284,9 +284,21 @@ sl-button[aria-pressed='true']::part(label) {
   align-items: center;
   gap: 8px;
 }
+.to-panel-head {
+  flex-wrap: wrap;
+}
 .to-panel-head .meta {
   color: var(--to-ink-3);
   font-size: 12.5px;
+}
+.to-doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.to-dl {
+  display: inline-flex;
+  align-items: center;
 }
 .to-toast {
   position: fixed;
@@ -530,10 +542,21 @@ sl-button[aria-pressed='true']::part(label) {
   flex: 1;
   --sl-input-font-family: var(--sl-font-mono);
 }
+.sheet-fns .what {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--to-ink-3);
+}
+.sheet-fns code {
+  font-size: 12px;
+  color: var(--to-ink-3);
+  margin-left: 16px;
+}
 .sheet-scroll {
   overflow-x: auto;
 }
 table.sheet {
+  --sheet-row-w: 40px;
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
@@ -559,7 +582,35 @@ table.sheet th {
   z-index: 1;
 }
 table.sheet th.row {
-  width: 40px;
+  width: var(--sheet-row-w);
+}
+/* Explicit column widths: the table is as wide as its columns and scrolls. */
+table.sheet.sized {
+  min-width: 0;
+}
+table.sheet .grip {
+  position: absolute;
+  top: 0;
+  right: -6px;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+table.sheet .grip::after {
+  content: '';
+  position: absolute;
+  inset: 6px 5px;
+  border-radius: 1px;
+  background: var(--to-border-strong);
+  opacity: 0;
+}
+table.sheet .grip:hover::after {
+  opacity: 1;
+}
+table.sheet.picking td:not(.sel) input {
+  cursor: cell;
 }
 table.sheet td input {
   width: 100%;
@@ -569,6 +620,7 @@ table.sheet td input {
   background: transparent;
   color: var(--to-ink);
   font: 13.5px var(--sl-font-mono);
+  text-overflow: ellipsis;
 }
 table.sheet td input.num {
   text-align: right;
@@ -728,30 +780,45 @@ table.sheet td.sel input {
   padding: 4px 0;
 }
 .deck-slide .bullets {
-  display: flex;
-  align-items: flex-start;
+  position: relative;
+  align-self: start;
   min-height: 0;
 }
-.deck-slide .dots {
-  width: 1.4em;
-  flex-shrink: 0;
-  font-size: 18px;
-  line-height: 1.55;
-  text-align: center;
-  color: var(--to-accent);
+/* Mirror and textarea share one box and one font, so they wrap identically. */
+.deck-slide .mirror,
+.deck-slide textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  padding: 0 0 0 1.4em;
+  font: 18px/1.55 var(--sl-font-sans);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.deck-slide .mirror {
+  min-height: 4.65em;
+  color: transparent;
   user-select: none;
 }
-.deck-slide .dots span {
-  display: block;
+.deck-slide .mirror div {
+  position: relative;
+}
+.deck-slide .mirror div.on::before {
+  content: '•';
+  position: absolute;
+  left: -1.4em;
+  width: 1.4em;
+  text-align: center;
+  color: var(--to-accent);
 }
 .deck-slide textarea {
-  flex: 1;
-  border: 0;
+  position: absolute;
+  inset: 0;
+  height: 100%;
   background: transparent;
   color: var(--to-ink);
   resize: none;
-  font: 18px/1.55 var(--sl-font-sans);
-  padding: 0;
   overflow: hidden;
 }
 .deck-slide .num {
@@ -759,6 +826,53 @@ table.sheet td.sel input {
   right: 14px;
   bottom: 10px;
   font-size: 12px;
+  color: var(--to-ink-3);
+}
+.deck-suggest {
+  position: absolute;
+  left: 14px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--to-ink-3);
+}
+.deck-suggest span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 2px;
+}
+.deck-suggest button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--to-radius);
+  background: transparent;
+  color: var(--to-ink-2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.deck-suggest button:hover {
+  border-color: var(--to-border);
+  background: var(--to-accent-soft);
+  color: var(--to-accent);
+}
+.deck-search {
+  margin-bottom: 12px;
+}
+.deck-picker-label {
+  font-size: 12px;
+  color: var(--to-ink-3);
+  margin: 0 0 6px;
+}
+.deck-picker.suggested {
+  margin-bottom: 14px;
+}
+.deck-picker-none {
+  margin: 8px 0 0;
   color: var(--to-ink-3);
 }
 .deck-picker {
@@ -1080,6 +1194,7 @@ svg.draw-canvas text {
   }
   /* iOS zooms into inputs under 16px. */
   table.sheet td input,
+  .deck-slide .mirror,
   .deck-slide textarea,
   .deck-slide input.title {
     font-size: 16px;
@@ -1087,8 +1202,12 @@ svg.draw-canvas text {
   table.sheet {
     min-width: 0;
   }
-  table.sheet th.row {
-    width: 30px;
+  table.sheet {
+    --sheet-row-w: 30px;
+  }
+  .sheet-bar {
+    gap: 6px;
+    padding: 8px;
   }
   table.sheet td input {
     padding: 0 6px;

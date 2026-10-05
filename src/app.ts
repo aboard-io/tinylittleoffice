@@ -1,8 +1,11 @@
 /**
- * <to-app>: the shell. Owns the URL. Routes "#/<app>/<payload>" to a mini
+ * <to-app>: the shell. Owns the URL. Routes "#/v1/<app>/<payload>" to a mini
  * app, hands it the decoded document body, and writes every change back into
  * the URL via history.replaceState. Also owns the envelope around the body
  * (creation time, optional signature) and optional password encryption.
+ *
+ * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
+ * document as that kind of file (see lib/exports.ts).
  */
 import { LitElement, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
@@ -10,7 +13,9 @@ import { budgetFor, toBase64Url, fromBase64Url } from './lib/codec.ts';
 import { packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } from './lib/sign.ts';
 import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
-import { icon, UI } from './lib/icons.ts';
+import { icon, iconInner, LIBRARY, UI } from './lib/icons.ts';
+import { EXPORTS, exportName, findExport, type ExportContext } from './lib/exports.ts';
+import { parseDeck } from './lib/deckmodel.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
 export type AppId = 'sheet' | 'write' | 'deck' | 'draw' | 'cal';
@@ -25,10 +30,48 @@ export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = [
 
 type SigState = 'none' | 'checking' | 'valid' | 'invalid';
 
-export function parseHash(hash: string): { app: AppId | null; payload: string } {
-  const m = /^#\/(sheet|write|deck|draw|cal)(?:\/(.*))?$/.exec(hash);
-  if (!m) return { app: null, payload: '' };
-  return { app: m[1] as AppId, payload: m[2] ?? '' };
+/**
+ * The version of the URL format, written as "v1" at the front of every link.
+ * Links from before versions existed ("#/sheet/...") are read as version 1.
+ */
+export const URL_VERSION = 1;
+
+export interface Route {
+  app: AppId | null;
+  payload: string;
+  version: number;
+  /** Extension of a download view, '' for the editor. */
+  ext: string;
+}
+
+export function parseHash(hash: string): Route {
+  const m = /^#\/(?:v(\d+)\/)?(sheet|write|deck|draw|cal)(?:\.([A-Za-z0-9]+))?(?:\/(.*))?$/.exec(hash);
+  if (!m) return { app: null, payload: '', version: URL_VERSION, ext: '' };
+  return { app: m[2] as AppId, payload: m[4] ?? '', version: m[1] ? parseInt(m[1], 10) : URL_VERSION, ext: m[3] ?? '' };
+}
+
+/** The fragment for a document, optionally as a download view. */
+export function routeHash(app: AppId, payload = '', ext = ''): string {
+  return `#/v${URL_VERSION}/${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
+}
+
+/** Draw a library icon as a PNG, for file formats that cannot hold SVG. */
+async function iconPng(name: string, size = 256, color = '#4f46e5'): Promise<Uint8Array | null> {
+  const node = LIBRARY[name];
+  if (!node) return null;
+  const src = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconInner(node)}</svg>`;
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+  try {
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    canvas.getContext('2d')!.drawImage(img, 0, 0, size, size);
+    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/png'));
+    return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+  } catch {
+    return null;
+  }
 }
 
 const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
@@ -52,6 +95,9 @@ export class ToApp extends LitElement {
   @state() private pw = '';
   @state() private pwError = false;
   @state() private pwBusy = false;
+  @state() private version = URL_VERSION;
+  /** A download view waiting for its document (it may need a password first). */
+  private pendingExt = '';
   private toastTimer = 0;
   private signerApi: Signer = createSigner(localStorageStore());
   private verifyRun = 0;
@@ -73,8 +119,10 @@ export class ToApp extends LitElement {
   }
 
   private onHash = () => {
-    const { app, payload } = parseHash(location.hash);
+    const { app, payload, version, ext } = parseHash(location.hash);
     this.app = app;
+    this.version = version;
+    this.pendingExt = ext;
     this.locker = null;
     this.pw = '';
     this.pwError = false;
@@ -89,6 +137,7 @@ export class ToApp extends LitElement {
     this.sealed = '';
     this.env = this.decode(payload);
     this.checkSignature();
+    this.downloadPending();
   };
 
   private decode(payload: string): Envelope {
@@ -101,7 +150,7 @@ export class ToApp extends LitElement {
   }
 
   private get urlPrefix(): string {
-    return `${location.origin}${location.pathname}${location.search}#/${this.app}/`;
+    return `${location.origin}${location.pathname}${location.search}${routeHash(this.app!)}/`;
   }
 
   private async writeUrl() {
@@ -115,7 +164,50 @@ export class ToApp extends LitElement {
       if (run !== this.writeRun) return;
     }
     this.payloadLength = payload.length;
-    history.replaceState(null, '', `#/${this.app}/${payload}`);
+    this.version = URL_VERSION;
+    history.replaceState(null, '', routeHash(this.app, payload) + (payload ? '' : '/'));
+  }
+
+  /* ---------- download views ---------- */
+
+  private downloadPending() {
+    const ext = this.pendingExt;
+    this.pendingExt = '';
+    if (ext) this.download(ext);
+  }
+
+  /** The link that downloads this document as `ext` when opened. */
+  private downloadUrl(ext: string): string {
+    const { payload } = parseHash(location.hash);
+    return `${location.origin}${location.pathname}${location.search}${routeHash(this.app!, payload, ext)}`;
+  }
+
+  private async download(ext: string) {
+    const app = this.app;
+    if (!app) return;
+    const fmt = findExport(app, ext);
+    if (!fmt) {
+      this.showToast(`No .${ext} view here`);
+      return;
+    }
+    const body = this.env.body;
+    const ctx: ExportContext = { created: this.env.created, icons: {} };
+    if (app === 'deck') {
+      for (const name of new Set(parseDeck(body).map((s) => s.icon))) {
+        const png = name ? await iconPng(name) : null;
+        if (png) ctx.icons![name] = png;
+      }
+    }
+    const name = exportName(app, body, fmt.ext);
+    const url = URL.createObjectURL(new Blob([fmt.build(body, ctx) as BlobPart], { type: fmt.mime }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    this.showToast(`Downloaded ${name}`);
   }
 
   private onDocChange(e: CustomEvent<string>) {
@@ -144,6 +236,7 @@ export class ToApp extends LitElement {
       this.pw = '';
       this.pwError = false;
       this.checkSignature();
+      this.downloadPending();
     } finally {
       this.pwBusy = false;
     }
@@ -261,14 +354,14 @@ export class ToApp extends LitElement {
           <sl-button class="to-burger icon" variant="text" size="medium" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyOffice</span></a>
           <nav class="to-nav" aria-label="Apps">
-            ${APPS.map((a) => html`<a href="#/${a.id}" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 15)} ${a.name}</a>`)}
+            ${APPS.map((a) => html`<a href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 15)} ${a.name}</a>`)}
           </nav>
           <span class="to-spacer"></span>
           ${current
             ? html`
                 <to-meter .used=${this.payloadLength} .available=${available} .href=${location.href} @to-info=${() => this.dialog()?.show()}></to-meter>
                 <sl-tooltip content="New ${current.name}" hoist>
-                  <sl-button class="icon" size="small" href="#/${current.id}">${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
+                  <sl-button class="icon" size="small" href=${routeHash(current.id)}>${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
                 </sl-tooltip>
               `
             : nothing}
@@ -277,7 +370,7 @@ export class ToApp extends LitElement {
       <sl-drawer id="nav-drawer" label="TinyOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
           <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
-          ${APPS.map((a) => html`<a href="#/${a.id}" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}</span></a>`)}
+          ${APPS.map((a) => html`<a href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}</span></a>`)}
         </nav>
       </sl-drawer>
       <main class="to-main">${current ? this.renderPanel(current) : this.renderHome()}</main>
@@ -298,7 +391,21 @@ export class ToApp extends LitElement {
           ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
           ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
           ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
+          ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyOffice (v${this.version})</sl-tag>` : nothing}
         </span>
+        <span class="to-spacer"></span>
+        ${this.sealed
+          ? nothing
+          : html`<div class="to-doc-actions">
+              <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.download(e.detail.item.value)}>
+                <sl-button slot="trigger" size="small" caret>${icon(UI.download, 14)} Download</sl-button>
+                <sl-menu>
+                  ${EXPORTS[current.id].map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
+                </sl-menu>
+              </sl-dropdown>
+              <sl-button size="small" variant=${this.locker ? 'primary' : 'default'} ?outline=${!!this.locker} @click=${() => this.dialog()?.show()}>${icon(this.locker ? UI.lock : UI.unlock, 14)} Password</sl-button>
+              <sl-button size="small" variant=${this.sig === 'valid' ? 'success' : this.sig === 'invalid' ? 'danger' : 'default'} ?outline=${this.sig === 'valid' || this.sig === 'invalid'} @click=${() => this.dialog()?.show()}>${icon(this.sig === 'invalid' ? UI.shieldOff : UI.shield, 14)} Signature</sl-button>
+            </div>`}
       </div>
       <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
     </section>`;
@@ -324,7 +431,7 @@ export class ToApp extends LitElement {
     return html`<section class="to-home">
       <h1>TinyOffice</h1>
       <div class="to-launcher">
-        ${APPS.map((a) => html`<a href="#/${a.id}"><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
+        ${APPS.map((a) => html`<a href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
       </div>
     </section>`;
   }
@@ -359,11 +466,24 @@ export class ToApp extends LitElement {
     const created = this.env.created;
     return html`<sl-dialog id="doc-dialog" label="Document" class="to-doc">
       <dl>
-        <dt>${icon(UI.clock, 14)}</dt>
+        <dt title="Created">${icon(UI.clock, 14)}</dt>
         <dd>${created !== null ? html`${fmtDate(created)} <span class="to-hint">${fmtUtc(created)}</span>` : '—'}</dd>
-        <dt>${icon(UI.link, 14)}</dt>
-        <dd>${this.payloadLength.toLocaleString()} / ${available.toLocaleString()} ${left < 0 ? html`<sl-tag size="small" variant="danger" pill>${(-left).toLocaleString()} over</sl-tag>` : nothing}</dd>
-        <dt>${icon(UI.lock, 14)}</dt>
+        <dt title="URL space">${icon(UI.link, 14)}</dt>
+        <dd>${this.payloadLength.toLocaleString()} / ${available.toLocaleString()} <span class="to-hint">v${this.version}</span> ${left < 0 ? html`<sl-tag size="small" variant="danger" pill>${(-left).toLocaleString()} over</sl-tag>` : nothing}</dd>
+        <dt title="Download">${icon(UI.download, 14)}</dt>
+        <dd>
+          <div class="row">
+            ${this.app
+              ? EXPORTS[this.app].map(
+                  (f) => html`<span class="to-dl">
+                    <sl-button size="small" @click=${() => this.download(f.ext)}>.${f.ext}</sl-button>
+                    <sl-copy-button value=${this.downloadUrl(f.ext)} copy-label="Copy a link that downloads the .${f.ext}" success-label="Copied" hoist></sl-copy-button>
+                  </span>`,
+                )
+              : nothing}
+          </div>
+        </dd>
+        <dt title="Password">${icon(UI.lock, 14)}</dt>
         <dd>
           ${this.locker
             ? html`<div class="row"><sl-tag size="small" variant="success" pill>Locked</sl-tag><sl-button size="small" @click=${this.removePassword}>${icon(UI.unlock, 14)} Remove</sl-button></div>`
@@ -382,7 +502,7 @@ export class ToApp extends LitElement {
                 <sl-button size="small" ?loading=${this.pwBusy} ?disabled=${!this.pw} @click=${this.setPassword}>${icon(UI.lock, 14)} Lock</sl-button>
               </div>`}
         </dd>
-        <dt>${icon(UI.shield, 14)}</dt>
+        <dt title="Signature">${icon(UI.shield, 14)}</dt>
         <dd>
           <div class="row">
             ${this.sig === 'none' ? html`<sl-tag size="small" pill>Unsigned</sl-tag>` : nothing}
@@ -395,7 +515,7 @@ export class ToApp extends LitElement {
             ${this.env.sig ? html`<sl-button size="small" @click=${this.unsign}>Remove</sl-button>` : nothing}
           </div>
         </dd>
-        <dt>${icon(UI.key, 14)}</dt>
+        <dt title="Signing key">${icon(UI.key, 14)}</dt>
         <dd>
           <div class="row">
             ${this.myKey ? html`<code>${this.myKey}</code>` : html`<span class="to-hint">—</span>`}
