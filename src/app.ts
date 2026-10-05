@@ -337,7 +337,7 @@ export class ToApp extends LitElement {
 
   /** What the document is called: the name it was given, or one read out of it, or "Untitled Sheet". */
   private get docTitle(): string {
-    return this.env.title || this.def?.title(this.env.body) || (this.def ? `Untitled ${this.def.name}` : 'TinyOffice');
+    return this.env.title || this.def?.title(this.env.body) || (this.def ? `Untitled ${this.def.name}` : 'TinyLittleOffice');
   }
 
   private setTitle(title: string) {
@@ -409,7 +409,7 @@ export class ToApp extends LitElement {
   }
 
   protected updated() {
-    const title = this.app ? `${this.docTitle} · TinyOffice` : 'TinyOffice';
+    const title = this.app ? `${this.docTitle} · TinyLittleOffice` : 'TinyLittleOffice';
     if (document.title !== title) document.title = title;
   }
 
@@ -563,7 +563,7 @@ export class ToApp extends LitElement {
 
   /** The document and nothing else: what an <iframe> on another site shows. */
   private renderEmbedded(def: AppDef) {
-    if (this.sealed) return html`<main class="to-embedded"><p class="to-embed-note">${icon(UI.lock, 16)} This ${def.name.toLowerCase()} is locked. <a href=${this.linkTo('')} target="_blank" rel="noopener">Open it in TinyOffice</a> to enter the password.</p></main>`;
+    if (this.sealed) return html`<main class="to-embedded"><p class="to-embed-note">${icon(UI.lock, 16)} This ${def.name.toLowerCase()} is locked. <a href=${this.linkTo('')} target="_blank" rel="noopener">Open it in TinyLittleOffice</a> to enter the password.</p></main>`;
     const pages = def.view(this.env.body);
     const at = Math.min(this.embedPage, pages.length - 1);
     const go = (d: number) => (this.embedPage = Math.max(0, Math.min(pages.length - 1, at + d)));
@@ -574,7 +574,7 @@ export class ToApp extends LitElement {
         ${pages.length > 1
           ? html`<button aria-label="Previous page" ?disabled=${at === 0} @click=${() => go(-1)}>${icon(UI.left, 14)}</button><span class="n">${at + 1} / ${pages.length}</span><button aria-label="Next page" ?disabled=${at === pages.length - 1} @click=${() => go(1)}>${icon(UI.right, 14)}</button>`
           : nothing}
-        <a href=${this.link} target="_blank" rel="noopener">Open in TinyOffice</a>
+        <a href=${this.link} target="_blank" rel="noopener">Open in TinyLittleOffice</a>
       </footer>
     </main>`;
   }
@@ -588,7 +588,7 @@ export class ToApp extends LitElement {
       <header class="to-header">
         <div class="to-header-inner">
           <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
-          <a class="to-brand" href="#/" aria-label="TinyOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyOffice</span></a>
+          <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
           ${current ? html`<a class="to-here" href=${routeHash(current.id)} title="New ${current.name}">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>` : nothing}
           <span class="to-spacer"></span>
           ${current
@@ -637,7 +637,7 @@ export class ToApp extends LitElement {
             : nothing}
         </div>
       </header>
-      <sl-drawer id="nav-drawer" label="TinyOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
+      <sl-drawer id="nav-drawer" label="TinyLittleOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
           <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
           ${grouped().map(
@@ -680,7 +680,7 @@ export class ToApp extends LitElement {
           ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
           ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
           ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
-          ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyOffice (v${this.version})</sl-tag>` : nothing}
+          ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
         </span>
         <span class="to-spacer"></span>
         ${this.sealed
@@ -711,7 +711,7 @@ export class ToApp extends LitElement {
 
   private renderHome() {
     return html`<section class="to-home">
-      <h1 class="sr-only">TinyOffice</h1>
+      <h1 class="sr-only">TinyLittleOffice</h1>
       ${grouped().map(
         (g) => html`<h2 class="to-group">${g.group}</h2>
           <div class="to-launcher">

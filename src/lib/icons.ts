@@ -10,7 +10,7 @@ import {
   Table2, FileText, Presentation, PenTool, Plus, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
   Copy, Link, Play, X, MousePointer2, Square, Circle, Diamond, Minus, MoveRight, Type,
   ArrowUpToLine, ArrowDownToLine, Check, Sparkles, CalendarDays, Menu, ShieldCheck, ShieldAlert, KeyRound, LayoutGrid, LockKeyhole, LockKeyholeOpen, SquareFunction, FoldHorizontal, UnfoldHorizontal, Download,
-  ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, Spline, Network, Workflow, Brain, Rows3, CircleDot, DatabaseZap, StickyNote, CircleHelp, BookOpen, PanelsTopLeft, Store, ReceiptText, FileSignature, SunMoon, Undo2, Redo2, Pencil, Keyboard, IndentIncrease, IndentDecrease, Columns2, ChartColumn, FilePlus2,
+  ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, Spline, Network, Workflow, Brain, Rows3, CircleDot, DatabaseZap, StickyNote, CircleHelp, BookOpen, BookCopy, ScrollText, Columns3, MessagesSquare, NotebookPen, Utensils, FileUser, IdCard, ChefHat, PanelsTopLeft, Store, ReceiptText, FileSignature, SunMoon, Undo2, Redo2, Pencil, Keyboard, IndentIncrease, IndentDecrease, Columns2, ChartColumn, FilePlus2,
   // library
   Rocket, Lightbulb, Target, TrendingUp, TrendingDown, BarChart3, PieChart, Users, User, Heart, Star,
   Flag, Globe, Mail, Phone, Calendar, Clock, MapPin, Home, Building2, Briefcase, DollarSign,
@@ -34,7 +34,7 @@ export const UI = {
   fn: SquareFunction, fit: FoldHorizontal, expand: UnfoldHorizontal, download: Download,
   todo: ListTodo, board: SquareKanban, gantt: ChartGantt, trip: Route, anim: Clapperboard, share: Share2, more: Ellipsis,
   zoomIn: ZoomIn, zoomOut: ZoomOut, pause: Pause, stop: StopSquare, frame: Maximize, image: ImageIcon, send: Send, repeat: Repeat, star: Star, smile: Smile,
-  zine: BookOpen, printer: Printer, sticky: StickyNote, faq: CircleHelp, site: PanelsTopLeft, store: Store, invoice: ReceiptText, contract: FileSignature, join: Spline, org: Network, lanes: Rows3, mind: Brain, venn: CircleDot, net: Workflow, db: DatabaseZap, pin: MapPin, search: Search, locate: Navigation, sun: Sun, moon: Moon, auto: SunMoon, undo: Undo2, redo: Redo2, pen: Pencil, keys: Keyboard, indent: IndentIncrease, outdent: IndentDecrease, columns: Columns2, chart: ChartColumn, insert: FilePlus2,
+  zine: BookOpen, booklet: BookCopy, programme: ScrollText, brochure: Columns3, comic: MessagesSquare, planner: NotebookPen, poster: Megaphone, certificate: Award, menucard: Utensils, resume: FileUser, badges: IdCard, recipes: ChefHat, printer: Printer, sticky: StickyNote, faq: CircleHelp, site: PanelsTopLeft, store: Store, invoice: ReceiptText, contract: FileSignature, join: Spline, org: Network, lanes: Rows3, mind: Brain, venn: CircleDot, net: Workflow, db: DatabaseZap, pin: MapPin, search: Search, locate: Navigation, sun: Sun, moon: Moon, auto: SunMoon, undo: Undo2, redo: Redo2, pen: Pencil, keys: Keyboard, indent: IndentIncrease, outdent: IndentDecrease, columns: Columns2, chart: ChartColumn, insert: FilePlus2,
 } as const;
 
 export const LIBRARY: Record<string, IconNode> = {

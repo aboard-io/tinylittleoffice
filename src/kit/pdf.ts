@@ -40,7 +40,7 @@ export function pdf(pages: PdfPage[], title = ''): Uint8Array {
   // Objects: 1 catalog, 2 page tree, 3 info, then page / contents / image for each page.
   obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
   obj(2, `<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => `${4 + i * 3} 0 R`).join(' ')}] >>`);
-  obj(3, `<< /Producer (TinyOffice) /Title ${hex(title)} >>`);
+  obj(3, `<< /Producer (TinyLittleOffice) /Title ${hex(title)} >>`);
   pages.forEach((p, i) => {
     const id = 4 + i * 3;
     const w = Math.round(p.w * 75) / 100;

@@ -1,5 +1,5 @@
 /**
- * The Shoelace components TinyOffice uses, imported one by one so the bundle
+ * The Shoelace components TinyLittleOffice uses, imported one by one so the bundle
  * only carries what the pages render. Theme tokens live in src/styles.css.
  */
 import '@shoelace-style/shoelace/dist/components/button/button.js';

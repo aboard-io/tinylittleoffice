@@ -20,10 +20,10 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(24);
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(35);
   // Grouped, with the kinds of drawing listed under Draw.
-  await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Documents', 'Visualization', 'Time management', 'Publish and sell']);
-  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Database', 'Sticky notes']);
+  await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Documents', 'Visualization', 'Time management', 'Publish and sell', 'Print and fold']);
+  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Database', 'Sticky notes', 'Booklet', 'Programme', 'Brochure', 'Comic', 'Planner', 'Certificate', 'Menu', 'Résumé', 'Name badges', 'Recipe cards']);
   await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
   await expect(drawer.locator('.to-theme')).toContainText('Theme');
   await shot(page, 'drawer');
@@ -196,7 +196,7 @@ test('links carry a format version, and links from before versions still open', 
   await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[YZR]/);
   // A link from a future version says so.
   await page.goto(page.url().replace('#/v2/', '#/v7/'));
-  await expect(page.locator('.to-panel-head')).toContainText('newer TinyOffice (v7)');
+  await expect(page.locator('.to-panel-head')).toContainText('newer TinyLittleOffice (v7)');
 });
 
 test('password and signature live in the privacy menu', async ({ page }) => {
@@ -276,7 +276,7 @@ test('download views wait for the password', async ({ page }) => {
 
 test('each app has a page of its own, with its own preview card', async ({ page, request }) => {
   const html = await (await request.get('/deck/')).text();
-  expect(html).toContain('<title>Deck · TinyOffice</title>');
+  expect(html).toContain('<title>Deck · TinyLittleOffice</title>');
   expect(html).toMatch(/<meta property="og:image" content="https:\/\/[^"]+\/og\/deck\.png"/);
   expect(html).toMatch(/<link rel="canonical" href="https:\/\/[^"]+\/deck\/"/);
   expect((await request.get('/og/deck.png')).status()).toBe(200);

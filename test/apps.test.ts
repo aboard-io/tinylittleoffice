@@ -138,12 +138,12 @@ test('drawing colours and text sizes', () => {
 });
 
 test('room for a link, service by service', () => {
-  const long = 'https://tinyoffice.exe.xyz/#/v1/sheet/' + 'A'.repeat(400);
-  assert.equal(blueskyCost(long), 'tinyoffice.exe.xyz'.length + 16);
+  const long = 'https://tinylittleoffice.com/#/v1/sheet/' + 'A'.repeat(400);
+  assert.equal(blueskyCost(long), 'tinylittleoffice.com'.length + 16);
   assert.equal(blueskyCost('https://a.io/'), 4);
   const rooms = Object.fromEntries(roomFor(long).map((r) => [r.target.id, r.left]));
   assert.equal(rooms.link, 2048 - long.length);
-  assert.equal(rooms.bluesky, 300 - 34);
+  assert.equal(rooms.bluesky, 300 - 36);
   assert.equal(rooms.mastodon, 477);
   assert.equal(rooms.x, 257);
   assert.ok(rooms.sms < 0);
@@ -159,10 +159,10 @@ test('embedding one document in another', async () => {
   const deck = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
   const drawing = makeRef('draw', 'r,2,1,12,6,1,Box\ne,20,1,6,6,0');
 
-  // Any TinyOffice link, from any host or version, with or without a download extension.
-  assert.equal(linkToRef(` https://tinyoffice.exe.xyz/deck/#/v2/deck/${deck}\n`), `deck/${deck}`);
+  // Any TinyLittleOffice link, from any host or version, with or without a download extension.
+  assert.equal(linkToRef(` https://tinylittleoffice.com/deck/#/v2/deck/${deck}\n`), `deck/${deck}`);
   assert.equal(linkToRef(`http://localhost:4173/#/deck.pptx/${deck}`), `deck/${deck}`);
-  assert.equal(linkToRef(`see https://tinyoffice.exe.xyz/#/v2/deck/${deck}`), null);
+  assert.equal(linkToRef(`see https://tinylittleoffice.com/#/v2/deck/${deck}`), null);
   assert.equal(linkToRef('https://example.com/#/v2/nope/abc'), null);
   assert.equal(linkToRef('https://example.com/'), null);
 
@@ -184,12 +184,12 @@ test('embedding one document in another', async () => {
   assert.equal(serializeDoc(blocks), text.replace('@@ nor this', '\\@@ nor this'));
 
   // Exports carry a working link and a picture of the document.
-  const ctx = { created: null, base: 'https://tinyoffice.exe.xyz/' };
+  const ctx = { created: null, base: 'https://tinylittleoffice.com/' };
   const html = docToHtml(`# Plan\n@@deck/${deck}\n@@${drawing}`, ctx);
-  assert.ok(html.includes(`<a href="https://tinyoffice.exe.xyz/#/v2/deck/${deck}">Spring launch</a> <small>Deck</small>`));
+  assert.ok(html.includes(`<a href="https://tinylittleoffice.com/#/v2/deck/${deck}">Spring launch</a> <small>Deck</small>`));
   assert.ok(html.includes('>Spring launch</text>') && html.includes('>Box</text>'));
   const rtf = docToRtf(`@@deck/${deck}`, ctx);
-  assert.ok(rtf.includes(`HYPERLINK "https://tinyoffice.exe.xyz/#/v2/deck/${deck}"`));
+  assert.ok(rtf.includes(`HYPERLINK "https://tinylittleoffice.com/#/v2/deck/${deck}"`));
   assert.ok(rtf.includes('Spring launch') && rtf.includes('Agenda'));
 });
 
@@ -473,35 +473,112 @@ test('contract: two people sign the same words', async () => {
   assert.ok(appOf('contract')!.document!(doc, { created: null }).includes('Signed by Paul and Sam'));
 });
 
-test('zine: eight pages laid out so they fold into order', async () => {
-  const { parseZine, serializeZine, sheets, zinePage, pageSize } = await import('../src/apps/zine.def.ts');
-  const body = Array.from({ length: 8 }, (_, i) => `P${i + 1}`).join('\n\n');
-  const z = parseZine(body);
+test('paper that folds: pages land where folding needs them', async () => {
+  const { parseFold, serializeFold, foldSheets, fitted, formatOf } = await import('../src/lib/fold.ts');
+  const { ZINE } = await import('../src/apps/zine.def.ts');
+  const numbered = (n: number) => Array.from({ length: n }, (_, i) => `P${i + 1}`).join('\n\n');
+  // Where each page lands, reading a sheet left to right, top row first.
+  const order = (svg: string) => [...svg.matchAll(/>P(\d+)<\/text>/g)].map((m) => +m[1]);
+  const body = numbered(8);
+  const z = parseFold(body, ZINE);
   assert.equal(z.pages.length, 8);
-  assert.equal(serializeZine(z), body);
-  assert.equal(parseZine('').pages.length, 8);
-  assert.equal(serializeZine(parseZine('')), '');
-  assert.equal(serializeZine({ ...parseZine('A'), two: true }), '!two\n\nA');
-  assert.equal(parseZine('!two\n\nA').two, true);
-  // Where each page lands, reading the sheet left to right, top row first.
-  const order = (svg: string) => [...svg.matchAll(/>P(\d)<\/text>/g)].map((m) => +m[1]);
-  const [one] = sheets(z);
+  assert.equal(serializeFold(z, ZINE), body);
+  assert.equal(parseFold('', ZINE).pages.length, 8);
+  assert.equal(serializeFold(parseFold('', ZINE), ZINE), '');
+  assert.equal(serializeFold({ ...parseFold('A', ZINE), two: true }, ZINE), '!two\n\nA');
+  assert.equal(parseFold('!two\n\nA', ZINE).two, true);
+  const [one] = foldSheets(z, ZINE);
   assert.deepEqual([one.w, one.h], [1056, 816]);
   assert.deepEqual(order(one.svg), [5, 4, 3, 2, 6, 7, 8, 1]);
   assert.equal(one.svg.match(/rotate\(180/g)!.length, 4);
-  const sides = sheets({ ...z, two: true });
+  const sides = foldSheets({ ...z, two: true }, ZINE);
   assert.deepEqual(sides.map((s) => [s.w, s.h]), [[816, 1056], [816, 1056]]);
   // Back to back: 2 is behind 1, 7 behind 8, 4 behind 3, 5 behind 6.
   assert.deepEqual(sides.map((s) => order(s.svg)), [[8, 1, 6, 3], [2, 7, 4, 5]]);
   // Everything stays on its page, however much there is.
   const long = { icon: 'star', title: 'A long headline that runs on', bullets: Array(12).fill('Words and more words to fill the page right up.') };
-  for (const two of [false, true]) {
-    const p = zinePage(long, 2, two);
-    const ys = [...p.svg.matchAll(/<text x="[\d.]+" y="([\d.]+)"/g)].map((m) => +m[1]);
-    assert.ok(Math.max(...ys) <= pageSize(two).h, `fits ${two}`);
+  for (const [w, h] of [[264, 408], [408, 528], [528, 816]]) {
+    const ys = [...fitted(long, w, h).svg.matchAll(/<text x="[\d.]+" y="([\d.]+)"/g)].map((m) => +m[1]);
+    assert.ok(Math.max(...ys) <= h, `fits ${w}`);
   }
   // Inside another document it is read a page per click.
   assert.equal(appOf('zine')!.steps!(body), 7);
   assert.ok(appOf('zine')!.view(body, { step: 3, embed: true })[0].svg.includes('>P4</text>'));
   assert.ok(appOf('zine')!.document!(body, { created: null }).includes('aria-label="Back cover"'));
+
+  // A booklet: sheets nested, the last page beside the first. It grows by fours.
+  const booklet = formatOf('booklet')!;
+  assert.deepEqual(foldSheets(parseFold(numbered(8), booklet), booklet).map((s) => order(s.svg)), [[8, 1], [2, 7], [6, 3], [4, 5]]);
+  assert.equal(parseFold(numbered(9), booklet).pages.length, 12);
+  assert.equal(parseFold('!16\n\nA', booklet).pages.length, 16);
+  assert.equal(serializeFold(parseFold('!16\n\nA', booklet), booklet), '!16\n\nA');
+  assert.equal(parseFold(numbered(40), booklet).pages.length, 20);
+  assert.deepEqual(appOf('booklet')!.view(numbered(8)).map((p) => [p.w, p.h]), Array(4).fill([1056, 816]));
+  // A programme is one such sheet; a brochure folds in three, the front outermost.
+  const programme = formatOf('programme')!;
+  assert.deepEqual(foldSheets(parseFold(numbered(4), programme), programme).map((s) => order(s.svg)), [[4, 1], [2, 3]]);
+  const brochure = formatOf('brochure')!;
+  const tri = foldSheets(parseFold(numbered(6), brochure), brochure);
+  assert.deepEqual(tri.map((s) => order(s.svg)), [[5, 6, 1], [2, 3, 4]]);
+  assert.deepEqual([tri[0].w, tri[0].h], [1056, 816]);
+});
+
+test('things to print: text in, letter sheets out', async () => {
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const sizes: Record<string, number[]> = { poster: [816, 1056], certificate: [1056, 816], menu: [816, 1056], resume: [816, 1056], badges: [816, 1056], recipes: [816, 1056] };
+  for (const [id, size] of Object.entries(sizes)) {
+    const spec = specOf(id)!;
+    for (const text of [spec.example, '', 'x']) {
+      const sheets = spec.sheets!(text);
+      assert.ok(sheets.length >= 1 && sheets.every((p) => p.w === size[0] && p.h === size[1]), `${id}: letter paper`);
+      assert.ok(!sheets.some((p) => /NaN|undefined|Infinity/.test(p.svg)), `${id} is clean`);
+    }
+    assert.ok(appOf(id)!.title(spec.example).length > 0, `${id} has a title`);
+  }
+  const svg = (id: string, text?: string) => specOf(id)!.sheets!(text ?? specOf(id)!.example).map((p) => p.svg).join('');
+  // A poster's words are as big as the page allows: a short one is very big.
+  const px = (s: string) => Math.max(...[...s.matchAll(/font-size="([\d.]+)"/g)].map((m) => +m[1]));
+  assert.ok(px(svg('poster', 'SALE')) > 200, String(px(svg('poster', 'SALE'))));
+  assert.ok(px(svg('poster')) < px(svg('poster', 'SALE')));
+  // Six badges to a sheet; two recipe cards.
+  assert.equal(specOf('badges')!.sheets!(Array(7).fill('Ada | Eng').join('\n')).length, 2);
+  assert.equal(svg('badges').match(/stroke-dasharray="6 5"/g)!.length, 4);
+  assert.equal(specOf('recipes')!.sheets!('A\nx\n\nB\ny\n\nC\nz').length, 2);
+  // The menu: dishes and their prices; a long one is shrunk onto the page rather than run off it.
+  assert.ok(svg('menu').includes('>Flat white</text>') && svg('menu').includes('>4.20</text>') && svg('menu').includes('>COFFEE</text>'));
+  const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
+  assert.ok(+long[2] <= 1056 - 2 * 84 + 1 && +long[1] < 624);
+  assert.ok(svg('resume').includes('Ada Lovelace') && svg('resume').includes('Experience'));
+  // The planner: a zine whose pages are a cover and seven ruled days. Written plainly, it reads as one.
+  const { readPlanner } = await import('../src/apps/planner.def.ts');
+  const week = readPlanner('My week\nMonday: Gym; Call Sam\nTuesday: Dentist 3pm');
+  assert.equal(week, 'My week\n\nMonday\nGym\nCall Sam\n\nTuesday\nDentist 3pm');
+  assert.equal(readPlanner(week), week);
+  const planner = appOf('planner')!.view(week)[0];
+  assert.deepEqual([planner.w, planner.h], [1056, 816]);
+  assert.ok(['My week', 'Monday', 'Call Sam', 'Dentist 3pm', 'Thursday', 'Sunday'].every((t) => planner.svg.includes(`>${t}</text>`)));
+  assert.equal(planner.svg.match(/rotate\(180/g)!.length, 4);
+  // The comic: a zine whose pages are panels with bubbles and captions. Written plainly, it reads as one.
+  const { readComic } = await import('../src/apps/comic.def.ts');
+  const plain = '# Biscuit\n\n:dog Walk? | Monday, noon.\n:footprints WALK! | Sam arrives.\n\nLater\n:moon Zzz';
+  const body = readComic(plain);
+  assert.equal(body, 'Biscuit\n\n \n:dog Walk? | Monday, noon.\n:footprints WALK! | Sam arrives.\n\nLater\n:moon Zzz');
+  assert.equal(readComic(body), body);
+  const comic = appOf('comic')!.view(body)[0];
+  assert.deepEqual([comic.w, comic.h], [1056, 816]);
+  assert.ok(['Biscuit', 'WALK!', 'Sam arrives.', 'Later', 'Zzz'].every((t) => comic.svg.includes(`>${t}</text>`)));
+  assert.equal(comic.svg.match(/stroke-width="1.5"\/>/g)!.length, 3);
+  assert.equal(appOf('comic')!.title(body), 'Biscuit');
+});
+
+test('a document on a zine page has the page, at a size to read', async () => {
+  const { fitted } = await import('../src/lib/fold.ts');
+  const { makeRef } = await import('../src/kit/embed.ts');
+  const p = fitted({ icon: '', title: 'Ignored', bullets: ['ignored'], sub: makeRef('todo', '- Book flights\nx Renew the passport before it runs out in the spring\n- Pack') }, 264, 408);
+  assert.ok(p.svg.includes('Book flights') && !p.svg.includes('Ignored'));
+  // The list is laid out narrow and fills the width: its type prints at about 11px, not 6.
+  const [, width, vw] = /<svg x="20" y="20" width="([\d.]+)" height="[\d.]+" viewBox="0 0 (\d+) /.exec(p.svg)!;
+  assert.ok((17 * +width) / +vw > 10, `${width}/${vw}`);
+  // Long tasks wrap rather than being cut short.
+  assert.ok(p.svg.includes('spring'));
 });

@@ -1,5 +1,5 @@
 /** Todo: what the shell knows about task lists. Format: lib/todomodel.ts. */
-import { defineApp, utf8, xml, text, clip, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
+import { defineApp, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
 import { parseTodos, serializeTodos } from '../lib/todomodel.ts';
 import { EPOCH_DAY, isoDay } from '../lib/calmodel.ts';
 import { ymdToDay } from '../lib/tz.ts';
@@ -27,24 +27,28 @@ export function readTodos(text: string): string {
   );
 }
 
-/** The list as a page; `upTo` tasks of it while it builds. */
-function page(body: string, upTo = Infinity): Page {
+/** The list as a page `w` wide; `upTo` tasks of it while it builds. Long tasks wrap. */
+function page(body: string, upTo = Infinity, w = 720): Page {
   const all = parseTodos(body);
-  const tasks = all.slice(0, upTo);
-  const w = 720;
-  let y = 28;
+  const narrow = w < 500;
+  const left = narrow ? 8 : 40;
+  let y = narrow ? 8 : 28;
   let svg = '';
-  for (const t of tasks) {
-    svg += rect(40, y, 20, 20, t.done ? ACCENT : 'none', `rx="4" stroke="${t.done ? ACCENT : FAINT}" stroke-width="1.5"`);
-    if (t.done) svg += `<path d="M45 ${y + 10}l4 4 7-8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  all.forEach((t, i) => {
     const due = t.due !== null ? isoDay(t.due) : '';
-    svg += text(76, y + 16, [{ t: (t.star ? '★ ' : '') + clip(t.text, w - 250, 17, t.star), b: t.star, s: t.done }], { px: 17, fill: t.done ? MUTED : undefined });
-    if (due) svg += text(w - 40, y + 16, due, { px: 14, fill: MUTED, anchor: 'end' });
-    y += 36;
-  }
+    // On a narrow page the date goes under the task rather than beside it.
+    const lines = wrapText((t.star ? '★ ' : '') + t.text, w - left * 2 - 36 - (due && !narrow ? 110 : 0), 17, t.star);
+    const top = y;
+    y += Math.max(1, lines.length) * 24 + (due && narrow ? 20 : 0) + 12;
+    if (i >= upTo) return;
+    svg += rect(left, top, 20, 20, t.done ? ACCENT : 'none', `rx="4" stroke="${t.done ? ACCENT : FAINT}" stroke-width="1.5"`);
+    if (t.done) svg += `<path d="M${left + 5} ${top + 10}l4 4 7-8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    lines.forEach((l, n) => (svg += text(left + 36, top + 16 + n * 24, [{ t: l, b: t.star, s: t.done }], { px: 17, fill: t.done ? MUTED : undefined })));
+    if (due) svg += narrow ? text(left + 36, top + 14 + lines.length * 24, due, { px: 13, fill: MUTED }) : text(w - 40, top + 16, due, { px: 14, fill: MUTED, anchor: 'end' });
+  });
   if (!all.length) svg = text(w / 2, 70, 'Nothing to do', { px: 16, fill: MUTED, anchor: 'middle' });
   // (The page is as tall as the whole list from the start, so nothing moves as it fills in.)
-  return { w, h: Math.max(120, 28 + all.length * 36 + 20), svg };
+  return { w, h: Math.max(narrow ? 60 : 120, y + 8), svg };
 }
 
 export default defineApp({
@@ -55,7 +59,7 @@ export default defineApp({
   blurb: 'Tasks to tick off, with stars and due dates.',
   title: () => '',
   outline: (body) => parseTodos(body).map((t) => (t.done ? '☑  ' : '☐  ') + t.text),
-  view: (body, opts = {}) => [page(body, opts.step)],
+  view: (body, opts = {}) => [page(body, opts.step, opts.w)],
   // On a slide, tasks appear one at a time.
   steps: (body) => parseTodos(body).length,
   read: readTodos,

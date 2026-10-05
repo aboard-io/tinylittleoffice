@@ -104,7 +104,7 @@ const M = 56;
 const PAGE_H = 1018; // the shape of a sheet of paper
 
 /** The text laid out on pages. A text that fits on one page is exactly as tall as it needs to be. */
-function pages(body: string): Page[] {
+export function pages(body: string): Page[] {
   const bits: { h: number; svg: (y: number) => string }[] = [];
   const counts: number[] = [];
   for (const blk of parseDoc(body)) {

@@ -1,5 +1,5 @@
 /**
- * The kit: what every TinyOffice app is made from.
+ * The kit: what every TinyLittleOffice app is made from.
  *
  * An app is a definition (this file's AppDef: its name, how to read a title
  * out of a document, how to draw it, what it can be saved as) plus an editor
@@ -21,6 +21,8 @@ export interface ViewOpts {
   step?: number;
   /** Drawn inside another document: the gist rather than the whole thing. */
   embed?: boolean;
+  /** The width to lay out for, when it will sit somewhere narrow (a zine page). Apps made of lines of text reflow to it; pictures ignore it. */
+  w?: number;
 }
 
 export interface DownloadContext {
@@ -270,9 +272,9 @@ export function docHtml({ def, body, title: given }: DocRef, ctx: DownloadContex
       .join('\n')}\n${outline.length ? `<ul>\n${outline.map((l) => `<li>${xml(l)}</li>`).join('\n')}\n</ul>` : ''}`;
   const meta = [
     ['name', 'description', about],
-    ['name', 'generator', 'TinyOffice'],
+    ['name', 'generator', 'TinyLittleOffice'],
     ['property', 'og:type', 'article'],
-    ['property', 'og:site_name', 'TinyOffice'],
+    ['property', 'og:site_name', 'TinyLittleOffice'],
     ['property', 'og:title', title],
     ['property', 'og:description', about],
     ...(base ? [['property', 'og:image', `${base}og/${def.id}.png`], ['property', 'og:image:width', '1200'], ['property', 'og:image:height', '630']] : []),
@@ -288,7 +290,7 @@ export function docHtml({ def, body, title: given }: DocRef, ctx: DownloadContex
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${xml(title)}</title>
-${meta}${link ? `\n<link rel="alternate" href="${xml(link)}" title="Open in TinyOffice">` : ''}
+${meta}${link ? `\n<link rel="alternate" href="${xml(link)}" title="Open in TinyLittleOffice">` : ''}
 <style>
 body{font:17px/1.6 ${FONT};color:${INK};max-width:46em;margin:2em auto;padding:0 1em}
 figure{margin:1em 0}figure svg,figure img{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}
@@ -299,7 +301,7 @@ figcaption small,footer{color:${MUTED};font-size:.85em}ul.check{list-style:none;
 <body>
 <main>
 ${inner}
-</main>${link ? `\n<footer><p><a href="${xml(link)}">Open this ${xml(def.name.toLowerCase())} in TinyOffice</a></p></footer>` : ''}
+</main>${link ? `\n<footer><p><a href="${xml(link)}">Open this ${xml(def.name.toLowerCase())} in TinyLittleOffice</a></p></footer>` : ''}
 </body>
 </html>
 `;

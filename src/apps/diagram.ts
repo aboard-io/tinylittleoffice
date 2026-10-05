@@ -3,7 +3,7 @@
  * on the other. What the outline means is the app's own layout (see
  * lib/diagram.ts); this only edits text and shows what comes of it.
  */
-import { DocElement, defineElement, html, nothing, unsafeSVG, tool, appOf, makeRef, type TemplateResult } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, unsafeSVG, tool, appOf, makeRef, pageSvg, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
@@ -96,16 +96,18 @@ export class DiagramElement extends DocElement<string> {
         <span class="to-hint diagram-hint">${spec.hint}</span>
         <span class="to-spacer"></span>
         ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
-        ${d ? tool('Icon', 'smile', () => this.addIcon(), { text: true }) : nothing}
+        ${d || spec.sheets ? tool('Icon', 'smile', () => this.addIcon(), { text: true }) : nothing}
         ${inside || !d?.shapes.length ? nothing : tool('Open in Draw', 'draw', () => this.toDraw(), { text: true })}
       </div>
       ${this.extra()}
-      <div class="diagram ${spec.page ? 'page' : ''}">
-        <textarea aria-label="${name}, as text" spellcheck=${spec.page ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>
+      <div class="diagram ${spec.page ? 'page' : spec.sheets ? 'print' : ''}">
+        <textarea aria-label="${name}, as text" spellcheck=${spec.page || spec.sheets ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>
         <div class="pic">
           ${spec.page
             ? // The page as it will be, in a frame of its own: its scripts run, but it cannot reach this one.
               html`<iframe title="${name}, as a page" sandbox="allow-scripts allow-popups allow-forms" srcdoc=${text.trim() ? spec.page(this.doc) : spec.page(spec.example)} class=${text.trim() ? '' : 'sample'}></iframe>`
+            : spec.sheets
+              ? (text.trim() ? spec.sheets(this.doc) : spec.sheets(spec.example)).map((p, i) => html`<div class="sheet ${text.trim() ? '' : 'sample'}">${unsafeSVG(pageSvg(p, `role="img" aria-label="${name}, sheet ${i + 1}"`))}</div>`)
             : d!.shapes.length
               ? html`<svg viewBox="0 0 ${d!.w} ${d!.h}" role="img" aria-label=${name} style="max-width:${d!.w * 1.4}px"><defs>${unsafeSVG(arrowDefs())}</defs>${unsafeSVG(d!.shapes.map((s) => shapeSvg(s, d!.shapes)).join(''))}</svg>`
               : html`<p class="to-empty">Write on the left and it is drawn here.</p>`}

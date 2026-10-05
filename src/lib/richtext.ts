@@ -4,7 +4,7 @@
  * Blocks: one per line.  Prefixes:  "# " h1, "## " h2, "- " bullet, "+ " numbered.
  * A list item one level in repeats its marker ("-- ", "++ "), up to MAX_DEPTH levels.
  * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~ ; "\" escapes.
- * Embed: a line "@@<app>/<payload>" is another TinyOffice document, shown as
+ * Embed: a line "@@<app>/<payload>" is another TinyLittleOffice document, shown as
  * a preview that links to it (see lib/embed.ts).
  */
 export interface Run {

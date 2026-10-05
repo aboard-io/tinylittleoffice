@@ -7,9 +7,9 @@ test('a document has a title of its own', async ({ page }) => {
   const title = page.getByRole('textbox', { name: 'Title' });
   // Until it is given one, it says what it is.
   await expect(title).toHaveAttribute('placeholder', 'Untitled Sheet');
-  await expect(page).toHaveTitle('Untitled Sheet · TinyOffice');
+  await expect(page).toHaveTitle('Untitled Sheet · TinyLittleOffice');
   await title.fill('Q3 budget');
-  await expect(page).toHaveTitle('Q3 budget · TinyOffice');
+  await expect(page).toHaveTitle('Q3 budget · TinyLittleOffice');
   await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[YZR]/);
   await reopen(page);
   await expect(title).toHaveValue('Q3 budget');
@@ -21,15 +21,15 @@ test('a document has a title of its own', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
   await expect(page.getByRole('textbox', { name: 'Title' })).toHaveAttribute('placeholder', 'Spring launch');
   await page.getByRole('textbox', { name: 'Title' }).fill('Board deck');
-  await expect(page).toHaveTitle('Board deck · TinyOffice');
+  await expect(page).toHaveTitle('Board deck · TinyLittleOffice');
 });
 
 test('every example in the skill opens as written', async ({ page }) => {
   test.slow();
   await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') }));
   const skill = readFileSync(new URL('../skill/tinyoffice/SKILL.md', import.meta.url), 'utf8');
-  const links = [...skill.matchAll(/^https:\/\/tinyoffice\.exe\.xyz\/(\w+)\/#(\S+)$/gm)];
-  expect(links.length).toBeGreaterThanOrEqual(20);
+  const links = [...skill.matchAll(/^\s*https:\/\/tinylittleoffice\.com\/(\w+)\/#(\S+)$/gm)];
+  expect(links.length).toBeGreaterThanOrEqual(25);
   for (const [, app, params] of links) {
     await page.goto('about:blank');
     await page.goto(`/${app}/#${params}`);
@@ -77,7 +77,7 @@ test('every example in the skill opens as written', async ({ page }) => {
   await expect(page.locator('.to-launcher').first()).toBeVisible();
   // The guide itself is served where programs look for it.
   const guide = await (await page.request.get('/llms.txt')).text();
-  expect(guide).toContain('# TinyOffice links');
+  expect(guide).toContain('# TinyLittleOffice links');
   expect((await page.request.get('/tinyoffice.js')).status()).toBe(200);
 });
 
@@ -95,7 +95,7 @@ test('a document can be shown inside another page', async ({ page }) => {
   const frame = page.frameLocator('iframe');
   await expect(frame.locator('.to-embedded .pic svg')).toContainText('Launch plan');
   await expect(frame.locator('.to-header')).toHaveCount(0);
-  await expect(frame.getByRole('link', { name: 'Open in TinyOffice' })).toHaveAttribute('target', '_blank');
+  await expect(frame.getByRole('link', { name: 'Open in TinyLittleOffice' })).toHaveAttribute('target', '_blank');
   // More than one page: step through.
   await frame.getByRole('button', { name: 'Next page' }).click();
   await expect(frame.locator('.to-embedded .pic svg')).toContainText('Goals');
@@ -415,7 +415,7 @@ test('page apps: an FAQ, a site, a store with a cart, an invoice', async ({ page
   await page.goto('/#/invoice');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await expect(page.frameLocator('to-invoice iframe').locator('tfoot tr').last()).toContainText('$5,486.40');
-  await expect(page).toHaveTitle('Invoice 0042 · TinyOffice');
+  await expect(page).toHaveTitle('Invoice 0042 · TinyLittleOffice');
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+p')]);
   expect(pdf.suggestedFilename()).toBe('invoice-0042.pdf');
   expect(readFileSync(await pdf.path()).subarray(0, 5).toString()).toBe('%PDF-');
@@ -503,7 +503,7 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   await expect(page.locator('.zine-page > svg')).toContainText('Fresh bread');
   await reopen(page);
   await expect(page.locator('.zine-thumb').first()).toContainText('Small Joys');
-  await expect(page).toHaveTitle('Small Joys · TinyOffice');
+  await expect(page).toHaveTitle('Small Joys · TinyLittleOffice');
   await shot(page, 'zine');
 
   // One-sided: one sheet, eight pages, the top row upside down.
@@ -545,4 +545,113 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   await expect(page.locator('#where')).toHaveText('2 / 8');
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+});
+
+test('paper that folds: a booklet grows, a programme and a brochure print in order', async ({ page }) => {
+  await page.goto('/#/booklet');
+  await expect(page.locator('.zine-thumb')).toHaveCount(8);
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Field Notes');
+  await page.getByRole('button', { name: 'Four more pages' }).click();
+  await expect(page.locator('.zine-thumb')).toHaveCount(12);
+  await page.getByRole('button', { name: 'Page 11' }).click();
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Nearly the end');
+  await reopen(page);
+  await expect(page.locator('.zine-thumb')).toHaveCount(12);
+  // Pages with something on them are not taken away.
+  await expect(page.getByRole('button', { name: 'Four fewer pages' })).toBeDisabled();
+  await page.getByRole('button', { name: 'See the sheet to print' }).click();
+  // Three sheets, both sides of each.
+  await expect(page.locator('.zine-sheet')).toHaveCount(6);
+  await expect(page.locator('.zine-sheet').first()).toContainText('Field Notes');
+  await shot(page, 'booklet');
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^PDF/ }).click()]);
+  const pdf = readFileSync(await file.path()).toString('latin1');
+  expect(pdf).toContain('/MediaBox [0 0 792 612]');
+  expect(pdf.match(/\/Type \/Page\b/g)!.length).toBe(6);
+
+  await page.goto('/#/programme');
+  await expect(page.locator('.zine-thumb')).toHaveCount(4);
+  for (const name of ['Front', 'Inside left', 'Inside right', 'Back']) await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
+  await page.goto('/#/brochure');
+  await expect(page.locator('.zine-thumb')).toHaveCount(6);
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Visit the quay');
+  await page.getByRole('button', { name: 'See the sheet to print' }).click();
+  await expect(page.locator('.zine-sheet')).toHaveCount(2);
+  await shot(page, 'brochure');
+});
+
+test('things to print: write a few lines, get the sheets', async ({ page }) => {
+  for (const [app, name, has] of [
+    ['poster', 'Poster', 'Friday 12 March, 8pm'],
+    ['certificate', 'Certificate', 'Sam Rivera'],
+    ['menu', 'Menu', 'Flat white'],
+    ['resume', 'Résumé', 'Ada Lovelace'],
+    ['badges', 'Name badges', 'Grace Hopper'],
+    ['recipes', 'Recipe cards', 'Cardamom buns'],
+  ] as const) {
+    await page.goto(`/#/${app}`);
+    await page.getByRole('button', { name: 'Start from an example' }).click();
+    await expect(page.getByRole('img', { name: `${name}, sheet 1` }), app).toContainText(has);
+    await shot(page, app);
+  }
+  // What is typed is what prints: letter paper, at actual size.
+  await page.goto('/#/poster');
+  await page.getByRole('textbox', { name: 'Poster, as text' }).fill('Yard sale\nSaturday 9am');
+  await expect(page.getByRole('img', { name: 'Poster, sheet 1' })).toContainText('Saturday 9am');
+  await expect(page).toHaveTitle('Yard sale · TinyLittleOffice');
+  await reopen(page);
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^PDF/ }).click()]);
+  expect(file.suggestedFilename()).toBe('yard-sale.pdf');
+  expect(readFileSync(await file.path()).toString('latin1')).toContain('/MediaBox [0 0 612 792]');
+});
+
+test('comic: pages like a zine, each built from panels', async ({ page }) => {
+  await page.goto('/#/comic');
+  await expect(page.locator('.zine-thumb')).toHaveCount(8);
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Biscuit Goes Out');
+  await page.getByRole('button', { name: 'Page 2' }).click();
+  // A panel: a picture, what is said, a caption.
+  await page.getByRole('button', { name: 'Add a panel' }).click();
+  await page.getByRole('textbox', { name: 'What is said, panel 1' }).fill('Walk?');
+  await page.getByRole('textbox', { name: 'Caption, panel 1' }).fill('Monday, noon.');
+  await page.getByRole('button', { name: 'Picture, panel 1' }).click();
+  await page.locator('sl-dialog.to-icons sl-input input').fill('dog');
+  await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'dog', exact: true }).click();
+  await page.getByRole('button', { name: 'Add a panel' }).click();
+  await page.getByRole('textbox', { name: 'What is said, panel 2' }).fill('WALK!');
+  const drawn = page.locator('.zine-page > svg');
+  await expect(drawn).toContainText('Walk?');
+  await expect(drawn).toContainText('Monday, noon.');
+  await expect(drawn.locator('rect[stroke-width="1.5"]')).toHaveCount(2);
+  await reopen(page);
+  await expect(page.locator('.zine-thumb').first()).toContainText('Biscuit');
+  await page.getByRole('button', { name: 'Page 2' }).click();
+  await expect(page.getByRole('textbox', { name: 'What is said, panel 2' })).toHaveValue('WALK!');
+  await page.getByRole('button', { name: 'Remove panel 1' }).click();
+  await expect(drawn.locator('rect[stroke-width="1.5"]')).toHaveCount(1);
+  await expect(page.getByRole('textbox', { name: 'What is said, panel 1' })).toHaveValue('WALK!');
+  await shot(page, 'comic');
+  await page.getByRole('button', { name: 'See the sheet to print' }).click();
+  await expect(page.locator('.zine-sheet')).toHaveCount(1);
+  await expect(page.locator('.zine-sheet')).toContainText('WALK!');
+});
+
+test('planner: a cover and seven days, filled in like a zine', async ({ page }) => {
+  await page.goto('/#/planner');
+  await expect(page.locator('.zine-thumb')).toHaveCount(8);
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Week of 1 March');
+  await page.getByRole('button', { name: 'Tuesday' }).click();
+  await page.getByRole('textbox', { name: 'Words' }).fill('Dentist 3pm\nCall Sam');
+  const drawn = page.locator('.zine-page > svg');
+  // The day names itself, and is ruled for writing on.
+  await expect(drawn).toContainText('Tuesday');
+  await expect(drawn).toContainText('Dentist 3pm');
+  await expect(drawn.locator('line')).toHaveCount(13);
+  await reopen(page);
+  await page.getByRole('button', { name: 'See the sheet to print' }).click();
+  await expect(page.locator('.zine-sheet')).toContainText('Dentist 3pm');
+  await expect(page.locator('.zine-sheet')).toContainText('Sunday');
+  await shot(page, 'planner');
 });

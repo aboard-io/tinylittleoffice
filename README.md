@@ -1,4 +1,4 @@
-# TinyOffice
+# TinyLittleOffice
 
 A tiny office suite that lives entirely in the URL.
 
@@ -27,6 +27,9 @@ you have copied the file.
 | Invoice | Who, what, how much; sums done, PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
 | Zine | Eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
+| Booklet, Programme, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), one sheet folded in half, a trifold. |
+| Comic, Planner | Text in, a folded mini comic or a ruled week out. |
+| Poster, Certificate, Menu, Résumé, Name badges, Recipe cards | A few lines in, letter sheets out, fitted to the page. |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
@@ -125,7 +128,7 @@ the app's definition (see "Adding an app"); nothing is sent anywhere.
 
 A document lives in the fragment (the part after `#`), which browsers never
 send to a server. That is the privacy promise, and it is also why every
-TinyOffice link previews as the same card on social sites: their crawlers
+TinyLittleOffice link previews as the same card on social sites: their crawlers
 fetch the page without the fragment and do not run JavaScript, so the only
 tags they see are the static ones in `index.html`. Without a server that is
 handed the document, nothing can change that.
@@ -177,7 +180,7 @@ Every format is plain text, chosen so deflate has something to chew on.
 
 ## Styling: one stylesheet
 
-Every TinyOffice component renders into light DOM, so there is no CSS hidden
+Every TinyLittleOffice component renders into light DOM, so there is no CSS hidden
 in shadow roots. The whole look lives in `src/styles.css`:
 
 1. **Tokens.** Shoelace's design tokens are overridden at the top of the file
@@ -240,7 +243,7 @@ about the password ever leaves the browser.
 A document can be written as ordinary parameters, by hand or by a program:
 
 ```
-https://tinyoffice.exe.xyz/sheet/#title=Sales&doc=!bar%0AQuarter%09Sales%0AQ1%09120%0AQ2%09180
+https://tinylittleoffice.com/sheet/#title=Sales&doc=!bar%0AQuarter%09Sales%0AQ1%09120%0AQ2%09180
 ```
 
 `doc` is the document as plain text in the app's format, `title` its name,
@@ -327,7 +330,7 @@ app a sketch in `scripts/make-icons.mjs`.
 
 A text or a slide can hold another document. It is stored as
 `@@<app>/<payload>` (the part of a link that is the document) and drawn by
-that app's `view`. In Write, paste a TinyOffice link or use Insert; on a
+that app's `view`. In Write, paste a TinyLittleOffice link or use Insert; on a
 slide, use Insert. Either way it is one thing: Edit opens its own editor in a
 dialog, Remove (or Backspace) takes it away. A sheet that asks for a chart is
 shown as the chart.

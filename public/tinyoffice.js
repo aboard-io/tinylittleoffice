@@ -1,6 +1,6 @@
-// TinyOffice links from JavaScript. A document is a URL; this writes one.
+// TinyLittleOffice links from JavaScript. A document is a URL; this writes one.
 //
-//   import { link } from 'https://tinyoffice.exe.xyz/tinyoffice.js';
+//   import { link } from 'https://tinylittleoffice.com/tinyoffice.js';
 //   link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120' });
 //
 // app    which app: sheet, write, deck, draw, cal, todo, board, gantt, trip,

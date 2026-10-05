@@ -85,7 +85,7 @@ export class ToTrip extends LitElement {
     if (!stop) return this.fit();
     map.flyTo([stop.lat, stop.lon], 12, { duration: 1.2 });
     const p = document.createElement('div');
-    p.append(Object.assign(document.createElement('b'), { textContent: `${step}. ${stop.name || 'Stop'}` }));
+    p.append(Object.assign(document.createElement('b'), { textContent: `${step}. ${stop.name}`.trimEnd() }));
     if (stop.note) p.append(document.createElement('br'), stop.note);
     L.popup({ closeButton: false, offset: [0, -10] }).setLatLng([stop.lat, stop.lon]).setContent(p).openOn(map);
   }
@@ -135,7 +135,7 @@ export class ToTrip extends LitElement {
     this.stops.forEach((s, i) => {
       const marker = L.marker(pts[i], {
         draggable: !this.present,
-        title: s.name || `Stop ${i + 1}`,
+        title: s.name || String(i + 1),
         icon: L.divIcon({ className: `trip-pin ${i === this.cur ? 'sel' : ''}`, html: String(i + 1), iconSize: [28, 28], iconAnchor: [14, 14] }),
       });
       marker.on('click', () => {
@@ -228,7 +228,7 @@ export class ToTrip extends LitElement {
             (s, i) => html`<li class=${i === this.cur ? 'sel' : ''} @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onStopKey(e, i)}>
               ${i > 0 ? html`<span class="leg">${this.units === 'h' ? '≈ ' : ''}${formatLeg(distanceKm(this.stops[i - 1], s), this.units)}${this.units === 'h' ? ' drive' : ''}</span>` : nothing}
               <span class="n">${i + 1}</span>
-              <input class="name" aria-label="Name of stop ${i + 1}" placeholder="Stop ${i + 1}" .value=${s.name} @input=${(e: Event) => this.patch(i, { name: (e.target as HTMLInputElement).value })} />
+              <input class="name" aria-label="Name of stop ${i + 1}" placeholder="Name" .value=${s.name} @input=${(e: Event) => this.patch(i, { name: (e.target as HTMLInputElement).value })} />
               <div class="acts">
                 <button aria-label="Move stop ${i + 1} earlier" ?disabled=${i === 0} @click=${() => this.move(i, -1)}>${icon(UI.up, 14)}</button>
                 <button aria-label="Move stop ${i + 1} later" ?disabled=${i === n - 1} @click=${() => this.move(i, 1)}>${icon(UI.down, 14)}</button>

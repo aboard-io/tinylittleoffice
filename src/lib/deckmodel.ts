@@ -6,7 +6,7 @@
  * The icon line may carry a layout after a second colon: ":rocket:t" is a
  * title slide, "::2" two columns of bullets, ":star:i" bullets beside one big
  * icon. Among the bullets, a line "|" starts the right-hand column and a
- * line "@@<app>/<payload>" is another TinyOffice document shown on the
+ * line "@@<app>/<payload>" is another TinyLittleOffice document shown on the
  * slide. A deck may open with a chunk "!<transition>" ("!cut", "!slide",
  * "!zoom"; a fade without one): how one slide gives way to the next. A colour letter may follow
  * it after a colon ("!fade:r", "!:g"): the colour of every icon in the deck.

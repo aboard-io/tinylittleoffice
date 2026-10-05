@@ -30,7 +30,7 @@ function icsFold(line: string): string {
 export function calendarToIcs(body: string, ctx: DownloadContext): string {
   const cal = parseCalendar(body);
   const stamp = icsStamp(ctx.created ?? EPOCH_MS);
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TinyOffice//Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TinyLittleOffice//Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
   cal.spans.forEach((s, i) => {
     lines.push('BEGIN:VEVENT', `UID:${s.kind}${s.start.toString(36)}-${s.dur.toString(36)}-${i}@tinyoffice`, `DTSTAMP:${stamp}`);
     if (s.kind === 'd') {

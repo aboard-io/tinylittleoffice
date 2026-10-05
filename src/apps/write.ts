@@ -1,7 +1,7 @@
 /**
  * <to-write>: a one-page rich text editor built on contentEditable.
  *
- * Renders into light DOM like every TinyOffice component; here that also
+ * Renders into light DOM like every TinyLittleOffice component; here that also
  * matters functionally, because execCommand and the selection APIs are
  * unreliable inside shadow roots in some browsers.
  */
@@ -19,7 +19,7 @@ function esc(s: string): string {
 }
 
 /**
- * An embedded TinyOffice document. <to-embed> draws itself in a shadow root
+ * An embedded TinyLittleOffice document. <to-embed> draws itself in a shadow root
  * and is not editable, so the text around it treats it as one thing.
  */
 export function embedHtml(ref: string): string {
@@ -283,7 +283,7 @@ export class ToWrite extends LitElement {
     // Keep pasted content plain: it is the compact, predictable path.
     e.preventDefault();
     const text = e.clipboardData?.getData('text/plain') ?? '';
-    // A TinyOffice link on its own becomes a preview of that document.
+    // A TinyLittleOffice link on its own becomes a preview of that document.
     const ref = linkToRef(text);
     const link = linkify(text.trim());
     if (ref) this.insertEmbed(ref);

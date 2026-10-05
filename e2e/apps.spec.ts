@@ -183,7 +183,7 @@ test('trip: a route on the map with notes', async ({ page }) => {
   await expect(page.getByLabel('Name of stop 2')).toHaveValue('Second stop');
   await expect(page.getByLabel('Note for stop 1')).toHaveValue('Pastel de nata first');
   await expect(map.locator('.trip-pin')).toHaveCount(3);
-  await expect(page).toHaveTitle('Lisbon to Second stop · TinyOffice');
+  await expect(page).toHaveTitle('Lisbon to Second stop · TinyLittleOffice');
   await shot(page, 'trip');
 
   await page.getByRole('button', { name: 'Move stop 3 earlier' }).click();
@@ -241,7 +241,7 @@ test('shell: themes, page titles, share and room per service', async ({ page, is
   await page.goto('/#/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Quarterly memo');
-  await expect(page).toHaveTitle('Quarterly memo · TinyOffice');
+  await expect(page).toHaveTitle('Quarterly memo · TinyLittleOffice');
 
   // Theme: device, then light, then dark; the choice is remembered.
   const html = page.locator('html');
@@ -493,6 +493,17 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
     contract: '# Deal\nSam walks the dog.',
     zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
+    booklet: 'A book\nby me\n\nOne\nwords',
+    programme: 'Tonight\n\nFirst half\nsongs',
+    brochure: 'Visit\n\nWhy\nbecause',
+    comic: 'Biscuit\n\n \n:dog Walk? | Monday',
+    planner: 'My week\n\nMonday\nGym',
+    poster: ':music\nOpen mic\nFriday 8pm',
+    certificate: ':award\nCertificate\nSam',
+    menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
+    resume: '# Ada\n## Experience\n- Wrote a program',
+    badges: 'Ada | Eng\nGrace | Compilers',
+    recipes: 'Buns\nflour\n1. Bake',
   };
   const found: string[] = [];
   const check = async (what: string) => {
@@ -549,6 +560,17 @@ test('nothing is cut off at the right edge, on any screen', async ({ page }) => 
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
     contract: '# Deal\nSam walks the dog.',
     zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
+    booklet: 'A book\nby me\n\nOne\nwords',
+    programme: 'Tonight\n\nFirst half\nsongs',
+    brochure: 'Visit\n\nWhy\nbecause',
+    comic: 'Biscuit\n\n \n:dog Walk? | Monday',
+    planner: 'My week\n\nMonday\nGym',
+    poster: ':music\nOpen mic\nFriday 8pm',
+    certificate: ':award\nCertificate\nSam',
+    menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
+    resume: '# Ada\n## Experience\n- Wrote a program',
+    badges: 'Ada | Eng\nGrace | Compilers',
+    recipes: 'Buns\nflour\n1. Bake',
   };
   const found: string[] = [];
   for (const [app, body] of Object.entries(docs)) {

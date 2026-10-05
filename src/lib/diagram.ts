@@ -93,6 +93,8 @@ export interface DiagramSpec {
   example: string;
   /** For diagram apps: the outline as shapes. */
   layout?(text: string): Diagram;
+  /** For print apps: the text as sheets of paper. */
+  sheets?(text: string): Page[];
   /** For page apps: the text as a whole web page, shown beside it as it is typed. */
   page?(text: string): string;
   /** Anything to show under the picture, as HTML (query results, say). */
@@ -103,6 +105,8 @@ const SPECS = new Map<string, DiagramSpec>();
 export const specOf = (id: string) => SPECS.get(id);
 
 /** Define a diagram app: an app whose document is an outline and whose picture is drawn by Draw. */
+export const registerSpec = (id: string, spec: DiagramSpec) => void SPECS.set(id, spec);
+
 export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { layout(text: string): Diagram }): AppDef {
   SPECS.set(app.id, spec);
   const page = (body: string, upTo?: number): Page => {
@@ -131,7 +135,7 @@ export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb' | 
   const lines = (body: string) => body.split('\n').map((l) => l.trim().replace(/^#+\s*/, '')).filter(Boolean);
   return defineApp({
     outline: (body) => lines(body).slice(0, 14),
-    view: (body, opts = {}) => [listPage(app.title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step))],
+    view: (body, opts = {}) => [listPage(app.title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
     // On a slide, its lines arrive one at a time.
     steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
     document: (body) => spec.page(body),
@@ -153,7 +157,7 @@ export function htmlPage(title: string, about: string, css: string, body: string
 <meta property="og:title" content="${xml(title)}">
 <meta property="og:description" content="${xml(about)}">
 <meta name="twitter:card" content="summary">
-<meta name="generator" content="TinyOffice">${head}
+<meta name="generator" content="TinyLittleOffice">${head}
 <style>
 *{box-sizing:border-box}body{margin:0;font:17px/1.6 ${FONT};color:#18181b;background:#fff}
 a{color:#4338ca}h1,h2,h3{line-height:1.2;letter-spacing:-.01em}

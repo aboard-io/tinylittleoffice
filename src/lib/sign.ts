@@ -109,7 +109,7 @@ export function createSigner(store: KeyStore): Signer {
     },
     async importKey(json) {
       const k = JSON.parse(json) as StoredKey;
-      if ((k.alg !== 'ed' && k.alg !== 'ec') || !k.priv || !k.pub) throw new Error('Not a TinyOffice key');
+      if ((k.alg !== 'ed' && k.alg !== 'ec') || !k.priv || !k.pub) throw new Error('Not a TinyLittleOffice key');
       await subtle().importKey('jwk', k.priv, k.alg === 'ed' ? ED : EC, false, ['sign']);
       store.set(JSON.stringify({ alg: k.alg, priv: k.priv, pub: k.pub }));
       return fingerprintOf(toBase64Url(await rawPublic(k)));

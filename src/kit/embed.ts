@@ -1,13 +1,13 @@
 /**
  * One document inside another. Wherever a document can hold another (a
- * text, a slide), it keeps "<app>/<payload>": the part of a TinyOffice link
+ * text, a slide), it keeps "<app>/<payload>": the part of a TinyLittleOffice link
  * that is the document. From that the kit can draw it, describe it and link
  * to it.
  */
 import { decodeEnvelope, encodeEnvelope } from '../lib/envelope.ts';
 import { appOf, listPage, type AppDef, type Page, type ViewOpts } from './core.ts';
 
-/** "<app>/<payload>" if the text is exactly one TinyOffice link, otherwise null. */
+/** "<app>/<payload>" if the text is exactly one TinyLittleOffice link, otherwise null. */
 export function linkToRef(text: string): string | null {
   const m = /^\S*#\/(?:v\d+\/)?([a-z]+)(?:\.[A-Za-z0-9]+)?\/([A-Za-z0-9_-]+)$/.exec(text.trim());
   return m && appOf(m[1]) ? `${m[1]}/${m[2]}` : null;

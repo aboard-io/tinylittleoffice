@@ -19,7 +19,7 @@ function appPages(site: string): Plugin {
       const dist = resolve(import.meta.dirname, 'dist');
       const shell = readFileSync(resolve(dist, 'index.html'), 'utf8');
       for (const app of apps()) {
-        const title = `${app.name} · TinyOffice`;
+        const title = `${app.name} · TinyLittleOffice`;
         const page = shell
           .replace(/(src|href)="\.\//g, '$1="../')
           .replace(/<title>[^<]*<\/title>/, `<title>${attr(title)}</title>`)
@@ -36,7 +36,7 @@ function appPages(site: string): Plugin {
       // The guide to making documents by URL, where programs look for one: /llms.txt.
       // It is the skill in skill/tinyoffice, without the heading a skill needs.
       const skill = readFileSync(resolve(import.meta.dirname, 'skill/tinyoffice/SKILL.md'), 'utf8');
-      writeFileSync(resolve(dist, 'llms.txt'), skill.replace(/^---[\s\S]*?---\n+/, '').replaceAll('https://tinyoffice.exe.xyz/', site));
+      writeFileSync(resolve(dist, 'llms.txt'), skill.replace(/^---[\s\S]*?---\n+/, '').replaceAll('https://tinylittleoffice.com/', site));
     },
   };
 }

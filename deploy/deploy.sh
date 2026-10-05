@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Build the site and publish it to an exe.dev VM running nginx on :8000.
-# Usage: deploy/deploy.sh [vm-name]   (default: tinyoffice)
+# Usage: deploy/deploy.sh [vm-name]   (default: tinylittleoffice)
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VM="${1:-tinyoffice}"
+VM="${1:-tinylittleoffice}"
 HOST="$VM.exe.xyz"
 
 npm ci

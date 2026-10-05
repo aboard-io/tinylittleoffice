@@ -1,10 +1,10 @@
 /* ==========================================================================
-   TinyOffice stylesheet. This is the only stylesheet: every component renders
+   TinyLittleOffice stylesheet. This is the only stylesheet: every component renders
    into light DOM, and Shoelace components are themed through the tokens in
    the first section. Change the look here.
 
    Sections
-     1. Tokens (Shoelace overrides + TinyOffice variables)
+     1. Tokens (Shoelace overrides + TinyLittleOffice variables)
      2. Base
      3. Shell: header, navigation, panel, launcher
      4. Shared pieces: toolbar, hints, meter widget, document dialog
@@ -48,7 +48,7 @@
   --sl-input-border-radius-small: 0.375rem;
   --sl-input-border-radius-medium: 0.5rem;
 
-  /* TinyOffice variables, built on Shoelace tokens. */
+  /* TinyLittleOffice variables, built on Shoelace tokens. */
   --to-bg: var(--sl-color-neutral-50);
   --to-surface: var(--sl-color-neutral-0);
   --to-surface-2: var(--sl-color-neutral-100);
@@ -102,6 +102,17 @@ to-deck,
 to-draw,
 to-cal,
 to-zine,
+to-booklet,
+to-programme,
+to-brochure,
+to-comic,
+to-planner,
+to-poster,
+to-certificate,
+to-menu,
+to-resume,
+to-badges,
+to-recipes,
 to-sticky,
 to-faq,
 to-site,
@@ -2558,7 +2569,7 @@ table.sheet td .rich .s {
   background: #fff;
   overflow: auto;
 }
-.diagram .pic svg {
+.diagram .pic > svg {
   display: block;
   width: 100%;
   height: auto;
@@ -2908,4 +2919,63 @@ sl-dialog.to-icons {
   .zine-sides {
     width: 170px;
   }
+}
+
+/* Print apps: the text, and the sheets it makes */
+.diagram.print .pic {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  background: var(--to-surface-2);
+}
+.diagram.print .sheet > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 640px;
+  margin: 0 auto;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.14);
+}
+.diagram.print .sheet.sample {
+  opacity: 0.45;
+}
+.diagram.print textarea {
+  white-space: pre-wrap;
+  font-family: var(--sl-font-sans);
+  font-size: 15px;
+}
+
+/* Comic: a row for each panel */
+.zine-panels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.zine-panels li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.zine-panels .pick {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
+  cursor: pointer;
+}
+.zine-panels input {
+  min-width: 0;
+  padding: 9px 10px;
+  font: 15px var(--sl-font-sans);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
 }
