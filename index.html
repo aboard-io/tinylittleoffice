@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>TinyOffice</title>
+    <meta name="description" content="A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 11h14M9 16h14M9 21h8' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <script>
+      // Follow the system theme. Byron: swap this for a toggle if you like.
+      (function () {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var apply = function () { document.documentElement.classList.toggle('sl-theme-dark', mq.matches); };
+        apply();
+        mq.addEventListener('change', apply);
+      })();
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <to-app></to-app>
+    <noscript>TinyOffice needs JavaScript. Everything runs in your browser; nothing is sent to a server.</noscript>
+  </body>
+</html>
