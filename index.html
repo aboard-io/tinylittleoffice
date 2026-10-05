@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TinyOffice</title>
+    <meta name="description" content="A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='14' height='14' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M1 5h14M5 5v10M10 5v10' stroke='%23000'/%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --ink: #000;
+        --paper: #fff;
+        --paper-dim: #e8e8e8;
+        --accent: #3366cc;
+        --font: 'Geneva', 'Verdana', 'Tahoma', 'DejaVu Sans', system-ui, sans-serif;
+        --mono: 'Monaco', 'Menlo', 'Consolas', 'DejaVu Sans Mono', monospace;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        font: 13px/1.4 var(--font);
+        color: var(--ink);
+        background-color: #999;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='1' height='1' fill='%23fff'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23fff'/%3E%3C/svg%3E");
+        background-size: 2px 2px;
+      }
+      to-app {
+        display: block;
+        min-height: 100%;
+      }
+      noscript {
+        display: block;
+        padding: 2em;
+        background: #fff;
+      }
+    </style>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <to-app></to-app>
+    <noscript>TinyOffice needs JavaScript. Everything runs in your browser; nothing is sent to a server.</noscript>
+  </body>
+</html>

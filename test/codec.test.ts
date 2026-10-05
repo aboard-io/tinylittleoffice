@@ -1,0 +1,38 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { encodeDoc, decodeDoc, toBase64Url, fromBase64Url, budgetFor, URL_LIMIT } from '../src/lib/codec.ts';
+
+test('base64url round trip', () => {
+  for (const len of [0, 1, 2, 3, 4, 5, 31, 100]) {
+    const bytes = new Uint8Array(len).map((_, i) => (i * 37 + 11) & 255);
+    const s = toBase64Url(bytes);
+    assert.ok(!/[+/=]/.test(s));
+    assert.deepEqual(Array.from(fromBase64Url(s)), Array.from(bytes));
+  }
+});
+
+test('doc round trip, short and long', () => {
+  const docs = ['', 'hi', 'héllo wörld ✓', 'a\tb\n1\t2\n=SUM(A1:A2)', 'lorem ipsum '.repeat(200)];
+  for (const d of docs) assert.equal(decodeDoc(encodeDoc(d)), d);
+});
+
+test('compression kicks in for repetitive text', () => {
+  const d = 'The quick brown fox jumps over the lazy dog. '.repeat(40);
+  const e = encodeDoc(d);
+  assert.equal(e[0], 'z');
+  assert.ok(e.length < d.length / 4);
+});
+
+test('raw encoding used for tiny docs', () => {
+  assert.equal(encodeDoc('x')[0], 'r');
+});
+
+test('garbage decodes to empty', () => {
+  assert.equal(decodeDoc('zzz!!'), '');
+  assert.equal(decodeDoc('q'), '');
+});
+
+test('budget', () => {
+  const b = budgetFor('https://example.com/#/sheet/');
+  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/sheet/'.length);
+});

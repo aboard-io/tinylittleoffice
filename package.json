@@ -1,0 +1,25 @@
+{
+  "name": "tinyoffice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A tiny office suite that lives entirely in the URL.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "lit": "^3.3.0",
+    "lucide": "^0.544.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^26.6.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.0"
+  }
+}
