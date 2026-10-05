@@ -4,6 +4,7 @@
  * renderer does the rest, so every diagram is a picture, a PDF, a slide that
  * builds shape by shape, and can be opened in Draw to be rearranged by hand.
  */
+import type { Kind as LineKind } from './lines.ts';
 import { defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
 import { GRID, W, H, isLink, serializeDrawing, type Color, type Fill, type Kind, type Shape, type TextSize } from './drawmodel.ts';
 import { shapesPage } from '../apps/draw.def.ts';
@@ -93,6 +94,8 @@ export interface DiagramSpec {
   example: string;
   /** For diagram apps: the outline as shapes. */
   layout?(text: string): Diagram;
+  /** The kinds of line the text is made of: what the form to fill in is built from (see lib/lines.ts). */
+  form?: LineKind[];
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
   /** For page apps: the text as a whole web page, shown beside it as it is typed. */

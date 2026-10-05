@@ -1,10 +1,15 @@
 /** Certificate: a framed page, on its side, for a name and a reason. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, slidesOf, SIDEWAYS } from '../lib/print.ts';
 import { fitted } from '../lib/fold.ts';
 import { rect, ACCENT } from '../kit/core.ts';
 
 const { w, h } = SIDEWAYS;
 export const spec = {
+  form: [
+    { name: 'Seal', is: ':{Picture:icon}', once: true },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: 'What it is, then a line each for who it is for, why, and when. Start with ":icon-name" for a seal.',
   example: ':award\nCertificate of Achievement\nAwarded to\nSam Rivera\nfor walking Biscuit every weekday for a year\n1 March 2027',
   sheets: (text: string) => [

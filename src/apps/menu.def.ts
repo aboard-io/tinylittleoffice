@@ -1,4 +1,5 @@
 /** Menu: sections, dishes and prices on exactly one page. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, onLetter } from '../lib/print.ts';
 import { text, wrapText, textWidth, ACCENT, MUTED, LINE, type Page } from '../kit/core.ts';
 
@@ -28,6 +29,12 @@ function sheet(body: string): Page {
 }
 
 export const spec = {
+  form: [
+    { name: 'Name', is: '# {Name}', once: true },
+    { name: 'Section', is: '## {Section}' },
+    { name: 'Dish', is: '{Dish} | {Price}[ | {What it is}]' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Name" and a line about it; "## Section" starts each part; a dish per line: "Dish | price | what it is". However long, it is fitted to one page.',
   example: '# Harbor Coffee\nSmall-batch coffee, roasted on the quay.\n## Coffee\nEspresso | 3.00 | Dark and syrupy\nFlat white | 4.20\nFilter | 3.50 | Ask what is on today\n## To eat\nCardamom bun | 3.50 | Baked at six, gone by ten\nToast and jam | 4.00 | Sourdough, salted butter',
   sheets: (body: string) => [sheet(body)],

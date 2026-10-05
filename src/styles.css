@@ -3137,3 +3137,138 @@ sl-dialog.to-icons {
     display: none;
   }
 }
+
+/* The form every text app shares: a row for each line, a box for each of its parts */
+to-lines {
+  display: block;
+  padding: 10px;
+  overflow: auto;
+  min-width: 0;
+}
+.lf-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.lf-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 6px;
+  align-items: center;
+  margin-left: calc(var(--d, 0) * 18px);
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--to-border);
+  border-left: 3px solid var(--to-accent);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+}
+.lf-row.rule {
+  border-style: dashed;
+  background: transparent;
+}
+.lf-kind {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
+}
+.lf-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.lf-fields :is(input, textarea, select) {
+  flex: 1 1 7rem;
+  min-width: 0;
+  padding: 7px 9px;
+  font: 15px/1.4 var(--sl-font-sans);
+  color: var(--to-ink);
+  background: var(--to-bg);
+  border: 1px solid var(--to-border);
+  border-radius: 8px;
+}
+.lf-fields textarea {
+  flex-basis: 100%;
+  resize: vertical;
+}
+.lf-fields select {
+  flex: 0 1 8rem;
+}
+.lf-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--to-border);
+  border-radius: 8px;
+  background: var(--to-bg);
+  color: var(--to-ink);
+  cursor: pointer;
+}
+.lf-tools {
+  display: flex;
+  align-self: start;
+}
+.lf-tools button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--to-ink-2);
+  cursor: pointer;
+}
+.lf-tools button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.lf-tools button:not(:disabled):hover {
+  background: var(--to-surface-2);
+}
+.lf-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.lf-add button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px;
+  font: 500 14px var(--sl-font-sans);
+  color: var(--to-accent);
+  background: var(--to-surface);
+  border: 1px dashed var(--to-accent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lf-add button:hover {
+  background: var(--to-surface-2);
+}
+@media (max-width: 520px) {
+  .lf-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lf-tools {
+    justify-content: flex-end;
+  }
+}
+
+/* Filling in a form wants more room than typing a line does */
+@media (min-width: 761px) {
+  .diagram:has(> to-lines) {
+    grid-template-columns: minmax(380px, 5fr) 6fr;
+  }
+}
+.diagram > to-lines {
+  border-right: 1px solid var(--to-border);
+  max-height: 80vh;
+}

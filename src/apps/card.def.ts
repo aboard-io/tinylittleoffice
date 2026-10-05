@@ -1,4 +1,5 @@
 /** Group card: a greeting, and a note from everyone, on one page to print. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, LETTER } from '../lib/print.ts';
 import { h1, rest } from '../lib/diagram.ts';
 import { fitted } from '../lib/fold.ts';
@@ -7,6 +8,11 @@ import { rect, place } from '../kit/core.ts';
 const TINTS = ['#eef2ff', '#dcfce7', '#ffedd5', '#f3e8ff', '#fee2e2', '#cffafe'];
 
 export const spec = {
+  form: [
+    { name: 'Greeting', is: '# {Greeting}', once: true },
+    { name: 'Message', is: '{From}: {Message:long}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# The greeting", then a line from each person: "Name: what they want to say". Everyone adds theirs and passes the link on.',
   example: '# Happy birthday, Sam!\nPaul: Many happy returns. Biscuit says woof.\nAda: You make the office better. Have a great one!\nGrace: Cake at three. Do not be late to your own party.\nAlan: Happy birthday! Here is to another lap round the sun.',
   sheets: (body: string) => {

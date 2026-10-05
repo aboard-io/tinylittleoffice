@@ -1,4 +1,5 @@
 /** Countdown: the days, hours and minutes until something. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -27,6 +28,10 @@ tick(); setInterval(tick, 1000);
 }
 
 export const spec = {
+  form: [
+    { name: 'What is coming', is: '# {What is coming}', once: true },
+    { name: 'Date or words', is: '{A date (2027-03-01 18:00), or a line to show}' },
+  ] as LineKind[],
   hint: '"# What is coming", then its date ("2027-03-01", or with a time: "2027-03-01 18:00"). Other lines are shown under the clock.',
   example: '# Launch day\n2027-03-01 09:00\nShip it, then lunch.',
   page,

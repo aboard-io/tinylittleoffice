@@ -1,4 +1,5 @@
 /** Trivia: rounds of questions, answers that show when tapped, and a scoreboard. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -31,6 +32,13 @@ ${html}</main>
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Teams', is: 'teams: {Teams (commas between)}', once: true },
+    { name: 'Round', is: '## {Round}' },
+    { name: 'Question', is: '{Question} | {Answer}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Title"; "teams: Reds, Blues"; "## Round"; then "Question | answer". Tap a question to show its answer; the buttons keep score.',
   example: '# Quiz night\nteams: Reds, Blues, Greens\n## Warm-up\nWhat is the capital of Portugal? | Lisbon\nHow many keys on a piano? | 88\n## Science\nWhat gas do plants take in? | Carbon dioxide\nWho wrote the first published program? | Ada Lovelace',
   page,

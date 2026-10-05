@@ -1,4 +1,5 @@
 /** Network: things and the connections between them. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, shape, type Diagram } from '../lib/diagram.ts';
 import { textWidth } from '../kit/core.ts';
 
@@ -26,6 +27,11 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Arrow', is: '{From} > {To}[: {Label}]' },
+    { name: 'Link', is: '{From} - {To}[: {Label}]' },
+    { name: 'Thing', is: '{Thing}' },
+  ] as LineKind[],
   hint: 'A connection per line: "A - B", or "A > B" for an arrow. Add ": label" to name it. A name on its own is a lone node.',
   example: 'Web > API: requests\nAPI > Database: queries\nAPI > Cache\nWorker > Database\nAPI - Worker: queue\nMonitoring',
   layout,

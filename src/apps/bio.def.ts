@@ -1,4 +1,5 @@
 /** Links page: a name, a line about you, and your links as big buttons. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -18,6 +19,11 @@ h1{font-size:1.6rem;margin:0}p{color:#52525b;margin:.4rem 0}nav{display:grid;gap
 }
 
 export const spec = {
+  form: [
+    { name: 'Name', is: '# {Name}', once: true },
+    { name: 'Link', is: '{Label} | {Address}' },
+    { name: 'About you', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Your name", a line about you, then a link per line: "Label | https://...".',
   example: '# Ada Lovelace\nMathematics, machines, and notes on both.\nMy notes | https://example.com/notes\nNewsletter | https://example.com/news\nEmail me | mailto:ada@example.com',
   page,

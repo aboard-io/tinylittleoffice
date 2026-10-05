@@ -1,4 +1,5 @@
 /** Reading list: what you read, who wrote it, and what you thought. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -20,6 +21,11 @@ strong{font-size:1.15rem}.by{color:#52525b}.stars{color:#ca8a04;letter-spacing:.
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Book', is: '{Title} | {Author}[ | {Stars:choice=1,2,3,4,5}[ | {What you thought:long}]]' },
+    { name: 'Book, just the title', is: '{Title}' },
+  ] as LineKind[],
   hint: '"# Title", then a book per line: "Title | author | stars out of 5 | what you thought".',
   example: '# Read in 2027\nThe Dispossessed | Ursula K. Le Guin | 5 | Still the best argument about how to live together.\nPiranesi | Susanna Clarke | 4 | A house with tides in it.\nThe Soul of a New Machine | Tracy Kidder | 4\nOn Writing Well | William Zinsser | 3 | Useful, if stern.',
   page,

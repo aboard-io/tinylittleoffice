@@ -1,4 +1,5 @@
 /** Spinner: a wheel of names or choices, to spin. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -33,6 +34,10 @@ document.getElementById('go').onclick = function () {
 }
 
 export const spec = {
+  form: [
+    { name: 'What is being decided', is: '# {What is being decided}', once: true },
+    { name: 'Choice', is: '{Choice}' },
+  ] as LineKind[],
   hint: '"# What is being decided", then a line for each name or choice.',
   example: '# Who buys lunch?\nAda\nGrace\nAlan\nMargaret\nLinus\nBarbara',
   page,

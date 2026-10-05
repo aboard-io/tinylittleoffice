@@ -3,6 +3,7 @@
  * picture is the schema (tables and what refers to what); the answers to
  * the queries come from lib/reldb.ts and are listed under it.
  */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, shape, type Diagram } from '../lib/diagram.ts';
 import { csv, utf8, xml, listPage } from '../kit/core.ts';
 import { parseDb, runQuery } from '../lib/reldb.ts';
@@ -54,6 +55,12 @@ function aside(text: string): string {
 }
 
 export const spec = {
+  form: [
+    { name: 'Query', is: '? {Query}' },
+    { name: 'Table', is: '{Table}: {Columns}' },
+    { name: 'Next table', is: '' },
+    { name: 'Row', is: '{Values}' },
+  ] as LineKind[],
   hint: 'A table: "name: column, column > other_table", then a row per line. Blank line between tables. A line starting "?" is a query.',
   example: 'teams: id, name\n1, Platform\n2, Design\n\npeople: id, name, team_id > teams\n1, Ann, 1\n2, Bo, 2\n3, Cy, 1\n\n? select teams.name, count(*) as people from people join teams on team_id = teams.id group by teams.name order by people desc',
   layout,

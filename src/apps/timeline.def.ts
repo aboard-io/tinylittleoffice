@@ -1,4 +1,5 @@
 /** Timeline: what happened, in order, along a line. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, shape, join, PALETTE, type Diagram } from '../lib/diagram.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
@@ -17,6 +18,10 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Event', is: '{When}: {What happened}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: 'An event per line, in order: "When: what happened".',
   example: '1843: Lovelace publishes her notes\n1936: Turing describes his machine\n1969: The first ARPANET message\n1989: The web is proposed\n2007: The phone becomes a computer',
   layout,

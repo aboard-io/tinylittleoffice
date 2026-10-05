@@ -1,4 +1,5 @@
 /** Poll: a question, its choices, and a line from everyone who answers. Pass the link on. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -30,6 +31,12 @@ function page(body: string): string {
 }
 
 export const spec = {
+  form: [
+    { name: 'Question', is: '# {Question}', once: true },
+    { name: 'Choice', is: '- {Choice}' },
+    { name: 'Answer', is: '{Name}: {Their choice}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# The question"; "- A choice" for each choice; then a line from each person: "Name: their choice". Add yours and send the link on.',
   example: '# Where shall we eat on Friday?\n- Pizza\n- Sushi\n- Tacos\nPaul: Tacos\nSam: Sushi\nAda: Tacos',
   page,

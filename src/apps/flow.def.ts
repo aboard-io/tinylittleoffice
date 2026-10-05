@@ -9,6 +9,7 @@
  * into it so far (or out of it, for one nothing flows into, unless a slider
  * has its name: then it is that number). Spaces in names become "_".
  */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -108,6 +109,12 @@ document.getElementById('f').oninput = draw; draw();
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Flow', is: '{From} > {To} = {Formula}' },
+    { name: 'Slider', is: '{Name} = {Value}[ ({Lowest} to {Highest})]' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"name = 1000 (0 to 5000)" is a number with a slider ("5%" for a rate); "From > To = formula" is a flow. A formula can use slider names and the names of stocks (what has flowed in so far).',
   example: '# A subscription business\nvisitors = 20000 (0 to 100000)\nsignup rate = 6% (0 to 30)\npaid rate = 25% (0 to 100)\nchurn = 8% (0 to 50)\nVisitors > Signups = visitors * signup rate\nVisitors > Bounced = visitors - visitors * signup rate\nSignups > Paying = signups * paid rate\nSignups > Free = signups - signups * paid rate\nPaying > Churned = paying * churn\nPaying > Retained = paying - paying * churn',
   page,

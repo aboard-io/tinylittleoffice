@@ -5,6 +5,8 @@
  */
 import { DocElement, defineElement, html, nothing, unsafeSVG, tool, appOf, makeRef, pageSvg, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
+import '../widgets/line-form.ts';
+import { state } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
 import { arrowDefs, shapeSvg } from './draw.def.ts';
@@ -18,6 +20,23 @@ export class DiagramElement extends DocElement<string> {
   }
   protected serialize(text: string) {
     return text;
+  }
+
+  /** Filled in as a form, or typed as text: the same document either way. The choice is remembered. */
+  @state() private asText = (() => {
+    try {
+      return localStorage.getItem('tinyoffice.edit') === 'text';
+    } catch {
+      return false;
+    }
+  })();
+  private setMode(text: boolean) {
+    this.asText = text;
+    try {
+      localStorage.setItem('tinyoffice.edit', text ? 'text' : 'form');
+    } catch {
+      // (Not remembered, then.)
+    }
   }
 
   protected get spec(): DiagramSpec {
@@ -91,17 +110,21 @@ export class DiagramElement extends DocElement<string> {
     const d = spec.layout?.(this.doc);
     const name = appOf((this.constructor as typeof DiagramElement).app)!.name;
     const inside = !!this.closest('sl-dialog');
+    const form = !!spec.form && !this.asText;
     return html`
       <div class="to-toolbar">
-        <span class="to-hint diagram-hint">${spec.hint}</span>
+        <span class="to-hint diagram-hint">${form ? 'Add a row for each thing, and fill it in.' : spec.hint}</span>
         <span class="to-spacer"></span>
         ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
-        ${d || spec.sheets ? tool('Icon', 'smile', () => this.addIcon(), { text: true }) : nothing}
+        ${spec.form ? tool(form ? 'Edit as text' : 'Edit as a form', form ? 'code' : 'form', () => this.setMode(form), { text: true }) : nothing}
+        ${form ? nothing : d || spec.sheets ? tool('Icon', 'smile', () => this.addIcon(), { text: true }) : nothing}
         ${inside || !d?.shapes.length ? nothing : tool('Open in Draw', 'draw', () => this.toDraw(), { text: true })}
       </div>
       ${this.extra()}
       <div class="diagram ${spec.page ? 'page' : spec.sheets ? 'print' : ''}">
-        <textarea aria-label="${name}, as text" spellcheck=${spec.page || spec.sheets ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>
+${form
+          ? html`<to-lines class="lf" .text=${text} .kinds=${spec.form!} name=${name} @lines-change=${(e: CustomEvent<string>) => this.type(e.detail)}></to-lines>`
+          : html`        <textarea aria-label="${name}, as text" spellcheck=${spec.page || spec.sheets ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>`}
         <div class="pic">
           ${spec.page
             ? // The page as it will be, in a frame of its own: its scripts run, but it cannot reach this one.

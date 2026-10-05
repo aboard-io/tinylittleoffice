@@ -1,4 +1,5 @@
 /** Time capsule: a note that opens on a date. (On the honour system: the page keeps it shut, not a lock.) */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -21,6 +22,11 @@ else { var el = document.getElementById('note'); N.forEach(function (l) { var p 
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Opens on', is: 'open: {Date:date}', once: true },
+    { name: 'Note', is: '{Text:long}' },
+  ] as LineKind[],
   hint: '"# Title", "open: 2030-01-01", then the note. Until that day the page shows only a countdown.',
   example: '# To us, in five years\nopen: 2031-10-05\nWe had just named the thing TinyLittleOffice.\nI hope the dog is well and the coffee is still good.',
   page,

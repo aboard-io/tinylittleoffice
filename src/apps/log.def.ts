@@ -1,4 +1,5 @@
 /** Log: what you did and how much, with totals. Workouts, practice, anything counted. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -30,6 +31,11 @@ table{width:100%;border-collapse:collapse}th{text-align:left;font-size:.8rem;col
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Entry', is: '{When}, {What}[, {How much}]' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Title", then an entry per line: "when, what, how much" ("3 March, Run, 5 km"). Each kind of thing is totalled.',
   example: '# March training\n1 March, Run, 5 km\n2 March, Piano, 30 min\n3 March, Run, 7.5 km\n5 March, Swim, 40 lengths\n6 March, Piano, 45 min\n7 March, Run, 10 km',
   page,

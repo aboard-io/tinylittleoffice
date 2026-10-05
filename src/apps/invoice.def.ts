@@ -1,4 +1,5 @@
 /** Invoice: who, what, how much; the sums done for you. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { xml, text, rect, clip, wrapText, ACCENT, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
 
@@ -104,6 +105,19 @@ ${inv.notes.length ? `<div class="notes">${inv.notes.map((n) => `<p>${xml(n)}</p
 }
 
 export const spec = {
+  form: [
+    { name: 'From', is: 'From: {Who it is from}', once: true },
+    { name: 'To', is: 'To: {Who it is for}', once: true },
+    { name: 'Number', is: 'Number: {Number}', once: true },
+    { name: 'Date', is: 'Date: {Date:date}', once: true },
+    { name: 'Due', is: 'Due: {Due:date}', once: true },
+    { name: 'Tax', is: 'Tax: {Rate}', once: true },
+    { name: 'Currency', is: 'Currency: {Symbol}', once: true },
+    { name: 'Terms', is: 'Terms: {Terms}', once: true },
+    { name: 'Item', is: '{What}, {Quantity}, {Price}' },
+    { name: 'Single item', is: '{What}, {Price}' },
+    { name: 'Note', is: '{Note}' },
+  ] as LineKind[],
   hint: 'Headings: "From:", "To:", "Number:", "Date:", "Due:", "Tax: 8%", "Currency: £" (use " | " for a second line). Then an item per line: "what, quantity, price".',
   example: 'From: Harbor Studio | 14 Quay Street\nTo: Acme Ltd | Accounts payable\nNumber: 0042\nDate: 2027-03-01\nDue: 2027-03-31\nTax: 8%\nDesign, 12, 150\nBuild, 20, 140\nHosting for a year, 480\nThank you. Payment by bank transfer.',
   page,

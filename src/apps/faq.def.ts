@@ -1,4 +1,5 @@
 /** FAQ: questions and their answers, as a page that can be searched. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, outline } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 import { linkify } from '../lib/richtext.ts';
@@ -49,6 +50,11 @@ box.addEventListener('input', function () {
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Question', is: '{Question}', at: 0 },
+    { name: 'Answer', is: '{Answer:long}', at: 1 },
+  ] as LineKind[],
   hint: 'A question on a line; its answer on the lines indented under it. A first line "# Title" names the page.',
   example: '# Help\nHow do I share a document?\n  Copy the link. The link is the document.\nIs anything stored on a server?\n  No. Everything is in the link, which never leaves your browser.\nCan two people edit at once?\n  Not at the same time: pass the link back and forth.',
   page,

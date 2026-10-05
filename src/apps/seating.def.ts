@@ -1,4 +1,5 @@
 /** Seating chart: tables, and who sits round each. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, shape, PALETTE, type Diagram } from '../lib/diagram.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
@@ -20,6 +21,10 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Table', is: '{Table}: {People (commas between)}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: 'A table per line: "Table name: Ann, Bob, Cy". People are seated round it in the order given.',
   example: 'Top table: Sam, Paul, Ada, Grace, Alan, Margaret\nTable 2: Linus, Barbara, Ken, Dennis, Edsger\nTable 3: Tim, Vint, Radia, Leslie',
   layout,

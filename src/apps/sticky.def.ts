@@ -1,4 +1,5 @@
 /** Sticky notes: a wall of them, one per line. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, shape, type Diagram } from '../lib/diagram.ts';
 import { wrapText } from '../kit/core.ts';
 import type { Color } from '../lib/drawmodel.ts';
@@ -24,6 +25,10 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' },
+    { name: 'Note', is: '[:{Picture:icon} ]{Note}' },
+  ] as LineKind[],
   hint: 'One note per line. Start a line with a colour and a colon ("green: Call Sam") to colour it.',
   example: 'Ship the beta\ngreen: Thank the testers\nblue: Write the launch post\nred: Fix the login bug\nBook the offsite\npurple: Ask Sam about pricing',
   layout,

@@ -1,4 +1,5 @@
 /** Split the bill: who paid what, and the fewest payments that make it even. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -43,6 +44,12 @@ h2{font-size:1.1rem;margin-top:2rem}.pay{font-size:1.15rem;padding:.5rem 0}.pay 
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Shared between', is: 'between: {People (commas between)}', once: true },
+    { name: 'Payment', is: '{Who paid}: {Amount}[, {What for}]' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Title", then who paid: "Name: amount, what for". "between: Ada, Sam, Paul" names everyone sharing, if some paid nothing.',
   example: '# Weekend away\nbetween: Paul, Sam, Ada, Grace\nPaul: 240, the cottage\nSam: 86.50, groceries\nAda: 45, petrol',
   page,

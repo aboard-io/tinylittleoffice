@@ -1,4 +1,5 @@
 /** Flashcards: a question on the front, the answer on the back. Tap to turn. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -26,6 +27,11 @@ draw();
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Card', is: '{Front} | {Back}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Title", then a card per line: "Front | back". Tap a card to turn it over.',
   example: '# Portuguese\nbom dia | good morning\nobrigado | thank you\npor favor | please\na conta | the bill\nonde fica...? | where is...?',
   page,

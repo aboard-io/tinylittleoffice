@@ -1,4 +1,5 @@
 /** Secret Santa: names in; each person taps their own name to see who they give to. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js, seed } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -33,6 +34,10 @@ var H = ${js(hidden)}, N = ${js(names)}, t;
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Person', is: '{Name}' },
+  ] as LineKind[],
   hint: '"# Title", then a name per line. Send everyone the link: each taps their own name to see who they give to (it hides again after a moment).',
   example: '# Office Secret Santa\nAda\nGrace\nAlan\nMargaret\nLinus',
   page,

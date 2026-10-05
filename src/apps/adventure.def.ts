@@ -1,4 +1,5 @@
 /** Adventure: a story that branches. Scenes, and choices that lead to other scenes. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -36,6 +37,12 @@ show(first);
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Scene', is: '## {Scene name}' },
+    { name: 'Choice', is: '> {What you do} | {Scene it leads to}' },
+    { name: 'Story', is: '{Text:long}' },
+  ] as LineKind[],
   hint: '"# Title"; "## scene" starts a scene; its lines are the story; "> What you do | scene it leads to" is a choice. A scene with no choices is an ending.',
   example: '# The Lighthouse\n## start\nThe storm has put the lamp out. Below, a ship is feeling for the rocks.\n> Climb to the lamp | lamp\n> Run to the village | village\n## lamp\nThe stairs are slick. The lamp is cold, but there is oil, and matches.\n> Light it | lit\n> Go back down | start\n## lit\nThe beam swings out. The ship turns. You sit down on the top step, shaking.\n## village\nBy the time you get back with help, there is only wreckage.',
   page,

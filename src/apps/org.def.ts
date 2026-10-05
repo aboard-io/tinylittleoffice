@@ -1,4 +1,5 @@
 /** Org chart: who reports to whom, from an indented list. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, outline, placeTree, shape, type Diagram } from '../lib/diagram.ts';
 
 const BW = 156;
@@ -12,6 +13,9 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Person', is: '[:{Picture:icon} ]{Name}[ | {Role}]', indent: true },
+  ] as LineKind[],
   hint: 'One person per line, "Name | Role". Indent a line to put them under the person above.',
   example: 'Ada Diaz | Chief executive\n  Ben Okoro | Engineering\n    Cy Lund | Platform\n    Di Shah | Apps\n  Eve Marsh | Design\n  Flo Reyes | Sales',
   layout,

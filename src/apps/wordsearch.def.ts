@@ -1,4 +1,5 @@
 /** Word search: your words hidden in a grid of letters, to print. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, onLetter } from '../lib/print.ts';
 import { h1, rest, seed } from '../lib/diagram.ts';
 import { text, rect, LINE, MUTED } from '../kit/core.ts';
@@ -26,6 +27,10 @@ export function hide(words: string[], from: number): { grid: string[][]; placed:
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Word', is: '{Word}' },
+  ] as LineKind[],
   hint: '"# Title", then a word per line (up to 14 letters each). The puzzle is the same every time for the same words.',
   example: '# Coffee\nespresso\nfilter\ncrema\nroast\ngrinder\nkettle\nmilk\nbeans\ncup',
   sheets: (body: string) => {

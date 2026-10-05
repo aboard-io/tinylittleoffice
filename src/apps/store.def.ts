@@ -1,4 +1,5 @@
 /** Store: a shop window and a cart, from a list of products. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -97,6 +98,13 @@ ${s.products.map((p, i) => `<li>${p.image ? `<img src="${xml(p.image)}" alt="" l
 }
 
 export const spec = {
+  form: [
+    { name: 'Name', is: '# {Name}', once: true },
+    { name: 'Currency', is: 'currency: {Symbol}', once: true },
+    { name: 'Orders go to', is: 'orders: {Email}', once: true },
+    { name: 'Product', is: '{Name} | {Price}[ | {About}[ | {Picture address}]]' },
+    { name: 'About the shop', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Name" and a line about it; a product per line: "Name | price | about | image address". "currency: £" and "orders: you@example.com" set those.',
   example: '# Harbor Coffee Shop\nBeans and things, posted on Fridays.\ncurrency: $\norders: orders@example.com\nHouse blend, 250g | 12.50 | Chocolate and orange. Good for anything.\nQuay espresso, 250g | 14.00 | Dark, syrupy, made for milk.\nFilter papers | 4.00 | A hundred, unbleached.\nTin mug | 9.00 | Enamel. Survives the boat.',
   page,

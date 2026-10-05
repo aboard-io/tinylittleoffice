@@ -646,3 +646,47 @@ test('small apps: the sums behind them', async () => {
   assert.equal(specOf('seating')!.layout!('T1: a, b, c\nT2: d').shapes.length, 6);
   assert.deepEqual(specOf('timeline')!.layout!('1: a\n2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
 });
+
+test('lines: every text app can be filled in as a form, and what is saved is the same text', async () => {
+  const { readLines, writeLines, fieldsOf, kindsOf } = await import('../src/lib/lines.ts');
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const { apps } = await import('../src/kit/core.ts');
+  let forms = 0;
+  for (const def of apps()) {
+    const spec = specOf(def.id);
+    if (!spec) continue;
+    assert.ok(spec.form, `${def.id} has a form`);
+    forms++;
+    // Its own example, read into rows and written back, is the example to the letter.
+    const rows = readLines(spec.example, spec.form);
+    assert.equal(writeLines(rows, spec.form), spec.example, def.id);
+    // And the form understood it: hardly anything fell through as a line it has no kind for.
+    const { kinds } = kindsOf(spec.form);
+    const own = rows.filter((r) => r.kind < spec.form!.length).length;
+    assert.ok(own >= rows.length * 0.8, `${def.id}: ${own} of ${rows.length} lines have a kind`);
+    assert.ok(kinds.every((k) => k.name));
+  }
+  assert.ok(forms >= 40, String(forms));
+
+  const menu = specOf('menu')!.form!;
+  const rows = readLines('# Cafe\n## Coffee\nEspresso|3.00 | Dark\nFlat white | 4.20\nOpen daily', menu);
+  assert.deepEqual(rows.map((r) => [menu[r.kind].name, ...r.values]), [['Name', 'Cafe'], ['Section', 'Coffee'], ['Dish', 'Espresso', '3.00', 'Dark'], ['Dish', 'Flat white', '4.20', ''], ['Line', 'Open daily']]);
+  assert.deepEqual(fieldsOf(menu, 2).map((f) => f.name), ['Dish', 'Price', 'What it is']);
+  // Written tidily; a part with nothing in it is left out; a row with nothing in it is not written at all.
+  rows[3].values[2] = 'Smooth';
+  rows.push({ kind: 2, values: ['', '', ''], depth: 0 }, { kind: 1, values: ['Tea'], depth: 0 });
+  assert.equal(writeLines(rows, menu), '# Cafe\n## Coffee\nEspresso | 3.00 | Dark\nFlat white | 4.20 | Smooth\nOpen daily\n## Tea');
+  // Outlines keep their depth; an answer is a line under a question.
+  const org = specOf('org')!.form!;
+  assert.deepEqual(readLines('Ada | CEO\n  :wrench Ben\n    Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
+  assert.equal(writeLines([{ kind: 0, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 0, values: ['', 'Ben', ''], depth: 1 }], org), ':crown Ada | CEO\n  Ben');
+  const faq = specOf('faq')!.form!;
+  assert.deepEqual(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq).map((r) => kindsOf(faq).kinds[r.kind].name), ['Title', 'Question', 'Answer', 'Line']);
+  assert.equal(writeLines(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq), faq), '# Help\nWhy?\n  Because.\n    Deeper');
+  // Choices, optional parts, words between fields.
+  assert.deepEqual(readLines('green: Thank them\nCall Sam: today', specOf('sticky')!.form!).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
+  assert.deepEqual(readLines('Kitchen: 4 x 3 at 5,0\nHall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
+  assert.deepEqual(readLines('signup rate = 6% (0 to 30)\nVisitors > Signups = visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
+  // A blank line that means something is kept as a row.
+  assert.equal(writeLines(readLines('A\nx\n\nB\ny', specOf('recipes')!.form!), specOf('recipes')!.form!), 'A\nx\n\nB\ny');
+});

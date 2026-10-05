@@ -1,4 +1,5 @@
 /** Fill in the blanks: a story with gaps, filled in by someone who has not read it. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -26,6 +27,10 @@ document.getElementById('f').onsubmit = function (e) {
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Story', is: '{A line of the story:long}' },
+  ] as LineKind[],
   hint: '"# Title", then the story, with each blank in square brackets: "[adjective]", "[a place]". The reader fills them in before seeing the story.',
   example: '# A day at the office\nThis morning my [adjective] boss arrived riding a [animal].\n"We are moving the office to [a place]," she said, "and everyone must bring [plural noun]."\nI [verb, past tense] all the way home.',
   page,

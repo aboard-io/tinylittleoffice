@@ -392,6 +392,27 @@ test/                 unit tests (node --test)
 e2e/                  Playwright browser tests
 ```
 
+## One toolkit for text apps
+
+Every app that is "a few lines of text" is edited as a form by default,
+with a switch to the text itself. Both come from one description
+(`src/lib/lines.ts`): the app lists its kinds of line as patterns,
+
+```ts
+form: [
+  { name: 'Name', is: '# {Name}', once: true },
+  { name: 'Section', is: '## {Section}' },
+  { name: 'Dish', is: '{Dish} | {Price}[ | {What it is}]' },
+]
+```
+
+and the shared form (`src/widgets/line-form.ts`) gives each line a row and
+each `{field}` a box. `[..]` may be left out; `{Text:long}`, `{Day:date}`,
+`{Picture:icon}` and `{Colour:choice=red,green}` pick the kind of box;
+`indent: true` lets rows nest. What is saved, shared and written by
+programs is always the plain text, and a test checks that every app's
+example survives the trip through its form unchanged.
+
 ## Deploying
 
 The included GitHub Actions workflow runs the tests on every push. The site

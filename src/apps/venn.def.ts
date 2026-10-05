@@ -1,4 +1,5 @@
 /** Venn diagram: two or three sets, and what they share. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, shape, PALETTE, type Diagram } from '../lib/diagram.ts';
 import { textWidth } from '../kit/core.ts';
 import type { Shape } from '../lib/drawmodel.ts';
@@ -43,6 +44,11 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Shared', is: '{One set} & {Other sets}: {What they share}' },
+    { name: 'Set', is: '{Set}: {What is in it}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: 'A set per line: "Name: thing, thing". What two share: "A & B: thing". What all share: "A & B & C: thing".',
   example: 'Fast: sprinting, espresso\nCheap: instant noodles, walking\nGood: slow cooking\nFast & Cheap: fast food\nCheap & Good: home cooking\nFast & Good: a great takeaway\nFast & Cheap & Good: toast',
   layout,

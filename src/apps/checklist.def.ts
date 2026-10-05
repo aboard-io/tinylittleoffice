@@ -1,8 +1,14 @@
 /** Checklist: sections and things to tick, on one page to print. Packing, moving, launching. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, onLetter } from '../lib/print.ts';
 import { text, rect, wrapText, ACCENT, FAINT } from '../kit/core.ts';
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Section', is: '## {Section}' },
+    { name: 'Thing', is: '{Thing to tick}' },
+  ] as LineKind[],
   hint: '"# Title", "## Section", then a thing to tick per line. However long, it is fitted to one page (in two columns once it gets long).',
   example: '# Packing for the coast\n## Clothes\nWaterproof\nTwo jumpers\nWalking boots\nSwimming things\n## Kit\nPhone charger\nBinoculars\nMap\nFlask\n## Before leaving\nWater the plants\nEmpty the bins\nLock the back door',
   sheets: (body: string) => {

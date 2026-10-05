@@ -1,4 +1,5 @@
 /** Site: a one-page website from a few lines of text. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 import { ICON_SVG } from '../lib/icons.ts';
@@ -69,6 +70,13 @@ ${rest.map((s) => `<section id="${slugOf(s.title)}"><div class="wrap"><h2>${xml(
 }
 
 export const spec = {
+  form: [
+    { name: 'Name', is: '# {Name}', once: true },
+    { name: 'Section', is: '## {Section}' },
+    { name: 'Card', is: '- [:{Picture:icon} ]{Heading}[ | {Detail}]' },
+    { name: 'Button', is: '> {Label} | {Link}' },
+    { name: 'Paragraph', is: '{Text:long}' },
+  ] as LineKind[],
   hint: '"# Name" and a line about it; "## Section" starts each part; "- Point | detail" makes a card (":icon" first for an icon); "> Label | https://..." a button.',
   example: '# Harbor Coffee\nSmall-batch coffee, roasted on the quay every morning.\n> See the menu | #menu\n> Find us | #visit\n- :coffee Roasted daily | Never more than a week old\n- :leaf Fair trade | Bought direct from six farms\n- :bike Delivered | By bike, across the old town\n## Menu\nEspresso, filter, and a pastry case that empties by ten.\n- Espresso | 3.00\n- Flat white | 4.20\n- Cardamom bun | 3.50\n## Visit\n14 Quay Street, open 7 to 3, every day but Monday.\n> Email us | mailto:hello@example.com',
   page,

@@ -1,4 +1,5 @@
 /** Chord chart: words with the chords above them, in any key. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, onLetter } from '../lib/print.ts';
 import { text, textWidth, ACCENT, MUTED } from '../kit/core.ts';
 
@@ -8,6 +9,12 @@ const SAME: Record<string, string> = { Db: 'C#', 'D#': 'Eb', Gb: 'F#', 'G#': 'Ab
 export const transpose = (chord: string, by: number) => chord.replace(/[A-G][#b]?/g, (n) => NOTES[(((NOTES.indexOf(SAME[n] ?? n) + by) % 12) + 12) % 12]);
 
 export const spec = {
+  form: [
+    { name: 'Song', is: '# {Song}', once: true },
+    { name: 'Transpose', is: 'transpose: {Semitones up}', once: true },
+    { name: 'Part', is: '## {Part}' },
+    { name: 'Words', is: '{Words, with chords in brackets}' },
+  ] as LineKind[],
   hint: '"# Song", then the words with chords in square brackets where they fall: "[G]Row, row, [C]row". "## Chorus" names a part; "transpose: 2" moves every chord up two semitones.',
   example: '# Row Your Boat\ntranspose: 0\n## Verse\n[C]Row, row, row your boat\n[C]Gently down the [G]stream\n[C]Merrily, merrily, merrily, merrily\n[G]Life is but a [C]dream',
   sheets: (body: string) => {

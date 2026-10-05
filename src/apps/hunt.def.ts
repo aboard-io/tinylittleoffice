@@ -4,6 +4,7 @@
  * page, not from someone determined: it is scrambled with the answer, not
  * properly encrypted.)
  */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, js, seed } from '../lib/diagram.ts';
 import { xml } from '../kit/core.ts';
 
@@ -43,6 +44,11 @@ document.getElementById('f').onsubmit = function (e) {
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Clue', is: '{Clue:long} | {Answer}' },
+    { name: 'Ending', is: '{Text}' },
+  ] as LineKind[],
   hint: '"# Title", then a line per step: "Clue | answer". Each clue shows only once the answer before it is typed. End with a line that has no answer.',
   example: '# Birthday hunt\nStart where the coffee is made. What colour is the kettle? | red\nGood. Now count the stairs to the attic. | 14\nLook under the thing with 88 keys. What is taped there? | envelope\nOpen it. Happy birthday!',
   page,

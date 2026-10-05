@@ -1,9 +1,14 @@
 /** Habit tracker: a month of boxes to tick, one row per habit, to print. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePrint, SIDEWAYS } from '../lib/print.ts';
 import { h1, rest } from '../lib/diagram.ts';
 import { text, rect, clip, LINE, MUTED, SHADE } from '../kit/core.ts';
 
 export const spec = {
+  form: [
+    { name: 'Month', is: '# {Month}', once: true },
+    { name: 'Habit', is: '{Habit}' },
+  ] as LineKind[],
   hint: '"# The month", then a habit per line. Prints a row of 31 boxes for each.',
   example: '# March\nWalk Biscuit\nRead 20 pages\nNo phone before 9\nPiano\nIn bed by 11',
   sheets: (body: string) => {

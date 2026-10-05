@@ -1,4 +1,5 @@
 /** Swimlanes: steps in order, each in the lane of whoever does it. */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, shape, PALETTE, type Diagram } from '../lib/diagram.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
@@ -24,6 +25,10 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
+  form: [
+    { name: 'Step', is: '{Who}: {What they do}' },
+    { name: 'Line', is: '{Text}' },
+  ] as LineKind[],
   hint: 'One step per line, in order: "Who: what they do". A step ending in "?" is drawn as a decision.',
   example: 'Customer: Places order\nSales: Checks stock\nSales: In stock?\nWarehouse: Packs it\nCourier: Delivers\nCustomer: Signs for it',
   layout,

@@ -13,6 +13,7 @@
  * "~<name>\t<public key>\t<signature>". Each signature covers the text and
  * the signer's own name, so a second person signing does not disturb the first.
  */
+import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { appOf, xml } from '../kit/core.ts';
 import './write.def.ts';
@@ -66,6 +67,12 @@ ${c.signatures.length ? `<div class="signed">${c.signatures.map((s) => `<div><st
 }
 
 export const spec = {
+  form: [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Heading', is: '## {Heading}' },
+    { name: 'Point', is: '- {Point}' },
+    { name: 'Paragraph', is: '{Text:long}' },
+  ] as LineKind[],
   hint: 'Write the agreement ("# Title", "## Heading", "- point"). Each person types their name and signs; the link then carries their signature.',
   example: '# Dog-walking agreement\nBetween Paul and Sam, starting 1 March 2027.\n## What is agreed\n- Sam walks Biscuit every weekday at noon.\n- Paul pays $20 a walk, on Fridays.\n- Either can end this with a week of notice.',
   page,
