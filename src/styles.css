@@ -1467,7 +1467,8 @@ svg.draw-canvas text {
     width: 140px;
   }
 }
-@media (max-width: 420px) {
+/* The name gives way to the buttons before they run out of room (it is long, and they must stay on one line). */
+@media (max-width: 600px) {
   .to-brand span {
     display: none;
   }
