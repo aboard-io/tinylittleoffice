@@ -1,3 +1,6 @@
+import './styles.css';
+import './lib/shoelace.ts';
+import './widgets/meter.ts';
 import './app.ts';
 import './apps/sheet.ts';
 import './apps/write.ts';

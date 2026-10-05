@@ -1,36 +1,14 @@
 /**
  * <to-write>: a one-page rich text editor built on contentEditable.
  *
- * This component renders into light DOM on purpose: document.execCommand and
- * selection APIs are unreliable inside shadow roots in some browsers, and the
- * editor needs both. Its styles are scoped with a "to-write" selector instead.
+ * Renders into light DOM like every TinyOffice component; here that also
+ * matters functionally, because execCommand and the selection APIs are
+ * unreliable inside shadow roots in some browsers.
  */
-import { LitElement, html, nothing, type PropertyValues } from 'lit';
+import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
 import { parseDoc, serializeDoc, docText, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
-
-const STYLE = `
-to-write { display: block; font: 13px/1.4 var(--font); color: var(--ink); }
-to-write * { box-sizing: border-box; }
-to-write .toolbar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--ink); background: var(--paper-dim); }
-to-write .toolbar .sep { width: 1px; align-self: stretch; background: var(--ink); opacity: .4; margin: 0 2px; }
-to-write .toolbar .spacer { flex: 1; }
-to-write button { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); border-radius: 4px; padding: 2px 4px; min-width: 24px; min-height: 24px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 1px 1px 0 var(--ink); line-height: 1; }
-to-write button:hover { background: var(--paper-dim); }
-to-write button:active, to-write button[aria-pressed="true"] { background: var(--ink); color: var(--paper); box-shadow: none; transform: translate(1px,1px); }
-to-write button:focus-visible, to-write .page:focus-visible { outline: 2px dotted var(--ink); outline-offset: 1px; }
-to-write .page { position: relative; min-height: 420px; padding: 28px 40px; outline: none; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; cursor: text; }
-to-write .page:empty::before, to-write .page.blank::before { content: attr(data-placeholder); opacity: .5; position: absolute; pointer-events: none; }
-to-write .page h1 { font-size: 24px; margin: 0 0 8px; line-height: 1.2; }
-to-write .page h2 { font-size: 17px; margin: 14px 0 4px; line-height: 1.25; }
-to-write .page p { margin: 0 0 8px; }
-to-write .page ul, to-write .page ol { margin: 0 0 8px; padding-left: 24px; }
-to-write .page li { margin: 0; }
-to-write .foot { display: flex; gap: 12px; padding: 4px 8px; border-top: 1px solid var(--ink); font-size: 11px; opacity: .75; }
-to-write .hint { font-size: 11px; opacity: .7; }
-to-write .lucide { flex-shrink: 0; }
-`;
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li' };
 
@@ -185,7 +163,7 @@ export class ToWrite extends LitElement {
   private page?: HTMLElement;
 
   createRenderRoot() {
-    return this; // light DOM, see note at top of file
+    return this;
   }
 
   connectedCallback() {
@@ -198,7 +176,7 @@ export class ToWrite extends LitElement {
   }
 
   firstUpdated() {
-    this.page = this.querySelector<HTMLElement>('.page')!;
+    this.page = this.querySelector<HTMLElement>('.write-page')!;
     this.loadHtml();
   }
 
@@ -269,37 +247,42 @@ export class ToWrite extends LitElement {
   };
 
   private btn(label: string, ico: keyof typeof UI, pressed: boolean, cmd: string, arg?: string, key?: string) {
-    return html`<button
-      type="button"
-      title=${key ? `${label} (${key})` : label}
-      aria-label=${label}
-      aria-pressed=${pressed ? 'true' : 'false'}
-      @mousedown=${(e: Event) => e.preventDefault()}
-      @click=${() => this.exec(cmd, arg)}
-    >${icon(UI[ico], 14)}</button>`;
+    return html`<sl-tooltip content=${key ? `${label} (${key})` : label} hoist>
+      <sl-button
+        class="icon"
+        size="small"
+        aria-label=${label}
+        aria-pressed=${pressed ? 'true' : 'false'}
+        @mousedown=${(e: Event) => e.preventDefault()}
+        @click=${() => this.exec(cmd, arg)}
+      >${icon(UI[ico], 16)}<span class="sr-only">${label}</span></sl-button>
+    </sl-tooltip>`;
   }
 
   render() {
     const f = this.fmt;
     return html`
-      <style>${STYLE}</style>
-      <div class="toolbar" role="toolbar" aria-label="Formatting">
-        ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Ctrl+B')}
-        ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Ctrl+I')}
-        ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Ctrl+U')}
-        ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
-        <span class="sep"></span>
-        ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Ctrl+1')}
-        ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Ctrl+2')}
-        ${this.btn('Paragraph', 'p', f.block === 'p' || f.block === 'div', 'formatBlock', 'p', 'Ctrl+0')}
-        <span class="sep"></span>
-        ${this.btn('Bulleted list', 'ul', f.block === 'ul', 'insertUnorderedList')}
-        ${this.btn('Numbered list', 'ol', f.block === 'ol', 'insertOrderedList')}
-        <span class="spacer"></span>
-        <span class="hint">Formatting costs a byte or two. Plain text goes furthest.</span>
+      <div class="to-toolbar write-toolbar" role="toolbar" aria-label="Formatting">
+        <sl-button-group label="Text style">
+          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Ctrl+B')}
+          ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Ctrl+I')}
+          ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Ctrl+U')}
+          ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
+        </sl-button-group>
+        <sl-button-group label="Block">
+          ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Ctrl+1')}
+          ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Ctrl+2')}
+          ${this.btn('Paragraph', 'p', f.block === 'p' || f.block === 'div', 'formatBlock', 'p', 'Ctrl+0')}
+        </sl-button-group>
+        <sl-button-group label="Lists">
+          ${this.btn('Bulleted list', 'ul', f.block === 'ul', 'insertUnorderedList')}
+          ${this.btn('Numbered list', 'ol', f.block === 'ol', 'insertOrderedList')}
+        </sl-button-group>
+        <span class="to-spacer"></span>
+        <span class="to-hint">Formatting costs a byte or two. Plain text goes furthest.</span>
       </div>
       <div
-        class="page ${this.value ? '' : 'blank'}"
+        class="write-page ${this.value ? '' : 'blank'}"
         contenteditable="true"
         role="textbox"
         aria-multiline="true"
@@ -310,10 +293,9 @@ export class ToWrite extends LitElement {
         @paste=${this.onPaste}
         @focus=${this.onSelection}
       ></div>
-      <div class="foot">
+      <div class="to-foot write-foot">
         <span>${this.words} ${this.words === 1 ? 'word' : 'words'}</span>
         <span>${this.chars} characters</span>
-        ${nothing}
       </div>
     `;
   }

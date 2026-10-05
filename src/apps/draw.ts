@@ -6,11 +6,11 @@
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use
  * x,y as the start and w,h as the delta to the end.
  */
-import { LitElement, html, css, svg, nothing, type PropertyValues } from 'lit';
+import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { retro } from '../lib/styles.ts';
 import { icon, UI } from '../lib/icons.ts';
 import { W, H, GRID, parseDrawing, serializeDrawing, type Kind, type Fill, type Shape } from '../lib/drawmodel.ts';
+import type { SlInput, SlSelect } from '../lib/shoelace.ts';
 
 
 const snap = (n: number) => Math.round(n / GRID) * GRID;
@@ -33,47 +33,9 @@ const TOOLS: { id: Tool; label: string; icon: keyof typeof UI; key: string }[] =
 
 @customElement('to-draw')
 export class ToDraw extends LitElement {
-  static styles = [
-    retro,
-    css`
-      .wrap {
-        padding: 10px;
-        background: var(--paper-dim);
-      }
-      svg.canvas {
-        display: block;
-        width: 100%;
-        height: auto;
-        background: var(--paper);
-        border: 1px solid var(--ink);
-        touch-action: none;
-        user-select: none;
-      }
-      svg.canvas.tool {
-        cursor: crosshair;
-      }
-      .shape {
-        cursor: move;
-      }
-      .handle {
-        cursor: nwse-resize;
-      }
-      .label input {
-        width: 180px;
-      }
-      select {
-        min-height: 24px;
-      }
-      text {
-        font: 13px var(--font);
-        pointer-events: none;
-      }
-      .foot {
-        padding: 4px 8px;
-        border-top: 1px solid var(--ink);
-      }
-    `,
-  ];
+  createRenderRoot() {
+    return this;
+  }
 
   @property() value = '';
   @state() private shapes: Shape[] = [];
@@ -123,7 +85,7 @@ export class ToDraw extends LitElement {
     const target = e.target as Element;
     const idxAttr = target.closest('[data-idx]')?.getAttribute('data-idx');
     this.svgEl.setPointerCapture(e.pointerId);
-    this.renderRoot.querySelector<HTMLElement>('.wrap')?.focus();
+    this.querySelector<HTMLElement>('.draw-wrap')?.focus();
 
     if (this.tool === 'select') {
       if (target.classList.contains('handle') && this.sel >= 0) {
@@ -188,7 +150,7 @@ export class ToDraw extends LitElement {
       this.commit([...this.shapes, s]);
       this.sel = this.shapes.length - 1;
       this.tool = 'select';
-      if (s.k === 't') this.updateComplete.then(() => this.renderRoot.querySelector<HTMLInputElement>('.label input')?.select());
+      if (s.k === 't') this.updateComplete.then(() => this.querySelector<SlInput>('.draw-label')?.select());
     } else {
       this.commit(this.shapes);
     }
@@ -240,8 +202,8 @@ export class ToDraw extends LitElement {
   }
 
   private renderShape(s: Shape, i: number, ghost = false) {
-    const fill = s.f === 2 ? 'var(--ink)' : s.f === 1 ? '#ccc' : 'var(--paper)';
-    const stroke = 'var(--ink)';
+    const fill = s.f === 2 ? 'var(--to-ink)' : s.f === 1 ? 'var(--to-surface-2)' : 'var(--to-surface)';
+    const stroke = 'var(--to-ink)';
     const common = { 'data-idx': i, class: 'shape' };
     let body;
     switch (s.k) {
@@ -266,8 +228,8 @@ export class ToDraw extends LitElement {
     const isLine = s.k === 'l' || s.k === 'a';
     const cx = s.x + s.w / 2;
     const cy = s.y + s.h / 2;
-    const textFill = s.f === 2 && !isLine && s.k !== 't' ? 'var(--paper)' : 'var(--ink)';
-    const halo = isLine ? 'paint-order: stroke; stroke: var(--paper); stroke-width: 4px;' : '';
+    const textFill = s.f === 2 && !isLine && s.k !== 't' ? 'var(--to-surface)' : 'var(--to-ink)';
+    const halo = isLine ? 'paint-order: stroke; stroke: var(--to-surface); stroke-width: 4px;' : '';
     const label = s.text
       ? svg`<text x=${cx} y=${cy} text-anchor=${s.k === 't' ? 'start' : 'middle'} dominant-baseline="middle" fill=${textFill} style=${halo}>${s.k === 't' ? svg`<tspan x=${s.x + 4}>${s.text}</tspan>` : s.text}</text>`
       : nothing;
@@ -282,46 +244,50 @@ export class ToDraw extends LitElement {
     const h = Math.abs(s.h);
     const hx = s.x + s.w;
     const hy = s.y + s.h;
-    return svg`<rect x=${x - 3} y=${y - 3} width=${w + 6} height=${h + 6} fill="none" stroke="var(--accent)" stroke-dasharray="4 3" pointer-events="none" />
-      <rect class="handle" x=${hx - 5} y=${hy - 5} width="10" height="10" fill="var(--paper)" stroke="var(--accent)" stroke-width="2" />`;
+    return svg`<rect x=${x - 3} y=${y - 3} width=${w + 6} height=${h + 6} fill="none" stroke="var(--to-accent)" stroke-dasharray="4 3" pointer-events="none" />
+      <rect class="handle" x=${hx - 5} y=${hy - 5} width="10" height="10" fill="var(--to-surface)" stroke="var(--to-accent)" stroke-width="2" />`;
   }
 
   render() {
     const s = this.sel >= 0 ? this.shapes[this.sel] : null;
     const isLine = s?.k === 'l' || s?.k === 'a';
     return html`
-      <div class="toolbar" role="toolbar" aria-label="Tools">
-        ${TOOLS.map(
-          (t) => html`<button class="icon" title="${t.label} (${t.key})" aria-label=${t.label} aria-pressed=${this.tool === t.id ? 'true' : 'false'} @click=${() => (this.tool = t.id)}>
-            ${icon(UI[t.icon], 14)}
-          </button>`,
-        )}
+      <div class="to-toolbar" role="toolbar" aria-label="Tools">
+        <sl-button-group label="Tools">
+          ${TOOLS.map(
+            (t) => html`<sl-tooltip content="${t.label} (${t.key})" hoist>
+              <sl-button class="icon" size="small" aria-label=${t.label} aria-pressed=${this.tool === t.id ? 'true' : 'false'} @click=${() => (this.tool = t.id)}>${icon(UI[t.icon], 16)}<span class="sr-only">${t.label}</span></sl-button>
+            </sl-tooltip>`,
+          )}
+        </sl-button-group>
         <span class="sep"></span>
-        <label class="label">
-          <input
-            placeholder=${s ? 'Label' : 'Select a shape to label it'}
-            aria-label="Label"
-            ?disabled=${!s}
-            .value=${s?.text ?? ''}
-            @input=${(e: Event) => this.patchSel({ text: (e.target as HTMLInputElement).value })}
-            @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-          />
-        </label>
+        <sl-input
+          class="draw-label sr-label"
+          size="small"
+          label="Label"
+          placeholder=${s ? 'Label' : 'Select a shape to label it'}
+          ?disabled=${!s}
+          .value=${s?.text ?? ''}
+          @sl-input=${(e: Event) => this.patchSel({ text: (e.target as SlInput).value })}
+          @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as SlInput).blur()}
+        ></sl-input>
         ${s && s.k !== 't'
-          ? html`<select aria-label=${isLine ? 'Line style' : 'Fill'} .value=${String(s.f)} @change=${(e: Event) => this.patchSel({ f: parseInt((e.target as HTMLSelectElement).value, 10) as Fill })}>
-              <option value="0">${isLine ? 'Solid' : 'No fill'}</option>
-              <option value="1">${isLine ? 'Dashed' : 'Grey'}</option>
-              <option value="2">${isLine ? 'Dotted' : 'Black'}</option>
-            </select>`
+          ? html`<sl-select class="draw-fill sr-label" size="small" label=${isLine ? 'Line style' : 'Fill'} .value=${String(s.f)} hoist style="width:110px" @sl-change=${(e: Event) => this.patchSel({ f: parseInt((e.target as SlSelect).value as string, 10) as Fill })}>
+              <sl-option value="0">${isLine ? 'Solid' : 'No fill'}</sl-option>
+              <sl-option value="1">${isLine ? 'Dashed' : 'Grey'}</sl-option>
+              <sl-option value="2">${isLine ? 'Dotted' : 'Black'}</sl-option>
+            </sl-select>`
           : nothing}
-        <button class="icon" ?disabled=${!s} title="Bring to front" aria-label="Bring to front" @click=${() => this.reorder(true)}>${icon(UI.front, 14)}</button>
-        <button class="icon" ?disabled=${!s} title="Send to back" aria-label="Send to back" @click=${() => this.reorder(false)}>${icon(UI.back, 14)}</button>
-        <button class="icon" ?disabled=${!s} title="Duplicate (Ctrl+D)" aria-label="Duplicate" @click=${this.duplicate}>${icon(UI.copy, 14)}</button>
-        <button class="icon" ?disabled=${!s} title="Delete (Del)" aria-label="Delete" @click=${this.removeSel}>${icon(UI.trash, 14)}</button>
+        <sl-button-group label="Arrange">
+          <sl-tooltip content="Bring to front" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Bring to front" @click=${() => this.reorder(true)}>${icon(UI.front, 16)}<span class="sr-only">Bring to front</span></sl-button></sl-tooltip>
+          <sl-tooltip content="Send to back" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Send to back" @click=${() => this.reorder(false)}>${icon(UI.back, 16)}<span class="sr-only">Send to back</span></sl-button></sl-tooltip>
+          <sl-tooltip content="Duplicate (Ctrl+D)" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Duplicate" @click=${this.duplicate}>${icon(UI.copy, 16)}<span class="sr-only">Duplicate</span></sl-button></sl-tooltip>
+          <sl-tooltip content="Delete (Del)" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Delete" @click=${this.removeSel}>${icon(UI.trash, 16)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
+        </sl-button-group>
       </div>
-      <div class="wrap" tabindex="0">
+      <div class="draw-wrap" tabindex="0">
         <svg
-          class="canvas ${this.tool === 'select' ? '' : 'tool'}"
+          class="draw-canvas ${this.tool === 'select' ? '' : 'tool'}"
           viewBox="0 0 ${W} ${H}"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
@@ -330,14 +296,14 @@ export class ToDraw extends LitElement {
           @pointermove=${this.onMove}
           @pointerup=${this.onUp}
           @pointercancel=${this.onUp}
-          @dblclick=${() => this.sel >= 0 && this.renderRoot.querySelector<HTMLInputElement>('.label input')?.select()}
+          @dblclick=${() => this.sel >= 0 && this.querySelector<SlInput>('.draw-label')?.select()}
         >
           <defs>
             <pattern id="grid" width=${GRID * 2} height=${GRID * 2} patternUnits="userSpaceOnUse">
-              <circle cx="1" cy="1" r="0.7" fill="#bbb" />
+              <circle cx="1" cy="1" r="0.8" fill="var(--to-border-strong)" />
             </pattern>
             <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink)" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--to-ink)" />
             </marker>
           </defs>
           <rect width=${W} height=${H} fill="url(#grid)" />
@@ -346,9 +312,9 @@ export class ToDraw extends LitElement {
           ${s ? this.renderSelection(s) : nothing}
         </svg>
       </div>
-      <div class="foot hint">
-        Pick a tool and drag on the canvas, or click to drop a default-sized shape. Drag the corner to resize, hold Shift for straight lines.
-        Shapes snap to an 8px grid so they stay tiny in the URL.
+      <div class="to-foot">
+        Pick a tool and drag on the canvas, or tap to drop a default-sized shape. Drag the corner to resize; hold Shift for straight lines.
+        Shapes snap to an 8px grid so they stay tiny in the link.
       </div>
     `;
   }

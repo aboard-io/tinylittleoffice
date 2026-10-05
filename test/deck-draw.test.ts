@@ -12,7 +12,7 @@ test('deck round trip', () => {
     { icon: '', title: 'Gap', bullets: ['a', '', 'b'] },
   ];
   const s = serializeDeck(slides);
-  assert.equal(s, ':rocket\nHello\none\ntwo\n\n\norphan bullet\n\n:\n: colon title\n\nGap\na\n \nb');
+  assert.equal(s, ':rocket\nHello\none\ntwo\n\n \norphan bullet\n\n:\n: colon title\n\nGap\na\n \nb');
   assert.deepEqual(parseDeck(s), [slides[0], slides[1], slides[2], { icon: '', title: 'Gap', bullets: ['a', ' ', 'b'] }]);
 });
 

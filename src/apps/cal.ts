@@ -6,10 +6,10 @@
  * viewer picks; the document remembers the zone it was last edited in so a
  * reader elsewhere can flip to the author's time with one click.
  */
-import { LitElement, html, css, nothing, type PropertyValues } from 'lit';
+import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { retro } from '../lib/styles.ts';
 import { icon, UI } from '../lib/icons.ts';
+import type { SlCheckbox, SlInput, SlSelect } from '../lib/shoelace.ts';
 import { parseCalendar, serializeCalendar, sortSpans, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Span } from '../lib/calmodel.ts';
 import { allZones, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
 
@@ -27,185 +27,9 @@ function firstWeekday(): number {
 
 @customElement('to-cal')
 export class ToCal extends LitElement {
-  static styles = [
-    retro,
-    css`
-      .toolbar .month {
-        font-weight: bold;
-        min-width: 150px;
-        text-align: center;
-      }
-      .toolbar select {
-        max-width: 200px;
-      }
-      .layout {
-        display: grid;
-        grid-template-columns: 1fr;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        border-left: 1px solid var(--ink);
-        user-select: none;
-        touch-action: none;
-      }
-      .grid .wd {
-        text-align: center;
-        font-size: 11px;
-        padding: 3px 0;
-        background: var(--paper-dim);
-        border-right: 1px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-      }
-      .cell {
-        min-height: 72px;
-        border-right: 1px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-        padding: 2px;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        cursor: cell;
-        position: relative;
-      }
-      .cell.out {
-        background: var(--paper-dim);
-        color: #777;
-      }
-      .cell.today .n {
-        background: var(--ink);
-        color: var(--paper);
-        border-radius: 50%;
-      }
-      .cell.range {
-        background: #ddd;
-      }
-      .cell .n {
-        font-size: 11px;
-        width: 18px;
-        height: 18px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        align-self: flex-end;
-      }
-      .chip {
-        font-size: 11px;
-        line-height: 1.2;
-        padding: 1px 4px;
-        border: 1px solid var(--ink);
-        background: var(--paper);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        cursor: pointer;
-        border-radius: 3px;
-      }
-      .chip.cont {
-        border-left-style: dotted;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        margin-left: -3px;
-      }
-      .chip.more {
-        border-right-style: dotted;
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        margin-right: -3px;
-      }
-      .chip.day {
-        background: #e4e4e4;
-      }
-      .chip.sel {
-        background: var(--ink);
-        color: var(--paper);
-      }
-      .chip b {
-        font-weight: normal;
-        opacity: 0.75;
-        margin-right: 3px;
-      }
-      .editor {
-        border-bottom: 1px solid var(--ink);
-        padding: 8px 10px;
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 6px 10px;
-        align-items: center;
-        background: #f6f6f6;
-      }
-      .editor label.k {
-        font-size: 11px;
-        text-align: right;
-      }
-      .editor .row {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .editor input[type='text'] {
-        width: 100%;
-        max-width: 420px;
-      }
-      .editor .actions {
-        grid-column: 1 / -1;
-        display: flex;
-        gap: 6px;
-        align-items: center;
-      }
-      .agenda {
-        padding: 6px 10px 10px;
-        border-top: 1px solid var(--ink);
-      }
-      .agenda h3 {
-        font-size: 11px;
-        margin: 0 0 4px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        opacity: 0.7;
-      }
-      .agenda ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-      .agenda li {
-        display: flex;
-        gap: 10px;
-        align-items: baseline;
-        cursor: pointer;
-        padding: 1px 4px;
-        border-radius: 3px;
-      }
-      .agenda li:hover {
-        background: var(--paper-dim);
-      }
-      .agenda li.sel {
-        background: var(--ink);
-        color: var(--paper);
-      }
-      .agenda .when {
-        font-size: 11px;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        opacity: 0.8;
-        min-width: 200px;
-      }
-      .agenda .lbl {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .foot {
-        padding: 4px 8px;
-        border-top: 1px solid var(--ink);
-      }
-    `,
-  ];
+  createRenderRoot() {
+    return this;
+  }
 
   @property() value = '';
   @state() private cal: Calendar = { zone: '', spans: [] };
@@ -291,14 +115,13 @@ export class ToCal extends LitElement {
   /* ---------- creating spans by click or drag across days ---------- */
 
   private dayAt(e: PointerEvent): number | null {
-    const root = this.shadowRoot ?? document;
-    const el = root.elementFromPoint(e.clientX, e.clientY);
-    const cell = el?.closest<HTMLElement>('.cell');
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el?.closest<HTMLElement>('.cal-cell');
     return cell ? parseInt(cell.dataset.day!, 10) : null;
   }
 
   private onCellDown(e: PointerEvent, day: number) {
-    if (e.button !== 0 || (e.target as Element).closest('.chip')) return;
+    if (e.button !== 0 || (e.target as Element).closest('.cal-chip')) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     this.drag = { from: day, to: day, moved: false };
   }
@@ -315,12 +138,12 @@ export class ToCal extends LitElement {
     const b = Math.max(d.from, d.to);
     const span: Span = { kind: 'd', start: a - EPOCH_DAY, dur: b - a + 1, label: '' };
     this.commit([...this.cal.spans, span], span);
-    this.updateComplete.then(() => this.renderRoot.querySelector<HTMLInputElement>('#label')?.focus());
+    this.updateComplete.then(() => this.querySelector<SlInput>('#label')?.focus());
   }
 
   private onKey = (e: KeyboardEvent) => {
     const t = e.composedPath()[0] as HTMLElement;
-    const inField = ['INPUT', 'SELECT', 'TEXTAREA'].includes(t.tagName);
+    const inField = ['INPUT', 'SELECT', 'TEXTAREA', 'SL-INPUT', 'SL-SELECT'].includes(t.tagName) || !!t.closest?.('sl-input, sl-select, sl-checkbox');
     if (e.key === 'Escape') {
       if (inField) t.blur();
       else this.sel = -1;
@@ -433,24 +256,27 @@ export class ToCal extends LitElement {
     const range = this.drag ? [Math.min(this.drag.from, this.drag.to), Math.max(this.drag.from, this.drag.to)] : null;
 
     return html`
-      <div class="toolbar">
-        <button class="icon" @click=${() => this.shiftMonth(-1)} aria-label="Previous month">${icon(UI.left, 14)}</button>
-        <span class="month" aria-live="polite">${monthName}</span>
-        <button class="icon" @click=${() => this.shiftMonth(1)} aria-label="Next month">${icon(UI.right, 14)}</button>
-        <button @click=${this.today}>Today</button>
-        <span class="spacer"></span>
-        <label class="hint">Times in
-          <select aria-label="Time zone" .value=${this.zone} @change=${(e: Event) => this.setZone((e.target as HTMLSelectElement).value)}>
-            ${this.zones.map((z) => html`<option value=${z} ?selected=${z === this.zone}>${z.replace(/_/g, ' ')}</option>`)}
-          </select>
-        </label>
+      <div class="to-toolbar">
+        <sl-button-group label="Month">
+          <sl-button class="icon" size="small" aria-label="Previous month" @click=${() => this.shiftMonth(-1)}>${icon(UI.left, 16)}<span class="sr-only">Previous month</span></sl-button>
+          <sl-button class="icon" size="small" aria-label="Next month" @click=${() => this.shiftMonth(1)}>${icon(UI.right, 16)}<span class="sr-only">Next month</span></sl-button>
+        </sl-button-group>
+        <span class="cal-month" aria-live="polite">${monthName}</span>
+        <sl-button size="small" @click=${this.today}>Today</sl-button>
+        <span class="to-spacer"></span>
+        <sl-select class="cal-zone sr-label" size="small" label="Time zone" .value=${this.zone} hoist @sl-change=${(e: Event) => this.setZone((e.target as SlSelect).value as string)}>
+          <span slot="prefix" class="to-hint">Times in</span>
+          ${this.zones.map((z) => html`<sl-option value=${z}>${z.replace(/_/g, ' ')}</sl-option>`)}
+        </sl-select>
         ${docZone && docZone !== this.zone && isValidZone(docZone)
-          ? html`<button @click=${() => this.setZone(docZone)} title="Show times the way the author saw them">${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</button>`
+          ? html`<sl-tooltip content="Show times the way the author saw them" hoist>
+              <sl-button size="small" @click=${() => this.setZone(docZone)}>${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</sl-button>
+            </sl-tooltip>`
           : nothing}
       </div>
       ${sel ? this.renderEditor(sel) : nothing}
-      <div class="grid" role="grid" aria-label=${monthName} @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${this.onGridUp}>
-        ${Array.from({ length: 7 }, (_, i) => html`<div class="wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}
+      <div class="cal-grid" role="grid" aria-label=${monthName} tabindex="0" @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${this.onGridUp}>
+        ${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}
         ${Array.from({ length: rows * 7 }, (_, i) => {
           const day = gridStart + i;
           const p = dayToYmd(day);
@@ -463,20 +289,14 @@ export class ToCal extends LitElement {
                 ? EPOCH_DAY + s.start <= day && day < EPOCH_DAY + s.start + s.dur
                 : spanStartMs(s) < dayEnd && Math.max(spanEndMs(s), spanStartMs(s) + 1) > dayStart,
             );
-          const cls = ['cell', p.m !== m ? 'out' : '', day === today ? 'today' : '', range && day >= range[0] && day <= range[1] ? 'range' : ''].join(' ');
-          return html`<div
-            class=${cls}
-            role="gridcell"
-            data-day=${day}
-            aria-label=${ymdString(p.y, p.m, p.d)}
-            @pointerdown=${(e: PointerEvent) => this.onCellDown(e, day)}
-          >
+          const cls = ['cal-cell', p.m !== m ? 'out' : '', day === today ? 'today' : '', range && day >= range[0] && day <= range[1] ? 'range' : ''].join(' ');
+          return html`<div class=${cls} role="gridcell" data-day=${day} aria-label=${ymdString(p.y, p.m, p.d)} @pointerdown=${(e: PointerEvent) => this.onCellDown(e, day)}>
             <span class="n">${p.d}</span>
             ${chips.map(({ s, idx }) => {
               const startsHere = s.kind === 'd' ? EPOCH_DAY + s.start === day : spanStartMs(s) >= dayStart;
               const endsHere = s.kind === 'd' ? EPOCH_DAY + s.start + s.dur - 1 === day : Math.max(spanEndMs(s), spanStartMs(s) + 1) <= dayEnd;
               return html`<div
-                class="chip ${s.kind === 'd' ? 'day' : ''} ${startsHere ? '' : 'cont'} ${endsHere ? '' : 'more'} ${idx === this.sel ? 'sel' : ''}"
+                class="cal-chip ${s.kind === 'd' ? 'day' : ''} ${startsHere ? '' : 'cont'} ${endsHere ? '' : 'more'} ${idx === this.sel ? 'sel' : ''}"
                 role="button"
                 tabindex="0"
                 title=${this.fmtRange(s)}
@@ -493,9 +313,9 @@ export class ToCal extends LitElement {
         })}
       </div>
       ${this.cal.spans.length ? this.renderAgenda() : nothing}
-      <div class="foot hint">
-        Click a day to add a span, or drag across days. All-day spans are the same date everywhere; timed spans are one instant
-        shown in the zone you pick, so a link reads correctly in any country.
+      <div class="to-foot">
+        Tap a day to add a span, or drag across days. All-day spans are the same date everywhere; timed spans are one instant shown in the zone you pick,
+        so a link reads correctly in any country.
       </div>
     `;
   }
@@ -503,34 +323,34 @@ export class ToCal extends LitElement {
   private renderEditor(s: Span) {
     const f = this.fields(s);
     const timed = s.kind === 't';
-    return html`<div class="editor" role="group" aria-label="Edit span">
-      <label class="k" for="label">Label</label>
+    return html`<div class="cal-editor" role="group" aria-label="Edit span">
+      <span class="k">Label</span>
       <div class="row">
-        <input id="label" type="text" maxlength=${MAX_LABEL} placeholder="What is happening?" .value=${s.label} @input=${(e: Event) => this.patch({ label: (e.target as HTMLInputElement).value })} />
-        <label><input type="checkbox" .checked=${!timed} @change=${(e: Event) => this.toggleAllDay((e.target as HTMLInputElement).checked)} /> All day</label>
+        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="What is happening?" .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
+        <sl-checkbox size="small" ?checked=${!timed} @sl-change=${(e: Event) => this.toggleAllDay((e.target as SlCheckbox).checked)}>All day</sl-checkbox>
       </div>
-      <label class="k">From</label>
+      <span class="k">From</span>
       <div class="row">
-        <input type="date" aria-label="Start date" .value=${f.sd} @change=${(e: Event) => this.setStart((e.target as HTMLInputElement).value, f.st)} />
-        ${timed ? html`<input type="time" aria-label="Start time" .value=${f.st} @change=${(e: Event) => this.setStart(f.sd, (e.target as HTMLInputElement).value)} />` : nothing}
+        <sl-input class="sr-label" type="date" size="small" label="Start date" .value=${f.sd} @sl-change=${(e: Event) => this.setStart((e.target as SlInput).value, f.st)}></sl-input>
+        ${timed ? html`<sl-input class="sr-label" type="time" size="small" label="Start time" .value=${f.st} @sl-change=${(e: Event) => this.setStart(f.sd, (e.target as SlInput).value)}></sl-input>` : nothing}
       </div>
-      <label class="k">To</label>
+      <span class="k">To</span>
       <div class="row">
-        <input type="date" aria-label="End date" .value=${f.ed} @change=${(e: Event) => this.setEnd((e.target as HTMLInputElement).value, f.et)} />
-        ${timed ? html`<input type="time" aria-label="End time" .value=${f.et} @change=${(e: Event) => this.setEnd(f.ed, (e.target as HTMLInputElement).value)} />` : nothing}
-        <span class="hint">${timed ? `${this.zone.replace(/_/g, ' ')} (${zoneAbbr(spanStartMs(s), this.zone)})` : 'same date in every zone'}</span>
+        <sl-input class="sr-label" type="date" size="small" label="End date" .value=${f.ed} @sl-change=${(e: Event) => this.setEnd((e.target as SlInput).value, f.et)}></sl-input>
+        ${timed ? html`<sl-input class="sr-label" type="time" size="small" label="End time" .value=${f.et} @sl-change=${(e: Event) => this.setEnd(f.ed, (e.target as SlInput).value)}></sl-input>` : nothing}
+        <span class="to-hint">${timed ? `${this.zone.replace(/_/g, ' ')} (${zoneAbbr(spanStartMs(s), this.zone)})` : 'same date in every zone'}</span>
       </div>
       <div class="actions">
-        <button @click=${this.removeSel} title="Delete (Del)">${icon(UI.trash, 14)} Delete</button>
-        <span class="spacer"></span>
-        <span class="hint">${this.fmtRange(s)}</span>
-        <button @click=${() => (this.sel = -1)}>${icon(UI.check, 14)} Done</button>
+        <sl-button size="small" variant="danger" outline @click=${this.removeSel}>${icon(UI.trash, 14)} Delete</sl-button>
+        <span class="to-spacer"></span>
+        <span class="to-hint">${this.fmtRange(s)}</span>
+        <sl-button size="small" variant="primary" @click=${() => (this.sel = -1)}>${icon(UI.check, 14)} Done</sl-button>
       </div>
     </div>`;
   }
 
   private renderAgenda() {
-    return html`<div class="agenda">
+    return html`<div class="cal-agenda">
       <h3>All spans</h3>
       <ul>
         ${this.cal.spans.map(
