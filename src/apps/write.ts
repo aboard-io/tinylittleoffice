@@ -278,8 +278,6 @@ export class ToWrite extends LitElement {
           ${this.btn('Bulleted list', 'ul', f.block === 'ul', 'insertUnorderedList')}
           ${this.btn('Numbered list', 'ol', f.block === 'ol', 'insertOrderedList')}
         </sl-button-group>
-        <span class="to-spacer"></span>
-        <span class="to-hint">Formatting costs a byte or two. Plain text goes furthest.</span>
       </div>
       <div
         class="write-page ${this.value ? '' : 'blank'}"
@@ -287,7 +285,7 @@ export class ToWrite extends LitElement {
         role="textbox"
         aria-multiline="true"
         aria-label="Document"
-        data-placeholder="Start typing. One short page is plenty."
+        data-placeholder=""
         @input=${this.onInput}
         @keydown=${this.onKey}
         @paste=${this.onPaste}

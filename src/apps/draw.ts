@@ -265,7 +265,7 @@ export class ToDraw extends LitElement {
           class="draw-label sr-label"
           size="small"
           label="Label"
-          placeholder=${s ? 'Label' : 'Select a shape to label it'}
+          placeholder="Label"
           ?disabled=${!s}
           .value=${s?.text ?? ''}
           @sl-input=${(e: Event) => this.patchSel({ text: (e.target as SlInput).value })}
@@ -311,10 +311,6 @@ export class ToDraw extends LitElement {
           ${this.drag?.mode === 'draw' ? this.renderShape(this.drag.shape, -1, true) : nothing}
           ${s ? this.renderSelection(s) : nothing}
         </svg>
-      </div>
-      <div class="to-foot">
-        Pick a tool and drag on the canvas, or tap to drop a default-sized shape. Drag the corner to resize; hold Shift for straight lines.
-        Shapes snap to an 8px grid so they stay tiny in the link.
       </div>
     `;
   }

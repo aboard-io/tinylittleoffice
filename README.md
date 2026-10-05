@@ -117,6 +117,24 @@ mismatch means the content was edited after signing or the link was altered;
 the two are indistinguishable by design. The creation time is asserted by the
 signer, not by an outside clock.
 
+## Passwords
+
+A document can be locked with a password from the document dialog. The packed
+envelope is encrypted with AES-256-GCM under a key derived from the password
+by PBKDF2-SHA-256 (600,000 iterations) with a random 16-byte salt; the link
+carries `E` + base64url(salt, 12-byte IV, ciphertext), about 60 characters
+more than the plain link. Content is compressed before encryption, so the
+link stays small, and the GCM tag means a wrong password or a damaged link is
+detected rather than producing garbage. The key is derived once per session;
+each edit re-encrypts with a fresh IV. Signing works inside the encrypted
+envelope.
+
+What this protects: the link's contents from anyone who sees the link but
+does not know the password, including browser history, chat logs and
+bookmarks. What it does not: anyone holding the link can try passwords
+offline at full speed, so a short or guessable password gives little. Nothing
+about the password ever leaves the browser.
+
 ## Project layout
 
 ```
@@ -131,6 +149,7 @@ src/apps/cal.ts       <to-cal>
 src/lib/codec.ts      text <-> URL payload (deflate + base64url)
 src/lib/envelope.ts   creation time + signature wrapper around a body
 src/lib/sign.ts       WebCrypto keys, signing, verification
+src/lib/crypt.ts      password encryption of the packed envelope
 src/lib/shoelace.ts   the Shoelace components in use
 src/lib/formula.ts    spreadsheet engine
 src/lib/richtext.ts   rich text model and markup

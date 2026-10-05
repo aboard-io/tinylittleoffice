@@ -111,7 +111,7 @@ export class ToDeck extends LitElement {
           <sl-button class="icon" size="small" aria-label="Move slide down" ?disabled=${this.cur === n - 1} @click=${() => this.move(1)}>${icon(UI.down, 14)}<span class="sr-only">Move slide down</span></sl-button>
         </sl-button-group>
         <span class="to-spacer"></span>
-        <span class="to-hint">${n} / ${MAX_SLIDES} slides</span>
+        <span class="to-hint">${n} / ${MAX_SLIDES}</span>
         <sl-button size="small" variant="primary" @click=${() => (this.showing = 0)}>${icon(UI.play, 14)} Present</sl-button>
       </div>
       <div class="deck-layout">
@@ -146,7 +146,7 @@ export class ToDeck extends LitElement {
           </div>
         </div>
       </div>
-      <sl-dialog id="icon-picker" label="Pick an icon">
+      <sl-dialog id="icon-picker" label="Icon">
         <div class="deck-picker" role="listbox" aria-label="Icon library">
           ${LIBRARY_NAMES.map(
             (name) => html`<button title=${name} aria-label=${name} aria-pressed=${s.icon === name ? 'true' : 'false'} @click=${() => this.pickIcon(name)}>${icon(LIBRARY[name], 22)}</button>`,
@@ -171,7 +171,7 @@ export class ToDeck extends LitElement {
         <sl-button class="icon" size="small" aria-label="Next" @click=${() => this.step(1)}>${icon(UI.right, 14)}<span class="sr-only">Next</span></sl-button>
         <sl-button class="icon" size="small" aria-label="Exit" @click=${() => (this.showing = -1)}>${icon(UI.close, 14)}<span class="sr-only">Exit</span></sl-button>
       </sl-button-group>
-      <span class="pos">${this.showing + 1} / ${this.slides.length} · arrow keys, Esc</span>
+      <span class="pos">${this.showing + 1} / ${this.slides.length}</span>
     </div>`;
   }
 }

@@ -265,11 +265,10 @@ export class ToCal extends LitElement {
         <sl-button size="small" @click=${this.today}>Today</sl-button>
         <span class="to-spacer"></span>
         <sl-select class="cal-zone sr-label" size="small" label="Time zone" .value=${this.zone} hoist @sl-change=${(e: Event) => this.setZone((e.target as SlSelect).value as string)}>
-          <span slot="prefix" class="to-hint">Times in</span>
-          ${this.zones.map((z) => html`<sl-option value=${z}>${z.replace(/_/g, ' ')}</sl-option>`)}
+                    ${this.zones.map((z) => html`<sl-option value=${z}>${z.replace(/_/g, ' ')}</sl-option>`)}
         </sl-select>
         ${docZone && docZone !== this.zone && isValidZone(docZone)
-          ? html`<sl-tooltip content="Show times the way the author saw them" hoist>
+          ? html`<sl-tooltip content="Author's zone" hoist>
               <sl-button size="small" @click=${() => this.setZone(docZone)}>${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</sl-button>
             </sl-tooltip>`
           : nothing}
@@ -313,10 +312,6 @@ export class ToCal extends LitElement {
         })}
       </div>
       ${this.cal.spans.length ? this.renderAgenda() : nothing}
-      <div class="to-foot">
-        Tap a day to add a span, or drag across days. All-day spans are the same date everywhere; timed spans are one instant shown in the zone you pick,
-        so a link reads correctly in any country.
-      </div>
     `;
   }
 
@@ -326,7 +321,7 @@ export class ToCal extends LitElement {
     return html`<div class="cal-editor" role="group" aria-label="Edit span">
       <span class="k">Label</span>
       <div class="row">
-        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="What is happening?" .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
+        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="Label" .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
         <sl-checkbox size="small" ?checked=${!timed} @sl-change=${(e: Event) => this.toggleAllDay((e.target as SlCheckbox).checked)}>All day</sl-checkbox>
       </div>
       <span class="k">From</span>
@@ -338,7 +333,7 @@ export class ToCal extends LitElement {
       <div class="row">
         <sl-input class="sr-label" type="date" size="small" label="End date" .value=${f.ed} @sl-change=${(e: Event) => this.setEnd((e.target as SlInput).value, f.et)}></sl-input>
         ${timed ? html`<sl-input class="sr-label" type="time" size="small" label="End time" .value=${f.et} @sl-change=${(e: Event) => this.setEnd(f.ed, (e.target as SlInput).value)}></sl-input>` : nothing}
-        <span class="to-hint">${timed ? `${this.zone.replace(/_/g, ' ')} (${zoneAbbr(spanStartMs(s), this.zone)})` : 'same date in every zone'}</span>
+        ${timed ? html`<span class="to-hint">${zoneAbbr(spanStartMs(s), this.zone)}</span>` : nothing}
       </div>
       <div class="actions">
         <sl-button size="small" variant="danger" outline @click=${this.removeSel}>${icon(UI.trash, 14)} Delete</sl-button>
@@ -351,7 +346,7 @@ export class ToCal extends LitElement {
 
   private renderAgenda() {
     return html`<div class="cal-agenda">
-      <h3>All spans</h3>
+      <h3>Spans</h3>
       <ul>
         ${this.cal.spans.map(
           (s, i) => html`<li

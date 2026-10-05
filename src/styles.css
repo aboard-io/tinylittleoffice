@@ -328,9 +328,9 @@ sl-button[aria-pressed='true']::part(label) {
 .to-launcher a {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
-  padding: 18px;
+  padding: 22px 18px;
   border: 1px solid var(--to-border);
   border-radius: var(--sl-border-radius-large);
   background: var(--to-surface);
@@ -457,12 +457,25 @@ sl-button[aria-pressed='true']::part(label) {
 }
 .to-doc dt {
   color: var(--to-ink-3);
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  min-height: 30px;
 }
 .to-doc dd {
   margin: 0;
   font-size: 14px;
   overflow-wrap: anywhere;
+  min-height: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.to-doc .row sl-input {
+  flex: 1;
+  min-width: 160px;
+}
+.to-doc #pw-input {
+  min-width: 200px;
 }
 .to-doc code {
   font-family: var(--sl-font-mono);

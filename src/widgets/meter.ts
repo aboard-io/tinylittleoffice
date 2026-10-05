@@ -38,9 +38,9 @@ export class ToMeter extends LitElement {
       <span class="text" @click=${this.info}>${left < 0 ? html`<b>${(-left).toLocaleString()} over</b>` : html`<b>${left.toLocaleString()}</b> left`}</span>
       <sl-copy-button
         value=${this.href}
-        copy-label="Copy link (the link is the document)"
+        copy-label="Copy link"
         success-label="Copied"
-        error-label="Couldn't copy; use the address bar"
+        error-label="Copy failed"
         hoist
       ></sl-copy-button>
     </div>`;

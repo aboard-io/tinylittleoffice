@@ -1,25 +1,26 @@
 /**
  * <to-app>: the shell. Owns the URL. Routes "#/<app>/<payload>" to a mini
  * app, hands it the decoded document body, and writes every change back into
- * the URL via history.replaceState. Also owns the envelope around the body:
- * creation time and an optional signature.
+ * the URL via history.replaceState. Also owns the envelope around the body
+ * (creation time, optional signature) and optional password encryption.
  */
 import { LitElement, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { budgetFor, URL_LIMIT } from './lib/codec.ts';
-import { encodeEnvelope, decodeEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
+import { budgetFor, toBase64Url, fromBase64Url } from './lib/codec.ts';
+import { packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } from './lib/sign.ts';
+import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
 import { icon, UI } from './lib/icons.ts';
-import type { SlDialog, SlDrawer } from './lib/shoelace.ts';
+import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
 export type AppId = 'sheet' | 'write' | 'deck' | 'draw' | 'cal';
 
-export const APPS: { id: AppId; name: string; blurb: string; icon: keyof typeof UI }[] = [
-  { id: 'sheet', name: 'Sheet', blurb: '20 rows, 3 columns, formulas.', icon: 'sheet' },
-  { id: 'write', name: 'Write', blurb: 'A rich-text page.', icon: 'write' },
-  { id: 'deck', name: 'Deck', blurb: 'Up to ten slides with icons.', icon: 'deck' },
-  { id: 'draw', name: 'Draw', blurb: 'Boxes, arrows and labels.', icon: 'draw' },
-  { id: 'cal', name: 'Calendar', blurb: 'Spans of time, in any zone.', icon: 'cal' },
+export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = [
+  { id: 'sheet', name: 'Sheet', icon: 'sheet' },
+  { id: 'write', name: 'Write', icon: 'write' },
+  { id: 'deck', name: 'Deck', icon: 'deck' },
+  { id: 'draw', name: 'Draw', icon: 'draw' },
+  { id: 'cal', name: 'Calendar', icon: 'cal' },
 ];
 
 type SigState = 'none' | 'checking' | 'valid' | 'invalid';
@@ -39,15 +40,22 @@ export class ToApp extends LitElement {
   @state() private env: Envelope = { created: null, body: '' };
   @state() private payloadLength = 0;
   @state() private sig: SigState = 'none';
-  @state() private signer: string | null = null; // fingerprint of the signing key in the URL
-  @state() private myKey: string | null = null; // fingerprint of this browser's key
+  @state() private signer: string | null = null;
+  @state() private myKey: string | null = null;
   @state() private keyText = '';
   @state() private keyMode: 'none' | 'export' | 'import' = 'none';
   @state() private toast = '';
   @state() private busy = false;
+  // Password protection: `sealed` holds a payload waiting for its password.
+  @state() private locker: Locker | null = null;
+  @state() private sealed = '';
+  @state() private pw = '';
+  @state() private pwError = false;
+  @state() private pwBusy = false;
   private toastTimer = 0;
   private signerApi: Signer = createSigner(localStorageStore());
   private verifyRun = 0;
+  private writeRun = 0;
 
   createRenderRoot() {
     return this;
@@ -67,18 +75,45 @@ export class ToApp extends LitElement {
   private onHash = () => {
     const { app, payload } = parseHash(location.hash);
     this.app = app;
-    this.env = decodeEnvelope(payload);
+    this.locker = null;
+    this.pw = '';
+    this.pwError = false;
     this.payloadLength = payload.length;
+    if (isSealed(payload)) {
+      this.sealed = payload;
+      this.env = { created: null, body: '' };
+      this.sig = 'none';
+      this.updateComplete.then(() => this.querySelector<SlInput>('#pw-input')?.focus());
+      return;
+    }
+    this.sealed = '';
+    this.env = this.decode(payload);
     this.checkSignature();
   };
+
+  private decode(payload: string): Envelope {
+    if (!payload) return { created: null, body: '' };
+    try {
+      return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)));
+    } catch {
+      return { created: null, body: '' };
+    }
+  }
 
   private get urlPrefix(): string {
     return `${location.origin}${location.pathname}${location.search}#/${this.app}/`;
   }
 
-  private writeUrl() {
+  private async writeUrl() {
     if (!this.app) return;
-    const payload = encodeEnvelope(this.env);
+    const run = ++this.writeRun;
+    const empty = !this.env.body && this.env.created === null && !this.env.key;
+    let payload = '';
+    if (!empty) {
+      const { flag, bytes } = packEnvelope(this.env);
+      payload = this.locker ? await seal(this.locker, flag, bytes) : flag + toBase64Url(bytes);
+      if (run !== this.writeRun) return;
+    }
     this.payloadLength = payload.length;
     history.replaceState(null, '', `#/${this.app}/${payload}`);
   }
@@ -91,6 +126,47 @@ export class ToApp extends LitElement {
     this.writeUrl();
     this.checkSignature();
   }
+
+  /* ---------- password ---------- */
+
+  private async unlock() {
+    if (!this.sealed || this.pwBusy) return;
+    this.pwBusy = true;
+    try {
+      const r = await unseal(this.pw, this.sealed);
+      if (!r) {
+        this.pwError = true;
+        return;
+      }
+      this.locker = r.locker;
+      this.env = unpackEnvelope(r.flag, r.bytes);
+      this.sealed = '';
+      this.pw = '';
+      this.pwError = false;
+      this.checkSignature();
+    } finally {
+      this.pwBusy = false;
+    }
+  }
+
+  private async setPassword() {
+    if (!this.pw || this.pwBusy) return;
+    this.pwBusy = true;
+    try {
+      this.locker = await newLocker(this.pw);
+      this.pw = '';
+      await this.writeUrl();
+    } finally {
+      this.pwBusy = false;
+    }
+  }
+
+  private removePassword() {
+    this.locker = null;
+    this.writeUrl();
+  }
+
+  /* ---------- signing ---------- */
 
   private async checkSignature() {
     const run = ++this.verifyRun;
@@ -115,11 +191,11 @@ export class ToApp extends LitElement {
       const { key, sig } = await this.signerApi.sign(signingMessage(this.app, created, this.env.body));
       this.env = { ...this.env, created, key, sig };
       this.myKey = await this.signerApi.fingerprint();
-      this.writeUrl();
+      await this.writeUrl();
       await this.checkSignature();
-      this.showToast('Signed. The signature travels in the link.');
+      this.showToast('Signed');
     } catch (err) {
-      this.showToast('Signing failed: ' + (err instanceof Error ? err.message : String(err)));
+      this.showToast(err instanceof Error ? err.message : String(err));
     } finally {
       this.busy = false;
     }
@@ -138,7 +214,7 @@ export class ToApp extends LitElement {
     this.myKey = await this.signerApi.fingerprint();
     try {
       await navigator.clipboard.writeText(this.keyText);
-      this.showToast('Key copied to the clipboard. Keep it private.');
+      this.showToast('Key copied');
     } catch {
       /* the textarea shows it anyway */
     }
@@ -149,14 +225,14 @@ export class ToApp extends LitElement {
       this.myKey = await this.signerApi.importKey(this.keyText.trim());
       this.keyMode = 'none';
       this.keyText = '';
-      this.showToast('Key imported.');
+      this.showToast('Key imported');
     } catch (err) {
-      this.showToast(err instanceof Error ? err.message : 'Could not import that key.');
+      this.showToast(err instanceof Error ? err.message : 'Invalid key');
     }
   }
 
   private forgetKey() {
-    if (!confirm('Forget this browser’s signing key? Documents it signed stay valid, but you will not be able to sign as it again unless you import the exported key.')) return;
+    if (!confirm('Forget this key?')) return;
     this.signerApi.forget();
     this.myKey = null;
     this.keyMode = 'none';
@@ -166,7 +242,7 @@ export class ToApp extends LitElement {
   private showToast(msg: string) {
     this.toast = msg;
     clearTimeout(this.toastTimer);
-    this.toastTimer = window.setTimeout(() => (this.toast = ''), 2600);
+    this.toastTimer = window.setTimeout(() => (this.toast = ''), 2000);
   }
 
   private dialog(): SlDialog | null {
@@ -182,7 +258,7 @@ export class ToApp extends LitElement {
     return html`
       <header class="to-header">
         <div class="to-header-inner">
-          <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
+          <sl-button class="to-burger icon" variant="text" size="medium" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyOffice</span></a>
           <nav class="to-nav" aria-label="Apps">
             ${APPS.map((a) => html`<a href="#/${a.id}" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 15)} ${a.name}</a>`)}
@@ -191,21 +267,22 @@ export class ToApp extends LitElement {
           ${current
             ? html`
                 <to-meter .used=${this.payloadLength} .available=${available} .href=${location.href} @to-info=${() => this.dialog()?.show()}></to-meter>
-                <sl-tooltip content="Start a blank ${current.name}" hoist>
-                  <sl-button class="icon" size="small" href="#/${current.id}" aria-label="New ${current.name}">${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
+                <sl-tooltip content="New ${current.name}" hoist>
+                  <sl-button class="icon" size="small" href="#/${current.id}">${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
                 </sl-tooltip>
               `
             : nothing}
         </div>
       </header>
-      <sl-drawer id="nav-drawer" label="TinyOffice" placement="start" style="--size: 300px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
+      <sl-drawer id="nav-drawer" label="TinyOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
-          <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home<small>All apps</small></span></a>
-          ${APPS.map((a) => html`<a href="#/${a.id}" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}<small>${a.blurb}</small></span></a>`)}
+          <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
+          ${APPS.map((a) => html`<a href="#/${a.id}" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}</span></a>`)}
         </nav>
       </sl-drawer>
       <main class="to-main">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
+      ${this.renderPasswordPrompt()}
       ${this.toast ? html`<div class="to-toast" role="status">${this.toast}</div>` : nothing}
     `;
   }
@@ -216,13 +293,14 @@ export class ToApp extends LitElement {
       <div class="to-panel-head">
         <h1>${icon(UI[current.icon], 16)} ${current.name}</h1>
         <span class="meta">
-          ${this.env.created !== null ? html`Created ${fmtDate(this.env.created)}` : 'Untitled, not yet saved to the link'}
-          ${this.sig === 'valid' ? html` · <sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
-          ${this.sig === 'invalid' ? html` · <sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
-          ${over ? html` · <sl-tag size="small" variant="danger" pill>over the ${URL_LIMIT} character limit</sl-tag>` : nothing}
+          ${this.env.created !== null ? html`${icon(UI.clock, 12)} ${fmtDate(this.env.created)}` : nothing}
+          ${this.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
+          ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
+          ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
+          ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
         </span>
       </div>
-      <div @docchange=${this.onDocChange}>${this.renderApp()}</div>
+      <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
     </section>`;
   }
 
@@ -245,56 +323,92 @@ export class ToApp extends LitElement {
   private renderHome() {
     return html`<section class="to-home">
       <h1>TinyOffice</h1>
-      <p class="lede">Five tiny apps. No server, no accounts. Every document lives entirely in its link, under ${URL_LIMIT.toLocaleString()} characters.</p>
       <div class="to-launcher">
-        ${APPS.map((a) => html`<a href="#/${a.id}"><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b><span>${a.blurb}</span></a>`)}
+        ${APPS.map((a) => html`<a href="#/${a.id}"><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
       </div>
-      <p class="to-fine">There is nothing to save: the address bar is the file. Text is compressed before it goes into the link, so you'll fit more than you'd think. Documents remember when they were created and can be signed with a key that lives in your browser.</p>
     </section>`;
+  }
+
+  private renderPasswordPrompt() {
+    return html`<sl-dialog id="pw-dialog" label="Password" ?open=${!!this.sealed} @sl-request-close=${(e: Event) => this.sealed && e.preventDefault()}>
+      <div class="to-doc">
+        <div class="row">
+          <sl-input
+            id="pw-input"
+            class="sr-label"
+            type="password"
+            label="Password"
+            password-toggle
+            autofocus
+            .value=${this.pw}
+            @sl-input=${(e: Event) => {
+              this.pw = (e.target as SlInput).value;
+              this.pwError = false;
+            }}
+            @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.unlock()}
+          ></sl-input>
+          <sl-button variant="primary" ?loading=${this.pwBusy} @click=${this.unlock}>${icon(UI.unlock, 14)} Open</sl-button>
+        </div>
+        ${this.pwError ? html`<sl-tag size="small" variant="danger" pill style="margin-top:8px">Wrong password</sl-tag>` : nothing}
+      </div>
+    </sl-dialog>`;
   }
 
   private renderDialog(available: number) {
     const left = available - this.payloadLength;
     const created = this.env.created;
-    return html`<sl-dialog id="doc-dialog" label="This document" class="to-doc">
+    return html`<sl-dialog id="doc-dialog" label="Document" class="to-doc">
       <dl>
-        <dt>Created</dt>
-        <dd>${created !== null ? html`${fmtDate(created)}<br /><span class="to-hint">${fmtUtc(created)}</span>` : 'Not yet. The time is set on the first edit.'}</dd>
-        <dt>Link size</dt>
-        <dd>${this.payloadLength.toLocaleString()} of ${available.toLocaleString()} characters used, ${left >= 0 ? `${left.toLocaleString()} left` : html`<b style="color:var(--to-danger)">${(-left).toLocaleString()} over</b>`}.</dd>
-        <dt>Signature</dt>
+        <dt>${icon(UI.clock, 14)}</dt>
+        <dd>${created !== null ? html`${fmtDate(created)} <span class="to-hint">${fmtUtc(created)}</span>` : '—'}</dd>
+        <dt>${icon(UI.link, 14)}</dt>
+        <dd>${this.payloadLength.toLocaleString()} / ${available.toLocaleString()} ${left < 0 ? html`<sl-tag size="small" variant="danger" pill>${(-left).toLocaleString()} over</sl-tag>` : nothing}</dd>
+        <dt>${icon(UI.lock, 14)}</dt>
         <dd>
-          ${this.sig === 'none' ? 'Not signed.' : nothing}
-          ${this.sig === 'checking' ? 'Checking…' : nothing}
-          ${this.sig === 'valid' ? html`Valid. Signed by key <code>${this.signer}</code>${this.signer && this.signer === this.myKey ? ' (this browser)' : ''}.` : nothing}
-          ${this.sig === 'invalid' ? html`Does not match the current content. Key <code>${this.signer}</code> signed a different version, or the link was altered.` : nothing}
+          ${this.locker
+            ? html`<div class="row"><sl-tag size="small" variant="success" pill>Locked</sl-tag><sl-button size="small" @click=${this.removePassword}>${icon(UI.unlock, 14)} Remove</sl-button></div>`
+            : html`<div class="row">
+                <sl-input
+                  class="sr-label"
+                  size="small"
+                  type="password"
+                  label="New password"
+                  placeholder="Password"
+                  password-toggle
+                  .value=${this.pw}
+                  @sl-input=${(e: Event) => (this.pw = (e.target as SlInput).value)}
+                  @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.setPassword()}
+                ></sl-input>
+                <sl-button size="small" ?loading=${this.pwBusy} ?disabled=${!this.pw} @click=${this.setPassword}>${icon(UI.lock, 14)} Lock</sl-button>
+              </div>`}
+        </dd>
+        <dt>${icon(UI.shield, 14)}</dt>
+        <dd>
+          <div class="row">
+            ${this.sig === 'none' ? html`<sl-tag size="small" pill>Unsigned</sl-tag>` : nothing}
+            ${this.sig === 'checking' ? html`<sl-tag size="small" pill>…</sl-tag>` : nothing}
+            ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>Valid</sl-tag> <code>${this.signer}</code>${this.signer && this.signer === this.myKey ? html` <sl-tag size="small" pill>this browser</sl-tag>` : nothing}` : nothing}
+            ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>Mismatch</sl-tag> <code>${this.signer}</code>` : nothing}
+            ${this.sig !== 'valid'
+              ? html`<sl-button size="small" variant="primary" ?loading=${this.busy} ?disabled=${!this.env.body} @click=${this.sign}>${icon(UI.shield, 14)} ${this.sig === 'invalid' ? 'Re-sign' : 'Sign'}</sl-button>`
+              : nothing}
+            ${this.env.sig ? html`<sl-button size="small" @click=${this.unsign}>Remove</sl-button>` : nothing}
+          </div>
+        </dd>
+        <dt>${icon(UI.key, 14)}</dt>
+        <dd>
+          <div class="row">
+            ${this.myKey ? html`<code>${this.myKey}</code>` : html`<span class="to-hint">—</span>`}
+            <sl-button size="small" @click=${this.exportKey}>Export</sl-button>
+            <sl-button size="small" @click=${() => { this.keyMode = 'import'; this.keyText = ''; }}>Import</sl-button>
+            ${this.myKey ? html`<sl-button size="small" variant="text" @click=${this.forgetKey}>Forget</sl-button>` : nothing}
+          </div>
+          ${this.keyMode !== 'none'
+            ? html`<textarea aria-label="Key" placeholder="Key" .value=${this.keyText} ?readonly=${this.keyMode === 'export'} @input=${(e: Event) => (this.keyText = (e.target as HTMLTextAreaElement).value)}></textarea>
+                ${this.keyMode === 'import' ? html`<div class="row" style="margin-top:8px"><sl-button size="small" variant="primary" @click=${this.importKey}>Use key</sl-button></div>` : nothing}`
+            : nothing}
         </dd>
       </dl>
-      <div class="row">
-        ${this.sig !== 'valid'
-          ? html`<sl-button size="small" variant="primary" ?loading=${this.busy} ?disabled=${!this.env.body} @click=${this.sign}>${icon(UI.shield, 14)} ${this.sig === 'invalid' ? 'Re-sign with my key' : 'Sign with my key'}</sl-button>`
-          : nothing}
-        ${this.env.sig ? html`<sl-button size="small" @click=${this.unsign}>Remove signature</sl-button>` : nothing}
-      </div>
-      <p class="small">
-        Signing adds about 130 characters to the link. It proves that whoever holds the key vouched for exactly this content and creation time.
-        The time itself is reported by the signer, not by a clock anyone else controls.
-      </p>
-      <sl-divider></sl-divider>
-      <dl>
-        <dt>Your key</dt>
-        <dd>${this.myKey ? html`<code>${this.myKey}</code>, kept in this browser.` : 'None yet. One is made the first time you sign.'}</dd>
-      </dl>
-      <div class="row">
-        <sl-button size="small" @click=${this.exportKey}>${icon(UI.key, 14)} Export</sl-button>
-        <sl-button size="small" @click=${() => { this.keyMode = 'import'; this.keyText = ''; }}>Import</sl-button>
-        ${this.myKey ? html`<sl-button size="small" variant="text" @click=${this.forgetKey}>Forget</sl-button>` : nothing}
-      </div>
-      ${this.keyMode !== 'none'
-        ? html`<p class="small">${this.keyMode === 'export' ? 'This is your private key. Paste it into Import on another device to sign as the same key there.' : 'Paste an exported key.'}</p>
-            <textarea aria-label="Key" .value=${this.keyText} ?readonly=${this.keyMode === 'export'} @input=${(e: Event) => (this.keyText = (e.target as HTMLTextAreaElement).value)}></textarea>
-            ${this.keyMode === 'import' ? html`<div class="row" style="margin-top:8px"><sl-button size="small" variant="primary" @click=${this.importKey}>Use this key</sl-button></div>` : nothing}`
-        : nothing}
       <sl-button slot="footer" variant="primary" @click=${() => this.dialog()?.hide()}>Done</sl-button>
     </sl-dialog>`;
   }

@@ -47,27 +47,37 @@ export function fromBase64Url(s: string): Uint8Array {
   return new Uint8Array(out);
 }
 
+export type Flag = 'z' | 'r';
+
+/** Pack text as bytes, deflated ("z") or raw ("r"), whichever is shorter. */
+export function packDoc(doc: string): { flag: Flag; bytes: Uint8Array } {
+  const raw = strToU8(doc);
+  const packed = deflateSync(raw, { level: 9, mem: 12 });
+  return packed.length < raw.length ? { flag: 'z', bytes: packed } : { flag: 'r', bytes: raw };
+}
+
+/** Inverse of packDoc. Throws on malformed input. */
+export function unpackDoc(flag: string, bytes: Uint8Array): string {
+  if (flag === 'z') return strFromU8(inflateSync(bytes));
+  if (flag === 'r') return strFromU8(bytes);
+  throw new Error('unknown flag');
+}
+
 /** Encode a document string into a URL-safe payload. */
 export function encodeDoc(doc: string): string {
   if (!doc) return '';
-  const bytes = strToU8(doc);
-  const raw = 'r' + toBase64Url(bytes);
-  const packed = 'z' + toBase64Url(deflateSync(bytes, { level: 9, mem: 12 }));
-  return packed.length < raw.length ? packed : raw;
+  const { flag, bytes } = packDoc(doc);
+  return flag + toBase64Url(bytes);
 }
 
 /** Decode a payload created by encodeDoc. Returns '' for anything unreadable. */
 export function decodeDoc(payload: string): string {
   if (!payload) return '';
   try {
-    const mode = payload[0];
-    const body = fromBase64Url(payload.slice(1));
-    if (mode === 'z') return strFromU8(inflateSync(body));
-    if (mode === 'r') return strFromU8(body);
+    return unpackDoc(payload[0], fromBase64Url(payload.slice(1)));
   } catch {
-    /* fall through */
+    return '';
   }
-  return '';
 }
 
 export interface Budget {

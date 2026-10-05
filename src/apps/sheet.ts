@@ -75,7 +75,7 @@ export class ToSheet extends LitElement {
           label="Formula"
           class="sr-label"
           .value=${this.grid[sr][sc]}
-          placeholder="Value or formula, e.g. =SUM(A1:A5)"
+          placeholder="="
           @sl-input=${(e: Event) => this.setCell(sr, sc, (e.target as SlInput).value)}
           @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.focusCell(sr + 1, sc)}
         ></sl-input>
@@ -119,10 +119,6 @@ export class ToSheet extends LitElement {
             )}
           </tbody>
         </table>
-      </div>
-      <div class="to-foot">
-        Formulas start with <code>=</code> and know + − × ÷ ^ %, ranges like <code>A1:A5</code>, and SUM AVG MIN MAX COUNT ROUND ABS SQRT INT MOD.
-        Enter and the arrow keys move between cells.
       </div>
     `;
   }

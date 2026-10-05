@@ -12,7 +12,7 @@
  * Payloads carrying an envelope use the flags "Z" (deflated) and "R" (raw);
  * the lowercase flags from before envelopes existed decode as a bare body.
  */
-import { encodeDoc, decodeDoc } from './codec.ts';
+import { packDoc, unpackDoc, toBase64Url, fromBase64Url } from './codec.ts';
 
 export const CREATED_EPOCH_MS = Date.UTC(2020, 0, 1);
 
@@ -38,21 +38,36 @@ export function decodeCreated(s: string): number | null {
   return Number.isFinite(n) && n >= 0 ? CREATED_EPOCH_MS + n * 60000 : null;
 }
 
-export function encodeEnvelope(env: Envelope): string {
-  if (env.created === null && !env.key && !env.sig) return encodeDoc(env.body);
+/** Envelope as a one-character flag plus bytes; the flag is uppercase when an envelope is present. */
+export function packEnvelope(env: Envelope): { flag: string; bytes: Uint8Array } {
+  if (env.created === null && !env.key && !env.sig) return packDoc(env.body);
   const head: string[] = [];
   if (env.created !== null) head.push('c' + encodeCreated(env.created));
   if (env.key && env.sig) head.push('k' + env.key, 's' + env.sig);
-  const text = head.join('\n') + '\n\n' + env.body;
-  const payload = encodeDoc(text);
-  return payload ? payload[0].toUpperCase() + payload.slice(1) : '';
+  const { flag, bytes } = packDoc(head.join('\n') + '\n\n' + env.body);
+  return { flag: flag.toUpperCase(), bytes };
 }
 
-export function decodeEnvelope(payload: string): Envelope {
-  if (!payload) return { created: null, body: '' };
-  const flag = payload[0];
-  if (flag !== 'Z' && flag !== 'R') return { created: null, body: decodeDoc(payload) };
-  const text = decodeDoc(flag.toLowerCase() + payload.slice(1));
+export function encodeEnvelope(env: Envelope): string {
+  if (!env.body && env.created === null && !env.key) return '';
+  const { flag, bytes } = packEnvelope(env);
+  return flag + toBase64Url(bytes);
+}
+
+export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
+  if (flag !== 'Z' && flag !== 'R') {
+    try {
+      return { created: null, body: unpackDoc(flag, bytes) };
+    } catch {
+      return { created: null, body: '' };
+    }
+  }
+  let text: string;
+  try {
+    text = unpackDoc(flag.toLowerCase(), bytes);
+  } catch {
+    return { created: null, body: '' };
+  }
   const split = text.indexOf('\n\n');
   if (split < 0) return { created: null, body: '' };
   const env: Envelope = { created: null, body: text.slice(split + 2) };
@@ -64,6 +79,15 @@ export function decodeEnvelope(payload: string): Envelope {
   }
   if (!env.key || !env.sig) delete env.key, delete env.sig;
   return env;
+}
+
+export function decodeEnvelope(payload: string): Envelope {
+  if (!payload) return { created: null, body: '' };
+  try {
+    return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)));
+  } catch {
+    return { created: null, body: '' };
+  }
 }
 
 /** The bytes a signature covers: the app, the creation time and the body. */

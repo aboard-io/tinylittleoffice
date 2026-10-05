@@ -80,7 +80,7 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await expect(page.locator('#icon-picker')).not.toHaveAttribute('open');
   await page.getByRole('button', { name: 'Slide', exact: true }).click();
   await page.getByRole('textbox', { name: 'Headline' }).fill('Second');
-  await expect(page.locator('.to-toolbar', { hasText: '2 / 10 slides' })).toHaveCount(1);
+  await expect(page.locator('.to-toolbar .to-hint')).toHaveText('2 / 10');
 
   await reopen(page);
   const thumbs = page.locator('.deck-rail .deck-thumb');
@@ -171,7 +171,7 @@ test('meter flags documents that outgrow the URL', async ({ page }) => {
     ed.dispatchEvent(new Event('input', { bubbles: true }));
   }, junk);
   await expect(meter).toHaveClass(/over/);
-  await expect(page.locator('.to-panel-head')).toContainText('over the 2048 character limit');
+  await expect(page.locator('.to-panel-head')).toContainText('over limit');
   expect(page.url().length).toBeGreaterThan(2048);
 });
 
