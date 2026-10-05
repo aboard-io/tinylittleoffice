@@ -8,7 +8,7 @@ import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, List, ListOrdered, Pilcrow,
   Table2, FileText, Presentation, PenTool, Plus, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
   Copy, Link, Play, X, MousePointer2, Square, Circle, Diamond, Minus, MoveRight, Type,
-  ArrowUpToLine, ArrowDownToLine, Check, Sparkles,
+  ArrowUpToLine, ArrowDownToLine, Check, Sparkles, CalendarDays,
   // library
   Rocket, Lightbulb, Target, TrendingUp, TrendingDown, BarChart3, PieChart, Users, User, Heart, Star,
   Flag, Globe, Mail, Phone, Calendar, Clock, MapPin, Home, Building2, Briefcase, DollarSign,
@@ -27,7 +27,7 @@ export const UI = {
   plus: Plus, trash: Trash2, left: ChevronLeft, right: ChevronRight, up: ChevronUp, down: ChevronDown,
   copy: Copy, link: Link, play: Play, close: X, select: MousePointer2, rect: Square, ellipse: Circle,
   diamond: Diamond, line: Minus, arrow: MoveRight, text: Type, front: ArrowUpToLine, back: ArrowDownToLine,
-  check: Check, sparkles: Sparkles,
+  check: Check, sparkles: Sparkles, globe: Globe, cal: CalendarDays,
 } as const;
 
 export const LIBRARY: Record<string, IconNode> = {

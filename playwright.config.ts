@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     viewport: { width: 1000, height: 800 },
+    timezoneId: 'America/New_York',
+    locale: 'en-US',
   },
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',

@@ -13,10 +13,10 @@ async function reopen(page: Page) {
   await page.goto(url);
 }
 
-test('launcher lists the four apps', async ({ page }) => {
+test('launcher lists the five apps', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('to-app .launcher a');
-  await expect(launcher).toHaveCount(4);
+  await expect(launcher).toHaveCount(5);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });

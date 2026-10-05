@@ -9,17 +9,18 @@ import { encodeDoc, decodeDoc, budgetFor, URL_LIMIT } from './lib/codec.ts';
 import { icon, UI } from './lib/icons.ts';
 import { retro } from './lib/styles.ts';
 
-export type AppId = 'sheet' | 'write' | 'deck' | 'draw';
+export type AppId = 'sheet' | 'write' | 'deck' | 'draw' | 'cal';
 
 const APPS: { id: AppId; name: string; blurb: string; icon: keyof typeof UI }[] = [
   { id: 'sheet', name: 'Sheet', blurb: '20 rows, 3 columns, formulas.', icon: 'sheet' },
   { id: 'write', name: 'Write', blurb: 'A rich-text page.', icon: 'write' },
   { id: 'deck', name: 'Deck', blurb: 'Up to ten slides with icons.', icon: 'deck' },
   { id: 'draw', name: 'Draw', blurb: 'Boxes, arrows and labels.', icon: 'draw' },
+  { id: 'cal', name: 'Calendar', blurb: 'Labelled spans of time, in any zone.', icon: 'cal' },
 ];
 
 function parseHash(hash: string): { app: AppId | null; payload: string } {
-  const m = /^#\/(sheet|write|deck|draw)(?:\/(.*))?$/.exec(hash);
+  const m = /^#\/(sheet|write|deck|draw|cal)(?:\/(.*))?$/.exec(hash);
   if (!m) return { app: null, payload: '' };
   return { app: m[1] as AppId, payload: m[2] ?? '' };
 }
@@ -325,6 +326,8 @@ export class ToApp extends LitElement {
         return html`<to-deck .value=${this.doc}></to-deck>`;
       case 'draw':
         return html`<to-draw .value=${this.doc}></to-draw>`;
+      case 'cal':
+        return html`<to-cal .value=${this.doc}></to-cal>`;
     }
     return nothing;
   }
@@ -335,7 +338,7 @@ export class ToApp extends LitElement {
         <div class="titlebar"><span class="title">TinyOffice</span></div>
         <div class="body home">
           <h1>TinyOffice</h1>
-          <p class="lede">Four tiny apps. No server. Every document lives entirely in its URL, under 2,048 characters.</p>
+          <p class="lede">Five tiny apps. No server. Every document lives entirely in its URL, under 2,048 characters.</p>
           <div class="launcher">
             ${APPS.map((a) => html`<a href="#/${a.id}">${icon(UI[a.icon], 40)}<b>${a.name}</b><span>${a.blurb}</span></a>`)}
           </div>

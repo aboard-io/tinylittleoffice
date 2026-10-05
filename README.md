@@ -2,7 +2,7 @@
 
 A tiny office suite that lives entirely in the URL.
 
-Four small apps, no server, no accounts, nothing to save. Every document is
+Five small apps, no server, no accounts, nothing to save. Every document is
 encoded into the address bar, kept under 2,048 characters. Copy the link and
 you have copied the file.
 
@@ -12,6 +12,7 @@ you have copied the file.
 | Write | A one-page rich text editor: headings, bold, italic, lists.           |
 | Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
+| Calendar | Labelled spans of time on a month grid, shown in any time zone.    |
 
 Built with TypeScript, [Lit](https://lit.dev) web components and
 [Lucide](https://lucide.dev) icons. The look is deliberately classic: one
@@ -67,6 +68,13 @@ Every format is plain text, chosen so deflate has something to chew on.
 - **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
   rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text.
   Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
+- **Calendar**: an optional `@Zone/Name` line (the zone the document was last
+  edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
+  span whose start is a day count from 2020-01-01: a floating civil date, the
+  same in every country. `t<start>,<minutes>,<label>` is a timed span whose
+  start is a minute count from 2020-01-01T00:00Z: one absolute instant, shown
+  in whichever zone the viewer picks. Numbers are base 36. Time zone maths
+  comes from the browser's `Intl` support, so no zone database is bundled.
 
 ## Project layout
 
@@ -76,11 +84,14 @@ src/apps/sheet.ts     <to-sheet>
 src/apps/write.ts     <to-write>
 src/apps/deck.ts      <to-deck>
 src/apps/draw.ts      <to-draw>
+src/apps/cal.ts       <to-cal>
 src/lib/codec.ts      document <-> URL payload
 src/lib/formula.ts    spreadsheet engine
 src/lib/richtext.ts   rich text model and markup
 src/lib/deckmodel.ts  deck model
 src/lib/drawmodel.ts  drawing model
+src/lib/calmodel.ts   calendar model
+src/lib/tz.ts         time zone helpers on top of Intl
 src/lib/icons.ts      Lucide icon helpers and the icon library
 src/lib/styles.ts     shared retro styles
 test/                 unit tests (node --test)
