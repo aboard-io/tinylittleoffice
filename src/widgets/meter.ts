@@ -5,7 +5,7 @@
  */
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { Room } from '../lib/limits.ts';
+import { roomText, type Room } from '../lib/limits.ts';
 import { icon, UI } from '../lib/icons.ts';
 
 @customElement('to-meter')
@@ -32,7 +32,7 @@ export class ToMeter extends LitElement {
     return html`<div class="to-meter ${state}" role="group" aria-label="URL space">
       <sl-tooltip hoist placement="bottom" trigger="hover" style="--max-width: 22rem">
       <div slot="content" class="to-meter-rooms">
-        ${this.rooms.map((r) => html`<div class=${r.left < 0 ? 'over' : ''}><b>${r.target.name}</b><span>${r.left < 0 ? `${(-r.left).toLocaleString()} over` : `${r.left.toLocaleString()} left`}</span><i>${r.target.note}</i></div>`)}
+        ${this.rooms.map((r) => html`<div class=${r.left < 0 ? 'over' : ''}><b>${r.target.name}</b><span>${roomText(r)}</span><i>${r.target.flat ? `${r.target.note}; ${r.left} left for your words` : r.target.note}</i></div>`)}
       </div>
       <span class="to-meter-main">
       <sl-progress-ring

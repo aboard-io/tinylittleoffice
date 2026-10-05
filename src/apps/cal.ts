@@ -9,8 +9,8 @@
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
-import type { SlCheckbox, SlInput, SlSelect } from '../lib/shoelace.ts';
-import { parseCalendar, serializeCalendar, sortSpans, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Span } from '../lib/calmodel.ts';
+import type { SlCheckbox, SlInput } from '../lib/shoelace.ts';
+import { CAL_COLORS, parseCalendar, serializeCalendar, sortSpans, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Span } from '../lib/calmodel.ts';
 import { allZones, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
 
 const DAY_MS = 86400000;
@@ -36,6 +36,8 @@ export class ToCal extends LitElement {
   @state() private zone = localZone();
   @state() private view = { y: 2026, m: 1 };
   @state() private sel = -1;
+  /** The colour new spans are given: whoever is adding dates picks theirs. */
+  @state() private ink = '';
   @state() private drag: { from: number; to: number; moved: boolean } | null = null;
   private lastEmitted = '';
   private zones = allZones();
@@ -77,7 +79,7 @@ export class ToCal extends LitElement {
 
   private commit(spans: Span[], keep?: Span) {
     sortSpans(spans);
-    this.cal = { zone: this.zone, spans };
+    this.cal = { zone: this.zone, spans, legend: this.cal.legend };
     this.sel = keep ? spans.indexOf(keep) : -1;
     this.lastEmitted = serializeCalendar(this.cal);
     this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
@@ -112,6 +114,27 @@ export class ToCal extends LitElement {
     this.zone = z;
   }
 
+  /** The time zone box takes anything typed: a zone's name, with or without underscores, or just its city. */
+  private onZone(e: Event) {
+    const box = e.target as HTMLInputElement;
+    const typed = box.value.trim().replace(/ /g, '_').toLowerCase();
+    const found = this.zones.find((z) => z.toLowerCase() === typed) ?? this.zones.find((z) => z.toLowerCase().split('/').pop() === typed) ?? (typed === 'utc' ? 'UTC' : undefined);
+    if (found) this.setZone(found);
+    box.value = this.zone.replace(/_/g, ' ');
+  }
+
+  /** Say what a colour stands for ("Paul", "Travel"). */
+  private nameColor(key: string, name: string) {
+    this.cal = { ...this.cal, legend: { ...this.cal.legend, [key]: name } };
+    this.commit(this.cal.spans, this.sel >= 0 ? this.cal.spans[this.sel] : undefined);
+  }
+
+  private swatches(current: string, pick: (key: string) => void, label: string) {
+    return html`<div class="draw-colors" role="radiogroup" aria-label=${label}>
+      ${Object.entries(CAL_COLORS).map(([key, c]) => html`<button type="button" role="radio" title=${this.cal.legend?.[key] || c.name} aria-label=${this.cal.legend?.[key] ? `${this.cal.legend[key]} (${c.name})` : c.name} aria-checked=${current === key ? 'true' : 'false'} style="--c:${c.hex}" @click=${() => pick(key)}></button>`)}
+    </div>`;
+  }
+
   /* ---------- creating spans by click or drag across days ---------- */
 
   private dayAt(e: PointerEvent): number | null {
@@ -136,7 +159,7 @@ export class ToCal extends LitElement {
     if (!d) return;
     const a = Math.min(d.from, d.to);
     const b = Math.max(d.from, d.to);
-    const span: Span = { kind: 'd', start: a - EPOCH_DAY, dur: b - a + 1, label: '' };
+    const span: Span = { kind: 'd', start: a - EPOCH_DAY, dur: b - a + 1, label: '', ...(this.ink ? { color: this.ink } : {}) };
     this.commit([...this.cal.spans, span], span);
     this.updateComplete.then(() => this.querySelector<SlInput>('#label')?.focus());
   }
@@ -264,15 +287,15 @@ export class ToCal extends LitElement {
         <span class="cal-month" aria-live="polite">${monthName}</span>
         <sl-button size="small" @click=${this.today}>Today</sl-button>
         <span class="to-spacer"></span>
-        <sl-select class="cal-zone sr-label" size="small" label="Time zone" .value=${this.zone} hoist @sl-change=${(e: Event) => this.setZone((e.target as SlSelect).value as string)}>
-                    ${this.zones.map((z) => html`<sl-option value=${z}>${z.replace(/_/g, ' ')}</sl-option>`)}
-        </sl-select>
+        <input class="cal-zone" aria-label="Time zone" list="cal-zones" autocomplete="off" spellcheck="false" .value=${this.zone.replace(/_/g, ' ')} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} @change=${this.onZone} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+        <datalist id="cal-zones">${this.zones.map((z) => html`<option value=${z.replace(/_/g, ' ')}></option>`)}</datalist>
         ${docZone && docZone !== this.zone && isValidZone(docZone)
           ? html`<sl-tooltip content="Author's zone" hoist>
               <sl-button size="small" @click=${() => this.setZone(docZone)}>${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</sl-button>
             </sl-tooltip>`
           : nothing}
       </div>
+      ${this.renderLegend()}
       ${sel ? this.renderEditor(sel) : nothing}
       <div class="cal-grid" role="grid" aria-label=${monthName} tabindex="0" @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${this.onGridUp}>
         <div class="cal-row" role="row">${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}</div>
@@ -295,7 +318,8 @@ export class ToCal extends LitElement {
               const startsHere = s.kind === 'd' ? EPOCH_DAY + s.start === day : spanStartMs(s) >= dayStart;
               const endsHere = s.kind === 'd' ? EPOCH_DAY + s.start + s.dur - 1 === day : Math.max(spanEndMs(s), spanStartMs(s) + 1) <= dayEnd;
               return html`<div
-                class="cal-chip ${s.kind === 'd' ? 'day' : ''} ${startsHere ? '' : 'cont'} ${endsHere ? '' : 'more'} ${idx === this.sel ? 'sel' : ''}"
+                class="cal-chip ${s.kind === 'd' ? 'day' : ''} ${startsHere ? '' : 'cont'} ${endsHere ? '' : 'more'} ${idx === this.sel ? 'sel' : ''} ${s.color ? 'tint' : ''}"
+                style=${s.color ? `--c:${CAL_COLORS[s.color].hex}` : ''}
                 role="button"
                 tabindex="0"
                 title=${this.fmtRange(s)}
@@ -313,6 +337,16 @@ export class ToCal extends LitElement {
       </div>
       ${this.cal.spans.length ? this.renderAgenda() : nothing}
     `;
+  }
+
+  /** Whose dates are whose: pick the colour you add in, and say what it stands for. */
+  private renderLegend() {
+    return html`<div class="cal-legend">
+      <span class="to-hint">Add in</span>
+      ${this.swatches(this.ink, (key) => (this.ink = key), 'Colour for new spans')}
+      <input class="who" aria-label="What this colour stands for" placeholder="Name this colour (yours, say)" maxlength="24" .value=${this.cal.legend?.[this.ink] ?? ''} @change=${(e: Event) => this.nameColor(this.ink, (e.target as HTMLInputElement).value)} />
+      ${Object.entries(this.cal.legend ?? {}).filter(([key, name]) => name && this.cal.spans.some((s) => (s.color ?? '') === key)).map(([key, name]) => html`<span class="key"><i style="background:${CAL_COLORS[key].hex}"></i>${name}</span>`)}
+    </div>`;
   }
 
   private renderEditor(s: Span) {
@@ -336,6 +370,8 @@ export class ToCal extends LitElement {
         ${timed ? html`<sl-input class="sr-label" type="time" size="small" label="End time" .value=${f.et} @sl-change=${(e: Event) => this.setEnd(f.ed, (e.target as SlInput).value)}></sl-input>` : nothing}
         ${timed ? html`<span class="to-hint">${zoneAbbr(spanStartMs(s), this.zone)}</span>` : nothing}
       </div>
+      <span class="k">Colour</span>
+      <div class="row">${this.swatches(s.color ?? '', (key) => { this.ink = key; this.patch({ color: key || undefined }); }, 'Colour of this span')}</div>
       <div class="actions">
         <sl-button size="small" variant="danger" outline @click=${this.removeSel}>${icon(UI.trash, 14)} Delete</sl-button>
         <span class="to-spacer"></span>

@@ -10,8 +10,10 @@ export function boardToMarkdown(body: string): string {
 
 export const boardToCsv = (body: string) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, c]))]);
 
-function page(body: string): Page {
+/** The board as a page; `upTo` cards of it (counting stage by stage) while it builds. */
+function page(body: string, upTo = Infinity): Page {
   const stages = parseBoard(body);
+  let shown = 0;
   const COL = 220;
   let svg = '';
   let tall = 0;
@@ -22,7 +24,7 @@ function page(body: string): Page {
     for (const c of s.cards) {
       const lines = wrapText(c, COL - 40, 14).slice(0, 4);
       const h = lines.length * 19 + 18;
-      cards += rect(left + 8, y, COL - 16, h, '#fff', `rx="6" stroke="${LINE}"`) + lines.map((l, k) => text(left + 20, y + 22 + k * 19, l, { px: 14 })).join('');
+      if (shown++ < upTo) cards += rect(left + 8, y, COL - 16, h, '#fff', `rx="6" stroke="${LINE}"`) + lines.map((l, k) => text(left + 20, y + 22 + k * 19, l, { px: 14 })).join('');
       y += h + 8;
     }
     tall = Math.max(tall, y);
@@ -35,12 +37,15 @@ function page(body: string): Page {
 
 export default defineApp({
   id: 'board',
+  group: 'Time management',
   name: 'Board',
   icon: 'board',
   blurb: 'A kanban board: the stages of a workflow, cards, and limits per stage.',
   title: () => '',
   outline: (body) => parseBoard(body).map((s) => `${s.name}  ·  ${s.cards.length}`),
-  view: (body) => [page(body)],
+  view: (body, opts = {}) => [page(body, opts.step)],
+  // On a slide, the stages are there and their cards arrive one at a time.
+  steps: (body) => parseBoard(body).reduce((n, s) => n + s.cards.length, 0),
   html: (body) => `<h1>Board</h1>\n${parseBoard(body).map((s) => `<section>\n<h2>${xml(s.name)}</h2>\n<ul>\n${s.cards.map((c) => `<li>${xml(c)}</li>`).join('\n')}\n</ul>\n</section>`).join('\n')}`,
   downloads: [
     { ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(boardToMarkdown(b)) },

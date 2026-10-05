@@ -33,6 +33,10 @@ function appPages(site: string): Plugin {
         mkdirSync(resolve(dist, app.id), { recursive: true });
         writeFileSync(resolve(dist, app.id, 'index.html'), page);
       }
+      // The guide to making documents by URL, where programs look for one: /llms.txt.
+      // It is the skill in skill/tinyoffice, without the heading a skill needs.
+      const skill = readFileSync(resolve(import.meta.dirname, 'skill/tinyoffice/SKILL.md'), 'utf8');
+      writeFileSync(resolve(dist, 'llms.txt'), skill.replace(/^---[\s\S]*?---\n+/, '').replaceAll('https://tinyoffice.exe.xyz/', site));
     },
   };
 }

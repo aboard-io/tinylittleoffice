@@ -13,6 +13,8 @@ export interface Target {
   /** What a link costs against `max`. */
   cost(url: string): number;
   note: string;
+  /** The service charges the same for any link, however long: the document can grow freely. */
+  flat?: boolean;
 }
 
 const full = (url: string) => url.length;
@@ -34,9 +36,9 @@ export function blueskyCost(url: string): number {
 
 export const TARGETS: Target[] = [
   { id: 'link', name: 'Any browser', max: 2048, cost: full, note: 'the classic safe length for a link' },
-  { id: 'bluesky', name: 'Bluesky', max: 300, cost: blueskyCost, note: 'shown shortened' },
-  { id: 'mastodon', name: 'Mastodon', max: 500, cost: () => 23, note: 'any link counts as 23' },
-  { id: 'x', name: 'X', max: 280, cost: () => 23, note: 'any link counts as 23' },
+  { id: 'bluesky', name: 'Bluesky', max: 300, cost: blueskyCost, note: 'shows a short form of any link', flat: true },
+  { id: 'mastodon', name: 'Mastodon', max: 500, cost: () => 23, note: 'any link counts as 23', flat: true },
+  { id: 'x', name: 'X', max: 280, cost: () => 23, note: 'any link counts as 23', flat: true },
   { id: 'sms', name: 'Text message', max: 160, cost: full, note: 'one SMS' },
   { id: 'discord', name: 'Discord', max: 2000, cost: full, note: 'one message' },
   { id: 'telegram', name: 'Telegram', max: 4096, cost: full, note: 'one message' },
@@ -55,4 +57,10 @@ export function roomFor(url: string): Room[] {
     const used = target.cost(url);
     return { target, used, left: target.max - used };
   });
+}
+
+/** A room, in a few words: how much is left, or that the link's length does not matter there. */
+export function roomText(r: Room): string {
+  if (r.target.flat) return `any length fits`;
+  return r.left < 0 ? `${(-r.left).toLocaleString('en-US')} over` : `${r.left.toLocaleString('en-US')} left`;
 }

@@ -3,7 +3,7 @@ import { defineApp, xml, wrapText, text, place, pageSvg, rect, r, ACCENT, MUTED,
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { refPage, refSteps, resolve } from '../kit/embed.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { parseDeck, type Slide } from '../lib/deckmodel.ts';
+import { ICON_COLORS, deckIconColor, parseDeck, type Slide } from '../lib/deckmodel.ts';
 
 const x = xml;
 
@@ -12,6 +12,8 @@ const x = xml;
 export const SW = 960;
 export const SH = 600;
 const M = 64;
+/** The margin around a document that has a slide to itself. */
+const PAD = 20;
 
 interface Box {
   x: number;
@@ -33,9 +35,11 @@ const live = (list: string[] = []) => list.filter((b) => b.trim() !== '');
 
 /** Where everything on a slide goes, and how big the type is. */
 export function layoutSlide(s: Slide): SlideLayout {
+  // A document shown on a slide takes the whole slide: no headline, no bullets.
+  if (s.sub) return { titlePx: 0, bodyPx: 0, title: { x: 0, y: 0, w: 0, h: 0, lines: [], center: false }, cols: [], sub: { x: PAD, y: PAD, w: SW - 2 * PAD, h: SH - 2 * PAD } };
   const kind = s.layout ?? '';
   const left = live(s.bullets);
-  const right = kind === '2' && !s.sub ? live(s.right) : [];
+  const right = kind === '2' ? live(s.right) : [];
   const fitTitle = (w: number, sizes: number[], maxLines: number) => {
     for (const px of sizes) {
       const lines = wrapText(s.title, w, px, true);
@@ -76,41 +80,41 @@ export function layoutSlide(s: Slide): SlideLayout {
   const top = M + headH + 28;
   const bodyH = SH - top - 48;
   const half = (SW - 2 * M - 40) / 2;
-  const aside = !!s.sub || kind === 'i';
-  const split = aside || kind === '2';
-  const colsIn: (Box & { src: string[] })[] = [{ x: M, y: top, w: split && (left.length || !s.sub) ? half : SW - 2 * M, h: bodyH, src: left }];
-  if (kind === '2' && !s.sub) colsIn.push({ x: M + half + 40, y: top, w: half, h: bodyH, src: right });
+  const split = kind === 'i' || kind === '2';
+  const colsIn: (Box & { src: string[] })[] = [{ x: M, y: top, w: split ? half : SW - 2 * M, h: bodyH, src: left }];
+  if (kind === '2') colsIn.push({ x: M + half + 40, y: top, w: half, h: bodyH, src: right });
   const body = fitBody(colsIn, [34, 30, 26, 23, 20, 18, 16, 14], true);
-  const sideBox: Box = left.length || kind === 'i' ? { x: M + half + 40, y: top, w: half, h: bodyH } : { x: M, y: top, w: SW - 2 * M, h: bodyH };
+  const sideBox: Box = { x: M + half + 40, y: top, w: half, h: bodyH };
   return {
     titlePx: t.px,
     bodyPx: body.px,
     title: { x: tx, y: M + (headH - t.lines.length * t.px * 1.15) / 2, w: SW - M - tx, h: headH, lines: t.lines, center: false },
     cols: body.cols,
-    icon: headIcon ? { x: M, y: M + (headH - 72) / 2, w: 72, h: 72 } : kind === 'i' && s.icon && !s.sub ? { x: sideBox.x + (sideBox.w - 260) / 2, y: sideBox.y + (sideBox.h - 260) / 2, w: 260, h: 260 } : undefined,
-    sub: s.sub ? sideBox : undefined,
+    icon: headIcon ? { x: M, y: M + (headH - 72) / 2, w: 72, h: 72 } : kind === 'i' && s.icon ? { x: sideBox.x + (sideBox.w - 260) / 2, y: sideBox.y + (sideBox.h - 260) / 2, w: 260, h: 260 } : undefined,
   };
 }
 
-/** What a slide reveals as it is presented: its bullets, then whatever its embedded document builds. */
-export function slideSteps(s: Slide): { bullets: number; sub: number; auto: boolean } {
-  const bullets = s.layout === 't' ? 0 : live(s.bullets).length + (s.layout === '2' && !s.sub ? live(s.right).length : 0);
-  const sub = s.sub ? refSteps(s.sub) : { steps: 0, auto: false };
-  return { bullets, sub: sub.steps, auto: sub.auto };
+/**
+ * What a slide reveals, a click at a time: its bullets, or, when a document
+ * has the slide, whatever that document is made of (shapes, rows, stops).
+ */
+export function slideSteps(s: Slide): { bullets: number; sub: number } {
+  if (s.sub) return { bullets: 0, sub: refSteps(s.sub) };
+  return { bullets: s.layout === 't' ? 0 : live(s.bullets).length + (s.layout === '2' ? live(s.right).length : 0), sub: 0 };
 }
 
-const iconAt = (name: string, b: Box) =>
-  ICON_SVG[name] ? `<g transform="translate(${r(b.x)} ${r(b.y)}) scale(${r(b.w / 24)})" fill="none" stroke="${ACCENT}" stroke-width="${b.w > 150 ? 1.5 : 2}" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name]}</g>` : '';
+const iconAt = (name: string, b: Box, color = ACCENT) =>
+  ICON_SVG[name] ? `<g transform="translate(${r(b.x)} ${r(b.y)}) scale(${r(b.w / 24)})" fill="none" stroke="${color}" stroke-width="${b.w > 150 ? 1.5 : 2}" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name]}</g>` : '';
 
 /**
  * A slide as a page. `bullets` and `sub` say how much has been revealed
  * (absent: everything). Unrevealed things keep their place, so nothing
  * moves as the slide builds.
  */
-export function slidePage(s: Slide, bullets = Infinity, sub?: number): Page {
+export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = ''): Page {
   const L = layoutSlide(s);
   const cover = s.layout === 't';
-  let svg = L.icon ? iconAt(s.icon, L.icon) : '';
+  let svg = L.icon ? iconAt(s.icon, L.icon, ICON_COLORS[tint]?.hex) : '';
   L.title.lines.forEach((line, i) => (svg += text(L.title.center ? SW / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), line, { px: L.titlePx, bold: true, anchor: L.title.center ? 'middle' : 'start' })));
   let n = 0;
   for (const col of L.cols) {
@@ -153,7 +157,7 @@ const para = (line: string, pPr = '', size = 0) => {
   return line ? `<a:p>${pPr}<a:r><a:rPr ${rPr}/><a:t>${x(line)}</a:t></a:r></a:p>` : `<a:p>${pPr}<a:endParaRPr ${rPr}/></a:p>`;
 };
 
-const THEME = `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TinyOffice"><a:themeElements><a:clrScheme name="TinyOffice"><a:dk1><a:srgbClr val="18181B"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="4F46E5"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="4F46E5"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="TinyOffice"><a:majorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TinyOffice"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+const THEME = `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TinyOffice"><a:themeElements><a:clrScheme name="TinyOffice"><a:dk1><a:srgbClr val="18181B"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="4F46E5"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="4F46E5"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="TinyOffice"><a:majorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TinyOffice"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
 
 const TITLE_FRAME = xfrm(MARGIN, 685800, SLIDE_W - 2 * MARGIN, ICON);
 const BODY_FRAME = xfrm(MARGIN, 2133600, SLIDE_W - 2 * MARGIN, SLIDE_H - 2133600 - 685800);
@@ -170,7 +174,7 @@ const pic = (id: number, rel: string, name: string, frame: string) =>
 function pictures(body: string): Record<string, { svg: string; w: number; h: number }> {
   const out: Record<string, { svg: string; w: number; h: number }> = {};
   parseDeck(body).forEach((s, i) => {
-    if (s.icon && ICON_SVG[s.icon]) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[s.icon]}</svg>` };
+    if (s.icon && ICON_SVG[s.icon]) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" stroke="${ICON_COLORS[deckIconColor(body)]?.hex ?? ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[s.icon]}</svg>` };
     if (s.sub) {
       const p = refPage(s.sub);
       out[`sub-${i + 1}`] = { w: p.w * 2, h: p.h * 2, svg: pageSvg(p) };
@@ -207,15 +211,17 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
       const k = Math.min(L.sub.w / p.w, L.sub.h / p.h);
       addPicture(`sub-${n}`, { x: L.sub.x + (L.sub.w - p.w * k) / 2, y: L.sub.y + (L.sub.h - p.h * k) / 2, w: p.w * k, h: p.h * k }, resolve(s.sub).title);
     }
-    const lines = [...live(s.bullets), ...(s.layout === '2' && !s.sub ? live(s.right) : [])];
+    const lines = s.sub ? [] : [...live(s.bullets), ...(s.layout === '2' ? live(s.right) : [])];
     const centre = cover ? '<a:pPr marL="0" indent="0" algn="ctr"><a:buNone/></a:pPr>' : '';
-    const paras = (lines.length ? lines : ['']).map((b) => para(b, centre, Math.round(L.bodyPx * 75))).join('');
-    const col = L.cols[0];
+    const paras = (lines.length ? lines : ['']).map((b) => para(b, centre, Math.round((L.bodyPx || 20) * 75))).join('');
+    // (A slide given over to a document keeps empty placeholders, tucked along the bottom edge.)
+    const col = L.cols[0] ?? { x: M, y: SH - 40, w: SW - 2 * M, h: 20 };
     const bodyW = L.cols.length > 1 ? L.cols[1].x + L.cols[1].w - col.x : col.w;
-    const titleFrame = xfrm(E(L.title.x), E(L.title.y), E(L.title.w), E(Math.max(L.title.h, 60)));
+    const titleBox = s.sub ? col : L.title;
+    const titleFrame = xfrm(E(titleBox.x), E(titleBox.y), E(titleBox.w), E(Math.max(titleBox.h, 60)));
     const bodyFrame = xfrm(E(col.x), E(col.y), E(bodyW), E(Math.max(col.h, 80)));
     files[`ppt/slides/slide${n}.xml`] =
-      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${placeholder(2, 'title', para(s.title, cover ? '<a:pPr algn="ctr"/>' : '', Math.round(L.titlePx * 75)), titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}${pics}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${placeholder(2, 'title', para(s.sub ? '' : s.title, cover ? '<a:pPr algn="ctr"/>' : '', Math.round((L.titlePx || 20) * 75)), titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}${pics}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
     files[`ppt/slides/_rels/slide${n}.xml.rels`] = rels(links);
     slideRels.push([`rId${n + 2}`, 'slide', `slides/slide${n}.xml`]);
     types += `<Override PartName="/ppt/slides/slide${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
@@ -243,12 +249,14 @@ const title = (body: string) => parseDeck(body).find((s) => s.title.trim())?.tit
 
 export default defineApp({
   id: 'deck',
+  group: 'Documents',
   name: 'Deck',
   icon: 'deck',
   blurb: 'Slides: titles, bullets, two columns, big icons, and other documents shown on a slide.',
   title,
   outline: (body) => parseDeck(body).flatMap((s) => [s.title, ...[...s.bullets, ...(s.right ?? [])].map((b) => (b.trim() ? '•  ' + b : ''))]).map((l) => l.trim()).filter(Boolean),
-  view: (body) => parseDeck(body).map((s) => slidePage(s)),
+  view: (body) => parseDeck(body).map((s) => slidePage(s, Infinity, undefined, deckIconColor(body))),
+  presents: true,
   html: (body) =>
     parseDeck(body)
       .map((s, i) => {

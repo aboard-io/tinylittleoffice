@@ -5,6 +5,7 @@ import { strFromU8, unzipSync } from 'fflate';
 import '../src/apps/index.ts';
 import { apps, appOf, extOf, fileName, docHtml, pageSvg } from '../src/kit/core.ts';
 import { pdf } from '../src/kit/pdf.ts';
+import { specOf } from '../src/lib/diagram.ts';
 import { calendarToIcs } from '../src/apps/cal.def.ts';
 import { deckToPptx } from '../src/apps/deck.def.ts';
 import { docToHtml, docToRtf } from '../src/apps/write.def.ts';
@@ -14,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet', 'write', 'deck', 'draw', 'cal', 'todo', 'board', 'gantt', 'trip', 'anim']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet', 'write', 'deck', 'draw', 'cal', 'todo', 'board', 'gantt', 'trip', 'anim', 'org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky', 'faq', 'site', 'store', 'invoice', 'contract', 'zine']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -42,9 +43,10 @@ test('every app draws itself, and is a web page with preview tags', () => {
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch\n>1jm,3,0,Review',
     trip: '!m\n3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
     anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift <off>\t4,14,p,a',
+    zine: ':star\nSmall <Joys>\nIssue one\n\nCoffee\nThe first cup.',
   };
   for (const def of apps()) {
-    for (const body of [samples[def.id], '']) {
+    for (const body of [samples[def.id] ?? specOf(def.id)!.example, '']) {
       const pages = def.view(body);
       assert.ok(pages.length >= 1, def.id);
       for (const p of pages) {

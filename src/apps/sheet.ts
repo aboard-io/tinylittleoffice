@@ -12,8 +12,10 @@
  */
 import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { COLS, ROWS, COL_NAMES, FUNCTIONS, chartOf, evaluateGrid, formatValue, parseGrid, serializeGrid, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, type Grid, type CellValue, type Range } from '../lib/formula.ts';
-import { CHART_KINDS, chartData, chartPage, suggestChart, type ChartKind } from '../lib/chart.ts';
+import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, evaluateGrid, formatCell, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, type Grid, type CellValue, type Range } from '../lib/formula.ts';
+import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
+import { chartOfSheet } from './sheet.def.ts';
+import { linkify, parseDoc } from '../lib/richtext.ts';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import type { SlSelect } from '../lib/shoelace.ts';
 import { icon, UI } from '../lib/icons.ts';
@@ -40,7 +42,9 @@ export class ToSheet extends LitElement {
   @state() private widths: number[] | null = null;
   /** The chart asked for: 'bar', 'line', 'pie' or ''. */
   @state() private chart = '';
-  private computed: CellValue[][] = evaluateGrid(this.grid);
+  /** What each column holds: an id from COLUMN_TYPES per column. */
+  @state() private types: string[] = typesOf('');
+  private computed: CellValue[][] = evaluateGrid(this.grid, this.types);
   private lastEmitted = '';
   /** The reference most recently inserted by tapping, so the next tap can replace it. */
   private picked: { r: number; c: number; start: number; end: number; to: [number, number] } | null = null;
@@ -55,10 +59,10 @@ export class ToSheet extends LitElement {
     if (changed.has('value') && this.value !== this.lastEmitted) {
       this.grid = parseGrid(this.value);
       this.chart = chartOf(this.value);
+      this.types = typesOf(this.value);
       this.lastEmitted = this.value;
-      this.computed = evaluateGrid(this.grid);
     }
-    if (changed.has('grid')) this.computed = evaluateGrid(this.grid);
+    if (changed.has('grid') || changed.has('types') || changed.has('value')) this.computed = evaluateGrid(this.grid, this.types);
   }
 
   private setCell(r: number, c: number, raw: string) {
@@ -67,10 +71,11 @@ export class ToSheet extends LitElement {
     this.save(grid, this.chart);
   }
 
-  private save(grid: Grid, chart: string) {
+  private save(grid: Grid, chart = this.chart, types = this.types) {
     this.grid = grid;
     this.chart = chart;
-    this.lastEmitted = serializeGrid(grid, chart);
+    this.types = types;
+    this.lastEmitted = serializeGrid(grid, chart, types);
     this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
   }
 
@@ -129,7 +134,29 @@ export class ToSheet extends LitElement {
     e.stopPropagation();
     const handle = e.currentTarget as HTMLElement;
     const src = this.range;
-    handle.setPointerCapture(e.pointerId);
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      /* the pointer has already gone; the listeners below still see what follows */
+    }
+    if (e.pointerType !== 'mouse') {
+      // Under a finger, dragging across cells scrolls, so the handle is how a block is stretched,
+      // any way at all. (Filling is then a button: see the Fill buttons in the bar.)
+      const stretch = (ev: PointerEvent) => {
+        const at = this.cellAt(ev.clientX, ev.clientY);
+        if (at) this.end = at;
+      };
+      const done = () => {
+        handle.removeEventListener('pointermove', stretch);
+        handle.removeEventListener('pointerup', done);
+        handle.removeEventListener('pointercancel', done);
+      };
+      this.sel = [src.r0, src.c0];
+      handle.addEventListener('pointermove', stretch);
+      handle.addEventListener('pointerup', done);
+      handle.addEventListener('pointercancel', done);
+      return;
+    }
     const move = (ev: PointerEvent) => {
       const at = this.cellAt(ev.clientX, ev.clientY);
       if (!at) return;
@@ -152,6 +179,24 @@ export class ToSheet extends LitElement {
     handle.addEventListener('pointermove', move);
     handle.addEventListener('pointerup', up);
     handle.addEventListener('pointercancel', up);
+  }
+
+  /** Carry the block's first row down it, or its first column across it. */
+  private fill(down: boolean) {
+    const g = this.range;
+    this.save(fillCells(this.grid, down ? { ...g, r1: g.r0 } : { ...g, c1: g.c0 }, g));
+  }
+
+  private setType(c: number, type: string) {
+    this.save(this.grid, this.chart, this.types.map((t, i) => (i === c ? type : t)));
+  }
+
+  /** A cell of rich text, drawn: *bold* and _italic_ shown as such, addresses as links. */
+  private rich(raw: string) {
+    return parseDoc(raw.replace(/^(#+ |[-+]+ |@@)/, '\\$1'))[0].runs.map((run) => {
+      const inner = linkify(run.t).map((p) => (p.url ? html`<a href=${p.url} target="_blank" rel="noopener">${p.t}</a>` : p.t));
+      return html`<span class="${run.b ? 'b' : ''} ${run.i ? 'i' : ''} ${run.u ? 'u' : ''} ${run.s ? 's' : ''}">${inner}</span>`;
+    });
   }
 
   private focusCell(r: number, c: number, keepBlock = false) {
@@ -249,7 +294,7 @@ export class ToSheet extends LitElement {
     const d: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
     const move = d[e.key];
     const ed = this.editor();
-    if (!move || !ed || e.altKey || e.ctrlKey || e.metaKey) return false;
+    if (!move || !ed || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return false;
     const [sr, sc] = this.sel;
     const val = this.grid[sr][sc];
     const at = ed.selectionStart ?? 0;
@@ -281,7 +326,7 @@ export class ToSheet extends LitElement {
   /* ---------- column widths ---------- */
 
   private shown(r: number, c: number): string {
-    return formatValue(this.computed[r][c]);
+    return formatCell(this.computed[r][c], this.types[c]);
   }
 
   /** Width in px that shows every value in column c without clipping. */
@@ -346,6 +391,12 @@ export class ToSheet extends LitElement {
       this.end = [Math.max(0, Math.min(ROWS - 1, fr + arrow[e.key][0])), Math.max(0, Math.min(COLS - 1, fc + arrow[e.key][1]))];
       return;
     }
+    if (e.key === ' ' && this.types[c] === 'c' && !this.grid[r][c].startsWith('=')) {
+      // In a checkbox column the space bar ticks and unticks.
+      e.preventDefault();
+      this.setCell(r, c, this.computed[r][c] ? '' : 'x');
+      return;
+    }
     if (this.many && (e.key === 'Delete' || e.key === 'Backspace')) {
       e.preventDefault();
       this.save(clearCells(this.grid, this.range), this.chart);
@@ -374,7 +425,7 @@ export class ToSheet extends LitElement {
     const picking = this.grid[sr][sc].startsWith('=');
     const g = this.range;
     const fill = this.fillTo;
-    const data = chartData(this.computed);
+    const data = chartOfSheet(this.lastEmitted);
     const best = suggestChart(data);
     return html`
       <div class="sheet-bar">
@@ -402,6 +453,12 @@ export class ToSheet extends LitElement {
           <sl-option value="none">No chart</sl-option>
           ${CHART_KINDS.map((k) => html`<sl-option value=${k.id}>${k.name}${k.id === best ? ' (suggested)' : ''}</sl-option>`)}
         </sl-select>
+        ${this.many
+          ? html`<sl-button-group label="Fill">
+              <sl-tooltip content="Fill down from the top row" hoist><sl-button class="icon" size="small" aria-label="Fill down" @click=${() => this.fill(true)}>${icon(UI.back, 14)}<span class="sr-only">Fill down</span></sl-button></sl-tooltip>
+              <sl-tooltip content="Fill right from the first column" hoist><sl-button class="icon" size="small" aria-label="Fill right" @click=${() => this.fill(false)}>${icon(UI.arrow, 14)}<span class="sr-only">Fill right</span></sl-button></sl-tooltip>
+            </sl-button-group>`
+          : ''}
         <sl-button-group label="Column widths">
           <sl-tooltip content="Fit to page" hoist><sl-button class="icon" size="small" aria-label="Fit to page" aria-pressed=${w ? 'false' : 'true'} @click=${() => (this.widths = null)}>${icon(UI.fit, 14)}<span class="sr-only">Fit to page</span></sl-button></sl-tooltip>
           <sl-tooltip content="Show all text" hoist><sl-button class="icon" size="small" aria-label="Show all text" @click=${this.showAll}>${icon(UI.expand, 14)}<span class="sr-only">Show all text</span></sl-button></sl-tooltip>
@@ -418,7 +475,13 @@ export class ToSheet extends LitElement {
               <td class="corner"></td>
               ${COL_NAMES.map(
                 (n, c) => html`<th scope="col">
-                  ${n}<span class="grip" role="separator" aria-label="Resize column ${n}" title="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
+                  <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.setType(c, e.detail.item.value)}>
+                    <button slot="trigger" class="col-type" aria-label="Column ${n}: ${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}. Change what it holds">${n}${this.types[c] === 't' ? '' : html`<small>${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}</small>`}</button>
+                    <sl-menu>
+                      <sl-menu-label>Column ${n} holds</sl-menu-label>
+                      ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${this.types[c] === t.id}>${t.name}<span slot="suffix" class="to-hint">${t.hint}</span></sl-menu-item>`)}
+                    </sl-menu>
+                  </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" title="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
                 </th>`,
               )}
             </tr>
@@ -430,8 +493,11 @@ export class ToSheet extends LitElement {
                 ${row.map((raw, c) => {
                   const isSel = this.focused && r === sr && c === sc;
                   const v = this.computed[r][c];
-                  const shown = isSel ? raw : formatValue(v);
-                  const cls = typeof v === 'number' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '';
+                  const type = this.types[c];
+                  const shown = isSel ? raw : formatCell(v, type);
+                  const link = type === 'u' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
+                  const rich = type === 'r' && !isSel && raw !== '' && !raw.startsWith('=');
+                  const cls = (typeof v === 'number' && type !== 'c' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'c' ? ' tick' : '');
                   const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
                   const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
                   return html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>
@@ -441,6 +507,7 @@ export class ToSheet extends LitElement {
                       aria-label=${rcToRef(r, c)}
                       .value=${shown}
                       title=${raw.startsWith('=') ? raw : ''}
+                      placeholder=${isSel && type === 'd' ? 'YYYY-MM-DD' : ''}
                       autocomplete="off"
                       @focus=${() => {
                         if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
@@ -454,6 +521,8 @@ export class ToSheet extends LitElement {
                       @input=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
                       @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c)}
                     />
+                    ${rich ? html`<span class="rich" aria-hidden="true">${this.rich(raw)}</span>` : ''}
+                    ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label="Open ${link}" title="Open link" tabindex="-1">${icon(UI.send, 12)}</a>` : ''}
                     ${r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label="Fill: drag to carry these cells on" title="Drag to fill" @pointerdown=${this.onFillDown}></span>` : ''}
                   </td>`;
                 })}
@@ -466,7 +535,7 @@ export class ToSheet extends LitElement {
     `;
   }
 
-  private renderChart(data: ReturnType<typeof chartData>) {
+  private renderChart(data: ChartData) {
     const p = chartPage(data, this.chart as ChartKind);
     return html`<figure class="sheet-chart"><svg viewBox="0 0 ${p.w} ${p.h}" role="img" aria-label="Chart of the table">${unsafeSVG(p.svg)}</svg></figure>`;
   }

@@ -54,6 +54,12 @@ export interface AppDef {
   icon: string;
   /** One line for menus, link previews and search engines. */
   blurb: string;
+  /** The heading it is listed under in the menu ("Visualization"). */
+  group?: string;
+  /** The app it is a kind of: listed indented beneath it ("draw", for the diagram apps). */
+  under?: string;
+  /** For apps whose document IS a web page (a site, a store): that page, whole. Used for the .html download. */
+  document?(body: string, ctx: DownloadContext): string;
   /** The document's own title, '' if it has none. */
   title(body: string): string;
   /** The document as a few lines of plain text. */
@@ -62,10 +68,22 @@ export interface AppDef {
   view(body: string, opts?: ViewOpts): Page[];
   /** How many reveals the document has when presented (shapes, rows, stops). */
   steps?(body: string): number;
-  /** 'click' reveals wait for the presenter; 'auto' ones play by themselves. */
-  build?: 'click' | 'auto';
   /** The document as plain, meaningful HTML (goes inside <body>). Default: its pictures and outline. */
   html?(body: string, ctx: DownloadContext): string;
+  /**
+   * The app can show a document to an audience. A link "<app>.show/..." then
+   * opens it presenting, and that is the link the shell hands out; the editor
+   * is given `present = true` and fires "present-end" when the viewer wants
+   * to edit instead.
+   */
+  presents?: boolean;
+  /**
+   * Turn text written by hand (or by a program) into a document, where the
+   * app's own format is too terse to write: real dates instead of counted
+   * days, decimal degrees instead of packed ones. Text already in the app's
+   * format passes through. Used by plain-parameter links ("?doc=...").
+   */
+  read?(text: string): string;
   /** Formats beyond the ones every app gets (.html, .png, .pdf). */
   downloads?: Download[];
   shortcuts?: Shortcut[];
@@ -107,7 +125,7 @@ export function slug(s: string): string {
 }
 
 /** A file name for a download: the title if there is one, otherwise the app's id. */
-export const fileName = (def: AppDef, body: string, ext: string) => `${slug(def.title(body)) || def.id}.${ext}`;
+export const fileName = (def: AppDef, body: string, ext: string, title = '') => `${slug(title || def.title(body)) || def.id}.${ext}`;
 
 /* ---------- drawing ---------- */
 
@@ -118,7 +136,7 @@ export const LINE = '#d4d4d8';
 export const SHADE = '#f4f4f5';
 export const PAPER = '#ffffff';
 export const ACCENT = '#4f46e5';
-export const FONT = "system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+export const FONT = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 export interface Span {
   t: string;
@@ -231,14 +249,16 @@ export function listPage(title: string, lines: string[], w = 720): Page {
 export interface DocRef {
   def: AppDef;
   body: string;
+  /** The name its author gave it, if any. */
+  title?: string;
 }
 
 /**
  * A document as a standalone web page: real HTML where the app has it,
  * pictures otherwise, with the tags search engines and link previews read.
  */
-export function docHtml({ def, body }: DocRef, ctx: DownloadContext, link = ''): string {
-  const title = def.title(body) || def.name;
+export function docHtml({ def, body, title: given }: DocRef, ctx: DownloadContext, link = ''): string {
+  const title = given || def.title(body) || def.name;
   const outline = def.outline(body);
   const about = (outline.filter((l) => l !== title).join(' · ') || def.blurb).slice(0, 200);
   const base = ctx.base ?? '';
@@ -294,3 +314,61 @@ export const COMMON: { ext: string; label: string }[] = [
 
 const ALIASES: Record<string, string> = { ppt: 'pptx', xls: 'xlsx', ical: 'ics', icalendar: 'ics', htm: 'html', markdown: 'md', json: 'geojson', image: 'png', jpg: 'png' };
 export const extOf = (ext: string) => ALIASES[ext.toLowerCase()] ?? ext.toLowerCase();
+
+/* ---------- undo ---------- */
+
+/**
+ * Undo and redo for a document, whatever app it belongs to: a document is
+ * text, so its history is the texts it has been. Changes that come in a
+ * burst (typing) count as one step.
+ */
+export class History {
+  private past: string[] = [];
+  private future: string[] = [];
+  private last = 0;
+  private burst: number;
+  private limit: number;
+  /** `burst`: changes closer together than this many ms are one step. */
+  constructor(burst = 700, limit = 200) {
+    this.burst = burst;
+    this.limit = limit;
+  }
+
+  get canUndo() {
+    return this.past.length > 0;
+  }
+  get canRedo() {
+    return this.future.length > 0;
+  }
+
+  /** Note that the document is about to stop being `before`. */
+  record(before: string, now = Date.now()) {
+    if (now - this.last > this.burst || !this.past.length) {
+      this.past.push(before);
+      if (this.past.length > this.limit) this.past.shift();
+    }
+    this.last = now;
+    this.future = [];
+  }
+
+  /** The document to go back to, given what it is now; null if there is nothing to undo. */
+  undo(current: string): string | null {
+    if (!this.past.length) return null;
+    this.future.push(current);
+    this.last = 0;
+    return this.past.pop()!;
+  }
+
+  redo(current: string): string | null {
+    if (!this.future.length) return null;
+    this.past.push(current);
+    this.last = 0;
+    return this.future.pop()!;
+  }
+
+  clear() {
+    this.past = [];
+    this.future = [];
+    this.last = 0;
+  }
+}

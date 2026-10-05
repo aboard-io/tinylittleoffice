@@ -69,7 +69,8 @@ function scale(values: number[]): { min: number; max: number; ticks: number[] } 
   return { min, max, ticks };
 }
 
-export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h = 440): Page {
+/** `upTo`: how many labels' worth of the chart to draw (bars, points or slices), for building it up. */
+export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h = 440, upTo = Infinity): Page {
   let svg = title ? text(w / 2, 34, clip(title, w - 80, 20, true), { px: 20, bold: true, anchor: 'middle' }) : '';
   const top = title ? 56 : 24;
   const legend = d.series.length > 1 || kind === 'pie';
@@ -86,6 +87,7 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
     let a = -Math.PI / 2;
     values.forEach((v, i) => {
       const b = a + (v / total) * Math.PI * 2;
+      if (i >= upTo) return void (a = b);
       const color = COLORS[i % COLORS.length];
       const p = (ang: number, k = rad) => `${r(cx + Math.cos(ang) * k)} ${r(cy + Math.sin(ang) * k)}`;
       svg += v >= total ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="${color}"/>` : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="${color}" stroke="#fff" stroke-width="2"/>`;
@@ -109,11 +111,11 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
       const color = COLORS[k % COLORS.length];
       keys.push([color, s.name]);
       if (kind === 'line') {
-        const pts = s.values.map((v, i) => `${r(left + band * (i + 0.5))},${r(y(v))}`);
+        const pts = s.values.slice(0, upTo === Infinity ? undefined : upTo).map((v, i) => `${r(left + band * (i + 0.5))},${r(y(v))}`);
         svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>` + pts.map((p) => `<circle cx="${p.split(',')[0]}" cy="${p.split(',')[1]}" r="4" fill="${color}"/>`).join('');
       } else {
         const bw = (band * 0.76) / d.series.length;
-        s.values.forEach((v, i) => (svg += rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), color, 'rx="2"')));
+        s.values.forEach((v, i) => i < upTo && (svg += rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), color, 'rx="2"')));
       }
     });
   }

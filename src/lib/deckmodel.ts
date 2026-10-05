@@ -7,8 +7,9 @@
  * title slide, "::2" two columns of bullets, ":star:i" bullets beside one big
  * icon. Among the bullets, a line "|" starts the right-hand column and a
  * line "@@<app>/<payload>" is another TinyOffice document shown on the
- * slide. A deck may open with a chunk "!<transition>" ("!fade", "!slide",
- * "!zoom"): how one slide gives way to the next.
+ * slide. A deck may open with a chunk "!<transition>" ("!cut", "!slide",
+ * "!zoom"; a fade without one): how one slide gives way to the next. A colour letter may follow
+ * it after a colon ("!fade:r", "!:g"): the colour of every icon in the deck.
  */
 export const MAX_SLIDES = 10;
 
@@ -19,10 +20,11 @@ export const LAYOUTS: { id: Layout; name: string }[] = [
   { id: '2', name: 'Two columns' },
   { id: 'i', name: 'Big icon' },
 ];
-export type Transition = '' | 'fade' | 'slide' | 'zoom';
+/** How one slide gives way to the next. '' is the default, a fade. */
+export type Transition = '' | 'cut' | 'slide' | 'zoom';
 export const TRANSITIONS: { id: Transition; name: string }[] = [
-  { id: '', name: 'Cut' },
-  { id: 'fade', name: 'Fade' },
+  { id: '', name: 'Fade' },
+  { id: 'cut', name: 'Cut' },
   { id: 'slide', name: 'Slide' },
   { id: 'zoom', name: 'Zoom' },
 ];
@@ -39,7 +41,23 @@ export interface Slide {
   sub?: string;
 }
 
-const SETTINGS = /^!([a-z]*)$/;
+const SETTINGS = /^!([a-z]*)(?::([a-z]))?$/;
+
+/** The colours a deck's icons can be: the accent (no letter), or one of these. */
+export const ICON_COLORS: Record<string, { name: string; hex: string }> = {
+  '': { name: 'Indigo', hex: '#4f46e5' },
+  k: { name: 'Black', hex: '#18181b' },
+  r: { name: 'Red', hex: '#dc2626' },
+  o: { name: 'Orange', hex: '#d97706' },
+  g: { name: 'Green', hex: '#16a34a' },
+  b: { name: 'Blue', hex: '#2563eb' },
+  p: { name: 'Purple', hex: '#9333ea' },
+};
+
+export function deckIconColor(text: string): string {
+  const m = SETTINGS.exec(text.split('\n\n', 1)[0]);
+  return m && m[2] && m[2] in ICON_COLORS ? m[2] : '';
+}
 const SUB = /^@@([a-z]+\/[A-Za-z0-9_-]*)$/;
 
 /** What a new deck opens with: a title slide. */
@@ -47,7 +65,8 @@ const first = (): Slide => ({ icon: '', title: '', bullets: [], layout: 't' });
 
 export function deckTransition(text: string): Transition {
   const m = SETTINGS.exec(text.split('\n\n', 1)[0]);
-  return m && TRANSITIONS.some((t) => t.id === m[1]) ? (m[1] as Transition) : '';
+  // ("fade" was once written out; it is now what a deck does unless told otherwise.)
+  return m && m[1] !== 'fade' && TRANSITIONS.some((t) => t.id === m[1]) ? (m[1] as Transition) : '';
 }
 
 export function parseDeck(text: string): Slide[] {
@@ -77,7 +96,7 @@ export function parseDeck(text: string): Slide[] {
   });
 }
 
-export function serializeDeck(slides: Slide[], transition: Transition = ''): string {
+export function serializeDeck(slides: Slide[], transition: Transition = '', color = ''): string {
   const flat = (b: string) => {
     const s = b.replace(/\n/g, ' ');
     return s === '' ? ' ' : s === '|' || /^(@@|\\)/.test(s) ? '\\' + s : s;
@@ -101,7 +120,7 @@ export function serializeDeck(slides: Slide[], transition: Transition = ''): str
   // Trailing empty slides cost nothing when dropped.
   while (chunks.length > 1 && chunks[chunks.length - 1] === '') chunks.pop();
   // An untouched new deck costs nothing.
-  if (chunks.length === 1 && chunks[0] === '::t' && !transition) return '';
-  if (transition || SETTINGS.test(chunks[0])) chunks.unshift('!' + transition);
+  if (chunks.length === 1 && chunks[0] === '::t' && !transition && !color) return '';
+  if (transition || color || SETTINGS.test(chunks[0])) chunks.unshift('!' + transition + (color ? ':' + color : ''));
   return chunks.join('\n\n');
 }

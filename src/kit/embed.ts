@@ -13,7 +13,7 @@ export function linkToRef(text: string): string | null {
   return m && appOf(m[1]) ? `${m[1]}/${m[2]}` : null;
 }
 
-export const makeRef = (app: string, body: string) => `${app}/${encodeEnvelope({ created: null, body })}`;
+export const makeRef = (app: string, body: string, title?: string) => `${app}/${encodeEnvelope({ created: null, body, title })}`;
 
 export interface Resolved {
   def: AppDef | undefined;
@@ -31,9 +31,10 @@ export function resolve(ref: string): Resolved {
   const payload = ref.slice(slash + 1);
   const def = appOf(id);
   const locked = payload[0] === 'E';
-  const body = locked ? '' : decodeEnvelope(payload).body;
+  const env = locked ? { body: '', title: undefined } : decodeEnvelope(payload);
+  const body = env.body;
   const kind = def?.name ?? 'Document';
-  return { def, body, locked, hash: `#/v2/${id}${payload ? '/' + payload : ''}`, title: locked ? `Locked ${kind.toLowerCase()}` : def?.title(body) || kind };
+  return { def, body, locked, hash: `#/v2/${id}${payload ? '/' + payload : ''}`, title: locked ? `Locked ${kind.toLowerCase()}` : env.title || def?.title(body) || kind };
 }
 
 /** The embedded document as one page, ready to place on another. */
@@ -43,8 +44,8 @@ export function refPage(ref: string, opts: ViewOpts = {}): Page {
   return d.def.view(d.body, { embed: true, ...opts })[0];
 }
 
-/** How many reveals the embedded document has when presented, and whether they play by themselves. */
-export function refSteps(ref: string): { steps: number; auto: boolean } {
+/** How many reveals the embedded document has when presented. */
+export function refSteps(ref: string): number {
   const d = resolve(ref);
-  return { steps: d.def?.steps?.(d.body) ?? 0, auto: d.def?.build === 'auto' };
+  return d.def?.steps?.(d.body) ?? 0;
 }

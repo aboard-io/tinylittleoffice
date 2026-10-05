@@ -11,23 +11,43 @@ import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
 import { budgetFor, toBase64Url, fromBase64Url } from './lib/codec.ts';
-import { packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
+import { encodeEnvelope, packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } from './lib/sign.ts';
 import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
-import { apps, appOf, extOf, type AppDef, type Shortcut } from './kit/core.ts';
-import { download, formatsOf, loadEditor, picture } from './kit/browser.ts';
-import { roomFor } from './lib/limits.ts';
+import { History, apps, appOf, extOf, pageSvg, type AppDef, type Shortcut } from './kit/core.ts';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { REFRESH, download, formatsOf, loadEditor, picture } from './kit/browser.ts';
+import './lib/icons.ts';
+import { roomFor, roomText } from './lib/limits.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
 export type AppId = string;
 
 /** The apps, in menu order, straight from their definitions (src/apps/index.ts). */
-export const APPS: { id: AppId; name: string; icon: keyof typeof UI }[] = apps().map((d) => ({ id: d.id, name: d.name, icon: d.icon as keyof typeof UI }));
+export const APPS: { id: AppId; name: string; icon: keyof typeof UI; under?: string }[] = apps().map((d) => ({ id: d.id, name: d.name, icon: d.icon as keyof typeof UI, under: d.under }));
+
+/**
+ * The apps as the menu shows them: under their group's heading, each app
+ * followed by the apps that are kinds of it.
+ */
+function grouped(): { group: string; apps: typeof APPS }[] {
+  const out: { group: string; apps: typeof APPS }[] = [];
+  for (const d of apps()) {
+    if (d.under) continue;
+    const group = d.group ?? 'More';
+    let at = out.find((g) => g.group === group);
+    if (!at) out.push((at = { group, apps: [] }));
+    at.apps.push(...APPS.filter((a) => a.id === d.id || a.under === d.id));
+  }
+  return out;
+}
 
 /** Shortcuts that work in every app. "Mod" is Ctrl, or Command on a Mac. */
 const GLOBAL_KEYS: Shortcut[] = [
+  { keys: 'Mod+Z', does: 'Undo' },
+  { keys: 'Mod+Shift+Z / Mod+Y', does: 'Redo' },
   { keys: 'Mod+/', does: 'Show these shortcuts' },
   { keys: 'Mod+K', does: 'Open the menu of apps' },
   { keys: 'Mod+S', does: 'Download (the first format in the Download menu)' },
@@ -118,6 +138,12 @@ export class ToApp extends LitElement {
   @state() private pwBusy = false;
   @state() private version = URL_VERSION;
   @state() private theme: Theme = storedTheme();
+  private history = new History();
+  /** Opened from a "show" link: the editor is presenting, until the viewer asks to edit. */
+  @state() private presenting = false;
+  /** Opened from an "embed" link: just the document, for showing inside another page. */
+  @state() private embedded = false;
+  @state() private embedPage = 0;
   /** A download view waiting for its document (it may need a password first). */
   private pendingExt = '';
   private toastTimer = 0;
@@ -133,6 +159,7 @@ export class ToApp extends LitElement {
     super.connectedCallback();
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);
+    window.addEventListener(REFRESH, this.onRefresh);
     this.onHash();
     this.signerApi.fingerprint().then((f) => (this.myKey = f));
   }
@@ -140,12 +167,25 @@ export class ToApp extends LitElement {
     super.disconnectedCallback();
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
+    window.removeEventListener(REFRESH, this.onRefresh);
   }
+
+  /** The fonts or the full icon set have arrived: draw again with them. */
+  private onRefresh = () => {
+    this.requestUpdate();
+    (this.querySelector(`to-${this.app}`) as (HTMLElement & { requestUpdate?: () => void }) | null)?.requestUpdate?.();
+  };
 
   /** Shortcuts that work in every app. Listed in GLOBAL_KEYS; shown by Mod+/. */
   private onGlobalKey = (e: KeyboardEvent) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     const k = e.key.toLowerCase();
+    // A document being edited inside another has its own undo (see editRef).
+    if ((k === 'z' || k === 'y') && this.def && !this.sealed && !document.querySelector('sl-dialog.to-sub[open]')) {
+      e.preventDefault();
+      this.step(k === 'z' && !e.shiftKey);
+      return;
+    }
     const act: (() => void) | undefined =
       k === '/' || k === '?'
         ? () => this.querySelector<SlDialog>('#keys-dialog')?.show()
@@ -165,11 +205,40 @@ export class ToApp extends LitElement {
     act();
   };
 
+  /**
+   * A link written with ordinary parameters instead of a packed document:
+   *   /deck/#title=Plan&doc=Launch%0ABuild+it
+   * app (when not on an app's own page), doc, title and view. It is turned
+   * into the usual link on arrival, so what is shared afterwards is compact.
+   *
+   * Only after "#": that part of an address stays in the browser. The same
+   * parameters after "?" would be sent to the server (and into its logs), so
+   * they are deliberately not understood.
+   */
+  private readPlainLink(): boolean {
+    if (location.hash.length < 2 || location.hash.startsWith('#/')) return false;
+    const q = new URLSearchParams(location.hash.slice(1));
+    if (!q.has('doc') && !q.has('title') && !q.has('app')) return false;
+    const def = appOf(q.get('app') ?? '') ?? appOf(location.pathname.split('/').slice(-2)[0]);
+    if (!def) return false;
+    const text = (q.get('doc') ?? '').replace(/\r\n?/g, '\n');
+    const body = def.read ? def.read(text) : text;
+    const title = q.get('title')?.trim() || undefined;
+    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, body });
+    history.replaceState(null, '', `${this.root}${location.protocol === 'file:' ? '' : def.id + '/'}${routeHash(def.id, payload, q.get('view') ?? '')}`);
+    return true;
+  }
+
   private onHash = () => {
+    this.readPlainLink();
     const { app, payload, version, ext } = parseHash(location.hash);
     // An app's own page (".../deck/") with nothing after it opens a new document there.
     const page = location.pathname.split('/').slice(-2)[0];
     this.app = app ?? (!location.hash && appOf(page) ? page : null);
+    // A different link is a different document: its history starts here.
+    this.history.clear();
+    this.presenting = false;
+    this.embedded = ext === 'embed';
     this.version = version;
     this.pendingExt = ext;
     this.locker = null;
@@ -205,7 +274,7 @@ export class ToApp extends LitElement {
   private async writeUrl() {
     if (!this.app) return;
     const run = ++this.writeRun;
-    const empty = !this.env.body && this.env.created === null && !this.env.key;
+    const empty = !this.env.body && this.env.created === null && !this.env.key && !this.env.title;
     let payload = '';
     if (!empty) {
       const { flag, bytes } = packEnvelope(this.env);
@@ -222,13 +291,10 @@ export class ToApp extends LitElement {
   private downloadPending() {
     const ext = this.pendingExt;
     this.pendingExt = '';
-    if (ext) this.download(ext);
-  }
-
-  /** The link that downloads this document as `ext` when opened. */
-  private downloadUrl(ext: string): string {
-    const { payload } = parseHash(location.hash);
-    return `${this.root}${location.protocol === 'file:' ? '' : this.app + '/'}${routeHash(this.app!, payload, ext)}`;
+    // "<app>.show" is not a file: it opens the document presenting.
+    if (ext === 'embed') return;
+    if (ext === 'show' && this.def?.presents) this.presenting = true;
+    else if (ext) this.download(ext);
   }
 
   private get def(): AppDef | undefined {
@@ -242,14 +308,25 @@ export class ToApp extends LitElement {
 
   /** The link to this document: from its app's own page, so it previews as that app. */
   private get link(): string {
-    return this.app ? `${this.root}${location.protocol === 'file:' ? '' : this.app + '/'}${location.hash}` : location.href;
+    return this.linkTo(this.def?.presents ? 'show' : '');
+  }
+
+  /**
+   * The link to this document, from its app's own page so it previews as
+   * that app. `view` is '' for the editor, 'show' to open presenting, or a
+   * file extension to download.
+   */
+  private linkTo(view: string): string {
+    if (!this.app) return location.href;
+    const { payload } = parseHash(location.hash);
+    return `${this.root}${location.protocol === 'file:' ? '' : this.app + '/'}${routeHash(this.app, payload, view)}`;
   }
 
   private async download(ext: string) {
     const def = this.def;
     if (!def) return;
     try {
-      const name = await download(def, this.env.body, ext, { created: this.env.created, base: this.root }, this.link);
+      const name = await download(def, this.env.body, ext, { created: this.env.created, base: this.root }, this.link, this.env.title);
       this.showToast(name ? `Downloaded ${name}` : `No .${extOf(ext)} view here`);
     } catch (err) {
       this.showToast(err instanceof Error ? err.message : 'Download failed');
@@ -258,8 +335,16 @@ export class ToApp extends LitElement {
 
   /* ---------- sharing ---------- */
 
+  /** What the document is called: the name it was given, or one read out of it, or "Untitled Sheet". */
   private get docTitle(): string {
-    return this.def?.title(this.env.body) || this.def?.name || 'TinyOffice';
+    return this.env.title || this.def?.title(this.env.body) || (this.def ? `Untitled ${this.def.name}` : 'TinyOffice');
+  }
+
+  private setTitle(title: string) {
+    const created = this.env.created ?? (title ? quantizeCreated(Date.now()) : null);
+    this.env = { ...this.env, created, title: title.trim() ? title.replace(/\n/g, ' ') : undefined };
+    this.writeUrl();
+    this.checkSignature();
   }
 
   /**
@@ -287,11 +372,15 @@ export class ToApp extends LitElement {
       }
       return;
     }
-    if (how === 'copy') {
-      await navigator.clipboard.writeText(url).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'));
+    if (how === 'copy' || how === 'copy-edit') {
+      await navigator.clipboard.writeText(how === 'copy' ? url : this.linkTo('')).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'));
       return;
     }
     if (how === 'png') return void this.download('png');
+    if (how === 'embed') {
+      await navigator.clipboard.writeText(this.embedCode()).then(() => this.showToast('Embed code copied'), () => this.showToast('Copy failed'));
+      return;
+    }
     const to: Record<string, string> = {
       bluesky: `https://bsky.app/intent/compose?text=${q(`${title} ${url}`)}`,
       mastodon: `https://mastodonshare.com/?text=${q(title)}&url=${q(url)}`,
@@ -300,6 +389,17 @@ export class ToApp extends LitElement {
       email: `mailto:?subject=${q(title)}&body=${q(url)}`,
     };
     if (to[how]) window.open(to[how], '_blank', 'noopener');
+  }
+
+  /**
+   * The snippet that shows this document on another page. The usual good
+   * manners of an embed: it has a title, loads only when scrolled to, keeps
+   * its shape at any width, and sends no referrer.
+   */
+  private embedCode(): string {
+    const page = this.def!.view(this.env.body)[0];
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    return `<iframe src="${esc(this.linkTo('embed'))}" title="${esc(this.docTitle)}" loading="lazy" referrerpolicy="no-referrer" allowfullscreen style="width:100%;max-width:${page.w}px;aspect-ratio:${page.w}/${page.h + 44};border:1px solid #d4d4d8;border-radius:8px"></iframe>`;
   }
 
   private cycleTheme() {
@@ -316,10 +416,23 @@ export class ToApp extends LitElement {
   private onDocChange(e: CustomEvent<string>) {
     if (!this.app) return;
     const body = e.detail;
+    if (body !== this.env.body) this.history.record(this.env.body);
     const created = this.env.created ?? (body ? quantizeCreated(Date.now()) : null);
     this.env = { ...this.env, created, body };
     this.writeUrl();
     this.checkSignature();
+  }
+
+  /* ---------- undo ---------- */
+
+  /** Step the document back or forward. Works the same in every app: the editor is simply handed the earlier text. */
+  private step(back: boolean) {
+    const body = back ? this.history.undo(this.env.body) : this.history.redo(this.env.body);
+    if (body === null || !this.app) return;
+    this.env = { ...this.env, body };
+    this.writeUrl();
+    this.checkSignature();
+    this.requestUpdate();
   }
 
   /* ---------- password ---------- */
@@ -373,7 +486,7 @@ export class ToApp extends LitElement {
       return;
     }
     this.sig = 'checking';
-    const [ok, fp] = await Promise.all([verify(key, sig, signingMessage(this.app, this.env.created, this.env.body)), fingerprintOf(key)]);
+    const [ok, fp] = await Promise.all([verify(key, sig, signingMessage(this.app, this.env.created, this.env.body, this.env.title)), fingerprintOf(key)]);
     if (run !== this.verifyRun) return;
     this.sig = ok ? 'valid' : 'invalid';
     this.signer = fp;
@@ -384,7 +497,7 @@ export class ToApp extends LitElement {
     this.busy = true;
     try {
       const created = this.env.created ?? quantizeCreated(Date.now());
-      const { key, sig } = await this.signerApi.sign(signingMessage(this.app, created, this.env.body));
+      const { key, sig } = await this.signerApi.sign(signingMessage(this.app, created, this.env.body, this.env.title));
       this.env = { ...this.env, created, key, sig };
       this.myKey = await this.signerApi.fingerprint();
       await this.writeUrl();
@@ -448,7 +561,26 @@ export class ToApp extends LitElement {
     return this.querySelector<SlDrawer>('#nav-drawer');
   }
 
+  /** The document and nothing else: what an <iframe> on another site shows. */
+  private renderEmbedded(def: AppDef) {
+    if (this.sealed) return html`<main class="to-embedded"><p class="to-embed-note">${icon(UI.lock, 16)} This ${def.name.toLowerCase()} is locked. <a href=${this.linkTo('')} target="_blank" rel="noopener">Open it in TinyOffice</a> to enter the password.</p></main>`;
+    const pages = def.view(this.env.body);
+    const at = Math.min(this.embedPage, pages.length - 1);
+    const go = (d: number) => (this.embedPage = Math.max(0, Math.min(pages.length - 1, at + d)));
+    return html`<main class="to-embedded" @keydown=${(e: KeyboardEvent) => (e.key === 'ArrowRight' ? go(1) : e.key === 'ArrowLeft' ? go(-1) : null)}>
+      <div class="pic" role="img" aria-label=${this.docTitle} tabindex=${pages.length > 1 ? 0 : -1} @click=${() => pages.length > 1 && go(at === pages.length - 1 ? -at : 1)}>${unsafeHTML(pageSvg(pages[at]))}</div>
+      <footer>
+        <span class="t">${this.docTitle}</span>
+        ${pages.length > 1
+          ? html`<button aria-label="Previous page" ?disabled=${at === 0} @click=${() => go(-1)}>${icon(UI.left, 14)}</button><span class="n">${at + 1} / ${pages.length}</span><button aria-label="Next page" ?disabled=${at === pages.length - 1} @click=${() => go(1)}>${icon(UI.right, 14)}</button>`
+          : nothing}
+        <a href=${this.link} target="_blank" rel="noopener">Open in TinyOffice</a>
+      </footer>
+    </main>`;
+  }
+
   render() {
+    if (this.embedded && this.def) return this.renderEmbedded(this.def);
     const current = APPS.find((a) => a.id === this.app);
     const { available } = budgetFor(this.urlPrefix);
     return html`
@@ -477,8 +609,10 @@ export class ToApp extends LitElement {
                         <sl-menu>
                           <sl-menu-label>Share</sl-menu-label>
                           ${'share' in navigator ? html`<sl-menu-item value="native">Share…</sl-menu-item>` : nothing}
-                          <sl-menu-item value="copy">Copy link</sl-menu-item>
+                          <sl-menu-item value="copy">${this.def?.presents ? 'Copy link (opens presenting)' : 'Copy link'}</sl-menu-item>
+                          ${this.def?.presents ? html`<sl-menu-item value="copy-edit">Copy link (opens for editing)</sl-menu-item>` : nothing}
                           <sl-menu-item value="png">Save a picture</sl-menu-item>
+                          <sl-menu-item value="embed">Copy embed code</sl-menu-item>
                           <sl-divider></sl-divider>
                           <sl-menu-item value="bluesky">Bluesky</sl-menu-item>
                           <sl-menu-item value="mastodon">Mastodon</sl-menu-item>
@@ -506,7 +640,10 @@ export class ToApp extends LitElement {
       <sl-drawer id="nav-drawer" label="TinyOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
           <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
-          ${APPS.map((a) => html`<a href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], 20)}<span>${a.name}</span></a>`)}
+          ${grouped().map(
+            (g) => html`<h2>${g.group}</h2>
+              ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`)}`,
+          )}
         </nav>
         <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
@@ -534,7 +671,9 @@ export class ToApp extends LitElement {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
     return html`<section class="to-panel" aria-label=${current.name}>
       <div class="to-panel-head">
-        <h1>${icon(UI[current.icon], 16)} ${current.name}</h1>
+        <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
+        <span class="to-doc-ico" title=${current.name}>${icon(UI[current.icon], 16)}</span>
+        <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
         <span class="meta">
           ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
           ${this.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
@@ -543,9 +682,23 @@ export class ToApp extends LitElement {
           ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
           ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyOffice (v${this.version})</sl-tag>` : nothing}
         </span>
+        <span class="to-spacer"></span>
+        ${this.sealed
+          ? nothing
+          : html`<sl-button-group label="Undo and redo">
+              <sl-tooltip content="Undo" hoist><sl-button class="icon" size="small" aria-label="Undo" ?disabled=${!this.history.canUndo} @click=${() => this.step(true)}>${icon(UI.undo, 14)}<span class="sr-only">Undo</span></sl-button></sl-tooltip>
+              <sl-tooltip content="Redo" hoist><sl-button class="icon" size="small" aria-label="Redo" ?disabled=${!this.history.canRedo} @click=${() => this.step(false)}>${icon(UI.redo, 14)}<span class="sr-only">Redo</span></sl-button></sl-tooltip>
+            </sl-button-group>`}
       </div>
       <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
     </section>`;
+  }
+
+  /** The viewer of a "show" link wants the editor: from here on the link is an ordinary one. */
+  private onPresentEnd() {
+    this.presenting = false;
+    const { app, payload } = parseHash(location.hash);
+    if (app) history.replaceState(null, '', routeHash(app, payload));
   }
 
   private renderApp() {
@@ -553,15 +706,18 @@ export class ToApp extends LitElement {
     // Editors load when first wanted; the element upgrades in place once its code arrives.
     void loadEditor(this.app);
     const tag = unsafeStatic(`to-${this.app}`);
-    return html`<${tag} .value=${this.env.body}></${tag}>`;
+    return html`<${tag} .value=${this.env.body} .present=${this.presenting} @present-end=${this.onPresentEnd}></${tag}>`;
   }
 
   private renderHome() {
     return html`<section class="to-home">
       <h1 class="sr-only">TinyOffice</h1>
-      <div class="to-launcher">
-        ${APPS.map((a) => html`<a href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
-      </div>
+      ${grouped().map(
+        (g) => html`<h2 class="to-group">${g.group}</h2>
+          <div class="to-launcher">
+            ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
+          </div>`,
+      )}
     </section>`;
   }
 
@@ -606,7 +762,7 @@ export class ToApp extends LitElement {
               ? formatsOf(this.def).map(
                   (f) => html`<span class="to-dl">
                     <sl-button size="small" @click=${() => this.download(f.ext)}>.${f.ext}</sl-button>
-                    <button class="to-copy" type="button" aria-label="Copy a link that downloads the .${f.ext}" title="Copy a link that downloads the .${f.ext}" @click=${() => navigator.clipboard.writeText(this.downloadUrl(f.ext)).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'))}>${icon(UI.copy, 14)}</button>
+                    <button class="to-copy" type="button" aria-label="Copy a link that downloads the .${f.ext}" title="Copy a link that downloads the .${f.ext}" @click=${() => navigator.clipboard.writeText(this.linkTo(f.ext)).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'))}>${icon(UI.copy, 14)}</button>
                   </span>`,
                 )
               : nothing}
@@ -615,7 +771,7 @@ export class ToApp extends LitElement {
         <dt title="Room for this link">${icon(UI.send, 14)}</dt>
         <dd>
           <table class="to-rooms">
-            ${roomFor(this.link).map((r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th>${r.target.name}</th><td>${r.left < 0 ? `${(-r.left).toLocaleString()} over` : `${r.left.toLocaleString()} left`}</td><td class="to-hint">of ${r.target.max.toLocaleString()} · ${r.target.note}</td></tr>`)}
+            ${roomFor(this.link).map((r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th>${r.target.name}</th><td>${roomText(r)}</td><td class="to-hint">${r.target.flat ? `${r.target.note}, leaving ${r.left.toLocaleString()} of ${r.target.max.toLocaleString()} for your words` : `of ${r.target.max.toLocaleString()} · ${r.target.note}`}</td></tr>`)}
           </table>
         </dd>
         <dt title="Password">${icon(UI.lock, 14)}</dt>

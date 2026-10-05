@@ -8,6 +8,11 @@
  *   t<start>,<minutes>,<label>   timed span; start = minutes since
  *                                2020-01-01T00:00Z, an absolute instant
  * Numbers are base 36 to keep them short.
+ *
+ * A span may have a colour: a letter after its length, set off by a full
+ * stop ("d1,2.g,Offsite"). Lines "#<letter>=<name>" say what a colour stands
+ * for ("#g=Sam"; "#=Paul" names the default colour), so two people sharing
+ * a calendar can each take one.
  */
 import { dayToYmd, ymdString, ymdToDay } from './tz.ts';
 
@@ -22,12 +27,25 @@ export interface Span {
   /** 'd': whole days, at least 1. 't': minutes, at least 0. */
   dur: number;
   label: string;
+  /** A key of CAL_COLORS; absent for the default. */
+  color?: string;
 }
 
 export interface Calendar {
   zone: string;
   spans: Span[];
+  /** What each colour stands for, by colour key ('' is the default colour). */
+  legend?: Record<string, string>;
 }
+
+export const CAL_COLORS: Record<string, { name: string; hex: string }> = {
+  '': { name: 'Indigo', hex: '#4f46e5' },
+  r: { name: 'Red', hex: '#dc2626' },
+  o: { name: 'Orange', hex: '#d97706' },
+  g: { name: 'Green', hex: '#16a34a' },
+  b: { name: 'Blue', hex: '#0284c7' },
+  p: { name: 'Purple', hex: '#9333ea' },
+};
 
 const b36 = (n: number) => Math.round(n).toString(36);
 
@@ -39,6 +57,11 @@ export function parseCalendar(text: string): Calendar {
       cal.zone = line.slice(1);
       continue;
     }
+    const key = /^#([a-z]?)=(.*)$/.exec(line);
+    if (key) {
+      if (key[1] in CAL_COLORS && key[2].trim()) (cal.legend ??= {})[key[1]] = key[2].trim();
+      continue;
+    }
     const kind = line[0];
     if (kind !== 'd' && kind !== 't') continue;
     const parts = line.slice(1).split(',');
@@ -46,7 +69,10 @@ export function parseCalendar(text: string): Calendar {
     const start = parseInt(parts[0], 36);
     const dur = parseInt(parts[1], 36);
     if (!Number.isFinite(start) || !Number.isFinite(dur)) continue;
-    cal.spans.push({ kind, start, dur: Math.max(kind === 'd' ? 1 : 0, dur), label: parts.slice(2).join(',') });
+    const span: Span = { kind, start, dur: Math.max(kind === 'd' ? 1 : 0, dur), label: parts.slice(2).join(',') };
+    const color = /\.([a-z])$/.exec(parts[1])?.[1];
+    if (color && color in CAL_COLORS) span.color = color;
+    cal.spans.push(span);
   }
   sortSpans(cal.spans);
   return cal;
@@ -57,8 +83,10 @@ export function serializeCalendar(cal: Calendar): string {
   if (cal.zone && cal.spans.length) lines.push('@' + cal.zone);
   for (const s of cal.spans) {
     const label = s.label.replace(/\n/g, ' ').slice(0, MAX_LABEL);
-    lines.push(`${s.kind}${b36(s.start)},${b36(s.dur)}${label ? ',' + label : ''}`);
+    lines.push(`${s.kind}${b36(s.start)},${b36(s.dur)}${s.color ? '.' + s.color : ''}${label ? ',' + label : ''}`);
   }
+  // Only the names of colours in use are worth keeping.
+  for (const [key, name] of Object.entries(cal.legend ?? {})) if (name.trim() && cal.spans.some((s) => (s.color ?? '') === key)) lines.push(`#${key}=${name.trim().replace(/\n/g, ' ')}`);
   return lines.join('\n');
 }
 

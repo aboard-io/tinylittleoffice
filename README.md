@@ -2,7 +2,7 @@
 
 A tiny office suite that lives entirely in the URL.
 
-Ten small apps, no server, no accounts, nothing to save. Every document is
+Sixteen small apps, no server, no accounts, nothing to save. Every document is
 encoded into the address bar, kept under 2,048 characters. Copy the link and
 you have copied the file.
 
@@ -18,6 +18,15 @@ you have copied the file.
 | Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize.   |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
 | Motion | Icons and text that move between the moments you set.                |
+| Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
+| Database | A tiny relational database: tables, rows, SQL queries, schema drawn. |
+| Sticky notes | A wall of notes, one per line, in six colours. |
+| FAQ | Questions and answers as a searchable page. |
+| Website | A one-page site from a few lines; downloads as one HTML file. |
+| Store | A shop page with a working cart; orders go by email. |
+| Invoice | Who, what, how much; sums done, PDF to send. |
+| Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
+| Zine | Eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
@@ -101,6 +110,11 @@ as that file the moment it is opened, then shows the editor as usual:
 | `#/v2/<app>.png/<payload>`   | The whole of any document as one picture          |
 | `#/v2/<app>.html/<payload>`  | Any document as a plain web page with preview tags |
 
+One view is not a file: `#/v2/deck.show/<payload>` opens a deck presenting.
+That is the link Copy and Share hand out for a deck, so whoever you send it to
+lands in the show; "Edit this deck" (or Escape) takes them to the editor, and
+the Share menu also has the plain editing link.
+
 The same files are under the Download button on every document, and the
 Document dialog has a copy button for each download link. A password-locked
 link downloads once the password is entered. The file is named after the
@@ -133,7 +147,11 @@ Every format is plain text, chosen so deflate has something to chew on.
   `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN
   INT ABS SQRT MOD NPV IRR PMT FV PV`. Errors show as `#DIV/0`, `#REF`,
   `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. A first line `!bar`, `!line` or
-  `!pie` asks for a chart of the table.
+  `!pie` asks for a chart of the table, and after a `|` come the columns'
+  types, a letter each (`!bar|td$`): text, number, money `$`, percent `%`,
+  date, link `u`, checkbox, rich text. Dates are day counts, so they add and
+  subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on
+  them.
 - **Write**: one block per line. Prefixes `# ` and `## ` for headings, `- ` and
   `+ ` for bulleted and numbered items; repeat the marker to nest (`-- `,
   `--- `). Inline toggles `*bold*`, `_italic_`, `^underline^`, `~strike~`,
@@ -174,6 +192,13 @@ Shoelace components (buttons, inputs, selects, dialogs, the drawer, the
 progress ring, the copy button) are styled through their tokens and
 `::part()` selectors from the same file.
 
+## Titles
+
+Every document can be given a name (the field beside its icon). It travels in
+the envelope with the creation time, names downloads and the browser tab, and
+is what an embedded document is called. Without one, a document goes by a
+title read from its content, or "Untitled Sheet".
+
 ## Creation time and signatures
 
 Every document is wrapped in a small envelope before compression: its creation
@@ -209,6 +234,62 @@ does not know the password, including browser history, chat logs and
 bookmarks. What it does not: anyone holding the link can try passwords
 offline at full speed, so a short or guessable password gives little. Nothing
 about the password ever leaves the browser.
+
+## Making documents by URL
+
+A document can be written as ordinary parameters, by hand or by a program:
+
+```
+https://tinyoffice.exe.xyz/sheet/#title=Sales&doc=!bar%0AQuarter%09Sales%0AQ1%09120%0AQ2%09180
+```
+
+`doc` is the document as plain text in the app's format, `title` its name,
+and `view` optionally `show`, `embed`, `pdf`, `png` or `html`. On arrival the
+link is rewritten into the compact form. Where an app's own format is too
+terse to write by hand (dates counted in days, packed coordinates), the app
+reads a friendlier one: `2027-03-01 to 2027-03-03 Offsite` for a calendar,
+`38.72, -9.14, Lisbon` for a trip. The full guide, with an example for every
+app, is `skill/tinyoffice/SKILL.md`: a skill for Claude, also served as
+`/llms.txt`. `/tinyoffice.js` exports `link()` and `embed()` for JavaScript.
+A test opens every example in the guide.
+
+The parameters go after `#`, never `?`: see the next section.
+
+## What the server sees
+
+Nothing of any document. A document is the part of the address after `#`,
+which a browser keeps to itself: it is not in the request, so it cannot be
+in a log. That is why plain-parameter links use `#` and the same thing after
+`?` is deliberately not understood. The server is static files; its request
+log is switched off as well (`deploy/nginx.conf`), though a proxy in front
+of it may keep its own record of which files were asked for.
+
+Three things do leave the browser, each only when asked to: Trip fetches map
+tiles and place searches from openstreetmap.org; the Share menu hands the
+link to the service chosen; and an embedded page's host sees that its page
+was loaded, not what the frame shows.
+
+## Embedding
+
+Share has "Copy embed code": an `<iframe>` on the document's `embed` view,
+which is the document alone with a link back to the editor. The snippet has
+a title, loads lazily, keeps its shape at any width and sends no referrer.
+
+## Diagrams, and the tiny database
+
+Org chart, Mind map, Swimlanes, Venn and Network are each a few dozen lines
+(`src/apps/<id>.def.ts`): a function from an outline to Draw's shapes and
+joins. `defineDiagram` (in `src/lib/diagram.ts`) turns that into an app, and
+`src/apps/diagram.ts` is the one editor they share. Because the output is a
+drawing, each is a picture, a PDF, a slide that builds shape by shape, and
+opens in Draw to be rearranged by hand. Draw itself has joins that follow
+their shapes, and more shapes (rounded box, hexagon, parallelogram,
+cylinder, note).
+
+Database is the same idea over `src/lib/reldb.ts`, a small relational
+engine: tables written as text, joined and queried with a subset of SQL
+(`SELECT`, `JOIN ... ON`, `WHERE`, `GROUP BY`, aggregates, `ORDER BY`,
+`LIMIT`). Its picture is the schema; its queries are answered beneath.
 
 ## Adding an app
 
@@ -251,12 +332,16 @@ slide, use Insert. Either way it is one thing: Edit opens its own editor in a
 dialog, Remove (or Backspace) takes it away. A sheet that asks for a chart is
 shown as the chart.
 
-When a deck is presented, a slide reveals one bullet per step and then
-whatever its document builds: a drawing a shape at a time, a table row by
-row by itself, a map flying from stop to stop. A fast double click shows the
-whole slide at once.
+A document shown on a slide has the whole slide: no headline, no bullets.
+When a deck is presented, a slide reveals one thing per click: a bullet, or a
+piece of its document (a shape of a drawing, a cell of a table, a stop on a
+map). A fast double click shows the whole slide at once.
 
 ## Keyboard and accessibility
+
+Undo and redo (Ctrl+Z, Ctrl+Shift+Z, or the buttons beside a document's name)
+work in every app, because the shell keeps the history: a document is text,
+and undoing hands the editor the text it was. A new app gets it for free.
 
 Ctrl+/ (or the menu) lists every shortcut: the ones that work everywhere and
 the current app's. Every control has a name, focus is always visible, motion
@@ -300,7 +385,6 @@ e2e/                  Playwright browser tests
 
 ## Deploying
 
-The included GitHub Actions workflow runs the tests on every push and, on
-`main`, publishes `dist/` to GitHub Pages. Enable Pages for the repository with
-"GitHub Actions" as the source and the site will appear at
-`https://<user>.github.io/tinyoffice/`.
+The included GitHub Actions workflow runs the tests on every push. The site
+is static: `npm run build` and serve `dist/` from anywhere (`deploy/deploy.sh`
+puts it on an exe.dev VM).

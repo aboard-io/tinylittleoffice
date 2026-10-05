@@ -14,6 +14,14 @@
 
 @import '@shoelace-style/shoelace/dist/themes/light.css';
 @import '@shoelace-style/shoelace/dist/themes/dark.css';
+/* One family for everything: IBM Plex Sans, and Plex Mono where figures line up. */
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-sans/latin-700.css';
+@import '@fontsource/ibm-plex-sans/latin-ext-400.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
 
 /* 1. Tokens ---------------------------------------------------------------- */
 :root,
@@ -33,8 +41,8 @@
   --sl-color-primary-900: var(--sl-color-indigo-900);
   --sl-color-primary-950: var(--sl-color-indigo-950);
 
-  --sl-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --sl-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sl-font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --sl-font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sl-border-radius-medium: 0.5rem;
   --sl-border-radius-large: 0.75rem;
   --sl-input-border-radius-small: 0.375rem;
@@ -93,6 +101,19 @@ to-write,
 to-deck,
 to-draw,
 to-cal,
+to-zine,
+to-sticky,
+to-faq,
+to-site,
+to-store,
+to-invoice,
+to-contract,
+to-org,
+to-mind,
+to-lanes,
+to-venn,
+to-net,
+to-db,
 to-todo,
 to-board,
 to-gantt,
@@ -823,9 +844,15 @@ table.sheet td.sel input {
   min-height: 0;
 }
 .deck-slide.lay-2 .body,
-.deck-slide.lay-i .body,
-.deck-slide.has-sub .body {
+.deck-slide.lay-i .body {
   grid-template-columns: 1fr 1fr;
+}
+/* A document shown on a slide has the whole slide. */
+.deck-slide.has-sub {
+  display: block;
+  padding: 2cqw;
+  /* Tall enough for the picture and the bar under it that says what it is. */
+  aspect-ratio: auto;
 }
 .deck-slide to-embed {
   margin: 0;
@@ -1026,23 +1053,60 @@ table.sheet td.sel input {
   font-size: 12px;
   color: #a1a1aa;
 }
-.deck-show .tr-fade {
-  animation: deck-fade 0.35s ease-out;
+/* A new slide arrives over the one being left (.was), which stays put underneath: no flash of
+   the background between them. Each transition is its own motion, slow enough to follow. */
+.deck-show .was {
+  position: absolute;
+  width: min(100vw, 160vh);
+  aspect-ratio: 16 / 10;
+  background: #fff;
 }
-.deck-show .tr-slide {
-  animation: deck-slide 0.35s ease-out;
+.deck-show .was svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-.deck-show .tr-zoom {
-  animation: deck-zoom 0.35s ease-out;
+.deck-show .frame.tr-fade {
+  animation: deck-fade 0.6s ease-in-out both;
+}
+.deck-show .frame.tr-slide {
+  animation: deck-slide-in 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.deck-show .frame.tr-slide.back {
+  animation-name: deck-slide-back;
+}
+.deck-show .was.tr-slide {
+  animation: deck-slide-out 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.deck-show .was.tr-slide.back {
+  animation-name: deck-slide-out-back;
+}
+.deck-show .frame.tr-zoom {
+  animation: deck-zoom-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.deck-show .was.tr-zoom {
+  animation: deck-zoom-out 0.6s ease-in both;
 }
 @keyframes deck-fade {
   from { opacity: 0; }
 }
-@keyframes deck-slide {
-  from { transform: translateX(8%); opacity: 0; }
+@keyframes deck-slide-in {
+  from { transform: translateX(100%); }
 }
-@keyframes deck-zoom {
-  from { transform: scale(0.92); opacity: 0; }
+@keyframes deck-slide-back {
+  from { transform: translateX(-100%); }
+}
+@keyframes deck-slide-out {
+  to { transform: translateX(-30%); opacity: 0.4; }
+}
+@keyframes deck-slide-out-back {
+  to { transform: translateX(30%); opacity: 0.4; }
+}
+@keyframes deck-zoom-in {
+  from { transform: scale(0.6); opacity: 0; }
+}
+@keyframes deck-zoom-out {
+  to { transform: scale(1.25); opacity: 0; }
 }
 
 /* Draw */
@@ -2118,7 +2182,7 @@ to-embed[contenteditable='false']:focus {
 
 /* Sheet: chart */
 .sheet-chart-pick {
-  width: 128px;
+  width: 152px;
 }
 .sheet-chart {
   margin: 0;
@@ -2168,10 +2232,15 @@ to-trip[present] .trip-map {
     flex-direction: row;
   }
   .sheet-chart-pick {
-    width: 56px;
+    width: 124px;
   }
-  .sheet-chart-pick::part(display-input) {
-    display: none;
+  /* The bar wraps on a phone: the formula keeps a row to itself. */
+  .sheet-bar {
+    flex-wrap: wrap;
+  }
+  .sheet-bar > sl-input {
+    flex: 1 1 100%;
+    order: 9;
   }
 }
 
@@ -2209,8 +2278,7 @@ table.sheet td.corner {
     font-size: max(16px, calc(var(--body) / 960 * 100cqw));
   }
   .deck-slide.lay-2 .body,
-  .deck-slide.lay-i .body,
-  .deck-slide.has-sub .body {
+  .deck-slide.lay-i .body {
     grid-template-columns: 1fr;
   }
 }
@@ -2261,5 +2329,583 @@ table.sheet .fill {
     width: 18px;
     height: 18px;
     border-radius: 50%;
+  }
+}
+
+/* 9. Titles, fonts and small fixes ----------------------------------------- */
+button,
+input,
+select,
+textarea {
+  font-family: var(--sl-font-sans);
+}
+.to-doc-ico {
+  display: inline-grid;
+  color: var(--to-ink-2);
+}
+.to-title {
+  flex: 0 1 22em;
+  min-width: 6em;
+  border: 1px solid transparent;
+  border-radius: var(--to-radius);
+  background: transparent;
+  color: var(--to-ink);
+  font: 650 15px var(--sl-font-sans);
+  padding: 4px 6px;
+  margin-left: -4px;
+  text-overflow: ellipsis;
+}
+.to-title::placeholder {
+  color: var(--to-ink-2);
+  opacity: 1;
+}
+.to-title:hover,
+.to-title:focus {
+  border-color: var(--to-border);
+  background: var(--to-surface);
+}
+/* Dragging across the calendar makes a span; it must not also select the page's text. */
+.cal-grid,
+.cal-grid * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.deck-picker-more {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--to-ink-3);
+}
+.deck-icon-color {
+  margin-right: auto;
+}
+sl-dialog#icon-picker::part(footer) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deck-slide .pick,
+.deck-slide .big {
+  color: var(--icon, var(--to-accent));
+}
+
+/* Sheet: what a column holds */
+table.sheet th .col-type {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 100%;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 3px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+table.sheet th .col-type:hover {
+  background: var(--to-border);
+  color: var(--to-ink);
+}
+table.sheet th .col-type small {
+  font-size: 10.5px;
+  color: var(--to-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+table.sheet td input.link {
+  color: var(--to-accent);
+  text-decoration: underline;
+  padding-right: 26px;
+}
+table.sheet td .go {
+  position: absolute;
+  right: 3px;
+  top: 4px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--to-accent-soft);
+  color: var(--to-accent);
+}
+table.sheet td input.tick {
+  text-align: center;
+  font-size: 17px;
+}
+table.sheet td input.under {
+  color: transparent;
+}
+table.sheet td .rich {
+  position: absolute;
+  inset: 0;
+  padding: 0 8px;
+  font: 13.5px/32px var(--sl-font-sans);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+table.sheet td .rich a {
+  pointer-events: auto;
+  color: var(--to-accent);
+}
+table.sheet td .rich .b {
+  font-weight: 700;
+}
+table.sheet td .rich .i {
+  font-style: italic;
+}
+table.sheet td .rich .u {
+  text-decoration: underline;
+}
+table.sheet td .rich .s {
+  text-decoration: line-through;
+}
+
+/* The document on its own, inside someone else's page */
+.to-embedded {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: #fff;
+  color: #18181b;
+}
+.to-embedded .pic {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.to-embedded .pic svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.to-embedded footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-top: 1px solid #e4e4e7;
+  background: #fafafa;
+  font-size: 13.5px;
+}
+.to-embedded .t {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.to-embedded .n {
+  font-variant-numeric: tabular-nums;
+  color: #52525b;
+}
+.to-embedded button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+.to-embedded button:disabled {
+  opacity: 0.4;
+}
+.to-embedded a {
+  color: #4338ca;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.to-embed-note {
+  margin: auto;
+  padding: 24px;
+  text-align: center;
+}
+
+/* Diagram apps: an outline and its picture */
+.diagram {
+  display: grid;
+  grid-template-columns: minmax(240px, 34%) 1fr;
+  min-height: 420px;
+}
+.diagram textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 320px;
+  border: 0;
+  border-right: 1px solid var(--to-border);
+  padding: 14px 16px;
+  resize: none;
+  background: var(--to-surface);
+  color: var(--to-ink);
+  font: 14px/1.6 var(--sl-font-mono);
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+.diagram .pic {
+  min-width: 0;
+  padding: 16px;
+  background: #fff;
+  overflow: auto;
+}
+.diagram .pic svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  font-family: var(--sl-font-sans);
+}
+.diagram-hint {
+  flex: 1 1 320px;
+  white-space: normal;
+}
+.diagram-aside {
+  margin-top: 16px;
+  color: #18181b;
+  font-size: 13.5px;
+}
+.diagram-aside h2 {
+  margin: 18px 0 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.diagram-aside code {
+  font-family: var(--sl-font-mono);
+  color: #3f3f46;
+}
+.diagram-aside table {
+  border-collapse: collapse;
+}
+.diagram-aside th,
+.diagram-aside td {
+  border: 1px solid #d4d4d8;
+  padding: 3px 10px;
+  text-align: left;
+}
+.diagram-aside th {
+  background: #f4f4f5;
+  font-weight: 600;
+}
+.diagram-aside td.n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.diagram-aside .err {
+  color: #b91c1c;
+}
+.diagram-aside .count {
+  margin: 4px 0 0;
+  color: #52525b;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .diagram {
+    grid-template-columns: 1fr;
+  }
+  .diagram textarea {
+    min-height: 200px;
+    border-right: 0;
+    border-bottom: 1px solid var(--to-border);
+    font-size: 16px;
+  }
+}
+
+/* Calendar: colours, their names, and the time zone box */
+.cal-zone {
+  width: 190px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid var(--sl-input-border-color);
+  border-radius: var(--sl-input-border-radius-small);
+  background: var(--sl-input-background-color);
+  color: var(--to-ink);
+  font: 14px var(--sl-font-sans);
+  padding: 0 8px;
+}
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--to-border);
+}
+.cal-legend .who {
+  width: 220px;
+  max-width: 100%;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
+  font: 13.5px var(--sl-font-sans);
+  padding: 4px 8px;
+}
+.cal-legend .key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.cal-legend .key i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.cal-chip.tint {
+  background: color-mix(in srgb, var(--c) 16%, var(--to-surface));
+  border-color: var(--c);
+  color: var(--to-ink);
+}
+.cal-chip.tint.day {
+  background: var(--c);
+  color: #fff;
+}
+/* Draw: the canvas scrolls inside its frame when zoomed in */
+.draw-wrap {
+  overflow: auto;
+  max-height: 80vh;
+}
+svg.draw-canvas {
+  margin: 0 auto;
+}
+@media (max-width: 760px) {
+  .cal-zone {
+    font-size: 16px;
+    width: 160px;
+  }
+  .cal-legend .who {
+    font-size: 16px;
+  }
+}
+
+/* The menu, in groups, with kinds of an app beneath it */
+.to-drawer-nav h2,
+.to-group {
+  margin: 14px 0 2px;
+  padding: 0 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
+}
+.to-drawer-nav h2:first-of-type {
+  margin-top: 6px;
+}
+.to-drawer-nav a.sub {
+  margin-left: 26px;
+  padding: 8px 12px;
+  font-size: 14.5px;
+  border-left: 2px solid var(--to-border);
+  border-radius: 0 var(--to-radius) var(--to-radius) 0;
+}
+.to-group {
+  max-width: 920px;
+  margin: 22px auto 10px;
+  padding: 0;
+}
+.to-home .to-launcher {
+  margin-bottom: 8px;
+}
+.to-launcher a.sub {
+  padding: 14px 12px;
+  background: transparent;
+}
+.to-launcher a.sub .ic {
+  width: 32px;
+  height: 32px;
+}
+.to-launcher a.sub b {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Page apps: the text, and the page it makes */
+.diagram.page .pic {
+  padding: 0;
+  background: #e4e4e7;
+}
+.diagram.page iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  border: 0;
+  background: #fff;
+}
+.diagram.page iframe.sample {
+  opacity: 0.45;
+}
+.diagram.page textarea {
+  white-space: pre-wrap;
+  font-family: var(--sl-font-sans);
+  font-size: 15px;
+}
+sl-dialog.to-icons {
+  --width: min(92vw, 520px);
+}
+
+/* Contract: who has signed */
+.contract-sign {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--to-border);
+  background: var(--to-surface-2);
+}
+.contract-sign ul {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.contract-sign li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+.contract-sign li.ok {
+  color: var(--sl-color-success-700);
+}
+.contract-sign li.bad {
+  color: var(--to-danger);
+}
+.contract-sign li.none {
+  color: var(--to-ink-3);
+}
+.contract-sign code {
+  font: 12px var(--sl-font-mono);
+  color: var(--to-ink-2);
+}
+.contract-sign li button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--to-ink-3);
+  cursor: pointer;
+}
+.contract-sign .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.contract-sign .to-hint {
+  flex: 1 1 260px;
+  white-space: normal;
+}
+
+/* Zine: the pages, the one being written, and how it will print */
+.zine {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  align-items: start;
+}
+.zine-rail {
+  display: grid;
+  gap: 8px;
+}
+.zine-thumb {
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--to-ink-2);
+  font: 12px var(--sl-font-sans);
+  cursor: pointer;
+}
+.zine-thumb[aria-current='true'] {
+  border-color: var(--to-accent);
+}
+.zine-thumb > svg,
+.zine-page > svg,
+.zine-sheet > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--to-border);
+  border-radius: 3px;
+}
+.zine-edit {
+  display: grid;
+  gap: 10px;
+}
+.zine-edit h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--to-ink-3);
+}
+.zine-edit input.title {
+  font: 600 22px var(--sl-font-sans);
+  padding: 8px 10px;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
+  min-width: 0;
+}
+.zine-edit textarea {
+  min-height: 260px;
+  padding: 10px;
+  font: 16px/1.5 var(--sl-font-sans);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
+  resize: vertical;
+}
+.zine-page {
+  max-width: 420px;
+  justify-self: center;
+  width: 100%;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
+}
+.zine-sheets {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.zine-sheets .to-hint {
+  white-space: normal;
+}
+.zine-sides {
+  width: 220px;
+}
+@media (max-width: 760px) {
+  .zine {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .zine-rail {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 2px;
+  }
+  .zine-thumb {
+    padding: 1px;
+    font-size: 10px;
+  }
+  .zine-sides {
+    width: 170px;
   }
 }

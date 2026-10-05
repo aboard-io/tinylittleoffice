@@ -28,7 +28,11 @@ test('calendar: spans, zones and the author-zone shortcut', async ({ page }) => 
   await expect(page.getByLabel('End time')).toHaveValue('10:00');
   const chip = page.getByRole('gridcell', { name: '2026-01-15' }).locator('.cal-chip');
   await expect(chip).toHaveAttribute('title', /9:00/);
-  await pickOption(page, 'sl-select.cal-zone', 'UTC');
+  // The time zone is a box you can type in: a city is enough.
+  const zone = page.getByRole('combobox', { name: 'Time zone' });
+  await zone.fill('utc');
+  await zone.press('Enter');
+  await expect(zone).toHaveValue('UTC');
   await expect(chip).toHaveAttribute('title', /2:00/);
   await expect(page.getByLabel('Start time')).toHaveValue('14:00');
   await label.fill('Offsite call');

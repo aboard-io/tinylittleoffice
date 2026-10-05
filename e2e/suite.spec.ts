@@ -4,7 +4,7 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a');
-  await expect(launcher).toHaveCount(10);
+  await expect(launcher).toHaveCount(23);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });
@@ -63,7 +63,7 @@ test('sheet: tapping cells builds a formula, and every function is one tap away'
 
   // The function menu starts a formula; taps fill in its arguments.
   await page.getByRole('button', { name: 'Functions' }).click();
-  await expect(page.getByRole('menuitem')).toHaveCount(23);
+  await expect(page.getByRole('menuitem')).toHaveCount(32);
   await page.getByRole('menuitem', { name: /^MAX/ }).click();
   await expect(cell('C1')).toBeFocused();
   await expect(cell('C1')).toHaveValue('=MAX(');
@@ -114,7 +114,7 @@ test('sheet: blocks of cells are selected, copied, cut, cleared and filled', asy
   for (const [at, v] of [['A1', '1'], ['A2', '2'], ['B1', '10'], ['B2', '20'], ['C1', '=A1+B1']]) await cell(at).fill(v);
 
   // Shift+arrows stretch a block from the cell you are in.
-  await cell('C1').click();
+  await cell('C1').focus();
   await page.keyboard.press('Shift+ArrowDown');
   await expect(ref).toHaveText('C1:C2');
   await expect(page.locator('table.sheet td.in')).toHaveCount(2);
@@ -122,9 +122,10 @@ test('sheet: blocks of cells are selected, copied, cut, cleared and filled', asy
   await expect(ref).toHaveText('C1');
 
   // Copy a cell, select a block, paste: every copy points at its own neighbours.
-  await cell('C1').click();
+  // (Focus rather than a tap: a tap can land the caret inside the formula, where the next tap would add to it.)
+  await cell('C1').focus();
   await page.keyboard.press('Control+c');
-  await cell('C2').click();
+  await cell('C2').focus();
   await page.keyboard.press('Shift+ArrowDown');
   await page.keyboard.press('Control+v');
   await cell('F1').click();
@@ -394,24 +395,29 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   await thumbs.nth(1).click();
   await expect(page.locator('.deck-slide.lay-i .big svg')).toBeVisible();
   // Layout is a choice per slide.
-  // Slide type lists every layout, and everything that can be shown on a slide.
-  const kind = page.getByRole('button', { name: 'Slide type' });
+  // Slide type says what this slide is, and adds a slide of whatever is chosen: the slide you are on is left alone.
+  const kind = page.locator('.deck-kind sl-button[slot="trigger"]');
+  await expect(kind).toContainText('Big icon');
   await kind.click();
   await expect(page.getByRole('menuitemcheckbox')).toHaveText(['Bullets', 'Title', 'Two columns', 'Big icon']);
-  for (const name of ['Motion', 'Drawing', 'Table', 'Chart', 'Map']) await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
-  await page.getByRole('menuitemcheckbox', { name: 'Bullets' }).click();
-  await expect(page.locator('.deck-slide.lay-b')).toBeVisible();
-  await expect(page.getByRole('menuitemcheckbox', { name: 'Bullets' })).toBeHidden();
-  await kind.click();
-  await page.getByRole('menuitemcheckbox', { name: 'Big icon' }).click();
-  await expect(page.locator('.deck-slide.lay-i')).toBeVisible();
-  await expect(page.getByRole('menuitemcheckbox', { name: 'Big icon' })).toBeHidden();
+  for (const name of ['Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Sticky notes']) await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
+  await page.getByRole('menuitemcheckbox', { name: 'Two columns' }).click();
+  await expect(thumbs).toHaveCount(5);
+  await expect(page.locator('.deck-slide.lay-2')).toBeVisible();
+  await expect(kind).toContainText('Two columns');
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeFocused();
+  // Return in the headline goes on to the bullets.
+  await page.keyboard.type('Added');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('textbox', { name: 'Bullets' })).toBeFocused();
+  await thumbs.nth(1).click();
+  await expect(page.locator('.deck-slide.lay-i .big svg')).toBeVisible();
 
-  // A slide can show another document; Insert adds one and opens it for editing.
-  await thumbs.nth(2).click();
+  // A slide can show another document; choosing one adds a slide for it and opens it for editing.
+  const drawing = page.locator('.deck-rail .deck-thumb', { hasText: 'One' });
+  await drawing.click();
   await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
-  await page.locator('.deck-slide to-embed').getByRole('button', { name: /Remove/ }).click();
-  await expect(page.locator('.deck-slide to-embed')).toHaveCount(0);
+  await expect(kind).toContainText('Drawing');
   await kind.click();
   await page.getByRole('menuitem', { name: 'Chart', exact: true }).click();
   const sub = page.locator('sl-dialog.to-sub');
@@ -422,32 +428,102 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   await sub.getByRole('textbox', { name: 'B2', exact: true }).fill('30');
   await sub.getByRole('button', { name: 'Done' }).click();
   await expect(sub).toHaveCount(0);
-  await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
-  await expect(page.locator('.deck-slide to-embed svg rect[rx="2"]')).toHaveCount(2);
+  await expect(thumbs).toHaveCount(6);
+  await expect(page.locator('.deck-slide to-embed svg[role="img"] rect[rx="2"]')).toHaveCount(2);
+  await expect(kind).toContainText('Table');
+  // The drawing's slide is as it was.
+  await expect(drawing).toHaveCount(1);
   await reopen(page);
-  await thumbs.nth(2).click();
-  await expect(page.locator('.deck-slide to-embed svg rect[rx="2"]')).toHaveCount(2);
+  await expect(thumbs).toHaveCount(6);
   await shot(page, 'deck-sub');
+  await drawing.click();
 
-  // Presenting a drawing builds it a shape per click; a table fills in by itself.
+  // What is inserted has the slide to itself: no headline, no bullets beside it.
+  await expect(page.locator('.deck-slide.has-sub input.title')).toHaveCount(0);
+  const full = await page.locator('.deck-slide to-embed').evaluate((el) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width);
+  expect(full).toBeGreaterThan(0.9);
+
+  // Presenting it: the whole slide is the document, and it appears a piece per click.
   await page.goto('about:blank');
   await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body }));
   await thumbs.nth(2).click();
   await page.getByRole('button', { name: 'Present' }).click();
   const slide = page.locator('.deck-show .frame > svg');
   await expect(page.locator('.deck-show .frame')).toHaveClass(/tr-fade/);
+  await expect(slide.locator('rect, ellipse, line')).toHaveCount(0);
+  await expect(slide).not.toContainText('Drawing');
   await expect(slide).not.toContainText('first');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('first');
-  await expect(slide).not.toContainText('One');
   await page.keyboard.press('ArrowRight');
   await expect(slide).toContainText('One');
   await expect(slide).not.toContainText('Two');
-  await page.keyboard.press('End');
-  await expect(slide).toContainText('Two');
+  // It fills the slide.
+  const share = await slide.locator('svg').first().evaluate((el) => Number(el.getAttribute('height')) / 600);
+  expect(share).toBeGreaterThan(0.85);
   await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Table');
-  await expect(slide).toContainText('Food');
+  await expect(slide).toContainText('Two');
+  await expect(slide.locator('line')).toHaveCount(0);
+  await page.keyboard.press('End');
+  await expect(slide.locator('line')).toHaveCount(1);
+  await shot(page, 'deck-takeover');
+  // A table fills in a cell per click, across each row and down.
+  await page.keyboard.press('ArrowRight');
+  await expect(slide.locator('rect')).toHaveCount(6);
+  await expect(slide).not.toContainText('Item');
+  for (const [now, next] of [['Item', 'Cost'], ['Cost', 'Rent'], ['Rent', '1200'], ['1200', 'Food'], ['Food', '600']]) {
+    await page.keyboard.press('ArrowRight');
+    await expect(slide).toContainText(now);
+    await expect(slide).not.toContainText(next);
+  }
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('600');
+  await page.keyboard.press('Escape');
+});
+
+test('deck: a motion slide is made and changed from the slide itself', async ({ page }) => {
+  await page.goto('/#/deck');
+  await page.getByRole('button', { name: 'Slide type' }).click();
+  await page.getByRole('menuitem', { name: 'Motion', exact: true }).click();
+  const sub = page.locator('sl-dialog.to-sub');
+  await expect(sub).toHaveAttribute('open');
+  await sub.getByRole('button', { name: 'Text', exact: true }).click();
+  await sub.getByRole('textbox', { name: 'Text' }).fill('Lift off');
+  await sub.getByRole('button', { name: 'Done' }).click();
+  const embed = page.locator('.deck-slide to-embed');
+  await expect(embed.locator('svg[role="img"]')).toContainText('Lift off');
+  // Tapping the picture opens it again; so does Edit. Its bar sits inside the slide.
+  await expect(embed).toContainText('Tap to edit');
+  const inside = await embed.evaluate((el) => el.getBoundingClientRect().bottom <= el.closest('.deck-slide')!.getBoundingClientRect().bottom + 1);
+  expect(inside).toBe(true);
+  await embed.locator('svg[role="img"]').click();
+  await expect(sub.locator('g.item')).toHaveCount(1);
+  await sub.getByRole('button', { name: 'Icon', exact: true }).click();
+  await page.locator('#anim-icons').getByRole('button', { name: 'rocket', exact: true }).click();
+  await expect(sub.locator('g.item')).toHaveCount(2);
+  await expect(page.locator('#anim-icons')).toBeHidden();
+  // Give the rocket somewhere to go, so it moves when the deck is shown.
+  await sub.getByRole('slider', { name: 'Time' }).fill('15');
+  const stage = sub.getByRole('application', { name: 'Stage' });
+  const box = (await stage.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2, { steps: 4 });
+  await page.mouse.up();
+  await sub.getByRole('button', { name: 'Done' }).click();
+  await expect(sub).toHaveCount(0);
+  await expect(embed.locator('svg[role="img"] animateTransform').first()).toBeAttached();
+  await reopen(page);
+  // (It was added as a slide of its own, after the first.)
+  await page.locator('.deck-rail .deck-thumb').nth(1).click();
+  await embed.getByRole('button', { name: 'Edit' }).click();
+  await expect(sub.locator('g.item')).toHaveCount(2);
+  await sub.getByRole('button', { name: 'Done' }).click();
+  // Presented, it has the slide and it plays.
+  await page.getByRole('button', { name: 'Present' }).click();
+  const slide = page.locator('.deck-show .frame > svg');
+  await expect(slide).toContainText('Lift off');
+  // It plays once and stops where it ended; it does not loop.
+  await expect(slide.locator('animateTransform').first()).toHaveAttribute('repeatCount', '1');
+  await expect(slide.locator('animateTransform').first()).toHaveAttribute('fill', 'freeze');
   await page.keyboard.press('Escape');
 });
 
@@ -536,4 +612,73 @@ test('back and forward move between documents', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Document' })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('hello');
+});
+
+test('sheet: columns have types, and dates do arithmetic', async ({ page }) => {
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  const setType = async (col: string, type: string) => {
+    await page.getByRole('button', { name: new RegExp(`^Column ${col}:`) }).click();
+    await page.getByRole('menuitemcheckbox', { name: new RegExp(`^${type}`) }).click();
+    await expect(page.getByRole('menuitemcheckbox', { name: new RegExp(`^${type}`) })).toBeHidden();
+  };
+  await setType('A', 'Date');
+  await setType('B', 'Date');
+  await setType('D', 'Money');
+  await setType('E', 'Link');
+  await setType('F', 'Checkbox');
+  await expect(page.getByRole('button', { name: /^Column A: Date/ })).toContainText('Date');
+
+  await cell('A1').fill('2027-01-31');
+  await cell('B1').fill('3/1/2027');
+  await cell('C1').fill('=B1-A1');
+  await cell('A2').fill('=A1+30');
+  await cell('B2').fill('=EDATE(A1, 1)');
+  await cell('D1').fill('1200.5');
+  await cell('E1').fill('https://example.com/report');
+  await cell('F1').click();
+  await page.keyboard.press('Space');
+  await cell('C3').click();
+  // A date less a date is days; a date plus days is a date.
+  await expect(cell('C1')).toHaveValue('29');
+  await expect(cell('B1')).toHaveValue('2027-03-01');
+  await expect(cell('A2')).toHaveValue('2027-03-02');
+  await expect(cell('B2')).toHaveValue('2027-02-28');
+  await expect(cell('D1')).toHaveValue('$1,200.50');
+  await expect(cell('F1')).toHaveValue('☑');
+  // A link opens from its cell.
+  await expect(page.getByRole('link', { name: 'Open https://example.com/report' })).toHaveAttribute('href', 'https://example.com/report');
+
+  await reopen(page);
+  await expect(cell('C1')).toHaveValue('29');
+  await expect(cell('D1')).toHaveValue('$1,200.50');
+  await expect(page.getByRole('button', { name: /^Column E: Link/ })).toBeVisible();
+  await shot(page, 'sheet-types');
+  // Rich text shows its emphasis when you are not typing in it.
+  await setType('C', 'Rich text');
+  await cell('C2').fill('Very *important* thing');
+  await cell('C3').click();
+  await expect(page.locator('table.sheet td .rich .b')).toHaveText('important');
+});
+
+test('sheet: on a touch screen the corner handle stretches the block any way, and buttons fill it', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'touch only');
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  await cell('A1').fill('1');
+  await cell('B1').fill('=A1*2');
+  await cell('A1').click();
+  const handle = page.locator('table.sheet .fill');
+  const from = (await handle.boundingBox())!;
+  const to = (await cell('B3').boundingBox())!;
+  // A finger on the handle, dragged diagonally.
+  const touch = (type: string, x: number, y: number) => handle.dispatchEvent(type, { pointerType: 'touch', pointerId: 7, clientX: x, clientY: y, bubbles: true, isPrimary: true });
+  await touch('pointerdown', from.x + 5, from.y + 5);
+  await touch('pointermove', to.x + to.width / 2, to.y + to.height / 2);
+  await touch('pointerup', to.x + to.width / 2, to.y + to.height / 2);
+  await expect(page.getByLabel('Selected cells')).toHaveText('A1:B3');
+  await page.getByRole('button', { name: 'Fill down' }).click();
+  await cell('D1').click();
+  await expect(cell('A3')).toHaveValue('1');
+  await expect(cell('B3')).toHaveValue('2');
 });

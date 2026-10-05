@@ -14,7 +14,9 @@ scp -q deploy/nginx.conf "$HOST:/tmp/tinyoffice-nginx.conf"
 ssh "$HOST" '
   set -e
   sudo mkdir -p /srv/www/tinyoffice
-  sudo rsync -a --delete /tmp/tinyoffice-dist/ /srv/www/tinyoffice/
+  # Old script and style files stay: a page opened before this deploy may still ask for them.
+  sudo rsync -a --delete --exclude=/assets /tmp/tinyoffice-dist/ /srv/www/tinyoffice/
+  sudo rsync -a /tmp/tinyoffice-dist/assets/ /srv/www/tinyoffice/assets/
   sudo mv /tmp/tinyoffice-nginx.conf /etc/nginx/sites-available/tinyoffice
   sudo ln -sf /etc/nginx/sites-available/tinyoffice /etc/nginx/sites-enabled/tinyoffice
   sudo rm -f /etc/nginx/sites-enabled/default

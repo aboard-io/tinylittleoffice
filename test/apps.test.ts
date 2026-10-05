@@ -119,6 +119,9 @@ test('motion round trip and interpolation', () => {
   const svg = animToSvg(s);
   assert.ok(svg.includes('type="translate" values="80 320;560 80" keyTimes="0;1" dur="2.00s" repeatCount="indefinite"'));
   assert.ok(svg.includes('type="scale" values="1;2.5"'));
+  // In another document (a slide, a text) it plays once and holds its last frame.
+  const once = appOf('anim')!.view(s, { embed: true })[0].svg;
+  assert.ok(once.includes('repeatCount="1" fill="freeze"') && !once.includes('indefinite'));
   assert.ok(svg.includes('<path d="M4.5 16.5'));
   assert.ok(svg.includes('<g transform="translate(320 200) scale(1)"><text'));
 });
@@ -166,7 +169,7 @@ test('embedding one document in another', async () => {
   const d = resolve(`deck/${deck}`);
   assert.deepEqual([d.def!.name, d.title, d.locked, d.hash], ['Deck', 'Spring launch', false, `#/v2/deck/${deck}`]);
   assert.ok(refPage(drawing).svg.includes('>Box</text>'));
-  assert.deepEqual(refSteps(drawing), { steps: 2, auto: false });
+  assert.equal(refSteps(drawing), 2);
   assert.deepEqual([resolve('sheet/Eabc').locked, resolve('sheet/Eabc').title], [true, 'Locked sheet']);
   // A new, empty document can be embedded before anything is in it.
   assert.equal(makeRef('draw', ''), 'draw/');
@@ -201,17 +204,21 @@ test('text: nested list items', async () => {
 test('deck: layouts, columns, embedded documents, transition', async () => {
   const { parseDeck, serializeDeck, deckTransition } = await import('../src/lib/deckmodel.ts');
   const { layoutSlide, slidePage, slideSteps } = await import('../src/apps/deck.def.ts');
-  const text = '!fade\n\n:rocket:t\nBig launch\nSpring\n\n::2\nPlan\nleft\n|\nright one\nright two\n\n:star:i\nWhy\nbecause\n\nShapes\nfirst\n\\|\n@@draw/';
+  const text = '!zoom\n\n:rocket:t\nBig launch\nSpring\n\n::2\nPlan\nleft\n|\nright one\nright two\n\n:star:i\nWhy\nbecause\n\nShapes\nfirst\n\\|\n@@draw/';
   const slides = parseDeck(text);
-  assert.equal(deckTransition(text), 'fade');
+  assert.equal(deckTransition(text), 'zoom');
+  // Fade is what a deck does unless told otherwise (and what an old "!fade" still means).
+  assert.equal(deckTransition(':rocket\nA'), '');
+  assert.equal(deckTransition('!fade\n\nA'), '');
+  assert.equal(deckTransition('!cut\n\nA'), 'cut');
   assert.deepEqual(slides.map((s) => s.layout ?? ''), ['t', '2', 'i', '']);
   assert.deepEqual(slides[1].right, ['right one', 'right two']);
   assert.deepEqual([slides[3].bullets, slides[3].sub], [['first', '|'], 'draw/']);
-  assert.equal(serializeDeck(slides, 'fade'), text);
+  assert.equal(serializeDeck(slides, 'zoom'), text);
   assert.equal(deckTransition(serializeDeck(slides)), '');
   // Builds: a title slide appears whole; others reveal a bullet at a time, then what their document builds.
-  assert.deepEqual(slideSteps(slides[0]), { bullets: 0, sub: 0, auto: false });
-  assert.deepEqual(slideSteps(slides[1]), { bullets: 3, sub: 0, auto: false });
+  assert.deepEqual(slideSteps(slides[0]), { bullets: 0, sub: 0 });
+  assert.deepEqual(slideSteps(slides[1]), { bullets: 3, sub: 0 });
   const two = slidePage(slides[1], 1).svg;
   assert.ok(two.includes('>left</text>') && !two.includes('right one'));
   assert.ok(slidePage(slides[1]).svg.includes('>right two</text>'));
@@ -219,7 +226,282 @@ test('deck: layouts, columns, embedded documents, transition', async () => {
   const few = layoutSlide({ icon: '', title: 'T', bullets: ['a', 'b'] }).bodyPx;
   const many = layoutSlide({ icon: '', title: 'T', bullets: Array.from({ length: 14 }, (_, i) => `A reasonably long bullet number ${i} that takes some room`) }).bodyPx;
   assert.ok(few > many && few >= 30 && many >= 14, `${few} vs ${many}`);
-  // The big icon and an embedded document each take the right-hand half.
+  // The big icon takes the right-hand half.
   assert.ok(layoutSlide(slides[2]).icon!.w > 200 && layoutSlide(slides[2]).icon!.x > 480);
-  assert.ok(layoutSlide(slides[3]).sub!.x > 480);
+  // A document shown on a slide has the whole slide: no headline, no bullets, and it builds a piece per click.
+  const { makeRef } = await import('../src/kit/embed.ts');
+  const taken = { icon: 'star', title: 'Hidden headline', bullets: ['hidden bullet'], sub: makeRef('draw', 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two') };
+  const box = layoutSlide(taken).sub!;
+  assert.ok(box.x <= 24 && box.w >= 900 && box.h >= 550);
+  assert.deepEqual(slideSteps(taken), { bullets: 0, sub: 2 });
+  const whole = slidePage(taken).svg;
+  assert.ok(whole.includes('>One</text>') && whole.includes('>Two</text>'));
+  assert.ok(!whole.includes('Hidden headline') && !whole.includes('hidden bullet'));
+  assert.ok(!slidePage(taken, 0, 0).svg.includes('>One</text>'));
+  assert.ok(slidePage(taken, 0, 1).svg.includes('>One</text>') && !slidePage(taken, 0, 1).svg.includes('>Two</text>'));
+  // A table fills in a cell per click: across each row, rows top to bottom. Empty cells take no click.
+  const table = { icon: '', title: '', bullets: [], sub: makeRef('sheet', 'a\tb\n1\n3\t4') };
+  assert.deepEqual(slideSteps(table), { bullets: 0, sub: 5 });
+  const cells = (n: number) => ['a', 'b', '1', '3', '4'].filter((t) => slidePage(table, 0, n).svg.includes(`>${t}</text>`));
+  assert.deepEqual([cells(0), cells(1), cells(3), cells(4), cells(5)], [[], ['a'], ['a', 'b', '1'], ['a', 'b', '1', '3'], ['a', 'b', '1', '3', '4']]);
+  // The grid itself is there before any of it is filled in.
+  assert.equal(slidePage(table, 0, 0).svg.match(/<rect /g)!.length, slidePage(table).svg.match(/<rect /g)!.length);
+});
+
+test('history: undo and redo, with a burst of changes as one step', async () => {
+  const { History } = await import('../src/kit/core.ts');
+  const h = new History(700);
+  assert.equal(h.undo('a'), null);
+  // "a" becomes "ab" then "abc" while typing, then, later, "abcd".
+  h.record('a', 1000);
+  h.record('ab', 1200);
+  h.record('abc', 5000);
+  assert.ok(h.canUndo && !h.canRedo);
+  assert.equal(h.undo('abcd'), 'abc');
+  assert.equal(h.undo('abc'), 'a');
+  assert.equal(h.undo('a'), null);
+  assert.equal(h.redo('a'), 'abc');
+  assert.equal(h.redo('abc'), 'abcd');
+  assert.equal(h.redo('abcd'), null);
+  // A new change after undoing forgets what was undone.
+  assert.equal(h.undo('abcd'), 'abc');
+  h.record('abc', 9000);
+  assert.ok(!h.canRedo);
+  assert.equal(h.undo('abX'), 'abc');
+  h.clear();
+  assert.ok(!h.canUndo && !h.canRedo);
+});
+
+test('diagram apps: outlines become shapes Draw can draw', async () => {
+  const { specOf, toDrawing, outline, placeTree } = await import('../src/lib/diagram.ts');
+  const { parseDrawing, isLink } = await import('../src/lib/drawmodel.ts');
+  const { pageSvg } = await import('../src/kit/core.ts');
+  assert.deepEqual(placeTree(outline('A\n  B\n  C\n    D\nE')).map((p) => [p.node.text, p.node.depth, p.across, p.parent]), [['A', 0, 0.5, -1], ['B', 1, 0, 0], ['C', 1, 1, 0], ['D', 2, 1, 2], ['E', 0, 2, -1]]);
+  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky']) {
+    const spec = specOf(id)!;
+    const def = appOf(id)!;
+    const d = spec.layout!(spec.example);
+    assert.ok(d.shapes.length >= 4, `${id} draws its example`);
+    // Every join points at two real shapes that are not joins themselves.
+    for (const s of d.shapes) if (isLink(s.k)) assert.ok(d.shapes[s.x] && d.shapes[s.y] && !isLink(d.shapes[s.x].k) && !isLink(d.shapes[s.y].k), `${id} join`);
+    const svg = pageSvg(def.view(spec.example)[0]);
+    assert.ok(!svg.includes('NaN') && !svg.includes('undefined'), `${id} draws cleanly`);
+    assert.equal(def.steps!(spec.example), d.shapes.length);
+    // It builds a shape at a time, and nothing is drawn of an empty one.
+    assert.ok(pageSvg(def.view(spec.example, { step: 1 })[0]).length < svg.length);
+    assert.equal(spec.layout!('').shapes.length, 0);
+    // It opens in Draw: the same number of shapes, fitted to Draw's canvas.
+    const shapes = parseDrawing(toDrawing(d));
+    assert.equal(shapes.length, d.shapes.length, `${id} converts`);
+    assert.ok(shapes.every((s) => isLink(s.k) || (s.x >= 0 && s.x + s.w <= 648 && s.y + s.h <= 408)), `${id} fits`);
+  }
+  // What the outlines mean.
+  const org = specOf('org')!.layout!('Ada | CEO\n  Ben\n  Eve');
+  // In reading order: a thing, the next thing, the line between them, the next thing, its line.
+  assert.deepEqual(org.shapes.map((s) => s.k), ['o', 'o', 'j', 'o', 'j']);
+  assert.deepEqual([org.shapes[2].x, org.shapes[2].y, org.shapes[4].x, org.shapes[4].y], [0, 1, 0, 3]);
+  assert.equal(org.shapes[0].text, 'Ada | CEO');
+  assert.ok(org.shapes[1].y > org.shapes[0].y && org.shapes[1].x < org.shapes[3].x);
+  const lanes = specOf('lanes')!.layout!('A: one\nB: two?\nA: three');
+  assert.deepEqual(lanes.shapes.map((s) => s.k), ['r', 't', 'r', 't', 'o', 'd', 'k', 'o', 'k']);
+  assert.deepEqual([lanes.shapes[6].x, lanes.shapes[6].y, lanes.shapes[8].x, lanes.shapes[8].y], [4, 5, 5, 7]);
+  const net = specOf('net')!.layout!('A > B: calls\nB - C\nD');
+  assert.deepEqual(net.shapes.map((s) => s.k + s.text), ['oA', 'oB', 'kcalls', 'oC', 'j', 'oD']);
+  const venn = specOf('venn')!.layout!('X: a\nY: b\nX & Y: both');
+  assert.equal(venn.shapes.filter((s) => s.k === 'e').length, 2);
+  assert.ok(venn.shapes.some((s) => s.text === 'both'));
+});
+
+test('drawing: more shapes, and joins that follow', async () => {
+  const { parseDrawing, serializeDrawing, removeShape, restack, linkEnds } = await import('../src/lib/drawmodel.ts');
+  const { drawingToSvg } = await import('../src/apps/draw.def.ts');
+  const text = 'o,2,2,12,6,1b,Web | front end\nc,30,2,12,8,0,Data\nn,2,20,12,8,0,Note\nk,0,1,0,0,1,reads\nj,0,2,0,0,0\nh,30,20,10,6,0\np,50,20,10,6,0';
+  const shapes = parseDrawing(text);
+  assert.equal(serializeDrawing(shapes), text);
+  assert.deepEqual([shapes[3].x, shapes[3].y], [0, 1]);
+  const svg = drawingToSvg(text);
+  assert.ok(svg.includes('marker-end') && svg.includes('>reads</text>') && svg.includes('>front end</text>'));
+  // A join runs from box edge to box edge.
+  const [x1, , x2] = linkEnds(shapes[3], shapes)!;
+  assert.ok(x1 > 16 + 96 && x2 < 240);
+  // Deleting a shape takes its joins with it and renumbers the rest.
+  const less = removeShape(shapes, 1);
+  assert.deepEqual(less.map((s) => s.k), ['o', 'n', 'j', 'h', 'p']);
+  assert.deepEqual([less[2].x, less[2].y], [0, 1]);
+  // Bringing a shape to the front keeps joins on the same shapes.
+  const up = restack(shapes, 0, true);
+  assert.equal(up.at, 6);
+  const link = up.shapes.find((s) => s.k === 'k')!;
+  assert.deepEqual([up.shapes[link.x].text, up.shapes[link.y].text], ['Web | front end', 'Data']);
+});
+
+test('tiny relational database', async () => {
+  const { parseDb, runQuery } = await import('../src/lib/reldb.ts');
+  const db = parseDb('teams: id, name\n1, Platform\n2, Design\n\npeople: id, name, team_id > teams, salary\n1, Ann, 1, 120\n2, "Bo, Jr", 2, 90\n3, Cy, 1, 100\n4, Di, 2, 110\n\n? select * from teams');
+  assert.deepEqual(db.tables.map((t) => [t.name, t.cols.length, t.rows.length]), [['teams', 2, 2], ['people', 4, 4]]);
+  assert.equal(db.tables[1].cols[2].ref, 'teams');
+  assert.equal(db.tables[1].rows[1][1], 'Bo, Jr');
+  assert.deepEqual(db.queries, ['select * from teams']);
+  const q = (sql: string) => runQuery(db, sql);
+  assert.deepEqual(q('select * from teams'), { cols: ['id', 'name'], rows: [[1, 'Platform'], [2, 'Design']] });
+  assert.deepEqual(q("select name from people where salary >= 100 and team_id = 1 or name like 'bo%' order by name").rows, [['Ann'], ['Bo, Jr'], ['Cy']]);
+  assert.deepEqual(q('select people.name, teams.name from people join teams on team_id = teams.id where teams.name = \'Design\' order by people.name desc').rows, [['Di', 'Design'], ['Bo, Jr', 'Design']]);
+  assert.deepEqual(q('select teams.name, count(*) as n, sum(salary), avg(salary), max(salary) from people join teams on team_id = teams.id group by teams.name order by n desc, teams.name'), { cols: ['teams.name', 'n', 'sum(salary)', 'avg(salary)', 'max(salary)'], rows: [['Design', 2, 200, 100, 110], ['Platform', 2, 220, 110, 120]] });
+  assert.deepEqual(q('select count(*) from people where salary > 1000').rows, [[0]]);
+  assert.deepEqual(q('select name from people order by salary desc limit 2').rows, [['Ann'], ['Di']]);
+  // Mistakes are explained, not thrown.
+  assert.match(q('select * from nowhere').error!, /No table called "nowhere"/);
+  assert.match(q('select name from people join teams on team_id = teams.id').error!, /more than one table/);
+  assert.match(q('select wages from people').error!, /No column called "wages"/);
+  assert.match(q('select * from people wher x = 1').error!, /Did not understand/);
+});
+
+test('every app reveals itself a piece at a time', () => {
+  const count = (id: string, body: string) => appOf(id)!.steps!(body);
+  const at = (id: string, body: string, step: number) => appOf(id)!.view(body, { step, embed: true })[0].svg;
+  // Tasks, cards, schedule lines, calendar spans, map stops, chart bars.
+  assert.equal(count('todo', '- one\nx two\n- three'), 3);
+  assert.ok(at('todo', '- one\nx two', 1).includes('one') && !at('todo', '- one\nx two', 1).includes('two'));
+  assert.equal(count('board', '#A\nx\ny\n#B\nz'), 3);
+  assert.ok(at('board', '#A\nxx\nyy\n#B\nzz', 2).includes('yy') && !at('board', '#A\nxx\nyy\n#B\nzz', 2).includes('zz'));
+  assert.equal(count('gantt', '1jk,5,1e,Design\n1jp,2,0,Build'), 2);
+  assert.ok(!at('gantt', '1jk,5,1e,Design\n1jp,2,0,Build', 1).includes('Build'));
+  assert.equal(count('sheet', '!bar\nQ\tSales\nQ1\t1\nQ2\t2\nQ3\t3'), 3);
+  assert.equal(at('sheet', '!bar\nQ\tSales\nQ1\t1\nQ2\t2\nQ3\t3', 2).match(/rx="2"/g)!.length, 2);
+  assert.equal(count('cal', 'd2,2,Offsite\ndb,1,Launch'), 2);
+  assert.ok(at('cal', 'd2,2,Offsite\ndb,1,Launch', 1).includes('Offsite') && !at('cal', 'd2,2,Offsite\ndb,1,Launch', 1).includes('Launch'));
+});
+
+test('calendar: a month drawn as a month, with colours and what they stand for', async () => {
+  const { parseCalendar, serializeCalendar } = await import('../src/lib/calmodel.ts');
+  const text = 'd2,2.g,Offsite\ntgo,2i.r,Call\ndb,1,Launch\n#g=Sam\n#r=Paul';
+  const cal = parseCalendar(text);
+  assert.deepEqual(cal.spans.map((s) => s.color ?? ''), ['r', 'g', '']);
+  assert.deepEqual(cal.legend, { g: 'Sam', r: 'Paul' });
+  assert.equal(serializeCalendar(cal), 'tgo,2i.r,Call\nd2,2.g,Offsite\ndb,1,Launch\n#g=Sam\n#r=Paul');
+  // A colour nobody uses any more takes its name with it.
+  assert.equal(serializeCalendar({ ...cal, spans: cal.spans.slice(2) }), 'db,1,Launch');
+  const page = appOf('cal')!.view(text)[0].svg;
+  assert.ok(page.includes('>January 2020</text>') && page.includes('>Sun</text>'));
+  assert.ok(page.includes('#16a34a') && page.includes('>Offsite</text>') && page.includes('>Sam</text>'));
+  assert.equal(page.match(/<rect [^>]*stroke="#d4d4d8"/g)!.length, 35);
+});
+
+test('trip: drawn on the real map', () => {
+  const page = appOf('trip')!.view('3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra')[0].svg;
+  const tiles = [...page.matchAll(/<image href="https:\/\/tile\.openstreetmap\.org\/(\d+)\/(\d+)\/(\d+)\.png"/g)];
+  assert.ok(tiles.length >= 4 && tiles.length <= 24, String(tiles.length));
+  // Portugal: zoomed in enough to see it, on the tiles that hold it.
+  assert.ok(tiles.every((t) => +t[1] >= 6 && +t[1] <= 9));
+  assert.ok(page.includes('OpenStreetMap') && page.includes('>Lisbon</text>') && page.includes('note here'));
+  // Stops arrive one at a time, each with its name and note.
+  const one = appOf('trip')!.view('3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra', { step: 1 })[0].svg;
+  assert.ok(one.includes('note here') && !one.includes('Coimbra') && !one.includes('<polyline'));
+  assert.ok(!appOf('trip')!.view('3xa8g,-fuyo,Lisbon', { step: 0 })[0].svg.includes('>Lisbon</text>'));
+});
+
+test('icons in drawings and diagrams', async () => {
+  const { parseDrawing, iconOf } = await import('../src/lib/drawmodel.ts');
+  const { drawingToSvg, shapeSvg } = await import('../src/apps/draw.def.ts');
+  assert.deepEqual(iconOf(':rocket Launch'), ['rocket', 'Launch']);
+  assert.deepEqual(iconOf(':rocket'), ['rocket', '']);
+  assert.deepEqual(iconOf('No icon: here'), ['', 'No icon: here']);
+  const svg = drawingToSvg('i,2,2,6,6,0b,star\no,12,2,16,6,1,:rocket Launch | soon');
+  // An icon on its own, and one in front of a label.
+  assert.equal(svg.match(/stroke-linecap="round" stroke-linejoin="round"/g)!.length, 2);
+  assert.ok(svg.includes('>Launch</text>') && svg.includes('>soon</text>') && !svg.includes(':rocket'));
+  assert.equal(parseDrawing('i,2,2,6,6,0,star')[0].text, 'star');
+  // The diagram apps pass labels through, so ":icon" works in all of them.
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const org = specOf('org')!.layout!(':crown Ada | CEO\n  :wrench Ben');
+  assert.ok(shapeSvg(org.shapes[0], org.shapes).includes('stroke-linecap="round"'));
+  // A note keeps its lines the same size.
+  const sticky = specOf('sticky')!.layout!('green: Thank every one of the testers who helped\nShip');
+  assert.deepEqual(sticky.shapes.map((s) => [s.k, s.c]), [['n', 'g'], ['n', 'o']]);
+  assert.ok(sticky.shapes[0].text.includes(' | '));
+});
+
+test('page apps: an FAQ, a site, a store, an invoice, a contract', async () => {
+  const { specOf } = await import('../src/lib/diagram.ts');
+  for (const id of ['faq', 'site', 'store', 'invoice', 'contract']) {
+    const spec = specOf(id)!;
+    const page = spec.page!(spec.example);
+    assert.ok(page.startsWith('<!doctype html>') && page.includes('<meta property="og:title"') && page.includes('</html>'), id);
+    assert.ok(!page.includes('undefined') && !page.includes('NaN'), `${id} is clean`);
+    assert.ok(appOf(id)!.document!(spec.example, { created: null }) === page);
+    assert.ok(appOf(id)!.view(spec.example)[0].h > 0 && appOf(id)!.title(spec.example).length > 0, `${id} has a title and a picture`);
+    assert.ok(spec.page!('').startsWith('<!doctype html>'), `${id} survives being empty`);
+  }
+  const faq = specOf('faq')!.page!(specOf('faq')!.example);
+  assert.ok(faq.includes('"@type":"FAQPage"') && faq.includes('<summary>How do I share a document?</summary>'));
+  const site = specOf('site')!.page!(specOf('site')!.example);
+  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section id="menu">') && site.includes('<strong>Roasted daily</strong>'));
+  const store = specOf('store')!.page!(specOf('store')!.example);
+  assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
+  // Nothing typed into a page can break out of it.
+  assert.ok(!specOf('store')!.page!('# <script>alert(1)</script>\nx | 1 | </script><script>alert(2)</script>').includes('<script>alert'));
+  const { parseInvoice } = await import('../src/apps/invoice.def.ts');
+  const inv = parseInvoice(specOf('invoice')!.example);
+  assert.deepEqual([inv.items.length, inv.subtotal, inv.tax, inv.total], [3, 5080, 406.4, 5486.4]);
+  assert.equal(inv.money(inv.total), '$5,486.40');
+  assert.ok(appOf('invoice')!.view(specOf('invoice')!.example)[0].svg.includes('>$5,486.40</text>'));
+  assert.equal(appOf('invoice')!.title(specOf('invoice')!.example), 'Invoice 0042');
+});
+
+test('contract: two people sign the same words', async () => {
+  const { parseContract, serializeContract, signedMessage } = await import('../src/apps/contract.def.ts');
+  const { createSigner, verify } = await import('../src/lib/sign.ts');
+  const memory = () => {
+    let held: string | null = null;
+    return { get: () => held, set: (v: string) => void (held = v), remove: () => void (held = null) };
+  };
+  const [paul, sam] = [createSigner(memory() as never), createSigner(memory() as never)];
+  const text = '# Deal\nSam walks the dog.';
+  const a = await paul.sign(signedMessage(text, 'Paul'));
+  // Sam signs what Paul sent; Paul's signature is untouched by it.
+  let doc = serializeContract(text, [{ name: 'Paul', ...a }]);
+  const b = await sam.sign(signedMessage(parseContract(doc).text, 'Sam'));
+  doc = serializeContract(parseContract(doc).text, [...parseContract(doc).signatures, { name: 'Sam', ...b }]);
+  const c = parseContract(doc);
+  assert.equal(c.text, text);
+  assert.deepEqual(c.signatures.map((s) => s.name), ['Paul', 'Sam']);
+  assert.notEqual(c.signatures[0].key, c.signatures[1].key);
+  for (const s of c.signatures) assert.equal(await verify(s.key, s.sig, signedMessage(c.text, s.name)), true);
+  // Change a word and neither signature matches; nor does one name's signature pass for the other's.
+  for (const s of c.signatures) assert.equal(await verify(s.key, s.sig, signedMessage(c.text.replace('dog', 'cat'), s.name)), false);
+  assert.equal(await verify(c.signatures[0].key, c.signatures[0].sig, signedMessage(c.text, 'Sam')), false);
+  assert.ok(appOf('contract')!.document!(doc, { created: null }).includes('Signed by Paul and Sam'));
+});
+
+test('zine: eight pages laid out so they fold into order', async () => {
+  const { parseZine, serializeZine, sheets, zinePage, pageSize } = await import('../src/apps/zine.def.ts');
+  const body = Array.from({ length: 8 }, (_, i) => `P${i + 1}`).join('\n\n');
+  const z = parseZine(body);
+  assert.equal(z.pages.length, 8);
+  assert.equal(serializeZine(z), body);
+  assert.equal(parseZine('').pages.length, 8);
+  assert.equal(serializeZine(parseZine('')), '');
+  assert.equal(serializeZine({ ...parseZine('A'), two: true }), '!two\n\nA');
+  assert.equal(parseZine('!two\n\nA').two, true);
+  // Where each page lands, reading the sheet left to right, top row first.
+  const order = (svg: string) => [...svg.matchAll(/>P(\d)<\/text>/g)].map((m) => +m[1]);
+  const [one] = sheets(z);
+  assert.deepEqual([one.w, one.h], [1056, 816]);
+  assert.deepEqual(order(one.svg), [5, 4, 3, 2, 6, 7, 8, 1]);
+  assert.equal(one.svg.match(/rotate\(180/g)!.length, 4);
+  const sides = sheets({ ...z, two: true });
+  assert.deepEqual(sides.map((s) => [s.w, s.h]), [[816, 1056], [816, 1056]]);
+  // Back to back: 2 is behind 1, 7 behind 8, 4 behind 3, 5 behind 6.
+  assert.deepEqual(sides.map((s) => order(s.svg)), [[8, 1, 6, 3], [2, 7, 4, 5]]);
+  // Everything stays on its page, however much there is.
+  const long = { icon: 'star', title: 'A long headline that runs on', bullets: Array(12).fill('Words and more words to fill the page right up.') };
+  for (const two of [false, true]) {
+    const p = zinePage(long, 2, two);
+    const ys = [...p.svg.matchAll(/<text x="[\d.]+" y="([\d.]+)"/g)].map((m) => +m[1]);
+    assert.ok(Math.max(...ys) <= pageSize(two).h, `fits ${two}`);
+  }
+  // Inside another document it is read a page per click.
+  assert.equal(appOf('zine')!.steps!(body), 7);
+  assert.ok(appOf('zine')!.view(body, { step: 3, embed: true })[0].svg.includes('>P4</text>'));
+  assert.ok(appOf('zine')!.document!(body, { created: null }).includes('aria-label="Back cover"'));
 });

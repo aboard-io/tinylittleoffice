@@ -20,7 +20,10 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(11);
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(24);
+  // Grouped, with the kinds of drawing listed under Draw.
+  await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Documents', 'Visualization', 'Time management', 'Publish and sell']);
+  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Database', 'Sticky notes']);
   await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
   await expect(drawer.locator('.to-theme')).toContainText('Theme');
   await shot(page, 'drawer');
@@ -213,6 +216,7 @@ test('password and signature live in the privacy menu', async ({ page }) => {
 });
 
 test('download views: the link itself hands over a file', async ({ page }, testInfo) => {
+  await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') }));
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const created = Date.UTC(2026, 0, 2, 3, 4);
   const docs: [string, string, string, string, (bytes: Buffer) => void][] = [
@@ -310,4 +314,176 @@ test('keyboard shortcuts are listed, and work everywhere', async ({ page }) => {
   expect(md.suggestedFilename()).toBe('todo.md');
   await page.keyboard.press('Control+k');
   await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
+});
+
+test('undo and redo work in every app', async ({ page }) => {
+  test.slow();
+  const undo = page.getByRole('button', { name: 'Undo' });
+  const redo = page.getByRole('button', { name: 'Redo' });
+  // Changes a moment apart are separate steps; a burst of typing is one.
+  const pause = () => page.waitForTimeout(800);
+
+  // Todo: with the keyboard.
+  await page.goto('/#/todo');
+  await expect(undo).toBeDisabled();
+  const add = page.getByRole('textbox', { name: 'New task' });
+  const rows = page.locator('.todo-list li');
+  for (const t of ['One', 'Two']) {
+    await add.fill(t);
+    await page.keyboard.press('Enter');
+    await pause();
+  }
+  await rows.nth(0).locator('sl-checkbox').click();
+  await expect(rows.nth(0)).toHaveClass(/done/);
+  await page.keyboard.press('Control+z');
+  await expect(rows.nth(0)).not.toHaveClass(/done/);
+  await page.keyboard.press('Control+z');
+  await expect(rows).toHaveCount(1);
+  await page.keyboard.press('Control+Shift+z');
+  await expect(rows).toHaveCount(2);
+  await page.keyboard.press('Control+y');
+  await expect(rows.nth(0)).toHaveClass(/done/);
+  await expect(redo).toBeDisabled();
+  // The link follows: what is undone is gone from it too.
+  await undo.click();
+  await undo.click();
+  await expect(rows).toHaveCount(1);
+  await reopen(page);
+  await expect(rows).toHaveCount(1);
+  // A reopened link is a fresh start.
+  await expect(undo).toBeDisabled();
+
+  // Sheet: with the buttons.
+  await page.goto('/#/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  await cell('A1').fill('10');
+  await pause();
+  await cell('A2').fill('=A1*2');
+  await pause();
+  await cell('B1').click();
+  await expect(cell('A2')).toHaveValue('20');
+  await undo.click();
+  await expect(cell('A2')).toHaveValue('');
+  await expect(cell('A1')).toHaveValue('10');
+  await redo.click();
+  await expect(cell('A2')).toHaveValue('20');
+
+  // Write: typing in one go is one step.
+  await page.goto('/#/write');
+  const editor = page.getByRole('textbox', { name: 'Document' });
+  await editor.click();
+  await page.keyboard.type('First thought.');
+  await pause();
+  await page.keyboard.type(' Second thought.');
+  await expect(editor).toHaveText('First thought. Second thought.');
+  await page.keyboard.press('Control+z');
+  await expect(editor).toHaveText('First thought.');
+  await page.keyboard.press('Control+Shift+z');
+  await expect(editor).toHaveText('First thought. Second thought.');
+
+  // Deck: slides come back.
+  await page.goto('/#/deck');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Title');
+  await pause();
+  await page.getByRole('button', { name: 'Slide', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Second');
+  await pause();
+  await page.getByRole('button', { name: 'Delete slide' }).click();
+  const thumbs = page.locator('.deck-rail .deck-thumb');
+  await expect(thumbs).toHaveCount(1);
+  await page.keyboard.press('Control+z');
+  await expect(thumbs).toHaveCount(2);
+
+  // Draw, Board, Gantt, Calendar, Trip and Motion take the same undo, since it is the shell's.
+  for (const [app, body, sel, n] of [['draw', 'r,2,1,12,6,1,Box', 'g.shape', 1], ['board', '#To do\nA\nB\n#Done', '.board-card', 2], ['gantt', '1jk,5,1e,Design\n1jp,2,0,Build', '.gantt-chart .bar', 2], ['anim', '9\ntHello\t0,a,a,a', '.anim-stage g.item', 1]] as const) {
+    const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+    await page.goto('about:blank');
+    await page.goto(`/#/v2/${app}/${encodeEnvelope({ created: null, body })}`);
+    await expect(page.locator(sel)).toHaveCount(n);
+    await page.locator(sel).first().click();
+    await page.getByRole('button', { name: app === 'board' ? 'Delete card' : app === 'gantt' ? 'Delete task' : 'Delete', exact: true }).first().click();
+    await expect(page.locator(sel)).toHaveCount(n - 1);
+    await undo.click();
+    await expect(page.locator(sel), app).toHaveCount(n);
+  }
+});
+
+test('undo inside a document that is inside another', async ({ page }) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two' });
+  await page.goto('/#/v2/write/' + encodeEnvelope({ created: null, body: `Intro\n@@${draw}` }));
+  const embed = page.locator('to-embed');
+  await embed.getByRole('button', { name: 'Edit' }).click();
+  const sub = page.locator('sl-dialog.to-sub');
+  await expect(sub.locator('g.shape')).toHaveCount(2);
+  await sub.locator('g.shape').first().click();
+  await page.keyboard.press('Delete');
+  await expect(sub.locator('g.shape')).toHaveCount(1);
+  // Undo here undoes the drawing, not the text around it.
+  await page.keyboard.press('Control+z');
+  await expect(sub.locator('g.shape')).toHaveCount(2);
+  await page.keyboard.press('Control+Shift+z');
+  await expect(sub.locator('g.shape')).toHaveCount(1);
+  await sub.getByRole('button', { name: 'Done' }).click();
+  await expect(embed.locator('svg[role="img"] ellipse')).toHaveCount(1);
+  await expect(embed.locator('svg[role="img"] rect')).toHaveCount(0);
+  // Back in the text, undo puts the drawing back as it was.
+  await page.keyboard.press('Control+z');
+  await expect(embed.locator('svg[role="img"] rect')).toHaveCount(1);
+  await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('Intro');
+});
+
+test('a shared deck opens presenting, with a way back to editing', async ({ page }) => {
+  await page.goto('/#/deck');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
+  await page.getByRole('button', { name: 'Slide', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Plan');
+  await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/deck\/[YZR]/);
+  const editing = page.url();
+
+  // The link that is copied and shared is the one that presents.
+  await page.locator('.to-meter').getByRole('button', { name: 'Copy link' }).click();
+  const shared = await page.evaluate(() => navigator.clipboard.readText());
+  expect(shared).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck.show/'));
+  // The editing link is there for collaborators.
+  await page.getByRole('button', { name: 'Share' }).click();
+  await page.getByRole('menuitem', { name: 'Copy link (opens for editing)' }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck/'));
+
+  // Someone opening the shared link lands in the presentation.
+  await page.goto('about:blank');
+  await page.goto(shared);
+  const show = page.getByRole('dialog', { name: 'Presentation' });
+  const slide = show.locator('.frame > svg');
+  await expect(slide).toContainText('Spring launch');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('Ship it');
+  // The end of the deck is not the end of the show: they stay on the last slide.
+  await page.keyboard.press('ArrowRight');
+  await expect(slide).toContainText('Ship it');
+  await shot(page, 'deck-shared');
+
+  // "Edit this deck" is the way to the editor, and from then on the link is an editing link.
+  await show.getByRole('button', { name: 'Edit this deck' }).click();
+  await expect(show).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
+  expect(page.url()).not.toContain('deck.show');
+  await reopen(page);
+  await expect(show).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
+  // Presenting from the editor still ends by returning to it.
+  await page.getByRole('button', { name: 'Present' }).click();
+  await expect(show.getByRole('button', { name: 'Exit' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(show).toHaveCount(0);
+
+  // Escape works for a visitor too.
+  await page.goto('about:blank');
+  await page.goto(shared);
+  await expect(slide).toContainText('Spring launch');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
 });

@@ -4,12 +4,13 @@
  */
 import { svg, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { addIconNames } from './iconsearch.ts';
 import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, List, ListOrdered, Pilcrow,
   Table2, FileText, Presentation, PenTool, Plus, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
   Copy, Link, Play, X, MousePointer2, Square, Circle, Diamond, Minus, MoveRight, Type,
   ArrowUpToLine, ArrowDownToLine, Check, Sparkles, CalendarDays, Menu, ShieldCheck, ShieldAlert, KeyRound, LayoutGrid, LockKeyhole, LockKeyholeOpen, SquareFunction, FoldHorizontal, UnfoldHorizontal, Download,
-  ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, SunMoon, Pencil, Keyboard, IndentIncrease, IndentDecrease, Columns2, ChartColumn, FilePlus2,
+  ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, Spline, Network, Workflow, Brain, Rows3, CircleDot, DatabaseZap, StickyNote, CircleHelp, BookOpen, PanelsTopLeft, Store, ReceiptText, FileSignature, SunMoon, Undo2, Redo2, Pencil, Keyboard, IndentIncrease, IndentDecrease, Columns2, ChartColumn, FilePlus2,
   // library
   Rocket, Lightbulb, Target, TrendingUp, TrendingDown, BarChart3, PieChart, Users, User, Heart, Star,
   Flag, Globe, Mail, Phone, Calendar, Clock, MapPin, Home, Building2, Briefcase, DollarSign,
@@ -33,7 +34,7 @@ export const UI = {
   fn: SquareFunction, fit: FoldHorizontal, expand: UnfoldHorizontal, download: Download,
   todo: ListTodo, board: SquareKanban, gantt: ChartGantt, trip: Route, anim: Clapperboard, share: Share2, more: Ellipsis,
   zoomIn: ZoomIn, zoomOut: ZoomOut, pause: Pause, stop: StopSquare, frame: Maximize, image: ImageIcon, send: Send, repeat: Repeat, star: Star, smile: Smile,
-  pin: MapPin, search: Search, locate: Navigation, sun: Sun, moon: Moon, auto: SunMoon, pen: Pencil, keys: Keyboard, indent: IndentIncrease, outdent: IndentDecrease, columns: Columns2, chart: ChartColumn, insert: FilePlus2,
+  zine: BookOpen, printer: Printer, sticky: StickyNote, faq: CircleHelp, site: PanelsTopLeft, store: Store, invoice: ReceiptText, contract: FileSignature, join: Spline, org: Network, lanes: Rows3, mind: Brain, venn: CircleDot, net: Workflow, db: DatabaseZap, pin: MapPin, search: Search, locate: Navigation, sun: Sun, moon: Moon, auto: SunMoon, undo: Undo2, redo: Redo2, pen: Pencil, keys: Keyboard, indent: IndentIncrease, outdent: IndentDecrease, columns: Columns2, chart: ChartColumn, insert: FilePlus2,
 } as const;
 
 export const LIBRARY: Record<string, IconNode> = {
@@ -53,6 +54,7 @@ export const LIBRARY: Record<string, IconNode> = {
   beer: Beer, baby: Baby, dog: Dog, cat: Cat, bird: Bird, fish: Fish, bug: Bug, flower: Flower2,
 };
 
+/** The icons that have keywords and can be suggested. (Every other Lucide icon is found by its name.) */
 export const LIBRARY_NAMES = Object.keys(LIBRARY);
 
 function attrs(a: Record<string, string | number>): string {
@@ -79,3 +81,21 @@ export function libraryIcon(name: string, size = 16): TemplateResult | '' {
 
 /** Every library icon as SVG markup (24 by 24, stroked), for drawing documents. */
 export const ICON_SVG: Record<string, string> = Object.fromEntries(Object.entries(LIBRARY).map(([name, node]) => [name, iconInner(node)]));
+
+/**
+ * The rest of Lucide (some 1,800 icons), fetched after the page is up so it
+ * costs nothing to start. Each joins LIBRARY and ICON_SVG under its Lucide
+ * name ("chart-column", "building-2"); the short names above keep working.
+ */
+export const allIcons: Promise<void> = import('./icons-all.ts').then(({ icons }) => {
+  const added: string[] = [];
+  for (const [name, node] of Object.entries(icons)) {
+    const id = name.replace(/([A-Z])([A-Z][a-z])/g, '$1-$2').replace(/([a-z])([A-Z0-9])/g, '$1-$2').replace(/([0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    if (id in LIBRARY) continue;
+    LIBRARY[id] = node;
+    ICON_SVG[id] = iconInner(node);
+    added.push(id);
+  }
+  addIconNames(added);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('to-refresh'));
+});

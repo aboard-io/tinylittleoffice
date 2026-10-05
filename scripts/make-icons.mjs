@@ -3,7 +3,7 @@
 // app (public/og/<id>.png): the app's name over a grey sketch of what its
 // documents look like. Run: npm run icons
 import { chromium } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import '../src/apps/index.ts';
 import { apps } from '../src/kit/core.ts';
 
@@ -11,7 +11,10 @@ const mark = (pad = 0) => {
   const s = 32 + pad * 2;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pad} ${-pad} ${s} ${s}"><rect x="${-pad}" y="${-pad}" width="${s}" height="${s}" rx="${pad ? 0 : 8}" fill="#4f46e5"/><path d="M9 11h14M9 16h14M9 21h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>`;
 };
-const FONT = `font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"`;
+const FONT = `font-family="'IBM Plex Sans', system-ui, sans-serif"`;
+// The cards are set in IBM Plex, from the same files the site serves.
+const face = (weight) => `@font-face{font-family:'IBM Plex Sans';font-weight:${weight};src:url(data:font/woff2;base64,${readFileSync(new URL(`../node_modules/@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-${weight}-normal.woff2`, import.meta.url)).toString('base64')}) format('woff2')}`;
+const FACES = [400, 600, 700].map(face).join('');
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const box = (x, y, w, h, fill = '#e4e4e7', rx = 6) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}"/>`;
 const range = (n) => Array.from({ length: n }, (_, i) => i);
@@ -27,6 +30,12 @@ const SKETCH = {
   board: () => range(3).map((c) => box(8 + c * 158, 8, 148, 344, '#ececef', 10) + box(20 + c * 158, 22, 80, 16, '#d4d4d8') + range([3, 2, 4][c]).map((i) => box(20 + c * 158, 54 + i * 70, 124, 58, '#d4d4d8')).join('')).join(''),
   gantt: () => range(6).map((i) => box(8, 20 + i * 56, 110, 18) + box(140 + [0, 30, 90, 90, 170, 230][i], 14 + i * 56, [120, 150, 110, 200, 130, 90][i], 30, i % 3 === 0 ? '#a5b4fc' : '#d4d4d8')).join(''),
   trip: () => box(8, 8, 464, 344, '#ececef', 12) + `<path d="M70 280L170 120 300 220 410 80" fill="none" stroke="#a5b4fc" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>` + [[70, 280], [170, 120], [300, 220], [410, 80]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="18" fill="#a1a1aa" stroke="#fff" stroke-width="4"/>`).join(''),
+  org: () => box(180, 20, 120, 50, '#a5b4fc') + [40, 180, 320].map((x) => box(x, 150, 120, 50) + `<path d="M240 70L${x + 60} 150" stroke="#a1a1aa" stroke-width="4"/>`).join('') + [0, 80].map((x) => box(x + 10, 280, 70, 40) + `<path d="M100 200L${x + 45} 280" stroke="#a1a1aa" stroke-width="4"/>`).join(''),
+  mind: () => box(20, 150, 130, 54, '#a5b4fc', 27) + [30, 150, 270].map((y, i) => `<path d="M150 177L250 ${y + 20}" stroke="#a1a1aa" stroke-width="4"/>` + box(250, y, 110, 40, '#d4d4d8', 20) + (i !== 1 ? `<path d="M360 ${y + 20}L400 ${y + 20}" stroke="#a1a1aa" stroke-width="4"/>` + box(400, y, 70, 40, '#e4e4e7', 20) : '')).join(''),
+  lanes: () => range(3).map((r) => box(8, 8 + r * 118, 464, 106, '#ececef', 8) + box(20, 46 + r * 118, 60, 16, '#d4d4d8')).join('') + [[110, 0], [230, 1], [350, 1], [350, 2]].map(([x, r]) => box(x, 36 + r * 118, 96, 48, r === 1 ? '#a5b4fc' : '#d4d4d8', 24)).join(''),
+  venn: () => [[170, 150, '#a5b4fc'], [310, 150, '#d4d4d8'], [240, 250, '#c7d2fe']].map(([x, y, c]) => `<circle cx="${x}" cy="${y}" r="118" fill="${c}" opacity="0.55"/>`).join(''),
+  net: () => [[240, 50], [400, 170], [330, 320], [150, 320], [80, 170]].map(([x, y], i, all) => `<path d="M${x} ${y}L${all[(i + 1) % 5][0]} ${all[(i + 1) % 5][1]}M${x} ${y}L${all[(i + 2) % 5][0]} ${all[(i + 2) % 5][1]}" stroke="#d4d4d8" stroke-width="4"/>`).join('') + [[240, 50], [400, 170], [330, 320], [150, 320], [80, 170]].map(([x, y], i) => `<rect x="${x - 56}" y="${y - 22}" width="112" height="44" rx="22" fill="${i ? '#d4d4d8' : '#a5b4fc'}"/>`).join(''),
+  db: () => [[20, 30], [280, 30], [150, 210]].map(([x, y], i) => box(x, y, 180, 34, '#a5b4fc', 6) + box(x, y + 34, 180, 96, '#ececef', 6) + range(3).map((k) => box(x + 12, y + 48 + k * 26, [110, 80, 130][(k + i) % 3], 12, '#d4d4d8')).join('')).join('') + `<path d="M200 96L280 96M240 210L240 160" stroke="#a1a1aa" stroke-width="4"/>`,
   anim: () => box(8, 8, 464, 344, '#ececef', 12) + range(4).map((i) => `<circle cx="${90 + i * 100}" cy="${270 - i * 62}" r="${22 + i * 8}" fill="#a5b4fc" opacity="${0.25 + i * 0.25}"/>`).join('') + box(60, 60, 150, 26, '#d4d4d8'),
 };
 
@@ -63,7 +72,8 @@ mkdirSync(new URL('../public/og/', import.meta.url), { recursive: true });
 const browser = await chromium.launch();
 for (const [name, svg, width, height] of jobs) {
   const page = await browser.newPage({ viewport: { width, height } });
-  await page.setContent(`<style>html,body{margin:0}svg{display:block;width:${width}px;height:${height}px}</style>${svg}`);
+  await page.setContent(`<style>${FACES}html,body{margin:0}svg{display:block;width:${width}px;height:${height}px}</style>${svg}`);
+  await page.evaluate(() => document.fonts.ready);
   writeFileSync(new URL(`../public/${name}`, import.meta.url), await page.screenshot({ omitBackground: true }));
   await page.close();
 }

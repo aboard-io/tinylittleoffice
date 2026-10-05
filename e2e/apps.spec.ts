@@ -270,8 +270,8 @@ test('shell: themes, page titles, share and room per service', async ({ page, is
   await page.locator('.to-meter sl-progress-ring').click();
   const rooms = page.locator('.to-rooms tr');
   await expect(rooms).toHaveCount(8);
-  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText(/\d+ left/);
-  await expect(rooms.filter({ hasText: 'Mastodon' })).toContainText('477 left');
+  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length fits');
+  await expect(rooms.filter({ hasText: 'Mastodon' })).toContainText('any length fits');
   await expect(rooms.filter({ hasText: 'Text message' })).toContainText(/\d+ (left|over)/);
   await page.getByRole('button', { name: 'Done' }).click();
 
@@ -333,6 +333,8 @@ test('write: other documents sit in the text as one thing each', async ({ page }
   await expect(embeds).toHaveCount(2);
   await expect(embeds.nth(0)).toContainText('Spring launch');
   await expect(embeds.nth(0)).toContainText('Deck');
+  // In the editor it is something to change, not a link that leaves the page.
+  await expect(embeds.nth(0).locator('a')).toHaveCount(0);
   await expect(embeds.nth(1).locator('svg[role="img"]')).toContainText('Box');
   await expect(editor).toContainText('https://example.com/ is not ours');
   // They are not text: nothing can be typed into one, and the words around it are untouched.
@@ -478,12 +480,27 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
     anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off\t4,14,p,a',
+    org: 'Ada | CEO\n  Ben | Engineering\n  Eve | Design',
+    mind: 'Launch\n  Product\n    Pricing\n  Marketing',
+    lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
+    venn: 'Fast: a\nCheap: b\nFast & Cheap: c',
+    net: 'Web > API: calls\nAPI - Cache',
+    db: 'teams: id, name\n1, Platform\n\npeople: id, name, team_id > teams\n1, Ann, 1\n\n? select name from people',
+    sticky: 'Ship the beta\ngreen: Thank the testers',
+    faq: '# Help\nHow do I share?\n  Copy the link.\nIs it stored?\n  No.',
+    site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
+    store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
+    invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
+    contract: '# Deal\nSam walks the dog.',
+    zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
   };
   const found: string[] = [];
   const check = async (what: string) => {
     // Map tiles are OpenStreetMap's pictures; the map itself is a labelled application.
     // label-title-only: compact toolbar pickers are named for assistive tech but show an icon or their value, not a visible label.
-    const results = await new AxeBuilder({ page }).exclude('.leaflet-container').disableRules(['label-title-only']).analyze();
+    // The page apps show their result in a frame: a document of its own, with a <main> of its own, which is not a duplicate landmark.
+    const frame = (await page.locator('.diagram.page iframe').count()) > 0;
+    const results = await new AxeBuilder({ page }).exclude('.leaflet-container').disableRules(['label-title-only', ...(frame ? ['landmark-unique'] : [])]).analyze();
     found.push(...results.violations.map((v) => `${what}: ${v.id} (${v.nodes.length}) ${v.nodes[0].target.join(' ')}`));
   };
   await page.goto('/');
@@ -501,5 +518,60 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   await page.goto(`/#/v2/todo/${encodeEnvelope({ created: 1, body: docs.todo })}`);
   await expect(page.locator('html')).toHaveClass(/sl-theme-dark/);
   await check('dark todo');
+  expect(found).toEqual([]);
+});
+
+test('nothing is cut off at the right edge, on any screen', async ({ page }) => {
+  test.slow();
+  await offlineMap(page);
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const docs: Record<string, string> = {
+    sheet: '!bar|td$\nItem\tWhen\tCost\nRent\t2027-03-01\t1200',
+    write: '# Memo\nSome *bold* text\n- one\n-- nested',
+    deck: ':rocket\nLaunch plan\nBuild it\nShip it',
+    draw: 'r,2,1,12,6,1b3,Box',
+    cal: 'd2,2,Offsite',
+    todo: '- one\nx!@1jk two',
+    board: '#To do\nx\ny\n#Done|1',
+    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
+    trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
+    anim: '9\nirocket\t0,a,14,a;8,1y,a,p',
+    org: 'Ada | CEO\n  Ben | Engineering\n  Eve | Design',
+    mind: 'Launch\n  Product\n    Pricing\n  Marketing',
+    lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
+    venn: 'Fast: a\nCheap: b\nFast & Cheap: c',
+    net: 'Web > API: calls\nAPI - Cache',
+    db: 'teams: id, name\n1, Platform\n\npeople: id, name, team_id > teams\n1, Ann, 1\n\n? select name from people',
+    sticky: 'Ship the beta\ngreen: Thank the testers',
+    faq: '# Help\nHow do I share?\n  Copy the link.\nIs it stored?\n  No.',
+    site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
+    store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
+    invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
+    contract: '# Deal\nSam walks the dog.',
+    zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
+  };
+  const found: string[] = [];
+  for (const [app, body] of Object.entries(docs)) {
+    await page.goto('about:blank');
+    await page.goto(`/#/v2/${app}/${encodeEnvelope({ created: 1, title: 'A fairly long title for this document', body })}`);
+    await expect(page.locator(`to-${app}`)).toBeVisible();
+    await page.waitForTimeout(200);
+    // Anything that sticks out past the right edge, unless it is inside something that scrolls sideways on purpose.
+    const out = await page.evaluate(() => {
+      const scrolls = (el: Element | null): boolean => !!el && el !== document.body && (/(auto|scroll)/.test(getComputedStyle(el).overflowX) || scrolls(el.parentElement));
+      const bad: string[] = [];
+      for (const el of document.querySelectorAll<HTMLElement>('to-app *')) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.right <= window.innerWidth + 1 || scrolls(el)) continue;
+        if (el.closest('.leaflet-container, .sr-only, sl-dialog, sl-drawer, sl-menu, [aria-hidden="true"]')) continue;
+        if ([...el.children].some((c) => c.getBoundingClientRect().right > window.innerWidth + 1)) continue;
+        bad.push(`${el.tagName.toLowerCase()}.${el.className && typeof el.className === 'string' ? el.className.split(' ')[0] : ''} +${Math.round(r.right - window.innerWidth)}`);
+      }
+      return [...new Set(bad)].slice(0, 6);
+    });
+    for (const o of out) found.push(`${app}: ${o}`);
+    const page_ = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    if (page_ > 0) found.push(`${app}: page scrolls sideways by ${page_}`);
+  }
   expect(found).toEqual([]);
 });

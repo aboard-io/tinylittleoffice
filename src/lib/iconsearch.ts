@@ -127,10 +127,19 @@ const ENTRIES: Entry[] = Object.entries(KEYWORDS).map(([name, kw]) => ({
   nameWords: words(name),
   keywords: words(kw),
 }));
+const CURATED = ENTRIES.length;
+
+/** More icons to search, known only by their names (the rest of Lucide, once it has loaded). */
+export function addIconNames(names: string[]) {
+  for (const name of names) ENTRIES.push({ name, nameWords: words(name), keywords: [] });
+}
+
+/** How many icons can be searched right now. */
+export const iconCount = () => ENTRIES.length;
 
 /** stem -> [icon name, weight] for every icon that answers to it. */
 const INDEX = new Map<string, [string, number][]>();
-for (const e of ENTRIES) {
+for (const e of ENTRIES.slice(0, CURATED)) {
   const add = (w: string, weight: number) => {
     const s = stem(w);
     if (!INDEX.has(s)) INDEX.set(s, []);
@@ -154,6 +163,7 @@ export function suggestIcons(title: string, bullets: string[] = [], limit = 5): 
   feed(title, 3);
   feed(bullets.join(' '), 1);
   const order = (n: string) => ENTRIES.findIndex((e) => e.name === n);
+  // (Suggestions come from the icons with keywords; the full set is for searching.)
   return [...score.entries()]
     .sort((a, b) => b[1] - a[1] || order(a[0]) - order(b[0]))
     .slice(0, limit)
@@ -164,9 +174,9 @@ export function suggestIcons(title: string, bullets: string[] = [], limit = 5): 
  * Icons matching a search query, best first: every word typed must begin a
  * word of the icon's name or one of its keywords. An empty query returns all.
  */
-export function searchIcons(query: string): string[] {
+export function searchIcons(query: string, limit = 180): string[] {
   const q = words(query);
-  if (!q.length) return ENTRIES.map((e) => e.name);
+  if (!q.length) return ENTRIES.slice(0, CURATED).map((e) => e.name);
   const hits: [string, number][] = [];
   for (const e of ENTRIES) {
     let rank = 0;
@@ -177,5 +187,5 @@ export function searchIcons(query: string): string[] {
     });
     if (ok) hits.push([e.name, rank]);
   }
-  return hits.sort((a, b) => a[1] - b[1]).map(([name]) => name);
+  return hits.sort((a, b) => a[1] - b[1]).slice(0, limit).map(([name]) => name);
 }

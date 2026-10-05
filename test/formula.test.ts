@@ -142,3 +142,46 @@ test('blocks of cells: copy, paste, clear and fill', async () => {
   const up = fillCells(parseGrid('\n\n10\n20'), rangeOf([2, 0], [3, 0]), rangeOf([0, 0], [3, 0]));
   assert.deepEqual([up[0][0], up[1][0]], ['-10', '0']);
 });
+
+test('typed columns: dates are numbers, and each type reads and shows its own way', async () => {
+  const { dateToSerial, formatCell, parseLiteral, serialToIso, typesOf } = await import('../src/lib/formula.ts');
+  assert.equal(dateToSerial(1900, 3, 1), 61);
+  assert.equal(serialToIso(dateToSerial(2027, 3, 1)), '2027-03-01');
+  // Settings ride on the first line: a chart, then a letter per column.
+  const text = '!line|td$%uc\nStart\t2027-03-01\t$1,200.5\t12.5%\thttps://example.com/\tx\nEnd\t3/31/2027\t80\t7';
+  assert.equal(chartOf(text), 'line');
+  assert.deepEqual(typesOf(text), ['t', 'd', '$', '%', 'u', 'c']);
+  assert.deepEqual(typesOf('a\tb'), ['t', 't', 't', 't', 't', 't']);
+  assert.equal(serializeGrid(parseGrid(text), 'line', ['t', 'd', '$', '%', 'u', 'c']), text);
+  assert.equal(serializeGrid(parseGrid('a'), '', ['t', 'd', 't', 't', 't', 't']), '!|td\na');
+  const types = typesOf(text);
+  const v = evaluateGrid(parseGrid(text), types);
+  assert.deepEqual(v[0].slice(1, 6), [dateToSerial(2027, 3, 1), 1200.5, 0.125, 'https://example.com/', 1]);
+  assert.deepEqual(v[1].slice(1, 4), [dateToSerial(2027, 3, 31), 80, 0.07]);
+  assert.deepEqual(v[0].map((x, c) => formatCell(x, types[c])).slice(0, 6), ['Start', '2027-03-01', '$1,200.50', '12.5%', 'https://example.com/', '☑']);
+  assert.equal(formatCell(-3.5, '$'), '-$3.50');
+  assert.equal(formatCell(1234567.891, 'n'), '1,234,567.891');
+  assert.equal(formatCell(0, 'c'), '☐');
+  assert.equal(formatCell(null, 'c'), '');
+  assert.equal(formatCell('#REF', 'd'), '#REF');
+  // Text columns are left alone: what looks like money or a percentage stays as typed.
+  assert.equal(parseLiteral('$5'), '$5');
+  assert.equal(parseLiteral('50%'), '50%');
+  assert.equal(parseLiteral('2027-03-01'), '2027-03-01');
+  assert.equal(parseLiteral('12', 'n'), 12);
+});
+
+test('date math', async () => {
+  const { dateToSerial, formatCell, todaySerial } = await import('../src/lib/formula.ts');
+  const g = parseGrid(['2027-01-31\t2027-03-01\t=B1-A1\t=A1+30\t=EDATE(A1, 1)\t=DAYS(B1, A1)', '=DATE(2027, 12, 25)\t=YEAR(A2)\t=MONTH(A2)\t=DAY(A2)\t=WEEKDAY(A2)\t=WORKDAYS(A1, B1)', '=TODAY()\t=A3-TODAY()\t=EDATE(A2, -10)\t=WORKDAYS(B1, A1)\t=IF(B1>A1, 1, 0)'].join('\n'));
+  const types = ['d', 'd', 'n', 'd', 'd', 'n'];
+  const v = evaluateGrid(g, types);
+  const shown = v.map((row) => row.map((x, c) => formatCell(x, types[c])));
+  assert.deepEqual(shown[0], ['2027-01-31', '2027-03-01', '29', '2027-03-02', '2027-02-28', '29']);
+  assert.deepEqual(v[1].slice(1, 5), [2027, 12, 25, 7]);
+  assert.equal(v[1][0], dateToSerial(2027, 12, 25));
+  assert.equal(v[1][5], 21);
+  assert.equal(v[2][0], todaySerial());
+  assert.deepEqual([v[2][1], v[2][3], v[2][4]], [0, -21, 1]);
+  assert.equal(formatCell(v[2][2], 'd'), '2027-02-25');
+});

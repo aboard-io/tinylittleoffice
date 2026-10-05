@@ -4,6 +4,7 @@
  *
  * Inside the compressed text:
  *   c<created>      minutes since 2020-01-01T00:00Z, base 36
+ *   t<title>        the document's name, optional
  *   k<public key>   base64url, optional
  *   s<signature>    base64url, optional
  *   <blank line>
@@ -22,6 +23,8 @@ export interface Envelope {
   created: number | null;
   key?: string;
   sig?: string;
+  /** The name its author gave the document. */
+  title?: string;
   body: string;
 }
 
@@ -41,16 +44,17 @@ export function decodeCreated(s: string): number | null {
 
 /** Envelope as a one-character flag plus bytes; the flag is uppercase when an envelope is present. */
 export function packEnvelope(env: Envelope): { flag: string; bytes: Uint8Array } {
-  if (env.created === null && !env.key && !env.sig) return packDoc(env.body);
+  if (env.created === null && !env.key && !env.sig && !env.title) return packDoc(env.body);
   const head: string[] = [];
   if (env.created !== null) head.push('c' + encodeCreated(env.created));
+  if (env.title) head.push('t' + env.title.replace(/\n/g, ' '));
   if (env.key && env.sig) head.push('k' + env.key, 's' + env.sig);
   const { flag, bytes } = packDoc(head.join('\n') + '\n\n' + env.body);
   return { flag: flag.toUpperCase(), bytes };
 }
 
 export function encodeEnvelope(env: Envelope): string {
-  if (!env.body && env.created === null && !env.key) return '';
+  if (!env.body && env.created === null && !env.key && !env.title) return '';
   const { flag, bytes } = packEnvelope(env);
   return flag + toBase64Url(bytes);
 }
@@ -75,6 +79,7 @@ export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
   for (const line of text.slice(0, split).split('\n')) {
     const v = line.slice(1);
     if (line[0] === 'c') env.created = decodeCreated(v);
+    else if (line[0] === 't' && v) env.title = v;
     else if (line[0] === 'k') env.key = v;
     else if (line[0] === 's') env.sig = v;
   }
@@ -92,6 +97,7 @@ export function decodeEnvelope(payload: string): Envelope {
 }
 
 /** The bytes a signature covers: the app, the creation time and the body. */
-export function signingMessage(app: string, created: number | null, body: string): string {
-  return `tinyoffice\n${app}\n${created === null ? '' : encodeCreated(created)}\n${body}`;
+export function signingMessage(app: string, created: number | null, body: string, title = ''): string {
+  // (A title is signed when there is one; documents signed before titles existed still verify.)
+  return `tinyoffice\n${app}\n${created === null ? '' : encodeCreated(created)}\n${body}${title ? '\u0000' + title : ''}`;
 }

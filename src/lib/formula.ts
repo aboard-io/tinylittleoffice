@@ -5,9 +5,15 @@
  * in FUNCTIONS below: enough for a small business model.
  *
  * Document format: rows separated by "\n", cells by "\t", trailing blanks
- * trimmed. An optional first line "!<kind>" asks for a chart of the table
- * ("!bar", "!line", "!pie"); a bare "!" is written when the first row would
- * otherwise look like one.
+ * trimmed. An optional first line "!<chart>|<types>" carries the settings:
+ * a chart of the table ("bar", "line", "pie" or nothing) and, after a bar,
+ * one character per column for what the column holds (see COLUMN_TYPES;
+ * "t", plain text, is the default and trailing ones are left off). A bare
+ * "!" is written when the first row would otherwise look like settings.
+ *
+ * Dates are numbers: days counted the way spreadsheets count them (1900
+ * system), so a date minus a date is a number of days and a date plus 30 is
+ * the date a month on. A date column shows such numbers as dates.
  */
 export const COLS = 6;
 export const ROWS = 30;
@@ -38,7 +44,46 @@ export const FUNCTIONS: [string, string, string][] = [
   ['PMT', '0.05/12, 60, 20000', 'Loan payment per period'],
   ['FV', '0.05, 10, -100', 'Future value of saving'],
   ['PV', '0.05, 10, -100', 'Present value of payments'],
+  ['TODAY', '', "Today's date"],
+  ['DATE', '2027, 3, 1', 'A date from year, month, day'],
+  ['DAYS', 'B1, A1', 'Days from one date to another'],
+  ['EDATE', 'A1, 3', 'The date some months later'],
+  ['WORKDAYS', 'A1, B1', 'Weekdays from one date to another'],
+  ['YEAR', 'A1', 'Year of a date'],
+  ['MONTH', 'A1', 'Month of a date'],
+  ['DAY', 'A1', 'Day of the month'],
+  ['WEEKDAY', 'A1', 'Day of the week, 1 = Sunday'],
 ];
+
+/** What a column holds: how its cells are read when typed, and shown. */
+export const COLUMN_TYPES: { id: string; name: string; hint: string }[] = [
+  { id: 't', name: 'Text', hint: 'Shown as typed' },
+  { id: 'n', name: 'Number', hint: '1,234.5' },
+  { id: '$', name: 'Money', hint: '$1,234.50' },
+  { id: '%', name: 'Percent', hint: '12.5%' },
+  { id: 'd', name: 'Date', hint: '2027-03-01' },
+  { id: 'u', name: 'Link', hint: 'Opens when clicked' },
+  { id: 'c', name: 'Checkbox', hint: '☑ or ☐' },
+  { id: 'r', name: 'Rich text', hint: '*bold* and _italic_' },
+];
+
+const DAY_MS = 86400000;
+/** Days from the spreadsheet epoch (30 December 1899) to 1 January 1970. */
+const EPOCH_SERIAL = 25569;
+export const dateToSerial = (y: number, m: number, d: number) => Math.round(Date.UTC(y, m - 1, d) / DAY_MS) + EPOCH_SERIAL;
+export function serialToDate(serial: number): { y: number; m: number; d: number; wd: number } {
+  const t = new Date((Math.floor(serial) - EPOCH_SERIAL) * DAY_MS);
+  return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate(), wd: t.getUTCDay() };
+}
+export const todaySerial = () => {
+  const n = new Date();
+  return dateToSerial(n.getFullYear(), n.getMonth() + 1, n.getDate());
+};
+const pad = (n: number) => String(n).padStart(2, '0');
+export const serialToIso = (serial: number) => {
+  const { y, m, d } = serialToDate(serial);
+  return `${y}-${pad(m)}-${pad(d)}`;
+};
 
 export type CellValue = number | string | null;
 export type Grid = string[][]; // grid[row][col], raw text
@@ -224,15 +269,28 @@ function rangeCells(a: string, b: string): [number, number][] {
 }
 
 /** Parse a raw cell string into its displayed/computed value. */
-export function parseLiteral(raw: string): CellValue {
+export function parseLiteral(raw: string, type = 't'): CellValue {
   const s = raw.trim();
   if (s === '') return null;
-  if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(s)) return parseFloat(s);
+  if (type === 'c') return /^(x|y|yes|true|1|done|☑|✓|✔)$/i.test(s) ? 1 : 0;
+  if (type === 'd') {
+    // A date as written: 2027-03-01, or 3/1/2027, or "today".
+    const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+    if (iso) return dateToSerial(+iso[1], +iso[2], +iso[3]);
+    const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+    if (us) return dateToSerial(+us[3], +us[1], +us[2]);
+    if (/^today$/i.test(s)) return todaySerial();
+  }
+  // Money and percentages may be typed with their signs and commas.
+  const plain = s.replace(/^([+-]?)\$/, '$1').replace(/(\d),(?=\d{3})/g, '$1');
+  const pct = /^([+-]?(?:\d+\.?\d*|\.\d+))%$/.exec(plain);
+  if (pct && type !== 't') return parseFloat(pct[1]) / 100;
+  if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(plain) && (plain === s || type === '$' || type === 'n' || type === '%')) return type === '%' ? parseFloat(plain) / 100 : parseFloat(plain);
   return raw;
 }
 
 /** Evaluate every cell of the grid. Returns computed values in the same shape. */
-export function evaluateGrid(grid: Grid): CellValue[][] {
+export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
   const cache = new Map<string, CellValue>();
   const visiting = new Set<string>();
 
@@ -252,7 +310,7 @@ export function evaluateGrid(grid: Grid): CellValue[][] {
         visiting.delete(key);
       }
     } else {
-      v = parseLiteral(raw);
+      v = parseLiteral(raw, types[c]);
     }
     cache.set(key, v);
     return v;
@@ -332,6 +390,36 @@ export function evaluateGrid(grid: Grid): CellValue[][] {
           return fallback;
         };
         switch (n.fn) {
+          case 'TODAY':
+            return todaySerial();
+          case 'DATE':
+            return dateToSerial(arg(0), arg(1), arg(2));
+          case 'YEAR':
+            return serialToDate(arg(0)).y;
+          case 'MONTH':
+            return serialToDate(arg(0)).m;
+          case 'DAY':
+            return serialToDate(arg(0)).d;
+          case 'WEEKDAY':
+            return serialToDate(arg(0)).wd + 1;
+          case 'DAYS':
+            return Math.floor(arg(0)) - Math.floor(arg(1));
+          case 'EDATE': {
+            // The same day some months on; a day the month lacks becomes its last (31 Jan + 1 = 28 Feb).
+            const { y, m, d } = serialToDate(arg(0));
+            const first = new Date(Date.UTC(y, m - 1 + Math.trunc(arg(1)), 1));
+            const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+            return dateToSerial(first.getUTCFullYear(), first.getUTCMonth() + 1, Math.min(d, last));
+          }
+          case 'WORKDAYS': {
+            // Monday to Friday, both ends included.
+            const [a, b] = [Math.floor(arg(0)), Math.floor(arg(1))];
+            const [lo, hi] = a <= b ? [a, b] : [b, a];
+            if (hi - lo > 200000) throw new FormulaError('#NUM');
+            let count = 0;
+            for (let day = lo; day <= hi; day++) if (![0, 6].includes(serialToDate(day).wd)) count++;
+            return a <= b ? count : -count;
+          }
           case 'IF':
             // Only the chosen branch is worked out, so the other may be an error.
             return arg(0) !== 0 ? (n.args[1] ? evalNode(n.args[1]) : 1) : n.args[2] ? evalNode(n.args[2]) : 0;
@@ -458,23 +546,41 @@ export function formatValue(v: CellValue): string {
   return v;
 }
 
-const DIRECTIVE = /^![a-z]*$/;
+const DIRECTIVE = /^!([a-z]*)(?:\|([a-z$%]*))?$/;
 
 /** The chart a sheet asks for: 'bar', 'line', 'pie' or ''. */
 export function chartOf(text: string): string {
-  const first = text.split('\n', 1)[0];
-  return DIRECTIVE.test(first) ? first.slice(1) : '';
+  return DIRECTIVE.exec(text.split('\n', 1)[0])?.[1] ?? '';
+}
+
+/** What each column holds: one of COLUMN_TYPES' ids per column, 't' where nothing was said. */
+export function typesOf(text: string): string[] {
+  const set = DIRECTIVE.exec(text.split('\n', 1)[0])?.[2] ?? '';
+  return Array.from({ length: COLS }, (_, c) => (COLUMN_TYPES.some((t) => t.id === set[c]) ? set[c] : 't'));
+}
+
+/** A value as its column shows it. */
+export function formatCell(v: CellValue, type = 't'): string {
+  if (typeof v !== 'number' || !isFinite(v)) return type === 'c' && v === null ? '' : formatValue(v);
+  const tidy = (n: number, digits: number) => n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: Math.max(digits, 6) });
+  if (type === 'd') return serialToIso(v);
+  if (type === '$') return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (type === '%') return tidy(Math.round(v * 1e8) / 1e6, 0) + '%';
+  if (type === 'n') return Math.abs(v) >= 1e15 ? formatValue(v) : tidy(Math.round(v * 1e8) / 1e8, 0);
+  if (type === 'c') return v ? '☑' : '☐';
+  return formatValue(v);
 }
 
 /** Serialize a grid as tab/newline separated text with trailing blanks trimmed. */
-export function serializeGrid(grid: Grid, chart = ''): string {
+export function serializeGrid(grid: Grid, chart = '', types: string[] = []): string {
   const rows = grid.map((row) => {
     const cells = row.slice();
     while (cells.length && cells[cells.length - 1] === '') cells.pop();
     return cells.join('\t');
   });
   while (rows.length && rows[rows.length - 1] === '') rows.pop();
-  if (chart || (rows.length && DIRECTIVE.test(rows[0]))) rows.unshift('!' + chart);
+  const set = types.join('').replace(/t+$/, '');
+  if (chart || set || (rows.length && DIRECTIVE.test(rows[0]))) rows.unshift('!' + chart + (set ? '|' + set : ''));
   return rows.join('\n');
 }
 
