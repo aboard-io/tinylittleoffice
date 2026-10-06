@@ -963,36 +963,41 @@ test('the whole document as a QR code, to look at and to keep', async ({ page })
   await expect(page.locator('#qr-dialog')).toContainText('the largest QR code holds 2,953');
 });
 
-test('slides: bold and italic from the keyboard and the toolbar', async ({ page }) => {
+test('slides: bold, italic, nesting, from the keyboard and the toolbar', async ({ page }) => {
   await page.goto('/#/deck');
+  const value = () => page.evaluate(() => (document.querySelector('to-deck') as HTMLElement & { value: string }).value);
   const head = page.getByRole('textbox', { name: 'Headline' });
-  await head.fill('Spring launch');
-  await head.evaluate((el: HTMLInputElement) => el.setSelectionRange(0, 6));
-  await page.keyboard.press('Control+b');
-  await expect(head).toHaveValue('*Spring* launch');
+  await head.click();
+  await page.keyboard.type('Spring launch');
+  await page.keyboard.press('Home');
+  for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowRight');
+  // (A headline is bold already; italic is the mark that shows.)
+  await page.keyboard.press('Control+i');
+  await expect.poll(value).toMatch(/_Spring_ launch/);
   // The slide itself (in the rail) shows the words, not the marks.
   await expect(page.locator('.deck-rail .deck-thumb svg').first()).toContainText('Spring launch');
-  await expect(page.locator('.deck-rail .deck-thumb svg').first()).not.toContainText('*');
-  // The bullets, with the toolbar; nothing selected marks the word at the cursor.
+  await expect(page.locator('.deck-rail .deck-thumb svg').first()).not.toContainText('_');
+  // Bullets: a line each; the toolbar marks what is selected.
   const bullets = page.getByRole('textbox', { name: 'Bullets' });
-  await bullets.fill('Ship the beta\nTell everyone');
-  await bullets.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(16, 16));
+  await bullets.click();
+  await page.keyboard.type('Ship the beta');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Tell everyone');
+  await page.keyboard.press('Home');
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Shift+ArrowRight');
   await page.getByRole('button', { name: 'Italic' }).click();
-  await expect(bullets).toHaveValue('Ship the beta\n_Tell_ everyone');
-  // Off again.
-  await bullets.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(15, 19));
-  await page.keyboard.press('Control+i');
-  await expect(bullets).toHaveValue('Ship the beta\nTell everyone');
+  await expect.poll(value).toMatch(/Ship the beta\n_Tell_ everyone/);
   // Tab steps a bullet in; Shift+Tab brings it out; so do the buttons.
+  await page.keyboard.press('End');
   await page.keyboard.press('Tab');
-  await expect(bullets).toHaveValue('Ship the beta\n  Tell everyone');
+  await expect.poll(value).toMatch(/\n  _Tell_ everyone/);
   await page.keyboard.press('Tab');
-  await expect(bullets).toHaveValue('Ship the beta\n    Tell everyone');
+  await expect.poll(value).toMatch(/\n    _Tell_ everyone/);
   await page.keyboard.press('Shift+Tab');
   await page.getByRole('button', { name: 'Bring the bullet out' }).click();
-  await expect(bullets).toHaveValue('Ship the beta\nTell everyone');
+  await expect.poll(value).toMatch(/\n_Tell_ everyone/);
   await page.getByRole('button', { name: 'Indent the bullet' }).click();
-  await expect(bullets).toHaveValue('Ship the beta\n  Tell everyone');
+  await expect.poll(value).toMatch(/\n  _Tell_ everyone/);
 });
 
 test('keeping documents is opt in, and off again erases them', async ({ page }) => {

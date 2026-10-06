@@ -53,9 +53,21 @@ export function serializeDoc(blocks: Block[]): string {
       continue;
     }
     let out = (blk.a ? `>${blk.a} ` : '') + (blk.k === 'ul' || blk.k === 'ol' ? PREFIX[blk.k][0].repeat(1 + Math.min(MAX_DEPTH, blk.d ?? 0)) + ' ' : PREFIX[blk.k]);
+    out += serializeInline(blk.runs, blk.k === 'p' || !!blk.a);
+    lines.push(out);
+  }
+  // Drop trailing empty paragraphs.
+  while (lines.length && lines[lines.length - 1] === '') lines.pop();
+  return lines.join('\n');
+}
+
+/** Runs as one line of marks. With `bare`, a line that would read as a block prefix is escaped. */
+export function serializeInline(runs: Run[], bare = false): string {
+  let out = '';
+  {
     const state: Record<string, boolean> = { b: false, i: false, u: false, s: false, h: false };
     let first = true;
-    for (const run of blk.runs) {
+    for (const run of runs) {
       if (run.ic) {
         out += `:${run.ic}:`;
         first = false;
@@ -71,17 +83,14 @@ export function serializeDoc(blocks: Block[]): string {
       // (":name:" would read as an icon, so a colon that starts one is escaped.)
       let text = run.t.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:');
       // A paragraph that would start with a prefix marker must be escaped.
-      if (first && (blk.k === 'p' || blk.a) && /^(#|-+ |\++ |@@|>[crj] )/.test(text)) text = '\\' + text;
+      if (first && bare && /^(#|-+ |\++ |@@|>[crj] )/.test(text)) text = '\\' + text;
       first = false;
       out += text;
     }
     // Close open marks so each line is self-contained.
     for (const f of FLAGS) if (state[f]) out += MARK[f];
-    lines.push(out);
   }
-  // Drop trailing empty paragraphs.
-  while (lines.length && lines[lines.length - 1] === '') lines.pop();
-  return lines.join('\n');
+  return out;
 }
 
 /** One line's marks ( *bold* _italic_ ^underline^ ~strike~ ) as runs. */

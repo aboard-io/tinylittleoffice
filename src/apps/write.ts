@@ -5,7 +5,7 @@
  * matters functionally, because execCommand and the selection APIs are
  * unreliable inside shadow roots in some browsers.
  */
-import { LitElement, html, type PropertyValues } from 'lit';
+import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
@@ -13,7 +13,7 @@ import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { MAX_DEPTH, linkify, parseDoc, serializeDoc, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { MAX_DEPTH, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
@@ -222,9 +222,22 @@ function isBlockTag(tag: string): boolean {
   return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'SECTION', 'ARTICLE'].includes(tag);
 }
 
+/**
+ * The one rich text editor. As <to-write> it is the Write app: a whole
+ * document, with headings, lists, embeds and a word count. As <to-rich>
+ * it is a box anyone else can use: mode "line" is one line of marked
+ * text (a headline), mode "lines" is a line per paragraph (a slide's
+ * bullets, a page's words). In those modes it speaks "rich-change", not
+ * "docchange", so the document it is part of is not mistaken for it.
+ */
 @customElement('to-write')
 export class ToWrite extends LitElement {
   @property() value = '';
+  @property() mode: 'doc' | 'line' | 'lines' = 'doc';
+  @property() label = 'Document';
+  @property() placeholder = '';
+  /** Show the formatting toolbar. (A host with several boxes may keep one toolbar of its own and call exec().) */
+  @property({ type: Boolean }) tools = true;
   @state() private fmt = { b: false, i: false, u: false, s: false, h: false, block: 'p', align: '' };
   @state() private words = 0;
   @state() private chars = 0;
@@ -258,8 +271,20 @@ export class ToWrite extends LitElement {
     }
   }
 
+  /** The value as blocks: a document, or a paragraph per line. */
+  private read(value: string): Block[] {
+    if (this.mode === 'doc') return parseDoc(value);
+    return (value ? value.split('\n') : ['']).map((line) => ({ k: 'p', runs: parseInline(line) }));
+  }
+  /** Blocks as the value: a document, or marked lines. */
+  private write(blocks: Block[]): string {
+    if (this.mode === 'doc') return serializeDoc(blocks);
+    const lines = blocks.filter((b) => b.k !== 'e').map((b) => serializeInline(b.runs).replace(/\n/g, ' '));
+    return this.mode === 'line' ? lines.join(' ').trim() : lines.join('\n');
+  }
+
   private loadHtml() {
-    const blocks = parseDoc(this.value);
+    const blocks = this.read(this.value);
     this.page!.innerHTML = blocksToHtml(blocks);
     this.count(blocks);
   }
@@ -273,10 +298,33 @@ export class ToWrite extends LitElement {
   private onInput = () => {
     const blocks = domToBlocks(this.page!);
     this.count(blocks);
-    this.lastEmitted = serializeDoc(blocks);
+    this.lastEmitted = this.write(blocks);
     this.page!.classList.toggle('blank', this.lastEmitted === '');
-    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
+    if (this.mode === 'doc') this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
+    else this.dispatchEvent(new CustomEvent('rich-change', { detail: this.lastEmitted }));
   };
+
+  /** Run a formatting command from outside (a host's own toolbar). */
+  exec(cmd: string, arg?: string) {
+    this.run(cmd, arg);
+  }
+  /** Toggle highlight from outside. */
+  highlight() {
+    this.run('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
+  }
+  /** In "lines" mode: step the line the caret is on in or out by two spaces (a slide's bullets nest that way). */
+  shift(by: -1 | 1) {
+    const sel = getSelection();
+    let block: Node | null = sel?.anchorNode ?? null;
+    while (block && block.parentNode !== this.page) block = block.parentNode;
+    if (!block) return;
+    const first = block.firstChild?.nodeType === Node.TEXT_NODE ? (block.firstChild as Text) : null;
+    if (by > 0) {
+      if (first) first.data = '  ' + first.data;
+      else block.insertBefore(document.createTextNode('  '), block.firstChild);
+    } else if (first) first.data = first.data.replace(/^(\t| {1,2})/, '');
+    this.onInput();
+  }
 
   private onSelection = () => {
     if (!this.page || !this.page.contains(document.activeElement) && document.activeElement !== this.page) return;
@@ -295,7 +343,7 @@ export class ToWrite extends LitElement {
   };
 
   /** An icon at the caret, as one thing in the line. */
-  private async insertIcon() {
+  async insertIcon() {
     // The picker is a dialog, which takes the focus and with it the caret: so the caret is kept, and put back.
     const sel = getSelection();
     const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret;
@@ -324,7 +372,7 @@ export class ToWrite extends LitElement {
     this.onInput();
   }
 
-  private exec(cmd: string, arg?: string) {
+  private run(cmd: string, arg?: string) {
     this.page?.focus();
     // (Colours and alignment are only ever written as styles; the rest as tags.)
     document.execCommand('styleWithCSS', false, cmd === 'hiliteColor' ? 'true' : 'false');
@@ -419,10 +467,21 @@ export class ToWrite extends LitElement {
       }
       return;
     }
+    if (e.key === 'Enter' && this.mode === 'line') {
+      // One line: Return is for whoever holds the box (the next box, a new slide).
+      e.preventDefault();
+      this.dispatchEvent(new CustomEvent('rich-enter'));
+      return;
+    }
+    if (e.key === 'Tab' && this.mode === 'lines' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      this.shift(e.shiftKey ? -1 : 1);
+      return;
+    }
     if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey && (this.fmt.block === 'ul' || this.fmt.block === 'ol')) {
       // In a list, Tab moves the item in a level and Shift+Tab back out.
       e.preventDefault();
-      this.exec(e.shiftKey ? 'outdent' : 'indent');
+      this.run(e.shiftKey ? 'outdent' : 'indent');
       return;
     }
     if (!(e.ctrlKey || e.metaKey)) return;
@@ -432,12 +491,12 @@ export class ToWrite extends LitElement {
     };
     if (k === 'h' && e.shiftKey) {
       e.preventDefault();
-      this.exec('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
+      this.run('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
       return;
     }
-    if (map[k] && !e.shiftKey) {
+    if (map[k] && !e.shiftKey && (this.mode === 'doc' || map[k][0] !== 'formatBlock')) {
       e.preventDefault();
-      this.exec(map[k][0], map[k][1]);
+      this.run(map[k][0], map[k][1]);
     }
   };
 
@@ -449,15 +508,16 @@ export class ToWrite extends LitElement {
         aria-label=${label}
         aria-pressed=${pressed ? 'true' : 'false'}
         @mousedown=${(e: Event) => e.preventDefault()}
-        @click=${() => this.exec(cmd, arg)}
+        @click=${() => this.run(cmd, arg)}
       >${icon(UI[ico], 16)}<span class="sr-only">${label}</span></sl-button>
     </sl-tooltip>`;
   }
 
   render() {
     const f = this.fmt;
+    const doc = this.mode === 'doc';
     return html`
-      <div class="to-toolbar write-toolbar" role="toolbar" aria-label="Formatting">
+      ${this.tools ? html`<div class="to-toolbar write-toolbar" role="toolbar" aria-label="Formatting">
         <sl-button-group label="Text style">
           ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Ctrl+B')}
           ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Ctrl+I')}
@@ -472,7 +532,7 @@ export class ToWrite extends LitElement {
           ${this.btn('Justify', 'alignJustify', f.align === 'j', 'justifyFull')}
         </sl-button-group>
         <sl-tooltip content="Icon" hoist><sl-button class="icon" size="small" @click=${this.insertIcon}>${icon(UI.smile, 14)}<span class="sr-only">Icon</span></sl-button></sl-tooltip>
-        <sl-button-group label="Block">
+        ${doc ? html`<sl-button-group label="Block">
           ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Ctrl+1')}
           ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Ctrl+2')}
           ${this.btn('Paragraph', 'p', f.block === 'p' || f.block === 'div', 'formatBlock', 'p', 'Ctrl+0')}
@@ -483,15 +543,15 @@ export class ToWrite extends LitElement {
           ${this.btn('Bring out', 'outdent', false, 'outdent', undefined, 'Shift+Tab')}
           ${this.btn('Indent', 'indent', false, 'indent', undefined, 'Tab')}
         </sl-button-group>
-        <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
-      </div>
+        <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>` : nothing}
+      </div>` : nothing}
       <div
-        class="write-page ${this.value ? '' : 'blank'}"
+        class="write-page ${doc ? '' : 'rich-' + this.mode} ${this.value ? '' : 'blank'}"
         contenteditable="true"
         role="textbox"
-        aria-multiline="true"
-        aria-label="Document"
-        data-placeholder=""
+        aria-multiline=${doc || this.mode === 'lines' ? 'true' : 'false'}
+        aria-label=${this.label}
+        data-placeholder=${this.placeholder}
         @input=${this.onInput}
         @keydown=${this.onKey}
         @paste=${this.onPaste}
@@ -501,16 +561,20 @@ export class ToWrite extends LitElement {
         @embed-remove=${(e: Event) => this.removeEmbed(e.target as HTMLElement)}
         @focus=${this.onSelection}
       ></div>
-      <div class="to-foot write-foot">
+      ${doc ? html`<div class="to-foot write-foot">
         <span>${this.words} ${this.words === 1 ? 'word' : 'words'}</span>
         <span>${this.chars} characters</span>
-      </div>
+      </div>` : nothing}
     `;
   }
 }
 
+/** The same editor, as a box for other apps. */
+if (!customElements.get('to-rich')) customElements.define('to-rich', class extends ToWrite {});
+
 declare global {
   interface HTMLElementTagNameMap {
     'to-write': ToWrite;
+    'to-rich': ToWrite;
   }
 }

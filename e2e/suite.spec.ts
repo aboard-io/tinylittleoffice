@@ -324,16 +324,13 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await expect(page.locator('.deck-suggest')).toHaveCount(0);
   await expect(page.locator('.to-toolbar .to-hint').last()).toHaveText('2 slides');
 
-  // Each dot sits on the first line of its bullet, even when a bullet wraps.
+  // Each bullet is a line of its own with a dot before it, and a long one wraps under its dot.
   await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(3).trim() + '\nTell people');
-  const geometry = await page.locator('.deck-slide .bullets').evaluate((el) => {
-    const ta = el.querySelector('textarea')!;
-    const mirror = el.querySelector('.mirror')!;
-    const a = getComputedStyle(ta);
-    const b = getComputedStyle(mirror);
-    return { sameFont: a.fontSize === b.fontSize && a.fontFamily === b.fontFamily, dots: mirror.querySelectorAll('div.on').length, wrapped: mirror.children[1].getBoundingClientRect().height > mirror.children[0].getBoundingClientRect().height * 1.5 };
+  const geometry = await page.locator('.deck-slide .bullets .write-page').evaluate((el) => {
+    const lines = [...el.querySelectorAll(':scope > p')];
+    return { dots: lines.filter((p) => p.textContent?.trim()).length, wrapped: lines[1].getBoundingClientRect().height > lines[0].getBoundingClientRect().height * 1.8 };
   });
-  expect(geometry).toEqual({ sameFont: true, dots: 3, wrapped: true });
+  expect(geometry).toEqual({ dots: 3, wrapped: true });
   // Type shrinks as the slide fills up, and grows back.
   // (--body is the size on the 960px slide the audience sees; a phone's editor stops shrinking at 16px so it stays typeable.)
   const px = () => page.locator('.deck-slide').evaluate((el) => parseFloat(getComputedStyle(el).getPropertyValue('--body')));
@@ -349,7 +346,7 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await expect(thumbs).toHaveCount(2);
   await expect(thumbs.nth(1)).toContainText('Launch plan');
   await thumbs.nth(1).click();
-  await expect(bullets).toHaveValue('Build it\nShip it\nTell people');
+  await expect(bullets.locator('p')).toHaveText(['Build it', 'Ship it', 'Tell people']);
   await shot(page, 'deck');
 
   // Presenting: the title slide appears whole; the next builds a bullet per step.

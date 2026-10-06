@@ -921,15 +921,26 @@ table.sheet td.sel input {
   width: 60%;
   height: 60%;
 }
-.deck-slide input.title {
+to-rich {
+  display: block;
+  min-width: 0;
+}
+.deck-slide to-rich.title {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  align-self: stretch;
+}
+.deck-slide to-rich.title .write-page,
+.deck-slide .bullets .write-page {
+  min-height: 1.3em;
+}
+.deck-slide to-rich.title .write-page {
   font: 700 calc(var(--title) / 960 * 100cqw) / 1.15 var(--sl-font-sans);
   letter-spacing: -0.02em;
-  border: 0;
-  background: transparent;
   color: var(--to-ink);
   padding: 4px 0;
+  white-space: pre-wrap;
 }
 .deck-slide .body {
   display: grid;
@@ -957,27 +968,20 @@ table.sheet td.sel input {
   align-self: start;
   min-height: 0;
 }
-/* Mirror and textarea share one box and one font, so they wrap identically. */
-.deck-slide .mirror,
-.deck-slide textarea {
-  box-sizing: border-box;
-  width: 100%;
-  margin: 0;
-  border: 0;
-  padding: 0 0 0 1.1em;
+/* The bullets: a line a bullet, a dot before each line with words on it. */
+.deck-slide .bullets .write-page {
+  min-height: 3.9em;
+  padding: 0;
   font: calc(var(--body) / 960 * 100cqw) / 1.3 var(--sl-font-sans);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  color: var(--to-ink);
 }
-.deck-slide .mirror {
-  min-height: 3.9em;
-  color: transparent;
-  user-select: none;
-}
-.deck-slide .mirror div {
+.deck-slide .bullets .write-page > p {
   position: relative;
+  margin: 0 0 0 1.1em;
 }
-.deck-slide .mirror div.on::before {
+.deck-slide .bullets .write-page > p:not(:empty)::before {
   content: '•';
   position: absolute;
   left: -1.1em;
@@ -985,14 +989,20 @@ table.sheet td.sel input {
   text-align: center;
   color: var(--to-accent);
 }
-.deck-slide textarea {
-  position: absolute;
-  inset: 0;
-  height: 100%;
+/* Boxes on a slide are the slide, not a page: no edge, no card. */
+.deck-slide .write-page,
+.deck-slide .write-page:focus {
+  border: 0;
+  box-shadow: none;
   background: transparent;
-  color: var(--to-ink);
-  resize: none;
-  overflow: hidden;
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  line-height: inherit;
+}
+.deck-slide .write-page p {
+  margin: 0;
 }
 /* Title slide: everything centred, the lines below the title are a subtitle. */
 .deck-slide.lay-t {
@@ -2385,11 +2395,10 @@ table.sheet td.corner {
     aspect-ratio: auto;
     min-height: 62.5cqw;
   }
-  .deck-slide input.title {
+  .deck-slide to-rich.title .write-page {
     font-size: max(18px, calc(var(--title) / 960 * 100cqw));
   }
-  .deck-slide .mirror,
-  .deck-slide textarea {
+  .deck-slide .bullets .write-page {
     font-size: max(16px, calc(var(--body) / 960 * 100cqw));
   }
   .deck-slide.lay-2 .body,
@@ -3038,7 +3047,7 @@ sl-dialog.to-icons {
   font-weight: 600;
   color: var(--to-ink-3);
 }
-.zine-edit input.title {
+.zine-edit to-rich.title .write-page {
   font: 600 22px var(--sl-font-sans);
   padding: 8px 10px;
   border: 1px solid var(--to-border);
@@ -3047,7 +3056,7 @@ sl-dialog.to-icons {
   color: var(--to-ink);
   min-width: 0;
 }
-.zine-edit textarea {
+.zine-edit to-rich.words .write-page {
   min-height: 260px;
   padding: 10px;
   font: 16px/1.5 var(--sl-font-sans);
@@ -3655,8 +3664,8 @@ sl-menu-item.sub::part(base) {
   textarea,
   select,
   .lf-fields :is(input, select),
-  .zine-edit input.title,
-  .zine-edit textarea,
+  .zine-edit to-rich.title .write-page,
+  .zine-edit to-rich.words .write-page,
   .sheet input,
   .cal-zone {
     font-size: max(16px, 1em);
@@ -3853,4 +3862,17 @@ mark {
 }
 .diagram.print .sheet text {
   cursor: text;
+}
+
+.zine-edit to-rich .write-page {
+  max-width: none;
+  margin: 0;
+  min-height: 0;
+}
+.zine-edit to-rich.words .write-page {
+  min-height: 160px;
+  resize: none;
+}
+.zine-edit to-rich .write-page p {
+  margin: 0;
 }

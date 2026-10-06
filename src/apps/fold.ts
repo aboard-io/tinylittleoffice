@@ -7,6 +7,7 @@ import type { SlSelect } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import '../widgets/insert-box.ts';
+import './write.ts';
 import { iconOf } from '../lib/drawmodel.ts';
 import { foldPage, foldSheets, formatOf, parseFold, serializeFold, type Folded, type Format } from '../lib/fold.ts';
 
@@ -127,12 +128,8 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
               <h2>${f.name(this.cur, n)}</h2>
               ${s.sub
                 ? html`<to-embed ref=${s.sub} controls @embed-edit=${this.editSub} @embed-remove=${() => this.patch({ sub: undefined })}></to-embed>`
-                : html`<input class="title" aria-label="Headline" placeholder=${this.cur === 0 ? 'Title' : f.name(this.cur, n).startsWith('Page') ? 'Headline' : f.name(this.cur, n)} .value=${s.title} @input=${(e: Event) => this.patch({ title: (e.target as HTMLInputElement).value })} @keydown=${(e: KeyboardEvent) => {
-                if (e.key !== 'Enter') return;
-                e.preventDefault();
-                this.querySelector<HTMLTextAreaElement>('.zine-edit textarea')?.focus();
-              }} />
-${f.panels ? this.panels(s, f.panels) : html`              <textarea aria-label="Words" placeholder="What this page says. A new line starts a new paragraph. The type shrinks to fit the page." .value=${s.bullets.join('\n')} @input=${(e: Event) => this.patch({ bullets: (e.target as HTMLTextAreaElement).value.split('\n') })}></textarea>`}`}
+                : html`<to-rich class="title" mode="line" .tools=${false} label="Headline" placeholder=${this.cur === 0 ? 'Title' : f.name(this.cur, n).startsWith('Page') ? 'Headline' : f.name(this.cur, n)} .value=${s.title} @rich-change=${(e: CustomEvent<string>) => this.patch({ title: e.detail })} @rich-enter=${() => this.querySelector<HTMLElement>('.zine-edit .words .write-page')?.focus()}></to-rich>
+${f.panels ? this.panels(s, f.panels) : html`              <to-rich class="words" mode="lines" .tools=${false} label="Words" placeholder="What this page says. A new line starts a new paragraph. The type shrinks to fit the page." .value=${s.bullets.join('\n')} @rich-change=${(e: CustomEvent<string>) => this.patch({ bullets: e.detail.split('\n') })}></to-rich>`}`}
             </div>
             <div class="zine-page">${pic(foldPage(z, this.cur, f), `${f.name(this.cur, n)}, as it will print`)}</div>
           </div>`}

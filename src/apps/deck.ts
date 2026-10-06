@@ -11,10 +11,10 @@ import { DocElement, defineElement, html, nothing, state, property, unsafeSVG, t
 import type { SlDialog, SlInput, SlSelect } from '../kit.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
 import { iconCount } from '../lib/iconsearch.ts';
-import { toggleMark } from '../lib/richtext.ts';
-import { chooseIcon } from '../widgets/icon-picker.ts';
+import './write.ts';
+import type { ToWrite } from './write.ts';
 import '../widgets/insert-box.ts';
-import { SH, SW, closingSlide, depthOf, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
+import { SH, SW, closingSlide, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
 
 interface Deck {
   slides: Slide[];
@@ -85,7 +85,7 @@ export class ToDeck extends DocElement<Deck> {
     slides.splice(this.cur + 1, 0, blank());
     this.save(slides);
     this.cur++;
-    this.updateComplete.then(() => this.querySelector<HTMLInputElement>('input.title')?.focus());
+    this.updateComplete.then(() => this.querySelector<HTMLElement>('to-rich.title .write-page')?.focus());
   }
 
   private removeSlide() {
@@ -114,7 +114,7 @@ export class ToDeck extends DocElement<Deck> {
     slides.splice(this.cur + 1, 0, what.startsWith('layout:') ? { ...blank(), layout: what.slice(7) as Layout } : blank());
     this.save(slides);
     this.cur++;
-    if (what.startsWith('layout:')) this.updateComplete.then(() => this.querySelector<HTMLInputElement>('input.title')?.focus());
+    if (what.startsWith('layout:')) this.updateComplete.then(() => this.querySelector<HTMLElement>('to-rich.title .write-page')?.focus());
     else void this.insert(what);
   }
 
@@ -214,86 +214,19 @@ export class ToDeck extends DocElement<Deck> {
     return html`<button title=${name} aria-label=${name} aria-pressed=${current === name ? 'true' : 'false'} @click=${() => this.pickIcon(name)}>${icon(LIBRARY[name], 22)}</button>`;
   }
 
-  /** The headline box or bullets box last typed in: what the mark buttons work on. */
-  private field: HTMLInputElement | HTMLTextAreaElement | null = null;
+  /** The headline box or bullets box last typed in: what the text buttons work on. */
+  private field: ToWrite | null = null;
+  private onField = (e: Event) => (this.field = e.currentTarget as ToWrite);
 
-  /** Bold, italic, underline or strike round what is selected in the headline or a bullet (or taken off again). */
-  private mark(mark: string) {
-    const f = this.field;
-    if (!f || !f.isConnected) return;
-    const { selectionStart: a, selectionEnd: b, value } = f;
-    if (a === null || b === null) return;
-    // Within the one line the selection is on; a word, if nothing is selected.
-    const lineStart = value.lastIndexOf('\n', a - 1) + 1;
-    const lineEnd = value.indexOf('\n', b) < 0 ? value.length : value.indexOf('\n', b);
-    let [from, to] = [a - lineStart, b - lineStart];
-    const line = value.slice(lineStart, lineEnd);
-    if (from === to) {
-      while (from > 0 && /\S/.test(line[from - 1])) from--;
-      while (to < line.length && /\S/.test(line[to])) to++;
-    }
-    const done = toggleMark(line, from, to, mark);
-    f.value = value.slice(0, lineStart) + done.line + value.slice(lineEnd);
-    f.dispatchEvent(new Event('input', { bubbles: true }));
-    f.focus();
-    f.setSelectionRange(lineStart + done.from, lineStart + done.to);
+  /** An icon in the words, at the cursor of the box last typed in. */
+  private inlineIcon() {
+    void this.field?.insertIcon();
   }
 
-  /** The indent buttons work on the bullets box last typed in. */
-  private indent(out: boolean) {
-    const f = this.field;
-    if (!f || !f.isConnected || f.tagName !== 'TEXTAREA') return;
-    f.focus();
-    this.step(f as HTMLTextAreaElement, out);
-  }
-
-  /** Tab in the bullets: the line steps in (two spaces a level, up to three); Shift+Tab brings it out. */
-  private onTab(e: KeyboardEvent) {
-    if (e.key !== 'Tab') return;
-    e.preventDefault();
-    this.step(e.target as HTMLTextAreaElement, e.shiftKey);
-  }
-  private step(area: HTMLTextAreaElement, out: boolean) {
-    const { selectionStart: a, selectionEnd: b, value } = area;
-    const from = value.lastIndexOf('\n', a - 1) + 1;
-    const end = value.indexOf('\n', b) < 0 ? value.length : value.indexOf('\n', b);
-    const was = value.slice(from, end).split('\n');
-    const lines = was.map((l) => (out ? l.replace(/^(\t| {1,2})/, '') : depthOf(l) < 3 ? '  ' + l : l));
-    const text = value.slice(0, from) + lines.join('\n') + value.slice(end);
-    area.value = text;
-    area.dispatchEvent(new Event('input', { bubbles: true }));
-    area.setSelectionRange(Math.max(from, a + lines[0].length - was[0].length), b + text.length - value.length);
-  }
-
-  /** An icon in the words, at the cursor of the box last typed in: ":rocket:" in the text, a picture on the slide. */
-  private async inlineIcon() {
-    const f = this.field;
-    const name = await chooseIcon();
-    if (!name || !f || !f.isConnected) return;
-    const at = f.selectionStart ?? f.value.length;
-    f.value = f.value.slice(0, at) + `:${name}: ` + f.value.slice(f.selectionEnd ?? at);
-    f.dispatchEvent(new Event('input', { bubbles: true }));
-    f.focus();
-    f.setSelectionRange(at + name.length + 3, at + name.length + 3);
-  }
-
-  private onMarkKey = (e: KeyboardEvent) => {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const mark = e.shiftKey && e.key.toLowerCase() === 'h' ? '=' : e.shiftKey ? undefined : { b: '*', i: '_', u: '^' }[e.key.toLowerCase()];
-    if (!mark) return;
-    const t = e.target as HTMLElement;
-    if (t.matches('input.title, .bullets textarea')) {
-      e.preventDefault();
-      this.field = t as HTMLInputElement;
-      this.mark(mark);
-    }
-  };
-
-  /** A column of bullets: a textarea over a mirror that draws the dots where the lines really wrap. */
+  /** A column of bullets: one rich box, a line a bullet. */
   private bulletsField(label: string, list: string[], placeholder: string, save: (list: string[]) => void) {
     return html`<div class="bullets">
-      <div class="mirror" aria-hidden="true">${list.map((b) => html`<div class=${b.trim() ? 'on' : ''}>${b || '​'}</div>`)}</div>
-      <textarea placeholder=${placeholder} aria-label=${label} .value=${list.join('\n')} @focus=${(e: Event) => (this.field = e.target as HTMLTextAreaElement)} @keydown=${(e: KeyboardEvent) => (this.onMarkKey(e), this.onTab(e))} @input=${(e: Event) => save((e.target as HTMLTextAreaElement).value.split('\n'))}></textarea>
+      <to-rich mode="lines" .tools=${false} label=${label} placeholder=${placeholder} .value=${list.join('\n')} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => save(e.detail.split('\n'))}></to-rich>
     </div>`;
   }
 
@@ -321,11 +254,11 @@ export class ToDeck extends DocElement<Deck> {
           ${tool('Move slide down', 'down', () => this.move(1), { disabled: this.cur === n - 1 })}
         </sl-button-group>
         <sl-button-group label="Text">
-          ${tool('Bold', 'bold', () => this.mark('*'))}${tool('Italic', 'italic', () => this.mark('_'))}${tool('Underline', 'underline', () => this.mark('^'))}${tool('Strike', 'strike', () => this.mark('~'))}${tool('Highlight', 'highlight', () => this.mark('='))}
+          ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Underline', 'underline', () => this.field?.exec('underline'))}${tool('Strike', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}
         </sl-button-group>
         <sl-button size="small" @click=${this.inlineIcon}>${icon(UI.smile, 14)} Icon in text</sl-button>
         <sl-button-group label="Indent">
-          ${tool('Bring the bullet out', 'outdent', () => this.indent(true))}${tool('Indent the bullet', 'indent', () => this.indent(false))}
+          ${tool('Bring the bullet out', 'outdent', () => this.field?.shift(-1))}${tool('Indent the bullet', 'indent', () => this.field?.shift(1))}
         </sl-button-group>
         <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
         <span class="to-spacer"></span>
@@ -363,7 +296,7 @@ export class ToDeck extends DocElement<Deck> {
               <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
                 ${s.icon ? libraryIcon(s.icon, 32) : html`${icon(UI.smile, 20)}<span>Icon</span>`}
               </button>
-              <input class="title" placeholder=${kind === 't' ? 'Title' : 'Headline'} aria-label="Headline" @focus=${(e: Event) => (this.field = e.target as HTMLInputElement)} .value=${s.title} @input=${(e: Event) => this.patch(this.cur, { title: (e.target as HTMLInputElement).value })} @keydown=${(e: KeyboardEvent) => { this.onMarkKey(e); if (!e.defaultPrevented) ((e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this.querySelector<HTMLTextAreaElement>('.deck-slide .bullets textarea')?.focus(); } })(e); }} />
+              <to-rich class="title" mode="line" .tools=${false} label="Headline" placeholder=${kind === 't' ? 'Title' : 'Headline'} .value=${s.title} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => this.patch(this.cur, { title: e.detail })} @rich-enter=${() => this.querySelector<HTMLElement>('.deck-slide .bullets .write-page')?.focus()}></to-rich>
             </div>
             <div class="body">
               ${this.bulletsField('Bullets', s.bullets, kind === 't' ? 'Subtitle' : 'One bullet per line', (bullets) => this.patch(this.cur, { bullets }))}

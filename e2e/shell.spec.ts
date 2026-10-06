@@ -291,7 +291,7 @@ test('each app has a page of its own, with its own preview card', async ({ page,
   await page.getByRole('textbox', { name: 'Headline' }).fill('From the deck page');
   await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v2\/deck\/[WYZR]/);
   await reopen(page);
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveValue('From the deck page');
+  await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveText('From the deck page');
 });
 
 test('keyboard shortcuts are listed, and work everywhere', async ({ page }) => {
