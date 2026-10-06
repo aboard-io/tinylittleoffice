@@ -209,11 +209,15 @@ test('sheet: charts suggest themselves and travel with the sheet', async ({ page
   await expect(pick.locator('sl-option[value="pie"]')).toContainText('suggested');
   await pick.locator('sl-option[value="pie"]').click();
   const chart = page.locator('.sheet-chart svg');
-  await expect(chart.locator('path')).toHaveCount(3);
+  // Three slices (each with a white edge); the second and third also wear a pattern, for eyes that do not see the colours.
+  await expect(chart.locator('svg > path[stroke="#fff"], path[stroke-width="2"]')).toHaveCount(3);
+  await expect(chart.locator('path[fill^="url(#p"]')).toHaveCount(2);
   await expect(chart).toContainText('Rent');
   await expect(chart).toContainText('60%');
   await reopen(page);
-  await expect(chart.locator('path')).toHaveCount(3);
+  // Three slices (each with a white edge); the second and third also wear a pattern, for eyes that do not see the colours.
+  await expect(chart.locator('svg > path[stroke="#fff"], path[stroke-width="2"]')).toHaveCount(3);
+  await expect(chart.locator('path[fill^="url(#p"]')).toHaveCount(2);
   await pickOption(page, 'sl-select.sheet-chart-pick', 'bar');
   await expect(chart.locator('rect[rx="2"]')).toHaveCount(3);
   await shot(page, 'chart');
@@ -564,9 +568,9 @@ test('draw: shapes with labels persist', async ({ page }) => {
   await canvas.locator('g.shape').nth(0).click();
   await page.getByRole('radio', { name: 'Blue' }).click();
   await pickOption(page, 'sl-select[label="Text size"]', '4');
-  await expect(canvas.locator('rect[stroke="#2563eb"]')).toHaveCount(1);
+  await expect(canvas.locator('rect[stroke="#0072b2"]')).toHaveCount(1);
   await reopen(page);
-  await expect(canvas.locator('rect[stroke="#2563eb"]')).toHaveCount(1);
+  await expect(canvas.locator('rect[stroke="#0072b2"]')).toHaveCount(1);
   const sizes = await canvas.locator('text').evaluateAll((els) => els.map((el) => getComputedStyle(el).fontSize));
   expect(sizes).toEqual(['30px', '14px']);
   await canvas.locator('g.shape').nth(0).click();

@@ -152,6 +152,27 @@ export class ToApp extends LitElement {
   @state() private viewing = false;
   /** What is typed into the menu's search box: only apps whose names match are listed. */
   @state() private find = '';
+  /** How big everything is drawn, as a factor; remembered. Browser zoom works too; this is for a tap. */
+  @state() private size = (() => {
+    try {
+      return Math.min(2, Math.max(0.8, parseFloat(localStorage.getItem('tinyoffice.size') ?? '1') || 1));
+    } catch {
+      return 1;
+    }
+  })();
+  private resize(by: number) {
+    this.size = Math.round(Math.min(2, Math.max(0.8, this.size + by)) * 20) / 20;
+    try {
+      if (this.size === 1) localStorage.removeItem('tinyoffice.size');
+      else localStorage.setItem('tinyoffice.size', String(this.size));
+    } catch {
+      // (Not remembered, then.)
+    }
+    this.applySize();
+  }
+  private applySize() {
+    document.documentElement.style.setProperty('zoom', this.size === 1 ? '' : String(this.size));
+  }
   /** The menu's clusters that are folded shut. Remembered. */
   @state() private shut: string[] = (() => {
     try {
@@ -186,6 +207,7 @@ export class ToApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.applySize();
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);
     window.addEventListener(REFRESH, this.onRefresh);
@@ -340,7 +362,7 @@ export class ToApp extends LitElement {
 
   /** Whether the app is kept for offline use: known once asked. */
   @state() private offline: boolean | null = null;
-  private static PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.open', 'tinyoffice.nav'];
+  private static PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.open', 'tinyoffice.nav', 'tinyoffice.size'];
   private prefsKept(): number {
     try {
       return ToApp.PREFS.filter((k) => localStorage.getItem(k) !== null).length;
@@ -356,6 +378,8 @@ export class ToApp extends LitElement {
     }
     this.theme = 'auto';
     this.shut = [];
+    this.size = 1;
+    this.applySize();
     this.requestUpdate();
   };
   private async checkOffline() {
@@ -762,6 +786,11 @@ export class ToApp extends LitElement {
           })}
         </nav>
         <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
+        <sl-button-group slot="footer" class="to-size" label="Size of everything">
+          <sl-button title="Everything a little smaller" ?disabled=${this.size <= 0.8} @click=${() => this.resize(-0.1)}><span aria-hidden="true">A−</span><span class="sr-only">Smaller</span></sl-button>
+          <sl-button title="Back to the normal size" @click=${() => this.resize(1 - this.size)}><span class="sr-only">Size: </span>${Math.round(this.size * 100)}%<span class="sr-only">. Back to normal</span></sl-button>
+          <sl-button title="Everything a little larger" ?disabled=${this.size >= 2} @click=${() => this.resize(0.1)}><span aria-hidden="true">A+</span><span class="sr-only">Larger</span></sl-button>
+        </sl-button-group>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
       </sl-drawer>
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>

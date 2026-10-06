@@ -233,11 +233,11 @@ test('deck: any Lucide icon, in one colour for the whole deck', async ({ page })
   await page.getByRole('radio', { name: 'Red' }).click();
   await picker.getByRole('button', { name: 'Close' }).click();
   const thumb = page.locator('.deck-rail .deck-thumb').first();
-  await expect(thumb.locator('g[stroke="#dc2626"]')).toHaveCount(1);
+  await expect(thumb.locator('g[stroke="#b3261e"]')).toHaveCount(1);
   await reopen(page);
-  await expect(thumb.locator('g[stroke="#dc2626"]')).toHaveCount(1);
+  await expect(thumb.locator('g[stroke="#b3261e"]')).toHaveCount(1);
   await page.getByRole('button', { name: 'Present' }).click();
-  await expect(page.locator('.deck-show .frame > svg g[stroke="#dc2626"] path').first()).toBeAttached();
+  await expect(page.locator('.deck-show .frame > svg g[stroke="#b3261e"] path').first()).toBeAttached();
 });
 
 test('everything is set in IBM Plex', async ({ page }) => {
@@ -315,7 +315,7 @@ test('calendar: colours, and what they stand for', async ({ page }) => {
   // A span's colour can be changed where it is edited.
   await chip.click();
   await page.getByRole('radiogroup', { name: 'Colour of this span' }).getByRole('radio', { name: 'Red' }).click();
-  await expect(chip).toHaveAttribute('style', /dc2626/);
+  await expect(chip).toHaveAttribute('style', /b3261e/);
   await shot(page, 'cal-colours');
 });
 
@@ -1013,4 +1013,23 @@ test('keeping documents is opt in, and off again erases them', async ({ page }) 
   await page.goto('/#/');
   await expect(page.locator('.to-library')).toHaveCount(0);
   expect(await page.evaluate(() => [localStorage.getItem('tinyoffice.library'), localStorage.getItem('tinyoffice.save')])).toEqual([null, null]);
+});
+
+test('everything can be made larger from the menu, and it is remembered', async ({ page }) => {
+  await page.goto('/#/todo');
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
+  await page.waitForTimeout(400);
+  const size = page.locator('#nav-drawer .to-size');
+  await expect(size.locator('sl-button').nth(1)).toContainText('100%');
+  await size.locator('sl-button').nth(2).click();
+  await size.locator('sl-button').nth(2).click();
+  await expect(size.locator('sl-button').nth(1)).toContainText('120%');
+  expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('1.2');
+  await page.keyboard.press('Escape');
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('1.2');
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await size.locator('sl-button').nth(1).click();
+  expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('');
 });

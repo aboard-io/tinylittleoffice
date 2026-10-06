@@ -135,7 +135,8 @@ export const fileName = (def: AppDef, body: string, ext: string, title = '') => 
 
 export const INK = '#18181b';
 export const MUTED = '#52525b';
-export const FAINT = '#a1a1aa';
+/** The lightest grey for words: 4.9:1 on white, which is enough to read. */
+export const FAINT = '#6b7280';
 export const LINE = '#d4d4d8';
 export const SHADE = '#f4f4f5';
 export const PAPER = '#ffffff';

@@ -57,7 +57,7 @@
   --to-ink: var(--sl-color-neutral-900);
   --to-ink-2: var(--sl-color-neutral-700);
   /* The quietest text still has to be readable on the greyest surface (4.5:1). */
-  --to-ink-3: var(--sl-color-neutral-600);
+  --to-ink-3: var(--sl-color-neutral-700);
   --to-accent: var(--sl-color-primary-600);
   --to-accent-soft: var(--sl-color-primary-100);
   --to-danger: var(--sl-color-danger-600);
@@ -2266,6 +2266,16 @@ sl-drawer::part(footer) {
   flex-direction: column;
   gap: 8px;
 }
+.to-size {
+  display: flex;
+  width: 100%;
+}
+.to-size sl-button {
+  flex: 1;
+}
+.to-size sl-button:nth-child(2) {
+  flex: 1.4;
+}
 /* A document being edited inside another one. */
 sl-dialog.to-sub {
   --width: min(96vw, 1000px);
@@ -3616,4 +3626,148 @@ sl-menu-item.sub::part(base) {
 }
 .to-nosave {
   margin-bottom: 4px;
+}
+
+/* ---------- Seeing it: contrast, zoom, colour, motion ---------- */
+
+/* Placeholders and faint words still read. */
+::placeholder {
+  color: var(--to-ink-3);
+  opacity: 1;
+}
+
+/* The buttons in a form row, and the picture's buttons, are a finger wide. */
+.lf-tools button {
+  width: 32px;
+  min-height: 36px;
+}
+.lf-row {
+  min-height: 40px;
+}
+
+/* On a phone: no zoom-in on tapping a box (type is 16px there), no rubber-banding, no double-tap delay. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select,
+  .lf-fields :is(input, select),
+  .zine-edit input.title,
+  .zine-edit textarea,
+  .sheet input,
+  .cal-zone {
+    font-size: max(16px, 1em);
+  }
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+  button,
+  a,
+  input,
+  [role='button'],
+  [role='gridcell'] {
+    touch-action: manipulation;
+  }
+}
+
+/* Asked for more contrast: every control shows its edge, and faint words are plain. */
+@media (prefers-contrast: more) {
+  :root {
+    --to-ink-3: var(--to-ink-2);
+    --to-border: var(--to-ink-2);
+  }
+  sl-button::part(base),
+  .lf-tools button,
+  .lf-add button,
+  .lf-fold,
+  .pixel-inks button,
+  .to-library li button {
+    border: 1px solid currentColor;
+  }
+}
+
+/* Windows high contrast and the like: strokes and text in the system's colours, pictures left as drawn. */
+@media (forced-colors: active) {
+  .to-panel,
+  .to-toolbar,
+  .lf-rows,
+  .lf-row,
+  .pixel-grid,
+  .to-library details,
+  .diagram-ctl g[role='button'] rect {
+    border: 1px solid CanvasText;
+  }
+  .lf-row.head .lf-fields input,
+  .lf-kind {
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+  .pixel-grid button,
+  .pixel-inks button,
+  .cal-chip,
+  .to-view.pages .sheet > svg,
+  .diagram .pic > svg,
+  .deck-thumb svg,
+  .zine-thumb > svg,
+  .zine-page > svg,
+  .sheet-chart svg {
+    forced-color-adjust: none;
+  }
+  a {
+    color: LinkText;
+  }
+  :focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
+
+/* No motion when asked: slides cut, nothing slides or fades. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .deck-show .was {
+    display: none;
+  }
+}
+
+/* Zoomed far in (or a very small screen), everything is one column and nothing has a width of its own. */
+@media (max-width: 420px) {
+  .diagram,
+  .zine,
+  .pixel-work {
+    grid-template-columns: minmax(0, 1fr);
+    display: grid;
+  }
+  .to-toolbar {
+    flex-wrap: wrap;
+  }
+  .lf-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .lf-kind {
+    border-right: 0;
+    border-bottom: 1px solid var(--to-border);
+    padding: 4px 8px;
+  }
+  .lf-fields {
+    flex-wrap: wrap;
+  }
+  .lf-fields :is(input, select) {
+    flex-basis: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--to-border);
+  }
+}
+
+/* The schedule's table of tasks scrolls sideways on the narrowest screens rather than sticking out. */
+@media (max-width: 420px) {
+  .gantt {
+    overflow-x: auto;
+  }
 }

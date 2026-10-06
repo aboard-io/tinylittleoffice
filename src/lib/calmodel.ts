@@ -1,3 +1,4 @@
+import { PALETTE } from './palette.ts';
 /**
  * Calendar document model.
  *
@@ -38,14 +39,7 @@ export interface Calendar {
   legend?: Record<string, string>;
 }
 
-export const CAL_COLORS: Record<string, { name: string; hex: string }> = {
-  '': { name: 'Indigo', hex: '#4f46e5' },
-  r: { name: 'Red', hex: '#dc2626' },
-  o: { name: 'Orange', hex: '#d97706' },
-  g: { name: 'Green', hex: '#16a34a' },
-  b: { name: 'Blue', hex: '#0284c7' },
-  p: { name: 'Purple', hex: '#9333ea' },
-};
+export const CAL_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: '#4f46e5' }, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
 
 const b36 = (n: number) => Math.round(n).toString(36);
 

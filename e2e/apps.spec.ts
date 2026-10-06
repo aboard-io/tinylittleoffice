@@ -561,8 +561,11 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   expect(found).toEqual([]);
 });
 
-test('nothing is cut off at the right edge, on any screen', async ({ page }) => {
+// Run twice: as the phone or desktop is, and at 320px, which is what a laptop shows zoomed to 400%.
+for (const narrow of [false, true]) test(`nothing is cut off at the right edge${narrow ? ', zoomed to 400%' : ', on any screen'}`, async ({ page, isMobile }) => {
   test.slow();
+  if (narrow && isMobile) test.skip();
+  if (narrow) await page.setViewportSize({ width: 320, height: 640 });
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {

@@ -1,3 +1,4 @@
+import { PALETTE } from './palette.ts';
 /**
  * Drawing document model.
  * Format: one shape per line:  kind,x,y,w,h,style,label
@@ -49,13 +50,7 @@ export interface Shape {
   z?: TextSize;
 }
 
-export const COLORS: Record<Color, { name: string; hex: string }> = {
-  r: { name: 'Red', hex: '#dc2626' },
-  o: { name: 'Orange', hex: '#d97706' },
-  g: { name: 'Green', hex: '#16a34a' },
-  b: { name: 'Blue', hex: '#2563eb' },
-  p: { name: 'Purple', hex: '#9333ea' },
-};
+export const COLORS: Record<Color, { name: string; hex: string }> = { r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
 export const TEXT_SIZES: Record<TextSize, { name: string; px: number }> = {
   1: { name: 'Small', px: 11 },
   2: { name: 'Normal', px: 14 },

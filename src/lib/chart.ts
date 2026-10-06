@@ -3,7 +3,8 @@
  * labels, every column of numbers is a series, and a row of words above the
  * numbers names them. Drawn as SVG so a chart works wherever a picture does.
  */
-import { ACCENT, FAINT, INK, LINE, MUTED, clip, r, rect, text, type Page } from '../kit/core.ts';
+import { SERIES, patternDefs, patternFill } from './palette.ts';
+import { FAINT, INK, LINE, MUTED, clip, r, rect, text, type Page } from '../kit/core.ts';
 
 export type ChartKind = 'bar' | 'line' | 'pie';
 export const CHART_KINDS: { id: ChartKind; name: string }[] = [
@@ -47,7 +48,7 @@ export function suggestChart(d: ChartData): ChartKind | '' {
   return 'bar';
 }
 
-const COLORS = [ACCENT, '#0ea5e9', '#16a34a', '#d97706', '#dc2626', '#9333ea', '#0d9488', '#be185d'];
+const COLORS = SERIES;
 const short = (n: number) => {
   const a = Math.abs(n);
   const f = (v: number, s: string) => (Math.round(v * 10) / 10).toString() + s;
@@ -77,7 +78,9 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
   const bottom = h - (legend ? 64 : 40);
   if (!d.series.length) return { w, h, svg: svg + text(w / 2, h / 2, 'Nothing to chart yet', { px: 16, fill: FAINT, anchor: 'middle' }) };
 
-  const keys: [string, string][] = [];
+  // Besides its colour, each series after the first wears a pattern, so they can be told apart in black and white.
+  const keys: [string, string, number][] = [];
+  svg += `<defs>${patternDefs()}</defs>`;
   if (kind === 'pie') {
     const values = d.series[0].values.map((v) => Math.max(0, v));
     const total = values.reduce((a, b) => a + b, 0) || 1;
@@ -90,9 +93,10 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
       if (i >= upTo) return void (a = b);
       const color = COLORS[i % COLORS.length];
       const p = (ang: number, k = rad) => `${r(cx + Math.cos(ang) * k)} ${r(cy + Math.sin(ang) * k)}`;
-      svg += v >= total ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="${color}"/>` : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="${color}" stroke="#fff" stroke-width="2"/>`;
+      const wedge = v >= total ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="@"/>` : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="@" stroke="#fff" stroke-width="2"/>`;
+      svg += wedge.replace('"@"', `"${color}"`) + (patternFill(i) ? wedge.replace('"@"', `"${patternFill(i)}"`).replace(' stroke="#fff" stroke-width="2"', '') : '');
       if (v / total >= 0.06) svg += text(cx + Math.cos((a + b) / 2) * rad * 0.62, cy + Math.sin((a + b) / 2) * rad * 0.62 + 5, `${Math.round((v / total) * 100)}%`, { px: 14, bold: true, fill: '#fff', anchor: 'middle' });
-      keys.push([color, d.labels[i]]);
+      keys.push([color, d.labels[i], i]);
       a = b;
     });
   } else {
@@ -109,13 +113,13 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
     });
     d.series.forEach((s, k) => {
       const color = COLORS[k % COLORS.length];
-      keys.push([color, s.name]);
+      keys.push([color, s.name, k]);
       if (kind === 'line') {
         const pts = s.values.slice(0, upTo === Infinity ? undefined : upTo).map((v, i) => `${r(left + band * (i + 0.5))},${r(y(v))}`);
-        svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>` + pts.map((p) => `<circle cx="${p.split(',')[0]}" cy="${p.split(',')[1]}" r="4" fill="${color}"/>`).join('');
+        svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${['', ' stroke-dasharray="8 6"', ' stroke-dasharray="2 6"', ' stroke-dasharray="12 4 2 4"'][k % 4]}/>` + pts.map((p) => `<circle cx="${p.split(',')[0]}" cy="${p.split(',')[1]}" r="4" fill="${color}"/>`).join('');
       } else {
         const bw = (band * 0.76) / d.series.length;
-        s.values.forEach((v, i) => i < upTo && (svg += rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), color, 'rx="2"')));
+        s.values.forEach((v, i) => i < upTo && (svg += rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), color, 'rx="2"') + (patternFill(k) ? rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), patternFill(k), 'rx="2"') : '')));
       }
     });
   }
@@ -123,8 +127,8 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
     const shown = keys.filter(([, name]) => name).slice(0, 8);
     const each = Math.min(170, (w - 48) / Math.max(1, shown.length));
     let x = (w - each * shown.length) / 2;
-    for (const [color, name] of shown) {
-      svg += rect(x, h - 30, 12, 12, color, 'rx="3"') + text(x + 18, h - 19, clip(name, each - 26, 13), { px: 13, fill: INK });
+    for (const [color, name, n] of shown) {
+      svg += rect(x, h - 30, 12, 12, color, 'rx="3"') + (patternFill(n) ? rect(x, h - 30, 12, 12, patternFill(n), 'rx="3"') : '') + text(x + 18, h - 19, clip(name, each - 26, 13), { px: 13, fill: INK });
       x += each;
     }
   }

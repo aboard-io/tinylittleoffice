@@ -132,7 +132,7 @@ test('drawing colours and text sizes', () => {
   assert.deepEqual(shapes.map((x) => [x.f, x.c, x.z]), [[1, 'b', 3], [0, undefined, 4], [2, undefined, undefined], [0, 'r', undefined]]);
   assert.equal(serializeDrawing(shapes), s);
   const p = paint(shapes[0], '#000', '#fff', '#eee');
-  assert.deepEqual([p.stroke, p.fill, p.fillOpacity, p.text, p.px], ['#2563eb', '#2563eb', 0.16, '#2563eb', 20]);
+  assert.deepEqual([p.stroke, p.fill, p.fillOpacity, p.text, p.px], ['#0072b2', '#0072b2', 0.16, '#0072b2', 20]);
   assert.deepEqual(paint(shapes[2], '#000', '#fff', '#eee').text, '#fff');
   assert.equal(paint(shapes[3], '#000', '#fff', '#eee').marker, 'arrow-r');
 });
@@ -386,7 +386,7 @@ test('calendar: a month drawn as a month, with colours and what they stand for',
   assert.equal(serializeCalendar({ ...cal, spans: cal.spans.slice(2) }), 'db,1,Launch');
   const page = appOf('cal')!.view(text)[0].svg;
   assert.ok(page.includes('>January 2020</text>') && page.includes('>Sun</text>'));
-  assert.ok(page.includes('#16a34a') && page.includes('>Offsite</text>') && page.includes('>Sam</text>'));
+  assert.ok(page.includes('#009e73') && page.includes('>Offsite</text>') && page.includes('>Sam</text>'));
   assert.equal(page.match(/<rect [^>]*stroke="#d4d4d8"/g)!.length, 35);
 });
 
