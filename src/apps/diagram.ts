@@ -5,10 +5,14 @@
  */
 import { DocElement, defineElement, html, nothing, unsafeSVG, tool, appOf, makeRef, pageSvg, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import '../widgets/line-form.ts';
+import { ToLines } from '../widgets/line-form.ts';
 import { state, fontsForPictures } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
+import { blockEnd, fieldsOf, kindsOf, readLines, removeRow, writeLines, type Row } from '../lib/lines.ts';
+import { ICON_SVG } from '../lib/icons.ts';
+import { isLink } from '../lib/drawmodel.ts';
+import { svg } from 'lit';
 import { arrowDefs, shapeSvg } from './draw.def.ts';
 
 export class DiagramElement extends DocElement<string> {
@@ -23,6 +27,8 @@ export class DiagramElement extends DocElement<string> {
   }
 
   /** Filled in as a form, or typed as text: the same document either way. The choice is remembered. */
+  /** The shape picked in the picture, whose buttons are showing. */
+  @state() private sel = -1;
   /** The fonts, as CSS, for the page shown in its frame. */
   @state() private faces = '';
   @state() private asText = (() => {
@@ -106,6 +112,103 @@ export class DiagramElement extends DocElement<string> {
     location.hash = '#/v2/' + makeRef('draw', toDrawing(this.spec.layout!(this.doc)));
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener('keydown', this.onModeKey);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('keydown', this.onModeKey);
+  }
+  /** Mod+Shift+T: the text itself, for whoever wants it. */
+  private onModeKey = (e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 't' && this.spec.form) {
+      e.preventDefault();
+      this.setMode(!this.asText);
+    }
+  };
+
+  /* ---------- working the picture itself ---------- */
+
+  /** The row of the form that shape i was drawn from: the row written as the shape's label, or whose first words are. */
+  private rowOf(i: number, shapes: ReturnType<NonNullable<DiagramSpec['layout']>>['shapes']): number {
+    const form = this.spec.form;
+    if (!form) return -1;
+    const rows = readLines(this.textOf(this.doc), form);
+    const { made } = kindsOf(form);
+    const label = shapes[i].text.trim();
+    const head = label.split(' | ')[0].replace(/^:[a-z0-9-]+\s*/, '').trim().toLowerCase();
+    const exact = rows.findIndex((r) => made[r.kind].write(r.values).trim() === label);
+    if (exact >= 0) return exact;
+    return rows.findIndex((r) => r.values.some((v, n) => fieldsOf(form, r.kind)[n].type !== 'icon' && v.trim().toLowerCase() === head));
+  }
+
+  private rows(): Row[] {
+    return readLines(this.textOf(this.doc), this.spec.form!);
+  }
+  private putRows(rows: Row[], focus = -1) {
+    this.type(writeLines(rows, this.spec.form!));
+    if (focus >= 0) void this.updateComplete.then(() => this.querySelector<HTMLElement>(`to-lines [data-row="${focus}"] :is(input, textarea, select)`)?.focus());
+  }
+
+  /** A row like row i, after it (under it, for an outline): then the cursor is in it. */
+  private addAfter(i: number) {
+    const form = this.spec.form!;
+    const rows = this.rows();
+    const k = kindsOf(form).kinds[rows[i].kind];
+    const at = k.indent ? blockEnd(rows, form, i) : i + 1;
+    const depth = k.indent ? rows[i].depth + 1 : rows[i].depth;
+    this.sel = -1;
+    // The form keeps an empty row until there is something in it; the text alone would not.
+    const lines = this.querySelector<ToLines>('to-lines');
+    if (lines) lines.insert(rows[i].kind, at, depth);
+    else {
+      const row: Row = { kind: rows[i].kind, values: fieldsOf(form, rows[i].kind).map((f) => (f.type === 'choice' ? f.options[0] : '')), depth };
+      this.putRows([...rows.slice(0, at), row, ...rows.slice(at)], at);
+    }
+  }
+
+  /** A picture on the thing: the row's icon field, or ":name" before its first words. */
+  private async iconFor(i: number) {
+    const name = await chooseIcon();
+    if (!name) return;
+    const form = this.spec.form!;
+    const rows = this.rows();
+    const fields = fieldsOf(form, rows[i].kind);
+    const slot = fields.findIndex((f) => f.type === 'icon');
+    const words = fields.findIndex((f) => f.type !== 'icon' && f.type !== 'choice');
+    const values = rows[i].values.map((v, n) => (n === slot ? name : slot < 0 && n === words ? `:${name} ${v.replace(/^:[a-z0-9-]+\s*/, '')}` : v));
+    this.putRows(rows.map((r, n) => (n === i ? { ...r, values } : r)));
+  }
+
+  /** Little buttons under the picked shape: add one like it, give it a picture, go to its words, take it away. */
+  private controls(d: ReturnType<NonNullable<DiagramSpec['layout']>>) {
+    const i = this.sel;
+    const s = d.shapes[i];
+    if (!s || isLink(s.k)) return nothing;
+    const row = this.rowOf(i, d.shapes);
+    if (row < 0) return nothing;
+    // A finger's width on screen, whatever the picture's scale.
+    const el = this.querySelector<SVGSVGElement>('.pic > svg');
+    const unit = el ? el.getBoundingClientRect().width / d.w : 1;
+    const size = Math.max(22, Math.round(34 / unit));
+    const acts: [string, string, () => void][] = [
+      ['Add one under it', 'plus', () => this.addAfter(row)],
+      ['Give it a picture', 'smile', () => this.iconFor(row)],
+      ['Edit its words', 'pencil', () => this.putRows(this.rows(), row)],
+      ['Take it away', 'x', () => (this.sel = -1, this.putRows(removeRow(this.rows(), this.spec.form!, row)))],
+    ];
+    const x0 = s.x + s.w / 2 - (acts.length * (size + 4) - 4) / 2;
+    const y = s.y + s.h + 6;
+    return svg`<g class="diagram-ctl" role="group" aria-label="Shape ${i + 1}">
+      ${acts.map(([label, glyph, act], n) => svg`<g role="button" tabindex="0" aria-label=${label} transform="translate(${x0 + n * (size + 4)} ${y})" @click=${(e: Event) => (e.stopPropagation(), act())} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), act())}>
+        <title>${label}</title>
+        <rect width=${size} height=${size} rx=${size / 4}/>
+        <g transform="translate(${size * 0.18} ${size * 0.18}) scale(${(size * 0.64) / 24})" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${unsafeSVG(ICON_SVG[glyph] ?? '')}</g>
+      </g>`)}
+    </g>`;
+  }
+
   render() {
     const spec = this.spec;
     const text = this.textOf(this.doc);
@@ -119,7 +222,7 @@ export class DiagramElement extends DocElement<string> {
         <span class="to-hint diagram-hint">${form ? 'Add a row for each thing, and fill it in.' : spec.hint}</span>
         <span class="to-spacer"></span>
         ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
-        ${spec.form ? tool(form ? 'Edit as text' : 'Edit as a form', form ? 'code' : 'form', () => this.setMode(form), { text: true }) : nothing}
+        ${spec.form && this.asText ? tool('Edit as a form', 'form', () => this.setMode(false), { text: true }) : nothing}
         ${form ? nothing : d || spec.sheets ? tool('Icon', 'smile', () => this.addIcon(), { text: true }) : nothing}
         ${inside || !d?.shapes.length ? nothing : tool('Open in Draw', 'draw', () => this.toDraw(), { text: true })}
       </div>
@@ -135,7 +238,15 @@ ${form
             : spec.sheets
               ? (text.trim() ? spec.sheets(this.doc) : spec.sheets(spec.example)).map((p, i) => html`<div class="sheet ${text.trim() ? '' : 'sample'}">${unsafeSVG(pageSvg(p, `role="img" aria-label="${name}, sheet ${i + 1}"`))}</div>`)
             : d!.shapes.length
-              ? html`<svg viewBox="0 0 ${d!.w} ${d!.h}" role="img" aria-label=${name} style="max-width:${d!.w * 1.4}px"><defs>${unsafeSVG(arrowDefs())}</defs>${unsafeSVG(d!.shapes.map((s) => shapeSvg(s, d!.shapes)).join(''))}</svg>`
+              ? html`<svg viewBox="0 0 ${d!.w} ${d!.h}" role=${spec.form ? 'group' : 'img'} aria-label=${name} style="max-width:${d!.w * 1.4}px" @click=${() => (this.sel = -1)}>
+                  <defs>${unsafeSVG(arrowDefs())}</defs>
+                  ${d!.shapes.map((s, i) =>
+                    isLink(s.k) || !spec.form
+                      ? svg`<g>${unsafeSVG(shapeSvg(s, d!.shapes))}</g>`
+                      : svg`<g class="pick ${this.sel === i ? 'on' : ''}" role="button" tabindex="0" aria-label="${s.text.replace(/^:[a-z0-9-]+\s*/, '') || 'Shape'}: tap for its buttons" aria-pressed=${this.sel === i ? 'true' : 'false'} @click=${(e: Event) => (e.stopPropagation(), (this.sel = this.sel === i ? -1 : i), this.requestUpdate())} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), (this.sel = this.sel === i ? -1 : i))}>${unsafeSVG(shapeSvg(s, d!.shapes))}</g>`,
+                  )}
+                  ${this.controls(d!)}
+                </svg>`
               : html`<p class="to-empty">Write on the left and it is drawn here.</p>`}
           ${spec.aside ? html`<div class="diagram-aside">${unsafeHTML(spec.aside(this.doc))}</div>` : nothing}
         </div>

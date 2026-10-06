@@ -43,7 +43,7 @@ test('a menu is made by filling in a form; what is saved is the text', async ({ 
   const results = await new AxeBuilder({ page }).disableRules(['label-title-only']).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.nodes[0].target.join(' ')}`)).toEqual([]);
   // It is the same document either way: as text it reads as anyone would have typed it, and the choice is remembered.
-  await page.getByRole('button', { name: 'Edit as text' }).click();
+  await page.keyboard.press('Control+Shift+t');
   await expect(page.getByRole('textbox', { name: 'Menu, as text' })).toHaveValue('# Harbor Coffee\n## Coffee\nFlat white | 4.20');
   await page.getByRole('textbox', { name: 'Menu, as text' }).fill('# Harbor Coffee\n## Coffee\nFlat white | 4.20\nFilter | 3.50 | Ask what is on');
   await reopen(page);
@@ -99,7 +99,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   const drawn = page.locator('to-org .pic > svg');
   await expect(drawn).toContainText('Ben');
   await expect(drawn.locator('g[stroke-linecap="round"]')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Edit as text' }).click();
+  await page.keyboard.press('Control+Shift+t');
   await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(':crown Ada | CEO\n  Eve\n  Ben\n    Cy\nCy .. Eve: advises');
   await page.getByRole('button', { name: 'Edit as a form' }).click();
 
@@ -139,4 +139,37 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await inv.getByRole('textbox', { name: 'Quantity, row 7' }).fill('10');
   await expect(page.frameLocator('to-invoice iframe').locator('tfoot tr').last()).toContainText('$5,162.40');
   await shot(page, 'form-invoice');
+});
+
+test('the picture is worked directly: tap a box for its buttons', async ({ page }) => {
+  await page.goto('/#/org');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const pic = page.locator('to-org .pic > svg');
+  await pic.getByRole('button', { name: /^Ben Okoro/ }).click();
+  const ctl = pic.getByRole('group', { name: /^Shape/ });
+  await expect(ctl.getByRole('button')).toHaveCount(4);
+  // Add one under Ben: a new row, indented under him, with the cursor in it.
+  await ctl.getByRole('button', { name: 'Add one under it' }).click();
+  await page.keyboard.type('Gus Pine');
+  await expect(page.getByRole('textbox', { name: 'Name, row 5' })).toHaveValue('Gus Pine');
+  await expect(pic).toContainText('Gus Pine');
+  await page.keyboard.press('Control+Shift+t');
+  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/Ben Okoro \| Engineering\n    Cy Lund \| Platform\n    Di Shah \| Apps\n    Gus Pine\n  Eve Marsh/);
+  await page.keyboard.press('Control+Shift+t');
+  // A picture on Eve; then take Flo away.
+  await pic.getByRole('button', { name: /^Eve Marsh/ }).click();
+  await ctl.getByRole('button', { name: 'Give it a picture' }).click();
+  await page.locator('sl-dialog.to-icons sl-input input').fill('palette');
+  await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'palette', exact: true }).click();
+  await expect(pic.locator('g.pick g[stroke-linecap="round"]')).toHaveCount(1);
+  await pic.getByRole('button', { name: /^Flo Reyes/ }).click();
+  await ctl.getByRole('button', { name: 'Take it away' }).click();
+  await expect(pic).not.toContainText('Flo Reyes');
+  await expect(pic.getByRole('button', { name: /Okoro|Lund|Shah|Marsh|Diaz|Pine/ })).toHaveCount(6);
+  // Edit its words goes to the row.
+  await pic.getByRole('button', { name: /^Cy Lund/ }).click();
+  await ctl.getByRole('button', { name: 'Edit its words' }).click();
+  await expect(page.getByRole('textbox', { name: 'Name, row 3' })).toBeFocused();
+  await page.setViewportSize({ width: 400, height: 800 });
+  await shot(page, 'direct-org');
 });

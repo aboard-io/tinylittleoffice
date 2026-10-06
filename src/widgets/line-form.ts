@@ -50,6 +50,12 @@ export class ToLines extends LitElement {
     this.save(this.rows.map((r, n) => (n === i ? { ...r, values: r.values.map((v, m) => (m === f ? value : v)) } : r)));
   }
 
+  /** A new row of a kind at a place, from outside (a picture's "+" button): the cursor goes to it. */
+  insert(kind: number, at: number, depth: number) {
+    const fields = fieldsOf(this.kinds, kind);
+    this.save([...this.rows.slice(0, at), { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth }, ...this.rows.slice(at)], at);
+  }
+
   private add(kind: number, after = this.at) {
     const { kinds } = kindsOf(this.kinds);
     const k = kinds[kind];

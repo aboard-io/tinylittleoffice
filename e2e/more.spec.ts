@@ -791,7 +791,7 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   for (const [app, n] of [['floor', 6], ['seating', 18], ['family', 6], ['timeline', 10]] as const) {
     await page.goto(`/#/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
-    await expect(page.locator(`to-${app} .pic > svg g.shape, to-${app} .pic > svg > rect, to-${app} .pic > svg > ellipse`).first(), app).toBeVisible();
+    await expect(page.locator(`to-${app} .pic > svg g.pick, to-${app} .pic > svg g.shape`).first(), app).toBeVisible();
     await expect(page.locator(`to-${app} .pic > svg text`).first(), app).toBeVisible();
     expect(n).toBeGreaterThan(0);
     await shot(page, app);
@@ -868,7 +868,7 @@ test('outline rows fold shut and open again', async ({ page }) => {
   await form.getByRole('button', { name: 'Show the 3 rows under row 1' }).click();
   await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(3);
   // Nothing about folding is in the document.
-  await page.getByRole('button', { name: 'Edit as text' }).click();
+  await page.keyboard.press('Control+Shift+t');
   await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue('Ada\n  Ben\n    Cy\n  Eve');
   // A dotted line's ends are picked from the names on the chart; a mark that would split a box is kept out of it.
   await page.getByRole('button', { name: 'Edit as a form' }).click();

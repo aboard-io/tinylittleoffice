@@ -110,6 +110,7 @@ export const OUTLINE_KEYS = [
   { keys: 'Alt+↑ / Alt+↓', does: 'Move the row, and what is under it, up or down' },
   { keys: 'Alt+→ / Alt+←', does: 'Indent the row, or bring it back out' },
   { keys: 'Backspace (in an empty row)', does: 'Remove the row' },
+  { keys: 'Mod+Shift+T', does: 'The text itself (and back)' },
   { keys: 'Tab / Shift+Tab (as text)', does: 'Indent the line, or bring it back out' },
 ];
 
