@@ -1071,11 +1071,12 @@ table.sheet td.sel input {
   height: 100%;
   font-family: var(--sl-font-sans);
 }
+/* The live map on a slide is for looking at: a tap on it, like a tap anywhere on the slide, goes on to the next stop. */
 .deck-show .deck-map {
   position: absolute;
   border-radius: 8px;
   overflow: hidden;
-  cursor: grab;
+  pointer-events: none;
 }
 .deck-show .ctl {
   position: fixed;

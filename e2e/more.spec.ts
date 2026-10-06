@@ -877,3 +877,18 @@ test('outline rows fold shut and open again', async ({ page }) => {
   await page.keyboard.type('Cy .. Eve');
   await expect(form.getByRole('combobox', { name: 'From, row 5' })).toHaveValue('Cy  Eve');
 });
+
+test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const trip = `trip/${encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra\n40000,0,Porto' })}`;
+  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body: `Trip\n@@${trip}\n\nAfter\ndone` }));
+  await page.getByRole('button', { name: 'Present' }).click();
+  const map = page.locator('.deck-show .deck-map');
+  await expect(map).toBeVisible();
+  const box = (await map.boundingBox())!;
+  // Taps land on the slide even over the map: stop by stop, then the next slide.
+  for (let i = 0; i < 3; i++) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(map.locator('.leaflet-popup').last()).toContainText('3. Porto');
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page.locator('.deck-show .frame > svg')).toContainText('After');
+});
