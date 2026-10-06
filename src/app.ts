@@ -13,7 +13,7 @@ import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
 import { budgetFor, fromBase64Url } from './lib/codec.ts';
 import { encodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
-import { Privacy, isSealed } from './lib/privacy.ts';
+import { privacy, isSealed } from './lib/privacy.ts';
 import { fromMarkdown } from './lib/markdown.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
@@ -135,7 +135,8 @@ export class ToApp extends LitElement {
   @state() private toast = '';
   // Password protection: `sealed` holds a payload waiting for its password.
   /** Everything that protects a document or touches what the device keeps: one object, one widget. */
-  private privacy = new Privacy(() => this.requestUpdate());
+  private privacy = privacy;
+  private offPrivacy = () => {};
   @state() private sealed = '';
   @state() private version = URL_VERSION;
   @state() private theme: Theme = storedTheme();
@@ -203,6 +204,7 @@ export class ToApp extends LitElement {
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);
     window.addEventListener(REFRESH, this.onRefresh);
+    this.offPrivacy = this.privacy.on(() => this.requestUpdate());
     this.onHash();
   }
   disconnectedCallback() {
@@ -210,6 +212,7 @@ export class ToApp extends LitElement {
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
     window.removeEventListener(REFRESH, this.onRefresh);
+    this.offPrivacy();
   }
 
   /** The fonts or the full icon set have arrived: draw again with them. */

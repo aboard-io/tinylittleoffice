@@ -91,6 +91,18 @@ export class Privacy {
     const [ok, fp] = await Promise.all([verify(key, sig, signingMessage(app, env.created, env.body, env.title)), fingerprintOf(key)]);
     if (run === this.verifyRun) this.set({ sig: ok ? 'valid' : 'invalid', signer: fp });
   }
+  /** Any message signed with this browser's key (made now if there is none yet): for a contract's parties, say. */
+  async signMessage(message: string): Promise<{ key: string; sig: string }> {
+    const r = await this.api.sign(message);
+    this.set({ myKey: await this.api.fingerprint() });
+    return r;
+  }
+  verifyMessage(key: string, sig: string, message: string): Promise<boolean> {
+    return verify(key, sig, message);
+  }
+  fingerprintOf(key: string): Promise<string> {
+    return fingerprintOf(key);
+  }
   /** The document signed with this browser's key (made now if there is none yet). */
   async sign(env: Envelope, app: string): Promise<Envelope> {
     const created = env.created ?? quantizeCreated(Date.now());
@@ -160,3 +172,6 @@ export class Privacy {
     this.set({ myKey: null });
   }
 }
+
+/** The one privacy object: the shell and any app that signs share it. */
+export const privacy = new Privacy();

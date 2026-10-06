@@ -289,7 +289,7 @@ a title, loads lazily, keeps its shape at any width and sends no referrer.
 Org chart, Mind map, Swimlanes, Venn and Network are each a few dozen lines
 (`src/apps/<id>.def.ts`): a function from an outline to Draw's shapes and
 joins. `defineDiagram` (in `src/lib/diagram.ts`) turns that into an app, and
-`src/apps/diagram.ts` is the one editor they share. Because the output is a
+`src/apps/diagram.ts` is the one editor they share, drawing in one of three views (`diagram-shapes.ts`, `diagram-sheets.ts`, `diagram-page.ts`). Because the output is a
 drawing, each is a picture, a PDF, a slide that builds shape by shape, and
 opens in Draw to be rearranged by hand. Draw itself has joins that follow
 their shapes, and more shapes (rounded box, hexagon, parallelogram,

@@ -4,17 +4,16 @@
  */
 import { html, nothing, state, icon, UI } from '../kit.ts';
 import { defineElement } from '../kit.ts';
-import { DiagramElement } from './diagram.ts';
-import { createSigner, fingerprintOf, localStorageStore, verify } from '../lib/sign.ts';
+import { PageView } from './diagram-page.ts';
+import { privacy } from '../lib/privacy.ts';
 import { keyMark, parseContract, serializeContract, signedMessage, type Signature } from './contract.def.ts';
 
-class ToContract extends DiagramElement {
+class ToContract extends PageView {
   static app = 'contract';
   @state() private who = '';
   /** Whether each signature still matches the text: by public key + name. */
   @state() private checked: Record<string, { ok: boolean; print: string }> = {};
   @state() private note = '';
-  private signer = createSigner(localStorageStore());
   private checking = '';
 
   protected textOf(doc: string) {
@@ -34,7 +33,7 @@ class ToContract extends DiagramElement {
     this.checking = doc;
     const c = parseContract(doc);
     const out: Record<string, { ok: boolean; print: string }> = {};
-    for (const s of c.signatures) out[s.key + s.name] = { ok: await verify(s.key, s.sig, signedMessage(c.text, s.name)).catch(() => false), print: await fingerprintOf(s.key).catch(() => keyMark(s.key)) };
+    for (const s of c.signatures) out[s.key + s.name] = { ok: await privacy.verifyMessage(s.key, s.sig, signedMessage(c.text, s.name)).catch(() => false), print: await privacy.fingerprintOf(s.key).catch(() => keyMark(s.key)) };
     if (this.checking === doc) this.checked = out;
   }
 
@@ -43,7 +42,7 @@ class ToContract extends DiagramElement {
     const c = parseContract(this.doc);
     if (!name || !c.text.trim()) return;
     try {
-      const { key, sig } = await this.signer.sign(signedMessage(c.text, name));
+      const { key, sig } = await privacy.signMessage(signedMessage(c.text, name));
       // One signature per key: signing again (after a change, say) replaces your own.
       this.commit(serializeContract(c.text, [...c.signatures.filter((s) => s.key !== key), { name, key, sig }]));
       this.note = `Signed as ${name}. Send the link to the other party.`;
