@@ -86,6 +86,8 @@ export interface AppDef {
    * format passes through. Used by plain-parameter links ("?doc=...").
    */
   read?(text: string): string;
+  /** Its HTML (see `html`) is the best way to read it: words that flow, rather than pictures of pages. */
+  prose?: boolean;
   /** Formats beyond the ones every app gets (.html, .png, .pdf). */
   downloads?: Download[];
   shortcuts?: Shortcut[];

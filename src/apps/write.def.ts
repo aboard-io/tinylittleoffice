@@ -156,6 +156,7 @@ export default defineApp({
   outline: (body) => parseDoc(body).map((b: Block) => (b.k === 'e' ? `↗  ${resolve(b.ref!).title}` : docText([b]).trim())).filter(Boolean),
   view: (body) => pages(body),
   html: docToHtml,
+  prose: true,
   downloads: [{ ext: 'rtf', label: 'Rich Text', mime: 'application/rtf', build: (b, ctx) => utf8(docToRtf(b, ctx)) }],
   shortcuts: [
     { keys: 'Mod+B / Mod+I / Mod+U', does: 'Bold, italic, underline' },

@@ -7,8 +7,9 @@ export default defineConfig({
   use: {
     // The service worker has a test of its own (e2e/offline.spec.ts); everywhere else pages talk to the server directly.
     serviceWorkers: 'block',
+    // A link opens as a document to read, with Edit a button away; tests of the editors open straight into them (e2e/view.spec.ts tests reading).
     // Text apps open as a form; most tests type the text itself, so they start in text mode (e2e/forms.spec.ts tests the form).
-    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.edit', value: 'text' }] }] },
+    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.edit', value: 'text' }, { name: 'tinyoffice.open', value: 'edit' }] }] },
     baseURL: 'http://localhost:4173',
     timezoneId: 'America/New_York',
     locale: 'en-US',

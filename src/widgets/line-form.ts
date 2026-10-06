@@ -73,9 +73,8 @@ export class ToLines extends LitElement {
       return html`<button type="button" class="lf-icon" aria-label="${label}: ${value || 'none'}" title=${value ? `${f.name}: ${value}` : `Choose a ${f.name.toLowerCase()}`} @click=${async () => { const name = await chooseIcon(); if (name) this.set(i, n, name); }}>${value ? libraryIcon(value, 20) : icon(UI.smile, 18)}</button>`;
     }
     if (f.type === 'choice') return html`<select aria-label=${label} .value=${value} @change=${typed}>${f.options.map((o) => html`<option ?selected=${o.toLowerCase() === value.toLowerCase()}>${o}</option>`)}</select>`;
-    if (f.type === 'long') return html`<textarea rows="2" aria-label=${label} placeholder=${f.name} .value=${value} @input=${typed}></textarea>`;
     // Return in a box starts another row of the same kind: lists are quick to type.
-    return html`<input type=${f.type === 'date' ? 'date' : 'text'} aria-label=${label} placeholder=${f.name} .value=${value} @input=${typed} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
+    return html`<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} aria-label=${label} placeholder=${f.name} .value=${value} @input=${typed} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
   }
 
   render() {
