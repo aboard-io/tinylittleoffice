@@ -35,7 +35,7 @@ export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
     { name: 'Teams', is: 'teams: {Teams (commas between)}', once: true },
-    { name: 'Round', is: '## {Round}' },
+    { name: 'Round', is: '## {Round}', head: true },
     { name: 'Question', is: '{Question} | {Answer}' },
     { name: 'Line', is: '{Text}' },
   ] as LineKind[],

@@ -679,7 +679,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   // Outlines keep their depth; an answer is a line under a question.
   const org = specOf('org')!.form!;
   assert.deepEqual(readLines('Ada | CEO\n  :wrench Ben\n    Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
-  assert.equal(writeLines([{ kind: 0, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 0, values: ['', 'Ben', ''], depth: 1 }], org), ':crown Ada | CEO\n  Ben');
+  assert.equal(writeLines([{ kind: 1, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 1, values: ['', 'Ben', ''], depth: 1 }], org), ':crown Ada | CEO\n  Ben');
   const faq = specOf('faq')!.form!;
   assert.deepEqual(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq).map((r) => kindsOf(faq).kinds[r.kind].name), ['Title', 'Question', 'Answer', 'Line']);
   assert.equal(writeLines(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq), faq), '# Help\nWhy?\n  Because.\n    Deeper');
@@ -689,4 +689,42 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   assert.deepEqual(readLines('signup rate = 6% (0 to 30)\nVisitors > Signups = visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A blank line that means something is kept as a row.
   assert.equal(writeLines(readLines('A\nx\n\nB\ny', specOf('recipes')!.form!), specOf('recipes')!.form!), 'A\nx\n\nB\ny');
+});
+
+test('outlines: rows move with what is under them; an org chart has dotted lines', async () => {
+  const { readLines, writeLines, moveBlock, shiftBlock, removeRow, depths } = await import('../src/lib/lines.ts');
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const org = specOf('org')!.form!;
+  const text = 'Ada\n  Ben\n    Cy\n  Eve\nFlo';
+  const rows = readLines(text, org);
+  const after = (r: ReturnType<typeof readLines> | null) => (r ? writeLines(r, org) : null);
+  // Ben goes below Eve, and takes Cy along.
+  assert.equal(after(moveBlock(rows, org, 1, 1)![0]), 'Ada\n  Eve\n  Ben\n    Cy\nFlo');
+  assert.equal(moveBlock(rows, org, 1, 1)![1], 2);
+  assert.equal(after(moveBlock(rows, org, 4, -1)![0]), 'Flo\nAda\n  Ben\n    Cy\n  Eve');
+  assert.equal(moveBlock(rows, org, 0, -1), null);
+  // Indenting takes the rows beneath along; a row goes at most one deeper than the one above.
+  assert.equal(after(shiftBlock(rows, org, 1, -1)), 'Ada\nBen\n  Cy\n  Eve\nFlo');
+  assert.equal(after(shiftBlock(rows, org, 3, 1)), 'Ada\n  Ben\n    Cy\n    Eve\nFlo');
+  assert.equal(shiftBlock(rows, org, 2, 1), null);
+  assert.equal(shiftBlock(rows, org, 0, 1), null);
+  // Take Ben away and Cy reports to Ada.
+  assert.equal(after(removeRow(rows, org, 1)), 'Ada\n  Cy\n  Eve\nFlo');
+  // A section and its items are an outline too, though the text does not indent them.
+  const menu = specOf('menu')!.form!;
+  const m = readLines('# Cafe\n## Coffee\nEspresso | 3\nFilter | 3\n## Food\nBun | 4', menu);
+  assert.deepEqual(depths(m, menu), [0, 0, 1, 1, 0, 1]);
+  assert.equal(writeLines(moveBlock(m, menu, 1, 1)![0], menu), '# Cafe\n## Food\nBun | 4\n## Coffee\nEspresso | 3\nFilter | 3');
+  // An item at the end of its section steps into the next one.
+  assert.equal(writeLines(moveBlock(m, menu, 3, 1)![0], menu), '# Cafe\n## Coffee\nEspresso | 3\n## Food\nFilter | 3\nBun | 4');
+
+  // Dotted lines: between two people, by name, whatever their role or picture.
+  const chart = specOf('org')!.layout!('Ada | CEO\n  :wrench Ben | Eng\n  Eve\nben .. Eve: advises\nBen .. Nobody');
+  assert.deepEqual(chart.shapes.map((s) => s.k), ['o', 'o', 'j', 'o', 'j', 'j']);
+  const dotted = chart.shapes[5];
+  assert.deepEqual([dotted.x, dotted.y, dotted.f, dotted.text], [1, 3, 2, 'advises']);
+  assert.equal(chart.shapes.filter((s) => s.k === 'j' && s.f === 2).length, 1);
+  const { shapeSvg } = await import('../src/apps/draw.def.ts');
+  assert.ok(shapeSvg(dotted, chart.shapes).includes('stroke-dasharray="2 3"'));
+  assert.deepEqual(readLines('Ben .. Eve: advises', org).map((r) => [org[r.kind].name, ...r.values]), [['Dotted line', 'Ben', 'Eve', 'advises']]);
 });

@@ -58,6 +58,8 @@ https://tinylittleoffice.com/deck/#title=Launch+plan&doc=%3Arocket%3At%0ALaunch+
 
 One person per line, `Name | Role`. Indent two spaces to put someone under the person above.
 
+A line `Ben .. Eve: advises` draws a dotted line between two people already in the chart (the label is optional).
+
 https://tinylittleoffice.com/org/#title=Team&doc=Ada+Diaz+%7C+Chief+executive%0A++Ben+Okoro+%7C+Engineering%0A++++Cy+Lund+%7C+Platform%0A++Eve+Marsh+%7C+Design
 
 ### mind: a mind map

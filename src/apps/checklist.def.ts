@@ -6,7 +6,7 @@ import { text, rect, wrapText, ACCENT, FAINT } from '../kit/core.ts';
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Section', is: '## {Section}' },
+    { name: 'Section', is: '## {Section}', head: true },
     { name: 'Thing', is: '{Thing to tick}' },
   ] as LineKind[],
   hint: '"# Title", "## Section", then a thing to tick per line. However long, it is fitted to one page (in two columns once it gets long).',

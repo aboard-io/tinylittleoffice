@@ -12,7 +12,7 @@ export const spec = {
   form: [
     { name: 'Song', is: '# {Song}', once: true },
     { name: 'Transpose', is: 'transpose: {Semitones up}', once: true },
-    { name: 'Part', is: '## {Part}' },
+    { name: 'Part', is: '## {Part}', head: true },
     { name: 'Words', is: '{Words, with chords in brackets}' },
   ] as LineKind[],
   hint: '"# Song", then the words with chords in square brackets where they fall: "[G]Row, row, [C]row". "## Chorus" names a part; "transpose: 2" moves every chord up two semitones.',

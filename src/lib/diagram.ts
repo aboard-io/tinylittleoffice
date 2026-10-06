@@ -104,6 +104,15 @@ export interface DiagramSpec {
   aside?(text: string): string;
 }
 
+/** The keys every text app answers to, as a form and as text. */
+export const OUTLINE_KEYS = [
+  { keys: 'Enter', does: 'Another row like this one' },
+  { keys: 'Alt+↑ / Alt+↓', does: 'Move the row, and what is under it, up or down' },
+  { keys: 'Alt+→ / Alt+←', does: 'Indent the row, or bring it back out' },
+  { keys: 'Backspace (in an empty row)', does: 'Remove the row' },
+  { keys: 'Tab / Shift+Tab (as text)', does: 'Indent the line, or bring it back out' },
+];
+
 const SPECS = new Map<string, DiagramSpec>();
 export const specOf = (id: string) => SPECS.get(id);
 
@@ -123,7 +132,7 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
     // On a slide a diagram appears a shape per click, in the order it was written.
     steps: (body) => spec.layout(body).shapes.length,
     downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }],
-    shortcuts: [{ keys: 'Tab / Shift+Tab', does: 'Indent the line, or bring it back out' }],
+    shortcuts: OUTLINE_KEYS,
     ...app,
   });
 }
@@ -142,7 +151,7 @@ export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb' | 
     // On a slide, its lines arrive one at a time.
     steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
     document: (body) => spec.page(body),
-    shortcuts: [{ keys: 'Tab / Shift+Tab', does: 'Indent the line, or bring it back out' }],
+    shortcuts: OUTLINE_KEYS,
     ...app,
   });
 }

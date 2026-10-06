@@ -64,7 +64,35 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await page.getByRole('textbox', { name: 'Role, row 1' }).fill('CEO');
   await page.getByRole('textbox', { name: 'Role, row 1' }).press('Enter');
   await page.keyboard.type('Ben');
-  await org.getByRole('button', { name: 'Indent row 2' }).click();
+  // Alt and the arrows work the outline: in, and down a level under Ada.
+  await page.keyboard.press('Alt+ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Eve');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Cy');
+  await page.keyboard.press('Alt+ArrowUp');
+  await expect(page.getByRole('textbox', { name: 'Name, row 3' })).toHaveValue('Cy');
+  await expect(page.getByRole('textbox', { name: 'Name, row 3' })).toBeFocused();
+  await page.keyboard.press('Alt+ArrowRight');
+  // Cy is under Ben now; moving Ben takes Cy along.
+  await org.getByRole('button', { name: 'Move row 2 down' }).click();
+  await expect(page.getByRole('textbox', { name: 'Name, row 2' })).toHaveValue('Eve');
+  await expect(page.getByRole('textbox', { name: 'Name, row 4' })).toHaveValue('Cy');
+  // An empty row goes with Backspace.
+  await page.getByRole('textbox', { name: 'Name, row 4' }).press('Enter');
+  await expect(org.locator('.lf-row')).toHaveCount(5);
+  await page.keyboard.press('Backspace');
+  await expect(org.locator('.lf-row')).toHaveCount(4);
+  // A dotted line between two of them.
+  await org.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Dotted line' }).click();
+  await page.keyboard.type('Cy');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('Eve');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('advises');
+  await expect(page.locator('to-org .pic > svg line[stroke-dasharray="2 3"]')).toHaveCount(1);
+  await expect(page.locator('to-org .pic > svg')).toContainText('advises');
+  await shot(page, 'form-org');
   await org.getByRole('button', { name: /^Picture, row 1/ }).click();
   await page.locator('sl-dialog.to-icons sl-input input').fill('crown');
   await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'crown', exact: true }).click();
@@ -72,7 +100,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await expect(drawn).toContainText('Ben');
   await expect(drawn.locator('g[stroke-linecap="round"]')).toHaveCount(1);
   await page.getByRole('button', { name: 'Edit as text' }).click();
-  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(':crown Ada | CEO\n  Ben');
+  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(':crown Ada | CEO\n  Eve\n  Ben\n    Cy\nCy .. Eve: advises');
   await page.getByRole('button', { name: 'Edit as a form' }).click();
 
   // Sticky notes: a colour is a choice.

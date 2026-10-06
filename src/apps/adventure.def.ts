@@ -39,7 +39,7 @@ show(first);
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Scene', is: '## {Scene name}' },
+    { name: 'Scene', is: '## {Scene name}', head: true },
     { name: 'Choice', is: '> {What you do} | {Scene it leads to}' },
     { name: 'Story', is: '{Text:long}' },
   ] as LineKind[],

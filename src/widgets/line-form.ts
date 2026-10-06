@@ -5,7 +5,7 @@
  */
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { icon, libraryIcon, UI } from '../lib/icons.ts';
-import { fieldsOf, kindsOf, readLines, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
+import { blockEnd, depths, fieldsOf, kindsOf, moveBlock, readLines, removeRow, shiftBlock, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
 import { chooseIcon } from './icon-picker.ts';
 
 export class ToLines extends LitElement {
@@ -52,17 +52,33 @@ export class ToLines extends LitElement {
     const fields = fieldsOf(this.kinds, kind);
     // A title or a setting goes to the top; anything else, after the row last worked in.
     const top = this.rows.findIndex((r) => !kinds[r.kind].once);
-    const i = k.once ? (top < 0 ? this.rows.length : top) : after >= 0 && after < this.rows.length ? after + 1 : this.rows.length;
-    const row: Row = { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth: k.at ?? (k.indent ? (this.rows[i - 1]?.depth ?? 0) : 0) };
+    // (After a row of its own kind that has rows under it, it goes below those: a sibling, not a new parent for them.)
+    const here = after >= 0 && after < this.rows.length;
+    const i = k.once ? (top < 0 ? this.rows.length : top) : !here ? this.rows.length : k.indent && this.rows[after].kind === kind ? blockEnd(this.rows, this.kinds, after) : after + 1;
+    const row: Row = { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth: k.at ?? (k.indent && here && kinds[this.rows[after].kind].indent ? this.rows[after].depth : 0) };
     this.save([...this.rows.slice(0, i), row, ...this.rows.slice(i)], i);
   }
 
-  private move(i: number, by: number) {
-    const to = i + by;
-    if (to < 0 || to >= this.rows.length) return;
-    const rows = this.rows.slice();
-    [rows[i], rows[to]] = [rows[to], rows[i]];
-    this.save(rows, to);
+  private move(i: number, by: -1 | 1) {
+    const moved = moveBlock(this.rows, this.kinds, i, by);
+    if (moved) this.save(moved[0], moved[1]);
+  }
+  private shift(i: number, by: -1 | 1) {
+    const rows = shiftBlock(this.rows, this.kinds, i, by);
+    if (rows) this.save(rows, i);
+  }
+  private drop(i: number) {
+    this.save(removeRow(this.rows, this.kinds, i), Math.max(0, Math.min(i - 1, this.rows.length - 2)));
+  }
+
+  /** The keys an outline is worked with: Alt and the arrows move and indent; Backspace in an empty row takes it away. */
+  private onKey(e: KeyboardEvent, i: number) {
+    const arrow = e.altKey && !e.ctrlKey && !e.metaKey ? e.key : '';
+    if (arrow === 'ArrowUp' || arrow === 'ArrowDown') this.move(i, arrow === 'ArrowUp' ? -1 : 1);
+    else if (arrow === 'ArrowRight' || arrow === 'ArrowLeft') this.shift(i, arrow === 'ArrowRight' ? 1 : -1);
+    else if (e.key === 'Backspace' && this.rows.length > 1 && this.rows[i].values.every((v) => !v) && fieldsOf(this.kinds, this.rows[i].kind).length) this.drop(i);
+    else return;
+    e.preventDefault();
   }
 
   private field(row: Row, i: number, f: Field, n: number) {
@@ -79,19 +95,20 @@ export class ToLines extends LitElement {
 
   render() {
     const { kinds } = kindsOf(this.kinds);
+    const deep = depths(this.rows, this.kinds);
     const button = (label: string, glyph: keyof typeof UI, act: () => void, off = false) => html`<button type="button" aria-label=${label} title=${label} ?disabled=${off} @click=${act}>${icon(UI[glyph], 15)}</button>`;
     return html`
       <ol class="lf-rows" aria-label="${this.name}, as a form">
         ${this.rows.map((row, i) => {
           const k = kinds[row.kind];
           const fields = fieldsOf(this.kinds, row.kind);
-          return html`<li class="lf-row ${fields.length ? '' : 'rule'}" data-row=${i} style="--d:${row.depth}" @focusin=${() => (this.at = i)}>
+          return html`<li class="lf-row ${fields.length ? '' : 'rule'} ${k.head || k.once ? 'head' : ''}" data-row=${i} style="--d:${deep[i]}" @focusin=${() => (this.at = i)} @keydown=${(e: KeyboardEvent) => this.onKey(e, i)}>
             <span class="lf-kind">${k.name}</span>
             <div class="lf-fields">${fields.map((f, n) => this.field(row, i, f, n))}</div>
             <div class="lf-tools">
-              ${k.indent ? html`${button(`Bring row ${i + 1} out`, 'outdent', () => this.save(this.rows.map((r, n) => (n === i ? { ...r, depth: Math.max(0, r.depth - 1) } : r)), i), !row.depth)}${button(`Indent row ${i + 1}`, 'indent', () => this.save(this.rows.map((r, n) => (n === i ? { ...r, depth: Math.min(6, r.depth + 1) } : r)), i), !i)}` : nothing}
-              ${button(`Move row ${i + 1} up`, 'up', () => this.move(i, -1), !i)}${button(`Move row ${i + 1} down`, 'down', () => this.move(i, 1), i === this.rows.length - 1)}
-              ${button(`Remove row ${i + 1}`, 'close', () => this.save(this.rows.filter((_, n) => n !== i), Math.min(i, this.rows.length - 2)))}
+              ${k.indent ? html`${button(`Bring row ${i + 1} out`, 'outdent', () => this.shift(i, -1), !shiftBlock(this.rows, this.kinds, i, -1))}${button(`Indent row ${i + 1}`, 'indent', () => this.shift(i, 1), !shiftBlock(this.rows, this.kinds, i, 1))}` : nothing}
+              ${button(`Move row ${i + 1} up`, 'up', () => this.move(i, -1), !moveBlock(this.rows, this.kinds, i, -1))}${button(`Move row ${i + 1} down`, 'down', () => this.move(i, 1), !moveBlock(this.rows, this.kinds, i, 1))}
+              ${button(`Remove row ${i + 1}`, 'close', () => this.drop(i))}
             </div>
           </li>`;
         })}

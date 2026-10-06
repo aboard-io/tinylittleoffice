@@ -7,7 +7,7 @@ import { pages } from './write.def.ts';
 export const spec = {
   form: [
     { name: 'Name', is: '# {Name}', once: true },
-    { name: 'Section', is: '## {Section}' },
+    { name: 'Section', is: '## {Section}', head: true },
     { name: 'Point', is: '- {Point}' },
     { name: 'Paragraph', is: '{Text:long}' },
   ] as LineKind[],

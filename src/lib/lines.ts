@@ -18,6 +18,8 @@ export interface Kind {
   is: string;
   /** There is at most one of these, and it goes at the top (a title, a setting). */
   once?: boolean;
+  /** A heading: the lines after it, up to the next heading, belong to it (a section and its items). */
+  head?: boolean;
   /** Lines of this kind nest: they can be indented under one another. */
   indent?: boolean;
   /** Lines of this kind sit at exactly this depth (an answer, under its question). */
@@ -128,4 +130,64 @@ export function writeLines(rows: Row[], given: Kind[]): string {
     // A row with nothing in it yet is not written down (a blank line would mean something else, or nothing).
     .filter((_, i) => kinds[rows[i].kind].is === '' || rows[i].values.some((v) => v.trim()))
     .join('\n');
+}
+
+/**
+ * How far in each row sits when the text is seen as an outline: its own
+ * indent, and one more for a line under a heading.
+ */
+export function depths(rows: Row[], given: Kind[]): number[] {
+  const { kinds } = kindsOf(given);
+  let under = 0;
+  return rows.map((r) => {
+    const k = kinds[r.kind];
+    if (k.head) return (under = 1), 0;
+    if (k.once) return 0;
+    return r.depth + under;
+  });
+}
+
+/** Where the rows that belong to row i end: everything after it that sits deeper. */
+export function blockEnd(rows: Row[], given: Kind[], i: number): number {
+  const d = depths(rows, given);
+  let end = i + 1;
+  while (end < rows.length && d[end] > d[i]) end++;
+  return end;
+}
+
+/**
+ * Move row i, with everything that belongs to it, past the row (and its
+ * belongings) before or after it at the same level. A row with nothing
+ * under it and no neighbour at its level steps one line instead, so an item
+ * can cross from one section to the next. Returns the rows and where row i went.
+ */
+export function moveBlock(rows: Row[], given: Kind[], i: number, by: -1 | 1): [Row[], number] | null {
+  const d = depths(rows, given);
+  const end = blockEnd(rows, given, i);
+  if (by < 0) {
+    let p = i - 1;
+    while (p >= 0 && d[p] > d[i]) p--;
+    if (p < 0 || d[p] < d[i]) p = end - i === 1 && i > 0 ? i - 1 : -1;
+    if (p < 0) return null;
+    return [[...rows.slice(0, p), ...rows.slice(i, end), ...rows.slice(p, i), ...rows.slice(end)], p];
+  }
+  if (end >= rows.length) return null;
+  const next = d[end] === d[i] ? blockEnd(rows, given, end) : end - i === 1 ? end + 1 : -1;
+  if (next < 0) return null;
+  return [[...rows.slice(0, i), ...rows.slice(end, next), ...rows.slice(i, end), ...rows.slice(next)], i + next - end];
+}
+
+/** Indent or bring out row i and what is under it. A row goes at most one level deeper than the row above it. */
+export function shiftBlock(rows: Row[], given: Kind[], i: number, by: -1 | 1): Row[] | null {
+  const { kinds } = kindsOf(given);
+  if (!kinds[rows[i].kind].indent || (by > 0 ? i === 0 || rows[i].depth > rows[i - 1].depth || !kinds[rows[i - 1].kind].indent : rows[i].depth === 0)) return null;
+  const end = blockEnd(rows, given, i);
+  return rows.map((r, n) => (n >= i && n < end && kinds[r.kind].indent ? { ...r, depth: Math.max(0, r.depth + by) } : r));
+}
+
+/** Take row i away. What was under it comes out a level, to sit where it was. */
+export function removeRow(rows: Row[], given: Kind[], i: number): Row[] {
+  const { kinds } = kindsOf(given);
+  const end = kinds[rows[i].kind].indent ? blockEnd(rows, given, i) : i + 1;
+  return rows.flatMap((r, n) => (n === i ? [] : n > i && n < end ? [{ ...r, depth: Math.max(0, r.depth - 1) }] : [r]));
 }

@@ -72,7 +72,7 @@ ${rest.map((s) => `<section id="${slugOf(s.title)}"><div class="wrap"><h2>${xml(
 export const spec = {
   form: [
     { name: 'Name', is: '# {Name}', once: true },
-    { name: 'Section', is: '## {Section}' },
+    { name: 'Section', is: '## {Section}', head: true },
     { name: 'Card', is: '- [:{Picture:icon} ]{Heading}[ | {Detail}]' },
     { name: 'Button', is: '> {Label} | {Link}' },
     { name: 'Paragraph', is: '{Text:long}' },

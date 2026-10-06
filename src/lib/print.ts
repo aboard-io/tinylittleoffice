@@ -6,7 +6,7 @@
 import { defineApp, place, rect, type AppDef, type Page } from '../kit/core.ts';
 import { parseDeck, type Slide } from './deckmodel.ts';
 import { LETTER } from './fold.ts';
-import { registerSpec, type DiagramSpec } from './diagram.ts';
+import { OUTLINE_KEYS, registerSpec, type DiagramSpec } from './diagram.ts';
 
 export { LETTER };
 export const SIDEWAYS = { w: LETTER.h, h: LETTER.w };
@@ -50,7 +50,7 @@ export function definePrint(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> 
     outline: (body) => lines(body).slice(0, 14),
     // Inside something else, the first sheet is the gist.
     view: (body, opts = {}) => (opts.embed ? spec.sheets(body).slice(0, 1) : spec.sheets(body)),
-    shortcuts: [{ keys: 'Tab / Shift+Tab', does: 'Indent the line, or bring it back out' }],
+    shortcuts: OUTLINE_KEYS,
     ...app,
   });
 }

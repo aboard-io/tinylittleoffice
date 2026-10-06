@@ -31,7 +31,7 @@ function sheet(body: string): Page {
 export const spec = {
   form: [
     { name: 'Name', is: '# {Name}', once: true },
-    { name: 'Section', is: '## {Section}' },
+    { name: 'Section', is: '## {Section}', head: true },
     { name: 'Dish', is: '{Dish} | {Price}[ | {What it is}]' },
     { name: 'Line', is: '{Text}' },
   ] as LineKind[],

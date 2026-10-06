@@ -69,7 +69,7 @@ ${c.signatures.length ? `<div class="signed">${c.signatures.map((s) => `<div><st
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Heading', is: '## {Heading}' },
+    { name: 'Heading', is: '## {Heading}', head: true },
     { name: 'Point', is: '- {Point}' },
     { name: 'Paragraph', is: '{Text:long}' },
   ] as LineKind[],

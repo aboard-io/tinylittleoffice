@@ -3165,6 +3165,9 @@ to-lines {
 .lf-row:last-child {
   border-bottom: 0;
 }
+.lf-row.head .lf-fields input {
+  font-weight: 600;
+}
 .lf-row.rule {
   background: var(--to-surface-2);
 }
@@ -3183,8 +3186,9 @@ to-lines {
 .lf-fields {
   display: flex;
   min-width: 0;
-  /* Nested rows step in, as their lines do in the text. */
-  padding-left: calc(var(--d, 0) * 16px);
+  /* Nested rows step in, as their lines do in the text, with a rule down each level to follow by eye. */
+  padding-left: calc(var(--d, 0) * 18px);
+  background: repeating-linear-gradient(to right, transparent 0 8px, var(--to-border) 8px 9px, transparent 9px 18px) left / calc(var(--d, 0) * 18px) 100% no-repeat;
 }
 .lf-fields :is(input, select) {
   flex: 1 1 0;
