@@ -7,14 +7,14 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { folders, forget, forgetAll, keep, library, moveTo, saving, setSaving, type Kept } from './lib/library.ts';
+import { folders, forget, forgetAll, keep, moveTo, saving, type Kept } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
-import { budgetFor, toBase64Url, fromBase64Url } from './lib/codec.ts';
-import { encodeEnvelope, packEnvelope, unpackEnvelope, signingMessage, quantizeCreated, type Envelope } from './lib/envelope.ts';
-import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } from './lib/sign.ts';
-import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
+import { budgetFor, fromBase64Url } from './lib/codec.ts';
+import { encodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
+import { Privacy, isSealed } from './lib/privacy.ts';
+import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import { fontsForPictures } from './kit/browser.ts';
@@ -131,18 +131,11 @@ export class ToApp extends LitElement {
   @state() private env: Envelope = { created: null, body: '' };
   @state() private payloadLength = 0;
   @state() private sig: SigState = 'none';
-  @state() private signer: string | null = null;
-  @state() private myKey: string | null = null;
-  @state() private keyText = '';
-  @state() private keyMode: 'none' | 'export' | 'import' = 'none';
   @state() private toast = '';
-  @state() private busy = false;
   // Password protection: `sealed` holds a payload waiting for its password.
-  @state() private locker: Locker | null = null;
+  /** Everything that protects a document or touches what the device keeps: one object, one widget. */
+  private privacy = new Privacy(() => this.requestUpdate());
   @state() private sealed = '';
-  @state() private pw = '';
-  @state() private pwError = false;
-  @state() private pwBusy = false;
   @state() private version = URL_VERSION;
   @state() private theme: Theme = storedTheme();
   private history = new History();
@@ -197,8 +190,6 @@ export class ToApp extends LitElement {
   /** A download view waiting for its document (it may need a password first). */
   private pendingExt = '';
   private toastTimer = 0;
-  private signerApi: Signer = createSigner(localStorageStore());
-  private verifyRun = 0;
   private writeRun = 0;
 
   createRenderRoot() {
@@ -212,7 +203,6 @@ export class ToApp extends LitElement {
     window.addEventListener('keydown', this.onGlobalKey);
     window.addEventListener(REFRESH, this.onRefresh);
     this.onHash();
-    this.signerApi.fingerprint().then((f) => (this.myKey = f));
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -293,14 +283,11 @@ export class ToApp extends LitElement {
     this.embedded = ext === 'embed';
     this.version = version;
     this.pendingExt = ext;
-    this.locker = null;
-    this.pw = '';
-    this.pwError = false;
+    this.privacy.reset();
     this.payloadLength = payload.length;
     if (isSealed(payload)) {
       this.sealed = payload;
       this.env = { created: null, body: '' };
-      this.sig = 'none';
       this.updateComplete.then(() => this.querySelector<SlInput>('#pw-input')?.focus());
       return;
     }
@@ -308,7 +295,7 @@ export class ToApp extends LitElement {
     this.env = this.decode(payload);
     this.arrive(ext);
     this.remember();
-    this.checkSignature();
+    void this.privacy.check(this.env, this.app);
     this.downloadPending();
   };
 
@@ -331,8 +318,7 @@ export class ToApp extends LitElement {
     const empty = !this.env.body && this.env.created === null && !this.env.key && !this.env.title;
     let payload = '';
     if (!empty) {
-      const { flag, bytes } = packEnvelope(this.env, this.app);
-      payload = this.locker ? await seal(this.locker, flag, bytes) : flag + toBase64Url(bytes);
+      payload = await this.privacy.pack(this.env, this.app);
       if (run !== this.writeRun) return;
     }
     this.payloadLength = payload.length;
@@ -358,49 +344,13 @@ export class ToApp extends LitElement {
     else this.viewing = true;
   }
 
-  /* ---------- what this site keeps on the device ---------- */
-
-  /** Whether the app is kept for offline use: known once asked. */
-  @state() private offline: boolean | null = null;
-  private static PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.open', 'tinyoffice.nav', 'tinyoffice.size'];
-  private prefsKept(): number {
-    try {
-      return ToApp.PREFS.filter((k) => localStorage.getItem(k) !== null).length;
-    } catch {
-      return 0;
-    }
-  }
-  private forgetPrefs = () => {
-    try {
-      for (const k of ToApp.PREFS) localStorage.removeItem(k);
-    } catch {
-      // (Nothing kept, then.)
-    }
-    this.theme = 'auto';
-    this.shut = [];
-    this.size = 1;
-    this.applySize();
-    this.requestUpdate();
-  };
-  private async checkOffline() {
-    this.offline = 'caches' in window ? (await caches.keys()).length > 0 : false;
-  }
-  private dropOffline = async () => {
-    if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
-    if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
-    this.offline = false;
-  };
-  private leaveNothing = async () => {
-    if (!confirm('Forget everything this site keeps in this browser: the list of documents, your signing key, preferences, and the offline copy of the app?')) return;
-    setSaving(false);
-    this.signerApi.forget();
-    this.myKey = null;
-    this.forgetPrefs();
-    await this.dropOffline();
-    try {
-      for (const k of Object.keys(localStorage)) if (k.startsWith('tinyoffice.') || k === 'to-theme') localStorage.removeItem(k);
-    } catch {
-      // (Nothing kept, then.)
+  /** A preference was forgotten, or the lot: the shell's own copies follow. */
+  private onDevice = () => {
+    if (this.privacy.prefsKept() === 0) {
+      this.theme = 'auto';
+      this.shut = [];
+      this.size = 1;
+      this.applySize();
     }
     this.requestUpdate();
   };
@@ -469,7 +419,7 @@ export class ToApp extends LitElement {
     const created = this.env.created ?? (title ? quantizeCreated(Date.now()) : null);
     this.env = { ...this.env, created, title: title.trim() ? title.replace(/\n/g, ' ') : undefined };
     this.writeUrl();
-    this.checkSignature();
+    void this.privacy.check(this.env, this.app);
   }
 
   /**
@@ -546,7 +496,7 @@ export class ToApp extends LitElement {
     const created = this.env.created ?? (body ? quantizeCreated(Date.now()) : null);
     this.env = { ...this.env, created, body };
     this.writeUrl();
-    this.checkSignature();
+    void this.privacy.check(this.env, this.app);
   }
 
   /* ---------- undo ---------- */
@@ -557,123 +507,22 @@ export class ToApp extends LitElement {
     if (body === null || !this.app) return;
     this.env = { ...this.env, body };
     this.writeUrl();
-    this.checkSignature();
+    void this.privacy.check(this.env, this.app);
     this.requestUpdate();
   }
 
-  /* ---------- password ---------- */
-
-  private async unlock() {
-    if (!this.sealed || this.pwBusy) return;
-    this.pwBusy = true;
-    try {
-      const r = await unseal(this.pw, this.sealed);
-      if (!r) {
-        this.pwError = true;
-        return;
-      }
-      this.locker = r.locker;
-      this.env = unpackEnvelope(r.flag, r.bytes, this.app ?? undefined);
+  /** The privacy widget unlocked, signed or unsigned the document. */
+  private onPrivacyEnv = (e: CustomEvent<Envelope>) => {
+    const wasSealed = !!this.sealed;
+    this.env = e.detail;
+    if (wasSealed) {
       this.sealed = '';
-      this.pw = '';
-      this.pwError = false;
       this.arrive(this.pendingExt);
-      this.checkSignature();
       this.downloadPending();
-    } finally {
-      this.pwBusy = false;
     }
-  }
-
-  private async setPassword() {
-    if (!this.pw || this.pwBusy) return;
-    this.pwBusy = true;
-    try {
-      this.locker = await newLocker(this.pw);
-      this.pw = '';
-      await this.writeUrl();
-    } finally {
-      this.pwBusy = false;
-    }
-  }
-
-  private removePassword() {
-    this.locker = null;
-    this.writeUrl();
-  }
-
-  /* ---------- signing ---------- */
-
-  private async checkSignature() {
-    const run = ++this.verifyRun;
-    const { key, sig } = this.env;
-    if (!key || !sig || !this.app) {
-      this.sig = 'none';
-      this.signer = null;
-      return;
-    }
-    this.sig = 'checking';
-    const [ok, fp] = await Promise.all([verify(key, sig, signingMessage(this.app, this.env.created, this.env.body, this.env.title)), fingerprintOf(key)]);
-    if (run !== this.verifyRun) return;
-    this.sig = ok ? 'valid' : 'invalid';
-    this.signer = fp;
-  }
-
-  private async sign() {
-    if (!this.app) return;
-    this.busy = true;
-    try {
-      const created = this.env.created ?? quantizeCreated(Date.now());
-      const { key, sig } = await this.signerApi.sign(signingMessage(this.app, created, this.env.body, this.env.title));
-      this.env = { ...this.env, created, key, sig };
-      this.myKey = await this.signerApi.fingerprint();
-      await this.writeUrl();
-      await this.checkSignature();
-      this.showToast('Signed');
-    } catch (err) {
-      this.showToast(err instanceof Error ? err.message : String(err));
-    } finally {
-      this.busy = false;
-    }
-  }
-
-  private unsign() {
-    const { key: _k, sig: _s, ...rest } = this.env;
-    this.env = rest;
-    this.writeUrl();
-    this.checkSignature();
-  }
-
-  private async exportKey() {
-    this.keyText = await this.signerApi.exportKey();
-    this.keyMode = 'export';
-    this.myKey = await this.signerApi.fingerprint();
-    try {
-      await navigator.clipboard.writeText(this.keyText);
-      this.showToast('Key copied');
-    } catch {
-      /* the textarea shows it anyway */
-    }
-  }
-
-  private async importKey() {
-    try {
-      this.myKey = await this.signerApi.importKey(this.keyText.trim());
-      this.keyMode = 'none';
-      this.keyText = '';
-      this.showToast('Key imported');
-    } catch (err) {
-      this.showToast(err instanceof Error ? err.message : 'Invalid key');
-    }
-  }
-
-  private forgetKey() {
-    if (!confirm('Forget this key?')) return;
-    this.signerApi.forget();
-    this.myKey = null;
-    this.keyMode = 'none';
-    this.keyText = '';
-  }
+    void this.writeUrl();
+    void this.privacy.check(this.env, this.app);
+  };
 
   private showToast(msg: string) {
     this.toast = msg;
@@ -682,7 +531,6 @@ export class ToApp extends LitElement {
   }
 
   private dialog(): SlDialog | null {
-    void this.checkOffline();
     return this.querySelector<SlDialog>('#doc-dialog');
   }
   private drawer(): SlDrawer | null {
@@ -752,11 +600,11 @@ export class ToApp extends LitElement {
                       </sl-dropdown>
                       <sl-button class="icon to-qr-btn" size="small" aria-label="QR code" title="The whole document as a QR code" @click=${() => this.querySelector<ToQrDialog>('to-qr-dialog')?.show()}>${icon(UI.qr, 16)}<span class="sr-only">QR code</span></sl-button>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" title="Privacy" variant=${this.locker || this.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.locker ? UI.lock : this.sig === 'invalid' ? UI.shieldOff : this.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" title="Privacy" variant=${this.privacy.locker || this.privacy.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.privacy.locker ? UI.lock : this.privacy.sig === 'invalid' ? UI.shieldOff : this.privacy.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Privacy</sl-menu-label>
-                          <sl-menu-item value="password">${icon(UI.lock, 14, 'pre')} Password<span slot="suffix" class="to-hint">${this.locker ? 'Locked' : 'None'}</span></sl-menu-item>
-                          <sl-menu-item value="signature">${icon(UI.shield, 14, 'pre')} Signature<span slot="suffix" class="to-hint">${this.sig === 'valid' ? 'Signed' : this.sig === 'invalid' ? 'Mismatch' : 'None'}</span></sl-menu-item>
+                          <sl-menu-item value="password">${icon(UI.lock, 14, 'pre')} Password<span slot="suffix" class="to-hint">${this.privacy.locker ? 'Locked' : 'None'}</span></sl-menu-item>
+                          <sl-menu-item value="signature">${icon(UI.shield, 14, 'pre')} Signature<span slot="suffix" class="to-hint">${this.privacy.sig === 'valid' ? 'Signed' : this.sig === 'invalid' ? 'Mismatch' : 'None'}</span></sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
                     </div>`}
@@ -795,7 +643,7 @@ export class ToApp extends LitElement {
       </sl-drawer>
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
-      ${this.renderPasswordPrompt()}
+      ${this.renderPrivacyPrompt()}
       ${current ? html`<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
         ${[
@@ -822,9 +670,9 @@ export class ToApp extends LitElement {
         <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} ?readonly=${this.viewing} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
         <span class="meta">
           ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
-          ${this.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
-          ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
-          ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
+          ${this.privacy.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
+          ${this.privacy.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
+          ${this.privacy.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
           ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
           ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
         </span>
@@ -913,29 +761,12 @@ export class ToApp extends LitElement {
     </section>`;
   }
 
-  private renderPasswordPrompt() {
-    return html`<sl-dialog id="pw-dialog" label="Password" ?open=${!!this.sealed} @sl-request-close=${(e: Event) => this.sealed && e.preventDefault()}>
-      <div class="to-doc">
-        <div class="row">
-          <sl-input
-            id="pw-input"
-            class="sr-label"
-            type="password"
-            label="Password"
-            password-toggle
-            autofocus
-            .value=${this.pw}
-            @sl-input=${(e: Event) => {
-              this.pw = (e.target as SlInput).value;
-              this.pwError = false;
-            }}
-            @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.unlock()}
-          ></sl-input>
-          <sl-button variant="primary" ?loading=${this.pwBusy} @click=${this.unlock}>${icon(UI.unlock, 14)} Open</sl-button>
-        </div>
-        ${this.pwError ? html`<sl-tag size="small" variant="danger" pill style="margin-top:8px">Wrong password</sl-tag>` : nothing}
-      </div>
-    </sl-dialog>`;
+  /** The privacy widget: one element, drawn in the dialog; its prompt for a sealed link drawn beside the dialogs. */
+  private renderPrivacy() {
+    return html`<to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-note=${(e: CustomEvent<string>) => this.showToast(e.detail)}></to-privacy>`;
+  }
+  private renderPrivacyPrompt() {
+    return html`<to-privacy-prompt .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv}></to-privacy-prompt>`;
   }
 
   private renderDialog(available: number) {
@@ -964,84 +795,7 @@ export class ToApp extends LitElement {
       </dl>
       <h3>${icon(UI.send, 14)} Where the link fits</h3>
       ${roomsTable(roomFor(this.link))}
-      <h3>${icon(UI.lock, 14)} Protect</h3>
-      <dl>
-        <dt>Password</dt>
-        <dd>
-          ${this.locker
-            ? html`<div class="row"><sl-tag size="small" variant="success" pill>Locked</sl-tag><sl-button size="small" @click=${this.removePassword}>${icon(UI.unlock, 14)} Remove</sl-button></div>`
-            : html`<div class="row">
-                <sl-input
-                  class="sr-label"
-                  size="small"
-                  type="password"
-                  label="New password"
-                  placeholder="Password"
-                  password-toggle
-                  .value=${this.pw}
-                  @sl-input=${(e: Event) => (this.pw = (e.target as SlInput).value)}
-                  @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.setPassword()}
-                ></sl-input>
-                <sl-button size="small" ?loading=${this.pwBusy} ?disabled=${!this.pw} @click=${this.setPassword}>${icon(UI.lock, 14)} Lock</sl-button>
-              </div>`}
-        </dd>
-        <dt>Signature</dt>
-        <dd>
-          <div class="row">
-            ${this.sig === 'none' ? html`<sl-tag size="small" pill>Unsigned</sl-tag>` : nothing}
-            ${this.sig === 'checking' ? html`<sl-tag size="small" pill>…</sl-tag>` : nothing}
-            ${this.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>Valid</sl-tag> <code>${this.signer}</code>${this.signer && this.signer === this.myKey ? html` <sl-tag size="small" pill>this browser</sl-tag>` : nothing}` : nothing}
-            ${this.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>Mismatch</sl-tag> <code>${this.signer}</code>` : nothing}
-            ${this.sig !== 'valid'
-              ? html`<sl-button size="small" variant="primary" ?loading=${this.busy} ?disabled=${!this.env.body} @click=${this.sign}>${icon(UI.shield, 14)} ${this.sig === 'invalid' ? 'Re-sign' : 'Sign'}</sl-button>`
-              : nothing}
-            ${this.env.sig ? html`<sl-button size="small" @click=${this.unsign}>Remove</sl-button>` : nothing}
-          </div>
-        </dd>
-        <dt>Signing key</dt>
-        <dd>
-          <div class="row">
-            ${this.myKey ? html`<code>${this.myKey}</code>` : html`<span class="to-hint">—</span>`}
-            <sl-button size="small" @click=${this.exportKey}>Export</sl-button>
-            <sl-button size="small" @click=${() => { this.keyMode = 'import'; this.keyText = ''; }}>Import</sl-button>
-            ${this.myKey ? html`<sl-button size="small" variant="text" @click=${this.forgetKey}>Forget</sl-button>` : nothing}
-          </div>
-          ${this.keyMode !== 'none'
-            ? html`<textarea aria-label="Key" placeholder="Key" .value=${this.keyText} ?readonly=${this.keyMode === 'export'} @input=${(e: Event) => (this.keyText = (e.target as HTMLTextAreaElement).value)}></textarea>
-                ${this.keyMode === 'import' ? html`<div class="row" style="margin-top:8px"><sl-button size="small" variant="primary" @click=${this.importKey}>Use key</sl-button></div>` : nothing}`
-            : nothing}
-        </dd>
-      </dl>
-      <h3>${icon(UI.home, 14)} On this device</h3>
-      <p class="to-hint">Everything this site keeps in this browser. Nothing is ever sent anywhere.</p>
-      <table class="to-kept">
-        <thead><tr><th scope="col">What</th><th scope="col">Now</th><th scope="col"></th></tr></thead>
-        <tbody>
-          <tr>
-            <th scope="row">A list of your documents<br /><small>Their titles and links, for the home page. Off unless you ask.</small></th>
-            <td>${saving() ? `${library().length} kept` : 'Not kept'}</td>
-            <td><sl-checkbox class="to-save" ?checked=${saving()} @sl-change=${(e: Event) => { setSaving((e.target as HTMLInputElement).checked); this.requestUpdate(); }}>Keep</sl-checkbox></td>
-          </tr>
-          <tr>
-            <th scope="row">Your signing key<br /><small>Made the first time you sign. Says a signature is yours.</small></th>
-            <td>${this.myKey ? html`<code>${this.myKey}</code>` : 'None'}</td>
-            <td>${this.myKey ? html`<sl-button size="small" @click=${this.forgetKey}>Forget</sl-button>` : nothing}</td>
-          </tr>
-          <tr>
-            <th scope="row">Preferences<br /><small>Theme, which menu clusters are open, form or text, whether links open to read or to edit.</small></th>
-            <td>${this.prefsKept() ? `${this.prefsKept()} set` : 'None'}</td>
-            <td>${this.prefsKept() ? html`<sl-button size="small" @click=${this.forgetPrefs}>Forget</sl-button>` : nothing}</td>
-          </tr>
-          <tr>
-            <th scope="row">The app itself<br /><small>A copy of TinyLittleOffice, so it opens with no connection. No documents are in it.</small></th>
-            <td>${this.offline === null ? '…' : this.offline ? 'Kept' : 'Not kept'}</td>
-            <td>${this.offline ? html`<sl-button size="small" @click=${this.dropOffline}>Remove</sl-button>` : nothing}</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="row">
-        <sl-button size="small" variant="danger" outline @click=${this.leaveNothing}>${icon(UI.trash, 14)} Leave nothing: forget all of the above</sl-button>
-      </div>
+      ${this.renderPrivacy()}
       <sl-button slot="footer" variant="primary" @click=${() => this.dialog()?.hide()}>Done</sl-button>
     </sl-dialog>`;
   }
