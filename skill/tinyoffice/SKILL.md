@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make a document, chart, diagram, slide deck, schedule, map route or small database as a shareable link, by writing a TinyLittleOffice URL. Use when someone asks for a quick spreadsheet, chart, org chart, mind map, flow or swimlane diagram, Venn diagram, network diagram, Gantt chart, kanban board, to-do list, calendar, slides, a short document, or a queryable table, and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, sticky notes, FAQs, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, certificates, menus, résumés, name badges, recipe cards, stock-and-flow models, pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, polls, Secret Santa draws, countdowns, checklists, logs and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links

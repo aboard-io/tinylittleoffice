@@ -47,6 +47,7 @@ export function keep(doc: Omit<Kept, 'folder' | 'at'>, folder: string) {
   write([{ ...doc, folder: was?.folder ?? folder, at: Date.now() }, ...all.filter((k) => k.id !== doc.id)]);
 }
 
+export const forgetAll = () => write([]);
 export const forget = (id: string) => write(library().filter((k) => k.id !== id));
 export const moveTo = (id: string, folder: string) => write(library().map((k) => (k.id === id ? { ...k, folder: folder.trim() || k.folder } : k)));
 

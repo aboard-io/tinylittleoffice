@@ -5,7 +5,7 @@
  */
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { icon, libraryIcon, UI } from '../lib/icons.ts';
-import { blockEnd, depths, fieldsOf, kindsOf, moveBlock, readLines, removeRow, shiftBlock, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
+import { blockEnd, depths, fieldsOf, kindsOf, marksAfter, moveBlock, readLines, removeRow, shiftBlock, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
 import { chooseIcon } from './icon-picker.ts';
 
 export class ToLines extends LitElement {
@@ -17,6 +17,8 @@ export class ToLines extends LitElement {
   private rows: Row[] = [];
   /** The text as this form last wrote it: anything else arriving is a change from outside. */
   private written: string | null = null;
+  /** Rows folded shut: what is under them is out of sight for now. (Not part of the document.) */
+  private folded = new WeakSet<Row>();
   /** The row last worked in: new rows go after it. */
   private at = -1;
 
@@ -38,6 +40,8 @@ export class ToLines extends LitElement {
     this.dispatchEvent(new CustomEvent('lines-change', { detail: this.written }));
     if (focus >= 0) {
       this.at = focus;
+      // Whatever hides the row being worked in opens up.
+      rows.forEach((r, n) => n < focus && this.folded.has(r) && blockEnd(rows, this.kinds, n) > focus && this.folded.delete(r));
       void this.updateComplete.then(() => (this.querySelector<HTMLElement>(`[data-row="${focus}"] :is(input, textarea, select)`) ?? this.querySelector<HTMLElement>(`[data-row="${focus}"] button`))?.focus());
     }
   }
@@ -89,21 +93,44 @@ export class ToLines extends LitElement {
       return html`<button type="button" class="lf-icon" aria-label="${label}: ${value || 'none'}" title=${value ? `${f.name}: ${value}` : `Choose a ${f.name.toLowerCase()}`} @click=${async () => { const name = await chooseIcon(); if (name) this.set(i, n, name); }}>${value ? libraryIcon(value, 20) : icon(UI.smile, 18)}</button>`;
     }
     if (f.type === 'choice') return html`<select aria-label=${label} .value=${value} @change=${typed}>${f.options.map((o) => html`<option ?selected=${o.toLowerCase() === value.toLowerCase()}>${o}</option>`)}</select>`;
+    // What a box must not hold: the marks that, in the text, would end it early.
+    const marks = marksAfter(this.kinds, row.kind, n);
+    const clean = (e: Event) => {
+      const box = e.target as HTMLInputElement;
+      const was = box.value;
+      for (const m of marks) box.value = box.value.split(m).join('');
+      if (box.value !== was) box.setSelectionRange(box.value.length, box.value.length);
+      typed(e);
+    };
     // Return in a box starts another row of the same kind: lists are quick to type.
-    return html`<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} aria-label=${label} placeholder=${f.name} .value=${value} @input=${typed} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
+    const names = f.type === 'pick' ? [...new Set(this.rows.filter((r) => r !== row).map((r) => (r.values.find((v, k) => v && fieldsOf(this.kinds, r.kind)[k].type !== 'icon') ?? '').split(' | ')[0]).filter(Boolean))] : [];
+    const list = f.type === 'pick' ? `lf-pick-${i}-${n}` : undefined;
+    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} list=${list ?? (undefined as unknown as string)} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
   }
 
   render() {
     const { kinds } = kindsOf(this.kinds);
     const deep = depths(this.rows, this.kinds);
+    // What is under a folded row is not shown.
+    const hidden = new Set<number>();
+    this.rows.forEach((r, n) => {
+      if (this.folded.has(r)) for (let m = n + 1; m < blockEnd(this.rows, this.kinds, n); m++) hidden.add(m);
+    });
+    const fold = (r: Row, i: number) => {
+      if (this.folded.has(r)) this.folded.delete(r);
+      else this.folded.add(r);
+      this.at = i;
+      this.requestUpdate();
+    };
     const button = (label: string, glyph: keyof typeof UI, act: () => void, off = false) => html`<button type="button" aria-label=${label} title=${label} ?disabled=${off} @click=${act}>${icon(UI[glyph], 15)}</button>`;
     return html`
       <ol class="lf-rows" aria-label="${this.name}, as a form">
         ${this.rows.map((row, i) => {
           const k = kinds[row.kind];
           const fields = fieldsOf(this.kinds, row.kind);
-          return html`<li class="lf-row ${fields.length ? '' : 'rule'} ${k.head || k.once ? 'head' : ''}" data-row=${i} style="--d:${deep[i]}" @focusin=${() => (this.at = i)} @keydown=${(e: KeyboardEvent) => this.onKey(e, i)}>
-            <span class="lf-kind">${k.name}</span>
+          const under = blockEnd(this.rows, this.kinds, i) - i - 1;
+          return html`<li class="lf-row ${fields.length ? '' : 'rule'} ${k.head || k.once ? 'head' : ''}" data-row=${i} style="--d:${deep[i]}" ?hidden=${hidden.has(i)} @focusin=${() => (this.at = i)} @keydown=${(e: KeyboardEvent) => this.onKey(e, i)}>
+            <span class="lf-kind">${under && !k.once ? html`<button type="button" class="lf-fold" aria-expanded=${this.folded.has(row) ? 'false' : 'true'} aria-label="${this.folded.has(row) ? 'Show' : 'Hide'} the ${under} ${under === 1 ? 'row' : 'rows'} under row ${i + 1}" @click=${() => fold(row, i)}>${icon(this.folded.has(row) ? UI.right : UI.down, 13)}${this.folded.has(row) ? html`<b>${under}</b>` : nothing}</button>` : nothing}${k.name}</span>
             <div class="lf-fields">${fields.map((f, n) => this.field(row, i, f, n))}</div>
             <div class="lf-tools">
               ${k.indent ? html`${button(`Bring row ${i + 1} out`, 'outdent', () => this.shift(i, -1), !shiftBlock(this.rows, this.kinds, i, -1))}${button(`Indent row ${i + 1}`, 'indent', () => this.shift(i, 1), !shiftBlock(this.rows, this.kinds, i, 1))}` : nothing}

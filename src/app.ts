@@ -7,7 +7,7 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { folders, forget, keep, moveTo, type Kept } from './lib/library.ts';
+import { folders, forget, forgetAll, keep, moveTo, type Kept } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
@@ -144,6 +144,8 @@ export class ToApp extends LitElement {
   @state() private presenting = false;
   /** A link was opened: it is shown as the document it is, with editing a button away. */
   @state() private viewing = false;
+  /** What is typed into the menu's search box: only apps whose names match are listed. */
+  @state() private find = '';
   /** Opened from an "embed" link: just the document, for showing inside another page. */
   @state() private embedded = false;
   @state() private embedPage = 0;
@@ -670,11 +672,15 @@ export class ToApp extends LitElement {
       </header>
       <sl-drawer id="nav-drawer" label="TinyLittleOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
-          <a href="#/" aria-current=${this.app === null ? 'page' : nothing}>${icon(UI.home, 20)}<span>Home</span></a>
-          ${grouped().map(
-            (g) => html`<h2>${g.group}</h2>
-              ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`)}`,
-          )}
+          <input class="to-find" type="search" placeholder="Find an app" aria-label="Find an app" autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-nav a[href]:not([hidden])')?.click()} />
+          <a href="#/" aria-current=${this.app === null ? 'page' : nothing} ?hidden=${!!this.find.trim()}>${icon(UI.home, 20)}<span>Home</span></a>
+          ${grouped().map((g) => {
+            const want = this.find.trim().toLowerCase();
+            const apps = want ? g.apps.filter((a) => a.name.toLowerCase().includes(want) || g.group.toLowerCase().includes(want)) : g.apps;
+            if (!apps.length) return nothing;
+            return html`<h2>${g.group}</h2>
+              ${apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`)}`;
+          })}
         </nav>
         <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
@@ -789,7 +795,8 @@ export class ToApp extends LitElement {
           </ul>
         </details>`,
       )}
-      <p class="to-hint">Kept in this browser only, and never sent anywhere. Once opened, TinyLittleOffice works without a connection.</p>
+      <p class="to-hint">These are saved only on this device, in this browser. They are not on any server and will not be on your other devices; a link is the only way to carry one across. Once opened, TinyLittleOffice works without a connection.</p>
+      <sl-button size="small" variant="danger" outline @click=${() => { if (confirm('Erase every document kept on this device? Any you have the link for can be opened again.')) { forgetAll(); this.requestUpdate(); } }}>${icon(UI.trash, 14)} Erase all</sl-button>
     </section>`;
   }
 

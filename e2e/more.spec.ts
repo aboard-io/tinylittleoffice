@@ -826,4 +826,48 @@ test('the library: documents are kept on the device, in folders', async ({ page 
   await shot(page, 'library');
   await lib.getByRole('button', { name: 'Remove Quay notes from this device' }).click();
   await expect(lib.locator('summary')).toHaveText([/Todo\s*1/]);
+  await expect(lib).toContainText('saved only on this device');
+  // All of them at once; the links still open.
+  const todo = await lib.getByRole('link', { name: /Untitled Todo/ }).getAttribute('href');
+  page.once('dialog', (d) => d.accept());
+  await lib.getByRole('button', { name: 'Erase all' }).click();
+  await expect(lib).toHaveCount(0);
+  await page.goto(todo!);
+  await expect(page.locator('to-todo')).toContainText('Buy milk');
+});
+
+test('the menu finds an app by name', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Menu' }).click();
+  const drawer = page.locator('#nav-drawer');
+  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('zin');
+  await expect(drawer.locator('.to-drawer-nav a:not([hidden])')).toHaveText(['Zine']);
+  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('games');
+  await expect(drawer.locator('.to-drawer-nav a:not([hidden])')).toHaveCount(7);
+  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('poll');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('to-poll')).toBeVisible();
+});
+
+test('outline rows fold shut and open again', async ({ page }) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  await page.goto('/#/v2/org/' + encodeEnvelope({ created: 1, body: 'Ada\n  Ben\n    Cy\n  Eve' }));
+  await page.getByRole('button', { name: 'Edit as a form' }).click();
+  const form = page.locator('to-org to-lines');
+  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(4);
+  await form.getByRole('button', { name: 'Hide the 1 row under row 2' }).click();
+  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(3);
+  await form.getByRole('button', { name: 'Hide the 3 rows under row 1' }).click();
+  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(1);
+  await form.getByRole('button', { name: 'Show the 3 rows under row 1' }).click();
+  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(3);
+  // Nothing about folding is in the document.
+  await page.getByRole('button', { name: 'Edit as text' }).click();
+  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue('Ada\n  Ben\n    Cy\n  Eve');
+  // A dotted line's ends are picked from the names on the chart; a mark that would split a box is kept out of it.
+  await page.getByRole('button', { name: 'Edit as a form' }).click();
+  await form.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Dotted line' }).click();
+  await expect(form.locator('datalist option')).toHaveCount(8);
+  await page.keyboard.type('Cy .. Eve');
+  await expect(form.getByRole('combobox', { name: 'From, row 5' })).toHaveValue('Cy  Eve');
 });

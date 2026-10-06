@@ -26,7 +26,7 @@ function layout(text: string): Diagram {
 
 export const spec = {
   form: [
-    { name: 'Dotted line', is: '{From} .. {To}[: {What it means}]' },
+    { name: 'Dotted line', is: '{From:pick} .. {To:pick}[: {What it means}]' },
     { name: 'Person', is: '[:{Picture:icon} ]{Name}[ | {Role}]', indent: true },
   ] as LineKind[],
   hint: 'One person per line, "Name | Role". Indent a line to put them under the person above. "Ben .. Eve: advises" draws a dotted line between two people.',

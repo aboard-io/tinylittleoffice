@@ -2727,6 +2727,25 @@ svg.draw-canvas {
   }
 }
 
+/* Finding an app by name, at the top of the menu */
+.to-find {
+  display: block;
+  width: calc(100% - 20px);
+  margin: 4px 10px 8px;
+  padding: 9px 12px;
+  font: 15px var(--sl-font-sans);
+  color: var(--to-ink);
+  background: var(--to-surface-2);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+}
+.to-drawer-nav a[hidden] {
+  display: none;
+}
+.to-library sl-button {
+  margin-top: 8px;
+}
+
 /* The menu, in groups, with kinds of an app beneath it */
 .to-drawer-nav h2,
 .to-group {
@@ -3164,6 +3183,28 @@ to-lines {
 }
 .lf-row:last-child {
   border-bottom: 0;
+}
+.lf-row[hidden] {
+  display: none;
+}
+.lf-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 3px 0 -4px;
+  padding: 0 2px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--to-ink-2);
+  cursor: pointer;
+}
+.lf-fold b {
+  font-size: 10px;
+}
+.lf-fold:hover {
+  background: var(--to-border);
 }
 .lf-row.head .lf-fields input {
   font-weight: 600;

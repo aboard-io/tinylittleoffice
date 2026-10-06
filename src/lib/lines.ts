@@ -10,7 +10,7 @@
  *
  * In a pattern, {Name} is a field; [..] is a part that may be left out;
  * everything else is written as it stands. A field may say what it holds:
- * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}.
+ * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}, {Who:pick}.
  */
 export interface Kind {
   name: string;
@@ -28,7 +28,8 @@ export interface Kind {
 
 export interface Field {
   name: string;
-  type: 'text' | 'long' | 'date' | 'icon' | 'choice';
+  /** 'pick' offers the names already on the form (the first words of every other row). */
+  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick';
   options: string[];
 }
 
@@ -190,4 +191,11 @@ export function removeRow(rows: Row[], given: Kind[], i: number): Row[] {
   const { kinds } = kindsOf(given);
   const end = kinds[rows[i].kind].indent ? blockEnd(rows, given, i) : i + 1;
   return rows.flatMap((r, n) => (n === i ? [] : n > i && n < end ? [{ ...r, depth: Math.max(0, r.depth - 1) }] : [r]));
+}
+
+/** The marks written after field n of a kind ("|", "..", ":"): a value holding one would read as two. */
+export function marksAfter(given: Kind[], kind: number, n: number): string[] {
+  const is = kindsOf(given).kinds[kind].is;
+  const after = is.split('}').slice(n + 1).join('}');
+  return [...new Set(after.replace(/\{[^}]*\}/g, ' ').replace(/[[\]]/g, ' ').split(/\s+/).filter((m) => m && !/^[\w]+$/.test(m)))];
 }
