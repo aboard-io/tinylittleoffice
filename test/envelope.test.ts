@@ -53,3 +53,18 @@ test('signing message binds app, time and body', () => {
   assert.notEqual(a, c);
   assert.ok(a.startsWith('tinyoffice\nsheet\n'));
 });
+
+test('who made it travels in the envelope and is bound by the signature', () => {
+  const env = { created: Date.UTC(2026, 9, 6), title: 'Plan', by: 'forecast-agent', body: 'a\tb' };
+  const back = decodeEnvelope(encodeEnvelope(env, 'sheet'), 'sheet');
+  assert.equal(back.by, 'forecast-agent');
+  assert.equal(back.title, 'Plan');
+  assert.equal(back.body, 'a\tb');
+  // A document with only an author still carries an envelope.
+  assert.equal(decodeEnvelope(encodeEnvelope({ created: null, by: 'me', body: 'x' })).by, 'me');
+  // The author is signed when there is one; without one the message is as it always was.
+  assert.equal(signingMessage('sheet', null, 'b'), 'tinyoffice\nsheet\n\nb');
+  assert.equal(signingMessage('sheet', null, 'b', 'T'), 'tinyoffice\nsheet\n\nb\u0000T');
+  assert.equal(signingMessage('sheet', null, 'b', '', 'A'), 'tinyoffice\nsheet\n\nb\u0000\u0000A');
+  assert.notEqual(signingMessage('sheet', null, 'b', 'T', 'A'), signingMessage('sheet', null, 'b', 'T', 'B'));
+});

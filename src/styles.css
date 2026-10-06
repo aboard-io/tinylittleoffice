@@ -3947,3 +3947,63 @@ sl-dialog.to-import {
   gap: 8px;
   margin-top: 10px;
 }
+
+/* Compare: two links side by side, and what changed */
+.to-compare {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 16px 32px;
+}
+.to-compare h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  margin: 8px 0 4px;
+}
+.cmp-sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+.cmp-side iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+}
+.cmp-meta {
+  margin: 8px 0;
+}
+.cmp-bar {
+  margin-top: 16px;
+}
+.cmp-diff {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  font: 13px/1.5 var(--sl-font-mono);
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  overflow: auto;
+  white-space: pre;
+}
+.cmp-diff .add {
+  display: inline-block;
+  width: 100%;
+  background: color-mix(in oklab, var(--sl-color-success-600) 16%, transparent);
+}
+.cmp-diff .del {
+  display: inline-block;
+  width: 100%;
+  background: color-mix(in oklab, var(--to-danger) 14%, transparent);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+}
+@media (forced-colors: active) {
+  .cmp-diff .add { outline: 1px solid Highlight; }
+  .cmp-diff .del { outline: 1px dashed Highlight; }
+}

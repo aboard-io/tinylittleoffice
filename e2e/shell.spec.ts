@@ -532,3 +532,31 @@ test('Markdown and CSV come in as well as out', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'A3', exact: true })).toHaveValue('Food');
   await expect(page.getByRole('textbox', { name: 'B2', exact: true })).toHaveValue('1,200');
 });
+
+test('two links compare side by side, with what changed', async ({ page }) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const created = Date.UTC(2026, 9, 6);
+  const a = `/#/v2/todo/${encodeEnvelope({ created, title: 'Chores', by: 'me', body: '- Sweep\n- Shop' }, 'todo')}`;
+  const b = `/#/v2/todo/${encodeEnvelope({ created, title: 'Chores', by: 'chores-agent', body: 'x Sweep\n- Shop\n- Call mum' }, 'todo')}`;
+  const side = (h: string) => h.replace(/^\/#\/v2\/todo\//, '');
+  await page.goto(`/#/compare/todo/${side(a)}/todo/${side(b)}`);
+  const cmp = page.locator('to-compare');
+  await expect(cmp.locator('h1')).toContainText('Compare');
+  await expect(cmp.locator('.cmp-meta').nth(1)).toContainText('by chores-agent');
+  await expect(cmp.locator('.cmp-diff .add')).toHaveCount(2);
+  await expect(cmp.locator('.cmp-diff .del')).toHaveCount(1);
+  await expect(cmp.locator('.cmp-diff')).toContainText('+ - [x] Sweep');
+  await expect(cmp.locator('.cmp-diff')).toContainText('+ - [ ] Call mum');
+  await expect(cmp.locator('iframe')).toHaveCount(2);
+  await cmp.getByRole('button', { name: 'Swap' }).click();
+  await expect(cmp.locator('.cmp-diff .add')).toHaveCount(1);
+  // The second link is pasted on the page; the first comes from Share.
+  await page.goto(a);
+  await page.getByRole('button', { name: 'Share' }).click();
+  await page.getByRole('menuitem', { name: /Compare with/ }).click();
+  // (Whatever link the clipboard held may already be the second side; the pasted one replaces it.)
+  await expect(page).toHaveURL(/#\/compare\/todo\//);
+  await page.getByRole('textbox', { name: 'The second link' }).fill(`http://localhost${b}`);
+  await page.getByRole('textbox', { name: 'The second link' }).press('Enter');
+  await expect(cmp.locator('.cmp-diff .add')).toHaveCount(2);
+});

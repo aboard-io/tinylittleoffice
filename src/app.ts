@@ -15,6 +15,7 @@ import { budgetFor, fromBase64Url } from './lib/codec.ts';
 import { encodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { privacy, isSealed } from './lib/privacy.ts';
 import { fromMarkdown } from './lib/markdown.ts';
+import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
@@ -263,19 +264,25 @@ export class ToApp extends LitElement {
   private readPlainLink(): boolean {
     if (location.hash.length < 2 || location.hash.startsWith('#/')) return false;
     const q = new URLSearchParams(location.hash.slice(1));
-    if (!q.has('doc') && !q.has('title') && !q.has('app')) return false;
+    if (!q.has('doc') && !q.has('md') && !q.has('title') && !q.has('app')) return false;
     const def = appOf(q.get('app') ?? '') ?? appOf(location.pathname.split('/').slice(-2)[0]);
     if (!def) return false;
+    // The document in the app's own format ("doc"), or as Markdown or CSV ("md"), read the way this kind of document reads it.
     const text = (q.get('doc') ?? '').replace(/\r\n?/g, '\n');
-    const body = def.read ? def.read(text) : text;
+    const body = q.has('md') && !q.has('doc') ? fromMarkdown(def, q.get('md') ?? '') : def.read ? def.read(text) : text;
     const title = q.get('title')?.trim() || undefined;
-    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, body }, def.id);
+    const by = q.get('by')?.trim() || undefined;
+    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, by, body }, def.id);
     history.replaceState(null, '', `${this.root}${location.protocol === 'file:' ? '' : def.id + '/'}${routeHash(def.id, payload, q.get('view') ?? '')}`);
     return true;
   }
 
+  /** Two documents side by side, at #/compare: not an app, a page of the shell. */
+  @state() private comparing: [Side | null, Side | null] | null = null;
+
   private onHash = () => {
     this.readPlainLink();
+    this.comparing = parseCompare(location.hash);
     const { app, payload, version, ext } = parseHash(location.hash);
     // An app's own page (".../deck/") with nothing after it opens a new document there.
     const page = location.pathname.split('/').slice(-2)[0];
@@ -457,6 +464,14 @@ export class ToApp extends LitElement {
     }
     if (how === 'png') return void this.download('png');
     if (how === 'qr') return void this.querySelector<ToQrDialog>('to-qr-dialog')?.show();
+    if (how === 'compare') {
+      // This document as the first; the other is pasted on the compare page (or comes from the clipboard, when allowed).
+      const me = sideOf(url);
+      if (!me) return;
+      const other = sideOf(await navigator.clipboard.readText().catch(() => ''));
+      location.hash = other && other.payload !== me.payload ? compareHash(me, other) : `#/compare/${me.app}/${me.payload}`;
+      return;
+    }
     if (how === 'embed') {
       await navigator.clipboard.writeText(this.embedCode()).then(() => this.showToast('Embed code copied'), () => this.showToast('Copy failed'));
       return;
@@ -596,6 +611,7 @@ export class ToApp extends LitElement {
                           <sl-menu-item value="png">Save a picture</sl-menu-item>
                           <sl-menu-item value="embed">Copy embed code</sl-menu-item>
                           <sl-menu-item value="qr">QR code</sl-menu-item>
+                          <sl-menu-item value="compare">Compare with another link…</sl-menu-item>
                           <sl-divider></sl-divider>
                           <sl-menu-item value="bluesky">Bluesky</sl-menu-item>
                           <sl-menu-item value="mastodon">Mastodon</sl-menu-item>
@@ -647,7 +663,7 @@ export class ToApp extends LitElement {
         </sl-button-group>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
       </sl-drawer>
-      <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>
+      <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPrivacyPrompt()}
       ${current ? this.renderImport() : nothing}
@@ -812,6 +828,13 @@ export class ToApp extends LitElement {
       <dl>
         <dt>Made</dt>
         <dd>${created !== null ? html`${fmtDate(created)} <span class="to-hint">${fmtUtc(created)}</span>` : '—'}</dd>
+        <dt>By</dt>
+        <dd>
+          <div class="row">
+            <sl-input class="sr-label to-by" size="small" label="Who made it" placeholder="A name, or an agent's" .value=${this.env.by ?? ''} @sl-change=${(e: Event) => { const by = (e.target as SlInput).value.trim() || undefined; this.env = { ...this.env, by }; void this.writeUrl(); void this.privacy.check(this.env, this.app); }}></sl-input>
+            ${this.env.by && this.privacy.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : this.env.by ? html`<span class="to-hint">unsigned: a claim, not proof</span>` : nothing}
+          </div>
+        </dd>
         <dt>Link</dt>
         <dd>${this.payloadLength.toLocaleString()} / ${available.toLocaleString()} <span class="to-hint">v${this.version}</span> ${left < 0 ? html`<sl-tag size="small" variant="danger" pill>${(-left).toLocaleString()} over</sl-tag>` : nothing}</dd>
         <dt>Download</dt>

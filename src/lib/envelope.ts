@@ -5,6 +5,7 @@
  * Inside the compressed text:
  *   c<created>      minutes since 2020-01-01T00:00Z, base 36
  *   t<title>        the document's name, optional
+ *   b<by>           who made it (a person, or an agent's name), optional
  *   k<public key>   base64url, optional
  *   s<signature>    base64url, optional
  *   <blank line>
@@ -25,6 +26,8 @@ export interface Envelope {
   sig?: string;
   /** The name its author gave the document. */
   title?: string;
+  /** Who made it: a name, for provenance when agents and people pass documents about. Proven only by a signature. */
+  by?: string;
   body: string;
 }
 
@@ -44,17 +47,18 @@ export function decodeCreated(s: string): number | null {
 
 /** Envelope as a one-character flag plus bytes; the flag is uppercase when an envelope is present. */
 export function packEnvelope(env: Envelope, app?: string): { flag: string; bytes: Uint8Array } {
-  if (env.created === null && !env.key && !env.sig && !env.title) return packDoc(env.body, app);
+  if (env.created === null && !env.key && !env.sig && !env.title && !env.by) return packDoc(env.body, app);
   const head: string[] = [];
   if (env.created !== null) head.push('c' + encodeCreated(env.created));
   if (env.title) head.push('t' + env.title.replace(/\n/g, ' '));
+  if (env.by) head.push('b' + env.by.replace(/\n/g, ' '));
   if (env.key && env.sig) head.push('k' + env.key, 's' + env.sig);
   const { flag, bytes } = packDoc(head.join('\n') + '\n\n' + env.body, app);
   return { flag: flag.toUpperCase(), bytes };
 }
 
 export function encodeEnvelope(env: Envelope, app?: string): string {
-  if (!env.body && env.created === null && !env.key && !env.title) return '';
+  if (!env.body && env.created === null && !env.key && !env.title && !env.by) return '';
   const { flag, bytes } = packEnvelope(env, app);
   return flag + toBase64Url(bytes);
 }
@@ -80,6 +84,7 @@ export function unpackEnvelope(flag: string, bytes: Uint8Array, app?: string): E
     const v = line.slice(1);
     if (line[0] === 'c') env.created = decodeCreated(v);
     else if (line[0] === 't' && v) env.title = v;
+    else if (line[0] === 'b' && v) env.by = v;
     else if (line[0] === 'k') env.key = v;
     else if (line[0] === 's') env.sig = v;
   }
@@ -96,8 +101,8 @@ export function decodeEnvelope(payload: string, app?: string): Envelope {
   }
 }
 
-/** The bytes a signature covers: the app, the creation time and the body. */
-export function signingMessage(app: string, created: number | null, body: string, title = ''): string {
-  // (A title is signed when there is one; documents signed before titles existed still verify.)
-  return `tinyoffice\n${app}\n${created === null ? '' : encodeCreated(created)}\n${body}${title ? '\u0000' + title : ''}`;
+/** The bytes a signature covers: the app, the creation time, the body, and the title and author when there are any. */
+export function signingMessage(app: string, created: number | null, body: string, title = '', by = ''): string {
+  // (A title and author are signed when there are any; documents signed before they existed still verify.)
+  return `tinyoffice\n${app}\n${created === null ? '' : encodeCreated(created)}\n${body}${title || by ? '\u0000' + title : ''}${by ? '\u0000' + by : ''}`;
 }

@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "new-app": "node scripts/new-app.mjs",
+    "build:api": "vite build -c vite.api.config.ts",
+    "py-dicts": "node --experimental-strip-types scripts/py-dicts.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.mjs"
   },
   "dependencies": {

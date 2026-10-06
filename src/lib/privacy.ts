@@ -88,7 +88,7 @@ export class Privacy {
     const { key, sig } = env;
     if (!key || !sig || !app) return this.set({ sig: 'none', signer: null });
     this.set({ sig: 'checking' });
-    const [ok, fp] = await Promise.all([verify(key, sig, signingMessage(app, env.created, env.body, env.title)), fingerprintOf(key)]);
+    const [ok, fp] = await Promise.all([verify(key, sig, signingMessage(app, env.created, env.body, env.title, env.by)), fingerprintOf(key)]);
     if (run === this.verifyRun) this.set({ sig: ok ? 'valid' : 'invalid', signer: fp });
   }
   /** Any message signed with this browser's key (made now if there is none yet): for a contract's parties, say. */
@@ -106,7 +106,7 @@ export class Privacy {
   /** The document signed with this browser's key (made now if there is none yet). */
   async sign(env: Envelope, app: string): Promise<Envelope> {
     const created = env.created ?? quantizeCreated(Date.now());
-    const { key, sig } = await this.api.sign(signingMessage(app, created, env.body, env.title));
+    const { key, sig } = await this.api.sign(signingMessage(app, created, env.body, env.title, env.by));
     this.set({ myKey: await this.api.fingerprint() });
     return { ...env, created, key, sig };
   }

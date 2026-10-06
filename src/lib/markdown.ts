@@ -263,9 +263,10 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     case 'deck':
       return slidesToMd(parseDeck(body), '');
     case 'sheet': {
-      const grid = parseGrid(body);
+      const grid = parseGrid(body).map((r) => r.slice());
+      while (grid.length && grid[grid.length - 1].every((v) => !v)) grid.pop();
       if (!grid.length) return '';
-      const w = Math.max(...grid.map((r) => r.length), 1);
+      const w = Math.max(1, ...grid.map((r) => r.reduce((n, v, i) => (v ? i + 1 : n), 0)));
       const [head, ...rest] = grid.map((r) => Array.from({ length: w }, (_, i) => r[i] ?? ''));
       return (name ? `# ${name}\n\n` : '') + tableMd(head, rest);
     }

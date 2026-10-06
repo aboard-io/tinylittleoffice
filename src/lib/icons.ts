@@ -22,6 +22,8 @@ import {
   Truck, Database, Server, Laptop, Smartphone, Printer, Scissors, Paintbrush, Palette, Film,
   Headphones, Gamepad2, Dumbbell, Apple, Pizza, Beer, Baby, Dog, Cat, Bird, Fish, Bug, Flower2,
   type IconNode,
+  GitCompareArrows,
+  ArrowLeftRight,
 } from 'lucide';
 
 export const UI = {
@@ -30,7 +32,7 @@ export const UI = {
   plus: Plus, trash: Trash2, left: ChevronLeft, right: ChevronRight, up: ChevronUp, down: ChevronDown,
   copy: Copy, link: Link, play: Play, close: X, select: MousePointer2, rect: Square, ellipse: Circle,
   diamond: Diamond, line: Minus, arrow: MoveRight, text: Type, front: ArrowUpToLine, back: ArrowDownToLine,
-  check: Check, sparkles: Sparkles, globe: Globe, cal: CalendarDays, menu: Menu, shield: ShieldCheck, shieldOff: ShieldAlert,
+  check: Check, sparkles: Sparkles, globe: Globe, cal: CalendarDays, menu: Menu, shield: ShieldCheck, shieldOff: ShieldAlert, compare: GitCompareArrows, swap: ArrowLeftRight,
   key: KeyRound, info: Info, clock: Clock, home: LayoutGrid, lock: LockKeyhole, unlock: LockKeyholeOpen,
   fn: SquareFunction, fit: FoldHorizontal, expand: UnfoldHorizontal, download: Download,
   todo: ListTodo, board: SquareKanban, gantt: ChartGantt, trip: Route, anim: Clapperboard, share: Share2, more: Ellipsis,

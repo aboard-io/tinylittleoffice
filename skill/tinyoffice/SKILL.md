@@ -15,6 +15,8 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 
 - `<app>` is one of the apps below.
 - `title` is optional: the document's name.
+- `by` is optional: who made it (your name as an agent, say). It shows in the document's About panel as a claim; a signature proves it.
+- `md` can stand in for `doc`: Markdown or CSV, shaped into the app's format when the page opens (a table becomes a sheet or the rows of a menu or invoice; headings become slides; `- [ ]` become tasks). Use `doc` when you know the app's format; `md` when you have Markdown already.
 - `doc` is the document as plain text, in the app's format, URL-encoded: a new line is `%0A`, a tab is `%09`, a space is `+` or `%20`, and `& # % + =` inside the text must be percent-encoded.
 - `view` is optional: `show` opens a deck presenting, `embed` shows the document alone (for an iframe), and `pdf`, `png`, `html` or `md` download it. Every app downloads as Markdown (headings, lists, checkboxes and tables as a reader would expect), and the Download menu's "Import Markdown or CSV…" reads Markdown (or a CSV, as a table) back into any app.
 
@@ -226,3 +228,7 @@ link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120\nQ2\t18
 - Always URL-encode `doc` and `title`. Check that `#`, `&`, `%`, `+` and `=` in the content are encoded.
 - Give the link as a Markdown link with a plain description: `[Sales by quarter (chart)](https://...)`.
 - Say that the link is the document: editing it changes the link, and anyone with the link can read it.
+
+## Without a browser
+
+For a program or an agent, `npm i @tinylittleoffice/doc` (or `pip install tinylittleoffice`) makes and reads these links directly: `link(app, body, {title, by})`, `linkFromMarkdown`, `parse(url)` (the document as Markdown too), `compare(a, b)` for what changed, `evaluateSheet`, `runModel`, and `signed`/`verified` for provenance. The `tinyoffice` command does the same from a shell, and `tinyoffice render <link> --out x.pdf` makes the file. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`.

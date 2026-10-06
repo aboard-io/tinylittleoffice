@@ -264,6 +264,17 @@ A test opens every example in the guide.
 
 The parameters go after `#`, never `?`: see the next section.
 
+## For programs and agents
+
+A document is a link, so a program makes one by making a string. Two packages do the packing, byte for byte as the site does:
+
+- **JavaScript** `@tinylittleoffice/doc` (`packages/doc`): `link`, `linkFromMarkdown`, `parse`, `compare`, `evaluateSheet`, `runModel`, `signed`/`verified`, `sealed`/`open`, and a `tinyoffice` CLI that also renders a link to PDF/PNG/PPTX/XLSX headlessly. Built from `src/api.ts` with `npm run build:api`.
+- **Python** `tinylittleoffice` (`packages/python`): `link`, `link_from_markdown`, `parse`. Its dictionaries are generated from the TypeScript (`npm run py-dicts`), and a unit test checks both sides produce the same bytes.
+
+Plain links also take `&md=` (Markdown or CSV, shaped on opening) and `&by=` (who made it), and every envelope carries `by`, which a signature then proves. Two links compare at `#/compare/<app>/<payload>/<app>/<payload>` (or Share → Compare with another link…), with the lines the second changed.
+
+This is the office suite for agents chatting: an agent writes a link, hands it over in whatever channel it already has, the next agent reads it and emits a new one. Documents are values; the history is the sequence of links; nothing needs a server.
+
 ## What the server sees
 
 Nothing of any document. A document is the part of the address after `#`,

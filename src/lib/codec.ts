@@ -60,8 +60,8 @@ export function fromBase64Url(s: string): Uint8Array {
  * FROZEN: every "y" link ever made depends on these exact bytes. To improve
  * the dictionary, add a new one under a new flag; never edit this one.
  */
-const DICTIONARY = strToU8(
-  [
+/** The dictionary's text, for ports to other languages (scripts/py-dicts.ts). */
+export const DICTIONARY_TEXT = [
     // English, roughly least to most common so the commonest sit closest.
     ' experience development information different important available',
     ' question together business company project customer product service research meeting',
@@ -82,8 +82,8 @@ const DICTIONARY = strToU8(
     '@Europe/London\n@America/Los_Angeles\n@America/New_York\nt\nd',
     '\nx \n-! \n- #Backlog\n#Review\n#To do\n#Doing\n#Done\n',
     'Stop \ti \tt ,a;',
-  ].join('\n'),
-);
+].join('\n');
+const DICTIONARY = strToU8(DICTIONARY_TEXT);
 
 export type Flag = 'w' | 'y' | 'z' | 'r';
 
