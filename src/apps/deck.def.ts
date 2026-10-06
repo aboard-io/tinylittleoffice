@@ -2,7 +2,9 @@
 import { defineApp, xml, wrap, text, place, pageSvg, rect, r, ACCENT, MUTED, type DownloadContext, type Page, type Span } from '../kit/core.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
-import { refPage, refSteps, resolve } from '../kit/embed.ts';
+import { makeRef, refPage, refSteps, resolve } from '../kit/embed.ts';
+import { encodeEnvelope } from '../lib/envelope.ts';
+import { QR_MAX_BYTES } from '../lib/qr.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { ICON_COLORS, deckIconColor, parseDeck, type Slide } from '../lib/deckmodel.ts';
 
@@ -181,7 +183,7 @@ const pic = (id: number, rel: string, name: string, frame: string) =>
 /** The pictures PowerPoint needs drawn: each icon used, and each embedded document. */
 function pictures(body: string): Record<string, { svg: string; w: number; h: number }> {
   const out: Record<string, { svg: string; w: number; h: number }> = {};
-  parseDeck(body).forEach((s, i) => {
+  slidesWith(body).forEach((s, i) => {
     if (s.icon && ICON_SVG[s.icon]) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" stroke="${ICON_COLORS[deckIconColor(body)]?.hex ?? ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[s.icon]}</svg>` };
     if (s.sub) {
       const p = refPage(s.sub);
@@ -192,7 +194,7 @@ function pictures(body: string): Record<string, { svg: string; w: number; h: num
 }
 
 export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
-  const slides = parseDeck(body);
+  const slides = slidesWith(body);
   const png = ctx.png ?? {};
   const files: Record<string, string | Uint8Array> = {};
   const slideRels: [string, string, string][] = [];
@@ -253,6 +255,25 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
   );
 }
 
+/**
+ * The deck ends with a slide that is a QR code of the whole deck, its
+ * title beneath: whoever is in the room can take it home. (A deck too long
+ * for a code ends as it is.) The slide is made, not written: it shows
+ * another document, a QR code of this deck's own link.
+ */
+export function closingSlide(body: string): Slide | null {
+  const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
+  const link = `${site}deck/#/v2/deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
+  if (new TextEncoder().encode(link).length > QR_MAX_BYTES || !body.trim()) return null;
+  return { icon: '', title: '', bullets: [], sub: makeRef('qr', link) };
+}
+/** The slides as shown and printed: what was written, then the closing code. */
+export const slidesWith = (body: string): Slide[] => {
+  const slides = parseDeck(body);
+  const end = closingSlide(body);
+  return end ? [...slides, end] : slides;
+};
+
 const title = (body: string) => plainInline(parseDeck(body).find((s) => s.title.trim())?.title.trim() ?? '');
 
 export default defineApp({
@@ -263,7 +284,7 @@ export default defineApp({
   blurb: 'Slides: titles, bullets, two columns, big icons, and other documents shown on a slide.',
   title,
   outline: (body) => parseDeck(body).flatMap((s) => [s.title, ...[...s.bullets, ...(s.right ?? [])].map((b) => (b.trim() ? '•  ' + b : ''))]).map((l) => plainInline(l.trim())).filter(Boolean),
-  view: (body) => parseDeck(body).map((s) => slidePage(s, Infinity, undefined, deckIconColor(body))),
+  view: (body) => slidesWith(body).map((s) => slidePage(s, Infinity, undefined, deckIconColor(body))),
   presents: true,
   html: (body) =>
     parseDeck(body)

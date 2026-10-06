@@ -147,8 +147,8 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async ({ 
 
   // On a slide: chosen from Slide type, it has the slide and builds a shape per click.
   await page.goto('/#/deck');
-  await page.getByRole('button', { name: 'Slide type' }).click();
-  await page.getByRole('menuitem', { name: 'Mind map', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Add a slide' }).fill('mind');
+  await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await sub.getByRole('textbox', { name: 'Mind map, as text' }).fill('Launch\n  Product\n  Marketing');
   await sub.getByRole('button', { name: 'Done' }).click();
@@ -494,8 +494,8 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   expect(fits).toBe(true);
   // A page can hold another document.
   await page.getByRole('button', { name: 'Page 3' }).click();
-  await page.getByRole('button', { name: 'Insert' }).click();
-  await page.getByRole('menuitem', { name: 'Sticky notes' }).click();
+  await page.getByRole('combobox', { name: 'Insert' }).fill('sticky');
+  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await sub.getByRole('textbox', { name: 'Sticky notes, as text' }).fill('Rain on the roof\ngreen: Fresh bread');
   await sub.getByRole('button', { name: 'Done' }).click();

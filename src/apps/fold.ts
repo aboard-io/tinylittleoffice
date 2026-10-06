@@ -2,10 +2,11 @@
  * The editor for paper that folds (see lib/fold.ts): its pages to fill in,
  * each shown as it will print, and the sheets to print.
  */
-import { DocElement, defineElement, html, nothing, state, unsafeSVG, tool, icon, libraryIcon, UI, editRef, insertMenu, makeRef, pageSvg } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, unsafeSVG, tool, icon, libraryIcon, UI, editRef, insertOptions, makeRef, pageSvg } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
+import '../widgets/insert-box.ts';
 import { iconOf } from '../lib/drawmodel.ts';
 import { foldPage, foldSheets, formatOf, parseFold, serializeFold, type Folded, type Format } from '../lib/fold.ts';
 
@@ -97,12 +98,7 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
         </sl-select>` : nothing}
         ${f.panels ? nothing : html`<sl-button size="small" @click=${this.pickIcon}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>`}
         ${s.icon ? tool('Remove the icon', 'close', () => this.patch({ icon: '' })) : nothing}
-        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insert(e.detail.item.value)}>
-          <sl-button slot="trigger" size="small" caret>${icon(UI.plus, 14)} Insert</sl-button>
-          <sl-menu>
-            ${insertMenu('zine', (a) => !!formatOf(a.id))}
-          </sl-menu>
-        </sl-dropdown>
+        <to-insert label="Insert" placeholder="Insert: sticky notes, map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
         ${f.grow
           ? html`<sl-button-group label="Pages">
               ${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: 4 }, () => ({ icon: '', title: '', bullets: [] }))] }), { text: true, disabled: n >= f.grow })}

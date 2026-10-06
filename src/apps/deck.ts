@@ -7,13 +7,14 @@
  * Document format: see lib/deckmodel.ts. Layout and drawing: deck.def.ts.
  */
 import { keyed } from 'lit/directives/keyed.js';
-import { DocElement, defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, searchIcons, suggestIcons, editRef, insertMenu, makeRef, resolve, loadEditor, isKey } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, searchIcons, suggestIcons, editRef, insertOptions, makeRef, resolve, loadEditor, isKey } from '../kit.ts';
 import type { SlDialog, SlInput, SlSelect } from '../kit.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
 import { iconCount } from '../lib/iconsearch.ts';
 import { toggleMark } from '../lib/richtext.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import { SH, SW, depthOf, layoutSlide, slidePage, slideSteps } from './deck.def.ts';
+import '../widgets/insert-box.ts';
+import { SH, SW, closingSlide, depthOf, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
 
 interface Deck {
   slides: Slide[];
@@ -134,9 +135,14 @@ export class ToDeck extends DocElement<Deck> {
 
   /* ---------- presenting ---------- */
 
+  /** The slides as shown: what was written, then the closing QR code of the whole deck. */
+  private get shows(): Slide[] {
+    return slidesWith(this.serialize(this.doc));
+  }
+
   /** How many clicks the slide takes, and what plays by itself. */
   private steps(i = this.showing) {
-    const st = slideSteps(this.slides[i]);
+    const st = slideSteps(this.shows[i]);
     return { ...st, clicks: st.bullets + st.sub };
   }
 
@@ -150,12 +156,12 @@ export class ToDeck extends DocElement<Deck> {
     this.shown = shown;
     if (i < 0 && this.present) this.dispatchEvent(new CustomEvent('present-end', { bubbles: true, composed: true }));
     if (i < 0) return;
-    if (resolve(this.slides[i].sub ?? '').def?.id === 'trip') void loadEditor('trip');
+    if (resolve(this.shows[i]?.sub ?? '').def?.id === 'trip') void loadEditor('trip');
   }
 
   private forward() {
     if (this.shown < this.steps().clicks) this.shown++;
-    else if (this.showing + 1 < this.slides.length) this.show(this.showing + 1);
+    else if (this.showing + 1 < this.shows.length) this.show(this.showing + 1);
     // Someone sent a link to watch stays on the last slide; a rehearsal drops back to the editor.
     else if (!this.present) this.show(-1);
   }
@@ -307,16 +313,8 @@ export class ToDeck extends DocElement<Deck> {
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Slides">
         ${tool('Slide', 'plus', () => this.add(), { text: true, disabled: n >= MAX_SLIDES })}
-        <sl-dropdown class="deck-kind" hoist @sl-select=${(e: CustomEvent) => this.pickKind(e.detail.item.value)}>
-          <sl-button slot="trigger" size="small" caret>${icon(UI.columns, 14)} <span class="sr-only">Slide type: </span>${kindName}</sl-button>
-          <sl-menu>
-            <sl-menu-label>Add a slide</sl-menu-label>
-            ${LAYOUTS.map((l) => html`<sl-menu-item type="checkbox" value="layout:${l.id}" ?checked=${!s.sub && kind === l.id}>${l.name}</sl-menu-item>`)}
-            <sl-divider></sl-divider>
-            <sl-menu-label>Add a slide showing a</sl-menu-label>
-            ${insertMenu('deck')}
-          </sl-menu>
-        </sl-dropdown>
+        <span class="deck-kind to-hint" title="What kind of slide this is">${kindName}</span>
+        <to-insert class="deck-add" label="Add a slide" placeholder="Add a slide: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts' })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
         ${tool('Delete slide', 'trash', () => this.removeSlide())}
         <sl-button-group label="Reorder">
           ${tool('Move slide up', 'up', () => this.move(-1), { disabled: this.cur === 0 })}
@@ -346,6 +344,16 @@ export class ToDeck extends DocElement<Deck> {
               <svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>
             </button>`;
           })}
+          ${(() => {
+            // The closing slide is made, not written: a QR code of the deck, shown here so it is no surprise.
+            const end = closingSlide(this.serialize(this.doc));
+            if (!end) return nothing;
+            const p = slidePage(end, Infinity, undefined, this.doc.color);
+            return html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" title="Ends with a QR code of this deck, so the room can take it home">
+              <span class="n">${icon(UI.qr, 12)}</span>
+              <svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>
+            </div>`;
+          })()}
         </nav>
         <div class="deck-editor">
           <div class="deck-slide lay-${kind || 'b'} ${s.sub ? 'has-sub' : ''}" style=${fit}>
@@ -395,7 +403,8 @@ export class ToDeck extends DocElement<Deck> {
   }
 
   private renderShow() {
-    const s = this.slides[this.showing];
+    const shows = this.shows;
+    const s = shows[this.showing];
     const st = this.steps();
     const subStep = st.sub ? this.shown : undefined;
     const sub = s.sub ? resolve(s.sub) : null;
@@ -403,8 +412,8 @@ export class ToDeck extends DocElement<Deck> {
     const map = sub?.def?.id === 'trip' ? layoutSlide(s).sub : undefined;
     const p = slidePage(s, this.shown, map ? 0 : subStep, this.doc.color);
     return html`<div class="deck-show" role="dialog" aria-modal="true" aria-label="Presentation" @click=${this.onShowClick}>
-      ${this.leaving >= 0 && this.slides[this.leaving]
-        ? keyed(this.leaving, html`<div class="was tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(slidePage(this.slides[this.leaving], Infinity, undefined, this.doc.color).svg)}</svg></div>`)
+      ${this.leaving >= 0 && shows[this.leaving]
+        ? keyed(this.leaving, html`<div class="was tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(slidePage(shows[this.leaving], Infinity, undefined, this.doc.color).svg)}</svg></div>`)
         : nothing}
       ${keyed(
         this.showing,
@@ -413,13 +422,13 @@ export class ToDeck extends DocElement<Deck> {
           ${map && sub ? html`<to-trip class="deck-map" present .value=${sub.body} .step=${subStep ?? 0} style="left:${(map.x / SW) * 100}%;top:${(map.y / SH) * 100}%;width:${(map.w / SW) * 100}%;height:${(map.h / SH) * 100}%" @click=${(e: Event) => e.stopPropagation()}></to-trip>` : nothing}
         </div>`,
       )}
-      <p class="sr-only" aria-live="polite">Slide ${this.showing + 1} of ${this.slides.length}: ${s.title}</p>
+      <p class="sr-only" aria-live="polite">Slide ${this.showing + 1} of ${shows.length}: ${s.title || (this.showing === shows.length - 1 ? 'A QR code of this deck' : '')}</p>
       <sl-button-group class="ctl" label="Presentation" @click=${(e: Event) => e.stopPropagation()}>
         ${tool('Previous', 'left', () => this.back(), { disabled: this.showing === 0 && this.shown === 0 })}
         ${tool('Next', 'right', () => this.forward())}
         ${this.present ? tool('Edit this deck', 'pen', () => this.show(-1), { text: true }) : tool('Exit', 'close', () => this.show(-1))}
       </sl-button-group>
-      <span class="pos">${this.showing + 1} / ${this.slides.length}</span>
+      <span class="pos">${this.showing + 1} / ${shows.length}</span>
     </div>`;
   }
 }

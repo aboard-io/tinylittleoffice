@@ -234,7 +234,7 @@ test('download views: the link itself hands over a file', async ({ page }, testI
     ['draw', 'svg', 'r,2,1,12,6,1,Box\na,14,4,8,0,0', 'draw.svg', (b) => expect(b.toString()).toContain('>Box</text>')],
     ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'cal.ics', (b) => expect(b.toString()).toContain('SUMMARY:Offsite')],
     // Every app can also be a PDF, a picture and a web page.
-    ['deck', 'pdf', ':rocket:t\nLaunch plan\nSpring\n\nAgenda\none\ntwo', 'launch-plan.pdf', (b) => { expect(b.subarray(0, 8).toString()).toBe('%PDF-1.4'); expect(b.toString('latin1').match(/\/Type \/Page /g)).toHaveLength(2); }],
+    ['deck', 'pdf', ':rocket:t\nLaunch plan\nSpring\n\nAgenda\none\ntwo', 'launch-plan.pdf', (b) => { expect(b.subarray(0, 8).toString()).toBe('%PDF-1.4'); expect(b.toString('latin1').match(/\/Type \/Page /g)).toHaveLength(3); }],
     ['gantt', 'pdf', '1jk,5,1e,Design\n>1jk,2,2s,Sketch', 'gantt.pdf', (b) => expect(b.subarray(0, 5).toString()).toBe('%PDF-')],
     ['board', 'png', '#To do\nWrite the brief\n#Done', 'board.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
     ['trip', 'png', '3xa8g,-fuyo,Lisbon\n40000,0,B', 'lisbon-to-b.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
@@ -466,9 +466,12 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
   await expect(slide).toContainText('Ship it');
-  // The end of the deck is not the end of the show: they stay on the last slide.
+  // The deck ends with a QR code of itself, titled; and the end of the deck is not the end of the show.
   await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Ship it');
+  await expect(slide.locator('path[shape-rendering="crispEdges"]')).toHaveCount(1);
+  await expect(slide).toContainText('Spring launch');
+  await page.keyboard.press('ArrowRight');
+  await expect(slide.locator('path[shape-rendering="crispEdges"]')).toHaveCount(1);
   await shot(page, 'deck-shared');
 
   // "Edit this deck" is the way to the editor, and from then on the link is an editing link.

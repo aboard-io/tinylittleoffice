@@ -322,7 +322,7 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await library.getByRole('button', { name: 'rocket', exact: true }).click();
   await expect(page.locator('#icon-picker')).not.toHaveAttribute('open');
   await expect(page.locator('.deck-suggest')).toHaveCount(0);
-  await expect(page.locator('.to-toolbar .to-hint')).toHaveText('2 slides');
+  await expect(page.locator('.to-toolbar .to-hint').last()).toHaveText('2 slides');
 
   // Each dot sits on the first line of its bullet, even when a bullet wraps.
   await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(3).trim() + '\nTell people');
@@ -369,7 +369,9 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await show.dblclick({ position: { x: 300, y: 300 } });
   await expect(slide).toContainText('Tell people');
   await shot(page, 'deck-show');
-  // Once everything is out, the next step leaves the last slide and the show.
+  // Once everything is out, the next step is the closing QR code of the deck; the one after leaves the show.
+  await page.keyboard.press('ArrowRight');
+  await expect(slide.locator('path[shape-rendering="crispEdges"]')).toHaveCount(1);
   await page.keyboard.press('ArrowRight');
   await expect(show).toHaveCount(0);
 
@@ -398,12 +400,14 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   await expect(page.locator('.deck-slide.lay-i .big svg')).toBeVisible();
   // Layout is a choice per slide.
   // Slide type says what this slide is, and adds a slide of whatever is chosen: the slide you are on is left alone.
-  const kind = page.locator('.deck-kind sl-button[slot="trigger"]');
+  const kind = page.locator('.deck-kind');
   await expect(kind).toContainText('Big icon');
-  await kind.click();
-  await expect(page.getByRole('menuitemcheckbox')).toHaveText(['Bullets', 'Title', 'Two columns', 'Big icon']);
-  for (const name of ['Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Sticky notes']) await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
-  await page.getByRole('menuitemcheckbox', { name: 'Two columns' }).click();
+  // A combobox: type a few letters of a layout or a document, and a slide of it is added.
+  const add = page.getByRole('combobox', { name: 'Add a slide' });
+  const options = await page.locator('.deck-add datalist option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
+  for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Sticky notes']) expect(options).toContain(name);
+  await add.fill('two col');
+  await add.press('Enter');
   await expect(thumbs).toHaveCount(5);
   await expect(page.locator('.deck-slide.lay-2')).toBeVisible();
   await expect(kind).toContainText('Two columns');
@@ -420,8 +424,8 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   await drawing.click();
   await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
   await expect(kind).toContainText('Drawing');
-  await kind.click();
-  await page.getByRole('menuitem', { name: 'Chart', exact: true }).click();
+  await add.fill('Chart');
+  await add.press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await expect(sub).toHaveAttribute('open');
   await sub.getByRole('textbox', { name: 'A1', exact: true }).fill('Q1');
@@ -483,8 +487,8 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
 
 test('deck: a motion slide is made and changed from the slide itself', async ({ page }) => {
   await page.goto('/#/deck');
-  await page.getByRole('button', { name: 'Slide type' }).click();
-  await page.getByRole('menuitem', { name: 'Motion', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Add a slide' }).fill('motion');
+  await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await expect(sub).toHaveAttribute('open');
   await sub.getByRole('button', { name: 'Text', exact: true }).click();

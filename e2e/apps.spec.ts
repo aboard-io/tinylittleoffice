@@ -371,8 +371,8 @@ test('write: other documents sit in the text as one thing each', async ({ page }
 
   // Insert makes a new one from a menu and opens it for editing.
   await editor.click();
-  await page.getByRole('button', { name: 'Insert' }).click();
-  await page.getByRole('menuitem', { name: 'Drawing' }).click();
+  await page.getByRole('combobox', { name: 'Insert' }).fill('draw');
+  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await expect(sub).toHaveAttribute('open');
   await sub.getByRole('button', { name: 'Ellipse' }).click();
@@ -463,6 +463,9 @@ test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await expect(map.locator('.leaflet-popup', { hasText: '1. Lisbon' })).toContainText('Start here');
   await page.keyboard.press('ArrowRight');
   await expect(map.locator('.leaflet-popup', { hasText: '2. Second' })).toBeVisible();
+  // Then the closing QR code of the deck, then out.
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.deck-show .frame > svg path[shape-rendering="crispEdges"]')).toHaveCount(1);
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('.deck-show')).toHaveCount(0);
 });

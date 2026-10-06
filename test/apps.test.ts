@@ -835,3 +835,22 @@ test('rich text: highlight, icons in the line, and alignment, in text and in pic
   assert.ok(slidePage(parseDeck('Go :rocket:\n=now=')[0], Infinity, undefined, '').svg.includes('#fef08a'));
   assert.ok(appOf('write')!.html!('>c Hello =there= :star:', { created: null }).includes('text-align:center') && appOf('write')!.html!('=x=', { created: null }).includes('<mark>'));
 });
+
+test('a deck ends with a QR code of itself', async () => {
+  const { closingSlide, slidesWith, deckToPptx } = await import('../src/apps/deck.def.ts');
+  const body = ':rocket:t\nLaunch plan\nSpring\n\nGoals\nShip it';
+  const end = closingSlide(body)!;
+  assert.ok(end.sub?.startsWith('qr/'));
+  assert.equal(slidesWith(body).length, 3);
+  // The last page is the code, labelled with the deck's title.
+  const pages = appOf('deck')!.view(body);
+  assert.equal(pages.length, 3);
+  assert.ok(pages[2].svg.includes('shape-rendering="crispEdges"') && pages[2].svg.includes('>Launch plan</text>'));
+  // An empty deck, or one too long for a code, ends as written.
+  assert.equal(closingSlide(''), null);
+  assert.equal(closingSlide(Array.from({ length: 300 }, (_, i) => `Slide ${i}\nwords ${i * 7919} that will not pack`).join('\n\n')), null);
+  // PowerPoint gets the slide too, as a picture.
+  const { unzipSync } = await import('fflate');
+  const files = unzipSync(deckToPptx(body, { created: null, png: { 'sub-3': new Uint8Array([137, 80, 78, 71]) } } as never));
+  assert.ok(files['ppt/slides/slide3.xml'] && files['ppt/media/sub-3.png']);
+});

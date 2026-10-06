@@ -9,7 +9,8 @@ import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
-import { editRef, insertMenu } from '../kit/browser.ts';
+import { editRef, insertOptions } from '../kit/browser.ts';
+import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { MAX_DEPTH, linkify, parseDoc, serializeDoc, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
@@ -482,12 +483,7 @@ export class ToWrite extends LitElement {
           ${this.btn('Bring out', 'outdent', false, 'outdent', undefined, 'Shift+Tab')}
           ${this.btn('Indent', 'indent', false, 'indent', undefined, 'Tab')}
         </sl-button-group>
-        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insertNew(e.detail.item.value)}>
-          <sl-button slot="trigger" size="small" caret>${icon(UI.insert, 14)} Insert</sl-button>
-          <sl-menu>
-            ${insertMenu('write')}
-          </sl-menu>
-        </sl-dropdown>
+        <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
       </div>
       <div
         class="write-page ${this.value ? '' : 'blank'}"

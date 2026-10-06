@@ -137,7 +137,9 @@ test('deck to pptx: one slide part per slide, icons embedded when supplied', () 
   assert.equal(Object.keys(files)[0], '[Content_Types].xml');
   for (const part of ['ppt/presentation.xml', 'ppt/slideMasters/slideMaster1.xml', 'ppt/slideLayouts/slideLayout1.xml', 'ppt/theme/theme1.xml', 'ppt/slides/slide1.xml', 'ppt/slides/slide2.xml'])
     assert.ok(files[part], part);
-  assert.equal(files['ppt/slides/slide3.xml'], undefined);
+  // The third slide is the closing QR code of the deck; there is no fourth.
+  assert.ok(files['ppt/slides/slide3.xml']);
+  assert.equal(files['ppt/slides/slide4.xml'], undefined);
   assert.deepEqual([...files['ppt/media/icon-rocket.png']], [...png]);
   const s1 = strFromU8(files['ppt/slides/slide1.xml']);
   assert.ok(s1.includes('<a:t>Launch &lt;plan&gt;</a:t>'));

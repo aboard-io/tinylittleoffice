@@ -251,6 +251,22 @@ if (!customElements.get('to-embed')) customElements.define('to-embed', ToEmbed);
  * order and clusters: the same hierarchy the main menu has. Sheet is
  * "Table" here (and offers a chart too), Trip is "Map", Draw is "Drawing".
  */
+/** The apps that can go inside another, as options for a combobox, in the menu's order and clusters. */
+export function insertOptions(host: string, skip: (a: AppDef) => boolean = () => false): { value: string; label: string; group?: string }[] {
+  const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
+  const all = embeddable(host).filter((a) => !skip(a));
+  const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
+  const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
+  const out: { value: string; label: string; group?: string }[] = [];
+  for (const g of groups)
+    for (const a of all.filter((x) => !x.under && (x.group ?? '') === g)) {
+      out.push({ value: a.id, label: name(a), group: g });
+      if (a.id === 'sheet') out.push({ value: 'chart', label: 'Chart', group: g });
+      for (const c of all.filter((x) => x.under === a.id)) out.push({ value: c.id, label: name(c), group: g });
+    }
+  return out;
+}
+
 export function insertMenu(host: string, skip: (a: AppDef) => boolean = () => false): TemplateResult {
   const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
   const all = embeddable(host).filter((a) => !skip(a));

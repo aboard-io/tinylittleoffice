@@ -824,7 +824,8 @@ table.sheet td.sel input {
   background: var(--to-surface-2);
   overflow-y: auto;
 }
-.deck-thumb {
+.deck-thumb,
+.deck-end {
   position: relative;
   flex-shrink: 0;
   padding: 0;
@@ -834,7 +835,8 @@ table.sheet td.sel input {
   cursor: pointer;
   overflow: hidden;
 }
-.deck-thumb svg {
+.deck-thumb svg,
+.deck-end svg {
   display: block;
   width: 100%;
   height: auto;
@@ -842,7 +844,8 @@ table.sheet td.sel input {
 .deck-thumb[aria-current='true'] {
   border-color: var(--to-accent);
 }
-.deck-thumb .n {
+.deck-thumb .n,
+.deck-end .n {
   position: absolute;
   left: 4px;
   top: 3px;
@@ -3792,4 +3795,41 @@ mark {
 }
 .write-page .ic {
   margin: 0 0.05em;
+}
+
+/* The deck's closing slide: a QR code of itself, in the rail but not for editing */
+.deck-end {
+  opacity: 0.8;
+  cursor: default;
+}
+
+/* The insert combobox: type what you want, pick it, it is added */
+.to-insert {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.to-insert-icon {
+  position: absolute;
+  left: 9px;
+  display: grid;
+  color: var(--to-accent);
+  pointer-events: none;
+}
+.to-insert input {
+  width: 15rem;
+  max-width: 48vw;
+  padding: 6px 10px 6px 28px;
+  font: 14px var(--sl-font-sans);
+  color: var(--to-ink);
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+}
+.to-insert input:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -1px;
+}
+.deck-kind {
+  padding: 0 4px;
 }
