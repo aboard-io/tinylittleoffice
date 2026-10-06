@@ -534,6 +534,60 @@ sl-menu-item svg.pre {
 }
 
 /* Document dialog */
+sl-dialog.to-doc {
+  --width: min(96vw, 760px);
+}
+.to-doc h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 10px;
+  padding-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--to-ink-2);
+  border-bottom: 1px solid var(--to-border);
+}
+.to-doc h3:first-child {
+  margin-top: 0;
+}
+.to-doc dt {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--to-ink-2);
+}
+.to-kept {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.to-kept th,
+.to-kept td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--to-border);
+}
+.to-kept thead th {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
+}
+.to-kept tbody th {
+  font-weight: 500;
+}
+.to-kept small {
+  font-weight: 400;
+  color: var(--to-ink-3);
+}
+.to-kept td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
 .to-doc dl {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -541,7 +595,6 @@ sl-menu-item svg.pre {
   margin: 0 0 16px;
 }
 .to-doc dt {
-  color: var(--to-ink-3);
   display: flex;
   align-items: center;
   min-height: 30px;

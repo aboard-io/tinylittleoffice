@@ -173,3 +173,37 @@ test('the picture is worked directly: tap a box for its buttons', async ({ page 
   await page.setViewportSize({ width: 400, height: 800 });
   await shot(page, 'direct-org');
 });
+
+test('a page is edited in the page: type into it, add with the bar, Enter for another', async ({ page }) => {
+  await page.goto('/#/split');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const f = page.frameLocator('to-split iframe');
+  // What is written in the text is there in the page, to type into.
+  const sam = f.getByRole('textbox', { name: 'Who paid, row 4' });
+  await expect(sam).toHaveText('Sam');
+  await sam.click();
+  await page.keyboard.press('End');
+  await page.keyboard.type('antha');
+  // The table beneath has it at once; once the typing pauses the page is drawn afresh, sums and all.
+  await expect(page.getByRole('textbox', { name: 'Who paid, row 4' })).toHaveValue('Samantha');
+  await expect(f.locator('.pay').last()).toContainText('Samantha');
+  // The bar adds a row, shown with its fields' names to type over; Remove takes it away.
+  await f.getByRole('group', { name: 'Add' }).getByRole('button', { name: '+ Payment' }).click();
+  // (It goes in after the row last typed in: Samantha's.)
+  const who = f.getByRole('textbox', { name: 'Who paid, row 5' });
+  await expect(who).toHaveText('Who paid');
+  await expect(f.locator('tbody tr')).toHaveCount(5);
+  await who.click();
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Grace');
+  await expect(page.getByRole('textbox', { name: 'Who paid, row 5' })).toHaveValue('Grace');
+  await expect(f.locator('tbody')).toContainText('Grace');
+  await shot(page, 'page-edit');
+  await f.getByRole('textbox', { name: 'Who paid, row 5' }).click();
+  await f.getByRole('button', { name: 'Remove this' }).click();
+  await expect(f.locator('tbody tr')).toHaveCount(4);
+  // Enter in a box: another row like it.
+  await f.getByRole('textbox', { name: 'What for, row 5' }).click();
+  await page.keyboard.press('Enter');
+  await expect(f.locator('tbody tr')).toHaveCount(5);
+});

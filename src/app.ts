@@ -7,7 +7,7 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { folders, forget, forgetAll, keep, moveTo, saving, setSaving, type Kept } from './lib/library.ts';
+import { folders, forget, forgetAll, keep, library, moveTo, saving, setSaving, type Kept } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
@@ -336,6 +336,51 @@ export class ToApp extends LitElement {
     else this.viewing = true;
   }
 
+  /* ---------- what this site keeps on the device ---------- */
+
+  /** Whether the app is kept for offline use: known once asked. */
+  @state() private offline: boolean | null = null;
+  private static PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.open', 'tinyoffice.nav'];
+  private prefsKept(): number {
+    try {
+      return ToApp.PREFS.filter((k) => localStorage.getItem(k) !== null).length;
+    } catch {
+      return 0;
+    }
+  }
+  private forgetPrefs = () => {
+    try {
+      for (const k of ToApp.PREFS) localStorage.removeItem(k);
+    } catch {
+      // (Nothing kept, then.)
+    }
+    this.theme = 'auto';
+    this.shut = [];
+    this.requestUpdate();
+  };
+  private async checkOffline() {
+    this.offline = 'caches' in window ? (await caches.keys()).length > 0 : false;
+  }
+  private dropOffline = async () => {
+    if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+    if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
+    this.offline = false;
+  };
+  private leaveNothing = async () => {
+    if (!confirm('Forget everything this site keeps in this browser: the list of documents, your signing key, preferences, and the offline copy of the app?')) return;
+    setSaving(false);
+    this.signerApi.forget();
+    this.myKey = null;
+    this.forgetPrefs();
+    await this.dropOffline();
+    try {
+      for (const k of Object.keys(localStorage)) if (k.startsWith('tinyoffice.') || k === 'to-theme') localStorage.removeItem(k);
+    } catch {
+      // (Nothing kept, then.)
+    }
+    this.requestUpdate();
+  };
+
   /** Keep this document in the browser's own library, in a folder named for its app unless it has been moved. */
   private remember() {
     if (!this.app || !this.def || this.embedded || this.env.created === null || !location.hash.includes('/v')) return;
@@ -613,6 +658,7 @@ export class ToApp extends LitElement {
   }
 
   private dialog(): SlDialog | null {
+    void this.checkOffline();
     return this.querySelector<SlDialog>('#doc-dialog');
   }
   private drawer(): SlDrawer | null {
@@ -891,13 +937,14 @@ export class ToApp extends LitElement {
   private renderDialog(available: number) {
     const left = available - this.payloadLength;
     const created = this.env.created;
-    return html`<sl-dialog id="doc-dialog" label="Document" class="to-doc">
+    return html`<sl-dialog id="doc-dialog" label="This document" class="to-doc">
+      <h3>${icon(UI.info, 14)} About</h3>
       <dl>
-        <dt title="Created">${icon(UI.clock, 14)}</dt>
+        <dt>Made</dt>
         <dd>${created !== null ? html`${fmtDate(created)} <span class="to-hint">${fmtUtc(created)}</span>` : '—'}</dd>
-        <dt title="URL space">${icon(UI.link, 14)}</dt>
+        <dt>Link</dt>
         <dd>${this.payloadLength.toLocaleString()} / ${available.toLocaleString()} <span class="to-hint">v${this.version}</span> ${left < 0 ? html`<sl-tag size="small" variant="danger" pill>${(-left).toLocaleString()} over</sl-tag>` : nothing}</dd>
-        <dt title="Download">${icon(UI.download, 14)}</dt>
+        <dt>Download</dt>
         <dd>
           <div class="row">
             ${this.def
@@ -910,16 +957,12 @@ export class ToApp extends LitElement {
               : nothing}
           </div>
         </dd>
-        <dt title="Room for this link">${icon(UI.send, 14)}</dt>
-        <dd>
-          ${roomsTable(roomFor(this.link))}
-        </dd>
-        <dt title="This device">${icon(UI.home, 14)}</dt>
-        <dd>
-          <sl-checkbox class="to-save" ?checked=${saving()} @sl-change=${(e: Event) => { setSaving((e.target as HTMLInputElement).checked); this.requestUpdate(); }}>Keep a list of my documents on this device</sl-checkbox>
-          <div class="to-hint">${saving() ? 'Documents you open or make are listed on the home page, in this browser only, and never sent anywhere. Untick to erase the list and keep none.' : 'Off, as it is unless you ask: nothing about your documents is kept here. The link is the document; keep that.'}</div>
-        </dd>
-        <dt title="Password">${icon(UI.lock, 14)}</dt>
+      </dl>
+      <h3>${icon(UI.send, 14)} Where the link fits</h3>
+      ${roomsTable(roomFor(this.link))}
+      <h3>${icon(UI.lock, 14)} Protect</h3>
+      <dl>
+        <dt>Password</dt>
         <dd>
           ${this.locker
             ? html`<div class="row"><sl-tag size="small" variant="success" pill>Locked</sl-tag><sl-button size="small" @click=${this.removePassword}>${icon(UI.unlock, 14)} Remove</sl-button></div>`
@@ -938,7 +981,7 @@ export class ToApp extends LitElement {
                 <sl-button size="small" ?loading=${this.pwBusy} ?disabled=${!this.pw} @click=${this.setPassword}>${icon(UI.lock, 14)} Lock</sl-button>
               </div>`}
         </dd>
-        <dt title="Signature">${icon(UI.shield, 14)}</dt>
+        <dt>Signature</dt>
         <dd>
           <div class="row">
             ${this.sig === 'none' ? html`<sl-tag size="small" pill>Unsigned</sl-tag>` : nothing}
@@ -951,7 +994,7 @@ export class ToApp extends LitElement {
             ${this.env.sig ? html`<sl-button size="small" @click=${this.unsign}>Remove</sl-button>` : nothing}
           </div>
         </dd>
-        <dt title="Signing key">${icon(UI.key, 14)}</dt>
+        <dt>Signing key</dt>
         <dd>
           <div class="row">
             ${this.myKey ? html`<code>${this.myKey}</code>` : html`<span class="to-hint">—</span>`}
@@ -965,6 +1008,36 @@ export class ToApp extends LitElement {
             : nothing}
         </dd>
       </dl>
+      <h3>${icon(UI.home, 14)} On this device</h3>
+      <p class="to-hint">Everything this site keeps in this browser. Nothing is ever sent anywhere.</p>
+      <table class="to-kept">
+        <thead><tr><th scope="col">What</th><th scope="col">Now</th><th scope="col"></th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">A list of your documents<br /><small>Their titles and links, for the home page. Off unless you ask.</small></th>
+            <td>${saving() ? `${library().length} kept` : 'Not kept'}</td>
+            <td><sl-checkbox class="to-save" ?checked=${saving()} @sl-change=${(e: Event) => { setSaving((e.target as HTMLInputElement).checked); this.requestUpdate(); }}>Keep</sl-checkbox></td>
+          </tr>
+          <tr>
+            <th scope="row">Your signing key<br /><small>Made the first time you sign. Says a signature is yours.</small></th>
+            <td>${this.myKey ? html`<code>${this.myKey}</code>` : 'None'}</td>
+            <td>${this.myKey ? html`<sl-button size="small" @click=${this.forgetKey}>Forget</sl-button>` : nothing}</td>
+          </tr>
+          <tr>
+            <th scope="row">Preferences<br /><small>Theme, which menu clusters are open, form or text, whether links open to read or to edit.</small></th>
+            <td>${this.prefsKept() ? `${this.prefsKept()} set` : 'None'}</td>
+            <td>${this.prefsKept() ? html`<sl-button size="small" @click=${this.forgetPrefs}>Forget</sl-button>` : nothing}</td>
+          </tr>
+          <tr>
+            <th scope="row">The app itself<br /><small>A copy of TinyLittleOffice, so it opens with no connection. No documents are in it.</small></th>
+            <td>${this.offline === null ? '…' : this.offline ? 'Kept' : 'Not kept'}</td>
+            <td>${this.offline ? html`<sl-button size="small" @click=${this.dropOffline}>Remove</sl-button>` : nothing}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="row">
+        <sl-button size="small" variant="danger" outline @click=${this.leaveNothing}>${icon(UI.trash, 14)} Leave nothing: forget all of the above</sl-button>
+      </div>
       <sl-button slot="footer" variant="primary" @click=${() => this.dialog()?.hide()}>Done</sl-button>
     </sl-dialog>`;
   }
