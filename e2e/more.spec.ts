@@ -887,8 +887,13 @@ test('a map on a slide: a tap on the map goes to the next stop', async ({ page }
   await expect(map).toBeVisible();
   const box = (await map.boundingBox())!;
   // Taps land on the slide even over the map: stop by stop, then the next slide.
-  for (let i = 0; i < 3; i++) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  // (Spaced out: a quick second tap means "show me the whole slide".)
+  const tap = async () => {
+    await page.waitForTimeout(450);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  };
+  for (let i = 0; i < 3; i++) await tap();
   await expect(map.locator('.leaflet-popup').last()).toContainText('3. Porto');
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await tap();
   await expect(page.locator('.deck-show .frame > svg')).toContainText('After');
 });
