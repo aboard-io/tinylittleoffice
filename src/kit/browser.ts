@@ -101,8 +101,25 @@ export function picture(def: AppDef, body: string): Promise<Uint8Array | null> {
   return raster(pageSvg(page), page.w, page.h, 'image/png', sharp(page));
 }
 
-export function saveFile(name: string, mime: string, data: Uint8Array) {
-  const url = URL.createObjectURL(new Blob([data as BlobPart], { type: mime }));
+/**
+ * Hand a file to the person. On a phone, where a download link only opens
+ * the file in a tab (as a "blob:" address, with nowhere to put it), it goes
+ * through the share sheet instead, which has Save to Files. Elsewhere, and
+ * if sharing is refused, it is a download.
+ */
+export async function saveFile(name: string, mime: string, data: Uint8Array) {
+  const file = new File([data as BlobPart], name, { type: mime });
+  const nav = navigator as Navigator & { canShare?(d: { files: File[] }): boolean };
+  if (/iPhone|iPad|Android/i.test(navigator.userAgent) && nav.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name });
+      return;
+    } catch (err) {
+      // Dismissed: nothing to do. Refused (a gesture too long ago, say): fall through to a download.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+    }
+  }
+  const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
@@ -150,7 +167,7 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
     mime = 'text/html;charset=utf-8';
   } else return null;
   if (!data) throw new Error('Could not draw the document');
-  saveFile(name, mime, data);
+  await saveFile(name, mime, data);
   return name;
 }
 
