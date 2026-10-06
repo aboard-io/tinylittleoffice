@@ -110,8 +110,8 @@ as that file the moment it is opened, then shows the editor as usual:
 | `#/v2/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
 | `#/v2/draw.svg/<payload>`    | SVG image                                         |
 | `#/v2/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
-| `#/v2/todo.md/<payload>`     | Markdown checklist                                |
-| `#/v2/board.md/<payload>`, `.csv` | Markdown, or CSV of stage and card           |
+| `#/v2/<app>.md/<payload>`    | Markdown (every app; checkboxes, tables, headings) |
+| `#/v2/board.csv/<payload>`   | CSV of stage and card                             |
 | `#/v2/gantt.csv/<payload>`   | CSV of tasks with start and end dates             |
 | `#/v2/trip.gpx/<payload>`, `.geojson` | GPX route, or GeoJSON                    |
 | `#/v2/anim.svg/<payload>`    | Animated SVG                                      |

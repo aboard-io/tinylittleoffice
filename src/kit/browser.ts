@@ -8,6 +8,7 @@ import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { COMMON, FONT, History, appOf, apps, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
+import { toMarkdown } from '../lib/markdown.ts';
 import { icon, UI } from '../lib/icons.ts';
 import type { SlDialog } from '../lib/shoelace.ts';
 import plex400 from '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2?url';
@@ -130,7 +131,11 @@ export async function saveFile(name: string, mime: string, data: Uint8Array) {
 }
 
 /** Every format a document can be saved as: the app's own, then the ones all apps share. */
-export const formatsOf = (def: AppDef) => [...(def.downloads ?? []).map((d) => ({ ext: d.ext, label: d.label })), ...COMMON];
+/** The app's own formats first (the first is what Ctrl+S saves), then the ones every app has, once each. */
+export const formatsOf = (def: AppDef) => {
+  const own = (def.downloads ?? []).map((d) => ({ ext: d.ext, label: d.label }));
+  return [...own, ...COMMON.filter((c) => !own.some((o) => o.ext === c.ext))];
+};
 
 /**
  * Save a document as a file of the given kind. Returns the file's name, or
@@ -162,6 +167,9 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
     }
     data = pages.length ? pdf(pages, title || def.title(body) || def.name) : null;
     mime = 'application/pdf';
+  } else if (ext === 'md') {
+    data = utf8(toMarkdown(def, body, title));
+    mime = 'text/markdown;charset=utf-8';
   } else if (ext === 'html') {
     data = utf8(def.document ? await withFonts(def.document(body, ctx)) : docHtml({ def, body, title }, ctx, link));
     mime = 'text/html;charset=utf-8';

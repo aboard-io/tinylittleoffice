@@ -11,9 +11,9 @@ import { TARGETS, blueskyCost, roomFor } from '../src/lib/limits.ts';
 import '../src/apps/index.ts';
 import { appOf } from '../src/kit/core.ts';
 import { animToSvg } from '../src/apps/anim.def.ts';
-import { boardToCsv, boardToMarkdown } from '../src/apps/board.def.ts';
+import { boardToCsv } from '../src/apps/board.def.ts';
+import { toMarkdown, fromMarkdown } from '../src/lib/markdown.ts';
 import { ganttToCsv } from '../src/apps/gantt.def.ts';
-import { todosToMarkdown } from '../src/apps/todo.def.ts';
 import { tripToGeoJson, tripToGpx } from '../src/apps/trip.def.ts';
 import { ganttSpans } from '../src/lib/ganttmodel.ts';
 import { formatLeg, tripUnits } from '../src/lib/tripmodel.ts';
@@ -29,7 +29,7 @@ test('todo round trip', () => {
   assert.deepEqual(parseTodos(s), tasks);
   assert.deepEqual(parseTodos(''), []);
   assert.deepEqual(parseTodos('junk\n- ok'), [{ text: 'ok', done: false, star: false, due: null }]);
-  assert.equal(todosToMarkdown(s), '- [ ] Buy milk\n- [x] **x marks - the spot** (due 2025-06-23)\n- [ ] ****\n');
+  assert.equal(toMarkdown(appOf('todo')!, s), '- [ ] Buy milk\n- [x] **x marks - the spot** (due 2025-06-23)\n- [ ] ****\n');
 });
 
 test('board round trip', () => {
@@ -44,7 +44,7 @@ test('board round trip', () => {
   assert.equal(s, '#Backlog\nWrite spec\n\\#hashtag card\n\\\\slash\n#Doing|2\n#\na, b');
   assert.deepEqual(parseBoard(s), stages);
   assert.equal(boardToCsv(s), 'Stage,Card\r\nBacklog,Write spec\r\nBacklog,#hashtag card\r\nBacklog,\\slash\r\n,"a, b"\r\n');
-  assert.ok(boardToMarkdown(s).includes('## Doing (limit 2)'));
+  assert.ok(toMarkdown(appOf('board')!, s).includes('## Doing (limit 2)'));
 });
 
 test('gantt round trip', () => {
@@ -854,3 +854,56 @@ test('a deck ends with a QR code of itself', async () => {
   const files = unzipSync(deckToPptx(body, { created: null, png: { 'sub-3': new Uint8Array([137, 80, 78, 71]) } } as never));
   assert.ok(files['ppt/slides/slide3.xml'] && files['ppt/media/sub-3.png']);
 });
+
+test('markdown, both ways, for every app', async () => {
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const { apps } = await import('../src/kit/core.ts');
+  const samples: Record<string, string> = {
+    sheet: 'Item\tCost\nRent\t1200\nFood\t600',
+    write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
+    deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
+    draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',
+    cal: 'd2,2.g,Offsite\ndb,1,Launch',
+    todo: '- Book flights\nx!@1jk Renew passport\n- Pack',
+    board: '#To do|2\nx\ny\n#Done\nz',
+    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
+    trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
+    anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off\t4,14,p,a',
+    pixel: 'ab.c\n.dd',
+    pattern: 'aaa\nb.b',
+    zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
+    booklet: 'A book\nby me\n\nOne\nwords',
+    programme: 'Tonight\n\nFirst half\nsongs',
+    brochure: 'Visit\n\nWhy\nbecause',
+    comic: 'Biscuit\n\n \n:dog Walk? | Monday',
+    planner: 'My week\n\nMonday\nGym',
+    qr: 'https://tinylittleoffice.com/',
+  };
+  for (const def of apps()) {
+    const body = samples[def.id] ?? specOf(def.id)?.example ?? '';
+    const md = toMarkdown(def, body);
+    assert.ok(md.length > 0 && !/undefined|NaN/.test(md), `${def.id} exports`);
+    const back = fromMarkdown(def, md);
+    assert.equal(typeof back, 'string', `${def.id} imports`);
+    // What comes back still draws, and keeps most of its words.
+    assert.ok(def.view(back).length >= 1, `${def.id} draws after the round trip`);
+    const words = (t: string) => new Set(t.toLowerCase().match(/[a-z]{3,}/g) ?? []);
+    const [before, after] = [words(def.outline(body).join(' ')), words(def.outline(back).join(' '))];
+    const kept = [...before].filter((w) => after.has(w)).length;
+    assert.ok(before.size === 0 || kept / before.size >= 0.6, `${def.id}: ${kept} of ${before.size} words survive the round trip\n${md}\n--\n${back}`);
+  }
+  // The shapes to expect.
+  assert.ok(toMarkdown(appOf('sheet')!, samples.sheet).includes('| Item | Cost |') && toMarkdown(appOf('sheet')!, samples.sheet).includes('| Rent | 1200 |'));
+  assert.equal(toMarkdown(appOf('todo')!, samples.todo), '- [ ] Book flights\n- [x] **Renew passport** (due 2025-06-23)\n- [ ] Pack\n');
+  assert.equal(toMarkdown(appOf('write')!, samples.write), '# Memo\n\nSome **bold** and *slant* text with ==shine== and :star:\n\n- one\n  - nested\n1. first\n');
+  assert.ok(toMarkdown(appOf('deck')!, samples.deck).startsWith('## Spring launch :rocket:\n\n- What ships\n\n## Agenda\n\n- one\n  - under one\n- two'));
+  assert.ok(toMarkdown(appOf('menu')!, specOf('menu')!.example).includes('| Dish | Price | What it is |'));
+  // And back: a Markdown list is a to-do list; a Markdown table is a sheet; headings are slides.
+  assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n- [ ] Not yet'), 'x Done\n- Not yet');
+  assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|---|---|\n| 1 | 2 |'), 'A\tB\n1\t2');
+  assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '::t\nMy deck\nA line\n\nSecond\na\n  b');
+  assert.equal(fromMarkdown(appOf('write')!, '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n1. c'), '# Hi\nSome *bold* text.\n- a\n-- b\n+ c');
+  assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
+  assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), serializeBoardLike('#Doing|2\nx\ny'));
+});
+const serializeBoardLike = (s: string) => s;

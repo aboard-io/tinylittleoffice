@@ -16,7 +16,7 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 - `<app>` is one of the apps below.
 - `title` is optional: the document's name.
 - `doc` is the document as plain text, in the app's format, URL-encoded: a new line is `%0A`, a tab is `%09`, a space is `+` or `%20`, and `& # % + =` inside the text must be percent-encoded.
-- `view` is optional: `show` opens a deck presenting, `embed` shows the document alone (for an iframe), and `pdf`, `png` or `html` download it.
+- `view` is optional: `show` opens a deck presenting, `embed` shows the document alone (for an iframe), and `pdf`, `png`, `html` or `md` download it. Every app downloads as Markdown (headings, lists, checkboxes and tables as a reader would expect), and the Download menu's "Import Markdown…" reads Markdown back into any app.
 
 Put the parameters after `#`, exactly as shown, never after `?`. The part of an address after `#` stays in the browser: it is not sent to the server, so the document is never logged anywhere. Parameters after `?` are ignored.
 

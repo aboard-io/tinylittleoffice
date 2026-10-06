@@ -255,7 +255,7 @@ test('download views: the link itself hands over a file', async ({ page }, testI
   // The document is still there to edit, and the menu offers the same files.
   await expect(page.locator('to-todo')).toBeVisible();
   await page.getByRole('button', { name: 'Download' }).click();
-  const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Markdown/ }).click()]);
+  const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^Markdown/ }).click()]);
   expect(fromMenu.suggestedFilename()).toBe('todo.md');
   // An extension the app does not have is reported, not downloaded.
   await page.goto(`/#/v2/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
@@ -494,4 +494,33 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   await expect(slide).toContainText('Spring launch');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
+});
+
+test('Markdown comes in as well as out', async ({ page }) => {
+  await page.goto('/#/todo');
+  await page.getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
+  const dialog = page.locator('#import-dialog');
+  await expect(dialog).toHaveAttribute('open');
+  await dialog.locator('textarea').fill('# Chores\n\n- [x] Sweep\n- [ ] **Shop**\n- [ ] Call mum');
+  await dialog.getByRole('button', { name: 'Import' }).click();
+  await expect(page.locator('.to-toast')).toContainText('Imported');
+  await expect(page.locator('to-todo')).toContainText('Sweep');
+  await expect(page.locator('to-todo')).toContainText('Call mum');
+  await expect(page.getByRole('checkbox', { name: /Sweep/ })).toBeChecked();
+  // A sheet reads a table; a deck reads headings.
+  await page.goto('/#/sheet');
+  await page.getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
+  await dialog.locator('textarea').fill('| Item | Cost |\n|---|---|\n| Rent | 1200 |');
+  await dialog.getByRole('button', { name: 'Import' }).click();
+  await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('Item');
+  await expect(page.getByRole('textbox', { name: 'B2', exact: true })).toHaveValue('1200');
+  await page.goto('/#/deck');
+  await page.getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
+  await dialog.locator('textarea').fill('# Launch\n\n## Agenda\n\n- one\n- two\n\n## Thanks');
+  await dialog.getByRole('button', { name: 'Import' }).click();
+  await expect(page.locator('to-deck')).toContainText('Agenda');
+  await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
 });

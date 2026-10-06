@@ -3924,3 +3924,26 @@ mark {
   padding: 8px 10px;
   color: var(--to-ink-3);
 }
+
+/* Importing Markdown */
+sl-dialog.to-import {
+  --width: min(96vw, 640px);
+}
+.to-import textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 240px;
+  padding: 10px;
+  font: 14px/1.5 var(--sl-font-mono);
+  color: var(--to-ink);
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  resize: vertical;
+}
+.to-import .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}

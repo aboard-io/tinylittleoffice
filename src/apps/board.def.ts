@@ -2,12 +2,6 @@
 import { defineApp, csv, utf8, xml, text, rect, clip, wrapText, SHADE, LINE, MUTED, type Page } from '../kit/core.ts';
 import { parseBoard } from '../lib/boardmodel.ts';
 
-export function boardToMarkdown(body: string): string {
-  return parseBoard(body)
-    .map((s) => `## ${s.name}${s.limit ? ` (limit ${s.limit})` : ''}\n\n${s.cards.map((c) => `- ${c}`).join('\n')}${s.cards.length ? '\n' : ''}`)
-    .join('\n');
-}
-
 export const boardToCsv = (body: string) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, c]))]);
 
 /** The board as a page; `upTo` cards of it (counting stage by stage) while it builds. */
@@ -48,7 +42,6 @@ export default defineApp({
   steps: (body) => parseBoard(body).reduce((n, s) => n + s.cards.length, 0),
   html: (body) => `<h1>Board</h1>\n${parseBoard(body).map((s) => `<section>\n<h2>${xml(s.name)}</h2>\n<ul>\n${s.cards.map((c) => `<li>${xml(c)}</li>`).join('\n')}\n</ul>\n</section>`).join('\n')}`,
   downloads: [
-    { ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(boardToMarkdown(b)) },
     { ext: 'csv', label: 'CSV', mime: 'text/csv;charset=utf-8', build: (b) => utf8('\ufeff' + boardToCsv(b)) },
   ],
   shortcuts: [

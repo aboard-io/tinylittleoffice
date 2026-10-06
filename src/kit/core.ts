@@ -344,6 +344,7 @@ export const COMMON: { ext: string; label: string }[] = [
   { ext: 'pdf', label: 'PDF' },
   { ext: 'png', label: 'Picture' },
   { ext: 'html', label: 'Web page' },
+  { ext: 'md', label: 'Markdown' },
 ];
 
 const ALIASES: Record<string, string> = { ppt: 'pptx', xls: 'xlsx', ical: 'ics', icalendar: 'ics', htm: 'html', markdown: 'md', json: 'geojson', image: 'png', jpg: 'png' };

@@ -14,6 +14,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { budgetFor, fromBase64Url } from './lib/codec.ts';
 import { encodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { Privacy, isSealed } from './lib/privacy.ts';
+import { fromMarkdown } from './lib/markdown.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
@@ -573,11 +574,13 @@ export class ToApp extends LitElement {
                 ${this.sealed
                   ? nothing
                   : html`<div class="to-doc-actions">
-                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.download(e.detail.item.value)}>
+                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.querySelector<SlDialog>('#import-dialog')?.show() : this.download(e.detail.item.value))}>
                         <sl-button slot="trigger" class="icon" size="small" aria-label="Download" title="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Download</sl-menu-label>
                           ${formatsOf(appOf(current.id)!).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
+                          <sl-divider></sl-divider>
+                          <sl-menu-item value="import">${icon(UI.insert, 14, 'pre')} Import Markdown…</sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
@@ -644,6 +647,7 @@ export class ToApp extends LitElement {
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPrivacyPrompt()}
+      ${current ? this.renderImport() : nothing}
       ${current ? html`<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
         ${[
@@ -759,6 +763,34 @@ export class ToApp extends LitElement {
       <p class="to-hint">These are saved only on this device, in this browser. They are not on any server and will not be on your other devices; a link is the only way to carry one across. Once opened, TinyLittleOffice works without a connection.</p>
       <sl-button size="small" variant="danger" outline @click=${() => { if (confirm('Erase every document kept on this device? Any you have the link for can be opened again.')) { forgetAll(); this.requestUpdate(); } }}>${icon(UI.trash, 14)} Erase all</sl-button>
     </section>`;
+  }
+
+  /** Paste Markdown (or pick a .md file) and it becomes this document, read the way this kind of document reads. */
+  @state() private importText = '';
+  private renderImport() {
+    const apply = () => {
+      if (!this.def || !this.importText.trim()) return;
+      const body = fromMarkdown(this.def, this.importText);
+      this.history.record(this.env.body);
+      this.env = { ...this.env, created: this.env.created ?? quantizeCreated(Date.now()), body };
+      this.importText = '';
+      void this.writeUrl();
+      this.querySelector<SlDialog>('#import-dialog')?.hide();
+      this.showToast('Imported');
+    };
+    const pick = async (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) this.importText = await file.text();
+    };
+    return html`<sl-dialog id="import-dialog" label="Import Markdown" class="to-import">
+      <p class="to-hint">Paste Markdown, or choose a file. Headings, lists, tables and checkboxes are read the way this kind of document reads them; it replaces what is here (undo brings it back).</p>
+      <textarea aria-label="Markdown" placeholder="# Title&#10;&#10;- one thing&#10;- another" .value=${this.importText} @input=${(e: Event) => (this.importText = (e.target as HTMLTextAreaElement).value)}></textarea>
+      <div class="row">
+        <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" aria-label="A Markdown file" @change=${pick} />
+        <span class="to-spacer"></span>
+        <sl-button variant="primary" ?disabled=${!this.importText.trim()} @click=${apply}>${icon(UI.insert, 14)} Import</sl-button>
+      </div>
+    </sl-dialog>`;
   }
 
   /** The privacy widget: one element, drawn in the dialog; its prompt for a sealed link drawn beside the dialogs. */

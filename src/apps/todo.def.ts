@@ -1,14 +1,9 @@
 /** Todo: what the shell knows about task lists. Format: lib/todomodel.ts. */
-import { defineApp, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
+import { toMarkdown } from '../lib/markdown.ts';
+import { defineApp, appOf, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
 import { parseTodos, serializeTodos } from '../lib/todomodel.ts';
 import { EPOCH_DAY, isoDay } from '../lib/calmodel.ts';
 import { ymdToDay } from '../lib/tz.ts';
-
-export function todosToMarkdown(body: string): string {
-  return parseTodos(body)
-    .map((t) => `- [${t.done ? 'x' : ' '}] ${t.star ? '**' + t.text + '**' : t.text}${t.due !== null ? ` (due ${isoDay(t.due)})` : ''}`)
-    .join('\n') + '\n';
-}
 
 /**
  * A list written plainly, one task per line: "- Buy milk", "x Done already",
@@ -67,7 +62,8 @@ export default defineApp({
     `<h1>Todo</h1>\n<ul class="check">\n${parseTodos(body)
       .map((t) => `<li><input type="checkbox" disabled${t.done ? ' checked' : ''}> ${t.star ? `<strong>${xml(t.text)}</strong>` : xml(t.text)}${t.due !== null ? ` <small><time datetime="${isoDay(t.due)}">due ${isoDay(t.due)}</time></small>` : ''}</li>`)
       .join('\n')}\n</ul>`,
-  downloads: [{ ext: 'md', label: 'Markdown checklist', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(todosToMarkdown(b)) }],
+  // A list's own file is Markdown: what Ctrl+S saves.
+  downloads: [{ ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(toMarkdown(appOf('todo')!, b)) }],
   shortcuts: [
     { keys: 'Enter', does: 'Add the task being typed' },
     { keys: 'Alt+Up / Alt+Down', does: 'Move the task' },
