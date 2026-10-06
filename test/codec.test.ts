@@ -50,3 +50,15 @@ test('the dictionary shortens everyday documents, and older links still decode',
   // Frozen: this exact link must decode forever.
   assert.equal(decodeDoc('y84EUIuDMBkoyoOQCzn7Q8giUQCAZCQA'), 'Launch plan for the team meeting on Monday');
 });
+
+test('a link that would unpack to a mountain is refused', async () => {
+  const { deflateSync } = await import('fflate');
+  const { unpackDoc, MAX_DOC_BYTES } = await import('../src/lib/codec.ts');
+  // Sixteen megabytes of the same byte deflate to almost nothing.
+  const bomb = deflateSync(new Uint8Array(4 * MAX_DOC_BYTES), { level: 9 });
+  assert.ok(bomb.length < 20_000);
+  assert.throws(() => unpackDoc('z', bomb), /too large/);
+  // An honest document of some size is fine.
+  const big = 'x'.repeat(MAX_DOC_BYTES / 4);
+  assert.equal(unpackDoc('z', deflateSync(new TextEncoder().encode(big))), big);
+});

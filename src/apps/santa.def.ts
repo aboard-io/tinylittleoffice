@@ -18,17 +18,22 @@ function page(body: string): string {
   return htmlPage(
     title,
     `${names.length} people.`,
-    `main{max-width:30rem;margin:0 auto;padding:2.5rem 1.25rem;text-align:center}h1{font-size:1.8rem}.names{display:grid;gap:.6rem;margin:1.5rem 0}#who{font-size:1.4rem;font-weight:700;min-height:4rem}p{color:#52525b}`,
+    `.quiet{background:#eef2ff;color:#3730a3}#ask{border:1px solid #e4e4e7;border-radius:.9rem;padding:.5rem 1rem;margin:1rem 0}main{max-width:30rem;margin:0 auto;padding:2.5rem 1.25rem;text-align:center}h1{font-size:1.8rem}.names{display:grid;gap:.6rem;margin:1.5rem 0}#who{font-size:1.4rem;font-weight:700;min-height:4rem}p{color:#52525b}`,
     `<main><h1>${xml(title)}</h1><p>Find your own name and tap it. No peeking at anyone else's.</p>
-<div class="names">${names.map((n, i) => `<button data-i="${i}">${xml(n)}</button>`).join('')}</div><p id="who" role="status" aria-live="polite"></p></main>
+<div class="names">${names.map((n, i) => `<button data-i="${i}">${xml(n)}</button>`).join('')}</div>
+<div id="ask" hidden><p>Are you <b id="asked"></b>?</p><p><button id="yes">Yes, show me</button> <button id="no" class="quiet">No</button></p></div>
+<p id="who" role="status" aria-live="polite"></p></main>
 <script>
-var H = ${js(hidden)}, N = ${js(names)}, t;
+var H = ${js(hidden)}, N = ${js(names)}, t, asking = -1, ask = document.getElementById('ask'), who = document.getElementById('who');
 [].forEach.call(document.querySelectorAll('[data-i]'), function (b) { b.onclick = function () {
-  var i = +b.getAttribute('data-i'), who = document.getElementById('who');
-  if (!confirm('Are you ' + N[i] + '?')) return;
-  who.textContent = N[i] + ', you give to ' + H[i].map(function (c) { return String.fromCharCode(c - 7); }).join('') + '.';
-  clearTimeout(t); t = setTimeout(function () { who.textContent = ''; }, 6000);
+  asking = +b.getAttribute('data-i'); who.textContent = ''; document.getElementById('asked').textContent = N[asking]; ask.hidden = false; document.getElementById('yes').focus();
 }; });
+document.getElementById('no').onclick = function () { ask.hidden = true; };
+document.getElementById('yes').onclick = function () {
+  ask.hidden = true;
+  who.textContent = N[asking] + ', you give to ' + H[asking].map(function (c) { return String.fromCharCode(c - 7); }).join('') + '.';
+  clearTimeout(t); t = setTimeout(function () { who.textContent = ''; }, 6000);
+};
 </script>`,
   );
 }

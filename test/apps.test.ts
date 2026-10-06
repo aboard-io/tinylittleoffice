@@ -591,7 +591,9 @@ test('small apps: the sums behind them', async () => {
   assert.deepEqual(m.sliders.map((s) => [s.id, s.value, s.unit, s.max]), [['visitors', 20000, '', 100000], ['signup_rate', 6, '%', 30], ['paid_rate', 25, '%', 100], ['churn', 8, '%', 50]]);
   assert.deepEqual(runFlow(m, {}), [1200, 18800, 300, 900, 24, 276]);
   assert.deepEqual(runFlow(m, { visitors: 10000, signup_rate: 10 }).slice(0, 3), [1000, 9000, 250]);
-  // Only arithmetic is ever worked out.
+  // Only arithmetic is ever worked out, and by hand: no code runs.
+  const { arithmetic } = await import('../src/apps/flow.def.ts');
+  assert.deepEqual(['1+2*3', '(1+2)*3', '10/4', '-2*-3', '1e3+1', '2 (3)', 'alert(1)', '1/0', ''].map(arithmetic), [7, 9, 2.5, 6, 1001, 0, 0, 0, 0]);
   assert.deepEqual(runFlow(parseFlow('a = 1\nA > B = alert(1)\nA > C = a + 2'), {}), [0, 3]);
   assert.ok(specOf('flow')!.page!(specOf('flow')!.example).includes('type="range" id="s_signup_rate" min="0" max="30"'));
 

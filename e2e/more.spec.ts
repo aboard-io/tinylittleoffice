@@ -760,6 +760,12 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   const text = page.getByRole('textbox', { name: 'Poll, as text' });
   await text.fill((await text.inputValue()) + '\nGrace: Sushi');
   await expect(f.locator('li', { hasText: 'Sushi' }).locator('.top span').last()).toHaveText('2');
+  // Secret Santa: tap your name, say it is you, and see who you give to.
+  f = await open('santa');
+  await f.getByRole('button', { name: 'Ada' }).click();
+  await expect(f.locator('#ask')).toBeVisible();
+  await f.getByRole('button', { name: 'Yes, show me' }).click();
+  await expect(f.locator('#who')).toContainText(/^Ada, you give to (Grace|Alan|Margaret|Linus)\.$/);
   // A capsule stays shut until its day.
   f = await open('capsule');
   await expect(f.locator('#shut')).toBeVisible();

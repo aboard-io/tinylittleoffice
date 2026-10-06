@@ -27,6 +27,44 @@ export function parseFlow(body: string) {
   return { sliders, flows };
 }
 
+/**
+ * Plain arithmetic, worked out by hand: numbers, + - * / and brackets, and
+ * nothing else (no code is ever run). Anything that does not add up is 0.
+ */
+export function arithmetic(src: string): number {
+  let at = 0;
+  const s = src.replace(/\s+/g, '');
+  const num = (): number => {
+    if (s[at] === '(') {
+      at++;
+      const v = sum();
+      if (s[at++] !== ')') throw 0;
+      return v;
+    }
+    if (s[at] === '-') return (at++, -num());
+    const m = /^\d*\.?\d+(?:e-?\d+)?/i.exec(s.slice(at));
+    if (!m) throw 0;
+    at += m[0].length;
+    return +m[0];
+  };
+  const product = (): number => {
+    let v = num();
+    while (s[at] === '*' || s[at] === '/') v = s[at++] === '*' ? v * num() : v / num();
+    return v;
+  };
+  const sum = (): number => {
+    let v = product();
+    while (s[at] === '+' || s[at] === '-') v = s[at++] === '+' ? v + product() : v - product();
+    return v;
+  };
+  try {
+    const v = sum();
+    return at === s.length && isFinite(v) ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** The flows worked out for a set of slider values. A formula is arithmetic over names, and nothing else. */
 export function runFlow(m: ReturnType<typeof parseFlow>, values: Record<string, number>): number[] {
   const v: Record<string, number> = {};
@@ -34,12 +72,7 @@ export function runFlow(m: ReturnType<typeof parseFlow>, values: Record<string, 
   const fed = new Set<string>();
   return m.flows.map((f) => {
     const expr = f.formula.replace(/[A-Za-z_][A-Za-z0-9_ ]*/g, (name) => String(v[id(name)] ?? 0));
-    let n = 0;
-    try {
-      if (/^[\d\s+\-*/().e]+$/.test(expr)) n = Math.max(0, Number(Function(`"use strict";return (${expr})`)()) || 0);
-    } catch {
-      // A formula that does not add up is a flow of nothing.
-    }
+    const n = Math.max(0, arithmetic(expr) || 0);
     // A stock is what has flowed into it; a source, which nothing flows into, is what flows out of it.
     const [from, to] = [id(f.from), id(f.to)];
     if (!fed.has(from) && !m.sliders.some((x) => x.id === from)) v[from] = (v[from] ?? 0) + n;
@@ -64,13 +97,25 @@ svg{width:100%;height:auto;font:600 12px ui-sans-serif,system-ui,sans-serif}svg 
 <script>
 var M = ${js(m)}, C = ['#4f46e5', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#db2777'];
 function id(s) { return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
+// Plain arithmetic, worked out by hand: no code is ever run.
+function arithmetic(src) {
+  var at = 0, s = src.replace(/\\s+/g, '');
+  function num() {
+    if (s[at] === '(') { at++; var v = sum(); if (s[at++] !== ')') throw 0; return v; }
+    if (s[at] === '-') { at++; return -num(); }
+    var m = /^\\d*\\.?\\d+(?:e-?\\d+)?/i.exec(s.slice(at)); if (!m) throw 0; at += m[0].length; return +m[0];
+  }
+  function product() { var v = num(); while (s[at] === '*' || s[at] === '/') v = s[at++] === '*' ? v * num() : v / num(); return v; }
+  function sum() { var v = product(); while (s[at] === '+' || s[at] === '-') v = s[at++] === '+' ? v + product() : v - product(); return v; }
+  try { var v = sum(); return at === s.length && isFinite(v) ? v : 0; } catch (e) { return 0; }
+}
 function fmt(n) { return Math.abs(n) >= 1000 ? Math.round(n).toLocaleString() : String(Math.round(n * 100) / 100); }
 function run() {
   var v = {}, fed = {};
   M.sliders.forEach(function (s) { var x = +document.getElementById('s_' + s.id).value; v[s.id] = x / (s.unit ? 100 : 1); document.getElementById('o_' + s.id).textContent = fmt(x) + s.unit; });
   return M.flows.map(function (f) {
     var expr = f.formula.replace(/[A-Za-z_][A-Za-z0-9_ ]*/g, function (n) { return String(v[id(n)] || 0); }), n = 0;
-    if (/^[\\d\\s+\\-*\\/().e]+$/.test(expr)) { try { n = Math.max(0, Number(Function('"use strict";return (' + expr + ')')()) || 0); } catch (e) {} }
+    n = Math.max(0, arithmetic(expr) || 0);
     var a = id(f.from), b = id(f.to);
     if (!fed[a] && !M.sliders.some(function (x) { return x.id === a; })) v[a] = (v[a] || 0) + n;
     v[b] = (fed[b] ? v[b] : 0) + n; fed[b] = 1;

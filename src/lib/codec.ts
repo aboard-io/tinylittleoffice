@@ -7,7 +7,7 @@
  *   z<base64url(deflate-raw(utf8))>               compressed (links made before the dictionary)
  *   r<base64url(utf8)>                            raw (wins for very short docs)
  */
-import { deflateSync, inflateSync, strToU8, strFromU8 } from 'fflate';
+import { Inflate, deflateSync, strToU8, strFromU8 } from 'fflate';
 
 /** Hard ceiling for the full URL, as requested: 2 KB. */
 export const URL_LIMIT = 2048;
@@ -95,10 +95,27 @@ export function packDoc(doc: string): { flag: Flag; bytes: Uint8Array } {
   return best;
 }
 
-/** Inverse of packDoc. Throws on malformed input. */
+/** The most a document may inflate to. A link is small; a few hundred bytes that unpack to gigabytes is an attack on the browser, not a document. */
+export const MAX_DOC_BYTES = 4 * 1024 * 1024;
+
+function inflate(bytes: Uint8Array, dictionary?: Uint8Array): Uint8Array {
+  const parts: Uint8Array[] = [];
+  let size = 0;
+  const inf = new Inflate({ dictionary }, (chunk) => {
+    size += chunk.length;
+    if (size > MAX_DOC_BYTES) throw new Error('document too large');
+    parts.push(chunk);
+  });
+  inf.push(bytes, true);
+  const out = new Uint8Array(size);
+  parts.reduce((at, p) => (out.set(p, at), at + p.length), 0);
+  return out;
+}
+
+/** Inverse of packDoc. Throws on malformed input, and on input that unpacks to more than MAX_DOC_BYTES. */
 export function unpackDoc(flag: string, bytes: Uint8Array): string {
-  if (flag === 'y') return strFromU8(inflateSync(bytes, { dictionary: DICTIONARY }));
-  if (flag === 'z') return strFromU8(inflateSync(bytes));
+  if (flag === 'y') return strFromU8(inflate(bytes, DICTIONARY));
+  if (flag === 'z') return strFromU8(inflate(bytes));
   if (flag === 'r') return strFromU8(bytes);
   throw new Error('unknown flag');
 }
