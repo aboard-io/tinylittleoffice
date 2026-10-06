@@ -110,7 +110,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await page.getByRole('combobox', { name: 'Colour, row 1' }).selectOption('green');
   await page.getByRole('textbox', { name: 'Note, row 1' }).fill('Thank the testers');
   await expect(page.locator('to-sticky .pic > svg')).toContainText('Thank the');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sticky\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sticky\/[WYZR]/);
 
   // The model: sliders and flows from boxes, and the diagram follows.
   await page.goto('/#/flow');

@@ -3,7 +3,9 @@
  *
  * Blocks: one per line.  Prefixes:  "# " h1, "## " h2, "- " bullet, "+ " numbered.
  * A list item one level in repeats its marker ("-- ", "++ "), up to MAX_DEPTH levels.
- * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~ ; "\" escapes.
+ * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~  =highlight= ; an icon
+ * is its name between colons, ":rocket:"; "\" escapes. A block may start with
+ * ">c ", ">r " or ">j " to be centred, right-aligned or justified.
  * Embed: a line "@@<app>/<payload>" is another TinyLittleOffice document, shown as
  * a preview that links to it (see lib/embed.ts).
  */
@@ -13,7 +15,12 @@ export interface Run {
   i?: boolean;
   u?: boolean;
   s?: boolean;
+  /** Highlighted, in yellow. */
+  h?: boolean;
+  /** An icon, by name, in the line of text (t is then ''). */
+  ic?: string;
 }
+export type Align = 'c' | 'r' | 'j';
 export type BlockKind = 'p' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
 export interface Block {
   k: BlockKind;
@@ -22,17 +29,21 @@ export interface Block {
   ref?: string;
   /** For list items: how far in, 0 (absent) for the outer level. */
   d?: number;
+  /** Centred, right-aligned or justified; absent for the usual left. */
+  a?: Align;
 }
 
 export const MAX_DEPTH = 3;
 
 const EMBED = /^@@([a-z]+\/[A-Za-z0-9_-]*)$/;
 
-const FLAGS = ['b', 'i', 'u', 's'] as const;
-const MARK: Record<(typeof FLAGS)[number], string> = { b: '*', i: '_', u: '^', s: '~' };
-const UNMARK: Record<string, (typeof FLAGS)[number]> = { '*': 'b', _: 'i', '^': 'u', '~': 's' };
+const FLAGS = ['b', 'i', 'u', 's', 'h'] as const;
+const MARK: Record<(typeof FLAGS)[number], string> = { b: '*', i: '_', u: '^', s: '~', h: '=' };
+const UNMARK: Record<string, (typeof FLAGS)[number]> = { '*': 'b', _: 'i', '^': 'u', '~': 's', '=': 'h' };
+const ALIGN = /^>([crj]) /;
+const ICON = /^:([a-z][a-z0-9-]*):/;
 const PREFIX: Record<BlockKind, string> = { p: '', h1: '# ', h2: '## ', ul: '- ', ol: '+ ', e: '@@' };
-const SPECIAL = /[\\*_^~]/g;
+const SPECIAL = /[\\*_^~=]/g;
 
 export function serializeDoc(blocks: Block[]): string {
   const lines: string[] = [];
@@ -41,10 +52,15 @@ export function serializeDoc(blocks: Block[]): string {
       if (blk.ref && EMBED.test('@@' + blk.ref)) lines.push('@@' + blk.ref);
       continue;
     }
-    let out = blk.k === 'ul' || blk.k === 'ol' ? PREFIX[blk.k][0].repeat(1 + Math.min(MAX_DEPTH, blk.d ?? 0)) + ' ' : PREFIX[blk.k];
-    const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
+    let out = (blk.a ? `>${blk.a} ` : '') + (blk.k === 'ul' || blk.k === 'ol' ? PREFIX[blk.k][0].repeat(1 + Math.min(MAX_DEPTH, blk.d ?? 0)) + ' ' : PREFIX[blk.k]);
+    const state: Record<string, boolean> = { b: false, i: false, u: false, s: false, h: false };
     let first = true;
     for (const run of blk.runs) {
+      if (run.ic) {
+        out += `:${run.ic}:`;
+        first = false;
+        continue;
+      }
       if (!run.t) continue;
       for (const f of FLAGS) {
         if (!!run[f] !== state[f]) {
@@ -52,9 +68,10 @@ export function serializeDoc(blocks: Block[]): string {
           state[f] = !state[f];
         }
       }
-      let text = run.t.replace(SPECIAL, (m) => '\\' + m);
+      // (":name:" would read as an icon, so a colon that starts one is escaped.)
+      let text = run.t.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:');
       // A paragraph that would start with a prefix marker must be escaped.
-      if (first && blk.k === 'p' && /^(#|-+ |\++ |@@)/.test(text)) text = '\\' + text;
+      if (first && (blk.k === 'p' || blk.a) && /^(#|-+ |\++ |@@|>[crj] )/.test(text)) text = '\\' + text;
       first = false;
       out += text;
     }
@@ -70,7 +87,7 @@ export function serializeDoc(blocks: Block[]): string {
 /** One line's marks ( *bold* _italic_ ^underline^ ~strike~ ) as runs. */
 export function parseInline(line: string): Run[] {
   const runs: Run[] = [];
-  const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
+  const state: Record<string, boolean> = { b: false, i: false, u: false, s: false, h: false };
   let buf = '';
   const flush = () => {
     if (!buf) return;
@@ -81,8 +98,13 @@ export function parseInline(line: string): Run[] {
   };
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
+    const icon = ch === ':' ? ICON.exec(line.slice(i)) : null;
     if (ch === '\\' && i + 1 < line.length) buf += line[++i];
-    else if (UNMARK[ch]) {
+    else if (icon) {
+      flush();
+      runs.push({ t: '', ic: icon[1] });
+      i += icon[0].length - 1;
+    } else if (UNMARK[ch]) {
       flush();
       state[UNMARK[ch]] = !state[UNMARK[ch]];
     } else buf += ch;
@@ -93,6 +115,7 @@ export function parseInline(line: string): Run[] {
 
 /** The marks as words: what a line says, without them. */
 export const plainInline = (line: string) => parseInline(line).map((r) => r.t).join('');
+export const ALIGN_NAMES: Record<Align, string> = { c: 'center', r: 'right', j: 'justify' };
 
 /**
  * Toggle a mark on a stretch of a line: "*" round "word" makes it bold;
@@ -118,6 +141,8 @@ export function parseDoc(text: string): Block[] {
     }
     let k: BlockKind = 'p';
     let d = 0;
+    const align = ALIGN.exec(line);
+    if (align) line = line.slice(align[0].length);
     const item = /^(-{1,4}|\+{1,4}) /.exec(line);
     if (line.startsWith('## ')) {
       k = 'h2';
@@ -131,7 +156,9 @@ export function parseDoc(text: string): Block[] {
       line = line.slice(item[0].length);
     }
     const runs = parseInline(line);
-    blocks.push(d ? { k, runs, d } : { k, runs });
+    const blk: Block = d ? { k, runs, d } : { k, runs };
+    if (align) blk.a = align[1] as Align;
+    blocks.push(blk);
   }
   return blocks;
 }

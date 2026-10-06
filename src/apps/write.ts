@@ -10,7 +10,9 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
 import { editRef, insertMenu } from '../kit/browser.ts';
-import { MAX_DEPTH, linkify, parseDoc, serializeDoc, docText, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { chooseIcon } from '../widgets/icon-picker.ts';
+import { ICON_SVG } from '../lib/icons.ts';
+import { MAX_DEPTH, linkify, parseDoc, serializeDoc, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
@@ -27,14 +29,19 @@ export function embedHtml(ref: string): string {
   return `<to-embed contenteditable="false" tabindex="0" controls ref="${r}" data-ref="${r}"></to-embed>`;
 }
 
+/** An icon in a line of text: one thing, not editable inside, so the caret steps over it. */
+export const iconHtml = (name: string) => `<span class="ic" data-icon="${esc(name)}" contenteditable="false" role="img" aria-label="${esc(name)} icon">${ICON_SVG[name] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : `:${esc(name)}:`}</span>`;
+
 function runsToHtml(runs: Run[]): string {
   if (!runs.length) return '<br>';
   return runs
     .map((r) => {
+      if (r.ic) return iconHtml(r.ic);
       // Web addresses show as links; in the document they are just text.
       let h = linkify(r.t)
         .map((p) => (p.url ? `<a href="${esc(p.url).replace(/"/g, '&quot;')}">${esc(p.t)}</a>` : esc(p.t)))
         .join('');
+      if (r.h) h = `<mark>${h}</mark>`;
       if (r.s) h = `<s>${h}</s>`;
       if (r.u) h = `<u>${h}</u>`;
       if (r.i) h = `<i>${h}</i>`;
@@ -61,17 +68,17 @@ export function blocksToHtml(blocks: Block[]): string {
         open.push(b.k);
         if (open.length < depth) out += '<li>';
       }
-      out += `<li>${runsToHtml(b.runs)}`;
+      out += `<li${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}`;
       continue;
     }
     closeTo(0);
-    out += b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
+    out += b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
   }
   closeTo(0);
   return out || '<p><br></p>';
 }
 
-type Flags = { b: boolean; i: boolean; u: boolean; s: boolean };
+type Flags = { b: boolean; i: boolean; u: boolean; s: boolean; h: boolean };
 
 /** Walk the editor DOM and produce blocks. Tolerant of whatever contentEditable emits. */
 export function domToBlocks(root: HTMLElement): Block[] {
@@ -97,8 +104,9 @@ export function domToBlocks(root: HTMLElement): Block[] {
     if (f.i) run.i = true;
     if (f.u) run.u = true;
     if (f.s) run.s = true;
+    if (f.h) run.h = true;
     const last = cur!.runs[cur!.runs.length - 1];
-    if (last && !!last.b === f.b && !!last.i === f.i && !!last.u === f.u && !!last.s === f.s) last.t += t;
+    if (last && !last.ic && !!last.b === f.b && !!last.i === f.i && !!last.u === f.u && !!last.s === f.s && !!last.h === f.h) last.t += t;
     else cur!.runs.push(run);
   };
 
@@ -126,6 +134,11 @@ export function domToBlocks(root: HTMLElement): Block[] {
       blocks.push({ k: 'e', runs: [], ref: el.dataset.ref });
       return;
     }
+    if (el.dataset.icon) {
+      if (!cur) open(k);
+      cur!.runs.push({ t: '', ic: el.dataset.icon });
+      return;
+    }
     if (tag === 'BR') {
       if (!cur) open(k);
       if (!isTrailingBr(el, boundary)) {
@@ -140,6 +153,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
     if (tag === 'I' || tag === 'EM' || st.fontStyle === 'italic') nf.i = true;
     if (tag === 'U' || st.textDecoration.includes('underline')) nf.u = true;
     if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || st.textDecoration.includes('line-through')) nf.s = true;
+    if (tag === 'MARK' || (st.backgroundColor && st.backgroundColor !== 'transparent' && st.backgroundColor !== 'initial')) nf.h = true;
     if (isBlockTag(tag)) {
       block(el, k);
       return;
@@ -147,7 +161,9 @@ export function domToBlocks(root: HTMLElement): Block[] {
     for (const child of Array.from(el.childNodes)) inline(child, nf, k, boundary);
   };
 
-  const plain: Flags = { b: false, i: false, u: false, s: false };
+  const plain: Flags = { b: false, i: false, u: false, s: false, h: false };
+  // A block's alignment, as the browser wrote it.
+  const alignOf = (el: HTMLElement): Align | undefined => ({ center: 'c', right: 'r', justify: 'j' } as Record<string, Align>)[el.style.textAlign] ?? (el.getAttribute('align') ? ({ center: 'c', right: 'r', justify: 'j' } as Record<string, Align>)[el.getAttribute('align')!] : undefined);
 
   const block = (el: HTMLElement, inherited: BlockKind) => {
     const tag = el.tagName;
@@ -158,6 +174,8 @@ export function domToBlocks(root: HTMLElement): Block[] {
         if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName === 'LI') {
           close();
           open(k);
+          const a = alignOf(child as HTMLElement);
+          if (a) cur!.a = a;
           for (const c of Array.from(child.childNodes)) inline(c, plain, k, child);
           close();
         } else inline(child, plain, k, el);
@@ -169,6 +187,8 @@ export function domToBlocks(root: HTMLElement): Block[] {
     const k: BlockKind = tag === 'H1' ? 'h1' : tag === 'H2' || tag === 'H3' ? 'h2' : tag === 'LI' ? inherited : 'p';
     close();
     open(k);
+    const a = alignOf(el);
+    if (a) cur!.a = a;
     for (const c of Array.from(el.childNodes)) inline(c, plain, k, el);
     close();
   };
@@ -204,7 +224,7 @@ function isBlockTag(tag: string): boolean {
 @customElement('to-write')
 export class ToWrite extends LitElement {
   @property() value = '';
-  @state() private fmt = { b: false, i: false, u: false, s: false, block: 'p' };
+  @state() private fmt = { b: false, i: false, u: false, s: false, h: false, block: 'p', align: '' };
   @state() private words = 0;
   @state() private chars = 0;
   private lastEmitted = '';
@@ -267,13 +287,46 @@ export class ToWrite extends LitElement {
       i: document.queryCommandState('italic'),
       u: document.queryCommandState('underline'),
       s: document.queryCommandState('strikeThrough'),
+      h: !!(sel?.anchorNode && (sel.anchorNode.parentElement?.closest('mark') || /rgb\(254, 240, 138\)|#fef08a/i.test(getComputedStyle(sel.anchorNode.parentElement!).backgroundColor))),
+      align: document.queryCommandState('justifyCenter') ? 'c' : document.queryCommandState('justifyRight') ? 'r' : document.queryCommandState('justifyFull') ? 'j' : '',
       block: document.queryCommandState('insertUnorderedList') ? 'ul' : document.queryCommandState('insertOrderedList') ? 'ol' : block,
     };
   };
 
+  /** An icon at the caret, as one thing in the line. */
+  private async insertIcon() {
+    // The picker is a dialog, which takes the focus and with it the caret: so the caret is kept, and put back.
+    const sel = getSelection();
+    const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret;
+    const name = await chooseIcon();
+    if (!name) return;
+    this.page?.focus();
+    const at = range ?? (() => {
+      const r = document.createRange();
+      r.selectNodeContents(this.page!);
+      r.collapse(false);
+      return r;
+    })();
+    // Put in by hand, where the caret was; then the caret goes after it.
+    at.deleteContents();
+    const holder = document.createElement('span');
+    holder.innerHTML = iconHtml(name) + '\u00a0';
+    const space = holder.lastChild!;
+    const node = holder.firstChild!;
+    at.insertNode(space);
+    at.insertNode(node);
+    const after = document.createRange();
+    after.setStartAfter(space);
+    after.collapse(true);
+    getSelection()?.removeAllRanges();
+    getSelection()?.addRange(after);
+    this.onInput();
+  }
+
   private exec(cmd: string, arg?: string) {
     this.page?.focus();
-    document.execCommand('styleWithCSS', false, 'false');
+    // (Colours and alignment are only ever written as styles; the rest as tags.)
+    document.execCommand('styleWithCSS', false, cmd === 'hiliteColor' ? 'true' : 'false');
     document.execCommand(cmd, false, arg);
     this.onInput();
     this.onSelection();
@@ -376,6 +429,11 @@ export class ToWrite extends LitElement {
     const map: Record<string, [string, string?]> = {
       b: ['bold'], i: ['italic'], u: ['underline'], '1': ['formatBlock', 'h1'], '2': ['formatBlock', 'h2'], '0': ['formatBlock', 'p'],
     };
+    if (k === 'h' && e.shiftKey) {
+      e.preventDefault();
+      this.exec('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
+      return;
+    }
     if (map[k] && !e.shiftKey) {
       e.preventDefault();
       this.exec(map[k][0], map[k][1]);
@@ -404,7 +462,15 @@ export class ToWrite extends LitElement {
           ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Ctrl+I')}
           ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Ctrl+U')}
           ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
+          ${this.btn('Highlight', 'highlight', f.h, 'hiliteColor', f.h ? 'transparent' : '#fef08a', 'Ctrl+Shift+H')}
         </sl-button-group>
+        <sl-button-group label="Alignment">
+          ${this.btn('Align left', 'alignLeft', f.align === '', 'justifyLeft')}
+          ${this.btn('Centre', 'alignCenter', f.align === 'c', 'justifyCenter')}
+          ${this.btn('Align right', 'alignRight', f.align === 'r', 'justifyRight')}
+          ${this.btn('Justify', 'alignJustify', f.align === 'j', 'justifyFull')}
+        </sl-button-group>
+        <sl-tooltip content="Icon" hoist><sl-button class="icon" size="small" @click=${this.insertIcon}>${icon(UI.smile, 14)}<span class="sr-only">Icon</span></sl-button></sl-tooltip>
         <sl-button-group label="Block">
           ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Ctrl+1')}
           ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Ctrl+2')}

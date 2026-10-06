@@ -3771,3 +3771,25 @@ sl-menu-item.sub::part(base) {
     overflow-x: auto;
   }
 }
+
+/* Highlight, and icons in a line of text */
+mark {
+  background: #fef08a;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.sl-theme-dark mark {
+  background: #a16207;
+}
+.write-page .ic,
+.to-view.prose .ic,
+.ic > svg {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+.write-page .ic {
+  margin: 0 0.05em;
+}

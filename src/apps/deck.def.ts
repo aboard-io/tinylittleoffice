@@ -277,7 +277,7 @@ export default defineApp({
       .join('\n'),
   downloads: [{ ext: 'pptx', label: 'PowerPoint', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: deckToPptx, needs: pictures }],
   shortcuts: [
-    { keys: 'Mod+B / Mod+I / Mod+U', does: 'Bold, italic, underline (in a headline or bullet)' },
+    { keys: 'Mod+B / Mod+I / Mod+U / Mod+Shift+H', does: 'Bold, italic, underline, highlight (in a headline or bullet)' },
     { keys: 'Tab / Shift+Tab (in the bullets)', does: 'Indent the bullet, or bring it back out' },
     { keys: 'Mod+Enter', does: 'New slide' },
     { keys: 'PageUp / PageDown', does: 'Previous or next slide' },

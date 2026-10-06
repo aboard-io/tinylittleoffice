@@ -12,6 +12,7 @@ import type { SlDialog, SlInput, SlSelect } from '../kit.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
 import { iconCount } from '../lib/iconsearch.ts';
 import { toggleMark } from '../lib/richtext.ts';
+import { chooseIcon } from '../widgets/icon-picker.ts';
 import { SH, SW, depthOf, layoutSlide, slidePage, slideSteps } from './deck.def.ts';
 
 interface Deck {
@@ -258,9 +259,21 @@ export class ToDeck extends DocElement<Deck> {
     area.setSelectionRange(Math.max(from, a + lines[0].length - was[0].length), b + text.length - value.length);
   }
 
+  /** An icon in the words, at the cursor of the box last typed in: ":rocket:" in the text, a picture on the slide. */
+  private async inlineIcon() {
+    const f = this.field;
+    const name = await chooseIcon();
+    if (!name || !f || !f.isConnected) return;
+    const at = f.selectionStart ?? f.value.length;
+    f.value = f.value.slice(0, at) + `:${name}: ` + f.value.slice(f.selectionEnd ?? at);
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    f.focus();
+    f.setSelectionRange(at + name.length + 3, at + name.length + 3);
+  }
+
   private onMarkKey = (e: KeyboardEvent) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const mark = { b: '*', i: '_', u: '^' }[e.key.toLowerCase()];
+    const mark = e.shiftKey && e.key.toLowerCase() === 'h' ? '=' : e.shiftKey ? undefined : { b: '*', i: '_', u: '^' }[e.key.toLowerCase()];
     if (!mark) return;
     const t = e.target as HTMLElement;
     if (t.matches('input.title, .bullets textarea')) {
@@ -310,8 +323,9 @@ export class ToDeck extends DocElement<Deck> {
           ${tool('Move slide down', 'down', () => this.move(1), { disabled: this.cur === n - 1 })}
         </sl-button-group>
         <sl-button-group label="Text">
-          ${tool('Bold', 'bold', () => this.mark('*'))}${tool('Italic', 'italic', () => this.mark('_'))}${tool('Underline', 'underline', () => this.mark('^'))}${tool('Strike', 'strike', () => this.mark('~'))}
+          ${tool('Bold', 'bold', () => this.mark('*'))}${tool('Italic', 'italic', () => this.mark('_'))}${tool('Underline', 'underline', () => this.mark('^'))}${tool('Strike', 'strike', () => this.mark('~'))}${tool('Highlight', 'highlight', () => this.mark('='))}
         </sl-button-group>
+        <sl-button size="small" @click=${this.inlineIcon}>${icon(UI.smile, 14)} Icon in text</sl-button>
         <sl-button-group label="Indent">
           ${tool('Bring the bullet out', 'outdent', () => this.indent(true))}${tool('Indent the bullet', 'indent', () => this.indent(false))}
         </sl-button-group>

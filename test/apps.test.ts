@@ -811,3 +811,27 @@ test('a QR code document: a link as a code, labelled with what it is of', async 
   const slide = slidePage(parseDeck('Scan this\n@@' + makeRef('qr', link))[0], Infinity, undefined, '').svg;
   assert.ok(slide.includes('shape-rendering="crispEdges"'));
 });
+
+test('rich text: highlight, icons in the line, and alignment, in text and in pictures', async () => {
+  const { parseDoc, serializeDoc, parseInline } = await import('../src/lib/richtext.ts');
+  const { text } = await import('../src/kit/core.ts');
+  const body = '>c # A =big= day\nShip :rocket: it\n>r - right\nTime 10:30: fine';
+  const blocks = parseDoc(body);
+  assert.equal(blocks[0].a, 'c');
+  assert.deepEqual(blocks[0].runs.map((r) => [r.t, !!r.h]), [['A ', false], ['big', true], [' day', false]]);
+  assert.deepEqual(blocks[1].runs.map((r) => [r.t, r.ic ?? '']), [['Ship ', ''], ['', 'rocket'], [' it', '']]);
+  assert.equal(blocks[2].a, 'r');
+  assert.equal(blocks[2].k, 'ul');
+  // A colon with words round it is not an icon.
+  assert.deepEqual(blocks[3].runs.map((r) => r.t), ['Time 10:30: fine']);
+  assert.equal(serializeDoc(blocks), body);
+  // Words that would read as marks are escaped on the way out, and come back whole.
+  assert.equal(parseDoc(serializeDoc([{ k: 'p', runs: [{ t: 'a=b and :not: an icon' }] }]))[0].runs[0].t, 'a=b and :not: an icon');
+  // Drawn: a yellow box behind the highlight, a glyph for the icon.
+  const svg = text(10, 20, parseInline('=hot= :rocket: x'), { px: 16 });
+  assert.ok(svg.includes('fill="#fef08a"') && svg.includes('stroke-linecap="round"') && svg.includes('<tspan dx='));
+  const { slidePage } = await import('../src/apps/deck.def.ts');
+  const { parseDeck } = await import('../src/lib/deckmodel.ts');
+  assert.ok(slidePage(parseDeck('Go :rocket:\n=now=')[0], Infinity, undefined, '').svg.includes('#fef08a'));
+  assert.ok(appOf('write')!.html!('>c Hello =there= :star:', { created: null }).includes('text-align:center') && appOf('write')!.html!('=x=', { created: null }).includes('<mark>'));
+});

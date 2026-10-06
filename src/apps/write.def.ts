@@ -1,7 +1,8 @@
 /** Write: what the shell knows about texts. Format: lib/richtext.ts. */
 import { defineApp, utf8, xml, wrap, text, place, pageSvg, type DownloadContext, type Page, type Span } from '../kit/core.ts';
 import { refPage, resolve } from '../kit/embed.ts';
-import { linkify, parseDoc, docText, type Block, type Run } from '../lib/richtext.ts';
+import { ALIGN_NAMES, linkify, parseDoc, docText, type Block, type Run } from '../lib/richtext.ts';
+import { ICON_SVG } from '../lib/icons.ts';
 
 function rtfText(s: string): string {
   let out = '';
@@ -51,9 +52,11 @@ export function docToRtf(body: string, ctx: DownloadContext = { created: null })
 }
 
 function htmlRun(r: Run): string {
+  if (r.ic) return ICON_SVG[r.ic] ? `<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${xml(r.ic)}">${ICON_SVG[r.ic]}</svg>` : '';
   let s = linkify(r.t)
     .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
     .join('');
+  if (r.h) s = `<mark>${s}</mark>`;
   if (r.s) s = `<s>${s}</s>`;
   if (r.u) s = `<u>${s}</u>`;
   if (r.i) s = `<em>${s}</em>`;
@@ -80,7 +83,7 @@ export function docToHtml(body: string, ctx: DownloadContext = { created: null }
         open.push(blk.k);
         if (open.length < depth) out.push('<li>');
       }
-      out.push(`<li>${inner}`);
+      out.push(`<li${blk.a ? ` style="text-align:${ALIGN_NAMES[blk.a]}"` : ''}>${inner}`);
       continue;
     }
     closeTo(0);
@@ -88,7 +91,7 @@ export function docToHtml(body: string, ctx: DownloadContext = { created: null }
       const p = resolve(blk.ref!);
       const page = refPage(blk.ref!);
       out.push(`<figure class="embed">${pageSvg(page, `role="img" aria-label="${xml(p.title)}"`)}<figcaption><a href="${xml((ctx.base ?? '') + p.hash)}">${xml(p.title)}</a> <small>${xml(p.def?.name ?? 'Document')}</small></figcaption></figure>`);
-    } else out.push(`<${blk.k}>${inner || '<br>'}</${blk.k}>`);
+    } else out.push(`<${blk.k}${blk.a ? ` style="text-align:${ALIGN_NAMES[blk.a]}"` : ''}>${inner || '<br>'}</${blk.k}>`);
   }
   closeTo(0);
   return out.join('\n');
@@ -124,9 +127,11 @@ export function pages(body: string): Page[] {
     const lines = wrap(spans.length ? spans : [{ t: '' }], W - M - left, px, bold);
     const lh = px * 1.45;
     const mark = blk.k === 'ul' ? '•' : blk.k === 'ol' ? `${counts[d]}.` : '';
+    // Centred or right-aligned lines sit against the other edge (justified is drawn as left).
+    const [tx, anchor] = blk.a === 'c' ? [(left + W - M) / 2, 'middle' as const] : blk.a === 'r' ? [W - M, 'end' as const] : [left, 'start' as const];
     bits.push({
       h: lines.length * lh + gap,
-      svg: (y) => (mark ? text(left - 8, y + px, mark, { px, anchor: 'end' }) : '') + lines.map((l, i) => text(left, y + px + i * lh, l, { px, bold })).join(''),
+      svg: (y) => (mark ? text(left - 8, y + px, mark, { px, anchor: 'end' }) : '') + lines.map((l, i) => text(tx, y + px + i * lh, l, { px, bold, anchor })).join(''),
     });
   }
   const total = bits.reduce((a, b) => a + b.h, 0) + 2 * M;
@@ -159,7 +164,7 @@ export default defineApp({
   prose: true,
   downloads: [{ ext: 'rtf', label: 'Rich Text', mime: 'application/rtf', build: (b, ctx) => utf8(docToRtf(b, ctx)) }],
   shortcuts: [
-    { keys: 'Mod+B / Mod+I / Mod+U', does: 'Bold, italic, underline' },
+    { keys: 'Mod+B / Mod+I / Mod+U / Mod+Shift+H', does: 'Bold, italic, underline, highlight' },
     { keys: 'Mod+1 / Mod+2 / Mod+0', does: 'Heading, subheading, paragraph' },
     { keys: 'Tab / Shift+Tab', does: 'Indent a list item, or bring it back out' },
     { keys: 'Backspace / Delete', does: 'Remove the selected embedded document' },

@@ -1033,3 +1033,29 @@ test('everything can be made larger from the menu, and it is remembered', async 
   await size.locator('sl-button').nth(1).click();
   expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('');
 });
+
+test('write: highlight, alignment and an icon in the line', async ({ page }) => {
+  await page.goto('/#/write');
+  const doc = page.getByRole('textbox', { name: 'Document' });
+  await doc.click();
+  await page.keyboard.type('Ship it today');
+  await page.keyboard.press('Shift+Home');
+  await page.getByRole('button', { name: 'Highlight' }).click();
+  // (The browser writes a coloured span; the document reads it as a highlight.)
+  await expect(doc.locator('mark, span[style*="background"]')).toHaveText('Ship it today');
+  await page.getByRole('button', { name: 'Centre' }).click();
+  await expect(doc.locator('p')).toHaveAttribute('style', /text-align: ?center/);
+  await doc.locator('p').first().click();
+  await page.keyboard.press('End');
+  await page.getByRole('button', { name: 'Icon', exact: true }).click();
+  await page.locator('sl-dialog.to-icons sl-input input').fill('rocket');
+  await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'rocket', exact: true }).click();
+  await expect(doc.locator('.ic[data-icon="rocket"] svg')).toBeVisible();
+  // It all comes back from the link, and is in the text as marks.
+  await reopen(page);
+  await expect(doc.locator('mark').first()).toHaveText('Ship it today');
+  await expect(doc.locator('.ic[data-icon="rocket"]')).toHaveCount(1);
+  expect(await page.evaluate(() => (document.querySelector('to-write') as HTMLElement & { value: string }).value)).toMatch(/^>c =Ship it today(=:rocket:|:rocket: =)/);
+  await expect(doc.locator('p')).toHaveAttribute('style', /center/);
+  await shot(page, 'write-marks');
+});

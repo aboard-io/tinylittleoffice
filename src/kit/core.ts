@@ -151,7 +151,14 @@ export interface Span {
   s?: boolean;
   /** A web address: drawn as a link. */
   link?: boolean;
+  /** Highlighted: yellow behind the words. */
+  h?: boolean;
+  /** An icon in the line, by name (t is then ''). */
+  ic?: string;
 }
+export const HIGHLIGHT = '#fef08a';
+/** How wide an icon in a line of text is, in px, for its size of type. */
+export const iconWidth = (px: number) => px * 1.25;
 
 /**
  * Width of text in px. A browser replaces this with real measurement (see
@@ -166,6 +173,16 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
   const lines: Span[][] = [[]];
   let width = 0;
   for (const span of spans) {
+    if (span.ic) {
+      const w = iconWidth(px);
+      if (width + w > max && width > 0) {
+        lines.push([]);
+        width = 0;
+      }
+      lines[lines.length - 1].push({ ...span });
+      width += w;
+      continue;
+    }
     for (const word of span.t.split(/(?<= )/)) {
       const w = textWidth(word, px, bold || !!span.b);
       if (width + textWidth(word.trimEnd(), px, bold || !!span.b) > max && width > 0) {
@@ -174,7 +191,7 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
       }
       const line = lines[lines.length - 1];
       const last = line[line.length - 1];
-      if (last && last.b === span.b && last.i === span.i && last.u === span.u && last.s === span.s && last.link === span.link) last.t += word;
+      if (last && !last.ic && last.b === span.b && last.i === span.i && last.u === span.u && last.s === span.s && last.h === span.h && last.link === span.link) last.t += word;
       else line.push({ ...span, t: word });
       width += w;
     }
@@ -201,17 +218,29 @@ export interface TextStyle {
 /** One line of text. y is the baseline. */
 export function text(x: number, y: number, content: string | Span[], style: TextStyle = {}): string {
   const { px = 16, bold = false, fill = INK, anchor = 'start' } = style;
-  const inner =
-    typeof content === 'string'
-      ? xml(content)
-      : content
-          .map((s) => {
-            const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (s.link ? ` fill="${ACCENT}"` : '') + (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
-            return a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
-          })
-          .join('');
-  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`;
+  // Highlights and icons need to know where each span falls, so the line is measured span by span.
+  let before = '';
+  let at = 0;
+  const spans = typeof content === 'string' ? [{ t: content } as Span] : content;
+  const total = spans.reduce((a, s) => a + (s.ic ? iconWidth(px) : textWidth(s.t, px, bold || !!s.b)), 0);
+  const x0 = anchor === 'middle' ? x - total / 2 : anchor === 'end' ? x - total : x;
+  const inner = spans
+    .map((s) => {
+      const w = s.ic ? iconWidth(px) : textWidth(s.t, px, bold || !!s.b);
+      if (s.h && !s.ic) before += `<rect x="${r(x0 + at)}" y="${r(y - px * 0.82)}" width="${r(w)}" height="${r(px * 1.1)}" fill="${HIGHLIGHT}" rx="2"/>`;
+      if (s.ic) before += iconGlyph(s.ic, x0 + at + px * 0.1, y - px * 0.85, px * 1.05, fill);
+      at += w;
+      if (s.ic) return `<tspan dx="${r(w)}"></tspan>`;
+      const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (s.link ? ` fill="${ACCENT}"` : '') + (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
+      return a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
+    })
+    .join('');
+  return before + `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`;
 }
+
+/** An icon drawn into a picture, by name; nothing if there is no such icon. Set by the icon library once it loads (the kit itself has no icons). */
+export let iconGlyph: (name: string, x: number, y: number, size: number, color: string) => string = () => '';
+export const setIconGlyph = (fn: typeof iconGlyph) => (iconGlyph = fn);
 
 export const r = (n: number) => String(Math.round(n * 100) / 100);
 export const rect = (x: number, y: number, w: number, h: number, fill: string, extra = '') => `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${fill}"${extra ? ' ' + extra : ''}/>`;
