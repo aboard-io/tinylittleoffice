@@ -13,7 +13,7 @@ export function linkToRef(text: string): string | null {
   return m && appOf(m[1]) ? `${m[1]}/${m[2]}` : null;
 }
 
-export const makeRef = (app: string, body: string, title?: string) => `${app}/${encodeEnvelope({ created: null, body, title })}`;
+export const makeRef = (app: string, body: string, title?: string) => `${app}/${encodeEnvelope({ created: null, body, title }, app)}`;
 
 export interface Resolved {
   def: AppDef | undefined;
@@ -31,7 +31,7 @@ export function resolve(ref: string): Resolved {
   const payload = ref.slice(slash + 1);
   const def = appOf(id);
   const locked = payload[0] === 'E';
-  const env = locked ? { body: '', title: undefined } : decodeEnvelope(payload);
+  const env = locked ? { body: '', title: undefined } : decodeEnvelope(payload, id);
   const body = env.body;
   const kind = def?.name ?? 'Document';
   return { def, body, locked, hash: `#/v2/${id}${payload ? '/' + payload : ''}`, title: locked ? `Locked ${kind.toLowerCase()}` : env.title || def?.title(body) || kind };

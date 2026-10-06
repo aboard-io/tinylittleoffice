@@ -195,6 +195,10 @@ All of these are a few lines of text; the first line is usually `# Title`.
 - Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line), `card` (`Name: message`), `capsule` (`open: 2030-01-01`, then the note), `split` (`Name: amount, what for`; `between: A, B, C`).
 - Personal: `habits` (a habit per line), `countdown` (a date, `2027-03-01 18:00`), `bio` (`Label | https://...`), `checklist` (`## Section`, a thing per line), `log` (`when, what, how much`), `reading` (`Title | author | stars | note`), `chords` (`[G]words with [C]chords`, `transpose: 2`).
 
+## How a link is packed
+
+After `#/v2/<app>/` comes one letter and then base64url bytes: `w` (deflate, primed with a shared dictionary and that app's own), `y` (deflate with the shared dictionary), `z` (plain deflate), `r` (raw); a capital letter means the bytes begin with an envelope of `c<created>`, `t<title>` and signing lines before a blank line. `E` is a password-sealed link. You never need to make these: the plain-parameter form (`#title=…&doc=…`) is turned into the shortest of them when opened.
+
 ## Icons in diagrams
 
 In `org`, `mind`, `lanes`, `venn`, `net`, `sticky` and `draw`, a label may start with an icon: `:rocket Launch`, `:user Ada | CEO`. Any Lucide icon name works.

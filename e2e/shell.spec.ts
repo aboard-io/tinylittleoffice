@@ -59,7 +59,7 @@ test('documents record their creation time', async ({ page }) => {
   await page.keyboard.type('hello');
   await expect(page.locator('.to-panel-head .meta')).toContainText(/\d{4}/);
   const url = page.url();
-  expect(url).toMatch(/#\/v2\/write\/[YZR]/);
+  expect(url).toMatch(/#\/v2\/write\/[WYZR]/);
   // Creation time is in the link and survives a reload.
   const created = await page.locator('.to-panel-head .meta').textContent();
   await reopen(page);
@@ -178,7 +178,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(dialog).not.toContainText('Locked');
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[WYZR]/);
   const plainAgain = page.url();
   await page.goto('about:blank');
   await page.goto(plainAgain);
@@ -191,14 +191,14 @@ test('links carry a format version, and links from before versions still open', 
   await expect(page.locator('.to-drawer-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v2/deck');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Old link');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
   const legacy = page.url().replace('#/v2/', '#/');
   await page.goto('about:blank');
   await page.goto(legacy);
   await expect(page.getByRole('textbox', { name: 'Document' })).toHaveText('Old link');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('!');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
   // A link from a future version says so.
   await page.goto(page.url().replace('#/v2/', '#/v7/'));
   await expect(page.locator('.to-panel-head')).toContainText('newer TinyLittleOffice (v7)');
@@ -289,7 +289,7 @@ test('each app has a page of its own, with its own preview card', async ({ page,
   await page.goto('/deck/');
   await expect(page.locator('.to-panel-head h1')).toHaveText(/Deck/);
   await page.getByRole('textbox', { name: 'Headline' }).fill('From the deck page');
-  await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v2\/deck\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v2\/deck\/[WYZR]/);
   await reopen(page);
   await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveValue('From the deck page');
 });
@@ -444,7 +444,7 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   await page.getByRole('button', { name: 'Slide', exact: true }).click();
   await page.getByRole('textbox', { name: 'Headline' }).fill('Plan');
   await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/deck\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/deck\/[WYZR]/);
   const editing = page.url();
 
   // The link that is copied and shared is the one that presents.

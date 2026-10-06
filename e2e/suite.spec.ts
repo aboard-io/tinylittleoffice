@@ -22,7 +22,7 @@ test('sheet: formulas compute and persist in the URL', async ({ page }) => {
   await expect(cell('A3')).toHaveValue('84');
   await expect(cell('B1')).toHaveValue('#DIV/0');
   await expect(cell('C2')).toHaveValue('42');
-  expect(page.url()).toMatch(/#\/v2\/sheet\/[YZR][A-Za-z0-9_-]+$/);
+  expect(page.url()).toMatch(/#\/v2\/sheet\/[WYZR][A-Za-z0-9_-]+$/);
 
   await reopen(page);
   await expect(cell('A3')).toHaveValue('84');
@@ -276,7 +276,7 @@ test('write: rich text survives the round trip', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.keyboard.type('second');
   await expect(page.locator('.write-foot')).toContainText('7 words');
-  expect(page.url()).toMatch(/#\/v2\/write\/[YZR]/);
+  expect(page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
 
   await reopen(page);
   const html = await editor.innerHTML();

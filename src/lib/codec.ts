@@ -2,12 +2,15 @@
  * URL codec: turns a document string into the shortest fragment we can manage
  * and back again. The whole document lives in the URL, so every byte counts.
  *
- * Three encodings are tried and the shortest wins:
- *   y<base64url(deflate-raw(utf8, DICTIONARY))>   compressed against a shared dictionary
+ * Four encodings are tried and the shortest wins:
+ *   w<base64url(deflate-raw(utf8, DICTIONARY + the app's own))>  compressed against the shared dictionary and the app's (lib/dicts.ts)
+ *   y<base64url(deflate-raw(utf8, DICTIONARY))>   compressed against the shared dictionary
  *   z<base64url(deflate-raw(utf8))>               compressed (links made before the dictionary)
  *   r<base64url(utf8)>                            raw (wins for very short docs)
+ * "w" needs the app to be known; it always is, from the link's path.
  */
 import { Inflate, deflateSync, strToU8, strFromU8 } from 'fflate';
+import { APP_DICTS } from './dicts.ts';
 
 /** Hard ceiling for the full URL, as requested: 2 KB. */
 export const URL_LIMIT = 2048;
@@ -82,16 +85,36 @@ const DICTIONARY = strToU8(
   ].join('\n'),
 );
 
-export type Flag = 'y' | 'z' | 'r';
+export type Flag = 'w' | 'y' | 'z' | 'r';
 
-/** Pack text as bytes: deflated with the dictionary ("y"), without ("z"), or raw ("r"), whichever is shortest. */
-export function packDoc(doc: string): { flag: Flag; bytes: Uint8Array } {
+/** The shared dictionary with the app's words after it, closest to the data. Made once per app. */
+const appDicts = new Map<string, Uint8Array>();
+function dictFor(app: string): Uint8Array | undefined {
+  if (!APP_DICTS[app]) return undefined;
+  let d = appDicts.get(app);
+  if (!d) {
+    const own = strToU8('\n' + APP_DICTS[app]);
+    d = new Uint8Array(DICTIONARY.length + own.length);
+    d.set(DICTIONARY, 0);
+    d.set(own, DICTIONARY.length);
+    appDicts.set(app, d);
+  }
+  return d;
+}
+
+/** Pack text as bytes: deflated with the app's dictionary ("w"), the shared one ("y"), without ("z"), or raw ("r"), whichever is shortest. */
+export function packDoc(doc: string, app?: string): { flag: Flag; bytes: Uint8Array } {
   const raw = strToU8(doc);
   let best: { flag: Flag; bytes: Uint8Array } = { flag: 'r', bytes: raw };
   const plain = deflateSync(raw, { level: 9, mem: 12 });
   if (plain.length < best.bytes.length) best = { flag: 'z', bytes: plain };
   const primed = deflateSync(raw, { level: 9, mem: 12, dictionary: DICTIONARY });
   if (primed.length < best.bytes.length) best = { flag: 'y', bytes: primed };
+  const own = app ? dictFor(app) : undefined;
+  if (own) {
+    const fitted = deflateSync(raw, { level: 9, mem: 12, dictionary: own });
+    if (fitted.length < best.bytes.length) best = { flag: 'w', bytes: fitted };
+  }
   return best;
 }
 
@@ -113,7 +136,12 @@ function inflate(bytes: Uint8Array, dictionary?: Uint8Array): Uint8Array {
 }
 
 /** Inverse of packDoc. Throws on malformed input, and on input that unpacks to more than MAX_DOC_BYTES. */
-export function unpackDoc(flag: string, bytes: Uint8Array): string {
+export function unpackDoc(flag: string, bytes: Uint8Array, app?: string): string {
+  if (flag === 'w') {
+    const own = app ? dictFor(app) : undefined;
+    if (!own) throw new Error('a "w" link needs its app');
+    return strFromU8(inflate(bytes, own));
+  }
   if (flag === 'y') return strFromU8(inflate(bytes, DICTIONARY));
   if (flag === 'z') return strFromU8(inflate(bytes));
   if (flag === 'r') return strFromU8(bytes);

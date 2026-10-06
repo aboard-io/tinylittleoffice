@@ -16,7 +16,7 @@ test('todo: add, tick, star, date, filter and clear', async ({ page }) => {
   await rows.nth(1).getByLabel('Due date').fill('2027-03-01');
   await rows.nth(2).getByRole('button', { name: 'Move up' }).click();
   await expect(page.locator('.to-toolbar .to-hint')).toHaveText('1 / 3');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
 
   await reopen(page);
   await expect(rows).toHaveCount(3);

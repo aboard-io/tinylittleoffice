@@ -275,7 +275,7 @@ export class ToApp extends LitElement {
     const text = (q.get('doc') ?? '').replace(/\r\n?/g, '\n');
     const body = def.read ? def.read(text) : text;
     const title = q.get('title')?.trim() || undefined;
-    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, body });
+    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, body }, def.id);
     history.replaceState(null, '', `${this.root}${location.protocol === 'file:' ? '' : def.id + '/'}${routeHash(def.id, payload, q.get('view') ?? '')}`);
     return true;
   }
@@ -315,7 +315,7 @@ export class ToApp extends LitElement {
   private decode(payload: string): Envelope {
     if (!payload) return { created: null, body: '' };
     try {
-      return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)));
+      return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)), this.app ?? undefined);
     } catch {
       return { created: null, body: '' };
     }
@@ -331,7 +331,7 @@ export class ToApp extends LitElement {
     const empty = !this.env.body && this.env.created === null && !this.env.key && !this.env.title;
     let payload = '';
     if (!empty) {
-      const { flag, bytes } = packEnvelope(this.env);
+      const { flag, bytes } = packEnvelope(this.env, this.app);
       payload = this.locker ? await seal(this.locker, flag, bytes) : flag + toBase64Url(bytes);
       if (run !== this.writeRun) return;
     }
@@ -573,7 +573,7 @@ export class ToApp extends LitElement {
         return;
       }
       this.locker = r.locker;
-      this.env = unpackEnvelope(r.flag, r.bytes);
+      this.env = unpackEnvelope(r.flag, r.bytes, this.app ?? undefined);
       this.sealed = '';
       this.pw = '';
       this.pwError = false;

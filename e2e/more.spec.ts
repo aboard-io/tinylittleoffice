@@ -10,7 +10,7 @@ test('a document has a title of its own', async ({ page }) => {
   await expect(page).toHaveTitle('Untitled Sheet · TinyLittleOffice');
   await title.fill('Q3 budget');
   await expect(page).toHaveTitle('Q3 budget · TinyLittleOffice');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[WYZR]/);
   await reopen(page);
   await expect(title).toHaveValue('Q3 budget');
   // Downloads are named after it.
@@ -35,7 +35,7 @@ test('every example in the skill opens as written', async ({ page }) => {
     await page.goto(`/${app}/#${params}`);
     await expect(page.locator(`to-${app}`), app).toBeVisible();
     // The plain link has become the compact one, on the app's own page.
-    await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v2/${app}/[YZR][A-Za-z0-9_-]+$`));
+    await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v2/${app}/[WYZR][A-Za-z0-9_-]+$`));
     const want = new URLSearchParams(params).get('title')!;
     await expect(page.getByRole('textbox', { name: 'Title' }), app).toHaveValue(want);
     // And it drew something: the picture every other view is made from is not empty.
@@ -430,7 +430,7 @@ test('contract: two people, two browsers, two signatures', async ({ page, browse
   await page.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(signatures(page)).toHaveCount(1);
   await expect(signatures(page).first()).toContainText('Signed these exact words');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/contract\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/contract\/[WYZR]/);
   const sent = page.url();
 
   // The other party, in a browser of their own (so a key of their own), opens what was sent.
@@ -843,7 +843,7 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await page.goto('/#/todo');
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
   // Home lists them, each in a folder named for its app.
   await page.goto('/#/');
   const lib = page.locator('.to-library');
@@ -1003,7 +1003,7 @@ test('keeping documents is opt in, and off again erases them', async ({ page }) 
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[YZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
   await page.goto('/#/');
   await expect(page.locator('.to-library summary')).toHaveCount(1);
   await page.goto('/#/write');

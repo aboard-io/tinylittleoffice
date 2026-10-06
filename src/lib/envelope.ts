@@ -10,7 +10,7 @@
  *   <blank line>
  *   <body>
  *
- * Payloads carrying an envelope use the codec's flags in capitals: "Y"
+ * Payloads carrying an envelope use the codec's flags in capitals: "W", "Y"
  * (deflated against the dictionary), "Z" (deflated) and "R" (raw). The
  * lowercase flags from before envelopes existed decode as a bare body.
  */
@@ -43,33 +43,33 @@ export function decodeCreated(s: string): number | null {
 }
 
 /** Envelope as a one-character flag plus bytes; the flag is uppercase when an envelope is present. */
-export function packEnvelope(env: Envelope): { flag: string; bytes: Uint8Array } {
-  if (env.created === null && !env.key && !env.sig && !env.title) return packDoc(env.body);
+export function packEnvelope(env: Envelope, app?: string): { flag: string; bytes: Uint8Array } {
+  if (env.created === null && !env.key && !env.sig && !env.title) return packDoc(env.body, app);
   const head: string[] = [];
   if (env.created !== null) head.push('c' + encodeCreated(env.created));
   if (env.title) head.push('t' + env.title.replace(/\n/g, ' '));
   if (env.key && env.sig) head.push('k' + env.key, 's' + env.sig);
-  const { flag, bytes } = packDoc(head.join('\n') + '\n\n' + env.body);
+  const { flag, bytes } = packDoc(head.join('\n') + '\n\n' + env.body, app);
   return { flag: flag.toUpperCase(), bytes };
 }
 
-export function encodeEnvelope(env: Envelope): string {
+export function encodeEnvelope(env: Envelope, app?: string): string {
   if (!env.body && env.created === null && !env.key && !env.title) return '';
-  const { flag, bytes } = packEnvelope(env);
+  const { flag, bytes } = packEnvelope(env, app);
   return flag + toBase64Url(bytes);
 }
 
-export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
-  if (flag !== 'Y' && flag !== 'Z' && flag !== 'R') {
+export function unpackEnvelope(flag: string, bytes: Uint8Array, app?: string): Envelope {
+  if (flag !== 'W' && flag !== 'Y' && flag !== 'Z' && flag !== 'R') {
     try {
-      return { created: null, body: unpackDoc(flag, bytes) };
+      return { created: null, body: unpackDoc(flag, bytes, app) };
     } catch {
       return { created: null, body: '' };
     }
   }
   let text: string;
   try {
-    text = unpackDoc(flag.toLowerCase(), bytes);
+    text = unpackDoc(flag.toLowerCase(), bytes, app);
   } catch {
     return { created: null, body: '' };
   }
@@ -87,10 +87,10 @@ export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
   return env;
 }
 
-export function decodeEnvelope(payload: string): Envelope {
+export function decodeEnvelope(payload: string, app?: string): Envelope {
   if (!payload) return { created: null, body: '' };
   try {
-    return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)));
+    return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)), app);
   } catch {
     return { created: null, body: '' };
   }
