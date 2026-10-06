@@ -17,6 +17,7 @@ import { createSigner, localStorageStore, verify, fingerprintOf, type Signer } f
 import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
+import { fontsForPictures } from './kit/browser.ts';
 import { History, apps, appOf, extOf, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { REFRESH, download, formatsOf, loadEditor, picture } from './kit/browser.ts';
@@ -146,6 +147,8 @@ export class ToApp extends LitElement {
   @state() private viewing = false;
   /** What is typed into the menu's search box: only apps whose names match are listed. */
   @state() private find = '';
+  /** The fonts, as CSS, for pages shown in a frame of their own. */
+  @state() private faces = '';
   /** Opened from an "embed" link: just the document, for showing inside another page. */
   @state() private embedded = false;
   @state() private embedPage = 0;
@@ -743,7 +746,10 @@ export class ToApp extends LitElement {
   private renderView() {
     const def = this.def!;
     const ctx = { created: this.env.created, base: this.root };
-    if (def.document) return html`<iframe class="to-view page" title=${this.docTitle} sandbox="allow-scripts allow-popups allow-forms" srcdoc=${def.document(this.env.body, ctx)}></iframe>`;
+    if (def.document) {
+      if (!this.faces) void fontsForPictures().then((faces) => (this.faces = faces || ' '));
+      return html`<iframe class="to-view page" title=${this.docTitle} sandbox="allow-scripts allow-popups allow-forms" srcdoc=${def.document(this.env.body, ctx).replace('<head>', `<head><style>${this.faces}</style>`)}></iframe>`;
+    }
     if (def.prose && def.html) return html`<article class="to-view prose">${unsafeHTML(def.html(this.env.body, ctx))}</article>`;
     return html`<div class="to-view pages">${def.view(this.env.body).map((p, i, all) => html`<div class="sheet">${unsafeHTML(pageSvg(p, `role="img" aria-label="${xml(this.docTitle)}${all.length > 1 ? `, page ${i + 1}` : ''}"`))}</div>`)}</div>`;
   }

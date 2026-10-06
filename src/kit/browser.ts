@@ -32,7 +32,7 @@ void Promise.all([document.fonts.load("400 16px 'IBM Plex Sans'"), document.font
  * inside the SVG. Fetched once, the first time a picture is made.
  */
 let fontCss: Promise<string> | null = null;
-function fontsForPictures(): Promise<string> {
+export function fontsForPictures(): Promise<string> {
   return (fontCss ??= Promise.all(
     ([[400, plex400], [700, plex700]] as const).map(async ([weight, url]) => {
       const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
@@ -41,6 +41,12 @@ function fontsForPictures(): Promise<string> {
       return `@font-face{font-family:'IBM Plex Sans';font-weight:${weight};src:url(data:font/woff2;base64,${btoa(bin)}) format('woff2')}`;
     }),
   ).then((faces) => faces.join(''), () => ''));
+}
+
+/** A page of its own (a site, a zine to read) with the fonts inside it, so it looks the same anywhere, with no connection. */
+export async function withFonts(page: string): Promise<string> {
+  const faces = await fontsForPictures();
+  return faces ? page.replace('<head>', `<head>\n<style>${faces}</style>`) : page;
 }
 
 /** The editors, loaded when first wanted: one chunk per app. */
@@ -140,7 +146,7 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
     data = pages.length ? pdf(pages, title || def.title(body) || def.name) : null;
     mime = 'application/pdf';
   } else if (ext === 'html') {
-    data = utf8(def.document ? def.document(body, ctx) : docHtml({ def, body, title }, ctx, link));
+    data = utf8(def.document ? await withFonts(def.document(body, ctx)) : docHtml({ def, body, title }, ctx, link));
     mime = 'text/html;charset=utf-8';
   } else return null;
   if (!data) throw new Error('Could not draw the document');

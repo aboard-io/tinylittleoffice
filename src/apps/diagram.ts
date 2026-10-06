@@ -6,7 +6,7 @@
 import { DocElement, defineElement, html, nothing, unsafeSVG, tool, appOf, makeRef, pageSvg, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import '../widgets/line-form.ts';
-import { state } from '../kit.ts';
+import { state, fontsForPictures } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
 import { arrowDefs, shapeSvg } from './draw.def.ts';
@@ -23,6 +23,8 @@ export class DiagramElement extends DocElement<string> {
   }
 
   /** Filled in as a form, or typed as text: the same document either way. The choice is remembered. */
+  /** The fonts, as CSS, for the page shown in its frame. */
+  @state() private faces = '';
   @state() private asText = (() => {
     try {
       return localStorage.getItem('tinyoffice.edit') === 'text';
@@ -111,6 +113,7 @@ export class DiagramElement extends DocElement<string> {
     const name = appOf((this.constructor as typeof DiagramElement).app)!.name;
     const inside = !!this.closest('sl-dialog');
     const form = !!spec.form && !this.asText;
+    if (spec.page && !this.faces) void fontsForPictures().then((faces) => (this.faces = faces || ' '));
     return html`
       <div class="to-toolbar">
         <span class="to-hint diagram-hint">${form ? 'Add a row for each thing, and fill it in.' : spec.hint}</span>
@@ -128,7 +131,7 @@ ${form
         <div class="pic">
           ${spec.page
             ? // The page as it will be, in a frame of its own: its scripts run, but it cannot reach this one.
-              html`<iframe title="${name}, as a page" sandbox="allow-scripts allow-popups allow-forms" srcdoc=${text.trim() ? spec.page(this.doc) : spec.page(spec.example)} class=${text.trim() ? '' : 'sample'}></iframe>`
+              html`<iframe title="${name}, as a page" sandbox="allow-scripts allow-popups allow-forms" srcdoc=${(text.trim() ? spec.page(this.doc) : spec.page(spec.example)).replace('<head>', `<head><style>${this.faces}</style>`)} class=${text.trim() ? '' : 'sample'}></iframe>`
             : spec.sheets
               ? (text.trim() ? spec.sheets(this.doc) : spec.sheets(spec.example)).map((p, i) => html`<div class="sheet ${text.trim() ? '' : 'sample'}">${unsafeSVG(pageSvg(p, `role="img" aria-label="${name}, sheet ${i + 1}"`))}</div>`)
             : d!.shapes.length
