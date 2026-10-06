@@ -401,9 +401,15 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   await expect(kind).toContainText('Big icon');
   // A combobox: type a few letters of a layout or a document, and a slide of it is added.
   const add = page.getByRole('combobox', { name: 'Add a slide' });
-  const options = await page.locator('.deck-add datalist option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value));
+  // A tap drops the whole list down, in the menu's groups, to scroll; typing narrows it.
+  await add.click();
+  const list = page.locator('.deck-add [role="listbox"]');
+  await expect(list).toBeVisible();
+  const options = await list.getByRole('option').allTextContents();
   for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Sticky notes']) expect(options).toContain(name);
+  await expect(list.locator('li.group').first()).toHaveText('Layouts');
   await add.fill('two col');
+  await expect(list.getByRole('option')).toHaveCount(1);
   await add.press('Enter');
   await expect(thumbs).toHaveCount(5);
   await expect(page.locator('.deck-slide.lay-2')).toBeVisible();

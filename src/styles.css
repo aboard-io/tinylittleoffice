@@ -3876,3 +3876,51 @@ mark {
 .zine-edit to-rich .write-page p {
   margin: 0;
 }
+
+/* The insert combobox's list: scrollable, in the menu's groups */
+.to-insert-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: max(100%, 16rem);
+  max-height: min(60vh, 22rem);
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+.to-insert-list li[role='option'] {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.to-insert-list li[role='option'].on,
+.to-insert-list li[role='option']:hover {
+  background: var(--to-accent);
+  color: #fff;
+}
+.to-insert-list li[role='option'] small {
+  color: inherit;
+  opacity: 0.75;
+}
+.to-insert-list li.group {
+  padding: 8px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
+}
+.to-insert-list li.none {
+  padding: 8px 10px;
+  color: var(--to-ink-3);
+}
