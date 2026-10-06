@@ -4,7 +4,7 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a');
-  await expect(launcher).toHaveCount(60);
+  await expect(launcher).toHaveCount(61);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });
@@ -318,7 +318,7 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await library.getByRole('button', { name: 'rocket', exact: true }).click();
   await expect(page.locator('#icon-picker')).not.toHaveAttribute('open');
   await expect(page.locator('.deck-suggest')).toHaveCount(0);
-  await expect(page.locator('.to-toolbar .to-hint')).toHaveText('2 / 10');
+  await expect(page.locator('.to-toolbar .to-hint')).toHaveText('2 slides');
 
   // Each dot sits on the first line of its bullet, even when a bullet wraps.
   await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(3).trim() + '\nTell people');
@@ -369,13 +369,11 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   await page.keyboard.press('ArrowRight');
   await expect(show).toHaveCount(0);
 
-  for (let i = 0; i < 10; i++) {
-    const btn = page.getByRole('button', { name: 'Slide', exact: true });
-    if (await btn.isDisabled()) break;
-    await btn.click();
-  }
-  await expect(thumbs).toHaveCount(10);
-  await expect(page.getByRole('button', { name: 'Slide', exact: true })).toBeDisabled();
+  // No cap on slides: the link's length is the only limit.
+  const before = await thumbs.count();
+  for (let i = 0; i < 12; i++) await page.getByRole('button', { name: 'Slide', exact: true }).click();
+  await expect(thumbs).toHaveCount(before + 12);
+  await expect(page.getByRole('button', { name: 'Slide', exact: true })).toBeEnabled();
 });
 
 test('deck: layouts, a transition, and other documents on a slide', async ({ page }) => {

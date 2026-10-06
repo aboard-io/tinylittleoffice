@@ -37,4 +37,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'countdown', name: 'Countdown', icon: 'countdown', group: 'Personal', blurb: 'A live countdown to a date: days, hours, minutes, seconds.', title: h1 }, spec);
+export default definePage({ id: 'countdown', name: 'Countdown', icon: 'countdown', group: 'Plan', blurb: 'A live countdown to a date: days, hours, minutes, seconds.', title: h1 }, spec);

@@ -43,4 +43,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'spinner', name: 'Spinner', icon: 'spinner', group: 'Games', blurb: 'A wheel to spin: names or choices in, one picked at random.', title: h1 }, spec);
+export default definePage({ id: 'spinner', name: 'Spinner', icon: 'spinner', group: 'Play', blurb: 'A wheel to spin: names or choices in, one picked at random.', title: h1 }, spec);

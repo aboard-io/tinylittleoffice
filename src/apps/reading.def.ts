@@ -31,4 +31,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'reading', name: 'Reading list', icon: 'reading', group: 'Personal', blurb: 'A reading list with stars and a line on each book.', title: h1 }, spec);
+export default definePage({ id: 'reading', name: 'Reading list', icon: 'reading', group: 'Track', blurb: 'A reading list with stars and a line on each book.', title: h1 }, spec);

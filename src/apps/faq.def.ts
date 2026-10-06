@@ -60,4 +60,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'faq', name: 'FAQ', icon: 'faq', group: 'Publish and sell', blurb: 'Questions and answers as a searchable page, with the markup search engines read.', title: (body) => parseFaq(body).title }, spec);
+export default definePage({ id: 'faq', name: 'FAQ', icon: 'faq', group: 'Create', blurb: 'Questions and answers as a searchable page, with the markup search engines read.', title: (body) => parseFaq(body).title }, spec);

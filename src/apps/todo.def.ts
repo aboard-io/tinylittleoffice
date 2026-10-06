@@ -53,7 +53,7 @@ function page(body: string, upTo = Infinity, w = 720): Page {
 
 export default defineApp({
   id: 'todo',
-  group: 'Time management',
+  group: 'Plan',
   name: 'Todo',
   icon: 'todo',
   blurb: 'Tasks to tick off, with stars and due dates.',

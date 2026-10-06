@@ -44,7 +44,7 @@ export function definePrint(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> 
   registerSpec(app.id, spec);
   const lines = (body: string) => body.split('\n').map((l) => l.trim().replace(/^(#+|:[a-z0-9-]+$)\s*/, '')).filter(Boolean);
   return defineApp({
-    group: 'Print and fold',
+    group: 'Print',
     under: 'poster',
     title: (body) => lines(body)[0] ?? '',
     outline: (body) => lines(body).slice(0, 14),

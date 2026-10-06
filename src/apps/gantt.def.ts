@@ -56,7 +56,7 @@ function page(body: string, upTo = Infinity): Page {
 
 export default defineApp({
   id: 'gantt',
-  group: 'Time management',
+  group: 'Plan',
   name: 'Gantt',
   icon: 'gantt',
   blurb: 'Tasks as bars on a calendar, with tasks nested under the ones they are part of.',

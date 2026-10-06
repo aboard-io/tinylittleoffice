@@ -54,4 +54,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'venn', group: 'Visualization', under: 'draw', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.' }, spec);
+export default defineDiagram({ id: 'venn', group: 'Design', under: 'draw', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.' }, spec);

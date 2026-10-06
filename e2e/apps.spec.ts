@@ -268,11 +268,13 @@ test('shell: themes, page titles, share and room per service', async ({ page, is
     await expect(page.locator('.to-meter-rooms')).toContainText('Bluesky');
   }
   await page.locator('.to-meter sl-progress-ring').click();
-  const rooms = page.locator('.to-rooms tr');
-  await expect(rooms).toHaveCount(8);
-  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length fits');
-  await expect(rooms.filter({ hasText: 'Mastodon' })).toContainText('any length fits');
-  await expect(rooms.filter({ hasText: 'Text message' })).toContainText(/\d+ (left|over)/);
+  const rooms = page.locator('#doc-dialog .to-rooms tbody tr');
+  await expect(rooms).toHaveCount(10);
+  await expect(page.locator('#doc-dialog .to-rooms thead th')).toHaveText(['Where', 'Limit', 'This link', 'Left', 'Note']);
+  await expect(rooms.filter({ hasText: 'NTAG215' })).toContainText('504');
+  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length');
+  await expect(rooms.filter({ hasText: 'Mastodon' })).toContainText('any length');
+  await expect(rooms.filter({ hasText: 'Text message' })).toContainText(/\d/);
   await page.getByRole('button', { name: 'Done' }).click();
 
   // Share: compose boxes open with the link in them; the picture is a download.
@@ -530,6 +532,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     log: '# Log\n1 March, Run, 5 km',
     reading: '# Read\nPiranesi | Susanna Clarke | 4 | Tides.',
     chords: '# Song\n[C]Row your [G]boat',
+    qr: 'https://tinylittleoffice.com/',
   };
   const found: string[] = [];
   const check = async (what: string) => {
@@ -623,6 +626,7 @@ test('nothing is cut off at the right edge, on any screen', async ({ page }) => 
     log: '# Log\n1 March, Run, 5 km',
     reading: '# Read\nPiranesi | Susanna Clarke | 4 | Tides.',
     chords: '# Song\n[C]Row your [G]boat',
+    qr: 'https://tinylittleoffice.com/',
   };
   const found: string[] = [];
   for (const [app, body] of Object.entries(docs)) {

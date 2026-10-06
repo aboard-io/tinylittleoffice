@@ -105,7 +105,7 @@ export const drawingToSvg = (body: string) => '<?xml version="1.0" encoding="UTF
 
 export default defineApp({
   id: 'draw',
-  group: 'Visualization',
+  group: 'Design',
   name: 'Draw',
   icon: 'draw',
   blurb: 'Boxes, ellipses, diamonds, lines, arrows and labels on a grid.',

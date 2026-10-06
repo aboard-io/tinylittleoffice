@@ -29,4 +29,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'bio', name: 'Links page', icon: 'bio', group: 'Personal', blurb: 'A link-in-bio page: your name, a line about you, and your links.', title: h1 }, spec);
+export default definePage({ id: 'bio', name: 'Links page', icon: 'bio', group: 'Create', blurb: 'A link-in-bio page: your name, a line about you, and your links.', title: h1 }, spec);

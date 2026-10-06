@@ -25,4 +25,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'mind', group: 'Visualization', under: 'draw', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.' }, spec);
+export default defineDiagram({ id: 'mind', group: 'Design', under: 'draw', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.' }, spec);

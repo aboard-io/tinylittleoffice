@@ -83,7 +83,7 @@ export default definePage(
     id: 'contract',
     name: 'Contract',
     icon: 'contract',
-    group: 'Publish and sell',
+    group: 'Collaborate',
     blurb: 'A plain-words agreement that each party signs with a key held in their own browser.',
     title,
     outline: (body) => appOf('write')!.outline(withSignatures(body)),

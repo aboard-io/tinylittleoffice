@@ -465,11 +465,10 @@ test('room for a link says when length does not matter', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Some words. '.repeat(20));
   await page.locator('.to-meter sl-progress-ring').click();
-  const rooms = page.locator('.to-rooms tr');
+  const rooms = page.locator('#doc-dialog .to-rooms tbody tr');
   // Bluesky shows a short form of any link, so the document can grow without using up a post.
-  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length fits');
-  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText(/leaving \d+ of 300 for your words/);
-  await expect(rooms.filter({ hasText: 'Discord' })).toContainText(/[\d,]+ left/);
+  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length');
+  await expect(rooms.filter({ hasText: 'Discord' })).toContainText(/\d/);
 });
 
 test('zine: eight pages, a sheet to print either way, and a page to tap through', async ({ page }) => {
@@ -704,6 +703,31 @@ test('pixel art: colour squares by clicking, dragging and from the keyboard', as
   await expect(cell(3, 4)).toHaveAccessibleName('Row 3, column 4: Red');
   await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: empty');
   await shot(page, 'pixel');
+  // Tools: a box dragged out, a line, a fill; and the picture at its own size beside the grid.
+  await page.getByRole('radio', { name: 'Indigo' }).click();
+  await page.getByRole('button', { name: 'Box', exact: true }).click();
+  const drag = async (r1: number, c1: number, r2: number, c2: number) => {
+    const [a, b] = [(await cell(r1, c1).boundingBox())!, (await cell(r2, c2).boundingBox())!];
+    await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
+    await page.mouse.up();
+  };
+  await drag(6, 6, 9, 10);
+  await expect(cell(6, 8)).toHaveAccessibleName('Row 6, column 8: Indigo');
+  await expect(cell(9, 6)).toHaveAccessibleName('Row 9, column 6: Indigo');
+  await expect(cell(7, 8)).toHaveAccessibleName('Row 7, column 8: empty');
+  await page.getByRole('button', { name: 'Fill', exact: true }).click();
+  await page.getByRole('radio', { name: 'Yellow' }).click();
+  await cell(7, 8).click();
+  await expect(cell(8, 9)).toHaveAccessibleName('Row 8, column 9: Yellow');
+  await expect(cell(12, 12)).toHaveAccessibleName('Row 12, column 12: empty');
+  await page.getByRole('button', { name: 'Line', exact: true }).click();
+  await drag(12, 1, 12, 8);
+  await expect(cell(12, 5)).toHaveAccessibleName('Row 12, column 5: Yellow');
+  // (One square per coloured cell, and the page's own white behind them.)
+  await expect(page.locator('.pixel-preview .big svg rect')).toHaveCount((await page.locator('.pixel-grid button[style*="background"]').count()) + 1);
+  await shot(page, 'pixel-tools');
   // A stitch pattern is the same thing on a bigger grid.
   await page.goto('/#/pattern');
   await expect(page.getByRole('gridcell')).toHaveCount(576);
@@ -848,7 +872,7 @@ test('the menu finds an app by name', async ({ page }) => {
   const drawer = page.locator('#nav-drawer');
   await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('zin');
   await expect(drawer.locator('.to-drawer-nav a:not([hidden])')).toHaveText(['Zine']);
-  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('games');
+  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('play');
   await expect(drawer.locator('.to-drawer-nav a:not([hidden])')).toHaveCount(7);
   await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('poll');
   await page.keyboard.press('Enter');
@@ -896,4 +920,96 @@ test('a map on a slide: a tap on the map goes to the next stop', async ({ page }
   await expect(map.locator('.leaflet-popup').last()).toContainText('3. Porto');
   await tap();
   await expect(page.locator('.deck-show .frame > svg')).toContainText('After');
+});
+
+test('the whole document as a QR code, to look at and to keep', async ({ page }) => {
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  await page.goto('/#/v2/todo/' + encodeEnvelope({ created: 1, body: '- Scan me' }));
+  // The header button, or on a phone the Share menu's item.
+  const openQr = async () => {
+    if (await page.locator('sl-button[aria-label="QR code"]').isVisible()) await page.locator('sl-button[aria-label="QR code"]').click();
+    else {
+      await page.getByRole('button', { name: 'Share' }).click();
+      await page.getByRole('menuitem', { name: 'QR code' }).click();
+    }
+  };
+  await openQr();
+  const dialog = page.locator('#qr-dialog');
+  await expect(dialog).toHaveAttribute('open');
+  await expect(dialog.getByRole('img', { name: 'QR code of this document' }).locator('svg')).toBeVisible();
+  await expect(dialog).toContainText(/\d+ bytes, as one code/);
+  const [png] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'PNG' }).click()]);
+  expect(png.suggestedFilename()).toMatch(/-qr\.png$/);
+  expect(readFileSync(await png.path()).subarray(1, 4).toString()).toBe('PNG');
+  const [svg] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'SVG' }).click()]);
+  expect(readFileSync(await svg.path(), 'utf8')).toContain('<svg');
+  await shot(page, 'qr');
+  // Too long for any code, and it says so.
+  await page.goto('about:blank');
+  await page.goto('/#/v2/write/' + encodeEnvelope({ created: 1, body: Array.from({ length: 400 }, (_, i) => `Line ${i} of a long document with words that do not repeat much ${i * 7919}`).join('\n') }));
+  await openQr();
+  await expect(page.locator('#qr-dialog')).toContainText('the largest QR code holds 2,953');
+});
+
+test('slides: bold and italic from the keyboard and the toolbar', async ({ page }) => {
+  await page.goto('/#/deck');
+  const head = page.getByRole('textbox', { name: 'Headline' });
+  await head.fill('Spring launch');
+  await head.evaluate((el: HTMLInputElement) => el.setSelectionRange(0, 6));
+  await page.keyboard.press('Control+b');
+  await expect(head).toHaveValue('*Spring* launch');
+  // The slide itself (in the rail) shows the words, not the marks.
+  await expect(page.locator('.deck-rail .deck-thumb svg').first()).toContainText('Spring launch');
+  await expect(page.locator('.deck-rail .deck-thumb svg').first()).not.toContainText('*');
+  // The bullets, with the toolbar; nothing selected marks the word at the cursor.
+  const bullets = page.getByRole('textbox', { name: 'Bullets' });
+  await bullets.fill('Ship the beta\nTell everyone');
+  await bullets.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(16, 16));
+  await page.getByRole('button', { name: 'Italic' }).click();
+  await expect(bullets).toHaveValue('Ship the beta\n_Tell_ everyone');
+  // Off again.
+  await bullets.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(15, 19));
+  await page.keyboard.press('Control+i');
+  await expect(bullets).toHaveValue('Ship the beta\nTell everyone');
+  // Tab steps a bullet in; Shift+Tab brings it out; so do the buttons.
+  await page.keyboard.press('Tab');
+  await expect(bullets).toHaveValue('Ship the beta\n  Tell everyone');
+  await page.keyboard.press('Tab');
+  await expect(bullets).toHaveValue('Ship the beta\n    Tell everyone');
+  await page.keyboard.press('Shift+Tab');
+  await page.getByRole('button', { name: 'Bring the bullet out' }).click();
+  await expect(bullets).toHaveValue('Ship the beta\nTell everyone');
+  await page.getByRole('button', { name: 'Indent the bullet' }).click();
+  await expect(bullets).toHaveValue('Ship the beta\n  Tell everyone');
+});
+
+test('keep nothing on this device', async ({ page }) => {
+  await page.goto('/#/todo');
+  await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[YZR]/);
+  await page.goto('/#/');
+  await expect(page.locator('.to-library summary')).toHaveCount(1);
+  // The switch is with the other privacy things; turning it on erases what was kept.
+  await page.goto('/#/write');
+  await page.locator('.to-meter sl-progress-ring').click();
+  await page.locator('sl-checkbox.to-nosave').click();
+  await expect(page.locator('sl-checkbox.to-nosave')).toHaveJSProperty('checked', true);
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('Not kept');
+  await page.goto('/#/');
+  await expect(page.locator('.to-library')).toHaveCount(0);
+  await expect(page.locator('.to-library-off')).toContainText('Keeping nothing on this device');
+  expect(await page.evaluate(() => localStorage.getItem('tinyoffice.library'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('tinyoffice.nosave'))).toBe('1');
+  // And back.
+  await page.goto('/#/write');
+  await page.locator('.to-meter sl-progress-ring').click();
+  await page.locator('sl-checkbox.to-nosave').click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('Kept again');
+  await page.goto('/#/');
+  await expect(page.locator('.to-library summary')).toHaveCount(1);
 });

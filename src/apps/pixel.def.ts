@@ -49,7 +49,7 @@ function picture(body: string, k: Pixels): Page {
 export function definePixels(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, k: Pixels): AppDef {
   KINDS.set(app.id, k);
   return defineApp({
-    group: 'Visualization',
+    group: 'Design',
     title: () => '',
     outline: (body) => [`${[...body].filter((ch) => INKS[ch]).length} squares filled`],
     view: (body) => [picture(body, k)],

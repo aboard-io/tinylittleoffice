@@ -22,7 +22,7 @@ export function readPlanner(body: string): string {
 }
 
 export default defineFold(
-  { id: 'planner', under: 'zine', name: 'Planner', icon: 'planner', blurb: 'A pocket planner for the week: a cover and seven ruled days, folded from one sheet.', read: readPlanner },
+  { id: 'planner', group: 'Plan', name: 'Planner', icon: 'planner', blurb: 'A pocket planner for the week: a cover and seven ruled days, folded from one sheet.', read: readPlanner },
   {
     ...ZINE,
     sides: false,

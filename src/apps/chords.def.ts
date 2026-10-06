@@ -49,4 +49,4 @@ export const spec = {
   },
 };
 
-export default definePrint({ id: 'chords', name: 'Chord chart', icon: 'chords', blurb: 'A song sheet: words with chords above them, transposed to any key.' }, spec);
+export default definePrint({ id: 'chords', under: undefined, group: 'Create', name: 'Chord chart', icon: 'chords', blurb: 'A song sheet: words with chords above them, transposed to any key.' }, spec);

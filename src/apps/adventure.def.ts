@@ -48,4 +48,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'adventure', name: 'Adventure', icon: 'adventure', group: 'Games', blurb: 'A choose-your-own-adventure: scenes and choices, read by tapping.', title: h1 }, spec);
+export default definePage({ id: 'adventure', name: 'Adventure', icon: 'adventure', group: 'Play', blurb: 'A choose-your-own-adventure: scenes and choices, read by tapping.', title: h1 }, spec);

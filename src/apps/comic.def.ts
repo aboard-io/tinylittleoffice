@@ -59,7 +59,7 @@ export function readComic(body: string): string {
 }
 
 export default defineFold(
-  { id: 'comic', under: 'zine', name: 'Comic', icon: 'comic', blurb: 'A mini comic: panels with a picture, a speech bubble and a caption, folded from one sheet.', read: readComic },
+  { id: 'comic', group: 'Print', under: 'zine', name: 'Comic', icon: 'comic', blurb: 'A mini comic: panels with a picture, a speech bubble and a caption, folded from one sheet.', read: readComic },
   {
     ...ZINE,
     sides: false,

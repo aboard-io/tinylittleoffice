@@ -39,8 +39,29 @@ function write(all: Kept[]) {
   }
 }
 
+/** Whether anything is kept here at all. Off, nothing is written and the library is emptied; the one thing remembered is that choice. */
+export function saving(): boolean {
+  try {
+    return localStorage.getItem('tinyoffice.nosave') !== '1';
+  } catch {
+    return false;
+  }
+}
+export function setSaving(on: boolean) {
+  try {
+    if (on) localStorage.removeItem('tinyoffice.nosave');
+    else {
+      localStorage.setItem('tinyoffice.nosave', '1');
+      localStorage.removeItem(KEY);
+    }
+  } catch {
+    // (Nothing can be kept here anyway.)
+  }
+}
+
 /** Keep a document, or the newer state of one already kept (which stays in its folder). */
 export function keep(doc: Omit<Kept, 'folder' | 'at'>, folder: string) {
+  if (!saving()) return;
   const all = library();
   const was = all.find((k) => k.id === doc.id);
   if (was && was.hash === doc.hash && was.title === doc.title) return;

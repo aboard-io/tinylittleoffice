@@ -17,4 +17,4 @@ export const spec = {
   sheets: (body: string) => [onLetter(stack(pages(body), 0), 40)],
 };
 
-export default definePrint({ id: 'resume', name: 'Résumé', icon: 'resume', blurb: 'A résumé written as plain text and fitted to exactly one page.' }, spec);
+export default definePrint({ id: 'resume', group: 'Print', name: 'Résumé', icon: 'resume', blurb: 'A résumé written as plain text and fitted to exactly one page.' }, spec);

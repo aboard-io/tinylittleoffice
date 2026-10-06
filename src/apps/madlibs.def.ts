@@ -36,4 +36,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'madlibs', name: 'Fill in the blanks', icon: 'madlibs', group: 'Games', blurb: 'A story with blanks: the reader supplies the words, then reads the result.', title: h1 }, spec);
+export default definePage({ id: 'madlibs', name: 'Fill in the blanks', icon: 'madlibs', group: 'Play', blurb: 'A story with blanks: the reader supplies the words, then reads the result.', title: h1 }, spec);

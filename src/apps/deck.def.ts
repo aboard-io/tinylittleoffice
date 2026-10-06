@@ -1,5 +1,6 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
-import { defineApp, xml, wrapText, text, place, pageSvg, rect, r, ACCENT, MUTED, type DownloadContext, type Page } from '../kit/core.ts';
+import { defineApp, xml, wrap, text, place, pageSvg, rect, r, ACCENT, MUTED, type DownloadContext, type Page, type Span } from '../kit/core.ts';
+import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { refPage, refSteps, resolve } from '../kit/embed.ts';
 import { ICON_SVG } from '../lib/icons.ts';
@@ -25,13 +26,16 @@ export interface SlideLayout {
   /** Font sizes chosen so everything fits: bigger when there is less to say. */
   titlePx: number;
   bodyPx: number;
-  title: Box & { lines: string[]; center: boolean };
-  cols: (Box & { items: string[][] })[];
+  title: Box & { lines: Span[][]; center: boolean };
+  cols: (Box & { items: Span[][][]; depths: number[] })[];
   icon?: Box;
   sub?: Box;
 }
 
 const live = (list: string[] = []) => list.filter((b) => b.trim() !== '');
+/** How far in a bullet goes: two spaces (or a tab) a level, up to three levels. */
+export const depthOf = (b: string) => Math.min(3, Math.floor(/^[ \t]*/.exec(b)![0].replace(/\t/g, '  ').length / 2));
+const IN = 1.4;
 
 /** Where everything on a slide goes, and how big the type is. */
 export function layoutSlide(s: Slide): SlideLayout {
@@ -42,17 +46,17 @@ export function layoutSlide(s: Slide): SlideLayout {
   const right = kind === '2' ? live(s.right) : [];
   const fitTitle = (w: number, sizes: number[], maxLines: number) => {
     for (const px of sizes) {
-      const lines = wrapText(s.title, w, px, true);
+      const lines = wrap(parseInline(s.title), w, px, true);
       if (lines.length <= maxLines) return { px, lines };
     }
     const px = sizes[sizes.length - 1];
-    return { px, lines: wrapText(s.title, w, px, true).slice(0, maxLines) };
+    return { px, lines: wrap(parseInline(s.title), w, px, true).slice(0, maxLines) };
   };
   const fitBody = (cols: (Box & { src: string[] })[], sizes: number[], bullet: boolean) => {
     for (const px of sizes) {
-      const laid = cols.map((c) => c.src.map((b) => wrapText(b, c.w - (bullet ? px * 1.1 : 0), px)));
-      const tall = (items: string[][]) => items.reduce((a, l) => a + l.length * px * 1.3 + px * 0.45, 0);
-      if (laid.every((items, i) => tall(items) <= cols[i].h) || px === sizes[sizes.length - 1]) return { px, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i] })) };
+      const laid = cols.map((c) => c.src.map((b) => wrap(parseInline(b.trim()), c.w - (bullet ? px * (1.1 + depthOf(b) * IN) : 0), px)));
+      const tall = (items: Span[][][]) => items.reduce((a, l) => a + l.length * px * 1.3 + px * 0.45, 0);
+      if (laid.every((items, i) => tall(items) <= cols[i].h) || px === sizes[sizes.length - 1]) return { px, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i], depths: c.src.map(depthOf) })) };
     }
     throw new Error('unreachable');
   };
@@ -119,14 +123,17 @@ export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = '')
   let n = 0;
   for (const col of L.cols) {
     let y = col.y;
-    for (const item of col.items) {
+    col.items.forEach((item, k) => {
+      const d = col.depths[k] ?? 0;
+      const x = col.x + L.bodyPx * d * IN;
       if (cover || n < bullets) {
-        if (!cover) svg += `<circle cx="${r(col.x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * 0.16)}" fill="${ACCENT}"/>`;
-        item.forEach((line, i) => (svg += text(cover ? SW / 2 : col.x + L.bodyPx * 1.1, y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? MUTED : undefined, anchor: cover ? 'middle' : 'start' })));
+        // A deeper bullet steps in, with a smaller, hollow dot.
+        if (!cover) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : ACCENT}"${d ? ` stroke="${ACCENT}" stroke-width="2"` : ''}/>`;
+        item.forEach((line, i) => (svg += text(cover ? SW / 2 : x + L.bodyPx * 1.1, y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? MUTED : undefined, anchor: cover ? 'middle' : 'start' })));
       }
       n++;
       y += item.length * L.bodyPx * 1.3 + L.bodyPx * (cover ? 0 : 0.45);
-    }
+    });
   }
   if (L.sub && s.sub) svg += `<g data-sub="${r(L.sub.x)},${r(L.sub.y)},${r(L.sub.w)},${r(L.sub.h)}">${place(refPage(s.sub, sub === undefined ? {} : { step: sub }), L.sub.x, L.sub.y, L.sub.w, L.sub.h)}</g>`;
   return { w: SW, h: SH, svg };
@@ -154,7 +161,8 @@ function placeholder(id: number, kind: 'title' | 'body', paragraphs: string, fra
 }
 const para = (line: string, pPr = '', size = 0) => {
   const rPr = `lang="en-US"${size ? ` sz="${size}"` : ''} dirty="0"`;
-  return line ? `<a:p>${pPr}<a:r><a:rPr ${rPr}/><a:t>${x(line)}</a:t></a:r></a:p>` : `<a:p>${pPr}<a:endParaRPr ${rPr}/></a:p>`;
+  const runs = parseInline(line);
+  return runs.length ? `<a:p>${pPr}${runs.map((ru) => `<a:r><a:rPr ${rPr}${ru.b ? ' b="1"' : ''}${ru.i ? ' i="1"' : ''}${ru.u ? ' u="sng"' : ''}${ru.s ? ' strike="sngStrike"' : ''}/><a:t>${x(ru.t)}</a:t></a:r>`).join('')}</a:p>` : `<a:p>${pPr}<a:endParaRPr ${rPr}/></a:p>`;
 };
 
 const THEME = `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TinyLittleOffice"><a:themeElements><a:clrScheme name="TinyLittleOffice"><a:dk1><a:srgbClr val="18181B"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="4F46E5"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="4F46E5"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="TinyLittleOffice"><a:majorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TinyLittleOffice"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
@@ -213,7 +221,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
     }
     const lines = s.sub ? [] : [...live(s.bullets), ...(s.layout === '2' ? live(s.right) : [])];
     const centre = cover ? '<a:pPr marL="0" indent="0" algn="ctr"><a:buNone/></a:pPr>' : '';
-    const paras = (lines.length ? lines : ['']).map((b) => para(b, centre, Math.round((L.bodyPx || 20) * 75))).join('');
+    const paras = (lines.length ? lines : ['']).map((b) => para(b.trim(), centre || (depthOf(b) ? `<a:pPr lvl="${depthOf(b)}" marL="${342900 * (depthOf(b) + 1)}" indent="-342900"/>` : ''), Math.round((L.bodyPx || 20) * 75))).join('');
     // (A slide given over to a document keeps empty placeholders, tucked along the bottom edge.)
     const col = L.cols[0] ?? { x: M, y: SH - 40, w: SW - 2 * M, h: 20 };
     const bodyW = L.cols.length > 1 ? L.cols[1].x + L.cols[1].w - col.x : col.w;
@@ -245,29 +253,32 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
   );
 }
 
-const title = (body: string) => parseDeck(body).find((s) => s.title.trim())?.title.trim() ?? '';
+const title = (body: string) => plainInline(parseDeck(body).find((s) => s.title.trim())?.title.trim() ?? '');
 
 export default defineApp({
   id: 'deck',
-  group: 'Documents',
+  group: '',
   name: 'Deck',
   icon: 'deck',
   blurb: 'Slides: titles, bullets, two columns, big icons, and other documents shown on a slide.',
   title,
-  outline: (body) => parseDeck(body).flatMap((s) => [s.title, ...[...s.bullets, ...(s.right ?? [])].map((b) => (b.trim() ? '•  ' + b : ''))]).map((l) => l.trim()).filter(Boolean),
+  outline: (body) => parseDeck(body).flatMap((s) => [s.title, ...[...s.bullets, ...(s.right ?? [])].map((b) => (b.trim() ? '•  ' + b : ''))]).map((l) => plainInline(l.trim())).filter(Boolean),
   view: (body) => parseDeck(body).map((s) => slidePage(s, Infinity, undefined, deckIconColor(body))),
   presents: true,
   html: (body) =>
     parseDeck(body)
       .map((s, i) => {
         const tag = i === 0 ? 'h1' : 'h2';
-        const list = (items: string[]) => (live(items).length ? `<ul>\n${live(items).map((b) => `<li>${x(b)}</li>`).join('\n')}\n</ul>` : '');
+        const marks = (b: string) => parseInline(b).map((ru) => { let h = x(ru.t); if (ru.b) h = `<b>${h}</b>`; if (ru.i) h = `<i>${h}</i>`; if (ru.u) h = `<u>${h}</u>`; if (ru.s) h = `<s>${h}</s>`; return h; }).join('');
+        const list = (items: string[]) => (live(items).length ? `<ul>\n${live(items).map((b) => `<li>${marks(b)}</li>`).join('\n')}\n</ul>` : '');
         const sub = s.sub ? `<figure>${pageSvg(refPage(s.sub), `role="img" aria-label="${x(resolve(s.sub).title)}"`)}<figcaption><small>${x(resolve(s.sub).title)}</small></figcaption></figure>` : '';
-        return `<section>\n<${tag}>${x(s.title || `Slide ${i + 1}`)}</${tag}>\n${list(s.bullets)}${s.layout === '2' ? list(s.right ?? []) : ''}${sub}\n</section>`;
+        return `<section>\n<${tag}>${s.title ? marks(s.title) : x(`Slide ${i + 1}`)}</${tag}>\n${list(s.bullets)}${s.layout === '2' ? list(s.right ?? []) : ''}${sub}\n</section>`;
       })
       .join('\n'),
   downloads: [{ ext: 'pptx', label: 'PowerPoint', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: deckToPptx, needs: pictures }],
   shortcuts: [
+    { keys: 'Mod+B / Mod+I / Mod+U', does: 'Bold, italic, underline (in a headline or bullet)' },
+    { keys: 'Tab / Shift+Tab (in the bullets)', does: 'Indent the bullet, or bring it back out' },
     { keys: 'Mod+Enter', does: 'New slide' },
     { keys: 'PageUp / PageDown', does: 'Previous or next slide' },
     { keys: 'Mod+Shift+Enter', does: 'Present' },

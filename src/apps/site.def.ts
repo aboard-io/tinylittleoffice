@@ -82,4 +82,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'site', name: 'Website', icon: 'site', group: 'Publish and sell', blurb: 'A one-page website, written as a few lines and downloaded as a single HTML file.', title: (body) => parseSite(body).name }, spec);
+export default definePage({ id: 'site', name: 'Website', icon: 'site', group: 'Create', blurb: 'A one-page website, written as a few lines and downloaded as a single HTML file.', title: (body) => parseSite(body).name }, spec);

@@ -121,7 +121,7 @@ test('deck: icon-only and title-only slides, max slides constant', () => {
   assert.equal(back[0].icon, 'star');
   assert.equal(back[1].title, 'T');
   assert.deepEqual(back[1].bullets, [' ', 'b']);
-  assert.equal(MAX_SLIDES, 10);
+  assert.equal(MAX_SLIDES, Infinity);
 });
 
 test('draw: labels with newlines and commas, fill clamping', () => {

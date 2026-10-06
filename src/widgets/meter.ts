@@ -5,7 +5,13 @@
  */
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { roomText, type Room } from '../lib/limits.ts';
+import { roomRows, type Room } from '../lib/limits.ts';
+
+/** The rooms as a table, for anywhere they are shown. */
+export const roomsTable = (rooms: Room[]) => html`<table class="to-rooms">
+  <thead><tr><th scope="col">Where</th><th scope="col">Limit</th><th scope="col">This link</th><th scope="col">Left</th><th scope="col">Note</th></tr></thead>
+  <tbody>${roomRows(rooms).map((r) => html`<tr class=${r.over ? 'over' : ''}><th scope="row">${r.name}</th><td>${r.max}</td><td>${r.used}</td><td>${r.left}</td><td class="to-hint">${r.note}</td></tr>`)}</tbody>
+</table>`;
 import { icon, UI } from '../lib/icons.ts';
 
 @customElement('to-meter')
@@ -31,9 +37,7 @@ export class ToMeter extends LitElement {
     const title = left < 0 ? `${(-left).toLocaleString()} characters over the URL limit` : `${left.toLocaleString()} of ${this.available.toLocaleString()} URL characters left`;
     return html`<div class="to-meter ${state}" role="group" aria-label="URL space">
       <sl-tooltip hoist placement="bottom" trigger="hover" style="--max-width: 22rem">
-      <div slot="content" class="to-meter-rooms">
-        ${this.rooms.map((r) => html`<div class=${r.left < 0 ? 'over' : ''}><b>${r.target.name}</b><span>${roomText(r)}</span><i>${r.target.flat ? `${r.target.note}; ${r.left} left for your words` : r.target.note}</i></div>`)}
-      </div>
+      <div slot="content" class="to-meter-rooms">${roomsTable(this.rooms)}</div>
       <span class="to-meter-main">
       <sl-progress-ring
         value=${pct}

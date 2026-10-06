@@ -34,4 +34,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'sticky', name: 'Sticky notes', icon: 'sticky', group: 'Visualization', under: 'draw', blurb: 'A wall of sticky notes, one per line, in any of six colours.' }, spec);
+export default defineDiagram({ id: 'sticky', name: 'Sticky notes', icon: 'sticky', group: 'Create', blurb: 'A wall of sticky notes, one per line, in any of six colours.' }, spec);

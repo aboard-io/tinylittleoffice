@@ -22,4 +22,4 @@ export const ZINE: Format = {
       : 'Download the PDF and print it on one side of letter paper, at actual size. Fold it in half the long way, then into quarters; cut the dashes in the middle; push the ends together and fold it into a book.',
 };
 
-export default defineFold({ id: 'zine', name: 'Zine', icon: 'zine', blurb: 'An eight-page zine from one sheet of paper: print, fold and cut, or read it by tapping on a phone.' }, ZINE);
+export default defineFold({ id: 'zine', group: 'Print', name: 'Zine', icon: 'zine', blurb: 'An eight-page zine from one sheet of paper: print, fold and cut, or read it by tapping on a phone.' }, ZINE);

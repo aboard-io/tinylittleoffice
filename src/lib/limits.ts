@@ -42,7 +42,10 @@ export const TARGETS: Target[] = [
   { id: 'sms', name: 'Text message', max: 160, cost: full, note: 'one SMS' },
   { id: 'discord', name: 'Discord', max: 2000, cost: full, note: 'one message' },
   { id: 'telegram', name: 'Telegram', max: 4096, cost: full, note: 'one message' },
-  { id: 'qr', name: 'QR code', max: 2953, cost: bytes, note: 'the largest code there is' },
+  { id: 'qr', name: 'QR code', max: 2953, cost: bytes, note: 'the largest code there is (version 40)' },
+  // NFC tags hold a link as an NDEF record: 7 bytes of framing, and "https://" packed into one.
+  { id: 'ntag215', name: 'NTAG215 tag', max: 504, cost: (u) => bytes(u) - 7 + 7, note: 'an NFC sticker (504 bytes)' },
+  { id: 'ntag216', name: 'NTAG216 tag', max: 888, cost: (u) => bytes(u) - 7 + 7, note: 'a bigger NFC sticker (888 bytes)' },
 ];
 
 export interface Room {
@@ -57,6 +60,19 @@ export function roomFor(url: string): Room[] {
     const used = target.cost(url);
     return { target, used, left: target.max - used };
   });
+}
+
+/** The rooms as one table: where, its limit, what this link takes there, and what is left. */
+export function roomRows(rooms: Room[]): { name: string; max: string; used: string; left: string; note: string; over: boolean }[] {
+  const n = (x: number) => x.toLocaleString('en-US');
+  return rooms.map((r) => ({
+    name: r.target.name,
+    max: n(r.target.max),
+    used: r.target.flat ? `${n(r.used)} (any length)` : n(r.used),
+    left: r.left < 0 ? `${n(-r.left)} over` : n(r.left),
+    note: r.target.note,
+    over: r.left < 0,
+  }));
 }
 
 /** A room, in a few words: how much is left, or that the link's length does not matter there. */

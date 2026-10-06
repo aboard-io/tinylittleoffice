@@ -48,4 +48,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'santa', name: 'Secret Santa', icon: 'santa', group: 'Together', blurb: 'Secret Santa: a list of names, and a private answer for each.', title: h1 }, spec);
+export default definePage({ id: 'santa', name: 'Secret Santa', icon: 'santa', group: 'Collaborate', blurb: 'Secret Santa: a list of names, and a private answer for each.', title: h1 }, spec);

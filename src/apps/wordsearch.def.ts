@@ -43,4 +43,4 @@ export const spec = {
   },
 };
 
-export default definePrint({ id: 'wordsearch', under: undefined, group: 'Games', name: 'Word search', icon: 'wordsearch', blurb: 'A word search puzzle from your own words, ready to print.' }, spec);
+export default definePrint({ id: 'wordsearch', under: undefined, group: 'Play', name: 'Word search', icon: 'wordsearch', blurb: 'A word search puzzle from your own words, ready to print.' }, spec);

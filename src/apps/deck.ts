@@ -7,11 +7,12 @@
  * Document format: see lib/deckmodel.ts. Layout and drawing: deck.def.ts.
  */
 import { keyed } from 'lit/directives/keyed.js';
-import { DocElement, defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, searchIcons, suggestIcons, editRef, embeddable, makeRef, resolve, loadEditor, isKey } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, searchIcons, suggestIcons, editRef, insertMenu, makeRef, resolve, loadEditor, isKey } from '../kit.ts';
 import type { SlDialog, SlInput, SlSelect } from '../kit.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
 import { iconCount } from '../lib/iconsearch.ts';
-import { SH, SW, layoutSlide, slidePage, slideSteps } from './deck.def.ts';
+import { toggleMark } from '../lib/richtext.ts';
+import { SH, SW, depthOf, layoutSlide, slidePage, slideSteps } from './deck.def.ts';
 
 interface Deck {
   slides: Slide[];
@@ -206,11 +207,74 @@ export class ToDeck extends DocElement<Deck> {
     return html`<button title=${name} aria-label=${name} aria-pressed=${current === name ? 'true' : 'false'} @click=${() => this.pickIcon(name)}>${icon(LIBRARY[name], 22)}</button>`;
   }
 
+  /** The headline box or bullets box last typed in: what the mark buttons work on. */
+  private field: HTMLInputElement | HTMLTextAreaElement | null = null;
+
+  /** Bold, italic, underline or strike round what is selected in the headline or a bullet (or taken off again). */
+  private mark(mark: string) {
+    const f = this.field;
+    if (!f || !f.isConnected) return;
+    const { selectionStart: a, selectionEnd: b, value } = f;
+    if (a === null || b === null) return;
+    // Within the one line the selection is on; a word, if nothing is selected.
+    const lineStart = value.lastIndexOf('\n', a - 1) + 1;
+    const lineEnd = value.indexOf('\n', b) < 0 ? value.length : value.indexOf('\n', b);
+    let [from, to] = [a - lineStart, b - lineStart];
+    const line = value.slice(lineStart, lineEnd);
+    if (from === to) {
+      while (from > 0 && /\S/.test(line[from - 1])) from--;
+      while (to < line.length && /\S/.test(line[to])) to++;
+    }
+    const done = toggleMark(line, from, to, mark);
+    f.value = value.slice(0, lineStart) + done.line + value.slice(lineEnd);
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    f.focus();
+    f.setSelectionRange(lineStart + done.from, lineStart + done.to);
+  }
+
+  /** The indent buttons work on the bullets box last typed in. */
+  private indent(out: boolean) {
+    const f = this.field;
+    if (!f || !f.isConnected || f.tagName !== 'TEXTAREA') return;
+    f.focus();
+    this.step(f as HTMLTextAreaElement, out);
+  }
+
+  /** Tab in the bullets: the line steps in (two spaces a level, up to three); Shift+Tab brings it out. */
+  private onTab(e: KeyboardEvent) {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    this.step(e.target as HTMLTextAreaElement, e.shiftKey);
+  }
+  private step(area: HTMLTextAreaElement, out: boolean) {
+    const { selectionStart: a, selectionEnd: b, value } = area;
+    const from = value.lastIndexOf('\n', a - 1) + 1;
+    const end = value.indexOf('\n', b) < 0 ? value.length : value.indexOf('\n', b);
+    const was = value.slice(from, end).split('\n');
+    const lines = was.map((l) => (out ? l.replace(/^(\t| {1,2})/, '') : depthOf(l) < 3 ? '  ' + l : l));
+    const text = value.slice(0, from) + lines.join('\n') + value.slice(end);
+    area.value = text;
+    area.dispatchEvent(new Event('input', { bubbles: true }));
+    area.setSelectionRange(Math.max(from, a + lines[0].length - was[0].length), b + text.length - value.length);
+  }
+
+  private onMarkKey = (e: KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const mark = { b: '*', i: '_', u: '^' }[e.key.toLowerCase()];
+    if (!mark) return;
+    const t = e.target as HTMLElement;
+    if (t.matches('input.title, .bullets textarea')) {
+      e.preventDefault();
+      this.field = t as HTMLInputElement;
+      this.mark(mark);
+    }
+  };
+
   /** A column of bullets: a textarea over a mirror that draws the dots where the lines really wrap. */
   private bulletsField(label: string, list: string[], placeholder: string, save: (list: string[]) => void) {
     return html`<div class="bullets">
       <div class="mirror" aria-hidden="true">${list.map((b) => html`<div class=${b.trim() ? 'on' : ''}>${b || '​'}</div>`)}</div>
-      <textarea placeholder=${placeholder} aria-label=${label} .value=${list.join('\n')} @input=${(e: Event) => save((e.target as HTMLTextAreaElement).value.split('\n'))}></textarea>
+      <textarea placeholder=${placeholder} aria-label=${label} .value=${list.join('\n')} @focus=${(e: Event) => (this.field = e.target as HTMLTextAreaElement)} @keydown=${(e: KeyboardEvent) => (this.onMarkKey(e), this.onTab(e))} @input=${(e: Event) => save((e.target as HTMLTextAreaElement).value.split('\n'))}></textarea>
     </div>`;
   }
 
@@ -237,7 +301,7 @@ export class ToDeck extends DocElement<Deck> {
             ${LAYOUTS.map((l) => html`<sl-menu-item type="checkbox" value="layout:${l.id}" ?checked=${!s.sub && kind === l.id}>${l.name}</sl-menu-item>`)}
             <sl-divider></sl-divider>
             <sl-menu-label>Add a slide showing a</sl-menu-label>
-            ${embeddable('deck').map((a) => html`<sl-menu-item value=${a.id}>${icon(UI[a.icon as keyof typeof UI], 14, 'pre')} ${a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name}</sl-menu-item>${a.id === 'sheet' ? html`<sl-menu-item value="chart">${icon(UI.chart, 14, 'pre')} Chart</sl-menu-item>` : nothing}`)}
+            ${insertMenu('deck')}
           </sl-menu>
         </sl-dropdown>
         ${tool('Delete slide', 'trash', () => this.removeSlide())}
@@ -245,12 +309,18 @@ export class ToDeck extends DocElement<Deck> {
           ${tool('Move slide up', 'up', () => this.move(-1), { disabled: this.cur === 0 })}
           ${tool('Move slide down', 'down', () => this.move(1), { disabled: this.cur === n - 1 })}
         </sl-button-group>
+        <sl-button-group label="Text">
+          ${tool('Bold', 'bold', () => this.mark('*'))}${tool('Italic', 'italic', () => this.mark('_'))}${tool('Underline', 'underline', () => this.mark('^'))}${tool('Strike', 'strike', () => this.mark('~'))}
+        </sl-button-group>
+        <sl-button-group label="Indent">
+          ${tool('Bring the bullet out', 'outdent', () => this.indent(true))}${tool('Indent the bullet', 'indent', () => this.indent(false))}
+        </sl-button-group>
         <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
         <span class="to-spacer"></span>
         <sl-select class="sr-label deck-transition" size="small" label="Transition" hoist .value=${this.doc.transition || 'fade'} @sl-change=${(e: Event) => this.commit({ ...this.doc, transition: (((e.target as SlSelect).value as string) === 'fade' ? '' : (e.target as SlSelect).value) as Transition })}>
           ${TRANSITIONS.map((t) => html`<sl-option value=${t.id || 'fade'}>${t.name}</sl-option>`)}
         </sl-select>
-        <span class="to-hint">${n} / ${MAX_SLIDES}</span>
+        <span class="to-hint">${n} ${n === 1 ? 'slide' : 'slides'}</span>
         <sl-button size="small" variant="primary" @click=${() => this.show(this.cur)}>${icon(UI.play, 14)} Present</sl-button>
       </div>
       <div class="deck-layout">
@@ -271,7 +341,7 @@ export class ToDeck extends DocElement<Deck> {
               <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
                 ${s.icon ? libraryIcon(s.icon, 32) : html`${icon(UI.smile, 20)}<span>Icon</span>`}
               </button>
-              <input class="title" placeholder=${kind === 't' ? 'Title' : 'Headline'} aria-label="Headline" .value=${s.title} @input=${(e: Event) => this.patch(this.cur, { title: (e.target as HTMLInputElement).value })} @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this.querySelector<HTMLTextAreaElement>('.deck-slide .bullets textarea')?.focus(); } }} />
+              <input class="title" placeholder=${kind === 't' ? 'Title' : 'Headline'} aria-label="Headline" @focus=${(e: Event) => (this.field = e.target as HTMLInputElement)} .value=${s.title} @input=${(e: Event) => this.patch(this.cur, { title: (e.target as HTMLInputElement).value })} @keydown=${(e: KeyboardEvent) => { this.onMarkKey(e); if (!e.defaultPrevented) ((e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this.querySelector<HTMLTextAreaElement>('.deck-slide .bullets textarea')?.focus(); } })(e); }} />
             </div>
             <div class="body">
               ${this.bulletsField('Bullets', s.bullets, kind === 't' ? 'Subtitle' : 'One bullet per line', (bullets) => this.patch(this.cur, { bullets }))}

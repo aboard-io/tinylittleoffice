@@ -32,4 +32,4 @@ export const spec = {
   },
 };
 
-export default definePrint({ id: 'checklist', under: undefined, group: 'Personal', name: 'Checklist', icon: 'checklist', blurb: 'A checklist to print: sections and boxes to tick, fitted to one page.' }, spec);
+export default definePrint({ id: 'checklist', under: undefined, group: 'Plan', name: 'Checklist', icon: 'checklist', blurb: 'A checklist to print: sections and boxes to tick, fitted to one page.' }, spec);

@@ -42,4 +42,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'poll', name: 'Poll', icon: 'poll', group: 'Together', blurb: 'A poll or RSVP: everyone adds a line and passes the link on.', title: h1 }, spec);
+export default definePage({ id: 'poll', name: 'Poll', icon: 'poll', group: 'Collaborate', blurb: 'A poll or RSVP: everyone adds a line and passes the link on.', title: h1 }, spec);

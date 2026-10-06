@@ -102,6 +102,7 @@ to-deck,
 to-draw,
 to-cal,
 to-zine,
+to-qr,
 to-flow,
 to-pixel,
 to-pattern,
@@ -1078,6 +1079,10 @@ table.sheet td.sel input {
   overflow: hidden;
   pointer-events: none;
 }
+/* (Leaflet turns pointer events back on for pins and popups; not here.) */
+.deck-show .deck-map * {
+  pointer-events: none !important;
+}
 .deck-show .ctl {
   position: fixed;
   right: 12px;
@@ -1471,6 +1476,10 @@ svg.draw-canvas text {
 /* The name gives way to the buttons before they run out of room (it is long, and they must stay on one line). */
 @media (max-width: 600px) {
   .to-brand span {
+    display: none;
+  }
+  /* The QR button is in the Share menu as well; here it would crowd the row. */
+  .to-qr-btn {
     display: none;
   }
 }
@@ -2756,6 +2765,45 @@ svg.draw-canvas {
   margin-top: 8px;
 }
 
+/* The menu: a few apps on their own, then clusters that fold */
+.to-cluster summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 6px;
+  cursor: pointer;
+  list-style: none;
+}
+.to-cluster summary::-webkit-details-marker {
+  display: none;
+}
+.to-cluster summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--to-ink-3);
+  border-bottom: 2px solid var(--to-ink-3);
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+.to-cluster[open] summary::before {
+  transform: rotate(45deg);
+}
+.to-cluster summary h2 {
+  margin: 0;
+  padding: 0;
+}
+.to-cluster summary span {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--to-ink-3);
+}
+.to-cluster summary:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -2px;
+  border-radius: var(--to-radius);
+}
+
 /* The menu, in groups, with kinds of an app beneath it */
 .to-drawer-nav h2,
 .to-group {
@@ -3413,4 +3461,106 @@ to-lines {
 .diagram-ctl g[role='button']:focus-visible {
   color: #fff;
   outline: none;
+}
+
+/* The document as a QR code */
+sl-dialog.to-qr {
+  --width: min(92vw, 420px);
+}
+.to-qr .code > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 340px;
+  margin: 0 auto;
+  border: 1px solid var(--to-border);
+}
+.to-qr .row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.to-rooms thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
+  padding-bottom: 4px;
+}
+.to-rooms td,
+.to-rooms th {
+  text-align: left;
+  padding: 2px 12px 2px 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.to-rooms td.to-hint {
+  white-space: normal;
+}
+.to-meter-rooms .to-rooms {
+  font-size: 12px;
+}
+.to-meter-rooms .to-rooms thead th {
+  color: #d4d4d8;
+}
+.to-meter-rooms .to-rooms td.to-hint {
+  color: #d4d4d8;
+}
+
+/* Insert menus follow the main menu: apps that are kinds of another step in */
+sl-menu-item.sub::part(base) {
+  padding-left: 2.2rem;
+}
+
+/* Pixel art: the squares beside a picture of the result at its own size */
+.pixel-work {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px 32px;
+  padding: 16px;
+}
+.pixel-work .pixel-grid {
+  margin: 0;
+  flex: 1 1 320px;
+}
+.pixel-preview {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+}
+.pixel-preview .big > svg {
+  width: 128px;
+  height: auto;
+  image-rendering: pixelated;
+}
+.pixel-preview .small > svg {
+  width: 48px;
+  height: auto;
+}
+.pixel-grid.line button,
+.pixel-grid.rect button,
+.pixel-grid.box button {
+  cursor: cell;
+}
+.pixel-grid.fill button {
+  cursor: pointer;
+}
+.pixel-grid button.ghost {
+  opacity: 0.7;
+}
+
+.to-library-off {
+  max-width: 920px;
+  margin: 0 auto 8px;
+  white-space: normal;
+}
+.to-nosave {
+  margin-bottom: 4px;
 }

@@ -28,4 +28,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'floor', group: 'Visualization', under: 'draw', name: 'Floor plan', icon: 'floor', blurb: 'A floor plan to scale, from a list of rooms and their sizes.' }, spec);
+export default defineDiagram({ id: 'floor', group: 'Design', under: 'draw', name: 'Floor plan', icon: 'floor', blurb: 'A floor plan to scale, from a list of rooms and their sizes.' }, spec);

@@ -55,4 +55,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'split', name: 'Split the bill', icon: 'split', group: 'Together', blurb: 'Who paid what, what each owes, and the fewest payments to settle up.', title: h1 }, spec);
+export default definePage({ id: 'split', name: 'Split the bill', icon: 'split', group: 'Collaborate', blurb: 'Who paid what, what each owes, and the fewest payments to settle up.', title: h1 }, spec);

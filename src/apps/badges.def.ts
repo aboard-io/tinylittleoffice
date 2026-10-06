@@ -20,4 +20,4 @@ export const spec = {
     ),
 };
 
-export default definePrint({ id: 'badges', name: 'Name badges', icon: 'badges', blurb: 'Name badges from a list of people, six to a sheet, ready to cut.' }, spec);
+export default definePrint({ id: 'badges', group: 'Print', name: 'Name badges', icon: 'badges', blurb: 'Name badges from a list of people, six to a sheet, ready to cut.' }, spec);

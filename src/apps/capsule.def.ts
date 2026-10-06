@@ -32,4 +32,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'capsule', name: 'Time capsule', icon: 'capsule', group: 'Together', blurb: 'A note that stays shut until a date you choose.', title: h1 }, spec);
+export default definePage({ id: 'capsule', name: 'Time capsule', icon: 'capsule', group: 'Collaborate', blurb: 'A note that stays shut until a date you choose.', title: h1 }, spec);

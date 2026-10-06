@@ -113,7 +113,7 @@ function page(body: string, upTo = Infinity): Page {
 
 export default defineApp({
   id: 'trip',
-  group: 'Time management',
+  group: 'Plan',
   name: 'Trip',
   icon: 'trip',
   blurb: 'A route on an OpenStreetMap map: stops in order, each with a note.',

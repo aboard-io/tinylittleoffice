@@ -29,4 +29,4 @@ export const spec = {
   },
 };
 
-export default definePrint({ id: 'card', under: undefined, group: 'Together', name: 'Group card', icon: 'card', blurb: 'A card everyone signs: each adds a line, then it prints on one page.' }, spec);
+export default definePrint({ id: 'card', under: undefined, group: 'Collaborate', name: 'Group card', icon: 'card', blurb: 'A card everyone signs: each adds a line, then it prints on one page.' }, spec);

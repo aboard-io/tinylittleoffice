@@ -148,6 +148,9 @@ test('room for a link, service by service', () => {
   assert.equal(rooms.x, 257);
   assert.ok(rooms.sms < 0);
   assert.equal(rooms.discord, 2000 - long.length);
+  assert.equal(rooms.ntag215, 504 - long.length);
+  assert.equal(rooms.ntag216, 888 - long.length);
+  assert.equal(rooms.qr, 2953 - long.length);
   assert.equal(new Set(TARGETS.map((t) => t.id)).size, TARGETS.length);
 });
 
@@ -729,4 +732,82 @@ test('outlines: rows move with what is under them; an org chart has dotted lines
   const { shapeSvg } = await import('../src/apps/draw.def.ts');
   assert.ok(shapeSvg(dotted, chart.shapes).includes('stroke-dasharray="2 3"'));
   assert.deepEqual(readLines('Ben .. Eve: advises', org).map((r) => [org[r.kind].name, ...r.values]), [['Dotted line', 'Ben', 'Eve', 'advises']]);
+});
+
+test('a QR code of a link reads back as the link', async () => {
+  const { qrCode, qrSvg, QR_MAX_BYTES } = await import('../src/lib/qr.ts');
+  const small = qrCode(new TextEncoder().encode('https://tinylittleoffice.com/'));
+  assert.equal(small.length, 25);
+  // The finder patterns are where they should be, and the dark module too.
+  assert.ok(small[0][0] && small[0][6] && small[6][0] && !small[1][1] && small[3][3] && small[0][18] && small[18][0] && small[17][8]);
+  assert.equal(qrCode(new Uint8Array(2953)).length, 177);
+  assert.throws(() => qrCode(new Uint8Array(QR_MAX_BYTES + 1)));
+  assert.ok(qrSvg(new TextEncoder().encode('x')).startsWith('<svg'));
+});
+
+test('slides take bold, italic and the rest, like a text does', async () => {
+  const { parseDeck } = await import('../src/lib/deckmodel.ts');
+  const { slidePage, deckToPptx } = await import('../src/apps/deck.def.ts');
+  const { toggleMark, parseInline } = await import('../src/lib/richtext.ts');
+  const [s] = parseDeck('A *big* _day_\nShip ^it^ and ~rest~');
+  const svg = slidePage(s, Infinity, undefined, '').svg;
+  assert.ok(svg.includes('>big<') && !svg.includes('*big*'), 'marks are drawn, not shown');
+  assert.ok(/font-weight="700"[^>]*>big</.test(svg) || /<tspan[^>]*font-weight[^>]*>big/.test(svg), 'bold is bold');
+  assert.ok(/font-style="italic"[^>]*>day</.test(svg) || /<tspan[^>]*italic[^>]*>day/.test(svg), 'italic is italic');
+  assert.equal(appOf('deck')!.title('A *big* _day_\nx'), 'A big day');
+  // PowerPoint keeps them as runs.
+  const { unzipSync, strFromU8 } = await import('fflate');
+  const files = unzipSync(deckToPptx('A *big* day\nShip ^it^', { created: null, png: {} } as never));
+  const slide = strFromU8(files['ppt/slides/slide1.xml']);
+  assert.ok(slide.includes('b="1"') && slide.includes('<a:t>big</a:t>') && slide.includes('u="sng"'));
+  // The toggle: on, and off again, round a word.
+  assert.deepEqual(toggleMark('Ship it', 0, 4, '*'), { line: '*Ship* it', from: 1, to: 5 });
+  assert.deepEqual(toggleMark('*Ship* it', 1, 5, '*'), { line: 'Ship it', from: 0, to: 4 });
+  assert.deepEqual(toggleMark('*Ship* it', 0, 6, '*'), { line: 'Ship it', from: 0, to: 4 });
+  assert.deepEqual(parseInline('a *b* c').map((r) => [r.t, !!r.b]), [['a ', false], ['b', true], [' c', false]]);
+});
+
+test('a motion slide, held still, is at its end', async () => {
+  const { animPage } = await import('../src/apps/anim.def.ts');
+  const body = '9\nirocket\t0,a,14,a;8,1y,a,p';
+  // On its own it starts at the start and loops; on a slide it plays once and rests at the end.
+  assert.ok(animPage(body).svg.includes('<g transform="translate(80 320)">'));
+  const once = animPage(body, true).svg;
+  assert.ok(once.includes('<g transform="translate(560 80)">') && once.includes('fill="freeze"'));
+});
+
+test('slides: bullets nest', async () => {
+  const { parseDeck, serializeDeck } = await import('../src/lib/deckmodel.ts');
+  const { slidePage, layoutSlide, depthOf, deckToPptx } = await import('../src/apps/deck.def.ts');
+  const text = 'Plan\nShip\n  Beta first\n    Then everyone\nRest';
+  assert.deepEqual(parseDeck(text)[0].bullets.map(depthOf), [0, 1, 2, 0]);
+  assert.equal(serializeDeck(parseDeck(text)), text);
+  const L = layoutSlide(parseDeck(text)[0]);
+  assert.deepEqual(L.cols[0].depths, [0, 1, 2, 0]);
+  const svg = slidePage(parseDeck(text)[0], Infinity, undefined, '').svg;
+  // Deeper bullets sit further right, with hollow dots.
+  const xs = [...svg.matchAll(/<text x="([\d.]+)"[^>]*>(Ship|Beta first|Then everyone|Rest)</g)].map((m) => +m[1]);
+  assert.ok(xs[0] < xs[1] && xs[1] < xs[2] && xs[3] === xs[0], xs.join(','));
+  assert.equal(svg.match(/<circle [^>]*fill="none"/g)!.length, 2);
+  const { unzipSync, strFromU8 } = await import('fflate');
+  const slide = strFromU8(unzipSync(deckToPptx(text, { created: null, png: {} } as never))['ppt/slides/slide1.xml']);
+  assert.ok(slide.includes('lvl="1"') && slide.includes('lvl="2"') && slide.includes('<a:t>Beta first</a:t>'));
+});
+
+test('a QR code document: a link as a code, labelled with what it is of', async () => {
+  const { qrLabel } = await import('../src/apps/qr.def.ts');
+  const { makeRef } = await import('../src/kit/embed.ts');
+  const link = 'https://tinylittleoffice.com/#/v2/' + makeRef('todo', '- Buy milk', 'Shopping');
+  assert.equal(qrLabel(link), 'Shopping');
+  assert.equal(qrLabel('https://example.com/some/path'), 'example.com');
+  assert.equal(qrLabel('Hello there'), 'Hello there');
+  const page = appOf('qr')!.view(link)[0];
+  assert.ok(page.svg.includes('<path d="M') && page.svg.includes('>Shopping</text>'));
+  assert.ok(appOf('qr')!.view('')[0].svg.includes('Paste a link'));
+  assert.ok(appOf('qr')!.view('x'.repeat(3000))[0].svg.includes('Too long'));
+  // It can go on a slide.
+  const { parseDeck } = await import('../src/lib/deckmodel.ts');
+  const { slidePage } = await import('../src/apps/deck.def.ts');
+  const slide = slidePage(parseDeck('Scan this\n@@' + makeRef('qr', link))[0], Infinity, undefined, '').svg;
+  assert.ok(slide.includes('shape-rendering="crispEdges"'));
 });

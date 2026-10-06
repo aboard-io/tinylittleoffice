@@ -151,7 +151,7 @@ function months(body: string, upTo = Infinity): Page[] {
 
 export default defineApp({
   id: 'cal',
-  group: 'Time management',
+  group: 'Plan',
   name: 'Calendar',
   icon: 'cal',
   blurb: 'Labelled spans of time on a month grid, shown in any time zone.',

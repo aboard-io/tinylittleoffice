@@ -34,4 +34,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'lanes', group: 'Visualization', under: 'draw', name: 'Swimlanes', icon: 'lanes', blurb: 'A process, step by step, with a lane for each person or team that acts.' }, spec);
+export default defineDiagram({ id: 'lanes', group: 'Design', under: 'draw', name: 'Swimlanes', icon: 'lanes', blurb: 'A process, step by step, with a lane for each person or team that acts.' }, spec);

@@ -3,7 +3,7 @@
  * document into picture, PDF or file, showing one document inside another,
  * and opening an editor for a document that lives inside another.
  */
-import { html, render } from 'lit';
+import { html, nothing, render, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { COMMON, FONT, History, appOf, apps, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { makeRef, refPage, resolve } from './embed.ts';
@@ -246,6 +246,24 @@ export class ToEmbed extends HTMLElement {
 if (!customElements.get('to-embed')) customElements.define('to-embed', ToEmbed);
 
 /** The kinds of document that can be put inside another. */
+/**
+ * The apps that can go inside another, as menu items, in the menu's own
+ * order and clusters: the same hierarchy the main menu has. Sheet is
+ * "Table" here (and offers a chart too), Trip is "Map", Draw is "Drawing".
+ */
+export function insertMenu(host: string, skip: (a: AppDef) => boolean = () => false): TemplateResult {
+  const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
+  const all = embeddable(host).filter((a) => !skip(a));
+  const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
+  const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
+  const item = (a: AppDef) => html`<sl-menu-item value=${a.id} class=${a.under ? 'sub' : ''}>${icon(UI[a.icon as keyof typeof UI], 14, 'pre')} ${name(a)}</sl-menu-item>${a.id === 'sheet' ? html`<sl-menu-item value="chart">${icon(UI.chart, 14, 'pre')} Chart</sl-menu-item>` : nothing}`;
+  return html`${groups.map(
+    (g) => html`${g ? html`<sl-menu-label>${g}</sl-menu-label>` : nothing}${all
+      .filter((a) => !a.under && (a.group ?? '') === g)
+      .map((a) => html`${item(a)}${all.filter((c) => c.under === a.id).map(item)}`)}`,
+  )}`;
+}
+
 export const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck');
 
 /**

@@ -14,4 +14,4 @@ export const spec = {
   sheets: (text: string) => tile(slidesOf(text).map((s) => fitted(s, 576, 384, { max: 19, m: 30 })), 1, 2),
 };
 
-export default definePrint({ id: 'recipes', name: 'Recipe cards', icon: 'recipes', blurb: 'Recipe cards to print and cut: the dish, what goes in, what to do.' }, spec);
+export default definePrint({ id: 'recipes', under: undefined, group: 'Create', name: 'Recipe cards', icon: 'recipes', blurb: 'Recipe cards to print and cut: the dish, what goes in, what to do.' }, spec);

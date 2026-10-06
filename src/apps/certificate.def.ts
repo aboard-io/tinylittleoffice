@@ -21,4 +21,4 @@ export const spec = {
   ],
 };
 
-export default definePrint({ id: 'certificate', name: 'Certificate', icon: 'certificate', blurb: 'A certificate to print: who, what for and when, framed on one page.' }, spec);
+export default definePrint({ id: 'certificate', group: 'Print', name: 'Certificate', icon: 'certificate', blurb: 'A certificate to print: who, what for and when, framed on one page.' }, spec);

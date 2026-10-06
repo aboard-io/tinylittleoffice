@@ -16,7 +16,7 @@ export { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 export { repeat } from 'lit/directives/repeat.js';
 export * from './kit/core.ts';
 export * from './kit/embed.ts';
-export { REFRESH, ToEmbed, download, editRef, embeddable, formatsOf, fontsForPictures, loadEditor, picture, raster, saveFile, withFonts } from './kit/browser.ts';
+export { REFRESH, ToEmbed, download, editRef, embeddable, formatsOf, fontsForPictures, insertMenu, loadEditor, picture, raster, saveFile, withFonts } from './kit/browser.ts';
 export { icon, iconInner, libraryIcon, UI, LIBRARY, LIBRARY_NAMES, ICON_SVG } from './lib/icons.ts';
 export { searchIcons, suggestIcons } from './lib/iconsearch.ts';
 export { EPOCH_DAY, EPOCH_MS, isoDay } from './lib/calmodel.ts';

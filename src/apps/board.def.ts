@@ -37,7 +37,7 @@ function page(body: string, upTo = Infinity): Page {
 
 export default defineApp({
   id: 'board',
-  group: 'Time management',
+  group: 'Plan',
   name: 'Board',
   icon: 'board',
   blurb: 'A kanban board: the stages of a workflow, cards, and limits per stage.',

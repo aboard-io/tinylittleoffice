@@ -13,4 +13,4 @@ export const spec = {
   sheets: (text: string) => [fitted(slidesOf(text)[0] ?? { icon: '', title: '', bullets: [] }, LETTER.w, LETTER.h, { cover: true, max: 150, m: 64 })],
 };
 
-export default definePrint({ id: 'poster', under: undefined, name: 'Poster', icon: 'poster', blurb: 'A poster or flyer: a headline and a few lines, as big as one page allows.' }, spec);
+export default definePrint({ id: 'poster', group: 'Print', under: undefined, name: 'Poster', icon: 'poster', blurb: 'A poster or flyer: a headline and a few lines, as big as one page allows.' }, spec);

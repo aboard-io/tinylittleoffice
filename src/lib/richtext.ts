@@ -67,6 +67,45 @@ export function serializeDoc(blocks: Block[]): string {
   return lines.join('\n');
 }
 
+/** One line's marks ( *bold* _italic_ ^underline^ ~strike~ ) as runs. */
+export function parseInline(line: string): Run[] {
+  const runs: Run[] = [];
+  const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
+  let buf = '';
+  const flush = () => {
+    if (!buf) return;
+    const run: Run = { t: buf };
+    for (const f of FLAGS) if (state[f]) run[f] = true;
+    runs.push(run);
+    buf = '';
+  };
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '\\' && i + 1 < line.length) buf += line[++i];
+    else if (UNMARK[ch]) {
+      flush();
+      state[UNMARK[ch]] = !state[UNMARK[ch]];
+    } else buf += ch;
+  }
+  flush();
+  return runs;
+}
+
+/** The marks as words: what a line says, without them. */
+export const plainInline = (line: string) => parseInline(line).map((r) => r.t).join('');
+
+/**
+ * Toggle a mark on a stretch of a line: "*" round "word" makes it bold;
+ * round "*word*" takes the bold off. Returns the new line and where the
+ * stretch now sits.
+ */
+export function toggleMark(line: string, from: number, to: number, mark: string): { line: string; from: number; to: number } {
+  const inner = line.slice(from, to);
+  if (inner.startsWith(mark) && inner.endsWith(mark) && inner.length >= 2) return { line: line.slice(0, from) + inner.slice(1, -1) + line.slice(to), from, to: to - 2 };
+  if (line[from - 1] === mark && line[to] === mark) return { line: line.slice(0, from - 1) + inner + line.slice(to + 1), from: from - 1, to: to - 1 };
+  return { line: line.slice(0, from) + mark + inner + mark + line.slice(to), from: from + 1, to: to + 1 };
+}
+
 export function parseDoc(text: string): Block[] {
   if (!text) return [{ k: 'p', runs: [] }];
   const blocks: Block[] = [];
@@ -91,28 +130,7 @@ export function parseDoc(text: string): Block[] {
       d = item[1].length - 1;
       line = line.slice(item[0].length);
     }
-    const runs: Run[] = [];
-    const state: Record<string, boolean> = { b: false, i: false, u: false, s: false };
-    let buf = '';
-    const flush = () => {
-      if (!buf) return;
-      const run: Run = { t: buf };
-      for (const f of FLAGS) if (state[f]) run[f] = true;
-      runs.push(run);
-      buf = '';
-    };
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '\\' && i + 1 < line.length) {
-        buf += line[++i];
-      } else if (UNMARK[ch]) {
-        flush();
-        state[UNMARK[ch]] = !state[UNMARK[ch]];
-      } else {
-        buf += ch;
-      }
-    }
-    flush();
+    const runs = parseInline(line);
     blocks.push(d ? { k, runs, d } : { k, runs });
   }
   return blocks;

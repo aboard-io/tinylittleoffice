@@ -128,7 +128,7 @@ export default definePage(
     id: 'invoice',
     name: 'Invoice',
     icon: 'invoice',
-    group: 'Publish and sell',
+    group: 'Create',
     blurb: 'An invoice from a few lines: who, what and how much, with the sums done and a PDF to send.',
     title,
     outline: (body) => {

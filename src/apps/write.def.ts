@@ -148,7 +148,7 @@ export function pages(body: string): Page[] {
 
 export default defineApp({
   id: 'write',
-  group: 'Documents',
+  group: '',
   name: 'Write',
   icon: 'write',
   blurb: 'A rich text editor: headings, bold, italic, nested lists, and other documents embedded in the text.',

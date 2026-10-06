@@ -111,7 +111,7 @@ export function chartOfSheet(body: string) {
 
 export default defineApp({
   id: 'sheet',
-  group: 'Documents',
+  group: '',
   name: 'Sheet',
   icon: 'sheet',
   blurb: `A ${ROWS}-row, ${COLS}-column spreadsheet with formulas and charts.`,

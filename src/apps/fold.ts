@@ -2,7 +2,7 @@
  * The editor for paper that folds (see lib/fold.ts): its pages to fill in,
  * each shown as it will print, and the sheets to print.
  */
-import { DocElement, defineElement, html, nothing, state, unsafeSVG, tool, icon, libraryIcon, UI, editRef, embeddable, makeRef, pageSvg } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, unsafeSVG, tool, icon, libraryIcon, UI, editRef, insertMenu, makeRef, pageSvg } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
@@ -100,7 +100,7 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insert(e.detail.item.value)}>
           <sl-button slot="trigger" size="small" caret>${icon(UI.plus, 14)} Insert</sl-button>
           <sl-menu>
-            ${embeddable('zine').filter((a) => !formatOf(a.id)).map((a) => html`<sl-menu-item value=${a.id}>${icon(UI[a.icon as keyof typeof UI], 14, 'pre')} ${a.name}</sl-menu-item>`)}
+            ${insertMenu('zine', (a) => !!formatOf(a.id))}
           </sl-menu>
         </sl-dropdown>
         ${f.grow

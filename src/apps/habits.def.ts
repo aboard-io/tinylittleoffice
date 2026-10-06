@@ -26,4 +26,4 @@ export const spec = {
   },
 };
 
-export default definePrint({ id: 'habits', under: undefined, group: 'Personal', name: 'Habit tracker', icon: 'habits', blurb: 'A month of boxes to tick for each habit, on one page to print.' }, spec);
+export default definePrint({ id: 'habits', under: undefined, group: 'Track', name: 'Habit tracker', icon: 'habits', blurb: 'A month of boxes to tick for each habit, on one page to print.' }, spec);

@@ -69,7 +69,7 @@ export const spec = {
 
 export default defineDiagram(
   {
-    id: 'db', group: 'Visualization', under: 'draw',
+    id: 'db', group: 'Track',
     name: 'Database',
     icon: 'db',
     blurb: 'A tiny relational database: tables, rows, and SQL queries, with its schema drawn.',

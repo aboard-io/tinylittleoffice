@@ -231,7 +231,7 @@ export function defineFold(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> &
   FORMATS.set(app.id, f);
   const title = (body: string) => parseFold(body, f).pages[0].title;
   return defineApp({
-    group: 'Print and fold',
+    group: 'Print',
     title,
     outline: (body) => parseFold(body, f).pages.map((p) => p.title).filter(Boolean),
     // Printed, it is its sheets. Shown inside something else it is its pages, turned one per click.

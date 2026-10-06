@@ -110,4 +110,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'store', name: 'Store', icon: 'store', group: 'Publish and sell', blurb: 'A shop page with a working cart, from a list of products. Orders go by email.', title: (body) => parseStore(body).name }, spec);
+export default definePage({ id: 'store', name: 'Store', icon: 'store', group: 'Create', blurb: 'A shop page with a working cart, from a list of products. Orders go by email.', title: (body) => parseStore(body).name }, spec);

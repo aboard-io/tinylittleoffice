@@ -11,7 +11,8 @@
  * "!zoom"; a fade without one): how one slide gives way to the next. A colour letter may follow
  * it after a colon ("!fade:r", "!:g"): the colour of every icon in the deck.
  */
-export const MAX_SLIDES = 10;
+/** No cap on slides: the link's length is the only limit, and the meter shows it. */
+export const MAX_SLIDES = Infinity;
 
 export type Layout = '' | 't' | '2' | 'i';
 export const LAYOUTS: { id: Layout; name: string }[] = [

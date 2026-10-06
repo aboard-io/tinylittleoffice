@@ -40,4 +40,4 @@ export const spec = {
   sheets: (body: string) => [sheet(body)],
 };
 
-export default definePrint({ id: 'menu', name: 'Menu', icon: 'menucard', blurb: 'A menu on one page: sections, dishes, prices, fitted to the sheet.' }, spec);
+export default definePrint({ id: 'menu', under: undefined, group: 'Create', name: 'Menu', icon: 'menucard', blurb: 'A menu on one page: sections, dishes, prices, fitted to the sheet.' }, spec);

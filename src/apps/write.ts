@@ -9,7 +9,7 @@ import { LitElement, html, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
-import { editRef, embeddable } from '../kit/browser.ts';
+import { editRef, insertMenu } from '../kit/browser.ts';
 import { MAX_DEPTH, linkify, parseDoc, serializeDoc, docText, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
@@ -419,7 +419,7 @@ export class ToWrite extends LitElement {
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insertNew(e.detail.item.value)}>
           <sl-button slot="trigger" size="small" caret>${icon(UI.insert, 14)} Insert</sl-button>
           <sl-menu>
-            ${embeddable('write').map((a) => html`<sl-menu-item value=${a.id}>${icon(UI[a.icon as keyof typeof UI], 14, 'pre')} ${a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name}</sl-menu-item>${a.id === 'sheet' ? html`<sl-menu-item value="chart">${icon(UI.chart, 14, 'pre')} Chart</sl-menu-item>` : ''}`)}
+            ${insertMenu('write')}
           </sl-menu>
         </sl-dropdown>
       </div>

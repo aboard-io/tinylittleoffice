@@ -7,7 +7,7 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { folders, forget, forgetAll, keep, moveTo, type Kept } from './lib/library.ts';
+import { folders, forget, forgetAll, keep, moveTo, saving, setSaving, type Kept } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
@@ -18,11 +18,13 @@ import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import { fontsForPictures } from './kit/browser.ts';
-import { History, apps, appOf, extOf, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
+import { History, apps, appOf, extOf, pageSvg, slug, utf8, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { REFRESH, download, formatsOf, loadEditor, picture } from './kit/browser.ts';
+import { REFRESH, download, formatsOf, loadEditor, picture, raster, saveFile } from './kit/browser.ts';
 import './lib/icons.ts';
-import { roomFor, roomText } from './lib/limits.ts';
+import { roomFor } from './lib/limits.ts';
+import { roomsTable } from './widgets/meter.ts';
+import { QR_MAX_BYTES, qrSvg } from './lib/qr.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
 export type AppId = string;
@@ -39,11 +41,14 @@ function grouped(): { group: string; apps: typeof APPS }[] {
   for (const d of apps()) {
     if (d.under) continue;
     const group = d.group ?? 'More';
+    // (The apps with no group come first, on their own.)
     let at = out.find((g) => g.group === group);
     if (!at) out.push((at = { group, apps: [] }));
     at.apps.push(...APPS.filter((a) => a.id === d.id || a.under === d.id));
   }
-  return out;
+  // In the order the menu shows them: the apps on their own first, then the clusters.
+  const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
+  return out.sort((a, b) => (ORDER.indexOf(a.group) + 1 || 99) - (ORDER.indexOf(b.group) + 1 || 99));
 }
 
 /** Shortcuts that work in every app. "Mod" is Ctrl, or Command on a Mac. */
@@ -147,6 +152,22 @@ export class ToApp extends LitElement {
   @state() private viewing = false;
   /** What is typed into the menu's search box: only apps whose names match are listed. */
   @state() private find = '';
+  /** The menu's clusters that are folded shut. Remembered. */
+  @state() private shut: string[] = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('tinyoffice.nav') ?? 'null') ?? [];
+    } catch {
+      return [];
+    }
+  })();
+  private fold(group: string, open: boolean) {
+    this.shut = open ? this.shut.filter((g) => g !== group) : [...new Set([...this.shut, group])];
+    try {
+      localStorage.setItem('tinyoffice.nav', JSON.stringify(this.shut));
+    } catch {
+      // (Not remembered, then.)
+    }
+  }
   /** The fonts, as CSS, for pages shown in a frame of their own. */
   @state() private faces = '';
   /** Opened from an "embed" link: just the document, for showing inside another page. */
@@ -412,6 +433,7 @@ export class ToApp extends LitElement {
       return;
     }
     if (how === 'png') return void this.download('png');
+    if (how === 'qr') return void this.querySelector<SlDialog>('#qr-dialog')?.show();
     if (how === 'embed') {
       await navigator.clipboard.writeText(this.embedCode()).then(() => this.showToast('Embed code copied'), () => this.showToast('Copy failed'));
       return;
@@ -649,6 +671,7 @@ export class ToApp extends LitElement {
                           ${this.def?.presents ? html`<sl-menu-item value="copy-edit">Copy link (opens for editing)</sl-menu-item>` : nothing}
                           <sl-menu-item value="png">Save a picture</sl-menu-item>
                           <sl-menu-item value="embed">Copy embed code</sl-menu-item>
+                          <sl-menu-item value="qr">QR code</sl-menu-item>
                           <sl-divider></sl-divider>
                           <sl-menu-item value="bluesky">Bluesky</sl-menu-item>
                           <sl-menu-item value="mastodon">Mastodon</sl-menu-item>
@@ -657,6 +680,7 @@ export class ToApp extends LitElement {
                           <sl-menu-item value="email">Email</sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
+                      <sl-button class="icon to-qr-btn" size="small" aria-label="QR code" title="The whole document as a QR code" @click=${() => this.querySelector<SlDialog>('#qr-dialog')?.show()}>${icon(UI.qr, 16)}<span class="sr-only">QR code</span></sl-button>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
                         <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" title="Privacy" variant=${this.locker || this.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.locker ? UI.lock : this.sig === 'invalid' ? UI.shieldOff : this.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
                         <sl-menu>
@@ -681,8 +705,14 @@ export class ToApp extends LitElement {
             const want = this.find.trim().toLowerCase();
             const apps = want ? g.apps.filter((a) => a.name.toLowerCase().includes(want) || g.group.toLowerCase().includes(want)) : g.apps;
             if (!apps.length) return nothing;
-            return html`<h2>${g.group}</h2>
-              ${apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`)}`;
+            const links = apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`);
+            // The first few apps stand on their own; the rest are clusters that fold, open where you are.
+            if (!g.group) return links;
+            const here = apps.some((a) => a.id === this.app);
+            return html`<details class="to-cluster" ?open=${!!want || here || !this.shut.includes(g.group)} @toggle=${(e: Event) => !want && this.fold(g.group, (e.target as HTMLDetailsElement).open)}>
+              <summary><h2>${g.group}</h2><span>${apps.length}</span></summary>
+              ${links}
+            </details>`;
           })}
         </nav>
         <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
@@ -691,6 +721,7 @@ export class ToApp extends LitElement {
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPasswordPrompt()}
+      ${current ? this.renderQr() : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
         ${[
           ['Everywhere', GLOBAL_KEYS] as const,
@@ -767,7 +798,7 @@ export class ToApp extends LitElement {
       <h1 class="sr-only">TinyLittleOffice</h1>
       ${this.renderLibrary()}
       ${grouped().map(
-        (g) => html`<h2 class="to-group">${g.group}</h2>
+        (g) => html`${g.group ? html`<h2 class="to-group">${g.group}</h2>` : nothing}
           <div class="to-launcher">
             ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
           </div>`,
@@ -778,6 +809,7 @@ export class ToApp extends LitElement {
   /** What this browser has kept, by folder. */
   private renderLibrary() {
     const all = folders();
+    if (!saving()) return html`<p class="to-library-off to-hint">Keeping nothing on this device. Links still work; this page lists no documents. (Change this under ${icon(UI.lock, 12)} on any document.)</p>`;
     if (!all.length) return nothing;
     const move = (k: Kept) => {
       const to = prompt(`Folder for “${k.title}”`, k.folder);
@@ -804,6 +836,31 @@ export class ToApp extends LitElement {
       <p class="to-hint">These are saved only on this device, in this browser. They are not on any server and will not be on your other devices; a link is the only way to carry one across. Once opened, TinyLittleOffice works without a connection.</p>
       <sl-button size="small" variant="danger" outline @click=${() => { if (confirm('Erase every document kept on this device? Any you have the link for can be opened again.')) { forgetAll(); this.requestUpdate(); } }}>${icon(UI.trash, 14)} Erase all</sl-button>
     </section>`;
+  }
+
+  /** The whole document as a QR code: the link is the document, and a code is a link. */
+  private renderQr() {
+    const link = this.link;
+    const size = new TextEncoder().encode(link).length;
+    const fits = size <= QR_MAX_BYTES;
+    const svg = fits ? qrSvg(new TextEncoder().encode(link), 4) : '';
+    const save = async (ext: 'png' | 'svg') => {
+      const name = `${slug(this.docTitle) || 'document'}-qr.${ext}`;
+      if (ext === 'svg') return saveFile(name, 'image/svg+xml', utf8(svg));
+      const side = 1024;
+      const png = await raster(svg.replace(/width="\d+" height="\d+"/, `width="${side}" height="${side}"`), side, side);
+      if (png) saveFile(name, 'image/png', png);
+    };
+    return html`<sl-dialog id="qr-dialog" label="QR code" class="to-qr">
+      ${fits
+        ? html`<div class="code" role="img" aria-label="QR code of this document">${unsafeHTML(svg)}</div>
+          <p class="to-hint">The whole document, ${size.toLocaleString()} bytes, as one code. Anyone who scans it has it.</p>
+          <div class="row">
+            <sl-button size="small" variant="primary" @click=${() => save('png')}>${icon(UI.download, 14)} PNG</sl-button>
+            <sl-button size="small" @click=${() => save('svg')}>${icon(UI.download, 14)} SVG</sl-button>
+          </div>`
+        : html`<p>This document is ${size.toLocaleString()} bytes; the largest QR code holds ${QR_MAX_BYTES.toLocaleString()}. Shorten it by ${(size - QR_MAX_BYTES).toLocaleString()} bytes and it will fit.</p>`}
+    </sl-dialog>`;
   }
 
   private renderPasswordPrompt() {
@@ -855,9 +912,12 @@ export class ToApp extends LitElement {
         </dd>
         <dt title="Room for this link">${icon(UI.send, 14)}</dt>
         <dd>
-          <table class="to-rooms">
-            ${roomFor(this.link).map((r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th>${r.target.name}</th><td>${roomText(r)}</td><td class="to-hint">${r.target.flat ? `${r.target.note}, leaving ${r.left.toLocaleString()} of ${r.target.max.toLocaleString()} for your words` : `of ${r.target.max.toLocaleString()} · ${r.target.note}`}</td></tr>`)}
-          </table>
+          ${roomsTable(roomFor(this.link))}
+        </dd>
+        <dt title="This device">${icon(UI.home, 14)}</dt>
+        <dd>
+          <sl-checkbox class="to-nosave" ?checked=${!saving()} @sl-change=${(e: Event) => { setSaving(!(e.target as HTMLInputElement).checked); this.requestUpdate(); }}>Keep nothing on this device</sl-checkbox>
+          <div class="to-hint">${saving() ? 'Documents you open or make are listed on the home page, in this browser only. Turn this on to keep no such list (and erase it).' : 'No documents are kept here. Links still work; the home page lists nothing.'}</div>
         </dd>
         <dt title="Password">${icon(UI.lock, 14)}</dt>
         <dd>

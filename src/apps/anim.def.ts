@@ -23,7 +23,8 @@ export function animPage(body: string, once = false): Page {
   const items = anim.items.map((it) => {
     const frames = [...new Set([0, ...it.keys.map((k) => k.t), last])].sort((a, b) => a - b);
     const states = frames.map((f) => stateAt(it, f));
-    const first = states[0];
+    // Played once (on a slide), the item rests where it ends; so a still of it (a PDF, a picture, PowerPoint) shows the end too.
+    const first = once ? states[states.length - 1] : states[0];
     const shape = animItemSvg(it);
     if (it.keys.length < 2) return `<g transform="translate(${n(first.x)} ${n(first.y)}) scale(${n(first.s)})">${shape}</g>`;
     const times = frames.map((f) => n(f / last)).join(';');
@@ -37,7 +38,7 @@ export const animToSvg = (body: string) => '<?xml version="1.0" encoding="UTF-8"
 
 export default defineApp({
   id: 'anim',
-  group: 'Visualization',
+  group: 'Design',
   name: 'Motion',
   icon: 'anim',
   blurb: 'Icons and text that move between the moments you set.',

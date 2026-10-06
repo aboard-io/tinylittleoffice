@@ -27,4 +27,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'timeline', group: 'Visualization', under: 'draw', name: 'Timeline', icon: 'timeline', blurb: 'A timeline: events in order along a line.' }, spec);
+export default defineDiagram({ id: 'timeline', group: 'Design', under: 'draw', name: 'Timeline', icon: 'timeline', blurb: 'A timeline: events in order along a line.' }, spec);

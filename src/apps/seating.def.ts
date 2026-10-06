@@ -30,4 +30,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'seating', group: 'Visualization', under: 'draw', name: 'Seating chart', icon: 'seating', blurb: 'Who sits where: tables, with their people round them.' }, spec);
+export default defineDiagram({ id: 'seating', group: 'Design', under: 'draw', name: 'Seating chart', icon: 'seating', blurb: 'Who sits where: tables, with their people round them.' }, spec);
