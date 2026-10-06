@@ -809,7 +809,7 @@ export class ToApp extends LitElement {
   /** What this browser has kept, by folder. */
   private renderLibrary() {
     const all = folders();
-    if (!saving()) return html`<p class="to-library-off to-hint">Keeping nothing on this device. Links still work; this page lists no documents. (Change this under ${icon(UI.lock, 12)} on any document.)</p>`;
+    if (!saving()) return nothing;
     if (!all.length) return nothing;
     const move = (k: Kept) => {
       const to = prompt(`Folder for “${k.title}”`, k.folder);
@@ -916,8 +916,8 @@ export class ToApp extends LitElement {
         </dd>
         <dt title="This device">${icon(UI.home, 14)}</dt>
         <dd>
-          <sl-checkbox class="to-nosave" ?checked=${!saving()} @sl-change=${(e: Event) => { setSaving(!(e.target as HTMLInputElement).checked); this.requestUpdate(); }}>Keep nothing on this device</sl-checkbox>
-          <div class="to-hint">${saving() ? 'Documents you open or make are listed on the home page, in this browser only. Turn this on to keep no such list (and erase it).' : 'No documents are kept here. Links still work; the home page lists nothing.'}</div>
+          <sl-checkbox class="to-save" ?checked=${saving()} @sl-change=${(e: Event) => { setSaving((e.target as HTMLInputElement).checked); this.requestUpdate(); }}>Keep a list of my documents on this device</sl-checkbox>
+          <div class="to-hint">${saving() ? 'Documents you open or make are listed on the home page, in this browser only, and never sent anywhere. Untick to erase the list and keep none.' : 'Off, as it is unless you ask: nothing about your documents is kept here. The link is the document; keep that.'}</div>
         </dd>
         <dt title="Password">${icon(UI.lock, 14)}</dt>
         <dd>

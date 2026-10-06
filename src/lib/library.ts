@@ -1,7 +1,8 @@
 /**
  * The library: the documents this browser has made or opened, kept in its
- * own storage so they can be found again without their links. Nothing here
- * leaves the device; a document is still, entirely, its link.
+ * own storage so they can be found again without their links. Only when
+ * asked (see saving()). Nothing here leaves the device; a document is
+ * still, entirely, its link.
  */
 export interface Kept {
   /** The app and when the document was made: what makes it the same document after a change. */
@@ -39,19 +40,23 @@ function write(all: Kept[]) {
   }
 }
 
-/** Whether anything is kept here at all. Off, nothing is written and the library is emptied; the one thing remembered is that choice. */
+/**
+ * Whether documents are kept here at all. Off unless asked: nothing is
+ * written, and the home page lists nothing. Turned off again, the library
+ * is emptied. The one thing remembered either way is the choice itself.
+ */
 export function saving(): boolean {
   try {
-    return localStorage.getItem('tinyoffice.nosave') !== '1';
+    return localStorage.getItem('tinyoffice.save') === '1';
   } catch {
     return false;
   }
 }
 export function setSaving(on: boolean) {
   try {
-    if (on) localStorage.removeItem('tinyoffice.nosave');
+    if (on) localStorage.setItem('tinyoffice.save', '1');
     else {
-      localStorage.setItem('tinyoffice.nosave', '1');
+      localStorage.removeItem('tinyoffice.save');
       localStorage.removeItem(KEY);
     }
   } catch {

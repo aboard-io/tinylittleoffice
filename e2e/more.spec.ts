@@ -822,7 +822,19 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   }
 });
 
-test('the library: documents are kept on the device, in folders', async ({ page }) => {
+test('the library: documents are kept on the device, in folders, once asked', async ({ page }) => {
+  // Off unless asked.
+  await page.goto('/#/write');
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('Nothing kept of this');
+  await page.goto('/#/');
+  await expect(page.locator('.to-library')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('tinyoffice.library'))).toBeNull();
+  await page.goto('/#/write');
+  await page.locator('.to-meter sl-progress-ring').click();
+  await page.locator('sl-checkbox.to-save').click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.goto('about:blank');
   await page.goto('/#/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Notes from the quay');
@@ -983,33 +995,22 @@ test('slides: bold and italic from the keyboard and the toolbar', async ({ page 
   await expect(bullets).toHaveValue('Ship the beta\n  Tell everyone');
 });
 
-test('keep nothing on this device', async ({ page }) => {
+test('keeping documents is opt in, and off again erases them', async ({ page }) => {
   await page.goto('/#/todo');
+  await page.locator('.to-meter sl-progress-ring').click();
+  await page.locator('sl-checkbox.to-save').click();
+  await expect(page.locator('sl-checkbox.to-save')).toHaveJSProperty('checked', true);
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
   await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[YZR]/);
   await page.goto('/#/');
   await expect(page.locator('.to-library summary')).toHaveCount(1);
-  // The switch is with the other privacy things; turning it on erases what was kept.
   await page.goto('/#/write');
   await page.locator('.to-meter sl-progress-ring').click();
-  await page.locator('sl-checkbox.to-nosave').click();
-  await expect(page.locator('sl-checkbox.to-nosave')).toHaveJSProperty('checked', true);
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Not kept');
+  await page.locator('sl-checkbox.to-save').click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.goto('/#/');
   await expect(page.locator('.to-library')).toHaveCount(0);
-  await expect(page.locator('.to-library-off')).toContainText('Keeping nothing on this device');
-  expect(await page.evaluate(() => localStorage.getItem('tinyoffice.library'))).toBeNull();
-  expect(await page.evaluate(() => localStorage.getItem('tinyoffice.nosave'))).toBe('1');
-  // And back.
-  await page.goto('/#/write');
-  await page.locator('.to-meter sl-progress-ring').click();
-  await page.locator('sl-checkbox.to-nosave').click();
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Kept again');
-  await page.goto('/#/');
-  await expect(page.locator('.to-library summary')).toHaveCount(1);
+  expect(await page.evaluate(() => [localStorage.getItem('tinyoffice.library'), localStorage.getItem('tinyoffice.save')])).toEqual([null, null]);
 });
