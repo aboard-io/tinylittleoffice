@@ -44,13 +44,13 @@ https://tinylittleoffice.com/sheet/#title=Budget&doc=!%7Ct%24%0AItem%09Cost%0ARe
 
 ### write: a short document
 
-One block per line. `# ` heading, `## ` subheading, `- ` bullet, `+ ` numbered item; repeat the marker to nest (`-- `). Inline: `*bold*`, `_italic_`, `^underline^`, `~strike~`. Web addresses become links.
+One block per line. `# ` heading, `## ` subheading, `- ` bullet, `+ ` numbered item; repeat the marker to nest (`-- `). Inline: `*bold*`, `_italic_`, `^underline^`, `~strike~`, `=highlight=`, and an icon in the line as its name between colons, `:rocket:`. A line may start `>c `, `>r ` or `>j ` to be centred, right-aligned or justified. Web addresses become links.
 
 https://tinylittleoffice.com/write/#title=Meeting+notes&doc=%23+Meeting+notes%0AWe+agreed+on+*three+things*.%0A-+Ship+on+Friday%0A--+Ben+owns+the+release%0A-+Review+pricing
 
 ### deck: slides
 
-Slides are separated by a blank line. Each slide: an optional first line `:icon-name` (a Lucide icon name such as `rocket`, `users`, `chart-column`), then the headline, then one bullet per line. A layout can follow the icon after a second colon: `:rocket:t` or `::t` is a title slide (headline plus subtitle), `::2` is two columns with a line `|` between the left and right bullets, `:star:i` is bullets beside one big icon. Add `&view=show` to open it presenting.
+Slides are separated by a blank line. Each slide: an optional first line `:icon-name` (a Lucide icon name such as `rocket`, `users`, `chart-column`), then the headline, then one bullet per line. A layout can follow the icon after a second colon: `:rocket:t` or `::t` is a title slide (headline plus subtitle), `::2` is two columns with a line `|` between the left and right bullets, `:star:i` is bullets beside one big icon. Add `&view=show` to open it presenting. Headlines and bullets take the same inline marks as `write` (`*bold*`, `=highlight=`, `:icon:`); a bullet indented two spaces (up to three times) nests under the one above. Every deck ends with an extra slide made for you: a QR code of the whole deck, its title beneath, so the room can take it home.
 
 https://tinylittleoffice.com/deck/#title=Launch+plan&doc=%3Arocket%3At%0ALaunch+plan%0ASpring+2027%0A%0A%3Atarget%0AGoals%0AShip+the+beta%0ASign+ten+customers%0A%0A%3A%3A2%0ANow+and+next%0ADesign%0ABuild%0A%7C%0ATest%0ALaunch
 

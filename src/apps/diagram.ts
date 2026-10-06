@@ -134,6 +134,66 @@ if(F){var el=document.querySelector(F.slice(-1)===','?'[data-lf^="'+F+'"]':'[dat
     return this.pageHtml().replace('</body>', script + '</body>');
   }
 
+  /* ---------- typing on the picture ---------- */
+
+  /** A box over the picture, where a label or a line of a sheet is typed: the row and field it writes, and where it sits. */
+  @state() private editing: { row: number; field: number; x: number; y: number; w: number; h: number } | null = null;
+
+  /** Open the box over an element of the picture, for a row's field. */
+  private editOver(el: Element, row: number, field = -1) {
+    const form = this.spec.form;
+    if (!form) return;
+    const rows = this.rows();
+    if (!rows[row]) return;
+    const fields = fieldsOf(form, rows[row].kind);
+    const f = field >= 0 ? field : fields.findIndex((x) => x.type !== 'icon' && x.type !== 'choice');
+    if (f < 0) return;
+    const pic = this.querySelector<HTMLElement>('.pic')!;
+    const [b, p] = [el.getBoundingClientRect(), pic.getBoundingClientRect()];
+    // At least a readable size, wherever the words are.
+    const w = Math.max(120, b.width + 16);
+    const h = Math.max(34, Math.min(60, b.height + 8));
+    this.editing = { row, field: f, x: b.left - p.left + pic.scrollLeft + (b.width - w) / 2, y: b.top - p.top + pic.scrollTop + (b.height - h) / 2, w, h };
+    this.sel = -1;
+    void this.updateComplete.then(() => {
+      const box = this.querySelector<HTMLInputElement>('.pic-edit input');
+      box?.focus();
+      box?.select();
+    });
+  }
+
+  /** A sheet's words, tapped: the row and field they came from, if any. */
+  private onSheetClick(e: Event) {
+    const t = (e.target as Element).closest('text');
+    const form = this.spec.form;
+    if (!t || !form) return;
+    const label = (t.textContent ?? '').trim();
+    const rows = this.rows();
+    for (let i = 0; i < rows.length; i++) {
+      const f = rows[i].values.findIndex((v, n) => fieldsOf(form, rows[i].kind)[n].type !== 'icon' && v.trim() && (v.trim() === label || label.startsWith(v.trim())));
+      if (f >= 0) return this.editOver(t, i, f);
+    }
+  }
+
+  private renderEditBox() {
+    const e = this.editing;
+    if (!e || !this.spec.form) return nothing;
+    const rows = this.rows();
+    const row = rows[e.row];
+    if (!row) return nothing;
+    const field = fieldsOf(this.spec.form, row.kind)[e.field];
+    const done = () => (this.editing = null);
+    return html`<div class="pic-edit" style="left:${e.x}px;top:${e.y}px;width:${e.w}px;height:${e.h}px">
+      <input
+        aria-label="${field.name}, row ${e.row + 1}"
+        .value=${row.values[e.field] ?? ''}
+        @input=${(ev: Event) => this.putRows(rows.map((r, n) => (n === e.row ? { ...r, values: r.values.map((v, m) => (m === e.field ? (ev.target as HTMLInputElement).value : v)) } : r)))}
+        @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' || ev.key === 'Escape') && (ev.preventDefault(), done())}
+        @blur=${done}
+      />
+    </div>`;
+  }
+
   /** The shape picked in the picture, whose buttons are showing. */
   @state() private sel = -1;
   /** The fonts, as CSS, for the page shown in its frame. */
@@ -304,7 +364,7 @@ if(F){var el=document.querySelector(F.slice(-1)===','?'[data-lf^="'+F+'"]':'[dat
     const acts: [string, string, () => void][] = [
       ['Add one under it', 'plus', () => this.addAfter(row)],
       ['Give it a picture', 'smile', () => this.iconFor(row)],
-      ['Edit its words', 'pencil', () => this.putRows(this.rows(), row)],
+      ['Edit its words', 'pencil', () => this.editOver(this.querySelector(`.pic > svg g.pick[data-i="${i}"]`)!, row)],
       ['Take it away', 'x', () => (this.sel = -1, this.putRows(removeRow(this.rows(), this.spec.form!, row)))],
     ];
     const x0 = s.x + s.w / 2 - (acts.length * (size + 4) - 4) / 2;
@@ -340,7 +400,8 @@ if(F){var el=document.querySelector(F.slice(-1)===','?'[data-lf^="'+F+'"]':'[dat
 ${form
           ? html`<to-lines class="lf" .text=${text} .kinds=${spec.form!} name=${name} @lines-change=${(e: CustomEvent<string>) => this.type(e.detail)}></to-lines>`
           : html`        <textarea aria-label="${name}, as text" spellcheck=${spec.page || spec.sheets ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>`}
-        <div class="pic">
+        <div class="pic" @click=${(e: Event) => spec.sheets && form && this.onSheetClick(e)}>
+          ${this.renderEditBox()}
           ${spec.page
             ? // The page as it will be, in a frame of its own: its scripts run, but it cannot reach this one.
               html`<iframe title="${name}, as a page" sandbox="allow-scripts allow-popups allow-forms" srcdoc=${(this.lastSrc = this.held ?? (form ? this.editablePage() : this.pageHtml()))} class=${text.trim() ? '' : 'sample'}></iframe>`
@@ -352,7 +413,7 @@ ${form
                   ${d!.shapes.map((s, i) =>
                     isLink(s.k) || !spec.form
                       ? svg`<g>${unsafeSVG(shapeSvg(s, d!.shapes))}</g>`
-                      : svg`<g class="pick ${this.sel === i ? 'on' : ''}" role="button" tabindex="0" aria-label="${s.text.replace(/^:[a-z0-9-]+\s*/, '') || 'Shape'}: tap for its buttons" aria-pressed=${this.sel === i ? 'true' : 'false'} @click=${(e: Event) => (e.stopPropagation(), (this.sel = this.sel === i ? -1 : i), this.requestUpdate())} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), (this.sel = this.sel === i ? -1 : i))}>${unsafeSVG(shapeSvg(s, d!.shapes))}</g>`,
+                      : svg`<g class="pick ${this.sel === i ? 'on' : ''}" data-i=${i} role="button" tabindex="0" aria-label="${s.text.replace(/^:[a-z0-9-]+\s*/, '') || 'Shape'}: tap for its buttons, twice to type" aria-pressed=${this.sel === i ? 'true' : 'false'} @dblclick=${(e: Event) => (e.stopPropagation(), this.editOver(e.currentTarget as Element, this.rowOf(i, d!.shapes)))} @click=${(e: Event) => (e.stopPropagation(), (this.sel = this.sel === i ? -1 : i), this.requestUpdate())} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), (this.sel = this.sel === i ? -1 : i))}>${unsafeSVG(shapeSvg(s, d!.shapes))}</g>`,
                   )}
                   ${this.controls(d!)}
                 </svg>`

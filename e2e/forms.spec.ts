@@ -166,10 +166,11 @@ test('the picture is worked directly: tap a box for its buttons', async ({ page 
   await ctl.getByRole('button', { name: 'Take it away' }).click();
   await expect(pic).not.toContainText('Flo Reyes');
   await expect(pic.getByRole('button', { name: /Okoro|Lund|Shah|Marsh|Diaz|Pine/ })).toHaveCount(6);
-  // Edit its words goes to the row.
+  // Edit its words opens a box over the shape itself.
   await pic.getByRole('button', { name: /^Cy Lund/ }).click();
   await ctl.getByRole('button', { name: 'Edit its words' }).click();
-  await expect(page.getByRole('textbox', { name: 'Name, row 3' })).toBeFocused();
+  await expect(page.locator('.pic-edit input')).toBeFocused();
+  await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 400, height: 800 });
   await shot(page, 'direct-org');
 });
@@ -206,4 +207,39 @@ test('a page is edited in the page: type into it, add with the bar, Enter for an
   await f.getByRole('textbox', { name: 'What for, row 5' }).click();
   await page.keyboard.press('Enter');
   await expect(f.locator('tbody tr')).toHaveCount(5);
+});
+
+test('words are typed on the picture itself: a shape, and a line of a printed sheet', async ({ page }) => {
+  await page.goto('/#/org');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const pic = page.locator('to-org .pic > svg');
+  // Twice on a box opens it for typing; Enter keeps it.
+  await pic.getByRole('button', { name: /^Ben Okoro/ }).dblclick();
+  const box = page.locator('.pic-edit input');
+  await expect(box).toBeFocused();
+  await expect(box).toHaveValue('Ben Okoro');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Ben Okoro-Smith');
+  await expect(pic).toContainText('Ben Okoro-Smith');
+  await page.keyboard.press('Enter');
+  await expect(box).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Name, row 2' })).toHaveValue('Ben Okoro-Smith');
+  // Or from the shape's own buttons.
+  await pic.getByRole('button', { name: /^Eve Marsh/ }).click();
+  await pic.getByRole('button', { name: 'Edit its words' }).click();
+  await expect(page.locator('.pic-edit input')).toHaveValue('Eve Marsh');
+  await page.keyboard.press('Escape');
+
+  // On a sheet: tap the words, type.
+  await page.goto('/#/menu');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const sheet = page.getByRole('img', { name: 'Menu, sheet 1' });
+  await sheet.locator('text', { hasText: 'Flat white' }).click();
+  await expect(page.locator('.pic-edit input')).toHaveValue('Flat white');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Oat flat white');
+  await page.keyboard.press('Enter');
+  await expect(sheet).toContainText('Oat flat white');
+  await expect(page.getByRole('textbox', { name: 'Dish, row 5' })).toHaveValue('Oat flat white');
+  await shot(page, 'type-on-picture');
 });
