@@ -18,13 +18,13 @@ import { isSealed, newLocker, seal, unseal, type Locker } from './lib/crypt.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import { fontsForPictures } from './kit/browser.ts';
-import { History, apps, appOf, extOf, pageSvg, slug, utf8, xml, type AppDef, type Shortcut } from './kit/core.ts';
+import { History, apps, appOf, extOf, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { REFRESH, download, formatsOf, loadEditor, picture, raster, saveFile } from './kit/browser.ts';
+import { REFRESH, download, formatsOf, loadEditor, picture } from './kit/browser.ts';
 import './lib/icons.ts';
 import { roomFor } from './lib/limits.ts';
 import { roomsTable } from './widgets/meter.ts';
-import { QR_MAX_BYTES, qrSvg } from './lib/qr.ts';
+import { ToQrDialog } from './widgets/qr-dialog.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 
 export type AppId = string;
@@ -502,7 +502,7 @@ export class ToApp extends LitElement {
       return;
     }
     if (how === 'png') return void this.download('png');
-    if (how === 'qr') return void this.querySelector<SlDialog>('#qr-dialog')?.show();
+    if (how === 'qr') return void this.querySelector<ToQrDialog>('to-qr-dialog')?.show();
     if (how === 'embed') {
       await navigator.clipboard.writeText(this.embedCode()).then(() => this.showToast('Embed code copied'), () => this.showToast('Copy failed'));
       return;
@@ -750,7 +750,7 @@ export class ToApp extends LitElement {
                           <sl-menu-item value="email">Email</sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
-                      <sl-button class="icon to-qr-btn" size="small" aria-label="QR code" title="The whole document as a QR code" @click=${() => this.querySelector<SlDialog>('#qr-dialog')?.show()}>${icon(UI.qr, 16)}<span class="sr-only">QR code</span></sl-button>
+                      <sl-button class="icon to-qr-btn" size="small" aria-label="QR code" title="The whole document as a QR code" @click=${() => this.querySelector<ToQrDialog>('to-qr-dialog')?.show()}>${icon(UI.qr, 16)}<span class="sr-only">QR code</span></sl-button>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
                         <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" title="Privacy" variant=${this.locker || this.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.locker ? UI.lock : this.sig === 'invalid' ? UI.shieldOff : this.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
                         <sl-menu>
@@ -796,7 +796,7 @@ export class ToApp extends LitElement {
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPasswordPrompt()}
-      ${current ? this.renderQr() : nothing}
+      ${current ? html`<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
         ${[
           ['Everywhere', GLOBAL_KEYS] as const,
@@ -911,31 +911,6 @@ export class ToApp extends LitElement {
       <p class="to-hint">These are saved only on this device, in this browser. They are not on any server and will not be on your other devices; a link is the only way to carry one across. Once opened, TinyLittleOffice works without a connection.</p>
       <sl-button size="small" variant="danger" outline @click=${() => { if (confirm('Erase every document kept on this device? Any you have the link for can be opened again.')) { forgetAll(); this.requestUpdate(); } }}>${icon(UI.trash, 14)} Erase all</sl-button>
     </section>`;
-  }
-
-  /** The whole document as a QR code: the link is the document, and a code is a link. */
-  private renderQr() {
-    const link = this.link;
-    const size = new TextEncoder().encode(link).length;
-    const fits = size <= QR_MAX_BYTES;
-    const svg = fits ? qrSvg(new TextEncoder().encode(link), 4) : '';
-    const save = async (ext: 'png' | 'svg') => {
-      const name = `${slug(this.docTitle) || 'document'}-qr.${ext}`;
-      if (ext === 'svg') return saveFile(name, 'image/svg+xml', utf8(svg));
-      const side = 1024;
-      const png = await raster(svg.replace(/width="\d+" height="\d+"/, `width="${side}" height="${side}"`), side, side);
-      if (png) saveFile(name, 'image/png', png);
-    };
-    return html`<sl-dialog id="qr-dialog" label="QR code" class="to-qr">
-      ${fits
-        ? html`<div class="code" role="img" aria-label="QR code of this document">${unsafeHTML(svg)}</div>
-          <p class="to-hint">The whole document, ${size.toLocaleString()} bytes, as one code. Anyone who scans it has it.</p>
-          <div class="row">
-            <sl-button size="small" variant="primary" @click=${() => save('png')}>${icon(UI.download, 14)} PNG</sl-button>
-            <sl-button size="small" @click=${() => save('svg')}>${icon(UI.download, 14)} SVG</sl-button>
-          </div>`
-        : html`<p>This document is ${size.toLocaleString()} bytes; the largest QR code holds ${QR_MAX_BYTES.toLocaleString()}. Shorten it by ${(size - QR_MAX_BYTES).toLocaleString()} bytes and it will fit.</p>`}
-    </sl-dialog>`;
   }
 
   private renderPasswordPrompt() {
