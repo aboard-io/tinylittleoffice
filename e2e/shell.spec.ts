@@ -496,7 +496,7 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
 });
 
-test('Markdown comes in as well as out', async ({ page }) => {
+test('Markdown and CSV come in as well as out', async ({ page }) => {
   await page.goto('/#/todo');
   await page.getByRole('button', { name: 'Download' }).click();
   await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
@@ -523,4 +523,12 @@ test('Markdown comes in as well as out', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Import' }).click();
   await expect(page.locator('to-deck')).toContainText('Agenda');
   await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
+  // CSV is a table too.
+  await page.goto('/#/sheet');
+  await page.getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
+  await dialog.locator('textarea').fill('Item,Cost\nRent,"1,200"\nFood,600');
+  await dialog.getByRole('button', { name: 'Import' }).click();
+  await expect(page.getByRole('textbox', { name: 'A3', exact: true })).toHaveValue('Food');
+  await expect(page.getByRole('textbox', { name: 'B2', exact: true })).toHaveValue('1,200');
 });

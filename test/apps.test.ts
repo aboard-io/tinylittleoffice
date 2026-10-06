@@ -12,7 +12,7 @@ import '../src/apps/index.ts';
 import { appOf } from '../src/kit/core.ts';
 import { animToSvg } from '../src/apps/anim.def.ts';
 import { boardToCsv } from '../src/apps/board.def.ts';
-import { toMarkdown, fromMarkdown } from '../src/lib/markdown.ts';
+import { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv } from '../src/lib/markdown.ts';
 import { ganttToCsv } from '../src/apps/gantt.def.ts';
 import { tripToGeoJson, tripToGpx } from '../src/apps/trip.def.ts';
 import { ganttSpans } from '../src/lib/ganttmodel.ts';
@@ -907,3 +907,15 @@ test('markdown, both ways, for every app', async () => {
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), serializeBoardLike('#Doing|2\nx\ny'));
 });
 const serializeBoardLike = (s: string) => s;
+
+test('CSV imports as a table into any app that takes one', () => {
+  assert.deepEqual(parseCsv('a,"b, c",d\n1,"say ""hi""",3\r\n'), [['a', 'b, c', 'd'], ['1', 'say "hi"', '3']]);
+  assert.ok(looksLikeCsv('Item,Cost\nRent,1200\nFood,600'));
+  assert.ok(looksLikeCsv('Item\tCost\nRent\t1200'));
+  assert.ok(!looksLikeCsv('# Heading\n- a, b\n- c, d'));
+  assert.ok(!looksLikeCsv('just one line, with commas'));
+  assert.equal(fromMarkdown(appOf('sheet')!, 'Item,Cost\nRent,"1,200"\nFood,600'), 'Item\tCost\nRent\t1,200\nFood\t600');
+  assert.equal(fromMarkdown(appOf('menu')!, 'Dish,Price,What it is\nFlat white,4.20,Smooth'), 'Flat white | 4.20 | Smooth');
+  assert.equal(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%'), fromMarkdown(appOf('gantt')!, '| Task | Start | Days | Done |\n|---|---|---|---|\n| Design | 2026-10-06 | 5 | 20% |'));
+  assert.ok(appOf('gantt')!.outline(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%')).join(' ').includes('Design'));
+});

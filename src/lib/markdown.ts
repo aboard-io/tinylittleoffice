@@ -298,9 +298,55 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
   return linesToMd(def.id, body) ?? `# ${name}\n\n${def.outline(body).map((l) => `- ${l}`).join('\n')}\n`;
 }
 
+/** CSV (quoted fields, commas or tabs) as rows of cells. */
+export function parseCsv(text: string): string[][] {
+  const sep = text.split('\n')[0]?.includes('\t') ? '\t' : ',';
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') (cell += '"'), i++;
+      else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === sep) row.push(cell), (cell = '');
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell);
+      if (row.some((v) => v.trim())) rows.push(row);
+      row = [];
+      cell = '';
+    } else cell += c;
+  }
+  row.push(cell);
+  if (row.some((v) => v.trim())) rows.push(row);
+  return rows;
+}
+
+/** Does this look like CSV rather than Markdown: no headings, lists or tables, and a separator on every line. */
+export function looksLikeCsv(text: string): boolean {
+  const lines = text.replace(/\r\n?/g, '\n').trim().split('\n');
+  if (lines.length < 2 || lines.some((l) => /^(#|\s*[-*+]\s|\s*\d+[.)]\s|\|)/.test(l))) return false;
+  const sep = lines[0].includes('\t') ? '\t' : ',';
+  const n = parseCsv(lines[0])[0]?.length ?? 0;
+  return n >= 2 && lines.every((l) => l.includes(sep));
+}
+
+/** CSV as a Markdown table, so it reads the way a table reads into any app. */
+export function csvToMd(text: string): string {
+  const rows = parseCsv(text.replace(/^﻿/, ''));
+  if (!rows.length) return '';
+  const w = Math.max(...rows.map((r) => r.length));
+  const [head, ...rest] = rows.map((r) => Array.from({ length: w }, (_, i) => (r[i] ?? '').trim()));
+  return tableMd(head, rest);
+}
+
 /** Markdown as the document, read forgivingly: what fits the kind of document is kept, the rest becomes words. */
 export function fromMarkdown(def: AppDef, md: string): string {
-  const text = md.replace(/\r\n?/g, '\n').trim();
+  const text = (looksLikeCsv(md) ? csvToMd(md) : md).replace(/\r\n?/g, '\n').trim();
   switch (def.id) {
     case 'write':
       return mdToDoc(text);

@@ -580,7 +580,7 @@ export class ToApp extends LitElement {
                           <sl-menu-label>Download</sl-menu-label>
                           ${formatsOf(appOf(current.id)!).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
                           <sl-divider></sl-divider>
-                          <sl-menu-item value="import">${icon(UI.insert, 14, 'pre')} Import Markdown…</sl-menu-item>
+                          <sl-menu-item value="import">${icon(UI.insert, 14, 'pre')} Import Markdown or CSV…</sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
@@ -782,11 +782,11 @@ export class ToApp extends LitElement {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) this.importText = await file.text();
     };
-    return html`<sl-dialog id="import-dialog" label="Import Markdown" class="to-import">
-      <p class="to-hint">Paste Markdown, or choose a file. Headings, lists, tables and checkboxes are read the way this kind of document reads them; it replaces what is here (undo brings it back).</p>
-      <textarea aria-label="Markdown" placeholder="# Title&#10;&#10;- one thing&#10;- another" .value=${this.importText} @input=${(e: Event) => (this.importText = (e.target as HTMLTextAreaElement).value)}></textarea>
+    return html`<sl-dialog id="import-dialog" label="Import Markdown or CSV" class="to-import">
+      <p class="to-hint">Paste Markdown or CSV, or choose a file. Headings, lists, tables, checkboxes and rows of cells are read the way this kind of document reads them; it replaces what is here (undo brings it back).</p>
+      <textarea aria-label="Markdown or CSV" placeholder="# Title&#10;&#10;- one thing&#10;- another&#10;&#10;or: Item, Cost&#10;Rent, 1200" .value=${this.importText} @input=${(e: Event) => (this.importText = (e.target as HTMLTextAreaElement).value)}></textarea>
       <div class="row">
-        <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" aria-label="A Markdown file" @change=${pick} />
+        <input type="file" accept=".md,.markdown,.txt,.csv,.tsv,text/markdown,text/plain,text/csv,text/tab-separated-values" aria-label="A Markdown or CSV file" @change=${pick} />
         <span class="to-spacer"></span>
         <sl-button variant="primary" ?disabled=${!this.importText.trim()} @click=${apply}>${icon(UI.insert, 14)} Import</sl-button>
       </div>
