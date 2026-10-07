@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','bizplan','mktplan','gtm','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -46,6 +46,9 @@ test('every app draws itself, and is a web page with preview tags', () => {
     anim: '!o\nt,4,20,20,4,04,Lift <off>\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
     zine: ':star\nSmall <Joys>\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A <book>\nby me\n\nOne\nwords',
+    bizplan: '::t\nBusiness <plan>\nAcme\n\nSummary\nWe sell.',
+    mktplan: '::t\nMarketing plan\nAcme\n\nGoals\nTen.',
+    gtm: '::t\nGo to <market>\nAcme\n\nThe customer\nYou.',
     poster: ':music\nOpen <mic> night\nFriday 12 March, 8pm',
     badges: 'Ada <Lovelace>\nEngineering\n\nGrace Hopper\nCompilers',
     recipes: ':cookie\nCardamom <buns>\n500g flour\n\nCold brew\n100g coffee',

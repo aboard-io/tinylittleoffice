@@ -23,6 +23,8 @@ export interface Format {
   grow?: number;
   /** How many pages it grows by: four (a sheet folded) unless said; one for cards. */
   by?: number;
+  /** The text a new one starts from, offered when the document is empty: a plan's sections, with their prompts. */
+  template?: string;
   /** Offers one-sided and two-sided printing. */
   sides?: boolean;
   /** A page, in px at 96 to the inch. */

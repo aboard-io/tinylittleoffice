@@ -14,6 +14,7 @@ you have copied the file.
 | Write | A one-page rich text editor: headings, bold, italic, lists.           |
 | Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
+| Business plan, Marketing plan, Go-to-market plan | Letter pages, a section each, started from the questions a good plan answers; print, present, outline, Markdown in and out. |
 | Calendar | Labelled spans of time on a month grid, shown in any time zone.    |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
 | Board | A kanban board: the stages of a workflow, cards, and limits per stage. |

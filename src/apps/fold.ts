@@ -68,6 +68,7 @@ export class FoldElement extends PagesElement<Folded> {
     const pic = (p: { w: number; h: number; svg: string }, label: string) => unsafeSVG(pageSvg(p, `role="img" aria-label="${label}"`));
     return html`
       <div class="to-toolbar" @keydown=${this.onPageKey}>
+        ${f.template && z.pages.every(blank) ? tool('Start from the template', 'sparkles', () => this.commit(parseFold(f.template!, f)), { text: true }) : nothing}
 ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" label="Printing" hoist .value=${z.two ? 'two' : 'one'} @sl-change=${(e: Event) => this.commit({ ...z, two: (e.target as SlSelect).value === 'two' })}>
           <sl-option value="one">One-sided: fold and cut</sl-option>
           <sl-option value="two">Two-sided: cut and nest</sl-option>
