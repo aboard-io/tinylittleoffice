@@ -74,9 +74,3 @@ export function roomRows(rooms: Room[]): { name: string; max: string; used: stri
     over: r.left < 0,
   }));
 }
-
-/** A room, in a few words: how much is left, or that the link's length does not matter there. */
-export function roomText(r: Room): string {
-  if (r.target.flat) return `any length fits`;
-  return r.left < 0 ? `${(-r.left).toLocaleString('en-US')} over` : `${r.left.toLocaleString('en-US')} left`;
-}

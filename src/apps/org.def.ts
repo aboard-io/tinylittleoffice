@@ -34,4 +34,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'org', group: 'Design', under: 'draw', name: 'Org chart', icon: 'org', blurb: 'Who reports to whom, drawn from an indented list.' }, spec);
+export default defineDiagram({ id: 'org', name: 'Org chart', icon: 'org', blurb: 'Who reports to whom, drawn from an indented list.' }, spec);

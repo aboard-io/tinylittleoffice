@@ -4,7 +4,7 @@
  * its words, take it away); tap twice to type on it.
  */
 import { html, state, unsafeSVG, type TemplateResult } from '../kit.ts';
-import { svg } from 'lit';
+import { svg } from '../kit.ts';
 import { DiagramElement } from './diagram.ts';
 import { type DiagramSpec } from '../lib/diagram.ts';
 import { fieldsOf, kindsOf, placeBlock, readLines } from '../lib/lines.ts';

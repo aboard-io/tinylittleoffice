@@ -7,8 +7,7 @@
  * object, and hears "privacy-env" when the document changes (unlocked,
  * signed, unsigned) and "privacy-lock" when the password does.
  */
-import { LitElement, html, nothing, type PropertyValues } from 'lit';
-import { icon, UI } from '../lib/icons.ts';
+import { LitElement, html, nothing, icon, UI, toast, errorText, type PropertyValues } from '../kit.ts';
 import type { Envelope } from '../lib/envelope.ts';
 import type { Privacy } from '../lib/privacy.ts';
 import type { SlInput } from '../lib/shoelace.ts';
@@ -63,7 +62,7 @@ export class ToPrivacy extends LitElement {
 
   private say(note: string) {
     this.note = note;
-    this.dispatchEvent(new CustomEvent('privacy-note', { detail: note, bubbles: true }));
+    toast(this, note);
   }
   private emitEnv(env: Envelope) {
     this.dispatchEvent(new CustomEvent('privacy-env', { detail: env, bubbles: true }));
@@ -108,7 +107,7 @@ export class ToPrivacy extends LitElement {
       this.emitEnv(await this.privacy.sign(this.env, this.app));
       this.say('Signed');
     } catch (err) {
-      this.say(err instanceof Error ? err.message : String(err));
+      this.say(errorText(err, 'Could not sign'));
     } finally {
       this.busy = false;
     }
@@ -130,7 +129,7 @@ export class ToPrivacy extends LitElement {
       this.keyText = '';
       this.say('Key imported');
     } catch (err) {
-      this.say(err instanceof Error ? err.message : 'Invalid key');
+      this.say(errorText(err, 'Invalid key'));
     }
   }
   private forgetKey() {

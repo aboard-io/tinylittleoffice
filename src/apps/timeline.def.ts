@@ -1,6 +1,6 @@
 /** Timeline: what happened, in order, along a line. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, shape, join, PALETTE, type Diagram } from '../lib/diagram.ts';
+import { defineDiagram, frame, shape, join, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
 function layout(text: string): Diagram {
@@ -15,7 +15,7 @@ function layout(text: string): Diagram {
     const x = (row % 2 ? PER - 1 - col : col) * 150;
     const y = row * 280;
     // A dot on the line, joined to the dot before it, and to its box: above and below, turn about.
-    shapes.push(shape('e', x + 60, y + 132, 16, 16, '', 2, PALETTE[i % PALETTE.length]), shape('o', x, y + (i % 2 ? 190 : 20), 136, 64, what ? `${when} | ${what}` : when, 1, PALETTE[i % PALETTE.length], 1));
+    shapes.push(shape('e', x + 60, y + 132, 16, 16, '', 2, COLOR_CYCLE[i % COLOR_CYCLE.length]), shape('o', x, y + (i % 2 ? 190 : 20), 136, 64, what ? `${when} | ${what}` : when, 1, COLOR_CYCLE[i % COLOR_CYCLE.length], 1));
     if (i) joins.push(join(2 * i - 2, 2 * i, false));
     joins.push(join(2 * i, 2 * i + 1, false));
   });
@@ -32,4 +32,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'timeline', group: 'Design', under: 'draw', name: 'Timeline', icon: 'timeline', blurb: 'A timeline: events in order along a line.' }, spec);
+export default defineDiagram({ id: 'timeline', name: 'Timeline', icon: 'timeline', blurb: 'A timeline: events in order along a line.' }, spec);

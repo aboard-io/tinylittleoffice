@@ -1,5 +1,5 @@
 /** <to-pixel>: a grid of squares to colour. Format and drawing: pixel.def.ts. */
-import { DocElement, defineElement, html, state, tool, unsafeSVG, pageSvg, appOf } from '../kit.ts';
+import { DocElement, defineElement, html, state, tool, unsafeSVG, pageSvg, appOf, swatches } from '../kit.ts';
 import { INKS, parsePixels, pixelsOf, serializePixels } from './pixel.def.ts';
 
 export class PixelElement extends DocElement<string[][]> {
@@ -104,11 +104,7 @@ export class PixelElement extends DocElement<string[][]> {
     const picture = pageSvg(def.view(this.serialize(this.doc))[0], 'aria-hidden="true"');
     return html`
       <div class="to-toolbar">
-        <div class="pixel-inks" role="radiogroup" aria-label="Colour">
-          ${[...Object.entries(INKS), ['.', { name: 'Eraser', hex: 'transparent' }] as const].map(
-            ([k, c]) => html`<button role="radio" aria-checked=${this.ink === k ? 'true' : 'false'} aria-label=${c.name} title=${c.name} class=${k === '.' ? 'none' : ''} style="--c:${c.hex}" @click=${() => (this.ink = k)}></button>`,
-          )}
-        </div>
+        ${swatches('Colour', { ...INKS, '.': { name: 'Eraser', hex: 'transparent' } }, this.ink, (k) => (this.ink = k), { cls: 'pixel-inks' })}
         <sl-button-group label="Tool">
           ${([['pen', 'Pencil', 'pen'], ['line', 'Line', 'line'], ['rect', 'Box', 'rect'], ['box', 'Filled box', 'box'], ['fill', 'Fill', 'fill']] as const).map(([id, label, glyph]) => tool(label, glyph, () => (this.mode = id), { pressed: this.mode === id }))}
         </sl-button-group>

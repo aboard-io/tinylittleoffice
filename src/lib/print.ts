@@ -4,15 +4,10 @@
  * the sheets, at actual size.
  */
 import { defineApp, place, rect, type AppDef, type Page } from '../kit/core.ts';
-import { parseDeck, type Slide } from './deckmodel.ts';
 import { LETTER } from './fold.ts';
 import { OUTLINE_KEYS, registerSpec, type DiagramSpec } from './diagram.ts';
 
 export { LETTER };
-export const SIDEWAYS = { w: LETTER.h, h: LETTER.w };
-
-/** The text as slides: an optional ":icon" (on a line of its own, or before the headline), a headline, lines; a blank line starts the next. */
-export const slidesOf = (text: string): Slide[] => (text.trim() ? parseDeck(text.replace(/\n{3,}/g, '\n\n').trim().replace(/(^|\n\n):([a-z0-9-]+) +(?=\S)/g, '$1:$2\n')) : []);
 
 /** Cards cut from letter sheets: as many sheets as it takes, `cols` by `rows` on each, with lines to cut along. */
 export function tile(cards: Page[], cols: number, rows: number, sheet = LETTER): Page[] {

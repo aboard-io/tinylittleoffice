@@ -12,4 +12,4 @@ export const spec = {
   layout: specOf('org')!.layout!,
 };
 
-export default defineDiagram({ id: 'family', group: 'Design', under: 'draw', name: 'Family tree', icon: 'family', blurb: 'A family tree: people and couples, with their children beneath them.' }, spec);
+export default defineDiagram({ id: 'family', name: 'Family tree', icon: 'family', blurb: 'A family tree: people and couples, with their children beneath them.' }, spec);

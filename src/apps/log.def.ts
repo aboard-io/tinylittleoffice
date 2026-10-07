@@ -41,4 +41,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'log', name: 'Log', icon: 'log', group: 'Track', blurb: 'A workout or practice log: entries, and a total for each kind.', title: h1 }, spec);
+export default definePage({ id: 'log', name: 'Log', icon: 'log', group: 'Track', blurb: 'A workout or practice log: entries, and a total for each kind.' }, spec);

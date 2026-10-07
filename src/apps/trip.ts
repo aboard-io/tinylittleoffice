@@ -8,16 +8,16 @@
  * openstreetmap.org and searches go to its Nominatim service. The route
  * itself still lives only in the URL.
  */
-import { LitElement, html, nothing, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { icon, UI } from '../lib/icons.ts';
+import type * as Leaflet from 'leaflet';
+import { DocElement, defineElement, html, nothing, state, property, btn, tool, icon, swap, UI, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
 import { MAX_STOPS, UNITS, distanceKm, formatLeg, parseTrip, routeKm, serializeTrip, tripUnits, type Stop, type Units } from '../lib/tripmodel.ts';
-import type { SlSelect } from '../lib/shoelace.ts';
-import type { SlInput } from '../lib/shoelace.ts';
 
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+// The map library is the one large thing only one app needs, so it arrives with the first map, not with the site.
+let L: typeof Leaflet;
+let loading: Promise<void> | null = null;
+const leaflet = () => (loading ??= Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css')]).then(([m]) => void (L = m.default)));
 const SEARCH = 'https://nominatim.openstreetmap.org/search';
 
 interface Place {
@@ -27,43 +27,42 @@ interface Place {
   lon: number;
 }
 
-@customElement('to-trip')
-export class ToTrip extends LitElement {
-  @property() value = '';
+/** The document as the editor works with it: the stops, and the unit the legs are given in. */
+interface Trip {
+  stops: Stop[];
+  units: Units;
+}
+
+export class ToTrip extends DocElement<Trip> {
   /** Shown on a slide: just the map, which goes to stop `step` (0 shows the whole route). */
   @property({ type: Boolean, reflect: true }) present = false;
   @property({ type: Number }) step = 0;
-  @state() private units: Units = 'h';
-  @state() private stops: Stop[] = [];
   @state() private cur = -1;
   @state() private query = '';
   @state() private places: Place[] | null = null;
   @state() private searching = false;
-  private lastEmitted = '';
-  private map: L.Map | null = null;
-  private layer = L.layerGroup();
+  private map: Leaflet.Map | null = null;
+  private layer: Leaflet.LayerGroup | null = null;
   private resize: ResizeObserver | null = null;
   private refit = true;
+  /** The stops as last drawn, so a render that changed nothing else leaves the map alone. */
+  private drawn: Stop[] | null = null;
 
-  createRenderRoot() {
-    return this;
+  protected parse = (text: string): Trip => ({ stops: parseTrip(text), units: tripUnits(text) });
+  protected serialize = (t: Trip) => serializeTrip(t.stops, t.units);
+
+  protected loaded() {
+    this.cur = -1;
+    this.refit = true;
   }
 
-  willUpdate(changed: PropertyValues) {
-    if (changed.has('value') && this.value !== this.lastEmitted) {
-      this.stops = parseTrip(this.value);
-      this.units = tripUnits(this.value);
-      this.lastEmitted = this.value;
-      this.cur = -1;
-      this.refit = true;
-    }
-  }
-
-  firstUpdated() {
-    const el = this.querySelector<HTMLElement>('.trip-map')!;
+  async firstUpdated() {
+    await leaflet();
+    const el = this.querySelector<HTMLElement>('.trip-map');
+    if (!el || !this.isConnected) return;
     const map = L.map(el, { zoomControl: true, worldCopyJump: true }).setView([25, 0], 2);
     L.tileLayer(TILES, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
-    this.layer.addTo(map);
+    this.layer = L.layerGroup().addTo(map);
     map.on('click', (e) => !this.present && this.addStop(e.latlng.lat, e.latlng.wrap().lng));
     this.map = map;
     this.resize = new ResizeObserver(() => map.invalidateSize());
@@ -72,14 +71,15 @@ export class ToTrip extends LitElement {
   }
 
   updated(changed: PropertyValues) {
-    if (changed.has('stops') || changed.has('cur')) this.draw();
-    if (this.present && (changed.has('step') || changed.has('stops'))) this.goTo(this.step);
+    const moved = this.doc.stops !== this.drawn;
+    if (moved || changed.has('cur')) this.draw();
+    if (this.present && (changed.has('step') || moved)) this.goTo(this.step);
   }
 
   /** Presenting: fly to a stop and say what it is. */
   private goTo(step: number) {
     const map = this.map;
-    const stop = this.stops[step - 1];
+    const stop = this.doc.stops[step - 1];
     if (!map) return;
     map.closePopup();
     if (!stop) return this.fit();
@@ -97,42 +97,38 @@ export class ToTrip extends LitElement {
     this.map = null;
   }
 
-  private commit(stops: Stop[], units = this.units) {
-    this.stops = stops;
-    this.units = units;
-    this.lastEmitted = serializeTrip(stops, units);
-    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
+  private save(stops: Stop[], units = this.doc.units) {
+    this.commit({ stops, units });
   }
 
   private patch(i: number, p: Partial<Stop>) {
-    this.commit(this.stops.map((s, j) => (j === i ? { ...s, ...p } : s)));
+    this.save(this.doc.stops.map((s, j) => (j === i ? { ...s, ...p } : s)));
   }
 
   private addStop(lat: number, lon: number, name = '') {
-    if (this.stops.length >= MAX_STOPS) return;
+    if (this.doc.stops.length >= MAX_STOPS) return;
     const round = (n: number) => Math.round(n * 1e5) / 1e5;
-    this.commit([...this.stops, { lat: round(lat), lon: round(lon), name, note: '' }]);
-    this.cur = this.stops.length - 1;
-    this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.trip-stops li:last-child input.name')?.focus({ preventScroll: false }));
+    this.save([...this.doc.stops, { lat: round(lat), lon: round(lon), name, note: '' }]);
+    this.cur = this.doc.stops.length - 1;
+    this.focusSoon('.trip-stops li:last-child input.name');
   }
 
   private move(i: number, d: number) {
-    const j = i + d;
-    if (j < 0 || j >= this.stops.length) return;
-    const stops = [...this.stops];
-    [stops[i], stops[j]] = [stops[j], stops[i]];
-    this.commit(stops);
-    this.cur = j;
+    const stops = swap(this.doc.stops, i, i + d);
+    if (stops === this.doc.stops) return;
+    this.save(stops);
+    this.cur = i + d;
   }
 
   /** Redraw the markers and the line between them. */
   private draw() {
-    const map = this.map;
-    if (!map) return;
-    this.layer.clearLayers();
-    const pts = this.stops.map((s) => L.latLng(s.lat, s.lon));
-    if (pts.length > 1) L.polyline(pts, { color: '#4f46e5', weight: 4, opacity: 0.85 }).addTo(this.layer);
-    this.stops.forEach((s, i) => {
+    const layer = this.layer;
+    if (!this.map || !layer) return;
+    this.drawn = this.doc.stops;
+    layer.clearLayers();
+    const pts = this.doc.stops.map((s) => L.latLng(s.lat, s.lon));
+    if (pts.length > 1) L.polyline(pts, { color: '#4f46e5', weight: 4, opacity: 0.85 }).addTo(layer);
+    this.doc.stops.forEach((s, i) => {
       const marker = L.marker(pts[i], {
         draggable: !this.present,
         title: s.name || String(i + 1),
@@ -146,7 +142,7 @@ export class ToTrip extends LitElement {
         const p = marker.getLatLng().wrap();
         this.patch(i, { lat: Math.round(p.lat * 1e5) / 1e5, lon: Math.round(p.lng * 1e5) / 1e5 });
       });
-      marker.addTo(this.layer);
+      marker.addTo(layer);
     });
     if (this.refit) {
       this.refit = false;
@@ -156,9 +152,9 @@ export class ToTrip extends LitElement {
 
   private fit(animate = true) {
     const map = this.map;
-    if (!map || !this.stops.length) return;
-    if (this.stops.length === 1) map.setView([this.stops[0].lat, this.stops[0].lon], 12, { animate });
-    else map.fitBounds(L.latLngBounds(this.stops.map((s) => [s.lat, s.lon] as [number, number])), { padding: [36, 36], animate });
+    if (!map || !this.doc.stops.length) return;
+    if (this.doc.stops.length === 1) map.setView([this.doc.stops[0].lat, this.doc.stops[0].lon], 12, { animate });
+    else map.fitBounds(L.latLngBounds(this.doc.stops.map((s) => [s.lat, s.lon] as [number, number])), { padding: [36, 36], animate });
   }
 
   private async search() {
@@ -191,7 +187,7 @@ export class ToTrip extends LitElement {
   }
 
   render() {
-    const n = this.stops.length;
+    const n = this.doc.stops.length;
     if (this.present) return html`<div class="trip-map" role="application" aria-label="Map"></div>`;
     return html`
       <div class="to-toolbar">
@@ -209,11 +205,11 @@ export class ToTrip extends LitElement {
         ><span slot="prefix">${icon(UI.search, 14)}</span></sl-input>
         <sl-button size="small" ?loading=${this.searching} ?disabled=${!this.query.trim()} @click=${this.search}>Search</sl-button>
         <span class="to-spacer"></span>
-        <span class="to-hint">${n} ${n === 1 ? 'stop' : 'stops'}${n > 1 ? html` · <b>${formatLeg(routeKm(this.stops), this.units)}</b>` : nothing}</span>
-        <sl-select class="sr-label trip-units" size="small" label="Measure in" hoist .value=${this.units} @sl-change=${(e: Event) => this.commit(this.stops, (e.target as SlSelect).value as Units)}>
+        <span class="to-hint">${n} ${n === 1 ? 'stop' : 'stops'}${n > 1 ? html` · <b>${formatLeg(routeKm(this.doc.stops), this.doc.units)}</b>` : nothing}</span>
+        <sl-select class="sr-label trip-units" size="small" label="Measure in" hoist .value=${this.doc.units} @sl-change=${(e: Event) => this.save(this.doc.stops, (e.target as SlSelect).value as Units)}>
           ${UNITS.map((u) => html`<sl-option value=${u.id}>${u.name}</sl-option>`)}
         </sl-select>
-        <sl-tooltip content="Show the whole route" hoist><sl-button class="icon" size="small" aria-label="Show the whole route" ?disabled=${!n} @click=${() => this.fit()}>${icon(UI.frame, 14)}<span class="sr-only">Show the whole route</span></sl-button></sl-tooltip>
+        ${tool('Show the whole route', 'frame', () => this.fit(), { disabled: !n })}
       </div>
       ${this.places
         ? html`<ul class="trip-places" aria-label="Places found">
@@ -224,15 +220,15 @@ export class ToTrip extends LitElement {
       <div class="trip">
         <div class="trip-map" role="application" aria-label="Map"></div>
         <ol class="trip-stops" aria-label="Stops">
-          ${this.stops.map(
+          ${this.doc.stops.map(
             (s, i) => html`<li class=${i === this.cur ? 'sel' : ''} @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onStopKey(e, i)}>
-              ${i > 0 ? html`<span class="leg">${this.units === 'h' ? '≈ ' : ''}${formatLeg(distanceKm(this.stops[i - 1], s), this.units)}${this.units === 'h' ? ' drive' : ''}</span>` : nothing}
+              ${i > 0 ? html`<span class="leg">${this.doc.units === 'h' ? '≈ ' : ''}${formatLeg(distanceKm(this.doc.stops[i - 1], s), this.doc.units)}${this.doc.units === 'h' ? ' drive' : ''}</span>` : nothing}
               <span class="n">${i + 1}</span>
               <input class="name" aria-label="Name of stop ${i + 1}" placeholder="Name" .value=${s.name} @input=${(e: Event) => this.patch(i, { name: (e.target as HTMLInputElement).value })} />
               <div class="acts">
-                <button aria-label="Move stop ${i + 1} earlier" ?disabled=${i === 0} @click=${() => this.move(i, -1)}>${icon(UI.up, 14)}</button>
-                <button aria-label="Move stop ${i + 1} later" ?disabled=${i === n - 1} @click=${() => this.move(i, 1)}>${icon(UI.down, 14)}</button>
-                <button aria-label="Delete stop ${i + 1}" @click=${() => this.commit(this.stops.filter((_, j) => j !== i))}>${icon(UI.close, 14)}</button>
+                ${btn(`Move stop ${i + 1} earlier`, 'up', () => this.move(i, -1), { disabled: i === 0 })}
+                ${btn(`Move stop ${i + 1} later`, 'down', () => this.move(i, 1), { disabled: i === n - 1 })}
+                ${btn(`Delete stop ${i + 1}`, 'close', () => this.save(this.doc.stops.filter((_, j) => j !== i)))}
               </div>
               <textarea rows="2" aria-label="Note for stop ${i + 1}" placeholder="Note" .value=${s.note} @input=${(e: Event) => this.patch(i, { note: (e.target as HTMLTextAreaElement).value })}></textarea>
             </li>`,
@@ -249,3 +245,4 @@ declare global {
     'to-trip': ToTrip;
   }
 }
+defineElement('trip', ToTrip);

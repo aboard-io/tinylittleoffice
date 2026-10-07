@@ -3,12 +3,13 @@
  * document into picture, PDF or file, showing one document inside another,
  * and opening an editor for a document that lives inside another.
  */
-import { html, nothing, render, type TemplateResult } from 'lit';
+import { html, render } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { COMMON, MOVING, FONT, History, appOf, apps, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
 import { toMarkdown } from '../lib/markdown.ts';
+import { encodeGif } from '../lib/gif.ts';
 import { icon, UI } from '../lib/icons.ts';
 import type { SlDialog } from '../lib/shoelace.ts';
 import plex400 from '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2?url';
@@ -49,10 +50,6 @@ export async function withFonts(page: string): Promise<string> {
   const faces = await fontsForPictures();
   return faces ? page.replace('<head>', `<head>\n<style>${faces}</style>`) : page;
 }
-
-/** The editors, loaded when first wanted: one chunk per app. */
-const editors = import.meta.glob(['../apps/*.ts', '!../apps/*.def.ts', '!../apps/index.ts']);
-export const loadEditor = (id: string) => editors[`../apps/${id}.ts`]?.();
 
 /** Draw SVG markup as a PNG or JPEG. `scale` trades sharpness for size. */
 export async function raster(svg: string, w: number, h: number, type: 'image/png' | 'image/jpeg' = 'image/png', scale = 1): Promise<Uint8Array | null> {
@@ -130,7 +127,6 @@ export async function saveFile(name: string, mime: string, data: Uint8Array) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Every format a document can be saved as: the app's own, then the ones all apps share. */
 /** The app's own formats first (the first is what Ctrl+S saves), then the ones every app has, once each. */
 export const formatsOf = (def: AppDef) => {
   const own = (def.downloads ?? []).map((d) => ({ ext: d.ext, label: d.label }));
@@ -166,7 +162,6 @@ export async function movie(def: AppDef, body: string): Promise<Uint8Array | nul
     }
     images.push(img);
   }
-  const { encodeGif } = await import('../lib/gif.ts');
   const frames: { data: Uint8ClampedArray; delayMs: number }[] = [];
   const shot = (delay: number) => frames.push({ data: g.getImageData(0, 0, w, h).data, delayMs: delay });
   const paint = (img: HTMLImageElement, alpha = 1) => {
@@ -301,7 +296,7 @@ export class ToEmbed extends HTMLElement {
             ${editable ? html`<span class="hint" aria-hidden="true">Tap to edit</span>` : ''}
           </div>
           <figcaption>
-            ${editable ? html`<b>${d.title}</b>` : html`<a href=${d.hash} title="Open this ${kind.toLowerCase()}">${d.title}</a>`}<small>${d.title === kind ? '' : kind}</small>
+            ${editable ? html`<b>${d.title}</b>` : html`<a href=${d.hash} data-tip="Open this ${kind.toLowerCase()}">${d.title}</a>`}<small>${d.title === kind ? '' : kind}</small>
             ${editable
               ? html`<button type="button" @click=${() => this.fire('embed-edit')}>${icon(UI.pen, 13)} Edit</button><button type="button" aria-label="Remove this ${kind.toLowerCase()}" @click=${() => this.fire('embed-remove')}>${icon(UI.close, 13)} Remove</button>`
               : ''}
@@ -313,12 +308,6 @@ export class ToEmbed extends HTMLElement {
 }
 if (!customElements.get('to-embed')) customElements.define('to-embed', ToEmbed);
 
-/** The kinds of document that can be put inside another. */
-/**
- * The apps that can go inside another, as menu items, in the menu's own
- * order and clusters: the same hierarchy the main menu has. Sheet is
- * "Table" here (and offers a chart too), Trip is "Map", Draw is "Drawing".
- */
 /** The apps that can go inside another, as options for a combobox, in the menu's order and clusters. */
 export function insertOptions(host: string, skip: (a: AppDef) => boolean = () => false): { value: string; label: string; group?: string; icon?: keyof typeof UI }[] {
   const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
@@ -336,19 +325,6 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   return out;
 }
 
-export function insertMenu(host: string, skip: (a: AppDef) => boolean = () => false): TemplateResult {
-  const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
-  const all = embeddable(host).filter((a) => !skip(a));
-  const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
-  const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
-  const item = (a: AppDef) => html`<sl-menu-item value=${a.id} class=${a.under ? 'sub' : ''}>${icon(UI[a.icon as keyof typeof UI], 14, 'pre')} ${name(a)}</sl-menu-item>${a.id === 'sheet' ? html`<sl-menu-item value="chart">${icon(UI.chart, 14, 'pre')} Chart</sl-menu-item>` : nothing}`;
-  return html`${groups.map(
-    (g) => html`${g ? html`<sl-menu-label>${g}</sl-menu-label>` : nothing}${all
-      .filter((a) => !a.under && (a.group ?? '') === g)
-      .map((a) => html`${item(a)}${all.filter((c) => c.under === a.id).map(item)}`)}`,
-  )}`;
-}
-
 export const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck');
 
 /**
@@ -358,7 +334,6 @@ export const embeddable = (host: string) => apps().filter((a) => a.id !== host &
 export async function editRef(ref: string): Promise<string> {
   const d = resolve(ref);
   if (!d.def || d.locked) return ref;
-  await loadEditor(d.def.id);
   const editor = document.createElement(`to-${d.def.id}`) as HTMLElement & { value: string };
   editor.value = d.body;
   let body = d.body;

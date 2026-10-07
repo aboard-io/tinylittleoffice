@@ -1,4 +1,5 @@
 import { PALETTE } from './palette.ts';
+import { ACCENT } from '../kit/core.ts';
 /**
  * Deck document model.
  * Format: slides separated by a blank line. Within a slide: an optional
@@ -49,7 +50,7 @@ export interface Slide {
 const SETTINGS = /^!([a-z]*)(?::([a-z]))?$/;
 
 /** The colours a deck's icons can be: the accent (no letter), or one of these. */
-export const ICON_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: '#4f46e5' }, k: PALETTE.k, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
+export const ICON_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: ACCENT }, k: PALETTE.k, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
 
 export function deckIconColor(text: string): string {
   const m = SETTINGS.exec(text.split('\n\n', 1)[0]);

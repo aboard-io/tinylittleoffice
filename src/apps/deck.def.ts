@@ -1,7 +1,6 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
-import { defineApp, xml, pageSvg, rect, type DownloadContext, type Page } from '../kit/core.ts';
+import { defineApp, xml, pageSvg, ACCENT, type DownloadContext, type Page } from '../kit/core.ts';
 import { SW, SH, depthOf, layoutSlide, slidePage, slideSteps, live } from '../lib/slide.ts';
-import { ACCENT, place } from '../kit/core.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { makeRef, refPage, resolve } from '../kit/embed.ts';
@@ -218,6 +217,3 @@ export default defineApp({
     { keys: 'Escape', does: 'Stop presenting' },
   ],
 });
-
-/** Kept so a slide can be placed on another page (thumbnails). */
-export const slideThumb = (s: Slide, w: number, h: number) => rect(0, 0, w, h, '#fff') + place(slidePage(s), 0, 0, w, h);

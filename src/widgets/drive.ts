@@ -6,13 +6,9 @@
  * folders; and one red button that blows it all away. Nothing here is on
  * any server: a document is still its link, and this is only a list of them.
  */
-import { LitElement, html, nothing } from 'lit';
-import { appOf } from '../kit/core.ts';
+import { LitElement, html, nothing, btn, icon, UI, appOf, fmtDate } from '../kit.ts';
 import { cleanFolder, dropFolder, folderTree, forget, forgetAll, library, moveTo, renameFolder, saving, type Kept } from '../lib/library.ts';
 import { decodeEnvelope } from '../lib/envelope.ts';
-import { icon, UI } from '../lib/icons.ts';
-
-const fmt = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
 
 export class ToDrive extends LitElement {
   static properties = { folder: {}, q: { state: true }, drag: { state: true }, tick: { state: true } };
@@ -124,15 +120,15 @@ export class ToDrive extends LitElement {
               @drop=${(e: DragEvent) => { e.preventDefault(); if (this.drag) moveTo(this.drag, f); this.drag = null; this.refresh(); }}
               >${icon(UI.folder, 16)}<span class="name">${name}</span><small>${count(f)}</small>
               <span class="drive-folder-acts">
-                <button aria-label="Rename ${f}" title="Rename" @click=${(e: Event) => (e.preventDefault(), e.stopPropagation(), this.rename(f))}>${icon(UI.pen, 13)}</button>
-                <button aria-label="Remove ${f} and what is in it" title="Remove" @click=${(e: Event) => (e.preventDefault(), e.stopPropagation(), this.drop(f, count(f)))}>${icon(UI.trash, 13)}</button>
+                ${btn(`Rename ${f}`, 'pen', (e) => (e.preventDefault(), e.stopPropagation(), this.rename(f)), { size: 13, tip: 'Rename' })}
+                ${btn(`Remove ${f} and what is in it`, 'trash', (e) => (e.preventDefault(), e.stopPropagation(), this.drop(f, count(f))), { size: 13, tip: 'Remove' })}
               </span></a>`;
           })}
         </nav>
-        <button class="drive-new" @click=${this.newFolder}>${icon(UI.plus, 14)} New folder</button>
+        <button class="to-add drive-new" @click=${this.newFolder}>${icon(UI.plus, 14)} New folder</button>
         <div class="drive-foot">
-          <button class="drive-zip" @click=${() => this.dispatchEvent(new CustomEvent('drive-zip', { bubbles: true }))}>${icon(UI.download, 14)} Download everything (.zip)</button>
-          <button class="drive-nuke" @click=${this.blowAway} ?disabled=${!all.length}>${icon(UI.trash, 14)} Blow it all away</button>
+          <button class="to-add drive-zip" @click=${() => this.dispatchEvent(new CustomEvent('drive-zip', { bubbles: true }))}>${icon(UI.download, 14)} Download everything (.zip)</button>
+          <button class="to-add drive-nuke" @click=${this.blowAway} ?disabled=${!all.length}>${icon(UI.trash, 14)} Blow it all away</button>
         </div>
       </aside>
       <div class="drive-main">
@@ -145,9 +141,9 @@ export class ToDrive extends LitElement {
                 ${docs.map((k) => {
                   const def = appOf(k.app);
                   return html`<li draggable="true" @dragstart=${(e: DragEvent) => { this.drag = k.id; e.dataTransfer?.setData('text/plain', k.title); }} @dragend=${() => (this.drag = null)}>
-                    <a href=${k.hash}>${icon(UI[(def?.icon ?? 'write') as keyof typeof UI], 18)}<b>${k.title || `Untitled ${def?.name ?? k.app}`}</b><span class="meta">${def?.name ?? k.app}${!this.folder || this.q ? html` · ${k.folder}` : nothing} · ${fmt(k.at)}</span></a>
-                    <button aria-label="Move ${k.title} to another folder" title="Move to a folder" @click=${() => this.move(k)}>${icon(UI.folder, 15)}</button>
-                    <button aria-label="Remove ${k.title} from this device" title="Remove from this device" @click=${() => { forget(k.id); this.refresh(); }}>${icon(UI.trash, 15)}</button>
+                    <a href=${k.hash}>${icon(UI[(def?.icon ?? 'write') as keyof typeof UI], 18)}<b>${k.title || `Untitled ${def?.name ?? k.app}`}</b><span class="meta">${def?.name ?? k.app}${!this.folder || this.q ? html` · ${k.folder}` : nothing} · ${fmtDate(k.at)}</span></a>
+                    ${btn(`Move ${k.title} to another folder`, 'folder', () => this.move(k), { size: 15, tip: 'Move to a folder' })}
+                    ${btn(`Remove ${k.title} from this device`, 'trash', () => { forget(k.id); this.refresh(); }, { size: 15, tip: 'Remove from this device' })}
                   </li>`;
                 })}
               </ul>`}

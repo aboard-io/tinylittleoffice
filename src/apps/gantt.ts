@@ -3,12 +3,8 @@
  * right edge to change how long it takes.
  * Document format: see lib/ganttmodel.ts.
  */
-import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { icon, UI } from '../lib/icons.ts';
+import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI, EPOCH_DAY, dayToYmd, ymdString, ymdToDay } from '../kit.ts';
 import { MAX_INDENT, MAX_TASKS, ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
-import { EPOCH_DAY } from '../lib/calmodel.ts';
-import { dayToYmd, ymdString, ymdToDay } from '../lib/tz.ts';
 
 const ROW = 36;
 const HEAD = 44;
@@ -23,45 +19,30 @@ const today = () => {
   return ymdToDay(n.getFullYear(), n.getMonth() + 1, n.getDate()) - EPOCH_DAY;
 };
 
-@customElement('to-gantt')
-export class ToGantt extends LitElement {
-  @property() value = '';
-  @state() private tasks: GanttTask[] = [];
+export class ToGantt extends DocElement<GanttTask[]> {
   @state() private cur = 0;
   /** Pixels per day. */
   @state() private zoom = 24;
-  private lastEmitted = '';
   private drag: { i: number; mode: 'move' | 'size'; x0: number; start: number; days: number } | null = null;
 
-  createRenderRoot() {
-    return this;
-  }
+  protected parse = parseGantt;
+  protected serialize = serializeGantt;
 
-  willUpdate(changed: PropertyValues) {
-    if (changed.has('value') && this.value !== this.lastEmitted) {
-      this.tasks = parseGantt(this.value);
-      this.lastEmitted = this.value;
-      this.cur = Math.max(0, Math.min(this.cur, this.tasks.length - 1));
-    }
-  }
-
-  private commit(tasks: GanttTask[]) {
-    this.tasks = tasks;
-    this.lastEmitted = serializeGantt(tasks);
-    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
+  protected loaded() {
+    this.cur = clamp(this.cur, 0, this.doc.length - 1);
   }
 
   private patch(i: number, p: Partial<GanttTask>) {
-    this.commit(this.tasks.map((t, j) => (j === i ? { ...t, ...p } : t)));
+    this.commit(this.doc.map((t, j) => (j === i ? { ...t, ...p } : t)));
   }
 
   /** Add a task under row `after` (by default, at the end). It starts where that one ends, at the same level. */
-  private add(after = this.tasks.length - 1) {
-    if (this.tasks.length >= MAX_TASKS) return;
-    const prev = this.tasks[after];
+  private add(after = this.doc.length - 1) {
+    if (this.doc.length >= MAX_TASKS) return;
+    const prev = this.doc[after];
     const task: GanttTask = { start: prev ? prev.start + prev.days : today(), days: 3, done: 0, label: '' };
     if (prev?.depth) task.depth = prev.depth;
-    const tasks = [...this.tasks];
+    const tasks = [...this.doc];
     tasks.splice(after + 1, 0, task);
     this.commit(tasks);
     this.cur = after + 1;
@@ -69,35 +50,33 @@ export class ToGantt extends LitElement {
   }
 
   private removeTask() {
-    this.commit(this.tasks.filter((_, j) => j !== this.cur));
-    this.cur = Math.max(0, Math.min(this.cur, this.tasks.length - 1));
+    this.commit(this.doc.filter((_, j) => j !== this.cur));
+    this.cur = clamp(this.cur, 0, this.doc.length - 1);
   }
 
   private move(d: number) {
-    const j = this.cur + d;
-    if (j < 0 || j >= this.tasks.length) return;
-    const tasks = [...this.tasks];
-    [tasks[this.cur], tasks[j]] = [tasks[j], tasks[this.cur]];
+    const tasks = swap(this.doc, this.cur, this.cur + d);
+    if (tasks === this.doc) return;
     this.commit(tasks);
-    this.cur = j;
+    this.cur += d;
   }
 
   /** Put the task under the one above it (or bring it back out). The first task cannot be anyone's part. */
   private indent(d: number, i = this.cur) {
-    const t = this.tasks[i];
+    const t = this.doc[i];
     if (!t) return;
-    const above = i > 0 ? (this.tasks[i - 1].depth ?? 0) : -1;
-    const depth = Math.max(0, Math.min(MAX_INDENT, above + 1, (t.depth ?? 0) + d));
+    const above = i > 0 ? (this.doc[i - 1].depth ?? 0) : -1;
+    const depth = clamp((t.depth ?? 0) + d, 0, Math.min(MAX_INDENT, above + 1));
     if (depth !== (t.depth ?? 0)) this.patch(i, { depth: depth || undefined });
   }
 
   private onRowKey(e: KeyboardEvent, i: number) {
-    const refocus = () => this.updateComplete.then(() => this.querySelector<HTMLInputElement>(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`)?.focus());
+    const refocus = () => this.focusSoon(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`);
     if (e.key === 'Tab' && (e.target as HTMLElement).classList.contains('label') && !e.altKey && !e.ctrlKey && !e.metaKey) {
       // Tab indents only when it can; otherwise it moves on as Tab always does.
-      const before = this.tasks[i].depth ?? 0;
+      const before = this.doc[i].depth ?? 0;
       this.indent(e.shiftKey ? -1 : 1, i);
-      if ((this.tasks[i].depth ?? 0) !== before) e.preventDefault();
+      if ((this.doc[i].depth ?? 0) !== before) e.preventDefault();
     } else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
       this.cur = i;
@@ -115,14 +94,14 @@ export class ToGantt extends LitElement {
     e.stopPropagation();
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     this.cur = i;
-    this.drag = { i, mode, x0: e.clientX, start: this.tasks[i].start, days: this.tasks[i].days };
+    this.drag = { i, mode, x0: e.clientX, start: this.doc[i].start, days: this.doc[i].days };
   }
 
   private onBarMove(e: PointerEvent) {
     const d = this.drag;
     if (!d) return;
     const delta = Math.round((e.clientX - d.x0) / this.zoom);
-    const t = this.tasks[d.i];
+    const t = this.doc[d.i];
     if (d.mode === 'move') {
       const start = Math.max(0, d.start + delta);
       if (start !== t.start) this.patch(d.i, { start });
@@ -133,14 +112,14 @@ export class ToGantt extends LitElement {
   }
 
   private renderChart() {
-    const range = ganttRange(this.tasks)!;
-    const spans = ganttSpans(this.tasks);
+    const range = ganttRange(this.doc)!;
+    const spans = ganttSpans(this.doc);
     const now = today();
     const from = range.from - 2;
     const to = Math.max(range.to + 3, from + 21);
     const z = this.zoom;
     const width = (to - from) * z;
-    const height = HEAD + this.tasks.length * ROW;
+    const height = HEAD + this.doc.length * ROW;
     const days = Array.from({ length: to - from }, (_, k) => from + k);
     // Days until the next month label, so the first one is dropped when there is no room for it.
     const nextMonth = days.findIndex((day, k) => k > 0 && ymd(day).d === 1) < 0 ? Infinity : days.findIndex((day, k) => k > 0 && ymd(day).d === 1);
@@ -155,7 +134,7 @@ export class ToGantt extends LitElement {
       })}
       <line class="head" x1="0" y1=${HEAD} x2=${width} y2=${HEAD} />
       ${now >= from && now < to ? svg`<line class="today" x1=${(now - from + 0.5) * z} y1="22" x2=${(now - from + 0.5) * z} y2=${height} />` : nothing}
-      ${this.tasks.map((t, i) => {
+      ${this.doc.map((t, i) => {
         const sp = spans[i];
         const x = (sp.start - from) * z;
         const w = sp.days * z;
@@ -177,26 +156,23 @@ export class ToGantt extends LitElement {
   }
 
   render() {
-    const n = this.tasks.length;
-    const range = ganttRange(this.tasks);
+    const n = this.doc.length;
+    const range = ganttRange(this.doc);
     return html`
       <div class="to-toolbar">
         <sl-button size="small" ?disabled=${n >= MAX_TASKS} @click=${() => this.add()}>${icon(UI.plus, 14)} Task</sl-button>
-        <sl-tooltip content="Delete this task" hoist><sl-button class="icon" size="small" aria-label="Delete task" ?disabled=${!n} @click=${this.removeTask}>${icon(UI.trash, 14)}<span class="sr-only">Delete task</span></sl-button></sl-tooltip>
+        ${tool('Delete task', 'trash', () => this.removeTask(), { disabled: !n })}
         <sl-button-group label="Reorder">
-          <sl-button class="icon" size="small" aria-label="Move task up" ?disabled=${this.cur === 0} @click=${() => this.move(-1)}>${icon(UI.up, 14)}<span class="sr-only">Move task up</span></sl-button>
-          <sl-button class="icon" size="small" aria-label="Move task down" ?disabled=${this.cur >= n - 1} @click=${() => this.move(1)}>${icon(UI.down, 14)}<span class="sr-only">Move task down</span></sl-button>
+          ${tool('Move task up', 'up', () => this.move(-1), { disabled: this.cur === 0, key: 'Alt+ArrowUp' })}
+          ${tool('Move task down', 'down', () => this.move(1), { disabled: this.cur >= n - 1, key: 'Alt+ArrowDown' })}
         </sl-button-group>
         <sl-button-group label="Indent">
-          <sl-button class="icon" size="small" aria-label="Bring out" ?disabled=${!(this.tasks[this.cur]?.depth ?? 0)} @click=${() => this.indent(-1)}>${icon(UI.outdent, 14)}<span class="sr-only">Bring out</span></sl-button>
-          <sl-button class="icon" size="small" aria-label="Indent under the task above" ?disabled=${this.cur === 0 || !n} @click=${() => this.indent(1)}>${icon(UI.indent, 14)}<span class="sr-only">Indent under the task above</span></sl-button>
+          ${tool('Bring out', 'outdent', () => this.indent(-1), { disabled: !(this.doc[this.cur]?.depth ?? 0), key: 'Shift+Tab' })}
+          ${tool('Indent under the task above', 'indent', () => this.indent(1), { disabled: this.cur === 0 || !n, key: 'Tab' })}
         </sl-button-group>
         <span class="to-spacer"></span>
         ${range ? html`<span class="to-hint">${range.to - range.from} days</span>` : nothing}
-        <sl-button-group label="Zoom">
-          <sl-button class="icon" size="small" aria-label="Zoom out" ?disabled=${this.zoom <= 8} @click=${() => (this.zoom = Math.max(8, this.zoom - 8))}>${icon(UI.zoomOut, 14)}<span class="sr-only">Zoom out</span></sl-button>
-          <sl-button class="icon" size="small" aria-label="Zoom in" ?disabled=${this.zoom >= 40} @click=${() => (this.zoom = Math.min(40, this.zoom + 8))}>${icon(UI.zoomIn, 14)}<span class="sr-only">Zoom in</span></sl-button>
-        </sl-button-group>
+        ${stepper('Zoom', `${this.zoom}px`, { less: 'Zoom out', more: 'Zoom in', onLess: () => (this.zoom = Math.max(8, this.zoom - 8)), onMore: () => (this.zoom = Math.min(40, this.zoom + 8)), canLess: this.zoom > 8, canMore: this.zoom < 40, reset: 'Back to the usual zoom', onReset: () => (this.zoom = 24) })}
       </div>
       ${n
         ? html`<div class="gantt">
@@ -205,8 +181,8 @@ export class ToGantt extends LitElement {
                 <tr><th>Task</th><th>Start</th><th>Days</th><th>Done</th></tr>
               </thead>
               <tbody>
-                ${this.tasks.map(
-                  (t, i) => html`<tr class="${i === this.cur ? 'sel' : ''} ${ganttSpans(this.tasks)[i].parent ? 'parent' : ''}" @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
+                ${this.doc.map(
+                  (t, i) => html`<tr class="${i === this.cur ? 'sel' : ''} ${ganttSpans(this.doc)[i].parent ? 'parent' : ''}" @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
                     <td><input class="label" style="padding-left:${4 + (t.depth ?? 0) * 18}px" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} /></td>
                     <td>
                       <input type="date" aria-label="Start of task ${i + 1}" .value=${toInput(t.start)} @change=${(e: Event) => {
@@ -232,3 +208,4 @@ declare global {
     'to-gantt': ToGantt;
   }
 }
+defineElement('gantt', ToGantt);

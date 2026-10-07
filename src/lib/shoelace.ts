@@ -21,7 +21,6 @@ import '@shoelace-style/shoelace/dist/components/progress-ring/progress-ring.js'
 import '@shoelace-style/shoelace/dist/components/select/select.js';
 import '@shoelace-style/shoelace/dist/components/tag/tag.js';
 import '@shoelace-style/shoelace/dist/components/textarea/textarea.js';
-import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
 
 export type { default as SlInput } from '@shoelace-style/shoelace/dist/components/input/input.js';
 export type { default as SlSelect } from '@shoelace-style/shoelace/dist/components/select/select.js';

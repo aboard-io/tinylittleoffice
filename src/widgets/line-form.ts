@@ -3,8 +3,7 @@
  * each line, a box for each of its fields, and buttons to add, move and
  * remove. What it hands back is always the text.
  */
-import { LitElement, html, nothing, type PropertyValues } from 'lit';
-import { icon, libraryIcon, UI } from '../lib/icons.ts';
+import { LitElement, html, nothing, btn, icon, libraryIcon, UI, type PropertyValues } from '../kit.ts';
 import { blockEnd, depths, fieldsOf, kindsOf, marksAfter, moveBlock, readLines, removeRow, shiftBlock, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
 import { chooseIcon } from './icon-picker.ts';
 
@@ -96,7 +95,7 @@ export class ToLines extends LitElement {
     const value = row.values[n] ?? '';
     const typed = (e: Event) => this.set(i, n, (e.target as HTMLInputElement).value);
     if (f.type === 'icon') {
-      return html`<button type="button" class="lf-icon" aria-label="${label}: ${value || 'none'}" title=${value ? `${f.name}: ${value}` : `Choose a ${f.name.toLowerCase()}`} @click=${async () => { const name = await chooseIcon(); if (name) this.set(i, n, name); }}>${value ? libraryIcon(value, 20) : icon(UI.smile, 18)}</button>`;
+      return html`<button type="button" class="lf-icon" aria-label="${label}: ${value || 'none'}" data-tip=${value ? `${f.name}: ${value}` : `Choose a ${f.name.toLowerCase()}`} @click=${async () => { const name = await chooseIcon(); if (name) this.set(i, n, name); }}>${value ? libraryIcon(value, 20) : icon(UI.smile, 18)}</button>`;
     }
     if (f.type === 'choice') return html`<select aria-label=${label} .value=${value} @change=${typed}>${f.options.map((o) => html`<option ?selected=${o.toLowerCase() === value.toLowerCase()}>${o}</option>`)}</select>`;
     // What a box must not hold: the marks that, in the text, would end it early.
@@ -111,7 +110,7 @@ export class ToLines extends LitElement {
     // Return in a box starts another row of the same kind: lists are quick to type.
     const names = f.type === 'pick' ? [...new Set(this.rows.filter((r) => r !== row).map((r) => (r.values.find((v, k) => v && fieldsOf(this.kinds, r.kind)[k].type !== 'icon') ?? '').split(' | ')[0]).filter(Boolean))] : [];
     const list = f.type === 'pick' ? `lf-pick-${i}-${n}` : undefined;
-    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} list=${list ?? (undefined as unknown as string)} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
+    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} list=${list ?? nothing} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
   }
 
   render() {
@@ -128,7 +127,7 @@ export class ToLines extends LitElement {
       this.at = i;
       this.requestUpdate();
     };
-    const button = (label: string, glyph: keyof typeof UI, act: () => void, off = false) => html`<button type="button" aria-label=${label} title=${label} ?disabled=${off} @click=${act}>${icon(UI[glyph], 15)}</button>`;
+    const button = (label: string, glyph: keyof typeof UI, act: () => void, off = false) => btn(label, glyph, act, { disabled: off, size: 15 });
     return html`
       <ol class="lf-rows" aria-label="${this.name}, as a form">
         ${this.rows.map((row, i) => {

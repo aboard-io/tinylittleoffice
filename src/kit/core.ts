@@ -119,6 +119,19 @@ export const csv = (rows: (string | number)[][]) => (rows.length ? rows.map((r) 
 
 export const utf8 = (s: string) => new TextEncoder().encode(s);
 
+export const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+/** The list with items i and j exchanged; the list itself when either is off the end. */
+export function swap<T>(list: T[], i: number, j: number): T[] {
+  if (i < 0 || j < 0 || i >= list.length || j >= list.length) return list;
+  const out = [...list];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
+
+/** A moment, the way this person's locale writes one: "7 Oct 2026, 20:33". */
+export const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
+
 export function slug(s: string): string {
   return s
     .normalize('NFKD')

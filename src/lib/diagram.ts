@@ -48,7 +48,8 @@ export const shape = (k: Kind, x: number, y: number, w: number, h: number, text 
 /** A join between shape numbers `from` and `to`: an arrow, or a plain line. */
 export const join = (from: number, to: number, arrow = true, text = '', c?: Color, f: Fill = 0): Shape => shape(arrow ? 'k' : 'j', from, to, 0, 0, text, f, c);
 
-export const PALETTE: Color[] = ['b', 'g', 'o', 'p', 'r'];
+/** The colours a diagram gives its parts, in turn. */
+export const COLOR_CYCLE: Color[] = ['b', 'g', 'o', 'p', 'r'];
 
 /**
  * Put each join straight after the later of the two shapes it joins, so a
@@ -119,11 +120,11 @@ export const OUTLINE_KEYS = [
 const SPECS = new Map<string, DiagramSpec>();
 export const specOf = (id: string) => SPECS.get(id);
 
-/** Define a diagram app: an app whose document is an outline and whose picture is drawn by Draw. */
+/** Register the spec of an app the diagram editor edits (defineDiagram and definePage do this themselves). */
 export const registerSpec = (id: string, spec: DiagramSpec) => void SPECS.set(id, spec);
 
 export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { layout(text: string): Diagram }): AppDef {
-  SPECS.set(app.id, spec);
+  registerSpec(app.id, spec);
   const page = (body: string, upTo?: number): Page => {
     const d = spec.layout(body);
     return shapesPage(d.shapes, d.w, d.h, upTo);
@@ -136,6 +137,8 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
     steps: (body) => spec.layout(body).shapes.length,
     downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }],
     shortcuts: OUTLINE_KEYS,
+    // A diagram is a kind of drawing, unless it says where it belongs.
+    ...(app.group === undefined && app.under === undefined ? { group: 'Design', under: 'draw' } : {}),
     ...app,
   });
 }
@@ -145,12 +148,15 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
  * result is a web page (a site, a store, an FAQ). The page is what the
  * .html download is; the same editor as the diagram apps shows it live.
  */
-export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb' | 'title'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string): string }): AppDef {
-  SPECS.set(app.id, spec);
+export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string): string }): AppDef {
+  registerSpec(app.id, spec);
   const lines = (body: string) => body.split('\n').map((l) => l.trim().replace(/^#+\s*/, '')).filter(Boolean);
+  // Its title is its "# Heading", unless it says otherwise.
+  const title = app.title ?? h1;
   return defineApp({
+    title,
     outline: (body) => lines(body).slice(0, 14),
-    view: (body, opts = {}) => [listPage(app.title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
+    view: (body, opts = {}) => [listPage(title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
     // On a slide, its lines arrive one at a time.
     steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
     document: (body) => spec.page(body),

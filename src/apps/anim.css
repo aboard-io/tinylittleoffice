@@ -63,12 +63,6 @@ svg.motion-stage {
 .motion-fx::part(base) {
   flex-wrap: wrap;
 }
-.motion-fx sl-button[aria-pressed='true']::part(base) {
-  background: var(--to-accent-soft);
-  color: var(--to-accent);
-  border-color: var(--to-accent);
-}
-
 .motion-time {
   display: grid;
   gap: 8px;
@@ -150,7 +144,7 @@ svg.motion-stage {
 
 /* A pen shape's corners, draggable at the moment chosen */
 .motion-stage .hit .corner {
-  fill: #fff;
+  fill: var(--to-paper);
   stroke: var(--to-accent);
   stroke-width: 2;
   pointer-events: all;

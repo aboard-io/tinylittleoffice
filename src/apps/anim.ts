@@ -7,7 +7,7 @@
  */
 import './anim.css';
 import './draw.ts';
-import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, icon, UI, isKey } from '../kit.ts';
+import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, icon, UI, isKey } from '../kit.ts';
 import type { SlInput, SlSelect } from '../kit.ts';
 import { GRID, isLink, parseDrawing, removeShape, serializeDrawing } from '../lib/drawmodel.ts';
 import { EFFECTS, FPS_CHOICES, MAX_FRAMES, MAX_Z, W, H, hasKey, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes, type Anim, type Key } from '../lib/animmodel.ts';
@@ -277,8 +277,8 @@ export class ToAnim extends DocElement<Anim> {
         <sl-button size="small" ?disabled=${!keyed} @click=${() => this.commit(removeKey(this.doc, this.sel, this.frame))}>Remove key</sl-button>
       </sl-button-group>
       <sl-button-group label="Shape">
-        <sl-tooltip content="Duplicate (Ctrl+D)" hoist><sl-button class="icon" size="small" aria-label="Duplicate" ?disabled=${isLink(s.k)} @click=${this.duplicate}>${icon(UI.copy, 16)}<span class="sr-only">Duplicate</span></sl-button></sl-tooltip>
-        <sl-tooltip content="Delete (Del)" hoist><sl-button class="icon" size="small" aria-label="Delete" @click=${this.removeSel}>${icon(UI.trash, 16)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
+        ${tool('Duplicate', 'copy', () => this.duplicate(), { disabled: isLink(s.k), key: 'Mod+D', size: 16 })}
+        ${tool('Delete', 'trash', () => this.removeSel(), { key: 'Delete', size: 16 })}
       </sl-button-group>
     </div>`;
   }

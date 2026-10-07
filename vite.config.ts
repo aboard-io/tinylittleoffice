@@ -73,5 +73,7 @@ export default defineConfig(({ mode }) => ({
     target: 'es2022',
     outDir: 'dist',
     cssCodeSplit: false,
+    // One script for the whole suite is the point (see kit/browser.ts); only the map library and the full icon set are chunks of their own.
+    chunkSizeWarningLimit: 1200,
   },
 }));

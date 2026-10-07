@@ -4,7 +4,7 @@
  * letters ("org", "two col"); arrows move, Enter or a tap picks. Fires
  * "pick" with the option's value.
  */
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing } from '../kit.ts';
 import { icon, UI } from '../lib/icons.ts';
 
 export interface InsertOption {

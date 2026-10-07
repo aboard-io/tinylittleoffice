@@ -3,7 +3,7 @@
  * document, and a code is a link: whoever scans it has it. Give it the
  * link and the document's title; it draws the code and offers PNG and SVG.
  */
-import { LitElement, html } from 'lit';
+import { LitElement, html } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { icon, UI } from '../lib/icons.ts';
 import { QR_MAX_BYTES, qrSvg } from '../lib/qr.ts';

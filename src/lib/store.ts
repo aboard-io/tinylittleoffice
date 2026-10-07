@@ -58,7 +58,7 @@ export async function setKeeping(on: boolean) {
     l.setItem(KEEP, '1');
     for (const [k, v] of memory) l.setItem(k, v);
     memory.clear();
-    if ('serviceWorker' in navigator && !import.meta.env?.DEV) void navigator.serviceWorker.register(new URL('../../sw.js', import.meta.url)).catch(() => {});
+    keepOffline();
   } else {
     // What is set stays for the visit, in memory; the device forgets all of it.
     for (const k of store.keys()) memory.set(k, l.getItem(k)!);
@@ -68,4 +68,13 @@ export async function setKeeping(on: boolean) {
     if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
   }
   for (const cb of listeners) cb();
+}
+
+/**
+ * Keep the whole site on the device, so it opens with no connection (sw.js,
+ * written by the build). Only when asked to keep things: private by default
+ * means no offline copy either.
+ */
+export function keepOffline() {
+  if (keeping() && 'serviceWorker' in navigator && !import.meta.env?.DEV) void navigator.serviceWorker.register(new URL('../../sw.js', import.meta.url)).catch(() => {});
 }

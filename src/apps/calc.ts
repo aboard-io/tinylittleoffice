@@ -4,7 +4,7 @@
  * graph of y = f(x); the money ones are a few boxes and the answer drawn
  * beside them (lib/calc.ts, calc.def.ts). The working is the document.
  */
-import { DocElement, defineElement, html, nothing, state, unsafeSVG, pageSvg, icon, UI } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, unsafeSVG, pageSvg, icon, UI, btn } from '../kit.ts';
 import { MODES, FIELDS, evaluate, inputs, parseCalc, serializeCalc, shown, withDefaults, type Calc, type Mode } from '../lib/calc.ts';
 import { calcPage } from './calc.def.ts';
 import './calc.css';
@@ -70,9 +70,9 @@ export class ToCalc extends DocElement<Calc> {
       ${sci ? html`<div class="calc-keys sci">${SCI.map((k) => html`<button @click=${() => this.press(k)}>${k}</button>`)}</div>` : nothing}
       <div class="calc-keys">${KEYS.flat().map((k) => html`<button class=${k === '=' ? 'eq' : /\d|\./.test(k) ? '' : 'op'} @click=${() => this.press(k)}>${k}</button>`)}</div>
       <div class="calc-row">
-        <button class="calc-soft" @click=${() => (this.entry = this.entry.slice(0, -1))}>${icon(UI.left, 14)} Back</button>
-        <button class="calc-soft" @click=${() => (this.entry = '')}>Clear</button>
-        ${this.doc.lines.length ? html`<button class="calc-soft" @click=${() => this.commit({ ...this.doc, lines: [] })}>${icon(UI.trash, 14)} Clear the tape</button>` : nothing}
+        <button class="to-add calc-soft" @click=${() => (this.entry = this.entry.slice(0, -1))}>${icon(UI.left, 14)} Back</button>
+        <button class="to-add calc-soft" @click=${() => (this.entry = '')}>Clear</button>
+        ${this.doc.lines.length ? html`<button class="to-add calc-soft" @click=${() => this.commit({ ...this.doc, lines: [] })}>${icon(UI.trash, 14)} Clear the tape</button>` : nothing}
       </div>
     </div>`;
   }
@@ -81,7 +81,7 @@ export class ToCalc extends DocElement<Calc> {
     const lines = this.doc.lines.filter((l) => l.trim());
     if (!lines.length) return nothing;
     return html`<ol class="calc-tape" aria-label="Tape">
-      ${lines.map((l, i) => html`<li><button class="calc-reuse" title="Use it again" @click=${() => (this.entry += this.doc.mode === 'graph' ? l : shown(evaluate(l)).replace('−', '-'))}>${l}</button><b>${this.doc.mode === 'graph' ? '' : '= ' + shown(evaluate(l))}</b><button class="calc-x" aria-label="Remove" @click=${() => this.commit({ ...this.doc, lines: this.doc.lines.filter((_, n) => n !== i) })}>${icon(UI.close, 12)}</button></li>`)}
+      ${lines.map((l, i) => html`<li><button class="calc-reuse" data-tip="Use it again" @click=${() => (this.entry += this.doc.mode === 'graph' ? l : shown(evaluate(l)).replace('−', '-'))}>${l}</button><b>${this.doc.mode === 'graph' ? '' : '= ' + shown(evaluate(l))}</b>${btn('Remove this line', 'close', () => this.commit({ ...this.doc, lines: this.doc.lines.filter((_, n) => n !== i) }), { cls: 'calc-x', size: 12 })}</li>`)}
     </ol>`;
   }
 
@@ -90,7 +90,7 @@ export class ToCalc extends DocElement<Calc> {
     const fields = [...FIELDS[mode], ...Object.keys(v).filter((k) => /^year \d+$/.test(k) && !FIELDS[mode].some((f) => f.key === k)).map((k) => ({ key: k, name: k.replace(/^y/, 'Y'), value: 0, unit: '$' }))];
     return html`<form class="calc-form" @submit=${(e: Event) => e.preventDefault()}>
       ${fields.map((f) => html`<label><span>${f.name}</span><input type="text" inputmode="decimal" .value=${String(v[f.key])} @change=${(e: Event) => this.setField(f.key, (e.target as HTMLInputElement).value)} /><small>${f.unit ?? ''}</small></label>`)}
-      ${mode === 'cashflow' ? html`<button type="button" class="calc-soft" @click=${this.addYear}>${icon(UI.plus, 14)} Another year</button>` : nothing}
+      ${mode === 'cashflow' ? html`<button type="button" class="to-add calc-soft" @click=${this.addYear}>${icon(UI.plus, 14)} Another year</button>` : nothing}
     </form>`;
   }
 

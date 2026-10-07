@@ -78,10 +78,6 @@
 .ol-count {
   align-self: center;
   font-size: 11px;
-  color: var(--to-ink-3);
-  background: var(--to-surface-2);
-  border-radius: 999px;
-  padding: 1px 7px;
   margin-right: 6px;
 }
 /* Where a drag would land: a line under the row, or stepped in */
@@ -101,13 +97,6 @@
 }
 .ol-add {
   margin: 8px 0 0 50px;
-  padding: 4px 10px;
-  border: 1px dashed var(--to-border-strong);
-  border-radius: 999px;
-  background: none;
-  color: var(--to-ink-2);
-  font: 13px var(--sl-font-sans);
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;

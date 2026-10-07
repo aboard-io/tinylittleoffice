@@ -6,16 +6,13 @@
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use
  * x,y as the start and w,h as the delta to the end.
  */
-import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
-import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { customElement, property, state } from 'lit/decorators.js';
-import { icon, UI } from '../lib/icons.ts';
-import { W, H, GRID, COLORS, TEXT_SIZES, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
+import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, UI, type SlInput, type SlSelect } from '../kit.ts';
+import { W, H, GRID, COLORS, TEXT_SIZES, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import { iconOf } from '../lib/drawmodel.ts';
-import type { SlInput, SlSelect } from '../lib/shoelace.ts';
 
+/** The swatches: black (no colour letter) first, then the palette. */
+const INKS: Record<string, { name: string; hex: string }> = { '': { name: 'Black', hex: 'var(--to-ink)' }, ...COLORS };
 
 const snap = (n: number) => Math.round(n / GRID) * GRID;
 
@@ -50,14 +47,7 @@ const MORE: { id: Kind; label: string }[] = [
   { id: 'n', label: 'Note' },
 ];
 
-@customElement('to-draw')
-export class ToDraw extends LitElement {
-  createRenderRoot() {
-    return this;
-  }
-
-  @property() value = '';
-  @state() private shapes: Shape[] = [];
+export class ToDraw extends DocElement<Shape[]> {
   @state() private tool: Tool = 'select';
   @state() private sel = -1;
   /** The pen's corners so far, in px; the shape is made when the pen is closed (Enter, a double tap, or the first corner again). */
@@ -67,15 +57,13 @@ export class ToDraw extends LitElement {
   @state() private zoom = 1;
   /** The icon the next click will place, when the icon tool is armed. */
   private stamp = '';
-  private lastEmitted = '';
   private svgEl?: SVGSVGElement;
 
-  willUpdate(changed: PropertyValues) {
-    if (changed.has('value') && this.value !== this.lastEmitted) {
-      this.shapes = parseDrawing(this.value);
-      this.lastEmitted = this.value;
-      this.sel = -1;
-    }
+  protected parse = parseDrawing;
+  protected serialize = serializeDrawing;
+
+  protected loaded() {
+    this.sel = -1;
   }
 
   connectedCallback() {
@@ -87,15 +75,9 @@ export class ToDraw extends LitElement {
     this.removeEventListener('keydown', this.onKey);
   }
 
-  private commit(shapes: Shape[]) {
-    this.shapes = shapes;
-    this.lastEmitted = serializeDrawing(shapes);
-    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
-  }
-
   private patchSel(p: Partial<Shape>) {
     if (this.sel < 0) return;
-    this.commit(this.shapes.map((s, i) => (i === this.sel ? { ...s, ...p } : s)));
+    this.commit(this.doc.map((s, i) => (i === this.sel ? { ...s, ...p } : s)));
   }
 
   private point(e: PointerEvent): [number, number] {
@@ -123,16 +105,16 @@ export class ToDraw extends LitElement {
     if (this.tool === 'k') {
       // Joining: press on one shape, let go on another.
       const from = idxAttr ? parseInt(idxAttr, 10) : -1;
-      if (from >= 0 && !isLink(this.shapes[from].k)) this.drag = { mode: 'link', from, to: [x, y] };
+      if (from >= 0 && !isLink(this.doc[from].k)) this.drag = { mode: 'link', from, to: [x, y] };
       return;
     }
     if (this.tool === 'select') {
       if (target.classList.contains('handle') && this.sel >= 0) {
-        this.drag = { mode: 'resize', idx: this.sel, orig: this.shapes[this.sel] };
+        this.drag = { mode: 'resize', idx: this.sel, orig: this.doc[this.sel] };
       } else if (idxAttr !== undefined && idxAttr !== null) {
         const idx = parseInt(idxAttr, 10);
         this.sel = idx;
-        const s = this.shapes[idx];
+        const s = this.doc[idx];
         // (A join has no place of its own to move to: it goes where its shapes go.)
         if (!isLink(s.k)) this.drag = { mode: 'move', idx, off: [x - s.x, y - s.y], orig: s };
       } else {
@@ -164,7 +146,9 @@ export class ToDraw extends LitElement {
     } else if (d.mode === 'move') {
       const nx = snap(x - d.off[0]);
       const ny = snap(y - d.off[1]);
-      this.shapes = this.shapes.map((s, i) => (i === d.idx ? { ...s, x: nx, y: ny } : s));
+      // Moved on screen as the pointer goes; the document is written when it lifts.
+      this.doc = this.doc.map((s, i) => (i === d.idx ? { ...s, x: nx, y: ny } : s));
+      this.requestUpdate();
     } else if (d.mode === 'resize') {
       const s = d.orig;
       let w = snap(x) - s.x;
@@ -173,7 +157,8 @@ export class ToDraw extends LitElement {
         w = Math.max(GRID, w);
         h = Math.max(GRID, h);
       }
-      this.shapes = this.shapes.map((sh, i) => (i === d.idx ? { ...sh, w, h } : sh));
+      this.doc = this.doc.map((sh, i) => (i === d.idx ? { ...sh, w, h } : sh));
+      this.requestUpdate();
     }
   }
 
@@ -184,9 +169,9 @@ export class ToDraw extends LitElement {
     if (d.mode === 'link') {
       const over = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest('[data-idx]')?.getAttribute('data-idx');
       const to = over ? parseInt(over, 10) : -1;
-      if (to >= 0 && to !== d.from && this.shapes[to] && !isLink(this.shapes[to].k)) {
-        this.commit([...this.shapes, { k: 'k', x: d.from, y: to, w: 0, h: 0, f: 0, text: '' }]);
-        this.sel = this.shapes.length - 1;
+      if (to >= 0 && to !== d.from && this.doc[to] && !isLink(this.doc[to].k)) {
+        this.commit([...this.doc, { k: 'k', x: d.from, y: to, w: 0, h: 0, f: 0, text: '' }]);
+        this.sel = this.doc.length - 1;
         this.tool = 'select';
       }
       return;
@@ -199,12 +184,12 @@ export class ToDraw extends LitElement {
         s = s.k === 'l' || s.k === 'a' ? { ...s, w: 96, h: 0 } : s.k === 't' ? { ...s, w: 96, h: 24 } : s.k === 'i' ? { ...s, w: 48, h: 48 } : { ...s, w: 96, h: 48 };
       }
       if (s.k !== 'l' && s.k !== 'a') s = { ...s, x: Math.min(s.x, W - s.w), y: Math.min(s.y, H - s.h) };
-      this.commit([...this.shapes, s]);
-      this.sel = this.shapes.length - 1;
+      this.commit([...this.doc, s]);
+      this.sel = this.doc.length - 1;
       this.tool = 'select';
       if (s.k === 't') this.updateComplete.then(() => this.querySelector<SlInput>('.draw-label')?.select());
     } else {
-      this.commit(this.shapes);
+      this.commit(this.doc);
     }
   }
 
@@ -218,8 +203,8 @@ export class ToDraw extends LitElement {
     const [x0, y0, x1, y1] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     const [w, h] = [Math.max(GRID, x1 - x0), Math.max(GRID, y1 - y0)];
     const shape: Shape = { k: 'v', x: x0, y: y0, w, h, f: 1, text: '', pts: pts.flatMap(([px, py]) => [((px - x0) / w) * 100, ((py - y0) / h) * 100]) };
-    this.commit([...this.shapes, shape]);
-    this.sel = this.shapes.length - 1;
+    this.commit([...this.doc, shape]);
+    this.sel = this.doc.length - 1;
     this.tool = 'select';
   }
 
@@ -240,7 +225,7 @@ export class ToDraw extends LitElement {
       return;
     }
     if (this.sel < 0) return;
-    const s = this.shapes[this.sel];
+    const s = this.doc[this.sel];
     if (e.key === 'Delete' || e.key === 'Backspace') this.removeSel();
     else if (isLink(s.k) && e.key.startsWith('Arrow')) return;
     else if (e.key === 'ArrowLeft') this.patchSel({ x: s.x - GRID });
@@ -248,7 +233,7 @@ export class ToDraw extends LitElement {
     else if (e.key === 'ArrowUp') this.patchSel({ y: s.y - GRID });
     else if (e.key === 'ArrowDown') this.patchSel({ y: s.y + GRID });
     else if (e.key === 'Escape') this.sel = -1;
-    else if ((e.key === 'd' || e.key === 'D') && (e.ctrlKey || e.metaKey)) this.duplicate();
+    else if (isKey(e, 'Mod+D')) this.duplicate();
     else return;
     e.preventDefault();
   };
@@ -261,7 +246,7 @@ export class ToDraw extends LitElement {
   private async pickIcon() {
     const name = await chooseIcon();
     if (!name) return;
-    const s = this.sel >= 0 ? this.shapes[this.sel] : null;
+    const s = this.sel >= 0 ? this.doc[this.sel] : null;
     if (s && s.k === 'i') this.patchSel({ text: name });
     else if (s && !isLink(s.k)) this.patchSel({ text: `:${name} ${iconOf(s.text)[1]}`.trimEnd() });
     else {
@@ -270,35 +255,40 @@ export class ToDraw extends LitElement {
     }
   }
 
+  /** Zoom in steps of a quarter, between half size and four times. */
+  private zoomBy(d: number) {
+    this.zoom = clamp(Math.round((this.zoom + d) * 4) / 4, 0.5, 4);
+  }
+
   private removeSel() {
     if (this.sel < 0) return;
-    this.commit(removeShape(this.shapes, this.sel));
+    this.commit(removeShape(this.doc, this.sel));
     this.sel = -1;
   }
 
   private duplicate() {
     if (this.sel < 0) return;
-    const s = this.shapes[this.sel];
+    const s = this.doc[this.sel];
     if (isLink(s.k)) return;
-    this.commit([...this.shapes, { ...s, x: s.x + GRID * 2, y: s.y + GRID * 2 }]);
-    this.sel = this.shapes.length - 1;
+    this.commit([...this.doc, { ...s, x: s.x + GRID * 2, y: s.y + GRID * 2 }]);
+    this.sel = this.doc.length - 1;
   }
 
   private reorder(toFront: boolean) {
     if (this.sel < 0) return;
-    const moved = restack(this.shapes, this.sel, toFront);
+    const moved = restack(this.doc, this.sel, toFront);
     this.commit(moved.shapes);
     this.sel = moved.at;
   }
 
   /** Drawn by the same code that makes the picture everywhere else (draw.def.ts). */
   private renderShape(s: Shape, i: number, ghost = false) {
-    return svg`<g data-idx=${i} class=${ghost ? '' : 'shape'} opacity=${ghost ? 0.6 : 1}>${unsafeSVG(shapeSvg(s, this.shapes, THEME, true))}</g>`;
+    return svg`<g data-idx=${i} class=${ghost ? '' : 'shape'} opacity=${ghost ? 0.6 : 1}>${unsafeSVG(shapeSvg(s, this.doc, THEME, true))}</g>`;
   }
 
   private renderSelection(s: Shape) {
     if (isLink(s.k)) {
-      const ends = linkEnds(s, this.shapes);
+      const ends = linkEnds(s, this.doc);
       return ends ? svg`<line x1=${ends[0]} y1=${ends[1]} x2=${ends[2]} y2=${ends[3]} stroke="var(--to-accent)" stroke-width="6" stroke-linecap="round" opacity="0.35" pointer-events="none" />` : nothing;
     }
     const line = isLine(s.k);
@@ -313,29 +303,21 @@ export class ToDraw extends LitElement {
   }
 
   render() {
-    const s = this.sel >= 0 ? this.shapes[this.sel] : null;
+    const s = this.sel >= 0 ? this.doc[this.sel] : null;
     const line = !!s && isLine(s.k);
     const d = this.drag;
-    const from = d?.mode === 'link' ? this.shapes[d.from] : null;
+    const from = d?.mode === 'link' ? this.doc[d.from] : null;
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Tools">
         <sl-button-group label="Tools">
-          ${TOOLS.map(
-            (t) => html`<sl-tooltip content="${t.label} (${t.key})" hoist>
-              <sl-button class="icon" size="small" aria-label=${t.label} aria-pressed=${this.tool === t.id ? 'true' : 'false'} @click=${() => (this.tool = t.id)}>${icon(UI[t.icon], 16)}<span class="sr-only">${t.label}</span></sl-button>
-            </sl-tooltip>`,
-          )}
+          ${TOOLS.map((t) => tool(t.label, t.icon, () => (this.tool = t.id), { pressed: this.tool === t.id, key: t.key, size: 16 }))}
         </sl-button-group>
-        <sl-tooltip content=${s && !isLink(s.k) ? 'Put an icon on this shape' : 'Place an icon'} hoist><sl-button size="small" aria-label="Icon" @click=${this.pickIcon}>${icon(UI.smile, 14)} Icon</sl-button></sl-tooltip>
+        <sl-button data-tip=${s && !isLink(s.k) ? 'Put an icon on this shape' : 'Place an icon'} size="small" aria-label="Icon" @click=${this.pickIcon}>${icon(UI.smile, 14)} Icon</sl-button>
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (this.tool = e.detail.item.value as Kind)}>
           <sl-button slot="trigger" size="small" caret aria-pressed=${MORE.some((m) => m.id === this.tool) ? 'true' : 'false'}>Shapes</sl-button>
           <sl-menu>${MORE.map((m) => html`<sl-menu-item value=${m.id}>${m.label}</sl-menu-item>`)}</sl-menu>
         </sl-dropdown>
-        <sl-button-group label="Zoom">
-          <sl-tooltip content="Zoom out" hoist><sl-button class="icon" size="small" aria-label="Zoom out" ?disabled=${this.zoom <= 0.5} @click=${() => (this.zoom = Math.max(0.5, Math.round((this.zoom - 0.25) * 4) / 4))}>${icon(UI.zoomOut, 16)}<span class="sr-only">Zoom out</span></sl-button></sl-tooltip>
-          <sl-tooltip content="Back to fitting the page" hoist><sl-button size="small" @click=${() => (this.zoom = 1)}><span class="sr-only">Zoom: </span>${Math.round(this.zoom * 100)}%<span class="sr-only">. Reset</span></sl-button></sl-tooltip>
-          <sl-tooltip content="Zoom in" hoist><sl-button class="icon" size="small" aria-label="Zoom in" ?disabled=${this.zoom >= 4} @click=${() => (this.zoom = Math.min(4, Math.round((this.zoom + 0.25) * 4) / 4))}>${icon(UI.zoomIn, 16)}<span class="sr-only">Zoom in</span></sl-button></sl-tooltip>
-        </sl-button-group>
+        ${stepper('Zoom', `${Math.round(this.zoom * 100)}%`, { less: 'Zoom out', more: 'Zoom in', onLess: () => this.zoomBy(-0.25), onMore: () => this.zoomBy(0.25), canLess: this.zoom > 0.5, canMore: this.zoom < 4, reset: 'Back to fitting the page', onReset: () => (this.zoom = 1) })}
         <span class="sep"></span>
         <sl-input
           class="draw-label sr-label"
@@ -348,37 +330,31 @@ export class ToDraw extends LitElement {
           @sl-input=${(e: Event) => this.patchSel({ text: (e.target as SlInput).value })}
           @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as SlInput).blur()}
         ></sl-input>
-        ${/* Always present, so choosing a shape does not make the toolbar (and the canvas under it) jump. */ true
-          ? html`<sl-select class="draw-fill sr-label" size="small" label=${line ? 'Line style' : 'Fill'} ?disabled=${!s || s.k === 't'} .value=${String(s?.f ?? 0)} hoist style="width:110px" @sl-change=${(e: Event) => this.patchSel({ f: parseInt((e.target as SlSelect).value as string, 10) as Fill })}>
+        <!-- Always present, so choosing a shape does not make the toolbar (and the canvas under it) jump. -->
+        <sl-select class="draw-fill sr-label" size="small" label=${line ? 'Line style' : 'Fill'} ?disabled=${!s || s.k === 't'} .value=${String(s?.f ?? 0)} hoist style="width:110px" @sl-change=${(e: Event) => this.patchSel({ f: parseInt((e.target as SlSelect).value as string, 10) as Fill })}>
               <sl-option value="0">${line ? 'Solid' : 'No fill'}</sl-option>
               <sl-option value="1">${line ? 'Dashed' : 'Grey'}</sl-option>
               <sl-option value="2">${line ? 'Dotted' : 'Solid'}</sl-option>
-            </sl-select>`
-          : nothing}
-        ${true
-          ? html`<div class="draw-colors" role="radiogroup" aria-label="Colour">
-                <button class="ink" role="radio" title="Black" aria-label="Black" ?disabled=${!s} aria-checked=${s && !s.c ? 'true' : 'false'} @click=${() => this.patchSel({ c: undefined })}></button>
-                ${(Object.keys(COLORS) as Color[]).map((c) => html`<button role="radio" title=${COLORS[c].name} aria-label=${COLORS[c].name} ?disabled=${!s} aria-checked=${s?.c === c ? 'true' : 'false'} style="--c:${COLORS[c].hex}" @click=${() => this.patchSel({ c })}></button>`)}
-              </div>
-              <sl-select class="sr-label" size="small" label="Text size" ?disabled=${!s} .value=${String(s?.z ?? 2)} hoist style="width:104px" @sl-change=${(e: Event) => {
-                const z = parseInt((e.target as SlSelect).value as string, 10) as TextSize;
-                this.patchSel({ z: z === 2 ? undefined : z });
-              }}>
-                ${([1, 2, 3, 4] as TextSize[]).map((z) => html`<sl-option value=${z}>${TEXT_SIZES[z].name}</sl-option>`)}
-              </sl-select>`
-          : nothing}
+        </sl-select>
+        ${swatches('Colour', INKS, s?.c ?? '', (c) => this.patchSel({ c: (c || undefined) as Color | undefined }), { disabled: !s })}
+        <sl-select class="sr-label" size="small" label="Text size" ?disabled=${!s} .value=${String(s?.z ?? 2)} hoist style="width:104px" @sl-change=${(e: Event) => {
+          const z = parseInt((e.target as SlSelect).value as string, 10) as TextSize;
+          this.patchSel({ z: z === 2 ? undefined : z });
+        }}>
+          ${([1, 2, 3, 4] as TextSize[]).map((z) => html`<sl-option value=${z}>${TEXT_SIZES[z].name}</sl-option>`)}
+        </sl-select>
         <sl-button-group label="Arrange">
-          <sl-tooltip content="Bring to front" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Bring to front" @click=${() => this.reorder(true)}>${icon(UI.front, 16)}<span class="sr-only">Bring to front</span></sl-button></sl-tooltip>
-          <sl-tooltip content="Send to back" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Send to back" @click=${() => this.reorder(false)}>${icon(UI.back, 16)}<span class="sr-only">Send to back</span></sl-button></sl-tooltip>
-          <sl-tooltip content="Duplicate (Ctrl+D)" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Duplicate" @click=${this.duplicate}>${icon(UI.copy, 16)}<span class="sr-only">Duplicate</span></sl-button></sl-tooltip>
-          <sl-tooltip content="Delete (Del)" hoist><sl-button class="icon" size="small" ?disabled=${!s} aria-label="Delete" @click=${this.removeSel}>${icon(UI.trash, 16)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
+          ${tool('Bring to front', 'front', () => this.reorder(true), { disabled: !s, size: 16 })}
+          ${tool('Send to back', 'back', () => this.reorder(false), { disabled: !s, size: 16 })}
+          ${tool('Duplicate', 'copy', () => this.duplicate(), { disabled: !s, key: 'Mod+D', size: 16 })}
+          ${tool('Delete', 'trash', () => this.removeSel(), { disabled: !s, key: 'Delete', size: 16 })}
         </sl-button-group>
       </div>
       <div class="draw-wrap" tabindex="0" @wheel=${(e: WheelEvent) => {
         // Ctrl (or a pinch on a trackpad) and the wheel zoom; the wheel alone scrolls as usual.
         if (!e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
-        this.zoom = Math.max(0.5, Math.min(4, Math.round((this.zoom - Math.sign(e.deltaY) * 0.25) * 4) / 4));
+        this.zoomBy(-Math.sign(e.deltaY) * 0.25);
       }}>
         <svg
           class="draw-canvas ${this.tool === 'select' ? '' : 'tool'}"
@@ -404,7 +380,7 @@ export class ToDraw extends LitElement {
             ? svg`<polyline points=${this.pen.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="6 4"/>
                 ${this.pen.map(([px, py], i) => svg`<circle cx=${px} cy=${py} r=${i === 0 ? 7 : 4} fill=${i === 0 ? 'var(--to-accent)' : '#fff'} stroke="var(--to-accent)" stroke-width="2"/>`)}`
             : nothing}
-          ${this.shapes.map((sh, i) => this.renderShape(sh, i))}
+          ${this.doc.map((sh, i) => this.renderShape(sh, i))}
           ${d?.mode === 'draw' ? this.renderShape(d.shape, -1, true) : nothing}
           ${d?.mode === 'link' && from ? svg`<line x1=${from.x + from.w / 2} y1=${from.y + from.h / 2} x2=${d.to[0]} y2=${d.to[1]} stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none" />` : nothing}
           ${s ? this.renderSelection(s) : nothing}
@@ -419,3 +395,4 @@ declare global {
     'to-draw': ToDraw;
   }
 }
+defineElement('draw', ToDraw);

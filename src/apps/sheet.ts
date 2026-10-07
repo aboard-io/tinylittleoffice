@@ -10,22 +10,16 @@
  * document: "fit" squeezes the columns into the page, "show all" sizes each
  * to its longest value, and header edges can be dragged.
  */
-import { LitElement, html, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { LitElement, defineElement, html, property, state, unsafeSVG, tool, icon, UI, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
 import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, evaluateGrid, formatCell, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, type Grid, type CellValue, type Range } from '../lib/formula.ts';
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet } from './sheet.def.ts';
 import { linkify, parseDoc } from '../lib/richtext.ts';
-import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import type { SlSelect } from '../lib/shoelace.ts';
-import { icon, UI } from '../lib/icons.ts';
-import type { SlInput } from '../lib/shoelace.ts';
 
 const MIN_COL = 48;
 /** A reference fits wherever the formula is waiting for a value. */
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
 
-@customElement('to-sheet')
 export class ToSheet extends LitElement {
   @property() value = '';
   @state() private grid: Grid = parseGrid('');
@@ -467,13 +461,13 @@ export class ToSheet extends LitElement {
         </sl-select>
         ${this.many
           ? html`<sl-button-group label="Fill">
-              <sl-tooltip content="Fill down from the top row" hoist><sl-button class="icon" size="small" aria-label="Fill down" @click=${() => this.fill(true)}>${icon(UI.back, 14)}<span class="sr-only">Fill down</span></sl-button></sl-tooltip>
-              <sl-tooltip content="Fill right from the first column" hoist><sl-button class="icon" size="small" aria-label="Fill right" @click=${() => this.fill(false)}>${icon(UI.arrow, 14)}<span class="sr-only">Fill right</span></sl-button></sl-tooltip>
+              ${tool('Fill down from the top row', 'back', () => this.fill(true))}
+              ${tool('Fill right from the first column', 'arrow', () => this.fill(false))}
             </sl-button-group>`
           : ''}
         <sl-button-group label="Column widths">
-          <sl-tooltip content="Fit to page" hoist><sl-button class="icon" size="small" aria-label="Fit to page" aria-pressed=${w ? 'false' : 'true'} @click=${() => (this.widths = null)}>${icon(UI.fit, 14)}<span class="sr-only">Fit to page</span></sl-button></sl-tooltip>
-          <sl-tooltip content="Show all text" hoist><sl-button class="icon" size="small" aria-label="Show all text" @click=${this.showAll}>${icon(UI.expand, 14)}<span class="sr-only">Show all text</span></sl-button></sl-tooltip>
+          ${tool('Fit to page', 'fit', () => (this.widths = null), { pressed: !w })}
+          ${tool('Show all text', 'expand', () => this.showAll())}
         </sl-button-group>
       </div>
       <div class="sheet-scroll">
@@ -493,7 +487,7 @@ export class ToSheet extends LitElement {
                       <sl-menu-label>Column ${n} holds</sl-menu-label>
                       ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${this.types[c] === t.id}>${t.name}<span slot="suffix" class="to-hint">${t.hint}</span></sl-menu-item>`)}
                     </sl-menu>
-                  </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" title="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
+                  </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" data-tip="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
                 </th>`,
               )}
             </tr>
@@ -518,7 +512,7 @@ export class ToSheet extends LitElement {
                       class=${cls}
                       aria-label=${rcToRef(r, c)}
                       .value=${shown}
-                      title=${raw.startsWith('=') ? raw : ''}
+                      data-tip=${raw.startsWith('=') ? raw : ''}
                       placeholder=${isSel && type === 'd' ? 'YYYY-MM-DD' : ''}
                       autocomplete="off"
                       @focus=${() => {
@@ -534,15 +528,15 @@ export class ToSheet extends LitElement {
                       @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c)}
                     />
                     ${rich ? html`<span class="rich" aria-hidden="true">${this.rich(raw)}</span>` : ''}
-                    ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label="Open ${link}" title="Open link" tabindex="-1">${icon(UI.send, 12)}</a>` : ''}
-                    ${r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label="Fill: drag to carry these cells on" title="Drag to fill" @pointerdown=${this.onFillDown}></span>` : ''}
+                    ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label="Open ${link}" data-tip="Open link" tabindex="-1">${icon(UI.send, 12)}</a>` : ''}
+                    ${r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label="Fill: drag to carry these cells on" data-tip="Drag to fill" @pointerdown=${this.onFillDown}></span>` : ''}
                   </td>`;
                 })}
               </tr>`,
             )}
           </tbody>
         </table>
-        ${this.drawn < ROWS ? html`<button class="sheet-more" @click=${() => (this.rowsShown = Math.min(ROWS, this.drawn + 50))}>${icon(UI.plus, 14)} 50 more rows <span class="to-hint">(${this.drawn} of ${ROWS.toLocaleString()} shown)</span></button>` : ''}
+        ${this.drawn < ROWS ? html`<button class="to-add sheet-more" @click=${() => (this.rowsShown = Math.min(ROWS, this.drawn + 50))}>${icon(UI.plus, 14)} 50 more rows <span class="to-hint">(${this.drawn} of ${ROWS.toLocaleString()} shown)</span></button>` : ''}
       </div>
       ${this.chart ? this.renderChart(data) : ''}
     `;
@@ -559,3 +553,4 @@ declare global {
     'to-sheet': ToSheet;
   }
 }
+defineElement('sheet', ToSheet);

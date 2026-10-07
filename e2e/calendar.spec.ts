@@ -27,13 +27,13 @@ test('calendar: spans, zones and the author-zone shortcut', async ({ page }) => 
   await expect(page.getByLabel('Start time')).toHaveValue('09:00');
   await expect(page.getByLabel('End time')).toHaveValue('10:00');
   const chip = page.getByRole('gridcell', { name: '2026-01-15' }).locator('.cal-chip');
-  await expect(chip).toHaveAttribute('title', /9:00/);
+  await expect(chip).toHaveAttribute('data-tip', /9:00/);
   // The time zone is a box you can type in: a city is enough.
   const zone = page.getByRole('combobox', { name: 'Time zone' });
   await zone.fill('utc');
   await zone.press('Enter');
   await expect(zone).toHaveValue('UTC');
-  await expect(chip).toHaveAttribute('title', /2:00/);
+  await expect(chip).toHaveAttribute('data-tip', /2:00/);
   await expect(page.getByLabel('Start time')).toHaveValue('14:00');
   await label.fill('Offsite call');
   // Return is the same as Done.
@@ -42,11 +42,11 @@ test('calendar: spans, zones and the author-zone shortcut', async ({ page }) => 
 
   await reopen(page);
   await expect(page.locator('.cal-month')).toHaveText('January 2026');
-  await expect(chip).toHaveAttribute('title', /9:00/);
+  await expect(chip).toHaveAttribute('data-tip', /9:00/);
   const authorZone = page.getByRole('button', { name: /UTC time/ });
   await expect(authorZone).toBeVisible();
   await authorZone.click();
-  await expect(chip).toHaveAttribute('title', /2:00/);
+  await expect(chip).toHaveAttribute('data-tip', /2:00/);
   await expect(authorZone).toHaveCount(0);
 
   // Drag across days creates a multi-day span.

@@ -3,23 +3,21 @@
  * button for the link (the shell listens for "to-copy"). Clicking the ring or the count opens the document
  * dialog (the shell listens for "to-info").
  */
-import { LitElement, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { LitElement, html, property, btn } from '../kit.ts';
 import { roomRows, type Room } from '../lib/limits.ts';
+import type { TipEvent } from '../kit/tip.ts';
 
 /** The rooms as a table, for anywhere they are shown. */
 export const roomsTable = (rooms: Room[]) => html`<table class="to-rooms">
   <thead><tr><th scope="col">Where</th><th scope="col">Limit</th><th scope="col">This link</th><th scope="col">Left</th><th scope="col">Note</th></tr></thead>
   <tbody>${roomRows(rooms).map((r) => html`<tr class=${r.over ? 'over' : ''}><th scope="row">${r.name}</th><td>${r.max}</td><td>${r.used}</td><td>${r.left}</td><td class="to-hint">${r.note}</td></tr>`)}</tbody>
 </table>`;
-import { icon, UI } from '../lib/icons.ts';
 
-@customElement('to-meter')
 export class ToMeter extends LitElement {
   @property({ type: Number }) used = 0;
   @property({ type: Number }) available = 1;
   @property() href = '';
-  /** How the link fits in the places links get pasted; shown on hover. */
+  /** How the link fits in the places links get pasted; shown in the tip. */
   @property({ attribute: false }) rooms: Room[] = [];
 
   createRenderRoot() {
@@ -36,21 +34,18 @@ export class ToMeter extends LitElement {
     const state = left < 0 ? 'over' : pct > 85 ? 'warn' : '';
     const title = left < 0 ? `${(-left).toLocaleString()} characters over the URL limit` : `${left.toLocaleString()} of ${this.available.toLocaleString()} URL characters left`;
     return html`<div class="to-meter ${state}" role="group" aria-label="URL space">
-      <sl-tooltip hoist placement="bottom" trigger="hover" style="--max-width: 22rem">
-      <div slot="content" class="to-meter-rooms">${roomsTable(this.rooms)}</div>
-      <span class="to-meter-main">
-      <sl-progress-ring
-        value=${pct}
-        label=${title}
-        role="button"
-        tabindex="0"
-        @click=${this.info}
-        @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && this.info()}
-      ></sl-progress-ring>
-      <span class="text" @click=${this.info}>${left < 0 ? html`<b>${(-left).toLocaleString()} over</b>` : html`<b>${left.toLocaleString()}</b> left`}</span>
+      <span class="to-meter-main" data-tip=${title} @to-tip=${(e: TipEvent) => (e.detail.content = html`<div class="to-meter-rooms">${roomsTable(this.rooms)}</div>`)}>
+        <sl-progress-ring
+          value=${pct}
+          label=${title}
+          role="button"
+          tabindex="0"
+          @click=${this.info}
+          @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && this.info()}
+        ></sl-progress-ring>
+        <span class="text" @click=${this.info}>${left < 0 ? html`<b>${(-left).toLocaleString()} over</b>` : html`<b>${left.toLocaleString()}</b> left`}</span>
       </span>
-      </sl-tooltip>
-      <button class="copy" type="button" aria-label="Copy link" title="Copy link" @click=${() => this.dispatchEvent(new CustomEvent('to-copy', { bubbles: true, composed: true }))}>${icon(UI.copy, 15)}</button>
+      ${btn('Copy link', 'copy', () => this.dispatchEvent(new CustomEvent('to-copy', { bubbles: true, composed: true })), { cls: 'copy', size: 15 })}
     </div>`;
   }
 }
@@ -60,3 +55,4 @@ declare global {
     'to-meter': ToMeter;
   }
 }
+if (!customElements.get('to-meter')) customElements.define('to-meter', ToMeter);

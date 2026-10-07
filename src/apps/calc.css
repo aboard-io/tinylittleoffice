@@ -88,18 +88,6 @@
   outline: 2px solid var(--to-accent);
   outline-offset: 1px;
 }
-.calc-soft {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: 1px dashed var(--to-border-strong);
-  border-radius: 999px;
-  background: none;
-  color: var(--to-ink-2);
-  font: 13px var(--sl-font-sans);
-  cursor: pointer;
-}
 .calc-tape {
   list-style: none;
   margin: 12px 0 0;
@@ -133,15 +121,6 @@
 }
 .calc-tape b {
   white-space: nowrap;
-}
-.calc-x {
-  border: 0;
-  background: none;
-  color: var(--to-ink-3);
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
-  padding: 4px;
 }
 .calc-form {
   display: grid;

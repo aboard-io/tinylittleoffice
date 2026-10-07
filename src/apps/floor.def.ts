@@ -1,6 +1,6 @@
 /** Floor plan: rooms by their size, to scale. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, shape, PALETTE, type Diagram } from '../lib/diagram.ts';
+import { defineDiagram, frame, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 
 const U = 36;
 function layout(text: string): Diagram {
@@ -13,7 +13,7 @@ function layout(text: string): Diagram {
       const [w, h] = [+m[2], +m[3]];
       const [x, y] = m[4] ? [+m[4], +m[5]] : [next, 0];
       if (!m[4]) next += w;
-      return [shape('r', x * U, y * U, w * U, h * U, `${m[1].trim()} | ${w} × ${h}`, 1, PALETTE[i % PALETTE.length])];
+      return [shape('r', x * U, y * U, w * U, h * U, `${m[1].trim()} | ${w} × ${h}`, 1, COLOR_CYCLE[i % COLOR_CYCLE.length])];
     }),
   );
 }
@@ -29,4 +29,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'floor', group: 'Design', under: 'draw', name: 'Floor plan', icon: 'floor', blurb: 'A floor plan to scale, from a list of rooms and their sizes.' }, spec);
+export default defineDiagram({ id: 'floor', name: 'Floor plan', icon: 'floor', blurb: 'A floor plan to scale, from a list of rooms and their sizes.' }, spec);

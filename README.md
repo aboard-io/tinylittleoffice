@@ -56,9 +56,12 @@ npm test           # unit tests for the codecs and the formula engine
 npx playwright install chromium && npx playwright test   # browser tests, desktop and phone
 ```
 
-The build is `index.html`, one stylesheet and two scripts (the map library
-for Trip loads only when Trip is opened), plus icons. Host it on any static
-file server. `VITE_SITE_URL` in `.env` is the address it will be published
+The build is `index.html`, one stylesheet and one script with every app in
+it, so opening an app fetches nothing; only Trip's map library and the full
+icon set (for the icon picker) are fetched when first wanted. The build
+writes a `.gz` beside every text file (`scripts/precompress.mjs`), which
+nginx serves as it is (`deploy/nginx.conf`). Host it on any static file
+server. `VITE_SITE_URL` in `.env` is the address it will be published
 at; the link-preview tags need it. `node scripts/make-icons.mjs` redraws the
 PNG icons and the preview card in `public/`.
 
@@ -190,15 +193,24 @@ Every format is plain text, chosen so deflate has something to chew on.
 ## Styling: one stylesheet
 
 Every TinyLittleOffice component renders into light DOM, so there is no CSS hidden
-in shadow roots. The whole look lives in `src/styles.css`:
+in shadow roots. The look lives in `src/styles.css` (three apps keep a
+sheet of their own beside their editor: `anim.css`, `calc.css`, `outline.css`):
 
 1. **Tokens.** Shoelace's design tokens are overridden at the top of the file
    (accent ramp, fonts, radii) and a small set of `--to-*` variables is built
-   on them. Change these and both our markup and the Shoelace controls follow.
-2. **Base, shell, shared pieces, apps, responsive.** Plain class names,
-   prefixed by app (`.sheet-`, `.write-`, `.deck-`, `.draw-`, `.cal-`) and
-   `.to-` for the shell. The responsive section at the end collapses the
-   navigation into a drawer and tightens spacing under 760px.
+   on them: surfaces and inks, accent, danger, success and warning, paper
+   (white in both themes), three radii, two shadows. Change these and both
+   our markup and the Shoelace controls follow.
+2. **Shared pieces.** The classes an app reaches for before writing a rule
+   of its own: `.to-toolbar`, `.to-hint`, `.to-empty`, `.to-icon-btn` (what
+   `btn()` makes), `.to-add` (a dashed pill that adds something),
+   `.to-count` (a number in a pill), `.to-eyebrow` (small capitals over a
+   group), `.to-swatches` (what `swatches()` makes), `.to-tip` (the tooltip).
+3. **Base, shell, apps, responsive.** Plain class names, prefixed by app
+   (`.sheet-`, `.write-`, `.deck-`, `.draw-`, `.cal-`) and `.to-` for the
+   shell. The responsive section at the end collapses the navigation into a
+   drawer and tightens spacing under 760px; `@media (pointer: coarse)` is
+   where phones get 16px inputs and finger-sized buttons.
 
 Shoelace components (buttons, inputs, selects, dialogs, the drawer, the
 progress ring, the copy button) are styled through their tokens and
@@ -334,7 +346,8 @@ npm run new-app notes "Notes"
 ```
 
 writes a working app (a list you can add lines to), its test, and adds it to
-the menu. An app is two files:
+the menu (`src/apps/index.ts`) and to the one script (`src/apps/editors.ts`).
+An app is two files:
 
 - `src/apps/<id>.def.ts`: the **definition**. Its name, how to read a title
   out of a document, how to draw it (`view`, pages of SVG), and any formats
@@ -347,11 +360,24 @@ and routes, the link, password and signature, `.pdf` / `.png` / `.html`
 downloads, the share menu and card, the list of keyboard shortcuts, and
 being embedded in a text or shown (and built, step by step) on a slide.
 
+An app that is "a few lines of text" (a diagram, a page, a print, a fold)
+needs no editor file at all: `editors.ts` gives it the shared one its
+definition asks for.
+
 One import has everything an editor needs:
 
 ```ts
-import { DocElement, defineElement, html, state, tool, icon, UI, isKey } from '../kit.ts';
+import { DocElement, defineElement, html, state, tool, btn, icon, UI, isKey } from '../kit.ts';
 ```
+
+The controls come from the kit, so they look and behave the same in every
+app: `tool()` is a toolbar button (an icon, with its name and shortcut as
+its tip), `btn()` the small plain button in a row or a card, `stepper()`
+a less/value/more group, `swatches()` a row of colours as a radio group,
+`toast()` a word to the person from anywhere. Anything with a `data-tip`
+has a tooltip (`src/kit/tip.ts`): on hover and keyboard focus, and on a
+phone on a long press, which is then not a tap. There is one tooltip
+element for the whole page, so a tip costs nothing per button.
 
 `src/kit/core.ts` is the pure half (registry, text layout, SVG helpers,
 documents as web pages); `src/kit/browser.ts` the half that needs a browser
@@ -399,9 +425,10 @@ the same tags plus the document's own title and outline.
 
 ```
 src/app.ts            the shell: header, menu, routing, document dialog, shortcuts
-src/kit.ts            everything an editor imports
-src/kit/              registry, drawing, PDF, zip, embeds, browser helpers
+src/kit.ts            everything an editor imports: the base class and the shared controls
+src/kit/              registry, drawing, PDF, zip, embeds, browser helpers, the tooltip
 src/apps/index.ts     the list of apps
+src/apps/editors.ts   the editors, in one script; shared editors for the apps without one
 src/apps/<id>.def.ts  each app's definition: title, picture, downloads
 src/apps/<id>.ts      each app's editor
 src/lib/<id>model.ts  document formats (formula.ts, richtext.ts for sheet and write)
@@ -413,7 +440,7 @@ src/lib/crypt.ts      password encryption of the packed envelope
 src/lib/limits.ts     how much room a link leaves, service by service
 src/lib/icons.ts      Lucide icons; iconsearch.ts finds and suggests them
 src/widgets/meter.ts  <to-meter>: URL space ring + copy button
-src/styles.css        the only stylesheet
+src/styles.css        the stylesheet: tokens, the shell, shared pieces (.to-*), then the apps
 scripts/              new-app, share cards and icons
 test/                 unit tests (node --test)
 e2e/                  Playwright browser tests

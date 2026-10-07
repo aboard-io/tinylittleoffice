@@ -5,9 +5,7 @@
  * matters functionally, because execCommand and the selection APIs are
  * unreliable inside shadow roots in some browsers.
  */
-import { LitElement, html, nothing, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { icon, UI } from '../lib/icons.ts';
+import { LitElement, defineElement, html, nothing, property, state, tool, icon, UI, xml, type PropertyValues } from '../kit.ts';
 import { linkToRef, makeRef, SELF } from '../kit/embed.ts';
 import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
@@ -17,21 +15,18 @@ import { MAX_DEPTH, linkify, parseDoc, parseInline, serializeDoc, serializeInlin
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 /**
  * An embedded TinyLittleOffice document. <to-embed> draws itself in a shadow root
  * and is not editable, so the text around it treats it as one thing.
  */
 export function embedHtml(ref: string): string {
-  const r = esc(ref).replace(/"/g, '&quot;');
+  const r = xml(ref);
   return `<to-embed contenteditable="false" tabindex="0" controls ref="${r}" data-ref="${r}"></to-embed>`;
 }
 
 /** An icon in a line of text: one thing, not editable inside, so the caret steps over it. */
-export const iconHtml = (name: string) => `<span class="ic" data-icon="${esc(name)}" contenteditable="false" role="img" aria-label="${esc(name)} icon">${ICON_SVG[name] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : `:${esc(name)}:`}</span>`;
+export const iconHtml = (name: string) => `<span class="ic" data-icon="${xml(name)}" contenteditable="false" role="img" aria-label="${xml(name)} icon">${ICON_SVG[name] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : `:${xml(name)}:`}</span>`;
 
 function runsToHtml(runs: Run[]): string {
   if (!runs.length) return '<br>';
@@ -40,7 +35,7 @@ function runsToHtml(runs: Run[]): string {
       if (r.ic) return iconHtml(r.ic);
       // Web addresses show as links; in the document they are just text.
       let h = linkify(r.t)
-        .map((p) => (p.url ? `<a href="${esc(p.url).replace(/"/g, '&quot;')}">${esc(p.t)}</a>` : esc(p.t)))
+        .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
         .join('');
       if (r.h) h = `<mark>${h}</mark>`;
       if (r.s) h = `<s>${h}</s>`;
@@ -230,7 +225,6 @@ function isBlockTag(tag: string): boolean {
  * bullets, a page's words). In those modes it speaks "rich-change", not
  * "docchange", so the document it is part of is not mistaken for it.
  */
-@customElement('to-write')
 export class ToWrite extends LitElement {
   @property() value = '';
   @property() mode: 'doc' | 'line' | 'lines' = 'doc';
@@ -390,7 +384,7 @@ export class ToWrite extends LitElement {
     const link = linkify(text.trim());
     if (ref) this.insertEmbed(ref);
     // Any other web address on its own goes in as a link you can click.
-    else if (link.length === 1 && link[0].url) document.execCommand('insertHTML', false, `<a href="${esc(link[0].url).replace(/"/g, '&quot;')}">${esc(link[0].t)}</a>&nbsp;`);
+    else if (link.length === 1 && link[0].url) document.execCommand('insertHTML', false, `<a href="${xml(link[0].url)}">${xml(link[0].t)}</a>&nbsp;`);
     else document.execCommand('insertText', false, text);
   };
 
@@ -503,16 +497,14 @@ export class ToWrite extends LitElement {
   };
 
   private btn(label: string, ico: keyof typeof UI, pressed: boolean, cmd: string, arg?: string, key?: string) {
-    return html`<sl-tooltip content=${key ? `${label} (${key})` : label} hoist>
-      <sl-button
+    return html`<sl-button data-tip=${key ? `${label} (${key})` : label}
         class="icon"
         size="small"
         aria-label=${label}
         aria-pressed=${pressed ? 'true' : 'false'}
         @mousedown=${(e: Event) => e.preventDefault()}
         @click=${() => this.run(cmd, arg)}
-      >${icon(UI[ico], 16)}<span class="sr-only">${label}</span></sl-button>
-    </sl-tooltip>`;
+      >${icon(UI[ico], 16)}<span class="sr-only">${label}</span></sl-button>`;
   }
 
   render() {
@@ -521,11 +513,11 @@ export class ToWrite extends LitElement {
     return html`
       ${this.tools ? html`<div class="to-toolbar write-toolbar" role="toolbar" aria-label="Formatting">
         <sl-button-group label="Text style">
-          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Ctrl+B')}
-          ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Ctrl+I')}
-          ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Ctrl+U')}
+          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Mod+B')}
+          ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Mod+I')}
+          ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Mod+U')}
           ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
-          ${this.btn('Highlight', 'highlight', f.h, 'hiliteColor', f.h ? 'transparent' : '#fef08a', 'Ctrl+Shift+H')}
+          ${this.btn('Highlight', 'highlight', f.h, 'hiliteColor', f.h ? 'transparent' : '#fef08a', 'Mod+Shift+H')}
         </sl-button-group>
         <sl-button-group label="Alignment">
           ${this.btn('Align left', 'alignLeft', f.align === '', 'justifyLeft')}
@@ -533,11 +525,11 @@ export class ToWrite extends LitElement {
           ${this.btn('Align right', 'alignRight', f.align === 'r', 'justifyRight')}
           ${this.btn('Justify', 'alignJustify', f.align === 'j', 'justifyFull')}
         </sl-button-group>
-        <sl-tooltip content="Icon" hoist><sl-button class="icon" size="small" @click=${this.insertIcon}>${icon(UI.smile, 14)}<span class="sr-only">Icon</span></sl-button></sl-tooltip>
+        ${tool('Icon', 'smile', () => void this.insertIcon())}
         ${doc ? html`<sl-button-group label="Block">
-          ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Ctrl+1')}
-          ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Ctrl+2')}
-          ${this.btn('Paragraph', 'p', f.block === 'p' || f.block === 'div', 'formatBlock', 'p', 'Ctrl+0')}
+          ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Mod+1')}
+          ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Mod+2')}
+          ${this.btn('Paragraph', 'p', f.block === 'p' || f.block === 'div', 'formatBlock', 'p', 'Mod+0')}
         </sl-button-group>
         <sl-button-group label="Lists">
           ${this.btn('Bulleted list', 'ul', f.block === 'ul', 'insertUnorderedList')}
@@ -572,6 +564,8 @@ export class ToWrite extends LitElement {
 }
 
 /** The same editor, as a box for other apps. */
+defineElement('write', ToWrite);
+// The same editor as a field: one line, or a short rich text, inside another app.
 if (!customElements.get('to-rich')) customElements.define('to-rich', class extends ToWrite {});
 
 declare global {

@@ -44,4 +44,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'trivia', name: 'Trivia', icon: 'trivia', group: 'Play', blurb: 'A quiz night: rounds of questions, tap for the answer, and a scoreboard.', title: h1 }, spec);
+export default definePage({ id: 'trivia', name: 'Trivia', icon: 'trivia', group: 'Play', blurb: 'A quiz night: rounds of questions, tap for the answer, and a scoreboard.' }, spec);

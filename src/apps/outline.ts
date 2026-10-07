@@ -235,22 +235,22 @@ export class ToOutline extends DocElement<Item[]> {
             data-i=${i}
             role="treeitem"
             aria-level=${it.depth - base + 1}
-            aria-expanded=${kids ? (shut ? 'false' : 'true') : (undefined as unknown as string)}
+            aria-expanded=${kids ? (shut ? 'false' : 'true') : nothing}
             style="--d:${it.depth - base}"
             @dragover=${(e: DragEvent) => this.onDragOver(e, i)}
             @keydown=${(e: KeyboardEvent) => this.onKey(e, i)}
           >
-            <button class="ol-handle" draggable="true" aria-label="Move this item: drag it onto another" title="Drag to move" @dragstart=${(e: DragEvent) => this.onDragStart(e, i)} @dragend=${() => ((this.drag = null), this.requestUpdate())} tabindex="-1">${icon(UI.grip, 14)}</button>
+            <button class="ol-handle" draggable="true" aria-label="Move this item: drag it onto another" data-tip="Drag to move" @dragstart=${(e: DragEvent) => this.onDragStart(e, i)} @dragend=${() => ((this.drag = null), this.requestUpdate())} tabindex="-1">${icon(UI.grip, 14)}</button>
             ${kids
               ? html`<button class="ol-fold" aria-label=${shut ? `Unfold, ${blockEnd(items, i) - i - 1} inside` : 'Fold'} @click=${() => this.fold(i)}>${icon(shut ? UI.right : UI.down, 14)}</button>`
-              : html`<button class="ol-dot" aria-label="Zoom in on this item" title="Zoom in" @click=${() => this.zoomTo(i)}><span></span></button>`}
+              : html`<button class="ol-dot" aria-label="Zoom in on this item" data-tip="Zoom in" @click=${() => this.zoomTo(i)}><span></span></button>`}
             ${embedOf(it.text)
               ? html`<to-embed class="ol-doc" ref=${embedOf(it.text)!} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
               : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}
-            ${kids && shut ? html`<span class="ol-count" aria-hidden="true">${blockEnd(items, i) - i - 1}</span>` : nothing}
+            ${kids && shut ? html`<span class="to-count ol-count" aria-hidden="true">${blockEnd(items, i) - i - 1}</span>` : nothing}
           </div>`;
         })}
-        <button class="ol-add" @click=${() => this.save([...items, { depth: base, text: '' }], items.length)}>${icon(UI.plus, 14)} Add an item</button>
+        <button class="to-add ol-add" @click=${() => this.save([...items, { depth: base, text: '' }], items.length)}>${icon(UI.plus, 14)} Add an item</button>
       </div>
     `;
   }

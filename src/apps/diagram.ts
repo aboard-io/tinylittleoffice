@@ -6,11 +6,9 @@
  * own: shapes (diagram-shapes.ts), printed sheets (diagram-sheets.ts) or a
  * web page in a frame (diagram-page.ts).
  */
-import { DocElement, html, nothing, tool, appOf, makeRef, type TemplateResult } from '../kit.ts';
+import { DocElement, html, nothing, state, tool, btn, appOf, makeRef, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import '../widgets/line-form.ts';
-import { icon, UI } from '../lib/icons.ts';
-import { state } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
 import { store } from '../lib/store.ts';
@@ -123,9 +121,9 @@ export class DiagramElement extends DocElement<string> {
       ${this.draft
         ? nothing
         : html`<div class="pic-edit-acts" role="group" aria-label="This thing">
-            <button type="button" title="Add one under it (Enter)" aria-label="Add one under it" @mousedown=${(ev: Event) => ev.preventDefault()} @click=${next}>${icon(UI.plus, 13)}</button>
-            <button type="button" title="Give it a picture" aria-label="Give it a picture" @mousedown=${(ev: Event) => ev.preventDefault()} @click=${() => { const at = e.row; close(); void this.iconFor(at); }}>${icon(UI.smile, 13)}</button>
-            <button type="button" title="Take it away" aria-label="Take it away" @mousedown=${(ev: Event) => ev.preventDefault()} @click=${gone}>${icon(UI.trash, 13)}</button>
+            ${btn('Add one under it', 'plus', next, { keepFocus: true, size: 13, tip: 'Add one under it (Enter)' })}
+            ${btn('Give it a picture', 'smile', () => { const at = e.row; close(); void this.iconFor(at); }, { keepFocus: true, size: 13 })}
+            ${btn('Take it away', 'trash', gone, { keepFocus: true, size: 13 })}
           </div>`}
     </div>`;
   }

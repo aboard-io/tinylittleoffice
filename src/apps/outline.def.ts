@@ -1,7 +1,7 @@
 /** Outline: what the shell knows about outlines. Format: lib/outlinemodel.ts. */
 import { defineApp, utf8, wrap, text, ACCENT, type Page } from '../kit/core.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
-import { parseOutline, toOpml, hasChildren, embedOf, outlineToDeck, type Item } from '../lib/outlinemodel.ts';
+import { parseOutline, toOpml, hasChildren, embedOf, type Item } from '../lib/outlinemodel.ts';
 import { makeRef, refPage } from '../kit/embed.ts';
 import { place } from '../kit/core.ts';
 
@@ -63,5 +63,4 @@ export default defineApp({
 
 /** The outline as another document: a mind map, an org chart, a family tree take this very text. */
 export const outlineAs = (app: string, body: string) => makeRef(app, body);
-export const outlineDeck = (body: string) => outlineToDeck(parseOutline(body));
 export type { Item };

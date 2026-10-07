@@ -1,13 +1,13 @@
 /** Mind map: an idea and what branches from it, from an indented list. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, join, outline, placeTree, shape, PALETTE, type Diagram } from '../lib/diagram.ts';
+import { defineDiagram, frame, join, outline, placeTree, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import { textWidth } from '../kit/core.ts';
 
 function layout(text: string): Diagram {
   const placed = placeTree(outline(text));
   // Each branch off the centre keeps one colour all the way out.
   let branch = -1;
-  const colour = placed.map((p) => (p.node.depth === 0 ? undefined : PALETTE[(p.node.depth === 1 ? ++branch : branch) % PALETTE.length]));
+  const colour = placed.map((p) => (p.node.depth === 0 ? undefined : COLOR_CYCLE[(p.node.depth === 1 ? ++branch : branch) % COLOR_CYCLE.length]));
   const boxes = placed.map((p, i) => {
     const d = p.node.depth;
     const w = Math.max(72, Math.min(220, textWidth(p.node.text, 14, d === 0) + 32));
@@ -25,4 +25,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'mind', group: 'Design', under: 'draw', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.' }, spec);
+export default defineDiagram({ id: 'mind', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.' }, spec);

@@ -23,15 +23,18 @@ import './widgets/drive.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
+import './apps/editors.ts';
 import { fontsForPictures } from './kit/browser.ts';
-import { History, apps, appOf, docHtml, extOf, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
+import { History, apps, appOf, docHtml, extOf, fmtDate, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { REFRESH, download, formatsOf, loadEditor, picture, saveFile, withFonts } from './kit/browser.ts';
+import { REFRESH, download, formatsOf, picture, saveFile, withFonts } from './kit/browser.ts';
+import { zip } from './kit/zip.ts';
 import './lib/icons.ts';
 import { roomFor } from './lib/limits.ts';
 import { roomsTable } from './widgets/meter.ts';
 import { ToQrDialog } from './widgets/qr-dialog.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
+import { btn, errorText, keyLabel, stepper, tool } from './kit.ts';
 
 export type AppId = string;
 
@@ -68,9 +71,6 @@ const GLOBAL_KEYS: Shortcut[] = [
   { keys: 'Mod+Shift+C', does: 'Copy the link' },
   { keys: 'Mod+Shift+L', does: 'Light, dark, or match the device' },
 ];
-const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-/** A shortcut the way this keyboard writes it. */
-const keyLabel = (keys: string) => keys.replace(/Mod/g, MAC ? '⌘' : 'Ctrl').replace(/Alt/g, MAC ? '⌥' : 'Alt');
 
 type Theme = 'auto' | 'light' | 'dark';
 const THEMES: Theme[] = ['auto', 'light', 'dark'];
@@ -120,7 +120,6 @@ export function routeHash(app: AppId, payload = '', ext = ''): string {
   return `#/v${URL_VERSION}/${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
 }
 
-const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
 const fmtUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
 @customElement('to-app')
@@ -187,6 +186,7 @@ export class ToApp extends LitElement {
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);
     window.addEventListener(REFRESH, this.onRefresh);
+    window.addEventListener('to-toast', this.onToast);
     this.offPrivacy = this.privacy.on(() => this.requestUpdate());
     this.onHash();
   }
@@ -195,6 +195,7 @@ export class ToApp extends LitElement {
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
     window.removeEventListener(REFRESH, this.onRefresh);
+    window.removeEventListener('to-toast', this.onToast);
     this.offPrivacy();
   }
 
@@ -345,7 +346,6 @@ export class ToApp extends LitElement {
 
   /** Everything, in one file: the app (it runs from a folder) and every document kept here as a page of its own. */
   private async downloadAll() {
-    const { zip } = await import('./kit/zip.ts');
     const files: Record<string, string | Uint8Array> = {};
     try {
       const list: string[] = await (await fetch(new URL('files.json', this.root))).json();
@@ -427,7 +427,7 @@ export class ToApp extends LitElement {
       const name = await download(def, this.env.body, ext, { created: this.env.created, base: this.root }, this.link, this.env.title);
       this.showToast(name ? `Downloaded ${name}` : `No .${extOf(ext)} view here`);
     } catch (err) {
-      this.showToast(err instanceof Error ? err.message : 'Download failed');
+      this.showToast(errorText(err, 'Download failed'));
     }
   }
 
@@ -471,7 +471,7 @@ export class ToApp extends LitElement {
       return;
     }
     if (how === 'copy' || how === 'copy-show') {
-      await navigator.clipboard.writeText(how === 'copy' ? url : this.linkTo('show')).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'));
+      await this.copy(how === 'copy' ? url : this.linkTo('show'), 'Link copied');
       return;
     }
     if (how === 'png') return void this.download('png');
@@ -486,7 +486,7 @@ export class ToApp extends LitElement {
       return;
     }
     if (how === 'embed') {
-      await navigator.clipboard.writeText(this.embedCode()).then(() => this.showToast('Embed code copied'), () => this.showToast('Copy failed'));
+      await this.copy(this.embedCode(), 'Embed code copied');
       return;
     }
     const to: Record<string, string> = {
@@ -506,8 +506,7 @@ export class ToApp extends LitElement {
    */
   private embedCode(): string {
     const page = this.def!.view(this.env.body)[0];
-    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    return `<iframe src="${esc(this.linkTo('embed'))}" title="${esc(this.docTitle)}" loading="lazy" referrerpolicy="no-referrer" allowfullscreen style="width:100%;max-width:${page.w}px;aspect-ratio:${page.w}/${page.h + 44};border:1px solid #d4d4d8;border-radius:8px"></iframe>`;
+    return `<iframe src="${xml(this.linkTo('embed'))}" title="${xml(this.docTitle)}" loading="lazy" referrerpolicy="no-referrer" allowfullscreen style="width:100%;max-width:${page.w}px;aspect-ratio:${page.w}/${page.h + 44};border:1px solid #d4d4d8;border-radius:8px"></iframe>`;
   }
 
   private cycleTheme() {
@@ -568,6 +567,16 @@ export class ToApp extends LitElement {
     clearTimeout(this.toastTimer);
     this.toastTimer = window.setTimeout(() => (this.toast = ''), 2000);
   }
+  /** Anything on the page can ask for a toast (kit toast()). */
+  private onToast = (e: Event) => this.showToast((e as CustomEvent<string>).detail);
+
+  /** Put text on the clipboard and say so. */
+  private copy(text: string, said = 'Copied') {
+    return navigator.clipboard.writeText(text).then(
+      () => this.showToast(said),
+      () => this.showToast('Copy failed'),
+    );
+  }
 
   private dialog(): SlDialog | null {
     return this.querySelector<SlDialog>('#doc-dialog');
@@ -604,9 +613,7 @@ export class ToApp extends LitElement {
         <div class="to-header-inner">
           <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
-          <sl-tooltip content=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} hoist>
-            <button class="to-keep ${keeping() ? 'on' : ''}" aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
-          </sl-tooltip>
+          <button class="to-keep ${keeping() ? 'on' : ''}" data-tip=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
           ${current ? this.renderDocHead() : html`<span class="to-spacer"></span>`}
           ${current
             ? html`
@@ -615,7 +622,7 @@ export class ToApp extends LitElement {
                   ? nothing
                   : html`<div class="to-doc-actions">
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.querySelector<SlDialog>('#import-dialog')?.show() : this.download(e.detail.item.value))}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Download" title="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Download" data-tip="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Download</sl-menu-label>
                           ${formatsOf(appOf(current.id)!).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
@@ -624,7 +631,7 @@ export class ToApp extends LitElement {
                         </sl-menu>
                       </sl-dropdown>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Share" title="Share">${icon(UI.share, 16)}<span class="sr-only">Share</span></sl-button>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Share" data-tip="Share">${icon(UI.share, 16)}<span class="sr-only">Share</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Share</sl-menu-label>
                           ${'share' in navigator ? html`<sl-menu-item value="native">Share…</sl-menu-item>` : nothing}
@@ -643,9 +650,9 @@ export class ToApp extends LitElement {
                           <sl-menu-item value="email">Email</sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
-                      <sl-button class="icon to-qr-btn" size="small" aria-label="QR code" title="The whole document as a QR code" @click=${() => this.querySelector<ToQrDialog>('to-qr-dialog')?.show()}>${icon(UI.qr, 16)}<span class="sr-only">QR code</span></sl-button>
+                      ${tool('QR code', 'qr', () => this.querySelector<ToQrDialog>('to-qr-dialog')?.show(), { cls: 'to-qr-btn', size: 16 })}
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" title="Privacy" variant=${this.privacy.locker || this.privacy.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.privacy.locker ? UI.lock : this.privacy.sig === 'invalid' ? UI.shieldOff : this.privacy.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" data-tip="Privacy" variant=${this.privacy.locker || this.privacy.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.privacy.locker ? UI.lock : this.privacy.sig === 'invalid' ? UI.shieldOff : this.privacy.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Privacy</sl-menu-label>
                           <sl-menu-item value="password">${icon(UI.lock, 14, 'pre')} Password<span slot="suffix" class="to-hint">${this.privacy.locker ? 'Locked' : 'None'}</span></sl-menu-item>
@@ -653,9 +660,7 @@ export class ToApp extends LitElement {
                         </sl-menu>
                       </sl-dropdown>
                     </div>`}
-                <sl-tooltip content="New ${current.name}" hoist class="to-new">
-                  <sl-button class="icon" size="small" href=${routeHash(current.id)}>${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
-                </sl-tooltip>
+                ${tool(`New ${current.name}`, 'plus', () => {}, { href: routeHash(current.id), cls: 'to-new', size: 16 })}
               `
             : nothing}
         </div>
@@ -680,11 +685,9 @@ export class ToApp extends LitElement {
           })}
         </nav>
         <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
-        <sl-button-group slot="footer" class="to-size" label="Size of everything">
-          <sl-button title="Everything a little smaller" ?disabled=${this.size <= 0.8} @click=${() => this.resize(-0.1)}><span aria-hidden="true">A−</span><span class="sr-only">Smaller</span></sl-button>
-          <sl-button title="Back to the normal size" @click=${() => this.resize(1 - this.size)}><span class="sr-only">Size: </span>${Math.round(this.size * 100)}%<span class="sr-only">. Back to normal</span></sl-button>
-          <sl-button title="Everything a little larger" ?disabled=${this.size >= 2} @click=${() => this.resize(0.1)}><span aria-hidden="true">A+</span><span class="sr-only">Larger</span></sl-button>
-        </sl-button-group>
+        <div slot="footer" class="to-size">
+          ${stepper('Size of everything', `${Math.round(this.size * 100)}%`, { less: 'Everything a little smaller', more: 'Everything a little larger', onLess: () => this.resize(-0.1), onMore: () => this.resize(0.1), canLess: this.size > 0.8, canMore: this.size < 2, reset: 'Back to the normal size', onReset: () => this.resize(1 - this.size) })}
+        </div>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
       </sl-drawer>
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.driving !== null ? html`<to-drive .folder=${this.driving} @drive-zip=${this.downloadAll} @drive-change=${() => this.requestUpdate()}></to-drive>` : this.renderHome()}</main>
@@ -709,7 +712,6 @@ export class ToApp extends LitElement {
     `;
   }
 
-  /** The document's own bar, in the site header: which app, its title, its state, undo and redo. */
   /** In the header beside the document: Edit (when reading), undo and redo. */
   private renderDocHead() {
     return html`<span class="to-spacer"></span>
@@ -717,8 +719,8 @@ export class ToApp extends LitElement {
         ${this.sealed || this.viewing
           ? nothing
           : html`<sl-button-group label="Undo and redo">
-              <sl-tooltip content="Undo" hoist><sl-button class="icon" size="small" aria-label="Undo" ?disabled=${!this.history.canUndo} @click=${() => this.step(true)}>${icon(UI.undo, 14)}<span class="sr-only">Undo</span></sl-button></sl-tooltip>
-              <sl-tooltip content="Redo" hoist><sl-button class="icon" size="small" aria-label="Redo" ?disabled=${!this.history.canRedo} @click=${() => this.step(false)}>${icon(UI.redo, 14)}<span class="sr-only">Redo</span></sl-button></sl-tooltip>
+              ${tool('Undo', 'undo', () => this.step(true), { disabled: !this.history.canUndo, key: 'Mod+Z' })}
+              ${tool('Redo', 'redo', () => this.step(false), { disabled: !this.history.canRedo, key: 'Mod+Shift+Z' })}
             </sl-button-group>`}`;
   }
 
@@ -726,7 +728,7 @@ export class ToApp extends LitElement {
   private renderTitleLine(current: (typeof APPS)[number]) {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
     return html`<div class="to-panel-head">
-      <a class="to-here" href=${routeHash(current.id)} title="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
+      <a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
       <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} ?readonly=${this.viewing} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
       <span class="meta">
         ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
@@ -768,8 +770,6 @@ export class ToApp extends LitElement {
 
   private renderApp() {
     if (!this.app) return nothing;
-    // Editors load when first wanted; the element upgrades in place once its code arrives.
-    void loadEditor(this.app);
     const tag = unsafeStatic(`to-${this.app}`);
     return html`<${tag} .value=${this.env.body} .present=${this.presenting} @present-end=${this.onPresentEnd}></${tag}>`;
   }
@@ -788,7 +788,6 @@ export class ToApp extends LitElement {
     </section>`;
   }
 
-  /** What this browser has kept, by folder. */
   /** The home page's glimpse of Drive: the last few documents, and the way to all of them. */
   private renderLibrary() {
     if (!saving()) return nothing;
@@ -811,9 +810,9 @@ export class ToApp extends LitElement {
       this.shortBusy = true;
       try {
         this.short = await shorten(this.link, this.shortTtl);
-        await navigator.clipboard.writeText(this.short.short).then(() => this.showToast('Short link copied'), () => undefined);
+        await this.copy(this.short.short, 'Short link copied');
       } catch (err) {
-        this.showToast(err instanceof Error ? err.message : 'Could not shorten the link');
+        this.showToast(errorText(err, 'Could not shorten the link'));
       } finally {
         this.shortBusy = false;
       }
@@ -824,7 +823,7 @@ export class ToApp extends LitElement {
         ${EXPIRIES.map((x) => html`<sl-radio-button value=${String(x.seconds)}>${x.name}</sl-radio-button>`)}
       </sl-radio-group>
       ${this.short
-        ? html`<div class="to-short"><code>${this.short.short}</code><sl-button size="small" @click=${() => navigator.clipboard.writeText(this.short!.short).then(() => this.showToast('Copied'))}>${icon(UI.copy, 14)} Copy</sl-button></div>
+        ? html`<div class="to-short"><code>${this.short.short}</code><sl-button size="small" @click=${() => this.copy(this.short!.short)}>${icon(UI.copy, 14)} Copy</sl-button></div>
             <p class="to-hint">Expires ${fmtDate(this.short.expires)}. ${this.short.short.length} characters, against ${this.link.length}.</p>`
         : nothing}
       <sl-button slot="footer" variant="primary" ?loading=${this.shortBusy} @click=${make}>${icon(UI.link, 14)} Make the short link</sl-button>
@@ -861,7 +860,7 @@ export class ToApp extends LitElement {
 
   /** The privacy widget: one element, drawn in the dialog; its prompt for a sealed link drawn beside the dialogs. */
   private renderPrivacy() {
-    return html`<to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-zip=${this.downloadAll} @privacy-note=${(e: CustomEvent<string>) => this.showToast(e.detail)}></to-privacy>`;
+    return html`<to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-zip=${this.downloadAll}></to-privacy>`;
   }
   private renderPrivacyPrompt() {
     return html`<to-privacy-prompt .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv}></to-privacy-prompt>`;
@@ -891,7 +890,7 @@ export class ToApp extends LitElement {
               ? formatsOf(this.def).map(
                   (f) => html`<span class="to-dl">
                     <sl-button size="small" @click=${() => this.download(f.ext)}>.${f.ext}</sl-button>
-                    <button class="to-copy" type="button" aria-label="Copy a link that downloads the .${f.ext}" title="Copy a link that downloads the .${f.ext}" @click=${() => navigator.clipboard.writeText(this.linkTo(f.ext)).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'))}>${icon(UI.copy, 14)}</button>
+                    ${btn(`Copy a link that downloads the .${f.ext}`, 'copy', () => this.copy(this.linkTo(f.ext), 'Link copied'), { cls: 'to-copy' })}
                   </span>`,
                 )
               : nothing}

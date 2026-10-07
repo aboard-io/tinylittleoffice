@@ -6,7 +6,7 @@
   "description": "A tiny office suite that lives entirely in the URL.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && vite build -c vite.api.config.ts && cp packages/doc/index.d.ts dist/api.d.ts",
+    "build": "tsc --noEmit && vite build && vite build -c vite.api.config.ts && cp packages/doc/index.d.ts dist/api.d.ts && node scripts/precompress.mjs dist",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types test/*.test.ts",

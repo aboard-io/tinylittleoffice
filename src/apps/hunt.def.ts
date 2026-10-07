@@ -54,4 +54,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'hunt', name: 'Scavenger hunt', icon: 'hunt', group: 'Play', blurb: 'A scavenger hunt: each clue opens with the answer to the one before.', title: h1 }, spec);
+export default definePage({ id: 'hunt', name: 'Scavenger hunt', icon: 'hunt', group: 'Play', blurb: 'A scavenger hunt: each clue opens with the answer to the one before.' }, spec);

@@ -17,8 +17,6 @@ export const PALETTE: Record<string, { name: string; hex: string }> = {
 };
 /** Colours in the order a series takes them: each a clear step from the last, whatever your eyes. */
 export const SERIES = ['#0072b2', '#d55e00', '#009e73', '#a05ca8', '#56b4e9', '#e8b400', '#b3261e', '#18181b'];
-/** Light tints to lay text on: the same hues, pale. */
-export const TINTS: Record<string, string> = { b: '#dbeafe', o: '#ffe4cc', g: '#d1f5e8', p: '#f1e0f4', r: '#f9dad7', s: '#e0f2fe', y: '#fff3c4', k: '#e4e4e7' };
 /**
  * Something besides colour, for charts: a pattern to lay over each series
  * after the first, so bars and slices can be told apart in black and white.

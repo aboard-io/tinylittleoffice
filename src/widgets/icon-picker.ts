@@ -5,7 +5,7 @@
  * slide, say) sit above the library, and a footer can hold an app's own
  * controls (a deck's icon colour).
  */
-import { html, render, nothing, type TemplateResult } from 'lit';
+import { html, render, nothing, type TemplateResult } from '../kit.ts';
 import { icon, LIBRARY, UI, allIcons } from '../lib/icons.ts';
 import { iconCategories, iconCount, iconsIn, searchIcons } from '../lib/iconsearch.ts';
 import type { SlDialog, SlInput } from '../lib/shoelace.ts';
@@ -34,7 +34,7 @@ export function chooseIcon(opts: IconChoice = {}): Promise<string | null> {
       picked = name;
       void dialog.hide();
     };
-    const button = (name: string) => html`<button title=${name} aria-label=${name} aria-pressed=${opts.current === name ? 'true' : 'false'} @click=${() => pick(name)}>${icon(LIBRARY[name], 22)}</button>`;
+    const button = (name: string) => html`<button data-tip=${name} aria-label=${name} aria-pressed=${opts.current === name ? 'true' : 'false'} @click=${() => pick(name)}>${icon(LIBRARY[name], 22)}</button>`;
     const draw = (query: string) => {
       const typed = query.trim();
       const found = typed ? searchIcons(query) : cat ? iconsIn(cat) : searchIcons('');

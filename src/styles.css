@@ -1,15 +1,18 @@
 /* ==========================================================================
-   TinyLittleOffice stylesheet. This is the only stylesheet: every component renders
-   into light DOM, and Shoelace components are themed through the tokens in
-   the first section. Change the look here.
+   TinyLittleOffice stylesheet. Every component renders into light DOM, and
+   Shoelace components are themed through the tokens in the first section,
+   so the look lives here (three apps keep a sheet of their own beside their
+   editor: anim.css, calc.css, outline.css). Change the tokens and
+   everything follows; the shared pieces (.to-*) are what an app reaches
+   for before writing a rule of its own.
 
    Sections
      1. Tokens (Shoelace overrides + TinyLittleOffice variables)
      2. Base
      3. Shell: header, navigation, panel, launcher
-     4. Shared pieces: toolbar, hints, meter widget, document dialog
-     5. Apps: sheet, write, deck, draw, cal
-     6. Responsive
+     4. Shared pieces: toolbar, hints, buttons, pills, the tip, dialogs
+     5. Apps, each under its own heading
+     6. Responsive and accessibility, at the end
    ========================================================================== */
 
 @import '@shoelace-style/shoelace/dist/themes/light.css';
@@ -56,13 +59,23 @@
   --to-border-strong: var(--sl-color-neutral-400);
   --to-ink: var(--sl-color-neutral-900);
   --to-ink-2: var(--sl-color-neutral-700);
-  /* The quietest text still has to be readable on the greyest surface (4.5:1). */
-  --to-ink-3: var(--sl-color-neutral-700);
+  /* The quietest text still has to read on the greyest surface: neutral-600 on neutral-100 is 6.9:1. */
+  --to-ink-3: var(--sl-color-neutral-600);
   --to-accent: var(--sl-color-primary-600);
   --to-accent-soft: var(--sl-color-primary-100);
   --to-danger: var(--sl-color-danger-600);
+  --to-success: var(--sl-color-success-600);
+  --to-warning: var(--sl-color-warning-600);
+  /* Words on the accent, and paper: white in both themes. A page stays a page in the dark. */
+  --to-on-accent: #fff;
+  --to-paper: #fff;
   --to-radius: var(--sl-border-radius-medium);
+  --to-radius-sm: 6px;
+  --to-radius-pill: 999px;
   --to-shadow: var(--sl-shadow-small);
+  /* A sheet of paper on the desk, and something floating over the page. */
+  --to-shadow-paper: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --to-shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.16);
   --to-header-h: 56px;
   --to-max-w: 1080px;
   --to-gutter: 16px;
@@ -73,7 +86,6 @@
 .sl-theme-dark {
   --to-bg: var(--sl-color-neutral-0);
   --to-surface: var(--sl-color-neutral-50);
-  --to-surface-2: var(--sl-color-neutral-100);
   color-scheme: dark;
 }
 
@@ -249,7 +261,7 @@ sl-button[aria-pressed='true']::part(label) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-weight: 650;
+  font-weight: 600;
   font-size: 15px;
   color: var(--to-ink);
   text-decoration: none;
@@ -261,7 +273,7 @@ sl-button[aria-pressed='true']::part(label) {
   height: 28px;
   border-radius: 8px;
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
   display: inline-grid;
   place-items: center;
 }
@@ -270,7 +282,7 @@ sl-button[aria-pressed='true']::part(label) {
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--to-radius-pill);
   background: var(--to-accent-soft);
   color: var(--to-accent);
   text-decoration: none;
@@ -282,9 +294,6 @@ sl-button[aria-pressed='true']::part(label) {
 }
 .to-burger {
   margin-left: -8px;
-}
-.to-doc-actions {
-  gap: 4px;
 }
 sl-menu-item svg.pre {
   vertical-align: -2px;
@@ -346,7 +355,7 @@ sl-menu-item svg.pre {
 }
 .to-panel-head h1 {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
   margin: 0;
   display: inline-flex;
   align-items: center;
@@ -377,10 +386,102 @@ sl-menu-item svg.pre {
   background: var(--to-ink);
   color: var(--to-bg);
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--to-radius-pill);
   font-size: 13px;
   z-index: 50;
   box-shadow: var(--sl-shadow-large);
+}
+/* The one tooltip (kit/tip.ts): for anything with a data-tip, on hover, focus, or a long press. */
+.to-tip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--sl-z-index-tooltip);
+  max-width: min(22rem, calc(100vw - 16px));
+  padding: 5px 10px;
+  border-radius: var(--sl-tooltip-border-radius);
+  background: var(--sl-tooltip-background-color);
+  color: var(--sl-tooltip-color);
+  font: var(--sl-tooltip-font-weight) var(--sl-tooltip-font-size) / var(--sl-tooltip-line-height) var(--sl-tooltip-font-family);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.to-tip.open {
+  opacity: 1;
+}
+/* A long press is for the tip, not for the phone's own menu. */
+[data-tip] {
+  -webkit-touch-callout: none;
+}
+/* A small plain button that is an icon (kit btn()), in rows, lists and cards; --size is its side. */
+.to-icon-btn,
+.todo-list .star,
+.board-col .more {
+  display: inline-grid;
+  place-items: center;
+  width: var(--size, 28px);
+  height: var(--size, 28px);
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--to-radius-sm);
+  background: transparent;
+  color: var(--to-ink-3);
+  cursor: pointer;
+}
+.to-icon-btn:hover:not(:disabled),
+.todo-list .star:hover,
+.board-col .more:hover {
+  background: var(--to-surface-2);
+  color: var(--to-ink);
+}
+.to-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+/* A dashed pill that adds something: a row, a folder, a year. */
+.to-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px dashed var(--to-border-strong);
+  border-radius: var(--to-radius-pill);
+  background: none;
+  color: var(--to-ink-2);
+  font: 13px var(--sl-font-sans);
+  cursor: pointer;
+}
+.to-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* A small count in a pill: cards in a stage, items folded away. */
+.to-count {
+  font-size: 12px;
+  color: var(--to-ink-3);
+  padding: 1px 7px;
+  border-radius: var(--to-radius-pill);
+  background: var(--to-surface-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Small capitals over a group: a heading that labels rather than speaks. */
+.to-eyebrow,
+.to-doc h3,
+.to-kept thead th,
+.cal-agenda h2,
+.to-drawer-nav h2,
+.to-group,
+.to-rooms thead th,
+.to-insert-list li.group,
+.deck-show .notes b {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
 }
 
 /* Launcher */
@@ -392,12 +493,6 @@ sl-menu-item svg.pre {
   font-size: 30px;
   letter-spacing: -0.02em;
   margin: 0 0 6px;
-}
-.to-home .lede {
-  color: var(--to-ink-2);
-  font-size: 16px;
-  margin: 0 auto 28px;
-  max-width: 540px;
 }
 .to-launcher {
   display: grid;
@@ -440,12 +535,6 @@ sl-menu-item svg.pre {
 .to-launcher span {
   color: var(--to-ink-2);
   font-size: 13px;
-}
-.to-fine {
-  color: var(--to-ink-3);
-  font-size: 13px;
-  max-width: 560px;
-  margin: 0 auto;
 }
 
 /* 4. Shared pieces --------------------------------------------------------- */
@@ -490,7 +579,7 @@ sl-menu-item svg.pre {
   gap: 8px;
   padding: 3px 4px 3px 6px;
   border: 1px solid var(--to-border);
-  border-radius: 999px;
+  border-radius: var(--to-radius-pill);
   background: var(--to-surface);
 }
 .to-meter sl-progress-ring {
@@ -521,24 +610,6 @@ sl-menu-item svg.pre {
 .to-meter.over .text b {
   color: var(--to-danger);
 }
-.to-meter .copy,
-.to-copy {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--to-ink-2);
-  cursor: pointer;
-}
-.to-meter .copy:hover,
-.to-copy:hover {
-  background: var(--to-surface-2);
-  color: var(--to-ink);
-}
 
 /* Document dialog */
 sl-dialog.to-doc {
@@ -550,11 +621,6 @@ sl-dialog.to-doc {
   gap: 8px;
   margin: 22px 0 10px;
   padding-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--to-ink-2);
   border-bottom: 1px solid var(--to-border);
 }
 .to-doc h3:first-child {
@@ -577,12 +643,6 @@ sl-dialog.to-doc {
   vertical-align: top;
   padding: 8px 10px 8px 0;
   border-bottom: 1px solid var(--to-border);
-}
-.to-kept thead th {
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--to-ink-3);
 }
 .to-kept tbody th {
   font-weight: 500;
@@ -838,7 +898,7 @@ table.sheet td.sel input {
   padding: 0;
   border: 2px solid var(--to-border);
   border-radius: var(--to-radius);
-  background: #fff;
+  background: var(--to-paper);
   cursor: pointer;
   overflow: hidden;
 }
@@ -872,7 +932,6 @@ table.sheet td.sel input {
   width: 100%;
   max-width: 880px;
   aspect-ratio: 16 / 10;
-  box-sizing: border-box;
   padding: 6.667cqw;
   border: 1px solid var(--to-border);
   border-radius: var(--sl-border-radius-large);
@@ -1019,33 +1078,12 @@ to-rich {
 .deck-slide.lay-t .head {
   flex-direction: column;
 }
-.deck-slide.lay-t input.title {
-  width: 100%;
-  flex: none;
-  text-align: center;
-}
-.deck-slide.lay-t .mirror,
-.deck-slide.lay-t textarea {
-  padding-left: 0;
-  text-align: center;
-  color: var(--to-ink-2);
-}
-.deck-slide.lay-t .mirror {
-  color: transparent;
-  min-height: 2.6em;
-}
-.deck-slide.lay-t .mirror div.on::before {
-  content: none;
-}
 .deck-slide .num {
   position: absolute;
   right: 14px;
   bottom: 10px;
   font-size: 12px;
   color: var(--to-ink-3);
-}
-.deck-layout-pick {
-  width: 142px;
 }
 .deck-transition {
   width: 96px;
@@ -1137,7 +1175,7 @@ to-rich {
   position: relative;
   width: min(100vw, 160vh);
   aspect-ratio: 16 / 10;
-  background: #fff;
+  background: var(--to-paper);
 }
 .deck-show .frame > svg {
   display: block;
@@ -1175,7 +1213,7 @@ to-rich {
   position: absolute;
   width: min(100vw, 160vh);
   aspect-ratio: 16 / 10;
-  background: #fff;
+  background: var(--to-paper);
 }
 .deck-show .was svg {
   display: block;
@@ -1260,7 +1298,7 @@ svg.draw-canvas text {
 
 /* Calendar */
 .cal-month {
-  font-weight: 650;
+  font-weight: 600;
   font-size: 15px;
   min-width: 150px;
   text-align: center;
@@ -1313,7 +1351,7 @@ svg.draw-canvas text {
 }
 .cal-cell.today .n {
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
   font-weight: 600;
 }
 .cal-chip {
@@ -1347,7 +1385,7 @@ svg.draw-canvas text {
 }
 .cal-chip.sel {
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
   border-left-color: var(--to-accent);
 }
 .cal-chip b {
@@ -1398,11 +1436,7 @@ svg.draw-canvas text {
   border-top: 1px solid var(--to-border);
 }
 .cal-agenda h2 {
-  font-size: 11.5px;
   margin: 0 0 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--to-ink-3);
 }
 .cal-agenda ul {
   margin: 0;
@@ -1471,14 +1505,8 @@ svg.draw-canvas text {
   .to-toolbar .to-hint {
     display: none;
   }
-  /* iOS zooms into inputs under 16px. */
-  table.sheet td input {
-    font-size: 16px;
-  }
   table.sheet {
     min-width: 0;
-  }
-  table.sheet {
     --sheet-row-w: 30px;
   }
   .sheet-bar {
@@ -1649,7 +1677,7 @@ svg.draw-canvas text {
   opacity: 0.7;
 }
 .to-meter-rooms .over span {
-  color: #fca5a5;
+  color: var(--sl-color-danger-300);
 }
 .to-rooms {
   border-collapse: collapse;
@@ -1665,9 +1693,6 @@ svg.draw-canvas text {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.to-rooms td.to-hint {
-  white-space: normal;
-}
 .to-rooms .over td:nth-child(2) {
   color: var(--to-danger);
   font-weight: 600;
@@ -1675,36 +1700,6 @@ svg.draw-canvas text {
 .to-doc-actions,
 .to-header .to-meter {
   flex: 0 0 auto;
-}
-
-/* Small square buttons inside rows and cards */
-.todo-list button,
-.board-card button,
-.board-col .more,
-.trip-stops button {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border: 0;
-  border-radius: var(--to-radius);
-  background: transparent;
-  color: var(--to-ink-3);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-}
-.todo-list button:hover:not(:disabled),
-.board-card button:hover:not(:disabled),
-.board-col .more:hover,
-.trip-stops button:hover:not(:disabled) {
-  background: var(--to-surface-2);
-  color: var(--to-ink);
-}
-.todo-list button:disabled,
-.board-card button:disabled,
-.trip-stops button:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 /* Todo */
@@ -1755,7 +1750,7 @@ svg.draw-canvas text {
   font-weight: 600;
 }
 .todo-list .star[aria-pressed='true'] {
-  color: #d97706;
+  color: var(--to-warning);
 }
 .todo-list .star[aria-pressed='true'] svg {
   fill: currentColor;
@@ -1799,18 +1794,9 @@ svg.draw-canvas text {
   font: 650 14px var(--sl-font-sans);
   padding: 4px;
 }
-.board-col .count {
-  font-size: 12px;
-  color: var(--to-ink-3);
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--to-surface-2);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
 .board-col.full .count {
   background: var(--to-danger);
-  color: #fff;
+  color: var(--to-on-accent);
 }
 .board-col ul {
   list-style: none;
@@ -1975,7 +1961,7 @@ svg.gantt-chart {
   place-items: center;
   border-radius: 50%;
   background: #4f46e5;
-  color: #fff;
+  color: var(--to-on-accent);
   font: 600 13px var(--sl-font-sans);
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
@@ -2011,7 +1997,7 @@ svg.gantt-chart {
   height: 24px;
   border-radius: 50%;
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
   font-weight: 600;
   font-size: 12.5px;
   display: grid;
@@ -2075,21 +2061,16 @@ svg.gantt-chart {
   white-space: nowrap;
 }
 
-/* Motion */
-.anim {
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-}
-svg/* Draw: colour swatches */
-.draw-colors {
+/* Colour swatches (kit swatches()): a radio group of discs, --size across. */
+.to-swatches {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   align-items: center;
 }
-.draw-colors button {
-  width: 22px;
-  height: 22px;
+.to-swatches button {
+  width: var(--size, 22px);
+  height: var(--size, 22px);
   padding: 0;
   border-radius: 50%;
   border: 2px solid var(--to-surface);
@@ -2097,14 +2078,14 @@ svg/* Draw: colour swatches */
   box-shadow: 0 0 0 1px var(--to-border-strong);
   cursor: pointer;
 }
-.draw-colors button.ink {
-  background: var(--to-ink);
+.to-swatches button.none {
+  background: linear-gradient(135deg, transparent 46%, var(--to-danger) 46% 54%, transparent 54%);
 }
-.draw-colors button:disabled {
+.to-swatches button:disabled {
   opacity: 0.35;
   cursor: default;
 }
-.draw-colors button[aria-checked='true'] {
+.to-swatches button[aria-checked='true'] {
   box-shadow: 0 0 0 2px var(--to-accent);
 }
 
@@ -2126,14 +2107,6 @@ svg/* Draw: colour swatches */
     border-left: 0;
     border-top: 1px solid var(--to-border);
   }
-  .todo-list input.text,
-  .board-card textarea,
-  .board-col input,
-  .gantt-rows input,
-  .trip-stops input.name,
-  .trip-stops textarea {
-    font-size: 16px;
-  }
   .todo-list li {
     flex-wrap: wrap;
   }
@@ -2147,9 +2120,6 @@ svg/* Draw: colour swatches */
   .board-col {
     flex-basis: 78vw;
   }
-  }
-
-@media (max-width: 760px) {
   .to-launcher {
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
@@ -2165,11 +2135,6 @@ svg/* Draw: colour swatches */
 
 /* 8. Kit: things every app shares ------------------------------------------ */
 
-/* Keyboard users always see where they are. */
-:where(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid var(--to-accent);
-  outline-offset: 2px;
-}
 .to-skip {
   position: fixed;
   left: 8px;
@@ -2179,7 +2144,7 @@ svg/* Draw: colour swatches */
   border: 0;
   border-radius: var(--to-radius);
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
   font: 600 14px var(--sl-font-sans);
 }
 .to-skip:focus {
@@ -2187,15 +2152,6 @@ svg/* Draw: colour swatches */
 }
 .to-main:focus {
   outline: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
 }
 .to-keys-head {
   margin: 0 0 6px;
@@ -2230,7 +2186,9 @@ sl-drawer::part(footer) {
   flex-direction: column;
   gap: 8px;
 }
-.to-size {
+.to-size,
+.to-size sl-button-group,
+.to-size sl-button-group::part(base) {
   display: flex;
   width: 100%;
 }
@@ -2264,7 +2222,7 @@ to-embed[contenteditable='false']:focus {
   margin: 0;
   padding: 16px;
   border-top: 1px solid var(--to-border);
-  background: #fff;
+  background: var(--to-paper);
 }
 .sheet-chart svg {
   display: block;
@@ -2277,7 +2235,7 @@ to-embed[contenteditable='false']:focus {
 
 /* Gantt: tasks with parts under them */
 .gantt-rows tr.parent input.label {
-  font-weight: 650;
+  font-weight: 600;
 }
 .gantt-chart .bar.parent path {
   fill: var(--to-ink);
@@ -2414,10 +2372,6 @@ select,
 textarea {
   font-family: var(--sl-font-sans);
 }
-.to-doc-ico {
-  display: inline-grid;
-  color: var(--to-ink-2);
-}
 .to-title {
   flex: 0 1 22em;
   min-width: 4em;
@@ -2545,7 +2499,7 @@ table.sheet td .rich .s {
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  background: #fff;
+  background: var(--to-paper);
   color: #18181b;
 }
 .to-embedded .pic {
@@ -2588,7 +2542,7 @@ table.sheet td .rich .s {
   height: 28px;
   border: 1px solid #d4d4d8;
   border-radius: 6px;
-  background: #fff;
+  background: var(--to-paper);
   color: inherit;
   cursor: pointer;
 }
@@ -2651,7 +2605,7 @@ table.sheet td .rich .s {
   min-width: 0;
   /* Room for the buttons beside a picked shape, which may sit past the picture's edge. */
   padding: 16px 44px 44px 16px;
-  background: #fff;
+  background: var(--to-paper);
   overflow: auto;
 }
 .diagram .pic > svg {
@@ -2668,7 +2622,7 @@ table.sheet td .rich .s {
 }
 .diagram-aside {
   margin-top: 16px;
-  color: #18181b;
+  color: var(--to-ink);
   font-size: 13.5px;
 }
 .diagram-aside h2 {
@@ -2678,19 +2632,19 @@ table.sheet td .rich .s {
 }
 .diagram-aside code {
   font-family: var(--sl-font-mono);
-  color: #3f3f46;
+  color: var(--to-ink-2);
 }
 .diagram-aside table {
   border-collapse: collapse;
 }
 .diagram-aside th,
 .diagram-aside td {
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--to-border-strong);
   padding: 3px 10px;
   text-align: left;
 }
 .diagram-aside th {
-  background: #f4f4f5;
+  background: var(--to-surface-2);
   font-weight: 600;
 }
 .diagram-aside td.n {
@@ -2698,11 +2652,11 @@ table.sheet td .rich .s {
   font-variant-numeric: tabular-nums;
 }
 .diagram-aside .err {
-  color: #b91c1c;
+  color: var(--to-danger);
 }
 .diagram-aside .count {
   margin: 4px 0 0;
-  color: #52525b;
+  color: var(--to-ink-3);
   font-size: 12px;
 }
 @media (max-width: 760px) {
@@ -2722,7 +2676,6 @@ table.sheet td .rich .s {
     min-height: 200px;
     border-right: 0;
     border-bottom: 1px solid var(--to-border);
-    font-size: 16px;
   }
 }
 
@@ -2774,7 +2727,7 @@ table.sheet td .rich .s {
 }
 .cal-chip.tint.day {
   background: var(--c);
-  color: #fff;
+  color: var(--to-on-accent);
 }
 /* Draw: the canvas scrolls inside its frame when zoomed in */
 .draw-wrap {
@@ -2786,11 +2739,7 @@ svg.draw-canvas {
 }
 @media (max-width: 760px) {
   .cal-zone {
-    font-size: 16px;
     width: 160px;
-  }
-  .cal-legend .who {
-    font-size: 16px;
   }
 }
 
@@ -2857,11 +2806,6 @@ svg.draw-canvas {
 .to-group {
   margin: 14px 0 2px;
   padding: 0 14px;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--to-ink-3);
 }
 .to-drawer-nav h2:first-of-type {
   margin-top: 6px;
@@ -2905,7 +2849,7 @@ svg.draw-canvas {
   height: 100%;
   min-height: 560px;
   border: 0;
-  background: #fff;
+  background: var(--to-paper);
 }
 .diagram.page iframe.sample {
   opacity: 0.45;
@@ -2952,16 +2896,8 @@ sl-dialog.to-icons {
   font: 12px var(--sl-font-mono);
   color: var(--to-ink-2);
 }
-.contract-sign li button {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--to-ink-3);
-  cursor: pointer;
+.contract-sign li .to-icon-btn {
+  --size: 24px;
 }
 .contract-sign .row {
   display: flex;
@@ -3135,24 +3071,8 @@ sl-dialog.to-icons {
 
 /* Pixel art: the colours, and the squares */
 .pixel-inks {
-  display: flex;
-  flex-wrap: wrap;
+  --size: 30px;
   gap: 6px;
-}
-.pixel-inks button {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid var(--to-surface);
-  outline: 1px solid var(--to-border);
-  background: var(--c);
-  cursor: pointer;
-}
-.pixel-inks button.none {
-  background: linear-gradient(135deg, transparent 46%, var(--to-danger) 46% 54%, transparent 54%);
-}
-.pixel-inks button[aria-checked='true'] {
-  outline: 3px solid var(--to-accent);
 }
 .pixel-grid {
   display: grid;
@@ -3375,24 +3295,11 @@ to-lines {
   display: flex;
   align-items: center;
 }
-.lf-tools button {
-  display: grid;
-  place-items: center;
-  width: 24px;
+.lf-tools .to-icon-btn {
+  --size: 24px;
   height: 100%;
   min-height: 32px;
-  border: 0;
-  background: transparent;
-  color: var(--to-ink-3);
-  cursor: pointer;
-}
-.lf-tools button:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
-.lf-tools button:not(:disabled):hover {
-  background: var(--to-surface-2);
-  color: var(--to-ink);
+  border-radius: 0;
 }
 .lf-add {
   display: flex;
@@ -3409,7 +3316,7 @@ to-lines {
   color: var(--to-accent);
   background: var(--to-surface);
   border: 1px solid var(--to-border);
-  border-radius: 999px;
+  border-radius: var(--to-radius-pill);
   cursor: pointer;
 }
 .lf-add button:hover {
@@ -3431,7 +3338,7 @@ to-lines {
   height: calc(100dvh - var(--to-header-h) - 96px);
   min-height: 480px;
   border: 0;
-  background: #fff;
+  background: var(--to-paper);
 }
 .to-view.prose {
   max-width: 44rem;
@@ -3458,7 +3365,7 @@ to-lines {
   max-width: 960px;
   max-height: 86vh;
   margin: 0 auto;
-  background: #fff;
+  background: var(--to-paper);
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.14);
 }
 .to-title[readonly] {
@@ -3507,7 +3414,7 @@ to-lines {
 }
 .diagram-ctl g[role='button']:hover,
 .diagram-ctl g[role='button']:focus-visible {
-  color: #fff;
+  color: var(--to-on-accent);
   outline: none;
 }
 
@@ -3549,11 +3456,9 @@ sl-dialog.to-qr {
 .to-meter-rooms .to-rooms {
   font-size: 12px;
 }
-.to-meter-rooms .to-rooms thead th {
-  color: #d4d4d8;
-}
+.to-meter-rooms .to-rooms thead th,
 .to-meter-rooms .to-rooms td.to-hint {
-  color: #d4d4d8;
+  color: var(--sl-color-neutral-300);
 }
 
 /* Insert menus follow the main menu: apps that are kinds of another step in */
@@ -3604,15 +3509,6 @@ sl-menu-item.sub::part(base) {
   opacity: 0.7;
 }
 
-.to-library-off {
-  max-width: 920px;
-  margin: 0 auto 8px;
-  white-space: normal;
-}
-.to-nosave {
-  margin-bottom: 4px;
-}
-
 /* ---------- Seeing it: contrast, zoom, colour, motion ---------- */
 
 /* Placeholders and faint words still read. */
@@ -3622,8 +3518,8 @@ sl-menu-item.sub::part(base) {
 }
 
 /* The buttons in a form row, and the picture's buttons, are a finger wide. */
-.lf-tools button {
-  width: 32px;
+.lf-tools .to-icon-btn {
+  --size: 32px;
   min-height: 36px;
 }
 .lf-row {
@@ -3665,7 +3561,7 @@ sl-menu-item.sub::part(base) {
   .lf-tools button,
   .lf-add button,
   .lf-fold,
-  .pixel-inks button,
+  .to-swatches button,
   .to-library li button {
     border: 1px solid currentColor;
   }
@@ -3689,7 +3585,7 @@ sl-menu-item.sub::part(base) {
     background: Canvas;
   }
   .pixel-grid button,
-  .pixel-inks button,
+  .to-swatches button,
   .cal-chip,
   .to-view.pages .sheet > svg,
   .diagram .pic > svg,
@@ -3715,6 +3611,7 @@ sl-menu-item.sub::part(base) {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
   .deck-show .was {
     display: none;
@@ -3866,17 +3763,11 @@ mark {
   gap: 2px;
   padding: 2px 0 0;
 }
-.pic-edit-acts button {
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
+.pic-edit-acts .to-icon-btn {
+  --size: 26px;
   height: 24px;
-  border: 0;
-  border-radius: 5px;
   background: var(--to-surface);
-  color: var(--to-ink-3);
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--to-shadow-paper);
 }
 .pic-edit-acts button:hover,
 .pic-edit-acts button:focus-visible {
@@ -3961,7 +3852,7 @@ mark {
 .to-insert-list li[role='option'].on,
 .to-insert-list li[role='option']:hover {
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
 }
 .to-insert-list li[role='option'] small {
   color: inherit;
@@ -3969,11 +3860,6 @@ mark {
 }
 .to-insert-list li.group {
   padding: 8px 10px 2px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--to-ink-3);
 }
 .to-insert-list li.none {
   padding: 8px 10px;
@@ -4070,9 +3956,9 @@ sl-dialog.to-import {
   gap: 6px;
   padding: 6px 12px;
   border: 1.5px solid var(--to-accent);
-  border-radius: 999px;
+  border-radius: var(--to-radius-pill);
   background: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
   font: 600 13px var(--sl-font-sans);
   cursor: pointer;
   white-space: nowrap;
@@ -4127,10 +4013,7 @@ sl-dialog.to-import {
   border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 .deck-show .notes b {
-  color: #a5b4fc;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: var(--sl-color-indigo-300);
 }
 .deck-show .notes p {
   margin: 4px 0;
@@ -4149,7 +4032,7 @@ sl-dialog.to-import {
 .to-chip {
   padding: 4px 10px;
   border: 1px solid var(--to-border);
-  border-radius: 999px;
+  border-radius: var(--to-radius-pill);
   background: var(--to-surface);
   color: var(--to-ink-2);
   font: 12.5px var(--sl-font-sans);
@@ -4158,7 +4041,7 @@ sl-dialog.to-import {
 .to-chip.on {
   background: var(--to-accent);
   border-color: var(--to-accent);
-  color: #fff;
+  color: var(--to-on-accent);
 }
 .to-chip:focus-visible {
   outline: 2px solid var(--to-accent);
@@ -4167,20 +4050,8 @@ sl-dialog.to-import {
 
 /* A sheet draws the rows in use; the rest are a tap away */
 .sheet-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   margin: 8px 12px 12px;
-  padding: 6px 12px;
-  border: 1px dashed var(--to-border-strong);
-  border-radius: 999px;
   background: var(--to-surface);
-  color: var(--to-ink-2);
-  font: 13px var(--sl-font-sans);
-  cursor: pointer;
-}
-.sheet-more:focus-visible {
-  outline: 2px solid var(--to-accent);
 }
 
 /* Drive: folders down the left, documents on the right */
@@ -4257,35 +4128,17 @@ sl-dialog.to-import {
 .drive-nav nav a:focus-within .drive-folder-acts {
   opacity: 1;
 }
-.drive-folder-acts button,
-.drive-list li button {
-  border: 0;
-  background: none;
-  color: var(--to-ink-3);
-  padding: 3px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: inline-grid;
-  place-items: center;
+.drive-folder-acts .to-icon-btn,
+.drive-list li .to-icon-btn {
+  --size: 24px;
 }
-.drive-folder-acts button:hover,
-.drive-list li button:hover {
+.drive-folder-acts .to-icon-btn:hover,
+.drive-list li .to-icon-btn:hover {
   background: var(--to-surface);
-  color: var(--to-ink);
 }
 .drive-new,
 .drive-zip,
 .drive-nuke {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border: 1px dashed var(--to-border-strong);
-  border-radius: 999px;
-  background: none;
-  color: var(--to-ink-2);
-  font: 13px var(--sl-font-sans);
-  cursor: pointer;
   align-self: flex-start;
 }
 .drive-foot {
@@ -4299,10 +4152,6 @@ sl-dialog.to-import {
   border: 1.5px solid var(--to-danger);
   color: var(--to-danger);
   font-weight: 600;
-}
-.drive-nuke:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 .drive-main {
   padding: 16px 20px 24px;

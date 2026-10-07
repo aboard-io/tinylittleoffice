@@ -6,10 +6,7 @@
  * viewer picks; the document remembers the zone it was last edited in so a
  * reader elsewhere can flip to the author's time with one click.
  */
-import { LitElement, html, nothing, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { icon, UI } from '../lib/icons.ts';
-import type { SlCheckbox, SlInput } from '../lib/shoelace.ts';
+import { DocElement, defineElement, html, nothing, state, swatches, icon, UI, type SlCheckbox, type SlInput } from '../kit.ts';
 import { CAL_COLORS, parseCalendar, serializeCalendar, sortSpans, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Span } from '../lib/calmodel.ts';
 import { allZones, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
 
@@ -25,21 +22,13 @@ function firstWeekday(): number {
   return 0;
 }
 
-@customElement('to-cal')
-export class ToCal extends LitElement {
-  createRenderRoot() {
-    return this;
-  }
-
-  @property() value = '';
-  @state() private cal: Calendar = { zone: '', spans: [] };
+export class ToCal extends DocElement<Calendar> {
   @state() private zone = localZone();
   @state() private view = { y: 2026, m: 1 };
   @state() private sel = -1;
   /** The colour new spans are given: whoever is adding dates picks theirs. */
   @state() private ink = '';
   @state() private drag: { from: number; to: number; moved: boolean } | null = null;
-  private lastEmitted = '';
   private zones = allZones();
   private week0 = firstWeekday();
 
@@ -49,13 +38,12 @@ export class ToCal extends LitElement {
     this.view = { y: now.y, m: now.m };
   }
 
-  willUpdate(changed: PropertyValues) {
-    if (changed.has('value') && this.value !== this.lastEmitted) {
-      this.cal = parseCalendar(this.value);
-      this.lastEmitted = this.value;
-      this.sel = -1;
-      this.jumpToContent();
-    }
+  protected parse = parseCalendar;
+  protected serialize = serializeCalendar;
+
+  protected loaded() {
+    this.sel = -1;
+    this.jumpToContent();
   }
 
   connectedCallback() {
@@ -70,30 +58,29 @@ export class ToCal extends LitElement {
   /** Open the month of the first span still in the future, else the last span, else today. */
   private jumpToContent() {
     const now = Date.now();
-    const spans = this.cal.spans;
+    const spans = this.doc.spans;
     const target = spans.find((s) => spanEndMs(s) >= now) ?? spans[spans.length - 1];
     const ms = target ? spanStartMs(target) : now;
     const p = target?.kind === 'd' ? { ...dayToYmd(EPOCH_DAY + target.start) } : utcToParts(ms, this.zone);
     this.view = { y: p.y, m: p.m };
   }
 
-  private commit(spans: Span[], keep?: Span) {
+  /** Replace the spans; `keep` stays selected. */
+  private save(spans: Span[], keep?: Span) {
     sortSpans(spans);
-    this.cal = { zone: this.zone, spans, legend: this.cal.legend };
     this.sel = keep ? spans.indexOf(keep) : -1;
-    this.lastEmitted = serializeCalendar(this.cal);
-    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
+    this.commit({ zone: this.zone, spans, legend: this.doc.legend });
   }
 
   private patch(p: Partial<Span>) {
     if (this.sel < 0) return;
-    const next = { ...this.cal.spans[this.sel], ...p };
-    this.commit(this.cal.spans.map((s, i) => (i === this.sel ? next : s)), next);
+    const next = { ...this.doc.spans[this.sel], ...p };
+    this.save(this.doc.spans.map((s, i) => (i === this.sel ? next : s)), next);
   }
 
   private removeSel() {
     if (this.sel < 0) return;
-    this.commit(this.cal.spans.filter((_, i) => i !== this.sel));
+    this.save(this.doc.spans.filter((_, i) => i !== this.sel));
   }
 
   private shiftMonth(d: number) {
@@ -125,14 +112,12 @@ export class ToCal extends LitElement {
 
   /** Say what a colour stands for ("Paul", "Travel"). */
   private nameColor(key: string, name: string) {
-    this.cal = { ...this.cal, legend: { ...this.cal.legend, [key]: name } };
-    this.commit(this.cal.spans, this.sel >= 0 ? this.cal.spans[this.sel] : undefined);
+    this.doc = { ...this.doc, legend: { ...this.doc.legend, [key]: name } };
+    this.save(this.doc.spans, this.sel >= 0 ? this.doc.spans[this.sel] : undefined);
   }
 
   private swatches(current: string, pick: (key: string) => void, label: string) {
-    return html`<div class="draw-colors" role="radiogroup" aria-label=${label}>
-      ${Object.entries(CAL_COLORS).map(([key, c]) => html`<button type="button" role="radio" title=${this.cal.legend?.[key] || c.name} aria-label=${this.cal.legend?.[key] ? `${this.cal.legend[key]} (${c.name})` : c.name} aria-checked=${current === key ? 'true' : 'false'} style="--c:${c.hex}" @click=${() => pick(key)}></button>`)}
-    </div>`;
+    return swatches(label, CAL_COLORS, current, pick, { names: this.doc.legend ?? {} });
   }
 
   /* ---------- creating spans by click or drag across days ---------- */
@@ -160,7 +145,7 @@ export class ToCal extends LitElement {
     const a = Math.min(d.from, d.to);
     const b = Math.max(d.from, d.to);
     const span: Span = { kind: 'd', start: a - EPOCH_DAY, dur: b - a + 1, label: '', ...(this.ink ? { color: this.ink } : {}) };
-    this.commit([...this.cal.spans, span], span);
+    this.save([...this.doc.spans, span], span);
     this.updateComplete.then(() => this.querySelector<SlInput>('#label')?.focus());
   }
 
@@ -199,7 +184,7 @@ export class ToCal extends LitElement {
   }
 
   private setStart(date: string, time: string) {
-    const s = this.cal.spans[this.sel];
+    const s = this.doc.spans[this.sel];
     const ymd = this.parseYmd(date);
     if (!ymd) return;
     if (s.kind === 'd') {
@@ -212,7 +197,7 @@ export class ToCal extends LitElement {
   }
 
   private setEnd(date: string, time: string) {
-    const s = this.cal.spans[this.sel];
+    const s = this.doc.spans[this.sel];
     const ymd = this.parseYmd(date);
     if (!ymd) return;
     if (s.kind === 'd') {
@@ -226,7 +211,7 @@ export class ToCal extends LitElement {
   }
 
   private toggleAllDay(allDay: boolean) {
-    const s = this.cal.spans[this.sel];
+    const s = this.doc.spans[this.sel];
     if (allDay && s.kind === 't') {
       const a = utcToParts(spanStartMs(s), this.zone);
       const b = utcToParts(Math.max(spanStartMs(s), spanEndMs(s) - 1), this.zone);
@@ -274,8 +259,8 @@ export class ToCal extends LitElement {
     const todayP = utcToParts(Date.now(), this.zone);
     const today = ymdToDay(todayP.y, todayP.m, todayP.d);
     const wdFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' });
-    const sel = this.sel >= 0 ? this.cal.spans[this.sel] : null;
-    const docZone = this.cal.zone;
+    const sel = this.sel >= 0 ? this.doc.spans[this.sel] : null;
+    const docZone = this.doc.zone;
     const range = this.drag ? [Math.min(this.drag.from, this.drag.to), Math.max(this.drag.from, this.drag.to)] : null;
 
     return html`
@@ -290,9 +275,7 @@ export class ToCal extends LitElement {
         <input class="cal-zone" aria-label="Time zone" list="cal-zones" autocomplete="off" spellcheck="false" .value=${this.zone.replace(/_/g, ' ')} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} @change=${this.onZone} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
         <datalist id="cal-zones">${this.zones.map((z) => html`<option value=${z.replace(/_/g, ' ')}></option>`)}</datalist>
         ${docZone && docZone !== this.zone && isValidZone(docZone)
-          ? html`<sl-tooltip content="Author's zone" hoist>
-              <sl-button size="small" @click=${() => this.setZone(docZone)}>${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</sl-button>
-            </sl-tooltip>`
+          ? html`<sl-button data-tip="Author's zone" size="small" @click=${() => this.setZone(docZone)}>${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</sl-button>`
           : nothing}
       </div>
       ${this.renderLegend()}
@@ -304,7 +287,7 @@ export class ToCal extends LitElement {
           const p = dayToYmd(day);
           const dayStart = partsToUtc(p.y, p.m, p.d, 0, 0, this.zone);
           const dayEnd = partsToUtc(p.y, p.m, p.d + 1, 0, 0, this.zone);
-          const chips = this.cal.spans
+          const chips = this.doc.spans
             .map((s, idx) => ({ s, idx }))
             .filter(({ s }) =>
               s.kind === 'd'
@@ -322,7 +305,7 @@ export class ToCal extends LitElement {
                 style=${s.color ? `--c:${CAL_COLORS[s.color].hex}` : ''}
                 role="button"
                 tabindex="0"
-                title=${this.fmtRange(s)}
+                data-tip=${this.fmtRange(s)}
                 @click=${(e: Event) => {
                   e.stopPropagation();
                   this.sel = idx;
@@ -335,7 +318,7 @@ export class ToCal extends LitElement {
           </div>`;
         })}</div>`)}
       </div>
-      ${this.cal.spans.length ? this.renderAgenda() : nothing}
+      ${this.doc.spans.length ? this.renderAgenda() : nothing}
     `;
   }
 
@@ -344,8 +327,8 @@ export class ToCal extends LitElement {
     return html`<div class="cal-legend">
       <span class="to-hint">Add in</span>
       ${this.swatches(this.ink, (key) => (this.ink = key), 'Colour for new spans')}
-      <input class="who" aria-label="What this colour stands for" placeholder="Name this colour (yours, say)" maxlength="24" .value=${this.cal.legend?.[this.ink] ?? ''} @change=${(e: Event) => this.nameColor(this.ink, (e.target as HTMLInputElement).value)} />
-      ${Object.entries(this.cal.legend ?? {}).filter(([key, name]) => name && this.cal.spans.some((s) => (s.color ?? '') === key)).map(([key, name]) => html`<span class="key"><i style="background:${CAL_COLORS[key].hex}"></i>${name}</span>`)}
+      <input class="who" aria-label="What this colour stands for" placeholder="Name this colour (yours, say)" maxlength="24" .value=${this.doc.legend?.[this.ink] ?? ''} @change=${(e: Event) => this.nameColor(this.ink, (e.target as HTMLInputElement).value)} />
+      ${Object.entries(this.doc.legend ?? {}).filter(([key, name]) => name && this.doc.spans.some((s) => (s.color ?? '') === key)).map(([key, name]) => html`<span class="key"><i style="background:${CAL_COLORS[key].hex}"></i>${name}</span>`)}
     </div>`;
   }
 
@@ -385,7 +368,7 @@ export class ToCal extends LitElement {
     return html`<div class="cal-agenda">
       <h2>Spans</h2>
       <ul>
-        ${this.cal.spans.map(
+        ${this.doc.spans.map(
           (s, i) => html`<li
             class=${i === this.sel ? 'sel' : ''}
             @click=${() => {
@@ -408,3 +391,4 @@ declare global {
     'to-cal': ToCal;
   }
 }
+defineElement('cal', ToCal);

@@ -7,7 +7,7 @@
  * Document format: see lib/deckmodel.ts. Layout and drawing: deck.def.ts.
  */
 import { keyed } from 'lit/directives/keyed.js';
-import { defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, insertOptions, resolve, loadEditor, isKey } from '../kit.ts';
+import { defineElement, html, nothing, state, property, unsafeSVG, tool, swatches, icon, libraryIcon, UI, LIBRARY, suggestIcons, insertOptions, resolve, isKey } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import { PagesElement, blankPage } from './pages.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
@@ -141,8 +141,6 @@ export class ToDeck extends PagesElement<Deck> {
     this.showing = i;
     this.shown = shown;
     if (i < 0 && this.present) this.dispatchEvent(new CustomEvent('present-end', { bubbles: true, composed: true }));
-    if (i < 0) return;
-    if (resolve(this.shows[i]?.sub ?? '').def?.id === 'trip') void loadEditor('trip');
   }
 
   private forward() {
@@ -191,9 +189,7 @@ export class ToDeck extends PagesElement<Deck> {
     const s = this.slides[this.cur];
     void this.pickIcon({
       suggested: suggestIcons(s.title, s.bullets),
-      footer: () => html`<div class="draw-colors deck-icon-color" role="radiogroup" aria-label="Icon colour, for the whole deck">
-        ${Object.entries(ICON_COLORS).map(([id, c]) => html`<button role="radio" title=${c.name} aria-label=${c.name} aria-checked=${this.doc.color === id ? 'true' : 'false'} style="--c:${c.hex}" @click=${() => this.commit({ ...this.doc, color: id })}></button>`)}
-      </div>`,
+      footer: () => swatches('Icon colour, for the whole deck', ICON_COLORS, this.doc.color, (id) => this.commit({ ...this.doc, color: id }), { cls: 'deck-icon-color' }),
     });
   };
 
@@ -218,7 +214,7 @@ export class ToDeck extends PagesElement<Deck> {
       <div class="to-toolbar" role="toolbar" aria-label="Slides">
         <sl-button-group label="Slides">
           ${tool('Slide', 'plus', () => this.add(), { text: true, disabled: n >= MAX_SLIDES })}
-          <span class="deck-kind to-hint" title="What kind of slide this is">${kindName}</span>
+          <span class="deck-kind to-hint" data-tip="What kind of slide this is">${kindName}</span>
           <to-insert class="deck-add" label="Add a slide" placeholder="Add: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts', icon: LAYOUT_ICONS[l.id] })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
           ${tool('Move slide up', 'up', () => this.move(-1), { disabled: this.cur === 0 })}
           ${tool('Move slide down', 'down', () => this.move(1), { disabled: this.cur === n - 1 })}
@@ -251,7 +247,7 @@ export class ToDeck extends PagesElement<Deck> {
             const end = closingSlide(this.serialize(this.doc));
             if (!end) return nothing;
             const p = slidePage(end, Infinity, undefined, this.doc.color);
-            return html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" title="Ends with a QR code of this deck, so the room can take it home">
+            return html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" data-tip="Ends with a QR code of this deck, so the room can take it home">
               <span class="n">${icon(UI.qr, 12)}</span>
               <svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>
             </div>`;
@@ -262,7 +258,7 @@ export class ToDeck extends PagesElement<Deck> {
             ${s.sub
               ? this.embed()
               : html`            <div class="head">
-              <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
+              <button class="pick ${s.icon ? '' : 'empty'}" data-tip=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
                 ${s.icon ? libraryIcon(s.icon, 32) : html`${icon(UI.smile, 20)}<span>Icon</span>`}
               </button>
               ${this.headline(kind === 't' ? 'Title' : 'Headline')}
@@ -278,7 +274,7 @@ export class ToDeck extends PagesElement<Deck> {
             ${!s.icon && !s.sub && suggested.length
               ? html`<div class="deck-suggest" role="group" aria-label="Suggested icons">
                   <span>${icon(UI.sparkles, 12)} Suggested</span>
-                  ${suggested.slice(0, 4).map((name) => html`<button title=${`Use ${name}`} aria-label=${`Use ${name} icon`} @click=${() => this.patch({ icon: name })}>${icon(LIBRARY[name], 16)}</button>`)}
+                  ${suggested.slice(0, 4).map((name) => html`<button data-tip=${`Use ${name}`} aria-label=${`Use ${name} icon`} @click=${() => this.patch({ icon: name })}>${icon(LIBRARY[name], 16)}</button>`)}
                 </div>`
               : nothing}
             <span class="num">${this.cur + 1} / ${n}</span>

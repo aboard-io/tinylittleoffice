@@ -37,4 +37,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'flashcards', name: 'Flashcards', icon: 'flashcards', group: 'Play', blurb: 'Flashcards: a question, tap, the answer. Shuffle and go again.', title: h1 }, spec);
+export default definePage({ id: 'flashcards', name: 'Flashcards', icon: 'flashcards', group: 'Play', blurb: 'Flashcards: a question, tap, the answer. Shuffle and go again.' }, spec);

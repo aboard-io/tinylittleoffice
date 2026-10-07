@@ -1,6 +1,6 @@
 /** Venn diagram: two or three sets, and what they share. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, shape, PALETTE, type Diagram } from '../lib/diagram.ts';
+import { defineDiagram, frame, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import { textWidth } from '../kit/core.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
@@ -16,12 +16,12 @@ function layout(text: string): Diagram {
   if (!sets.length) return frame([]);
   // Circle centres: side by side, or a triangle for three.
   const centres: [number, number][] = sets.length === 1 ? [[R, R]] : sets.length === 2 ? [[R, R], [R * 2.15, R]] : [[R, R], [R * 2.15, R], [R * 1.575, R * 2]];
-  const circles: Shape[] = sets.map((_, i) => shape('e', centres[i][0] - R, centres[i][1] - R, R * 2, R * 2, '', 1, PALETTE[i]));
+  const circles: Shape[] = sets.map((_, i) => shape('e', centres[i][0] - R, centres[i][1] - R, R * 2, R * 2, '', 1, COLOR_CYCLE[i]));
   const names: Shape[] = sets.map((name, i) => {
     const below = sets.length === 3 && i === 2;
     // (Text is drawn from its left edge, so to centre a line, start it half its width back.)
     const w = textWidth(name, 20) + 8;
-    return shape('t', centres[i][0] - w / 2, below ? centres[i][1] + R + 6 : centres[i][1] - R - 30, w, 24, name, 0, PALETTE[i], 3);
+    return shape('t', centres[i][0] - w / 2, below ? centres[i][1] + R + 6 : centres[i][1] - R - 30, w, 24, name, 0, COLOR_CYCLE[i], 3);
   });
   const lists: Shape[] = groups.flatMap((g) => {
     const idx = g.names.map((n) => sets.indexOf(n));
@@ -54,4 +54,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'venn', group: 'Design', under: 'draw', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.' }, spec);
+export default defineDiagram({ id: 'venn', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.' }, spec);

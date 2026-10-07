@@ -2,8 +2,7 @@
  * <to-contract>: the shared text editor, with a panel for signing. See
  * contract.def.ts for what a signature here does and does not prove.
  */
-import { html, nothing, state, icon, UI } from '../kit.ts';
-import { defineElement } from '../kit.ts';
+import { html, nothing, state, defineElement, btn, icon, errorText, UI } from '../kit.ts';
 import { PageView } from './diagram-page.ts';
 import { privacy } from '../lib/privacy.ts';
 import { keyMark, parseContract, serializeContract, signedMessage, type Signature } from './contract.def.ts';
@@ -47,7 +46,7 @@ class ToContract extends PageView {
       this.commit(serializeContract(c.text, [...c.signatures.filter((s) => s.key !== key), { name, key, sig }]));
       this.note = `Signed as ${name}. Send the link to the other party.`;
     } catch (err) {
-      this.note = err instanceof Error ? err.message : 'Could not sign';
+      this.note = errorText(err, 'Could not sign');
     }
   }
 
@@ -66,8 +65,8 @@ class ToContract extends PageView {
             ${icon(v?.ok === false ? UI.shieldOff : UI.shield, 16)}
             <b>${s.name}</b>
             <span>${!v ? 'Checking…' : v.ok ? 'Signed these exact words' : 'The words have changed since this was signed'}</span>
-            <code title="The fingerprint of the key that signed. Compare it with the signer to be sure it is theirs.">${v?.print ?? keyMark(s.key)}</code>
-            <button type="button" aria-label="Remove ${s.name}'s signature" @click=${() => this.unsign(s)}>${icon(UI.close, 14)}</button>
+            <code data-tip="The fingerprint of the key that signed. Compare it with the signer to be sure it is theirs.">${v?.print ?? keyMark(s.key)}</code>
+            ${btn(`Remove ${s.name}'s signature`, 'close', () => this.unsign(s))}
           </li>`;
         })}
         ${c.signatures.length ? nothing : html`<li class="none">Nobody has signed yet.</li>`}

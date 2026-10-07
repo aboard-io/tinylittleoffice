@@ -47,7 +47,7 @@ export class FoldElement extends PagesElement<Folded> {
     return html`<ol class="zine-panels">
         ${rows.map(
           (r, i) => html`<li>
-            <button class="pick" aria-label="Picture, panel ${i + 1}" title="Choose the picture" @click=${async () => { const name = await chooseIcon(); if (name) save(i, { glyph: name }); }}>${r.glyph ? libraryIcon(r.glyph, 26) : icon(UI.smile, 20)}</button>
+            <button class="pick" aria-label="Picture, panel ${i + 1}" data-tip="Choose the picture" @click=${async () => { const name = await chooseIcon(); if (name) save(i, { glyph: name }); }}>${r.glyph ? libraryIcon(r.glyph, 26) : icon(UI.smile, 20)}</button>
             ${field(i, 'said', 'What is said')} ${field(i, 'caption', 'Caption')}
             ${tool(`Remove panel ${i + 1}`, 'close', () => save(i, null))}
           </li>`,

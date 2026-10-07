@@ -100,10 +100,12 @@ test('${id}: round trip, title and picture', () => {
 
 const index = at('src/apps/index.ts');
 if (!readFileSync(index, 'utf8').includes(`./${id}.def.ts`)) appendFileSync(index, `import './${id}.def.ts';\n`);
+const editors = at('src/apps/editors.ts');
+if (!readFileSync(editors, 'utf8').includes(`./${id}.ts`)) writeFileSync(editors, readFileSync(editors, 'utf8').replace("import { apps }", `import './${id}.ts';\nimport { apps }`));
 
 console.log(`Created ${name}:
   src/apps/${id}.def.ts   name, title, picture, downloads
   src/apps/${id}.ts       the editor
   test/${id}.test.ts
-and added it to src/apps/index.ts. Run "npm run dev" and open #/v2/${id}.
+and added it to src/apps/index.ts and src/apps/editors.ts. Run "npm run dev" and open #/v2/${id}.
 For a share card of its own, add a sketch to scripts/make-icons.mjs and run "npm run icons".`);

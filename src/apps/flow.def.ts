@@ -165,4 +165,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'flow', name: 'Stock and flow', icon: 'flow', group: 'Track', blurb: 'A stock-and-flow model drawn as a Sankey diagram, with a slider for every assumption.', title: h1 }, spec);
+export default definePage({ id: 'flow', name: 'Stock and flow', icon: 'flow', group: 'Track', blurb: 'A stock-and-flow model drawn as a Sankey diagram, with a slider for every assumption.' }, spec);

@@ -3,7 +3,7 @@
  * For a person reviewing what an agent (or a colleague) did to a document,
  * and for the agents themselves. Reached at #/compare, or from Share.
  */
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing } from '../kit.ts';
 import { appOf } from '../kit/core.ts';
 import { decodeEnvelope, type Envelope } from '../lib/envelope.ts';
 import { diff } from '../lib/diff.ts';

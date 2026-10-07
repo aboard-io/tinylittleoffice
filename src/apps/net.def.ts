@@ -37,4 +37,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'net', group: 'Design', under: 'draw', name: 'Network', icon: 'net', blurb: 'Things and the connections between them, drawn round a circle.' }, spec);
+export default defineDiagram({ id: 'net', name: 'Network', icon: 'net', blurb: 'Things and the connections between them, drawn round a circle.' }, spec);

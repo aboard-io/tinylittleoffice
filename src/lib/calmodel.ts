@@ -1,4 +1,5 @@
 import { PALETTE } from './palette.ts';
+import { ACCENT } from '../kit/core.ts';
 /**
  * Calendar document model.
  *
@@ -39,7 +40,7 @@ export interface Calendar {
   legend?: Record<string, string>;
 }
 
-export const CAL_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: '#4f46e5' }, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
+export const CAL_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: ACCENT }, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
 
 const b36 = (n: number) => Math.round(n).toString(36);
 

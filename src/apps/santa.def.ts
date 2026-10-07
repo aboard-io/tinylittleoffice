@@ -79,4 +79,4 @@ export const spec = {
   page,
 };
 
-export default definePage({ id: 'santa', name: 'Secret Santa', icon: 'santa', group: 'Collaborate', blurb: 'Secret Santa: names in; a private link out for each person, showing only who they give to.', title: h1 }, spec);
+export default definePage({ id: 'santa', name: 'Secret Santa', icon: 'santa', group: 'Collaborate', blurb: 'Secret Santa: names in; a private link out for each person, showing only who they give to.' }, spec);
