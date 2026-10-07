@@ -1020,7 +1020,9 @@ test('outline: a deck for every level, and documents as items', async () => {
   assert.deepEqual(slides.map((s) => s.title), ['Launch', 'Product', 'Pricing', 'Marketing', '']);
   assert.equal(slides[0].layout, 't');
   assert.deepEqual(slides[0].bullets, ['Product', 'Marketing', 'Done']);
-  assert.deepEqual(slides[1].bullets, ['Pricing', '  Tiers', 'Onboarding']);
+  // Only the level just under: Tiers has Pricing's own slide.
+  assert.deepEqual(slides[1].bullets, ['Pricing', 'Onboarding']);
+  assert.deepEqual(slides[2].bullets, ['Tiers']);
   assert.equal(slides[4].sub, 'sheet/WAbc');
   assert.equal(embedOf('@@sheet/WAbc'), 'sheet/WAbc');
   assert.equal(embedOf('words @@x'), null);
