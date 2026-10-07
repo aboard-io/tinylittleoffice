@@ -103,14 +103,13 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(':crown Ada | CEO\n  Eve\n  Ben\n    Cy\nCy .. Eve: advises');
   await page.getByRole('button', { name: 'Edit as a form' }).click();
 
-  // Sticky notes: a colour is a choice.
-  await page.goto('/#/sticky');
-  const sticky = page.locator('to-sticky to-lines');
-  await sticky.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Coloured note' }).click();
-  await page.getByRole('combobox', { name: 'Colour, row 1' }).selectOption('green');
-  await page.getByRole('textbox', { name: 'Note, row 1' }).fill('Thank the testers');
-  await expect(page.locator('to-sticky .pic > svg')).toContainText('Thank the');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sticky\/[WYZR]/);
+  // Seating: a table, then its people as rows.
+  await page.goto('/#/seating');
+  const seating = page.locator('to-seating to-lines');
+  await seating.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Table' }).click();
+  await page.getByRole('textbox', { name: 'Table, row 1' }).fill('Head table');
+  await expect(page.locator('to-seating .pic > svg')).toContainText('Head table');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/seating\/[WYZR]/);
 
   // The model: sliders and flows from boxes, and the diagram follows.
   await page.goto('/#/flow');

@@ -92,7 +92,7 @@ test('an app\'s own dictionary makes its links shorter, and old links still open
   assert.ok(shorter >= total * 0.9, `${shorter} of ${total} shorter`);
   assert.ok(after < before * 0.8, `${before} -> ${after}`);
   // The dictionary is a frozen part of the format.
-  assert.ok(Object.keys(APP_DICTS).length >= 60);
+  assert.ok(Object.keys(APP_DICTS).length >= 45);
   // A "w" link needs its app; without it, it is refused rather than misread.
   const w = packDoc('# Harbor Coffee\n## Coffee\nEspresso | 3.00', 'menu');
   assert.equal(w.flag, 'w');

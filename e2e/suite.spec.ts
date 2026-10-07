@@ -4,7 +4,7 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a');
-  await expect(launcher).toHaveCount(61);
+  await expect(launcher).toHaveCount(48);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });
@@ -406,7 +406,7 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   const list = page.locator('.deck-add [role="listbox"]');
   await expect(list).toBeVisible();
   const options = await list.getByRole('option').allTextContents();
-  for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Sticky notes']) expect(options).toContain(name);
+  for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Poll']) expect(options).toContain(name);
   await expect(list.locator('li.group').first()).toHaveText('Layouts');
   await add.fill('two col');
   await expect(list.getByRole('option')).toHaveCount(1);

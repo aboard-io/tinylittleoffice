@@ -132,7 +132,7 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async ({ 
   await expect(pic.locator('rect')).toHaveCount(3);
 
   // The example button fills an empty one in; each app draws its own.
-  for (const [app, sel, n] of [['mind', 'rect', 9], ['lanes', 'polygon', 1], ['venn', 'ellipse', 3], ['net', 'line', 5], ['sticky', 'text', 6]] as const) {
+  for (const [app, sel, n] of [['mind', 'rect', 9], ['lanes', 'polygon', 1], ['venn', 'ellipse', 3], ['net', 'line', 5]] as const) {
     await page.goto(`/#/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
     await expect(page.locator(`to-${app} .pic svg ${sel}`), app).toHaveCount(n);
@@ -370,21 +370,15 @@ test('draw: zoom, and icons', async ({ page }) => {
   await expect(page.locator('to-org .pic svg g[stroke-linecap="round"]')).toHaveCount(1);
 });
 
-test('page apps: an FAQ, a site, a store with a cart, an invoice', async ({ page }) => {
-  // FAQ: questions that open, and can be searched.
-  await page.goto('/#/faq');
+test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
+  // What downloads is the page itself, whole.
+  await page.goto('/#/site');
   await page.getByRole('button', { name: 'Start from an example' }).click();
-  const faq = page.frameLocator('to-faq iframe');
-  await expect(faq.locator('details')).toHaveCount(3);
-  await faq.getByRole('searchbox').fill('server');
-  await expect(faq.locator('details:not([hidden])')).toHaveCount(1);
-  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveAttribute('placeholder', 'Help');
-  // What downloads is that page, whole.
   await page.getByRole('button', { name: 'Download' }).click();
   const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
   const html = readFileSync(await file.path(), 'utf8');
-  expect(file.suggestedFilename()).toBe('help.html');
-  expect(html).toContain('"@type":"FAQPage"');
+  expect(file.suggestedFilename()).toBe('harbor-coffee.html');
+  expect(html).toContain('<h1>Harbor Coffee</h1>');
 
   // A site.
   await page.goto('/#/site');
@@ -494,10 +488,10 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   expect(fits).toBe(true);
   // A page can hold another document.
   await page.getByRole('button', { name: 'Page 3' }).click();
-  await page.getByRole('combobox', { name: 'Insert' }).fill('sticky');
+  await page.getByRole('combobox', { name: 'Insert' }).fill('poll');
   await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
-  await sub.getByRole('textbox', { name: 'Sticky notes, as text' }).fill('Rain on the roof\ngreen: Fresh bread');
+  await sub.getByRole('textbox', { name: 'Poll, as text' }).fill('# Rain on the roof?\n- Fresh bread\n- Soup');
   await sub.getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.zine-page > svg')).toContainText('Fresh bread');
   await reopen(page);
@@ -546,7 +540,7 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
 });
 
-test('paper that folds: a booklet grows, a programme and a brochure print in order', async ({ page }) => {
+test('paper that folds: a booklet grows, a brochure prints in order', async ({ page }) => {
   await page.goto('/#/booklet');
   await expect(page.locator('.zine-thumb')).toHaveCount(8);
   await page.getByRole('textbox', { name: 'Headline' }).fill('Field Notes');
@@ -569,9 +563,6 @@ test('paper that folds: a booklet grows, a programme and a brochure print in ord
   expect(pdf).toContain('/MediaBox [0 0 792 612]');
   expect(pdf.match(/\/Type \/Page\b/g)!.length).toBe(6);
 
-  await page.goto('/#/programme');
-  await expect(page.locator('.zine-thumb')).toHaveCount(4);
-  for (const name of ['Front', 'Inside left', 'Inside right', 'Back']) await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
   await page.goto('/#/brochure');
   await expect(page.locator('.zine-thumb')).toHaveCount(6);
   await page.getByRole('textbox', { name: 'Headline' }).fill('Visit the quay');
@@ -583,7 +574,6 @@ test('paper that folds: a booklet grows, a programme and a brochure print in ord
 test('things to print: write a few lines, get the sheets', async ({ page }) => {
   for (const [app, name, has] of [
     ['poster', 'Poster', 'Friday 12 March, 8pm'],
-    ['certificate', 'Certificate', 'Sam Rivera'],
     ['menu', 'Menu', 'Flat white'],
     ['resume', 'Résumé', 'Ada Lovelace'],
     ['badges', 'Name badges', 'Grace Hopper'],
@@ -635,24 +625,6 @@ test('comic: pages like a zine, each built from panels', async ({ page }) => {
   await page.getByRole('button', { name: 'See the sheet to print' }).click();
   await expect(page.locator('.zine-sheet')).toHaveCount(1);
   await expect(page.locator('.zine-sheet')).toContainText('WALK!');
-});
-
-test('planner: a cover and seven days, filled in like a zine', async ({ page }) => {
-  await page.goto('/#/planner');
-  await expect(page.locator('.zine-thumb')).toHaveCount(8);
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Week of 1 March');
-  await page.getByRole('button', { name: 'Tuesday' }).click();
-  await page.getByRole('textbox', { name: 'Words' }).fill('Dentist 3pm\nCall Sam');
-  const drawn = page.locator('.zine-page > svg');
-  // The day names itself, and is ruled for writing on.
-  await expect(drawn).toContainText('Tuesday');
-  await expect(drawn).toContainText('Dentist 3pm');
-  await expect(drawn.locator('line')).toHaveCount(13);
-  await reopen(page);
-  await page.getByRole('button', { name: 'See the sheet to print' }).click();
-  await expect(page.locator('.zine-sheet')).toContainText('Dentist 3pm');
-  await expect(page.locator('.zine-sheet')).toContainText('Sunday');
-  await shot(page, 'planner');
 });
 
 test('stock and flow: sliders move the diagram', async ({ page }) => {
@@ -728,9 +700,6 @@ test('pixel art: colour squares by clicking, dragging and from the keyboard', as
   // (One square per coloured cell, and the page's own white behind them.)
   await expect(page.locator('.pixel-preview .big svg rect')).toHaveCount((await page.locator('.pixel-grid button[style*="background"]').count()) + 1);
   await shot(page, 'pixel-tools');
-  // A stitch pattern is the same thing on a bigger grid.
-  await page.goto('/#/pattern');
-  await expect(page.getByRole('gridcell')).toHaveCount(576);
 });
 
 test('small apps: games and things to share work as pages', async ({ page }) => {
@@ -784,29 +753,23 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   const text = page.getByRole('textbox', { name: 'Poll, as text' });
   await text.fill((await text.inputValue()) + '\nGrace: Sushi');
   await expect(f.locator('li', { hasText: 'Sushi' }).locator('.top span').last()).toHaveText('2');
-  // Secret Santa: tap your name, say it is you, and see who you give to.
+  // Secret Santa: the organiser gets a link per person; each shows one draw only.
   f = await open('santa');
-  await f.getByRole('button', { name: 'Ada' }).click();
-  await expect(f.locator('#ask')).toBeVisible();
-  await f.getByRole('button', { name: 'Yes, show me' }).click();
-  await expect(f.locator('#who')).toContainText(/^Ada, you give to (Grace|Alan|Margaret|Linus)\.$/);
-  // A capsule stays shut until its day.
-  f = await open('capsule');
-  await expect(f.locator('#shut')).toBeVisible();
-  await expect(f.locator('#note')).toBeHidden();
+  await expect(f.locator('.links li')).toHaveCount(5);
+  const adas = await f.locator('.links li', { hasText: 'Ada' }).getByRole('link').getAttribute('href');
+  await page.goto(adas!.replace(/^https?:\/\/[^/]+\//, '/'));
+  f = page.frameLocator('to-santa iframe');
+  await expect(f.locator('main')).toContainText('Ada, this link is yours alone');
+  await expect(f.locator('main')).not.toContainText('their link');
+  await f.getByRole('button', { name: 'Show me who I give to' }).click();
+  await expect(f.locator('#who')).toContainText(/^You give to (Grace|Alan|Margaret|Linus)\.$/);
   // The bill, settled.
   f = await open('split');
   await expect(f.locator('.pay')).toHaveText(['Grace pays Paul 92.88', 'Ada pays Paul 47.88', 'Sam pays Paul 6.38']);
-  f = await open('countdown');
-  await expect(f.locator('#t b')).toHaveCount(4);
-  f = await open('bio');
-  await expect(f.getByRole('link', { name: 'Newsletter' })).toHaveAttribute('href', 'https://example.com/news');
-  f = await open('reading');
-  await expect(f.getByRole('img', { name: '5 out of 5' })).toBeVisible();
   f = await open('log');
   await expect(f.locator('.sums div').first()).toContainText('22.5 km');
   // And the ones that print or draw.
-  for (const [app, name, has] of [['wordsearch', 'Word search', 'espresso'], ['card', 'Group card', 'Many happy returns.'], ['habits', 'Habit tracker', 'Walk Biscuit'], ['checklist', 'Checklist', 'Walking boots'], ['chords', 'Chord chart', 'Gently down the']] as const) {
+  for (const [app, name, has] of [['wordsearch', 'Word search', 'espresso'], ['chords', 'Chord chart', 'Gently down the']] as const) {
     await page.goto(`/#/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
     await expect(page.getByRole('img', { name: `${name}, sheet 1` }), app).toContainText(has);

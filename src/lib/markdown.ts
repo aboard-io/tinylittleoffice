@@ -285,7 +285,6 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     case 'draw':
       return parseDrawing(body).filter((s) => s.text).map((s) => `- ${s.text}`).join('\n') + '\n';
     case 'pixel':
-    case 'pattern':
       return '```\n' + body + '\n```\n';
     case 'anim':
       return parseAnim(body).items.map((it) => `- ${it.kind === 'i' ? `:${it.value}:` : it.value}`).join('\n') + '\n';
@@ -391,7 +390,6 @@ export function fromMarkdown(def: AppDef, md: string): string {
       return serializeDrawing(shapes);
     }
     case 'pixel':
-    case 'pattern':
       return (/```\n?([\s\S]*?)```/.exec(text)?.[1] ?? text).trim();
     case 'anim': {
       // Each item enters from the left and crosses the stage, one after another.

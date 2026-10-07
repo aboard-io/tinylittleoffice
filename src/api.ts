@@ -42,13 +42,10 @@ const EXAMPLES: Record<string, string> = {
   trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
   anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off\t4,14,p,a',
   pixel: 'ab.c\n.dd',
-  pattern: 'aaa\nb.b',
   zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
   booklet: 'A book\nby me\n\nOne\nwords',
-  programme: 'Tonight\n\nFirst half\nsongs',
   brochure: 'Visit\n\nWhy\nbecause',
   comic: 'Biscuit\n\n \n:dog Walk? | Monday',
-  planner: 'My week\n\nMonday\nGym',
   qr: 'https://tinylittleoffice.com/',
 };
 

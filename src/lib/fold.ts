@@ -1,5 +1,5 @@
 /**
- * Paper that folds: zines, booklets, programmes, brochures. Each is a few
+ * Paper that folds: zines, booklets, brochures, comics. Each is a few
  * small pages (a deck's slides: an icon, a headline, words, or another
  * document) laid on letter paper so that folding puts them in order.
  * A Format says how many pages, how big, and where each lands on the sheet;

@@ -10,6 +10,7 @@ import { parseDrawing, serializeDrawing, paint } from '../src/lib/drawmodel.ts';
 import { TARGETS, blueskyCost, roomFor } from '../src/lib/limits.ts';
 import '../src/apps/index.ts';
 import { appOf } from '../src/kit/core.ts';
+import type { Kind as LineKind } from '../src/lib/lines.ts';
 import { animToSvg } from '../src/apps/anim.def.ts';
 import { boardToCsv } from '../src/apps/board.def.ts';
 import { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv } from '../src/lib/markdown.ts';
@@ -280,7 +281,7 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   const { parseDrawing, isLink } = await import('../src/lib/drawmodel.ts');
   const { pageSvg } = await import('../src/kit/core.ts');
   assert.deepEqual(placeTree(outline('A\n  B\n  C\n    D\nE')).map((p) => [p.node.text, p.node.depth, p.across, p.parent]), [['A', 0, 0.5, -1], ['B', 1, 0, 0], ['C', 1, 1, 0], ['D', 2, 1, 2], ['E', 0, 2, -1]]);
-  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'sticky', 'floor', 'seating', 'family', 'timeline']) {
+  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'floor', 'seating', 'family', 'timeline']) {
     const spec = specOf(id)!;
     const def = appOf(id)!;
     const d = spec.layout!(spec.example);
@@ -418,15 +419,11 @@ test('icons in drawings and diagrams', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
   const org = specOf('org')!.layout!(':crown Ada | CEO\n  :wrench Ben');
   assert.ok(shapeSvg(org.shapes[0], org.shapes).includes('stroke-linecap="round"'));
-  // A note keeps its lines the same size.
-  const sticky = specOf('sticky')!.layout!('green: Thank every one of the testers who helped\nShip');
-  assert.deepEqual(sticky.shapes.map((s) => [s.k, s.c]), [['n', 'g'], ['n', 'o']]);
-  assert.ok(sticky.shapes[0].text.includes(' | '));
 });
 
-test('page apps: an FAQ, a site, a store, an invoice, a contract', async () => {
+test('page apps: a site, a store, an invoice, a contract', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  for (const id of ['faq', 'site', 'store', 'invoice', 'contract', 'flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'capsule', 'split', 'countdown', 'bio', 'log', 'reading']) {
+  for (const id of ['site', 'store', 'invoice', 'contract', 'flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'split', 'log']) {
     const spec = specOf(id)!;
     const page = spec.page!(spec.example);
     assert.ok(page.startsWith('<!doctype html>') && page.includes('<meta property="og:title"') && page.includes('</html>'), id);
@@ -435,8 +432,6 @@ test('page apps: an FAQ, a site, a store, an invoice, a contract', async () => {
     assert.ok(appOf(id)!.view(spec.example)[0].h > 0 && appOf(id)!.title(spec.example).length > 0, `${id} has a title and a picture`);
     assert.ok(spec.page!('').startsWith('<!doctype html>'), `${id} survives being empty`);
   }
-  const faq = specOf('faq')!.page!(specOf('faq')!.example);
-  assert.ok(faq.includes('"@type":"FAQPage"') && faq.includes('<summary>How do I share a document?</summary>'));
   const site = specOf('site')!.page!(specOf('site')!.example);
   assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section id="menu">') && site.includes('<strong>Roasted daily</strong>'));
   const store = specOf('store')!.page!(specOf('store')!.example);
@@ -517,9 +512,7 @@ test('paper that folds: pages land where folding needs them', async () => {
   assert.equal(serializeFold(parseFold('!16\n\nA', booklet), booklet), '!16\n\nA');
   assert.equal(parseFold(numbered(40), booklet).pages.length, 20);
   assert.deepEqual(appOf('booklet')!.view(numbered(8)).map((p) => [p.w, p.h]), Array(4).fill([1056, 816]));
-  // A programme is one such sheet; a brochure folds in three, the front outermost.
-  const programme = formatOf('programme')!;
-  assert.deepEqual(foldSheets(parseFold(numbered(4), programme), programme).map((s) => order(s.svg)), [[4, 1], [2, 3]]);
+  // A brochure folds in three, the front outermost.
   const brochure = formatOf('brochure')!;
   const tri = foldSheets(parseFold(numbered(6), brochure), brochure);
   assert.deepEqual(tri.map((s) => order(s.svg)), [[5, 6, 1], [2, 3, 4]]);
@@ -528,7 +521,7 @@ test('paper that folds: pages land where folding needs them', async () => {
 
 test('things to print: text in, letter sheets out', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], card: [816, 1056], habits: [1056, 816], checklist: [816, 1056], chords: [816, 1056], poster: [816, 1056], certificate: [1056, 816], menu: [816, 1056], resume: [816, 1056], badges: [816, 1056], recipes: [816, 1056] };
+  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], chords: [816, 1056], poster: [816, 1056], menu: [816, 1056], resume: [816, 1056], badges: [816, 1056], recipes: [816, 1056] };
   for (const [id, size] of Object.entries(sizes)) {
     const spec = specOf(id)!;
     for (const text of [spec.example, '', 'x']) {
@@ -552,15 +545,6 @@ test('things to print: text in, letter sheets out', async () => {
   const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
   assert.ok(+long[2] <= 1056 - 2 * 84 + 1 && +long[1] < 624);
   assert.ok(svg('resume').includes('Ada Lovelace') && svg('resume').includes('Experience'));
-  // The planner: a zine whose pages are a cover and seven ruled days. Written plainly, it reads as one.
-  const { readPlanner } = await import('../src/apps/planner.def.ts');
-  const week = readPlanner('My week\nMonday: Gym; Call Sam\nTuesday: Dentist 3pm');
-  assert.equal(week, 'My week\n\nMonday\nGym\nCall Sam\n\nTuesday\nDentist 3pm');
-  assert.equal(readPlanner(week), week);
-  const planner = appOf('planner')!.view(week)[0];
-  assert.deepEqual([planner.w, planner.h], [1056, 816]);
-  assert.ok(['My week', 'Monday', 'Call Sam', 'Dentist 3pm', 'Thursday', 'Sunday'].every((t) => planner.svg.includes(`>${t}</text>`)));
-  assert.equal(planner.svg.match(/rotate\(180/g)!.length, 4);
   // The comic: a zine whose pages are panels with bubbles and captions. Written plainly, it reads as one.
   const { readComic } = await import('../src/apps/comic.def.ts');
   const plain = '# Biscuit\n\n:dog Walk? | Monday, noon.\n:footprints WALK! | Sam arrives.\n\nLater\n:moon Zzz';
@@ -612,7 +596,17 @@ test('small apps: the sums behind them', async () => {
   assert.deepEqual(Object.values(gives).sort(), [...names].sort());
   assert.ok(names.every((n) => gives[n] !== n));
   assert.deepEqual(draw(names), gives);
-  assert.ok(!specOf('santa')!.page!(names.join('\n')).includes(`give to ${gives.Ada}`));
+  // The organiser's page links to a document per person, each holding one draw and no other.
+  const { linkFor, ownDraw } = await import('../src/apps/santa.def.ts');
+  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
+  const organiser = specOf('santa')!.page!('# Office\n' + names.join('\n'));
+  assert.equal((organiser.match(/their link/g) ?? []).length, names.length);
+  const ada = decodeEnvelope(linkFor('Office', 'Ada', gives.Ada).split('/').pop()!, 'santa').body;
+  assert.equal(ada, `# Office\n= Ada > ${gives.Ada}`);
+  assert.ok(!ada.includes(gives.Grace === gives.Ada ? 'zzz' : gives.Grace) || gives.Grace === gives.Ada);
+  assert.deepEqual(ownDraw('= Ada > Grace')!.slice(1), ['Ada', 'Grace']);
+  const theirs = specOf('santa')!.page!(ada);
+  assert.ok(theirs.includes('this link is yours alone') && !theirs.includes(`give to ${gives.Ada}`) && !theirs.includes('their link'));
 
   const { tally } = await import('../src/apps/poll.def.ts');
   assert.deepEqual(tally(specOf('poll')!.example).map((r) => [r.option, r.who.length]), [['Pizza', 0], ['Sushi', 1], ['Tacos', 2]]);
@@ -643,7 +637,6 @@ test('small apps: the sums behind them', async () => {
   const { parsePixels, serializePixels } = await import('../src/apps/pixel.def.ts');
   assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.', 16)), 'ab.c\n\n..d');
   assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
-  assert.ok(appOf('pattern')!.view('ab\na')[0].svg.includes('>Black 2</text>'));
   // Rooms to scale; people round their tables; events in order.
   const floor = specOf('floor')!.layout!('A: 4 x 2 at 0,0\nB: 2 x 2 at 4,0');
   assert.deepEqual(floor.shapes.map((r) => [r.w, r.h, r.text]), [[144, 72, 'A | 4 × 2'], [72, 72, 'B | 2 × 2']]);
@@ -671,7 +664,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
     assert.ok(own >= rows.length * 0.8, `${def.id}: ${own} of ${rows.length} lines have a kind`);
     assert.ok(kinds.every((k) => k.name));
   }
-  assert.ok(forms >= 40, String(forms));
+  assert.ok(forms >= 30, String(forms));
 
   const menu = specOf('menu')!.form!;
   const rows = readLines('# Cafe\n## Coffee\nEspresso|3.00 | Dark\nFlat white | 4.20\nOpen daily', menu);
@@ -685,11 +678,16 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   const org = specOf('org')!.form!;
   assert.deepEqual(readLines('Ada | CEO\n  :wrench Ben\n    Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
   assert.equal(writeLines([{ kind: 1, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 1, values: ['', 'Ben', ''], depth: 1 }], org), ':crown Ada | CEO\n  Ben');
-  const faq = specOf('faq')!.form!;
+  const faq: LineKind[] = [
+    { name: 'Title', is: '# {Title}', once: true },
+    { name: 'Question', is: '{Question}', at: 0 },
+    { name: 'Answer', is: '{Answer:long}', at: 1 },
+  ];
   assert.deepEqual(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq).map((r) => kindsOf(faq).kinds[r.kind].name), ['Title', 'Question', 'Answer', 'Line']);
   assert.equal(writeLines(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq), faq), '# Help\nWhy?\n  Because.\n    Deeper');
   // Choices, optional parts, words between fields.
-  assert.deepEqual(readLines('green: Thank them\nCall Sam: today', specOf('sticky')!.form!).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
+  const notes: LineKind[] = [{ name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' }, { name: 'Note', is: '[:{Picture:icon} ]{Note}' }];
+  assert.deepEqual(readLines('green: Thank them\nCall Sam: today', notes).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
   assert.deepEqual(readLines('Kitchen: 4 x 3 at 5,0\nHall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
   assert.deepEqual(readLines('signup rate = 6% (0 to 30)\nVisitors > Signups = visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A blank line that means something is kept as a row.
@@ -870,13 +868,10 @@ test('markdown, both ways, for every app', async () => {
     trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
     anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off\t4,14,p,a',
     pixel: 'ab.c\n.dd',
-    pattern: 'aaa\nb.b',
     zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A book\nby me\n\nOne\nwords',
-    programme: 'Tonight\n\nFirst half\nsongs',
     brochure: 'Visit\n\nWhy\nbecause',
     comic: 'Biscuit\n\n \n:dog Walk? | Monday',
-    planner: 'My week\n\nMonday\nGym',
     qr: 'https://tinylittleoffice.com/',
   };
   for (const def of apps()) {

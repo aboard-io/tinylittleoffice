@@ -72,7 +72,7 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
           <sl-option value="two">Two-sided: cut and nest</sl-option>
         </sl-select>` : nothing}
         ${f.panels ? nothing : html`<sl-button size="small" @click=${() => this.pickIcon()}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>`}
-        <to-insert label="Insert" placeholder="Insert: sticky notes, map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
+        <to-insert label="Insert" placeholder="Insert: a poll, a map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
         ${f.grow
           ? html`<sl-button-group label="Pages">
               ${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: 4 }, blankPage)] }), { text: true, disabled: n >= f.grow })}

@@ -20,22 +20,20 @@ you have copied the file.
 | Motion | Icons and text that move between the moments you set.                |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Database | A tiny relational database: tables, rows, SQL queries, schema drawn. |
-| Sticky notes | A wall of notes, one per line, in six colours. |
-| FAQ | Questions and answers as a searchable page. |
 | Website | A one-page site from a few lines; downloads as one HTML file. |
 | Store | A shop page with a working cart; orders go by email. |
 | Invoice | Who, what, how much; sums done, PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
 | Zine | Eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
-| Booklet, Programme, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), one sheet folded in half, a trifold. |
-| Comic, Planner | Text in, a folded mini comic or a ruled week out. |
-| Poster, Certificate, Menu, Résumé, Name badges, Recipe cards | A few lines in, letter sheets out, fitted to the page. |
+| Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |
+| Comic | Text in, a folded mini comic out. |
+| Poster, Menu, Résumé, Name badges, Recipe cards | A few lines in, letter sheets out, fitted to the page. |
 | Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
-| Pixel art, Stitch pattern | A grid of squares to colour. |
+| Pixel art | A grid of squares to colour. |
 | Floor plan, Seating chart, Family tree, Timeline | More diagrams from a few lines. |
 | Games | Word search, Adventure, Scavenger hunt, Trivia, Fill in the blanks, Spinner, Flashcards. |
-| Together | Poll, Secret Santa, Group card, Time capsule, Split the bill. |
-| Personal | Habit tracker, Countdown, Links page, Checklist, Log, Reading list, Chord chart. |
+| Together | Poll, Secret Santa (a private link per person), Split the bill. |
+| Personal | Log, Chord chart. |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and

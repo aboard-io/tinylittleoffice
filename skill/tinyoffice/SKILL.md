@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, sticky notes, FAQs, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, certificates, menus, résumés, name badges, recipe cards, stock-and-flow models, pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, polls, Secret Santa draws, countdowns, checklists, logs and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -94,18 +94,6 @@ A table is a heading line `name: column, column > other_table` followed by one r
 
 https://tinylittleoffice.com/db/#title=Team+directory&doc=teams%3A+id%2C+name%0A1%2C+Platform%0A2%2C+Design%0A%0Apeople%3A+id%2C+name%2C+team_id+%3E+teams%0A1%2C+Ann%2C+1%0A2%2C+Bo%2C+2%0A3%2C+Cy%2C+1%0A%0A%3F+select+teams.name%2C+count(*)+as+people+from+people+join+teams+on+team_id+%3D+teams.id+group+by+teams.name
 
-### sticky: sticky notes
-
-One note per line. Start a line with `red:`, `orange:`, `green:`, `blue:` or `purple:` to colour it.
-
-https://tinylittleoffice.com/sticky/#title=Retro&doc=green%3A+Shipping+weekly+worked%0Agreen%3A+Design+reviews%0Ared%3A+Too+many+meetings%0Ared%3A+Flaky+tests%0Ablue%3A+Try+pairing+on+Fridays
-
-### faq: a searchable FAQ page
-
-An optional first line `# Title`, then each question on a line with its answer indented under it.
-
-https://tinylittleoffice.com/faq/#title=Help&doc=%23+Help%0AHow+do+I+share+a+document%3F%0A++Copy+the+link.+The+link+is+the+document.%0AIs+anything+stored%3F%0A++No.+Everything+is+in+the+link.
-
 ### site: a one-page website
 
 `# Name` and a line about it; `## Section` starts each part; `- Point | detail` makes a card (start it with `:icon-name` for an icon); `> Label | https://...` makes a button (`#section-name` links within the page). The Web page download is the finished site as one file.
@@ -166,16 +154,13 @@ Each of these turns a few lines into letter-size sheets; the PDF download prints
 
 - `poster`: an optional `:icon-name` line, a headline, then a line per thing to say. Made as big as fits.
   https://tinylittleoffice.com/poster/#title=Open+mic&doc=%3Amusic%0AOpen+mic+night%0AFriday+12+March%2C+8pm%0AThe+Anchor%2C+14+Quay+Street
-- `certificate`: the same shape: `:award`, what it is, then a line each for who, why, when.
 - `menu`: `# Name`, a line about it, `## Section`, then `Dish | price | what it is`.
   https://tinylittleoffice.com/menu/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0A%23%23+Coffee%0AEspresso+%7C+3.00+%7C+Dark+and+syrupy%0AFlat+white+%7C+4.20
 - `resume`: written like `write` (`# Name`, `## Section`, `- point`), fitted to one page.
 - `badges`: a person per line, `Name | role | where from`. Six badges a sheet.
 - `recipes`: the dish, then a line per ingredient and step; a blank line starts the next card.
 
-`zine` (8 pages), `booklet` (8 to 20), `programme` (4) and `brochure` (6 panels) are pages like a deck's slides: chunks separated by a blank line, each an optional `:icon-name` line, a headline, then lines of words.
-
-`planner` is a zine of a cover and seven ruled days: a title, then a line per day, `Monday: thing; thing`.
+`zine` (8 pages), `booklet` (8 to 20) and `brochure` (6 panels) are pages like a deck's slides: chunks separated by a blank line, each an optional `:icon-name` line, a headline, then lines of words.
 
 `comic` is a zine whose pages are panels: a blank line between pages, a panel per line as `:icon-name What is said | caption`, and `# Title` alone for a title page.
 
@@ -189,13 +174,13 @@ All of these are a few lines of text; the first line is usually `# Title`.
 
 - `flow` (stock and flow, drawn as a Sankey diagram with sliders): `name = 1000 (0 to 5000)` is a number with a slider (`6%` for a rate); `From > To = formula` is a flow. A formula uses slider names and stock names (a stock's name is what has flowed into it so far).
   https://tinylittleoffice.com/flow/#title=Funnel&doc=%23+Funnel%0Avisitors+%3D+20000+%280+to+100000%29%0Asignup+rate+%3D+6%25+%280+to+30%29%0AVisitors+%3E+Signups+%3D+visitors+%2A+signup+rate%0AVisitors+%3E+Bounced+%3D+visitors+-+visitors+%2A+signup+rate
-- `pixel` (16×16) and `pattern` (24×24 stitch chart): a row per line, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
+- `pixel` (16×16): a row per line, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
 - `floor`: `Room: width x depth at left,top`. `seating`: `Table: Ann, Bob, Cy`. `family`: a person or couple per line, children indented. `timeline`: `When: what happened`.
   https://tinylittleoffice.com/timeline/#title=Computing&doc=1843%3A+Lovelace+publishes+her+notes%0A1936%3A+Turing+describes+his+machine%0A1989%3A+The+web+is+proposed
 - Games: `wordsearch` (a word per line), `adventure` (`## scene`, story lines, `> Choice | scene`), `hunt` (`Clue | answer`), `trivia` (`teams: A, B`, `## Round`, `Question | answer`), `madlibs` (a story with `[blanks]`), `spinner` (a choice per line), `flashcards` (`Front | back`).
   https://tinylittleoffice.com/adventure/#title=The+Lighthouse&doc=%23+The+Lighthouse%0A%23%23+start%0AThe+lamp+is+out.%0A%3E+Climb+to+the+lamp+%7C+lamp%0A%23%23+lamp%0AYou+light+it.+The+ship+turns.
-- Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line), `card` (`Name: message`), `capsule` (`open: 2030-01-01`, then the note), `split` (`Name: amount, what for`; `between: A, B, C`).
-- Personal: `habits` (a habit per line), `countdown` (a date, `2027-03-01 18:00`), `bio` (`Label | https://...`), `checklist` (`## Section`, a thing per line), `log` (`when, what, how much`), `reading` (`Title | author | stars | note`), `chords` (`[G]words with [C]chords`, `transpose: 2`).
+- Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line; the page gives the organiser a private link per person, each showing only that person's draw), `split` (`Name: amount, what for`; `between: A, B, C`).
+- Personal: `log` (`when, what, how much`; each kind is totalled), `chords` (`[G]words with [C]chords`, `transpose: 2`).
 
 ## How a link is packed
 
@@ -203,7 +188,7 @@ After `#/v2/<app>/` comes one letter and then base64url bytes: `w` (deflate, pri
 
 ## Icons in diagrams
 
-In `org`, `mind`, `lanes`, `venn`, `net`, `sticky` and `draw`, a label may start with an icon: `:rocket Launch`, `:user Ada | CEO`. Any Lucide icon name works.
+In `org`, `mind`, `lanes`, `venn`, `net` and `draw`, a label may start with an icon: `:rocket Launch`, `:user Ada | CEO`. Any Lucide icon name works.
 
 ## Choosing an app
 
@@ -212,7 +197,7 @@ In `org`, `mind`, `lanes`, `venn`, `net`, `sticky` and `draw`, a label may start
 - A process with handoffs: `lanes`. Systems and what talks to what: `net`. Overlapping categories: `venn`.
 - Tables you want to query: `db`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
-- A wall of ideas or a retro: `sticky`. Questions and answers: `faq`.
+- A wall of ideas or a retro: `board` (one stage) or `draw`. Questions and answers: `site` (`- Question | answer` cards).
 - Something to publish: `site` for a page, `store` for products, `invoice` to bill.
 - Anything else visual: `draw`.
 

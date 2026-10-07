@@ -4,7 +4,7 @@
 //   link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120' });
 //
 // app    which app: sheet, write, deck, draw, cal, todo, board, gantt, trip,
-//        org, mind, lanes, venn, net, db, sticky, faq, site, store, invoice
+//        org, mind, lanes, venn, net, db, site, store, invoice
 // doc    the document as plain text, in the app's format (see /llms.txt)
 // title  the document's name (optional)
 // view   'show' (decks: open presenting), 'embed' (the document alone, for an
