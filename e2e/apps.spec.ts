@@ -655,3 +655,54 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   }
   expect(found).toEqual([]);
 });
+
+test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in one tap', async ({ page }) => {
+  const errs: string[] = []; page.on('pageerror', (e) => errs.push(e.message.slice(0, 200)));
+  await page.goto('/#/outline');
+  const item = (n: number) => page.getByRole('textbox', { name: `Item ${n}` });
+  await item(1).click();
+  await page.keyboard.type('Launch');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Product');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Pricing');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.type('Done');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/outline\/[WYZR]/);
+  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
+  const body = () => decodeEnvelope(page.url().split('/').pop()!, 'outline').body;
+  await expect.poll(body).toBe('Launch\n  Product\n    Pricing\nDone');
+  // Fold Launch: Product and Pricing hide, a count shows.
+  await page.locator('.ol-row .ol-fold').first().click();
+  await expect(page.locator('.ol-row')).toHaveCount(2);
+  await expect(page.locator('.ol-count')).toHaveText('2');
+  await page.locator('.ol-row .ol-fold').first().click();
+  await expect(page.locator('.ol-row')).toHaveCount(4);
+  // Move Done up above Launch with Alt+Up.
+  await item(4).click();
+  await page.keyboard.press('Alt+ArrowUp');
+  await expect.poll(body).toBe('Done\nLaunch\n  Product\n    Pricing');
+  // Zoom in on Launch: only its family shows, with a way back.
+  await page.locator('.ol-row[data-i="1"] .ol-fold').hover();
+  await item(2).click();
+  await page.keyboard.press('Control+.');
+  await expect(page.locator('.ol-row')).toHaveCount(3);
+  await expect(page.locator('.ol-crumbs')).toContainText('Launch');
+  await page.getByRole('button', { name: 'Everything' }).click();
+  await expect(page.locator('.ol-row')).toHaveCount(4);
+  await shot(page, 'outline');
+  // OPML downloads.
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /OPML/ }).click()]);
+  expect(dl.suggestedFilename()).toBe('done.opml');
+  expect(errs).toEqual([]);
+  // The same text, as a mind map.
+  await page.getByRole('button', { name: 'See as' }).click();
+  await page.getByRole('menuitem', { name: 'Mind map' }).click();
+  await expect(page).toHaveURL(/#\/v2\/mind\//);
+  await expect(page.locator('to-mind .pic svg')).toContainText('Pricing');
+});

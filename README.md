@@ -9,6 +9,7 @@ you have copied the file.
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
 | Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, charts. |
+| Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
 | Write | A one-page rich text editor: headings, bold, italic, lists.           |
 | Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |

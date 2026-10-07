@@ -16,6 +16,7 @@ import { parseGantt } from './ganttmodel.ts';
 import { parseTrip } from './tripmodel.ts';
 import { parseCalendar, EPOCH_DAY, isoDay } from './calmodel.ts';
 import { parseDrawing, serializeDrawing, type Shape } from './drawmodel.ts';
+import { parseOutline, serializeOutline } from './outlinemodel.ts';
 import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
@@ -260,6 +261,8 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
   switch (def.id) {
     case 'write':
       return docToMd(body);
+    case 'outline':
+      return parseOutline(body).filter((it) => it.text.trim()).map((it) => `${'  '.repeat(it.depth)}- ${runsToMd(parseInline(it.text))}`).join('\n') + '\n';
     case 'deck':
       return slidesToMd(parseDeck(body), '');
     case 'sheet': {
@@ -350,6 +353,19 @@ export function fromMarkdown(def: AppDef, md: string): string {
   switch (def.id) {
     case 'write':
       return mdToDoc(text);
+    case 'outline':
+      // Lists nest by indent; headings are top-level items; anything else is an item too.
+      return serializeOutline(
+        text
+          .split('\n')
+          .filter((l) => l.trim() && !/^(-{3,}|\*{3,})$/.test(l.trim()))
+          .map((l) => {
+            const h = /^(#{1,6})\s+(.*)$/.exec(l);
+            if (h) return { depth: 0, text: mdLine(h[2]) };
+            const li = /^(\s*)(?:[-*+]|\d+[.)])\s+(.*)$/.exec(l);
+            return li ? { depth: Math.floor(li[1].replace(/\t/g, '  ').length / 2), text: mdLine(li[2]) } : { depth: 0, text: mdLine(l.trim()) };
+          }),
+      );
     case 'deck':
       return serializeDeck(mdToSlides(text));
     case 'sheet': {

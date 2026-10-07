@@ -890,6 +890,7 @@ test('markdown, both ways, for every app', async () => {
   const { apps } = await import('../src/kit/core.ts');
   const samples: Record<string, string> = {
     sheet: 'Item\tCost\nRent\t1200\nFood\t600',
+    outline: 'Launch\n  Product\n    Pricing\n  Marketing',
     write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',
@@ -980,4 +981,28 @@ test('icons are searched by tag and browsed by kind, once the library is in', as
   const cats = iconCategories();
   assert.ok(cats.some((c) => c.name === 'Weather' && c.count > 10));
   assert.ok(iconsIn('weather').includes('cloud-rain'));
+});
+
+test('outline: a tree of lines, moved about, and OPML out', async () => {
+  const { parseOutline, serializeOutline, shift, move, place, remove, toOpml, hasChildren } = await import('../src/lib/outlinemodel.ts');
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const items = parseOutline('Launch\n  Product\n    Pricing\n  Marketing\nDone');
+  assert.deepEqual(items.map((i) => i.depth), [0, 1, 2, 1, 0]);
+  assert.equal(serializeOutline(items), 'Launch\n  Product\n    Pricing\n  Marketing\nDone');
+  // Markdown bullets paste in; a jump of two levels is forgiven to one.
+  assert.equal(serializeOutline(parseOutline('- a\n    - b\n        - c\n            - d')), 'a\n  b\n    c\n      d');
+  assert.equal(serializeOutline(parseOutline('a\n      far')), 'a\n  far');
+  assert.ok(hasChildren(items, 0) && !hasChildren(items, 2));
+  assert.equal(serializeOutline(shift(items, 3, 1)!), 'Launch\n  Product\n    Pricing\n    Marketing\nDone');
+  assert.equal(shift(items, 1, 1), null);
+  assert.equal(serializeOutline(move(items, 1, 1)![0]), 'Launch\n  Marketing\n  Product\n    Pricing\nDone');
+  assert.equal(serializeOutline(place(items, 4, 1, 'under')!), 'Launch\n  Product\n    Pricing\n    Done\n  Marketing');
+  assert.equal(serializeOutline(remove(items, 1)), 'Launch\n  Pricing\n  Marketing\nDone');
+  const opml = toOpml(items, 'Plan');
+  assert.ok(opml.includes('<outline text="Product">') && opml.includes('<outline text="Pricing"/>') && (opml.match(/<\/outline>/g) ?? []).length === 2);
+  // Drawn, and understood by the mind map and org chart as they are.
+  assert.ok(appOf('outline')!.view('Launch\n  Product').at(0)!.svg.includes('>Product</text>'));
+  assert.equal(specOf('mind')!.layout!('Launch\n  Product\n  Marketing').shapes.filter((s) => s.text).length, 3);
+  assert.equal(toMarkdown(appOf('outline')!, 'Launch\n  *Product*\n    Pricing'), '- Launch\n  - **Product**\n    - Pricing\n');
+  assert.equal(fromMarkdown(appOf('outline')!, '# Plan\n\n- a\n  - b\n\n## Later\n- c'), 'Plan\na\n  b\nLater\nc');
 });

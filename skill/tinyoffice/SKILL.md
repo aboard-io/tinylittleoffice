@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -51,6 +51,12 @@ https://tinylittleoffice.com/sheet/#title=Budget&doc=!%7Ct%24%0AItem%09Cost%0ARe
 One block per line. `# ` heading, `## ` subheading, `- ` bullet, `+ ` numbered item; repeat the marker to nest (`-- `). Inline: `*bold*`, `_italic_`, `^underline^`, `~strike~`, `=highlight=`, and an icon in the line as its name between colons, `:rocket:`. A line may start `>c `, `>r ` or `>j ` to be centred, right-aligned or justified. Web addresses become links.
 
 https://tinylittleoffice.com/write/#title=Meeting+notes&doc=%23+Meeting+notes%0AWe+agreed+on+*three+things*.%0A-+Ship+on+Friday%0A--+Ben+owns+the+release%0A-+Review+pricing
+
+### outline: an outliner
+
+One item per line; indent two spaces to put an item under the one above. The same text `mind`, `org` and `family` read, so an outline opens as any of them in a tap. Items take `write`'s inline marks. Downloads as OPML, Markdown (a nested list), text.
+
+https://tinylittleoffice.com/outline/#title=Launch&doc=Launch%0A++Product%0A++++Pricing%0A++++Onboarding%0A++Marketing%0A++++Press
 
 ### deck: slides
 

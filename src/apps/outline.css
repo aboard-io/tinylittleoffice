@@ -1,0 +1,139 @@
+/* The outliner: rows stepped in by depth, a handle and a fold or dot before each */
+.ol {
+  padding: 12px 16px 20px;
+  max-width: 820px;
+}
+.ol-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 1px 0 1px calc(var(--d, 0) * 24px);
+  border-radius: 6px;
+  position: relative;
+}
+.ol-row.sel {
+  background: var(--to-surface-2);
+}
+.ol-row to-rich {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+}
+.ol-row .write-page {
+  padding: 4px 6px;
+  min-height: 1.5em;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.ol-row[aria-level='1'] .write-page {
+  font-weight: 600;
+}
+.ol-handle,
+.ol-fold,
+.ol-dot {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--to-ink-3);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+.ol-handle {
+  cursor: grab;
+  opacity: 0;
+}
+.ol-row:hover .ol-handle,
+.ol-row:focus-within .ol-handle,
+.ol-handle:focus-visible {
+  opacity: 1;
+}
+.ol-fold:hover,
+.ol-dot:hover {
+  background: var(--to-surface-2);
+  color: var(--to-ink);
+}
+.ol-dot span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--to-ink-3);
+  display: block;
+}
+.ol-row[aria-level='1'] .ol-dot span {
+  background: var(--to-accent);
+}
+.ol-fold:focus-visible,
+.ol-dot:focus-visible,
+.ol-handle:focus-visible,
+.ol-add:focus-visible,
+.ol-crumbs button:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 1px;
+}
+.ol-count {
+  align-self: center;
+  font-size: 11px;
+  color: var(--to-ink-3);
+  background: var(--to-surface-2);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-right: 6px;
+}
+/* Where a drag would land: a line under the row, or stepped in */
+.ol-row.drop-after::after,
+.ol-row.drop-under::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--d, 0) * 24px + 50px);
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--to-accent);
+  border-radius: 1px;
+}
+.ol-row.drop-under::after {
+  left: calc(var(--d, 0) * 24px + 74px);
+}
+.ol-add {
+  margin: 8px 0 0 50px;
+  padding: 4px 10px;
+  border: 1px dashed var(--to-border-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--to-ink-2);
+  font: 13px var(--sl-font-sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ol-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 0;
+  font-size: 13px;
+  color: var(--to-ink-3);
+}
+.ol-crumbs button {
+  border: 0;
+  background: none;
+  color: var(--to-accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ol-crumbs button[aria-current='true'] {
+  color: var(--to-ink);
+  font-weight: 600;
+}

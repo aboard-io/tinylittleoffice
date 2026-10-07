@@ -6,6 +6,7 @@
  */
 import './sheet.def.ts';
 import './write.def.ts';
+import './outline.def.ts';
 import './deck.def.ts';
 import './draw.def.ts';
 import './cal.def.ts';

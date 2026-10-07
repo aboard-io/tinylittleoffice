@@ -35,6 +35,7 @@ export function apps(): { id: string; name: string; group: string; blurb: string
 /** Example bodies for the apps that have no form spec; the rest carry their own. */
 const EXAMPLES: Record<string, string> = {
   sheet: 'Item\tCost\nRent\t1200\nFood\t600\nTotal\t=SUM(B2:B3)',
+  outline: 'Launch\n  Product\n    Pricing\n    Onboarding\n  Marketing\n    Press\n  Support',
   write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
   deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
   draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',

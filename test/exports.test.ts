@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -34,6 +34,7 @@ test('file names come from the document title', () => {
 test('every app draws itself, and is a web page with preview tags', () => {
   const samples: Record<string, string> = {
     sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
+    outline: 'Launch\n  <Product>\n    Pricing',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
