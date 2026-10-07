@@ -244,9 +244,7 @@ sl-button[aria-pressed='true']::part(label) {
 .to-header-inner > * {
   flex-shrink: 0;
 }
-.to-header-inner > .to-panel-head {
-  flex-shrink: 1;
-}
+
 .to-brand {
   display: inline-flex;
   align-items: center;
@@ -341,9 +339,10 @@ sl-menu-item svg.pre {
 .to-panel-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 1 1 0;
+  gap: 10px;
   min-width: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--to-border);
 }
 .to-panel-head h1 {
   font-size: 15px;
@@ -1452,12 +1451,7 @@ svg.draw-canvas text {
   .to-panel-head .when {
     display: none;
   }
-  .to-here span {
-    display: none;
-  }
-  .to-here {
-    padding: 6px;
-  }
+
   .to-header-inner {
     gap: 4px;
   }
@@ -1567,19 +1561,24 @@ svg.draw-canvas text {
     width: 22px;
     height: 22px;
   }
-  .to-panel-head .meta,
   .to-header .to-meter .text {
+    display: none;
+  }
+  .to-panel-head .meta .when {
     display: none;
   }
   /* "+" is the menu's job on a phone (any app there starts a new document); undo and redo have no keyboard to fall back on. */
   .to-new,
   .to-header .to-meter .copy,
-  .to-here,
   .to-brand .mark {
     display: none;
   }
-  .to-panel-head {
-    min-width: 3em;
+  /* The app's name gives way to the title on a phone; its icon stays. */
+  .to-here span {
+    display: none;
+  }
+  .to-here {
+    padding: 6px;
   }
   .to-title {
     flex: 1 1 3em;
@@ -1597,7 +1596,7 @@ svg.draw-canvas text {
   }
 }
 /* On a phone the site's mark stands for its name (the privacy switch and the title need the room). */
-@media (max-width: 480px) {
+@media (max-width: 380px) {
   .to-brand span {
     display: none;
   }

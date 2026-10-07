@@ -329,8 +329,8 @@ export class ToApp extends LitElement {
   private arrive(ext: string) {
     const editor = store.get('tinyoffice.open') === 'edit';
     if (editor || ext || this.embedded || !this.env.body || !this.def) return;
-    if (this.def.presents) this.presenting = true;
-    else this.viewing = true;
+    // A link opens as the document to read, never presenting unless the link itself says so (".show").
+    this.viewing = true;
   }
 
   /** The switch: keep things on this device, or leave nothing. Keeping is the choice remembered; private writes nothing. */
@@ -404,7 +404,7 @@ export class ToApp extends LitElement {
 
   /** The link to this document: from its app's own page, so it previews as that app. */
   private get link(): string {
-    return this.linkTo(this.def?.presents ? 'show' : '');
+    return this.linkTo('');
   }
 
   /**
@@ -468,8 +468,8 @@ export class ToApp extends LitElement {
       }
       return;
     }
-    if (how === 'copy' || how === 'copy-edit') {
-      await navigator.clipboard.writeText(how === 'copy' ? url : this.linkTo('')).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'));
+    if (how === 'copy' || how === 'copy-show') {
+      await navigator.clipboard.writeText(how === 'copy' ? url : this.linkTo('show')).then(() => this.showToast('Link copied'), () => this.showToast('Copy failed'));
       return;
     }
     if (how === 'png') return void this.download('png');
@@ -597,7 +597,7 @@ export class ToApp extends LitElement {
           <sl-tooltip content=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} hoist>
             <button class="to-keep ${keeping() ? 'on' : ''}" aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
           </sl-tooltip>
-          ${current ? this.renderDocHead(current) : html`<span class="to-spacer"></span>`}
+          ${current ? this.renderDocHead() : html`<span class="to-spacer"></span>`}
           ${current
             ? html`
                 <to-meter .used=${this.payloadLength} .available=${available} .href=${this.link} .rooms=${roomFor(this.link)} @to-info=${() => this.dialog()?.show()} @to-copy=${() => this.share('copy')}></to-meter>
@@ -618,8 +618,8 @@ export class ToApp extends LitElement {
                         <sl-menu>
                           <sl-menu-label>Share</sl-menu-label>
                           ${'share' in navigator ? html`<sl-menu-item value="native">Share…</sl-menu-item>` : nothing}
-                          <sl-menu-item value="copy">${this.def?.presents ? 'Copy link (opens presenting)' : 'Copy link'}</sl-menu-item>
-                          ${this.def?.presents ? html`<sl-menu-item value="copy-edit">Copy link (opens for editing)</sl-menu-item>` : nothing}
+                          <sl-menu-item value="copy">Copy link</sl-menu-item>
+                          ${this.def?.presents ? html`<sl-menu-item value="copy-show">${icon(UI.play, 14, 'pre')} Copy link (opens presenting)</sl-menu-item>` : nothing}
                           <sl-menu-item value="png">Save a picture</sl-menu-item>
                           <sl-menu-item value="embed">Copy embed code</sl-menu-item>
                           <sl-menu-item value="qr">QR code</sl-menu-item>
@@ -698,21 +698,9 @@ export class ToApp extends LitElement {
   }
 
   /** The document's own bar, in the site header: which app, its title, its state, undo and redo. */
-  private renderDocHead(current: (typeof APPS)[number]) {
-    const over = this.payloadLength > budgetFor(this.urlPrefix).available;
-    return html`<div class="to-panel-head">
-        <a class="to-here" href=${routeHash(current.id)} title="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
-        <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} ?readonly=${this.viewing} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
-        <span class="meta">
-          ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
-          ${this.privacy.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
-          ${this.privacy.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
-          ${this.privacy.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
-          ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
-          ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
-        </span>
-        <span class="to-spacer"></span>
-      </div>
+  /** In the header beside the document: Edit (when reading), undo and redo. */
+  private renderDocHead() {
+    return html`<span class="to-spacer"></span>
         ${this.viewing ? html`<sl-button class="to-edit" size="small" variant="primary" @click=${() => (this.viewing = false)}>${icon(UI.pen, 14)} Edit</sl-button>` : nothing}
         ${this.sealed || this.viewing
           ? nothing
@@ -722,9 +710,27 @@ export class ToApp extends LitElement {
             </sl-button-group>`}`;
   }
 
+  /** One line above the document: what kind it is, its title, when it was made, and its state. */
+  private renderTitleLine(current: (typeof APPS)[number]) {
+    const over = this.payloadLength > budgetFor(this.urlPrefix).available;
+    return html`<div class="to-panel-head">
+      <a class="to-here" href=${routeHash(current.id)} title="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
+      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} ?readonly=${this.viewing} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
+      <span class="meta">
+        ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
+        ${this.privacy.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
+        ${this.privacy.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
+        ${this.privacy.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
+        ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
+        ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
+      </span>
+    </div>`;
+  }
+
   private renderPanel(current: (typeof APPS)[number]) {
     return html`<section class="to-panel" aria-label=${current.name}>
       <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
+      ${this.renderTitleLine(current)}
       <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.viewing ? this.renderView() : this.renderApp()}</div>
     </section>`;
   }

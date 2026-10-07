@@ -448,14 +448,14 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   await expect.poll(() => page.url()).toMatch(/#\/v2\/deck\/[WYZR]/);
   const editing = page.url();
 
-  // The link that is copied and shared is the one that presents.
+  // The link that is copied is the plain one: it opens as the deck to read, never presenting unless asked.
   await copyLink(page);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck/'));
+  // A link that opens presenting is in Share, for when that is what is wanted.
+  await page.getByRole('button', { name: 'Share' }).click();
+  await page.getByRole('menuitem', { name: 'Copy link (opens presenting)' }).click();
   const shared = await page.evaluate(() => navigator.clipboard.readText());
   expect(shared).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck.show/'));
-  // The editing link is there for collaborators.
-  await page.getByRole('button', { name: 'Share' }).click();
-  await page.getByRole('menuitem', { name: 'Copy link (opens for editing)' }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck/'));
 
   // Someone opening the shared link lands in the presentation.
   await page.goto('about:blank');

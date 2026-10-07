@@ -44,7 +44,12 @@ test('a link opens as the document, with Edit a button away', async ({ page }) =
   await page.goto(link('zine', 'Small Joys\nIssue one\n\nCoffee\nThe first cup.'));
   await expect(page.frameLocator('iframe.to-view').locator('section.on')).toContainText('Small Joys');
   await page.goto('about:blank');
+  // A deck's plain link opens as its slides to read; only a ".show" link presents.
   await page.goto(link('deck', 'Hello\none\ntwo'));
+  await expect(page.locator('.deck-show')).toHaveCount(0);
+  await expect(page.locator('.to-view.pages svg').first()).toContainText('Hello');
+  await page.goto('about:blank');
+  await page.goto(link('deck', 'Hello\none\ntwo').replace('#/v2/deck/', '#/v2/deck.show/'));
   await expect(page.locator('.deck-show')).toBeVisible();
 
   // Something new opens ready to make; so does a link written for a program to fill in.
