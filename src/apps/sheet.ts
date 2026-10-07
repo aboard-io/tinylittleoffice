@@ -31,6 +31,16 @@ export class ToSheet extends LitElement {
   @state() private grid: Grid = parseGrid('');
   @state() private sel: [number, number] = [0, 0];
   @state() private focused = false;
+  /** Rows drawn: the sheet goes to ROWS, but only what is in use (and a little room) is on screen; it grows as you go. */
+  @state() private rowsShown = 30;
+  private get used(): number {
+    let n = 0;
+    this.grid.forEach((row, r) => row.some((v) => v !== '') && (n = r + 1));
+    return n;
+  }
+  private get drawn(): number {
+    return Math.min(ROWS, Math.max(this.rowsShown, this.used + 6));
+  }
   /** The far corner of a block of cells; `sel` is the corner it was started from. */
   @state() private end: [number, number] | null = null;
   /** While the fill handle is dragged: the block it would fill. */
@@ -201,6 +211,8 @@ export class ToSheet extends LitElement {
 
   private focusCell(r: number, c: number, keepBlock = false) {
     r = Math.max(0, Math.min(ROWS - 1, r));
+    // Near the bottom of what is drawn, more rows appear.
+    if (r >= this.drawn - 2) this.rowsShown = Math.min(ROWS, this.drawn + 20);
     c = Math.max(0, Math.min(COLS - 1, c));
     if (!keepBlock) this.end = null;
     this.sel = [r, c];
@@ -487,7 +499,7 @@ export class ToSheet extends LitElement {
             </tr>
           </thead>
           <tbody>
-            ${this.grid.map(
+            ${this.grid.slice(0, this.drawn).map(
               (row, r) => html`<tr>
                 <th class="row" scope="row">${r + 1}</th>
                 ${row.map((raw, c) => {
@@ -530,6 +542,7 @@ export class ToSheet extends LitElement {
             )}
           </tbody>
         </table>
+        ${this.drawn < ROWS ? html`<button class="sheet-more" @click=${() => (this.rowsShown = Math.min(ROWS, this.drawn + 50))}>${icon(UI.plus, 14)} 50 more rows <span class="to-hint">(${this.drawn} of ${ROWS.toLocaleString()} shown)</span></button>` : ''}
       </div>
       ${this.chart ? this.renderChart(data) : ''}
     `;

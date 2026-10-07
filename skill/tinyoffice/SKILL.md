@@ -32,7 +32,7 @@ Non-ASCII characters (`·`, `–`, `→`, accents, emoji) are fine: percent-enco
 
 ### sheet: a spreadsheet, and charts
 
-Rows on separate lines, cells separated by tabs. Up to 6 columns (A to F) and 60 rows. A cell starting with `=` is a formula: `+ - * / ^`, comparisons, cell references (`B2`), ranges (`A1:A5`), and `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN INT ABS SQRT MOD NPV IRR PMT FV PV TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`.
+Rows on separate lines, cells separated by tabs. Up to 6 columns (A to F) and 1,000 rows. A cell starting with `=` is a formula: `+ - * / ^`, comparisons, cell references (`B2`), ranges (`A1:A5`), and `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN INT ABS SQRT MOD NPV IRR PMT FV PV TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`.
 
 An optional first line holds settings: `!<chart>|<types>`. The chart is `bar`, `line`, `pie` or nothing. The types are one letter per column: `t` text, `n` number, `$` money, `%` percent, `d` date (written `2027-03-01`), `u` link, `c` checkbox (`x` is ticked), `r` rich text. Dates are numbers of days, so `=B2-A2` is the days between two dates and `=A2+30` is thirty days later.
 

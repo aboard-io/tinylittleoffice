@@ -16,7 +16,7 @@
  * the date a month on. A date column shows such numbers as dates.
  */
 export const COLS = 6;
-export const ROWS = 60;
+export const ROWS = 1000;
 export const COL_NAMES = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 
 /** Every function the engine knows: name, example arguments, what it does. */

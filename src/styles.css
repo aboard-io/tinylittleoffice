@@ -4128,3 +4128,21 @@ sl-dialog.to-import {
   outline: 2px solid var(--to-accent);
   outline-offset: 2px;
 }
+
+/* A sheet draws the rows in use; the rest are a tap away */
+.sheet-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 12px 12px;
+  padding: 6px 12px;
+  border: 1px dashed var(--to-border-strong);
+  border-radius: 999px;
+  background: var(--to-surface);
+  color: var(--to-ink-2);
+  font: 13px var(--sl-font-sans);
+  cursor: pointer;
+}
+.sheet-more:focus-visible {
+  outline: 2px solid var(--to-accent);
+}

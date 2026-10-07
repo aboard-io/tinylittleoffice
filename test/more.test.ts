@@ -48,8 +48,8 @@ test('formula: deep chains and a 20-row sum', () => {
 
 test('formula: refs and literals', () => {
   assert.deepEqual(refToRC('C20'), [19, 2]);
-  assert.deepEqual(refToRC('F30'), [29, 5]);
-  assert.equal(refToRC('C61'), null);
+  assert.deepEqual(refToRC('F1000'), [999, 5]);
+  assert.equal(refToRC('C1001'), null);
   assert.equal(refToRC('G1'), null);
   assert.equal(rcToRef(0, 0), 'A1');
   assert.equal(parseLiteral(' 12.5 '), 12.5);
