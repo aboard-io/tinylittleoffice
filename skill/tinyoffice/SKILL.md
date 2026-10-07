@@ -262,11 +262,14 @@ link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120\nQ2\t18
 
 ## Without a browser
 
-For a program or an agent, the packages make and read these links directly. Until they are on npm and PyPI, install them from the repository:
+The site serves its own API as a module, for programs and agents; nothing to install:
 
-```
-npm i https://gitpkg.vercel.app/ftrain/tinyoffice/packages/doc?main
-pip install "git+https://github.com/ftrain/tinyoffice#subdirectory=packages/python"
+```js
+import { link, linkFromMarkdown, parse, lint, compare, evaluateSheet, runModel, searchIcons } from 'https://tinylittleoffice.com/api.js';
+const url = link('sheet', 'Item\tCost\nRent\t1200', { title: 'Budget', by: 'planner-agent' });
+parse(url).markdown;                 // the document as Markdown
+await lint('deck', body);            // unknown icons, a layout that does not exist, a link too long for a QR code
 ```
 
-`@tinylittleoffice/doc` has `link(app, body, {title, by})`, `linkFromMarkdown`, `parse(url)` (the document as Markdown too), `compare(a, b)` for what changed, `evaluateSheet`, `runModel`, `signed`/`verified` for provenance, and `lint(app, body)` which says what a browser would not: unknown icons, a layout that does not exist, a link too long for a QR code. The `tinyoffice` command does the same from a shell, and `tinyoffice render <link> --out x.pdf` makes the file. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`.
+It runs in Node 20+ (`import('https://tinylittleoffice.com/api.js')` needs `--experimental-network-imports` before Node 22; or save the file), in Deno and Bun, and in a browser. Types are at `/api.d.ts`. `signed`/`verified` sign and check a link; `sealed`/`open` lock one under a password. `tinyoffice.js` is the smaller link-maker for pages. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`. The source, a command-line tool (`tinyoffice render <link> --out x.pdf`) and a Python port of the codec are in the repository, github.com/ftrain/tinyoffice, under `packages/`.
+

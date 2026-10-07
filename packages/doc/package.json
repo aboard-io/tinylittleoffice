@@ -1,5 +1,6 @@
 {
   "name": "@tinylittleoffice/doc",
+  "private": true,
   "version": "0.1.0",
   "description": "TinyLittleOffice without a browser: make, read, compare, sign and evaluate documents that live in links.",
   "license": "MIT",
@@ -8,7 +9,6 @@
   "types": "index.d.ts",
   "exports": { ".": { "types": "./index.d.ts", "import": "./dist/index.js" } },
   "bin": { "tinyoffice": "bin/tinyoffice.js" },
-  "scripts": { "prepublishOnly": "cd ../.. && npm run build:api" },
   "files": ["dist", "bin", "index.d.ts", "README.md"],
   "engines": { "node": ">=20" },
   "peerDependencies": { "playwright": ">=1.40" },

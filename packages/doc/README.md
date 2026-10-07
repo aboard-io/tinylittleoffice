@@ -1,14 +1,16 @@
-# @tinylittleoffice/doc
+# TinyLittleOffice from the command line, and the API
 
 [TinyLittleOffice](https://tinylittleoffice.com/) without a browser. A document is a link: the whole thing (a sheet, a deck, a plan, a contract…) is packed into the part of the URL after `#`, which no server ever sees. This package makes those links, reads them, turns them to and from Markdown and CSV, evaluates sheets and models, compares two versions, and signs and seals them. It runs in Node 20+ and anywhere else with Web Crypto. No dependencies.
 
 It is the office suite for agents chatting: an agent writes a document by writing a link, hands it to another agent or a person in whatever channel they already share, and the next agent reads it, changes it, and emits a new link. Documents are values, so there is nothing to lock, nothing to sync, and the history is the sequence of links.
 
-```sh
-npm i @tinylittleoffice/doc
-# until it is on npm:
-npm i https://gitpkg.vercel.app/ftrain/tinyoffice/packages/doc?main
+The same code is served by the site, with nothing to install:
+
+```js
+import { link, parse } from 'https://tinylittleoffice.com/api.js';
 ```
+
+This folder is the command-line tool built from it. In a clone of the repository: `npm ci && npm run build:api`, then `node packages/doc/bin/tinyoffice.js …` (or `npm link` here for a `tinyoffice` command).
 
 ## In code
 
@@ -75,6 +77,6 @@ https://tinylittleoffice.com/<app>/#/v2/<app>[.<view>]/<payload>
 
 The payload is one flag letter and base64url: the body (with a small envelope of created time, title, author and optional signature) deflated against a dictionary both sides know. Lengths: a link is kept under about 2,000 characters; `URL_LIMIT`. Links are forever: the dictionaries are frozen and every encoding ever written still decodes.
 
-There is a Python port with the same bytes: `pip install tinylittleoffice`.
+There is a Python port of the codec with the same bytes in `packages/python`.
 
 MIT.

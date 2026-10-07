@@ -3,8 +3,6 @@
 Make and read [TinyLittleOffice](https://tinylittleoffice.com/) documents: links that carry the whole document after the `#`, where no server sees it. Byte for byte the same links the site and the JavaScript package (`@tinylittleoffice/doc`) make. No dependencies.
 
 ```sh
-pip install tinylittleoffice
-# until it is on PyPI:
 pip install "git+https://github.com/ftrain/tinyoffice#subdirectory=packages/python"
 ```
 
@@ -22,6 +20,6 @@ p.app, p.env.title, p.env.by, p.env.body
 link_from_markdown("sheet", "Item,Cost\nRent,1200\nFood,600", title="Budget")
 ```
 
-Shaping Markdown offline, evaluating sheets and models, diffing, signing and sealing are in the JavaScript package and its `tinyoffice` command line; this port covers the codec, which is what an agent needs to pass documents about.
+Shaping Markdown offline, evaluating sheets and models, diffing, signing and sealing are in the JavaScript API the site serves at https://tinylittleoffice.com/api.js and its `tinyoffice` command line; this port covers the codec, which is what an agent needs to pass documents about.
 
 MIT.

@@ -6,12 +6,12 @@
   "description": "A tiny office suite that lives entirely in the URL.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build -c vite.api.config.ts && cp packages/doc/index.d.ts dist/api.d.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "new-app": "node scripts/new-app.mjs",
-    "build:api": "vite build -c vite.api.config.ts",
+    "build:api": "API_OUT=packages/doc/dist vite build -c vite.api.config.ts",
     "py-dicts": "node --experimental-strip-types scripts/py-dicts.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.mjs"
   },

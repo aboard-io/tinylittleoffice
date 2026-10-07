@@ -269,14 +269,15 @@ The parameters go after `#`, never `?`: see the next section.
 
 ## For programs and agents
 
-A document is a link, so a program makes one by making a string. Two packages do the packing, byte for byte as the site does:
+A document is a link, so a program makes one by making a string. The site serves its own API for that, no install:
 
-- **JavaScript** `@tinylittleoffice/doc` (`packages/doc`): `link`, `linkFromMarkdown`, `parse`, `compare`, `evaluateSheet`, `runModel`, `signed`/`verified`, `sealed`/`open`, and a `tinyoffice` CLI that also renders a link to PDF/PNG/PPTX/XLSX headlessly. Built from `src/api.ts` with `npm run build:api`.
-- **Python** `tinylittleoffice` (`packages/python`): `link`, `link_from_markdown`, `parse`. Its dictionaries are generated from the TypeScript (`npm run py-dicts`), and a unit test checks both sides produce the same bytes.
+```js
+import { link, parse, lint, compare, evaluateSheet, runModel } from 'https://tinylittleoffice.com/api.js';
+```
+
+`src/api.ts` is the source, built to `dist/api.js` (and `api.d.ts`) with the site. The same build feeds the `tinyoffice` command line in `packages/doc` (`npm run build:api`; it also renders a link to PDF/PNG/PPTX/XLSX headlessly), and `packages/python` is a port of the codec with the same bytes, its dictionaries generated from the TypeScript (`npm run py-dicts`). Neither is published to a registry: the site is where the code lives, and `/llms.txt` is where programs learn the formats.
 
 Plain links also take `&md=` (Markdown or CSV, shaped on opening) and `&by=` (who made it), and every envelope carries `by`, which a signature then proves. Two links compare at `#/compare/<app>/<payload>/<app>/<payload>` (or Share → Compare with another link…), with the lines the second changed.
-
-This is the office suite for agents chatting: an agent writes a link, hands it over in whatever channel it already has, the next agent reads it and emits a new one. Documents are values; the history is the sequence of links; nothing needs a server.
 
 ## Shorter links that expire
 
