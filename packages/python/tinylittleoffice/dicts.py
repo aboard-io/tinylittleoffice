@@ -12,7 +12,7 @@ APP_DICTS = {
     "board": "#To do\n#Doing\n#Done|1\n#Backlog\n",
     "gantt": "1jk,5,1e,Design\n>1jk,2,2s,\n,0,\nBuild\nTest\nLaunch\nReview\n",
     "trip": "!m\n!k\n3xa8g,-fuyo,\n\tnote\nLisbon\nPorto\nLondon\nParis\nStart here\n",
-    "anim": "9\nirocket\t0,a,14,a;8,1y,a,p\ntHello\t4,14,p,a\n",
+    "anim": "!o\n!o,4\n!o,12\nt,\ni,\nr,\no,\ne,\na,\n,0\n,1\n,2\n@0\t0,0,0,0,a,0;\n@1\t\n@2\t\n,a,0\n,i\n,d\n,3\n,n\nrocket\nHello\n",
     "org": " .. : \n:  | \n\nOne person per line, \"Name | Role\". Indent a line to put them under the person above. \"Ben .. Eve: advises\" draws a dotted line between two people.\nAda Diaz | Chief executive\n  Ben Okoro | Engineering\n    Cy Lund | Platform\n    Di Shah | Apps\n  Eve Marsh | Design\n  Flo Reyes | Sales\nCy Lund .. Eve Marsh: design partner",
     "mind": ": \n\nThe idea on the first line; indent lines under it to branch out, and under those to go further.\nLaunch\n  Product\n    Pricing\n    Onboarding\n  Marketing\n    Press\n    Social\n  Support\n    Help pages",
     "lanes": ": \n\nOne step per line, in order: \"Who: what they do\". A step ending in \"?\" is drawn as a decision.\nCustomer: Places order\nSales: Checks stock\nSales: In stock?\nWarehouse: Packs it\nCourier: Delivers\nCustomer: Signs for it",
