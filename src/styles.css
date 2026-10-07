@@ -3790,6 +3790,11 @@ mark {
   position: relative;
   display: inline-flex;
   align-items: center;
+  /* Its own height, whatever row it sits in: a flex row in some browsers would squash it. */
+  height: 32px;
+  min-height: 32px;
+  flex: 0 0 auto;
+  align-self: center;
 }
 .to-insert-icon {
   position: absolute;
@@ -3799,9 +3804,11 @@ mark {
   pointer-events: none;
 }
 .to-insert input {
+  box-sizing: border-box;
+  height: 32px;
   width: 15rem;
   max-width: 48vw;
-  padding: 6px 10px 6px 28px;
+  padding: 0 10px 0 28px;
   font: 14px var(--sl-font-sans);
   color: var(--to-ink);
   background: var(--to-surface);
@@ -3831,6 +3838,10 @@ mark {
 }
 .to-toolbar sl-button-group::part(base) {
   flex-wrap: wrap;
+  align-items: center;
+}
+.to-toolbar sl-button-group to-insert {
+  margin: 0 -1px;
 }
 @media (max-width: 900px) {
   .deck-count,
