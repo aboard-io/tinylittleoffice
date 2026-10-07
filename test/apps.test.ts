@@ -5,13 +5,13 @@ import { parseTodos, serializeTodos } from '../src/lib/todomodel.ts';
 import { emptyBoard, parseBoard, serializeBoard } from '../src/lib/boardmodel.ts';
 import { ganttRange, parseGantt, serializeGantt } from '../src/lib/ganttmodel.ts';
 import { distanceKm, formatKm, parseTrip, routeKm, serializeTrip } from '../src/lib/tripmodel.ts';
-import { parseAnim, serializeAnim, stateAt, withKey } from '../src/lib/animmodel.ts';
+import { depthScale, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes } from '../src/lib/animmodel.ts';
 import { parseDrawing, serializeDrawing, paint } from '../src/lib/drawmodel.ts';
 import { TARGETS, blueskyCost, roomFor } from '../src/lib/limits.ts';
 import '../src/apps/index.ts';
 import { appOf } from '../src/kit/core.ts';
 import type { Kind as LineKind } from '../src/lib/lines.ts';
-import { animToSvg } from '../src/apps/anim.def.ts';
+import { animToSvg, frameSvg } from '../src/apps/anim.def.ts';
 import { boardToCsv } from '../src/apps/board.def.ts';
 import { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv } from '../src/lib/markdown.ts';
 import { ganttToCsv } from '../src/apps/gantt.def.ts';
@@ -103,28 +103,55 @@ test('trip round trip and distances', () => {
 
 test('motion round trip and interpolation', () => {
   assert.equal(serializeAnim(parseAnim('')), '');
-  const anim = {
-    frames: 9,
-    items: [
-      { kind: 'i' as const, value: 'rocket', keys: [{ t: 0, x: 80, y: 320, s: 1 }, { t: 8, x: 560, y: 80, s: 2.5 }] },
-      { kind: 't' as const, value: 'Lift off, now', keys: [{ t: 4, x: 320, y: 200, s: 1 }] },
-    ],
-  };
-  const s = serializeAnim(anim);
-  assert.equal(s, '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off, now\t4,14,p,a');
-  assert.deepEqual(parseAnim(s), anim);
-  assert.deepEqual(stateAt(anim.items[0], 4), { t: 4, x: 320, y: 200, s: 1.75 });
-  assert.deepEqual(stateAt(anim.items[1], 0), { t: 0, x: 320, y: 200, s: 1 });
-  assert.equal(withKey(anim.items[0], { t: 8, x: 0, y: 0, s: 1 }).keys.length, 2);
-  assert.equal(withKey(anim.items[0], { t: 3, x: 0, y: 0, s: 1 }).keys[1].t, 3);
-  const svg = animToSvg(s);
-  assert.ok(svg.includes('type="translate" values="80 320;560 80" keyTimes="0;1" dur="2.00s" repeatCount="indefinite"'));
-  assert.ok(svg.includes('type="scale" values="1;2.5"'));
-  // In another document (a slide, a text) it plays once and holds its last frame.
-  const once = appOf('anim')!.view(s, { embed: true })[0].svg;
+  // A drawing on its own is a motion document in which nothing moves yet.
+  const still = parseAnim('r,2,1,12,6,1b3,Box');
+  assert.equal(still.frames, 24);
+  assert.equal(still.fps, 8);
+  assert.equal(serializeDrawing(still.shapes), 'r,2,1,12,6,1b3,Box');
+  assert.deepEqual(stateAt(still, 0, 5), { t: 5, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '' });
+  const text = '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d';
+  const anim = parseAnim(text);
+  assert.equal(serializeAnim(anim), text);
+  assert.deepEqual(anim.keys[1][1], { t: 23, dx: 200, dy: -200, z: 100, s: 1, r: -30, fx: 'd' });
+  // Halfway between two keys, halfway there; effects hold from a key until the next.
+  assert.deepEqual(stateAt(anim, 1, 11.5), { t: 11.5, dx: 100, dy: -100, z: 50, s: 1, r: -15, fx: '' });
+  assert.equal(stateAt(anim, 1, 23).fx, 'd');
+  assert.equal(stateAt(anim, 1, 99).dx, 200);
+  // Keys replace at the same moment and are kept in order.
+  const more = withKey(anim, 0, { ...restKey(10), s: 2 });
+  assert.deepEqual(more.keys[0].map((k) => k.t), [0, 10, 23]);
+  assert.equal(withKey(more, 0, { ...restKey(10), s: 3 }).keys[0][1].s, 3);
+  assert.deepEqual(removeKey(more, 0, 10).keys[0].map((k) => k.t), [0, 23]);
+  assert.equal(depthScale(200), 1.5);
+  // The frames and the speed are the first line; keys that are all at rest are not written.
+  assert.equal(serializeAnim({ ...still, frames: 36, fps: 12 }), '!10,12\nr,2,1,12,6,1b3,Box');
+  assert.equal(serializeAnim(withKey(still, 0, restKey(5))), '!o\nr,2,1,12,6,1b3,Box');
+  // Redrawn, the keys follow their shapes: edited in place, reordered, or one taken out.
+  const two = parseAnim('!o\nr,2,1,12,6,1,A\ne,20,2,10,6,0,B\n@1\t0,0,0,0,a,0;5,8,0,0,a,0');
+  assert.deepEqual(withShapes(two, parseDrawing('r,4,1,12,6,1,A\ne,20,2,10,6,0,B')).keys[1].length, 2);
+  assert.deepEqual(withShapes(two, parseDrawing('e,20,2,10,6,0,B\nr,2,1,12,6,1,A')).keys.map((k) => k.length), [2, 0]);
+  assert.deepEqual(withShapes(two, parseDrawing('e,20,2,10,6,0,B')).keys.map((k) => k.length), [2]);
+  assert.deepEqual(withShapes(two, parseDrawing('r,2,1,12,6,1,A')).keys.map((k) => k.length), [0]);
+
+  // Each frame is the drawing with every shape where its keys put it, nearer things over further ones.
+  const f = frameSvg(anim, 23);
+  assert.ok(f.includes('transform="translate(296 120) rotate(-30) scale(1.25 1.25) translate(-96 -320)"'), f);
+  assert.ok(f.includes('LIFT OFF') && f.includes('fill="#fff"') && f.includes('filter="url(#fx-d)"'));
+  assert.ok(f.indexOf('LIFT OFF') < f.indexOf('<path d="M4.5 16.5'), 'the rocket, nearer, is drawn last');
+  const mirrored = frameSvg(withKey(still, 0, { ...restKey(0), fx: 'mw' }), 1);
+  assert.ok(mirrored.includes('rotate(4) scale(-1 1)'), mirrored);
+  const pages = appOf('anim')!.frames!(text);
+  assert.equal(pages.pages.length, 24);
+  assert.equal(pages.delayMs, 125);
+  assert.equal(pages.pages[0].w, 640);
+  // On its own it plays and loops; in another document (a slide) it plays once and rests, and a still of it is its end.
+  const svg = animToSvg(text);
+  assert.ok(svg.includes('type="translate" values="96 320;296 120" keyTimes="0;1" dur="2.88s" repeatCount="indefinite"'), svg);
+  assert.ok(svg.includes('<g transform="translate(96 320)">'));
+  const once = appOf('anim')!.view(text, { embed: true })[0].svg;
   assert.ok(once.includes('repeatCount="1" fill="freeze"') && !once.includes('indefinite'));
-  assert.ok(svg.includes('<path d="M4.5 16.5'));
-  assert.ok(svg.includes('<g transform="translate(320 200) scale(1)"><text'));
+  assert.ok(once.includes('<g transform="translate(296 120)">'));
+  assert.deepEqual(appOf('anim')!.outline(text), ['Lift off', 'rocket']);
 });
 
 test('drawing colours and text sizes', () => {
@@ -521,7 +548,7 @@ test('paper that folds: pages land where folding needs them', async () => {
 
 test('things to print: text in, letter sheets out', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], chords: [816, 1056], poster: [816, 1056], menu: [816, 1056], resume: [816, 1056], badges: [816, 1056], recipes: [816, 1056] };
+  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], chords: [816, 1056], menu: [816, 1056], resume: [816, 1056] };
   for (const [id, size] of Object.entries(sizes)) {
     const spec = specOf(id)!;
     for (const text of [spec.example, '', 'x']) {
@@ -532,14 +559,18 @@ test('things to print: text in, letter sheets out', async () => {
     assert.ok(appOf(id)!.title(spec.example).length > 0, `${id} has a title`);
   }
   const svg = (id: string, text?: string) => specOf(id)!.sheets!(text ?? specOf(id)!.example).map((p) => p.svg).join('');
-  // A poster's words are as big as the page allows: a short one is very big.
+  // A poster is a page laid out by the deck's engine, louder: a short one is very big, and a letter sheet.
   const px = (s: string) => Math.max(...[...s.matchAll(/font-size="([\d.]+)"/g)].map((m) => +m[1]));
-  assert.ok(px(svg('poster', 'SALE')) > 200, String(px(svg('poster', 'SALE'))));
-  assert.ok(px(svg('poster')) < px(svg('poster', 'SALE')));
-  // Six badges to a sheet; two recipe cards.
-  assert.equal(specOf('badges')!.sheets!(Array(7).fill('Ada | Eng').join('\n')).length, 2);
-  assert.equal(svg('badges').match(/stroke-dasharray="6 5"/g)!.length, 4);
-  assert.equal(specOf('recipes')!.sheets!('A\nx\n\nB\ny\n\nC\nz').length, 2);
+  const poster = (text: string) => appOf('poster')!.view(text)[0];
+  assert.deepEqual([poster('SALE').w, poster('SALE').h], [816, 1056]);
+  assert.ok(px(poster('SALE').svg) > 100, String(px(poster('SALE').svg)));
+  assert.ok(px(poster('Open mic night\nFriday 12 March, 8pm\nThe Anchor\nFree. Bring a song.').svg) <= px(poster('SALE').svg));
+  // A page type is a deck layout on paper: two columns on a poster.
+  assert.ok(poster('::2\nNow and next\nDesign\nBuild\n|\nTest\nLaunch').svg.includes('>Launch</text>'));
+  // Six badges to a sheet, one page each; two recipe cards.
+  assert.equal(appOf('badges')!.view('!7\n\n' + Array(7).fill('Ada\nEng').join('\n\n')).length, 2);
+  assert.equal(appOf('badges')!.view('Ada\nEng\n\nBob\nOps').map((p) => p.svg.match(/stroke-dasharray="6 5"/g)!.length)[0], 2);
+  assert.equal(appOf('recipes')!.view('A\nx\n\nB\ny\n\nC\nz').length, 2);
   // The menu: dishes and their prices; a long one is shrunk onto the page rather than run off it.
   assert.ok(svg('menu').includes('>Flat white</text>') && svg('menu').includes('>4.20</text>') && svg('menu').includes('>COFFEE</text>'));
   const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
@@ -691,7 +722,8 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   assert.deepEqual(readLines('Kitchen: 4 x 3 at 5,0\nHall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
   assert.deepEqual(readLines('signup rate = 6% (0 to 30)\nVisitors > Signups = visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A blank line that means something is kept as a row.
-  assert.equal(writeLines(readLines('A\nx\n\nB\ny', specOf('recipes')!.form!), specOf('recipes')!.form!), 'A\nx\n\nB\ny');
+  const cards: LineKind[] = [{ name: 'Picture', is: ':{Picture:icon}' }, { name: 'Next card', is: '' }, { name: 'Line', is: '{Text}' }];
+  assert.equal(writeLines(readLines('A\nx\n\nB\ny', cards), cards), 'A\nx\n\nB\ny');
 });
 
 test('outlines: rows move with what is under them; an org chart has dotted lines', async () => {
@@ -767,11 +799,11 @@ test('slides take bold, italic and the rest, like a text does', async () => {
 
 test('a motion slide, held still, is at its end', async () => {
   const { animPage } = await import('../src/apps/anim.def.ts');
-  const body = '9\nirocket\t0,a,14,a;8,1y,a,p';
+  const anim = parseAnim('!9\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;8,5k,-5k,0,a,0');
   // On its own it starts at the start and loops; on a slide it plays once and rests at the end.
-  assert.ok(animPage(body).svg.includes('<g transform="translate(80 320)">'));
-  const once = animPage(body, true).svg;
-  assert.ok(once.includes('<g transform="translate(560 80)">') && once.includes('fill="freeze"'));
+  assert.ok(animPage(anim).svg.includes('<g transform="translate(96 320)">'));
+  const once = animPage(anim, true).svg;
+  assert.ok(once.includes('<g transform="translate(296 120)">') && once.includes('fill="freeze"'));
 });
 
 test('slides: bullets nest', async () => {
@@ -866,10 +898,13 @@ test('markdown, both ways, for every app', async () => {
     board: '#To do|2\nx\ny\n#Done\nz',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
-    anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off\t4,14,p,a',
+    anim: '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
     pixel: 'ab.c\n.dd',
     zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A book\nby me\n\nOne\nwords',
+    poster: ':music\nOpen mic night\nFriday 12 March, 8pm',
+    badges: 'Ada Lovelace\nEngineering\n\nGrace Hopper\nCompilers',
+    recipes: ':cookie\nCardamom buns\n500g flour\n\nCold brew\n100g coffee',
     brochure: 'Visit\n\nWhy\nbecause',
     comic: 'Biscuit\n\n \n:dog Walk? | Monday',
     qr: 'https://tinylittleoffice.com/',

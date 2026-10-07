@@ -31,6 +31,8 @@ test('a link opens as the document, with Edit a button away', async ({ page }) =
   await expect(game.locator('#scene')).toContainText('Bats.');
   await expect(page.locator('to-adventure')).toHaveCount(0);
   await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.locator('to-adventure iframe')).toBeVisible();
+  await page.getByRole('button', { name: 'List', exact: true }).click();
   await expect(page.locator('to-adventure to-lines')).toBeVisible();
 
   // Anything else is its pages; a deck presents.

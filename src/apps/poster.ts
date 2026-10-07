@@ -1,5 +1,5 @@
-/** <to-poster>: the shared outline editor, for this app. */
+/** <to-poster>: the shared editor for pages to print. */
 import './poster.def.ts';
-import { defineDiagramEditor } from './diagram-editor.ts';
+import { defineFoldEditor } from './fold.ts';
 
-defineDiagramEditor('poster');
+defineFoldEditor('poster');

@@ -1,23 +1,16 @@
-/** Name badges: a list of people, six badges to a sheet. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePrint, tile } from '../lib/print.ts';
-import { fitted } from '../lib/fold.ts';
+/** Name badges: a page per person (name, role, where from), six 4 by 3 inch badges to a sheet, with lines to cut along. */
+import { defineFold, fitted, type Format } from '../lib/fold.ts';
+import { tile } from '../lib/print.ts';
 
-export const spec = {
-  form: [
-    { name: 'Person', is: '{Name}[ | {Role}[ | {Where from}]]' },
-  ] as LineKind[],
-  hint: 'A person per line: "Name | role | where from". Six 4 by 3 inch badges print on each sheet, with lines to cut along.',
-  example: 'Ada Lovelace | Engineering | London\nGrace Hopper | Compilers | New York\nAlan Kay | Research | Palo Alto\nMargaret Hamilton | Flight software | Boston',
-  sheets: (text: string) =>
-    tile(
-      text.split('\n').filter((l) => l.trim()).map((l) => {
-        const [title, ...bullets] = l.split('|').map((p) => p.trim());
-        return fitted({ icon: '', title, bullets }, 384, 288, { cover: true, max: 22 });
-      }),
-      2,
-      3,
-    ),
+export const BADGES: Format = {
+  count: 2,
+  grow: 48,
+  by: 1,
+  size: () => ({ w: 384, h: 288 }),
+  name: (i) => `Badge ${i + 1}`,
+  page: (s) => fitted({ ...s, layout: s.layout ?? 't' }, 384, 288, { cover: true, loud: 1.1, max: 22 }),
+  sheets: (p) => tile(p.filter((_, i) => i < p.length), 2, 3),
+  how: () => 'Download the PDF and print it on letter paper, at actual size. Cut along the dashes: six badges a sheet.',
 };
 
-export default definePrint({ id: 'badges', group: 'Print', name: 'Name badges', icon: 'badges', blurb: 'Name badges from a list of people, six to a sheet, ready to cut.' }, spec);
+export default defineFold({ id: 'badges', group: 'Print', under: 'poster', name: 'Name badges', icon: 'badges', blurb: 'Name badges, one page per person, six to a sheet, ready to cut.' }, BADGES);

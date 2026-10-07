@@ -96,6 +96,8 @@ export interface DiagramSpec {
   layout?(text: string): Diagram;
   /** The kinds of line the text is made of: what the form to fill in is built from (see lib/lines.ts). */
   form?: LineKind[];
+  /** Which fields of which kind hold a thing's place, and the px per unit: then a thing can be dragged where it goes. */
+  moves?: { kind: number; x: number; y: number; unit: number };
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
   /** For page apps: the text as a whole web page, shown beside it as it is typed. */

@@ -186,6 +186,29 @@ export function shiftBlock(rows: Row[], given: Kind[], i: number, by: -1 | 1): R
   return rows.map((r, n) => (n >= i && n < end && kinds[r.kind].indent ? { ...r, depth: Math.max(0, r.depth + by) } : r));
 }
 
+/**
+ * Put row i (with everything under it) somewhere else: under row `to`, as
+ * its last child, or right after `to`'s block at `to`'s level. For a drag
+ * of one thing onto another. Null when it makes no sense (onto itself or
+ * its own child, or under a kind that has no children).
+ */
+export function placeBlock(rows: Row[], given: Kind[], i: number, to: number, how: 'under' | 'after'): Row[] | null {
+  const { kinds } = kindsOf(given);
+  const end = blockEnd(rows, given, i);
+  if (to >= i && to < end) return null;
+  if (how === 'under' && !kinds[rows[to].kind].indent) how = 'after';
+  const block = rows.slice(i, end);
+  const rest = [...rows.slice(0, i), ...rows.slice(end)];
+  const at = to < i ? to : to - block.length;
+  const target = rest[at];
+  if (!target) return null;
+  const depth = how === 'under' ? target.depth + 1 : target.depth;
+  const shift = depth - block[0].depth;
+  const moved = block.map((r) => ({ ...r, depth: kinds[r.kind].indent ? Math.max(0, r.depth + shift) : r.depth }));
+  const where = blockEnd(rest, given, at);
+  return [...rest.slice(0, where), ...moved, ...rest.slice(where)];
+}
+
 /** Take row i away. What was under it comes out a level, to sit where it was. */
 export function removeRow(rows: Row[], given: Kind[], i: number): Row[] {
   const { kinds } = kindsOf(given);

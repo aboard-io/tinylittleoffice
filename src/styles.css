@@ -2722,6 +2722,25 @@ table.sheet td .rich .s {
   grid-template-columns: minmax(240px, 34%) 1fr;
   min-height: 420px;
 }
+/* The picture alone: the list is a tap away, not a fixture. */
+.diagram.alone {
+  grid-template-columns: 1fr;
+}
+.diagram .pic > svg g.pick {
+  cursor: grab;
+  touch-action: none;
+}
+.diagram .pic > svg g.pick.dragging {
+  cursor: grabbing;
+  opacity: 0.75;
+}
+.diagram .pic > svg g.pick.over > * {
+  outline: 3px dashed var(--to-accent);
+  outline-offset: 4px;
+}
+.diagram.alone .pic {
+  cursor: copy;
+}
 .diagram textarea {
   box-sizing: border-box;
   width: 100%;

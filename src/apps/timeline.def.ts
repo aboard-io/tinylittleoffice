@@ -7,10 +7,15 @@ function layout(text: string): Diagram {
   const events = text.split('\n').map((l) => l.split(/:(.*)/).map((p) => p.trim())).filter((e) => e[0]);
   const shapes: Shape[] = [];
   const joins: Shape[] = [];
+  // Six to a row; a long timeline winds down the page rather than shrinking to a thread.
+  const PER = 6;
   events.forEach(([when, what = ''], i) => {
-    const x = i * 150;
+    const row = Math.floor(i / PER);
+    const col = i % PER;
+    const x = (row % 2 ? PER - 1 - col : col) * 150;
+    const y = row * 280;
     // A dot on the line, joined to the dot before it, and to its box: above and below, turn about.
-    shapes.push(shape('e', x + 60, 132, 16, 16, '', 2, PALETTE[i % PALETTE.length]), shape('o', x, i % 2 ? 190 : 20, 136, 64, what ? `${when} | ${what}` : when, 1, PALETTE[i % PALETTE.length], 1));
+    shapes.push(shape('e', x + 60, y + 132, 16, 16, '', 2, PALETTE[i % PALETTE.length]), shape('o', x, y + (i % 2 ? 190 : 20), 136, 64, what ? `${when} | ${what}` : when, 1, PALETTE[i % PALETTE.length], 1));
     if (i) joins.push(join(2 * i - 2, 2 * i, false));
     joins.push(join(2 * i, 2 * i + 1, false));
   });

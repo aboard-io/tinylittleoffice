@@ -494,8 +494,12 @@ test('deck: a motion slide is made and changed from the slide itself', async ({ 
   await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await expect(sub).toHaveAttribute('open');
+  // An empty one opens in Draw mode: some text, then Done.
   await sub.getByRole('button', { name: 'Text', exact: true }).click();
-  await sub.getByRole('textbox', { name: 'Text' }).fill('Lift off');
+  const canvas = sub.getByRole('img', { name: 'Drawing canvas' });
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.5);
+  await sub.getByRole('textbox', { name: 'Label' }).fill('Lift off');
   await sub.getByRole('button', { name: 'Done' }).click();
   const embed = page.locator('.deck-slide to-embed');
   await expect(embed.locator('svg[role="img"]')).toContainText('Lift off');
@@ -504,19 +508,17 @@ test('deck: a motion slide is made and changed from the slide itself', async ({ 
   const inside = await embed.evaluate((el) => el.getBoundingClientRect().bottom <= el.closest('.deck-slide')!.getBoundingClientRect().bottom + 1);
   expect(inside).toBe(true);
   await embed.locator('svg[role="img"]').click();
-  await expect(sub.locator('g.item')).toHaveCount(1);
-  await sub.getByRole('button', { name: 'Icon', exact: true }).click();
-  await page.locator('#anim-icons').getByRole('button', { name: 'rocket', exact: true }).click();
-  await expect(sub.locator('g.item')).toHaveCount(2);
-  await expect(page.locator('#anim-icons')).toBeHidden();
-  // Give the rocket somewhere to go, so it moves when the deck is shown.
-  await sub.getByRole('slider', { name: 'Time' }).fill('15');
+  // Drawn already, it opens in Move mode. Give the words somewhere to go, so they move when the deck is shown.
   const stage = sub.getByRole('application', { name: 'Stage' });
-  const box = (await stage.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(stage.locator('g.hit')).toHaveCount(1);
+  await sub.getByRole('slider', { name: 'Time' }).fill('23');
+  await stage.scrollIntoViewIfNeeded();
+  const sb = (await stage.boundingBox())!;
+  await page.mouse.move(sb.x + sb.width * 0.3 + 48 * (sb.width / 640), sb.y + sb.height * 0.5 + 12 * (sb.height / 400));
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2, { steps: 4 });
+  await page.mouse.move(sb.x + sb.width * 0.8, sb.y + sb.height * 0.2, { steps: 4 });
   await page.mouse.up();
+  await expect(page.locator('.motion-keys .key')).toHaveCount(2);
   await sub.getByRole('button', { name: 'Done' }).click();
   await expect(sub).toHaveCount(0);
   await expect(embed.locator('svg[role="img"] animateTransform').first()).toBeAttached();
@@ -524,7 +526,7 @@ test('deck: a motion slide is made and changed from the slide itself', async ({ 
   // (It was added as a slide of its own, after the first.)
   await page.locator('.deck-rail .deck-thumb').nth(1).click();
   await embed.getByRole('button', { name: 'Edit' }).click();
-  await expect(sub.locator('g.item')).toHaveCount(2);
+  await expect(sub.locator('.motion-stage g.hit')).toHaveCount(1);
   await sub.getByRole('button', { name: 'Done' }).click();
   // Presented, it has the slide and it plays.
   await page.getByRole('button', { name: 'Present' }).click();

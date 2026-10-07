@@ -1,5 +1,5 @@
-/** <to-badges>: the shared outline editor, for this app. */
+/** <to-badges>: the shared editor for pages to print. */
 import './badges.def.ts';
-import { defineDiagramEditor } from './diagram-editor.ts';
+import { defineFoldEditor } from './fold.ts';
 
-defineDiagramEditor('badges');
+defineFoldEditor('badges');

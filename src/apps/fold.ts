@@ -8,7 +8,7 @@ import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import { PagesElement, blankPage } from './pages.ts';
 import { iconOf } from '../lib/drawmodel.ts';
-import { foldPage, foldSheets, formatOf, parseFold, serializeFold, type Folded, type Format } from '../lib/fold.ts';
+import { PAGE_LAYOUTS, foldPage, foldSheets, formatOf, parseFold, serializeFold, type Folded, type Format } from '../lib/fold.ts';
 
 export class FoldElement extends PagesElement<Folded> {
   static app = '';
@@ -61,6 +61,7 @@ export class FoldElement extends PagesElement<Folded> {
     const z = this.doc;
     const f = this.f;
     const n = z.pages.length;
+    const by = f.by ?? 4;
     if (this.cur >= n) this.cur = n - 1;
     const s = z.pages[this.cur];
     const blank = (p: Slide) => !p.icon && !p.title && !p.sub && p.bullets.every((b) => !b.trim());
@@ -75,10 +76,13 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
         <to-insert label="Insert" placeholder="Insert: a poll, a map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
         ${f.grow
           ? html`<sl-button-group label="Pages">
-              ${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: 4 }, blankPage)] }), { text: true, disabled: n >= f.grow })}
-              ${tool('Four fewer pages', 'trash', () => this.commit({ ...z, pages: z.pages.slice(0, n - 4) }), { disabled: n <= f.count || !z.pages.slice(n - 4).every(blank) })}
+              ${tool(by === 1 ? `Another ${f.name(n, n + 1).replace(/ \d+$/, '').toLowerCase()}` : 'Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: by }, blankPage)] }), { text: true, disabled: n >= f.grow })}
+              ${tool(by === 1 ? 'Remove the last' : 'Four fewer pages', 'trash', () => this.commit({ ...z, pages: z.pages.slice(0, n - by) }), { disabled: n <= f.count || !z.pages.slice(n - by).every(blank) })}
             </sl-button-group>`
           : nothing}
+        <sl-select class="sr-label zine-layout" size="small" label="Page type" hoist .value=${s.layout ?? ''} @sl-change=${(e: Event) => this.patch({ layout: ((e.target as SlSelect).value || undefined) as Slide['layout'] })}>
+          ${PAGE_LAYOUTS.map((l) => html`<sl-option value=${l.id}>${l.name}</sl-option>`)}
+        </sl-select>
         <span class="to-spacer"></span>
         ${tool(this.sheet ? 'Back to the pages' : 'See the sheet to print', 'printer', () => (this.sheet = !this.sheet), { text: true, pressed: this.sheet })}
       </div>
@@ -95,7 +99,8 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
               <h2>${f.name(this.cur, n)}</h2>
               ${this.embed() ??
               html`${this.headline(this.cur === 0 ? 'Title' : f.name(this.cur, n).startsWith('Page') ? 'Headline' : f.name(this.cur, n))}
-                ${f.panels ? this.panels(s, f.panels) : this.words('Words', s.bullets, 'What this page says. A new line starts a new paragraph. The type shrinks to fit the page.', (bullets) => this.patch({ bullets }))}`}
+                ${f.panels ? this.panels(s, f.panels) : this.words('Words', s.bullets, s.layout === 'b' || s.layout === '2' || s.layout === 'i' ? 'One bullet per line' : 'What this page says. A new line starts a new paragraph. The type shrinks to fit the page.', (bullets) => this.patch({ bullets }))}
+                ${s.layout === '2' ? this.words('Right column', s.right ?? [], 'One bullet per line', (right) => this.patch({ right })) : nothing}`}
             </div>
             <div class="zine-page">${pic(foldPage(z, this.cur, f), `${f.name(this.cur, n)}, as it will print`)}</div>
           </div>`}

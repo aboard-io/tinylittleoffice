@@ -401,7 +401,7 @@ test('undo and redo work in every app', async ({ page }) => {
   await expect(thumbs).toHaveCount(2);
 
   // Draw, Board, Gantt, Calendar, Trip and Motion take the same undo, since it is the shell's.
-  for (const [app, body, sel, n] of [['draw', 'r,2,1,12,6,1,Box', 'g.shape', 1], ['board', '#To do\nA\nB\n#Done', '.board-card', 2], ['gantt', '1jk,5,1e,Design\n1jp,2,0,Build', '.gantt-chart .bar', 2], ['anim', '9\ntHello\t0,a,a,a', '.anim-stage g.item', 1]] as const) {
+  for (const [app, body, sel, n] of [['draw', 'r,2,1,12,6,1,Box', 'g.shape', 1], ['board', '#To do\nA\nB\n#Done', '.board-card', 2], ['gantt', '1jk,5,1e,Design\n1jp,2,0,Build', '.gantt-chart .bar', 2], ['anim', '!o,8\nt,4,4,10,3,0,Hello', '.motion-stage g.hit', 1]] as const) {
     const { encodeEnvelope } = await import('../src/lib/envelope.ts');
     await page.goto('about:blank');
     await page.goto(`/#/v2/${app}/${encodeEnvelope({ created: null, body })}`);

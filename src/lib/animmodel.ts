@@ -1,93 +1,170 @@
 /**
- * Motion document model: icons and text that move around a stage.
- * Each item has keyframes; between them position and size are interpolated
- * in straight lines. Time is counted in frames, FPS frames to the second.
+ * Motion document model: a drawing whose shapes move. Each shape may have
+ * keyframes; between them its offset, depth, size and spin are interpolated
+ * in straight lines. Time is counted in frames, `fps` frames to the second.
  *
- * Format: the first line is the length in frames (base 36). Then one item per
- * line: "i<icon id>" or "t<text>", a tab, and its keyframes separated by ";",
- * each "<frame>,<x>,<y>,<size>" in base 36. x and y are the item's centre in
- * 8px grid units on the 640 by 400 stage; size is in tenths (a = 1x).
+ * Format, line by line:
+ *   !<frames>[,<fps>]      length in frames (base 36), and 4, 8 or 12 a second
+ *   <shape lines>          exactly as Draw writes them (lib/drawmodel.ts)
+ *   @<shape>\t<keys>       keys for shape number <shape> (base 36, from 0)
+ * Keys are separated by ";", each "<t>,<dx>,<dy>,<z>,<s>,<r>[,<fx>]" in
+ * base 36: the frame, the offset in px from where the shape was drawn, its
+ * depth in px (nearer when positive), its scale in tenths (a = 1), its spin in
+ * degrees, and letters for effects (see EFFECTS). A Draw document on its own
+ * is a motion document in which nothing moves yet.
  */
+import { parseDrawing, removeShape, serializeDrawing, type Shape } from './drawmodel.ts';
+
 export const W = 640;
 export const H = 400;
-export const GRID = 8;
-export const FPS = 4;
-export const DEFAULT_FRAMES = 16;
-export const MAX_FRAMES = 60;
-export const MAX_ITEMS = 12;
+export const DEFAULT_FRAMES = 24;
+export const MAX_FRAMES = 120;
+export const FPS_CHOICES = [4, 8, 12];
+const DEFAULT_FPS = 8;
+/** How far a thing may come forward or go back, in px. */
+export const MAX_Z = 200;
+
+export const EFFECTS: { letter: string; name: string }[] = [
+  { letter: 'i', name: 'Impact' },
+  { letter: '3', name: '3D' },
+  { letter: 'd', name: 'Shadow' },
+  { letter: 'n', name: 'Neon' },
+  { letter: 'o', name: 'Outline' },
+  { letter: 'g', name: 'Rainbow' },
+  { letter: 'm', name: 'Mirror' },
+  { letter: 'w', name: 'Wobble' },
+  { letter: 'b', name: 'Blur' },
+];
 
 export interface Key {
   /** Frame number. */
   t: number;
-  /** Centre, px. */
-  x: number;
-  y: number;
-  /** Scale, 1 = natural size. */
+  /** Offset from where the shape was drawn, px. */
+  dx: number;
+  dy: number;
+  /** Depth, px: positive is nearer (and so larger). */
+  z: number;
+  /** Scale, 1 = as drawn. */
   s: number;
-}
-
-export interface Item {
-  kind: 'i' | 't';
-  /** Icon id, or the text. */
-  value: string;
-  keys: Key[];
+  /** Spin, degrees. */
+  r: number;
+  /** Effect letters, any combination. */
+  fx: string;
 }
 
 export interface Anim {
   frames: number;
-  items: Item[];
+  fps: number;
+  shapes: Shape[];
+  /** One list per shape, sorted by frame; empty when it stays put. */
+  keys: Key[][];
 }
+
+/** A key that leaves the shape as it was drawn. */
+export const restKey = (t: number): Key => ({ t, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '' });
+const atRest = (k: Key) => !k.dx && !k.dy && !k.z && k.s === 1 && !k.r && !k.fx;
+
+/** How much nearer things look larger: 1 + z / 400, so z = 200 is half as big again. */
+export const depthScale = (z: number) => 1 + z / (2 * MAX_Z);
 
 const b = (n: number) => Math.round(n).toString(36);
 const sortKeys = (keys: Key[]) => keys.sort((p, q) => p.t - q.t);
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+const letters = (fx: string) => [...new Set(fx.replace(/[^3dnogmwbi]/g, ''))].join('');
 
 export function parseAnim(text: string): Anim {
-  const anim: Anim = { frames: DEFAULT_FRAMES, items: [] };
+  const anim: Anim = { frames: DEFAULT_FRAMES, fps: DEFAULT_FPS, shapes: [], keys: [] };
   if (!text) return anim;
   const lines = text.split('\n');
-  const frames = parseInt(lines[0], 36);
-  if (Number.isFinite(frames)) anim.frames = Math.min(MAX_FRAMES, Math.max(2, frames));
-  for (const line of lines.slice(1)) {
-    const tab = line.lastIndexOf('\t');
-    const kind = line[0];
-    if (tab < 1 || (kind !== 'i' && kind !== 't')) continue;
-    const keys: Key[] = [];
+  if (lines[0]?.startsWith('!')) {
+    const [frames, fps] = lines.shift()!.slice(1).split(',');
+    const n = parseInt(frames, 36);
+    if (Number.isFinite(n)) anim.frames = clamp(n, 2, MAX_FRAMES);
+    if (FPS_CHOICES.includes(parseInt(fps, 10))) anim.fps = parseInt(fps, 10);
+  }
+  anim.shapes = parseDrawing(lines.filter((l) => !l.startsWith('@')).join('\n'));
+  anim.keys = anim.shapes.map(() => []);
+  for (const line of lines.filter((l) => l.startsWith('@'))) {
+    const tab = line.indexOf('\t');
+    const i = parseInt(line.slice(1, tab), 36);
+    if (tab < 0 || !anim.keys[i]) continue;
     for (const part of line.slice(tab + 1).split(';')) {
-      const [t, x, y, s] = part.split(',').map((v) => parseInt(v, 36));
-      if (![t, x, y, s].every(Number.isFinite)) continue;
-      keys.push({ t: Math.min(anim.frames - 1, Math.max(0, t)), x: x * GRID, y: y * GRID, s: Math.max(1, s) / 10 });
+      const [t, dx, dy, z, s, r, fx = ''] = part.split(',');
+      const n = (v: string | undefined, dflt: number) => (v !== undefined && Number.isFinite(parseInt(v, 36)) ? parseInt(v, 36) : dflt);
+      if (!Number.isFinite(parseInt(t, 36))) continue;
+      anim.keys[i] = anim.keys[i].filter((k) => k.t !== n(t, 0));
+      anim.keys[i].push({ t: clamp(n(t, 0), 0, anim.frames - 1), dx: n(dx, 0), dy: n(dy, 0), z: clamp(n(z, 0), -MAX_Z, MAX_Z), s: Math.max(1, n(s, 10)) / 10, r: n(r, 0), fx: letters(fx) });
     }
-    if (keys.length) anim.items.push({ kind, value: line.slice(1, tab), keys: sortKeys(keys) });
+    sortKeys(anim.keys[i]);
   }
   return anim;
 }
 
 export function serializeAnim(anim: Anim): string {
-  if (!anim.items.length && anim.frames === DEFAULT_FRAMES) return '';
-  const lines = [b(anim.frames)];
-  for (const it of anim.items) {
-    const keys = sortKeys(it.keys.slice()).map((k) => `${b(k.t)},${b(k.x / GRID)},${b(k.y / GRID)},${b(k.s * 10)}`);
-    lines.push(`${it.kind}${it.value.replace(/[\n\t]/g, ' ')}\t${keys.join(';')}`);
+  const keyed = anim.keys.map((ks, i) => (ks.some((k) => !atRest(k)) ? [i, ks] as const : null)).filter((x): x is readonly [number, Key[]] => !!x);
+  if (!anim.shapes.length && !keyed.length && anim.frames === DEFAULT_FRAMES && anim.fps === DEFAULT_FPS) return '';
+  const head = `!${b(anim.frames)}${anim.fps !== DEFAULT_FPS ? `,${anim.fps}` : ''}`;
+  const lines = [head, ...(anim.shapes.length ? [serializeDrawing(anim.shapes)] : [])];
+  for (const [i, ks] of keyed) {
+    const keys = sortKeys(ks.slice()).map((k) => `${b(k.t)},${b(k.dx)},${b(k.dy)},${b(k.z)},${b(k.s * 10)},${b(k.r)}${k.fx ? `,${letters(k.fx)}` : ''}`);
+    lines.push(`@${b(i)}\t${keys.join(';')}`);
   }
   return lines.join('\n');
 }
 
-/** Where an item is at a (possibly fractional) frame. */
-export function stateAt(item: Item, frame: number): Key {
-  const keys = item.keys;
+/** Where shape `i` is at a (possibly fractional) frame. Effects hold from a key until the next. */
+export function stateAt(anim: Anim, i: number, frame: number): Key {
+  const keys = anim.keys[i] ?? [];
+  if (!keys.length) return restKey(frame);
   if (frame <= keys[0].t) return { ...keys[0], t: frame };
   const last = keys[keys.length - 1];
   if (frame >= last.t) return { ...last, t: frame };
-  let i = 0;
-  while (keys[i + 1].t <= frame) i++;
-  const p = keys[i];
-  const q = keys[i + 1];
+  let k = 0;
+  while (keys[k + 1].t <= frame) k++;
+  const p = keys[k];
+  const q = keys[k + 1];
   const f = (frame - p.t) / (q.t - p.t);
   const mix = (m: number, n: number) => m + (n - m) * f;
-  return { t: frame, x: mix(p.x, q.x), y: mix(p.y, q.y), s: mix(p.s, q.s) };
+  return { t: frame, dx: mix(p.dx, q.dx), dy: mix(p.dy, q.dy), z: mix(p.z, q.z), s: mix(p.s, q.s), r: mix(p.r, q.r), fx: p.fx };
 }
 
-/** Set (or replace) an item's keyframe at a frame, returning a new item. */
-export function withKey(item: Item, key: Key): Item {
-  return { ...item, keys: sortKeys([...item.keys.filter((k) => k.t !== key.t), key]) };
+/** Set (or replace) shape `i`'s key at its frame, in the whole numbers the format keeps. */
+export function withKey(anim: Anim, i: number, key: Key): Anim {
+  const keys = anim.shapes.map((_, j) => anim.keys[j] ?? []);
+  const k: Key = { t: Math.round(key.t), dx: Math.round(key.dx), dy: Math.round(key.dy), z: Math.round(key.z), s: Math.round(key.s * 10) / 10, r: Math.round(key.r), fx: letters(key.fx) };
+  keys[i] = sortKeys([...keys[i].filter((q) => q.t !== k.t), k]);
+  return { ...anim, keys };
 }
+
+export function removeKey(anim: Anim, i: number, t: number): Anim {
+  return { ...anim, keys: anim.shapes.map((_, j) => (anim.keys[j] ?? []).filter((k) => j !== i || k.t !== t)) };
+}
+
+/**
+ * The drawing redrawn: the keys follow their shapes. A shape edited in place
+ * keeps its keys; a reordered one takes them along; a removed one's are
+ * dropped. (The drawing is compared line by line, as Draw writes it.)
+ */
+export function withShapes(anim: Anim, shapes: Shape[]): Anim {
+  const was = anim.shapes.map((s) => serializeDrawing([s]));
+  const now = shapes.map((s) => serializeDrawing([s]));
+  const keyOf = (j: number) => anim.keys[j] ?? [];
+  let keys: Key[][] | null = null;
+  if (now.length === was.length) {
+    // A pure reorder (to the front, to the back): every line finds its old self.
+    const free = was.map((_, j) => j);
+    const from = now.map((line) => {
+      const at = free.findIndex((j) => was[j] === line);
+      return at < 0 ? -1 : free.splice(at, 1)[0];
+    });
+    if (from.every((j) => j >= 0)) keys = from.map(keyOf);
+  } else if (now.length === was.length - 1) {
+    // One taken out: which one, and the rest shift down.
+    const gone = anim.shapes.findIndex((_, j) => serializeDrawing(removeShape(anim.shapes, j)) === serializeDrawing(shapes));
+    if (gone >= 0) keys = anim.shapes.map((_, j) => j).filter((j) => j !== gone).map(keyOf);
+  }
+  return { ...anim, shapes, keys: shapes.map((_, j) => (keys ? keys[j] : keyOf(j)) ?? []) };
+}
+
+/** Does shape `i` have a key at this frame? */
+export const hasKey = (anim: Anim, i: number, t: number) => !!anim.keys[i]?.some((k) => k.t === t);

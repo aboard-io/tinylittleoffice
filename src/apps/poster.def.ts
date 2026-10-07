@@ -1,16 +1,13 @@
-/** Poster: one letter page, the words as big as will fit. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePrint, slidesOf, LETTER } from '../lib/print.ts';
-import { fitted } from '../lib/fold.ts';
+/** Poster: one letter page, the words as big as will fit; a title page by default, or any page type. */
+import { defineFold, fitted, LETTER, type Format } from '../lib/fold.ts';
 
-export const spec = {
-  form: [
-    { name: 'Picture', is: ':{Picture:icon}', once: true },
-    { name: 'Line', is: '{Text}' },
-  ] as LineKind[],
-  hint: 'The headline, then a line for each thing to say. Start with ":icon-name" for a picture. Everything is made as big as the page allows.',
-  example: ':music\nOpen mic night\nFriday 12 March, 8pm\nThe Anchor, 14 Quay Street\nFree. Bring a song.',
-  sheets: (text: string) => [fitted(slidesOf(text)[0] ?? { icon: '', title: '', bullets: [] }, LETTER.w, LETTER.h, { cover: true, max: 150, m: 64 })],
+export const POSTER: Format = {
+  count: 1,
+  size: () => LETTER,
+  name: () => 'Poster',
+  page: (s) => fitted({ ...s, layout: s.layout ?? 't' }, LETTER.w, LETTER.h, { cover: true, loud: 2, max: 150, m: 64 }),
+  sheets: (p) => p,
+  how: () => 'Download the PDF and print it on letter paper, at actual size.',
 };
 
-export default definePrint({ id: 'poster', group: 'Print', under: undefined, name: 'Poster', icon: 'poster', blurb: 'A poster or flyer: a headline and a few lines, as big as one page allows.' }, spec);
+export default defineFold({ id: 'poster', group: 'Print', name: 'Poster', icon: 'poster', blurb: 'A poster or flyer: a headline and a few lines, as big as one page allows.' }, POSTER);

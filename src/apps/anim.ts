@@ -1,214 +1,311 @@
 /**
- * <to-anim>: icons and text that move around a stage. Put the slider on a
- * moment, drag something to where it should be at that moment, and it will
- * travel there from wherever it was before.
+ * <to-anim>: a drawing that moves. Draw mode is Draw itself; Move mode puts
+ * the slider on a moment and lets you drag a shape to where it should be
+ * then, bring it nearer, grow it, spin it, and give it effects. Between the
+ * moments you set, it travels in straight lines.
  * Document format: see lib/animmodel.ts.
  */
-import { LitElement, html, svg, nothing, type PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { icon, LIBRARY, UI } from '../lib/icons.ts';
-import { searchIcons } from '../lib/iconsearch.ts';
-import { animItemSvg } from './anim.def.ts';
-import { FPS, GRID, H, MAX_FRAMES, MAX_ITEMS, W, parseAnim, serializeAnim, stateAt, withKey, type Anim, type Item } from '../lib/animmodel.ts';
-import type { SlDialog, SlInput } from '../lib/shoelace.ts';
+import './anim.css';
+import './draw.ts';
+import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, icon, UI, isKey } from '../kit.ts';
+import type { SlInput, SlSelect } from '../kit.ts';
+import { GRID, isLink, parseDrawing, removeShape, serializeDrawing } from '../lib/drawmodel.ts';
+import { EFFECTS, FPS_CHOICES, MAX_FRAMES, MAX_Z, W, H, hasKey, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes, type Anim, type Key } from '../lib/animmodel.ts';
+import { bounds, frameSvg, transformOf } from './anim.def.ts';
+import type { Theme } from './draw.def.ts';
 
-@customElement('to-anim')
-export class ToAnim extends LitElement {
-  @property() value = '';
-  @state() private anim: Anim = parseAnim('');
+/** The page's own colours, so the stage looks right in the dark too. */
+const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
+/** At most this many little pictures under the slider. */
+const THUMBS = 16;
+
+export class ToAnim extends DocElement<Anim> {
+  @state() private mode: 'draw' | 'move' = 'draw';
   @state() private frame = 0;
   @state() private sel = -1;
   @state() private playing = false;
   /** Fractional frame while playing. */
   @state() private clock = 0;
-  @state() private query = '';
-  private lastEmitted = '';
+  private touched = false;
   private raf = 0;
-  private drag: { i: number; dx: number; dy: number } | null = null;
+  private drag: { i: number; x: number; y: number; dx: number; dy: number; moved: boolean } | null = null;
+  private thumbs: { at: number; svg: string }[] | null = null;
 
-  createRenderRoot() {
-    return this;
+  protected parse(text: string) {
+    return parseAnim(text);
+  }
+  protected serialize(doc: Anim) {
+    return serializeAnim(doc);
+  }
+  protected loaded() {
+    this.thumbs = null;
+    this.frame = Math.min(this.frame, this.doc.frames - 1);
+    this.sel = Math.min(this.sel, this.doc.shapes.length - 1);
+    // A drawing that is already there is there to be moved; an empty stage wants drawing on.
+    if (!this.touched) this.mode = this.doc.shapes.length ? 'move' : 'draw';
+  }
+  protected commit(doc: Anim) {
+    this.thumbs = null;
+    this.touched = true;
+    super.commit(doc);
   }
 
-  willUpdate(changed: PropertyValues) {
-    if (changed.has('value') && this.value !== this.lastEmitted) {
-      this.anim = parseAnim(this.value);
-      this.lastEmitted = this.value;
-      this.frame = Math.min(this.frame, this.anim.frames - 1);
-      this.sel = Math.min(this.sel, this.anim.items.length - 1);
-    }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('keydown', this.onKey);
   }
-
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener('keydown', this.onKey);
     cancelAnimationFrame(this.raf);
   }
 
-  /** The outline around the selected thing hugs it, growing with text as it is typed. */
-  protected updated() {
-    for (const g of this.querySelectorAll<SVGGElement>('.anim-stage g.item')) {
-      const box = (g.lastElementChild as SVGGraphicsElement).getBBox();
-      const hit = g.querySelector('rect.hit')!;
-      const pad = 6;
-      hit.setAttribute('x', String(box.x - pad));
-      hit.setAttribute('y', String(box.y - pad));
-      hit.setAttribute('width', String(box.width + pad * 2));
-      hit.setAttribute('height', String(box.height + pad * 2));
-    }
+  /* ---------- time ---------- */
+
+  private seek(frame: number) {
+    this.pause();
+    this.frame = Math.max(0, Math.min(this.doc.frames - 1, Math.round(frame)));
   }
 
-  private onKey = (e: KeyboardEvent) => {
-    const typing = (e.target as HTMLElement).closest('input, textarea, sl-input');
-    if (e.key === ' ' && !typing) this.toggle();
-    else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !typing && !this.playing) this.frame = Math.max(0, Math.min(this.anim.frames - 1, this.frame + (e.key === 'ArrowLeft' ? -1 : 1)));
-    else if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && this.sel >= 0) this.removeSel();
-    else return;
-    e.preventDefault();
-  };
-
-  private removeSel() {
-    this.commit({ ...this.anim, items: this.anim.items.filter((_, j) => j !== this.sel) });
-    this.sel = -1;
-  }
-
-  private commit(anim: Anim) {
-    this.anim = anim;
-    this.lastEmitted = serializeAnim(anim);
-    this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
-  }
-
-  private setItem(i: number, item: Item) {
-    this.commit({ ...this.anim, items: this.anim.items.map((it, j) => (j === i ? item : it)) });
-  }
-
-  private add(kind: 'i' | 't', value: string) {
-    if (this.anim.items.length >= MAX_ITEMS) return;
-    // New things start in the middle and stay there until they are given somewhere to go.
-    const item: Item = { kind, value, keys: [{ t: 0, x: W / 2, y: H / 2, s: 1 }] };
-    this.commit({ ...this.anim, items: [...this.anim.items, item] });
-    this.sel = this.anim.items.length - 1;
+  private pause() {
+    if (!this.playing) return;
+    this.playing = false;
+    cancelAnimationFrame(this.raf);
+    this.frame = Math.min(this.doc.frames - 1, Math.round(this.clock));
   }
 
   private toggle() {
-    if (this.playing) {
-      this.playing = false;
-      cancelAnimationFrame(this.raf);
-      return;
-    }
+    if (this.playing) return this.pause();
     this.playing = true;
-    const t0 = performance.now();
-    const span = this.anim.frames - 1;
+    const t0 = performance.now() - (this.frame / this.doc.fps) * 1000;
     const tick = () => {
       if (!this.playing) return;
-      this.clock = (((performance.now() - t0) / 1000) * FPS) % span;
+      this.clock = (((performance.now() - t0) / 1000) * this.doc.fps) % this.doc.frames;
       this.raf = requestAnimationFrame(tick);
     };
     tick();
   }
 
+  private setLength(frames: number, fps: number) {
+    const f = Math.max(2, Math.min(MAX_FRAMES, Math.round(frames) || this.doc.frames));
+    this.frame = Math.min(this.frame, f - 1);
+    this.commit({ ...this.doc, frames: f, fps, keys: this.doc.keys.map((ks) => ks.filter((k) => k.t < f)) });
+  }
+
+  /* ---------- the selected shape ---------- */
+
+  /** Set the selected shape's key at this moment, changed as asked. */
+  private key(change: Partial<Key> = {}) {
+    if (this.sel < 0) return;
+    this.commit(withKey(this.doc, this.sel, { ...stateAt(this.doc, this.sel, this.frame), ...change, t: this.frame }));
+  }
+
+  private toggleFx(letter: string) {
+    const fx = stateAt(this.doc, this.sel, this.frame).fx;
+    this.key({ fx: fx.includes(letter) ? fx.replace(letter, '') : fx + letter });
+  }
+
+  private removeSel() {
+    if (this.sel < 0) return;
+    this.commit(withShapes(this.doc, removeShape(this.doc.shapes, this.sel)));
+    this.sel = -1;
+  }
+
+  private duplicate() {
+    const s = this.doc.shapes[this.sel];
+    if (!s || isLink(s.k)) return;
+    const copy = { ...s, x: s.x + GRID * 2, y: s.y + GRID * 2 };
+    this.commit({ ...this.doc, shapes: [...this.doc.shapes, copy], keys: [...this.doc.keys, this.doc.keys[this.sel].map((k) => ({ ...k }))] });
+    this.sel = this.doc.shapes.length - 1;
+  }
+
+  private onKey = (e: KeyboardEvent) => {
+    // Typing, or a control that has its own idea of what a key does: not ours.
+    if (e.composedPath().some((el) => el instanceof Element && el.matches('input, textarea, select, button, sl-button, sl-select, sl-input, [role="combobox"]'))) return;
+    if (e.key === ' ') this.toggle();
+    // In Draw mode the keys are Draw's.
+    else if (this.mode !== 'move') return;
+    else if (e.key === 'ArrowLeft') this.seek(this.frame - 1);
+    else if (e.key === 'ArrowRight') this.seek(this.frame + 1);
+    else if (e.key === 'Home') this.seek(0);
+    else if (e.key === 'End') this.seek(this.doc.frames - 1);
+    else if (e.key === 'k' || e.key === 'K') this.key();
+    else if (e.key === 'Delete' || e.key === 'Backspace') this.removeSel();
+    else if (isKey(e, 'Mod+d')) this.duplicate();
+    else if (e.key === 'Escape') this.sel = -1;
+    else return;
+    e.preventDefault();
+  };
+
+  /* ---------- the stage ---------- */
+
   private point(e: PointerEvent): [number, number] {
-    const box = this.querySelector('.anim-stage')!.getBoundingClientRect();
+    const box = (e.currentTarget as Element).getBoundingClientRect();
     return [((e.clientX - box.left) / box.width) * W, ((e.clientY - box.top) / box.height) * H];
   }
 
-  private onItemDown(e: PointerEvent, i: number) {
-    if (this.playing) return;
+  private onDown(e: PointerEvent) {
+    if (e.button !== 0) return;
+    const idx = (e.target as Element).closest('[data-idx]')?.getAttribute('data-idx');
+    this.pause();
+    (e.currentTarget as HTMLElement).focus({ preventScroll: true });
+    if (idx === undefined || idx === null) {
+      this.sel = -1;
+      return;
+    }
     e.preventDefault();
-    this.sel = i;
+    this.sel = parseInt(idx, 10);
     const [x, y] = this.point(e);
-    const at = stateAt(this.anim.items[i], this.frame);
-    this.drag = { i, dx: at.x - x, dy: at.y - y };
-    this.querySelector('.anim-stage')!.setPointerCapture(e.pointerId);
+    const at = stateAt(this.doc, this.sel, this.frame);
+    this.drag = { i: this.sel, x, y, dx: at.dx, dy: at.dy, moved: false };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
   }
 
   private onMove(e: PointerEvent) {
     const d = this.drag;
     if (!d) return;
-    const [px, py] = this.point(e);
-    const snap = (v: number, max: number) => Math.max(0, Math.min(max, Math.round((v) / GRID) * GRID));
-    const item = this.anim.items[d.i];
-    const at = stateAt(item, this.frame);
-    const x = snap(px + d.dx, W);
-    const y = snap(py + d.dy, H);
-    if (x !== at.x || y !== at.y || !item.keys.some((k) => k.t === this.frame)) this.setItem(d.i, withKey(item, { t: this.frame, x, y, s: at.s }));
+    const [x, y] = this.point(e);
+    const [dx, dy] = [Math.round(d.dx + x - d.x), Math.round(d.dy + y - d.y)];
+    const at = stateAt(this.doc, d.i, this.frame);
+    if (dx === at.dx && dy === at.dy && d.moved) return;
+    d.moved = true;
+    // Shown as it goes; written to the link when the pointer lets go. A shape moved for the
+    // first time at a later moment starts from where it was drawn.
+    const from = this.doc.keys[d.i]?.length || !this.frame ? this.doc : withKey(this.doc, d.i, restKey(0));
+    this.doc = withKey(from, d.i, { ...at, t: this.frame, dx, dy });
+    this.requestUpdate();
   }
 
-  private picker(): SlDialog | null {
-    return this.querySelector<SlDialog>('#anim-icons');
+  private onUp() {
+    const d = this.drag;
+    this.drag = null;
+    if (d?.moved) this.commit(this.doc);
+  }
+
+  private onDrawChange(e: CustomEvent<string>) {
+    // Draw's text is not the document: ours is, with the drawing inside it.
+    e.stopPropagation();
+    this.commit(withShapes(this.doc, parseDrawing(e.detail)));
+  }
+
+  /** The little pictures under the slider, one every few frames; remade when the document changes. */
+  private thumbnails() {
+    if (!this.thumbs) {
+      const step = Math.ceil(this.doc.frames / THUMBS);
+      this.thumbs = [];
+      for (let at = 0; at < this.doc.frames; at += step) this.thumbs.push({ at, svg: frameSvg(this.doc, at, THEME) });
+    }
+    return this.thumbs;
+  }
+
+  private secs(frame: number) {
+    return `${(frame / this.doc.fps).toFixed(1)} s`;
+  }
+
+  private renderStage() {
+    const { shapes } = this.doc;
+    const now = this.playing ? this.clock : this.frame;
+    return html`<svg
+      class="motion-stage"
+      viewBox="0 0 ${W} ${H}"
+      xmlns="http://www.w3.org/2000/svg"
+      role="application"
+      aria-label="Stage"
+      tabindex="0"
+      @pointerdown=${this.onDown}
+      @pointermove=${this.onMove}
+      @pointerup=${this.onUp}
+      @pointercancel=${this.onUp}
+    >
+      ${unsafeSVG(frameSvg(this.doc, now, THEME))}
+      ${this.playing
+        ? nothing
+        : shapes.map((s, i) => {
+            const [x, y, w, h] = bounds(s, shapes);
+            const pad = 6;
+            return svg`<g class="hit ${i === this.sel ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, shapes, stateAt(this.doc, i, now), now)}><rect x=${x - pad} y=${y - pad} width=${w + pad * 2} height=${h + pad * 2} rx="4" /></g>`;
+          })}
+    </svg>`;
+  }
+
+  private renderProps() {
+    const s = this.doc.shapes[this.sel];
+    if (!s) return html`<p class="motion-props to-hint">${this.doc.shapes.length ? 'Tap a shape, then drag it to where it should be at this moment.' : 'Nothing here yet: switch to Draw and draw something.'}</p>`;
+    const at = stateAt(this.doc, this.sel, this.frame);
+    const keyed = hasKey(this.doc, this.sel, this.frame);
+    const slider = (label: string, field: 'z' | 's' | 'r', min: number, max: number, step: number, shown: string) =>
+      html`<label class="motion-slider">
+        <span>${label} <b>${shown}</b></span>
+        <input type="range" aria-label=${label} min=${min} max=${max} step=${step} .value=${String(at[field])} @input=${(e: Event) => this.key({ [field]: parseFloat((e.target as HTMLInputElement).value) })} />
+      </label>`;
+    return html`<div class="motion-props">
+      <div class="motion-sliders">
+        ${slider('Depth', 'z', -MAX_Z, MAX_Z, 1, `${Math.round(at.z)}`)}
+        ${slider('Size', 's', 0.2, 4, 0.1, `${at.s.toFixed(1)}×`)}
+        ${slider('Spin', 'r', -360, 360, 1, `${Math.round(at.r)}°`)}
+      </div>
+      <sl-button-group label="Effects" class="motion-fx">
+        ${EFFECTS.map((f) => html`<sl-button size="small" aria-pressed=${at.fx.includes(f.letter) ? 'true' : 'false'} @click=${() => this.toggleFx(f.letter)}>${f.name}</sl-button>`)}
+      </sl-button-group>
+      <sl-button-group label="Keys">
+        <sl-button size="small" ?disabled=${keyed} @click=${() => this.key()}>${icon(UI.key, 14)} Add key here</sl-button>
+        <sl-button size="small" ?disabled=${!keyed} @click=${() => this.commit(removeKey(this.doc, this.sel, this.frame))}>Remove key</sl-button>
+      </sl-button-group>
+      <sl-button-group label="Shape">
+        <sl-tooltip content="Duplicate (Ctrl+D)" hoist><sl-button class="icon" size="small" aria-label="Duplicate" ?disabled=${isLink(s.k)} @click=${this.duplicate}>${icon(UI.copy, 16)}<span class="sr-only">Duplicate</span></sl-button></sl-tooltip>
+        <sl-tooltip content="Delete (Del)" hoist><sl-button class="icon" size="small" aria-label="Delete" @click=${this.removeSel}>${icon(UI.trash, 16)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
+      </sl-button-group>
+    </div>`;
+  }
+
+  private renderTimeline() {
+    const { frames, fps } = this.doc;
+    const shown = this.playing ? Math.floor(this.clock) : this.frame;
+    const keys = this.doc.keys[this.sel] ?? [];
+    return html`<div class="motion-time">
+      <div class="motion-transport">
+        <sl-button size="small" variant="primary" @click=${this.toggle}>${this.playing ? html`${icon(UI.pause, 14)} Pause` : html`${icon(UI.play, 14)} Play`}</sl-button>
+        <span class="to-hint motion-clock" aria-live="off">${this.secs(shown)} / ${this.secs(frames - 1)}</span>
+        <span class="to-spacer"></span>
+        <sl-input class="motion-len" size="small" type="number" min="2" max=${MAX_FRAMES} label="Frames" .value=${String(frames)} @sl-change=${(e: Event) => this.setLength(parseInt((e.target as SlInput).value, 10), fps)}></sl-input>
+        <sl-select class="motion-fps" size="small" label="Speed" hoist .value=${String(fps)} @sl-change=${(e: Event) => this.setLength(frames, parseInt((e.target as SlSelect).value as string, 10))}>
+          ${FPS_CHOICES.map((f) => html`<sl-option value=${f}>${f} a second</sl-option>`)}
+        </sl-select>
+      </div>
+      <div class="motion-scrub">
+        <input type="range" aria-label="Time" min="0" max=${frames - 1} step="1" .value=${String(shown)} @input=${(e: Event) => this.seek(parseInt((e.target as HTMLInputElement).value, 10))} />
+        <div class="motion-keys">
+          ${keys.map((k) => html`<button class=${k.t === this.frame && !this.playing ? 'key on' : 'key'} style="left:${(k.t / Math.max(1, frames - 1)) * 100}%" aria-label="Key at ${this.secs(k.t)}" @click=${() => this.seek(k.t)}></button>`)}
+        </div>
+      </div>
+      <div class="motion-thumbs" role="group" aria-label="Moments">
+        ${this.thumbnails().map(
+          (t) => html`<button class=${t.at === shown ? 'on' : ''} aria-label="Frame ${t.at + 1}, ${this.secs(t.at)}" aria-pressed=${t.at === shown ? 'true' : 'false'} @click=${() => this.seek(t.at)}>
+            <svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${unsafeSVG(t.svg)}</svg>
+          </button>`,
+        )}
+      </div>
+    </div>`;
   }
 
   render() {
-    const { frames, items } = this.anim;
-    const now = this.playing ? this.clock : this.frame;
-    const cur = items[this.sel];
-    const at = cur ? stateAt(cur, this.frame) : null;
-    const hasKey = !!cur?.keys.some((k) => k.t === this.frame);
-    const full = items.length >= MAX_ITEMS;
     return html`
-      <div class="to-toolbar">
-        <sl-button size="small" ?disabled=${full} @click=${() => { this.query = ''; this.picker()?.show(); }}>${icon(UI.smile, 14)} Icon</sl-button>
-        <sl-button size="small" ?disabled=${full} @click=${() => this.add('t', 'Text')}>${icon(UI.text, 14)} Text</sl-button>
-        <sl-tooltip content="Delete the selected thing" hoist><sl-button class="icon" size="small" aria-label="Delete" ?disabled=${!cur} @click=${this.removeSel}>${icon(UI.trash, 14)}<span class="sr-only">Delete</span></sl-button></sl-tooltip>
-        <span class="to-spacer"></span>
-        <sl-input
-          class="anim-len"
-          size="small"
-          type="number"
-          min="1"
-          max=${MAX_FRAMES / FPS}
-          label="Length"
-          .value=${String((frames - 1) / FPS)}
-          @sl-change=${(e: Event) => {
-            const f = Math.max(2, Math.min(MAX_FRAMES, Math.round((parseFloat((e.target as SlInput).value) || 1) * FPS) + 1));
-            this.frame = Math.min(this.frame, f - 1);
-            this.commit({ frames: f, items: items.map((it) => ({ ...it, keys: it.keys.filter((k, n) => k.t < f || n === 0).map((k) => ({ ...k, t: Math.min(k.t, f - 1) })) })) });
-          }}
-        ><span slot="suffix">s</span></sl-input>
-        <sl-button size="small" variant="primary" @click=${this.toggle}>${this.playing ? html`${icon(UI.stop, 14)} Stop` : html`${icon(UI.play, 14)} Play`}</sl-button>
+      <div class="to-toolbar" role="toolbar" aria-label="Motion">
+        <sl-radio-group class="sr-label" size="small" label="Mode" value=${this.mode} @sl-change=${(e: Event) => { this.touched = true; this.pause(); this.mode = (e.target as HTMLInputElement).value as 'draw' | 'move'; }}>
+          <sl-radio-button value="draw">${icon(UI.draw, 14)} Draw</sl-radio-button>
+          <sl-radio-button value="move">${icon(UI.anim, 14)} Move</sl-radio-button>
+        </sl-radio-group>
+        <span class="to-hint">${this.mode === 'draw' ? 'Draw the things that will move.' : 'Pick a moment below, then drag a shape to where it should be.'}</span>
       </div>
-      <div class="anim" tabindex="-1" @keydown=${this.onKey}>
-        <svg class="anim-stage" viewBox="0 0 ${W} ${H}" role="application" aria-label="Stage" @pointermove=${this.onMove} @pointerup=${() => (this.drag = null)} @pointercancel=${() => (this.drag = null)} @pointerdown=${(e: PointerEvent) => e.target === e.currentTarget && (this.sel = -1)}>
-          ${items.map((it, i) => {
-            const k = stateAt(it, now);
-            return svg`<g class="item ${i === this.sel && !this.playing ? 'sel' : ''}" data-idx=${i} transform="translate(${k.x} ${k.y}) scale(${k.s})" @pointerdown=${(e: PointerEvent) => this.onItemDown(e, i)}>
-              <rect class="hit" x="-30" y="-30" width="60" height="60" rx="8" />
-              ${unsafeSVG(animItemSvg(it))}
-            </g>`;
-          })}
-        </svg>
-        <div class="anim-time">
-          <input type="range" aria-label="Time" min="0" max=${frames - 1} step="1" .value=${String(this.frame)} ?disabled=${this.playing} @input=${(e: Event) => (this.frame = parseInt((e.target as HTMLInputElement).value, 10))} />
-          <span class="to-hint">${(this.frame / FPS).toFixed(2)} s</span>
-        </div>
-        <ul class="anim-rows" aria-label="Things">
-          ${items.map(
-            (it, i) => html`<li class=${i === this.sel ? 'sel' : ''}>
-              <button class="who" @click=${() => (this.sel = i)}>${it.kind === 'i' && LIBRARY[it.value] ? icon(LIBRARY[it.value], 14) : icon(UI.text, 14)}<span>${it.value}</span></button>
-              <span class="track">
-                ${it.keys.map((k) => html`<button class=${k.t === this.frame ? 'key on' : 'key'} style="left:${(k.t / (frames - 1)) * 100}%" aria-label="${it.value} at ${(k.t / FPS).toFixed(2)} s" @click=${() => { this.sel = i; this.frame = k.t; }}></button>`)}
-              </span>
-            </li>`,
-          )}
-          ${items.length ? nothing : html`<li class="to-empty">Add an icon or some text, then give it somewhere to go.</li>`}
-        </ul>
-        ${cur && at
-          ? html`<div class="anim-props">
-              ${cur.kind === 't' ? html`<sl-input size="small" label="Text" .value=${cur.value} @sl-input=${(e: Event) => this.setItem(this.sel, { ...cur, value: (e.target as SlInput).value })}></sl-input>` : nothing}
-              <label>Size <input type="range" aria-label="Size" min="0.5" max="4" step="0.1" .value=${String(at.s)} @input=${(e: Event) => this.setItem(this.sel, withKey(cur, { ...at, t: this.frame, s: parseFloat((e.target as HTMLInputElement).value) }))} /></label>
-              <sl-button size="small" ?disabled=${!hasKey || cur.keys.length < 2} @click=${() => this.setItem(this.sel, { ...cur, keys: cur.keys.filter((k) => k.t !== this.frame) })}>Forget this moment</sl-button>
-            </div>`
-          : nothing}
-      </div>
-      <sl-dialog id="anim-icons" label="Icon">
-        <sl-input class="deck-search" size="small" type="search" placeholder="Search icons" aria-label="Search icons" autofocus clearable .value=${this.query} @sl-input=${(e: Event) => (this.query = (e.target as SlInput).value)}><span slot="prefix">${icon(UI.search, 14)}</span></sl-input>
-        <div class="deck-picker" role="listbox" aria-label="Icon library">
-          ${searchIcons(this.query).map((name) => html`<button title=${name} aria-label=${name} @click=${() => { this.add('i', name); this.picker()?.hide(); }}>${icon(LIBRARY[name], 22)}</button>`)}
-        </div>
-      </sl-dialog>
+      ${this.mode === 'draw'
+        ? html`<to-draw class="motion-draw" .value=${serializeDrawing(this.doc.shapes)} @docchange=${this.onDrawChange}></to-draw>`
+        : html`<div class="motion">${this.renderStage()}${this.renderProps()}</div>`}
+      ${this.renderTimeline()}
     `;
   }
 }
+
+defineElement('anim', ToAnim);
 
 declare global {
   interface HTMLElementTagNameMap {

@@ -1,8 +1,10 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
-import { defineApp, xml, wrap, text, place, pageSvg, rect, r, ACCENT, MUTED, type DownloadContext, type Page, type Span } from '../kit/core.ts';
+import { defineApp, xml, pageSvg, rect, type DownloadContext, type Page } from '../kit/core.ts';
+import { SW, SH, depthOf, layoutSlide, slidePage, slideSteps, live } from '../lib/slide.ts';
+import { ACCENT, place } from '../kit/core.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
-import { makeRef, refPage, refSteps, resolve } from '../kit/embed.ts';
+import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { encodeEnvelope } from '../lib/envelope.ts';
 import { QR_MAX_BYTES } from '../lib/qr.ts';
 import { ICON_SVG } from '../lib/icons.ts';
@@ -10,136 +12,7 @@ import { ICON_COLORS, deckIconColor, parseDeck, type Slide } from '../lib/deckmo
 
 const x = xml;
 
-/* ---------- drawing a slide ---------- */
-
-export const SW = 960;
-export const SH = 600;
-const M = 64;
-/** The margin around a document that has a slide to itself. */
-const PAD = 20;
-
-interface Box {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-export interface SlideLayout {
-  /** Font sizes chosen so everything fits: bigger when there is less to say. */
-  titlePx: number;
-  bodyPx: number;
-  title: Box & { lines: Span[][]; center: boolean };
-  cols: (Box & { items: Span[][][]; depths: number[] })[];
-  icon?: Box;
-  sub?: Box;
-}
-
-const live = (list: string[] = []) => list.filter((b) => b.trim() !== '');
-/** How far in a bullet goes: two spaces (or a tab) a level, up to three levels. */
-export const depthOf = (b: string) => Math.min(3, Math.floor(/^[ \t]*/.exec(b)![0].replace(/\t/g, '  ').length / 2));
-const IN = 1.4;
-
-/** Where everything on a slide goes, and how big the type is. */
-export function layoutSlide(s: Slide): SlideLayout {
-  // A document shown on a slide takes the whole slide: no headline, no bullets.
-  if (s.sub) return { titlePx: 0, bodyPx: 0, title: { x: 0, y: 0, w: 0, h: 0, lines: [], center: false }, cols: [], sub: { x: PAD, y: PAD, w: SW - 2 * PAD, h: SH - 2 * PAD } };
-  const kind = s.layout ?? '';
-  const left = live(s.bullets);
-  const right = kind === '2' ? live(s.right) : [];
-  const fitTitle = (w: number, sizes: number[], maxLines: number) => {
-    for (const px of sizes) {
-      const lines = wrap(parseInline(s.title), w, px, true);
-      if (lines.length <= maxLines) return { px, lines };
-    }
-    const px = sizes[sizes.length - 1];
-    return { px, lines: wrap(parseInline(s.title), w, px, true).slice(0, maxLines) };
-  };
-  const fitBody = (cols: (Box & { src: string[] })[], sizes: number[], bullet: boolean) => {
-    for (const px of sizes) {
-      const laid = cols.map((c) => c.src.map((b) => wrap(parseInline(b.trim()), c.w - (bullet ? px * (1.1 + depthOf(b) * IN) : 0), px)));
-      const tall = (items: Span[][][]) => items.reduce((a, l) => a + l.length * px * 1.3 + px * 0.45, 0);
-      if (laid.every((items, i) => tall(items) <= cols[i].h) || px === sizes[sizes.length - 1]) return { px, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i], depths: c.src.map(depthOf) })) };
-    }
-    throw new Error('unreachable');
-  };
-
-  if (kind === 't') {
-    const t = fitTitle(SW - 2 * M, [72, 64, 56, 48, 40, 34], 2);
-    const sub = fitBody([{ x: M, y: 0, w: SW - 2 * M, h: 150, src: left }], [30, 26, 22, 18], false);
-    const iconH = s.icon ? 112 : 0;
-    const tall = iconH + t.lines.length * t.px * 1.15 + (left.length ? 24 + sub.cols[0].items.reduce((a, l) => a + l.length * sub.px * 1.3, 0) : 0);
-    const top = (SH - tall) / 2;
-    const ty = top + iconH;
-    return {
-      titlePx: t.px,
-      bodyPx: sub.px,
-      title: { x: M, y: ty, w: SW - 2 * M, h: t.lines.length * t.px * 1.15, lines: t.lines, center: true },
-      cols: [{ ...sub.cols[0], y: ty + t.lines.length * t.px * 1.15 + 24 }],
-      icon: s.icon ? { x: SW / 2 - 48, y: top, w: 96, h: 96 } : undefined,
-    };
-  }
-
-  const headIcon = s.icon && kind !== 'i';
-  const tx = M + (headIcon ? 88 : 0);
-  const t = fitTitle(SW - M - tx, [46, 40, 34, 28], 2);
-  const headH = Math.max(headIcon ? 72 : 0, t.lines.length * t.px * 1.15);
-  const top = M + headH + 28;
-  const bodyH = SH - top - 48;
-  const half = (SW - 2 * M - 40) / 2;
-  const split = kind === 'i' || kind === '2';
-  const colsIn: (Box & { src: string[] })[] = [{ x: M, y: top, w: split ? half : SW - 2 * M, h: bodyH, src: left }];
-  if (kind === '2') colsIn.push({ x: M + half + 40, y: top, w: half, h: bodyH, src: right });
-  const body = fitBody(colsIn, [34, 30, 26, 23, 20, 18, 16, 14], true);
-  const sideBox: Box = { x: M + half + 40, y: top, w: half, h: bodyH };
-  return {
-    titlePx: t.px,
-    bodyPx: body.px,
-    title: { x: tx, y: M + (headH - t.lines.length * t.px * 1.15) / 2, w: SW - M - tx, h: headH, lines: t.lines, center: false },
-    cols: body.cols,
-    icon: headIcon ? { x: M, y: M + (headH - 72) / 2, w: 72, h: 72 } : kind === 'i' && s.icon ? { x: sideBox.x + (sideBox.w - 260) / 2, y: sideBox.y + (sideBox.h - 260) / 2, w: 260, h: 260 } : undefined,
-  };
-}
-
-/**
- * What a slide reveals, a click at a time: its bullets, or, when a document
- * has the slide, whatever that document is made of (shapes, rows, stops).
- */
-export function slideSteps(s: Slide): { bullets: number; sub: number } {
-  if (s.sub) return { bullets: 0, sub: refSteps(s.sub) };
-  return { bullets: s.layout === 't' ? 0 : live(s.bullets).length + (s.layout === '2' ? live(s.right).length : 0), sub: 0 };
-}
-
-const iconAt = (name: string, b: Box, color = ACCENT) =>
-  ICON_SVG[name] ? `<g transform="translate(${r(b.x)} ${r(b.y)}) scale(${r(b.w / 24)})" fill="none" stroke="${color}" stroke-width="${b.w > 150 ? 1.5 : 2}" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name]}</g>` : '';
-
-/**
- * A slide as a page. `bullets` and `sub` say how much has been revealed
- * (absent: everything). Unrevealed things keep their place, so nothing
- * moves as the slide builds.
- */
-export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = ''): Page {
-  const L = layoutSlide(s);
-  const cover = s.layout === 't';
-  let svg = L.icon ? iconAt(s.icon, L.icon, ICON_COLORS[tint]?.hex) : '';
-  L.title.lines.forEach((line, i) => (svg += text(L.title.center ? SW / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), line, { px: L.titlePx, bold: true, anchor: L.title.center ? 'middle' : 'start' })));
-  let n = 0;
-  for (const col of L.cols) {
-    let y = col.y;
-    col.items.forEach((item, k) => {
-      const d = col.depths[k] ?? 0;
-      const x = col.x + L.bodyPx * d * IN;
-      if (cover || n < bullets) {
-        // A deeper bullet steps in, with a smaller, hollow dot.
-        if (!cover) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : ACCENT}"${d ? ` stroke="${ACCENT}" stroke-width="2"` : ''}/>`;
-        item.forEach((line, i) => (svg += text(cover ? SW / 2 : x + L.bodyPx * 1.1, y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? MUTED : undefined, anchor: cover ? 'middle' : 'start' })));
-      }
-      n++;
-      y += item.length * L.bodyPx * 1.3 + L.bodyPx * (cover ? 0 : 0.45);
-    });
-  }
-  if (L.sub && s.sub) svg += `<g data-sub="${r(L.sub.x)},${r(L.sub.y)},${r(L.sub.w)},${r(L.sub.h)}">${place(refPage(s.sub, sub === undefined ? {} : { step: sub }), L.sub.x, L.sub.y, L.sub.w, L.sub.h)}</g>`;
-  return { w: SW, h: SH, svg };
-}
+export { SW, SH, depthOf, layoutSlide, slidePage, slideSteps, type SlideLayout, type SlideSize } from '../lib/slide.ts';
 
 /* ---------- PowerPoint ---------- */
 
@@ -225,7 +98,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
     const centre = cover ? '<a:pPr marL="0" indent="0" algn="ctr"><a:buNone/></a:pPr>' : '';
     const paras = (lines.length ? lines : ['']).map((b) => para(b.trim(), centre || (depthOf(b) ? `<a:pPr lvl="${depthOf(b)}" marL="${342900 * (depthOf(b) + 1)}" indent="-342900"/>` : ''), Math.round((L.bodyPx || 20) * 75))).join('');
     // (A slide given over to a document keeps empty placeholders, tucked along the bottom edge.)
-    const col = L.cols[0] ?? { x: M, y: SH - 40, w: SW - 2 * M, h: 20 };
+    const col = L.cols[0] ?? { x: 64, y: SH - 40, w: SW - 2 * 64, h: 20 };
     const bodyW = L.cols.length > 1 ? L.cols[1].x + L.cols[1].w - col.x : col.w;
     const titleBox = s.sub ? col : L.title;
     const titleFrame = xfrm(E(titleBox.x), E(titleBox.y), E(titleBox.w), E(Math.max(titleBox.h, 60)));
@@ -298,9 +171,22 @@ export function readDeck(text: string): string {
     .join('\n\n');
 }
 
+/** The deck as it plays: every slide, every reveal, the QR slide last; a cross-fade between them. */
+export function deckFrames(body: string): { pages: Page[]; delayMs: number; fade: boolean } {
+  const color = deckIconColor(body);
+  const pages: Page[] = [];
+  for (const s of slidesWith(body)) {
+    const st = slideSteps(s);
+    const clicks = st.bullets + st.sub;
+    for (let shown = 0; shown <= clicks; shown++) pages.push(slidePage(s, shown, st.sub ? shown : undefined, color));
+  }
+  return { pages, delayMs: 1400, fade: true };
+}
+
 export default defineApp({
   id: 'deck',
   read: readDeck,
+  frames: deckFrames,
   group: '',
   name: 'Deck',
   icon: 'deck',

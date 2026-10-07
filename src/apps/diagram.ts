@@ -84,13 +84,21 @@ export class DiagramElement extends DocElement<string> {
     </div>`;
   }
 
-  /** Filled in as a form, or typed as text: the same document either way. The choice is remembered. */
-  @state() protected asText = (() => {
-    return store.get('tinyoffice.edit') === 'text';
+  /**
+   * The picture is the editor. Beside it, when wanted, the same document as
+   * a list to fill in, or as the text itself: the choice is remembered.
+   */
+  @state() protected mode: 'picture' | 'form' | 'text' = ((): 'picture' | 'form' | 'text' => {
+    const m = store.get('tinyoffice.edit');
+    return m === 'text' || m === 'form' ? m : 'picture';
   })();
-  private setMode(text: boolean) {
-    this.asText = text;
-    store.set('tinyoffice.edit', text ? 'text' : 'form');
+  protected get asText() {
+    return this.mode === 'text';
+  }
+  private setMode(mode: 'picture' | 'form' | 'text') {
+    this.mode = mode;
+    if (mode === 'picture') store.remove('tinyoffice.edit');
+    else store.set('tinyoffice.edit', mode);
   }
 
   protected get spec(): DiagramSpec {
@@ -99,9 +107,9 @@ export class DiagramElement extends DocElement<string> {
   protected get name(): string {
     return appOf((this.constructor as typeof DiagramElement).app)!.name;
   }
-  /** Whether the form (rather than the text) is showing. */
+  /** Whether the document is worked through its form (the picture and the list), rather than its text. */
   protected get form(): boolean {
-    return !!this.spec.form && !this.asText;
+    return !!this.spec.form && this.mode !== 'text';
   }
 
   /** The part of the document that is typed (an app may keep more in it than text). */
@@ -177,7 +185,7 @@ export class DiagramElement extends DocElement<string> {
   private onModeKey = (e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 't' && this.spec.form) {
       e.preventDefault();
-      this.setMode(!this.asText);
+      this.setMode(this.mode === 'text' ? 'picture' : 'text');
     }
   };
 
@@ -251,17 +259,20 @@ export class DiagramElement extends DocElement<string> {
     const form = this.form;
     return html`
       <div class="to-toolbar">
-        <span class="to-hint diagram-hint">${form ? 'Add a row for each thing, and fill it in.' : spec.hint}</span>
+        <span class="to-hint diagram-hint">${form ? (this.mode === 'form' ? 'Add a row for each thing, and fill it in.' : this.kind === 'page' ? 'Type into the page; the bar along the bottom adds to it.' : this.kind === 'print' ? 'Tap words on the sheet to change them.' : 'Tap empty space to add a thing; tap a thing for its buttons, twice to type on it; drag it where it goes.') : spec.hint}</span>
         <span class="to-spacer"></span>
         ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
-        ${spec.form && this.asText ? tool('Edit as a form', 'form', () => this.setMode(false), { text: true }) : nothing}
+        ${spec.form && this.mode === 'text' ? tool('Edit as a form', 'form', () => this.setMode('form'), { text: true }) : nothing}
+        ${spec.form && this.mode !== 'text' ? tool(this.mode === 'form' ? 'Hide the list' : 'List', 'form', () => this.setMode(this.mode === 'form' ? 'picture' : 'form'), { text: true, pressed: this.mode === 'form' }) : nothing}
         ${form || this.kind === 'page' ? nothing : tool('Icon', 'smile', () => this.addIcon(), { text: true })}
         ${inside || !this.drawable() ? nothing : tool('Open in Draw', 'draw', () => this.toDraw(), { text: true })}
       </div>
       ${this.extra()}
-      <div class="diagram ${this.kind}">
+      <div class="diagram ${this.kind} ${form && this.mode === 'picture' ? 'alone' : ''}">
 ${form
-          ? html`<to-lines class="lf" .text=${text} .kinds=${spec.form!} name=${name} @lines-change=${(e: CustomEvent<string>) => this.type(e.detail)}></to-lines>`
+          ? this.mode === 'form'
+            ? html`<to-lines class="lf" .text=${text} .kinds=${spec.form!} name=${name} @lines-change=${(e: CustomEvent<string>) => this.type(e.detail)}></to-lines>`
+            : nothing
           : html`        <textarea aria-label="${name}, as text" spellcheck=${this.kind ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>`}
         <div class="pic" @click=${(e: Event) => this.onPicClick(e)}>
           ${this.renderEditBox()}

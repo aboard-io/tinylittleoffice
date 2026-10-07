@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { shot, reopen } from './helpers';
 
 // As a new visitor finds it: the form, not the text.
-test.use({ storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
+test.use({ storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'form' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
 
 test('a menu is made by filling in a form; what is saved is the text', async ({ page }) => {
   await page.goto('/#/menu');
@@ -249,4 +249,52 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
   await expect(sheet).toContainText('Oat flat white');
   await expect(page.getByRole('textbox', { name: 'Dish, row 5' })).toHaveValue('Oat flat white');
   await shot(page, 'type-on-picture');
+});
+
+test('the picture is the editor: tap to add, drag to move, drag onto another to re-home', async ({ page }) => {
+  // Picture mode: the default; no list beside it.
+  await page.goto('/#/org');
+  await page.evaluate(() => localStorage.removeItem('tinyoffice.edit'));
+  await page.reload();
+  await expect(page.locator('to-org to-lines')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const pic = page.locator('to-org .pic > svg');
+  await expect(pic.locator('g.pick')).toHaveCount(6);
+  // A tap on empty space adds a person, with the box open to name them.
+  const box = await pic.boundingBox();
+  await page.mouse.click(box!.x + box!.width - 12, box!.y + box!.height - 12);
+  await expect(page.locator('.pic-edit input').first()).toBeFocused();
+  await page.keyboard.type('Gus Pine');
+  await page.keyboard.press('Enter');
+  await expect(pic).toContainText('Gus Pine');
+  await expect(pic.locator('g.pick')).toHaveCount(7);
+  // Dragged onto Eve, Gus reports to her.
+  const gus = pic.getByRole('button', { name: /^Gus Pine/ });
+  const eve = pic.getByRole('button', { name: /^Eve Marsh/ });
+  const [g, e] = [await gus.boundingBox(), await eve.boundingBox()];
+  await page.mouse.move(g!.x + g!.width / 2, g!.y + g!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(e!.x + e!.width / 2, e!.y + e!.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.press('Control+Shift+t');
+  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/Eve Marsh \| Design\n    Gus Pine/);
+  await page.keyboard.press('Control+Shift+t');
+  // The list is there when wanted.
+  await page.getByRole('button', { name: 'List', exact: true }).click();
+  await expect(page.locator('to-org to-lines')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Hide the list' }).click();
+  await expect(page.locator('to-org to-lines')).toHaveCount(0);
+
+  // A floor plan's rooms keep a place: a drag moves one, a tap puts a room there.
+  await page.goto('/#/floor');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const plan = page.locator('to-floor .pic > svg');
+  const kitchen = plan.getByRole('button', { name: /^Kitchen/ });
+  const k = (await kitchen.boundingBox())!;
+  await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(k.x + k.width / 2 + 80, k.y + k.height / 2 + 60, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.press('Control+Shift+t');
+  await expect(page.getByRole('textbox', { name: 'Floor plan, as text' })).toHaveValue(/Kitchen: [\d.]+ x [\d.]+ at [\d.]+,[\d.]+/);
 });

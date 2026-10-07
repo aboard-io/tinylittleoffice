@@ -23,6 +23,7 @@ export const spec = {
     { name: 'Room', is: '{Room}: {Width} x {Depth}[ at {Left},{Top}]' },
     { name: 'Line', is: '{Text}' },
   ] as LineKind[],
+  moves: { kind: 0, x: 3, y: 4, unit: U },
   hint: 'A room per line: "Name: width x depth at left,top" (in metres, feet, anything). Leave out "at" and rooms line up side by side.',
   example: 'Living room: 5 x 4 at 0,0\nKitchen: 3 x 4 at 5,0\nHall: 8 x 1.5 at 0,4\nBedroom: 4 x 3.5 at 0,5.5\nBath: 2 x 3.5 at 4,5.5\nStudy: 2 x 3.5 at 6,5.5',
   layout,

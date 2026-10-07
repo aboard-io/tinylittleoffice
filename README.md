@@ -17,7 +17,7 @@ you have copied the file.
 | Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
 | Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize.   |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
-| Motion | Icons and text that move between the moments you set.                |
+| Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger or turned, with effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Database | A tiny relational database: tables, rows, SQL queries, schema drawn. |
 | Website | A one-page site from a few lines; downloads as one HTML file. |
@@ -27,7 +27,8 @@ you have copied the file.
 | Zine | Eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
 | Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |
 | Comic | Text in, a folded mini comic out. |
-| Poster, Menu, Résumé, Name badges, Recipe cards | A few lines in, letter sheets out, fitted to the page. |
+| Poster, Name badges, Recipe cards | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
+| Menu, Résumé | A few lines in, one letter sheet out, fitted to the page. |
 | Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
 | Pixel art | A grid of squares to colour. |
 | Floor plan, Seating chart, Family tree, Timeline | More diagrams from a few lines. |
@@ -403,8 +404,13 @@ e2e/                  Playwright browser tests
 
 ## One toolkit for text apps
 
-Every app that is "a few lines of text" is edited as a form by default,
-with a switch to the text itself. Both come from one description
+Every app that is "a few lines of text" is edited on its picture: tap
+empty space to add a thing, tap a thing for its buttons (add one like
+it, give it an icon, edit its words, take it away), tap twice to type
+on it, drag it where it goes (onto another thing to put it under or
+after it; a floor plan's rooms keep a place and move there). The same
+document is a list to fill in (the List button) or the text itself
+(Mod+Shift+T). All three come from one description
 (`src/lib/lines.ts`): the app lists its kinds of line as patterns,
 
 ```ts

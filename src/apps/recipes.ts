@@ -1,5 +1,5 @@
-/** <to-recipes>: the shared outline editor, for this app. */
+/** <to-recipes>: the shared editor for pages to print. */
 import './recipes.def.ts';
-import { defineDiagramEditor } from './diagram-editor.ts';
+import { defineFoldEditor } from './fold.ts';
 
-defineDiagramEditor('recipes');
+defineFoldEditor('recipes');

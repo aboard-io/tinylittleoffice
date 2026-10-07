@@ -14,12 +14,15 @@ import { defineApp, text, wrapText, textWidth, place, pageSvg, xml, FAINT, ACCEN
 import { refPage } from '../kit/embed.ts';
 import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
 import { ICON_SVG } from './icons.ts';
+import { slidePage, type SlideSize } from './slide.ts';
 
 export interface Format {
   /** How many pages; with `grow`, how many to start with. */
   count: number;
-  /** The most pages it can grow to, four at a time. */
+  /** The most pages it can grow to. */
   grow?: number;
+  /** How many pages it grows by: four (a sheet folded) unless said; one for cards. */
+  by?: number;
   /** Offers one-sided and two-sided printing. */
   sides?: boolean;
   /** A page, in px at 96 to the inch. */
@@ -49,7 +52,8 @@ const blank = (): Slide => ({ icon: '', title: '', bullets: [] });
 export function parseFold(body: string, f: Format): Folded {
   const set = /^!(two|\d+)(?:\n\n|$)/.exec(body);
   const pages = parseDeck(set ? body.slice(set[0].length) : body);
-  const want = f.grow ? Math.min(f.grow, Math.max(f.count, +(set?.[1] ?? 0) || 0, Math.ceil(pages.length / 4) * 4)) : f.count;
+  const by = f.by ?? 4;
+  const want = f.grow ? Math.min(f.grow, Math.max(f.count, +(set?.[1] ?? 0) || 0, Math.ceil(pages.length / by) * by)) : f.count;
   while (pages.length < want) pages.push(blank());
   return { two: set?.[1] === 'two', pages: pages.slice(0, want) };
 }
@@ -66,6 +70,8 @@ export function serializeFold(z: Folded, f: Format): string {
 export interface Fit {
   /** Centred and louder, as a cover is. */
   cover?: boolean;
+  /** How much louder the type is than a slide's, for a page with a layout. */
+  loud?: number;
   /** A line at the foot (a page number). */
   foot?: string;
   /** The largest the words may be, in px. */
@@ -78,7 +84,22 @@ export interface Fit {
  * A slide fitted to a page: the largest type at which everything is on it.
  * A page that shows another document is given over to it entirely.
  */
+/** The page types a printed page can take: prose (the words as paragraphs), or any of a deck's layouts. */
+export const PAGE_LAYOUTS: { id: '' | 't' | 'b' | '2' | 'i'; name: string }[] = [
+  { id: '', name: 'Prose' },
+  { id: 't', name: 'Title' },
+  { id: 'b', name: 'Bullets' },
+  { id: '2', name: 'Two columns' },
+  { id: 'i', name: 'Big icon' },
+];
+
 export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Page {
+  // A page with a layout is a slide laid on paper: the deck's engine, at this size, louder on a cover.
+  if (s.layout) {
+    const size: SlideSize = { w, h, loud: o.loud ?? (o.cover ? 1.6 : 1), prose: s.layout === 'b' ? false : s.layout !== '2' && s.layout !== 'i' && s.layout !== 't' };
+    const p = slidePage(s.layout === 'b' ? { ...s, layout: '' } : s, Infinity, undefined, '', size);
+    return o.foot ? { ...p, svg: p.svg + text(w / 2, h - (o.m ?? 20) * 0.55, o.foot, { px: 11, fill: FAINT, anchor: 'middle' }) } : p;
+  }
   const k = w / 264;
   const m = o.m ?? Math.min(48, 20 * k);
   const cover = !!o.cover;

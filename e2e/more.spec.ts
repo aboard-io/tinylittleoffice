@@ -573,22 +573,42 @@ test('paper that folds: a booklet grows, a brochure prints in order', async ({ p
 
 test('things to print: write a few lines, get the sheets', async ({ page }) => {
   for (const [app, name, has] of [
-    ['poster', 'Poster', 'Friday 12 March, 8pm'],
     ['menu', 'Menu', 'Flat white'],
     ['resume', 'Résumé', 'Ada Lovelace'],
-    ['badges', 'Name badges', 'Grace Hopper'],
-    ['recipes', 'Recipe cards', 'Cardamom buns'],
   ] as const) {
     await page.goto(`/#/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
     await expect(page.getByRole('img', { name: `${name}, sheet 1` }), app).toContainText(has);
     await shot(page, app);
   }
-  // What is typed is what prints: letter paper, at actual size.
+  // A poster is a page typed into directly, laid out like a slide; its page type is a template.
   await page.goto('/#/poster');
-  await page.getByRole('textbox', { name: 'Poster, as text' }).fill('Yard sale\nSaturday 9am');
-  await expect(page.getByRole('img', { name: 'Poster, sheet 1' })).toContainText('Saturday 9am');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Yard sale');
+  await page.getByRole('textbox', { name: 'Words' }).fill('Saturday 9am');
+  const drawn = page.locator('.zine-page > svg');
+  await expect(drawn).toContainText('Saturday 9am');
   await expect(page).toHaveTitle('Yard sale · TinyLittleOffice');
+  await pickOption(page, 'sl-select.zine-layout', '2');
+  await page.getByRole('textbox', { name: 'Right column' }).fill('Books\nLamps');
+  await expect(drawn).toContainText('Lamps');
+  await shot(page, 'poster');
+  // Badges and recipe cards: a page per person or dish, added one at a time, tiled on the sheets.
+  await page.goto('/#/badges');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Grace Hopper');
+  await page.getByRole('textbox', { name: 'Words' }).fill('Compilers');
+  await page.getByRole('button', { name: 'Another badge' }).click();
+  await expect(page.locator('.zine-thumb')).toHaveCount(3);
+  await page.getByRole('button', { name: 'See the sheet to print' }).click();
+  await expect(page.locator('.zine-sheet')).toHaveCount(1);
+  await expect(page.locator('.zine-sheet')).toContainText('Grace Hopper');
+  await page.goto('/#/recipes');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Cardamom buns');
+  await page.getByRole('button', { name: 'Another card' }).click();
+  await expect(page.locator('.zine-thumb')).toHaveCount(3);
+  await page.goto('/#/poster');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Yard sale');
+  await page.getByRole('textbox', { name: 'Words' }).fill('Saturday 9am');
+  await expect(drawn).toContainText('Saturday 9am');
   await reopen(page);
   await page.getByRole('button', { name: 'Download' }).click();
   const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^PDF/ }).click()]);

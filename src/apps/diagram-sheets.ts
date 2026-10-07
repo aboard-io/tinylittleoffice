@@ -4,7 +4,7 @@
  */
 import { html, unsafeSVG, pageSvg, type TemplateResult } from '../kit.ts';
 import { DiagramElement } from './diagram.ts';
-import { fieldsOf } from '../lib/lines.ts';
+import { fieldsOf, kindsOf } from '../lib/lines.ts';
 
 export class SheetsView extends DiagramElement {
   /** A sheet's words, tapped: the row and field they came from, if any. */
@@ -24,7 +24,23 @@ export class SheetsView extends DiagramElement {
     return 'print';
   }
   protected onPicClick(e: Event) {
-    if (this.form) this.onSheetClick(e);
+    if (!this.form) return;
+    const t = e.target as Element;
+    if (t.closest('text')) return this.onSheetClick(e);
+    // Empty paper, tapped: a new line at the end, open for its words.
+    if (!t.closest('.sheet')) return;
+    const form = this.spec.form!;
+    const { kinds } = kindsOf(form);
+    const kind = kinds.findIndex((k, n) => n < form.length && !k.once && k.is !== '' && !k.is.startsWith('#') && !k.head && fieldsOf(form, n).some((f) => f.type !== 'icon' && f.type !== 'choice'));
+    if (kind < 0) return;
+    const fields = fieldsOf(form, kind);
+    const words = fields.findIndex((f) => f.type !== 'icon' && f.type !== 'choice');
+    const rows = this.rows();
+    this.putRows([...rows, { kind, values: fields.map((f, n) => (f.type === 'choice' ? f.options[0] : n === words ? 'New' : '')), depth: kinds[kind].at ?? 0 }]);
+    void this.updateComplete.then(() => {
+      const el = [...this.querySelectorAll('.sheet text')].find((x) => (x.textContent ?? '').trim().startsWith('New'));
+      if (el) this.editOver(el, rows.length, words);
+    });
   }
   protected picture(): TemplateResult {
     const spec = this.spec;

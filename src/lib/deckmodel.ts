@@ -15,7 +15,8 @@ import { PALETTE } from './palette.ts';
 /** No cap on slides: the link's length is the only limit, and the meter shows it. */
 export const MAX_SLIDES = Infinity;
 
-export type Layout = '' | 't' | '2' | 'i';
+/** '' bullets (a deck's default), 't' title, '2' two columns, 'i' big icon; 'b' says bullets where the default is prose (a printed page). */
+export type Layout = '' | 't' | '2' | 'i' | 'b';
 export const LAYOUTS: { id: Layout; name: string }[] = [
   { id: '', name: 'Bullets' },
   { id: 't', name: 'Title' },
@@ -75,7 +76,7 @@ export function parseDeck(text: string): Slide[] {
     if (lines[0]?.startsWith(':')) {
       const [iconName, layout] = lines.shift()!.slice(1).split(':');
       slide.icon = iconName;
-      if (layout === 't' || layout === '2' || layout === 'i') slide.layout = layout;
+      if (layout === 't' || layout === '2' || layout === 'i' || layout === 'b') slide.layout = layout;
     }
     // An empty headline is written as a single space so no chunk ever
     // starts with a newline (which would collide with the slide separator).

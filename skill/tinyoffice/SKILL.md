@@ -159,17 +159,23 @@ One shape per line: `kind,x,y,w,h,style,label`, on a grid 80 wide and 50 tall. K
 
 https://tinylittleoffice.com/draw/#title=Request+flow&doc=o%2C4%2C6%2C16%2C8%2C1b%2CBrowser%0Ao%2C32%2C6%2C16%2C8%2C1b%2CServer%0Ac%2C60%2C5%2C14%2C10%2C1g%2CData%0Ak%2C0%2C1%2C0%2C0%2C0%2Casks%0Ak%2C1%2C2%2C0%2C0%2C0%2Creads
 
+### anim: a drawing that moves
+
+A Draw document, with a first line `!<frames>[,<fps>]` (frames in base 36, up to 120; 4, 8 or 12 a second) and, after the shapes, a key line per moving shape: `@<shape number>` (base 36, counting from 0), a tab, then keys separated by `;`, each `t,dx,dy,z,s,r[,fx]` in base 36: the frame, the offset in px from where the shape was drawn, its depth in px (nearer when positive), its size in tenths (`a` is 1), its spin in degrees, and effect letters (`i` impact meme, `3` 3D, `d` shadow, `n` neon, `o` outline, `g` rainbow, `m` mirror, `w` wobble, `b` blur). Between keys it moves in straight lines; a shape with no keys stays put. Plain `doc=` text is taken as is.
+
+https://tinylittleoffice.com/anim/#title=Lift+off&doc=%21o%0At%2C4%2C20%2C20%2C4%2C04%2CLift+off%0Ai%2C8%2C36%2C8%2C8%2C0b%2Crocket%0A%400%090%2C0%2C0%2C0%2Ca%2C0%3Bn%2C0%2C-2s%2C0%2Ca%2C0%2Ci%0A%401%090%2C0%2C0%2C0%2Ca%2C0%3Bn%2C5k%2C-5k%2C2s%2Ca%2C-u%2Cd
+
 ## Things to print
 
 Each of these turns a few lines into letter-size sheets; the PDF download prints at actual size.
 
-- `poster`: an optional `:icon-name` line, a headline, then a line per thing to say. Made as big as fits.
+- `poster`: one page written like a slide: an optional `:icon-name` line (a page type after a second colon, as in `deck`: `:music:t` title, `::2` two columns, `::i` big icon, `::b` bullets), a headline, then a line per thing to say. Laid out by the deck's engine, as big as the page allows.
   https://tinylittleoffice.com/poster/#title=Open+mic&doc=%3Amusic%0AOpen+mic+night%0AFriday+12+March%2C+8pm%0AThe+Anchor%2C+14+Quay+Street
 - `menu`: `# Name`, a line about it, `## Section`, then `Dish | price | what it is`.
   https://tinylittleoffice.com/menu/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0A%23%23+Coffee%0AEspresso+%7C+3.00+%7C+Dark+and+syrupy%0AFlat+white+%7C+4.20
 - `resume`: written like `write` (`# Name`, `## Section`, `- point`), fitted to one page.
-- `badges`: a person per line, `Name | role | where from`. Six badges a sheet.
-- `recipes`: the dish, then a line per ingredient and step; a blank line starts the next card.
+- `badges`: a page per person, separated by blank lines: the name as the headline, then role and where from on lines of their own. Six badges a sheet.
+- `recipes`: a page per dish, separated by blank lines: an optional `:icon-name`, the dish, then a line per ingredient and step. Two cards a sheet.
 
 `zine` (8 pages), `booklet` (8 to 20) and `brochure` (6 panels) are pages like a deck's slides: chunks separated by a blank line, each an optional `:icon-name` line, a headline, then lines of words.
 

@@ -1,17 +1,16 @@
-/** Recipe cards: 4 by 6 inch cards, two to a sheet. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePrint, slidesOf, tile } from '../lib/print.ts';
-import { fitted } from '../lib/fold.ts';
+/** Recipe cards: a page per dish (the dish, what goes in, what to do), 6 by 4 inch cards two to a sheet. */
+import { defineFold, fitted, type Format } from '../lib/fold.ts';
+import { tile } from '../lib/print.ts';
 
-export const spec = {
-  form: [
-    { name: 'Picture', is: ':{Picture:icon}' },
-    { name: 'Next card', is: '' },
-    { name: 'Line', is: '{Text}' },
-  ] as LineKind[],
-  hint: 'The name of the dish, then a line for each ingredient and step. A blank line starts the next card. Two 6 by 4 inch cards print on each sheet.',
-  example: ':cookie\nCardamom buns\nMakes 12. 25 minutes at 200°C.\n500g flour, 80g sugar, 250ml milk, 75g butter, yeast, cardamom\n1. Warm the milk and butter; mix everything; rest an hour.\n2. Roll, fill with butter, sugar and cardamom; twist into knots.\n3. Rest 30 minutes. Bake until golden.\n\n:coffee\nCold brew\n100g coarse coffee to 1 litre of cold water.\n1. Stir, cover, and leave 16 hours.\n2. Strain twice. Keeps a week in the fridge.',
-  sheets: (text: string) => tile(slidesOf(text).map((s) => fitted(s, 576, 384, { max: 19, m: 30 })), 1, 2),
+export const RECIPES: Format = {
+  count: 2,
+  grow: 48,
+  by: 1,
+  size: () => ({ w: 576, h: 384 }),
+  name: (i) => `Card ${i + 1}`,
+  page: (s) => fitted(s, 576, 384, { max: 19, m: 30 }),
+  sheets: (p) => tile(p, 1, 2),
+  how: () => 'Download the PDF and print it on letter paper, at actual size. Cut along the dashes: two cards a sheet.',
 };
 
-export default definePrint({ id: 'recipes', under: undefined, group: 'Create', name: 'Recipe cards', icon: 'recipes', blurb: 'Recipe cards to print and cut: the dish, what goes in, what to do.' }, spec);
+export default defineFold({ id: 'recipes', under: undefined, group: 'Create', name: 'Recipe cards', icon: 'recipes', blurb: 'Recipe cards to print and cut: the dish, what goes in, what to do.' }, RECIPES);

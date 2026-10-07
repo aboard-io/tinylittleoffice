@@ -16,7 +16,7 @@ import { parseGantt } from './ganttmodel.ts';
 import { parseTrip } from './tripmodel.ts';
 import { parseCalendar, EPOCH_DAY, isoDay } from './calmodel.ts';
 import { parseDrawing, serializeDrawing, type Shape } from './drawmodel.ts';
-import { parseAnim, serializeAnim, DEFAULT_FRAMES, W, H } from './animmodel.ts';
+import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
 import { dayToYmd, ymdString } from './tz.ts';
@@ -287,7 +287,7 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     case 'pixel':
       return '```\n' + body + '\n```\n';
     case 'anim':
-      return parseAnim(body).items.map((it) => `- ${it.kind === 'i' ? `:${it.value}:` : it.value}`).join('\n') + '\n';
+      return parseAnim(body).shapes.filter((s) => s.text).map((s) => `- ${s.k === 'i' ? `:${s.text}:` : s.text}`).join('\n') + '\n';
     case 'qr':
       return body.trim() + '\n';
   }
@@ -392,16 +392,16 @@ export function fromMarkdown(def: AppDef, md: string): string {
     case 'pixel':
       return (/```\n?([\s\S]*?)```/.exec(text)?.[1] ?? text).trim();
     case 'anim': {
-      // Each item enters from the left and crosses the stage, one after another.
+      // Each line is a thing on the stage, one above the next, that drifts from left to right.
       const list = items(text);
-      return serializeAnim({
-        frames: DEFAULT_FRAMES,
-        items: list.map((l, i) => {
-          const ic = /^:([a-z][a-z0-9-]*):$/.exec(l);
-          const y = (H * (i + 1)) / (list.length + 1);
-          return { kind: ic ? 'i' : 't', value: ic ? ic[1] : l, keys: [{ t: 0, x: W * 0.15, y, s: 1 }, { t: DEFAULT_FRAMES - 1, x: W * 0.85, y, s: 1 }] };
-        }),
+      const anim = parseAnim('');
+      anim.shapes = list.map((l, i) => {
+        const ic = /^:([a-z][a-z0-9-]*):$/.exec(l);
+        const y = Math.round((H * (i + 1)) / (list.length + 1) / 8) * 8 - 16;
+        return ic ? { k: 'i', x: 80, y, w: 48, h: 48, f: 0, text: ic[1] } : { k: 't', x: 80, y, w: 160, h: 32, f: 0, text: l, z: 3 };
       });
+      anim.keys = anim.shapes.map(() => [restKey(0), { ...restKey(DEFAULT_FRAMES - 1), dx: Math.round(W * 0.6) }]);
+      return serializeAnim(anim);
     }
     case 'qr':
       return items(text)[0] ?? text.split('\n')[0] ?? '';

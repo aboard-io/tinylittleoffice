@@ -70,6 +70,8 @@ export interface AppDef {
   view(body: string, opts?: ViewOpts): Page[];
   /** How many reveals the document has when presented (shapes, rows, stops). */
   steps?(body: string): number;
+  /** The document as it moves: pages to show one after another, for an animated GIF. `fade` asks for a cross-fade between them. */
+  frames?(body: string): { pages: Page[]; delayMs: number; fade?: boolean };
   /** The document as plain, meaningful HTML (goes inside <body>). Default: its pictures and outline. */
   html?(body: string, ctx: DownloadContext): string;
   /**
@@ -346,6 +348,8 @@ export const COMMON: { ext: string; label: string }[] = [
   { ext: 'html', label: 'Web page' },
   { ext: 'md', label: 'Markdown' },
 ];
+/** Apps that move offer a GIF as well. */
+export const MOVING: { ext: string; label: string } = { ext: 'gif', label: 'Animated GIF' };
 
 const ALIASES: Record<string, string> = { ppt: 'pptx', xls: 'xlsx', ical: 'ics', icalendar: 'ics', htm: 'html', markdown: 'md', json: 'geojson', image: 'png', jpg: 'png' };
 export const extOf = (ext: string) => ALIASES[ext.toLowerCase()] ?? ext.toLowerCase();

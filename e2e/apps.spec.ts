@@ -192,49 +192,71 @@ test('trip: a route on the map with notes', async ({ page }) => {
   await expect(stops).toHaveCount(2);
 });
 
-test('motion: things travel between the moments you set', async ({ page }) => {
+test('motion: a drawing that moves between the moments you set', async ({ page }) => {
   await page.goto('/#/anim');
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  await page.locator('#anim-icons sl-input input').fill('rock');
-  await page.getByRole('listbox', { name: 'Icon library' }).getByRole('button', { name: 'rocket', exact: true }).click();
-  await page.getByRole('button', { name: 'Text', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Text' }).fill('Lift off');
+  // Draw mode is Draw itself.
+  const canvas = page.getByRole('img', { name: 'Drawing canvas' });
+  const box = (await canvas.boundingBox())!;
+  await page.getByRole('button', { name: 'Rectangle' }).click();
+  await page.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.1);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3, { steps: 5 });
+  await page.mouse.up();
+  await page.getByRole('textbox', { name: 'Label' }).fill('Go');
+  await expect(canvas.locator('g.shape')).toHaveCount(1);
+
+  // Move mode: at the last moment, drag it down and to the right.
+  await page.locator('sl-radio-button[value="move"]').click();
   const stage = page.getByRole('application', { name: 'Stage' });
-  const items = stage.locator('g.item');
-  await expect(items).toHaveCount(2);
-  const pos = (i: number) => items.nth(i).evaluate((g) => g.getAttribute('transform')!);
-  expect(await pos(0)).toBe('translate(320 200) scale(1)');
-
-  // At the last moment, drag the rocket up and to the right.
+  const hit = stage.locator('g.hit');
+  // Where the shape is: its centre, and its spin (to within a pixel, as a finger is).
+  const at = async (x: number, y: number, spin = 0) => {
+    const m = /^translate\(([\d.-]+) ([\d.-]+)\) rotate\(([\d.-]+)\) scale\(1 1\) translate\(-128 -80\)$/.exec((await hit.first().getAttribute('transform'))!)!;
+    expect(m, 'transform').toBeTruthy();
+    expect(Math.abs(+m[1] - x) <= 1 && Math.abs(+m[2] - y) <= 1 && +m[3] === spin, `${m[0]} near ${x} ${y} ${spin}`).toBe(true);
+  };
+  await expect(hit).toHaveCount(1);
+  await at(128, 80);
   const time = page.getByRole('slider', { name: 'Time' });
-  await time.fill('15');
-  const box = (await stage.boundingBox())!;
-  const k = box.width / 640;
-  // The text sits on top of the rocket, so move it out of the way first.
-  await page.mouse.move(box.x + 320 * k, box.y + 200 * k);
+  await time.fill('23');
+  await expect(page.locator('.motion-clock')).toHaveText('2.9 s / 2.9 s');
+  // (The slider may have scrolled the stage away.)
+  await stage.scrollIntoViewIfNeeded();
+  const sb = (await stage.boundingBox())!;
+  const k = sb.width / 640;
+  await page.mouse.move(sb.x + 128 * k, sb.y + 80 * k);
   await page.mouse.down();
-  await page.mouse.move(box.x + 320 * k, box.y + 320 * k, { steps: 4 });
+  await page.mouse.move(sb.x + 428 * k, sb.y + 280 * k, { steps: 5 });
   await page.mouse.up();
-  await page.mouse.move(box.x + 320 * k, box.y + 200 * k);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 560 * k, box.y + 80 * k, { steps: 4 });
-  await page.mouse.up();
-  expect(await pos(0)).toBe('translate(560 80) scale(1)');
-  expect(await pos(1)).toBe('translate(320 320) scale(1)');
-  await expect(page.locator('.anim-rows li').nth(0).locator('.key')).toHaveCount(2);
+  await at(428, 280);
+  await expect(hit.first()).toHaveClass(/sel/);
+  // It started where it was drawn, and the link says so: a key line for shape 0.
+  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
+  const body = () => decodeEnvelope(page.url().split('/#/v2/anim/')[1] ?? '', 'anim').body;
+  await expect.poll(body).toMatch(/^!o\nr,8,5,16,10,0,Go\n@0\t0,0,0,0,a,0;n,8[bcd],5[jkl],0,a,0$/);
+  await expect(page.locator('.motion-keys .key')).toHaveCount(2);
 
-  // Halfway through, it is halfway there.
-  await time.fill('0');
-  expect(await pos(0)).toBe('translate(320 200) scale(1)');
+  // Halfway through, it is halfway there; turned and shouting when the controls say so.
+  await time.fill('12');
+  await at(284.5, 184.3);
+  await page.getByRole('slider', { name: 'Spin' }).fill('45');
+  await page.getByRole('button', { name: 'Impact' }).click();
+  await expect.poll(body).toMatch(/;c,4[cd],2[wx],0,a,19,i;/);
+  await expect(stage.locator('text')).toHaveText('GO');
   await reopen(page);
-  await expect(items).toHaveCount(2);
-  await page.getByRole('slider', { name: 'Time' }).fill('15');
-  expect(await pos(0)).toBe('translate(560 80) scale(1)');
+  await expect(hit).toHaveCount(1);
+  await page.getByRole('slider', { name: 'Time' }).fill('12');
+  await at(284.5, 184.3, 45);
   await shot(page, 'anim');
 
+  // It plays; and it is an animated GIF, a frame per frame.
   await page.getByRole('button', { name: 'Play' }).click();
-  await expect.poll(() => pos(0)).not.toBe('translate(560 80) scale(1)');
-  await page.getByRole('button', { name: 'Stop' }).click();
+  await expect(page.locator('.motion-clock')).not.toHaveText('2.9 s / 2.9 s');
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [gif] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Animated GIF/ }).click()]);
+  const { readFileSync } = await import('node:fs');
+  expect(readFileSync(await gif.path()).subarray(0, 6).toString('latin1')).toBe('GIF89a');
 });
 
 test('shell: themes, page titles, share and room per service', async ({ page, isMobile }) => {
@@ -484,7 +506,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     board: '#To do\nx\ny\n#Done|1',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
-    anim: '9\nirocket\t0,a,14,a;8,1y,a,p\ntLift off\t4,14,p,a',
+    anim: '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
     org: 'Ada | CEO\n  Ben | Engineering\n  Eve | Design',
     mind: 'Launch\n  Product\n    Pricing\n  Marketing',
     lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
@@ -568,7 +590,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     board: '#To do\nx\ny\n#Done|1',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
-    anim: '9\nirocket\t0,a,14,a;8,1y,a,p',
+    anim: '!o\nt,4,20,20,4,04,Lift\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
     org: 'Ada | CEO\n  Ben | Engineering\n  Eve | Design',
     mind: 'Launch\n  Product\n    Pricing\n  Marketing',
     lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',

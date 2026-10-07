@@ -5,7 +5,7 @@
  */
 import { html, nothing, render, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { COMMON, FONT, History, appOf, apps, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
+import { COMMON, MOVING, FONT, History, appOf, apps, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
 import { toMarkdown } from '../lib/markdown.ts';
@@ -134,8 +134,65 @@ export async function saveFile(name: string, mime: string, data: Uint8Array) {
 /** The app's own formats first (the first is what Ctrl+S saves), then the ones every app has, once each. */
 export const formatsOf = (def: AppDef) => {
   const own = (def.downloads ?? []).map((d) => ({ ext: d.ext, label: d.label }));
-  return [...own, ...COMMON.filter((c) => !own.some((o) => o.ext === c.ext))];
+  return [...own, ...(def.frames ? [MOVING] : []), ...COMMON.filter((c) => !own.some((o) => o.ext === c.ext))];
 };
+
+/**
+ * The document as an animated GIF: each frame rasterised, cross-faded into
+ * the next when asked, quantised and encoded (lib/gif.ts). Sized so a
+ * phone can hold it: at most 640 wide.
+ */
+export async function movie(def: AppDef, body: string): Promise<Uint8Array | null> {
+  if (!def.frames) return null;
+  const { pages, delayMs, fade } = def.frames(body);
+  if (!pages.length) return null;
+  const scale = Math.min(1, 640 / pages[0].w);
+  const w = Math.round(pages[0].w * scale);
+  const h = Math.round(pages[0].h * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const g = canvas.getContext('2d', { willReadFrequently: true })!;
+  const fonts = await fontsForPictures();
+  const images: HTMLImageElement[] = [];
+  for (const p of pages) {
+    const img = new Image();
+    const svg = pageSvg(p).replace(/<svg[^>]*>/, (open) => `${open}<style>${fonts}</style>`);
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    try {
+      await img.decode();
+    } catch {
+      return null;
+    }
+    images.push(img);
+  }
+  const { encodeGif } = await import('../lib/gif.ts');
+  const frames: { data: Uint8ClampedArray; delayMs: number }[] = [];
+  const shot = (delay: number) => frames.push({ data: g.getImageData(0, 0, w, h).data, delayMs: delay });
+  const paint = (img: HTMLImageElement, alpha = 1) => {
+    g.globalAlpha = alpha;
+    g.drawImage(img, 0, 0, w, h);
+    g.globalAlpha = 1;
+  };
+  images.forEach((img, i) => {
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, w, h);
+    paint(img);
+    shot(delayMs);
+    const next = images[i + 1];
+    if (fade && next) {
+      // A short cross-fade: the next page over this one, a little more each frame.
+      for (let k = 1; k <= 4; k++) {
+        g.fillStyle = '#fff';
+        g.fillRect(0, 0, w, h);
+        paint(img);
+        paint(next, k / 5);
+        shot(60);
+      }
+    }
+  });
+  return encodeGif(w, h, frames, { loop: 0 });
+}
 
 /**
  * Save a document as a file of the given kind. Returns the file's name, or
@@ -158,6 +215,9 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
   } else if (ext === 'png') {
     data = await picture(def, body);
     mime = 'image/png';
+  } else if (ext === 'gif' && def.frames) {
+    data = await movie(def, body);
+    mime = 'image/gif';
   } else if (ext === 'pdf') {
     const pages: PdfPage[] = [];
     for (const p of def.view(body)) {

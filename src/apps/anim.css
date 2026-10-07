@@ -1,0 +1,149 @@
+/* Motion: the stage, what the selected shape can be given, and the timeline under them. */
+.motion {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.motion > * {
+  min-width: 0;
+}
+svg.motion-stage {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+}
+.motion-stage .hit rect {
+  fill: transparent;
+  stroke: transparent;
+  cursor: move;
+}
+.motion-stage .hit.sel rect {
+  stroke: var(--to-accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.motion-props {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0;
+}
+.motion-sliders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.motion-slider {
+  display: grid;
+  gap: 2px;
+  font: 12.5px var(--sl-font-sans);
+  color: var(--to-ink-2);
+  min-width: 120px;
+}
+.motion-slider b {
+  font-weight: 500;
+  color: var(--to-ink);
+  font-variant-numeric: tabular-nums;
+}
+.motion-slider input,
+.motion-scrub input {
+  accent-color: var(--to-accent);
+  width: 100%;
+  margin: 0;
+}
+.motion-fx::part(base) {
+  flex-wrap: wrap;
+}
+.motion-fx sl-button[aria-pressed='true']::part(base) {
+  background: var(--to-accent-soft);
+  color: var(--to-accent);
+  border-color: var(--to-accent);
+}
+
+.motion-time {
+  display: grid;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--to-border);
+  background: var(--to-surface);
+}
+.motion-transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.motion-clock {
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+.motion-len {
+  width: 92px;
+}
+.motion-fps {
+  width: 124px;
+}
+.motion-scrub {
+  position: relative;
+  padding-bottom: 10px;
+}
+.motion-keys {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 10px;
+}
+.motion-keys .key {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  padding: 0;
+  border: 2px solid var(--to-accent);
+  border-radius: 50%;
+  background: var(--to-surface);
+  cursor: pointer;
+}
+.motion-keys .key.on {
+  background: var(--to-accent);
+}
+.motion-thumbs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 2px;
+  scroll-snap-type: x proximity;
+}
+.motion-thumbs button {
+  flex: 1 0 72px;
+  max-width: 112px;
+  scroll-snap-align: start;
+  padding: 0;
+  border: 1px solid var(--to-border);
+  border-radius: 4px;
+  background: var(--to-surface);
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 8 / 5;
+}
+.motion-thumbs button.on {
+  border-color: var(--to-accent);
+  box-shadow: 0 0 0 1px var(--to-accent);
+}
+.motion-thumbs svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
