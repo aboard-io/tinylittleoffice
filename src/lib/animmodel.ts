@@ -13,7 +13,7 @@
  * degrees, and letters for effects (see EFFECTS). A Draw document on its own
  * is a motion document in which nothing moves yet.
  */
-import { parseDrawing, removeShape, serializeDrawing, type Shape } from './drawmodel.ts';
+import { parseDrawing, ptsOf, ptsText, removeShape, serializeDrawing, type Shape } from './drawmodel.ts';
 
 export const W = 640;
 export const H = 400;
@@ -50,6 +50,8 @@ export interface Key {
   r: number;
   /** Effect letters, any combination. */
   fx: string;
+  /** For a pen shape: its corners at this key (hundredths of its box), tweened to the next key's when both have as many. */
+  pts?: number[];
 }
 
 export interface Anim {
@@ -62,7 +64,7 @@ export interface Anim {
 
 /** A key that leaves the shape as it was drawn. */
 export const restKey = (t: number): Key => ({ t, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '' });
-const atRest = (k: Key) => !k.dx && !k.dy && !k.z && k.s === 1 && !k.r && !k.fx;
+const atRest = (k: Key) => !k.dx && !k.dy && !k.z && k.s === 1 && !k.r && !k.fx && !k.pts;
 
 /** How much nearer things look larger: 1 + z / 400, so z = 200 is half as big again. */
 export const depthScale = (z: number) => 1 + z / (2 * MAX_Z);
@@ -89,11 +91,13 @@ export function parseAnim(text: string): Anim {
     const i = parseInt(line.slice(1, tab), 36);
     if (tab < 0 || !anim.keys[i]) continue;
     for (const part of line.slice(tab + 1).split(';')) {
-      const [t, dx, dy, z, s, r, fx = ''] = part.split(',');
+      const [t, dx, dy, z, s, r, fx = '', p = ''] = part.split(',');
       const n = (v: string | undefined, dflt: number) => (v !== undefined && Number.isFinite(parseInt(v, 36)) ? parseInt(v, 36) : dflt);
       if (!Number.isFinite(parseInt(t, 36))) continue;
       anim.keys[i] = anim.keys[i].filter((k) => k.t !== n(t, 0));
-      anim.keys[i].push({ t: clamp(n(t, 0), 0, anim.frames - 1), dx: n(dx, 0), dy: n(dy, 0), z: clamp(n(z, 0), -MAX_Z, MAX_Z), s: Math.max(1, n(s, 10)) / 10, r: n(r, 0), fx: letters(fx) });
+      const key: Key = { t: clamp(n(t, 0), 0, anim.frames - 1), dx: n(dx, 0), dy: n(dy, 0), z: clamp(n(z, 0), -MAX_Z, MAX_Z), s: Math.max(1, n(s, 10)) / 10, r: n(r, 0), fx: letters(fx) };
+      if (p.startsWith('p')) key.pts = ptsOf(p.slice(1).replace(/\//g, ';'));
+      anim.keys[i].push(key);
     }
     sortKeys(anim.keys[i]);
   }
@@ -106,7 +110,7 @@ export function serializeAnim(anim: Anim): string {
   const head = `!${b(anim.frames)}${anim.fps !== DEFAULT_FPS ? `,${anim.fps}` : ''}`;
   const lines = [head, ...(anim.shapes.length ? [serializeDrawing(anim.shapes)] : [])];
   for (const [i, ks] of keyed) {
-    const keys = sortKeys(ks.slice()).map((k) => `${b(k.t)},${b(k.dx)},${b(k.dy)},${b(k.z)},${b(k.s * 10)},${b(k.r)}${k.fx ? `,${letters(k.fx)}` : ''}`);
+    const keys = sortKeys(ks.slice()).map((k) => `${b(k.t)},${b(k.dx)},${b(k.dy)},${b(k.z)},${b(k.s * 10)},${b(k.r)}${k.fx || k.pts ? `,${letters(k.fx)}` : ''}${k.pts ? `,p${ptsText(k.pts).replace(/;/g, '/')}` : ''}`);
     lines.push(`@${b(i)}\t${keys.join(';')}`);
   }
   return lines.join('\n');
@@ -125,13 +129,18 @@ export function stateAt(anim: Anim, i: number, frame: number): Key {
   const q = keys[k + 1];
   const f = (frame - p.t) / (q.t - p.t);
   const mix = (m: number, n: number) => m + (n - m) * f;
-  return { t: frame, dx: mix(p.dx, q.dx), dy: mix(p.dy, q.dy), z: mix(p.z, q.z), s: mix(p.s, q.s), r: mix(p.r, q.r), fx: p.fx };
+  const out: Key = { t: frame, dx: mix(p.dx, q.dx), dy: mix(p.dy, q.dy), z: mix(p.z, q.z), s: mix(p.s, q.s), r: mix(p.r, q.r), fx: p.fx };
+  // Corners morph when both keys have the same number of them; otherwise they hold.
+  if (p.pts && q.pts && p.pts.length === q.pts.length) out.pts = p.pts.map((v, n) => mix(v, q.pts![n]));
+  else if (p.pts) out.pts = p.pts;
+  return out;
 }
 
 /** Set (or replace) shape `i`'s key at its frame, in the whole numbers the format keeps. */
 export function withKey(anim: Anim, i: number, key: Key): Anim {
   const keys = anim.shapes.map((_, j) => anim.keys[j] ?? []);
   const k: Key = { t: Math.round(key.t), dx: Math.round(key.dx), dy: Math.round(key.dy), z: Math.round(key.z), s: Math.round(key.s * 10) / 10, r: Math.round(key.r), fx: letters(key.fx) };
+  if (key.pts) k.pts = key.pts.map(Math.round);
   keys[i] = sortKeys([...keys[i].filter((q) => q.t !== k.t), k]);
   return { ...anim, keys };
 }

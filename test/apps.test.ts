@@ -1086,3 +1086,24 @@ test('calculator: expressions, money modes, and the page they draw', async () =>
   assert.ok(appOf('calc')!.view('2+2\n7*6')[0].svg.includes('>42<'));
   assert.deepEqual(appOf('calc')!.outline('2+2'), ['2+2 = 4']);
 });
+
+test('pen shapes: any corners, kept as hundredths of the box; Motion morphs them between keys', async () => {
+  const { parseDrawing, serializeDrawing } = await import('../src/lib/drawmodel.ts');
+  const { shapeSvg } = await import('../src/apps/draw.def.ts');
+  const { parseAnim, serializeAnim, stateAt, withKey } = await import('../src/lib/animmodel.ts');
+  const { frameSvg } = await import('../src/apps/anim.def.ts');
+  const line = 'v,2,1,12,6,1b,0:0;100:50;0:100,Wedge';
+  const [s] = parseDrawing(line);
+  assert.deepEqual(s.pts, [0, 0, 100, 50, 0, 100]);
+  assert.equal(serializeDrawing([s]), line);
+  assert.ok(shapeSvg(s).includes('<polygon points="16,8 112,32 16,56"'));
+  // A key with corners: morphed halfway to the next.
+  let anim = parseAnim('!o\n' + line);
+  anim = withKey(anim, 0, { t: 0, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 50, 0, 100] });
+  anim = withKey(anim, 0, { t: 10, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 0, 100, 100] });
+  assert.deepEqual(stateAt(anim, 0, 5).pts, [0, 0, 100, 25, 50, 100]);
+  const text = serializeAnim(anim);
+  assert.ok(text.includes(',p0:0/100:50/0:100'), text);
+  assert.deepEqual(parseAnim(text).keys[0][1].pts, [0, 0, 100, 0, 100, 100]);
+  assert.ok(frameSvg(parseAnim(text), 10).includes('points="16,8 112,8 112,56"'));
+});

@@ -165,6 +165,9 @@ One shape per line: `kind,x,y,w,h,style,label`, on a grid 80 wide and 50 tall. K
 
 https://tinylittleoffice.com/draw/#title=Request+flow&doc=o%2C4%2C6%2C16%2C8%2C1b%2CBrowser%0Ao%2C32%2C6%2C16%2C8%2C1b%2CServer%0Ac%2C60%2C5%2C14%2C10%2C1g%2CData%0Ak%2C0%2C1%2C0%2C0%2C0%2Casks%0Ak%2C1%2C2%2C0%2C0%2C0%2Creads
 
+
+Any shape at all: `v,x,y,w,h,style,<corners>,label` where the corners are `x:y` pairs as hundredths of the box, `;` between (`v,2,1,12,6,1b,0:0;100:50;0:100,Wedge` is a wedge). In the editor the Pen tool (P) makes one corner by corner; Enter or tapping the first corner closes it.
+
 ### anim: a drawing that moves
 
 A Draw document, with a first line `!<frames>[,<fps>]` (frames in base 36, up to 120; 4, 8 or 12 a second) and, after the shapes, a key line per moving shape: `@<shape number>` (base 36, counting from 0), a tab, then keys separated by `;`, each `t,dx,dy,z,s,r[,fx]` in base 36: the frame, the offset in px from where the shape was drawn, its depth in px (nearer when positive), its size in tenths (`a` is 1), its spin in degrees, and effect letters (`i` impact meme, `3` 3D, `d` shadow, `n` neon, `o` outline, `g` rainbow, `m` mirror, `w` wobble, `b` blur). Between keys it moves in straight lines; a shape with no keys stays put. Plain `doc=` text is taken as is.

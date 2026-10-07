@@ -721,3 +721,40 @@ test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in
   await expect(page).toHaveURL(/#\/v2\/mind\//);
   await expect(page.locator('to-mind .pic svg')).toContainText('Pricing');
 });
+
+test('draw: the pen makes any shape, corner by corner; Motion morphs its corners', async ({ page }) => {
+  await page.goto('/#/draw');
+  const canvas = page.locator('.draw-canvas');
+  const b = (await canvas.boundingBox())!;
+  const at = (fx: number, fy: number) => page.mouse.click(b.x + b.width * fx, b.y + b.height * fy);
+  await page.getByRole('button', { name: /^Pen/ }).click();
+  await at(0.2, 0.2);
+  await at(0.5, 0.15);
+  await at(0.45, 0.5);
+  await at(0.15, 0.4);
+  await page.keyboard.press('Enter');
+  await expect(canvas.locator('polygon')).toHaveCount(1);
+  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
+  await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'draw').body).toMatch(/^v,\d+,\d+,\d+,\d+,1,\d+:\d+;\d+:\d+;\d+:\d+;\d+:\d+/);
+  // Esc drops a half-drawn one.
+  await page.getByRole('button', { name: /^Pen/ }).click();
+  await at(0.7, 0.7);
+  await at(0.8, 0.8);
+  await page.keyboard.press('Escape');
+  await expect(canvas.locator('polygon')).toHaveCount(1);
+  // In Motion, a corner dragged at a later moment morphs between the two.
+  const body = decodeEnvelope(page.url().split('/').pop()!, 'draw').body;
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  await page.goto(`/#/v2/anim/${encodeEnvelope({ created: null, body: '!o\n' + body }, 'anim')}`);
+  await page.getByRole('radio', { name: 'Move' }).click();
+  await page.locator('input[type=range][aria-label="Time"]').fill('23');
+  await page.locator('.motion-stage .hit').first().click();
+  const corner = page.locator('.motion-stage .corner').first();
+  await expect(corner).toHaveCount(1);
+  const c = (await corner.boundingBox())!;
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(c.x + c.width / 2 + 60, c.y + c.height / 2 + 40, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'anim').body).toMatch(/@0\t.*,p\d+:\d+\/.*;n,.*,p/);
+});

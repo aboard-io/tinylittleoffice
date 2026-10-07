@@ -38,6 +38,7 @@ const TOOLS: { id: Tool; label: string; icon: keyof typeof UI; key: string }[] =
   { id: 'a', label: 'Arrow', icon: 'arrow', key: 'A' },
   { id: 't', label: 'Text', icon: 'text', key: 'T' },
   { id: 'k', label: 'Join two shapes', icon: 'join', key: 'K' },
+  { id: 'v', label: 'Pen: any shape, corner by corner', icon: 'pen', key: 'P' },
 ];
 
 /** More shapes, behind one button. */
@@ -59,6 +60,8 @@ export class ToDraw extends LitElement {
   @state() private shapes: Shape[] = [];
   @state() private tool: Tool = 'select';
   @state() private sel = -1;
+  /** The pen's corners so far, in px; the shape is made when the pen is closed (Enter, a double tap, or the first corner again). */
+  @state() private pen: [number, number][] = [];
   @state() private drag: Drag | null = null;
   /** How large the canvas is shown: 1 fits the page's width. */
   @state() private zoom = 1;
@@ -110,6 +113,13 @@ export class ToDraw extends LitElement {
     // (Without scrolling: the page must not jump under a drag that has just begun.)
     this.querySelector<HTMLElement>('.draw-wrap')?.focus({ preventScroll: true });
 
+    if (this.tool === 'v') {
+      // The pen: a corner a tap; tapping the first corner again closes it.
+      const first = this.pen[0];
+      if (first && this.pen.length > 2 && Math.hypot(first[0] - x, first[1] - y) < 10) return this.closePen();
+      this.pen = [...this.pen, [snap(x), snap(y)]];
+      return;
+    }
     if (this.tool === 'k') {
       // Joining: press on one shape, let go on another.
       const from = idxAttr ? parseInt(idxAttr, 10) : -1;
@@ -198,11 +208,31 @@ export class ToDraw extends LitElement {
     }
   }
 
+  /** The pen's corners become a shape: its box is theirs, its points hundredths of it. */
+  private closePen() {
+    const pts = this.pen;
+    this.pen = [];
+    if (pts.length < 3) return;
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const [x0, y0, x1, y1] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    const [w, h] = [Math.max(GRID, x1 - x0), Math.max(GRID, y1 - y0)];
+    const shape: Shape = { k: 'v', x: x0, y: y0, w, h, f: 1, text: '', pts: pts.flatMap(([px, py]) => [((px - x0) / w) * 100, ((py - y0) / h) * 100]) };
+    this.commit([...this.shapes, shape]);
+    this.sel = this.shapes.length - 1;
+    this.tool = 'select';
+  }
+
   private onKey = (e: KeyboardEvent) => {
     const t = e.composedPath()[0] as HTMLElement;
     if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') {
       if (e.key === 'Escape') (t as HTMLInputElement).blur();
       return;
+    }
+    if (this.pen.length) {
+      if (e.key === 'Enter') return (e.preventDefault(), this.closePen());
+      if (e.key === 'Escape') return (e.preventDefault(), void (this.pen = []));
+      if (e.key === 'Backspace') return (e.preventDefault(), void (this.pen = this.pen.slice(0, -1)));
     }
     const tool = [...TOOLS].find((x) => x.key.toLowerCase() === e.key.toLowerCase());
     if (tool && !e.ctrlKey && !e.metaKey) {
@@ -361,7 +391,7 @@ export class ToDraw extends LitElement {
           @pointermove=${this.onMove}
           @pointerup=${this.onUp}
           @pointercancel=${this.onUp}
-          @dblclick=${() => this.sel >= 0 && this.querySelector<SlInput>('.draw-label')?.select()}
+          @dblclick=${() => (this.pen.length ? this.closePen() : this.sel >= 0 && this.querySelector<SlInput>('.draw-label')?.select())}
         >
           <defs>
             <pattern id="grid" width=${GRID * 2} height=${GRID * 2} patternUnits="userSpaceOnUse">
@@ -370,6 +400,10 @@ export class ToDraw extends LitElement {
             ${unsafeSVG(arrowDefs('var(--to-ink)'))}
           </defs>
           <rect width=${W} height=${H} fill="url(#grid)" />
+          ${this.pen.length
+            ? svg`<polyline points=${this.pen.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="6 4"/>
+                ${this.pen.map(([px, py], i) => svg`<circle cx=${px} cy=${py} r=${i === 0 ? 7 : 4} fill=${i === 0 ? 'var(--to-accent)' : '#fff'} stroke="var(--to-accent)" stroke-width="2"/>`)}`
+            : nothing}
           ${this.shapes.map((sh, i) => this.renderShape(sh, i))}
           ${d?.mode === 'draw' ? this.renderShape(d.shape, -1, true) : nothing}
           ${d?.mode === 'link' && from ? svg`<line x1=${from.x + from.w / 2} y1=${from.y + from.h / 2} x2=${d.to[0]} y2=${d.to[1]} stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none" />` : nothing}

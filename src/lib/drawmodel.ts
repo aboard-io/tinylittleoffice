@@ -21,7 +21,8 @@ export const W = 640;
 export const H = 400;
 export const GRID = 8;
 
-export type Kind = 'r' | 'o' | 'e' | 'd' | 'h' | 'p' | 'c' | 'n' | 'i' | 'l' | 'a' | 't' | 'k' | 'j';
+/** 'v' is any shape at all: its points, as hundredths of its box, drawn with the pen. */
+export type Kind = 'r' | 'o' | 'e' | 'd' | 'h' | 'p' | 'c' | 'n' | 'i' | 'l' | 'a' | 't' | 'k' | 'j' | 'v';
 
 /** A label's icon and its words: ":rocket Launch" is ['rocket', 'Launch']. */
 export function iconOf(label: string): [string, string] {
@@ -48,7 +49,13 @@ export interface Shape {
   c?: Color;
   /** Text size; absent for the normal size (2). */
   z?: TextSize;
+  /** For 'v': the corners, x,y pairs as hundredths of the box, in order. */
+  pts?: number[];
 }
+
+/** Points as the text keeps them: "12:0;100:50;0:100". */
+export const ptsText = (pts: number[]) => Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => `${Math.round(pts[2 * i])}:${Math.round(pts[2 * i + 1])}`).join(';');
+export const ptsOf = (text: string): number[] => text.split(';').flatMap((p) => p.split(':').map((n) => +n)).filter((n) => isFinite(n));
 
 export const COLORS: Record<Color, { name: string; hex: string }> = { r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
 export const TEXT_SIZES: Record<TextSize, { name: string; px: number }> = {
@@ -73,7 +80,7 @@ export function paint(s: Shape, ink: string, paper: string, shade: string) {
   };
 }
 
-const KINDS: Kind[] = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j'];
+const KINDS: Kind[] = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v'];
 
 export function parseDrawing(text: string): Shape[] {
   if (!text) return [];
@@ -92,8 +99,9 @@ export function parseDrawing(text: string): Shape[] {
       w: (parseInt(w, 10) || 0) * GRID,
       h: (parseInt(h, 10) || 0) * GRID,
       f: (style ? parseInt(style[1], 10) : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
-      text: parts.slice(6).join(','),
+      text: parts.slice(k === 'v' ? 7 : 6).join(','),
     };
+    if (k === 'v') shape.pts = ptsOf(parts[6] ?? '');
     if (style && style[2] in COLORS) shape.c = style[2] as Color;
     if (style && style[3] && style[3] !== '2') shape.z = parseInt(style[3], 10) as TextSize;
     out.push(shape);
@@ -105,7 +113,7 @@ export function serializeDrawing(shapes: Shape[]): string {
   const g = (n: number) => Math.round(n / GRID);
   return shapes
     .map((s) => {
-      const base = `${s.k},${isLink(s.k) ? s.x : g(s.x)},${isLink(s.k) ? s.y : g(s.y)},${g(s.w)},${g(s.h)},${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}`;
+      const base = `${s.k},${isLink(s.k) ? s.x : g(s.x)},${isLink(s.k) ? s.y : g(s.y)},${g(s.w)},${g(s.h)},${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}${s.k === 'v' ? ',' + ptsText(s.pts ?? []) : ''}`;
       return s.text ? `${base},${s.text.replace(/\n/g, ' ')}` : base;
     })
     .join('\n');

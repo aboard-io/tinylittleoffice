@@ -74,7 +74,7 @@ export function frameSvg(anim: Anim, frame: number, theme?: Theme): string {
     .map((i) => {
       const s = anim.shapes[i];
       const k = stateAt(anim, i, frame);
-      const body = effectsSvg(s, i, anim.shapes, k.fx, theme, defs);
+      const body = effectsSvg(k.pts && s.k === 'v' ? { ...s, pts: k.pts } : s, i, anim.shapes, k.fx, theme, defs);
       return body ? `<g transform="${transformOf(s, anim.shapes, k, frame)}">${body}</g>` : '';
     })
     .join('');

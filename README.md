@@ -21,7 +21,7 @@ you have copied the file.
 | Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
 | Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize.   |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
-| Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger or turned, with effects for memes. |
+| Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Database | A tiny relational database: tables, rows, SQL queries, schema drawn. |
 | Website | A one-page site from a few lines; downloads as one HTML file. |

@@ -28,7 +28,7 @@ export class ToAnim extends DocElement<Anim> {
   @state() private clock = 0;
   private touched = false;
   private raf = 0;
-  private drag: { i: number; x: number; y: number; dx: number; dy: number; moved: boolean } | null = null;
+  private drag: { i: number; x: number; y: number; dx: number; dy: number; moved: boolean; corner?: number } | null = null;
   private thumbs: { at: number; svg: string }[] | null = null;
 
   protected parse(text: string) {
@@ -147,8 +147,18 @@ export class ToAnim extends DocElement<Anim> {
   private onDown(e: PointerEvent) {
     if (e.button !== 0) return;
     const idx = (e.target as Element).closest('[data-idx]')?.getAttribute('data-idx');
+    const corner = (e.target as Element).closest('[data-corner]')?.getAttribute('data-corner');
     this.pause();
     (e.currentTarget as HTMLElement).focus({ preventScroll: true });
+    if (corner !== undefined && corner !== null && this.sel >= 0) {
+      // A corner of a pen shape: dragged, it moves at this moment (and the shape morphs between moments).
+      e.preventDefault();
+      const [x, y] = this.point(e);
+      const at = stateAt(this.doc, this.sel, this.frame);
+      this.drag = { i: this.sel, x, y, dx: at.dx, dy: at.dy, moved: false, corner: +corner };
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      return;
+    }
     if (idx === undefined || idx === null) {
       this.sel = -1;
       return;
@@ -165,8 +175,20 @@ export class ToAnim extends DocElement<Anim> {
     const d = this.drag;
     if (!d) return;
     const [x, y] = this.point(e);
-    const [dx, dy] = [Math.round(d.dx + x - d.x), Math.round(d.dy + y - d.y)];
     const at = stateAt(this.doc, d.i, this.frame);
+    if (d.corner !== undefined) {
+      // The corner goes where the pointer is, in hundredths of the shape's box (its offset undone).
+      const s = this.doc.shapes[d.i];
+      const pts = (at.pts ?? s.pts ?? []).slice();
+      pts[2 * d.corner] = Math.round(((x - at.dx - s.x) / s.w) * 100);
+      pts[2 * d.corner + 1] = Math.round(((y - at.dy - s.y) / s.h) * 100);
+      d.moved = true;
+      const from = this.doc.keys[d.i]?.length || !this.frame ? this.doc : withKey(this.doc, d.i, { ...restKey(0), pts: s.pts });
+      this.doc = withKey(from, d.i, { ...at, t: this.frame, pts });
+      this.requestUpdate();
+      return;
+    }
+    const [dx, dy] = [Math.round(d.dx + x - d.x), Math.round(d.dy + y - d.y)];
     if (dx === at.dx && dy === at.dy && d.moved) return;
     d.moved = true;
     // Shown as it goes; written to the link when the pointer lets go. A shape moved for the
@@ -223,7 +245,10 @@ export class ToAnim extends DocElement<Anim> {
         : shapes.map((s, i) => {
             const [x, y, w, h] = bounds(s, shapes);
             const pad = 6;
-            return svg`<g class="hit ${i === this.sel ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, shapes, stateAt(this.doc, i, now), now)}><rect x=${x - pad} y=${y - pad} width=${w + pad * 2} height=${h + pad * 2} rx="4" /></g>`;
+            const k = stateAt(this.doc, i, now);
+            const pts = s.k === 'v' && i === this.sel ? (k.pts ?? s.pts ?? []) : [];
+            return svg`<g class="hit ${i === this.sel ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, shapes, k, now)}><rect x=${x - pad} y=${y - pad} width=${w + pad * 2} height=${h + pad * 2} rx="4" />
+              ${Array.from({ length: Math.floor(pts.length / 2) }, (_, c) => svg`<circle class="corner" data-corner=${c} cx=${s.x + (pts[2 * c] / 100) * s.w} cy=${s.y + (pts[2 * c + 1] / 100) * s.h} r="6" />`)}</g>`;
           })}
     </svg>`;
   }

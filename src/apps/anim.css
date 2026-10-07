@@ -147,3 +147,12 @@ svg.motion-stage {
   height: 100%;
   pointer-events: none;
 }
+
+/* A pen shape's corners, draggable at the moment chosen */
+.motion-stage .hit .corner {
+  fill: #fff;
+  stroke: var(--to-accent);
+  stroke-width: 2;
+  pointer-events: all;
+  cursor: move;
+}

@@ -43,6 +43,10 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
   } else if (s.k === 'p') {
     const i = Math.min(w * 0.2, 20);
     body = `<polygon points="${r(X + i)},${Y} ${X + w},${Y} ${r(X + w - i)},${Y + h} ${X},${Y + h}" ${look}/>`;
+  } else if (s.k === 'v') {
+    // Any shape at all: its corners, as hundredths of its box.
+    const pts = s.pts && s.pts.length >= 4 ? s.pts : [0, 0, 100, 0, 100, 100, 0, 100];
+    body = `<polygon points="${Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => `${r(X + (pts[2 * i] / 100) * w)},${r(Y + (pts[2 * i + 1] / 100) * h)}`).join(' ')}" ${look}/>`;
   } else if (s.k === 'c') {
     // A cylinder: the classic database.
     const e = Math.min(h * 0.16, 12);
