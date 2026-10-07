@@ -1,8 +1,9 @@
 /** Outline: what the shell knows about outlines. Format: lib/outlinemodel.ts. */
 import { defineApp, utf8, wrap, text, ACCENT, type Page } from '../kit/core.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
-import { parseOutline, toOpml, hasChildren, type Item } from '../lib/outlinemodel.ts';
-import { makeRef } from '../kit/embed.ts';
+import { parseOutline, toOpml, hasChildren, embedOf, outlineToDeck, type Item } from '../lib/outlinemodel.ts';
+import { makeRef, refPage } from '../kit/embed.ts';
+import { place } from '../kit/core.ts';
 
 /** The outline drawn: a dot per item, deeper ones stepped in, the words wrapped. Fits a letter page's width; as tall as it needs. */
 export function outlinePage(body: string, w = 720): Page {
@@ -14,6 +15,16 @@ export function outlinePage(body: string, w = 720): Page {
   items.forEach((it, i) => {
     if (!it.text.trim() && !hasChildren(items, i)) return;
     const x = 48 + it.depth * step;
+    const sub = embedOf(it.text);
+    if (sub) {
+      // Another document, drawn small where its item would be.
+      const p = refPage(sub, { w: 340 });
+      const pw = Math.min(w - x - 48, 340);
+      const ph = (p.h / p.w) * pw;
+      svg += place(p, x, y + 8, pw, ph);
+      y += ph + 16;
+      return;
+    }
     const lines = wrap(parseInline(it.text), w - x - 48, px, it.depth === 0);
     const top = y;
     svg += `<circle cx="${x - 12}" cy="${top + px * 0.65}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
@@ -24,7 +35,7 @@ export function outlinePage(body: string, w = 720): Page {
 }
 
 const items = (body: string) => parseOutline(body).filter((it) => it.text.trim());
-const title = (body: string) => plainInline(items(body)[0]?.text ?? '');
+const title = (body: string) => plainInline(items(body).find((it) => !embedOf(it.text))?.text ?? '');
 
 export default defineApp({
   id: 'outline',
@@ -33,7 +44,7 @@ export default defineApp({
   icon: 'outline',
   blurb: 'An outliner: ideas under ideas, folded and unfolded, moved about; the same text a mind map or an org chart reads.',
   title,
-  outline: (body) => items(body).map((it) => '  '.repeat(it.depth) + plainInline(it.text)),
+  outline: (body) => items(body).filter((it) => !embedOf(it.text)).map((it) => '  '.repeat(it.depth) + plainInline(it.text)),
   view: (body) => [outlinePage(body)],
   steps: (body) => items(body).length,
   downloads: [
@@ -52,4 +63,5 @@ export default defineApp({
 
 /** The outline as another document: a mind map, an org chart, a family tree take this very text. */
 export const outlineAs = (app: string, body: string) => makeRef(app, body);
+export const outlineDeck = (body: string) => outlineToDeck(parseOutline(body));
 export type { Item };

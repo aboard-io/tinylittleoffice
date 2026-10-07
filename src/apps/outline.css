@@ -137,3 +137,10 @@
   color: var(--to-ink);
   font-weight: 600;
 }
+
+.ol-row .ol-doc {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 480px;
+  margin: 4px 0;
+}

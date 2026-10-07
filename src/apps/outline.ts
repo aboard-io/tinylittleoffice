@@ -4,8 +4,9 @@
  * and fold it, a handle drags it onto another item, and any item can be
  * zoomed in on. Format: lib/outlinemodel.ts.
  */
-import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, type TemplateResult } from '../kit.ts';
-import { blockEnd, hasChildren, move, parseOutline, place, remove, serializeOutline, shift, type Item } from '../lib/outlinemodel.ts';
+import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult } from '../kit.ts';
+import { blockEnd, embedOf, hasChildren, move, outlineToDeck, parseOutline, place, remove, serializeOutline, shift, type Item } from '../lib/outlinemodel.ts';
+import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
 import { outlineAs } from './outline.def.ts';
 import './write.ts';
@@ -92,6 +93,26 @@ export class ToOutline extends DocElement<Item[]> {
     const r = move(this.doc, i, by);
     if (r) this.save(r[0], r[1]);
   }
+  /** Another document as an item of its own, after the current one (or at the end). */
+  private async insertDoc(what: string) {
+    const items = this.doc;
+    const i = this.sel >= 0 ? this.sel : items.length - 1;
+    const at = this.sel >= 0 ? blockEnd(items, i) : items.length;
+    const depth = this.sel >= 0 ? items[i].depth : 0;
+    const ref = what === 'qr-self' ? SELF : what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, '');
+    const put = (r: string) => this.commit([...this.doc.slice(0, at), { depth, text: '@@' + r }, ...this.doc.slice(at)]);
+    put(ref);
+    if (what === 'qr-self') return;
+    const made = await editRef(ref);
+    this.commit(this.doc.map((it, n) => (n === at ? { ...it, text: '@@' + made } : it)));
+  }
+  private async editDoc(i: number) {
+    const ref = embedOf(this.doc[i].text);
+    if (!ref || ref === SELF) return;
+    const made = await editRef(ref);
+    this.setText(i, '@@' + made);
+  }
+
   private fold(i: number, shut = !this.folded.has(i)) {
     const f = new Set(this.folded);
     if (shut) f.add(i);
@@ -189,9 +210,11 @@ export class ToOutline extends DocElement<Item[]> {
           ${tool('Unfold all', 'down', () => this.foldAll(false), { text: true })}${tool('Fold all', 'right', () => this.foldAll(true), { text: true })}
         </sl-button-group>
         ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { text: true }) : nothing}
-        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = '#/v2/' + outlineAs(e.detail.item.value, serializeOutline(items)))}>
+        <to-insert label="Insert" placeholder="Insert a document…" .options=${insertOptions('outline')} @pick=${(e: CustomEvent<string>) => this.insertDoc(e.detail)}></to-insert>
+        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = '#/v2/' + (e.detail.item.value === 'deck' ? makeRef('deck', outlineToDeck(items)) : outlineAs(e.detail.item.value, serializeOutline(items))))}>
           <sl-button slot="trigger" size="small" caret>${icon(UI.mind, 14)} See as</sl-button>
           <sl-menu>
+            <sl-menu-item value="deck">${icon(UI.deck, 14, 'pre')} Deck: a slide for every level</sl-menu-item>
             <sl-menu-item value="mind">${icon(UI.mind, 14, 'pre')} Mind map</sl-menu-item>
             <sl-menu-item value="org">${icon(UI.org, 14, 'pre')} Org chart</sl-menu-item>
             <sl-menu-item value="family">${icon(UI.family, 14, 'pre')} Family tree</sl-menu-item>
@@ -221,7 +244,9 @@ export class ToOutline extends DocElement<Item[]> {
             ${kids
               ? html`<button class="ol-fold" aria-label=${shut ? `Unfold, ${blockEnd(items, i) - i - 1} inside` : 'Fold'} @click=${() => this.fold(i)}>${icon(shut ? UI.right : UI.down, 14)}</button>`
               : html`<button class="ol-dot" aria-label="Zoom in on this item" title="Zoom in" @click=${() => this.zoomTo(i)}><span></span></button>`}
-            <to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>
+            ${embedOf(it.text)
+              ? html`<to-embed class="ol-doc" ref=${embedOf(it.text)!} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
+              : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}
             ${kids && shut ? html`<span class="ol-count" aria-hidden="true">${blockEnd(items, i) - i - 1}</span>` : nothing}
           </div>`;
         })}

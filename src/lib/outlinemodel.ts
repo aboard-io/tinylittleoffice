@@ -22,6 +22,35 @@ export function parseOutline(text: string): Item[] {
   return items;
 }
 
+/** An item that is another document: its text is exactly "@@<app>/<payload>". */
+export const embedOf = (text: string): string | null => /^@@([a-z]+\/[A-Za-z0-9_-]*)$/.exec(text.trim())?.[1] ?? null;
+
+/**
+ * The outline as a deck: every item with something under it is a slide
+ * (its words the headline, its family the bullets, nested as deep as a
+ * slide nests), walked in order to the last leaf; an item that is a
+ * document is a slide showing that document. A lone root is the title slide.
+ */
+export function outlineToDeck(items: Item[]): string {
+  const live = items.filter((it) => it.text.trim());
+  const roots = live.filter((it) => it.depth === 0);
+  const slides: string[] = [];
+  const kids = (i: number) => {
+    const end = blockEnd(live, i);
+    return live.slice(i + 1, end).map((it) => '  '.repeat(Math.min(3, it.depth - live[i].depth - 1)) + (embedOf(it.text) ? it.text.replace(/^@@.*$/, (m) => m) : it.text));
+  };
+  live.forEach((it, i) => {
+    const sub = embedOf(it.text);
+    if (sub) return void slides.push(`${it.depth === 0 && roots.length === 1 ? '::t\n' : ''}${' '}\n@@${sub}`);
+    if (!hasChildren(live, i)) return;
+    const title = it.depth === 0 && roots.length === 1 && i === 0;
+    // A title slide names its parts beneath; elsewhere the family is the bullets, and a child that is a document has a slide to itself after.
+    const body = kids(i).filter((b) => !embedOf(b.trim()) && (!title || !b.startsWith('  ')));
+    slides.push((title ? '::t\n' : '') + it.text + (body.length ? '\n' + body.join('\n') : ''));
+  });
+  return slides.join('\n\n');
+}
+
 export function serializeOutline(items: Item[]): string {
   const out = items.slice();
   while (out.length > 1 && !out[out.length - 1].text.trim()) out.pop();

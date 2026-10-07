@@ -700,7 +700,22 @@ test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /OPML/ }).click()]);
   expect(dl.suggestedFilename()).toBe('done.opml');
   expect(errs).toEqual([]);
-  // The same text, as a mind map.
+  // A document as an item: a table under Launch, made in its own editor.
+  await item(2).click();
+  await page.getByRole('combobox', { name: 'Insert' }).fill('table');
+  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
+  const sub = page.locator('sl-dialog.to-sub');
+  await sub.getByRole('textbox', { name: 'A1', exact: true }).fill('Budget');
+  await sub.getByRole('button', { name: 'Done' }).click();
+  await expect(page.locator('.ol-row to-embed')).toHaveCount(1);
+  await expect.poll(body).toMatch(/\n@@sheet\//);
+  // The same text, as a deck: a slide for every level with something under it.
+  await page.getByRole('button', { name: 'See as' }).click();
+  await page.getByRole('menuitem', { name: /^Deck/ }).click();
+  await expect(page).toHaveURL(/#\/v2\/deck\//);
+  await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
+  await page.goBack();
+  // And as a mind map.
   await page.getByRole('button', { name: 'See as' }).click();
   await page.getByRole('menuitem', { name: 'Mind map' }).click();
   await expect(page).toHaveURL(/#\/v2\/mind\//);

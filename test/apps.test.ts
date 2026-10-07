@@ -1006,3 +1006,22 @@ test('outline: a tree of lines, moved about, and OPML out', async () => {
   assert.equal(toMarkdown(appOf('outline')!, 'Launch\n  *Product*\n    Pricing'), '- Launch\n  - **Product**\n    - Pricing\n');
   assert.equal(fromMarkdown(appOf('outline')!, '# Plan\n\n- a\n  - b\n\n## Later\n- c'), 'Plan\na\n  b\nLater\nc');
 });
+
+test('outline: a deck for every level, and documents as items', async () => {
+  const { parseOutline, outlineToDeck, embedOf } = await import('../src/lib/outlinemodel.ts');
+  const { parseDeck } = await import('../src/lib/deckmodel.ts');
+  const deck = outlineToDeck(parseOutline('Launch\n  Product\n    Pricing\n      Tiers\n    Onboarding\n  Marketing\n    Press\n  @@sheet/WAbc\n  Done'));
+  const slides = parseDeck(deck);
+  // A title slide naming the parts; then a slide for Product, for Pricing (it has a level under it), for Marketing; the sheet has a slide of its own.
+  assert.deepEqual(slides.map((s) => s.title), ['Launch', 'Product', 'Pricing', 'Marketing', '']);
+  assert.equal(slides[0].layout, 't');
+  assert.deepEqual(slides[0].bullets, ['Product', 'Marketing', 'Done']);
+  assert.deepEqual(slides[1].bullets, ['Pricing', '  Tiers', 'Onboarding']);
+  assert.equal(slides[4].sub, 'sheet/WAbc');
+  assert.equal(embedOf('@@sheet/WAbc'), 'sheet/WAbc');
+  assert.equal(embedOf('words @@x'), null);
+  // Two roots: no title slide, each root a slide.
+  assert.deepEqual(parseDeck(outlineToDeck(parseOutline('A\n  a1\nB\n  b1'))).map((s) => [s.title, s.layout ?? '']), [['A', ''], ['B', '']]);
+  // The page draws an item that is a document, small.
+  assert.ok(appOf('outline')!.view('Plan\n  @@todo/' + (await import('../src/lib/envelope.ts')).encodeEnvelope({ created: null, body: '- Buy milk' }, 'todo'))[0].svg.includes('Buy milk'));
+});
