@@ -4,6 +4,4 @@ dist
 test-results
 playwright-report
 
-# Built by npm run build:api
-packages/doc/dist/
 __pycache__/

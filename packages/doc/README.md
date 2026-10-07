@@ -6,12 +6,14 @@ It is the office suite for agents chatting: an agent writes a document by writin
 
 ```sh
 npm i @tinylittleoffice/doc
+# until it is on npm:
+npm i https://gitpkg.vercel.app/ftrain/tinyoffice/packages/doc?main
 ```
 
 ## In code
 
 ```js
-import { link, linkFromMarkdown, parse, compare, evaluateSheet, runModel, signed, verified, createSigner, memoryStore } from '@tinylittleoffice/doc';
+import { link, linkFromMarkdown, parse, compare, evaluateSheet, runModel, lint, signed, verified, createSigner, memoryStore } from '@tinylittleoffice/doc';
 
 // Make a document. The body is in the app's own plain-text format…
 const budget = link('sheet', 'Item\tCost\nRent\t1200\nFood\t600\nTotal\t=SUM(B2:B3)', { title: 'Budget', by: 'planner-agent' });
@@ -30,6 +32,9 @@ runModel(modelBody, { visitors: 10000 });   // { flows: [{ from, to, value }…]
 
 // Compare two versions: what the second changed.
 compare(budget, revised).changes;           // [{ kind: ' ' | '-' | '+', line }…]
+
+// Check it before sending: unknown icons, a layout that does not exist, a link too long for a QR code.
+await lint('deck', body);                    // [{ level: 'warning', line: 5, message: 'Icon "brainz" is not in the library…' }]
 
 // Prove who made it. The signature covers the app, time, body, title and author.
 const signer = createSigner(memoryStore());  // or your own KeyStore: a file, a secret manager
@@ -52,6 +57,7 @@ echo "- [x] Sweep" | tinyoffice link todo --md --by chores-agent --title Chores
 tinyoffice read <link>                           # the document as Markdown (--json, --body)
 tinyoffice eval <link>                           # a sheet computed as CSV; a model run (--set visitors=10000)
 tinyoffice diff <link> <link>                    # what the second changed
+tinyoffice lint <app> [file]                     # what a browser would not tell you: unknown icons, length
 tinyoffice sign <link> [--key file]              # signed (the key is made and kept; ~/.tinyoffice/key by default)
 tinyoffice verify <link>                         # exit 0 valid, 1 invalid, 2 unsigned
 tinyoffice seal <link> --password P              # sealed

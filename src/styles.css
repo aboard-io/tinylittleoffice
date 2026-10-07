@@ -359,6 +359,7 @@ sl-menu-item svg.pre {
 .to-panel-head .meta {
   color: var(--to-ink-3);
   font-size: 12.5px;
+  white-space: nowrap;
 }
 .to-doc-actions {
   display: flex;
@@ -862,8 +863,8 @@ table.sheet td.sel input {
 .deck-editor {
   padding: 20px;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
 }
 /* The slide is sized in its own width (cqw), so type set at N px on the
    960px-wide slide the audience sees is the same share of this one. */
@@ -4132,4 +4133,48 @@ sl-dialog.to-import {
   .to-keep span {
     display: none;
   }
+}
+
+/* Speaker notes: a box under the slide while editing; a strip under the frame while presenting */
+.deck-notes {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 880px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  font: 13px/1.45 var(--sl-font-sans);
+  color: var(--to-ink-2);
+  background: var(--to-surface-2);
+  border: 1px dashed var(--to-border-strong);
+  border-radius: var(--to-radius);
+  resize: vertical;
+}
+.deck-notes:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -1px;
+}
+.deck-show .notes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 28vh;
+  overflow: auto;
+  padding: 10px 16px 14px;
+  background: rgba(24, 24, 27, 0.92);
+  color: #e4e4e7;
+  font: 15px/1.45 var(--sl-font-sans);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+.deck-show .notes b {
+  color: #a5b4fc;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.deck-show .notes p {
+  margin: 4px 0;
+}
+.deck-show .notes small {
+  color: #a1a1aa;
 }

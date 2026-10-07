@@ -32,6 +32,8 @@ export class ToDeck extends PagesElement<Deck> {
   @state() private shown = 0;
   /** The slide being left, while the next one arrives over it; -1 otherwise. */
   @state() private leaving = -1;
+  /** Speaker notes showing while presenting (N toggles). */
+  @state() private noting = true;
   private forwards = true;
   private settle = 0;
   private lastClick = 0;
@@ -166,6 +168,7 @@ export class ToDeck extends PagesElement<Deck> {
       else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') this.forward();
       else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') this.back();
       else if (e.key === 'End') this.shown = this.steps().clicks;
+      else if (e.key.toLowerCase() === 'n') this.noting = !this.noting;
       else return;
       e.preventDefault();
       return;
@@ -277,6 +280,7 @@ export class ToDeck extends PagesElement<Deck> {
               : nothing}
             <span class="num">${this.cur + 1} / ${n}</span>
           </div>
+          <textarea class="deck-notes" aria-label="Speaker notes" placeholder="Speaker notes: for you when presenting, never on the slide" rows="2" .value=${(s.notes ?? []).join('\n')} @input=${(e: Event) => this.patch({ notes: (e.target as HTMLTextAreaElement).value.split('\n').filter((l) => l.trim()) })}></textarea>
         </div>
       </div>
       ${this.showing >= 0 ? this.renderShow() : nothing}
@@ -310,6 +314,7 @@ export class ToDeck extends PagesElement<Deck> {
         ${this.present ? tool('Edit this deck', 'pen', () => this.show(-1), { text: true }) : tool('Exit', 'close', () => this.show(-1))}
       </sl-button-group>
       <span class="pos">${this.showing + 1} / ${shows.length}</span>
+      ${s.notes?.length && this.noting ? html`<div class="notes" @click=${(e: Event) => e.stopPropagation()}><b>Notes</b> ${s.notes.map((n) => html`<p>${n}</p>`)}<small>N hides them</small></div>` : nothing}
     </div>`;
   }
 }

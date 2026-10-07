@@ -914,3 +914,21 @@ test('CSV imports as a table into any app that takes one', () => {
   assert.equal(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%'), fromMarkdown(appOf('gantt')!, '| Task | Start | Days | Done |\n|---|---|---|---|\n| Design | 2026-10-06 | 5 | 20% |'));
   assert.ok(appOf('gantt')!.outline(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%')).join(' ').includes('Design'));
 });
+
+test('deck: a chart written plainly on a slide, speaker notes, and marks left alone inside a web address', async () => {
+  const { readDeck } = await import('../src/apps/deck.def.ts');
+  const { parseDeck, serializeDeck } = await import('../src/lib/deckmodel.ts');
+  const { parseInline } = await import('../src/lib/richtext.ts');
+  const plain = ':rocket:t\nResults\nTwo trials\n\nTrial results\n!bar|tnn\nTrial\tDrug %\tControl %\nMAPP1\t67\t32\n> Pause here';
+  const body = readDeck(plain);
+  const slides = parseDeck(body);
+  assert.ok(slides[1].sub?.startsWith('sheet/'), body);
+  assert.deepEqual(slides[1].notes, ['Pause here']);
+  assert.deepEqual(slides[1].bullets, []);
+  assert.equal(readDeck(body), body);
+  assert.equal(serializeDeck(parseDeck(serializeDeck(slides))), serializeDeck(slides));
+  // The slide's picture carries the chart, and none of the note.
+  const page = appOf('deck')!.view(body)[1];
+  assert.ok(page.svg.includes('MAPP1') && !page.svg.includes('Pause here'));
+  assert.deepEqual(parseInline('See https://x.com/#title=a&doc=b_c now'), [{ t: 'See https://x.com/#title=a&doc=b_c now' }]);
+});

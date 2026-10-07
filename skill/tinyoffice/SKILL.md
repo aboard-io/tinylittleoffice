@@ -24,7 +24,9 @@ Put the parameters after `#`, exactly as shown, never after `?`. The part of an 
 
 On opening, the link is rewritten into a compact form, which is what the person will share onward. Give them the link you wrote; they do not need to know its format.
 
-Keep the whole URL under about 2,000 characters. Prefer a short, clear document over a long one.
+Length: browsers open links of many thousands of characters, but a QR code holds at most 2,953, and some chat apps cut a link past about 2,000. Keep the whole URL under 2,000 where you can, under 2,953 always; nothing degrades before that except how the link travels. A document shown on a slide (below) costs far less than a full link pasted in.
+
+Non-ASCII characters (`·`, `–`, `→`, accents, emoji) are fine: percent-encode them as UTF-8.
 
 ## Apps and their formats
 
@@ -53,6 +55,15 @@ https://tinylittleoffice.com/write/#title=Meeting+notes&doc=%23+Meeting+notes%0A
 ### deck: slides
 
 Slides are separated by a blank line. Each slide: an optional first line `:icon-name` (a Lucide icon name such as `rocket`, `users`, `chart-column`), then the headline, then one bullet per line. A layout can follow the icon after a second colon: `:rocket:t` or `::t` is a title slide (headline plus subtitle), `::2` is two columns with a line `|` between the left and right bullets, `:star:i` is bullets beside one big icon. Add `&view=show` to open it presenting. Headlines and bullets take the same inline marks as `write` (`*bold*`, `=highlight=`, `:icon:`); a bullet indented two spaces (up to three times) nests under the one above. Every deck ends with an extra slide made for you: a QR code of the whole deck, its title beneath, so the room can take it home.
+
+A slide can show a chart or a table instead of bullets: after the headline, write the sheet's own rows (a `!bar`, `!line` or `!pie` settings line, then tab-separated rows, as in `sheet` above). The slide becomes that chart, full size. The compact link keeps it as `@@sheet/…`; a slide may likewise show any other document as `@@<app>/<payload>` (a map, a drawing, a timeline), which a program gets from the package's `link()` or by opening the document and copying the part after `#/v2/`.
+
+Things to know when writing decks:
+- Layouts and nesting combine: `:star:t` is a title slide with an icon; nested bullets work in both columns of a `::2` slide.
+- A web address in a bullet is shown as written, and the marks inside it (`=`, `_`) are left alone; in `write` and the web-page download it is also a link.
+- An icon name that is not in the library is left out: the slide is drawn without it, nothing breaks. Any Lucide name works (`chart-column`, `building-2`, `heart-handshake`); the package's `searchIcons('brain')` and `lint()` check names.
+- A bar or line chart with several number columns draws one series per column (`!bar|tnn` with three columns is two series).
+- A line starting `> ` on a slide is a speaker note: not drawn, shown to the presenter under the slide.
 
 https://tinylittleoffice.com/deck/#title=Launch+plan&doc=%3Arocket%3At%0ALaunch+plan%0ASpring+2027%0A%0A%3Atarget%0AGoals%0AShip+the+beta%0ASign+ten+customers%0A%0A%3A%3A2%0ANow+and+next%0ADesign%0ABuild%0A%7C%0ATest%0ALaunch
 
@@ -216,4 +227,11 @@ link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120\nQ2\t18
 
 ## Without a browser
 
-For a program or an agent, `npm i @tinylittleoffice/doc` (or `pip install tinylittleoffice`) makes and reads these links directly: `link(app, body, {title, by})`, `linkFromMarkdown`, `parse(url)` (the document as Markdown too), `compare(a, b)` for what changed, `evaluateSheet`, `runModel`, and `signed`/`verified` for provenance. The `tinyoffice` command does the same from a shell, and `tinyoffice render <link> --out x.pdf` makes the file. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`.
+For a program or an agent, the packages make and read these links directly. Until they are on npm and PyPI, install them from the repository:
+
+```
+npm i https://gitpkg.vercel.app/ftrain/tinyoffice/packages/doc?main
+pip install "git+https://github.com/ftrain/tinyoffice#subdirectory=packages/python"
+```
+
+`@tinylittleoffice/doc` has `link(app, body, {title, by})`, `linkFromMarkdown`, `parse(url)` (the document as Markdown too), `compare(a, b)` for what changed, `evaluateSheet`, `runModel`, `signed`/`verified` for provenance, and `lint(app, body)` which says what a browser would not: unknown icons, a layout that does not exist, a link too long for a QR code. The `tinyoffice` command does the same from a shell, and `tinyoffice render <link> --out x.pdf` makes the file. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`.

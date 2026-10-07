@@ -41,6 +41,8 @@ export interface Slide {
   right?: string[];
   /** Another document shown on the slide, as "<app>/<payload>". */
   sub?: string;
+  /** Speaker notes: lines written "> …", shown to the presenter, never on the slide. */
+  notes?: string[];
 }
 
 const SETTINGS = /^!([a-z]*)(?::([a-z]))?$/;
@@ -82,8 +84,9 @@ export function parseDeck(text: string): Slide[] {
     for (const line of lines) {
       const sub = SUB.exec(line);
       if (sub) slide.sub = sub[1];
+      else if (line.startsWith('> ')) (slide.notes ??= []).push(line.slice(2));
       else if (line === '|') into = slide.right = [];
-      else into.push(line.replace(/^\\(?=[|@\\])/, ''));
+      else into.push(line.replace(/^\\(?=[|@\\>])/, ''));
     }
     if (slide.layout !== '2') delete slide.right;
     return slide;
@@ -93,7 +96,7 @@ export function parseDeck(text: string): Slide[] {
 export function serializeDeck(slides: Slide[], transition: Transition = '', color = ''): string {
   const flat = (b: string) => {
     const s = b.replace(/\n/g, ' ');
-    return s === '' ? ' ' : s === '|' || /^(@@|\\)/.test(s) ? '\\' + s : s;
+    return s === '' ? ' ' : s === '|' || /^(@@|\\|> )/.test(s) ? '\\' + s : s;
   };
   const trim = (list: string[]) => {
     const out = list.slice();
@@ -105,7 +108,7 @@ export function serializeDeck(slides: Slide[], transition: Transition = '', colo
     const title = s.title.replace(/\n/g, ' ');
     const layout = s.layout ?? '';
     const right = layout === '2' ? trim(s.right ?? []) : [];
-    const body = [...trim(s.bullets), ...(right.length ? ['|', ...right] : []), ...(s.sub ? ['@@' + s.sub] : [])];
+    const body = [...trim(s.bullets), ...(right.length ? ['|', ...right] : []), ...(s.sub ? ['@@' + s.sub] : []), ...(s.notes ?? []).filter((n) => n.trim()).map((n) => '> ' + n.replace(/\n/g, ' '))];
     if (s.icon || layout || title.startsWith(':')) lines.push(':' + s.icon + (layout ? ':' + layout : ''));
     if (title !== '' || body.length) lines.push(title === '' ? ' ' : title);
     lines.push(...body);

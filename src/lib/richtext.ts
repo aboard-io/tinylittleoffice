@@ -81,7 +81,11 @@ export function serializeInline(runs: Run[], bare = false): string {
         }
       }
       // (":name:" would read as an icon, so a colon that starts one is escaped.)
-      let text = run.t.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:');
+      // (A web address is read whole, so nothing inside it needs escaping.)
+      let text = run.t
+        .split(/((?:^|(?<=[\s(]))(?:https?:\/\/|mailto:)\S+)/)
+        .map((part, n) => (n % 2 ? part : part.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:')))
+        .join('');
       // A paragraph that would start with a prefix marker must be escaped.
       if (first && bare && /^(#|-+ |\++ |@@|>[crj] )/.test(text)) text = '\\' + text;
       first = false;
@@ -108,8 +112,13 @@ export function parseInline(line: string): Run[] {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     const icon = ch === ':' ? ICON.exec(line.slice(i)) : null;
+    // A web address is taken whole: the marks inside it (an "=" in its query, an "_" in its path) are its own.
+    const url = (ch === 'h' || ch === 'm') && (i === 0 || /\s|\(/.test(line[i - 1])) ? /^(?:https?:\/\/|mailto:)\S+/.exec(line.slice(i)) : null;
     if (ch === '\\' && i + 1 < line.length) buf += line[++i];
-    else if (icon) {
+    else if (url) {
+      buf += url[0].replace(/[.,;:!?)]+$/, (tail) => ((i += -tail.length), ''));
+      i += url[0].length - 1;
+    } else if (icon) {
       flush();
       runs.push({ t: '', ic: icon[1] });
       i += icon[0].length - 1;

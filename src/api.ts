@@ -15,6 +15,9 @@ import { createSigner, fingerprintOf, verify, type KeyStore, type Signer } from 
 import { newLocker, seal, unseal, isSealed } from './lib/crypt.ts';
 import { URL_LIMIT } from './lib/codec.ts';
 import { specOf } from './lib/diagram.ts';
+import { LIBRARY, allIcons } from './lib/icons.ts';
+import { searchIcons } from './lib/iconsearch.ts';
+export { searchIcons };
 import { diff } from './lib/diff.ts';
 export { diff };
 
@@ -200,6 +203,46 @@ export function runModel(body: string, sliders: Record<string, number> = {}): { 
   for (const [k, v] of Object.entries(sliders)) values[m.sliders.find((s) => s.name.toLowerCase() === k.toLowerCase())?.id ?? k] = v;
   const out = runFlow(m, values);
   return { flows: m.flows.map((f, i) => ({ from: f.from, to: f.to, value: out[i] })), sliders: m.sliders };
+}
+
+export interface Warning {
+  /** 'error' means the link will not do what was meant; 'warning' that it may look wrong; 'note' is advice. */
+  level: 'error' | 'warning' | 'note';
+  /** The line of the body, 1-based, where known. */
+  line?: number;
+  message: string;
+}
+
+/**
+ * Check a document before sending its link: what a browser would not tell
+ * a program. Unknown icons (drawn as nothing), a deck layout that does not
+ * exist, a link too long for a QR code or some chat apps, an app that does
+ * not exist. Icons are checked against the whole Lucide set.
+ */
+export async function lint(app: string, body: string, opts: MakeOptions = {}): Promise<Warning[]> {
+  const out: Warning[] = [];
+  const def = appOf(app);
+  if (!def) return [{ level: 'error', message: `No app "${app}". apps() lists them.` }];
+  await allIcons;
+  const lines = body.split('\n');
+  const bad = (name: string, i: number) => out.push({ level: 'warning', line: i + 1, message: `Icon "${name}" is not in the library (it will be left out). searchIcons('${name.split('-')[0]}') finds names.` });
+  lines.forEach((l, i) => {
+    // ":name" opening a line (a slide's or a shape's icon), and ":name:" among words.
+    const lead = /^\s*(?:[^:|>]{1,24}:\s+)?:([a-z][a-z0-9-]*)(?=[\s:]|$)/.exec(l);
+    if (lead && !LIBRARY[lead[1]]) bad(lead[1], i);
+    for (const m of l.slice(lead ? lead[0].length : 0).matchAll(/:([a-z][a-z0-9-]*):/g)) if (!LIBRARY[m[1]]) bad(m[1], i);
+  });
+  if (app === 'deck') {
+    lines.forEach((l, i) => {
+      const m = /^(?::([a-z0-9-]*))?:([a-z0-9]*)$/.exec(l.trim());
+      if (m && m[2] && !['t', '2', 'i', 'b'].includes(m[2])) out.push({ level: 'warning', line: i + 1, message: `Layout ":${m[2]}" is not one of :t (title), :2 (two columns), :i (big icon); the slide is drawn as bullets.` });
+    });
+  }
+  const url = link(app, body, opts);
+  if (url.length > 2953) out.push({ level: 'error', message: `The link is ${url.length} characters: too long for a QR code (2,953), and some apps truncate links. Split the document, or embed less.` });
+  else if (url.length > URL_LIMIT) out.push({ level: 'warning', message: `The link is ${url.length} characters. Browsers open it; a QR code holds it up to 2,953; some chat apps cut links past about 2,000. Shorter is safer.` });
+  if (!body.trim()) out.push({ level: 'note', message: 'The document is empty.' });
+  return out;
 }
 
 /** Two links compared: the apps, the titles, and the lines the second changed. */

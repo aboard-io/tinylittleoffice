@@ -101,6 +101,16 @@ export function evaluateSheet(body: string): string[][];
 /** A stock-and-flow model, run for the sliders as set (by id or name). */
 export function runModel(body: string, sliders?: Record<string, number>): { flows: { from: string; to: string; value: number }[]; sliders: { id: string; name: string; value: number; min: number; max: number; unit: string }[] };
 
+export interface Warning {
+  level: 'error' | 'warning' | 'note';
+  line?: number;
+  message: string;
+}
+/** What a browser would not tell a program: unknown icons, a layout that does not exist, a link too long for a QR code. */
+export function lint(app: string, body: string, opts?: MakeOptions): Promise<Warning[]>;
+/** Icons whose names or keywords match, best first. */
+export function searchIcons(query: string, limit?: number): string[];
+
 /** A line-by-line diff of two documents. */
 export function diff(a: string, b: string): { kind: ' ' | '-' | '+'; line: string }[];
 /** Two links compared. */

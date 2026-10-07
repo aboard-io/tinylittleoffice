@@ -9,6 +9,7 @@
  *   tinyoffice read <link>                           the document as Markdown (--json for the envelope, --body for the raw body)
  *   tinyoffice eval <link|file>                      a sheet, computed, as CSV; or a model, run, as flows (--set Name=value)
  *   tinyoffice diff <link> <link>                    what the second changed
+ *   tinyoffice lint <app> [file]                     unknown icons, a layout that does not exist, a link too long
  *   tinyoffice sign <link> [--key file]              the link, signed (the key is made and kept in the file; ~/.tinyoffice/key by default)
  *   tinyoffice verify <link>                         whether the signature holds, and whose it is
  *   tinyoffice seal <link> --password P              the link, sealed under a password
@@ -76,6 +77,13 @@ switch (cmd) {
     } else print(T.evaluateSheet(p.env.body).map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n'));
     break;
   }
+  case 'lint': {
+    const app = args[0] ?? die('Which app?');
+    const warnings = await T.lint(app, bodyFrom(args[1]), opts());
+    print(warnings.length ? warnings.map((w) => `${w.level}${w.line ? ` line ${w.line}` : ''}: ${w.message}`).join('\n') : 'ok');
+    process.exit(warnings.some((w) => w.level === 'error') ? 1 : 0);
+  }
+  // eslint-disable-next-line no-fallthrough
   case 'diff': {
     const r = T.compare(args[0], args[1]);
     print(r.changes.map((c) => `${c.kind} ${c.line}`).join('\n') + (r.same ? '\n(same)' : ''));

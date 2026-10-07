@@ -4,6 +4,8 @@ Make and read [TinyLittleOffice](https://tinylittleoffice.com/) documents: links
 
 ```sh
 pip install tinylittleoffice
+# until it is on PyPI:
+pip install "git+https://github.com/ftrain/tinyoffice#subdirectory=packages/python"
 ```
 
 ```python
