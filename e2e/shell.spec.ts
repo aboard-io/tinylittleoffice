@@ -20,7 +20,7 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(54);
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(55);
   // Grouped, with the kinds of drawing listed under Draw.
   await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
   // Sheet, Write and Deck stand on their own at the top; the clusters fold, and stay as left.

@@ -48,6 +48,7 @@ const EXAMPLES: Record<string, string> = {
   pixel: 'ab.c\n.dd',
   zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
   booklet: 'A book\nby me\n\nOne\nwords',
+  calc: '!mortgage\nprice = 400000\ndeposit = 80000\nrate = 6.5\nyears = 30',
   bizplan: '::t\nBusiness plan\nHarbor Coffee · March 2027\n\nSummary\nA roastery on the quay, selling to the town and by post.\n\nThe problem\nGood coffee here is an hour away.',
   mktplan: '::t\nMarketing plan\nHarbor Coffee · Spring\n\nGoals\n300 subscribers by June.\n\nAudience\nPeople who buy beans, not pods.',
   gtm: '::t\nGo-to-market plan\nHarbor Coffee subscriptions\n\nThe customer\nHome brewers within the delivery radius.\n\nThe offer\nFresh beans, fortnightly, cancel any time.',

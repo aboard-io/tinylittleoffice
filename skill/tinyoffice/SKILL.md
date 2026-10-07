@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -170,6 +170,12 @@ https://tinylittleoffice.com/draw/#title=Request+flow&doc=o%2C4%2C6%2C16%2C8%2C1
 A Draw document, with a first line `!<frames>[,<fps>]` (frames in base 36, up to 120; 4, 8 or 12 a second) and, after the shapes, a key line per moving shape: `@<shape number>` (base 36, counting from 0), a tab, then keys separated by `;`, each `t,dx,dy,z,s,r[,fx]` in base 36: the frame, the offset in px from where the shape was drawn, its depth in px (nearer when positive), its size in tenths (`a` is 1), its spin in degrees, and effect letters (`i` impact meme, `3` 3D, `d` shadow, `n` neon, `o` outline, `g` rainbow, `m` mirror, `w` wobble, `b` blur). Between keys it moves in straight lines; a shape with no keys stays put. Plain `doc=` text is taken as is.
 
 https://tinylittleoffice.com/anim/#title=Lift+off&doc=%21o%0At%2C4%2C20%2C20%2C4%2C04%2CLift+off%0Ai%2C8%2C36%2C8%2C8%2C0b%2Crocket%0A%400%090%2C0%2C0%2C0%2Ca%2C0%3Bn%2C0%2C-2s%2C0%2Ca%2C0%2Ci%0A%401%090%2C0%2C0%2C0%2Ca%2C0%3Bn%2C5k%2C-5k%2C2s%2Ca%2C-u%2Cd
+
+## Calculator
+
+`calc`: the first line names the mode (`!calc`, `!graph`, `!mortgage`, `!invest`, `!cashflow`, `!interest`); then, for the calculator and the grapher, one expression a line (`2+3*4`, `sqrt(16)`, `5!`, `sin(x)`; functions sin cos tan ln log sqrt abs exp floor ceil round, `pi`, `e`, `x` for graphing, `%` for percent), or, for the money modes, `name = value` lines: mortgage `price deposit rate years`; invest `start monthly return years`; cashflow `rate` and `year 0 = -100000`, `year 1 = 30000`…; interest `principal rate years times`. Missing values take sensible defaults. The page shows the headline figures, a table by year and a chart.
+
+https://tinylittleoffice.com/calc/#title=Our+mortgage&doc=%21mortgage%0Aprice+%3D+400000%0Adeposit+%3D+80000%0Arate+%3D+6.5%0Ayears+%3D+30
 
 ## Plans
 

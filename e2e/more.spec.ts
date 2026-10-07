@@ -1089,3 +1089,35 @@ test('a business plan starts from its questions, a page a section, and reads as 
   await expect(page.locator('.zine-thumb')).toHaveCount(8);
   await expect(page.locator('.zine-page > svg')).toContainText('Go-to-market plan');
 });
+
+test('calculator: a tape, a graph, and a mortgage worked out as a page', async ({ page }) => {
+  await page.goto('/#/calc');
+  const display = page.getByRole('textbox', { name: 'Expression' });
+  await page.getByRole('button', { name: '7', exact: true }).click();
+  await page.getByRole('button', { name: '×', exact: true }).click();
+  await page.getByRole('button', { name: '6', exact: true }).click();
+  await expect(page.locator('.calc-live')).toHaveText('42');
+  await page.getByRole('button', { name: '=', exact: true }).click();
+  await expect(page.locator('.calc-tape li')).toHaveCount(1);
+  await expect(page.locator('.calc-tape')).toContainText('= 42');
+  await display.fill('sqrt(144)+5!');
+  await display.press('Enter');
+  await expect(page.locator('.calc-tape li')).toHaveCount(2);
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/calc\/[WYZR]/);
+  // The graph draws y = f(x).
+  await page.getByRole('radio', { name: 'Scientific & graph' }).click();
+  await page.getByRole('textbox', { name: 'y =' }).fill('sin(x)');
+  await page.getByRole('textbox', { name: 'y =' }).press('Enter');
+  await expect(page.locator('.calc-right > svg')).toContainText('y = sin(x)');
+  await expect(page.locator('.calc-right svg path[stroke-width="2.2"]')).toHaveCount(1);
+  // A mortgage: boxes in, the answer and the years beside them.
+  await page.getByRole('radio', { name: 'Mortgage' }).click();
+  await expect(page.locator('.calc-right > svg')).toContainText('2,022.62');
+  await page.getByLabel('Interest rate').fill('5');
+  await page.getByLabel('Interest rate').press('Tab');
+  await expect(page.locator('.calc-right > svg')).toContainText('1,717.83');
+  await reopen(page);
+  await expect(page.locator('.calc-right > svg')).toContainText('1,717.83');
+  await expect(page).toHaveTitle('Mortgage · TinyLittleOffice');
+  await shot(page, 'calc');
+});

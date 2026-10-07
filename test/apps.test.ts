@@ -904,6 +904,7 @@ test('markdown, both ways, for every app', async () => {
     zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A book\nby me\n\nOne\nwords',
     bizplan: '::t\nBusiness plan\nAcme\n\nSummary\nWe sell.',
+    calc: '!mortgage\nprice = 300000\nrate = 5',
     mktplan: '::t\nMarketing plan\nAcme\n\nGoals\nTen.',
     gtm: '::t\nGo to market\nAcme\n\nThe customer\nYou.',
     poster: ':music\nOpen mic night\nFriday 12 March, 8pm',
@@ -1048,4 +1049,40 @@ test('a short link carries its key in the fragment; the server would hold only c
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+test('calculator: expressions, money modes, and the page they draw', async () => {
+  const { evaluate, shown, mortgage, invest, cashflow, interest, withDefaults, parseCalc, serializeCalc, plot } = await import('../src/lib/calc.ts');
+  assert.equal(evaluate('2+3*4'), 14);
+  assert.equal(evaluate('(2+3)*4'), 20);
+  assert.equal(evaluate('2^3^2'), 512);
+  assert.equal(evaluate('sqrt(16)+5!'), 124);
+  assert.equal(evaluate('2x', 3), 6);
+  assert.equal(evaluate('10%'), 0.1);
+  assert.ok(isNaN(evaluate('2+')) && isNaN(evaluate('alert(1)')) && isNaN(evaluate('foo')));
+  assert.equal(shown(1 / 3), '0.3333333333');
+  assert.equal(shown(-2), '−2');
+  const m = mortgage(withDefaults('mortgage', { price: 400000, deposit: 80000, rate: 6.5, years: 30 }));
+  assert.equal(m.monthly.toFixed(2), '2022.62');
+  assert.equal(m.years.length, 30);
+  assert.ok(m.years[29].owed < 1);
+  const i = invest(withDefaults('invest', { start: 0, monthly: 100, return: 0, years: 1 }));
+  assert.equal(i.final, 1200);
+  const c = cashflow(withDefaults('cashflow', {}));
+  assert.equal(c.npv.toFixed(0), '23814');
+  assert.equal((c.irr * 100).toFixed(1), '18.0');
+  assert.equal(c.payback.toFixed(1), '2.6');
+  const r = interest(withDefaults('interest', { principal: 1000, rate: 10, years: 1, times: 1 }));
+  assert.equal(r.compound, 100);
+  assert.equal(r.simple, 100);
+  const doc = parseCalc('!mortgage\nprice = 250,000\nrate = 5');
+  assert.equal(doc.mode, 'mortgage');
+  assert.equal(serializeCalc(doc), '!mortgage\nprice = 250,000\nrate = 5');
+  assert.equal(serializeCalc(parseCalc('')), '');
+  assert.equal(plot('x^2', -1, 1, 2).map((p) => p && p[1]).join(','), '1,0,1');
+  const page = appOf('calc')!.view('!mortgage\nprice = 400000\ndeposit = 80000\nrate = 6.5\nyears = 30')[0];
+  assert.ok(page.svg.includes('2,022.62') && page.svg.includes('Year 14') && page.svg.includes('16 more'));
+  assert.ok(appOf('calc')!.view('!graph\nsin(x)\nx^2/10')[0].svg.includes('y = sin(x)'));
+  assert.ok(appOf('calc')!.view('2+2\n7*6')[0].svg.includes('>42<'));
+  assert.deepEqual(appOf('calc')!.outline('2+2'), ['2+2 = 4']);
 });

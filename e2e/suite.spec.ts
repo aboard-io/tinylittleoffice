@@ -4,7 +4,7 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a:not(.drive-tile)');
-  await expect(launcher).toHaveCount(52);
+  await expect(launcher).toHaveCount(53);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });

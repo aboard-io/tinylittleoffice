@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','bizplan','mktplan','gtm','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','bizplan','mktplan','gtm','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','calc','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -47,6 +47,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
     zine: ':star\nSmall <Joys>\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A <book>\nby me\n\nOne\nwords',
     bizplan: '::t\nBusiness <plan>\nAcme\n\nSummary\nWe sell.',
+    calc: '2+<2>\n7*6',
     mktplan: '::t\nMarketing plan\nAcme\n\nGoals\nTen.',
     gtm: '::t\nGo to <market>\nAcme\n\nThe customer\nYou.',
     poster: ':music\nOpen <mic> night\nFriday 12 March, 8pm',

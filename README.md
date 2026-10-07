@@ -15,6 +15,7 @@ you have copied the file.
 | Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
 | Business plan, Marketing plan, Go-to-market plan | Letter pages, a section each, started from the questions a good plan answers; print, present, outline, Markdown in and out. |
+| Calculator | Plain, scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
 | Calendar | Labelled spans of time on a month grid, shown in any time zone.    |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
 | Board | A kanban board: the stages of a workflow, cards, and limits per stage. |

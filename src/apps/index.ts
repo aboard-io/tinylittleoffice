@@ -38,6 +38,7 @@ import './resume.def.ts';
 import './badges.def.ts';
 import './recipes.def.ts';
 import './flow.def.ts';
+import './calc.def.ts';
 import './pixel.def.ts';
 import './floor.def.ts';
 import './seating.def.ts';
