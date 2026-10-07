@@ -18,6 +18,7 @@ import { store, keeping, setKeeping } from './lib/store.ts';
 import { fromMarkdown } from './lib/markdown.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
 import { setSelfLink } from './kit/embed.ts';
+import { EXPIRIES, shorten } from './lib/short.ts';
 import './widgets/drive.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
@@ -475,6 +476,7 @@ export class ToApp extends LitElement {
     }
     if (how === 'png') return void this.download('png');
     if (how === 'qr') return void this.querySelector<ToQrDialog>('to-qr-dialog')?.show();
+    if (how === 'shorten') return void this.querySelector<SlDialog>('#short-dialog')?.show();
     if (how === 'compare') {
       // This document as the first; the other is pasted on the compare page (or comes from the clipboard, when allowed).
       const me = sideOf(url);
@@ -632,6 +634,7 @@ export class ToApp extends LitElement {
                           <sl-menu-item value="embed">Copy embed code</sl-menu-item>
                           <sl-menu-item value="qr">QR code</sl-menu-item>
                           <sl-menu-item value="compare">Compare with another link…</sl-menu-item>
+                          <sl-menu-item value="shorten">${icon(UI.link, 14, 'pre')} Shorter link that expires…</sl-menu-item>
                           <sl-divider></sl-divider>
                           <sl-menu-item value="bluesky">Bluesky</sl-menu-item>
                           <sl-menu-item value="mastodon">Mastodon</sl-menu-item>
@@ -688,6 +691,7 @@ export class ToApp extends LitElement {
       ${this.renderDialog(available)}
       ${this.renderPrivacyPrompt()}
       ${current ? this.renderImport() : nothing}
+      ${current ? this.renderShort() : nothing}
       ${current ? html`<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
         ${[
@@ -796,6 +800,35 @@ export class ToApp extends LitElement {
         ${all.slice(0, 6).map((k) => html`<li><a href=${k.hash}>${icon(UI[(appOf(k.app)?.icon ?? 'write') as keyof typeof UI], 16)}<b>${k.title || `Untitled ${appOf(k.app)?.name ?? k.app}`}</b><small>${k.folder} · ${fmtDate(k.at)}</small></a></li>`)}
       </ul>
     </section>`;
+  }
+
+  /** A shorter link that expires, from tinier: the document encrypted with a key only the short link carries. */
+  @state() private shortTtl = 7 * 86400;
+  @state() private short: { short: string; expires: number } | null = null;
+  @state() private shortBusy = false;
+  private renderShort() {
+    const make = async () => {
+      this.shortBusy = true;
+      try {
+        this.short = await shorten(this.link, this.shortTtl);
+        await navigator.clipboard.writeText(this.short.short).then(() => this.showToast('Short link copied'), () => undefined);
+      } catch (err) {
+        this.showToast(err instanceof Error ? err.message : 'Could not shorten the link');
+      } finally {
+        this.shortBusy = false;
+      }
+    };
+    return html`<sl-dialog id="short-dialog" label="A shorter link that expires" @sl-after-hide=${() => (this.short = null)}>
+      <p class="to-hint">The document is encrypted here, with a key only the short link carries (after its #). tinier.tinylittleoffice.com keeps the ciphertext until the time you choose, then forgets it. It learns nothing but that a link was made. The long link stays yours and never expires.</p>
+      <sl-radio-group label="Expires in" value=${String(this.shortTtl)} @sl-change=${(e: Event) => (this.shortTtl = +(e.target as HTMLInputElement).value)}>
+        ${EXPIRIES.map((x) => html`<sl-radio-button value=${String(x.seconds)}>${x.name}</sl-radio-button>`)}
+      </sl-radio-group>
+      ${this.short
+        ? html`<div class="to-short"><code>${this.short.short}</code><sl-button size="small" @click=${() => navigator.clipboard.writeText(this.short!.short).then(() => this.showToast('Copied'))}>${icon(UI.copy, 14)} Copy</sl-button></div>
+            <p class="to-hint">Expires ${fmtDate(this.short.expires)}. ${this.short.short.length} characters, against ${this.link.length}.</p>`
+        : nothing}
+      <sl-button slot="footer" variant="primary" ?loading=${this.shortBusy} @click=${make}>${icon(UI.link, 14)} Make the short link</sl-button>
+    </sl-dialog>`;
   }
 
   /** Paste Markdown (or pick a .md file) and it becomes this document, read the way this kind of document reads. */

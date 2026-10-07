@@ -1025,3 +1025,24 @@ test('outline: a deck for every level, and documents as items', async () => {
   // The page draws an item that is a document, small.
   assert.ok(appOf('outline')!.view('Plan\n  @@todo/' + (await import('../src/lib/envelope.ts')).encodeEnvelope({ created: null, body: '- Buy milk' }, 'todo'))[0].svg.includes('Buy milk'));
 });
+
+test('a short link carries its key in the fragment; the server would hold only ciphertext', async () => {
+  const { shorten, unshorten } = await import('../src/lib/short.ts');
+  // A stand-in for tinier: remembers what it was posted, as the real one does.
+  let posted: { c: string; iv: string; ttl: number } | null = null;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    posted = JSON.parse(init.body as string);
+    return new Response(JSON.stringify({ id: 'abc2345', exp: Date.now() + posted!.ttl * 1000 }), { status: 201 });
+  }) as typeof fetch;
+  try {
+    const long = 'https://tinylittleoffice.com/sheet/#/v2/sheet/WAbcdef';
+    const { short } = await shorten(long, 86400, 'https://tinier.example/');
+    assert.match(short, /^https:\/\/tinier\.example\/abc2345#[A-Za-z0-9_-]{22}$/);
+    assert.ok(posted && !JSON.stringify(posted).includes('WAbcdef') && posted.ttl === 86400);
+    assert.equal(await unshorten(posted!.c, posted!.iv, short.split('#')[1]), long);
+    await assert.rejects(unshorten(posted!.c, posted!.iv, 'AAAAAAAAAAAAAAAAAAAAAA'));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

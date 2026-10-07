@@ -276,6 +276,18 @@ Plain links also take `&md=` (Markdown or CSV, shaped on opening) and `&by=` (wh
 
 This is the office suite for agents chatting: an agent writes a link, hands it over in whatever channel it already has, the next agent reads it and emits a new one. Documents are values; the history is the sequence of links; nothing needs a server.
 
+## Shorter links that expire
+
+Share → "Shorter link that expires…" asks tinier.tinylittleoffice.com
+for a short link (an hour, a day, a week or a month). The long link is
+encrypted in the browser with a random key; only the ciphertext is
+sent, and the key travels in the short link's fragment (`#…`), which
+browsers never send to any server. Opening a short link fetches the
+ciphertext, decrypts it on the page, and goes to the document. The
+server learns that a link was made, and when it should forget it;
+nothing else. It is `deploy/tinier`: one Node file, no dependencies,
+one file on disk per link, swept hourly; deployed with the site.
+
 ## What the server sees
 
 Nothing of any document. A document is the part of the address after `#`,

@@ -561,3 +561,28 @@ test('two links compare side by side, with what changed', async ({ page }) => {
   await page.getByRole('textbox', { name: 'The second link' }).press('Enter');
   await expect(cmp.locator('.cmp-diff .add')).toHaveCount(2);
 });
+
+test('a shorter link that expires, with the key kept out of the server', async ({ page }) => {
+  await page.goto('/#/sheet');
+  await page.getByRole('textbox', { name: 'A1', exact: true }).fill('Secret plan');
+  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[WYZR]/);
+  // A stand-in for tinier, remembering what it was sent.
+  let sent: { c: string; iv: string; ttl: number } | null = null;
+  await page.route('https://tinier.tinylittleoffice.com/api', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ id: 'abc2345', exp: Date.now() + sent!.ttl * 1000 }) });
+  });
+  await page.getByRole('button', { name: 'Share' }).click();
+  await page.getByRole('menuitem', { name: /Shorter link/ }).click();
+  const dialog = page.locator('#short-dialog');
+  await expect(dialog).toHaveAttribute('open');
+  await dialog.getByRole('radio', { name: 'A day' }).click();
+  await dialog.getByRole('button', { name: 'Make the short link' }).click();
+  await expect(dialog.locator('code')).toHaveText(/^https:\/\/tinier\.tinylittleoffice\.com\/abc2345#[A-Za-z0-9_-]{22}$/);
+  await expect(dialog).toContainText('Expires');
+  expect(sent!.ttl).toBe(86400);
+  // Nothing of the document went to the server: not its words, not its link.
+  expect(JSON.stringify(sent)).not.toContain('Secret');
+  expect(JSON.stringify(sent)).not.toContain(page.url().split('/').pop()!);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^https:\/\/tinier\.tinylittleoffice\.com\/abc2345#/);
+});

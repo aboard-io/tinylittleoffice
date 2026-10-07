@@ -4365,3 +4365,22 @@ sl-dialog.to-import {
     display: none;
   }
 }
+
+/* The short link, once made */
+.to-short {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: var(--to-surface-2);
+  border-radius: var(--to-radius);
+}
+.to-short code {
+  flex: 1 1 auto;
+  word-break: break-all;
+  font-size: 13px;
+}
+#short-dialog sl-radio-group {
+  margin-top: 8px;
+}

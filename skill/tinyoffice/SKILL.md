@@ -205,6 +205,10 @@ All of these are a few lines of text; the first line is usually `# Title`.
 - Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line; the page gives the organiser a private link per person, each showing only that person's draw), `split` (`Name: amount, what for`; `between: A, B, C`).
 - Personal: `log` (`when, what, how much`; each kind is totalled), `chords` (`[G]words with [C]chords`, `transpose: 2`).
 
+## Shorter links
+
+A long link can be shortened at tinier.tinylittleoffice.com (Share → "Shorter link that expires…"), for an hour to a month. The document is encrypted in the browser; the key is in the short link after `#`, so the server holds only ciphertext. Programs can do the same: `POST https://tinier.tinylittleoffice.com/api` with `{c, iv, ttl}` (AES-GCM ciphertext and IV, base64url; ttl 3600, 86400, 604800 or 2592000) returns `{id, exp}`; the short link is `https://tinier.tinylittleoffice.com/<id>#<key base64url>`. The long link never expires; only the short one does.
+
 ## A document's own QR code
 
 In `write`, `deck` and the folded formats, a line `@@qr/self` is a QR code of the very document it sits in (drawn from the live link, so the document never has to hold itself). Readers scan it and have their own copy to keep and change. The editors offer it as "QR code of this document" in Insert.

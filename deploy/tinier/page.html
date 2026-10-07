@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>tinier · TinyLittleOffice</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #18181b; background: #fafafa; }
+  main { max-width: 32rem; padding: 2rem 1.25rem; text-align: center; }
+  h1 { font-size: 1.4rem; margin: 0 0 .5rem; }
+  p { color: #52525b; margin: .4rem 0; }
+  a { color: #4f46e5; word-break: break-all; }
+  .mark { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #4f46e5; color: #fff; font-weight: 700; margin-bottom: .6rem; }
+  #err { color: #b91c1c; }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark">t</div>
+  <h1 id="h">Opening…</h1>
+  <p id="p">A shorter link to a <a href="https://tinylittleoffice.com/">TinyLittleOffice</a> document. The document is in the long link, encrypted here with a key this page alone has; the server keeps only the ciphertext, until the link expires.</p>
+  <p id="err" hidden></p>
+  <p id="go" hidden><a id="a" href="#">Go to the document</a></p>
+</main>
+<script>
+(async () => {
+  const id = '{{id}}';
+  const h = document.getElementById('h'), p = document.getElementById('p'), err = document.getElementById('err'), go = document.getElementById('go'), a = document.getElementById('a');
+  const fail = (m) => { h.textContent = 'tinier'; err.textContent = m; err.hidden = false; };
+  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Shorten a link from the Share menu in TinyLittleOffice.'); }
+  const key = location.hash.slice(1);
+  if (!key) return fail('This link is missing its key (the part after #). Ask for it again.');
+  try {
+    const r = await fetch('/api/' + id);
+    if (!r.ok) return fail('No such link, or it has expired.');
+    const { c, iv, exp } = await r.json();
+    const un = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
+    const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
+    const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
+    if (!/^https:\/\/(www\.)?tinylittleoffice\.com\//.test(plain) && !/^https:\/\/[a-z0-9-]+\.exe\.xyz\//.test(plain)) return fail('That link does not go to TinyLittleOffice.');
+    a.href = plain; go.hidden = false;
+    p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + '.';
+    location.replace(plain);
+  } catch (e) { fail('The key does not fit this link.'); }
+})();
+</script>
+</body>
+</html>
