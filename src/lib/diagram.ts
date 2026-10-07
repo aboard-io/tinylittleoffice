@@ -70,7 +70,7 @@ export function weave(shapes: Shape[]): Shape[] {
 }
 
 /** Move the shapes so they start at a margin, size the page to hold them, and put them in reading order. */
-export function frame(drawn: Shape[], pad = 24): Diagram {
+export function frame(drawn: Shape[], pad = 44): Diagram {
   const shapes = weave(drawn);
   const solid = shapes.filter((s) => !isLink(s.k));
   if (!solid.length) return { shapes: [], w: 480, h: 240 };

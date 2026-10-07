@@ -33,19 +33,20 @@ export class SheetsView extends DiagramElement {
     const { kinds } = kindsOf(form);
     const kind = kinds.findIndex((k, n) => n < form.length && !k.once && k.is !== '' && !k.is.startsWith('#') && !k.head && fieldsOf(form, n).some((f) => f.type !== 'icon' && f.type !== 'choice'));
     if (kind < 0) return;
-    const fields = fieldsOf(form, kind);
-    const words = fields.findIndex((f) => f.type !== 'icon' && f.type !== 'choice');
-    const rows = this.rows();
-    this.putRows([...rows, { kind, values: fields.map((f, n) => (f.type === 'choice' ? f.options[0] : n === words ? 'New' : '')), depth: kinds[kind].at ?? 0 }]);
-    void this.updateComplete.then(() => {
-      const el = [...this.querySelectorAll('.sheet text')].find((x) => (x.textContent ?? '').trim().startsWith('New'));
-      if (el) this.editOver(el, rows.length, words);
-    });
+    if (this.editing || this.draft) return;
+    this.startDraft(kind, this.rows().length, kinds[kind].at ?? 0);
+  }
+
+  /** The draft's line on the sheet: the words are its kind's name. */
+  protected draftElement(): Element | null {
+    if (!this.draft) return null;
+    const name = kindsOf(this.spec.form!).kinds[this.draft.row.kind].name;
+    return [...this.querySelectorAll('.sheet text')].find((x) => (x.textContent ?? '').trim().startsWith(name)) ?? null;
   }
   protected picture(): TemplateResult {
     const spec = this.spec;
     const text = this.textOf(this.doc);
-    const pages = text.trim() ? spec.sheets!(this.doc) : spec.sheets!(spec.example);
+    const pages = text.trim() || this.draft ? spec.sheets!(this.drawnText()) : spec.sheets!(spec.example);
     return html`${pages.map((p, i) => html`<div class="sheet ${text.trim() ? '' : 'sample'}">${unsafeSVG(pageSvg(p, `role="img" aria-label="${this.name}, sheet ${i + 1}"`))}</div>`)}`;
   }
 }

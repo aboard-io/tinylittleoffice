@@ -298,3 +298,43 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await page.keyboard.press('Control+Shift+t');
   await expect(page.getByRole('textbox', { name: 'Floor plan, as text' })).toHaveValue(/Kitchen: [\d.]+ x [\d.]+ at [\d.]+,[\d.]+/);
 });
+
+test('adding on the picture: a draft that becomes real when typed into, and goes if not', async ({ page }) => {
+  const doc = (app: string) => page.evaluate((a) => (document.querySelector('to-' + a) as any).doc, app);
+  for (const [app, words, expect_] of [
+    ['mind', 'Idea', /\n    Fresh thing\n/],
+    ['net', 'To', /API > Fresh thing/],
+    ['lanes', 'What they do', /Customer: Fresh thing/],
+    ['timeline', 'What happened', /1843: Fresh thing/],
+  ] as const) {
+    await page.goto(`/#/${app}`);
+    await page.evaluate(() => localStorage.removeItem('tinyoffice.edit'));
+    await page.reload();
+    await page.getByRole('button', { name: 'Start from an example' }).click();
+    const pic = page.locator(`to-${app} .pic > svg`);
+    const before = await doc(app);
+    await pic.locator('g.pick').nth(1).click();
+    await pic.locator('.diagram-ctl [aria-label="Add one under it"]').click();
+    // The draft is drawn and its box is open, but nothing is written yet.
+    const box = page.locator('.pic-edit input').first();
+    await expect(box).toBeFocused();
+    await expect(box).toHaveAttribute('aria-label', new RegExp(`^${words}, row`));
+    expect(await doc(app)).toBe(before);
+    // Abandoned, nothing changes; typed into, it is real.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.pic-edit')).toHaveCount(0);
+    expect(await doc(app)).toBe(before);
+    await pic.locator('g.pick').nth(1).click();
+    await pic.locator('.diagram-ctl [aria-label="Add one under it"]').click();
+    await expect(box).toBeFocused();
+    await page.keyboard.type('Fresh thing');
+    await page.keyboard.press('Enter');
+    expect(await doc(app), app).toMatch(expect_);
+    // A tap on empty space with something picked only lets go of it.
+    await pic.locator('g.pick').first().click();
+    const b = (await pic.boundingBox())!;
+    await page.mouse.click(b.x + b.width - 6, b.y + b.height - 6);
+    await expect(pic.locator('g.pick.on')).toHaveCount(0);
+    await expect(page.locator('.pic-edit')).toHaveCount(0);
+  }
+});

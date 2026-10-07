@@ -29,13 +29,13 @@ export class DiagramElement extends DocElement<string> {
   /* ---------- typing on the picture ---------- */
 
   /** A box over the picture, where a label or a line of a sheet is typed: the row and field it writes, and where it sits. */
-  @state() private editing: { row: number; field: number; x: number; y: number; w: number; h: number } | null = null;
+  @state() protected editing: { row: number; field: number; x: number; y: number; w: number; h: number } | null = null;
 
   /** Open the box over an element of the picture, for a row's field. */
   protected editOver(el: Element, row: number, field = -1) {
     const form = this.spec.form;
     if (!form) return;
-    const rows = this.rows();
+    const rows = this.drafted();
     if (!rows[row]) return;
     const fields = fieldsOf(form, rows[row].kind);
     const f = field >= 0 ? field : fields.findIndex((x) => x.type !== 'icon' && x.type !== 'choice');
@@ -58,17 +58,31 @@ export class DiagramElement extends DocElement<string> {
   private renderEditBox() {
     const e = this.editing;
     if (!e || !this.spec.form) return nothing;
-    const rows = this.rows();
+    const rows = this.drafted();
     const row = rows[e.row];
     if (!row) return nothing;
-    const fields = fieldsOf(this.spec.form, row.kind).map((f, n) => ({ ...f, n })).filter((f) => f.type !== 'icon' && f.type !== 'choice');
+    const fields = fieldsOf(this.spec.form, row.kind).map((f, n) => ({ ...f, n })).filter((f) => f.type !== 'icon' && f.type !== 'choice' && (f.type !== 'pick' || f.n === e.field));
     const first = fields.findIndex((f) => f.n === e.field);
     const ordered = first > 0 ? [...fields.slice(first), ...fields.slice(0, first)] : fields;
     const box = this.querySelector<HTMLElement>('.pic-edit');
+    const close = () => {
+      // A draft nothing was typed into goes; one with words is already in the text.
+      this.editing = null;
+      this.draft = null;
+    };
     const done = (ev: FocusEvent) => {
       // Leaving the box altogether, not moving to its next field.
       if (ev.relatedTarget && box?.contains(ev.relatedTarget as Node)) return;
-      this.editing = null;
+      close();
+    };
+    const write = (f: number, value: string) => {
+      const next = this.drafted().map((r, n) => (n === e.row ? { ...r, values: r.values.map((v, m) => (m === f ? value : v)) } : r));
+      if (this.draft) {
+        // The first keystroke makes the draft real.
+        if (!value) return;
+        this.draft = null;
+      }
+      this.putRows(next);
     };
     return html`<div class="pic-edit ${ordered.length > 1 ? 'many' : ''}" style="left:${e.x}px;top:${e.y}px;width:${e.w}px;min-height:${e.h}px">
       ${ordered.map(
@@ -76,8 +90,8 @@ export class DiagramElement extends DocElement<string> {
           aria-label="${f.name}, row ${e.row + 1}"
           placeholder=${f.name}
           .value=${row.values[f.n] ?? ''}
-          @input=${(ev: Event) => this.putRows(this.rows().map((r, n) => (n === e.row ? { ...r, values: r.values.map((v, m) => (m === f.n ? (ev.target as HTMLInputElement).value : v)) } : r)))}
-          @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' || ev.key === 'Escape') && (ev.preventDefault(), (this.editing = null))}
+          @input=${(ev: Event) => write(f.n, (ev.target as HTMLInputElement).value)}
+          @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' || ev.key === 'Escape') && (ev.preventDefault(), close())}
           @blur=${done}
         />`,
       )}
@@ -192,8 +206,59 @@ export class DiagramElement extends DocElement<string> {
 
   /* ---------- the rows of the form, from the picture ---------- */
 
+  /**
+   * A thing being added: it shows in the picture (with its kind's name for
+   * words) and has the box open, but is not in the text until something is
+   * typed. Abandoned, it goes without a trace.
+   */
+  @state() protected draft: { at: number; row: Row; field: number } | null = null;
+
+  /** The rows as written. */
   protected rows(): Row[] {
     return readLines(this.textOf(this.doc), this.spec.form!);
+  }
+  /** The rows with the draft among them: what the picture and the box work on. */
+  protected drafted(): Row[] {
+    const rows = this.rows();
+    if (!this.draft) return rows;
+    return [...rows.slice(0, this.draft.at), this.draft.row, ...rows.slice(this.draft.at)];
+  }
+  /** The document as the picture should draw it: with the draft's placeholder words in place. */
+  protected drawnText(): string {
+    if (!this.draft || !this.spec.form) return this.textOf(this.doc);
+    const d = this.draft;
+    const shown = { ...d.row, values: d.row.values.map((v, n) => (n === d.field && !v ? kindsOf(this.spec.form!).kinds[d.row.kind].name : v)) };
+    return writeLines([...this.rows().slice(0, d.at), shown, ...this.rows().slice(d.at)], this.spec.form);
+  }
+  /**
+   * The field a kind's words go in: the first that is text, unless the
+   * pattern opens "{Key}: {Words}" (a lane and its step, a date and its
+   * event), when it is the second. A pick field will do when that is all.
+   */
+  protected wordsField(kind: number): number {
+    const form = this.spec.form!;
+    const fields = fieldsOf(form, kind);
+    const plain = fields.map((f, n) => (f.type !== 'icon' && f.type !== 'choice' && f.type !== 'pick' ? n : -1)).filter((n) => n >= 0);
+    const keyed = /^\s*(?:\[:\{[^}]*\}\s*\])?\{[^}]*\}:\s/.test(kindsOf(form).kinds[kind].is);
+    if (plain.length >= 2 && keyed) return plain[1];
+    return plain[0] ?? fields.findIndex((f) => f.type === 'pick');
+  }
+  /** Start a draft of `kind` at `at`, with any values given, and open the box on its words once drawn. */
+  protected startDraft(kind: number, at: number, depth: number, values?: string[], field = this.wordsField(kind)) {
+    const form = this.spec.form!;
+    const fields = fieldsOf(form, kind);
+    this.unpick();
+    this.editing = null;
+    this.draft = { at, row: { kind, values: values ?? fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth }, field };
+    void this.updateComplete.then(() => {
+      const el = this.draftElement();
+      if (el) this.editOver(el, at, field);
+      else this.draft = null;
+    });
+  }
+  /** Where the draft is drawn: the shape or sheet line showing the kind's name. */
+  protected draftElement(): Element | null {
+    return null;
   }
   protected putRows(rows: Row[], focus = -1) {
     this.type(writeLines(rows, this.spec.form!));
@@ -208,13 +273,17 @@ export class DiagramElement extends DocElement<string> {
     const at = k.indent ? blockEnd(rows, form, i) : i + 1;
     const depth = k.indent ? rows[i].depth + 1 : rows[i].depth;
     this.unpick();
-    // The form keeps an empty row until there is something in it; the text alone would not.
+    // The form keeps an empty row until there is something in it; the picture shows a draft until something is typed.
     const lines = this.querySelector<ToLines>('to-lines');
-    if (lines) lines.insert(rows[i].kind, at, depth);
-    else {
-      const row: Row = { kind: rows[i].kind, values: fieldsOf(form, rows[i].kind).map((f) => (f.type === 'choice' ? f.options[0] : '')), depth };
-      this.putRows([...rows.slice(0, at), row, ...rows.slice(at)], at);
-    }
+    if (lines) return lines.insert(rows[i].kind, at, depth);
+    // Like the one it came from: its key (the same lane, the same date), its size and place beside it; the rest to type.
+    const words = this.wordsField(rows[i].kind);
+    const fields = fieldsOf(form, rows[i].kind);
+    const m = this.spec.moves;
+    const keep = (n: number) => n < words || fields[n].type === 'choice' || (m?.kind === rows[i].kind && n !== words);
+    const values = rows[i].values.map((v, n) => (keep(n) && fields[n].type !== 'icon' ? v : ''));
+    if (m && m.kind === rows[i].kind && values[m.x] !== '') values[m.x] = String(+values[m.x] + (+values[1] || 3));
+    this.startDraft(rows[i].kind, at, depth, values);
   }
 
   /** A picture on the thing: the row's icon field, or ":name" before its first words. */

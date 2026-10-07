@@ -2650,12 +2650,14 @@ table.sheet td .rich .s {
 .diagram .pic {
   position: relative;
   min-width: 0;
-  padding: 16px;
+  /* Room for the buttons beside a picked shape, which may sit past the picture's edge. */
+  padding: 16px 44px 44px 16px;
   background: #fff;
   overflow: auto;
 }
 .diagram .pic > svg {
   display: block;
+  overflow: visible;
   width: 100%;
   height: auto;
   margin: 0 auto;
