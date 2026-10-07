@@ -90,7 +90,7 @@ export const ICON_SVG: Record<string, string> = Object.fromEntries(Object.entrie
  * costs nothing to start. Each joins LIBRARY and ICON_SVG under its Lucide
  * name ("chart-column", "building-2"); the short names above keep working.
  */
-export const allIcons: Promise<void> = import('./icons-all.ts').then(({ icons }) => {
+export const allIcons: Promise<void> = Promise.all([import('./icons-all.ts'), import('./icon-meta.ts')]).then(([{ icons }, { META, CATEGORIES }]) => {
   const added: string[] = [];
   for (const [name, node] of Object.entries(icons)) {
     const id = name.replace(/([A-Z])([A-Z][a-z])/g, '$1-$2').replace(/([a-z])([A-Z0-9])/g, '$1-$2').replace(/([0-9])([A-Z])/g, '$1-$2').toLowerCase();
@@ -99,7 +99,7 @@ export const allIcons: Promise<void> = import('./icons-all.ts').then(({ icons })
     ICON_SVG[id] = iconInner(node);
     added.push(id);
   }
-  addIconNames(added);
+  addIconNames(added, META, CATEGORIES);
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('to-refresh'));
 });
 

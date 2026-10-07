@@ -967,3 +967,17 @@ test('deck: a chart written plainly on a slide, speaker notes, and marks left al
   assert.ok(page.svg.includes('MAPP1') && !page.svg.includes('Pause here'));
   assert.deepEqual(parseInline('See https://x.com/#title=a&doc=b_c now'), [{ t: 'See https://x.com/#title=a&doc=b_c now' }]);
 });
+
+test('icons are searched by tag and browsed by kind, once the library is in', async () => {
+  const { addIconNames, iconCategories, iconsIn, searchIcons } = await import('../src/lib/iconsearch.ts');
+  const { META, CATEGORIES } = await import('../src/lib/icon-meta.ts');
+  const { LIBRARY } = await import('../src/lib/icons.ts');
+  assert.ok(Object.keys(META).length > 1500 && Object.keys(CATEGORIES).length > 30);
+  addIconNames(Object.keys(META).filter((n) => !(n in LIBRARY)), META, CATEGORIES);
+  // Lucide's own tags: "ai" finds brain; "weather" finds clouds; a category holds its icons.
+  assert.ok(searchIcons('ai').includes('brain'));
+  assert.ok(searchIcons('weather').some((n) => n.startsWith('cloud')));
+  const cats = iconCategories();
+  assert.ok(cats.some((c) => c.name === 'Weather' && c.count > 10));
+  assert.ok(iconsIn('weather').includes('cloud-rain'));
+});

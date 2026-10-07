@@ -11,6 +11,8 @@ export interface InsertOption {
   value: string;
   label: string;
   group?: string;
+  /** The option's picture: a key of UI (an app's icon, a layout's). */
+  icon?: keyof typeof UI;
 }
 
 export class ToInsert extends LitElement {
@@ -99,7 +101,7 @@ export class ToInsert extends LitElement {
             ${list.map((o, i) => {
               const head = o.group && o.group !== lastGroup && !this.text.trim() ? html`<li class="group" role="presentation">${o.group}</li>` : nothing;
               lastGroup = o.group;
-              return html`${head}<li id="${this.listId}-${i}" role="option" aria-selected=${i === this.at ? 'true' : 'false'} class=${i === this.at ? 'on' : ''} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.pick(o)}>${o.label}${this.text.trim() && o.group ? html`<small>${o.group}</small>` : nothing}</li>`;
+              return html`${head}<li id="${this.listId}-${i}" role="option" aria-selected=${i === this.at ? 'true' : 'false'} class=${i === this.at ? 'on' : ''} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.pick(o)}>${o.icon && UI[o.icon] ? html`<span class="ic">${icon(UI[o.icon], 16)}</span>` : html`<span class="ic"></span>`}${o.label}${this.text.trim() && o.group ? html`<small>${o.group}</small>` : nothing}</li>`;
             })}
           </ul>`
         : nothing}

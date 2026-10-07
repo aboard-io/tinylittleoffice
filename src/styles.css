@@ -3901,12 +3901,26 @@ mark {
 }
 .to-insert-list li[role='option'] {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 8px;
-  padding: 7px 10px;
+  padding: 6px 10px;
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
+}
+.to-insert-list li[role='option'] .ic {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: var(--to-accent);
+  flex: 0 0 auto;
+}
+.to-insert-list li[role='option'] small {
+  margin-left: auto;
+}
+.to-insert-list li[role='option'].on .ic {
+  color: inherit;
 }
 .to-insert-list li[role='option'].on,
 .to-insert-list li[role='option']:hover {
@@ -4087,4 +4101,30 @@ sl-dialog.to-import {
 }
 .deck-show .notes small {
   color: #a1a1aa;
+}
+
+/* The icon library's kinds, as chips to browse by */
+.to-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+.to-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--to-border);
+  border-radius: 999px;
+  background: var(--to-surface);
+  color: var(--to-ink-2);
+  font: 12.5px var(--sl-font-sans);
+  cursor: pointer;
+}
+.to-chip.on {
+  background: var(--to-accent);
+  border-color: var(--to-accent);
+  color: #fff;
+}
+.to-chip:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 2px;
 }

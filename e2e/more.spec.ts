@@ -223,7 +223,7 @@ test('deck: any Lucide icon, in one colour for the whole deck', async ({ page })
   await page.getByRole('textbox', { name: 'Headline' }).fill('Open to all');
   await page.getByRole('button', { name: 'Icon', exact: true }).click();
   const picker = page.locator('#icon-picker');
-  await expect(picker).toContainText(/Search to find any of 1,\d{3} icons/);
+  await expect(picker).toContainText(/to find any of 1,\d{3} icons/);
   // An icon that was never in the starter set.
   await picker.locator('sl-input input').fill('accessib');
   await page.getByRole('group', { name: 'Icon library' }).getByRole('button', { name: 'accessibility', exact: true }).click();
@@ -818,7 +818,7 @@ test('the library: documents are kept on the device, in folders, once asked', as
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
   await page.goto('/#/write');
   await page.locator('.to-keep').click();
-  await expect(page.locator('.to-keep')).toHaveText('Keeping');
+  await expect(page.locator('.to-keep')).toHaveText('Saved');
   // (The suite's own preference, cleared above with the rest: links open for editing.)
   await page.evaluate(() => localStorage.setItem('tinyoffice.open', 'edit'));
   await page.goto('about:blank');

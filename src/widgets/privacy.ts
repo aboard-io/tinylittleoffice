@@ -197,14 +197,14 @@ export class ToPrivacy extends LitElement {
       </dl>
       <h3>${icon(UI.home, 14)} On this device</h3>
       ${p.keeping()
-        ? html`<p class="to-hint">This device keeps things, as you asked with the switch in the header: your documents (in folders, on the home page), your signing key, your preferences and a copy of the app for when there is no connection. Nothing is ever sent anywhere.</p>`
-        : html`<p class="to-hint"><b>Private.</b> Nothing is written to this device: no documents, no cookies, no offline copy. Settings last for this visit, in memory. The switch in the header keeps things instead.</p>`}
+        ? html`<p class="to-hint"><b>Saved.</b> This device saves, as you asked with the switch in the header: your documents (in folders, on the home page), your signing key, your preferences and a copy of the app for when there is no connection. Nothing is ever sent anywhere.</p>`
+        : html`<p class="to-hint"><b>Private.</b> Nothing is written to this device: no documents, no cookies, no offline copy. Settings last for this visit, in memory. The switch in the header saves things instead.</p>`}
       <table class="to-kept">
         <thead><tr><th scope="col">What</th><th scope="col">Now</th><th scope="col"></th></tr></thead>
         <tbody>
           <tr>
             <th scope="row">Your documents<br /><small>Their titles and links, in folders, for the home page.</small></th>
-            <td>${p.keeping() ? `${p.documentsKept()} kept` : 'Not kept'}</td>
+            <td>${p.keeping() ? `${p.documentsKept()} saved` : 'Not saved'}</td>
             <td></td>
           </tr>
           <tr>
@@ -219,7 +219,7 @@ export class ToPrivacy extends LitElement {
           </tr>
           <tr>
             <th scope="row">The app itself<br /><small>A copy of TinyLittleOffice, so it opens with no connection. No documents are in it.</small></th>
-            <td>${this.offline === null ? '…' : this.offline ? 'Kept' : 'Not kept'}</td>
+            <td>${this.offline === null ? '…' : this.offline ? 'Saved' : 'Not saved'}</td>
             <td>${this.offline ? html`<sl-button size="small" @click=${async () => { await p.dropOffline(); this.offline = false; }}>Remove</sl-button>` : nothing}</td>
           </tr>
         </tbody>

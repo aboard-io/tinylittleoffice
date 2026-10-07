@@ -331,10 +331,10 @@ export class ToApp extends LitElement {
 
   /** The switch: keep things on this device, or leave nothing. Keeping is the choice remembered; private writes nothing. */
   private toggleKeeping = async () => {
-    if (keeping() && !confirm('Keep nothing on this device from now on? Your documents list, signing key, preferences and the offline copy are forgotten (the documents themselves live in their links).')) return;
+    if (keeping() && !confirm('Save nothing on this device from now on? Your documents list, signing key, preferences and the offline copy are forgotten (the documents themselves live in their links).')) return;
     await setKeeping(!keeping());
     this.requestUpdate();
-    this.showToast(keeping() ? 'Keeping documents on this device' : 'Private: nothing kept');
+    this.showToast(keeping() ? 'Saved on this device from now on' : 'Private: nothing saved');
   };
 
   /** Everything, in one file: the app (it runs from a folder) and every document kept here as a page of its own. */
@@ -590,8 +590,8 @@ export class ToApp extends LitElement {
         <div class="to-header-inner">
           <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
-          <sl-tooltip content=${keeping() ? 'Keeping documents and settings on this device. Tap to keep nothing and forget all of it.' : 'Private: nothing is kept on this device, no cookies, no trace. Tap to keep your documents here, in folders.'} hoist>
-            <button class="to-keep ${keeping() ? 'on' : ''}" aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Keeping documents on this device' : 'Private: nothing kept on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Keeping' : 'Private'}</span></button>
+          <sl-tooltip content=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} hoist>
+            <button class="to-keep ${keeping() ? 'on' : ''}" aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
           </sl-tooltip>
           ${current ? this.renderDocHead(current) : html`<span class="to-spacer"></span>`}
           ${current

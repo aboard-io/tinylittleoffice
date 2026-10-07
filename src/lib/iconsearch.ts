@@ -120,18 +120,45 @@ interface Entry {
   name: string;
   nameWords: string[];
   keywords: string[];
+  /** Lucide's categories for it: how the library is grouped. */
+  cats: string[];
 }
 
 const ENTRIES: Entry[] = Object.entries(KEYWORDS).map(([name, kw]) => ({
   name,
   nameWords: words(name),
   keywords: words(kw),
+  cats: [],
 }));
 const CURATED = ENTRIES.length;
 
-/** More icons to search, known only by their names (the rest of Lucide, once it has loaded). */
-export function addIconNames(names: string[]) {
-  for (const name of names) ENTRIES.push({ name, nameWords: words(name), keywords: [] });
+/** The categories the library is sorted into, in the order to show them: id → name. */
+let CATS: Record<string, string> = {};
+
+/**
+ * The rest of Lucide, once it has loaded: every icon by name, with its tags
+ * (searched like keywords) and categories (how the picker groups them).
+ */
+export function addIconNames(names: string[], meta?: Record<string, [string[], string[]]>, cats?: Record<string, string>) {
+  if (cats) CATS = cats;
+  for (const name of names) ENTRIES.push({ name, nameWords: words(name), keywords: words((meta?.[name]?.[0] ?? []).join(' ')), cats: meta?.[name]?.[1] ?? [] });
+  // The starter set learns its categories too.
+  if (meta) for (const e of ENTRIES.slice(0, CURATED)) e.cats = meta[e.name]?.[1] ?? e.cats;
+}
+
+/** The library's categories, with how many icons each holds; only those with any. */
+export function iconCategories(): { id: string; name: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const e of ENTRIES) for (const c of e.cats) counts.set(c, (counts.get(c) ?? 0) + 1);
+  return Object.entries(CATS)
+    .filter(([id]) => counts.get(id))
+    .map(([id, name]) => ({ id, name, count: counts.get(id)! }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The icons in one category, the starter set's first. */
+export function iconsIn(category: string): string[] {
+  return ENTRIES.filter((e) => e.cats.includes(category)).map((e) => e.name);
 }
 
 /** How many icons can be searched right now. */

@@ -22,6 +22,9 @@ interface Deck {
 
 /** Two clicks closer together than this are a double click: show the whole slide. */
 const FAST = 350;
+/** A picture for each kind of slide. */
+const LAYOUT_ICONS: Record<string, keyof typeof UI> = { '': 'ul', t: 'h1', '2': 'columns', i: 'smile' };
+
 export class ToDeck extends PagesElement<Deck> {
   /** Opened from a link that asks to present: start presenting, and offer the way to the editor. */
   @property({ type: Boolean }) present = false;
@@ -216,7 +219,7 @@ export class ToDeck extends PagesElement<Deck> {
         <sl-button-group label="Slides">
           ${tool('Slide', 'plus', () => this.add(), { text: true, disabled: n >= MAX_SLIDES })}
           <span class="deck-kind to-hint" title="What kind of slide this is">${kindName}</span>
-          <to-insert class="deck-add" label="Add a slide" placeholder="Add: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts' })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
+          <to-insert class="deck-add" label="Add a slide" placeholder="Add: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts', icon: LAYOUT_ICONS[l.id] })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
           ${tool('Move slide up', 'up', () => this.move(-1), { disabled: this.cur === 0 })}
           ${tool('Move slide down', 'down', () => this.move(1), { disabled: this.cur === n - 1 })}
           ${tool('Delete slide', 'trash', () => this.removeSlide())}
