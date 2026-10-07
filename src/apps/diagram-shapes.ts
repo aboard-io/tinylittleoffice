@@ -3,12 +3,11 @@
  * Tap a shape for its buttons (add one like it, give it a picture, edit
  * its words, take it away); tap twice to type on it.
  */
-import { html, nothing, state, unsafeSVG, type TemplateResult } from '../kit.ts';
+import { html, state, unsafeSVG, type TemplateResult } from '../kit.ts';
 import { svg } from 'lit';
 import { DiagramElement } from './diagram.ts';
 import { type DiagramSpec } from '../lib/diagram.ts';
-import { fieldsOf, kindsOf, placeBlock, readLines, removeRow } from '../lib/lines.ts';
-import { ICON_SVG } from '../lib/icons.ts';
+import { fieldsOf, kindsOf, placeBlock, readLines } from '../lib/lines.ts';
 import { isLink } from '../lib/drawmodel.ts';
 import { arrowDefs, shapeSvg } from './draw.def.ts';
 
@@ -30,43 +29,12 @@ export class ShapesView extends DiagramElement {
     return rows.findIndex((r) => r.values.some((v, n) => fieldsOf(form, r.kind)[n].type !== 'icon' && v.trim().toLowerCase() === head));
   }
 
-  /** Little buttons under the picked shape: add one like it, give it a picture, go to its words, take it away. */
-  private controls(d: ReturnType<NonNullable<DiagramSpec['layout']>>) {
-    const i = this.sel;
-    const s = d.shapes[i];
-    if (!s || isLink(s.k)) return nothing;
-    const row = this.rowOf(i, d.shapes);
-    if (row < 0) return nothing;
-    // A finger's width on screen, whatever the picture's scale.
-    const el = this.querySelector<SVGSVGElement>('.pic > svg');
-    const unit = el ? el.getBoundingClientRect().width / d.w : 1;
-    const size = Math.max(22, Math.round(34 / unit));
-    const acts: [string, string, () => void][] = [
-      ['Add one under it', 'plus', () => this.addAfter(row)],
-      ['Give it a picture', 'smile', () => this.iconFor(row)],
-      ['Edit its words', 'pencil', () => this.editOver(this.querySelector(`.pic > svg g.pick[data-i="${i}"]`)!, row)],
-      ['Take it away', 'x', () => (this.sel = -1, this.putRows(removeRow(this.rows(), this.spec.form!, row)))],
-    ];
-    // Below the shape, unless another shape is there; then above it; then beside it. Never over a neighbour.
-    const w = acts.length * (size + 4) - 4;
-    const others = d.shapes.filter((q, n) => n !== i && !isLink(q.k));
-    const clear = (x: number, y: number) => !others.some((q) => x < q.x + q.w && x + w > q.x && y < q.y + q.h && y + size > q.y);
-    const spots: [number, number][] = [
-      [s.x + s.w / 2 - w / 2, s.y + s.h + 6],
-      [s.x + s.w / 2 - w / 2, s.y - size - 6],
-      [s.x + s.w + 6, s.y + s.h / 2 - size / 2],
-      [s.x - w - 6, s.y + s.h / 2 - size / 2],
-    ];
-    const inside = ([x, yy]: [number, number]) => x >= 0 && yy >= 0 && x + w <= d.w && yy + size <= d.h;
-    const clamp = ([x, yy]: [number, number]): [number, number] => [Math.max(0, Math.min(d.w - w, x)), Math.max(0, Math.min(d.h - size, yy))];
-    const [x0, y] = spots.find((p) => inside(p) && clear(...p)) ?? clamp(spots[0]);
-    return svg`<g class="diagram-ctl" role="group" aria-label="Shape ${i + 1}">
-      ${acts.map(([label, glyph, act], n) => svg`<g role="button" tabindex="0" aria-label=${label} transform="translate(${x0 + n * (size + 4)} ${y})" @click=${(e: Event) => (e.stopPropagation(), act())} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), act())}>
-        <title>${label}</title>
-        <rect width=${size} height=${size} rx=${size / 4}/>
-        <g transform="translate(${size * 0.18} ${size * 0.18}) scale(${(size * 0.64) / 24})" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${unsafeSVG(ICON_SVG[glyph] ?? '')}</g>
-      </g>`)}
-    </g>`;
+  /** A tap on a shape: its words open on it, with the small things to do to it underneath. */
+  private open(i: number, shapes: ReturnType<NonNullable<DiagramSpec['layout']>>['shapes'], el: Element) {
+    const row = this.rowOf(i, shapes);
+    if (row < 0) return;
+    this.sel = i;
+    this.editOver(el, row);
   }
 
   /* ---------- adding and moving on the picture itself ---------- */
@@ -201,7 +169,7 @@ export class ShapesView extends DiagramElement {
     const t = e.target as Element;
     const blank = this.form && t.closest('.pic > svg') && !t.closest('g.pick, .diagram-ctl, .pic-edit');
     // Empty space, tapped: let go of what was picked (or being typed); tapped again, something new goes there.
-    if (this.sel >= 0 || this.editing || this.draft) {
+    if (this.sel >= 0 || this.editing || this.draft || this.justClosed) {
       this.sel = -1;
       return;
     }
@@ -216,15 +184,14 @@ export class ShapesView extends DiagramElement {
   protected picture(): TemplateResult {
     const spec = this.spec;
     const d = spec.layout!(this.drawnText());
-    if (!d.shapes.length) return html`<p class="to-empty">${spec.form ? 'Tap here to start: each tap on empty space adds a thing; tap a thing for its buttons, twice to type on it; drag it where it goes.' : 'Write on the left and it is drawn here.'}</p>`;
+    if (!d.shapes.length) return html`<p class="to-empty">${spec.form ? 'Tap here to start: each tap on empty space adds a thing; tap a thing to type on it, Enter for the next; drag it where it goes.' : 'Write on the left and it is drawn here.'}</p>`;
     return html`<svg viewBox="0 0 ${d.w} ${d.h}" role=${spec.form ? 'group' : 'img'} aria-label=${this.name} style="max-width:${d.w * 1.4}px" @pointermove=${this.onMove} @pointerup=${(e: PointerEvent) => this.onUp(e, d.shapes)} @pointercancel=${() => (this.drag = null)}>
       <defs>${unsafeSVG(arrowDefs())}</defs>
       ${d.shapes.map((s, i) =>
         isLink(s.k) || !spec.form
           ? svg`<g>${unsafeSVG(shapeSvg(s, d.shapes))}</g>`
-          : svg`<g class="pick ${this.sel === i ? 'on' : ''}" data-i=${i} role="button" tabindex="0" aria-label="${s.text.replace(/^:[a-z0-9-]+\s*/, '') || 'Shape'}: tap for its buttons, twice to type" aria-pressed=${this.sel === i ? 'true' : 'false'} @pointerdown=${(e: PointerEvent) => this.onDown(e, i, d.shapes)} @dblclick=${(e: Event) => (e.stopPropagation(), this.editOver(e.currentTarget as Element, this.rowOf(i, d.shapes)))} @click=${(e: Event) => (e.stopPropagation(), this.drag?.moved ? null : ((this.sel = this.sel === i ? -1 : i), this.requestUpdate()))} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), (this.sel = this.sel === i ? -1 : i))}>${unsafeSVG(shapeSvg(s, d.shapes))}</g>`,
+          : svg`<g class="pick ${this.sel === i ? 'on' : ''}" data-i=${i} role="button" tabindex="0" aria-label="${s.text.replace(/^:[a-z0-9-]+\s*/, '') || 'Shape'}: tap to type on it; drag it where it goes" @pointerdown=${(e: PointerEvent) => this.onDown(e, i, d.shapes)} @click=${(e: Event) => (e.stopPropagation(), this.drag?.moved ? null : this.open(i, d.shapes, e.currentTarget as Element))} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && (e.preventDefault(), this.open(i, d.shapes, e.currentTarget as Element))}>${unsafeSVG(shapeSvg(s, d.shapes))}</g>`,
       )}
-      ${this.controls(d)}
     </svg>`;
   }
 }

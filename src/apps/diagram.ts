@@ -8,12 +8,13 @@
  */
 import { DocElement, html, nothing, tool, appOf, makeRef, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import { ToLines } from '../widgets/line-form.ts';
+import '../widgets/line-form.ts';
+import { icon, UI } from '../lib/icons.ts';
 import { state } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
 import { store } from '../lib/store.ts';
-import { blockEnd, fieldsOf, kindsOf, readLines, writeLines, type Row } from '../lib/lines.ts';
+import { blockEnd, fieldsOf, kindsOf, readLines, removeRow, writeLines, type Row } from '../lib/lines.ts';
 
 export class DiagramElement extends DocElement<string> {
   /** Which diagram app this is; set by defineDiagramEditor. */
@@ -31,6 +32,12 @@ export class DiagramElement extends DocElement<string> {
   /** A box over the picture, where a label or a line of a sheet is typed: the row and field it writes, and where it sits. */
   @state() protected editing: { row: number; field: number; x: number; y: number; w: number; h: number } | null = null;
 
+  /** When a box last closed: the tap that closed it must not also add something. */
+  protected closedAt = -Infinity;
+  protected get justClosed() {
+    return performance.now() - this.closedAt < 400;
+  }
+
   /** Open the box over an element of the picture, for a row's field. */
   protected editOver(el: Element, row: number, field = -1) {
     const form = this.spec.form;
@@ -46,7 +53,6 @@ export class DiagramElement extends DocElement<string> {
     const w = Math.max(120, b.width + 16);
     const h = Math.max(34, Math.min(60, b.height + 8));
     this.editing = { row, field: f, x: b.left - p.left + pic.scrollLeft + (b.width - w) / 2, y: b.top - p.top + pic.scrollTop + (b.height - h) / 2, w, h };
-    this.unpick();
     void this.updateComplete.then(() => {
       const box = this.querySelector<HTMLInputElement>('.pic-edit input');
       box?.focus();
@@ -69,10 +75,13 @@ export class DiagramElement extends DocElement<string> {
       // A draft nothing was typed into goes; one with words is already in the text.
       this.editing = null;
       this.draft = null;
+      this.closedAt = performance.now();
+      this.unpick();
     };
     const done = (ev: FocusEvent) => {
-      // Leaving the box altogether, not moving to its next field.
+      // Leaving the box altogether, not moving to its next field; and only this box, not one that has already given way to the next.
       if (ev.relatedTarget && box?.contains(ev.relatedTarget as Node)) return;
+      if (this.editing !== e) return;
       close();
     };
     const write = (f: number, value: string) => {
@@ -84,6 +93,22 @@ export class DiagramElement extends DocElement<string> {
       }
       this.putRows(next);
     };
+    // Enter closes and starts the next one under (or after) this; Backspace on empty words takes it away.
+    const next = () => {
+      const at = e.row;
+      if (this.draft) return close();
+      // The box gives way to the next one's; what was picked stays picked until the new draft has read it.
+      this.editing = null;
+      this.closedAt = performance.now();
+      if (this.rows()[at]) this.addAfter(at);
+      else this.unpick();
+    };
+    const gone = () => {
+      const at = e.row;
+      close();
+      if (this.rows()[at]) this.putRows(removeRow(this.rows(), this.spec.form!, at));
+    };
+    const empty = ordered.every((f) => !(row.values[f.n] ?? '').trim());
     return html`<div class="pic-edit ${ordered.length > 1 ? 'many' : ''}" style="left:${e.x}px;top:${e.y}px;width:${e.w}px;min-height:${e.h}px">
       ${ordered.map(
         (f) => html`<input
@@ -91,10 +116,17 @@ export class DiagramElement extends DocElement<string> {
           placeholder=${f.name}
           .value=${row.values[f.n] ?? ''}
           @input=${(ev: Event) => write(f.n, (ev.target as HTMLInputElement).value)}
-          @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' || ev.key === 'Escape') && (ev.preventDefault(), close())}
+          @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' ? (ev.preventDefault(), next()) : ev.key === 'Escape' ? (ev.preventDefault(), close()) : ev.key === 'Backspace' && empty && !this.draft ? (ev.preventDefault(), gone()) : null)}
           @blur=${done}
         />`,
       )}
+      ${this.draft
+        ? nothing
+        : html`<div class="pic-edit-acts" role="group" aria-label="This thing">
+            <button type="button" title="Add one under it (Enter)" aria-label="Add one under it" @mousedown=${(ev: Event) => ev.preventDefault()} @click=${next}>${icon(UI.plus, 13)}</button>
+            <button type="button" title="Give it a picture" aria-label="Give it a picture" @mousedown=${(ev: Event) => ev.preventDefault()} @click=${() => { const at = e.row; close(); void this.iconFor(at); }}>${icon(UI.smile, 13)}</button>
+            <button type="button" title="Take it away" aria-label="Take it away" @mousedown=${(ev: Event) => ev.preventDefault()} @click=${gone}>${icon(UI.trash, 13)}</button>
+          </div>`}
     </div>`;
   }
 
@@ -273,9 +305,7 @@ export class DiagramElement extends DocElement<string> {
     const at = k.indent ? blockEnd(rows, form, i) : i + 1;
     const depth = k.indent ? rows[i].depth + 1 : rows[i].depth;
     this.unpick();
-    // The form keeps an empty row until there is something in it; the picture shows a draft until something is typed.
-    const lines = this.querySelector<ToLines>('to-lines');
-    if (lines) return lines.insert(rows[i].kind, at, depth);
+    // A draft on the picture until something is typed (the list beside, if showing, follows).
     // Like the one it came from: its key (the same lane, the same date), its size and place beside it; the rest to type.
     const words = this.wordsField(rows[i].kind);
     const fields = fieldsOf(form, rows[i].kind);
@@ -328,7 +358,7 @@ export class DiagramElement extends DocElement<string> {
     const form = this.form;
     return html`
       <div class="to-toolbar">
-        <span class="to-hint diagram-hint">${form ? (this.mode === 'form' ? 'Add a row for each thing, and fill it in.' : this.kind === 'page' ? 'Type into the page; the bar along the bottom adds to it.' : this.kind === 'print' ? 'Tap words on the sheet to change them.' : 'Tap empty space to add a thing; tap a thing for its buttons, twice to type on it; drag it where it goes.') : spec.hint}</span>
+        <span class="to-hint diagram-hint">${form ? (this.mode === 'form' ? 'Add a row for each thing, and fill it in.' : this.kind === 'page' ? 'Type into the page; the bar along the bottom adds to it.' : this.kind === 'print' ? 'Tap words on the sheet to change them.' : 'Tap empty space to add a thing; tap a thing to type on it, Enter for the next; drag it where it goes.') : spec.hint}</span>
         <span class="to-spacer"></span>
         ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
         ${spec.form && this.mode === 'text' ? tool('Edit as a form', 'form', () => this.setMode('form'), { text: true }) : nothing}

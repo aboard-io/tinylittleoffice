@@ -33,7 +33,7 @@ export class SheetsView extends DiagramElement {
     const { kinds } = kindsOf(form);
     const kind = kinds.findIndex((k, n) => n < form.length && !k.once && k.is !== '' && !k.is.startsWith('#') && !k.head && fieldsOf(form, n).some((f) => f.type !== 'icon' && f.type !== 'choice'));
     if (kind < 0) return;
-    if (this.editing || this.draft) return;
+    if (this.editing || this.draft || this.justClosed) return;
     this.startDraft(kind, this.rows().length, kinds[kind].at ?? 0);
   }
 

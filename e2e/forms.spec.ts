@@ -140,36 +140,44 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await shot(page, 'form-invoice');
 });
 
-test('the picture is worked directly: tap a box for its buttons', async ({ page }) => {
+test('the picture is worked directly: tap a box and type; Enter for the next', async ({ page }) => {
   await page.goto('/#/org');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const pic = page.locator('to-org .pic > svg');
+  // A tap opens the words, with the small things to do underneath; no cluster of buttons on the picture.
   await pic.getByRole('button', { name: /^Ben Okoro/ }).click();
-  const ctl = pic.getByRole('group', { name: /^Shape/ });
-  await expect(ctl.getByRole('button')).toHaveCount(4);
-  // Add one under Ben: a new row, indented under him, with the cursor in it.
-  await ctl.getByRole('button', { name: 'Add one under it' }).click();
+  const box = page.locator('.pic-edit');
+  await expect(box.locator('input').first()).toBeFocused();
+  await expect(box.locator('input').first()).toHaveValue('Ben Okoro');
+  await expect(pic.locator('.diagram-ctl')).toHaveCount(0);
+  // Enter: one under Ben, indented, the cursor in it.
+  await page.keyboard.press('Enter');
+  await expect(box.locator('input').first()).toHaveValue('');
   await page.keyboard.type('Gus Pine');
-  await expect(page.getByRole('textbox', { name: 'Name, row 5' })).toHaveValue('Gus Pine');
   await expect(pic).toContainText('Gus Pine');
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/Ben Okoro \| Engineering\n    Cy Lund \| Platform\n    Di Shah \| Apps\n    Gus Pine\n  Eve Marsh/);
+  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/Ben Okoro \| Engineering\n    Cy Lund \| Platform\n    Di Shah \| Apps\n    Gus Pine/);
   await page.keyboard.press('Control+Shift+t');
   // A picture on Eve; then take Flo away.
   await pic.getByRole('button', { name: /^Eve Marsh/ }).click();
-  await ctl.getByRole('button', { name: 'Give it a picture' }).click();
+  await box.getByRole('button', { name: 'Give it a picture' }).click();
   await page.locator('sl-dialog.to-icons sl-input input').fill('palette');
   await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'palette', exact: true }).click();
   await expect(pic.locator('g.pick g[stroke-linecap="round"]')).toHaveCount(1);
   await pic.getByRole('button', { name: /^Flo Reyes/ }).click();
-  await ctl.getByRole('button', { name: 'Take it away' }).click();
+  await box.getByRole('button', { name: 'Take it away' }).click();
   await expect(pic).not.toContainText('Flo Reyes');
   await expect(pic.getByRole('button', { name: /Okoro|Lund|Shah|Marsh|Diaz|Pine/ })).toHaveCount(6);
-  // Edit its words opens a box over the shape itself.
+  // Backspace on empty words takes one away too.
   await pic.getByRole('button', { name: /^Cy Lund/ }).click();
-  await ctl.getByRole('button', { name: 'Edit its words' }).click();
-  await expect(page.locator('.pic-edit input').first()).toBeFocused();
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.press('Backspace');
+  await expect(pic).not.toContainText('Cy Lund');
   await page.setViewportSize({ width: 400, height: 800 });
   await shot(page, 'direct-org');
 });
@@ -227,13 +235,12 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
   await page.keyboard.press('Control+a');
   await page.keyboard.type('Platform engineering');
   await expect(pic).toContainText('Platform engineering');
-  await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape');
   await expect(box).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: 'Name, row 2' })).toHaveValue('Ben Okoro-Smith');
   await expect(page.getByRole('textbox', { name: 'Role, row 2' })).toHaveValue('Platform engineering');
-  // Or from the shape's own buttons.
+  // One tap does the same.
   await pic.getByRole('button', { name: /^Eve Marsh/ }).click();
-  await pic.getByRole('button', { name: 'Edit its words' }).click();
   await expect(page.locator('.pic-edit input').first()).toHaveValue('Eve Marsh');
   await page.keyboard.press('Escape');
 
@@ -266,6 +273,7 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await expect(page.locator('.pic-edit input').first()).toBeFocused();
   await page.keyboard.type('Gus Pine');
   await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape');
   await expect(pic).toContainText('Gus Pine');
   await expect(pic.locator('g.pick')).toHaveCount(7);
   // Dragged onto Eve, Gus reports to her.
@@ -314,7 +322,7 @@ test('adding on the picture: a draft that becomes real when typed into, and goes
     const pic = page.locator(`to-${app} .pic > svg`);
     const before = await doc(app);
     await pic.locator('g.pick').nth(1).click();
-    await pic.locator('.diagram-ctl [aria-label="Add one under it"]').click();
+    await page.keyboard.press('Enter');
     // The draft is drawn and its box is open, but nothing is written yet.
     const box = page.locator('.pic-edit input').first();
     await expect(box).toBeFocused();
@@ -325,16 +333,19 @@ test('adding on the picture: a draft that becomes real when typed into, and goes
     await expect(page.locator('.pic-edit')).toHaveCount(0);
     expect(await doc(app)).toBe(before);
     await pic.locator('g.pick').nth(1).click();
-    await pic.locator('.diagram-ctl [aria-label="Add one under it"]').click();
+    await page.keyboard.press('Enter');
     await expect(box).toBeFocused();
     await page.keyboard.type('Fresh thing');
     await page.keyboard.press('Enter');
     expect(await doc(app), app).toMatch(expect_);
-    // A tap on empty space with something picked only lets go of it.
-    await pic.locator('g.pick').first().click();
+    // (Enter opened the next draft; let it go.)
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.pic-edit')).toHaveCount(0);
+    // A tap on empty space while typing only closes the box.
+    await pic.locator('g.pick').filter({ hasText: /\S/ }).first().click();
+    await expect(page.locator('.pic-edit')).toHaveCount(1);
     const b = (await pic.boundingBox())!;
     await page.mouse.click(b.x + b.width - 6, b.y + b.height - 6);
-    await expect(pic.locator('g.pick.on')).toHaveCount(0);
     await expect(page.locator('.pic-edit')).toHaveCount(0);
   }
 });
