@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { shot, reopen, navTo, SHOTS } from './helpers';
+import { shot, reopen, navTo, SHOTS, copyLink, privacy } from './helpers';
 
 test('navigation works on every screen size', async ({ page }) => {
   await page.goto('/');
   await navTo(page, 'Deck');
   await expect(page).toHaveURL(/#\/v2\/deck$/);
-  await expect(page.locator('.to-panel-head h1')).toHaveText(/Deck/);
+  await expect(page.locator('.to-panel h1')).toHaveText(/Deck/);
   await navTo(page, 'Calendar');
-  await expect(page.locator('.to-panel-head h1')).toHaveText(/Calendar/);
+  await expect(page.locator('.to-panel h1')).toHaveText(/Calendar/);
   // No horizontal overflow at this viewport.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -45,14 +45,16 @@ test('meter counts down and copies the link', async ({ page }) => {
   await expect(ring).not.toHaveAttribute('value', '0');
   await expect(meter.locator('.text')).toHaveText(/\d[\d,]* left/, { visible: false });
   const before = page.url();
-  await meter.getByRole('button', { name: 'Copy link' }).click();
+  await copyLink(page);
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   // The copied link goes through the app's own page, so it previews as a sheet.
   expect(copied).toBe(before.replace('/#/', '/sheet/#/'));
 });
 
 test('documents record their creation time', async ({ page }) => {
+  // (The tags are read, not seen: on a phone they are hidden to leave the title its room.)
   await page.goto('/#/write');
+  await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
   await expect(page.locator('.to-panel-head .meta')).toHaveText('');
   const editor = page.getByRole('textbox', { name: 'Document' });
   await editor.click();
@@ -63,9 +65,11 @@ test('documents record their creation time', async ({ page }) => {
   // Creation time is in the link and survives a reload.
   const created = await page.locator('.to-panel-head .meta').textContent();
   await reopen(page);
+  await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
   await expect(page.locator('.to-panel-head .meta')).toHaveText(created!.trim());
   // A new document starts over.
-  await page.getByRole('link', { name: 'New Write' }).click();
+  await page.goto('/#/write');
+  await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
   await expect(page.locator('.to-panel-head .meta')).toHaveText('');
 });
 
@@ -208,13 +212,11 @@ test('password and signature live in the privacy menu', async ({ page }) => {
   await page.goto('/#/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('1');
   const dialog = page.locator('#doc-dialog');
-  await page.getByRole('button', { name: 'Privacy' }).click();
-  await page.getByRole('menuitem', { name: /Password/ }).click();
+  await privacy(page, /Password/);
   await expect(dialog).toHaveAttribute('open');
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(dialog).not.toHaveAttribute('open');
-  await page.getByRole('button', { name: 'Privacy' }).click();
-  await page.getByRole('menuitem', { name: /Signature/ }).click();
+  await privacy(page, /Signature/);
   await expect(dialog).toHaveAttribute('open');
   await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(page.locator('.to-panel-head')).toContainText('signed');
@@ -266,8 +268,7 @@ test('download views wait for the password', async ({ page }) => {
   test.slow();
   await page.goto('/#/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('secret');
-  await page.getByRole('button', { name: 'Privacy' }).click();
-  await page.getByRole('menuitem', { name: /Password/ }).click();
+  await privacy(page, /Password/);
   await page.getByRole('textbox', { name: 'New password' }).fill('pw');
   await page.getByRole('button', { name: 'Lock', exact: true }).click();
   await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/E/);
@@ -287,7 +288,7 @@ test('each app has a page of its own, with its own preview card', async ({ page,
   expect((await request.get('/og/deck.png')).status()).toBe(200);
   // The page opens a new deck, and documents work there as anywhere.
   await page.goto('/deck/');
-  await expect(page.locator('.to-panel-head h1')).toHaveText(/Deck/);
+  await expect(page.locator('.to-panel h1')).toHaveText(/Deck/);
   await page.getByRole('textbox', { name: 'Headline' }).fill('From the deck page');
   await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v2\/deck\/[WYZR]/);
   await reopen(page);
@@ -448,7 +449,7 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   const editing = page.url();
 
   // The link that is copied and shared is the one that presents.
-  await page.locator('.to-meter').getByRole('button', { name: 'Copy link' }).click();
+  await copyLink(page);
   const shared = await page.evaluate(() => navigator.clipboard.readText());
   expect(shared).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck.show/'));
   // The editing link is there for collaborators.

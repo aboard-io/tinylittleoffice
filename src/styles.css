@@ -239,6 +239,13 @@ sl-button[aria-pressed='true']::part(label) {
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
+}
+.to-header-inner > * {
+  flex-shrink: 0;
+}
+.to-header-inner > .to-panel-head {
+  flex-shrink: 1;
 }
 .to-brand {
   display: inline-flex;
@@ -334,9 +341,9 @@ sl-menu-item svg.pre {
 .to-panel-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--to-border);
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 .to-panel-head h1 {
   font-size: 15px;
@@ -346,8 +353,8 @@ sl-menu-item svg.pre {
   align-items: center;
   gap: 8px;
 }
-.to-panel-head {
-  flex-wrap: wrap;
+.to-panel-head .to-spacer {
+  flex: 1 1 0;
 }
 .to-panel-head .meta {
   color: var(--to-ink-3);
@@ -1444,8 +1451,11 @@ svg.draw-canvas text {
   .to-panel-head .when {
     display: none;
   }
-  .to-here {
+  .to-here span {
     display: none;
+  }
+  .to-here {
+    padding: 6px;
   }
   .to-header-inner {
     gap: 4px;
@@ -1539,10 +1549,59 @@ svg.draw-canvas text {
     width: 140px;
   }
 }
-/* The name gives way to the buttons before they run out of room (it is long, and they must stay on one line). */
+/* On a phone the name stays, smaller; the document's tags go, and the title shrinks to what is left. */
 @media (max-width: 600px) {
+  .to-brand {
+    font-size: 13px;
+    gap: 5px;
+    margin-right: 0;
+  }
+  .to-header-inner {
+    gap: 3px;
+  }
+  .to-doc-actions {
+    gap: 3px;
+  }
+  .to-brand .mark {
+    width: 22px;
+    height: 22px;
+  }
+  .to-panel-head .meta,
+  .to-header .to-meter .text {
+    display: none;
+  }
+  /* "+" is the menu's job on a phone (any app there starts a new document); undo and redo have no keyboard to fall back on. */
+  .to-new,
+  .to-header .to-meter .copy,
+  .to-here,
+  .to-brand .mark {
+    display: none;
+  }
+  .to-panel-head {
+    min-width: 3em;
+  }
+  .to-title {
+    flex: 1 1 3em;
+    min-width: 3em;
+  }
+  /* Privacy is a tap away in the document dialog (the ring); here it would cost the title its room. */
+  .to-doc-actions sl-dropdown:has(> [aria-label="Privacy"]) {
+    display: none;
+  }
+}
+/* The narrowest phones: Download is in the same dialog. */
+@media (max-width: 400px) {
+  .to-doc-actions sl-dropdown:has(> [aria-label="Download"]) {
+    display: none;
+  }
+}
+/* Narrower still (a small phone, or one zoomed right in): the site's mark stands for its name. */
+@media (max-width: 380px) {
   .to-brand span {
     display: none;
+  }
+  .to-brand .mark {
+    display: inline-grid;
   }
   /* The QR button is in the Share menu as well; here it would crowd the row. */
   .to-qr-btn {
@@ -1613,8 +1672,9 @@ svg.draw-canvas text {
   color: var(--to-danger);
   font-weight: 600;
 }
-.to-doc-actions {
-  flex-wrap: wrap;
+.to-doc-actions,
+.to-header .to-meter {
+  flex: 0 0 auto;
 }
 
 /* Small square buttons inside rows and cards */
@@ -2469,7 +2529,7 @@ textarea {
 }
 .to-title {
   flex: 0 1 22em;
-  min-width: 6em;
+  min-width: 4em;
   border: 1px solid transparent;
   border-radius: var(--to-radius);
   background: transparent;
@@ -3841,7 +3901,30 @@ mark {
   outline-offset: -1px;
 }
 .deck-kind {
-  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--to-border);
+  border-left: 0;
+  border-right: 0;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.deck-add input {
+  width: 12rem;
+  border-radius: 0;
+}
+.deck-count {
+  white-space: nowrap;
+}
+.to-toolbar sl-button-group::part(base) {
+  flex-wrap: wrap;
+}
+@media (max-width: 900px) {
+  .deck-count,
+  .deck-transition {
+    display: none;
+  }
 }
 
 /* Typing on the picture: a box over the words */
@@ -3849,9 +3932,20 @@ mark {
   position: absolute;
   z-index: 3;
 }
+.pic-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pic-edit.many input + input {
+  font-size: 13px;
+  border-width: 1px;
+  border-color: var(--to-border-strong);
+}
 .pic-edit input {
   width: 100%;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 30px;
   padding: 4px 8px;
   font: 15px var(--sl-font-sans);
   color: var(--to-ink);

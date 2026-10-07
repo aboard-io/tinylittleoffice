@@ -292,7 +292,7 @@ test('every app is reachable and none overflows the page', async ({ page }) => {
   await page.goto('/');
   for (const name of ['Todo', 'Board', 'Gantt', 'Trip', 'Motion']) {
     await navTo(page, name);
-    await expect(page.locator('.to-panel-head h1')).toHaveText(new RegExp(name));
+    await expect(page.locator('.to-panel h1')).toHaveText(new RegExp(name));
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, name).toBeLessThanOrEqual(0);
   }

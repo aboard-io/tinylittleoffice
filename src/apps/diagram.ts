@@ -53,22 +53,33 @@ export class DiagramElement extends DocElement<string> {
     });
   }
 
+  /** The box over the picture: every word field of the row (a name and a role, say), the one tapped first; Tab moves between them. */
   private renderEditBox() {
     const e = this.editing;
     if (!e || !this.spec.form) return nothing;
     const rows = this.rows();
     const row = rows[e.row];
     if (!row) return nothing;
-    const field = fieldsOf(this.spec.form, row.kind)[e.field];
-    const done = () => (this.editing = null);
-    return html`<div class="pic-edit" style="left:${e.x}px;top:${e.y}px;width:${e.w}px;height:${e.h}px">
-      <input
-        aria-label="${field.name}, row ${e.row + 1}"
-        .value=${row.values[e.field] ?? ''}
-        @input=${(ev: Event) => this.putRows(rows.map((r, n) => (n === e.row ? { ...r, values: r.values.map((v, m) => (m === e.field ? (ev.target as HTMLInputElement).value : v)) } : r)))}
-        @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' || ev.key === 'Escape') && (ev.preventDefault(), done())}
-        @blur=${done}
-      />
+    const fields = fieldsOf(this.spec.form, row.kind).map((f, n) => ({ ...f, n })).filter((f) => f.type !== 'icon' && f.type !== 'choice');
+    const first = fields.findIndex((f) => f.n === e.field);
+    const ordered = first > 0 ? [...fields.slice(first), ...fields.slice(0, first)] : fields;
+    const box = this.querySelector<HTMLElement>('.pic-edit');
+    const done = (ev: FocusEvent) => {
+      // Leaving the box altogether, not moving to its next field.
+      if (ev.relatedTarget && box?.contains(ev.relatedTarget as Node)) return;
+      this.editing = null;
+    };
+    return html`<div class="pic-edit ${ordered.length > 1 ? 'many' : ''}" style="left:${e.x}px;top:${e.y}px;width:${e.w}px;min-height:${e.h}px">
+      ${ordered.map(
+        (f) => html`<input
+          aria-label="${f.name}, row ${e.row + 1}"
+          placeholder=${f.name}
+          .value=${row.values[f.n] ?? ''}
+          @input=${(ev: Event) => this.putRows(this.rows().map((r, n) => (n === e.row ? { ...r, values: r.values.map((v, m) => (m === f.n ? (ev.target as HTMLInputElement).value : v)) } : r)))}
+          @keydown=${(ev: KeyboardEvent) => (ev.key === 'Enter' || ev.key === 'Escape') && (ev.preventDefault(), (this.editing = null))}
+          @blur=${done}
+        />`,
+      )}
     </div>`;
   }
 

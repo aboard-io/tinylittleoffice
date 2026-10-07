@@ -210,27 +210,25 @@ export class ToDeck extends PagesElement<Deck> {
     const fit = `--title:${L.titlePx};--body:${L.bodyPx};--icon:${tint}`;
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Slides">
-        ${tool('Slide', 'plus', () => this.add(), { text: true, disabled: n >= MAX_SLIDES })}
-        <span class="deck-kind to-hint" title="What kind of slide this is">${kindName}</span>
-        <to-insert class="deck-add" label="Add a slide" placeholder="Add a slide: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts' })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
-        ${tool('Delete slide', 'trash', () => this.removeSlide())}
-        <sl-button-group label="Reorder">
+        <sl-button-group label="Slides">
+          ${tool('Slide', 'plus', () => this.add(), { text: true, disabled: n >= MAX_SLIDES })}
+          <span class="deck-kind to-hint" title="What kind of slide this is">${kindName}</span>
+          <to-insert class="deck-add" label="Add a slide" placeholder="Add: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts' })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
           ${tool('Move slide up', 'up', () => this.move(-1), { disabled: this.cur === 0 })}
           ${tool('Move slide down', 'down', () => this.move(1), { disabled: this.cur === n - 1 })}
+          ${tool('Delete slide', 'trash', () => this.removeSlide())}
         </sl-button-group>
         <sl-button-group label="Text">
           ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Underline', 'underline', () => this.field?.exec('underline'))}${tool('Strike', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}
-        </sl-button-group>
-        <sl-button size="small" @click=${this.inlineIcon}>${icon(UI.smile, 14)} Icon in text</sl-button>
-        <sl-button-group label="Indent">
           ${tool('Bring the bullet out', 'outdent', () => this.field?.shift(-1))}${tool('Indent the bullet', 'indent', () => this.field?.shift(1))}
+          ${tool('Icon in text', 'smile', () => this.inlineIcon())}
         </sl-button-group>
         <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
         <span class="to-spacer"></span>
         <sl-select class="sr-label deck-transition" size="small" label="Transition" hoist .value=${this.doc.transition || 'fade'} @sl-change=${(e: Event) => this.commit({ ...this.doc, transition: (((e.target as SlSelect).value as string) === 'fade' ? '' : (e.target as SlSelect).value) as Transition })}>
           ${TRANSITIONS.map((t) => html`<sl-option value=${t.id || 'fade'}>${t.name}</sl-option>`)}
         </sl-select>
-        <span class="to-hint">${n} ${n === 1 ? 'slide' : 'slides'}</span>
+        <span class="to-hint deck-count">${n} ${n === 1 ? 'slide' : 'slides'}</span>
         <sl-button size="small" variant="primary" @click=${() => this.show(this.cur)}>${icon(UI.play, 14)} Present</sl-button>
       </div>
       <div class="deck-layout">

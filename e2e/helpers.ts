@@ -31,3 +31,21 @@ export async function pickOption(page: Page, select: string, value: string) {
   // Wait for the list to close, or the next click on the select would land mid-animation.
   await expect(page.locator(`${select} sl-option[value="${value}"]`)).toBeHidden();
 }
+
+/** Copy the document's link: the meter's button, or on a phone (where the meter is only a ring) Share → Copy link. */
+export async function copyLink(page: Page) {
+  const btn = page.locator('.to-meter').getByRole('button', { name: 'Copy link' });
+  if (await btn.isVisible()) return btn.click();
+  await page.getByRole('button', { name: 'Share' }).click();
+  await page.getByRole('menuitem', { name: /^Copy link/ }).first().click();
+  await expect(page.getByRole('menuitem', { name: /^Copy link/ }).first()).toBeHidden();
+}
+
+/** Open the Privacy menu's item, or on a phone (no Privacy button) the document dialog it leads to. */
+export async function privacy(page: Page, item: RegExp) {
+  const btn = page.getByRole('button', { name: 'Privacy' });
+  if (await btn.isVisible()) {
+    await btn.click();
+    await page.getByRole('menuitem', { name: item }).click();
+  } else await page.locator('.to-meter sl-progress-ring').click();
+}

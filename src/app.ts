@@ -584,8 +584,7 @@ export class ToApp extends LitElement {
         <div class="to-header-inner">
           <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
-          ${current ? html`<a class="to-here" href=${routeHash(current.id)} title="New ${current.name}">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>` : nothing}
-          <span class="to-spacer"></span>
+          ${current ? this.renderDocHead(current) : html`<span class="to-spacer"></span>`}
           ${current
             ? html`
                 <to-meter .used=${this.payloadLength} .available=${available} .href=${this.link} .rooms=${roomFor(this.link)} @to-info=${() => this.dialog()?.show()} @to-copy=${() => this.share('copy')}></to-meter>
@@ -630,7 +629,7 @@ export class ToApp extends LitElement {
                         </sl-menu>
                       </sl-dropdown>
                     </div>`}
-                <sl-tooltip content="New ${current.name}" hoist>
+                <sl-tooltip content="New ${current.name}" hoist class="to-new">
                   <sl-button class="icon" size="small" href=${routeHash(current.id)}>${icon(UI.plus, 16)}<span class="sr-only">New ${current.name}</span></sl-button>
                 </sl-tooltip>
               `
@@ -684,12 +683,11 @@ export class ToApp extends LitElement {
     `;
   }
 
-  private renderPanel(current: (typeof APPS)[number]) {
+  /** The document's own bar, in the site header: which app, its title, its state, undo and redo. */
+  private renderDocHead(current: (typeof APPS)[number]) {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
-    return html`<section class="to-panel" aria-label=${current.name}>
-      <div class="to-panel-head">
-        <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
-        <span class="to-doc-ico" title=${current.name}>${icon(UI[current.icon], 16)}</span>
+    return html`<div class="to-panel-head">
+        <a class="to-here" href=${routeHash(current.id)} title="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
         <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} ?readonly=${this.viewing} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
         <span class="meta">
           ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
@@ -700,14 +698,19 @@ export class ToApp extends LitElement {
           ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
         </span>
         <span class="to-spacer"></span>
+      </div>
         ${this.viewing ? html`<sl-button class="to-edit" size="small" variant="primary" @click=${() => (this.viewing = false)}>${icon(UI.pen, 14)} Edit</sl-button>` : nothing}
         ${this.sealed || this.viewing
           ? nothing
           : html`<sl-button-group label="Undo and redo">
               <sl-tooltip content="Undo" hoist><sl-button class="icon" size="small" aria-label="Undo" ?disabled=${!this.history.canUndo} @click=${() => this.step(true)}>${icon(UI.undo, 14)}<span class="sr-only">Undo</span></sl-button></sl-tooltip>
               <sl-tooltip content="Redo" hoist><sl-button class="icon" size="small" aria-label="Redo" ?disabled=${!this.history.canRedo} @click=${() => this.step(false)}>${icon(UI.redo, 14)}<span class="sr-only">Redo</span></sl-button></sl-tooltip>
-            </sl-button-group>`}
-      </div>
+            </sl-button-group>`}`;
+  }
+
+  private renderPanel(current: (typeof APPS)[number]) {
+    return html`<section class="to-panel" aria-label=${current.name}>
+      <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
       <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.viewing ? this.renderView() : this.renderApp()}</div>
     </section>`;
   }
