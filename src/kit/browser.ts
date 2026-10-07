@@ -325,7 +325,7 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   const all = embeddable(host).filter((a) => !skip(a));
   const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
   const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
-  const out: { value: string; label: string; group?: string; icon?: keyof typeof UI }[] = [];
+  const out: { value: string; label: string; group?: string; icon?: keyof typeof UI }[] = [{ value: 'qr-self', label: 'QR code of this document', group: '', icon: 'qr' }];
   const ic = (a: AppDef) => (a.icon in UI ? (a.icon as keyof typeof UI) : undefined);
   for (const g of groups)
     for (const a of all.filter((x) => !x.under && (x.group ?? '') === g)) {

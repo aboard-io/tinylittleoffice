@@ -4,7 +4,7 @@
  * showing another document instead. Deck (deck.ts) and the folded formats
  * (fold.ts) build on this; each adds what is its own.
  */
-import { DocElement, html, state, editRef, makeRef, type TemplateResult } from '../kit.ts';
+import { DocElement, html, state, editRef, makeRef, SELF, type TemplateResult } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon, type IconChoice } from '../widgets/icon-picker.ts';
 import './write.ts';
@@ -33,6 +33,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
   /** Another document on the page (a chart is a sheet that asks to be drawn as one), made in its own editor; 'remove' takes it away. */
   protected async insert(what: string) {
     if (what === 'remove') return this.patch({ sub: undefined });
+    if (what === 'qr-self') return this.patch({ sub: SELF });
     const at = this.cur;
     const ref = what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, '');
     this.patch({ sub: ref }, at);

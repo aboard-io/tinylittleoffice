@@ -17,6 +17,7 @@ import { privacy, isSealed } from './lib/privacy.ts';
 import { store, keeping, setKeeping } from './lib/store.ts';
 import { fromMarkdown } from './lib/markdown.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
+import { setSelfLink } from './kit/embed.ts';
 import './widgets/drive.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
@@ -513,7 +514,14 @@ export class ToApp extends LitElement {
     this.showToast(THEME_NAMES[this.theme]);
   }
 
+  private lastSelf = '';
   protected updated() {
+    // The kit knows this document's link (a QR code of it may be drawn inside it); embeds redraw when it changes.
+    if (this.app && !this.sealed && this.link !== this.lastSelf) {
+      this.lastSelf = this.link;
+      setSelfLink(this.link);
+      window.dispatchEvent(new Event(REFRESH));
+    }
     const title = this.app ? `${this.docTitle} · TinyLittleOffice` : this.driving !== null ? `Drive${this.driving ? ': ' + this.driving : ''} · TinyLittleOffice` : this.comparing ? 'Compare · TinyLittleOffice' : 'TinyLittleOffice';
     if (document.title !== title) document.title = title;
   }

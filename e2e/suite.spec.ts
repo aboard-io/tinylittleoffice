@@ -693,3 +693,37 @@ test('sheet: on a touch screen the corner handle stretches the block any way, an
   await expect(cell('A3')).toHaveValue('1');
   await expect(cell('B3')).toHaveValue('2');
 });
+
+test('a document can carry its own QR code, so a reader can take a copy', async ({ page }) => {
+  await page.goto('/#/write');
+  await page.getByRole('textbox', { name: 'Document' }).click();
+  await page.keyboard.type('Take this home');
+  await page.getByRole('combobox', { name: 'Insert' }).fill('qr code of this');
+  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
+  const embed = page.locator('to-embed[ref="qr/self"]');
+  await expect(embed).toHaveCount(1);
+  // The code is drawn, named for what it is, and keeps up with the document.
+  await expect(embed.locator('svg path[shape-rendering="crispEdges"]')).toHaveCount(1);
+  await expect(embed.locator('svg[role="img"]')).toHaveAttribute('aria-label', 'This document, as a QR code');
+  await expect.poll(() => page.url()).toContain('/#/v2/write/');
+  const d1 = await embed.locator('svg path[shape-rendering="crispEdges"]').getAttribute('d');
+  const url1 = page.url();
+  await page.getByRole('textbox', { name: 'Document' }).locator('p').first().click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' tonight');
+  await expect.poll(() => page.url()).not.toBe(url1);
+  await expect.poll(() => embed.locator('svg path[shape-rendering="crispEdges"]').getAttribute('d')).not.toBe(d1);
+  // Reopened, it is still the document's own code; the download carries it.
+  await reopen(page);
+  await expect(page.locator('to-embed[ref="qr/self"] svg path[shape-rendering="crispEdges"]')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
+  const html = (await import('node:fs')).readFileSync(await file.path(), 'utf8');
+  expect(html).toContain('crispEdges');
+  // On a slide too.
+  await page.goto('/#/deck');
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Thanks');
+  await page.getByRole('combobox', { name: 'Add a slide' }).fill('qr code of this');
+  await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
+  await expect(page.locator('.deck-slide to-embed[ref="qr/self"]')).toHaveCount(1);
+});

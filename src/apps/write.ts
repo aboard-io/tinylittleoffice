@@ -8,7 +8,7 @@
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { icon, UI } from '../lib/icons.ts';
-import { linkToRef, makeRef } from '../kit/embed.ts';
+import { linkToRef, makeRef, SELF } from '../kit/embed.ts';
 import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
@@ -420,6 +420,8 @@ export class ToWrite extends LitElement {
   }
 
   private async insertNew(what: string) {
+    // The document's own QR code needs no editing: it is whatever the link is.
+    if (what === 'qr-self') return void this.insertEmbed(SELF);
     const el = this.insertEmbed(what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, ''));
     if (el) await this.editEmbed(el);
   }

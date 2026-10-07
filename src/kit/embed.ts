@@ -25,7 +25,21 @@ export interface Resolved {
   title: string;
 }
 
+/**
+ * "qr/self": a QR code of the very document it sits in, so a reader can take
+ * their own copy. The shell says what the link is; the code is drawn from
+ * that, so the document never has to hold itself.
+ */
+export const SELF = 'qr/self';
+let selfLink = '';
+export const setSelfLink = (link: string) => (selfLink = link);
+
 export function resolve(ref: string): Resolved {
+  if (ref === SELF) {
+    const def = appOf('qr');
+    const link = selfLink || (typeof location !== 'undefined' ? location.href : '');
+    return { def, body: link, locked: false, hash: '#/qr', title: 'This document, as a QR code' };
+  }
   const slash = ref.indexOf('/');
   const id = ref.slice(0, slash);
   const payload = ref.slice(slash + 1);

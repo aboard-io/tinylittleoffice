@@ -205,6 +205,10 @@ All of these are a few lines of text; the first line is usually `# Title`.
 - Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line; the page gives the organiser a private link per person, each showing only that person's draw), `split` (`Name: amount, what for`; `between: A, B, C`).
 - Personal: `log` (`when, what, how much`; each kind is totalled), `chords` (`[G]words with [C]chords`, `transpose: 2`).
 
+## A document's own QR code
+
+In `write`, `deck` and the folded formats, a line `@@qr/self` is a QR code of the very document it sits in (drawn from the live link, so the document never has to hold itself). Readers scan it and have their own copy to keep and change. The editors offer it as "QR code of this document" in Insert.
+
 ## How a link is packed
 
 After `#/v2/<app>/` comes one letter and then base64url bytes: `w` (deflate, primed with a shared dictionary and that app's own), `y` (deflate with the shared dictionary), `z` (plain deflate), `r` (raw); a capital letter means the bytes begin with an envelope of `c<created>`, `t<title>` and signing lines before a blank line. `E` is a password-sealed link. You never need to make these: the plain-parameter form (`#title=…&doc=…`) is turned into the shortest of them when opened.
