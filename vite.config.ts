@@ -45,6 +45,8 @@ function appPages(site: string): Plugin {
         .filter((f) => !f.startsWith('og/') && f !== 'sw.js' && f !== 'llms.txt')
         .sort();
       const version = createHash('sha256').update(files.map((f) => f + readFileSync(resolve(dist, f)).length).join('|')).digest('hex').slice(0, 12);
+      // The same list, as data, for "Download everything" (the app and the library in one zip).
+      writeFileSync(resolve(dist, 'files.json'), JSON.stringify(files.map((f) => f.replace(/(^|\/)index\.html$/, '$1'))));
       writeFileSync(
         resolve(dist, 'sw.js'),
         `const CACHE = 'tlo-${version}';

@@ -1,12 +1,14 @@
 /**
  * Document signing with WebCrypto. A browser gets one Ed25519 key pair, kept
- * in localStorage as JWK; the public key and signature travel in the URL.
+ * where the site keeps things (lib/store.ts) as JWK; the public key and signature travel in the URL.
  * ECDSA P-256 is the fallback where Ed25519 is not implemented.
  *
  * Honest limits: the key proves that whoever holds it vouched for exactly this
  * content and creation time. The time itself is self-reported by the signer.
  */
 import { toBase64Url, fromBase64Url } from './codec.ts';
+
+import { store } from './store.ts';
 
 export interface KeyStore {
   get(): string | null;
@@ -120,28 +122,7 @@ export function createSigner(store: KeyStore): Signer {
   };
 }
 
+/** The key, kept where the site keeps things (lib/store.ts): on the device when asked, else for the visit. */
 export function localStorageStore(name = 'tinyoffice.key'): KeyStore {
-  return {
-    get: () => {
-      try {
-        return localStorage.getItem(name);
-      } catch {
-        return null;
-      }
-    },
-    set: (v) => {
-      try {
-        localStorage.setItem(name, v);
-      } catch {
-        /* private mode */
-      }
-    },
-    remove: () => {
-      try {
-        localStorage.removeItem(name);
-      } catch {
-        /* ignore */
-      }
-    },
-  };
+  return { get: () => store.get(name), set: (v) => store.set(name, v), remove: () => store.remove(name) };
 }

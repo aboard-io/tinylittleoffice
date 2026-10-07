@@ -1595,8 +1595,8 @@ svg.draw-canvas text {
     display: none;
   }
 }
-/* Narrower still (a small phone, or one zoomed right in): the site's mark stands for its name. */
-@media (max-width: 380px) {
+/* On a phone the site's mark stands for its name (the privacy switch and the title need the room). */
+@media (max-width: 480px) {
   .to-brand span {
     display: none;
   }
@@ -4100,4 +4100,36 @@ sl-dialog.to-import {
 @media (forced-colors: active) {
   .cmp-diff .add { outline: 1px solid Highlight; }
   .cmp-diff .del { outline: 1px dashed Highlight; }
+}
+
+/* The privacy switch: private by default; tapped, the device keeps things */
+.to-keep {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--to-accent);
+  border-radius: 999px;
+  background: var(--to-accent);
+  color: #fff;
+  font: 600 13px var(--sl-font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.to-keep.on {
+  background: var(--to-surface);
+  color: var(--to-ink);
+  border-color: var(--to-border-strong);
+}
+.to-keep:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .to-keep {
+    padding: 6px 8px;
+  }
+  .to-keep span {
+    display: none;
+  }
 }

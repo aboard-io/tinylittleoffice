@@ -4,6 +4,8 @@
  * asked (see saving()). Nothing here leaves the device; a document is
  * still, entirely, its link.
  */
+import { keeping, setKeeping, store } from './store.ts';
+
 export interface Kept {
   /** The app and when the document was made: what makes it the same document after a change. */
   id: string;
@@ -21,7 +23,7 @@ const MOST = 400;
 
 export function library(): Kept[] {
   try {
-    const all = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    const all = JSON.parse(store.get(KEY) ?? '[]');
     return Array.isArray(all) ? all : [];
   } catch {
     return [];
@@ -33,36 +35,16 @@ function write(all: Kept[]) {
   all.sort((a, b) => b.at - a.at);
   for (let keep = Math.min(all.length, MOST); keep >= 0; keep = Math.floor(keep / 2)) {
     try {
-      return localStorage.setItem(KEY, JSON.stringify(all.slice(0, keep)));
+      return store.set(KEY, JSON.stringify(all.slice(0, keep)));
     } catch {
       if (!keep) return;
     }
   }
 }
 
-/**
- * Whether documents are kept here at all. Off unless asked: nothing is
- * written, and the home page lists nothing. Turned off again, the library
- * is emptied. The one thing remembered either way is the choice itself.
- */
-export function saving(): boolean {
-  try {
-    return localStorage.getItem('tinyoffice.save') === '1';
-  } catch {
-    return false;
-  }
-}
-export function setSaving(on: boolean) {
-  try {
-    if (on) localStorage.setItem('tinyoffice.save', '1');
-    else {
-      localStorage.removeItem('tinyoffice.save');
-      localStorage.removeItem(KEY);
-    }
-  } catch {
-    // (Nothing can be kept here anyway.)
-  }
-}
+/** Whether documents are kept here at all: only while the device keeps things (lib/store.ts). */
+export const saving = keeping;
+export const setSaving = (on: boolean) => void setKeeping(on);
 
 /** Keep a document, or the newer state of one already kept (which stays in its folder). */
 export function keep(doc: Omit<Kept, 'folder' | 'at'>, folder: string) {

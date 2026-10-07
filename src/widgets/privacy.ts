@@ -11,7 +11,6 @@ import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { icon, UI } from '../lib/icons.ts';
 import type { Envelope } from '../lib/envelope.ts';
 import type { Privacy } from '../lib/privacy.ts';
-import { saving, setSaving } from '../lib/privacy.ts';
 import type { SlInput } from '../lib/shoelace.ts';
 
 export class ToPrivacy extends LitElement {
@@ -197,14 +196,16 @@ export class ToPrivacy extends LitElement {
         </dd>
       </dl>
       <h3>${icon(UI.home, 14)} On this device</h3>
-      <p class="to-hint">Everything this site keeps in this browser. Nothing is ever sent anywhere.</p>
+      ${p.keeping()
+        ? html`<p class="to-hint">This device keeps things, as you asked with the switch in the header: your documents (in folders, on the home page), your signing key, your preferences and a copy of the app for when there is no connection. Nothing is ever sent anywhere.</p>`
+        : html`<p class="to-hint"><b>Private.</b> Nothing is written to this device: no documents, no cookies, no offline copy. Settings last for this visit, in memory. The switch in the header keeps things instead.</p>`}
       <table class="to-kept">
         <thead><tr><th scope="col">What</th><th scope="col">Now</th><th scope="col"></th></tr></thead>
         <tbody>
           <tr>
-            <th scope="row">A list of your documents<br /><small>Their titles and links, for the home page. Off unless you ask.</small></th>
-            <td>${saving() ? `${p.documentsKept()} kept` : 'Not kept'}</td>
-            <td><sl-checkbox class="to-save" ?checked=${saving()} @sl-change=${(e: Event) => { setSaving((e.target as HTMLInputElement).checked); this.requestUpdate(); this.dispatchEvent(new CustomEvent('privacy-device', { bubbles: true })); }}>Keep</sl-checkbox></td>
+            <th scope="row">Your documents<br /><small>Their titles and links, in folders, for the home page.</small></th>
+            <td>${p.keeping() ? `${p.documentsKept()} kept` : 'Not kept'}</td>
+            <td></td>
           </tr>
           <tr>
             <th scope="row">Your signing key<br /><small>Made the first time you sign. Says a signature is yours.</small></th>
@@ -213,7 +214,7 @@ export class ToPrivacy extends LitElement {
           </tr>
           <tr>
             <th scope="row">Preferences<br /><small>Theme, which menu clusters are open, form or text, whether links open to read or to edit, size.</small></th>
-            <td>${p.prefsKept() ? `${p.prefsKept()} set` : 'None'}</td>
+            <td>${p.prefsKept() ? `${p.prefsKept()} set${p.keeping() ? '' : ' (this visit)'}` : 'None'}</td>
             <td>${p.prefsKept() ? html`<sl-button size="small" @click=${() => { p.forgetPrefs(); this.dispatchEvent(new CustomEvent('privacy-device', { bubbles: true })); }}>Forget</sl-button>` : nothing}</td>
           </tr>
           <tr>
@@ -224,7 +225,10 @@ export class ToPrivacy extends LitElement {
         </tbody>
       </table>
       <div class="row">
-        <sl-button size="small" variant="danger" outline @click=${async () => { if (!confirm('Forget everything this site keeps in this browser: the list of documents, your signing key, preferences, and the offline copy of the app?')) return; await p.leaveNothing(); this.offline = false; this.dispatchEvent(new CustomEvent('privacy-device', { bubbles: true })); }}>${icon(UI.trash, 14)} Leave nothing: forget all of the above</sl-button>
+        <sl-button size="small" @click=${() => this.dispatchEvent(new CustomEvent('privacy-zip', { bubbles: true }))}>${icon(UI.download, 14)} Download everything (.zip)</sl-button>
+        <span class="to-hint">The app, and every document kept here, in one file.</span>
+        <span class="to-spacer"></span>
+        ${p.keeping() ? html`<sl-button size="small" variant="danger" outline @click=${async () => { if (!confirm('Forget everything this site keeps in this browser, and keep nothing from now on?')) return; await p.leaveNothing(); this.offline = false; this.dispatchEvent(new CustomEvent('privacy-device', { bubbles: true })); }}>${icon(UI.trash, 14)} Leave nothing</sl-button>` : nothing}
       </div>
     `;
   }

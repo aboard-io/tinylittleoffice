@@ -83,7 +83,7 @@ test('signing a document and detecting changes', async ({ page }) => {
   await expect(dialog.locator('dd code')).toHaveCount(0);
   await page.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(dialog).toContainText('Valid');
-  await expect(dialog).toContainText('this browser');
+  await expect(dialog).toContainText(/this (browser|device)/);
   const fp = (await dialog.locator('dd code').first().textContent())!;
   expect(fp).toMatch(/^[0-9a-f]{5}-[0-9a-f]{5}$/);
   await page.getByRole('button', { name: 'Done' }).click();
@@ -123,7 +123,7 @@ test('signing keys can be exported and imported', async ({ page, context }) => {
 
   // A second, independent origin storage: clear it and import.
   await context.clearCookies();
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('tinyoffice.keep', '1'); });
   await page.reload();
   await page.locator('.to-meter sl-progress-ring').click();
   await expect(dialog.locator('dd code')).toHaveCount(0);

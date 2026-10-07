@@ -12,6 +12,7 @@ import { ToLines } from '../widgets/line-form.ts';
 import { state } from '../kit.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
+import { store } from '../lib/store.ts';
 import { blockEnd, fieldsOf, kindsOf, readLines, writeLines, type Row } from '../lib/lines.ts';
 
 export class DiagramElement extends DocElement<string> {
@@ -85,19 +86,11 @@ export class DiagramElement extends DocElement<string> {
 
   /** Filled in as a form, or typed as text: the same document either way. The choice is remembered. */
   @state() protected asText = (() => {
-    try {
-      return localStorage.getItem('tinyoffice.edit') === 'text';
-    } catch {
-      return false;
-    }
+    return store.get('tinyoffice.edit') === 'text';
   })();
   private setMode(text: boolean) {
     this.asText = text;
-    try {
-      localStorage.setItem('tinyoffice.edit', text ? 'text' : 'form');
-    } catch {
-      // (Not remembered, then.)
-    }
+    store.set('tinyoffice.edit', text ? 'text' : 'form');
   }
 
   protected get spec(): DiagramSpec {

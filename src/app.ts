@@ -7,22 +7,23 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { folders, forget, forgetAll, keep, moveTo, saving, type Kept } from './lib/library.ts';
+import { folders, forget, forgetAll, keep, library, moveTo, saving, type Kept } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
 import { budgetFor, fromBase64Url } from './lib/codec.ts';
-import { encodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
+import { encodeEnvelope, decodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { privacy, isSealed } from './lib/privacy.ts';
+import { store, keeping, setKeeping } from './lib/store.ts';
 import { fromMarkdown } from './lib/markdown.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import { fontsForPictures } from './kit/browser.ts';
-import { History, apps, appOf, extOf, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
+import { History, apps, appOf, docHtml, extOf, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { REFRESH, download, formatsOf, loadEditor, picture } from './kit/browser.ts';
+import { REFRESH, download, formatsOf, loadEditor, picture, saveFile, withFonts } from './kit/browser.ts';
 import './lib/icons.ts';
 import { roomFor } from './lib/limits.ts';
 import { roomsTable } from './widgets/meter.ts';
@@ -73,22 +74,14 @@ const THEMES: Theme[] = ['auto', 'light', 'dark'];
 const THEME_NAMES: Record<Theme, string> = { auto: 'Match the device', light: 'Light', dark: 'Dark' };
 
 function storedTheme(): Theme {
-  try {
-    const t = localStorage.getItem('to-theme');
-    return t === 'light' || t === 'dark' ? t : 'auto';
-  } catch {
-    return 'auto';
-  }
+  const t = store.get('to-theme');
+  return t === 'light' || t === 'dark' ? t : 'auto';
 }
 
 /** Light or dark, as chosen; "auto" follows the device (index.html keeps watching it). */
 function applyTheme(theme: Theme) {
-  try {
-    if (theme === 'auto') localStorage.removeItem('to-theme');
-    else localStorage.setItem('to-theme', theme);
-  } catch {
-    /* private mode: the choice lasts for this visit */
-  }
+  if (theme === 'auto') store.remove('to-theme');
+  else store.set('to-theme', theme);
   const dark = theme === 'dark' || (theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.classList.toggle('sl-theme-dark', dark);
 }
@@ -149,21 +142,11 @@ export class ToApp extends LitElement {
   /** What is typed into the menu's search box: only apps whose names match are listed. */
   @state() private find = '';
   /** How big everything is drawn, as a factor; remembered. Browser zoom works too; this is for a tap. */
-  @state() private size = (() => {
-    try {
-      return Math.min(2, Math.max(0.8, parseFloat(localStorage.getItem('tinyoffice.size') ?? '1') || 1));
-    } catch {
-      return 1;
-    }
-  })();
+  @state() private size = Math.min(2, Math.max(0.8, parseFloat(store.get('tinyoffice.size') ?? '1') || 1));
   private resize(by: number) {
     this.size = Math.round(Math.min(2, Math.max(0.8, this.size + by)) * 20) / 20;
-    try {
-      if (this.size === 1) localStorage.removeItem('tinyoffice.size');
-      else localStorage.setItem('tinyoffice.size', String(this.size));
-    } catch {
-      // (Not remembered, then.)
-    }
+    if (this.size === 1) store.remove('tinyoffice.size');
+    else store.set('tinyoffice.size', String(this.size));
     this.applySize();
   }
   private applySize() {
@@ -172,18 +155,14 @@ export class ToApp extends LitElement {
   /** The menu's clusters that are folded shut. Remembered. */
   @state() private shut: string[] = (() => {
     try {
-      return JSON.parse(localStorage.getItem('tinyoffice.nav') ?? 'null') ?? [];
+      return JSON.parse(store.get('tinyoffice.nav') ?? 'null') ?? [];
     } catch {
       return [];
     }
   })();
   private fold(group: string, open: boolean) {
     this.shut = open ? this.shut.filter((g) => g !== group) : [...new Set([...this.shut, group])];
-    try {
-      localStorage.setItem('tinyoffice.nav', JSON.stringify(this.shut));
-    } catch {
-      // (Not remembered, then.)
-    }
+    store.set('tinyoffice.nav', JSON.stringify(this.shut));
   }
   /** The fonts, as CSS, for pages shown in a frame of their own. */
   @state() private faces = '';
@@ -344,15 +323,42 @@ export class ToApp extends LitElement {
    * "tinyoffice.open" to "edit" in this browser's storage always gets the editor.)
    */
   private arrive(ext: string) {
-    let editor = false;
-    try {
-      editor = localStorage.getItem('tinyoffice.open') === 'edit';
-    } catch {
-      // (Storage is off: the default, then.)
-    }
+    const editor = store.get('tinyoffice.open') === 'edit';
     if (editor || ext || this.embedded || !this.env.body || !this.def) return;
     if (this.def.presents) this.presenting = true;
     else this.viewing = true;
+  }
+
+  /** The switch: keep things on this device, or leave nothing. Keeping is the choice remembered; private writes nothing. */
+  private toggleKeeping = async () => {
+    if (keeping() && !confirm('Keep nothing on this device from now on? Your documents list, signing key, preferences and the offline copy are forgotten (the documents themselves live in their links).')) return;
+    await setKeeping(!keeping());
+    this.requestUpdate();
+    this.showToast(keeping() ? 'Keeping documents on this device' : 'Private: nothing kept');
+  };
+
+  /** Everything, in one file: the app (it runs from a folder) and every document kept here as a page of its own. */
+  private async downloadAll() {
+    const { zip } = await import('./kit/zip.ts');
+    const files: Record<string, string | Uint8Array> = {};
+    try {
+      const list: string[] = await (await fetch(new URL('files.json', this.root))).json();
+      for (const f of list) files[f === '' ? 'index.html' : f.endsWith('/') ? f + 'index.html' : f] = new Uint8Array(await (await fetch(new URL(f, this.root))).arrayBuffer());
+    } catch {
+      // (Not built with a file list: the documents alone, then.)
+    }
+    const kept = library();
+    files['library.json'] = JSON.stringify(kept, null, 2);
+    for (const k of kept) {
+      const def = appOf(k.app);
+      const env = decodeEnvelope(parseHash(k.hash).payload, k.app);
+      if (!def) continue;
+      const name = (k.title || def.title(env.body) || def.name).replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80);
+      files[`library/${(k.folder || def.name).replace(/[\\/:*?"<>|]+/g, '-')}/${name}.html`] = await withFonts(def.document ? def.document(env.body, { created: env.created }) : docHtml({ def, body: env.body, title: k.title }, { created: env.created }, `${this.root}${k.app}/${k.hash}`));
+    }
+    files['README.txt'] = 'TinyLittleOffice, and your documents.\n\nlibrary/: each document as a web page of its own; open it in any browser. Its link (the whole document) is inside.\nlibrary.json: the same list, as data.\n\nThe app itself is the rest. Open index.html in Firefox or Safari, or serve the folder (for example: python3 -m http.server) and open http://localhost:8000/ in any browser.\n';
+    await saveFile('tinylittleoffice.zip', 'application/zip', zip(files, Date.now()));
+    this.showToast('Downloaded tinylittleoffice.zip');
   }
 
   /** A preference was forgotten, or the lot: the shell's own copies follow. */
@@ -584,6 +590,9 @@ export class ToApp extends LitElement {
         <div class="to-header-inner">
           <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
+          <sl-tooltip content=${keeping() ? 'Keeping documents and settings on this device. Tap to keep nothing and forget all of it.' : 'Private: nothing is kept on this device, no cookies, no trace. Tap to keep your documents here, in folders.'} hoist>
+            <button class="to-keep ${keeping() ? 'on' : ''}" aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Keeping documents on this device' : 'Private: nothing kept on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Keeping' : 'Private'}</span></button>
+          </sl-tooltip>
           ${current ? this.renderDocHead(current) : html`<span class="to-spacer"></span>`}
           ${current
             ? html`
@@ -817,7 +826,7 @@ export class ToApp extends LitElement {
 
   /** The privacy widget: one element, drawn in the dialog; its prompt for a sealed link drawn beside the dialogs. */
   private renderPrivacy() {
-    return html`<to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-note=${(e: CustomEvent<string>) => this.showToast(e.detail)}></to-privacy>`;
+    return html`<to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-zip=${this.downloadAll} @privacy-note=${(e: CustomEvent<string>) => this.showToast(e.detail)}></to-privacy>`;
   }
   private renderPrivacyPrompt() {
     return html`<to-privacy-prompt .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv}></to-privacy-prompt>`;

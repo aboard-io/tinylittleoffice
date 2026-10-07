@@ -18,6 +18,7 @@ import { createSigner, fingerprintOf, localStorageStore, verify } from './sign.t
 import { packEnvelope, quantizeCreated, signingMessage, unpackEnvelope, type Envelope } from './envelope.ts';
 import { toBase64Url } from './codec.ts';
 import { library, saving, setSaving } from './library.ts';
+import { store, keeping, setKeeping } from './store.ts';
 
 export type SigState = 'none' | 'checking' | 'valid' | 'invalid';
 export { isSealed, saving, setSaving };
@@ -133,18 +134,10 @@ export class Privacy {
   /* ---------- what the device keeps ---------- */
 
   prefsKept(): number {
-    try {
-      return PREFS.filter((k) => localStorage.getItem(k) !== null).length;
-    } catch {
-      return 0;
-    }
+    return PREFS.filter((k) => store.get(k) !== null).length;
   }
   forgetPrefs() {
-    try {
-      for (const k of PREFS) localStorage.removeItem(k);
-    } catch {
-      // (Nothing kept, then.)
-    }
+    for (const k of PREFS) store.remove(k);
     this.changed();
   }
   documentsKept(): number {
@@ -158,19 +151,18 @@ export class Privacy {
     if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
     this.changed();
   }
-  /** Forget everything this site keeps in this browser. */
+  /** Forget everything this site keeps in this browser, and keep nothing from here on: the switch, turned off. */
   async leaveNothing() {
-    setSaving(false);
     this.api.forget();
     this.forgetPrefs();
+    for (const k of store.keys()) store.remove(k);
+    await setKeeping(false);
     await this.dropOffline();
-    try {
-      for (const k of Object.keys(localStorage)) if (k.startsWith('tinyoffice.') || k === 'to-theme') localStorage.removeItem(k);
-    } catch {
-      // (Nothing kept, then.)
-    }
     this.set({ myKey: null });
   }
+  /** Whether the device keeps things at all (the switch in the header). */
+  keeping = keeping;
+  setKeeping = setKeeping;
 }
 
 /** The one privacy object: the shell and any app that signs share it. */

@@ -9,7 +9,7 @@ export default defineConfig({
     serviceWorkers: 'block',
     // A link opens as a document to read, with Edit a button away; tests of the editors open straight into them (e2e/view.spec.ts tests reading).
     // Text apps open as a form; most tests type the text itself, so they start in text mode (e2e/forms.spec.ts tests the form).
-    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.edit', value: 'text' }, { name: 'tinyoffice.open', value: 'edit' }] }] },
+    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'text' }, { name: 'tinyoffice.open', value: 'edit' }] }] },
     baseURL: 'http://localhost:4173',
     timezoneId: 'America/New_York',
     locale: 'en-US',

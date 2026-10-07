@@ -786,17 +786,21 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
 });
 
 test('the library: documents are kept on the device, in folders, once asked', async ({ page }) => {
-  // Off unless asked.
+  // Private unless asked: nothing written at all.
   await page.goto('/#/write');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.locator('.to-keep')).toHaveText('Private');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Nothing kept of this');
   await page.goto('/#/');
   await expect(page.locator('.to-library')).toHaveCount(0);
-  expect(await page.evaluate(() => localStorage.getItem('tinyoffice.library'))).toBeNull();
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
   await page.goto('/#/write');
-  await page.locator('.to-meter sl-progress-ring').click();
-  await page.locator('sl-checkbox.to-save').click();
-  await page.getByRole('button', { name: 'Done' }).click();
+  await page.locator('.to-keep').click();
+  await expect(page.locator('.to-keep')).toHaveText('Keeping');
+  // (The suite's own preference, cleared above with the rest: links open for editing.)
+  await page.evaluate(() => localStorage.setItem('tinyoffice.open', 'edit'));
   await page.goto('about:blank');
   await page.goto('/#/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
@@ -965,22 +969,23 @@ test('slides: bold, italic, nesting, from the keyboard and the toolbar', async (
 
 test('keeping documents is opt in, and off again erases them', async ({ page }) => {
   await page.goto('/#/todo');
-  await page.locator('.to-meter sl-progress-ring').click();
-  await page.locator('sl-checkbox.to-save').click();
-  await expect(page.locator('sl-checkbox.to-save')).toHaveJSProperty('checked', true);
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator('.to-keep').click();
+  await expect(page.locator('.to-keep')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
   await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
   await page.goto('/#/');
   await expect(page.locator('.to-library summary')).toHaveCount(1);
   await page.goto('/#/write');
-  await page.locator('.to-meter sl-progress-ring').click();
-  await page.locator('sl-checkbox.to-save').click();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  page.once('dialog', (d) => d.accept());
+  await page.locator('.to-keep').click();
+  await expect(page.locator('.to-keep')).toHaveText('Private');
   await page.goto('/#/');
   await expect(page.locator('.to-library')).toHaveCount(0);
-  expect(await page.evaluate(() => [localStorage.getItem('tinyoffice.library'), localStorage.getItem('tinyoffice.save')])).toEqual([null, null]);
+  // Private means nothing of ours left behind.
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
 });
 
 test('everything can be made larger from the menu, and it is remembered', async ({ page }) => {
