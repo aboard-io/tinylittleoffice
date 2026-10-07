@@ -2,21 +2,19 @@
  * The editor for paper that folds (see lib/fold.ts): its pages to fill in,
  * each shown as it will print, and the sheets to print.
  */
-import { DocElement, defineElement, html, nothing, state, unsafeSVG, tool, icon, libraryIcon, UI, editRef, insertOptions, makeRef, pageSvg } from '../kit.ts';
+import { defineElement, html, nothing, state, unsafeSVG, tool, icon, libraryIcon, UI, insertOptions, pageSvg } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import '../widgets/insert-box.ts';
-import './write.ts';
+import { PagesElement, blankPage } from './pages.ts';
 import { iconOf } from '../lib/drawmodel.ts';
 import { foldPage, foldSheets, formatOf, parseFold, serializeFold, type Folded, type Format } from '../lib/fold.ts';
 
-export class FoldElement extends DocElement<Folded> {
+export class FoldElement extends PagesElement<Folded> {
   static app = '';
   private get f(): Format {
     return formatOf((this.constructor as typeof FoldElement).app)!;
   }
-  @state() private cur = 0;
   @state() private sheet = false;
 
   protected parse(text: string) {
@@ -26,29 +24,11 @@ export class FoldElement extends DocElement<Folded> {
     return serializeFold(doc, this.f);
   }
 
-  private patch(change: Partial<Slide>) {
-    this.commit({ ...this.doc, pages: this.doc.pages.map((p, i) => (i === this.cur ? { ...p, ...change } : p)) });
+  protected pages() {
+    return this.doc.pages;
   }
-
-  private async pickIcon() {
-    const name = await chooseIcon();
-    if (name) this.patch({ icon: name });
-  }
-
-  private async insert(what: string) {
-    const at = this.cur;
-    const ref = what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, '');
-    this.patch({ sub: ref });
-    const made = await editRef(ref);
-    this.cur = at;
-    this.patch({ sub: made });
-  }
-
-  private async editSub() {
-    const at = this.cur;
-    const made = await editRef(this.doc.pages[at].sub!);
-    this.cur = at;
-    this.patch({ sub: made });
+  protected savePages(pages: Slide[]) {
+    this.commit({ ...this.doc, pages });
   }
 
   /** A comic's page: a row for each panel, with its picture, what is said, and its caption. */
@@ -77,12 +57,6 @@ export class FoldElement extends DocElement<Folded> {
       <p class="to-hint">${rows.length ? `Up to ${max} panels a page.` : 'A page with no panels is a title page.'}</p>`;
   }
 
-  private onKey(e: KeyboardEvent) {
-    if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-    e.preventDefault();
-    this.cur = Math.max(0, Math.min(this.doc.pages.length - 1, this.cur + (e.key === 'ArrowDown' ? 1 : -1)));
-  }
-
   render() {
     const z = this.doc;
     const f = this.f;
@@ -92,17 +66,16 @@ export class FoldElement extends DocElement<Folded> {
     const blank = (p: Slide) => !p.icon && !p.title && !p.sub && p.bullets.every((b) => !b.trim());
     const pic = (p: { w: number; h: number; svg: string }, label: string) => unsafeSVG(pageSvg(p, `role="img" aria-label="${label}"`));
     return html`
-      <div class="to-toolbar" @keydown=${this.onKey}>
+      <div class="to-toolbar" @keydown=${this.onPageKey}>
 ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" label="Printing" hoist .value=${z.two ? 'two' : 'one'} @sl-change=${(e: Event) => this.commit({ ...z, two: (e.target as SlSelect).value === 'two' })}>
           <sl-option value="one">One-sided: fold and cut</sl-option>
           <sl-option value="two">Two-sided: cut and nest</sl-option>
         </sl-select>` : nothing}
-        ${f.panels ? nothing : html`<sl-button size="small" @click=${this.pickIcon}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>`}
-        ${s.icon ? tool('Remove the icon', 'close', () => this.patch({ icon: '' })) : nothing}
+        ${f.panels ? nothing : html`<sl-button size="small" @click=${() => this.pickIcon()}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>`}
         <to-insert label="Insert" placeholder="Insert: sticky notes, map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
         ${f.grow
           ? html`<sl-button-group label="Pages">
-              ${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: 4 }, () => ({ icon: '', title: '', bullets: [] }))] }), { text: true, disabled: n >= f.grow })}
+              ${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: 4 }, blankPage)] }), { text: true, disabled: n >= f.grow })}
               ${tool('Four fewer pages', 'trash', () => this.commit({ ...z, pages: z.pages.slice(0, n - 4) }), { disabled: n <= f.count || !z.pages.slice(n - 4).every(blank) })}
             </sl-button-group>`
           : nothing}
@@ -116,20 +89,13 @@ ${f.sides ? html`        <sl-select class="sr-label zine-sides" size="small" lab
             </p>
             ${foldSheets(z, f).map((p, i) => html`<div class="zine-sheet">${pic(p, `Sheet, side ${i + 1}`)}</div>`)}
           </div>`
-        : html`<div class="zine" @keydown=${this.onKey}>
-            <nav class="zine-rail" aria-label="Pages">
-              ${z.pages.map(
-                (p, i) => html`<button class="zine-thumb" aria-label="${f.name(i, n)}${p.title ? ': ' + p.title : ''}" aria-current=${i === this.cur ? 'true' : 'false'} @click=${() => (this.cur = i)}>
-                  ${unsafeSVG(pageSvg(foldPage(z, i, f), 'aria-hidden="true"'))}<span>${f.name(i, n).replace(/ cover$|^Page /, '')}</span>
-                </button>`,
-              )}
-            </nav>
+        : html`<div class="zine" @keydown=${this.onPageKey}>
+            ${this.rail('zine', 'Pages', (_, i) => html`${unsafeSVG(pageSvg(foldPage(z, i, f), 'aria-hidden="true"'))}<span>${f.name(i, n).replace(/ cover$|^Page /, '')}</span>`, (p, i) => `${f.name(i, n)}${p.title ? ': ' + p.title : ''}`)}
             <div class="zine-edit">
               <h2>${f.name(this.cur, n)}</h2>
-              ${s.sub
-                ? html`<to-embed ref=${s.sub} controls @embed-edit=${this.editSub} @embed-remove=${() => this.patch({ sub: undefined })}></to-embed>`
-                : html`<to-rich class="title" mode="line" .tools=${false} label="Headline" placeholder=${this.cur === 0 ? 'Title' : f.name(this.cur, n).startsWith('Page') ? 'Headline' : f.name(this.cur, n)} .value=${s.title} @rich-change=${(e: CustomEvent<string>) => this.patch({ title: e.detail })} @rich-enter=${() => this.querySelector<HTMLElement>('.zine-edit .words .write-page')?.focus()}></to-rich>
-${f.panels ? this.panels(s, f.panels) : html`              <to-rich class="words" mode="lines" .tools=${false} label="Words" placeholder="What this page says. A new line starts a new paragraph. The type shrinks to fit the page." .value=${s.bullets.join('\n')} @rich-change=${(e: CustomEvent<string>) => this.patch({ bullets: e.detail.split('\n') })}></to-rich>`}`}
+              ${this.embed() ??
+              html`${this.headline(this.cur === 0 ? 'Title' : f.name(this.cur, n).startsWith('Page') ? 'Headline' : f.name(this.cur, n))}
+                ${f.panels ? this.panels(s, f.panels) : this.words('Words', s.bullets, 'What this page says. A new line starts a new paragraph. The type shrinks to fit the page.', (bullets) => this.patch({ bullets }))}`}
             </div>
             <div class="zine-page">${pic(foldPage(z, this.cur, f), `${f.name(this.cur, n)}, as it will print`)}</div>
           </div>`}

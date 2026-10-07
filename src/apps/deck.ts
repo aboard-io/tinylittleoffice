@@ -7,13 +7,10 @@
  * Document format: see lib/deckmodel.ts. Layout and drawing: deck.def.ts.
  */
 import { keyed } from 'lit/directives/keyed.js';
-import { DocElement, defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, searchIcons, suggestIcons, editRef, insertOptions, makeRef, resolve, loadEditor, isKey } from '../kit.ts';
-import type { SlDialog, SlInput, SlSelect } from '../kit.ts';
+import { defineElement, html, nothing, state, property, unsafeSVG, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, insertOptions, resolve, loadEditor, isKey } from '../kit.ts';
+import type { SlSelect } from '../kit.ts';
+import { PagesElement, blankPage } from './pages.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
-import { iconCount } from '../lib/iconsearch.ts';
-import './write.ts';
-import type { ToWrite } from './write.ts';
-import '../widgets/insert-box.ts';
 import { SH, SW, closingSlide, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
 
 interface Deck {
@@ -25,13 +22,10 @@ interface Deck {
 
 /** Two clicks closer together than this are a double click: show the whole slide. */
 const FAST = 350;
-const blank = (): Slide => ({ icon: '', title: '', bullets: [] });
-
-export class ToDeck extends DocElement<Deck> {
+export class ToDeck extends PagesElement<Deck> {
   /** Opened from a link that asks to present: start presenting, and offer the way to the editor. */
   @property({ type: Boolean }) present = false;
   private started = false;
-  @state() private cur = 0;
   /** The slide being presented, -1 when not presenting. */
   @state() private showing = -1;
   /** Reveals made on the slide being presented. */
@@ -40,7 +34,6 @@ export class ToDeck extends DocElement<Deck> {
   @state() private leaving = -1;
   private forwards = true;
   private settle = 0;
-  @state() private query = '';
   private lastClick = 0;
 
   protected parse(text: string): Deck {
@@ -72,24 +65,27 @@ export class ToDeck extends DocElement<Deck> {
   private get slides() {
     return this.doc.slides;
   }
-  private save(slides: Slide[]) {
+  protected pages() {
+    return this.doc.slides;
+  }
+  protected savePages(slides: Slide[]) {
     this.commit({ ...this.doc, slides });
   }
-  private patch(i: number, p: Partial<Slide>) {
-    this.save(this.slides.map((s, j) => (j === i ? { ...s, ...p } : s)));
+  private save(slides: Slide[]) {
+    this.savePages(slides);
   }
 
   private add() {
     if (this.slides.length >= MAX_SLIDES) return;
     const slides = [...this.slides];
-    slides.splice(this.cur + 1, 0, blank());
+    slides.splice(this.cur + 1, 0, blankPage());
     this.save(slides);
     this.cur++;
     this.updateComplete.then(() => this.querySelector<HTMLElement>('to-rich.title .write-page')?.focus());
   }
 
   private removeSlide() {
-    if (this.slides.length <= 1) return this.save([blank()]);
+    if (this.slides.length <= 1) return this.save([blankPage()]);
     const slides = this.slides.filter((_, j) => j !== this.cur);
     this.save(slides);
     this.cur = Math.min(this.cur, slides.length - 1);
@@ -111,26 +107,11 @@ export class ToDeck extends DocElement<Deck> {
     // A new slide of that type goes in after this one; the slide you are on is left as it is.
     if (this.slides.length >= MAX_SLIDES) return;
     const slides = [...this.slides];
-    slides.splice(this.cur + 1, 0, what.startsWith('layout:') ? { ...blank(), layout: what.slice(7) as Layout } : blank());
+    slides.splice(this.cur + 1, 0, what.startsWith('layout:') ? { ...blankPage(), layout: what.slice(7) as Layout } : blankPage());
     this.save(slides);
     this.cur++;
     if (what.startsWith('layout:')) this.updateComplete.then(() => this.querySelector<HTMLElement>('to-rich.title .write-page')?.focus());
     else void this.insert(what);
-  }
-
-  private async insert(what: string) {
-    if (what === 'remove') return this.patch(this.cur, { sub: undefined });
-    // A chart is a sheet that asks to be drawn as one.
-    const ref = what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, '');
-    const at = this.cur;
-    this.patch(at, { sub: ref });
-    this.patch(at, { sub: await editRef(ref) });
-  }
-
-  private async editSub() {
-    const at = this.cur;
-    const ref = this.slides[at].sub;
-    if (ref) this.patch(at, { sub: await editRef(ref) });
   }
 
   /* ---------- presenting ---------- */
@@ -199,35 +180,20 @@ export class ToDeck extends DocElement<Deck> {
     e.preventDefault();
   };
 
-  private picker(): SlDialog | null {
-    return this.querySelector<SlDialog>('#icon-picker');
-  }
-  private openPicker() {
-    this.query = '';
-    this.picker()?.show();
-  }
-  private pickIcon(name: string) {
-    this.patch(this.cur, { icon: name });
-    this.picker()?.hide();
-  }
-  private pickerButton(name: string, current: string) {
-    return html`<button title=${name} aria-label=${name} aria-pressed=${current === name ? 'true' : 'false'} @click=${() => this.pickIcon(name)}>${icon(LIBRARY[name], 22)}</button>`;
-  }
-
-  /** The headline box or bullets box last typed in: what the text buttons work on. */
-  private field: ToWrite | null = null;
-  private onField = (e: Event) => (this.field = e.currentTarget as ToWrite);
+  /** The slide's icon: the library, with the slide's own words suggesting, and the deck's icon colour in the footer. */
+  private openPicker = () => {
+    const s = this.slides[this.cur];
+    void this.pickIcon({
+      suggested: suggestIcons(s.title, s.bullets),
+      footer: () => html`<div class="draw-colors deck-icon-color" role="radiogroup" aria-label="Icon colour, for the whole deck">
+        ${Object.entries(ICON_COLORS).map(([id, c]) => html`<button role="radio" title=${c.name} aria-label=${c.name} aria-checked=${this.doc.color === id ? 'true' : 'false'} style="--c:${c.hex}" @click=${() => this.commit({ ...this.doc, color: id })}></button>`)}
+      </div>`,
+    });
+  };
 
   /** An icon in the words, at the cursor of the box last typed in. */
   private inlineIcon() {
     void this.field?.insertIcon();
-  }
-
-  /** A column of bullets: one rich box, a line a bullet. */
-  private bulletsField(label: string, list: string[], placeholder: string, save: (list: string[]) => void) {
-    return html`<div class="bullets">
-      <to-rich mode="lines" .tools=${false} label=${label} placeholder=${placeholder} .value=${list.join('\n')} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => save(e.detail.split('\n'))}></to-rich>
-    </div>`;
   }
 
   render() {
@@ -236,7 +202,6 @@ export class ToDeck extends DocElement<Deck> {
     const kind = s.layout ?? '';
     const L = layoutSlide(s);
     const suggested = suggestIcons(s.title, s.bullets);
-    const found = searchIcons(this.query);
     // Type is sized in the slide's own width, so the editor shows what the audience will see.
     const subDef = s.sub ? resolve(s.sub).def : undefined;
     // What kind of slide this is, in a word: its layout, or what it shows.
@@ -269,15 +234,15 @@ export class ToDeck extends DocElement<Deck> {
         <sl-button size="small" variant="primary" @click=${() => this.show(this.cur)}>${icon(UI.play, 14)} Present</sl-button>
       </div>
       <div class="deck-layout">
-        <nav class="deck-rail" aria-label="Slides">
-          ${this.slides.map((sl, i) => {
+        ${this.rail(
+          'deck',
+          'Slides',
+          (sl, i) => {
             const p = slidePage(sl, Infinity, undefined, this.doc.color);
-            return html`<button class="deck-thumb" aria-label="Slide ${i + 1}: ${sl.title || 'untitled'}" aria-current=${i === this.cur ? 'true' : 'false'} @click=${() => (this.cur = i)}>
-              <span class="n">${i + 1}</span>
-              <svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>
-            </button>`;
-          })}
-          ${(() => {
+            return html`<span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>`;
+          },
+          (sl, i) => `Slide ${i + 1}: ${sl.title || 'untitled'}`,
+          (() => {
             // The closing slide is made, not written: a QR code of the deck, shown here so it is no surprise.
             const end = closingSlide(this.serialize(this.doc));
             if (!end) return nothing;
@@ -286,22 +251,22 @@ export class ToDeck extends DocElement<Deck> {
               <span class="n">${icon(UI.qr, 12)}</span>
               <svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>
             </div>`;
-          })()}
-        </nav>
+          })(),
+        )}
         <div class="deck-editor">
           <div class="deck-slide lay-${kind || 'b'} ${s.sub ? 'has-sub' : ''}" style=${fit}>
             ${s.sub
-              ? html`<to-embed ref=${s.sub} controls @embed-edit=${this.editSub} @embed-remove=${() => this.patch(this.cur, { sub: undefined })}></to-embed>`
+              ? this.embed()
               : html`            <div class="head">
               <button class="pick ${s.icon ? '' : 'empty'}" title=${s.icon ? 'Change icon' : 'Add an icon'} aria-label="Slide icon" @click=${this.openPicker}>
                 ${s.icon ? libraryIcon(s.icon, 32) : html`${icon(UI.smile, 20)}<span>Icon</span>`}
               </button>
-              <to-rich class="title" mode="line" .tools=${false} label="Headline" placeholder=${kind === 't' ? 'Title' : 'Headline'} .value=${s.title} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => this.patch(this.cur, { title: e.detail })} @rich-enter=${() => this.querySelector<HTMLElement>('.deck-slide .bullets .write-page')?.focus()}></to-rich>
+              ${this.headline(kind === 't' ? 'Title' : 'Headline')}
             </div>
             <div class="body">
-              ${this.bulletsField('Bullets', s.bullets, kind === 't' ? 'Subtitle' : 'One bullet per line', (bullets) => this.patch(this.cur, { bullets }))}
+              ${this.words('Bullets', s.bullets, kind === 't' ? 'Subtitle' : 'One bullet per line', (bullets) => this.patch({ bullets }))}
               ${kind === '2'
-                  ? this.bulletsField('Right column', s.right ?? [], 'One bullet per line', (right) => this.patch(this.cur, { right }))
+                  ? this.words('Right column', s.right ?? [], 'One bullet per line', (right) => this.patch({ right }))
                   : kind === 'i'
                     ? html`<button class="big ${s.icon ? '' : 'empty'}" aria-label="Big icon" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 120) : html`${icon(UI.smile, 40)}<span>Pick an icon</span>`}</button>`
                     : nothing}
@@ -309,28 +274,13 @@ export class ToDeck extends DocElement<Deck> {
             ${!s.icon && !s.sub && suggested.length
               ? html`<div class="deck-suggest" role="group" aria-label="Suggested icons">
                   <span>${icon(UI.sparkles, 12)} Suggested</span>
-                  ${suggested.slice(0, 4).map((name) => html`<button title=${`Use ${name}`} aria-label=${`Use ${name} icon`} @click=${() => this.patch(this.cur, { icon: name })}>${icon(LIBRARY[name], 16)}</button>`)}
+                  ${suggested.slice(0, 4).map((name) => html`<button title=${`Use ${name}`} aria-label=${`Use ${name} icon`} @click=${() => this.patch({ icon: name })}>${icon(LIBRARY[name], 16)}</button>`)}
                 </div>`
               : nothing}
             <span class="num">${this.cur + 1} / ${n}</span>
           </div>
         </div>
       </div>
-      <sl-dialog id="icon-picker" label="Icon">
-        <sl-input class="deck-search" size="small" type="search" placeholder="Search icons" aria-label="Search icons" autofocus clearable .value=${this.query} @sl-input=${(e: Event) => (this.query = (e.target as SlInput).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.query.trim() && found[0] && this.pickIcon(found[0])}><span slot="prefix">${icon(UI.search, 14)}</span></sl-input>
-        ${!this.query.trim() && suggested.length
-          ? html`<div class="deck-picker-label">Suggested for this slide</div>
-              <div class="deck-picker suggested" role="group" aria-label="Suggested">${suggested.map((name) => this.pickerButton(name, s.icon))}</div>
-              <div class="deck-picker-label">All icons</div>`
-          : nothing}
-        <div class="deck-picker" role="group" aria-label="Icon library">${found.map((name) => this.pickerButton(name, s.icon))}</div>
-        ${found.length ? nothing : html`<p class="deck-picker-none">No icons match “${this.query.trim()}”.</p>`}
-        ${this.query.trim() ? nothing : html`<p class="deck-picker-more">Search to find any of ${iconCount().toLocaleString()} icons.</p>`}
-        <div slot="footer" class="draw-colors deck-icon-color" role="radiogroup" aria-label="Icon colour, for the whole deck">
-          ${Object.entries(ICON_COLORS).map(([id, c]) => html`<button role="radio" title=${c.name} aria-label=${c.name} aria-checked=${this.doc.color === id ? 'true' : 'false'} style="--c:${c.hex}" @click=${() => this.commit({ ...this.doc, color: id })}></button>`)}
-        </div>
-        <sl-button slot="footer" size="small" @click=${() => this.pickIcon('')}>${icon(UI.close, 14)} No icon</sl-button>
-      </sl-dialog>
       ${this.showing >= 0 ? this.renderShow() : nothing}
     `;
   }
