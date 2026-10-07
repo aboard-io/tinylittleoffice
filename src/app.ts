@@ -7,7 +7,7 @@
  * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
-import { folders, forget, forgetAll, keep, library, moveTo, saving, type Kept } from './lib/library.ts';
+import { keep, library, saving } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
@@ -17,6 +17,7 @@ import { privacy, isSealed } from './lib/privacy.ts';
 import { store, keeping, setKeeping } from './lib/store.ts';
 import { fromMarkdown } from './lib/markdown.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
+import './widgets/drive.ts';
 import './widgets/privacy.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
@@ -258,10 +259,13 @@ export class ToApp extends LitElement {
 
   /** Two documents side by side, at #/compare: not an app, a page of the shell. */
   @state() private comparing: [Side | null, Side | null] | null = null;
+  /** Drive, at #/drive[/folder]: the documents saved on this device. */
+  @state() private driving: string | null = null;
 
   private onHash = () => {
     this.readPlainLink();
     this.comparing = parseCompare(location.hash);
+    this.driving = /^#\/drive(\/|$)/.test(location.hash) ? decodeURIComponent(location.hash.replace(/^#\/drive\/?/, '')) : null;
     const { app, payload, version, ext } = parseHash(location.hash);
     // An app's own page (".../deck/") with nothing after it opens a new document there.
     const page = location.pathname.split('/').slice(-2)[0];
@@ -510,7 +514,7 @@ export class ToApp extends LitElement {
   }
 
   protected updated() {
-    const title = this.app ? `${this.docTitle} · TinyLittleOffice` : 'TinyLittleOffice';
+    const title = this.app ? `${this.docTitle} · TinyLittleOffice` : this.driving !== null ? `Drive${this.driving ? ': ' + this.driving : ''} · TinyLittleOffice` : this.comparing ? 'Compare · TinyLittleOffice' : 'TinyLittleOffice';
     if (document.title !== title) document.title = title;
   }
 
@@ -648,7 +652,8 @@ export class ToApp extends LitElement {
       <sl-drawer id="nav-drawer" label="TinyLittleOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
           <input class="to-find" type="search" placeholder="Find an app" aria-label="Find an app" autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-nav a[href]:not([hidden])')?.click()} />
-          <a href="#/" aria-current=${this.app === null ? 'page' : nothing} ?hidden=${!!this.find.trim()}>${icon(UI.home, 20)}<span>Home</span></a>
+          <a href="#/" aria-current=${this.app === null && this.driving === null ? 'page' : nothing} ?hidden=${!!this.find.trim()}>${icon(UI.home, 20)}<span>Home</span></a>
+          <a href="#/drive" aria-current=${this.driving !== null ? 'page' : nothing} ?hidden=${!!this.find.trim() && !'drive'.includes(this.find.trim().toLowerCase())}>${icon(UI.drive, 20)}<span>Drive</span>${saving() ? html`<small>${library().length}</small>` : nothing}</a>
           ${grouped().map((g) => {
             const want = this.find.trim().toLowerCase();
             const apps = want ? g.apps.filter((a) => a.name.toLowerCase().includes(want) || g.group.toLowerCase().includes(want)) : g.apps;
@@ -671,7 +676,7 @@ export class ToApp extends LitElement {
         </sl-button-group>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
       </sl-drawer>
-      <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.renderHome()}</main>
+      <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.driving !== null ? html`<to-drive .folder=${this.driving} @drive-zip=${this.downloadAll} @drive-change=${() => this.requestUpdate()}></to-drive>` : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPrivacyPrompt()}
       ${current ? this.renderImport() : nothing}
@@ -756,8 +761,9 @@ export class ToApp extends LitElement {
       <h1 class="sr-only">TinyLittleOffice</h1>
       ${this.renderLibrary()}
       ${grouped().map(
-        (g) => html`${g.group ? html`<h2 class="to-group">${g.group}</h2>` : nothing}
+        (g, n) => html`${g.group ? html`<h2 class="to-group">${g.group}</h2>` : nothing}
           <div class="to-launcher">
+            ${n === 0 && saving() ? html`<a href="#/drive" class="drive-tile"><span class="ic">${icon(UI.drive, 22)}</span><b>Drive</b></a>` : nothing}
             ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
           </div>`,
       )}
@@ -765,34 +771,16 @@ export class ToApp extends LitElement {
   }
 
   /** What this browser has kept, by folder. */
+  /** The home page's glimpse of Drive: the last few documents, and the way to all of them. */
   private renderLibrary() {
-    const all = folders();
     if (!saving()) return nothing;
+    const all = library().sort((a, b) => b.at - a.at);
     if (!all.length) return nothing;
-    const move = (k: Kept) => {
-      const to = prompt(`Folder for “${k.title}”`, k.folder);
-      if (to === null) return;
-      moveTo(k.id, to);
-      this.requestUpdate();
-    };
     return html`<section class="to-library" aria-labelledby="library-h">
-      <h2 class="to-group" id="library-h">Your documents</h2>
-      ${all.map(
-        (f) => html`<details open>
-          <summary>${icon(UI.folder, 16)} ${f.folder} <span>${f.docs.length}</span></summary>
-          <ul>
-            ${f.docs.map(
-              (k) => html`<li>
-                <a href=${k.hash}>${icon(UI[(appOf(k.app)?.icon ?? 'write') as keyof typeof UI], 16)}<b>${k.title}</b><small>${fmtDate(k.at)}</small></a>
-                <button aria-label="Move ${k.title} to another folder" title="Move to a folder" @click=${() => move(k)}>${icon(UI.folder, 15)}</button>
-                <button aria-label="Remove ${k.title} from this device" title="Remove from this device" @click=${() => { forget(k.id); this.requestUpdate(); }}>${icon(UI.trash, 15)}</button>
-              </li>`,
-            )}
-          </ul>
-        </details>`,
-      )}
-      <p class="to-hint">These are saved only on this device, in this browser. They are not on any server and will not be on your other devices; a link is the only way to carry one across. Once opened, TinyLittleOffice works without a connection.</p>
-      <sl-button size="small" variant="danger" outline @click=${() => { if (confirm('Erase every document kept on this device? Any you have the link for can be opened again.')) { forgetAll(); this.requestUpdate(); } }}>${icon(UI.trash, 14)} Erase all</sl-button>
+      <h2 class="to-group" id="library-h">Recent <a href="#/drive" class="to-more">${icon(UI.drive, 14)} Drive, all ${all.length}</a></h2>
+      <ul>
+        ${all.slice(0, 6).map((k) => html`<li><a href=${k.hash}>${icon(UI[(appOf(k.app)?.icon ?? 'write') as keyof typeof UI], 16)}<b>${k.title || `Untitled ${appOf(k.app)?.name ?? k.app}`}</b><small>${k.folder} · ${fmtDate(k.at)}</small></a></li>`)}
+      </ul>
     </section>`;
   }
 

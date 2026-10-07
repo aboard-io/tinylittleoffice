@@ -831,36 +831,51 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
   await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
-  // Home lists them, each in a folder named for its app.
+  // Home glimpses them; Drive holds them, each in a folder named for its app.
   await page.goto('/#/');
-  const lib = page.locator('.to-library');
-  await expect(lib.locator('summary')).toHaveText([/Todo\s*1/, /Write\s*1/]);
-  await expect(lib.getByRole('link', { name: /Quay notes/ })).toBeVisible();
-  // Into a folder of your own.
-  page.once('dialog', (d) => d.accept('Harbor project'));
-  await lib.getByRole('button', { name: 'Move Quay notes to another folder' }).click();
-  await expect(lib.locator('summary')).toHaveText([/Harbor project\s*1/, /Todo\s*1/]);
+  await expect(page.locator('.to-library').getByRole('link', { name: /Quay notes/ })).toBeVisible();
+  await page.locator('.to-library').getByRole('link', { name: /Drive, all 2/ }).click();
+  const drive = page.locator('to-drive');
+  const folders = drive.locator('.drive-nav nav a .name');
+  await expect(folders).toHaveText(['Everything', 'Todo', 'Write']);
+  await expect(drive.getByRole('link', { name: /Quay notes/ })).toBeVisible();
+  // Into a folder of your own, nested with a slash.
+  page.once('dialog', (d) => d.accept('Harbor/Plans'));
+  await drive.getByRole('button', { name: 'Move Quay notes to another folder' }).click();
+  await expect(folders).toHaveText(['Everything', 'Harbor', 'Plans', 'Todo']);
+  await drive.locator('.drive-nav nav a', { hasText: 'Plans' }).click();
+  await expect(drive.locator('h1')).toContainText('Harbor/Plans');
+  await expect(drive.locator('.drive-list li')).toHaveCount(1);
+  // Search looks inside the documents, not only at their titles.
+  await drive.getByRole('searchbox', { name: 'Search your documents' }).fill('milk');
+  await expect(drive.locator('.drive-list li')).toHaveCount(1);
+  await expect(drive.locator('.drive-list li')).toContainText('Todo');
+  await drive.getByRole('searchbox', { name: 'Search your documents' }).fill('');
   // It opens as it was left; changing it keeps it in its folder.
-  await lib.getByRole('link', { name: /Quay notes/ }).click();
+  await drive.getByRole('link', { name: /Quay notes/ }).click();
   await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('Notes from the quay');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.press('End');
   await page.keyboard.type(', and more');
   await page.goto('about:blank');
-  await page.goto('/');
-  await expect(lib.locator('summary')).toHaveText([/Harbor project\s*1/, /Todo\s*1/]);
-  await lib.getByRole('link', { name: /Quay notes/ }).click();
+  await page.goto('/#/drive');
+  await expect(folders).toHaveText(['Everything', 'Harbor', 'Plans', 'Todo']);
+  await drive.getByRole('link', { name: /Quay notes/ }).click();
   await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('and more');
-  await page.goto('/#/');
-  await shot(page, 'library');
-  await lib.getByRole('button', { name: 'Remove Quay notes from this device' }).click();
-  await expect(lib.locator('summary')).toHaveText([/Todo\s*1/]);
-  await expect(lib).toContainText('saved only on this device');
+  await page.goto('/#/drive');
+  await shot(page, 'drive');
+  // Rename a folder; remove a document.
+  page.once('dialog', (d) => d.accept('Harbour'));
+  await drive.getByRole('button', { name: 'Rename Harbor', exact: true }).click();
+  await expect(folders).toHaveText(['Everything', 'Harbour', 'Plans', 'Todo']);
+  await drive.getByRole('button', { name: 'Remove Quay notes from this device' }).click();
+  await expect(folders).toHaveText(['Everything', 'Todo']);
+  await expect(drive).toContainText('Saved only on this device');
   // All of them at once; the links still open.
-  const todo = await lib.getByRole('link', { name: /Untitled Todo/ }).getAttribute('href');
+  const todo = await drive.getByRole('link', { name: /Untitled Todo/ }).getAttribute('href');
   page.once('dialog', (d) => d.accept());
-  await lib.getByRole('button', { name: 'Erase all' }).click();
-  await expect(lib).toHaveCount(0);
+  await drive.getByRole('button', { name: 'Blow it all away' }).click();
+  await expect(drive.locator('.drive-list li')).toHaveCount(0);
   await page.goto(todo!);
   await expect(page.locator('to-todo')).toContainText('Buy milk');
 });
@@ -997,7 +1012,7 @@ test('keeping documents is opt in, and off again erases them', async ({ page }) 
   await page.keyboard.press('Enter');
   await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
   await page.goto('/#/');
-  await expect(page.locator('.to-library summary')).toHaveCount(1);
+  await expect(page.locator('.to-library li')).toHaveCount(1);
   await page.goto('/#/write');
   page.once('dialog', (d) => d.accept());
   await page.locator('.to-keep').click();

@@ -4146,3 +4146,210 @@ sl-dialog.to-import {
 .sheet-more:focus-visible {
   outline: 2px solid var(--to-accent);
 }
+
+/* Drive: folders down the left, documents on the right */
+.drive {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) 1fr;
+  gap: 0;
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--sl-border-radius-large);
+  box-shadow: var(--to-shadow);
+  min-height: 60vh;
+  overflow: hidden;
+}
+.drive-nav {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--to-border);
+  background: var(--to-surface-2);
+  padding: 12px 10px;
+  gap: 8px;
+}
+.drive-find {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 10px;
+  font: 14px var(--sl-font-sans);
+  color: var(--to-ink);
+  background: var(--to-surface);
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+}
+.drive-nav nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.drive-nav nav a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px calc(8px + var(--d, 0) * 16px);
+  border-radius: 6px;
+  color: var(--to-ink);
+  text-decoration: none;
+  font-size: 14px;
+  position: relative;
+}
+.drive-nav nav a .name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drive-nav nav a small {
+  color: var(--to-ink-3);
+}
+.drive-nav nav a.on {
+  background: var(--to-accent-soft);
+  color: var(--to-accent);
+  font-weight: 600;
+}
+.drive-nav nav a.droppable.over {
+  outline: 2px dashed var(--to-accent);
+  outline-offset: -2px;
+}
+.drive-folder-acts {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0.35;
+}
+.drive-nav nav a:hover .drive-folder-acts,
+.drive-nav nav a:focus-within .drive-folder-acts {
+  opacity: 1;
+}
+.drive-folder-acts button,
+.drive-list li button {
+  border: 0;
+  background: none;
+  color: var(--to-ink-3);
+  padding: 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+.drive-folder-acts button:hover,
+.drive-list li button:hover {
+  background: var(--to-surface);
+  color: var(--to-ink);
+}
+.drive-new,
+.drive-zip,
+.drive-nuke {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--to-border-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--to-ink-2);
+  font: 13px var(--sl-font-sans);
+  cursor: pointer;
+  align-self: flex-start;
+}
+.drive-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+}
+.drive-nuke {
+  border: 1.5px solid var(--to-danger);
+  color: var(--to-danger);
+  font-weight: 600;
+}
+.drive-nuke:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.drive-main {
+  padding: 16px 20px 24px;
+  min-width: 0;
+}
+.drive-main h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+.drive-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.drive-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-top: 1px solid var(--to-border);
+}
+.drive-list li a {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  color: var(--to-ink);
+  text-decoration: none;
+}
+.drive-list li a b {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.drive-list li a .meta {
+  color: var(--to-ink-3);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: auto;
+}
+.to-library .to-more {
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--to-accent);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.to-library > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.to-library > ul li a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  color: var(--to-ink);
+  text-decoration: none;
+}
+.to-library > ul li a small {
+  color: var(--to-ink-3);
+  margin-left: auto;
+}
+@media (max-width: 760px) {
+  .drive {
+    grid-template-columns: 1fr;
+  }
+  .drive-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--to-border);
+  }
+  .drive-list li a .meta {
+    display: none;
+  }
+}

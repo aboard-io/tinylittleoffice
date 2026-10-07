@@ -20,11 +20,11 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(50);
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(51);
   // Grouped, with the kinds of drawing listed under Draw.
   await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
   // Sheet, Write and Deck stand on their own at the top; the clusters fold, and stay as left.
-  await expect(drawer.locator('.to-drawer-nav > a')).toHaveText(['Home', 'Sheet', 'Write', 'Outline', 'Deck']);
+  await expect(drawer.locator('.to-drawer-nav > a')).toHaveText([/^Home$/, /^Drive\s*\d*$/, /^Sheet$/, /^Write$/, /^Outline$/, /^Deck$/]);
   await expect(drawer.locator('details.to-cluster[open] h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
   await drawer.locator('details.to-cluster', { hasText: 'Play' }).locator('summary').click();
   await expect(drawer.locator('details.to-cluster', { hasText: 'Play' })).not.toHaveAttribute('open');

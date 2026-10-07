@@ -8,6 +8,7 @@ you have copied the file.
 
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
+| Drive | The documents saved on this device, in folders (nested with a slash): search inside them, move, rename, download the lot as a zip, or blow it all away. Private by default; the switch in the header turns it on. |
 | Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, charts. |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
 | Write | A one-page rich text editor: headings, bold, italic, lists.           |

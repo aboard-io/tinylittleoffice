@@ -57,7 +57,27 @@ export function keep(doc: Omit<Kept, 'folder' | 'at'>, folder: string) {
 
 export const forgetAll = () => write([]);
 export const forget = (id: string) => write(library().filter((k) => k.id !== id));
-export const moveTo = (id: string, folder: string) => write(library().map((k) => (k.id === id ? { ...k, folder: folder.trim() || k.folder } : k)));
+export const moveTo = (id: string, folder: string) => write(library().map((k) => (k.id === id ? { ...k, folder: cleanFolder(folder) || k.folder } : k)));
+
+/** A folder's path, tidied: "Work / Plans/" is "Work/Plans". */
+export const cleanFolder = (f: string) => f.split('/').map((p) => p.trim()).filter(Boolean).join('/');
+/** Rename a folder (and the folders inside it): every document in them follows. */
+export const renameFolder = (from: string, to: string) => {
+  const t = cleanFolder(to);
+  if (!t) return;
+  write(library().map((k) => (k.folder === from || k.folder.startsWith(from + '/') ? { ...k, folder: t + k.folder.slice(from.length) } : k)));
+};
+/** Take a folder and its documents away. */
+export const dropFolder = (folder: string) => write(library().filter((k) => k.folder !== folder && !k.folder.startsWith(folder + '/')));
+/** Every folder path, including the parents of nested ones, in order. */
+export function folderTree(all = library()): string[] {
+  const set = new Set<string>();
+  for (const k of all) {
+    const parts = k.folder.split('/');
+    for (let i = 1; i <= parts.length; i++) set.add(parts.slice(0, i).join('/'));
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
 
 /** The library by folder, folders in alphabetical order, each newest first. */
 export function folders(all = library()): { folder: string; docs: Kept[] }[] {
