@@ -62,7 +62,7 @@ test('serialize trims trailing blanks', () => {
   const g = parseGrid('a\tb\n\n\tc');
   assert.equal(serializeGrid(g), 'a\tb\n\n\tc');
   assert.equal(serializeGrid(parseGrid('')), '');
-  assert.equal(g.length, 30);
+  assert.equal(g.length, 60);
   assert.equal(g[0].length, 6);
 });
 
@@ -127,7 +127,7 @@ test('blocks of cells: copy, paste, clear and fill', async () => {
   const spread = pasteCells(g, 0, 3, '=A1*2', { dr: 0, dc: 0 }, rangeOf([0, 3], [1, 4]));
   assert.deepEqual([spread.grid[0][3], spread.grid[1][3], spread.grid[1][4]], ['=A1*2', '=A2*2', '=B2*2']);
   // Nothing is written off the edge of the sheet.
-  assert.deepEqual(pasteCells(g, 29, 5, 'a\tb\nc\td').range, { r0: 29, c0: 5, r1: 29, c1: 5 });
+  assert.deepEqual(pasteCells(g, 59, 5, 'a\tb\nc\td').range, { r0: 59, c0: 5, r1: 59, c1: 5 });
   assert.equal(serializeGrid(clearCells(g, block)), '\n\nx\ty');
 
   // Fill down: numbers in step carry on, formulas follow, text repeats.
