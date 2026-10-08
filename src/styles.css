@@ -247,6 +247,8 @@ sl-button[aria-pressed='true']::part(label) {
   margin: 0 auto;
   height: 100%;
   padding: 0 var(--to-gutter);
+  /* Room for the menu button at the edge, until the page is wide enough that the column clears it anyway. */
+  padding-left: max(var(--to-gutter), calc(48px - max(0px, (100vw - var(--to-max-w)) / 2)));
   display: flex;
   align-items: center;
   gap: 8px;
@@ -292,7 +294,11 @@ sl-button[aria-pressed='true']::part(label) {
   flex: 1;
 }
 .to-burger {
-  margin-left: -8px;
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 sl-menu-item svg.pre {
   vertical-align: -2px;

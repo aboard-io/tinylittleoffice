@@ -606,8 +606,9 @@ export class ToApp extends LitElement {
     return html`
       <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
       <header class="to-header">
+        <!-- The menu is always at the very top left, wherever the page is scrolled to and however wide it is. -->
+        <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
         <div class="to-header-inner">
-          <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
           <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
           <button class="to-keep ${keeping() ? 'on' : ''}" data-tip=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
           ${current ? this.renderDocHead() : html`<span class="to-spacer"></span>`}
