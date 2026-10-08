@@ -34,6 +34,8 @@ export interface DownloadContext {
   base?: string;
   /** PNG pictures the browser drew for formats that cannot hold SVG, by key. */
   png?: Record<string, Uint8Array>;
+  /** The name its author gave the document, if any. */
+  title?: string;
 }
 
 export interface Download {

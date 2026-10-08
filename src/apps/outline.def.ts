@@ -1,8 +1,9 @@
 /** Outline: what the shell knows about outlines. Format: lib/outlinemodel.ts. */
 import { defineApp, utf8, wrap, text, xml, ACCENT, type Page } from '../kit/core.ts';
-import { parseInline, plainInline } from '../lib/richtext.ts';
+import { parseInline, plainInline, type Run } from '../lib/richtext.ts';
+import { textPdf, type TextBlock } from '../kit/textpdf.ts';
 import { parseOutline, parseLinks, plainOutline, outlineToNet, toOpml, hasChildren, embedOf, type Dir, type Item } from '../lib/outlinemodel.ts';
-import { makeRef, refPage } from '../kit/embed.ts';
+import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { place, textWidth } from '../kit/core.ts';
 
 /** How each kind of line looks, drawn and said. */
@@ -54,6 +55,39 @@ export function outlinePage(body: string, w = 720): Page {
 }
 
 const items = (body: string) => parseOutline(body).filter((it) => it.text.trim());
+
+/**
+ * The outline as a document of words, for its PDF: the top items are its
+ * sections (each a bookmark), everything under them bullets at their depth.
+ * A lone top item is the title, and the items under it the sections. A
+ * line's name goes before its words; joins are listed at the end.
+ */
+export function outlineBlocks(body: string, docTitle = ''): TextBlock[] {
+  const all = items(body);
+  const roots = all.filter((it) => it.depth === 0);
+  const lone = roots.length === 1;
+  const base = lone ? 1 : 0;
+  const words = (it: Item): Run[] => {
+    const ref = embedOf(it.text);
+    if (ref) return [{ t: `[${resolve(ref).title}]`, i: true }];
+    return [...(it.label ? [{ t: `${it.label} \u2014 `, i: true }] : []), ...parseInline(it.text)];
+  };
+  const out: TextBlock[] = [];
+  // A lone top item is what the outline is called; otherwise its title, if it has one.
+  const title = lone ? plainInline(roots[0].text) : docTitle;
+  if (title) out.push({ kind: 'title', runs: [{ t: title }] });
+  for (const it of all) {
+    if (lone && it.depth === 0) continue;
+    out.push(it.depth === base ? { kind: 'h', runs: words(it) } : { kind: 'li', depth: it.depth - base - 1, runs: words(it) });
+  }
+  const links = parseLinks(body);
+  if (links.length) {
+    out.push({ kind: 'h', runs: [{ t: 'Connections' }] });
+    const say: Record<Dir, string> = { '-': 'and', '>': 'to', '<': 'from', '<>': 'and, both ways,' };
+    for (const l of links) out.push({ kind: 'li', depth: 0, runs: [...parseInline(l.from), { t: ` ${say[l.dir]} ` }, ...parseInline(l.to), ...(l.label ? [{ t: `: ${l.label}`, i: true }] : [])] });
+  }
+  return out;
+}
 const title = (body: string) => plainInline(items(body).find((it) => !embedOf(it.text))?.text ?? '');
 
 export default defineApp({
@@ -68,6 +102,7 @@ export default defineApp({
   steps: (body) => items(body).length,
   downloads: [
     { ext: 'opml', label: 'OPML (for outliners)', mime: 'text/x-opml;charset=utf-8', build: (b) => utf8(toOpml(parseOutline(b), title(b) || 'Outline')) },
+    { ext: 'pdf', label: 'PDF: sections and bullets', mime: 'application/pdf', build: (b, ctx) => textPdf(outlineBlocks(b, ctx.title ?? ''), ctx.title || title(b) || 'Outline') },
     { ext: 'txt', label: 'Plain text', mime: 'text/plain;charset=utf-8', build: (b) => utf8(items(b).map((it) => '  '.repeat(it.depth) + plainInline(it.text)).join('\n') + '\n') },
   ],
   shortcuts: [

@@ -219,7 +219,7 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
       const drawn = await raster(pic.svg, pic.w, pic.h);
       if (drawn) png[key] = drawn;
     }
-    data = own.build(body, { ...ctx, png });
+    data = own.build(body, { ...ctx, png, title: title || undefined });
     mime = own.mime;
   } else if (ext === 'png') {
     data = await picture(def, body);
