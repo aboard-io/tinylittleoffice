@@ -5,6 +5,18 @@ import { encodeEnvelope } from '../../src/lib/envelope.ts';
 import { store } from '../../src/lib/store.ts';
 import { settle, type Editor } from './helpers.ts';
 
+// Animations end at once (setup.ts's never say so, and a Shoelace dialog waits for its hiding to finish before it says it is hidden).
+Element.prototype.animate = function () {
+  return {
+    finished: Promise.resolve(),
+    cancel() {},
+    finish() {},
+    addEventListener(type: string, cb: () => void) {
+      if (type === 'finish') setTimeout(cb, 0);
+    },
+  } as unknown as Animation;
+};
+
 /** A document as the part of a link after "#/v0/": "app/payload". */
 export const ref = (app: string, body: string, created: number | null = null) => `${app}/${encodeEnvelope({ created, body })}`;
 
@@ -94,6 +106,22 @@ export function box<T extends HTMLElement = HTMLInputElement>(root: ParentNode, 
   const found = root.querySelector<T>(`:is(input, textarea, [role="textbox"], sl-input, sl-textarea)[aria-label="${label}"]`);
   if (!found) throw new Error(`no box ${label}`);
   return found;
+}
+
+/** Type at the caret of a textarea or input, as keys do: the words go in, the caret after them, then the input event. */
+export function typeIn(area: HTMLTextAreaElement | HTMLInputElement, text: string) {
+  const a = area.selectionStart ?? area.value.length;
+  const b = area.selectionEnd ?? a;
+  area.value = area.value.slice(0, a) + text + area.value.slice(b);
+  area.setSelectionRange(a + text.length, a + text.length);
+  area.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+}
+
+/** A key pressed in a textarea: the editor's own handling, or (if it lets the key through) what the browser does with Enter. */
+export function keyIn(area: HTMLTextAreaElement | HTMLInputElement, key: string, shift = false) {
+  const e = new KeyboardEvent('keydown', { key, shiftKey: shift, bubbles: true, composed: true, cancelable: true });
+  area.dispatchEvent(e);
+  if (!e.defaultPrevented && key === 'Enter') typeIn(area, '\n');
 }
 
 /** Type into a rich text box (a headline, a slide's bullets, a page's words): its lines, then the input it fires. */
