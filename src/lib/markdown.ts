@@ -8,7 +8,6 @@
 import { appOf, type AppDef } from '../kit/core.ts';
 import { linkToRef, makeRef, resolve } from '../kit/embed.ts';
 import { linkable, linkTarget, parseDoc, parseInline, serializeDoc, serializeInline, type Block, type Run } from './richtext.ts';
-import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
 import { write as writeTlo } from './tlo.ts';
 import { parseTodos, serializeTodos } from './todomodel.ts';
 import { parseBoard, serializeBoard } from './boardmodel.ts';
@@ -19,7 +18,7 @@ import { parseCalendar, repeatText, EPOCH_DAY, EPOCH_MS, isoDay, type Span as Ca
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
 import { dayToYmd, ymdString, ymdToDay, utcToParts, pad2 } from './tz.ts';
-import { formatOf, parseFold, serializeFold } from './fold.ts';
+import { formatOf } from './fold.ts';
 import { mdToSite, siteToMd } from './sitemodel.ts';
 import { takeHead, withHead } from './tlo.ts';
 
@@ -70,7 +69,6 @@ export function mdToRuns(line: string): Run[] {
     .replace(/\u0001/g, '*');
   return parseInline(text);
 }
-const mdLine = (line: string) => serializeInline(mdToRuns(line));
 
 /* ---------- a text ---------- */
 
@@ -124,53 +122,6 @@ export function mdToDoc(md: string): string {
   flush();
   return serializeDoc(blocks);
 }
-
-/* ---------- slides and pages ---------- */
-
-function slidesToMd(slides: Slide[], title: string): string {
-  const out: string[] = title ? [`# ${title}`, ''] : [];
-  slides.forEach((s, i) => {
-    out.push(`## ${s.title.trim() ? runsToMd(parseInline(s.title)) : `Slide ${i + 1}`}${s.icon ? ` :${s.icon}:` : ''}`, '');
-    for (const b of [...s.bullets, ...(s.right ?? [])]) {
-      if (!b.trim()) continue;
-      const depth = Math.min(3, Math.floor(/^[ \t]*/.exec(b)![0].replace(/\t/g, '  ').length / 2));
-      out.push(`${'  '.repeat(depth)}- ${runsToMd(parseInline(b.trim()))}`);
-    }
-    if (s.sub) out.push('', `[${resolve(s.sub).title}](${resolve(s.sub).hash})`);
-    out.push('');
-  });
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
-}
-
-function mdToSlides(md: string): Slide[] {
-  const slides: Slide[] = [];
-  let cur: Slide | null = null;
-  let first = true;
-  for (const raw of md.split('\n')) {
-    const line = raw.replace(/\s+$/, '');
-    const h = /^(#{1,6})\s+(.*)$/.exec(line);
-    const li = /^(\s*)[-*+]\s+(.*)$/.exec(line) ?? /^(\s*)\d+[.)]\s+(.*)$/.exec(line);
-    const ref = linkToRef(line.replace(/^\[.*\]\((.*)\)$/, '$1'));
-    if (h) {
-      // A lone top heading before any slide is the deck's title slide.
-      const words = h[2].replace(/\s+:([a-z0-9-]+):\s*$/, (_, ic) => ((cur = cur), (pendingIcon = ic), ''));
-      cur = { icon: pendingIcon, title: mdLine(words), bullets: [] };
-      pendingIcon = '';
-      if (first && h[1].length === 1) cur.layout = 't';
-      first = false;
-      slides.push(cur);
-    } else if (ref && cur) cur.sub = ref;
-    else if (li) {
-      if (!cur) slides.push((cur = { icon: '', title: '', bullets: [] }));
-      cur.bullets.push('  '.repeat(Math.min(3, Math.floor(li[1].replace(/\t/g, '  ').length / 2))) + mdLine(li[2]));
-    } else if (line.trim()) {
-      if (!cur) slides.push((cur = { icon: '', title: '', bullets: [] }));
-      cur.bullets.push(mdLine(line.trim()));
-    }
-  }
-  return slides.length ? slides : [{ icon: '', title: '', bullets: [] }];
-}
-let pendingIcon = '';
 
 /* ---------- lines of a kind ---------- */
 
@@ -296,8 +247,6 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     case 'family':
       // A tree is a nested list already: its text is its Markdown.
       return body.trimEnd() + '\n';
-    case 'deck':
-      return slidesToMd(parseDeck(body), '');
     // A sheet and a picture in pixels are already Markdown: a table, and lines of letters.
     case 'sheet':
     case 'pixel':
@@ -343,10 +292,8 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     case 'site':
       return siteToMd(body);
   }
-  if (formatOf(def.id)) {
-    const f = formatOf(def.id)!;
-    return slidesToMd(parseFold(body, f).pages, '');
-  }
+  // A deck and the printed things are Markdown as they stand.
+  if (def.id === 'deck' || formatOf(def.id)) return body;
   return linesToMd(def.id, body) ?? `# ${name}\n\n${def.outline(body).map((l) => `- ${l}`).join('\n')}\n`;
 }
 
@@ -412,6 +359,8 @@ export function unwrapMarkdown(md: string): string {
 }
 
 export function fromMarkdown(def: AppDef, md: string): string {
+  // A deck and the printed things read Markdown themselves, their header (the settings) and all.
+  if (def.id === 'deck' || formatOf(def.id)) return def.read!(md.replace(/\r\n?/g, '\n').trim().replace(/^```(?:markdown|md|text)?\n([\s\S]*?)\n?```$/i, '$1'));
   const plain = unwrapMarkdown(md);
   const text = (looksLikeCsv(plain) ? csvToMd(plain) : plain).trim();
   switch (def.id) {
@@ -437,8 +386,6 @@ export function fromMarkdown(def: AppDef, md: string): string {
     case 'org':
     case 'family':
       return def.read!(text);
-    case 'deck':
-      return serializeDeck(mdToSlides(text));
     case 'sheet':
       // As written, header and all: the sheet's chart is in it.
       return def.read!(md);
@@ -496,7 +443,6 @@ export function fromMarkdown(def: AppDef, md: string): string {
     case 'site':
       return mdToSite(text);
   }
-  if (formatOf(def.id)) return serializeFold({ two: false, pages: mdToSlides(text) }, formatOf(def.id)!);
   const lines = mdToLines(def.id, text);
   if (lines !== null) return lines;
   return def.read ? def.read(items(text).join('\n')) : text;

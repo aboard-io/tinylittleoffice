@@ -152,36 +152,72 @@ const SHEET: Template[] = [
   },
 ];
 
+/** A deck's slides, a rule between each. */
+const slides = (...each: string[]) => each.join('\n\n---\n\n') + '\n';
+
 const DECK: Template[] = [
   {
     id: 'talk',
     name: 'A talk',
     blurb: 'Title, agenda, three points, and a close.',
-    body: [':rocket:t\nTalk title\nYour name · Where · Date', ':compass\nAgenda\nThe first point\nThe second point\nThe third point\n> Say what the talk is for, and how long it takes.', ':lightbulb\nThe first point\nWhat it is\nWhy it matters\nAn example', ':target\nThe second point\nWhat it is\nWhy it matters\nAn example', ':trending-up\nThe third point\nWhat it is\nWhy it matters\nAn example', ':flag\nTo close\nThe one thing to remember\nWhat happens next\nThank you'].join('\n\n'),
+    body: slides(
+      '## :rocket: Talk title {.title}\n\n- Your name · Where · Date',
+      '## :compass: Agenda\n\n- The first point\n- The second point\n- The third point\n\n> Say what the talk is for, and how long it takes.',
+      '## :lightbulb: The first point\n\n- What it is\n- Why it matters\n- An example',
+      '## :target: The second point\n\n- What it is\n- Why it matters\n- An example',
+      '## :trending-up: The third point\n\n- What it is\n- Why it matters\n- An example',
+      '## :flag: To close\n\n- The one thing to remember\n- What happens next\n- Thank you',
+    ),
   },
   {
     id: 'status',
     name: 'Status update',
     blurb: 'Done and next side by side, then risks, then asks.',
-    body: [':calendar:t\nStatus update\nProject · Week of', '::2\nThis week and next\nDone: the first thing\nDone: the second thing\n|\nNext: the third thing\nNext: the fourth thing\n> Left, what shipped; right, what is planned.', ':warning\nRisks and blockers\nWhat is in the way\nWho can clear it', ':help\nAsks\nWhat we need\nFrom whom\nBy when'].join('\n\n'),
+    body: slides(
+      '## :calendar: Status update {.title}\n\n- Project · Week of',
+      '## This week and next {.two}\n\n- Done: the first thing\n- Done: the second thing\n\n|\n\n- Next: the third thing\n- Next: the fourth thing\n\n> Left, what shipped; right, what is planned.',
+      '## :warning: Risks and blockers\n\n- What is in the way\n- Who can clear it',
+      '## :help: Asks\n\n- What we need\n- From whom\n- By when',
+    ),
   },
   {
     id: 'pitch',
     name: 'A pitch',
     blurb: 'Problem, solution, why now, the team, the ask.',
-    body: [':rocket:t\nCompany\nWhat it is, for whom, in a line', ':puzzle\nThe problem\nWho has it\nWhat it costs them\nHow they cope today', ':lightbulb\nThe solution\nWhat we do\nWhy it works\nWhy now', ':bar-chart\nWhere we are\nCustomers, revenue, growth\nWhat we have learned', ':users\nThe team\nWho, and why these people\nWho is missing', ':dollar\nThe ask\nHow much\nWhat it buys\nWhen we are back'].join('\n\n'),
+    body: slides(
+      '## :rocket: Company {.title}\n\n- What it is, for whom, in a line',
+      '## :puzzle: The problem\n\n- Who has it\n- What it costs them\n- How they cope today',
+      '## :lightbulb: The solution\n\n- What we do\n- Why it works\n- Why now',
+      '## :bar-chart: Where we are\n\n- Customers, revenue, growth\n- What we have learned',
+      '## :users: The team\n\n- Who, and why these people\n- Who is missing',
+      '## :dollar: The ask\n\n- How much\n- What it buys\n- When we are back',
+    ),
   },
   {
     id: 'lesson',
     name: 'A lesson',
     blurb: 'What you will learn, a starter, the idea, a task, a recap.',
-    body: [':graduation:t\nLesson title\nSubject · Class · Date', ':target\nWhat you will learn\nThe first goal\nThe second goal', ':help\nStarter\nA question to think about\n> Two minutes, in pairs.', ':book\nThe idea\nThe main point, plainly\nAn example\nAnother example', ':puzzle\nTry it\nA task to do now\nHow long it takes', ':check\nRecap\nWhat we learned\nWhat to do before next time'].join('\n\n'),
+    body: slides(
+      '## :graduation: Lesson title {.title}\n\n- Subject · Class · Date',
+      '## :target: What you will learn\n\n- The first goal\n- The second goal',
+      '## :help: Starter\n\n- A question to think about\n\n> Two minutes, in pairs.',
+      '## :book: The idea\n\n- The main point, plainly\n- An example\n- Another example',
+      '## :puzzle: Try it\n\n- A task to do now\n- How long it takes',
+      '## :check: Recap\n\n- What we learned\n- What to do before next time',
+    ),
   },
   {
     id: 'kickoff',
     name: 'Project kickoff',
     blurb: 'Why, who, how, when, and the open questions.',
-    body: [':flag:t\nProject name\nKickoff · Date', ':target\nWhy\nThe problem this project solves\nWhat success looks like', ':users\nWho\nName · role\nName · role\nName · role', ':map\nHow\nPhase one\nPhase two\nPhase three', ':calendar\nWhen\nMilestone · date\nMilestone · date\nMilestone · date', ':help\nOpen questions\nWhat is still to decide\nWho decides it'].join('\n\n'),
+    body: slides(
+      '## :flag: Project name {.title}\n\n- Kickoff · Date',
+      '## :target: Why\n\n- The problem this project solves\n- What success looks like',
+      '## :users: Who\n\n- Name · role\n- Name · role\n- Name · role',
+      '## :map: How\n\n- Phase one\n- Phase two\n- Phase three',
+      '## :calendar: When\n\n- Milestone · date\n- Milestone · date\n- Milestone · date',
+      '## :help: Open questions\n\n- What is still to decide\n- Who decides it',
+    ),
   },
 ];
 

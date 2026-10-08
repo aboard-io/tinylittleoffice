@@ -19,7 +19,7 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
       const s = parseDeck(b);
       assert.equal(s[0].layout, 't');
       assert.deepEqual(s.map((x) => x.title), ['Rye & Rise Bakery', 'The problem', 'The ask']);
-      assert.deepEqual(s[2].bullets, ['*$50,000* loan over 5 years', 'Second oven, two hires']);
+      assert.deepEqual(s[2].bullets, ['**$50,000** loan over 5 years', 'Second oven, two hires']);
     },
   },
   sheet: {

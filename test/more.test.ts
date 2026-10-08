@@ -116,12 +116,12 @@ test('tz: fall-back overlap picks a real instant and zone list is sane', () => {
 
 test('deck: icon-only and title-only slides, max slides constant', () => {
   const s = serializeDeck([{ icon: 'star', title: '', bullets: [] }, { icon: '', title: 'T', bullets: ['', 'b'] }]);
-  assert.equal(s, ':star\n\nT\n \nb');
+  assert.equal(s, '## :star:\n\n---\n\n## T\n\n- b\n');
   const back = parseDeck(s);
   assert.equal(back.length, 2);
   assert.equal(back[0].icon, 'star');
   assert.equal(back[1].title, 'T');
-  assert.deepEqual(back[1].bullets, [' ', 'b']);
+  assert.deepEqual(back[1].bullets, ['b']);
   assert.equal(MAX_SLIDES, Infinity);
 });
 
@@ -146,15 +146,17 @@ test('calendar: labels are capped and zone header only with spans', () => {
   assert.equal(spanEndMs(e), Date.UTC(2020, 0, 1, 1, 0));
 });
 
-test('deck: no chunk ever collides with the slide separator', () => {
+test('deck: no slide ever runs into the next, or into the header', () => {
   const cases = [
     [{ icon: 'star', title: '', bullets: [] }, { icon: '', title: 'T', bullets: [] }],
     [{ icon: 'star', title: '', bullets: ['b'] }, { icon: '', title: '', bullets: ['c'] }],
     [{ icon: '', title: '', bullets: [] }, { icon: '', title: '', bullets: ['x'] }, { icon: 'sun', title: '', bullets: [] }],
+    [{ icon: '', title: '', bullets: ['transition: cut'] }, { icon: '', title: '---', bullets: ['---', '## not a slide'] }],
   ];
   for (const slides of cases) {
     const s = serializeDeck(slides);
-    assert.ok(!/\n\n\n/.test(s) && !s.endsWith('\n'), JSON.stringify(s));
+    assert.ok(!/\n\n\n/.test(s), JSON.stringify(s));
     assert.deepEqual(parseDeck(s), slides);
+    assert.equal(serializeDeck(parseDeck(s), 'cut').replace(/^---\ntransition: cut\n---\n/, ''), s);
   }
 });

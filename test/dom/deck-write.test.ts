@@ -69,7 +69,9 @@ test('slides: bullets nest from the keyboard and the toolbar', async () => {
   caretIn(1);
   tab();
   await settle(el);
-  expect(second()).toBe('    Tell everyone');
+  // (Saved, a bullet is at most one in from the one above, as Markdown nests.)
+  expect(second()).toBe('  Tell everyone');
+  expect(box<HTMLElement>(el, 'Bullets').children[1].textContent).toBe('    Tell everyone');
   caretIn(1);
   tab(true);
   await settle(el);
@@ -121,9 +123,10 @@ test('previews are the real thing: a month, a map, a list that fills in', async 
   expect(embeds[1].textContent).toContain('Coimbra');
   expect(embeds[1].textContent).toContain('OpenStreetMap');
   expect(embeds[2].textContent).toContain('Pack');
+});
 
-  // On slides each arrives a piece at a time.
-  const deck = await mount('deck', `A\n@@${todo}\n\nB\n@@${cal}`);
+test('on slides, the documents arrive a piece at a time', async () => {
+  const deck = await mount('deck', `## A\n\n\`\`\`todo\n- Book flights\nx Renew passport\n- Pack\n\`\`\`\n\n---\n\n## B\n\n\`\`\`cal\nd2,2.g,Offsite\ndb,1,Launch\n#g=Sam\n\`\`\``);
   button(deck.el, /Present/).click();
   await settle(deck.el);
   const { slide, key } = presenting(deck.el);

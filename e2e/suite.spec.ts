@@ -137,8 +137,8 @@ test('deck: bullets wrap under their dots, and type shrinks as a slide fills', a
 // Stays: that a document on a slide takes the slide's whole width is real layout (the rest is in test/dom/suite-deck.test.ts).
 test('deck: a document on a slide has the slide to itself', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const draw = 'draw/' + encodeEnvelope({ created: null, body: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | One\ne | 20 | 10 | 10 | 8 | 0 | Two\na | 14 | 4 | 8 | 8 | 0 | ' });
-  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `Drawing\nfirst\n@@${draw}` }));
+  const draw = '```draw\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | One\ne | 20 | 10 | 10 | 8 | 0 | Two\na | 14 | 4 | 8 | 8 | 0 | \n```';
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `## Drawing\n\n- first\n\n${draw}\n` }));
   await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
   const full = await page.locator('.deck-slide to-embed').evaluate((el) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width);
   expect(full).toBeGreaterThan(0.9);

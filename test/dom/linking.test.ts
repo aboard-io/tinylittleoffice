@@ -89,7 +89,7 @@ test('a click in a link shows where it goes; Remove takes the link off and keeps
 });
 
 test('in a deck, the Link button links words in a bullet', async () => {
-  const { el, last } = await mount('deck', 'Plan\nRead the brief');
+  const { el, last } = await mount('deck', '## Plan\n\n- Read the brief');
   const bullets = [...el.querySelectorAll<ToWrite>('to-rich')].find((r) => r.textContent?.includes('Read the brief'))!;
   page(bullets).focus();
   page(bullets).dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
@@ -98,7 +98,7 @@ test('in a deck, the Link button links words in a bullet', async () => {
   button(el, 'Link').click();
   await answer('https://a.co/brief');
   await settle(el);
-  expect(last()).toBe('Plan\nRead [the brief](https://a.co/brief)');
+  expect(last()).toBe('## Plan\n\n- Read [the brief](https://a.co/brief)\n');
 });
 
 test('formatted text pasted in keeps its headings, lists, marks and links, and nothing else', async () => {

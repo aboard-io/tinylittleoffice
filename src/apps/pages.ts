@@ -7,6 +7,7 @@
  */
 import { DocElement, html, nothing, state, editRef, makeRef, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, SELF, type TemplateResult } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
+import { withHead } from '../lib/tlo.ts';
 import { chooseIcon, type IconChoice } from '../widgets/icon-picker.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
@@ -83,7 +84,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
     if (what === 'remove') return this.patch({ sub: undefined });
     if (what === 'qr-self') return this.patch({ sub: SELF });
     const at = this.cur;
-    const ref = what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, '');
+    const ref = what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '');
     this.patch({ sub: ref }, at);
     const made = await editRef(ref);
     this.cur = at;

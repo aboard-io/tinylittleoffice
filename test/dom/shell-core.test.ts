@@ -199,8 +199,8 @@ test('download views: the link itself hands over a file', async () => {
   const utf = (b: Uint8Array) => new TextDecoder('utf-8', { ignoreBOM: true }).decode(b);
   const zip = (b: Uint8Array) => expect(utf(b.subarray(0, 2))).toBe('PK');
   const docs: [string, string, string, string, (b: Uint8Array) => void][] = [
-    ['deck', 'pptx', ':rocket\nLaunch plan\nBuild it\nShip it\n\n:users\nTeam\nEveryone', 'launch-plan.pptx', zip],
-    ['deck', 'ppt', 'Alias', 'alias.pptx', zip],
+    ['deck', 'pptx', '## :rocket: Launch plan\n\n- Build it\n- Ship it\n\n---\n\n## :users: Team\n\n- Everyone\n', 'launch-plan.pptx', zip],
+    ['deck', 'ppt', '## Alias', 'alias.pptx', zip],
     ['sheet', 'xlsx', '10\tTotal\n32\n=SUM(A1:A2)*2\t=AVG(A1:A2)', 'sheet.xlsx', zip],
     ['sheet', 'csv', '10\tTotal\n32\n=SUM(A1:A2)*2', 'sheet.csv', (b) => expect(utf(b)).toBe('﻿10,Total\r\n32,\r\n84,\r\n')],
     ['write', 'rtf', '# Memo\nSome *bold* text\n- one\n- two', 'memo.rtf', (b) => expect(utf(b)).toContain('{\\b bold}')],

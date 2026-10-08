@@ -2,7 +2,6 @@
 import { test, expect } from 'vitest';
 import { mount } from './helpers.ts';
 import { idle, until, $, $$, text, tap, fill, key, focused, button, press, poke, write } from './helpers-shell.ts';
-import { encodeEnvelope } from '../../src/lib/envelope.ts';
 import { parseDeck } from '../../src/lib/deckmodel.ts';
 import { parseDrawing } from '../../src/lib/drawmodel.ts';
 
@@ -101,10 +100,10 @@ test('deck: slides, icons and presenting', async () => {
 });
 
 test('deck: layouts, a transition, and other documents on a slide', async () => {
-  const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two\na,14,4,8,8,0' });
-  const sheet = 'sheet/' + encodeEnvelope({ created: null, body: 'Item\tCost\nRent\t1200\nFood\t600' });
+  const draw = '```draw\nr,2,1,12,6,1,One\ne,20,10,10,8,0,Two\na,14,4,8,8,0\n```';
+  const sheet = '```sheet\nItem\tCost\nRent\t1200\nFood\t600\n```';
   // (Without the closing QR code: it is tested above, and it is the deck's whole link worked out again at every step.)
-  const body = ['!fade::noqr', '::2\nTwo columns\nleft\n|\nright', ':star:i\nBig icon\nwhy', `Drawing\nfirst\n@@${draw}`, `Table\n@@${sheet}`].join('\n\n');
+  const body = '---\nqr: no\n---\n' + ['## Two columns {.two}\n\n- left\n\n|\n\n- right', '## :star: Big icon {.icon}\n\n- why', `## Drawing\n\n- first\n\n${draw}`, `## Table\n\n${sheet}`].join('\n\n---\n\n');
   const { last } = await mount('deck', body);
   expect(thumbs()).toHaveLength(4);
   expect(($('sl-select.deck-transition') as HTMLElement & { value: string }).value).toBe('fade');

@@ -72,7 +72,7 @@ test('a diagram on a slide: chosen from Add a slide, it builds a shape per click
   area.dispatchEvent(new Event('input', { bubbles: true }));
   await settleAll();
   button(sub, 'Done').click();
-  await until(() => expect(last()).toMatch(/@@mind\/[A-Za-z0-9]/));
+  await until(() => expect(last()).toMatch(/```mind\n\S/));
   await settleAll();
   expect(el.querySelectorAll('.deck-slide to-embed')).toHaveLength(1);
   await until(() => expect(el.querySelector('.deck-slide to-embed')!.shadowRoot!.querySelectorAll('svg[role="img"] rect')).toHaveLength(3));

@@ -205,7 +205,7 @@ test('comic: pages like a zine, each built from panels', async () => {
   const again = await mount('comic', last()!);
   expect(again.last()).toBeUndefined();
   expect(thumbs(again.el)[0].textContent).toContain('Biscuit');
-  expect(last()).toMatch(/:dog Walk\? \| Monday, noon\./);
+  expect(last()).toMatch(/^- :dog: Walk\? \| Monday, noon\.$/m);
   button(again.el, 'Page 2').click();
   await settle(again.el);
   expect(box(again.el, 'What is said, panel 2').value).toBe('WALK!');

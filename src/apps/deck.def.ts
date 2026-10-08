@@ -7,7 +7,7 @@ import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { encodeEnvelope } from '../lib/envelope.ts';
 import { QR_MAX_BYTES } from '../lib/qr.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { ICON_COLORS, deckIconColor, parseDeck, type Slide, deckEndsWithQr } from '../lib/deckmodel.ts';
+import { ICON_COLORS, deckIconColor, parseDeck, readDeck, type Slide, deckEndsWithQr } from '../lib/deckmodel.ts';
 
 const x = xml;
 
@@ -154,28 +154,6 @@ export const slidesWith = (body: string): Slide[] => {
 };
 
 const title = (body: string) => plainInline(parseDeck(body).find((s) => s.title.trim())?.title.trim() ?? '');
-
-/**
- * A deck written plainly may carry a chart or a table on a slide as the
- * sheet's own rows: a slide whose body starts with a sheet settings line
- * ("!bar", "!pie|tn$") or holds tab-separated rows becomes a slide showing
- * that sheet. The compact form keeps it as "@@sheet/<document>".
- */
-export function readDeck(text: string): string {
-  if (!text.includes('\t') && !/^!(bar|line|pie)?(\|[tn$%d]*)?$/m.test(text)) return text;
-  return text
-    .split('\n\n')
-    .map((chunk) => {
-      const lines = chunk.split('\n');
-      const at = lines.findIndex((l, i) => i > 0 && (/^!(bar|line|pie)?(\|[tn$%d]*)?$/.test(l) || (l.includes('\t') && (lines[i + 1] ?? '').includes('\t'))));
-      if (at < 0 || lines.some((l) => l.startsWith('@@'))) return chunk;
-      // The sheet runs to the end of the slide, bar any speaker notes.
-      const notes = lines.slice(at).filter((l) => l.startsWith('> '));
-      const rows = lines.slice(at).filter((l) => !l.startsWith('> '));
-      return [...lines.slice(0, at), '@@' + makeRef('sheet', rows.join('\n')), ...notes].join('\n');
-    })
-    .join('\n\n');
-}
 
 /** The deck as it plays: every slide, every reveal, the QR slide last; a cross-fade between them. */
 export function deckFrames(body: string): { pages: Page[]; delayMs: number; fade: boolean } {

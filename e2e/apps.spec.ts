@@ -217,8 +217,8 @@ test('write: list items nest with Tab', async ({ page }) => {
 test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const trip = 'trip/' + encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n40000,0,Second' });
-  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `Where we are going\n@@${trip}` }));
+  const trip = '```trip\n3xa8g,-fuyo,Lisbon\tStart here\n40000,0,Second\n```';
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `## Where we are going\n\n${trip}\n` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show to-trip[present]');
   await expect(map.locator('.trip-pin')).toHaveCount(2);
@@ -242,7 +242,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   const docs: Record<string, string> = {
     sheet: '---\nchart: bar\n---\nItem | Cost:money\n--- | ---\nRent | 1200\nFood | 600',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n@@draw/',
-    deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
+    deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
     cal: 'd2,2,Offsite',
     todo: '- one\nx!@1jk two',
@@ -260,15 +260,15 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
     contract: '# Deal\nSam walks the dog.',
-    zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
-    booklet: 'A book\nby me\n\nOne\nwords',
-    brochure: 'Visit\n\nWhy\nbecause',
-    comic: 'Biscuit\n\n \n:dog Walk? | Monday',
-    poster: ':music\nOpen mic\nFriday 8pm',
+    zine: '## :star: My zine\n\nIssue one\n\n---\n\n## Inside\n\nSome words for page two.\n',
+    booklet: '## A book\n\nby me\n\n---\n\n## One\n\nwords\n',
+    brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
+    comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
+    poster: '## :music: Open mic\n\nFriday 8pm\n',
     menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
     resume: '# Ada\n## Experience\n- Wrote a program',
-    badges: 'Ada | Eng\nGrace | Compilers',
-    recipes: 'Buns\nflour\n1. Bake',
+    badges: '## Ada\n\nEng\n\n---\n\n## Grace\n\nCompilers\n',
+    recipes: '## Buns\n\nflour\n\n1. Bake\n',
     flow: '# Model\n\n- visitors = 100 (0 to 500)\n- rate = 10% (0 to 50)\n\n~ Visitors -> Signups: visitors * rate\n~ Visitors -> Gone: visitors - visitors * rate',
     pixel: 'ab.c\n.dd',
     floor: '- Hall: 4 x 2 at 0,0\n- Bath: 2 x 2 at 4,0',
@@ -325,7 +325,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   const docs: Record<string, string> = {
     sheet: '---\nchart: bar\n---\nItem | When:date | Cost:money\n--- | --- | ---\nRent | 2027-03-01 | 1200',
     write: '# Memo\nSome *bold* text\n- one\n-- nested',
-    deck: ':rocket\nLaunch plan\nBuild it\nShip it',
+    deck: '## :rocket: Launch plan\n\n- Build it\n- Ship it\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box',
     cal: 'd2,2,Offsite',
     todo: '- one\nx!@1jk two',
@@ -343,15 +343,15 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
     contract: '# Deal\nSam walks the dog.',
-    zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
-    booklet: 'A book\nby me\n\nOne\nwords',
-    brochure: 'Visit\n\nWhy\nbecause',
-    comic: 'Biscuit\n\n \n:dog Walk? | Monday',
-    poster: ':music\nOpen mic\nFriday 8pm',
+    zine: '## :star: My zine\n\nIssue one\n\n---\n\n## Inside\n\nSome words for page two.\n',
+    booklet: '## A book\n\nby me\n\n---\n\n## One\n\nwords\n',
+    brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
+    comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
+    poster: '## :music: Open mic\n\nFriday 8pm\n',
     menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
     resume: '# Ada\n## Experience\n- Wrote a program',
-    badges: 'Ada | Eng\nGrace | Compilers',
-    recipes: 'Buns\nflour\n1. Bake',
+    badges: '## Ada\n\nEng\n\n---\n\n## Grace\n\nCompilers\n',
+    recipes: '## Buns\n\nflour\n\n1. Bake\n',
     flow: '# Model\n\n- visitors = 100 (0 to 500)\n- rate = 10% (0 to 50)\n\n~ Visitors -> Signups: visitors * rate\n~ Visitors -> Gone: visitors - visitors * rate',
     pixel: 'ab.c\n.dd',
     floor: '- Hall: 4 x 2 at 0,0\n- Bath: 2 x 2 at 4,0',
@@ -554,7 +554,7 @@ test('write: "- " and "1. " start lists, Backspace takes a bullet off, quotes ar
 
 // Quotes are curly in every text that takes marks: a slide's bullets, an outline's items.
 test('quotes are curly in a deck and an outline too', async ({ page }) => {
-  await page.goto('/deck/#doc=' + encodeURIComponent('Plan\nfirst'));
+  await page.goto('/deck/#doc=' + encodeURIComponent('## Plan\n\n- first'));
   const bullets = page.getByRole('textbox', { name: 'Bullets' });
   await bullets.click();
   await page.keyboard.press('End');
