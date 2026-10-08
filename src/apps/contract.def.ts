@@ -9,15 +9,26 @@
  * the key. The name is whatever was typed; to be sure a key is someone's,
  * compare its fingerprint with them directly.
  *
- * Document format: the text (Write's markup), then one line per signature:
- * "~<name>\t<public key>\t<signature>". Each signature covers the text and
- * the signer's own name, so a second person signing does not disturb the first.
+ * Document format (docs/tlo.md): a text, as Write writes it, then the
+ * signatures in a fenced block of their own, a table of who, their public
+ * key and their signature:
+ *
+ *   ```signatures
+ *   Name | Key | Signature
+ *   --- | --- | ---
+ *   Paul | MFkw… | 3045…
+ *   ```
+ *
+ * Each signature covers the text and the signer's own name, so a second
+ * person signing does not disturb the first.
  */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { appOf, xml } from '../kit/core.ts';
+import { parse, write, writeBlock, escapeInline } from '../lib/tlo.ts';
+import { docText, parseDoc } from '../lib/richtext.ts';
 import './write.def.ts';
-import { docToHtml } from './write.def.ts';
+import { docToHtml, readText } from './write.def.ts';
 
 export interface Signature {
   name: string;
@@ -25,16 +36,22 @@ export interface Signature {
   sig: string;
 }
 
+/** The signatures' fence, at the very end. */
+const SIGNED = /(?:^|\n)(`{3,})signatures[ \t]*\n([\s\S]*?)\n\1\s*$/;
+
 export function parseContract(body: string): { text: string; signatures: Signature[] } {
-  const lines = body.split('\n');
-  const signatures = lines.filter((l) => l.startsWith('~')).map((l) => l.slice(1).split('\t')).filter((p) => p.length === 3).map(([name, key, sig]) => ({ name, key, sig }));
-  return { text: lines.filter((l) => !l.startsWith('~')).join('\n').replace(/\n+$/, ''), signatures };
+  const m = SIGNED.exec(body);
+  if (!m) return { text: body.trimEnd(), signatures: [] };
+  const table = parse(m[2]).blocks.find((b) => b.k === 'table');
+  const signatures = table?.k === 'table' ? table.rows.map(([name, key, sig]) => ({ name, key, sig })).filter((s) => s.key && s.sig) : [];
+  return { text: body.slice(0, m.index).trimEnd(), signatures };
 }
 
 export function serializeContract(text: string, signatures: Signature[]): string {
-  // (A line of the text may not start with "~": that is how signatures are told apart.)
-  const safe = text.split('\n').map((l) => (l.startsWith('~') ? ' ' + l : l)).join('\n').replace(/\n+$/, '');
-  return [safe, ...signatures.map((s) => `~${s.name.replace(/[\t\n]/g, ' ')}\t${s.key}\t${s.sig}`)].join('\n');
+  const words = text.trimEnd();
+  if (!signatures.length) return words;
+  const table = write({ head: {}, blocks: [{ k: 'table', head: ['Name', 'Key', 'Signature'], rows: signatures.map((s) => [s.name.replace(/\s+/g, ' ').trim(), s.key, s.sig]) }] }).trimEnd();
+  return (words ? words + '\n\n' : '') + writeBlock({ k: 'fence', lang: 'signatures', body: table });
 }
 
 /** Exactly what a signature covers: the words, and the name signed under. */
@@ -43,12 +60,17 @@ export const signedMessage = (text: string, name: string) => `tinyoffice-contrac
 /** A key, short enough to read out and compare. */
 export const keyMark = (key: string) => key.slice(-10);
 
-const title = (body: string) => /^#\s+(.*)$/m.exec(parseContract(body).text)?.[1].trim() ?? '';
+/** Its title, or else its first heading. */
+const title = (body: string) => {
+  const blocks = parseDoc(parseContract(body).text);
+  const head = blocks.find((b) => b.k === 'title') ?? blocks.find((b) => b.k === 'h1');
+  return head ? docText([head]).trim() : '';
+};
 
 /** The text with its signatures written out beneath it, for anything that shows the contract. */
 const withSignatures = (body: string) => {
   const c = parseContract(body);
-  return c.text + (c.signatures.length ? '\n## Signed\n' + c.signatures.map((s) => `- *${s.name}*, with the key ending ${keyMark(s.key)}`).join('\n') : '');
+  return c.text + (c.signatures.length ? '\n\n## Signed\n\n' + c.signatures.map((s) => `- *${escapeInline(s.name)}*, with the key ending ${escapeInline(keyMark(s.key))}`).join('\n') : '');
 };
 
 function page(body: string): string {
@@ -70,11 +92,11 @@ export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
     { name: 'Heading', is: '## {Heading}', head: true },
-    { name: 'Point', is: '- {Point}' },
+    { name: 'Point', is: '- {Point}', indent: true },
     { name: 'Paragraph', is: '{Text:long}' },
   ] as LineKind[],
-  hint: 'Write the agreement ("# Title", "## Heading", "- point"). Each person types their name and signs; the link then carries their signature.',
-  example: '# Dog-walking agreement\nBetween Paul and Sam, starting 1 March 2027.\n## What is agreed\n- Sam walks Biscuit every weekday at noon.\n- Paul pays $20 a walk, on Fridays.\n- Either can end this with a week of notice.',
+  hint: 'Write the agreement as Markdown ("# Title", "## Heading", "- point", **bold**). Each person types their name and signs; the link then carries their signature.',
+  example: '# Dog-walking agreement\n\nBetween Paul and Sam, starting 1 March 2027.\n\n## What is agreed\n\n- Sam walks Biscuit every weekday at noon.\n- Paul pays $20 a walk, on Fridays.\n- Either can end this with a week of notice.',
   page,
 };
 
@@ -88,6 +110,8 @@ export default definePage(
     title,
     outline: (body) => appOf('write')!.outline(withSignatures(body)),
     view: (body) => appOf('write')!.view(withSignatures(body)),
+    // Markdown as anyone writes it is made a text; the signatures stay as they are.
+    read: (body) => ((c) => serializeContract(readText(c.text), c.signatures))(parseContract(body)),
     steps: undefined,
   },
   spec,

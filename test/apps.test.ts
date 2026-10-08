@@ -183,53 +183,59 @@ test('room for a link, service by service', () => {
 });
 
 test('embedding one document in another', async () => {
-  const { linkToRef, makeRef, refPage, refSteps, resolve } = await import('../src/kit/embed.ts');
-  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  const { linkToRef, makeRef, hashOf, refPage, resolve } = await import('../src/kit/embed.ts');
   const { parseDoc, serializeDoc } = await import('../src/lib/richtext.ts');
   const { docToHtml, docToRtf } = await import('../src/apps/write.def.ts');
-  const deck = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
-  const drawing = makeRef('draw', 'r,2,1,12,6,1,Box\ne,20,1,6,6,0');
+  const code = makeRef('qr', 'https://example.com/');
+  const hash = hashOf('qr', 'https://example.com/');
+  const note = makeRef('write', '# Plan {.title}\n\nShip in spring');
 
-  // Any TinyLittleOffice link, from any host or version, with or without a download extension.
-  assert.equal(linkToRef(` https://tinylittleoffice.com/deck/#/v0/deck/${deck}\n`), `deck/${deck}`);
-  assert.equal(linkToRef(`http://localhost:4173/#/v0/deck.pptx/${deck}`), `deck/${deck}`);
-  assert.equal(linkToRef(`see https://tinylittleoffice.com/#/v0/deck/${deck}`), null);
+  // Any TinyLittleOffice link, from any host, with or without a download extension.
+  assert.equal(linkToRef(` https://tinylittleoffice.com/qr/${hash}\n`), code);
+  assert.equal(linkToRef(`http://localhost:4173/${hash.replace('/qr/', '/qr.png/')}`), code);
+  assert.equal(linkToRef(`see https://tinylittleoffice.com/${hash}`), null);
   assert.equal(linkToRef('https://example.com/#/v0/nope/abc'), null);
   assert.equal(linkToRef('https://example.com/'), null);
 
-  const d = resolve(`deck/${deck}`);
-  assert.deepEqual([d.def!.name, d.title, d.locked, d.hash], ['Deck', 'Spring launch', false, `#/v0/deck/${deck}`]);
-  assert.ok(refPage(drawing).svg.includes('>Box</text>'));
-  assert.equal(refSteps(drawing), 2);
-  assert.deepEqual([resolve('sheet/Eabc').locked, resolve('sheet/Eabc').title], [true, 'Locked sheet']);
+  const d = resolve(code);
+  assert.deepEqual([d.def!.name, d.title, d.locked, d.hash], ['QR code', 'example.com', false, hash]);
+  assert.ok(refPage(code).svg.includes('shape-rendering="crispEdges"'));
   // A new, empty document can be embedded before anything is in it.
-  assert.equal(makeRef('draw', ''), 'draw/');
-  assert.ok(refPage('draw/').w > 0);
+  assert.equal(makeRef('draw', ''), 'draw\n');
+  assert.ok(refPage('draw\n').w > 0);
 
-  // In a text it is one line, and survives the round trip beside ordinary paragraphs.
-  const text = `# Plan\n@@deck/${deck}\n\\@@not an embed\n@@ nor this\n@@draw/`;
+  // In a text it is a fence named for its app, holding its whole text, and survives the round trip beside ordinary paragraphs.
+  const text = '# Plan\n\n```qr\nhttps://example.com/\n```\n\nWords, not an embed\n\n```draw\n```';
   const blocks = parseDoc(text);
-  assert.deepEqual(blocks.map((b) => b.k), ['h1', 'e', 'p', 'p', 'e']);
-  assert.equal(blocks[1].ref, `deck/${deck}`);
-  assert.equal(blocks[2].runs[0].t, '@@not an embed');
-  assert.equal(serializeDoc(blocks), text.replace('@@ nor this', '\\@@ nor this'));
+  assert.deepEqual(blocks.map((b) => b.k), ['h1', 'e', 'p', 'e']);
+  assert.equal(blocks[1].ref, code);
+  assert.equal(blocks[2].runs[0].t, 'Words, not an embed');
+  assert.equal(blocks[3].ref, 'draw\n');
+  assert.equal(serializeDoc(blocks), text);
+  // A link alone on a line, bare or as a picture, is read as the document it holds.
+  const write = appOf('write')!;
+  assert.equal(write.read!(`# Plan\n\nhttps://tinylittleoffice.com/${hash}`), '# Plan\n\n```qr\nhttps://example.com/\n```');
+  assert.equal(write.read!(`![A code](https://tinylittleoffice.com/${hash})`), '```qr\nhttps://example.com/\n```');
 
   // Exports carry a working link and a picture of the document.
+  const fence = (ref: string) => '```' + ref + '\n```';
   const ctx = { created: null, base: 'https://tinylittleoffice.com/' };
-  const html = docToHtml(`# Plan\n@@deck/${deck}\n@@${drawing}`, ctx);
-  assert.ok(html.includes(`<a href="https://tinylittleoffice.com/#/v0/deck/${deck}">Spring launch</a> <small>Deck</small>`));
-  assert.ok(html.includes('>Spring launch</text>') && html.includes('>Box</text>'));
-  const rtf = docToRtf(`@@deck/${deck}`, ctx);
-  assert.ok(rtf.includes(`HYPERLINK "https://tinylittleoffice.com/#/v0/deck/${deck}"`));
-  assert.ok(rtf.includes('Spring launch') && rtf.includes('Agenda'));
+  const html = docToHtml(`# Plan\n\n${fence(code)}\n\n${fence(note)}`, ctx);
+  assert.ok(html.includes(`<a href="https://tinylittleoffice.com/${hash}">example.com</a> <small>QR code</small>`));
+  assert.ok(html.includes('shape-rendering="crispEdges"') && html.includes('Ship in spring'));
+  const rtf = docToRtf(fence(note), ctx);
+  assert.ok(rtf.includes(`HYPERLINK "https://tinylittleoffice.com/${hashOf('write', '# Plan {.title}\n\nShip in spring')}"`));
+  assert.ok(rtf.includes('Plan') && rtf.includes('Ship in spring'));
 });
 
 test('text: nested list items', async () => {
   const { parseDoc, serializeDoc } = await import('../src/lib/richtext.ts');
-  const text = '- one\n-- two\n--- three\n---- four\n- back\n++ numbered, in\n\\-- a paragraph';
+  const text = '- one\n  - two\n    - three\n      - four\n- back\n  1. numbered, in\n\n\\- a paragraph';
   const blocks = parseDoc(text);
   assert.deepEqual(blocks.map((b) => [b.k, b.d ?? 0]), [['ul', 0], ['ul', 1], ['ul', 2], ['ul', 3], ['ul', 0], ['ol', 1], ['p', 0]]);
   assert.equal(serializeDoc(blocks), text);
+  // Read leniently: four spaces, or another mark, nest the same.
+  assert.equal(appOf('write')!.read!('* one\n    * two\n+ three'), '- one\n  - two\n- three');
 });
 
 test('deck: layouts, columns, embedded documents, transition', async () => {
@@ -519,7 +525,7 @@ test('contract: two people sign the same words', async () => {
     return { get: () => held, set: (v: string) => void (held = v), remove: () => void (held = null) };
   };
   const [paul, sam] = [createSigner(memory() as never), createSigner(memory() as never)];
-  const text = '# Deal\nSam walks the dog.';
+  const text = '# Deal\n\nSam walks the dog.';
   const a = await paul.sign(signedMessage(text, 'Paul'));
   // Sam signs what Paul sent; Paul's signature is untouched by it.
   let doc = serializeContract(text, [{ name: 'Paul', ...a }]);
@@ -528,6 +534,11 @@ test('contract: two people sign the same words', async () => {
   const c = parseContract(doc);
   assert.equal(c.text, text);
   assert.deepEqual(c.signatures.map((s) => s.name), ['Paul', 'Sam']);
+  // The signatures are a table in a fence after the words; read as Markdown, the contract is as it was.
+  assert.equal(doc, `${text}\n\n\`\`\`signatures\nName | Key | Signature\n--- | --- | ---\n${c.signatures.map((s) => `${s.name} | ${s.key} | ${s.sig}`).join('\n')}\n\`\`\``);
+  assert.equal(appOf('contract')!.read!(doc), doc);
+  assert.equal(appOf('contract')!.title(doc), 'Deal');
+  assert.deepEqual(parseContract(text), { text, signatures: [] });
   assert.notEqual(c.signatures[0].key, c.signatures[1].key);
   for (const s of c.signatures) assert.equal(await verify(s.key, s.sig, signedMessage(c.text, s.name)), true);
   // Change a word and neither signature matches; nor does one name's signature pass for the other's.
@@ -862,7 +873,7 @@ test('a QR code of a link reads back as the link', async () => {
 test('slides take bold, italic and the rest, like a text does', async () => {
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
   const { slidePage, deckToPptx } = await import('../src/apps/deck.def.ts');
-  const { toggleMark, parseInline } = await import('../src/lib/richtext.ts');
+  const { parseInline } = await import('../src/lib/richtext.ts');
   const [s] = parseDeck('A *big* _day_\nShip ^it^ and ~rest~');
   const svg = slidePage(s, Infinity, undefined, '').svg;
   assert.ok(svg.includes('>big<') && !svg.includes('*big*'), 'marks are drawn, not shown');
@@ -874,11 +885,7 @@ test('slides take bold, italic and the rest, like a text does', async () => {
   const files = unzipSync(deckToPptx('A *big* day\nShip ^it^', { created: null, png: {} } as never));
   const slide = strFromU8(files['ppt/slides/slide1.xml']);
   assert.ok(slide.includes('b="1"') && slide.includes('<a:t>big</a:t>') && slide.includes('u="sng"'));
-  // The toggle: on, and off again, round a word.
-  assert.deepEqual(toggleMark('Ship it', 0, 4, '*'), { line: '*Ship* it', from: 1, to: 5 });
-  assert.deepEqual(toggleMark('*Ship* it', 1, 5, '*'), { line: 'Ship it', from: 0, to: 4 });
-  assert.deepEqual(toggleMark('*Ship* it', 0, 6, '*'), { line: 'Ship it', from: 0, to: 4 });
-  assert.deepEqual(parseInline('a *b* c').map((r) => [r.t, !!r.b]), [['a ', false], ['b', true], [' c', false]]);
+  assert.deepEqual(parseInline('a **b** *c*').map((r) => [r.t, !!r.b, !!r.i]), [['a ', false, false], ['b', true, false], [' ', false, false], ['c', false, true]]);
 });
 
 test('a motion slide, held still, is at its end', async () => {
@@ -909,12 +916,19 @@ test('slides: bullets nest', async () => {
 });
 
 test('a QR code document: a link as a code, labelled with what it is of', async () => {
-  const { qrLabel } = await import('../src/apps/qr.def.ts');
-  const { makeRef } = await import('../src/kit/embed.ts');
-  const link = 'https://tinylittleoffice.com/#/v0/' + makeRef('todo', '- Buy milk', 'Shopping');
+  const { qrLabel, qrText, qrBody } = await import('../src/apps/qr.def.ts');
+  const { hashOf } = await import('../src/kit/embed.ts');
+  const link = 'https://tinylittleoffice.com/' + hashOf('todo', '- [ ] Buy milk', 'Shopping');
   assert.equal(qrLabel(link), 'Shopping');
   assert.equal(qrLabel('https://example.com/some/path'), 'example.com');
   assert.equal(qrLabel('Hello there'), 'Hello there');
+  // The link or the words are a paragraph: words that would read as Markdown are escaped, and come back as they were.
+  for (const words of ['https://example.com/a_b?x=1&y=*', '# not a heading', 'my_wifi *pass*', 'BEGIN:VCARD\nN:Ford;Paul\n- END']) assert.equal(qrText(qrBody(words)), words);
+  assert.equal(qrBody('# not a heading'), '\\# not a heading');
+  const qr = appOf('qr')!;
+  assert.equal(qr.read!('- [The site](https://example.com/)\n- Another'), 'https://example.com/');
+  assert.equal(qr.read!('## Hello *there*'), 'Hello there');
+  assert.equal(qr.read!('https://example.com/'), 'https://example.com/');
   const page = appOf('qr')!.view(link)[0];
   assert.ok(page.svg.includes('<path d="M') && page.svg.includes('>Shopping</text>'));
   assert.ok(appOf('qr')!.view('')[0].svg.includes('Paste a link'));
@@ -922,14 +936,14 @@ test('a QR code document: a link as a code, labelled with what it is of', async 
   // It can go on a slide.
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
   const { slidePage } = await import('../src/apps/deck.def.ts');
-  const slide = slidePage(parseDeck('Scan this\n@@' + makeRef('qr', link))[0], Infinity, undefined, '').svg;
+  const slide = slidePage(parseDeck('## Scan this\n\n```qr\n' + link + '\n```')[0], Infinity, undefined, '').svg;
   assert.ok(slide.includes('shape-rendering="crispEdges"'));
 });
 
 test('rich text: highlight, icons in the line, and alignment, in text and in pictures', async () => {
   const { parseDoc, serializeDoc, parseInline } = await import('../src/lib/richtext.ts');
   const { text } = await import('../src/kit/core.ts');
-  const body = '>c # A =big= day\nShip :rocket: it\n>r - right\nTime 10:30: fine';
+  const body = '# A ==big== day {.center}\n\nShip :rocket: it\n\n- right {.right}\n\nTime 10:30: fine';
   const blocks = parseDoc(body);
   assert.equal(blocks[0].a, 'c');
   assert.deepEqual(blocks[0].runs.map((r) => [r.t, !!r.h]), [['A ', false], ['big', true], [' day', false]]);
@@ -942,12 +956,12 @@ test('rich text: highlight, icons in the line, and alignment, in text and in pic
   // Words that would read as marks are escaped on the way out, and come back whole.
   assert.equal(parseDoc(serializeDoc([{ k: 'p', runs: [{ t: 'a=b and :not: an icon' }] }]))[0].runs[0].t, 'a=b and :not: an icon');
   // Drawn: a yellow box behind the highlight, a glyph for the icon.
-  const svg = text(10, 20, parseInline('=hot= :rocket: x'), { px: 16 });
+  const svg = text(10, 20, parseInline('==hot== :rocket: x'), { px: 16 });
   assert.ok(svg.includes('fill="#fef08a"') && svg.includes('stroke-linecap="round"') && svg.includes('<tspan dx='));
   const { slidePage } = await import('../src/apps/deck.def.ts');
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
-  assert.ok(slidePage(parseDeck('Go :rocket:\n=now=')[0], Infinity, undefined, '').svg.includes('#fef08a'));
-  assert.ok(appOf('write')!.html!('>c Hello =there= :star:', { created: null }).includes('text-align:center') && appOf('write')!.html!('=x=', { created: null }).includes('<mark>'));
+  assert.ok(slidePage(parseDeck('## Go :rocket:\n\n- ==now==')[0], Infinity, undefined, '').svg.includes('#fef08a'));
+  assert.ok(appOf('write')!.html!('Hello ==there== :star: {.center}', { created: null }).includes('text-align:center') && appOf('write')!.html!('==x==', { created: null }).includes('<mark>'));
 });
 
 test('a deck ends with a QR code of itself', async () => {
@@ -975,7 +989,7 @@ test('markdown, both ways, for every app', async () => {
   const samples: Record<string, string> = {
     sheet: 'Item\tCost\nRent\t1200\nFood\t600',
     outline: 'Launch\n  Product\n    Pricing\n  Marketing',
-    write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
+    write: '# Memo\n\nSome **bold** and *slant* text with ==shine== and :star:\n\n1. first\n- one\n  - nested',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',
     cal: 'd2,2.g,Offsite\ndb,1,Launch',
@@ -1011,14 +1025,15 @@ test('markdown, both ways, for every app', async () => {
   // The shapes to expect.
   assert.ok(toMarkdown(appOf('sheet')!, samples.sheet).includes('| Item | Cost |') && toMarkdown(appOf('sheet')!, samples.sheet).includes('| Rent | 1200 |'));
   assert.equal(toMarkdown(appOf('todo')!, samples.todo), '- [ ] Book flights\n- [x] **Renew passport** (due 2025-06-23)\n- [ ] Pack\n');
-  assert.equal(toMarkdown(appOf('write')!, samples.write), '# Memo\n\nSome **bold** and *slant* text with ==shine== and :star:\n\n- one\n  - nested\n1. first\n');
+  // A text is Markdown already: what goes out is the text itself.
+  assert.equal(toMarkdown(appOf('write')!, samples.write), samples.write + '\n');
   assert.ok(toMarkdown(appOf('deck')!, samples.deck).startsWith('## Spring launch :rocket:\n\n- What ships\n\n## Agenda\n\n- one\n  - under one\n- two'));
   assert.ok(toMarkdown(appOf('menu')!, specOf('menu')!.example).includes('| Dish | Price | What it is |'));
   // And back: a Markdown list is a to-do list; a Markdown table is a sheet; headings are slides.
   assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n- [ ] Not yet'), 'x Done\n- Not yet');
   assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|---|---|\n| 1 | 2 |'), 'A\tB\n1\t2');
   assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '::t\nMy deck\nA line\n\nSecond\na\n  b');
-  assert.equal(fromMarkdown(appOf('write')!, '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n1. c'), '# Hi\nSome *bold* text.\n- a\n-- b\n+ c');
+  assert.equal(fromMarkdown(appOf('write')!, '# Hi\nSome __bold__ text.\n\n* a\n    * b\n+ c\n\n1) one\n2) two'), '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n- c\n1. one\n2. two');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), serializeBoardLike('#Doing|2\nx\ny'));
 });

@@ -58,7 +58,7 @@ test('a document can carry its own QR code, so a reader can take a copy', async 
   fill(insert, 'qr code of this');
   await idle();
   await key('Enter', {}, insert);
-  const embed = () => $('to-embed[ref="qr/self"]');
+  const embed = () => $('to-embed[ref$="@self"]');
   const code = () => embed().shadowRoot!.querySelector('svg path[shape-rendering="crispEdges"]');
   // The code is drawn, named for what it is, and keeps up with the document.
   expect(code()).toBeTruthy();
@@ -87,7 +87,7 @@ test('a document can carry its own QR code, so a reader can take a copy', async 
   fill(add, 'qr code of this');
   await idle();
   await key('Enter', {}, add);
-  expect($$('.deck-slide to-embed[ref="qr/self"]')).toHaveLength(1);
+  expect($$('.deck-slide to-embed[ref$="@self"]')).toHaveLength(1);
 });
 
 /** A cell tapped and filled, as Playwright's fill() does. */

@@ -36,7 +36,7 @@ test('a model runs for the sliders as set', () => {
 });
 
 test('signed, verified, sealed and opened', async () => {
-  const u = T.link('write', '# Hi\nThere', { title: 'Note', by: 'writer-agent' });
+  const u = T.link('write', '# Hi\n\nThere', { title: 'Note', by: 'writer-agent' });
   const signer = T.createSigner(T.memoryStore());
   const s = await T.signed(u, signer);
   const v = await T.verified(s);
@@ -44,12 +44,12 @@ test('signed, verified, sealed and opened', async () => {
   assert.equal(v!.by, await signer.fingerprint());
   assert.equal(await T.verified(u), null);
   // Tampering shows.
-  const tampered = T.link('write', '# Hi\nThere!', { title: 'Note', by: 'writer-agent', created: T.parse(s).env.created });
+  const tampered = T.link('write', '# Hi\n\nThere!', { title: 'Note', by: 'writer-agent', created: T.parse(s).env.created });
   const forged = tampered.replace(/\/[^/]+$/, '/' + s.split('/').pop()!.slice(0, 1) + 'x');
   assert.notEqual((await T.verified(forged)) ?? { ok: true }, { ok: true });
   const sealedU = await T.sealed(u, 'hunter2');
   assert.ok(T.parse(sealedU).sealed);
-  assert.equal((await T.open(sealedU, 'hunter2')).env.body, '# Hi\nThere');
+  assert.equal((await T.open(sealedU, 'hunter2')).env.body, '# Hi\n\nThere');
   await assert.rejects(T.open(sealedU, 'wrong'));
 });
 

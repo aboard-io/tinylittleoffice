@@ -241,7 +241,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
     sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
-    write: '# Memo\nSome *bold* text\n- one\n-- nested\n@@draw/',
+    write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested\n\n```draw\n```',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
     cal: 'd2,2,Offsite',
@@ -259,14 +259,14 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
-    contract: '# Deal\nSam walks the dog.',
+    contract: '# Deal\n\nSam walks the dog.',
     zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
     booklet: 'A book\nby me\n\nOne\nwords',
     brochure: 'Visit\n\nWhy\nbecause',
     comic: 'Biscuit\n\n \n:dog Walk? | Monday',
     poster: ':music\nOpen mic\nFriday 8pm',
     menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
-    resume: '# Ada\n## Experience\n- Wrote a program',
+    resume: '# Ada\n\n## Experience\n\n- Wrote a program',
     badges: 'Ada | Eng\nGrace | Compilers',
     recipes: 'Buns\nflour\n1. Bake',
     flow: '# Model\nvisitors = 100 (0 to 500)\nrate = 10% (0 to 50)\nVisitors > Signups = visitors * rate\nVisitors > Gone = visitors - visitors * rate',
@@ -324,7 +324,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
     sheet: '!bar|td$\nItem\tWhen\tCost\nRent\t2027-03-01\t1200',
-    write: '# Memo\nSome *bold* text\n- one\n-- nested',
+    write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested',
     deck: ':rocket\nLaunch plan\nBuild it\nShip it',
     draw: 'r,2,1,12,6,1b3,Box',
     cal: 'd2,2,Offsite',
@@ -342,14 +342,14 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
-    contract: '# Deal\nSam walks the dog.',
+    contract: '# Deal\n\nSam walks the dog.',
     zine: ':star\nMy zine\nIssue one\n\nInside\nSome words for page two.',
     booklet: 'A book\nby me\n\nOne\nwords',
     brochure: 'Visit\n\nWhy\nbecause',
     comic: 'Biscuit\n\n \n:dog Walk? | Monday',
     poster: ':music\nOpen mic\nFriday 8pm',
     menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
-    resume: '# Ada\n## Experience\n- Wrote a program',
+    resume: '# Ada\n\n## Experience\n\n- Wrote a program',
     badges: 'Ada | Eng\nGrace | Compilers',
     recipes: 'Buns\nflour\n1. Bake',
     flow: '# Model\nvisitors = 100 (0 to 500)\nrate = 10% (0 to 50)\nVisitors > Signups = visitors * rate\nVisitors > Gone = visitors - visitors * rate',
@@ -544,7 +544,7 @@ test('write: "- " and "1. " start lists, Backspace takes a bullet off, quotes ar
   await page.keyboard.press('Enter');
   await page.keyboard.type(`She said "it's 'fine'" today.`);
   await expect(editor.locator('p').last()).toHaveText('She said “it’s ‘fine’” today.');
-  await expect.poll(() => page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body)).toBe('- Milk\n- Eggs\nAfter the list\n+ First\nSecond\nShe said “it’s ‘fine’” today.');
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body)).toBe('- Milk\n- Eggs\n\nAfter the list\n\n1. First\n\nSecond\n\nShe said “it’s ‘fine’” today.');
   // A dash in the middle of a line, or a number with no space after it, is just text.
   await page.keyboard.press('Enter');
   await page.keyboard.type('Pages 1-2 and 3.5 are well-known');

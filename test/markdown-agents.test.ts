@@ -39,7 +39,7 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
     md: '# Meeting notes\n\nWe agreed on **three** things:\n\n1. Ship on Friday\n2. Review pricing\n\n- Ben owns the release\n  - with Cy\n',
     check: (b) => {
       assert.ok(b.startsWith('# Meeting notes\n'));
-      assert.ok(b.includes('*three*') && b.includes('+ Ship on Friday') && b.includes('-- with Cy'));
+      assert.equal(b, '# Meeting notes\n\nWe agreed on **three** things:\n\n1. Ship on Friday\n2. Review pricing\n- Ben owns the release\n  - with Cy');
     },
   },
   outline: {

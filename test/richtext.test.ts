@@ -12,7 +12,7 @@ test('round trip with formatting', () => {
     { k: 'h2', runs: [{ t: 'struck', s: true }] },
   ];
   const s = serializeDoc(doc);
-  assert.equal(s, '# Title\nplain *bold* and *_both*_.\n- item ^one^\n+ step\n\n## ~struck~');
+  assert.equal(s, '# Title\n\nplain **bold** and ***both***.\n\n- item ++one++\n1. step\n\n<br>\n\n## ~~struck~~');
   assert.deepEqual(parseDoc(s), doc);
 });
 
@@ -20,7 +20,10 @@ test('escapes special chars and prefixes', () => {
   const doc: Block[] = [
     { k: 'p', runs: [{ t: '# not a heading' }] },
     { k: 'p', runs: [{ t: '- not a bullet' }] },
-    { k: 'p', runs: [{ t: 'a*b_c^d~e\\f' }] },
+    { k: 'p', runs: [{ t: 'a*b_c^d~e\\f ~~g~~ ==h== ++i++ :rocket: <br>' }] },
+    { k: 'p', runs: [{ t: '<br>' }] },
+    { k: 'p', runs: [{ t: 'Words {.center}' }] },
+    { k: 'p', runs: [{ t: '1. not a list' }] },
   ];
   assert.deepEqual(parseDoc(serializeDoc(doc)), doc);
 });
@@ -41,6 +44,6 @@ test('web addresses in text are links, without being stored as anything but text
   assert.deepEqual(linkify('See https://example.com/a?b=1, then (http://x.org/y). Done'), [{ t: 'See ' }, { t: 'https://example.com/a?b=1', url: 'https://example.com/a?b=1' }, { t: ', then (' }, { t: 'http://x.org/y', url: 'http://x.org/y' }, { t: '). Done' }]);
   assert.deepEqual(linkify('no links here: example.com'), [{ t: 'no links here: example.com' }]);
   assert.deepEqual(linkify(''), []);
-  assert.ok(docToHtml('Read *https://example.com/x* now').includes('<strong><a href="https://example.com/x">https://example.com/x</a></strong> now'));
+  assert.ok(docToHtml('Read **https://example.com/x** now').includes('<strong><a href="https://example.com/x">https://example.com/x</a></strong> now'));
   assert.ok(docToRtf('Read https://example.com/x now').includes('HYPERLINK "https://example.com/x"'));
 });

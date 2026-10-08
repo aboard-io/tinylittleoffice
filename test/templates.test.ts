@@ -68,7 +68,7 @@ test('the plans are Write templates, a section a heading, its questions under it
   const blocks = parseDoc(plan.body);
   assert.deepEqual(blocks.filter((b) => b.k === 'h2').map((b) => b.runs.map((r) => r.t).join('')).slice(0, 3), ['Summary', 'The problem', 'The product']);
   assert.ok(blocks.filter((b) => b.k === 'p').every((b) => b.runs.every((r) => r.i)), 'the prompts are in italics, to be written over');
-  assert.equal(planText('T', 'S', [{ heading: 'H', prompts: ['p'] }]), '# T\n_S_\n## H\n_p_');
+  assert.equal(planText('T', 'S', [{ heading: 'H', prompts: ['p'] }]), '# T\n\n*S*\n\n## H\n\n*p*');
   for (const id of ['mktplan', 'gtm']) assert.ok(TEMPLATES.write.some((t) => t.id === id), id);
 });
 

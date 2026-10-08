@@ -7,7 +7,7 @@
  */
 import { appOf, type AppDef } from '../kit/core.ts';
 import { linkToRef, makeRef, resolve } from '../kit/embed.ts';
-import { linkable, linkTarget, parseDoc, parseInline, serializeDoc, serializeInline, type Block, type Run } from './richtext.ts';
+import { linkable, linkTarget, parseInline, serializeInline, type Run } from './richtext.ts';
 import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
 import { parseGrid, serializeGrid, chartOf, typesOf } from './formula.ts';
 import { parseTodos, serializeTodos } from './todomodel.ts';
@@ -27,105 +27,18 @@ import { FIELDS, MODES, evaluate, inputs, parseCalc, serializeCalc, shown, withD
 
 /* ---------- inline marks ---------- */
 
-/** Runs as Markdown: **bold**, *italic*, ~~strike~~, ==highlight==, <u>underline</u>, :icon:. */
-export function runsToMd(runs: Run[]): string {
-  // Linked words: "[words](address)", their marks inside.
-  if (runs.some((r) => r.href)) {
-    let out = '';
-    for (let i = 0; i < runs.length; ) {
-      const href = runs[i].href;
-      let j = i + 1;
-      while (j < runs.length && runs[j].href === href) j++;
-      const part = runs.slice(i, j).map(({ href: _, ...r }) => r);
-      out += href ? `[${runsToMd(part)}](${linkTarget(href)})` : runsToMd(part);
-      i = j;
-    }
-    return out;
-  }
-  return runs
-    .map((r) => {
-      if (r.ic) return `:${r.ic}:`;
-      let t = r.t.replace(/([*_~=\\`])/g, '\\$1');
-      if (r.b) t = `**${t}**`;
-      if (r.i) t = `*${t}*`;
-      if (r.s) t = `~~${t}~~`;
-      if (r.h) t = `==${t}==`;
-      if (r.u) t = `<u>${t}</u>`;
-      return t;
-    })
-    .join('');
-}
+/** Runs as Markdown: **bold**, *italic*, ~~strike~~, ==highlight==, ++underline++, :icon:, [words](address). The marks are TLO's own. */
+export const runsToMd = (runs: Run[]): string => serializeInline(runs);
 
-/** A line of Markdown as runs: the marks above, links as their words and address, code as plain words. */
+/** A line of Markdown as runs: the marks above (and <u>underline</u>), links as their words and address, code as plain words. */
 export function mdToRuns(line: string): Run[] {
   const text = line
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
     // A link to somewhere a link may go stays one; any other keeps its words and address side by side.
-    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => (t.trim() === u.trim() ? u : linkable(u) ? `[${t}](${linkTarget(u)})` : `${t} ${u}`))
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/<u>(.*?)<\/u>/g, '^$1^')
-    .replace(/~~(.+?)~~/g, '~$1~')
-    .replace(/==(.+?)==/g, '=$1=')
-    .replace(/\*\*(.+?)\*\*/g, '\u0001$1\u0001')
-    .replace(/__(.+?)__/g, '\u0001$1\u0001')
-    .replace(/(^|[\s(])\*(?!\s)(.+?)\*(?=[\s).,;:!?]|$)/g, '$1_$2_')
-    .replace(/\u0001/g, '*');
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => (t.trim() === u.trim() ? u : linkable(u) ? `[${t}](${linkTarget(u)})` : `${t} ${u}`));
   return parseInline(text);
 }
 const mdLine = (line: string) => serializeInline(mdToRuns(line));
-
-/* ---------- a text ---------- */
-
-export function docToMd(body: string): string {
-  const out: string[] = [];
-  const n: number[] = [];
-  for (const b of parseDoc(body)) {
-    const d = b.d ?? 0;
-    if (b.k === 'ol') n[d] = (n[d] ?? 0) + 1;
-    n.length = b.k === 'ol' ? d + 1 : b.k === 'ul' ? Math.min(n.length, d + 1) : 0;
-    const words = runsToMd(b.runs);
-    // (Markdown has one size of top heading: the title is it, and so is a heading.)
-    if (b.k === 'title' || b.k === 'h1') out.push(`# ${words}`, '');
-    else if (b.k === 'h2') out.push(`## ${words}`, '');
-    else if (b.k === 'ul') out.push(`${'  '.repeat(d)}- ${words}`);
-    else if (b.k === 'ol') out.push(`${'  '.repeat(d)}${n[d]}. ${words}`);
-    else if (b.k === 'e') out.push('', `[${resolve(b.ref!).title}](${resolve(b.ref!).hash})`, '');
-    else out.push(words, '');
-  }
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
-}
-
-export function mdToDoc(md: string): string {
-  const blocks: Block[] = [];
-  let para: string[] = [];
-  const flush = () => {
-    if (para.length) blocks.push({ k: 'p', runs: mdToRuns(para.join(' ')) });
-    para = [];
-  };
-  for (const raw of md.split('\n')) {
-    const line = raw.replace(/\s+$/, '');
-    const h = /^(#{1,6})\s+(.*)$/.exec(line);
-    const li = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(line);
-    const ref = linkToRef(line.replace(/^\[.*\]\((.*)\)$/, '$1'));
-    if (!line.trim() || /^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) flush();
-    else if (ref) {
-      flush();
-      blocks.push({ k: 'e', runs: [], ref });
-    } else if (h) {
-      flush();
-      blocks.push({ k: h[1].length === 1 ? 'h1' : 'h2', runs: mdToRuns(h[2]) });
-    } else if (li) {
-      flush();
-      const d = Math.min(3, Math.floor(li[1].replace(/\t/g, '  ').length / 2));
-      const task = /^\[( |x|X)\]\s+(.*)$/.exec(li[3]);
-      const b: Block = { k: /\d/.test(li[2]) ? 'ol' : 'ul', runs: mdToRuns(task ? `${task[1] === ' ' ? '☐ ' : '☑ '}${task[2]}` : li[3]) };
-      if (d) b.d = d;
-      blocks.push(b);
-    } else para.push(line.replace(/^>\s?/, '').trim());
-  }
-  flush();
-  return serializeDoc(blocks);
-}
 
 /* ---------- slides and pages ---------- */
 
@@ -290,8 +203,12 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       const years = Object.keys(v).filter((k) => /^year \d+$/.test(k));
       return head + [...FIELDS[c.mode].map((f) => `- ${f.name}: ${v[f.key]}${f.unit ? ' ' + f.unit : ''}`), ...years.map((k) => `- ${k[0].toUpperCase() + k.slice(1)}: ${v[k]}`)].join('\n') + '\n';
     }
+    // A text (and a contract, a résumé, a code) is Markdown already: its document is its export.
     case 'write':
-      return docToMd(body);
+    case 'contract':
+    case 'resume':
+    case 'qr':
+      return body.trimEnd() + '\n';
     case 'outline': {
       // The kind of line to the parent stays written before the words ("- -> Pricing"); joins follow the list as they are.
       const links = parseLinks(body);
@@ -343,8 +260,6 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       return '```\n' + body + '\n```\n';
     case 'anim':
       return (parseAnim(body).alt ? `> ${parseAnim(body).alt}\n\n` : '') + parseAnim(body).shapes.filter((s) => s.text).map((s) => `- ${s.k === 'i' ? `:${s.text}:` : s.text}`).join('\n') + '\n';
-    case 'qr':
-      return body.trim() + '\n';
     case 'site':
       return siteToMd(body);
   }
@@ -438,8 +353,12 @@ export function fromMarkdown(def: AppDef, md: string): string {
         }),
       });
     }
+    // Read the way each reads Markdown written by hand.
     case 'write':
-      return mdToDoc(text);
+    case 'contract':
+    case 'resume':
+    case 'qr':
+      return def.read!(text);
     case 'outline':
       // Lists nest by indent; headings are top-level items; anything else is an item too.
       // (Read twice: the first time leaves a kind of line written in the words; the second takes it out.)
@@ -520,8 +439,6 @@ export function fromMarkdown(def: AppDef, md: string): string {
       if (quoted(text)) anim.alt = quoted(text);
       return serializeAnim(anim);
     }
-    case 'qr':
-      return items(text)[0] ?? text.split('\n')[0] ?? '';
     case 'site':
       return mdToSite(text);
   }

@@ -182,11 +182,15 @@ Every format is plain text, chosen so deflate has something to chew on.
   date, link `u`, checkbox, rich text. Dates are day counts, so they add and
   subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on
   them.
-- **Write**: one block per line. Prefixes `# ` and `## ` for headings, `- ` and
-  `+ ` for bulleted and numbered items; repeat the marker to nest (`-- `,
-  `--- `). Inline toggles `*bold*`, `_italic_`, `^underline^`, `~strike~`,
-  with `\` as the escape character. `@@<app>/<payload>` is an embedded
-  document.
+- **Write**: Markdown (TLO, `docs/tlo.md`). `# Words {.title}` is the title,
+  `# ` and `## ` headings, `- ` and `1. ` list items nested by two spaces,
+  `{.center}`, `{.right}` or `{.justify}` at the end of a block to align it.
+  Inline `**bold**`, `*italic*`, `++underline++`, `~~strike~~`,
+  `==highlight==`, `:icon:`, `[words](address)`, with `\` as the escape
+  character. An embedded document is a fence named for its app, holding its
+  text; a Markdown table is an embedded sheet. A **contract** is a text
+  followed by its signatures in a `signatures` fence; a **résumé** is a text;
+  a **QR code** is its link or words as a paragraph.
 - **Deck**: slides separated by a blank line. In each slide an optional
   `:icon-name` line, then the headline, then one bullet per line. A layout
   may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
@@ -436,9 +440,9 @@ app a sketch in `scripts/make-icons.mjs`.
 
 ## Documents inside documents
 
-A text or a slide can hold another document. It is stored as
-`@@<app>/<payload>` (the part of a link that is the document) and drawn by
-that app's `view`. In Write, paste a TinyLittleOffice link or use Insert; on a
+A text or a slide can hold another document. It is stored as a fenced block
+named for its app, holding that document's whole text (` ```sheet `), and
+drawn by that app's `view`. In Write, paste a TinyLittleOffice link or use Insert; on a
 slide, use Insert. Either way it is one thing: Edit opens its own editor in a
 dialog, Remove (or Backspace) takes it away. A sheet that asks for a chart is
 shown as the chart.

@@ -99,7 +99,7 @@ test('write: an icon in the line, and marks, alignment and icons come back from 
   expect(doc.querySelector('.ic[data-icon="rocket"] svg')).toBeTruthy();
   expect(last()).toMatch(/^Ship it today\s?:rocket:/);
   // A highlight, centred, with an icon: written as marks in the text, drawn again from them.
-  const back = await mount('write', '>c =Ship it today= :rocket:');
+  const back = await mount('write', '==Ship it today== :rocket: {.center}');
   const page = box<HTMLElement>(back.el, 'Document');
   expect(page.querySelector('mark')!.textContent).toBe('Ship it today');
   expect(page.querySelectorAll('.ic[data-icon="rocket"]')).toHaveLength(1);

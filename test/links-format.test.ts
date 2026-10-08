@@ -8,14 +8,14 @@ import '../src/apps/index.ts';
 import { fullAddress } from '../src/widgets/link-dialog.ts';
 
 test('linked words are read with their marks, and written back the same', () => {
-  const line = 'See [our *big* report](https://ex.com/a_b?x=1) now';
+  const line = 'See [our **big** report](https://ex.com/a_b?x=1) now';
   const runs = parseInline(line);
   assert.deepEqual(runs.map((r) => [r.t, r.href ?? '', !!r.b]), [['See ', '', false], ['our ', 'https://ex.com/a_b?x=1', false], ['big', 'https://ex.com/a_b?x=1', true], [' report', 'https://ex.com/a_b?x=1', false], [' now', '', false]]);
   assert.equal(serializeInline(runs), line);
   assert.equal(plainInline(line), 'See our big report now');
   // Marks around a link stay round it.
-  assert.equal(serializeInline(parseInline(serializeInline(parseInline('*bold [link](https://a.co) more*')))), serializeInline(parseInline('*bold [link](https://a.co) more*')));
-  assert.ok(parseInline('*bold [link](https://a.co) more*').every((r) => r.b));
+  assert.equal(serializeInline(parseInline(serializeInline(parseInline('**bold [link](https://a.co) more**')))), serializeInline(parseInline('**bold [link](https://a.co) more**')));
+  assert.ok(parseInline('**bold [link](https://a.co) more**').every((r) => r.b));
 });
 
 test('only a web, mail or phone address, or a place in the document, is a link; brackets otherwise are words', () => {
@@ -30,14 +30,14 @@ test('only a web, mail or phone address, or a place in the document, is a link; 
 });
 
 test('a document keeps links through its blocks', () => {
-  const doc = '# [Title](https://a.co)\n- an [item](#part)\nPlain https://bare.co too';
+  const doc = '# [Title](https://a.co)\n\n- an [item](#part)\n\nPlain https://bare.co too';
   assert.equal(serializeDoc(parseDoc(doc)), doc);
 });
 
 test('Markdown links come in as links and go out as them; one to nowhere safe keeps its words and address', () => {
   const write = appOf('write')!;
   const body = fromMarkdown(write, 'Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).\n\n- [x](javascript:1)');
-  assert.equal(body, 'Read [our *report*](https://ex.com/r) and [mail](mailto:a@b.co).\n- x javascript:1');
+  assert.equal(body, 'Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).\n\n- \\[x](javascript:1)');
   assert.ok(toMarkdown(write, body).includes('Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).'));
   // A deck's bullets and an outline's items take links the same way.
   const deck = appOf('deck')!;

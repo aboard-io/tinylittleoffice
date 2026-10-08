@@ -26,7 +26,7 @@ test('every app is defined, and download names resolve', () => {
 
 test('file names come from the document title', () => {
   assert.equal(fileName(appOf('deck')!, ':rocket\nLaunch plan — Q3!\none', 'pptx'), 'launch-plan-q3.pptx');
-  assert.equal(fileName(appOf('write')!, '# Café *memo*\nbody', 'rtf'), 'cafe-memo.rtf');
+  assert.equal(fileName(appOf('write')!, '# Café *memo*\n\nbody', 'rtf'), 'cafe-memo.rtf');
   assert.equal(fileName(appOf('deck')!, '', 'pptx'), 'deck.pptx');
   assert.equal(fileName(appOf('cal')!, 'd1,1,x', 'ics'), 'cal.ics');
 });
@@ -35,7 +35,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
   const samples: Record<string, string> = {
     sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
     outline: 'Launch\n  <Product>\n    Pricing',
-    write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
+    write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested\n\n1. first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
     cal: '@America/New_York\nd2,2,Offsite\ntgo,2i,Call',
@@ -117,7 +117,7 @@ test('sheet to xlsx: formulas survive in Excel dialect', () => {
 });
 
 test('write to rtf and html', () => {
-  const body = '# Memo\nPlain *bold _both_* {x} café\n- one\n- two\n+ first\n+ second';
+  const body = '# Memo\n\nPlain **bold *both*** {x} café\n\n- one\n- two\n\n1. first\n2. second';
   const rtf = docToRtf(body);
   assert.ok(rtf.startsWith('{\\rtf1\\ansi'));
   assert.ok(rtf.trimEnd().endsWith('}'));

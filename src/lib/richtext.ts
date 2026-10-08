@@ -48,8 +48,20 @@ export const linkTarget = (url: string) => url.trim().replace(/[\s()]/g, (c) => 
 /** Whether an address may be a link's target at all. */
 export const linkable = (url: string) => /^(?:https?:\/\/[^\s]+|mailto:[^\s]+|tel:[^\s]+|#\S*)$/.test(linkTarget(url));
 
-/** Runs as one line of inline Markdown. */
-export const serializeInline = (runs: Run[]): string => writeInline(runs);
+/**
+ * Runs as one line of inline Markdown. Spaces on their own go with the
+ * words before them: Markdown keeps spaces outside marks, so the marks
+ * close there.
+ */
+export const serializeInline = (runs: Run[]): string =>
+  writeInline(
+    runs.reduce<Run[]>((out, r) => {
+      const last = out[out.length - 1];
+      if (last && !last.ic && !r.ic && !r.t.trim() && last.href === r.href) out[out.length - 1] = { ...last, t: last.t + r.t };
+      else out.push(r);
+      return out;
+    }, []),
+  );
 /** One line of inline Markdown as runs. */
 export const parseInline = (line: string): Run[] => tloInline(line);
 /** The marks as words: what a line says, without them. */
@@ -89,11 +101,17 @@ export function serializeDoc(blocks: Block[]): string {
     const text = serializeInline(blk.runs);
     if (blk.k === 'e') {
       const nl = blk.ref?.indexOf('\n') ?? -1;
-      if (nl > 0) out.push({ k: 'fence', lang: blk.ref!.slice(0, nl), body: blk.ref!.slice(nl + 1) });
+      if (nl < 0) continue;
+      const [lang, body] = [blk.ref!.slice(0, nl), blk.ref!.slice(nl + 1)];
+      // A sheet that is a table and nothing more is written as that table, as it was read.
+      const sheet = lang === 'sheet' ? parseTlo(body) : null;
+      const table = sheet && !Object.keys(sheet.head).length && sheet.blocks.length === 1 && sheet.blocks[0].k === 'table' ? sheet.blocks[0] : null;
+      out.push(table ?? { k: 'fence', lang, body });
     } else if (blk.k === 'title') out.push({ k: 'h', level: 1, text, a: alignAttrs(blk.a, ['title']) });
     else if (blk.k === 'h1' || blk.k === 'h2') out.push({ k: 'h', level: blk.k === 'h1' ? 1 : 2, text, ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
     else if (blk.k === 'ul' || blk.k === 'ol') out.push({ k: 'li', depth: blk.d ?? 0, ...(blk.k === 'ol' ? { ord: true } : {}), text, ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
-    else out.push({ k: 'p', text: text || '<br>', ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
+    // (An empty paragraph is written "<br>"; words that say "<br>" are escaped.)
+    else out.push({ k: 'p', text: text === '<br>' ? '\\<br>' : text || '<br>', ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
   }
   // Trailing empty paragraphs say nothing.
   while (out.length && out[out.length - 1].k === 'p' && (out[out.length - 1] as { text: string }).text === '<br>') out.pop();

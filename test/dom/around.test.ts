@@ -108,7 +108,7 @@ describe('arriving', () => {
   const visitor = { edit: null, open: null } as const;
 
   test('every link opens its editor: a text, a game, a list, a zine, a deck', async () => {
-    await shell({ app: 'write', body: '# Hello\nSee https://example.com for *more*.', title: 'A letter' }, visitor);
+    await shell({ app: 'write', body: '# Hello\n\nSee https://example.com for **more**.', title: 'A letter' }, visitor);
     expect(document.querySelector('to-write [aria-label="Document"]')?.textContent).toContain('See https://example.com');
     expect(document.title).toBe('A letter · TinyLittleOffice');
     for (const [app, body] of [['adventure', '# Cave\n## start\nDark.'], ['todo', '- Book flights'], ['zine', 'Small Joys\nIssue one'], ['deck', 'Hello\none\ntwo']] as const) {

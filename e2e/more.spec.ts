@@ -381,7 +381,7 @@ test('write: highlight and alignment from the toolbar', async ({ page }) => {
   await expect(doc.locator('mark, span[style*="background"]')).toHaveText('Ship it today');
   await page.getByRole('button', { name: 'Centre' }).click();
   await expect(doc.locator('p')).toHaveAttribute('style', /text-align: ?center/);
-  await expect.poll(() => page.evaluate(() => (document.querySelector('to-write') as HTMLElement & { value: string }).value)).toMatch(/^>c =Ship it today=/);
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-write') as HTMLElement & { value: string }).value)).toMatch(/^==Ship it today== \{\.center\}$/);
   await shot(page, 'write-marks');
 });
 

@@ -623,7 +623,7 @@ export class ToWrite extends LitElement {
   private async insertNew(what: string) {
     // The document's own QR code needs no editing: it is whatever the link is.
     if (what === 'qr-self') return void this.insertEmbed(SELF);
-    const el = this.insertEmbed(what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, ''));
+    const el = this.insertEmbed(what === 'chart' ? makeRef('sheet', '---\nchart: bar\n---\n') : makeRef(what, ''));
     if (el) await this.editEmbed(el);
   }
 
