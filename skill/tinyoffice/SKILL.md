@@ -149,7 +149,7 @@ https://tinylittleoffice.com/todo/#title=Trip+prep&doc=-+%402027-03-01+Renew+pas
 
 ### cal: a calendar
 
-One span per line: a date and a label (`2027-03-01 Offsite`), a range (`2027-03-01 to 2027-03-03 Offsite`), or a time (`2027-03-01 09:00-10:30 Call`). An optional first line `@Europe/London` gives the time zone for times.
+One span per line: a date and a label (`2027-03-01 Offsite`), a range (`2027-03-01 to 2027-03-03 Offsite`), or a time (`2027-03-01 09:00-10:30 Call`). An optional first line `@Europe/London` gives the time zone for times. A span repeats when its label ends with `every day`, `every week`, `every month` or `every year`, for ever unless that ends with `12 times` or `until 2027-06-01` (`2027-03-01 09:00-09:15 Standup every week, 12 times`).
 
 https://tinylittleoffice.com/cal/#title=March&doc=2027-03-01+to+2027-03-03+Offsite%0A2027-03-08+Launch+day%0A2027-03-10+09%3A00-10%3A30+Retro
 
