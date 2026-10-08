@@ -1,12 +1,11 @@
 /** Site: a website of little pages from a few lines of text, downloaded as one HTML file. */
-import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, type PageOpts } from '../lib/diagram.ts';
-import { pageScript, pageSvg, slug, xml } from '../kit/core.ts';
+import { listPage, pageScript, pageSvg, slug, xml } from '../kit/core.ts';
 import { refPage, resolve } from '../kit/embed.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { iconOf } from '../lib/drawmodel.ts';
+import { parseInline, plain } from '../lib/tlo.ts';
 import { linkify } from '../lib/richtext.ts';
-import { parseSite, readSite, type Color, type Section, type Theme } from '../lib/sitemodel.ts';
+import { FORM, parseSite, readSite, safeUrl, siteOutline, type Card, type Color, type Section, type Theme } from '../lib/sitemodel.ts';
 
 export { parseSite } from '../lib/sitemodel.ts';
 
@@ -51,8 +50,18 @@ was=page;}
 window.addEventListener('hashchange',show);show();
 })();`);
 
-const prose = (t: string) => linkify(t).map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t))).join('');
 const icon = (name: string, size: number, cls = '') => (ICON_SVG[name] ? `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : '');
+const MARKS = [['b', 'strong'], ['i', 'em'], ['u', 'u'], ['s', 's'], ['h', 'mark']] as const;
+/** Words as written, inline Markdown and all: their marks, their links (a bare web address too), their icons. */
+const prose = (t: string) =>
+  parseInline(t)
+    .map((r) => {
+      if (r.ic) return icon(r.ic, 20);
+      let h = r.href ? xml(r.t) : linkify(r.t).map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t))).join('');
+      for (const [f, tag] of MARKS) if (r[f]) h = `<${tag}>${h}</${tag}>`;
+      return r.href ? `<a href="${xml(safeUrl(r.href))}">${h}</a>` : h;
+    })
+    .join('');
 
 function page(text: string, { base = '' }: PageOpts = {}): string {
   const site = parseSite(text);
@@ -70,12 +79,8 @@ function page(text: string, { base = '' }: PageOpts = {}): string {
   const pageIds = site.pages.map((p, i) => (i ? idFor(p.title, `page-${i + 1}`) : 'home'));
   const sectionIds = site.pages.map((p) => p.sections.map((s, j) => (j ? idFor(s.title, 'section') : '')));
 
-  // A point may start with an icon (":rocket Fast") and be "Heading | detail".
-  const card = (p: string) => {
-    const [ic, words] = iconOf(p);
-    const [head, detail] = words.split(' | ');
-    return `<li>${icon(ic, 28)}<strong>${xml(head)}</strong>${detail ? `<span>${prose(detail)}</span>` : ''}</li>`;
-  };
+  // A card may have an icon, and a detail under its heading.
+  const card = (c: Card) => `<li>${icon(c.icon, 28)}<strong>${prose(c.head)}</strong>${c.detail ? `<span>${prose(c.detail)}</span>` : ''}</li>`;
   const cards = (s: Section) => (s.points.length ? `<ul class="cards">${s.points.map(card).join('')}</ul>` : '');
   // Three or more buttons on a page's front are the page: stacked, as a link-in-bio page is.
   const buttons = (s: Section, front: boolean) => {
@@ -106,7 +111,7 @@ ${rest.map((s, j) => `<section class="part" id="${sectionIds[i][j + 1]}"><div cl
   const front = site.pages[0].sections[0];
   return htmlPage(
     name,
-    front.text[0] ?? name,
+    front.text[0] ? plain(front.text[0]) : name,
     `${look(site.theme)}
 body{background:var(--bg);color:var(--ink)}a{color:var(--deep)}.btn{background:var(--a);color:var(--on)}.btn.quiet{background:var(--tint);color:var(--deep)}
 header{position:sticky;top:0;z-index:2;background:var(--glass);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
@@ -132,21 +137,18 @@ ${ROUTER}`,
 }
 
 export const spec = {
-  form: [
-    { name: 'Name', is: '# {Name}', once: true },
-    { name: 'Theme', is: 'theme: {Colour:choice=indigo,teal,rose,amber,ink}[ {Type:choice=sans,serif}][ {Mode:choice=light,dark}]', once: true },
-    { name: 'Page', is: '=== {Title}', head: true },
-    { name: 'Section', is: '## {Section}', head: true },
-    { name: 'Card', is: '- [:{Picture:icon} ]{Heading}[ | {Detail}]' },
-    { name: 'Button', is: '> [:{Picture:icon} ]{Label} | {Link}' },
-    { name: 'Document', is: '@@{Link}' },
-    { name: 'Paragraph', is: '{Text:long}' },
-  ] as LineKind[],
-  hint: '"# Name" and a line about it; "=== Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon" first for an icon); "> Label | https://..." a button; "theme: teal serif dark" the look.',
+  form: FORM,
+  hint: '"# Name" and a line about it; each further "# Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon:" first for an icon); "> Label | https://..." a button; "theme: teal serif dark" the look.',
   example:
-    '# Harbor Coffee\nSmall-batch coffee, roasted on the quay every morning.\ntheme: amber serif\n> See the menu | #menu\n> Find us | #find-us\n- :coffee Roasted daily | Never more than a week old\n- :leaf Fair trade | Bought direct from six farms\n- :bike Delivered | By bike, across the old town\n=== Menu\nEspresso, filter, and a pastry case that empties by ten.\n## Coffee\n- Espresso | 3.00\n- Flat white | 4.20\n## Pastry\n- Cardamom bun | 3.50\n=== Find us\n14 Quay Street, open 7 to 3, every day but Monday.\n> Email us | mailto:hello@example.com',
+    'theme: amber serif\n\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Bought direct from six farms\n- :bike: Delivered | By bike, across the old town\n\n# Menu\n\nEspresso, filter, and a pastry case that empties by ten.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com',
   page,
 };
+
+/** The site's lines as a picture: its name over them, one more at each step of a slide. */
+function view(body: string, step?: number, w?: number) {
+  const name = parseSite(body).name;
+  return listPage(name || 'Website', siteOutline(body).slice(name ? 1 : 0, (name ? 1 : 0) + (step ?? 40)), w);
+}
 
 export default definePage(
   {
@@ -156,6 +158,9 @@ export default definePage(
     group: 'Create',
     blurb: 'A website of little pages, written as a few lines and downloaded as a single HTML file. Good for a link in bio.',
     title: (body) => parseSite(body).name,
+    outline: (body) => siteOutline(body).slice(0, 14),
+    view: (body, opts = {}) => [view(body, opts.step, opts.w)],
+    steps: (body) => Math.min(40, siteOutline(body).length - (parseSite(body).name ? 1 : 0)),
     read: readSite,
   },
   spec,

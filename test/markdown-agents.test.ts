@@ -9,6 +9,8 @@ import { parseGrid, evaluateGrid, typesOf } from '../src/lib/formula.ts';
 import { parseDeck } from '../src/lib/deckmodel.ts';
 import { parseTodos } from '../src/lib/todomodel.ts';
 import { parseCalendar } from '../src/lib/calmodel.ts';
+import { parseSite } from '../src/lib/sitemodel.ts';
+import { parseInvoice } from '../src/apps/invoice.def.ts';
 
 /** Markdown the way a model writes it for each app, and what must come of it. */
 const AGENT: Record<string, { md: string; check(body: string): void }> = {
@@ -61,6 +63,26 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
       assert.equal(spans.length, 2);
       assert.deepEqual(spans.map((s) => s.label), ['Offsite', 'Launch day']);
       assert.equal(spans[0].dur, 3);
+    },
+  },
+  invoice: {
+    md: '# Invoice 0042\n\n**From:** Harbor Studio\n**To:** Acme Ltd\n**Number:** 0042\n**Tax:** 8%\n\n| Description | Quantity | Rate | Amount |\n|---|---|---|---|\n| Design | 12 hours | $150 | $1,800 |\n| Hosting | 1 | $480 | $480 |\n\nThank you for your business.\n',
+    check: (b) => {
+      const inv = parseInvoice(b);
+      assert.deepEqual([inv.fields.from, inv.fields.number, inv.fields.tax], ['Harbor Studio', '0042', '8%']);
+      assert.deepEqual(inv.items.map((i) => [i.what, i.qty, i.unit, i.price]), [['Design', 12, 'hours', 150], ['Hosting', 1, '', 480]]);
+      assert.equal(inv.money(inv.total), '$2,462.40');
+      assert.deepEqual(inv.notes, ['Thank you for your business.']);
+    },
+  },
+  site: {
+    md: '# Ada Diaz\n\nPotter in Lisbon.\n\n[Shop](https://example.com/shop)\n[Instagram](https://instagram.com/ada)\n\n## Work\n\n- **Mugs** | Thrown by hand\n\n---\n\n# About\n\nTwenty years at the wheel.\n',
+    check: (b) => {
+      const site = parseSite(b);
+      assert.equal(site.name, 'Ada Diaz');
+      assert.deepEqual(site.pages.map((p) => p.title), ['', 'About']);
+      assert.deepEqual(site.pages[0].sections[0].buttons.map((x) => x.url), ['https://example.com/shop', 'https://instagram.com/ada']);
+      assert.deepEqual(site.pages[0].sections[1].points, [{ icon: '', head: '**Mugs**', detail: 'Thrown by hand' }]);
     },
   },
 };

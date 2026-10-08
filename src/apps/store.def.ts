@@ -1,7 +1,8 @@
 /** Store: a shop window and a cart, from a list of products. */
-import type { Kind as LineKind } from '../lib/lines.ts';
+import { readLines, writeLines, type Kind as LineKind, type Row } from '../lib/lines.ts';
+import { column, parse as parseTlo } from '../lib/tlo.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
-import { pageScript, xml } from '../kit/core.ts';
+import { listPage, pageScript, xml } from '../kit/core.ts';
 
 interface Store {
   name: string;
@@ -12,20 +13,56 @@ interface Store {
   products: { name: string; price: number; about: string; image: string }[];
 }
 
-/** "# Name", a line about it, "currency: $", "orders: you@example.com", then products: "Name | 12.50 | about | image address". */
+const FORM: LineKind[] = [
+  { name: 'Name', is: '# {Name}', once: true },
+  { name: 'Currency', is: 'currency: {Symbol}', once: true },
+  { name: 'Orders go to', is: 'orders: {Email}', once: true },
+  { name: 'Product', is: '{Name} | {Price:number} | {About} | {Image}', table: true },
+  { name: 'About the shop', is: '{Text}' },
+];
+const PRODUCT = 3;
+
+/** "# Name", a line about it, "currency: $", "orders: you@example.com", then the products, a table "Name | Price | About | Image". */
 export function parseStore(text: string): Store {
   const store: Store = { name: '', about: [], currency: '$', orders: '', products: [] };
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    if (!line) continue;
-    const set = /^(currency|orders)\s*:\s*(.*)$/i.exec(line);
-    const parts = line.split('|').map((p) => p.trim());
-    if (line.startsWith('# ') && !store.name) store.name = line.slice(2).trim();
-    else if (set) store[set[1].toLowerCase() as 'currency' | 'orders'] = set[2].trim();
-    else if (parts.length >= 2 && /^\d+(\.\d+)?$/.test(parts[1])) store.products.push({ name: parts[0].replace(/^[-*]\s+/, ''), price: parseFloat(parts[1]), about: parts[2] ?? '', image: /^https?:\/\//.test(parts[3] ?? '') ? parts[3] : '' });
-    else store.about.push(line);
+  for (const { kind, values: [a = '', b = '', c = '', d = ''] } of readLines(text, FORM)) {
+    if (kind === 0) store.name = a;
+    else if (kind === 1) store.currency = a || '$';
+    else if (kind === 2) store.orders = a;
+    else if (kind === PRODUCT) store.products.push({ name: a, price: parseFloat(b.replace(/[^0-9.-]/g, '')) || 0, about: c, image: /^https?:\/\//.test(d) ? d : '' });
+    else store.about.push(a);
   }
   return store;
+}
+
+/**
+ * A shop as a person or a model writes it, made canonical: "currency" and
+ * "orders" from a header, or as lines; the products as a table whose
+ * columns may be named otherwise ("Product", "Cost", "Description",
+ * "Picture") or come in another order, or as lines (a list, say) of
+ * "Name | 12.50 | about | image address".
+ */
+export function readStore(text: string): string {
+  const doc = parseTlo(text);
+  const rows: Row[] = [];
+  const product = (cells: string[]) => rows.push({ kind: PRODUCT, values: [0, 1, 2, 3].map((i) => (cells[i] ?? '').trim()), depth: 0 });
+  const line = (l: string) => {
+    const cells = l.split('|').map((p) => p.trim());
+    if (cells.length >= 2 && /^\D?\d+(\.\d+)?$/.test(cells[1])) product(cells);
+    else if (l.trim()) rows.push(readLines(l, FORM)[0]);
+  };
+  for (const [k, v] of Object.entries(doc.head)) if (k === 'currency' || k === 'orders') line(`${k}: ${v}`);
+  for (const b of doc.blocks) {
+    if (b.k === 'h' && !rows.some((r) => r.kind === 0)) rows.push({ kind: 0, values: [b.text], depth: 0 });
+    else if (b.k === 'p' || b.k === 'quote') b.text.split('\n').forEach(line);
+    else if (b.k === 'li') line(b.text);
+    else if (b.k === 'table') {
+      const names = b.head.map((h) => column(h).name.toLowerCase());
+      const at = [/^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|description|details?)$/, /^(image|picture|photo)$/].map((re) => names.findIndex((n) => re.test(n)));
+      for (const r of b.rows) product(at.some((i) => i >= 0) ? at.map((i) => r[i] ?? '') : r);
+    }
+  }
+  return writeLines(rows, FORM);
 }
 
 // The cart, in the page itself: no server, nothing stored beyond the visit. Orders go by email, or are copied.
@@ -100,16 +137,31 @@ ${SCRIPT}`,
 }
 
 export const spec = {
-  form: [
-    { name: 'Name', is: '# {Name}', once: true },
-    { name: 'Currency', is: 'currency: {Symbol}', once: true },
-    { name: 'Orders go to', is: 'orders: {Email}', once: true },
-    { name: 'Product', is: '{Name} | {Price}[ | {About}[ | {Picture address}]]' },
-    { name: 'About the shop', is: '{Text}' },
-  ] as LineKind[],
-  hint: '"# Name" and a line about it; a product per line: "Name | price | about | image address". "currency: £" and "orders: you@example.com" set those.',
-  example: '# Harbor Coffee Shop\nBeans and things, posted on Fridays.\ncurrency: $\norders: orders@example.com\nHouse blend, 250g | 12.50 | Chocolate and orange. Good for anything.\nQuay espresso, 250g | 14.00 | Dark, syrupy, made for milk.\nFilter papers | 4.00 | A hundred, unbleached.\nTin mug | 9.00 | Enamel. Survives the boat.',
+  form: FORM,
+  hint: '"# Name" and a line about it; the products a table, "Name | Price | About | Image" (an image\'s address). "currency: £" and "orders: you@example.com" set those.',
+  example:
+    '# Harbor Coffee Shop\n\nBeans and things, posted on Fridays.\ncurrency: $\norders: orders@example.com\n\nName | Price:number | About | Image\n--- | --- | --- | ---\nHouse blend, 250g | 12.50 | Chocolate and orange. Good for anything. | \nQuay espresso, 250g | 14.00 | Dark, syrupy, made for milk. | \nFilter papers | 4.00 | A hundred, unbleached. | \nTin mug | 9.00 | Enamel. Survives the boat. |',
   page,
 };
 
-export default definePage({ id: 'store', name: 'Store', icon: 'store', group: 'Create', blurb: 'A shop page with a working cart, from a list of products. Orders go by email.', title: (body) => parseStore(body).name }, spec);
+/** The shop as words: its name, what it says about itself, and its products with their prices. */
+const outline = (body: string) => {
+  const s = parseStore(body);
+  return [s.name, ...s.about, ...s.products.map((p) => `${p.name}  ·  ${s.currency}${p.price.toFixed(2)}`)].filter(Boolean);
+};
+
+export default definePage(
+  {
+    id: 'store',
+    name: 'Store',
+    icon: 'store',
+    group: 'Create',
+    blurb: 'A shop page with a working cart, from a list of products. Orders go by email.',
+    title: (body) => parseStore(body).name,
+    outline: (body) => outline(body).slice(0, 14),
+    view: (body, opts = {}) => [listPage(parseStore(body).name || 'Store', outline(body).slice(parseStore(body).name ? 1 : 0).slice(0, opts.step ?? 40), opts.w)],
+    steps: (body) => parseStore(body).products.length,
+    read: readStore,
+  },
+  spec,
+);

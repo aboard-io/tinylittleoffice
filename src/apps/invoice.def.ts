@@ -1,5 +1,6 @@
 /** Invoice: who, what, how much; the sums done for you. */
-import { kindsOf, readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { readLines, writeLines, type Kind as LineKind, type Row } from '../lib/lines.ts';
+import { column, parse as parseTlo } from '../lib/tlo.ts';
 import { definePage, htmlPage, type PageOpts } from '../lib/diagram.ts';
 import { xml, text, rect, clip, wrapText, pageScript, ACCENT, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
 
@@ -8,7 +9,7 @@ export interface Invoice {
   /** A line: what was done, how many (and of what: hours, days, units; '' for none), at what price each. */
   items: { what: string; qty: number; unit: string; price: number }[];
   notes: string[];
-  /** The row of the text (blank lines not counted) each was read from: a field by its name, the items and the notes in order. */
+  /** The row of the form (lib/lines.ts) each was read from: a field by its name, the items and the notes in order. */
   rows: { fields: Record<string, number>; items: number[]; notes: number[] };
   subtotal: number;
   tax: number;
@@ -16,34 +17,91 @@ export interface Invoice {
   money(n: number): string;
 }
 
+/** The settings, each a line of its own at the top ("From: Harbor Studio | 14 Quay Street", "Tax: 8%"); the items, a table; the notes. */
+const FORM: LineKind[] = [
+  { name: 'From', is: 'From: {Who it is from}', once: true },
+  { name: 'To', is: 'To: {Who it is for}', once: true },
+  { name: 'Number', is: 'Number: {Number}', once: true },
+  { name: 'Date', is: 'Date: {Date:date}', once: true },
+  { name: 'Due', is: 'Due: {Due:date}', once: true },
+  { name: 'Tax', is: 'Tax: {Rate}', once: true },
+  { name: 'Currency', is: 'Currency: {Symbol}', once: true },
+  { name: 'Terms', is: 'Terms: {Terms}', once: true },
+  { name: 'Item', is: '{What} | {Qty:number} | {Units} | {Price:number}', table: true },
+  { name: 'Note', is: '{Note}' },
+];
+const ITEM = FORM.findIndex((k) => k.name === 'Item');
+
+const num = (s: string) => parseFloat(s.replace(/[^0-9.-]/g, ''));
+
 /**
- * "From: ...", "To: ...", "Number: ...", "Date: ...", "Due: ...", "Tax: 8%",
- * "Currency: $" as headings; lines "what, quantity, price" as items, the
- * quantity perhaps with its units ("Design, 12 hours, 150"; a line "what,
- * price" is one of them); anything else is a note at the foot.
+ * The settings as lines ("From: ...", "Tax: 8%"); the items as a table,
+ * "What | Qty | Units | Price"; anything else is a note at the foot.
  */
 export function parseInvoice(body: string): Invoice {
   const fields: Record<string, string> = {};
   const items: Invoice['items'] = [];
   const notes: string[] = [];
   const rows: Invoice['rows'] = { fields: {}, items: [], notes: [] };
-  let row = 0;
-  for (const raw of body.split('\n')) {
-    const line = raw.trim();
-    if (!line) continue;
-    const at = row++;
-    const field = /^(from|to|number|date|due|tax|currency|terms)\s*:\s*(.*)$/i.exec(line);
-    const parts = line.split(',').map((p) => p.trim());
-    const nums = parts.slice(-2).map((p) => parseFloat(p.replace(/[^0-9.-]/g, '')));
-    if (field) (fields[field[1].toLowerCase()] = field[2]), (rows.fields[field[1].toLowerCase()] = at);
-    else if (parts.length >= 3 && nums.every((n) => !isNaN(n))) items.push({ what: parts.slice(0, -2).join(', '), qty: nums[0], unit: /^[-\d.,]+\s+(.+)$/.exec(parts[parts.length - 2])?.[1] ?? '', price: nums[1] }), rows.items.push(at);
-    else if (parts.length === 2 && !isNaN(nums[1]) && /\d/.test(parts[1])) items.push({ what: parts[0], qty: 1, unit: '', price: nums[1] }), rows.items.push(at);
-    else notes.push(line.replace(/^notes?\s*:\s*/i, '')), rows.notes.push(at);
-  }
+  readLines(body, FORM).forEach((r, at) => {
+    const [a = '', b = '', c = '', d = ''] = r.values;
+    if (r.kind < ITEM) (fields[FORM[r.kind].name.toLowerCase()] = a), (rows.fields[FORM[r.kind].name.toLowerCase()] = at);
+    else if (r.kind === ITEM) items.push({ what: a, qty: b.trim() ? num(b) || 0 : 1, unit: c, price: num(d) || 0 }), rows.items.push(at);
+    else notes.push(a), rows.notes.push(at);
+  });
   const currency = fields.currency || '$';
   const subtotal = items.reduce((a, i) => a + i.qty * i.price, 0);
   const tax = (subtotal * (parseFloat(fields.tax ?? '0') || 0)) / 100;
   return { fields, items, notes, rows, subtotal, tax, total: subtotal + tax, money: (n) => (n < 0 ? '-' : '') + currency + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) };
+}
+
+/**
+ * An invoice as a person or a model writes it, made canonical: the
+ * settings from a header ("from: ...") or as lines ("**Tax:** 8%" too); the
+ * items as a table whose columns may be named otherwise ("Description",
+ * "Quantity", "Rate") or come in another order, or, where there is no
+ * table, as lines "what, quantity, price", the quantity perhaps with its
+ * units ("Design, 12 hours, 150"), or "what, price" for one of something.
+ */
+export function readInvoice(text: string): string {
+  const doc = parseTlo(text);
+  const rows: Row[] = [];
+  const setting = (key: string, value: string) => {
+    const kind = FORM.findIndex((k) => k.once && k.name.toLowerCase() === key.toLowerCase());
+    if (kind >= 0) rows.push({ kind, values: [value.trim()], depth: 0 });
+    return kind >= 0;
+  };
+  // A quantity may carry its units ("12 hours"); a price, its currency ("$150"), which is the invoice's to say.
+  const item = (what: string, qty: string, units: string, price: string) => {
+    const m = /^(-?[\d.,]*\d)\s+(\S.*)$/.exec(qty.trim());
+    rows.push({ kind: ITEM, values: [what.trim(), m ? m[1] : qty.trim(), units.trim() || (m?.[2] ?? ''), price.trim().replace(/^[^\d.-]+/, '')], depth: 0 });
+  };
+  const tabled = doc.blocks.some((b) => b.k === 'table');
+  const line = (l: string) => {
+    const set = /^\**\s*(\w+)\s*:\s*\**\s*(.*)$/.exec(l);
+    if (set && setting(set[1], set[2])) return;
+    const parts = l.split(',').map((p) => p.trim());
+    const [q, p] = parts.slice(-2);
+    if (!tabled && parts.length >= 3 && !isNaN(num(q)) && !isNaN(num(p))) item(parts.slice(0, -2).join(', '), q, '', p);
+    else if (!tabled && parts.length === 2 && !isNaN(num(p))) item(parts[0], '1', '', p);
+    else if (l.trim()) rows.push({ kind: FORM.length - 1, values: [l.trim().replace(/^notes?\s*:\s*/i, '')], depth: 0 });
+  };
+  for (const [k, v] of Object.entries(doc.head)) setting(k, v);
+  for (const b of doc.blocks) {
+    if (b.k === 'p' || b.k === 'quote') b.text.split('\n').forEach(line);
+    else if (b.k === 'li') line(b.text);
+    else if (b.k === 'table') {
+      const names = b.head.map((h) => column(h).name.toLowerCase());
+      const find = (re: RegExp) => names.findIndex((n) => re.test(n));
+      let [w, q, u, p] = [find(/^(what|description|item|service|task|work)$/), find(/^(qty|quantity|hours|days|count)$/), find(/^units?$/), find(/^(price|rate|cost|unit price|each)$/)];
+      // Columns named nothing we know are taken in order: what, then the quantity, the units and the price, as there are columns for them.
+      if (w < 0 && q < 0 && p < 0) [w, q, u, p] = names.length >= 4 ? [0, 1, 2, 3] : names.length === 3 ? [0, 1, -1, 2] : [0, -1, -1, 1];
+      if (w < 0) w = names.findIndex((_, i) => ![q, u, p].includes(i));
+      for (const r of b.rows) item(r[w] ?? '', q >= 0 ? r[q] : '1', u >= 0 ? r[u] : '', p >= 0 ? r[p] : '');
+    }
+  }
+  // The settings at the top, as the editor puts them; then the items, one table; then the notes.
+  return writeLines(rows.sort((a, b) => Math.sign(a.kind - ITEM) - Math.sign(b.kind - ITEM)), FORM);
 }
 
 /**
@@ -108,7 +166,7 @@ function page(body: string, { edit = false }: PageOpts = {}): string {
   const inv = parseInvoice(body);
   const f = inv.fields;
   const lines = (v: string | undefined) => (v ?? '').split(' | ').map((l, i) => (i ? xml(l) : `<strong>${xml(l)}</strong>`)).join('<br>');
-  const kind = (name: string) => spec.form.findIndex((k) => k.name === name);
+  const kind = (name: string) => FORM.findIndex((k) => k.name === name);
   const box = (lf: string, value: string, hint: string, label: string, more = '') => `<span data-lf="${lf}" data-hint="${xml(hint)}" aria-label="${xml(label)}"${more}>${xml(value)}</span>`;
   // A field of its own row, or of the row typing into it will make.
   const at = (name: string, label: string) => (inv.rows.fields[name] === undefined ? `+${kind(label)}` : String(inv.rows.fields[name]));
@@ -120,14 +178,12 @@ function page(body: string, { edit = false }: PageOpts = {}): string {
     const parts = f[name] ? f[name].split(' | ') : [];
     return Array.from({ length: Math.max(2, parts.length + 1) }, (_, i) => (i ? '' : '<strong>') + box(`${at(name, label)},0,${i}`, parts[i] ?? '', hints[i] ?? 'Another line', `${label}, line ${i + 1}`, ' data-lf-join=" | "') + (i ? '' : '</strong>')).join('');
   };
-  const read = edit ? readLines(body, spec.form) : [];
+  const read = edit ? readLines(body, FORM) : [];
   const item = (i: Invoice['items'][number], n: number) => {
     const r = inv.rows.items[n];
-    const k = kindsOf(spec.form).kinds[read[r].kind].name;
-    const item = k === 'Item';
-    const price = item ? 3 : k === 'Single item' ? 1 : -1;
-    const cell = (field: number, value: string, what: string, hint = '') => (field < 0 ? xml(value) : box(`${r},${field}`, read[r].values[field] ?? value, hint, `${what}, row ${r + 1}`, ` data-inv="${what.toLowerCase()}"`));
-    return `<tr data-inv="item"><td>${box(`${r},0`, i.what, 'What was done', `What, row ${r + 1}`)}</td><td class="n">${cell(item ? 1 : -1, String(i.qty), 'Qty')}</td><td class="u">${item ? cell(2, i.unit, 'Units', 'hours') : ''}</td><td class="n">${cell(price, String(i.price), 'Price')}</td><td class="n" data-inv="amount">${inv.money(i.qty * i.price)}</td><td class="x"><button type="button" data-lf-remove="${r}" aria-label="Remove the line ${xml(i.what || 'with no description')}" title="Remove this line">\u2715</button></td></tr>`;
+    // Each field as it is written: the quantity and price as typed, not as summed.
+    const cell = (field: number, what: string, hint = '') => box(`${r},${field}`, read[r].values[field] ?? '', hint, `${what}, row ${r + 1}`, ` data-inv="${what.toLowerCase()}"`);
+    return `<tr data-inv="item"><td>${box(`${r},0`, i.what, 'What was done', `What, row ${r + 1}`)}</td><td class="n">${cell(1, 'Qty')}</td><td class="u">${cell(2, 'Units', 'hours')}</td><td class="n">${cell(3, 'Price')}</td><td class="n" data-inv="amount">${inv.money(i.qty * i.price)}</td><td class="x"><button type="button" data-lf-remove="${r}" aria-label="Remove the line ${xml(i.what || 'with no description')}" title="Remove this line">\u2715</button></td></tr>`;
   };
   const after = Math.max(-1, ...inv.rows.items, ...Object.values(inv.rows.fields));
   return htmlPage(
@@ -173,22 +229,11 @@ ${inv.notes.length ? `<div class="notes">${inv.notes.map((n) => `<p>${xml(n)}</p
 }
 
 export const spec = {
-  form: [
-    { name: 'From', is: 'From: {Who it is from}', once: true },
-    { name: 'To', is: 'To: {Who it is for}', once: true },
-    { name: 'Number', is: 'Number: {Number}', once: true },
-    { name: 'Date', is: 'Date: {Date:date}', once: true },
-    { name: 'Due', is: 'Due: {Due:date}', once: true },
-    { name: 'Tax', is: 'Tax: {Rate}', once: true },
-    { name: 'Currency', is: 'Currency: {Symbol}', once: true },
-    { name: 'Terms', is: 'Terms: {Terms}', once: true },
-    { name: 'Item', is: '{What}, {Quantity:number}[ {Units}], {Price:number}' },
-    { name: 'Single item', is: '{What}, {Price:number}' },
-    { name: 'Note', is: '{Note}' },
-  ] satisfies LineKind[],
-  hint: 'Headings: "From:", "To:", "Number:", "Date:", "Due:", "Tax: 8%", "Currency: £" (use " | " for a second line). Then an item per line: "what, quantity, price", the quantity with its units if it has any ("Design, 12 hours, 150").',
+  form: FORM,
+  hint: 'Settings first, a line each: "From:", "To:", "Number:", "Date:", "Due:", "Tax: 8%", "Currency: £" (" | " for a second line). Then the items, a table "What | Qty | Units | Price". Anything else is a note at the foot.',
   blankRows: true,
-  example: 'From: Harbor Studio | 14 Quay Street\nTo: Acme Ltd | Accounts payable\nNumber: 0042\nDate: 2027-03-01\nDue: 2027-03-31\nTax: 8%\nDesign, 12 hours, 150\nBuild, 20 hours, 140\nHosting for a year, 480\nThank you. Payment by bank transfer.',
+  example:
+    'From: Harbor Studio | 14 Quay Street\nTo: Acme Ltd | Accounts payable\nNumber: 0042\nDate: 2027-03-01\nDue: 2027-03-31\nTax: 8%\n\nWhat | Qty:number | Units | Price:number\n--- | --- | --- | ---\nDesign | 12 | hours | 150\nBuild | 20 | hours | 140\nHosting for a year | 1 |  | 480\n\nThank you. Payment by bank transfer.',
   page,
 };
 
@@ -207,6 +252,7 @@ export default definePage(
     view: (body, opts = {}) => [sheet(body, opts.step)],
     // On a slide, the lines of the invoice arrive one at a time, then the total.
     steps: (body) => parseInvoice(body).items.length,
+    read: readInvoice,
   },
   spec,
 );

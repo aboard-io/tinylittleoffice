@@ -197,13 +197,12 @@ Every format is plain text, chosen so deflate has something to chew on.
   rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
   may carry a colour letter and a text size digit after it (`1b3`).
   Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
-- **Website**: `# Name` and a line about it, `=== Title` for each further
-  page, `## Section` within a page, `- Point | detail` cards, `> Label | url`
-  buttons, `@@app/payload` for another document on the page, `theme: amber
-  serif dark` for the look. A line that is only a picture's address is a
-  picture. The home page is what comes before the first `===`; a site with
-  no `===` is one page navigated by its sections. `docs/website.md` is the
-  design.
+- **Website** (TLO): `# Name` and a line about it, a further `# Title` for
+  each further page, `## Section` within a page, `- Point | detail` cards,
+  `> Label | url` buttons, a fenced document for another document on the
+  page, `theme: amber serif dark` for the look. A line that is only a
+  picture's address is a picture. The home page is what comes before the
+  second `#`; a site with one is one page navigated by its sections.
 - **Calendar**: an optional `@Zone/Name` line (the zone the document was last
   edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
   span whose start is a day count from 2020-01-01: a floating civil date, the

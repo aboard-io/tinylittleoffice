@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { shot } from './helpers.ts';
 
-const TWO = '# Harbor Coffee\nRoasted on the quay.\ntheme: teal\n> Menu | #menu\n> Coffee | #coffee\n- :coffee Daily | Fresh\n=== Menu\nEspresso and buns.\n## Coffee\n- Espresso | 3.00';
+const TWO = 'theme: teal\n\n# Harbor Coffee\n\nRoasted on the quay.\n\n> Menu | #menu\n> Coffee | #coffee\n\n- :coffee: Daily | Fresh\n\n# Menu\n\nEspresso and buns.\n\n## Coffee\n\n- Espresso | 3.00';
 
 // The page's own script switches its pages, which only a real browser runs. (The editor's side, the pages added,
 // moved and taken away, and the download are in test/dom/pages.test.ts.)

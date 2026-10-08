@@ -22,7 +22,6 @@ import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
 import { dayToYmd, ymdString, ymdToDay, utcToParts, pad2 } from './tz.ts';
 import { formatOf, parseFold, serializeFold } from './fold.ts';
-import { mdToSite, siteToMd } from './sitemodel.ts';
 import { FIELDS, MODES, evaluate, inputs, parseCalc, serializeCalc, shown, withDefaults } from './calc.ts';
 
 /* ---------- inline marks ---------- */
@@ -345,8 +344,13 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       return (parseAnim(body).alt ? `> ${parseAnim(body).alt}\n\n` : '') + parseAnim(body).shapes.filter((s) => s.text).map((s) => `- ${s.k === 'i' ? `:${s.text}:` : s.text}`).join('\n') + '\n';
     case 'qr':
       return body.trim() + '\n';
+    // These are written in TLO, which is Markdown: the text is its own export.
     case 'site':
-      return siteToMd(body);
+    case 'store':
+    case 'invoice':
+    case 'menu':
+    case 'wordsearch':
+      return body.trimEnd() + '\n';
   }
   if (formatOf(def.id)) {
     const f = formatOf(def.id)!;
@@ -523,7 +527,11 @@ export function fromMarkdown(def: AppDef, md: string): string {
     case 'qr':
       return items(text)[0] ?? text.split('\n')[0] ?? '';
     case 'site':
-      return mdToSite(text);
+    case 'store':
+    case 'invoice':
+    case 'menu':
+    case 'wordsearch':
+      return def.read!(text);
   }
   if (formatOf(def.id)) return serializeFold({ two: false, pages: mdToSlides(text) }, formatOf(def.id)!);
   const lines = mdToLines(def.id, text);
