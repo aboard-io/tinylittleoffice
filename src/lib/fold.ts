@@ -33,9 +33,9 @@ document.onkeydown = function (e) {
 go(0);
 `);
 import { refPage } from '../kit/embed.ts';
-import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
+import { parseDeck, serializeDeck, type Layout, type Slide } from './deckmodel.ts';
 import { ICON_SVG } from './icons.ts';
-import { slidePage, type SlideSize } from './slide.ts';
+import { layoutSlide, slidePage, type SlideSize } from './slide.ts';
 
 export interface Format {
   /** How many pages; with `grow`, how many to start with. */
@@ -103,12 +103,8 @@ export interface Fit {
   m?: number;
 }
 
-/**
- * A slide fitted to a page: the largest type at which everything is on it.
- * A page that shows another document is given over to it entirely.
- */
 /** The page types a printed page can take: prose (the words as paragraphs), or any of a deck's layouts. */
-export const PAGE_LAYOUTS: { id: '' | 't' | 'b' | '2' | 'i'; name: string }[] = [
+export const PAGE_LAYOUTS: { id: Layout; name: string }[] = [
   { id: '', name: 'Prose' },
   { id: 't', name: 'Title' },
   { id: 'b', name: 'Bullets' },
@@ -116,12 +112,30 @@ export const PAGE_LAYOUTS: { id: '' | 't' | 'b' | '2' | 'i'; name: string }[] = 
   { id: 'i', name: 'Big icon' },
 ];
 
-export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Page {
+/** A fitted page, with the sizes it was fitted at, so an editor can show the page at the same size. */
+export interface Fitted extends Page {
+  layout: Layout;
+  cover: boolean;
+  titlePx: number;
+  bodyPx: number;
+  /** The margin, in page px. */
+  m: number;
+}
+export const isFitted = (p: Page): p is Fitted => 'titlePx' in p;
+
+/**
+ * A slide fitted to a page: the largest type at which everything is on it.
+ * A page that shows another document is given over to it entirely.
+ */
+export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Fitted {
   // A page with a layout is a slide laid on paper: the deck's engine, at this size, louder on a cover.
   if (s.layout) {
     const size: SlideSize = { w, h, loud: o.loud ?? (o.cover ? 1.6 : 1), prose: s.layout === 'b' ? false : s.layout !== '2' && s.layout !== 'i' && s.layout !== 't' };
-    const p = slidePage(s.layout === 'b' ? { ...s, layout: '' } : s, Infinity, undefined, '', size);
-    return o.foot ? { ...p, svg: p.svg + text(w / 2, h - (o.m ?? 20) * 0.55, o.foot, { px: 11, fill: FAINT, anchor: 'middle' }) } : p;
+    const laid = s.layout === 'b' ? { ...s, layout: '' as const } : s;
+    const L = layoutSlide(laid, size);
+    const p = slidePage(laid, Infinity, undefined, '', size);
+    const sizes = { layout: s.layout, cover: s.layout === 't', titlePx: L.titlePx, bodyPx: L.bodyPx, m: (64 * w * (size.loud ?? 1)) / 960 };
+    return { ...p, ...sizes, svg: o.foot ? p.svg + text(w / 2, h - (o.m ?? 20) * 0.55, o.foot, { px: 11, fill: FAINT, anchor: 'middle' }) : p.svg };
   }
   const k = w / 264;
   const m = o.m ?? Math.min(48, 20 * k);
@@ -129,11 +143,12 @@ export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Page {
   const inner = w - 2 * m;
   const room = h - 2 * m - (o.foot ? 12 : 0);
   const foot = o.foot ? text(w / 2, h - m * 0.55, o.foot, { px: Math.min(11, 8 * k), fill: FAINT, anchor: 'middle' }) : '';
+  const sizes = (px: number, tpx: number) => ({ layout: '' as const, cover, titlePx: tpx, bodyPx: px, m });
   if (s.sub) {
     // Laid out narrow, so its words are a size to read on a small page; from the top if it does not fill the page.
     const sub = refPage(s.sub, { w: 340 });
     const scale = Math.min(inner / sub.w, room / sub.h);
-    return { w, h, svg: place(sub, m, m, inner, sub.h * scale > room * 0.6 ? room : sub.h * scale) + foot };
+    return { w, h, ...sizes(0, 0), svg: place(sub, m, m, inner, sub.h * scale > room * 0.6 ? room : sub.h * scale) + foot };
   }
   const paras = s.bullets.filter((b) => b.trim());
   const lay = (px: number) => {
@@ -169,7 +184,7 @@ export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Page {
     for (const line of para) svg += text(x, (y += fit.px * 1.38) - fit.px * 0.35, line, { px: fit.px, anchor, fill: INK });
     y += fit.px * 0.5;
   }
-  return { w, h, svg: svg + foot };
+  return { w, h, ...sizes(fit.px, fit.tpx), svg: svg + foot };
 }
 
 /** Page i of a folded thing: the first is its cover; inside pages are numbered. */

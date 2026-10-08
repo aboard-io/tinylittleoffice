@@ -791,7 +791,8 @@ export class ToApp extends LitElement {
   private renderApp() {
     if (!this.app) return nothing;
     const tag = unsafeStatic(`to-${this.app}`);
-    return html`<${tag} .value=${this.env.body} .present=${this.presenting} @present-end=${this.onPresentEnd}></${tag}>`;
+    // An editor with a download button of its own (a PDF, from the Print group) asks for it this way.
+    return html`<${tag} .value=${this.env.body} .present=${this.presenting} @present-end=${this.onPresentEnd} @to-download=${(e: CustomEvent<string>) => this.download(e.detail)}></${tag}>`;
   }
 
   private renderHome() {
