@@ -4,13 +4,15 @@
   "name": "tinier",
   "main": "worker.ts",
   "compatibility_date": "2026-10-08",
+  // Only on its own domain: no workers.dev copy once this is live.
+  "workers_dev": false,
   "routes": [{ "pattern": "tinier.tinylittleoffice.com", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "tinier",
       // Filled in by `npx wrangler d1 create tinier` on the account the site deploys from.
-      "database_id": ""
+      "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5"
     }
   ],
   // A gentle brake on one address making many links. Counted per Cloudflare location, in memory, never written down.

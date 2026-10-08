@@ -31,7 +31,23 @@ export interface Store {
 }
 
 /** May this address make another link right now? */
-export type Limiter = (key: string) => Promise<boolean>;
+export type Limiter = (key: string, now?: number) => Promise<boolean>;
+
+/**
+ * A brake on one address making many links: `limit` an hour, counted in
+ * memory and never written down. Each instance of the Worker counts for
+ * itself, so this is a floor under the platform's own limiter, not a wall.
+ */
+export function brake(limit = 60, hour = 3600_000): Limiter {
+  const made = new Map<string, number[]>();
+  return async (key, now = Date.now()) => {
+    const recent = (made.get(key) ?? []).filter((t) => now - t < hour);
+    recent.push(now);
+    made.set(key, recent);
+    if (made.size > 10_000) for (const [k, ts] of made) if (now - ts[ts.length - 1] >= hour) made.delete(k);
+    return recent.length <= limit;
+  };
+}
 
 /** The site that may call the API, and the only place a short link may lead. */
 export const SITE = 'https://tinylittleoffice.com';

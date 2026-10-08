@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handle, newId, type Link, type Store } from '../tinier/tinier.ts';
+import { brake, handle, newId, type Link, type Store } from '../tinier/tinier.ts';
 
 /** The rows in a Map: what D1 does, for the test. */
 class MemStore implements Store {
@@ -81,4 +81,12 @@ test('tinier: ids are seven readable characters and the sweep forgets the old', 
   await store.put('bbbbbbb', { c: 'c', iv: 'i', exp: 30 });
   assert.equal(await store.sweep(20), 1);
   assert.deepEqual([...store.rows.keys()], ['bbbbbbb']);
+});
+
+test('tinier: the brake allows so many an hour from one address, and forgets', async () => {
+  const may = brake(3, 1000);
+  const t = 1_000_000;
+  assert.deepEqual(await Promise.all([may('a', t), may('a', t + 1), may('a', t + 2), may('a', t + 3)]), [true, true, true, false]);
+  assert.equal(await may('b', t + 3), true); // another address is not held back
+  assert.equal(await may('a', t + 1001), true); // an hour on, the first has aged out
 });

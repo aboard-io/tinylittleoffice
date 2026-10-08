@@ -9,6 +9,8 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },
+  // Only on its own domain: no workers.dev copy once this is live.
+  "workers_dev": false,
   "routes": [
     { "pattern": "tinylittleoffice.com", "custom_domain": true },
     { "pattern": "www.tinylittleoffice.com", "custom_domain": true }
