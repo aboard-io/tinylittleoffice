@@ -5,9 +5,13 @@
  * spans are absolute instants stored in UTC and shown in whichever zone the
  * viewer picks; the document remembers the zone it was last edited in so a
  * reader elsewhere can flip to the author's time with one click.
+ *
+ * A span is made by a click or a drag across days, and edited in a dialog
+ * over the grid, which never moves: the dialog works on a draft, drawn on
+ * the grid as it changes, that Done keeps and Escape throws away.
  */
-import { DocElement, defineElement, html, nothing, state, swatches, icon, UI, type SlCheckbox, type SlInput } from '../kit.ts';
-import { CAL_COLORS, parseCalendar, serializeCalendar, sortSpans, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Span } from '../lib/calmodel.ts';
+import { DocElement, defineElement, html, nothing, state, swatches, icon, UI, type SlCheckbox, type SlInput, type SlSelect } from '../kit.ts';
+import { CAL_COLORS, EVERY, isoDay, occurrences, parseCalendar, repeatText, serializeCalendar, sortSpans, spanDays, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Every, type Span } from '../lib/calmodel.ts';
 import { allZones, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
 
 const DAY_MS = 86400000;
@@ -25,7 +29,10 @@ function firstWeekday(): number {
 export class ToCal extends DocElement<Calendar> {
   @state() private zone = localZone();
   @state() private view = { y: 2026, m: 1 };
+  /** The span in the dialog: its index, or the spans' length for one not yet kept. */
   @state() private sel = -1;
+  /** The span as the dialog has it so far; open while this is set. */
+  @state() private draft: Span | null = null;
   /** The colour new spans are given: whoever is adding dates picks theirs. */
   @state() private ink = '';
   @state() private drag: { from: number; to: number; moved: boolean } | null = null;
@@ -42,7 +49,7 @@ export class ToCal extends DocElement<Calendar> {
   protected serialize = serializeCalendar;
 
   protected loaded() {
-    this.sel = -1;
+    this.cancel();
     this.jumpToContent();
   }
 
@@ -55,32 +62,70 @@ export class ToCal extends DocElement<Calendar> {
     this.removeEventListener('keydown', this.onKey);
   }
 
-  /** Open the month of the first span still in the future, else the last span, else today. */
+  /** The zone a repeat keeps its time of day in: the document's, or the viewer's until the document has one. */
+  private get repeatZone() {
+    return this.doc.zone || this.zone;
+  }
+
+  /** Open the month of the next thing still to come (a repeat's next time), else the last span, else today. */
   private jumpToContent() {
     const now = Date.now();
+    const p0 = utcToParts(now, this.zone);
+    const today = ymdToDay(p0.y, p0.m, p0.d);
     const spans = this.doc.spans;
-    const target = spans.find((s) => spanEndMs(s) >= now) ?? spans[spans.length - 1];
+    const next = (s: Span) => (s.repeat ? occurrences(s, today - 1, today + 400, this.repeatZone)[0] : undefined) ?? (spanEndMs(s) >= now ? s : undefined);
+    const coming = spans.map(next).filter((s): s is Span => !!s);
+    const target = coming.length ? sortSpans(coming)[0] : spans[spans.length - 1];
     const ms = target ? spanStartMs(target) : now;
     const p = target?.kind === 'd' ? { ...dayToYmd(EPOCH_DAY + target.start) } : utcToParts(ms, this.zone);
     this.view = { y: p.y, m: p.m };
   }
 
-  /** Replace the spans; `keep` stays selected. */
-  private save(spans: Span[], keep?: Span) {
+  private save(spans: Span[]) {
     sortSpans(spans);
-    this.sel = keep ? spans.indexOf(keep) : -1;
     this.commit({ zone: this.zone, spans, legend: this.doc.legend });
   }
 
-  private patch(p: Partial<Span>) {
-    if (this.sel < 0) return;
-    const next = { ...this.doc.spans[this.sel], ...p };
-    this.save(this.doc.spans.map((s, i) => (i === this.sel ? next : s)), next);
+  /* ---------- the dialog: a draft of one span ---------- */
+
+  /** Edit the span at `i` in the dialog. */
+  private open(i: number) {
+    this.sel = i;
+    this.draft = { ...this.doc.spans[i] };
   }
 
-  private removeSel() {
-    if (this.sel < 0) return;
-    this.save(this.doc.spans.filter((_, i) => i !== this.sel));
+  /** Put a new span in the dialog; it joins the document on Done. */
+  private create(span: Span) {
+    this.sel = this.doc.spans.length;
+    this.draft = span;
+  }
+
+  private patch(p: Partial<Span>) {
+    if (this.draft) this.draft = { ...this.draft, ...p };
+  }
+
+  private done() {
+    const d = this.draft;
+    if (!d) return;
+    this.save(this.sel < this.doc.spans.length ? this.doc.spans.map((s, i) => (i === this.sel ? d : s)) : [...this.doc.spans, d]);
+    this.cancel();
+  }
+
+  private cancel() {
+    this.sel = -1;
+    this.draft = null;
+  }
+
+  private removeSpan() {
+    if (this.draft && this.sel < this.doc.spans.length) this.save(this.doc.spans.filter((_, i) => i !== this.sel));
+    this.cancel();
+  }
+
+  /** The spans as drawn: the document's, with the one in the dialog as it stands there. */
+  private shown(): Span[] {
+    const d = this.draft;
+    if (!d) return this.doc.spans;
+    return this.sel < this.doc.spans.length ? this.doc.spans.map((s, i) => (i === this.sel ? d : s)) : [...this.doc.spans, d];
   }
 
   private shiftMonth(d: number) {
@@ -113,7 +158,7 @@ export class ToCal extends DocElement<Calendar> {
   /** Say what a colour stands for ("Paul", "Travel"). */
   private nameColor(key: string, name: string) {
     this.doc = { ...this.doc, legend: { ...this.doc.legend, [key]: name } };
-    this.save(this.doc.spans, this.sel >= 0 ? this.doc.spans[this.sel] : undefined);
+    this.save(this.doc.spans);
   }
 
   private swatches(current: string, pick: (key: string) => void, label: string) {
@@ -144,24 +189,27 @@ export class ToCal extends DocElement<Calendar> {
     if (!d) return;
     const a = Math.min(d.from, d.to);
     const b = Math.max(d.from, d.to);
-    const span: Span = { kind: 'd', start: a - EPOCH_DAY, dur: b - a + 1, label: '', ...(this.ink ? { color: this.ink } : {}) };
-    this.save([...this.doc.spans, span], span);
-    this.updateComplete.then(() => this.querySelector<SlInput>('#label')?.focus());
+    this.create({ kind: 'd', start: a - EPOCH_DAY, dur: b - a + 1, label: '', ...(this.ink ? { color: this.ink } : {}) });
   }
 
+  /** Delete or Backspace, outside a field, deletes the span in the dialog. (Escape is the dialog's own.) */
   private onKey = (e: KeyboardEvent) => {
     const t = e.composedPath()[0] as HTMLElement;
     const inField = ['INPUT', 'SELECT', 'TEXTAREA', 'SL-INPUT', 'SL-SELECT'].includes(t.tagName) || !!t.closest?.('sl-input, sl-select, sl-checkbox');
-    if (e.key === 'Escape') {
-      if (inField) t.blur();
-      else this.sel = -1;
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && !inField && this.sel >= 0) {
-      this.removeSel();
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !inField && this.draft) {
+      this.removeSpan();
       e.preventDefault();
     }
   };
 
-  /* ---------- editing the selected span in the chosen zone ---------- */
+  /** Return in any field of the dialog is the same as Done; the field's change lands first. */
+  private onDialogKey(e: KeyboardEvent) {
+    if (e.key !== 'Enter' || e.defaultPrevented || (e.target as HTMLElement).closest('sl-select, sl-button, button')) return;
+    (e.composedPath()[0] as HTMLElement).blur?.();
+    this.done();
+  }
+
+  /* ---------- editing the draft in the chosen zone ---------- */
 
   private fields(s: Span) {
     if (s.kind === 'd') {
@@ -184,7 +232,7 @@ export class ToCal extends DocElement<Calendar> {
   }
 
   private setStart(date: string, time: string) {
-    const s = this.doc.spans[this.sel];
+    const s = this.draft!;
     const ymd = this.parseYmd(date);
     if (!ymd) return;
     if (s.kind === 'd') {
@@ -197,7 +245,7 @@ export class ToCal extends DocElement<Calendar> {
   }
 
   private setEnd(date: string, time: string) {
-    const s = this.doc.spans[this.sel];
+    const s = this.draft!;
     const ymd = this.parseYmd(date);
     if (!ymd) return;
     if (s.kind === 'd') {
@@ -211,7 +259,7 @@ export class ToCal extends DocElement<Calendar> {
   }
 
   private toggleAllDay(allDay: boolean) {
-    const s = this.doc.spans[this.sel];
+    const s = this.draft!;
     if (allDay && s.kind === 't') {
       const a = utcToParts(spanStartMs(s), this.zone);
       const b = utcToParts(Math.max(spanStartMs(s), spanEndMs(s) - 1), this.zone);
@@ -222,6 +270,25 @@ export class ToCal extends DocElement<Calendar> {
       const ms = partsToUtc(a.y, a.m, a.d, 9, 0, this.zone);
       this.patch({ kind: 't', start: Math.round((ms - EPOCH_MS) / 60000), dur: 60 });
     }
+  }
+
+  /** How the draft repeats: every so often, for ever, so many times, or until a day (never before its first). */
+  private setRepeat(every: Every | '', end: { count?: number; until?: string } = {}) {
+    if (!every) return this.patch({ repeat: undefined });
+    const repeat = { every, ...(this.draft!.repeat?.every === every ? this.draft!.repeat : {}) };
+    if ('count' in end) {
+      delete repeat.until;
+      if (end.count && end.count > 0) repeat.count = Math.floor(end.count);
+      else delete repeat.count;
+    }
+    if ('until' in end) {
+      delete repeat.count;
+      const ymd = end.until ? this.parseYmd(end.until) : null;
+      const [first] = spanDays(this.draft!, this.zone);
+      if (ymd) repeat.until = Math.max(first, ymdToDay(...ymd)) - EPOCH_DAY;
+      else delete repeat.until;
+    }
+    this.patch({ repeat });
   }
 
   /* ---------- rendering ---------- */
@@ -259,9 +326,11 @@ export class ToCal extends DocElement<Calendar> {
     const todayP = utcToParts(Date.now(), this.zone);
     const today = ymdToDay(todayP.y, todayP.m, todayP.d);
     const wdFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' });
-    const sel = this.sel >= 0 ? this.doc.spans[this.sel] : null;
     const docZone = this.doc.zone;
     const range = this.drag ? [Math.min(this.drag.from, this.drag.to), Math.max(this.drag.from, this.drag.to)] : null;
+    const spans = this.shown();
+    // Every time of every span that lands on the grid (a day either side, since a repeat keeps its time of day in another zone).
+    const times = spans.flatMap((s, idx) => occurrences(s, gridStart - 1, gridStart + rows * 7, this.repeatZone).map((o) => ({ s: o, idx })));
 
     return html`
       <div class="to-toolbar">
@@ -279,7 +348,6 @@ export class ToCal extends DocElement<Calendar> {
           : nothing}
       </div>
       ${this.renderLegend()}
-      ${sel ? this.renderEditor(sel) : nothing}
       <div class="cal-grid" role="grid" aria-label=${monthName} tabindex="0" @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${this.onGridUp}>
         <div class="cal-row" role="row">${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}</div>
         ${Array.from({ length: rows }, (_, week) => html`<div class="cal-row" role="row">${Array.from({ length: 7 }, (_, weekday) => {
@@ -287,13 +355,11 @@ export class ToCal extends DocElement<Calendar> {
           const p = dayToYmd(day);
           const dayStart = partsToUtc(p.y, p.m, p.d, 0, 0, this.zone);
           const dayEnd = partsToUtc(p.y, p.m, p.d + 1, 0, 0, this.zone);
-          const chips = this.doc.spans
-            .map((s, idx) => ({ s, idx }))
-            .filter(({ s }) =>
-              s.kind === 'd'
-                ? EPOCH_DAY + s.start <= day && day < EPOCH_DAY + s.start + s.dur
-                : spanStartMs(s) < dayEnd && Math.max(spanEndMs(s), spanStartMs(s) + 1) > dayStart,
-            );
+          const chips = times.filter(({ s }) =>
+            s.kind === 'd'
+              ? EPOCH_DAY + s.start <= day && day < EPOCH_DAY + s.start + s.dur
+              : spanStartMs(s) < dayEnd && Math.max(spanEndMs(s), spanStartMs(s) + 1) > dayStart,
+          );
           const cls = ['cal-cell', p.m !== m ? 'out' : '', day === today ? 'today' : '', range && day >= range[0] && day <= range[1] ? 'range' : ''].join(' ');
           return html`<div class=${cls} role="gridcell" data-day=${day} aria-label=${ymdString(p.y, p.m, p.d)} @pointerdown=${(e: PointerEvent) => this.onCellDown(e, day)}>
             <span class="n">${p.d}</span>
@@ -305,20 +371,21 @@ export class ToCal extends DocElement<Calendar> {
                 style=${s.color ? `--c:${CAL_COLORS[s.color].hex}` : ''}
                 role="button"
                 tabindex="0"
-                data-tip=${this.fmtRange(s)}
+                data-tip=${this.fmtRange(s) + (s.repeat ? `, ${repeatText(s.repeat)}` : '')}
                 @click=${(e: Event) => {
                   e.stopPropagation();
-                  this.sel = idx;
+                  this.open(idx);
                 }}
-                @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (this.sel = idx)}
+                @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.open(idx)}
               >
-                ${startsHere && s.kind === 't' ? html`<b>${this.chipTime(s)}</b>` : nothing}${s.label || html`<em>Untitled</em>`}
+                ${startsHere && s.kind === 't' ? html`<b>${this.chipTime(s)}</b>` : nothing}${s.repeat && startsHere ? html`<i class="cal-rep">${icon(UI.repeat, 10)}</i>` : nothing}${s.label || html`<em>Untitled</em>`}
               </div>`;
             })}
           </div>`;
         })}</div>`)}
       </div>
-      ${this.doc.spans.length ? this.renderAgenda() : nothing}
+      ${spans.length ? this.renderAgenda(spans, first, first + daysInMonth - 1) : nothing}
+      ${this.renderDialog()}
     `;
   }
 
@@ -332,14 +399,27 @@ export class ToCal extends DocElement<Calendar> {
     </div>`;
   }
 
+  /** The dialog over the grid. Always there, so opening it is a matter of the draft. */
+  private renderDialog() {
+    const s = this.draft;
+    const isNew = this.sel >= this.doc.spans.length;
+    return html`<sl-dialog class="cal-dialog" label=${isNew ? 'New span' : 'Edit span'} ?open=${!!s} @sl-request-close=${this.cancel} @keydown=${this.onDialogKey}>
+      ${s ? this.renderEditor(s) : nothing}
+      ${isNew ? nothing : html`<sl-button slot="footer" size="small" variant="danger" outline @click=${this.removeSpan}>${icon(UI.trash, 14)} Delete</sl-button>`}
+      <span slot="footer" class="to-spacer"></span>
+      ${s ? html`<span slot="footer" class="to-hint">${this.fmtRange(s)}</span>` : nothing}
+      <sl-button slot="footer" size="small" variant="primary" @click=${this.done}>${icon(UI.check, 14)} Done</sl-button>
+    </sl-dialog>`;
+  }
+
   private renderEditor(s: Span) {
     const f = this.fields(s);
     const timed = s.kind === 't';
-    // Return in any field is the same as Done.
-    return html`<div class="cal-editor" role="group" aria-label="Edit span" @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !e.defaultPrevented && !(e.target as HTMLElement).closest('sl-select, sl-button, button') && (this.sel = -1)}>
+    const r = s.repeat;
+    return html`<div class="cal-editor" role="group" aria-label="Edit span">
       <span class="k">Label</span>
       <div class="row">
-        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="Label" .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
+        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="Label" autofocus .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
         <sl-checkbox size="small" ?checked=${!timed} @sl-change=${(e: Event) => this.toggleAllDay((e.target as SlCheckbox).checked)}>All day</sl-checkbox>
       </div>
       <span class="k">From</span>
@@ -355,30 +435,42 @@ export class ToCal extends DocElement<Calendar> {
       </div>
       <span class="k">Colour</span>
       <div class="row">${this.swatches(s.color ?? '', (key) => { this.ink = key; this.patch({ color: key || undefined }); }, 'Colour of this span')}</div>
-      <div class="actions">
-        <sl-button size="small" variant="danger" outline @click=${this.removeSel}>${icon(UI.trash, 14)} Delete</sl-button>
-        <span class="to-spacer"></span>
-        <span class="to-hint">${this.fmtRange(s)}</span>
-        <sl-button size="small" variant="primary" @click=${() => (this.sel = -1)}>${icon(UI.check, 14)} Done</sl-button>
+      <span class="k">Repeat</span>
+      <div class="row">
+        <sl-select class="sr-label cal-repeat" size="small" label="Repeat" hoist .value=${r?.every ?? 'never'} @sl-change=${(e: Event) => { const v = (e.target as SlSelect).value as string; this.setRepeat(v === 'never' ? '' : (v as Every)); }}>
+          <sl-option value="never">Does not repeat</sl-option>
+          ${(Object.keys(EVERY) as Every[]).map((k) => html`<sl-option value=${k}>Every ${EVERY[k]}</sl-option>`)}
+        </sl-select>
+        ${r
+          ? html`<sl-input class="sr-label cal-times" type="number" min="1" max="999" size="small" label="Times" placeholder="∞" .value=${r.count ? String(r.count) : ''} @sl-change=${(e: Event) => this.setRepeat(r.every, { count: +(e.target as SlInput).value })}></sl-input>
+            <span class="to-hint">times, or until</span>
+            <sl-input class="sr-label" type="date" size="small" label="Until" .value=${r.until !== undefined ? isoDay(r.until) : ''} @sl-change=${(e: Event) => this.setRepeat(r.every, { until: (e.target as SlInput).value })}></sl-input>`
+          : nothing}
       </div>
     </div>`;
   }
 
-  private renderAgenda() {
+  /** Every span once, and a repeating one each time it comes round in the month on view (once, at its start, when it does not). */
+  private renderAgenda(spans: Span[], monthStart: number, monthEnd: number) {
+    const items = spans.flatMap((s, i) => {
+      const here = s.repeat ? occurrences(s, monthStart, monthEnd, this.repeatZone) : [];
+      return (here.length ? here : [s]).map((o) => ({ s: o, i }));
+    });
+    items.sort((a, b) => spanStartMs(a.s) - spanStartMs(b.s));
     return html`<div class="cal-agenda">
       <h2>Spans</h2>
       <ul>
-        ${this.doc.spans.map(
-          (s, i) => html`<li
+        ${items.map(
+          ({ s, i }) => html`<li
             class=${i === this.sel ? 'sel' : ''}
             @click=${() => {
-              this.sel = i;
+              this.open(i);
               const p = s.kind === 'd' ? dayToYmd(EPOCH_DAY + s.start) : utcToParts(spanStartMs(s), this.zone);
               this.view = { y: p.y, m: p.m };
             }}
           >
             <span class="when">${this.fmtRange(s)}</span>
-            <span class="lbl">${s.label || html`<em>Untitled</em>`}</span>
+            <span class="lbl">${s.label || html`<em>Untitled</em>`}${s.repeat ? html` <span class="rep">${repeatText(s.repeat)}</span>` : nothing}</span>
           </li>`,
         )}
       </ul>

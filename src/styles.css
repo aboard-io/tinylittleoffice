@@ -4337,4 +4337,33 @@ sl-dialog.to-templates {
   font-size: 12px;
   line-height: 1.35;
   color: var(--to-ink-3);
+/* Calendar: modal and repeats */
+sl-dialog.cal-dialog {
+  --width: min(96vw, 560px);
+}
+.cal-dialog .cal-editor {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.cal-dialog::part(footer) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cal-dialog .cal-repeat {
+  width: 170px;
+}
+.cal-dialog .cal-times {
+  width: 80px;
+}
+.cal-chip .cal-rep {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 3px;
+  opacity: 0.75;
+}
+.cal-agenda .rep {
+  color: var(--to-ink-3);
+  font-size: 12.5px;
 }

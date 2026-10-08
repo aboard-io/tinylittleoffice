@@ -195,7 +195,12 @@ Every format is plain text, chosen so deflate has something to chew on.
   span whose start is a day count from 2020-01-01: a floating civil date, the
   same in every country. `t<start>,<minutes>,<label>` is a timed span whose
   start is a minute count from 2020-01-01T00:00Z: one absolute instant, shown
-  in whichever zone the viewer picks. Numbers are base 36. Time zone maths
+  in whichever zone the viewer picks. Numbers are base 36. A star and a
+  letter after the length make a span repeat: `*d` daily, `*w` weekly, `*m`
+  monthly, `*y` yearly, for ever; `*w9` nine times; `*w<2pi` until that day
+  (counted like a start). It goes before the colour (`d1,2*w.g,Offsite`), so
+  a reader without repeats still sees the first time, in colour. A timed span
+  repeats at the same time of day in the document's zone. Time zone maths
   comes from the browser's `Intl` support, so no zone database is bundled.
 
 ## Styling: one stylesheet
