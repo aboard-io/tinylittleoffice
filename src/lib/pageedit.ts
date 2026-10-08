@@ -22,20 +22,25 @@
  * remove (data-lf-add, data-lf-remove), and gets no bar along the bottom.
  *
  * Where the cursor goes ("r,f,p" or "+k,f,p"; a trailing comma selects
- * the words, as for a field reached by keyboard or a row just added).
+ * the words, as for a field reached by keyboard or a row just added). The
+ * cursor is put there as the script runs, and again once the page has
+ * loaded if the browser took it away (it may, settling a frame that has
+ * just been drawn afresh).
  */
 import { pageData, pageScript } from '../kit/core.ts';
 
 /**
  * Where the page was: a page that switches its parts by hash (a site's
  * pages) is drawn afresh on every change, and this puts it back on the
- * part it was showing. The hash is set and the event sent at once, so the
+ * part it was showing. The hash is replaced in the history rather than
+ * navigated to (a navigation scrolls, and takes the focus from the field
+ * the editor puts the cursor in), and the event sent at once, so the
  * page's own script shows the part before anything else runs.
  */
 export const PLACE_SCRIPT = pageScript(`(function(){
 var s=document.getElementById('lf-at'),h=s?JSON.parse(s.textContent):'';
 window.addEventListener('hashchange',function(){parent.postMessage({lf:'hash',h:location.hash},'*');});
-if(h&&h!==location.hash){location.hash=h;window.dispatchEvent(new Event('hashchange'));}
+if(h&&h!==location.hash){try{history.replaceState(null,'',location.href.split('#')[0]+h);}catch(e){location.hash=h;}window.dispatchEvent(new Event('hashchange'));}
 })();`);
 
 export const EDIT_SCRIPT = pageScript(`(function(){
@@ -75,8 +80,8 @@ window.addEventListener('hashchange',function(){var a=document.activeElement;if(
 if(some&&!own){document.body.appendChild(bar);document.body.style.paddingBottom='60px';}
 var el=null;if(F){var q=F.slice(-1)===','?F.slice(0,-1):F;el=document.querySelector('[data-lf="'+q+'"],[data-lf^="'+q+',"]');}
 var host=el?el.closest('[id]'):null;
-if(host&&'#'+host.id!==location.hash){location.hash=host.id;window.dispatchEvent(new Event('hashchange'));}
-if(el)select(el,F.slice(-1)===',');else showPart(null);
+if(host&&'#'+host.id!==location.hash){try{history.replaceState(null,'',location.href.split('#')[0]+'#'+host.id);}catch(e){location.hash=host.id;}window.dispatchEvent(new Event('hashchange'));}
+if(el){var all=F.slice(-1)===',';select(el,all);window.addEventListener('load',function(){if(document.activeElement!==el)select(el,all);});}else showPart(null);
 })();`);
 
 /**

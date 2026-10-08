@@ -84,7 +84,7 @@ test('site: a link-in-bio page is a picture, a line of words and a stack of butt
 
 test('site: another document on a page, and the lines as the picture', () => {
   const ref = makeRef('sheet', '!bar\nQ\tSales\nQ1\t120\nQ2\t180', 'Sales');
-  const html = spec.page!(`# A\n=== Numbers\n@@${ref}`, 'https://example.com/');
+  const html = spec.page!(`# A\n=== Numbers\n@@${ref}`, { base: 'https://example.com/' });
   assert.ok(html.includes('<figure class="embed"><svg xmlns="http://www.w3.org/2000/svg"') && html.includes('aria-label="Sales"'));
   assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v2/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
   assert.deepEqual(def.outline(`# A\n=== Numbers\n@@${ref}`), ['A', 'Numbers', '↗  Sales']);

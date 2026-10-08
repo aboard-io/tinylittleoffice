@@ -25,7 +25,8 @@ test('a site of two pages: the preview switches pages, keeps its place, and the 
   await expect(site.locator('#menu .cards li')).toHaveCount(2);
   await expect(site.locator('#home')).toBeHidden();
   // A section's link from the home page goes to the page that holds it.
-  await area.fill(TWO + '\n- Flat white | 4.20\n> Coffee | #coffee');
+  await area.fill(TWO.replace('> Menu | #menu', '> Menu | #menu\n> Coffee | #coffee') + '\n- Flat white | 4.20');
+  await nav.getByRole('link', { name: 'Home' }).click();
   await site.locator('#home').getByRole('link', { name: 'Coffee' }).click();
   await expect(site.locator('#menu')).toBeVisible();
   // What downloads is the whole site, one file, without the editor's own script.
@@ -53,7 +54,7 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   await site.getByRole('button', { name: '+ Page' }).click();
   await expect(nav.getByRole('link')).toHaveText(['Home', 'Menu', 'Title', 'Visit']);
   await expect(site.locator('#title')).toBeVisible();
-  await expect(site.getByRole('textbox', { name: 'Title, row 4' })).toBeFocused();
+  await expect(site.getByRole('textbox', { name: 'Title, row 5' })).toBeFocused();
   await page.keyboard.type('Hours');
   await expect(nav.getByRole('link')).toHaveText(['Home', 'Menu', 'Hours', 'Visit']);
   await expect(site.locator('#hours')).toBeVisible();
