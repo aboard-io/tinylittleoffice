@@ -1,79 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { shot, reopen, navTo, SHOTS, copyLink, privacy } from './helpers';
 
-test('navigation works on every screen size', async ({ page }) => {
-  await page.goto('/');
-  await navTo(page, 'Deck');
-  await expect(page).toHaveURL(/#\/v0\/deck$/);
-  await expect(page.locator('.to-panel h1')).toHaveText(/Deck/);
-  await navTo(page, 'Calendar');
-  await expect(page.locator('.to-panel h1')).toHaveText(/Calendar/);
-  // No horizontal overflow at this viewport.
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
-  await shot(page, 'nav');
-});
-
-test('the hamburger holds every app and the theme', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  await expect(page.locator('.to-here')).toHaveText('Sheet');
-  await page.locator('.to-burger').click();
-  const drawer = page.locator('#nav-drawer');
-  await expect(drawer).toHaveAttribute('open');
-  // (The three plans are templates in Write now: their links open, but they are not listed.)
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(51);
-  // Grouped, with the kinds of drawing listed under Draw.
-  await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
-  // Sheet, Write and Deck stand on their own at the top; the clusters fold, and stay as left.
-  await expect(drawer.locator('.to-drawer-nav > a')).toHaveText([/^Home$/, /^Drive\s*\d*$/, /^Sheet$/, /^Write$/, /^Outline$/, /^Deck$/]);
-  await expect(drawer.locator('details.to-cluster[open] h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
-  await drawer.locator('details.to-cluster', { hasText: 'Play' }).locator('summary').click();
-  await expect(drawer.locator('details.to-cluster', { hasText: 'Play' })).not.toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Floor plan', 'Seating chart', 'Family tree', 'Timeline', 'Booklet', 'Brochure', 'Comic', 'Résumé', 'Name badges']);
-  await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
-  await expect(drawer.locator('.to-theme')).toContainText('Theme');
-  await shot(page, 'drawer');
-  await page.keyboard.press('Escape');
-  await expect(drawer).not.toHaveAttribute('open');
-});
-
-test('meter counts down and copies the link', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  const meter = page.locator('.to-meter');
-  const ring = meter.locator('sl-progress-ring');
-  await expect(ring).toHaveAttribute('value', '0');
-  await page.getByRole('textbox', { name: 'A1', exact: true }).fill('The quick brown fox');
-  await expect(ring).not.toHaveAttribute('value', '0');
-  await expect(meter.locator('.text')).toHaveText(/\d[\d,]* left/, { visible: false });
-  const before = page.url();
-  await copyLink(page);
-  const copied = await page.evaluate(() => navigator.clipboard.readText());
-  // The copied link goes through the app's own page, so it previews as a sheet.
-  expect(copied).toBe(before.replace('/#/', '/sheet/#/'));
-});
-
-test('documents record their creation time', async ({ page }) => {
-  // (The tags are read, not seen: on a phone they are hidden to leave the title its room.)
-  await page.goto('/#/v0/write');
-  await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
-  await expect(page.locator('.to-panel-head .meta')).toHaveText('');
-  const editor = page.getByRole('textbox', { name: 'Document' });
-  await editor.click();
-  await page.keyboard.type('hello');
-  await expect(page.locator('.to-panel-head .meta')).toContainText(/\d{4}/);
-  const url = page.url();
-  expect(url).toMatch(/#\/v0\/write\/[WYZR]/);
-  // Creation time is in the link and survives a reload.
-  const created = await page.locator('.to-panel-head .meta').textContent();
-  await reopen(page);
-  await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
-  await expect(page.locator('.to-panel-head .meta')).toHaveText(created!.trim());
-  // A new document starts over.
-  await page.goto('/#/v0/write');
-  await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
-  await expect(page.locator('.to-panel-head .meta')).toHaveText('');
-});
-
 test('signing a document and detecting changes', async ({ page }) => {
   await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('42');
@@ -191,20 +118,6 @@ test('password-locked documents', async ({ page }) => {
   await expect(a1).toHaveValue('payroll 2026');
 });
 
-test('links carry the format version, v0, and nothing else opens', async ({ page }) => {
-  await page.goto('/#/v0/write');
-  await expect(page.locator('.to-drawer-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v0/deck');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('A link');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/write\/[WYZR]/);
-  // Without its version it is not a document's link.
-  await page.goto(page.url().replace('#/v0/', '#/'));
-  await expect(page.locator('to-write')).toHaveCount(0);
-  // A link from a future version says so.
-  await page.goto(page.url().replace('#/v0/', '#/v7/'));
-  await expect(page.locator('.to-panel-head')).toContainText('newer TinyLittleOffice (v7)');
-});
-
 test('password and signature live in the privacy menu', async ({ page }) => {
   await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('1');
@@ -292,31 +205,13 @@ test('each app has a page of its own, with its own preview card', async ({ page,
   await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveText('From the deck page');
 });
 
-test('keyboard shortcuts are listed, and work everywhere', async ({ page }) => {
+// Stays: the PDF is drawn page by page through a canvas, which happy-dom lacks (the rest is in test/dom/shell.test.ts).
+test('Ctrl+P downloads the document as a PDF', async ({ page }) => {
   await page.goto('/#/v0/todo');
   await page.getByRole('textbox', { name: 'New task' }).fill('Ship it');
   await page.keyboard.press('Enter');
-  // The menu has the list; so does Ctrl+/.
-  await page.locator('.to-burger').click();
-  await page.locator('#nav-drawer .to-keys').click();
-  const keys = page.locator('#keys-dialog');
-  await expect(keys).toHaveAttribute('open');
-  await expect(keys).toContainText('Everywhere');
-  await expect(keys).toContainText('In Todo');
-  await expect(keys.locator('kbd').first()).toBeVisible();
-  await keys.getByRole('button', { name: 'Done' }).click();
-  await expect(keys).not.toHaveAttribute('open');
-  await page.keyboard.press('Control+/');
-  await expect(keys).toHaveAttribute('open');
-  await page.keyboard.press('Escape');
-  await expect(keys).not.toHaveAttribute('open');
-  // Ctrl+P is a PDF; Ctrl+S the app's first format.
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+p')]);
   expect(pdf.suggestedFilename()).toBe('todo.pdf');
-  const [md] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
-  expect(md.suggestedFilename()).toBe('todo.md');
-  await page.keyboard.press('Control+k');
-  await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
 });
 
 test('undo and redo work in every app', async ({ page }) => {
@@ -492,43 +387,6 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
   await expect(slide).toContainText('Spring launch');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
-});
-
-test('Markdown and CSV come in as well as out', async ({ page }) => {
-  await page.goto('/#/v0/todo');
-  await page.getByRole('button', { name: 'Download' }).click();
-  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
-  const dialog = page.locator('#import-dialog');
-  await expect(dialog).toHaveAttribute('open');
-  await dialog.locator('textarea').fill('# Chores\n\n- [x] Sweep\n- [ ] **Shop**\n- [ ] Call mum');
-  await dialog.getByRole('button', { name: 'Import' }).click();
-  await expect(page.locator('.to-toast')).toContainText('Imported');
-  await expect(page.locator('to-todo')).toContainText('Sweep');
-  await expect(page.locator('to-todo')).toContainText('Call mum');
-  await expect(page.getByRole('checkbox', { name: /Sweep/ })).toBeChecked();
-  // A sheet reads a table; a deck reads headings.
-  await page.goto('/#/v0/sheet');
-  await page.getByRole('button', { name: 'Download' }).click();
-  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
-  await dialog.locator('textarea').fill('| Item | Cost |\n|---|---|\n| Rent | 1200 |');
-  await dialog.getByRole('button', { name: 'Import' }).click();
-  await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('Item');
-  await expect(page.getByRole('textbox', { name: 'B2', exact: true })).toHaveValue('1200');
-  await page.goto('/#/v0/deck');
-  await page.getByRole('button', { name: 'Download' }).click();
-  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
-  await dialog.locator('textarea').fill('# Launch\n\n## Agenda\n\n- one\n- two\n\n## Thanks');
-  await dialog.getByRole('button', { name: 'Import' }).click();
-  await expect(page.locator('to-deck')).toContainText('Agenda');
-  await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
-  // CSV is a table too.
-  await page.goto('/#/v0/sheet');
-  await page.getByRole('button', { name: 'Download' }).click();
-  await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
-  await dialog.locator('textarea').fill('Item,Cost\nRent,"1,200"\nFood,600');
-  await dialog.getByRole('button', { name: 'Import' }).click();
-  await expect(page.getByRole('textbox', { name: 'A3', exact: true })).toHaveValue('Food');
-  await expect(page.getByRole('textbox', { name: 'B2', exact: true })).toHaveValue('1,200');
 });
 
 test('two links compare side by side, with what changed', async ({ page }) => {
