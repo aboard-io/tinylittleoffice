@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import '../../src/app.ts';
 import { encodeEnvelope } from '../../src/lib/envelope.ts';
 import { store } from '../../src/lib/store.ts';
+import { pdf } from '../../src/kit/pdf.ts';
 import { settle, type Editor } from './helpers.ts';
 
 // Animations end at once (setup.ts's never say so, and a Shoelace dialog waits for its hiding to finish before it says it is hidden).
@@ -16,6 +17,12 @@ Element.prototype.animate = function () {
     },
   } as unknown as Animation;
 };
+
+// happy-dom has no editing commands: asked what is bold, nothing is (marks made by execCommand are e2e's).
+const doc = document as Document & Record<string, unknown>;
+doc.queryCommandValue ??= () => '';
+doc.queryCommandState ??= () => false;
+doc.execCommand ??= () => false;
 
 /** A document as the part of a link after "#/v0/": "app/payload". */
 export const ref = (app: string, body: string, created: number | null = null) => `${app}/${encodeEnvelope({ created, body })}`;
@@ -122,6 +129,63 @@ export function keyIn(area: HTMLTextAreaElement | HTMLInputElement, key: string,
   const e = new KeyboardEvent('keydown', { key, shiftKey: shift, bubbles: true, composed: true, cancelable: true });
   area.dispatchEvent(e);
   if (!e.defaultPrevented && key === 'Enter') typeIn(area, '\n');
+}
+
+/** In the icon picker that is open: search, then press the icon of that name (once the full set has arrived). */
+export async function pickIcon(search: string, name: string) {
+  const dialog = await until(() => {
+    const d = document.querySelector('sl-dialog.to-icons');
+    if (!d) throw new Error('no icon picker');
+    return d;
+  });
+  const input = dialog.querySelector('sl-input')!;
+  (input as unknown as { value: string }).value = search;
+  input.dispatchEvent(new CustomEvent('sl-input', { bubbles: true, composed: true }));
+  const found = await until(() => {
+    const b = dialog.querySelector<HTMLElement>(`[aria-label="Icon library"] button[aria-label="${name}"]`);
+    if (!b) {
+      input.dispatchEvent(new CustomEvent('sl-input', { bubbles: true, composed: true }));
+      throw new Error(`no icon ${name}`);
+    }
+    return b;
+  });
+  found.click();
+  await settleAll();
+}
+
+/** A document inside another being edited in its own dialog: type its text, press Done, wait for the dialog to go. */
+export async function editSub(label: string, text: string) {
+  const sub = await until(() => {
+    const d = document.querySelector('sl-dialog.to-sub');
+    if (!d) throw new Error('no dialog');
+    return d;
+  });
+  await settleAll();
+  const area = box<HTMLTextAreaElement>(sub, label);
+  area.value = text;
+  area.dispatchEvent(new Event('input', { bubbles: true }));
+  await settleAll();
+  [...sub.querySelectorAll<HTMLElement>('sl-button')].find((b) => b.textContent === 'Done')!.click();
+  await until(() => {
+    if (sub.isConnected) throw new Error('still open');
+  });
+  await settleAll();
+}
+
+/** Pick from an "Insert" or "Add a slide" box: type a few letters, then Enter. */
+export async function insert(root: ParentNode, label: string, what: string) {
+  const input = box(root, label);
+  input.value = what;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  await settleAll();
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await settleAll();
+}
+
+/** The bytes of a PDF of these pages as the app writes it, with stand-in pictures (the real ones need a canvas: e2e). */
+export function pdfText(pages: { w: number; h: number }[]) {
+  const bytes = pdf(pages.map((p) => ({ w: p.w, h: p.h, pw: 1, ph: 1, jpeg: new Uint8Array(0) })));
+  return new TextDecoder('latin1').decode(bytes);
 }
 
 /** Type into a rich text box (a headline, a slide's bullets, a page's words): its lines, then the input it fires. */
