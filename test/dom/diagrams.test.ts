@@ -28,7 +28,7 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async () 
   expect(pic().querySelectorAll('rect')).toHaveLength(3);
   expect(pic().querySelectorAll('line')).toHaveLength(2);
   expect(pic().textContent).toContain('Engineering');
-  await until(() => expect(location.hash).toMatch(/#\/v0\/org\/[WYZR]/));
+  await until(() => expect(location.hash).toMatch(/#\/v0\/org\/[yzr]/));
   const org = location.hash;
   await reopen();
   expect(pic().querySelectorAll('rect')).toHaveLength(3);

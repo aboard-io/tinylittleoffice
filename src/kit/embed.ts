@@ -20,7 +20,7 @@ export function linkToRef(text: string): string | null {
 /** A document to embed: its app and its text (and its name, kept in its own header). */
 export const makeRef = (app: string, body: string, title?: string) => `${app}\n${title ? withHead(body, { title }) : body}`;
 
-/** The fragment that opens a document: "#/v1/<app>/<payload>". */
+/** The fragment that opens a document: "#/v0/<app>/<payload>". */
 export const hashOf = (app: string, body: string, title?: string) => {
   const payload = encodeEnvelope({ created: null, body, title }, app);
   return `${LINK}${app}${payload ? '/' + payload : ''}`;

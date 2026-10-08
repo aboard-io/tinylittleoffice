@@ -54,7 +54,7 @@ export function fromBase64Url(s: string): Uint8Array {
  * markup, icon names), so a document that refers back into this dictionary
  * instead of spelling those out comes out a good deal shorter.
  *
- * FROZEN once v1 launches: every "y" link made after that depends on these exact bytes. To improve
+ * FROZEN once v0 launches: every "y" link made after that depends on these exact bytes. To improve
  * the dictionary, add a new one under a new flag; never edit this one.
  */
 const DICTIONARY_TEXT = [

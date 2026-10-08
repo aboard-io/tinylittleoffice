@@ -34,8 +34,8 @@ test('garbage decodes to empty', () => {
 });
 
 test('budget', () => {
-  const b = budgetFor('https://example.com/#/v1/sheet/');
-  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/v1/sheet/'.length);
+  const b = budgetFor('https://example.com/#/v0/sheet/');
+  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/v0/sheet/'.length);
 });
 
 test('the dictionary shortens everyday documents; plain deflate still reads', () => {
@@ -47,7 +47,7 @@ test('the dictionary shortens everyday documents; plain deflate still reads', ()
   const old = 'z' + toBase64Url(deflateSync(strToU8(memo), { level: 9, mem: 12 }));
   assert.equal(decodeDoc(old), memo);
   assert.ok(e.length < old.length * 0.8, `${e.length} vs ${old.length}`);
-  // (Frozen once v1 launches: then a payload made today must decode forever.)
+  // (Frozen once v0 launches: then a payload made today must decode forever.)
   const frozen = encodeDoc('Launch plan for the team meeting on Monday');
   assert.equal(decodeDoc(frozen), 'Launch plan for the team meeting on Monday');
 });

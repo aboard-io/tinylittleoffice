@@ -111,7 +111,7 @@ test('documents record their creation time, in the link', async () => {
   write('Document', 'hello');
   await idle();
   expect(meta()).toMatch(/\d{4}/);
-  expect(location.hash).toMatch(/^#\/v0\/write\/[WYZR]/);
+  expect(location.hash).toMatch(/^#\/v0\/write\/[yzr]/);
   expect(link().env!.created).toBeGreaterThan(Date.UTC(2026, 0, 1));
   // Creation time is in the link and survives a reload.
   const created = meta();

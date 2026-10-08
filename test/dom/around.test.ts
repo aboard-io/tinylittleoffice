@@ -54,7 +54,7 @@ describe('templates', () => {
     const doc = editorOf('write');
     expect(texts(doc, 'h1')).toEqual(['Meeting notes']);
     expect(texts(doc, 'h2')).toEqual(['Agenda', 'Notes', 'Decisions', 'Actions']);
-    await until(() => expect(location.hash).toMatch(/#\/v0\/write\/[WYZR]/));
+    await until(() => expect(location.hash).toMatch(/#\/v0\/write\/[yzr]/));
     expect(bodyOf()).toMatch(/^# Meeting notes\n/);
     // Once there are words, the offer is gone; one undo and the blank page is back, offer and all.
     expect(line()).toBeNull();
@@ -125,7 +125,7 @@ describe('arriving', () => {
   test('a link written for a program to fill in becomes the usual link, and opens the editor', async () => {
     history.replaceState(null, '', '/menu/#doc=%23+Cafe%0AEspresso+%7C+3.00');
     await shell(location.hash, visitor);
-    expect(location.hash).toMatch(/^#\/v0\/menu\/[WYZR]/);
+    expect(location.hash).toMatch(/^#\/v0\/menu\/[yzr]/);
     expect(document.querySelector('to-menu')).toBeTruthy();
     history.replaceState(null, '', '/');
   });

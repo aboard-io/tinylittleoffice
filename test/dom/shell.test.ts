@@ -14,7 +14,7 @@ test('a document has a title of its own', async () => {
   type(title(), 'Q3 budget');
   await settleAll();
   expect(document.title).toBe('Q3 budget · TinyLittleOffice');
-  await until(() => expect(location.hash).toMatch(/#\/v0\/sheet\/[WYZR]/));
+  await until(() => expect(location.hash).toMatch(/#\/v0\/sheet\/[yzr]/));
   await reopen();
   expect(title().value).toBe('Q3 budget');
   // Downloads are named after it.
@@ -61,7 +61,7 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await settleAll();
   await go('#/v0/todo');
   await addTask('Buy milk');
-  await until(() => expect(location.hash).toMatch(/#\/v0\/todo\/[WYZR]/));
+  await until(() => expect(location.hash).toMatch(/#\/v0\/todo\/[yzr]/));
   // Home glimpses them; Drive holds them, each in a folder named for its app.
   await go('#/');
   const library = document.querySelector('.to-library')!;
@@ -166,7 +166,7 @@ test('keeping documents is opt in, and off again erases them', async () => {
   keep().click();
   await until(() => expect(keep().getAttribute('aria-pressed')).toBe('true'));
   await addTask('Buy milk');
-  await until(() => expect(location.hash).toMatch(/#\/v0\/todo\/[WYZR]/));
+  await until(() => expect(location.hash).toMatch(/#\/v0\/todo\/[yzr]/));
   await go('#/');
   expect(document.querySelectorAll('.to-library li')).toHaveLength(1);
   await go('#/v0/write');

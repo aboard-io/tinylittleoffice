@@ -41,7 +41,7 @@ Q1 | 120
 ~ Web -> API: requests
 ~ API <-> Cache
 
-![The plan](https://tinylittleoffice.com/#/v1/deck/abc)
+![The plan](https://tinylittleoffice.com/#/v0/deck/abc)
 `);
   assert.deepEqual(doc.head, { app: 'invoice', title: 'Invoice 0042', tax: '8%' });
   assert.deepEqual(
@@ -65,7 +65,7 @@ Q1 | 120
   );
   assert.deepEqual(doc.blocks[12], { k: 'fence', lang: 'sheet', body: 'Q | Sales\n--- | ---\nQ1 | 120', a: { kv: { chart: 'bar' } } });
   assert.deepEqual(doc.blocks[13], { k: 'edge', from: 'Web', to: 'API', dir: '->', label: 'requests' });
-  assert.deepEqual(doc.blocks[15], { k: 'img', alt: 'The plan', url: 'https://tinylittleoffice.com/#/v1/deck/abc' });
+  assert.deepEqual(doc.blocks[15], { k: 'img', alt: 'The plan', url: 'https://tinylittleoffice.com/#/v0/deck/abc' });
   assert.deepEqual(column('Price:money'), { name: 'Price', type: 'money' });
   assert.deepEqual(column('Time: 10am'), { name: 'Time: 10am', type: 'text' });
   // And it reads back the same once written.
@@ -158,7 +158,7 @@ test('tlo: any blocks survive being written and read', () => {
       if (kind === 'table') blocks.push({ k: 'table', head: ['A', 'B:number'], rows: [[text(), '1'], ['', '2']] });
       if (kind === 'fence') blocks.push({ k: 'fence', lang: 'sheet', body: '```\ninner\n```\nA | B' });
       if (kind === 'edge') blocks.push({ k: 'edge', from: 'A', to: 'B c', dir: pick(['->', '<-', '<->', '--'] as const), ...(r() < 0.5 ? { label: 'says' } : {}) });
-      if (kind === 'img') blocks.push({ k: 'img', alt: 'A [b]', url: 'https://x.y/#/v1/deck/Zab' });
+      if (kind === 'img') blocks.push({ k: 'img', alt: 'A [b]', url: 'https://x.y/#/v0/deck/Zab' });
     }
     const doc: Tlo = { head: r() < 0.5 ? { app: 'deck', title: 'T: x' } : {}, blocks };
     const back = parse(write(doc));

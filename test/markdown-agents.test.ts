@@ -119,7 +119,7 @@ test('every app: Markdown in, a link out, read back as Markdown, and lint finds 
   for (const def of apps()) {
     const md = toMarkdown(def, T.example(def.id));
     const url = T.linkFromMarkdown(def.id, md);
-    assert.ok(url.includes(`/#/v1/${def.id}/`), def.id);
+    assert.ok(url.includes(`/#/v0/${def.id}/`), def.id);
     const p = T.parse(url);
     assert.equal(p.app, def.id);
     assert.ok(p.markdown.trim().length > 0, `${def.id} reads back as Markdown`);

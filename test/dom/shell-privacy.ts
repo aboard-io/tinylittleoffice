@@ -133,7 +133,7 @@ test('a password locks the link, and is asked for before anything is shown', asy
   await press('Remove', dialog());
   await until(() => !text(dialog()).includes('Locked'), 'unlocked');
   await done();
-  await until(() => /^#\/v0\/todo\/[WYZR]/.test(location.hash), 'a plain link again');
+  await until(() => /^#\/v0\/todo\/[yzr]/.test(location.hash), 'a plain link again');
   expect(link().env!.body).toBe('- [ ] payroll 2026\n- [ ] bonus');
   await open(location.hash);
   expect($('#pw-dialog').hasAttribute('open')).toBe(false);

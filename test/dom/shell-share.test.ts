@@ -16,7 +16,7 @@ test('a shared deck opens presenting, with a way back to editing', async () => {
   write('Headline', 'Plan');
   write('Bullets', 'Build it\nShip it');
   await idle();
-  expect(location.hash).toMatch(/^#\/v0\/deck\/[WYZR]/);
+  expect(location.hash).toMatch(/^#\/v0\/deck\/[yzr]/);
   expect(parseDeck(link().env!.body).map((s) => [s.title, s.bullets])).toEqual([['Spring launch', []], ['Plan', ['Build it', 'Ship it']]]);
   const editing = location.href;
 
@@ -75,7 +75,7 @@ test('each app has a page of its own, where a new document of it opens', async (
   expect(text($('.to-panel h1'))).toMatch(/^Deck/);
   write('Headline', 'From the deck page');
   await idle();
-  expect(location.pathname + location.hash).toMatch(/^\/deck\/#\/v0\/deck\/[WYZR]/);
+  expect(location.pathname + location.hash).toMatch(/^\/deck\/#\/v0\/deck\/[yzr]/);
   await reopen();
   expect(text($('[aria-label="Headline"]'))).toBe('From the deck page');
 });
@@ -118,7 +118,7 @@ test('a shorter link that expires, with the key kept out of the server', async (
   fill(add, 'Secret plan');
   add.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   await idle();
-  expect(location.hash).toMatch(/^#\/v0\/todo\/[WYZR]/);
+  expect(location.hash).toMatch(/^#\/v0\/todo\/[yzr]/);
   // A stand-in for tinier, remembering what it was sent.
   let sent: { c: string; iv: string; ttl: number } | null = null;
   const offline = globalThis.fetch;

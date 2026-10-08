@@ -13,7 +13,7 @@ test('every example in the skill draws a picture; the guide is served', async ({
     await page.goto('about:blank');
     await page.goto(`/${app}/#${params}`);
     await expect(page.locator(`to-${app}`), app).toBeVisible();
-    await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v0/${app}/[WYZR][A-Za-z0-9_-]+$`));
+    await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v0/${app}/[yzr][A-Za-z0-9_-]+$`));
     // It drew something: the picture every other view is made from is not empty.
     const [png] = await Promise.all([page.waitForEvent('download'), page.goto(page.url().replace(`/v0/${app}/`, `/v0/${app}.png/`))]);
     expect(png.suggestedFilename(), app).toMatch(/\.png$/);

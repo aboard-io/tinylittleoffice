@@ -5,7 +5,7 @@ import * as T from '../src/api.ts';
 test('a link is made, read, shaped from Markdown, and compared', () => {
   const budget = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 600\nTotal | =SUM(B1:B2)';
   const u = T.link('sheet', budget, { title: 'Budget', by: 'planner-agent' });
-  assert.match(u, /^https:\/\/tinylittleoffice\.com\/sheet\/#\/v1\/sheet\/[yzr]/);
+  assert.match(u, /^https:\/\/tinylittleoffice\.com\/sheet\/#\/v0\/sheet\/[yzr]/);
   const p = T.parse(u);
   assert.equal(p.app, 'sheet');
   assert.equal(p.env.title, 'Budget');

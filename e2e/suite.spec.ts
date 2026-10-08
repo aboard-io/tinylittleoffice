@@ -95,7 +95,7 @@ test('write: rich text survives the round trip', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.keyboard.type('second');
   await expect(page.locator('.write-foot')).toContainText('7 words');
-  expect(page.url()).toMatch(/#\/v0\/write\/[WYZR]/);
+  expect(page.url()).toMatch(/#\/v0\/write\/[yzr]/);
 
   await reopen(page);
   const html = await editor.innerHTML();

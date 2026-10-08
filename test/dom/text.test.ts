@@ -114,7 +114,7 @@ test('outline: items under items, folded, moved, zoomed; OPML out', async () => 
   await key(item(4), 'Tab', { shift: true });
   await key(item(4), 'Tab', { shift: true });
   await typeRich(item(4), 'Done');
-  expect(location.hash).toMatch(/#\/v0\/outline\/[WYZR]/);
+  expect(location.hash).toMatch(/#\/v0\/outline\/[yzr]/);
   expect(bodyOf()).toBe('- Launch\n  - Product\n    - Pricing\n- Done');
   // Fold Launch: Product and Pricing hide, a count shows.
   ol().querySelector<HTMLElement>('.ol-row .ol-fold')!.click();

@@ -91,7 +91,7 @@ test('site: another document on a page, and the lines as the picture', () => {
   const text = `# A\n\n# Numbers\n\n${fence(ref)}`;
   const html = spec.page!(text, { base: 'https://example.com/' });
   assert.ok(html.includes('<figure class="embed"><svg xmlns="http://www.w3.org/2000/svg"') && html.includes('aria-label="Sales"'));
-  assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v1/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
+  assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v0/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
   assert.deepEqual(def.outline(text), ['A', 'Numbers', '↗  Sales']);
   assert.equal(def.view(text)[0].svg.includes('Numbers'), true);
 });

@@ -36,7 +36,7 @@ test('a plain link becomes the compact one, on the page of its app, with its tit
     const [, , params] = links.find((l) => l[1] === app)!;
     await visit(`/${app}/#${params}`);
     expect(editor(app), app).toBeTruthy();
-    expect(location.pathname + location.hash, app).toMatch(new RegExp(`^/${app}/#/v0/${app}/[WYZR][A-Za-z0-9_-]+$`));
+    expect(location.pathname + location.hash, app).toMatch(new RegExp(`^/${app}/#/v0/${app}/[yzr][A-Za-z0-9_-]+$`));
     const want = new URLSearchParams(params).get('title') ?? '';
     expect(document.querySelector<HTMLInputElement>('input[aria-label="Title"]')!.value, app).toBe(want);
     expect(editor(app).value, app).toBe(docOf(app, params));
