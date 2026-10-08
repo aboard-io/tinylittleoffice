@@ -36,8 +36,9 @@ export class ToMeter extends LitElement {
     return html`<div class="to-meter ${state}" role="group" aria-label="URL space">
       <span class="to-meter-main" data-tip=${title} @to-tip=${(e: TipEvent) => (e.detail.content = html`<div class="to-meter-rooms">${roomsTable(this.rooms)}</div>`)}>
         <sl-progress-ring
-          value=${pct}
+          value=${Math.round(pct * 10) / 10}
           label=${title}
+          aria-label=${`${title}: how much room the link has, and where it fits`}
           role="button"
           tabindex="0"
           @click=${this.info}
