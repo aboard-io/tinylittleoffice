@@ -1,0 +1,22 @@
+// tinier, the link shortener, as a Worker: the ciphertext in D1, swept hourly.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "tinier",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-08",
+  "routes": [{ "pattern": "tinier.tinylittleoffice.com", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tinier",
+      // Filled in by `npx wrangler d1 create tinier` on the account the site deploys from.
+      "database_id": ""
+    }
+  ],
+  // A gentle brake on one address making many links. Counted per Cloudflare location, in memory, never written down.
+  "ratelimits": [{ "name": "LIMITER", "namespace_id": "1", "simple": { "limit": 10, "period": 60 } }],
+  // Expired links go every hour; a read of one goes sooner.
+  "triggers": { "crons": ["17 * * * *"] },
+  // No logs: the server learns that a link was made, and keeps even that to itself.
+  "observability": { "enabled": false }
+}

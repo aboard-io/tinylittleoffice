@@ -42,7 +42,7 @@ function appPages(site: string): Plugin {
       const files = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
         .filter((f) => f.isFile())
         .map((f) => relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'))
-        .filter((f) => !f.startsWith('og/') && f !== 'sw.js' && f !== 'llms.txt')
+        .filter((f) => !f.startsWith('og/') && f !== 'sw.js' && f !== 'llms.txt' && f !== '_headers')
         .sort();
       const version = createHash('sha256').update(files.map((f) => f + readFileSync(resolve(dist, f)).length).join('|')).digest('hex').slice(0, 12);
       // The same list, as data, for "Download everything" (the app and the library in one zip).

@@ -8,6 +8,8 @@ HOST="$VM.exe.xyz"
 
 npm ci
 npm run build
+# nginx serves a ready-made .gz beside each text file (gzip_static); Cloudflare compresses for itself.
+node scripts/precompress.mjs dist
 
 rsync -az --delete dist/ "$HOST:/tmp/tinyoffice-dist/"
 rsync -az --delete deploy/tinier/ "$HOST:/tmp/tinier/"

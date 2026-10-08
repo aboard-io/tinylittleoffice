@@ -6,10 +6,13 @@
   "description": "A tiny office suite that lives entirely in the URL.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && vite build -c vite.api.config.ts && cp packages/doc/index.d.ts dist/api.d.ts && node scripts/precompress.mjs dist",
+    "build": "tsc --noEmit && vite build && vite build -c vite.api.config.ts && cp packages/doc/index.d.ts dist/api.d.ts",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tinier",
     "test": "node --test --experimental-strip-types test/*.test.ts",
+    "deploy": "npm run build && npm test && wrangler deploy && wrangler deploy -c tinier/wrangler.jsonc",
+    "tinier:schema": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --remote --file=tinier/schema.sql",
+    "tinier:dev": "wrangler dev -c tinier/wrangler.jsonc",
     "new-app": "node scripts/new-app.mjs",
     "build:api": "API_OUT=packages/doc/dist vite build -c vite.api.config.ts",
     "py-dicts": "node --experimental-strip-types scripts/py-dicts.ts",
@@ -30,6 +33,7 @@
     "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.4",
     "typescript": "^5.9.2",
-    "vite": "^7.1.0"
+    "vite": "^7.1.0",
+    "wrangler": "^4.148.0"
   }
 }

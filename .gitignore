@@ -8,3 +8,5 @@ __pycache__/
 
 # Built by npm run build:api (the site serves the same file as /api.js)
 packages/doc/dist/
+.wrangler/
+worker-configuration.d.ts

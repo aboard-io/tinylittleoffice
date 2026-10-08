@@ -300,17 +300,24 @@ sent, and the key travels in the short link's fragment (`#…`), which
 browsers never send to any server. Opening a short link fetches the
 ciphertext, decrypts it on the page, and goes to the document. The
 server learns that a link was made, and when it should forget it;
-nothing else. It is `deploy/tinier`: one Node file, no dependencies,
-one file on disk per link, swept hourly; deployed with the site.
+nothing else. It is `tinier/`: one file of logic (`tinier.ts`, tested
+with node against a Map) run as a Cloudflare Worker (`worker.ts`) with
+its rows in a D1 table (`schema.sql`), a rate-limit binding as the brake
+on one address, and an hourly cron that forgets expired links (a read of
+one forgets it sooner). `deploy/tinier` is the same service as it ran on
+the VM, kept until that is retired.
 
 ## What the server sees
 
 Nothing of any document. A document is the part of the address after `#`,
 which a browser keeps to itself: it is not in the request, so it cannot be
 in a log. That is why plain-parameter links use `#` and the same thing after
-`?` is deliberately not understood. The server is static files; its request
-log is switched off as well (`deploy/nginx.conf`), though a proxy in front
-of it may keep its own record of which files were asked for.
+`?` is deliberately not understood. The server is static files, and the site
+keeps no log of its own: the Workers have logging switched off
+(`wrangler.jsonc`), as nginx did on the VM (`deploy/nginx.conf`). Cloudflare,
+which serves the files, keeps its own record of requests (an address, a
+path such as `/deck/`, a browser) under its own policy; a path says which
+app was opened, never which document.
 
 Three things do leave the browser, each only when asked to: Trip fetches map
 tiles and place searches from openstreetmap.org; the Share menu hands the
@@ -442,6 +449,9 @@ src/lib/icons.ts      Lucide icons; iconsearch.ts finds and suggests them
 src/widgets/meter.ts  <to-meter>: URL space ring + copy button
 src/styles.css        the stylesheet: tokens, the shell, shared pieces (.to-*), then the apps
 scripts/              new-app, share cards and icons
+tinier/               the link shortener: a Worker, its D1 schema, its page
+wrangler.jsonc        the site as a Cloudflare Worker of static assets; public/_headers its headers
+deploy/               the older VM deploy: nginx, the shortener as a Node service
 test/                 unit tests (node --test)
 e2e/                  Playwright browser tests
 ```
@@ -475,5 +485,12 @@ example survives the trip through its form unchanged.
 ## Deploying
 
 The included GitHub Actions workflow runs the tests on every push. The site
-is static: `npm run build` and serve `dist/` from anywhere (`deploy/deploy.sh`
-puts it on an exe.dev VM).
+is static: `npm run build` and serve `dist/` from anywhere.
+
+It lives on Cloudflare: `dist/` as the static assets of a Worker with no
+script (`wrangler.jsonc`), its headers from `public/_headers`, on
+tinylittleoffice.com and www; and the shortener as a second Worker
+(`tinier/wrangler.jsonc`). `npm run deploy` builds, tests and ships both.
+Once, on a new account: `npx wrangler login`, `npx wrangler d1 create tinier`
+(its id goes in `tinier/wrangler.jsonc`), `npm run tinier:schema`.
+`deploy/deploy.sh` is the older way, onto an exe.dev VM running nginx.
