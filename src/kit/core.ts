@@ -106,11 +106,11 @@ export interface AppDef {
 const REGISTRY = new Map<string, AppDef>();
 
 /**
- * The version of the link format, written "v0" at the front of every
- * document's link: "#/v0/<app>/<payload>". Version 0 is the one that
+ * The version of the link format, written "v1" at the front of every
+ * document's link: "#/v1/<app>/<payload>". Version 1 is the one that
  * launches; until then the format changes freely and nothing older is read.
  */
-export const LINK_VERSION = 0;
+export const LINK_VERSION = 1;
 /** What every document's link starts with, after the "#". */
 export const LINK = `#/v${LINK_VERSION}/`;
 
@@ -421,6 +421,7 @@ export const COMMON: { ext: string; label: string }[] = [
   { ext: 'png', label: 'Picture' },
   { ext: 'html', label: 'Web page' },
   { ext: 'md', label: 'Markdown' },
+  { ext: 'tlo', label: 'TinyLittleOffice file' },
 ];
 /** Apps that move offer a GIF as well. */
 export const MOVING: { ext: string; label: string } = { ext: 'gif', label: 'Animated GIF' };

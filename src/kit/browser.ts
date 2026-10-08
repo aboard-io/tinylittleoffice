@@ -9,6 +9,8 @@ import { COMMON, MOVING, FONT, History, appOf, apps, docHtml, extOf, fileName, p
 import { makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
 import { toMarkdown } from '../lib/markdown.ts';
+import { envelopeText } from '../lib/envelope.ts';
+import { withHead } from '../lib/tlo.ts';
 import { encodeGif } from '../lib/gif.ts';
 import { icon, UI } from '../lib/icons.ts';
 import type { SlDialog } from '../lib/shoelace.ts';
@@ -230,6 +232,10 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
   } else if (ext === 'pdf') {
     data = await pdfOf(def.view(body), title || def.title(body) || def.name);
     mime = 'application/pdf';
+  } else if (ext === 'tlo') {
+    // The document exactly as its link holds it, with the app that opens it in its header.
+    data = utf8(envelopeText({ created: ctx.created, title: title || undefined, body: withHead(body, { app: def.id }) }));
+    mime = 'text/markdown;charset=utf-8';
   } else if (ext === 'md') {
     data = utf8(toMarkdown(def, body, title));
     mime = 'text/markdown;charset=utf-8';

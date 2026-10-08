@@ -242,6 +242,13 @@ export function parse(text: string): Tlo {
   return { head, blocks };
 }
 
+/** A text's header and the text after it. */
+export function splitHead(text: string): [Head, string] {
+  const lines = text.split('\n');
+  const [head, start] = readHead(lines);
+  return start ? [head, lines.slice(start).join('\n')] : [{}, text];
+}
+
 /** Some keys taken out of a text's header: [those keys, the text without them]. The rest of the header stays. */
 export function takeHead(text: string, keys: string[]): [Head, string] {
   const lines = text.split('\n');

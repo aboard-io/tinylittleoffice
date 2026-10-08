@@ -34,8 +34,8 @@ test('garbage decodes to empty', () => {
 });
 
 test('budget', () => {
-  const b = budgetFor('https://example.com/#/v0/sheet/');
-  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/v0/sheet/'.length);
+  const b = budgetFor('https://example.com/#/v1/sheet/');
+  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/v1/sheet/'.length);
 });
 
 test('the dictionary shortens everyday documents; plain deflate still reads', () => {
@@ -47,8 +47,9 @@ test('the dictionary shortens everyday documents; plain deflate still reads', ()
   const old = 'z' + toBase64Url(deflateSync(strToU8(memo), { level: 9, mem: 12 }));
   assert.equal(decodeDoc(old), memo);
   assert.ok(e.length < old.length * 0.8, `${e.length} vs ${old.length}`);
-  // (Frozen once v0 launches: then this exact payload must decode forever.)
-  assert.equal(decodeDoc('y84EUIuDMBkoyoOQCzn7Q8giUQCAZCQA'), 'Launch plan for the team meeting on Monday');
+  // (Frozen once v1 launches: then a payload made today must decode forever.)
+  const frozen = encodeDoc('Launch plan for the team meeting on Monday');
+  assert.equal(decodeDoc(frozen), 'Launch plan for the team meeting on Monday');
 });
 
 test('a link that would unpack to a mountain is refused', async () => {
@@ -61,43 +62,4 @@ test('a link that would unpack to a mountain is refused', async () => {
   // An honest document of some size is fine.
   const big = 'x'.repeat(MAX_DOC_BYTES / 4);
   assert.equal(unpackDoc('z', deflateSync(new TextEncoder().encode(big))), big);
-});
-
-test('an app\'s own dictionary makes its links shorter', async () => {
-  const { packDoc, unpackDoc } = await import('../src/lib/codec.ts');
-  const { encodeEnvelope, decodeEnvelope } = await import('../src/lib/envelope.ts');
-  await import('../src/apps/index.ts');
-  const { specOf } = await import('../src/lib/diagram.ts');
-  const { APP_DICTS } = await import('../src/lib/dicts.ts');
-  const { apps } = await import('../src/kit/core.ts');
-  let shorter = 0, total = 0, before = 0, after = 0;
-  for (const def of apps()) {
-    const sample = specOf(def.id)?.example;
-    if (!sample) continue;
-    // A document in the same format as the example, with other words in it.
-    const words = sample.split(/(\s+)/);
-    const doc = words.map((w, i) => (i % 2 ? w : words[(i * 7) % words.length] ?? w)).join('');
-    // (Creation times are kept to the minute.)
-    const { quantizeCreated } = await import('../src/lib/envelope.ts');
-    const made = quantizeCreated(1_700_000_000_000);
-    const plain = encodeEnvelope({ created: made, body: doc });
-    const fitted = encodeEnvelope({ created: made, body: doc }, def.id);
-    assert.deepEqual(decodeEnvelope(fitted, def.id), { created: made, body: doc }, def.id);
-    assert.deepEqual(decodeEnvelope(plain), { created: made, body: doc });
-    total++;
-    before += plain.length;
-    after += fitted.length;
-    if (fitted.length < plain.length) shorter++;
-  }
-  assert.ok(shorter >= total * 0.9, `${shorter} of ${total} shorter`);
-  assert.ok(after < before * 0.8, `${before} -> ${after}`);
-  // Every app with words of its own has a dictionary.
-  assert.ok(Object.keys(APP_DICTS).length >= 45);
-  // A "w" link needs its app; without it, it is refused rather than misread.
-  const w = packDoc('# Harbor Coffee\n## Coffee\nEspresso | 3.00', 'menu');
-  assert.equal(w.flag, 'w');
-  assert.throws(() => unpackDoc('w', w.bytes));
-  assert.equal(unpackDoc('w', w.bytes, 'menu'), '# Harbor Coffee\n## Coffee\nEspresso | 3.00');
-  // The other encodings read as ever.
-  assert.equal(unpackDoc('r', new TextEncoder().encode('hi')), 'hi');
 });

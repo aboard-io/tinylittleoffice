@@ -16,8 +16,9 @@ import { encodeEnvelope, decodeEnvelope, unpackEnvelope, quantizeCreated, type E
 import { privacy, isSealed } from './lib/privacy.ts';
 import { store, keeping, setKeeping } from './lib/store.ts';
 import { fromMarkdown } from './lib/markdown.ts';
+import { takeHead } from './lib/tlo.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
-import { setSelfLink } from './kit/embed.ts';
+import { hashOf, setSelfLink } from './kit/embed.ts';
 import { EXPIRIES, shorten } from './lib/short.ts';
 import './widgets/drive.ts';
 import './widgets/privacy.ts';
@@ -849,7 +850,17 @@ export class ToApp extends LitElement {
   private renderImport() {
     const apply = () => {
       if (!this.def || !this.importText.trim()) return;
-      const body = fromMarkdown(this.def, this.importText);
+      // A .tlo file says which app it is, and what it is called.
+      const [head, rest] = takeHead(this.importText, ['app', 'title', 'by', 'created', 'key', 'sig']);
+      const other = head.app && head.app !== this.def.id ? appOf(head.app) : undefined;
+      if (other) {
+        this.importText = '';
+        this.querySelector<SlDialog>('#import-dialog')?.hide();
+        location.hash = hashOf(other.id, fromMarkdown(other, rest), head.title);
+        return;
+      }
+      if (head.title) this.env = { ...this.env, title: head.title };
+      const body = fromMarkdown(this.def, rest);
       this.history.record(this.state());
       this.env = { ...this.env, created: this.env.created ?? quantizeCreated(Date.now()), body };
       this.importText = '';
@@ -862,10 +873,10 @@ export class ToApp extends LitElement {
       if (file) this.importText = await file.text();
     };
     return html`<sl-dialog id="import-dialog" label="Import Markdown or CSV" class="to-import">
-      <p class="to-hint">Paste Markdown or CSV, or choose a file. Headings, lists, tables, checkboxes and rows of cells are read the way this kind of document reads them; it replaces what is here (undo brings it back).</p>
+      <p class="to-hint">Paste Markdown or CSV, or choose a file (a .tlo file opens as the document it is). Headings, lists, tables, checkboxes and rows of cells are read the way this kind of document reads them; it replaces what is here (undo brings it back).</p>
       <textarea aria-label="Markdown or CSV" placeholder="# Title&#10;&#10;- one thing&#10;- another&#10;&#10;or: Item, Cost&#10;Rent, 1200" .value=${this.importText} @input=${(e: Event) => (this.importText = (e.target as HTMLTextAreaElement).value)}></textarea>
       <div class="row">
-        <input type="file" accept=".md,.markdown,.txt,.csv,.tsv,text/markdown,text/plain,text/csv,text/tab-separated-values" aria-label="A Markdown or CSV file" @change=${pick} />
+        <input type="file" accept=".tlo,.md,.markdown,.txt,.csv,.tsv,text/markdown,text/plain,text/csv,text/tab-separated-values" aria-label="A Markdown or CSV file" @change=${pick} />
         <span class="to-spacer"></span>
         <sl-button variant="primary" ?disabled=${!this.importText.trim()} @click=${apply}>${icon(UI.insert, 14)} Import</sl-button>
       </div>

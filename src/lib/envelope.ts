@@ -1,23 +1,22 @@
 /**
- * The envelope wraps an app's document body with metadata that every app
- * shares: when the document was created and, optionally, a signature.
+ * The envelope: what every document carries besides its own words, kept in
+ * the header of its TLO text (lib/tlo.ts), beside the app's own settings:
  *
- * Inside the compressed text:
- *   c<created>      minutes since 2020-01-01T00:00Z, base 36
- *   t<title>        the document's name, optional
- *   b<by>           who made it (a person, or an agent's name), optional
- *   k<public key>   base64url, optional
- *   s<signature>    base64url, optional
- *   <blank line>
- *   <body>
+ *   ---
+ *   title: Q3 budget          the document's name, optional
+ *   by: forecast-agent        who made it (a person, or an agent's name), optional
+ *   created: 2026-10-05T14:32Z  when, to the minute, optional
+ *   key: <public key>         base64url, with a signature, optional
+ *   sig: <signature>
+ *   chart: bar                (the app's own settings stay where they are)
+ *   ---
+ *   <the document>
  *
- * The payload is the codec's flag (see lib/codec.ts) and the packed text:
- * in capitals ("W", "Y", "Z", "R") when there is an envelope, in lowercase
- * when there is nothing to put in one (no time, title, author or
- * signature: a document made by a program, or shown inside another), so
- * the bare body costs nothing extra.
+ * The payload is the codec's flag (see lib/codec.ts) and the packed text.
+ * A document with none of these is its text alone.
  */
 import { packDoc, unpackDoc, toBase64Url, fromBase64Url } from './codec.ts';
+import { splitHead, takeHead, writeHead } from './tlo.ts';
 
 export const CREATED_EPOCH_MS = Date.UTC(2020, 0, 1);
 
@@ -47,51 +46,55 @@ export function decodeCreated(s: string): number | null {
   return Number.isFinite(n) && n >= 0 ? CREATED_EPOCH_MS + n * 60000 : null;
 }
 
-/** Envelope as a one-character flag plus bytes; the flag is uppercase when an envelope is present. */
-export function packEnvelope(env: Envelope, app?: string): { flag: string; bytes: Uint8Array } {
-  if (env.created === null && !env.key && !env.sig && !env.title && !env.by) return packDoc(env.body, app);
-  const head: string[] = [];
-  if (env.created !== null) head.push('c' + encodeCreated(env.created));
-  if (env.title) head.push('t' + env.title.replace(/\n/g, ' '));
-  if (env.by) head.push('b' + env.by.replace(/\n/g, ' '));
-  if (env.key && env.sig) head.push('k' + env.key, 's' + env.sig);
-  const { flag, bytes } = packDoc(head.join('\n') + '\n\n' + env.body, app);
-  return { flag: flag.toUpperCase(), bytes };
+const SHELL = ['title', 'by', 'created', 'key', 'sig'];
+
+/** When, as the header writes it: "2026-10-05T14:32Z". */
+const isoMinute = (ms: number) => new Date(quantizeCreated(ms)).toISOString().slice(0, 16) + 'Z';
+
+/** The whole text of a document: its envelope's keys in its header, then its own text. */
+export function envelopeText(env: Envelope): string {
+  const keys: Record<string, string> = {};
+  if (env.title) keys.title = env.title.replace(/\n/g, ' ');
+  if (env.by) keys.by = env.by.replace(/\n/g, ' ');
+  if (env.created !== null) keys.created = isoMinute(env.created);
+  if (env.key && env.sig) (keys.key = env.key), (keys.sig = env.sig);
+  if (!Object.keys(keys).length) return env.body;
+  // The envelope's keys go first, the app's own settings after them.
+  const [own, rest] = splitHead(env.body);
+  return writeHead({ ...keys, ...own }) + rest;
 }
 
-export function encodeEnvelope(env: Envelope, app?: string): string {
-  if (!env.body && env.created === null && !env.key && !env.title && !env.by) return '';
-  const { flag, bytes } = packEnvelope(env, app);
+/** A document's text read into its envelope: the header's envelope keys taken out, everything else its own. */
+export function readEnvelope(text: string): Envelope {
+  const [head, body] = takeHead(text, SHELL);
+  const env: Envelope = { created: null, body };
+  if (head.created) {
+    const ms = Date.parse(head.created);
+    if (Number.isFinite(ms)) env.created = quantizeCreated(ms);
+  }
+  if (head.title) env.title = head.title;
+  if (head.by) env.by = head.by;
+  if (head.key && head.sig) (env.key = head.key), (env.sig = head.sig);
+  return env;
+}
+
+export function packEnvelope(env: Envelope, _app?: string): { flag: string; bytes: Uint8Array } {
+  return packDoc(envelopeText(env));
+}
+
+export function encodeEnvelope(env: Envelope, _app?: string): string {
+  const text = envelopeText(env);
+  if (!text) return '';
+  const { flag, bytes } = packDoc(text);
   return flag + toBase64Url(bytes);
 }
 
-export function unpackEnvelope(flag: string, bytes: Uint8Array, app?: string): Envelope {
-  if (flag !== 'W' && flag !== 'Y' && flag !== 'Z' && flag !== 'R') {
-    try {
-      return { created: null, body: unpackDoc(flag, bytes, app) };
-    } catch {
-      return { created: null, body: '' };
-    }
-  }
-  let text: string;
+export function unpackEnvelope(flag: string, bytes: Uint8Array, _app?: string): Envelope {
   try {
-    text = unpackDoc(flag.toLowerCase(), bytes, app);
+    return readEnvelope(unpackDoc(flag, bytes));
   } catch {
     return { created: null, body: '' };
   }
-  const split = text.indexOf('\n\n');
-  if (split < 0) return { created: null, body: '' };
-  const env: Envelope = { created: null, body: text.slice(split + 2) };
-  for (const line of text.slice(0, split).split('\n')) {
-    const v = line.slice(1);
-    if (line[0] === 'c') env.created = decodeCreated(v);
-    else if (line[0] === 't' && v) env.title = v;
-    else if (line[0] === 'b' && v) env.by = v;
-    else if (line[0] === 'k') env.key = v;
-    else if (line[0] === 's') env.sig = v;
-  }
-  if (!env.key || !env.sig) delete env.key, delete env.sig;
-  return env;
 }
 
 export function decodeEnvelope(payload: string, app?: string): Envelope {

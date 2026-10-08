@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { encodeEnvelope, decodeEnvelope, encodeCreated, decodeCreated, quantizeCreated, signingMessage, CREATED_EPOCH_MS } from '../src/lib/envelope.ts';
+import { encodeEnvelope, decodeEnvelope, envelopeText, readEnvelope, encodeCreated, decodeCreated, quantizeCreated, signingMessage, CREATED_EPOCH_MS } from '../src/lib/envelope.ts';
 import { encodeDoc } from '../src/lib/codec.ts';
 
 test('created time keeps minute precision', () => {
@@ -18,13 +18,21 @@ test('created time keeps minute precision', () => {
 
 test('envelope round trip with and without signature', () => {
   const created = Date.UTC(2026, 9, 5, 14, 32);
-  const plain = encodeEnvelope({ created, body: 'a\tb\n1\t2' });
-  assert.equal(plain[0], 'R');
-  assert.deepEqual(decodeEnvelope(plain), { created, body: 'a\tb\n1\t2' });
+  const plain = encodeEnvelope({ created, body: 'a | b\n--- | ---\n1 | 2' });
+  assert.deepEqual(decodeEnvelope(plain), { created, body: 'a | b\n--- | ---\n1 | 2' });
 
   const signed = encodeEnvelope({ created, key: 'KEY_-1', sig: 'SIG_-2', body: 'hello '.repeat(50) });
-  assert.equal(signed[0], 'Z');
   assert.deepEqual(decodeEnvelope(signed), { created, key: 'KEY_-1', sig: 'SIG_-2', body: 'hello '.repeat(50) });
+});
+
+test('the envelope is the header of the text, beside the app\'s own settings', () => {
+  const created = Date.UTC(2026, 9, 5, 14, 32);
+  const text = envelopeText({ created, title: 'Q3 budget', by: 'forecast-agent', body: '---\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 120' });
+  assert.equal(text, '---\ntitle: Q3 budget\nby: forecast-agent\ncreated: 2026-10-05T14:32Z\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 120');
+  // Read back, the envelope's keys come out and the app keeps its own.
+  assert.deepEqual(readEnvelope(text), { created, title: 'Q3 budget', by: 'forecast-agent', body: '---\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 120' });
+  // A model may write the time loosely.
+  assert.equal(readEnvelope('---\ncreated: 2026-10-05\n---\nx').created, Date.UTC(2026, 9, 5));
 });
 
 test('a key without a signature is dropped, body may contain blank lines', () => {
@@ -32,10 +40,8 @@ test('a key without a signature is dropped, body may contain blank lines', () =>
   assert.deepEqual(env, { created: null, body: 'x\n\ny' });
 });
 
-test('a document with nothing to put in an envelope goes without one, flagged in lowercase', () => {
-  const bare = encodeDoc('c123\n\nnot an envelope');
-  assert.equal(bare[0], bare[0].toLowerCase());
-  assert.deepEqual(decodeEnvelope(bare), { created: null, body: 'c123\n\nnot an envelope' });
+test('a document with nothing to put in an envelope is its text alone', () => {
+  assert.equal(encodeEnvelope({ created: null, body: 'x' }), encodeDoc('x'));
   assert.equal(encodeEnvelope({ created: null, body: 'x' })[0], 'r');
   assert.deepEqual(decodeEnvelope(''), { created: null, body: '' });
   assert.deepEqual(decodeEnvelope('Zgarbage!'), { created: null, body: '' });
