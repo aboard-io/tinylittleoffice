@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { shot, reopen, pickOption } from './helpers';
+import { shot, reopen } from './helpers';
 
-test('every example in the skill opens as written', async ({ page }) => {
+// Stays: each example's picture is drawn on a canvas and downloaded, and the guide is served by the real server (opening each example is in test/dom/links.test.ts).
+test('every example in the skill draws a picture; the guide is served', async ({ page }) => {
   test.slow();
   await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') }));
   const skill = readFileSync(new URL('../skill/tinyoffice/SKILL.md', import.meta.url), 'utf8');
@@ -12,74 +13,34 @@ test('every example in the skill opens as written', async ({ page }) => {
     await page.goto('about:blank');
     await page.goto(`/${app}/#${params}`);
     await expect(page.locator(`to-${app}`), app).toBeVisible();
-    // The plain link has become the compact one, on the app's own page.
     await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v0/${app}/[WYZR][A-Za-z0-9_-]+$`));
-    const want = new URLSearchParams(params).get('title')!;
-    await expect(page.getByRole('textbox', { name: 'Title' }), app).toHaveValue(want);
-    // And it drew something: the picture every other view is made from is not empty.
+    // It drew something: the picture every other view is made from is not empty.
     const [png] = await Promise.all([page.waitForEvent('download'), page.goto(page.url().replace(`/v0/${app}/`, `/v0/${app}.png/`))]);
     expect(png.suggestedFilename(), app).toMatch(/\.png$/);
     const bytes = readFileSync(await png.path());
     expect(bytes.length, `${app} picture`).toBeGreaterThan(3000);
   }
-  // What a few of them say.
-  const open = async (app: string) => {
-    const [, , params] = links.find((l) => l[1] === app)!;
-    await page.goto('about:blank');
-    await page.goto(`/${app}/#${params}`);
-  };
-  await open('sheet');
-  await expect(page.locator('.sheet-chart svg rect[rx="2"]')).toHaveCount(3);
-  await open('gantt');
-  await expect(page.getByLabel('Start of task 1')).toHaveValue('2027-03-01');
-  await expect(page.locator('.gantt-chart .bar.parent')).toHaveCount(1);
-  await open('cal');
-  await expect(page.locator('.cal-agenda li')).toHaveCount(3);
-  await open('todo');
-  await expect(page.locator('.todo-list li')).toHaveCount(3);
-  await expect(page.locator('.todo-list li').nth(0).getByLabel('Due date')).toHaveValue('2027-03-01');
-  await open('trip');
-  await expect(page.getByLabel('Name of stop 3')).toHaveValue('Porto');
-  await expect(page.getByLabel('Note for stop 1')).toHaveValue('Pastel de nata first');
-  await open('db');
-  await expect(page.locator('.diagram-aside table tbody tr')).toHaveCount(2);
-  await expect(page.locator('.diagram-aside')).toContainText('Platform');
-  // From the front page, with the app named as a parameter.
-  await page.goto('about:blank');
-  await page.goto('/#app=org&title=Team&doc=Ada%0A++Ben');
-  await expect(page.locator('to-org svg text')).toHaveText(['Ada', 'Ben']);
-  // After "?" the document would reach the server, so that form is not understood.
-  await page.goto('about:blank');
-  await page.goto('/?app=org&doc=Ada');
-  await expect(page.locator('to-org')).toHaveCount(0);
-  await expect(page.locator('.to-launcher').first()).toBeVisible();
   // The guide itself is served where programs look for it.
   const guide = await (await page.request.get('/llms.txt')).text();
   expect(guide).toContain('# TinyLittleOffice links');
   expect((await page.request.get('/tinyoffice.js')).status()).toBe(200);
 });
 
+// Stays: the embed code is read from the real clipboard and shown in a real frame on someone else's page (the code and the page it opens are in test/dom/links.test.ts).
 test('a document can be shown inside another page', async ({ page }) => {
   await page.goto('/deck/#title=Launch+plan&doc=%3Arocket%3At%0ALaunch+plan%0ASpring%0A%0AGoals%0AShip+it');
   await expect(page.locator('to-deck')).toBeVisible();
-  // The embed code has the manners of a good embed.
   await page.getByRole('button', { name: 'Share' }).click();
   await page.getByRole('menuitem', { name: 'Copy embed code' }).click();
   const code = await page.evaluate(() => navigator.clipboard.readText());
-  expect(code).toMatch(/^<iframe src="http:\/\/localhost:4173\/deck\/#\/v0\/deck\.embed\/[^"]+" title="Launch plan" loading="lazy" referrerpolicy="no-referrer" allowfullscreen style="width:100%;max-width:960px;aspect-ratio:960\/644;[^"]*"><\/iframe>$/);
+  expect(code).toMatch(/^<iframe src="http:\/\/localhost:\d+\/deck\/#\/v0\/deck\.embed\/[^"]+"/);
   // In a page of its own, as the frame will show it: the document, and a way to the editor.
-  const src = /src="([^"]+)"/.exec(code)![1];
-  await page.setContent(`<h1>Someone else's page</h1>${code.replace('localhost:4173', 'localhost:4173')}`);
+  await page.setContent(`<h1>Someone else's page</h1>${code}`);
   const frame = page.frameLocator('iframe');
   await expect(frame.locator('.to-embedded .pic svg')).toContainText('Launch plan');
   await expect(frame.locator('.to-header')).toHaveCount(0);
-  await expect(frame.getByRole('link', { name: 'Open in TinyLittleOffice' })).toHaveAttribute('target', '_blank');
-  // More than one page: step through.
   await frame.getByRole('button', { name: 'Next page' }).click();
   await expect(frame.locator('.to-embedded .pic svg')).toContainText('Goals');
-  await page.goto('about:blank');
-  await page.goto(src);
-  await expect(page.locator('.to-embedded .pic svg')).toContainText('Launch plan');
   await shot(page, 'embedded');
 });
 
@@ -122,6 +83,7 @@ test('draw: a join dragged between shapes follows a shape dragged away; a shape 
   await shot(page, 'draw-join');
 });
 
+// Stays: whether a font has loaded, and the style a box is drawn in, are the browser's.
 test('everything is set in IBM Plex', async ({ page }) => {
   await page.goto('/#/v0/write');
   await page.evaluate(() => document.fonts.ready);
@@ -240,6 +202,7 @@ test('zine: the words fit the page, the PDF is drawn, and the web page turns', a
   await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
 });
 
+// Stays: the model is worked by its page's own script, in a frame, as the sliders move.
 test('stock and flow: sliders move the diagram', async ({ page }) => {
   await page.goto('/#/v0/flow');
   await page.getByRole('button', { name: 'Start from an example' }).click();
@@ -336,6 +299,7 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   await expect(f.locator('#who')).toContainText(/^You give to (Grace|Alan|Margaret|Linus)\.$/);
 });
 
+// Stays: the map is Leaflet, laid out by the browser, and the tap lands by where it is.
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const trip = `trip/${encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra\n40000,0,Porto' })}`;
@@ -356,33 +320,22 @@ test('a map on a slide: a tap on the map goes to the next stop', async ({ page }
   await expect(page.locator('.deck-show .frame > svg')).toContainText('After');
 });
 
-test('the whole document as a QR code, to look at and to keep', async ({ page }) => {
+// Stays: the PNG is drawn on a canvas and downloaded (the dialog, the SVG and the too-long message are in test/dom/links.test.ts).
+test('the whole document as a QR code, kept as a PNG', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   await page.goto('/#/v0/todo/' + encodeEnvelope({ created: 1, body: '- Scan me' }));
   // The header button, or on a phone the Share menu's item.
-  const openQr = async () => {
-    if (await page.locator('sl-button[aria-label="QR code"]').isVisible()) await page.locator('sl-button[aria-label="QR code"]').click();
-    else {
-      await page.getByRole('button', { name: 'Share' }).click();
-      await page.getByRole('menuitem', { name: 'QR code' }).click();
-    }
-  };
-  await openQr();
+  if (await page.locator('sl-button[aria-label="QR code"]').isVisible()) await page.locator('sl-button[aria-label="QR code"]').click();
+  else {
+    await page.getByRole('button', { name: 'Share' }).click();
+    await page.getByRole('menuitem', { name: 'QR code' }).click();
+  }
   const dialog = page.locator('#qr-dialog');
-  await expect(dialog).toHaveAttribute('open');
   await expect(dialog.getByRole('img', { name: 'QR code of this document' }).locator('svg')).toBeVisible();
-  await expect(dialog).toContainText(/\d+ bytes, as one code/);
   const [png] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'PNG' }).click()]);
   expect(png.suggestedFilename()).toMatch(/-qr\.png$/);
   expect(readFileSync(await png.path()).subarray(1, 4).toString()).toBe('PNG');
-  const [svg] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'SVG' }).click()]);
-  expect(readFileSync(await svg.path(), 'utf8')).toContain('<svg');
   await shot(page, 'qr');
-  // Too long for any code, and it says so.
-  await page.goto('about:blank');
-  await page.goto('/#/v0/write/' + encodeEnvelope({ created: 1, body: Array.from({ length: 400 }, (_, i) => `Line ${i} of a long document with words that do not repeat much ${i * 7919}`).join('\n') }));
-  await openQr();
-  await expect(page.locator('#qr-dialog')).toContainText('the largest QR code holds 2,953');
 });
 
 // Stays: marks are made by the browser's own editing commands, on a selection made with the keyboard (nesting is in test/dom/deck-write.test.ts).

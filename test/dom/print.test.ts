@@ -1,7 +1,7 @@
 // The print apps (zine, booklet, brochure, poster, badges, recipes, comic, menu, résumé) worked in happy-dom (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
 import { mount, settle, button, setSl } from './helpers.ts';
-import { open, reopen, prefs, box, typeRich, settleAll, until, editSub, insert, pickIcon, pdfText, editor } from './helpers-more.ts';
+import { prefs, box, typeRich, settleAll, editSub, insert, pickIcon, pdfText } from './helpers-more.ts';
 import { appOf } from '../../src/kit/core.ts';
 
 beforeEach(() => prefs());
@@ -15,54 +15,54 @@ const pdfOf = (app: string, body: string) => pdfText(appOf(app)!.view(body));
 const pageCount = (pdf: string) => pdf.match(/\/Type \/Page\b/g)!.length;
 
 test('zine: eight pages, typed on as slides, a sheet to print either way', async () => {
-  await open('#/v0/zine');
-  const zine = () => editor('zine');
+  let m = await mount('zine');
+  const zine = () => m.el;
   expect(thumbs(zine())).toHaveLength(8);
   // The page is typed on as a slide is, in its own shape: a cover, centred.
   expect(zine().querySelector('.deck-slide.print.cover')).toBeTruthy();
   headline(zine(), 'Small Joys');
-  await settleAll();
+  await settleAll(2);
   // Enter in the headline goes on to the words.
   box(zine(), 'Headline').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   expect(document.activeElement?.getAttribute('aria-label')).toBe('Words');
   words(zine(), 'Issue one');
-  await settleAll();
+  await settleAll(2);
   button(zine(), 'Page 2').click();
-  await settleAll();
+  await settleAll(2);
   headline(zine(), 'Coffee');
-  await settleAll();
+  await settleAll(2);
   // However much is written, it stays on its page: the type shrinks. (Whether it fits on the page is measured in e2e.)
   // (The rail draws the page as it will print. The last text on it is its number; the one before it is the last line of the words.)
   const size = () => Number([...current(zine()).querySelectorAll('text')].at(-2)!.getAttribute('font-size'));
   expect(zine().querySelector('.deck-slide.print.prose')).toBeTruthy();
   words(zine(), 'Short.');
-  await settleAll();
+  await settleAll(2);
   const big = size();
   words(zine(), 'The first cup of the day, before anyone else is up. '.repeat(14));
-  await settleAll();
+  await settleAll(2);
   expect(size()).toBeLessThan(big);
   // A page can hold another document.
   button(zine(), 'Page 3').click();
-  await settleAll();
+  await settleAll(2);
   await insert(zine(), 'Insert', 'poll');
   await editSub('Poll, as text', '# Rain on the roof?\n- Fresh bread\n- Soup');
   expect(current(zine()).textContent).toContain('Fresh bread');
   expect(zine().querySelectorAll('.deck-slide to-embed')).toHaveLength(1);
   // Pages move as slides do.
   button(zine(), 'Move page up').click();
-  await settleAll();
+  await settleAll(2);
   expect(thumbs(zine())[1].textContent).toContain('Fresh bread');
   button(zine(), 'Move page down').click();
-  await settleAll();
+  await settleAll(2);
   expect(thumbs(zine())[1].textContent).toContain('Coffee');
-  await until(() => expect(location.hash).toMatch(/#\/v0\/zine\/[WYZR]/));
-  await reopen();
+  // Opened again from what it saved: the zine goes by its cover's title.
+  m = await mount('zine', m.last()!);
   expect(thumbs(zine())[0].textContent).toContain('Small Joys');
-  expect(document.title).toBe('Small Joys · TinyLittleOffice');
+  expect(appOf('zine')!.title(zine().value)).toBe('Small Joys');
 
   // One-sided: one sheet, eight pages, the top row upside down.
   button(zine(), 'See the sheet to print').click();
-  await settleAll();
+  await settleAll(2);
   expect(zine().querySelectorAll('.zine-sheet')).toHaveLength(1);
   expect(zine().querySelectorAll('.zine-sheet svg g[transform^="rotate(180"]')).toHaveLength(4);
   // Its PDF: letter paper, on its side (11 by 8.5 inches), one page.
@@ -71,14 +71,13 @@ test('zine: eight pages, typed on as slides, a sheet to print either way', async
   expect(pageCount(pdf)).toBe(1);
   // Two-sided: two sides, upright.
   setSl(zine().querySelector('sl-select.zine-sides'), 'two');
-  await settleAll();
+  await settleAll(2);
   expect(zine().querySelectorAll('.zine-sheet')).toHaveLength(2);
   expect(zine().querySelectorAll('.zine-sheet svg g[transform^="rotate(180"]')).toHaveLength(0);
   pdf = pdfOf('zine', zine().value);
   expect(pdf).toContain('/MediaBox [0 0 612 792]');
   expect(pageCount(pdf)).toBe(2);
-  await until(() => expect(location.hash).not.toBe(''));
-  await reopen();
+  m = await mount('zine', m.last()!);
   expect((zine().querySelector('sl-select.zine-sides') as unknown as { value: string }).value).toBe('two');
   // The web page is the zine to read, a page at a time (turning it is e2e's: its script must run).
   const page = new DOMParser().parseFromString(appOf('zine')!.document!(zine().value, { created: null }), 'text/html');

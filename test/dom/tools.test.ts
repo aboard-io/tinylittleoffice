@@ -1,15 +1,16 @@
 // Calculator, calendar colours and pixel art worked as a person would, in happy-dom (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
 import { mount, settle, type, button, press, setSl } from './helpers.ts';
-import { open, reopen, prefs, box, typeIn, settleAll, until } from './helpers-more.ts';
+import { prefs, box, settleAll } from './helpers-more.ts';
+import { appOf } from '../../src/kit/core.ts';
 import { parseCalendar } from '../../src/lib/calmodel.ts';
 import { parseCalc } from '../../src/lib/calc.ts';
 
 beforeEach(() => prefs());
 
 test('calculator: a tape, a graph, and a mortgage worked out as a page', async () => {
-  await open('#/v0/calc');
-  const calc = () => document.querySelector('to-calc')!;
+  let m = await mount('calc');
+  const calc = () => m.el;
   const key = async (k: string) => {
     [...calc().querySelectorAll<HTMLButtonElement>('.calc-keys button')].find((b) => b.textContent === k)!.click();
     await settleAll(2);
@@ -27,7 +28,7 @@ test('calculator: a tape, a graph, and a mortgage worked out as a page', async (
   await settleAll();
   expect(calc().querySelectorAll('.calc-tape li')).toHaveLength(2);
   expect(calc().querySelector('.calc-tape')!.textContent).toContain('= 132');
-  await until(() => expect(location.hash).toMatch(/#\/v0\/calc\/[WYZR]/));
+  expect(parseCalc(m.last()!).lines).toEqual(['7×6', 'sqrt(144)+5!']);
   // The graph draws y = f(x).
   const mode = (m: string) => setSl(calc().querySelector('sl-radio-group'), m);
   mode('graph');
@@ -47,10 +48,10 @@ test('calculator: a tape, a graph, and a mortgage worked out as a page', async (
   await settleAll();
   expect(right().textContent).toContain('1,717.83');
   expect(parseCalc(calc().value).mode).toBe('mortgage');
-  await until(() => expect(location.hash).not.toMatch(/\/$/));
-  await reopen();
+  // Opened again from what it saved: the same answer, and it goes by what it works out.
+  m = await mount('calc', m.last()!);
   expect(right().textContent).toContain('1,717.83');
-  expect(document.title).toBe('Mortgage · TinyLittleOffice');
+  expect(appOf('calc')!.title(m.last() ?? calc().value)).toBe('Mortgage');
 });
 
 test('calendar: colours, and what they stand for', async () => {

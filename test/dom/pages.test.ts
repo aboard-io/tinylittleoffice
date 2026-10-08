@@ -1,7 +1,7 @@
 // The apps that make a page, in happy-dom: the page each draws in its frame, read as it is written, before any script of its own runs (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
-import { mount, settle, button, setSl } from './helpers.ts';
-import { open, prefs, asText, box, settleAll, until, saved, editor } from './helpers-more.ts';
+import { mount, settle, button, setSl, type Editor } from './helpers.ts';
+import { open, visit, prefs, asText, box, settleAll, until, saved, editor } from './helpers-more.ts';
 import { privacy } from '../../src/lib/privacy.ts';
 import { parseContract } from '../../src/apps/contract.def.ts';
 
@@ -47,7 +47,7 @@ test('page apps: a site, a store, an invoice', async () => {
   expect([...store.querySelectorAll('button')].filter((b) => /^Add .* to the cart$/.test(b.getAttribute('aria-label') ?? ''))).toHaveLength(4);
 
   // An invoice: the sums are done, and it is called by its number.
-  await open('#/v0/invoice');
+  await visit('#/v0/invoice');
   button(editor('invoice'), 'Start from an example').click();
   await settleAll();
   expect(framed(editor('invoice')).querySelector('tfoot tr:last-child')!.textContent).toContain('$5,486.40');
@@ -61,7 +61,7 @@ test('contract: two people, two keys, two signatures', async () => {
   text.dispatchEvent(new Event('input', { bubbles: true }));
   await settle(el);
   const signatures = (root: Element) => root.querySelectorAll('.contract-sign li:not(.none)');
-  const sign = async (root: HTMLElement & { updateComplete: Promise<unknown> }, name: string) => {
+  const sign = async (root: Editor, name: string) => {
     setSl(root.querySelector('sl-input[label="Your name"]'), name, 'sl-input');
     await settle(root);
     button(root, /Sign$/).click();
@@ -115,7 +115,7 @@ test('small apps: a poll counts, a bill is settled, a log adds up, Secret Santa 
   const links = [...santa.querySelectorAll('.links li')];
   expect(links).toHaveLength(5);
   const adas = links.find((l) => l.textContent!.includes('Ada'))!.querySelector('a')!.getAttribute('href')!;
-  await open(adas.replace(/^https?:\/\/[^/]+/, ''));
+  await visit(adas.replace(/^https?:\/\/[^/]+/, ''));
   const main = framed(editor('santa')).querySelector('main')!;
   expect(main.textContent).toContain('Ada, this link is yours alone');
   expect(main.textContent).not.toContain('their link');

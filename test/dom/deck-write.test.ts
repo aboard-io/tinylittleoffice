@@ -1,13 +1,13 @@
 // Deck and Write in happy-dom: icons, nesting, documents shown inside a text and on slides (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
-import { mount, settle, button } from './helpers.ts';
+import { mount, settle, button, type Editor } from './helpers.ts';
 import { prefs, box, typeRich, settleAll, until, pickIcon, ref } from './helpers-more.ts';
 import { parseDeck } from '../../src/lib/deckmodel.ts';
 
 beforeEach(() => prefs());
 
 /** The deck being presented: its slide, and a key pressed. */
-const presenting = (el: HTMLElement & { updateComplete: Promise<unknown> }) => ({
+const presenting = (el: Editor) => ({
   slide: () => el.querySelector('.deck-show .frame > svg')!,
   key: async (k: string) => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));

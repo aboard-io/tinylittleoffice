@@ -1,7 +1,7 @@
 // The shell around the editors, in happy-dom: titles, the library, the menu, keeping (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
 import { type, button, press, setSl } from './helpers.ts';
-import { open, reopen, go, prefs, box, typeRich, saved, settleAll, shortcut, until } from './helpers-more.ts';
+import { open, visit, reopen, go, prefs, box, typeRich, saved, settleAll, shortcut, until } from './helpers-more.ts';
 
 beforeEach(() => prefs());
 
@@ -56,7 +56,7 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await until(() => expect(keep().textContent!.trim()).toBe('Saved'));
   // (The suite's own preference, cleared above with the rest: links open for editing.)
   localStorage.setItem('tinyoffice.open', 'edit');
-  await open('#/v0/write');
+  await visit('#/v0/write');
   await typeDoc('Notes from the quay');
   type(box(document, 'Title'), 'Quay notes');
   await settleAll();
@@ -92,7 +92,7 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await go(link(drive, /Quay notes/).getAttribute('href')!);
   expect(box(document, 'Document').textContent).toContain('Notes from the quay');
   await typeDoc('Notes from the quay, and more');
-  await open('#/drive');
+  await visit('#/drive');
   expect(folders2()).toEqual(['Everything', 'Harbor', 'Plans', 'Todo']);
   await go(link(document.querySelector('to-drive')!, /Quay notes/).getAttribute('href')!);
   expect(box(document, 'Document').textContent).toContain('and more');
@@ -178,7 +178,7 @@ test('everything can be made larger from the menu, and it is remembered', async 
   await settleAll();
   expect(size()[1].textContent).toContain('120%');
   expect(document.documentElement.style.getPropertyValue('zoom')).toBe('1.2');
-  await reopen();
+  await reopen(true);
   expect(document.documentElement.style.getPropertyValue('zoom')).toBe('1.2');
   size()[1].click();
   await settleAll();

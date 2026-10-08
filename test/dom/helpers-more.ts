@@ -4,7 +4,10 @@ import '../../src/app.ts';
 import { encodeEnvelope } from '../../src/lib/envelope.ts';
 import { store } from '../../src/lib/store.ts';
 import { pdf } from '../../src/kit/pdf.ts';
-import { settle, type Editor } from './helpers.ts';
+import type { Editor } from './helpers.ts';
+
+// The whole page takes a moment to draw in happy-dom (a second or so on a busy machine): room for a test that opens it several times.
+vi.setConfig({ testTimeout: 15_000 });
 
 // Animations end at once (setup.ts's never say so, and a Shoelace dialog waits for its hiding to finish before it says it is hidden).
 Element.prototype.animate = function () {
@@ -60,12 +63,25 @@ export function asText() {
 export type Shell = HTMLElement & { updateComplete: Promise<unknown> };
 
 /** Let the shell and the editor inside it finish drawing. */
-export async function settleAll(times = 4) {
+export async function settleAll(times = 3) {
   for (let i = 0; i < times; i++) {
-    const els = [...document.querySelectorAll<Editor>('*')].filter((e) => 'updateComplete' in e);
-    await Promise.all(els.map((e) => e.updateComplete));
+    await Promise.all(drawing().map((e) => e.updateComplete));
     await new Promise((r) => setTimeout(r, 0));
   }
+}
+
+/** The elements on the page that draw themselves (Lit's, the shell's, the editors', Shoelace's), not looking inside pictures. */
+function drawing(): Editor[] {
+  const out: Editor[] = [];
+  const walk = (el: Element) => {
+    for (const c of el.children) {
+      if (c.localName === 'svg') continue;
+      if (c.localName.includes('-') && 'updateComplete' in c) out.push(c as Editor);
+      walk(c);
+    }
+  };
+  walk(document.body);
+  return out;
 }
 
 /** The shell at a link ("#/v0/sheet", or a path and a hash), as a fresh page load. */
@@ -79,8 +95,25 @@ export async function open(at: string) {
   return app;
 }
 
-/** Load the page again at its own link: the link is the document, so this is the persistence test. */
-export const reopen = () => open(location.pathname + location.hash);
+/** Arrive at a link (a path and a hash) in the page already open, as pasting it into the address bar does: quicker than a fresh load. */
+export async function visit(at: string) {
+  if (!document.querySelector('to-app')) return open(at);
+  history.replaceState(null, '', at.startsWith('#') ? '/' + at : at);
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  await settleAll();
+}
+
+/**
+ * Open the document again from its own link: the link is the document, so this is the persistence test.
+ * The editor goes and comes back made afresh from the link; `reload` makes the whole page afresh too
+ * (for what the shell reads only as it starts, its size say), at twice the cost.
+ */
+export async function reopen(reload = false) {
+  const at = location.pathname + location.hash;
+  if (reload) return open(at);
+  await visit('#/drive');
+  await visit(at);
+}
 
 /** Go to another link in the same page, as following a link does. */
 export async function go(hash: string) {
@@ -92,24 +125,16 @@ export async function go(hash: string) {
 /** The editor the shell is showing. */
 export const editor = <T = Editor>(app: string) => document.querySelector(`to-${app}`) as T & Editor;
 
-/** The document the shell holds now, from the editor it handed it to. */
-export const value = (app: string) => editor(app).value;
-
 /** Wait until a check passes (for what the page does a moment later). */
 export const until = <T>(check: () => T | Promise<T>, timeout = 2000) => vi.waitFor(check, { timeout, interval: 10 });
-
-/** A file the page saved, as text. */
-export const text = (f: File) => f.text();
 
 /** A key pressed on the window (the shell's shortcuts), with Ctrl. */
 export function shortcut(key: string, shift = false) {
   window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, shiftKey: shift, bubbles: true }));
 }
 
-export { settle };
-
 /** A box by its accessible name: an input or textarea by aria-label, or a rich text box (role="textbox"). */
-export function box<T extends HTMLElement = HTMLInputElement>(root: ParentNode, label: string): T {
+export function box<T extends HTMLElement = HTMLInputElement>(root: ParentNode, label: string): NoInfer<T> {
   const found = root.querySelector<T>(`:is(input, textarea, [role="textbox"], sl-input, sl-textarea)[aria-label="${label}"]`);
   if (!found) throw new Error(`no box ${label}`);
   return found;
