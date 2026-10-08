@@ -95,7 +95,8 @@ test('pdf: one page per picture', () => {
   assert.ok(text.includes('/MediaBox [0 0 720 450]') && text.includes('/Width 1920 /Height 1200'));
   // The cross-reference table points at every object.
   const xref = Number(/startxref\n(\d+)/.exec(text)![1]);
-  assert.ok(text.slice(xref).startsWith('xref\n0 10\n'));
+  // (Objects: catalog, pages, info, three for each page, and the font its numbers are set in.)
+  assert.ok(text.slice(xref).startsWith('xref\n0 11\n'));
   for (const [, off, n] of [...text.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m, i) => [m[0], m[1], i + 1] as const)) assert.ok(text.slice(Number(off)).startsWith(`${n} 0 obj`), `object ${n}`);
 });
 
