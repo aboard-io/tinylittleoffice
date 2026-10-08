@@ -184,7 +184,7 @@ export function readLines(text: string, given: Kind[]): Row[] {
     const nests = s.item !== undefined ? kinds.findIndex((k, i) => k.indent && !mark(k) && made[i].re.test(s.item!.trim())) : -1;
     // The kind whose opening mark is longest is tried first ("## " before "# "); otherwise in the order given.
     const claimed = order.find((i) => kinds[i].is !== '' && !kinds[i].table && !isDoc(kinds[i]) && (kinds[i].at === undefined || kinds[i].at === s.depth) && made[i].re.test(line) && (mark(kinds[i]) > 0 || nests < 0))!;
-    const kind = nests >= 0 && !mark(kinds[claimed]) ? nests : claimed;
+    const kind = nests >= 0 && (claimed === undefined || !mark(kinds[claimed])) ? nests : claimed;
     const k = kinds[kind];
     const words = kind === nests ? s.item!.trim() : line;
     // (A line nothing else claims is kept exactly as it was written, its indent and all.)

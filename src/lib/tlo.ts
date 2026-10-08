@@ -152,8 +152,8 @@ export function parse(text: string): Tlo {
     }
     const fence = FENCE.exec(t);
     if (fence && (fence[1][0] === '~' ? !fence[3] : !fence[3].includes('`'))) {
+      // (A fence between list items leaves the list's nesting as it was.)
       flush();
-      indents = [];
       const close = new RegExp(`^\\s*${fence[1][0] === '`' ? '`' : '~'}{${fence[1].length},}\\s*$`);
       const body: string[] = [];
       let j = i + 1;
