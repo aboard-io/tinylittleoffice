@@ -60,6 +60,12 @@ export interface AppDef {
   group?: string;
   /** The app it is a kind of: listed indented beneath it ("draw", for the diagram apps). */
   under?: string;
+  /**
+   * Kept for the links that already open it, but no longer offered: not in
+   * the menu, the launcher, the Insert lists or the API's list of apps.
+   * (The plans became Write templates; their old links still open.)
+   */
+  hidden?: boolean;
   /** For apps whose document IS a web page (a site, a store): that page, whole. Used for the .html download. */
   document?(body: string, ctx: DownloadContext): string;
   /** The document's own title, '' if it has none. */
