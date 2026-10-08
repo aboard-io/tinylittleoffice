@@ -424,6 +424,7 @@ export class ToApp extends LitElement {
   }
 
   private setTitle(title: string) {
+    if ((title.trim() ? title.replace(/\n/g, ' ') : undefined) !== this.env.title) this.history.record(this.state());
     const created = this.env.created ?? (title ? quantizeCreated(Date.now()) : null);
     this.env = { ...this.env, created, title: title.trim() ? title.replace(/\n/g, ' ') : undefined };
     this.writeUrl();
@@ -515,7 +516,7 @@ export class ToApp extends LitElement {
   private onDocChange(e: CustomEvent<string>) {
     if (!this.app) return;
     const body = e.detail;
-    if (body !== this.env.body) this.history.record(this.env.body);
+    if (body !== this.env.body) this.history.record(this.state());
     const created = this.env.created ?? (body ? quantizeCreated(Date.now()) : null);
     this.env = { ...this.env, created, body };
     this.writeUrl();
@@ -525,10 +526,15 @@ export class ToApp extends LitElement {
   /* ---------- undo ---------- */
 
   /** Step the document back or forward. Works the same in every app: the editor is simply handed the earlier text. */
+  /** What undo goes back through: the document's title and its body, together, so a title typed is undone like any other change. */
+  private state() {
+    return JSON.stringify([this.env.title ?? '', this.env.body]);
+  }
   private step(back: boolean) {
-    const body = back ? this.history.undo(this.env.body) : this.history.redo(this.env.body);
-    if (body === null || !this.app) return;
-    this.env = { ...this.env, body };
+    const was = back ? this.history.undo(this.state()) : this.history.redo(this.state());
+    if (was === null || !this.app) return;
+    const [title, body] = JSON.parse(was) as [string, string];
+    this.env = { ...this.env, title: title || undefined, body };
     this.writeUrl();
     void this.privacy.check(this.env, this.app);
     this.requestUpdate();
@@ -827,7 +833,7 @@ export class ToApp extends LitElement {
     const apply = () => {
       if (!this.def || !this.importText.trim()) return;
       const body = fromMarkdown(this.def, this.importText);
-      this.history.record(this.env.body);
+      this.history.record(this.state());
       this.env = { ...this.env, created: this.env.created ?? quantizeCreated(Date.now()), body };
       this.importText = '';
       void this.writeUrl();

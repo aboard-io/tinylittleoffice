@@ -145,3 +145,28 @@ test('undo inside a document that is inside another', async () => {
   expect($('to-embed').shadowRoot!.querySelector('svg[role="img"]')!.querySelectorAll('rect')).toHaveLength(1);
   expect(text($('[aria-label="Document"]'))).toContain('Intro');
 });
+
+test('a title typed is undone and redone like any other change, in order with the document', async () => {
+  await open('#/v0/todo');
+  const title = () => $<HTMLInputElement>('input.to-title');
+  fill(title(), 'Errands');
+  await idle();
+  pause();
+  const add = $('sl-input.todo-new');
+  fill(add, 'Milk');
+  add.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  await idle();
+  pause();
+  fill(title(), 'Errands, Saturday');
+  await idle();
+  await key('z', { ctrl: true }, title());
+  expect(title().value).toBe('Errands');
+  expect(body()).toContain('Milk');
+  await key('z', { ctrl: true }, title());
+  expect(body()).not.toContain('Milk');
+  expect(title().value).toBe('Errands');
+  await key('z', { ctrl: true }, title());
+  expect(title().value).toBe('');
+  await key('z', { ctrl: true, shift: true }, title());
+  expect(title().value).toBe('Errands');
+});
