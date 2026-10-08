@@ -40,7 +40,8 @@ test('a table shown in a text is a spreadsheet: letters along the top, numbers d
   const ref = makeRef('sheet', 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450');
   const page = refPage(ref, { preview: true });
   const words = [...page.svg.matchAll(/<text[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g)].map((m) => [m[2], +m[1]]);
-  for (const w of ['A', 'B', '1', '2', '3']) assert.ok(words.some(([t]) => t === w), `${w} in the strips`);
+  // The column names sit over the rows, under the letters; the rows are numbered from 1.
+  for (const w of ['A', 'B', 'Item', 'Cost', '1', '2']) assert.ok(words.some(([t]) => t === w), `${w} in the strips`);
   assert.ok(words.filter(([t]) => t === 'Rent').every(([, px]) => px === 13));
   assert.ok(page.w < 400 && page.h < 120, `${page.w} x ${page.h}`);
   // On a slide it is still the plain table, set large.

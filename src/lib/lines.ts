@@ -37,7 +37,7 @@ export interface Kind {
   indent?: boolean;
   /** Written as the rows of a table whose columns are the fields. */
   table?: boolean;
-  /** A setting kept in the document's header as "key: value" (its first field the value), not in the text. */
+  /** A setting kept in the document's header as "key: value", not in the text; its pattern starts "Key: ". */
   key?: string;
 }
 
@@ -169,8 +169,10 @@ export function readLines(text: string, given: Kind[]): Row[] {
   for (const s of seen(text)) {
     if (s.set) {
       // (A setting no kind keeps is not the form's to show.)
+      // Read as the line it would be ("theme: teal serif"), so a setting may have several fields.
       const kind = kinds.findIndex((k) => k.key === s.set![0]);
-      if (kind >= 0) rows.push({ kind, values: [s.set[1]], depth: 0 });
+      const m = kind >= 0 ? made[kind].re.exec(`${kinds[kind].is.split(':')[0]}: ${s.set[1]}`) : null;
+      if (kind >= 0) rows.push({ kind, values: m ? m.slice(1).map((v) => (v ?? '').trim()) : [s.set[1]], depth: 0 });
       continue;
     }
     if (s.doc !== undefined) {
@@ -233,7 +235,7 @@ export function writeLines(rows: Row[], given: Kind[]): string {
   for (let i = 0; i < kept.length; i++) {
     const r = kept[i];
     const k = kinds[r.kind];
-    if (k.key) head[k.key] = r.values[0].replace(/\n/g, ' ').trim();
+    if (k.key) head[k.key] = made[r.kind].write(r.values).replace(/^[^:{]*:\s*/, '');
     else if (k.is === '') {
       flush();
       blocks.push({ k: 'hr' });

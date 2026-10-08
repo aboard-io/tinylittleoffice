@@ -58,7 +58,7 @@ export interface Site {
 /** The kinds of line a site is made of: what its form, and the page edited in place, are built from. */
 export const FORM: Kind[] = [
   { name: 'Page', is: '# {Title}', head: true },
-  { name: 'Theme', is: `theme: {Colour:choice=${COLORS.join(',')}}[ {Type:choice=sans,serif}][ {Mode:choice=light,dark}]`, once: true },
+  { name: 'Theme', is: `theme: {Colour:choice=${COLORS.join(',')}}[ {Type:choice=sans,serif}][ {Mode:choice=light,dark}]`, once: true, key: 'theme' },
   { name: 'Section', is: '## {Section}', head: true },
   { name: 'Card', is: '- [:{Picture:icon}: ]{Heading}[ | {Detail}]' },
   { name: 'Button', is: '> [:{Picture:icon}: ]{Label} | {Link}' },

@@ -140,7 +140,7 @@ export const spec = {
   form: FORM,
   hint: '"# Name" and a line about it; each further "# Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon:" first for an icon); "> Label | https://..." a button; "theme: teal serif dark" the look.',
   example:
-    'theme: amber serif\n\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Bought direct from six farms\n- :bike: Delivered | By bike, across the old town\n\n# Menu\n\nEspresso, filter, and a pastry case that empties by ten.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com',
+    '---\ntheme: amber serif\n---\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Bought direct from six farms\n- :bike: Delivered | By bike, across the old town\n\n# Menu\n\nEspresso, filter, and a pastry case that empties by ten.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com',
   page,
 };
 

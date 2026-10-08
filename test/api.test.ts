@@ -3,28 +3,33 @@ import assert from 'node:assert/strict';
 import * as T from '../src/api.ts';
 
 test('a link is made, read, shaped from Markdown, and compared', () => {
-  const u = T.link('sheet', 'Item\tCost\nRent\t1200\nFood\t600\nTotal\t=SUM(B2:B3)', { title: 'Budget', by: 'planner-agent' });
-  assert.ok(u.startsWith('https://tinylittleoffice.com/sheet/#/v0/sheet/W'));
+  const budget = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 600\nTotal | =SUM(B1:B2)';
+  const u = T.link('sheet', budget, { title: 'Budget', by: 'planner-agent' });
+  assert.match(u, /^https:\/\/tinylittleoffice\.com\/sheet\/#\/v1\/sheet\/[yzr]/);
   const p = T.parse(u);
   assert.equal(p.app, 'sheet');
   assert.equal(p.env.title, 'Budget');
   assert.equal(p.env.by, 'planner-agent');
-  assert.ok(p.markdown.includes('| Rent | 1200 |'));
-  assert.deepEqual(T.evaluateSheet(p.env.body), [['Item', 'Cost'], ['Rent', '1200'], ['Food', '600'], ['Total', '1800']]);
-  // Markdown in, the app's format out.
+  assert.equal(p.env.body, budget);
+  // Its Markdown is its own text, named in the header.
+  assert.equal(p.markdown, '---\ntitle: Budget\n---\n' + budget + '\n');
+  assert.deepEqual(T.evaluateSheet(p.env.body), [['Rent', '$1,200.00'], ['Food', '$600.00'], ['Total', '$1,800.00']]);
+  // Markdown in, the app's own text out.
   assert.equal(T.parse(T.linkFromMarkdown('todo', '- [x] Sweep\n* Shop')).env.body, '- [x] Sweep\n- [ ] Shop');
-  assert.equal(T.read('sheet', 'Item,Cost\nRent,1200'), 'Item\tCost\nRent\t1200');
+  assert.equal(T.read('sheet', 'Item,Cost\nRent,1200'), 'Item | Cost\n--- | ---\nRent | 1200');
   assert.equal(T.read('todo', '- a\n- [x] b'), '- [ ] a\n- [x] b');
-  // Plain links read too.
+  // Plain links read too; the document's header may name it.
   assert.equal(T.parse('https://tinylittleoffice.com/todo/#title=T&doc=-%20a%0A-%20%5Bx%5D%20b').env.body, '- [ ] a\n- [x] b');
-  assert.equal(T.parse('https://tinylittleoffice.com/sheet/#md=Item%2CCost%0ARent%2C1200').env.body, 'Item\tCost\nRent\t1200');
+  assert.equal(T.parse('https://tinylittleoffice.com/sheet/#md=Item%2CCost%0ARent%2C1200').env.body, 'Item | Cost\n--- | ---\nRent | 1200');
+  const named = T.parse('https://tinylittleoffice.com/#doc=' + encodeURIComponent('---\napp: todo\ntitle: Errands\n---\n- milk'));
+  assert.deepEqual([named.app, named.env.title, named.env.body], ['todo', 'Errands', '- [ ] milk']);
   // What changed.
-  const c = T.compare(u, T.link('sheet', 'Item\tCost\nRent\t1300\nFood\t600\nTotal\t=SUM(B2:B3)'));
+  const c = T.compare(u, T.link('sheet', budget.replace('Rent | 1200', 'Rent | 1300')));
   assert.equal(c.same, false);
-  assert.deepEqual(c.changes.filter((x) => x.kind !== ' '), [{ kind: '-', line: 'Rent\t1200' }, { kind: '+', line: 'Rent\t1300' }]);
+  assert.deepEqual(c.changes.filter((x) => x.kind !== ' '), [{ kind: '-', line: 'Rent | 1200' }, { kind: '+', line: 'Rent | 1300' }]);
   assert.ok(T.compare(u, u).same);
   assert.ok(T.apps().some((a) => a.id === 'flow'));
-  assert.ok(T.example('menu').length > 10 && T.example('sheet').includes('\t'));
+  assert.ok(T.example('menu').length > 10 && T.example('sheet').includes(' | '));
   assert.throws(() => T.link('nope', 'x'));
 });
 

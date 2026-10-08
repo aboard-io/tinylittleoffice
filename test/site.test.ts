@@ -91,7 +91,7 @@ test('site: another document on a page, and the lines as the picture', () => {
   const text = `# A\n\n# Numbers\n\n${fence(ref)}`;
   const html = spec.page!(text, { base: 'https://example.com/' });
   assert.ok(html.includes('<figure class="embed"><svg xmlns="http://www.w3.org/2000/svg"') && html.includes('aria-label="Sales"'));
-  assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v0/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
+  assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v1/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
   assert.deepEqual(def.outline(text), ['A', 'Numbers', '↗  Sales']);
   assert.equal(def.view(text)[0].svg.includes('Numbers'), true);
 });
@@ -106,7 +106,7 @@ test('site: the text is its own Markdown, and Markdown as it is written comes in
   const link = `https://tinylittleoffice.com/todo/${hashOf('todo', '- a')}`;
   assert.equal(
     readSite(`# Ada\n\nHello.\ntheme: Serif, dark teal\n\n![me](https://x.y/me.jpg)\n\n[Shop](https://x.y/shop) {.button}\n[:mail: Mail](mailto:a@x.y)\n\n---\n\n# About\n\n### Now\n\n* :star: Potter\n\n---\n\n| Q | Sales |\n| --- | --- |\n| Q1 | 120 |\n\n${link}`),
-    `# Ada\n\nHello.\ntheme: teal serif dark\nhttps://x.y/me.jpg\n\n> Shop | https://x.y/shop\n> :mail: Mail | mailto:a@x.y\n\n# About\n\n## Now\n\n- :star: Potter\n\n# Page 3\n\n\`\`\`sheet\nQ | Sales\n--- | ---\nQ1 | 120\n\`\`\`\n\n${fence(ref)}`,
+    `---\ntheme: teal serif dark\n---\n# Ada\n\nHello.\n\nhttps://x.y/me.jpg\n\n> Shop | https://x.y/shop\n> :mail: Mail | mailto:a@x.y\n\n# About\n\n## Now\n\n- :star: Potter\n\n# Page 3\n\n\`\`\`sheet\nQ | Sales\n--- | ---\nQ1 | 120\n\`\`\`\n\n${fence(ref)}`,
   );
 });
 
@@ -120,11 +120,11 @@ test('lines: headings of two kinds nest, and a part moves or goes with everythin
   assert.deepEqual(depths(rows, form), [0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 2, 2, 1, 2, 0, 1, 1]);
   // Find us, moved earlier, goes before Menu with its words and button.
   const moved = movePart(rows, form, 15, -1)!;
-  assert.equal(writeLines(moved, form).split('\n\n').slice(5, 9).join('\n\n'), '# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com\n\n# Menu');
+  assert.equal(writeLines(moved, form).split('\n\n').slice(4, 8).join('\n\n'), '# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com\n\n# Menu');
   assert.equal(movePart(rows, form, 15, 1), null);
   assert.deepEqual(movePart(rows, form, 8, 1), moved);
   // A section moves past its neighbour within the page, not out of it.
-  assert.equal(writeLines(movePart(rows, form, 13, -1)!, form).split('\n\n').slice(7, 11).join('\n\n'), '## Pastry\n\n- Cardamom bun | 3.50\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20');
+  assert.equal(writeLines(movePart(rows, form, 13, -1)!, form).split('\n\n').slice(6, 10).join('\n\n'), '## Pastry\n\n- Cardamom bun | 3.50\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20');
   assert.equal(movePart(rows, form, 10, -1), null);
   // Removed, a page takes its sections with it.
   assert.equal(writeLines(removePart(rows, form, 8), form), spec.example.replace(/# Menu[\s\S]*?(?=# Find us)/, ''));

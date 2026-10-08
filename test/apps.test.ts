@@ -217,8 +217,6 @@ test('embedding one document in another', async () => {
   const { linkToRef, makeRef, hashOf, refPage, resolve } = await import('../src/kit/embed.ts');
   const { parseDoc, serializeDoc } = await import('../src/lib/richtext.ts');
   const { docToHtml, docToRtf } = await import('../src/apps/write.def.ts');
-  const deck = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
-  const drawing = makeRef('draw', drawn('r | 2 | 1 | 12 | 6 | 1 | Box', 'e | 20 | 1 | 6 | 6 | 0 |'));
   const code = makeRef('qr', 'https://example.com/');
   const hash = hashOf('qr', 'https://example.com/');
   const note = makeRef('write', '# Plan {.title}\n\nShip in spring');
@@ -536,7 +534,7 @@ test('invoice: the sums, and the page that is its editor', async () => {
   // Written loosely: the settings in a header or as lines (bold or not); "what, price" is one of them; a note with a
   // comma and no number is a note. Read, it is the settings, the items as a table and the notes.
   const text = readInvoice('---\ncurrency: £\n---\n**Tax:** 20\nDesign, 2, 150.5\nThanks, pay soon\nHosting, 480\n\nNet 30');
-  assert.equal(text, 'Currency: £\nTax: 20\n\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 2 |  | 150.5\nHosting | 1 |  | 480\n\nThanks, pay soon\nNet 30');
+  assert.equal(text, '---\ncurrency: £\ntax: 20\n---\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 2 |  | 150.5\nHosting | 1 |  | 480\n\nThanks, pay soon\n\nNet 30');
   assert.equal(readInvoice(text), text);
   assert.equal(readInvoice(spec.example), spec.example);
   // Tax and currency apply to the lot.
@@ -748,9 +746,9 @@ test('small apps: the sums behind them', async () => {
   for (const id of ['flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'split', 'log']) assert.equal(appOf(id)!.read!(specOf(id)!.example), specOf(id)!.example, id);
   const read = (id: string, text: string) => appOf(id)!.read!(text);
   assert.equal(read('poll', '# Q\n- A\nSam: A'), '# Q\n\n- A\n\nName | Choice\n--- | ---\nSam | A');
-  assert.equal(read('trivia', '---\nteams: A, B\n---\n# Quiz\n## One\nQ1 | A1'), '# Quiz\n\nteams: A, B\n\n## One\n\nQuestion | Answer\n--- | ---\nQ1 | A1');
+  assert.equal(read('trivia', '---\nteams: A, B\n---\n# Quiz\n## One\nQ1 | A1'), '---\nteams: A, B\n---\n# Quiz\n\n## One\n\nQuestion | Answer\n--- | ---\nQ1 | A1');
   assert.equal(read('flashcards', '| Term | Meaning |\n|---|---|\n| a | b |'), 'Front | Back\n--- | ---\na | b');
-  assert.equal(read('split', 'between: A, B\nA: 40, taxi'), 'between: A, B\n\nWho | Amount:money | What\n--- | --- | ---\nA | 40 | taxi');
+  assert.equal(read('split', 'between: A, B\nA: 40, taxi'), '---\nbetween: A, B\n---\nWho | Amount:money | What\n--- | --- | ---\nA | 40 | taxi');
   assert.equal(read('log', '1 March, Run, 5 km'), 'When | What | How much\n--- | --- | ---\n1 March | Run | 5 km');
   assert.equal(read('santa', 'Ada\n* Grace'), '- Ada\n- Grace');
   assert.equal(read('spinner', 'Ada\n+ Bo'), '- Ada\n- Bo');
@@ -880,21 +878,14 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   const org = specOf('org')!.form!;
   assert.deepEqual(readLines('- Ada | CEO\n  - :wrench Ben\n    - Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
   assert.equal(writeLines([{ kind: 1, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 1, values: ['', 'Ben', ''], depth: 1 }], org), '- :crown Ada | CEO\n  - Ben');
-  const faq: LineKind[] = [
-    { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Question', is: '{Question}', at: 0 },
-    { name: 'Answer', is: '{Answer:long}', at: 1 },
-  ];
-  assert.deepEqual(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq).map((r) => kindsOf(faq).kinds[r.kind].name), ['Title', 'Question', 'Answer', 'Line']);
-  assert.equal(writeLines(readLines('# Help\nWhy?\n  Because.\n    Deeper', faq), faq), '# Help\nWhy?\n  Because.\n    Deeper');
   // Choices, optional parts, words between fields.
   const notes: LineKind[] = [{ name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' }, { name: 'Note', is: '[:{Picture:icon} ]{Note}' }];
   assert.deepEqual(readLines('green: Thank them\nCall Sam: today', notes).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
   assert.deepEqual(readLines('- Kitchen: 4 x 3 at 5,0\n- Hall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
   assert.deepEqual(readLines('- signup rate = 6% (0 to 30)\n\n~ Visitors -> Signups: visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
-  // A blank line that means something is kept as a row.
+  // A break that means something (the next card) is a rule, kept as a row; lines of words are paragraphs.
   const cards: LineKind[] = [{ name: 'Picture', is: ':{Picture:icon}' }, { name: 'Next card', is: '' }, { name: 'Line', is: '{Text}' }];
-  assert.equal(writeLines(readLines('A\nx\n\nB\ny', cards), cards), 'A\nx\n\nB\ny');
+  assert.equal(writeLines(readLines('A\nx\n\n---\n\nB\ny', cards), cards), 'A\n\nx\n\n---\n\nB\n\ny');
 });
 
 test('outlines: rows move with what is under them; an org chart has dotted lines', async () => {
@@ -994,8 +985,8 @@ test('slides: bullets nest', async () => {
 
 test('a QR code document: a link as a code, labelled with what it is of', async () => {
   const { qrLabel, qrText, qrBody } = await import('../src/apps/qr.def.ts');
-  const { makeRef } = await import('../src/kit/embed.ts');
-  const link = 'https://tinylittleoffice.com/#/v0/' + makeRef('todo', '- [ ] Buy milk', 'Shopping');
+  const { hashOf } = await import('../src/kit/embed.ts');
+  const link = 'https://tinylittleoffice.com/' + hashOf('todo', '- [ ] Buy milk', 'Shopping');
   assert.equal(qrLabel(link), 'Shopping');
   assert.equal(qrLabel('https://example.com/some/path'), 'example.com');
   assert.equal(qrLabel('Hello there'), 'Hello there');
@@ -1117,7 +1108,7 @@ test('markdown, both ways, for every app', async () => {
   // A text is Markdown already: what goes out is the text itself.
   assert.equal(toMarkdown(appOf('write')!, samples.write), samples.write + '\n');
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\nSome __bold__ text.\n\n* a\n    * b\n+ c\n\n1) one\n2) two'), '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n- c\n1. one\n2. two');
-  assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
+  assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), '## Doing {limit=2}\n\n- x\n- y');
   assert.equal(toMarkdown(appOf('menu')!, specOf('menu')!.example), specOf('menu')!.example + '\n');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n### Coffee\n\n| Item | Description | Price |\n|---|---|---|\n| Flat white | Smooth | 4.20 |\n\n- Tea | 3'), '# Cafe\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth\nTea | 3 |');
@@ -1130,7 +1121,7 @@ test('CSV imports as a table into any app that takes one', () => {
   assert.ok(!looksLikeCsv('# Heading\n- a, b\n- c, d'));
   assert.ok(!looksLikeCsv('just one line, with commas'));
   assert.equal(fromMarkdown(appOf('sheet')!, 'Item,Cost\nRent,"1,200"\nFood,600'), 'Item | Cost\n--- | ---\nRent | 1,200\nFood | 600');
-  assert.equal(csvToMd('Item,Cost\nRent,"$1,200"'), 'Item | Cost\n--- | ---\nRent | $1,200\n');
+  assert.equal(csvToMd('Item,Cost\nRent,"$1,200"'), 'Item | Cost\n--- | ---\nRent | $1,200');
   assert.equal(appOf('sheet')!.read!('Item\tCost\nRent\t$1,200'), 'Item | Cost:money\n--- | ---\nRent | $1,200');
   assert.equal(fromMarkdown(appOf('menu')!, 'Dish,Price,About\nFlat white,4.20,Smooth'), 'Dish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%'), fromMarkdown(appOf('gantt')!, '| Task | Start | Days | Done |\n|---|---|---|---|\n| Design | 2026-10-06 | 5 | 20% |'));

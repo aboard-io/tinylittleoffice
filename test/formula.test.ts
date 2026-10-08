@@ -61,7 +61,7 @@ test('empty cells count as zero in arithmetic', () => {
 });
 
 test('the document is one table: the names over the columns, then rows 1, 2, 3', () => {
-  const text = 'Item | Cost\n--- | ---\nRent | 1200\n|  |\n| | =SUM(B1:B2)';
+  const text = 'Item | Cost\n--- | ---\nRent | 1200\n| |\n| | =SUM(B1:B2)';
   const g = parseGrid(text);
   assert.deepEqual(g.slice(0, 3).map((r) => r.slice(0, 2)), [['Rent', '1200'], ['', ''], ['', '=SUM(B1:B2)']]);
   assert.deepEqual(namesOf(text).slice(0, 3), ['Item', 'Cost', '']);
@@ -71,7 +71,7 @@ test('the document is one table: the names over the columns, then rows 1, 2, 3',
   assert.equal(g.length, 1000);
   assert.equal(g[0].length, 6);
   // Columns that go by their letters are named for them, and read back as no name; a lone column is written with a second, so it reads as a table.
-  assert.equal(serializeGrid(tabs('a\n\nb')), 'ColA | ColB\n--- | ---\na |\n|  |\nb |');
+  assert.equal(serializeGrid(tabs('a\n\nb')), 'ColA | ColB\n--- | ---\na |\n| |\nb |');
   assert.deepEqual(namesOf(serializeGrid(tabs('a'))), ['', '', '', '', '', '']);
   // Pipes and line breaks in a cell are kept.
   assert.equal(parseGrid(serializeGrid(tabs('a|b\tc')))[0][0], 'a|b');
