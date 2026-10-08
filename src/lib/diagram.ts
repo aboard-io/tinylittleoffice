@@ -101,8 +101,12 @@ export interface DiagramSpec {
   moves?: { kind: number; x: number; y: number; unit: number };
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
-  /** For page apps: the text as a whole web page, shown beside it as it is typed. */
-  page?(text: string): string;
+  /**
+   * For page apps: the text as a whole web page, shown beside it as it is
+   * typed. Asked for `edit`, the page as it is typed into in place: it may
+   * mark its fields itself, with hints where they are empty (lib/pageedit.ts).
+   */
+  page?(text: string, edit?: boolean): string;
   /** Anything to show under the picture, as HTML (query results, say). */
   aside?(text: string): string;
 }

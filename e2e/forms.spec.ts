@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { shot, reopen } from './helpers';
 
 // As a new visitor finds it: the form, not the text.
-test.use({ storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'form' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
+test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${process.env.PW_PORT ?? 4173}`, localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'form' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
 
 test('a menu is made by filling in a form; what is saved is the text', async ({ page }) => {
   await page.goto('/#/menu');
