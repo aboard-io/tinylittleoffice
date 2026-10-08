@@ -166,7 +166,7 @@ test('drawing colours and text sizes', () => {
 });
 
 test('room for a link, service by service', () => {
-  const long = 'https://tinylittleoffice.com/#/v1/sheet/' + 'A'.repeat(400);
+  const long = 'https://tinylittleoffice.com/#/v0/sheet/' + 'A'.repeat(400);
   assert.equal(blueskyCost(long), 'tinylittleoffice.com'.length + 16);
   assert.equal(blueskyCost('https://a.io/'), 4);
   const rooms = Object.fromEntries(roomFor(long).map((r) => [r.target.id, r.left]));
@@ -191,14 +191,14 @@ test('embedding one document in another', async () => {
   const drawing = makeRef('draw', 'r,2,1,12,6,1,Box\ne,20,1,6,6,0');
 
   // Any TinyLittleOffice link, from any host or version, with or without a download extension.
-  assert.equal(linkToRef(` https://tinylittleoffice.com/deck/#/v2/deck/${deck}\n`), `deck/${deck}`);
-  assert.equal(linkToRef(`http://localhost:4173/#/deck.pptx/${deck}`), `deck/${deck}`);
-  assert.equal(linkToRef(`see https://tinylittleoffice.com/#/v2/deck/${deck}`), null);
-  assert.equal(linkToRef('https://example.com/#/v2/nope/abc'), null);
+  assert.equal(linkToRef(` https://tinylittleoffice.com/deck/#/v0/deck/${deck}\n`), `deck/${deck}`);
+  assert.equal(linkToRef(`http://localhost:4173/#/v0/deck.pptx/${deck}`), `deck/${deck}`);
+  assert.equal(linkToRef(`see https://tinylittleoffice.com/#/v0/deck/${deck}`), null);
+  assert.equal(linkToRef('https://example.com/#/v0/nope/abc'), null);
   assert.equal(linkToRef('https://example.com/'), null);
 
   const d = resolve(`deck/${deck}`);
-  assert.deepEqual([d.def!.name, d.title, d.locked, d.hash], ['Deck', 'Spring launch', false, `#/v2/deck/${deck}`]);
+  assert.deepEqual([d.def!.name, d.title, d.locked, d.hash], ['Deck', 'Spring launch', false, `#/v0/deck/${deck}`]);
   assert.ok(refPage(drawing).svg.includes('>Box</text>'));
   assert.equal(refSteps(drawing), 2);
   assert.deepEqual([resolve('sheet/Eabc').locked, resolve('sheet/Eabc').title], [true, 'Locked sheet']);
@@ -217,10 +217,10 @@ test('embedding one document in another', async () => {
   // Exports carry a working link and a picture of the document.
   const ctx = { created: null, base: 'https://tinylittleoffice.com/' };
   const html = docToHtml(`# Plan\n@@deck/${deck}\n@@${drawing}`, ctx);
-  assert.ok(html.includes(`<a href="https://tinylittleoffice.com/#/v2/deck/${deck}">Spring launch</a> <small>Deck</small>`));
+  assert.ok(html.includes(`<a href="https://tinylittleoffice.com/#/v0/deck/${deck}">Spring launch</a> <small>Deck</small>`));
   assert.ok(html.includes('>Spring launch</text>') && html.includes('>Box</text>'));
   const rtf = docToRtf(`@@deck/${deck}`, ctx);
-  assert.ok(rtf.includes(`HYPERLINK "https://tinylittleoffice.com/#/v2/deck/${deck}"`));
+  assert.ok(rtf.includes(`HYPERLINK "https://tinylittleoffice.com/#/v0/deck/${deck}"`));
   assert.ok(rtf.includes('Spring launch') && rtf.includes('Agenda'));
 });
 
@@ -908,7 +908,7 @@ test('slides: bullets nest', async () => {
 test('a QR code document: a link as a code, labelled with what it is of', async () => {
   const { qrLabel } = await import('../src/apps/qr.def.ts');
   const { makeRef } = await import('../src/kit/embed.ts');
-  const link = 'https://tinylittleoffice.com/#/v2/' + makeRef('todo', '- Buy milk', 'Shopping');
+  const link = 'https://tinylittleoffice.com/#/v0/' + makeRef('todo', '- Buy milk', 'Shopping');
   assert.equal(qrLabel(link), 'Shopping');
   assert.equal(qrLabel('https://example.com/some/path'), 'example.com');
   assert.equal(qrLabel('Hello there'), 'Hello there');
@@ -1120,7 +1120,7 @@ test('a short link carries its key in the fragment; the server would hold only c
     return new Response(JSON.stringify({ id: 'abc2345', exp: Date.now() + posted!.ttl * 1000 }), { status: 201 });
   }) as typeof fetch;
   try {
-    const long = 'https://tinylittleoffice.com/sheet/#/v2/sheet/WAbcdef';
+    const long = 'https://tinylittleoffice.com/sheet/#/v0/sheet/WAbcdef';
     const { short } = await shorten(long, 86400, 'https://tinier.example/');
     assert.match(short, /^https:\/\/tinier\.example\/abc2345#[A-Za-z0-9_-]{22}$/);
     assert.ok(posted && !JSON.stringify(posted).includes('WAbcdef') && posted.ttl === 86400);

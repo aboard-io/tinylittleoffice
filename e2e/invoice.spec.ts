@@ -6,7 +6,7 @@ import { shot } from './helpers';
 test.beforeEach(({ page }) => page.addInitScript(() => localStorage.removeItem('tinyoffice.edit')));
 
 test('an invoice is typed straight onto the page, and the sums are done as you go', async ({ page }) => {
-  await page.goto('/#/invoice');
+  await page.goto('/#/v0/invoice');
   const inv = page.frameLocator('to-invoice iframe');
   // Empty, it is the invoice all the same, every field a hint of what goes there.
   await expect(page.locator('to-invoice iframe')).not.toHaveClass(/sample/);
@@ -57,7 +57,7 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
 });
 
 test('the example invoice is edited where it stands, and the page it downloads is clean', async ({ page }) => {
-  await page.goto('/#/invoice');
+  await page.goto('/#/v0/invoice');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const inv = page.frameLocator('to-invoice iframe');
   await expect(inv.locator('[data-inv="total"]')).toHaveText('$5,486.40');

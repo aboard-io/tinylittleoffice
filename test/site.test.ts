@@ -86,7 +86,7 @@ test('site: another document on a page, and the lines as the picture', () => {
   const ref = makeRef('sheet', '!bar\nQ\tSales\nQ1\t120\nQ2\t180', 'Sales');
   const html = spec.page!(`# A\n=== Numbers\n@@${ref}`, { base: 'https://example.com/' });
   assert.ok(html.includes('<figure class="embed"><svg xmlns="http://www.w3.org/2000/svg"') && html.includes('aria-label="Sales"'));
-  assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v2/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
+  assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v0/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
   assert.deepEqual(def.outline(`# A\n=== Numbers\n@@${ref}`), ['A', 'Numbers', '↗  Sales']);
 });
 
@@ -107,7 +107,7 @@ test('site: Markdown out and back, and friendly input', () => {
   assert.deepEqual(parseSite(mdToSite(bio)), parseSite(BIO));
   // read(): a whole link on a line is an embedded document; a Markdown link a button; a Markdown picture a picture.
   const ref = makeRef('todo', '- a');
-  assert.equal(readSite(`# A\nhttps://tinylittleoffice.com/todo/#/v2/todo/${ref.slice(5)}\n[Shop](https://x.y)\n![](https://x.y/a.png)\n> kept | #a`), `# A\n@@${ref}\n> Shop | https://x.y\nhttps://x.y/a.png\n> kept | #a`);
+  assert.equal(readSite(`# A\nhttps://tinylittleoffice.com/todo/#/v0/todo/${ref.slice(5)}\n[Shop](https://x.y)\n![](https://x.y/a.png)\n> kept | #a`), `# A\n@@${ref}\n> Shop | https://x.y\nhttps://x.y/a.png\n> kept | #a`);
   assert.equal(def.read!(spec.example), spec.example);
 });
 

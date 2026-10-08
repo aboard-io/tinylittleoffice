@@ -7,7 +7,7 @@
  */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest, seed } from '../lib/diagram.ts';
-import { pageData, pageScript, xml } from '../kit/core.ts';
+import { LINK, pageData, pageScript, xml } from '../kit/core.ts';
 import { makeRef } from '../kit/embed.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
@@ -31,7 +31,7 @@ export const ownDraw = (line: string) => /^=\s*(.+?)\s*>\s*(.+?)\s*$/.exec(line)
 /** The link for one person's own draw. */
 export function linkFor(title: string, giver: string, to: string): string {
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
-  return `${site}santa/#/v2/${makeRef('santa', `${title ? `# ${title}\n` : ''}= ${giver} > ${to}`)}`;
+  return `${site}santa/${LINK}${makeRef('santa', `${title ? `# ${title}\n` : ''}= ${giver} > ${to}`)}`;
 }
 
 function page(body: string): string {

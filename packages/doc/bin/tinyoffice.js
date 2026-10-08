@@ -126,7 +126,7 @@ switch (cmd) {
     }
     const browser = await chromium.launch();
     const page = await browser.newPage({ acceptDownloads: true });
-    const view = url.replace(/#\/v2\/([a-z0-9-]+)(\.[a-z0-9]+)?\//, `#/v2/$1.${ext}/`);
+    const view = url.replace(/#\/v(\d+)\/([a-z0-9-]+)(\.[a-z0-9]+)?\//, `#/v$1/$2.${ext}/`);
     const [download] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.goto(view)]);
     await download.saveAs(out);
     await browser.close();

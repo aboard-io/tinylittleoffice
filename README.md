@@ -58,9 +58,19 @@ creation time and can be cryptographically signed.
 npm install
 npm run dev        # local dev server
 npm run build      # static site in dist/
-npm test           # unit tests for the codecs and the formula engine
-npx playwright install chromium && npx playwright test   # browser tests, desktop and phone
+npm test           # unit tests (node) and the editors in an emulated browser (Vitest, happy-dom): seconds
+npm run test:e2e   # every browser test, desktop and phone (Playwright; slow)
 ```
+
+Tests come in three layers, fastest first. `test/*.test.ts` are the
+formats, the formulas, the codec and the API, under node. `test/dom/` puts
+each real editor on a page emulated by happy-dom (through Vite, so it is
+the same code the site builds) and works it as a person would: typing,
+pressing, choosing, then checking the text it saves. `e2e/` is a real
+browser at desktop and phone size, for what needs one: layout, overflow,
+pointers, frames, the service worker. `e2e/smoke.spec.ts` is its quick
+part: every app opened at both sizes, drawn, quiet, and no wider than the
+screen.
 
 The build is `index.html`, one stylesheet and one script with every app in
 it, so opening an app fetches nothing; only Trip's map library and the full
@@ -75,26 +85,25 @@ route itself stays in the URL like every other document.
 
 ## How a document fits in a URL
 
-The URL looks like `https://host/#/v2/sheet/YXQAA...`. `v2` is the version of
-the URL format. Version 2 added dictionary compression; it reads everything
-version 1 wrote, and links from before versions existed (`#/sheet/...`) are
-read as version 1. Older links are rewritten on the next edit. The part after
+The URL looks like `https://host/#/v0/sheet/WXQAA...`. `v0` is the version of
+the link format, the one that launches; until then the format changes freely
+and nothing older is read. A link from a newer version says so. The part after
 the app name is the document:
 
 1. Each app serialises its content to a compact text format (below), and the
    shell wraps it in the envelope described under "Creation time and
    signatures".
 2. That text is deflated with [fflate](https://github.com/101arrowz/fflate)
-   against a small shared dictionary (common English words, the apps' own
-   markup, icon names) and base64url-encoded, prefixed with `y`. Because both
-   ends already know the dictionary, short documents come out 20 to 35 percent
-   smaller than plain deflate, which is still read under the prefix `z`. The
-   dictionary in `src/lib/codec.ts` is frozen: changing a byte of it would
-   break every `y` link. For very short documents, where
-   compression would cost more than it saves, the raw UTF-8 is base64url-encoded
-   instead and prefixed with `r`. The shorter of the two wins. Uppercase `Z`
-   and `R` mark payloads that carry an envelope; lowercase ones from older
-   links decode as a bare body.
+   and base64url-encoded, whichever way comes out shortest: against the
+   shared dictionary and the app's own (`W`: common English words, the apps'
+   markup, icon names, and the words that app uses most), against the shared
+   one alone (`Y`), plain deflate (`Z`), or for very short documents the raw
+   UTF-8 (`R`); the flag is lowercase when the document has nothing to put
+   in its envelope (no time, title, author or signature) and goes without
+   one. Because both ends already know the dictionaries, short
+   documents come out 20 to 35 percent smaller than plain deflate. The
+   dictionaries (`src/lib/codec.ts`, `src/lib/dicts.ts`) are frozen once v0
+   launches: changing a byte would then break every link made with them.
 3. The shell writes the result into the fragment with `history.replaceState` on
    every edit, so the address bar is always current and nothing is ever sent to
    a server (fragments never leave the browser).
@@ -113,23 +122,23 @@ as that file the moment it is opened, then shows the editor as usual:
 
 | Link                         | File                                              |
 | ---------------------------- | ------------------------------------------------- |
-| `#/v2/sheet.xlsx/<payload>`  | Excel workbook, formulas intact (`.xls` also works) |
-| `#/v2/sheet.csv/<payload>`   | CSV of the computed values                        |
-| `#/v2/write.rtf/<payload>`   | Rich Text                                         |
-| `#/v2/write.html/<payload>`  | A standalone web page                             |
-| `#/v2/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
-| `#/v2/draw.svg/<payload>`    | SVG image                                         |
-| `#/v2/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
-| `#/v2/<app>.md/<payload>`    | Markdown (every app; checkboxes, tables, headings) |
-| `#/v2/board.csv/<payload>`   | CSV of stage and card                             |
-| `#/v2/gantt.csv/<payload>`   | CSV of tasks with start and end dates             |
-| `#/v2/trip.gpx/<payload>`, `.geojson` | GPX route, or GeoJSON                    |
-| `#/v2/anim.svg/<payload>`    | Animated SVG                                      |
-| `#/v2/<app>.pdf/<payload>`   | PDF of any document, a page per page or slide     |
-| `#/v2/<app>.png/<payload>`   | The whole of any document as one picture          |
-| `#/v2/<app>.html/<payload>`  | Any document as a plain web page with preview tags |
+| `#/v0/sheet.xlsx/<payload>`  | Excel workbook, formulas intact (`.xls` also works) |
+| `#/v0/sheet.csv/<payload>`   | CSV of the computed values                        |
+| `#/v0/write.rtf/<payload>`   | Rich Text                                         |
+| `#/v0/write.html/<payload>`  | A standalone web page                             |
+| `#/v0/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
+| `#/v0/draw.svg/<payload>`    | SVG image                                         |
+| `#/v0/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
+| `#/v0/<app>.md/<payload>`    | Markdown (every app; checkboxes, tables, headings) |
+| `#/v0/board.csv/<payload>`   | CSV of stage and card                             |
+| `#/v0/gantt.csv/<payload>`   | CSV of tasks with start and end dates             |
+| `#/v0/trip.gpx/<payload>`, `.geojson` | GPX route, or GeoJSON                    |
+| `#/v0/anim.svg/<payload>`    | Animated SVG                                      |
+| `#/v0/<app>.pdf/<payload>`   | PDF of any document, a page per page or slide     |
+| `#/v0/<app>.png/<payload>`   | The whole of any document as one picture          |
+| `#/v0/<app>.html/<payload>`  | Any document as a plain web page with preview tags |
 
-One view is not a file: `#/v2/deck.show/<payload>` opens a deck presenting.
+One view is not a file: `#/v0/deck.show/<payload>` opens a deck presenting.
 That is the link Copy and Share hand out for a deck, so whoever you send it to
 lands in the show; "Edit this deck" (or Escape) takes them to the editor, and
 the Share menu also has the plain editing link.
@@ -307,7 +316,7 @@ import { link, parse, lint, compare, evaluateSheet, runModel, templates } from '
 on an empty document: each a name, a line on what it is for, and its body in
 the app's format, ready for `link()` or to be filled in by a program.
 
-`src/api.ts` is the source, built to `dist/api.js` (and `api.d.ts`) with the site. The same build feeds the `tinyoffice` command line in `packages/doc` (`npm run build:api`; it also renders a link to PDF/PNG/PPTX/XLSX headlessly), and `packages/python` is a port of the codec with the same bytes, its dictionaries generated from the TypeScript (`npm run py-dicts`). Neither is published to a registry: the site is where the code lives, and `/llms.txt` is where programs learn the formats.
+`src/api.ts` is the source, built to `dist/api.js` (and `api.d.ts`) with the site. The same build feeds the `tinyoffice` command line in `packages/doc` (`npm run build:api`; it also renders a link to PDF/PNG/PPTX/XLSX headlessly). It is not published to a registry: the site is where the code lives, and `/llms.txt` is where programs learn the formats.
 
 Plain links also take `&md=` (Markdown or CSV, shaped on opening) and `&by=` (who made it), and every envelope carries `by`, which a signature then proves. Two links compare at `#/compare/<app>/<payload>/<app>/<payload>` (or Share → Compare with another link…), with the lines the second changed.
 
@@ -506,13 +515,18 @@ example survives the trip through its form unchanged.
 
 ## Deploying
 
-The included GitHub Actions workflow runs the tests on every push. The site
-is static: `npm run build` and serve `dist/` from anywhere.
+The site is static: `npm run build` and serve `dist/` from anywhere.
 
 It lives on Cloudflare: `dist/` as the static assets of a Worker with no
 script (`wrangler.jsonc`), its headers from `public/_headers`, on
 tinylittleoffice.com and www; and the shortener as a second Worker
-(`tinier/wrangler.jsonc`). `npm run deploy` builds, tests and ships both.
+(`tinier/wrangler.jsonc`). `npm run deploy` checks and ships both, checking
+what the change can have broken (`scripts/deploy.mjs`): always the types,
+the unit tests, the editors in the emulated browser and the build (about
+twenty seconds); when something on screen changed since the last deploy (an
+editor, a style, the shell, a widget, a page the site serves), the smoke
+check in a real browser too (about half a minute more). `-- --full` runs
+every browser test first; `-- --dry-run` checks without shipping.
 
 The Content-Security-Policy allows no inline script. The scripts of the
 pages apps make (a store's cart, a game, the in-place editing of a page

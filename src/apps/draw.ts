@@ -6,7 +6,7 @@
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use
  * x,y as the start and w,h as the delta to the end.
  */
-import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, makeRef, UI, type SlInput, type SlSelect } from '../kit.ts';
+import { LINK, DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, makeRef, UI, type SlInput, type SlSelect } from '../kit.ts';
 import { W, H, GRID, COLORS, TEXT_SIZES, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
@@ -343,7 +343,7 @@ export class ToDraw extends DocElement<Shape[]> {
         }}>
           ${([1, 2, 3, 4] as TextSize[]).map((z) => html`<sl-option value=${z}>${TEXT_SIZES[z].name}</sl-option>`)}
         </sl-select>
-        ${tool('Animate this drawing', 'play', () => (location.hash = `#/v2/${makeRef('anim', '!o\n' + serializeDrawing(this.doc))}`), { disabled: !this.doc.length, size: 16 })}
+        ${tool('Animate this drawing', 'play', () => (location.hash = `${LINK}${makeRef('anim', '!o\n' + serializeDrawing(this.doc))}`), { disabled: !this.doc.length, size: 16 })}
         <sl-button-group label="Arrange">
           ${tool('Bring to front', 'front', () => this.reorder(true), { disabled: !s, size: 16 })}
           ${tool('Send to back', 'back', () => this.reorder(false), { disabled: !s, size: 16 })}

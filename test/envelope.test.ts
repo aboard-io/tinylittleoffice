@@ -32,10 +32,11 @@ test('a key without a signature is dropped, body may contain blank lines', () =>
   assert.deepEqual(env, { created: null, body: 'x\n\ny' });
 });
 
-test('legacy lowercase payloads decode as a bare body', () => {
-  const legacy = encodeDoc('c123\n\nnot an envelope');
-  assert.equal(legacy[0], legacy[0].toLowerCase());
-  assert.deepEqual(decodeEnvelope(legacy), { created: null, body: 'c123\n\nnot an envelope' });
+test('a document with nothing to put in an envelope goes without one, flagged in lowercase', () => {
+  const bare = encodeDoc('c123\n\nnot an envelope');
+  assert.equal(bare[0], bare[0].toLowerCase());
+  assert.deepEqual(decodeEnvelope(bare), { created: null, body: 'c123\n\nnot an envelope' });
+  assert.equal(encodeEnvelope({ created: null, body: 'x' })[0], 'r');
   assert.deepEqual(decodeEnvelope(''), { created: null, body: '' });
   assert.deepEqual(decodeEnvelope('Zgarbage!'), { created: null, body: '' });
 });
@@ -62,9 +63,9 @@ test('who made it travels in the envelope and is bound by the signature', () => 
   assert.equal(back.body, 'a\tb');
   // A document with only an author still carries an envelope.
   assert.equal(decodeEnvelope(encodeEnvelope({ created: null, by: 'me', body: 'x' })).by, 'me');
-  // The author is signed when there is one; without one the message is as it always was.
-  assert.equal(signingMessage('sheet', null, 'b'), 'tinyoffice\nsheet\n\nb');
-  assert.equal(signingMessage('sheet', null, 'b', 'T'), 'tinyoffice\nsheet\n\nb\u0000T');
+  // The title and the author are always part of what is signed, empty or not.
+  assert.equal(signingMessage('sheet', null, 'b'), 'tinyoffice\nsheet\n\nb\u0000\u0000');
+  assert.equal(signingMessage('sheet', null, 'b', 'T'), 'tinyoffice\nsheet\n\nb\u0000T\u0000');
   assert.equal(signingMessage('sheet', null, 'b', '', 'A'), 'tinyoffice\nsheet\n\nb\u0000\u0000A');
   assert.notEqual(signingMessage('sheet', null, 'b', 'T', 'A'), signingMessage('sheet', null, 'b', 'T', 'B'));
 });

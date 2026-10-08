@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // The one tooltip (src/kit/tip.ts): hover and keyboard focus on a desktop, a long press on a phone.
 test('a tip on hover and on focus, and none when the pointer leaves', async ({ page, isMobile }) => {
   test.skip(isMobile, 'hover is a desktop thing');
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   const undo = page.getByRole('button', { name: 'Undo' });
   await undo.hover();
   const tip = page.locator('#to-tip');
@@ -21,7 +21,7 @@ test('a tip on hover and on focus, and none when the pointer leaves', async ({ p
 });
 
 test('a long press shows the tip and is not a tap', async ({ page }) => {
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await page.getByRole('textbox', { name: 'New task' }).fill('Milk');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('textbox', { name: 'Task 1' })).toHaveValue('Milk');

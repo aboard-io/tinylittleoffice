@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { shot, reopen, pickOption } from './helpers';
 
 test('calendar: spans, zones and the author-zone shortcut', async ({ page }) => {
-  await page.goto('/#/cal');
+  await page.goto('/#/v0/cal');
   const dialog = page.locator('sl-dialog.cal-dialog');
   // A click on a day opens the dialog over the grid, which stays where it is.
   const gridBefore = await page.locator('.cal-grid').boundingBox();
@@ -91,7 +91,7 @@ test('calendar: spans, zones and the author-zone shortcut', async ({ page }) => 
 });
 
 test('calendar: a span that repeats every week', async ({ page }) => {
-  await page.goto('/#/cal');
+  await page.goto('/#/v0/cal');
   const dialog = page.locator('sl-dialog.cal-dialog');
   await page.locator('.cal-cell.today').click();
   await page.getByRole('textbox', { name: 'Label' }).fill('Standup');

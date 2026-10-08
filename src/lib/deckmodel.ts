@@ -70,8 +70,7 @@ export function deckEndsWithQr(text: string): boolean {
 
 export function deckTransition(text: string): Transition {
   const m = SETTINGS.exec(text.split('\n\n', 1)[0]);
-  // ("fade" was once written out; it is now what a deck does unless told otherwise.)
-  return m && m[1] !== 'fade' && TRANSITIONS.some((t) => t.id === m[1]) ? (m[1] as Transition) : '';
+  return m && TRANSITIONS.some((t) => t.id === m[1]) ? (m[1] as Transition) : '';
 }
 
 export function parseDeck(text: string): Slide[] {

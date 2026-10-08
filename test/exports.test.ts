@@ -63,7 +63,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
         assert.ok(!pageSvg(p).includes('NaN') && !pageSvg(p).includes('undefined'), `${def.id} draws cleanly`);
       }
       assert.ok(def.view(body, { embed: true }).length >= 1);
-      const page = docHtml({ def, body }, { created: Date.UTC(2026, 0, 2), base: 'https://example.com/' }, 'https://example.com/x/#/v2/x/abc');
+      const page = docHtml({ def, body }, { created: Date.UTC(2026, 0, 2), base: 'https://example.com/' }, 'https://example.com/x/#/v0/x/abc');
       assert.ok(page.includes(`<meta property="og:image" content="https://example.com/og/${def.id}.png">`), def.id);
       assert.ok(page.includes('<meta property="og:title"') && page.includes('<meta name="description"'));
       assert.ok(page.includes('<meta property="article:published_time" content="2026-01-02T00:00:00.000Z">'));

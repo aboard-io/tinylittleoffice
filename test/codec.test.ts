@@ -34,20 +34,20 @@ test('garbage decodes to empty', () => {
 });
 
 test('budget', () => {
-  const b = budgetFor('https://example.com/#/sheet/');
-  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/sheet/'.length);
+  const b = budgetFor('https://example.com/#/v0/sheet/');
+  assert.equal(b.available, URL_LIMIT - 'https://example.com/#/v0/sheet/'.length);
 });
 
-test('the dictionary shortens everyday documents, and older links still decode', () => {
+test('the dictionary shortens everyday documents; plain deflate still reads', () => {
   const memo = '# Quarterly memo\nThe team will meet on Monday to review the launch plan and the budget for next month.\n- Design review';
   const e = encodeDoc(memo);
   assert.equal(e[0], 'y');
   assert.equal(decodeDoc(e), memo);
-  // The same text packed the old way: longer, and still readable.
+  // The same text without the dictionary: longer, and readable.
   const old = 'z' + toBase64Url(deflateSync(strToU8(memo), { level: 9, mem: 12 }));
   assert.equal(decodeDoc(old), memo);
   assert.ok(e.length < old.length * 0.8, `${e.length} vs ${old.length}`);
-  // Frozen: this exact link must decode forever.
+  // (Frozen once v0 launches: then this exact payload must decode forever.)
   assert.equal(decodeDoc('y84EUIuDMBkoyoOQCzn7Q8giUQCAZCQA'), 'Launch plan for the team meeting on Monday');
 });
 
@@ -63,7 +63,7 @@ test('a link that would unpack to a mountain is refused', async () => {
   assert.equal(unpackDoc('z', deflateSync(new TextEncoder().encode(big))), big);
 });
 
-test('an app\'s own dictionary makes its links shorter, and old links still open', async () => {
+test('an app\'s own dictionary makes its links shorter', async () => {
   const { packDoc, unpackDoc } = await import('../src/lib/codec.ts');
   const { encodeEnvelope, decodeEnvelope } = await import('../src/lib/envelope.ts');
   await import('../src/apps/index.ts');
@@ -91,13 +91,13 @@ test('an app\'s own dictionary makes its links shorter, and old links still open
   }
   assert.ok(shorter >= total * 0.9, `${shorter} of ${total} shorter`);
   assert.ok(after < before * 0.8, `${before} -> ${after}`);
-  // The dictionary is a frozen part of the format.
+  // Every app with words of its own has a dictionary.
   assert.ok(Object.keys(APP_DICTS).length >= 45);
   // A "w" link needs its app; without it, it is refused rather than misread.
   const w = packDoc('# Harbor Coffee\n## Coffee\nEspresso | 3.00', 'menu');
   assert.equal(w.flag, 'w');
   assert.throws(() => unpackDoc('w', w.bytes));
   assert.equal(unpackDoc('w', w.bytes, 'menu'), '# Harbor Coffee\n## Coffee\nEspresso | 3.00');
-  // Links from before (y, z, r) are untouched.
+  // The other encodings read as ever.
   assert.equal(unpackDoc('r', new TextEncoder().encode('hi')), 'hi');
 });

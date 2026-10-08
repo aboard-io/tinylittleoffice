@@ -9,13 +9,15 @@
     "build": "tsc --noEmit && vite build && vite build -c vite.api.config.ts && cp packages/doc/index.d.ts dist/api.d.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p tinier",
-    "test": "node --test --experimental-strip-types test/*.test.ts",
-    "deploy": "npm run build && npm test && wrangler deploy && wrangler deploy -c tinier/wrangler.jsonc",
+    "test": "npm run -s test:unit && npm run -s test:dom",
+    "test:unit": "node --test --experimental-strip-types test/*.test.ts",
+    "test:dom": "vitest run",
+    "test:e2e": "playwright test",
+    "deploy": "node scripts/deploy.mjs",
     "tinier:schema": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --remote --file=tinier/schema.sql",
     "tinier:dev": "wrangler dev -c tinier/wrangler.jsonc",
     "new-app": "node scripts/new-app.mjs",
     "build:api": "API_OUT=packages/doc/dist vite build -c vite.api.config.ts",
-    "py-dicts": "node --experimental-strip-types scripts/py-dicts.ts",
     "icons": "node --experimental-strip-types scripts/make-icons.mjs"
   },
   "dependencies": {
@@ -32,8 +34,10 @@
     "@playwright/test": "^1.56.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.4",
+    "happy-dom": "^20.14.5",
     "typescript": "^5.9.2",
     "vite": "^7.1.0",
+    "vitest": "^5.0.3",
     "wrangler": "^4.148.0"
   }
 }

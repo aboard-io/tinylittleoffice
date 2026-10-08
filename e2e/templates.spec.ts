@@ -11,7 +11,7 @@ async function startFrom(page: Page, name: string) {
 }
 
 test('an empty text starts from a template: a picture of each, one undo back to blank', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   // Offered twice, quietly: a line on the blank page and a button in the toolbar. Never a dialog by itself.
   const line = page.locator('.to-template-line');
   await expect(line).toContainText('Start from a template');
@@ -29,7 +29,7 @@ test('an empty text starts from a template: a picture of each, one undo back to 
   const doc = page.getByRole('textbox', { name: 'Document' });
   await expect(doc.locator('h1')).toHaveText('Meeting notes');
   await expect(doc.locator('h2')).toHaveText(['Agenda', 'Notes', 'Decisions', 'Actions']);
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/write\/[WYZR]/);
   // Once there are words, the offer is gone; one undo and the blank page is back, offer and all.
   await expect(line).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Start from a template…' })).toHaveCount(0);
@@ -46,7 +46,7 @@ test('an empty text starts from a template: a picture of each, one undo back to 
 });
 
 test('a sheet starts from a template, sums and chart included', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await expect(page.locator('.to-template-line')).toBeVisible();
   await startFrom(page, 'Budget');
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('Item');
@@ -60,7 +60,7 @@ test('a sheet starts from a template, sums and chart included', async ({ page })
 });
 
 test('a deck starts from a template: slides with icons, from the first', async ({ page }) => {
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await expect(page.locator('.to-template-line')).toBeVisible();
   await startFrom(page, 'A talk');
   await expect(page.locator('.deck-thumb')).toHaveCount(6);

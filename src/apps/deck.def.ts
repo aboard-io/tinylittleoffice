@@ -1,5 +1,5 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
-import { defineApp, xml, pageSvg, ACCENT, type DownloadContext, type Page } from '../kit/core.ts';
+import { LINK, defineApp, xml, pageSvg, ACCENT, type DownloadContext, type Page } from '../kit/core.ts';
 import { SW, SH, depthOf, layoutSlide, slidePage, slideSteps, live } from '../lib/slide.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
@@ -136,7 +136,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
 export function closingSlide(body: string): Slide | null {
   if (!deckEndsWithQr(body)) return null;
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
-  const link = `${site}deck/#/v2/deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
+  const link = `${site}deck/${LINK}deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
   if (new TextEncoder().encode(link).length > QR_MAX_BYTES || !body.trim()) return null;
   return { icon: '', title: '', bullets: [], sub: makeRef('qr', link) };
 }

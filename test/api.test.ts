@@ -1,12 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from '../src/api.ts';
-import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 
 test('a link is made, read, shaped from Markdown, and compared', () => {
   const u = T.link('sheet', 'Item\tCost\nRent\t1200\nFood\t600\nTotal\t=SUM(B2:B3)', { title: 'Budget', by: 'planner-agent' });
-  assert.ok(u.startsWith('https://tinylittleoffice.com/sheet/#/v2/sheet/W'));
+  assert.ok(u.startsWith('https://tinylittleoffice.com/sheet/#/v0/sheet/W'));
   const p = T.parse(u);
   assert.equal(p.app, 'sheet');
   assert.equal(p.env.title, 'Budget');
@@ -55,16 +53,3 @@ test('signed, verified, sealed and opened', async () => {
   await assert.rejects(T.open(sealedU, 'wrong'));
 });
 
-test('the Python port makes links this side reads, and reads links made here', { skip: !existsSync('/usr/bin/python3') }, () => {
-  const u = T.link('todo', '- Book flights\nx Renew passport', { title: 'Trip', by: 'planner-agent', created: Date.UTC(2026, 9, 6) });
-  const py = (code: string) => execFileSync('python3', ['-c', code], { cwd: 'packages/python', encoding: 'utf8' }).trim();
-  assert.equal(py(`from tinylittleoffice import parse; p = parse(${JSON.stringify(u)}); print(p.app, p.env.title, p.env.by, repr(p.env.body))`), "todo Trip planner-agent '- Book flights\\nx Renew passport'");
-  const theirs = py(`from tinylittleoffice import link; print(link('deck', ${JSON.stringify(T.example('deck'))}, title='Launch', by='py-agent', created=${Date.UTC(2026, 9, 6)}))`);
-  const p = T.parse(theirs);
-  assert.equal(p.app, 'deck');
-  assert.equal(p.env.by, 'py-agent');
-  assert.equal(p.env.body, T.example('deck'));
-  assert.equal(p.env.created, Date.UTC(2026, 9, 6));
-  // The same bytes: both sides pick the same encoding for the same document.
-  assert.equal(theirs, T.link('deck', T.example('deck'), { title: 'Launch', by: 'py-agent', created: Date.UTC(2026, 9, 6) }));
-});

@@ -4,7 +4,7 @@
  * and fold it, a handle drags it onto another item, and any item can be
  * zoomed in on. Format: lib/outlinemodel.ts.
  */
-import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, btn } from '../kit.ts';
+import { LINK, DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, btn } from '../kit.ts';
 import { blockEnd, embedOf, hasChildren, move, outlineToDeck, parseOutline, place, remove, serializeOutline, shift, type Item } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
@@ -211,7 +211,7 @@ export class ToOutline extends DocElement<Item[]> {
         </sl-button-group>
         ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { text: true }) : nothing}
         <to-insert label="Insert" placeholder="Insert a document…" .options=${insertOptions('outline')} @pick=${(e: CustomEvent<string>) => this.insertDoc(e.detail)}></to-insert>
-        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = '#/v2/' + (e.detail.item.value === 'deck' ? makeRef('deck', outlineToDeck(items)) : outlineAs(e.detail.item.value, serializeOutline(items))))}>
+        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = LINK + (e.detail.item.value === 'deck' ? makeRef('deck', outlineToDeck(items)) : outlineAs(e.detail.item.value, serializeOutline(items))))}>
           <sl-button slot="trigger" size="small" caret>${icon(UI.mind, 14)} See as</sl-button>
           <sl-menu>
             <sl-menu-item value="deck">${icon(UI.deck, 14, 'pre')} Deck: a slide for every level</sl-menu-item>

@@ -5,7 +5,7 @@
  * Four encodings are tried and the shortest wins:
  *   w<base64url(deflate-raw(utf8, DICTIONARY + the app's own))>  compressed against the shared dictionary and the app's (lib/dicts.ts)
  *   y<base64url(deflate-raw(utf8, DICTIONARY))>   compressed against the shared dictionary
- *   z<base64url(deflate-raw(utf8))>               compressed (links made before the dictionary)
+ *   z<base64url(deflate-raw(utf8))>               compressed, without a dictionary
  *   r<base64url(utf8)>                            raw (wins for very short docs)
  * "w" needs the app to be known; it always is, from the link's path.
  */
@@ -57,11 +57,10 @@ export function fromBase64Url(s: string): Uint8Array {
  * markup, icon names), so a document that refers back into this dictionary
  * instead of spelling those out comes out a good deal shorter.
  *
- * FROZEN: every "y" link ever made depends on these exact bytes. To improve
+ * FROZEN once v0 launches: every "y" link made after that depends on these exact bytes. To improve
  * the dictionary, add a new one under a new flag; never edit this one.
  */
-/** The dictionary's text, for ports to other languages (scripts/py-dicts.ts). */
-export const DICTIONARY_TEXT = [
+const DICTIONARY_TEXT = [
     // English, roughly least to most common so the commonest sit closest.
     ' experience development information different important available',
     ' question together business company project customer product service research meeting',

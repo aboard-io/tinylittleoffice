@@ -4,14 +4,13 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a:not(.drive-tile)');
-  // (The three plans are Write templates now, kept for old links but not listed; Chord chart is retired.)
   await expect(launcher).toHaveCount(49);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });
 
 test('sheet: formulas compute and persist in the URL', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('A1').fill('10');
   await cell('A2').fill('32');
@@ -23,7 +22,7 @@ test('sheet: formulas compute and persist in the URL', async ({ page }) => {
   await expect(cell('A3')).toHaveValue('84');
   await expect(cell('B1')).toHaveValue('#DIV/0');
   await expect(cell('C2')).toHaveValue('42');
-  expect(page.url()).toMatch(/#\/v2\/sheet\/[WYZR][A-Za-z0-9_-]+$/);
+  expect(page.url()).toMatch(/#\/v0\/sheet\/[WYZR][A-Za-z0-9_-]+$/);
 
   await reopen(page);
   await expect(cell('A3')).toHaveValue('84');
@@ -41,7 +40,7 @@ test('sheet: formulas compute and persist in the URL', async ({ page }) => {
 });
 
 test('sheet: tapping cells builds a formula, and every function is one tap away', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('A1').fill('10');
   await cell('A2').fill('32');
@@ -109,7 +108,7 @@ test('sheet: tapping cells builds a formula, and every function is one tap away'
 });
 
 test('sheet: blocks of cells are selected, copied, cut, cleared and filled', async ({ page, isMobile }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   const ref = page.getByLabel('Selected cells');
   for (const [at, v] of [['A1', '1'], ['A2', '2'], ['B1', '10'], ['B2', '20'], ['C1', '=A1+B1']]) await cell(at).fill(v);
@@ -199,7 +198,7 @@ test('sheet: blocks of cells are selected, copied, cut, cleared and filled', asy
 });
 
 test('sheet: charts suggest themselves and travel with the sheet', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   for (const [ref, v] of [['A1', 'Item'], ['B1', 'Cost'], ['A2', 'Rent'], ['B2', '1200'], ['A3', 'Food'], ['B3', '600'], ['A4', 'Fun'], ['B4', '200']]) await cell(ref).fill(v);
   await cell('C1').click();
@@ -225,7 +224,7 @@ test('sheet: charts suggest themselves and travel with the sheet', async ({ page
 });
 
 test('sheet: columns squeeze to fit or widen to show everything', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   const long = 'A sentence that is far too long for one third of a small page to show';
   await cell('B1').fill(long);
@@ -259,7 +258,7 @@ test('sheet: columns squeeze to fit or widen to show everything', async ({ page 
 });
 
 test('write: rich text survives the round trip', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
   await editor.click();
   await page.keyboard.type('Memo');
@@ -277,7 +276,7 @@ test('write: rich text survives the round trip', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.keyboard.type('second');
   await expect(page.locator('.write-foot')).toContainText('7 words');
-  expect(page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
+  expect(page.url()).toMatch(/#\/v0\/write\/[WYZR]/);
 
   await reopen(page);
   const html = await editor.innerHTML();
@@ -291,7 +290,7 @@ test('write: rich text survives the round trip', async ({ page }) => {
 });
 
 test('deck: slides, icons and presenting', async ({ page }) => {
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   const headline = page.getByRole('textbox', { name: 'Headline' });
   const bullets = page.getByRole('textbox', { name: 'Bullets' });
   const show = page.getByRole('dialog', { name: 'Presentation' });
@@ -385,7 +384,7 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
   const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two\na,14,4,8,8,0' });
   const sheet = 'sheet/' + encodeEnvelope({ created: null, body: 'Item\tCost\nRent\t1200\nFood\t600' });
   const body = ['!fade', '::2\nTwo columns\nleft\n|\nright', ':star:i\nBig icon\nwhy', `Drawing\nfirst\n@@${draw}`, `Table\n@@${sheet}`].join('\n\n');
-  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body }));
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body }));
   const thumbs = page.locator('.deck-rail .deck-thumb');
   await expect(thumbs).toHaveCount(4);
   await expect(page.locator('sl-select.deck-transition')).toHaveJSProperty('value', 'fade');
@@ -455,7 +454,7 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
 
   // Presenting it: the whole slide is the document, and it appears a piece per click.
   await page.goto('about:blank');
-  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body }));
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body }));
   await thumbs.nth(2).click();
   await page.getByRole('button', { name: 'Present' }).click();
   const slide = page.locator('.deck-show .frame > svg');
@@ -490,7 +489,7 @@ test('deck: layouts, a transition, and other documents on a slide', async ({ pag
 });
 
 test('deck: a motion slide is made and changed from the slide itself', async ({ page }) => {
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('combobox', { name: 'Add a slide' }).fill('motion');
   await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
@@ -540,7 +539,7 @@ test('deck: a motion slide is made and changed from the slide itself', async ({ 
 });
 
 test('draw: shapes with labels persist', async ({ page }) => {
-  await page.goto('/#/draw');
+  await page.goto('/#/v0/draw');
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
   const box = (await canvas.boundingBox())!;
   const at = (fx: number, fy: number) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy });
@@ -597,7 +596,7 @@ test('draw: shapes with labels persist', async ({ page }) => {
 });
 
 test('meter flags documents that outgrow the URL', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   const meter = page.locator('.to-meter');
   await expect(meter).not.toHaveClass(/over/);
@@ -618,7 +617,7 @@ test('meter flags documents that outgrow the URL', async ({ page }) => {
 });
 
 test('back and forward move between documents', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('hello');
   await navTo(page, 'Write');
   await expect(page.getByRole('textbox', { name: 'Document' })).toBeVisible();
@@ -627,7 +626,7 @@ test('back and forward move between documents', async ({ page }) => {
 });
 
 test('sheet: columns have types, and dates do arithmetic', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   const setType = async (col: string, type: string) => {
     await page.getByRole('button', { name: new RegExp(`^Column ${col}:`) }).click();
@@ -675,7 +674,7 @@ test('sheet: columns have types, and dates do arithmetic', async ({ page }) => {
 
 test('sheet: on a touch screen the corner handle stretches the block any way, and buttons fill it', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'touch only');
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('A1').fill('1');
   await cell('B1').fill('=A1*2');
@@ -696,7 +695,7 @@ test('sheet: on a touch screen the corner handle stretches the block any way, an
 });
 
 test('a document can carry its own QR code, so a reader can take a copy', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Take this home');
   await page.getByRole('combobox', { name: 'Insert' }).fill('qr code of this');
@@ -706,7 +705,7 @@ test('a document can carry its own QR code, so a reader can take a copy', async 
   // The code is drawn, named for what it is, and keeps up with the document.
   await expect(embed.locator('svg path[shape-rendering="crispEdges"]')).toHaveCount(1);
   await expect(embed.locator('svg[role="img"]')).toHaveAttribute('aria-label', 'This document, as a QR code');
-  await expect.poll(() => page.url()).toContain('/#/v2/write/');
+  await expect.poll(() => page.url()).toContain('/#/v0/write/');
   const d1 = await embed.locator('svg path[shape-rendering="crispEdges"]').getAttribute('d');
   const url1 = page.url();
   await page.getByRole('textbox', { name: 'Document' }).locator('p').first().click();
@@ -722,7 +721,7 @@ test('a document can carry its own QR code, so a reader can take a copy', async 
   const html = (await import('node:fs')).readFileSync(await file.path(), 'utf8');
   expect(html).toContain('crispEdges');
   // On a slide too.
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Thanks');
   await page.getByRole('combobox', { name: 'Add a slide' }).fill('qr code of this');
   await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');

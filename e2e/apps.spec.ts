@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { shot, reopen, navTo, pickOption } from './helpers';
 
 test('todo: add, tick, star, date, filter and clear', async ({ page }) => {
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   const add = page.getByRole('textbox', { name: 'New task' });
   for (const t of ['Book flights', 'Renew passport', 'Pack']) {
     await add.fill(t);
@@ -16,7 +16,7 @@ test('todo: add, tick, star, date, filter and clear', async ({ page }) => {
   await rows.nth(1).getByLabel('Due date').fill('2027-03-01');
   await rows.nth(2).getByRole('button', { name: 'Move up' }).click();
   await expect(page.locator('.to-toolbar .to-hint')).toHaveText('1 / 3');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/todo\/[WYZR]/);
 
   await reopen(page);
   await expect(rows).toHaveCount(3);
@@ -35,7 +35,7 @@ test('todo: add, tick, star, date, filter and clear', async ({ page }) => {
 });
 
 test('board: stages, cards, limits and moving work along', async ({ page, isMobile }) => {
-  await page.goto('/#/board');
+  await page.goto('/#/v0/board');
   const cols = page.locator('.board-col');
   await expect(cols).toHaveCount(3);
   const addTo = (name: string) => page.getByRole('textbox', { name: `Add a card to ${name}` });
@@ -77,7 +77,7 @@ test('board: stages, cards, limits and moving work along', async ({ page, isMobi
 });
 
 test('gantt: tasks, dates and dragging bars', async ({ page }) => {
-  await page.goto('/#/gantt');
+  await page.goto('/#/v0/gantt');
   await page.getByRole('button', { name: 'Task', exact: true }).click();
   await page.keyboard.type('Design');
   await page.getByLabel('Start of task 1').fill('2027-03-01');
@@ -149,7 +149,7 @@ async function offlineMap(page: Page) {
 
 test('trip: a route on the map with notes', async ({ page }) => {
   await offlineMap(page);
-  await page.goto('/#/trip');
+  await page.goto('/#/v0/trip');
   const map = page.getByRole('application', { name: 'Map' });
   await expect(map.locator('.leaflet-tile-pane')).toBeAttached();
   const stops = page.locator('.trip-stops li:not(.to-empty)');
@@ -193,7 +193,7 @@ test('trip: a route on the map with notes', async ({ page }) => {
 });
 
 test('motion: a drawing that moves between the moments you set', async ({ page }) => {
-  await page.goto('/#/anim');
+  await page.goto('/#/v0/anim');
   // Draw mode is Draw itself.
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
   const box = (await canvas.boundingBox())!;
@@ -232,7 +232,7 @@ test('motion: a drawing that moves between the moments you set', async ({ page }
   await expect(hit.first()).toHaveClass(/sel/);
   // It started where it was drawn, and the link says so: a key line for shape 0.
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
-  const body = () => decodeEnvelope(page.url().split('/#/v2/anim/')[1] ?? '', 'anim').body;
+  const body = () => decodeEnvelope(page.url().split('/#/v0/anim/')[1] ?? '', 'anim').body;
   await expect.poll(body).toMatch(/^!o\nr,8,5,16,10,0,Go\n@0\t0,0,0,0,a,0;n,8[bcd],5[jkl],0,a,0$/);
   await expect(page.locator('.motion-keys .key')).toHaveCount(2);
 
@@ -260,7 +260,7 @@ test('motion: a drawing that moves between the moments you set', async ({ page }
 });
 
 test('shell: themes, page titles, share and room per service', async ({ page, isMobile }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Quarterly memo');
   await expect(page).toHaveTitle('Quarterly memo · TinyLittleOffice');
@@ -335,9 +335,9 @@ test('web niceties: icons, manifest and preview tags are served', async ({ page,
 test('write: other documents sit in the text as one thing each', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const deckDoc = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
-  const deck = `http://localhost:4173/deck/#/v2/deck/${deckDoc}`;
-  const drawing = `http://localhost:4173/#/v2/draw/${encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,Box' })}`;
-  await page.goto('/#/write');
+  const deck = `http://localhost:4173/deck/#/v0/deck/${deckDoc}`;
+  const drawing = `http://localhost:4173/#/v0/draw/${encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,Box' })}`;
+  await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
   const paste = (text: string) =>
     editor.evaluate((el, t) => {
@@ -375,12 +375,12 @@ test('write: other documents sit in the text as one thing each', async ({ page }
   await page.getByRole('button', { name: 'Download' }).click();
   const [htmlFile] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
   const html = fs.readFileSync(await htmlFile.path(), 'utf8');
-  expect(html).toContain(`#/v2/deck/${deckDoc}">Spring launch</a>`);
+  expect(html).toContain(`#/v0/deck/${deckDoc}">Spring launch</a>`);
   expect(html).toContain('>Box</text>');
   await expect(page.getByRole('menuitem', { name: /Web page/ })).toBeHidden();
   await page.getByRole('button', { name: 'Download' }).click();
   const [rtfFile] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Rich Text/ }).click()]);
-  expect(fs.readFileSync(await rtfFile.path(), 'utf8')).toContain(`HYPERLINK "http://localhost:4173/#/v2/deck/${deckDoc}"`);
+  expect(fs.readFileSync(await rtfFile.path(), 'utf8')).toContain(`HYPERLINK "http://localhost:4173/#/v0/deck/${deckDoc}"`);
 
   // Getting rid of one: its own Remove button, or one key when it has the focus.
   await embeds.nth(1).getByRole('button', { name: /Remove/ }).click();
@@ -413,7 +413,7 @@ test('write: other documents sit in the text as one thing each', async ({ page }
 });
 
 test('write: a pasted web address is a link you can click', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
   const paste = (text: string) =>
     editor.evaluate((el, t) => {
@@ -449,7 +449,7 @@ test('write: a pasted web address is a link you can click', async ({ page }) => 
 });
 
 test('write: list items nest with Tab', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
   await editor.click();
   await page.getByRole('button', { name: 'Bulleted list' }).click();
@@ -476,7 +476,7 @@ test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const trip = 'trip/' + encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n40000,0,Second' });
-  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body: `Where we are going\n@@${trip}` }));
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `Where we are going\n@@${trip}` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show to-trip[present]');
   await expect(map.locator('.trip-pin')).toHaveCount(2);
@@ -558,7 +558,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   await check('home');
   for (const [app, body] of Object.entries(docs)) {
     await page.goto('about:blank');
-    await page.goto(`/#/v2/${app}/${encodeEnvelope({ created: 1, body })}`);
+    await page.goto(`/#/v0/${app}/${encodeEnvelope({ created: 1, body })}`);
     await expect(page.locator(`to-${app}`)).toBeVisible();
     await page.waitForTimeout(150);
     await check(app);
@@ -566,7 +566,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   // And in the dark.
   await page.evaluate(() => localStorage.setItem('to-theme', 'dark'));
   await page.goto('about:blank');
-  await page.goto(`/#/v2/todo/${encodeEnvelope({ created: 1, body: docs.todo })}`);
+  await page.goto(`/#/v0/todo/${encodeEnvelope({ created: 1, body: docs.todo })}`);
   await expect(page.locator('html')).toHaveClass(/sl-theme-dark/);
   await check('dark todo');
   expect(found).toEqual([]);
@@ -631,7 +631,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   const found: string[] = [];
   for (const [app, body] of Object.entries(docs)) {
     await page.goto('about:blank');
-    await page.goto(`/#/v2/${app}/${encodeEnvelope({ created: 1, title: 'A fairly long title for this document', body })}`);
+    await page.goto(`/#/v0/${app}/${encodeEnvelope({ created: 1, title: 'A fairly long title for this document', body })}`);
     await expect(page.locator(`to-${app}`)).toBeVisible();
     await page.waitForTimeout(200);
     // Anything that sticks out past the right edge, unless it is inside something that scrolls sideways on purpose.
@@ -656,7 +656,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
 
 test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in one tap', async ({ page }) => {
   const errs: string[] = []; page.on('pageerror', (e) => errs.push(e.message.slice(0, 200)));
-  await page.goto('/#/outline');
+  await page.goto('/#/v0/outline');
   const item = (n: number) => page.getByRole('textbox', { name: `Item ${n}` });
   await item(1).click();
   await page.keyboard.type('Launch');
@@ -670,7 +670,7 @@ test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.type('Done');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/outline\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/outline\/[WYZR]/);
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
   const body = () => decodeEnvelope(page.url().split('/').pop()!, 'outline').body;
   await expect.poll(body).toBe('Launch\n  Product\n    Pricing\nDone');
@@ -710,18 +710,18 @@ test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in
   // The same text, as a deck: a slide for every level with something under it.
   await page.getByRole('button', { name: 'See as' }).click();
   await page.getByRole('menuitem', { name: /^Deck/ }).click();
-  await expect(page).toHaveURL(/#\/v2\/deck\//);
+  await expect(page).toHaveURL(/#\/v0\/deck\//);
   await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
   await page.goBack();
   // And as a mind map.
   await page.getByRole('button', { name: 'See as' }).click();
   await page.getByRole('menuitem', { name: 'Mind map' }).click();
-  await expect(page).toHaveURL(/#\/v2\/mind\//);
+  await expect(page).toHaveURL(/#\/v0\/mind\//);
   await expect(page.locator('to-mind .pic svg')).toContainText('Pricing');
 });
 
 test('draw: the pen makes any shape, corner by corner; Motion morphs its corners', async ({ page }) => {
-  await page.goto('/#/draw');
+  await page.goto('/#/v0/draw');
   const canvas = page.locator('.draw-canvas');
   const b = (await canvas.boundingBox())!;
   const at = (fx: number, fy: number) => page.mouse.click(b.x + b.width * fx, b.y + b.height * fy);
@@ -743,7 +743,7 @@ test('draw: the pen makes any shape, corner by corner; Motion morphs its corners
   // In Motion, a corner dragged at a later moment morphs between the two.
   const body = decodeEnvelope(page.url().split('/').pop()!, 'draw').body;
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto(`/#/v2/anim/${encodeEnvelope({ created: null, body: '!o\n' + body }, 'anim')}`);
+  await page.goto(`/#/v0/anim/${encodeEnvelope({ created: null, body: '!o\n' + body }, 'anim')}`);
   await page.getByRole('radio', { name: 'Move' }).click();
   await page.locator('input[type=range][aria-label="Time"]').fill('23');
   await page.locator('.motion-stage .hit').first().click();

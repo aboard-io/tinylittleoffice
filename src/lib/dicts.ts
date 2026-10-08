@@ -5,7 +5,7 @@
  * deflate spends a few bits on a word it has seen before instead of spelling
  * it out, which matters most for short documents.
  *
- * FROZEN. Every "w" link ever made depends on these exact bytes. To improve
+ * FROZEN once v0 launches. Every "w" link made after that depends on these exact bytes. To improve
  * on them, add a new flag letter with a new table; never edit this one.
  */
 export const APP_DICTS: Record<string, string> = {

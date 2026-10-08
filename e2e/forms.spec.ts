@@ -9,7 +9,7 @@ const port = Number(process.env.PW_PORT ?? 4173);
 test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${port}`, localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'form' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
 
 test('a menu is made by filling in a form; what is saved is the text', async ({ page }) => {
-  await page.goto('/#/menu');
+  await page.goto('/#/v0/menu');
   const form = page.locator('to-menu to-lines');
   await expect(form).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Menu, as text' })).toHaveCount(0);
@@ -61,7 +61,7 @@ test('a menu is made by filling in a form; what is saved is the text', async ({ 
 test('forms: outlines indent, pictures are picked, choices are chosen', async ({ page }) => {
   // A diagram is worked on its picture (its list is retired): two people joined by a dotted line, one given a picture.
   const docOf = (app: string) => page.evaluate((a) => (document.querySelector('to-' + a) as unknown as { doc: string }).doc, app);
-  await page.goto('/#/org');
+  await page.goto('/#/v0/org');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await expect(page.locator('to-org to-lines')).toHaveCount(0);
   const chart = page.locator('to-org .pic > svg');
@@ -78,7 +78,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await expect.poll(() => docOf('org')).toContain(':crown Ben Okoro | Engineering');
 
   // Seating: each guest at a table is a thing of their own, renamed where they sit; the place cards download.
-  await page.goto('/#/seating');
+  await page.goto('/#/v0/seating');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const seats = page.locator('to-seating .pic > svg');
   await seats.getByRole('button', { name: /^Ken\b/ }).click();
@@ -93,7 +93,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   expect(readFileSync(await cards.path()).subarray(0, 5).toString()).toBe('%PDF-');
 
   // The model: sliders and flows from boxes, and the diagram follows.
-  await page.goto('/#/flow');
+  await page.goto('/#/v0/flow');
   const flow = page.locator('to-flow to-lines');
   const addFlow = (kind: string) => flow.getByRole('group', { name: 'Add' }).getByRole('button', { name: kind, exact: true }).click();
   await addFlow('Slider');
@@ -110,7 +110,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
   await shot(page, 'form-flow');
 
   // An example fills the form in.
-  await page.goto('/#/invoice');
+  await page.goto('/#/v0/invoice');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const inv = page.locator('to-invoice to-lines');
   await expect(inv.getByRole('textbox', { name: 'Who it is from, row 1' })).toHaveValue('Harbor Studio | 14 Quay Street');
@@ -122,7 +122,7 @@ test('forms: outlines indent, pictures are picked, choices are chosen', async ({
 });
 
 test('the picture is worked directly: tap a box and type; Enter for the next', async ({ page }) => {
-  await page.goto('/#/org');
+  await page.goto('/#/v0/org');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const pic = page.locator('to-org .pic > svg');
   // A tap opens the words, with the small things to do underneath; no cluster of buttons on the picture.
@@ -165,7 +165,7 @@ test('the picture is worked directly: tap a box and type; Enter for the next', a
 });
 
 test('a page is edited in the page: type into it, add with the bar, Enter for another', async ({ page }) => {
-  await page.goto('/#/split');
+  await page.goto('/#/v0/split');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const f = page.frameLocator('to-split iframe');
   // What is written in the text is there in the page, to type into.
@@ -199,7 +199,7 @@ test('a page is edited in the page: type into it, add with the bar, Enter for an
 });
 
 test('words are typed on the picture itself: a shape, and a line of a printed sheet', async ({ page }) => {
-  await page.goto('/#/org');
+  await page.goto('/#/v0/org');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const pic = page.locator('to-org .pic > svg');
   // Twice on a box opens it for typing; Enter keeps it.
@@ -227,7 +227,7 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
   await page.keyboard.press('Escape');
 
   // On a sheet: tap the words, type.
-  await page.goto('/#/menu');
+  await page.goto('/#/v0/menu');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const sheet = page.getByRole('img', { name: 'Menu, sheet 1' });
   await sheet.locator('text', { hasText: 'Flat white' }).click();
@@ -242,7 +242,7 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
 
 test('the picture is the editor: tap to add, drag to move, drag onto another to re-home', async ({ page }) => {
   // Picture mode: the default; no list beside it.
-  await page.goto('/#/org');
+  await page.goto('/#/v0/org');
   await page.evaluate(() => localStorage.removeItem('tinyoffice.edit'));
   await page.reload();
   await expect(page.locator('to-org to-lines')).toHaveCount(0);
@@ -272,7 +272,7 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await page.keyboard.press('Control+Shift+t');
   // A picture of shapes has no list beside it; a database, rows at heart, has one when wanted.
   await expect(page.getByRole('button', { name: 'List', exact: true })).toHaveCount(0);
-  await page.goto('/#/db');
+  await page.goto('/#/v0/db');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await page.getByRole('button', { name: 'List', exact: true }).click();
   await expect(page.locator('to-db to-lines')).toHaveCount(1);
@@ -280,7 +280,7 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await expect(page.locator('to-db to-lines')).toHaveCount(0);
 
   // A floor plan's rooms keep a place: a drag moves one, a tap puts a room there.
-  await page.goto('/#/floor');
+  await page.goto('/#/v0/floor');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const plan = page.locator('to-floor .pic > svg');
   const kitchen = plan.getByRole('button', { name: /^Kitchen/ });

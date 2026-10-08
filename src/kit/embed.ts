@@ -5,7 +5,7 @@
  * to it.
  */
 import { decodeEnvelope, encodeEnvelope } from '../lib/envelope.ts';
-import { appOf, listPage, type AppDef, type Page, type ViewOpts } from './core.ts';
+import { LINK, appOf, listPage, type AppDef, type Page, type ViewOpts } from './core.ts';
 
 /** "<app>/<payload>" if the text is exactly one TinyLittleOffice link, otherwise null. */
 export function linkToRef(text: string): string | null {
@@ -48,7 +48,7 @@ export function resolve(ref: string): Resolved {
   const env = locked ? { body: '', title: undefined } : decodeEnvelope(payload, id);
   const body = env.body;
   const kind = def?.name ?? 'Document';
-  return { def, body, locked, hash: `#/v2/${id}${payload ? '/' + payload : ''}`, title: locked ? `Locked ${kind.toLowerCase()}` : env.title || def?.title(body) || kind };
+  return { def, body, locked, hash: `${LINK}${id}${payload ? '/' + payload : ''}`, title: locked ? `Locked ${kind.toLowerCase()}` : env.title || def?.title(body) || kind };
 }
 
 /** The embedded document as one page, ready to place on another. */

@@ -5,7 +5,7 @@ import { shot } from './helpers.ts';
 const TWO = '# Harbor Coffee\nRoasted on the quay.\ntheme: teal\n> Menu | #menu\n- :coffee Daily | Fresh\n=== Menu\nEspresso and buns.\n## Coffee\n- Espresso | 3.00';
 
 test('a site of two pages: the preview switches pages, keeps its place, and the download is the same file', async ({ page }) => {
-  await page.goto('/#/site');
+  await page.goto('/#/v0/site');
   const area = page.getByRole('textbox', { name: 'Website, as text' });
   await area.fill(TWO);
   const site = page.frameLocator('to-site iframe');
@@ -43,7 +43,7 @@ test('a site of two pages: the preview switches pages, keeps its place, and the 
 });
 
 test('on the picture: a page is added after the one on show, named, moved, and taken away', async ({ page }) => {
-  await page.goto('/#/site');
+  await page.goto('/#/v0/site');
   await page.getByRole('textbox', { name: 'Website, as text' }).fill('# Harbor Coffee\nRoasted on the quay.\n=== Menu\nEspresso.\n=== Visit\nQuay Street.');
   await page.getByRole('button', { name: 'Edit as a form' }).click();
   const site = page.frameLocator('to-site iframe');

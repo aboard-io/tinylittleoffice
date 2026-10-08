@@ -3,21 +3,21 @@ import { readFileSync } from 'node:fs';
 import { shot, reopen, pickOption } from './helpers';
 
 test('a document has a title of its own', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const title = page.getByRole('textbox', { name: 'Title' });
   // Until it is given one, it says what it is.
   await expect(title).toHaveAttribute('placeholder', 'Untitled Sheet');
   await expect(page).toHaveTitle('Untitled Sheet · TinyLittleOffice');
   await title.fill('Q3 budget');
   await expect(page).toHaveTitle('Q3 budget · TinyLittleOffice');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/[WYZR]/);
   await reopen(page);
   await expect(title).toHaveValue('Q3 budget');
   // Downloads are named after it.
   const [file] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
   expect(file.suggestedFilename()).toBe('q3-budget.xlsx');
   // A deck with no name of its own goes by its first headline.
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
   await expect(page.getByRole('textbox', { name: 'Title' })).toHaveAttribute('placeholder', 'Spring launch');
   await page.getByRole('textbox', { name: 'Title' }).fill('Board deck');
@@ -35,11 +35,11 @@ test('every example in the skill opens as written', async ({ page }) => {
     await page.goto(`/${app}/#${params}`);
     await expect(page.locator(`to-${app}`), app).toBeVisible();
     // The plain link has become the compact one, on the app's own page.
-    await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v2/${app}/[WYZR][A-Za-z0-9_-]+$`));
+    await expect.poll(() => page.url(), app).toMatch(new RegExp(`/${app}/#/v0/${app}/[WYZR][A-Za-z0-9_-]+$`));
     const want = new URLSearchParams(params).get('title')!;
     await expect(page.getByRole('textbox', { name: 'Title' }), app).toHaveValue(want);
     // And it drew something: the picture every other view is made from is not empty.
-    const [png] = await Promise.all([page.waitForEvent('download'), page.goto(page.url().replace(`/v2/${app}/`, `/v2/${app}.png/`))]);
+    const [png] = await Promise.all([page.waitForEvent('download'), page.goto(page.url().replace(`/v0/${app}/`, `/v0/${app}.png/`))]);
     expect(png.suggestedFilename(), app).toMatch(/\.png$/);
     const bytes = readFileSync(await png.path());
     expect(bytes.length, `${app} picture`).toBeGreaterThan(3000);
@@ -88,7 +88,7 @@ test('a document can be shown inside another page', async ({ page }) => {
   await page.getByRole('button', { name: 'Share' }).click();
   await page.getByRole('menuitem', { name: 'Copy embed code' }).click();
   const code = await page.evaluate(() => navigator.clipboard.readText());
-  expect(code).toMatch(/^<iframe src="http:\/\/localhost:4173\/deck\/#\/v2\/deck\.embed\/[^"]+" title="Launch plan" loading="lazy" referrerpolicy="no-referrer" allowfullscreen style="width:100%;max-width:960px;aspect-ratio:960\/644;[^"]*"><\/iframe>$/);
+  expect(code).toMatch(/^<iframe src="http:\/\/localhost:4173\/deck\/#\/v0\/deck\.embed\/[^"]+" title="Launch plan" loading="lazy" referrerpolicy="no-referrer" allowfullscreen style="width:100%;max-width:960px;aspect-ratio:960\/644;[^"]*"><\/iframe>$/);
   // In a page of its own, as the frame will show it: the document, and a way to the editor.
   const src = /src="([^"]+)"/.exec(code)![1];
   await page.setContent(`<h1>Someone else's page</h1>${code.replace('localhost:4173', 'localhost:4173')}`);
@@ -106,7 +106,7 @@ test('a document can be shown inside another page', async ({ page }) => {
 });
 
 test('diagram apps: write an outline, get a picture, use it anywhere', async ({ page }) => {
-  await page.goto('/#/org');
+  await page.goto('/#/v0/org');
   const text = page.getByRole('textbox', { name: 'Org chart, as text' });
   await expect(page.locator('to-org .to-empty')).toBeVisible();
   await text.click();
@@ -140,14 +140,14 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async ({ 
     await shot(page, app);
   }
   // The database answers its queries under its schema.
-  await page.goto('/#/db');
+  await page.goto('/#/v0/db');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await expect(page.locator('.diagram-aside tbody tr')).toHaveCount(2);
   await expect(page.locator('.diagram-aside tbody tr').first()).toHaveText('Platform2');
   await shot(page, 'db');
 
   // On a slide: chosen from Slide type, it has the slide and builds a shape per click.
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('combobox', { name: 'Add a slide' }).fill('mind');
   await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
@@ -173,7 +173,7 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async ({ 
 
 test('draw: shapes can be joined, and the join follows them', async ({ page, isMobile }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v2/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web\nc,40,20,14,10,0,Data' }));
+  await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web\nc,40,20,14,10,0,Data' }));
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
   await expect(canvas.locator('g.shape')).toHaveCount(2);
   const centre = async (i: number) => {
@@ -220,7 +220,7 @@ test('draw: shapes can be joined, and the join follows them', async ({ page, isM
 });
 
 test('deck: any Lucide icon, in one colour for the whole deck', async ({ page }) => {
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Open to all');
   await page.getByRole('button', { name: 'Icon', exact: true }).click();
   const picker = page.locator('#icon-picker');
@@ -242,7 +242,7 @@ test('deck: any Lucide icon, in one colour for the whole deck', async ({ page })
 });
 
 test('everything is set in IBM Plex', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.evaluate(() => document.fonts.ready);
   const fonts = await page.evaluate(() => ({
     body: getComputedStyle(document.body).fontFamily,
@@ -250,7 +250,7 @@ test('everything is set in IBM Plex', async ({ page }) => {
   }));
   expect(fonts.body).toMatch(/^"?IBM Plex Sans/);
   expect(fonts.loaded).toBe(true);
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveCSS('font-family', /IBM Plex Mono/);
 });
 
@@ -262,7 +262,7 @@ test('previews are the real thing: a month, a map, a list that fills in', async 
   const trip = ref('trip', '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra');
   const todo = ref('todo', '- Book flights\nx Renew passport\n- Pack');
   // In a text they show whole: the calendar as a month, the trip on its map, every task.
-  await page.goto('/#/v2/write/' + encodeEnvelope({ created: null, body: `Plans\n@@${cal}\n@@${trip}\n@@${todo}` }));
+  await page.goto('/#/v0/write/' + encodeEnvelope({ created: null, body: `Plans\n@@${cal}\n@@${trip}\n@@${todo}` }));
   const embeds = page.locator('to-embed');
   await expect(embeds).toHaveCount(3);
   await expect(embeds.nth(0).locator('svg[role="img"]')).toContainText('January 2020');
@@ -276,7 +276,7 @@ test('previews are the real thing: a month, a map, a list that fills in', async 
 
   // On slides each arrives a piece at a time.
   await page.goto('about:blank');
-  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body: `A\n@@${todo}\n\nB\n@@${cal}` }));
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `A\n@@${todo}\n\nB\n@@${cal}` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const slide = page.locator('.deck-show .frame > svg');
   await expect(slide).not.toContainText('Book flights');
@@ -297,7 +297,7 @@ test('previews are the real thing: a month, a map, a list that fills in', async 
 
 test('calendar: colours, and what they stand for', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v2/cal/' + encodeEnvelope({ created: null, body: 'd2,2,Offsite' }));
+  await page.goto('/#/v0/cal/' + encodeEnvelope({ created: null, body: 'd2,2,Offsite' }));
   // Someone else adds their dates in their own colour, and says whose it is.
   await page.getByRole('radiogroup', { name: 'Colour for new spans' }).getByRole('radio', { name: 'Green' }).click();
   await page.getByRole('textbox', { name: 'What this colour stands for' }).fill('Sam');
@@ -322,7 +322,7 @@ test('calendar: colours, and what they stand for', async ({ page }) => {
 
 test('draw: zoom, and icons', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v2/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web' }));
+  await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web' }));
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
   const width = () => canvas.evaluate((el) => el.getBoundingClientRect().width);
   const fit = await width();
@@ -361,7 +361,7 @@ test('draw: zoom, and icons', async ({ page }) => {
   await expect(canvas.locator('g[stroke-linecap="round"]')).toHaveCount(2);
   await shot(page, 'draw-icons');
   // The diagram apps take icons too: one click puts ":name" on the line.
-  await page.goto('/#/org');
+  await page.goto('/#/v0/org');
   const text = page.getByRole('textbox', { name: 'Org chart, as text' });
   await text.fill('Ada | CEO');
   await page.getByRole('button', { name: 'Icon', exact: true }).click();
@@ -373,7 +373,7 @@ test('draw: zoom, and icons', async ({ page }) => {
 
 test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   // What downloads is the page itself, whole.
-  await page.goto('/#/site');
+  await page.goto('/#/v0/site');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await page.getByRole('button', { name: 'Download' }).click();
   const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
@@ -382,7 +382,7 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   expect(html).toContain('<h1>Harbor Coffee</h1>');
 
   // A site.
-  await page.goto('/#/site');
+  await page.goto('/#/v0/site');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const site = page.frameLocator('to-site iframe');
   await expect(site.getByRole('heading', { level: 1 })).toHaveText('Harbor Coffee');
@@ -391,7 +391,7 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   await shot(page, 'site');
 
   // A store: things go in the cart, and the total adds up.
-  await page.goto('/#/store');
+  await page.goto('/#/v0/store');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const store = page.frameLocator('to-store iframe');
   await expect(store.getByRole('button', { name: /^Add .* to the cart$/ })).toHaveCount(4);
@@ -407,7 +407,7 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   await shot(page, 'store');
 
   // An invoice: the sums are done, and the PDF is the invoice.
-  await page.goto('/#/invoice');
+  await page.goto('/#/v0/invoice');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await expect(page.frameLocator('to-invoice iframe').locator('tfoot tr').last()).toContainText('$5,486.40');
   await expect(page).toHaveTitle('Invoice 0042 · TinyLittleOffice');
@@ -418,14 +418,14 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
 });
 
 test('contract: two people, two browsers, two signatures', async ({ page, browser }) => {
-  await page.goto('/#/contract');
+  await page.goto('/#/v0/contract');
   await page.getByRole('textbox', { name: 'Contract, as text' }).fill('# Dog-walking agreement\nSam walks Biscuit every weekday.');
   const signatures = (p: typeof page) => p.locator('.contract-sign li:not(.none)');
   await page.getByRole('textbox', { name: 'Your name' }).fill('Paul');
   await page.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(signatures(page)).toHaveCount(1);
   await expect(signatures(page).first()).toContainText('Signed these exact words');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/contract\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/contract\/[WYZR]/);
   const sent = page.url();
 
   // The other party, in a browser of their own (so a key of their own), opens what was sent.
@@ -456,7 +456,7 @@ test('contract: two people, two browsers, two signatures', async ({ page, browse
 });
 
 test('room for a link says when length does not matter', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Some words. '.repeat(20));
   await page.locator('.to-meter sl-progress-ring').click();
@@ -467,7 +467,7 @@ test('room for a link says when length does not matter', async ({ page }) => {
 });
 
 test('zine: eight pages, a sheet to print either way, and a page to tap through', async ({ page }) => {
-  await page.goto('/#/zine');
+  await page.goto('/#/v0/zine');
   await expect(page.locator('.deck-thumb')).toHaveCount(8);
   // The page is typed on as a slide is, in its own shape: a cover, centred.
   await expect(page.locator('.deck-slide.print.cover')).toBeVisible();
@@ -554,7 +554,7 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
 });
 
 test('paper that folds: a booklet grows, a brochure prints in order', async ({ page }) => {
-  await page.goto('/#/booklet');
+  await page.goto('/#/v0/booklet');
   await expect(page.locator('.deck-thumb')).toHaveCount(8);
   await page.getByRole('textbox', { name: 'Headline' }).fill('Field Notes');
   await page.getByRole('button', { name: 'Four more pages' }).click();
@@ -576,7 +576,7 @@ test('paper that folds: a booklet grows, a brochure prints in order', async ({ p
   expect(pdf).toContain('/MediaBox [0 0 792 612]');
   expect(pdf.match(/\/Type \/Page\b/g)!.length).toBe(6);
 
-  await page.goto('/#/brochure');
+  await page.goto('/#/v0/brochure');
   await expect(page.locator('.deck-thumb')).toHaveCount(6);
   await page.getByRole('textbox', { name: 'Headline' }).fill('Visit the quay');
   await page.getByRole('button', { name: 'See the sheet to print' }).click();
@@ -595,7 +595,7 @@ test('things to print: write a few lines, get the sheets', async ({ page }) => {
     await shot(page, app);
   }
   // A poster is a page typed into directly, laid out like a slide; its page type is a template.
-  await page.goto('/#/poster');
+  await page.goto('/#/v0/poster');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Yard sale');
   await page.getByRole('textbox', { name: 'Words' }).fill('Saturday 9am');
   const drawn = page.locator('.deck-thumb[aria-current="true"] > svg');
@@ -606,7 +606,7 @@ test('things to print: write a few lines, get the sheets', async ({ page }) => {
   await expect(drawn).toContainText('Lamps');
   await shot(page, 'poster');
   // Badges and recipe cards: a page per person or dish, added one at a time, tiled on the sheets.
-  await page.goto('/#/badges');
+  await page.goto('/#/v0/badges');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Grace Hopper');
   await page.getByRole('textbox', { name: 'Words' }).fill('Compilers');
   await page.getByRole('button', { name: 'Another badge' }).click();
@@ -621,11 +621,11 @@ test('things to print: write a few lines, get the sheets', async ({ page }) => {
   // The PDF is a button away, in the Print group.
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /^PDF/ }).click()]);
   expect(pdf.suggestedFilename()).toBe('grace-hopper.pdf');
-  await page.goto('/#/recipes');
+  await page.goto('/#/v0/recipes');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Cardamom buns');
   await page.getByRole('button', { name: 'Another card' }).click();
   await expect(page.locator('.deck-thumb')).toHaveCount(3);
-  await page.goto('/#/poster');
+  await page.goto('/#/v0/poster');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Yard sale');
   await page.getByRole('textbox', { name: 'Words' }).fill('Saturday 9am');
   await expect(drawn).toContainText('Saturday 9am');
@@ -637,7 +637,7 @@ test('things to print: write a few lines, get the sheets', async ({ page }) => {
 });
 
 test('comic: pages like a zine, each built from panels', async ({ page }) => {
-  await page.goto('/#/comic');
+  await page.goto('/#/v0/comic');
   await expect(page.locator('.deck-thumb')).toHaveCount(8);
   await page.getByRole('textbox', { name: 'Headline' }).fill('Biscuit Goes Out');
   await page.getByRole('button', { name: 'Page 2' }).click();
@@ -669,7 +669,7 @@ test('comic: pages like a zine, each built from panels', async ({ page }) => {
 });
 
 test('stock and flow: sliders move the diagram', async ({ page }) => {
-  await page.goto('/#/flow');
+  await page.goto('/#/v0/flow');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const model = page.frameLocator('to-flow iframe');
   await expect(model.locator('input[type="range"]')).toHaveCount(4);
@@ -690,7 +690,7 @@ test('stock and flow: sliders move the diagram', async ({ page }) => {
 });
 
 test('pixel art: colour squares by clicking, dragging and from the keyboard', async ({ page }) => {
-  await page.goto('/#/pixel');
+  await page.goto('/#/v0/pixel');
   const cell = (r: number, c: number) => page.getByRole('gridcell', { name: new RegExp(`^Row ${r}, column ${c}:`) });
   await expect(page.getByRole('gridcell')).toHaveCount(256);
   await cell(1, 1).click();
@@ -828,7 +828,7 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
 
 test('the library: documents are kept on the device, in folders, once asked', async ({ page }) => {
   // Private unless asked: nothing written at all.
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('.to-keep')).toHaveText('Private');
@@ -837,21 +837,21 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await page.goto('/#/');
   await expect(page.locator('.to-library')).toHaveCount(0);
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.locator('.to-keep').click();
   await expect(page.locator('.to-keep')).toHaveText('Saved');
   // (The suite's own preference, cleared above with the rest: links open for editing.)
   await page.evaluate(() => localStorage.setItem('tinyoffice.open', 'edit'));
   await page.goto('about:blank');
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Notes from the quay');
   await page.getByRole('textbox', { name: 'Title' }).fill('Quay notes');
   await page.getByRole('textbox', { name: 'Title' }).press('Enter');
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/todo\/[WYZR]/);
   // Home glimpses them; Drive holds them, each in a folder named for its app.
   await page.goto('/#/');
   await expect(page.locator('.to-library').getByRole('link', { name: /Quay notes/ })).toBeVisible();
@@ -917,7 +917,7 @@ test('the menu finds an app by name', async ({ page }) => {
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const trip = `trip/${encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra\n40000,0,Porto' })}`;
-  await page.goto('/#/v2/deck/' + encodeEnvelope({ created: null, body: `Trip\n@@${trip}\n\nAfter\ndone` }));
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `Trip\n@@${trip}\n\nAfter\ndone` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show .deck-map');
   await expect(map).toBeVisible();
@@ -936,7 +936,7 @@ test('a map on a slide: a tap on the map goes to the next stop', async ({ page }
 
 test('the whole document as a QR code, to look at and to keep', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v2/todo/' + encodeEnvelope({ created: 1, body: '- Scan me' }));
+  await page.goto('/#/v0/todo/' + encodeEnvelope({ created: 1, body: '- Scan me' }));
   // The header button, or on a phone the Share menu's item.
   const openQr = async () => {
     if (await page.locator('sl-button[aria-label="QR code"]').isVisible()) await page.locator('sl-button[aria-label="QR code"]').click();
@@ -958,13 +958,13 @@ test('the whole document as a QR code, to look at and to keep', async ({ page })
   await shot(page, 'qr');
   // Too long for any code, and it says so.
   await page.goto('about:blank');
-  await page.goto('/#/v2/write/' + encodeEnvelope({ created: 1, body: Array.from({ length: 400 }, (_, i) => `Line ${i} of a long document with words that do not repeat much ${i * 7919}`).join('\n') }));
+  await page.goto('/#/v0/write/' + encodeEnvelope({ created: 1, body: Array.from({ length: 400 }, (_, i) => `Line ${i} of a long document with words that do not repeat much ${i * 7919}`).join('\n') }));
   await openQr();
   await expect(page.locator('#qr-dialog')).toContainText('the largest QR code holds 2,953');
 });
 
 test('slides: bold, italic, nesting, from the keyboard and the toolbar', async ({ page }) => {
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   const value = () => page.evaluate(() => (document.querySelector('to-deck') as HTMLElement & { value: string }).value);
   const head = page.getByRole('textbox', { name: 'Headline' });
   await head.click();
@@ -1001,17 +1001,17 @@ test('slides: bold, italic, nesting, from the keyboard and the toolbar', async (
 });
 
 test('keeping documents is opt in, and off again erases them', async ({ page }) => {
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.locator('.to-keep').click();
   await expect(page.locator('.to-keep')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
   await page.keyboard.press('Enter');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/todo\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/todo\/[WYZR]/);
   await page.goto('/#/');
   await expect(page.locator('.to-library li')).toHaveCount(1);
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   page.once('dialog', (d) => d.accept());
   await page.locator('.to-keep').click();
   await expect(page.locator('.to-keep')).toHaveText('Private');
@@ -1022,7 +1022,7 @@ test('keeping documents is opt in, and off again erases them', async ({ page }) 
 });
 
 test('everything can be made larger from the menu, and it is remembered', async ({ page }) => {
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await page.getByRole('button', { name: 'Menu' }).click();
   await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
   await page.waitForTimeout(400);
@@ -1041,7 +1041,7 @@ test('everything can be made larger from the menu, and it is remembered', async 
 });
 
 test('write: highlight, alignment and an icon in the line', async ({ page }) => {
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   const doc = page.getByRole('textbox', { name: 'Document' });
   await doc.click();
   await page.keyboard.type('Ship it today');
@@ -1067,7 +1067,7 @@ test('write: highlight, alignment and an icon in the line', async ({ page }) => 
 });
 
 test('calculator: a tape, a graph, and a mortgage worked out as a page', async ({ page }) => {
-  await page.goto('/#/calc');
+  await page.goto('/#/v0/calc');
   const display = page.getByRole('textbox', { name: 'Expression' });
   await page.getByRole('button', { name: '7', exact: true }).click();
   await page.getByRole('button', { name: '×', exact: true }).click();
@@ -1079,7 +1079,7 @@ test('calculator: a tape, a graph, and a mortgage worked out as a page', async (
   await display.fill('sqrt(144)+5!');
   await display.press('Enter');
   await expect(page.locator('.calc-tape li')).toHaveCount(2);
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/calc\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/calc\/[WYZR]/);
   // The graph draws y = f(x).
   await page.getByRole('radio', { name: 'Scientific & graph' }).click();
   await page.getByRole('textbox', { name: 'y =' }).fill('sin(x)');

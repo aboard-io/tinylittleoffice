@@ -3,7 +3,7 @@
  * For a person reviewing what an agent (or a colleague) did to a document,
  * and for the agents themselves. Reached at #/compare, or from Share.
  */
-import { LitElement, html, nothing } from '../kit.ts';
+import { LINK, LitElement, html, nothing } from '../kit.ts';
 import { appOf } from '../kit/core.ts';
 import { decodeEnvelope, type Envelope } from '../lib/envelope.ts';
 import { diff } from '../lib/diff.ts';
@@ -68,10 +68,10 @@ export class ToCompare extends LitElement {
     const def = s ? appOf(s.app) : null;
     const made = env?.created ? new Date(env.created).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '';
     return html`<section class="cmp-side">
-      <sl-input class="sr-label" size="small" label=${which === 'a' ? 'The first link' : 'The second link'} placeholder=${which === 'a' ? 'Paste the first link' : 'Paste the second link'} .value=${s ? `${location.origin}${location.pathname.replace(/[^/]*$/, '')}#/v2/${s.app}/${s.payload}` : ''} @sl-change=${(e: Event) => this.set(which, (e.target as SlInput).value)}></sl-input>
+      <sl-input class="sr-label" size="small" label=${which === 'a' ? 'The first link' : 'The second link'} placeholder=${which === 'a' ? 'Paste the first link' : 'Paste the second link'} .value=${s ? `${location.origin}${location.pathname.replace(/[^/]*$/, '')}${LINK}${s.app}/${s.payload}` : ''} @sl-change=${(e: Event) => this.set(which, (e.target as SlInput).value)}></sl-input>
       ${def && env
         ? html`<p class="to-hint cmp-meta"><b>${env.title || def.name}</b> · ${def.name}${env.by ? html` · by ${env.by}` : nothing}${made ? html` · ${made}` : nothing}${env.sig ? html` · ${icon(UI.shield, 12)} signed` : nothing}</p>
-            <iframe title="${env.title || def.name}" sandbox="allow-scripts allow-same-origin" src="${location.pathname.replace(/[^/]*$/, '')}#/v2/${s!.app}.embed/${s!.payload}" loading="lazy"></iframe>`
+            <iframe title="${env.title || def.name}" sandbox="allow-scripts allow-same-origin" src="${location.pathname.replace(/[^/]*$/, '')}${LINK}${s!.app}.embed/${s!.payload}" loading="lazy"></iframe>`
         : html`<p class="to-empty">${which === 'a' ? 'The document as it was.' : 'The document as it is now.'}</p>`}
     </section>`;
   }

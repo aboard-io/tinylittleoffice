@@ -4,7 +4,7 @@ import { shot, reopen, navTo, SHOTS, copyLink, privacy } from './helpers';
 test('navigation works on every screen size', async ({ page }) => {
   await page.goto('/');
   await navTo(page, 'Deck');
-  await expect(page).toHaveURL(/#\/v2\/deck$/);
+  await expect(page).toHaveURL(/#\/v0\/deck$/);
   await expect(page.locator('.to-panel h1')).toHaveText(/Deck/);
   await navTo(page, 'Calendar');
   await expect(page.locator('.to-panel h1')).toHaveText(/Calendar/);
@@ -15,7 +15,7 @@ test('navigation works on every screen size', async ({ page }) => {
 });
 
 test('the hamburger holds every app and the theme', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await expect(page.locator('.to-here')).toHaveText('Sheet');
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
@@ -38,7 +38,7 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
 });
 
 test('meter counts down and copies the link', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const meter = page.locator('.to-meter');
   const ring = meter.locator('sl-progress-ring');
   await expect(ring).toHaveAttribute('value', '0');
@@ -54,7 +54,7 @@ test('meter counts down and copies the link', async ({ page }) => {
 
 test('documents record their creation time', async ({ page }) => {
   // (The tags are read, not seen: on a phone they are hidden to leave the title its room.)
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
   await expect(page.locator('.to-panel-head .meta')).toHaveText('');
   const editor = page.getByRole('textbox', { name: 'Document' });
@@ -62,20 +62,20 @@ test('documents record their creation time', async ({ page }) => {
   await page.keyboard.type('hello');
   await expect(page.locator('.to-panel-head .meta')).toContainText(/\d{4}/);
   const url = page.url();
-  expect(url).toMatch(/#\/v2\/write\/[WYZR]/);
+  expect(url).toMatch(/#\/v0\/write\/[WYZR]/);
   // Creation time is in the link and survives a reload.
   const created = await page.locator('.to-panel-head .meta').textContent();
   await reopen(page);
   await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
   await expect(page.locator('.to-panel-head .meta')).toHaveText(created!.trim());
   // A new document starts over.
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await page.addStyleTag({ content: '.to-panel-head .meta { display: inline !important }' });
   await expect(page.locator('.to-panel-head .meta')).toHaveText('');
 });
 
 test('signing a document and detecting changes', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('42');
   await page.locator('.to-meter sl-progress-ring').click();
   const dialog = page.locator('#doc-dialog');
@@ -107,14 +107,14 @@ test('signing a document and detecting changes', async ({ page }) => {
   await shot(page, 'signed');
 
   // A tampered link reads as a mismatch, not as valid.
-  const tampered = signedUrl.replace(/#\/v2\/sheet\/([YZ])(.)/, (_m, f: string, c: string) => `#/v2/sheet/${f}${c === 'A' ? 'B' : 'A'}`);
+  const tampered = signedUrl.replace(/#\/v0\/sheet\/([YZ])(.)/, (_m, f: string, c: string) => `#/v0/sheet/${f}${c === 'A' ? 'B' : 'A'}`);
   await page.goto(tampered);
   const head = page.locator('.to-panel-head');
   await expect(head).not.toContainText(/\bsigned\b(?! mismatch)/);
 });
 
 test('signing keys can be exported and imported', async ({ page, context }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.locator('.to-meter sl-progress-ring').click();
   await page.getByRole('button', { name: 'Export' }).click();
   const dialog = page.locator('#doc-dialog');
@@ -136,7 +136,7 @@ test('signing keys can be exported and imported', async ({ page, context }) => {
 
 test('password-locked documents', async ({ page }) => {
   test.slow(); // PBKDF2 at 600k iterations, several times
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const a1 = page.getByRole('textbox', { name: 'A1', exact: true });
   await a1.fill('payroll 2026');
   const plainUrl = page.url();
@@ -148,7 +148,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.to-panel-head')).toContainText('locked');
   const lockedUrl = page.url();
-  expect(lockedUrl).toMatch(/#\/v2\/sheet\/E[A-Za-z0-9_-]+$/);
+  expect(lockedUrl).toMatch(/#\/v0\/sheet\/E[A-Za-z0-9_-]+$/);
   expect(lockedUrl).not.toBe(plainUrl);
 
   // Reopening asks for the password; the content is not shown until it is right.
@@ -172,7 +172,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('textbox', { name: 'A2', exact: true }).fill('bonus');
   // Sealing is asynchronous: wait for the link to change, not just to look sealed.
   await expect.poll(() => page.url()).not.toBe(beforeEdit);
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/E/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/E/);
   const url2 = page.url();
   await page.goto('about:blank');
   await page.goto(url2);
@@ -183,7 +183,7 @@ test('password-locked documents', async ({ page }) => {
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(dialog).not.toContainText('Locked');
   await page.getByRole('button', { name: 'Done' }).click();
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/[WYZR]/);
   const plainAgain = page.url();
   await page.goto('about:blank');
   await page.goto(plainAgain);
@@ -191,26 +191,22 @@ test('password-locked documents', async ({ page }) => {
   await expect(a1).toHaveValue('payroll 2026');
 });
 
-test('links carry a format version, and links from before versions still open', async ({ page }) => {
-  await page.goto('/#/write');
-  await expect(page.locator('.to-drawer-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v2/deck');
+test('links carry the format version, v0, and nothing else opens', async ({ page }) => {
+  await page.goto('/#/v0/write');
+  await expect(page.locator('.to-drawer-nav a', { hasText: 'Deck' })).toHaveAttribute('href', '#/v0/deck');
   await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Old link');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
-  const legacy = page.url().replace('#/v2/', '#/');
-  await page.goto('about:blank');
-  await page.goto(legacy);
-  await expect(page.getByRole('textbox', { name: 'Document' })).toHaveText('Old link');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('!');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/write\/[WYZR]/);
+  await page.keyboard.type('A link');
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/write\/[WYZR]/);
+  // Without its version it is not a document's link.
+  await page.goto(page.url().replace('#/v0/', '#/'));
+  await expect(page.locator('to-write')).toHaveCount(0);
   // A link from a future version says so.
-  await page.goto(page.url().replace('#/v2/', '#/v7/'));
+  await page.goto(page.url().replace('#/v0/', '#/v7/'));
   await expect(page.locator('.to-panel-head')).toContainText('newer TinyLittleOffice (v7)');
 });
 
 test('password and signature live in the privacy menu', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('1');
   const dialog = page.locator('#doc-dialog');
   await privacy(page, /Password/);
@@ -245,7 +241,7 @@ test('download views: the link itself hands over a file', async ({ page }, testI
   ];
   for (const [app, ext, body, name, check] of docs) {
     await page.goto('about:blank');
-    const [download] = await Promise.all([page.waitForEvent('download'), page.goto(`/#/v2/${app}.${ext}/${encodeEnvelope({ created, body })}`)]);
+    const [download] = await Promise.all([page.waitForEvent('download'), page.goto(`/#/v0/${app}.${ext}/${encodeEnvelope({ created, body })}`)]);
     expect(download.suggestedFilename()).toBe(name);
     const path = testInfo.outputPath(`${ext}-${name}`);
     await download.saveAs(path);
@@ -261,18 +257,18 @@ test('download views: the link itself hands over a file', async ({ page }, testI
   const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^Markdown/ }).click()]);
   expect(fromMenu.suggestedFilename()).toBe('todo.md');
   // An extension the app does not have is reported, not downloaded.
-  await page.goto(`/#/v2/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
+  await page.goto(`/#/v0/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
   await expect(page.locator('.to-toast')).toContainText('No .pptx view here');
 });
 
 test('download views wait for the password', async ({ page }) => {
   test.slow();
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('secret');
   await privacy(page, /Password/);
   await page.getByRole('textbox', { name: 'New password' }).fill('pw');
   await page.getByRole('button', { name: 'Lock', exact: true }).click();
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/E/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/E/);
   const url = page.url().replace('/sheet/', '/sheet.csv/');
   await page.goto('about:blank');
   await page.goto(url);
@@ -291,13 +287,13 @@ test('each app has a page of its own, with its own preview card', async ({ page,
   await page.goto('/deck/');
   await expect(page.locator('.to-panel h1')).toHaveText(/Deck/);
   await page.getByRole('textbox', { name: 'Headline' }).fill('From the deck page');
-  await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v2\/deck\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v0\/deck\/[WYZR]/);
   await reopen(page);
   await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveText('From the deck page');
 });
 
 test('keyboard shortcuts are listed, and work everywhere', async ({ page }) => {
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await page.getByRole('textbox', { name: 'New task' }).fill('Ship it');
   await page.keyboard.press('Enter');
   // The menu has the list; so does Ctrl+/.
@@ -331,7 +327,7 @@ test('undo and redo work in every app', async ({ page }) => {
   const pause = () => page.waitForTimeout(800);
 
   // Todo: with the keyboard.
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await expect(undo).toBeDisabled();
   const add = page.getByRole('textbox', { name: 'New task' });
   const rows = page.locator('.todo-list li');
@@ -361,7 +357,7 @@ test('undo and redo work in every app', async ({ page }) => {
   await expect(undo).toBeDisabled();
 
   // Sheet: with the buttons.
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('A1').fill('10');
   await pause();
@@ -376,7 +372,7 @@ test('undo and redo work in every app', async ({ page }) => {
   await expect(cell('A2')).toHaveValue('20');
 
   // Write: typing in one go is one step.
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
   await editor.click();
   await page.keyboard.type('First thought.');
@@ -389,7 +385,7 @@ test('undo and redo work in every app', async ({ page }) => {
   await expect(editor).toHaveText('First thought. Second thought.');
 
   // Deck: slides come back.
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Title');
   await pause();
   await page.getByRole('button', { name: 'Slide', exact: true }).click();
@@ -405,7 +401,7 @@ test('undo and redo work in every app', async ({ page }) => {
   for (const [app, body, sel, n] of [['draw', 'r,2,1,12,6,1,Box', 'g.shape', 1], ['board', '#To do\nA\nB\n#Done', '.board-card', 2], ['gantt', '1jk,5,1e,Design\n1jp,2,0,Build', '.gantt-chart .bar', 2], ['anim', '!o,8\nt,4,4,10,3,0,Hello', '.motion-stage g.hit', 1]] as const) {
     const { encodeEnvelope } = await import('../src/lib/envelope.ts');
     await page.goto('about:blank');
-    await page.goto(`/#/v2/${app}/${encodeEnvelope({ created: null, body })}`);
+    await page.goto(`/#/v0/${app}/${encodeEnvelope({ created: null, body })}`);
     await expect(page.locator(sel)).toHaveCount(n);
     await page.locator(sel).first().click();
     await page.getByRole('button', { name: app === 'board' ? 'Delete card' : app === 'gantt' ? 'Delete task' : 'Delete', exact: true }).first().click();
@@ -418,7 +414,7 @@ test('undo and redo work in every app', async ({ page }) => {
 test('undo inside a document that is inside another', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two' });
-  await page.goto('/#/v2/write/' + encodeEnvelope({ created: null, body: `Intro\n@@${draw}` }));
+  await page.goto('/#/v0/write/' + encodeEnvelope({ created: null, body: `Intro\n@@${draw}` }));
   const embed = page.locator('to-embed');
   await embed.getByRole('button', { name: 'Edit' }).click();
   const sub = page.locator('sl-dialog.to-sub');
@@ -441,22 +437,22 @@ test('undo inside a document that is inside another', async ({ page }) => {
 });
 
 test('a shared deck opens presenting, with a way back to editing', async ({ page }) => {
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
   await page.getByRole('button', { name: 'Slide', exact: true }).click();
   await page.getByRole('textbox', { name: 'Headline' }).fill('Plan');
   await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/deck\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/deck\/[WYZR]/);
   const editing = page.url();
 
   // The link that is copied is the plain one: it opens as the deck to read, never presenting unless asked.
   await copyLink(page);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck/'));
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(editing.replace('/#/v0/deck/', '/deck/#/v0/deck/'));
   // A link that opens presenting is in Share, for when that is what is wanted.
   await page.getByRole('button', { name: 'Share' }).click();
   await page.getByRole('menuitem', { name: 'Copy link (opens presenting)' }).click();
   const shared = await page.evaluate(() => navigator.clipboard.readText());
-  expect(shared).toBe(editing.replace('/#/v2/deck/', '/deck/#/v2/deck.show/'));
+  expect(shared).toBe(editing.replace('/#/v0/deck/', '/deck/#/v0/deck.show/'));
 
   // Someone opening the shared link lands in the presentation.
   await page.goto('about:blank');
@@ -499,7 +495,7 @@ test('a shared deck opens presenting, with a way back to editing', async ({ page
 });
 
 test('Markdown and CSV come in as well as out', async ({ page }) => {
-  await page.goto('/#/todo');
+  await page.goto('/#/v0/todo');
   await page.getByRole('button', { name: 'Download' }).click();
   await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
   const dialog = page.locator('#import-dialog');
@@ -511,14 +507,14 @@ test('Markdown and CSV come in as well as out', async ({ page }) => {
   await expect(page.locator('to-todo')).toContainText('Call mum');
   await expect(page.getByRole('checkbox', { name: /Sweep/ })).toBeChecked();
   // A sheet reads a table; a deck reads headings.
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('button', { name: 'Download' }).click();
   await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
   await dialog.locator('textarea').fill('| Item | Cost |\n|---|---|\n| Rent | 1200 |');
   await dialog.getByRole('button', { name: 'Import' }).click();
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('Item');
   await expect(page.getByRole('textbox', { name: 'B2', exact: true })).toHaveValue('1200');
-  await page.goto('/#/deck');
+  await page.goto('/#/v0/deck');
   await page.getByRole('button', { name: 'Download' }).click();
   await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
   await dialog.locator('textarea').fill('# Launch\n\n## Agenda\n\n- one\n- two\n\n## Thanks');
@@ -526,7 +522,7 @@ test('Markdown and CSV come in as well as out', async ({ page }) => {
   await expect(page.locator('to-deck')).toContainText('Agenda');
   await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
   // CSV is a table too.
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('button', { name: 'Download' }).click();
   await page.getByRole('menuitem', { name: /Import Markdown/ }).click();
   await dialog.locator('textarea').fill('Item,Cost\nRent,"1,200"\nFood,600');
@@ -538,9 +534,9 @@ test('Markdown and CSV come in as well as out', async ({ page }) => {
 test('two links compare side by side, with what changed', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const created = Date.UTC(2026, 9, 6);
-  const a = `/#/v2/todo/${encodeEnvelope({ created, title: 'Chores', by: 'me', body: '- Sweep\n- Shop' }, 'todo')}`;
-  const b = `/#/v2/todo/${encodeEnvelope({ created, title: 'Chores', by: 'chores-agent', body: 'x Sweep\n- Shop\n- Call mum' }, 'todo')}`;
-  const side = (h: string) => h.replace(/^\/#\/v2\/todo\//, '');
+  const a = `/#/v0/todo/${encodeEnvelope({ created, title: 'Chores', by: 'me', body: '- Sweep\n- Shop' }, 'todo')}`;
+  const b = `/#/v0/todo/${encodeEnvelope({ created, title: 'Chores', by: 'chores-agent', body: 'x Sweep\n- Shop\n- Call mum' }, 'todo')}`;
+  const side = (h: string) => h.replace(/^\/#\/v0\/todo\//, '');
   await page.goto(`/#/compare/todo/${side(a)}/todo/${side(b)}`);
   const cmp = page.locator('to-compare');
   await expect(cmp.locator('h1')).toContainText('Compare');
@@ -564,9 +560,9 @@ test('two links compare side by side, with what changed', async ({ page }) => {
 });
 
 test('a shorter link that expires, with the key kept out of the server', async ({ page }) => {
-  await page.goto('/#/sheet');
+  await page.goto('/#/v0/sheet');
   await page.getByRole('textbox', { name: 'A1', exact: true }).fill('Secret plan');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/sheet\/[WYZR]/);
+  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/[WYZR]/);
   // A stand-in for tinier, remembering what it was sent.
   let sent: { c: string; iv: string; ttl: number } | null = null;
   await page.route('https://tinier.tinylittleoffice.com/api', async (route) => {

@@ -11,16 +11,18 @@
  *   <blank line>
  *   <body>
  *
- * Payloads carrying an envelope use the codec's flags in capitals: "W", "Y"
- * (deflated against the dictionary), "Z" (deflated) and "R" (raw). The
- * lowercase flags from before envelopes existed decode as a bare body.
+ * The payload is the codec's flag (see lib/codec.ts) and the packed text:
+ * in capitals ("W", "Y", "Z", "R") when there is an envelope, in lowercase
+ * when there is nothing to put in one (no time, title, author or
+ * signature: a document made by a program, or shown inside another), so
+ * the bare body costs nothing extra.
  */
 import { packDoc, unpackDoc, toBase64Url, fromBase64Url } from './codec.ts';
 
 export const CREATED_EPOCH_MS = Date.UTC(2020, 0, 1);
 
 export interface Envelope {
-  /** Creation time in ms since the Unix epoch, null for legacy links. */
+  /** Creation time in ms since the Unix epoch, null when it was never set (a document from a program, say). */
   created: number | null;
   key?: string;
   sig?: string;
@@ -103,6 +105,5 @@ export function decodeEnvelope(payload: string, app?: string): Envelope {
 
 /** The bytes a signature covers: the app, the creation time, the body, and the title and author when there are any. */
 export function signingMessage(app: string, created: number | null, body: string, title = '', by = ''): string {
-  // (A title and author are signed when there are any; documents signed before they existed still verify.)
-  return `tinyoffice\n${app}\n${created === null ? '' : encodeCreated(created)}\n${body}${title || by ? '\u0000' + title : ''}${by ? '\u0000' + by : ''}`;
+  return `tinyoffice\n${app}\n${created === null ? '' : encodeCreated(created)}\n${body}\u0000${title}\u0000${by}`;
 }

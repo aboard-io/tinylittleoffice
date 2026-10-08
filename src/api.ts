@@ -6,7 +6,7 @@
  * as it runs in the page. Published as @tinylittleoffice/doc.
  */
 import './apps/index.ts';
-import { appOf, apps as registry, type AppDef } from './kit/core.ts';
+import { LINK, appOf, apps as registry, type AppDef } from './kit/core.ts';
 import { decodeEnvelope, encodeEnvelope, quantizeCreated, signingMessage, type Envelope } from './lib/envelope.ts';
 import { fromMarkdown, toMarkdown, parseCsv, looksLikeCsv } from './lib/markdown.ts';
 import { evaluateGrid, formatCell, parseGrid, typesOf } from './lib/formula.ts';
@@ -98,7 +98,7 @@ export function link(app: string, body: string, opts: MakeOptions = {}): string 
   const read = def.read ? def.read(body) : body;
   const payload = encodeEnvelope(envelope(read, opts), app);
   const site = (opts.site ?? SITE).replace(/\/?$/, '/');
-  return `${site}${app}/#/v2/${app}${opts.view ? '.' + opts.view : ''}/${payload}`;
+  return `${site}${app}/${LINK}${app}${opts.view ? '.' + opts.view : ''}/${payload}`;
 }
 
 /** Text as a body in the app's format: Markdown or CSV is shaped the way the app reads it; anything else is read as the app reads plain text. */
@@ -170,7 +170,7 @@ export async function sealed(url: string, password: string): Promise<string> {
   const { packEnvelope } = await import('./lib/envelope.ts');
   const { flag, bytes } = packEnvelope(p.env, p.app);
   const payload = await seal(await newLocker(password), flag, bytes);
-  return url.slice(0, url.indexOf('#')) + `#/v2/${p.app}${p.view ? '.' + p.view : ''}/${payload}`;
+  return url.slice(0, url.indexOf('#')) + `${LINK}${p.app}${p.view ? '.' + p.view : ''}/${payload}`;
 }
 
 /** The link, signed with a key: the signature covers the app, time, body, title and author. */
@@ -179,7 +179,7 @@ export async function signed(url: string, signer: Signer): Promise<string> {
   const created = p.env.created ?? quantizeCreated(Date.now());
   const { key, sig } = await signer.sign(signingMessage(p.app, created, p.env.body, p.env.title, p.env.by));
   const payload = encodeEnvelope({ ...p.env, created, key, sig }, p.app);
-  return url.slice(0, url.indexOf('#')) + `#/v2/${p.app}${p.view ? '.' + p.view : ''}/${payload}`;
+  return url.slice(0, url.indexOf('#')) + `${LINK}${p.app}${p.view ? '.' + p.view : ''}/${payload}`;
 }
 
 /** Whether a link's signature holds, and whose it is (a fingerprint), or null when unsigned. */

@@ -1,10 +1,10 @@
 /**
- * <to-app>: the shell. Owns the URL. Routes "#/v1/<app>/<payload>" to a mini
+ * <to-app>: the shell. Owns the URL. Routes "#/v0/<app>/<payload>" to a mini
  * app, hands it the decoded document body, and writes every change back into
  * the URL via history.replaceState. Also owns the envelope around the body
  * (creation time, optional signature) and optional password encryption.
  *
- * "#/v1/<app>.<ext>/<payload>" is a download view: arriving at it saves the
+ * "#/v0/<app>.<ext>/<payload>" is a download view: arriving at it saves the
  * document as that kind of file (see lib/exports.ts).
  */
 import { keep, library, saving } from './lib/library.ts';
@@ -25,7 +25,7 @@ import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import './apps/editors.ts';
 import { fontsForPictures } from './kit/browser.ts';
-import { History, apps, appOf, docHtml, extOf, fmtDate, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
+import { History, LINK, LINK_VERSION, apps, appOf, docHtml, extOf, fmtDate, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { REFRESH, download, formatsOf, picture, saveFile, withFonts } from './kit/browser.ts';
 import { zip } from './kit/zip.ts';
@@ -44,7 +44,6 @@ export const APPS: { id: AppId; name: string; icon: keyof typeof UI; under?: str
 /**
  * The apps as the menu shows them: under their group's heading, each app
  * followed by the apps that are kinds of it. A hidden app is not shown
- * (its links still open: APPS keeps it for the routes).
  */
 function grouped(): { group: string; apps: typeof APPS }[] {
   const out: { group: string; apps: typeof APPS }[] = [];
@@ -92,13 +91,8 @@ function applyTheme(theme: Theme) {
 
 type SigState = 'none' | 'checking' | 'valid' | 'invalid';
 
-/**
- * The version of the URL format, written as "v2" at the front of every link.
- * Version 2 added dictionary compression (see lib/codec.ts); it reads
- * everything version 1 wrote. Links from before versions existed
- * ("#/sheet/...") are read as version 1.
- */
-export const URL_VERSION = 2;
+/** The version of the link format (kit/core.ts LINK_VERSION): a link from a newer one says so. */
+export const URL_VERSION = LINK_VERSION;
 
 export interface Route {
   app: AppId | null;
@@ -109,17 +103,17 @@ export interface Route {
 }
 
 // (An extension may have a dot in it: "seating.cards.pdf" is the chart's place cards.)
-const ROUTE = new RegExp(`^#/(?:v(\\d+)/)?(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9.]+))?(?:/(.*))?$`);
+const ROUTE = new RegExp(`^#/v(\\d+)/(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9.]+))?(?:/(.*))?$`);
 
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);
   if (!m) return { app: null, payload: '', version: URL_VERSION, ext: '' };
-  return { app: m[2] as AppId, payload: m[4] ?? '', version: m[1] ? parseInt(m[1], 10) : URL_VERSION, ext: m[3] ?? '' };
+  return { app: m[2] as AppId, payload: m[4] ?? '', version: parseInt(m[1], 10), ext: m[3] ?? '' };
 }
 
 /** The fragment for a document, optionally as a download view. */
 export function routeHash(app: AppId, payload = '', ext = ''): string {
-  return `#/v${URL_VERSION}/${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
+  return `${LINK}${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
 }
 
 const fmtUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';

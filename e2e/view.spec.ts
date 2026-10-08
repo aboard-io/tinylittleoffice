@@ -7,7 +7,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test('a link opens as the document, with Edit a button away', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const link = (app: string, body: string, title?: string) => `/#/v2/${app}/${encodeEnvelope({ created: 1, body, title })}`;
+  const link = (app: string, body: string, title?: string) => `/#/v0/${app}/${encodeEnvelope({ created: 1, body, title })}`;
   // A text is its words: no toolbar, links that work.
   await page.goto(link('write', '# Hello\nSee https://example.com for *more*.', 'A letter'));
   await expect(page.locator('.to-view.prose h1')).toHaveText('Hello');
@@ -49,12 +49,12 @@ test('a link opens as the document, with Edit a button away', async ({ page }) =
   await expect(page.locator('.deck-show')).toHaveCount(0);
   await expect(page.locator('.to-view.pages svg').first()).toContainText('Hello');
   await page.goto('about:blank');
-  await page.goto(link('deck', 'Hello\none\ntwo').replace('#/v2/deck/', '#/v2/deck.show/'));
+  await page.goto(link('deck', 'Hello\none\ntwo').replace('#/v0/deck/', '#/v0/deck.show/'));
   await expect(page.locator('.deck-show')).toBeVisible();
 
   // Something new opens ready to make; so does a link written for a program to fill in.
   await page.goto('about:blank');
-  await page.goto('/#/write');
+  await page.goto('/#/v0/write');
   await expect(page.getByRole('textbox', { name: 'Document' })).toBeVisible();
   await page.goto('about:blank');
   await page.goto('/menu/#doc=%23+Cafe%0AEspresso+%7C+3.00');
