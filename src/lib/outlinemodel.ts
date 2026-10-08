@@ -1,29 +1,38 @@
 /**
- * An outline: lines, each as deep as its indent (two spaces, or a tab, a
- * level). The same text an org chart, a mind map or a family tree reads, so
- * an outline can be dropped onto any of them. Marks are Write's inline ones
- * (*bold*, _italic_, =highlight=, :icon:).
+ * A tree: a nested list, the first level its roots. It is the one reader
+ * of the outline, the mind map, the org chart and the family tree, so an
+ * outline can be dropped onto any of them. The text is TLO (lib/tlo.ts):
  *
- * The line from an item to its parent can have a kind and a name, written
- * before the item's words: "-> Pricing" points from the parent to it,
- * "<- Pricing" from it to the parent, "<-> Pricing" both ways, and a name
- * goes in brackets: "-(sets)-> Pricing", "-(part of)- Pricing". Nothing
- * written is a plain line.
+ *   - Launch
+ *     - Product {.from label="sets"}
+ *       - Pricing
+ *     - Marketing
+ *   ```sheet {depth=1}
+ *   ...
+ *   ```
+ *   ~ Pricing -> Marketing: feeds
  *
- * Lines starting "~ " join any two items, whatever their places, named by
- * their words: "~ Pricing -(feeds)-> Press". They come after the items.
+ * An item's words are inline Markdown. An item may say how it joins its
+ * parent: {.from} an arrow from the parent, {.to} an arrow to it, {.both},
+ * and label="..." names the line. An embedded document under an item is a
+ * fence, {depth=N} saying how far in it sits; a list starts again from the
+ * left after a fence, so an item after one says its depth too, until the
+ * next top item. Edges ("~ A -> B: name") join any two items by their words.
  */
-/** Which way a connection points: '-' neither, '>' parent to child (or from to to), '<' back, '<>' both. */
-export type Dir = '-' | '>' | '<' | '<>';
-export const DIRS: Dir[] = ['-', '>', '<', '<>'];
+import { parse, plain, write, type Attrs, type Block, type Dir } from './tlo.ts';
+
+export type { Dir };
+export const DIRS: Dir[] = ['--', '->', '<-', '<->'];
 
 export interface Item {
   depth: number;
   text: string;
-  /** The line to the parent: which way it points (absent: neither). */
+  /** The line to the parent: '->' from the parent to this, '<-' back to it, '<->' both; absent, a plain line. */
   dir?: Dir;
   /** The line to the parent: its name. */
   label?: string;
+  /** Another document under this item, as a ref: "<app>\n<its text>" (kit/embed.ts). */
+  doc?: string;
 }
 
 /** A connection between any two items, named by their words. */
@@ -34,99 +43,128 @@ export interface Link {
   label?: string;
 }
 
-/** A connection written: '' for a plain unnamed line, else "->", "-(name)-", "<-(name)->" and so on. */
-export function edgeText(dir: Dir = '-', label = ''): string {
-  if (dir === '-' && !label) return '';
-  const name = label ? `(${label.replace(/[()]/g, '')})-` : '';
-  return `${dir === '<' || dir === '<>' ? '<' : ''}-${name}${dir === '>' || dir === '<>' ? '>' : ''}`;
-}
-const EDGE = /(<)?-(?:\(([^()]*)\)-)?(>)?/;
-const dirOf = (lt?: string, gt?: string): Dir => (lt && gt ? '<>' : lt ? '<' : gt ? '>' : '-');
-
-/** An item's words with any connection written before them taken off. */
-function readEdge(line: string): Pick<Item, 'text' | 'dir' | 'label'> {
-  const m = new RegExp('^' + EDGE.source + '(?=\\s|$)\\s*').exec(line);
-  if (!m || (!m[1] && !m[2] && !m[3])) return { text: line };
-  const out: Pick<Item, 'text' | 'dir' | 'label'> = { text: line.slice(m[0].length) };
-  const dir = dirOf(m[1], m[3]);
-  if (dir !== '-') out.dir = dir;
-  if (m[2]?.trim()) out.label = m[2].trim();
-  return out;
-}
-
-/** The "~ A -> B" lines of an outline. */
-export function parseLinks(text: string): Link[] {
-  const out: Link[] = [];
-  for (const line of text.replace(/\r\n?/g, '\n').split('\n')) {
-    if (!line.startsWith('~ ')) continue;
-    const m = new RegExp('\\s' + EDGE.source + '\\s').exec(line.slice(2));
-    if (!m) continue;
-    const from = line.slice(2, 2 + m.index).trim();
-    const to = line.slice(2 + m.index + m[0].length).trim();
-    if (from && to) out.push({ from, to, dir: dirOf(m[1], m[3]), ...(m[2]?.trim() ? { label: m[2].trim() } : {}) });
-  }
-  return out;
-}
-
-export const linkLine = (l: Link) => `~ ${l.from} ${edgeText(l.dir, l.label) || '-'} ${l.to}`;
-
-export function parseOutline(text: string): Item[] {
-  if (!text.trim()) return [{ depth: 0, text: '' }];
-  const items: Item[] = [];
-  for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
-    if (raw.startsWith('~ ')) continue;
-    const indent = /^[ \t]*/.exec(raw)![0];
-    const depth = Math.floor(indent.replace(/\t/g, '  ').length / 2);
-    // A Markdown bullet is forgiven, so lists paste in as they are.
-    const line = raw.slice(indent.length).replace(/^(?:[-*+•]|\d+[.)])\s+/, '');
-    items.push({ depth: Math.min(depth, (items[items.length - 1]?.depth ?? -1) + 1), ...readEdge(line) });
-  }
-  return items.length ? items : [{ depth: 0, text: '' }];
-}
-
-/** An item that is another document: its text is exactly "@@<app>/<payload>". */
-export const embedOf = (text: string): string | null => /^@@([a-z]+\/[A-Za-z0-9_-]*)$/.exec(text.trim())?.[1] ?? null;
+const JOIN: Record<string, Dir> = { from: '->', to: '<-', both: '<->' };
+const CLASS: Partial<Record<Dir, string>> = { '->': 'from', '<-': 'to', '<->': 'both' };
 
 /**
- * The outline as a deck: every item with something under it is a slide,
- * its words the headline and the level just under it the bullets (deeper
- * levels have slides of their own), walked in order to the last leaf; an
- * item that is a document is a slide showing that document. A lone root
- * is the title slide.
+ * Loose Markdown as a nested list: a line with no bullet is an item at its
+ * own indent, a "•" is a bullet, and a heading is an item with what follows
+ * it nested beneath. Fences, edges, rules, tables and the header pass as
+ * they are.
  */
-export function outlineToDeck(items: Item[]): string {
-  const live = items.filter((it) => it.text.trim());
-  const roots = live.filter((it) => it.depth === 0);
-  const slides: string[] = [];
-  const kids = (i: number) => live.slice(i + 1, blockEnd(live, i)).filter((it) => it.depth === live[i].depth + 1).map((it) => it.text);
-  live.forEach((it, i) => {
-    const sub = embedOf(it.text);
-    if (sub) return void slides.push(`${it.depth === 0 && roots.length === 1 ? '::t\n' : ''}${' '}\n@@${sub}`);
-    if (!hasChildren(live, i)) return;
-    const title = it.depth === 0 && roots.length === 1 && i === 0;
-    // A title slide names its parts beneath; elsewhere the family is the bullets, and a child that is a document has a slide to itself after.
-    const body = kids(i).filter((b) => !embedOf(b.trim()));
-    slides.push((title ? '::t\n' : '') + it.text + (body.length ? '\n' + body.join('\n') : ''));
-  });
-  return slides.join('\n\n');
+function listify(text: string): string {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const levels = lines.map((l) => /^(#{1,6})\s/.exec(l.trim())?.[1].length ?? 9);
+  const top = Math.min(...levels);
+  const out: string[] = [];
+  let pad = '';
+  let fence = '';
+  let i = 0;
+  if (lines[0]?.trim() === '---') {
+    const end = lines.findIndex((l, n) => n > 0 && (l.trim() === '---' || l.trim() === '...'));
+    if (end > 0 && lines.slice(1, end).every((l) => /^[\w-]+:/.test(l))) out.push(...lines.slice(0, (i = end + 1)));
+  }
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    const t = line.trim();
+    // A fenced document passes whole.
+    if (fence) {
+      out.push(line);
+      if (t.startsWith(fence) && !t.replace(/^[`~]+/, '') && t[0] === fence[0]) fence = '';
+      continue;
+    }
+    const open = /^(`{3,}|~{3,})/.exec(t)?.[1];
+    if (open) {
+      fence = open;
+      out.push(line);
+      continue;
+    }
+    const h = /^(#{1,6})\s+(.*)$/.exec(t);
+    if (h) {
+      const d = h[1].length - top;
+      out.push(`${'  '.repeat(d)}- ${h[2]}`);
+      pad = '  '.repeat(d + 1);
+    } else if (!t || /^~\s/.test(t) || /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line) || /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/.test(t) || /^\s*\|?\s*:?-+:?\s*\|/.test(lines[i + 1] ?? '')) out.push(line);
+    else {
+      const indent = /^[ \t]*/.exec(line)![0].replace(/\t/g, '  ');
+      const words = t.replace(/^•\s*/, '- ');
+      out.push(pad + indent + (/^(?:[-*+]|\d{1,9}[.)])(?:\s|$)/.test(words) ? words : '- ' + words));
+    }
+  }
+  return out.join('\n');
 }
 
+/** The tree in a text, and the edges between its items. */
+export function readTree(text: string): { items: Item[]; links: Link[] } {
+  const items: Item[] = [];
+  const links: Link[] = [];
+  const add = (it: Item) => items.push({ ...it, depth: Math.max(0, Math.min(it.depth, (items[items.length - 1]?.depth ?? -1) + 1)) });
+  const depthOf = (b: Block) => Number(b.a?.kv?.depth);
+  let offset = 0;
+  for (const b of parse(listify(text)).blocks) {
+    if (b.k === 'li') {
+      // After a fence the list starts again from the left: an item that says its depth sets it for those that follow.
+      if (Number.isFinite(depthOf(b))) offset = depthOf(b) - b.depth;
+      else if (b.depth === 0 && offset) offset = 0;
+      const dir = b.a?.cls?.map((c) => JOIN[c]).find(Boolean);
+      const label = b.a?.kv?.label;
+      add({ depth: b.depth + offset, text: b.text.replace(/\n/g, ' '), ...(dir ? { dir } : {}), ...(label ? { label } : {}) });
+    } else if (b.k === 'fence') {
+      add({ depth: depthOf(b) || 0, text: '', doc: `${b.lang}\n${b.body}` });
+      offset = 0;
+    } else if (b.k === 'edge') links.push({ from: b.from, to: b.to, dir: b.dir, ...(b.label ? { label: b.label } : {}) });
+    else if (b.k === 'p' || b.k === 'h' || b.k === 'quote') for (const line of b.text.split('\n')) add({ depth: 0, text: line });
+  }
+  return { items: items.length ? items : [{ depth: 0, text: '' }], links };
+}
+
+export const parseOutline = (text: string): Item[] => readTree(text).items;
+export const parseLinks = (text: string): Link[] => readTree(text).links;
+
+/** The outline as its canonical text: a nested list, its documents fenced, its joins as edges after it. */
 export function serializeOutline(items: Item[], links: Link[] = []): string {
   const out = items.slice();
-  while (out.length > 1 && !out[out.length - 1].text.trim() && !out[out.length - 1].label) out.pop();
-  const known = new Set(out.map((it) => it.text.trim()));
-  const joins = links.filter((l) => known.has(l.from) && known.has(l.to) && l.from !== l.to);
-  if (out.length === 1 && !out[0].text.trim() && !joins.length) return '';
-  const line = (it: Item) => {
-    const edge = it.depth > 0 ? edgeText(it.dir, it.label) : '';
-    return '  '.repeat(it.depth) + (edge ? edge + ' ' : '') + it.text.replace(/\n/g, ' ');
-  };
-  return [...out.map(line), ...joins.map(linkLine)].join('\n');
+  while (out.length > 1 && !out[out.length - 1].text.trim() && !out[out.length - 1].doc && !out[out.length - 1].label) out.pop();
+  const joins = links.filter((l) => l.from !== l.to);
+  if (out.length === 1 && !out[0].text.trim() && !out[0].doc && !joins.length) return '';
+  const blocks: Block[] = [];
+  let fenced = false;
+  for (const it of out) {
+    if (it.doc) {
+      const nl = it.doc.indexOf('\n');
+      blocks.push({ k: 'fence', lang: nl < 0 ? it.doc : it.doc.slice(0, nl), body: nl < 0 ? '' : it.doc.slice(nl + 1), ...(it.depth ? { a: { kv: { depth: String(it.depth) } } } : {}) });
+      fenced = true;
+      continue;
+    }
+    if (!it.depth) fenced = false;
+    const a: Attrs = {};
+    if (it.depth && it.dir && CLASS[it.dir]) a.cls = [CLASS[it.dir]!];
+    if (it.depth && it.label) a.kv = { label: it.label };
+    if (fenced) a.kv = { ...a.kv, depth: String(it.depth) };
+    blocks.push({ k: 'li', depth: it.depth, text: it.text.replace(/\n/g, ' '), ...(a.cls || a.kv ? { a } : {}) });
+  }
+  for (const l of joins) blocks.push({ k: 'edge', from: l.from, to: l.to, dir: l.dir, ...(l.label ? { label: l.label } : {}) });
+  return write({ head: {}, blocks }).trimEnd();
 }
 
-/** The outline as the plain indented text a mind map or family tree reads: no kinds of line, no joins. */
+/** The joins whose two ends are items of the outline. */
+export function liveLinks(items: Item[], links: Link[]): Link[] {
+  const known = new Set(items.map((it) => it.text.trim()));
+  return links.filter((l) => known.has(l.from) && known.has(l.to));
+}
+
+/** The tree as a few lines of plain words, indented. */
+export const outlineLines = (text: string): string[] => parseOutline(text).filter((it) => it.text.trim() && !it.doc).map((it) => '  '.repeat(it.depth) + plain(it.text));
+
+/** Loose Markdown (or a tree written any way) as the canonical nested list. */
+export function readOutline(text: string): string {
+  const { items, links } = readTree(text);
+  return serializeOutline(items, links);
+}
+
+/** The outline as the plain nested list a mind map or family tree reads: no kinds of line, no joins, no documents. */
 export function plainOutline(items: Item[]): string {
-  return serializeOutline(items.map(({ depth, text }) => ({ depth, text })));
+  return serializeOutline(items.filter((it) => !it.doc).map(({ depth, text }) => ({ depth, text })));
 }
 
 /** Item i's parent, or -1. */
@@ -136,23 +174,58 @@ export function parentOf(items: Item[], i: number): number {
 }
 
 /**
- * The outline as a network: every line to a parent and every join,
- * "A > B: name" for an arrow, "A - B" for a plain line, both ways as
- * "A <-> B". Items are named by their plain words.
+ * The outline as a deck: every item with something under it is a slide,
+ * its words the headline and the level just under it the bullets (deeper
+ * levels have slides of their own), walked in order to the last leaf; an
+ * item that is a document is a slide showing that document. A lone root
+ * is the title slide.
+ */
+export function outlineToDeck(items: Item[]): string {
+  const live = items.filter((it) => it.text.trim() || it.doc);
+  const roots = live.filter((it) => it.depth === 0);
+  const slides: Block[][] = [];
+  const kids = (i: number) => live.slice(i + 1, blockEnd(live, i)).filter((it) => it.depth === live[i].depth + 1 && !it.doc);
+  live.forEach((it, i) => {
+    if (it.doc) {
+      const nl = it.doc.indexOf('\n');
+      return void slides.push([{ k: 'fence', lang: it.doc.slice(0, nl < 0 ? undefined : nl), body: nl < 0 ? '' : it.doc.slice(nl + 1) }]);
+    }
+    if (!hasChildren(live, i)) return;
+    // A title slide names its parts beneath; elsewhere the family is the bullets, and a child that is a document has a slide to itself after.
+    const title = it.depth === 0 && roots.length === 1 && i === 0;
+    slides.push([{ k: 'h', level: 2, text: it.text, ...(title ? { a: { cls: ['title'] } } : {}) }, ...kids(i).map((k): Block => ({ k: 'li', depth: 0, text: k.text }))]);
+  });
+  return write({ head: {}, blocks: slides.flatMap((s, n) => (n ? [{ k: 'hr' } as Block, ...s] : s)) }).trimEnd();
+}
+
+/** A name as an edge can hold it: no arrow or colon inside to end it early. */
+const edgeName = (t: string) => t.replace(/\s+(?:<->|->|<-|--)\s+/g, ' ').replace(/:\s/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * The outline as a network: every line to a parent and every join, as
+ * edges ("~ A -> B: name"), and an item with no line at all as a node on
+ * its own. Items are named by their plain words.
  */
 export function outlineToNet(items: Item[], links: Link[], plain: (t: string) => string = (t) => t): string {
-  const name = (t: string) => plain(t).replace(/\s*[:>]\s*/g, ' ').replace(/\s+-\s+/g, ' ').trim();
-  const arrow = (a: string, b: string, dir: Dir, label?: string) =>
-    (dir === '<' ? `${b} > ${a}` : `${a} ${dir === '>' ? '>' : dir === '<>' ? '<->' : '-'} ${b}`) + (label ? `: ${label}` : '');
-  const lines: string[] = [];
+  const name = (t: string) => edgeName(plain(t));
+  const blocks: Block[] = [];
+  const edges: Block[] = [];
   items.forEach((it, i) => {
-    if (!it.text.trim() || embedOf(it.text)) return;
+    if (!it.text.trim() || it.doc) return;
     const p = parentOf(items, i);
-    if (p < 0) return void (!items.some((_, j) => parentOf(items, j) === i) && lines.push(name(it.text)));
-    lines.push(arrow(name(items[p].text), name(it.text), it.dir ?? '-', it.label));
+    if (p < 0) return void (!items.some((_, j) => parentOf(items, j) === i) && blocks.push({ k: 'li', depth: 0, text: name(it.text) }));
+    edges.push({ k: 'edge', from: name(items[p].text), to: name(it.text), dir: it.dir ?? '--', ...(it.label ? { label: it.label } : {}) });
   });
-  for (const l of links) lines.push(arrow(name(l.from), name(l.to), l.dir, l.label));
-  return lines.join('\n');
+  for (const l of links) edges.push({ k: 'edge', from: name(l.from), to: name(l.to), dir: l.dir, ...(l.label ? { label: l.label } : {}) });
+  return write({ head: {}, blocks: [...blocks, ...edges] }).trimEnd();
+}
+
+/** The outline as an org chart: its people nested, each join a dotted line ("~ A -- B: name"). */
+export function outlineToOrg(items: Item[], links: Link[]): string {
+  return serializeOutline(
+    items.filter((it) => !it.doc).map(({ depth, text }) => ({ depth, text })),
+    links.map((l) => ({ ...l, dir: '--' })),
+  );
 }
 
 /** Where item i's family ends: the first later item no deeper than it. */
@@ -208,14 +281,14 @@ export function remove(items: Item[], i: number): Item[] {
   return out.length ? out : [{ depth: 0, text: '' }];
 }
 
-/** The outline as OPML, what every outliner reads. */
+/** The outline as OPML, what every outliner reads. A document is named by its app. */
 export function toOpml(items: Item[], title: string): string {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   let out = '';
   let open = 0;
   items.forEach((it, i) => {
     const kids = hasChildren(items, i);
-    out += `${'  '.repeat(it.depth + 2)}<outline text="${esc(it.text)}"${kids ? '>' : '/>'}\n`;
+    out += `${'  '.repeat(it.depth + 2)}<outline text="${esc(it.doc ? it.doc.split('\n')[0] : it.text)}"${kids ? '>' : '/>'}\n`;
     if (kids) open++;
     // Close the families this item ends.
     const until = items[i + 1]?.depth ?? 0;

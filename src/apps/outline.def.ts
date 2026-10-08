@@ -1,14 +1,14 @@
-/** Outline: what the shell knows about outlines. Format: lib/outlinemodel.ts. */
+/** Outline: what the shell knows about outlines. Format: a nested list, lib/outlinemodel.ts. */
 import { defineApp, utf8, wrap, text, xml, ACCENT, type Page } from '../kit/core.ts';
 import { parseInline, plainInline, type Run } from '../lib/richtext.ts';
 import { textPdf, type TextBlock } from '../kit/textpdf.ts';
-import { parseOutline, parseLinks, plainOutline, outlineToNet, toOpml, hasChildren, embedOf, type Dir, type Item } from '../lib/outlinemodel.ts';
+import { parseOutline, parseLinks, plainOutline, outlineToNet, outlineToOrg, outlineLines, readOutline, readTree, toOpml, hasChildren, type Dir, type Item } from '../lib/outlinemodel.ts';
 import { hashOf, refPage, resolve } from '../kit/embed.ts';
 import { place, textWidth } from '../kit/core.ts';
 
 /** How each kind of line looks, drawn and said. */
-export const ARROW: Record<Dir, string> = { '-': '—', '>': '→', '<': '←', '<>': '↔' };
-export const DIR_NAME: Record<Dir, string> = { '-': 'a plain line', '>': 'an arrow from the parent', '<': 'an arrow to the parent', '<>': 'arrows both ways' };
+export const ARROW: Record<Dir, string> = { '--': '—', '->': '→', '<-': '←', '<->': '↔' };
+export const DIR_NAME: Record<Dir, string> = { '--': 'a plain line', '->': 'an arrow from the parent', '<-': 'an arrow to the parent', '<->': 'arrows both ways' };
 
 /** The outline drawn: a dot per item, deeper ones stepped in, the words wrapped. Fits a letter page's width; as tall as it needs. */
 export function outlinePage(body: string, w = 720): Page {
@@ -18,12 +18,11 @@ export function outlinePage(body: string, w = 720): Page {
   let y = 44;
   let svg = '';
   items.forEach((it, i) => {
-    if (!it.text.trim() && !hasChildren(items, i)) return;
+    if (!it.text.trim() && !it.doc && !hasChildren(items, i)) return;
     const x = 48 + it.depth * step;
-    const sub = embedOf(it.text);
-    if (sub) {
+    if (it.doc) {
       // Another document, drawn small where its item would be.
-      const p = refPage(sub, { w: 340 });
+      const p = refPage(it.doc, { w: 340 });
       const pw = Math.min(w - x - 48, 340);
       const ph = (p.h / p.w) * pw;
       svg += place(p, x, y + 8, pw, ph);
@@ -31,7 +30,7 @@ export function outlinePage(body: string, w = 720): Page {
       return;
     }
     // The kind of line to the parent, and its name, small before the words.
-    const kind = it.depth && (it.dir || it.label) ? `${ARROW[it.dir ?? '-']}${it.label ? ' ' + it.label : ''}` : '';
+    const kind = it.depth && (it.dir || it.label) ? `${ARROW[it.dir ?? '--']}${it.label ? ' ' + it.label : ''}` : '';
     const indent = kind ? textWidth(kind, px * 0.75) + 8 : 0;
     const lines = wrap(parseInline(it.text), w - x - 48 - indent, px, it.depth === 0);
     const top = y;
@@ -54,7 +53,7 @@ export function outlinePage(body: string, w = 720): Page {
   return { w, h: Math.max(200, y + 40), svg };
 }
 
-const items = (body: string) => parseOutline(body).filter((it) => it.text.trim());
+const items = (body: string) => parseOutline(body).filter((it) => it.text.trim() || it.doc);
 
 /**
  * The outline as a document of words, for its PDF: the top items are its
@@ -68,8 +67,7 @@ export function outlineBlocks(body: string, docTitle = ''): TextBlock[] {
   const lone = roots.length === 1;
   const base = lone ? 1 : 0;
   const words = (it: Item): Run[] => {
-    const ref = embedOf(it.text);
-    if (ref) return [{ t: `[${resolve(ref).title}]`, i: true }];
+    if (it.doc) return [{ t: `[${resolve(it.doc).title}]`, i: true }];
     return [...(it.label ? [{ t: `${it.label} \u2014 `, i: true }] : []), ...parseInline(it.text)];
   };
   const out: TextBlock[] = [];
@@ -83,12 +81,12 @@ export function outlineBlocks(body: string, docTitle = ''): TextBlock[] {
   const links = parseLinks(body);
   if (links.length) {
     out.push({ kind: 'h', runs: [{ t: 'Connections' }] });
-    const say: Record<Dir, string> = { '-': 'and', '>': 'to', '<': 'from', '<>': 'and, both ways,' };
+    const say: Record<Dir, string> = { '--': 'and', '->': 'to', '<-': 'from', '<->': 'and, both ways,' };
     for (const l of links) out.push({ kind: 'li', depth: 0, runs: [...parseInline(l.from), { t: ` ${say[l.dir]} ` }, ...parseInline(l.to), ...(l.label ? [{ t: `: ${l.label}`, i: true }] : [])] });
   }
   return out;
 }
-const title = (body: string) => plainInline(items(body).find((it) => !embedOf(it.text))?.text ?? '');
+const title = (body: string) => plainInline(items(body).find((it) => !it.doc)?.text ?? '');
 
 export default defineApp({
   id: 'outline',
@@ -97,13 +95,14 @@ export default defineApp({
   icon: 'outline',
   blurb: 'An outliner: ideas under ideas, folded and unfolded, moved about; the same text a mind map or an org chart reads.',
   title,
-  outline: (body) => items(body).filter((it) => !embedOf(it.text)).map((it) => '  '.repeat(it.depth) + plainInline(it.text)),
+  outline: outlineLines,
+  read: readOutline,
   view: (body) => [outlinePage(body)],
   steps: (body) => items(body).length,
   downloads: [
     { ext: 'opml', label: 'OPML (for outliners)', mime: 'text/x-opml;charset=utf-8', build: (b) => utf8(toOpml(parseOutline(b), title(b) || 'Outline')) },
     { ext: 'pdf', label: 'PDF: sections and bullets', mime: 'application/pdf', build: (b, ctx) => textPdf(outlineBlocks(b, ctx.title ?? ''), ctx.title || title(b) || 'Outline') },
-    { ext: 'txt', label: 'Plain text', mime: 'text/plain;charset=utf-8', build: (b) => utf8(items(b).map((it) => '  '.repeat(it.depth) + plainInline(it.text)).join('\n') + '\n') },
+    { ext: 'txt', label: 'Plain text', mime: 'text/plain;charset=utf-8', build: (b) => utf8(outlineLines(b).join('\n') + '\n') },
   ],
   shortcuts: [
     { keys: 'Enter', does: 'A new item below' },
@@ -118,15 +117,13 @@ export default defineApp({
 
 /**
  * The outline as another document. A mind map and a family tree take its
- * plain text; an org chart takes it with each join as a dotted line; a
- * network takes every line, with its kind and name, and every join.
+ * plain nested list; an org chart takes it with each join as a dotted line;
+ * a network takes every line, with its kind and name, and every join.
  */
-/** Where to go to see the outline as another app. */
 export function outlineAs(app: string, body: string): string {
-  const items = parseOutline(body);
-  const links = parseLinks(body);
+  const { items, links } = readTree(body);
   if (app === 'net') return hashOf('net', outlineToNet(items, links, plainInline));
-  if (app === 'org') return hashOf('org', [plainOutline(items), ...links.map((l) => `${plainInline(l.from)} .. ${plainInline(l.to)}${l.label ? ': ' + l.label : ''}`)].filter(Boolean).join('\n'));
+  if (app === 'org') return hashOf('org', outlineToOrg(items, links));
   return hashOf(app, plainOutline(items));
 }
 export type { Item };

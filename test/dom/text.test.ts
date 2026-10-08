@@ -114,7 +114,7 @@ test('outline: items under items, folded, moved, zoomed; OPML out', async () => 
   await key(item(4), 'Tab', { shift: true });
   await typeRich(item(4), 'Done');
   expect(location.hash).toMatch(/#\/v0\/outline\/[WYZR]/);
-  expect(bodyOf()).toBe('Launch\n  Product\n    Pricing\nDone');
+  expect(bodyOf()).toBe('- Launch\n  - Product\n    - Pricing\n- Done');
   // Fold Launch: Product and Pricing hide, a count shows.
   ol().querySelector<HTMLElement>('.ol-row .ol-fold')!.click();
   await settleAll();
@@ -125,7 +125,7 @@ test('outline: items under items, folded, moved, zoomed; OPML out', async () => 
   expect(rows()).toHaveLength(4);
   // Move Done up above Launch with Alt+Up.
   await key(item(4), 'ArrowUp', { alt: true });
-  expect(bodyOf()).toBe('Done\nLaunch\n  Product\n    Pricing');
+  expect(bodyOf()).toBe('- Done\n- Launch\n  - Product\n    - Pricing');
   // Zoom in on Launch: only its family shows, with a way back.
   await key(item(2), '.', { mod: true });
   expect(rows()).toHaveLength(3);
@@ -140,7 +140,7 @@ test('outline: items under items, folded, moved, zoomed; OPML out', async () => 
 });
 
 test('outline: a document as an item, made in its own editor; the outline seen as a deck and as a mind map', async () => {
-  await shell({ app: 'outline', body: 'Done\nLaunch\n  Product\n    Pricing' });
+  await shell({ app: 'outline', body: '- Done\n- Launch\n  - Product\n    - Pricing' });
   const ol = () => editorOf('outline');
   const item = (n: number) => ol().querySelector<HTMLElement>(`[role="textbox"][aria-label="Item ${n}"]`);
   // A document as an item: a table under Launch, made in its own editor.
@@ -160,7 +160,7 @@ test('outline: a document as an item, made in its own editor; the outline seen a
   button(sub!, /Done/).click();
   await until(() => expect(ol().querySelectorAll('.ol-row to-embed')).toHaveLength(1));
   await settleAll();
-  expect(bodyOf()).toMatch(/\n@@sheet\//);
+  expect(bodyOf()).toMatch(/\n```sheet\nBudget/);
   // The same text, as a deck: a slide for every level with something under it.
   const back = location.hash;
   const seeAs = async (value: string) => {

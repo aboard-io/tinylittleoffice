@@ -117,7 +117,7 @@ button.ol-kind:hover {
   width: 7px;
   height: 7px;
 }
-.ol-kind:not([data-dir='-']):not(.root) {
+.ol-kind:not([data-dir='--']):not(.root) {
   color: var(--to-accent);
 }
 /* Folded: a halo round the bullet says there is more inside. */

@@ -130,7 +130,7 @@ test('forms: a diagram joined and given pictures on its picture, guests renamed 
   button(org.el.querySelector('.pic-edit')!, 'Join it to another thing').click();
   await settle(org.el);
   await tapThing(org.el, 'Di Shah');
-  expect(org.last()).toContain('Cy Lund .. Di Shah');
+  expect(org.last()).toContain('~ Cy Lund -- Di Shah');
   expect(org.el.querySelectorAll('.pic > svg line[stroke-dasharray="2 3"]')).toHaveLength(2);
   await tapThing(org.el, 'Ben Okoro');
   button(org.el.querySelector('.pic-edit')!, 'Give it a picture').click();
@@ -191,7 +191,7 @@ test('the picture is worked directly: tap a box and type; Enter for the next', a
   await settle(el);
   expect(el.querySelector('.pic > svg')!.textContent).toContain('Gus Pine');
   await key(el, 'Escape', editBox(el)[0]);
-  expect(last()).toMatch(/Ben Okoro \| Engineering\n    Cy Lund \| Platform\n    Di Shah \| Apps\n    Gus Pine/);
+  expect(last()).toMatch(/- Ben Okoro \| Engineering\n    - Cy Lund \| Platform\n    - Di Shah \| Apps\n    - Gus Pine/);
   // As text, for whoever wants it: Ctrl+Shift+T, and back.
   shortcut('t', { mod: true, shift: true });
   await settle(el);
@@ -307,7 +307,7 @@ test('the picture is the editor: no list beside a picture of shapes; a database 
 test('adding on the picture: a draft that becomes real when typed into, and goes if not', async () => {
   // (Which thing: the second drawn, or by name where a lane's name or a date is a thing too.)
   for (const [app, words, written, which] of [
-    ['mind', 'Idea', /\n    Fresh thing\n/, null],
+    ['mind', 'Idea', /\n    - Fresh thing\n/, null],
     ['net', 'To', /API > Fresh thing/, null],
     ['lanes', 'What they do', /Customer: Fresh thing/, /^Places order/],
     ['timeline', 'What happened', /1843: Fresh thing/, /^1843 \| Lovelace/],

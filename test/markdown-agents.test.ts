@@ -44,7 +44,7 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
   },
   outline: {
     md: '- Launch\n  - Product\n    - Pricing\n  - Marketing\n',
-    check: (b) => assert.equal(b, 'Launch\n  Product\n    Pricing\n  Marketing'),
+    check: (b) => assert.equal(b, '- Launch\n  - Product\n    - Pricing\n  - Marketing'),
   },
   board: {
     md: '## To do\n\n- Write the brief\n\n## Doing (limit 2)\n\n- Build the form\n\n## Done\n',

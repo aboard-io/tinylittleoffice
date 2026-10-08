@@ -250,8 +250,8 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
     anim: '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
-    org: 'Ada | CEO\n  Ben | Engineering\n  Eve | Design',
-    mind: 'Launch\n  Product\n    Pricing\n  Marketing',
+    org: '- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design',
+    mind: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
     lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
     venn: 'Fast: a\nCheap: b\nFast & Cheap: c',
     net: 'Web > API: calls\nAPI - Cache',
@@ -273,7 +273,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     pixel: 'ab.c\n.dd',
     floor: 'Hall: 4 x 2 at 0,0\nBath: 2 x 2 at 4,0',
     seating: 'Top: Sam, Paul, Ada',
-    family: 'Rose + Albert\n  Helen',
+    family: '- Rose + Albert\n  - Helen',
     timeline: '1969: First message\n1989: The web',
     wordsearch: '# Coffee\nespresso\nfilter',
     adventure: '# Story\n## start\nA door.\n> Open it | in\n## in\nA room.',
@@ -333,8 +333,8 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
     anim: '!o\nt,4,20,20,4,04,Lift\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
-    org: 'Ada | CEO\n  Ben | Engineering\n  Eve | Design',
-    mind: 'Launch\n  Product\n    Pricing\n  Marketing',
+    org: '- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design',
+    mind: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
     lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
     venn: 'Fast: a\nCheap: b\nFast & Cheap: c',
     net: 'Web > API: calls\nAPI - Cache',
@@ -356,7 +356,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     pixel: 'ab.c\n.dd',
     floor: 'Hall: 4 x 2 at 0,0\nBath: 2 x 2 at 4,0',
     seating: 'Top: Sam, Paul, Ada',
-    family: 'Rose + Albert\n  Helen',
+    family: '- Rose + Albert\n  - Helen',
     timeline: '1969: First message\n1989: The web',
     wordsearch: '# Coffee\nespresso\nfilter',
     adventure: '# Story\n## start\nA door.\n> Open it | in\n## in\nA room.',
@@ -498,7 +498,7 @@ test('write: a heading stays bold: Mod+B and the Bold button do nothing there', 
 
 // Whether words stay inside their boxes is measured text: a real browser's.
 test('mind map: long ideas and web addresses wrap inside their boxes', async ({ page }) => {
-  const doc = 'Launch plan for the spring season\n  See https://tinylittleoffice.com/outline/#/v0/outline/YjZndjttGEoXv8xQE9mYWkGbswJsslCt7vMkuMF471iA for the list\n  Marketing\n    A really long idea that goes on and on about the press release and the social posts and the launch party';
+  const doc = '- Launch plan for the spring season\n  - See https://tinylittleoffice.com/outline/#/v0/outline/YjZndjttGEoXv8xQE9mYWkGbswJsslCt7vMkuMF471iA for the list\n  - Marketing\n    - A really long idea that goes on and on about the press release and the social posts and the launch party';
   await page.goto('/#/v0/mind');
   await page.locator('to-mind').waitFor();
   // (The document arrives as a change from the editor, as typing it would make.)

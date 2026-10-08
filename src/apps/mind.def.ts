@@ -1,8 +1,9 @@
-/** Mind map: an idea and what branches from it, from an indented list. */
+/** Mind map: an idea and what branches from it, from a nested list (lib/outlinemodel.ts). */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, outline, placeTree, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import { textWidth, wrapText } from '../kit/core.ts';
 import { iconOf } from '../lib/drawmodel.ts';
+import { outlineLines, readOutline } from '../lib/outlinemodel.ts';
 
 function layout(text: string): Diagram {
   const placed = placeTree(outline(text));
@@ -30,9 +31,9 @@ export const spec = {
   form: [
     { name: 'Idea', is: '[:{Picture:icon} ]{Idea}', indent: true },
   ] as LineKind[],
-  hint: 'The idea on the first line; indent lines under it to branch out, and under those to go further.',
-  example: 'Launch\n  Product\n    Pricing\n    Onboarding\n  Marketing\n    Press\n    Social\n  Support\n    Help pages',
+  hint: 'A list: "- The idea" first, then "  - " two spaces in for each branch, and two more to go further.',
+  example: '- Launch\n  - Product\n    - Pricing\n    - Onboarding\n  - Marketing\n    - Press\n    - Social\n  - Support\n    - Help pages',
   layout,
 };
 
-export default defineDiagram({ id: 'mind', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.' }, spec);
+export default defineDiagram({ id: 'mind', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.', outline: outlineLines, read: readOutline }, spec);

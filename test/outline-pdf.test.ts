@@ -10,7 +10,7 @@ import { appOf } from '../src/kit/core.ts';
 import { outlineBlocks } from '../src/apps/outline.def.ts';
 import { measure } from '../src/kit/textpdf.ts';
 
-const DOC = 'Launch\n  Product\n    -(sets)-> Pricing\n    See [the plan](https://a.co/plan) and more\n  Marketing\n    Press\n      A long line of words that goes on far past the width of a Letter page and so has to wrap onto another line\n~ Pricing -> Press';
+const DOC = '- Launch\n  - Product\n    - Pricing {.from label=sets}\n    - See [the plan](https://a.co/plan) and more\n  - Marketing\n    - Press\n      - A long line of words that goes on far past the width of a Letter page and so has to wrap onto another line\n\n~ Pricing -> Press';
 const pdfOf = (body: string, title = '') => appOf('outline')!.downloads!.find((d) => d.ext === 'pdf')!.build!(body, { created: null, title });
 const latin = (b: Uint8Array) => String.fromCharCode(...b);
 
@@ -25,7 +25,7 @@ test('a lone top item is the title, the items under it the sections, the rest bu
   ]);
   assert.deepEqual(blocks.at(-2)!.runs.map((r) => r.t), ['Connections']);
   // Several top items: each a section, the document's own title above them.
-  assert.deepEqual(outlineBlocks('A\n  a1\nB', 'Two parts').map((b) => b.kind), ['title', 'h', 'li', 'h']);
+  assert.deepEqual(outlineBlocks('- A\n  - a1\n- B', 'Two parts').map((b) => b.kind), ['title', 'h', 'li', 'h']);
 });
 
 test('the PDF is text: a bookmark a section, a link to click, words a reader can find', () => {
@@ -40,7 +40,7 @@ test('the PDF is text: a bookmark a section, a link to click, words a reader can
 });
 
 test('a long outline goes on to more pages; a character Helvetica lacks is "?", and Latin-1 is kept', () => {
-  const many = 'Top\n' + Array.from({ length: 30 }, (_, i) => `  Section ${i}\n    item ${i} café ★`).join('\n');
+  const many = '- Top\n' + Array.from({ length: 30 }, (_, i) => `  - Section ${i}\n    - item ${i} café ★`).join('\n');
   const pdf = latin(pdfOf(many));
   assert.match(pdf, /\/Type \/Pages \/Kids \[[^\]]*\] \/Count [2-9]/);
   // (Each word is written on its own.)
@@ -60,14 +60,14 @@ test('a PDF reader reads it back as the outline', { skip: !existsSync('/usr/bin/
 test('pages are numbered at their foot when there is more than one; a single page is not', { skip: !existsSync('/usr/bin/pdftotext') }, async () => {
   const { pdf } = await import('../src/kit/pdf.ts');
   const dir = mkdtempSync(join(tmpdir(), 'pnum-'));
-  const many = 'Top\n' + Array.from({ length: 40 }, (_, i) => `  Section ${i}\n    item ${i}`).join('\n');
+  const many = '- Top\n' + Array.from({ length: 40 }, (_, i) => `  - Section ${i}\n    - item ${i}`).join('\n');
   writeFileSync(join(dir, 'text.pdf'), pdfOf(many));
   const text = execFileSync('pdftotext', ['-layout', join(dir, 'text.pdf'), '-']).toString();
   const pages = +/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [join(dir, 'text.pdf')]).toString())![1];
   assert.ok(pages > 1);
   // (A reader may take the thin spaces round the slash out.)
   for (let i = 1; i <= pages; i++) assert.match(text, new RegExp(`\\b${i} ?/ ?${pages}\\b`), `page ${i}`);
-  assert.ok(!latin(pdfOf('Just\n  one')).includes(' / 1)'));
+  assert.ok(!latin(pdfOf('- Just\n  - one')).includes(' / 1)'));
   // The picture PDFs (every other app) are numbered the same way, and still read as a PDF.
   const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
   const two = pdf([{ w: 816, h: 1056, pw: 1, ph: 1, jpeg }, { w: 816, h: 1056, pw: 1, ph: 1, jpeg }], 'Two');

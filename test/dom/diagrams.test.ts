@@ -12,18 +12,18 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async () 
   await open('#/v0/org');
   const text = () => box<HTMLTextAreaElement>(document, 'Org chart, as text');
   expect(document.querySelector('to-org .to-empty')).toBeTruthy();
-  typeIn(text(), 'Ada | CEO');
+  typeIn(text(), '- Ada | CEO');
   keyIn(text(), 'Enter');
-  typeIn(text(), 'Ben | Engineering');
+  typeIn(text(), '- Ben | Engineering');
   // Tab puts Ben under Ada.
   keyIn(text(), 'Tab');
   await settleAll();
   // Enter keeps the indent of the line before.
   keyIn(text(), 'Enter');
   await settleAll();
-  typeIn(text(), 'Eve | Design');
+  typeIn(text(), '- Eve | Design');
   await settleAll();
-  expect(text().value).toBe('Ada | CEO\n  Ben | Engineering\n  Eve | Design');
+  expect(text().value).toBe('- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design');
   const pic = () => document.querySelector('to-org .pic svg')!;
   expect(pic().querySelectorAll('rect')).toHaveLength(3);
   expect(pic().querySelectorAll('line')).toHaveLength(2);
@@ -68,7 +68,7 @@ test('a diagram on a slide: chosen from Add a slide, it builds a shape per click
   const sub = document.querySelector('sl-dialog.to-sub')!;
   expect(sub).toBeTruthy();
   const area = box<HTMLTextAreaElement>(sub, 'Mind map, as text');
-  area.value = 'Launch\n  Product\n  Marketing';
+  area.value = '- Launch\n  - Product\n  - Marketing';
   area.dispatchEvent(new Event('input', { bubbles: true }));
   await settleAll();
   button(sub, 'Done').click();

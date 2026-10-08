@@ -77,7 +77,7 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await page.mouse.move(e!.x + e!.width / 2, e!.y + e!.height / 2, { steps: 8 });
   await page.mouse.up();
   await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/Eve Marsh \| Design\n    Gus Pine/);
+  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/- Eve Marsh \| Design\n    - Gus Pine/);
   await page.keyboard.press('Control+Shift+t');
   await shot(page, 'direct-org');
 
