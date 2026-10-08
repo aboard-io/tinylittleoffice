@@ -28,11 +28,9 @@ export { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv, signingMessage, quant
 /** Where the links point. Any copy of the site works: the document is in the link, not on the server. */
 export const SITE = 'https://tinylittleoffice.com/';
 
-/** Every app: its id, name, group and a line on what it is for. (A retired app's links still open; it is not listed.) */
+/** Every app: its id, name, group and a line on what it is for. */
 export function apps(): { id: string; name: string; group: string; blurb: string }[] {
-  return registry()
-    .filter((d) => !d.hidden)
-    .map((d) => ({ id: d.id, name: d.name, group: d.group ?? '', blurb: d.blurb ?? '' }));
+  return registry().map((d) => ({ id: d.id, name: d.name, group: d.group ?? '', blurb: d.blurb ?? '' }));
 }
 
 /** The templates an app can start from (Write, Sheet and Deck have them): a name, a line, and the body in the app's format. */
@@ -58,9 +56,6 @@ const EXAMPLES: Record<string, string> = {
   zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
   booklet: 'A book\nby me\n\nOne\nwords',
   calc: '!mortgage\nprice = 400000\ndeposit = 80000\nrate = 6.5\nyears = 30',
-  bizplan: '::t\nBusiness plan\nHarbor Coffee · March 2027\n\nSummary\nA roastery on the quay, selling to the town and by post.\n\nThe problem\nGood coffee here is an hour away.',
-  mktplan: '::t\nMarketing plan\nHarbor Coffee · Spring\n\nGoals\n300 subscribers by June.\n\nAudience\nPeople who buy beans, not pods.',
-  gtm: '::t\nGo-to-market plan\nHarbor Coffee subscriptions\n\nThe customer\nHome brewers within the delivery radius.\n\nThe offer\nFresh beans, fortnightly, cancel any time.',
   poster: ':music\nOpen mic night\nFriday 12 March, 8pm\nThe Anchor, 14 Quay Street\nFree. Bring a song.',
   badges: 'Ada Lovelace\nEngineering\nLondon\n\nGrace Hopper\nCompilers\nNew York',
   recipes: ':cookie\nCardamom buns\nMakes 12. 25 minutes at 200°C.\n500g flour, 80g sugar, 250ml milk\n1. Warm the milk and butter; mix; rest an hour.\n2. Roll, fill, twist into knots. Bake until golden.\n\n:coffee\nCold brew\n100g coarse coffee to 1 litre of cold water.\n1. Stir, cover, leave 16 hours.\n2. Strain twice.',

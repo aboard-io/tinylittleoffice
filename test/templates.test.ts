@@ -7,7 +7,6 @@ import { TEMPLATES, templatesOf, planText } from '../src/lib/templates.ts';
 import { parseDoc, serializeDoc } from '../src/lib/richtext.ts';
 import { chartOf, parseGrid, serializeGrid, typesOf } from '../src/lib/formula.ts';
 import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr } from '../src/lib/deckmodel.ts';
-import { sections } from '../src/apps/bizplan.def.ts';
 import { toMarkdown } from '../src/lib/markdown.ts';
 import * as T from '../src/api.ts';
 
@@ -64,22 +63,16 @@ test('the decks name only icons the library has, and lay out as they say', async
   assert.ok(parseDeck(TEMPLATES.deck.find((t) => t.id === 'status')!.body)[1].right?.length);
 });
 
-test('the plans are Write templates with the same sections their apps start from', () => {
+test('the plans are Write templates, a section a heading, its questions under it', () => {
   const plan = TEMPLATES.write.find((t) => t.id === 'bizplan')!;
   const blocks = parseDoc(plan.body);
-  assert.deepEqual(blocks.filter((b) => b.k === 'h2').map((b) => b.runs.map((r) => r.t).join('')), sections.map((s) => s.heading));
+  assert.deepEqual(blocks.filter((b) => b.k === 'h2').map((b) => b.runs.map((r) => r.t).join('')).slice(0, 3), ['Summary', 'The problem', 'The product']);
   assert.ok(blocks.filter((b) => b.k === 'p').every((b) => b.runs.every((r) => r.i)), 'the prompts are in italics, to be written over');
   assert.equal(planText('T', 'S', [{ heading: 'H', prompts: ['p'] }]), '# T\n_S_\n## H\n_p_');
   for (const id of ['mktplan', 'gtm']) assert.ok(TEMPLATES.write.some((t) => t.id === id), id);
 });
 
-test('the plan apps still open by their links, but are hidden from the menu and the API\'s list', () => {
-  for (const id of ['bizplan', 'mktplan', 'gtm']) {
-    assert.ok(appOf(id)?.hidden, id);
-    assert.ok(T.parse(T.link(id, '::t\nPlan\nAcme\n\nSummary\nWe sell.')).markdown.includes('Summary'));
-  }
-  assert.ok(apps().some((a) => a.hidden) && !T.apps().some((a) => a.id === 'bizplan'));
-  // Templates, for programs.
+test('templates, for programs', () => {
   assert.equal(T.templates('sheet').length, TEMPLATES.sheet.length);
   assert.ok(T.templates('write').some((t) => t.id === 'meeting'));
   assert.deepEqual(T.templates('cal'), []);

@@ -38,7 +38,7 @@
     const un = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
-    if (!/^https:\/\/(www\.)?tinylittleoffice\.com\//.test(plain) && !/^https:\/\/[a-z0-9-]+\.exe\.xyz\//.test(plain)) return fail('That link does not go to TinyLittleOffice.');
+    if (!/^https:\/\/(www\.)?tinylittleoffice\.com\//.test(plain)) return fail('That link does not go to TinyLittleOffice.');
     a.href = plain; go.hidden = false;
     p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + '.';
     location.replace(plain);

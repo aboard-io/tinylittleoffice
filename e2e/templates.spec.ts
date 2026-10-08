@@ -72,17 +72,3 @@ test('a deck starts from a template: slides with icons, from the first', async (
   await expect(page.locator('.to-template-line')).toBeVisible();
 });
 
-test('the plan apps are out of the menu, but their links still open', async ({ page }) => {
-  await page.goto('/#/write');
-  await page.locator('.to-burger').click();
-  const nav = page.locator('#nav-drawer .to-drawer-nav');
-  await expect(nav.locator('a', { hasText: 'Write' })).toHaveCount(1);
-  await expect(nav.locator('a', { hasText: 'Business plan' })).toHaveCount(0);
-  await expect(nav.locator('a', { hasText: 'Marketing plan' })).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  await page.goto('/#/');
-  await expect(page.locator('.to-launcher a', { hasText: 'Go-to-market plan' })).toHaveCount(0);
-  await page.goto('/bizplan/#title=Harbor+Coffee&doc=%3A%3At%0ABusiness+plan%0AHarbor+Coffee%0A%0ASummary%0AA+roastery+on+the+quay.');
-  await expect(page.locator('to-bizplan')).toBeVisible();
-  await expect(page.locator('to-bizplan .deck-thumb > svg').first()).toContainText('Business plan');
-});

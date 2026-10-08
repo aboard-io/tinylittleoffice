@@ -190,8 +190,6 @@ A business plan, a marketing plan and a go-to-market plan are `write` documents:
 
 https://tinylittleoffice.com/write/#title=Harbor+Coffee&doc=%23+Business+plan%0A_Harbor+Coffee+%C2%B7+March+2027_%0A%23%23+Summary%0AA+roastery+on+the+quay%2C+selling+to+the+town+and+by+post.%0A%23%23+The+problem%0AGood+coffee+here+is+an+hour+away.
 
-(`bizplan`, `mktplan` and `gtm` were apps of their own, letter pages a section each; links to them still open, but prefer `write`.)
-
 ## Things to print
 
 Each of these turns a few lines into letter-size sheets; the PDF download prints at actual size.

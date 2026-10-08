@@ -9,6 +9,14 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
   Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; font-src 'self' data:; connect-src 'self' data: https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com; worker-src 'self'; frame-src 'self' about: blob:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:
   Cache-Control: no-cache
+# The pages themselves: no-transform, so Cloudflare does not rewrite them to add its analytics beacon (which the
+# policy above would block anyway, leaving an error in every console). Only the HTML: the scripts keep their compression.
+/
+  ! Cache-Control
+  Cache-Control: no-cache, no-transform
+/:app/
+  ! Cache-Control
+  Cache-Control: no-cache, no-transform
 # Built files carry a hash in their name: once fetched, they are never asked for again.
 /assets/*
   ! Cache-Control

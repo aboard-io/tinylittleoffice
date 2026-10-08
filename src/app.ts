@@ -48,14 +48,13 @@ export const APPS: { id: AppId; name: string; icon: keyof typeof UI; under?: str
  */
 function grouped(): { group: string; apps: typeof APPS }[] {
   const out: { group: string; apps: typeof APPS }[] = [];
-  const shown = apps().filter((d) => !d.hidden);
-  for (const d of shown) {
+  for (const d of apps()) {
     if (d.under) continue;
     const group = d.group ?? 'More';
     // (The apps with no group come first, on their own.)
     let at = out.find((g) => g.group === group);
     if (!at) out.push((at = { group, apps: [] }));
-    at.apps.push(...APPS.filter((a) => (a.id === d.id || a.under === d.id) && shown.some((s) => s.id === a.id)));
+    at.apps.push(...APPS.filter((a) => a.id === d.id || a.under === d.id));
   }
   // In the order the menu shows them: the apps on their own first, then the clusters.
   const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
@@ -269,8 +268,6 @@ export class ToApp extends LitElement {
   @state() private driving: string | null = null;
 
   private onHash = () => {
-    // An app that was retired: its links say so rather than landing on the home page in silence.
-    if (/^#\/(?:v\d+\/)?chords\b/.test(location.hash)) this.showToast('Chord chart was retired; this link no longer opens.');
     this.readPlainLink();
     this.comparing = parseCompare(location.hash);
     this.driving = /^#\/drive(\/|$)/.test(location.hash) ? decodeURIComponent(location.hash.replace(/^#\/drive\/?/, '')) : null;

@@ -43,10 +43,8 @@ An empty Write, Sheet or Deck offers "Start from a template…" (a button in
 the toolbar, a line on the blank page): a dialog of templates, each drawn
 small by the app itself, and one undo brings the blank page back. The
 templates are plain text in each app's format, in `src/lib/templates.ts`.
-Business plan, Marketing plan and Go-to-market plan were apps of their own
-(letter pages, a section each); they are Write templates now. Links to the
-old apps still open; the apps are just no longer offered (`hidden` on their
-definitions).
+A business plan, a marketing plan and a go-to-market plan are among
+Write's.
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
@@ -66,10 +64,8 @@ npx playwright install chromium && npx playwright test   # browser tests, deskto
 
 The build is `index.html`, one stylesheet and one script with every app in
 it, so opening an app fetches nothing; only Trip's map library and the full
-icon set (for the icon picker) are fetched when first wanted. The build
-writes a `.gz` beside every text file (`scripts/precompress.mjs`), which
-nginx serves as it is (`deploy/nginx.conf`). Host it on any static file
-server. `VITE_SITE_URL` in `.env` is the address it will be published
+icon set (for the icon picker) are fetched when first wanted. Cloudflare
+compresses what it serves. Host it on any static file server. `VITE_SITE_URL` in `.env` is the address it will be published
 at; the link-preview tags need it. `node scripts/make-icons.mjs` redraws the
 PNG icons and the preview card in `public/`.
 
@@ -328,8 +324,7 @@ nothing else. It is `tinier/`: one file of logic (`tinier.ts`, tested
 with node against a Map) run as a Cloudflare Worker (`worker.ts`) with
 its rows in a D1 table (`schema.sql`), a rate-limit binding as the brake
 on one address, and an hourly cron that forgets expired links (a read of
-one forgets it sooner). `deploy/tinier` is the same service as it ran on
-the VM, kept until that is retired.
+one forgets it sooner).
 
 ## What the server sees
 
@@ -338,7 +333,7 @@ which a browser keeps to itself: it is not in the request, so it cannot be
 in a log. That is why plain-parameter links use `#` and the same thing after
 `?` is deliberately not understood. The server is static files, and the site
 keeps no log of its own: the Workers have logging switched off
-(`wrangler.jsonc`), as nginx did on the VM (`deploy/nginx.conf`). Cloudflare,
+(`wrangler.jsonc`). Cloudflare,
 which serves the files, keeps its own record of requests (an address, a
 path such as `/deck/`, a browser) under its own policy; a path says which
 app was opened, never which document.
@@ -476,7 +471,6 @@ src/styles.css        the stylesheet: tokens, the shell, shared pieces (.to-*), 
 scripts/              new-app, share cards and icons
 tinier/               the link shortener: a Worker, its D1 schema, its page
 wrangler.jsonc        the site as a Cloudflare Worker of static assets; public/_headers its headers
-deploy/               the older VM deploy: nginx, the shortener as a Node service
 test/                 unit tests (node --test)
 e2e/                  Playwright browser tests
 ```
@@ -529,4 +523,3 @@ that, so a document can never bring a script of its own, not even inside
 the frame that shows it.
 Once, on a new account: `npx wrangler login`, `npx wrangler d1 create tinier`
 (its id goes in `tinier/wrangler.jsonc`), `npm run tinier:schema`.
-`deploy/deploy.sh` is the older way, onto an exe.dev VM running nginx.

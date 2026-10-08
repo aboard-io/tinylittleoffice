@@ -1066,28 +1066,6 @@ test('write: highlight, alignment and an icon in the line', async ({ page }) => 
   await shot(page, 'write-marks');
 });
 
-test('a business plan starts from its questions, a page a section, and reads as a deck', async ({ page }) => {
-  await page.goto('/#/bizplan');
-  await page.getByRole('button', { name: 'Start from the template' }).click();
-  await expect(page.locator('.deck-thumb')).toHaveCount(11);
-  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('Business plan');
-  await page.getByRole('button', { name: /^Section 2/ }).click();
-  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('The problem');
-  await page.getByRole('textbox', { name: 'Words' }).fill('Small teams lose a day a week to spreadsheets.');
-  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('lose a day a week');
-  await expect(page).toHaveTitle('Business plan · TinyLittleOffice');
-  // Printed: letter pages, one a section.
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^PDF/ }).click()]);
-  expect(file.suggestedFilename()).toBe('business-plan.pdf');
-  expect(readFileSync(await file.path()).toString('latin1').match(/\/Type \/Page\b/g)!.length).toBe(11);
-  // The other plans share the kit.
-  await page.goto('/#/gtm');
-  await page.getByRole('button', { name: 'Start from the template' }).click();
-  await expect(page.locator('.deck-thumb')).toHaveCount(8);
-  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('Go-to-market plan');
-});
-
 test('calculator: a tape, a graph, and a mortgage worked out as a page', async ({ page }) => {
   await page.goto('/#/calc');
   const display = page.getByRole('textbox', { name: 'Expression' });

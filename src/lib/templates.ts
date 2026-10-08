@@ -1,3 +1,5 @@
+
+
 /**
  * Templates: the documents an app can start from, as plain text in the
  * app's own format, keyed by app. Each is a minimal, correct, useful
@@ -8,12 +10,47 @@
  * its app's parse, serialize and view.
  *
  * The three plans (business, marketing, go-to-market) live here as Write
- * templates, built from the same sections their own apps start from.
+ * templates: the sections a good plan has, and the questions each answers.
  */
-import type { PlanSection } from './plan.ts';
-import { sections as bizplan } from '../apps/bizplan.def.ts';
-import { sections as mktplan } from '../apps/mktplan.def.ts';
-import { sections as gtm } from '../apps/gtm.def.ts';
+
+/** A section of a plan, and what it should say, as prompts the writer replaces. */
+interface Section {
+  heading: string;
+  prompts: string[];
+}
+
+const BIZPLAN: Section[] = [
+  { heading: 'Summary', prompts: ['What the business does, in two sentences.', 'Who it is for, and what they get.', 'Where it is now, and what the next year holds.', 'What you are asking for, if anything.'] },
+  { heading: 'The problem', prompts: ['What is hard, slow or costly for the customer today.', 'How they cope with it now.', 'Why it matters enough to pay to fix.'] },
+  { heading: 'The product', prompts: ['What it is and how it works, plainly.', 'What makes it better than the way things are done now.', 'What exists today, and what is still to build.'] },
+  { heading: 'The market', prompts: ['Who the customers are, and how many of them there are.', 'How the market is changing.', 'Who else serves them, and how you differ.'] },
+  { heading: 'How it makes money', prompts: ['What is sold, at what price, how often.', 'What it costs to make and to sell.', 'The margin, and how it improves with scale.'] },
+  { heading: 'Going to market', prompts: ['How customers hear of it.', 'How they try it, buy it and stay.', 'The first hundred customers: where they come from.'] },
+  { heading: 'The team', prompts: ['Who is building this, and why these people.', 'Who is missing, and when they join.', 'Advisers and partners.'] },
+  { heading: 'The numbers', prompts: ['Revenue and costs for the next three years, by year.', 'When it breaks even.', 'The assumptions that matter most.'] },
+  { heading: 'Risks', prompts: ['What could stop this working.', 'What you would do about each.', 'What you do not know yet.'] },
+  { heading: 'The ask', prompts: ['How much, for what, until when.', 'What it buys: the milestones.', 'What the money gets whoever gives it.'] },
+];
+
+const MKTPLAN: Section[] = [
+  { heading: 'Goals', prompts: ['What marketing must achieve this period, as numbers.', 'By when.', 'What success looks like, and what it does not.'] },
+  { heading: 'Audience', prompts: ['Who you are talking to: the two or three kinds of person.', 'What they want, worry about, and read.', 'Where they are when they decide.'] },
+  { heading: 'Positioning and message', prompts: ['What this is, for whom, and why it is the one to choose, in one sentence.', 'The three things to say every time.', 'The proof for each.'] },
+  { heading: 'Channels', prompts: ['Where the audience is, and what you will do in each place.', 'What is owned (site, list), earned (press, word of mouth) and paid (ads, sponsorship).', 'What you will not do.'] },
+  { heading: 'Calendar', prompts: ['What ships when: launches, campaigns, events, content.', 'The rhythm: weekly, monthly.', 'Dates that are fixed by others.'] },
+  { heading: 'Budget', prompts: ['How much, and where it goes, by channel.', 'People and time, not only money.', 'What you cut first if it has to shrink.'] },
+  { heading: 'Measures', prompts: ['The numbers you watch, and where they come from.', 'The targets for each.', 'When you look, and who decides what changes.'] },
+];
+
+const GTM: Section[] = [
+  { heading: 'The customer', prompts: ['Who buys first, exactly: role, company, situation.', 'The moment they feel the need.', 'Who else has a say in the purchase.'] },
+  { heading: 'The offer', prompts: ['What they get, in their words.', 'The one thing it does that nothing else does.', 'What is included, what is not, what comes later.'] },
+  { heading: 'Pricing and packaging', prompts: ['The price, and why that number.', 'Tiers or plans, if any, and who each is for.', 'Trials, discounts, guarantees.'] },
+  { heading: 'The route to them', prompts: ['How they find out: the first channel, and the second.', 'Self-serve, sales, partners, or a mix.', 'What a sale takes, step by step, and how long.'] },
+  { heading: 'The launch', prompts: ['What happens on the day, and the week before and after.', 'Who does what.', 'What is ready: pages, materials, support, billing.'] },
+  { heading: 'Enablement', prompts: ['What sales and support need to know and have.', 'The objections, and the answers.', 'The demo.'] },
+  { heading: 'Measures', prompts: ['Leads, trials, customers, revenue: the targets for the first month and the first quarter.', 'What a good first week looks like.', 'When you decide to push harder, change course or stop.'] },
+];
 
 export interface Template {
   /** A short name, unique within its app: 'meeting'. */
@@ -26,7 +63,7 @@ export interface Template {
 }
 
 /** A plan in Write's format: the title, then a subheading a section, its prompts in italics to be written over. */
-export function planText(title: string, subtitle: string, sections: PlanSection[]): string {
+export function planText(title: string, subtitle: string, sections: Section[]): string {
   return [`# ${title}`, `_${subtitle}_`, ...sections.flatMap((s) => [`## ${s.heading}`, ...s.prompts.map((p) => `_${p}_`)])].join('\n');
 }
 
@@ -61,9 +98,9 @@ const WRITE: Template[] = [
     blurb: 'The three things that matter this week, then a line for each day.',
     body: ['# This week', '_The one thing this week is for._', '## Must do', '+ ', '+ ', '+ ', '## Monday', '- ', '## Tuesday', '- ', '## Wednesday', '- ', '## Thursday', '- ', '## Friday', '- ', '## Notes', 'What came up, and what moves to next week.'].join('\n'),
   },
-  { id: 'bizplan', name: 'Business plan', blurb: 'Summary, problem, product, market, money, team, numbers, risks, the ask: the questions a plan answers.', body: planText('Business plan', 'Company name · Month Year', bizplan) },
-  { id: 'mktplan', name: 'Marketing plan', blurb: 'Goals, audience, message, channels, calendar, budget, measures.', body: planText('Marketing plan', 'Product · Period', mktplan) },
-  { id: 'gtm', name: 'Go-to-market plan', blurb: 'The customer, the offer, pricing, the route to them, the launch, enablement, measures.', body: planText('Go-to-market plan', 'Product · Launch', gtm) },
+  { id: 'bizplan', name: 'Business plan', blurb: 'Summary, problem, product, market, money, team, numbers, risks, the ask: the questions a plan answers.', body: planText('Business plan', 'Company name · Month Year', BIZPLAN) },
+  { id: 'mktplan', name: 'Marketing plan', blurb: 'Goals, audience, message, channels, calendar, budget, measures.', body: planText('Marketing plan', 'Product · Period', MKTPLAN) },
+  { id: 'gtm', name: 'Go-to-market plan', blurb: 'The customer, the offer, pricing, the route to them, the launch, enablement, measures.', body: planText('Go-to-market plan', 'Product · Launch', GTM) },
 ];
 
 /** Rows as a sheet: cells joined by tabs, trailing blank cells dropped, so each row is already in the sheet's own spelling. */
