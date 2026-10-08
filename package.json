@@ -18,7 +18,8 @@
     "tinier:dev": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --local --file=tinier/schema.sql && wrangler dev -c tinier/wrangler.jsonc --port 8787 --var SITE:${SITE:-http://localhost:5173}",
     "new-app": "node scripts/new-app.mjs",
     "build:api": "API_OUT=packages/doc/dist vite build -c vite.api.config.ts",
-    "icons": "node --experimental-strip-types scripts/make-icons.mjs"
+    "icons": "node --experimental-strip-types scripts/make-icons.mjs",
+    "skill": "node --experimental-strip-types scripts/make-skill.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

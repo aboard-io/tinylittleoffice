@@ -82,8 +82,8 @@ test('each app has a page of its own, where a new document of it opens', async (
 
 test('two links compare side by side, with what changed', async () => {
   const created = Date.UTC(2026, 9, 6);
-  const a = encodeEnvelope({ created, title: 'Chores', by: 'me', body: '- Sweep\n- Shop' }, 'todo');
-  const b = encodeEnvelope({ created, title: 'Chores', by: 'chores-agent', body: 'x Sweep\n- Shop\n- Call mum' }, 'todo');
+  const a = encodeEnvelope({ created, title: 'Chores', by: 'me', body: '- [ ] Sweep\n- [ ] Shop' }, 'todo');
+  const b = encodeEnvelope({ created, title: 'Chores', by: 'chores-agent', body: '- [x] Sweep\n- [ ] Shop\n- [ ] Call mum' }, 'todo');
   await open(`#/compare/todo/${a}/todo/${b}`);
   const cmp = $('to-compare');
   const diff = () => $('.cmp-diff', cmp);

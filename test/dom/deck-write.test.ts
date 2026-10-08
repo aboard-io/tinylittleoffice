@@ -1,7 +1,7 @@
 // Deck and Write in happy-dom: icons, nesting, documents shown inside a text and on slides (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
 import { mount, settle, button, type Editor } from './helpers.ts';
-import { prefs, box, typeRich, settleAll, until, pickIcon, ref } from './helpers-more.ts';
+import { prefs, box, typeRich, settleAll, until, pickIcon } from './helpers-more.ts';
 import { parseDeck } from '../../src/lib/deckmodel.ts';
 
 beforeEach(() => prefs());
@@ -109,11 +109,11 @@ test('write: an icon in the line, and marks, alignment and icons come back from 
 });
 
 test('previews are the real thing: a month, a map, a list that fills in', async () => {
-  const cal = ref('cal', '---\ngreen: Sam\n---\n- 2020-01-03 to 2020-01-04: Offsite {color=green}\n- 2020-01-12: Launch');
-  const trip = ref('trip', 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nCoimbra | 40.2033 | -8.4103 |');
-  const todo = ref('todo', '- [ ] Book flights\n- [x] Renew passport\n- [ ] Pack');
+  const cal = '```cal\n---\ngreen: Sam\n---\n- 2020-01-03 to 2020-01-04: Offsite {color=green}\n- 2020-01-12: Launch\n```';
+  const trip = '```trip\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nCoimbra | 40.2033 | -8.4103 |\n```';
+  const todo = '```todo\n- [ ] Book flights\n- [x] Renew passport\n- [ ] Pack\n```';
   // In a text they show whole: the calendar as a month, the trip on its map, every task.
-  const { el } = await mount('write', `Plans\n@@${cal}\n@@${trip}\n@@${todo}`);
+  const { el } = await mount('write', `Plans\n\n${cal}\n\n${trip}\n\n${todo}`);
   const embeds = [...el.querySelectorAll('to-embed')].map((e) => e.shadowRoot!.querySelector('svg[role="img"]')!);
   expect(embeds).toHaveLength(3);
   expect(embeds[0].textContent).toContain('January 2020');
@@ -126,7 +126,7 @@ test('previews are the real thing: a month, a map, a list that fills in', async 
 });
 
 test('on slides, the documents arrive a piece at a time', async () => {
-  const deck = await mount('deck', `## A\n\n\`\`\`todo\n- Book flights\nx Renew passport\n- Pack\n\`\`\`\n\n---\n\n## B\n\n\`\`\`cal\nd2,2.g,Offsite\ndb,1,Launch\n#g=Sam\n\`\`\``);
+  const deck = await mount('deck', `## A\n\n\`\`\`todo\n- [ ] Book flights\n- [x] Renew passport\n- [ ] Pack\n\`\`\`\n\n---\n\n## B\n\n\`\`\`cal\n---\ngreen: Sam\n---\n- 2020-01-03 to 2020-01-04: Offsite {color=green}\n- 2020-01-12: Launch\n\`\`\``);
   button(deck.el, /Present/).click();
   await settle(deck.el);
   const { slide, key } = presenting(deck.el);

@@ -57,7 +57,7 @@ test('signing a document, and a change after it is seen', async () => {
   expect(link().env!.sig).toBeUndefined();
 
   // A tampered link reads as a mismatch, never as valid.
-  const tampered = signed.replace(/#\/v0\/todo\/([YZWR])(.)/, (_m, f: string, c: string) => `#/v0/todo/${f}${c === 'A' ? 'B' : 'A'}`);
+  const tampered = signed.replace(/#\/v0\/todo\/([yzr])(.)/, (_m, f: string, c: string) => `#/v0/todo/${f}${c === 'A' ? 'B' : 'A'}`);
   await open(tampered);
   await idle();
   await new Promise((r) => setTimeout(r, 50));

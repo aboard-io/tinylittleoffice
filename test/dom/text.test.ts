@@ -161,7 +161,7 @@ test('outline: a document as an item, made in its own editor; the outline seen a
   button(sub!, /Done/).click();
   await until(() => expect(ol().querySelectorAll('.ol-row to-embed')).toHaveLength(1));
   await settleAll();
-  expect(bodyOf()).toMatch(/\n```sheet\nBudget/);
+  expect(bodyOf()).toMatch(/\n```sheet[^\n]*\n[^`]*Budget/);
   // The same text, as a deck: a slide for every level with something under it.
   const back = location.hash;
   const seeAs = async (value: string) => {

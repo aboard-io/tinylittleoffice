@@ -100,8 +100,8 @@ test('deck: slides, icons and presenting', async () => {
 });
 
 test('deck: layouts, a transition, and other documents on a slide', async () => {
-  const draw = '```draw\nr,2,1,12,6,1,One\ne,20,10,10,8,0,Two\na,14,4,8,8,0\n```';
-  const sheet = '```sheet\nItem\tCost\nRent\t1200\nFood\t600\n```';
+  const draw = '```draw\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | One\ne | 20 | 10 | 10 | 8 | 0 | Two\na | 14 | 4 | 8 | 8 | 0 |\n```';
+  const sheet = '```sheet\nItem | Cost\n--- | ---\nRent | 1200\nFood | 600\n```';
   // (Without the closing QR code: it is tested above, and it is the deck's whole link worked out again at every step.)
   const body = '---\nqr: no\n---\n' + ['## Two columns {.two}\n\n- left\n\n|\n\n- right', '## :star: Big icon {.icon}\n\n- why', `## Drawing\n\n- first\n\n${draw}`, `## Table\n\n${sheet}`].join('\n\n---\n\n');
   const { last } = await mount('deck', body);
@@ -192,11 +192,12 @@ test('deck: layouts, a transition, and other documents on a slide', async () => 
   expect(slide().querySelectorAll('line')).toHaveLength(0);
   await key('End');
   expect(slide().querySelectorAll('line')).toHaveLength(1);
-  // A table fills in a cell per click, across each row and down.
+  // A table fills in a cell per click, across each row and down, under the names of its columns.
   await key('ArrowRight');
   expect(slide().querySelectorAll('rect')).toHaveLength(6);
-  expect(shows('Item')).toBe(false);
-  for (const [now, next] of [['Item', 'Cost'], ['Cost', 'Rent'], ['Rent', '1200'], ['1200', 'Food'], ['Food', '600']]) {
+  expect(shows('Item') && shows('Cost')).toBe(true);
+  expect(shows('Rent')).toBe(false);
+  for (const [now, next] of [['Rent', '1200'], ['1200', 'Food'], ['Food', '600']]) {
     await key('ArrowRight');
     expect(shows(now), now).toBe(true);
     expect(shows(next), next).toBe(false);

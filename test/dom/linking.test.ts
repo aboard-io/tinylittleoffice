@@ -129,7 +129,7 @@ test('pasted into one line (an outline item), formatted text keeps its marks and
   data.setData('text/plain', ' plan see here');
   box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
   await settle(el);
-  expect(last()).toBe('Launch the **plan** see [here](https://a.co)');
+  expect(last()).toBe('- Launch the **plan** see [here](https://a.co)');
 });
 
 test('a heading cannot be unbolded: Bold is off there, Mod+B does nothing, and bold inside one is dropped', async () => {

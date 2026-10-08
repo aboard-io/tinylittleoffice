@@ -201,8 +201,8 @@ test('download views: the link itself hands over a file', async () => {
   const docs: [string, string, string, string, (b: Uint8Array) => void][] = [
     ['deck', 'pptx', '## :rocket: Launch plan\n\n- Build it\n- Ship it\n\n---\n\n## :users: Team\n\n- Everyone\n', 'launch-plan.pptx', zip],
     ['deck', 'ppt', '## Alias', 'alias.pptx', zip],
-    ['sheet', 'xlsx', '10\tTotal\n32\n=SUM(A1:A2)*2\t=AVG(A1:A2)', 'sheet.xlsx', zip],
-    ['sheet', 'csv', '10\tTotal\n32\n=SUM(A1:A2)*2', 'sheet.csv', (b) => expect(utf(b)).toBe('﻿10,Total\r\n32,\r\n84,\r\n')],
+    ['sheet', 'xlsx', 'ColA | ColB\n--- | ---\n10 | Total\n32 |\n=SUM(A1:A2)*2 | =AVG(A1:A2)', 'sheet.xlsx', zip],
+    ['sheet', 'csv', 'ColA | ColB\n--- | ---\n10 | Total\n32 |\n=SUM(A1:A2)*2 |', 'sheet.csv', (b) => expect(utf(b)).toBe('﻿10,Total\r\n32,\r\n84,\r\n')],
     ['write', 'rtf', '# Memo\n\nSome **bold** text\n\n- one\n- two', 'memo.rtf', (b) => expect(utf(b)).toContain('{\\b bold}')],
     ['write', 'html', '# Memo\n\nSome **bold** text', 'memo.html', (b) => { expect(utf(b)).toContain('<strong>bold</strong>'); expect(utf(b)).toContain('<meta property="og:title" content="Memo">'); }],
     ['draw', 'svg', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | Box\na | 14 | 4 | 8 | 0 | 0 |', 'draw.svg', (b) => expect(utf(b)).toContain('>Box</text>')],

@@ -88,7 +88,7 @@ export class PageView extends DiagramElement {
     // A new row starts with its fields' names as its words, so it shows up on the page to be typed into (a number where a number is wanted).
     const fresh = (kind: number): Row => ({
       kind,
-      values: fieldsOf(form, kind).map((f) => (f.optional || (own && f.type !== 'number' && f.type !== 'date' && f.type !== 'choice') ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
+      values: fieldsOf(form, kind).map((f) => (f.optional || (own && !['number', 'money', 'percent', 'date', 'choice'].includes(f.type)) ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
       depth: 0,
     });
     // Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last.

@@ -33,7 +33,8 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   // again with the cursor where it went (the hint's row has been made meanwhile, so it is numbered now).
   f.post({ lf: 'set', k: 0, f: 0, p: 0, v: 'Harbor Studio' });
   await settleAll();
-  expect(bodyOf()).toBe('From: Harbor Studio');
+  // (Who it is from is a setting: it goes in the header.)
+  expect(bodyOf()).toMatch(/^---\nfrom: Harbor Studio\n---\n?$/);
   f.post({ lf: 'done', n: '+0,0,1' });
   await drawn(el, () => expect(f.data()?.f).toBe('0,0,1'));
   expect(f.page().querySelector('[data-lf="0,0,1"]')).toBeTruthy();
@@ -78,10 +79,10 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   f.post({ lf: 'remove', r: +remove.getAttribute('data-lf-remove')! });
   await drawn(el, () => expect(f.page().querySelectorAll('tbody tr[data-inv=item]')).toHaveLength(1));
   expect(inv(f, 'total')).toBe('$1,944.00');
-  // What is saved is the text, as anyone would have written it: the settings in their order, then the items as a table. (Ctrl+Shift+T pressed in the page comes as a message.)
+  // What is saved is the text, as anyone would have written it: the settings in its header, in their order, then the items as a table. (Ctrl+Shift+T pressed in the page comes as a message.)
   f.post({ lf: 'key', key: 'T', shift: true });
   await settle(el);
-  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toBe('From: Harbor Studio | 14 Quay Street\nNumber: 0042\nTax: 8%\n\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
+  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toBe('---\nfrom: Harbor Studio | 14 Quay Street\nnumber: 0042\ntax: 8%\n---\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
 });
 
 test('the example invoice is edited where it stands, and the page it downloads is clean', async () => {
@@ -106,7 +107,7 @@ test('the example invoice is edited where it stands, and the page it downloads i
   expect(fieldNamed(f, 'Due')!.getAttribute('type')).toBe('date');
   shortcut('t', { mod: true, shift: true });
   await settle(el);
-  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toMatch(/^From: Harbor Studio \| 14 Quay Street\nTo: Acme Ltd \| Accounts payable\nNumber: 0042\nDate: 2027-03-01\nTax: 8%\n\nWhat \| Qty:number \| Units \| Price:money\n--- \| --- \| --- \| ---\nDesign \| 10 \| hours \| 150\n/);
+  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toMatch(/^---\nfrom: Harbor Studio \| 14 Quay Street\nto: Acme Ltd \| Accounts payable\nnumber: 0042\ndate: 2027-03-01\ntax: 8%\n---\nWhat \| Qty:number \| Units \| Price:money\n--- \| --- \| --- \| ---\nDesign \| 10 \| hours \| 150\n/);
   // The downloaded page carries none of the editing. (The PDF is drawn on a canvas: e2e/invoice.spec.ts.)
   const file = await downloaded(() => choose('Download', /Web page/));
   expect(file.name).toBe('invoice-0042.html');
