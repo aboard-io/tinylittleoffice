@@ -735,7 +735,10 @@ test('diagrams worked on the picture: lists of things, regions, place cards', as
   const circles = venn.layout!(venn.example).shapes.filter((s) => s.k === 'e');
   const mid = (...cs: typeof circles) => [cs.reduce((a, c) => a + c.x + c.w / 2, 0) / cs.length, cs.reduce((a, c) => a + c.y + c.h / 2, 0) / cs.length] as const;
   assert.equal(venn.keyAt!(venn.example, ...mid(circles[0])), 'Fast');
-  assert.equal(venn.keyAt!(venn.example, ...mid(circles[0], circles[1])), 'Fast & Cheap');
+  // Between two circles, away from the third (their midpoint alone is inside all three).
+  const [mx, my] = mid(circles[0], circles[1]);
+  const [tx, ty] = mid(circles[2]);
+  assert.equal(venn.keyAt!(venn.example, mx + (mx - tx) * 0.4, my + (my - ty) * 0.4), 'Fast & Cheap');
   assert.equal(venn.keyAt!(venn.example, ...mid(...circles)), 'Fast & Cheap & Good');
   assert.equal(venn.keyAt!(venn.example, 1, 1), undefined);
   // Place cards: one per seated person with their name and table, eight to a letter sheet, lines to cut along.

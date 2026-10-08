@@ -131,7 +131,17 @@ export class DiagramElement extends DocElement<string> {
     // Enter closes and starts the next one under (or after) this; Backspace on empty words takes it away.
     const next = () => {
       const [at, f, item] = [e.row, e.field, e.item];
-      if (this.draft || link && item === undefined) return close();
+      if (this.draft) return close();
+      if (link && item === undefined) {
+        // On a thing named only by its lines (a node of a network), Enter starts a line from it: "API > ", the far end to type.
+        if (!refs.includes(f)) return close();
+        const name = (this.rows()[at]?.values[f] ?? '').trim();
+        if (!name) return close();
+        const values = row.values.map((_, n) => (n === refs[0] ? name : ''));
+        this.editing = null;
+        this.closedAt = performance.now();
+        return this.startDraft(row.kind, at + 1, row.depth, values, refs[1]);
+      }
       // The box gives way to the next one's; what was picked stays picked until the new draft has read it.
       this.editing = null;
       this.closedAt = performance.now();
