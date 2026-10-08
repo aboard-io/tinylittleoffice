@@ -1,32 +1,12 @@
 /** Gantt: what the shell knows about schedules. Format: lib/ganttmodel.ts. */
 import { defineApp, csv, utf8, text, rect, clip, r, ACCENT, INK, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
-import { ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
-import { EPOCH_DAY, isoDay } from '../lib/calmodel.ts';
-import { ymdToDay } from '../lib/tz.ts';
+import { ganttRange, ganttSpans, parseGantt, readGantt } from '../lib/ganttmodel.ts';
+import { isoDay } from '../lib/calmodel.ts';
 
 export function ganttToCsv(body: string): string {
   const tasks = parseGantt(body);
   const spans = ganttSpans(tasks);
   return csv([['Task', 'Level', 'Start', 'End', 'Days', 'Done %'], ...tasks.map((t, i) => [t.label, (t.depth ?? 0) + 1, isoDay(spans[i].start), isoDay(spans[i].start + spans[i].days - 1), spans[i].days, spans[i].done])]);
-}
-
-/**
- * A schedule written plainly, one task per line:
- *   2027-03-01, 5, Design            start, days, name
- *   > 2027-03-01, 2, 50%, Sketch     ">" nests it under the task above; "50%" is how far along it is
- */
-export function readGantt(text: string): string {
-  const tasks: GanttTask[] = [];
-  let plain = false;
-  for (const line of text.split('\n')) {
-    const m = /^\s*(>*)\s*(\d{4})-(\d\d)-(\d\d)\s*,\s*(\d+)\s*,\s*(?:(\d+)%\s*,\s*)?(.*)$/.exec(line);
-    if (!m) continue;
-    plain = true;
-    const task: GanttTask = { start: Math.max(0, ymdToDay(+m[2], +m[3], +m[4]) - EPOCH_DAY), days: Math.max(1, +m[5]), done: Math.min(100, +(m[6] ?? 0)), label: m[7].trim() };
-    if (m[1]) task.depth = m[1].length;
-    tasks.push(task);
-  }
-  return plain ? serializeGantt(tasks) : text;
 }
 
 /** The schedule as a page; `upTo` tasks of it while it builds. */

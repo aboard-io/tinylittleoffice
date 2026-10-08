@@ -48,7 +48,7 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
   },
   board: {
     md: '## To do\n\n- Write the brief\n\n## Doing (limit 2)\n\n- Build the form\n\n## Done\n',
-    check: (b) => assert.ok(/^#To do\nWrite the brief\n#Doing\|2\nBuild the form\n#Done$/.test(b), b),
+    check: (b) => assert.equal(b, '## To do\n\n- Write the brief\n\n## Doing {limit=2}\n\n- Build the form\n\n## Done'),
   },
   calc: {
     md: '## Mortgage\n\n- Price: 350,000\n- Deposit: 70,000\n- Interest rate: 6%\n- Term: 25 years\n',
@@ -128,5 +128,7 @@ test('a timed event keeps its time and zone through Markdown', () => {
   assert.equal(cal.zone, 'Europe/Lisbon');
   assert.equal(cal.spans[0].kind, 't');
   assert.equal(cal.spans[0].dur, 90);
-  assert.equal(toMarkdown(def, body), md);
+  // Written canonically, the zone in the header; that goes round unchanged.
+  assert.equal(toMarkdown(def, body), '---\nzone: Europe/Lisbon\n---\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-12: Demo\n');
+  assert.equal(fromMarkdown(def, toMarkdown(def, body)), body);
 });

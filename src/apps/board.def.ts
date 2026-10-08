@@ -1,6 +1,6 @@
 /** Board: what the shell knows about kanban boards. Format: lib/boardmodel.ts. */
 import { defineApp, csv, utf8, xml, text, rect, clip, wrapText, SHADE, LINE, MUTED, type Page } from '../kit/core.ts';
-import { parseBoard } from '../lib/boardmodel.ts';
+import { parseBoard, readBoard } from '../lib/boardmodel.ts';
 
 export const boardToCsv = (body: string) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, c]))]);
 
@@ -40,6 +40,7 @@ export default defineApp({
   view: (body, opts = {}) => [page(body, opts.step)],
   // On a slide, the stages are there and their cards arrive one at a time.
   steps: (body) => parseBoard(body).reduce((n, s) => n + s.cards.length, 0),
+  read: readBoard,
   html: (body) => `<h1>Board</h1>\n${parseBoard(body).map((s) => `<section>\n<h2>${xml(s.name)}</h2>\n<ul>\n${s.cards.map((c) => `<li>${xml(c)}</li>`).join('\n')}\n</ul>\n</section>`).join('\n')}`,
   downloads: [
     { ext: 'csv', label: 'CSV', mime: 'text/csv;charset=utf-8', build: (b) => utf8('\ufeff' + boardToCsv(b)) },

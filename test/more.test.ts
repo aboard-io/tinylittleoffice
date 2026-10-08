@@ -137,7 +137,7 @@ test('calendar: labels are capped and zone header only with spans', () => {
   const s = serializeCalendar({ zone: 'UTC', spans: [{ kind: 'd', start: 1, dur: 1, label: long }] });
   assert.equal(parseCalendar(s).spans[0].label.length, 60);
   assert.equal(serializeCalendar({ zone: 'Europe/Paris', spans: [] }), '');
-  const e = parseCalendar('t0,1o,x').spans[0];
+  const e = parseCalendar('- 2020-01-01 00:00-01:00: x').spans[0];
   assert.equal(spanEndMs(e), Date.UTC(2020, 0, 1, 1, 0));
 });
 

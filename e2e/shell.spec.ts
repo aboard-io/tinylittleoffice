@@ -9,9 +9,9 @@ test('download views: drawn files, a PDF and a picture, come from the link itsel
   const docs: [string, string, string, string, (bytes: Buffer) => void][] = [
     // Every app can also be a PDF and a picture.
     ['deck', 'pdf', ':rocket:t\nLaunch plan\nSpring\n\nAgenda\none\ntwo', 'launch-plan.pdf', (b) => { expect(b.subarray(0, 8).toString()).toBe('%PDF-1.4'); expect(b.toString('latin1').match(/\/Type \/Page /g)).toHaveLength(3); }],
-    ['gantt', 'pdf', '1jk,5,1e,Design\n>1jk,2,2s,Sketch', 'gantt.pdf', (b) => expect(b.subarray(0, 5).toString()).toBe('%PDF-')],
-    ['board', 'png', '#To do\nWrite the brief\n#Done', 'board.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
-    ['trip', 'png', '3xa8g,-fuyo,Lisbon\n40000,0,B', 'lisbon-to-b.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
+    ['gantt', 'pdf', 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\n- Sketch | 2025-06-23 | 2 | 100%', 'gantt.pdf', (b) => expect(b.subarray(0, 5).toString()).toBe('%PDF-')],
+    ['board', 'png', '## To do\n\n- Write the brief\n\n## Done', 'board.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
+    ['trip', 'png', 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | \nB | 41.1579 | -8.6291 |', 'lisbon-to-b.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
   ];
   for (const [app, ext, body, name, check] of docs) {
     await page.goto('about:blank');

@@ -10,17 +10,11 @@ import { linkToRef, makeRef, resolve } from '../kit/embed.ts';
 import { linkable, linkTarget, parseDoc, parseInline, serializeDoc, serializeInline, type Block, type Run } from './richtext.ts';
 import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
 import { parseGrid, serializeGrid, chartOf, typesOf } from './formula.ts';
-import { parseTodos, serializeTodos } from './todomodel.ts';
-import { parseBoard, serializeBoard } from './boardmodel.ts';
-import { parseGantt } from './ganttmodel.ts';
-import { parseTrip } from './tripmodel.ts';
-import { parseCalendar, repeatText, EPOCH_DAY, EPOCH_MS, isoDay, type Span as CalSpan } from './calmodel.ts';
 import { altOf, parseDrawing, serializeDrawing, withAlt, type Shape } from './drawmodel.ts';
 import { edgeText, linkLine, parseLinks, parseOutline, serializeOutline } from './outlinemodel.ts';
 import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
-import { dayToYmd, ymdString, ymdToDay, utcToParts, pad2 } from './tz.ts';
 import { formatOf, parseFold, serializeFold } from './fold.ts';
 import { mdToSite, siteToMd } from './sitemodel.ts';
 import { FIELDS, MODES, evaluate, inputs, parseCalc, serializeCalc, shown, withDefaults } from './calc.ts';
@@ -312,30 +306,12 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       return (name ? `# ${name}\n\n` : '') + tableMd(head, rest);
     }
     case 'todo':
-      return parseTodos(body).map((t) => `- [${t.done ? 'x' : ' '}] ${t.star ? '**' + t.text + '**' : t.text}${t.due !== null ? ` (due ${isoDay(t.due)})` : ''}`).join('\n') + '\n';
     case 'board':
-      return parseBoard(body).map((s) => `## ${s.name}${s.limit ? ` (limit ${s.limit})` : ''}\n\n${s.cards.map((c) => `- ${c}`).join('\n')}\n`).join('\n');
     case 'gantt':
-      return tableMd(['Task', 'Start', 'Days', 'Done'], parseGantt(body).map((t) => [`${'  '.repeat(t.depth ?? 0)}${t.label}`, ymdString(...(({ y, m, d }) => [y, m, d] as [number, number, number])(dayToYmd(EPOCH_DAY + t.start))), String(t.days), `${t.done}%`]));
     case 'trip':
-      return parseTrip(body).map((s, i) => `${i + 1}. ${s.name || `Stop ${i + 1}`} (${s.lat.toFixed(4)}, ${s.lon.toFixed(4)})${s.note ? `  \n   ${s.note}` : ''}`).join('\n') + '\n';
-    case 'cal': {
-      const cal = parseCalendar(body);
-      // A repeat goes after the label, the way the calendar reads it back ("Standup every week, 9 times").
-      const label = (s: CalSpan) => s.label + (s.repeat ? ` ${repeatText(s.repeat)}` : '');
-      // Times in the document's own zone (named at the top), the way the calendar reads them back.
-      const zone = cal.zone || 'UTC';
-      const clock = (min: number) => {
-        const p = utcToParts(EPOCH_MS + min * 60000, zone);
-        return { day: ymdString(p.y, p.m, p.d), time: `${pad2(p.h)}:${pad2(p.min)}` };
-      };
-      const timed = cal.spans.some((s) => s.kind === 't');
-      return (cal.zone || timed ? `Time zone: ${zone}\n\n` : '') + cal.spans.map((s) => {
-        if (s.kind === 'd') return `- ${isoDay(s.start)}${s.dur > 1 ? ` to ${isoDay(s.start + s.dur - 1)}` : ''}: ${label(s)}`;
-        const [a, b] = [clock(s.start), clock(s.start + s.dur)];
-        return `- ${a.day} ${a.time}-${b.time}: ${label(s)}`;
-      }).join('\n') + '\n';
-    }
+    case 'cal':
+      // Written as TLO, which is Markdown: the document as it stands.
+      return body ? body.trimEnd() + '\n' : '';
     case 'draw':
       // The alt text goes first, quoted; then the labels.
       return (altOf(body) ? `> ${altOf(body)}\n\n` : '') + parseDrawing(body).filter((s) => s.text).map((s) => `- ${s.text}`).join('\n') + '\n';
@@ -416,6 +392,9 @@ export function unwrapMarkdown(md: string): string {
   return t;
 }
 
+/** The header at the top of Markdown as a model hands it over, inside a fence or not; '' without one. */
+const frontMatter = (md: string) => /^(?:```\w*\n)?(---\n[\s\S]*?\n---\n)/.exec(md.replace(/\r\n?/g, '\n').replace(/[ \t]+$/gm, '').trim())?.[1] ?? '';
+
 export function fromMarkdown(def: AppDef, md: string): string {
   const plain = unwrapMarkdown(md);
   const text = (looksLikeCsv(plain) ? csvToMd(plain) : plain).trim();
@@ -465,41 +444,12 @@ export function fromMarkdown(def: AppDef, md: string): string {
       return serializeGrid(grid, chartOf(''), typesOf(''));
     }
     case 'todo':
-      return serializeTodos(
-        items(text).map((l) => {
-          const m = /^\[( |x|X)\]\s*(.*)$/.exec(l);
-          const due = /\(due (\d{4}-\d\d-\d\d)\)\s*$/.exec(m?.[2] ?? l);
-          const words = (m?.[2] ?? l).replace(/\(due \d{4}-\d\d-\d\d\)\s*$/, '').trim();
-          const star = /^\*\*(.*)\*\*$/.exec(words);
-          return { text: star ? star[1] : words, done: !!m && m[1] !== ' ', star: !!star, due: due ? Math.round((Date.UTC(+due[1].slice(0, 4), +due[1].slice(5, 7) - 1, +due[1].slice(8, 10)) - Date.UTC(2020, 0, 1)) / 864e5) : null };
-        }),
-      );
-    case 'board': {
-      const stages: { name: string; limit: number; cards: string[] }[] = [];
-      for (const raw of text.split('\n')) {
-        const h = /^#{1,6}\s+(.*?)(?:\s*\(limit (\d+)\))?\s*$/.exec(raw);
-        const li = /^\s*(?:[-*+]|\d+[.)])\s+(.*)$/.exec(raw);
-        if (h) stages.push({ name: h[1], limit: +(h[2] ?? 0), cards: [] });
-        else if (li) (stages[stages.length - 1] ?? (stages.push({ name: 'To do', limit: 0, cards: [] }), stages[0])).cards.push(li[1]);
-      }
-      return serializeBoard(stages.length ? stages : parseBoard(''));
-    }
+    case 'board':
     case 'gantt':
-      // Rows of "task | start | days | done" become the plain form the app already reads.
-      return def.read!(tableRows(text).map((r) => `${/^\s/.test(r[0]) ? '>' : ''}${r[1]}, ${r[2]}, ${(r[3] ?? '0').replace('%', '')}%, ${r[0].trim()}`).join('\n'));
     case 'trip':
-      return def.read!(items(text).map((l) => l.replace(/^(.*?)\s*\((-?[\d.]+),\s*(-?[\d.]+)\)(?:\s*\\?\s*(.*))?$/, '$2, $3, $1\t$4').replace(/\t$/, '')).join('\n'));
-    case 'cal': {
-      // "Time zone: X" and lines of "date[ to date| (N days)][ HH:MM-HH:MM]: label", as written above or by hand, made into what the calendar reads.
-      const zone = /^\s*time ?zone:\s*(\S+)/im.exec(text)?.[1];
-      const lines = items(text).map((l) =>
-        l.replace(/^(\d{4})-(\d\d)-(\d\d)(?:\s+to\s+(\d{4}-\d\d-\d\d))?(?:\s*\((\d+) days?\))?(?:\s+(\d\d?:\d\d)\s*[-–]\s*(\d\d?:\d\d))?\s*:?\s*(.*)$/, (_, y, m, d, to, n, t0, t1, label) => {
-          const end = to ?? (n && +n > 1 ? (({ y: Y, m: M, d: D }) => ymdString(Y, M, D))(dayToYmd(ymdToDay(+y, +m, +d) + +n - 1)) : '');
-          return `${y}-${m}-${d}${end ? ` to ${end}` : ''}${t0 ? ` ${t0}-${t1}` : ''} ${label}`;
-        }),
-      );
-      return def.read!([...(zone ? [`@${zone}`] : []), ...lines].join('\n'));
-    }
+    case 'cal':
+      // The app's own read makes what was written canonical, with the header (a zone, the units) that unwrapping took off.
+      return def.read!(frontMatter(md) + text);
     case 'draw': {
       const labels = items(text.replace(QUOTE, ''));
       const shapes: Shape[] = labels.map((t, i) => ({ k: 'r', x: 2 + (i % 4) * 14, y: 2 + Math.floor(i / 4) * 8, w: 12, h: 6, f: 1, text: t }));

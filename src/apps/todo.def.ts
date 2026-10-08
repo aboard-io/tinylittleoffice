@@ -1,26 +1,8 @@
 /** Todo: what the shell knows about task lists. Format: lib/todomodel.ts. */
 import { toMarkdown } from '../lib/markdown.ts';
 import { defineApp, appOf, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
-import { parseTodos, serializeTodos } from '../lib/todomodel.ts';
-import { EPOCH_DAY, isoDay } from '../lib/calmodel.ts';
-import { ymdToDay } from '../lib/tz.ts';
-
-/**
- * A list written plainly, one task per line: "- Buy milk", "x Done already",
- * "-! Starred", and a due date as "@2027-03-01" before the text. Markdown
- * checkboxes ("- [ ] task", "- [x] task") work too.
- */
-export function readTodos(text: string): string {
-  return serializeTodos(
-    text.split('\n').flatMap((line) => {
-      const m = /^\s*(?:[-*]\s*\[( |x|X)\]|([-x])(!?))\s*(?:@(\d{4})-(\d\d)-(\d\d)\s+)?(.*)$/.exec(line);
-      if (!m || (m[1] === undefined && m[2] === undefined)) return line.trim() ? [{ text: line.trim(), done: false, star: false, due: null }] : [];
-      // A due date already counted in days ("@1jk") is the app's own format: leave the line to it.
-      if (/^[-x]!?@[0-9a-z]+ /.test(line) && !m[4]) return parseTodos(line);
-      return [{ text: m[7], done: (m[1] ?? m[2]).toLowerCase() === 'x', star: m[3] === '!', due: m[4] ? ymdToDay(+m[4], +m[5], +m[6]) - EPOCH_DAY : null }];
-    }),
-  );
-}
+import { parseTodos, readTodos } from '../lib/todomodel.ts';
+import { isoDay } from '../lib/calmodel.ts';
 
 /** The list as a page `w` wide; `upTo` tasks of it while it builds. Long tasks wrap. */
 function page(body: string, upTo = Infinity, w = 720): Page {

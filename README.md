@@ -204,18 +204,16 @@ Every format is plain text, chosen so deflate has something to chew on.
   picture. The home page is what comes before the first `===`; a site with
   no `===` is one page navigated by its sections. `docs/website.md` is the
   design.
-- **Calendar**: an optional `@Zone/Name` line (the zone the document was last
-  edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
-  span whose start is a day count from 2020-01-01: a floating civil date, the
-  same in every country. `t<start>,<minutes>,<label>` is a timed span whose
-  start is a minute count from 2020-01-01T00:00Z: one absolute instant, shown
-  in whichever zone the viewer picks. Numbers are base 36. A star and a
-  letter after the length make a span repeat: `*d` daily, `*w` weekly, `*m`
-  monthly, `*y` yearly, for ever; `*w9` nine times; `*w<2pi` until that day
-  (counted like a start). It goes before the colour (`d1,2*w.g,Offsite`), so
-  a reader without repeats still sees the first time, in colour. A timed span
-  repeats at the same time of day in the document's zone. Time zone maths
-  comes from the browser's `Intl` support, so no zone database is bundled.
+- **Calendar**: one list item per span, in TLO (`docs/tlo.md`). `- 2027-03-01:
+  Launch` is a day and `- 2027-03-01 to 2027-03-03: Offsite` several: floating
+  civil dates, the same in every country. `- 2027-03-10 09:00-10:30: Retro` is
+  a time, written as the clock reads in the header's `zone` (the zone the
+  document was last edited in; UTC without one): one absolute instant, shown
+  in whichever zone the viewer picks. A colour and a repeat are attributes,
+  `{color=green every=week times=9}` or `until=2027-06-01`, and the header
+  says what a colour stands for (`green: Sam`). A timed span repeats at the
+  same time of day in the document's zone. Time zone maths comes from the
+  browser's `Intl` support, so no zone database is bundled.
 
 ## Styling: one stylesheet
 

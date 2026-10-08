@@ -209,7 +209,7 @@ describe('trip', () => {
     setSl(editorOf('trip').querySelector('sl-select.trip-units'), 'k');
     await settleAll();
     expect(hint()).toMatch(/3 stops · [\d.,]+ k?m/);
-    expect(bodyOf()).toMatch(/^!k\n/);
+    expect(bodyOf()).toMatch(/^---\nunits: km\n---\n/);
 
     await reopen();
     expect(stops()).toHaveLength(3);

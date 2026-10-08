@@ -34,7 +34,7 @@ test('a link in a text asks first, showing the whole address; Cancel opens nothi
 });
 
 test('an address in a task gets a button to follow it, which asks too', async () => {
-  const { el } = await mount('todo', '- Read https://example.org/guide\n- Plain task');
+  const { el } = await mount('todo', '- [ ] Read https://example.org/guide\n- [ ] Plain task');
   const go = el.querySelectorAll('a.to-go');
   expect(go.length).toBe(1);
   expect(go[0].getAttribute('aria-label')).toBe('Open https://example.org/guide');
