@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { shot, reopen, navTo, SHOTS, copyLink, privacy } from './helpers';
+import { SHOTS } from './helpers';
 
 // Stays: PDF and PNG are drawn through a canvas, which happy-dom lacks (the other formats are in test/dom/shell.test.ts).
 test('download views: drawn files, a PDF and a picture, come from the link itself', async ({ page }, testInfo) => {

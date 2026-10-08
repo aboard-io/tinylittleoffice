@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { shot, reopen, navTo, pickOption } from './helpers';
+import { shot, reopen, pickOption } from './helpers';
 
 // Stays: the corner handle and a mouse drag find their cells by where the pointer is on screen (the rest of blocks is in test/dom/suite.test.ts).
 test('sheet: the corner handle carries a block on, and a mouse drag selects one', async ({ page, isMobile }) => {

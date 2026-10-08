@@ -1,6 +1,6 @@
 // The shell, <to-app>, opened at a link and worked as a person would: what it shows, and the link it writes (ported from e2e/shell.spec.ts).
 import { test, expect } from 'vitest';
-import { open, fresh, reopen, idle, until, link, body, $, $$, text, tap, fill, key, button, press, menu, box, cell, toast, downloads, bytes } from './helpers-shell.ts';
+import { open, reopen, idle, until, link, body, $, $$, text, fill, key, button, press, menu, write, box, cell, toast, downloads, bytes } from './helpers-shell.ts';
 import { encodeEnvelope } from '../../src/lib/envelope.ts';
 import { parseTodos } from '../../src/lib/todomodel.ts';
 import { parseGrid } from '../../src/lib/formula.ts';
@@ -56,6 +56,12 @@ test('the hamburger holds every app and the theme', async () => {
   expect($$('#nav-drawer .to-drawer-nav a.sub').map(text)).toEqual(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Floor plan', 'Seating chart', 'Family tree', 'Timeline', 'Booklet', 'Brochure', 'Comic', 'Résumé', 'Name badges']);
   expect(text($('#nav-drawer a[aria-current="page"]'))).toContain('Sheet');
   expect(text($('#nav-drawer .to-theme'))).toContain('Theme');
+  // Escape closes it.
+  button('Menu').click();
+  await idle();
+  expect($('#nav-drawer').hasAttribute('open')).toBe(true);
+  await key('Escape', {}, $('#nav-drawer'));
+  await until(() => !$('#nav-drawer').hasAttribute('open'), 'the menu to close');
   // Finding an app narrows the list; Return goes to the first.
   button('Menu').click();
   await idle();
@@ -91,10 +97,7 @@ test('documents record their creation time, in the link', async () => {
   await open('#/v0/write');
   const meta = () => text($('.to-panel-head .meta'));
   expect(meta()).toBe('');
-  fill(box('Document'), '');
-  const page = $('.write-page');
-  page.textContent = 'hello';
-  page.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'hello' }));
+  write('Document', 'hello');
   await idle();
   expect(meta()).toMatch(/\d{4}/);
   expect(location.hash).toMatch(/^#\/v0\/write\/[WYZR]/);
