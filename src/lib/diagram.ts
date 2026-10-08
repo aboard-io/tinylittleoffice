@@ -4,7 +4,8 @@
  * renderer does the rest, so every diagram is a picture, a PDF, a slide that
  * builds shape by shape, and can be opened in Draw to be rearranged by hand.
  */
-import type { Kind as LineKind } from './lines.ts';
+import { readLines, writeLines, type Kind as LineKind } from './lines.ts';
+import { parse, write, type Block as TloBlock } from './tlo.ts';
 import { defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
 import { resolve } from '../kit/embed.ts';
 import { parseOutline } from './outlinemodel.ts';
@@ -90,6 +91,20 @@ export function toDrawing(d: Diagram): string {
   return serializeDrawing(d.shapes.map((s) => (isLink(s.k) ? s : { ...s, x: g(s.x), y: g(s.y), w: Math.max(GRID, g(s.w)), h: Math.max(GRID, g(s.h)), ...(k < 0.75 ? { z: 1 as TextSize } : {}) })));
 }
 
+/**
+ * Loose lines as list items, for an app written as "- Key: words": a line
+ * of a paragraph, and an item with another mark or indent, alike become
+ * "- Key: words". Joins, headings and the rest stay as they are.
+ */
+export function asItems(text: string): string {
+  const { head, blocks } = parse(text);
+  const item = (t: string): TloBlock => ({ k: 'li', depth: 0, text: t.trim() });
+  return write({ head, blocks: blocks.flatMap((b) => (b.k === 'p' ? b.text.split('\n').filter((l) => l.trim()).map(item) : b.k === 'li' ? [item(b.text)] : [b])) });
+}
+
+/** A lenient read for an app written as list items: its text as its form reads it, written back canonically. */
+export const readItems = (form: LineKind[]) => (text: string) => writeLines(readLines(asItems(text), form), form);
+
 /** How a page app is asked for its page. */
 export interface PageOpts {
   edit?: boolean;
@@ -113,8 +128,6 @@ export interface DiagramSpec {
    * is what is written before the colon ("Sales", "Fast & Cheap").
    */
   keyAt?(text: string, x: number, y: number): string | undefined;
-  /** The document is rows at heart (a database's tables): offer it as a list to fill in, beside the picture. */
-  list?: boolean;
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
   /**
@@ -156,7 +169,8 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
   const { downloads = [], ...rest } = app;
   return defineApp({
     title: () => '',
-    outline: (body) => body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 12),
+    // Its lines, without the marks that make them list items or joins.
+    outline: (body) => body.split('\n').map((l) => l.trim().replace(/^[-*+~]\s+/, '')).filter(Boolean).slice(0, 12),
     view: (body, opts = {}) => [page(body, opts.step)],
     // On a slide a diagram appears a shape per click, in the order it was written.
     steps: (body) => spec.layout(body).shapes.length,

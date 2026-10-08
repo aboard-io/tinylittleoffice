@@ -15,8 +15,7 @@ import { parseBoard, serializeBoard } from './boardmodel.ts';
 import { parseGantt } from './ganttmodel.ts';
 import { parseTrip } from './tripmodel.ts';
 import { parseCalendar, repeatText, EPOCH_DAY, EPOCH_MS, isoDay, type Span as CalSpan } from './calmodel.ts';
-import { altOf, parseDrawing, serializeDrawing, withAlt, type Shape } from './drawmodel.ts';
-import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
+
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
 import { dayToYmd, ymdString, ymdToDay, utcToParts, pad2 } from './tz.ts';
@@ -269,9 +268,6 @@ const tableRows = (md: string): string[][] => {
   const rows = md.split('\n').filter((l) => /^\|.*\|$/.test(l.trim()) && !/^\|[\s:|-]+\|$/.test(l.trim()));
   return rows.map((l) => l.trim().slice(1, -1).split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|')));
 };
-/** A quoted line ("> ..."): a picture's alt text, in Markdown. */
-const QUOTE = /^>\s?.*$/gm;
-const quoted = (md: string) => (/^>\s?(.*)$/m.exec(md)?.[1] ?? '').trim();
 const items = (md: string) => md.split('\n').map((l) => /^\s*(?:[-*+]|\d+[.)])\s+(.*)$/.exec(l)?.[1] ?? (l.trim() && !/^#/.test(l.trim()) && !/^\|/.test(l.trim()) ? l.trim() : null)).filter((l): l is string => !!l);
 
 /** The document as Markdown, as a reader of that kind of document would want it. */
@@ -329,10 +325,16 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       }).join('\n') + '\n';
     }
     case 'draw':
-      // The alt text goes first, quoted; then the labels.
-      return (altOf(body) ? `> ${altOf(body)}\n\n` : '') + parseDrawing(body).filter((s) => s.text).map((s) => `- ${s.text}`).join('\n') + '\n';
     case 'anim':
-      return (parseAnim(body).alt ? `> ${parseAnim(body).alt}\n\n` : '') + parseAnim(body).shapes.filter((s) => s.text).map((s) => `- ${s.k === 'i' ? `:${s.text}:` : s.text}`).join('\n') + '\n';
+    case 'lanes':
+    case 'venn':
+    case 'net':
+    case 'floor':
+    case 'seating':
+    case 'timeline':
+    case 'db':
+      // The document is Markdown already (TLO): its text is its Markdown.
+      return body.trimEnd() + '\n';
     case 'qr':
       return body.trim() + '\n';
     case 'site':
@@ -476,26 +478,19 @@ export function fromMarkdown(def: AppDef, md: string): string {
       );
       return def.read!([...(zone ? [`@${zone}`] : []), ...lines].join('\n'));
     }
-    case 'draw': {
-      const labels = items(text.replace(QUOTE, ''));
-      const shapes: Shape[] = labels.map((t, i) => ({ k: 'r', x: 2 + (i % 4) * 14, y: 2 + Math.floor(i / 4) * 8, w: 12, h: 6, f: 1, text: t }));
-      return withAlt(serializeDrawing(shapes), quoted(text));
-    }
+    case 'draw':
+    case 'anim':
+    case 'lanes':
+    case 'venn':
+    case 'net':
+    case 'floor':
+    case 'seating':
+    case 'timeline':
+    case 'db':
+      // (Unwrapping takes front matter off; here it is the document's header, its alt text and settings, and stays.)
+      return def.read!((/^---\n[\s\S]*?\n---\n/.exec(md.replace(/\r\n?/g, '\n').trim())?.[0] ?? '') + text);
     case 'pixel':
       return def.read!(text);
-    case 'anim': {
-      // Each line is a thing on the stage, one above the next, that drifts from left to right.
-      const list = items(text.replace(QUOTE, ''));
-      const anim = parseAnim('');
-      anim.shapes = list.map((l, i) => {
-        const ic = /^:([a-z][a-z0-9-]*):$/.exec(l);
-        const y = Math.round((H * (i + 1)) / (list.length + 1) / 8) * 8 - 16;
-        return ic ? { k: 'i', x: 80, y, w: 48, h: 48, f: 0, text: ic[1] } : { k: 't', x: 80, y, w: 160, h: 32, f: 0, text: l, z: 3 };
-      });
-      anim.keys = anim.shapes.map(() => [restKey(0), { ...restKey(DEFAULT_FRAMES - 1), dx: Math.round(W * 0.6) }]);
-      if (quoted(text)) anim.alt = quoted(text);
-      return serializeAnim(anim);
-    }
     case 'qr':
       return items(text)[0] ?? text.split('\n')[0] ?? '';
     case 'site':

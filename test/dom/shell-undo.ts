@@ -99,10 +99,10 @@ test('deck: a deleted slide comes back', async () => {
 
 test('draw, board, gantt and motion take the same undo, since it is the shell’s', async () => {
   const cases: [string, string, string, string][] = [
-    ['draw', 'r,2,1,12,6,1,Box', 'g.shape', 'Delete'],
+    ['draw', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | Box', 'g.shape', 'Delete'],
     ['board', '#To do\nA\nB\n#Done', '.board-card', 'Delete card'],
     ['gantt', '1jk,5,1e,Design\n1jp,2,0,Build', '.gantt-chart .bar', 'Delete task'],
-    ['anim', '!o,8\nt,4,4,10,3,0,Hello', '.motion-stage g.hit', 'Delete'],
+    ['anim', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 4 | 10 | 3 | 0 | Hello', '.motion-stage g.hit', 'Delete'],
   ];
   for (const [app, doc, sel, del] of cases) {
     await open(`#/v0/${app}/${encodeEnvelope({ created: null, body: doc })}`);

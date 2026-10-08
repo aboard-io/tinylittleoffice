@@ -1,18 +1,24 @@
 /** Venn diagram: two or three sets, and what they share. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
+import { listItems, readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { defineDiagram, frame, shape, readItems, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import { textWidth } from '../kit/core.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
 const R = 130;
 
+const form: LineKind[] = [
+  { name: 'Shared', is: '- {One set} & {Other sets}: {What they share:list}' },
+  { name: 'Set', is: '- {Set}: {What is in it:list}' },
+];
+
 /** The lines as sets (at most three) and what each group of them holds. */
 function parse(text: string) {
-  const groups = text
-    .split('\n')
-    .map((l) => /^\s*([^:]+):\s*(.*)$/.exec(l))
-    .filter((m): m is RegExpExecArray => !!m)
-    .map((m) => ({ names: m[1].split('&').map((n) => n.trim()).filter(Boolean), items: m[2].split(',').map((t) => t.trim()).filter(Boolean) }));
+  const groups = readLines(text, form)
+    .filter((r) => r.kind < form.length)
+    .map((r) => {
+      const [names, items] = r.kind === 0 ? [`${r.values[0]} & ${r.values[1]}`, r.values[2]] : r.values;
+      return { names: names.split('&').map((n) => n.trim()).filter(Boolean), items: listItems(items).filter(Boolean) };
+    });
   return { groups, sets: [...new Set(groups.filter((g) => g.names.length === 1).map((g) => g.names[0]))].slice(0, 3) };
 }
 
@@ -49,13 +55,9 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
-  form: [
-    { name: 'Shared', is: '{One set} & {Other sets}: {What they share:list}' },
-    { name: 'Set', is: '{Set}: {What is in it:list}' },
-    { name: 'Line', is: '{Text}' },
-  ] as LineKind[],
-  hint: 'A set per line: "Name: thing, thing". What two share: "A & B: thing". What all share: "A & B & C: thing".',
-  example: 'Fast: sprinting, espresso\nCheap: instant noodles, walking\nGood: slow cooking\nFast & Cheap: fast food\nCheap & Good: home cooking\nFast & Good: a great takeaway\nFast & Cheap & Good: toast',
+  form,
+  hint: 'A set per line: "- Name: thing, thing". What two share: "- A & B: thing". What all share: "- A & B & C: thing".',
+  example: '- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking\n- Fast & Cheap: fast food\n- Cheap & Good: home cooking\n- Fast & Good: a great takeaway\n- Fast & Cheap & Good: toast',
   layout,
   // A tap inside the circles adds a thing to the sets round it ("Fast & Cheap"); a thing dropped there moves into them.
   keyAt(text: string, x: number, y: number) {
@@ -69,4 +71,4 @@ export const spec = {
   },
 };
 
-export default defineDiagram({ id: 'venn', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.' }, spec);
+export default defineDiagram({ id: 'venn', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.', read: readItems(form) }, spec);

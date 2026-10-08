@@ -197,10 +197,15 @@ Every format is plain text, chosen so deflate has something to chew on.
   line `|` starts the right one), `:star:i` bullets beside a big icon. A line
   `@@<app>/<payload>` shows another document on the slide. A first chunk
   `!fade`, `!slide` or `!zoom` sets the deck's transition.
-- **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
-  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
-  may carry a colour letter and a text size digit after it (`1b3`).
-  Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
+- **Draw**: a table, a row per shape, `Kind | X | Y | W | H | Style |
+  Label`, and the alt text in the header (`alt: ...`). Kinds are `r`
+  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text and
+  more (`src/lib/drawmodel.ts`); a join (`k`, `j`) names the rows of the two
+  shapes it joins, counting from 0, in X and Y. `Style` is the fill, and may
+  carry a colour letter and a text size digit after it (`1b3`). Coordinates
+  are in 8-pixel grid units on a 640 by 400 canvas. **Motion** is the same
+  table, a table `Shape | Keys` of what moves when, and `frames` and `fps`
+  in the header.
 - **Website**: `# Name` and a line about it, `=== Title` for each further
   page, `## Section` within a page, `- Point | detail` cards, `> Label | url`
   buttons, `@@app/payload` for another document on the page, `theme: amber
@@ -388,7 +393,8 @@ their shapes, and more shapes (rounded box, hexagon, parallelogram,
 cylinder, note).
 
 Database is the same idea over `src/lib/reldb.ts`, a small relational
-engine: tables written as text, joined and queried with a subset of SQL
+engine: tables written as Markdown tables under `## name` headings, joined
+and queried, in a `sql` block, with a subset of SQL
 (`SELECT`, `JOIN ... ON`, `WHERE`, `GROUP BY`, aggregates, `ORDER BY`,
 `LIMIT`). Its picture is the schema; its queries are answered beneath.
 
@@ -512,8 +518,8 @@ put it under or after it, into a lane or a set to move it there; a floor
 plan's rooms keep a place and move there). A line between two things is
 tapped for its words; a guest at a table is a thing of their own. The
 same document is always the text itself (Mod+Shift+T), and, for the
-apps that are rows at heart (a page, a printed sheet, a database), a
-list to fill in (the List button). All of it comes from one description
+apps that are rows at heart (a page, a printed sheet), a list to fill
+in (the List button). All of it comes from one description
 (`src/lib/lines.ts`): the app lists its kinds of line as patterns,
 
 ```ts

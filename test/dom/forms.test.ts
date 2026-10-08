@@ -289,26 +289,23 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
   expect(box(lines(menu.el), 'Dish, row 5')!.value).toBe('Oat flat white');
 });
 
-test('the picture is the editor: no list beside a picture of shapes; a database has one when wanted', async () => {
+test('the picture is the editor: no list beside a picture of shapes; a database is its text', async () => {
   // Picture mode: the default; no list beside it.
   const org = await example('org');
   expect(org.el.querySelector('to-lines')).toBeNull();
   expect(org.el.querySelectorAll('.pic > svg g.pick:not(.line)')).toHaveLength(6);
   expect(() => button(org.el, 'List')).toThrow();
+  // A database's tables have columns of their own: it is typed as text, beside its schema.
   const db = await example('db');
-  button(db.el, 'List').click();
-  await settle(db.el);
-  expect(db.el.querySelectorAll('to-lines')).toHaveLength(1);
-  button(db.el, 'Hide the list').click();
-  await settle(db.el);
-  expect(db.el.querySelectorAll('to-lines')).toHaveLength(0);
+  expect(() => button(db.el, 'List')).toThrow();
+  expect(db.el.querySelector<HTMLTextAreaElement>('textarea')!.value).toMatch(/^## teams\n/);
 });
 
 test('adding on the picture: a draft that becomes real when typed into, and goes if not', async () => {
   // (Which thing: the second drawn, or by name where a lane's name or a date is a thing too.)
   for (const [app, words, written, which] of [
     ['mind', 'Idea', /\n    - Fresh thing\n/, null],
-    ['net', 'To', /API > Fresh thing/, null],
+    ['net', 'To', /~ API -> Fresh thing/, null],
     ['lanes', 'What they do', /Customer: Fresh thing/, /^Places order/],
     ['timeline', 'What happened', /1843: Fresh thing/, /^1843 \| Lovelace/],
   ] as const) {

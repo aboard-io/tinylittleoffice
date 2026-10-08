@@ -1,18 +1,18 @@
 /** Seating chart: tables, and who sits round each. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
+import { listItems, readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { defineDiagram, frame, readItems, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import { iconOf, type Shape } from '../lib/drawmodel.ts';
 import { fitted } from '../lib/fold.ts';
 import { tile } from '../lib/print.ts';
 import type { Page } from '../kit/core.ts';
 
+const form: LineKind[] = [{ name: 'Table', is: '- {Table}: {Who:list}' }];
+
 /** The tables, each with its people in the order given. */
 function parse(text: string): { name: string; people: string[] }[] {
-  return text
-    .split('\n')
-    .map((l) => l.split(/:(.*)/).map((p) => p.trim()))
-    .filter((t) => t[0])
-    .map(([name, who = '']) => ({ name, people: who.split(',').map((p) => p.trim()).filter(Boolean) }));
+  return readLines(text, form)
+    .filter((r) => r.kind === 0)
+    .map((r) => ({ name: r.values[0], people: listItems(r.values[1]).filter(Boolean) }));
 }
 
 function layout(text: string): Diagram {
@@ -43,12 +43,9 @@ export function placeCards(text: string): Page[] {
 }
 
 export const spec = {
-  form: [
-    { name: 'Table', is: '{Table}: {Who:list}' },
-    { name: 'Line', is: '{Text}' },
-  ] as LineKind[],
-  hint: 'A table per line: "Table name: Ann, Bob, Cy". People are seated round it in the order given.',
-  example: 'Top table: Sam, Paul, Ada, Grace, Alan, Margaret\nTable 2: Linus, Barbara, Ken, Dennis, Edsger\nTable 3: Tim, Vint, Radia, Leslie',
+  form,
+  hint: 'A table per line: "- Table name: Ann, Bob, Cy". People are seated round it in the order given.',
+  example: '- Top table: Sam, Paul, Ada, Grace, Alan, Margaret\n- Table 2: Linus, Barbara, Ken, Dennis, Edsger\n- Table 3: Tim, Vint, Radia, Leslie',
   layout,
 };
 
@@ -58,6 +55,7 @@ export default defineDiagram(
     name: 'Seating chart',
     icon: 'seating',
     blurb: 'Who sits where: tables, with their people round them.',
+    read: readItems(form),
     downloads: [{ ext: 'cards.pdf', label: 'Place cards (PDF)', mime: 'application/pdf', pages: placeCards }],
   },
   spec,

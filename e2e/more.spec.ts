@@ -47,7 +47,7 @@ test('a document can be shown inside another page', async ({ page }) => {
 // Stays: joining, dragging and placing go by where the pointer is on the canvas (the rest is in test/dom/diagrams.test.ts).
 test('draw: a join dragged between shapes follows a shape dragged away; a shape placed by a click', async ({ page, isMobile }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web\nc,40,20,14,10,0,Data' }));
+  await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Web\nc | 40 | 20 | 14 | 10 | 0 | Data' }));
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
   await expect(canvas.locator('g.shape')).toHaveCount(2);
   const centre = async (i: number) => {
@@ -100,7 +100,7 @@ test('everything is set in IBM Plex', async ({ page }) => {
 // Stays: zoom is the canvas's drawn size, and a click finds a shape, or a place for an icon, by where it is (an icon on a shape is in test/dom/diagrams.test.ts).
 test('draw: zoom, and an icon placed by a click', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web' }));
+  await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Web' }));
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
   const width = () => canvas.evaluate((el) => el.getBoundingClientRect().width);
   const fit = await width();

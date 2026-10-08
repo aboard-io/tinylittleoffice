@@ -73,10 +73,10 @@ test('motion: a drawing that moves between the moments you set', async ({ page }
   await page.mouse.up();
   await at(428, 280);
   await expect(hit.first()).toHaveClass(/sel/);
-  // It started where it was drawn, and the link says so: a key line for shape 0.
+  // It started where it was drawn, and the link says so: a row of keys for shape 0.
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
   const body = () => decodeEnvelope(page.url().split('/#/v0/anim/')[1] ?? '', 'anim').body;
-  await expect.poll(body).toMatch(/^!o\nr,8,5,16,10,0,Go\n@0\t0,0,0,0,a,0;n,8[bcd],5[jkl],0,a,0$/);
+  await expect.poll(body).toMatch(/^---\nframes: 24\nfps: 8\n---\nKind \| X \| Y \| W \| H \| Style \| Label\n--- \| --- \| --- \| --- \| --- \| --- \| ---\nr \| 8 \| 5 \| 16 \| 10 \| 0 \| Go\n\nShape \| Keys\n--- \| ---\n0 \| 0,0,0,0,1,0; 23,(299|300|301),(199|200|201),0,1,0$/);
   await expect(page.locator('.motion-keys .key')).toHaveCount(2);
 
   await shot(page, 'anim');
@@ -243,19 +243,19 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     sheet: '---\nchart: bar\n---\nItem | Cost:money\n--- | ---\nRent | 1200\nFood | 600',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n@@draw/',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
-    draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
+    draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
     cal: 'd2,2,Offsite',
     todo: '- one\nx!@1jk two',
     board: '#To do\nx\ny\n#Done|1',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
-    anim: '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
+    anim: '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d',
     org: '- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design',
     mind: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
-    lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
-    venn: 'Fast: a\nCheap: b\nFast & Cheap: c',
-    net: 'Web > API: calls\nAPI - Cache',
-    db: 'teams: id, name\n1, Platform\n\npeople: id, name, team_id > teams\n1, Ann, 1\n\n? select name from people',
+    lanes: '- Customer: Orders\n- Sales: In stock?\n- Warehouse: Packs',
+    venn: '- Fast: a\n- Cheap: b\n- Fast & Cheap: c',
+    net: '~ Web -> API: calls\n~ API -- Cache',
+    db: '## teams\n\nid | name\n--- | ---\n1 | Platform\n\n## people\n\nid | name | team_id>teams\n--- | --- | ---\n1 | Ann | 1\n\n```sql\nselect name from people;\n```',
     site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
@@ -271,10 +271,10 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     recipes: 'Buns\nflour\n1. Bake',
     flow: '# Model\nvisitors = 100 (0 to 500)\nrate = 10% (0 to 50)\nVisitors > Signups = visitors * rate\nVisitors > Gone = visitors - visitors * rate',
     pixel: 'ab.c\n.dd',
-    floor: 'Hall: 4 x 2 at 0,0\nBath: 2 x 2 at 4,0',
-    seating: 'Top: Sam, Paul, Ada',
+    floor: '- Hall: 4 x 2 at 0,0\n- Bath: 2 x 2 at 4,0',
+    seating: '- Top: Sam, Paul, Ada',
     family: '- Rose + Albert\n  - Helen',
-    timeline: '1969: First message\n1989: The web',
+    timeline: '- 1969: First message\n- 1989: The web',
     wordsearch: '# Coffee\nespresso\nfilter',
     adventure: '# Story\n## start\nA door.\n> Open it | in\n## in\nA room.',
     hunt: '# Hunt\nKettle colour? | red\nDone!',
@@ -326,19 +326,19 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     sheet: '---\nchart: bar\n---\nItem | When:date | Cost:money\n--- | --- | ---\nRent | 2027-03-01 | 1200',
     write: '# Memo\nSome *bold* text\n- one\n-- nested',
     deck: ':rocket\nLaunch plan\nBuild it\nShip it',
-    draw: 'r,2,1,12,6,1b3,Box',
+    draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box',
     cal: 'd2,2,Offsite',
     todo: '- one\nx!@1jk two',
     board: '#To do\nx\ny\n#Done|1',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
-    anim: '!o\nt,4,20,20,4,04,Lift\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
+    anim: '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d',
     org: '- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design',
     mind: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
-    lanes: 'Customer: Orders\nSales: In stock?\nWarehouse: Packs',
-    venn: 'Fast: a\nCheap: b\nFast & Cheap: c',
-    net: 'Web > API: calls\nAPI - Cache',
-    db: 'teams: id, name\n1, Platform\n\npeople: id, name, team_id > teams\n1, Ann, 1\n\n? select name from people',
+    lanes: '- Customer: Orders\n- Sales: In stock?\n- Warehouse: Packs',
+    venn: '- Fast: a\n- Cheap: b\n- Fast & Cheap: c',
+    net: '~ Web -> API: calls\n~ API -- Cache',
+    db: '## teams\n\nid | name\n--- | ---\n1 | Platform\n\n## people\n\nid | name | team_id>teams\n--- | --- | ---\n1 | Ann | 1\n\n```sql\nselect name from people;\n```',
     site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
@@ -354,10 +354,10 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     recipes: 'Buns\nflour\n1. Bake',
     flow: '# Model\nvisitors = 100 (0 to 500)\nrate = 10% (0 to 50)\nVisitors > Signups = visitors * rate\nVisitors > Gone = visitors - visitors * rate',
     pixel: 'ab.c\n.dd',
-    floor: 'Hall: 4 x 2 at 0,0\nBath: 2 x 2 at 4,0',
-    seating: 'Top: Sam, Paul, Ada',
+    floor: '- Hall: 4 x 2 at 0,0\n- Bath: 2 x 2 at 4,0',
+    seating: '- Top: Sam, Paul, Ada',
     family: '- Rose + Albert\n  - Helen',
-    timeline: '1969: First message\n1989: The web',
+    timeline: '- 1969: First message\n- 1989: The web',
     wordsearch: '# Coffee\nespresso\nfilter',
     adventure: '# Story\n## start\nA door.\n> Open it | in\n## in\nA room.',
     hunt: '# Hunt\nKettle colour? | red\nDone!',
@@ -411,7 +411,7 @@ test('draw: the pen makes any shape, corner by corner; Motion morphs its corners
   await page.keyboard.press('Enter');
   await expect(canvas.locator('polygon')).toHaveCount(1);
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
-  await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'draw').body).toMatch(/^v,\d+,\d+,\d+,\d+,1,\d+:\d+;\d+:\d+;\d+:\d+;\d+:\d+/);
+  await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'draw').body).toMatch(/\nv \| \d+ \| \d+ \| \d+ \| \d+ \| 1 \| +\| \d+:\d+;\d+:\d+;\d+:\d+;\d+:\d+/);
   // Esc drops a half-drawn one.
   await page.getByRole('button', { name: /^Pen/ }).click();
   await at(0.7, 0.7);
@@ -421,7 +421,8 @@ test('draw: the pen makes any shape, corner by corner; Motion morphs its corners
   // In Motion, a corner dragged at a later moment morphs between the two.
   const body = decodeEnvelope(page.url().split('/').pop()!, 'draw').body;
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto(`/#/v0/anim/${encodeEnvelope({ created: null, body: '!o\n' + body }, 'anim')}`);
+  // (A drawing is a motion in which nothing moves yet.)
+  await page.goto(`/#/v0/anim/${encodeEnvelope({ created: null, body }, 'anim')}`);
   await page.getByRole('radio', { name: 'Move' }).click();
   await page.locator('input[type=range][aria-label="Time"]').fill('23');
   await page.locator('.motion-stage .hit').first().click();
@@ -432,7 +433,7 @@ test('draw: the pen makes any shape, corner by corner; Motion morphs its corners
   await page.mouse.down();
   await page.mouse.move(c.x + c.width / 2 + 60, c.y + c.height / 2 + 40, { steps: 6 });
   await page.mouse.up();
-  await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'anim').body).toMatch(/@0\t.*,p\d+:\d+\/.*;n,.*,p/);
+  await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'anim').body).toMatch(/\n0 \| .*,p\d+:\d+\/.*; 23,.*,p/);
 });
 
 // Pasting formatted text goes through the browser's own insert command, and the copy is the browser's own.

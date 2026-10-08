@@ -125,12 +125,16 @@ test('deck: icon-only and title-only slides, max slides constant', () => {
   assert.equal(MAX_SLIDES, Infinity);
 });
 
-test('draw: labels with newlines and commas, fill clamping', () => {
-  const s = serializeDrawing([{ k: 'r', x: 0, y: 0, w: 8, h: 8, f: 0, text: 'two\nlines, one' }]);
-  assert.equal(s, 'r,0,0,1,1,0,two lines, one');
-  assert.equal(parseDrawing('r,0,0,1,1,9,x')[0].f, 2);
-  assert.equal(parseDrawing('r,0,0,1,1,-3,x')[0].f, 0);
-  assert.equal(parseDrawing('r,a,b,c,d,e,x')[0].x, 0);
+test('draw: labels with newlines, commas and bars, fill clamping, a table written loosely', () => {
+  const head = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\n';
+  const s = serializeDrawing([{ k: 'r', x: 0, y: 0, w: 8, h: 8, f: 0, text: 'two\nlines, one | two' }]);
+  assert.equal(s, head + 'r | 0 | 0 | 1 | 1 | 0 | two lines, one \\| two');
+  assert.equal(parseDrawing(s)[0].text, 'two lines, one | two');
+  assert.equal(parseDrawing(head + 'r | 0 | 0 | 1 | 1 | 9 | x')[0].f, 2);
+  assert.equal(parseDrawing(head + 'r | 0 | 0 | 1 | 1 | -3 | x')[0].f, 0);
+  assert.equal(parseDrawing(head + 'r | a | b | c | d | e | x')[0].x, 0);
+  // Columns in another order, kinds in words, rows that are not shapes left out.
+  assert.deepEqual(parseDrawing('| Label | Kind | X | Y | W | H |\n|-|-|-|-|-|-|\n| Hi | ellipse | 1 | 2 | 3 | 4 |\n| No | blob | 0 | 0 | 1 | 1 |'), [{ k: 'e', x: 8, y: 16, w: 24, h: 32, f: 0, text: 'Hi' }]);
 });
 
 test('calendar: labels are capped and zone header only with spans', () => {

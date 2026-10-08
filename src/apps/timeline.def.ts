@@ -1,10 +1,12 @@
 /** Timeline: what happened, in order, along a line. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, shape, join, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { defineDiagram, frame, shape, join, readItems, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
+const form: LineKind[] = [{ name: 'Event', is: '- {When}: {What happened}' }];
+
 function layout(text: string): Diagram {
-  const events = text.split('\n').map((l) => l.split(/:(.*)/).map((p) => p.trim())).filter((e) => e[0]);
+  const events = readLines(text, form).filter((r) => r.kind === 0).map((r) => r.values);
   const shapes: Shape[] = [];
   const joins: Shape[] = [];
   // Six to a row; a long timeline winds down the page rather than shrinking to a thread.
@@ -23,13 +25,10 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
-  form: [
-    { name: 'Event', is: '{When}: {What happened}' },
-    { name: 'Line', is: '{Text}' },
-  ] as LineKind[],
-  hint: 'An event per line, in order: "When: what happened".',
-  example: '1843: Lovelace publishes her notes\n1936: Turing describes his machine\n1969: The first ARPANET message\n1989: The web is proposed\n2007: The phone becomes a computer',
+  form,
+  hint: 'An event per line, in order: "- When: what happened".',
+  example: '- 1843: Lovelace publishes her notes\n- 1936: Turing describes his machine\n- 1969: The first ARPANET message\n- 1989: The web is proposed\n- 2007: The phone becomes a computer',
   layout,
 };
 
-export default defineDiagram({ id: 'timeline', name: 'Timeline', icon: 'timeline', blurb: 'A timeline: events in order along a line.' }, spec);
+export default defineDiagram({ id: 'timeline', name: 'Timeline', icon: 'timeline', blurb: 'A timeline: events in order along a line.', read: readItems(form) }, spec);

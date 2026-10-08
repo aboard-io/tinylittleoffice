@@ -9,6 +9,7 @@ import { parseGrid, evaluateGrid, namesOf, typesOf } from '../src/lib/formula.ts
 import { parseDeck } from '../src/lib/deckmodel.ts';
 import { parseTodos } from '../src/lib/todomodel.ts';
 import { parseCalendar } from '../src/lib/calmodel.ts';
+import { altOf, parseDrawing } from '../src/lib/drawmodel.ts';
 
 /** Markdown the way a model writes it for each app, and what must come of it. */
 const AGENT: Record<string, { md: string; check(body: string): void }> = {
@@ -55,6 +56,21 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
   calc: {
     md: '## Mortgage\n\n- Price: 350,000\n- Deposit: 70,000\n- Interest rate: 6%\n- Term: 25 years\n',
     check: (b) => assert.equal(b, '!mortgage\nprice = 350000\ndeposit = 70000\nrate = 6\nyears = 25'),
+  },
+  lanes: {
+    md: '1. Customer: Places order\n2. Sales: Checks stock\n',
+    check: (b) => assert.equal(b, '- Customer: Places order\n- Sales: Checks stock'),
+  },
+  net: {
+    md: '- Web -> API: requests\n- API -> Database\n- Monitoring\n',
+    check: (b) => assert.equal(b, '~ Web -> API: requests\n~ API -> Database\n\n- Monitoring'),
+  },
+  draw: {
+    md: '> A browser asks a server.\n\n- Browser\n- Server\n',
+    check: (b) => {
+      assert.equal(altOf(b), 'A browser asks a server.');
+      assert.deepEqual(parseDrawing(b).map((s) => s.text), ['Browser', 'Server']);
+    },
   },
   cal: {
     md: '- 2027-03-01 to 2027-03-03: Offsite\n- 2027-03-08: Launch day\n',

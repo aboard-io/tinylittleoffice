@@ -1,6 +1,6 @@
 /** Draw: what the shell knows about drawings. Format: lib/drawmodel.ts. */
 import { defineApp, utf8, xml, pageSvg, r, INK, PAPER, SHADE, type Page } from '../kit/core.ts';
-import { COLORS, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, paint, parseDrawing, W, H, type Shape } from '../lib/drawmodel.ts';
+import { COLORS, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, paint, parseDrawing, readDrawing, W, H, type Shape } from '../lib/drawmodel.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { textWidth, wrapText, clip } from '../kit/core.ts';
 
@@ -142,6 +142,7 @@ export default defineApp({
   icon: 'draw',
   blurb: 'Boxes, ellipses, diamonds, lines, arrows and labels on a grid.',
   title: () => '',
+  read: readDrawing,
   outline: (body) => [altOf(body), ...parseDrawing(body).map((s) => s.text.trim())].filter(Boolean),
   view: (body, opts = {}) => [drawingPage(body, opts.step)],
   // A drawing on a slide appears one shape per click, in the order it was drawn.

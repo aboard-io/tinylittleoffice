@@ -37,13 +37,13 @@ test('every app draws itself, and is a web page with preview tags', () => {
     outline: '- Launch\n  - <Product>\n    - Pricing',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
-    draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
+    draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
     cal: '@America/New_York\nd2,2,Offsite\ntgo,2i,Call',
     todo: '- one\nx!@1jk two',
     board: '#A\nx\ny\n#B|1',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch\n>1jm,3,0,Review',
     trip: '!m\n3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
-    anim: '!o\nt,4,20,20,4,04,Lift <off>\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
+    anim: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift <off>\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d',
     zine: ':star\nSmall <Joys>\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A <book>\nby me\n\nOne\nwords',
     calc: '2+<2>\n7*6',
@@ -164,7 +164,7 @@ test('deck to pptx: one slide part per slide, icons embedded when supplied', () 
 });
 
 test('drawing to svg', () => {
-  const svg = drawingToSvg('r,2,1,12,6,2,Box <1>\na,14,4,8,0,1\nt,0,0,12,3,0,Note');
+  const svg = drawingToSvg('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 2 | Box <1>\na | 14 | 4 | 8 | 0 | 1 | \nt | 0 | 0 | 12 | 3 | 0 | Note');
   assert.ok(svg.includes('viewBox="0 0 640 400"'));
   assert.ok(svg.includes('<rect x="16" y="8" width="96" height="48" rx="2" fill="#18181b"'));
   assert.ok(svg.includes('fill="#ffffff">Box &lt;1&gt;</text>'));

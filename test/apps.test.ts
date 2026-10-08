@@ -19,6 +19,11 @@ import { tripToGeoJson, tripToGpx } from '../src/apps/trip.def.ts';
 import { ganttSpans } from '../src/lib/ganttmodel.ts';
 import { formatLeg, tripUnits } from '../src/lib/tripmodel.ts';
 
+/** A drawing's table of shapes, a row each: "r | 2 | 1 | 12 | 6 | 1b3 | Box". */
+const drawn = (...rows: string[]) => ['Kind | X | Y | W | H | Style | Label', '--- | --- | --- | --- | --- | --- | ---', ...rows].join('\n');
+/** The motion the tests share: words that rise with an impact, and a rocket that flies off up and to the right. */
+const LIFT_OFF = `---\nframes: 24\nfps: 8\n---\n${drawn('t | 4 | 20 | 20 | 4 | 04 | Lift off', 'i | 8 | 36 | 8 | 8 | 0b | rocket')}\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d`;
+
 test('todo round trip', () => {
   const tasks = [
     { text: 'Buy milk', done: false, star: false, due: null },
@@ -104,12 +109,12 @@ test('trip round trip and distances', () => {
 test('motion round trip and interpolation', () => {
   assert.equal(serializeAnim(parseAnim('')), '');
   // A drawing on its own is a motion document in which nothing moves yet.
-  const still = parseAnim('r,2,1,12,6,1b3,Box');
+  const still = parseAnim(drawn('r | 2 | 1 | 12 | 6 | 1b3 | Box'));
   assert.equal(still.frames, 24);
   assert.equal(still.fps, 8);
-  assert.equal(serializeDrawing(still.shapes), 'r,2,1,12,6,1b3,Box');
+  assert.equal(serializeDrawing(still.shapes), drawn('r | 2 | 1 | 12 | 6 | 1b3 | Box'));
   assert.deepEqual(stateAt(still, 0, 5), { t: 5, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '' });
-  const text = '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d';
+  const text = LIFT_OFF;
   const anim = parseAnim(text);
   assert.equal(serializeAnim(anim), text);
   assert.deepEqual(anim.keys[1][1], { t: 23, dx: 200, dy: -200, z: 100, s: 1, r: -30, fx: 'd' });
@@ -123,15 +128,17 @@ test('motion round trip and interpolation', () => {
   assert.equal(withKey(more, 0, { ...restKey(10), s: 3 }).keys[0][1].s, 3);
   assert.deepEqual(removeKey(more, 0, 10).keys[0].map((k) => k.t), [0, 23]);
   assert.equal(depthScale(200), 1.5);
-  // The frames and the speed are the first line; keys that are all at rest are not written.
-  assert.equal(serializeAnim({ ...still, frames: 36, fps: 12 }), '!10,12\nr,2,1,12,6,1b3,Box');
-  assert.equal(serializeAnim(withKey(still, 0, restKey(5))), '!o\nr,2,1,12,6,1b3,Box');
+  // The frames and the speed are in the header; keys that are all at rest are not written.
+  assert.equal(serializeAnim({ ...still, frames: 36, fps: 12 }), `---\nframes: 36\nfps: 12\n---\n${drawn('r | 2 | 1 | 12 | 6 | 1b3 | Box')}`);
+  assert.equal(serializeAnim(withKey(still, 0, restKey(5))), `---\nframes: 24\nfps: 8\n---\n${drawn('r | 2 | 1 | 12 | 6 | 1b3 | Box')}`);
   // Redrawn, the keys follow their shapes: edited in place, reordered, or one taken out.
-  const two = parseAnim('!o\nr,2,1,12,6,1,A\ne,20,2,10,6,0,B\n@1\t0,0,0,0,a,0;5,8,0,0,a,0');
-  assert.deepEqual(withShapes(two, parseDrawing('r,4,1,12,6,1,A\ne,20,2,10,6,0,B')).keys[1].length, 2);
-  assert.deepEqual(withShapes(two, parseDrawing('e,20,2,10,6,0,B\nr,2,1,12,6,1,A')).keys.map((k) => k.length), [2, 0]);
-  assert.deepEqual(withShapes(two, parseDrawing('e,20,2,10,6,0,B')).keys.map((k) => k.length), [2]);
-  assert.deepEqual(withShapes(two, parseDrawing('r,2,1,12,6,1,A')).keys.map((k) => k.length), [0]);
+  const two = parseAnim(`${drawn('r | 2 | 1 | 12 | 6 | 1 | A', 'e | 20 | 2 | 10 | 6 | 0 | B')}\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,1,0; 5,8,0,0,1,0`);
+  assert.deepEqual(withShapes(two, parseDrawing(drawn('r | 4 | 1 | 12 | 6 | 1 | A', 'e | 20 | 2 | 10 | 6 | 0 | B'))).keys[1].length, 2);
+  assert.deepEqual(withShapes(two, parseDrawing(drawn('e | 20 | 2 | 10 | 6 | 0 | B', 'r | 2 | 1 | 12 | 6 | 1 | A'))).keys.map((k) => k.length), [2, 0]);
+  assert.deepEqual(withShapes(two, parseDrawing(drawn('e | 20 | 2 | 10 | 6 | 0 | B'))).keys.map((k) => k.length), [2]);
+  assert.deepEqual(withShapes(two, parseDrawing(drawn('r | 2 | 1 | 12 | 6 | 1 | A'))).keys.map((k) => k.length), [0]);
+  // Written loosely (a scale of 1.5 written "1.50", keys out of order), it is read and written tidily.
+  assert.equal(serializeAnim(parseAnim(`${drawn('r | 2 | 1 | 12 | 6 | 1 | A')}\n\nShape | Keys\n--- | ---\n0 | 9,0,0,0,1.50,0;0,0,0,0,1,0`)).split('\n').pop(), '0 | 0,0,0,0,1,0; 9,0,0,0,1.5,0');
 
   // Each frame is the drawing with every shape where its keys put it, nearer things over further ones.
   const f = frameSvg(anim, 23);
@@ -155,7 +162,7 @@ test('motion round trip and interpolation', () => {
 });
 
 test('drawing colours and text sizes', () => {
-  const s = 'r,1,1,4,4,1b3,Blue box\nt,0,0,4,2,04,Big\ne,0,0,2,2,2\na,0,0,2,2,0r';
+  const s = drawn('r | 1 | 1 | 4 | 4 | 1b3 | Blue box', 't | 0 | 0 | 4 | 2 | 04 | Big', 'e | 0 | 0 | 2 | 2 | 2 | ', 'a | 0 | 0 | 2 | 2 | 0r | ');
   const shapes = parseDrawing(s);
   assert.deepEqual(shapes.map((x) => [x.f, x.c, x.z]), [[1, 'b', 3], [0, undefined, 4], [2, undefined, undefined], [0, 'r', undefined]]);
   assert.equal(serializeDrawing(shapes), s);
@@ -188,7 +195,7 @@ test('embedding one document in another', async () => {
   const { parseDoc, serializeDoc } = await import('../src/lib/richtext.ts');
   const { docToHtml, docToRtf } = await import('../src/apps/write.def.ts');
   const deck = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
-  const drawing = makeRef('draw', 'r,2,1,12,6,1,Box\ne,20,1,6,6,0');
+  const drawing = makeRef('draw', drawn('r | 2 | 1 | 12 | 6 | 1 | Box', 'e | 20 | 1 | 6 | 6 | 0 | '));
 
   // Any TinyLittleOffice link, from any host or version, with or without a download extension.
   assert.equal(linkToRef(` https://tinylittleoffice.com/deck/#/v0/deck/${deck}\n`), `deck/${deck}`);
@@ -261,7 +268,7 @@ test('deck: layouts, columns, embedded documents, transition', async () => {
   assert.ok(layoutSlide(slides[2]).icon!.w > 200 && layoutSlide(slides[2]).icon!.x > 480);
   // A document shown on a slide has the whole slide: no headline, no bullets, and it builds a piece per click.
   const { makeRef } = await import('../src/kit/embed.ts');
-  const taken = { icon: 'star', title: 'Hidden headline', bullets: ['hidden bullet'], sub: makeRef('draw', 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two') };
+  const taken = { icon: 'star', title: 'Hidden headline', bullets: ['hidden bullet'], sub: makeRef('draw', drawn('r | 2 | 1 | 12 | 6 | 1 | One', 'e | 20 | 10 | 10 | 8 | 0 | Two')) };
   const box = layoutSlide(taken).sub!;
   assert.ok(box.x <= 24 && box.w >= 900 && box.h >= 550);
   assert.deepEqual(slideSteps(taken), { bullets: 0, sub: 2 });
@@ -333,12 +340,12 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   assert.deepEqual([org.shapes[2].x, org.shapes[2].y, org.shapes[4].x, org.shapes[4].y], [0, 1, 0, 3]);
   assert.equal(org.shapes[0].text, 'Ada | CEO');
   assert.ok(org.shapes[1].y > org.shapes[0].y && org.shapes[1].x < org.shapes[3].x);
-  const lanes = specOf('lanes')!.layout!('A: one\nB: two?\nA: three');
+  const lanes = specOf('lanes')!.layout!('- A: one\n- B: two?\n- A: three');
   assert.deepEqual(lanes.shapes.map((s) => s.k), ['r', 't', 'r', 't', 'o', 'd', 'k', 'o', 'k']);
   assert.deepEqual([lanes.shapes[6].x, lanes.shapes[6].y, lanes.shapes[8].x, lanes.shapes[8].y], [4, 5, 5, 7]);
-  const net = specOf('net')!.layout!('A > B: calls\nB - C\nD');
+  const net = specOf('net')!.layout!('~ A -> B: calls\n~ B -- C\n\n- D');
   assert.deepEqual(net.shapes.map((s) => s.k + s.text), ['oA', 'oB', 'kcalls', 'oC', 'j', 'oD']);
-  const venn = specOf('venn')!.layout!('X: a\nY: b\nX & Y: both');
+  const venn = specOf('venn')!.layout!('- X: a\n- Y: b\n- X & Y: both');
   assert.equal(venn.shapes.filter((s) => s.k === 'e').length, 2);
   assert.ok(venn.shapes.some((s) => s.text === 'both'));
 });
@@ -346,7 +353,7 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
 test('drawing: more shapes, and joins that follow', async () => {
   const { parseDrawing, serializeDrawing, removeShape, restack, linkEnds } = await import('../src/lib/drawmodel.ts');
   const { drawingToSvg } = await import('../src/apps/draw.def.ts');
-  const text = 'o,2,2,12,6,1b,Web | front end\nc,30,2,12,8,0,Data\nn,2,20,12,8,0,Note\nk,0,1,0,0,1,reads\nj,0,2,0,0,0\nh,30,20,10,6,0\np,50,20,10,6,0';
+  const text = drawn('o | 2 | 2 | 12 | 6 | 1b | Web \\| front end', 'c | 30 | 2 | 12 | 8 | 0 | Data', 'n | 2 | 20 | 12 | 8 | 0 | Note', 'k | 0 | 1 | 0 | 0 | 1 | reads', 'j | 0 | 2 | 0 | 0 | 0 | ', 'h | 30 | 20 | 10 | 6 | 0 | ', 'p | 50 | 20 | 10 | 6 | 0 | ');
   const shapes = parseDrawing(text);
   assert.equal(serializeDrawing(shapes), text);
   assert.deepEqual([shapes[3].x, shapes[3].y], [0, 1]);
@@ -367,8 +374,12 @@ test('drawing: more shapes, and joins that follow', async () => {
 });
 
 test('tiny relational database', async () => {
-  const { parseDb, runQuery } = await import('../src/lib/reldb.ts');
-  const db = parseDb('teams: id, name\n1, Platform\n2, Design\n\npeople: id, name, team_id > teams, salary\n1, Ann, 1, 120\n2, "Bo, Jr", 2, 90\n3, Cy, 1, 100\n4, Di, 2, 110\n\n? select * from teams');
+  const { parseDb, readDb, runQuery, serializeDb } = await import('../src/lib/reldb.ts');
+  const text = '## teams\n\nid | name\n--- | ---\n1 | Platform\n2 | Design\n\n## people\n\nid | name | team_id>teams | salary\n--- | --- | --- | ---\n1 | Ann | 1 | 120\n2 | Bo, Jr | 2 | 90\n3 | Cy | 1 | 100\n4 | Di | 2 | 110\n\n```sql\nselect * from teams;\n```';
+  const db = parseDb(text);
+  assert.equal(serializeDb(db), text);
+  // Written loosely: a table under another heading, a referring column spaced out, a query over two lines without its ";".
+  assert.equal(readDb('# teams\n\n| id | name |\n|-|-|\n| 1 | Platform |\n\n## people\n\nid | team_id > teams\n-|-\n1 | 1\n\n```sql\nselect *\nfrom teams\n```'), '## teams\n\nid | name\n--- | ---\n1 | Platform\n\n## people\n\nid | team_id>teams\n--- | ---\n1 | 1\n\n```sql\nselect * from teams;\n```');
   assert.deepEqual(db.tables.map((t) => [t.name, t.cols.length, t.rows.length]), [['teams', 2, 2], ['people', 4, 4]]);
   assert.equal(db.tables[1].cols[2].ref, 'teams');
   assert.equal(db.tables[1].rows[1][1], 'Bo, Jr');
@@ -438,11 +449,11 @@ test('icons in drawings and diagrams', async () => {
   assert.deepEqual(iconOf(':rocket Launch'), ['rocket', 'Launch']);
   assert.deepEqual(iconOf(':rocket'), ['rocket', '']);
   assert.deepEqual(iconOf('No icon: here'), ['', 'No icon: here']);
-  const svg = drawingToSvg('i,2,2,6,6,0b,star\no,12,2,16,6,1,:rocket Launch | soon');
+  const svg = drawingToSvg(drawn('i | 2 | 2 | 6 | 6 | 0b | star', 'o | 12 | 2 | 16 | 6 | 1 | :rocket Launch \\| soon'));
   // An icon on its own, and one in front of a label.
   assert.equal(svg.match(/stroke-linecap="round" stroke-linejoin="round"/g)!.length, 2);
   assert.ok(svg.includes('>Launch</text>') && svg.includes('>soon</text>') && !svg.includes(':rocket'));
-  assert.equal(parseDrawing('i,2,2,6,6,0,star')[0].text, 'star');
+  assert.equal(parseDrawing(drawn('i | 2 | 2 | 6 | 6 | 0 | star'))[0].text, 'star');
   // The diagram apps pass labels through, so ":icon" works in all of them.
   const { specOf } = await import('../src/lib/diagram.ts');
   const org = specOf('org')!.layout!('- :crown Ada | CEO\n  - :wrench Ben');
@@ -704,11 +715,15 @@ test('small apps: the sums behind them', async () => {
   assert.equal(appOf('pixel')!.read!('Here:\n\n```\nab\n.c\n```'), 'ab\n.c');
   assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
   // Rooms to scale; people round their tables; events in order.
-  const floor = specOf('floor')!.layout!('A: 4 x 2 at 0,0\nB: 2 x 2 at 4,0');
+  const floor = specOf('floor')!.layout!('- A: 4 x 2 at 0,0\n- B: 2 x 2 at 4,0');
   assert.deepEqual(floor.shapes.map((r) => [r.w, r.h, r.text]), [[144, 72, 'A | 4 × 2'], [72, 72, 'B | 2 × 2']]);
   assert.equal(floor.shapes[1].x - floor.shapes[0].x, 144);
-  assert.equal(specOf('seating')!.layout!('T1: a, b, c\nT2: d').shapes.length, 6);
-  assert.deepEqual(specOf('timeline')!.layout!('1: a\n2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
+  assert.equal(specOf('seating')!.layout!('- T1: a, b, c\n- T2: d').shapes.length, 6);
+  assert.deepEqual(specOf('timeline')!.layout!('- 1: a\n- 2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
+  // Each is read leniently: lines without their marks, other marks, a size written "4×2".
+  assert.equal(appOf('floor')!.read!('A: 4×2 @ 1,0\n* B: 2 x 2'), '- A: 4 x 2 at 1,0\n- B: 2 x 2');
+  assert.equal(appOf('timeline')!.read!('1843: Notes\n  2. 1936: A machine'), '- 1843: Notes\n- 1936: A machine');
+  assert.equal(appOf('net')!.read!('A > B: calls\nB - C\nD <- E\n- Lone'), '~ A -> B: calls\n~ B -- C\n~ E -> D\n\n- Lone');
 });
 
 test('diagrams worked on the picture: lists of things, regions, place cards', async () => {
@@ -722,11 +737,11 @@ test('diagrams worked on the picture: lists of things, regions, place cards', as
   assert.deepEqual(listItems('Sam, Paul,, Ada'), ['Sam', 'Paul', '', 'Ada']);
   assert.deepEqual(listItems(' '), []);
   // A thing moves from one list to another, or along its own.
-  const rows = readLines('T1: a, b, c\nT2: d', seating);
-  assert.equal(writeLines(moveItem(rows, 0, 1, 1, 1, 1, Infinity), seating), 'T1: a, c\nT2: d, b');
-  assert.equal(writeLines(moveItem(rows, 0, 1, 0, 0, 1, 3), seating), 'T1: b, c, a\nT2: d');
-  assert.equal(writeLines(moveItem(rows, 0, 1, 2, 0, 1, 0), seating), 'T1: c, a, b\nT2: d');
-  assert.equal(writeLines(moveItem(rows, 1, 1, 0, 0, 1, 0), seating), 'T1: d, a, b, c\nT2:');
+  const rows = readLines('- T1: a, b, c\n- T2: d', seating);
+  assert.equal(writeLines(moveItem(rows, 0, 1, 1, 1, 1, Infinity), seating), '- T1: a, c\n- T2: d, b');
+  assert.equal(writeLines(moveItem(rows, 0, 1, 0, 0, 1, 3), seating), '- T1: b, c, a\n- T2: d');
+  assert.equal(writeLines(moveItem(rows, 0, 1, 2, 0, 1, 0), seating), '- T1: c, a, b\n- T2: d');
+  assert.equal(writeLines(moveItem(rows, 1, 1, 0, 0, 1, 0), seating), '- T1: d, a, b, c\n- T2:');
   assert.equal(moveItem(rows, 1, 1, 5, 0, 1, 0), rows);
   // Regions: a tap in a lane's band names the lane (and a lane may stand empty); in the circles, the sets round the tap.
   const lanes = specOf('lanes')!;
@@ -735,8 +750,8 @@ test('diagrams worked on the picture: lists of things, regions, place cards', as
   assert.equal(bands.length, 4);
   assert.equal(lanes.keyAt!(lanes.example, bands[1].x + 10, bands[1].y + 10), 'Sales');
   assert.equal(lanes.keyAt!(lanes.example, bands[1].x + 10, d.h - 2), undefined);
-  assert.deepEqual(lanes.layout!('Sales:\nSales: Calls').shapes.map((s) => s.k), ['r', 't', 'o']);
-  assert.deepEqual(lanes.layout!('Sales:').shapes.map((s) => s.k), ['r', 't']);
+  assert.deepEqual(lanes.layout!('- Sales:\n- Sales: Calls').shapes.map((s) => s.k), ['r', 't', 'o']);
+  assert.deepEqual(lanes.layout!('- Sales:').shapes.map((s) => s.k), ['r', 't']);
   const venn = specOf('venn')!;
   const circles = venn.layout!(venn.example).shapes.filter((s) => s.k === 'e');
   const mid = (...cs: typeof circles) => [cs.reduce((a, c) => a + c.x + c.w / 2, 0) / cs.length, cs.reduce((a, c) => a + c.y + c.h / 2, 0) / cs.length] as const;
@@ -757,7 +772,7 @@ test('diagrams worked on the picture: lists of things, regions, place cards', as
   // The name is large and the table small; a picture on a person goes on their card.
   const px = [...cards[0].svg.matchAll(/font-size="([\d.]+)"/g)].map((m) => +m[1]);
   assert.ok(Math.max(...px) > 40 && Math.min(...px) < 30, String(px));
-  assert.ok(placeCards('Top: :star Ada')[0].svg.includes('stroke-linecap="round"') && placeCards('Top: :star Ada')[0].svg.includes('>Ada</text>'));
+  assert.ok(placeCards('- Top: :star Ada')[0].svg.includes('stroke-linecap="round"') && placeCards('- Top: :star Ada')[0].svg.includes('>Ada</text>'));
   assert.equal(placeCards('').length, 1);
   assert.ok(appOf('seating')!.downloads!.some((x) => x.ext === 'cards.pdf' && x.pages));
   assert.equal(appOf('seating')!.downloads![0].ext, 'svg');
@@ -770,7 +785,8 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   let forms = 0;
   for (const def of apps()) {
     const spec = specOf(def.id);
-    if (!spec) continue;
+    // (A database's tables have columns of their own, so it is written as text.)
+    if (!spec || def.id === 'db') continue;
     assert.ok(spec.form, `${def.id} has a form`);
     forms++;
     // Its own example, read into rows and written back, is the example to the letter.
@@ -782,7 +798,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
     assert.ok(own >= rows.length * 0.8, `${def.id}: ${own} of ${rows.length} lines have a kind`);
     assert.ok(kinds.every((k) => k.name));
   }
-  assert.ok(forms >= 29, String(forms));
+  assert.ok(forms >= 28, String(forms));
 
   const menu = specOf('menu')!.form!;
   const rows = readLines('# Cafe\n## Coffee\nEspresso|3.00 | Dark\nFlat white | 4.20\nOpen daily', menu);
@@ -806,7 +822,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   // Choices, optional parts, words between fields.
   const notes: LineKind[] = [{ name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' }, { name: 'Note', is: '[:{Picture:icon} ]{Note}' }];
   assert.deepEqual(readLines('green: Thank them\nCall Sam: today', notes).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
-  assert.deepEqual(readLines('Kitchen: 4 x 3 at 5,0\nHall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
+  assert.deepEqual(readLines('- Kitchen: 4 x 3 at 5,0\n- Hall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
   assert.deepEqual(readLines('signup rate = 6% (0 to 30)\nVisitors > Signups = visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A blank line that means something is kept as a row.
   const cards: LineKind[] = [{ name: 'Picture', is: ':{Picture:icon}' }, { name: 'Next card', is: '' }, { name: 'Line', is: '{Text}' }];
@@ -886,7 +902,7 @@ test('slides take bold, italic and the rest, like a text does', async () => {
 
 test('a motion slide, held still, is at its end', async () => {
   const { animPage } = await import('../src/apps/anim.def.ts');
-  const anim = parseAnim('!9\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;8,5k,-5k,0,a,0');
+  const anim = parseAnim(`---\nframes: 9\n---\n${drawn('i | 8 | 36 | 8 | 8 | 0b | rocket')}\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 8,200,-200,0,1,0`);
   // On its own it starts at the start and loops; on a slide it plays once and rests at the end.
   assert.ok(animPage(anim).svg.includes('<g transform="translate(96 320)">'));
   const once = animPage(anim, true).svg;
@@ -980,13 +996,13 @@ test('markdown, both ways, for every app', async () => {
     outline: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
     write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
-    draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',
+    draw: drawn('r | 2 | 1 | 12 | 6 | 1b3 | Box', 'o | 20 | 2 | 10 | 6 | 0 | Ball'),
     cal: 'd2,2.g,Offsite\ndb,1,Launch',
     todo: '- Book flights\nx!@1jk Renew passport\n- Pack',
     board: '#To do|2\nx\ny\n#Done\nz',
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
     trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
-    anim: '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
+    anim: LIFT_OFF,
     pixel: 'ab.c\n.dd',
     zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A book\nby me\n\nOne\nwords',
@@ -1188,13 +1204,13 @@ test('pen shapes: any corners, kept as hundredths of the box; Motion morphs them
   const { shapeSvg } = await import('../src/apps/draw.def.ts');
   const { parseAnim, serializeAnim, stateAt, withKey } = await import('../src/lib/animmodel.ts');
   const { frameSvg } = await import('../src/apps/anim.def.ts');
-  const line = 'v,2,1,12,6,1b,0:0;100:50;0:100,Wedge';
+  const line = 'Kind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\nv | 2 | 1 | 12 | 6 | 1b | Wedge | 0:0;100:50;0:100';
   const [s] = parseDrawing(line);
   assert.deepEqual(s.pts, [0, 0, 100, 50, 0, 100]);
   assert.equal(serializeDrawing([s]), line);
   assert.ok(shapeSvg(s).includes('<polygon points="16,8 112,32 16,56"'));
   // A key with corners: morphed halfway to the next.
-  let anim = parseAnim('!o\n' + line);
+  let anim = parseAnim(line);
   anim = withKey(anim, 0, { t: 0, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 50, 0, 100] });
   anim = withKey(anim, 0, { t: 10, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 0, 100, 100] });
   assert.deepEqual(stateAt(anim, 0, 5).pts, [0, 0, 100, 25, 50, 100]);
