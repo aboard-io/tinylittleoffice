@@ -14,15 +14,16 @@ import { parseTodos, serializeTodos } from './todomodel.ts';
 import { parseBoard, serializeBoard } from './boardmodel.ts';
 import { parseGantt } from './ganttmodel.ts';
 import { parseTrip } from './tripmodel.ts';
-import { parseCalendar, repeatText, EPOCH_DAY, isoDay, type Span as CalSpan } from './calmodel.ts';
+import { parseCalendar, repeatText, EPOCH_DAY, EPOCH_MS, isoDay, type Span as CalSpan } from './calmodel.ts';
 import { parseDrawing, serializeDrawing, type Shape } from './drawmodel.ts';
 import { parseOutline, serializeOutline } from './outlinemodel.ts';
 import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
-import { dayToYmd, ymdString } from './tz.ts';
+import { dayToYmd, ymdString, ymdToDay, utcToParts, pad2 } from './tz.ts';
 import { formatOf, parseFold, serializeFold } from './fold.ts';
 import { mdToSite, siteToMd } from './sitemodel.ts';
+import { FIELDS, MODES, evaluate, inputs, parseCalc, serializeCalc, shown, withDefaults } from './calc.ts';
 
 /* ---------- inline marks ---------- */
 
@@ -260,6 +261,17 @@ const items = (md: string) => md.split('\n').map((l) => /^\s*(?:[-*+]|\d+[.)])\s
 export function toMarkdown(def: AppDef, body: string, title = ''): string {
   const name = title || def.title(body);
   switch (def.id) {
+    case 'calc': {
+      // The mode as a heading; then each value by its name, each expression with what it comes to, or each curve.
+      const c = parseCalc(body);
+      const head = `## ${MODES.find((m) => m.id === c.mode)!.name}\n\n`;
+      const lines = c.lines.filter((l) => l.trim());
+      if (c.mode === 'calc') return head + lines.map((l) => `- ${l} = ${shown(evaluate(l))}`).join('\n') + '\n';
+      if (c.mode === 'graph') return head + lines.map((l) => `- y = ${l}`).join('\n') + '\n';
+      const v = withDefaults(c.mode, inputs(c.lines));
+      const years = Object.keys(v).filter((k) => /^year \d+$/.test(k));
+      return head + [...FIELDS[c.mode].map((f) => `- ${f.name}: ${v[f.key]}${f.unit ? ' ' + f.unit : ''}`), ...years.map((k) => `- ${k[0].toUpperCase() + k.slice(1)}: ${v[k]}`)].join('\n') + '\n';
+    }
     case 'write':
       return docToMd(body);
     case 'outline':
@@ -286,7 +298,18 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       const cal = parseCalendar(body);
       // A repeat goes after the label, the way the calendar reads it back ("Standup every week, 9 times").
       const label = (s: CalSpan) => s.label + (s.repeat ? ` ${repeatText(s.repeat)}` : '');
-      return (cal.zone ? `Time zone: ${cal.zone}\n\n` : '') + cal.spans.map((s) => (s.kind === 'd' ? `- ${isoDay(s.start)}${s.dur > 1 ? ` (${s.dur} days)` : ''}: ${label(s)}` : `- ${new Date(s.start * 60000).toISOString().slice(0, 16).replace('T', ' ')} UTC${s.dur ? ` (${s.dur} min)` : ''}: ${label(s)}`)).join('\n') + '\n';
+      // Times in the document's own zone (named at the top), the way the calendar reads them back.
+      const zone = cal.zone || 'UTC';
+      const clock = (min: number) => {
+        const p = utcToParts(EPOCH_MS + min * 60000, zone);
+        return { day: ymdString(p.y, p.m, p.d), time: `${pad2(p.h)}:${pad2(p.min)}` };
+      };
+      const timed = cal.spans.some((s) => s.kind === 't');
+      return (cal.zone || timed ? `Time zone: ${zone}\n\n` : '') + cal.spans.map((s) => {
+        if (s.kind === 'd') return `- ${isoDay(s.start)}${s.dur > 1 ? ` to ${isoDay(s.start + s.dur - 1)}` : ''}: ${label(s)}`;
+        const [a, b] = [clock(s.start), clock(s.start + s.dur)];
+        return `- ${a.day} ${a.time}-${b.time}: ${label(s)}`;
+      }).join('\n') + '\n';
     }
     case 'draw':
       return parseDrawing(body).filter((s) => s.text).map((s) => `- ${s.text}`).join('\n') + '\n';
@@ -353,9 +376,42 @@ export function csvToMd(text: string): string {
 }
 
 /** Markdown as the document, read forgivingly: what fits the kind of document is kept, the rest becomes words. */
+/**
+ * Markdown as a model hands it over, unwrapped: Windows line ends, a code
+ * fence around the whole of it ("```markdown"), front matter, spaces at the
+ * ends of lines. What is left is what was meant.
+ */
+export function unwrapMarkdown(md: string): string {
+  let t = md.replace(/\r\n?/g, '\n').replace(/[ \t]+$/gm, '').trim();
+  const fence = /^```(?:markdown|md|text)?\n([\s\S]*?)\n?```$/i.exec(t);
+  if (fence) t = fence[1].trim();
+  const front = /^---\n[\s\S]*?\n---\n/.exec(t);
+  if (front) t = t.slice(front[0].length).trim();
+  return t;
+}
+
 export function fromMarkdown(def: AppDef, md: string): string {
-  const text = (looksLikeCsv(md) ? csvToMd(md) : md).replace(/\r\n?/g, '\n').trim();
+  const plain = unwrapMarkdown(md);
+  const text = (looksLikeCsv(plain) ? csvToMd(plain) : plain).trim();
   switch (def.id) {
+    case 'calc': {
+      // A heading names the mode; list items are "Name: value" for the money modes, "expression = result" or "y = curve" otherwise.
+      const heading = /^#+\s*(.+)$/m.exec(text)?.[1].trim().toLowerCase();
+      const mode = MODES.find((m) => m.name.toLowerCase() === heading || m.id === heading)?.id ?? 'calc';
+      const lines = items(text);
+      if (mode === 'calc') return serializeCalc({ mode, lines: lines.map((l) => l.replace(/\s*=\s*[^=]*$/, '')) });
+      if (mode === 'graph') return serializeCalc({ mode, lines: lines.map((l) => l.replace(/^y\s*=\s*/i, '')) });
+      const fields = FIELDS[mode];
+      return serializeCalc({
+        mode,
+        lines: lines.flatMap((l) => {
+          const m = /^([^:=]+?)\s*[:=]\s*(-?[\d.,]+)/.exec(l);
+          if (!m) return [];
+          const key = fields.find((f) => f.name.toLowerCase() === m[1].trim().toLowerCase() || f.key === m[1].trim().toLowerCase())?.key ?? (/^year \d+$/i.test(m[1].trim()) ? m[1].trim().toLowerCase() : '');
+          return key ? [`${key} = ${m[2].replace(/,/g, '')}`] : [];
+        }),
+      });
+    }
     case 'write':
       return mdToDoc(text);
     case 'outline':
@@ -403,8 +459,17 @@ export function fromMarkdown(def: AppDef, md: string): string {
       return def.read!(tableRows(text).map((r) => `${/^\s/.test(r[0]) ? '>' : ''}${r[1]}, ${r[2]}, ${(r[3] ?? '0').replace('%', '')}%, ${r[0].trim()}`).join('\n'));
     case 'trip':
       return def.read!(items(text).map((l) => l.replace(/^(.*?)\s*\((-?[\d.]+),\s*(-?[\d.]+)\)(?:\s*\\?\s*(.*))?$/, '$2, $3, $1\t$4').replace(/\t$/, '')).join('\n'));
-    case 'cal':
-      return def.read!(items(text).map((l) => l.replace(/^(\d{4}-\d\d-\d\d)(?:\s*\((\d+) days?\))?:\s*(.*)$/, (_, d, n, label) => `${d}, ${n ?? 1}, ${label}`)).join('\n'));
+    case 'cal': {
+      // "Time zone: X" and lines of "date[ to date| (N days)][ HH:MM-HH:MM]: label", as written above or by hand, made into what the calendar reads.
+      const zone = /^\s*time ?zone:\s*(\S+)/im.exec(text)?.[1];
+      const lines = items(text).map((l) =>
+        l.replace(/^(\d{4})-(\d\d)-(\d\d)(?:\s+to\s+(\d{4}-\d\d-\d\d))?(?:\s*\((\d+) days?\))?(?:\s+(\d\d?:\d\d)\s*[-–]\s*(\d\d?:\d\d))?\s*:?\s*(.*)$/, (_, y, m, d, to, n, t0, t1, label) => {
+          const end = to ?? (n && +n > 1 ? (({ y: Y, m: M, d: D }) => ymdString(Y, M, D))(dayToYmd(ymdToDay(+y, +m, +d) + +n - 1)) : '');
+          return `${y}-${m}-${d}${end ? ` to ${end}` : ''}${t0 ? ` ${t0}-${t1}` : ''} ${label}`;
+        }),
+      );
+      return def.read!([...(zone ? [`@${zone}`] : []), ...lines].join('\n'));
+    }
     case 'draw': {
       const labels = items(text);
       const shapes: Shape[] = labels.map((t, i) => ({ k: 'r', x: 2 + (i % 4) * 14, y: 2 + Math.floor(i / 4) * 8, w: 12, h: 6, f: 1, text: t }));

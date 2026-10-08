@@ -124,6 +124,6 @@ test('a repeat goes out as an RRULE, into the months drawn, the outline and Mark
   assert.equal(def.view('d2,1*w9,Standup', { embed: true, step: 0 })[0].svg.includes('Standup'), false);
   assert.deepEqual(def.outline('d2,1*w9,Standup\nd3,1,Once'), ['2020-01-03, every week, 9 times  ·  Standup', '2020-01-04  ·  Once']);
   const md = toMarkdown(def, 'd2,1*w9,Standup\nd3,2,Once');
-  assert.equal(md, '- 2020-01-03: Standup every week, 9 times\n- 2020-01-04 (2 days): Once\n');
+  assert.equal(md, '- 2020-01-03: Standup every week, 9 times\n- 2020-01-04 to 2020-01-05: Once\n');
   assert.equal(parseCalendar(fromMarkdown(def, md)).spans[0].repeat?.count, 9);
 });
