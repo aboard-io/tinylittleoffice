@@ -1,5 +1,5 @@
 /** The whole page in happy-dom: the shell (<to-app>) opened at a link, as a visitor arrives at it; and the page an editor shows in its frame. */
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import { litElements } from './env-apps.ts';
 // As src/main.ts puts the page together (less the stylesheet and the offline copy).
 import '../../src/widgets/meter.ts';
@@ -7,6 +7,9 @@ import '../../src/kit/tip.ts';
 import '../../src/app.ts';
 import { decodeEnvelope, encodeEnvelope } from '../../src/lib/envelope.ts';
 import { type Editor } from './helpers.ts';
+
+// A test that works the whole shell takes about a second here; on a busy machine, several. Time enough for that.
+vi.setConfig({ testTimeout: 20_000 });
 
 export type Shell = HTMLElement & { updateComplete: Promise<unknown> };
 
@@ -93,25 +96,8 @@ export function shortcut(key: string, mods: { shift?: boolean; alt?: boolean; mo
   target.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey: !!mods.shift, altKey: !!mods.alt, ctrlKey: !!mods.mod, bubbles: true, composed: true }));
 }
 
-/** An element whose words match, among those the selector finds. */
-export function withText<T extends Element = HTMLElement>(root: ParentNode, selector: string, text: string | RegExp): T {
-  const all = [...root.querySelectorAll<T>(selector)];
-  const found = all.find((e) => (typeof text === 'string' ? e.textContent?.includes(text) : text.test(e.textContent ?? '')));
-  if (!found) throw new Error(`no ${selector} with ${text}: ${all.map((e) => e.textContent?.trim().slice(0, 40)).join(' | ')}`);
-  return found;
-}
-
 /** The words of each element the selector finds. */
 export const texts = (root: ParentNode, selector: string) => [...root.querySelectorAll(selector)].map((e) => e.textContent?.trim() ?? '');
-
-/** A press of a mouse or finger: pointerdown, pointerup and the click they make. */
-export function tap(el: Element | null, opts: PointerEventInit = {}) {
-  if (!el) throw new Error('nothing to tap');
-  const at = { bubbles: true, composed: true, button: 0, pointerId: 1, pointerType: 'mouse', isPrimary: true, ...opts };
-  el.dispatchEvent(new PointerEvent('pointerdown', at));
-  el.dispatchEvent(new PointerEvent('pointerup', at));
-  el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true, button: 0 }));
-}
 
 /**
  * The page an editor shows in its sandboxed frame (an invoice, a website, a
