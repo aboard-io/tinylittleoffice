@@ -355,7 +355,7 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   await remount(last());
   expect(cell('C1').value).toBe('29');
   expect(cell('D1').value).toBe('$1,200.50');
-  expect(button(/^Column E: Link/)).toBeTruthy();
+  expect(button(/^Column E, Link: Link/)).toBeTruthy();
   // Rich text shows its emphasis when you are not typing in it.
   await setType('C', 'Rich text');
   await put('C2', 'Very *important* thing');
