@@ -1,85 +1,162 @@
-/** Site: a one-page website from a few lines of text. */
+/** Site: a website of little pages from a few lines of text, downloaded as one HTML file. */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { pageScript, pageSvg, slug, xml } from '../kit/core.ts';
+import { refPage, resolve } from '../kit/embed.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { iconOf } from '../lib/drawmodel.ts';
 import { linkify } from '../lib/richtext.ts';
+import { parseSite, readSite, type Color, type Section, type Theme } from '../lib/sitemodel.ts';
 
-interface Section {
-  title: string;
-  text: string[];
-  points: string[];
-  buttons: { label: string; url: string }[];
+export { parseSite } from '../lib/sitemodel.ts';
+
+/** Each colour: the accent, its tint, the deep shade words take on the tint, and the pale shade they take in the dark. Every pair reads at AA. */
+const LOOKS: Record<Color, [string, string, string, string]> = {
+  indigo: ['#4f46e5', '#eef2ff', '#3730a3', '#a5b4fc'],
+  teal: ['#0f766e', '#ccfbf1', '#115e59', '#5eead4'],
+  rose: ['#be123c', '#ffe4e6', '#9f1239', '#fda4af'],
+  amber: ['#b45309', '#fef3c7', '#92400e', '#fcd34d'],
+  ink: ['#18181b', '#f4f4f5', '#18181b', '#e4e4e7'],
+};
+
+/** The theme as CSS variables, and the serif face when asked for. */
+function look(t: Theme): string {
+  const [a, tint, deep, pale] = LOOKS[t.color];
+  const vars = t.dark
+    ? `--a:${t.color === 'ink' ? '#fafafa' : a};--on:${t.color === 'ink' ? '#18181b' : '#fff'};--tint:#27272a;--deep:${pale};--bg:#18181b;--glass:rgba(24,24,27,.92);--ink:#fafafa;--ink2:#d4d4d8;--ink3:#a1a1aa;--line:#3f3f46`
+    : `--a:${a};--on:#fff;--tint:${tint};--deep:${deep};--bg:#fff;--glass:rgba(255,255,255,.92);--ink:#18181b;--ink2:#3f3f46;--ink3:#52525b;--line:#e4e4e7`;
+  return `:root{${vars}}${t.serif ? "body,h1,h2,h3{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif}" : ''}`;
 }
 
-/** "# Name", a tagline, then sections: "## Heading", paragraphs, "- points", "> Button | https://..." */
-export function parseSite(text: string): { name: string; sections: Section[] } {
-  let name = '';
-  const sections: Section[] = [{ title: '', text: [], points: [], buttons: [] }];
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    const cur = sections[sections.length - 1];
-    if (!line) continue;
-    if (line.startsWith('# ') && !name) name = line.slice(2).trim();
-    else if (line.startsWith('## ')) sections.push({ title: line.slice(3).trim(), text: [], points: [], buttons: [] });
-    else if (/^[-*] /.test(line)) cur.points.push(line.slice(2).trim());
-    else if (line.startsWith('> ')) {
-      const [label, url] = line.slice(2).split('|').map((p) => p.trim());
-      cur.buttons.push({ label, url: /^(https?:|mailto:|#)/.test(url ?? '') ? url : '#' });
-    } else cur.text.push(line);
-  }
-  return { name, sections };
-}
+/**
+ * The pages, switched by hash: "#menu" shows the page called Menu, or the
+ * page holding the section called that, and marks it in the nav. With no
+ * script the pages sit one under another, which still reads. A link into
+ * the site sets the hash itself: shown in a frame as a preview, the page
+ * has its host's address for a base, and a plain "#menu" would leave it.
+ */
+const ROUTER = pageScript(`(function(){
+var pages=[].slice.call(document.querySelectorAll('main>.page')),links=[].slice.call(document.querySelectorAll('nav a')),name=document.title,was=null;
+document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest?ev.target.closest('a[href^="#"]'):null;if(!a||ev.defaultPrevented)return;ev.preventDefault();location.hash=a.getAttribute('href').slice(1);});
+function show(){var h=decodeURIComponent(location.hash.slice(1)),page=null,at=null;
+for(var i=0;i<pages.length;i++)if(pages[i].id===h)page=pages[i];
+if(!page&&h){at=document.getElementById(h);if(at)page=at.closest('.page');}
+if(!page)page=pages[0];
+pages.forEach(function(p){p.hidden=p!==page;});
+links.forEach(function(a){if(a.getAttribute('href')==='#'+page.id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+var head=page.querySelector('h1,h2');
+document.title=page===pages[0]||!head?name:head.textContent+' \\u00b7 '+name;
+if(at&&at!==page)at.scrollIntoView();else if(was&&was!==page){window.scrollTo(0,0);if(head){head.tabIndex=-1;head.focus();}}
+was=page;}
+window.addEventListener('hashchange',show);show();
+})();`);
 
 const prose = (t: string) => linkify(t).map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t))).join('');
-const slugOf = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const icon = (name: string, size: number, cls = '') => (ICON_SVG[name] ? `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : '');
 
-function page(text: string): string {
+function page(text: string, base = ''): string {
   const site = parseSite(text);
-  const [hero, ...rest] = site.sections;
   const name = site.name || 'My site';
-  const buttons = (s: Section) => (s.buttons.length ? `<p class="go">${s.buttons.map((b, i) => `<a class="btn${i ? ' quiet' : ''}" href="${xml(b.url)}">${xml(b.label)}</a>`).join(' ')}</p>` : '');
+  const multi = site.pages.length > 1;
+  // Ids: the pages first, then the sections, so "#menu" is the page Menu even when a section is called that too.
+  const ids = new Set(['home']);
+  const idFor = (title: string, fallback: string) => {
+    const base = slug(title) || fallback;
+    let id = base;
+    for (let n = 2; ids.has(id); n++) id = `${base}-${n}`;
+    ids.add(id);
+    return id;
+  };
+  const pageIds = site.pages.map((p, i) => (i ? idFor(p.title, `page-${i + 1}`) : 'home'));
+  const sectionIds = site.pages.map((p) => p.sections.map((s, j) => (j ? idFor(s.title, 'section') : '')));
+
   // A point may start with an icon (":rocket Fast") and be "Heading | detail".
   const card = (p: string) => {
-    const [icon, words] = iconOf(p);
+    const [ic, words] = iconOf(p);
     const [head, detail] = words.split(' | ');
-    return `<li>${ICON_SVG[icon] ? `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[icon]}</svg>` : ''}<strong>${xml(head)}</strong>${detail ? `<span>${prose(detail)}</span>` : ''}</li>`;
+    return `<li>${icon(ic, 28)}<strong>${xml(head)}</strong>${detail ? `<span>${prose(detail)}</span>` : ''}</li>`;
   };
+  const cards = (s: Section) => (s.points.length ? `<ul class="cards">${s.points.map(card).join('')}</ul>` : '');
+  // Three or more buttons on a page's front are the page: stacked, as a link-in-bio page is.
+  const buttons = (s: Section, front: boolean) => {
+    if (!s.buttons.length) return '';
+    const stack = front && s.buttons.length >= 3;
+    return `<p class="go${stack ? ' stack' : ''}">${s.buttons.map((b, i) => `<a class="btn${i && !stack ? ' quiet' : ''}" href="${xml(b.url)}">${icon(b.icon, 20)}${xml(b.label)}</a>`).join(' ')}</p>`;
+  };
+  const pics = (s: Section, size: number) => (s.icon ? icon(s.icon, size, 'ico') : '') + s.pics.map((p) => `<img class="pic" src="${xml(p)}" alt="" loading="lazy">`).join('');
+  const embed = (ref: string) => {
+    const d = resolve(ref);
+    return `<figure class="embed">${pageSvg(refPage(ref), `role="img" aria-label="${xml(d.title)}"`)}<figcaption><a href="${xml(base + d.hash)}">${xml(d.title)}</a> <small>${xml(d.def?.name ?? 'Document')}</small></figcaption></figure>`;
+  };
+  const embeds = (s: Section) => s.embeds.map(embed).join('');
+  const paras = (s: Section) => s.text.map((t) => `<p>${prose(t)}</p>`).join('');
+  // A page: its front (the title, its words and buttons), then what else its first section holds, then its sections.
+  const render = (i: number) => {
+    const p = site.pages[i];
+    const [front, ...rest] = p.sections;
+    const title = i ? p.title || `Page ${i + 1}` : name;
+    return `<section class="page" id="${pageIds[i]}">
+<div class="hero${i ? ' top' : ''}"><div class="wrap">${pics(front, 64)}<h1>${xml(title)}</h1>${paras(front)}${buttons(front, true)}</div></div>
+${front.points.length || front.embeds.length ? `<div class="part"><div class="wrap">${cards(front)}${embeds(front)}</div></div>` : ''}
+${rest.map((s, j) => `<section class="part" id="${sectionIds[i][j + 1]}"><div class="wrap"><h2>${xml(s.title)}</h2>${pics(s, 40)}${paras(s)}${cards(s)}${embeds(s)}${buttons(s, false)}</div></section>`).join('\n')}
+</section>`;
+  };
+  // The nav: the pages, or for a site of one page its sections, as before.
+  const nav = multi ? site.pages.map((p, i) => [`#${pageIds[i]}`, i ? p.title || `Page ${i + 1}` : 'Home']) : site.pages[0].sections.slice(1).map((s, j) => [`#${sectionIds[0][j + 1]}`, s.title]).filter(([, t]) => t);
+  const front = site.pages[0].sections[0];
   return htmlPage(
     name,
-    hero.text[0] ?? name,
-    `header{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid #e4e4e7}
-header .wrap{display:flex;align-items:center;gap:1.2rem;min-height:3.4rem;flex-wrap:wrap}header b{font-size:1.05rem;margin-right:auto}
-header a{color:#3f3f46;text-decoration:none;font-size:.95rem}header a:hover{color:#4338ca}
-.hero{padding:5rem 0 4rem;text-align:center;background:linear-gradient(#eef2ff,#fff)}
-.hero h1{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 1rem}.hero p{font-size:1.25rem;color:#3f3f46;max-width:38rem;margin:0 auto 1rem}
-section{padding:3.2rem 0;border-top:1px solid #f4f4f5}section h2{font-size:1.8rem;margin:0 0 1rem}section p{max-width:44rem;color:#3f3f46}
-ul.cards{list-style:none;padding:0;margin:1.6rem 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem}
-ul.cards li{border:1px solid #e4e4e7;border-radius:.9rem;padding:1.2rem;display:flex;flex-direction:column;gap:.4rem}
-ul.cards span{color:#52525b;font-size:.95rem}.go{margin-top:1.6rem}.btn.quiet{background:#eef2ff;color:#3730a3}
-footer{padding:2rem 0;color:#52525b;font-size:.9rem;border-top:1px solid #e4e4e7}`,
-    `<header><div class="wrap"><b>${xml(name)}</b>${rest.filter((s) => s.title).map((s) => `<a href="#${slugOf(s.title)}">${xml(s.title)}</a>`).join('')}</div></header>
+    front.text[0] ?? name,
+    `${look(site.theme)}
+body{background:var(--bg);color:var(--ink)}a{color:var(--deep)}.btn{background:var(--a);color:var(--on)}.btn.quiet{background:var(--tint);color:var(--deep)}
+header{position:sticky;top:0;z-index:2;background:var(--glass);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:1.2rem;min-height:3.4rem}header b{font-size:1.05rem;white-space:nowrap}
+nav{display:flex;gap:1.1rem;margin-left:auto;overflow-x:auto;scrollbar-width:none}nav a{color:var(--ink2);text-decoration:none;font-size:.95rem;white-space:nowrap;padding:.9rem 0}nav a:hover{color:var(--deep)}nav a[aria-current]{color:var(--deep);box-shadow:inset 0 -2px 0 var(--a)}
+.hero{padding:5rem 0 4rem;text-align:center;background:linear-gradient(var(--tint),var(--bg))}.hero.top{padding:3.2rem 0 2.6rem}
+.hero h1{font-size:clamp(2.2rem,6vw,3.6rem);margin:0 0 1rem}.hero.top h1{font-size:clamp(1.8rem,5vw,2.6rem)}.hero p{font-size:1.25rem;color:var(--ink2);max-width:38rem;margin:0 auto 1rem}
+.hero .pic{width:8rem;height:8rem;border-radius:50%;object-fit:cover;display:block;margin:0 auto 1.2rem}.ico{display:block;margin:0 auto 1rem;color:var(--a)}.part .ico{margin:0 0 1rem}
+.part{padding:3.2rem 0;border-top:1px solid var(--line)}.part h2{font-size:1.8rem;margin:0 0 1rem}.part p{max-width:44rem;color:var(--ink2)}.part .pic{display:block;max-width:100%;border-radius:.9rem;margin:0 0 1.2rem}
+.cards{list-style:none;padding:0;margin:1.6rem 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem}
+.cards li{border:1px solid var(--line);border-radius:.9rem;padding:1.2rem;display:flex;flex-direction:column;gap:.4rem}.cards svg{color:var(--a)}.cards span{color:var(--ink3);font-size:.95rem}
+.go{margin:1.6rem 0 0;display:flex;flex-wrap:wrap;gap:.6rem}.hero .go{justify-content:center}.btn svg{vertical-align:-.25em;margin-right:.4rem}
+.go.stack{flex-direction:column;max-width:22rem;margin:1.6rem auto 0}.go.stack .btn{padding:.85rem 1.1rem;font-size:1.05rem;text-align:center}
+.embed{margin:1.6rem 0 0}.embed svg{display:block;width:100%;max-width:48rem;height:auto;border:1px solid var(--line);border-radius:.9rem;background:#fff}.embed figcaption{font-size:.9rem;color:var(--ink3);margin-top:.4rem}
+footer{padding:2rem 0;color:var(--ink3);font-size:.9rem;border-top:1px solid var(--line)}`,
+    `<header><div class="wrap"><b>${xml(name)}</b><nav aria-label="${multi ? 'Pages' : 'Sections'}">${nav.map(([href, t]) => `<a href="${xml(href)}">${xml(t)}</a>`).join('')}</nav></div></header>
 <main>
-<div class="hero"><div class="wrap"><h1>${xml(name)}</h1>${hero.text.map((t) => `<p>${prose(t)}</p>`).join('')}${buttons(hero)}</div></div>
-${hero.points.length ? `<section><div class="wrap"><ul class="cards">${hero.points.map(card).join('')}</ul></div></section>` : ''}
-${rest.map((s) => `<section id="${slugOf(s.title)}"><div class="wrap"><h2>${xml(s.title)}</h2>${s.text.map((t) => `<p>${prose(t)}</p>`).join('')}${s.points.length ? `<ul class="cards">${s.points.map(card).join('')}</ul>` : ''}${buttons(s)}</div></section>`).join('\n')}
+${site.pages.map((_, i) => render(i)).join('\n')}
 </main>
-<footer><div class="wrap">${xml(name)}</div></footer>`,
+<footer><div class="wrap">${xml(name)}</div></footer>
+${ROUTER}`,
   );
 }
 
 export const spec = {
   form: [
     { name: 'Name', is: '# {Name}', once: true },
+    { name: 'Theme', is: 'theme: {Colour:choice=indigo,teal,rose,amber,ink}[ {Type:choice=sans,serif}][ {Mode:choice=light,dark}]', once: true },
+    { name: 'Page', is: '=== {Title}', head: true },
     { name: 'Section', is: '## {Section}', head: true },
     { name: 'Card', is: '- [:{Picture:icon} ]{Heading}[ | {Detail}]' },
-    { name: 'Button', is: '> {Label} | {Link}' },
+    { name: 'Button', is: '> [:{Picture:icon} ]{Label} | {Link}' },
+    { name: 'Document', is: '@@{Link}' },
     { name: 'Paragraph', is: '{Text:long}' },
   ] as LineKind[],
-  hint: '"# Name" and a line about it; "## Section" starts each part; "- Point | detail" makes a card (":icon" first for an icon); "> Label | https://..." a button.',
-  example: '# Harbor Coffee\nSmall-batch coffee, roasted on the quay every morning.\n> See the menu | #menu\n> Find us | #visit\n- :coffee Roasted daily | Never more than a week old\n- :leaf Fair trade | Bought direct from six farms\n- :bike Delivered | By bike, across the old town\n## Menu\nEspresso, filter, and a pastry case that empties by ten.\n- Espresso | 3.00\n- Flat white | 4.20\n- Cardamom bun | 3.50\n## Visit\n14 Quay Street, open 7 to 3, every day but Monday.\n> Email us | mailto:hello@example.com',
+  hint: '"# Name" and a line about it; "=== Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon" first for an icon); "> Label | https://..." a button; "theme: teal serif dark" the look.',
+  example:
+    '# Harbor Coffee\nSmall-batch coffee, roasted on the quay every morning.\ntheme: amber serif\n> See the menu | #menu\n> Find us | #find-us\n- :coffee Roasted daily | Never more than a week old\n- :leaf Fair trade | Bought direct from six farms\n- :bike Delivered | By bike, across the old town\n=== Menu\nEspresso, filter, and a pastry case that empties by ten.\n## Coffee\n- Espresso | 3.00\n- Flat white | 4.20\n## Pastry\n- Cardamom bun | 3.50\n=== Find us\n14 Quay Street, open 7 to 3, every day but Monday.\n> Email us | mailto:hello@example.com',
   page,
 };
 
-export default definePage({ id: 'site', name: 'Website', icon: 'site', group: 'Create', blurb: 'A one-page website, written as a few lines and downloaded as a single HTML file.', title: (body) => parseSite(body).name }, spec);
+export default definePage(
+  {
+    id: 'site',
+    name: 'Website',
+    icon: 'site',
+    group: 'Create',
+    blurb: 'A website of little pages, written as a few lines and downloaded as a single HTML file. Good for a link in bio.',
+    title: (body) => parseSite(body).name,
+    read: readSite,
+  },
+  spec,
+);

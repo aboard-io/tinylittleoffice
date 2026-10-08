@@ -460,7 +460,7 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
     assert.ok(spec.page!('').startsWith('<!doctype html>'), `${id} survives being empty`);
   }
   const site = specOf('site')!.page!(specOf('site')!.example);
-  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section id="menu">') && site.includes('<strong>Roasted daily</strong>'));
+  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section class="page" id="menu">') && site.includes('<strong>Roasted daily</strong>'));
   const store = specOf('store')!.page!(specOf('store')!.example);
   assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
   // Nothing typed into a page can break out of it.

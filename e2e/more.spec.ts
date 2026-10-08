@@ -386,7 +386,7 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   const site = page.frameLocator('to-site iframe');
   await expect(site.getByRole('heading', { level: 1 })).toHaveText('Harbor Coffee');
   await expect(site.locator('ul.cards li')).toHaveCount(6);
-  await expect(site.locator('header a')).toHaveText(['Menu', 'Visit']);
+  await expect(site.locator('header a')).toHaveText(['Home', 'Menu', 'Find us']);
   await shot(page, 'site');
 
   // A store: things go in the cart, and the total adds up.

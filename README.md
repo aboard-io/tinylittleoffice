@@ -24,7 +24,7 @@ you have copied the file.
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Database | A tiny relational database: tables, rows, SQL queries, schema drawn. |
-| Website | A one-page site from a few lines; downloads as one HTML file. |
+| Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
 | Store | A shop page with a working cart; orders go by email. |
 | Invoice | Who, what, how much; sums done, PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
@@ -182,6 +182,13 @@ Every format is plain text, chosen so deflate has something to chew on.
   rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
   may carry a colour letter and a text size digit after it (`1b3`).
   Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
+- **Website**: `# Name` and a line about it, `=== Title` for each further
+  page, `## Section` within a page, `- Point | detail` cards, `> Label | url`
+  buttons, `@@app/payload` for another document on the page, `theme: amber
+  serif dark` for the look. A line that is only a picture's address is a
+  picture. The home page is what comes before the first `===`; a site with
+  no `===` is one page navigated by its sections. `docs/website.md` is the
+  design.
 - **Calendar**: an optional `@Zone/Name` line (the zone the document was last
   edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
   span whose start is a day count from 2020-01-01: a floating civil date, the

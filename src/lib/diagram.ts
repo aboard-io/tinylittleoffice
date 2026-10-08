@@ -6,6 +6,7 @@
  */
 import type { Kind as LineKind } from './lines.ts';
 import { defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
+import { resolve } from '../kit/embed.ts';
 import { GRID, W, H, isLink, serializeDrawing, type Color, type Fill, type Kind, type Shape, type TextSize } from './drawmodel.ts';
 import { shapesPage } from '../apps/draw.def.ts';
 
@@ -101,8 +102,8 @@ export interface DiagramSpec {
   moves?: { kind: number; x: number; y: number; unit: number };
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
-  /** For page apps: the text as a whole web page, shown beside it as it is typed. */
-  page?(text: string): string;
+  /** For page apps: the text as a whole web page, shown beside it as it is typed. `base` is the site's address, for links out of a downloaded file. */
+  page?(text: string, base?: string): string;
   /** Anything to show under the picture, as HTML (query results, say). */
   aside?(text: string): string;
 }
@@ -150,7 +151,13 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
  */
 export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string): string }): AppDef {
   registerSpec(app.id, spec);
-  const lines = (body: string) => body.split('\n').map((l) => l.trim().replace(/^#+\s*/, '')).filter(Boolean);
+  // Its lines, as words: headings without their marks, an embedded document by its name.
+  const lines = (body: string) =>
+    body
+      .split('\n')
+      .map((l) => l.trim().replace(/^(#+|=+)\s*/, ''))
+      .filter(Boolean)
+      .map((l) => (l.startsWith('@@') ? `↗  ${resolve(l.slice(2)).title}` : l));
   // Its title is its "# Heading", unless it says otherwise.
   const title = app.title ?? h1;
   return defineApp({
@@ -159,7 +166,7 @@ export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> &
     view: (body, opts = {}) => [listPage(title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
     // On a slide, its lines arrive one at a time.
     steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
-    document: (body) => spec.page(body),
+    document: (body, ctx) => spec.page(body, ctx.base),
     shortcuts: OUTLINE_KEYS,
     ...app,
   });
