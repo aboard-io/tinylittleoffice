@@ -3,7 +3,7 @@
  * under them, set in Helvetica (one of the fonts every PDF reader has, so
  * nothing is embedded), wrapped to the page, broken across Letter pages,
  * the words selectable, linked words clickable, each section a bookmark in
- * the reader's outline. Helvetica's own widths are below, so lines break
+ * the reader's outline, the pages numbered. Helvetica's own widths are below, so lines break
  * where the reader will draw them. It writes Windows-1252: a character
  * outside it (beyond Western European letters) shows as "?".
  */
@@ -121,7 +121,7 @@ export function textPdf(blocks: TextBlock[], title = ''): Uint8Array {
 
   // Draw: each page a stream of text and lines, its links as annotations.
   const font = (b: boolean, i: boolean) => (b ? (i ? '/F4' : '/F2') : i ? '/F3' : '/F1');
-  const drawn = pages.map((page) => {
+  const drawn = pages.map((page, pi) => {
     let s = '';
     const links: { href: string; rect: number[] }[] = [];
     for (const { line, y } of page) {
@@ -140,6 +140,11 @@ export function textPdf(blocks: TextBlock[], title = ''): Uint8Array {
         else links.push({ href: p.href, rect: [px, base - 3, px + tw, base + line.size] });
       });
       if (line.rule) s += `0.31 0.27 0.9 RG 2 w ${M} ${(base - 10).toFixed(2)} m ${W - M} ${(base - 10).toFixed(2)} l S\n`;
+    }
+    // Page numbers, when there is more than one page, small and grey at the foot.
+    if (pages.length > 1) {
+      const num = `${pi + 1} / ${pages.length}`;
+      s += `BT /F1 9 Tf 0.45 g ${(W / 2 - measure(num, 9) / 2).toFixed(2)} ${(M / 2).toFixed(2)} Td ${str(num)} Tj ET\n`;
     }
     return { s, links };
   });

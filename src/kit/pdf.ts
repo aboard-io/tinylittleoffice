@@ -1,7 +1,10 @@
 /**
  * The smallest PDF that does the job: one JPEG per page, each page the size
- * of its picture. Pictures in, bytes out; the browser draws the JPEGs.
+ * of its picture, numbered at its foot when there is more than one. Pictures
+ * in, bytes out; the browser draws the JPEGs.
  */
+import { measure } from './textpdf.ts';
+
 export interface PdfPage {
   /** Size in px; a px becomes 0.75pt, so a 960px slide is a 10in page. */
   w: number;
@@ -45,12 +48,16 @@ export function pdf(pages: PdfPage[], title = ''): Uint8Array {
     const id = 4 + i * 3;
     const w = Math.round(p.w * 75) / 100;
     const h = Math.round(p.h * 75) / 100;
-    const draw = enc.encode(`q ${w} 0 0 ${h} 0 0 cm /Im0 Do Q`);
-    obj(id, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Contents ${id + 1} 0 R /Resources << /XObject << /Im0 ${id + 2} 0 R >> >> >>`);
+    // A document of more than one page has its page numbers, small and grey, centred at the foot.
+    const num = n > 1 ? `${i + 1} / ${n}` : '';
+    const draw = enc.encode(`q ${w} 0 0 ${h} 0 0 cm /Im0 Do Q` + (num ? ` BT /F1 8 Tf 0.45 g ${(w / 2 - measure(num, 8) / 2).toFixed(2)} ${Math.min(14, h * 0.02).toFixed(2)} Td (${num}) Tj ET` : ''));
+    obj(id, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Contents ${id + 1} 0 R /Resources << /XObject << /Im0 ${id + 2} 0 R >>${num ? ` /Font << /F1 ${4 + n * 3} 0 R >>` : ''} >> >>`);
     obj(id + 1, `<< /Length ${draw.length} >>`, draw);
     obj(id + 2, `<< /Type /XObject /Subtype /Image /Width ${p.pw} /Height ${p.ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>`, p.jpeg);
   });
-  const count = 4 + n * 3;
+  // The font page numbers are set in (one every reader has).
+  obj(4 + n * 3, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  const count = 5 + n * 3;
   const xref = size;
   push(`xref\n0 ${count}\n0000000000 65535 f \n`);
   for (let i = 1; i < count; i++) push(`${String(offsets[i]).padStart(10, '0')} 00000 n \n`);

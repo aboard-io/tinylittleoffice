@@ -56,3 +56,23 @@ test('a PDF reader reads it back as the outline', { skip: !existsSync('/usr/bin/
   for (const want of ['Launch', 'Product', 'sets — Pricing', 'See the plan and more', 'Marketing', 'Press', 'Connections', 'Pricing to Press']) assert.ok(text.includes(want), `${want}\n${text}`);
   assert.match(execFileSync('pdfinfo', [join(dir, 'o.pdf')]).toString(), /Page size:\s+612 x 792/);
 });
+
+test('pages are numbered at their foot when there is more than one; a single page is not', { skip: !existsSync('/usr/bin/pdftotext') }, async () => {
+  const { pdf } = await import('../src/kit/pdf.ts');
+  const dir = mkdtempSync(join(tmpdir(), 'pnum-'));
+  const many = 'Top\n' + Array.from({ length: 40 }, (_, i) => `  Section ${i}\n    item ${i}`).join('\n');
+  writeFileSync(join(dir, 'text.pdf'), pdfOf(many));
+  const text = execFileSync('pdftotext', ['-layout', join(dir, 'text.pdf'), '-']).toString();
+  const pages = +/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [join(dir, 'text.pdf')]).toString())![1];
+  assert.ok(pages > 1);
+  // (A reader may take the thin spaces round the slash out.)
+  for (let i = 1; i <= pages; i++) assert.match(text, new RegExp(`\\b${i} ?/ ?${pages}\\b`), `page ${i}`);
+  assert.ok(!latin(pdfOf('Just\n  one')).includes(' / 1)'));
+  // The picture PDFs (every other app) are numbered the same way, and still read as a PDF.
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+  const two = pdf([{ w: 816, h: 1056, pw: 1, ph: 1, jpeg }, { w: 816, h: 1056, pw: 1, ph: 1, jpeg }], 'Two');
+  writeFileSync(join(dir, 'pics.pdf'), two);
+  assert.match(execFileSync('pdfinfo', [join(dir, 'pics.pdf')]).toString(), /Pages:\s+2/);
+  assert.ok(latin(two).includes('(1 / 2) Tj') && latin(two).includes('(2 / 2) Tj'));
+  assert.ok(!latin(pdf([{ w: 816, h: 1056, pw: 1, ph: 1, jpeg }], 'One')).includes(' Tj'));
+});
