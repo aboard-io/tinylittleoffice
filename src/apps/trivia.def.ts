@@ -1,23 +1,22 @@
 /** Trivia: rounds of questions, answers that show when tapped, and a scoreboard. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { listItems, readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { tidy } from '../lib/tidy.ts';
 import { pageScript, xml } from '../kit/core.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
 const SCRIPT = pageScript(`[].forEach.call(document.querySelectorAll('.team'), function (t) { var o = t.querySelector('output'), b = t.querySelectorAll('button'); b[0].onclick = function () { o.textContent = +o.textContent - 1; }; b[1].onclick = function () { o.textContent = +o.textContent + 1; }; });`);
 
+const [, TEAMS, ROUND, QUESTION] = [0, 1, 2, 3];
+
 function page(body: string): string {
   const title = h1(body) || 'Trivia night';
-  let teams = ['Team A', 'Team B'];
+  const rows = readLines(body, spec.form);
+  const named = listItems(rows.find((r) => r.kind === TEAMS)?.values[0] ?? '').filter(Boolean);
+  const teams = named.length ? named : ['Team A', 'Team B'];
   let n = 0;
-  const html = rest(body)
-    .map((l) => {
-      const set = /^teams\s*:\s*(.*)$/i.exec(l);
-      if (set) return (teams = set[1].split(',').map((t) => t.trim()).filter(Boolean)), '';
-      if (l.startsWith('## ')) return `<h2>${xml(l.slice(3))}</h2>`;
-      const [q, a = ''] = l.split('|').map((p) => p.trim());
-      return `<details><summary><b>${++n}.</b> ${xml(q)}</summary><p>${xml(a)}</p></details>`;
-    })
+  const html = rows
+    .map((r) => (r.kind === ROUND ? `<h2>${xml(r.values[0])}</h2>` : r.kind === QUESTION ? `<details><summary><b>${++n}.</b> ${xml(r.values[0])}</summary><p>${xml(r.values[1])}</p></details>` : ''))
     .join('\n');
   return htmlPage(
     title,
@@ -39,12 +38,11 @@ export const spec = {
     { name: 'Title', is: '# {Title}', once: true },
     { name: 'Teams', is: 'teams: {Teams (commas between)}', once: true },
     { name: 'Round', is: '## {Round}', head: true },
-    { name: 'Question', is: '{Question} | {Answer}' },
-    { name: 'Line', is: '{Text}' },
+    { name: 'Question', is: '{Question} | {Answer}', table: true },
   ] as LineKind[],
-  hint: '"# Title"; "teams: Reds, Blues"; "## Round"; then "Question | answer". Tap a question to show its answer; the buttons keep score.',
-  example: '# Quiz night\nteams: Reds, Blues, Greens\n## Warm-up\nWhat is the capital of Portugal? | Lisbon\nHow many keys on a piano? | 88\n## Science\nWhat gas do plants take in? | Carbon dioxide\nWho wrote the first published program? | Ada Lovelace',
+  hint: '"# Title"; "teams: Reds, Blues"; "## Round", then a table of "Question | Answer". Tap a question to show its answer; the buttons keep score.',
+  example: '# Quiz night\n\nteams: Reds, Blues, Greens\n\n## Warm-up\n\nQuestion | Answer\n--- | ---\nWhat is the capital of Portugal? | Lisbon\nHow many keys on a piano? | 88\n\n## Science\n\nQuestion | Answer\n--- | ---\nWhat gas do plants take in? | Carbon dioxide\nWho wrote the first published program? | Ada Lovelace',
   page,
 };
 
-export default definePage({ id: 'trivia', name: 'Trivia', icon: 'trivia', group: 'Play', blurb: 'A quiz night: rounds of questions, tap for the answer, and a scoreboard.' }, spec);
+export default definePage({ id: 'trivia', name: 'Trivia', icon: 'trivia', group: 'Play', blurb: 'A quiz night: rounds of questions, tap for the answer, and a scoreboard.', read: (text) => tidy(text, spec.form) }, spec);

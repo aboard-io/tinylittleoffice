@@ -1,16 +1,15 @@
 /** Split the bill: who paid what, and the fewest payments that make it even. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { listItems, readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { xml } from '../kit/core.ts';
 
+const [, BETWEEN, PAYMENT] = [0, 1, 2];
+
 export function settle(body: string) {
-  let people: string[] = [];
-  const paid: { who: string; amount: number; what: string }[] = [];
-  for (const l of rest(body)) {
-    const [who, more = ''] = l.split(/:(.*)/).map((p) => p.trim());
-    if (/^(people|between)$/i.test(who)) people = more.split(',').map((p) => p.trim()).filter(Boolean);
-    else if (/\d/.test(more)) paid.push({ who, amount: parseFloat(more.replace(/[^0-9.]/g, '')) || 0, what: more.replace(/^[^,]*,?\s*/, '') });
-  }
+  const rows = readLines(body, spec.form);
+  const people = listItems(valuesOf(rows, BETWEEN)[0]?.[0] ?? '').filter(Boolean);
+  const paid = valuesOf(rows, PAYMENT).map(([who, amount, what]) => ({ who, amount: parseFloat(amount.replace(/[^0-9.]/g, '')) || 0, what }));
   for (const p of paid) if (!people.includes(p.who)) people.push(p.who);
   const total = paid.reduce((a, p) => a + p.amount, 0);
   const share = people.length ? total / people.length : 0;
@@ -47,12 +46,14 @@ export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
     { name: 'Shared between', is: 'between: {People (commas between)}', once: true },
-    { name: 'Payment', is: '{Who paid}: {Amount}[, {What for}]' },
-    { name: 'Line', is: '{Text}' },
+    { name: 'Payment', is: '{Who} | {Amount:number} | {What}', table: true },
   ] as LineKind[],
-  hint: '"# Title", then who paid: "Name: amount, what for". "between: Ada, Sam, Paul" names everyone sharing, if some paid nothing.',
-  example: '# Weekend away\nbetween: Paul, Sam, Ada, Grace\nPaul: 240, the cottage\nSam: 86.50, groceries\nAda: 45, petrol',
+  hint: '"# Title", then a table of who paid: "Who | Amount | What". "between: Ada, Sam, Paul" names everyone sharing, if some paid nothing.',
+  example: '# Weekend away\n\nbetween: Paul, Sam, Ada, Grace\n\nWho | Amount:number | What\n--- | --- | ---\nPaul | 240 | the cottage\nSam | 86.50 | groceries\nAda | 45 | petrol',
   page,
 };
 
-export default definePage({ id: 'split', name: 'Split the bill', icon: 'split', group: 'Collaborate', blurb: 'Who paid what, what each owes, and the fewest payments to settle up.' }, spec);
+/** A payment may come as "Sam: 86.50, groceries". */
+const read = (text: string) => tidy(text, spec.form, (line) => ((m) => (m ? [PAYMENT, [m[1], m[2], m[3] ?? '']] : null))(/^([^:|]+):\s*([^\s,]*\d[^\s,]*)(?:,\s*(.*))?$/.exec(line)));
+
+export default definePage({ id: 'split', name: 'Split the bill', icon: 'split', group: 'Collaborate', blurb: 'Who paid what, what each owes, and the fewest payments to settle up.', read }, spec);

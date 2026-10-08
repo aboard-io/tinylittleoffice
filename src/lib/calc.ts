@@ -4,10 +4,13 @@
  * functions a scientific calculator has, π and e, and a variable x for
  * graphing. The money modes are the formulas every finance class teaches.
  *
- * Document format: the first line names the mode ("!mortgage"); then one
- * "name = value" a line for its inputs, or, for the calculator and the
- * grapher, one expression a line (the tape).
+ * The document is TLO (lib/tlo.ts): the header names the mode
+ * ("mode: mortgage"; none for the plain calculator). For the calculator and
+ * the grapher, the tape is a paragraph, one expression a line; for the
+ * money modes, the inputs are list items, "- price = 400000".
  */
+import { parse, write, type Block } from './tlo.ts';
+
 export type Mode = 'calc' | 'graph' | 'mortgage' | 'invest' | 'cashflow' | 'interest';
 export const MODES: { id: Mode; name: string }[] = [
   { id: 'calc', name: 'Calculator' },
@@ -116,15 +119,44 @@ export interface Calc {
   /** The tape (calc, graph) or the inputs (the rest), as written. */
   lines: string[];
 }
+const isMoney = (mode: Mode): mode is Exclude<Mode, 'calc' | 'graph'> => mode !== 'calc' && mode !== 'graph';
+
 export function parseCalc(text: string): Calc {
-  const lines = text ? text.split('\n') : [];
-  const m = /^!([a-z]+)$/.exec(lines[0] ?? '');
-  const mode = (m && MODES.some((x) => x.id === m[1]) ? m[1] : 'calc') as Mode;
-  return { mode, lines: (m ? lines.slice(1) : lines).filter((l, i, a) => l.trim() || i < a.length - 1) };
+  const { head, blocks } = parse(text);
+  const mode = MODES.find((m) => m.id === head.mode)?.id ?? 'calc';
+  return { mode, lines: blocks.flatMap((b) => ((b.k === 'li' || b.k === 'p') && (b.k === 'li') === isMoney(mode) ? b.text.split('\n').filter((l) => l.trim()) : [])) };
 }
 export function serializeCalc(c: Calc): string {
-  const body = c.lines.join('\n').replace(/\n+$/, '');
-  return c.mode === 'calc' && !body ? '' : `!${c.mode}${body ? '\n' + body : ''}`;
+  const lines = c.lines.filter((l) => l.trim());
+  const blocks: Block[] = isMoney(c.mode) ? lines.map((text) => ({ k: 'li', depth: 0, text })) : lines.length ? [{ k: 'p', text: lines.join('\n') }] : [];
+  return write({ head: c.mode === 'calc' ? {} : { mode: c.mode }, blocks }).trimEnd();
+}
+
+/**
+ * The calculator as a person or a model loosely writes it. A heading may
+ * name the mode ("## Mortgage"); without one, values say which money mode
+ * they are for ("Price: $350,000" is a mortgage), and lines of "y = ..." are
+ * curves to draw. An expression may come with what it comes to ("2+2 = 4").
+ */
+export function readCalc(text: string): string {
+  const { head, blocks } = parse(text);
+  const heading = blocks.find((b) => b.k === 'h')?.text.trim().toLowerCase();
+  const lines = blocks.flatMap((b) => (b.k === 'p' || b.k === 'li' ? b.text.split('\n') : [])).map((l) => l.trim()).filter(Boolean);
+  const pairs = lines.map((l) => /^([^:=]+?)\s*[:=]\s*(.+)$/.exec(l)).filter((m): m is RegExpExecArray => !!m);
+  const keyIn = (mode: Exclude<Mode, 'calc' | 'graph'>, name: string) => FIELDS[mode].find((f) => f.key === name || f.name.toLowerCase() === name)?.key ?? (mode === 'cashflow' && /^year \d+$/.test(name) ? name : '');
+  const money = (Object.keys(FIELDS) as Exclude<Mode, 'calc' | 'graph'>[]).map((m) => [m, pairs.filter((p) => keyIn(m, p[1].trim().toLowerCase())).length] as const).sort((a, b) => b[1] - a[1])[0];
+  const mode = MODES.find((m) => m.id === head.mode || m.id === heading || m.name.toLowerCase() === heading)?.id ?? (money[1] ? money[0] : lines.length && lines.every((l) => /^y\s*=/i.test(l)) ? 'graph' : 'calc');
+  if (mode === 'calc') return serializeCalc({ mode, lines: lines.map((l) => l.replace(/\s*=\s*[^=]*$/, '')) });
+  if (mode === 'graph') return serializeCalc({ mode, lines: lines.map((l) => l.replace(/^y\s*=\s*/i, '')) });
+  return serializeCalc({
+    mode,
+    lines: pairs.flatMap((p) => {
+      const key = keyIn(mode, p[1].trim().toLowerCase());
+      // A number with its unit ("6%", "25 years") is the number; anything else is worked out as it stands.
+      const v = p[2].replace(/[$£€,]/g, '').trim();
+      return key ? [`${key} = ${/^(-?[\d.]+)\s*(?:%|[a-z][a-z ]*)?$/i.exec(v)?.[1] ?? v}`] : [];
+    }),
+  });
 }
 /** "name = value" lines as numbers, by name; a plain number stands alone. */
 export function inputs(lines: string[]): Record<string, number> {

@@ -162,7 +162,7 @@ test('forms: a model of sliders and flows, and an invoice filled in from its exa
   tab();
   typeHere('visitors * 0.1');
   await settle(flow.el);
-  expect(flow.last()).toMatch(/^visitors = 1000\b.*\nVisitors > Signups = visitors \* 0\.1$/s);
+  expect(flow.last()).toBe('- visitors = 1000\n\n~ Visitors -> Signups: visitors * 0.1');
   expect(framed(flow.el).page().documentElement.innerHTML).toContain('Signups');
 
   // An example fills the form in.
@@ -225,12 +225,12 @@ test('a page is edited in the page: type into it, add with the bar, Enter for an
   const { el } = await example('split', 'form');
   const f = framed(el);
   // What is written in the text is there in the page, to type into.
-  expect(f.data()!.v).toContainEqual([3, 0, 'Sam', 'Who paid']);
+  expect(f.data()!.v).toContainEqual([3, 0, 'Sam', 'Who']);
   f.post({ lf: 'focus', r: 3 });
   f.post({ lf: 'set', r: 3, f: 0, v: 'Samantha' });
   await settle(el);
   // The table beneath has it at once; once the typing pauses the page is drawn afresh, sums and all.
-  expect(box(lines(el), 'Who paid, row 4')!.value).toBe('Samantha');
+  expect(box(lines(el), 'Who, row 4')!.value).toBe('Samantha');
   await until(async () => {
     await settle(el);
     expect([...f.page().querySelectorAll('.pay')].at(-1)!.textContent).toContain('Samantha');
@@ -238,12 +238,12 @@ test('a page is edited in the page: type into it, add with the bar, Enter for an
   // The bar adds a row (after the row last typed in: Samantha's), with its fields' names to type over.
   f.post({ lf: 'add', k: f.data()!.k.findIndex((k) => k.name === 'Payment') });
   await settle(el);
-  expect(f.data()!.v).toContainEqual([4, 0, 'Who paid', 'Who paid']);
+  expect(f.data()!.v).toContainEqual([4, 0, 'Who', 'Who']);
   expect(f.data()!.f).toBe('4,');
   expect(f.page().querySelectorAll('tbody tr')).toHaveLength(5);
   f.post({ lf: 'set', r: 4, f: 0, v: 'Grace' });
   await settle(el);
-  expect(box(lines(el), 'Who paid, row 5')!.value).toBe('Grace');
+  expect(box(lines(el), 'Who, row 5')!.value).toBe('Grace');
   f.post({ lf: 'done' });
   await settle(el);
   expect(f.page().querySelector('tbody')!.textContent).toContain('Grace');

@@ -662,7 +662,7 @@ test('small apps: the sums behind them', async () => {
   // Only arithmetic is ever worked out, and by hand: no code runs.
   const { arithmetic } = await import('../src/apps/flow.def.ts');
   assert.deepEqual(['1+2*3', '(1+2)*3', '10/4', '-2*-3', '1e3+1', '2 (3)', 'alert(1)', '1/0', ''].map(arithmetic), [7, 9, 2.5, 6, 1001, 0, 0, 0, 0]);
-  assert.deepEqual(runFlow(parseFlow('a = 1\nA > B = alert(1)\nA > C = a + 2'), {}), [0, 3]);
+  assert.deepEqual(runFlow(parseFlow('- a = 1\n\n~ A -> B: alert(1)\n~ A -> C: a + 2'), {}), [0, 3]);
   assert.ok(specOf('flow')!.page!(specOf('flow')!.example).includes('type="range" id="s_signup_rate" min="0" max="30"'));
 
   const { settle } = await import('../src/apps/split.def.ts');
@@ -678,20 +678,35 @@ test('small apps: the sums behind them', async () => {
   assert.ok(names.every((n) => gives[n] !== n));
   assert.deepEqual(draw(names), gives);
   // The organiser's page links to a document per person, each holding one draw and no other.
-  const { linkFor, ownDraw } = await import('../src/apps/santa.def.ts');
+  const { linkFor } = await import('../src/apps/santa.def.ts');
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
-  const organiser = specOf('santa')!.page!('# Office\n' + names.join('\n'));
+  const organiser = specOf('santa')!.page!('# Office\n\n' + names.map((n) => `- ${n}`).join('\n'));
   assert.equal((organiser.match(/their link/g) ?? []).length, names.length);
   const ada = decodeEnvelope(linkFor('Office', 'Ada', gives.Ada).split('/').pop()!, 'santa').body;
-  assert.equal(ada, `# Office\n= Ada > ${gives.Ada}`);
+  assert.equal(ada, `# Office\n\n~ Ada -> ${gives.Ada}`);
   assert.ok(!ada.includes(gives.Grace === gives.Ada ? 'zzz' : gives.Grace) || gives.Grace === gives.Ada);
-  assert.deepEqual(ownDraw('= Ada > Grace')!.slice(1), ['Ada', 'Grace']);
   const theirs = specOf('santa')!.page!(ada);
   assert.ok(theirs.includes('this link is yours alone') && !theirs.includes(`give to ${gives.Ada}`) && !theirs.includes('their link'));
 
   const { tally } = await import('../src/apps/poll.def.ts');
   assert.deepEqual(tally(specOf('poll')!.example).map((r) => [r.option, r.who.length]), [['Pizza', 0], ['Sushi', 1], ['Tacos', 2]]);
-  assert.deepEqual(tally('- A\nSam: B').map((r) => r.option), ['A', 'B']);
+  assert.deepEqual(tally('- A\n\nName | Choice\n--- | ---\nSam | B').map((r) => r.option), ['A', 'B']);
+
+  // Each example is written as its form writes it; what is loosely written is read into that.
+  for (const id of ['flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'split', 'log']) assert.equal(appOf(id)!.read!(specOf(id)!.example), specOf(id)!.example, id);
+  const read = (id: string, text: string) => appOf(id)!.read!(text);
+  assert.equal(read('poll', '# Q\n- A\nSam: A'), '# Q\n\n- A\n\nName | Choice\n--- | ---\nSam | A');
+  assert.equal(read('trivia', '---\nteams: A, B\n---\n# Quiz\n## One\nQ1 | A1'), '# Quiz\n\nteams: A, B\n\n## One\n\nQuestion | Answer\n--- | ---\nQ1 | A1');
+  assert.equal(read('flashcards', '| Term | Meaning |\n|---|---|\n| a | b |'), 'Front | Back\n--- | ---\na | b');
+  assert.equal(read('split', 'between: A, B\nA: 40, taxi'), 'between: A, B\n\nWho | Amount:number | What\n--- | --- | ---\nA | 40 | taxi');
+  assert.equal(read('log', '1 March, Run, 5 km'), 'When | What | How much\n--- | --- | ---\n1 March | Run | 5 km');
+  assert.equal(read('santa', 'Ada\n* Grace'), '- Ada\n- Grace');
+  assert.equal(read('spinner', 'Ada\n+ Bo'), '- Ada\n- Bo');
+  assert.equal(read('flow', 'visitors = 100 (0 to 500)'), '- visitors = 100 (0 to 500)');
+  assert.equal(read('hunt', 'Kettle colour? | red\nDone!'), 'Clue | Answer\n--- | ---\nKettle colour? | red\n\nDone!');
+  // An adventure's choices are links to its scenes, by name.
+  const story = specOf('adventure')!.page!('# Cave\n\n## the start\n\nDark.\n\n- [Go in](#the%20end)\n\n## The End\n\nLight.');
+  assert.ok(story.includes('"the-start":{"text":["Dark."],"go":[["Go in","the-end"]]}') && story.includes('"the-end":{"text":["Light."],"go":[]}'));
 
   const { totals } = await import('../src/apps/log.def.ts');
   assert.deepEqual(totals(specOf('log')!.example).sums.map((x) => [x.what, x.n, x.unit, x.times]), [['Run', 22.5, 'km', 3], ['Piano', 75, 'min', 2], ['Swim', 40, 'lengths', 1]]);
@@ -823,7 +838,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   const notes: LineKind[] = [{ name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' }, { name: 'Note', is: '[:{Picture:icon} ]{Note}' }];
   assert.deepEqual(readLines('green: Thank them\nCall Sam: today', notes).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
   assert.deepEqual(readLines('- Kitchen: 4 x 3 at 5,0\n- Hall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
-  assert.deepEqual(readLines('signup rate = 6% (0 to 30)\nVisitors > Signups = visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
+  assert.deepEqual(readLines('- signup rate = 6% (0 to 30)\n\n~ Visitors -> Signups: visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A blank line that means something is kept as a row.
   const cards: LineKind[] = [{ name: 'Picture', is: ':{Picture:icon}' }, { name: 'Next card', is: '' }, { name: 'Line', is: '{Text}' }];
   assert.equal(writeLines(readLines('A\nx\n\nB\ny', cards), cards), 'A\nx\n\nB\ny');
@@ -1006,7 +1021,7 @@ test('markdown, both ways, for every app', async () => {
     pixel: 'ab.c\n.dd',
     zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
     booklet: 'A book\nby me\n\nOne\nwords',
-    calc: '!mortgage\nprice = 300000\nrate = 5',
+    calc: '---\nmode: mortgage\n---\n- price = 300000\n- rate = 5',
     poster: ':music\nOpen mic night\nFriday 12 March, 8pm',
     badges: 'Ada Lovelace\nEngineering\n\nGrace Hopper\nCompilers',
     recipes: ':cookie\nCardamom buns\n500g flour\n\nCold brew\n100g coffee',
@@ -1186,15 +1201,27 @@ test('calculator: expressions, money modes, and the page they draw', async () =>
   const r = interest(withDefaults('interest', { principal: 1000, rate: 10, years: 1, times: 1 }));
   assert.equal(r.compound, 100);
   assert.equal(r.simple, 100);
-  const doc = parseCalc('!mortgage\nprice = 250,000\nrate = 5');
-  assert.equal(doc.mode, 'mortgage');
-  assert.equal(serializeCalc(doc), '!mortgage\nprice = 250,000\nrate = 5');
+  // The mode in the header; a money mode's values as a list, the tape as a paragraph's lines.
+  const mortgageText = '---\nmode: mortgage\n---\n- price = 250,000\n- rate = 5';
+  const doc = parseCalc(mortgageText);
+  assert.deepEqual(doc, { mode: 'mortgage', lines: ['price = 250,000', 'rate = 5'] });
+  assert.equal(serializeCalc(doc), mortgageText);
+  assert.equal(serializeCalc(parseCalc('2+2\n- 3\n7*6')), '2+2\n7*6');
+  assert.equal(serializeCalc({ mode: 'calc', lines: ['- 3', '4'] }), '\\- 3\n4');
+  assert.deepEqual(parseCalc('\\- 3\n4').lines, ['- 3', '4']);
   assert.equal(serializeCalc(parseCalc('')), '');
+  // Read leniently: a heading or the values say the mode; a result after an expression goes.
+  const { readCalc } = await import('../src/lib/calc.ts');
+  assert.equal(readCalc('## Mortgage\n\n- Price: $350,000\n- Interest rate: 6%\n- Term: 25 years'), '---\nmode: mortgage\n---\n- price = 350000\n- rate = 6\n- years = 25');
+  assert.equal(readCalc('principal = 1000\ntimes = 4'), '---\nmode: interest\n---\n- principal = 1000\n- times = 4');
+  assert.equal(readCalc('- y = sin(x)\n- y = x^2'), '---\nmode: graph\n---\nsin(x)\nx^2');
+  assert.equal(readCalc('- 2+2 = 4\n- 7*6'), '2+2\n7*6');
+  assert.equal(readCalc(mortgageText), '---\nmode: mortgage\n---\n- price = 250000\n- rate = 5');
   assert.equal(plot('x^2', -1, 1, 2).map((p) => p && p[1]).join(','), '1,0,1');
-  const page = appOf('calc')!.view('!mortgage\nprice = 400000\ndeposit = 80000\nrate = 6.5\nyears = 30')[0];
+  const page = appOf('calc')!.view('---\nmode: mortgage\n---\n- price = 400000\n- deposit = 80000\n- rate = 6.5\n- years = 30')[0];
   // Every year of the schedule is on the page, which grows to hold it.
   assert.ok(page.svg.includes('2,022.62') && page.svg.includes('Year 14') && page.svg.includes('Year 30') && !page.svg.includes('more'));
-  assert.ok(appOf('calc')!.view('!graph\nsin(x)\nx^2/10')[0].svg.includes('y = sin(x)'));
+  assert.ok(appOf('calc')!.view('---\nmode: graph\n---\nsin(x)\nx^2/10')[0].svg.includes('y = sin(x)'));
   assert.ok(appOf('calc')!.view('2+2\n7*6')[0].svg.includes('>42<'));
   assert.deepEqual(appOf('calc')!.outline('2+2'), ['2+2 = 4']);
 });

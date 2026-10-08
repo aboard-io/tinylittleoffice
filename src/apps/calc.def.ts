@@ -1,7 +1,7 @@
 /** Calculator: what the shell knows. Modes and maths: lib/calc.ts. */
 import { defineApp, text, rect, place, ACCENT, MUTED, INK, FAINT, type Page } from '../kit/core.ts';
 import { chartPage } from '../lib/chart.ts';
-import { MODES, FIELDS, cashflow, evaluate, inputs, interest, invest, money, mortgage, parseCalc, plot, shown, withDefaults, type Calc } from '../lib/calc.ts';
+import { MODES, FIELDS, cashflow, evaluate, inputs, interest, invest, money, mortgage, parseCalc, plot, readCalc, shown, withDefaults, type Calc } from '../lib/calc.ts';
 
 const W = 720;
 
@@ -142,6 +142,7 @@ export default defineApp({
   icon: 'calc',
   blurb: 'A calculator with modes: plain, scientific with a graph, mortgage, investment, cash flow, interest. The working is the document.',
   title,
+  read: readCalc,
   outline: (body) => {
     const c = parseCalc(body);
     return c.mode === 'calc' || c.mode === 'graph' ? c.lines.filter((l) => l.trim()).map((l) => (c.mode === 'calc' ? `${l} = ${shown(evaluate(l))}` : `y = ${l}`)) : FIELDS[c.mode].map((f) => `${f.name}: ${money(withDefaults(c.mode as never, inputs(c.lines))[f.key], f.key === 'years' || f.key === 'times' ? 0 : 2)}${f.unit ? ' ' + f.unit : ''}`);

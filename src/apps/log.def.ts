@@ -1,10 +1,13 @@
 /** Log: what you did and how much, with totals. Workouts, practice, anything counted. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { xml } from '../kit/core.ts';
 
+const ENTRY = 1;
+
 export function totals(body: string) {
-  const rows = rest(body).map((l) => l.split(',').map((p) => p.trim())).filter((r) => r.length >= 2);
+  const rows = valuesOf(readLines(body, spec.form), ENTRY);
   const sums = new Map<string, { n: number; unit: string; times: number }>();
   for (const [, what, amount = ''] of rows) {
     const m = /^([\d.]+)\s*(.*)$/.exec(amount);
@@ -33,12 +36,14 @@ table{width:100%;border-collapse:collapse}th{text-align:left;font-size:.8rem;col
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Entry', is: '{When}, {What}[, {How much}]' },
-    { name: 'Line', is: '{Text}' },
+    { name: 'Entry', is: '{When} | {What} | {How much}', table: true },
   ] as LineKind[],
-  hint: '"# Title", then an entry per line: "when, what, how much" ("3 March, Run, 5 km"). Each kind of thing is totalled.',
-  example: '# March training\n1 March, Run, 5 km\n2 March, Piano, 30 min\n3 March, Run, 7.5 km\n5 March, Swim, 40 lengths\n6 March, Piano, 45 min\n7 March, Run, 10 km',
+  hint: '"# Title", then a table of entries, "When | What | How much" ("3 March | Run | 5 km"). Each kind of thing is totalled.',
+  example: '# March training\n\nWhen | What | How much\n--- | --- | ---\n1 March | Run | 5 km\n2 March | Piano | 30 min\n3 March | Run | 7.5 km\n5 March | Swim | 40 lengths\n6 March | Piano | 45 min\n7 March | Run | 10 km',
   page,
 };
 
-export default definePage({ id: 'log', name: 'Log', icon: 'log', group: 'Track', blurb: 'A workout or practice log: entries, and a total for each kind.' }, spec);
+/** An entry may come as "3 March, Run, 5 km". */
+const read = (text: string) => tidy(text, spec.form, (line) => ((m) => (m ? [ENTRY, [m[1], m[2], m[3] ?? '']] : null))(/^([^,|]+),\s*([^,|]+)(?:,\s*([^|]*))?$/.exec(line)));
+
+export default definePage({ id: 'log', name: 'Log', icon: 'log', group: 'Track', blurb: 'A workout or practice log: entries, and a total for each kind.', read }, spec);
