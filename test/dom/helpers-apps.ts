@@ -1,0 +1,145 @@
+/** The whole page in happy-dom: the shell (<to-app>) opened at a link, as a visitor arrives at it; and the page an editor shows in its frame. */
+import { expect } from 'vitest';
+import './env-apps.ts';
+// As src/main.ts puts the page together (less the stylesheet and the offline copy).
+import '../../src/widgets/meter.ts';
+import '../../src/kit/tip.ts';
+import '../../src/app.ts';
+import { decodeEnvelope, encodeEnvelope } from '../../src/lib/envelope.ts';
+import { type Editor } from './helpers.ts';
+
+export type Shell = HTMLElement & { updateComplete: Promise<unknown> };
+
+/** Let the shell and what is in it finish drawing. */
+export async function settleAll(rounds = 4) {
+  for (let i = 0; i < rounds; i++) {
+    const els = [...document.querySelectorAll<HTMLElement & { updateComplete?: Promise<unknown> }>('to-app, to-app *')].filter((e) => e.localName.includes('-') && e.updateComplete);
+    await Promise.all(els.map((e) => e.updateComplete));
+    await new Promise((r) => setTimeout(r, 0));
+  }
+}
+
+/**
+ * The preferences a visitor's browser has kept, as the e2e suite sets them:
+ * things kept on the device, the editor (not the reading view) on opening,
+ * and text apps opened as their text. Null for a visitor with none.
+ */
+export type Prefs = { edit?: 'text' | 'form' | null; open?: 'edit' | null; theme?: 'light' | 'dark' };
+
+/** Open the shell at a link (`#/v0/todo`, or an app and its document), as a fresh page load would. */
+export async function shell(at: string | { app: string; body: string; title?: string; view?: string }, prefs: Prefs = { edit: 'text', open: 'edit' }) {
+  // (The page's one tooltip box stays: it is made once, as a page is.)
+  for (const el of [...document.body.children]) if (el.id !== 'to-tip') el.remove();
+  localStorage.clear();
+  localStorage.setItem('tinyoffice.keep', '1');
+  if (prefs.edit) localStorage.setItem('tinyoffice.edit', prefs.edit);
+  if (prefs.open) localStorage.setItem('tinyoffice.open', prefs.open);
+  if (prefs.theme) localStorage.setItem('to-theme', prefs.theme);
+  location.hash = typeof at === 'string' ? at : link(at.app, at.body, at.title, at.view);
+  return open();
+}
+
+/** A link to a document: what a visitor pastes. */
+export function link(app: string, body: string, title?: string, view = '') {
+  return `#/v0/${app}${view ? '.' + view : ''}/${encodeEnvelope({ created: 1, body, title })}`;
+}
+
+/** Put the shell on the page at the current location. */
+async function open() {
+  const app = document.createElement('to-app') as Shell;
+  document.body.append(app);
+  await settleAll();
+  return app;
+}
+
+/** Close the page and open it again at the same address: the address is the document, so this is the persistence test. */
+export async function reopen() {
+  document.querySelector('to-app')?.remove();
+  document.querySelectorAll('body > sl-dialog').forEach((d) => d.remove());
+  return open();
+}
+
+/** The editor of an app, as the shell put it on the page. */
+export function editorOf(id: string): Editor {
+  const el = document.querySelector<Editor>(`to-${id}`);
+  if (!el) throw new Error(`no to-${id} on the page`);
+  return el;
+}
+
+/** The document in the address bar: what would be shared. */
+export function bodyOf(): string {
+  const m = /^#\/v\d+\/([a-z]+)(?:\.[a-z0-9.]+)?\/?(.*)$/.exec(location.hash);
+  if (!m || !m[2]) return '';
+  return decodeEnvelope(m[2], m[1]).body;
+}
+
+/** Try an assertion until it holds, as a person waits for a page to catch up (a debounce, a font, a dialog's animation). */
+export async function until(check: () => void | Promise<void>, ms = 2000) {
+  const end = Date.now() + ms;
+  for (;;) {
+    try {
+      await check();
+      return;
+    } catch (err) {
+      if (Date.now() > end) throw err;
+      await new Promise((r) => setTimeout(r, 15));
+    }
+  }
+}
+
+/** A key pressed anywhere on the page (the shell's and the editors' shortcuts listen on the window). */
+export function shortcut(key: string, mods: { shift?: boolean; alt?: boolean; mod?: boolean } = {}) {
+  const target = document.activeElement ?? document.body;
+  target.dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey: !!mods.shift, altKey: !!mods.alt, ctrlKey: !!mods.mod, bubbles: true, composed: true }));
+}
+
+/** An element whose words match, among those the selector finds. */
+export function withText<T extends Element = HTMLElement>(root: ParentNode, selector: string, text: string | RegExp): T {
+  const all = [...root.querySelectorAll<T>(selector)];
+  const found = all.find((e) => (typeof text === 'string' ? e.textContent?.includes(text) : text.test(e.textContent ?? '')));
+  if (!found) throw new Error(`no ${selector} with ${text}: ${all.map((e) => e.textContent?.trim().slice(0, 40)).join(' | ')}`);
+  return found;
+}
+
+/** The words of each element the selector finds. */
+export const texts = (root: ParentNode, selector: string) => [...root.querySelectorAll(selector)].map((e) => e.textContent?.trim() ?? '');
+
+/** A press of a mouse or finger: pointerdown, pointerup and the click they make. */
+export function tap(el: Element | null, opts: PointerEventInit = {}) {
+  if (!el) throw new Error('nothing to tap');
+  const at = { bubbles: true, composed: true, button: 0, pointerId: 1, pointerType: 'mouse', isPrimary: true, ...opts };
+  el.dispatchEvent(new PointerEvent('pointerdown', at));
+  el.dispatchEvent(new PointerEvent('pointerup', at));
+  el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true, button: 0 }));
+}
+
+/**
+ * The page an editor shows in its sandboxed frame (an invoice, a website, a
+ * bill split), and its side of the conversation. The frame's own script,
+ * which turns typing in the page into messages, needs a real browser (one
+ * e2e test drives it); here the same messages are posted to the editor as
+ * the frame would post them, and what the editor draws next is read from
+ * the page it hands the frame.
+ */
+export function framed(el: Element) {
+  const frame = () => {
+    const f = el.querySelector<HTMLIFrameElement>('.diagram.page iframe');
+    if (!f) throw new Error('no page frame');
+    return f;
+  };
+  /** The page in the frame, as the editor wrote it. */
+  const page = () => new DOMParser().parseFromString(frame().getAttribute('srcdoc') ?? frame().srcdoc, 'text/html');
+  /** What the editing script is told: the values, the kinds of row, where the cursor goes, the stamp. */
+  const data = () => JSON.parse(page().getElementById('lf')?.textContent ?? 'null') as { v: [number, number, string, string][]; k: { name: string; hidden: boolean }[]; f: string; s: number; p: [string, number, string][] } | null;
+  /** Post a message as the frame's script would. */
+  const post = (m: Record<string, unknown>) => {
+    const d = data();
+    window.dispatchEvent(new MessageEvent('message', { data: { s: d?.s, ...m }, source: frame().contentWindow }));
+  };
+  return { frame, page, data, post };
+}
+
+/** Wait until a page frame has been drawn afresh (it is, once typing in it pauses). */
+export async function redrawn(f: ReturnType<typeof framed>, from: string, ms = 2000) {
+  await until(() => expect(f.frame().getAttribute('srcdoc') ?? f.frame().srcdoc).not.toBe(from), ms);
+}
