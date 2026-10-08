@@ -12,7 +12,7 @@ test('once opened, everything works with no connection', async ({ page, context 
   await page.reload();
   await expect(page.locator('.to-launcher').first()).toBeVisible();
   await page.goto('/zine/');
-  await expect(page.locator('to-zine .zine-thumb')).toHaveCount(8);
+  await expect(page.locator('to-zine .deck-thumb')).toHaveCount(8);
   await page.getByRole('textbox', { name: 'Headline' }).fill('Made underground');
   await expect.poll(() => page.url()).toMatch(/#\/v2\/zine\/[WYZR]/);
   await page.goto('/#/sheet');

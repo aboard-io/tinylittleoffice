@@ -2919,75 +2919,13 @@ sl-dialog.to-icons {
   white-space: normal;
 }
 
-/* Zine: the pages, the one being written, and how it will print */
-.zine {
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  padding: 14px;
-  align-items: start;
-}
-.zine-rail {
-  display: grid;
-  gap: 8px;
-}
-.zine-thumb {
-  display: grid;
-  gap: 2px;
-  padding: 4px;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--to-ink-2);
-  font: 12px var(--sl-font-sans);
-  cursor: pointer;
-}
-.zine-thumb[aria-current='true'] {
-  border-color: var(--to-accent);
-}
-.zine-thumb > svg,
-.zine-page > svg,
+/* Zine: how it will print */
 .zine-sheet > svg {
   display: block;
   width: 100%;
   height: auto;
   border: 1px solid var(--to-border);
   border-radius: 3px;
-}
-.zine-edit {
-  display: grid;
-  gap: 10px;
-}
-.zine-edit h2 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--to-ink-3);
-}
-.zine-edit to-rich.title .write-page {
-  font: 600 22px var(--sl-font-sans);
-  padding: 8px 10px;
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-  background: var(--to-surface);
-  color: var(--to-ink);
-  min-width: 0;
-}
-.zine-edit to-rich.words .write-page {
-  min-height: 260px;
-  padding: 10px;
-  font: 16px/1.5 var(--sl-font-sans);
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-  background: var(--to-surface);
-  color: var(--to-ink);
-  resize: vertical;
-}
-.zine-page {
-  max-width: 420px;
-  justify-self: center;
-  width: 100%;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.12);
 }
 .zine-sheets {
   display: grid;
@@ -3003,17 +2941,6 @@ sl-dialog.to-icons {
   width: 220px;
 }
 @media (max-width: 760px) {
-  .zine {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .zine-rail {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 2px;
-  }
-  .zine-thumb {
-    padding: 1px;
-    font-size: 10px;
-  }
   .zine-sides {
     width: 170px;
   }
@@ -3041,41 +2968,6 @@ sl-dialog.to-icons {
   white-space: pre-wrap;
   font-family: var(--sl-font-sans);
   font-size: 15px;
-}
-
-/* Comic: a row for each panel */
-.zine-panels {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.zine-panels li {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1.2fr) minmax(0, 1fr) auto;
-  gap: 6px;
-  align-items: center;
-}
-.zine-panels .pick {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-  background: var(--to-surface);
-  color: var(--to-ink);
-  cursor: pointer;
-}
-.zine-panels input {
-  min-width: 0;
-  padding: 9px 10px;
-  font: 15px var(--sl-font-sans);
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-  background: var(--to-surface);
-  color: var(--to-ink);
 }
 
 /* Pixel art: the colours, and the squares */
@@ -3541,8 +3433,6 @@ sl-menu-item.sub::part(base) {
   textarea,
   select,
   .lf-fields :is(input, select),
-  .zine-edit to-rich.title .write-page,
-  .zine-edit to-rich.words .write-page,
   .sheet input,
   .cal-zone {
     font-size: max(16px, 1em);
@@ -3599,8 +3489,6 @@ sl-menu-item.sub::part(base) {
   .to-view.pages .sheet > svg,
   .diagram .pic > svg,
   .deck-thumb svg,
-  .zine-thumb > svg,
-  .zine-page > svg,
   .sheet-chart svg {
     forced-color-adjust: none;
   }
@@ -3630,7 +3518,6 @@ sl-menu-item.sub::part(base) {
 /* Zoomed far in (or a very small screen), everything is one column and nothing has a width of its own. */
 @media (max-width: 420px) {
   .diagram,
-  .zine,
   .pixel-work {
     grid-template-columns: minmax(0, 1fr);
     display: grid;
@@ -3803,19 +3690,6 @@ mark {
 }
 .diagram.print .sheet text {
   cursor: text;
-}
-
-.zine-edit to-rich .write-page {
-  max-width: none;
-  margin: 0;
-  min-height: 0;
-}
-.zine-edit to-rich.words .write-page {
-  min-height: 160px;
-  resize: none;
-}
-.zine-edit to-rich .write-page p {
-  margin: 0;
 }
 
 /* The insert combobox's list: scrollable, in the menu's groups */
@@ -4265,6 +4139,172 @@ sl-dialog.to-import {
 }
 #short-dialog sl-radio-group {
   margin-top: 8px;
+}
+
+/* Print: pages like a deck */
+/* A thing that folds or tiles is edited as a tiny deck: the rail of its pages, and the one open on a canvas its own shape. */
+.deck-layout.print {
+  grid-template-columns: 132px 1fr;
+}
+/* The rail keeps to the window and scrolls on its own: eight upright pages are tall. */
+.deck-layout.print .deck-rail {
+  align-self: start;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+}
+.deck-layout.print .deck-thumb svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: auto;
+  height: auto;
+}
+/* The page is a slide in the page's own shape (--pw by --ph, in px, with a margin of --m). Its box is the container
+   the units inside measure against, so the margin and the type are the share of the page they will print at. The page
+   grows taller rather than cut anything off. */
+.deck-page {
+  container-type: inline-size;
+  width: 100%;
+  max-width: min(880px, calc(var(--pw) * 1.5px), calc(var(--pw) / var(--ph) * 72vh));
+}
+.deck-slide.print {
+  container-type: normal;
+  max-width: none;
+  aspect-ratio: auto;
+  min-height: calc(var(--ph) / var(--pw) * 100cqw);
+  padding: calc(var(--m) / var(--pw) * 100cqw);
+  gap: calc(var(--body) / var(--pw) * 60cqw);
+  border-radius: 3px;
+}
+.deck-slide.print .head {
+  gap: calc(var(--body) / var(--pw) * 60cqw);
+}
+.deck-slide.print to-rich.title .write-page {
+  font-size: calc(var(--title) / var(--pw) * 100cqw);
+}
+.deck-slide.print .bullets .write-page {
+  font-size: calc(var(--body) / var(--pw) * 100cqw);
+}
+/* Prose: paragraphs, no dots. */
+.deck-slide.prose .bullets .write-page {
+  line-height: 1.38;
+}
+.deck-slide.prose .bullets .write-page > p,
+.deck-slide.cover .bullets .write-page > p {
+  margin-left: 0;
+}
+.deck-slide.prose .bullets .write-page > p {
+  margin-bottom: 0.5em;
+}
+.deck-slide.prose .bullets .write-page > p::before,
+.deck-slide.cover .bullets .write-page > p::before,
+.deck-slide.lay-t .bullets .write-page > p::before {
+  content: none;
+}
+/* A cover: everything in the middle of the page, the icon above the title. */
+.deck-slide.cover {
+  align-content: center;
+  grid-template-rows: auto auto;
+  text-align: center;
+}
+.deck-slide.cover .head {
+  flex-direction: column;
+}
+/* On a cover, set in the middle, an empty field's hint is centred too: placed by itself it would start from the middle. */
+.deck-slide.cover .write-page.blank {
+  position: relative;
+}
+.deck-slide.cover .write-page.blank::before {
+  left: 0;
+  right: 0;
+}
+/* A comic's page: its panels in their grid, each what is said in a bubble, the picture, and a caption along the foot. */
+.deck-slide.comic {
+  padding-bottom: 28px;
+}
+.comic-panels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: calc(6 / var(--pw) * 100cqw);
+  min-height: 0;
+}
+.comic-panels li {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 4px;
+  min-height: 120px;
+  padding: 5px;
+  border: 1.5px solid var(--to-ink);
+  background: var(--to-paper);
+}
+.comic-panels input {
+  min-width: 0;
+  width: 100%;
+  font: 13px var(--sl-font-sans);
+  color: #18181b;
+  border: 1px solid #18181b;
+  background: #fff;
+}
+.comic-panels input.said {
+  border-radius: 999px;
+  padding: 5px 12px;
+  text-align: center;
+}
+.comic-panels input.caption {
+  border: 0;
+  padding: 5px 6px;
+  background: #fef3c7;
+}
+.comic-panels .pick {
+  justify-self: center;
+  align-self: center;
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  aspect-ratio: 1;
+  border: 1px dashed var(--to-border);
+  background: transparent;
+  color: #18181b;
+  font-size: 10.5px;
+}
+.comic-panels .to-icon-btn {
+  --size: 22px;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  border: 1px solid var(--to-border);
+  border-radius: 50%;
+  background: var(--to-surface);
+}
+@media (max-width: 760px) {
+  .deck-layout.print {
+    grid-template-columns: 1fr;
+  }
+  .deck-layout.print .deck-rail {
+    position: static;
+    max-height: none;
+  }
+  .deck-layout.print .deck-thumb {
+    width: 72px;
+  }
+  .deck-page {
+    max-width: none;
+  }
+  /* Phones zoom into anything typed under 16px: the type stops shrinking there and the page grows instead. */
+  .deck-slide.print to-rich.title .write-page {
+    font-size: max(18px, calc(var(--title) / var(--pw) * 100cqw));
+  }
+  .deck-slide.print .bullets .write-page {
+    font-size: max(16px, calc(var(--body) / var(--pw) * 100cqw));
+  }
+  .comic-panels input {
+    font-size: 16px;
+  }
 }
 
 /* Diagrams: editing on the picture */

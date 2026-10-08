@@ -27,9 +27,9 @@ you have copied the file.
 | Store | A shop page with a working cart; orders go by email. |
 | Invoice | Who, what, how much; sums done, PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
-| Zine | Eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
+| Zine | A tiny deck, edited as Deck is: eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
 | Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |
-| Comic | Text in, a folded mini comic out. |
+| Comic | A zine whose pages are panels, each typed into on the page; a folded mini comic out. |
 | Poster, Name badges, Recipe cards | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
 | Menu, Résumé | A few lines in, one letter sheet out, fitted to the page. |
 | Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
