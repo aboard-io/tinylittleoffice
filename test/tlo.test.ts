@@ -191,3 +191,10 @@ test('tlo: tables of one column, first words like a heading, and backslashes kee
     assert.equal(write(parse(write(doc))), write(doc));
   }
 });
+
+test('tlo: numbers count ordered items only, across deeper ones; spaces end the marks they lack', () => {
+  const li = (depth: number, ord: boolean, text: string): Block => ({ k: 'li', depth, ...(ord ? { ord: true } : {}), text });
+  assert.equal(write({ head: {}, blocks: [li(0, false, 'a'), li(1, false, 'b'), li(0, true, 'c')] }), '- a\n  - b\n1. c\n');
+  assert.equal(write({ head: {}, blocks: [li(0, true, 'a'), li(1, false, 'x'), li(0, true, 'b')] }), '1. a\n  - x\n2. b\n');
+  assert.equal(writeInline([{ t: 'bold', b: true }, { t: ' ' }, { t: 'u', u: true }, { t: ' ' }, { t: 'v', u: true }]), '**bold** ++u++ ++v++');
+});

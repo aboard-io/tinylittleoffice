@@ -118,7 +118,7 @@ export class ShapesView extends DiagramElement {
     }
     // A keyed thing (a table, an event) is named first; the rest is a Tab away.
     const key0 = this.keyField(kind);
-    this.startDraft(kind, this.rows().length, kindsOf(form).kinds[kind].at ?? 0, values, key0 >= 0 ? key0 : this.wordsField(kind));
+    this.startDraft(kind, this.rows().length, 0, values, key0 >= 0 ? key0 : this.wordsField(kind));
   }
 
   /** The draft's shape: the one showing its field's name. */

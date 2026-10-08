@@ -311,7 +311,7 @@ export function writeBlock(b: Block, n = 1): string {
       // A table of one column, or one whose first words would read as something else ("# of units"), keeps its edges;
       // so does a row starting with an empty cell, or the pipe would be taken for the table's edge.
       const edged = b.head.length < 2 || guard(cell(b.head[0])) !== cell(b.head[0]);
-      const row = (r: string[]) => (edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '| ') + r.map(cell).join(' | '));
+      const row = (r: string[]) => (edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '|') + r.map(cell).join(' | ')).trimEnd();
       return [row(b.head), row(b.head.map(() => '---')), ...b.rows.map(row), ...(at ? [at.trim()] : [])].join('\n');
     }
     case 'fence': {
@@ -335,7 +335,9 @@ export function write(doc: Tlo): string {
     let n = 1;
     if (b.k === 'li') {
       counts.length = b.depth + 1;
-      n = counts[b.depth] = prev?.k === 'li' && b.ord && (prev.depth > b.depth || (prev.depth === b.depth && prev.ord)) ? (counts[b.depth] ?? 0) + 1 : 1;
+      // An ordered item counts on from the ordered item before it at its depth, across the deeper ones between.
+      n = counts[b.depth] = b.ord && prev?.k === 'li' && (prev.depth > b.depth || prev.ord) && counts[b.depth] ? counts[b.depth] + 1 : 1;
+      if (!b.ord) counts[b.depth] = 0;
     } else counts.length = 0;
     const tight = prev && ((prev.k === 'li' && b.k === 'li') || (prev.k === 'edge' && b.k === 'edge'));
     if (prev) out.push(tight ? '\n' : '\n\n');
@@ -546,6 +548,8 @@ function marked(runs: Run[]): string {
     const want = new Set<string>(FLAGS.filter(([f]) => r[f]).map(([f]) => f));
     const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(r.t)!;
     if (!m[2]) {
+      // Spaces carry no marks of their own, but what they lack ends here.
+      close(want);
       out += r.t;
       continue;
     }

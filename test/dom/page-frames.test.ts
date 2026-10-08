@@ -81,7 +81,7 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   // What is saved is the text, as anyone would have written it: the settings in their order, then the items as a table. (Ctrl+Shift+T pressed in the page comes as a message.)
   f.post({ lf: 'key', key: 'T', shift: true });
   await settle(el);
-  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toBe('From: Harbor Studio | 14 Quay Street\nNumber: 0042\nTax: 8%\n\nWhat | Qty:number | Units | Price:number\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
+  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toBe('From: Harbor Studio | 14 Quay Street\nNumber: 0042\nTax: 8%\n\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
 });
 
 test('the example invoice is edited where it stands, and the page it downloads is clean', async () => {
@@ -106,7 +106,7 @@ test('the example invoice is edited where it stands, and the page it downloads i
   expect(fieldNamed(f, 'Due')!.getAttribute('type')).toBe('date');
   shortcut('t', { mod: true, shift: true });
   await settle(el);
-  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toMatch(/^From: Harbor Studio \| 14 Quay Street\nTo: Acme Ltd \| Accounts payable\nNumber: 0042\nDate: 2027-03-01\nTax: 8%\n\nWhat \| Qty:number \| Units \| Price:number\n--- \| --- \| --- \| ---\nDesign \| 10 \| hours \| 150\n/);
+  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toMatch(/^From: Harbor Studio \| 14 Quay Street\nTo: Acme Ltd \| Accounts payable\nNumber: 0042\nDate: 2027-03-01\nTax: 8%\n\nWhat \| Qty:number \| Units \| Price:money\n--- \| --- \| --- \| ---\nDesign \| 10 \| hours \| 150\n/);
   // The downloaded page carries none of the editing. (The PDF is drawn on a canvas: e2e/invoice.spec.ts.)
   const file = await downloaded(() => choose('Download', /Web page/));
   expect(file.name).toBe('invoice-0042.html');

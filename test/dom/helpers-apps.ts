@@ -131,7 +131,7 @@ export async function choose(menu: string, item: string | RegExp) {
   if (!dropdown) throw new Error(`no menu ${menu}`);
   const items = [...dropdown.querySelectorAll<HTMLElement>('sl-menu-item')];
   const it = items.find((i) => (typeof item === 'string' ? i.textContent?.trim().startsWith(item) : item.test(i.textContent?.trim() ?? '')));
-  if (!it) throw new Error(`no ${item} in ${menu}: ${items.map((i) => i.textContent?.trim()).join(' | ')}`);
+  if (!it) throw new Error(`no ${item} in ${menu}: ${items.map((i) => i.textContent?.trim()).join(' |')}`);
   // What Shoelace's menu does with a click on an item: it says which was chosen. (It hears the click through its
   // slot, which happy-dom leaves out of the click's path.)
   it.closest('sl-menu')!.dispatchEvent(new CustomEvent('sl-select', { bubbles: true, composed: true, detail: { item: it } }));

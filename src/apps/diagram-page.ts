@@ -89,7 +89,7 @@ export class PageView extends DiagramElement {
     const fresh = (kind: number): Row => ({
       kind,
       values: fieldsOf(form, kind).map((f) => (f.optional || (own && f.type !== 'number' && f.type !== 'date' && f.type !== 'choice') ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
-      depth: kinds[kind].at ?? 0,
+      depth: 0,
     });
     // Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last.
     const slot = (kind: number, after: number) => {
@@ -108,7 +108,7 @@ export class PageView extends DiagramElement {
       if (r < 0) {
         // A hint typed into: its row is made, blank but for this field.
         r = slot(m.k!, -1);
-        rows.splice(r, 0, { kind: m.k!, values: fieldsOf(form, m.k!).map(() => ''), depth: kinds[m.k!].at ?? 0 });
+        rows.splice(r, 0, { kind: m.k!, values: fieldsOf(form, m.k!).map(() => ''), depth: 0 });
         this.born.push({ kind: m.k!, at: r });
       }
       if (!rows[r]) return;

@@ -7,7 +7,7 @@ import { text, wrapText, textWidth, ACCENT, MUTED, LINE, type Page } from '../ki
 const FORM: LineKind[] = [
   { name: 'Name', is: '# {Name}', once: true },
   { name: 'Section', is: '## {Section}', head: true },
-  { name: 'Dish', is: '{Dish} | {Price:number} | {About}', table: true },
+  { name: 'Dish', is: '{Dish} | {Price:money} | {About}', table: true },
   { name: 'Line', is: '{Text}' },
 ];
 const [NAME, SECTION, DISH] = [0, 1, 2];
@@ -66,7 +66,7 @@ export const spec = {
   form: FORM,
   hint: '"# Name" and a line about it; "## Section" starts each part, with its dishes a table: "Dish | Price | About". However long, it is fitted to one page.',
   example:
-    '# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay.\n\n## Coffee\n\nDish | Price:number | About\n--- | --- | ---\nEspresso | 3.00 | Dark and syrupy\nFlat white | 4.20 | \nFilter | 3.50 | Ask what is on today\n\n## To eat\n\nDish | Price:number | About\n--- | --- | ---\nCardamom bun | 3.50 | Baked at six, gone by ten\nToast and jam | 4.00 | Sourdough, salted butter',
+    '# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay.\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nEspresso | 3.00 | Dark and syrupy\nFlat white | 4.20 |\nFilter | 3.50 | Ask what is on today\n\n## To eat\n\nDish | Price:money | About\n--- | --- | ---\nCardamom bun | 3.50 | Baked at six, gone by ten\nToast and jam | 4.00 | Sourdough, salted butter',
   sheets: (body: string) => [sheet(body)],
 };
 

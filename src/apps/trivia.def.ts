@@ -36,12 +36,12 @@ ${SCRIPT}`,
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Teams', is: 'teams: {Teams (commas between)}', once: true },
+    { name: 'Teams', is: 'teams: {Teams (commas between)}', once: true, key: 'teams' },
     { name: 'Round', is: '## {Round}', head: true },
     { name: 'Question', is: '{Question} | {Answer}', table: true },
   ] as LineKind[],
   hint: '"# Title"; "teams: Reds, Blues"; "## Round", then a table of "Question | Answer". Tap a question to show its answer; the buttons keep score.',
-  example: '# Quiz night\n\nteams: Reds, Blues, Greens\n\n## Warm-up\n\nQuestion | Answer\n--- | ---\nWhat is the capital of Portugal? | Lisbon\nHow many keys on a piano? | 88\n\n## Science\n\nQuestion | Answer\n--- | ---\nWhat gas do plants take in? | Carbon dioxide\nWho wrote the first published program? | Ada Lovelace',
+  example: '---\nteams: Reds, Blues, Greens\n---\n# Quiz night\n\n## Warm-up\n\nQuestion | Answer\n--- | ---\nWhat is the capital of Portugal? | Lisbon\nHow many keys on a piano? | 88\n\n## Science\n\nQuestion | Answer\n--- | ---\nWhat gas do plants take in? | Carbon dioxide\nWho wrote the first published program? | Ada Lovelace',
   page,
 };
 

@@ -35,7 +35,7 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   await shot(page, 'invoice-edit');
   // A shortcut pressed in the page is the editor's.
   await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Invoice, as text' })).toHaveValue('From: Harbor Studio | 14 Quay Street\n\nWhat | Qty:number | Units | Price:number\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
+  await expect(page.getByRole('textbox', { name: 'Invoice, as text' })).toHaveValue('From: Harbor Studio | 14 Quay Street\n\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
 });
 
 // The PDF is drawn on a canvas, and downloaded: a real browser's.

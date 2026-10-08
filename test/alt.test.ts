@@ -21,7 +21,7 @@ test('alt text is in the header, and leaves the shapes alone', () => {
 });
 test('a description is made from the labels when nobody wrote one', () => {
   assert.equal(describeDrawing(parseDrawing(DRAWING)), 'A drawing of Browser, Server. Browser leads to Server (asks).');
-  assert.equal(describeDrawing(parseDrawing(DRAWING.split('\n').slice(0, 2).join('\n') + '\nr | 1 | 1 | 4 | 4 | 0 | ')), 'A drawing of 1 unlabelled shape.');
+  assert.equal(describeDrawing(parseDrawing(DRAWING.split('\n').slice(0, 2).join('\n') + '\nr | 1 | 1 | 4 | 4 | 0 |')), 'A drawing of 1 unlabelled shape.');
   assert.equal(describeDrawing([]), '');
 });
 

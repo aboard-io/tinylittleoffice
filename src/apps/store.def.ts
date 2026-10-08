@@ -15,9 +15,9 @@ interface Store {
 
 const FORM: LineKind[] = [
   { name: 'Name', is: '# {Name}', once: true },
-  { name: 'Currency', is: 'currency: {Symbol}', once: true },
-  { name: 'Orders go to', is: 'orders: {Email}', once: true },
-  { name: 'Product', is: '{Name} | {Price:number} | {About} | {Image}', table: true },
+  { name: 'Currency', is: 'currency: {Symbol}', once: true, key: 'currency' },
+  { name: 'Orders go to', is: 'orders: {Email}', once: true, key: 'orders' },
+  { name: 'Product', is: '{Name} | {Price:money} | {About} | {Image}', table: true },
   { name: 'About the shop', is: '{Text}' },
 ];
 const PRODUCT = 3;
@@ -140,7 +140,7 @@ export const spec = {
   form: FORM,
   hint: '"# Name" and a line about it; the products a table, "Name | Price | About | Image" (an image\'s address). "currency: £" and "orders: you@example.com" set those.',
   example:
-    '# Harbor Coffee Shop\n\nBeans and things, posted on Fridays.\ncurrency: $\norders: orders@example.com\n\nName | Price:number | About | Image\n--- | --- | --- | ---\nHouse blend, 250g | 12.50 | Chocolate and orange. Good for anything. | \nQuay espresso, 250g | 14.00 | Dark, syrupy, made for milk. | \nFilter papers | 4.00 | A hundred, unbleached. | \nTin mug | 9.00 | Enamel. Survives the boat. |',
+    '---\ncurrency: $\norders: orders@example.com\n---\n# Harbor Coffee Shop\n\nBeans and things, posted on Fridays.\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nHouse blend, 250g | 12.50 | Chocolate and orange. Good for anything. |\nQuay espresso, 250g | 14.00 | Dark, syrupy, made for milk. |\nFilter papers | 4.00 | A hundred, unbleached. |\nTin mug | 9.00 | Enamel. Survives the boat. |',
   page,
 };
 

@@ -35,16 +35,16 @@ export interface Kind {
   head?: boolean;
   /** Lines of this kind nest: they can be indented under one another. */
   indent?: boolean;
-  /** Lines of this kind sit at exactly this depth (an answer, under its question). */
-  at?: number;
   /** Written as the rows of a table whose columns are the fields. */
   table?: boolean;
+  /** A setting kept in the document's header as "key: value" (its first field the value), not in the text. */
+  key?: string;
 }
 
 export interface Field {
   name: string;
   /** 'pick' offers the names already on the form (the first words of every other row); 'list' holds things with commas between; 'number' is one word with a digit in it. */
-  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick' | 'list' | 'number';
+  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick' | 'list' | 'number' | 'money' | 'percent' | 'url';
   options: string[];
   /** Inside a [..] part: the line reads without it. */
   optional?: boolean;
@@ -74,7 +74,11 @@ function compile(kind: Kind): Compiled {
   const parts = (): Part[] => {
     const out: Part[] = [];
     while (at < src.length && src[at] !== ']') {
-      if (src[at] === '[') {
+      // "\[" and the like are the mark itself, written as it stands.
+      if (src[at] === '\\') {
+        out.push(src[at + 1] ?? '');
+        at += 2;
+      } else if (src[at] === '[') {
         at++;
         inside++;
         out.push(parts());
@@ -89,7 +93,7 @@ function compile(kind: Kind): Compiled {
         out.push(field);
         at = end + 1;
       } else {
-        const next = [src.indexOf('{', at), src.indexOf('[', at), src.indexOf(']', at)].filter((n) => n >= 0);
+        const next = [src.indexOf('{', at), src.indexOf('[', at), src.indexOf(']', at), src.indexOf('\\', at)].filter((n) => n >= 0);
         const end = next.length ? Math.min(...next) : src.length;
         out.push(src.slice(at, end));
         at = end;
@@ -100,7 +104,7 @@ function compile(kind: Kind): Compiled {
   const tree = parts();
   // Spaces in the pattern are loose in what is read: needed beside a word ("4 x 3", "0 to 9"), optional beside a mark ("a|b").
   const lit = (s: string) => s.replace(/(\s+)|([^\s]+)/g, (_, space, word, i: number) => (word ? esc(word) : /[\w-]/.test(s[i - 1] ?? '') || /[\w-]/.test(s[i + space.length] ?? '') ? '\\s+' : '\\s*'));
-  const re = (list: Part[]): string => list.map((p) => (typeof p === 'string' ? lit(p) : Array.isArray(p) ? `(?:${re(p)})?` : p.type === 'icon' ? '([a-z0-9-]+)' : p.type === 'number' ? '([^\\s,|]*\\d[^\\s,|]*)' : p.type === 'choice' ? `(${p.options.map(esc).join('|')})` : '(.*?)')).join('');
+  const re = (list: Part[]): string => list.map((p) => (typeof p === 'string' ? lit(p) : Array.isArray(p) ? `(?:${re(p)})?` : p.type === 'icon' ? '([a-z0-9-]+)' : p.type === 'number' ? '([^\\s,|]*\\d[^\\s,|]*)' : p.type === 'money' || p.type === 'percent' ? '([^\\s|]*\\d[^\\s|]*)' : p.type === 'choice' ? `(${p.options.map(esc).join('|')})` : '(.*?)')).join('');
   const has = (list: Part[], values: string[]): boolean => list.some((p) => (typeof p === 'string' ? false : Array.isArray(p) ? has(p, values) : !!values[fields.indexOf(p)]?.trim()));
   const write = (list: Part[], values: string[]): string => list.map((p) => (typeof p === 'string' ? p : Array.isArray(p) ? (has(p, values) ? write(p, values) : '') : (values[fields.indexOf(p)] ?? '').replace(/\n/g, ' ').trim())).join('');
   return { fields, re: new RegExp(`^${re(tree)}$`, 'i'), write: (values) => write(tree, values).trimEnd() };
@@ -114,7 +118,7 @@ const cache = new WeakMap<Kind[], { kinds: Kind[]; made: Compiled[] }>();
 export function kindsOf(given: Kind[]): { kinds: Kind[]; made: Compiled[] } {
   let hit = cache.get(given);
   if (!hit) {
-    const kinds = given.some((k) => /^\{[^}]*\}$/.test(k.is) && k.at === undefined) ? given : [...given, OTHER];
+    const kinds = given.some((k) => /^\{[^}]*\}$/.test(k.is)) ? given : [...given, OTHER];
     cache.set(given, (hit = { kinds, made: kinds.map(compile) }));
   }
   return hit;
@@ -132,11 +136,15 @@ interface Seen {
   cells?: Record<string, string>;
   /** A fenced document: "<app>\n<text>". */
   doc?: string;
+  /** A setting in the header: [key, value]. */
+  set?: [string, string];
 }
 
 function seen(text: string): Seen[] {
   const out: Seen[] = [];
-  for (const b of parseTlo(text).blocks) {
+  const doc = parseTlo(text);
+  for (const [k, v] of Object.entries(doc.head)) out.push({ line: '', depth: 0, set: [k, v] });
+  for (const b of doc.blocks) {
     if (b.k === 'table') {
       const names = b.head.map((h) => column(h).name.toLowerCase());
       for (const r of b.rows) out.push({ line: r.join(' | '), depth: 0, cells: Object.fromEntries(names.map((n, i) => [n, r[i] ?? ''])) });
@@ -159,6 +167,12 @@ export function readLines(text: string, given: Kind[]): Row[] {
   const order = kinds.map((_, i) => i).sort((a, b) => mark(kinds[b]) - mark(kinds[a]) || a - b);
   const rows: Row[] = [];
   for (const s of seen(text)) {
+    if (s.set) {
+      // (A setting no kind keeps is not the form's to show.)
+      const kind = kinds.findIndex((k) => k.key === s.set![0]);
+      if (kind >= 0) rows.push({ kind, values: [s.set[1]], depth: 0 });
+      continue;
+    }
     if (s.doc !== undefined) {
       const kind = kinds.findIndex(isDoc);
       if (kind >= 0) rows.push({ kind, values: [s.doc], depth: 0 });
@@ -183,33 +197,44 @@ export function readLines(text: string, given: Kind[]): Row[] {
     // A list item is first what a kind of its own says it is ("- {Point}"); else a thing that nests, at its depth.
     const nests = s.item !== undefined ? kinds.findIndex((k, i) => k.indent && !mark(k) && made[i].re.test(s.item!.trim())) : -1;
     // The kind whose opening mark is longest is tried first ("## " before "# "); otherwise in the order given.
-    const claimed = order.find((i) => kinds[i].is !== '' && !kinds[i].table && !isDoc(kinds[i]) && (kinds[i].at === undefined || kinds[i].at === s.depth) && made[i].re.test(line) && (mark(kinds[i]) > 0 || nests < 0))!;
+    const claimed =
+      order.find((i) => kinds[i].is !== '' && !kinds[i].table && !isDoc(kinds[i]) && made[i].re.test(line) && (mark(kinds[i]) > 0 || nests < 0)) ??
+      // Whatever nothing else claims is words, kept as they are.
+      kinds.findIndex((k) => /^\{[^}]*\}$/.test(k.is));
     const kind = nests >= 0 && (claimed === undefined || !mark(kinds[claimed])) ? nests : claimed;
     const k = kinds[kind];
     const words = kind === nests ? s.item!.trim() : line;
     // (A line nothing else claims is kept exactly as it was written, its indent and all.)
     if (k === OTHER) rows.push({ kind, values: [s.depth ? '  '.repeat(s.depth) + line : line], depth: 0 });
-    else rows.push({ kind, values: made[kind].re.exec(words)!.slice(1).map((v) => (v ?? '').trim()), depth: k.indent ? s.depth : (k.at ?? 0) });
+    else rows.push({ kind, values: made[kind].re.exec(words)!.slice(1).map((v) => (v ?? '').trim()), depth: k.indent ? s.depth : 0 });
   }
   return rows;
 }
 
-const typeOf = (f: Field) => (f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text');
+const typeOf = (f: Field) => (['number', 'date', 'money', 'percent', 'url'].includes(f.type) ? (f.type as 'number') : 'text');
 
 export function writeLines(rows: Row[], given: Kind[]): string {
   const { kinds, made } = kindsOf(given);
   // A row with nothing in it yet is not written down (a blank line would mean something else, or nothing).
   const kept = rows.filter((r) => kinds[r.kind].is === '' || r.values.some((v) => v.trim()));
+  const head: Record<string, string> = {};
   const blocks: TloBlock[] = [];
   let lines: string[] = [];
   const flush = () => {
     if (lines.length) blocks.push(...parseTlo(lines.join('\n')).blocks);
     lines = [];
   };
+  // Words on lines of their own are paragraphs of their own; list items and headings sit line by line.
+  const plain = (line: string) => parseTlo(line).blocks[0]?.k === 'p';
+  const push = (line: string) => {
+    if (lines.length && plain(line) && plain(lines[lines.length - 1])) lines.push('');
+    lines.push(line);
+  };
   for (let i = 0; i < kept.length; i++) {
     const r = kept[i];
     const k = kinds[r.kind];
-    if (k.is === '') {
+    if (k.key) head[k.key] = r.values[0].replace(/\n/g, ' ').trim();
+    else if (k.is === '') {
       flush();
       blocks.push({ k: 'hr' });
     } else if (isDoc(k)) {
@@ -223,12 +248,12 @@ export function writeLines(rows: Row[], given: Kind[]): string {
       for (; i < kept.length && kept[i].kind === r.kind; i++) table.rows.push(fields.map((_, n) => (kept[i].values[n] ?? '').replace(/\n/g, ' ').trim()));
       i--;
       blocks.push(table);
-    } else if (k === OTHER) lines.push(r.values[0]);
-    else if (k.indent && !/^[^{[]*/.exec(k.is)![0]) lines.push(`${'  '.repeat(r.depth)}- ${made[r.kind].write(r.values)}`);
-    else lines.push('  '.repeat(r.depth) + made[r.kind].write(r.values));
+    } else if (k === OTHER) push(r.values[0]);
+    else if (k.indent && !/^[^{[]*/.exec(k.is)![0]) push(`${'  '.repeat(r.depth)}- ${made[r.kind].write(r.values)}`);
+    else push('  '.repeat(r.depth) + made[r.kind].write(r.values));
   }
   flush();
-  return writeTlo({ head: {}, blocks }).trimEnd();
+  return writeTlo({ head, blocks }).trimEnd();
 }
 
 /** Which heading a kind is, counting from 1 in the order given (a page is 1, a section 2); 0 for a kind that is not one. */

@@ -62,7 +62,7 @@ test('formula: refs and literals', () => {
 });
 
 test('formula: serialize is stable under re-parse and keeps inner blanks', () => {
-  const text = 'ColA | ColB | ColC\n--- | --- | ---\na |  | c\n|  |  | \n|  |  | z';
+  const text = 'ColA | ColB | ColC\n--- | --- | ---\na |  | c\n| |  |\n| |  | z';
   assert.equal(serializeGrid(parseGrid(text)), text);
   const full = parseGrid('');
   full[19][2] = 'end';

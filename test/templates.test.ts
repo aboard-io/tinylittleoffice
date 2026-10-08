@@ -38,7 +38,7 @@ test('every template is in its app\'s own spelling, draws, and has a name and a 
 
 test('the sheets add up: no errors in any computed cell, and the formulas mean what they say', () => {
   const cells = (id: string) => T.evaluateSheet(TEMPLATES.sheet.find((t) => t.id === id)!.body);
-  for (const t of TEMPLATES.sheet) for (const row of T.evaluateSheet(t.body)) for (const v of row) assert.ok(!v.startsWith('#'), `${t.id}: ${row.join(' | ')}`);
+  for (const t of TEMPLATES.sheet) for (const row of T.evaluateSheet(t.body)) for (const v of row) assert.ok(!v.startsWith('#'), `${t.id}: ${row.join(' |')}`);
   const budget = cells('budget');
   assert.deepEqual(budget[6], ['Total', '$2,630.00', '$2,695.00', '$65.00']);
   // 1,800 + 2,800 + 120, and 8% on top.

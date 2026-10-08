@@ -59,7 +59,7 @@ test('drawing round trip in grid units', () => {
     { k: 't' as const, x: 0, y: 0, w: 96, h: 24, f: 0 as const, text: 'T' },
   ];
   const s = serializeDrawing(shapes);
-  assert.equal(s, 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | Box, with comma\na | 14 | 4 | -8 | 10 | 0 | \nt | 0 | 0 | 12 | 3 | 0 | T');
+  assert.equal(s, 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | Box, with comma\na | 14 | 4 | -8 | 10 | 0 |\nt | 0 | 0 | 12 | 3 | 0 | T');
   assert.deepEqual(parseDrawing(s), shapes);
   assert.deepEqual(parseDrawing('junk\n\nKind | X\n--- | ---\nq | 1'), []);
   assert.deepEqual(parseDrawing(''), []);

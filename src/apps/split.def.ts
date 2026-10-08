@@ -45,11 +45,11 @@ h2{font-size:1.1rem;margin-top:2rem}.pay{font-size:1.15rem;padding:.5rem 0}.pay 
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Shared between', is: 'between: {People (commas between)}', once: true },
-    { name: 'Payment', is: '{Who} | {Amount:number} | {What}', table: true },
+    { name: 'Shared between', is: 'between: {People (commas between)}', once: true, key: 'between' },
+    { name: 'Payment', is: '{Who} | {Amount:money} | {What}', table: true },
   ] as LineKind[],
   hint: '"# Title", then a table of who paid: "Who | Amount | What". "between: Ada, Sam, Paul" names everyone sharing, if some paid nothing.',
-  example: '# Weekend away\n\nbetween: Paul, Sam, Ada, Grace\n\nWho | Amount:number | What\n--- | --- | ---\nPaul | 240 | the cottage\nSam | 86.50 | groceries\nAda | 45 | petrol',
+  example: '---\nbetween: Paul, Sam, Ada, Grace\n---\n# Weekend away\n\nWho | Amount:money | What\n--- | --- | ---\nPaul | 240 | the cottage\nSam | 86.50 | groceries\nAda | 45 | petrol',
   page,
 };
 

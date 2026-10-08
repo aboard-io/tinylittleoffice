@@ -40,7 +40,7 @@ export const spec = {
     { name: 'Story', is: '{A line of the story:long}' },
   ] as LineKind[],
   hint: '"# Title", then the story, with each blank in square brackets: "[adjective]", "[a place]". The reader fills them in before seeing the story.',
-  example: '# A day at the office\n\nThis morning my [adjective] boss arrived riding a [animal].\n"We are moving the office to [a place]," she said, "and everyone must bring [plural noun]."\nI [verb, past tense] all the way home.',
+  example: '# A day at the office\n\nThis morning my [adjective] boss arrived riding a [animal].\n\n"We are moving the office to [a place]," she said, "and everyone must bring [plural noun]."\n\nI [verb, past tense] all the way home.',
   page,
 };
 

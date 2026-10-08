@@ -65,7 +65,7 @@ export class ToLines extends LitElement {
     // (After a row of its own kind that has rows under it, it goes below those: a sibling, not a new parent for them.)
     const here = after >= 0 && after < this.rows.length;
     const i = k.once ? (top < 0 ? this.rows.length : top) : !here ? this.rows.length : k.indent && this.rows[after].kind === kind ? blockEnd(this.rows, this.kinds, after) : after + 1;
-    const row: Row = { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth: k.at ?? (k.indent && here && kinds[this.rows[after].kind].indent ? this.rows[after].depth : 0) };
+    const row: Row = { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth: (k.indent && here && kinds[this.rows[after].kind].indent ? this.rows[after].depth : 0) };
     this.save([...this.rows.slice(0, i), row, ...this.rows.slice(i)], i);
   }
 

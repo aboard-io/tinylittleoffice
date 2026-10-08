@@ -503,7 +503,7 @@ export class DiagramElement extends DocElement<string> {
     };
     const values = fields.map((f, n) => (n === refs[0] ? name(from) : n === refs[1] ? name(clean(to)) : f.type === 'choice' ? f.options[0] : ''));
     if (rows.some((r) => r.kind === kind && clean(r.values[refs[0]]) === clean(values[refs[0]]) && clean(r.values[refs[1]]) === clean(values[refs[1]]))) return;
-    this.putRows([...rows, { kind, values, depth: kindsOf(form).kinds[kind].at ?? 0 }]);
+    this.putRows([...rows, { kind, values, depth: 0 }]);
   }
 
   /**

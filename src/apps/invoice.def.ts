@@ -19,15 +19,15 @@ export interface Invoice {
 
 /** The settings, each a line of its own at the top ("From: Harbor Studio | 14 Quay Street", "Tax: 8%"); the items, a table; the notes. */
 const FORM: LineKind[] = [
-  { name: 'From', is: 'From: {Who it is from}', once: true },
-  { name: 'To', is: 'To: {Who it is for}', once: true },
-  { name: 'Number', is: 'Number: {Number}', once: true },
-  { name: 'Date', is: 'Date: {Date:date}', once: true },
-  { name: 'Due', is: 'Due: {Due:date}', once: true },
-  { name: 'Tax', is: 'Tax: {Rate}', once: true },
-  { name: 'Currency', is: 'Currency: {Symbol}', once: true },
-  { name: 'Terms', is: 'Terms: {Terms}', once: true },
-  { name: 'Item', is: '{What} | {Qty:number} | {Units} | {Price:number}', table: true },
+  { name: 'From', is: 'From: {Who it is from}', once: true, key: 'from' },
+  { name: 'To', is: 'To: {Who it is for}', once: true, key: 'to' },
+  { name: 'Number', is: 'Number: {Number}', once: true, key: 'number' },
+  { name: 'Date', is: 'Date: {Date:date}', once: true, key: 'date' },
+  { name: 'Due', is: 'Due: {Due:date}', once: true, key: 'due' },
+  { name: 'Tax', is: 'Tax: {Rate}', once: true, key: 'tax' },
+  { name: 'Currency', is: 'Currency: {Symbol}', once: true, key: 'currency' },
+  { name: 'Terms', is: 'Terms: {Terms}', once: true, key: 'terms' },
+  { name: 'Item', is: '{What} | {Qty:number} | {Units} | {Price:money}', table: true },
   { name: 'Note', is: '{Note}' },
 ];
 const ITEM = FORM.findIndex((k) => k.name === 'Item');
@@ -233,7 +233,7 @@ export const spec = {
   hint: 'Settings first, a line each: "From:", "To:", "Number:", "Date:", "Due:", "Tax: 8%", "Currency: £" (" | " for a second line). Then the items, a table "What | Qty | Units | Price". Anything else is a note at the foot.',
   blankRows: true,
   example:
-    'From: Harbor Studio | 14 Quay Street\nTo: Acme Ltd | Accounts payable\nNumber: 0042\nDate: 2027-03-01\nDue: 2027-03-31\nTax: 8%\n\nWhat | Qty:number | Units | Price:number\n--- | --- | --- | ---\nDesign | 12 | hours | 150\nBuild | 20 | hours | 140\nHosting for a year | 1 |  | 480\n\nThank you. Payment by bank transfer.',
+    '---\nfrom: Harbor Studio | 14 Quay Street\nto: Acme Ltd | Accounts payable\nnumber: 0042\ndate: 2027-03-01\ndue: 2027-03-31\ntax: 8%\n---\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150\nBuild | 20 | hours | 140\nHosting for a year | 1 |  | 480\n\nThank you. Payment by bank transfer.',
   page,
 };
 

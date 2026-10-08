@@ -37,7 +37,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
     outline: '- Launch\n  - <Product>\n    - Pricing',
     write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested\n\n1. first',
     deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
-    draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
+    draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 |',
     cal: '---\nzone: America/New_York\n---\n- 2020-01-01 05:00-06:30: Call\n- 2020-01-03 to 2020-01-04: Offsite',
     todo: '- [ ] one\n- [x] two {.star due=2025-06-23}',
     board: '## A\n\n- x\n- y\n\n## B {limit=1}',
@@ -164,7 +164,7 @@ test('deck to pptx: one slide part per slide, icons embedded when supplied', () 
 });
 
 test('drawing to svg', () => {
-  const svg = drawingToSvg('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 2 | Box <1>\na | 14 | 4 | 8 | 0 | 1 | \nt | 0 | 0 | 12 | 3 | 0 | Note');
+  const svg = drawingToSvg('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 2 | Box <1>\na | 14 | 4 | 8 | 0 | 1 |\nt | 0 | 0 | 12 | 3 | 0 | Note');
   assert.ok(svg.includes('viewBox="0 0 640 400"'));
   assert.ok(svg.includes('<rect x="16" y="8" width="96" height="48" rx="2" fill="#18181b"'));
   assert.ok(svg.includes('fill="#ffffff">Box &lt;1&gt;</text>'));
