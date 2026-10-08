@@ -267,8 +267,10 @@ export class ToApp extends LitElement {
     // An app's own page (".../deck/") with nothing after it opens a new document there.
     const page = location.pathname.split('/').slice(-2)[0];
     this.app = app ?? (!location.hash && appOf(page) ? page : null);
-    // A different link is a different document: its history starts here.
+    // A different link is a different document: its history starts here, and a write of the last one
+    // still under way (a locked document being sealed) must not land on top of it.
     this.history.clear();
+    this.writeRun++;
     this.presenting = false;
     this.embedded = ext === 'embed';
     this.version = version;
@@ -278,7 +280,7 @@ export class ToApp extends LitElement {
     if (isSealed(payload)) {
       this.sealed = payload;
       this.env = { created: null, body: '' };
-      this.updateComplete.then(() => this.querySelector<SlInput>('#pw-input')?.focus());
+      // (The prompt puts the caret in its own box once that box is drawn: widgets/privacy.ts.)
       return;
     }
     this.sealed = '';
@@ -304,11 +306,13 @@ export class ToApp extends LitElement {
   private async writeUrl() {
     if (!this.app) return;
     const run = ++this.writeRun;
+    const from = location.hash;
     const empty = !this.env.body && this.env.created === null && !this.env.key && !this.env.title;
     let payload = '';
     if (!empty) {
       payload = await this.privacy.pack(this.env, this.app);
-      if (run !== this.writeRun) return;
+      // A later write, or another link followed meanwhile (the address changed under us): this one is stale.
+      if (run !== this.writeRun || location.hash !== from) return;
     }
     this.payloadLength = payload.length;
     this.version = URL_VERSION;
