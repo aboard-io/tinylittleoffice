@@ -172,6 +172,20 @@ export class ToApp extends LitElement {
     return this;
   }
 
+  /**
+   * Scrolled past the header: it has gone up with the page, the app's own
+   * bar has stuck to the top, and undo and redo go to the top right corner
+   * (the menu button is always at the top left). Said as an attribute, so
+   * styles alone move things; nothing is drawn again.
+   */
+  private headerWatch: IntersectionObserver | null = null;
+  private watchHeader() {
+    const header = this.querySelector('.to-header');
+    if (!header || this.headerWatch || typeof IntersectionObserver === 'undefined') return;
+    this.headerWatch = new IntersectionObserver(([e]) => this.toggleAttribute('scrolled', !e.isIntersecting));
+    this.headerWatch.observe(header);
+  }
+
   connectedCallback() {
     super.connectedCallback();
     // No link in a document opens without showing where it goes and asking.
@@ -186,6 +200,8 @@ export class ToApp extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.headerWatch?.disconnect();
+    this.headerWatch = null;
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
     window.removeEventListener(REFRESH, this.onRefresh);
@@ -503,6 +519,7 @@ export class ToApp extends LitElement {
 
   private lastSelf = '';
   protected updated() {
+    this.watchHeader();
     // The kit knows this document's link (a QR code of it may be drawn inside it); embeds redraw when it changes.
     if (this.app && !this.sealed && this.link !== this.lastSelf) {
       this.lastSelf = this.link;
@@ -726,7 +743,7 @@ export class ToApp extends LitElement {
     return html`<span class="to-spacer"></span>
         ${this.sealed
           ? nothing
-          : html`<sl-button-group label="Undo and redo">
+          : html`<sl-button-group class="to-undo" label="Undo and redo">
               ${tool('Undo', 'undo', () => this.step(true), { disabled: !this.history.canUndo, key: 'Mod+Z' })}
               ${tool('Redo', 'redo', () => this.step(false), { disabled: !this.history.canRedo, key: 'Mod+Shift+Z' })}
             </sl-button-group>`}`;

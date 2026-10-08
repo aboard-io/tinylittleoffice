@@ -312,6 +312,7 @@ export class ToOutline extends DocElement<Item[]> {
     const vis = this.visible();
     const base = this.zoom >= 0 ? items[this.zoom].depth : 0;
     return html`
+      <div class="ol-bars">
       <div class="to-toolbar" role="toolbar" aria-label="Outline">
         <sl-button-group label="Text">
           ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
@@ -335,6 +336,7 @@ export class ToOutline extends DocElement<Item[]> {
         <span class="to-hint">${items.filter((it) => it.text.trim()).length} items</span>
       </div>
       ${this.renderNav()}
+      </div>
       ${this.crumbs()}
       <div class="ol ${this.connecting ? 'connecting' : ''}" role="tree" aria-label="Outline" @drop=${this.onDrop} @dragover=${(e: DragEvent) => this.drag && e.preventDefault()} @keydown=${(e: KeyboardEvent) => this.connecting && e.key === 'Escape' && (this.connecting = null)}>
         ${vis.map((i) => {

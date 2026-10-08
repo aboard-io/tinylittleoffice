@@ -198,11 +198,9 @@ button.ol-kind:hover {
   color: var(--to-ink);
 }
 
-/* The second bar: under the header, wherever the outline is scrolled. */
-.ol-nav {
-  position: sticky;
-  top: var(--to-header-h);
-  z-index: 15;
+/* The second bar sticks to the top with the first (the two are the outline's bar: see "an app's own bar" in styles.css). */
+.ol-bars > .to-toolbar + .to-toolbar {
+  border-top: 0;
 }
 .ol-nav-hint b {
   color: var(--to-ink);

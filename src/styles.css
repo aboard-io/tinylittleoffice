@@ -234,13 +234,12 @@ sl-button[aria-pressed='true']::part(label) {
 }
 
 /* 3. Shell ----------------------------------------------------------------- */
+/* The header goes up with the page; what stays is the menu button (top left), the app's own bar (stuck to the top), and undo and redo (top right). */
 .to-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
   height: var(--to-header-h);
-  background: color-mix(in srgb, var(--to-surface) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
+  background: var(--to-surface);
   border-bottom: 1px solid var(--to-border);
 }
 .to-header-inner {
@@ -295,11 +294,40 @@ sl-button[aria-pressed='true']::part(label) {
   flex: 1;
 }
 .to-burger {
-  position: absolute;
+  position: fixed;
   left: 4px;
-  top: 50%;
+  top: calc(var(--to-header-h) / 2);
   transform: translateY(-50%);
-  z-index: 1;
+  z-index: 40;
+}
+/* Over the app's bar once the header has gone, the menu button and undo and redo sit on a card of their own. */
+to-app[scrolled] .to-burger::part(base),
+to-app[scrolled] .to-undo {
+  background: var(--to-surface);
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+}
+to-app[scrolled] .to-undo {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 40;
+  padding: 2px;
+}
+/* An app's own bar sticks to the top of the screen once the header has gone; where the menu button or undo would sit over it, it makes room. */
+.to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+/* (Narrowed rather than padded, so a bar that scrolls sideways on a phone never slides under them; what it gives up is painted its own colour.) */
+to-app[scrolled] .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
+to-app[scrolled] .to-panel > div > * > .ol-bars > .to-toolbar {
+  --ml: max(0px, calc(52px - max(0px, (100vw - var(--to-max-w)) / 2)));
+  --mr: max(0px, calc(100px - max(0px, (100vw - var(--to-max-w)) / 2)));
+  margin-left: var(--ml);
+  margin-right: var(--mr);
+  box-shadow: calc(-1 * var(--ml)) 0 0 var(--to-surface), var(--mr) 0 0 var(--to-surface);
 }
 sl-menu-item svg.pre {
   vertical-align: -2px;
