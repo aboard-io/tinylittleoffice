@@ -13,7 +13,7 @@ import { appOf } from '../src/kit/core.ts';
 import type { Kind as LineKind } from '../src/lib/lines.ts';
 import { animToSvg, frameSvg } from '../src/apps/anim.def.ts';
 import { boardToCsv } from '../src/apps/board.def.ts';
-import { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv } from '../src/lib/markdown.ts';
+import { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv, csvToMd } from '../src/lib/markdown.ts';
 import { ganttToCsv } from '../src/apps/gantt.def.ts';
 import { tripToGeoJson, tripToGpx } from '../src/apps/trip.def.ts';
 import { ganttSpans } from '../src/lib/ganttmodel.ts';
@@ -270,11 +270,11 @@ test('deck: layouts, columns, embedded documents, transition', async () => {
   assert.ok(!whole.includes('Hidden headline') && !whole.includes('hidden bullet'));
   assert.ok(!slidePage(taken, 0, 0).svg.includes('>One</text>'));
   assert.ok(slidePage(taken, 0, 1).svg.includes('>One</text>') && !slidePage(taken, 0, 1).svg.includes('>Two</text>'));
-  // A table fills in a cell per click: across each row, rows top to bottom. Empty cells take no click.
-  const table = { icon: '', title: '', bullets: [], sub: makeRef('sheet', 'a\tb\n1\n3\t4') };
-  assert.deepEqual(slideSteps(table), { bullets: 0, sub: 5 });
+  // A table fills in a cell per click under its names: across each row, rows top to bottom. Empty cells take no click.
+  const table = { icon: '', title: '', bullets: [], sub: makeRef('sheet', 'a | b\n--- | ---\n1 |\n3 | 4') };
+  assert.deepEqual(slideSteps(table), { bullets: 0, sub: 3 });
   const cells = (n: number) => ['a', 'b', '1', '3', '4'].filter((t) => slidePage(table, 0, n).svg.includes(`>${t}</text>`));
-  assert.deepEqual([cells(0), cells(1), cells(3), cells(4), cells(5)], [[], ['a'], ['a', 'b', '1'], ['a', 'b', '1', '3'], ['a', 'b', '1', '3', '4']]);
+  assert.deepEqual([cells(0), cells(1), cells(2), cells(3)], [['a', 'b'], ['a', 'b', '1'], ['a', 'b', '1', '3'], ['a', 'b', '1', '3', '4']]);
   // The grid itself is there before any of it is filled in.
   assert.equal(slidePage(table, 0, 0).svg.match(/<rect /g)!.length, slidePage(table).svg.match(/<rect /g)!.length);
 });
@@ -397,8 +397,9 @@ test('every app reveals itself a piece at a time', () => {
   assert.ok(at('board', '#A\nxx\nyy\n#B\nzz', 2).includes('yy') && !at('board', '#A\nxx\nyy\n#B\nzz', 2).includes('zz'));
   assert.equal(count('gantt', '1jk,5,1e,Design\n1jp,2,0,Build'), 2);
   assert.ok(!at('gantt', '1jk,5,1e,Design\n1jp,2,0,Build', 1).includes('Build'));
-  assert.equal(count('sheet', '!bar\nQ\tSales\nQ1\t1\nQ2\t2\nQ3\t3'), 3);
-  assert.equal(at('sheet', '!bar\nQ\tSales\nQ1\t1\nQ2\t2\nQ3\t3', 2).match(/rx="2"/g)!.length, 2);
+  const bars = '---\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 1\nQ2 | 2\nQ3 | 3';
+  assert.equal(count('sheet', bars), 3);
+  assert.equal(at('sheet', bars, 2).match(/rx="2"/g)!.length, 2);
   assert.equal(count('cal', 'd2,2,Offsite\ndb,1,Launch'), 2);
   assert.ok(at('cal', 'd2,2,Offsite\ndb,1,Launch', 1).includes('Offsite') && !at('cal', 'd2,2,Offsite\ndb,1,Launch', 1).includes('Launch'));
 });
@@ -698,7 +699,9 @@ test('small apps: the sums behind them', async () => {
   assert.ok(hunt.includes('What colour is the kettle?') && !hunt.includes('count the stairs') && !hunt.includes('"red"'));
 
   const { parsePixels, serializePixels } = await import('../src/apps/pixel.def.ts');
-  assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.', 16)), 'ab.c\n\n..d');
+  // One paragraph, a line a row: an empty row is a lone dot, so the paragraph holds together.
+  assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.', 16)), 'ab.c\n.\n..d');
+  assert.equal(appOf('pixel')!.read!('Here:\n\n```\nab\n.c\n```'), 'ab\n.c');
   assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
   // Rooms to scale; people round their tables; events in order.
   const floor = specOf('floor')!.layout!('A: 4 x 2 at 0,0\nB: 2 x 2 at 4,0');
@@ -973,7 +976,7 @@ test('markdown, both ways, for every app', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
   const { apps } = await import('../src/kit/core.ts');
   const samples: Record<string, string> = {
-    sheet: 'Item\tCost\nRent\t1200\nFood\t600',
+    sheet: '---\nchart: bar\n---\nItem | Cost:money\n--- | ---\nRent | 1200\nFood | 600',
     outline: 'Launch\n  Product\n    Pricing\n  Marketing',
     write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
@@ -1009,14 +1012,17 @@ test('markdown, both ways, for every app', async () => {
     assert.ok(before.size === 0 || kept / before.size >= 0.6, `${def.id}: ${kept} of ${before.size} words survive the round trip\n${md}\n--\n${back}`);
   }
   // The shapes to expect.
-  assert.ok(toMarkdown(appOf('sheet')!, samples.sheet).includes('| Item | Cost |') && toMarkdown(appOf('sheet')!, samples.sheet).includes('| Rent | 1200 |'));
+  // A sheet is Markdown as it stands, and comes back as it went, chart and all.
+  assert.equal(toMarkdown(appOf('sheet')!, samples.sheet), samples.sheet + '\n');
+  assert.equal(fromMarkdown(appOf('sheet')!, toMarkdown(appOf('sheet')!, samples.sheet)), samples.sheet);
+  assert.equal(toMarkdown(appOf('pixel')!, samples.pixel), samples.pixel + '\n');
   assert.equal(toMarkdown(appOf('todo')!, samples.todo), '- [ ] Book flights\n- [x] **Renew passport** (due 2025-06-23)\n- [ ] Pack\n');
   assert.equal(toMarkdown(appOf('write')!, samples.write), '# Memo\n\nSome **bold** and *slant* text with ==shine== and :star:\n\n- one\n  - nested\n1. first\n');
   assert.ok(toMarkdown(appOf('deck')!, samples.deck).startsWith('## Spring launch :rocket:\n\n- What ships\n\n## Agenda\n\n- one\n  - under one\n- two'));
   assert.ok(toMarkdown(appOf('menu')!, specOf('menu')!.example).includes('| Dish | Price | What it is |'));
   // And back: a Markdown list is a to-do list; a Markdown table is a sheet; headings are slides.
   assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n- [ ] Not yet'), 'x Done\n- Not yet');
-  assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|---|---|\n| 1 | 2 |'), 'A\tB\n1\t2');
+  assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|:--|--:|\n| 1 | $2 |'), 'A | B:money\n--- | ---\n1 | $2');
   assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '::t\nMy deck\nA line\n\nSecond\na\n  b');
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n1. c'), '# Hi\nSome *bold* text.\n- a\n-- b\n+ c');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
@@ -1030,7 +1036,9 @@ test('CSV imports as a table into any app that takes one', () => {
   assert.ok(looksLikeCsv('Item\tCost\nRent\t1200'));
   assert.ok(!looksLikeCsv('# Heading\n- a, b\n- c, d'));
   assert.ok(!looksLikeCsv('just one line, with commas'));
-  assert.equal(fromMarkdown(appOf('sheet')!, 'Item,Cost\nRent,"1,200"\nFood,600'), 'Item\tCost\nRent\t1,200\nFood\t600');
+  assert.equal(fromMarkdown(appOf('sheet')!, 'Item,Cost\nRent,"1,200"\nFood,600'), 'Item | Cost\n--- | ---\nRent | 1,200\nFood | 600');
+  assert.equal(csvToMd('Item,Cost\nRent,"$1,200"'), 'Item | Cost\n--- | ---\nRent | $1,200\n');
+  assert.equal(appOf('sheet')!.read!('Item\tCost\nRent\t$1,200'), 'Item | Cost:money\n--- | ---\nRent | $1,200');
   assert.equal(fromMarkdown(appOf('menu')!, 'Dish,Price,What it is\nFlat white,4.20,Smooth'), 'Flat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%'), fromMarkdown(appOf('gantt')!, '| Task | Start | Days | Done |\n|---|---|---|---|\n| Design | 2026-10-06 | 5 | 20% |'));
   assert.ok(appOf('gantt')!.outline(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%')).join(' ').includes('Design'));

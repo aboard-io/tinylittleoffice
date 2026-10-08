@@ -12,6 +12,7 @@
  * The three plans (business, marketing, go-to-market) live here as Write
  * templates: the sections a good plan has, and the questions each answers.
  */
+import { write as writeTlo } from './tlo.ts';
 
 /** A section of a plan, and what it should say, as prompts the writer replaces. */
 interface Section {
@@ -103,51 +104,51 @@ const WRITE: Template[] = [
   { id: 'gtm', name: 'Go-to-market plan', blurb: 'The customer, the offer, pricing, the route to them, the launch, enablement, measures.', body: planText('Go-to-market plan', 'Product · Launch', GTM) },
 ];
 
-/** Rows as a sheet: cells joined by tabs, trailing blank cells dropped, so each row is already in the sheet's own spelling. */
-const rows = (settings: string, ...lines: string[][]) => [settings, ...lines.map((cells) => cells.join('\t').replace(/\t+$/, ''))].join('\n');
+/** A sheet: its chart (or ''), the names over its columns with their types ("Price:money"), and its rows, A1 the first. */
+const sheet = (chart: string, head: string[], ...rows: string[][]) => writeTlo({ head: chart ? { chart } : {}, blocks: [{ k: 'table', head, rows: rows.map((r) => head.map((_, c) => r[c] ?? '')) }] }).trimEnd();
 
 const SHEET: Template[] = [
   {
     id: 'budget',
     name: 'Budget',
     blurb: 'Planned against actual, a line each, with the difference and totals.',
-    body: rows('!|t$$$', ['Item', 'Planned', 'Actual', 'Difference'], ['Rent', '1200', '1200', '=C2-B2'], ['Groceries', '500', '540', '=C3-B3'], ['Transport', '150', '120', '=C4-B4'], ['Utilities', '180', '175', '=C5-B5'], ['Fun', '200', '260', '=C6-B6'], ['Savings', '400', '400', '=C7-B7'], ['Total', '=SUM(B2:B7)', '=SUM(C2:C7)', '=SUM(D2:D7)']),
+    body: sheet('', ['Item', 'Planned:money', 'Actual:money', 'Difference:money'], ['Rent', '1200', '1200', '=C1-B1'], ['Groceries', '500', '540', '=C2-B2'], ['Transport', '150', '120', '=C3-B3'], ['Utilities', '180', '175', '=C4-B4'], ['Fun', '200', '260', '=C5-B5'], ['Savings', '400', '400', '=C6-B6'], ['Total', '=SUM(B1:B6)', '=SUM(C1:C6)', '=SUM(D1:D6)']),
   },
   {
     id: 'expenses',
     name: 'Expense log',
     blurb: 'Date, what, how much, which kind; a running total at the foot.',
-    body: rows('!|dt$', ['Date', 'What', 'Amount', 'Category'], ['2027-03-01', 'Coffee with a client', '14.50', 'Meals'], ['2027-03-02', 'Train to the city', '38', 'Travel'], ['2027-03-03', 'Notebook', '6.25', 'Supplies'], ['Total', '', '=SUM(C2:C4)']),
+    body: sheet('', ['Date:date', 'What', 'Amount:money', 'Category'], ['2027-03-01', 'Coffee with a client', '14.50', 'Meals'], ['2027-03-02', 'Train to the city', '38', 'Travel'], ['2027-03-03', 'Notebook', '6.25', 'Supplies'], ['Total', '', '=SUM(C1:C3)']),
   },
   {
     id: 'invoice',
     name: 'Invoice table',
     blurb: 'Items by quantity and price, the subtotal, tax, and the total.',
-    body: rows('!|tn$$', ['Item', 'Qty', 'Price', 'Amount'], ['Design', '12', '150', '=B2*C2'], ['Build', '20', '140', '=B3*C3'], ['Hosting, a year', '1', '120', '=B4*C4'], ['Subtotal', '', '', '=SUM(D2:D4)'], ['Tax 8%', '', '', '=ROUND(D5*0.08,2)'], ['Total', '', '', '=D5+D6']),
+    body: sheet('', ['Item', 'Qty:number', 'Price:money', 'Amount:money'], ['Design', '12', '150', '=B1*C1'], ['Build', '20', '140', '=B2*C2'], ['Hosting, a year', '1', '120', '=B3*C3'], ['Subtotal', '', '', '=SUM(D1:D3)'], ['Tax 8%', '', '', '=ROUND(D4*0.08,2)'], ['Total', '', '', '=D4+D5']),
   },
   {
     id: 'tracker',
     name: 'Project tracker',
     blurb: 'Tasks with owners, start and due dates counted from today, days each, and a tick when done.',
-    body: rows('!|ttddnc', ['Task', 'Owner', 'Start', 'Due', 'Days', 'Done'], ['Brief', 'Ana', '=TODAY()', '=C2+4', '=D2-C2+1', 'x'], ['Design', 'Ben', '=D2+1', '=C3+13', '=D3-C3+1'], ['Build', 'Cy', '=D3+1', '=C4+27', '=D4-C4+1'], ['Launch', 'Ana', '=D4+1', '=C5', '=D5-C5+1']),
+    body: sheet('', ['Task', 'Owner', 'Start:date', 'Due:date', 'Days:number', 'Done:check'], ['Brief', 'Ana', '=TODAY()', '=C1+4', '=D1-C1+1', 'x'], ['Design', 'Ben', '=D1+1', '=C2+13', '=D2-C2+1'], ['Build', 'Cy', '=D2+1', '=C3+27', '=D3-C3+1'], ['Launch', 'Ana', '=D3+1', '=C4', '=D4-C4+1']),
   },
   {
     id: 'compare',
     name: 'Comparison, with a chart',
     blurb: 'Options scored against three things, drawn as a bar chart.',
-    body: rows('!bar|tnnn', ['Option', 'Price', 'Speed', 'Support'], ['Alpha', '3', '4', '5'], ['Beta', '4', '3', '3'], ['Gamma', '2', '5', '4']),
+    body: sheet('bar', ['Option', 'Price:number', 'Speed:number', 'Support:number'], ['Alpha', '3', '4', '5'], ['Beta', '4', '3', '3'], ['Gamma', '2', '5', '4']),
   },
   {
     id: 'loan',
     name: 'Loans compared',
     blurb: 'Amount, rate and years for each loan; the monthly payment (PMT), what it costs in all, and the interest.',
-    body: rows('!|$%n$$$', ['Loan', 'Rate', 'Years', 'Monthly', 'Total paid', 'Interest'], ['20000', '6.5%', '5', '=PMT(B2/12,C2*12,-A2)', '=D2*C2*12', '=E2-A2'], ['15000', '7.9%', '3', '=PMT(B3/12,C3*12,-A3)', '=D3*C3*12', '=E3-A3'], ['30000', '5.5%', '7', '=PMT(B4/12,C4*12,-A4)', '=D4*C4*12', '=E4-A4']),
+    body: sheet('', ['Loan:money', 'Rate:percent', 'Years:number', 'Monthly:money', 'Total paid:money', 'Interest:money'], ['20000', '6.5%', '5', '=PMT(B1/12,C1*12,-A1)', '=D1*C1*12', '=E1-A1'], ['15000', '7.9%', '3', '=PMT(B2/12,C2*12,-A2)', '=D2*C2*12', '=E2-A2'], ['30000', '5.5%', '7', '=PMT(B3/12,C3*12,-A3)', '=D3*C3*12', '=E3-A3']),
   },
   {
     id: 'months',
     name: 'Month by month, with a chart',
     blurb: 'This year against last, a line a month, drawn as lines.',
-    body: rows('!line|t$$', ['Month', 'This year', 'Last year'], ['Jan', '1200', '980'], ['Feb', '1350', '1010'], ['Mar', '1100', '1200'], ['Apr', '1600', '1150'], ['May', '1750', '1300'], ['Jun', '1900', '1420']),
+    body: sheet('line', ['Month', 'This year:money', 'Last year:money'], ['Jan', '1200', '980'], ['Feb', '1350', '1010'], ['Mar', '1100', '1200'], ['Apr', '1600', '1150'], ['May', '1750', '1300'], ['Jun', '1900', '1420']),
   },
 ];
 

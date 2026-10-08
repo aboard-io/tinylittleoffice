@@ -171,17 +171,21 @@ message, a QR code and so on; the numbers are in `src/lib/limits.ts`.
 
 Every format is plain text, chosen so deflate has something to chew on.
 
-- **Sheet**: rows separated by newlines, cells by tabs, trailing blanks trimmed.
+- **Sheet**: one Markdown table. Its header row names the columns, each
+  with its type after a colon (`Price:money`; `text`, `number`, `money`,
+  `percent`, `date`, `url`, `check`, `rich`), and its rows are rows 1, 2, 3,
+  so `A1` is the first row under the names. `chart: bar` (`line`, `pie`) in
+  the header asks for a chart: the first column is its labels, each other
+  column of numbers a series named by its column.
   Formulas start with `=` and support `+ - * / ^ %`, parentheses, cell
   references (`B7`), ranges (`A1:C3`), comparisons (`= <> < > <= >=`) and
   `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN
   INT ABS SQRT MOD NPV IRR PMT FV PV`. Errors show as `#DIV/0`, `#REF`,
-  `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. A first line `!bar`, `!line` or
-  `!pie` asks for a chart of the table, and after a `|` come the columns'
-  types, a letter each (`!bar|td$`): text, number, money `$`, percent `%`,
-  date, link `u`, checkbox, rich text. Dates are day counts, so they add and
-  subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on
-  them.
+  `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. Dates are day counts, so they
+  add and subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`
+  work on them. A CSV, or a table without types, reads as a sheet too.
+- **Pixel art**: one paragraph, a line per row, a letter per square (`.`
+  empty, `a` to `h` the colours).
 - **Write**: one block per line. Prefixes `# ` and `## ` for headings, `- ` and
   `+ ` for bulleted and numbered items; repeat the marker to nest (`-- `,
   `--- `). Inline toggles `*bold*`, `_italic_`, `^underline^`, `~strike~`,
@@ -291,7 +295,7 @@ about the password ever leaves the browser.
 A document can be written as ordinary parameters, by hand or by a program:
 
 ```
-https://tinylittleoffice.com/sheet/#title=Sales&doc=!bar%0AQuarter%09Sales%0AQ1%09120%0AQ2%09180
+https://tinylittleoffice.com/sheet/#title=Sales&doc=---%0Achart:%20bar%0A---%0AQuarter%20%7C%20Sales%0A---%20%7C%20---%0AQ1%20%7C%20120%0AQ2%20%7C%20180
 ```
 
 `doc` is the document as plain text in the app's format, `title` its name,

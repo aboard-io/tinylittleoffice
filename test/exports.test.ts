@@ -33,7 +33,7 @@ test('file names come from the document title', () => {
 
 test('every app draws itself, and is a web page with preview tags', () => {
   const samples: Record<string, string> = {
-    sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
+    sheet: '---\nchart: bar\n---\nItem | Cost\n--- | ---\nRent | 1200\nFood | 600',
     outline: 'Launch\n  <Product>\n    Pricing',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
@@ -72,7 +72,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
   }
   // Real HTML where the app has it: a table, a checklist, nested lists.
   const html = (id: string) => docHtml({ def: appOf(id)!, body: samples[id] }, { created: null });
-  assert.ok(html('sheet').includes('<td class="n">1200</td>') && html('sheet').includes('role="img" aria-label="Chart"'));
+  assert.ok(html('sheet').includes('<td class="n">1200</td>') && html('sheet').includes('<th scope="col">Cost</th>') && html('sheet').includes('role="img" aria-label="Chart"'));
   assert.ok(html('todo').includes('<input type="checkbox" disabled checked> <strong>two</strong>'));
   assert.ok(html('write').replace(/\n/g, '').includes('<ul><li>one<ul><li>nested</li></ul></li></ul><ol><li>first</li></ol>'));
   assert.ok(html('trip').includes('<strong>Lisbon</strong>'));
@@ -82,7 +82,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
   // Things that build: a drawing by shape, a table by row.
   assert.equal(appOf('draw')!.steps!(samples.draw), 2);
   assert.ok(!appOf('draw')!.view(samples.draw, { step: 1 })[0].svg.includes('marker-end'));
-  assert.equal(appOf('sheet')!.steps!('a\nb\nc'), 3);
+  assert.equal(appOf('sheet')!.steps!('ColA | ColB\n--- | ---\na |\nb |\nc |'), 3);
 });
 
 test('pdf: one page per picture', () => {
@@ -100,20 +100,26 @@ test('pdf: one page per picture', () => {
   for (const [, off, n] of [...text.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map((m, i) => [m[0], m[1], i + 1] as const)) assert.ok(text.slice(Number(off)).startsWith(`${n} 0 obj`), `object ${n}`);
 });
 
-test('sheet to csv: computed values, quoting, used range only', () => {
-  assert.equal(sheetToCsv('10\tTotal, "net"\n32\n=SUM(A1:A2)*2'), '10,"Total, ""net"""\r\n32,\r\n84,\r\n');
+test('sheet to csv: the names over the columns, computed values, quoting, used range only', () => {
+  assert.equal(sheetToCsv('ColA | ColB\n--- | ---\n10 | Total, "net"\n32 |\n=SUM(A1:A2)*2 |'), '10,"Total, ""net"""\r\n32,\r\n84,\r\n');
+  assert.equal(sheetToCsv('N | Cost:money | ColC\n--- | --- | ---\n1 | 2 |'), 'N,Cost\r\n1,$2.00\r\n');
   assert.equal(sheetToCsv(''), '');
 });
 
 test('sheet to xlsx: formulas survive in Excel dialect', () => {
   assert.equal(toExcelFormula('=round(avg(A1:A3),1)'), 'ROUND(AVERAGE(A1:A3),1)');
-  const files = unzipSync(sheetToXlsx('10\tA & <B>\n32\n=AVG(A1:A2)\t=A1/0', ctx));
+  const files = unzipSync(sheetToXlsx('ColA | ColB\n--- | ---\n10 | A & <B>\n32 |\n=AVG(A1:A2) | =A1/0', ctx));
   assert.equal(Object.keys(files)[0], '[Content_Types].xml');
   const sheet = strFromU8(files['xl/worksheets/sheet1.xml']);
   assert.match(sheet, /<c r="A1"><v>10<\/v><\/c>/);
   assert.match(sheet, /<c r="B1" t="inlineStr"><is><t xml:space="preserve">A &amp; &lt;B&gt;<\/t><\/is><\/c>/);
   assert.match(sheet, /<c r="A3"><f>AVERAGE\(A1:A2\)<\/f><v>21<\/v><\/c>/);
   assert.match(sheet, /<c r="B3" t="str"><f>A1\/0<\/f><v>#DIV\/0<\/v><\/c>/);
+  // Named columns take Excel's first row, and every row and reference moves down one to make room.
+  const named = strFromU8(unzipSync(sheetToXlsx('Item | Cost:money\n--- | ---\nRent | 1200\nTotal | =SUM(B1:B1)', ctx))['xl/worksheets/sheet1.xml']);
+  assert.match(named, /<row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">Item<\/t><\/is><\/c><c r="B1" t="inlineStr"><is><t xml:space="preserve">Cost<\/t>/);
+  assert.match(named, /<c r="B2" s="2"><v>1200<\/v><\/c>/);
+  assert.match(named, /<c r="B3" s="2"><f>SUM\(B2:B2\)<\/f><v>1200<\/v><\/c>/);
 });
 
 test('write to rtf and html', () => {

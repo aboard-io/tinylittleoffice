@@ -3,7 +3,7 @@ import { test, expect } from 'vitest';
 import { open, reopen, idle, until, link, body, $, $$, text, fill, key, button, press, menu, write, box, cell, toast, downloads, bytes } from './helpers-shell.ts';
 import { encodeEnvelope } from '../../src/lib/envelope.ts';
 import { parseTodos } from '../../src/lib/todomodel.ts';
-import { parseGrid } from '../../src/lib/formula.ts';
+import { namesOf, parseGrid } from '../../src/lib/formula.ts';
 // The rest of the shell's tests, by area. They are one file to vitest so the shell and every editor are loaded,
 // and warmed, once rather than once a file.
 import './shell-privacy.ts';
@@ -184,12 +184,14 @@ test('Markdown and CSV come in as well as out', async () => {
   expect($$('.deck-rail .deck-thumb')).toHaveLength(3);
   await open('#/v0/sheet');
   await importing('| Item | Cost |\n|---|---|\n| Rent | 1200 |');
-  expect(cell('A1').value).toBe('Item');
-  expect(cell('B2').value).toBe('1200');
+  // The table's header row names the columns; its rows start at row 1.
+  expect(namesOf(body()).slice(0, 2)).toEqual(['Item', 'Cost']);
+  expect(cell('A1').value).toBe('Rent');
+  expect(cell('B1').value).toBe('1200');
   // CSV is a table too (and an import replaces what was there).
   await importing('Item,Cost\nRent,"1,200"\nFood,600');
-  expect(parseGrid(body()).slice(0, 3).map((r) => r.slice(0, 2))).toEqual([['Item', 'Cost'], ['Rent', '1,200'], ['Food', '600']]);
-  expect(cell('A3').value).toBe('Food');
+  expect(parseGrid(body()).slice(0, 2).map((r) => r.slice(0, 2))).toEqual([['Rent', '1,200'], ['Food', '600']]);
+  expect(cell('A2').value).toBe('Food');
 });
 
 test('download views: the link itself hands over a file', async () => {

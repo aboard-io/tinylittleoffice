@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateGrid, parseGrid, serializeGrid, refToRC, rcToRef, parseLiteral, formatValue } from '../src/lib/formula.ts';
+import { evaluateGrid, parseGrid, pasteCells, serializeGrid, refToRC, rcToRef, parseLiteral, formatValue } from '../src/lib/formula.ts';
 import { parseDoc, serializeDoc, docText, type Block } from '../src/lib/richtext.ts';
 import { encodeDoc, decodeDoc } from '../src/lib/codec.ts';
 import { partsToUtc, utcToParts, offsetMinutes, allZones, localZone } from '../src/lib/tz.ts';
@@ -8,7 +8,7 @@ import { parseDeck, serializeDeck, MAX_SLIDES } from '../src/lib/deckmodel.ts';
 import { parseDrawing, serializeDrawing } from '../src/lib/drawmodel.ts';
 import { parseCalendar, serializeCalendar, spanEndMs } from '../src/lib/calmodel.ts';
 
-const grid = (rows: string[][]) => parseGrid(rows.map((r) => r.join('\t')).join('\n'));
+const grid = (rows: string[][]) => pasteCells(parseGrid(''), 0, 0, rows.map((r) => r.join('\t')).join('\n')).grid;
 
 test('formula: whitespace, nesting, reversed ranges, percent of refs', () => {
   const v = evaluateGrid(grid([['4', '=  A1  +  ( 2 * 3 ) ', '=SUM(A3:A1)'], ['2', '=ROUND(SQRT(ABS(-A1)) * 10, 0)', '=A1%'], ['1', '=MAX(A1:A3, 10, B1)', '=MIN()']]));
@@ -62,11 +62,12 @@ test('formula: refs and literals', () => {
 });
 
 test('formula: serialize is stable under re-parse and keeps inner blanks', () => {
-  const text = 'a\t\tc\n\n\t\tz';
+  const text = 'ColA | ColB | ColC\n--- | --- | ---\na |  | c\n|  |  | \n|  |  | z';
   assert.equal(serializeGrid(parseGrid(text)), text);
   const full = parseGrid('');
   full[19][2] = 'end';
-  assert.equal(serializeGrid(full).split('\n').length, 20);
+  // The names, the line under them, and twenty rows.
+  assert.equal(serializeGrid(full).split('\n').length, 22);
 });
 
 test('richtext: nested and interleaved formatting', () => {

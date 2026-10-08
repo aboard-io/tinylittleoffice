@@ -1,6 +1,6 @@
 /**
  * <to-sheet>: a spreadsheet with formulas, and a chart of it if you ask.
- * Document format: rows separated by "\n", cells by "\t", trailing blanks trimmed.
+ * Document format: one table, its header row the columns' names and types (lib/formula.ts).
  *
  * Drag across cells (or hold Shift) to select a block: it can be copied,
  * cut, pasted, cleared, or carried on with the handle at its corner.
@@ -11,10 +11,10 @@
  * to its longest value, and header edges can be dragged.
  */
 import { LitElement, defineElement, html, property, state, unsafeSVG, tool, icon, UI, keyLabel, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
-import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, namesOf, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, type Grid, type CellValue, type Range } from '../lib/formula.ts';
+import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, namesOf, parseGrid, readSheet, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, type Grid, type CellValue, type Range } from '../lib/formula.ts';
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet } from './sheet.def.ts';
-import { linkify, parseDoc } from '../lib/richtext.ts';
+import { linkify, parseInline } from '../lib/richtext.ts';
 import { templateLine, templateTool } from '../widgets/template-picker.ts';
 
 const MIN_COL = 48;
@@ -66,10 +66,7 @@ export class ToSheet extends LitElement {
 
   willUpdate(changed: PropertyValues) {
     if (changed.has('value') && this.value !== this.lastEmitted) {
-      this.grid = parseGrid(this.value);
-      this.chart = chartOf(this.value);
-      this.types = typesOf(this.value);
-      this.names = namesOf(this.value);
+      ({ grid: this.grid, chart: this.chart, types: this.types, names: this.names } = readSheet(this.value));
       this.lastEmitted = this.value;
     }
     if (changed.has('grid') || changed.has('types') || changed.has('value')) this.computed = evaluateGrid(this.grid, this.types);
@@ -90,9 +87,10 @@ export class ToSheet extends LitElement {
     this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
   }
 
-  /** A template becomes the sheet, chart and column types included: one change, one undo. */
+  /** A template becomes the sheet, chart and columns included: one change, one undo. */
   private useTemplate = (t: { body: string }) => {
-    this.save(parseGrid(t.body), chartOf(t.body), typesOf(t.body));
+    const s = readSheet(t.body);
+    this.save(s.grid, s.chart, s.types, s.names);
     this.focusCell(0, 0);
   };
 
@@ -273,9 +271,9 @@ export class ToSheet extends LitElement {
     </sl-dropdown>`;
   }
 
-  /** A cell of rich text, drawn: *bold* and _italic_ shown as such, addresses as links. */
+  /** A cell of rich text, drawn: **bold** and *italic* shown as such, addresses as links. */
   private rich(raw: string) {
-    return parseDoc(raw.replace(/^(#+ |[-+]+ |@@)/, '\\$1'))[0].runs.map((run) => {
+    return parseInline(raw).map((run) => {
       const inner = (run.href ? [{ t: run.t, url: run.href }] : linkify(run.t)).map((p) => (p.url ? html`<a href=${p.url} target="_blank" rel="noopener">${p.t}</a>` : p.t));
       return html`<span class="${run.b ? 'b' : ''} ${run.i ? 'i' : ''} ${run.u ? 'u' : ''} ${run.s ? 's' : ''}">${inner}</span>`;
     });
@@ -482,7 +480,7 @@ export class ToSheet extends LitElement {
       this.end = [Math.max(0, Math.min(ROWS - 1, fr + arrow[e.key][0])), Math.max(0, Math.min(COLS - 1, fc + arrow[e.key][1]))];
       return;
     }
-    if (e.key === ' ' && this.types[c] === 'c' && !this.grid[r][c].startsWith('=')) {
+    if (e.key === ' ' && this.types[c] === 'check' && !this.grid[r][c].startsWith('=')) {
       // In a checkbox column the space bar ticks and unticks.
       e.preventDefault();
       this.setCell(r, c, this.computed[r][c] ? '' : 'x');
@@ -599,9 +597,9 @@ export class ToSheet extends LitElement {
                   const v = this.computed[r][c];
                   const type = this.types[c];
                   const shown = isSel ? raw : formatCell(v, type);
-                  const link = type === 'u' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
-                  const rich = type === 'r' && !isSel && raw !== '' && !raw.startsWith('=');
-                  const cls = (typeof v === 'number' && type !== 'c' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'c' ? ' tick' : '');
+                  const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
+                  const rich = type === 'rich' && !isSel && raw !== '' && !raw.startsWith('=');
+                  const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'check' ? ' tick' : '');
                   const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
                   const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
                   return html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>
@@ -611,7 +609,7 @@ export class ToSheet extends LitElement {
                       aria-label=${rcToRef(r, c)}
                       .value=${shown}
                       data-tip=${raw.startsWith('=') ? raw : ''}
-                      placeholder=${isSel && type === 'd' ? 'YYYY-MM-DD' : ''}
+                      placeholder=${isSel && type === 'date' ? 'YYYY-MM-DD' : ''}
                       autocomplete="off"
                       @focus=${() => {
                         if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;

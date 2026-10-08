@@ -1,21 +1,21 @@
 /**
- * A small spreadsheet engine: 6 columns (A-F) by 30 rows.
+ * A small spreadsheet engine: 6 columns (A-F) by 1,000 rows.
  * Supports + - * / ^ %, comparisons (= <> < > <= >=, giving 1 or 0),
  * parentheses, unary minus, cell refs (A1), ranges (A1:A5) and the functions
  * in FUNCTIONS below: enough for a small business model.
  *
- * Document format: rows separated by "\n", cells by "\t", trailing blanks
- * trimmed. An optional first line "!<chart>|<types>" carries the settings:
- * a chart of the table ("bar", "line", "pie" or nothing) and, after a bar,
- * one character per column for what the column holds (see COLUMN_TYPES;
- * "t", plain text, is the default and trailing ones are left off). A bare
- * "!" is written when the first row would otherwise look like settings.
+ * Document format (TLO, lib/tlo.ts): one table. Its header row names the
+ * columns, each with what it holds ("Price:money"; see COLUMN_TYPES), and
+ * its rows are rows 1, 2, 3 and so on, so A1 is the first row under the
+ * names. The chart of the table, if any, is "chart: bar" (line, pie) in the
+ * document's header.
  *
  * Dates are numbers: days counted the way spreadsheets count them (1900
  * system), so a date minus a date is a number of days and a date plus 30 is
  * the date a month on. A date column shows such numbers as dates.
  */
 import { dayToYmd, ymdString, ymdToDay } from './tz.ts';
+import { column, columnText, parse as parseTlo, write as writeTlo, type Block, type ColType } from './tlo.ts';
 export const COLS = 6;
 export const ROWS = 1000;
 export const COL_NAMES = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
@@ -57,15 +57,15 @@ export const FUNCTIONS: [string, string, string][] = [
 ];
 
 /** What a column holds: how its cells are read when typed, and shown. */
-export const COLUMN_TYPES: { id: string; name: string; hint: string }[] = [
-  { id: 't', name: 'Text', hint: 'Shown as typed' },
-  { id: 'n', name: 'Number', hint: '1,234.5' },
-  { id: '$', name: 'Money', hint: '$1,234.50' },
-  { id: '%', name: 'Percent', hint: '12.5%' },
-  { id: 'd', name: 'Date', hint: '2027-03-01' },
-  { id: 'u', name: 'Link', hint: 'Opens when clicked' },
-  { id: 'c', name: 'Checkbox', hint: '☑ or ☐' },
-  { id: 'r', name: 'Rich text', hint: '*bold* and _italic_' },
+export const COLUMN_TYPES: { id: ColType; name: string; hint: string }[] = [
+  { id: 'text', name: 'Text', hint: 'Shown as typed' },
+  { id: 'number', name: 'Number', hint: '1,234.5' },
+  { id: 'money', name: 'Money', hint: '$1,234.50' },
+  { id: 'percent', name: 'Percent', hint: '12.5%' },
+  { id: 'date', name: 'Date', hint: '2027-03-01' },
+  { id: 'url', name: 'Link', hint: 'Opens when clicked' },
+  { id: 'check', name: 'Checkbox', hint: '☑ or ☐' },
+  { id: 'rich', name: 'Rich text', hint: '**bold** and *italic*' },
 ];
 
 const DAY_MS = 86400000;
@@ -270,11 +270,11 @@ function rangeCells(a: string, b: string): [number, number][] {
 }
 
 /** Parse a raw cell string into its displayed/computed value. */
-export function parseLiteral(raw: string, type = 't'): CellValue {
+export function parseLiteral(raw: string, type = 'text'): CellValue {
   const s = raw.trim();
   if (s === '') return null;
-  if (type === 'c') return /^(x|y|yes|true|1|done|☑|✓|✔)$/i.test(s) ? 1 : 0;
-  if (type === 'd') {
+  if (type === 'check') return /^(x|y|yes|true|1|done|☑|✓|✔)$/i.test(s) ? 1 : 0;
+  if (type === 'date') {
     // A date as written: 2027-03-01, or 3/1/2027, or "today".
     const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
     if (iso) return dateToSerial(+iso[1], +iso[2], +iso[3]);
@@ -285,8 +285,8 @@ export function parseLiteral(raw: string, type = 't'): CellValue {
   // Money and percentages may be typed with their signs and commas.
   const plain = s.replace(/^([+-]?)\$/, '$1').replace(/(\d),(?=\d{3})/g, '$1');
   const pct = /^([+-]?(?:\d+\.?\d*|\.\d+))%$/.exec(plain);
-  if (pct && type !== 't') return parseFloat(pct[1]) / 100;
-  if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(plain) && (plain === s || type === '$' || type === 'n' || type === '%')) return type === '%' ? parseFloat(plain) / 100 : parseFloat(plain);
+  if (pct && type !== 'text') return parseFloat(pct[1]) / 100;
+  if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(plain) && (plain === s || type === 'money' || type === 'number' || type === 'percent')) return type === 'percent' ? parseFloat(plain) / 100 : parseFloat(plain);
   return raw;
 }
 
@@ -547,26 +547,6 @@ export function formatValue(v: CellValue): string {
   return v;
 }
 
-/** The settings line: "!chart|types|names", the names tab-separated (a cell can hold no tab), each part optional. */
-const DIRECTIVE = /^!([a-z]*)(?:\|([a-z$%]*))?(?:\|(.*))?$/;
-
-/** The chart a sheet asks for: 'bar', 'line', 'pie' or ''. */
-export function chartOf(text: string): string {
-  return DIRECTIVE.exec(text.split('\n', 1)[0])?.[1] ?? '';
-}
-
-/** What each column holds: one of COLUMN_TYPES' ids per column, 't' where nothing was said. */
-export function typesOf(text: string): string[] {
-  const set = DIRECTIVE.exec(text.split('\n', 1)[0])?.[2] ?? '';
-  return Array.from({ length: COLS }, (_, c) => (COLUMN_TYPES.some((t) => t.id === set[c]) ? set[c] : 't'));
-}
-
-/** The names given to the columns ('' where none was given). */
-export function namesOf(text: string): string[] {
-  const set = (DIRECTIVE.exec(text.split('\n', 1)[0])?.[3] ?? '').split('\t');
-  return Array.from({ length: COLS }, (_, c) => (set[c] ?? '').trim());
-}
-
 /**
  * A column's name as shown: the one given it, or else what it holds
  * ("Date", "Money"; "Date B" when an earlier column already goes by that),
@@ -577,49 +557,94 @@ export function columnName(c: number, types: string[], names: string[] = []): st
   return defaultColumnName(c, types);
 }
 export function defaultColumnName(c: number, types: string[]): string {
-  const type = types[c] ?? 't';
-  if (type === 't') return `Col${COL_NAMES[c]}`;
+  const type = types[c] ?? 'text';
+  if (type === 'text') return `Col${COL_NAMES[c]}`;
   const name = COLUMN_TYPES.find((t) => t.id === type)!.name;
   return types.slice(0, c).includes(type) ? `${name} ${COL_NAMES[c]}` : name;
 }
 
 /** A value as its column shows it. */
-export function formatCell(v: CellValue, type = 't'): string {
-  if (typeof v !== 'number' || !isFinite(v)) return type === 'c' && v === null ? '' : formatValue(v);
+export function formatCell(v: CellValue, type = 'text'): string {
+  if (typeof v !== 'number' || !isFinite(v)) return type === 'check' && v === null ? '' : formatValue(v);
   const tidy = (n: number, digits: number) => n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: Math.max(digits, 6) });
-  if (type === 'd') return serialToIso(v);
-  if (type === '$') return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (type === '%') return tidy(Math.round(v * 1e8) / 1e6, 0) + '%';
-  if (type === 'n') return Math.abs(v) >= 1e15 ? formatValue(v) : tidy(Math.round(v * 1e8) / 1e8, 0);
-  if (type === 'c') return v ? '☑' : '☐';
+  if (type === 'date') return serialToIso(v);
+  if (type === 'money') return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (type === 'percent') return tidy(Math.round(v * 1e8) / 1e6, 0) + '%';
+  if (type === 'number') return Math.abs(v) >= 1e15 ? formatValue(v) : tidy(Math.round(v * 1e8) / 1e8, 0);
+  if (type === 'check') return v ? '☑' : '☐';
   return formatValue(v);
 }
 
-/** Serialize a grid as tab/newline separated text with trailing blanks trimmed. */
-export function serializeGrid(grid: Grid, chart = '', types: string[] = [], names: string[] = []): string {
-  const rows = grid.map((row) => {
-    const cells = row.slice();
-    while (cells.length && cells[cells.length - 1] === '') cells.pop();
-    return cells.join('\t');
-  });
-  while (rows.length && rows[rows.length - 1] === '') rows.pop();
-  const set = types.join('').replace(/t+$/, '');
-  const named = names.map((n) => n.replace(/[\t\n]/g, ' ').trim()).join('\t').replace(/\t+$/, '');
-  if (chart || set || named || (rows.length && DIRECTIVE.test(rows[0]))) rows.unshift('!' + chart + (set || named ? '|' + set : '') + (named ? '|' + named : ''));
-  return rows.join('\n');
+/* ---------- the document ---------- */
+
+/** A sheet as its document holds it: the cells, the chart asked for, and each column's type and name. */
+export interface Sheet {
+  grid: Grid;
+  /** 'bar', 'line', 'pie' or ''. */
+  chart: string;
+  /** One of COLUMN_TYPES' ids per column. */
+  types: string[];
+  /** The names given to the columns: '' where a column goes by its default (see defaultColumnName). */
+  names: string[];
 }
 
-export function parseGrid(text: string): Grid {
-  const grid: Grid = [];
-  const lines = text ? text.split('\n') : [];
-  if (lines.length && DIRECTIVE.test(lines[0])) lines.shift();
-  for (let r = 0; r < ROWS; r++) {
-    const cells = (lines[r] ?? '').split('\t');
-    const row: string[] = [];
-    for (let c = 0; c < COLS; c++) row.push(cells[c] ?? '');
-    grid.push(row);
+type Table = Extract<Block, { k: 'table' }>;
+const CHARTS = ['bar', 'line', 'pie'];
+const blankGrid = (): Grid => Array.from({ length: ROWS }, () => Array<string>(COLS).fill(''));
+
+/** A table as a sheet: its header row the names and types, its rows the cells. Columns past F and rows past the last are left out. */
+export function tableSheet(table: Table | undefined, chart = ''): Sheet {
+  const grid = blankGrid();
+  const types = Array<string>(COLS).fill('text');
+  const names = Array<string>(COLS).fill('');
+  if (table) {
+    table.head.slice(0, COLS).forEach((h, c) => {
+      const col = column(h);
+      types[c] = COLUMN_TYPES.some((t) => t.id === col.type) ? col.type : 'text';
+      names[c] = col.name;
+    });
+    // A name that is only the default ("ColA", "Date") is no name: it follows the column's type.
+    names.forEach((n, c) => n === defaultColumnName(c, types) && (names[c] = ''));
+    table.rows.slice(0, ROWS).forEach((row, r) => row.slice(0, COLS).forEach((v, c) => (grid[r][c] = v)));
   }
-  return grid;
+  return { grid, chart: CHARTS.includes(chart) ? chart : '', types, names };
+}
+
+/** A sheet's document read: the first table in it, and the chart in its header. */
+export function readSheet(text: string): Sheet {
+  const doc = parseTlo(text);
+  return tableSheet(doc.blocks.find((b): b is Table => b.k === 'table'), (doc.head.chart ?? '').toLowerCase());
+}
+
+export const parseGrid = (text: string): Grid => readSheet(text).grid;
+/** The chart a sheet asks for: 'bar', 'line', 'pie' or ''. */
+export const chartOf = (text: string): string => readSheet(text).chart;
+/** What each column holds: one of COLUMN_TYPES' ids per column, 'text' where nothing was said. */
+export const typesOf = (text: string): string[] => readSheet(text).types;
+/** The names given to the columns ('' where none was given). */
+export const namesOf = (text: string): string[] => readSheet(text).names;
+
+/**
+ * A sheet as its document: the used rows under a header row of every used
+ * column's name and type. At least two columns are written, so the table
+ * reads as one (a lone column has no "|" to tell it from words).
+ */
+export function serializeGrid(grid: Grid, chart = '', types: string[] = [], names: string[] = []): string {
+  let rows = 0;
+  let cols = 0;
+  grid.forEach((row, r) =>
+    row.forEach((v, c) => {
+      if (v === '') return;
+      rows = Math.max(rows, r + 1);
+      cols = Math.max(cols, c + 1);
+    }),
+  );
+  for (let c = 0; c < COLS; c++) if (names[c]?.trim() || (types[c] && types[c] !== 'text')) cols = Math.max(cols, c + 1);
+  const across = cols ? Math.max(2, cols) : 0;
+  const blocks: Block[] = across
+    ? [{ k: 'table', head: Array.from({ length: across }, (_, c) => columnText(columnName(c, types, names), (types[c] ?? 'text') as ColType)), rows: grid.slice(0, rows).map((row) => Array.from({ length: across }, (_, c) => row[c] ?? '')) }]
+    : [];
+  return writeTlo({ head: chart ? { chart } : {}, blocks }).trimEnd();
 }
 
 /* ---------- blocks of cells: copy, paste, clear, fill ---------- */
@@ -682,17 +707,15 @@ export function pasteCells(grid: Grid, r: number, c: number, text: string, moved
  * step carry on counting; anything else repeats.
  */
 /**
- * The rows in order of column `c`, numbers before words, blanks last; the
- * first row stays where it is when it reads as a heading (words over a
- * column of numbers). Formulas move with their rows as they are.
+ * The rows in order of column `c`, numbers before words, blanks last.
+ * (The names above the columns are not a row, so they stay where they are.)
+ * Formulas move with their rows as they are.
  */
 export function sortRows(grid: Grid, c: number, descending = false): Grid {
   const used = grid.reduce((n, row, r) => (row.some((v) => v !== '') ? r + 1 : n), 0);
   if (used < 2) return grid;
   const num = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)%?$/.test(s.trim()) ? parseFloat(s) : NaN);
-  // A first row of words over rows that hold numbers is a heading.
-  const head = grid[0].every((v) => isNaN(num(v))) && grid.slice(1, used).some((row) => row.some((v) => !isNaN(num(v)))) ? 1 : 0;
-  const rows = grid.slice(head, used);
+  const rows = grid.slice(0, used);
   const key = (row: string[]) => row[c] ?? '';
   const sorted = rows
     .map((row, i) => ({ row, i }))
@@ -704,7 +727,7 @@ export function sortRows(grid: Grid, c: number, descending = false): Grid {
       return (descending && x !== '' && y !== '' ? -d : d) || a.i - b.i;
     })
     .map(({ row }) => row);
-  return [...grid.slice(0, head), ...sorted, ...grid.slice(used)];
+  return [...sorted, ...grid.slice(used)];
 }
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

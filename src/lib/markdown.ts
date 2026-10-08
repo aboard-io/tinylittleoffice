@@ -9,7 +9,7 @@ import { appOf, type AppDef } from '../kit/core.ts';
 import { linkToRef, makeRef, resolve } from '../kit/embed.ts';
 import { linkable, linkTarget, parseDoc, parseInline, serializeDoc, serializeInline, type Block, type Run } from './richtext.ts';
 import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
-import { parseGrid, serializeGrid, chartOf, typesOf } from './formula.ts';
+import { write as writeTlo } from './tlo.ts';
 import { parseTodos, serializeTodos } from './todomodel.ts';
 import { parseBoard, serializeBoard } from './boardmodel.ts';
 import { parseGantt } from './ganttmodel.ts';
@@ -303,14 +303,10 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     }
     case 'deck':
       return slidesToMd(parseDeck(body), '');
-    case 'sheet': {
-      const grid = parseGrid(body).map((r) => r.slice());
-      while (grid.length && grid[grid.length - 1].every((v) => !v)) grid.pop();
-      if (!grid.length) return '';
-      const w = Math.max(1, ...grid.map((r) => r.reduce((n, v, i) => (v ? i + 1 : n), 0)));
-      const [head, ...rest] = grid.map((r) => Array.from({ length: w }, (_, i) => r[i] ?? ''));
-      return (name ? `# ${name}\n\n` : '') + tableMd(head, rest);
-    }
+    // A sheet and a picture in pixels are already Markdown: a table, and lines of letters.
+    case 'sheet':
+    case 'pixel':
+      return body.trim() ? body.trimEnd() + '\n' : '';
     case 'todo':
       return parseTodos(body).map((t) => `- [${t.done ? 'x' : ' '}] ${t.star ? '**' + t.text + '**' : t.text}${t.due !== null ? ` (due ${isoDay(t.due)})` : ''}`).join('\n') + '\n';
     case 'board':
@@ -339,8 +335,6 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     case 'draw':
       // The alt text goes first, quoted; then the labels.
       return (altOf(body) ? `> ${altOf(body)}\n\n` : '') + parseDrawing(body).filter((s) => s.text).map((s) => `- ${s.text}`).join('\n') + '\n';
-    case 'pixel':
-      return '```\n' + body + '\n```\n';
     case 'anim':
       return (parseAnim(body).alt ? `> ${parseAnim(body).alt}\n\n` : '') + parseAnim(body).shapes.filter((s) => s.text).map((s) => `- ${s.k === 'i' ? `:${s.text}:` : s.text}`).join('\n') + '\n';
     case 'qr':
@@ -392,13 +386,13 @@ export function looksLikeCsv(text: string): boolean {
   return n >= 2 && lines.every((l) => l.includes(sep));
 }
 
-/** CSV as a Markdown table, so it reads the way a table reads into any app. */
+/** CSV as a Markdown table, its first row the names over the columns: the table a sheet is, and the way a table reads into any app. */
 export function csvToMd(text: string): string {
   const rows = parseCsv(text.replace(/^﻿/, ''));
   if (!rows.length) return '';
   const w = Math.max(...rows.map((r) => r.length));
   const [head, ...rest] = rows.map((r) => Array.from({ length: w }, (_, i) => (r[i] ?? '').trim()));
-  return tableMd(head, rest);
+  return writeTlo({ head: {}, blocks: [{ k: 'table', head, rows: rest }] });
 }
 
 /** Markdown as the document, read forgivingly: what fits the kind of document is kept, the rest becomes words. */
@@ -459,11 +453,9 @@ export function fromMarkdown(def: AppDef, md: string): string {
       );
     case 'deck':
       return serializeDeck(mdToSlides(text));
-    case 'sheet': {
-      const rows = tableRows(text);
-      const grid = rows.length ? rows : text.split('\n').filter((l) => l.trim()).map((l) => l.split(/\t|,\s*/));
-      return serializeGrid(grid, chartOf(''), typesOf(''));
-    }
+    case 'sheet':
+      // As written, header and all: the sheet's chart is in it.
+      return def.read!(md);
     case 'todo':
       return serializeTodos(
         items(text).map((l) => {
@@ -506,7 +498,7 @@ export function fromMarkdown(def: AppDef, md: string): string {
       return withAlt(serializeDrawing(shapes), quoted(text));
     }
     case 'pixel':
-      return (/```\n?([\s\S]*?)```/.exec(text)?.[1] ?? text).trim();
+      return def.read!(text);
     case 'anim': {
       // Each line is a thing on the stage, one above the next, that drifts from left to right.
       const list = items(text.replace(QUOTE, ''));
