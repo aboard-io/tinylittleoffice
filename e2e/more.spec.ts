@@ -28,7 +28,7 @@ test('every example in the skill draws a picture; the guide is served', async ({
 
 // Stays: the embed code is read from the real clipboard and shown in a real frame on someone else's page (the code and the page it opens are in test/dom/links.test.ts).
 test('a document can be shown inside another page', async ({ page }) => {
-  await page.goto('/deck/#title=Launch+plan&doc=%3Arocket%3At%0ALaunch+plan%0ASpring%0A%0AGoals%0AShip+it');
+  await page.goto('/deck/#title=Launch+plan&doc=%23%23+%3Arocket%3A+Launch+plan+%7B.title%7D%0A%0A-+Spring%0A%0A---%0A%0A%23%23+Goals%0A%0A-+Ship+it%0A');
   await expect(page.locator('to-deck')).toBeVisible();
   await page.getByRole('button', { name: 'Share' }).click();
   await page.getByRole('menuitem', { name: 'Copy embed code' }).click();
@@ -163,7 +163,7 @@ test('page apps: a store with a cart, an invoice as a PDF', async ({ page }) => 
 // Stays: whether the words fit their page is the browser's layout, the PDF is drawn on a canvas, and the reading page turns by its own script (the rest is in test/dom/print.test.ts).
 test('zine: the words fit the page, the PDF is drawn, and the web page turns', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v0/zine/' + encodeEnvelope({ created: null, body: '::t\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.\n\nBread\nFresh bread' }));
+  await page.goto('/#/v0/zine/' + encodeEnvelope({ created: null, body: '## Small Joys {.title}\n\n- Issue one\n\n---\n\n## Coffee\n\nThe first cup.\n\n---\n\n## Bread\n\nFresh bread\n' }));
   await page.getByRole('button', { name: 'Page 2' }).click();
   await page.getByRole('textbox', { name: 'Words' }).fill('The first cup of the day, before anyone else is up. '.repeat(14));
   // (Measured at the page's own size: on a phone the rail draws it so small that the rounding of three-pixel type decides.)
@@ -302,8 +302,8 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
 // Stays: the map is Leaflet, laid out by the browser, and the tap lands by where it is.
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const trip = `trip/${encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra\n40000,0,Porto' })}`;
-  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `Trip\n@@${trip}\n\nAfter\ndone` }));
+  const trip = '```trip\n3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra\n40000,0,Porto\n```';
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `## Trip\n\n${trip}\n\n---\n\n## After\n\n- done\n` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show .deck-map');
   await expect(map).toBeVisible();
@@ -349,10 +349,10 @@ test('slides: bold and italic, from the keyboard and the toolbar', async ({ page
   for (let i = 0; i < 6; i++) await page.keyboard.press('Shift+ArrowRight');
   // (A headline is bold already; italic is the mark that shows.)
   await page.keyboard.press('Control+i');
-  await expect.poll(value).toMatch(/_Spring_ launch/);
+  await expect.poll(value).toMatch(/\*Spring\* launch/);
   // The slide itself (in the rail) shows the words, not the marks.
   await expect(page.locator('.deck-rail .deck-thumb svg').first()).toContainText('Spring launch');
-  await expect(page.locator('.deck-rail .deck-thumb svg').first()).not.toContainText('_');
+  await expect(page.locator('.deck-rail .deck-thumb svg').first()).not.toContainText('*');
   // Bullets: the toolbar marks what is selected.
   const bullets = page.getByRole('textbox', { name: 'Bullets' });
   await bullets.click();
@@ -362,11 +362,11 @@ test('slides: bold and italic, from the keyboard and the toolbar', async ({ page
   await page.keyboard.press('Home');
   for (let i = 0; i < 4; i++) await page.keyboard.press('Shift+ArrowRight');
   await page.getByRole('button', { name: 'Italic' }).click();
-  await expect.poll(value).toMatch(/Ship the beta\n_Tell_ everyone/);
+  await expect.poll(value).toMatch(/- Ship the beta\n- \*Tell\* everyone/);
   // Tab, from the real keyboard, steps the bullet in.
   await page.keyboard.press('End');
   await page.keyboard.press('Tab');
-  await expect.poll(value).toMatch(/\n  _Tell_ everyone/);
+  await expect.poll(value).toMatch(/\n  - \*Tell\* everyone/);
 });
 
 // Stays: highlight and alignment are the browser's own editing commands (the icon, and the marks read back, are in test/dom/deck-write.test.ts).

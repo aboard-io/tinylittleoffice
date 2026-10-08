@@ -25,7 +25,7 @@ test('every app is defined, and download names resolve', () => {
 });
 
 test('file names come from the document title', () => {
-  assert.equal(fileName(appOf('deck')!, ':rocket\nLaunch plan — Q3!\none', 'pptx'), 'launch-plan-q3.pptx');
+  assert.equal(fileName(appOf('deck')!, '## :rocket: Launch plan — Q3!\n\n- one', 'pptx'), 'launch-plan-q3.pptx');
   assert.equal(fileName(appOf('write')!, '# Café *memo*\nbody', 'rtf'), 'cafe-memo.rtf');
   assert.equal(fileName(appOf('deck')!, '', 'pptx'), 'deck.pptx');
   assert.equal(fileName(appOf('cal')!, 'd1,1,x', 'ics'), 'cal.ics');
@@ -36,7 +36,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
     sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
     outline: 'Launch\n  <Product>\n    Pricing',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
-    deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
+    deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
     draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
     cal: '@America/New_York\nd2,2,Offsite\ntgo,2i,Call',
     todo: '- one\nx!@1jk two',
@@ -44,15 +44,15 @@ test('every app draws itself, and is a web page with preview tags', () => {
     gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch\n>1jm,3,0,Review',
     trip: '!m\n3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
     anim: '!o\nt,4,20,20,4,04,Lift <off>\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
-    zine: ':star\nSmall <Joys>\nIssue one\n\nCoffee\nThe first cup.',
-    booklet: 'A <book>\nby me\n\nOne\nwords',
+    zine: '## :star: Small <Joys>\n\nIssue one\n\n---\n\n## Coffee\n\nThe first cup.\n',
+    booklet: '## A <book>\n\nby me\n\n---\n\n## One\n\nwords\n',
     calc: '2+<2>\n7*6',
-    poster: ':music\nOpen <mic> night\nFriday 12 March, 8pm',
-    badges: 'Ada <Lovelace>\nEngineering\n\nGrace Hopper\nCompilers',
-    recipes: ':cookie\nCardamom <buns>\n500g flour\n\nCold brew\n100g coffee',
-    brochure: 'Visit\n\nWhy\nbecause',
+    poster: '## :music: Open <mic> night\n\nFriday 12 March, 8pm\n',
+    badges: '## Ada <Lovelace>\n\nEngineering\n\n---\n\n## Grace Hopper\n\nCompilers\n',
+    recipes: '## :cookie: Cardamom <buns>\n\n500g flour\n\n1. Mix\n2. Bake\n\n---\n\n## Cold brew\n\n100g coffee\n',
+    brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     pixel: 'ab.c\n.<d',
-    comic: 'Biscuit <out>\n\n \n:dog Walk? | Monday',
+    comic: '## Biscuit <out>\n\n---\n\n- :dog: Walk? | Monday\n',
   };
   for (const def of apps()) {
     for (const body of [samples[def.id] ?? specOf(def.id)!.example, '']) {
@@ -134,7 +134,7 @@ test('write to rtf and html', () => {
 });
 
 test('deck to pptx: one slide part per slide, icons embedded when supplied', () => {
-  const body = ':rocket\nLaunch <plan>\nBuild it\n \nShip & tell\n\nSecond';
+  const body = '## :rocket: Launch <plan>\n\n- Build it\n-\n- Ship & tell\n\n---\n\n## Second\n';
   const png = new Uint8Array([137, 80, 78, 71]);
   const files = unzipSync(deckToPptx(body, { ...ctx, png: { 'icon-rocket': png } }));
   assert.equal(Object.keys(files)[0], '[Content_Types].xml');

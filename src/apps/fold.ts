@@ -9,8 +9,7 @@ import type { SlSelect } from '../kit.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import { PagesElement, blankPage } from './pages.ts';
-import { iconOf } from '../lib/drawmodel.ts';
-import { PAGE_LAYOUTS, foldPage, foldSheets, formatOf, isFitted, parseFold, serializeFold, type Folded, type Format } from '../lib/fold.ts';
+import { PAGE_LAYOUTS, panelOf, panelText, foldPage, foldSheets, formatOf, isFitted, parseFold, serializeFold, type Folded, type Format, type Panel } from '../lib/fold.ts';
 
 const isBlank = (p: Slide) => !p.icon && !p.title && !p.sub && p.bullets.every((b) => !b.trim());
 
@@ -40,18 +39,12 @@ export class FoldElement extends PagesElement<Folded> {
     return this.f.name(1, 3).replace(/ \d+$/, '').toLowerCase();
   }
 
-  /** A comic page's panels, each a line ":icon what is said | caption". */
+  /** A comic page's panels, each a bullet ":icon: what is said | caption". */
   private panelsOf(s: Slide) {
-    return s.bullets
-      .filter((b) => b.trim())
-      .map((b) => {
-        const [glyph, words] = iconOf(b);
-        const [said = '', caption = ''] = words.split('|').map((p) => p.trim());
-        return { glyph, said, caption };
-      });
+    return s.bullets.filter((b) => b.trim()).map(panelOf);
   }
-  private savePanels(rows: { glyph: string; said: string; caption: string }[]) {
-    this.patch({ bullets: rows.map((r) => `${r.glyph ? `:${r.glyph} ` : ''}${r.said.replace(/\|/g, '/')}${r.caption ? ` | ${r.caption.replace(/\|/g, '/')}` : ''}` || ' ') });
+  private savePanels(rows: Panel[]) {
+    this.patch({ bullets: rows.map(panelText) });
   }
 
   /** A comic's page on the canvas: the headline along the top, then the panels as they will print, each a bubble, a picture and a caption. */
@@ -87,7 +80,6 @@ export class FoldElement extends PagesElement<Folded> {
     const pic = (p: { w: number; h: number; svg: string }, label: string) => unsafeSVG(pageSvg(p, `role="img" aria-label="${label}"`));
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Pages" @keydown=${this.onPageKey}>
-        ${f.template && z.pages.every(isBlank) ? tool('Start from the template', 'sparkles', () => this.commit(parseFold(f.template!, f)), { text: true }) : nothing}
         <sl-button-group label="Pages">
           ${f.grow && by === 1
             ? html`${tool(`Another ${this.noun}`, 'plus', () => this.addPage(), { text: true, disabled: n >= f.grow })}

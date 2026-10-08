@@ -187,12 +187,15 @@ Every format is plain text, chosen so deflate has something to chew on.
   `--- `). Inline toggles `*bold*`, `_italic_`, `^underline^`, `~strike~`,
   with `\` as the escape character. `@@<app>/<payload>` is an embedded
   document.
-- **Deck**: slides separated by a blank line. In each slide an optional
-  `:icon-name` line, then the headline, then one bullet per line. A layout
-  may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
-  line `|` starts the right one), `:star:i` bullets beside a big icon. A line
-  `@@<app>/<payload>` shows another document on the slide. A first chunk
-  `!fade`, `!slide` or `!zoom` sets the deck's transition.
+- **Deck**: TLO (`docs/tlo.md`), a slide between each `---`. The headline is
+  `## :icon-name: Headline`, its layout an attribute: `{.title}`, `{.two}`
+  (a paragraph `|` starts the right column) or `{.icon}`. The words are `- `
+  bullets, nested by two spaces; `> ` lines are speaker notes; a fence named
+  for an app (```` ```sheet ````) shows that document on the slide. The
+  header holds `transition: cut` (`slide`, `zoom`; a fade unless said),
+  `color: red` and `qr: no`. The print apps (zine, booklet, comic and the
+  rest) write their pages the same way, prose as paragraphs, with
+  `sides: 2` and `pages: 12` in the header.
 - **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
   rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
   may carry a colour letter and a text size digit after it (`1b3`).

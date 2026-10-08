@@ -6,9 +6,11 @@
  * everything else (fitting the type, the editor, the PDF, the page to tap
  * through on a phone) is shared.
  *
- * Document format: a deck's (lib/deckmodel.ts), with a first chunk "!two"
- * (two-sided, where a format offers the choice) or "!12" (how many pages,
- * where a format can grow).
+ * Document format: a deck's (lib/deckmodel.ts), a page between rules, a
+ * page's words paragraphs unless its layout says otherwise (a comic's
+ * panels are bullets). The header may hold "sides: 2" (two-sided, where a
+ * format offers the choice) and "pages: 12" (how many pages, where a
+ * format can grow and the last ones are still blank).
  */
 import { defineApp, text, wrapText, textWidth, place, pageSvg, pageScript, xml, FAINT, ACCENT, INK, FONT, type AppDef, type Page } from '../kit/core.ts';
 
@@ -33,7 +35,8 @@ document.onkeydown = function (e) {
 go(0);
 `);
 import { refPage } from '../kit/embed.ts';
-import { parseDeck, serializeDeck, type Layout, type Slide } from './deckmodel.ts';
+import { loosen, slidesOf, writeSlides, type Layout, type Slide } from './deckmodel.ts';
+import { escapeInline, parse, plain } from './tlo.ts';
 import { ICON_SVG } from './icons.ts';
 import { layoutSlide, slidePage, type SlideSize } from './slide.ts';
 
@@ -44,8 +47,6 @@ export interface Format {
   grow?: number;
   /** How many pages it grows by: four (a sheet folded) unless said; one for cards. */
   by?: number;
-  /** The text a new one starts from, offered when the document is empty: a plan's sections, with their prompts. */
-  template?: string;
   /** Offers one-sided and two-sided printing. */
   sides?: boolean;
   /** A page, in px at 96 to the inch. */
@@ -54,7 +55,7 @@ export interface Format {
   name(i: number, n: number): string;
   /** The pages laid on the sheets to print. */
   sheets(pages: Page[], two: boolean): Page[];
-  /** Its pages are panels (a comic): at most this many to a page, each a line ":icon said | caption". */
+  /** Its pages are panels (a comic): at most this many to a page, each a bullet ":icon: said | caption". */
   panels?: number;
   /** Draws a page its own way; otherwise the words are fitted to it. */
   page?(s: Slide, i: number): Page;
@@ -72,22 +73,42 @@ export const formatOf = (id: string) => FORMATS.get(id);
 const isBlank = (s: Slide) => !s.icon && !s.title && !s.sub && s.bullets.every((b) => !b.trim());
 const blank = (): Slide => ({ icon: '', title: '', bullets: [] });
 
-export function parseFold(body: string, f: Format): Folded {
-  const set = /^!(two|\d+)(?:\n\n|$)/.exec(body);
-  const pages = parseDeck(set ? body.slice(set[0].length) : body);
+export function parseFold(body: string, f: Format, loose = false): Folded {
+  const doc = parse(body);
+  const pages = slidesOf(loose ? loosen(doc, false) : doc, !f.panels);
   const by = f.by ?? 4;
-  const want = f.grow ? Math.min(f.grow, Math.max(f.count, +(set?.[1] ?? 0) || 0, Math.ceil(pages.length / by) * by)) : f.count;
+  const want = f.grow ? Math.min(f.grow, Math.max(f.count, +(doc.head.pages ?? 0) || 0, Math.ceil(pages.length / by) * by)) : f.count;
   while (pages.length < want) pages.push(blank());
-  return { two: set?.[1] === 'two', pages: pages.slice(0, want) };
+  return { two: !!f.sides && doc.head.sides === '2', pages: pages.slice(0, want) };
 }
 
 export function serializeFold(z: Folded, f: Format): string {
-  // Blank pages at the end need not be written down.
+  // Blank pages at the end need not be written down; the header says how many there are.
   const pages = z.pages.slice();
   while (pages.length > 1 && isBlank(pages[pages.length - 1])) pages.pop();
-  const text = pages.length === 1 && isBlank(pages[0]) ? '' : serializeDeck(pages);
-  const set = z.two ? '!two' : f.grow && z.pages.length > f.count ? `!${z.pages.length}` : '';
-  return set && text ? `${set}\n\n${text}` : set || text;
+  const by = f.by ?? 4;
+  const head = { sides: z.two ? '2' : '', pages: z.pages.length > Math.max(f.count, Math.ceil(pages.length / by) * by) ? String(z.pages.length) : '' };
+  return pages.length === 1 && isBlank(pages[0]) && !head.sides && !head.pages ? '' : writeSlides(head, pages, !f.panels);
+}
+
+/** A printed thing as written loosely (with no rules, each heading starts a page), made canonical. */
+export const readFold = (text: string, f: Format) => serializeFold(parseFold(text, f, true), f);
+
+/** A comic's panel: its picture, what is said, and the caption, written as a bullet ":dog: Walk? | Monday, noon." */
+export interface Panel {
+  glyph: string;
+  said: string;
+  caption: string;
+}
+export function panelOf(line: string): Panel {
+  const m = /^:([a-z][a-z0-9-]*):?(?:\s+|$)([\s\S]*)$/.exec(line.trim());
+  const [said = '', caption = ''] = (m ? m[2] : line.trim()).split('|').map((p) => plain(p.trim()));
+  return { glyph: m ? m[1] : '', said, caption };
+}
+/** A panel as its bullet's words. (A "|" in the words would start the caption, so it is written as "/".) */
+export function panelText(p: Panel): string {
+  const words = (t: string) => escapeInline(t.replace(/\|/g, '/').trim());
+  return `${p.glyph ? `:${p.glyph}: ` : ''}${words(p.said)}${p.caption.trim() ? ` | ${words(p.caption)}` : ''}`.trim();
 }
 
 export interface Fit {
@@ -273,6 +294,7 @@ export function defineFold(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> &
   const title = (body: string) => parseFold(body, f).pages[0].title;
   return defineApp({
     group: 'Print',
+    read: (text) => readFold(text, f),
     title,
     outline: (body) => parseFold(body, f).pages.map((p) => p.title).filter(Boolean),
     // Printed, it is its sheets. Shown inside something else it is its pages, turned one per click.

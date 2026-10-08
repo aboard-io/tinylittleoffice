@@ -111,13 +111,13 @@ describe('arriving', () => {
     await shell({ app: 'write', body: '# Hello\nSee https://example.com for *more*.', title: 'A letter' }, visitor);
     expect(document.querySelector('to-write [aria-label="Document"]')?.textContent).toContain('See https://example.com');
     expect(document.title).toBe('A letter · TinyLittleOffice');
-    for (const [app, body] of [['adventure', '# Cave\n## start\nDark.'], ['todo', '- Book flights'], ['zine', 'Small Joys\nIssue one'], ['deck', 'Hello\none\ntwo']] as const) {
+    for (const [app, body] of [['adventure', '# Cave\n## start\nDark.'], ['todo', '- Book flights'], ['zine', '## Small Joys\n\nIssue one'], ['deck', '## Hello\n\n- one\n- two']] as const) {
       await shell({ app, body }, visitor);
       expect(document.querySelector(`to-${app}`), app).toBeTruthy();
     }
     // A deck's plain link is the editor, not presenting; only a ".show" link presents.
     expect(document.querySelector('.deck-show')).toBeNull();
-    await shell({ app: 'deck', body: 'Hello\none\ntwo', view: 'show' }, visitor);
+    await shell({ app: 'deck', body: '## Hello\n\n- one\n- two', view: 'show' }, visitor);
     expect(document.querySelector('.deck-show')).toBeTruthy();
   });
 

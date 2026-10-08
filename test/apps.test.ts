@@ -187,7 +187,7 @@ test('embedding one document in another', async () => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const { parseDoc, serializeDoc } = await import('../src/lib/richtext.ts');
   const { docToHtml, docToRtf } = await import('../src/apps/write.def.ts');
-  const deck = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
+  const deck = encodeEnvelope({ created: null, body: '## Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda\n\n- one\n' });
   const drawing = makeRef('draw', 'r,2,1,12,6,1,Box\ne,20,1,6,6,0');
 
   // Any TinyLittleOffice link, from any host or version, with or without a download extension.
@@ -235,16 +235,22 @@ test('text: nested list items', async () => {
 test('deck: layouts, columns, embedded documents, transition', async () => {
   const { parseDeck, serializeDeck, deckTransition } = await import('../src/lib/deckmodel.ts');
   const { layoutSlide, slidePage, slideSteps } = await import('../src/apps/deck.def.ts');
-  const text = '!zoom\n\n:rocket:t\nBig launch\nSpring\n\n::2\nPlan\nleft\n|\nright one\nright two\n\n:star:i\nWhy\nbecause\n\nShapes\nfirst\n\\|\n@@draw/';
+  const text = [
+    '---\ntransition: zoom\n---\n## :rocket: Big launch {.title}\n\n- Spring',
+    '## Plan {.two}\n\n- left\n\n|\n\n- right one\n- right two',
+    '## :star: Why {.icon}\n\n- because',
+    '## Shapes\n\n- first\n- |\n\n```draw\n```',
+  ].join('\n\n---\n\n') + '\n';
   const slides = parseDeck(text);
   assert.equal(deckTransition(text), 'zoom');
-  // Fade is what a deck does unless told otherwise (and what an old "!fade" still means).
-  assert.equal(deckTransition(':rocket\nA'), '');
-  assert.equal(deckTransition('!fade\n\nA'), '');
-  assert.equal(deckTransition('!cut\n\nA'), 'cut');
+  // Fade is what a deck does unless told otherwise.
+  assert.equal(deckTransition('## A'), '');
+  assert.equal(deckTransition('---\ntransition: fade\n---\n## A'), '');
+  assert.equal(deckTransition('---\ntransition: cut\n---\n## A'), 'cut');
   assert.deepEqual(slides.map((s) => s.layout ?? ''), ['t', '2', 'i', '']);
+  assert.deepEqual([slides[0].icon, slides[0].title, slides[0].bullets], ['rocket', 'Big launch', ['Spring']]);
   assert.deepEqual(slides[1].right, ['right one', 'right two']);
-  assert.deepEqual([slides[3].bullets, slides[3].sub], [['first', '|'], 'draw/']);
+  assert.deepEqual([slides[3].bullets, slides[3].sub], [['first', '|'], 'draw\n']);
   assert.equal(serializeDeck(slides, 'zoom'), text);
   assert.equal(deckTransition(serializeDeck(slides)), '');
   // Builds: a title slide appears whole; others reveal a bullet at a time, then what their document builds.
@@ -539,7 +545,7 @@ test('contract: two people sign the same words', async () => {
 test('paper that folds: pages land where folding needs them', async () => {
   const { parseFold, serializeFold, foldSheets, fitted, formatOf } = await import('../src/lib/fold.ts');
   const { ZINE } = await import('../src/apps/zine.def.ts');
-  const numbered = (n: number) => Array.from({ length: n }, (_, i) => `P${i + 1}`).join('\n\n');
+  const numbered = (n: number) => Array.from({ length: n }, (_, i) => `## P${i + 1}`).join('\n\n---\n\n') + '\n';
   // Where each page lands, reading a sheet left to right, top row first.
   const order = (svg: string) => [...svg.matchAll(/>P(\d+)<\/text>/g)].map((m) => +m[1]);
   const body = numbered(8);
@@ -548,8 +554,8 @@ test('paper that folds: pages land where folding needs them', async () => {
   assert.equal(serializeFold(z, ZINE), body);
   assert.equal(parseFold('', ZINE).pages.length, 8);
   assert.equal(serializeFold(parseFold('', ZINE), ZINE), '');
-  assert.equal(serializeFold({ ...parseFold('A', ZINE), two: true }, ZINE), '!two\n\nA');
-  assert.equal(parseFold('!two\n\nA', ZINE).two, true);
+  assert.equal(serializeFold({ ...parseFold('## A', ZINE), two: true }, ZINE), '---\nsides: 2\n---\n## A\n');
+  assert.equal(parseFold('---\nsides: 2\n---\n## A', ZINE).two, true);
   const [one] = foldSheets(z, ZINE);
   assert.deepEqual([one.w, one.h], [1056, 816]);
   assert.deepEqual(order(one.svg), [5, 4, 3, 2, 6, 7, 8, 1]);
@@ -573,8 +579,10 @@ test('paper that folds: pages land where folding needs them', async () => {
   const booklet = formatOf('booklet')!;
   assert.deepEqual(foldSheets(parseFold(numbered(8), booklet), booklet).map((s) => order(s.svg)), [[8, 1], [2, 7], [6, 3], [4, 5]]);
   assert.equal(parseFold(numbered(9), booklet).pages.length, 12);
-  assert.equal(parseFold('!16\n\nA', booklet).pages.length, 16);
-  assert.equal(serializeFold(parseFold('!16\n\nA', booklet), booklet), '!16\n\nA');
+  assert.equal(parseFold('---\npages: 16\n---\n## A', booklet).pages.length, 16);
+  assert.equal(serializeFold(parseFold('---\npages: 16\n---\n## A\n', booklet), booklet), '---\npages: 16\n---\n## A\n');
+  // Written loosely, with no rules, each heading starts a page.
+  assert.equal(appOf('booklet')!.read!('# A book\nby me\n## One\nwords'), '## A book\n\nby me\n\n---\n\n## One\n\nwords\n');
   assert.equal(parseFold(numbered(40), booklet).pages.length, 20);
   assert.deepEqual(appOf('booklet')!.view(numbered(8)).map((p) => [p.w, p.h]), Array(4).fill([1056, 816]));
   // A brochure folds in three, the front outermost.
@@ -602,24 +610,24 @@ test('things to print: text in, letter sheets out', async () => {
   const poster = (text: string) => appOf('poster')!.view(text)[0];
   assert.deepEqual([poster('SALE').w, poster('SALE').h], [816, 1056]);
   assert.ok(px(poster('SALE').svg) > 100, String(px(poster('SALE').svg)));
-  assert.ok(px(poster('Open mic night\nFriday 12 March, 8pm\nThe Anchor\nFree. Bring a song.').svg) <= px(poster('SALE').svg));
+  assert.ok(px(poster('## Open mic night\n\nFriday 12 March, 8pm\n\nThe Anchor\n\nFree. Bring a song.').svg) <= px(poster('SALE').svg));
   // A page type is a deck layout on paper: two columns on a poster.
-  assert.ok(poster('::2\nNow and next\nDesign\nBuild\n|\nTest\nLaunch').svg.includes('>Launch</text>'));
+  assert.ok(poster('## Now and next {.two}\n\n- Design\n- Build\n\n|\n\n- Test\n- Launch').svg.includes('>Launch</text>'));
   // Six badges to a sheet, one page each; two recipe cards.
-  assert.equal(appOf('badges')!.view('!7\n\n' + Array(7).fill('Ada\nEng').join('\n\n')).length, 2);
-  assert.equal(appOf('badges')!.view('Ada\nEng\n\nBob\nOps').map((p) => p.svg.match(/stroke-dasharray="6 5"/g)!.length)[0], 2);
-  assert.equal(appOf('recipes')!.view('A\nx\n\nB\ny\n\nC\nz').length, 2);
+  const pages = (...each: string[]) => each.join('\n\n---\n\n');
+  assert.equal(appOf('badges')!.view(pages(...Array(7).fill('## Ada\n\nEng'))).length, 2);
+  assert.equal(appOf('badges')!.view(pages('## Ada\n\nEng', '## Bob\n\nOps')).map((p) => p.svg.match(/stroke-dasharray="6 5"/g)!.length)[0], 2);
+  assert.equal(appOf('recipes')!.view(pages('## A\n\nx', '## B\n\ny', '## C\n\nz')).length, 2);
   // The menu: dishes and their prices; a long one is shrunk onto the page rather than run off it.
   assert.ok(svg('menu').includes('>Flat white</text>') && svg('menu').includes('>4.20</text>') && svg('menu').includes('>COFFEE</text>'));
   const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
   assert.ok(+long[2] <= 1056 - 2 * 84 + 1 && +long[1] < 624);
   assert.ok(svg('resume').includes('Ada Lovelace') && svg('resume').includes('Experience'));
-  // The comic: a zine whose pages are panels with bubbles and captions. Written plainly, it reads as one.
-  const { readComic } = await import('../src/apps/comic.def.ts');
-  const plain = '# Biscuit\n\n:dog Walk? | Monday, noon.\n:footprints WALK! | Sam arrives.\n\nLater\n:moon Zzz';
-  const body = readComic(plain);
-  assert.equal(body, 'Biscuit\n\n \n:dog Walk? | Monday, noon.\n:footprints WALK! | Sam arrives.\n\nLater\n:moon Zzz');
-  assert.equal(readComic(body), body);
+  // The comic: a zine whose pages are panels with bubbles and captions, a bullet each. Written loosely, it reads as one.
+  const plain = '# Biscuit\n\n## \n\n:dog: Walk? | Monday, noon.\n\n:footprints: WALK! | Sam arrives.\n\n## Later\n- :moon: Zzz';
+  const body = appOf('comic')!.read!(plain);
+  assert.equal(body, '## Biscuit\n\n---\n\n- :dog: Walk? | Monday, noon.\n- :footprints: WALK! | Sam arrives.\n\n---\n\n## Later\n\n- :moon: Zzz\n');
+  assert.equal(appOf('comic')!.read!(body), body);
   const comic = appOf('comic')!.view(body)[0];
   assert.deepEqual([comic.w, comic.h], [1056, 816]);
   assert.ok(['Biscuit', 'WALK!', 'Sam arrives.', 'Later', 'Zzz'].every((t) => comic.svg.includes(`>${t}</text>`)));
@@ -862,23 +870,19 @@ test('a QR code of a link reads back as the link', async () => {
 test('slides take bold, italic and the rest, like a text does', async () => {
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
   const { slidePage, deckToPptx } = await import('../src/apps/deck.def.ts');
-  const { toggleMark, parseInline } = await import('../src/lib/richtext.ts');
-  const [s] = parseDeck('A *big* _day_\nShip ^it^ and ~rest~');
+  const { parseInline } = await import('../src/lib/richtext.ts');
+  const [s] = parseDeck('## A **big** _day_\n\n- Ship ++it++ and ~~rest~~');
   const svg = slidePage(s, Infinity, undefined, '').svg;
-  assert.ok(svg.includes('>big<') && !svg.includes('*big*'), 'marks are drawn, not shown');
+  assert.ok(svg.includes('>big<') && !svg.includes('**big**'), 'marks are drawn, not shown');
   assert.ok(/font-weight="700"[^>]*>big</.test(svg) || /<tspan[^>]*font-weight[^>]*>big/.test(svg), 'bold is bold');
   assert.ok(/font-style="italic"[^>]*>day</.test(svg) || /<tspan[^>]*italic[^>]*>day/.test(svg), 'italic is italic');
-  assert.equal(appOf('deck')!.title('A *big* _day_\nx'), 'A big day');
+  assert.equal(appOf('deck')!.title('## A *big* _day_\n\n- x'), 'A big day');
   // PowerPoint keeps them as runs.
   const { unzipSync, strFromU8 } = await import('fflate');
-  const files = unzipSync(deckToPptx('A *big* day\nShip ^it^', { created: null, png: {} } as never));
+  const files = unzipSync(deckToPptx('## A **big** day\n\n- Ship ++it++', { created: null, png: {} } as never));
   const slide = strFromU8(files['ppt/slides/slide1.xml']);
   assert.ok(slide.includes('b="1"') && slide.includes('<a:t>big</a:t>') && slide.includes('u="sng"'));
-  // The toggle: on, and off again, round a word.
-  assert.deepEqual(toggleMark('Ship it', 0, 4, '*'), { line: '*Ship* it', from: 1, to: 5 });
-  assert.deepEqual(toggleMark('*Ship* it', 1, 5, '*'), { line: 'Ship it', from: 0, to: 4 });
-  assert.deepEqual(toggleMark('*Ship* it', 0, 6, '*'), { line: 'Ship it', from: 0, to: 4 });
-  assert.deepEqual(parseInline('a *b* c').map((r) => [r.t, !!r.b]), [['a ', false], ['b', true], [' c', false]]);
+  assert.deepEqual(parseInline('a **b** c').map((r) => [r.t, !!r.b]), [['a ', false], ['b', true], [' c', false]]);
 });
 
 test('a motion slide, held still, is at its end', async () => {
@@ -893,7 +897,7 @@ test('a motion slide, held still, is at its end', async () => {
 test('slides: bullets nest', async () => {
   const { parseDeck, serializeDeck } = await import('../src/lib/deckmodel.ts');
   const { slidePage, layoutSlide, depthOf, deckToPptx } = await import('../src/apps/deck.def.ts');
-  const text = 'Plan\nShip\n  Beta first\n    Then everyone\nRest';
+  const text = '## Plan\n\n- Ship\n  - Beta first\n    - Then everyone\n- Rest\n';
   assert.deepEqual(parseDeck(text)[0].bullets.map(depthOf), [0, 1, 2, 0]);
   assert.equal(serializeDeck(parseDeck(text)), text);
   const L = layoutSlide(parseDeck(text)[0]);
@@ -922,7 +926,7 @@ test('a QR code document: a link as a code, labelled with what it is of', async 
   // It can go on a slide.
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
   const { slidePage } = await import('../src/apps/deck.def.ts');
-  const slide = slidePage(parseDeck('Scan this\n@@' + makeRef('qr', link))[0], Infinity, undefined, '').svg;
+  const slide = slidePage(parseDeck('## Scan this\n\n```qr\n' + link + '\n```')[0], Infinity, undefined, '').svg;
   assert.ok(slide.includes('shape-rendering="crispEdges"'));
 });
 
@@ -946,15 +950,15 @@ test('rich text: highlight, icons in the line, and alignment, in text and in pic
   assert.ok(svg.includes('fill="#fef08a"') && svg.includes('stroke-linecap="round"') && svg.includes('<tspan dx='));
   const { slidePage } = await import('../src/apps/deck.def.ts');
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
-  assert.ok(slidePage(parseDeck('Go :rocket:\n=now=')[0], Infinity, undefined, '').svg.includes('#fef08a'));
+  assert.ok(slidePage(parseDeck('## Go :rocket:\n\n- ==now==')[0], Infinity, undefined, '').svg.includes('#fef08a'));
   assert.ok(appOf('write')!.html!('>c Hello =there= :star:', { created: null }).includes('text-align:center') && appOf('write')!.html!('=x=', { created: null }).includes('<mark>'));
 });
 
 test('a deck ends with a QR code of itself', async () => {
   const { closingSlide, slidesWith, deckToPptx } = await import('../src/apps/deck.def.ts');
-  const body = ':rocket:t\nLaunch plan\nSpring\n\nGoals\nShip it';
+  const body = '## :rocket: Launch plan {.title}\n\n- Spring\n\n---\n\n## Goals\n\n- Ship it\n';
   const end = closingSlide(body)!;
-  assert.ok(end.sub?.startsWith('qr/'));
+  assert.ok(end.sub?.startsWith('qr\nhttp') || end.sub?.startsWith('qr\ndeck/'), end.sub);
   assert.equal(slidesWith(body).length, 3);
   // The last page is the code, labelled with the deck's title.
   const pages = appOf('deck')!.view(body);
@@ -962,7 +966,7 @@ test('a deck ends with a QR code of itself', async () => {
   assert.ok(pages[2].svg.includes('shape-rendering="crispEdges"') && pages[2].svg.includes('>Launch plan</text>'));
   // An empty deck, or one too long for a code, ends as written.
   assert.equal(closingSlide(''), null);
-  assert.equal(closingSlide(Array.from({ length: 300 }, (_, i) => `Slide ${i}\nwords ${i * 7919} that will not pack`).join('\n\n')), null);
+  assert.equal(closingSlide(Array.from({ length: 300 }, (_, i) => `## Slide ${i}\n\n- words ${i * 7919} that will not pack`).join('\n\n---\n\n')), null);
   // PowerPoint gets the slide too, as a picture.
   const { unzipSync } = await import('fflate');
   const files = unzipSync(deckToPptx(body, { created: null, png: { 'sub-3': new Uint8Array([137, 80, 78, 71]) } } as never));
@@ -976,7 +980,7 @@ test('markdown, both ways, for every app', async () => {
     sheet: 'Item\tCost\nRent\t1200\nFood\t600',
     outline: 'Launch\n  Product\n    Pricing\n  Marketing',
     write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
-    deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
+    deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n  - under one\n\n|\n\n- two\n',
     draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',
     cal: 'd2,2.g,Offsite\ndb,1,Launch',
     todo: '- Book flights\nx!@1jk Renew passport\n- Pack',
@@ -985,14 +989,14 @@ test('markdown, both ways, for every app', async () => {
     trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
     anim: '!o\nt,4,20,20,4,04,Lift off\ni,8,36,8,8,0b,rocket\n@0\t0,0,0,0,a,0;n,0,-2s,0,a,0,i\n@1\t0,0,0,0,a,0;n,5k,-5k,2s,a,-u,d',
     pixel: 'ab.c\n.dd',
-    zine: ':coffee\nSmall Joys\nIssue one\n\nCoffee\nThe first cup.',
-    booklet: 'A book\nby me\n\nOne\nwords',
+    zine: '## :coffee: Small Joys\n\nIssue one\n\n---\n\n## Coffee\n\nThe first cup.\n',
+    booklet: '## A book\n\nby me\n\n---\n\n## One\n\nwords\n',
     calc: '!mortgage\nprice = 300000\nrate = 5',
-    poster: ':music\nOpen mic night\nFriday 12 March, 8pm',
-    badges: 'Ada Lovelace\nEngineering\n\nGrace Hopper\nCompilers',
-    recipes: ':cookie\nCardamom buns\n500g flour\n\nCold brew\n100g coffee',
-    brochure: 'Visit\n\nWhy\nbecause',
-    comic: 'Biscuit\n\n \n:dog Walk? | Monday',
+    poster: '## :music: Open mic night\n\nFriday 12 March, 8pm\n',
+    badges: '## Ada Lovelace\n\nEngineering\n\n---\n\n## Grace Hopper\n\nCompilers\n',
+    recipes: '## :cookie: Cardamom buns\n\n500g flour\n\n---\n\n## Cold brew\n\n100g coffee\n',
+    brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
+    comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     qr: 'https://tinylittleoffice.com/',
   };
   for (const def of apps()) {
@@ -1012,12 +1016,12 @@ test('markdown, both ways, for every app', async () => {
   assert.ok(toMarkdown(appOf('sheet')!, samples.sheet).includes('| Item | Cost |') && toMarkdown(appOf('sheet')!, samples.sheet).includes('| Rent | 1200 |'));
   assert.equal(toMarkdown(appOf('todo')!, samples.todo), '- [ ] Book flights\n- [x] **Renew passport** (due 2025-06-23)\n- [ ] Pack\n');
   assert.equal(toMarkdown(appOf('write')!, samples.write), '# Memo\n\nSome **bold** and *slant* text with ==shine== and :star:\n\n- one\n  - nested\n1. first\n');
-  assert.ok(toMarkdown(appOf('deck')!, samples.deck).startsWith('## Spring launch :rocket:\n\n- What ships\n\n## Agenda\n\n- one\n  - under one\n- two'));
+  assert.equal(toMarkdown(appOf('deck')!, samples.deck), samples.deck);
   assert.ok(toMarkdown(appOf('menu')!, specOf('menu')!.example).includes('| Dish | Price | What it is |'));
   // And back: a Markdown list is a to-do list; a Markdown table is a sheet; headings are slides.
   assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n- [ ] Not yet'), 'x Done\n- Not yet');
   assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|---|---|\n| 1 | 2 |'), 'A\tB\n1\t2');
-  assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '::t\nMy deck\nA line\n\nSecond\na\n  b');
+  assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '## My deck {.title}\n\n- A line\n\n---\n\n## Second\n\n- a\n  - b\n');
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n1. c'), '# Hi\nSome *bold* text.\n- a\n-- b\n+ c');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), serializeBoardLike('#Doing|2\nx\ny'));
@@ -1037,13 +1041,14 @@ test('CSV imports as a table into any app that takes one', () => {
 });
 
 test('deck: a chart written plainly on a slide, speaker notes, and marks left alone inside a web address', async () => {
-  const { readDeck } = await import('../src/apps/deck.def.ts');
-  const { parseDeck, serializeDeck } = await import('../src/lib/deckmodel.ts');
+  const { parseDeck, serializeDeck, readDeck } = await import('../src/lib/deckmodel.ts');
   const { parseInline } = await import('../src/lib/richtext.ts');
-  const plain = ':rocket:t\nResults\nTwo trials\n\nTrial results\n!bar|tnn\nTrial\tDrug %\tControl %\nMAPP1\t67\t32\n> Pause here';
+  // A Markdown table on a slide is a sheet shown there; "{chart=bar}" under it draws it as a chart.
+  const plain = '# Results\nTwo trials\n\n## Trial results\n| Trial | Drug % | Control % |\n|---|---|---|\n| MAPP1 | 67 | 32 |\n{chart=bar}\n\n> Pause here';
   const body = readDeck(plain);
   const slides = parseDeck(body);
-  assert.ok(slides[1].sub?.startsWith('sheet/'), body);
+  assert.equal(slides[1].sub, 'sheet\n---\nchart: bar\n---\nTrial | Drug % | Control %\n--- | --- | ---\nMAPP1 | 67 | 32', body);
+  assert.equal(body, '## Results {.title}\n\n- Two trials\n\n---\n\n## Trial results\n\n```sheet\n---\nchart: bar\n---\nTrial | Drug % | Control %\n--- | --- | ---\nMAPP1 | 67 | 32\n```\n\n> Pause here\n');
   assert.deepEqual(slides[1].notes, ['Pause here']);
   assert.deepEqual(slides[1].bullets, []);
   assert.equal(readDeck(body), body);

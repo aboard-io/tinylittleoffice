@@ -72,7 +72,7 @@ test('what a few of the skill examples say', async () => {
 });
 
 test('a document can be shown inside another page: the embed code, and the page it opens', async () => {
-  await open('/deck/#title=Launch+plan&doc=%3Arocket%3At%0ALaunch+plan%0ASpring%0A%0AGoals%0AShip+it');
+  await open('/deck/#title=Launch+plan&doc=%23%23+%3Arocket%3A+Launch+plan+%7B.title%7D%0A%0A-+Spring%0A%0A---%0A%0A%23%23+Goals%0A%0A-+Ship+it%0A');
   expect(editor('deck')).toBeTruthy();
   // The embed code has the manners of a good embed.
   let code = '';

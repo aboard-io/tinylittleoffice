@@ -1,12 +1,11 @@
 /**
- * Comic: a zine whose pages are panels. Each line of a page's words is a
- * panel: ":icon What is said | caption". A page with a headline and no
- * panels is a title page.
+ * Comic: a zine whose pages are panels. Each bullet of a page is a panel:
+ * "- :dog: What is said | caption". A page with a headline and no panels
+ * is a title page.
  */
-import { defineFold, fitted } from '../lib/fold.ts';
+import { defineFold, fitted, panelOf } from '../lib/fold.ts';
 import { ZINE } from './zine.def.ts';
 import { rect, text, wrapText, INK, type Page } from '../kit/core.ts';
-import { iconOf } from '../lib/drawmodel.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import type { Slide } from '../lib/deckmodel.ts';
 
@@ -24,8 +23,7 @@ function panels(s: Slide): Page {
   let svg = s.title ? text(w / 2, 20, s.title, { px: 10, bold: true, anchor: 'middle' }) : '';
   lines.forEach((line, i) => {
     const [x, y] = [10 + (i % cols) * (pw + 6), 10 + head + Math.floor(i / cols) * (ph + 6)];
-    const [icon, words] = iconOf(line);
-    const [said = '', caption = ''] = words.split('|').map((p) => p.trim());
+    const { glyph: icon, said, caption } = panelOf(line);
     const speech = said ? wrapText(said, pw - 24, 8.5).slice(0, 4) : [];
     const foot = caption ? wrapText(caption, pw - 10, 7.5).slice(0, 2) : [];
     const [top, bottom] = [speech.length ? speech.length * 11 + 16 : 6, foot.length ? foot.length * 10 + 6 : 0];
@@ -46,20 +44,8 @@ function panels(s: Slide): Page {
   return { w, h, svg };
 }
 
-/**
- * A comic written plainly: pages separated by a blank line, a panel per
- * line, "# Title" for a title page. (A page of panels has an empty headline
- * above them, which nobody should have to type.)
- */
-export function readComic(body: string): string {
-  return body
-    .split('\n\n')
-    .map((page) => (/^:[a-z0-9-]+ \S/.test(page) ? ' \n' + page : page.replace(/^# +/, '')))
-    .join('\n\n');
-}
-
 export default defineFold(
-  { id: 'comic', group: 'Print', under: 'zine', name: 'Comic', icon: 'comic', blurb: 'A mini comic: panels with a picture, a speech bubble and a caption, folded from one sheet.', read: readComic },
+  { id: 'comic', group: 'Print', under: 'zine', name: 'Comic', icon: 'comic', blurb: 'A mini comic: panels with a picture, a speech bubble and a caption, folded from one sheet.' },
   {
     ...ZINE,
     sides: false,
