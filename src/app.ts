@@ -281,7 +281,7 @@ export class ToApp extends LitElement {
     if (isSealed(payload)) {
       this.sealed = payload;
       this.env = { created: null, body: '' };
-      this.updateComplete.then(() => this.querySelector<SlInput>('#pw-input')?.focus());
+      // (The prompt puts the caret in its own box once that box is drawn: widgets/privacy.ts.)
       return;
     }
     this.sealed = '';

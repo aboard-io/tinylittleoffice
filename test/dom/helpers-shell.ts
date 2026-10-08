@@ -99,12 +99,22 @@ export function tap(el: Element | null) {
 /** Put the caret in a box and fill it as Playwright's fill() does: focus, the value, its input event. */
 export function fill(box: Element | null, value: string) {
   if (!box) throw new Error('nothing to fill');
-  const input = (box.tagName === 'SL-INPUT' || box.tagName === 'SL-TEXTAREA' ? (box as unknown as { input: HTMLInputElement }).input : box) as HTMLInputElement;
+  if (box.tagName.startsWith('SL-')) {
+    // A Shoelace box: its value, and the event it sends for typing.
+    const sl = box as unknown as { value: string; input?: HTMLInputElement; focus(): void };
+    sl.focus();
+    sl.value = value;
+    box.dispatchEvent(new CustomEvent('sl-input', { bubbles: true, composed: true }));
+    return;
+  }
+  const input = box as HTMLInputElement;
   input.focus();
   input.value = value;
   input.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: value }));
-  if (box !== input) box.dispatchEvent(new CustomEvent('sl-input', { bubbles: true, composed: true }));
 }
+
+/** A Shoelace box by its label. */
+export const slBox = (label: string, root: ParentNode = document) => $(`sl-input[label="${label}"], sl-textarea[label="${label}"]`, root);
 
 /** Type into whatever has the focus, a key at a time, at the caret: what a key does unless the page refuses it. */
 export async function typeKeys(chars: string) {
