@@ -1,6 +1,6 @@
 /** Calendar: what the shell knows about calendars. Format: lib/calmodel.ts. */
 import { defineApp, utf8, text, rect, clip, FAINT, LINE, MUTED, SHADE, type DownloadContext, type Page } from '../kit/core.ts';
-import { CAL_COLORS, parseCalendar, serializeCalendar, spanEndMs, spanStartMs, EPOCH_DAY, EPOCH_MS, type Span } from '../lib/calmodel.ts';
+import { CAL_COLORS, occurrences, parseCalendar, readRepeat, repeatText, serializeCalendar, spanDays, spanStartMs, EPOCH_DAY, EPOCH_MS, type Every, type Span } from '../lib/calmodel.ts';
 import { dayToYmd, pad2, ymdString, ymdToDay, utcToParts, partsToUtc } from '../lib/tz.ts';
 
 const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
@@ -9,6 +9,7 @@ const icsDate = (day: number) => {
   return `${y}${pad2(m)}${pad2(d)}`;
 };
 const icsStamp = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+const FREQ: Record<Every, string> = { d: 'DAILY', w: 'WEEKLY', m: 'MONTHLY', y: 'YEARLY' };
 
 /** Content lines may not exceed 75 octets; longer ones continue on a line starting with a space. */
 function icsFold(line: string): string {
@@ -39,6 +40,13 @@ export function calendarToIcs(body: string, ctx: DownloadContext): string {
     } else {
       lines.push(`DTSTART:${icsStamp(EPOCH_MS + s.start * 60000)}`, `DTEND:${icsStamp(EPOCH_MS + (s.start + s.dur) * 60000)}`);
     }
+    if (s.repeat) {
+      // UNTIL is of DTSTART's kind: a date, or the end of that day in the calendar's zone as an instant.
+      const r = s.repeat;
+      const u = r.until === undefined ? null : dayToYmd(EPOCH_DAY + r.until);
+      const until = !u ? '' : s.kind === 'd' ? icsDate(EPOCH_DAY + r.until!) : icsStamp(partsToUtc(u.y, u.m, u.d, 23, 59, cal.zone || 'UTC'));
+      lines.push(`RRULE:FREQ=${FREQ[r.every]}${r.count ? `;COUNT=${r.count}` : until ? `;UNTIL=${until}` : ''}`);
+    }
     lines.push(`SUMMARY:${icsText(s.label || 'Untitled')}`, 'END:VEVENT');
   });
   lines.push('END:VCALENDAR');
@@ -59,7 +67,7 @@ export function when(s: Span, zone: string): string {
 
 const lines = (body: string) => {
   const cal = parseCalendar(body);
-  return cal.spans.map((s) => `${when(s, cal.zone)}  ·  ${s.label || 'Untitled'}`);
+  return cal.spans.map((s) => `${when(s, cal.zone)}${s.repeat ? ', ' + repeatText(s.repeat) : ''}  ·  ${s.label || 'Untitled'}`);
 };
 
 /**
@@ -67,6 +75,8 @@ const lines = (body: string) => {
  *   2027-03-01 Offsite                      a day
  *   2027-03-01 to 2027-03-03 Offsite        several days
  *   2027-03-01 09:00-10:30 Call             a time, in the zone given by a first line "@Europe/London" (UTC without one)
+ *   2027-03-01 Standup every week, 9 times  a repeat, after the label: every day, week, month or year,
+ *                                           for ever, "N times" or "until 2027-06-01"
  */
 export function readCalendar(text: string): string {
   const lines = text.split('\n');
@@ -78,11 +88,12 @@ export function readCalendar(text: string): string {
     if (!m) continue;
     plain = true;
     const day = ymdToDay(+m[1], +m[2], +m[3]);
+    const [label, repeat] = readRepeat(m[11]);
     if (m[7]) {
       const start = partsToUtc(+m[1], +m[2], +m[3], +m[7], +m[8], zone || 'UTC');
       const end = partsToUtc(+m[1], +m[2], +m[3], +m[9], +m[10], zone || 'UTC');
-      spans.push({ kind: 't', start: Math.round((start - EPOCH_MS) / 60000), dur: Math.max(0, Math.round((end - start) / 60000)), label: m[11] });
-    } else spans.push({ kind: 'd', start: day - EPOCH_DAY, dur: m[4] ? Math.max(1, ymdToDay(+m[4], +m[5], +m[6]) - day + 1) : 1, label: m[11] });
+      spans.push({ kind: 't', start: Math.round((start - EPOCH_MS) / 60000), dur: Math.max(0, Math.round((end - start) / 60000)), label, ...(repeat ? { repeat } : {}) });
+    } else spans.push({ kind: 'd', start: day - EPOCH_DAY, dur: m[4] ? Math.max(1, ymdToDay(+m[4], +m[5], +m[6]) - day + 1) : 1, label, ...(repeat ? { repeat } : {}) });
   }
   return plain ? serializeCalendar({ zone, spans }) : text;
 }
@@ -93,18 +104,16 @@ const CH = 84;
 
 /**
  * The calendar as months: a page for each month that has something in it
- * (three at most), every span on the days it covers. `upTo` spans of it
- * while it builds.
+ * (three at most), every span on the days it covers, a repeating span on
+ * every day it comes round to. `upTo` spans of it while it builds.
  */
 function months(body: string, upTo = Infinity): Page[] {
   const cal = parseCalendar(body);
   const zone = cal.zone || 'UTC';
-  // The days (counted from 1970) each span covers, in the calendar's own zone.
-  const days = cal.spans.map((s) => {
-    if (s.kind === 'd') return [EPOCH_DAY + s.start, EPOCH_DAY + s.start + s.dur - 1];
-    const a = utcToParts(spanStartMs(s), zone);
-    const b = utcToParts(Math.max(spanStartMs(s), spanEndMs(s) - 1), zone);
-    return [ymdToDay(a.y, a.m, a.d), ymdToDay(b.y, b.m, b.d)];
+  // The months with something in them: a repeat counts for its first hundred days, so the three shown stay near its start.
+  const days = cal.spans.flatMap((s) => {
+    const [a] = spanDays(s, zone);
+    return occurrences(s, a, a + 100, zone).map((o) => spanDays(o, zone));
   });
   const now = new Date();
   const first = days.length ? dayToYmd(Math.min(...days.map((d) => d[0]))) : { y: now.getFullYear(), m: now.getMonth() + 1 };
@@ -116,6 +125,8 @@ function months(body: string, upTo = Infinity): Page[] {
     const start = ymdToDay(y, m, 1);
     const lead = dayToYmd(start).wd;
     const rows = Math.ceil((lead + ymdToDay(y, m + 1, 1) - start) / 7);
+    // What falls on the grid of this month: each time of each span, with the days it covers.
+    const chips = cal.spans.flatMap((s, k) => (k < upTo ? occurrences(s, start - lead, start - lead + rows * 7 - 1, zone).map((o) => ({ s: o, days: spanDays(o, zone) })) : []));
     let svg = text(24, 44, `${MONTHS[m - 1]} ${y}`, { px: 26, bold: true });
     ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach((d, i) => (svg += text(24 + i * CW + 8, 76, d, { px: 12, fill: MUTED })));
     for (let i = 0; i < rows * 7; i++) {
@@ -124,14 +135,14 @@ function months(body: string, upTo = Infinity): Page[] {
       const [x, top] = [24 + (i % 7) * CW, 84 + Math.floor(i / 7) * CH];
       svg += rect(x, top, CW, CH, p.m === m ? 'none' : SHADE, `stroke="${LINE}"`) + text(x + 8, top + 18, String(p.d), { px: 12, fill: p.m === m ? MUTED : FAINT });
       let line = 0;
-      cal.spans.forEach((s, k) => {
-        if (k >= upTo || day < days[k][0] || day > days[k][1] || line >= 3) return;
+      chips.forEach(({ s, days: [a, b] }) => {
+        if (day < a || day > b || line >= 3) return;
         const hex = CAL_COLORS[s.color ?? ''].hex;
-        const starts = day === days[k][0];
+        const starts = day === a;
         const time = s.kind === 't' && starts ? `${utcToParts(spanStartMs(s), zone).h}:${pad2(utcToParts(spanStartMs(s), zone).min)} ` : '';
         const yy = top + 24 + line++ * 19;
         // A span over several days is one bar across them, named where it starts (and at each new week).
-        svg += rect(x + (starts ? 4 : 0), yy, CW - (starts ? 4 : 0) - (day === days[k][1] ? 4 : 0), 16, hex, `rx="${starts && day === days[k][1] ? 4 : 0}" fill-opacity="${s.kind === 'd' ? 1 : 0.18}"`);
+        svg += rect(x + (starts ? 4 : 0), yy, CW - (starts ? 4 : 0) - (day === b ? 4 : 0), 16, hex, `rx="${starts && day === b ? 4 : 0}" fill-opacity="${s.kind === 'd' ? 1 : 0.18}"`);
         if (starts || i % 7 === 0) svg += text(x + 8, yy + 12, clip(time + (s.label || 'Untitled'), CW - 12, 11), { px: 11, fill: s.kind === 'd' ? '#fff' : '#18181b' });
       });
     }

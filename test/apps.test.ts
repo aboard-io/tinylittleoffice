@@ -460,7 +460,7 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
     assert.ok(spec.page!('').startsWith('<!doctype html>'), `${id} survives being empty`);
   }
   const site = specOf('site')!.page!(specOf('site')!.example);
-  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section id="menu">') && site.includes('<strong>Roasted daily</strong>'));
+  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section class="page" id="menu">') && site.includes('<strong>Roasted daily</strong>'));
   const store = specOf('store')!.page!(specOf('store')!.example);
   assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
   // Nothing typed into a page can break out of it.
@@ -471,6 +471,41 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
   assert.equal(inv.money(inv.total), '$5,486.40');
   assert.ok(appOf('invoice')!.view(specOf('invoice')!.example)[0].svg.includes('>$5,486.40</text>'));
   assert.equal(appOf('invoice')!.title(specOf('invoice')!.example), 'Invoice 0042');
+});
+
+test('invoice: the sums, and the page that is its editor', async () => {
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const { parseInvoice } = await import('../src/apps/invoice.def.ts');
+  const { readLines, kindsOf } = await import('../src/lib/lines.ts');
+  const spec = specOf('invoice')!;
+  // "what, price" is one of them; a note with a comma and no number is a note; tax and currency apply to the lot.
+  const inv = parseInvoice('Currency: £\nTax: 20\nDesign, 2, 150.5\nHosting, 480\nThanks, pay soon\n\nNet 30');
+  assert.deepEqual(inv.items, [{ what: 'Design', qty: 2, price: 150.5 }, { what: 'Hosting', qty: 1, price: 480 }]);
+  assert.deepEqual([inv.subtotal, inv.tax, inv.total, inv.money(inv.total)], [781, 156.2, 937.2, '£937.20']);
+  assert.deepEqual(inv.notes, ['Thanks, pay soon', 'Net 30']);
+  assert.equal(parseInvoice('Credit, 1, -20').money(parseInvoice('Credit, 1, -20').total), '-$20.00');
+  assert.equal(parseInvoice('').total, 0);
+  // Each part knows its row of the text (blank lines not counted), which is where the page writes it back.
+  assert.deepEqual(inv.rows, { fields: { currency: 0, tax: 1 }, items: [2, 3], notes: [4, 5] });
+  // The form reads the same lines the same way: a price is a number, so "Thanks, pay soon" is not a thing with a price.
+  const names = readLines('Design, 2, 150.5\nHosting, 480\nThanks, pay soon\na, b, 2, 3', spec.form!).map((r) => kindsOf(spec.form!).kinds[r.kind].name);
+  assert.deepEqual(names, ['Item', 'Single item', 'Note', 'Item']);
+  assert.deepEqual(readLines('a, b, 2, 3', spec.form!)[0].values, ['a, b', '2', '3']);
+  // The page as it is read has no marks; edited, every field is marked with its row, a hint where it is empty.
+  const plain = spec.page!(spec.example);
+  assert.ok(!plain.includes('data-lf') && !plain.includes('data-inv'));
+  const edit = spec.page!(spec.example, { edit: true });
+  assert.ok(edit.includes('data-lf="2,0"') && edit.includes('>0042</span>'), 'the number is row 2');
+  assert.ok(edit.includes('data-lf="0,0,0" data-hint="Your name"') && edit.includes('data-lf="0,0,1"') && edit.includes('data-lf="0,0,2" data-hint="Another line"'), 'an address is lines, with one more to type into');
+  assert.ok(edit.includes('data-lf="6,1"') && edit.includes('data-lf="6,2"') && edit.includes('data-inv="qty"'), 'an item\'s quantity and price');
+  assert.ok(edit.includes('data-lf="8,1"') && !edit.includes('data-lf="8,2"'), 'a single item has a price and no quantity to type');
+  assert.ok(edit.includes('data-lf="+7,0" data-hint="Payment terms"') && edit.includes('data-lf="+10,0"'), 'a field not written yet is a hint of its kind');
+  assert.ok(edit.includes('data-lf-add="8" data-lf-after="8"') && edit.includes('data-lf-remove="6"'));
+  assert.ok(edit.includes('data-inv="total">$5,486.40<'));
+  // Empty, it is all hints, and still the invoice.
+  const blank = spec.page!('', { edit: true });
+  assert.ok(blank.includes('data-lf="+0,0,0"') && blank.includes('data-lf-add="8" data-lf-after="-1"') && blank.includes('data-inv="total">$0.00<'));
+  assert.ok(!spec.page!('', { edit: false }).includes('data-lf'));
 });
 
 test('contract: two people sign the same words', async () => {

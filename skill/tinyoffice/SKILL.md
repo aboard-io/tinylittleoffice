@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -111,11 +111,15 @@ A table is a heading line `name: column, column > other_table` followed by one r
 
 https://tinylittleoffice.com/db/#title=Team+directory&doc=teams%3A+id%2C+name%0A1%2C+Platform%0A2%2C+Design%0A%0Apeople%3A+id%2C+name%2C+team_id+%3E+teams%0A1%2C+Ann%2C+1%0A2%2C+Bo%2C+2%0A3%2C+Cy%2C+1%0A%0A%3F+select+teams.name%2C+count(*)+as+people+from+people+join+teams+on+team_id+%3D+teams.id+group+by+teams.name
 
-### site: a one-page website
+### site: a website of little pages
 
-`# Name` and a line about it; `## Section` starts each part; `- Point | detail` makes a card (start it with `:icon-name` for an icon); `> Label | https://...` makes a button (`#section-name` links within the page). The Web page download is the finished site as one file.
+`# Name` and a line about it make the home page; `=== Title` starts another page, and the pages are the nav; `## Section` is a part of a page; `- Point | detail` makes a card (start it with `:icon-name` for an icon); `> Label | https://...` makes a button (`#menu` goes to the page or section called that; `> :mail Email me | mailto:...` puts an icon on it). A line that is only a picture's address is a picture, a line that is only `:icon-name` a big icon, and `@@app/payload` (the part of a TinyLittleOffice link after `#/v2/`) puts another document on the page. `theme: amber serif dark` picks the look: a colour (`indigo`, `teal`, `rose`, `amber`, `ink`), `sans` or `serif`, `light` or `dark`, any of them. The Web page download is the whole site as one file, its pages switched by hash, so it hosts anywhere.
 
-https://tinylittleoffice.com/site/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0ASmall-batch+coffee%2C+roasted+on+the+quay.%0A%3E+See+the+menu+%7C+%23menu%0A-+%3Acoffee+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf+Fair+trade+%7C+Bought+direct%0A%23%23+Menu%0AEspresso%2C+filter+and+a+pastry+case.%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20
+https://tinylittleoffice.com/site/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0ASmall-batch+coffee%2C+roasted+on+the+quay.%0Atheme%3A+amber+serif%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A-+%3Acoffee+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf+Fair+trade+%7C+Bought+direct%0A%3D%3D%3D+Menu%0AEspresso%2C+filter+and+a+pastry+case.%0A%23%23+Coffee%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A%3D%3D%3D+Find+us%0A14+Quay+Street%2C+open+7+to+3.%0A%3E+Email+us+%7C+mailto%3Ahello%40example.com
+
+A page of three or more buttons is a link-in-bio page: they stack, under the picture and the line of words.
+
+https://tinylittleoffice.com/site/#title=Ada+Diaz&doc=%23+Ada+Diaz%0Ahttps%3A%2F%2Fexample.com%2Fada.jpg%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0Atheme%3A+rose+serif%0A%3E+%3Ashopping-bag+Shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Ainstagram+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A%3E+%3Amail+Email+me+%7C+mailto%3Aada%40example.com
 
 ### store: a shop page with a cart
 
@@ -149,7 +153,7 @@ https://tinylittleoffice.com/todo/#title=Trip+prep&doc=-+%402027-03-01+Renew+pas
 
 ### cal: a calendar
 
-One span per line: a date and a label (`2027-03-01 Offsite`), a range (`2027-03-01 to 2027-03-03 Offsite`), or a time (`2027-03-01 09:00-10:30 Call`). An optional first line `@Europe/London` gives the time zone for times.
+One span per line: a date and a label (`2027-03-01 Offsite`), a range (`2027-03-01 to 2027-03-03 Offsite`), or a time (`2027-03-01 09:00-10:30 Call`). An optional first line `@Europe/London` gives the time zone for times. A span repeats when its label ends with `every day`, `every week`, `every month` or `every year`, for ever unless that ends with `12 times` or `until 2027-06-01` (`2027-03-01 09:00-09:15 Standup every week, 12 times`).
 
 https://tinylittleoffice.com/cal/#title=March&doc=2027-03-01+to+2027-03-03+Offsite%0A2027-03-08+Launch+day%0A2027-03-10+09%3A00-10%3A30+Retro
 
@@ -180,11 +184,13 @@ https://tinylittleoffice.com/anim/#title=Lift+off&doc=%21o%0At%2C4%2C20%2C20%2C4
 
 https://tinylittleoffice.com/calc/#title=Our+mortgage&doc=%21mortgage%0Aprice+%3D+400000%0Adeposit+%3D+80000%0Arate+%3D+6.5%0Ayears+%3D+30
 
-## Plans
+## Plans, and templates
 
-`bizplan`, `mktplan` and `gtm` are letter pages, one a section, like a deck's slides: chunks separated by a blank line, the first `::t` title page, then a heading and lines. Open one empty and "Start from the template" gives the sections with the questions each should answer; or write the sections yourself. A plan prints, opens as a deck, and takes Markdown (`## Section` + lines).
+A business plan, a marketing plan and a go-to-market plan are `write` documents: `# Business plan`, then `## Section` headings (Summary, The problem, The product, The market, How it makes money, Going to market, The team, The numbers, Risks, The ask; a marketing plan has Goals, Audience, Positioning and message, Channels, Calendar, Budget, Measures; a go-to-market plan The customer, The offer, Pricing and packaging, The route to them, The launch, Enablement, Measures) with lines under each. Write the sections yourself, or start from the template: `templates('write')` in the API gives each plan with the questions a section should answer, in italics, to be written over; in the editor an empty Write offers "Start from a template…". Sheet and Deck have templates too (a budget, an expense log, an invoice, a tracker, a comparison, loans compared; a talk, a status update, a pitch, a lesson, a kickoff): `templates('sheet')`, `templates('deck')`.
 
-https://tinylittleoffice.com/bizplan/#title=Harbor+Coffee&doc=%3A%3At%0ABusiness+plan%0AHarbor+Coffee+%C2%B7+March+2027%0A%0ASummary%0AA+roastery+on+the+quay%2C+selling+to+the+town+and+by+post.%0A%0AThe+problem%0AGood+coffee+here+is+an+hour+away.
+https://tinylittleoffice.com/write/#title=Harbor+Coffee&doc=%23+Business+plan%0A_Harbor+Coffee+%C2%B7+March+2027_%0A%23%23+Summary%0AA+roastery+on+the+quay%2C+selling+to+the+town+and+by+post.%0A%23%23+The+problem%0AGood+coffee+here+is+an+hour+away.
+
+(`bizplan`, `mktplan` and `gtm` were apps of their own, letter pages a section each; links to them still open, but prefer `write`.)
 
 ## Things to print
 
@@ -244,7 +250,7 @@ In `org`, `mind`, `lanes`, `venn`, `net` and `draw`, a label may start with an i
 - Tables you want to query: `db`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
 - A wall of ideas or a retro: `board` (one stage) or `draw`. Questions and answers: `site` (`- Question | answer` cards).
-- Something to publish: `site` for a page, `store` for products, `invoice` to bill.
+- Something to publish: `site` for a site of pages or a link in bio, `store` for products, `invoice` to bill.
 - Anything else visual: `draw`.
 
 ## From JavaScript
@@ -265,10 +271,11 @@ link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120\nQ2\t18
 The site serves its own API as a module, for programs and agents; nothing to install:
 
 ```js
-import { link, linkFromMarkdown, parse, lint, compare, evaluateSheet, runModel, searchIcons } from 'https://tinylittleoffice.com/api.js';
+import { link, linkFromMarkdown, parse, lint, compare, evaluateSheet, runModel, searchIcons, templates } from 'https://tinylittleoffice.com/api.js';
 const url = link('sheet', 'Item\tCost\nRent\t1200', { title: 'Budget', by: 'planner-agent' });
 parse(url).markdown;                 // the document as Markdown
 await lint('deck', body);            // unknown icons, a layout that does not exist, a link too long for a QR code
+templates('deck');                   // what an empty deck can start from: { id, name, blurb, body } each, the body in the deck's format
 ```
 
 It runs in Node 20+ (`import('https://tinylittleoffice.com/api.js')` needs `--experimental-network-imports` before Node 22; or save the file), in Deno and Bun, and in a browser. Types are at `/api.d.ts`. `signed`/`verified` sign and check a link; `sealed`/`open` lock one under a password. `tinyoffice.js` is the smaller link-maker for pages. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`. The source, a command-line tool (`tinyoffice render <link> --out x.pdf`) and a Python port of the codec are in the repository, github.com/ftrain/tinyoffice, under `packages/`.

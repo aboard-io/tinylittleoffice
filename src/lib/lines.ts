@@ -11,7 +11,9 @@
  * In a pattern, {Name} is a field; [..] is a part that may be left out;
  * everything else is written as it stands. A field may say what it holds:
  * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}, {Who:pick},
- * {Who:list} (things with commas between, each a thing of its own on a picture).
+ * {Who:list} (things with commas between, each a thing of its own on a picture),
+ * {Price:number} (one word with a digit in it: then "Thanks, pay soon" is not
+ * a thing with a price).
  */
 export interface Kind {
   name: string;
@@ -19,7 +21,7 @@ export interface Kind {
   is: string;
   /** There is at most one of these, and it goes at the top (a title, a setting). */
   once?: boolean;
-  /** A heading: the lines after it, up to the next heading, belong to it (a section and its items). */
+  /** A heading: the lines after it, up to the next heading, belong to it (a section and its items). Several heading kinds nest in the order given (a page, then its sections). */
   head?: boolean;
   /** Lines of this kind nest: they can be indented under one another. */
   indent?: boolean;
@@ -29,8 +31,8 @@ export interface Kind {
 
 export interface Field {
   name: string;
-  /** 'pick' offers the names already on the form (the first words of every other row); 'list' holds things with commas between. */
-  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick' | 'list';
+  /** 'pick' offers the names already on the form (the first words of every other row); 'list' holds things with commas between; 'number' is one word with a digit in it. */
+  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick' | 'list' | 'number';
   options: string[];
   /** Inside a [..] part: the line reads without it. */
   optional?: boolean;
@@ -86,7 +88,7 @@ function compile(kind: Kind): Compiled {
   const tree = parts();
   // Spaces in the pattern are loose in what is read: needed beside a word ("4 x 3", "0 to 9"), optional beside a mark ("a|b").
   const lit = (s: string) => s.replace(/(\s+)|([^\s]+)/g, (_, space, word, i: number) => (word ? esc(word) : /[\w-]/.test(s[i - 1] ?? '') || /[\w-]/.test(s[i + space.length] ?? '') ? '\\s+' : '\\s*'));
-  const re = (list: Part[]): string => list.map((p) => (typeof p === 'string' ? lit(p) : Array.isArray(p) ? `(?:${re(p)})?` : p.type === 'icon' ? '([a-z0-9-]+)' : p.type === 'choice' ? `(${p.options.map(esc).join('|')})` : '(.*?)')).join('');
+  const re = (list: Part[]): string => list.map((p) => (typeof p === 'string' ? lit(p) : Array.isArray(p) ? `(?:${re(p)})?` : p.type === 'icon' ? '([a-z0-9-]+)' : p.type === 'number' ? '([^\\s,|]*\\d[^\\s,|]*)' : p.type === 'choice' ? `(${p.options.map(esc).join('|')})` : '(.*?)')).join('');
   const has = (list: Part[], values: string[]): boolean => list.some((p) => (typeof p === 'string' ? false : Array.isArray(p) ? has(p, values) : !!values[fields.indexOf(p)]?.trim()));
   const write = (list: Part[], values: string[]): string => list.map((p) => (typeof p === 'string' ? p : Array.isArray(p) ? (has(p, values) ? write(p, values) : '') : (values[fields.indexOf(p)] ?? '').replace(/\n/g, ' ').trim())).join('');
   return { fields, re: new RegExp(`^${re(tree)}$`, 'i'), write: (values) => write(tree, values).trimEnd() };
@@ -140,16 +142,23 @@ export function writeLines(rows: Row[], given: Kind[]): string {
     .join('\n');
 }
 
+/** Which heading a kind is, counting from 1 in the order given (a page is 1, a section 2); 0 for a kind that is not one. */
+export function headLevel(given: Kind[], kind: number): number {
+  const { kinds } = kindsOf(given);
+  return kinds[kind]?.head ? kinds.filter((k, i) => k.head && i <= kind).length : 0;
+}
+
 /**
  * How far in each row sits when the text is seen as an outline: its own
- * indent, and one more for a line under a heading.
+ * indent, and one more for a line under a heading (two under a heading
+ * that sits under another).
  */
 export function depths(rows: Row[], given: Kind[]): number[] {
   const { kinds } = kindsOf(given);
   let under = 0;
   return rows.map((r) => {
     const k = kinds[r.kind];
-    if (k.head) return (under = 1), 0;
+    if (k.head) return (under = headLevel(given, r.kind)), under - 1;
     if (k.once) return 0;
     return r.depth + under;
   });
@@ -183,6 +192,30 @@ export function moveBlock(rows: Row[], given: Kind[], i: number, by: -1 | 1): [R
   const next = d[end] === d[i] ? blockEnd(rows, given, end) : end - i === 1 ? end + 1 : -1;
   if (next < 0) return null;
   return [[...rows.slice(0, i), ...rows.slice(end, next), ...rows.slice(i, end), ...rows.slice(next)], i + next - end];
+}
+
+/**
+ * Move heading row i, with everything under it, past the heading of its
+ * kind before or after it: a page past the next page, sections and all.
+ * Null when there is no such neighbour (the home page has no heading row,
+ * so nothing moves above it).
+ */
+export function movePart(rows: Row[], given: Kind[], i: number, by: -1 | 1): Row[] | null {
+  const end = blockEnd(rows, given, i);
+  if (by > 0) {
+    if (!rows[end] || rows[end].kind !== rows[i].kind) return null;
+    const next = blockEnd(rows, given, end);
+    return [...rows.slice(0, i), ...rows.slice(end, next), ...rows.slice(i, end), ...rows.slice(next)];
+  }
+  let p = i - 1;
+  while (p >= 0 && rows[p].kind !== rows[i].kind) p--;
+  if (p < 0 || blockEnd(rows, given, p) !== i) return null;
+  return [...rows.slice(0, p), ...rows.slice(i, end), ...rows.slice(p, i), ...rows.slice(end)];
+}
+
+/** Take heading row i away with everything under it. */
+export function removePart(rows: Row[], given: Kind[], i: number): Row[] {
+  return [...rows.slice(0, i), ...rows.slice(blockEnd(rows, given, i))];
 }
 
 /** Indent or bring out row i and what is under it. A row goes at most one level deeper than the row above it. */

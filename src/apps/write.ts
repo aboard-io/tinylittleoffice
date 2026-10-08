@@ -10,6 +10,7 @@ import { linkToRef, makeRef, SELF } from '../kit/embed.ts';
 import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
+import { templateLine, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { MAX_DEPTH, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
@@ -413,6 +414,14 @@ export class ToWrite extends LitElement {
     return el;
   }
 
+  /** A template becomes the document: one change, so one undo brings the blank page back. */
+  private useTemplate = (t: { body: string }) => {
+    this.page!.innerHTML = blocksToHtml(parseDoc(t.body));
+    this.onInput();
+    this.page!.focus();
+    getSelection()?.collapse(this.page!.firstChild, 0);
+  };
+
   private async insertNew(what: string) {
     // The document's own QR code needs no editing: it is whatever the link is.
     if (what === 'qr-self') return void this.insertEmbed(SELF);
@@ -537,8 +546,10 @@ export class ToWrite extends LitElement {
           ${this.btn('Bring out', 'outdent', false, 'outdent', undefined, 'Shift+Tab')}
           ${this.btn('Indent', 'indent', false, 'indent', undefined, 'Tab')}
         </sl-button-group>
-        <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>` : nothing}
+        <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
+        ${doc && !this.value ? templateTool('write', this.useTemplate) : nothing}` : nothing}
       </div>` : nothing}
+      ${doc && !this.value ? templateLine('write', this.useTemplate) : nothing}
       <div
         class="write-page ${doc ? '' : 'rich-' + this.mode} ${this.value ? '' : 'blank'}"
         contenteditable="true"
