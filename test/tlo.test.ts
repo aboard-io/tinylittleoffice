@@ -120,7 +120,7 @@ function rng(seed: number) {
 test('tlo: any runs survive being written and read', () => {
   const r = rng(7);
   const pick = <T>(xs: T[]) => xs[Math.floor(r() * xs.length)];
-  const words = ['plain', 'a b', ' lead', 'trail ', '*', '_x_', '~~', '==', '++', '\\', '[x](y)', ':rocket:', 'snake_case', '`', '<u>', 'mid*dle', '5 * 3', '#', 'x'];
+  const words = ['plain', 'a b', ' lead', 'trail ', '*', '_x_', '~~', '==', '++', '\\', '[x](y)', ':rocket:', 'snake_case', '`', '<u>', 'mid*dle', '5 * 3', '#', 'x', 'see https://e.com/a_b', 'https://e.com/q?a=1'];
   const norm = (runs: Run[]) => parseInline(writeInline(runs));
   for (let n = 0; n < 2000; n++) {
     const runs: Run[] = [];
@@ -174,4 +174,9 @@ test('tlo: attributes, pages and sections', () => {
   const doc = parse('# A\nx\n## B\ny\n---\n# C');
   assert.equal(pages(doc.blocks).length, 2);
   assert.deepEqual(sections(doc.blocks, 1).map(([h, bs]) => [h?.text, bs.length]), [['A', 4], ['C', 0]]);
+});
+
+test('tlo: a web address is read whole, marks and all', () => {
+  assert.deepEqual(parseInline('see https://x.com/a_b?q=1&r=_2_ now.'), [{ t: 'see https://x.com/a_b?q=1&r=_2_ now.' }]);
+  assert.equal(writeInline([{ t: 'go to https://x.com/a_b?q=1 or *not*' }]), 'go to https://x.com/a_b?q=1 or \\*not\\*');
 });

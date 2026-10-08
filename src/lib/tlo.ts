@@ -242,6 +242,26 @@ export function parse(text: string): Tlo {
   return { head, blocks };
 }
 
+/** Some keys taken out of a text's header: [those keys, the text without them]. The rest of the header stays. */
+export function takeHead(text: string, keys: string[]): [Head, string] {
+  const lines = text.split('\n');
+  const [head, start] = readHead(lines);
+  if (!start || !keys.some((k) => k in head)) return [{}, text];
+  const took: Head = {};
+  const rest: Head = {};
+  for (const [k, v] of Object.entries(head)) (keys.includes(k) ? took : rest)[k] = v;
+  return [took, writeHead(rest) + lines.slice(start).join('\n')];
+}
+
+/** A text with keys put in its header (an empty value takes the key out). */
+export function withHead(text: string, keys: Head): string {
+  const lines = text.split('\n');
+  const [head, start] = readHead(lines);
+  const next = { ...head };
+  for (const [k, v] of Object.entries(keys)) v ? (next[k] = v) : delete next[k];
+  return writeHead(next) + lines.slice(start).join('\n');
+}
+
 /* ---------- writing ---------- */
 
 /** A line as it must be written so it reads back as the same words, not as a block of another kind. */
@@ -328,6 +348,8 @@ const MARKS: [string, keyof Run][] = [
 ];
 const LINK = /^\[((?:\\.|[^\]\\\n])*)\]\(\s*<?((?:https?:\/\/|mailto:|tel:|#)[^()\s>]*)>?\s*\)/;
 const ICON = /^:([a-z][a-z0-9-]*):/;
+/** A web or mail address, as far as it can go without taking in a mark that follows it. */
+const URL = '(?:https?:\\/\\/|mailto:)(?:(?!\\*\\*|~~|==|\\+\\+|__|:[a-z][a-z0-9-]*:)[^\\s<`\\\\[\\]*])+';
 
 /** Inline Markdown as runs of text with their marks. Lenient: what does not close is plain text. */
 export function parseInline(s: string): Run[] {
@@ -393,6 +415,16 @@ export function parseInline(s: string): Run[] {
         continue;
       }
     }
+    // A web address is taken whole: the marks inside it (an "=" in its query, an "_" in its path) are its own.
+    if ((c === 'h' || c === 'm') && (i === 0 || /[\s(]/.test(s[i - 1]))) {
+      const m = new RegExp('^' + URL).exec(s.slice(i));
+      if (m) {
+        const url = m[0].replace(/[.,;:!?)]+$/, '');
+        buf += url;
+        i += url.length;
+        continue;
+      }
+    }
     if (c === ':') {
       const m = ICON.exec(s.slice(i));
       if (m) {
@@ -443,6 +475,15 @@ export function parseInline(s: string): Run[] {
 
 /** Plain words as Markdown: anything that would read as a mark is escaped. */
 export function escapeInline(t: string): string {
+  // A web address is read whole, so nothing inside it is escaped.
+  return t
+    .split(new RegExp(`((?:^|(?<=[\\s(]))${URL})`))
+    .flatMap((part, n) => (n % 2 ? ((m) => [m![1], '', m![2]])(/^(.*?)([.,;:!?)]*)$/.exec(part)) : [part]))
+    .map((part, n) => (n % 2 ? part : escapePlain(part)))
+    .join('');
+}
+
+function escapePlain(t: string): string {
   return t
     .replace(/[\\`*_]/g, '\\$&')
     .replace(/(~~|==|\+\+)/g, (m) => '\\' + m[0] + '\\' + m[1])

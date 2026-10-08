@@ -8,7 +8,7 @@
  * both ways; the plus beside it names the line. Connect joins any two
  * items. Format: lib/outlinemodel.ts.
  */
-import { LINK, DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, hashOf, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
 import { blockEnd, embedOf, hasChildren, move, outlineToDeck, parentOf, parseLinks, parseOutline, place, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
@@ -344,7 +344,7 @@ export class ToOutline extends DocElement<Item[]> {
         </sl-button-group>
         ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { text: true }) : nothing}
         <to-insert label="Insert" placeholder="Insert a document…" .options=${insertOptions('outline')} @pick=${(e: CustomEvent<string>) => this.insertDoc(e.detail)}></to-insert>
-        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = LINK + (e.detail.item.value === 'deck' ? makeRef('deck', outlineToDeck(items)) : outlineAs(e.detail.item.value, this.serialize(items))))}>
+        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = e.detail.item.value === 'deck' ? hashOf('deck', outlineToDeck(items)) : outlineAs(e.detail.item.value, this.serialize(items)))}>
           <sl-button slot="trigger" size="small" caret>${icon(UI.mind, 14)} See as</sl-button>
           <sl-menu>
             <sl-menu-item value="deck">${icon(UI.deck, 14, 'pre')} Deck: a slide for every level</sl-menu-item>

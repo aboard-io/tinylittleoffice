@@ -1,16 +1,18 @@
 /**
- * Rich text model and a compact markup for it.
+ * Rich text: what Write, an outline's items, a slide's words and the print
+ * apps hold. It is written as TLO (lib/tlo.ts), which is Markdown:
  *
- * Blocks: one per line.  Prefixes:  "#! " the title, "# " h1, "## " h2, "- " bullet, "+ " numbered.
- * A list item one level in repeats its marker ("-- ", "++ "), up to MAX_DEPTH levels.
- * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~  =highlight= ; an icon
- * is its name between colons, ":rocket:"; words linked somewhere are
- * "[the words](https://…)" (a web, mail or phone address, or "#…" in the
- * document); "\" escapes. A web address on its own is a link as it stands. A block may start with
- * ">c ", ">r " or ">j " to be centred, right-aligned or justified.
- * Embed: a line "@@<app>/<payload>" is another TinyLittleOffice document, shown as
- * a preview that links to it (see lib/embed.ts).
+ *   # Words {.title}   the title         # / ##   heading, subheading
+ *   - item / 1. item   lists, two spaces in per level
+ *   Words {.center}    centred (.right, .justify)
+ *   ```sheet           another document, embedded: its app, then its text
+ *
+ * Inline: **bold**, *italic*, ++underline++, ~~strike~~, ==highlight==,
+ * :icon:, [words](address). A web address on its own is a link as it stands.
+ * A Markdown table in a text is an embedded sheet.
  */
+import { parse as parseTlo, write as writeTlo, parseInline as tloInline, writeInline, hasClass, type Attrs, type Block as TloBlock } from './tlo.ts';
+
 export interface Run {
   t: string;
   b?: boolean;
@@ -29,7 +31,7 @@ export type BlockKind = 'p' | 'title' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
 export interface Block {
   k: BlockKind;
   runs: Run[];
-  /** For an embed ("e"): the document it points at, as "<app>/<payload>". */
+  /** For an embed ("e"): the document it holds, as "<app>\n<its text>" (see kit/embed.ts). */
   ref?: string;
   /** For list items: how far in, 0 (absent) for the outer level. */
   d?: number;
@@ -38,183 +40,64 @@ export interface Block {
 }
 
 export const MAX_DEPTH = 3;
+export const ALIGN_NAMES: Record<Align, string> = { c: 'center', r: 'right', j: 'justify' };
+const ALIGN_OF: Record<string, Align> = { center: 'c', right: 'r', justify: 'j' };
 
-const EMBED = /^@@([a-z]+\/[A-Za-z0-9_-]*)$/;
-
-const FLAGS = ['b', 'i', 'u', 's', 'h'] as const;
-const MARK: Record<(typeof FLAGS)[number], string> = { b: '*', i: '_', u: '^', s: '~', h: '=' };
-const UNMARK: Record<string, (typeof FLAGS)[number]> = { '*': 'b', _: 'i', '^': 'u', '~': 's', '=': 'h' };
-const ALIGN = /^>([crj]) /;
-const ICON = /^:([a-z][a-z0-9-]*):/;
-const PREFIX: Record<BlockKind, string> = { p: '', title: '#! ', h1: '# ', h2: '## ', ul: '- ', ol: '+ ', e: '@@' };
-const SPECIAL = /[\\*_^~=]/g;
-/** "[words](address)": the address a web, mail or phone one, or a place in the document. */
-const LINK = /^\[((?:\\.|[^\]\\\n])*)\]\(((?:https?:\/\/|mailto:|tel:|#)[^()\s]*)\)/;
 /** An address as it may be written in a link: what would end it early is percent-encoded. */
 export const linkTarget = (url: string) => url.trim().replace(/[\s()]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
 /** Whether an address may be a link's target at all. */
 export const linkable = (url: string) => /^(?:https?:\/\/[^\s]+|mailto:[^\s]+|tel:[^\s]+|#\S*)$/.test(linkTarget(url));
 
-export function serializeDoc(blocks: Block[]): string {
-  const lines: string[] = [];
-  for (const blk of blocks) {
-    if (blk.k === 'e') {
-      if (blk.ref && EMBED.test('@@' + blk.ref)) lines.push('@@' + blk.ref);
-      continue;
-    }
-    let out = (blk.a ? `>${blk.a} ` : '') + (blk.k === 'ul' || blk.k === 'ol' ? PREFIX[blk.k][0].repeat(1 + Math.min(MAX_DEPTH, blk.d ?? 0)) + ' ' : PREFIX[blk.k]);
-    out += serializeInline(blk.runs, blk.k === 'p' || !!blk.a);
-    lines.push(out);
-  }
-  // Drop trailing empty paragraphs.
-  while (lines.length && lines[lines.length - 1] === '') lines.pop();
-  return lines.join('\n');
-}
-
-/** Runs as one line of marks. With `bare`, a line that would read as a block prefix is escaped. */
-export function serializeInline(runs: Run[], bare = false): string {
-  // Linked words go out as "[words](address)", their marks inside the brackets.
-  if (runs.some((r) => r.href)) {
-    let out = '';
-    for (let i = 0; i < runs.length; ) {
-      const href = runs[i].href;
-      let j = i + 1;
-      while (j < runs.length && runs[j].href === href) j++;
-      const part = runs.slice(i, j).map(({ href: _, ...r }) => r);
-      out += href ? `[${serializeInline(part)}](${linkTarget(href)})` : serializeInline(part, bare && i === 0);
-      i = j;
-    }
-    return out;
-  }
-  let out = '';
-  {
-    const state: Record<string, boolean> = { b: false, i: false, u: false, s: false, h: false };
-    let first = true;
-    for (const run of runs) {
-      if (run.ic) {
-        out += `:${run.ic}:`;
-        first = false;
-        continue;
-      }
-      if (!run.t) continue;
-      for (const f of FLAGS) {
-        if (!!run[f] !== state[f]) {
-          out += MARK[f];
-          state[f] = !state[f];
-        }
-      }
-      // (":name:" would read as an icon, so a colon that starts one is escaped.)
-      // (A web address is read whole, so nothing inside it needs escaping.)
-      let text = run.t
-        .split(/((?:^|(?<=[\s(]))(?:https?:\/\/|mailto:)\S+)/)
-        .map((part, n) => (n % 2 ? part : part.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:').replace(/\[(?=[^\]]*\]\()/g, '\\[')))
-        .join('');
-      // A paragraph that would start with a prefix marker must be escaped.
-      if (first && bare && /^(#|-+ |\++ |@@|>[crj] )/.test(text)) text = '\\' + text;
-      first = false;
-      out += text;
-    }
-    // Close open marks so each line is self-contained.
-    for (const f of FLAGS) if (state[f]) out += MARK[f];
-  }
-  return out;
-}
-
-/** One line's marks ( *bold* _italic_ ^underline^ ~strike~ ) as runs. */
-export function parseInline(line: string): Run[] {
-  const runs: Run[] = [];
-  const state: Record<string, boolean> = { b: false, i: false, u: false, s: false, h: false };
-  let buf = '';
-  const flush = () => {
-    if (!buf) return;
-    const run: Run = { t: buf };
-    for (const f of FLAGS) if (state[f]) run[f] = true;
-    runs.push(run);
-    buf = '';
-  };
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    const icon = ch === ':' ? ICON.exec(line.slice(i)) : null;
-    // A web address is taken whole: the marks inside it (an "=" in its query, an "_" in its path) are its own.
-    const url = (ch === 'h' || ch === 'm') && (i === 0 || /\s|\(/.test(line[i - 1])) ? /^(?:https?:\/\/|mailto:)\S+/.exec(line.slice(i)) : null;
-    const link = ch === '[' ? LINK.exec(line.slice(i)) : null;
-    if (ch === '\\' && i + 1 < line.length) buf += line[++i];
-    else if (link) {
-      // The words take the marks open around them, and their own inside.
-      flush();
-      for (const r of parseInline(link[1])) {
-        const run: Run = { ...r, href: link[2] };
-        for (const f of FLAGS) if (state[f]) run[f] = true;
-        runs.push(run);
-      }
-      i += link[0].length - 1;
-    } else if (url) {
-      buf += url[0].replace(/[.,;:!?)]+$/, (tail) => ((i += -tail.length), ''));
-      i += url[0].length - 1;
-    } else if (icon) {
-      flush();
-      runs.push({ t: '', ic: icon[1] });
-      i += icon[0].length - 1;
-    } else if (UNMARK[ch]) {
-      flush();
-      state[UNMARK[ch]] = !state[UNMARK[ch]];
-    } else buf += ch;
-  }
-  flush();
-  return runs;
-}
-
+/** Runs as one line of inline Markdown. */
+export const serializeInline = (runs: Run[]): string => writeInline(runs);
+/** One line of inline Markdown as runs. */
+export const parseInline = (line: string): Run[] => tloInline(line);
 /** The marks as words: what a line says, without them. */
 export const plainInline = (line: string) => parseInline(line).map((r) => r.t).join('');
-export const ALIGN_NAMES: Record<Align, string> = { c: 'center', r: 'right', j: 'justify' };
 
-/**
- * Toggle a mark on a stretch of a line: "*" round "word" makes it bold;
- * round "*word*" takes the bold off. Returns the new line and where the
- * stretch now sits.
- */
-export function toggleMark(line: string, from: number, to: number, mark: string): { line: string; from: number; to: number } {
-  const inner = line.slice(from, to);
-  if (inner.startsWith(mark) && inner.endsWith(mark) && inner.length >= 2) return { line: line.slice(0, from) + inner.slice(1, -1) + line.slice(to), from, to: to - 2 };
-  if (line[from - 1] === mark && line[to] === mark) return { line: line.slice(0, from - 1) + inner + line.slice(to + 1), from: from - 1, to: to - 1 };
-  return { line: line.slice(0, from) + mark + inner + mark + line.slice(to), from: from + 1, to: to + 1 };
+const alignOf = (a?: Attrs): Align | undefined => a?.cls?.map((c) => ALIGN_OF[c]).find(Boolean);
+const alignAttrs = (a?: Align, more: string[] = []): Attrs | undefined => (a || more.length ? { cls: [...more, ...(a ? [ALIGN_NAMES[a]] : [])] } : undefined);
+
+/** A text's blocks from its TLO. What a text cannot hold (a quote, a rule) is kept as words. */
+export function parseDoc(text: string): Block[] {
+  if (!text.trim()) return [{ k: 'p', runs: [] }];
+  const blocks: Block[] = [];
+  const line = (k: BlockKind, s: string, a?: Attrs, d = 0) => {
+    const blk: Block = { k, runs: parseInline(s) };
+    if (d) blk.d = Math.min(MAX_DEPTH, d);
+    const al = alignOf(a);
+    if (al) blk.a = al;
+    blocks.push(blk);
+  };
+  for (const b of parseTlo(text).blocks) {
+    if (b.k === 'h') line(hasClass(b, 'title') ? 'title' : b.level === 1 ? 'h1' : 'h2', b.text, b.a);
+    // An empty paragraph, kept as the space it makes.
+    else if (b.k === 'p') b.text.trim() === '<br>' ? blocks.push({ k: 'p', runs: [] }) : line('p', b.text.replace(/\n/g, ' '), b.a);
+    else if (b.k === 'li') line(b.ord ? 'ol' : 'ul', (b.done === undefined ? '' : b.done ? '☑ ' : '☐ ') + b.text.replace(/\n/g, ' '), b.a, b.depth);
+    else if (b.k === 'quote') line('p', b.text.replace(/\n/g, ' '), b.a);
+    else if (b.k === 'fence') blocks.push({ k: 'e', runs: [], ref: `${b.lang || 'write'}\n${b.body}` });
+    else if (b.k === 'table') blocks.push({ k: 'e', runs: [], ref: `sheet\n${writeTlo({ head: {}, blocks: [b] }).trimEnd()}` });
+    else if (b.k === 'img') line('p', `[${b.alt || b.url}](${b.url})`);
+    else if (b.k === 'edge') line('p', `${b.from} ${b.dir} ${b.to}${b.label ? ': ' + b.label : ''}`);
+  }
+  return blocks.length ? blocks : [{ k: 'p', runs: [] }];
 }
 
-export function parseDoc(text: string): Block[] {
-  if (!text) return [{ k: 'p', runs: [] }];
-  const blocks: Block[] = [];
-  for (const rawLine of text.split('\n')) {
-    let line = rawLine;
-    const embed = EMBED.exec(line);
-    if (embed) {
-      blocks.push({ k: 'e', runs: [], ref: embed[1] });
-      continue;
-    }
-    let k: BlockKind = 'p';
-    let d = 0;
-    const align = ALIGN.exec(line);
-    if (align) line = line.slice(align[0].length);
-    const item = /^(-{1,4}|\+{1,4}) /.exec(line);
-    if (line.startsWith('#! ')) {
-      k = 'title';
-      line = line.slice(3);
-    } else if (line.startsWith('## ')) {
-      k = 'h2';
-      line = line.slice(3);
-    } else if (line.startsWith('# ')) {
-      k = 'h1';
-      line = line.slice(2);
-    } else if (item) {
-      k = item[1][0] === '-' ? 'ul' : 'ol';
-      d = item[1].length - 1;
-      line = line.slice(item[0].length);
-    }
-    const runs = parseInline(line);
-    const blk: Block = d ? { k, runs, d } : { k, runs };
-    if (align) blk.a = align[1] as Align;
-    blocks.push(blk);
+export function serializeDoc(blocks: Block[]): string {
+  const out: TloBlock[] = [];
+  for (const blk of blocks) {
+    const text = serializeInline(blk.runs);
+    if (blk.k === 'e') {
+      const nl = blk.ref?.indexOf('\n') ?? -1;
+      if (nl > 0) out.push({ k: 'fence', lang: blk.ref!.slice(0, nl), body: blk.ref!.slice(nl + 1) });
+    } else if (blk.k === 'title') out.push({ k: 'h', level: 1, text, a: alignAttrs(blk.a, ['title']) });
+    else if (blk.k === 'h1' || blk.k === 'h2') out.push({ k: 'h', level: blk.k === 'h1' ? 1 : 2, text, ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
+    else if (blk.k === 'ul' || blk.k === 'ol') out.push({ k: 'li', depth: blk.d ?? 0, ...(blk.k === 'ol' ? { ord: true } : {}), text, ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
+    else out.push({ k: 'p', text: text || '<br>', ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
   }
-  return blocks;
+  // Trailing empty paragraphs say nothing.
+  while (out.length && out[out.length - 1].k === 'p' && (out[out.length - 1] as { text: string }).text === '<br>') out.pop();
+  return writeTlo({ head: {}, blocks: out }).trimEnd();
 }
 
 /** Plain-text length of a document, handy for word/char counts. */

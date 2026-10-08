@@ -7,7 +7,7 @@
  * of its own: shapes (diagram-shapes.ts), printed sheets
  * (diagram-sheets.ts) or a web page in a frame (diagram-page.ts).
  */
-import { LINK, DocElement, html, nothing, state, tool, btn, toast, appOf, makeRef, type TemplateResult } from '../kit.ts';
+import { DocElement, html, nothing, state, tool, btn, toast, appOf, hashOf, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import '../widgets/line-form.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
@@ -269,7 +269,7 @@ export class DiagramElement extends DocElement<string> {
 
   /** Open the picture in Draw, where its shapes can be moved about by hand. */
   private toDraw() {
-    location.hash = LINK + makeRef('draw', toDrawing(this.spec.layout!(this.doc)));
+    location.hash = hashOf('draw', toDrawing(this.spec.layout!(this.doc)));
   }
 
   connectedCallback() {

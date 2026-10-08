@@ -3,7 +3,7 @@ import { defineApp, utf8, wrap, text, xml, ACCENT, type Page } from '../kit/core
 import { parseInline, plainInline, type Run } from '../lib/richtext.ts';
 import { textPdf, type TextBlock } from '../kit/textpdf.ts';
 import { parseOutline, parseLinks, plainOutline, outlineToNet, toOpml, hasChildren, embedOf, type Dir, type Item } from '../lib/outlinemodel.ts';
-import { makeRef, refPage, resolve } from '../kit/embed.ts';
+import { hashOf, refPage, resolve } from '../kit/embed.ts';
 import { place, textWidth } from '../kit/core.ts';
 
 /** How each kind of line looks, drawn and said. */
@@ -121,11 +121,12 @@ export default defineApp({
  * plain text; an org chart takes it with each join as a dotted line; a
  * network takes every line, with its kind and name, and every join.
  */
+/** Where to go to see the outline as another app. */
 export function outlineAs(app: string, body: string): string {
   const items = parseOutline(body);
   const links = parseLinks(body);
-  if (app === 'net') return makeRef('net', outlineToNet(items, links, plainInline));
-  if (app === 'org') return makeRef('org', [plainOutline(items), ...links.map((l) => `${plainInline(l.from)} .. ${plainInline(l.to)}${l.label ? ': ' + l.label : ''}`)].filter(Boolean).join('\n'));
-  return makeRef(app, plainOutline(items));
+  if (app === 'net') return hashOf('net', outlineToNet(items, links, plainInline));
+  if (app === 'org') return hashOf('org', [plainOutline(items), ...links.map((l) => `${plainInline(l.from)} .. ${plainInline(l.to)}${l.label ? ': ' + l.label : ''}`)].filter(Boolean).join('\n'));
+  return hashOf(app, plainOutline(items));
 }
 export type { Item };
