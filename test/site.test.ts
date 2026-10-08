@@ -2,36 +2,37 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import '../src/apps/index.ts';
 import { appOf, pageScripts } from '../src/kit/core.ts';
-import { makeRef } from '../src/kit/embed.ts';
+import { hashOf, makeRef } from '../src/kit/embed.ts';
 import { specOf } from '../src/lib/diagram.ts';
 import { depths, headLevel, movePart, readLines, removePart, writeLines } from '../src/lib/lines.ts';
 import { fromMarkdown, toMarkdown } from '../src/lib/markdown.ts';
-import { mdToSite, parseSite, readSite, siteToMd } from '../src/lib/sitemodel.ts';
+import { parseSite, readSite } from '../src/lib/sitemodel.ts';
 import { EDIT_SCRIPT, PLACE_SCRIPT, editData, placeData } from '../src/lib/pageedit.ts';
 
 const spec = specOf('site')!;
 const def = appOf('site')!;
 const page = (text: string) => spec.page!(text);
+const fence = (ref: string) => '```' + ref + '\n```';
 
-const BIO = '# Ada Diaz\nhttps://example.com/ada.jpg\nPotter in Lisbon. Mugs, bowls, the odd lamp.\ntheme: rose serif\n> :shopping-bag Shop | https://example.com/shop\n> :instagram Instagram | https://instagram.com/ada\n> :mail Email me | mailto:ada@example.com';
+const BIO = 'theme: rose serif\n\n# Ada Diaz\n\nhttps://example.com/ada.jpg\nPotter in Lisbon. Mugs, bowls, the odd lamp.\n\n> :shopping-bag: Shop | https://example.com/shop\n> :instagram: Instagram | https://instagram.com/ada\n> :mail: Email me | mailto:ada@example.com';
 
-test('site: pages, sections, theme, pictures, icons, embeds and buttons are read from the lines', () => {
-  const ref = makeRef('sheet', 'Item\tCost\nRent\t1200');
-  const site = parseSite(`# Harbor\nOn the quay.\ntheme: Serif, dark teal\n:coffee\n> :mail Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n=== Menu ===\nEspresso.\n## Coffee\n- :coffee Espresso | 3.00\nhttps://example.com/beans.png\n@@${ref}\n===\nLast.`);
+test('site: pages, sections, theme, pictures, icons, embeds and buttons are read from the text', () => {
+  const ref = makeRef('sheet', 'Item | Cost\n--- | ---\nRent | 1200');
+  const site = parseSite(`theme: teal serif dark\n\n# Harbor\n\nOn the quay.\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n${fence(ref)}\n\n# Last\n\nLast.`);
   assert.equal(site.name, 'Harbor');
   assert.deepEqual(site.theme, { color: 'teal', serif: true, dark: true });
-  assert.deepEqual(site.pages.map((p) => p.title), ['', 'Menu', '']);
+  assert.deepEqual(site.pages.map((p) => p.title), ['', 'Menu', 'Last']);
   const [home, menu, last] = site.pages;
   assert.deepEqual(home.sections[0].text, ['On the quay.']);
   assert.equal(home.sections[0].icon, 'coffee');
   assert.deepEqual(home.sections[0].buttons, [{ icon: 'mail', label: 'Write', url: 'mailto:a@b.c' }, { icon: '', label: 'Menu', url: '#menu' }, { icon: '', label: 'Bad', url: '#' }]);
   assert.deepEqual(menu.sections.map((s) => s.title), ['', 'Coffee']);
-  assert.deepEqual(menu.sections[1].points, [':coffee Espresso | 3.00']);
+  assert.deepEqual(menu.sections[1].points, [{ icon: 'coffee', head: 'Espresso', detail: '3.00' }]);
   assert.deepEqual(menu.sections[1].pics, ['https://example.com/beans.png']);
   assert.deepEqual(menu.sections[1].embeds, [ref]);
   assert.deepEqual(last.sections[0].text, ['Last.']);
-  // A site of one page, as written before pages existed, reads as it did.
-  const one = parseSite('# A\nabout\n## B\n- x');
+  // A site of one page is navigated by its sections.
+  const one = parseSite('# A\n\nabout\n\n## B\n\n- x');
   assert.equal(one.pages.length, 1);
   assert.deepEqual(one.pages[0].sections.map((s) => s.title), ['', 'B']);
 });
@@ -55,15 +56,18 @@ test('site: the page has a nav of its pages, each a section switched by a fixed 
   assert.ok(pageScripts().includes(PLACE_SCRIPT.slice(8, -9)) && pageScripts().includes(EDIT_SCRIPT.slice(8, -9)));
   assert.match(placeData('#menu'), /^<script type="application\/json" id="lf-at">"#menu"<\/script>$/);
   assert.ok(editData([], [], '', [['menu', 8, 'Page']]).includes('"s":[["menu",8,"Page"]]'));
-  // Dark, and a site of one page keeps the nav of sections it always had.
-  const dark = page('# A\nabout\ntheme: ink dark\n## B\n- x\n## C');
+  // Dark, and a site of one page has a nav of its sections.
+  const dark = page('theme: ink dark\n\n# A\n\nabout\n\n## B\n\n- x\n\n## C');
   assert.ok(dark.includes('--a:#fafafa;--on:#18181b') && dark.includes('--bg:#18181b'));
   assert.ok(dark.includes('<nav aria-label="Sections"><a href="#b">B</a><a href="#c">C</a></nav>'));
   // A page and a section may share a name: the page keeps it.
-  const same = page('# A\n## Menu\n=== Menu\nx');
+  const same = page('# A\n\n## Menu\n\n# Menu\n\nx');
   assert.ok(same.includes('id="menu">\n<div class="hero top">') && same.includes('<section class="part" id="menu-2">'));
+  // Words are inline Markdown.
+  assert.ok(page('# A\n\nSome **bold** and [a link](https://x.y).').includes('<p>Some <strong>bold</strong> and <a href="https://x.y">a link</a>.</p>'));
   // Nothing typed can break out.
-  assert.ok(!page('# <script>alert(1)</script>\n=== </script><script>x\n> a | javascript:b').includes('<script>alert'));
+  assert.ok(!page('# <script>alert(1)</script>\n\n# </script><script>x\n\n> a | javascript:b\n\n[x](javascript:y)').includes('<script>alert'));
+  assert.ok(!page('[x](javascript:alert(1))').includes('href="javascript'));
   assert.ok(page('').startsWith('<!doctype html>'));
 });
 
@@ -83,32 +87,27 @@ test('site: a link-in-bio page is a picture, a line of words and a stack of butt
 });
 
 test('site: another document on a page, and the lines as the picture', () => {
-  const ref = makeRef('sheet', '!bar\nQ\tSales\nQ1\t120\nQ2\t180', 'Sales');
-  const html = spec.page!(`# A\n=== Numbers\n@@${ref}`, { base: 'https://example.com/' });
+  const ref = makeRef('sheet', 'Q | Sales\n--- | ---\nQ1 | 120\nQ2 | 180', 'Sales');
+  const text = `# A\n\n# Numbers\n\n${fence(ref)}`;
+  const html = spec.page!(text, { base: 'https://example.com/' });
   assert.ok(html.includes('<figure class="embed"><svg xmlns="http://www.w3.org/2000/svg"') && html.includes('aria-label="Sales"'));
   assert.ok(html.includes(`<figcaption><a href="https://example.com/#/v0/sheet/`) && html.includes('>Sales</a> <small>Sheet</small>'));
-  assert.deepEqual(def.outline(`# A\n=== Numbers\n@@${ref}`), ['A', 'Numbers', '↗  Sales']);
+  assert.deepEqual(def.outline(text), ['A', 'Numbers', '↗  Sales']);
+  assert.equal(def.view(text)[0].svg.includes('Numbers'), true);
 });
 
-test('site: Markdown out and back, and friendly input', () => {
-  const md = siteToMd(spec.example);
-  assert.ok(md.startsWith('# Harbor Coffee\n\n**Theme:** amber serif\n\nSmall-batch coffee'));
-  assert.ok(md.includes('\n- :coffee: Roasted daily | Never more than a week old\n') && md.includes('[See the menu](#menu)\n[Find us](#find-us)\n'));
-  assert.ok(md.includes('\n# Menu\n\nEspresso, filter') && md.includes('\n## Coffee\n\n- Espresso | 3.00\n') && md.includes('\n# Find us\n'));
-  assert.ok(md.includes('[Email us](mailto:hello@example.com)'));
-  // Back again, it is the same site.
-  assert.deepEqual(parseSite(mdToSite(md)), parseSite(spec.example));
-  assert.equal(toMarkdown(def, spec.example), md);
-  assert.deepEqual(parseSite(fromMarkdown(def, md)), parseSite(spec.example));
-  // A Markdown document with several "#" headings becomes that many pages.
-  assert.equal(mdToSite('# Ada\n\nHello.\n\n![me](https://x.y/me.jpg)\n\n[Shop](https://x.y/shop)\n\n# About\n\n## Now\n\n- :star: Potter'), '# Ada\nHello.\nhttps://x.y/me.jpg\n> Shop | https://x.y/shop\n=== About\n## Now\n- :star Potter');
-  const bio = siteToMd(BIO);
-  assert.ok(bio.includes('![](https://example.com/ada.jpg)') && bio.includes('[:mail: Email me](mailto:ada@example.com)'));
-  assert.deepEqual(parseSite(mdToSite(bio)), parseSite(BIO));
-  // read(): a whole link on a line is an embedded document; a Markdown link a button; a Markdown picture a picture.
-  const ref = makeRef('todo', '- a');
-  assert.equal(readSite(`# A\nhttps://tinylittleoffice.com/todo/#/v0/todo/${ref.slice(5)}\n[Shop](https://x.y)\n![](https://x.y/a.png)\n> kept | #a`), `# A\n@@${ref}\n> Shop | https://x.y\nhttps://x.y/a.png\n> kept | #a`);
+test('site: the text is its own Markdown, and Markdown as it is written comes in canonical', () => {
+  assert.equal(toMarkdown(def, spec.example), spec.example + '\n');
+  assert.equal(fromMarkdown(def, toMarkdown(def, spec.example)), spec.example);
   assert.equal(def.read!(spec.example), spec.example);
+  // Pages after "---" (one with no heading of its own is named), deeper headings as sections, links alone as buttons,
+  // pictures, a table as an embedded sheet, a whole TinyLittleOffice link as the document it holds.
+  const ref = makeRef('todo', '- a');
+  const link = `https://tinylittleoffice.com/todo/${hashOf('todo', '- a')}`;
+  assert.equal(
+    readSite(`# Ada\n\nHello.\ntheme: Serif, dark teal\n\n![me](https://x.y/me.jpg)\n\n[Shop](https://x.y/shop) {.button}\n[:mail: Mail](mailto:a@x.y)\n\n---\n\n# About\n\n### Now\n\n* :star: Potter\n\n---\n\n| Q | Sales |\n| --- | --- |\n| Q1 | 120 |\n\n${link}`),
+    `# Ada\n\nHello.\ntheme: teal serif dark\nhttps://x.y/me.jpg\n\n> Shop | https://x.y/shop\n> :mail: Mail | mailto:a@x.y\n\n# About\n\n## Now\n\n- :star: Potter\n\n# Page 3\n\n\`\`\`sheet\nQ | Sales\n--- | ---\nQ1 | 120\n\`\`\`\n\n${fence(ref)}`,
+  );
 });
 
 test('lines: headings of two kinds nest, and a part moves or goes with everything under it', () => {
@@ -117,20 +116,19 @@ test('lines: headings of two kinds nest, and a part moves or goes with everythin
   assert.equal(writeLines(rows, form), spec.example);
   const kind = (name: string) => form.findIndex((k) => k.name === name);
   assert.deepEqual([headLevel(form, kind('Page')), headLevel(form, kind('Section')), headLevel(form, kind('Card'))], [1, 2, 0]);
-  // The home page's lines sit at the top; a page's words one in; a section one more; its cards one more again.
-  assert.deepEqual(depths(rows, form), [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 2, 0, 1, 1]);
-  // Find us, moved earlier, goes before Menu with its words and button; Menu cannot go above the home page.
+  // Each page's lines sit one in; a section one in from its page; its cards one more again.
+  assert.deepEqual(depths(rows, form), [0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 2, 2, 1, 2, 0, 1, 1]);
+  // Find us, moved earlier, goes before Menu with its words and button.
   const moved = movePart(rows, form, 15, -1)!;
-  assert.equal(writeLines(moved, form).split('\n').slice(8, 12).join('\n'), '=== Find us\n14 Quay Street, open 7 to 3, every day but Monday.\n> Email us | mailto:hello@example.com\n=== Menu');
-  assert.equal(movePart(rows, form, 8, -1), null);
+  assert.equal(writeLines(moved, form).split('\n\n').slice(5, 9).join('\n\n'), '# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com\n\n# Menu');
   assert.equal(movePart(rows, form, 15, 1), null);
   assert.deepEqual(movePart(rows, form, 8, 1), moved);
   // A section moves past its neighbour within the page, not out of it.
-  assert.equal(writeLines(movePart(rows, form, 13, -1)!, form).split('\n').slice(10, 14).join('\n'), '## Pastry\n- Cardamom bun | 3.50\n## Coffee\n- Espresso | 3.00');
+  assert.equal(writeLines(movePart(rows, form, 13, -1)!, form).split('\n\n').slice(7, 11).join('\n\n'), '## Pastry\n\n- Cardamom bun | 3.50\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20');
   assert.equal(movePart(rows, form, 10, -1), null);
   // Removed, a page takes its sections with it.
-  assert.equal(writeLines(removePart(rows, form, 8), form), spec.example.split('\n').filter((_, i) => i < 8 || i >= 15).join('\n'));
-  // An app with one heading kind is as it was.
+  assert.equal(writeLines(removePart(rows, form, 8), form), spec.example.replace(/# Menu[\s\S]*?(?=# Find us)/, ''));
+  // An app with one heading kind: its rows sit one in under a section.
   const menu = specOf('menu')!.form!;
-  assert.deepEqual(depths(readLines('# Cafe\n## Coffee\nEspresso | 3.00\n## Tea', menu), menu), [0, 0, 1, 0]);
+  assert.deepEqual(depths(readLines('# Cafe\n\n## Coffee\n\nDish | Price\n--- | ---\nEspresso | 3.00\n\n## Tea', menu), menu), [0, 0, 1, 0]);
 });

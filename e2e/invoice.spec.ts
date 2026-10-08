@@ -35,7 +35,7 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   await shot(page, 'invoice-edit');
   // A shortcut pressed in the page is the editor's.
   await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Invoice, as text' })).toHaveValue('From: Harbor Studio | 14 Quay Street\nDesign, 12 hours, 150');
+  await expect(page.getByRole('textbox', { name: 'Invoice, as text' })).toHaveValue('From: Harbor Studio | 14 Quay Street\n\nWhat | Qty:number | Units | Price:number\n--- | --- | --- | ---\nDesign | 12 | hours | 150');
 });
 
 // The PDF is drawn on a canvas, and downloaded: a real browser's.
@@ -80,8 +80,8 @@ test('invoice: lines are added under the lines, the cursor stays where it is put
   await f.getByRole('textbox', { name: 'What, row 7' }).click();
   await expect.poll(() => page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body)).toContain('Due: 2027-04-15');
   const body = await page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body);
-  expect(body).toContain('Review, 1, 10');
-  expect(body).toContain(', 1 days, 10');
+  expect(body).toContain('\nReview | 1 |  | 10\n');
+  expect(body).toContain(' | 1 | days | 10\n');
   // Each line has a button to take it away.
   const before = await lines.count();
   await f.getByRole('button', { name: 'Remove the line Review' }).click();

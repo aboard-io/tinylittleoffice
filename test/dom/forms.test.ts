@@ -106,14 +106,14 @@ test('a menu is made by filling in a form; what is saved is the text', async () 
   shortcut('t', { mod: true, shift: true });
   await settle(el);
   const area = box(el, 'Menu, as text') as unknown as HTMLTextAreaElement;
-  expect(area.value).toBe('# Harbor Coffee\n## Coffee\nFlat white | 4.20');
-  type(area, '# Harbor Coffee\n## Coffee\nFlat white | 4.20\nFilter | 3.50 | Ask what is on');
+  expect(area.value).toBe('# Harbor Coffee\n\n## Coffee\n\nDish | Price:number | About\n--- | --- | ---\nFlat white | 4.20 |');
+  type(area, '# Harbor Coffee\n\n## Coffee\n\nDish | Price:number | About\n--- | --- | ---\nFlat white | 4.20 |\nFilter | 3.50 | Ask what is on');
   await settleAll();
   await reopen();
   const again = editorOf('menu');
   button(again, 'Edit as a form').click();
   await settle(again);
-  expect(box(again, 'What it is, row 4')!.value).toBe('Ask what is on');
+  expect(box(again, 'About, row 4')!.value).toBe('Ask what is on');
   // Undo works on the form as on anything.
   type(box(again, 'Price, row 4'), '9');
   await settleAll();
@@ -170,8 +170,8 @@ test('forms: a model of sliders and flows, and an invoice filled in from its exa
   const form = lines(inv.el);
   expect(box(form, 'Who it is from, row 1')!.value).toBe('Harbor Studio | 14 Quay Street');
   expect(form.querySelector<HTMLInputElement>('input[type="date"]')!.value).toBe('2027-03-01');
-  expect(box(form, 'Quantity, row 7')!.value).toBe('12');
-  type(box(form, 'Quantity, row 7'), '10');
+  expect(box(form, 'Qty, row 7')!.value).toBe('12');
+  type(box(form, 'Qty, row 7'), '10');
   await settle(inv.el);
   expect([...framed(inv.el).page().querySelectorAll('tfoot tr')].at(-1)!.textContent).toContain('$5,162.40');
 });

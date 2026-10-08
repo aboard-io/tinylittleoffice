@@ -517,7 +517,10 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
   const store = specOf('store')!.page!(specOf('store')!.example);
   assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
   // Nothing typed into a page can break out of it.
-  assert.ok(!specOf('store')!.page!('# <script>alert(1)</script>\nx | 1 | </script><script>alert(2)</script>').includes('<script>alert'));
+  assert.ok(!specOf('store')!.page!('# <script>alert(1)</script>\n\nName | Price | About\n--- | --- | ---\nx | 1 | </script><script>alert(2)</script>').includes('<script>alert'));
+  // A shop written loosely (a list of products, another table) comes in as the table.
+  assert.equal(appOf('store')!.read!('# Shop\nBeans.\n- House blend | 12.50 | Good\n\n| Product | Cost |\n|---|---|\n| Mug | 9 |'), '# Shop\n\nBeans.\n\nName | Price:number | About | Image\n--- | --- | --- | ---\nHouse blend | 12.50 | Good | \nMug | 9 |  |');
+  assert.equal(appOf('store')!.read!(specOf('store')!.example), specOf('store')!.example);
   const { parseInvoice } = await import('../src/apps/invoice.def.ts');
   const inv = parseInvoice(specOf('invoice')!.example);
   assert.deepEqual([inv.items.length, inv.subtotal, inv.tax, inv.total], [3, 5080, 406.4, 5486.4]);
@@ -528,34 +531,35 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
 
 test('invoice: the sums, and the page that is its editor', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  const { parseInvoice } = await import('../src/apps/invoice.def.ts');
-  const { readLines, kindsOf } = await import('../src/lib/lines.ts');
+  const { parseInvoice, readInvoice } = await import('../src/apps/invoice.def.ts');
   const spec = specOf('invoice')!;
-  // "what, price" is one of them; a note with a comma and no number is a note; tax and currency apply to the lot.
-  const inv = parseInvoice('Currency: £\nTax: 20\nDesign, 2, 150.5\nHosting, 480\nThanks, pay soon\n\nNet 30');
+  // Written loosely: the settings in a header or as lines (bold or not); "what, price" is one of them; a note with a
+  // comma and no number is a note. Read, it is the settings, the items as a table and the notes.
+  const text = readInvoice('---\ncurrency: £\n---\n**Tax:** 20\nDesign, 2, 150.5\nThanks, pay soon\nHosting, 480\n\nNet 30');
+  assert.equal(text, 'Currency: £\nTax: 20\n\nWhat | Qty:number | Units | Price:number\n--- | --- | --- | ---\nDesign | 2 |  | 150.5\nHosting | 1 |  | 480\n\nThanks, pay soon\nNet 30');
+  assert.equal(readInvoice(text), text);
+  assert.equal(readInvoice(spec.example), spec.example);
+  // Tax and currency apply to the lot.
+  const inv = parseInvoice(text);
   assert.deepEqual(inv.items, [{ what: 'Design', qty: 2, unit: '', price: 150.5 }, { what: 'Hosting', qty: 1, unit: '', price: 480 }]);
   assert.deepEqual([inv.subtotal, inv.tax, inv.total, inv.money(inv.total)], [781, 156.2, 937.2, '£937.20']);
   assert.deepEqual(inv.notes, ['Thanks, pay soon', 'Net 30']);
-  assert.equal(parseInvoice('Credit, 1, -20').money(parseInvoice('Credit, 1, -20').total), '-$20.00');
+  assert.equal(parseInvoice(readInvoice('Credit, 1, -20')).money(parseInvoice(readInvoice('Credit, 1, -20')).total), '-$20.00');
   assert.equal(parseInvoice('').total, 0);
-  // Each part knows its row of the text (blank lines not counted), which is where the page writes it back.
+  // Each part knows its row of the form, which is where the page writes it back.
   assert.deepEqual(inv.rows, { fields: { currency: 0, tax: 1 }, items: [2, 3], notes: [4, 5] });
-  // The form reads the same lines the same way: a price is a number, so "Thanks, pay soon" is not a thing with a price.
-  const names = readLines('Design, 2, 150.5\nHosting, 480\nThanks, pay soon\na, b, 2, 3', spec.form!).map((r) => kindsOf(spec.form!).kinds[r.kind].name);
-  assert.deepEqual(names, ['Item', 'Single item', 'Note', 'Item']);
-  assert.deepEqual(readLines('a, b, 2, 3', spec.form!)[0].values, ['a, b', '2', '', '3']);
-  // A quantity may carry its units.
-  assert.deepEqual(readLines('Design, 12 hours, 150', spec.form!)[0].values, ['Design', '12', 'hours', '150']);
-  assert.equal(parseInvoice('Design, 12 hours, 150').items[0].unit, 'hours');
+  // A quantity may carry its units; a table may name its columns otherwise, and put them in another order.
+  assert.equal(parseInvoice(readInvoice('Design, 12 hours, 150')).items[0].unit, 'hours');
+  assert.deepEqual(parseInvoice(readInvoice('| Description | Rate | Quantity |\n|---|---|---|\n| Build | 140 | 20 days |')).items, [{ what: 'Build', qty: 20, unit: 'days', price: 140 }]);
   // The page as it is read has no marks; edited, every field is marked with its row, a hint where it is empty.
   const plain = spec.page!(spec.example);
   assert.ok(!plain.includes('data-lf') && !plain.includes('data-inv'));
   const edit = spec.page!(spec.example, { edit: true });
   assert.ok(edit.includes('data-lf="2,0"') && edit.includes('>0042</span>'), 'the number is row 2');
   assert.ok(edit.includes('data-lf="0,0,0" data-hint="Your name"') && edit.includes('data-lf="0,0,1"') && edit.includes('data-lf="0,0,2" data-hint="Another line"'), 'an address is lines, with one more to type into');
-  assert.ok(edit.includes('data-lf="6,1"') && edit.includes('data-lf="6,2"') && edit.includes('data-inv="qty"'), 'an item\'s quantity and price');
-  assert.ok(edit.includes('data-lf="8,1"') && !edit.includes('data-lf="8,2"'), 'a single item has a price and no quantity to type');
-  assert.ok(edit.includes('data-lf="+7,0" data-hint="Payment terms"') && edit.includes('data-lf="+10,0"'), 'a field not written yet is a hint of its kind');
+  assert.ok(edit.includes('data-lf="6,1"') && edit.includes('data-lf="6,2"') && edit.includes('data-lf="6,3"') && edit.includes('data-inv="qty"'), 'an item\'s quantity, units and price');
+  assert.ok(edit.includes('data-lf="8,1"') && edit.includes('>1</span>'), 'one of something has its quantity to type');
+  assert.ok(edit.includes('data-lf="+7,0" data-hint="Payment terms"') && edit.includes('data-lf="+9,0"'), 'a field not written yet is a hint of its kind');
   assert.ok(edit.includes('data-lf-add="8" data-lf-after="8"') && edit.includes('data-lf-remove="6"'));
   assert.ok(edit.includes('data-inv="total">$5,486.40<'));
   // Empty, it is all hints, and still the invoice.
@@ -672,7 +676,7 @@ test('things to print: text in, letter sheets out', async () => {
   assert.equal(appOf('recipes')!.view(pages('## A\n\nx', '## B\n\ny', '## C\n\nz')).length, 2);
   // The menu: dishes and their prices; a long one is shrunk onto the page rather than run off it.
   assert.ok(svg('menu').includes('>Flat white</text>') && svg('menu').includes('>4.20</text>') && svg('menu').includes('>COFFEE</text>'));
-  const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
+  const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n\nDish | Price | About\n--- | --- | ---\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
   assert.ok(+long[2] <= 1056 - 2 * 84 + 1 && +long[1] < 624);
   assert.ok(svg('resume').includes('Ada Lovelace') && svg('resume').includes('Experience'));
   // The comic: a zine whose pages are panels with bubbles and captions, a bullet each. Written loosely, it reads as one.
@@ -864,13 +868,14 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   assert.ok(forms >= 28, String(forms));
 
   const menu = specOf('menu')!.form!;
-  const rows = readLines('# Cafe\n## Coffee\nEspresso|3.00 | Dark\nFlat white | 4.20\nOpen daily', menu);
+  // A table's rows are read by its column names, in whatever order.
+  const rows = readLines('# Cafe\n## Coffee\n\nPrice | Dish | About\n--- | --- | ---\n3.00 | Espresso | Dark\n4.20 | Flat white\n\nOpen daily', menu);
   assert.deepEqual(rows.map((r) => [menu[r.kind].name, ...r.values]), [['Name', 'Cafe'], ['Section', 'Coffee'], ['Dish', 'Espresso', '3.00', 'Dark'], ['Dish', 'Flat white', '4.20', ''], ['Line', 'Open daily']]);
-  assert.deepEqual(fieldsOf(menu, 2).map((f) => f.name), ['Dish', 'Price', 'What it is']);
-  // Written tidily; a part with nothing in it is left out; a row with nothing in it is not written at all.
+  assert.deepEqual(fieldsOf(menu, 2).map((f) => f.name), ['Dish', 'Price', 'About']);
+  // Written tidily, a table with its columns typed; a row with nothing in it is not written at all.
   rows[3].values[2] = 'Smooth';
   rows.push({ kind: 2, values: ['', '', ''], depth: 0 }, { kind: 1, values: ['Tea'], depth: 0 });
-  assert.equal(writeLines(rows, menu), '# Cafe\n## Coffee\nEspresso | 3.00 | Dark\nFlat white | 4.20 | Smooth\nOpen daily\n## Tea');
+  assert.equal(writeLines(rows, menu), '# Cafe\n\n## Coffee\n\nDish | Price:number | About\n--- | --- | ---\nEspresso | 3.00 | Dark\nFlat white | 4.20 | Smooth\n\nOpen daily\n\n## Tea');
   // Outlines keep their depth; an answer is a line under a question.
   const org = specOf('org')!.form!;
   assert.deepEqual(readLines('- Ada | CEO\n  - :wrench Ben\n    - Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
@@ -913,11 +918,12 @@ test('outlines: rows move with what is under them; an org chart has dotted lines
   assert.equal(after(removeRow(rows, org, 1)), '- Ada\n  - Cy\n  - Eve\n- Flo');
   // A section and its items are an outline too, though the text does not indent them.
   const menu = specOf('menu')!.form!;
-  const m = readLines('# Cafe\n## Coffee\nEspresso | 3\nFilter | 3\n## Food\nBun | 4', menu);
+  const dishes = (...r: string[]) => `Dish | Price:number | About\n--- | --- | ---\n${r.join('\n')}`;
+  const m = readLines(`# Cafe\n\n## Coffee\n\n${dishes('Espresso | 3 | Dark', 'Filter | 3 | Light')}\n\n## Food\n\n${dishes('Bun | 4 | Warm')}`, menu);
   assert.deepEqual(depths(m, menu), [0, 0, 1, 1, 0, 1]);
-  assert.equal(writeLines(moveBlock(m, menu, 1, 1)![0], menu), '# Cafe\n## Food\nBun | 4\n## Coffee\nEspresso | 3\nFilter | 3');
+  assert.equal(writeLines(moveBlock(m, menu, 1, 1)![0], menu), `# Cafe\n\n## Food\n\n${dishes('Bun | 4 | Warm')}\n\n## Coffee\n\n${dishes('Espresso | 3 | Dark', 'Filter | 3 | Light')}`);
   // An item at the end of its section steps into the next one.
-  assert.equal(writeLines(moveBlock(m, menu, 3, 1)![0], menu), '# Cafe\n## Coffee\nEspresso | 3\n## Food\nFilter | 3\nBun | 4');
+  assert.equal(writeLines(moveBlock(m, menu, 3, 1)![0], menu), `# Cafe\n\n## Coffee\n\n${dishes('Espresso | 3 | Dark')}\n\n## Food\n\n${dishes('Filter | 3 | Light', 'Bun | 4 | Warm')}`);
 
   // Dotted lines: between two people, by name, whatever their role or picture.
   const chart = specOf('org')!.layout!('- Ada | CEO\n  - :wrench Ben | Eng\n  - Eve\n\n~ ben -- Eve: advises\n~ Ben -- Nobody');
@@ -1113,6 +1119,8 @@ test('markdown, both ways, for every app', async () => {
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\nSome __bold__ text.\n\n* a\n    * b\n+ c\n\n1) one\n2) two'), '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n- c\n1. one\n2. two');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), '## Doing {limit=2}\n\n- x\n- y');
+  assert.equal(toMarkdown(appOf('menu')!, specOf('menu')!.example), specOf('menu')!.example + '\n');
+  assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n### Coffee\n\n| Item | Description | Price |\n|---|---|---|\n| Flat white | Smooth | 4.20 |\n\n- Tea | 3'), '# Cafe\n\n## Coffee\n\nDish | Price:number | About\n--- | --- | ---\nFlat white | 4.20 | Smooth\nTea | 3 |');
 });
 
 test('CSV imports as a table into any app that takes one', () => {
@@ -1124,7 +1132,7 @@ test('CSV imports as a table into any app that takes one', () => {
   assert.equal(fromMarkdown(appOf('sheet')!, 'Item,Cost\nRent,"1,200"\nFood,600'), 'Item | Cost\n--- | ---\nRent | 1,200\nFood | 600');
   assert.equal(csvToMd('Item,Cost\nRent,"$1,200"'), 'Item | Cost\n--- | ---\nRent | $1,200\n');
   assert.equal(appOf('sheet')!.read!('Item\tCost\nRent\t$1,200'), 'Item | Cost:money\n--- | ---\nRent | $1,200');
-  assert.equal(fromMarkdown(appOf('menu')!, 'Dish,Price,What it is\nFlat white,4.20,Smooth'), 'Flat white | 4.20 | Smooth');
+  assert.equal(fromMarkdown(appOf('menu')!, 'Dish,Price,About\nFlat white,4.20,Smooth'), 'Dish | Price:number | About\n--- | --- | ---\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%'), fromMarkdown(appOf('gantt')!, '| Task | Start | Days | Done |\n|---|---|---|---|\n| Design | 2026-10-06 | 5 | 20% |'));
   assert.ok(appOf('gantt')!.outline(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%')).join(' ').includes('Design'));
 });

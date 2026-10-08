@@ -1,14 +1,15 @@
 /**
- * A website as a few lines of text: "# Name" and a line about it, then
- * "=== Title" for each further page, "## Section" within a page,
- * "- Point | detail" cards, "> Label | url" buttons, "@@app/payload" for
- * another document on the page, "theme: amber serif dark" for the look.
- * A line that is only a picture's address is a picture; a line that is
- * only ":icon-name" is a big icon. The home page is whatever comes before
- * the first "===".
+ * A website as TLO text (lib/tlo.ts): "# Name" and a line about it are the
+ * home page; each further "# Title" starts another page (a "---" before it,
+ * as a break, is welcome); "## Section" is a part of a page;
+ * "- Point | detail" a card; "> Label | url" a button; a fenced document
+ * another document on the page; "theme: amber serif dark" the look. A line
+ * that is only a picture's address is a picture; a line that is only
+ * ":icon-name:" a big icon.
  */
+import { readLines, writeLines, kindsOf, type Kind } from './lines.ts';
+import { parse as parseTlo, write as writeTlo, writeBlock, type Block } from './tlo.ts';
 import { linkToRef, resolve } from '../kit/embed.ts';
-import { iconOf } from './drawmodel.ts';
 
 export interface Button {
   icon: string;
@@ -16,10 +17,16 @@ export interface Button {
   url: string;
 }
 
+export interface Card {
+  icon: string;
+  head: string;
+  detail: string;
+}
+
 export interface Section {
   title: string;
   text: string[];
-  points: string[];
+  points: Card[];
   buttons: Button[];
   pics: string[];
   icon: string;
@@ -48,13 +55,24 @@ export interface Site {
   pages: Page[];
 }
 
+/** The kinds of line a site is made of: what its form, and the page edited in place, are built from. */
+export const FORM: Kind[] = [
+  { name: 'Page', is: '# {Title}', head: true },
+  { name: 'Theme', is: `theme: {Colour:choice=${COLORS.join(',')}}[ {Type:choice=sans,serif}][ {Mode:choice=light,dark}]`, once: true },
+  { name: 'Section', is: '## {Section}', head: true },
+  { name: 'Card', is: '- [:{Picture:icon}: ]{Heading}[ | {Detail}]' },
+  { name: 'Button', is: '> [:{Picture:icon}: ]{Label} | {Link}' },
+  { name: 'Document', is: '@@{Link}' },
+  { name: 'Paragraph', is: '{Text:long}' },
+];
+
 const section = (title = ''): Section => ({ title, text: [], points: [], buttons: [], pics: [], icon: '', embeds: [] });
 const page = (title = ''): Page => ({ title, sections: [section()] });
 
 /** A line that is only a picture's address. */
 export const isPicture = (s: string) => /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg|avif)(\?\S*)?$/i.test(s);
 /** Where a button may go: out to the web, to mail, or to a page or section of the site. */
-const safeUrl = (url: string) => (/^(https?:|mailto:|tel:|#)/.test(url) ? url : '#');
+export const safeUrl = (url: string) => (/^(https?:|mailto:|tel:|#)/.test(url) ? url : '#');
 
 /** "theme: amber serif dark": a colour, a type, a mode, any of them, in any order. */
 export function parseTheme(words: string, into: Theme = { color: 'indigo', serif: false, dark: false }): Theme {
@@ -69,92 +87,95 @@ export const themeWords = (t: Theme) => [t.color, t.serif ? 'serif' : '', t.dark
 
 export function parseSite(text: string): Site {
   const site: Site = { name: '', theme: { color: 'indigo', serif: false, dark: false }, pages: [page()] };
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    if (!line) continue;
+  const { kinds } = kindsOf(FORM);
+  let named = false;
+  for (const { kind, values: v } of readLines(text, FORM)) {
     const last = site.pages[site.pages.length - 1];
     const cur = last.sections[last.sections.length - 1];
-    const np = /^===+\s*(.*?)\s*=*$/.exec(line);
-    if (line.startsWith('# ') && !site.name) site.name = line.slice(2).trim();
-    else if (np) site.pages.push(page(np[1]));
-    else if (line.startsWith('## ')) last.sections.push(section(line.slice(3).trim()));
-    else if (/^theme:/i.test(line)) parseTheme(line.slice(6), site.theme);
-    else if (/^[-*] /.test(line)) cur.points.push(line.slice(2).trim());
-    else if (line.startsWith('> ')) {
-      const [label, url] = line.slice(2).split('|').map((p) => p.trim());
-      const [icon, words] = iconOf(label);
-      cur.buttons.push({ icon, label: words, url: safeUrl(url ?? '') });
-    } else if (line.startsWith('@@')) cur.embeds.push(line.slice(2).trim());
-    else if (isPicture(line)) cur.pics.push(line);
-    else if (/^:[a-z0-9-]+$/.test(line)) cur.icon = line.slice(1);
-    else cur.text.push(line);
+    const line = v[0]?.trim() ?? '';
+    switch (kinds[kind].name) {
+      case 'Page':
+        // The first is the site's name, over the home page.
+        if (named) site.pages.push(page(line));
+        else (site.name = line), (named = true);
+        break;
+      case 'Theme':
+        parseTheme(v.join(' '), site.theme);
+        break;
+      case 'Section':
+        last.sections.push(section(line));
+        break;
+      case 'Card':
+        cur.points.push({ icon: v[0], head: v[1], detail: v[2] });
+        break;
+      case 'Button':
+        cur.buttons.push({ icon: v[0], label: v[1], url: safeUrl(v[2]) });
+        break;
+      case 'Document':
+        cur.embeds.push(v[0]);
+        break;
+      default:
+        if (isPicture(line)) cur.pics.push(line);
+        else if (/^:[a-z0-9-]+:$/.test(line)) cur.icon = line.slice(1, -1);
+        else if (line) cur.text.push(line);
+    }
   }
   return site;
+}
+
+/** The site's lines as words: the name, each page and section, each card, each embedded document by its name. */
+export function siteOutline(text: string): string[] {
+  const site = parseSite(text);
+  return site.pages.flatMap((p, i) => [
+    ...(i ? [p.title] : site.name ? [site.name] : []),
+    ...p.sections.flatMap((s) => [...(s.title ? [s.title] : []), ...s.text, ...s.points.map((c) => c.head), ...s.embeds.map((e) => `↗  ${resolve(e).title}`)]),
+  ]);
 }
 
 /* ---------- friendly input ---------- */
 
 /**
- * Text written by hand, made into the format: a whole TinyLittleOffice link on a
- * line becomes "@@app/payload", a Markdown link "[Label](url)" on a line of
- * its own a button, a Markdown picture "![alt](url)" a picture. Lines
- * already in the format pass through.
+ * Markdown as a person or a model writes a site, made canonical: a "---"
+ * with no "# Title" after it gets one; deeper headings are sections; a link
+ * alone on a line ("[Label](url)", "{.button}" or not) is a button; a
+ * picture "![alt](url)" a picture; a whole TinyLittleOffice link on a line
+ * the document it holds; a table an embedded sheet; "theme" in the header
+ * the look.
  */
 export function readSite(text: string): string {
-  return text
-    .split('\n')
-    .map((raw) => {
-      const line = raw.trim();
-      const ref = linkToRef(line);
-      if (ref) return '@@' + ref;
-      const pic = /^!\[[^\]]*\]\(([^)\s]+)\)$/.exec(line);
-      if (pic) return pic[1];
-      const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(line);
-      if (link) return `> ${link[1]} | ${link[2]}`;
-      return raw;
-    })
-    .join('\n');
-}
-
-/* ---------- Markdown ---------- */
-
-/** The site as Markdown: "# Name", the home page, then each page as "# Title" with its "## Section"s. */
-export function siteToMd(text: string): string {
-  const site = parseSite(text);
-  const out: string[] = [];
-  const part = (s: Section) => {
-    if (s.title) out.push(`## ${s.title}`, '');
-    if (s.icon) out.push(`:${s.icon}:`, '');
-    for (const p of s.pics) out.push(`![](${p})`, '');
-    for (const t of s.text) out.push(t, '');
-    if (s.points.length) out.push(...s.points.map((p) => `- ${(([icon, words]) => (icon ? `:${icon}: ${words}` : words))(iconOf(p))}`), '');
-    for (const e of s.embeds) out.push(`[${resolve(e).title}](${resolve(e).hash})`, '');
-    if (s.buttons.length) out.push(...s.buttons.map((b) => `[${b.icon ? `:${b.icon}: ` : ''}${b.label}](${b.url})`), '');
+  const doc = parseTlo(text);
+  const out: Block[] = [];
+  const line = (t: string) => out.push({ k: 'p', text: t });
+  const embed = (url: string) => {
+    const ref = linkToRef(url);
+    if (!ref) return false;
+    const nl = ref.indexOf('\n');
+    out.push({ k: 'fence', lang: ref.slice(0, nl), body: ref.slice(nl + 1) });
+    return true;
   };
-  site.pages.forEach((p, i) => {
-    out.push(`# ${i ? p.title || `Page ${i + 1}` : site.name || 'My site'}`, '');
-    if (!i && (site.theme.color !== 'indigo' || site.theme.serif || site.theme.dark)) out.push(`**Theme:** ${themeWords(site.theme)}`, '');
-    p.sections.forEach(part);
-  });
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  if (doc.head.theme) line(`theme: ${themeWords(parseTheme(doc.head.theme))}`);
+  let broke = false;
+  for (const b of doc.blocks) {
+    if (b.k === 'hr') {
+      broke = true;
+      continue;
+    }
+    if (broke && !(b.k === 'h' && b.level === 1)) out.push({ k: 'h', level: 1, text: `Page ${out.filter((o) => o.k === 'h' && o.level === 1).length + 1}` });
+    broke = false;
+    if (b.k === 'h') out.push({ k: 'h', level: Math.min(b.level, 2), text: b.text });
+    else if (b.k === 'img') embed(b.url) || line(b.url);
+    else if (b.k === 'table') out.push({ k: 'fence', lang: 'sheet', body: writeBlock(b) });
+    else if (b.k === 'li') out.push({ k: 'li', depth: 0, text: b.text });
+    else if (b.k === 'p')
+      for (const l of b.text.split('\n').map((l) => l.trim())) {
+        const link = /^\[((?::[a-z0-9-]+:\s*)?)([^\]]+)\]\(([^)\s]+)\)(?:\s*\{\.button\})?$/.exec(l);
+        const theme = /^theme:\s*(.*)$/i.exec(l);
+        if (link) out.push({ k: 'quote', text: `${link[1]}${link[2].trim()} | ${link[3]}` });
+        else if (theme) line(`theme: ${themeWords(parseTheme(theme[1]))}`);
+        else if (!embed(l)) line(l);
+      }
+    else out.push(b);
+  }
+  return writeLines(readLines(writeTlo({ head: {}, blocks: out }), FORM), FORM);
 }
 
-/** Markdown as a site: the first "#" is the name, each further "#" a page, "##" a section; lists are cards, links on a line of their own buttons. */
-export function mdToSite(md: string): string {
-  const out: string[] = [];
-  let named = false;
-  for (const raw of md.split('\n')) {
-    const line = raw.trim();
-    if (!line || /^(-{3,}|\*{3,})$/.test(line)) continue;
-    const h = /^(#{1,6})\s+(.*)$/.exec(line);
-    const li = /^[-*+]\s+(.*)$/.exec(line) ?? /^\d+[.)]\s+(.*)$/.exec(line);
-    const theme = /^\*\*theme:\*\*\s*(.*)$/i.exec(line);
-    if (h && h[1].length === 1 && !named) (out.push(`# ${h[2]}`), (named = true));
-    else if (h && h[1].length === 1) out.push(`=== ${h[2]}`);
-    else if (h) out.push(`## ${h[2]}`);
-    else if (theme) out.push(`theme: ${themeWords(parseTheme(theme[1]))}`);
-    else if (li) out.push(`- ${li[1].replace(/^:([a-z0-9-]+):\s*/, ':$1 ')}`);
-    else out.push(readSite(line).replace(/^> :([a-z0-9-]+):\s*/, '> :$1 '));
-  }
-  return out.join('\n');
-}
