@@ -1,142 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { shot, reopen, navTo, pickOption } from './helpers';
+import { shot, reopen, navTo } from './helpers';
 
-test('todo: add, tick, star, date, filter and clear', async ({ page }) => {
-  await page.goto('/#/v0/todo');
-  const add = page.getByRole('textbox', { name: 'New task' });
-  for (const t of ['Book flights', 'Renew passport', 'Pack']) {
-    await add.fill(t);
-    await page.keyboard.press('Enter');
-  }
-  const rows = page.locator('.todo-list li');
-  await expect(rows).toHaveCount(3);
-  await rows.nth(0).locator('sl-checkbox').click();
-  await rows.nth(1).getByRole('button', { name: 'Star' }).click();
-  await rows.nth(1).getByLabel('Due date').fill('2027-03-01');
-  await rows.nth(2).getByRole('button', { name: 'Move up' }).click();
-  await expect(page.locator('.to-toolbar .to-hint')).toHaveText('1 / 3');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/todo\/[WYZR]/);
-
-  await reopen(page);
-  await expect(rows).toHaveCount(3);
-  await expect(rows.nth(0)).toHaveClass(/done/);
-  await expect(page.getByRole('textbox', { name: 'Task 2' })).toHaveValue('Pack');
-  await expect(rows.nth(2).getByLabel('Due date')).toHaveValue('2027-03-01');
-  await expect(rows.nth(2).getByRole('button', { name: 'Star' })).toHaveAttribute('aria-pressed', 'true');
-  await shot(page, 'todo');
-
-  await page.locator('sl-select[label="Show"]').click();
-  await page.locator('sl-select[label="Show"] sl-option[value="done"]').click();
-  await expect(rows).toHaveCount(1);
-  await page.getByRole('button', { name: 'Clear done' }).click();
-  await expect(rows).toHaveCount(0);
-  await expect(page.locator('.to-toolbar .to-hint')).toHaveText('0 / 2');
-});
-
-test('board: stages, cards, limits and moving work along', async ({ page, isMobile }) => {
-  await page.goto('/#/v0/board');
-  const cols = page.locator('.board-col');
-  await expect(cols).toHaveCount(3);
-  const addTo = (name: string) => page.getByRole('textbox', { name: `Add a card to ${name}` });
-  await addTo('To do').fill('Write the brief');
-  await page.keyboard.press('Enter');
-  await addTo('To do').fill('Design the page');
-  await page.keyboard.press('Enter');
-  await expect(cols.nth(0).locator('.board-card')).toHaveCount(2);
-
-  // The arrows move a card to the next stage.
-  await cols.nth(0).locator('.board-card').nth(0).getByRole('button', { name: 'Move to next stage' }).click();
-  await expect(cols.nth(1).locator('.board-card textarea')).toHaveValue('Write the brief');
-
-  // Stages can be renamed, added and given a limit.
-  await cols.nth(1).getByRole('textbox', { name: 'Stage name' }).fill('In progress');
-  await page.getByRole('button', { name: 'Stage', exact: true }).click();
-  await expect(cols).toHaveCount(4);
-  await page.keyboard.type('Review');
-  await page.getByRole('button', { name: 'Stage options: To do' }).click();
-  await page.getByRole('menuitemcheckbox', { name: '1', exact: true }).click();
-  await addTo('To do').fill('One too many');
-  await page.keyboard.press('Enter');
-  await expect(cols.nth(0)).toHaveClass(/full/);
-  await expect(cols.nth(0).locator('.count')).toHaveText('2 / 1');
-
-  await reopen(page);
-  await expect(cols).toHaveCount(4);
-  await expect(cols.nth(1).getByRole('textbox', { name: 'Stage name' })).toHaveValue('In progress');
-  await expect(cols.nth(3).getByRole('textbox', { name: 'Stage name' })).toHaveValue('Review');
-  await expect(cols.nth(1).locator('.board-card')).toHaveCount(1);
-  await expect(cols.nth(0)).toHaveClass(/full/);
-  await shot(page, 'board');
-
-  // Drag and drop between stages (a mouse thing; on touch screens the arrows do it).
-  if (isMobile) return;
-  await cols.nth(0).locator('.board-card').nth(0).dragTo(cols.nth(2));
-  await expect(cols.nth(2).locator('.board-card textarea')).toHaveValue('Design the page');
-  await expect(cols.nth(0)).not.toHaveClass(/full/);
-});
-
-test('gantt: tasks, dates and dragging bars', async ({ page }) => {
-  await page.goto('/#/v0/gantt');
-  await page.getByRole('button', { name: 'Task', exact: true }).click();
-  await page.keyboard.type('Design');
-  await page.getByLabel('Start of task 1').fill('2027-03-01');
-  await page.getByLabel('Days for task 1').fill('5');
-  await page.getByLabel('Days for task 1').press('Tab');
-  await page.getByRole('button', { name: 'Task', exact: true }).click();
-  await page.keyboard.type('Build');
-  // A new task starts where the last one ends.
-  await expect(page.getByLabel('Start of task 2')).toHaveValue('2027-03-06');
-  await page.getByLabel('Percent done for task 1').fill('50');
-  await page.getByLabel('Percent done for task 1').press('Tab');
-  const bars = page.locator('.gantt-chart .bar');
-  await expect(bars).toHaveCount(2);
-  // Return adds the next task right below, ready to type; it starts where this one ends.
-  await page.getByRole('textbox', { name: 'Task 1', exact: true }).focus();
-  await page.keyboard.press('Enter');
-  await expect(bars).toHaveCount(3);
-  await expect(page.getByRole('textbox', { name: 'Task 2', exact: true })).toBeFocused();
-  await expect(page.getByLabel('Start of task 2')).toHaveValue('2027-03-06');
-  await expect(page.getByRole('textbox', { name: 'Task 3', exact: true })).toHaveValue('Build');
-  await page.getByRole('button', { name: 'Delete task' }).click();
-  await expect(bars).toHaveCount(2);
-  await expect(page.locator('.gantt-chart .done')).toHaveCount(1);
-
-  await reopen(page);
-  await expect(bars).toHaveCount(2);
-  await expect(page.getByRole('textbox', { name: 'Task 1', exact: true })).toHaveValue('Design');
-  await expect(page.getByLabel('Days for task 1')).toHaveValue('5');
-
-  // Drag the second bar two days later, then make it two days longer.
-  const track = bars.nth(1).locator('.track');
-  await track.scrollIntoViewIfNeeded();
-  let box = (await track.boundingBox())!;
-  await page.mouse.move(box.x + 20, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 20 + 48, box.y + box.height / 2, { steps: 4 });
-  await page.mouse.up();
-  await expect(page.getByLabel('Start of task 2')).toHaveValue('2027-03-08');
-  box = (await bars.nth(1).locator('.grip').boundingBox())!;
-  await page.mouse.move(box.x + 6, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 6 + 48, box.y + box.height / 2, { steps: 4 });
-  await page.mouse.up();
-  await expect(page.getByLabel('Days for task 2')).toHaveValue('5');
-
-  // A task can be part of the one above: Tab indents it, and the one above becomes a bracket around its parts.
-  await page.getByRole('textbox', { name: 'Task 2', exact: true }).focus();
-  await page.keyboard.press('Tab');
-  await expect(page.locator('.gantt-rows tbody tr').nth(0)).toHaveClass(/parent/);
-  await expect(page.locator('.gantt-chart .bar.parent')).toHaveCount(1);
-  await reopen(page);
-  await expect(page.locator('.gantt-chart .bar.parent')).toHaveCount(1);
-  await page.getByRole('textbox', { name: 'Task 2', exact: true }).focus();
-  await page.getByRole('button', { name: 'Bring out' }).click();
-  await expect(page.locator('.gantt-chart .bar.parent')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Indent under the task above' }).click();
-  await expect(page.locator('.gantt-chart .bar.parent')).toHaveCount(1);
-  await shot(page, 'gantt');
-});
+// What needs a real browser: the map, pictures drawn on a canvas, drags placed on the screen, the browser's own
+// editing commands, layout, axe. The rest of the apps worked by hand is in test/dom/ (lists, text, trip, motion, sharing).
 
 /** Keep the map test off the network: blank tiles and a canned place search. */
 async function offlineMap(page: Page) {
@@ -147,51 +14,27 @@ async function offlineMap(page: Page) {
   );
 }
 
-test('trip: a route on the map with notes', async ({ page }) => {
+// The map is Leaflet, laid out with its tiles: a tap on it is placed by where it lands on the screen.
+test('trip: taps on the map add stops, and pins mark them', async ({ page }) => {
   await offlineMap(page);
   await page.goto('/#/v0/trip');
   const map = page.getByRole('application', { name: 'Map' });
   await expect(map.locator('.leaflet-tile-pane')).toBeAttached();
   const stops = page.locator('.trip-stops li:not(.to-empty)');
-
-  // Search adds a named stop.
-  await page.getByRole('searchbox', { name: 'Find a place' }).fill('Lisbon');
-  await page.keyboard.press('Enter');
-  await page.getByRole('list', { name: 'Places found' }).getByRole('button', { name: /Lisbon/ }).click();
-  await expect(stops).toHaveCount(1);
-  await expect(page.getByLabel('Name of stop 1')).toHaveValue('Lisbon');
-  await page.getByLabel('Note for stop 1').fill('Pastel de nata first');
-
-  // Tapping the map adds the next ones.
   const box = (await map.boundingBox())!;
   await page.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.3);
-  await expect(stops).toHaveCount(2);
-  await page.keyboard.type('Second stop');
+  await expect(stops).toHaveCount(1);
+  await page.keyboard.type('First stop');
   await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.7);
-  await expect(stops).toHaveCount(3);
-  await expect(map.locator('.trip-pin')).toHaveCount(3);
-  // Hours by default (a driving estimate); miles or kilometres on request, remembered in the link.
-  await expect(page.locator('.to-toolbar .to-hint')).toContainText(/3 stops · \d+ (h|min)/);
-  await expect(stops.nth(1).locator('.leg')).toHaveText(/≈ \d+ (h|min).* drive/);
-  await pickOption(page, 'sl-select.trip-units', 'm');
-  await expect(stops.nth(1).locator('.leg')).toHaveText(/^[\d.,]+ (mi|ft)$/);
-  await pickOption(page, 'sl-select.trip-units', 'k');
-  await expect(page.locator('.to-toolbar .to-hint')).toContainText(/3 stops · [\d.,]+ k?m/);
-
-  await reopen(page);
-  await expect(stops).toHaveCount(3);
-  await expect(page.getByLabel('Name of stop 2')).toHaveValue('Second stop');
-  await expect(page.getByLabel('Note for stop 1')).toHaveValue('Pastel de nata first');
-  await expect(map.locator('.trip-pin')).toHaveCount(3);
-  await expect(page).toHaveTitle('Lisbon to Second stop · TinyLittleOffice');
-  await shot(page, 'trip');
-
-  await page.getByRole('button', { name: 'Move stop 3 earlier' }).click();
-  await expect(page.getByLabel('Name of stop 3')).toHaveValue('Second stop');
-  await page.getByRole('button', { name: 'Delete stop 1' }).click();
   await expect(stops).toHaveCount(2);
+  await expect(map.locator('.trip-pin')).toHaveCount(2);
+  await expect(page.getByLabel('Name of stop 1')).toHaveValue('First stop');
+  await reopen(page);
+  await expect(map.locator('.trip-pin')).toHaveCount(2);
+  await shot(page, 'trip');
 });
 
+// Drawing on the stage and dragging a shape are placed by where the pointer is on the screen; the GIF is drawn on a canvas.
 test('motion: a drawing that moves between the moments you set', async ({ page }) => {
   await page.goto('/#/v0/anim');
   // Draw mode is Draw itself.
@@ -236,79 +79,27 @@ test('motion: a drawing that moves between the moments you set', async ({ page }
   await expect.poll(body).toMatch(/^!o\nr,8,5,16,10,0,Go\n@0\t0,0,0,0,a,0;n,8[bcd],5[jkl],0,a,0$/);
   await expect(page.locator('.motion-keys .key')).toHaveCount(2);
 
-  // Halfway through, it is halfway there; turned and shouting when the controls say so.
-  await time.fill('12');
-  await at(284.5, 184.3);
-  await page.getByRole('slider', { name: 'Spin' }).fill('45');
-  await page.getByRole('button', { name: 'Impact' }).click();
-  await expect.poll(body).toMatch(/;c,4[cd],2[wx],0,a,19,i;/);
-  await expect(stage.locator('text')).toHaveText('GO');
-  await reopen(page);
-  await expect(hit).toHaveCount(1);
-  await page.getByRole('slider', { name: 'Time' }).fill('12');
-  await at(284.5, 184.3, 45);
   await shot(page, 'anim');
 
-  // It plays; and it is an animated GIF, a frame per frame.
-  await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.locator('.motion-clock')).not.toHaveText('2.9 s / 2.9 s');
-  await page.getByRole('button', { name: 'Pause' }).click();
+  // An animated GIF, a frame per frame, drawn on a canvas.
   await page.getByRole('button', { name: 'Download' }).click();
   const [gif] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Animated GIF/ }).click()]);
   const { readFileSync } = await import('node:fs');
   expect(readFileSync(await gif.path()).subarray(0, 6).toString('latin1')).toBe('GIF89a');
 });
 
-test('shell: themes, page titles, share and room per service', async ({ page, isMobile }) => {
+// The picture is drawn on a canvas, and downloaded.
+test('share: the picture of a document is a PNG download', async ({ page }) => {
   await page.goto('/#/v0/write');
   await page.getByRole('textbox', { name: 'Document' }).click();
   await page.keyboard.type('Quarterly memo');
   await expect(page).toHaveTitle('Quarterly memo · TinyLittleOffice');
-
-  // Theme: device, then light, then dark; the choice is remembered.
-  const html = page.locator('html');
-  const theme = page.locator('#nav-drawer .to-theme');
-  await page.locator('.to-burger').click();
-  await theme.click();
-  await expect(theme).toContainText('Light');
-  await expect(html).not.toHaveClass(/sl-theme-dark/);
-  await theme.click();
-  await expect(theme).toContainText('Dark');
-  await expect(html).toHaveClass(/sl-theme-dark/);
-  await reopen(page);
-  await expect(html).toHaveClass(/sl-theme-dark/);
-  await shot(page, 'dark');
-  await page.locator('.to-burger').click();
-  await theme.click();
-  await expect(theme).toContainText('Match the device');
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#nav-drawer')).not.toHaveAttribute('open');
-
-  // Room for the link, service by service: on hover, and in the document dialog.
-  if (!isMobile) {
-    await page.locator('.to-meter sl-progress-ring').hover();
-    await expect(page.locator('.to-meter-rooms')).toContainText('Bluesky');
-  }
-  await page.locator('.to-meter sl-progress-ring').click();
-  const rooms = page.locator('#doc-dialog .to-rooms tbody tr');
-  await expect(rooms).toHaveCount(10);
-  await expect(page.locator('#doc-dialog .to-rooms thead th')).toHaveText(['Where', 'Limit', 'This link', 'Left', 'Note']);
-  await expect(rooms.filter({ hasText: 'NTAG215' })).toContainText('504');
-  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length');
-  await expect(rooms.filter({ hasText: 'Mastodon' })).toContainText('any length');
-  await expect(rooms.filter({ hasText: 'Text message' })).toContainText(/\d/);
-  await page.getByRole('button', { name: 'Done' }).click();
-
-  // Share: compose boxes open with the link in them; the picture is a download.
-  await page.getByRole('button', { name: 'Share' }).click();
-  const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('menuitem', { name: 'Bluesky' }).click()]);
-  expect(decodeURIComponent(popup.url())).toContain('Quarterly memo ' + page.url().replace('/#/', '/write/#/'));
-  await popup.close();
   await page.getByRole('button', { name: 'Share' }).click();
   const [png] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: 'Save a picture' }).click()]);
   expect(png.suggestedFilename()).toBe('quarterly-memo.png');
 });
 
+// Overflow is measured layout.
 test('every app is reachable and none overflows the page', async ({ page }) => {
   await offlineMap(page);
   await page.goto('/');
@@ -320,6 +111,7 @@ test('every app is reachable and none overflows the page', async ({ page }) => {
   }
 });
 
+// What the built site serves, from its own server.
 test('web niceties: icons, manifest and preview tags are served', async ({ page, request }) => {
   await page.goto('/');
   await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute('href', './favicon.svg');
@@ -332,65 +124,11 @@ test('web niceties: icons, manifest and preview tags are served', async ({ page,
   expect(manifest.icons).toHaveLength(3);
 });
 
-test('write: other documents sit in the text as one thing each', async ({ page }) => {
-  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const deckDoc = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
-  const deck = `http://localhost:4173/deck/#/v0/deck/${deckDoc}`;
-  const drawing = `http://localhost:4173/#/v0/draw/${encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,Box' })}`;
+// Drawing in the inserted document's own editor is a click placed on its canvas.
+test('write: Insert makes a drawing in its own editor, and Edit opens it again', async ({ page }) => {
   await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
-  const paste = (text: string) =>
-    editor.evaluate((el, t) => {
-      const data = new DataTransfer();
-      data.setData('text/plain', t);
-      el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
-    }, text);
-  await editor.click();
-  await page.keyboard.type('See the deck:');
-  await page.keyboard.press('Enter');
-  await paste(deck);
-  await paste(drawing);
-  // Ordinary text and other links still paste as text.
-  await paste('https://example.com/ is not ours');
-
   const embeds = editor.locator('to-embed');
-  await expect(embeds).toHaveCount(2);
-  await expect(embeds.nth(0)).toContainText('Spring launch');
-  await expect(embeds.nth(0)).toContainText('Deck');
-  // In the editor it is something to change, not a link that leaves the page.
-  await expect(embeds.nth(0).locator('a')).toHaveCount(0);
-  await expect(embeds.nth(1).locator('svg[role="img"]')).toContainText('Box');
-  await expect(editor).toContainText('https://example.com/ is not ours');
-  // They are not text: nothing can be typed into one, and the words around it are untouched.
-  expect(await embeds.nth(0).evaluate((el: HTMLElement) => el.isContentEditable)).toBe(false);
-  await expect(page.locator('.write-foot')).toContainText('7 words');
-
-  await reopen(page);
-  await expect(embeds).toHaveCount(2);
-  await expect(editor).toContainText('See the deck:');
-  await shot(page, 'embed');
-
-  // The web page and rich text downloads carry the link and the picture.
-  const fs = await import('node:fs');
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [htmlFile] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
-  const html = fs.readFileSync(await htmlFile.path(), 'utf8');
-  expect(html).toContain(`#/v0/deck/${deckDoc}">Spring launch</a>`);
-  expect(html).toContain('>Box</text>');
-  await expect(page.getByRole('menuitem', { name: /Web page/ })).toBeHidden();
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [rtfFile] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Rich Text/ }).click()]);
-  expect(fs.readFileSync(await rtfFile.path(), 'utf8')).toContain(`HYPERLINK "http://localhost:4173/#/v0/deck/${deckDoc}"`);
-
-  // Getting rid of one: its own Remove button, or one key when it has the focus.
-  await embeds.nth(1).getByRole('button', { name: /Remove/ }).click();
-  await expect(embeds).toHaveCount(1);
-  await embeds.nth(0).focus();
-  await page.keyboard.press('Backspace');
-  await expect(embeds).toHaveCount(0);
-  await expect(editor).toContainText('See the deck:');
-  await expect(editor).toContainText('https://example.com/ is not ours');
-
   // Insert makes a new one from a menu and opens it for editing.
   await editor.click();
   await page.getByRole('combobox', { name: 'Insert' }).fill('draw');
@@ -412,6 +150,7 @@ test('write: other documents sit in the text as one thing each', async ({ page }
   await sub.getByRole('button', { name: 'Done' }).click();
 });
 
+// Pasting goes through the browser's own editing commands (execCommand), as does a list's Tab; a link's underline is computed style.
 test('write: a pasted web address is a link you can click', async ({ page }) => {
   await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
@@ -425,7 +164,11 @@ test('write: a pasted web address is a link you can click', async ({ page }) => 
   await page.keyboard.type('Read this: ');
   await paste('https://example.com/report?year=2026');
   await page.keyboard.type('and say what you think.');
+  // Ordinary text still pastes as text.
+  await paste(' This is not a link.');
+  await expect(editor).toContainText('This is not a link.');
   const link = editor.locator('a');
+  await expect(link).toHaveCount(1);
   await expect(link).toHaveText('https://example.com/report?year=2026');
   await expect(link).toHaveAttribute('href', 'https://example.com/report?year=2026');
   // It is highlighted, and a click opens it in a new tab.
@@ -433,21 +176,13 @@ test('write: a pasted web address is a link you can click', async ({ page }) => 
   const [popup] = await Promise.all([page.waitForEvent('popup'), link.click()]);
   expect(popup.url()).toBe('https://example.com/report?year=2026');
   await popup.close();
-  // It is still a link when the document is opened again, and in the web page download.
+  // It is still a link when the document is opened again.
   await reopen(page);
   await expect(link).toHaveAttribute('href', 'https://example.com/report?year=2026');
   await expect(editor).toContainText('and say what you think.');
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
-  expect((await import('node:fs')).readFileSync(await file.path(), 'utf8')).toContain('<a href="https://example.com/report?year=2026">');
-  // An address typed by hand becomes a link once you leave the text.
-  await editor.click();
-  await page.keyboard.press('Control+End');
-  await page.keyboard.type(' Also http://example.org/x ok');
-  await page.getByRole('button', { name: 'Download' }).focus();
-  await expect(link).toHaveCount(2);
 });
 
+// A list's Tab is the browser's own indent command.
 test('write: list items nest with Tab', async ({ page }) => {
   await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
@@ -472,6 +207,7 @@ test('write: list items nest with Tab', async ({ page }) => {
   await expect(editor.locator(':scope > ul > li').nth(1)).toHaveText('Veg');
 });
 
+// Leaflet's map and its popups, presented.
 test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
@@ -492,6 +228,7 @@ test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await expect(page.locator('.deck-show')).toHaveCount(0);
 });
 
+// axe scans a real browser's rendering (not part of the deploy's checks).
 test('accessibility: no app has violations a machine can find', async ({ page }) => {
   test.slow();
   await offlineMap(page);
@@ -572,7 +309,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   expect(found).toEqual([]);
 });
 
-// Run twice: as the phone or desktop is, and at 320px, which is what a laptop shows zoomed to 400%.
+// Layout: what sticks out past the right edge. Run twice: as the phone or desktop is, and at 320px, which is what a laptop shows zoomed to 400%.
 for (const narrow of [false, true]) test(`nothing is cut off at the right edge${narrow ? ', zoomed to 400%' : ', on any screen'}`, async ({ page, isMobile }) => {
   test.slow();
   if (narrow && isMobile) test.skip();
@@ -654,72 +391,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   expect(found).toEqual([]);
 });
 
-test('outline: items under items, folded, moved, zoomed; OPML out; a mind map in one tap', async ({ page }) => {
-  const errs: string[] = []; page.on('pageerror', (e) => errs.push(e.message.slice(0, 200)));
-  await page.goto('/#/v0/outline');
-  const item = (n: number) => page.getByRole('textbox', { name: `Item ${n}` });
-  await item(1).click();
-  await page.keyboard.type('Launch');
-  await page.keyboard.press('Enter');
-  await page.keyboard.type('Product');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Enter');
-  await page.keyboard.type('Pricing');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('Shift+Tab');
-  await page.keyboard.press('Shift+Tab');
-  await page.keyboard.type('Done');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/outline\/[WYZR]/);
-  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
-  const body = () => decodeEnvelope(page.url().split('/').pop()!, 'outline').body;
-  await expect.poll(body).toBe('Launch\n  Product\n    Pricing\nDone');
-  // Fold Launch: Product and Pricing hide, a count shows.
-  await page.locator('.ol-row .ol-fold').first().click();
-  await expect(page.locator('.ol-row')).toHaveCount(2);
-  await expect(page.locator('.ol-count')).toHaveText('2');
-  await page.locator('.ol-row .ol-fold').first().click();
-  await expect(page.locator('.ol-row')).toHaveCount(4);
-  // Move Done up above Launch with Alt+Up.
-  await item(4).click();
-  await page.keyboard.press('Alt+ArrowUp');
-  await expect.poll(body).toBe('Done\nLaunch\n  Product\n    Pricing');
-  // Zoom in on Launch: only its family shows, with a way back.
-  await page.locator('.ol-row[data-i="1"] .ol-fold').hover();
-  await item(2).click();
-  await page.keyboard.press('Control+.');
-  await expect(page.locator('.ol-row')).toHaveCount(3);
-  await expect(page.locator('.ol-crumbs')).toContainText('Launch');
-  await page.getByRole('button', { name: 'Everything' }).click();
-  await expect(page.locator('.ol-row')).toHaveCount(4);
-  await shot(page, 'outline');
-  // OPML downloads.
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /OPML/ }).click()]);
-  expect(dl.suggestedFilename()).toBe('done.opml');
-  expect(errs).toEqual([]);
-  // A document as an item: a table under Launch, made in its own editor.
-  await item(2).click();
-  await page.getByRole('combobox', { name: 'Insert' }).fill('table');
-  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
-  const sub = page.locator('sl-dialog.to-sub');
-  await sub.getByRole('textbox', { name: 'A1', exact: true }).fill('Budget');
-  await sub.getByRole('button', { name: 'Done' }).click();
-  await expect(page.locator('.ol-row to-embed')).toHaveCount(1);
-  await expect.poll(body).toMatch(/\n@@sheet\//);
-  // The same text, as a deck: a slide for every level with something under it.
-  await page.getByRole('button', { name: 'See as' }).click();
-  await page.getByRole('menuitem', { name: /^Deck/ }).click();
-  await expect(page).toHaveURL(/#\/v0\/deck\//);
-  await expect(page.locator('.deck-rail .deck-thumb')).toHaveCount(3);
-  await page.goBack();
-  // And as a mind map.
-  await page.getByRole('button', { name: 'See as' }).click();
-  await page.getByRole('menuitem', { name: 'Mind map' }).click();
-  await expect(page).toHaveURL(/#\/v0\/mind\//);
-  await expect(page.locator('to-mind .pic svg')).toContainText('Pricing');
-});
-
+// Pen clicks and a corner dragged are placed by where they land on the canvas.
 test('draw: the pen makes any shape, corner by corner; Motion morphs its corners', async ({ page }) => {
   await page.goto('/#/v0/draw');
   const canvas = page.locator('.draw-canvas');
