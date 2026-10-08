@@ -57,7 +57,7 @@ test('page apps: a site, a store, an invoice', async () => {
 test('contract: two people, two keys, two signatures', async () => {
   const { el, last } = await mount('contract');
   const text = box<HTMLTextAreaElement>(el, 'Contract, as text');
-  text.value = '# Dog-walking agreement\nSam walks Biscuit every weekday.';
+  text.value = '# Dog-walking agreement\n\nSam walks Biscuit every weekday.';
   text.dispatchEvent(new Event('input', { bubbles: true }));
   await settle(el);
   const signatures = (root: Element) => root.querySelectorAll('.contract-sign li:not(.none)');
@@ -72,6 +72,8 @@ test('contract: two people, two keys, two signatures', async () => {
   expect(signatures(el)).toHaveLength(1);
   expect(signatures(el)[0].textContent).toContain('Signed these exact words');
   const sent = last()!;
+  // The signatures follow the words, a table in a fence of their own.
+  expect(sent).toMatch(/^# Dog-walking agreement\n\nSam walks Biscuit every weekday\.\n\n```signatures\nName \| Key \| Signature\n--- \| --- \| ---\nPaul \| \S+ \| \S+\n```$/);
 
   // The other party, with a key of their own (as in a browser of their own), opens what was sent.
   privacy.forgetKey();
@@ -91,7 +93,7 @@ test('contract: two people, two keys, two signatures', async () => {
   await until(() => expect(both.el.querySelectorAll('.contract-sign li.ok')).toHaveLength(2));
   expect(framed(both.el).querySelectorAll('.signed div')).toHaveLength(2);
   const area = box<HTMLTextAreaElement>(both.el, 'Contract, as text');
-  area.value = '# Dog-walking agreement\nSam walks Biscuit every weekend.';
+  area.value = '# Dog-walking agreement\n\nSam walks Biscuit every weekend.';
   area.dispatchEvent(new Event('input', { bubbles: true }));
   await until(() => expect(both.el.querySelectorAll('.contract-sign li.bad')).toHaveLength(2));
   expect(both.el.querySelector('.contract-sign li.bad')!.textContent).toContain('have changed since');

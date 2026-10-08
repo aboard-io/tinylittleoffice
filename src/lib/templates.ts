@@ -63,9 +63,12 @@ export interface Template {
   body: string;
 }
 
-/** A plan in Write's format: the title, then a subheading a section, its prompts in italics to be written over. */
+/** A text's blocks, one after another, as Write writes them (lib/richtext.ts): a blank line between blocks, list items line by line. */
+const text = (...blocks: string[]) => blocks.join('\n\n');
+
+/** A plan as a text: the title, then a subheading a section, its prompts in italics to be written over. */
 export function planText(title: string, subtitle: string, sections: Section[]): string {
-  return [`# ${title}`, `_${subtitle}_`, ...sections.flatMap((s) => [`## ${s.heading}`, ...s.prompts.map((p) => `_${p}_`)])].join('\n');
+  return text(`# ${title}`, `*${subtitle}*`, ...sections.flatMap((s) => [`## ${s.heading}`, ...s.prompts.map((p) => `*${p}*`)]));
 }
 
 const WRITE: Template[] = [
@@ -73,31 +76,31 @@ const WRITE: Template[] = [
     id: 'meeting',
     name: 'Meeting notes',
     blurb: 'Agenda, what was said, what was decided, who does what.',
-    body: ['# Meeting notes', '_Date · Where · Who was there_', '## Agenda', '+ The first thing', '+ The second thing', '+ Any other business', '## Notes', 'What was said, a line or two a topic.', '## Decisions', '- What was decided, and by whom', '## Actions', '- Who does what, by when'].join('\n'),
+    body: text('# Meeting notes', '*Date · Where · Who was there*', '## Agenda', '1. The first thing\n2. The second thing\n3. Any other business', '## Notes', 'What was said, a line or two a topic.', '## Decisions', '- What was decided, and by whom', '## Actions', '- Who does what, by when'),
   },
   {
     id: 'letter',
     name: 'A letter',
     blurb: 'Your address, the date, the greeting, the point, the sign-off.',
-    body: ['>r Your name', '>r Street', '>r Town, postcode', '>r you@example.com', '', 'Day Month Year', '', 'Dear Name,', '', 'Why you are writing, in a sentence.', '', 'The detail: what happened, what you would like, and by when.', '', 'Thank you for your time. I look forward to hearing from you.', '', 'Yours sincerely,', '', 'Your name'].join('\n'),
+    body: text('Your name {.right}', 'Street {.right}', 'Town, postcode {.right}', 'you@example.com {.right}', '<br>', 'Day Month Year', '<br>', 'Dear Name,', '<br>', 'Why you are writing, in a sentence.', '<br>', 'The detail: what happened, what you would like, and by when.', '<br>', 'Thank you for your time. I look forward to hearing from you.', '<br>', 'Yours sincerely,', '<br>', 'Your name'),
   },
   {
     id: 'memo',
     name: 'One-page memo',
     blurb: 'To, from, subject; the summary, the background, the proposal, the ask.',
-    body: ['# Memo', '*To:* Everyone', '*From:* Your name', '*Date:* Day Month Year', '*Subject:* The one thing this memo is about', '## Summary', 'What this memo says, in two sentences.', '## Background', 'What led here, briefly.', '## What we propose', '- The change', '- What it costs', '- When', '## What we need from you', 'A decision, a reply, or nothing: say which, and by when.'].join('\n'),
+    body: text('# Memo', '**To:** Everyone', '**From:** Your name', '**Date:** Day Month Year', '**Subject:** The one thing this memo is about', '## Summary', 'What this memo says, in two sentences.', '## Background', 'What led here, briefly.', '## What we propose', '- The change\n- What it costs\n- When', '## What we need from you', 'A decision, a reply, or nothing: say which, and by when.'),
   },
   {
     id: 'bio',
     name: 'A short bio',
     blurb: 'Who you are, what you do now, what you did before: a résumé in a page.',
-    body: ['# Your Name', '_What you do, in a line · Town · you@example.com_', '## Now', 'Role at Place, since year. What you do there, in two sentences.', '## Before', '- Role, Place, years. One thing you did there.', '- Role, Place, years. One thing you did there.', '## Education', '- Degree, School, year', '## Skills', '- Three or four things you are good at', '## Elsewhere', 'Talks, writing, volunteering, the odd prize.'].join('\n'),
+    body: text('# Your Name', '*What you do, in a line · Town · you@example.com*', '## Now', 'Role at Place, since year. What you do there, in two sentences.', '## Before', '- Role, Place, years. One thing you did there.\n- Role, Place, years. One thing you did there.', '## Education', '- Degree, School, year', '## Skills', '- Three or four things you are good at', '## Elsewhere', 'Talks, writing, volunteering, the odd prize.'),
   },
   {
     id: 'week',
     name: 'Weekly plan',
     blurb: 'The three things that matter this week, then a line for each day.',
-    body: ['# This week', '_The one thing this week is for._', '## Must do', '+ ', '+ ', '+ ', '## Monday', '- ', '## Tuesday', '- ', '## Wednesday', '- ', '## Thursday', '- ', '## Friday', '- ', '## Notes', 'What came up, and what moves to next week.'].join('\n'),
+    body: text('# This week', '*The one thing this week is for.*', '## Must do', '1.\n2.\n3.', '## Monday', '-', '## Tuesday', '-', '## Wednesday', '-', '## Thursday', '-', '## Friday', '-', '## Notes', 'What came up, and what moves to next week.'),
   },
   { id: 'bizplan', name: 'Business plan', blurb: 'Summary, problem, product, market, money, team, numbers, risks, the ask: the questions a plan answers.', body: planText('Business plan', 'Company name · Month Year', BIZPLAN) },
   { id: 'mktplan', name: 'Marketing plan', blurb: 'Goals, audience, message, channels, calendar, budget, measures.', body: planText('Marketing plan', 'Product · Period', MKTPLAN) },

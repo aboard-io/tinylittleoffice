@@ -1,7 +1,8 @@
-/** Write: what the shell knows about texts. Format: lib/richtext.ts. */
+/** Write: what the shell knows about texts. Format: lib/richtext.ts, and docs/tlo.md. */
 import { defineApp, utf8, xml, wrap, text, place, pageSvg, type DownloadContext, type Page, type Span } from '../kit/core.ts';
-import { refPage, resolve } from '../kit/embed.ts';
-import { ALIGN_NAMES, linkify, parseDoc, docText, type Block, type Run } from '../lib/richtext.ts';
+import { linkToRef, refPage, resolve } from '../kit/embed.ts';
+import { ALIGN_NAMES, linkify, parseDoc, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
+import { parse, write } from '../lib/tlo.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 
 function rtfText(s: string): string {
@@ -103,6 +104,22 @@ export function docToHtml(body: string, ctx: DownloadContext = { created: null }
   return out.join('\n');
 }
 
+/**
+ * Markdown as anyone writes it, made a text: what a text cannot hold is
+ * kept as words, and a TinyLittleOffice link alone on a line (bare, as an
+ * image or as a link) becomes the document it holds.
+ */
+export function readText(md: string): string {
+  const doc = parse(md);
+  doc.blocks = doc.blocks.map((b) => {
+    const ref = b.k === 'img' ? linkToRef(b.url) : b.k === 'p' ? linkToRef(b.text.replace(/^\[[^\]]*\]\((.*)\)$/, '$1')) : null;
+    if (!ref) return b;
+    const nl = ref.indexOf('\n');
+    return { k: 'fence', lang: ref.slice(0, nl), body: ref.slice(nl + 1) };
+  });
+  return serializeDoc(parseDoc(write({ head: {}, blocks: doc.blocks })));
+}
+
 const title = (body: string) => {
   // A title, if it has one; else its first words.
   const blocks = parseDoc(body);
@@ -169,6 +186,7 @@ export default defineApp({
   outline: (body) => parseDoc(body).map((b: Block) => (b.k === 'e' ? `↗  ${resolve(b.ref!).title}` : docText([b]).trim())).filter(Boolean),
   view: (body) => pages(body),
   html: docToHtml,
+  read: readText,
   prose: true,
   downloads: [{ ext: 'rtf', label: 'Rich Text', mime: 'application/rtf', build: (b, ctx) => utf8(docToRtf(b, ctx)) }],
   shortcuts: [

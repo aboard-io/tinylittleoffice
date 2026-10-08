@@ -241,7 +241,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
     sheet: '---\nchart: bar\n---\nItem | Cost:money\n--- | ---\nRent | 1200\nFood | 600',
-    write: '# Memo\nSome *bold* text\n- one\n-- nested\n@@draw/',
+    write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested\n\n```draw\n```',
     deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
     cal: '- 2020-01-03 to 2020-01-04: Offsite',
@@ -259,14 +259,14 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
-    contract: '# Deal\nSam walks the dog.',
+    contract: '# Deal\n\nSam walks the dog.',
     zine: '## :star: My zine\n\nIssue one\n\n---\n\n## Inside\n\nSome words for page two.\n',
     booklet: '## A book\n\nby me\n\n---\n\n## One\n\nwords\n',
     brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     poster: '## :music: Open mic\n\nFriday 8pm\n',
     menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
-    resume: '# Ada\n## Experience\n- Wrote a program',
+    resume: '# Ada\n\n## Experience\n\n- Wrote a program',
     badges: '## Ada\n\nEng\n\n---\n\n## Grace\n\nCompilers\n',
     recipes: '## Buns\n\nflour\n\n1. Bake\n',
     flow: '# Model\n\n- visitors = 100 (0 to 500)\n- rate = 10% (0 to 50)\n\n~ Visitors -> Signups: visitors * rate\n~ Visitors -> Gone: visitors - visitors * rate',
@@ -324,7 +324,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
     sheet: '---\nchart: bar\n---\nItem | When:date | Cost:money\n--- | --- | ---\nRent | 2027-03-01 | 1200',
-    write: '# Memo\nSome *bold* text\n- one\n-- nested',
+    write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested',
     deck: '## :rocket: Launch plan\n\n- Build it\n- Ship it\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box',
     cal: '- 2020-01-03 to 2020-01-04: Offsite',
@@ -342,14 +342,14 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     site: '# Harbor Coffee\nRoasted on the quay.\n> Menu | #menu\n- :coffee Daily | Fresh\n## Menu\nEspresso and buns.',
     store: '# Shop\nBeans.\nHouse blend | 12.50 | Good\nMug | 9 | Tin',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\nDesign, 2, 150',
-    contract: '# Deal\nSam walks the dog.',
+    contract: '# Deal\n\nSam walks the dog.',
     zine: '## :star: My zine\n\nIssue one\n\n---\n\n## Inside\n\nSome words for page two.\n',
     booklet: '## A book\n\nby me\n\n---\n\n## One\n\nwords\n',
     brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     poster: '## :music: Open mic\n\nFriday 8pm\n',
     menu: '# Cafe\n## Coffee\nEspresso | 3.00 | Dark',
-    resume: '# Ada\n## Experience\n- Wrote a program',
+    resume: '# Ada\n\n## Experience\n\n- Wrote a program',
     badges: '## Ada\n\nEng\n\n---\n\n## Grace\n\nCompilers\n',
     recipes: '## Buns\n\nflour\n\n1. Bake\n',
     flow: '# Model\n\n- visitors = 100 (0 to 500)\n- rate = 10% (0 to 50)\n\n~ Visitors -> Signups: visitors * rate\n~ Visitors -> Gone: visitors - visitors * rate',
@@ -545,7 +545,7 @@ test('write: "- " and "1. " start lists, Backspace takes a bullet off, quotes ar
   await page.keyboard.press('Enter');
   await page.keyboard.type(`She said "it's 'fine'" today.`);
   await expect(editor.locator('p').last()).toHaveText('She said “it’s ‘fine’” today.');
-  await expect.poll(() => page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body)).toBe('- Milk\n- Eggs\nAfter the list\n+ First\nSecond\nShe said “it’s ‘fine’” today.');
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body)).toBe('- Milk\n- Eggs\n\nAfter the list\n\n1. First\n\nSecond\n\nShe said “it’s ‘fine’” today.');
   // A dash in the middle of a line, or a number with no space after it, is just text.
   await page.keyboard.press('Enter');
   await page.keyboard.type('Pages 1-2 and 3.5 are well-known');

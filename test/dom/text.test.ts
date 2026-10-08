@@ -5,7 +5,7 @@
 import { test, expect } from 'vitest';
 import { button, press } from './helpers.ts';
 import { shell, reopen, editorOf, settleAll, bodyOf, until, choose, downloaded, opened } from './helpers-apps.ts';
-import { encodeEnvelope } from '../../src/lib/envelope.ts';
+import { hashOf } from '../../src/kit/embed.ts';
 
 /** Words typed into an editable box (a text, an outline's item), replacing what was there. */
 async function typeRich(page: HTMLElement | null, words: string, html = false) {
@@ -29,38 +29,39 @@ async function key(el: Element | null, k: string, mods: { shift?: boolean; alt?:
 }
 
 test('write: other documents sit in the text as one thing each', async () => {
-  const deckDoc = encodeEnvelope({ created: null, body: '::t\nSpring launch\nWhat ships\n\nAgenda\none' });
-  const deck = `${location.origin}/deck/#/v0/deck/${deckDoc}`;
-  const drawing = `${location.origin}/#/v0/draw/${encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,Box' })}`;
+  const noteDoc = '# Spring launch {.title}\n\nWhat ships';
+  const note = `${location.origin}/write/${hashOf('write', noteDoc)}`;
+  const code = `${location.origin}/${hashOf('qr', 'https://example.com/')}`;
   await shell('#/v0/write');
   const editor = () => editorOf('write').querySelector<HTMLElement>('[role="textbox"][aria-label="Document"]')!;
-  await typeRich(editor(), '<p>See the deck:</p>', true);
-  await paste(editor(), deck);
-  await paste(editor(), drawing);
+  await typeRich(editor(), '<p>See the note:</p>', true);
+  await paste(editor(), note);
+  await paste(editor(), code);
   const embeds = () => [...editor().querySelectorAll<HTMLElement>('to-embed')];
   expect(embeds()).toHaveLength(2);
   const inside = (e: HTMLElement) => e.shadowRoot!.textContent ?? '';
   expect(inside(embeds()[0])).toContain('Spring launch');
-  expect(inside(embeds()[0])).toContain('Deck');
+  expect(inside(embeds()[0])).toContain('Write');
   // In the editor it is something to change, not a link that leaves the page.
   expect(embeds()[0].shadowRoot!.querySelectorAll('a')).toHaveLength(0);
-  expect(embeds()[1].shadowRoot!.querySelector('svg[role="img"]')!.textContent).toContain('Box');
+  expect(embeds()[1].shadowRoot!.querySelector('svg[role="img"]')!.textContent).toContain('example.com');
   // They are not text: nothing can be typed into one, and the words around it are untouched.
   expect(embeds()[0].getAttribute('contenteditable')).toBe('false');
   expect(document.querySelector('.write-foot')!.textContent).toContain('3 words');
-  expect(bodyOf()).toContain(`@@deck/${deckDoc}`);
+  // In the text, each is a fence named for its app, holding the document's own text.
+  expect(bodyOf()).toContain('```write\n' + noteDoc + '\n```\n\n```qr\nhttps://example.com/\n```');
 
   await reopen();
   expect(embeds()).toHaveLength(2);
-  expect(editor().textContent).toContain('See the deck:');
+  expect(editor().textContent).toContain('See the note:');
 
   // The web page and rich text downloads carry the link and the picture.
   const page = await downloaded(() => choose('Download', /Web page/));
   const html = await page.text();
-  expect(html).toContain(`#/v0/deck/${deckDoc}">Spring launch</a>`);
-  expect(html).toContain('>Box</text>');
+  expect(html).toContain(`${hashOf('write', noteDoc)}">Spring launch</a>`);
+  expect(html).toContain('>example.com</text>');
   const rtf = await downloaded(() => choose('Download', /Rich Text/));
-  expect(await rtf.text()).toContain(`HYPERLINK "${location.origin}/#/v0/deck/${deckDoc}"`);
+  expect(await rtf.text()).toContain(`HYPERLINK "${location.origin}/${hashOf('write', noteDoc)}"`);
 
   // Getting rid of one: its own Remove button, or one key when it has the focus.
   [...embeds()[1].shadowRoot!.querySelectorAll('button')].find((b) => /Remove/.test(b.getAttribute('aria-label') ?? ''))!.click();
@@ -69,8 +70,8 @@ test('write: other documents sit in the text as one thing each', async () => {
   embeds()[0].focus();
   await key(embeds()[0], 'Backspace');
   expect(embeds()).toHaveLength(0);
-  expect(editor().textContent).toContain('See the deck:');
-  expect(bodyOf()).not.toContain('@@');
+  expect(editor().textContent).toContain('See the note:');
+  expect(bodyOf()).not.toContain('```');
 });
 
 test('write: an address typed by hand becomes a link once you leave the text, and Mod+click on a link asks before it opens in a new tab', async () => {

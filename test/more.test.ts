@@ -75,7 +75,7 @@ test('richtext: nested and interleaved formatting', () => {
     { k: 'p', runs: [{ t: 'a', b: true }, { t: 'b', b: true, i: true }, { t: 'c', i: true }, { t: 'd', i: true, u: true, s: true }, { t: 'e' }] },
   ];
   const s = serializeDoc(doc);
-  assert.equal(s, '*a_b*c^~d_^~e');
+  assert.equal(s, '**a*b**c~~++d++~~*e');
   assert.deepEqual(parseDoc(s), doc);
 });
 
@@ -88,7 +88,7 @@ test('richtext: escapes survive at the edges', () => {
 
 test('richtext: empty runs are dropped, text and counts', () => {
   const doc: Block[] = [{ k: 'p', runs: [{ t: '' }, { t: 'x', b: true }, { t: '' }] }, { k: 'p', runs: [] }, { k: 'ol', runs: [{ t: 'y' }] }];
-  assert.equal(serializeDoc(doc), '*x*\n\n+ y');
+  assert.equal(serializeDoc(doc), '**x**\n\n<br>\n\n1. y');
   assert.equal(docText(parseDoc(serializeDoc(doc))), 'x\n\ny');
 });
 

@@ -118,8 +118,8 @@ test('draw, board, gantt and motion take the same undo, since it is the shell’
 });
 
 test('undo inside a document that is inside another', async () => {
-  const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two' });
-  await open('#/v0/write/' + encodeEnvelope({ created: null, body: `Intro\n@@${draw}` }));
+  const draw = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | One\ne | 20 | 10 | 10 | 8 | 0 | Two';
+  await open('#/v0/write/' + encodeEnvelope({ created: null, body: `Intro\n\n\`\`\`draw\n${draw}\n\`\`\`` }));
   const embed = $('to-embed');
   button('Edit', embed.shadowRoot!).click();
   await idle();

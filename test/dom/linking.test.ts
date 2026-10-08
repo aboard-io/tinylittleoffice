@@ -53,7 +53,7 @@ test('Mod+K links the selected words; the address gets its start', async () => {
 });
 
 test('with nothing selected, the dialog asks for the words too, and puts them where the caret is', async () => {
-  const { el, last } = await mount('write', 'Contact: ');
+  const { el, last } = await mount('write', 'Contact:');
   page(el).focus();
   const r = document.createRange();
   r.selectNodeContents(page(el).querySelector('p')!);
@@ -63,7 +63,7 @@ test('with nothing selected, the dialog asks for the words too, and puts them wh
   button(el, 'Link').click();
   await answer('ada@example.com', 'Ada');
   await settle(el);
-  expect(last()).toBe('Contact: [Ada](mailto:ada@example.com)');
+  expect(last()).toBe('Contact:[Ada](mailto:ada@example.com)');
 });
 
 test('a click in a link shows where it goes; Remove takes the link off and keeps the words', async () => {
@@ -112,7 +112,7 @@ test('formatted text pasted in keeps its headings, lists, marks and links, and n
   data.setData('text/plain', 'Plan\nSome bold…');
   page(el).dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
   await settle(el);
-  expect(last()).toBe('# Plan\nSome *bold* and _slanted_ words, [a report](https://a.co/r), a trap.\n- One\n- Two\n-- Two and a half');
+  expect(last()).toBe('# Plan\n\nSome **bold** and *slanted* words, [a report](https://a.co/r), a trap.\n\n- One\n- Two\n  - Two and a half');
 });
 
 test('pasted into one line (an outline item), formatted text keeps its marks and links in that line', async () => {
@@ -129,11 +129,11 @@ test('pasted into one line (an outline item), formatted text keeps its marks and
   data.setData('text/plain', ' plan see here');
   box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
   await settle(el);
-  expect(last()).toBe('Launch the *plan* see [here](https://a.co)');
+  expect(last()).toBe('Launch the **plan** see [here](https://a.co)');
 });
 
 test('a heading cannot be unbolded: Bold is off there, Mod+B does nothing, and bold inside one is dropped', async () => {
-  const { el, docs, last } = await mount('write', '# Title\n## Sub\nBody');
+  const { el, docs, last } = await mount('write', '# Title\n\n## Sub\n\nBody');
   const h1 = page(el).querySelector('h1')!;
   page(el).focus();
   getSelection()!.selectAllChildren(h1);
@@ -149,11 +149,11 @@ test('a heading cannot be unbolded: Bold is off there, Mod+B does nothing, and b
   h1.innerHTML = '<b>Ti</b><span style="font-weight:normal">tle</span>';
   page(el).dispatchEvent(new Event('input', { bubbles: true }));
   await settle(el);
-  expect(last()).toBe('# Title\n## Sub\nBody');
+  expect(last()).toBe('# Title\n\n## Sub\n\nBody');
 });
 
 test('Title makes the paragraph the document’s title, set large; Date puts in a date picked from a calendar', async () => {
-  const { el, last } = await mount('write', 'Annual report\nWords');
+  const { el, last } = await mount('write', 'Annual report\n\nWords');
   const p0 = page(el).querySelector('p')!;
   page(el).focus();
   const r = document.createRange();
@@ -163,12 +163,12 @@ test('Title makes the paragraph the document’s title, set large; Date puts in 
   getSelection()!.addRange(r);
   button(el, 'Title').click();
   await settle(el);
-  expect(last()).toBe('#! Annual report\nWords');
+  expect(last()).toBe('# Annual report {.title}\n\nWords');
   expect(page(el).querySelector('h1.doc-title')!.textContent).toBe('Annual report');
   // Pressed again, it is a paragraph again.
   button(el, 'Title').click();
   await settle(el);
-  expect(last()).toBe('Annual report\nWords');
+  expect(last()).toBe('Annual report\n\nWords');
 
   // A date: the dialog's calendar, then Insert; it goes where the caret was.
   const words = page(el).querySelectorAll('p')[1];
@@ -188,5 +188,5 @@ test('Title makes the paragraph the document’s title, set large; Date puts in 
   expect([...dialog.querySelectorAll('label')].map((l) => l.textContent!.trim())).toEqual(['March 1, 2027', 'Monday, March 1, 2027', '2027-03-01']);
   (dialog.querySelector('.dd-ok') as HTMLElement).click();
   await settle(el);
-  expect(last()).toBe('Annual report\nWordsMarch 1, 2027');
+  expect(last()).toBe('Annual report\n\nWordsMarch 1, 2027');
 });

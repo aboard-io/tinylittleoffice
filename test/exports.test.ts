@@ -26,7 +26,7 @@ test('every app is defined, and download names resolve', () => {
 
 test('file names come from the document title', () => {
   assert.equal(fileName(appOf('deck')!, '## :rocket: Launch plan — Q3!\n\n- one', 'pptx'), 'launch-plan-q3.pptx');
-  assert.equal(fileName(appOf('write')!, '# Café *memo*\nbody', 'rtf'), 'cafe-memo.rtf');
+  assert.equal(fileName(appOf('write')!, '# Café *memo*\n\nbody', 'rtf'), 'cafe-memo.rtf');
   assert.equal(fileName(appOf('deck')!, '', 'pptx'), 'deck.pptx');
   assert.equal(fileName(appOf('cal')!, '- 2020-01-02: x', 'ics'), 'cal.ics');
 });
@@ -35,7 +35,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
   const samples: Record<string, string> = {
     sheet: '---\nchart: bar\n---\nItem | Cost\n--- | ---\nRent | 1200\nFood | 600',
     outline: '- Launch\n  - <Product>\n    - Pricing',
-    write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
+    write: '# Memo\n\nSome **bold** text\n\n- one\n  - nested\n\n1. first',
     deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
     cal: '---\nzone: America/New_York\n---\n- 2020-01-01 05:00-06:30: Call\n- 2020-01-03 to 2020-01-04: Offsite',
@@ -123,7 +123,7 @@ test('sheet to xlsx: formulas survive in Excel dialect', () => {
 });
 
 test('write to rtf and html', () => {
-  const body = '# Memo\nPlain *bold _both_* {x} café\n- one\n- two\n+ first\n+ second';
+  const body = '# Memo\n\nPlain **bold *both*** {x} café\n\n- one\n- two\n\n1. first\n2. second';
   const rtf = docToRtf(body);
   assert.ok(rtf.startsWith('{\\rtf1\\ansi'));
   assert.ok(rtf.trimEnd().endsWith('}'));

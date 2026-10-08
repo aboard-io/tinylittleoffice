@@ -186,11 +186,31 @@ Every format is plain text, chosen so deflate has something to chew on.
   work on them. A CSV, or a table without types, reads as a sheet too.
 - **Pixel art**: one paragraph, a line per row, a letter per square (`.`
   empty, `a` to `h` the colours).
-- **Write**: one block per line. Prefixes `# ` and `## ` for headings, `- ` and
-  `+ ` for bulleted and numbered items; repeat the marker to nest (`-- `,
-  `--- `). Inline toggles `*bold*`, `_italic_`, `^underline^`, `~strike~`,
-  with `\` as the escape character. `@@<app>/<payload>` is an embedded
-  document.
+  `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. A first line `!bar`, `!line` or
+  `!pie` asks for a chart of the table, and after a `|` come the columns'
+  types, a letter each (`!bar|td$`): text, number, money `$`, percent `%`,
+  date, link `u`, checkbox, rich text. Dates are day counts, so they add and
+  subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on
+  them.
+- **Write**: Markdown (TLO, `docs/tlo.md`). `# Words {.title}` is the title,
+  `# ` and `## ` headings, `- ` and `1. ` list items nested by two spaces,
+  `{.center}`, `{.right}` or `{.justify}` at the end of a block to align it.
+  Inline `**bold**`, `*italic*`, `++underline++`, `~~strike~~`,
+  `==highlight==`, `:icon:`, `[words](address)`, with `\` as the escape
+  character. An embedded document is a fence named for its app, holding its
+  text; a Markdown table is an embedded sheet. A **contract** is a text
+  followed by its signatures in a `signatures` fence; a **résumé** is a text;
+  a **QR code** is its link or words as a paragraph.
+- **Deck**: slides separated by a blank line. In each slide an optional
+  `:icon-name` line, then the headline, then one bullet per line. A layout
+  may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
+  line `|` starts the right one), `:star:i` bullets beside a big icon. A line
+  `@@<app>/<payload>` shows another document on the slide. A first chunk
+  `!fade`, `!slide` or `!zoom` sets the deck's transition.
+- **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
+  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
+  may carry a colour letter and a text size digit after it (`1b3`).
+  Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
 - **Deck**: TLO (`docs/tlo.md`), a slide between each `---`. The headline is
   `## :icon-name: Headline`, its layout an attribute: `{.title}`, `{.two}`
   (a paragraph `|` starts the right column) or `{.icon}`. The words are `- `
@@ -447,9 +467,9 @@ app a sketch in `scripts/make-icons.mjs`.
 
 ## Documents inside documents
 
-A text or a slide can hold another document. It is stored as
-`@@<app>/<payload>` (the part of a link that is the document) and drawn by
-that app's `view`. In Write, paste a TinyLittleOffice link or use Insert; on a
+A text or a slide can hold another document. It is stored as a fenced block
+named for its app, holding that document's whole text (` ```sheet `), and
+drawn by that app's `view`. In Write, paste a TinyLittleOffice link or use Insert; on a
 slide, use Insert. Either way it is one thing: Edit opens its own editor in a
 dialog, Remove (or Backspace) takes it away. A sheet that asks for a chart is
 shown as the chart.
