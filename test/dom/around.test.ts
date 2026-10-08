@@ -3,7 +3,7 @@
 import { test, expect, describe } from 'vitest';
 import { shell, bodyOf, editorOf, settleAll, until, texts, reopen, choose, opened } from './helpers-apps.ts';
 import { button, press, setSl, settle } from './helpers.ts';
-import { parseGrid } from '../../src/lib/formula.ts';
+import { namesOf, parseGrid } from '../../src/lib/formula.ts';
 import { parseTodos } from '../../src/lib/todomodel.ts';
 
 // Starting from a template, in the shell as a visitor finds it (ported from e2e/templates.spec.ts).
@@ -76,16 +76,17 @@ describe('templates', () => {
     const cell = (ref: string) => document.querySelector<HTMLInputElement>(`to-sheet input[aria-label="${ref}"]`)!;
     expect(document.querySelector('.to-template-line')).toBeTruthy();
     await startFrom('Budget');
-    expect(cell('A1').value).toBe('Item');
-    expect(cell('D8').value).toBe('$65.00');
+    expect(namesOf(bodyOf())[0]).toBe('Item');
+    expect(cell('A1').value).toBe('Rent');
+    expect(cell('D7').value).toBe('$65.00');
     expect(document.querySelector('.to-template-line')).toBeNull();
     await undo();
     expect(cell('A1').value).toBe('');
     expect(bodyOf()).toBe('');
     await startFrom('Comparison');
     expect(document.querySelector('.sheet-chart svg')).toBeTruthy();
-    expect(cell('A2').value).toBe('Alpha');
-    expect(parseGrid(bodyOf().replace(/^!.*\n/, ''))[1][0]).toBe('Alpha');
+    expect(cell('A1').value).toBe('Alpha');
+    expect(parseGrid(bodyOf())[0][0]).toBe('Alpha');
   });
 
   test('a deck starts from a template: slides with icons, from the first', async () => {

@@ -1,10 +1,10 @@
 // Rows put in and taken out as in other spreadsheets, formulas following; columns with names.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { columnName, deleteRows, insertRows, namesOf, parseGrid, serializeGrid, shiftFormula, typesOf, ROWS } from '../src/lib/formula.ts';
+import { columnName, deleteRows, insertRows, namesOf, parseGrid, pasteCells, serializeGrid, shiftFormula, typesOf, ROWS } from '../src/lib/formula.ts';
 
 const col = (g: string[][], n = 8) => g.slice(0, n).map((r) => r[0]);
-const SHEET = '1\n2\n3\n4\n=SUM(A1:A4)\n=A4*2\n="A3"&A3';
+const SHEET = 'N:number | Note\n--- | ---\n1 |\n2 |\n3 |\n4 |\n=SUM(A1:A4) |\n=A4*2 |\n="A3"&A3 |';
 
 test('a row put in pushes the rows below down, and formulas follow; a range around it grows', () => {
   assert.deepEqual(col(insertRows(parseGrid(SHEET), 2)!), ['1', '2', '', '3', '4', '=SUM(A1:A5)', '=A5*2', '="A3"&A4']);
@@ -26,13 +26,15 @@ test('a filled formula moves references past row 99 too', () => {
   assert.equal(shiftFormula('=A150+B9', 1, 0), '=A151+B10');
 });
 
-test('columns go by what they hold until named; names travel in the settings line', () => {
-  const types = typesOf('!|dtd$');
+test('columns go by what they hold until named; names and types are the header row', () => {
+  const types = typesOf('a:date | b | c:date | d:money\n--- | --- | --- | ---');
   assert.deepEqual([0, 1, 2, 3, 4].map((c) => columnName(c, types)), ['Date', 'ColB', 'Date C', 'Money', 'ColE']);
-  const text = serializeGrid(parseGrid('x'), 'bar', types, ['', 'Notes']);
-  assert.equal(text, '!bar|dtd$|\tNotes\nx');
+  const x = pasteCells(parseGrid(''), 0, 0, 'x').grid;
+  const text = serializeGrid(x, 'bar', types, ['', 'Notes']);
+  assert.equal(text, '---\nchart: bar\n---\nDate:date | Notes | Date C:date | Money:money\n--- | --- | --- | ---\nx |  |  |');
   assert.equal(columnName(1, typesOf(text), namesOf(text)), 'Notes');
-  // Names with no types say so too; a sheet with neither has no settings line.
-  assert.equal(serializeGrid(parseGrid('x'), '', [], ['Who']), '!|\nx'.replace('|\n', '||Who\n'));
-  assert.equal(serializeGrid(parseGrid('x')), 'x');
+  assert.deepEqual(namesOf(text).slice(0, 4), ['', 'Notes', '', '']);
+  // A sheet with no names says the letters' names.
+  assert.equal(serializeGrid(x, '', [], ['Who']), 'Who | ColB\n--- | ---\nx |');
+  assert.equal(serializeGrid(x), 'ColA | ColB\n--- | ---\nx |');
 });

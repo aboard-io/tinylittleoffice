@@ -285,7 +285,7 @@ test('sheet: blocks of cells are selected, copied, cut, cleared and filled', asy
 
 test('sheet: charts suggest themselves and travel with the sheet', async () => {
   const { last } = await mount('sheet');
-  for (const [ref, v] of [['A1', 'Item'], ['B1', 'Cost'], ['A2', 'Rent'], ['B2', '1200'], ['A3', 'Food'], ['B3', '600'], ['A4', 'Fun'], ['B4', '200']]) await put(ref, v);
+  for (const [ref, v] of [['A1', 'Rent'], ['B1', '1200'], ['A2', 'Food'], ['B2', '600'], ['A3', 'Fun'], ['B3', '200']]) await put(ref, v);
   tap(cell('C1'));
   await idle();
   expect(document.querySelector('.sheet-chart')).toBeNull();
@@ -350,7 +350,8 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   expect(cell('F1').value).toBe('☑');
   // A link opens from its cell.
   expect($('a[aria-label="Open https://example.com/report"]').getAttribute('href')).toBe('https://example.com/report');
-  expect(typesOf(last()!).slice(0, 6)).toEqual(['d', 'd', 't', '$', 'u', 'c']);
+  expect(typesOf(last()!).slice(0, 6)).toEqual(['date', 'date', 'text', 'money', 'url', 'check']);
+  expect(last()!.split('\n')[0]).toBe('Date:date | Date B:date | ColC | Money:money | Link:url | Checkbox:check');
 
   await remount(last());
   expect(cell('C1').value).toBe('29');
@@ -358,7 +359,7 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   expect(button(/^Column E, Link: Link/)).toBeTruthy();
   // Rich text shows its emphasis when you are not typing in it.
   await setType('C', 'Rich text');
-  await put('C2', 'Very *important* thing');
+  await put('C2', 'Very **important** thing');
   tap(cell('C3'));
   await idle();
   expect(text($('table.sheet td .rich .b'))).toBe('important');

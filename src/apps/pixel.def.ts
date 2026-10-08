@@ -1,9 +1,11 @@
 /**
  * Pixel art: a small grid of coloured squares. Also what a stitch pattern is.
- * Document format: a row of the grid per line, a letter per square ("."
- * for an empty one, a to h for the colours); empty ends are left off.
+ * Document format (TLO): one paragraph, a line per row of the grid, a letter
+ * per square ("." for an empty one, a to h for the colours). Empty ends are
+ * left off, and an empty row is a lone ".", so the paragraph stays whole.
  */
 import { defineApp, rect, text, MUTED, type AppDef, type Page } from '../kit/core.ts';
+import { parse } from '../lib/tlo.ts';
 
 export const INKS: Record<string, { name: string; hex: string }> = {
   a: { name: 'Black', hex: '#18181b' },
@@ -23,8 +25,21 @@ export interface Pixels {
 const KINDS = new Map<string, Pixels>();
 export const pixelsOf = (id: string) => KINDS.get(id)!;
 
-export const parsePixels = (body: string, size: number): string[][] => Array.from({ length: size }, (_, y) => Array.from({ length: size }, (_, x) => (INKS[body.split('\n')[y]?.[x]] ? body.split('\n')[y][x] : '.')));
-export const serializePixels = (grid: string[][]) => grid.map((row) => row.join('').replace(/\.+$/, '')).join('\n').replace(/\n+$/, '');
+/**
+ * The grid, read leniently: the lines of the text, or of the fence it was
+ * handed over in. A blank line is an empty row, and anything but a colour's
+ * letter is an empty square.
+ */
+export function parsePixels(body: string, size: number): string[][] {
+  const fence = parse(body).blocks.find((b) => b.k === 'fence');
+  const lines = (fence?.k === 'fence' ? fence.body : body).split('\n');
+  return Array.from({ length: size }, (_, y) => Array.from({ length: size }, (_, x) => (INKS[lines[y]?.trim()[x]] ? lines[y].trim()[x] : '.')));
+}
+export function serializePixels(grid: string[][]): string {
+  const rows = grid.map((row) => row.join('').replace(/\.+$/, ''));
+  while (rows.length && !rows[rows.length - 1]) rows.pop();
+  return rows.map((row) => row || '.').join('\n');
+}
 
 function picture(body: string, k: Pixels): Page {
   const grid = parsePixels(body, k.size);
@@ -53,6 +68,7 @@ export function definePixels(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'>
     title: () => '',
     outline: (body) => [`${[...body].filter((ch) => INKS[ch]).length} squares filled`],
     view: (body) => [picture(body, k)],
+    read: (text) => serializePixels(parsePixels(text, k.size)),
     shortcuts: [
       { keys: 'Arrow keys', does: 'Move from square to square' },
       { keys: 'Enter or Space', does: 'Colour the square' },

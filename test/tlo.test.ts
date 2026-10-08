@@ -180,3 +180,14 @@ test('tlo: a web address is read whole, marks and all', () => {
   assert.deepEqual(parseInline('see https://x.com/a_b?q=1&r=_2_ now.'), [{ t: 'see https://x.com/a_b?q=1&r=_2_ now.' }]);
   assert.equal(writeInline([{ t: 'go to https://x.com/a_b?q=1 or *not*' }]), 'go to https://x.com/a_b?q=1 or \\*not\\*');
 });
+
+test('tlo: tables of one column, first words like a heading, and backslashes keep their shape', () => {
+  for (const b of [
+    { k: 'table', head: ['Words'], rows: [['a'], ['b \\ c']] },
+    { k: 'table', head: ['# of units', 'Cost'], rows: [['3', 'x\\|y']] },
+  ] as Block[]) {
+    const doc: Tlo = { head: {}, blocks: [b] };
+    assert.deepEqual(parse(write(doc)), doc, write(doc));
+    assert.equal(write(parse(write(doc))), write(doc));
+  }
+});

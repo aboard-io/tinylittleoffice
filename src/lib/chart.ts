@@ -1,7 +1,7 @@
 /**
- * Charts from a table, with no setup: the first column of words is the
- * labels, every column of numbers is a series, and a row of words above the
- * numbers names them. Drawn as SVG so a chart works wherever a picture does.
+ * Charts from a table, with no setup: the first column is the labels, every
+ * other column of numbers is a series, named by its column's name. Drawn as
+ * SVG so a chart works wherever a picture does.
  */
 import { SERIES, patternDefs, patternFill } from './palette.ts';
 import { FAINT, INK, LINE, MUTED, clip, r, rect, text, type Page } from '../kit/core.ts';
@@ -20,20 +20,21 @@ export interface ChartData {
 
 type Cell = number | string | null;
 
-export function chartData(rows: Cell[][]): ChartData {
+/** `names`: each column's name, for its series. */
+export function chartData(rows: Cell[][], names: string[] = []): ChartData {
   const used = rows.filter((row) => row.some((c) => c !== null && c !== ''));
   const cols = Math.max(0, ...used.map((row) => row.length));
   const isNum = (c: Cell) => typeof c === 'number' && isFinite(c);
-  const numeric: number[] = [];
-  for (let c = 0; c < cols; c++) if (used.filter((row) => isNum(row[c])).length >= Math.max(1, used.filter((row) => row[c] !== null && row[c] !== '').length / 2)) numeric.push(c);
+  const holdsNumbers = (c: number) => used.filter((row) => isNum(row[c])).length >= Math.max(1, used.filter((row) => row[c] !== null && row[c] !== '').length / 2);
+  // The first column names each row, unless it is the only column of numbers there is.
+  let numeric = Array.from({ length: cols }, (_, c) => c).filter((c) => c > 0 && holdsNumbers(c));
+  const labelled = cols > 1 && numeric.length > 0;
+  if (!numeric.length && holdsNumbers(0)) numeric = [0];
   if (!numeric.length) return { labels: [], series: [] };
-  const labelCol = Array.from({ length: cols }, (_, c) => c).find((c) => !numeric.includes(c) && used.some((row) => typeof row[c] === 'string'));
-  // A first row with no numbers in the number columns is a header.
-  const header = used.length > 1 && numeric.every((c) => !isNum(used[0][c])) ? used[0] : null;
-  const body = (header ? used.slice(1) : used).filter((row) => numeric.some((c) => isNum(row[c])));
+  const body = used.filter((row) => numeric.some((c) => isNum(row[c])));
   return {
-    labels: body.map((row, i) => (labelCol === undefined ? String(i + 1) : String(row[labelCol] ?? ''))),
-    series: numeric.map((c, i) => ({ name: header && typeof header[c] === 'string' ? (header[c] as string) : numeric.length > 1 ? `Series ${i + 1}` : '', values: body.map((row) => (isNum(row[c]) ? (row[c] as number) : 0)) })),
+    labels: body.map((row, i) => (labelled ? String(row[0] ?? '') : String(i + 1))),
+    series: numeric.map((c) => ({ name: names[c] ?? '', values: body.map((row) => (isNum(row[c]) ? (row[c] as number) : 0)) })),
   };
 }
 

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import * as T from '../src/api.ts';
 import { appOf, apps } from '../src/kit/core.ts';
 import { fromMarkdown, toMarkdown } from '../src/lib/markdown.ts';
-import { parseGrid, evaluateGrid, typesOf } from '../src/lib/formula.ts';
+import { parseGrid, evaluateGrid, namesOf, typesOf } from '../src/lib/formula.ts';
 import { parseDeck } from '../src/lib/deckmodel.ts';
 import { parseTodos } from '../src/lib/todomodel.ts';
 import { parseCalendar } from '../src/lib/calmodel.ts';
@@ -24,10 +24,12 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
   sheet: {
     md: '| Month | Rent | Food |\n|---|---:|---:|\n| Jan | 1,200 | 450 |\n| Feb | 1,200 | 480 |\n',
     check: (b) => {
+      // The header row names the columns; the rows under it are rows 1 and 2.
+      assert.deepEqual(namesOf(b).slice(0, 3), ['Month', 'Rent', 'Food']);
       const g = parseGrid(b);
-      assert.deepEqual(g.slice(0, 3).map((r) => r.slice(0, 3)), [['Month', 'Rent', 'Food'], ['Jan', '1,200', '450'], ['Feb', '1,200', '480']]);
+      assert.deepEqual(g.slice(0, 2).map((r) => r.slice(0, 3)), [['Jan', '1,200', '450'], ['Feb', '1,200', '480']]);
       const v = evaluateGrid(g, typesOf(b));
-      assert.equal(v[2][2], 480);
+      assert.equal(v[1][2], 480);
     },
   },
   todo: {

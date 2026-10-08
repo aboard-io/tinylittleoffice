@@ -240,7 +240,7 @@ test('accessibility: no app has violations a machine can find', async ({ page })
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
-    sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
+    sheet: '---\nchart: bar\n---\nItem | Cost:money\n--- | ---\nRent | 1200\nFood | 600',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n@@draw/',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
@@ -323,7 +323,7 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
-    sheet: '!bar|td$\nItem\tWhen\tCost\nRent\t2027-03-01\t1200',
+    sheet: '---\nchart: bar\n---\nItem | When:date | Cost:money\n--- | --- | ---\nRent | 2027-03-01 | 1200',
     write: '# Memo\nSome *bold* text\n- one\n-- nested',
     deck: ':rocket\nLaunch plan\nBuild it\nShip it',
     draw: 'r,2,1,12,6,1b3,Box',

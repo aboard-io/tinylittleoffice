@@ -5,7 +5,7 @@ import '../src/apps/index.ts';
 import { appOf, apps, pageSvg } from '../src/kit/core.ts';
 import { TEMPLATES, templatesOf, planText } from '../src/lib/templates.ts';
 import { parseDoc, serializeDoc } from '../src/lib/richtext.ts';
-import { chartOf, parseGrid, serializeGrid, typesOf } from '../src/lib/formula.ts';
+import { readSheet, serializeGrid } from '../src/lib/formula.ts';
 import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr } from '../src/lib/deckmodel.ts';
 import { toMarkdown } from '../src/lib/markdown.ts';
 import * as T from '../src/api.ts';
@@ -13,7 +13,7 @@ import * as T from '../src/api.ts';
 /** A template as its app would write it back: the same text, or the template is not in the app's own spelling. */
 const rewrite: Record<string, (body: string) => string> = {
   write: (b) => serializeDoc(parseDoc(b)),
-  sheet: (b) => serializeGrid(parseGrid(b), chartOf(b), typesOf(b)),
+  sheet: (b) => ((s) => serializeGrid(s.grid, s.chart, s.types, s.names))(readSheet(b)),
   deck: (b) => serializeDeck(parseDeck(b), deckTransition(b), deckIconColor(b), deckEndsWithQr(b)),
 };
 
@@ -40,16 +40,16 @@ test('the sheets add up: no errors in any computed cell, and the formulas mean w
   const cells = (id: string) => T.evaluateSheet(TEMPLATES.sheet.find((t) => t.id === id)!.body);
   for (const t of TEMPLATES.sheet) for (const row of T.evaluateSheet(t.body)) for (const v of row) assert.ok(!v.startsWith('#'), `${t.id}: ${row.join(' | ')}`);
   const budget = cells('budget');
-  assert.deepEqual(budget[7], ['Total', '$2,630.00', '$2,695.00', '$65.00']);
+  assert.deepEqual(budget[6], ['Total', '$2,630.00', '$2,695.00', '$65.00']);
   // 1,800 + 2,800 + 120, and 8% on top.
-  assert.deepEqual(cells('invoice').slice(4).map((r) => r[3]), ['$4,720.00', '$377.60', '$5,097.60']);
+  assert.deepEqual(cells('invoice').slice(3).map((r) => r[3]), ['$4,720.00', '$377.60', '$5,097.60']);
   // A loan of 20,000 at 6.5% over five years: about 391 a month.
-  assert.equal(cells('loan')[1][3], '$391.32');
+  assert.equal(cells('loan')[0][3], '$391.32');
   // The tracker counts from today, so its dates are dates and its days are days.
   const tracker = cells('tracker');
-  assert.match(tracker[1][2], /^\d{4}-\d{2}-\d{2}$/);
-  assert.deepEqual(tracker.slice(1).map((r) => r[4]), ['5', '14', '28', '1']);
-  assert.equal(tracker[1][5], '☑');
+  assert.match(tracker[0][2], /^\d{4}-\d{2}-\d{2}$/);
+  assert.deepEqual(tracker.map((r) => r[4]), ['5', '14', '28', '1']);
+  assert.equal(tracker[0][5], '☑');
 });
 
 test('the decks name only icons the library has, and lay out as they say', async () => {

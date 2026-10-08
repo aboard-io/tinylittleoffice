@@ -1,10 +1,10 @@
 // The fill handle: a run of cells dragged on goes on as a series; what is no series repeats.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fillCells, seriesOf, parseGrid } from '../src/lib/formula.ts';
+import { fillCells, seriesOf, parseGrid, pasteCells } from '../src/lib/formula.ts';
 
 const run = (seed: string[], more: number) => {
-  const grid = parseGrid(seed.join('\n'));
+  const grid = pasteCells(parseGrid(''), 0, 0, seed.join('\n')).grid;
   const out = fillCells(grid, { r0: 0, c0: 0, r1: seed.length - 1, c1: 0 }, { r0: 0, c0: 0, r1: seed.length - 1 + more, c1: 0 });
   return out.slice(seed.length, seed.length + more).map((r) => r[0]);
 };

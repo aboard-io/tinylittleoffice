@@ -103,7 +103,7 @@ export function cells(line: string): string[] {
   const out: string[] = [];
   let cur = '';
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === '\\' && s[i + 1] === '|') (cur += '|'), i++;
+    if (s[i] === '\\' && (s[i + 1] === '|' || s[i + 1] === '\\')) (cur += s[i + 1]), i++;
     else if (s[i] === '|') out.push(cur.trim()), (cur = '');
     else cur += s[i];
   }
@@ -308,9 +308,11 @@ export function writeBlock(b: Block, n = 1): string {
     case 'hr':
       return `---${at}`;
     case 'table': {
-      // A row starting with an empty cell starts with its pipe, or the pipe would be taken for the table's edge.
-      const row = (r: string[]) => (r[0] ? '' : '| ') + r.map(cell).join(' | ');
-      return [row(b.head), b.head.map(() => '---').join(' | '), ...b.rows.map(row), ...(at ? [at.trim()] : [])].join('\n');
+      // A table of one column, or one whose first words would read as something else ("# of units"), keeps its edges;
+      // so does a row starting with an empty cell, or the pipe would be taken for the table's edge.
+      const edged = b.head.length < 2 || guard(cell(b.head[0])) !== cell(b.head[0]);
+      const row = (r: string[]) => (edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '| ') + r.map(cell).join(' | '));
+      return [row(b.head), row(b.head.map(() => '---')), ...b.rows.map(row), ...(at ? [at.trim()] : [])].join('\n');
     }
     case 'fence': {
       const longest = Math.max(2, ...(b.body.match(/`{3,}/g) ?? []).map((m) => m.length));
