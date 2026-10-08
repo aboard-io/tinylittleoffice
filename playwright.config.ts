@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// PW_PORT lets two checkouts run their suites at once (each builds and previews its own copy).
+const port = Number(process.env.PW_PORT ?? 4173);
+
 export default defineConfig({
   testDir: 'e2e',
   timeout: 30_000,
@@ -9,8 +12,8 @@ export default defineConfig({
     serviceWorkers: 'block',
     // A link opens as a document to read, with Edit a button away; tests of the editors open straight into them (e2e/view.spec.ts tests reading).
     // Text apps open as a form; most tests type the text itself, so they start in text mode (e2e/forms.spec.ts tests the form).
-    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'text' }, { name: 'tinyoffice.open', value: 'edit' }] }] },
-    baseURL: 'http://localhost:4173',
+    storageState: { cookies: [], origins: [{ origin: `http://localhost:${port}`, localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'text' }, { name: 'tinyoffice.open', value: 'edit' }] }] },
+    baseURL: `http://localhost:${port}`,
     timezoneId: 'America/New_York',
     locale: 'en-US',
     permissions: ['clipboard-read', 'clipboard-write'],
@@ -20,8 +23,8 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'], browserName: 'chromium' } },
   ],
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    command: `npm run build && npm run preview -- --port ${port} --strictPort`,
+    url: `http://localhost:${port}`,
     // Always a fresh build: a preview server left from an earlier run serves stale files.
     reuseExistingServer: false,
     timeout: 90_000,
