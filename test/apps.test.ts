@@ -460,7 +460,7 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
     assert.ok(spec.page!('').startsWith('<!doctype html>'), `${id} survives being empty`);
   }
   const site = specOf('site')!.page!(specOf('site')!.example);
-  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section id="menu">') && site.includes('<strong>Roasted daily</strong>'));
+  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section class="page" id="menu">') && site.includes('<strong>Roasted daily</strong>'));
   const store = specOf('store')!.page!(specOf('store')!.example);
   assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
   // Nothing typed into a page can break out of it.
@@ -471,6 +471,41 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
   assert.equal(inv.money(inv.total), '$5,486.40');
   assert.ok(appOf('invoice')!.view(specOf('invoice')!.example)[0].svg.includes('>$5,486.40</text>'));
   assert.equal(appOf('invoice')!.title(specOf('invoice')!.example), 'Invoice 0042');
+});
+
+test('invoice: the sums, and the page that is its editor', async () => {
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const { parseInvoice } = await import('../src/apps/invoice.def.ts');
+  const { readLines, kindsOf } = await import('../src/lib/lines.ts');
+  const spec = specOf('invoice')!;
+  // "what, price" is one of them; a note with a comma and no number is a note; tax and currency apply to the lot.
+  const inv = parseInvoice('Currency: £\nTax: 20\nDesign, 2, 150.5\nHosting, 480\nThanks, pay soon\n\nNet 30');
+  assert.deepEqual(inv.items, [{ what: 'Design', qty: 2, price: 150.5 }, { what: 'Hosting', qty: 1, price: 480 }]);
+  assert.deepEqual([inv.subtotal, inv.tax, inv.total, inv.money(inv.total)], [781, 156.2, 937.2, '£937.20']);
+  assert.deepEqual(inv.notes, ['Thanks, pay soon', 'Net 30']);
+  assert.equal(parseInvoice('Credit, 1, -20').money(parseInvoice('Credit, 1, -20').total), '-$20.00');
+  assert.equal(parseInvoice('').total, 0);
+  // Each part knows its row of the text (blank lines not counted), which is where the page writes it back.
+  assert.deepEqual(inv.rows, { fields: { currency: 0, tax: 1 }, items: [2, 3], notes: [4, 5] });
+  // The form reads the same lines the same way: a price is a number, so "Thanks, pay soon" is not a thing with a price.
+  const names = readLines('Design, 2, 150.5\nHosting, 480\nThanks, pay soon\na, b, 2, 3', spec.form!).map((r) => kindsOf(spec.form!).kinds[r.kind].name);
+  assert.deepEqual(names, ['Item', 'Single item', 'Note', 'Item']);
+  assert.deepEqual(readLines('a, b, 2, 3', spec.form!)[0].values, ['a, b', '2', '3']);
+  // The page as it is read has no marks; edited, every field is marked with its row, a hint where it is empty.
+  const plain = spec.page!(spec.example);
+  assert.ok(!plain.includes('data-lf') && !plain.includes('data-inv'));
+  const edit = spec.page!(spec.example, { edit: true });
+  assert.ok(edit.includes('data-lf="2,0"') && edit.includes('>0042</span>'), 'the number is row 2');
+  assert.ok(edit.includes('data-lf="0,0,0" data-hint="Your name"') && edit.includes('data-lf="0,0,1"') && edit.includes('data-lf="0,0,2" data-hint="Another line"'), 'an address is lines, with one more to type into');
+  assert.ok(edit.includes('data-lf="6,1"') && edit.includes('data-lf="6,2"') && edit.includes('data-inv="qty"'), 'an item\'s quantity and price');
+  assert.ok(edit.includes('data-lf="8,1"') && !edit.includes('data-lf="8,2"'), 'a single item has a price and no quantity to type');
+  assert.ok(edit.includes('data-lf="+7,0" data-hint="Payment terms"') && edit.includes('data-lf="+10,0"'), 'a field not written yet is a hint of its kind');
+  assert.ok(edit.includes('data-lf-add="8" data-lf-after="8"') && edit.includes('data-lf-remove="6"'));
+  assert.ok(edit.includes('data-inv="total">$5,486.40<'));
+  // Empty, it is all hints, and still the invoice.
+  const blank = spec.page!('', { edit: true });
+  assert.ok(blank.includes('data-lf="+0,0,0"') && blank.includes('data-lf-add="8" data-lf-after="-1"') && blank.includes('data-inv="total">$0.00<'));
+  assert.ok(!spec.page!('', { edit: false }).includes('data-lf'));
 });
 
 test('contract: two people sign the same words', async () => {
@@ -668,6 +703,58 @@ test('small apps: the sums behind them', async () => {
   assert.equal(floor.shapes[1].x - floor.shapes[0].x, 144);
   assert.equal(specOf('seating')!.layout!('T1: a, b, c\nT2: d').shapes.length, 6);
   assert.deepEqual(specOf('timeline')!.layout!('1: a\n2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
+});
+
+test('diagrams worked on the picture: lists of things, regions, place cards', async () => {
+  const { readLines, writeLines, listItems, moveItem, fieldsOf } = await import('../src/lib/lines.ts');
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const { appOf } = await import('../src/kit/core.ts');
+  // A list field holds things with commas between, each a thing of its own on the picture; a field in [..] is one a line can do without.
+  const seating = specOf('seating')!.form!;
+  assert.deepEqual(fieldsOf(seating, 0).map((f) => [f.name, f.type, !!f.optional]), [['Table', 'text', false], ['Who', 'list', false]]);
+  assert.deepEqual(fieldsOf(specOf('org')!.form!, 1).map((f) => !!f.optional), [true, false, true]);
+  assert.deepEqual(listItems('Sam, Paul,, Ada'), ['Sam', 'Paul', '', 'Ada']);
+  assert.deepEqual(listItems(' '), []);
+  // A thing moves from one list to another, or along its own.
+  const rows = readLines('T1: a, b, c\nT2: d', seating);
+  assert.equal(writeLines(moveItem(rows, 0, 1, 1, 1, 1, Infinity), seating), 'T1: a, c\nT2: d, b');
+  assert.equal(writeLines(moveItem(rows, 0, 1, 0, 0, 1, 3), seating), 'T1: b, c, a\nT2: d');
+  assert.equal(writeLines(moveItem(rows, 0, 1, 2, 0, 1, 0), seating), 'T1: c, a, b\nT2: d');
+  assert.equal(writeLines(moveItem(rows, 1, 1, 0, 0, 1, 0), seating), 'T1: d, a, b, c\nT2:');
+  assert.equal(moveItem(rows, 1, 1, 5, 0, 1, 0), rows);
+  // Regions: a tap in a lane's band names the lane (and a lane may stand empty); in the circles, the sets round the tap.
+  const lanes = specOf('lanes')!;
+  const d = lanes.layout!(lanes.example);
+  const bands = d.shapes.filter((s) => s.k === 'r' && !s.text);
+  assert.equal(bands.length, 4);
+  assert.equal(lanes.keyAt!(lanes.example, bands[1].x + 10, bands[1].y + 10), 'Sales');
+  assert.equal(lanes.keyAt!(lanes.example, bands[1].x + 10, d.h - 2), undefined);
+  assert.deepEqual(lanes.layout!('Sales:\nSales: Calls').shapes.map((s) => s.k), ['r', 't', 'o']);
+  assert.deepEqual(lanes.layout!('Sales:').shapes.map((s) => s.k), ['r', 't']);
+  const venn = specOf('venn')!;
+  const circles = venn.layout!(venn.example).shapes.filter((s) => s.k === 'e');
+  const mid = (...cs: typeof circles) => [cs.reduce((a, c) => a + c.x + c.w / 2, 0) / cs.length, cs.reduce((a, c) => a + c.y + c.h / 2, 0) / cs.length] as const;
+  assert.equal(venn.keyAt!(venn.example, ...mid(circles[0])), 'Fast');
+  // Between two circles, away from the third (their midpoint alone is inside all three).
+  const [mx, my] = mid(circles[0], circles[1]);
+  const [tx, ty] = mid(circles[2]);
+  assert.equal(venn.keyAt!(venn.example, mx + (mx - tx) * 0.4, my + (my - ty) * 0.4), 'Fast & Cheap');
+  assert.equal(venn.keyAt!(venn.example, ...mid(...circles)), 'Fast & Cheap & Good');
+  assert.equal(venn.keyAt!(venn.example, 1, 1), undefined);
+  // Place cards: one per seated person with their name and table, eight to a letter sheet, lines to cut along.
+  const { placeCards } = await import('../src/apps/seating.def.ts');
+  const cards = placeCards(specOf('seating')!.example);
+  assert.deepEqual(cards.map((p) => [p.w, p.h]), [[816, 1056], [816, 1056]]);
+  assert.equal(cards[0].svg.match(/stroke-dasharray="6 5"/g)!.length, 8);
+  assert.equal(cards[1].svg.match(/stroke-dasharray="6 5"/g)!.length, 7);
+  assert.ok(cards[0].svg.includes('>Sam</text>') && cards[0].svg.includes('>Top table</text>') && cards[1].svg.includes('>Leslie</text>'));
+  // The name is large and the table small; a picture on a person goes on their card.
+  const px = [...cards[0].svg.matchAll(/font-size="([\d.]+)"/g)].map((m) => +m[1]);
+  assert.ok(Math.max(...px) > 40 && Math.min(...px) < 30, String(px));
+  assert.ok(placeCards('Top: :star Ada')[0].svg.includes('stroke-linecap="round"') && placeCards('Top: :star Ada')[0].svg.includes('>Ada</text>'));
+  assert.equal(placeCards('').length, 1);
+  assert.ok(appOf('seating')!.downloads!.some((x) => x.ext === 'cards.pdf' && x.pages));
+  assert.equal(appOf('seating')!.downloads![0].ext, 'svg');
 });
 
 test('lines: every text app can be filled in as a form, and what is saved is the same text', async () => {

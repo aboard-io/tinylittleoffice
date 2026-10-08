@@ -43,17 +43,19 @@ export const APPS: { id: AppId; name: string; icon: keyof typeof UI; under?: str
 
 /**
  * The apps as the menu shows them: under their group's heading, each app
- * followed by the apps that are kinds of it.
+ * followed by the apps that are kinds of it. A hidden app is not shown
+ * (its links still open: APPS keeps it for the routes).
  */
 function grouped(): { group: string; apps: typeof APPS }[] {
   const out: { group: string; apps: typeof APPS }[] = [];
-  for (const d of apps()) {
+  const shown = apps().filter((d) => !d.hidden);
+  for (const d of shown) {
     if (d.under) continue;
     const group = d.group ?? 'More';
     // (The apps with no group come first, on their own.)
     let at = out.find((g) => g.group === group);
     if (!at) out.push((at = { group, apps: [] }));
-    at.apps.push(...APPS.filter((a) => a.id === d.id || a.under === d.id));
+    at.apps.push(...APPS.filter((a) => (a.id === d.id || a.under === d.id) && shown.some((s) => s.id === a.id)));
   }
   // In the order the menu shows them: the apps on their own first, then the clusters.
   const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
@@ -107,7 +109,8 @@ export interface Route {
   ext: string;
 }
 
-const ROUTE = new RegExp(`^#/(?:v(\\d+)/)?(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9]+))?(?:/(.*))?$`);
+// (An extension may have a dot in it: "seating.cards.pdf" is the chart's place cards.)
+const ROUTE = new RegExp(`^#/(?:v(\\d+)/)?(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9.]+))?(?:/(.*))?$`);
 
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);

@@ -14,7 +14,7 @@ import { parseTodos, serializeTodos } from './todomodel.ts';
 import { parseBoard, serializeBoard } from './boardmodel.ts';
 import { parseGantt } from './ganttmodel.ts';
 import { parseTrip } from './tripmodel.ts';
-import { parseCalendar, EPOCH_DAY, isoDay } from './calmodel.ts';
+import { parseCalendar, repeatText, EPOCH_DAY, isoDay, type Span as CalSpan } from './calmodel.ts';
 import { parseDrawing, serializeDrawing, type Shape } from './drawmodel.ts';
 import { parseOutline, serializeOutline } from './outlinemodel.ts';
 import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
@@ -22,6 +22,7 @@ import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
 import { dayToYmd, ymdString } from './tz.ts';
 import { formatOf, parseFold, serializeFold } from './fold.ts';
+import { mdToSite, siteToMd } from './sitemodel.ts';
 
 /* ---------- inline marks ---------- */
 
@@ -283,7 +284,9 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       return parseTrip(body).map((s, i) => `${i + 1}. ${s.name || `Stop ${i + 1}`} (${s.lat.toFixed(4)}, ${s.lon.toFixed(4)})${s.note ? `  \n   ${s.note}` : ''}`).join('\n') + '\n';
     case 'cal': {
       const cal = parseCalendar(body);
-      return (cal.zone ? `Time zone: ${cal.zone}\n\n` : '') + cal.spans.map((s) => (s.kind === 'd' ? `- ${isoDay(s.start)}${s.dur > 1 ? ` (${s.dur} days)` : ''}: ${s.label}` : `- ${new Date(s.start * 60000).toISOString().slice(0, 16).replace('T', ' ')} UTC${s.dur ? ` (${s.dur} min)` : ''}: ${s.label}`)).join('\n') + '\n';
+      // A repeat goes after the label, the way the calendar reads it back ("Standup every week, 9 times").
+      const label = (s: CalSpan) => s.label + (s.repeat ? ` ${repeatText(s.repeat)}` : '');
+      return (cal.zone ? `Time zone: ${cal.zone}\n\n` : '') + cal.spans.map((s) => (s.kind === 'd' ? `- ${isoDay(s.start)}${s.dur > 1 ? ` (${s.dur} days)` : ''}: ${label(s)}` : `- ${new Date(s.start * 60000).toISOString().slice(0, 16).replace('T', ' ')} UTC${s.dur ? ` (${s.dur} min)` : ''}: ${label(s)}`)).join('\n') + '\n';
     }
     case 'draw':
       return parseDrawing(body).filter((s) => s.text).map((s) => `- ${s.text}`).join('\n') + '\n';
@@ -293,6 +296,8 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
       return parseAnim(body).shapes.filter((s) => s.text).map((s) => `- ${s.k === 'i' ? `:${s.text}:` : s.text}`).join('\n') + '\n';
     case 'qr':
       return body.trim() + '\n';
+    case 'site':
+      return siteToMd(body);
   }
   if (formatOf(def.id)) {
     const f = formatOf(def.id)!;
@@ -421,6 +426,8 @@ export function fromMarkdown(def: AppDef, md: string): string {
     }
     case 'qr':
       return items(text)[0] ?? text.split('\n')[0] ?? '';
+    case 'site':
+      return mdToSite(text);
   }
   if (formatOf(def.id)) return serializeFold({ two: false, pages: mdToSlides(text) }, formatOf(def.id)!);
   const lines = mdToLines(def.id, text);

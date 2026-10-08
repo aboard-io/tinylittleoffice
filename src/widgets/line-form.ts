@@ -110,7 +110,7 @@ export class ToLines extends LitElement {
     // Return in a box starts another row of the same kind: lists are quick to type.
     const names = f.type === 'pick' ? [...new Set(this.rows.filter((r) => r !== row).map((r) => (r.values.find((v, k) => v && fieldsOf(this.kinds, r.kind)[k].type !== 'icon') ?? '').split(' | ')[0]).filter(Boolean))] : [];
     const list = f.type === 'pick' ? `lf-pick-${i}-${n}` : undefined;
-    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} list=${list ?? nothing} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
+    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} inputmode=${f.type === 'number' ? 'decimal' : nothing} list=${list ?? nothing} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
   }
 
   render() {

@@ -189,6 +189,17 @@ export async function movie(def: AppDef, body: string): Promise<Uint8Array | nul
   return encodeGif(w, h, frames, { loop: 0 });
 }
 
+/** Pages as a PDF: each drawn as a JPEG, as sharp as the page size allows. */
+async function pdfOf(pages: Page[], title: string): Promise<Uint8Array | null> {
+  const drawn: PdfPage[] = [];
+  for (const p of pages) {
+    const k = sharp(p);
+    const jpeg = await raster(pageSvg(p), p.w, p.h, 'image/jpeg', k);
+    if (jpeg) drawn.push({ w: p.w, h: p.h, pw: Math.round(p.w * k), ph: Math.round(p.h * k), jpeg });
+  }
+  return drawn.length ? pdf(drawn, title) : null;
+}
+
 /**
  * Save a document as a file of the given kind. Returns the file's name, or
  * null if the app has no such format.
@@ -199,7 +210,10 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
   const own = def.downloads?.find((d) => d.ext === ext);
   let data: Uint8Array | null = null;
   let mime = '';
-  if (own) {
+  if (own?.pages) {
+    data = await pdfOf(own.pages(body), title || def.title(body) || def.name);
+    mime = own.mime;
+  } else if (own?.build) {
     const png: Record<string, Uint8Array> = {};
     for (const [key, pic] of Object.entries(own.needs?.(body) ?? {})) {
       const drawn = await raster(pic.svg, pic.w, pic.h);
@@ -214,13 +228,7 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
     data = await movie(def, body);
     mime = 'image/gif';
   } else if (ext === 'pdf') {
-    const pages: PdfPage[] = [];
-    for (const p of def.view(body)) {
-      const k = sharp(p);
-      const jpeg = await raster(pageSvg(p), p.w, p.h, 'image/jpeg', k);
-      if (jpeg) pages.push({ w: p.w, h: p.h, pw: Math.round(p.w * k), ph: Math.round(p.h * k), jpeg });
-    }
-    data = pages.length ? pdf(pages, title || def.title(body) || def.name) : null;
+    data = await pdfOf(def.view(body), title || def.title(body) || def.name);
     mime = 'application/pdf';
   } else if (ext === 'md') {
     data = utf8(toMarkdown(def, body, title));
@@ -325,7 +333,7 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   return out;
 }
 
-export const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck');
+export const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck' && !a.hidden);
 
 /**
  * Open an editor for a document that lives inside another one. Resolves

@@ -4,7 +4,8 @@ import { shot, reopen, navTo, pickOption } from './helpers';
 test('launcher lists every app', async ({ page }) => {
   await page.goto('/');
   const launcher = page.locator('.to-launcher a:not(.drive-tile)');
-  await expect(launcher).toHaveCount(53);
+  // (The three plans are Write templates now, kept for old links but not listed; Chord chart is retired.)
+  await expect(launcher).toHaveCount(49);
   await expect(launcher.nth(0)).toContainText('Sheet');
   await shot(page, 'home');
 });

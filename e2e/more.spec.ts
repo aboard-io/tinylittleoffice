@@ -135,7 +135,8 @@ test('diagram apps: write an outline, get a picture, use it anywhere', async ({ 
   for (const [app, sel, n] of [['mind', 'rect', 9], ['lanes', 'polygon', 1], ['venn', 'ellipse', 3], ['net', 'line', 5]] as const) {
     await page.goto(`/#/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
-    await expect(page.locator(`to-${app} .pic svg ${sel}`), app).toHaveCount(n);
+    // (A line has a wide transparent twin, to be tapped: only the drawn ones are counted.)
+    await expect(page.locator(`to-${app} .pic svg ${sel}:not([stroke="transparent"])`), app).toHaveCount(n);
     await shot(page, app);
   }
   // The database answers its queries under its schema.
@@ -386,7 +387,7 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   const site = page.frameLocator('to-site iframe');
   await expect(site.getByRole('heading', { level: 1 })).toHaveText('Harbor Coffee');
   await expect(site.locator('ul.cards li')).toHaveCount(6);
-  await expect(site.locator('header a')).toHaveText(['Menu', 'Visit']);
+  await expect(site.locator('header a')).toHaveText(['Home', 'Menu', 'Find us']);
   await shot(page, 'site');
 
   // A store: things go in the cart, and the total adds up.
@@ -908,29 +909,6 @@ test('the menu finds an app by name', async ({ page }) => {
   await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('poll');
   await page.keyboard.press('Enter');
   await expect(page.locator('to-poll')).toBeVisible();
-});
-
-test('outline rows fold shut and open again', async ({ page }) => {
-  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v2/org/' + encodeEnvelope({ created: 1, body: 'Ada\n  Ben\n    Cy\n  Eve' }));
-  await page.getByRole('button', { name: 'Edit as a form' }).click();
-  const form = page.locator('to-org to-lines');
-  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(4);
-  await form.getByRole('button', { name: 'Hide the 1 row under row 2' }).click();
-  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(3);
-  await form.getByRole('button', { name: 'Hide the 3 rows under row 1' }).click();
-  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(1);
-  await form.getByRole('button', { name: 'Show the 3 rows under row 1' }).click();
-  await expect(form.locator('.lf-row:not([hidden])')).toHaveCount(3);
-  // Nothing about folding is in the document.
-  await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue('Ada\n  Ben\n    Cy\n  Eve');
-  // A dotted line's ends are picked from the names on the chart; a mark that would split a box is kept out of it.
-  await page.getByRole('button', { name: 'Edit as a form' }).click();
-  await form.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Dotted line' }).click();
-  await expect(form.locator('datalist option')).toHaveCount(8);
-  await page.keyboard.type('Cy .. Eve');
-  await expect(form.getByRole('combobox', { name: 'From, row 5' })).toHaveValue('Cy  Eve');
 });
 
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {

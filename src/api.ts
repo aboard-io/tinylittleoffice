@@ -15,21 +15,30 @@ import { createSigner, fingerprintOf, verify, type KeyStore, type Signer } from 
 import { newLocker, seal, unseal, isSealed } from './lib/crypt.ts';
 import { URL_LIMIT } from './lib/codec.ts';
 import { specOf } from './lib/diagram.ts';
+import { templatesOf, type Template } from './lib/templates.ts';
 import { LIBRARY, allIcons } from './lib/icons.ts';
 import { searchIcons } from './lib/iconsearch.ts';
 export { searchIcons };
 import { diff } from './lib/diff.ts';
 export { diff };
 
-export type { AppDef, Envelope, KeyStore, Signer };
+export type { AppDef, Envelope, KeyStore, Signer, Template };
 export { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv, signingMessage, quantizeCreated, fingerprintOf, verify, createSigner, isSealed, URL_LIMIT };
 
 /** Where the links point. Any copy of the site works: the document is in the link, not on the server. */
 export const SITE = 'https://tinylittleoffice.com/';
 
-/** Every app: its id, name, group and a line on what it is for. */
+/** Every app: its id, name, group and a line on what it is for. (A retired app's links still open; it is not listed.) */
 export function apps(): { id: string; name: string; group: string; blurb: string }[] {
-  return registry().map((d) => ({ id: d.id, name: d.name, group: d.group ?? '', blurb: d.blurb ?? '' }));
+  return registry()
+    .filter((d) => !d.hidden)
+    .map((d) => ({ id: d.id, name: d.name, group: d.group ?? '', blurb: d.blurb ?? '' }));
+}
+
+/** The templates an app can start from (Write, Sheet and Deck have them): a name, a line, and the body in the app's format. */
+export function templates(app: string): Template[] {
+  if (!appOf(app)) throw new Error(`No app "${app}"`);
+  return templatesOf(app).map((t) => ({ ...t }));
 }
 
 /** Example bodies for the apps that have no form spec; the rest carry their own. */
@@ -242,7 +251,8 @@ export async function lint(app: string, body: string, opts: MakeOptions = {}): P
   });
   if (app === 'deck') {
     lines.forEach((l, i) => {
-      const m = /^(?::([a-z0-9-]*))?:([a-z0-9]*)$/.exec(l.trim());
+      // (Both colons: ":rocket" alone is an icon line, not a layout.)
+      const m = /^:([a-z0-9-]*):([a-z0-9]*)$/.exec(l.trim());
       if (m && m[2] && !['t', '2', 'i', 'b'].includes(m[2])) out.push({ level: 'warning', line: i + 1, message: `Layout ":${m[2]}" is not one of :t (title), :2 (two columns), :i (big icon); the slide is drawn as bullets.` });
     });
   }

@@ -6,6 +6,7 @@
  */
 import type { Kind as LineKind } from './lines.ts';
 import { defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
+import { resolve } from '../kit/embed.ts';
 import { GRID, W, H, isLink, serializeDrawing, type Color, type Fill, type Kind, type Shape, type TextSize } from './drawmodel.ts';
 import { shapesPage } from '../apps/draw.def.ts';
 
@@ -89,6 +90,12 @@ export function toDrawing(d: Diagram): string {
   return serializeDrawing(d.shapes.map((s) => (isLink(s.k) ? s : { ...s, x: g(s.x), y: g(s.y), w: Math.max(GRID, g(s.w)), h: Math.max(GRID, g(s.h)), ...(k < 0.75 ? { z: 1 as TextSize } : {}) })));
 }
 
+/** How a page app is asked for its page. */
+export interface PageOpts {
+  edit?: boolean;
+  base?: string;
+}
+
 export interface DiagramSpec {
   /** One line on how to write it. */
   hint: string;
@@ -99,10 +106,24 @@ export interface DiagramSpec {
   form?: LineKind[];
   /** Which fields of which kind hold a thing's place, and the px per unit: then a thing can be dragged where it goes. */
   moves?: { kind: number; x: number; y: number; unit: number };
+  /**
+   * Where the picture has regions (a lane, the circles of a Venn): the key
+   * of the line a tap at x, y (in the picture's own units) belongs to, so a
+   * tap there adds to it and a thing dragged there moves into it. The key
+   * is what is written before the colon ("Sales", "Fast & Cheap").
+   */
+  keyAt?(text: string, x: number, y: number): string | undefined;
+  /** The document is rows at heart (a database's tables): offer it as a list to fill in, beside the picture. */
+  list?: boolean;
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
-  /** For page apps: the text as a whole web page, shown beside it as it is typed. */
-  page?(text: string): string;
+  /**
+   * For page apps: the text as a whole web page, shown beside it as it is
+   * typed. `base` is the site's address, for links out of a downloaded
+   * file. Asked for `edit`, the page as it is typed into in place: it may
+   * mark its fields itself, with hints where they are empty (lib/pageedit.ts).
+   */
+  page?(text: string, opts?: PageOpts): string;
   /** Anything to show under the picture, as HTML (query results, say). */
   aside?(text: string): string;
 }
@@ -129,17 +150,19 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
     const d = spec.layout(body);
     return shapesPage(d.shapes, d.w, d.h, upTo);
   };
+  // The picture as SVG, then anything of the app's own (a seating chart's place cards).
+  const { downloads = [], ...rest } = app;
   return defineApp({
     title: () => '',
     outline: (body) => body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 12),
     view: (body, opts = {}) => [page(body, opts.step)],
     // On a slide a diagram appears a shape per click, in the order it was written.
     steps: (body) => spec.layout(body).shapes.length,
-    downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }],
+    downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }, ...downloads],
     shortcuts: OUTLINE_KEYS,
     // A diagram is a kind of drawing, unless it says where it belongs.
     ...(app.group === undefined && app.under === undefined ? { group: 'Design', under: 'draw' } : {}),
-    ...app,
+    ...rest,
   });
 }
 
@@ -148,9 +171,15 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
  * result is a web page (a site, a store, an FAQ). The page is what the
  * .html download is; the same editor as the diagram apps shows it live.
  */
-export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string): string }): AppDef {
+export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string, opts?: PageOpts): string }): AppDef {
   registerSpec(app.id, spec);
-  const lines = (body: string) => body.split('\n').map((l) => l.trim().replace(/^#+\s*/, '')).filter(Boolean);
+  // Its lines, as words: headings without their marks, an embedded document by its name.
+  const lines = (body: string) =>
+    body
+      .split('\n')
+      .map((l) => l.trim().replace(/^(#+|=+)\s*/, ''))
+      .filter(Boolean)
+      .map((l) => (l.startsWith('@@') ? `↗  ${resolve(l.slice(2)).title}` : l));
   // Its title is its "# Heading", unless it says otherwise.
   const title = app.title ?? h1;
   return defineApp({
@@ -159,7 +188,7 @@ export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> &
     view: (body, opts = {}) => [listPage(title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
     // On a slide, its lines arrive one at a time.
     steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
-    document: (body) => spec.page(body),
+    document: (body, ctx) => spec.page(body, { base: ctx.base }),
     shortcuts: OUTLINE_KEYS,
     ...app,
   });
