@@ -1,6 +1,6 @@
 /** The whole page in happy-dom: the shell (<to-app>) opened at a link, as a visitor arrives at it; and the page an editor shows in its frame. */
 import { expect } from 'vitest';
-import './env-apps.ts';
+import { litElements } from './env-apps.ts';
 // As src/main.ts puts the page together (less the stylesheet and the offline copy).
 import '../../src/widgets/meter.ts';
 import '../../src/kit/tip.ts';
@@ -10,12 +10,12 @@ import { type Editor } from './helpers.ts';
 
 export type Shell = HTMLElement & { updateComplete: Promise<unknown> };
 
-/** Let the shell and what is in it finish drawing. */
-export async function settleAll(rounds = 4) {
-  for (let i = 0; i < rounds; i++) {
-    const els = [...document.querySelectorAll<HTMLElement & { updateComplete?: Promise<unknown> }>('to-app, to-app *')].filter((e) => e.localName.includes('-') && e.updateComplete);
-    await Promise.all(els.map((e) => e.updateComplete));
+/** Let the page (the shell, what is in it, its dialogs) finish drawing: until nothing is waiting to be drawn again. */
+export async function settleAll(most = 6) {
+  for (let i = 0; i < most; i++) {
+    await Promise.all([...litElements].map((e) => e.updateComplete));
     await new Promise((r) => setTimeout(r, 0));
+    if (i > 0 && ![...litElements].some((e) => e.isUpdatePending)) return;
   }
 }
 

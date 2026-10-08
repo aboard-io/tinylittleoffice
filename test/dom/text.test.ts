@@ -88,7 +88,7 @@ test('write: an address typed by hand becomes a link once you leave the text, an
   expect(await file.text()).toContain('<a href="https://example.com/report">');
 });
 
-test('outline: items under items, folded, moved, zoomed; OPML out; a document as an item; seen as a deck and a mind map', async () => {
+test('outline: items under items, folded, moved, zoomed; OPML out', async () => {
   await shell('#/v0/outline');
   const ol = () => editorOf('outline');
   const item = (n: number) => ol().querySelector<HTMLElement>(`[role="textbox"][aria-label="Item ${n}"]`);
@@ -129,6 +129,12 @@ test('outline: items under items, folded, moved, zoomed; OPML out; a document as
   const opml = await downloaded(() => choose('Download', /OPML/));
   expect(opml.name).toBe('done.opml');
   expect(await opml.text()).toContain('text="Pricing"');
+});
+
+test('outline: a document as an item, made in its own editor; the outline seen as a deck and as a mind map', async () => {
+  await shell({ app: 'outline', body: 'Done\nLaunch\n  Product\n    Pricing' });
+  const ol = () => editorOf('outline');
+  const item = (n: number) => ol().querySelector<HTMLElement>(`[role="textbox"][aria-label="Item ${n}"]`);
   // A document as an item: a table under Launch, made in its own editor.
   item(2)!.dispatchEvent(new FocusEvent('focusin', { bubbles: true, composed: true }));
   const insert = ol().querySelector<HTMLInputElement>('to-insert input[role="combobox"]')!;

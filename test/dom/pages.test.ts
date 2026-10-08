@@ -2,7 +2,7 @@
 // messages the frame's script sends as a person types in it, and checked by the text saved and the page drawn next
 // (ported from e2e/invoice.spec.ts, e2e/site.spec.ts and e2e/forms.spec.ts; e2e/invoice.spec.ts keeps the frame's own script).
 import { test, expect } from 'vitest';
-import { button, settle, type, type Editor } from './helpers.ts';
+import { mount, button, settle, type, type Editor } from './helpers.ts';
 import { shell, bodyOf, editorOf, framed, until, texts, shortcut, settleAll, choose, downloaded } from './helpers-apps.ts';
 
 /** What the page shows in a place: the words of the element with this data-inv. */
@@ -148,8 +148,9 @@ test('a site of two pages: the page drawn afresh keeps its place, and the downlo
 });
 
 test('on the picture: a page is added after the one on show, named, moved, and taken away', async () => {
-  await shell('#/v0/site');
-  const el = editorOf('site');
+  localStorage.setItem('tinyoffice.keep', '1');
+  localStorage.setItem('tinyoffice.edit', 'text');
+  const { el, last } = await mount('site');
   const f = framed(el);
   type(el.querySelector('textarea[aria-label="Website, as text"]'), '# Harbor Coffee\nRoasted on the quay.\n=== Menu\nEspresso.\n=== Visit\nQuay Street.');
   await settle(el);
@@ -181,5 +182,5 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   expect(placed(f)).toBe('');
   // The list beside shows the same: a page, with the lines under it one in.
   expect(el.querySelectorAll('to-lines .lf-row.head')).toHaveLength(3);
-  expect(bodyOf()).toBe('# Harbor Coffee\nRoasted on the quay.\n=== Menu\nEspresso.\n=== Visit\nQuay Street.');
+  expect(last()).toBe('# Harbor Coffee\nRoasted on the quay.\n=== Menu\nEspresso.\n=== Visit\nQuay Street.');
 });

@@ -1,4 +1,29 @@
 // More of what happy-dom leaves out, for the shell and the dialogs it opens (test/dom/env.ts has the rest).
+import { ReactiveElement } from 'lit';
+
+// Every Lit element on the page (the editors, the shell, Shoelace's parts), so a test can wait for them all to finish
+// drawing without searching the whole page each time.
+export const litElements = new Set<ReactiveElement>();
+const connected = ReactiveElement.prototype.connectedCallback;
+const disconnected = ReactiveElement.prototype.disconnectedCallback;
+ReactiveElement.prototype.connectedCallback = function (this: ReactiveElement) {
+  litElements.add(this);
+  connected.call(this);
+};
+ReactiveElement.prototype.disconnectedCallback = function (this: ReactiveElement) {
+  litElements.delete(this);
+  disconnected.call(this);
+};
+
+// Whether an element is shown, as Shoelace asks of everything it might move the focus to: happy-dom works out a whole
+// computed style for it, which is most of the time a keystroke takes here. No stylesheet is loaded in these tests,
+// so it comes down to the element and its ancestors not being hidden.
+Element.prototype.checkVisibility = function (this: Element) {
+  for (let e: Element | null = this; e; e = e.parentElement ?? ((e.getRootNode() as ShadowRoot).host || null)) {
+    if (e.hasAttribute('hidden') || (e as HTMLElement).style?.display === 'none') return false;
+  }
+  return true;
+};
 
 // An animation that is over as soon as it starts: Shoelace waits for a dialog's to finish before it says the dialog has closed.
 Element.prototype.animate = function () {
