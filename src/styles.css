@@ -4472,3 +4472,73 @@ sl-dialog.cal-dialog {
   color: var(--to-ink-3);
   font-size: 12.5px;
 }
+
+/* Links in documents: a small button beside a text box for each address in it, and the question before one opens. */
+.to-go {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  border-radius: 6px;
+  color: var(--to-accent);
+}
+.to-go:hover {
+  background: var(--to-accent-soft);
+}
+.to-go:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 1px;
+}
+.to-link-guard::part(panel) {
+  max-width: min(560px, calc(100vw - 24px));
+}
+.to-link-guard .lg-what,
+.to-link-guard .lg-label {
+  margin: 0 0 4px;
+  color: var(--to-ink-3);
+  font-size: 13px;
+}
+.to-link-guard .lg-host {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.to-link-guard .lg-warn {
+  margin: -6px 0 14px;
+  color: var(--to-danger);
+  font-size: 13px;
+}
+.to-link-guard .lg-url {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--to-surface-2);
+  border: 1px solid var(--to-border);
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-all;
+  max-height: 40vh;
+  overflow: auto;
+}
+.to-link-guard .lg-note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--to-ink-2, var(--to-ink-3));
+}
+.to-link-guard .lg-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+.to-link-guard .lg-buttons sl-button {
+  flex: 1 1 0;
+}
+.to-link-guard .lg-buttons sl-button::part(base) {
+  min-height: 56px;
+  font-size: 18px;
+  font-weight: 700;
+}

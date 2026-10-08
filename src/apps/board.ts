@@ -3,6 +3,7 @@
  * move between them by drag and drop or with the arrows on each card.
  * Document format: see lib/boardmodel.ts.
  */
+import { goLinks } from '../widgets/link-guard.ts';
 import { DocElement, defineElement, html, nothing, state, btn, icon, swap, UI } from '../kit.ts';
 import { MAX_STAGES, parseBoard, serializeBoard, type Stage } from '../lib/boardmodel.ts';
 
@@ -146,7 +147,7 @@ export class ToBoard extends DocElement<Stage[]> {
                     this.over = -1;
                   }}
                 >
-                  <textarea rows="1" aria-label="Card" .value=${text} @input=${(e: Event) => this.editCard(i, c, (e.target as HTMLTextAreaElement).value.replace(/\n/g, ' '))}></textarea>
+                  <textarea rows="1" aria-label="Card" .value=${text} @input=${(e: Event) => this.editCard(i, c, (e.target as HTMLTextAreaElement).value.replace(/\n/g, ' '))}></textarea>${goLinks(text)}
                   <div class="acts">
                     ${btn('Move to previous stage', 'left', () => this.moveCard(i, c, i - 1), { disabled: i === 0 })}
                     ${btn('Move to next stage', 'right', () => this.moveCard(i, c, i + 1), { disabled: i === n - 1 })}

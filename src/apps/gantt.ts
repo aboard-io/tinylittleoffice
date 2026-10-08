@@ -3,6 +3,7 @@
  * right edge to change how long it takes.
  * Document format: see lib/ganttmodel.ts.
  */
+import { goLinks } from '../widgets/link-guard.ts';
 import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI, EPOCH_DAY, dayToYmd, ymdString, ymdToDay } from '../kit.ts';
 import { MAX_INDENT, MAX_TASKS, ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
 
@@ -183,7 +184,7 @@ export class ToGantt extends DocElement<GanttTask[]> {
               <tbody>
                 ${this.doc.map(
                   (t, i) => html`<tr class="${i === this.cur ? 'sel' : ''} ${ganttSpans(this.doc)[i].parent ? 'parent' : ''}" @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
-                    <td><input class="label" style="padding-left:${4 + (t.depth ?? 0) * 18}px" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} /></td>
+                    <td><input class="label" style="padding-left:${4 + (t.depth ?? 0) * 18}px" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} />${goLinks(t.label)}</td>
                     <td>
                       <input type="date" aria-label="Start of task ${i + 1}" .value=${toInput(t.start)} @change=${(e: Event) => {
                         const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec((e.target as HTMLInputElement).value);

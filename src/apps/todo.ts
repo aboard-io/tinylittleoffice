@@ -2,6 +2,7 @@
  * <to-todo>: a list of tasks to tick off, with stars and due dates.
  * Document format: see lib/todomodel.ts.
  */
+import { goLinks } from '../widgets/link-guard.ts';
 import { DocElement, defineElement, html, nothing, state, btn, tool, icon, swap, isKey, UI, EPOCH_DAY, dayToYmd, ymdString, ymdToDay, type SlInput, type SlSelect } from '../kit.ts';
 import { parseTodos, serializeTodos, type Task } from '../lib/todomodel.ts';
 
@@ -86,6 +87,7 @@ export class ToTodo extends DocElement<Task[]> {
           ([t, i]) => html`<li class="${t.done ? 'done' : ''} ${t.due !== null && !t.done && t.due < now ? 'late' : ''}" @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
             <sl-checkbox ?checked=${t.done} @sl-change=${(e: Event) => this.patch(i, { done: (e.target as HTMLInputElement).checked })}><span class="sr-only">Done: ${t.text}</span></sl-checkbox>
             <input class="text" aria-label="Task ${i + 1}" .value=${t.text} @input=${(e: Event) => this.patch(i, { text: (e.target as HTMLInputElement).value })} />
+            ${goLinks(t.text)}
             <input class="due" type="date" aria-label="Due date" .value=${dayToInput(t.due)} @change=${(e: Event) => this.patch(i, { due: inputToDay((e.target as HTMLInputElement).value) })} />
             <button class="star" aria-label="Star" aria-pressed=${t.star ? 'true' : 'false'} @click=${() => this.patch(i, { star: !t.star })}>${icon(UI.star, 16)}</button>
             ${btn('Move up', 'up', () => this.move(i, -1), { disabled: i === 0, size: 16 })}

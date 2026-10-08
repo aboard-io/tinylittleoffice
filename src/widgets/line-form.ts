@@ -3,6 +3,7 @@
  * each line, a box for each of its fields, and buttons to add, move and
  * remove. What it hands back is always the text.
  */
+import { goLinks } from './link-guard.ts';
 import { LitElement, html, nothing, btn, icon, libraryIcon, UI, type PropertyValues } from '../kit.ts';
 import { blockEnd, depths, fieldsOf, kindsOf, marksAfter, moveBlock, readLines, removeRow, shiftBlock, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
 import { chooseIcon } from './icon-picker.ts';
@@ -110,7 +111,7 @@ export class ToLines extends LitElement {
     // Return in a box starts another row of the same kind: lists are quick to type.
     const names = f.type === 'pick' ? [...new Set(this.rows.filter((r) => r !== row).map((r) => (r.values.find((v, k) => v && fieldsOf(this.kinds, r.kind)[k].type !== 'icon') ?? '').split(' | ')[0]).filter(Boolean))] : [];
     const list = f.type === 'pick' ? `lf-pick-${i}-${n}` : undefined;
-    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} inputmode=${f.type === 'number' ? 'decimal' : nothing} list=${list ?? nothing} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />`;
+    return html`${names.length ? html`<datalist id=${list!}>${names.map((v) => html`<option value=${v}></option>`)}</datalist>` : nothing}<input class=${f.type} type=${f.type === 'date' ? 'date' : 'text'} inputmode=${f.type === 'number' ? 'decimal' : nothing} list=${list ?? nothing} aria-label=${label} placeholder=${f.name} .value=${value} @input=${clean} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !kindsOf(this.kinds).kinds[row.kind].once && (e.preventDefault(), this.add(row.kind, i))} />${f.type === 'text' || f.type === 'long' ? goLinks(value) : nothing}`;
   }
 
   render() {

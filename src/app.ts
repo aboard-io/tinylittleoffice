@@ -21,6 +21,7 @@ import { setSelfLink } from './kit/embed.ts';
 import { EXPIRIES, shorten } from './lib/short.ts';
 import './widgets/drive.ts';
 import './widgets/privacy.ts';
+import { installLinkGuard } from './widgets/link-guard.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import './apps/editors.ts';
@@ -178,6 +179,8 @@ export class ToApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    // No link in a document opens without showing where it goes and asking.
+    installLinkGuard();
     this.applySize();
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);

@@ -428,11 +428,14 @@ test('write: a pasted web address is a link you can click', async ({ page }) => 
   const link = editor.locator('a');
   await expect(link).toHaveText('https://example.com/report?year=2026');
   await expect(link).toHaveAttribute('href', 'https://example.com/report?year=2026');
-  // It is highlighted, and a click opens it in a new tab.
+  // It is highlighted; a click asks first, showing where it goes, and Go opens it in a new tab.
   expect(await link.evaluate((el) => getComputedStyle(el).textDecorationLine)).toBe('underline');
-  const [popup] = await Promise.all([page.waitForEvent('popup'), link.click()]);
+  await link.click();
+  await expect(page.locator('.to-link-guard .lg-url')).toHaveText('https://example.com/report?year=2026');
+  const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: /Go/ }).click()]);
   expect(popup.url()).toBe('https://example.com/report?year=2026');
   await popup.close();
+  await expect(page.locator('sl-dialog.to-link-guard')).not.toHaveAttribute('open');
   // It is still a link when the document is opened again, and in the web page download.
   await reopen(page);
   await expect(link).toHaveAttribute('href', 'https://example.com/report?year=2026');

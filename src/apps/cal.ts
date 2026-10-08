@@ -10,6 +10,7 @@
  * over the grid, which never moves: the dialog works on a draft, drawn on
  * the grid as it changes, that Done keeps and Escape throws away.
  */
+import { goLinks } from '../widgets/link-guard.ts';
 import { DocElement, defineElement, html, nothing, state, swatches, icon, UI, type SlCheckbox, type SlInput, type SlSelect } from '../kit.ts';
 import { CAL_COLORS, EVERY, isoDay, occurrences, parseCalendar, repeatText, serializeCalendar, sortSpans, spanDays, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Every, type Span } from '../lib/calmodel.ts';
 import { allZones, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
@@ -419,7 +420,7 @@ export class ToCal extends DocElement<Calendar> {
     return html`<div class="cal-editor" role="group" aria-label="Edit span">
       <span class="k">Label</span>
       <div class="row">
-        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="Label" autofocus .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>
+        <sl-input id="label" class="label sr-label" size="small" label="Label" maxlength=${MAX_LABEL} placeholder="Label" autofocus .value=${s.label} @sl-input=${(e: Event) => this.patch({ label: (e.target as SlInput).value })}></sl-input>${goLinks(s.label)}
         <sl-checkbox size="small" ?checked=${!timed} @sl-change=${(e: Event) => this.toggleAllDay((e.target as SlCheckbox).checked)}>All day</sl-checkbox>
       </div>
       <span class="k">From</span>
