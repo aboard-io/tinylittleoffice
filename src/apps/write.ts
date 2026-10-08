@@ -599,7 +599,12 @@ export class ToWrite extends LitElement {
     const b = this.bubble;
     if (!b) return nothing;
     return html`<div class="link-bubble" role="dialog" aria-label="Link" style="left:${b.x}px;top:${b.y}px" @mousedown=${(e: Event) => e.preventDefault()}>
-      <span class="lb-href" title=${b.href}>${b.href}</span>
+      <!-- The address itself opens it too, asking first, like the arrow beside it. (It goes through openLink, so the page's guard lets it be.) -->
+      <a class="lb-href" href=${b.href} data-trusted title=${b.href} @click=${(e: Event) => {
+        e.preventDefault();
+        this.bubble = null;
+        openLink(b.href);
+      }}>${b.href}</a>
       ${tool('Open link', 'arrow', () => ((this.bubble = null), openLink(b.href)), { keepFocus: true })}
       ${tool('Edit link', 'pen', () => {
         this.bubble = null;

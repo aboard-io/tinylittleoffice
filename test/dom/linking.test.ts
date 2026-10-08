@@ -73,7 +73,16 @@ test('a click in a link shows where it goes; Remove takes the link off and keeps
   await settle(el);
   const bubble = el.querySelector<HTMLElement>('.link-bubble')!;
   expect(bubble.querySelector('.lb-href')!.textContent).toBe('https://a.co/plan');
-  button(bubble, 'Remove link').click();
+  // The address in the bubble opens it, asking first, as the arrow beside it does.
+  (bubble.querySelector('.lb-href') as HTMLElement).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await new Promise((r) => setTimeout(r, 0));
+  const guard = document.querySelector('to-link-guard') as HTMLElement & { updateComplete: Promise<unknown> };
+  await guard.updateComplete;
+  expect(guard.querySelector('.lg-url')!.textContent).toBe('https://a.co/plan');
+  (guard.querySelector('.lg-cancel') as HTMLElement).click();
+  a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(el);
+  button(el.querySelector<HTMLElement>('.link-bubble')!, 'Remove link').click();
   await settle(el);
   expect(last()).toBe('See the plan now');
   expect(el.querySelector('.link-bubble')).toBeNull();
