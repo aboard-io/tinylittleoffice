@@ -33,3 +33,18 @@ for (const app of ['outline', 'sheet', 'write']) test(`the bar stays put when ${
     expect([Math.round(r), b[0] <= 12, b[1] <= 12], `scrolled ${await page.evaluate(() => scrollY)}`).toEqual([0, true, true]);
   }
 });
+
+// Sticking needs real layout: the outline's second bar stays just under the header.
+test('the outline’s arrange bar stays under the header when scrolled', async ({ page }) => {
+  await page.goto('/#/v0/outline');
+  await page.locator('to-outline .ol-nav').waitFor();
+  await page.evaluate(() => {
+    const pad = document.createElement('div');
+    pad.style.height = '3000px';
+    document.querySelector('to-outline')?.append(pad);
+  });
+  await page.mouse.wheel(0, 1500);
+  await page.waitForTimeout(150);
+  const [head, bar] = await Promise.all([page.locator('.to-header').evaluate((e) => e.getBoundingClientRect().bottom), page.locator('.ol-nav').evaluate((e) => e.getBoundingClientRect().top)]);
+  expect(Math.abs(bar - head)).toBeLessThanOrEqual(1);
+});

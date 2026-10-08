@@ -3,23 +3,85 @@
  * level). The same text an org chart, a mind map or a family tree reads, so
  * an outline can be dropped onto any of them. Marks are Write's inline ones
  * (*bold*, _italic_, =highlight=, :icon:).
+ *
+ * The line from an item to its parent can have a kind and a name, written
+ * before the item's words: "-> Pricing" points from the parent to it,
+ * "<- Pricing" from it to the parent, "<-> Pricing" both ways, and a name
+ * goes in brackets: "-(sets)-> Pricing", "-(part of)- Pricing". Nothing
+ * written is a plain line.
+ *
+ * Lines starting "~ " join any two items, whatever their places, named by
+ * their words: "~ Pricing -(feeds)-> Press". They come after the items.
  */
+/** Which way a connection points: '-' neither, '>' parent to child (or from to to), '<' back, '<>' both. */
+export type Dir = '-' | '>' | '<' | '<>';
+export const DIRS: Dir[] = ['-', '>', '<', '<>'];
+
 export interface Item {
   depth: number;
   text: string;
+  /** The line to the parent: which way it points (absent: neither). */
+  dir?: Dir;
+  /** The line to the parent: its name. */
+  label?: string;
 }
+
+/** A connection between any two items, named by their words. */
+export interface Link {
+  from: string;
+  to: string;
+  dir: Dir;
+  label?: string;
+}
+
+/** A connection written: '' for a plain unnamed line, else "->", "-(name)-", "<-(name)->" and so on. */
+export function edgeText(dir: Dir = '-', label = ''): string {
+  if (dir === '-' && !label) return '';
+  const name = label ? `(${label.replace(/[()]/g, '')})-` : '';
+  return `${dir === '<' || dir === '<>' ? '<' : ''}-${name}${dir === '>' || dir === '<>' ? '>' : ''}`;
+}
+const EDGE = /(<)?-(?:\(([^()]*)\)-)?(>)?/;
+const dirOf = (lt?: string, gt?: string): Dir => (lt && gt ? '<>' : lt ? '<' : gt ? '>' : '-');
+
+/** An item's words with any connection written before them taken off. */
+function readEdge(line: string): Pick<Item, 'text' | 'dir' | 'label'> {
+  const m = new RegExp('^' + EDGE.source + '(?=\\s|$)\\s*').exec(line);
+  if (!m || (!m[1] && !m[2] && !m[3])) return { text: line };
+  const out: Pick<Item, 'text' | 'dir' | 'label'> = { text: line.slice(m[0].length) };
+  const dir = dirOf(m[1], m[3]);
+  if (dir !== '-') out.dir = dir;
+  if (m[2]?.trim()) out.label = m[2].trim();
+  return out;
+}
+
+/** The "~ A -> B" lines of an outline. */
+export function parseLinks(text: string): Link[] {
+  const out: Link[] = [];
+  for (const line of text.replace(/\r\n?/g, '\n').split('\n')) {
+    if (!line.startsWith('~ ')) continue;
+    const m = new RegExp('\\s' + EDGE.source + '\\s').exec(line.slice(2));
+    if (!m) continue;
+    const from = line.slice(2, 2 + m.index).trim();
+    const to = line.slice(2 + m.index + m[0].length).trim();
+    if (from && to) out.push({ from, to, dir: dirOf(m[1], m[3]), ...(m[2]?.trim() ? { label: m[2].trim() } : {}) });
+  }
+  return out;
+}
+
+export const linkLine = (l: Link) => `~ ${l.from} ${edgeText(l.dir, l.label) || '-'} ${l.to}`;
 
 export function parseOutline(text: string): Item[] {
   if (!text.trim()) return [{ depth: 0, text: '' }];
   const items: Item[] = [];
   for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
+    if (raw.startsWith('~ ')) continue;
     const indent = /^[ \t]*/.exec(raw)![0];
     const depth = Math.floor(indent.replace(/\t/g, '  ').length / 2);
     // A Markdown bullet is forgiven, so lists paste in as they are.
     const line = raw.slice(indent.length).replace(/^(?:[-*+•]|\d+[.)])\s+/, '');
-    items.push({ depth: Math.min(depth, (items[items.length - 1]?.depth ?? -1) + 1), text: line });
+    items.push({ depth: Math.min(depth, (items[items.length - 1]?.depth ?? -1) + 1), ...readEdge(line) });
   }
-  return items;
+  return items.length ? items : [{ depth: 0, text: '' }];
 }
 
 /** An item that is another document: its text is exactly "@@<app>/<payload>". */
@@ -49,11 +111,48 @@ export function outlineToDeck(items: Item[]): string {
   return slides.join('\n\n');
 }
 
-export function serializeOutline(items: Item[]): string {
+export function serializeOutline(items: Item[], links: Link[] = []): string {
   const out = items.slice();
-  while (out.length > 1 && !out[out.length - 1].text.trim()) out.pop();
-  if (out.length === 1 && !out[0].text.trim()) return '';
-  return out.map((it) => '  '.repeat(it.depth) + it.text.replace(/\n/g, ' ')).join('\n');
+  while (out.length > 1 && !out[out.length - 1].text.trim() && !out[out.length - 1].label) out.pop();
+  const known = new Set(out.map((it) => it.text.trim()));
+  const joins = links.filter((l) => known.has(l.from) && known.has(l.to) && l.from !== l.to);
+  if (out.length === 1 && !out[0].text.trim() && !joins.length) return '';
+  const line = (it: Item) => {
+    const edge = it.depth > 0 ? edgeText(it.dir, it.label) : '';
+    return '  '.repeat(it.depth) + (edge ? edge + ' ' : '') + it.text.replace(/\n/g, ' ');
+  };
+  return [...out.map(line), ...joins.map(linkLine)].join('\n');
+}
+
+/** The outline as the plain indented text a mind map or family tree reads: no kinds of line, no joins. */
+export function plainOutline(items: Item[]): string {
+  return serializeOutline(items.map(({ depth, text }) => ({ depth, text })));
+}
+
+/** Item i's parent, or -1. */
+export function parentOf(items: Item[], i: number): number {
+  for (let p = i - 1; p >= 0; p--) if (items[p].depth < items[i].depth) return p;
+  return -1;
+}
+
+/**
+ * The outline as a network: every line to a parent and every join,
+ * "A > B: name" for an arrow, "A - B" for a plain line, both ways as
+ * "A <-> B". Items are named by their plain words.
+ */
+export function outlineToNet(items: Item[], links: Link[], plain: (t: string) => string = (t) => t): string {
+  const name = (t: string) => plain(t).replace(/\s*[:>]\s*/g, ' ').replace(/\s+-\s+/g, ' ').trim();
+  const arrow = (a: string, b: string, dir: Dir, label?: string) =>
+    (dir === '<' ? `${b} > ${a}` : `${a} ${dir === '>' ? '>' : dir === '<>' ? '<->' : '-'} ${b}`) + (label ? `: ${label}` : '');
+  const lines: string[] = [];
+  items.forEach((it, i) => {
+    if (!it.text.trim() || embedOf(it.text)) return;
+    const p = parentOf(items, i);
+    if (p < 0) return void (!items.some((_, j) => parentOf(items, j) === i) && lines.push(name(it.text)));
+    lines.push(arrow(name(items[p].text), name(it.text), it.dir ?? '-', it.label));
+  });
+  for (const l of links) lines.push(arrow(name(l.from), name(l.to), l.dir, l.label));
+  return lines.join('\n');
 }
 
 /** Where item i's family ends: the first later item no deeper than it. */

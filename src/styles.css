@@ -108,6 +108,7 @@ body {
   background: var(--to-bg);
 }
 to-app,
+to-outline,
 to-sheet,
 to-write,
 to-deck,
@@ -348,7 +349,8 @@ sl-menu-item svg.pre {
   border: 1px solid var(--to-border);
   border-radius: var(--sl-border-radius-large);
   box-shadow: var(--to-shadow);
-  overflow: hidden;
+  /* Clipped to its rounded corners without becoming a scroller, so bars inside it can stick under the header. */
+  overflow: clip;
 }
 .to-panel-head {
   display: flex;

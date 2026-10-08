@@ -15,6 +15,7 @@
  * system), so a date minus a date is a number of days and a date plus 30 is
  * the date a month on. A date column shows such numbers as dates.
  */
+import { dayToYmd, ymdString, ymdToDay } from './tz.ts';
 export const COLS = 6;
 export const ROWS = 1000;
 export const COL_NAMES = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
@@ -682,22 +683,97 @@ export function sortRows(grid: Grid, c: number, descending = false): Grid {
   return [...grid.slice(0, head), ...sorted, ...grid.slice(used)];
 }
 
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/** Steps that are all the same: the step, or null. */
+const evenStep = (v: number[]) => (v.length >= 2 && v.every((x, k) => k === 0 || Math.abs(x - v[k - 1] - (v[1] - v[0])) < 1e-9) ? v[1] - v[0] : null);
+
+/**
+ * What a run of cells goes on as, when dragged further: the k-th cell
+ * (k counted from the first of the run, negative before it), or null when
+ * the run is no series and is repeated instead. Numbers in even steps;
+ * dates by even days, or by whole months when the day stays put (a lone
+ * date goes a day at a time); words ending in a number ("Week 1", "Q1"),
+ * a lone one counting up by one; month and weekday names, round the year
+ * and the week, spelled as they were (full or three letters).
+ */
+export function seriesOf(seed: string[]): ((k: number) => string) | null {
+  const cells = seed.map((s) => s.trim());
+  if (!cells.length || cells.some((c) => !c || c.startsWith('='))) return null;
+  const n = cells.length;
+  // Numbers, with or without thousands commas.
+  const nums = cells.map((c) => (/^[+-]?(\d{1,3}(,\d{3})+|\d+)?(\.\d+)?$/.test(c) && /\d/.test(c) ? parseFloat(c.replace(/,/g, '')) : NaN));
+  if (nums.every((v) => !isNaN(v))) {
+    const step = evenStep(nums);
+    return step === null ? null : (k) => String(Math.round((nums[0] + step * k) * 1e10) / 1e10);
+  }
+  // Dates.
+  const ymd = cells.map((c) => /^(\d{4})-(\d\d)-(\d\d)$/.exec(c));
+  if (ymd.every(Boolean)) {
+    const parts = ymd.map((m) => [+m![1], +m![2], +m![3]]);
+    const days = parts.map(([y, m, d]) => ymdToDay(y, m, d));
+    const months = parts.map(([y, m]) => y * 12 + m - 1);
+    const monthStep = n >= 2 && parts.every((p) => p[2] === parts[0][2]) ? evenStep(months) : null;
+    if (monthStep) {
+      return (k) => {
+        const total = months[0] + monthStep * k;
+        const [y, m] = [Math.floor(total / 12), (total % 12) + 1];
+        const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+        return ymdString(y, m, Math.min(parts[0][2], last));
+      };
+    }
+    const step = n === 1 ? 1 : evenStep(days);
+    if (step === null) return null;
+    return (k) => {
+      const { y, m, d } = dayToYmd(days[0] + step * k);
+      return ymdString(y, m, d);
+    };
+  }
+  // Month and weekday names.
+  for (const names of [MONTH_NAMES, DAY_NAMES]) {
+    const short = cells.every((c) => c.length === 3);
+    const idx = cells.map((c) => names.findIndex((x) => (short ? x.slice(0, 3) : x).toLowerCase() === c.toLowerCase()));
+    if (idx.every((i) => i >= 0)) {
+      const step = n === 1 ? 1 : evenStep(idx);
+      if (step === null) return null;
+      const upper = cells[0] === cells[0].toUpperCase();
+      return (k) => {
+        const name = names[(((idx[0] + step * k) % names.length) + names.length) % names.length];
+        const word = short ? name.slice(0, 3) : name;
+        return upper ? word.toUpperCase() : cells[0][0] === cells[0][0].toLowerCase() ? word.toLowerCase() : word;
+      };
+    }
+  }
+  // Words ending in a number, all with the same words before it.
+  const tails = cells.map((c) => /^(.*?\D)(\d+)$/.exec(c));
+  if (tails.every(Boolean) && tails.every((t) => t![1] === tails[0]![1])) {
+    const v = tails.map((t) => +t![2]);
+    const step = n === 1 ? 1 : evenStep(v);
+    if (step === null) return null;
+    const width = tails[0]![2].startsWith('0') ? tails[0]![2].length : 0;
+    return (k) => {
+      const at = v[0] + step * k;
+      return at < 0 ? cells[((k % n) + n) % n] : tails[0]![1] + String(at).padStart(width, '0');
+    };
+  }
+  return null;
+}
+
 export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
   const out = grid.map((row) => row.slice());
   const down = dest.r0 < src.r0 || dest.r1 > src.r1;
   const n = down ? src.r1 - src.r0 + 1 : src.c1 - src.c0 + 1;
-  const num = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s.trim()) ? parseFloat(s) : NaN);
   for (let line = down ? src.c0 : src.r0; line <= (down ? src.c1 : src.r1); line++) {
     const at = (k: number): [number, number] => (down ? [src.r0 + k, line] : [line, src.c0 + k]);
     const seed = Array.from({ length: n }, (_, k) => grid[at(k)[0]][at(k)[1]]);
-    const nums = seed.map(num);
-    const step = n >= 2 && nums.every((v) => !isNaN(v)) && nums.every((v, k) => k === 0 || Math.abs(v - nums[k - 1] - (nums[1] - nums[0])) < 1e-9) ? nums[1] - nums[0] : null;
+    // A lone number is copied, as spreadsheets do; anything else that makes a series goes on as one.
+    const series = n === 1 && /^[+-]?[\d,.]+$/.test(seed[0].trim()) ? null : seriesOf(seed);
     for (let k = (down ? dest.r0 : dest.c0) - (down ? src.r0 : src.c0); k <= (down ? dest.r1 : dest.c1) - (down ? src.r0 : src.c0); k++) {
       if (k >= 0 && k < n) continue;
       const from = ((k % n) + n) % n;
       const [r, c] = at(k);
-      const raw = seed[from];
-      out[r][c] = step !== null ? String(Math.round((nums[0] + step * k) * 1e10) / 1e10) : shiftFormula(raw, down ? k - from : 0, down ? 0 : k - from);
+      out[r][c] = series ? series(k) : shiftFormula(seed[from], down ? k - from : 0, down ? 0 : k - from);
     }
   }
   return out;

@@ -1,9 +1,13 @@
 /** Outline: what the shell knows about outlines. Format: lib/outlinemodel.ts. */
-import { defineApp, utf8, wrap, text, ACCENT, type Page } from '../kit/core.ts';
+import { defineApp, utf8, wrap, text, xml, ACCENT, type Page } from '../kit/core.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
-import { parseOutline, toOpml, hasChildren, embedOf, type Item } from '../lib/outlinemodel.ts';
+import { parseOutline, parseLinks, plainOutline, outlineToNet, toOpml, hasChildren, embedOf, type Dir, type Item } from '../lib/outlinemodel.ts';
 import { makeRef, refPage } from '../kit/embed.ts';
-import { place } from '../kit/core.ts';
+import { place, textWidth } from '../kit/core.ts';
+
+/** How each kind of line looks, drawn and said. */
+export const ARROW: Record<Dir, string> = { '-': '—', '>': '→', '<': '←', '<>': '↔' };
+export const DIR_NAME: Record<Dir, string> = { '-': 'a plain line', '>': 'an arrow from the parent', '<': 'an arrow to the parent', '<>': 'arrows both ways' };
 
 /** The outline drawn: a dot per item, deeper ones stepped in, the words wrapped. Fits a letter page's width; as tall as it needs. */
 export function outlinePage(body: string, w = 720): Page {
@@ -25,12 +29,27 @@ export function outlinePage(body: string, w = 720): Page {
       y += ph + 16;
       return;
     }
-    const lines = wrap(parseInline(it.text), w - x - 48, px, it.depth === 0);
+    // The kind of line to the parent, and its name, small before the words.
+    const kind = it.depth && (it.dir || it.label) ? `${ARROW[it.dir ?? '-']}${it.label ? ' ' + it.label : ''}` : '';
+    const indent = kind ? textWidth(kind, px * 0.75) + 8 : 0;
+    const lines = wrap(parseInline(it.text), w - x - 48 - indent, px, it.depth === 0);
     const top = y;
     svg += `<circle cx="${x - 12}" cy="${top + px * 0.65}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
-    for (const line of lines) svg += text(x, (y += px * 1.45) - px * 0.45, line, { px, bold: it.depth === 0 });
+    if (kind) svg += `<text x="${x}" y="${top + px}" font-size="${px * 0.75}" fill="${ACCENT}">${xml(kind)}</text>`;
+    for (const line of lines) svg += text(x + indent, (y += px * 1.45) - px * 0.45, line, { px, bold: it.depth === 0 });
     y += px * 0.45;
   });
+  // The joins, listed under the outline.
+  const links = parseLinks(body);
+  if (links.length) {
+    y += 16;
+    svg += text(48, (y += px * 1.45) - px * 0.45, [{ t: 'Connections', b: true }], { px });
+    for (const l of links) {
+      const line = `${plainInline(l.from)}  ${ARROW[l.dir]}${l.label ? ' ' + l.label : ''}  ${plainInline(l.to)}`;
+      for (const part of wrap([{ t: line }], w - 96, px * 0.9, false)) svg += text(60, (y += px * 1.35) - px * 0.4, part, { px: px * 0.9 });
+    }
+    y += px * 0.45;
+  }
   return { w, h: Math.max(200, y + 40), svg };
 }
 
@@ -58,9 +77,20 @@ export default defineApp({
     { keys: 'Alt+← / Alt+→', does: 'Fold or unfold' },
     { keys: 'Backspace (in an empty item)', does: 'Take it away' },
     { keys: 'Mod+.', does: 'Zoom in on the item; Mod+, zooms out' },
+    { keys: 'Escape (while connecting)', does: 'Stop connecting' },
   ],
 });
 
-/** The outline as another document: a mind map, an org chart, a family tree take this very text. */
-export const outlineAs = (app: string, body: string) => makeRef(app, body);
+/**
+ * The outline as another document. A mind map and a family tree take its
+ * plain text; an org chart takes it with each join as a dotted line; a
+ * network takes every line, with its kind and name, and every join.
+ */
+export function outlineAs(app: string, body: string): string {
+  const items = parseOutline(body);
+  const links = parseLinks(body);
+  if (app === 'net') return makeRef('net', outlineToNet(items, links, plainInline));
+  if (app === 'org') return makeRef('org', [plainOutline(items), ...links.map((l) => `${plainInline(l.from)} .. ${plainInline(l.to)}${l.label ? ': ' + l.label : ''}`)].filter(Boolean).join('\n'));
+  return makeRef(app, plainOutline(items));
+}
 export type { Item };

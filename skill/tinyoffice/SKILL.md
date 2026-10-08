@@ -54,7 +54,7 @@ https://tinylittleoffice.com/write/#title=Meeting+notes&doc=%23+Meeting+notes%0A
 
 ### outline: an outliner
 
-One item per line; indent two spaces to put an item under the one above. The same text `mind`, `org` and `family` read, so an outline opens as any of them in a tap, and as a `deck` (a slide for every item with something under it, showing just the level beneath; deeper levels get slides of their own). An item that is exactly `@@<app>/<payload>` is another document as an item (a table, a chart, a map). Items take `write`'s inline marks. Downloads as OPML, Markdown (a nested list), text.
+One item per line; indent two spaces to put an item under the one above. The same text `mind`, `org` and `family` read, so an outline opens as any of them in a tap, and as a `deck` (a slide for every item with something under it, showing just the level beneath; deeper levels get slides of their own). The line from an item to its parent can have a kind and a name, written before the item's words: `-> Pricing` is an arrow from the parent, `<- Pricing` an arrow to it, `<-> Pricing` both ways, and a name goes in brackets, `-(sets)-> Pricing` or `-(part of)- Pricing`. Lines starting `~ ` after the items join any two items by their words: `~ Pricing -(feeds)-> Press`. A mind map, org chart (joins become dotted lines) and network diagram (every line and join) are a tap away. An item that is exactly `@@<app>/<payload>` is another document as an item (a table, a chart, a map). Items take `write`'s inline marks. Downloads as OPML, Markdown (a nested list), text.
 
 https://tinylittleoffice.com/outline/#title=Launch&doc=Launch%0A++Product%0A++++Pricing%0A++++Onboarding%0A++Marketing%0A++++Press
 

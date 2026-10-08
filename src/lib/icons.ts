@@ -9,7 +9,7 @@ import { addIconNames } from './iconsearch.ts';
 import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, List, ListOrdered, Pilcrow,
   Table2, FileText, Presentation, PenTool, Plus, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
-  Copy, Link, Play, X, MousePointer2, Square, Circle, Diamond, Minus, MoveRight, Type,
+  Copy, Link, Play, X, MousePointer2, Square, Circle, Diamond, Minus, MoveRight, MoveLeft, MoveHorizontal, Type,
   ArrowUpToLine, ArrowDownToLine, Check, Sparkles, CalendarDays, Menu, ShieldCheck, ShieldAlert, KeyRound, LayoutGrid, LockKeyhole, LockKeyholeOpen, SquareFunction, FoldHorizontal, UnfoldHorizontal, Download,
   ListTodo, SquareKanban, ChartGantt, Route, Clapperboard, Share2, Ellipsis, ZoomIn, ZoomOut, Pause, Square as StopSquare, Maximize, Image as ImageIcon, Send, Repeat, Navigation, Spline, Network, Workflow, Brain, Rows3, CircleDot, DatabaseZap, StickyNote, CircleHelp, BookOpen, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, SquareCheckBig, PaintBucket, QrCode, Braces, LayoutList, Folder, Waves, Grid2x2, DoorOpen, Armchair, Milestone, Grid3x3, Signpost, MapPinned, PencilLine, Dices, Layers, Vote, Hourglass, HandCoins, CalendarCheck, Timer, AtSign, ListChecks, Library, Guitar, BookCopy, ScrollText, Columns3, MessagesSquare, NotebookPen, Utensils, FileUser, IdCard, ChefHat, PanelsTopLeft, Store, ReceiptText, FileSignature, SunMoon, Undo2, Redo2, Pencil, Keyboard, IndentIncrease, IndentDecrease, Columns2, ChartColumn, FilePlus2,
   // library
@@ -35,7 +35,7 @@ export const UI = {
   ul: List, ol: ListOrdered, p: Pilcrow, sheet: Table2, write: FileText, deck: Presentation, draw: PenTool,
   plus: Plus, trash: Trash2, left: ChevronLeft, right: ChevronRight, up: ChevronUp, down: ChevronDown,
   copy: Copy, link: Link, play: Play, close: X, select: MousePointer2, rect: Square, ellipse: Circle,
-  diamond: Diamond, line: Minus, arrow: MoveRight, text: Type, front: ArrowUpToLine, back: ArrowDownToLine,
+  diamond: Diamond, line: Minus, arrow: MoveRight, arrowLeft: MoveLeft, arrowBoth: MoveHorizontal, text: Type, front: ArrowUpToLine, back: ArrowDownToLine,
   outline: ListTree, grip: GripVertical, drive: HardDrive, calc: Calculator, check: Check, sparkles: Sparkles, globe: Globe, cal: CalendarDays, menu: Menu, shield: ShieldCheck, shieldOff: ShieldAlert, compare: GitCompareArrows, swap: ArrowLeftRight,
   key: KeyRound, info: Info, clock: Clock, home: LayoutGrid, lock: LockKeyhole, unlock: LockKeyholeOpen,
   fn: SquareFunction, fit: FoldHorizontal, expand: UnfoldHorizontal, download: Download,

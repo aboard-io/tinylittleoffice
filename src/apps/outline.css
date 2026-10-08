@@ -30,7 +30,7 @@
 }
 .ol-handle,
 .ol-fold,
-.ol-dot {
+.ol-kind {
   flex: 0 0 24px;
   width: 24px;
   height: 30px;
@@ -52,23 +52,32 @@
 .ol-handle:focus-visible {
   opacity: 1;
 }
-.ol-fold:hover,
-.ol-dot:hover {
+button.ol-fold:hover,
+button.ol-kind:hover {
   background: var(--to-surface-2);
   color: var(--to-ink);
 }
-.ol-dot span {
+.ol-kind span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--to-ink-3);
   display: block;
 }
-.ol-row[aria-level='1'] .ol-dot span {
+.ol-kind.root span {
   background: var(--to-accent);
 }
+/* A line with a kind is drawn in the accent, so it reads at a glance. */
+.ol-kind:not([data-dir='-']):not(.root) {
+  color: var(--to-accent);
+}
+.ol-kind.root {
+  cursor: default;
+}
 .ol-fold:focus-visible,
-.ol-dot:focus-visible,
+.ol-kind:focus-visible,
+.ol-label:focus-visible,
+.ol-label-add:focus-visible,
 .ol-handle:focus-visible,
 .ol-add:focus-visible,
 .ol-crumbs button:focus-visible {
@@ -133,16 +142,121 @@
   max-width: 480px;
   margin: 4px 0;
 }
-/* Where there is no Tab key, each row carries its own indent and outdent. */
-.ol-shift {
-  display: none;
+/* A line's name: a plus until it has one (shown on the chosen row, or on hover), then the name. */
+.ol-label-add,
+.ol-label {
   flex-shrink: 0;
+  align-self: center;
+  border: 0;
+  border-radius: var(--to-radius-pill);
+  font: inherit;
+  cursor: pointer;
 }
-@media (pointer: coarse) {
-  .ol-shift {
-    display: inline-flex;
-  }
-  .ol-shift .to-icon-btn {
-    --size: 30px;
+.ol-label-add {
+  width: 22px;
+  height: 22px;
+  margin-right: 2px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  background: none;
+  color: var(--to-ink-3);
+  opacity: 0;
+}
+.ol-row:hover .ol-label-add,
+.ol-row.sel .ol-label-add,
+.ol-link .ol-label-add,
+.ol-label-add:focus-visible {
+  opacity: 1;
+}
+.ol-label-add:hover {
+  background: var(--to-surface-2);
+  color: var(--to-ink);
+}
+.ol-label {
+  padding: 1px 8px;
+  margin-right: 4px;
+  font-size: 12px;
+  background: var(--to-accent-soft);
+  color: var(--to-accent);
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ol-label-input {
+  flex: 0 1 10em;
+  min-width: 6em;
+  align-self: center;
+  margin-right: 4px;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--to-accent);
+  border-radius: var(--to-radius-pill);
+  background: var(--to-surface);
+  color: var(--to-ink);
+}
+
+/* The second bar: under the header, wherever the outline is scrolled. */
+.ol-nav {
+  position: sticky;
+  top: var(--to-header-h);
+  z-index: 15;
+}
+.ol-nav-hint b {
+  color: var(--to-ink);
+}
+
+/* Connecting: everything greys but the item it starts from; the one under the finger lights up. */
+.ol.connecting .ol-row {
+  opacity: 0.38;
+  transition: opacity 0.12s;
+}
+.ol.connecting .ol-row.source,
+.ol.connecting .ol-row:hover,
+.ol.connecting .ol-row:focus-within {
+  opacity: 1;
+}
+.ol.connecting .ol-row.source {
+  background: var(--to-accent-soft);
+}
+.ol-pick {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: crosshair;
+  border-radius: 6px;
+  z-index: 1;
+}
+.ol-pick:focus-visible {
+  outline: 2px solid var(--to-accent);
+}
+
+/* The joins, listed under the outline. */
+.ol-links {
+  padding: 4px 16px 20px 66px;
+  max-width: 820px;
+}
+.ol-links h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--to-ink-3);
+}
+.ol-link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 32px;
+}
+.ol-end {
+  font-weight: 500;
+}
+@media (max-width: 600px) {
+  .ol-links {
+    padding-left: 16px;
   }
 }

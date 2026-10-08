@@ -12,3 +12,8 @@ Element.prototype.getAnimations = () => [];
 Element.prototype.animate = function () {
   return { finished: Promise.resolve(), cancel() {}, finish() {}, addEventListener() {} } as unknown as Animation;
 };
+// The rich-text field asks which marks are on where the caret is; happy-dom has no editing commands.
+const doc = document as unknown as Record<string, unknown>;
+doc.queryCommandValue ??= () => '';
+doc.queryCommandState ??= () => false;
+doc.execCommand ??= () => false;
