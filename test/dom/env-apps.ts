@@ -57,3 +57,28 @@ if (!('queryCommandState' in document)) doc.queryCommandState = () => false;
 // parent element is null, and the editor asks for that element's style. The document's own style answers instead.
 const computed = window.getComputedStyle.bind(window);
 window.getComputedStyle = ((el: Element | null, pseudo?: string | null) => computed(el ?? document.documentElement, pseudo)) as typeof window.getComputedStyle;
+
+// A download is a link to a blob, clicked: here the file is kept (window.__saved) instead of going anywhere.
+const blobs = new Map<string, Blob>();
+let made = 0;
+URL.createObjectURL = (b: Blob | MediaSource) => {
+  const url = `blob:${location.origin}/${++made}`;
+  blobs.set(url, b as Blob);
+  return url;
+};
+URL.revokeObjectURL = (url: string) => void blobs.delete(url);
+const saved: { name: string; blob: Blob }[] = [];
+(window as unknown as { __saved: typeof saved }).__saved = saved;
+const anchorClick = HTMLAnchorElement.prototype.click;
+HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+  const blob = blobs.get(this.href);
+  if (this.download && blob) return void saved.push({ name: this.download, blob });
+  return anchorClick.call(this);
+};
+// A page opened in a new tab (a compose box, a link): kept, not opened.
+const opened: string[] = [];
+(window as unknown as { __opened: string[] }).__opened = opened;
+window.open = ((url?: string | URL) => {
+  opened.push(String(url ?? ''));
+  return null;
+}) as typeof window.open;

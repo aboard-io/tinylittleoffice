@@ -139,7 +139,28 @@ export function framed(el: Element) {
   return { frame, page, data, post };
 }
 
-/** Wait until a page frame has been drawn afresh (it is, once typing in it pauses). */
-export async function redrawn(f: ReturnType<typeof framed>, from: string, ms = 2000) {
-  await until(() => expect(f.frame().getAttribute('srcdoc') ?? f.frame().srcdoc).not.toBe(from), ms);
+/** Choose from one of the shell's menus (Download, Share, ...): its button, then the item whose words match. */
+export async function choose(menu: string, item: string | RegExp) {
+  const dropdown = [...document.querySelectorAll('sl-dropdown')].find((d) => d.querySelector(`[slot="trigger"][aria-label="${menu}"]`));
+  if (!dropdown) throw new Error(`no menu ${menu}`);
+  const items = [...dropdown.querySelectorAll<HTMLElement>('sl-menu-item')];
+  const it = items.find((i) => (typeof item === 'string' ? i.textContent?.trim().startsWith(item) : item.test(i.textContent?.trim() ?? '')));
+  if (!it) throw new Error(`no ${item} in ${menu}: ${items.map((i) => i.textContent?.trim()).join(' | ')}`);
+  // What Shoelace's menu does with a click on an item: it says which was chosen. (It hears the click through its
+  // slot, which happy-dom leaves out of the click's path.)
+  it.closest('sl-menu')!.dispatchEvent(new CustomEvent('sl-select', { bubbles: true, composed: true, detail: { item: it } }));
+  await settleAll();
 }
+
+/** The files downloaded so far (env-apps.ts keeps them), oldest first. */
+export const saved = () => (window as unknown as { __saved: { name: string; blob: Blob }[] }).__saved;
+/** The file the next step downloads: its name, its words, its bytes. */
+export async function downloaded(start: () => unknown, ms = 3000) {
+  const before = saved().length;
+  await start();
+  await until(() => expect(saved().length).toBeGreaterThan(before), ms);
+  const file = saved()[before];
+  return { name: file.name, text: () => file.blob.text(), bytes: async () => new Uint8Array(await file.blob.arrayBuffer()) };
+}
+/** The pages opened in a new tab so far. */
+export const opened = () => (window as unknown as { __opened: string[] }).__opened;
