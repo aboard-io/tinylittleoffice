@@ -10,7 +10,28 @@
  * (two-sided, where a format offers the choice) or "!12" (how many pages,
  * where a format can grow).
  */
-import { defineApp, text, wrapText, textWidth, place, pageSvg, xml, FAINT, ACCENT, INK, FONT, type AppDef, type Page } from '../kit/core.ts';
+import { defineApp, text, wrapText, textWidth, place, pageSvg, pageScript, xml, FAINT, ACCENT, INK, FONT, type AppDef, type Page } from '../kit/core.ts';
+
+/** The tap-to-read page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const READER = pageScript(`
+var pages = [].slice.call(document.querySelectorAll('section')), at = 0;
+function go(n) {
+  at = Math.max(0, Math.min(pages.length - 1, n));
+  pages.forEach(function (p, i) { p.className = i === at ? 'on' : ''; });
+  document.getElementById('where').textContent = (at + 1) + ' / ' + pages.length;
+  document.getElementById('back').disabled = at === 0;
+  document.getElementById('next').disabled = at === pages.length - 1;
+}
+document.getElementById('back').onclick = function () { go(at - 1); };
+document.getElementById('next').onclick = function () { go(at + 1); };
+// Tap the right of the page to go on, the left to go back.
+document.getElementById('pages').onclick = function (e) { go(at + (e.clientX > innerWidth / 3 ? 1 : -1)); };
+document.onkeydown = function (e) {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(at + 1);
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(at - 1);
+};
+go(0);
+`);
 import { refPage } from '../kit/embed.ts';
 import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
 import { ICON_SVG } from './icons.ts';
@@ -225,25 +246,7 @@ button:focus-visible{outline:3px solid #a5b4fc;outline-offset:2px}
 ${pagesOf(z, f).map((p, i) => `<section${i ? '' : ' class="on"'} aria-label="${f.name(i, n)}">${pageSvg(p, `role="img" aria-label="${xml([z.pages[i].title, ...z.pages[i].bullets].filter(Boolean).join('. ') || f.name(i, n))}"`)}</section>`).join('\n')}
 </main>
 <nav aria-label="Pages"><button id="back">Back</button><span id="where"></span><button id="next">Next</button></nav>
-<script>
-var pages = [].slice.call(document.querySelectorAll('section')), at = 0;
-function go(n) {
-  at = Math.max(0, Math.min(pages.length - 1, n));
-  pages.forEach(function (p, i) { p.className = i === at ? 'on' : ''; });
-  document.getElementById('where').textContent = (at + 1) + ' / ' + pages.length;
-  document.getElementById('back').disabled = at === 0;
-  document.getElementById('next').disabled = at === pages.length - 1;
-}
-document.getElementById('back').onclick = function () { go(at - 1); };
-document.getElementById('next').onclick = function () { go(at + 1); };
-// Tap the right of the page to go on, the left to go back.
-document.getElementById('pages').onclick = function (e) { go(at + (e.clientX > innerWidth / 3 ? 1 : -1)); };
-document.onkeydown = function (e) {
-  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') go(at + 1);
-  if (e.key === 'ArrowLeft' || e.key === 'PageUp') go(at - 1);
-};
-go(0);
-</script>
+${READER}
 </body>
 </html>
 `;

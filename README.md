@@ -491,6 +491,14 @@ It lives on Cloudflare: `dist/` as the static assets of a Worker with no
 script (`wrangler.jsonc`), its headers from `public/_headers`, on
 tinylittleoffice.com and www; and the shortener as a second Worker
 (`tinier/wrangler.jsonc`). `npm run deploy` builds, tests and ships both.
+
+The Content-Security-Policy allows no inline script. The scripts of the
+pages apps make (a store's cart, a game, the in-place editing of a page
+preview) are fixed texts registered with `pageScript()` and hashed into
+the policy at build time; a page's data travels beside its script as JSON
+(`pageData()`), never inside it. A test checks that every page keeps to
+that, so a document can never bring a script of its own, not even inside
+the frame that shows it.
 Once, on a new account: `npx wrangler login`, `npx wrangler d1 create tinier`
 (its id goes in `tinier/wrangler.jsonc`), `npm run tinier:schema`.
 `deploy/deploy.sh` is the older way, onto an exe.dev VM running nginx.

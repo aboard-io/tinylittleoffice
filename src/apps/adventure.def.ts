@@ -1,7 +1,22 @@
 /** Adventure: a story that branches. Scenes, and choices that lead to other scenes. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, js } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { pageData, pageScript, xml } from '../kit/core.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`
+var S = JSON.parse(document.getElementById('d').textContent), first = Object.keys(S)[0];
+function show(name) {
+  var s = S[name] || S[first], el = document.getElementById('scene'); el.innerHTML = '';
+  if (!s) return;
+  s.text.forEach(function (t) { var p = document.createElement('p'); p.textContent = t; el.appendChild(p); });
+  var go = document.createElement('div'); go.className = 'go';
+  s.go.forEach(function (g) { var b = document.createElement('button'); b.textContent = g[0]; b.onclick = function () { show((g[1] || '').toLowerCase()); }; go.appendChild(b); });
+  if (!s.go.length) { var e = document.createElement('p'); e.className = 'end'; e.textContent = 'The end.'; el.appendChild(e); var b = document.createElement('button'); b.className = 'quiet'; b.textContent = 'Start again'; b.onclick = function () { show(first); }; go.appendChild(b); }
+  el.appendChild(go);
+}
+show(first);
+`);
 
 function page(body: string): string {
   const scenes: Record<string, { text: string[]; go: string[][] }> = {};
@@ -20,19 +35,8 @@ function page(body: string): string {
     `main{max-width:36rem;margin:0 auto;padding:2.5rem 1.25rem}h1{font-size:1.2rem;color:#52525b;margin:0 0 2rem}p{font-size:1.15rem}
 .go{display:grid;gap:.6rem;margin-top:2rem}.go button{text-align:left}.end{color:#52525b}.quiet{background:#eef2ff;color:#3730a3}`,
     `<main><h1>${xml(title)}</h1><div id="scene" aria-live="polite"></div></main>
-<script>
-var S = ${js(scenes)}, first = Object.keys(S)[0];
-function show(name) {
-  var s = S[name] || S[first], el = document.getElementById('scene'); el.innerHTML = '';
-  if (!s) return;
-  s.text.forEach(function (t) { var p = document.createElement('p'); p.textContent = t; el.appendChild(p); });
-  var go = document.createElement('div'); go.className = 'go';
-  s.go.forEach(function (g) { var b = document.createElement('button'); b.textContent = g[0]; b.onclick = function () { show((g[1] || '').toLowerCase()); }; go.appendChild(b); });
-  if (!s.go.length) { var e = document.createElement('p'); e.className = 'end'; e.textContent = 'The end.'; el.appendChild(e); var b = document.createElement('button'); b.className = 'quiet'; b.textContent = 'Start again'; b.onclick = function () { show(first); }; go.appendChild(b); }
-  el.appendChild(go);
-}
-show(first);
-</script>`,
+${pageData('d', scenes)}
+${SCRIPT}`,
   );
 }
 

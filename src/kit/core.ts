@@ -295,6 +295,22 @@ export function listPage(title: string, lines: string[], w = 720): Page {
 
 /* ---------- documents as web pages ---------- */
 
+/**
+ * The scripts of pages the apps make (a store's cart, a game). Each is a
+ * fixed text, declared once at module level, so the build can list its
+ * hash in the site's Content-Security-Policy (public/_headers) and no
+ * other inline script runs anywhere, not even inside a page shown in a
+ * frame. A page's data goes beside it in pageData(), never in the script.
+ */
+const SCRIPTS = new Set<string>();
+export function pageScript(code: string): string {
+  SCRIPTS.add(code);
+  return `<script>${code}</script>`;
+}
+export const pageScripts = (): string[] => [...SCRIPTS];
+/** A page's data, as JSON the page's script reads by id. */
+export const pageData = (id: string, value: unknown) => `<script type="application/json" id="${id}">${JSON.stringify(value).replace(/</g, '\\u003c')}</script>`;
+
 export interface DocRef {
   def: AppDef;
   body: string;

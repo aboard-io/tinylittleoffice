@@ -1,7 +1,18 @@
 /** Spinner: a wheel of names or choices, to spin. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { pageData, pageScript, xml } from '../kit/core.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`
+var I = JSON.parse(document.getElementById('d').textContent), turn = 0;
+document.getElementById('go').onclick = function () {
+  var pick = Math.floor(Math.random() * I.length), slice = 360 / I.length;
+  turn = Math.ceil(turn / 360) * 360 + 1440 - (pick + 0.5) * slice;
+  document.getElementById('w').style.transform = 'rotate(' + turn + 'deg)'; document.getElementById('won').textContent = '';
+  setTimeout(function () { document.getElementById('won').textContent = I[pick] || ''; }, matchMedia('(prefers-reduced-motion:reduce)').matches ? 0 : 4100);
+};
+`);
 
 const COLORS = ['#4f46e5', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#db2777'];
 
@@ -21,15 +32,8 @@ function page(body: string): string {
 .pin{position:absolute;left:50%;top:-6px;transform:translateX(-50%);border:10px solid transparent;border-top:18px solid #18181b}#won{font-size:1.5rem;font-weight:700;min-height:2.2rem}`,
     `<main><h1>${xml(title)}</h1><div class="wheel"><div class="pin"></div><svg viewBox="-104 -104 208 208" role="img" aria-label="Wheel of ${items.length} choices"><g id="w">${slices}</g><circle r="6" fill="#fff"/></svg></div>
 <p id="won" role="status" aria-live="polite"></p><button id="go">Spin</button></main>
-<script>
-var I = ${js(items)}, turn = 0;
-document.getElementById('go').onclick = function () {
-  var pick = Math.floor(Math.random() * I.length), slice = 360 / I.length;
-  turn = Math.ceil(turn / 360) * 360 + 1440 - (pick + 0.5) * slice;
-  document.getElementById('w').style.transform = 'rotate(' + turn + 'deg)'; document.getElementById('won').textContent = '';
-  setTimeout(function () { document.getElementById('won').textContent = I[pick] || ''; }, matchMedia('(prefers-reduced-motion:reduce)').matches ? 0 : 4100);
-};
-</script>`,
+${pageData('d', items)}
+${SCRIPT}`,
   );
 }
 

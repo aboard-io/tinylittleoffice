@@ -1,7 +1,10 @@
 /** Trivia: rounds of questions, answers that show when tapped, and a scoreboard. */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { pageScript, xml } from '../kit/core.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`[].forEach.call(document.querySelectorAll('.team'), function (t) { var o = t.querySelector('output'), b = t.querySelectorAll('button'); b[0].onclick = function () { o.textContent = +o.textContent - 1; }; b[1].onclick = function () { o.textContent = +o.textContent + 1; }; });`);
 
 function page(body: string): string {
   const title = h1(body) || 'Trivia night';
@@ -27,7 +30,7 @@ details{border-bottom:1px solid #e4e4e7}summary{cursor:pointer;padding:.9rem 0;f
     `<main><h1>${xml(title)}</h1>
 <div class="board" role="group" aria-label="Scores">${teams.map((t) => `<div class="team"><span>${xml(t)}</span><button class="less" aria-label="Take a point from ${xml(t)}">−</button><output>0</output><button aria-label="Give ${xml(t)} a point">+</button></div>`).join('')}</div>
 ${html}</main>
-<script>[].forEach.call(document.querySelectorAll('.team'), function (t) { var o = t.querySelector('output'), b = t.querySelectorAll('button'); b[0].onclick = function () { o.textContent = +o.textContent - 1; }; b[1].onclick = function () { o.textContent = +o.textContent + 1; }; });</script>`,
+${SCRIPT}`,
   );
 }
 

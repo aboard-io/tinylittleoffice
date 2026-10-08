@@ -3,7 +3,8 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import './src/apps/index.ts';
-import { apps } from './src/kit/core.ts';
+import { apps, pageScripts } from './src/kit/core.ts';
+import './src/lib/pageedit.ts';
 
 /**
  * A page per app: dist/<id>/index.html is the same shell with that app's
@@ -34,6 +35,9 @@ function appPages(site: string): Plugin {
         mkdirSync(resolve(dist, app.id), { recursive: true });
         writeFileSync(resolve(dist, app.id, 'index.html'), page);
       }
+      // The CSP allows exactly the scripts the apps' pages carry, by hash (public/_headers has the placeholder).
+      const hashes = pageScripts().map((code) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`);
+      writeFileSync(resolve(dist, '_headers'), readFileSync(resolve(dist, '_headers'), 'utf8').replaceAll('{{scripts}}', hashes.join(' ')));
       // The guide to making documents by URL, where programs look for one: /llms.txt.
       // It is the skill in skill/tinyoffice, without the heading a skill needs.
       const skill = readFileSync(resolve(import.meta.dirname, 'skill/tinyoffice/SKILL.md'), 'utf8');

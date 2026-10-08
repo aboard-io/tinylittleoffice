@@ -5,8 +5,27 @@
  * properly encrypted.)
  */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, js, seed } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { definePage, htmlPage, h1, rest, seed } from '../lib/diagram.ts';
+import { pageData, pageScript, xml } from '../kit/core.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`
+var D = JSON.parse(document.getElementById('d').textContent), at = 0;
+function norm(s) { return s.toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function seed(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0; return h >>> 0; }
+function add(t) { var li = document.createElement('li'); li.textContent = t; var all = document.querySelectorAll('li'); if (all.length) all[all.length - 1].className = 'done'; document.getElementById('clues').appendChild(li); }
+if (D.length) add(D[0].c);
+function end() { if (!D[at] || !D[at].h) document.getElementById('f').hidden = true; }
+end();
+document.getElementById('f').onsubmit = function (e) {
+  e.preventDefault();
+  var a = norm(document.getElementById('a').value), say = document.getElementById('say');
+  if (seed(a) !== D[at].h) { say.textContent = 'Not that. Look again.'; return; }
+  say.textContent = ''; document.getElementById('a').value = ''; at++;
+  if (D[at]) add(D[at].c.map(function (n, i) { return String.fromCharCode(n ^ a.charCodeAt(i % a.length)); }).join('')); else add('You found everything.');
+  end();
+};
+`);
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const scramble = (text: string, key: string) => [...text].map((c, i) => c.charCodeAt(0) ^ key.charCodeAt(i % key.length));
@@ -23,23 +42,8 @@ function page(body: string): string {
 form{display:flex;gap:.5rem;margin-top:1.5rem}input{flex:1;min-width:0;font:inherit;padding:.6rem .8rem;border:1px solid #d4d4d8;border-radius:.6rem}#say{color:#b91c1c;min-height:1.5em}`,
     `<main><h1>${xml(title)}</h1><ol id="clues" aria-live="polite"></ol>
 <form id="f"><input id="a" aria-label="Your answer" placeholder="Your answer" autocomplete="off"><button>Try it</button></form><p id="say" role="status"></p></main>
-<script>
-var D = ${js(data)}, at = 0;
-function norm(s) { return s.toLowerCase().replace(/[^a-z0-9]/g, ''); }
-function seed(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0; return h >>> 0; }
-function add(t) { var li = document.createElement('li'); li.textContent = t; var all = document.querySelectorAll('li'); if (all.length) all[all.length - 1].className = 'done'; document.getElementById('clues').appendChild(li); }
-if (D.length) add(D[0].c);
-function end() { if (!D[at] || !D[at].h) document.getElementById('f').hidden = true; }
-end();
-document.getElementById('f').onsubmit = function (e) {
-  e.preventDefault();
-  var a = norm(document.getElementById('a').value), say = document.getElementById('say');
-  if (seed(a) !== D[at].h) { say.textContent = 'Not that. Look again.'; return; }
-  say.textContent = ''; document.getElementById('a').value = ''; at++;
-  if (D[at]) add(D[at].c.map(function (n, i) { return String.fromCharCode(n ^ a.charCodeAt(i % a.length)); }).join('')); else add('You found everything.');
-  end();
-};
-</script>`,
+${pageData('d', data)}
+${SCRIPT}`,
   );
 }
 

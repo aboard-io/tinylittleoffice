@@ -652,7 +652,7 @@ export class ToApp extends LitElement {
                       </sl-dropdown>
                       ${tool('QR code', 'qr', () => this.querySelector<ToQrDialog>('to-qr-dialog')?.show(), { cls: 'to-qr-btn', size: 16 })}
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Privacy" data-tip="Privacy" variant=${this.privacy.locker || this.privacy.sig === 'valid' ? 'primary' : this.sig === 'invalid' ? 'danger' : 'default'} outline>${icon(this.privacy.locker ? UI.lock : this.privacy.sig === 'invalid' ? UI.shieldOff : this.privacy.sig === 'valid' ? UI.shield : UI.unlock, 16)}<span class="sr-only">Privacy</span></sl-button>
+                        ${this.renderTrust()}
                         <sl-menu>
                           <sl-menu-label>Privacy</sl-menu-label>
                           <sl-menu-item value="password">${icon(UI.lock, 14, 'pre')} Password<span slot="suffix" class="to-hint">${this.privacy.locker ? 'Locked' : 'None'}</span></sl-menu-item>
@@ -710,6 +710,24 @@ export class ToApp extends LitElement {
       </sl-dialog>
       ${this.toast ? html`<div class="to-toast" role="status">${this.toast}</div>` : nothing}
     `;
+  }
+
+  /**
+   * The Privacy button says at a glance whether to trust the document:
+   * red and unlocked when nobody has signed it, green when its signature
+   * holds, red again when the words changed after signing, and the
+   * accent's lock when a password seals it.
+   */
+  private renderTrust() {
+    const { locker, sig, signer } = this.privacy;
+    const [variant, glyph, tip] = locker
+      ? (['primary', UI.lock, 'Locked with a password'] as const)
+      : sig === 'invalid'
+        ? (['danger', UI.shieldOff, 'Signature mismatch: the words changed after it was signed, or the link was altered'] as const)
+        : sig === 'valid'
+          ? (['success', UI.shield, `Signed; key ${signer ?? ''}. The words are as the signer left them.`] as const)
+          : (['danger', UI.unlock, 'Unsigned: anyone could have written this. Sign it from here.'] as const);
+    return html`<sl-button slot="trigger" class="icon to-trust" size="small" aria-label="Privacy" data-tip=${tip} variant=${variant} outline>${icon(glyph, 16)}<span class="sr-only">Privacy</span></sl-button>`;
   }
 
   /** In the header beside the document: Edit (when reading), undo and redo. */

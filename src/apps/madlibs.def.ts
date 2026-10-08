@@ -1,7 +1,17 @@
 /** Fill in the blanks: a story with gaps, filled in by someone who has not read it. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { pageData, pageScript, xml } from '../kit/core.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`
+var S = JSON.parse(document.getElementById('d').textContent);
+document.getElementById('f').onsubmit = function (e) {
+  e.preventDefault(); var n = 0, f = e.target, out = document.getElementById('story');
+  S.forEach(function (line) { var p = document.createElement('p'); line.split(/\\[[^\\]]+\\]/).forEach(function (part, i) { if (i) { var b = document.createElement('b'); b.textContent = f['b' + n++].value; p.appendChild(b); } p.appendChild(document.createTextNode(part)); }); out.appendChild(p); });
+  f.hidden = true; out.hidden = false;
+};
+`);
 
 function page(body: string): string {
   const title = h1(body) || 'Fill in the blanks';
@@ -15,14 +25,8 @@ input{font:inherit;padding:.55rem .8rem;border:1px solid #d4d4d8;border-radius:.
     `<main><h1>${xml(title)}</h1>
 <form id="f">${blanks.map((b, i) => `<label>${xml(b[0].toUpperCase() + b.slice(1))}<input name="b${i}" required autocomplete="off"></label>`).join('')}<button>Tell the story</button></form>
 <div id="story" aria-live="polite" hidden></div></main>
-<script>
-var S = ${js(story)};
-document.getElementById('f').onsubmit = function (e) {
-  e.preventDefault(); var n = 0, f = e.target, out = document.getElementById('story');
-  S.forEach(function (line) { var p = document.createElement('p'); line.split(/\\[[^\\]]+\\]/).forEach(function (part, i) { if (i) { var b = document.createElement('b'); b.textContent = f['b' + n++].value; p.appendChild(b); } p.appendChild(document.createTextNode(part)); }); out.appendChild(p); });
-  f.hidden = true; out.hidden = false;
-};
-</script>`,
+${pageData('d', story)}
+${SCRIPT}`,
   );
 }
 

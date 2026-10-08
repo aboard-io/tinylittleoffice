@@ -6,9 +6,18 @@
  * own link shows every draw, so the organiser keeps it to themselves.
  */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, js, seed } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { definePage, htmlPage, h1, rest, seed } from '../lib/diagram.ts';
+import { pageData, pageScript, xml } from '../kit/core.ts';
 import { makeRef } from '../kit/embed.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`
+var H = JSON.parse(document.getElementById('d').textContent), t, who = document.getElementById('who');
+document.getElementById('show').onclick = function () {
+  who.textContent = 'You give to ' + H.map(function (c) { return String.fromCharCode(c - 7); }).join('') + '.';
+  clearTimeout(t); t = setTimeout(function () { who.textContent = ''; }, 8000);
+};
+`);
 
 /** Everyone gives to the next person round a shuffled ring: nobody draws themselves, and the draw is the same every time the link is opened. */
 export function draw(names: string[]): Record<string, string> {
@@ -45,13 +54,8 @@ button{font:inherit;padding:.6rem 1.2rem;border:1px solid #e4e4e7;border-radius:
       `<main><h1>${xml(title)}</h1><p>${xml(giver)}, this link is yours alone.</p>
 <p><button id="show">Show me who I give to</button></p>
 <p id="who" role="status" aria-live="polite"></p></main>
-<script>
-var H = ${js(hidden)}, t, who = document.getElementById('who');
-document.getElementById('show').onclick = function () {
-  who.textContent = 'You give to ' + H.map(function (c) { return String.fromCharCode(c - 7); }).join('') + '.';
-  clearTimeout(t); t = setTimeout(function () { who.textContent = ''; }, 8000);
-};
-</script>`,
+${pageData('d', hidden)}
+${SCRIPT}`,
     );
   }
   // The organiser's page: a link for each person.

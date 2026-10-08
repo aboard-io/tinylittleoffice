@@ -31,19 +31,7 @@
     <script type="application/ld+json">
       {"@context":"https://schema.org","@type":"WebApplication","name":"TinyLittleOffice","url":"%VITE_SITE_URL%","applicationCategory":"BusinessApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0"},"description":"A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document."}
     </script>
-    <script>
-      // Light or dark: the saved choice if there is one, otherwise whatever the device says.
-      (function () {
-        var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        var apply = function () {
-          var t = null;
-          try { t = localStorage.getItem('to-theme'); } catch (e) {}
-          document.documentElement.classList.toggle('sl-theme-dark', t ? t === 'dark' : mq.matches);
-        };
-        apply();
-        mq.addEventListener('change', apply);
-      })();
-    </script>
+    <script src="./theme.js"></script>
     <script type="module" src="/src/main.ts"></script>
     <link rel="alternate" type="text/plain" href="/llms.txt" title="How to make documents by URL" />
   </head>

@@ -1,7 +1,7 @@
 /** Store: a shop window and a cart, from a list of products. */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { pageScript, xml } from '../kit/core.ts';
 
 interface Store {
   name: string;
@@ -64,6 +64,8 @@ document.getElementById('send').onclick = function () {
 };
 draw();
 `;
+/** Registered at load, so the site's CSP can allow it by hash. */
+const SCRIPT = pageScript(CART);
 
 function page(text: string): string {
   const s = parseStore(text);
@@ -93,7 +95,7 @@ ${s.products.map((p, i) => `<li>${p.image ? `<img src="${xml(p.image)}" alt="" l
 </main></div>
 <script type="application/json" id="products">${json(s.products)}</script>
 <script type="application/json" id="shop">${json({ name, currency: s.currency, orders: s.orders })}</script>
-<script>${CART}</script>`,
+${SCRIPT}`,
   );
 }
 

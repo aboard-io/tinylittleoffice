@@ -1,7 +1,18 @@
 /** Flashcards: a question on the front, the answer on the back. Tap to turn. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, js } from '../lib/diagram.ts';
-import { xml } from '../kit/core.ts';
+import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { pageData, pageScript, xml } from '../kit/core.ts';
+
+/** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
+const SCRIPT = pageScript(`
+var C = JSON.parse(document.getElementById('d').textContent), at = 0, back = false, card = document.getElementById('card');
+function draw() { var c = C[at] || ['', '']; card.textContent = c[back ? 1 : 0] || ''; card.className = back ? 'back' : ''; card.setAttribute('aria-label', (back ? 'Answer: ' : 'Question: ') + card.textContent + '. Tap to turn over.'); document.getElementById('where').textContent = C.length ? at + 1 + ' / ' + C.length : ''; }
+card.onclick = function () { back = !back; draw(); };
+function go(d) { at = (at + d + C.length) % (C.length || 1); back = false; draw(); }
+document.getElementById('next').onclick = function () { go(1); }; document.getElementById('back').onclick = function () { go(-1); };
+document.getElementById('mix').onclick = function () { C.sort(function () { return Math.random() - 0.5; }); at = 0; back = false; draw(); };
+draw();
+`);
 
 function page(body: string): string {
   const title = h1(body) || 'Flashcards';
@@ -14,15 +25,8 @@ function page(body: string): string {
 #card.back{background:#eef2ff;border-color:#a5b4fc;color:#312e81}nav{display:flex;justify-content:center;align-items:center;gap:1rem}.quiet{background:#eef2ff;color:#3730a3}`,
     `<main><h1>${xml(title)}</h1><button id="card" aria-live="polite"></button>
 <nav><button class="quiet" id="back">Back</button><span id="where"></span><button id="next">Next</button><button class="quiet" id="mix">Shuffle</button></nav></main>
-<script>
-var C = ${js(cards)}, at = 0, back = false, card = document.getElementById('card');
-function draw() { var c = C[at] || ['', '']; card.textContent = c[back ? 1 : 0] || ''; card.className = back ? 'back' : ''; card.setAttribute('aria-label', (back ? 'Answer: ' : 'Question: ') + card.textContent + '. Tap to turn over.'); document.getElementById('where').textContent = C.length ? at + 1 + ' / ' + C.length : ''; }
-card.onclick = function () { back = !back; draw(); };
-function go(d) { at = (at + d + C.length) % (C.length || 1); back = false; draw(); }
-document.getElementById('next').onclick = function () { go(1); }; document.getElementById('back').onclick = function () { go(-1); };
-document.getElementById('mix').onclick = function () { C.sort(function () { return Math.random() - 0.5; }); at = 0; back = false; draw(); };
-draw();
-</script>`,
+${pageData('d', cards)}
+${SCRIPT}`,
   );
 }
 
