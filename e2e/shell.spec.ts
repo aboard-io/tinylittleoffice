@@ -27,19 +27,13 @@ test('download views: drawn files, a PDF and a picture, come from the link itsel
   }
 });
 
-test('each app has a page of its own, with its own preview card', async ({ page, request }) => {
+// Stays: the app's page and its preview card are made by the build and served (the page at work is in test/dom/shell-share.test.ts).
+test('each app has a page of its own, with its own preview card', async ({ request }) => {
   const html = await (await request.get('/deck/')).text();
   expect(html).toContain('<title>Deck · TinyLittleOffice</title>');
   expect(html).toMatch(/<meta property="og:image" content="https:\/\/[^"]+\/og\/deck\.png"/);
   expect(html).toMatch(/<link rel="canonical" href="https:\/\/[^"]+\/deck\/"/);
   expect((await request.get('/og/deck.png')).status()).toBe(200);
-  // The page opens a new deck, and documents work there as anywhere.
-  await page.goto('/deck/');
-  await expect(page.locator('.to-panel h1')).toHaveText(/Deck/);
-  await page.getByRole('textbox', { name: 'Headline' }).fill('From the deck page');
-  await expect.poll(() => page.url()).toMatch(/\/deck\/#\/v0\/deck\/[WYZR]/);
-  await reopen(page);
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toHaveText('From the deck page');
 });
 
 // Stays: the PDF is drawn page by page through a canvas, which happy-dom lacks (the rest is in test/dom/shell.test.ts).
@@ -166,115 +160,4 @@ test('undo inside a document that is inside another', async ({ page }) => {
   await page.keyboard.press('Control+z');
   await expect(embed.locator('svg[role="img"] rect')).toHaveCount(1);
   await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('Intro');
-});
-
-test('a shared deck opens presenting, with a way back to editing', async ({ page }) => {
-  await page.goto('/#/v0/deck');
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
-  await page.getByRole('button', { name: 'Slide', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Plan');
-  await page.getByRole('textbox', { name: 'Bullets' }).fill('Build it\nShip it');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/deck\/[WYZR]/);
-  const editing = page.url();
-
-  // The link that is copied is the plain one: it opens as the deck to read, never presenting unless asked.
-  await copyLink(page);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(editing.replace('/#/v0/deck/', '/deck/#/v0/deck/'));
-  // A link that opens presenting is in Share, for when that is what is wanted.
-  await page.getByRole('button', { name: 'Share' }).click();
-  await page.getByRole('menuitem', { name: 'Copy link (opens presenting)' }).click();
-  const shared = await page.evaluate(() => navigator.clipboard.readText());
-  expect(shared).toBe(editing.replace('/#/v0/deck/', '/deck/#/v0/deck.show/'));
-
-  // Someone opening the shared link lands in the presentation.
-  await page.goto('about:blank');
-  await page.goto(shared);
-  const show = page.getByRole('dialog', { name: 'Presentation' });
-  const slide = show.locator('.frame > svg');
-  await expect(slide).toContainText('Spring launch');
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Ship it');
-  // The deck ends with a QR code of itself, titled; and the end of the deck is not the end of the show.
-  await page.keyboard.press('ArrowRight');
-  await expect(slide.locator('path[shape-rendering="crispEdges"]')).toHaveCount(1);
-  await expect(slide).toContainText('Spring launch');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide.locator('path[shape-rendering="crispEdges"]')).toHaveCount(1);
-  await shot(page, 'deck-shared');
-
-  // "Edit this deck" is the way to the editor, and from then on the link is an editing link.
-  await show.getByRole('button', { name: 'Edit this deck' }).click();
-  await expect(show).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
-  expect(page.url()).not.toContain('deck.show');
-  await reopen(page);
-  await expect(show).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
-  // Presenting from the editor still ends by returning to it.
-  await page.getByRole('button', { name: 'Present' }).click();
-  await expect(show.getByRole('button', { name: 'Exit' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(show).toHaveCount(0);
-
-  // Escape works for a visitor too.
-  await page.goto('about:blank');
-  await page.goto(shared);
-  await expect(slide).toContainText('Spring launch');
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeVisible();
-});
-
-test('two links compare side by side, with what changed', async ({ page }) => {
-  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const created = Date.UTC(2026, 9, 6);
-  const a = `/#/v0/todo/${encodeEnvelope({ created, title: 'Chores', by: 'me', body: '- Sweep\n- Shop' }, 'todo')}`;
-  const b = `/#/v0/todo/${encodeEnvelope({ created, title: 'Chores', by: 'chores-agent', body: 'x Sweep\n- Shop\n- Call mum' }, 'todo')}`;
-  const side = (h: string) => h.replace(/^\/#\/v0\/todo\//, '');
-  await page.goto(`/#/compare/todo/${side(a)}/todo/${side(b)}`);
-  const cmp = page.locator('to-compare');
-  await expect(cmp.locator('h1')).toContainText('Compare');
-  await expect(cmp.locator('.cmp-meta').nth(1)).toContainText('by chores-agent');
-  await expect(cmp.locator('.cmp-diff .add')).toHaveCount(2);
-  await expect(cmp.locator('.cmp-diff .del')).toHaveCount(1);
-  await expect(cmp.locator('.cmp-diff')).toContainText('+ - [x] Sweep');
-  await expect(cmp.locator('.cmp-diff')).toContainText('+ - [ ] Call mum');
-  await expect(cmp.locator('iframe')).toHaveCount(2);
-  await cmp.getByRole('button', { name: 'Swap' }).click();
-  await expect(cmp.locator('.cmp-diff .add')).toHaveCount(1);
-  // The second link is pasted on the page; the first comes from Share.
-  await page.goto(a);
-  await page.getByRole('button', { name: 'Share' }).click();
-  await page.getByRole('menuitem', { name: /Compare with/ }).click();
-  // (Whatever link the clipboard held may already be the second side; the pasted one replaces it.)
-  await expect(page).toHaveURL(/#\/compare\/todo\//);
-  await page.getByRole('textbox', { name: 'The second link' }).fill(`http://localhost${b}`);
-  await page.getByRole('textbox', { name: 'The second link' }).press('Enter');
-  await expect(cmp.locator('.cmp-diff .add')).toHaveCount(2);
-});
-
-test('a shorter link that expires, with the key kept out of the server', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  await page.getByRole('textbox', { name: 'A1', exact: true }).fill('Secret plan');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/[WYZR]/);
-  // A stand-in for tinier, remembering what it was sent.
-  let sent: { c: string; iv: string; ttl: number } | null = null;
-  await page.route('https://tinier.tinylittleoffice.com/api', async (route) => {
-    sent = route.request().postDataJSON();
-    await route.fulfill({ status: 201, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ id: 'abc2345', exp: Date.now() + sent!.ttl * 1000 }) });
-  });
-  await page.getByRole('button', { name: 'Share' }).click();
-  await page.getByRole('menuitem', { name: /Shorter link/ }).click();
-  const dialog = page.locator('#short-dialog');
-  await expect(dialog).toHaveAttribute('open');
-  await dialog.getByRole('radio', { name: 'A day' }).click();
-  await dialog.getByRole('button', { name: 'Make the short link' }).click();
-  await expect(dialog.locator('code')).toHaveText(/^https:\/\/tinier\.tinylittleoffice\.com\/abc2345#[A-Za-z0-9_-]{22}$/);
-  await expect(dialog).toContainText('Expires');
-  expect(sent!.ttl).toBe(86400);
-  // Nothing of the document went to the server: not its words, not its link.
-  expect(JSON.stringify(sent)).not.toContain('Secret');
-  expect(JSON.stringify(sent)).not.toContain(page.url().split('/').pop()!);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/^https:\/\/tinier\.tinylittleoffice\.com\/abc2345#/);
 });

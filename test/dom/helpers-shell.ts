@@ -113,6 +113,21 @@ export function fill(box: Element | null, value: string) {
   input.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: value }));
 }
 
+/**
+ * Write into a rich-text box (Write's page, a slide's headline or bullets) by its name: a paragraph a line,
+ * as the browser leaves the page after typing, then the input event the editor reads it on.
+ * (happy-dom has no editing commands, so typing itself, and Bold or a list from the toolbar, stay in e2e.)
+ */
+export function write(name: string, lines: string, root: ParentNode = document) {
+  const page = $(`[contenteditable="true"][aria-label="${name}"]`, root);
+  page.focus();
+  page.innerHTML = lines
+    .split('\n')
+    .map((l) => `<p>${l.replace(/&/g, '&amp;').replace(/</g, '&lt;') || '<br>'}</p>`)
+    .join('');
+  page.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText' }));
+}
+
 /** A Shoelace box by its label. */
 export const slBox = (label: string, root: ParentNode = document) => $(`sl-input[label="${label}"], sl-textarea[label="${label}"]`, root);
 

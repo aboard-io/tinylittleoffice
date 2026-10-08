@@ -57,3 +57,10 @@ const now = Date.now.bind(Date);
 Date.now = () => now() + ahead;
 /** Let this much time pass, as far as the page's clock knows. */
 export const passTime = (ms: number) => void (ahead += ms);
+
+// A frame (two links compared side by side) gets an empty page, not the site: what runs inside one is the real browser's to test.
+type Win = { happyDOM: { settings: { fetch: { interceptor: unknown } } }; Response: typeof Response };
+const win = window as unknown as Win;
+win.happyDOM.settings.fetch.interceptor = {
+  beforeAsyncRequest: async () => new win.Response('<!doctype html><title>frame</title>', { status: 200, headers: { 'content-type': 'text/html' } }),
+};
