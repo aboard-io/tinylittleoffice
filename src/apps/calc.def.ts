@@ -20,12 +20,12 @@ function sheet(title: string, figures: [string, string][], head: string[], rows:
   const cw = (W - 96) / head.length;
   head.forEach((h, i) => (svg += text(48 + i * cw + (i ? cw - 8 : 0), y, h, { px: 12, bold: true, fill: MUTED, anchor: i ? 'end' : 'start' })));
   y += 6;
-  for (const r of rows.slice(0, 14)) {
+  // Every row: a thirty-year mortgage is thirty rows, and the page is as tall as it needs to be.
+  for (const r of rows) {
     y += 22;
     svg += `<line x1="48" x2="${W - 48}" y1="${y - 16}" y2="${y - 16}" stroke="#e4e4e7"/>`;
     r.forEach((c, i) => (svg += text(48 + i * cw + (i ? cw - 8 : 0), y, c, { px: 13, fill: INK, anchor: i ? 'end' : 'start' })));
   }
-  if (rows.length > 14) svg += text(48, (y += 20), `… and ${rows.length - 14} more`, { px: 12, fill: FAINT });
   if (chart) {
     y += 24;
     svg += place(chart, 48, y, W - 96, (chart.h * (W - 96)) / chart.w);

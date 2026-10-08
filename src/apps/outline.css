@@ -133,3 +133,16 @@
   max-width: 480px;
   margin: 4px 0;
 }
+/* Where there is no Tab key, each row carries its own indent and outdent. */
+.ol-shift {
+  display: none;
+  flex-shrink: 0;
+}
+@media (pointer: coarse) {
+  .ol-shift {
+    display: inline-flex;
+  }
+  .ol-shift .to-icon-btn {
+    --size: 30px;
+  }
+}

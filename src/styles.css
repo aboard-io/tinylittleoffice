@@ -140,7 +140,6 @@ to-bio,
 to-checklist,
 to-log,
 to-reading,
-to-chords,
 to-booklet,
 to-programme,
 to-brochure,
@@ -903,22 +902,19 @@ table.sheet td.sel input {
   overflow: hidden;
 }
 .deck-thumb svg,
-.deck-end svg {
-  display: block;
-  width: 100%;
-  height: auto;
+.deck-end {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  aspect-ratio: 16 / 10;
+  color: var(--to-ink-3);
+  font-size: 11px;
+  text-align: center;
 }
 .deck-thumb[aria-current='true'] {
   border-color: var(--to-accent);
 }
 .deck-thumb .n,
-.deck-end .n {
-  position: absolute;
-  left: 4px;
-  top: 3px;
-  font-size: 11px;
-  color: #52525b;
-}
 .deck-editor {
   padding: 20px;
   display: flex;
@@ -1498,9 +1494,20 @@ svg.draw-canvas text {
   .to-panel {
     border-radius: var(--to-radius);
   }
+  /* On a phone a toolbar is one row that scrolls sideways, rather than a stack of wrapped rows. */
   .to-toolbar {
     padding: 6px 8px;
     gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .to-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .to-toolbar > * {
+    flex-shrink: 0;
   }
   .to-toolbar .to-hint {
     display: none;
@@ -3627,7 +3634,7 @@ sl-menu-item.sub::part(base) {
     display: grid;
   }
   .to-toolbar {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
   .lf-row {
     grid-template-columns: minmax(0, 1fr);

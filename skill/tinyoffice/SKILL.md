@@ -218,7 +218,7 @@ All of these are a few lines of text; the first line is usually `# Title`.
 - Games: `wordsearch` (a word per line), `adventure` (`## scene`, story lines, `> Choice | scene`), `hunt` (`Clue | answer`), `trivia` (`teams: A, B`, `## Round`, `Question | answer`), `madlibs` (a story with `[blanks]`), `spinner` (a choice per line), `flashcards` (`Front | back`).
   https://tinylittleoffice.com/adventure/#title=The+Lighthouse&doc=%23+The+Lighthouse%0A%23%23+start%0AThe+lamp+is+out.%0A%3E+Climb+to+the+lamp+%7C+lamp%0A%23%23+lamp%0AYou+light+it.+The+ship+turns.
 - Together: `poll` (`- Choice` lines, then `Name: choice` from each person), `santa` (a name per line; the page gives the organiser a private link per person, each showing only that person's draw), `split` (`Name: amount, what for`; `between: A, B, C`).
-- Personal: `log` (`when, what, how much`; each kind is totalled), `chords` (`[G]words with [C]chords`, `transpose: 2`).
+- Personal: `log` (`when, what, how much`; each kind is totalled).
 
 ## Shorter links
 

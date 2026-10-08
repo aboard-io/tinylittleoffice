@@ -266,6 +266,8 @@ export class ToApp extends LitElement {
   @state() private driving: string | null = null;
 
   private onHash = () => {
+    // An app that was retired: its links say so rather than landing on the home page in silence.
+    if (/^#\/(?:v\d+\/)?chords\b/.test(location.hash)) this.showToast('Chord chart was retired; this link no longer opens.');
     this.readPlainLink();
     this.comparing = parseCompare(location.hash);
     this.driving = /^#\/drive(\/|$)/.test(location.hash) ? decodeURIComponent(location.hash.replace(/^#\/drive\/?/, '')) : null;

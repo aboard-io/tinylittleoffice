@@ -55,5 +55,4 @@ import './poll.def.ts';
 import './santa.def.ts';
 import './split.def.ts';
 import './log.def.ts';
-import './chords.def.ts';
 import './qr.def.ts';

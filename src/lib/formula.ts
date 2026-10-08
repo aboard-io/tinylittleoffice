@@ -656,6 +656,32 @@ export function pasteCells(grid: Grid, r: number, c: number, text: string, moved
  * extends one way). Formulas move their references; two or more numbers in
  * step carry on counting; anything else repeats.
  */
+/**
+ * The rows in order of column `c`, numbers before words, blanks last; the
+ * first row stays where it is when it reads as a heading (words over a
+ * column of numbers). Formulas move with their rows as they are.
+ */
+export function sortRows(grid: Grid, c: number, descending = false): Grid {
+  const used = grid.reduce((n, row, r) => (row.some((v) => v !== '') ? r + 1 : n), 0);
+  if (used < 2) return grid;
+  const num = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)%?$/.test(s.trim()) ? parseFloat(s) : NaN);
+  // A first row of words over rows that hold numbers is a heading.
+  const head = grid[0].every((v) => isNaN(num(v))) && grid.slice(1, used).some((row) => row.some((v) => !isNaN(num(v)))) ? 1 : 0;
+  const rows = grid.slice(head, used);
+  const key = (row: string[]) => row[c] ?? '';
+  const sorted = rows
+    .map((row, i) => ({ row, i }))
+    .sort((a, b) => {
+      const x = key(a.row), y = key(b.row);
+      if (x === '' || y === '') return x === '' ? (y === '' ? a.i - b.i : 1) : -1;
+      const nx = num(x), ny = num(y);
+      const d = !isNaN(nx) && !isNaN(ny) ? nx - ny : isNaN(nx) === isNaN(ny) ? x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' }) : isNaN(nx) ? 1 : -1;
+      return (descending && x !== '' && y !== '' ? -d : d) || a.i - b.i;
+    })
+    .map(({ row }) => row);
+  return [...grid.slice(0, head), ...sorted, ...grid.slice(used)];
+}
+
 export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
   const out = grid.map((row) => row.slice());
   const down = dest.r0 < src.r0 || dest.r1 > src.r1;

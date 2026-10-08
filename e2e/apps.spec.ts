@@ -543,7 +543,6 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     santa: '# Santa\nAda\nGrace\nAlan',
     split: '# Trip\nPaul: 60, dinner\nSam: 20, taxi',
     log: '# Log\n1 March, Run, 5 km',
-    chords: '# Song\n[C]Row your [G]boat',
     qr: 'https://tinylittleoffice.com/',
   };
   const found: string[] = [];
@@ -627,7 +626,6 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     santa: '# Santa\nAda\nGrace\nAlan',
     split: '# Trip\nPaul: 60, dinner\nSam: 20, taxi',
     log: '# Log\n1 March, Run, 5 km',
-    chords: '# Song\n[C]Row your [G]boat',
     qr: 'https://tinylittleoffice.com/',
   };
   const found: string[] = [];

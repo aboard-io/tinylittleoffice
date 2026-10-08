@@ -4,7 +4,7 @@
  * and fold it, a handle drags it onto another item, and any item can be
  * zoomed in on. Format: lib/outlinemodel.ts.
  */
-import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, btn } from '../kit.ts';
 import { blockEnd, embedOf, hasChildren, move, outlineToDeck, parseOutline, place, remove, serializeOutline, shift, type Item } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
@@ -244,6 +244,7 @@ export class ToOutline extends DocElement<Item[]> {
             ${kids
               ? html`<button class="ol-fold" aria-label=${shut ? `Unfold, ${blockEnd(items, i) - i - 1} inside` : 'Fold'} @click=${() => this.fold(i)}>${icon(shut ? UI.right : UI.down, 14)}</button>`
               : html`<button class="ol-dot" aria-label="Zoom in on this item" data-tip="Zoom in" @click=${() => this.zoomTo(i)}><span></span></button>`}
+            <span class="ol-shift">${btn(`Bring item ${i + 1} out`, 'outdent', () => this.shiftBy(i, -1), { size: 13, tip: 'Bring out' })}${btn(`Indent item ${i + 1}`, 'indent', () => this.shiftBy(i, 1), { size: 13, tip: 'Indent' })}</span>
             ${embedOf(it.text)
               ? html`<to-embed class="ol-doc" ref=${embedOf(it.text)!} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
               : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}

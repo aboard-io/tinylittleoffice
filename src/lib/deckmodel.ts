@@ -47,7 +47,8 @@ export interface Slide {
   notes?: string[];
 }
 
-const SETTINGS = /^!([a-z]*)(?::([a-z]))?$/;
+/** The settings chunk: "!<transition>[:<colour>][:noqr]". */
+const SETTINGS = /^!([a-z]*)(?::([a-z]?))?(?::(noqr))?$/;
 
 /** The colours a deck's icons can be: the accent (no letter), or one of these. */
 export const ICON_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: ACCENT }, k: PALETTE.k, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
@@ -60,6 +61,12 @@ const SUB = /^@@([a-z]+\/[A-Za-z0-9_-]*)$/;
 
 /** What a new deck opens with: a title slide. */
 const first = (): Slide => ({ icon: '', title: '', bullets: [], layout: 't' });
+
+/** Whether the deck ends with the slide that is a QR code of itself: it does unless it says not to. */
+export function deckEndsWithQr(text: string): boolean {
+  const m = SETTINGS.exec(text.split('\n\n', 1)[0]);
+  return !(m && m[3]);
+}
 
 export function deckTransition(text: string): Transition {
   const m = SETTINGS.exec(text.split('\n\n', 1)[0]);
@@ -95,7 +102,7 @@ export function parseDeck(text: string): Slide[] {
   });
 }
 
-export function serializeDeck(slides: Slide[], transition: Transition = '', color = ''): string {
+export function serializeDeck(slides: Slide[], transition: Transition = '', color = '', qr = true): string {
   const flat = (b: string) => {
     const s = b.replace(/\n/g, ' ');
     return s === '' ? ' ' : s === '|' || /^(@@|\\|> )/.test(s) ? '\\' + s : s;
@@ -119,7 +126,7 @@ export function serializeDeck(slides: Slide[], transition: Transition = '', colo
   // Trailing empty slides cost nothing when dropped.
   while (chunks.length > 1 && chunks[chunks.length - 1] === '') chunks.pop();
   // An untouched new deck costs nothing.
-  if (chunks.length === 1 && chunks[0] === '::t' && !transition && !color) return '';
-  if (transition || color || SETTINGS.test(chunks[0])) chunks.unshift('!' + transition + (color ? ':' + color : ''));
+  if (chunks.length === 1 && chunks[0] === '::t' && !transition && !color && qr) return '';
+  if (transition || color || !qr || SETTINGS.test(chunks[0])) chunks.unshift('!' + transition + (color || !qr ? ':' + color : '') + (qr ? '' : ':noqr'));
   return chunks.join('\n\n');
 }

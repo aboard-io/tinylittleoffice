@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','bizplan','mktplan','gtm','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','calc','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','chords','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','bizplan','mktplan','gtm','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','calc','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');

@@ -10,12 +10,14 @@ import { keyed } from 'lit/directives/keyed.js';
 import { defineElement, html, nothing, state, property, unsafeSVG, tool, swatches, icon, libraryIcon, UI, LIBRARY, suggestIcons, insertOptions, resolve, isKey } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import { PagesElement, blankPage } from './pages.ts';
-import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
+import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition, deckEndsWithQr } from '../lib/deckmodel.ts';
 import { SH, SW, closingSlide, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
 
 interface Deck {
   slides: Slide[];
   transition: Transition;
+  /** Ends with a QR code of itself (the default). */
+  qr: boolean;
   /** The colour of every icon in the deck: a key of ICON_COLORS. */
   color: string;
 }
@@ -42,10 +44,10 @@ export class ToDeck extends PagesElement<Deck> {
   private lastClick = 0;
 
   protected parse(text: string): Deck {
-    return { slides: parseDeck(text), transition: deckTransition(text), color: deckIconColor(text) };
+    return { slides: parseDeck(text), transition: deckTransition(text), color: deckIconColor(text), qr: deckEndsWithQr(text) };
   }
   protected serialize(d: Deck) {
-    return serializeDeck(d.slides, d.transition, d.color);
+    return serializeDeck(d.slides, d.transition, d.color, d.qr);
   }
   protected loaded() {
     this.cur = Math.min(this.cur, this.doc.slides.length - 1);
@@ -227,6 +229,7 @@ export class ToDeck extends PagesElement<Deck> {
         </sl-button-group>
         <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
         <span class="to-spacer"></span>
+        ${tool('End with a QR code of this deck', 'qr', () => this.commit({ ...this.doc, qr: !this.doc.qr }), { pressed: this.doc.qr })}
         <sl-select class="sr-label deck-transition" size="small" label="Transition" hoist .value=${this.doc.transition || 'fade'} @sl-change=${(e: Event) => this.commit({ ...this.doc, transition: (((e.target as SlSelect).value as string) === 'fade' ? '' : (e.target as SlSelect).value) as Transition })}>
           ${TRANSITIONS.map((t) => html`<sl-option value=${t.id || 'fade'}>${t.name}</sl-option>`)}
         </sl-select>
@@ -244,12 +247,9 @@ export class ToDeck extends PagesElement<Deck> {
           (sl, i) => `Slide ${i + 1}: ${sl.title || 'untitled'}`,
           (() => {
             // The closing slide is made, not written: a QR code of the deck, shown here so it is no surprise.
-            const end = closingSlide(this.serialize(this.doc));
-            if (!end) return nothing;
-            const p = slidePage(end, Infinity, undefined, this.doc.color);
-            return html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" data-tip="Ends with a QR code of this deck, so the room can take it home">
-              <span class="n">${icon(UI.qr, 12)}</span>
-              <svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>
+            if (!closingSlide(this.serialize(this.doc))) return nothing;
+            return html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" data-tip="Ends with a QR code of this deck, so the room can take it home. Turn it off in the toolbar.">
+              ${icon(UI.qr, 28)}<span>QR code of this deck</span>
             </div>`;
           })(),
         )}

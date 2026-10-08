@@ -548,7 +548,7 @@ test('paper that folds: pages land where folding needs them', async () => {
 
 test('things to print: text in, letter sheets out', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], chords: [816, 1056], menu: [816, 1056], resume: [816, 1056] };
+  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], menu: [816, 1056], resume: [816, 1056] };
   for (const [id, size] of Object.entries(sizes)) {
     const spec = specOf(id)!;
     for (const text of [spec.example, '', 'x']) {
@@ -655,12 +655,6 @@ test('small apps: the sums behind them', async () => {
   assert.ok([lines, diag(1), diag(-1)].join(' ').includes('ESPRESSO'));
   assert.deepEqual(hide(['espresso', 'filter', 'cup'], 42).grid, grid);
 
-  const { transpose } = await import('../src/apps/chords.def.ts');
-  assert.deepEqual(['C', 'Am7/G', 'Bb', 'F#m'].map((c) => transpose(c, 2)), ['D', 'Bm7/A', 'C', 'Abm']);
-  assert.equal(transpose('C', -1), 'B');
-  const song = specOf('chords')!.sheets!('# S\ntranspose: 2\n[C]Row your [G]boat')[0].svg;
-  assert.ok(song.includes('>D</text>') && song.includes('>A</text>') && song.includes('>Row your </text>'));
-
   // The hunt keeps later clues out of the page's plain text.
   const hunt = specOf('hunt')!.page!(specOf('hunt')!.example);
   assert.ok(hunt.includes('What colour is the kettle?') && !hunt.includes('count the stairs') && !hunt.includes('"red"'));
@@ -695,7 +689,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
     assert.ok(own >= rows.length * 0.8, `${def.id}: ${own} of ${rows.length} lines have a kind`);
     assert.ok(kinds.every((k) => k.name));
   }
-  assert.ok(forms >= 30, String(forms));
+  assert.ok(forms >= 29, String(forms));
 
   const menu = specOf('menu')!.form!;
   const rows = readLines('# Cafe\n## Coffee\nEspresso|3.00 | Dark\nFlat white | 4.20\nOpen daily', menu);
@@ -1083,7 +1077,8 @@ test('calculator: expressions, money modes, and the page they draw', async () =>
   assert.equal(serializeCalc(parseCalc('')), '');
   assert.equal(plot('x^2', -1, 1, 2).map((p) => p && p[1]).join(','), '1,0,1');
   const page = appOf('calc')!.view('!mortgage\nprice = 400000\ndeposit = 80000\nrate = 6.5\nyears = 30')[0];
-  assert.ok(page.svg.includes('2,022.62') && page.svg.includes('Year 14') && page.svg.includes('16 more'));
+  // Every year of the schedule is on the page, which grows to hold it.
+  assert.ok(page.svg.includes('2,022.62') && page.svg.includes('Year 14') && page.svg.includes('Year 30') && !page.svg.includes('more'));
   assert.ok(appOf('calc')!.view('!graph\nsin(x)\nx^2/10')[0].svg.includes('y = sin(x)'));
   assert.ok(appOf('calc')!.view('2+2\n7*6')[0].svg.includes('>42<'));
   assert.deepEqual(appOf('calc')!.outline('2+2'), ['2+2 = 4']);

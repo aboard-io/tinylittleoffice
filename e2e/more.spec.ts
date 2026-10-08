@@ -789,7 +789,7 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   f = await open('log');
   await expect(f.locator('.sums div').first()).toContainText('22.5 km');
   // And the ones that print or draw.
-  for (const [app, name, has] of [['wordsearch', 'Word search', 'espresso'], ['chords', 'Chord chart', 'Gently down the']] as const) {
+  for (const [app, name, has] of [['wordsearch', 'Word search', 'espresso']] as const) {
     await page.goto(`/#/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
     await expect(page.getByRole('img', { name: `${name}, sheet 1` }), app).toContainText(has);

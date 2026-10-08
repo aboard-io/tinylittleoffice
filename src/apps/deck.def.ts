@@ -7,7 +7,7 @@ import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { encodeEnvelope } from '../lib/envelope.ts';
 import { QR_MAX_BYTES } from '../lib/qr.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { ICON_COLORS, deckIconColor, parseDeck, type Slide } from '../lib/deckmodel.ts';
+import { ICON_COLORS, deckIconColor, parseDeck, type Slide, deckEndsWithQr } from '../lib/deckmodel.ts';
 
 const x = xml;
 
@@ -134,6 +134,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
  * another document, a QR code of this deck's own link.
  */
 export function closingSlide(body: string): Slide | null {
+  if (!deckEndsWithQr(body)) return null;
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
   const link = `${site}deck/#/v2/deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
   if (new TextEncoder().encode(link).length > QR_MAX_BYTES || !body.trim()) return null;

@@ -11,7 +11,7 @@
  * to its longest value, and header edges can be dragged.
  */
 import { LitElement, defineElement, html, property, state, unsafeSVG, tool, icon, UI, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
-import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, evaluateGrid, formatCell, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, type Grid, type CellValue, type Range } from '../lib/formula.ts';
+import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, evaluateGrid, formatCell, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, type Grid, type CellValue, type Range } from '../lib/formula.ts';
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet } from './sheet.def.ts';
 import { linkify, parseDoc } from '../lib/richtext.ts';
@@ -481,11 +481,14 @@ export class ToSheet extends LitElement {
               <td class="corner"></td>
               ${COL_NAMES.map(
                 (n, c) => html`<th scope="col">
-                  <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.setType(c, e.detail.item.value)}>
+                  <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save(sortRows(this.grid, c, e.detail.item.value === 'sort:desc')) : this.setType(c, e.detail.item.value))}>
                     <button slot="trigger" class="col-type" aria-label="Column ${n}: ${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}. Change what it holds">${n}${this.types[c] === 't' ? '' : html`<small>${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}</small>`}</button>
                     <sl-menu>
                       <sl-menu-label>Column ${n} holds</sl-menu-label>
                       ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${this.types[c] === t.id}>${t.name}<span slot="suffix" class="to-hint">${t.hint}</span></sl-menu-item>`)}
+                      <sl-divider></sl-divider>
+                      <sl-menu-item value="sort:asc">${icon(UI.down, 14, 'pre')} Sort, low to high</sl-menu-item>
+                      <sl-menu-item value="sort:desc">${icon(UI.up, 14, 'pre')} Sort, high to low</sl-menu-item>
                     </sl-menu>
                   </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" data-tip="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
                 </th>`,

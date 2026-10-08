@@ -185,3 +185,13 @@ test('date math', async () => {
   assert.deepEqual([v[2][1], v[2][3], v[2][4]], [0, -21, 1]);
   assert.equal(formatCell(v[2][2], 'd'), '2027-02-25');
 });
+
+test('sheet: rows sort by a column, numbers first, blanks last, the heading staying put', async () => {
+  const { parseGrid, sortRows } = await import('../src/lib/formula.ts');
+  const g = parseGrid('Item\tCost\nPear\t3\nApple\t10\n\t\nFig\t\nBerry\t2');
+  const rows = (x: string[][]) => x.filter((r) => r.some(Boolean)).map((r) => r.slice(0, 2).join(',')).join(' ');
+  assert.equal(rows(sortRows(g, 1)), 'Item,Cost Berry,2 Pear,3 Apple,10 Fig,');
+  assert.equal(rows(sortRows(g, 1, true)), 'Item,Cost Apple,10 Pear,3 Berry,2 Fig,');
+  assert.equal(rows(sortRows(g, 0)), 'Item,Cost Apple,10 Berry,2 Fig, Pear,3');
+  assert.deepEqual(sortRows(parseGrid(''), 0), parseGrid(''));
+});

@@ -38,7 +38,7 @@ you have copied the file.
 | Floor plan, Seating chart, Family tree, Timeline | More diagrams from a few lines. |
 | Games | Word search, Adventure, Scavenger hunt, Trivia, Fill in the blanks, Spinner, Flashcards. |
 | Together | Poll, Secret Santa (a private link per person), Split the bill. |
-| Personal | Log, Chord chart. |
+| Personal | Log. |
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
