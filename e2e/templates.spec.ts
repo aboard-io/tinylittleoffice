@@ -84,5 +84,5 @@ test('the plan apps are out of the menu, but their links still open', async ({ p
   await expect(page.locator('.to-launcher a', { hasText: 'Go-to-market plan' })).toHaveCount(0);
   await page.goto('/bizplan/#title=Harbor+Coffee&doc=%3A%3At%0ABusiness+plan%0AHarbor+Coffee%0A%0ASummary%0AA+roastery+on+the+quay.');
   await expect(page.locator('to-bizplan')).toBeVisible();
-  await expect(page.locator('.zine-page > svg')).toContainText('Business plan');
+  await expect(page.locator('to-bizplan .deck-thumb > svg').first()).toContainText('Business plan');
 });
