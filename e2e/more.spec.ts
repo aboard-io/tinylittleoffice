@@ -479,13 +479,16 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   await page.getByRole('textbox', { name: 'Headline' }).fill('Coffee');
   // However much is written, it stays on its page: the type shrinks.
   // (The rail draws the page as it will print. The last text on it is its number; the one before it is the last line of the words.)
-  const size = () => page.locator('.deck-thumb[aria-current="true"] svg').evaluate((svg) => parseFloat(getComputedStyle([...svg.querySelectorAll('text')].at(-2)!).fontSize));
+  const size = () => page.locator('.deck-thumb[aria-current="true"] > svg').evaluate((svg) => parseFloat(getComputedStyle([...svg.querySelectorAll('text')].at(-2)!).fontSize));
   await expect(page.locator('.deck-slide.print.prose')).toBeVisible();
   await page.getByRole('textbox', { name: 'Words' }).fill('Short.');
   const big = await size();
   await page.getByRole('textbox', { name: 'Words' }).fill('The first cup of the day, before anyone else is up. '.repeat(14));
   expect(await size()).toBeLessThan(big);
-  const fits = await page.locator('.deck-thumb[aria-current="true"] svg').evaluate((svg) => {
+  // (Measured at the page's own size: on a phone the rail draws it so small that the rounding of three-pixel type decides.)
+  const fits = await page.locator('.deck-thumb[aria-current="true"] > svg').evaluate((svg) => {
+    const [, , w, h] = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    Object.assign((svg as SVGSVGElement).style, { width: `${w}px`, height: `${h}px` });
     const box = svg.getBoundingClientRect();
     return [...svg.querySelectorAll('text')].every((t) => t.getBoundingClientRect().bottom <= box.bottom + 1 && t.getBoundingClientRect().right <= box.right + 1);
   });
@@ -497,7 +500,7 @@ test('zine: eight pages, a sheet to print either way, and a page to tap through'
   const sub = page.locator('sl-dialog.to-sub');
   await sub.getByRole('textbox', { name: 'Poll, as text' }).fill('# Rain on the roof?\n- Fresh bread\n- Soup');
   await sub.getByRole('button', { name: 'Done' }).click();
-  await expect(page.locator('.deck-thumb[aria-current="true"] svg')).toContainText('Fresh bread');
+  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('Fresh bread');
   await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
   // Pages move as slides do.
   await page.getByRole('button', { name: 'Move page up' }).click();
@@ -595,7 +598,7 @@ test('things to print: write a few lines, get the sheets', async ({ page }) => {
   await page.goto('/#/poster');
   await page.getByRole('textbox', { name: 'Headline' }).fill('Yard sale');
   await page.getByRole('textbox', { name: 'Words' }).fill('Saturday 9am');
-  const drawn = page.locator('.deck-thumb[aria-current="true"] svg');
+  const drawn = page.locator('.deck-thumb[aria-current="true"] > svg');
   await expect(drawn).toContainText('Saturday 9am');
   await expect(page).toHaveTitle('Yard sale · TinyLittleOffice');
   await pickOption(page, 'sl-select.zine-layout', '2');
@@ -648,7 +651,7 @@ test('comic: pages like a zine, each built from panels', async ({ page }) => {
   await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'dog', exact: true }).click();
   await page.getByRole('button', { name: 'Add a panel' }).click();
   await page.getByRole('textbox', { name: 'What is said, panel 2' }).fill('WALK!');
-  const drawn = page.locator('.deck-thumb[aria-current="true"] svg');
+  const drawn = page.locator('.deck-thumb[aria-current="true"] > svg');
   await expect(drawn).toContainText('Walk?');
   await expect(drawn).toContainText('Monday, noon.');
   await expect(drawn.locator('rect[stroke-width="1.5"]')).toHaveCount(2);
@@ -1067,11 +1070,11 @@ test('a business plan starts from its questions, a page a section, and reads as 
   await page.goto('/#/bizplan');
   await page.getByRole('button', { name: 'Start from the template' }).click();
   await expect(page.locator('.deck-thumb')).toHaveCount(11);
-  await expect(page.locator('.deck-thumb[aria-current="true"] svg')).toContainText('Business plan');
+  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('Business plan');
   await page.getByRole('button', { name: /^Section 2/ }).click();
-  await expect(page.locator('.deck-thumb[aria-current="true"] svg')).toContainText('The problem');
+  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('The problem');
   await page.getByRole('textbox', { name: 'Words' }).fill('Small teams lose a day a week to spreadsheets.');
-  await expect(page.locator('.deck-thumb[aria-current="true"] svg')).toContainText('lose a day a week');
+  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('lose a day a week');
   await expect(page).toHaveTitle('Business plan · TinyLittleOffice');
   // Printed: letter pages, one a section.
   await page.getByRole('button', { name: 'Download' }).click();
@@ -1082,7 +1085,7 @@ test('a business plan starts from its questions, a page a section, and reads as 
   await page.goto('/#/gtm');
   await page.getByRole('button', { name: 'Start from the template' }).click();
   await expect(page.locator('.deck-thumb')).toHaveCount(8);
-  await expect(page.locator('.deck-thumb[aria-current="true"] svg')).toContainText('Go-to-market plan');
+  await expect(page.locator('.deck-thumb[aria-current="true"] > svg')).toContainText('Go-to-market plan');
 });
 
 test('calculator: a tape, a graph, and a mortgage worked out as a page', async ({ page }) => {

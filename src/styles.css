@@ -4197,7 +4197,8 @@ sl-dialog.to-import {
   margin-bottom: 0.5em;
 }
 .deck-slide.prose .bullets .write-page > p::before,
-.deck-slide.cover .bullets .write-page > p::before {
+.deck-slide.cover .bullets .write-page > p::before,
+.deck-slide.lay-t .bullets .write-page > p::before {
   content: none;
 }
 /* A cover: everything in the middle of the page, the icon above the title. */
@@ -4208,6 +4209,14 @@ sl-dialog.to-import {
 }
 .deck-slide.cover .head {
   flex-direction: column;
+}
+/* On a cover, set in the middle, an empty field's hint is centred too: placed by itself it would start from the middle. */
+.deck-slide.cover .write-page.blank {
+  position: relative;
+}
+.deck-slide.cover .write-page.blank::before {
+  left: 0;
+  right: 0;
 }
 /* A comic's page: its panels in their grid, each what is said in a bubble, the picture, and a caption along the foot. */
 .deck-slide.comic {
