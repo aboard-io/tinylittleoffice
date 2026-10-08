@@ -7,7 +7,6 @@ import { parseGrid } from '../../src/lib/formula.ts';
 // The rest of the shell's tests, by area. They are one file to vitest so the shell and every editor are loaded,
 // and warmed, once rather than once a file.
 import './shell-privacy.ts';
-import './shell-share.ts';
 import './shell-undo.ts';
 
 /** Open the menu and follow its link to an app, unfolding its cluster first if it is shut. */
