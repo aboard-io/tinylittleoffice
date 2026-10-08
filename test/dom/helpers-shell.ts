@@ -96,6 +96,16 @@ export function tap(el: Element | null) {
   (el as HTMLElement).click?.();
 }
 
+/** A press and release of the pointer on something drawn (a shape, a card): where it is, not how far it moves. */
+export async function poke(el: Element | null) {
+  if (!el) throw new Error('nothing to poke');
+  const opts = { bubbles: true, composed: true, cancelable: true, button: 0, buttons: 1, pointerId: 1, pointerType: 'mouse', isPrimary: true };
+  el.dispatchEvent(new PointerEvent('pointerdown', opts));
+  el.dispatchEvent(new PointerEvent('pointerup', { ...opts, buttons: 0 }));
+  el.dispatchEvent(new MouseEvent('click', opts));
+  await idle();
+}
+
 /** Put the caret in a box and fill it as Playwright's fill() does: focus, the value, its input event. */
 export function fill(box: Element | null, value: string) {
   if (!box) throw new Error('nothing to fill');

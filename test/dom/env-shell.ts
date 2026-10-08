@@ -51,6 +51,30 @@ if (!doc.queryCommandValue) doc.queryCommandValue = () => '';
 if (!doc.queryCommandState) doc.queryCommandState = () => false;
 if (!doc.execCommand) doc.execCommand = () => false;
 
+// No animations (as env.ts), but ones that finish: Shoelace waits for a dialog's closing animation to say
+// "finish" before it says the dialog is gone ("sl-after-hide"), which is when a document edited inside another is put back.
+Element.prototype.animate = function () {
+  const done = Promise.resolve();
+  return {
+    finished: done,
+    cancel() {},
+    finish() {},
+    addEventListener(type: string, fn: () => void) {
+      if (type === 'finish') void done.then(fn);
+    },
+  } as unknown as Animation;
+};
+
+// ":focus-within" in happy-dom misses focus on an element slotted into a dialog, so Shoelace's dialog, which
+// keeps the focus inside itself, takes the focus back from the editor in it (a drawing being edited inside a
+// document) the moment the editor gets it. Here an element has the focus within it when the focused one is inside it.
+const matches = Element.prototype.matches;
+Element.prototype.matches = function (this: Element, selector: string) {
+  if (selector !== ':focus-within') return matches.call(this, selector);
+  for (let at: Node | null = document.activeElement; at; at = at.parentNode ?? (at as unknown as ShadowRoot).host ?? null) if (at === this) return true;
+  return false;
+};
+
 // A clock the tests can move on: undo takes changes a moment apart as separate steps, and the tests need not wait that moment.
 let ahead = 0;
 const now = Date.now.bind(Date);
