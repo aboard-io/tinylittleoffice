@@ -10,8 +10,8 @@
  * document: "fit" squeezes the columns into the page, "show all" sizes each
  * to its longest value, and header edges can be dragged.
  */
-import { LitElement, defineElement, html, property, state, unsafeSVG, tool, icon, UI, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
-import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, evaluateGrid, formatCell, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, type Grid, type CellValue, type Range } from '../lib/formula.ts';
+import { LitElement, defineElement, html, property, state, unsafeSVG, tool, icon, UI, keyLabel, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
+import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, namesOf, parseGrid, serializeGrid, typesOf, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, type Grid, type CellValue, type Range } from '../lib/formula.ts';
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet } from './sheet.def.ts';
 import { linkify, parseDoc } from '../lib/richtext.ts';
@@ -49,6 +49,10 @@ export class ToSheet extends LitElement {
   @state() private chart = '';
   /** What each column holds: an id from COLUMN_TYPES per column. */
   @state() private types: string[] = typesOf('');
+  /** The names given to the columns ('' where a column goes by its default: what it holds, or "ColA"). */
+  @state() private names: string[] = namesOf('');
+  /** The row whose menu (insert, delete) is open. */
+  @state() private rowMenu: number | null = null;
   private computed: CellValue[][] = evaluateGrid(this.grid, this.types);
   private lastEmitted = '';
   /** The reference most recently inserted by tapping, so the next tap can replace it. */
@@ -65,6 +69,7 @@ export class ToSheet extends LitElement {
       this.grid = parseGrid(this.value);
       this.chart = chartOf(this.value);
       this.types = typesOf(this.value);
+      this.names = namesOf(this.value);
       this.lastEmitted = this.value;
     }
     if (changed.has('grid') || changed.has('types') || changed.has('value')) this.computed = evaluateGrid(this.grid, this.types);
@@ -76,11 +81,12 @@ export class ToSheet extends LitElement {
     this.save(grid, this.chart);
   }
 
-  private save(grid: Grid, chart = this.chart, types = this.types) {
+  private save(grid: Grid, chart = this.chart, types = this.types, names = this.names) {
     this.grid = grid;
     this.chart = chart;
     this.types = types;
-    this.lastEmitted = serializeGrid(grid, chart, types);
+    this.names = names;
+    this.lastEmitted = serializeGrid(grid, chart, types, names);
     this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
   }
 
@@ -199,7 +205,72 @@ export class ToSheet extends LitElement {
   }
 
   private setType(c: number, type: string) {
+    // A column that goes by its default name takes the name of what it now holds ("ColA" becomes "Date"); one named by hand keeps its name.
     this.save(this.grid, this.chart, this.types.map((t, i) => (i === c ? type : t)));
+  }
+  private rename(c: number, name: string) {
+    const clean = name.replace(/[\t\n]/g, ' ').trim();
+    this.save(this.grid, this.chart, this.types, this.names.map((n, i) => (i === c ? (clean === defaultColumnName(c, this.types) ? '' : clean) : n)));
+  }
+
+  /* ---------- rows put in and taken out ---------- */
+
+  /** The rows a row command works on: the selected ones, if the selection takes in row r (or r is not given); else just r. */
+  private rowsFor(r = this.sel[0]): [number, number] {
+    const g = this.range;
+    return r >= g.r0 && r <= g.r1 ? [g.r0, g.r1] : [r, r];
+  }
+  private insertRowsAt(below: boolean, r?: number) {
+    const [r0, r1] = this.rowsFor(r);
+    const n = r1 - r0 + 1;
+    const grid = insertRows(this.grid, below ? r1 + 1 : r0, n);
+    this.rowMenu = null;
+    if (!grid) return void this.dispatchEvent(new CustomEvent('to-toast', { detail: 'The sheet is full: its last rows hold something.', bubbles: true, composed: true }));
+    this.save(grid, this.chart);
+    // The new rows are selected, ready to type into.
+    const at = below ? r1 + 1 : r0;
+    this.sel = [at, this.sel[1]];
+    this.end = n > 1 ? [at + n - 1, this.sel[1]] : null;
+    this.focusCell(at, this.sel[1], n > 1);
+  }
+  private deleteRowsAt(r?: number) {
+    const [r0, r1] = this.rowsFor(r);
+    this.rowMenu = null;
+    this.save(deleteRows(this.grid, r0, r1), this.chart);
+    this.end = null;
+    this.focusCell(Math.min(r0, ROWS - 1), this.sel[1]);
+  }
+  /** A row's number: a tap selects the row (or keeps the selected rows it is in) and opens what can be done to it. */
+  private async openRowMenu(r: number) {
+    const [r0, r1] = this.rowsFor(r);
+    if (r0 === r1) {
+      this.sel = [r, 0];
+      this.end = [r, COLS - 1];
+    }
+    this.rowMenu = r;
+    await this.updateComplete;
+    void (this.querySelector('.row-menu') as (HTMLElement & { show(): Promise<void> }) | null)?.show();
+  }
+  private renderRowMenu(r: number) {
+    const [r0, r1] = this.rowsFor(r);
+    const which = r0 === r1 ? `row ${r0 + 1}` : `rows ${r0 + 1}–${r1 + 1}`;
+    const n = r1 - r0 + 1;
+    const full = this.grid.slice(ROWS - n).some((row) => row.some((v) => v !== ''));
+    return html`<sl-dropdown class="row-menu" hoist placement="right-start" @sl-after-hide=${() => (this.rowMenu = null)}
+      @sl-select=${(e: CustomEvent) => {
+        const v = e.detail.item.value;
+        if (v === 'above' || v === 'below') this.insertRowsAt(v === 'below', r);
+        else if (v === 'delete') this.deleteRowsAt(r);
+      }}>
+      <button slot="trigger" class="row-num" aria-label=${`Row ${r + 1}: insert or delete rows`}>${r + 1}</button>
+      <sl-menu class="sheet-menu">
+        <sl-menu-label>${which[0].toUpperCase() + which.slice(1)}</sl-menu-label>
+        <sl-menu-item value="above" ?disabled=${full}>${icon(UI.up, 14, 'pre')} Insert ${n === 1 ? 'a row' : `${n} rows`} above<span slot="suffix" class="to-key">${keyLabel('Mod+Alt+=')}</span></sl-menu-item>
+        <sl-menu-item value="below" ?disabled=${full}>${icon(UI.down, 14, 'pre')} Insert ${n === 1 ? 'a row' : `${n} rows`} below</sl-menu-item>
+        <sl-divider></sl-divider>
+        <sl-menu-item value="delete" class="danger">${icon(UI.trash, 14, 'pre')} Delete ${which}<span slot="suffix" class="to-key">${keyLabel('Mod+Alt+-')}</span></sl-menu-item>
+      </sl-menu>
+    </sl-dropdown>`;
   }
 
   /** A cell of rich text, drawn: *bold* and _italic_ shown as such, addresses as links. */
@@ -392,6 +463,13 @@ export class ToSheet extends LitElement {
 
   private onKey(e: KeyboardEvent, r: number, c: number) {
     if (this.pointWithKey(e)) return;
+    // Rows in and out, as in other spreadsheets: Mod+Alt+= puts rows in above, Mod+Alt+- takes the selected rows out.
+    if ((e.ctrlKey || e.metaKey) && e.altKey && (e.code === 'Equal' || e.code === 'Minus')) {
+      e.preventDefault();
+      if (e.code === 'Equal') this.insertRowsAt(false, r);
+      else this.deleteRowsAt(r);
+      return;
+    }
     const input = e.target as HTMLInputElement;
     const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
     const atEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
@@ -490,14 +568,22 @@ export class ToSheet extends LitElement {
               <td class="corner"></td>
               ${COL_NAMES.map(
                 (n, c) => html`<th scope="col">
-                  <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save(sortRows(this.grid, c, e.detail.item.value === 'sort:desc')) : this.setType(c, e.detail.item.value))}>
-                    <button slot="trigger" class="col-type" aria-label="Column ${n}: ${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}. Change what it holds">${n}${this.types[c] === 't' ? '' : html`<small>${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}</small>`}</button>
-                    <sl-menu>
-                      <sl-menu-label>Column ${n} holds</sl-menu-label>
-                      ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${this.types[c] === t.id}>${t.name}<span slot="suffix" class="to-hint">${t.hint}</span></sl-menu-item>`)}
+                  <sl-dropdown hoist class="col-menu-drop" @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save(sortRows(this.grid, c, e.detail.item.value === 'sort:desc')) : this.setType(c, e.detail.item.value))}>
+                    <button slot="trigger" class="col-type" aria-label="Column ${n}, ${columnName(c, this.types, this.names)}: ${COLUMN_TYPES.find((t) => t.id === this.types[c])!.name}. Rename it, change what it holds, or sort by it" data-tip="Name, kind, sort">
+                      <span class="cl">${n}</span><span class="cn">${columnName(c, this.types, this.names)}</span>${icon(UI.down, 12)}
+                    </button>
+                    <sl-menu class="sheet-menu col-menu">
+                      <div class="col-name" @keydown=${(e: KeyboardEvent) => e.stopPropagation()} @click=${(e: Event) => e.stopPropagation()}>
+                        <sl-input size="small" label=${`Name of column ${n}`} placeholder=${defaultColumnName(c, this.types)} .value=${this.names[c] || columnName(c, this.types, this.names)}
+                          @sl-change=${(e: Event) => this.rename(c, (e.target as SlInput).value)}
+                          @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as SlInput).blur()}></sl-input>
+                      </div>
+                      <sl-menu-label>Holds</sl-menu-label>
+                      ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${this.types[c] === t.id}><span class="ct-name">${t.name}</span><small class="ct-hint">${t.hint}</small></sl-menu-item>`)}
                       <sl-divider></sl-divider>
-                      <sl-menu-item value="sort:asc">${icon(UI.down, 14, 'pre')} Sort, low to high</sl-menu-item>
-                      <sl-menu-item value="sort:desc">${icon(UI.up, 14, 'pre')} Sort, high to low</sl-menu-item>
+                      <sl-menu-label>Sort the rows by it</sl-menu-label>
+                      <sl-menu-item value="sort:asc">${icon(UI.down, 14, 'pre')} Low to high</sl-menu-item>
+                      <sl-menu-item value="sort:desc">${icon(UI.up, 14, 'pre')} High to low</sl-menu-item>
                     </sl-menu>
                   </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" data-tip="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
                 </th>`,
@@ -507,7 +593,7 @@ export class ToSheet extends LitElement {
           <tbody>
             ${this.grid.slice(0, this.drawn).map(
               (row, r) => html`<tr>
-                <th class="row" scope="row">${r + 1}</th>
+                <th class="row" scope="row">${this.rowMenu === r ? this.renderRowMenu(r) : html`<button class="row-num" aria-label=${`Row ${r + 1}: insert or delete rows`} aria-haspopup="menu" @click=${() => this.openRowMenu(r)}>${r + 1}</button>`}</th>
                 ${row.map((raw, c) => {
                   const isSel = this.focused && r === sr && c === sc;
                   const v = this.computed[r][c];

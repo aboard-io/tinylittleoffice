@@ -34,7 +34,7 @@ Non-ASCII characters (`·`, `–`, `→`, accents, emoji) are fine: percent-enco
 
 Rows on separate lines, cells separated by tabs. Up to 6 columns (A to F) and 1,000 rows. A cell starting with `=` is a formula: `+ - * / ^`, comparisons, cell references (`B2`), ranges (`A1:A5`), and `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN INT ABS SQRT MOD NPV IRR PMT FV PV TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`.
 
-An optional first line holds settings: `!<chart>|<types>`. The chart is `bar`, `line`, `pie` or nothing. The types are one letter per column: `t` text, `n` number, `$` money, `%` percent, `d` date (written `2027-03-01`), `u` link, `c` checkbox (`x` is ticked), `r` rich text. Dates are numbers of days, so `=B2-A2` is the days between two dates and `=A2+30` is thirty days later.
+An optional first line holds settings: `!<chart>|<types>|<names>`, the column names (shown above the letters; tab-separated, any may be left out) last. The chart is `bar`, `line`, `pie` or nothing. The types are one letter per column: `t` text, `n` number, `$` money, `%` percent, `d` date (written `2027-03-01`), `u` link, `c` checkbox (`x` is ticked), `r` rich text. Dates are numbers of days, so `=B2-A2` is the days between two dates and `=A2+30` is thirty days later.
 
 For a chart, put labels in the first column, a header row on top, and numbers beside them.
 

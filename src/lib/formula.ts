@@ -547,7 +547,8 @@ export function formatValue(v: CellValue): string {
   return v;
 }
 
-const DIRECTIVE = /^!([a-z]*)(?:\|([a-z$%]*))?$/;
+/** The settings line: "!chart|types|names", the names tab-separated (a cell can hold no tab), each part optional. */
+const DIRECTIVE = /^!([a-z]*)(?:\|([a-z$%]*))?(?:\|(.*))?$/;
 
 /** The chart a sheet asks for: 'bar', 'line', 'pie' or ''. */
 export function chartOf(text: string): string {
@@ -558,6 +559,28 @@ export function chartOf(text: string): string {
 export function typesOf(text: string): string[] {
   const set = DIRECTIVE.exec(text.split('\n', 1)[0])?.[2] ?? '';
   return Array.from({ length: COLS }, (_, c) => (COLUMN_TYPES.some((t) => t.id === set[c]) ? set[c] : 't'));
+}
+
+/** The names given to the columns ('' where none was given). */
+export function namesOf(text: string): string[] {
+  const set = (DIRECTIVE.exec(text.split('\n', 1)[0])?.[3] ?? '').split('\t');
+  return Array.from({ length: COLS }, (_, c) => (set[c] ?? '').trim());
+}
+
+/**
+ * A column's name as shown: the one given it, or else what it holds
+ * ("Date", "Money"; "Date B" when an earlier column already goes by that),
+ * or "ColA" for a column of text.
+ */
+export function columnName(c: number, types: string[], names: string[] = []): string {
+  if (names[c]?.trim()) return names[c].trim();
+  return defaultColumnName(c, types);
+}
+export function defaultColumnName(c: number, types: string[]): string {
+  const type = types[c] ?? 't';
+  if (type === 't') return `Col${COL_NAMES[c]}`;
+  const name = COLUMN_TYPES.find((t) => t.id === type)!.name;
+  return types.slice(0, c).includes(type) ? `${name} ${COL_NAMES[c]}` : name;
 }
 
 /** A value as its column shows it. */
@@ -573,7 +596,7 @@ export function formatCell(v: CellValue, type = 't'): string {
 }
 
 /** Serialize a grid as tab/newline separated text with trailing blanks trimmed. */
-export function serializeGrid(grid: Grid, chart = '', types: string[] = []): string {
+export function serializeGrid(grid: Grid, chart = '', types: string[] = [], names: string[] = []): string {
   const rows = grid.map((row) => {
     const cells = row.slice();
     while (cells.length && cells[cells.length - 1] === '') cells.pop();
@@ -581,7 +604,8 @@ export function serializeGrid(grid: Grid, chart = '', types: string[] = []): str
   });
   while (rows.length && rows[rows.length - 1] === '') rows.pop();
   const set = types.join('').replace(/t+$/, '');
-  if (chart || set || (rows.length && DIRECTIVE.test(rows[0]))) rows.unshift('!' + chart + (set ? '|' + set : ''));
+  const named = names.map((n) => n.replace(/[\t\n]/g, ' ').trim()).join('\t').replace(/\t+$/, '');
+  if (chart || set || named || (rows.length && DIRECTIVE.test(rows[0]))) rows.unshift('!' + chart + (set || named ? '|' + set : '') + (named ? '|' + named : ''));
   return rows.join('\n');
 }
 
@@ -615,7 +639,7 @@ const inGrid = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < COL
 /** A formula as it reads after moving by (dr, dc): its references move with it. Other text is untouched. */
 export function shiftFormula(raw: string, dr: number, dc: number): string {
   if (!raw.startsWith('=') || (!dr && !dc)) return raw;
-  return raw.replace(/\b([A-Fa-f])(\d{1,2})\b/g, (whole, col: string, row: string) => {
+  return raw.replace(/\b([A-Fa-f])(\d{1,4})\b/g, (whole, col: string, row: string) => {
     const at = refToRC(col.toUpperCase() + row);
     if (!at) return whole;
     return inGrid(at[0] + dr, at[1] + dc) ? rcToRef(at[0] + dr, at[1] + dc) : '#REF';
@@ -777,4 +801,59 @@ export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
     }
   }
   return out;
+}
+
+
+/* ---------- rows put in and taken out ---------- */
+
+/**
+ * A formula's references after rows move: `to(r)` is where row r is now,
+ * or null if it is gone. A range keeps what is left of it (taking rows out
+ * of its middle shrinks it; putting rows in its middle grows it); a
+ * reference to a row that is gone is #REF. Words in quotes are left alone.
+ */
+function remapRows(raw: string, to: (r: number) => number | null, gone: [number, number] | null): string {
+  if (!raw.startsWith('=')) return raw;
+  const one = (r: number) => to(r);
+  return raw
+    .split(/("[^"]*")/)
+    .map((part, i) => {
+      if (i % 2) return part;
+      // Ranges first, set aside so their cells are not moved twice; then single cells; then the ranges back.
+      const ranges: string[] = [];
+      const out = part
+        .replace(/\b([A-Fa-f])(\d{1,4}):([A-Fa-f])(\d{1,4})\b/g, (_, c0: string, r0: string, c1: string, r1: string) => {
+          let [a, b] = [+r0 - 1, +r1 - 1];
+          if (a > b) [a, b] = [b, a];
+          // Each end goes where its row went; an end whose row is gone comes to the nearest row still there.
+          let na = one(a);
+          let nb = one(b);
+          if (na === null) na = gone ? gone[0] : a;
+          if (nb === null) nb = gone ? gone[0] - 1 : b;
+          ranges.push(nb < na || na < 0 || nb >= ROWS ? '#REF' : `${c0.toUpperCase()}${na + 1}:${c1.toUpperCase()}${nb + 1}`);
+          return `\u0001${ranges.length - 1}\u0002`;
+        })
+        .replace(/\b([A-Fa-f])(\d{1,4})\b/g, (_, c: string, r: string) => {
+          const n = one(+r - 1);
+          return n === null || n >= ROWS ? '#REF' : `${c.toUpperCase()}${n + 1}`;
+        });
+      return out.replace(/\u0001(\d+)\u0002/g, (_, k: string) => ranges[+k]);
+    })
+    .join('');
+}
+
+/** n empty rows put in before row `at`; null when the sheet has no room (its last rows are not empty). */
+export function insertRows(grid: Grid, at: number, n = 1): Grid | null {
+  if (grid.slice(ROWS - n).some((row) => row.some((v) => v !== ''))) return null;
+  const to = (r: number) => (r >= at ? r + n : r);
+  const moved = [...grid.slice(0, at), ...Array.from({ length: n }, () => Array<string>(COLS).fill('')), ...grid.slice(at, ROWS - n)];
+  return moved.map((row) => row.map((v) => remapRows(v, to, null)));
+}
+
+/** Rows r0 to r1 taken out; those below come up, and empty rows fill the foot of the sheet. */
+export function deleteRows(grid: Grid, r0: number, r1: number): Grid {
+  const n = r1 - r0 + 1;
+  const to = (r: number) => (r < r0 ? r : r > r1 ? r - n : null);
+  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...Array.from({ length: n }, () => Array<string>(COLS).fill(''))];
+  return kept.map((row) => row.map((v) => remapRows(v, to, [r0, r1])));
 }

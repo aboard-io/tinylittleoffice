@@ -2467,11 +2467,71 @@ table.sheet th .col-type:hover {
   background: var(--to-border);
   color: var(--to-ink);
 }
-table.sheet th .col-type small {
+/* A column's head: its letter, its name, and an arrow that says it opens. */
+table.sheet th .col-type {
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+}
+table.sheet th .col-type .cl {
   font-size: 10.5px;
-  color: var(--to-accent);
+  font-weight: 600;
+  color: var(--to-ink-3);
+}
+table.sheet th .col-type .cn {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--to-ink);
+  font-weight: 600;
+}
+table.sheet th .col-type > svg {
+  flex-shrink: 0;
+  color: var(--to-ink-3);
+}
+table.sheet th .col-menu-drop {
+  display: block;
+  max-width: 100%;
+}
+/* A row's number opens what can be done to the row. */
+table.sheet th.row .row-num {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 2px 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+table.sheet th.row .row-num:hover,
+table.sheet th.row .row-num:focus-visible {
+  background: var(--to-border);
+  color: var(--to-ink);
+}
+/* The sheet's menus: a name to type, then choices each with a word of explanation under it. */
+.sheet-menu {
+  min-width: 240px;
+}
+.sheet-menu .col-name {
+  padding: 8px 12px 10px;
+}
+.sheet-menu sl-menu-item .ct-name {
+  display: block;
+  line-height: 1.25;
+}
+.sheet-menu sl-menu-item .ct-hint {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--to-ink-3);
+}
+.sheet-menu sl-menu-item.danger::part(base) {
+  color: var(--to-danger);
+}
+.sheet-menu .to-key {
+  font-size: 11.5px;
+  color: var(--to-ink-3);
 }
 table.sheet td input.link {
   color: var(--to-accent);

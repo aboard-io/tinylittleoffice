@@ -317,7 +317,7 @@ test('sheet: charts suggest themselves and travel with the sheet', async () => {
 test('sheet: columns have types, and dates do arithmetic', async () => {
   const { last } = await mount('sheet');
   const setType = async (col: string, type: string) => {
-    const dropdown = button(new RegExp(`^Column ${col}:`)).closest('sl-dropdown')!;
+    const dropdown = button(new RegExp(`^Column ${col},`)).closest('sl-dropdown')!;
     choose($$('sl-menu-item', dropdown).find((i) => text(i).startsWith(type))!);
     await idle();
   };
@@ -326,7 +326,9 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   await setType('D', 'Money');
   await setType('E', 'Link');
   await setType('F', 'Checkbox');
-  expect(text(button(/^Column A: Date/))).toContain('Date');
+  // A column named by default takes the name of what it holds; a second of the same kind adds its letter.
+  expect(text(button(/^Column A, Date: Date/))).toContain('Date');
+  expect(button(/^Column B,/).getAttribute('aria-label')).toMatch(/^Column B, Date B: Date/);
 
   await put('A1', '2027-01-31');
   await put('B1', '3/1/2027');
