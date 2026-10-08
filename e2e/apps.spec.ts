@@ -514,3 +514,54 @@ test('mind map: long ideas and web addresses wrap inside their boxes', async ({ 
   });
   expect(outside).toEqual([]);
 });
+
+// Typing, as typed: the browser's own input events and editing commands.
+test('write: "- " and "1. " start lists, Backspace takes a bullet off, quotes are curly', async ({ page }) => {
+  await page.goto('/#/v0/write');
+  const editor = page.getByRole('textbox', { name: 'Document' });
+  await editor.click();
+  await page.keyboard.type('- Milk');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Eggs');
+  await expect(editor.locator('ul li')).toHaveText(['Milk', 'Eggs']);
+  // An empty item: Backspace takes the bullet off and leaves the list.
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type('After the list');
+  await expect(editor.locator('ul li')).toHaveCount(2);
+  await expect(editor.locator('p').last()).toHaveText('After the list');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('1. First');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Second');
+  await expect(editor.locator('ol li')).toHaveText(['First', 'Second']);
+  // Backspace at the start of an item with words in it takes just the bullet off.
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Backspace');
+  await expect(editor.locator('ol li')).toHaveText(['First']);
+  await expect(editor.locator('p').last()).toHaveText('Second');
+  await page.keyboard.press('End');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type(`She said "it's 'fine'" today.`);
+  await expect(editor.locator('p').last()).toHaveText('She said “it’s ‘fine’” today.');
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-app') as unknown as { env: { body: string } }).env.body)).toBe('- Milk\n- Eggs\nAfter the list\n+ First\nSecond\nShe said “it’s ‘fine’” today.');
+  // A dash in the middle of a line, or a number with no space after it, is just text.
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Pages 1-2 and 3.5 are well-known');
+  await expect(editor.locator('p').last()).toHaveText('Pages 1-2 and 3.5 are well-known');
+});
+
+// Quotes are curly in every text that takes marks: a slide's bullets, an outline's items.
+test('quotes are curly in a deck and an outline too', async ({ page }) => {
+  await page.goto('/deck/#doc=' + encodeURIComponent('Plan\nfirst'));
+  const bullets = page.getByRole('textbox', { name: 'Bullets' });
+  await bullets.click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(` "done" it's`);
+  await expect(bullets).toContainText('first “done” it’s');
+  await page.goto('/#/v0/outline');
+  const item = page.getByRole('textbox', { name: 'Item 1' });
+  await item.click();
+  await page.keyboard.type(`Rock 'n' roll`);
+  await expect(item).toHaveText('Rock ‘n’ roll');
+});

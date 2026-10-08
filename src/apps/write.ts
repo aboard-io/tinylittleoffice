@@ -646,7 +646,116 @@ export class ToWrite extends LitElement {
     if ((html.match(/<a /g)?.length ?? 0) !== page.querySelectorAll('a').length) page.innerHTML = html;
   };
 
+  /** The list item the caret is in, if the caret is at its very start: [the item, whether it is empty]. */
+  private itemAtStart(): [HTMLLIElement, boolean] | null {
+    const sel = getSelection();
+    if (!sel?.rangeCount || !sel.isCollapsed || !this.page?.contains(sel.anchorNode)) return null;
+    const node = sel.anchorNode!;
+    const li = (node instanceof Element ? node : node.parentElement)?.closest('li');
+    if (!li || !this.page.contains(li)) return null;
+    const before = document.createRange();
+    before.selectNodeContents(li);
+    before.setEnd(sel.anchorNode!, sel.anchorOffset);
+    if (before.toString() !== '') return null;
+    return [li as HTMLLIElement, !(li.textContent ?? '').trim() && !li.querySelector('[data-icon], [data-ref]')];
+  }
+
+  /**
+   * Out of a list, as word processors do: Backspace at the start of an
+   * item takes its bullet off (an empty one first comes a level out, if it
+   * is in one). Done by hand, so it is the same in every browser.
+   */
+  private unlist(li: HTMLLIElement, empty: boolean) {
+    const list = li.parentElement!;
+    const outer = list.parentElement?.closest('li');
+    if (empty && outer && this.page!.contains(outer)) {
+      this.run('outdent');
+      return;
+    }
+    // The item becomes a paragraph where it stood: the items before stay a list above it, those after a list below.
+    const p = document.createElement('p');
+    p.append(...Array.from(li.childNodes).filter((n) => !(n instanceof HTMLElement && (n.tagName === 'UL' || n.tagName === 'OL'))));
+    if (!p.childNodes.length) p.innerHTML = '<br>';
+    const after = Array.from(list.children).slice(Array.from(list.children).indexOf(li) + 1);
+    const rest = document.createElement(list.tagName);
+    rest.append(...after);
+    li.remove();
+    list.after(p);
+    if (rest.children.length) p.after(rest);
+    if (!list.children.length) list.remove();
+    const r = document.createRange();
+    r.setStart(p, 0);
+    r.collapse(true);
+    getSelection()?.removeAllRanges();
+    getSelection()?.addRange(r);
+    this.onInput();
+  }
+
+  /**
+   * As text is typed: "- " or "* " opening a paragraph starts a bulleted
+   * list and "1. " or "1) " a numbered one (in a document); quotes and
+   * apostrophes are curly, opening after a space or the start, closing
+   * after a word.
+   */
+  private onBeforeInput = (e: InputEvent) => {
+    if (e.inputType !== 'insertText' || !e.data || !this.page) return;
+    const sel = getSelection();
+    if (!sel?.rangeCount || !this.page.contains(sel.anchorNode)) return;
+    const range = sel.getRangeAt(0);
+    const block = blockOf(range.startContainer, this.page);
+    const upTo = document.createRange();
+    upTo.setStart(block ?? this.page, 0);
+    upTo.setEnd(range.startContainer, range.startOffset);
+    const before = upTo.toString();
+    if (e.data === ' ' && this.mode === 'doc' && sel.isCollapsed && block instanceof HTMLElement && (block.tagName === 'P' || block.tagName === 'DIV')) {
+      const list = /^[-*]$/.test(before) ? 'ul' : /^\d{1,3}[.)]$/.test(before) ? 'ol' : '';
+      if (list) {
+        e.preventDefault();
+        upTo.deleteContents();
+        if (!block.textContent) block.innerHTML = '<br>';
+        // By hand: the browser's own command nests the list inside the paragraph.
+        const l = document.createElement(list);
+        const li = document.createElement('li');
+        li.append(...Array.from(block.childNodes));
+        l.append(li);
+        block.replaceWith(l);
+        const at = document.createRange();
+        at.setStart(li, 0);
+        at.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(at);
+        this.onInput();
+        return;
+      }
+    }
+    if (e.data === '"' || e.data === "'") {
+      e.preventDefault();
+      const prev = before.slice(-1);
+      const opening = !prev || /[\s([{\u2014\u2013\u201c\u2018-]/.test(prev);
+      const curly = e.data === '"' ? (opening ? '\u201c' : '\u201d') : opening ? '\u2018' : '\u2019';
+      if (!document.execCommand('insertText', false, curly)) {
+        range.deleteContents();
+        const t = document.createTextNode(curly);
+        range.insertNode(t);
+        const at = document.createRange();
+        at.setStartAfter(t);
+        at.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(at);
+        this.onInput();
+      }
+    }
+  };
+
   private onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Backspace' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const at = this.itemAtStart();
+      if (at) {
+        e.preventDefault();
+        this.unlist(...at);
+        return;
+      }
+    }
     if (e.key === 'Backspace' || e.key === 'Delete') {
       // An embedded document is one thing: one key removes it, whether it has the focus or the caret is next to it.
       const target = e.target as HTMLElement;
@@ -751,6 +860,7 @@ export class ToWrite extends LitElement {
         data-placeholder=${this.placeholder}
         @input=${this.onInput}
         @keydown=${this.onKey}
+        @beforeinput=${this.onBeforeInput}
         @paste=${this.onPaste}
         @click=${this.onClick}
         @blur=${this.onBlur}
