@@ -55,7 +55,7 @@ test('calculator: a tape, a graph, and a mortgage worked out as a page', async (
 });
 
 test('calendar: colours, and what they stand for', async () => {
-  const first = await mount('cal', 'd2,2,Offsite');
+  const first = await mount('cal', '- 2020-01-03 to 2020-01-04: Offsite');
   const cell = (el: Element, ymd: string) => el.querySelector<HTMLElement>(`[role="gridcell"][aria-label="${ymd}"]`)!;
   const radio = (el: Element, group: string, name: string) => el.querySelector<HTMLElement>(`[role="radiogroup"][aria-label="${group}"] [role="radio"][aria-label^="${name}"]`)!;
   // Someone else adds their dates in their own colour, and says whose it is.

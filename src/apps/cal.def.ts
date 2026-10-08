@@ -1,6 +1,6 @@
 /** Calendar: what the shell knows about calendars. Format: lib/calmodel.ts. */
 import { defineApp, utf8, text, rect, clip, FAINT, LINE, MUTED, SHADE, type DownloadContext, type Page } from '../kit/core.ts';
-import { CAL_COLORS, occurrences, parseCalendar, readRepeat, repeatText, serializeCalendar, spanDays, spanStartMs, EPOCH_DAY, EPOCH_MS, type Every, type Span } from '../lib/calmodel.ts';
+import { CAL_COLORS, occurrences, parseCalendar, readCalendar, repeatText, spanDays, spanStartMs, EPOCH_DAY, EPOCH_MS, type Every, type Span } from '../lib/calmodel.ts';
 import { dayToYmd, pad2, ymdString, ymdToDay, utcToParts, partsToUtc } from '../lib/tz.ts';
 
 const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
@@ -69,34 +69,6 @@ const lines = (body: string) => {
   const cal = parseCalendar(body);
   return cal.spans.map((s) => `${when(s, cal.zone)}${s.repeat ? ', ' + repeatText(s.repeat) : ''}  ·  ${s.label || 'Untitled'}`);
 };
-
-/**
- * A calendar written plainly, one span per line:
- *   2027-03-01 Offsite                      a day
- *   2027-03-01 to 2027-03-03 Offsite        several days
- *   2027-03-01 09:00-10:30 Call             a time, in the zone given by a first line "@Europe/London" (UTC without one)
- *   2027-03-01 Standup every week, 9 times  a repeat, after the label: every day, week, month or year,
- *                                           for ever, "N times" or "until 2027-06-01"
- */
-export function readCalendar(text: string): string {
-  const lines = text.split('\n');
-  const zone = lines.find((l) => l.startsWith('@'))?.slice(1).trim() ?? '';
-  const spans: Span[] = [];
-  let plain = false;
-  for (const line of lines) {
-    const m = /^(\d{4})-(\d\d)-(\d\d)(?:\s+(?:to\s+(\d{4})-(\d\d)-(\d\d)|(\d\d?):(\d\d)\s*-\s*(\d\d?):(\d\d)))?\s*(.*)$/.exec(line.trim());
-    if (!m) continue;
-    plain = true;
-    const day = ymdToDay(+m[1], +m[2], +m[3]);
-    const [label, repeat] = readRepeat(m[11]);
-    if (m[7]) {
-      const start = partsToUtc(+m[1], +m[2], +m[3], +m[7], +m[8], zone || 'UTC');
-      const end = partsToUtc(+m[1], +m[2], +m[3], +m[9], +m[10], zone || 'UTC');
-      spans.push({ kind: 't', start: Math.round((start - EPOCH_MS) / 60000), dur: Math.max(0, Math.round((end - start) / 60000)), label, ...(repeat ? { repeat } : {}) });
-    } else spans.push({ kind: 'd', start: day - EPOCH_DAY, dur: m[4] ? Math.max(1, ymdToDay(+m[4], +m[5], +m[6]) - day + 1) : 1, label, ...(repeat ? { repeat } : {}) });
-  }
-  return plain ? serializeCalendar({ zone, spans }) : text;
-}
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const CW = 100;

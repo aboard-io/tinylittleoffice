@@ -112,7 +112,7 @@ describe('arriving', () => {
     await shell({ app: 'write', body: '# Hello\nSee https://example.com for *more*.', title: 'A letter' }, visitor);
     expect(document.querySelector('to-write [aria-label="Document"]')?.textContent).toContain('See https://example.com');
     expect(document.title).toBe('A letter · TinyLittleOffice');
-    for (const [app, body] of [['adventure', '# Cave\n## start\nDark.'], ['todo', '- Book flights'], ['zine', '## Small Joys\n\nIssue one'], ['deck', '## Hello\n\n- one\n- two']] as const) {
+    for (const [app, body] of [['adventure', '# Cave\n## start\nDark.'], ['todo', '- [ ] Book flights'], ['zine', 'Small Joys\nIssue one'], ['deck', 'Hello\none\ntwo']] as const) {
       await shell({ app, body }, visitor);
       expect(document.querySelector(`to-${app}`), app).toBeTruthy();
     }

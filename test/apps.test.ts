@@ -27,73 +27,92 @@ const LIFT_OFF = `---\nframes: 24\nfps: 8\n---\n${drawn('t | 4 | 20 | 20 | 4 | 0
 test('todo round trip', () => {
   const tasks = [
     { text: 'Buy milk', done: false, star: false, due: null },
-    { text: 'x marks - the spot', done: true, star: true, due: 2000 },
+    { text: 'x marks - the spot {.not}', done: true, star: true, due: 2000 },
     { text: '', done: false, star: true, due: null },
+    { text: '[ ] looks like a box', done: false, star: false, due: 1 },
   ];
   const s = serializeTodos(tasks);
-  assert.equal(s, '- Buy milk\nx!@1jk x marks - the spot\n-! ');
+  assert.equal(s, '- [ ] Buy milk\n- [x] x marks - the spot \\{.not} {.star due=2025-06-23}\n- [ ]  {.star}\n- [ ] [ ] looks like a box {due=2020-01-02}');
   assert.deepEqual(parseTodos(s), tasks);
   assert.deepEqual(parseTodos(''), []);
-  assert.deepEqual(parseTodos('junk\n- ok'), [{ text: 'ok', done: false, star: false, due: null }]);
-  assert.equal(toMarkdown(appOf('todo')!, s), '- [ ] Buy milk\n- [x] **x marks - the spot** (due 2025-06-23)\n- [ ] ****\n');
+  assert.deepEqual(parseTodos('junk\n\n- ok'), [{ text: 'ok', done: false, star: false, due: null }]);
+  assert.equal(toMarkdown(appOf('todo')!, s), s + '\n');
+  // Read loosely: any bullet or none, a bold task for a star, a due date in words.
+  const read = appOf('todo')!.read!;
+  assert.equal(read('# Trip\n\n* [X] Choose dates\n- **Book flights** (due 2027-03-01)\nPack\n★ Renew passport'), '- [x] Choose dates\n- [ ] Book flights {.star due=2027-03-01}\n- [ ] Pack\n- [ ] Renew passport {.star}');
+  assert.equal(read(s), s);
 });
 
 test('board round trip', () => {
   assert.equal(serializeBoard(emptyBoard()), '');
   assert.deepEqual(parseBoard(''), emptyBoard());
   const stages = [
-    { name: 'Backlog', limit: 0, cards: ['Write spec', '#hashtag card', '\\slash'] },
+    { name: 'Backlog', limit: 0, cards: ['Write spec', '#hashtag card', '\\slash', '- dash'] },
     { name: 'Doing', limit: 2, cards: [] },
     { name: '', limit: 0, cards: ['a, b'] },
   ];
   const s = serializeBoard(stages);
-  assert.equal(s, '#Backlog\nWrite spec\n\\#hashtag card\n\\\\slash\n#Doing|2\n#\na, b');
+  assert.equal(s, '## Backlog\n\n- Write spec\n- #hashtag card\n- \\slash\n- - dash\n\n## Doing {limit=2}\n\n##\n\n- a, b');
   assert.deepEqual(parseBoard(s), stages);
-  assert.equal(boardToCsv(s), 'Stage,Card\r\nBacklog,Write spec\r\nBacklog,#hashtag card\r\nBacklog,\\slash\r\n,"a, b"\r\n');
-  assert.ok(toMarkdown(appOf('board')!, s).includes('## Doing (limit 2)'));
+  assert.equal(boardToCsv(s), 'Stage,Card\r\nBacklog,Write spec\r\nBacklog,#hashtag card\r\nBacklog,\\slash\r\nBacklog,- dash\r\n,"a, b"\r\n');
+  assert.equal(toMarkdown(appOf('board')!, s), s + '\n');
+  // Read loosely: a limit in words, any heading, cards as lines; and the board's own CSV comes back.
+  const read = appOf('board')!.read!;
+  assert.equal(read('# Doing (limit 2)\n\n* x\ny\n### Done\n1. z'), '## Doing {limit=2}\n\n- x\n- y\n\n## Done\n\n- z');
+  assert.equal(fromMarkdown(appOf('board')!, 'Stage,Card\nTo do,a\n,b'), '## To do\n\n- a\n- b');
 });
 
 test('gantt round trip', () => {
   const tasks = [
-    { start: 2000, days: 5, done: 50, label: 'Design, review' },
+    { start: 2000, days: 5, done: 50, label: 'Design, review | twice' },
     { start: 2005, days: 1, done: 0, label: '' },
   ];
   const s = serializeGantt(tasks);
-  assert.equal(s, '1jk,5,1e,Design, review\n1jp,1,0,');
+  assert.equal(s, 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign, review \\| twice | 2025-06-23 | 5 | 50%\n|  | 2025-06-28 | 1 | 0%');
   assert.deepEqual(parseGantt(s), tasks);
   assert.deepEqual(ganttRange(tasks), { from: 2000, to: 2006 });
   assert.equal(ganttRange([]), null);
-  assert.equal(ganttToCsv(s), 'Task,Level,Start,End,Days,Done %\r\n"Design, review",1,2025-06-23,2025-06-27,5,50\r\n,1,2025-06-28,2025-06-28,1,0\r\n');
-  // Indented tasks are parts of the one above; it spans them and is as done as they are.
-  const nested = '1jk,1,0,Launch\n>1jk,2,2s,Sketch\n>1jm,6,0,Build\n>>1jm,1,0,Deeper\n1k0,1,0,After';
+  assert.equal(serializeGantt([]), '');
+  assert.equal(ganttToCsv(s), 'Task,Level,Start,End,Days,Done %\r\n"Design, review | twice",1,2025-06-23,2025-06-27,5,50\r\n,1,2025-06-28,2025-06-28,1,0\r\n');
+  // Tasks whose names start "- " are parts of the one above; it spans them and is as done as they are.
+  const nested = 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nLaunch | 2025-06-23 | 1 | 0%\n- Sketch | 2025-06-23 | 2 | 100%\n- Build | 2025-06-25 | 6 | 0%\n- - Deeper | 2025-06-25 | 1 | 0%\nAfter | 2025-07-07 | 1 | 0%';
   const t = parseGantt(nested);
   assert.deepEqual(t.map((x) => x.depth ?? 0), [0, 1, 1, 2, 0]);
   assert.equal(serializeGantt(t), nested);
   const spans = ganttSpans(t);
   assert.deepEqual([spans[0].parent, spans[0].start, spans[0].days, spans[0].done], [true, 2000, 8, 22]);
   assert.deepEqual([spans[1].parent, spans[2].parent, spans[4].parent], [false, true, false]);
+  assert.equal(toMarkdown(appOf('gantt')!, nested), nested + '\n');
+  // Read loosely: columns in another order, an End in place of Days; the app's own CSV comes back with its levels.
+  const read = appOf('gantt')!.read!;
+  assert.equal(read('| Start | Name | End | Progress |\n|---|---|---|---|\n| 3/1/2027 | Design | 2027-03-05 | 40 |'), 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2027-03-01 | 5 | 40%');
+  assert.equal(fromMarkdown(appOf('gantt')!, ganttToCsv(nested)).split('\n').slice(2, 5).join('\n'), 'Launch | 2025-06-23 | 8 | 22%\n- Sketch | 2025-06-23 | 2 | 100%\n- Build | 2025-06-25 | 1 | 0%');
+  assert.equal(read(nested), nested);
 });
 
 test('trip round trip and distances', () => {
   const stops = [
     { lat: 40.7128, lon: -74.006, name: 'New York, NY', note: 'Start here' },
     { lat: 51.50735, lon: -0.12776, name: 'London', note: '' },
-    { lat: -33.8688, lon: 151.2093, name: '', note: 'far' },
+    { lat: -33.8688, lon: 151.2093, name: '', note: 'far | away' },
   ];
   const s = serializeTrip(stops);
+  assert.equal(s, 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nNew York, NY | 40.7128 | -74.006 | Start here\nLondon | 51.50735 | -0.12776 | \n|  | -33.8688 | 151.2093 | far \\| away');
   assert.deepEqual(parseTrip(s), stops);
-  assert.ok(s.split('\n')[0].endsWith(',New York, NY\tStart here'));
   assert.ok(Math.abs(distanceKm(stops[0], stops[1]) - 5570) < 15);
   assert.ok(routeKm(stops) > 22000);
   assert.equal(formatKm(0.42), '420 m');
   assert.equal(formatKm(12.345), '12.3 km');
   assert.equal(formatKm(5570.2), '5,570 km');
-  assert.deepEqual(parseTrip('zzzzzzz,1,bad latitude\njunk'), []);
+  assert.deepEqual(parseTrip('Place | Lat | Lon\n--- | --- | ---\nNowhere | 91 | 0\njunk'), []);
   assert.equal(appOf('trip')!.title(s), 'New York, NY to London');
-  // Hours by default (a driving estimate), or miles, or kilometres; the choice travels with the route.
+  // Hours by default (a driving estimate), or miles, or kilometres; the choice travels with the route, in the header.
   assert.equal(tripUnits(s), 'h');
+  assert.ok(serializeTrip(stops, 'm').startsWith('---\nunits: miles\n---\nPlace |'));
   assert.equal(tripUnits(serializeTrip(stops, 'm')), 'm');
+  assert.equal(tripUnits(serializeTrip(stops, 'k')), 'k');
   assert.deepEqual(parseTrip(serializeTrip(stops, 'k')), stops);
+  assert.equal(toMarkdown(appOf('trip')!, s), s + '\n');
   assert.equal(formatLeg(100, 'k'), '100 km');
   assert.equal(formatLeg(100, 'm'), '62.1 mi');
   assert.equal(formatLeg(100, 'h'), '1 h 38 min');
@@ -104,6 +123,11 @@ test('trip round trip and distances', () => {
   const geo = JSON.parse(tripToGeoJson(s));
   assert.equal(geo.features.length, 4);
   assert.deepEqual(geo.features[0].geometry.coordinates[1], [-0.12776, 51.50735]);
+  // Read loosely: a CSV of stops with its columns in any order, lines of degrees, a line saying the units.
+  const read = appOf('trip')!.read!;
+  assert.equal(fromMarkdown(appOf('trip')!, 'name,longitude,latitude\nLisbon,-9.1393,38.7223'), 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 |');
+  assert.equal(read('km\n38.7223, -9.1393, Lisbon | Pastel de nata first\n- Porto (41.1579, -8.6291)\n  Port cellars'), '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nPorto | 41.1579 | -8.6291 | Port cellars');
+  assert.equal(read(serializeTrip(stops, 'm')), serializeTrip(stops, 'm'));
 });
 
 test('motion round trip and interpolation', () => {
@@ -408,28 +432,30 @@ test('every app reveals itself a piece at a time', () => {
   const count = (id: string, body: string) => appOf(id)!.steps!(body);
   const at = (id: string, body: string, step: number) => appOf(id)!.view(body, { step, embed: true })[0].svg;
   // Tasks, cards, schedule lines, calendar spans, map stops, chart bars.
-  assert.equal(count('todo', '- one\nx two\n- three'), 3);
-  assert.ok(at('todo', '- one\nx two', 1).includes('one') && !at('todo', '- one\nx two', 1).includes('two'));
-  assert.equal(count('board', '#A\nx\ny\n#B\nz'), 3);
-  assert.ok(at('board', '#A\nxx\nyy\n#B\nzz', 2).includes('yy') && !at('board', '#A\nxx\nyy\n#B\nzz', 2).includes('zz'));
-  assert.equal(count('gantt', '1jk,5,1e,Design\n1jp,2,0,Build'), 2);
-  assert.ok(!at('gantt', '1jk,5,1e,Design\n1jp,2,0,Build', 1).includes('Build'));
+  assert.equal(count('todo', '- [ ] one\n- [x] two\n- [ ] three'), 3);
+  assert.ok(at('todo', '- [ ] one\n- [x] two', 1).includes('one') && !at('todo', '- [ ] one\n- [x] two', 1).includes('two'));
+  assert.equal(count('board', '## A\n\n- x\n- y\n\n## B\n\n- z'), 3);
+  assert.ok(at('board', '## A\n\n- xx\n- yy\n\n## B\n\n- zz', 2).includes('yy') && !at('board', '## A\n\n- xx\n- yy\n\n## B\n\n- zz', 2).includes('zz'));
+  const plan = 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\nBuild | 2025-06-28 | 2 | 0%';
+  assert.equal(count('gantt', plan), 2);
+  assert.ok(!at('gantt', plan, 1).includes('Build'));
   const bars = '---\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 1\nQ2 | 2\nQ3 | 3';
   assert.equal(count('sheet', bars), 3);
   assert.equal(at('sheet', bars, 2).match(/rx="2"/g)!.length, 2);
-  assert.equal(count('cal', 'd2,2,Offsite\ndb,1,Launch'), 2);
-  assert.ok(at('cal', 'd2,2,Offsite\ndb,1,Launch', 1).includes('Offsite') && !at('cal', 'd2,2,Offsite\ndb,1,Launch', 1).includes('Launch'));
+  const cal = '- 2020-01-03 to 2020-01-04: Offsite\n- 2020-01-12: Launch';
+  assert.equal(count('cal', cal), 2);
+  assert.ok(at('cal', cal, 1).includes('Offsite') && !at('cal', cal, 1).includes('Launch'));
 });
 
 test('calendar: a month drawn as a month, with colours and what they stand for', async () => {
   const { parseCalendar, serializeCalendar } = await import('../src/lib/calmodel.ts');
-  const text = 'd2,2.g,Offsite\ntgo,2i.r,Call\ndb,1,Launch\n#g=Sam\n#r=Paul';
+  const text = '---\nred: Paul\ngreen: Sam\n---\n- 2020-01-01 10:00-11:30: Call {color=red}\n- 2020-01-03 to 2020-01-04: Offsite {color=green}\n- 2020-01-12: Launch';
   const cal = parseCalendar(text);
   assert.deepEqual(cal.spans.map((s) => s.color ?? ''), ['r', 'g', '']);
   assert.deepEqual(cal.legend, { g: 'Sam', r: 'Paul' });
-  assert.equal(serializeCalendar(cal), 'tgo,2i.r,Call\nd2,2.g,Offsite\ndb,1,Launch\n#g=Sam\n#r=Paul');
+  assert.equal(serializeCalendar(cal), text);
   // A colour nobody uses any more takes its name with it.
-  assert.equal(serializeCalendar({ ...cal, spans: cal.spans.slice(2) }), 'db,1,Launch');
+  assert.equal(serializeCalendar({ ...cal, spans: cal.spans.slice(2) }), '- 2020-01-12: Launch');
   const page = appOf('cal')!.view(text)[0].svg;
   assert.ok(page.includes('>January 2020</text>') && page.includes('>Sun</text>'));
   assert.ok(page.includes('#009e73') && page.includes('>Offsite</text>') && page.includes('>Sam</text>'));
@@ -437,16 +463,17 @@ test('calendar: a month drawn as a month, with colours and what they stand for',
 });
 
 test('trip: drawn on the real map', () => {
-  const page = appOf('trip')!.view('3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra')[0].svg;
+  const route = 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | note here\nCoimbra | 40.2033 | -8.4103 |';
+  const page = appOf('trip')!.view(route)[0].svg;
   const tiles = [...page.matchAll(/<image href="https:\/\/tile\.openstreetmap\.org\/(\d+)\/(\d+)\/(\d+)\.png"/g)];
   assert.ok(tiles.length >= 4 && tiles.length <= 24, String(tiles.length));
   // Portugal: zoomed in enough to see it, on the tiles that hold it.
   assert.ok(tiles.every((t) => +t[1] >= 6 && +t[1] <= 9));
   assert.ok(page.includes('OpenStreetMap') && page.includes('>Lisbon</text>') && page.includes('note here'));
   // Stops arrive one at a time, each with its name and note.
-  const one = appOf('trip')!.view('3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra', { step: 1 })[0].svg;
+  const one = appOf('trip')!.view(route, { step: 1 })[0].svg;
   assert.ok(one.includes('note here') && !one.includes('Coimbra') && !one.includes('<polyline'));
-  assert.ok(!appOf('trip')!.view('3xa8g,-fuyo,Lisbon', { step: 0 })[0].svg.includes('>Lisbon</text>'));
+  assert.ok(!appOf('trip')!.view(route.split('\n').slice(0, 3).join('\n'), { step: 0 })[0].svg.includes('>Lisbon</text>'));
 });
 
 test('icons in drawings and diagrams', async () => {
@@ -650,7 +677,7 @@ test('things to print: text in, letter sheets out', async () => {
 test('a document on a zine page has the page, at a size to read', async () => {
   const { fitted } = await import('../src/lib/fold.ts');
   const { makeRef } = await import('../src/kit/embed.ts');
-  const p = fitted({ icon: '', title: 'Ignored', bullets: ['ignored'], sub: makeRef('todo', '- Book flights\nx Renew the passport before it runs out in the spring\n- Pack') }, 264, 408);
+  const p = fitted({ icon: '', title: 'Ignored', bullets: ['ignored'], sub: makeRef('todo', '- [ ] Book flights\n- [x] Renew the passport before it runs out in the spring\n- [ ] Pack') }, 264, 408);
   assert.ok(p.svg.includes('Book flights') && !p.svg.includes('Ignored'));
   // The list is laid out narrow and fills the width: its type prints at about 11px, not 6.
   const [, width, vw] = /<svg x="20" y="20" width="([\d.]+)" height="[\d.]+" viewBox="0 0 (\d+) /.exec(p.svg)!;
@@ -949,7 +976,7 @@ test('slides: bullets nest', async () => {
 test('a QR code document: a link as a code, labelled with what it is of', async () => {
   const { qrLabel } = await import('../src/apps/qr.def.ts');
   const { makeRef } = await import('../src/kit/embed.ts');
-  const link = 'https://tinylittleoffice.com/#/v0/' + makeRef('todo', '- Buy milk', 'Shopping');
+  const link = 'https://tinylittleoffice.com/#/v0/' + makeRef('todo', '- [ ] Buy milk', 'Shopping');
   assert.equal(qrLabel(link), 'Shopping');
   assert.equal(qrLabel('https://example.com/some/path'), 'example.com');
   assert.equal(qrLabel('Hello there'), 'Hello there');
@@ -1016,11 +1043,11 @@ test('markdown, both ways, for every app', async () => {
     write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
     deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n  - under one\n\n|\n\n- two\n',
     draw: drawn('r | 2 | 1 | 12 | 6 | 1b3 | Box', 'o | 20 | 2 | 10 | 6 | 0 | Ball'),
-    cal: 'd2,2.g,Offsite\ndb,1,Launch',
-    todo: '- Book flights\nx!@1jk Renew passport\n- Pack',
-    board: '#To do|2\nx\ny\n#Done\nz',
-    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
-    trip: '3xa8g,-fuyo,Lisbon\tnote here\n3zkdp,-ep8q,Coimbra',
+    cal: '- 2020-01-03 to 2020-01-04: Offsite {color=green}\n- 2020-01-12: Launch',
+    todo: '- [ ] Book flights\n- [x] Renew passport {.star due=2025-06-23}\n- [ ] Pack',
+    board: '## To do {limit=2}\n\n- x\n- y\n\n## Done\n\n- z',
+    gantt: 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\n- Sketch | 2025-06-23 | 2 | 100%',
+    trip: 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | note here\nCoimbra | 40.2033 | -8.4103 |',
     anim: LIFT_OFF,
     pixel: 'ab.c\n.dd',
     zine: '## :coffee: Small Joys\n\nIssue one\n\n---\n\n## Coffee\n\nThe first cup.\n',
@@ -1051,19 +1078,22 @@ test('markdown, both ways, for every app', async () => {
   assert.equal(toMarkdown(appOf('sheet')!, samples.sheet), samples.sheet + '\n');
   assert.equal(fromMarkdown(appOf('sheet')!, toMarkdown(appOf('sheet')!, samples.sheet)), samples.sheet);
   assert.equal(toMarkdown(appOf('pixel')!, samples.pixel), samples.pixel + '\n');
-  assert.equal(toMarkdown(appOf('todo')!, samples.todo), '- [ ] Book flights\n- [x] **Renew passport** (due 2025-06-23)\n- [ ] Pack\n');
+  // The apps written as TLO export the text itself, and read it back as it went.
+  for (const id of ['todo', 'board', 'gantt', 'trip', 'cal']) {
+    assert.equal(toMarkdown(appOf(id)!, samples[id]), samples[id] + '\n', id);
+    assert.equal(fromMarkdown(appOf(id)!, toMarkdown(appOf(id)!, samples[id])), samples[id], id);
+  }
   assert.equal(toMarkdown(appOf('write')!, samples.write), '# Memo\n\nSome **bold** and *slant* text with ==shine== and :star:\n\n- one\n  - nested\n1. first\n');
   assert.equal(toMarkdown(appOf('deck')!, samples.deck), samples.deck);
   assert.ok(toMarkdown(appOf('menu')!, specOf('menu')!.example).includes('| Dish | Price | What it is |'));
   // And back: a Markdown list is a to-do list; a Markdown table is a sheet; headings are slides.
-  assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n- [ ] Not yet'), 'x Done\n- Not yet');
+  assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n* Not yet'), '- [x] Done\n- [ ] Not yet');
   assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|:--|--:|\n| 1 | $2 |'), 'A | B:money\n--- | ---\n1 | $2');
   assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '## My deck {.title}\n\n- A line\n\n---\n\n## Second\n\n- a\n  - b\n');
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n1. c'), '# Hi\nSome *bold* text.\n- a\n-- b\n+ c');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n## Coffee\nFlat white | 4.20 | Smooth');
-  assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), serializeBoardLike('#Doing|2\nx\ny'));
+  assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), '## Doing {limit=2}\n\n- x\n- y');
 });
-const serializeBoardLike = (s: string) => s;
 
 test('CSV imports as a table into any app that takes one', () => {
   assert.deepEqual(parseCsv('a,"b, c",d\n1,"say ""hi""",3\r\n'), [['a', 'b, c', 'd'], ['1', 'say "hi"', '3']]);

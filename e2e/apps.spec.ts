@@ -217,7 +217,7 @@ test('write: list items nest with Tab', async ({ page }) => {
 test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const trip = '```trip\n3xa8g,-fuyo,Lisbon\tStart here\n40000,0,Second\n```';
+  const trip = 'trip/' + encodeEnvelope({ created: null, body: 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nSecond | 41.1579 | -8.6291 |' });
   await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `## Where we are going\n\n${trip}\n` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show to-trip[present]');
@@ -244,11 +244,11 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n@@draw/',
     deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
-    cal: 'd2,2,Offsite',
-    todo: '- one\nx!@1jk two',
-    board: '#To do\nx\ny\n#Done|1',
-    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
-    trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
+    cal: '- 2020-01-03 to 2020-01-04: Offsite',
+    todo: '- [ ] one\n- [x] two {.star due=2025-06-23}',
+    board: '## To do\n\n- x\n- y\n\n## Done {limit=1}',
+    gantt: 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\n- Sketch | 2025-06-23 | 2 | 100%',
+    trip: 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | note\nB | 41.1579 | -8.6291 |',
     anim: '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d',
     org: '- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design',
     mind: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
@@ -327,11 +327,11 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     write: '# Memo\nSome *bold* text\n- one\n-- nested',
     deck: '## :rocket: Launch plan\n\n- Build it\n- Ship it\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box',
-    cal: 'd2,2,Offsite',
-    todo: '- one\nx!@1jk two',
-    board: '#To do\nx\ny\n#Done|1',
-    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch',
-    trip: '3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
+    cal: '- 2020-01-03 to 2020-01-04: Offsite',
+    todo: '- [ ] one\n- [x] two {.star due=2025-06-23}',
+    board: '## To do\n\n- x\n- y\n\n## Done {limit=1}',
+    gantt: 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\n- Sketch | 2025-06-23 | 2 | 100%',
+    trip: 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | note\nB | 41.1579 | -8.6291 |',
     anim: '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d',
     org: '- Ada | CEO\n  - Ben | Engineering\n  - Eve | Design',
     mind: '- Launch\n  - Product\n    - Pricing\n  - Marketing',

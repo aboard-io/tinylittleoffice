@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCalendar, serializeCalendar, occurrences, readRepeat, repeatText, EPOCH_DAY, EPOCH_MS, spanStartMs, type Span } from '../src/lib/calmodel.ts';
-import { calendarToIcs, readCalendar } from '../src/apps/cal.def.ts';
+import { parseCalendar, serializeCalendar, readCalendar, occurrences, readRepeat, repeatText, EPOCH_DAY, EPOCH_MS, spanStartMs, type Span } from '../src/lib/calmodel.ts';
+import { calendarToIcs } from '../src/apps/cal.def.ts';
 import '../src/apps/index.ts';
 import { appOf } from '../src/kit/core.ts';
 import { toMarkdown, fromMarkdown } from '../src/lib/markdown.ts';
@@ -11,25 +11,38 @@ test('calendar round trip, sorted, with zone header', () => {
   const cal = {
     zone: 'America/New_York',
     spans: [
-      { kind: 't' as const, start: 3_000_000, dur: 90, label: 'Call, with comma' },
-      { kind: 'd' as const, start: 2000, dur: 3, label: 'Offsite' },
       { kind: 'd' as const, start: -5, dur: 1, label: '' },
+      { kind: 'd' as const, start: 2000, dur: 3, label: 'Offsite' },
+      { kind: 't' as const, start: 3_000_000, dur: 90, label: 'Call: with colon' },
+      { kind: 't' as const, start: 3_000_000, dur: 600, label: 'Long' },
+      { kind: 't' as const, start: 3_000_000 + 1080, dur: 240, label: 'Late' },
+      { kind: 't' as const, start: 3_000_000 + 1080, dur: 0, label: 'Ping' },
     ],
   };
   const s = serializeCalendar(cal);
-  assert.equal(s, '@America/New_York\nt1satc,2i,Call, with comma\nd1jk,3,Offsite\nd-5,1');
+  assert.equal(s, '---\nzone: America/New_York\n---\n- 2019-12-27:\n- 2025-06-23 to 2025-06-25: Offsite\n- 2025-09-14 04:00-05:30: Call: with colon\n- 2025-09-14 04:00-14:00: Long\n- 2025-09-14 22:00 to 2025-09-15 02:00: Late\n- 2025-09-14 22:00: Ping');
   const back = parseCalendar(s);
   assert.equal(back.zone, 'America/New_York');
-  assert.deepEqual(back.spans, [cal.spans[2], cal.spans[1], cal.spans[0]]);
+  assert.deepEqual(back.spans, cal.spans);
+  assert.equal(serializeCalendar(back), s);
+  // Without a zone, times are UTC.
+  assert.equal(serializeCalendar({ zone: '', spans: [cal.spans[2]] }), '- 2025-09-14 08:00-09:30: Call: with colon');
 });
 
-test('calendar ignores junk and clamps durations', () => {
-  const c = parseCalendar('x1,2\nd10\ndzz,0,Short day\nt10,-5,Neg');
-  assert.deepEqual(c.spans, [
-    { kind: 't', start: 36, dur: 0, label: 'Neg' },
-    { kind: 'd', start: 1295, dur: 1, label: 'Short day' },
-  ]);
+test('calendar ignores what is not a span and clamps durations', () => {
+  const c = parseCalendar('- someday: x\nA paragraph 2027-03-01\n- 2027-03-02 to 2027-03-01: Backwards\n- 2027-03-02 10:00-09:00: Overnight');
+  assert.deepEqual(c.spans.map((s) => [s.kind, s.dur, s.label]), [['d', 1, 'Backwards'], ['t', 23 * 60, 'Overnight']]);
   assert.equal(serializeCalendar({ zone: 'UTC', spans: [] }), '');
+});
+
+test('colours and what they stand for live in attributes and the header', () => {
+  const text = '---\nzone: Europe/London\ngreen: Sam\nindigo: Paul\n---\n- 2027-03-01: Launch\n- 2027-03-02: Offsite {color=green}';
+  const cal = parseCalendar(text);
+  assert.deepEqual(cal.legend, { '': 'Paul', g: 'Sam' });
+  assert.equal(cal.spans[1].color, 'g');
+  assert.equal(serializeCalendar(cal), '---\nzone: Europe/London\nindigo: Paul\ngreen: Sam\n---\n- 2027-03-01: Launch\n- 2027-03-02: Offsite {color=green}');
+  // A letter is read as its colour too; an unknown colour is no colour.
+  assert.deepEqual(parseCalendar('- 2027-03-01: a {color=r}\n- 2027-03-02: b {color=mauve}').spans.map((s) => s.color), ['r', undefined]);
 });
 
 test('epochs line up', () => {
@@ -61,22 +74,23 @@ test('day numbers', () => {
 
 const day = (y: number, m: number, d: number) => ymdToDay(y, m, d) - EPOCH_DAY;
 
-test('repeats round trip, before the colour, and are read in words', () => {
-  const cal = parseCalendar('d1jk,3*w.g,Offsite\nd1,1*m9,Rent\nt1satc,2i*d<2pi,Call\nd2,1*y0,Birthday');
-  assert.deepEqual(cal.spans.map((s) => s.repeat), [{ every: 'm', count: 9 }, { every: 'y' }, { every: 'w' }, { every: 'd', until: parseInt('2pi', 36) }]);
+test('repeats round trip as attributes, and are read in words', () => {
+  const cal = parseCalendar('- 2025-06-23 to 2025-06-25: Offsite {color=green every=week}\n- 2020-01-02: Rent {every=month times=9}\n- 2025-09-14 08:00-08:30: Call {every=day until=2027-06-01}\n- 2020-01-03: Birthday {every=year times=0}');
+  assert.deepEqual(cal.spans.map((s) => s.repeat), [{ every: 'm', count: 9 }, { every: 'y' }, { every: 'w' }, { every: 'd', until: day(2027, 6, 1) }]);
   assert.equal(cal.spans[2].color, 'g');
-  assert.equal(serializeCalendar(cal), 'd1,1*m9,Rent\nd2,1*y,Birthday\nd1jk,3*w.g,Offsite\nt1satc,2i*d<2pi,Call');
-  // The plain form puts the rule after the label.
+  assert.equal(serializeCalendar(cal), '- 2020-01-02: Rent {every=month times=9}\n- 2020-01-03: Birthday {every=year}\n- 2025-06-23 to 2025-06-25: Offsite {color=green every=week}\n- 2025-09-14 08:00-08:30: Call {every=day until=2027-06-01}');
+  // Loosely written, the rule goes after the label.
   assert.deepEqual(readRepeat('Standup every week, 9 times'), ['Standup', { every: 'w', count: 9 }]);
   assert.deepEqual(readRepeat('Rent every month until 2027-06-01'), ['Rent', { every: 'm', until: day(2027, 6, 1) }]);
   assert.deepEqual(readRepeat('Every day'), ['', { every: 'd' }]);
   assert.deepEqual(readRepeat('Sleeps every night'), ['Sleeps every night', undefined]);
   assert.equal(repeatText({ every: 'w', count: 9 }), 'every week, 9 times');
   assert.equal(repeatText({ every: 'm', until: day(2027, 6, 1) }), 'every month until 2027-06-01');
-  const text = readCalendar('@America/New_York\n2027-03-01 Standup every week, 9 times\n2027-03-01 09:00-09:15 Call every month until 2027-06-01\n2027-03-02 Plain');
-  const back = parseCalendar(text);
-  assert.deepEqual(back.spans.map((s) => [s.label, s.repeat]), [['Standup', { every: 'w', count: 9 }], ['Call', { every: 'm', until: day(2027, 6, 1) }], ['Plain', undefined]]);
-  assert.equal(text, `@America/New_York\nd${day(2027, 3, 1).toString(36)},1*w9,Standup\nt${back.spans[1].start.toString(36)},f*m<${day(2027, 6, 1).toString(36)},Call\nd${day(2027, 3, 2).toString(36)},1,Plain`);
+  const text = readCalendar('Time zone: America/New_York\n\n2027-03-01 Standup every week, 9 times\n- 2027-03-01 09:00-09:15 Call every month until 2027-06-01\n2027-03-02 (3 days): Offsite\n2027-03-05 22:00-01:00: Night');
+  assert.equal(text, '---\nzone: America/New_York\n---\n- 2027-03-01: Standup {every=week times=9}\n- 2027-03-01 09:00-09:15: Call {every=month until=2027-06-01}\n- 2027-03-02 to 2027-03-04: Offsite\n- 2027-03-05 22:00 to 2027-03-06 01:00: Night');
+  // The canonical text reads as itself, and a label in canonical text keeps its words.
+  assert.equal(readCalendar(text), text);
+  assert.equal(parseCalendar('- 2027-03-01: Standup every week').spans[0].label, 'Standup every week');
 });
 
 test('a repeat comes round across the months', () => {
@@ -105,25 +119,30 @@ test('a repeat comes round across the months', () => {
 
 test('a repeat goes out as an RRULE, into the months drawn, the outline and Markdown', () => {
   const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
-  const ics = calendarToIcs('@America/New_York\nd2,2*w9,Offsite\ntgo,2i*m<3,Call\nd5,1*y,Birthday\nd6,1,Once', ctx);
+  const ics = calendarToIcs('---\nzone: America/New_York\n---\n- 2020-01-03 to 2020-01-04: Offsite {every=week times=9}\n- 2019-12-31 19:00-20:30: Call {every=month until=2020-01-04}\n- 2020-01-06: Birthday {every=year}\n- 2020-01-07: Once', ctx);
   assert.ok(ics.includes('DTEND;VALUE=DATE:20200105\r\nRRULE:FREQ=WEEKLY;COUNT=9\r\nSUMMARY:Offsite'));
   // UNTIL is of DTSTART's kind: the end of that day in the calendar's zone, as an instant.
-  assert.ok(ics.includes('DTEND:20200101T113000Z\r\nRRULE:FREQ=MONTHLY;UNTIL=20200105T045900Z\r\nSUMMARY:Call'));
+  assert.ok(ics.includes('DTEND:20200101T013000Z\r\nRRULE:FREQ=MONTHLY;UNTIL=20200105T045900Z\r\nSUMMARY:Call'));
   assert.ok(ics.includes('RRULE:FREQ=YEARLY\r\nSUMMARY:Birthday'));
   assert.equal(ics.match(/RRULE/g)!.length, 3);
-  assert.ok(calendarToIcs('d2,1*d<3,Daily', ctx).includes('RRULE:FREQ=DAILY;UNTIL=20200104'));
+  assert.ok(calendarToIcs('- 2020-01-03: Daily {every=day until=2020-01-04}', ctx).includes('RRULE:FREQ=DAILY;UNTIL=20200104'));
   const def = appOf('cal')!;
   // Drawn: every Friday of January 2020, and the two months after, since it never ends.
-  const pages = def.view('d2,1*w,Standup');
+  const weekly = '- 2020-01-03: Standup {every=week}';
+  const nine = '- 2020-01-03: Standup {every=week times=9}';
+  const pages = def.view(weekly);
   assert.equal(pages.length, 3);
   assert.equal(pages[0].svg.match(/>Standup<\/text>/g)!.length, 5);
   // February's grid begins on Sunday the 26th of January, so it holds five Fridays too.
   assert.ok(pages[1].svg.includes('>February 2020</text>') && pages[1].svg.match(/>Standup<\/text>/g)!.length === 5);
   // Nine times, then no more: it is over in February, so there is no page for March.
-  assert.equal(def.view('d2,1*w9,Standup').length, 2);
-  assert.equal(def.view('d2,1*w9,Standup', { embed: true, step: 0 })[0].svg.includes('Standup'), false);
-  assert.deepEqual(def.outline('d2,1*w9,Standup\nd3,1,Once'), ['2020-01-03, every week, 9 times  ·  Standup', '2020-01-04  ·  Once']);
-  const md = toMarkdown(def, 'd2,1*w9,Standup\nd3,2,Once');
-  assert.equal(md, '- 2020-01-03: Standup every week, 9 times\n- 2020-01-04 to 2020-01-05: Once\n');
-  assert.equal(parseCalendar(fromMarkdown(def, md)).spans[0].repeat?.count, 9);
+  assert.equal(def.view(nine).length, 2);
+  assert.equal(def.view(nine, { embed: true, step: 0 })[0].svg.includes('Standup'), false);
+  assert.deepEqual(def.outline(nine + '\n- 2020-01-04: Once'), ['2020-01-03, every week, 9 times  ·  Standup', '2020-01-04  ·  Once']);
+  // Markdown is the text itself, and reads back as it went.
+  const body = nine + '\n- 2020-01-04 to 2020-01-05: Once';
+  const md = toMarkdown(def, body);
+  assert.equal(md, body + '\n');
+  assert.equal(fromMarkdown(def, md), body);
+  assert.equal(fromMarkdown(def, '```markdown\n---\nzone: Europe/Paris\n---\n- 2020-01-03 09:00: Call\n```'), '---\nzone: Europe/Paris\n---\n- 2020-01-03 09:00: Call');
 });

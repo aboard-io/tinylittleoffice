@@ -12,11 +12,11 @@ test('a link is made, read, shaped from Markdown, and compared', () => {
   assert.ok(p.markdown.includes('| Rent | 1200 |'));
   assert.deepEqual(T.evaluateSheet(p.env.body), [['Item', 'Cost'], ['Rent', '1200'], ['Food', '600'], ['Total', '1800']]);
   // Markdown in, the app's format out.
-  assert.equal(T.parse(T.linkFromMarkdown('todo', '- [x] Sweep\n- [ ] Shop')).env.body, 'x Sweep\n- Shop');
+  assert.equal(T.parse(T.linkFromMarkdown('todo', '- [x] Sweep\n* Shop')).env.body, '- [x] Sweep\n- [ ] Shop');
   assert.equal(T.read('sheet', 'Item,Cost\nRent,1200'), 'Item\tCost\nRent\t1200');
-  assert.equal(T.read('todo', '- a\nx b'), '- a\nx b');
+  assert.equal(T.read('todo', '- a\n- [x] b'), '- [ ] a\n- [x] b');
   // Plain links read too.
-  assert.equal(T.parse('https://tinylittleoffice.com/todo/#title=T&doc=-%20a%0Ax%20b').env.body, '- a\nx b');
+  assert.equal(T.parse('https://tinylittleoffice.com/todo/#title=T&doc=-%20a%0A-%20%5Bx%5D%20b').env.body, '- [ ] a\n- [x] b');
   assert.equal(T.parse('https://tinylittleoffice.com/sheet/#md=Item%2CCost%0ARent%2C1200').env.body, 'Item\tCost\nRent\t1200');
   // What changed.
   const c = T.compare(u, T.link('sheet', 'Item\tCost\nRent\t1300\nFood\t600\nTotal\t=SUM(B2:B3)'));

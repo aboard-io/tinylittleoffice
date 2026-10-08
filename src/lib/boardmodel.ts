@@ -1,10 +1,16 @@
 /**
- * Board (kanban) document model: the stages of a workflow, each holding cards.
- * Format: a line starting with "#" opens a stage ("#Name" or "#Name|<limit>",
- * the limit being the most cards the stage should hold at once). Every other
- * line is a card in the stage above it; a card that itself starts with "#" or
- * "\" is written with a leading "\".
+ * Board (kanban) document model: the stages of a workflow, each holding
+ * cards. The board is TLO (lib/tlo.ts): a heading for each stage, its limit
+ * (the most cards it should hold at once) an attribute, and its cards a
+ * list under it.
+ *
+ *   ## Doing {limit=2}
+ *
+ *   - Write the spec
+ *   - Review the copy
  */
+import { parse, write, attr, column, type Block } from './tlo.ts';
+
 export interface Stage {
   name: string;
   /** Work-in-progress limit, 0 for none. */
@@ -19,16 +25,15 @@ export function emptyBoard(): Stage[] {
   return DEFAULT_STAGES.map((name) => ({ name, limit: 0, cards: [] }));
 }
 
+const limitOf = (v: string | undefined) => Math.max(0, parseInt(v ?? '', 10) || 0);
+
 export function parseBoard(text: string): Stage[] {
-  if (!text) return emptyBoard();
   const stages: Stage[] = [];
-  for (const line of text.split('\n')) {
-    if (line.startsWith('#')) {
-      const m = /^#(.*?)(?:\|(\d+))?$/.exec(line)!;
-      stages.push({ name: m[1], limit: m[2] ? parseInt(m[2], 10) : 0, cards: [] });
-    } else if (line !== '') {
+  for (const b of parse(text).blocks) {
+    if (b.k === 'h') stages.push({ name: b.text, limit: limitOf(attr(b, 'limit')), cards: [] });
+    else if (b.k === 'li') {
       if (!stages.length) stages.push({ name: DEFAULT_STAGES[0], limit: 0, cards: [] });
-      stages[stages.length - 1].cards.push(line.startsWith('\\') ? line.slice(1) : line);
+      stages[stages.length - 1].cards.push(b.text.replace(/\n/g, ' '));
     }
   }
   return stages.length ? stages : emptyBoard();
@@ -37,14 +42,40 @@ export function parseBoard(text: string): Stage[] {
 export function serializeBoard(stages: Stage[]): string {
   // An untouched board costs nothing.
   if (stages.length === DEFAULT_STAGES.length && stages.every((s, i) => s.name === DEFAULT_STAGES[i] && !s.limit && !s.cards.length)) return '';
-  const lines: string[] = [];
+  const blocks: Block[] = [];
   for (const s of stages) {
-    lines.push('#' + s.name.replace(/[\n|]/g, ' ') + (s.limit > 0 ? '|' + Math.round(s.limit) : ''));
-    for (const c of s.cards) {
-      const card = c.replace(/\n/g, ' ');
-      if (card.trim() === '') continue;
-      lines.push(/^[#\\]/.test(card) ? '\\' + card : card);
+    blocks.push({ k: 'h', level: 2, text: s.name.replace(/\n/g, ' '), ...(s.limit > 0 ? { a: { kv: { limit: String(Math.round(s.limit)) } } } : {}) });
+    for (const c of s.cards) if (c.trim()) blocks.push({ k: 'li', depth: 0, text: c.replace(/\n/g, ' ') });
+  }
+  return write({ head: {}, blocks }).trimEnd();
+}
+
+/**
+ * A board as a person or a model writes it, made canonical: headings of
+ * any level for the stages, a limit written "(limit 2)" after one, lines
+ * of words as cards, and a table of "Stage | Card" (a CSV of the board).
+ */
+export function readBoard(text: string): string {
+  const stages: Stage[] = [];
+  const stage = (name: string) => stages.find((s) => s.name === name) ?? (stages.push({ name, limit: 0, cards: [] }), stages[stages.length - 1]);
+  const last = () => stages[stages.length - 1] ?? stage(DEFAULT_STAGES[0]);
+  for (const b of parse(text).blocks) {
+    if (b.k === 'h') {
+      const m = /^(.*?)\s*\(limit (\d+)\)$/i.exec(b.text);
+      stages.push({ name: m ? m[1] : b.text, limit: limitOf(attr(b, 'limit') ?? m?.[2]), cards: [] });
+    } else if (b.k === 'li') last().cards.push(b.text.replace(/\n/g, ' '));
+    else if (b.k === 'p') last().cards.push(...b.text.split('\n').map((l) => l.trim()).filter(Boolean));
+    else if (b.k === 'table') {
+      const names = b.head.map((h) => column(h).name.toLowerCase());
+      const [s, c] = [names.indexOf('stage'), names.indexOf('card')];
+      if (c < 0) continue;
+      // A row with no stage of its own is in the stage of the row above.
+      let at = '';
+      for (const r of b.rows) {
+        at = (s >= 0 && r[s]) || at || DEFAULT_STAGES[0];
+        if (r[c]) stage(at).cards.push(r[c]);
+      }
     }
   }
-  return lines.join('\n');
+  return serializeBoard(stages.length ? stages : emptyBoard());
 }

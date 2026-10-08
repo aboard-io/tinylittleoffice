@@ -28,7 +28,7 @@ test('file names come from the document title', () => {
   assert.equal(fileName(appOf('deck')!, '## :rocket: Launch plan — Q3!\n\n- one', 'pptx'), 'launch-plan-q3.pptx');
   assert.equal(fileName(appOf('write')!, '# Café *memo*\nbody', 'rtf'), 'cafe-memo.rtf');
   assert.equal(fileName(appOf('deck')!, '', 'pptx'), 'deck.pptx');
-  assert.equal(fileName(appOf('cal')!, 'd1,1,x', 'ics'), 'cal.ics');
+  assert.equal(fileName(appOf('cal')!, '- 2020-01-02: x', 'ics'), 'cal.ics');
 });
 
 test('every app draws itself, and is a web page with preview tags', () => {
@@ -38,11 +38,11 @@ test('every app draws itself, and is a web page with preview tags', () => {
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
     deck: '## :rocket: Spring launch {.title}\n\n- What ships\n\n---\n\n## Agenda {.two}\n\n- one\n\n|\n\n- two\n',
     draw: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1b3 | Box\na | 14 | 4 | 8 | 0 | 0 | ',
-    cal: '@America/New_York\nd2,2,Offsite\ntgo,2i,Call',
-    todo: '- one\nx!@1jk two',
-    board: '#A\nx\ny\n#B|1',
-    gantt: '1jk,5,1e,Design\n>1jk,2,2s,Sketch\n>1jm,3,0,Review',
-    trip: '!m\n3xa8g,-fuyo,Lisbon\tnote\n40000,0,B',
+    cal: '---\nzone: America/New_York\n---\n- 2020-01-01 05:00-06:30: Call\n- 2020-01-03 to 2020-01-04: Offsite',
+    todo: '- [ ] one\n- [x] two {.star due=2025-06-23}',
+    board: '## A\n\n- x\n- y\n\n## B {limit=1}',
+    gantt: 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\n- Sketch | 2025-06-23 | 2 | 100%\n- Review | 2025-06-25 | 3 | 0%',
+    trip: '---\nunits: miles\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | note\nB | 2.62144 | 0 |',
     anim: 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift <off>\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-100,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d',
     zine: '## :star: Small <Joys>\n\nIssue one\n\n---\n\n## Coffee\n\nThe first cup.\n',
     booklet: '## A <book>\n\nby me\n\n---\n\n## One\n\nwords\n',
@@ -173,15 +173,15 @@ test('drawing to svg', () => {
 });
 
 test('calendar to ics: floating all-day dates and UTC instants', () => {
-  // d: 2020-01-03 for two days. t: 90 minutes from 2020-01-01T10:00Z.
-  const ics = calendarToIcs('@America/New_York\nd2,2,Offsite; day 1, 2\ntgo,2i,Call', ctx);
+  // 2020-01-03 for two days, and 90 minutes from 2020-01-01T10:00Z, which is 05:00 in New York.
+  const ics = calendarToIcs('---\nzone: America/New_York\n---\n- 2020-01-03 to 2020-01-04: Offsite; day 1, 2\n- 2020-01-01 05:00-06:30: Call', ctx);
   assert.ok(ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n'));
   assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
   assert.ok(ics.includes(['DTSTART;VALUE=DATE:20200103', 'DTEND;VALUE=DATE:20200105', String.raw`SUMMARY:Offsite\; day 1\, 2`, ''].join('\r\n')));
   assert.ok(ics.includes('DTSTART:20200101T100000Z\r\nDTEND:20200101T113000Z\r\nSUMMARY:Call\r\n'));
   assert.ok(ics.includes('DTSTAMP:20260102T030400Z'));
   assert.equal(ics.match(/BEGIN:VEVENT/g)!.length, 2);
-  const long = calendarToIcs('d0,1,' + 'é'.repeat(60), ctx);
+  const long = calendarToIcs('- 2020-01-01: ' + 'é'.repeat(60), ctx);
   for (const line of long.split('\r\n')) assert.ok(new TextEncoder().encode(line).length <= 75, line);
   assert.ok(long.replace(/\r\n /g, '').includes('SUMMARY:' + 'é'.repeat(60)));
 });

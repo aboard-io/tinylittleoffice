@@ -206,8 +206,8 @@ test('download views: the link itself hands over a file', async () => {
     ['write', 'rtf', '# Memo\nSome *bold* text\n- one\n- two', 'memo.rtf', (b) => expect(utf(b)).toContain('{\\b bold}')],
     ['write', 'html', '# Memo\nSome *bold* text', 'memo.html', (b) => { expect(utf(b)).toContain('<strong>bold</strong>'); expect(utf(b)).toContain('<meta property="og:title" content="Memo">'); }],
     ['draw', 'svg', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | Box\na | 14 | 4 | 8 | 0 | 0 | ', 'draw.svg', (b) => expect(utf(b)).toContain('>Box</text>')],
-    ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'cal.ics', (b) => expect(utf(b)).toContain('SUMMARY:Offsite')],
-    ['todo', 'html', '- one\nx two', 'todo.html', (b) => { expect(utf(b)).toContain('<input type="checkbox" disabled checked> two'); expect(utf(b)).toMatch(/<meta property="og:image" content="http:\/\/localhost:\d+\/og\/todo\.png">/); }],
+    ['cal', 'ics', '---\nzone: America/New_York\n---\n- 2020-01-01 05:00-06:30: Call\n- 2020-01-03 to 2020-01-04: Offsite', 'cal.ics', (b) => expect(utf(b)).toContain('SUMMARY:Offsite')],
+    ['todo', 'html', '- [ ] one\n- [x] two', 'todo.html', (b) => { expect(utf(b)).toContain('<input type="checkbox" disabled checked> two'); expect(utf(b)).toMatch(/<meta property="og:image" content="http:\/\/localhost:\d+\/og\/todo\.png">/); }],
   ];
   for (const [app, ext, doc, name, check] of docs) {
     downloads.length = 0;
@@ -227,7 +227,7 @@ test('download views: the link itself hands over a file', async () => {
   expect((await until(() => downloads[0], 'the Markdown')).name).toBe('todo.md');
   // An extension the app does not have is reported, not downloaded.
   downloads.length = 0;
-  await open(`#/v0/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
+  await open(`#/v0/cal.pptx/${encodeEnvelope({ created, body: '- 2020-01-03 to 2020-01-04: Offsite' })}`);
   await until(() => toast().includes('No .pptx view here'), 'the refusal');
   expect(downloads).toHaveLength(0);
 });

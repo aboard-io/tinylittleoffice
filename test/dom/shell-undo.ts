@@ -39,7 +39,7 @@ test('todo: undone and redone with the keyboard, and the link follows', async ()
   await press('Undo');
   await press('Undo');
   expect(rows()).toHaveLength(1);
-  expect(body()).toBe('- One');
+  expect(body()).toBe('- [ ] One');
   await reopen();
   expect(rows()).toHaveLength(1);
   // A reopened link is a fresh start.
@@ -100,8 +100,8 @@ test('deck: a deleted slide comes back', async () => {
 test('draw, board, gantt and motion take the same undo, since it is the shell’s', async () => {
   const cases: [string, string, string, string][] = [
     ['draw', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 1 | Box', 'g.shape', 'Delete'],
-    ['board', '#To do\nA\nB\n#Done', '.board-card', 'Delete card'],
-    ['gantt', '1jk,5,1e,Design\n1jp,2,0,Build', '.gantt-chart .bar', 'Delete task'],
+    ['board', '## To do\n\n- A\n- B\n\n## Done', '.board-card', 'Delete card'],
+    ['gantt', 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2025-06-23 | 5 | 50%\nBuild | 2025-06-28 | 2 | 0%', '.gantt-chart .bar', 'Delete task'],
     ['anim', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 4 | 10 | 3 | 0 | Hello', '.motion-stage g.hit', 'Delete'],
   ];
   for (const [app, doc, sel, del] of cases) {

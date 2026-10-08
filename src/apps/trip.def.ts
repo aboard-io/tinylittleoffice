@@ -1,6 +1,6 @@
 /** Trip: what the shell knows about routes. Format: lib/tripmodel.ts. */
 import { defineApp, utf8, xml, text, clip, r, ACCENT, LINE, MUTED, SHADE, rect, type Page } from '../kit/core.ts';
-import { distanceKm, formatLeg, parseTrip, routeKm, serializeTrip, tripUnits, type Stop, type Units } from '../lib/tripmodel.ts';
+import { distanceKm, formatLeg, parseTrip, readTrip, routeKm, tripUnits } from '../lib/tripmodel.ts';
 
 const x = xml;
 
@@ -24,27 +24,6 @@ export function tripToGeoJson(body: string): string {
   return JSON.stringify({ type: 'FeatureCollection', features }, null, 1) + '\n';
 }
 
-
-/**
- * A route written plainly, one stop per line: "38.7223, -9.1393, Lisbon | Pastel de nata first"
- * (latitude, longitude, name, and a note after a bar). A first line "miles"
- * or "km" says how to measure it; otherwise it is measured in hours.
- */
-export function readTrip(text: string): string {
-  const stops: Stop[] = [];
-  let units: Units = tripUnits(text);
-  let plain = false;
-  for (const line of text.split('\n')) {
-    if (/^\s*(miles|mi)\s*$/i.test(line)) units = 'm';
-    else if (/^\s*(km|kilometres|kilometers)\s*$/i.test(line)) units = 'k';
-    const m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*(?:,\s*([^|]*))?(?:\|\s*(.*))?$/.exec(line);
-    // (Whole numbers with no decimal point could be the app's own packed coordinates; a point marks plain degrees.)
-    if (!m || !/\./.test(m[1] + m[2])) continue;
-    plain = true;
-    stops.push({ lat: +m[1], lon: +m[2], name: (m[3] ?? '').trim(), note: (m[4] ?? '').trim() });
-  }
-  return plain ? serializeTrip(stops, units) : text;
-}
 
 const TILE = 256;
 /** Web Mercator: where a place falls, in pixels, on the world map at zoom z. */

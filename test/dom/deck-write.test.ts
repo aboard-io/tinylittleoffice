@@ -109,9 +109,9 @@ test('write: an icon in the line, and marks, alignment and icons come back from 
 });
 
 test('previews are the real thing: a month, a map, a list that fills in', async () => {
-  const cal = ref('cal', 'd2,2.g,Offsite\ndb,1,Launch\n#g=Sam');
-  const trip = ref('trip', '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra');
-  const todo = ref('todo', '- Book flights\nx Renew passport\n- Pack');
+  const cal = ref('cal', '---\ngreen: Sam\n---\n- 2020-01-03 to 2020-01-04: Offsite {color=green}\n- 2020-01-12: Launch');
+  const trip = ref('trip', 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nCoimbra | 40.2033 | -8.4103 |');
+  const todo = ref('todo', '- [ ] Book flights\n- [x] Renew passport\n- [ ] Pack');
   // In a text they show whole: the calendar as a month, the trip on its map, every task.
   const { el } = await mount('write', `Plans\n@@${cal}\n@@${trip}\n@@${todo}`);
   const embeds = [...el.querySelectorAll('to-embed')].map((e) => e.shadowRoot!.querySelector('svg[role="img"]')!);

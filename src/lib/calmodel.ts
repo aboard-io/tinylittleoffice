@@ -1,31 +1,34 @@
 import { PALETTE } from './palette.ts';
 import { ACCENT } from '../kit/core.ts';
 /**
- * Calendar document model.
+ * Calendar document model. The calendar is a TLO list (lib/tlo.ts), one
+ * span an item: when it is, then what.
  *
- * Format, one span per line, optionally preceded by "@Zone/Name" (the zone the
- * document was last edited in):
- *   d<start>,<days>,<label>      all-day span; start = days since 2020-01-01,
- *                                a floating civil date, the same everywhere
- *   t<start>,<minutes>,<label>   timed span; start = minutes since
- *                                2020-01-01T00:00Z, an absolute instant
- * Numbers are base 36 to keep them short.
+ *   ---
+ *   zone: Europe/London
+ *   green: Sam
+ *   ---
+ *   - 2027-03-01: Launch                              a day, a floating date, the same everywhere
+ *   - 2027-03-01 to 2027-03-03: Offsite {color=green}  several days
+ *   - 2027-03-10 09:00-10:30: Retro {every=week}       a time, in the header's zone (UTC without one)
+ *   - 2027-03-10 22:00 to 2027-03-11 01:00: Party       a time that runs past midnight
  *
- * A span may have a colour: a letter after its length, set off by a full
- * stop ("d1,2.g,Offsite"). Lines "#<letter>=<name>" say what a colour stands
- * for ("#g=Sam"; "#=Paul" names the default colour), so two people sharing
- * a calendar can each take one.
+ * The header's zone is the one the document was last edited in. A timed
+ * span is an absolute instant: it is written as the clock in that zone
+ * reads, and read back to the same instant.
  *
- * A span may repeat: a star and a letter after its length, before the colour
- * ("d1,2*w.g,Offsite"): *d every day, *w every week, *m every month, *y every
- * year. A number after the letter says how many times in all ("*w9"), or "<"
- * and a day count (since 2020-01-01, like a start) says the last day it may
- * start on ("*w<2pi"); with neither it goes on for ever. A timed span repeats
- * at the same time of day in the document's zone, so a weekly call stays at
- * nine o'clock across a clock change. A reader that knows nothing of repeats
- * still sees the first time, in its colour.
+ * A span may have a colour, `color=green`, and the header may say what a
+ * colour stands for ("green: Sam"; "indigo: Paul" names the default
+ * colour), so two people sharing a calendar can each take one.
+ *
+ * A span may repeat: `every=day`, `week`, `month` or `year`, with
+ * `times=9` (how many times in all) or `until=2027-06-01` (the last day it
+ * may start on); with neither it goes on for ever. A timed span repeats at
+ * the same time of day in the document's zone, so a weekly call stays at
+ * nine o'clock across a clock change.
  */
-import { dayToYmd, partsToUtc, utcToParts, ymdString, ymdToDay } from './tz.ts';
+import { parse, write, attr, type Block, type Head } from './tlo.ts';
+import { dayToYmd, isValidZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay } from './tz.ts';
 
 export const EPOCH_MS = Date.UTC(2020, 0, 1);
 export const EPOCH_DAY = ymdToDay(2020, 1, 1);
@@ -65,55 +68,123 @@ export const CAL_COLORS: Record<string, { name: string; hex: string }> = { '': {
 /** What each repeat letter means, as a noun: "every week". */
 export const EVERY: Record<Every, string> = { d: 'day', w: 'week', m: 'month', y: 'year' };
 
-const b36 = (n: number) => Math.round(n).toString(36);
+/** A colour's key from its name ("green") or its letter ("g"); undefined for one that is not a calendar colour. */
+const colorKey = (v: string | undefined): string | undefined => {
+  const s = v?.trim().toLowerCase() ?? '';
+  return Object.keys(CAL_COLORS).find((k) => (k && k === s) || CAL_COLORS[k].name.toLowerCase() === s);
+};
+const colorWord = (key: string) => CAL_COLORS[key].name.toLowerCase();
 
-export function parseCalendar(text: string): Calendar {
-  const cal: Calendar = { zone: '', spans: [] };
-  if (!text) return cal;
-  for (const line of text.split('\n')) {
-    if (line.startsWith('@')) {
-      cal.zone = line.slice(1);
-      continue;
-    }
-    const key = /^#([a-z]?)=(.*)$/.exec(line);
-    if (key) {
-      if (key[1] in CAL_COLORS && key[2].trim()) (cal.legend ??= {})[key[1]] = key[2].trim();
-      continue;
-    }
-    const kind = line[0];
-    if (kind !== 'd' && kind !== 't') continue;
-    const parts = line.slice(1).split(',');
-    if (parts.length < 2) continue;
-    const start = parseInt(parts[0], 36);
-    const dur = parseInt(parts[1], 36);
-    if (!Number.isFinite(start) || !Number.isFinite(dur)) continue;
-    const span: Span = { kind, start, dur: Math.max(kind === 'd' ? 1 : 0, dur), label: parts.slice(2).join(',') };
-    const rep = /\*([dwmy])(?:<(-?[0-9a-z]+)|([0-9a-z]+))?/.exec(parts[1]);
-    if (rep) {
-      span.repeat = { every: rep[1] as Every };
-      if (rep[2]) span.repeat.until = parseInt(rep[2], 36);
-      else if (rep[3] && parseInt(rep[3], 36) > 0) span.repeat.count = parseInt(rep[3], 36);
-    }
-    const color = /\.([a-z])$/.exec(parts[1])?.[1];
-    if (color && color in CAL_COLORS) span.color = color;
+/** "2027-03-01" as days since 1970, or null. */
+const dayOf = (s: string | undefined): number | null => {
+  const m = /^(\d{4})-(\d\d?)-(\d\d?)$/.exec(s?.trim() ?? '');
+  return m ? ymdToDay(+m[1], +m[2], +m[3]) : null;
+};
+
+/**
+ * When a span is, as written at the start of its item, and the words after
+ * it: "2027-03-01", "2027-03-01 to 2027-03-03", "2027-03-10 09:00",
+ * "2027-03-10 09:00-10:30", "2027-03-10 22:00 to 2027-03-11 01:00". A
+ * time that ends before it starts ends the next day.
+ */
+function readWhen(text: string, zone: string): [Omit<Span, 'label'>, string] | null {
+  const date = /^(\d{4}-\d\d?-\d\d?)/.exec(text);
+  if (!date) return null;
+  const a = dayOf(date[1])!;
+  let rest = text.slice(date[0].length);
+  const t0 = /^\s+(\d\d?):(\d\d)/.exec(rest);
+  if (t0) rest = rest.slice(t0[0].length);
+  // The end: "to" or a dash, then a day, a time, or both.
+  const end = /^\s*(?:to|–|-)\s*(?:(\d{4}-\d\d?-\d\d?)(?:\s+(\d\d?):(\d\d))?|(\d\d?):(\d\d))/.exec(rest);
+  if (end) rest = rest.slice(end[0].length);
+  const b = end?.[1] ? dayOf(end[1])! : a;
+  const words = rest.replace(/^\s*:?\s*/, '');
+  if (!t0) return [{ kind: 'd', start: a - EPOCH_DAY, dur: Math.max(1, b - a + 1) }, words];
+  const at = (day: number, h: number, min: number) => {
+    const { y, m, d } = dayToYmd(day);
+    return partsToUtc(y, m, d, h, min, zone);
+  };
+  const from = at(a, +t0[1], +t0[2]);
+  const [h, min] = end?.[4] ? [+end[4], +end[5]] : end?.[2] ? [+end[2], +end[3]] : [+t0[1], +t0[2]];
+  let to = at(b, h, min);
+  if (end?.[4] && to < from) to = at(b + 1, h, min);
+  return [{ kind: 't', start: Math.round((from - EPOCH_MS) / 60000), dur: Math.max(0, Math.round((to - from) / 60000)) }, words];
+}
+
+/** The spans of a text: its items, each from its date. Loosely, also lines that are not items, a repeat written after the label and "(3 days)". */
+function readSpans(text: string, loose: boolean): Calendar {
+  const doc = parse(text);
+  const named = doc.head.zone ?? (loose ? /^\s*time ?zone:\s*(\S+)/im.exec(text)?.[1] : undefined) ?? '';
+  const zone = isValidZone(named) ? named : '';
+  const cal: Calendar = { zone, spans: [] };
+  for (const key of Object.keys(CAL_COLORS)) {
+    const name = doc.head[colorWord(key)]?.trim();
+    if (name) (cal.legend ??= {})[key] = name;
+  }
+  const lines: { text: string; a?: Block['a'] }[] = doc.blocks.flatMap((b) => (b.k === 'li' ? [b] : loose && b.k === 'p' ? b.text.split('\n').map((t) => ({ text: t.trim() })) : []));
+  for (const l of lines) {
+    let line = l.text.replace(/\n/g, ' ');
+    // "2027-03-01 (3 days): Offsite", as some write a span of days.
+    if (loose) line = line.replace(/^(\d{4})-(\d\d?)-(\d\d?)\s*\((\d+) days?\)/, (_, y, m, d, n) => (+n > 1 ? `${y}-${m}-${d} to ${(({ y: Y, m: M, d: D }) => ymdString(Y, M, D))(dayToYmd(ymdToDay(+y, +m, +d) + +n - 1))}` : `${y}-${m}-${d}`));
+    const read = readWhen(line, zone || 'UTC');
+    if (!read) continue;
+    const [when, words] = read;
+    const [label, looseRepeat] = loose ? readRepeat(words) : [words, undefined];
+    const span: Span = { ...when, label: label.slice(0, MAX_LABEL) };
+    const color = colorKey(attr(l, 'color'));
+    if (color) span.color = color;
+    const every = (Object.keys(EVERY) as Every[]).find((k) => EVERY[k] === attr(l, 'every')?.toLowerCase() || k === attr(l, 'every'));
+    if (every) {
+      span.repeat = { every };
+      const times = parseInt(attr(l, 'times') ?? '', 10);
+      const until = dayOf(attr(l, 'until'));
+      if (times > 0) span.repeat.count = times;
+      else if (until !== null) span.repeat.until = until - EPOCH_DAY;
+    } else if (looseRepeat) span.repeat = looseRepeat;
     cal.spans.push(span);
   }
   sortSpans(cal.spans);
   return cal;
 }
 
-const repeatCode = (r: Repeat | undefined) => (r ? `*${r.every}${r.count ? b36(r.count) : r.until !== undefined ? '<' + b36(r.until) : ''}` : '');
+export const parseCalendar = (text: string): Calendar => readSpans(text, false);
+
+/**
+ * A calendar as a person or a model writes it, made canonical: lines of
+ * dates with or without a bullet, a "Time zone: Europe/London" line in
+ * place of the header, a span of days as "2027-03-01 (3 days)", and a
+ * repeat written after the label: "Standup every week, 9 times",
+ * "Call every month until 2027-06-01".
+ */
+export const readCalendar = (text: string): string => serializeCalendar(readSpans(text, true));
+
+/** When a span is, as its item starts: dates as they are, times as the clock reads in `zone`. */
+function whenText(s: Span, zone: string): string {
+  const day = (n: number) => ((p) => ymdString(p.y, p.m, p.d))(dayToYmd(n));
+  if (s.kind === 'd') return day(EPOCH_DAY + s.start) + (s.dur > 1 ? ` to ${day(EPOCH_DAY + s.start + s.dur - 1)}` : '');
+  const a = utcToParts(EPOCH_MS + s.start * 60000, zone);
+  const b = utcToParts(EPOCH_MS + (s.start + s.dur) * 60000, zone);
+  const [da, db] = [ymdString(a.y, a.m, a.d), ymdString(b.y, b.m, b.d)];
+  const [ta, tb] = [`${pad2(a.h)}:${pad2(a.min)}`, `${pad2(b.h)}:${pad2(b.min)}`];
+  return !s.dur ? `${da} ${ta}` : da === db ? `${da} ${ta}-${tb}` : `${da} ${ta} to ${db} ${tb}`;
+}
 
 export function serializeCalendar(cal: Calendar): string {
-  const lines: string[] = [];
-  if (cal.zone && cal.spans.length) lines.push('@' + cal.zone);
-  for (const s of cal.spans) {
-    const label = s.label.replace(/\n/g, ' ').slice(0, MAX_LABEL);
-    lines.push(`${s.kind}${b36(s.start)},${b36(s.dur)}${repeatCode(s.repeat)}${s.color ? '.' + s.color : ''}${label ? ',' + label : ''}`);
-  }
+  if (!cal.spans.length) return '';
+  const zone = isValidZone(cal.zone) ? cal.zone : '';
+  const head: Head = zone ? { zone } : {};
   // Only the names of colours in use are worth keeping.
-  for (const [key, name] of Object.entries(cal.legend ?? {})) if (name.trim() && cal.spans.some((s) => (s.color ?? '') === key)) lines.push(`#${key}=${name.trim().replace(/\n/g, ' ')}`);
-  return lines.join('\n');
+  for (const [key, name] of Object.entries(cal.legend ?? {})) if (key in CAL_COLORS && name.trim() && cal.spans.some((s) => (s.color ?? '') === key)) head[colorWord(key)] = name.trim().replace(/\n/g, ' ');
+  const blocks: Block[] = cal.spans.map((s) => {
+    const r = s.repeat;
+    const kv: Record<string, string> = {
+      ...(s.color && s.color in CAL_COLORS ? { color: colorWord(s.color) } : {}),
+      ...(r ? { every: EVERY[r.every], ...(r.count ? { times: String(r.count) } : r.until !== undefined ? { until: isoDay(r.until) } : {}) } : {}),
+    };
+    const label = s.label.replace(/\n/g, ' ').slice(0, MAX_LABEL);
+    return { k: 'li', depth: 0, text: `${whenText(s, zone || 'UTC')}:${label ? ' ' + label : ''}`, ...(Object.keys(kv).length ? { a: { kv } } : {}) };
+  });
+  return write({ head, blocks }).trimEnd();
 }
 
 /** A repeat in words: "every week", "every week, 9 times", "every week until 2027-06-01". */

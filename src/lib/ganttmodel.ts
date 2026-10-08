@@ -1,12 +1,21 @@
 /**
- * Gantt document model.
- * Format: one task per line: "<start>,<days>,<done>,<label>". Start is days
- * since 2020-01-01, days is the length (at least 1), done is a percentage;
- * the numbers are base 36. A task that is part of the one above it is
- * indented with a leading ">" per level; a task with parts under it is drawn
- * as a bracket around them.
+ * Gantt document model. The schedule is a TLO table (lib/tlo.ts), a task a
+ * row: its name, the day it starts, how many days it takes and how far
+ * along it is. A task that is part of the one above it starts its name
+ * with "- ", one for each level in; a task with parts under it is drawn as
+ * a bracket around them.
+ *
+ *   Task | Start:date | Days:number | Done:percent
+ *   --- | --- | --- | ---
+ *   Design | 2027-03-01 | 5 | 50%
+ *   - Sketch | 2027-03-01 | 2 | 100%
  */
+import { parse, write, column } from './tlo.ts';
+import { EPOCH_DAY, isoDay } from './calmodel.ts';
+import { ymdToDay } from './tz.ts';
+
 export interface GanttTask {
+  /** Days since 2020-01-01. */
   start: number;
   days: number;
   /** 0 to 100. */
@@ -20,26 +29,58 @@ export const MAX_INDENT = 3;
 
 export const MAX_TASKS = 40;
 
+export const GANTT_HEAD = ['Task', 'Start:date', 'Days:number', 'Done:percent'];
+
+/** A day as written in a table: "2027-03-01", or "3/1/2027". */
+function dayOf(s: string): number | null {
+  const iso = /^(\d{4})-(\d\d?)-(\d\d?)$/.exec(s.trim());
+  const us = /^(\d\d?)\/(\d\d?)\/(\d{4})$/.exec(s.trim());
+  return iso ? ymdToDay(+iso[1], +iso[2], +iso[3]) - EPOCH_DAY : us ? ymdToDay(+us[3], +us[1], +us[2]) - EPOCH_DAY : null;
+}
+const num = (s: string | undefined) => parseFloat((s ?? '').replace(/[%\s]/g, ''));
+
+/**
+ * The tasks of every row of the first table that has a start, its columns
+ * found by name in any order: Task (or Name), Start, Days (or an End),
+ * Done, and a Level (1 for the top) where nesting is not written in the name.
+ */
 export function parseGantt(text: string): GanttTask[] {
   const out: GanttTask[] = [];
-  if (!text) return out;
-  for (const line of text.split('\n')) {
-    const depth = /^>*/.exec(line)![0].length;
-    const parts = line.slice(depth).split(',');
-    if (parts.length < 3) continue;
-    const [start, days, done] = parts.slice(0, 3).map((p) => parseInt(p, 36));
-    if (![start, days, done].every(Number.isFinite)) continue;
-    const task: GanttTask = { start: Math.max(0, start), days: Math.max(1, days), done: Math.min(100, Math.max(0, done)), label: parts.slice(3).join(',') };
-    if (depth) task.depth = Math.min(MAX_INDENT, depth);
-    out.push(task);
+  for (const b of parse(text).blocks) {
+    if (b.k !== 'table') continue;
+    const names = b.head.map((h) => column(h).name.toLowerCase().replace(/\s*%$/, ''));
+    const find = (...want: string[]) => names.findIndex((n) => want.includes(n));
+    const [name, start, days, end, done, level] = [find('task', 'name', 'what'), find('start', 'starts', 'from', 'date'), find('days', 'duration', 'length'), find('end', 'ends', 'to', 'until'), find('done', 'progress', 'complete'), find('level', 'depth')];
+    if (start < 0) continue;
+    for (const r of b.rows) {
+      const from = dayOf(r[start]);
+      if (from === null) continue;
+      const lead = /^(?:-(?:\s+|$))*/.exec(r[name] ?? '')![0];
+      const depth = Math.min(MAX_INDENT, lead ? lead.split('-').length - 1 : Math.max(0, (num(r[level]) || 1) - 1));
+      const last = end >= 0 ? dayOf(r[end]) : null;
+      const length = days >= 0 && num(r[days]) > 0 ? Math.round(num(r[days])) : last !== null ? last - from + 1 : 1;
+      const task: GanttTask = { start: Math.max(0, from), days: Math.max(1, length), done: Math.round(Math.min(100, Math.max(0, num(r[done]) || 0))), label: (r[name] ?? '').slice(lead.length).trim() };
+      if (depth) task.depth = depth;
+      out.push(task);
+    }
+    break;
   }
   return out;
 }
 
 export function serializeGantt(tasks: GanttTask[]): string {
-  const b = (n: number) => Math.max(0, Math.round(n)).toString(36);
-  return tasks.map((t) => `${'>'.repeat(t.depth ?? 0)}${b(t.start)},${b(Math.max(1, t.days))},${b(Math.min(100, t.done))}${t.label ? ',' + t.label.replace(/\n/g, ' ') : ','}`).join('\n');
+  if (!tasks.length) return '';
+  const rows = tasks.map((t) => ['- '.repeat(t.depth ?? 0) + t.label.replace(/\n/g, ' '), isoDay(Math.max(0, Math.round(t.start))), String(Math.max(1, Math.round(t.days))), `${Math.round(Math.min(100, Math.max(0, t.done)))}%`]);
+  return write({ head: {}, blocks: [{ k: 'table', head: GANTT_HEAD, rows }] }).trimEnd();
 }
+
+/**
+ * A schedule as a person or a model writes it, made canonical: a table
+ * whose columns are in another order or named a little differently, an End
+ * in place of Days, a CSV of it (the app's own CSV, with its Level, comes
+ * back as it went).
+ */
+export const readGantt = (text: string): string => serializeGantt(parseGantt(text));
 
 /** First day and one-past-last day covered by the tasks, or null when there are none. */
 export function ganttRange(tasks: GanttTask[]): { from: number; to: number } | null {

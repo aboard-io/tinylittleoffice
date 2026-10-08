@@ -17,7 +17,7 @@ test('todo: add, tick, star, date, move, filter and clear', async () => {
     press(add, 'Enter');
     await settle(el);
   }
-  expect(last()).toBe('- Book flights\n- Renew passport\n- Pack');
+  expect(last()).toBe('- [ ] Book flights\n- [ ] Renew passport\n- [ ] Pack');
   const rows = () => [...el.querySelectorAll('.todo-list li')];
   setSl(rows()[0].querySelector('sl-checkbox'), true);
   button(rows()[1], 'Star').click();
@@ -55,7 +55,7 @@ test('board: cards added, moved along, a stage renamed, added and given a limit'
   button(el, /^Stage$/).click();
   await settle(el);
   expect(cols()).toHaveLength(4);
-  expect(last()).toMatch(/^#To do\nDesign the page\n#In progress\nWrite the brief\n#Done\n#New stage$/);
+  expect(last()).toBe('## To do\n\n- Design the page\n\n## In progress\n\n- Write the brief\n\n## Done\n\n## New stage');
 });
 
 test('gantt: tasks follow one another, nest, and go', async () => {
@@ -108,7 +108,7 @@ test('todo: what is saved opens again as it was', async () => {
 });
 
 test('board: a stage named as it is added, a limit, opened again, and a card dragged to another stage', async () => {
-  const { el, last } = await mount('board', '#To do\nWrite the brief\nDesign the page\n#In progress\n#Done');
+  const { el, last } = await mount('board', '## To do\n\n- Write the brief\n- Design the page\n\n## In progress\n\n## Done');
   const cols = () => [...el.querySelectorAll<HTMLElement>('.board-col')];
   // A new stage has its name ready to type over.
   button(el, /^Stage$/).click();
@@ -139,7 +139,7 @@ test('board: a stage named as it is added, a limit, opened again, and a card dra
   await settle(again.el);
   expect(cols2()[2].querySelector('textarea')!.value).toBe('Write the brief');
   expect(cols2()[0].classList.contains('full')).toBe(false);
-  expect(again.last()).toBe('#To do|1\nDesign the page\n#In progress\n#Done\nWrite the brief\n#Review');
+  expect(again.last()).toBe('## To do {limit=1}\n\n- Design the page\n\n## In progress\n\n## Done\n\n- Write the brief\n\n## Review');
 });
 
 test('gantt: Return adds the next task, bars dragged and stretched, tasks nested and brought out', async () => {

@@ -2,9 +2,9 @@
  * <to-cal>: a month calendar for labelled spans of time.
  *
  * All-day spans are floating civil dates (the same in every country). Timed
- * spans are absolute instants stored in UTC and shown in whichever zone the
- * viewer picks; the document remembers the zone it was last edited in so a
- * reader elsewhere can flip to the author's time with one click.
+ * spans are absolute instants, written as the clock reads in the zone the
+ * document was last edited in and shown in whichever zone the viewer picks;
+ * a reader elsewhere can flip to the author's time with one click.
  *
  * A span is made by a click or a drag across days, and edited in a dialog
  * over the grid, which never moves: the dialog works on a draft, drawn on
