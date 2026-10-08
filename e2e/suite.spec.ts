@@ -1,14 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { shot, reopen, navTo, pickOption } from './helpers';
 
-test('launcher lists every app', async ({ page }) => {
-  await page.goto('/');
-  const launcher = page.locator('.to-launcher a:not(.drive-tile)');
-  await expect(launcher).toHaveCount(49);
-  await expect(launcher.nth(0)).toContainText('Sheet');
-  await shot(page, 'home');
-});
-
 // Stays: the corner handle and a mouse drag find their cells by where the pointer is on screen (the rest of blocks is in test/dom/suite.test.ts).
 test('sheet: the corner handle carries a block on, and a mouse drag selects one', async ({ page, isMobile }) => {
   await page.goto('/#/v0/sheet');
@@ -116,41 +108,13 @@ test('write: rich text survives the round trip', async ({ page }) => {
   await shot(page, 'write');
 });
 
-test('deck: slides, icons and presenting', async ({ page }) => {
+// Stays: how bullets wrap and how big the type is drawn are real layout (the rest of the deck is in test/dom/suite-deck.test.ts).
+test('deck: bullets wrap under their dots, and type shrinks as a slide fills', async ({ page }) => {
   await page.goto('/#/v0/deck');
-  const headline = page.getByRole('textbox', { name: 'Headline' });
   const bullets = page.getByRole('textbox', { name: 'Bullets' });
-  const show = page.getByRole('dialog', { name: 'Presentation' });
-  const slide = show.locator('.frame > svg');
-  // A new deck opens on a title slide: big centred title, subtitle, no bullets.
-  await expect(page.locator('.deck-slide.lay-t')).toBeVisible();
-  await headline.fill('Spring launch');
-  await bullets.fill('What we are shipping');
-  // The toolbar's Icon button opens the same picker as the box on the slide.
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  await expect(page.locator('#icon-picker')).toHaveAttribute('open');
-  const library = page.getByRole('group', { name: 'Icon library' });
-  await library.getByRole('button', { name: 'star', exact: true }).click();
-  await expect(page.locator('.deck-slide .pick svg')).toBeVisible();
-  await shot(page, 'deck-title');
-
-  // A second slide with bullets; the slide's own words recommend icons.
+  await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
   await page.getByRole('button', { name: 'Slide', exact: true }).click();
   await expect(page.locator('.deck-slide.lay-b')).toBeVisible();
-  await headline.fill('Launch plan');
-  await bullets.fill('Build it\nShip it\nTell people');
-  await expect(page.getByRole('button', { name: 'Use rocket icon' })).toBeVisible();
-  await page.getByRole('button', { name: 'Slide icon' }).click();
-  await expect(page.getByRole('group', { name: 'Suggested', exact: true }).getByRole('button', { name: 'rocket', exact: true })).toBeVisible();
-  const search = page.locator('#icon-picker sl-input input');
-  await search.fill('zzz');
-  await expect(page.locator('.deck-picker-none')).toBeVisible();
-  await search.fill('rock');
-  await library.getByRole('button', { name: 'rocket', exact: true }).click();
-  await expect(page.locator('#icon-picker')).not.toHaveAttribute('open');
-  await expect(page.locator('.deck-suggest')).toHaveCount(0);
-  await expect(page.locator('.to-toolbar .to-hint').last()).toHaveText('2 slides');
-
   // Each bullet is a line of its own with a dot before it, and a long one wraps under its dot.
   await bullets.fill('Build it\n' + 'A long bullet that wraps on to more lines than one. '.repeat(3).trim() + '\nTell people');
   const geometry = await page.locator('.deck-slide .bullets .write-page').evaluate((el) => {
@@ -167,154 +131,21 @@ test('deck: slides, icons and presenting', async ({ page }) => {
   expect(await px()).toBeLessThan(roomy * 0.8);
   await bullets.fill('Build it\nShip it\nTell people');
   expect(await px()).toBe(roomy);
-
-  await reopen(page);
-  const thumbs = page.locator('.deck-rail .deck-thumb');
-  await expect(thumbs).toHaveCount(2);
-  await expect(thumbs.nth(1)).toContainText('Launch plan');
-  await thumbs.nth(1).click();
-  await expect(bullets.locator('p')).toHaveText(['Build it', 'Ship it', 'Tell people']);
   await shot(page, 'deck');
-
-  // Presenting: the title slide appears whole; the next builds a bullet per step.
-  await thumbs.nth(0).click();
-  await page.getByRole('button', { name: 'Present' }).click();
-  await expect(slide).toContainText('Spring launch');
-  await expect(slide).toContainText('What we are shipping');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Launch plan');
-  await expect(slide).not.toContainText('Build it');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Build it');
-  await expect(slide).not.toContainText('Ship it');
-  await page.keyboard.press('ArrowLeft');
-  await expect(slide).not.toContainText('Build it');
-  // A fast double click shows the whole slide at once.
-  await show.dblclick({ position: { x: 300, y: 300 } });
-  await expect(slide).toContainText('Tell people');
-  await shot(page, 'deck-show');
-  // Once everything is out, the next step is the closing QR code of the deck; the one after leaves the show.
-  await page.keyboard.press('ArrowRight');
-  await expect(slide.locator('path[shape-rendering="crispEdges"]')).toHaveCount(1);
-  await page.keyboard.press('ArrowRight');
-  await expect(show).toHaveCount(0);
-
-  // No cap on slides: the link's length is the only limit.
-  const before = await thumbs.count();
-  for (let i = 0; i < 12; i++) await page.getByRole('button', { name: 'Slide', exact: true }).click();
-  await expect(thumbs).toHaveCount(before + 12);
-  await expect(page.getByRole('button', { name: 'Slide', exact: true })).toBeEnabled();
 });
 
-test('deck: layouts, a transition, and other documents on a slide', async ({ page }) => {
+// Stays: that a document on a slide takes the slide's whole width is real layout (the rest is in test/dom/suite-deck.test.ts).
+test('deck: a document on a slide has the slide to itself', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const draw = 'draw/' + encodeEnvelope({ created: null, body: 'r,2,1,12,6,1,One\ne,20,10,10,8,0,Two\na,14,4,8,8,0' });
-  const sheet = 'sheet/' + encodeEnvelope({ created: null, body: 'Item\tCost\nRent\t1200\nFood\t600' });
-  const body = ['!fade', '::2\nTwo columns\nleft\n|\nright', ':star:i\nBig icon\nwhy', `Drawing\nfirst\n@@${draw}`, `Table\n@@${sheet}`].join('\n\n');
-  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body }));
-  const thumbs = page.locator('.deck-rail .deck-thumb');
-  await expect(thumbs).toHaveCount(4);
-  await expect(page.locator('sl-select.deck-transition')).toHaveJSProperty('value', 'fade');
-
-  // Two columns: each is its own list.
-  await expect(page.locator('.deck-slide.lay-2')).toBeVisible();
-  await page.getByRole('textbox', { name: 'Right column' }).fill('right\nand more');
-  // Big icon: bullets on the left, the icon large on the right.
-  await thumbs.nth(1).click();
-  await expect(page.locator('.deck-slide.lay-i .big svg')).toBeVisible();
-  // Layout is a choice per slide.
-  // Slide type says what this slide is, and adds a slide of whatever is chosen: the slide you are on is left alone.
-  const kind = page.locator('.deck-kind');
-  await expect(kind).toContainText('Big icon');
-  // A combobox: type a few letters of a layout or a document, and a slide of it is added.
-  const add = page.getByRole('combobox', { name: 'Add a slide' });
-  // A tap drops the whole list down, in the menu's groups, to scroll; typing narrows it.
-  await add.click();
-  const list = page.locator('.deck-add [role="listbox"]');
-  await expect(list).toBeVisible();
-  const options = await list.getByRole('option').allTextContents();
-  for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Poll']) expect(options).toContain(name);
-  await expect(list.locator('li.group').first()).toHaveText('Layouts');
-  await add.fill('two col');
-  await expect(list.getByRole('option')).toHaveCount(1);
-  await add.press('Enter');
-  await expect(thumbs).toHaveCount(5);
-  await expect(page.locator('.deck-slide.lay-2')).toBeVisible();
-  await expect(kind).toContainText('Two columns');
-  await expect(page.getByRole('textbox', { name: 'Headline' })).toBeFocused();
-  // Return in the headline goes on to the bullets.
-  await page.keyboard.type('Added');
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('textbox', { name: 'Bullets' })).toBeFocused();
-  await thumbs.nth(1).click();
-  await expect(page.locator('.deck-slide.lay-i .big svg')).toBeVisible();
-
-  // A slide can show another document; choosing one adds a slide for it and opens it for editing.
-  const drawing = page.locator('.deck-rail .deck-thumb', { hasText: 'One' });
-  await drawing.click();
+  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `Drawing\nfirst\n@@${draw}` }));
   await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
-  await expect(kind).toContainText('Drawing');
-  await add.fill('Chart');
-  await add.press('Enter');
-  const sub = page.locator('sl-dialog.to-sub');
-  await expect(sub).toHaveAttribute('open');
-  await sub.getByRole('textbox', { name: 'A1', exact: true }).fill('Q1');
-  await sub.getByRole('textbox', { name: 'B1', exact: true }).fill('10');
-  await sub.getByRole('textbox', { name: 'A2', exact: true }).fill('Q2');
-  await sub.getByRole('textbox', { name: 'B2', exact: true }).fill('30');
-  await sub.getByRole('button', { name: 'Done' }).click();
-  await expect(sub).toHaveCount(0);
-  await expect(thumbs).toHaveCount(6);
-  await expect(page.locator('.deck-slide to-embed svg[role="img"] rect[rx="2"]')).toHaveCount(2);
-  await expect(kind).toContainText('Table');
-  // The drawing's slide is as it was.
-  await expect(drawing).toHaveCount(1);
-  await reopen(page);
-  await expect(thumbs).toHaveCount(6);
-  await shot(page, 'deck-sub');
-  await drawing.click();
-
-  // What is inserted has the slide to itself: no headline, no bullets beside it.
-  await expect(page.locator('.deck-slide.has-sub input.title')).toHaveCount(0);
   const full = await page.locator('.deck-slide to-embed').evaluate((el) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width);
   expect(full).toBeGreaterThan(0.9);
-
-  // Presenting it: the whole slide is the document, and it appears a piece per click.
-  await page.goto('about:blank');
-  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body }));
-  await thumbs.nth(2).click();
-  await page.getByRole('button', { name: 'Present' }).click();
-  const slide = page.locator('.deck-show .frame > svg');
-  await expect(page.locator('.deck-show .frame')).toHaveClass(/tr-fade/);
-  await expect(slide.locator('rect, ellipse, line')).toHaveCount(0);
-  await expect(slide).not.toContainText('Drawing');
-  await expect(slide).not.toContainText('first');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('One');
-  await expect(slide).not.toContainText('Two');
-  // It fills the slide.
-  const share = await slide.locator('svg').first().evaluate((el) => Number(el.getAttribute('height')) / 600);
-  expect(share).toBeGreaterThan(0.85);
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Two');
-  await expect(slide.locator('line')).toHaveCount(0);
-  await page.keyboard.press('End');
-  await expect(slide.locator('line')).toHaveCount(1);
-  await shot(page, 'deck-takeover');
-  // A table fills in a cell per click, across each row and down.
-  await page.keyboard.press('ArrowRight');
-  await expect(slide.locator('rect')).toHaveCount(6);
-  await expect(slide).not.toContainText('Item');
-  for (const [now, next] of [['Item', 'Cost'], ['Cost', 'Rent'], ['Rent', '1200'], ['1200', 'Food'], ['Food', '600']]) {
-    await page.keyboard.press('ArrowRight');
-    await expect(slide).toContainText(now);
-    await expect(slide).not.toContainText(next);
-  }
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('600');
-  await page.keyboard.press('Escape');
+  await shot(page, 'deck-sub');
 });
 
+// Stays: the motion is drawn and moved by dragging on the canvas and the stage, by where the pointer is.
 test('deck: a motion slide is made and changed from the slide itself', async ({ page }) => {
   await page.goto('/#/v0/deck');
   await page.getByRole('combobox', { name: 'Add a slide' }).fill('motion');
@@ -365,6 +196,7 @@ test('deck: a motion slide is made and changed from the slide itself', async ({ 
   await page.keyboard.press('Escape');
 });
 
+// Stays: shapes are drawn by dragging at coordinates, and text size is what the browser draws (choosing, colouring, deleting are in test/dom/suite-deck.test.ts).
 test('draw: shapes with labels persist', async ({ page }) => {
   await page.goto('/#/v0/draw');
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
@@ -409,47 +241,7 @@ test('draw: shapes with labels persist', async ({ page }) => {
   await expect(canvas.locator('rect[stroke="#0072b2"]')).toHaveCount(1);
   const sizes = await canvas.locator('text').evaluateAll((els) => els.map((el) => getComputedStyle(el).fontSize));
   expect(sizes).toEqual(['30px', '14px']);
-  await canvas.locator('g.shape').nth(0).click();
-  await expect(page.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');
   await shot(page, 'draw');
-
-  await canvas.locator('g.shape').nth(0).click();
-  await page.keyboard.press('Delete');
-  await expect(canvas.locator('g.shape')).toHaveCount(2);
-  // Keyboard tool switching and duplicate.
-  await canvas.locator('g.shape').nth(0).click();
-  await page.keyboard.press('Control+d');
-  await expect(canvas.locator('g.shape')).toHaveCount(3);
-});
-
-test('meter flags documents that outgrow the URL', async ({ page }) => {
-  await page.goto('/#/v0/write');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  const meter = page.locator('.to-meter');
-  await expect(meter).not.toHaveClass(/over/);
-  let junk = '';
-  let seed = 12345;
-  for (let i = 0; i < 2600; i++) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    junk += String.fromCharCode(33 + (seed % 90));
-  }
-  await page.evaluate((t) => {
-    const ed = document.querySelector('.write-page') as HTMLElement;
-    ed.textContent = t;
-    ed.dispatchEvent(new Event('input', { bubbles: true }));
-  }, junk);
-  await expect(meter).toHaveClass(/over/);
-  await expect(page.locator('.to-panel-head')).toContainText('over limit');
-  expect(page.url().length).toBeGreaterThan(2048);
-});
-
-test('back and forward move between documents', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  await page.getByRole('textbox', { name: 'A1', exact: true }).fill('hello');
-  await navTo(page, 'Write');
-  await expect(page.getByRole('textbox', { name: 'Document' })).toBeVisible();
-  await page.goBack();
-  await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('hello');
 });
 
 // Stays: a finger on the handle finds its cell by where it is on screen.
@@ -473,38 +265,4 @@ test('sheet: on a touch screen the corner handle stretches the block any way, an
   await cell('D1').click();
   await expect(cell('A3')).toHaveValue('1');
   await expect(cell('B3')).toHaveValue('2');
-});
-
-test('a document can carry its own QR code, so a reader can take a copy', async ({ page }) => {
-  await page.goto('/#/v0/write');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Take this home');
-  await page.getByRole('combobox', { name: 'Insert' }).fill('qr code of this');
-  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
-  const embed = page.locator('to-embed[ref="qr/self"]');
-  await expect(embed).toHaveCount(1);
-  // The code is drawn, named for what it is, and keeps up with the document.
-  await expect(embed.locator('svg path[shape-rendering="crispEdges"]')).toHaveCount(1);
-  await expect(embed.locator('svg[role="img"]')).toHaveAttribute('aria-label', 'This document, as a QR code');
-  await expect.poll(() => page.url()).toContain('/#/v0/write/');
-  const d1 = await embed.locator('svg path[shape-rendering="crispEdges"]').getAttribute('d');
-  const url1 = page.url();
-  await page.getByRole('textbox', { name: 'Document' }).locator('p').first().click();
-  await page.keyboard.press('End');
-  await page.keyboard.type(' tonight');
-  await expect.poll(() => page.url()).not.toBe(url1);
-  await expect.poll(() => embed.locator('svg path[shape-rendering="crispEdges"]').getAttribute('d')).not.toBe(d1);
-  // Reopened, it is still the document's own code; the download carries it.
-  await reopen(page);
-  await expect(page.locator('to-embed[ref="qr/self"] svg path[shape-rendering="crispEdges"]')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
-  const html = (await import('node:fs')).readFileSync(await file.path(), 'utf8');
-  expect(html).toContain('crispEdges');
-  // On a slide too.
-  await page.goto('/#/v0/deck');
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Thanks');
-  await page.getByRole('combobox', { name: 'Add a slide' }).fill('qr code of this');
-  await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
-  await expect(page.locator('.deck-slide to-embed[ref="qr/self"]')).toHaveCount(1);
 });

@@ -75,6 +75,26 @@ Element.prototype.matches = function (this: Element, selector: string) {
   return false;
 };
 
+// happy-dom lays nothing out, so nothing is hidden by layout; asking it (Shoelace does, for every element in an
+// open dialog, each time the focus moves) works out every element's whole style, which is slow and says nothing here.
+Element.prototype.checkVisibility = () => true;
+// The same for whether an element scrolls (Shoelace asks that of each one too): nothing overflows where nothing is laid out;
+// and for which way text runs (each menu item asks, as it draws): left to right. Any other part of an element's style is
+// worked out by happy-dom as before (it reads every stylesheet on the page to do it), when it is first asked for.
+const styleOf = window.getComputedStyle.bind(window);
+window.getComputedStyle = (el: Element, pseudo?: string | null) => {
+  let real: CSSStyleDeclaration | null = null;
+  return new Proxy({} as CSSStyleDeclaration, {
+    get(_, k) {
+      if (k === 'overflowX' || k === 'overflowY') return 'visible';
+      if (k === 'direction') return 'ltr';
+      real ??= styleOf(el, pseudo);
+      const v = Reflect.get(real, k);
+      return typeof v === 'function' ? v.bind(real) : v;
+    },
+  });
+};
+
 // A clock the tests can move on: undo takes changes a moment apart as separate steps, and the tests need not wait that moment.
 let ahead = 0;
 const now = Date.now.bind(Date);

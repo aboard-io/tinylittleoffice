@@ -70,18 +70,20 @@ test('the hamburger holds every app and the theme', async () => {
 });
 
 test('the meter counts down, and copies the link through the app’s own page', async () => {
-  await open('#/v0/sheet');
+  // (The e2e test used a sheet; the meter is the shell's, the same for every app, and a list is quicker to draw.)
+  await open('#/v0/todo');
   const ring = $('.to-meter sl-progress-ring');
   expect(ring.getAttribute('value')).toBe('0');
-  tap(cell('A1'));
-  fill(cell('A1'), 'The quick brown fox');
+  const add = $('sl-input.todo-new');
+  fill(add, 'The quick brown fox');
+  add.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   await idle();
   expect(Number(ring.getAttribute('value'))).toBeGreaterThan(0);
   expect(text($('.to-meter .text'))).toMatch(/^\d[\d,]* left$/);
   const before = location.href;
   await press('Copy link');
-  // The copied link goes through the app's own page, so it previews as a sheet.
-  expect(await navigator.clipboard.readText()).toBe(before.replace('/#/', '/sheet/#/'));
+  // The copied link goes through the app's own page, so it previews as a list.
+  expect(await navigator.clipboard.readText()).toBe(before.replace('/#/', '/todo/#/'));
   expect(toast()).toBe('Link copied');
 });
 
@@ -161,17 +163,16 @@ test('Markdown and CSV come in as well as out', async () => {
   expect(toast()).toContain('Imported');
   expect(parseTodos(body()).map((t) => [t.text, t.done])).toEqual([['Sweep', true], ['Shop', false], ['Call mum', false]]);
   expect(text($('to-todo'))).toContain('Call mum');
-  // A sheet reads a table; a deck reads headings.
-  await open('#/v0/sheet');
-  await importing('| Item | Cost |\n|---|---|\n| Rent | 1200 |');
-  expect(cell('A1').value).toBe('Item');
-  expect(cell('B2').value).toBe('1200');
+  // A deck reads headings; a sheet reads a table.
   await open('#/v0/deck');
   await importing('# Launch\n\n## Agenda\n\n- one\n- two\n\n## Thanks');
   expect(text($('to-deck'))).toContain('Agenda');
   expect($$('.deck-rail .deck-thumb')).toHaveLength(3);
-  // CSV is a table too.
   await open('#/v0/sheet');
+  await importing('| Item | Cost |\n|---|---|\n| Rent | 1200 |');
+  expect(cell('A1').value).toBe('Item');
+  expect(cell('B2').value).toBe('1200');
+  // CSV is a table too (and an import replaces what was there).
   await importing('Item,Cost\nRent,"1,200"\nFood,600');
   expect(parseGrid(body()).slice(0, 3).map((r) => r.slice(0, 2))).toEqual([['Item', 'Cost'], ['Rent', '1,200'], ['Food', '600']]);
   expect(cell('A3').value).toBe('Food');

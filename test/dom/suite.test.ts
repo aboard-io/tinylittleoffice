@@ -1,8 +1,94 @@
-// Sheet worked as a person would: tapped, typed, pointed, copied and pasted, checked by the cells it shows and the text it saves (ported from e2e/suite.spec.ts).
+// The suite at large (ported from e2e/suite.spec.ts): the home page, the meter, going back, a document's own QR code;
+// and Sheet worked as a person would, tapped, typed, pointed, copied and pasted, checked by the cells it shows and the text it saves.
 import { test, expect } from 'vitest';
 import { mount } from './helpers.ts';
-import { idle, $, $$, text, tap, fill, typeKeys, key, clip, focused, button, choose, cell } from './helpers-shell.ts';
+import { open, reopen, idle, until, link, $, $$, text, tap, fill, typeKeys, key, clip, focused, button, choose, menu, write, cell, downloads } from './helpers-shell.ts';
 import { parseGrid, typesOf, chartOf } from '../../src/lib/formula.ts';
+import { parseDoc } from '../../src/lib/richtext.ts';
+
+test('the launcher lists every app', async () => {
+  await open('');
+  const launcher = $$('.to-launcher a:not(.drive-tile)');
+  expect(launcher).toHaveLength(49);
+  expect(text(launcher[0])).toContain('Sheet');
+});
+
+test('the meter flags a document that outgrows the URL', async () => {
+  await open('#/v0/write');
+  const meter = $('.to-meter');
+  expect(meter.classList.contains('over')).toBe(false);
+  let junk = '';
+  let seed = 12345;
+  for (let i = 0; i < 2600; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    junk += String.fromCharCode(33 + (seed % 90));
+  }
+  const page = $('.write-page');
+  page.textContent = junk;
+  page.dispatchEvent(new Event('input', { bubbles: true }));
+  await idle();
+  expect(meter.classList.contains('over')).toBe(true);
+  expect(text($('.to-panel-head'))).toContain('over limit');
+  expect(location.href.length).toBeGreaterThan(2048);
+});
+
+test('back and forward move between documents', async () => {
+  await open('#/v0/sheet');
+  tap(cell('A1'));
+  fill(cell('A1'), 'hello');
+  await idle();
+  // To Write through the menu, then back.
+  button('Menu').click();
+  await idle();
+  $$<HTMLAnchorElement>('#nav-drawer .to-drawer-nav a').find((a) => text(a) === 'Write')!.click();
+  await until(() => document.querySelector('[aria-label="Document"]'), 'Write');
+  history.back();
+  await until(() => document.querySelector('input[aria-label="A1"]'), 'the sheet again');
+  expect(cell('A1').value).toBe('hello');
+});
+
+test('a document can carry its own QR code, so a reader can take a copy', async () => {
+  await open('#/v0/write');
+  write('Document', 'Take this home');
+  await idle();
+  const page = $('[aria-label="Document"]');
+  // Return at the end of the line, as the caret is there after typing.
+  getSelection()!.collapse(page.querySelector('p')!.firstChild!, 'Take this home'.length);
+  const insert = $<HTMLInputElement>('input[aria-label="Insert"]');
+  fill(insert, 'qr code of this');
+  await idle();
+  await key('Enter', {}, insert);
+  const embed = () => $('to-embed[ref="qr/self"]');
+  const code = () => embed().shadowRoot!.querySelector('svg path[shape-rendering="crispEdges"]');
+  // The code is drawn, named for what it is, and keeps up with the document.
+  expect(code()).toBeTruthy();
+  expect(embed().shadowRoot!.querySelector('svg[role="img"]')!.getAttribute('aria-label')).toBe('This document, as a QR code');
+  expect(location.hash).toMatch(/^#\/v0\/write\//);
+  expect(parseDoc(link().env!.body).map((b) => b.k)).toContain('e');
+  const d1 = code()!.getAttribute('d');
+  const url1 = location.hash;
+  const words = page.querySelector('p')!.firstChild as Text;
+  words.data += ' tonight';
+  page.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ' tonight' }));
+  await idle();
+  expect(location.hash).not.toBe(url1);
+  await until(() => code()!.getAttribute('d') !== d1, 'the code to follow the document');
+  // Reopened, it is still the document's own code; the download carries it.
+  await reopen();
+  expect(code()).toBeTruthy();
+  downloads.length = 0;
+  await menu('Download', /Web page/);
+  const file = await until(() => downloads[0], 'the page');
+  expect(await file.blob.text()).toContain('crispEdges');
+  // On a slide too.
+  await open('#/v0/deck');
+  write('Headline', 'Thanks');
+  const add = $<HTMLInputElement>('input[aria-label="Add a slide"]');
+  fill(add, 'qr code of this');
+  await idle();
+  await key('Enter', {}, add);
+  expect($$('.deck-slide to-embed[ref="qr/self"]')).toHaveLength(1);
+});
 
 /** A cell tapped and filled, as Playwright's fill() does. */
 async function put(ref: string, v: string) {
@@ -13,7 +99,7 @@ async function put(ref: string, v: string) {
 const bar = () => $('sl-input[label="Formula"]') as HTMLElement & { value: string };
 const selected = () => text($('[aria-label="Selected cells"]'));
 /** Open the sheet again from the text it saved: what a reopened link shows. */
-const reopen = async (saved: string | undefined) => mount('sheet', saved ?? '');
+const remount = async (saved: string | undefined) => mount('sheet', saved ?? '');
 
 test('sheet: formulas compute, and persist in what is saved', async () => {
   const { last } = await mount('sheet');
@@ -25,7 +111,7 @@ test('sheet: formulas compute, and persist in what is saved', async () => {
   expect(cell('C2').value).toBe('42');
   expect(parseGrid(last()!).slice(0, 3).map((r) => r.slice(0, 3))).toEqual([['10', '=A3/0', 'Total'], ['32', '', '=ROUND(AVG(A1:A3),1)'], ['=SUM(A1:A2)*2', '', '']]);
 
-  const again = await reopen(last());
+  const again = await remount(last());
   expect(cell('A3').value).toBe('84');
   expect(cell('C1').value).toBe('Total');
   tap(cell('A3'));
@@ -222,7 +308,7 @@ test('sheet: charts suggest themselves and travel with the sheet', async () => {
   expect(text(chart())).toContain('Rent');
   expect(text(chart())).toContain('60%');
   expect(chartOf(last()!)).toBe('pie');
-  await reopen(last());
+  await remount(last());
   pie();
   await choosePick('bar');
   expect(chart().querySelectorAll('rect[rx="2"]')).toHaveLength(3);
@@ -264,7 +350,7 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   expect($('a[aria-label="Open https://example.com/report"]').getAttribute('href')).toBe('https://example.com/report');
   expect(typesOf(last()!).slice(0, 6)).toEqual(['d', 'd', 't', '$', 'u', 'c']);
 
-  await reopen(last());
+  await remount(last());
   expect(cell('C1').value).toBe('29');
   expect(cell('D1').value).toBe('$1,200.50');
   expect(button(/^Column E: Link/)).toBeTruthy();

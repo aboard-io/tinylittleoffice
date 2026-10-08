@@ -58,7 +58,7 @@ test('signing a document, and a change after it is seen', async () => {
 
   // A tampered link reads as a mismatch, never as valid.
   const tampered = signed.replace(/#\/v0\/todo\/([YZWR])(.)/, (_m, f: string, c: string) => `#/v0/todo/${f}${c === 'A' ? 'B' : 'A'}`);
-  await fresh(tampered);
+  await open(tampered);
   await idle();
   await new Promise((r) => setTimeout(r, 50));
   await idle();
@@ -78,7 +78,7 @@ test('signing keys can be exported and imported', async () => {
   localStorage.clear();
   localStorage.setItem('tinyoffice.keep', '1');
   localStorage.setItem('tinyoffice.open', 'edit');
-  await fresh('#/v0/todo');
+  await open('#/v0/todo');
   await info();
   // (What the privacy object remembers of the key is the module's; the page's own record is gone.)
   await press('Import', dialog());
@@ -124,7 +124,7 @@ test('a password locks the link, and is asked for before anything is shown', asy
   // Edits stay sealed; the password can be removed.
   await add('bonus');
   await until(() => location.hash !== locked && location.hash.startsWith('#/v0/todo/E'), 'the edit sealed');
-  await fresh(location.hash);
+  await open(location.hash);
   fill($('#pw-input'), 'hunter2 is weak');
   await press(/Open$/, $('#pw-dialog'));
   await until(() => document.querySelector('to-todo'), 'the list');
@@ -135,7 +135,7 @@ test('a password locks the link, and is asked for before anything is shown', asy
   await done();
   await until(() => /^#\/v0\/todo\/[WYZR]/.test(location.hash), 'a plain link again');
   expect(link().env!.body).toBe('- payroll 2026\n- bonus');
-  await fresh(location.hash);
+  await open(location.hash);
   expect($('#pw-dialog').hasAttribute('open')).toBe(false);
   expect(tasks()).toEqual(['payroll 2026', 'bonus']);
 });
@@ -162,7 +162,7 @@ test('a download view waits for the password', async () => {
   await until(() => location.hash.startsWith('#/v0/todo/E'), 'sealed');
   await done();
   downloads.length = 0;
-  await fresh(location.hash.replace('/todo/', '/todo.md/'));
+  await open(location.hash.replace('/todo/', '/todo.md/'));
   expect(downloads).toHaveLength(0);
   fill($('#pw-input'), 'pw');
   await press(/Open$/, $('#pw-dialog'));
