@@ -211,7 +211,15 @@ export function domToBlocks(root: HTMLElement): Block[] {
       block(child as HTMLElement, 'p');
     } else inline(child, plain, 'p', root);
   }
+  // A heading is bold through and through, so bold in one says nothing.
+  for (const b of blocks) if (b.k === 'h1' || b.k === 'h2') b.runs = mergeRuns(b.runs.map(({ b: _, ...r }) => r));
   return blocks.length ? blocks : [{ k: 'p', runs: [] }];
+}
+
+/** Neighbouring runs with the same marks and link, as one. */
+function mergeRuns(runs: Run[]): Run[] {
+  const same = (a: Run, b: Run) => !a.ic && !b.ic && !!a.b === !!b.b && !!a.i === !!b.i && !!a.u === !!b.u && !!a.s === !!b.s && !!a.h === !!b.h && (a.href ?? '') === (b.href ?? '');
+  return runs.reduce<Run[]>((out, r) => (out.length && same(out[out.length - 1], r) ? (out[out.length - 1] = { ...out[out.length - 1], t: out[out.length - 1].t + r.t }, out) : [...out, r]), []);
 }
 
 /** The embedded document just before or after the caret, if the caret is at that edge of its block. */
@@ -472,7 +480,14 @@ export class ToWrite extends LitElement {
     this.onInput();
   }
 
+  /** Whether the caret (or selection) is in a heading: headings are bold, always. */
+  private inHeading(): boolean {
+    const n = getSelection()?.anchorNode ?? null;
+    return !!(n && this.page?.contains(n) && (n instanceof Element ? n : n.parentElement)?.closest('h1, h2, h3'));
+  }
+
   private run(cmd: string, arg?: string) {
+    if (cmd === 'bold' && this.inHeading()) return;
     this.page?.focus();
     // (Colours and alignment are only ever written as styles; the rest as tags.)
     document.execCommand('styleWithCSS', false, cmd === 'hiliteColor' ? 'true' : 'false');
@@ -680,12 +695,13 @@ export class ToWrite extends LitElement {
     }
   };
 
-  private btn(label: string, ico: keyof typeof UI, pressed: boolean, cmd: string, arg?: string, key?: string) {
+  private btn(label: string, ico: keyof typeof UI, pressed: boolean, cmd: string, arg?: string, key?: string, disabled = false) {
     return html`<sl-button data-tip=${key ? `${label} (${key})` : label}
         class="icon"
         size="small"
         aria-label=${label}
         aria-pressed=${pressed ? 'true' : 'false'}
+        ?disabled=${disabled}
         @mousedown=${(e: Event) => e.preventDefault()}
         @click=${() => this.run(cmd, arg)}
       >${icon(UI[ico], 16)}<span class="sr-only">${label}</span></sl-button>`;
@@ -697,7 +713,7 @@ export class ToWrite extends LitElement {
     return html`
       ${this.tools ? html`<div class="to-toolbar write-toolbar" role="toolbar" aria-label="Formatting">
         <sl-button-group label="Text style">
-          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Mod+B')}
+          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Mod+B', f.block === 'h1' || f.block === 'h2' || f.block === 'h3')}
           ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Mod+I')}
           ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Mod+U')}
           ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}

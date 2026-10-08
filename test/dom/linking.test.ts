@@ -131,3 +131,23 @@ test('pasted into one line (an outline item), formatted text keeps its marks and
   await settle(el);
   expect(last()).toBe('Launch the *plan* see [here](https://a.co)');
 });
+
+test('a heading cannot be unbolded: Bold is off there, Mod+B does nothing, and bold inside one is dropped', async () => {
+  const { el, docs, last } = await mount('write', '# Title\n## Sub\nBody');
+  const h1 = page(el).querySelector('h1')!;
+  page(el).focus();
+  getSelection()!.selectAllChildren(h1);
+  document.dispatchEvent(new Event('selectionchange'));
+  // (happy-dom answers no editing questions, so the heading is told to the toolbar by hand.)
+  (el as unknown as { fmt: { block: string } }).fmt = { ...(el as unknown as { fmt: object }).fmt, block: 'h1' } as never;
+  await settle(el);
+  expect(button(el, 'Bold').hasAttribute('disabled')).toBe(true);
+  press(page(el), 'b', { mod: true });
+  await settle(el);
+  expect(docs).toEqual([]);
+  // Bold that found its way into a heading (pasted, say) is not kept.
+  h1.innerHTML = '<b>Ti</b><span style="font-weight:normal">tle</span>';
+  page(el).dispatchEvent(new Event('input', { bubbles: true }));
+  await settle(el);
+  expect(last()).toBe('# Title\n## Sub\nBody');
+});

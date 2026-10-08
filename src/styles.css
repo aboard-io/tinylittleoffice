@@ -4541,3 +4541,10 @@ to-rich {
 .to-link-dialog sl-input[data-invalid]::part(form-control-help-text) {
   color: var(--to-danger);
 }
+
+/* Headings are bold, whatever is inside them: nothing in one can be made lighter. */
+.write-page h1 *,
+.write-page h2 *,
+.write-page h3 * {
+  font-weight: inherit !important;
+}

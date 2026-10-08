@@ -479,3 +479,19 @@ test('write: text copied from one document pastes into another with its headings
   await expect(fresh.locator('li a')).toHaveAttribute('href', 'https://example.com');
   expect(browserName).toBe('chromium');
 });
+
+// Bold is the browser's own command, and how heavy a heading is drawn is computed style.
+test('write: a heading stays bold: Mod+B and the Bold button do nothing there', async ({ page }) => {
+  await page.goto('/#/v0/write');
+  const editor = page.getByRole('textbox', { name: 'Document' });
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+1');
+  await page.keyboard.type('Big title');
+  await page.keyboard.press('Shift+Home');
+  await page.keyboard.press('ControlOrMeta+B');
+  await expect(page.getByRole('button', { name: 'Bold' })).toBeDisabled();
+  const weight = await editor.locator('h1').evaluate((h) => Math.min(...[h, ...h.querySelectorAll('*')].map((e) => parseInt(getComputedStyle(e).fontWeight))));
+  expect(weight).toBeGreaterThanOrEqual(600);
+  await expect(editor.locator('h1')).toHaveText('Big title');
+  expect(await editor.locator('h1').innerHTML()).not.toContain('font-weight');
+});
