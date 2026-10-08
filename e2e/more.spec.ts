@@ -302,7 +302,7 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
 // Stays: the map is Leaflet, laid out by the browser, and the tap lands by where it is.
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const trip = `trip/${encodeEnvelope({ created: null, body: 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 |' })}`;
+  const trip = '```trip\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 |\n```';
   await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `## Trip\n\n${trip}\n\n---\n\n## After\n\n- done\n` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show .deck-map');

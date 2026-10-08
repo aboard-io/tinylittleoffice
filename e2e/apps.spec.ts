@@ -217,7 +217,7 @@ test('write: list items nest with Tab', async ({ page }) => {
 test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const trip = 'trip/' + encodeEnvelope({ created: null, body: 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nSecond | 41.1579 | -8.6291 |' });
+  const trip = '```trip\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Start here\nSecond | 41.1579 | -8.6291 |\n```';
   await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `## Where we are going\n\n${trip}\n` }));
   await page.getByRole('button', { name: 'Present' }).click();
   const map = page.locator('.deck-show to-trip[present]');

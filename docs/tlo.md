@@ -75,16 +75,19 @@ document under an item is a fence with `{depth=2}`.
 **recipes**, **badges**, **comic**): one slide or page per `---`. The
 headline is `## :icon-name: Headline`. The layout is an attribute on the
 headline: `{.title}` (headline and subtitle), `{.two}` (a paragraph `|`
-between the columns), `{.icon}` (bullets beside one big icon) or `{.big}`.
-The words are `- ` bullets, nested by two spaces. Speaker notes are `> `.
-A chart or another document is a fence. The deck's settings go in the
-header: `transition: fade`, `color: indigo`, `qr: no`. **comic** panels
-are bullets: `- :dog: Walk? | Monday, noon.`.
+between the columns) or `{.icon}` (bullets beside one big icon). The words
+are `- ` bullets, nested by two spaces; a print app's page with no layout is
+prose, as paragraphs. Speaker notes are `> `. A chart or another document
+is a fence. The deck's settings go in the header: `transition: cut`
+(`slide`, `zoom`; a fade when absent), `color: red`, `qr: no`; a print
+app's are `sides: 2` and `pages: 12`. **comic** panels are bullets:
+`- :dog: Walk? | Monday, noon.`.
 
 **sheet**: one table. Its header row holds the column names (shown above
 the letters), each with its type. Its rows are rows 1, 2, 3 and so on, so
 `=SUM(B1:B3)` adds the first three. The header holds `chart: bar`
-(`line`, `pie`).
+(`line`, `pie`). A sheet is written with at least two columns; a table of
+one column keeps its outer pipes.
 
 ```
 ---
@@ -99,7 +102,7 @@ Q2 | 180
 **pixel**: the rows of letters as one paragraph, one line per row.
 
 **todo**: a task list. A due date and a star are attributes:
-`- [ ] Renew passport {due=2027-03-01 .star}`.
+`- [ ] Renew passport {.star due=2027-03-01}` (classes come before values).
 
 **board**: `## Stage {limit=2}` headings, each followed by a `- card` list.
 
@@ -111,10 +114,13 @@ holds `units: km` or `miles`.
 
 **cal**: one list item per span. `- 2027-03-01: Launch`,
 `- 2027-03-01 to 2027-03-03: Offsite`, `- 2027-03-10 09:00-10:30: Retro`.
-A colour and a repeat are attributes. The header holds `zone: Europe/London`.
+A colour and a repeat are attributes, `{color=green every=week times=9}`
+or `until=2027-06-01`; a timed span over midnight is
+`- 2027-03-10 22:00 to 2027-03-11 01:00: Party`. The header holds
+`zone: Europe/London`, and names the colours in use: `green: Sam`.
 
-**invoice**: the header holds `from`, `to`, `number`, `date`, `due`, `tax`
-and `currency`. The lines are a table `What | Qty:number | Units |
+**invoice**: the header holds `from`, `to`, `number`, `date`, `due`, `tax`,
+`currency` and `terms`. The lines are a table `What | Qty:number | Units |
 Price:money`. Notes are paragraphs.
 
 **store**: `# Name` and a paragraph about it. The header holds `currency`
@@ -123,9 +129,11 @@ and `orders`. Products are a table `Name | Price:money | About | Image:url`.
 **menu**: `# Name` and a paragraph about it. Each `## Section` is followed
 by a table `Dish | Price:money | About`.
 
-**site**: `# Name` and a line about it. `## Section` starts each part.
-`- Point | detail` is a card. A button is a paragraph
-`[Label](https://…) {.button}`. A page break is `---`.
+**site**: `# Name` and a line about it; each further `# Title` starts a
+page, and `## Section` a part of one. `- :icon: Point | detail` is a card,
+`> Label | https://…` a button, a line that is only a picture's address a
+picture. The header holds `theme: teal serif dark`. (A page break written
+`---` reads too.)
 
 **adventure**: `# Title`, then `## scene` headings with the story as
 paragraphs. Choices are links to scenes: `- [Climb to the lamp](#lamp)`.
@@ -152,11 +160,14 @@ and `- A & B: thing`. **net**: edges, plus `- name` for a node on its own.
 
 **db**: each table is a `## name` heading followed by a table. A column
 that refers to another table is typed `team_id>teams`. Queries are a `sql`
-fence.
+fence, each ending `;`.
 
-**draw**: a table `Kind | X | Y | W | H | Style | Label`. The header holds
-`alt`. **anim** has the same table, plus a table `Shape | Keys`, and the
-header holds `frames` and `fps`.
+**draw**: a table `Kind | X | Y | W | H | Style | Label`; a join (`k`, `j`)
+holds the row numbers of the shapes it joins in X and Y, and a shape drawn
+corner by corner adds a `Points` column. The header holds `alt`. **anim**
+has the same table, plus a table `Shape | Keys` (a shape's row number, then
+keys `frame,dx,dy,depth,size,spin[,effects]` between `; `), and the header
+holds `frames` and `fps`.
 
 **calc**: the header holds `mode` (`calc`, `graph`, `mortgage`, `invest`,
 `cashflow` or `interest`). For the calculator and the grapher, the
