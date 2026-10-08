@@ -1502,6 +1502,8 @@ svg.draw-canvas text {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
+    /* What is placed absolutely inside (the labels only a screen reader reads) is held, and scrolled, with the row; else it sits where the unwrapped row would put it and widens the page. */
+    position: relative;
   }
   .to-toolbar::-webkit-scrollbar {
     display: none;
