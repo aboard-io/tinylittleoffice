@@ -85,6 +85,16 @@ test('the library: documents are kept on the device, in folders, once asked', as
   await settleAll();
   expect(drive.querySelectorAll('.drive-list li')).toHaveLength(1);
   expect(drive.querySelector('.drive-list li')!.textContent).toContain('Todo');
+  // It shows where: the line inside that says it, the words marked.
+  expect([...drive.querySelectorAll('.drive-list li .drive-context mark')].map((m) => m.textContent)).toEqual(['milk']);
+  expect(drive.querySelector('.drive-context')!.textContent).toContain('Buy milk');
+  // Every word must be there, in any order; one in the title comes first, marked there.
+  type(box(drive, 'Search your documents'), 'quay notes');
+  await settleAll();
+  expect([...drive.querySelectorAll('.drive-list li b mark')].map((m) => m.textContent)).toEqual(['Quay', 'notes']);
+  type(box(drive, 'Search your documents'), 'quay milk');
+  await settleAll();
+  expect(drive.querySelectorAll('.drive-list li')).toHaveLength(0);
   type(box(drive, 'Search your documents'), '');
   await settleAll();
   // It opens as it was left; changing it keeps it in its folder.

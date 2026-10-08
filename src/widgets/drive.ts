@@ -2,13 +2,15 @@
  * <to-drive>: the documents saved on this device, as a drive. Folders (and
  * folders in folders) down the left; the documents in the one chosen on
  * the right, or everything, or whatever a search finds, in titles and in
- * the words of the documents themselves. Move, rename, make and drop
+ * the words of the documents themselves (lib/search.ts: the best first,
+ * each with its words marked and the lines that hold them). Move, rename, make and drop
  * folders; and one red button that blows it all away. Nothing here is on
  * any server: a document is still its link, and this is only a list of them.
  */
 import { LitElement, html, nothing, btn, icon, UI, appOf, fmtDate } from '../kit.ts';
 import { cleanFolder, dropFolder, folderTree, forget, forgetAll, library, moveTo, renameFolder, saving, type Kept } from '../lib/library.ts';
 import { decodeEnvelope } from '../lib/envelope.ts';
+import { search, type Found, type Searchable, type Seg } from '../lib/search.ts';
 
 export class ToDrive extends LitElement {
   static properties = { folder: {}, q: { state: true }, drag: { state: true }, tick: { state: true } };
@@ -33,12 +35,12 @@ export class ToDrive extends LitElement {
     this.dispatchEvent(new CustomEvent('drive-change', { bubbles: true }));
   }
 
-  /** The words of a document, for searching: its title, app, folder and outline. */
-  private words = new Map<string, string>();
-  private wordsOf(k: Kept): string {
+  /** A document as search sees it: its title, app, folder and the lines of its outline (read once per version). */
+  private seen = new Map<string, Searchable>();
+  private searchable(k: Kept): Searchable {
     const key = k.id + k.hash;
-    let w = this.words.get(key);
-    if (w === undefined) {
+    let d = this.seen.get(key);
+    if (!d) {
       const def = appOf(k.app);
       let body = '';
       try {
@@ -46,16 +48,21 @@ export class ToDrive extends LitElement {
       } catch {
         // (Sealed, or not ours to read.)
       }
-      w = [k.title, def?.name ?? k.app, k.folder, ...(def && body ? def.outline(body) : [])].join('\n').toLowerCase();
-      this.words.set(key, w);
+      d = { id: k.id, title: k.title || `Untitled ${def?.name ?? k.app}`, app: def?.name ?? k.app, folder: k.folder, lines: def && body ? def.outline(body) : [], at: k.at };
+      this.seen.set(key, d);
     }
-    return w;
+    return d;
   }
 
-  private shown(all: Kept[]): Kept[] {
-    const q = this.q.trim().toLowerCase();
-    if (q) return all.filter((k) => this.wordsOf(k).includes(q)).sort((a, b) => b.at - a.at);
-    return all.filter((k) => !this.folder || k.folder === this.folder || k.folder.startsWith(this.folder + '/')).sort((a, b) => b.at - a.at);
+  private shown(all: Kept[]): { k: Kept; found?: Found }[] {
+    if (this.q.trim()) {
+      const byId = new Map(all.map((k) => [k.id, k]));
+      return search(all.map((k) => this.searchable(k)), this.q).map((found) => ({ k: byId.get(found.id)!, found }));
+    }
+    return all
+      .filter((k) => !this.folder || k.folder === this.folder || k.folder.startsWith(this.folder + '/'))
+      .sort((a, b) => b.at - a.at)
+      .map((k) => ({ k }));
   }
 
   private open(folder: string) {
@@ -138,10 +145,12 @@ export class ToDrive extends LitElement {
           : !docs.length
             ? html`<p class="to-empty">${this.q.trim() ? 'Nothing here says that.' : this.folder ? 'An empty folder. Drag a document onto it, or move one here.' : 'Nothing saved yet. Every document you make or open is kept here, in a folder named for its app, until you say otherwise.'}</p>`
             : html`<ul class="drive-list">
-                ${docs.map((k) => {
+                ${docs.map(({ k, found }) => {
                   const def = appOf(k.app);
-                  return html`<li draggable="true" @dragstart=${(e: DragEvent) => { this.drag = k.id; e.dataTransfer?.setData('text/plain', k.title); }} @dragend=${() => (this.drag = null)}>
-                    <a href=${k.hash}>${icon(UI[(def?.icon ?? 'write') as keyof typeof UI], 18)}<b>${k.title || `Untitled ${def?.name ?? k.app}`}</b><span class="meta">${def?.name ?? k.app}${!this.folder || this.q ? html` · ${k.folder}` : nothing} · ${fmtDate(k.at)}</span></a>
+                  const segs = (list: Seg[]) => list.map((g) => (g.hit ? html`<mark>${g.t}</mark>` : g.t));
+                  return html`<li draggable="true" class=${found?.context.length ? 'with-context' : ''} @dragstart=${(e: DragEvent) => { this.drag = k.id; e.dataTransfer?.setData('text/plain', k.title); }} @dragend=${() => (this.drag = null)}>
+                    <a href=${k.hash}>${icon(UI[(def?.icon ?? 'write') as keyof typeof UI], 18)}<b>${found ? segs(found.title) : k.title || `Untitled ${def?.name ?? k.app}`}</b><span class="meta">${def?.name ?? k.app}${!this.folder || this.q ? html` · ${k.folder}` : nothing} · ${fmtDate(k.at)}</span>
+                      ${found?.context.length ? html`<span class="drive-context">${found.context.map((c) => html`<span>${segs(c)}</span>`)}</span>` : nothing}</a>
                     ${btn(`Move ${k.title} to another folder`, 'folder', () => this.move(k), { size: 15, tip: 'Move to a folder' })}
                     ${btn(`Remove ${k.title} from this device`, 'trash', () => { forget(k.id); this.refresh(); }, { size: 15, tip: 'Remove from this device' })}
                   </li>`;

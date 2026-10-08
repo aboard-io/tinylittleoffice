@@ -4121,6 +4121,27 @@ sl-dialog.to-import {
   text-overflow: ellipsis;
   margin-left: auto;
 }
+/* A search's results: the words found marked, and under the title the lines of the document that hold them. */
+.drive-list li a {
+  flex-wrap: wrap;
+}
+.drive-list mark {
+  background: var(--to-highlight, #fef08a);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.drive-context {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 28px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--to-ink-2, var(--to-ink-3));
+  overflow-wrap: anywhere;
+}
 .to-library .to-more {
   margin-left: 10px;
   font-size: 13px;
