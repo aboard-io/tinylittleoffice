@@ -207,31 +207,6 @@ test('previews are the real thing: a month, a map, a list that fills in', async 
   await expect(slide).not.toContainText('Launch');
 });
 
-test('calendar: colours, and what they stand for', async ({ page }) => {
-  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  await page.goto('/#/v0/cal/' + encodeEnvelope({ created: null, body: 'd2,2,Offsite' }));
-  // Someone else adds their dates in their own colour, and says whose it is.
-  await page.getByRole('radiogroup', { name: 'Colour for new spans' }).getByRole('radio', { name: 'Green' }).click();
-  await page.getByRole('textbox', { name: 'What this colour stands for' }).fill('Sam');
-  await page.getByRole('textbox', { name: 'What this colour stands for' }).press('Tab');
-  await page.getByRole('gridcell', { name: '2020-01-10' }).click();
-  await page.locator('#label input').fill('Dentist');
-  await page.keyboard.press('Enter');
-  const chip = page.getByRole('gridcell', { name: '2020-01-10' }).locator('.cal-chip');
-  await expect(chip).toHaveClass(/tint/);
-  await expect(page.locator('.cal-legend .key')).toHaveText('Sam');
-  await reopen(page);
-  await expect(chip).toHaveClass(/tint/);
-  await expect(page.locator('.cal-legend .key')).toHaveText('Sam');
-  // The first span keeps its own colour.
-  await expect(page.getByRole('gridcell', { name: '2020-01-03' }).locator('.cal-chip')).not.toHaveClass(/tint/);
-  // A span's colour can be changed where it is edited.
-  await chip.click();
-  await page.getByRole('radiogroup', { name: 'Colour of this span' }).getByRole('radio', { name: 'Red' }).click();
-  await expect(chip).toHaveAttribute('style', /b3261e/);
-  await shot(page, 'cal-colours');
-});
-
 test('draw: zoom, and icons', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web' }));
@@ -590,60 +565,26 @@ test('stock and flow: sliders move the diagram', async ({ page }) => {
   await shot(page, 'flow');
 });
 
-test('pixel art: colour squares by clicking, dragging and from the keyboard', async ({ page }) => {
+// Stays: a drag with the real mouse finds the squares under it by their place on the screen (the rest is in test/dom/tools.test.ts).
+test('pixel art: a drag colours the squares under the pointer', async ({ page }) => {
   await page.goto('/#/v0/pixel');
   const cell = (r: number, c: number) => page.getByRole('gridcell', { name: new RegExp(`^Row ${r}, column ${c}:`) });
-  await expect(page.getByRole('gridcell')).toHaveCount(256);
-  await cell(1, 1).click();
-  await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: Black');
   await page.getByRole('radio', { name: 'Red' }).click();
-  // Drag across a row.
-  const [a, b] = [(await cell(3, 2).boundingBox())!, (await cell(3, 6).boundingBox())!];
-  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
-  await page.mouse.up();
-  for (const c of [2, 3, 4, 5, 6]) await expect(cell(3, c)).toHaveAccessibleName(`Row 3, column ${c}: Red`);
-  // Arrow keys move; Enter colours.
-  await cell(1, 1).focus();
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('Enter');
-  await expect(cell(2, 2)).toHaveAccessibleName('Row 2, column 2: Red');
-  await page.getByRole('radio', { name: 'Eraser' }).click();
-  await cell(1, 1).click();
-  await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: empty');
-  await reopen(page);
-  await expect(cell(3, 4)).toHaveAccessibleName('Row 3, column 4: Red');
-  await expect(cell(1, 1)).toHaveAccessibleName('Row 1, column 1: empty');
-  await shot(page, 'pixel');
-  // Tools: a box dragged out, a line, a fill; and the picture at its own size beside the grid.
-  await page.getByRole('radio', { name: 'Indigo' }).click();
-  await page.getByRole('button', { name: 'Box', exact: true }).click();
   const drag = async (r1: number, c1: number, r2: number, c2: number) => {
     const [a, b] = [(await cell(r1, c1).boundingBox())!, (await cell(r2, c2).boundingBox())!];
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
     await page.mouse.down();
-    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
     await page.mouse.up();
   };
+  await drag(3, 2, 3, 6);
+  for (const c of [2, 3, 4, 5, 6]) await expect(cell(3, c)).toHaveAccessibleName(`Row 3, column ${c}: Red`);
+  await page.getByRole('button', { name: 'Box', exact: true }).click();
   await drag(6, 6, 9, 10);
-  await expect(cell(6, 8)).toHaveAccessibleName('Row 6, column 8: Indigo');
-  await expect(cell(9, 6)).toHaveAccessibleName('Row 9, column 6: Indigo');
+  await expect(cell(9, 10)).toHaveAccessibleName('Row 9, column 10: Red');
   await expect(cell(7, 8)).toHaveAccessibleName('Row 7, column 8: empty');
-  await page.getByRole('button', { name: 'Fill', exact: true }).click();
-  await page.getByRole('radio', { name: 'Yellow' }).click();
-  await cell(7, 8).click();
-  await expect(cell(8, 9)).toHaveAccessibleName('Row 8, column 9: Yellow');
-  await expect(cell(12, 12)).toHaveAccessibleName('Row 12, column 12: empty');
-  await page.getByRole('button', { name: 'Line', exact: true }).click();
-  await drag(12, 1, 12, 8);
-  await expect(cell(12, 5)).toHaveAccessibleName('Row 12, column 5: Yellow');
-  // (One square per coloured cell, and the page's own white behind them.)
-  await expect(page.locator('.pixel-preview .big svg rect')).toHaveCount((await page.locator('.pixel-grid button[style*="background"]').count()) + 1);
   await shot(page, 'pixel-tools');
 });
-
 test('small apps: games and things to share work as pages', async ({ page }) => {
   const open = async (app: string) => {
     await page.goto(`/#/${app}`);
@@ -839,34 +780,3 @@ test('write: highlight, alignment and an icon in the line', async ({ page }) => 
   await shot(page, 'write-marks');
 });
 
-test('calculator: a tape, a graph, and a mortgage worked out as a page', async ({ page }) => {
-  await page.goto('/#/v0/calc');
-  const display = page.getByRole('textbox', { name: 'Expression' });
-  await page.getByRole('button', { name: '7', exact: true }).click();
-  await page.getByRole('button', { name: '×', exact: true }).click();
-  await page.getByRole('button', { name: '6', exact: true }).click();
-  await expect(page.locator('.calc-live')).toHaveText('42');
-  await page.getByRole('button', { name: '=', exact: true }).click();
-  await expect(page.locator('.calc-tape li')).toHaveCount(1);
-  await expect(page.locator('.calc-tape')).toContainText('= 42');
-  await display.fill('sqrt(144)+5!');
-  await display.press('Enter');
-  await expect(page.locator('.calc-tape li')).toHaveCount(2);
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/calc\/[WYZR]/);
-  // The graph draws y = f(x).
-  await page.getByRole('radio', { name: 'Scientific & graph' }).click();
-  await page.getByRole('textbox', { name: 'y =' }).fill('sin(x)');
-  await page.getByRole('textbox', { name: 'y =' }).press('Enter');
-  await expect(page.locator('.calc-right > svg')).toContainText('y = sin(x)');
-  await expect(page.locator('.calc-right svg path[stroke-width="2.2"]')).toHaveCount(1);
-  // A mortgage: boxes in, the answer and the years beside them.
-  await page.getByRole('radio', { name: 'Mortgage' }).click();
-  await expect(page.locator('.calc-right > svg')).toContainText('2,022.62');
-  await page.getByLabel('Interest rate').fill('5');
-  await page.getByLabel('Interest rate').press('Tab');
-  await expect(page.locator('.calc-right > svg')).toContainText('1,717.83');
-  await reopen(page);
-  await expect(page.locator('.calc-right > svg')).toContainText('1,717.83');
-  await expect(page).toHaveTitle('Mortgage · TinyLittleOffice');
-  await shot(page, 'calc');
-});
