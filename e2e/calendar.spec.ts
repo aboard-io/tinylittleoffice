@@ -16,6 +16,7 @@ test('calendar: the dialog opens over a grid that stays put, and a drag across d
 
   // A drag finds the day under the pointer by where it is on the screen (elementFromPoint).
   // (A span on 2026-01-20, so the calendar opens on January 2026.)
+  await page.goto('about:blank');
   await page.goto('/#/v0/cal/' + (await import('../src/lib/envelope.ts')).encodeEnvelope({ created: 1, body: 'd1pf,1,Anchor' }));
   await expect(page.locator('.cal-month')).toHaveText('January 2026');
   const from = await page.getByRole('gridcell', { name: '2026-01-05' }).boundingBox();
