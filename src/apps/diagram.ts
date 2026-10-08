@@ -15,8 +15,8 @@ import { specOf, toDrawing, type DiagramSpec } from '../lib/diagram.ts';
 import { store } from '../lib/store.ts';
 import { blockEnd, fieldsOf, joinItems, kindsOf, listItems, moveItem, readLines, removeRow, writeLines, type Row } from '../lib/lines.ts';
 
-/** A pattern that opens "{Key}: {Words}": a lane and its step, a date and its event, a table and its people. */
-const KEYED = /^\s*(?:\[:\{[^}]*\}\s*\])?\{[^}]*\}:\s\{[^}]*\}(?:\s*\[[^\]]*\])*\s*$/;
+/** A pattern that opens "{Key}: {Words}" (as a list item, "- {Key}: {Words}"): a lane and its step, a date and its event, a table and its people. */
+const KEYED = /^\s*(?:- )?(?:\[:\{[^}]*\}\s*\])?\{[^}]*\}:\s\{[^}]*\}(?:\s*\[[^\]]*\])*\s*$/;
 /** A pattern with something before a colon and its words after: what is before is the line's key ("Sales", "Fast & Cheap"). */
 const HAS_KEY = /^[^:[\]]*\}:\s\{/;
 /** The fields that name another thing on the picture: the two ends of a line, the sets something is shared by. */
@@ -195,7 +195,7 @@ export class DiagramElement extends DocElement<string> {
     if (mode === 'picture') store.remove('tinyoffice.edit');
     else store.set('tinyoffice.edit', mode);
   }
-  /** Whether the document can be shown as a list to fill in: a page or a sheet always; a picture of shapes only when its spec says it is rows at heart. */
+  /** Whether the document can be shown as a list to fill in: a page or a sheet, not a picture of shapes. */
   protected get lists(): boolean {
     return true;
   }
@@ -354,7 +354,16 @@ export class DiagramElement extends DocElement<string> {
   protected keyOf(row: Row): string {
     const { kinds, made } = kindsOf(this.spec.form!);
     if (row.kind >= this.spec.form!.length || !HAS_KEY.test(kinds[row.kind].is)) return '';
-    return made[row.kind].write(row.values).split(/:(.*)/)[0].trim();
+    return made[row.kind].write(row.values).split(/:(.*)/)[0].replace(/^\s*- /, '').trim();
+  }
+  /** The row a line keyed `key` would be ("Fast & Cheap: "), as the form reads it; null when no kind of the form is keyed so. */
+  protected keyRow(key: string): Row | null {
+    const form = this.spec.form!;
+    for (const line of [`- ${key}: x`, `${key}: x`]) {
+      const read = readLines(line, form)[0];
+      if (read && read.kind < form.length) return read;
+    }
+    return null;
   }
   /** The kind that is a line between two things, if the app has one: the first with two naming fields. */
   protected linkKind(): number {
@@ -452,8 +461,8 @@ export class DiagramElement extends DocElement<string> {
       const words = this.wordsField(rows[at].kind);
       return this.startDraft(rows[at].kind, rows.length, rows[at].depth, rows[at].values.map((v, n) => (n < words && fieldsOf(form, rows[at].kind)[n].type !== 'icon' ? v : '')), words);
     }
-    const read = readLines(`${key}: x`, form)[0];
-    if (!read || read.kind >= form.length) return;
+    const read = this.keyRow(key);
+    if (!read) return;
     const words = this.wordsField(read.kind);
     this.startDraft(read.kind, rows.length, read.depth, read.values.map((v, n) => (n === words ? '' : v)), words);
   }
@@ -462,9 +471,8 @@ export class DiagramElement extends DocElement<string> {
   protected rowKeyed(rows: Row[], key: string): [Row[], number] {
     const at = rows.findIndex((r) => clean(this.keyOf(r)) === clean(key));
     if (at >= 0) return [rows, at];
-    const form = this.spec.form!;
-    const read = readLines(`${key}: x`, form)[0];
-    if (!read || read.kind >= form.length) return [rows, -1];
+    const read = this.keyRow(key);
+    if (!read) return [rows, -1];
     const words = this.wordsField(read.kind);
     return [[...rows, { ...read, values: read.values.map((v, n) => (n === words ? '' : v)) }], rows.length];
   }

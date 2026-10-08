@@ -107,7 +107,7 @@ function canvasOf(el: HTMLElement) {
 }
 
 test('draw: shapes can be joined, and the join follows them', async () => {
-  const { el, last } = await mount('draw', 'o,4,6,16,8,1b,Web\nc,40,20,14,10,0,Data');
+  const { el, last } = await mount('draw', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Web\nc | 40 | 20 | 14 | 10 | 0 | Data');
   const { canvas, shapes, on } = canvasOf(el);
   expect(shapes()).toHaveLength(2);
   // The join tool: press on one shape, let go on the other.
@@ -150,7 +150,7 @@ test('draw: shapes can be joined, and the join follows them', async () => {
 });
 
 test('draw: an icon on a shape; and the diagram apps take icons too', async () => {
-  const { el, last } = await mount('draw', 'o,4,6,16,8,1b,Web');
+  const { el, last } = await mount('draw', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Web');
   const { canvas, shapes, on } = canvasOf(el);
   // An icon in front of the selected shape's label.
   on('pointerdown', shapes()[0].firstElementChild!);

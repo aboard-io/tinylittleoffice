@@ -232,7 +232,7 @@ describe('trip', () => {
 // drawing on the stage and dragging a shape are placed by where the pointer is on the screen, and stay there).
 describe('motion', () => {
   /** A rectangle drawn at 8,5 (in grid units) labelled Go, moved 300 by 200 pixels between the first moment and the last. */
-  const MOVED = '!o\nr,8,5,16,10,0,Go\n@0\t0,0,0,0,a,0;n,8c,5k,0,a,0';
+  const MOVED = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 8 | 5 | 16 | 10 | 0 | Go\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,300,200,0,1,0';
 
   /** Where the shape is: its centre, and its spin (to within a pixel, as a finger is). */
   function at(el: Editor, x: number, y: number, spin = 0) {
@@ -269,7 +269,7 @@ describe('motion', () => {
     await settle(el);
     button(el.querySelector('.motion-fx')!, 'Impact').click();
     await settle(el);
-    expect(last()).toMatch(/;c,4[cd],2[wx],0,a,19,i;/);
+    expect(last()).toMatch(/; 12,15[67],10[45],0,1,45,i;/);
     expect(el.querySelector('.motion-stage text')!.textContent).toBe('GO');
     // Opened again, it is all there.
     const again = await mount('anim', last());

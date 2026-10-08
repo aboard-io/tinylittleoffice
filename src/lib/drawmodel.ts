@@ -1,18 +1,32 @@
 import { PALETTE } from './palette.ts';
+import { parse, write, takeHead, withHead, type Block } from './tlo.ts';
 /**
- * Drawing document model.
- * Format: one shape per line:  kind,x,y,w,h,style,label
+ * Drawing document model. The text is TLO (lib/tlo.ts): a table, a row per
+ * shape, and the alt text in the header:
+ *
+ *   ---
+ *   alt: A browser asks a server.
+ *   ---
+ *   Kind | X | Y | W | H | Style | Label
+ *   --- | --- | --- | --- | --- | --- | ---
+ *   o | 4 | 6 | 16 | 8 | 1b | Browser
+ *   o | 32 | 6 | 16 | 8 | 1b | Server
+ *   k | 0 | 1 | 0 | 0 | 0 | asks
+ *
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use
- * x,y as the start and w,h as the delta to the end. Style is the fill (0, 1
- * or 2), then optionally a colour letter and a text size digit: "1", "2b",
- * "0r3". Black and the normal text size are the defaults and are left out.
+ * X, Y as the start and W, H as the distance to the end. Style is the fill
+ * (0, 1 or 2), then optionally a colour letter and a text size digit: "1",
+ * "2b", "0r3". Black and the normal text size are the defaults and are left
+ * out.
  *
  * Kinds: r rectangle, o rounded box, e ellipse, d diamond, h hexagon,
- * p parallelogram, c cylinder, n note, t text, i icon (its label is the icon's
- * name), l line, a arrow, and two that
- * join shapes: k (arrow) and j (line). For those, x and y are not places but
- * the numbers of the two shapes joined, counting lines from 0, so the join
- * follows its shapes wherever they go.
+ * p parallelogram, c cylinder, n note, t text, i icon (its label is the
+ * icon's name), l line, a arrow, v any shape (its corners in a Points
+ * column, there only when one is drawn), and two that join shapes: k
+ * (arrow) and j (line). For those, X and Y are not places but the numbers of
+ * the two shapes joined, counting rows from 0, so the join follows its
+ * shapes wherever they go. Read leniently, a kind may be named in words
+ * ("rectangle", "arrow") and the columns may come in any order.
  *
  * A label may start with an icon, ":rocket Launch", drawn before the words;
  * " | " in a label starts a second, smaller line.
@@ -82,20 +96,11 @@ export function paint(s: Shape, ink: string, paper: string, shade: string) {
 
 const KINDS: Kind[] = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v'];
 
-/**
- * What a drawing shows, said in words for anyone who cannot see it (alt
- * text): a line "# ..." in its text, first by custom. '' when there is none.
- */
-export function altOf(text: string): string {
-  return /^# (.*)$/m.exec(text)?.[1].trim() ?? '';
-}
+/** What a drawing shows, said in words for anyone who cannot see it (alt text): the header's "alt". '' when there is none. */
+export const altOf = (text: string): string => takeHead(text, ['alt'])[0].alt ?? '';
 
-/** The drawing's text with its alt text set (or taken out, when empty), on the first line. */
-export function withAlt(text: string, alt: string): string {
-  const rest = text.split('\n').filter((l) => !l.startsWith('# ')).join('\n');
-  const said = alt.replace(/\s+/g, ' ').trim();
-  return said ? `# ${said}${rest ? '\n' + rest : ''}` : rest;
-}
+/** The drawing's text with its alt text set (or taken out, when empty). */
+export const withAlt = (text: string, alt: string): string => withHead(text, { alt: alt.replace(/\s+/g, ' ').trim() });
 
 /**
  * A description made from the shapes themselves, when nobody wrote one: what
@@ -112,41 +117,76 @@ export function describeDrawing(shapes: Shape[]): string {
   return joins.length ? `${head} ${joins.join('; ')}.` : head;
 }
 
-export function parseDrawing(text: string): Shape[] {
-  if (!text) return [];
+/** Kinds by name, for a table written by hand. */
+const NAMED: Record<string, Kind> = { rect: 'r', rectangle: 'r', box: 'o', rounded: 'o', ellipse: 'e', circle: 'e', oval: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', database: 'c', note: 'n', icon: 'i', line: 'l', arrow: 'a', text: 't', shape: 'v', join: 'k', link: 'j' };
+const COLS = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label'];
+type Table = Extract<Block, { k: 'table' }>;
+
+/** The table of shapes: the first table with a Kind column. */
+export const shapesBlock = (blocks: Block[]) => blocks.find((b) => b.k === 'table' && b.head.some((h) => /^kind$/i.test(h.trim()))) as Table | undefined;
+
+/** A table's rows as shapes. Rows that are not a shape are left out. */
+export function tableShapes(table: Table | undefined): Shape[] {
+  if (!table) return [];
+  const at = (c: string) => table.head.findIndex((h) => h.trim().toLowerCase() === c);
+  const cols = Object.fromEntries([...COLS, 'Points'].map((c) => [c, at(c.toLowerCase())]));
   const out: Shape[] = [];
-  for (const line of text.split('\n')) {
-    const parts = line.split(',');
-    if (parts.length < 6) continue;
-    const [k, x, y, w, h, f] = parts;
-    if (!KINDS.includes(k as Kind)) continue;
+  for (const row of table.rows) {
+    const get = (c: string) => (cols[c] >= 0 ? (row[cols[c]] ?? '').trim() : '');
+    const word = get('Kind').toLowerCase();
+    const k = (KINDS.includes(word as Kind) ? word : NAMED[word]) as Kind | undefined;
+    if (!k) continue;
+    const n = (c: string) => Math.round(parseFloat(get(c))) || 0;
+    const f = get('Style');
     const style = /^([0-2])([a-z]?)([1-4]?)$/.exec(f);
     const shape: Shape = {
-      k: k as Kind,
+      k,
       // (A join's x and y are shape numbers, not places.)
-      x: (parseInt(x, 10) || 0) * (isLink(k as Kind) ? 1 : GRID),
-      y: (parseInt(y, 10) || 0) * (isLink(k as Kind) ? 1 : GRID),
-      w: (parseInt(w, 10) || 0) * GRID,
-      h: (parseInt(h, 10) || 0) * GRID,
-      f: (style ? parseInt(style[1], 10) : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
-      text: parts.slice(k === 'v' ? 7 : 6).join(','),
+      x: n('X') * (isLink(k) ? 1 : GRID),
+      y: n('Y') * (isLink(k) ? 1 : GRID),
+      w: n('W') * GRID,
+      h: n('H') * GRID,
+      f: (style ? +style[1] : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
+      text: get('Label'),
     };
-    if (k === 'v') shape.pts = ptsOf(parts[6] ?? '');
+    if (k === 'v') shape.pts = ptsOf(get('Points'));
     if (style && style[2] in COLORS) shape.c = style[2] as Color;
-    if (style && style[3] && style[3] !== '2') shape.z = parseInt(style[3], 10) as TextSize;
+    if (style && style[3] && style[3] !== '2') shape.z = +style[3] as TextSize;
     out.push(shape);
   }
   return out;
 }
 
-export function serializeDrawing(shapes: Shape[]): string {
-  const g = (n: number) => Math.round(n / GRID);
-  return shapes
-    .map((s) => {
-      const base = `${s.k},${isLink(s.k) ? s.x : g(s.x)},${isLink(s.k) ? s.y : g(s.y)},${g(s.w)},${g(s.h)},${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}${s.k === 'v' ? ',' + ptsText(s.pts ?? []) : ''}`;
-      return s.text ? `${base},${s.text.replace(/\n/g, ' ')}` : base;
-    })
-    .join('\n');
+/** Shapes as their table (with a Points column when one of them is drawn with the pen). */
+export function shapesTable(shapes: Shape[]): Table {
+  const g = (n: number) => String(Math.round(n / GRID));
+  const pen = shapes.some((s) => s.k === 'v');
+  return {
+    k: 'table',
+    head: pen ? [...COLS, 'Points'] : COLS,
+    rows: shapes.map((s) => [s.k, isLink(s.k) ? String(s.x) : g(s.x), isLink(s.k) ? String(s.y) : g(s.y), g(s.w), g(s.h), `${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}`, s.text.replace(/\n/g, ' '), ...(pen ? [s.k === 'v' ? ptsText(s.pts ?? []) : ''] : [])]),
+  };
+}
+
+export const parseDrawing = (text: string): Shape[] => tableShapes(shapesBlock(parse(text).blocks));
+
+export function serializeDrawing(shapes: Shape[], alt = ''): string {
+  const said = alt.replace(/\s+/g, ' ').trim();
+  return write({ head: said ? { alt: said } : {}, blocks: shapes.length ? [shapesTable(shapes)] : [] }).replace(/\n$/, '');
+}
+
+/**
+ * A drawing as a person or a program loosely writes it: its table, tidied;
+ * or, with no table, a box for each thing listed (four to a row), and a
+ * quote saying what it shows.
+ */
+export function readDrawing(text: string): string {
+  const doc = parse(text);
+  const quote = doc.blocks.find((b) => b.k === 'quote');
+  const alt = doc.head.alt ?? (quote?.k === 'quote' ? quote.text : '');
+  if (shapesBlock(doc.blocks)) return serializeDrawing(parseDrawing(text), alt);
+  const labels = doc.blocks.flatMap((b) => (b.k === 'li' ? [b.text] : b.k === 'p' || b.k === 'h' ? b.text.split('\n') : [])).map((t) => t.trim()).filter(Boolean);
+  return serializeDrawing(labels.map((text, i) => ({ k: 'r', x: (2 + (i % 4) * 14) * GRID, y: (2 + Math.floor(i / 4) * 8) * GRID, w: 12 * GRID, h: 6 * GRID, f: 1, text })), alt);
 }
 
 /** Where a join's line runs: from the edge of one shape's box to the edge of the other's. Null if either is missing. */

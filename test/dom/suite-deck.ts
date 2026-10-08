@@ -210,7 +210,7 @@ test('deck: layouts, a transition, and other documents on a slide', async () => 
 
 test('draw: a shape chosen takes a colour and a text size, kept in what is saved; deleted and duplicated', async () => {
   // (Drawing the shapes with the mouse, and the size the text is drawn at, are e2e's.)
-  const { last } = await mount('draw', 'r,2,1,12,6,0,Start\ne,20,10,10,8,2,End\na,14,4,8,8,0');
+  const { last } = await mount('draw', 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 1 | 12 | 6 | 0 | Start\ne | 20 | 10 | 10 | 8 | 2 | End\na | 14 | 4 | 8 | 8 | 0 | ');
   const shapes = () => $$('g.shape');
   expect(shapes()).toHaveLength(3);
   await poke(shapes()[0]);

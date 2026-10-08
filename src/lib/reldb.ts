@@ -2,22 +2,29 @@
  * A tiny relational database: tables of text, joined and queried with a
  * small dialect of SQL. Everything is in memory and in the link.
  *
- * Tables are written as a heading line and rows:
+ * The text is TLO (lib/tlo.ts): each table is a "## name" heading followed
+ * by a table, and the queries are a `sql` fence, each ending in ";":
  *
- *   people: id, name, team_id > teams
- *   1, Ann, 1
- *   2, Bo, 2
+ *   ## people
  *
- * "team_id > teams" says the column refers to another table. Tables are
- * separated by blank lines. Lines starting with "?" are queries:
+ *   id | name | team_id>teams
+ *   --- | --- | ---
+ *   1 | Ann | 1
+ *   2 | Bo | 2
  *
- *   ? select name, teams.name from people join teams on team_id = teams.id where teams.name = 'Design' order by name
+ *   ```sql
+ *   select name, teams.name from people join teams on team_id = teams.id where teams.name = 'Design' order by name;
+ *   ```
+ *
+ * "team_id>teams" says the column refers to another table.
  *
  * SELECT understands: columns (bare or table.column, "as" names), *,
  * count(*), count/sum/avg/min/max(column); FROM with any number of
  * "JOIN t ON a = b"; WHERE with = <> < > <= >= and LIKE ('%' wildcards),
  * joined by AND and OR; GROUP BY; ORDER BY ... [DESC]; LIMIT.
  */
+import { parse, write, column, type Block } from './tlo.ts';
+
 export interface Column {
   name: string;
   /** The table this column refers to, if it is a foreign key. */
@@ -38,30 +45,44 @@ export interface Result {
   error?: string;
 }
 
-/** Split a line on commas, minding "quoted, values". */
-function cells(line: string): string[] {
-  return (line.match(/(\s*"(?:[^"]|"")*"\s*|[^,]*)(,|$)/g) ?? [])
-    .slice(0, -1)
-    .map((c) => c.replace(/,$/, '').trim())
-    .map((c) => (/^".*"$/.test(c) ? c.slice(1, -1).replace(/""/g, '"') : c));
+/** A column heading, "team_id>teams", as its name and the table it refers to. */
+function columnOf(h: string): Column {
+  const [name, ref] = h.split('>').map((p) => p.trim());
+  return { name: column(name).name, ...(ref ? { ref: ref.split('.')[0] } : {}) };
 }
 
+/** The queries of a sql fence: each ends with ";" or a blank line, and may run over several lines. */
+const queriesOf = (body: string) =>
+  body
+    .split(/;\s*(?:\n|$)|\n\s*\n/)
+    .map((q) => q.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+/** Leniently: a table under any heading (or under none, named for its place), queries in any fence that is not another app's. */
 export function parseDb(text: string): Database {
   const db: Database = { tables: [], queries: [] };
-  let cur: Table | null = null;
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    if (!line) cur = null;
-    else if (line.startsWith('?')) db.queries.push(line.slice(1).trim());
-    else if (!cur) {
-      const m = /^([A-Za-z_]\w*)\s*:\s*(.*)$/.exec(line);
-      if (!m) continue;
-      cur = { name: m[1], cols: cells(m[2]).filter(Boolean).map((c) => ({ name: c.split('>')[0].trim(), ...(c.includes('>') ? { ref: c.split('>')[1].trim().split('.')[0] } : {}) })), rows: [] };
-      db.tables.push(cur);
-    } else cur.rows.push(cells(line));
+  let name = '';
+  for (const b of parse(text).blocks) {
+    if (b.k === 'h') name = b.text.trim().replace(/\s+/g, '_');
+    else if (b.k === 'table') {
+      db.tables.push({ name: name || `table${db.tables.length + 1}`, cols: b.head.map(columnOf), rows: b.rows });
+      name = '';
+    } else if (b.k === 'fence' && (b.lang === 'sql' || !b.lang)) db.queries.push(...queriesOf(b.body));
   }
   return db;
 }
+
+export function serializeDb(db: Database): string {
+  const blocks: Block[] = db.tables.flatMap((t): Block[] => [
+    { k: 'h', level: 2, text: t.name },
+    { k: 'table', head: t.cols.map((c) => (c.ref ? `${c.name}>${c.ref}` : c.name)), rows: t.rows },
+  ]);
+  if (db.queries.length) blocks.push({ k: 'fence', lang: 'sql', body: db.queries.map((q) => `${q.replace(/;\s*$/, '')};`).join('\n') });
+  return write({ head: {}, blocks }).replace(/\n$/, '');
+}
+
+/** A database as it is loosely written, in its canonical form. */
+export const readDb = (text: string) => serializeDb(parseDb(text));
 
 type Row = Record<string, string | number>;
 const value = (s: string): string | number => (/^-?\d+(\.\d+)?$/.test(s.trim()) ? parseFloat(s) : s);

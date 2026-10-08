@@ -3,10 +3,9 @@
  * picture is the schema (tables and what refers to what); the answers to
  * the queries come from lib/reldb.ts and are listed under it.
  */
-import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, shape, type Diagram } from '../lib/diagram.ts';
 import { csv, utf8, xml, listPage } from '../kit/core.ts';
-import { parseDb, runQuery } from '../lib/reldb.ts';
+import { parseDb, readDb, runQuery } from '../lib/reldb.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 import { shapesPage } from './draw.def.ts';
 
@@ -55,18 +54,10 @@ function aside(text: string): string {
 }
 
 export const spec = {
-  form: [
-    { name: 'Query', is: '? {Query}' },
-    { name: 'Table', is: '{Table}: {Columns}' },
-    { name: 'Next table', is: '' },
-    { name: 'Row', is: '{Values}' },
-  ] as LineKind[],
-  hint: 'A table: "name: column, column > other_table", then a row per line. Blank line between tables. A line starting "?" is a query.',
-  example: 'teams: id, name\n1, Platform\n2, Design\n\npeople: id, name, team_id > teams\n1, Ann, 1\n2, Bo, 2\n3, Cy, 1\n\n? select teams.name, count(*) as people from people join teams on team_id = teams.id group by teams.name order by people desc',
+  hint: 'A table: "## name", then a Markdown table, its first row the columns ("team_id>teams" refers to another table). Queries go in a ```sql block, each ending in ";".',
+  example: '## teams\n\nid | name\n--- | ---\n1 | Platform\n2 | Design\n\n## people\n\nid | name | team_id>teams\n--- | --- | ---\n1 | Ann | 1\n2 | Bo | 2\n3 | Cy | 1\n\n```sql\nselect teams.name, count(*) as people from people join teams on team_id = teams.id group by teams.name order by people desc;\n```',
   layout,
   aside,
-  // Rows at heart: the list beside the schema is where the data is typed.
-  list: true,
 };
 
 export default defineDiagram(
@@ -75,6 +66,7 @@ export default defineDiagram(
     name: 'Database',
     icon: 'db',
     blurb: 'A tiny relational database: tables, rows, and SQL queries, with its schema drawn.',
+    read: readDb,
     outline: (body) => parseDb(body).tables.map((t) => `${t.name}  ·  ${t.rows.length} rows`),
     html: (body) => `<h1>Database</h1>\n${parseDb(body).tables.map((t) => `<h2>${xml(t.name)}</h2>\n<table><thead><tr>${t.cols.map((c) => `<th scope="col">${xml(c.name)}</th>`).join('')}</tr></thead><tbody>${t.rows.map((r) => `<tr>${t.cols.map((_, i) => `<td>${xml(r[i] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('\n')}\n${aside(body)}`,
     // The schema, then a page for each query's answer.

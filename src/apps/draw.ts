@@ -2,12 +2,12 @@
  * <to-draw>: a little diagram tool. Rectangles, ellipses, diamonds, lines,
  * arrows and free text, each with an optional label, on a 640x400 canvas.
  *
- * Document format: one shape per line:  kind,x,y,w,h,fill,label
- * Coordinates are in 8px grid units so they stay short. Lines and arrows use
- * x,y as the start and w,h as the delta to the end.
+ * Document format (lib/drawmodel.ts): a table, a row per shape,
+ * "Kind | X | Y | W | H | Style | Label", and the alt text in the header.
  */
 import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, hashOf, UI, type SlInput, type SlSelect, type SlTextarea } from '../kit.ts';
-import { W, H, GRID, COLORS, TEXT_SIZES, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, parseDrawing, withAlt, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
+import { W, H, GRID, COLORS, TEXT_SIZES, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
+import { parseAnim, serializeAnim } from '../lib/animmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 
@@ -59,7 +59,7 @@ export class ToDraw extends DocElement<Shape[]> {
   private stamp = '';
   private svgEl?: SVGSVGElement;
 
-  /** What the drawing shows, in words: its alt text, kept beside the shapes and saved as the text's first line. */
+  /** What the drawing shows, in words: its alt text, kept beside the shapes and saved in the header. */
   @state() private alt = '';
   /** The alt text being written, while its dialog is open; null when it is closed. */
   @state() private altDraft: string | null = null;
@@ -68,7 +68,7 @@ export class ToDraw extends DocElement<Shape[]> {
     this.alt = altOf(text);
     return parseDrawing(text);
   };
-  protected serialize = (doc: Shape[]) => withAlt(serializeDrawing(doc), this.alt);
+  protected serialize = (doc: Shape[]) => serializeDrawing(doc, this.alt);
 
   protected loaded() {
     this.sel = -1;
@@ -358,7 +358,7 @@ export class ToDraw extends DocElement<Shape[]> {
           data-tip=${this.alt ? `Alt text: ${this.alt}` : 'Add alt text: describe this drawing'}
           @click=${() => (this.altDraft = this.alt)}
         >${this.alt ? icon(UI.check, 12) : nothing}ALT</sl-button>
-        ${tool('Animate this drawing', 'play', () => (location.hash = hashOf('anim', '!o\n' + this.serialize(this.doc))), { disabled: !this.doc.length, size: 16 })}
+        ${tool('Animate this drawing', 'play', () => (location.hash = hashOf('anim', serializeAnim(parseAnim(this.serialize(this.doc))))), { disabled: !this.doc.length, size: 16 })}
         <sl-button-group label="Arrange">
           ${tool('Bring to front', 'front', () => this.reorder(true), { disabled: !s, size: 16 })}
           ${tool('Send to back', 'back', () => this.reorder(false), { disabled: !s, size: 16 })}

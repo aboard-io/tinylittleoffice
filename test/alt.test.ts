@@ -7,20 +7,21 @@ import { altOf, withAlt, describeDrawing, parseDrawing, serializeDrawing } from 
 import { parseAnim, serializeAnim } from '../src/lib/animmodel.ts';
 import { fromMarkdown, toMarkdown } from '../src/lib/markdown.ts';
 
-const DRAWING = 'o,4,6,16,8,1b,Browser\no,32,6,16,8,1b,Server\nk,0,1,0,0,0,asks';
+const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks';
+const ANIM = `---\nframes: 24\nfps: 8\nalt: Rocket lifts off\n---\n${DRAWING.split('\n').slice(0, 2).join('\n')}\nt | 4 | 20 | 20 | 4 | 04 | Lift off`;
 
-test('alt text is a first line of its own, and leaves the shapes alone', () => {
+test('alt text is in the header, and leaves the shapes alone', () => {
   const body = withAlt(DRAWING, 'A browser asks a server.');
-  assert.equal(body.split('\n')[0], '# A browser asks a server.');
+  assert.equal(body.split('\n').slice(0, 3).join('\n'), '---\nalt: A browser asks a server.\n---');
   assert.equal(altOf(body), 'A browser asks a server.');
   assert.equal(serializeDrawing(parseDrawing(body)), DRAWING);
+  assert.equal(serializeDrawing(parseDrawing(body), altOf(body)), body);
   assert.equal(withAlt(body, ''), DRAWING);
-  assert.equal(withAlt(body, 'Two\nlines'), '# Two lines\n' + DRAWING);
+  assert.equal(withAlt(body, 'Two\nlines'), '---\nalt: Two lines\n---\n' + DRAWING);
 });
-
 test('a description is made from the labels when nobody wrote one', () => {
   assert.equal(describeDrawing(parseDrawing(DRAWING)), 'A drawing of Browser, Server. Browser leads to Server (asks).');
-  assert.equal(describeDrawing(parseDrawing('r,1,1,4,4,0')), 'A drawing of 1 unlabelled shape.');
+  assert.equal(describeDrawing(parseDrawing(DRAWING.split('\n').slice(0, 2).join('\n') + '\nr | 1 | 1 | 4 | 4 | 0 | ')), 'A drawing of 1 unlabelled shape.');
   assert.equal(describeDrawing([]), '');
 });
 
@@ -37,19 +38,22 @@ test('every picture of the drawing says it, after the name it is given, and keep
 });
 
 test('an animation keeps its alt text through its editor’s model', () => {
-  const body = '!o\n# Rocket lifts off\nt,4,20,20,4,04,Lift off';
-  const anim = parseAnim(body);
+  const anim = parseAnim(ANIM);
   assert.equal(anim.alt, 'Rocket lifts off');
-  assert.ok(serializeAnim(anim).startsWith('!o\n# Rocket lifts off\n'));
-  assert.equal(appOf('anim')!.view(body)[0].alt, 'Rocket lifts off');
+  assert.equal(serializeAnim(anim), ANIM);
+  assert.equal(appOf('anim')!.view(ANIM)[0].alt, 'Rocket lifts off');
 });
 
-test('alt text goes into Markdown as a quote and comes back', () => {
-  for (const [app, body] of [['draw', withAlt(DRAWING, 'A browser asks a server.')], ['anim', '!o\n# Rocket lifts off\nt,4,20,20,4,04,Lift off']] as const) {
+test('alt text goes into Markdown in the header and comes back; a quote is alt text too', () => {
+  for (const [app, body] of [['draw', withAlt(DRAWING, 'A browser asks a server.')], ['anim', ANIM]] as const) {
     const def = appOf(app)!;
     const md = toMarkdown(def, body);
-    assert.ok(md.startsWith('> '), md);
-    assert.equal(altOf(fromMarkdown(def, md)), altOf(body.replace(/^!o\n/, '')));
+    assert.ok(md.startsWith('---\nframes') || md.startsWith('---\nalt'), md);
+    assert.equal(fromMarkdown(def, md), body);
+    // Written as a model might: a quote saying what it shows, and the things in it.
+    const loose = fromMarkdown(def, '> What it shows\n\n- Browser\n- Server\n');
+    assert.equal(altOf(loose), 'What it shows');
+    assert.ok(loose.includes('| Browser') && loose.includes('| Server'), loose);
   }
 });
 

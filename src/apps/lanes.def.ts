@@ -1,19 +1,19 @@
 /** Swimlanes: steps in order, each in the lane of whoever does it. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { defineDiagram, frame, join, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { defineDiagram, frame, join, shape, readItems, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import type { Shape } from '../lib/drawmodel.ts';
 
 const LABEL = 120;
 const COL = 176;
 const ROW = 88;
 
-/** The lanes in order of first mention, and the steps; "Sales:" alone is a lane with nothing in it yet. */
+const form: LineKind[] = [{ name: 'Step', is: '- {Who}: {What they do}' }];
+
+/** The lanes in order of first mention, and the steps; "- Sales:" alone is a lane with nothing in it yet. */
 function parse(text: string) {
-  const lines = text
-    .split('\n')
-    .map((l) => /^\s*([^:]+):\s*(.*)$/.exec(l))
-    .filter((m): m is RegExpExecArray => !!m)
-    .map((m) => ({ lane: m[1].trim(), text: m[2].trim() }));
+  const lines = readLines(text, form)
+    .filter((r) => r.kind === 0)
+    .map((r) => ({ lane: r.values[0], text: r.values[1] }));
   return { lanes: [...new Set(lines.map((s) => s.lane))], steps: lines.filter((s) => s.text) };
 }
 
@@ -30,12 +30,9 @@ function layout(text: string): Diagram {
 }
 
 export const spec = {
-  form: [
-    { name: 'Step', is: '{Who}: {What they do}' },
-    { name: 'Line', is: '{Text}' },
-  ] as LineKind[],
-  hint: 'One step per line, in order: "Who: what they do". A step ending in "?" is drawn as a decision.',
-  example: 'Customer: Places order\nSales: Checks stock\nSales: In stock?\nWarehouse: Packs it\nCourier: Delivers\nCustomer: Signs for it',
+  form,
+  hint: 'One step per line, in order: "- Who: what they do". A step ending in "?" is drawn as a decision.',
+  example: '- Customer: Places order\n- Sales: Checks stock\n- Sales: In stock?\n- Warehouse: Packs it\n- Courier: Delivers\n- Customer: Signs for it',
   layout,
   // A tap in a lane's band adds a step to that lane; a step dropped in one moves there.
   keyAt(text: string, x: number, y: number) {
@@ -45,4 +42,4 @@ export const spec = {
   },
 };
 
-export default defineDiagram({ id: 'lanes', name: 'Swimlanes', icon: 'lanes', blurb: 'A process, step by step, with a lane for each person or team that acts.' }, spec);
+export default defineDiagram({ id: 'lanes', name: 'Swimlanes', icon: 'lanes', blurb: 'A process, step by step, with a lane for each person or team that acts.', read: readItems(form) }, spec);

@@ -1,7 +1,7 @@
 /** Motion: what the shell knows about a drawing that moves. Format: lib/animmodel.ts. */
 import { defineApp, utf8, pageSvg, r, INK, type Page } from '../kit/core.ts';
 import { describeDrawing, isLine, isLink, linkEnds, type Shape } from '../lib/drawmodel.ts';
-import { parseAnim, stateAt, depthScale, W, H, type Anim, type Key } from '../lib/animmodel.ts';
+import { parseAnim, readAnim, stateAt, depthScale, W, H, type Anim, type Key } from '../lib/animmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 
 /** A shape's box as drawn: [x, y, w, h], never negative (a join's is the line between its shapes). */
@@ -136,6 +136,7 @@ export default defineApp({
   icon: 'anim',
   blurb: 'Anything from Draw, moving: position, depth, size and spin over time, with effects for memes.',
   title: () => '',
+  read: readAnim,
   outline: (body) => [parseAnim(body).alt ?? '', ...parseAnim(body).shapes.map((s) => s.text.trim())].filter(Boolean),
   view: (body, opts = {}) => [animPage(parseAnim(body), opts.embed)],
   frames: animFrames,

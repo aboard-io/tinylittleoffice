@@ -223,7 +223,7 @@ export class ShapesView extends DiagramElement {
       const row = rows[d.hit.row];
       const kf = this.keyField(row.kind);
       if (kf < 0 || this.listField(row.kind) >= 0 || clean(this.keyOf(row)) === clean(key)) return;
-      const read = readLines(`${key}: x`, form)[0];
+      const read = this.keyRow(key);
       if (read && read.kind === row.kind) this.putRows(rows.map((r, n) => (n === d.hit.row ? { ...r, values: r.values.map((v, m) => (m === kf ? read.values[kf] : v)) } : r)));
       return;
     }
@@ -240,8 +240,9 @@ export class ShapesView extends DiagramElement {
     }
   }
 
+  /** A picture of shapes is worked on the picture itself: no list beside it. */
   protected get lists() {
-    return !!this.spec.list;
+    return false;
   }
   protected drawable() {
     return !!this.spec.layout?.(this.doc).shapes.length;
