@@ -83,7 +83,8 @@ test('a document can be shown inside another page', async ({ page }) => {
   await shot(page, 'embedded');
 });
 
-test('draw: shapes can be joined, and the join follows them', async ({ page, isMobile }) => {
+// Stays: joining, dragging and placing go by where the pointer is on the canvas (the rest is in test/dom/diagrams.test.ts).
+test('draw: a join dragged between shapes follows a shape dragged away; a shape placed by a click', async ({ page, isMobile }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web\nc,40,20,14,10,0,Data' }));
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
@@ -104,8 +105,6 @@ test('draw: shapes can be joined, and the join follows them', async ({ page, isM
   const line = canvas.locator('g.shape').nth(2).locator('line[marker-end]');
   await expect(line).toHaveCount(1);
   const before = await line.getAttribute('x2');
-  await page.getByRole('textbox', { name: 'Label' }).fill('reads');
-  await expect(canvas).toContainText('reads');
   // Move the cylinder: the join goes with it.
   if (!isMobile) {
     await page.mouse.move(b.x, b.y);
@@ -114,9 +113,6 @@ test('draw: shapes can be joined, and the join follows them', async ({ page, isM
     await page.mouse.up();
     await expect.poll(() => line.getAttribute('x2')).not.toBe(before);
   }
-  await reopen(page);
-  await expect(canvas.locator('g.shape')).toHaveCount(3);
-  await expect(canvas).toContainText('reads');
   // More shapes are a menu away.
   await page.getByRole('button', { name: 'Shapes', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Hexagon' }).click();
@@ -124,11 +120,6 @@ test('draw: shapes can be joined, and the join follows them', async ({ page, isM
   await page.mouse.click(box.x + box.width * 0.2, box.y + box.height * 0.8);
   await expect(canvas.locator('g.shape')).toHaveCount(4);
   await shot(page, 'draw-join');
-  // Delete a joined shape and its join goes too.
-  await canvas.locator('g.shape').nth(0).click();
-  await page.keyboard.press('Delete');
-  await expect(canvas.locator('g.shape')).toHaveCount(2);
-  await expect(canvas.locator('line[marker-end]')).toHaveCount(0);
 });
 
 test('everything is set in IBM Plex', async ({ page }) => {
@@ -144,7 +135,8 @@ test('everything is set in IBM Plex', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveCSS('font-family', /IBM Plex Mono/);
 });
 
-test('draw: zoom, and icons', async ({ page }) => {
+// Stays: zoom is the canvas's drawn size, and a click finds a shape, or a place for an icon, by where it is (an icon on a shape is in test/dom/diagrams.test.ts).
+test('draw: zoom, and an icon placed by a click', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   await page.goto('/#/v0/draw/' + encodeEnvelope({ created: null, body: 'o,4,6,16,8,1b,Web' }));
   const canvas = page.getByRole('img', { name: 'Drawing canvas' });
@@ -163,14 +155,7 @@ test('draw: zoom, and icons', async ({ page }) => {
   expect(await width()).toBeCloseTo(fit * 0.75, -1);
   await page.getByRole('button', { name: /^Zoom: 75%/ }).click();
 
-  // An icon in front of the selected shape's label.
-  await canvas.locator('g.shape').first().click();
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  await page.locator('sl-dialog.to-icons sl-input input').fill('globe');
-  await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'globe', exact: true }).click();
-  await expect(canvas.locator('g.shape').first().locator('g[stroke-linecap="round"]')).toHaveCount(1);
-  await expect(canvas).toContainText('Web');
-  // And one on its own: pick it, then click where it goes.
+  // An icon on its own: pick it, then click where it goes.
   await page.keyboard.press('Escape');
   await canvas.click({ position: { x: 5, y: 5 } });
   await page.getByRole('button', { name: 'Icon', exact: true }).click();
@@ -182,17 +167,8 @@ test('draw: zoom, and icons', async ({ page }) => {
   await expect(canvas.locator('g.shape')).toHaveCount(2);
   await reopen(page);
   await expect(canvas.locator('g.shape')).toHaveCount(2);
-  await expect(canvas.locator('g[stroke-linecap="round"]')).toHaveCount(2);
+  await expect(canvas.locator('g[stroke-linecap="round"]')).toHaveCount(1);
   await shot(page, 'draw-icons');
-  // The diagram apps take icons too: one click puts ":name" on the line.
-  await page.goto('/#/v0/org');
-  const text = page.getByRole('textbox', { name: 'Org chart, as text' });
-  await text.fill('Ada | CEO');
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  await page.locator('sl-dialog.to-icons sl-input input').fill('crown');
-  await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'crown', exact: true }).click();
-  await expect(text).toHaveValue(':crown Ada | CEO');
-  await expect(page.locator('to-org .pic svg g[stroke-linecap="round"]')).toHaveCount(1);
 });
 
 test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
