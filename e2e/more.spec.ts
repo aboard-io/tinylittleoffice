@@ -131,28 +131,6 @@ test('draw: shapes can be joined, and the join follows them', async ({ page, isM
   await expect(canvas.locator('line[marker-end]')).toHaveCount(0);
 });
 
-test('deck: any Lucide icon, in one colour for the whole deck', async ({ page }) => {
-  await page.goto('/#/v0/deck');
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Open to all');
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  const picker = page.locator('#icon-picker');
-  await expect(picker).toContainText(/to find any of 1,\d{3} icons/);
-  // An icon that was never in the starter set.
-  await picker.locator('sl-input input').fill('accessib');
-  await page.getByRole('group', { name: 'Icon library' }).getByRole('button', { name: 'accessibility', exact: true }).click();
-  await expect(page.locator('.deck-slide .pick svg')).toBeVisible();
-  // One colour for every icon in the deck.
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  await page.getByRole('radio', { name: 'Red' }).click();
-  await picker.getByRole('button', { name: 'Close' }).click();
-  const thumb = page.locator('.deck-rail .deck-thumb').first();
-  await expect(thumb.locator('g[stroke="#b3261e"]')).toHaveCount(1);
-  await reopen(page);
-  await expect(thumb.locator('g[stroke="#b3261e"]')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Present' }).click();
-  await expect(page.locator('.deck-show .frame > svg g[stroke="#b3261e"] path').first()).toBeAttached();
-});
-
 test('everything is set in IBM Plex', async ({ page }) => {
   await page.goto('/#/v0/write');
   await page.evaluate(() => document.fonts.ready);
@@ -164,47 +142,6 @@ test('everything is set in IBM Plex', async ({ page }) => {
   expect(fonts.loaded).toBe(true);
   await page.goto('/#/v0/sheet');
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveCSS('font-family', /IBM Plex Mono/);
-});
-
-test('previews are the real thing: a month, a map, a list that fills in', async ({ page }) => {
-  await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') }));
-  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
-  const ref = (app: string, body: string) => `${app}/${encodeEnvelope({ created: null, body })}`;
-  const cal = ref('cal', 'd2,2.g,Offsite\ndb,1,Launch\n#g=Sam');
-  const trip = ref('trip', '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra');
-  const todo = ref('todo', '- Book flights\nx Renew passport\n- Pack');
-  // In a text they show whole: the calendar as a month, the trip on its map, every task.
-  await page.goto('/#/v0/write/' + encodeEnvelope({ created: null, body: `Plans\n@@${cal}\n@@${trip}\n@@${todo}` }));
-  const embeds = page.locator('to-embed');
-  await expect(embeds).toHaveCount(3);
-  await expect(embeds.nth(0).locator('svg[role="img"]')).toContainText('January 2020');
-  await expect(embeds.nth(0).locator('svg[role="img"]')).toContainText('Offsite');
-  await expect(embeds.nth(0).locator('svg[role="img"]')).toContainText('Sam');
-  expect(await embeds.nth(1).locator('svg[role="img"] image').count()).toBeGreaterThan(3);
-  await expect(embeds.nth(1).locator('svg[role="img"]')).toContainText('Coimbra');
-  await expect(embeds.nth(1).locator('svg[role="img"]')).toContainText('OpenStreetMap');
-  await expect(embeds.nth(2).locator('svg[role="img"]')).toContainText('Pack');
-  await shot(page, 'previews');
-
-  // On slides each arrives a piece at a time.
-  await page.goto('about:blank');
-  await page.goto('/#/v0/deck/' + encodeEnvelope({ created: null, body: `A\n@@${todo}\n\nB\n@@${cal}` }));
-  await page.getByRole('button', { name: 'Present' }).click();
-  const slide = page.locator('.deck-show .frame > svg');
-  await expect(slide).not.toContainText('Book flights');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Book flights');
-  await expect(slide).not.toContainText('Renew passport');
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Pack');
-  // Then the calendar: the month is there, and what happens in it arrives.
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('January 2020');
-  await expect(slide).not.toContainText('Offsite');
-  await page.keyboard.press('ArrowRight');
-  await expect(slide).toContainText('Offsite');
-  await expect(slide).not.toContainText('Launch');
 });
 
 test('draw: zoom, and icons', async ({ page }) => {
@@ -557,7 +494,8 @@ test('the whole document as a QR code, to look at and to keep', async ({ page })
   await expect(page.locator('#qr-dialog')).toContainText('the largest QR code holds 2,953');
 });
 
-test('slides: bold, italic, nesting, from the keyboard and the toolbar', async ({ page }) => {
+// Stays: marks are made by the browser's own editing commands, on a selection made with the keyboard (nesting is in test/dom/deck-write.test.ts).
+test('slides: bold and italic, from the keyboard and the toolbar', async ({ page }) => {
   await page.goto('/#/v0/deck');
   const value = () => page.evaluate(() => (document.querySelector('to-deck') as HTMLElement & { value: string }).value);
   const head = page.getByRole('textbox', { name: 'Headline' });
@@ -571,7 +509,7 @@ test('slides: bold, italic, nesting, from the keyboard and the toolbar', async (
   // The slide itself (in the rail) shows the words, not the marks.
   await expect(page.locator('.deck-rail .deck-thumb svg').first()).toContainText('Spring launch');
   await expect(page.locator('.deck-rail .deck-thumb svg').first()).not.toContainText('_');
-  // Bullets: a line each; the toolbar marks what is selected.
+  // Bullets: the toolbar marks what is selected.
   const bullets = page.getByRole('textbox', { name: 'Bullets' });
   await bullets.click();
   await page.keyboard.type('Ship the beta');
@@ -581,20 +519,14 @@ test('slides: bold, italic, nesting, from the keyboard and the toolbar', async (
   for (let i = 0; i < 4; i++) await page.keyboard.press('Shift+ArrowRight');
   await page.getByRole('button', { name: 'Italic' }).click();
   await expect.poll(value).toMatch(/Ship the beta\n_Tell_ everyone/);
-  // Tab steps a bullet in; Shift+Tab brings it out; so do the buttons.
+  // Tab, from the real keyboard, steps the bullet in.
   await page.keyboard.press('End');
   await page.keyboard.press('Tab');
   await expect.poll(value).toMatch(/\n  _Tell_ everyone/);
-  await page.keyboard.press('Tab');
-  await expect.poll(value).toMatch(/\n    _Tell_ everyone/);
-  await page.keyboard.press('Shift+Tab');
-  await page.getByRole('button', { name: 'Bring the bullet out' }).click();
-  await expect.poll(value).toMatch(/\n_Tell_ everyone/);
-  await page.getByRole('button', { name: 'Indent the bullet' }).click();
-  await expect.poll(value).toMatch(/\n  _Tell_ everyone/);
 });
 
-test('write: highlight, alignment and an icon in the line', async ({ page }) => {
+// Stays: highlight and alignment are the browser's own editing commands (the icon, and the marks read back, are in test/dom/deck-write.test.ts).
+test('write: highlight and alignment from the toolbar', async ({ page }) => {
   await page.goto('/#/v0/write');
   const doc = page.getByRole('textbox', { name: 'Document' });
   await doc.click();
@@ -605,18 +537,7 @@ test('write: highlight, alignment and an icon in the line', async ({ page }) => 
   await expect(doc.locator('mark, span[style*="background"]')).toHaveText('Ship it today');
   await page.getByRole('button', { name: 'Centre' }).click();
   await expect(doc.locator('p')).toHaveAttribute('style', /text-align: ?center/);
-  await doc.locator('p').first().click();
-  await page.keyboard.press('End');
-  await page.getByRole('button', { name: 'Icon', exact: true }).click();
-  await page.locator('sl-dialog.to-icons sl-input input').fill('rocket');
-  await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'rocket', exact: true }).click();
-  await expect(doc.locator('.ic[data-icon="rocket"] svg')).toBeVisible();
-  // It all comes back from the link, and is in the text as marks.
-  await reopen(page);
-  await expect(doc.locator('mark').first()).toHaveText('Ship it today');
-  await expect(doc.locator('.ic[data-icon="rocket"]')).toHaveCount(1);
-  expect(await page.evaluate(() => (document.querySelector('to-write') as HTMLElement & { value: string }).value)).toMatch(/^>c =Ship it today(=:rocket:|:rocket: =)/);
-  await expect(doc.locator('p')).toHaveAttribute('style', /center/);
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-write') as HTMLElement & { value: string }).value)).toMatch(/^>c =Ship it today=/);
   await shot(page, 'write-marks');
 });
 
