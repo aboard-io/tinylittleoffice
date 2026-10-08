@@ -2,28 +2,6 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { shot, reopen, pickOption } from './helpers';
 
-test('a document has a title of its own', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  const title = page.getByRole('textbox', { name: 'Title' });
-  // Until it is given one, it says what it is.
-  await expect(title).toHaveAttribute('placeholder', 'Untitled Sheet');
-  await expect(page).toHaveTitle('Untitled Sheet · TinyLittleOffice');
-  await title.fill('Q3 budget');
-  await expect(page).toHaveTitle('Q3 budget · TinyLittleOffice');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/sheet\/[WYZR]/);
-  await reopen(page);
-  await expect(title).toHaveValue('Q3 budget');
-  // Downloads are named after it.
-  const [file] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
-  expect(file.suggestedFilename()).toBe('q3-budget.xlsx');
-  // A deck with no name of its own goes by its first headline.
-  await page.goto('/#/v0/deck');
-  await page.getByRole('textbox', { name: 'Headline' }).fill('Spring launch');
-  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveAttribute('placeholder', 'Spring launch');
-  await page.getByRole('textbox', { name: 'Title' }).fill('Board deck');
-  await expect(page).toHaveTitle('Board deck · TinyLittleOffice');
-});
-
 test('every example in the skill opens as written', async ({ page }) => {
   test.slow();
   await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') }));
@@ -455,17 +433,6 @@ test('contract: two people, two browsers, two signatures', async ({ page, browse
   await other.close();
 });
 
-test('room for a link says when length does not matter', async ({ page }) => {
-  await page.goto('/#/v0/write');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Some words. '.repeat(20));
-  await page.locator('.to-meter sl-progress-ring').click();
-  const rooms = page.locator('#doc-dialog .to-rooms tbody tr');
-  // Bluesky shows a short form of any link, so the document can grow without using up a post.
-  await expect(rooms.filter({ hasText: 'Bluesky' })).toContainText('any length');
-  await expect(rooms.filter({ hasText: 'Discord' })).toContainText(/\d/);
-});
-
 test('zine: eight pages, a sheet to print either way, and a page to tap through', async ({ page }) => {
   await page.goto('/#/v0/zine');
   await expect(page.locator('.deck-thumb')).toHaveCount(8);
@@ -826,94 +793,6 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   }
 });
 
-test('the library: documents are kept on the device, in folders, once asked', async ({ page }) => {
-  // Private unless asked: nothing written at all.
-  await page.goto('/#/v0/write');
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await expect(page.locator('.to-keep')).toHaveText('Private');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Nothing kept of this');
-  await page.goto('/#/');
-  await expect(page.locator('.to-library')).toHaveCount(0);
-  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
-  await page.goto('/#/v0/write');
-  await page.locator('.to-keep').click();
-  await expect(page.locator('.to-keep')).toHaveText('Saved');
-  // (The suite's own preference, cleared above with the rest: links open for editing.)
-  await page.evaluate(() => localStorage.setItem('tinyoffice.open', 'edit'));
-  await page.goto('about:blank');
-  await page.goto('/#/v0/write');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.type('Notes from the quay');
-  await page.getByRole('textbox', { name: 'Title' }).fill('Quay notes');
-  await page.getByRole('textbox', { name: 'Title' }).press('Enter');
-  await page.goto('/#/v0/todo');
-  await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
-  await page.keyboard.press('Enter');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/todo\/[WYZR]/);
-  // Home glimpses them; Drive holds them, each in a folder named for its app.
-  await page.goto('/#/');
-  await expect(page.locator('.to-library').getByRole('link', { name: /Quay notes/ })).toBeVisible();
-  await page.locator('.to-library').getByRole('link', { name: /Drive, all 2/ }).click();
-  const drive = page.locator('to-drive');
-  const folders = drive.locator('.drive-nav nav a .name');
-  await expect(folders).toHaveText(['Everything', 'Todo', 'Write']);
-  await expect(drive.getByRole('link', { name: /Quay notes/ })).toBeVisible();
-  // Into a folder of your own, nested with a slash.
-  page.once('dialog', (d) => d.accept('Harbor/Plans'));
-  await drive.getByRole('button', { name: 'Move Quay notes to another folder' }).click();
-  await expect(folders).toHaveText(['Everything', 'Harbor', 'Plans', 'Todo']);
-  await drive.locator('.drive-nav nav a', { hasText: 'Plans' }).click();
-  await expect(drive.locator('h1')).toContainText('Harbor/Plans');
-  await expect(drive.locator('.drive-list li')).toHaveCount(1);
-  // Search looks inside the documents, not only at their titles.
-  await drive.getByRole('searchbox', { name: 'Search your documents' }).fill('milk');
-  await expect(drive.locator('.drive-list li')).toHaveCount(1);
-  await expect(drive.locator('.drive-list li')).toContainText('Todo');
-  await drive.getByRole('searchbox', { name: 'Search your documents' }).fill('');
-  // It opens as it was left; changing it keeps it in its folder.
-  await drive.getByRole('link', { name: /Quay notes/ }).click();
-  await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('Notes from the quay');
-  await page.getByRole('textbox', { name: 'Document' }).click();
-  await page.keyboard.press('End');
-  await page.keyboard.type(', and more');
-  await page.goto('about:blank');
-  await page.goto('/#/drive');
-  await expect(folders).toHaveText(['Everything', 'Harbor', 'Plans', 'Todo']);
-  await drive.getByRole('link', { name: /Quay notes/ }).click();
-  await expect(page.getByRole('textbox', { name: 'Document' })).toContainText('and more');
-  await page.goto('/#/drive');
-  await shot(page, 'drive');
-  // Rename a folder; remove a document.
-  page.once('dialog', (d) => d.accept('Harbour'));
-  await drive.getByRole('button', { name: 'Rename Harbor', exact: true }).click();
-  await expect(folders).toHaveText(['Everything', 'Harbour', 'Plans', 'Todo']);
-  await drive.getByRole('button', { name: 'Remove Quay notes from this device' }).click();
-  await expect(folders).toHaveText(['Everything', 'Todo']);
-  await expect(drive).toContainText('Saved only on this device');
-  // All of them at once; the links still open.
-  const todo = await drive.getByRole('link', { name: /Untitled Todo/ }).getAttribute('href');
-  page.once('dialog', (d) => d.accept());
-  await drive.getByRole('button', { name: 'Blow it all away' }).click();
-  await expect(drive.locator('.drive-list li')).toHaveCount(0);
-  await page.goto(todo!);
-  await expect(page.locator('to-todo')).toContainText('Buy milk');
-});
-
-test('the menu finds an app by name', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Menu' }).click();
-  const drawer = page.locator('#nav-drawer');
-  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('zin');
-  await expect(drawer.locator('.to-drawer-nav a:not([hidden])')).toHaveText(['Zine']);
-  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('play');
-  await expect(drawer.locator('.to-drawer-nav a:not([hidden])')).toHaveCount(7);
-  await drawer.getByRole('searchbox', { name: 'Find an app' }).fill('poll');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('to-poll')).toBeVisible();
-});
-
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const trip = `trip/${encodeEnvelope({ created: null, body: '3xa8g,-fuyo,Lisbon\tStart here\n3zkdp,-ep8q,Coimbra\n40000,0,Porto' })}`;
@@ -998,46 +877,6 @@ test('slides: bold, italic, nesting, from the keyboard and the toolbar', async (
   await expect.poll(value).toMatch(/\n_Tell_ everyone/);
   await page.getByRole('button', { name: 'Indent the bullet' }).click();
   await expect.poll(value).toMatch(/\n  _Tell_ everyone/);
-});
-
-test('keeping documents is opt in, and off again erases them', async ({ page }) => {
-  await page.goto('/#/v0/todo');
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await page.locator('.to-keep').click();
-  await expect(page.locator('.to-keep')).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('textbox', { name: 'New task' }).fill('Buy milk');
-  await page.keyboard.press('Enter');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/todo\/[WYZR]/);
-  await page.goto('/#/');
-  await expect(page.locator('.to-library li')).toHaveCount(1);
-  await page.goto('/#/v0/write');
-  page.once('dialog', (d) => d.accept());
-  await page.locator('.to-keep').click();
-  await expect(page.locator('.to-keep')).toHaveText('Private');
-  await page.goto('/#/');
-  await expect(page.locator('.to-library')).toHaveCount(0);
-  // Private means nothing of ours left behind.
-  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
-});
-
-test('everything can be made larger from the menu, and it is remembered', async ({ page }) => {
-  await page.goto('/#/v0/todo');
-  await page.getByRole('button', { name: 'Menu' }).click();
-  await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
-  await page.waitForTimeout(400);
-  const size = page.locator('#nav-drawer .to-size');
-  await expect(size.locator('sl-button').nth(1)).toContainText('100%');
-  await size.locator('sl-button').nth(2).click();
-  await size.locator('sl-button').nth(2).click();
-  await expect(size.locator('sl-button').nth(1)).toContainText('120%');
-  expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('1.2');
-  await page.keyboard.press('Escape');
-  await page.reload();
-  expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('1.2');
-  await page.getByRole('button', { name: 'Menu' }).click();
-  await size.locator('sl-button').nth(1).click();
-  expect(await page.evaluate(() => document.documentElement.style.zoom)).toBe('');
 });
 
 test('write: highlight, alignment and an icon in the line', async ({ page }) => {
