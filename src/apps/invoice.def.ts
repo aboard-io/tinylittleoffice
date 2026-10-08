@@ -1,6 +1,6 @@
 /** Invoice: who, what, how much; the sums done for you. */
 import { kindsOf, readLines, type Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage } from '../lib/diagram.ts';
+import { definePage, htmlPage, type PageOpts } from '../lib/diagram.ts';
 import { xml, text, rect, clip, wrapText, pageScript, ACCENT, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
 
 export interface Invoice {
@@ -102,7 +102,7 @@ function sheet(body: string, upTo = Infinity): Page {
  * typed into where it stands, a hint where one is empty, a row added under
  * the items and taken away beside them (the marks are lib/pageedit.ts's).
  */
-function page(body: string, edit = false): string {
+function page(body: string, { edit = false }: PageOpts = {}): string {
   const inv = parseInvoice(body);
   const f = inv.fields;
   const lines = (v: string | undefined) => (v ?? '').split(' | ').map((l, i) => (i ? xml(l) : `<strong>${xml(l)}</strong>`)).join('<br>');

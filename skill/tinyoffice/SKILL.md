@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, one-page websites, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, chord charts, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -111,11 +111,15 @@ A table is a heading line `name: column, column > other_table` followed by one r
 
 https://tinylittleoffice.com/db/#title=Team+directory&doc=teams%3A+id%2C+name%0A1%2C+Platform%0A2%2C+Design%0A%0Apeople%3A+id%2C+name%2C+team_id+%3E+teams%0A1%2C+Ann%2C+1%0A2%2C+Bo%2C+2%0A3%2C+Cy%2C+1%0A%0A%3F+select+teams.name%2C+count(*)+as+people+from+people+join+teams+on+team_id+%3D+teams.id+group+by+teams.name
 
-### site: a one-page website
+### site: a website of little pages
 
-`# Name` and a line about it; `## Section` starts each part; `- Point | detail` makes a card (start it with `:icon-name` for an icon); `> Label | https://...` makes a button (`#section-name` links within the page). The Web page download is the finished site as one file.
+`# Name` and a line about it make the home page; `=== Title` starts another page, and the pages are the nav; `## Section` is a part of a page; `- Point | detail` makes a card (start it with `:icon-name` for an icon); `> Label | https://...` makes a button (`#menu` goes to the page or section called that; `> :mail Email me | mailto:...` puts an icon on it). A line that is only a picture's address is a picture, a line that is only `:icon-name` a big icon, and `@@app/payload` (the part of a TinyLittleOffice link after `#/v2/`) puts another document on the page. `theme: amber serif dark` picks the look: a colour (`indigo`, `teal`, `rose`, `amber`, `ink`), `sans` or `serif`, `light` or `dark`, any of them. The Web page download is the whole site as one file, its pages switched by hash, so it hosts anywhere.
 
-https://tinylittleoffice.com/site/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0ASmall-batch+coffee%2C+roasted+on+the+quay.%0A%3E+See+the+menu+%7C+%23menu%0A-+%3Acoffee+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf+Fair+trade+%7C+Bought+direct%0A%23%23+Menu%0AEspresso%2C+filter+and+a+pastry+case.%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20
+https://tinylittleoffice.com/site/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0ASmall-batch+coffee%2C+roasted+on+the+quay.%0Atheme%3A+amber+serif%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A-+%3Acoffee+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf+Fair+trade+%7C+Bought+direct%0A%3D%3D%3D+Menu%0AEspresso%2C+filter+and+a+pastry+case.%0A%23%23+Coffee%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A%3D%3D%3D+Find+us%0A14+Quay+Street%2C+open+7+to+3.%0A%3E+Email+us+%7C+mailto%3Ahello%40example.com
+
+A page of three or more buttons is a link-in-bio page: they stack, under the picture and the line of words.
+
+https://tinylittleoffice.com/site/#title=Ada+Diaz&doc=%23+Ada+Diaz%0Ahttps%3A%2F%2Fexample.com%2Fada.jpg%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0Atheme%3A+rose+serif%0A%3E+%3Ashopping-bag+Shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Ainstagram+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A%3E+%3Amail+Email+me+%7C+mailto%3Aada%40example.com
 
 ### store: a shop page with a cart
 
@@ -246,7 +250,7 @@ In `org`, `mind`, `lanes`, `venn`, `net` and `draw`, a label may start with an i
 - Tables you want to query: `db`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
 - A wall of ideas or a retro: `board` (one stage) or `draw`. Questions and answers: `site` (`- Question | answer` cards).
-- Something to publish: `site` for a page, `store` for products, `invoice` to bill.
+- Something to publish: `site` for a site of pages or a link in bio, `store` for products, `invoice` to bill.
 - Anything else visual: `draw`.
 
 ## From JavaScript

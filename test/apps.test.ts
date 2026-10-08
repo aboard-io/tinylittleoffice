@@ -460,7 +460,7 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
     assert.ok(spec.page!('').startsWith('<!doctype html>'), `${id} survives being empty`);
   }
   const site = specOf('site')!.page!(specOf('site')!.example);
-  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section id="menu">') && site.includes('<strong>Roasted daily</strong>'));
+  assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section class="page" id="menu">') && site.includes('<strong>Roasted daily</strong>'));
   const store = specOf('store')!.page!(specOf('store')!.example);
   assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
   // Nothing typed into a page can break out of it.
@@ -494,7 +494,7 @@ test('invoice: the sums, and the page that is its editor', async () => {
   // The page as it is read has no marks; edited, every field is marked with its row, a hint where it is empty.
   const plain = spec.page!(spec.example);
   assert.ok(!plain.includes('data-lf') && !plain.includes('data-inv'));
-  const edit = spec.page!(spec.example, true);
+  const edit = spec.page!(spec.example, { edit: true });
   assert.ok(edit.includes('data-lf="2,0"') && edit.includes('>0042</span>'), 'the number is row 2');
   assert.ok(edit.includes('data-lf="0,0,0" data-hint="Your name"') && edit.includes('data-lf="0,0,1"') && edit.includes('data-lf="0,0,2" data-hint="Another line"'), 'an address is lines, with one more to type into');
   assert.ok(edit.includes('data-lf="6,1"') && edit.includes('data-lf="6,2"') && edit.includes('data-inv="qty"'), 'an item\'s quantity and price');
@@ -503,9 +503,9 @@ test('invoice: the sums, and the page that is its editor', async () => {
   assert.ok(edit.includes('data-lf-add="8" data-lf-after="8"') && edit.includes('data-lf-remove="6"'));
   assert.ok(edit.includes('data-inv="total">$5,486.40<'));
   // Empty, it is all hints, and still the invoice.
-  const blank = spec.page!('', true);
+  const blank = spec.page!('', { edit: true });
   assert.ok(blank.includes('data-lf="+0,0,0"') && blank.includes('data-lf-add="8" data-lf-after="-1"') && blank.includes('data-inv="total">$0.00<'));
-  assert.ok(!spec.page!('', false).includes('data-lf'));
+  assert.ok(!spec.page!('', { edit: false }).includes('data-lf'));
 });
 
 test('contract: two people sign the same words', async () => {

@@ -22,17 +22,34 @@
  * remove (data-lf-add, data-lf-remove), and gets no bar along the bottom.
  *
  * Where the cursor goes ("r,f,p" or "+k,f,p"; a trailing comma selects
- * the words, as for a field reached by keyboard or a row just added).
+ * the words, as for a field reached by keyboard or a row just added). The
+ * cursor is put there as the script runs, and again once the page has
+ * loaded if the browser took it away (it may, settling a frame that has
+ * just been drawn afresh).
  */
 import { pageData, pageScript } from '../kit/core.ts';
 
+/**
+ * Where the page was: a page that switches its parts by hash (a site's
+ * pages) is drawn afresh on every change, and this puts it back on the
+ * part it was showing. The hash is replaced in the history rather than
+ * navigated to (a navigation scrolls, and takes the focus from the field
+ * the editor puts the cursor in), and the event sent at once, so the
+ * page's own script shows the part before anything else runs.
+ */
+export const PLACE_SCRIPT = pageScript(`(function(){
+var s=document.getElementById('lf-at'),h=s?JSON.parse(s.textContent):'';
+window.addEventListener('hashchange',function(){parent.postMessage({lf:'hash',h:location.hash},'*');});
+if(h&&h!==location.hash){try{history.replaceState(null,'',location.href.split('#')[0]+h);}catch(e){location.hash=h;}window.dispatchEvent(new Event('hashchange'));}
+})();`);
+
 export const EDIT_SCRIPT = pageScript(`(function(){
-var D=JSON.parse(document.getElementById('lf').textContent),V=D.v,K=D.k,F=D.f;
+var D=JSON.parse(document.getElementById('lf').textContent),V=D.v,K=D.k,F=D.f,S=D.p||[];
 function send(m){m.s=D.s;parent.postMessage(m,'*');}
 function key(s){return s.getAttribute('data-lf').split(',').slice(0,2).join(',');}
 var fields=[].slice.call(document.querySelectorAll('[data-lf]')),keys=fields.map(key),own=fields.length>0;
 var nodes=[],w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n;
-while((n=w.nextNode())){var p=n.parentNode;if(n.nodeValue.trim()&&p&&!/^(SCRIPT|STYLE|TITLE|TEXTAREA|OPTION)$/.test(p.tagName)&&!p.hasAttribute('data-lf'))nodes.push(n);}
+while((n=w.nextNode())){var p=n.parentNode;if(n.nodeValue.trim()&&p&&!/^(SCRIPT|STYLE|TITLE|TEXTAREA|OPTION)$/.test(p.tagName)&&!p.hasAttribute('data-lf')&&!p.closest('nav'))nodes.push(n);}
 var used=[];
 V.forEach(function(e){var r=e[0],f=e[1],v=e[2],t=null;if(keys.indexOf(r+','+f)>=0)return;for(var i=0;i<nodes.length;i++){if(used.indexOf(nodes[i])<0&&nodes[i].nodeValue.trim()===v){t=nodes[i];break;}}if(!t)return;used.push(t);
 var m=/^(\\s*)([\\s\\S]*?)(\\s*)$/.exec(t.nodeValue),s=document.createElement('span');s.setAttribute('data-lf',r+','+f);s.setAttribute('aria-label',e[3]+', row '+(r+1));s.textContent=m[2];
@@ -54,9 +71,25 @@ var bar=document.createElement('div');bar.id='lf-bar';bar.setAttribute('role','g
 K.forEach(function(k,i){if(k.hidden||document.querySelector('[data-lf-add="'+i+'"],[data-lf^="+'+i+',"]'))return;var b=document.createElement('button');b.type='button';b.textContent='+ '+k.name;button(b,function(){return {lf:'add',k:i};});bar.appendChild(b);some=true;});
 if(!document.querySelector('[data-lf-remove]')){var x=document.createElement('button');x.type='button';x.id='lf-x';x.textContent='× Remove this';x.hidden=true;button(x,function(){return {lf:'remove'};});bar.appendChild(x);some=true;
 document.addEventListener('focusin',function(ev){x.hidden=!(ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-lf'));});}
+var part=null,pb=[];
+function partOf(el){var h=el&&el.closest?el.closest('[id]'):null,id=h?h.id:location.hash.slice(1);for(var i=0;i<S.length;i++)if(S[i][0]===id)return S[i];return null;}
+function showPart(el){part=partOf(el);pb.forEach(function(b){b.hidden=!part;});if(part){var k=part[2].toLowerCase();pb[0].textContent='← '+part[2]+' earlier';pb[1].textContent=part[2]+' later →';pb[2].textContent='× Remove '+k;}}
+if(S.length){['up','down','remove'].forEach(function(a){var b=document.createElement('button');b.type='button';b.className='lf-part';b.hidden=true;button(b,function(){return part?{lf:'part',r:part[1],do:a}:{lf:'noop'};});pb.push(b);bar.appendChild(b);});some=true;
+document.addEventListener('focusin',function(ev){var t=ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-lf');showPart(t?ev.target:null);});
+window.addEventListener('hashchange',function(){var a=document.activeElement;if(!a||!a.getAttribute('data-lf'))showPart(null);});}
 if(some&&!own){document.body.appendChild(bar);document.body.style.paddingBottom='60px';}
-if(F){var q=F.slice(-1)===','?F.slice(0,-1):F,el=document.querySelector('[data-lf="'+q+'"],[data-lf^="'+q+',"]');if(el)select(el,F.slice(-1)===',');}
+var el=null;if(F){var q=F.slice(-1)===','?F.slice(0,-1):F;el=document.querySelector('[data-lf="'+q+'"],[data-lf^="'+q+',"]');}
+var host=el?el.closest('[id]'):null;
+if(host&&'#'+host.id!==location.hash){try{history.replaceState(null,'',location.href.split('#')[0]+'#'+host.id);}catch(e){location.hash=host.id;}window.dispatchEvent(new Event('hashchange'));}
+if(el){var all=F.slice(-1)===',';select(el,all);window.addEventListener('load',function(){if(document.activeElement!==el)select(el,all);});}else showPart(null);
 })();`);
 
-/** What the script needs: the values in the page, the kinds of row that can be added, where the cursor goes, and which drawing of the page this is (a message from an earlier one is stale). */
-export const editData = (values: unknown, adds: unknown, focus: unknown, stamp = 0) => pageData('lf', { v: values, k: adds, f: focus, s: stamp });
+/**
+ * What the editing script needs: the values in the page, the kinds of row
+ * that can be added, where the cursor goes, which drawing of the page this
+ * is (a message from an earlier one is stale), and the page's parts (its
+ * headings, [id, row, kind]) that can be moved or taken away.
+ */
+export const editData = (values: unknown, adds: unknown, focus: unknown, stamp = 0, parts: unknown = []) => pageData('lf', { v: values, k: adds, f: focus, s: stamp, p: parts });
+/** What the place script needs: the hash the page was showing. */
+export const placeData = (hash: string) => pageData('lf-at', hash);
