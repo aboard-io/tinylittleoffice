@@ -1,7 +1,7 @@
 /**
  * Rich text model and a compact markup for it.
  *
- * Blocks: one per line.  Prefixes:  "# " h1, "## " h2, "- " bullet, "+ " numbered.
+ * Blocks: one per line.  Prefixes:  "#! " the title, "# " h1, "## " h2, "- " bullet, "+ " numbered.
  * A list item one level in repeats its marker ("-- ", "++ "), up to MAX_DEPTH levels.
  * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~  =highlight= ; an icon
  * is its name between colons, ":rocket:"; words linked somewhere are
@@ -25,7 +25,7 @@ export interface Run {
   href?: string;
 }
 export type Align = 'c' | 'r' | 'j';
-export type BlockKind = 'p' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
+export type BlockKind = 'p' | 'title' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
 export interface Block {
   k: BlockKind;
   runs: Run[];
@@ -46,7 +46,7 @@ const MARK: Record<(typeof FLAGS)[number], string> = { b: '*', i: '_', u: '^', s
 const UNMARK: Record<string, (typeof FLAGS)[number]> = { '*': 'b', _: 'i', '^': 'u', '~': 's', '=': 'h' };
 const ALIGN = /^>([crj]) /;
 const ICON = /^:([a-z][a-z0-9-]*):/;
-const PREFIX: Record<BlockKind, string> = { p: '', h1: '# ', h2: '## ', ul: '- ', ol: '+ ', e: '@@' };
+const PREFIX: Record<BlockKind, string> = { p: '', title: '#! ', h1: '# ', h2: '## ', ul: '- ', ol: '+ ', e: '@@' };
 const SPECIAL = /[\\*_^~=]/g;
 /** "[words](address)": the address a web, mail or phone one, or a place in the document. */
 const LINK = /^\[((?:\\.|[^\]\\\n])*)\]\(((?:https?:\/\/|mailto:|tel:|#)[^()\s]*)\)/;
@@ -195,7 +195,10 @@ export function parseDoc(text: string): Block[] {
     const align = ALIGN.exec(line);
     if (align) line = line.slice(align[0].length);
     const item = /^(-{1,4}|\+{1,4}) /.exec(line);
-    if (line.startsWith('## ')) {
+    if (line.startsWith('#! ')) {
+      k = 'title';
+      line = line.slice(3);
+    } else if (line.startsWith('## ')) {
       k = 'h2';
       line = line.slice(3);
     } else if (line.startsWith('# ')) {

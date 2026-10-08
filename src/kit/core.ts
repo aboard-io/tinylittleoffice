@@ -25,6 +25,8 @@ export interface ViewOpts {
   embed?: boolean;
   /** The width to lay out for, when it will sit somewhere narrow (a zine page). Apps made of lines of text reflow to it; pictures ignore it. */
   w?: number;
+  /** A preview in a text being written, at its own size: a table looks like the spreadsheet it is. */
+  preview?: boolean;
 }
 
 export interface DownloadContext {

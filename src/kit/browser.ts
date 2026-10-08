@@ -278,20 +278,22 @@ export class ToEmbed extends HTMLElement {
     if (!ref || !this.isConnected) return;
     const d = resolve(ref);
     const step = this.getAttribute('step');
-    const page = refPage(ref, step === null ? {} : { step: Number(step) });
+    const page = refPage(ref, { preview: true, ...(step === null ? {} : { step: Number(step) }) });
     const kind = d.def?.name ?? 'Document';
     const editable = this.hasAttribute('controls') && !d.locked;
     render(
       html`<style>
-          :host { display: block; margin: 0.8em 0; user-select: none; }
+          /* (white-space: inside a text being written the page keeps its spaces, which would draw this markup's own line breaks as blank lines.) */
+          :host { display: block; margin: 0.8em 0; user-select: none; white-space: normal; }
           figure { margin: 0; border: 1px solid var(--to-border, #d4d4d8); border-radius: 10px; overflow: hidden; background: #fff; }
-          .pic > svg { display: block; width: 100%; height: auto; max-height: 60vh; }
+          .pic > svg { display: block; width: 100%; height: auto; max-height: 60vh; margin: 0 auto; }
+          /* (Never drawn larger than its own size: a small table is not blown up to fill the width.) */
           figcaption { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-top: 1px solid var(--to-border, #d4d4d8); background: var(--to-surface-2, #f4f4f5); color: var(--to-ink, #18181b); font: 13.5px system-ui, sans-serif; }
           a { color: inherit; font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
           a:hover { text-decoration: underline; }
           b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
           small { color: var(--to-ink-3, #71717a); flex: 1; }
-          .pic { position: relative; }
+          .pic { position: relative; padding: 10px; }
           .pic.edit { cursor: pointer; }
           .pic .hint { position: absolute; right: 10px; top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--to-accent, #4f46e5); color: #fff; font: 600 12.5px system-ui, sans-serif; opacity: 0.92; pointer-events: none; }
           button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; border: 1px solid var(--to-border, #d4d4d8); border-radius: 6px; background: var(--to-surface, #fff); color: inherit; font: inherit; padding: 3px 8px; cursor: pointer; }
@@ -300,7 +302,7 @@ export class ToEmbed extends HTMLElement {
         </style>
         <figure>
           <div class="pic ${editable ? 'edit' : ''}" @click=${editable ? () => this.fire('embed-edit') : null}>
-            <svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label="${d.title}">${unsafeSVG(page.svg)}</svg>
+            <svg viewBox="0 0 ${page.w} ${page.h}" style="width:min(100%, ${page.w}px)" role="img" aria-label="${d.title}">${unsafeSVG(page.svg)}</svg>
             ${editable ? html`<span class="hint" aria-hidden="true">Tap to edit</span>` : ''}
           </div>
           <figcaption>

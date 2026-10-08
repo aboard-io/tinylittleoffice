@@ -24,7 +24,7 @@ export type SigState = 'none' | 'checking' | 'valid' | 'invalid';
 export { isSealed, saving, setSaving };
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.nav', 'tinyoffice.size'];
+export const PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.nav', 'tinyoffice.size', 'tinyoffice.dateformat'];
 
 export class Privacy {
   /** The password's key for this document, while it is locked. */

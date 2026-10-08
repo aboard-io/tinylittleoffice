@@ -151,3 +151,42 @@ test('a heading cannot be unbolded: Bold is off there, Mod+B does nothing, and b
   await settle(el);
   expect(last()).toBe('# Title\n## Sub\nBody');
 });
+
+test('Title makes the paragraph the document’s title, set large; Date puts in a date picked from a calendar', async () => {
+  const { el, last } = await mount('write', 'Annual report\nWords');
+  const p0 = page(el).querySelector('p')!;
+  page(el).focus();
+  const r = document.createRange();
+  r.selectNodeContents(p0);
+  r.collapse(false);
+  getSelection()!.removeAllRanges();
+  getSelection()!.addRange(r);
+  button(el, 'Title').click();
+  await settle(el);
+  expect(last()).toBe('#! Annual report\nWords');
+  expect(page(el).querySelector('h1.doc-title')!.textContent).toBe('Annual report');
+  // Pressed again, it is a paragraph again.
+  button(el, 'Title').click();
+  await settle(el);
+  expect(last()).toBe('Annual report\nWords');
+
+  // A date: the dialog's calendar, then Insert; it goes where the caret was.
+  const words = page(el).querySelectorAll('p')[1];
+  const at = document.createRange();
+  at.selectNodeContents(words);
+  at.collapse(false);
+  getSelection()!.removeAllRanges();
+  getSelection()!.addRange(at);
+  button(el, 'Date').click();
+  await new Promise((res) => setTimeout(res, 0));
+  const dialog = document.querySelector('to-date-dialog') as HTMLElement & { updateComplete: Promise<unknown> };
+  await dialog.updateComplete;
+  const day = dialog.querySelector('sl-input') as HTMLElement & { value: string };
+  day.value = '2027-03-01';
+  day.dispatchEvent(new CustomEvent('sl-input', { bubbles: true }));
+  await dialog.updateComplete;
+  expect([...dialog.querySelectorAll('label')].map((l) => l.textContent!.trim())).toEqual(['March 1, 2027', 'Monday, March 1, 2027', '2027-03-01']);
+  (dialog.querySelector('.dd-ok') as HTMLElement).click();
+  await settle(el);
+  expect(last()).toBe('Annual report\nWordsMarch 1, 2027');
+});

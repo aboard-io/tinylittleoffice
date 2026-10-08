@@ -103,6 +103,53 @@ function tablePage(body: string, upTo = Infinity): Page {
   return { w: w + 48, h: rows * H + 48, svg };
 }
 
+/**
+ * The table as a spreadsheet looks: a strip of column letters along the
+ * top, row numbers down the side, grey grid lines, words at an ordinary
+ * size, numbers to the right. What a table in a text being written is.
+ */
+function gridPage(body: string): Page {
+  const { values, rows, cols } = usedGrid(body);
+  const cells = shown(body);
+  const PX = 13;
+  const H = 24;
+  const HEAD = 22;
+  const NUM = 34;
+  const n = Math.max(1, rows);
+  const across = Math.max(1, cols);
+  const widths = Array.from({ length: across }, (_, c) => Math.min(200, Math.max(72, ...cells.map((row) => textWidth(row[c] ?? '', PX) + 18))));
+  const w = NUM + widths.reduce((a, b) => a + b, 0);
+  const h = HEAD + n * H;
+  let svg = rect(0, 0, w, h, '#fff');
+  // The strips: letters along the top, numbers down the side.
+  svg += rect(0, 0, w, HEAD, SHADE) + rect(0, 0, NUM, h, SHADE);
+  let x = NUM;
+  widths.forEach((cw, c) => {
+    svg += text(x + cw / 2, 15, String.fromCharCode(65 + c), { px: 11, fill: MUTED, anchor: 'middle' });
+    x += cw;
+  });
+  for (let r = 0; r < n; r++) svg += text(NUM / 2, HEAD + r * H + 16, String(r + 1), { px: 11, fill: MUTED, anchor: 'middle' });
+  // The cells.
+  cells.slice(0, n).forEach((row, r) => {
+    let at = NUM;
+    const head = r === 0 && rows > 1 && row.every((_, c) => typeof values[0][c] !== 'number');
+    widths.forEach((cw, c) => {
+      const cell = row[c] ?? '';
+      const num = typeof values[r]?.[c] === 'number';
+      if (cell !== '') svg += text(num ? at + cw - 8 : at + 8, HEAD + r * H + 16.5, clip(cell, cw - 14, PX, head), { px: PX, bold: head, anchor: num ? 'end' : 'start' });
+      at += cw;
+    });
+  });
+  // Grid lines over it all.
+  let lines = '';
+  for (let r = 0; r <= n; r++) lines += `M0 ${HEAD + r * H}H${w}`;
+  x = NUM;
+  lines += `M${NUM} 0V${h}`;
+  for (const cw of widths) lines += `M${(x += cw)} 0V${h}`;
+  svg += `<path d="${lines}" stroke="${LINE}" stroke-width="1" fill="none"/><rect x="0.5" y="0.5" width="${w - 1}" height="${h - 1}" fill="none" stroke="${LINE}"/>`;
+  return { w, h, svg };
+}
+
 /** The table as a chart reads it: numbers where a column holds numbers, words (dates, links, ticks) elsewhere. */
 export function chartOfSheet(body: string) {
   const { values, rows, types } = usedGrid(body);
@@ -121,7 +168,7 @@ export default defineApp({
     const kind = chartOf(body) as ChartKind | '';
     const chart = kind ? chartPage(chartOfSheet(body), kind, '', 720, 440, opts.step) : null;
     // Inside another document a charted sheet is its chart; on its own it is both.
-    if (opts.embed) return [chart ?? tablePage(body, opts.step)];
+    if (opts.embed) return [chart ?? (opts.preview ? gridPage(body) : tablePage(body, opts.step))];
     return chart ? [tablePage(body), chart] : [tablePage(body)];
   },
   // A table on a slide fills in a cell per click.

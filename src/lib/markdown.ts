@@ -84,7 +84,8 @@ export function docToMd(body: string): string {
     if (b.k === 'ol') n[d] = (n[d] ?? 0) + 1;
     n.length = b.k === 'ol' ? d + 1 : b.k === 'ul' ? Math.min(n.length, d + 1) : 0;
     const words = runsToMd(b.runs);
-    if (b.k === 'h1') out.push(`# ${words}`, '');
+    // (Markdown has one size of top heading: the title is it, and so is a heading.)
+    if (b.k === 'title' || b.k === 'h1') out.push(`# ${words}`, '');
     else if (b.k === 'h2') out.push(`## ${words}`, '');
     else if (b.k === 'ul') out.push(`${'  '.repeat(d)}- ${words}`);
     else if (b.k === 'ol') out.push(`${'  '.repeat(d)}${n[d]}. ${words}`);

@@ -11,12 +11,13 @@ import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 import { askLink } from '../widgets/link-dialog.ts';
+import { askDate } from '../widgets/date-dialog.ts';
 import { openLink } from '../widgets/link-guard.ts';
 import { templateLine, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
-const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
+const KIND_TAG: Record<BlockKind, string> = { p: 'p', title: 'h1', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
 
 /**
@@ -73,7 +74,7 @@ export function blocksToHtml(blocks: Block[]): string {
       continue;
     }
     closeTo(0);
-    out += b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
+    out += b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.k === 'title' ? ' class="doc-title"' : ''}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
   }
   closeTo(0);
   return out || '<p><br></p>';
@@ -197,7 +198,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
       close();
       return;
     }
-    const k: BlockKind = tag === 'H1' ? 'h1' : tag === 'H2' || tag === 'H3' ? 'h2' : tag === 'LI' ? inherited : 'p';
+    const k: BlockKind = tag === 'H1' ? (el.classList.contains('doc-title') ? 'title' : 'h1') : tag === 'H2' || tag === 'H3' ? 'h2' : tag === 'LI' ? inherited : 'p';
     close();
     open(k);
     const a = alignOf(el);
@@ -212,7 +213,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
     } else inline(child, plain, 'p', root);
   }
   // A heading is bold through and through, so bold in one says nothing.
-  for (const b of blocks) if (b.k === 'h1' || b.k === 'h2') b.runs = mergeRuns(b.runs.map(({ b: _, ...r }) => r));
+  for (const b of blocks) if (b.k === 'title' || b.k === 'h1' || b.k === 'h2') b.runs = mergeRuns(b.runs.map(({ b: _, ...r }) => r));
   return blocks.length ? blocks : [{ k: 'p', runs: [] }];
 }
 
@@ -368,9 +369,33 @@ export class ToWrite extends LitElement {
       h: !!(sel?.anchorNode && (sel.anchorNode.parentElement?.closest('mark') || /rgb\(254, 240, 138\)|#fef08a/i.test(getComputedStyle(sel.anchorNode.parentElement!).backgroundColor))),
       link: !!sel?.anchorNode?.parentElement?.closest('a[href]'),
       align: document.queryCommandState('justifyCenter') ? 'c' : document.queryCommandState('justifyRight') ? 'r' : document.queryCommandState('justifyFull') ? 'j' : '',
-      block: document.queryCommandState('insertUnorderedList') ? 'ul' : document.queryCommandState('insertOrderedList') ? 'ol' : block,
+      block: document.queryCommandState('insertUnorderedList') ? 'ul' : document.queryCommandState('insertOrderedList') ? 'ol' : sel?.anchorNode?.parentElement?.closest('h1.doc-title') || (sel?.anchorNode instanceof Element && sel.anchorNode.closest('h1.doc-title')) ? 'title' : block,
     };
   };
+
+  /** A date at the caret, picked from a calendar and written out in words. */
+  async insertDate() {
+    const sel = getSelection();
+    const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret;
+    const words = await askDate();
+    if (!words) return;
+    this.page?.focus();
+    const at = range ?? (() => {
+      const r = document.createRange();
+      r.selectNodeContents(this.page!);
+      r.collapse(false);
+      return r;
+    })();
+    at.deleteContents();
+    const t = document.createTextNode(words);
+    at.insertNode(t);
+    const after = document.createRange();
+    after.setStartAfter(t);
+    after.collapse(true);
+    getSelection()?.removeAllRanges();
+    getSelection()?.addRange(after);
+    this.onInput();
+  }
 
   /** An icon at the caret, as one thing in the line. */
   async insertIcon() {
@@ -486,8 +511,32 @@ export class ToWrite extends LitElement {
     return !!(n && this.page?.contains(n) && (n instanceof Element ? n : n.parentElement)?.closest('h1, h2, h3'));
   }
 
+  /** The paragraph the caret is in made the document's title (big), or back to a paragraph if it is one. By hand: a title is a heading of its own kind. */
+  private makeTitle() {
+    const sel = getSelection();
+    const node = sel?.anchorNode;
+    if (!node || !this.page?.contains(node)) return;
+    const block = blockOf(node, this.page);
+    if (!(block instanceof HTMLElement) || block.tagName === 'UL' || block.tagName === 'OL' || block.dataset.ref !== undefined) return;
+    const was = block.matches('h1.doc-title');
+    const made = document.createElement(was ? 'p' : 'h1');
+    if (!was) made.className = 'doc-title';
+    if (block.style.textAlign) made.style.textAlign = block.style.textAlign;
+    made.append(...Array.from(block.childNodes));
+    if (!made.childNodes.length) made.innerHTML = '<br>';
+    block.replaceWith(made);
+    const r = document.createRange();
+    r.selectNodeContents(made);
+    r.collapse(false);
+    sel!.removeAllRanges();
+    sel!.addRange(r);
+    this.onInput();
+    this.onSelection();
+  }
+
   private run(cmd: string, arg?: string) {
     if (cmd === 'bold' && this.inHeading()) return;
+    if (cmd === 'formatBlock' && arg === 'title') return void this.makeTitle();
     this.page?.focus();
     // (Colours and alignment are only ever written as styles; the rest as tags.)
     document.execCommand('styleWithCSS', false, cmd === 'hiliteColor' ? 'true' : 'false');
@@ -786,7 +835,7 @@ export class ToWrite extends LitElement {
     if (!(e.ctrlKey || e.metaKey)) return;
     const k = e.key.toLowerCase();
     const map: Record<string, [string, string?]> = {
-      b: ['bold'], i: ['italic'], u: ['underline'], '1': ['formatBlock', 'h1'], '2': ['formatBlock', 'h2'], '0': ['formatBlock', 'p'],
+      b: ['bold'], i: ['italic'], u: ['underline'], '1': ['formatBlock', 'h1'], '2': ['formatBlock', 'h2'], '0': ['formatBlock', 'p'], '9': ['formatBlock', 'title'],
     };
     if (k === 'k' && !e.shiftKey && !e.altKey) {
       e.preventDefault();
@@ -822,7 +871,7 @@ export class ToWrite extends LitElement {
     return html`
       ${this.tools ? html`<div class="to-toolbar write-toolbar" role="toolbar" aria-label="Formatting">
         <sl-button-group label="Text style">
-          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Mod+B', f.block === 'h1' || f.block === 'h2' || f.block === 'h3')}
+          ${this.btn('Bold', 'bold', f.b, 'bold', undefined, 'Mod+B', f.block === 'title' || f.block === 'h1' || f.block === 'h2' || f.block === 'h3')}
           ${this.btn('Italic', 'italic', f.i, 'italic', undefined, 'Mod+I')}
           ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Mod+U')}
           ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
@@ -836,7 +885,9 @@ export class ToWrite extends LitElement {
           ${this.btn('Justify', 'alignJustify', f.align === 'j', 'justifyFull')}
         </sl-button-group>
         ${tool('Icon', 'smile', () => void this.insertIcon())}
+        ${tool('Date', 'cal', () => void this.insertDate())}
         ${doc ? html`<sl-button-group label="Block">
+          ${this.btn('Title', 'text', f.block === 'title', 'formatBlock', 'title', 'Mod+9')}
           ${this.btn('Heading', 'h1', f.block === 'h1', 'formatBlock', 'h1', 'Mod+1')}
           ${this.btn('Subheading', 'h2', f.block === 'h2', 'formatBlock', 'h2', 'Mod+2')}
           ${this.btn('Paragraph', 'p', f.block === 'p' || f.block === 'div', 'formatBlock', 'p', 'Mod+0')}

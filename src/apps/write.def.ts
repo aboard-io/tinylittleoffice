@@ -42,7 +42,8 @@ export function docToRtf(body: string, ctx: DownloadContext = { created: null })
       const p = resolve(blk.ref!);
       out.push(`{\\pard\\sb120\\sa60\\li360 {\\field{\\*\\fldinst HYPERLINK "${rtfText((ctx.base ?? '') + p.hash)}"}{\\fldrslt {\\ul\\cf1\\b ${rtfText(p.title)}}}} {\\i (${rtfText(p.def?.name ?? 'Document')})}\\par}`);
       for (const l of (p.def?.outline(p.body) ?? []).filter((l) => l !== p.title).slice(0, 4)) out.push(`{\\pard\\li720\\sa40\\fs20 ${rtfText(l)}\\par}`);
-    } else if (blk.k === 'h1') out.push(`{\\pard\\sb240\\sa160\\b\\fs40 ${runs}\\par}`);
+    } else if (blk.k === 'title') out.push(`{\\pard\\sa240\\b\\fs64 ${runs}\\par}`);
+    else if (blk.k === 'h1') out.push(`{\\pard\\sb240\\sa160\\b\\fs40 ${runs}\\par}`);
     else if (blk.k === 'h2') out.push(`{\\pard\\sb200\\sa120\\b\\fs30 ${runs}\\par}`);
     else if (blk.k === 'ul') out.push(`{\\pard\\li${li}\\fi-360\\sa60 \\bullet\\tab ${runs}\\par}`);
     else if (blk.k === 'ol') out.push(`{\\pard\\li${li}\\fi-360\\sa60 ${counts[d]}.\\tab ${runs}\\par}`);
@@ -91,14 +92,21 @@ export function docToHtml(body: string, ctx: DownloadContext = { created: null }
       const p = resolve(blk.ref!);
       const page = refPage(blk.ref!);
       out.push(`<figure class="embed">${pageSvg(page, `role="img" aria-label="${xml(p.title)}"`)}<figcaption><a href="${xml((ctx.base ?? '') + p.hash)}">${xml(p.title)}</a> <small>${xml(p.def?.name ?? 'Document')}</small></figcaption></figure>`);
-    } else out.push(`<${blk.k}${blk.a ? ` style="text-align:${ALIGN_NAMES[blk.a]}"` : ''}>${inner || '<br>'}</${blk.k}>`);
+    } else {
+      // The title is the page's own first heading, set large.
+      const tag = blk.k === 'title' ? 'h1' : blk.k;
+      const style = [blk.k === 'title' ? 'font-size:2.8em;line-height:1.1;letter-spacing:-0.02em' : '', blk.a ? `text-align:${ALIGN_NAMES[blk.a]}` : ''].filter(Boolean).join(';');
+      out.push(`<${tag}${blk.k === 'title' ? ' class="title"' : ''}${style ? ` style="${style}"` : ''}>${inner || '<br>'}</${tag}>`);
+    }
   }
   closeTo(0);
   return out.join('\n');
 }
 
 const title = (body: string) => {
-  const first = parseDoc(body).find((b) => docText([b]).trim());
+  // A title, if it has one; else its first words.
+  const blocks = parseDoc(body);
+  const first = blocks.find((b) => b.k === 'title' && docText([b]).trim()) ?? blocks.find((b) => docText([b]).trim());
   return first ? docText([first]).trim() : '';
 };
 
@@ -120,7 +128,7 @@ export function pages(body: string): Page[] {
       bits.push({ h: h + 24, svg: (y) => `<rect x="${M}" y="${y}" width="${W - 2 * M}" height="${h}" fill="#fff" stroke="#d4d4d8" rx="6"/>` + place(page, M, y, W - 2 * M, h) });
       continue;
     }
-    const [px, bold, gap] = blk.k === 'h1' ? [30, true, 18] : blk.k === 'h2' ? [22, true, 14] : [16, false, blk.k === 'p' ? 12 : 5];
+    const [px, bold, gap] = blk.k === 'title' ? [48, true, 24] : blk.k === 'h1' ? [30, true, 18] : blk.k === 'h2' ? [22, true, 14] : [16, false, blk.k === 'p' ? 12 : 5];
     const list = blk.k === 'ul' || blk.k === 'ol';
     const left = M + (list ? 26 * (d + 1) : 0);
     const spans: Span[] = blk.runs.flatMap((run) => (run.href ? [run] : linkify(run.t).map((p) => ({ ...run, t: p.t, link: !!p.url }))));
