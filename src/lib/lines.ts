@@ -14,7 +14,17 @@
  * {Who:list} (things with commas between, each a thing of its own on a picture),
  * {Price:number} (one word with a digit in it: then "Thanks, pay soon" is not
  * a thing with a price).
+ *
+ * The text is TLO (lib/tlo.ts): Markdown. Most kinds are lines of it as they
+ * stand ("# Title", "- Point | detail", "From: Harbor Studio"). A kind marked
+ * `table` is written as a table instead, its fields the columns, which is
+ * how a person or a program most easily writes many things of one shape. A
+ * kind that indents is a list item, nested. A blank line that means
+ * something is a rule ("---"). A kind written "@@{Document}" is another
+ * document, in a fenced block.
  */
+import { parse as parseTlo, write as writeTlo, writeBlock, attrsText, column, columnText, type Block as TloBlock } from './tlo.ts';
+
 export interface Kind {
   name: string;
   /** The pattern. An empty pattern is a blank line that means something (the next card, the next table). */
@@ -27,6 +37,8 @@ export interface Kind {
   indent?: boolean;
   /** Lines of this kind sit at exactly this depth (an answer, under its question). */
   at?: number;
+  /** Written as the rows of a table whose columns are the fields. */
+  table?: boolean;
 }
 
 export interface Field {
@@ -110,36 +122,113 @@ export function kindsOf(given: Kind[]): { kinds: Kind[]; made: Compiled[] } {
 
 export const fieldsOf = (given: Kind[], kind: number) => kindsOf(given).made[kind].fields;
 
+/** The lines of a TLO text as the patterns see them, each with how far in it sits; table rows come with their columns. */
+interface Seen {
+  line: string;
+  depth: number;
+  /** A list item's words without their mark, for a kind that nests. */
+  item?: string;
+  /** A table row: its values by column name. */
+  cells?: Record<string, string>;
+  /** A fenced document: "<app>\n<text>". */
+  doc?: string;
+}
+
+function seen(text: string): Seen[] {
+  const out: Seen[] = [];
+  for (const b of parseTlo(text).blocks) {
+    if (b.k === 'table') {
+      const names = b.head.map((h) => column(h).name.toLowerCase());
+      for (const r of b.rows) out.push({ line: r.join(' | '), depth: 0, cells: Object.fromEntries(names.map((n, i) => [n, r[i] ?? ''])) });
+    } else if (b.k === 'li') out.push({ line: `${b.ord ? '1.' : '-'} ${b.done === undefined ? '' : b.done ? '[x] ' : '[ ] '}${b.text}${attrsText(b.a)}`, depth: b.depth, item: b.text + attrsText(b.a) });
+    else if (b.k === 'p') out.push(...(b.text + attrsText(b.a)).split('\n').map((line) => ({ line, depth: 0 })));
+    else if (b.k === 'quote') out.push(...b.text.split('\n').map((line) => ({ line: `> ${line}`, depth: 0 })));
+    else if (b.k === 'hr') out.push({ line: '', depth: 0 });
+    else if (b.k === 'fence') out.push({ line: '', depth: 0, doc: `${b.lang}\n${b.body}` });
+    else out.push({ line: writeBlock(b), depth: 0 });
+  }
+  return out;
+}
+
+const isDoc = (k: Kind) => /^@@\{[^}]*\}$/.test(k.is);
+
 export function readLines(text: string, given: Kind[]): Row[] {
   const { kinds, made } = kindsOf(given);
   const divider = kinds.findIndex((k) => k.is === '');
   const mark = (k: Kind) => /^[^{[]*/.exec(k.is)![0].length;
   const order = kinds.map((_, i) => i).sort((a, b) => mark(kinds[b]) - mark(kinds[a]) || a - b);
   const rows: Row[] = [];
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    const depth = Math.floor(raw.replace(/\t/g, '  ').search(/\S|$/) / 2);
+  for (const s of seen(text)) {
+    if (s.doc !== undefined) {
+      const kind = kinds.findIndex(isDoc);
+      if (kind >= 0) rows.push({ kind, values: [s.doc], depth: 0 });
+      continue;
+    }
+    if (s.cells) {
+      // The table kind whose fields are most of the columns.
+      const names = Object.keys(s.cells);
+      const fit = (i: number) => made[i].fields.filter((f) => names.includes(f.name.toLowerCase())).length;
+      const tables = kinds.map((_, i) => i).filter((i) => kinds[i].table);
+      const kind = tables.sort((a, b) => fit(b) - fit(a))[0];
+      if (kind !== undefined && fit(kind)) {
+        rows.push({ kind, values: made[kind].fields.map((f) => s.cells![f.name.toLowerCase()] ?? ''), depth: 0 });
+        continue;
+      }
+    }
+    const line = s.line.trim();
     if (!line) {
       if (divider >= 0 && rows.length) rows.push({ kind: divider, values: [], depth: 0 });
       continue;
     }
+    // A list item is first what a kind of its own says it is ("- {Point}"); else a thing that nests, at its depth.
+    const nests = s.item !== undefined ? kinds.findIndex((k, i) => k.indent && !mark(k) && made[i].re.test(s.item!.trim())) : -1;
     // The kind whose opening mark is longest is tried first ("## " before "# "); otherwise in the order given.
-    const kind = order.find((i) => kinds[i].is !== '' && (kinds[i].at === undefined || kinds[i].at === depth) && made[i].re.test(line))!;
+    const claimed = order.find((i) => kinds[i].is !== '' && !kinds[i].table && !isDoc(kinds[i]) && (kinds[i].at === undefined || kinds[i].at === s.depth) && made[i].re.test(line) && (mark(kinds[i]) > 0 || nests < 0))!;
+    const kind = nests >= 0 && !mark(kinds[claimed]) ? nests : claimed;
     const k = kinds[kind];
-    // (A line nothing else claims keeps its indent as part of its text, so nothing about it is lost.)
-    if (k === OTHER) rows.push({ kind, values: [raw.trimEnd()], depth: 0 });
-    else rows.push({ kind, values: made[kind].re.exec(line)!.slice(1).map((v) => (v ?? '').trim()), depth: k.indent ? depth : (k.at ?? 0) });
+    const words = kind === nests ? s.item!.trim() : line;
+    // (A line nothing else claims is kept exactly as it was written, its indent and all.)
+    if (k === OTHER) rows.push({ kind, values: [s.depth ? '  '.repeat(s.depth) + line : line], depth: 0 });
+    else rows.push({ kind, values: made[kind].re.exec(words)!.slice(1).map((v) => (v ?? '').trim()), depth: k.indent ? s.depth : (k.at ?? 0) });
   }
   return rows;
 }
 
+const typeOf = (f: Field) => (f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text');
+
 export function writeLines(rows: Row[], given: Kind[]): string {
   const { kinds, made } = kindsOf(given);
-  return rows
-    .map((r) => (kinds[r.kind].is === '' ? '' : kinds[r.kind] === OTHER ? r.values[0] : '  '.repeat(r.depth) + made[r.kind].write(r.values)))
-    // A row with nothing in it yet is not written down (a blank line would mean something else, or nothing).
-    .filter((_, i) => kinds[rows[i].kind].is === '' || rows[i].values.some((v) => v.trim()))
-    .join('\n');
+  // A row with nothing in it yet is not written down (a blank line would mean something else, or nothing).
+  const kept = rows.filter((r) => kinds[r.kind].is === '' || r.values.some((v) => v.trim()));
+  const blocks: TloBlock[] = [];
+  let lines: string[] = [];
+  const flush = () => {
+    if (lines.length) blocks.push(...parseTlo(lines.join('\n')).blocks);
+    lines = [];
+  };
+  for (let i = 0; i < kept.length; i++) {
+    const r = kept[i];
+    const k = kinds[r.kind];
+    if (k.is === '') {
+      flush();
+      blocks.push({ k: 'hr' });
+    } else if (isDoc(k)) {
+      flush();
+      const nl = r.values[0].indexOf('\n');
+      blocks.push({ k: 'fence', lang: nl < 0 ? r.values[0] : r.values[0].slice(0, nl), body: nl < 0 ? '' : r.values[0].slice(nl + 1) });
+    } else if (k.table) {
+      flush();
+      const fields = made[r.kind].fields;
+      const table: TloBlock = { k: 'table', head: fields.map((f) => columnText(f.name, typeOf(f))), rows: [] };
+      for (; i < kept.length && kept[i].kind === r.kind; i++) table.rows.push(fields.map((_, n) => (kept[i].values[n] ?? '').replace(/\n/g, ' ').trim()));
+      i--;
+      blocks.push(table);
+    } else if (k === OTHER) lines.push(r.values[0]);
+    else if (k.indent && !/^[^{[]*/.exec(k.is)![0]) lines.push(`${'  '.repeat(r.depth)}- ${made[r.kind].write(r.values)}`);
+    else lines.push('  '.repeat(r.depth) + made[r.kind].write(r.values));
+  }
+  flush();
+  return writeTlo({ head: {}, blocks }).trimEnd();
 }
 
 /** Which heading a kind is, counting from 1 in the order given (a page is 1, a section 2); 0 for a kind that is not one. */

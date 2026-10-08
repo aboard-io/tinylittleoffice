@@ -266,6 +266,8 @@ export function withHead(text: string, keys: Head): string {
 
 /** A line as it must be written so it reads back as the same words, not as a block of another kind. */
 function guard(line: string): string {
+  // A lone "|" is a deck's column break, and reads back as itself.
+  if (line === '|') return line;
   if (/^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|\|)/.test(line) || RULE.test(line)) return '\\' + line;
   return line;
 }
