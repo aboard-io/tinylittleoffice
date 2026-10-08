@@ -176,3 +176,41 @@ test('Markdown and CSV come in as well as out', async () => {
   expect(parseGrid(body()).slice(0, 3).map((r) => r.slice(0, 2))).toEqual([['Item', 'Cost'], ['Rent', '1,200'], ['Food', '600']]);
   expect(cell('A3').value).toBe('Food');
 });
+
+test('download views: the link itself hands over a file', async () => {
+  const created = Date.UTC(2026, 0, 2, 3, 4);
+  const utf = (b: Uint8Array) => new TextDecoder('utf-8', { ignoreBOM: true }).decode(b);
+  const zip = (b: Uint8Array) => expect(utf(b.subarray(0, 2))).toBe('PK');
+  const docs: [string, string, string, string, (b: Uint8Array) => void][] = [
+    ['deck', 'pptx', ':rocket\nLaunch plan\nBuild it\nShip it\n\n:users\nTeam\nEveryone', 'launch-plan.pptx', zip],
+    ['deck', 'ppt', 'Alias', 'alias.pptx', zip],
+    ['sheet', 'xlsx', '10\tTotal\n32\n=SUM(A1:A2)*2\t=AVG(A1:A2)', 'sheet.xlsx', zip],
+    ['sheet', 'csv', '10\tTotal\n32\n=SUM(A1:A2)*2', 'sheet.csv', (b) => expect(utf(b)).toBe('﻿10,Total\r\n32,\r\n84,\r\n')],
+    ['write', 'rtf', '# Memo\nSome *bold* text\n- one\n- two', 'memo.rtf', (b) => expect(utf(b)).toContain('{\\b bold}')],
+    ['write', 'html', '# Memo\nSome *bold* text', 'memo.html', (b) => { expect(utf(b)).toContain('<strong>bold</strong>'); expect(utf(b)).toContain('<meta property="og:title" content="Memo">'); }],
+    ['draw', 'svg', 'r,2,1,12,6,1,Box\na,14,4,8,0,0', 'draw.svg', (b) => expect(utf(b)).toContain('>Box</text>')],
+    ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'cal.ics', (b) => expect(utf(b)).toContain('SUMMARY:Offsite')],
+    ['todo', 'html', '- one\nx two', 'todo.html', (b) => { expect(utf(b)).toContain('<input type="checkbox" disabled checked> two'); expect(utf(b)).toMatch(/<meta property="og:image" content="http:\/\/localhost:\d+\/og\/todo\.png">/); }],
+  ];
+  for (const [app, ext, doc, name, check] of docs) {
+    downloads.length = 0;
+    await open(`#/v0/${app}.${ext}/${encodeEnvelope({ created, body: doc })}`);
+    const file = await until(() => downloads[0], `${name} downloaded`);
+    expect(file.name).toBe(name);
+    const b = await bytes(file);
+    expect(b.length).toBeGreaterThan(20);
+    check(b);
+    await until(() => toast().includes(`Downloaded ${name}`), 'the toast');
+    // The document is still there to edit.
+    expect(document.querySelector(`to-${app}`), app).toBeTruthy();
+  }
+  // The menu offers the same files.
+  downloads.length = 0;
+  await menu('Download', /^Markdown/);
+  expect((await until(() => downloads[0], 'the Markdown')).name).toBe('todo.md');
+  // An extension the app does not have is reported, not downloaded.
+  downloads.length = 0;
+  await open(`#/v0/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
+  await until(() => toast().includes('No .pptx view here'), 'the refusal');
+  expect(downloads).toHaveLength(0);
+});

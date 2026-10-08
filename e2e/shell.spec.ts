@@ -1,25 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { shot, reopen, navTo, SHOTS, copyLink, privacy } from './helpers';
 
-test('download views: the link itself hands over a file', async ({ page }, testInfo) => {
+// Stays: PDF and PNG are drawn through a canvas, which happy-dom lacks (the other formats are in test/dom/shell.test.ts).
+test('download views: drawn files, a PDF and a picture, come from the link itself', async ({ page }, testInfo) => {
   await page.route('https://tile.openstreetmap.org/**', (route) => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') }));
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const created = Date.UTC(2026, 0, 2, 3, 4);
   const docs: [string, string, string, string, (bytes: Buffer) => void][] = [
-    ['deck', 'pptx', ':rocket\nLaunch plan\nBuild it\nShip it\n\n:users\nTeam\nEveryone', 'launch-plan.pptx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
-    ['deck', 'ppt', 'Alias', 'alias.pptx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
-    ['sheet', 'xlsx', '10\tTotal\n32\n=SUM(A1:A2)*2\t=AVG(A1:A2)', 'sheet.xlsx', (b) => expect(b.subarray(0, 2).toString()).toBe('PK')],
-    ['sheet', 'csv', '10\tTotal\n32\n=SUM(A1:A2)*2', 'sheet.csv', (b) => expect(b.toString()).toBe('\ufeff10,Total\r\n32,\r\n84,\r\n')],
-    ['write', 'rtf', '# Memo\nSome *bold* text\n- one\n- two', 'memo.rtf', (b) => expect(b.toString()).toContain('{\\b bold}')],
-    ['write', 'html', '# Memo\nSome *bold* text', 'memo.html', (b) => { expect(b.toString()).toContain('<strong>bold</strong>'); expect(b.toString()).toContain('<meta property="og:title" content="Memo">'); }],
-    ['draw', 'svg', 'r,2,1,12,6,1,Box\na,14,4,8,0,0', 'draw.svg', (b) => expect(b.toString()).toContain('>Box</text>')],
-    ['cal', 'ics', '@America/New_York\nd2,2,Offsite\ntgo,2i,Call', 'cal.ics', (b) => expect(b.toString()).toContain('SUMMARY:Offsite')],
-    // Every app can also be a PDF, a picture and a web page.
+    // Every app can also be a PDF and a picture.
     ['deck', 'pdf', ':rocket:t\nLaunch plan\nSpring\n\nAgenda\none\ntwo', 'launch-plan.pdf', (b) => { expect(b.subarray(0, 8).toString()).toBe('%PDF-1.4'); expect(b.toString('latin1').match(/\/Type \/Page /g)).toHaveLength(3); }],
     ['gantt', 'pdf', '1jk,5,1e,Design\n>1jk,2,2s,Sketch', 'gantt.pdf', (b) => expect(b.subarray(0, 5).toString()).toBe('%PDF-')],
     ['board', 'png', '#To do\nWrite the brief\n#Done', 'board.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
     ['trip', 'png', '3xa8g,-fuyo,Lisbon\n40000,0,B', 'lisbon-to-b.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
-    ['todo', 'html', '- one\nx two', 'todo.html', (b) => { expect(b.toString()).toContain('<input type="checkbox" disabled checked> two'); expect(b.toString()).toMatch(/<meta property="og:image" content="http:\/\/localhost:\d+\/og\/todo\.png">/); }],
   ];
   for (const [app, ext, body, name, check] of docs) {
     await page.goto('about:blank');
@@ -33,14 +25,6 @@ test('download views: the link itself hands over a file', async ({ page }, testI
     if (SHOTS) (await import('node:fs')).copyFileSync(path, `${SHOTS}/${testInfo.project.name}-${name}`);
     await expect(page.locator('.to-toast')).toContainText(`Downloaded ${name}`);
   }
-  // The document is still there to edit, and the menu offers the same files.
-  await expect(page.locator('to-todo')).toBeVisible();
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [fromMenu] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /^Markdown/ }).click()]);
-  expect(fromMenu.suggestedFilename()).toBe('todo.md');
-  // An extension the app does not have is reported, not downloaded.
-  await page.goto(`/#/v0/cal.pptx/${encodeEnvelope({ created, body: 'd2,2,Offsite' })}`);
-  await expect(page.locator('.to-toast')).toContainText('No .pptx view here');
 });
 
 test('each app has a page of its own, with its own preview card', async ({ page, request }) => {
