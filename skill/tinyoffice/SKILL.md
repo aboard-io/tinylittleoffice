@@ -129,7 +129,7 @@ https://tinylittleoffice.com/store/#title=Shop&doc=%23+Harbor+Coffee+Shop%0ABean
 
 ### invoice: an invoice
 
-Headings `From:`, `To:`, `Number:`, `Date:`, `Due:`, `Tax: 8%`, `Currency: $` (use ` | ` for a second line in an address), then one item per line: `what, quantity, price`. Other lines are notes at the foot. Totals are worked out; the PDF download is the invoice.
+Headings `From:`, `To:`, `Number:`, `Date:`, `Due:`, `Tax: 8%`, `Currency: $` (use ` | ` for a second line in an address), then one item per line: `what, quantity, price`, the quantity with its units if it has any (`Design, 12 hours, 150`). Other lines are notes at the foot. Totals are worked out; the PDF download is the invoice.
 
 https://tinylittleoffice.com/invoice/#doc=From%3A+Harbor+Studio+%7C+14+Quay+Street%0ATo%3A+Acme+Ltd%0ANumber%3A+0042%0ADate%3A+2027-03-01%0ADue%3A+2027-03-31%0ATax%3A+8%25%0ADesign%2C+12%2C+150%0ABuild%2C+20%2C+140%0AThank+you.&title=Invoice+0042
 

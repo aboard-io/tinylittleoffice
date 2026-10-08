@@ -17,6 +17,8 @@
  *   data-lf-add="k"    a button that adds a row of kind k, after row
  *                      data-lf-after (else where the cursor is, else last)
  *   data-lf-remove="r" a button that takes row r away
+ *   <input data-lf>    a field typed (or picked: a date) in a box of the
+ *                      browser's own rather than where it stands
  *
  * A page that marks its fields itself offers its own ways to add and
  * remove (data-lf-add, data-lf-remove), and gets no bar along the bottom.
@@ -25,7 +27,8 @@
  * the words, as for a field reached by keyboard or a row just added). The
  * cursor is put there as the script runs, and again once the page has
  * loaded if the browser took it away (it may, settling a frame that has
- * just been drawn afresh).
+ * just been drawn afresh); not if it is in another field by then, put
+ * there by the person, who would find it snatched back.
  */
 import { pageData, pageScript } from '../kit/core.ts';
 
@@ -55,11 +58,11 @@ V.forEach(function(e){var r=e[0],f=e[1],v=e[2],t=null;if(keys.indexOf(r+','+f)>=
 var m=/^(\\s*)([\\s\\S]*?)(\\s*)$/.exec(t.nodeValue),s=document.createElement('span');s.setAttribute('data-lf',r+','+f);s.setAttribute('aria-label',e[3]+', row '+(r+1));s.textContent=m[2];
 var fr=document.createDocumentFragment();if(m[1])fr.appendChild(document.createTextNode(m[1]));fr.appendChild(s);if(m[3])fr.appendChild(document.createTextNode(m[3]));t.parentNode.replaceChild(fr,t);fields.push(s);});
 var down=0;document.addEventListener('pointerdown',function(){down=Date.now();},true);
-function select(el,all){el.focus();var sel=getSelection(),rg=document.createRange();rg.selectNodeContents(el);if(!all)rg.collapse(false);sel.removeAllRanges();sel.addRange(rg);}
+function select(el,all){el.focus();if(el.tagName==='INPUT')return;var sel=getSelection(),rg=document.createRange();rg.selectNodeContents(el);if(!all)rg.collapse(false);sel.removeAllRanges();sel.addRange(rg);}
 function where(s){var a=s.getAttribute('data-lf').split(','),m={f:+a[1]};if(a[0].charAt(0)==='+')m.k=+a[0].slice(1);else m.r=+a[0];if(a.length>2)m.p=+a[2];return m;}
-function value(s){var j=s.getAttribute('data-lf-join');if(j===null)return s.textContent;return [].map.call(document.querySelectorAll('[data-lf^="'+key(s)+',"]'),function(e){return e.textContent.trim();}).filter(Boolean).join(j);}
-fields.forEach(function(s){var at=where(s);s.contentEditable='true';s.setAttribute('role','textbox');
-s.addEventListener('input',function(){if(!s.textContent&&s.firstChild)s.textContent='';var m=where(s);m.lf='set';m.v=value(s);send(m);});
+function value(s){if(s.tagName==='INPUT')return s.value;var j=s.getAttribute('data-lf-join');if(j===null)return s.textContent;return [].map.call(document.querySelectorAll('[data-lf^="'+key(s)+',"]'),function(e){return e.textContent.trim();}).filter(Boolean).join(j);}
+fields.forEach(function(s){var at=where(s),box=s.tagName==='INPUT';if(!box){s.contentEditable='true';s.setAttribute('role','textbox');}
+s.addEventListener(box?'change':'input',function(){if(!box&&!s.textContent&&s.firstChild)s.textContent='';var m=where(s);m.lf='set';m.v=value(s);send(m);});
 s.addEventListener('focus',function(){if(at.r!==undefined)send({lf:'focus',r:at.r});if(Date.now()-down>300)select(s,true);});
 s.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();var a=s.getAttribute('data-lf').split(','),next=a.length>2?document.querySelector('[data-lf="'+a[0]+','+a[1]+','+(+a[2]+1)+'"]'):null;if(next)select(next,true);else if(at.r!==undefined)send({lf:'enter',r:at.r});}else if(ev.key==='Escape')s.blur();});});
 document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase();if((ev.ctrlKey||ev.metaKey)&&(k==='z'||k==='y'||(ev.shiftKey&&k==='t'))){ev.preventDefault();parent.postMessage({lf:'key',key:ev.key,shift:ev.shiftKey},'*');}});
@@ -81,7 +84,7 @@ if(some&&!own){document.body.appendChild(bar);document.body.style.paddingBottom=
 var el=null;if(F){var q=F.slice(-1)===','?F.slice(0,-1):F;el=document.querySelector('[data-lf="'+q+'"],[data-lf^="'+q+',"]');}
 var host=el?el.closest('[id]'):null;
 if(host&&'#'+host.id!==location.hash){try{history.replaceState(null,'',location.href.split('#')[0]+'#'+host.id);}catch(e){location.hash=host.id;}window.dispatchEvent(new Event('hashchange'));}
-if(el){var all=F.slice(-1)===',';select(el,all);window.addEventListener('load',function(){if(document.activeElement!==el)select(el,all);});}else showPart(null);
+if(el){var all=F.slice(-1)===',';select(el,all);window.addEventListener('load',function(){var a=document.activeElement;if(!a||a===document.body)select(el,all);});}else showPart(null);
 })();`);
 
 /**

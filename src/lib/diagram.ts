@@ -124,6 +124,8 @@ export interface DiagramSpec {
    * mark its fields itself, with hints where they are empty (lib/pageedit.ts).
    */
   page?(text: string, opts?: PageOpts): string;
+  /** A row added on the page starts with its words empty, shown as the page's hints (the invoice's boxes), rather than with its fields' names. */
+  blankRows?: boolean;
   /** Anything to show under the picture, as HTML (query results, say). */
   aside?(text: string): string;
 }

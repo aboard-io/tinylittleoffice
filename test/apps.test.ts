@@ -480,7 +480,7 @@ test('invoice: the sums, and the page that is its editor', async () => {
   const spec = specOf('invoice')!;
   // "what, price" is one of them; a note with a comma and no number is a note; tax and currency apply to the lot.
   const inv = parseInvoice('Currency: £\nTax: 20\nDesign, 2, 150.5\nHosting, 480\nThanks, pay soon\n\nNet 30');
-  assert.deepEqual(inv.items, [{ what: 'Design', qty: 2, price: 150.5 }, { what: 'Hosting', qty: 1, price: 480 }]);
+  assert.deepEqual(inv.items, [{ what: 'Design', qty: 2, unit: '', price: 150.5 }, { what: 'Hosting', qty: 1, unit: '', price: 480 }]);
   assert.deepEqual([inv.subtotal, inv.tax, inv.total, inv.money(inv.total)], [781, 156.2, 937.2, '£937.20']);
   assert.deepEqual(inv.notes, ['Thanks, pay soon', 'Net 30']);
   assert.equal(parseInvoice('Credit, 1, -20').money(parseInvoice('Credit, 1, -20').total), '-$20.00');
@@ -490,7 +490,10 @@ test('invoice: the sums, and the page that is its editor', async () => {
   // The form reads the same lines the same way: a price is a number, so "Thanks, pay soon" is not a thing with a price.
   const names = readLines('Design, 2, 150.5\nHosting, 480\nThanks, pay soon\na, b, 2, 3', spec.form!).map((r) => kindsOf(spec.form!).kinds[r.kind].name);
   assert.deepEqual(names, ['Item', 'Single item', 'Note', 'Item']);
-  assert.deepEqual(readLines('a, b, 2, 3', spec.form!)[0].values, ['a, b', '2', '3']);
+  assert.deepEqual(readLines('a, b, 2, 3', spec.form!)[0].values, ['a, b', '2', '', '3']);
+  // A quantity may carry its units.
+  assert.deepEqual(readLines('Design, 12 hours, 150', spec.form!)[0].values, ['Design', '12', 'hours', '150']);
+  assert.equal(parseInvoice('Design, 12 hours, 150').items[0].unit, 'hours');
   // The page as it is read has no marks; edited, every field is marked with its row, a hint where it is empty.
   const plain = spec.page!(spec.example);
   assert.ok(!plain.includes('data-lf') && !plain.includes('data-inv'));

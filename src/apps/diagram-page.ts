@@ -26,6 +26,16 @@ export class PageView extends DiagramElement {
   /** The hash the frame is showing (a site's page), so the frame drawn afresh opens on it. */
   private pageHash = '';
 
+  /** The field the cursor went to since the last typing, so the page drawn afresh puts it there and not back where the typing was. */
+  private moved: number | string | null = null;
+
+  /** The document changed from outside (undo, an import): the page shows it as it now is. */
+  protected loaded() {
+    this.held = null;
+    this.born = [];
+    clearTimeout(this.settle);
+  }
+
   /** The page's parts: its headings as [id, row, kind name], the id being what the page calls that part. Outer headings first, so a page is found before a section of the same name. */
   private parts(rows: Row[]): [string, number, string][] {
     const form = this.spec.form!;
@@ -73,10 +83,12 @@ export class PageView extends DiagramElement {
       this.focusRow = focus;
       this.requestUpdate();
     };
+    // A page that shows a new row's words as hints (the invoice) has them start empty.
+    const own = !!this.spec.blankRows;
     // A new row starts with its fields' names as its words, so it shows up on the page to be typed into (a number where a number is wanted).
     const fresh = (kind: number): Row => ({
       kind,
-      values: fieldsOf(form, kind).map((f) => (f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
+      values: fieldsOf(form, kind).map((f) => (f.optional || (own && f.type !== 'number' && f.type !== 'date' && f.type !== 'choice') ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
       depth: kinds[kind].at ?? 0,
     });
     // Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last.
@@ -106,16 +118,18 @@ export class PageView extends DiagramElement {
       if (gone) this.stale = true;
       const back = gone ? `+${rows[r].kind},${m.f},` : `${r},${m.f}${m.p === undefined ? '' : ',' + m.p}`;
       this.type(writeLines(rows, form));
-      // Once the typing pauses, the page is drawn afresh (its sums and all), with the cursor back where it was.
+      // Once the typing pauses, the page is drawn afresh (its sums and all), with the cursor where it now is: back here, or the field it has since gone to.
       clearTimeout(this.settle);
-      this.settle = window.setTimeout(() => redraw(back), 900);
+      this.settle = window.setTimeout(() => redraw(this.moved ?? back), 900);
+      this.moved = null;
     } else if (m.lf === 'done') {
       // Nothing typed: the page stands as it is.
       if (!this.held) return;
       // The field the cursor moved to, as it will be numbered once the page is drawn again (a hint's row may have been made meanwhile).
       const to = m.n ? m.n.replace(/^\+?\d+/, (r) => (r.startsWith('+') ? (madeAt(+r.slice(1)) >= 0 ? String(madeAt(+r.slice(1))) : r) : String(now(+r)))) : -1;
-      // Moving from field to field, the page stays as it is, so nothing typed into the next one is lost to a page being drawn again; it is drawn once the typing pauses. Leaving the page, or after a row went, it is drawn now.
+      // Moving from field to field, the page stays as it is, so nothing typed into the next one is lost to a page being drawn again; it is drawn once the typing pauses, the cursor in the field it went to. Leaving the page, or after a row went, it is drawn now.
       if (m.n && !this.stale) {
+        this.moved = to;
         clearTimeout(this.settle);
         this.settle = window.setTimeout(() => redraw(to), 900);
       } else redraw(to);

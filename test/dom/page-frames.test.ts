@@ -52,9 +52,12 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   expect(f.page().querySelector(`[data-lf^="${row},0"]`)?.getAttribute('aria-label')).toBe(`What, row ${row + 1}`);
   f.post({ lf: 'set', r: row, f: 0, v: 'Design' });
   f.post({ lf: 'set', r: row, f: 1, v: '12' });
-  f.post({ lf: 'set', r: row, f: 2, v: '150' });
+  // (Field 2 is the units: hours, days.)
+  f.post({ lf: 'set', r: row, f: 2, v: 'hours' });
+  f.post({ lf: 'set', r: row, f: 3, v: '150' });
   f.post({ lf: 'done' });
   await drawn(el, () => expect(inv(f, 'total')).toBe('$1,800.00'));
+  expect(bodyOf()).toContain('Design, 12 hours, 150');
   expect(inv(f, 'amount')).toBe('$1,800.00');
   // Tax is a rate typed beside its line of the sums.
   f.post({ lf: 'set', k: 5, f: 0, v: '8%' });
@@ -69,16 +72,16 @@ test('an invoice is typed straight onto the page, and the sums are done as you g
   expect(f.page().querySelector(`[data-lf^="${row2},0"]`)?.getAttribute('aria-label')).toMatch(/^What, row/);
   f.post({ lf: 'set', r: row2, f: 0, v: 'Build' });
   f.post({ lf: 'done' });
-  await drawn(el, () => expect(f.page().querySelectorAll('tbody tr')).toHaveLength(2));
+  await drawn(el, () => expect(f.page().querySelectorAll('tbody tr[data-inv=item]')).toHaveLength(2));
   expect(inv(f, 'total')).toBe('$1,954.80');
-  const remove = f.page().querySelector('[aria-label="Remove Build"]')!;
+  const remove = f.page().querySelector('[aria-label="Remove the line Build"]')!;
   f.post({ lf: 'remove', r: +remove.getAttribute('data-lf-remove')! });
-  await drawn(el, () => expect(f.page().querySelectorAll('tbody tr')).toHaveLength(1));
+  await drawn(el, () => expect(f.page().querySelectorAll('tbody tr[data-inv=item]')).toHaveLength(1));
   expect(inv(f, 'total')).toBe('$1,944.00');
   // What is saved is the text, as anyone would have typed it, the headings in their order. (Ctrl+Shift+T pressed in the page comes as a message.)
   f.post({ lf: 'key', key: 'T', shift: true });
   await settle(el);
-  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toBe('From: Harbor Studio | 14 Quay Street\nNumber: 0042\nTax: 8%\nDesign, 12, 150');
+  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toBe('From: Harbor Studio | 14 Quay Street\nNumber: 0042\nTax: 8%\nDesign, 12 hours, 150');
 });
 
 test('the example invoice is edited where it stands, and the page it downloads is clean', async () => {
@@ -98,16 +101,17 @@ test('the example invoice is edited where it stands, and the page it downloads i
   f.post({ lf: 'set', r: due[0], f: due[1], v: '' });
   // (Escape blurs the field: the page is drawn again at once.)
   f.post({ lf: 'done' });
-  await drawn(el, () => expect(fieldNamed(f, 'Due')?.textContent).toBe(''));
-  expect(fieldNamed(f, 'Due')?.getAttribute('data-hint')).toBe('When it is due');
+  // A date is the browser's own date box, emptied.
+  await drawn(el, () => expect((fieldNamed(f, 'Due') as HTMLInputElement | null)?.value).toBe(''));
+  expect(fieldNamed(f, 'Due')!.getAttribute('type')).toBe('date');
   shortcut('t', { mod: true, shift: true });
   await settle(el);
-  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toMatch(/^From: Harbor Studio \| 14 Quay Street\nTo: Acme Ltd \| Accounts payable\nNumber: 0042\nDate: 2027-03-01\nTax: 8%\nDesign, 10, 150\n/);
+  expect(el.querySelector<HTMLTextAreaElement>('textarea[aria-label="Invoice, as text"]')!.value).toMatch(/^From: Harbor Studio \| 14 Quay Street\nTo: Acme Ltd \| Accounts payable\nNumber: 0042\nDate: 2027-03-01\nTax: 8%\nDesign, 10 hours, 150\n/);
   // The downloaded page carries none of the editing. (The PDF is drawn on a canvas: e2e/invoice.spec.ts.)
   const file = await downloaded(() => choose('Download', /Web page/));
   expect(file.name).toBe('invoice-0042.html');
   const html = await file.text();
-  expect(html).toContain('<td>Design</td><td class="n">10</td>');
+  expect(html).toContain('<td>Design</td><td class="n">10</td><td class="u">hours</td>');
   expect(html).not.toContain('data-lf');
   expect(html).not.toContain('<script>');
 });
