@@ -1,6 +1,6 @@
 /** Draw: what the shell knows about drawings. Format: lib/drawmodel.ts. */
 import { defineApp, utf8, xml, pageSvg, r, INK, PAPER, SHADE, type Page } from '../kit/core.ts';
-import { COLORS, iconOf, isLine, isLink, linkEnds, paint, parseDrawing, W, H, type Shape } from '../lib/drawmodel.ts';
+import { COLORS, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, paint, parseDrawing, W, H, type Shape } from '../lib/drawmodel.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { textWidth } from '../kit/core.ts';
 
@@ -103,7 +103,9 @@ export function shapesPage(shapes: Shape[], w = W, h = H, upTo = Infinity): Page
   return { w, h, svg: `<defs>${arrowDefs()}</defs><g>${shapes.map((s, i) => (i < upTo ? shapeSvg(s, shapes) : '')).join('')}</g>` };
 }
 
-export const drawingPage = (body: string, upTo = Infinity) => shapesPage(parseDrawing(body), W, H, upTo);
+export const drawingPage = (body: string, upTo = Infinity): Page => ({ ...shapesPage(parseDrawing(body), W, H, upTo), alt: drawingAlt(body) });
+/** The alt text its author wrote, or else a description made from its shapes. */
+export const drawingAlt = (body: string) => altOf(body) || describeDrawing(parseDrawing(body));
 
 export const drawingToSvg = (body: string) => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(drawingPage(body)) + '\n';
 
@@ -114,7 +116,7 @@ export default defineApp({
   icon: 'draw',
   blurb: 'Boxes, ellipses, diamonds, lines, arrows and labels on a grid.',
   title: () => '',
-  outline: (body) => parseDrawing(body).map((s) => s.text.trim()).filter(Boolean),
+  outline: (body) => [altOf(body), ...parseDrawing(body).map((s) => s.text.trim())].filter(Boolean),
   view: (body, opts = {}) => [drawingPage(body, opts.step)],
   // A drawing on a slide appears one shape per click, in the order it was drawn.
   steps: (body) => parseDrawing(body).length,

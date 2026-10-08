@@ -5,6 +5,7 @@
  * and signs and verifies. Nothing here touches the DOM; it runs in Node
  * as it runs in the page. Published as @tinylittleoffice/doc.
  */
+import { altOf } from './lib/drawmodel.ts';
 import './apps/index.ts';
 import { LINK, appOf, apps as registry, type AppDef } from './kit/core.ts';
 import { decodeEnvelope, encodeEnvelope, quantizeCreated, signingMessage, type Envelope } from './lib/envelope.ts';
@@ -251,6 +252,8 @@ export async function lint(app: string, body: string, opts: MakeOptions = {}): P
       if (m && m[2] && !['t', '2', 'i', 'b'].includes(m[2])) out.push({ level: 'warning', line: i + 1, message: `Layout ":${m[2]}" is not one of :t (title), :2 (two columns), :i (big icon); the slide is drawn as bullets.` });
     });
   }
+  if ((app === 'draw' || app === 'anim') && body.trim() && !altOf(body))
+    out.push({ level: 'note', message: `No alt text: a line "# <what it shows>" describes the ${app === 'draw' ? 'drawing' : 'animation'} for people who cannot see it. Without one, a description is made from the labels.` });
   const url = link(app, body, opts);
   if (url.length > 2953) out.push({ level: 'error', message: `The link is ${url.length} characters: too long for a QR code (2,953), and some apps truncate links. Split the document, or embed less.` });
   else if (url.length > URL_LIMIT) out.push({ level: 'warning', message: `The link is ${url.length} characters. Browsers open it; a QR code holds it up to 2,953; some chat apps cut links past about 2,000. Shorter is safer.` });

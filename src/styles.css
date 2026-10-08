@@ -1260,6 +1260,19 @@ to-rich {
 }
 
 /* Draw */
+/* Alt text: asked for (dashed, amber) until written, then quiet. */
+.draw-alt::part(base) {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-style: dashed;
+  border-color: var(--to-warning);
+  color: var(--to-warning);
+}
+.draw-alt.has::part(base) {
+  border-style: solid;
+  border-color: var(--sl-input-border-color);
+  color: inherit;
+}
 .draw-wrap {
   padding: 12px;
   background: var(--to-surface-2);

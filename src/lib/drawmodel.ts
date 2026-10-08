@@ -82,6 +82,36 @@ export function paint(s: Shape, ink: string, paper: string, shade: string) {
 
 const KINDS: Kind[] = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v'];
 
+/**
+ * What a drawing shows, said in words for anyone who cannot see it (alt
+ * text): a line "# ..." in its text, first by custom. '' when there is none.
+ */
+export function altOf(text: string): string {
+  return /^# (.*)$/m.exec(text)?.[1].trim() ?? '';
+}
+
+/** The drawing's text with its alt text set (or taken out, when empty), on the first line. */
+export function withAlt(text: string, alt: string): string {
+  const rest = text.split('\n').filter((l) => !l.startsWith('# ')).join('\n');
+  const said = alt.replace(/\s+/g, ' ').trim();
+  return said ? `# ${said}${rest ? '\n' + rest : ''}` : rest;
+}
+
+/**
+ * A description made from the shapes themselves, when nobody wrote one: what
+ * is labelled, and what leads to what. A start, not a substitute.
+ */
+export function describeDrawing(shapes: Shape[]): string {
+  const named = (i: number) => iconOf(shapes[i]?.text ?? '')[1].trim() || iconOf(shapes[i]?.text ?? '')[0];
+  const things = shapes.map((s, i) => (isLink(s.k) ? '' : named(i))).filter(Boolean);
+  const joins = shapes
+    .filter((s) => isLink(s.k) && named(s.x) && named(s.y))
+    .map((s) => `${named(s.x)} ${s.k === 'k' ? 'leads to' : 'joins'} ${named(s.y)}${iconOf(s.text)[1].trim() ? ` (${iconOf(s.text)[1].trim()})` : ''}`);
+  if (!shapes.length) return '';
+  const head = things.length ? `A drawing of ${things.join(', ')}.` : `A drawing of ${shapes.length} unlabelled shape${shapes.length === 1 ? '' : 's'}.`;
+  return joins.length ? `${head} ${joins.join('; ')}.` : head;
+}
+
 export function parseDrawing(text: string): Shape[] {
   if (!text) return [];
   const out: Shape[] = [];

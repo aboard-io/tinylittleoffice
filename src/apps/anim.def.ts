@@ -1,6 +1,6 @@
 /** Motion: what the shell knows about a drawing that moves. Format: lib/animmodel.ts. */
 import { defineApp, utf8, pageSvg, r, INK, type Page } from '../kit/core.ts';
-import { isLine, isLink, linkEnds, type Shape } from '../lib/drawmodel.ts';
+import { describeDrawing, isLine, isLink, linkEnds, type Shape } from '../lib/drawmodel.ts';
 import { parseAnim, stateAt, depthScale, W, H, type Anim, type Key } from '../lib/animmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 
@@ -118,7 +118,7 @@ export function animPage(anim: Anim, once = false): Page {
       );
     })
     .join('');
-  return { w: W, h: H, svg: `<defs>${arrowDefs()}${FX_DEFS}${[...defs].join('')}</defs>${shapes}` };
+  return { w: W, h: H, svg: `<defs>${arrowDefs()}${FX_DEFS}${[...defs].join('')}</defs>${shapes}`, alt: anim.alt || describeDrawing(anim.shapes) };
 }
 
 export const animToSvg = (body: string) => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(animPage(parseAnim(body))) + '\n';
@@ -136,7 +136,7 @@ export default defineApp({
   icon: 'anim',
   blurb: 'Anything from Draw, moving: position, depth, size and spin over time, with effects for memes.',
   title: () => '',
-  outline: (body) => parseAnim(body).shapes.map((s) => s.text.trim()).filter(Boolean),
+  outline: (body) => [parseAnim(body).alt ?? '', ...parseAnim(body).shapes.map((s) => s.text.trim())].filter(Boolean),
   view: (body, opts = {}) => [animPage(parseAnim(body), opts.embed)],
   frames: animFrames,
   downloads: [{ ext: 'svg', label: 'Animated SVG', mime: 'image/svg+xml', build: (b) => utf8(animToSvg(b)) }],

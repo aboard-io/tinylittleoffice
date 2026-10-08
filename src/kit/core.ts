@@ -14,6 +14,8 @@ export interface Page {
   w: number;
   h: number;
   svg: string;
+  /** What the page shows, in words, for anyone who cannot see it (a drawing's alt text). */
+  alt?: string;
 }
 
 export interface ViewOpts {
@@ -273,7 +275,10 @@ export const rect = (x: number, y: number, w: number, h: number, fill: string, e
 
 /** A page as a complete SVG document. */
 export function pageSvg(p: Page, attrs = ''): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.w} ${p.h}" width="${p.w}" height="${p.h}" font-family="${FONT}"${attrs ? ' ' + attrs : ''}>${rect(0, 0, p.w, p.h, PAPER)}${p.svg}</svg>`;
+  // Alt text is said after the name a picture is given, and kept inside the file as its <title>.
+  const alt = p.alt ? xml(p.alt) : '';
+  const a = alt ? (/aria-label="/.test(attrs) ? attrs.replace(/aria-label="([^"]*)"/, (_, name) => `aria-label="${name ? name + '. ' : ''}${alt}"`) : `${attrs ? attrs + ' ' : ''}role="img" aria-label="${alt}"`) : attrs;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.w} ${p.h}" width="${p.w}" height="${p.h}" font-family="${FONT}"${a ? ' ' + a : ''}>${alt ? `<title>${alt}</title>` : ''}${rect(0, 0, p.w, p.h, PAPER)}${p.svg}</svg>`;
 }
 
 /** A page placed inside a box on another page, scaled to fit and centred. */

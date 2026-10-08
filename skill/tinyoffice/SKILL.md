@@ -167,7 +167,9 @@ https://tinylittleoffice.com/trip/#title=Portugal&doc=km%0A38.7223%2C+-9.1393%2C
 
 One shape per line: `kind,x,y,w,h,style,label`, on a grid 80 wide and 50 tall. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `l` line, `a` arrow. `k` joins two shapes with an arrow and `j` with a line; for those, `x` and `y` are the line numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid) optionally followed by a colour letter (`r o g b p`) and a text size (`1` to `4`). Prefer the diagram apps above when one fits: they lay themselves out.
 
-https://tinylittleoffice.com/draw/#title=Request+flow&doc=o%2C4%2C6%2C16%2C8%2C1b%2CBrowser%0Ao%2C32%2C6%2C16%2C8%2C1b%2CServer%0Ac%2C60%2C5%2C14%2C10%2C1g%2CData%0Ak%2C0%2C1%2C0%2C0%2C0%2Casks%0Ak%2C1%2C2%2C0%2C0%2C0%2Creads
+A first line `# <what it shows>` is the drawing's alt text: read to people who cannot see it, and kept wherever the drawing is embedded or downloaded. Always write one; it is not a shape, so joins still count shapes from 0 without it. (`anim` takes the same line after its `!` line.)
+
+https://tinylittleoffice.com/draw/#title=Request+flow&doc=%23+A+browser+asks+a+server%2C+which+reads+from+a+data+store.%0Ao%2C4%2C6%2C16%2C8%2C1b%2CBrowser%0Ao%2C32%2C6%2C16%2C8%2C1b%2CServer%0Ac%2C60%2C5%2C14%2C10%2C1g%2CData%0Ak%2C0%2C1%2C0%2C0%2C0%2Casks%0Ak%2C1%2C2%2C0%2C0%2C0%2Creads
 
 
 Any shape at all: `v,x,y,w,h,style,<corners>,label` where the corners are `x:y` pairs as hundredths of the box, `;` between (`v,2,1,12,6,1b,0:0;100:50;0:100,Wedge` is a wedge). In the editor the Pen tool (P) makes one corner by corner; Enter or tapping the first corner closes it.

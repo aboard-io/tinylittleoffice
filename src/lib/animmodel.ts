@@ -13,7 +13,7 @@
  * degrees, and letters for effects (see EFFECTS). A Draw document on its own
  * is a motion document in which nothing moves yet.
  */
-import { parseDrawing, ptsOf, ptsText, removeShape, serializeDrawing, type Shape } from './drawmodel.ts';
+import { altOf, parseDrawing, ptsOf, ptsText, removeShape, serializeDrawing, type Shape } from './drawmodel.ts';
 
 export const W = 640;
 export const H = 400;
@@ -60,6 +60,8 @@ export interface Anim {
   shapes: Shape[];
   /** One list per shape, sorted by frame; empty when it stays put. */
   keys: Key[][];
+  /** What it shows, in words (see altOf in drawmodel). */
+  alt?: string;
 }
 
 /** A key that leaves the shape as it was drawn. */
@@ -85,6 +87,8 @@ export function parseAnim(text: string): Anim {
     if (FPS_CHOICES.includes(parseInt(fps, 10))) anim.fps = parseInt(fps, 10);
   }
   anim.shapes = parseDrawing(lines.filter((l) => !l.startsWith('@')).join('\n'));
+  const alt = altOf(text);
+  if (alt) anim.alt = alt;
   anim.keys = anim.shapes.map(() => []);
   for (const line of lines.filter((l) => l.startsWith('@'))) {
     const tab = line.indexOf('\t');
@@ -106,9 +110,9 @@ export function parseAnim(text: string): Anim {
 
 export function serializeAnim(anim: Anim): string {
   const keyed = anim.keys.map((ks, i) => (ks.some((k) => !atRest(k)) ? [i, ks] as const : null)).filter((x): x is readonly [number, Key[]] => !!x);
-  if (!anim.shapes.length && !keyed.length && anim.frames === DEFAULT_FRAMES && anim.fps === DEFAULT_FPS) return '';
+  if (!anim.shapes.length && !keyed.length && !anim.alt && anim.frames === DEFAULT_FRAMES && anim.fps === DEFAULT_FPS) return '';
   const head = `!${b(anim.frames)}${anim.fps !== DEFAULT_FPS ? `,${anim.fps}` : ''}`;
-  const lines = [head, ...(anim.shapes.length ? [serializeDrawing(anim.shapes)] : [])];
+  const lines = [head, ...(anim.alt ? [`# ${anim.alt}`] : []), ...(anim.shapes.length ? [serializeDrawing(anim.shapes)] : [])];
   for (const [i, ks] of keyed) {
     const keys = sortKeys(ks.slice()).map((k) => `${b(k.t)},${b(k.dx)},${b(k.dy)},${b(k.z)},${b(k.s * 10)},${b(k.r)}${k.fx || k.pts ? `,${letters(k.fx)}` : ''}${k.pts ? `,p${ptsText(k.pts).replace(/;/g, '/')}` : ''}`);
     lines.push(`@${b(i)}\t${keys.join(';')}`);

@@ -9,7 +9,7 @@ import './anim.css';
 import './draw.ts';
 import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, icon, UI, isKey } from '../kit.ts';
 import type { SlInput, SlSelect } from '../kit.ts';
-import { GRID, isLink, parseDrawing, removeShape, serializeDrawing } from '../lib/drawmodel.ts';
+import { GRID, altOf, isLink, parseDrawing, removeShape, serializeDrawing, withAlt } from '../lib/drawmodel.ts';
 import { EFFECTS, FPS_CHOICES, MAX_FRAMES, MAX_Z, W, H, hasKey, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes, type Anim, type Key } from '../lib/animmodel.ts';
 import { bounds, frameSvg, transformOf } from './anim.def.ts';
 import type { Theme } from './draw.def.ts';
@@ -207,7 +207,7 @@ export class ToAnim extends DocElement<Anim> {
   private onDrawChange(e: CustomEvent<string>) {
     // Draw's text is not the document: ours is, with the drawing inside it.
     e.stopPropagation();
-    this.commit(withShapes(this.doc, parseDrawing(e.detail)));
+    this.commit({ ...withShapes(this.doc, parseDrawing(e.detail)), alt: altOf(e.detail) || undefined });
   }
 
   /** The little pictures under the slider, one every few frames; remade when the document changes. */
@@ -323,7 +323,7 @@ export class ToAnim extends DocElement<Anim> {
         <span class="to-hint">${this.mode === 'draw' ? 'Draw the things that will move.' : 'Pick a moment below, then drag a shape to where it should be.'}</span>
       </div>
       ${this.mode === 'draw'
-        ? html`<to-draw class="motion-draw" .value=${serializeDrawing(this.doc.shapes)} @docchange=${this.onDrawChange}></to-draw>`
+        ? html`<to-draw class="motion-draw" .value=${withAlt(serializeDrawing(this.doc.shapes), this.doc.alt ?? '')} @docchange=${this.onDrawChange}></to-draw>`
         : html`<div class="motion">${this.renderStage()}${this.renderProps()}</div>`}
       ${this.renderTimeline()}
     `;

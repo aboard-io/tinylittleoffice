@@ -6,8 +6,8 @@
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use
  * x,y as the start and w,h as the delta to the end.
  */
-import { LINK, DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, makeRef, UI, type SlInput, type SlSelect } from '../kit.ts';
-import { W, H, GRID, COLORS, TEXT_SIZES, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
+import { LINK, DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, makeRef, UI, type SlInput, type SlSelect, type SlTextarea } from '../kit.ts';
+import { W, H, GRID, COLORS, TEXT_SIZES, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, parseDrawing, withAlt, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 
@@ -59,8 +59,16 @@ export class ToDraw extends DocElement<Shape[]> {
   private stamp = '';
   private svgEl?: SVGSVGElement;
 
-  protected parse = parseDrawing;
-  protected serialize = serializeDrawing;
+  /** What the drawing shows, in words: its alt text, kept beside the shapes and saved as the text's first line. */
+  @state() private alt = '';
+  /** The alt text being written, while its dialog is open; null when it is closed. */
+  @state() private altDraft: string | null = null;
+
+  protected parse = (text: string) => {
+    this.alt = altOf(text);
+    return parseDrawing(text);
+  };
+  protected serialize = (doc: Shape[]) => withAlt(serializeDrawing(doc), this.alt);
 
   protected loaded() {
     this.sel = -1;
@@ -343,7 +351,14 @@ export class ToDraw extends DocElement<Shape[]> {
         }}>
           ${([1, 2, 3, 4] as TextSize[]).map((z) => html`<sl-option value=${z}>${TEXT_SIZES[z].name}</sl-option>`)}
         </sl-select>
-        ${tool('Animate this drawing', 'play', () => (location.hash = `${LINK}${makeRef('anim', '!o\n' + serializeDrawing(this.doc))}`), { disabled: !this.doc.length, size: 16 })}
+        <sl-button
+          class="draw-alt ${this.alt ? 'has' : ''}"
+          size="small"
+          aria-label=${this.alt ? `Alt text: ${this.alt}` : 'Add alt text: describe this drawing for people who cannot see it'}
+          data-tip=${this.alt ? `Alt text: ${this.alt}` : 'Add alt text: describe this drawing'}
+          @click=${() => (this.altDraft = this.alt)}
+        >${this.alt ? icon(UI.check, 12) : nothing}ALT</sl-button>
+        ${tool('Animate this drawing', 'play', () => (location.hash = `${LINK}${makeRef('anim', '!o\n' + this.serialize(this.doc))}`), { disabled: !this.doc.length, size: 16 })}
         <sl-button-group label="Arrange">
           ${tool('Bring to front', 'front', () => this.reorder(true), { disabled: !s, size: 16 })}
           ${tool('Send to back', 'back', () => this.reorder(false), { disabled: !s, size: 16 })}
@@ -387,8 +402,39 @@ export class ToDraw extends DocElement<Shape[]> {
           ${s ? this.renderSelection(s) : nothing}
         </svg>
       </div>
+      ${this.renderAlt()}
     `;
   }
+
+  /** The alt text dialog: what the drawing shows, written once, read wherever the drawing goes. */
+  private renderAlt() {
+    const draft = this.altDraft;
+    const suggestion = describeDrawing(this.doc);
+    const close = () => (this.altDraft = null);
+    return html`<sl-dialog class="draw-alt-dialog" label="Alt text" ?open=${draft !== null} @sl-request-close=${close}>
+      <sl-textarea
+        label="What does this drawing show?"
+        help-text="Read aloud to people who cannot see it, and kept with the drawing wherever it is embedded or downloaded."
+        rows="3"
+        resize="auto"
+        .value=${draft ?? ''}
+        placeholder=${suggestion || 'A diagram of…'}
+        @sl-input=${(e: Event) => (this.altDraft = (e.target as SlTextarea).value)}
+        @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.metaKey || e.ctrlKey) && this.saveAlt()}
+      ></sl-textarea>
+      ${suggestion ? html`<sl-button slot="footer" size="small" @click=${() => (this.altDraft = suggestion)}>${icon(UI.sparkles, 14)} Describe from the shapes</sl-button>` : nothing}
+      <span slot="footer" class="to-spacer"></span>
+      <sl-button slot="footer" size="small" variant="primary" @click=${() => this.saveAlt()}>${icon(UI.check, 14)} Done</sl-button>
+    </sl-dialog>`;
+  }
+
+  private saveAlt() {
+    if (this.altDraft === null) return;
+    this.alt = this.altDraft.replace(/\s+/g, ' ').trim();
+    this.altDraft = null;
+    this.commit(this.doc);
+  }
+
 }
 
 declare global {
