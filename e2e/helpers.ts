@@ -23,6 +23,8 @@ export async function navTo(page: Page, name: string) {
   // An app chosen from the menu opens in a new tab; the test follows it here.
   await expect(link).toHaveAttribute('target', '_blank');
   const href = await link.getAttribute('href');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#nav-drawer')).not.toHaveAttribute('open');
   await page.goto(new URL(href!, page.url()).href);
 }
 

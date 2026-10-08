@@ -58,8 +58,8 @@ creation time and can be cryptographically signed.
 npm install
 npm run dev        # local dev server
 npm run build      # static site in dist/
-npm test           # unit tests (node) and the editors in an emulated browser (Vitest, happy-dom): seconds
-npm run test:e2e   # every browser test, desktop and phone (Playwright; slow)
+npm test           # unit tests (node) and the editors and shell in an emulated browser (Vitest, happy-dom): about a minute
+npm run test:e2e   # what needs a real browser, desktop and phone (Playwright; about seven minutes)
 ```
 
 Tests come in three layers, fastest first. `test/*.test.ts` are the
@@ -68,7 +68,9 @@ each real editor on a page emulated by happy-dom (through Vite, so it is
 the same code the site builds) and works it as a person would: typing,
 pressing, choosing, then checking the text it saves. `e2e/` is a real
 browser at desktop and phone size, for what needs one: layout, overflow,
-pointers, frames, the service worker. `e2e/smoke.spec.ts` is its quick
+pointers, canvas drawing (PNG, PDF, GIF), page scripts in frames, the
+editing commands, the service worker; each test there says in a comment
+why it needs one. `e2e/smoke.spec.ts` is its quick
 part: every app opened at both sizes, drawn, quiet, and no wider than the
 screen.
 
@@ -522,8 +524,8 @@ script (`wrangler.jsonc`), its headers from `public/_headers`, on
 tinylittleoffice.com and www; and the shortener as a second Worker
 (`tinier/wrangler.jsonc`). `npm run deploy` checks and ships both, checking
 what the change can have broken (`scripts/deploy.mjs`): always the types,
-the unit tests, the editors in the emulated browser and the build (about
-twenty seconds); when something on screen changed since the last deploy (an
+the unit tests, the editors and shell in the emulated browser and the
+build (about a minute and a half); when something on screen changed since the last deploy (an
 editor, a style, the shell, a widget, a page the site serves), the smoke
 check in a real browser too (about half a minute more). `-- --full` runs
 every browser test first; `-- --dry-run` checks without shipping.
