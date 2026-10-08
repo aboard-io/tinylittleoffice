@@ -90,3 +90,15 @@ test('tinier: the brake allows so many an hour from one address, and forgets', a
   assert.equal(await may('b', t + 3), true); // another address is not held back
   assert.equal(await may('a', t + 1001), true); // an hour on, the first has aged out
 });
+
+test('tinier: a copy of the site on this machine names itself, and its short links may lead only there', async () => {
+  const site = 'https://pefdev.exe.xyz:4178';
+  const page = "<script>const site = '{{site}}';</script><p>{{id}}</p>";
+  const made = await handle(post({ c: 'abc', iv: 'xyz', ttl: 3600 }), new MemStore(), yes, page, Date.now(), site);
+  assert.equal(made.headers.get('access-control-allow-origin'), site);
+  const home = await (await handle(new Request('https://tinier.test/'), new MemStore(), yes, page, Date.now(), site)).text();
+  assert.match(home, /const site = 'https:\/\/pefdev\.exe\.xyz:4178'/);
+  // Without one, it is the real site.
+  const real = await (await handle(new Request('https://tinier.test/'), new MemStore(), yes, page)).text();
+  assert.match(real, /const site = 'https:\/\/tinylittleoffice\.com'/);
+});

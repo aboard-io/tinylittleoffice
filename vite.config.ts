@@ -72,6 +72,8 @@ self.addEventListener('fetch', (e) => {
 
 export default defineConfig(({ mode }) => ({
   base: './',
+  // The shortener on this machine (npm run tinier:dev), under the dev server's own address, so it needs no address of its own.
+  server: { proxy: { '/tinier/': { target: 'http://127.0.0.1:8787', rewrite: (p) => p.slice('/tinier'.length) } } },
   plugins: [appPages(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '')],
   build: {
     target: 'es2022',

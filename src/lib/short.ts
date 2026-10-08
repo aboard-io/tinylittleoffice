@@ -6,7 +6,9 @@
  */
 import { toBase64Url, fromBase64Url } from './codec.ts';
 
-export const TINIER = 'https://tinier.tinylittleoffice.com/';
+// The dev server sets VITE_TINIER (.env.development) to its own /tinier/, which it hands on to `npm run tinier:dev`.
+const local = import.meta.env?.VITE_TINIER as string | undefined;
+export const TINIER = local ? new URL(local, location.href).href : 'https://tinier.tinylittleoffice.com/';
 export const EXPIRIES: { seconds: number; name: string }[] = [
   { seconds: 3600, name: 'An hour' },
   { seconds: 86400, name: 'A day' },

@@ -337,6 +337,18 @@ its rows in a D1 table (`schema.sql`), a rate-limit binding as the brake
 on one address, and an hourly cron that forgets expired links (a read of
 one forgets it sooner).
 
+To run it on this machine, beside `npm run dev`:
+
+```
+SITE=http://localhost:5173 npm run tinier:dev
+```
+
+It keeps its rows in a local D1 (`.wrangler/`) and listens on 8787; the dev
+server hands it everything under `/tinier/` (`.env.development` points the
+Share menu there), so short links come out as the dev server's own address.
+`SITE` is that address as the browser sees it: the only place a local short
+link may lead.
+
 ## What the server sees
 
 Nothing of any document. A document is the part of the address after `#`,

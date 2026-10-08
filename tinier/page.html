@@ -32,13 +32,14 @@
   const key = location.hash.slice(1);
   if (!key) return fail('This link is missing its key (the part after #). Ask for it again.');
   try {
-    const r = await fetch('/api/' + id);
+    const r = await fetch('api/' + id);
     if (!r.ok) return fail('No such link, or it has expired.');
     const { c, iv, exp } = await r.json();
     const un = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
-    if (!/^https:\/\/(www\.)?tinylittleoffice\.com\//.test(plain)) return fail('That link does not go to TinyLittleOffice.');
+    const site = '{{site}}';
+    if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to TinyLittleOffice.');
     a.href = plain; go.hidden = false;
     p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + '.';
     location.replace(plain);

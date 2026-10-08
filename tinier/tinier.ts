@@ -49,7 +49,7 @@ export function brake(limit = 60, hour = 3600_000): Limiter {
   };
 }
 
-/** The site that may call the API, and the only place a short link may lead. */
+/** The site that may call the API, and the only place a short link may lead (a local copy of the site, under `wrangler dev`, names itself). */
 export const SITE = 'https://tinylittleoffice.com';
 const MAX_BYTES = 8 * 1024;
 const TTLS = new Set([3600, 86400, 7 * 86400, 30 * 86400]);
@@ -60,8 +60,7 @@ const B64 = /^[A-Za-z0-9_-]+$/;
 export const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(7)), (b) => ALPHABET[b % 32]).join('');
 const valid = (s: string) => /^[a-z0-9]{7}$/.test(s);
 
-const CORS = { 'access-control-allow-origin': SITE };
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'content-type': 'application/json', 'cache-control': 'no-store' } });
+const json = (body: unknown, site: string, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store' } });
 const html = (page: string, status = 200) =>
   new Response(page, {
     status,
@@ -85,35 +84,36 @@ async function read(store: Store, id: string, now: number): Promise<Link | null>
   return link;
 }
 
-/** Answer one request. `page` is the landing page with "{{id}}" where the id goes. */
-export async function handle(req: Request, store: Store, allowed: Limiter, page: string, now = Date.now()): Promise<Response> {
+/** Answer one request. `page` is the landing page with "{{id}}" where the id goes and "{{site}}" where the site does. */
+export async function handle(req: Request, store: Store, allowed: Limiter, page: string, now = Date.now(), site = SITE): Promise<Response> {
   const url = new URL(req.url);
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...CORS, 'access-control-allow-methods': 'POST, GET', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' } });
+  page = page.replaceAll('{{site}}', site);
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': site, 'access-control-allow-methods': 'POST, GET', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' } });
 
   if (req.method === 'POST' && url.pathname === '/api') {
-    if (!(await allowed(req.headers.get('cf-connecting-ip') ?? ''))) return json({ error: 'Too many links from here just now.' }, 429);
+    if (!(await allowed(req.headers.get('cf-connecting-ip') ?? ''))) return json({ error: 'Too many links from here just now.' }, site, 429);
     const text = await req.text();
-    if (text.length > MAX_BYTES * 2) return json({ error: 'Bad request' }, 400);
+    if (text.length > MAX_BYTES * 2) return json({ error: 'Bad request' }, site, 400);
     let c: unknown, iv: unknown, ttl: unknown;
     try {
       ({ c, iv, ttl } = JSON.parse(text));
     } catch {
-      return json({ error: 'Bad request' }, 400);
+      return json({ error: 'Bad request' }, site, 400);
     }
-    if (typeof c !== 'string' || typeof iv !== 'string' || typeof ttl !== 'number' || !B64.test(c) || !B64.test(iv) || c.length > MAX_BYTES || iv.length > 32 || !TTLS.has(ttl)) return json({ error: 'Bad request' }, 400);
+    if (typeof c !== 'string' || typeof iv !== 'string' || typeof ttl !== 'number' || !B64.test(c) || !B64.test(iv) || c.length > MAX_BYTES || iv.length > 32 || !TTLS.has(ttl)) return json({ error: 'Bad request' }, site, 400);
     const exp = now + ttl * 1000;
     // Seven letters from thirty-two is 34 billion ids; a clash is for form's sake.
     for (let tries = 0; tries < 5; tries++) {
       const id = newId();
-      if (await store.put(id, { c, iv, exp })) return json({ id, exp }, 201);
+      if (await store.put(id, { c, iv, exp })) return json({ id, exp }, site, 201);
     }
-    return json({ error: 'Could not make a link; try again.' }, 503);
+    return json({ error: 'Could not make a link; try again.' }, site, 503);
   }
 
   if (req.method === 'GET' && url.pathname.startsWith('/api/')) {
     const id = url.pathname.slice(5);
     const link = valid(id) ? await read(store, id, now) : null;
-    return link ? json(link) : json({ error: 'No such link, or it has expired.' }, 404);
+    return link ? json(link, site) : json({ error: 'No such link, or it has expired.' }, site, 404);
   }
 
   if (req.method === 'GET' && url.pathname === '/') return html(page.replace('{{id}}', ''));
