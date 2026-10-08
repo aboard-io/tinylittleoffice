@@ -8,6 +8,7 @@
 import { altOf } from './lib/drawmodel.ts';
 import './apps/index.ts';
 import { LINK, appOf, apps as registry, type AppDef } from './kit/core.ts';
+import { takeHead } from './lib/tlo.ts';
 import { decodeEnvelope, encodeEnvelope, quantizeCreated, signingMessage, type Envelope } from './lib/envelope.ts';
 import { fromMarkdown, toMarkdown, parseCsv, looksLikeCsv } from './lib/markdown.ts';
 import { evaluateGrid, formatCell, parseGrid, typesOf } from './lib/formula.ts';
@@ -102,13 +103,11 @@ export function link(app: string, body: string, opts: MakeOptions = {}): string 
   return `${site}${app}/${LINK}${app}${opts.view ? '.' + opts.view : ''}/${payload}`;
 }
 
-/** Text as a body in the app's format: Markdown or CSV is shaped the way the app reads it; anything else is read as the app reads plain text. */
+/** Text as the app's document: TLO (which is Markdown) or CSV, read the way the app reads it. */
 export function read(app: string, text: string): string {
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
-  // Only what is unmistakably Markdown (a heading, a table, a checkbox, bold) or CSV is shaped; a plain list may be the app's own format.
-  const md = /^(#{1,6}\s|\||\s*[-*+]\s\[[ xX]\]|.*\*\*)/m.test(text) || looksLikeCsv(text);
-  return md ? fromMarkdown(def, text) : def.read ? def.read(text) : text;
+  return fromMarkdown(def, text);
 }
 
 /** The link for a document written as Markdown (or CSV), shaped the way the app reads it. */
@@ -138,11 +137,12 @@ export function parse(url: string): Parsed {
   if (!m) {
     // A plain link: /<app>/#title=…&doc=… or &md=…
     const q = new URLSearchParams(hash.slice(1));
-    const app = q.get('app') ?? /\/([a-z0-9-]+)\/#/.exec(url)?.[1] ?? '';
+    const [head, text] = takeHead(q.get('doc') ?? q.get('md') ?? '', ['app', 'title', 'by', 'created', 'key', 'sig']);
+    const app = q.get('app') ?? head.app ?? /\/([a-z0-9-]+)\/#/.exec(url)?.[1] ?? '';
     const def = appOf(app);
     if (!def) throw new Error('Not a TinyLittleOffice link');
-    const body = q.has('md') ? fromMarkdown(def, q.get('md') ?? '') : def.read ? def.read(q.get('doc') ?? '') : (q.get('doc') ?? '');
-    const env = envelope(body, { title: q.get('title') ?? undefined, by: q.get('by') ?? undefined, created: null });
+    const body = fromMarkdown(def, text);
+    const env = envelope(body, { title: q.get('title') ?? head.title ?? undefined, by: q.get('by') ?? head.by ?? undefined, created: null });
     return { app, view: q.get('view') ?? '', sealed: false, env, markdown: toMarkdown(def, body, env.title) };
   }
   const app = m[2];

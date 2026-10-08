@@ -248,9 +248,11 @@ export class ToApp extends LitElement {
 
   /**
    * A link written with ordinary parameters instead of a packed document:
-   *   /deck/#title=Plan&doc=Launch%0ABuild+it
-   * app (when not on an app's own page), doc, title and view. It is turned
-   * into the usual link on arrival, so what is shared afterwards is compact.
+   *   /deck/#title=Plan&doc=%23+Launch%0A-+Build+it
+   * The document ("doc", or "md": the same) is TLO, which is Markdown, read
+   * leniently; its header may name the app, the title and the author. The
+   * app, title, by and view may also be parameters. It is turned into the
+   * usual link on arrival, so what is shared afterwards is compact.
    *
    * Only after "#": that part of an address stays in the browser. The same
    * parameters after "?" would be sent to the server (and into its logs), so
@@ -260,13 +262,12 @@ export class ToApp extends LitElement {
     if (location.hash.length < 2 || location.hash.startsWith('#/')) return false;
     const q = new URLSearchParams(location.hash.slice(1));
     if (!q.has('doc') && !q.has('md') && !q.has('title') && !q.has('app')) return false;
-    const def = appOf(q.get('app') ?? '') ?? appOf(location.pathname.split('/').slice(-2)[0]);
+    const [head, text] = takeHead((q.get('doc') ?? q.get('md') ?? '').replace(/\r\n?/g, '\n'), ['app', 'title', 'by', 'created', 'key', 'sig']);
+    const def = appOf(q.get('app') ?? head.app ?? '') ?? appOf(location.pathname.split('/').slice(-2)[0]);
     if (!def) return false;
-    // The document in the app's own format ("doc"), or as Markdown or CSV ("md"), read the way this kind of document reads it.
-    const text = (q.get('doc') ?? '').replace(/\r\n?/g, '\n');
-    const body = q.has('md') && !q.has('doc') ? fromMarkdown(def, q.get('md') ?? '') : def.read ? def.read(text) : text;
-    const title = q.get('title')?.trim() || undefined;
-    const by = q.get('by')?.trim() || undefined;
+    const body = fromMarkdown(def, text);
+    const title = q.get('title')?.trim() || head.title || undefined;
+    const by = q.get('by')?.trim() || head.by || undefined;
     const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, by, body }, def.id);
     history.replaceState(null, '', `${this.root}${location.protocol === 'file:' ? '' : def.id + '/'}${routeHash(def.id, payload, q.get('view') ?? '')}`);
     return true;

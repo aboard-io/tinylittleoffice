@@ -11,7 +11,7 @@ export interface Kept {
   id: string;
   app: string;
   title: string;
-  /** The link's "#/v0/..." part: the whole document. */
+  /** The link's "#/v1/..." part: the whole document. */
   hash: string;
   folder: string;
   /** When it was last kept, in ms. */
