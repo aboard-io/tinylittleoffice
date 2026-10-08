@@ -9,160 +9,11 @@ test('launcher lists every app', async ({ page }) => {
   await shot(page, 'home');
 });
 
-test('sheet: formulas compute and persist in the URL', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
-  await cell('A1').fill('10');
-  await cell('A2').fill('32');
-  await cell('A3').fill('=SUM(A1:A2)*2');
-  await cell('B1').fill('=A3/0');
-  await cell('C1').fill('Total');
-  await cell('C2').fill('=ROUND(AVG(A1:A3),1)');
-  await cell('C3').click();
-  await expect(cell('A3')).toHaveValue('84');
-  await expect(cell('B1')).toHaveValue('#DIV/0');
-  await expect(cell('C2')).toHaveValue('42');
-  expect(page.url()).toMatch(/#\/v0\/sheet\/[WYZR][A-Za-z0-9_-]+$/);
-
-  await reopen(page);
-  await expect(cell('A3')).toHaveValue('84');
-  await expect(cell('C1')).toHaveValue('Total');
-  await cell('A3').focus();
-  await expect(cell('A3')).toHaveValue('=SUM(A1:A2)*2');
-  await expect(page.getByRole('textbox', { name: 'Formula' })).toHaveValue('=SUM(A1:A2)*2');
-  await page.keyboard.press('Enter');
-  await expect(cell('A4')).toBeFocused();
-  // Editing in the formula bar writes to the selected cell.
-  await page.getByRole('textbox', { name: 'Formula' }).fill('=A1*3');
-  await cell('B4').click();
-  await expect(cell('A4')).toHaveValue('30');
-  await shot(page, 'sheet');
-});
-
-test('sheet: tapping cells builds a formula, and every function is one tap away', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
-  await cell('A1').fill('10');
-  await cell('A2').fill('32');
-  await cell('B1').click();
-  await page.keyboard.type('=SUM(');
-  await cell('A2').click();
-  await expect(cell('B1')).toBeFocused();
-  await expect(cell('B1')).toHaveValue('=SUM(A2');
-  // A second tap corrects the first rather than piling up references.
-  await cell('A1').click();
-  await expect(cell('B1')).toHaveValue('=SUM(A1');
-  await page.keyboard.type(':');
-  await cell('A2').click();
-  await page.keyboard.type(')');
-  await expect(cell('B1')).toHaveValue('=SUM(A1:A2)');
-  // Once the formula is complete a tap just moves on.
-  await cell('C1').click();
-  await expect(cell('C1')).toBeFocused();
-  await expect(cell('B1')).toHaveValue('42');
-
-  // The function menu starts a formula; taps fill in its arguments.
-  await page.getByRole('button', { name: 'Functions' }).click();
-  await expect(page.getByRole('menuitem')).toHaveCount(32);
-  await page.getByRole('menuitem', { name: /^MAX/ }).click();
-  await expect(cell('C1')).toBeFocused();
-  await expect(cell('C1')).toHaveValue('=MAX(');
-  await cell('A1').click();
-  await page.keyboard.type(',');
-  await cell('A2').click();
-  await page.keyboard.type(')');
-  await page.keyboard.press('Enter');
-  await expect(cell('C1')).toHaveValue('32');
-
-  // Tapping also works from the formula bar.
-  await cell('B2').click();
-  const bar = page.getByRole('textbox', { name: 'Formula' });
-  await bar.click();
-  await page.keyboard.type('=A1*');
-  await cell('A2').click();
-  await expect(bar).toHaveValue('=A1*A2');
-  await page.keyboard.press('Enter');
-  await expect(cell('B2')).toHaveValue('320');
-
-  // Arrow keys point at cells the same way: up from D3 is D2, then the pointer keeps moving.
-  await cell('D3').click();
-  await page.keyboard.type('=A1+');
-  await page.keyboard.press('ArrowUp');
-  await expect(cell('D3')).toBeFocused();
-  await expect(cell('D3')).toHaveValue('=A1+D2');
-  await page.keyboard.press('ArrowLeft');
-  await page.keyboard.press('ArrowLeft');
-  await expect(cell('D3')).toHaveValue('=A1+B2');
-  await page.keyboard.type('*2');
-  // With the formula complete, the arrows move between cells again.
-  await page.keyboard.press('ArrowDown');
-  await expect(cell('D4')).toBeFocused();
-  await expect(cell('D3')).toHaveValue('650');
-
-  // Enough for a small model: conditions and the time value of money.
-  await cell('E1').fill('=IF(B1>40, NPV(0.1, A1:A2), 0)');
-  await cell('E2').fill('=ROUND(PMT(0.05/12, 60, 20000), 2)');
-  await cell('F1').click();
-  await expect(cell('E1')).toHaveValue('35.53719008');
-  await expect(cell('E2')).toHaveValue('-377.42');
-});
-
-test('sheet: blocks of cells are selected, copied, cut, cleared and filled', async ({ page, isMobile }) => {
+// Stays: the corner handle and a mouse drag find their cells by where the pointer is on screen (the rest of blocks is in test/dom/suite.test.ts).
+test('sheet: the corner handle carries a block on, and a mouse drag selects one', async ({ page, isMobile }) => {
   await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   const ref = page.getByLabel('Selected cells');
-  for (const [at, v] of [['A1', '1'], ['A2', '2'], ['B1', '10'], ['B2', '20'], ['C1', '=A1+B1']]) await cell(at).fill(v);
-
-  // Shift+arrows stretch a block from the cell you are in.
-  await cell('C1').focus();
-  await page.keyboard.press('Shift+ArrowDown');
-  await expect(ref).toHaveText('C1:C2');
-  await expect(page.locator('table.sheet td.in')).toHaveCount(2);
-  await page.keyboard.press('Escape');
-  await expect(ref).toHaveText('C1');
-
-  // Copy a cell, select a block, paste: every copy points at its own neighbours.
-  // (Focus rather than a tap: a tap can land the caret inside the formula, where the next tap would add to it.)
-  await cell('C1').focus();
-  await page.keyboard.press('Control+c');
-  await cell('C2').focus();
-  await page.keyboard.press('Shift+ArrowDown');
-  await page.keyboard.press('Control+v');
-  await cell('F1').click();
-  await expect(cell('C2')).toHaveValue('22');
-  await cell('C3').click();
-  await expect(cell('C3')).toHaveValue('=A3+B3');
-
-  // Cut a block and paste it elsewhere: it moves, and the old cells are empty.
-  await cell('A1').click();
-  await page.keyboard.press('Shift+ArrowDown');
-  await page.keyboard.press('Shift+ArrowRight');
-  await expect(ref).toHaveText('A1:B2');
-  await page.keyboard.press('Control+x');
-  await expect(cell('B2')).toHaveValue('');
-  await cell('D5').click();
-  await page.keyboard.press('Control+v');
-  await expect(ref).toHaveText('D5:E6');
-  await cell('F1').click();
-  await expect(cell('E6')).toHaveValue('20');
-  await expect(cell('D5')).toHaveValue('1');
-
-  // Rows copied from another program arrive as cells.
-  await page.evaluate(() => navigator.clipboard.writeText('North\t100\nSouth\t250\n'));
-  await cell('A10').click();
-  await page.keyboard.press('Control+v');
-  await cell('F1').click();
-  await expect(cell('A11')).toHaveValue('South');
-  await expect(cell('B11')).toHaveValue('250');
-
-  // Delete clears a whole block.
-  await cell('A10').click();
-  await page.keyboard.press('Shift+ArrowDown');
-  await page.keyboard.press('Shift+ArrowRight');
-  await page.keyboard.press('Delete');
-  await expect(cell('B11')).toHaveValue('');
-  await expect(cell('A10')).toHaveValue('');
-
   // The handle at the corner of a block carries it on: numbers in step keep counting.
   await cell('A1').fill('5');
   await cell('A2').fill('10');
@@ -197,32 +48,7 @@ test('sheet: blocks of cells are selected, copied, cut, cleared and filled', asy
   await expect(cell('A5')).toHaveValue('25');
 });
 
-test('sheet: charts suggest themselves and travel with the sheet', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
-  for (const [ref, v] of [['A1', 'Item'], ['B1', 'Cost'], ['A2', 'Rent'], ['B2', '1200'], ['A3', 'Food'], ['B3', '600'], ['A4', 'Fun'], ['B4', '200']]) await cell(ref).fill(v);
-  await cell('C1').click();
-  await expect(page.locator('.sheet-chart')).toHaveCount(0);
-  const pick = page.locator('sl-select.sheet-chart-pick');
-  await pick.click();
-  // Three parts of a whole: a pie is suggested.
-  await expect(pick.locator('sl-option[value="pie"]')).toContainText('suggested');
-  await pick.locator('sl-option[value="pie"]').click();
-  const chart = page.locator('.sheet-chart svg');
-  // Three slices (each with a white edge); the second and third also wear a pattern, for eyes that do not see the colours.
-  await expect(chart.locator('svg > path[stroke="#fff"], path[stroke-width="2"]')).toHaveCount(3);
-  await expect(chart.locator('path[fill^="url(#p"]')).toHaveCount(2);
-  await expect(chart).toContainText('Rent');
-  await expect(chart).toContainText('60%');
-  await reopen(page);
-  // Three slices (each with a white edge); the second and third also wear a pattern, for eyes that do not see the colours.
-  await expect(chart.locator('svg > path[stroke="#fff"], path[stroke-width="2"]')).toHaveCount(3);
-  await expect(chart.locator('path[fill^="url(#p"]')).toHaveCount(2);
-  await pickOption(page, 'sl-select.sheet-chart-pick', 'bar');
-  await expect(chart.locator('rect[rx="2"]')).toHaveCount(3);
-  await shot(page, 'chart');
-});
-
+// Stays: whether a column clips its text, and how wide it is dragged, is real layout.
 test('sheet: columns squeeze to fit or widen to show everything', async ({ page }) => {
   await page.goto('/#/v0/sheet');
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
@@ -257,6 +83,7 @@ test('sheet: columns squeeze to fit or widen to show everything', async ({ page 
   expect(await tableWidth()).toBeLessThanOrEqual((await scrollWidth()) + 1);
 });
 
+// Stays: typing, Bold and lists go through the browser's editing commands (execCommand), which happy-dom lacks.
 test('write: rich text survives the round trip', async ({ page }) => {
   await page.goto('/#/v0/write');
   const editor = page.getByRole('textbox', { name: 'Document' });
@@ -625,53 +452,7 @@ test('back and forward move between documents', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'A1', exact: true })).toHaveValue('hello');
 });
 
-test('sheet: columns have types, and dates do arithmetic', async ({ page }) => {
-  await page.goto('/#/v0/sheet');
-  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
-  const setType = async (col: string, type: string) => {
-    await page.getByRole('button', { name: new RegExp(`^Column ${col}:`) }).click();
-    await page.getByRole('menuitemcheckbox', { name: new RegExp(`^${type}`) }).click();
-    await expect(page.getByRole('menuitemcheckbox', { name: new RegExp(`^${type}`) })).toBeHidden();
-  };
-  await setType('A', 'Date');
-  await setType('B', 'Date');
-  await setType('D', 'Money');
-  await setType('E', 'Link');
-  await setType('F', 'Checkbox');
-  await expect(page.getByRole('button', { name: /^Column A: Date/ })).toContainText('Date');
-
-  await cell('A1').fill('2027-01-31');
-  await cell('B1').fill('3/1/2027');
-  await cell('C1').fill('=B1-A1');
-  await cell('A2').fill('=A1+30');
-  await cell('B2').fill('=EDATE(A1, 1)');
-  await cell('D1').fill('1200.5');
-  await cell('E1').fill('https://example.com/report');
-  await cell('F1').click();
-  await page.keyboard.press('Space');
-  await cell('C3').click();
-  // A date less a date is days; a date plus days is a date.
-  await expect(cell('C1')).toHaveValue('29');
-  await expect(cell('B1')).toHaveValue('2027-03-01');
-  await expect(cell('A2')).toHaveValue('2027-03-02');
-  await expect(cell('B2')).toHaveValue('2027-02-28');
-  await expect(cell('D1')).toHaveValue('$1,200.50');
-  await expect(cell('F1')).toHaveValue('☑');
-  // A link opens from its cell.
-  await expect(page.getByRole('link', { name: 'Open https://example.com/report' })).toHaveAttribute('href', 'https://example.com/report');
-
-  await reopen(page);
-  await expect(cell('C1')).toHaveValue('29');
-  await expect(cell('D1')).toHaveValue('$1,200.50');
-  await expect(page.getByRole('button', { name: /^Column E: Link/ })).toBeVisible();
-  await shot(page, 'sheet-types');
-  // Rich text shows its emphasis when you are not typing in it.
-  await setType('C', 'Rich text');
-  await cell('C2').fill('Very *important* thing');
-  await cell('C3').click();
-  await expect(page.locator('table.sheet td .rich .b')).toHaveText('important');
-});
-
+// Stays: a finger on the handle finds its cell by where it is on screen.
 test('sheet: on a touch screen the corner handle stretches the block any way, and buttons fill it', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'touch only');
   await page.goto('/#/v0/sheet');

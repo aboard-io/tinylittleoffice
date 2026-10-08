@@ -42,11 +42,14 @@ export async function fresh(hash: string, path = '/') {
 export const reopen = () => fresh(location.hash, location.pathname);
 
 /** Let everything on the page finish drawing: the shell, whatever is inside it, and a turn or two of the clock. */
-export async function idle(turns = 3) {
+export async function idle(turns = 2) {
   for (let i = 0; i < turns; i++) {
-    await app?.updateComplete;
-    const els = [...document.querySelectorAll<HTMLElement & { updateComplete?: Promise<unknown> }>('*')].filter((e) => e.updateComplete);
-    await Promise.all(els.map((e) => e.updateComplete));
+    // Every element with a drawing still to do, until none has (drawing one may give another something to draw).
+    for (let k = 0; k < 10; k++) {
+      const pending = [...document.querySelectorAll<HTMLElement & { isUpdatePending?: boolean; updateComplete?: Promise<unknown> }>('*')].filter((e) => e.isUpdatePending);
+      if (!pending.length) break;
+      await Promise.all(pending.map((e) => e.updateComplete));
+    }
     await new Promise((r) => setTimeout(r, 0));
   }
 }
@@ -58,7 +61,7 @@ export async function until<T>(get: () => T, what = 'the condition', ms = 8000):
     const v = get();
     if (v) return v as NonNullable<T>;
     if (Date.now() > end) throw new Error(`waited ${ms}ms for ${what}`);
-    await new Promise((r) => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 3));
     await idle(1);
   }
 }
@@ -144,7 +147,7 @@ export const slBox = (label: string, root: ParentNode = document) => $(`sl-input
 /** Type into whatever has the focus, a key at a time, at the caret: what a key does unless the page refuses it. */
 export async function typeKeys(chars: string) {
   for (const ch of chars) {
-    const el = document.activeElement as HTMLInputElement;
+    const el = focused() as HTMLInputElement;
     const go = el.dispatchEvent(new KeyboardEvent('keydown', { key: ch, bubbles: true, composed: true, cancelable: true }));
     if (go && 'value' in el) {
       const s = el.selectionStart ?? el.value.length;
@@ -157,11 +160,30 @@ export async function typeKeys(chars: string) {
   }
 }
 
+/** What has the focus, inside whatever shadow root it is in. */
+export function focused(): Element {
+  let el: Element | null = document.activeElement;
+  while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
+  return el ?? document.body;
+}
+
 /** A key (with Control, Shift, Alt) pressed on whatever has the focus, or on the page; resolves once the page has answered. */
-export async function key(name: string, mods: { ctrl?: boolean; shift?: boolean; alt?: boolean } = {}, on: Element | null = document.activeElement) {
-  const target = on && on !== document.body ? on : document.body;
+export async function key(name: string, mods: { ctrl?: boolean; shift?: boolean; alt?: boolean } = {}, on: Element | null = focused()) {
+  const target = on ?? document.body;
   target.dispatchEvent(new KeyboardEvent('keydown', { key: name, ctrlKey: !!mods.ctrl, shiftKey: !!mods.shift, altKey: !!mods.alt, bubbles: true, composed: true, cancelable: true }));
   target.dispatchEvent(new KeyboardEvent('keyup', { key: name, ctrlKey: !!mods.ctrl, shiftKey: !!mods.shift, altKey: !!mods.alt, bubbles: true, composed: true }));
+  await idle();
+}
+
+/**
+ * Copy, cut or paste where the focus is, as Ctrl+C, X and V do: the event, with the clipboard's data, which
+ * the page may take over (a sheet copies its cells); what it puts there goes on the clipboard.
+ */
+export async function clip(kind: 'copy' | 'cut' | 'paste') {
+  const data = new DataTransfer();
+  if (kind === 'paste') data.setData('text/plain', await navigator.clipboard.readText());
+  const go = focused().dispatchEvent(new ClipboardEvent(kind, { clipboardData: data, bubbles: true, composed: true, cancelable: true }));
+  if (kind !== 'paste' && !go) await navigator.clipboard.writeText(data.getData('text/plain'));
   await idle();
 }
 
