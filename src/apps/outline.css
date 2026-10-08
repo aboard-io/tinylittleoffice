@@ -1,100 +1,220 @@
-/* The outliner: rows stepped in by depth, a handle and a fold or dot before each */
+/*
+ * The outliner, kept tight: a row is its bullet and its words, every item at
+ * a depth lined up, each level 22px further in. What acts on a row (the drag
+ * handle, the fold arrow) sits in a gutter to the left of the bullet, so it
+ * never moves the words; the bullet itself opens what can be said of the line.
+ */
 .ol {
-  padding: 12px 16px 20px;
+  --ol-step: 22px;
+  --ol-row: 30px;
+  padding: 10px 16px 20px 44px;
   max-width: 820px;
 }
 .ol-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
-  gap: 2px;
-  padding: 1px 0 1px calc(var(--d, 0) * 24px);
+  min-height: var(--ol-row);
+  padding-left: calc(var(--d, 0) * var(--ol-step));
   border-radius: 6px;
-  position: relative;
 }
 .ol-row.sel {
   background: var(--to-surface-2);
 }
-.ol-row to-rich {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: block;
-}
-.ol-row .write-page {
-  padding: 4px 6px;
-  min-height: 1.5em;
-  font-size: 16px;
-  line-height: 1.5;
-}
-.ol-row[aria-level='1'] .write-page {
-  font-weight: 600;
+
+/* The gutter: drag handle and fold arrow, out to the left of the bullet. */
+.ol-gutter {
+  position: absolute;
+  top: 0;
+  left: calc(var(--d, 0) * var(--ol-step) - 40px);
+  width: 40px;
+  height: var(--ol-row);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 .ol-handle,
-.ol-fold,
-.ol-kind {
-  flex: 0 0 24px;
-  width: 24px;
-  height: 30px;
+.ol-fold {
+  width: 20px;
+  height: 24px;
   display: inline-grid;
   place-items: center;
   border: 0;
+  padding: 0;
   background: none;
   color: var(--to-ink-3);
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  padding: 0;
 }
 .ol-handle {
   cursor: grab;
+}
+/* Shown where they are wanted: on the row under the pointer or being typed in; a folded item always shows its arrow. */
+.ol-handle,
+.ol-fold {
   opacity: 0;
 }
 .ol-row:hover .ol-handle,
-.ol-row:focus-within .ol-handle,
-.ol-handle:focus-visible {
+.ol-row:hover .ol-fold,
+.ol-row.sel .ol-handle,
+.ol-row.sel .ol-fold,
+.ol-row.shut .ol-fold,
+.ol-handle:focus-visible,
+.ol-fold:focus-visible {
   opacity: 1;
 }
-button.ol-fold:hover,
+@media (pointer: coarse) {
+  /* No hover on a touch screen: parents show their arrows; dragging is the arrange bar's. */
+  .ol-row.parent .ol-fold {
+    opacity: 1;
+  }
+  .ol-handle {
+    display: none;
+  }
+}
+.ol-fold:hover,
+.ol-handle:hover {
+  background: var(--to-surface-2);
+  color: var(--to-ink);
+}
+
+/* The bullet: the line to the parent (a dot, or an arrow which way it points); tapped, it turns. */
+.ol-bullet {
+  position: relative;
+  flex: 0 0 var(--ol-step);
+  height: var(--ol-row);
+  display: grid;
+  place-items: center;
+}
+.ol-kind {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 50%;
+  color: var(--to-ink-3);
+  cursor: pointer;
+}
 button.ol-kind:hover {
   background: var(--to-surface-2);
   color: var(--to-ink);
 }
 .ol-kind span {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--to-ink-3);
+  background: currentColor;
   display: block;
-}
-.ol-kind.root span {
-  background: var(--to-accent);
-}
-/* A line with a kind is drawn in the accent, so it reads at a glance. */
-.ol-kind:not([data-dir='-']):not(.root) {
-  color: var(--to-accent);
 }
 .ol-kind.root {
   cursor: default;
+  color: var(--to-accent);
 }
-.ol-fold:focus-visible,
-.ol-kind:focus-visible,
-.ol-label:focus-visible,
-.ol-label-add:focus-visible,
-.ol-handle:focus-visible,
-.ol-add:focus-visible,
-.ol-crumbs button:focus-visible {
-  outline: 2px solid var(--to-accent);
-  outline-offset: 1px;
+.ol-kind.root span {
+  width: 7px;
+  height: 7px;
+}
+.ol-kind:not([data-dir='-']):not(.root) {
+  color: var(--to-accent);
+}
+/* Folded: a halo round the bullet says there is more inside. */
+.ol-row.shut .ol-kind span,
+.ol-row.shut .ol-kind svg {
+  box-shadow: 0 0 0 4px var(--to-border);
+  border-radius: 50%;
+}
+
+/* A line's name, once it has one: a chip before the words. */
+.ol-label {
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 2px 0 4px;
+  font: inherit;
+  font-size: 12px;
+  border-radius: var(--to-radius-pill);
+}
+.ol-label {
+  max-width: 12em;
+  padding: 1px 8px;
+  border: 0;
+  background: var(--to-accent-soft);
+  color: var(--to-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The bullet's menu: the kinds of line, each named, the line's name, zooming in. */
+.ol-bullet sl-dropdown {
+  display: grid;
+  place-items: center;
+}
+.ol-menu-list {
+  min-width: 250px;
+}
+.ol-menu-list .ol-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 8px 0 4px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 2px;
+}
+.ol-menu-name {
+  padding: 6px 12px 10px;
+}
+.ol-menu-list sl-menu-item.danger::part(base) {
+  color: var(--to-danger);
+}
+
+/* The words. */
+.ol-row to-rich {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+}
+.ol-row .write-page p {
+  margin: 0;
+}
+.ol-row .write-page {
+  padding: 4px 6px 4px 4px;
+  min-height: var(--ol-row);
+  font-size: 15px;
+  line-height: 22px;
+}
+.ol-row[aria-level='1'] .write-page {
+  font-weight: 600;
+}
+.ol-row .ol-doc {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 480px;
+  margin: 4px 0;
 }
 .ol-count {
   align-self: center;
   font-size: 11px;
   margin-right: 6px;
 }
-/* Where a drag would land: a line under the row, or stepped in */
+.ol-kind:focus-visible,
+.ol-label:focus-visible,
+.ol-add:focus-visible,
+.ol-crumbs button:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: 1px;
+}
+
+/* Where a drag would land: a line under the row, or stepped in. */
 .ol-row.drop-after::after,
 .ol-row.drop-under::after {
   content: '';
   position: absolute;
-  left: calc(var(--d, 0) * 24px + 50px);
+  left: calc(var(--d, 0) * var(--ol-step) + var(--ol-step));
   right: 8px;
   bottom: -1px;
   height: 2px;
@@ -102,20 +222,22 @@ button.ol-kind:hover {
   border-radius: 1px;
 }
 .ol-row.drop-under::after {
-  left: calc(var(--d, 0) * 24px + 74px);
+  left: calc((var(--d, 0) + 1) * var(--ol-step) + var(--ol-step));
 }
 .ol-add {
-  margin: 8px 0 0 50px;
+  margin: 8px 0 0 var(--ol-step);
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
+
+/* Zoomed in: where, as a trail back out. */
 .ol-crumbs {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px 0;
+  padding: 8px 16px 0 44px;
   font-size: 13px;
   color: var(--to-ink-3);
 }
@@ -136,69 +258,7 @@ button.ol-kind:hover {
   font-weight: 600;
 }
 
-.ol-row .ol-doc {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 480px;
-  margin: 4px 0;
-}
-/* A line's name: a plus until it has one (shown on the chosen row, or on hover), then the name. */
-.ol-label-add,
-.ol-label {
-  flex-shrink: 0;
-  align-self: center;
-  border: 0;
-  border-radius: var(--to-radius-pill);
-  font: inherit;
-  cursor: pointer;
-}
-.ol-label-add {
-  width: 22px;
-  height: 22px;
-  margin-right: 2px;
-  display: inline-grid;
-  place-items: center;
-  padding: 0;
-  background: none;
-  color: var(--to-ink-3);
-  opacity: 0;
-}
-.ol-row:hover .ol-label-add,
-.ol-row.sel .ol-label-add,
-.ol-link .ol-label-add,
-.ol-label-add:focus-visible {
-  opacity: 1;
-}
-.ol-label-add:hover {
-  background: var(--to-surface-2);
-  color: var(--to-ink);
-}
-.ol-label {
-  padding: 1px 8px;
-  margin-right: 4px;
-  font-size: 12px;
-  background: var(--to-accent-soft);
-  color: var(--to-accent);
-  max-width: 14em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ol-label-input {
-  flex: 0 1 10em;
-  min-width: 6em;
-  align-self: center;
-  margin-right: 4px;
-  padding: 2px 8px;
-  font: inherit;
-  font-size: 13px;
-  border: 1px solid var(--to-accent);
-  border-radius: var(--to-radius-pill);
-  background: var(--to-surface);
-  color: var(--to-ink);
-}
-
-/* The second bar sticks to the top with the first (the two are the outline's bar: see "an app's own bar" in styles.css). */
+/* The two bars stick to the top together (see "an app's own bar" in styles.css). */
 .ol-bars > .to-toolbar + .to-toolbar {
   border-top: 0;
 }
@@ -226,35 +286,52 @@ button.ol-kind:hover {
   background: transparent;
   cursor: crosshair;
   border-radius: 6px;
-  z-index: 1;
+  z-index: 2;
 }
 .ol-pick:focus-visible {
   outline: 2px solid var(--to-accent);
 }
 
-/* The joins, listed under the outline. */
+/* The joins, under the outline, lined up with it. */
 .ol-links {
-  padding: 4px 16px 20px 66px;
+  padding: 4px 16px 20px 44px;
   max-width: 820px;
 }
 .ol-links h3 {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0 0 4px var(--ol-step, 22px);
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--to-ink-3);
 }
 .ol-link {
+  position: relative;
+  margin-left: var(--ol-step, 22px);
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-height: 32px;
+  gap: 2px;
+  min-height: 30px;
+  font-size: 15px;
+}
+.ol-link .ol-kind {
+  flex: 0 0 22px;
 }
 .ol-end {
   font-weight: 500;
+  padding: 0 4px;
+}
+.ol-link .to-icon-btn {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.ol-link:hover .to-icon-btn {
+  opacity: 1;
 }
 @media (max-width: 600px) {
-  .ol-links {
-    padding-left: 16px;
+  .ol,
+  .ol-links,
+  .ol-crumbs {
+    padding-left: 36px;
   }
 }

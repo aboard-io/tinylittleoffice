@@ -8,8 +8,8 @@
  * both ways; the plus beside it names the line. Connect joins any two
  * items. Format: lib/outlinemodel.ts.
  */
-import { LINK, DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, btn } from '../kit.ts';
-import { DIRS, blockEnd, embedOf, hasChildren, move, outlineToDeck, parentOf, parseLinks, parseOutline, place, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
+import { LINK, DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
+import { blockEnd, embedOf, hasChildren, move, outlineToDeck, parentOf, parseLinks, parseOutline, place, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
 import { DIR_NAME, outlineAs } from './outline.def.ts';
@@ -24,8 +24,8 @@ export class ToOutline extends DocElement<Item[]> {
   @state() private sel = -1;
   /** The joins between any two items, kept beside the items and written after them. */
   @state() private links: Link[] = [];
-  /** The name being written: of item i's line to its parent ("i3"), or of a join ("l0"). */
-  @state() private naming = '';
+  /** The bullet whose menu is open: item i's ("i3"), or a join's ("l0"). */
+  @state() private menuFor = '';
   /** Connecting: the item the join starts from (-1 until it is picked); null when not connecting. */
   @state() private connecting: { from: number } | null = null;
   private field: ToWrite | null = null;
@@ -87,21 +87,17 @@ export class ToOutline extends DocElement<Item[]> {
 
   /* ---------- lines between items ---------- */
 
-  private static next = (d: Dir = '-') => DIRS[(DIRS.indexOf(d) + 1) % DIRS.length];
-  private turnLine(i: number) {
-    const dir = ToOutline.next(this.doc[i].dir);
+  private setLine(i: number, dir: Dir) {
     this.commit(this.doc.map((it, n) => (n === i ? { ...it, dir: dir === '-' ? undefined : dir } : it)));
   }
   private nameLine(i: number, label: string) {
-    this.naming = '';
     this.commit(this.doc.map((it, n) => (n === i ? { ...it, label: label.trim() || undefined } : it)));
   }
-  private turnLink(k: number) {
-    this.links = this.links.map((l, n) => (n === k ? { ...l, dir: ToOutline.next(l.dir) } : l));
+  private setLink(k: number, dir: Dir) {
+    this.links = this.links.map((l, n) => (n === k ? { ...l, dir } : l));
     this.commit(this.doc);
   }
   private nameLink(k: number, label: string) {
-    this.naming = '';
     this.links = this.links.map((l, n) => (n === k ? { ...l, label: label.trim() || undefined } : l));
     this.commit(this.doc);
   }
@@ -124,30 +120,57 @@ export class ToOutline extends DocElement<Item[]> {
     this.commit(this.doc);
   }
 
-  /** The bullet that is a line: what it is, said; tapped, it turns to the next kind. */
-  private lineButton(dir: Dir, said: string, onTurn: () => void) {
-    const glyph = dir === '>' ? UI.arrow : dir === '<' ? UI.arrowLeft : dir === '<>' ? UI.arrowBoth : null;
-    return html`<button class="ol-kind" data-dir=${dir} aria-label=${`${said}: ${DIR_NAME[dir]}. Change it`} data-tip=${`${DIR_NAME[dir][0].toUpperCase()}${DIR_NAME[dir].slice(1)}: tap to change`} @mousedown=${(e: Event) => e.preventDefault()} @click=${onTurn}>${glyph ? icon(glyph, 14) : html`<span></span>`}</button>`;
-  }
-  /** The line's name: a plus to give it one, the name once it has one, a box while it is written. */
-  private nameControl(key: string, label: string | undefined, said: string, onName: (v: string) => void) {
-    if (this.naming === key) {
-      return html`<input class="ol-label-input" aria-label=${`Name of ${said}`} .value=${label ?? ''} placeholder="Name the line"
-        @keydown=${(e: KeyboardEvent) => {
-          if (e.key === 'Enter') (e.preventDefault(), onName((e.target as HTMLInputElement).value));
-          else if (e.key === 'Escape') (e.preventDefault(), (this.naming = ''));
-          e.stopPropagation();
-        }}
-        @blur=${(e: Event) => this.naming === key && onName((e.target as HTMLInputElement).value)} />`;
-    }
-    const open = () => {
-      this.naming = key;
-      void this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.ol-label-input')?.focus());
+  /**
+   * The bullet that is a line: a dot, or an arrow which way it points.
+   * Tapped, it opens what can be said of the line: its kind, each named,
+   * and its name; for an item with something under it, zooming in; for a
+   * join, taking it away. The menu is drawn only for the bullet tapped.
+   */
+  private bullet(key: string, o: { dir: Dir; label?: string; said: string; from: string; to: string; onDir(d: Dir): void; onName(v: string): void; zoom?: () => void; remove?: () => void }) {
+    const glyph = o.dir === '>' ? UI.arrow : o.dir === '<' ? UI.arrowLeft : o.dir === '<>' ? UI.arrowBoth : null;
+    const face = glyph ? icon(glyph, 14) : html`<span></span>`;
+    const label = `${o.said}: ${DIR_NAME[o.dir]}${o.label ? `, named “${o.label}”` : ''}. Change it`;
+    const open = async () => {
+      this.menuFor = key;
+      await this.updateComplete;
+      void (this.querySelector('.ol-menu') as (HTMLElement & { show(): Promise<void> }) | null)?.show();
     };
-    return label
-      ? html`<button class="ol-label" aria-label=${`${said} is named “${label}”. Rename it`} @click=${open}>${label}</button>`
-      : html`<button class="ol-label-add" aria-label=${`Name ${said}`} data-tip="Name this line" @click=${open}>${icon(UI.plus, 12)}</button>`;
+    if (this.menuFor !== key) return html`<button class="ol-kind" data-dir=${o.dir} aria-label=${label} aria-haspopup="menu" data-tip="Kind of line, its name" @mousedown=${(e: Event) => e.preventDefault()} @click=${open}>${face}</button>`;
+    const kinds: [Dir, string, keyof typeof UI | null][] = [
+      ['-', 'Plain line', null],
+      ['>', `Arrow from ${o.from} to ${o.to}`, 'arrow'],
+      ['<', `Arrow from ${o.to} to ${o.from}`, 'arrowLeft'],
+      ['<>', 'Arrows both ways', 'arrowBoth'],
+    ];
+    return html`<sl-dropdown class="ol-menu" hoist placement="bottom-start" @sl-after-hide=${(e: Event) => e.target === e.currentTarget && (this.menuFor = '')}
+      @sl-select=${(e: CustomEvent) => {
+        const v = String(e.detail.item.value);
+        if (v === 'zoom') o.zoom?.();
+        else if (v === 'remove') o.remove?.();
+        else o.onDir(v as Dir);
+      }}>
+      <button slot="trigger" class="ol-kind" data-dir=${o.dir} aria-label=${label}>${face}</button>
+      <sl-menu class="ol-menu-list">
+        <sl-menu-label>${o.said}</sl-menu-label>
+        ${kinds.map(([d, name, g]) => html`<sl-menu-item type="checkbox" value=${d} ?checked=${o.dir === d}>${g ? icon(UI[g], 14, 'pre') : html`<span class="ol-dot pre"></span>`} ${name}</sl-menu-item>`)}
+        <div class="ol-menu-name" @keydown=${(e: KeyboardEvent) => e.stopPropagation()} @click=${(e: Event) => e.stopPropagation()}>
+          <sl-input size="small" label="Name of the line" placeholder="e.g. owns, feeds, reports to" .value=${o.label ?? ''} @sl-change=${(e: Event) => o.onName((e.target as SlInput).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (o.onName((e.target as SlInput).value), (this.querySelector('.ol-menu') as HTMLElement & { hide(): void } | null)?.hide())}></sl-input>
+        </div>
+        ${o.zoom || o.remove ? html`<sl-divider></sl-divider>` : nothing}
+        ${o.zoom ? html`<sl-menu-item value="zoom">${icon(UI.zoomIn, 14, 'pre')} Zoom in</sl-menu-item>` : nothing}
+        ${o.remove ? html`<sl-menu-item value="remove" class="danger">${icon(UI.trash, 14, 'pre')} Take the connection away</sl-menu-item>` : nothing}
+      </sl-menu>
+    </sl-dropdown>`;
   }
+  /** A line's name, as a chip before the words; tapped, it opens the bullet's menu. */
+  private chip(key: string, label?: string) {
+    if (!label) return nothing;
+    return html`<button class="ol-label" aria-label=${`Line named “${label}”: change it`} @click=${() => {
+      this.menuFor = key;
+      void this.updateComplete.then(() => (this.querySelector('.ol-menu') as (HTMLElement & { show(): Promise<void> }) | null)?.show());
+    }}>${label}</button>`;
+  }
+
   /** Enter: a new item right after this one (as its first child when it is open and has children). */
   private enter(i: number) {
     const items = this.doc;
@@ -281,7 +304,9 @@ export class ToOutline extends DocElement<Item[]> {
         ${tool('Bring out', 'outdent', () => this.shiftBy(s, -1), { disabled: none, keepFocus: true, key: 'Shift+Tab' })}${tool('Indent', 'indent', () => this.shiftBy(s, 1), { disabled: none, keepFocus: true, key: 'Tab' })}
         ${tool('Move up', 'up', () => this.moveBy(s, -1), { disabled: none, keepFocus: true, key: 'Alt+ArrowUp' })}${tool('Move down', 'down', () => this.moveBy(s, 1), { disabled: none, keepFocus: true, key: 'Alt+ArrowDown' })}
       </sl-button-group>
-      ${tool('Zoom in', 'zoomIn', () => this.zoomTo(s), { disabled: none || !hasChildren(this.doc, s), keepFocus: true, key: 'Mod+.' })}
+      <sl-button-group label="View">
+        ${tool('Zoom in', 'zoomIn', () => this.zoomTo(s), { disabled: none || !hasChildren(this.doc, s), keepFocus: true, key: 'Mod+.' })}${tool('Fold all', 'foldAll', () => this.foldAll(true), { keepFocus: true })}${tool('Unfold all', 'unfoldAll', () => this.foldAll(false), { keepFocus: true })}
+      </sl-button-group>
       ${tool(c ? 'Cancel connecting' : 'Connect', c ? 'close' : 'link', () => this.connect(), { text: true, pressed: !!c })}
       ${c ? html`<span class="to-hint ol-nav-hint" role="status">${c.from < 0 ? 'Tap the item to connect from.' : html`Tap the item to connect <b>${plainInline(this.doc[c.from].text)}</b> to.`}</span>` : nothing}
     </div>`;
@@ -295,11 +320,11 @@ export class ToOutline extends DocElement<Item[]> {
       <h3>Connections</h3>
       ${this.links.map((l, k) => {
         if (!known.has(l.from) || !known.has(l.to)) return nothing;
-        const said = `The connection from “${plainInline(l.from)}” to “${plainInline(l.to)}”`;
+        const said = `Connection from ${plainInline(l.from)} to ${plainInline(l.to)}`;
         return html`<div class="ol-link">
           <span class="ol-end">${plainInline(l.from)}</span>
-          ${this.lineButton(l.dir, said, () => this.turnLink(k))}
-          ${this.nameControl(`l${k}`, l.label, said.toLowerCase(), (v) => this.nameLink(k, v))}
+          ${this.bullet(`l${k}`, { dir: l.dir, label: l.label, said, from: plainInline(l.from), to: plainInline(l.to), onDir: (d) => this.setLink(k, d), onName: (v) => this.nameLink(k, v), remove: () => this.unlink(k) })}
+          ${this.chip(`l${k}`, l.label)}
           <span class="ol-end">${plainInline(l.to)}</span>
           ${btn(`Take away ${said.toLowerCase()}`, 'close', () => this.unlink(k), { size: 13, tip: 'Take it away' })}
         </div>`;
@@ -316,9 +341,6 @@ export class ToOutline extends DocElement<Item[]> {
       <div class="to-toolbar" role="toolbar" aria-label="Outline">
         <sl-button-group label="Text">
           ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
-        </sl-button-group>
-        <sl-button-group label="Folding">
-          ${tool('Unfold all', 'down', () => this.foldAll(false), { text: true })}${tool('Fold all', 'right', () => this.foldAll(true), { text: true })}
         </sl-button-group>
         ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { text: true }) : nothing}
         <to-insert label="Insert" placeholder="Insert a document…" .options=${insertOptions('outline')} @pick=${(e: CustomEvent<string>) => this.insertDoc(e.detail)}></to-insert>
@@ -345,7 +367,7 @@ export class ToOutline extends DocElement<Item[]> {
           const shut = this.folded.has(i);
           const d = this.drag;
           return html`<div
-            class="ol-row ${i === this.sel ? 'sel' : ''} ${d?.over === i ? `drop-${d.how}` : ''} ${this.connecting?.from === i ? 'source' : ''}"
+            class="ol-row ${i === this.sel ? 'sel' : ''} ${kids ? 'parent' : ''} ${kids && shut ? 'shut' : ''} ${d?.over === i ? `drop-${d.how}` : ''} ${this.connecting?.from === i ? 'source' : ''}"
             data-i=${i}
             role="treeitem"
             aria-level=${it.depth - base + 1}
@@ -354,16 +376,17 @@ export class ToOutline extends DocElement<Item[]> {
             @dragover=${(e: DragEvent) => this.onDragOver(e, i)}
             @keydown=${(e: KeyboardEvent) => this.onKey(e, i)}
           >
-            <button class="ol-handle" draggable="true" aria-label="Move this item: drag it onto another" data-tip="Drag to move" @dragstart=${(e: DragEvent) => this.onDragStart(e, i)} @dragend=${() => ((this.drag = null), this.requestUpdate())} tabindex="-1">${icon(UI.grip, 14)}</button>
-            ${kids
-              ? html`<button class="ol-fold" aria-label=${shut ? `Unfold, ${blockEnd(items, i) - i - 1} inside` : 'Fold'} @click=${() => this.fold(i)}>${icon(shut ? UI.right : UI.down, 14)}</button>`
-              : html`<span class="ol-fold" aria-hidden="true"></span>`}
+            <span class="ol-gutter">
+              <button class="ol-handle" draggable="true" aria-label="Move this item: drag it onto another" data-tip="Drag to move" @dragstart=${(e: DragEvent) => this.onDragStart(e, i)} @dragend=${() => ((this.drag = null), this.requestUpdate())} tabindex="-1">${icon(UI.grip, 13)}</button>
+              ${kids ? html`<button class="ol-fold" aria-label=${shut ? `Unfold, ${blockEnd(items, i) - i - 1} inside` : 'Fold'} @click=${() => this.fold(i)}>${icon(shut ? UI.right : UI.down, 13)}</button>` : nothing}
+            </span>
             ${it.depth > 0 && parentOf(items, i) >= 0
               ? (() => {
-                  const said = `the line from “${plainInline(items[parentOf(items, i)].text) || 'the item above'}” to item ${i + 1}`;
-                  return html`${this.lineButton(it.dir ?? '-', said[0].toUpperCase() + said.slice(1), () => this.turnLine(i))}${this.nameControl(`i${i}`, it.label, said, (v) => this.nameLine(i, v))}`;
+                  const said = `line from ${plainInline(items[parentOf(items, i)].text) || 'the item above'} to ${plainInline(it.text) || `item ${i + 1}`}`;
+                  const parent = plainInline(items[parentOf(items, i)].text) || 'the item above';
+                  return html`<span class="ol-bullet">${this.bullet(`i${i}`, { dir: it.dir ?? '-', label: it.label, said: said[0].toUpperCase() + said.slice(1), from: parent, to: plainInline(it.text) || 'this', onDir: (dir) => this.setLine(i, dir), onName: (v) => this.nameLine(i, v), zoom: kids ? () => this.zoomTo(i) : undefined })}</span>${this.chip(`i${i}`, it.label)}`;
                 })()
-              : html`<span class="ol-kind root" aria-hidden="true"><span></span></span>`}
+              : html`<span class="ol-bullet"><span class="ol-kind root" aria-hidden="true"><span></span></span></span>`}
             ${embedOf(it.text)
               ? html`<to-embed class="ol-doc" ref=${embedOf(it.text)!} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
               : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}

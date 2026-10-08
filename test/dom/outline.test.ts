@@ -29,49 +29,65 @@ test('the rows carry no indent buttons; the bar does it for the chosen item', as
   expect(last()).toBe('Launch\n  Product\n  Marketing\n    Pricing');
 });
 
-test('a bullet turns through the four kinds of line to its parent', async () => {
-  const { el, last } = await mount('outline', DOC);
-  // A top item has no parent, so no line to turn.
-  expect(row(el, 0).querySelector('button.ol-kind')).toBeNull();
-  const kind = () => row(el, 2).querySelector<HTMLElement>('button.ol-kind')!;
-  expect(kind().getAttribute('aria-label')).toBe('The line from “Product” to item 3: a plain line. Change it');
-  const seen: string[] = [];
-  for (let n = 0; n < 4; n++) {
-    kind().click();
-    await settle(el);
-    seen.push(parseOutline(last()!)[2].dir ?? '-');
-  }
-  expect(seen).toEqual(['>', '<', '<>', '-']);
-  kind().click();
+/** A bullet's menu, opened by tapping the bullet; then a kind chosen, or a name typed. */
+const menuOf = async (el: Editor, bulletIn: Element) => {
+  (bulletIn.querySelector('button.ol-kind') as HTMLElement).click();
   await settle(el);
-  expect(last()!.split('\n')[2]).toBe('    -> Pricing');
+  return el.querySelector<HTMLElement>('.ol-menu')!;
+};
+const pickKind = async (el: Editor, menu: HTMLElement, dir: string) => {
+  const item = menu.querySelector(`sl-menu-item[value="${dir}"]`)!;
+  menu.dispatchEvent(new CustomEvent('sl-select', { detail: { item }, bubbles: true }));
+  await settle(el);
+};
+const nameIn = async (el: Editor, menu: HTMLElement, name: string) => {
+  const box = menu.querySelector('.ol-menu-name sl-input') as HTMLElement & { value: string };
+  box.value = name;
+  box.dispatchEvent(new CustomEvent('sl-change', { bubbles: true }));
+  await settle(el);
+};
+
+test('a row is its bullet and its words: the fold arrow and the handle sit in the gutter, and only a parent has an arrow', async () => {
+  const { el } = await mount('outline', DOC);
+  expect(row(el, 0).querySelector('.ol-gutter .ol-fold')).toBeTruthy();
+  expect(row(el, 2).querySelector('.ol-fold')).toBeNull();
+  // Every row has one bullet, and nothing else before its words.
+  for (const i of [0, 1, 2, 3]) expect([...row(el, i).children].map((c) => c.className.split(' ')[0]).slice(0, 2)).toEqual(['ol-gutter', 'ol-bullet']);
+  // A top item has no line to a parent: its bullet is only a dot.
+  expect(row(el, 0).querySelector('button.ol-kind')).toBeNull();
 });
 
-test('the plus names the line; the name shows, and can be changed or cleared', async () => {
+test('the bullet opens the kinds of line, each named for the items it joins; the choice is saved', async () => {
   const { el, last } = await mount('outline', DOC);
-  button(row(el, 1), /^Name the line from “Launch”/).click();
-  await settle(el);
-  const box = row(el, 1).querySelector<HTMLInputElement>('.ol-label-input')!;
-  box.value = 'makes';
-  press(box, 'Enter');
-  await settle(el);
+  const bullet = () => row(el, 2).querySelector<HTMLElement>('button.ol-kind')!;
+  expect(bullet().getAttribute('aria-label')).toBe('Line from Product to Pricing: a plain line. Change it');
+  const menu = await menuOf(el, row(el, 2));
+  expect([...menu.querySelectorAll('sl-menu-item')].map((m) => m.textContent!.trim())).toEqual(['Plain line', 'Arrow from Product to Pricing', 'Arrow from Pricing to Product', 'Arrows both ways']);
+  await pickKind(el, menu, '>');
+  expect(last()!.split('\n')[2]).toBe('    -> Pricing');
+  await pickKind(el, await menuOf(el, row(el, 2)), '<>');
+  expect(parseOutline(last()!)[2].dir).toBe('<>');
+  await pickKind(el, await menuOf(el, row(el, 2)), '-');
+  expect(last()!.split('\n')[2]).toBe('    Pricing');
+  // A parent's bullet zooms in too.
+  expect((await menuOf(el, row(el, 1))).querySelector('sl-menu-item[value="zoom"]')).toBeTruthy();
+});
+
+test('the line is named in the bullet’s menu; the name shows as a chip, which opens the menu again; clearing it takes it off', async () => {
+  const { el, last } = await mount('outline', DOC);
+  await nameIn(el, await menuOf(el, row(el, 1)), 'makes');
   expect(parseOutline(last()!)[1]).toEqual({ depth: 1, text: 'Product', label: 'makes' });
-  expect(row(el, 1).querySelector('.ol-label')!.textContent).toBe('makes');
-  // Escape leaves it as it was.
-  (row(el, 1).querySelector('.ol-label') as HTMLElement).click();
+  const chip = row(el, 1).querySelector<HTMLElement>('.ol-label')!;
+  expect(chip.textContent).toBe('makes');
+  chip.click();
   await settle(el);
-  const again = row(el, 1).querySelector<HTMLInputElement>('.ol-label-input')!;
-  again.value = 'nope';
-  press(again, 'Escape');
-  await settle(el);
-  expect(row(el, 1).querySelector('.ol-label')!.textContent).toBe('makes');
-  (row(el, 1).querySelector('.ol-label') as HTMLElement).click();
-  await settle(el);
-  const clear = row(el, 1).querySelector<HTMLInputElement>('.ol-label-input')!;
-  clear.value = '';
-  press(clear, 'Enter');
-  await settle(el);
+  const menu = el.querySelector<HTMLElement>('.ol-menu')!;
+  expect((menu.querySelector('.ol-menu-name sl-input') as HTMLElement & { value: string }).value).toBe('makes');
+  // Typing in the name box is not taken as choosing from the menu.
+  expect(() => press(menu.querySelector('.ol-menu-name sl-input'), 'p')).not.toThrow();
+  await nameIn(el, menu, '');
   expect(last()!.split('\n')[1]).toBe('  Product');
+  expect(row(el, 1).querySelector('.ol-label')).toBeNull();
 });
 
 test('Connect greys the outline until the other end is tapped, and the join can be turned, named and taken away', async () => {
@@ -87,16 +103,11 @@ test('Connect greys the outline until the other end is tapped, and the join can 
   expect(el.querySelector('.ol')!.classList.contains('connecting')).toBe(false);
   expect(parseLinks(last()!)).toEqual([{ from: 'Pricing', to: 'Marketing', dir: '-' }]);
 
-  const link = el.querySelector<HTMLElement>('.ol-links .ol-link')!;
-  button(link, /^The connection from “Pricing” to “Marketing”: a plain line/).click();
-  await settle(el);
+  const link = () => el.querySelector<HTMLElement>('.ol-links .ol-link')!;
+  expect(link().querySelector('button.ol-kind')!.getAttribute('aria-label')).toBe('Connection from Pricing to Marketing: a plain line. Change it');
+  await pickKind(el, await menuOf(el, link()), '>');
   expect(last()!.split('\n').at(-1)).toBe('~ Pricing -> Marketing');
-  button(el.querySelector('.ol-link')!, /^Name the connection/).click();
-  await settle(el);
-  const box = el.querySelector<HTMLInputElement>('.ol-link .ol-label-input')!;
-  box.value = 'feeds';
-  press(box, 'Enter');
-  await settle(el);
+  await nameIn(el, await menuOf(el, link()), 'feeds');
   expect(last()!.split('\n').at(-1)).toBe('~ Pricing -(feeds)-> Marketing');
 
   // Renaming an item carries its joins with it.
@@ -104,8 +115,8 @@ test('Connect greys the outline until the other end is tapped, and the join can 
   await settle(el);
   expect(last()!.split('\n').at(-1)).toBe('~ Pricing -(feeds)-> Growth');
 
-  button(el.querySelector('.ol-link')!, /^Take away/).click();
-  await settle(el);
+  // Taken away from its menu, or its own button.
+  await pickKind(el, await menuOf(el, link()), 'remove');
   expect(parseLinks(last()!)).toEqual([]);
   expect(el.querySelector('.ol-links')).toBeNull();
 });
