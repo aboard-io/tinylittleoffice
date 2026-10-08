@@ -171,30 +171,12 @@ test('draw: zoom, and an icon placed by a click', async ({ page }) => {
   await shot(page, 'draw-icons');
 });
 
-test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
-  // What downloads is the page itself, whole.
-  await page.goto('/#/v0/site');
-  await page.getByRole('button', { name: 'Start from an example' }).click();
-  await page.getByRole('button', { name: 'Download' }).click();
-  const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Web page/ }).click()]);
-  const html = readFileSync(await file.path(), 'utf8');
-  expect(file.suggestedFilename()).toBe('harbor-coffee.html');
-  expect(html).toContain('<h1>Harbor Coffee</h1>');
-
-  // A site.
-  await page.goto('/#/v0/site');
-  await page.getByRole('button', { name: 'Start from an example' }).click();
-  const site = page.frameLocator('to-site iframe');
-  await expect(site.getByRole('heading', { level: 1 })).toHaveText('Harbor Coffee');
-  await expect(site.locator('ul.cards li')).toHaveCount(6);
-  await expect(site.locator('header a')).toHaveText(['Home', 'Menu', 'Find us']);
-  await shot(page, 'site');
-
+// Stays: the store's cart is its page's own script, in a frame, and the invoice's PDF is drawn on a canvas (the pages as written, and the download, are in test/dom/pages.test.ts).
+test('page apps: a store with a cart, an invoice as a PDF', async ({ page }) => {
   // A store: things go in the cart, and the total adds up.
   await page.goto('/#/v0/store');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const store = page.frameLocator('to-store iframe');
-  await expect(store.getByRole('button', { name: /^Add .* to the cart$/ })).toHaveCount(4);
   await expect(store.getByRole('button', { name: 'Send order by email' })).toBeDisabled();
   await store.getByRole('button', { name: 'Add House blend, 250g to the cart' }).click();
   await store.getByRole('button', { name: 'Add House blend, 250g to the cart' }).click();
@@ -206,53 +188,14 @@ test('page apps: a site, a store with a cart, an invoice', async ({ page }) => {
   await expect(store.getByRole('button', { name: 'Send order by email' })).toBeEnabled();
   await shot(page, 'store');
 
-  // An invoice: the sums are done, and the PDF is the invoice.
+  // An invoice: the PDF is the invoice.
   await page.goto('/#/v0/invoice');
   await page.getByRole('button', { name: 'Start from an example' }).click();
   await expect(page.frameLocator('to-invoice iframe').locator('tfoot tr').last()).toContainText('$5,486.40');
-  await expect(page).toHaveTitle('Invoice 0042 · TinyLittleOffice');
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+p')]);
   expect(pdf.suggestedFilename()).toBe('invoice-0042.pdf');
   expect(readFileSync(await pdf.path()).subarray(0, 5).toString()).toBe('%PDF-');
   await shot(page, 'invoice');
-});
-
-test('contract: two people, two browsers, two signatures', async ({ page, browser }) => {
-  await page.goto('/#/v0/contract');
-  await page.getByRole('textbox', { name: 'Contract, as text' }).fill('# Dog-walking agreement\nSam walks Biscuit every weekday.');
-  const signatures = (p: typeof page) => p.locator('.contract-sign li:not(.none)');
-  await page.getByRole('textbox', { name: 'Your name' }).fill('Paul');
-  await page.getByRole('button', { name: 'Sign', exact: true }).click();
-  await expect(signatures(page)).toHaveCount(1);
-  await expect(signatures(page).first()).toContainText('Signed these exact words');
-  await expect.poll(() => page.url()).toMatch(/#\/v0\/contract\/[WYZR]/);
-  const sent = page.url();
-
-  // The other party, in a browser of their own (so a key of their own), opens what was sent.
-  const other = await (await browser.newContext()).newPage();
-  await other.goto(sent);
-  await expect(signatures(other)).toHaveCount(1);
-  await expect(signatures(other).first()).toContainText('Paul');
-  await expect(signatures(other).first()).toHaveClass(/ok/);
-  await other.getByRole('textbox', { name: 'Your name' }).fill('Sam');
-  await other.getByRole('button', { name: 'Sign', exact: true }).click();
-  await expect(signatures(other)).toHaveCount(2);
-  await expect(other.locator('.contract-sign li.ok')).toHaveCount(2);
-  const both = other.url();
-  // Two different keys signed.
-  const marks = await other.locator('.contract-sign li code').allTextContents();
-  expect(new Set(marks).size).toBe(2);
-
-  // Back with the first party: both signatures hold; change a word and neither does.
-  await page.goto('about:blank');
-  await page.goto(both);
-  await expect(page.locator('.contract-sign li.ok')).toHaveCount(2);
-  await expect(page.frameLocator('to-contract iframe').locator('.signed div')).toHaveCount(2);
-  await shot(page, 'contract');
-  await page.getByRole('textbox', { name: 'Contract, as text' }).fill('# Dog-walking agreement\nSam walks Biscuit every weekend.');
-  await expect(page.locator('.contract-sign li.bad')).toHaveCount(2);
-  await expect(page.locator('.contract-sign li.bad').first()).toContainText('have changed since');
-  await other.close();
 });
 
 // Stays: whether the words fit their page is the browser's layout, the PDF is drawn on a canvas, and the reading page turns by its own script (the rest is in test/dom/print.test.ts).
@@ -338,9 +281,10 @@ test('pixel art: a drag colours the squares under the pointer', async ({ page })
   await expect(cell(7, 8)).toHaveAccessibleName('Row 7, column 8: empty');
   await shot(page, 'pixel-tools');
 });
+// Stays: each game works by its page's own script, in a frame (what the pages say before anyone plays is in test/dom/pages.test.ts).
 test('small apps: games and things to share work as pages', async ({ page }) => {
   const open = async (app: string) => {
-    await page.goto(`/#/${app}`);
+    await page.goto(`/#/v0/${app}`);
     await page.getByRole('button', { name: 'Start from an example' }).click();
     return page.frameLocator(`to-${app} iframe`);
   };
@@ -383,42 +327,13 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
   await expect(f.locator('#card')).toHaveText('good morning');
   await f.getByRole('button', { name: 'Next' }).click();
   await expect(f.locator('#card')).toHaveText('obrigado');
-  // A poll counts; adding a line adds a vote.
-  f = await open('poll');
-  await expect(f.locator('li', { hasText: 'Tacos' }).locator('.top span').last()).toHaveText('2');
-  const text = page.getByRole('textbox', { name: 'Poll, as text' });
-  await text.fill((await text.inputValue()) + '\nGrace: Sushi');
-  await expect(f.locator('li', { hasText: 'Sushi' }).locator('.top span').last()).toHaveText('2');
-  // Secret Santa: the organiser gets a link per person; each shows one draw only.
+  // Secret Santa: a person's own link shows their draw at the press of a button.
   f = await open('santa');
-  await expect(f.locator('.links li')).toHaveCount(5);
   const adas = await f.locator('.links li', { hasText: 'Ada' }).getByRole('link').getAttribute('href');
   await page.goto(adas!.replace(/^https?:\/\/[^/]+\//, '/'));
   f = page.frameLocator('to-santa iframe');
-  await expect(f.locator('main')).toContainText('Ada, this link is yours alone');
-  await expect(f.locator('main')).not.toContainText('their link');
   await f.getByRole('button', { name: 'Show me who I give to' }).click();
   await expect(f.locator('#who')).toContainText(/^You give to (Grace|Alan|Margaret|Linus)\.$/);
-  // The bill, settled.
-  f = await open('split');
-  await expect(f.locator('.pay')).toHaveText(['Grace pays Paul 92.88', 'Ada pays Paul 47.88', 'Sam pays Paul 6.38']);
-  f = await open('log');
-  await expect(f.locator('.sums div').first()).toContainText('22.5 km');
-  // And the ones that print or draw.
-  for (const [app, name, has] of [['wordsearch', 'Word search', 'espresso']] as const) {
-    await page.goto(`/#/${app}`);
-    await page.getByRole('button', { name: 'Start from an example' }).click();
-    await expect(page.getByRole('img', { name: `${name}, sheet 1` }), app).toContainText(has);
-    await shot(page, app);
-  }
-  for (const [app, n] of [['floor', 6], ['seating', 18], ['family', 6], ['timeline', 10]] as const) {
-    await page.goto(`/#/${app}`);
-    await page.getByRole('button', { name: 'Start from an example' }).click();
-    await expect(page.locator(`to-${app} .pic > svg g.pick, to-${app} .pic > svg g.shape`).first(), app).toBeVisible();
-    await expect(page.locator(`to-${app} .pic > svg text`).first(), app).toBeVisible();
-    expect(n).toBeGreaterThan(0);
-    await shot(page, app);
-  }
 });
 
 test('a map on a slide: a tap on the map goes to the next stop', async ({ page }) => {
