@@ -7,6 +7,7 @@
 import type { Kind as LineKind } from './lines.ts';
 import { defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
 import { resolve } from '../kit/embed.ts';
+import { parseOutline } from './outlinemodel.ts';
 import { GRID, W, H, isLink, serializeDrawing, type Color, type Fill, type Kind, type Shape, type TextSize } from './drawmodel.ts';
 import { shapesPage } from '../apps/draw.def.ts';
 
@@ -23,15 +24,14 @@ export interface Node {
   kids: Node[];
 }
 
-/** An indented outline as a forest. Two spaces or a tab go one level in. */
+/** A tree's text (lib/outlinemodel.ts) as a forest: its items with words, the documents in it left out. */
 export function outline(text: string): Node[] {
   const roots: Node[] = [];
   const path: Node[] = [];
-  for (const raw of text.split('\n')) {
-    if (!raw.trim()) continue;
-    const indent = /^[ \t]*/.exec(raw)![0].replace(/\t/g, '  ').length;
-    const depth = Math.min(Math.floor(indent / 2), path.length);
-    const node: Node = { text: raw.trim().replace(/^[-*]\s+/, ''), depth, kids: [] };
+  for (const it of parseOutline(text)) {
+    if (it.doc || !it.text.trim()) continue;
+    const depth = Math.min(it.depth, path.length);
+    const node: Node = { text: it.text.trim(), depth, kids: [] };
     path.length = depth;
     (depth ? path[depth - 1].kids : roots).push(node);
     path.push(node);

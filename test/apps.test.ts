@@ -307,7 +307,7 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   const { specOf, toDrawing, outline, placeTree } = await import('../src/lib/diagram.ts');
   const { parseDrawing, isLink } = await import('../src/lib/drawmodel.ts');
   const { pageSvg } = await import('../src/kit/core.ts');
-  assert.deepEqual(placeTree(outline('A\n  B\n  C\n    D\nE')).map((p) => [p.node.text, p.node.depth, p.across, p.parent]), [['A', 0, 0.5, -1], ['B', 1, 0, 0], ['C', 1, 1, 0], ['D', 2, 1, 2], ['E', 0, 2, -1]]);
+  assert.deepEqual(placeTree(outline('- A\n  - B\n  - C\n    - D\n- E')).map((p) => [p.node.text, p.node.depth, p.across, p.parent]), [['A', 0, 0.5, -1], ['B', 1, 0, 0], ['C', 1, 1, 0], ['D', 2, 1, 2], ['E', 0, 2, -1]]);
   for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'floor', 'seating', 'family', 'timeline']) {
     const spec = specOf(id)!;
     const def = appOf(id)!;
@@ -327,7 +327,7 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
     assert.ok(shapes.every((s) => isLink(s.k) || (s.x >= 0 && s.x + s.w <= 648 && s.y + s.h <= 408)), `${id} fits`);
   }
   // What the outlines mean.
-  const org = specOf('org')!.layout!('Ada | CEO\n  Ben\n  Eve');
+  const org = specOf('org')!.layout!('- Ada | CEO\n  - Ben\n  - Eve');
   // In reading order: a thing, the next thing, the line between them, the next thing, its line.
   assert.deepEqual(org.shapes.map((s) => s.k), ['o', 'o', 'j', 'o', 'j']);
   assert.deepEqual([org.shapes[2].x, org.shapes[2].y, org.shapes[4].x, org.shapes[4].y], [0, 1, 0, 3]);
@@ -444,7 +444,7 @@ test('icons in drawings and diagrams', async () => {
   assert.equal(parseDrawing('i,2,2,6,6,0,star')[0].text, 'star');
   // The diagram apps pass labels through, so ":icon" works in all of them.
   const { specOf } = await import('../src/lib/diagram.ts');
-  const org = specOf('org')!.layout!(':crown Ada | CEO\n  :wrench Ben');
+  const org = specOf('org')!.layout!('- :crown Ada | CEO\n  - :wrench Ben');
   assert.ok(shapeSvg(org.shapes[0], org.shapes).includes('stroke-linecap="round"'));
 });
 
@@ -791,8 +791,8 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   assert.equal(writeLines(rows, menu), '# Cafe\n## Coffee\nEspresso | 3.00 | Dark\nFlat white | 4.20 | Smooth\nOpen daily\n## Tea');
   // Outlines keep their depth; an answer is a line under a question.
   const org = specOf('org')!.form!;
-  assert.deepEqual(readLines('Ada | CEO\n  :wrench Ben\n    Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
-  assert.equal(writeLines([{ kind: 1, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 1, values: ['', 'Ben', ''], depth: 1 }], org), ':crown Ada | CEO\n  Ben');
+  assert.deepEqual(readLines('- Ada | CEO\n  - :wrench Ben\n    - Cy', org).map((r) => [r.depth, ...r.values]), [[0, '', 'Ada', 'CEO'], [1, 'wrench', 'Ben', ''], [2, '', 'Cy', '']]);
+  assert.equal(writeLines([{ kind: 1, values: ['crown', 'Ada', 'CEO'], depth: 0 }, { kind: 1, values: ['', 'Ben', ''], depth: 1 }], org), '- :crown Ada | CEO\n  - Ben');
   const faq: LineKind[] = [
     { name: 'Title', is: '# {Title}', once: true },
     { name: 'Question', is: '{Question}', at: 0 },
@@ -814,21 +814,21 @@ test('outlines: rows move with what is under them; an org chart has dotted lines
   const { readLines, writeLines, moveBlock, shiftBlock, removeRow, depths } = await import('../src/lib/lines.ts');
   const { specOf } = await import('../src/lib/diagram.ts');
   const org = specOf('org')!.form!;
-  const text = 'Ada\n  Ben\n    Cy\n  Eve\nFlo';
+  const text = '- Ada\n  - Ben\n    - Cy\n  - Eve\n- Flo';
   const rows = readLines(text, org);
   const after = (r: ReturnType<typeof readLines> | null) => (r ? writeLines(r, org) : null);
   // Ben goes below Eve, and takes Cy along.
-  assert.equal(after(moveBlock(rows, org, 1, 1)![0]), 'Ada\n  Eve\n  Ben\n    Cy\nFlo');
+  assert.equal(after(moveBlock(rows, org, 1, 1)![0]), '- Ada\n  - Eve\n  - Ben\n    - Cy\n- Flo');
   assert.equal(moveBlock(rows, org, 1, 1)![1], 2);
-  assert.equal(after(moveBlock(rows, org, 4, -1)![0]), 'Flo\nAda\n  Ben\n    Cy\n  Eve');
+  assert.equal(after(moveBlock(rows, org, 4, -1)![0]), '- Flo\n- Ada\n  - Ben\n    - Cy\n  - Eve');
   assert.equal(moveBlock(rows, org, 0, -1), null);
   // Indenting takes the rows beneath along; a row goes at most one deeper than the one above.
-  assert.equal(after(shiftBlock(rows, org, 1, -1)), 'Ada\nBen\n  Cy\n  Eve\nFlo');
-  assert.equal(after(shiftBlock(rows, org, 3, 1)), 'Ada\n  Ben\n    Cy\n    Eve\nFlo');
+  assert.equal(after(shiftBlock(rows, org, 1, -1)), '- Ada\n- Ben\n  - Cy\n  - Eve\n- Flo');
+  assert.equal(after(shiftBlock(rows, org, 3, 1)), '- Ada\n  - Ben\n    - Cy\n    - Eve\n- Flo');
   assert.equal(shiftBlock(rows, org, 2, 1), null);
   assert.equal(shiftBlock(rows, org, 0, 1), null);
   // Take Ben away and Cy reports to Ada.
-  assert.equal(after(removeRow(rows, org, 1)), 'Ada\n  Cy\n  Eve\nFlo');
+  assert.equal(after(removeRow(rows, org, 1)), '- Ada\n  - Cy\n  - Eve\n- Flo');
   // A section and its items are an outline too, though the text does not indent them.
   const menu = specOf('menu')!.form!;
   const m = readLines('# Cafe\n## Coffee\nEspresso | 3\nFilter | 3\n## Food\nBun | 4', menu);
@@ -838,14 +838,14 @@ test('outlines: rows move with what is under them; an org chart has dotted lines
   assert.equal(writeLines(moveBlock(m, menu, 3, 1)![0], menu), '# Cafe\n## Coffee\nEspresso | 3\n## Food\nFilter | 3\nBun | 4');
 
   // Dotted lines: between two people, by name, whatever their role or picture.
-  const chart = specOf('org')!.layout!('Ada | CEO\n  :wrench Ben | Eng\n  Eve\nben .. Eve: advises\nBen .. Nobody');
+  const chart = specOf('org')!.layout!('- Ada | CEO\n  - :wrench Ben | Eng\n  - Eve\n\n~ ben -- Eve: advises\n~ Ben -- Nobody');
   assert.deepEqual(chart.shapes.map((s) => s.k), ['o', 'o', 'j', 'o', 'j', 'j']);
   const dotted = chart.shapes[5];
   assert.deepEqual([dotted.x, dotted.y, dotted.f, dotted.text], [1, 3, 2, 'advises']);
   assert.equal(chart.shapes.filter((s) => s.k === 'j' && s.f === 2).length, 1);
   const { shapeSvg } = await import('../src/apps/draw.def.ts');
   assert.ok(shapeSvg(dotted, chart.shapes).includes('stroke-dasharray="2 3"'));
-  assert.deepEqual(readLines('Ben .. Eve: advises', org).map((r) => [org[r.kind].name, ...r.values]), [['Dotted line', 'Ben', 'Eve', 'advises']]);
+  assert.deepEqual(readLines('~ Ben -- Eve: advises', org).map((r) => [org[r.kind].name, ...r.values]), [['Dotted line', 'Ben', 'Eve', 'advises']]);
 });
 
 test('a QR code of a link reads back as the link', async () => {
@@ -974,7 +974,7 @@ test('markdown, both ways, for every app', async () => {
   const { apps } = await import('../src/kit/core.ts');
   const samples: Record<string, string> = {
     sheet: 'Item\tCost\nRent\t1200\nFood\t600',
-    outline: 'Launch\n  Product\n    Pricing\n  Marketing',
+    outline: '- Launch\n  - Product\n    - Pricing\n  - Marketing',
     write: '# Memo\nSome *bold* and _slant_ text with =shine= and :star:\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n  under one\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\no,20,2,10,6,0,Ball',
@@ -1071,46 +1071,50 @@ test('icons are searched by tag and browsed by kind, once the library is in', as
 test('outline: a tree of lines, moved about, and OPML out', async () => {
   const { parseOutline, serializeOutline, shift, move, place, remove, toOpml, hasChildren } = await import('../src/lib/outlinemodel.ts');
   const { specOf } = await import('../src/lib/diagram.ts');
-  const items = parseOutline('Launch\n  Product\n    Pricing\n  Marketing\nDone');
+  const items = parseOutline('- Launch\n  - Product\n    - Pricing\n  - Marketing\n- Done');
   assert.deepEqual(items.map((i) => i.depth), [0, 1, 2, 1, 0]);
-  assert.equal(serializeOutline(items), 'Launch\n  Product\n    Pricing\n  Marketing\nDone');
-  // Markdown bullets paste in; a jump of two levels is forgiven to one.
-  assert.equal(serializeOutline(parseOutline('- a\n    - b\n        - c\n            - d')), 'a\n  b\n    c\n      d');
-  assert.equal(serializeOutline(parseOutline('a\n      far')), 'a\n  far');
+  assert.equal(serializeOutline(items), '- Launch\n  - Product\n    - Pricing\n  - Marketing\n- Done');
+  // Other bullets and indents read; a jump of two levels is forgiven to one.
+  assert.equal(serializeOutline(parseOutline('* a\n    * b\n        * c\n            * d')), '- a\n  - b\n    - c\n      - d');
+  assert.equal(serializeOutline(parseOutline('a\n      far')), '- a\n  - far');
   assert.ok(hasChildren(items, 0) && !hasChildren(items, 2));
-  assert.equal(serializeOutline(shift(items, 3, 1)!), 'Launch\n  Product\n    Pricing\n    Marketing\nDone');
+  assert.equal(serializeOutline(shift(items, 3, 1)!), '- Launch\n  - Product\n    - Pricing\n    - Marketing\n- Done');
   assert.equal(shift(items, 1, 1), null);
-  assert.equal(serializeOutline(move(items, 1, 1)![0]), 'Launch\n  Marketing\n  Product\n    Pricing\nDone');
-  assert.equal(serializeOutline(place(items, 4, 1, 'under')!), 'Launch\n  Product\n    Pricing\n    Done\n  Marketing');
-  assert.equal(serializeOutline(remove(items, 1)), 'Launch\n  Pricing\n  Marketing\nDone');
+  assert.equal(serializeOutline(move(items, 1, 1)![0]), '- Launch\n  - Marketing\n  - Product\n    - Pricing\n- Done');
+  assert.equal(serializeOutline(place(items, 4, 1, 'under')!), '- Launch\n  - Product\n    - Pricing\n    - Done\n  - Marketing');
+  assert.equal(serializeOutline(remove(items, 1)), '- Launch\n  - Pricing\n  - Marketing\n- Done');
   const opml = toOpml(items, 'Plan');
   assert.ok(opml.includes('<outline text="Product">') && opml.includes('<outline text="Pricing"/>') && (opml.match(/<\/outline>/g) ?? []).length === 2);
   // Drawn, and understood by the mind map and org chart as they are.
-  assert.ok(appOf('outline')!.view('Launch\n  Product').at(0)!.svg.includes('>Product</text>'));
-  assert.equal(specOf('mind')!.layout!('Launch\n  Product\n  Marketing').shapes.filter((s) => s.text).length, 3);
-  assert.equal(toMarkdown(appOf('outline')!, 'Launch\n  *Product*\n    Pricing'), '- Launch\n  - **Product**\n    - Pricing\n');
-  assert.equal(fromMarkdown(appOf('outline')!, '# Plan\n\n- a\n  - b\n\n## Later\n- c'), 'Plan\na\n  b\nLater\nc');
+  assert.ok(appOf('outline')!.view('- Launch\n  - Product').at(0)!.svg.includes('>Product</text>'));
+  assert.equal(specOf('mind')!.layout!('- Launch\n  - Product\n  - Marketing').shapes.filter((s) => s.text).length, 3);
+  // Its Markdown is its text; Markdown comes in through its reader.
+  assert.equal(toMarkdown(appOf('outline')!, '- Launch\n  - *Product*\n    - Pricing'), '- Launch\n  - *Product*\n    - Pricing\n');
+  assert.equal(fromMarkdown(appOf('outline')!, '# Plan\n\n- a\n  - b\n\n## Later\n- c'), '- Plan\n  - a\n    - b\n  - Later\n    - c');
+  for (const id of ['mind', 'org', 'family']) assert.equal(fromMarkdown(appOf(id)!, toMarkdown(appOf(id)!, specOf(id)!.example)), specOf(id)!.example, id);
+  assert.equal(appOf('org')!.read!('Ada\n  Ben\n~ Ben -> Ada: helps'), '- Ada\n  - Ben\n\n~ Ben -- Ada: helps');
 });
 
 test('outline: a deck for every level, and documents as items', async () => {
-  const { parseOutline, outlineToDeck, embedOf } = await import('../src/lib/outlinemodel.ts');
-  const { parseDeck } = await import('../src/lib/deckmodel.ts');
-  const deck = outlineToDeck(parseOutline('Launch\n  Product\n    Pricing\n      Tiers\n    Onboarding\n  Marketing\n    Press\n  @@sheet/WAbc\n  Done'));
-  const slides = parseDeck(deck);
-  // A title slide naming the parts; then a slide for Product, for Pricing (it has a level under it), for Marketing; the sheet has a slide of its own.
-  assert.deepEqual(slides.map((s) => s.title), ['Launch', 'Product', 'Pricing', 'Marketing', '']);
-  assert.equal(slides[0].layout, 't');
-  assert.deepEqual(slides[0].bullets, ['Product', 'Marketing', 'Done']);
-  // Only the level just under: Tiers has Pricing's own slide.
-  assert.deepEqual(slides[1].bullets, ['Pricing', 'Onboarding']);
-  assert.deepEqual(slides[2].bullets, ['Tiers']);
-  assert.equal(slides[4].sub, 'sheet/WAbc');
-  assert.equal(embedOf('@@sheet/WAbc'), 'sheet/WAbc');
-  assert.equal(embedOf('words @@x'), null);
-  // Two roots: no title slide, each root a slide.
-  assert.deepEqual(parseDeck(outlineToDeck(parseOutline('A\n  a1\nB\n  b1'))).map((s) => [s.title, s.layout ?? '']), [['A', ''], ['B', '']]);
-  // The page draws an item that is a document, small.
-  assert.ok(appOf('outline')!.view('Plan\n  @@todo/' + (await import('../src/lib/envelope.ts')).encodeEnvelope({ created: null, body: '- Buy milk' }, 'todo'))[0].svg.includes('Buy milk'));
+  const { parseOutline, serializeOutline } = await import('../src/lib/outlinemodel.ts');
+  const { outlineAs } = await import('../src/apps/outline.def.ts');
+  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
+  // An item that is a document: a fence, with its depth.
+  const doc = '- Plan\n\n```todo {depth=1}\n- [ ] Buy milk\n```';
+  const items = parseOutline(doc);
+  assert.deepEqual(items[1], { depth: 1, text: '', doc: 'todo\n- [ ] Buy milk' });
+  assert.equal(serializeOutline(items), doc);
+  // The page draws it, small.
+  assert.ok(appOf('outline')!.view(doc)[0].svg.includes('Buy milk'));
+  assert.deepEqual(appOf('outline')!.outline(doc), ['Plan']);
+  // Seen as another app: the plain list, or the org chart with its joins as dotted lines.
+  const as = (app: string, body: string) => {
+    const m = /#\/v\d+\/([a-z]+)\/(.*)$/.exec(outlineAs(app, body))!;
+    return [m[1], decodeEnvelope(m[2], m[1]).body];
+  };
+  assert.deepEqual(as('mind', doc + '\n- Next {.to}'), ['mind', '- Plan\n- Next']);
+  assert.deepEqual(as('org', '- A\n  - B\n\n~ A -> B: helps'), ['org', '- A\n  - B\n\n~ A -- B: helps']);
+  assert.deepEqual(as('net', '- A\n  - B {.from}'), ['net', '~ A -> B']);
 });
 
 test('a short link carries its key in the fragment; the server would hold only ciphertext', async () => {

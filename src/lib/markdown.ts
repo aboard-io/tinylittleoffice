@@ -16,7 +16,6 @@ import { parseGantt } from './ganttmodel.ts';
 import { parseTrip } from './tripmodel.ts';
 import { parseCalendar, repeatText, EPOCH_DAY, EPOCH_MS, isoDay, type Span as CalSpan } from './calmodel.ts';
 import { altOf, parseDrawing, serializeDrawing, withAlt, type Shape } from './drawmodel.ts';
-import { edgeText, linkLine, parseLinks, parseOutline, serializeOutline } from './outlinemodel.ts';
 import { parseAnim, serializeAnim, restKey, DEFAULT_FRAMES, W, H } from './animmodel.ts';
 import { specOf } from './diagram.ts';
 import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
@@ -292,15 +291,12 @@ export function toMarkdown(def: AppDef, body: string, title = ''): string {
     }
     case 'write':
       return docToMd(body);
-    case 'outline': {
-      // The kind of line to the parent stays written before the words ("- -> Pricing"); joins follow the list as they are.
-      const links = parseLinks(body);
-      return (
-        parseOutline(body).filter((it) => it.text.trim()).map((it) => `${'  '.repeat(it.depth)}- ${it.depth && edgeText(it.dir, it.label) ? edgeText(it.dir, it.label) + ' ' : ''}${runsToMd(parseInline(it.text))}`).join('\n') +
-        '\n' +
-        (links.length ? '\n' + links.map(linkLine).join('\n') + '\n' : '')
-      );
-    }
+    case 'outline':
+    case 'mind':
+    case 'org':
+    case 'family':
+      // A tree is a nested list already: its text is its Markdown.
+      return body.trimEnd() + '\n';
     case 'deck':
       return slidesToMd(parseDeck(body), '');
     case 'sheet': {
@@ -441,22 +437,10 @@ export function fromMarkdown(def: AppDef, md: string): string {
     case 'write':
       return mdToDoc(text);
     case 'outline':
-      // Lists nest by indent; headings are top-level items; anything else is an item too.
-      // (Read twice: the first time leaves a kind of line written in the words; the second takes it out.)
-      return serializeOutline(
-        parseOutline(serializeOutline(
-        text
-          .split('\n')
-          .filter((l) => l.trim() && !l.startsWith('~ ') && !/^(-{3,}|\*{3,})$/.test(l.trim()))
-          .map((l) => {
-            const h = /^(#{1,6})\s+(.*)$/.exec(l);
-            if (h) return { depth: 0, text: mdLine(h[2]) };
-            const li = /^(\s*)(?:[-*+]|\d+[.)])\s+(.*)$/.exec(l);
-            return li ? { depth: Math.floor(li[1].replace(/\t/g, '  ').length / 2), text: mdLine(li[2]) } : { depth: 0, text: mdLine(l.trim()) };
-          }),
-        )),
-        parseLinks(text),
-      );
+    case 'mind':
+    case 'org':
+    case 'family':
+      return def.read!(text);
     case 'deck':
       return serializeDeck(mdToSlides(text));
     case 'sheet': {

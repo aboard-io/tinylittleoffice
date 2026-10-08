@@ -6,10 +6,11 @@
  * and connects the chosen item. Each item's bullet is the line to its
  * parent: tapped, it turns through plain, an arrow out, an arrow back and
  * both ways; the plus beside it names the line. Connect joins any two
- * items. Format: lib/outlinemodel.ts.
+ * items. Format: a nested list, lib/outlinemodel.ts.
  */
 import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, hashOf, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
-import { blockEnd, embedOf, hasChildren, move, outlineToDeck, parentOf, parseLinks, parseOutline, place, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
+import { blockEnd, hasChildren, liveLinks, move, outlineToDeck, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
+import { withHead } from '../lib/tlo.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
 import { DIR_NAME, outlineAs } from './outline.def.ts';
@@ -32,11 +33,12 @@ export class ToOutline extends DocElement<Item[]> {
   private drag: { i: number; over: number; how: 'under' | 'after' } | null = null;
 
   protected parse(text: string) {
-    this.links = parseLinks(text);
-    return parseOutline(text);
+    const { items, links } = readTree(text);
+    this.links = links;
+    return items;
   }
   protected serialize(items: Item[]) {
-    return serializeOutline(items, this.links);
+    return serializeOutline(items, liveLinks(items, this.links));
   }
 
   private save(items: Item[], focus = this.sel) {
@@ -88,7 +90,7 @@ export class ToOutline extends DocElement<Item[]> {
   /* ---------- lines between items ---------- */
 
   private setLine(i: number, dir: Dir) {
-    this.commit(this.doc.map((it, n) => (n === i ? { ...it, dir: dir === '-' ? undefined : dir } : it)));
+    this.commit(this.doc.map((it, n) => (n === i ? { ...it, dir: dir === '--' ? undefined : dir } : it)));
   }
   private nameLine(i: number, label: string) {
     this.commit(this.doc.map((it, n) => (n === i ? { ...it, label: label.trim() || undefined } : it)));
@@ -107,7 +109,7 @@ export class ToOutline extends DocElement<Item[]> {
   }
   /** Connect: start from the chosen item, or pick one first; everything else goes grey until the other end is tapped. */
   private connect() {
-    this.connecting = this.connecting ? null : { from: this.sel >= 0 && this.doc[this.sel].text.trim() && !embedOf(this.doc[this.sel].text) ? this.sel : -1 };
+    this.connecting = this.connecting ? null : { from: this.sel >= 0 && this.doc[this.sel].text.trim() && !this.doc[this.sel].doc ? this.sel : -1 };
   }
   private pick(i: number) {
     const c = this.connecting;
@@ -116,7 +118,7 @@ export class ToOutline extends DocElement<Item[]> {
     const [from, to] = [this.doc[c.from].text.trim(), this.doc[i].text.trim()];
     this.connecting = null;
     if (from === to || this.links.some((l) => (l.from === from && l.to === to) || (l.from === to && l.to === from))) return;
-    this.links = [...this.links, { from, to, dir: '-' }];
+    this.links = [...this.links, { from, to, dir: '--' }];
     this.commit(this.doc);
   }
 
@@ -127,7 +129,7 @@ export class ToOutline extends DocElement<Item[]> {
    * join, taking it away. The menu is drawn only for the bullet tapped.
    */
   private bullet(key: string, o: { dir: Dir; label?: string; said: string; from: string; to: string; onDir(d: Dir): void; onName(v: string): void; zoom?: () => void; remove?: () => void }) {
-    const glyph = o.dir === '>' ? UI.arrow : o.dir === '<' ? UI.arrowLeft : o.dir === '<>' ? UI.arrowBoth : null;
+    const glyph = o.dir === '->' ? UI.arrow : o.dir === '<-' ? UI.arrowLeft : o.dir === '<->' ? UI.arrowBoth : null;
     const face = glyph ? icon(glyph, 14) : html`<span></span>`;
     const label = `${o.said}: ${DIR_NAME[o.dir]}${o.label ? `, named “${o.label}”` : ''}. Change it`;
     const open = async () => {
@@ -137,10 +139,10 @@ export class ToOutline extends DocElement<Item[]> {
     };
     if (this.menuFor !== key) return html`<button class="ol-kind" data-dir=${o.dir} aria-label=${label} aria-haspopup="menu" data-tip="Kind of line, its name" @mousedown=${(e: Event) => e.preventDefault()} @click=${open}>${face}</button>`;
     const kinds: [Dir, string, keyof typeof UI | null][] = [
-      ['-', 'Plain line', null],
-      ['>', `Arrow from ${o.from} to ${o.to}`, 'arrow'],
-      ['<', `Arrow from ${o.to} to ${o.from}`, 'arrowLeft'],
-      ['<>', 'Arrows both ways', 'arrowBoth'],
+      ['--', 'Plain line', null],
+      ['->', `Arrow from ${o.from} to ${o.to}`, 'arrow'],
+      ['<-', `Arrow from ${o.to} to ${o.from}`, 'arrowLeft'],
+      ['<->', 'Arrows both ways', 'arrowBoth'],
     ];
     return html`<sl-dropdown class="ol-menu" hoist placement="bottom-start" @sl-after-hide=${(e: Event) => e.target === e.currentTarget && (this.menuFor = '')}
       @sl-select=${(e: CustomEvent) => {
@@ -200,18 +202,17 @@ export class ToOutline extends DocElement<Item[]> {
     const i = this.sel >= 0 ? this.sel : items.length - 1;
     const at = this.sel >= 0 ? blockEnd(items, i) : items.length;
     const depth = this.sel >= 0 ? items[i].depth : 0;
-    const ref = what === 'qr-self' ? SELF : what === 'chart' ? makeRef('sheet', '!bar') : makeRef(what, '');
-    const put = (r: string) => this.commit([...this.doc.slice(0, at), { depth, text: '@@' + r }, ...this.doc.slice(at)]);
-    put(ref);
+    const ref = what === 'qr-self' ? SELF : what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '');
+    this.commit([...this.doc.slice(0, at), { depth, text: '', doc: ref }, ...this.doc.slice(at)]);
     if (what === 'qr-self') return;
     const made = await editRef(ref);
-    this.commit(this.doc.map((it, n) => (n === at ? { ...it, text: '@@' + made } : it)));
+    this.commit(this.doc.map((it, n) => (n === at ? { ...it, doc: made } : it)));
   }
   private async editDoc(i: number) {
-    const ref = embedOf(this.doc[i].text);
+    const ref = this.doc[i].doc;
     if (!ref || ref === SELF) return;
     const made = await editRef(ref);
-    this.setText(i, '@@' + made);
+    this.commit(this.doc.map((it, n) => (n === i ? { ...it, doc: made } : it)));
   }
 
   private fold(i: number, shut = !this.folded.has(i)) {
@@ -384,14 +385,14 @@ export class ToOutline extends DocElement<Item[]> {
               ? (() => {
                   const said = `line from ${plainInline(items[parentOf(items, i)].text) || 'the item above'} to ${plainInline(it.text) || `item ${i + 1}`}`;
                   const parent = plainInline(items[parentOf(items, i)].text) || 'the item above';
-                  return html`<span class="ol-bullet">${this.bullet(`i${i}`, { dir: it.dir ?? '-', label: it.label, said: said[0].toUpperCase() + said.slice(1), from: parent, to: plainInline(it.text) || 'this', onDir: (dir) => this.setLine(i, dir), onName: (v) => this.nameLine(i, v), zoom: kids ? () => this.zoomTo(i) : undefined })}</span>${this.chip(`i${i}`, it.label)}`;
+                  return html`<span class="ol-bullet">${this.bullet(`i${i}`, { dir: it.dir ?? '--', label: it.label, said: said[0].toUpperCase() + said.slice(1), from: parent, to: plainInline(it.text) || 'this', onDir: (dir) => this.setLine(i, dir), onName: (v) => this.nameLine(i, v), zoom: kids ? () => this.zoomTo(i) : undefined })}</span>${this.chip(`i${i}`, it.label)}`;
                 })()
               : html`<span class="ol-bullet"><span class="ol-kind root" aria-hidden="true"><span></span></span></span>`}
-            ${embedOf(it.text)
-              ? html`<to-embed class="ol-doc" ref=${embedOf(it.text)!} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
+            ${it.doc
+              ? html`<to-embed class="ol-doc" ref=${it.doc} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
               : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}
             ${kids && shut ? html`<span class="to-count ol-count" aria-hidden="true">${blockEnd(items, i) - i - 1}</span>` : nothing}
-            ${this.connecting && it.text.trim() && !embedOf(it.text) && i !== this.connecting.from
+            ${this.connecting && it.text.trim() && !it.doc && i !== this.connecting.from
               ? html`<button class="ol-pick" aria-label=${this.connecting.from < 0 ? `Connect from “${plainInline(it.text)}”` : `Connect “${plainInline(items[this.connecting.from].text)}” to “${plainInline(it.text)}”`} @click=${() => this.pick(i)}></button>`
               : nothing}
           </div>`;

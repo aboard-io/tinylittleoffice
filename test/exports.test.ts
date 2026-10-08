@@ -34,7 +34,7 @@ test('file names come from the document title', () => {
 test('every app draws itself, and is a web page with preview tags', () => {
   const samples: Record<string, string> = {
     sheet: '!bar\nItem\tCost\nRent\t1200\nFood\t600',
-    outline: 'Launch\n  <Product>\n    Pricing',
+    outline: '- Launch\n  - <Product>\n    - Pricing',
     write: '# Memo\nSome *bold* text\n- one\n-- nested\n+ first',
     deck: ':rocket:t\nSpring launch\nWhat ships\n\n::2\nAgenda\none\n|\ntwo',
     draw: 'r,2,1,12,6,1b3,Box\na,14,4,8,0,0',
