@@ -133,7 +133,13 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
  * for a code ends as it is.) The slide is made, not written: it shows
  * another document, a QR code of this deck's own link.
  */
+// The closing slide compresses the whole deck to make its code: kept for the text it was made from, since every redraw asks again.
+let closing: { body: string; slide: Slide | null } | null = null;
 export function closingSlide(body: string): Slide | null {
+  if (closing?.body !== body) closing = { body, slide: makeClosing(body) };
+  return closing.slide;
+}
+function makeClosing(body: string): Slide | null {
   if (!deckEndsWithQr(body)) return null;
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
   const link = `${site}deck/${LINK}deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
