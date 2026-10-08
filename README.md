@@ -485,11 +485,14 @@ e2e/                  Playwright browser tests
 
 Every app that is "a few lines of text" is edited on its picture: tap
 empty space to add a thing, tap a thing for its buttons (add one like
-it, give it an icon, edit its words, take it away), tap twice to type
-on it, drag it where it goes (onto another thing to put it under or
-after it; a floor plan's rooms keep a place and move there). The same
-document is a list to fill in (the List button) or the text itself
-(Mod+Shift+T). All three come from one description
+it, give it an icon, join it to another, edit its words, take it away),
+tap twice to type on it, drag it where it goes (onto another thing to
+put it under or after it, into a lane or a set to move it there; a floor
+plan's rooms keep a place and move there). A line between two things is
+tapped for its words; a guest at a table is a thing of their own. The
+same document is always the text itself (Mod+Shift+T), and, for the
+apps that are rows at heart (a page, a printed sheet, a database), a
+list to fill in (the List button). All of it comes from one description
 (`src/lib/lines.ts`): the app lists its kinds of line as patterns,
 
 ```ts
