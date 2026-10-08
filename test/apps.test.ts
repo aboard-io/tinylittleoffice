@@ -670,6 +670,55 @@ test('small apps: the sums behind them', async () => {
   assert.deepEqual(specOf('timeline')!.layout!('1: a\n2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
 });
 
+test('diagrams worked on the picture: lists of things, regions, place cards', async () => {
+  const { readLines, writeLines, listItems, moveItem, fieldsOf } = await import('../src/lib/lines.ts');
+  const { specOf } = await import('../src/lib/diagram.ts');
+  const { appOf } = await import('../src/kit/core.ts');
+  // A list field holds things with commas between, each a thing of its own on the picture; a field in [..] is one a line can do without.
+  const seating = specOf('seating')!.form!;
+  assert.deepEqual(fieldsOf(seating, 0).map((f) => [f.name, f.type, !!f.optional]), [['Table', 'text', false], ['Who', 'list', false]]);
+  assert.deepEqual(fieldsOf(specOf('org')!.form!, 1).map((f) => !!f.optional), [true, false, true]);
+  assert.deepEqual(listItems('Sam, Paul,, Ada'), ['Sam', 'Paul', '', 'Ada']);
+  assert.deepEqual(listItems(' '), []);
+  // A thing moves from one list to another, or along its own.
+  const rows = readLines('T1: a, b, c\nT2: d', seating);
+  assert.equal(writeLines(moveItem(rows, 0, 1, 1, 1, 1, Infinity), seating), 'T1: a, c\nT2: d, b');
+  assert.equal(writeLines(moveItem(rows, 0, 1, 0, 0, 1, 3), seating), 'T1: b, c, a\nT2: d');
+  assert.equal(writeLines(moveItem(rows, 0, 1, 2, 0, 1, 0), seating), 'T1: c, a, b\nT2: d');
+  assert.equal(writeLines(moveItem(rows, 1, 1, 0, 0, 1, 0), seating), 'T1: d, a, b, c\nT2:');
+  assert.equal(moveItem(rows, 1, 1, 5, 0, 1, 0), rows);
+  // Regions: a tap in a lane's band names the lane (and a lane may stand empty); in the circles, the sets round the tap.
+  const lanes = specOf('lanes')!;
+  const d = lanes.layout!(lanes.example);
+  const bands = d.shapes.filter((s) => s.k === 'r' && !s.text);
+  assert.equal(bands.length, 4);
+  assert.equal(lanes.keyAt!(lanes.example, bands[1].x + 10, bands[1].y + 10), 'Sales');
+  assert.equal(lanes.keyAt!(lanes.example, bands[1].x + 10, d.h - 2), undefined);
+  assert.deepEqual(lanes.layout!('Sales:\nSales: Calls').shapes.map((s) => s.k), ['r', 't', 'o']);
+  assert.deepEqual(lanes.layout!('Sales:').shapes.map((s) => s.k), ['r', 't']);
+  const venn = specOf('venn')!;
+  const circles = venn.layout!(venn.example).shapes.filter((s) => s.k === 'e');
+  const mid = (...cs: typeof circles) => [cs.reduce((a, c) => a + c.x + c.w / 2, 0) / cs.length, cs.reduce((a, c) => a + c.y + c.h / 2, 0) / cs.length] as const;
+  assert.equal(venn.keyAt!(venn.example, ...mid(circles[0])), 'Fast');
+  assert.equal(venn.keyAt!(venn.example, ...mid(circles[0], circles[1])), 'Fast & Cheap');
+  assert.equal(venn.keyAt!(venn.example, ...mid(...circles)), 'Fast & Cheap & Good');
+  assert.equal(venn.keyAt!(venn.example, 1, 1), undefined);
+  // Place cards: one per seated person with their name and table, eight to a letter sheet, lines to cut along.
+  const { placeCards } = await import('../src/apps/seating.def.ts');
+  const cards = placeCards(specOf('seating')!.example);
+  assert.deepEqual(cards.map((p) => [p.w, p.h]), [[816, 1056], [816, 1056]]);
+  assert.equal(cards[0].svg.match(/stroke-dasharray="6 5"/g)!.length, 8);
+  assert.equal(cards[1].svg.match(/stroke-dasharray="6 5"/g)!.length, 7);
+  assert.ok(cards[0].svg.includes('>Sam</text>') && cards[0].svg.includes('>Top table</text>') && cards[1].svg.includes('>Leslie</text>'));
+  // The name is large and the table small; a picture on a person goes on their card.
+  const px = [...cards[0].svg.matchAll(/font-size="([\d.]+)"/g)].map((m) => +m[1]);
+  assert.ok(Math.max(...px) > 40 && Math.min(...px) < 30, String(px));
+  assert.ok(placeCards('Top: :star Ada')[0].svg.includes('stroke-linecap="round"') && placeCards('Top: :star Ada')[0].svg.includes('>Ada</text>'));
+  assert.equal(placeCards('').length, 1);
+  assert.ok(appOf('seating')!.downloads!.some((x) => x.ext === 'cards.pdf' && x.pages));
+  assert.equal(appOf('seating')!.downloads![0].ext, 'svg');
+});
+
 test('lines: every text app can be filled in as a form, and what is saved is the same text', async () => {
   const { readLines, writeLines, fieldsOf, kindsOf } = await import('../src/lib/lines.ts');
   const { specOf } = await import('../src/lib/diagram.ts');

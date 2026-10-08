@@ -10,7 +10,8 @@
  *
  * In a pattern, {Name} is a field; [..] is a part that may be left out;
  * everything else is written as it stands. A field may say what it holds:
- * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}, {Who:pick}.
+ * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}, {Who:pick},
+ * {Who:list} (things with commas between, each a thing of its own on a picture).
  */
 export interface Kind {
   name: string;
@@ -28,9 +29,11 @@ export interface Kind {
 
 export interface Field {
   name: string;
-  /** 'pick' offers the names already on the form (the first words of every other row). */
-  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick';
+  /** 'pick' offers the names already on the form (the first words of every other row); 'list' holds things with commas between. */
+  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick' | 'list';
   options: string[];
+  /** Inside a [..] part: the line reads without it. */
+  optional?: boolean;
 }
 
 export interface Row {
@@ -51,6 +54,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function compile(kind: Kind): Compiled {
   const fields: Field[] = [];
   let at = 0;
+  let inside = 0;
   const src = kind.is;
   // The pattern as a tree: text, fields, and bracketed parts that may be left out.
   const parts = (): Part[] => {
@@ -58,12 +62,15 @@ function compile(kind: Kind): Compiled {
     while (at < src.length && src[at] !== ']') {
       if (src[at] === '[') {
         at++;
+        inside++;
         out.push(parts());
+        inside--;
         at++;
       } else if (src[at] === '{') {
         const end = src.indexOf('}', at);
         const [name, type = 'text'] = src.slice(at + 1, end).split(':');
         const field: Field = { name, type: type.split('=')[0] as Field['type'], options: type.includes('=') ? type.split('=')[1].split(',') : [] };
+        if (inside) field.optional = true;
         fields.push(field);
         out.push(field);
         at = end + 1;
@@ -214,6 +221,27 @@ export function removeRow(rows: Row[], given: Kind[], i: number): Row[] {
   const { kinds } = kindsOf(given);
   const end = kinds[rows[i].kind].indent ? blockEnd(rows, given, i) : i + 1;
   return rows.flatMap((r, n) => (n === i ? [] : n > i && n < end ? [{ ...r, depth: Math.max(0, r.depth - 1) }] : [r]));
+}
+
+/** The things in a list field's value, one by one: "Ann, Bob" is two. (One being typed may be empty for the moment; a list of nothing is no things.) */
+export const listItems = (value: string): string[] => (value.trim() ? value.split(',').map((v) => v.trim()) : []);
+/** The things of a list as the field holds them. */
+export const joinItems = (items: string[]): string => items.map((v) => v.trim()).join(', ');
+
+/**
+ * Move thing `item` of row i's list field f into row j's list field g,
+ * before its `at`th thing (at the end, when past it). For a person dragged
+ * to another table, or after another person.
+ */
+export function moveItem(rows: Row[], i: number, f: number, item: number, j: number, g: number, at: number): Row[] {
+  const from = listItems(rows[i]?.values[f] ?? '');
+  const [thing] = from.splice(item, 1);
+  if (thing === undefined || !rows[j]) return rows;
+  const same = i === j && f === g;
+  const to = same ? from : listItems(rows[j].values[g]);
+  if (same && at > item) at--;
+  to.splice(Math.min(at, to.length), 0, thing);
+  return rows.map((r, n) => (n === i || n === j ? { ...r, values: r.values.map((v, m) => (n === j && m === g ? joinItems(to) : n === i && m === f ? joinItems(from) : v)) } : r));
 }
 
 /** The marks written after field n of a kind ("|", "..", ":"): a value holding one would read as two. */

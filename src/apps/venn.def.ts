@@ -6,13 +6,18 @@ import type { Shape } from '../lib/drawmodel.ts';
 
 const R = 130;
 
-function layout(text: string): Diagram {
+/** The lines as sets (at most three) and what each group of them holds. */
+function parse(text: string) {
   const groups = text
     .split('\n')
     .map((l) => /^\s*([^:]+):\s*(.*)$/.exec(l))
     .filter((m): m is RegExpExecArray => !!m)
     .map((m) => ({ names: m[1].split('&').map((n) => n.trim()).filter(Boolean), items: m[2].split(',').map((t) => t.trim()).filter(Boolean) }));
-  const sets = [...new Set(groups.filter((g) => g.names.length === 1).map((g) => g.names[0]))].slice(0, 3);
+  return { groups, sets: [...new Set(groups.filter((g) => g.names.length === 1).map((g) => g.names[0]))].slice(0, 3) };
+}
+
+function layout(text: string): Diagram {
+  const { groups, sets } = parse(text);
   if (!sets.length) return frame([]);
   // Circle centres: side by side, or a triangle for three.
   const centres: [number, number][] = sets.length === 1 ? [[R, R]] : sets.length === 2 ? [[R, R], [R * 2.15, R]] : [[R, R], [R * 2.15, R], [R * 1.575, R * 2]];
@@ -45,13 +50,23 @@ function layout(text: string): Diagram {
 
 export const spec = {
   form: [
-    { name: 'Shared', is: '{One set} & {Other sets}: {What they share}' },
-    { name: 'Set', is: '{Set}: {What is in it}' },
+    { name: 'Shared', is: '{One set} & {Other sets}: {What they share:list}' },
+    { name: 'Set', is: '{Set}: {What is in it:list}' },
     { name: 'Line', is: '{Text}' },
   ] as LineKind[],
   hint: 'A set per line: "Name: thing, thing". What two share: "A & B: thing". What all share: "A & B & C: thing".',
   example: 'Fast: sprinting, espresso\nCheap: instant noodles, walking\nGood: slow cooking\nFast & Cheap: fast food\nCheap & Good: home cooking\nFast & Good: a great takeaway\nFast & Cheap & Good: toast',
   layout,
+  // A tap inside the circles adds a thing to the sets round it ("Fast & Cheap"); a thing dropped there moves into them.
+  keyAt(text: string, x: number, y: number) {
+    const { sets } = parse(text);
+    const circles = layout(text).shapes.filter((s) => s.k === 'e');
+    const inside = sets.filter((_, i) => {
+      const c = circles[i];
+      return c && ((x - c.x - c.w / 2) / (c.w / 2)) ** 2 + ((y - c.y - c.h / 2) / (c.h / 2)) ** 2 <= 1;
+    });
+    return inside.length ? inside.join(' & ') : undefined;
+  },
 };
 
 export default defineDiagram({ id: 'venn', name: 'Venn', icon: 'venn', blurb: 'Two or three sets as overlapping circles, with what belongs where.' }, spec);

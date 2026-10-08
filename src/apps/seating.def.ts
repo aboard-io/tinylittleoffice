@@ -1,15 +1,26 @@
 /** Seating chart: tables, and who sits round each. */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
-import type { Shape } from '../lib/drawmodel.ts';
+import { iconOf, type Shape } from '../lib/drawmodel.ts';
+import { fitted } from '../lib/fold.ts';
+import { tile } from '../lib/print.ts';
+import type { Page } from '../kit/core.ts';
+
+/** The tables, each with its people in the order given. */
+function parse(text: string): { name: string; people: string[] }[] {
+  return text
+    .split('\n')
+    .map((l) => l.split(/:(.*)/).map((p) => p.trim()))
+    .filter((t) => t[0])
+    .map(([name, who = '']) => ({ name, people: who.split(',').map((p) => p.trim()).filter(Boolean) }));
+}
 
 function layout(text: string): Diagram {
-  const tables = text.split('\n').map((l) => l.split(/:(.*)/).map((p) => p.trim())).filter((t) => t[0]);
+  const tables = parse(text);
   const perRow = Math.max(1, Math.ceil(Math.sqrt(tables.length)));
   const shapes: Shape[] = [];
-  tables.forEach(([name, who = ''], t) => {
+  tables.forEach(({ name, people }, t) => {
     const [cx, cy] = [(t % perRow) * 330 + 165, Math.floor(t / perRow) * 290 + 145];
-    const people = who.split(',').map((p) => p.trim()).filter(Boolean);
     shapes.push(shape('e', cx - 60, cy - 46, 120, 92, name, 1, COLOR_CYCLE[t % COLOR_CYCLE.length]));
     // Round the table, clockwise from the top.
     people.forEach((p, i) => {
@@ -20,9 +31,20 @@ function layout(text: string): Diagram {
   return frame(shapes);
 }
 
+/** A place card per seated person: their name large, their table small, 4 by 2.5 inches; eight to a letter sheet, with lines to cut along. */
+export function placeCards(text: string): Page[] {
+  const cards = parse(text).flatMap(({ name, people }) =>
+    people.map((p) => {
+      const [icon, who] = iconOf(p);
+      return fitted({ icon, title: who, bullets: [iconOf(name)[1]] }, 384, 240, { cover: true });
+    }),
+  );
+  return tile(cards, 2, 4);
+}
+
 export const spec = {
   form: [
-    { name: 'Table', is: '{Table}: {People (commas between)}' },
+    { name: 'Table', is: '{Table}: {Who:list}' },
     { name: 'Line', is: '{Text}' },
   ] as LineKind[],
   hint: 'A table per line: "Table name: Ann, Bob, Cy". People are seated round it in the order given.',
@@ -30,4 +52,13 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'seating', name: 'Seating chart', icon: 'seating', blurb: 'Who sits where: tables, with their people round them.' }, spec);
+export default defineDiagram(
+  {
+    id: 'seating',
+    name: 'Seating chart',
+    icon: 'seating',
+    blurb: 'Who sits where: tables, with their people round them.',
+    downloads: [{ ext: 'cards.pdf', label: 'Place cards (PDF)', mime: 'application/pdf', pages: placeCards }],
+  },
+  spec,
+);

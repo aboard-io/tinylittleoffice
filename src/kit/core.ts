@@ -38,9 +38,11 @@ export interface Download {
   ext: string;
   label: string;
   mime: string;
-  build(body: string, ctx: DownloadContext): Uint8Array;
+  build?(body: string, ctx: DownloadContext): Uint8Array;
   /** Pictures this format needs drawn first: key -> SVG. */
   needs?(body: string): Record<string, { svg: string; w: number; h: number }>;
+  /** Instead of `build`: a PDF of these pages rather than of the document's own (a seating chart's place cards). The browser draws it. */
+  pages?(body: string): Page[];
 }
 
 export interface Shortcut {

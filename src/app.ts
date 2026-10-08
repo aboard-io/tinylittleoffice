@@ -107,7 +107,8 @@ export interface Route {
   ext: string;
 }
 
-const ROUTE = new RegExp(`^#/(?:v(\\d+)/)?(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9]+))?(?:/(.*))?$`);
+// (An extension may have a dot in it: "seating.cards.pdf" is the chart's place cards.)
+const ROUTE = new RegExp(`^#/(?:v(\\d+)/)?(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9.]+))?(?:/(.*))?$`);
 
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);

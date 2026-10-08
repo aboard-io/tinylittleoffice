@@ -4264,3 +4264,43 @@ sl-dialog.to-import {
 #short-dialog sl-radio-group {
   margin-top: 8px;
 }
+
+/* Diagrams: editing on the picture */
+/* The picture is drawn at a comfortable size, never blown up past it. */
+.diagram .pic > svg {
+  max-width: calc(var(--w, 100vw) * 1.4);
+}
+/* A line between two things is tapped for its words, and shows along its length that it is picked. */
+.diagram .pic > svg g.pick.line {
+  cursor: pointer;
+  touch-action: auto;
+}
+.diagram .pic > svg g.pick.line.on line,
+.diagram .pic > svg g.pick.line:focus-visible line {
+  filter: drop-shadow(0 0 3px var(--to-accent));
+}
+/* Half a join made: the next thing tapped is the line's other end. */
+.diagram.joining .pic > svg g.pick:not(.line) {
+  cursor: crosshair;
+}
+.diagram.joining .pic {
+  cursor: not-allowed;
+}
+/* On a phone: the picture keeps a size a finger can work (a wide one scrolls sideways rather than shrinking to a thread), the surround is trimmed, and the buttons under a thing are a finger wide. */
+@media (pointer: coarse) {
+  .diagram .pic > svg {
+    min-width: calc(var(--w, 0px) * 0.7);
+  }
+  .pic-edit-acts .to-icon-btn {
+    --size: 36px;
+    height: 34px;
+  }
+  .pic-edit-acts {
+    gap: 6px;
+  }
+}
+@media (max-width: 760px) {
+  .diagram > .pic {
+    padding: 12px 12px 48px;
+  }
+}
