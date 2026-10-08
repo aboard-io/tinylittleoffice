@@ -213,7 +213,7 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
       width += w;
       continue;
     }
-    for (const word of span.t.split(/(?<= )/)) {
+    for (const word of span.t.split(/(?<= )/).flatMap((wd) => breakWord(wd, max, px, bold || !!span.b))) {
       const w = textWidth(word, px, bold || !!span.b);
       if (width + textWidth(word.trimEnd(), px, bold || !!span.b) > max && width > 0) {
         lines.push([]);
@@ -227,6 +227,27 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
     }
   }
   return lines;
+}
+/**
+ * A word too long for a line (a web address, say) in pieces that fit: broken
+ * after a "/", ".", "-", "?", "&", "=" or "_" where one is near the end of a
+ * piece, else where the line runs out. A word that fits is itself.
+ */
+function breakWord(word: string, max: number, px: number, bold: boolean): string[] {
+  if (max <= 0 || textWidth(word.trimEnd(), px, bold) <= max) return [word];
+  const out: string[] = [];
+  let rest = word;
+  while (rest && textWidth(rest.trimEnd(), px, bold) > max) {
+    // As many characters as fit, then back to a good place to break, if one is in the last third.
+    let n = 1;
+    while (n < rest.length && textWidth(rest.slice(0, n + 1), px, bold) <= max) n++;
+    const soft = Math.max(...['/', '.', '-', '?', '&', '=', '_'].map((c) => rest.lastIndexOf(c, n - 1)));
+    const at = soft >= Math.ceil(n * 0.66) ? soft + 1 : n;
+    out.push(rest.slice(0, at));
+    rest = rest.slice(at);
+  }
+  if (rest) out.push(rest);
+  return out;
 }
 export const wrapText = (text: string, max: number, px: number, bold = false) => wrap([{ t: text }], max, px, bold).map((l) => l.map((s) => s.t).join('').trimEnd());
 

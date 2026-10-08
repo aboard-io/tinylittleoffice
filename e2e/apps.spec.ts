@@ -495,3 +495,22 @@ test('write: a heading stays bold: Mod+B and the Bold button do nothing there', 
   await expect(editor.locator('h1')).toHaveText('Big title');
   expect(await editor.locator('h1').innerHTML()).not.toContain('font-weight');
 });
+
+// Whether words stay inside their boxes is measured text: a real browser's.
+test('mind map: long ideas and web addresses wrap inside their boxes', async ({ page }) => {
+  const doc = 'Launch plan for the spring season\n  See https://tinylittleoffice.com/outline/#/v0/outline/YjZndjttGEoXv8xQE9mYWkGbswJsslCt7vMkuMF471iA for the list\n  Marketing\n    A really long idea that goes on and on about the press release and the social posts and the launch party';
+  await page.goto('/#/v0/mind');
+  await page.locator('to-mind').waitFor();
+  // (The document arrives as a change from the editor, as typing it would make.)
+  await page.evaluate((text) => {
+    const el = document.querySelector('to-mind') as unknown as { value: string; dispatchEvent(e: Event): boolean };
+    el.dispatchEvent(new CustomEvent('docchange', { detail: text, bubbles: true, composed: true }));
+  }, doc);
+  const svg = page.locator('to-mind .pic svg').first();
+  await expect(svg.locator('text', { hasText: 'outline/#/v0/' })).toHaveCount(1);
+  const outside = await svg.evaluate((s) => {
+    const boxes = [...s.querySelectorAll('rect')].map((r) => r.getBBox()).filter((b) => b.width > 20 && b.height > 20);
+    return [...s.querySelectorAll('text')].filter((t) => t.textContent!.trim()).map((t) => ({ t: t.textContent, b: (t as SVGGraphicsElement).getBBox() })).filter(({ b }) => !boxes.some((r) => b.x >= r.x - 1 && b.x + b.width <= r.x + r.width + 1 && b.y >= r.y - 1 && b.y + b.height <= r.y + r.height + 1)).map((o) => o.t);
+  });
+  expect(outside).toEqual([]);
+});
