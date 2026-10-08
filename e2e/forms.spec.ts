@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { shot, reopen } from './helpers';
 
@@ -58,60 +59,38 @@ test('a menu is made by filling in a form; what is saved is the text', async ({ 
 });
 
 test('forms: outlines indent, pictures are picked, choices are chosen', async ({ page }) => {
-  // An org chart: people under people.
+  // A diagram is worked on its picture (its list is retired): two people joined by a dotted line, one given a picture.
+  const docOf = (app: string) => page.evaluate((a) => (document.querySelector('to-' + a) as unknown as { doc: string }).doc, app);
   await page.goto('/#/org');
-  const org = page.locator('to-org to-lines');
-  await org.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Person' }).click();
-  await page.getByRole('textbox', { name: 'Name, row 1' }).fill('Ada');
-  await page.getByRole('textbox', { name: 'Role, row 1' }).fill('CEO');
-  await page.getByRole('textbox', { name: 'Role, row 1' }).press('Enter');
-  await page.keyboard.type('Ben');
-  // Alt and the arrows work the outline: in, and down a level under Ada.
-  await page.keyboard.press('Alt+ArrowRight');
-  await page.keyboard.press('Enter');
-  await page.keyboard.type('Eve');
-  await page.keyboard.press('Enter');
-  await page.keyboard.type('Cy');
-  await page.keyboard.press('Alt+ArrowUp');
-  await expect(page.getByRole('textbox', { name: 'Name, row 3' })).toHaveValue('Cy');
-  await expect(page.getByRole('textbox', { name: 'Name, row 3' })).toBeFocused();
-  await page.keyboard.press('Alt+ArrowRight');
-  // Cy is under Ben now; moving Ben takes Cy along.
-  await org.getByRole('button', { name: 'Move row 2 down' }).click();
-  await expect(page.getByRole('textbox', { name: 'Name, row 2' })).toHaveValue('Eve');
-  await expect(page.getByRole('textbox', { name: 'Name, row 4' })).toHaveValue('Cy');
-  // An empty row goes with Backspace.
-  await page.getByRole('textbox', { name: 'Name, row 4' }).press('Enter');
-  await expect(org.locator('.lf-row')).toHaveCount(5);
-  await page.keyboard.press('Backspace');
-  await expect(org.locator('.lf-row')).toHaveCount(4);
-  // A dotted line between two of them.
-  await org.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Dotted line' }).click();
-  await page.keyboard.type('Cy');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('Eve');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('advises');
-  await expect(page.locator('to-org .pic > svg line[stroke-dasharray="2 3"]')).toHaveCount(1);
-  await expect(page.locator('to-org .pic > svg')).toContainText('advises');
-  await shot(page, 'form-org');
-  await org.getByRole('button', { name: /^Picture, row 1/ }).click();
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  await expect(page.locator('to-org to-lines')).toHaveCount(0);
+  const chart = page.locator('to-org .pic > svg');
+  await chart.getByRole('button', { name: /^Cy Lund/ }).click();
+  await page.getByRole('button', { name: 'Join it to another thing' }).click();
+  await chart.getByRole('button', { name: /^Di Shah/ }).click();
+  await expect.poll(() => docOf('org')).toContain('Cy Lund .. Di Shah');
+  await expect(chart.locator('line[stroke-dasharray="2 3"]')).toHaveCount(2);
+  await shot(page, 'org-join');
+  await chart.getByRole('button', { name: /^Ben Okoro/ }).click();
+  await page.getByRole('button', { name: 'Give it a picture' }).click();
   await page.locator('sl-dialog.to-icons sl-input input').fill('crown');
   await page.locator('sl-dialog.to-icons').getByRole('button', { name: 'crown', exact: true }).click();
-  const drawn = page.locator('to-org .pic > svg');
-  await expect(drawn).toContainText('Ben');
-  await expect(drawn.locator('g[stroke-linecap="round"]')).toHaveCount(1);
-  await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(':crown Ada | CEO\n  Eve\n  Ben\n    Cy\nCy .. Eve: advises');
-  await page.getByRole('button', { name: 'Edit as a form' }).click();
+  await expect.poll(() => docOf('org')).toContain(':crown Ben Okoro | Engineering');
 
-  // Seating: a table, then its people as rows.
+  // Seating: each guest at a table is a thing of their own, renamed where they sit; the place cards download.
   await page.goto('/#/seating');
-  const seating = page.locator('to-seating to-lines');
-  await seating.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Table' }).click();
-  await page.getByRole('textbox', { name: 'Table, row 1' }).fill('Head table');
-  await expect(page.locator('to-seating .pic > svg')).toContainText('Head table');
-  await expect.poll(() => page.url()).toMatch(/#\/v2\/seating\/[WYZR]/);
+  await page.getByRole('button', { name: 'Start from an example' }).click();
+  const seats = page.locator('to-seating .pic > svg');
+  await seats.getByRole('button', { name: /^Ken\b/ }).click();
+  const guest = page.locator('.pic-edit input');
+  await expect(guest).toHaveCount(1);
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Ken Thompson');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => docOf('seating')).toContain('Table 2: Linus, Barbara, Ken Thompson, Dennis, Edsger');
+  await page.getByRole('button', { name: 'Download' }).click();
+  const [cards] = await Promise.all([page.waitForEvent('download'), page.getByRole('menuitem', { name: /Place cards/ }).click()]);
+  expect(readFileSync(await cards.path()).subarray(0, 5).toString()).toBe('%PDF-');
 
   // The model: sliders and flows from boxes, and the diagram follows.
   await page.goto('/#/flow');
@@ -170,7 +149,8 @@ test('the picture is worked directly: tap a box and type; Enter for the next', a
   await pic.getByRole('button', { name: /^Flo Reyes/ }).click();
   await box.getByRole('button', { name: 'Take it away' }).click();
   await expect(pic).not.toContainText('Flo Reyes');
-  await expect(pic.getByRole('button', { name: /Okoro|Lund|Shah|Marsh|Diaz|Pine/ })).toHaveCount(6);
+  // (People only: the dotted line between two of them is a button too.)
+  await expect(pic.getByRole('button', { name: /^(?!Line from).*(Okoro|Lund|Shah|Marsh|Diaz|Pine)/ })).toHaveCount(6);
   // Backspace on empty words takes one away too.
   await pic.getByRole('button', { name: /^Cy Lund/ }).click();
   await page.keyboard.press('Control+a');
@@ -239,8 +219,8 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
   await expect(pic).toContainText('Platform engineering');
   await page.keyboard.press('Escape');
   await expect(box).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: 'Name, row 2' })).toHaveValue('Ben Okoro-Smith');
-  await expect(page.getByRole('textbox', { name: 'Role, row 2' })).toHaveValue('Platform engineering');
+  // What is saved is the line, name and role.
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-org') as unknown as { doc: string }).doc)).toContain('Ben Okoro-Smith | Platform engineering');
   // One tap does the same.
   await pic.getByRole('button', { name: /^Eve Marsh/ }).click();
   await expect(page.locator('.pic-edit input').first()).toHaveValue('Eve Marsh');
@@ -268,16 +248,17 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await expect(page.locator('to-org to-lines')).toHaveCount(0);
   await page.getByRole('button', { name: 'Start from an example' }).click();
   const pic = page.locator('to-org .pic > svg');
-  await expect(pic.locator('g.pick')).toHaveCount(6);
+  await expect(pic.locator('g.pick:not(.line)')).toHaveCount(6);
   // A tap on empty space adds a person, with the box open to name them.
+  // (The top left is empty, and on a phone, where a wide picture scrolls sideways, it is on the screen.)
   const box = await pic.boundingBox();
-  await page.mouse.click(box!.x + box!.width - 12, box!.y + box!.height - 12);
+  await page.mouse.click(box!.x + 12, box!.y + 12);
   await expect(page.locator('.pic-edit input').first()).toBeFocused();
   await page.keyboard.type('Gus Pine');
   await page.keyboard.press('Enter');
   await page.keyboard.press('Escape');
   await expect(pic).toContainText('Gus Pine');
-  await expect(pic.locator('g.pick')).toHaveCount(7);
+  await expect(pic.locator('g.pick:not(.line)')).toHaveCount(7);
   // Dragged onto Eve, Gus reports to her.
   const gus = pic.getByRole('button', { name: /^Gus Pine/ });
   const eve = pic.getByRole('button', { name: /^Eve Marsh/ });
@@ -289,11 +270,14 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await page.keyboard.press('Control+Shift+t');
   await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/Eve Marsh \| Design\n    Gus Pine/);
   await page.keyboard.press('Control+Shift+t');
-  // The list is there when wanted.
+  // A picture of shapes has no list beside it; a database, rows at heart, has one when wanted.
+  await expect(page.getByRole('button', { name: 'List', exact: true })).toHaveCount(0);
+  await page.goto('/#/db');
+  await page.getByRole('button', { name: 'Start from an example' }).click();
   await page.getByRole('button', { name: 'List', exact: true }).click();
-  await expect(page.locator('to-org to-lines')).toHaveCount(1);
+  await expect(page.locator('to-db to-lines')).toHaveCount(1);
   await page.getByRole('button', { name: 'Hide the list' }).click();
-  await expect(page.locator('to-org to-lines')).toHaveCount(0);
+  await expect(page.locator('to-db to-lines')).toHaveCount(0);
 
   // A floor plan's rooms keep a place: a drag moves one, a tap puts a room there.
   await page.goto('/#/floor');
@@ -311,11 +295,12 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
 
 test('adding on the picture: a draft that becomes real when typed into, and goes if not', async ({ page }) => {
   const doc = (app: string) => page.evaluate((a) => (document.querySelector('to-' + a) as any).doc, app);
-  for (const [app, words, expect_] of [
-    ['mind', 'Idea', /\n    Fresh thing\n/],
-    ['net', 'To', /API > Fresh thing/],
-    ['lanes', 'What they do', /Customer: Fresh thing/],
-    ['timeline', 'What happened', /1843: Fresh thing/],
+  // (Which thing: the second drawn, or by name where a lane's name or a date is a thing too.)
+  for (const [app, words, expect_, which] of [
+    ['mind', 'Idea', /\n    Fresh thing\n/, null],
+    ['net', 'To', /API > Fresh thing/, null],
+    ['lanes', 'What they do', /Customer: Fresh thing/, /^Places order/],
+    ['timeline', 'What happened', /1843: Fresh thing/, /^1843 \| Lovelace/],
   ] as const) {
     await page.goto(`/#/${app}`);
     await page.evaluate(() => localStorage.removeItem('tinyoffice.edit'));
@@ -323,18 +308,18 @@ test('adding on the picture: a draft that becomes real when typed into, and goes
     await page.getByRole('button', { name: 'Start from an example' }).click();
     const pic = page.locator(`to-${app} .pic > svg`);
     const before = await doc(app);
-    await pic.locator('g.pick').nth(1).click();
+    await (which ? pic.getByRole('button', { name: which }) : pic.locator('g.pick:not(.line)').nth(1)).click();
     await page.keyboard.press('Enter');
     // The draft is drawn and its box is open, but nothing is written yet.
     const box = page.locator('.pic-edit input').first();
-    await expect(box).toBeFocused();
+    await expect(box, app).toBeFocused();
     await expect(box).toHaveAttribute('aria-label', new RegExp(`^${words}, row`));
     expect(await doc(app)).toBe(before);
     // Abandoned, nothing changes; typed into, it is real.
     await page.keyboard.press('Escape');
     await expect(page.locator('.pic-edit')).toHaveCount(0);
     expect(await doc(app)).toBe(before);
-    await pic.locator('g.pick').nth(1).click();
+    await (which ? pic.getByRole('button', { name: which }) : pic.locator('g.pick:not(.line)').nth(1)).click();
     await page.keyboard.press('Enter');
     await expect(box).toBeFocused();
     await page.keyboard.type('Fresh thing');
@@ -344,7 +329,7 @@ test('adding on the picture: a draft that becomes real when typed into, and goes
     await page.keyboard.press('Escape');
     await expect(page.locator('.pic-edit')).toHaveCount(0);
     // A tap on empty space while typing only closes the box.
-    await pic.locator('g.pick').filter({ hasText: /\S/ }).first().click();
+    await pic.locator('g.pick:not(.line)').filter({ hasText: /\S/ }).first().click();
     await expect(page.locator('.pic-edit')).toHaveCount(1);
     const b = (await pic.boundingBox())!;
     await page.mouse.click(b.x + b.width - 6, b.y + b.height - 6);

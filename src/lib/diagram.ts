@@ -106,6 +106,15 @@ export interface DiagramSpec {
   form?: LineKind[];
   /** Which fields of which kind hold a thing's place, and the px per unit: then a thing can be dragged where it goes. */
   moves?: { kind: number; x: number; y: number; unit: number };
+  /**
+   * Where the picture has regions (a lane, the circles of a Venn): the key
+   * of the line a tap at x, y (in the picture's own units) belongs to, so a
+   * tap there adds to it and a thing dragged there moves into it. The key
+   * is what is written before the colon ("Sales", "Fast & Cheap").
+   */
+  keyAt?(text: string, x: number, y: number): string | undefined;
+  /** The document is rows at heart (a database's tables): offer it as a list to fill in, beside the picture. */
+  list?: boolean;
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
   /**
@@ -141,17 +150,19 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
     const d = spec.layout(body);
     return shapesPage(d.shapes, d.w, d.h, upTo);
   };
+  // The picture as SVG, then anything of the app's own (a seating chart's place cards).
+  const { downloads = [], ...rest } = app;
   return defineApp({
     title: () => '',
     outline: (body) => body.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 12),
     view: (body, opts = {}) => [page(body, opts.step)],
     // On a slide a diagram appears a shape per click, in the order it was written.
     steps: (body) => spec.layout(body).shapes.length,
-    downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }],
+    downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }, ...downloads],
     shortcuts: OUTLINE_KEYS,
     // A diagram is a kind of drawing, unless it says where it belongs.
     ...(app.group === undefined && app.under === undefined ? { group: 'Design', under: 'draw' } : {}),
-    ...app,
+    ...rest,
   });
 }
 

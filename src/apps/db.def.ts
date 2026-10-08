@@ -65,6 +65,8 @@ export const spec = {
   example: 'teams: id, name\n1, Platform\n2, Design\n\npeople: id, name, team_id > teams\n1, Ann, 1\n2, Bo, 2\n3, Cy, 1\n\n? select teams.name, count(*) as people from people join teams on team_id = teams.id group by teams.name order by people desc',
   layout,
   aside,
+  // Rows at heart: the list beside the schema is where the data is typed.
+  list: true,
 };
 
 export default defineDiagram(
