@@ -98,6 +98,8 @@ export interface ToolOpts {
   keepFocus?: boolean;
   /** A link rather than an action. */
   href?: string;
+  /** With href: '_blank' opens it in a new tab. */
+  target?: string;
   cls?: string;
 }
 
@@ -106,9 +108,9 @@ export interface ToolOpts {
  * else: screen readers, the tip, and tests.
  */
 export function tool(label: string, glyph: keyof typeof UI, onClick: (e: Event) => void, opts: ToolOpts = {}): TemplateResult {
-  const { disabled = false, pressed, text = false, size = 14, key, keepFocus = false, href, cls = '' } = opts;
+  const { disabled = false, pressed, text = false, size = 14, key, keepFocus = false, href, target, cls = '' } = opts;
   const tip = key ? `${label} (${keyLabel(key)})` : label;
-  return html`<sl-button class="${text ? '' : 'icon'} ${cls}" size="small" data-tip=${text && !key ? nothing : tip} href=${href ?? nothing} aria-label=${label} aria-pressed=${pressed === undefined ? nothing : String(pressed)} ?disabled=${disabled} @mousedown=${keepFocus ? keepFocusDown : nothing} @click=${onClick}>${icon(UI[glyph], size)}${text ? html` ${label}` : html`<span class="sr-only">${label}</span>`}</sl-button>`;
+  return html`<sl-button class="${text ? '' : 'icon'} ${cls}" size="small" data-tip=${text && !key ? nothing : tip} href=${href ?? nothing} target=${href && target ? target : nothing} aria-label=${label} aria-pressed=${pressed === undefined ? nothing : String(pressed)} ?disabled=${disabled} @mousedown=${keepFocus ? keepFocusDown : nothing} @click=${onClick}>${icon(UI[glyph], size)}${text ? html` ${label}` : html`<span class="sr-only">${label}</span>`}</sl-button>`;
 }
 
 /**

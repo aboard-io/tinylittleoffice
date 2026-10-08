@@ -51,7 +51,7 @@ function catchDownloads() {
 /** The browser as the e2e suite sets it up: things kept on the device, the diagram apps as text, links open for editing. */
 export function prefs(more: Record<string, string> = {}) {
   localStorage.clear();
-  const all = { 'tinyoffice.keep': '1', 'tinyoffice.edit': 'text', 'tinyoffice.open': 'edit', ...more };
+  const all = { 'tinyoffice.keep': '1', 'tinyoffice.edit': 'text', ...more };
   for (const [k, v] of Object.entries(all)) localStorage.setItem(k, v);
 }
 

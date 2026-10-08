@@ -55,7 +55,6 @@ test('the library: documents are kept on the device, in folders, once asked', as
   keep().click();
   await until(() => expect(keep().textContent!.trim()).toBe('Saved'));
   // (The suite's own preference, cleared above with the rest: links open for editing.)
-  localStorage.setItem('tinyoffice.open', 'edit');
   await visit('#/v0/write');
   await typeDoc('Notes from the quay');
   type(box(document, 'Title'), 'Quay notes');
@@ -142,11 +141,13 @@ test('the menu finds an app by name', async () => {
   expect(shown()).toHaveLength(7);
   type(find, 'poll');
   await settleAll();
+  // Enter follows the first app found, which (like every app in the menu) opens in a new tab.
+  const followed: HTMLAnchorElement[] = [];
+  const keep = (e: Event) => (e.preventDefault(), followed.push((e.target as Element).closest('a')!));
+  drawer.addEventListener('click', keep);
   press(find, 'Enter');
-  await settleAll();
-  window.dispatchEvent(new HashChangeEvent('hashchange'));
-  await settleAll();
-  expect(document.querySelector('to-poll')).toBeTruthy();
+  drawer.removeEventListener('click', keep);
+  expect(followed.map((a) => [a.getAttribute('href'), a.target])).toEqual([['#/v0/poll', '_blank']]);
 });
 
 test('keeping documents is opt in, and off again erases them', async () => {

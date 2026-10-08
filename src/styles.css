@@ -3253,46 +3253,6 @@ to-lines {
   }
 }
 
-/* A document opened by its link: shown as itself, with Edit a button away */
-.to-view.page {
-  display: block;
-  width: 100%;
-  height: calc(100dvh - var(--to-header-h) - 96px);
-  min-height: 480px;
-  border: 0;
-  background: var(--to-paper);
-}
-.to-view.prose {
-  max-width: 44rem;
-  margin: 0 auto;
-  padding: 28px 20px 48px;
-  font-size: 17px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.to-view.prose svg {
-  max-width: 100%;
-  height: auto;
-}
-.to-view.pages {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
-  background: var(--to-surface-2);
-}
-.to-view.pages .sheet > svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-width: 960px;
-  max-height: 86vh;
-  margin: 0 auto;
-  background: var(--to-paper);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.14);
-}
-.to-title[readonly] {
-  pointer-events: none;
-}
 
 /* Filling in a form wants more room than typing a line does */
 @media (min-width: 761px) {
@@ -3507,7 +3467,6 @@ sl-menu-item.sub::part(base) {
   .pixel-grid button,
   .to-swatches button,
   .cal-chip,
-  .to-view.pages .sheet > svg,
   .diagram .pic > svg,
   .deck-thumb svg,
   .sheet-chart svg {
@@ -3582,7 +3541,6 @@ mark {
   background: #a16207;
 }
 .write-page .ic,
-.to-view.prose .ic,
 .ic > svg {
   display: inline-block;
   width: 1.15em;

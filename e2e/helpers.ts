@@ -13,15 +13,17 @@ export async function reopen(page: Page) {
   await page.goto(url);
 }
 
-/** Navigate to an app through the hamburger menu. */
+/** Navigate to an app through the hamburger menu (it opens in a new tab; this goes there in the same one). */
 export async function navTo(page: Page, name: string) {
   await page.locator('.to-burger').click();
   // The app may be in a cluster folded shut: open it first.
   const link = page.locator('#nav-drawer .to-drawer-nav a', { hasText: name });
   const cluster = page.locator('#nav-drawer details.to-cluster', { has: link });
   if ((await cluster.count()) && !(await cluster.getAttribute('open'))) await cluster.locator('summary').click();
-  await link.click();
-  await expect(page.locator('#nav-drawer')).not.toHaveAttribute('open');
+  // An app chosen from the menu opens in a new tab; the test follows it here.
+  await expect(link).toHaveAttribute('target', '_blank');
+  const href = await link.getAttribute('href');
+  await page.goto(new URL(href!, page.url()).href);
 }
 
 /** Pick an option in an sl-select by value. */

@@ -25,7 +25,6 @@ import { installLinkGuard } from './widgets/link-guard.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import './apps/editors.ts';
-import { fontsForPictures } from './kit/browser.ts';
 import { History, LINK, LINK_VERSION, apps, appOf, docHtml, extOf, fmtDate, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { REFRESH, download, formatsOf, picture, saveFile, withFonts } from './kit/browser.ts';
@@ -136,8 +135,6 @@ export class ToApp extends LitElement {
   private history = new History();
   /** Opened from a "show" link: the editor is presenting, until the viewer asks to edit. */
   @state() private presenting = false;
-  /** A link was opened: it is shown as the document it is, with editing a button away. */
-  @state() private viewing = false;
   /** What is typed into the menu's search box: only apps whose names match are listed. */
   @state() private find = '';
   /** How big everything is drawn, as a factor; remembered. Browser zoom works too; this is for a tap. */
@@ -163,8 +160,6 @@ export class ToApp extends LitElement {
     this.shut = open ? this.shut.filter((g) => g !== group) : [...new Set([...this.shut, group])];
     store.set('tinyoffice.nav', JSON.stringify(this.shut));
   }
-  /** The fonts, as CSS, for pages shown in a frame of their own. */
-  @state() private faces = '';
   /** Opened from an "embed" link: just the document, for showing inside another page. */
   @state() private embedded = false;
   @state() private embedPage = 0;
@@ -275,7 +270,6 @@ export class ToApp extends LitElement {
     // A different link is a different document: its history starts here.
     this.history.clear();
     this.presenting = false;
-    this.viewing = false;
     this.embedded = ext === 'embed';
     this.version = version;
     this.pendingExt = ext;
@@ -289,7 +283,6 @@ export class ToApp extends LitElement {
     }
     this.sealed = '';
     this.env = this.decode(payload);
-    this.arrive(ext);
     this.remember();
     void this.privacy.check(this.env, this.app);
     this.downloadPending();
@@ -321,18 +314,6 @@ export class ToApp extends LitElement {
     this.version = URL_VERSION;
     history.replaceState(null, '', routeHash(this.app, payload) + (payload ? '' : '/'));
     this.remember();
-  }
-
-  /**
-   * A document has arrived by its link. It opens as a document to read (a
-   * deck opens presenting); the editor is one button away. (Whoever sets
-   * "tinyoffice.open" to "edit" in this browser's storage always gets the editor.)
-   */
-  private arrive(ext: string) {
-    const editor = store.get('tinyoffice.open') === 'edit';
-    if (editor || ext || this.embedded || !this.env.body || !this.def) return;
-    // A link opens as the document to read, never presenting unless the link itself says so (".show").
-    this.viewing = true;
   }
 
   /** The switch: keep things on this device, or leave nothing. Keeping is the choice remembered; private writes nothing. */
@@ -554,7 +535,6 @@ export class ToApp extends LitElement {
     this.env = e.detail;
     if (wasSealed) {
       this.sealed = '';
-      this.arrive(this.pendingExt);
       this.downloadPending();
     }
     void this.writeUrl();
@@ -660,7 +640,7 @@ export class ToApp extends LitElement {
                         </sl-menu>
                       </sl-dropdown>
                     </div>`}
-                ${tool(`New ${current.name}`, 'plus', () => {}, { href: routeHash(current.id), cls: 'to-new', size: 16 })}
+                ${tool(`New ${current.name}, in a new tab`, 'plus', () => {}, { href: routeHash(current.id), target: '_blank', cls: 'to-new', size: 16 })}
               `
             : nothing}
         </div>
@@ -674,7 +654,7 @@ export class ToApp extends LitElement {
             const want = this.find.trim().toLowerCase();
             const apps = want ? g.apps.filter((a) => a.name.toLowerCase().includes(want) || g.group.toLowerCase().includes(want)) : g.apps;
             if (!apps.length) return nothing;
-            const links = apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`);
+            const links = apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} target="_blank" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`);
             // The first few apps stand on their own; the rest are clusters that fold, open where you are.
             if (!g.group) return links;
             const here = apps.some((a) => a.id === this.app);
@@ -730,11 +710,10 @@ export class ToApp extends LitElement {
     return html`<sl-button slot="trigger" class="icon to-trust" size="small" aria-label="Privacy" data-tip=${tip} variant=${variant} outline>${icon(glyph, 16)}<span class="sr-only">Privacy</span></sl-button>`;
   }
 
-  /** In the header beside the document: Edit (when reading), undo and redo. */
+  /** In the header beside the document: undo and redo. */
   private renderDocHead() {
     return html`<span class="to-spacer"></span>
-        ${this.viewing ? html`<sl-button class="to-edit" size="small" variant="primary" @click=${() => (this.viewing = false)}>${icon(UI.pen, 14)} Edit</sl-button>` : nothing}
-        ${this.sealed || this.viewing
+        ${this.sealed
           ? nothing
           : html`<sl-button-group label="Undo and redo">
               ${tool('Undo', 'undo', () => this.step(true), { disabled: !this.history.canUndo, key: 'Mod+Z' })}
@@ -747,7 +726,7 @@ export class ToApp extends LitElement {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
     return html`<div class="to-panel-head">
       <a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
-      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} ?readonly=${this.viewing} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
+      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
       <span class="meta">
         ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
         ${this.privacy.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
@@ -763,7 +742,7 @@ export class ToApp extends LitElement {
     return html`<section class="to-panel" aria-label=${current.name}>
       <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
       ${this.renderTitleLine(current)}
-      <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.viewing ? this.renderView() : this.renderApp()}</div>
+      <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
     </section>`;
   }
 
@@ -772,18 +751,6 @@ export class ToApp extends LitElement {
     this.presenting = false;
     const { app, payload } = parseHash(location.hash);
     if (app) history.replaceState(null, '', routeHash(app, payload));
-  }
-
-  /** The document as something to read: its own page if it is one, its words if it is prose, its pages otherwise. */
-  private renderView() {
-    const def = this.def!;
-    const ctx = { created: this.env.created, base: this.root };
-    if (def.document) {
-      if (!this.faces) void fontsForPictures().then((faces) => (this.faces = faces || ' '));
-      return html`<iframe class="to-view page" title=${this.docTitle} sandbox="allow-scripts allow-popups allow-forms" srcdoc=${def.document(this.env.body, ctx).replace('<head>', `<head><style>${this.faces}</style>`)}></iframe>`;
-    }
-    if (def.prose && def.html) return html`<article class="to-view prose">${unsafeHTML(def.html(this.env.body, ctx))}</article>`;
-    return html`<div class="to-view pages">${def.view(this.env.body).map((p, i, all) => html`<div class="sheet">${unsafeHTML(pageSvg(p, `role="img" aria-label="${xml(this.docTitle)}${all.length > 1 ? `, page ${i + 1}` : ''}"`))}</div>`)}</div>`;
   }
 
   private renderApp() {
