@@ -4,6 +4,7 @@ import '../../src/widgets/meter.ts';
 import '../../src/kit/tip.ts';
 import '../../src/app.ts';
 import type { ToApp } from '../../src/app.ts';
+import { ReactiveElement } from 'lit';
 import { decodeEnvelope, type Envelope } from '../../src/lib/envelope.ts';
 import { isSealed } from '../../src/lib/privacy.ts';
 
@@ -23,8 +24,18 @@ export async function open(hash: string, path = '/') {
   if (location.hash === hash || (!hash && !location.hash)) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: location.href, newURL: location.href }));
   else location.hash = hash;
   await new Promise((r) => setTimeout(r, 2));
-  await idle();
+  await arrived();
   return app;
+}
+
+/** Wait for the page to show what the link holds: its editor drawn (unless it waits for a password), then everything settled. */
+async function arrived() {
+  await idle();
+  const m = /^#\/v\d+\/([a-z]+)(\.[a-z.]+)?(?:\/(E?))?/.exec(location.hash);
+  if (m && m[2] !== '.embed' && m[3] !== 'E') {
+    await until(() => (document.querySelector(`to-${m[1]}`) as (Element & { hasUpdated?: boolean }) | null)?.hasUpdated, `the ${m[1]} editor`);
+    await idle();
+  }
 }
 
 /** Open a link in a fresh page: nothing kept from before but what the device keeps. */
@@ -34,21 +45,31 @@ export async function fresh(hash: string, path = '/') {
   history.replaceState(null, '', path + hash);
   app = document.createElement('to-app');
   document.body.append(app);
-  await idle();
+  await arrived();
   return app;
 }
 
 /** Open the link the page is at now in a fresh page: the URL is the document, so this is the persistence test. */
 export const reopen = () => fresh(location.hash, location.pathname);
 
-/** Let everything on the page finish drawing: the shell, whatever is inside it, and a turn or two of the clock. */
+// Every element (the shell's, an editor's, Shoelace's) asks to be drawn through ReactiveElement's requestUpdate:
+// noted here, so waiting for the page to settle need not look through the whole page for what is still to draw.
+const drawing = new Set<ReactiveElement>();
+const requestUpdate = ReactiveElement.prototype.requestUpdate;
+ReactiveElement.prototype.requestUpdate = function (this: ReactiveElement, ...args: Parameters<ReactiveElement['requestUpdate']>) {
+  drawing.add(this);
+  return requestUpdate.apply(this, args);
+};
+
+/** Let everything on the page finish drawing (drawing one thing may give another something to draw), and a turn or two of the clock. */
 export async function idle(turns = 2) {
   for (let i = 0; i < turns; i++) {
-    // Every element with a drawing still to do, until none has (drawing one may give another something to draw).
-    for (let k = 0; k < 10; k++) {
-      const pending = [...document.querySelectorAll<HTMLElement & { isUpdatePending?: boolean; updateComplete?: Promise<unknown> }>('*')].filter((e) => e.isUpdatePending);
-      if (!pending.length) break;
-      await Promise.all(pending.map((e) => e.updateComplete));
+    for (let k = 0; k < 20; k++) {
+      // (One not on the page yet draws when it is put there: it waits here till then.)
+      const now = [...drawing].filter((e) => e.isConnected);
+      if (!now.length) break;
+      for (const e of now) drawing.delete(e);
+      await Promise.all(now.map((e) => e.updateComplete));
     }
     await new Promise((r) => setTimeout(r, 0));
   }

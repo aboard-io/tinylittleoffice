@@ -5,6 +5,8 @@ import { mount } from './helpers.ts';
 import { open, reopen, idle, until, link, $, $$, text, tap, fill, typeKeys, key, clip, focused, button, choose, menu, write, cell, downloads } from './helpers-shell.ts';
 import { parseGrid, typesOf, chartOf } from '../../src/lib/formula.ts';
 import { parseDoc } from '../../src/lib/richtext.ts';
+// Deck and Draw, in a file of their own; one file to vitest, so everything is loaded, and warmed, once.
+import './suite-deck.ts';
 
 test('the launcher lists every app', async () => {
   await open('');

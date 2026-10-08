@@ -170,3 +170,27 @@ test('a download view waits for the password', async () => {
   expect(downloads[0].name).toBe('todo.md');
   expect(await downloads[0].blob.text()).toContain('- [ ] secret');
 });
+
+test('a locked document still being sealed does not take the link back from the next one', async () => {
+  // Sealing an edit takes a moment (it is encrypted); going to another document in that moment must not
+  // leave the address bar holding the locked one while the new one is on screen.
+  await open('#/v0/todo');
+  await add('first');
+  await menu('Privacy', /Password/);
+  fill(slBox('New password', dialog()), 'pw');
+  await idle();
+  await press(/Lock$/, dialog());
+  await until(() => location.hash.startsWith('#/v0/todo/E'), 'sealed');
+  await done();
+  const box = $('sl-input.todo-new');
+  fill(box, 'second');
+  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  // A link followed at once: the shell hears of it while the edit is still being encrypted.
+  history.pushState(null, '', '#/v0/deck');
+  // (pushState's own event is the one env-shell.ts drops; this one stands for the browser's, heard at once.)
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  await new Promise((r) => setTimeout(r, 50));
+  await idle();
+  expect(location.hash).toBe('#/v0/deck');
+  expect(document.querySelector('to-deck')).toBeTruthy();
+});
