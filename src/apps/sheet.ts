@@ -15,6 +15,7 @@ import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, chartOf, evaluateGrid, 
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet } from './sheet.def.ts';
 import { linkify, parseDoc } from '../lib/richtext.ts';
+import { templateLine, templateTool } from '../widgets/template-picker.ts';
 
 const MIN_COL = 48;
 /** A reference fits wherever the formula is waiting for a value. */
@@ -82,6 +83,12 @@ export class ToSheet extends LitElement {
     this.lastEmitted = serializeGrid(grid, chart, types);
     this.dispatchEvent(new CustomEvent('docchange', { detail: this.lastEmitted, bubbles: true, composed: true }));
   }
+
+  /** A template becomes the sheet, chart and column types included: one change, one undo. */
+  private useTemplate = (t: { body: string }) => {
+    this.save(parseGrid(t.body), chartOf(t.body), typesOf(t.body));
+    this.focusCell(0, 0);
+  };
 
   /** The selected block: one cell unless a far corner has been set. */
   private get range(): Range {
@@ -469,7 +476,9 @@ export class ToSheet extends LitElement {
           ${tool('Fit to page', 'fit', () => (this.widths = null), { pressed: !w })}
           ${tool('Show all text', 'expand', () => this.showAll())}
         </sl-button-group>
+        ${this.lastEmitted ? '' : templateTool('sheet', this.useTemplate)}
       </div>
+      ${this.lastEmitted ? '' : templateLine('sheet', this.useTemplate)}
       <div class="sheet-scroll">
         <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${this.onCopy} @cut=${this.onCopy} @paste=${this.onPaste} style=${w ? `width: calc(var(--sheet-row-w) + ${w.reduce((a, b) => a + b, 0)}px)` : ''}>
           <colgroup>

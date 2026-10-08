@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import '../src/apps/index.ts';
 import '../src/lib/pageedit.ts';
 import { apps, pageScripts } from '../src/kit/core.ts';
+import { specOf } from '../src/lib/diagram.ts';
 import { EDIT_SCRIPT, editData } from '../src/lib/pageedit.ts';
 
 const SAMPLE = `# Title
@@ -21,10 +22,13 @@ test('every script a page carries is a registered, fixed one, so the CSP can all
   for (const def of apps()) {
     if (!def.document) continue;
     for (const body of ['', SAMPLE, def.read?.(SAMPLE) ?? SAMPLE]) {
-      for (const [attrs, text] of scriptsOf(def.document(body, { created: null }))) {
-        if (/type="application\/json"/.test(attrs)) continue;
-        assert.ok(known.has(text), `${def.id}: a script that is not registered: ${text.slice(0, 80)}`);
-        seen++;
+      // The page as it is read, and as it is edited in place (the invoice's sums).
+      for (const html of [def.document(body, { created: null }), specOf(def.id)?.page?.(body, true) ?? '']) {
+        for (const [attrs, text] of scriptsOf(html)) {
+          if (/type="application\/json"/.test(attrs)) continue;
+          assert.ok(known.has(text), `${def.id}: a script that is not registered: ${text.slice(0, 80)}`);
+          seen++;
+        }
       }
     }
   }
@@ -37,8 +41,10 @@ test('every script a page carries is a registered, fixed one, so the CSP can all
 test('no page puts document text inside a script, where it could run', () => {
   for (const def of apps()) {
     if (!def.document) continue;
-    const html = def.document('# </script><script>alert(1)</script>\nx | 1', { created: null });
-    for (const [attrs, text] of scriptsOf(html)) if (/type="application\/json"/.test(attrs)) assert.ok(!text.includes('</script'), def.id);
-    assert.ok(!html.includes('<script>alert(1)</script>'), def.id);
+    const doc = '# </script><script>alert(1)</script>\nx | 1';
+    for (const html of [def.document(doc, { created: null }), specOf(def.id)?.page?.(doc, true) ?? '']) {
+      for (const [attrs, text] of scriptsOf(html)) if (/type="application\/json"/.test(attrs)) assert.ok(!text.includes('</script'), def.id);
+      assert.ok(!html.includes('<script>alert(1)</script>'), def.id);
+    }
   }
 });

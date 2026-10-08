@@ -4,6 +4,9 @@
  * started from a template whose words are the questions a good plan
  * answers. Being pages, a plan prints, reads as a deck or an outline, and
  * takes Markdown in and out.
+ *
+ * The plans are now templates in Write (lib/templates.ts), so these apps
+ * are hidden: not offered anywhere, but every link to one still opens.
  */
 import { defineFold, fitted, LETTER, type Format } from './fold.ts';
 import type { AppDef } from '../kit/core.ts';
@@ -31,6 +34,6 @@ export function definePlan(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'>, 
     template: planTemplate(title, subtitle, sections),
     how: () => 'Download the PDF and print it on letter paper, one page a sheet.',
   };
-  return defineFold({ group: 'Plan', under: app.id === 'bizplan' ? undefined : 'bizplan', ...app }, f);
+  return defineFold({ group: 'Plan', under: app.id === 'bizplan' ? undefined : 'bizplan', hidden: true, ...app }, f);
 }
 

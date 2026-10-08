@@ -9,12 +9,11 @@ you have copied the file.
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
 | Drive | The documents saved on this device, in folders (nested with a slash): search inside them, move, rename, download the lot as a zip, or blow it all away. Private by default; the switch in the header turns it on. |
-| Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, charts. |
+| Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, charts. Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT. |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
-| Write | A one-page rich text editor: headings, bold, italic, lists.           |
-| Deck  | Up to ten slides with a headline, bullets and an icon. Press Present. |
+| Write | A one-page rich text editor: headings, bold, italic, lists. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
+| Deck  | Slides with a headline, bullets and an icon. Press Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
-| Business plan, Marketing plan, Go-to-market plan | Letter pages, a section each, started from the questions a good plan answers; print, present, outline, Markdown in and out. |
 | Calculator | Plain, scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
 | Calendar | Labelled spans of time on a month grid, shown in any time zone.    |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
@@ -39,6 +38,15 @@ you have copied the file.
 | Games | Word search, Adventure, Scavenger hunt, Trivia, Fill in the blanks, Spinner, Flashcards. |
 | Together | Poll, Secret Santa (a private link per person), Split the bill. |
 | Personal | Log. |
+
+An empty Write, Sheet or Deck offers "Start from a template…" (a button in
+the toolbar, a line on the blank page): a dialog of templates, each drawn
+small by the app itself, and one undo brings the blank page back. The
+templates are plain text in each app's format, in `src/lib/templates.ts`.
+Business plan, Marketing plan and Go-to-market plan were apps of their own
+(letter pages, a section each); they are Write templates now. Links to the
+old apps still open; the apps are just no longer offered (`hidden` on their
+definitions).
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
@@ -194,7 +202,12 @@ Every format is plain text, chosen so deflate has something to chew on.
   span whose start is a day count from 2020-01-01: a floating civil date, the
   same in every country. `t<start>,<minutes>,<label>` is a timed span whose
   start is a minute count from 2020-01-01T00:00Z: one absolute instant, shown
-  in whichever zone the viewer picks. Numbers are base 36. Time zone maths
+  in whichever zone the viewer picks. Numbers are base 36. A star and a
+  letter after the length make a span repeat: `*d` daily, `*w` weekly, `*m`
+  monthly, `*y` yearly, for ever; `*w9` nine times; `*w<2pi` until that day
+  (counted like a start). It goes before the colour (`d1,2*w.g,Offsite`), so
+  a reader without repeats still sees the first time, in colour. A timed span
+  repeats at the same time of day in the document's zone. Time zone maths
   comes from the browser's `Intl` support, so no zone database is bundled.
 
 ## Styling: one stylesheet
@@ -291,8 +304,12 @@ The parameters go after `#`, never `?`: see the next section.
 A document is a link, so a program makes one by making a string. The site serves its own API for that, no install:
 
 ```js
-import { link, parse, lint, compare, evaluateSheet, runModel } from 'https://tinylittleoffice.com/api.js';
+import { link, parse, lint, compare, evaluateSheet, runModel, templates } from 'https://tinylittleoffice.com/api.js';
 ```
+
+`templates('write')` (or `'sheet'`, `'deck'`) is the list a person is offered
+on an empty document: each a name, a line on what it is for, and its body in
+the app's format, ready for `link()` or to be filled in by a program.
 
 `src/api.ts` is the source, built to `dist/api.js` (and `api.d.ts`) with the site. The same build feeds the `tinyoffice` command line in `packages/doc` (`npm run build:api`; it also renders a link to PDF/PNG/PPTX/XLSX headlessly), and `packages/python` is a port of the codec with the same bytes, its dictionaries generated from the TypeScript (`npm run py-dicts`). Neither is published to a registry: the site is where the code lives, and `/llms.txt` is where programs learn the formats.
 
@@ -447,6 +464,7 @@ src/apps/<id>.def.ts  each app's definition: title, picture, downloads
 src/apps/<id>.ts      each app's editor
 src/lib/<id>model.ts  document formats (formula.ts, richtext.ts for sheet and write)
 src/lib/chart.ts      charts from a table
+src/lib/templates.ts  what Write, Sheet and Deck can start from (widgets/template-picker.ts offers them)
 src/lib/codec.ts      text <-> URL payload (deflate + dictionary + base64url)
 src/lib/envelope.ts   creation time + signature wrapper around a body
 src/lib/sign.ts       WebCrypto keys, signing, verification

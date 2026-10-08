@@ -10,7 +10,9 @@
  *
  * In a pattern, {Name} is a field; [..] is a part that may be left out;
  * everything else is written as it stands. A field may say what it holds:
- * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}, {Who:pick}.
+ * {Text:long}, {Day:date}, {Picture:icon}, {Colour:choice=red,green}, {Who:pick},
+ * {Price:number} (one word with a digit in it: then "Thanks, pay soon" is not
+ * a thing with a price).
  */
 export interface Kind {
   name: string;
@@ -29,7 +31,7 @@ export interface Kind {
 export interface Field {
   name: string;
   /** 'pick' offers the names already on the form (the first words of every other row). */
-  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick';
+  type: 'text' | 'long' | 'date' | 'icon' | 'choice' | 'pick' | 'number';
   options: string[];
 }
 
@@ -79,7 +81,7 @@ function compile(kind: Kind): Compiled {
   const tree = parts();
   // Spaces in the pattern are loose in what is read: needed beside a word ("4 x 3", "0 to 9"), optional beside a mark ("a|b").
   const lit = (s: string) => s.replace(/(\s+)|([^\s]+)/g, (_, space, word, i: number) => (word ? esc(word) : /[\w-]/.test(s[i - 1] ?? '') || /[\w-]/.test(s[i + space.length] ?? '') ? '\\s+' : '\\s*'));
-  const re = (list: Part[]): string => list.map((p) => (typeof p === 'string' ? lit(p) : Array.isArray(p) ? `(?:${re(p)})?` : p.type === 'icon' ? '([a-z0-9-]+)' : p.type === 'choice' ? `(${p.options.map(esc).join('|')})` : '(.*?)')).join('');
+  const re = (list: Part[]): string => list.map((p) => (typeof p === 'string' ? lit(p) : Array.isArray(p) ? `(?:${re(p)})?` : p.type === 'icon' ? '([a-z0-9-]+)' : p.type === 'number' ? '([^\\s,|]*\\d[^\\s,|]*)' : p.type === 'choice' ? `(${p.options.map(esc).join('|')})` : '(.*?)')).join('');
   const has = (list: Part[], values: string[]): boolean => list.some((p) => (typeof p === 'string' ? false : Array.isArray(p) ? has(p, values) : !!values[fields.indexOf(p)]?.trim()));
   const write = (list: Part[], values: string[]): string => list.map((p) => (typeof p === 'string' ? p : Array.isArray(p) ? (has(p, values) ? write(p, values) : '') : (values[fields.indexOf(p)] ?? '').replace(/\n/g, ' ').trim())).join('');
   return { fields, re: new RegExp(`^${re(tree)}$`, 'i'), write: (values) => write(tree, values).trimEnd() };

@@ -153,7 +153,7 @@ https://tinylittleoffice.com/todo/#title=Trip+prep&doc=-+%402027-03-01+Renew+pas
 
 ### cal: a calendar
 
-One span per line: a date and a label (`2027-03-01 Offsite`), a range (`2027-03-01 to 2027-03-03 Offsite`), or a time (`2027-03-01 09:00-10:30 Call`). An optional first line `@Europe/London` gives the time zone for times.
+One span per line: a date and a label (`2027-03-01 Offsite`), a range (`2027-03-01 to 2027-03-03 Offsite`), or a time (`2027-03-01 09:00-10:30 Call`). An optional first line `@Europe/London` gives the time zone for times. A span repeats when its label ends with `every day`, `every week`, `every month` or `every year`, for ever unless that ends with `12 times` or `until 2027-06-01` (`2027-03-01 09:00-09:15 Standup every week, 12 times`).
 
 https://tinylittleoffice.com/cal/#title=March&doc=2027-03-01+to+2027-03-03+Offsite%0A2027-03-08+Launch+day%0A2027-03-10+09%3A00-10%3A30+Retro
 
@@ -184,11 +184,13 @@ https://tinylittleoffice.com/anim/#title=Lift+off&doc=%21o%0At%2C4%2C20%2C20%2C4
 
 https://tinylittleoffice.com/calc/#title=Our+mortgage&doc=%21mortgage%0Aprice+%3D+400000%0Adeposit+%3D+80000%0Arate+%3D+6.5%0Ayears+%3D+30
 
-## Plans
+## Plans, and templates
 
-`bizplan`, `mktplan` and `gtm` are letter pages, one a section, like a deck's slides: chunks separated by a blank line, the first `::t` title page, then a heading and lines. Open one empty and "Start from the template" gives the sections with the questions each should answer; or write the sections yourself. A plan prints, opens as a deck, and takes Markdown (`## Section` + lines).
+A business plan, a marketing plan and a go-to-market plan are `write` documents: `# Business plan`, then `## Section` headings (Summary, The problem, The product, The market, How it makes money, Going to market, The team, The numbers, Risks, The ask; a marketing plan has Goals, Audience, Positioning and message, Channels, Calendar, Budget, Measures; a go-to-market plan The customer, The offer, Pricing and packaging, The route to them, The launch, Enablement, Measures) with lines under each. Write the sections yourself, or start from the template: `templates('write')` in the API gives each plan with the questions a section should answer, in italics, to be written over; in the editor an empty Write offers "Start from a template…". Sheet and Deck have templates too (a budget, an expense log, an invoice, a tracker, a comparison, loans compared; a talk, a status update, a pitch, a lesson, a kickoff): `templates('sheet')`, `templates('deck')`.
 
-https://tinylittleoffice.com/bizplan/#title=Harbor+Coffee&doc=%3A%3At%0ABusiness+plan%0AHarbor+Coffee+%C2%B7+March+2027%0A%0ASummary%0AA+roastery+on+the+quay%2C+selling+to+the+town+and+by+post.%0A%0AThe+problem%0AGood+coffee+here+is+an+hour+away.
+https://tinylittleoffice.com/write/#title=Harbor+Coffee&doc=%23+Business+plan%0A_Harbor+Coffee+%C2%B7+March+2027_%0A%23%23+Summary%0AA+roastery+on+the+quay%2C+selling+to+the+town+and+by+post.%0A%23%23+The+problem%0AGood+coffee+here+is+an+hour+away.
+
+(`bizplan`, `mktplan` and `gtm` were apps of their own, letter pages a section each; links to them still open, but prefer `write`.)
 
 ## Things to print
 
@@ -269,10 +271,11 @@ link({ app: 'sheet', title: 'Sales', doc: '!bar\nQuarter\tSales\nQ1\t120\nQ2\t18
 The site serves its own API as a module, for programs and agents; nothing to install:
 
 ```js
-import { link, linkFromMarkdown, parse, lint, compare, evaluateSheet, runModel, searchIcons } from 'https://tinylittleoffice.com/api.js';
+import { link, linkFromMarkdown, parse, lint, compare, evaluateSheet, runModel, searchIcons, templates } from 'https://tinylittleoffice.com/api.js';
 const url = link('sheet', 'Item\tCost\nRent\t1200', { title: 'Budget', by: 'planner-agent' });
 parse(url).markdown;                 // the document as Markdown
 await lint('deck', body);            // unknown icons, a layout that does not exist, a link too long for a QR code
+templates('deck');                   // what an empty deck can start from: { id, name, blurb, body } each, the body in the deck's format
 ```
 
 It runs in Node 20+ (`import('https://tinylittleoffice.com/api.js')` needs `--experimental-network-imports` before Node 22; or save the file), in Deno and Bun, and in a browser. Types are at `/api.d.ts`. `signed`/`verified` sign and check a link; `sealed`/`open` lock one under a password. `tinyoffice.js` is the smaller link-maker for pages. Two links compare on the site at `#/compare/<app>/<payload>/<app>/<payload>`. The source, a command-line tool (`tinyoffice render <link> --out x.pdf`) and a Python port of the codec are in the repository, github.com/ftrain/tinyoffice, under `packages/`.

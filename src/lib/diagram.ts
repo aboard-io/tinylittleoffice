@@ -90,6 +90,12 @@ export function toDrawing(d: Diagram): string {
   return serializeDrawing(d.shapes.map((s) => (isLink(s.k) ? s : { ...s, x: g(s.x), y: g(s.y), w: Math.max(GRID, g(s.w)), h: Math.max(GRID, g(s.h)), ...(k < 0.75 ? { z: 1 as TextSize } : {}) })));
 }
 
+/** How a page app is asked for its page. */
+export interface PageOpts {
+  edit?: boolean;
+  base?: string;
+}
+
 export interface DiagramSpec {
   /** One line on how to write it. */
   hint: string;
@@ -102,8 +108,13 @@ export interface DiagramSpec {
   moves?: { kind: number; x: number; y: number; unit: number };
   /** For print apps: the text as sheets of paper. */
   sheets?(text: string): Page[];
-  /** For page apps: the text as a whole web page, shown beside it as it is typed. `base` is the site's address, for links out of a downloaded file. */
-  page?(text: string, base?: string): string;
+  /**
+   * For page apps: the text as a whole web page, shown beside it as it is
+   * typed. `base` is the site's address, for links out of a downloaded
+   * file. Asked for `edit`, the page as it is typed into in place: it may
+   * mark its fields itself, with hints where they are empty (lib/pageedit.ts).
+   */
+  page?(text: string, opts?: PageOpts): string;
   /** Anything to show under the picture, as HTML (query results, say). */
   aside?(text: string): string;
 }
@@ -149,7 +160,7 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
  * result is a web page (a site, a store, an FAQ). The page is what the
  * .html download is; the same editor as the diagram apps shows it live.
  */
-export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string): string }): AppDef {
+export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string, opts?: PageOpts): string }): AppDef {
   registerSpec(app.id, spec);
   // Its lines, as words: headings without their marks, an embedded document by its name.
   const lines = (body: string) =>
@@ -166,7 +177,7 @@ export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> &
     view: (body, opts = {}) => [listPage(title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
     // On a slide, its lines arrive one at a time.
     steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
-    document: (body, ctx) => spec.page(body, ctx.base),
+    document: (body, ctx) => spec.page(body, { base: ctx.base }),
     shortcuts: OUTLINE_KEYS,
     ...app,
   });

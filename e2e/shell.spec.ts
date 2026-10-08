@@ -20,7 +20,8 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await page.locator('.to-burger').click();
   const drawer = page.locator('#nav-drawer');
   await expect(drawer).toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(55);
+  // (The three plans are templates in Write now: their links open, but they are not listed.)
+  await expect(drawer.locator('.to-drawer-nav a')).toHaveCount(51);
   // Grouped, with the kinds of drawing listed under Draw.
   await expect(drawer.locator('.to-drawer-nav h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
   // Sheet, Write and Deck stand on their own at the top; the clusters fold, and stay as left.
@@ -28,7 +29,7 @@ test('the hamburger holds every app and the theme', async ({ page }) => {
   await expect(drawer.locator('details.to-cluster[open] h2')).toHaveText(['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track']);
   await drawer.locator('details.to-cluster', { hasText: 'Play' }).locator('summary').click();
   await expect(drawer.locator('details.to-cluster', { hasText: 'Play' })).not.toHaveAttribute('open');
-  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Marketing plan', 'Go-to-market plan', 'Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Floor plan', 'Seating chart', 'Family tree', 'Timeline', 'Booklet', 'Brochure', 'Comic', 'Résumé', 'Name badges']);
+  await expect(drawer.locator('.to-drawer-nav a.sub')).toHaveText(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Floor plan', 'Seating chart', 'Family tree', 'Timeline', 'Booklet', 'Brochure', 'Comic', 'Résumé', 'Name badges']);
   await expect(drawer.locator('a[aria-current="page"]')).toContainText('Sheet');
   await expect(drawer.locator('.to-theme')).toContainText('Theme');
   await shot(page, 'drawer');
@@ -240,7 +241,7 @@ test('download views: the link itself hands over a file', async ({ page }, testI
     ['gantt', 'pdf', '1jk,5,1e,Design\n>1jk,2,2s,Sketch', 'gantt.pdf', (b) => expect(b.subarray(0, 5).toString()).toBe('%PDF-')],
     ['board', 'png', '#To do\nWrite the brief\n#Done', 'board.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
     ['trip', 'png', '3xa8g,-fuyo,Lisbon\n40000,0,B', 'lisbon-to-b.png', (b) => expect(b.subarray(1, 4).toString()).toBe('PNG')],
-    ['todo', 'html', '- one\nx two', 'todo.html', (b) => { expect(b.toString()).toContain('<input type="checkbox" disabled checked> two'); expect(b.toString()).toContain('<meta property="og:image" content="http://localhost:4173/og/todo.png">'); }],
+    ['todo', 'html', '- one\nx two', 'todo.html', (b) => { expect(b.toString()).toContain('<input type="checkbox" disabled checked> two'); expect(b.toString()).toMatch(/<meta property="og:image" content="http:\/\/localhost:\d+\/og\/todo\.png">/); }],
   ];
   for (const [app, ext, body, name, check] of docs) {
     await page.goto('about:blank');

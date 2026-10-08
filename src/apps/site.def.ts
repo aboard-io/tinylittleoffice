@@ -1,6 +1,6 @@
 /** Site: a website of little pages from a few lines of text, downloaded as one HTML file. */
 import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage } from '../lib/diagram.ts';
+import { definePage, htmlPage, type PageOpts } from '../lib/diagram.ts';
 import { pageScript, pageSvg, slug, xml } from '../kit/core.ts';
 import { refPage, resolve } from '../kit/embed.ts';
 import { ICON_SVG } from '../lib/icons.ts';
@@ -54,7 +54,7 @@ window.addEventListener('hashchange',show);show();
 const prose = (t: string) => linkify(t).map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t))).join('');
 const icon = (name: string, size: number, cls = '') => (ICON_SVG[name] ? `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : '');
 
-function page(text: string, base = ''): string {
+function page(text: string, { base = '' }: PageOpts = {}): string {
   const site = parseSite(text);
   const name = site.name || 'My site';
   const multi = site.pages.length > 1;

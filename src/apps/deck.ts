@@ -12,6 +12,7 @@ import type { SlSelect } from '../kit.ts';
 import { PagesElement, blankPage } from './pages.ts';
 import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition, deckEndsWithQr } from '../lib/deckmodel.ts';
 import { SH, SW, closingSlide, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
+import { templateLine, templateTool } from '../widgets/template-picker.ts';
 
 interface Deck {
   slides: Slide[];
@@ -97,6 +98,12 @@ export class ToDeck extends PagesElement<Deck> {
     this.save(slides);
     this.cur = Math.min(this.cur, slides.length - 1);
   }
+
+  /** A template becomes the deck, from its first slide: one change, one undo. */
+  private useTemplate = (t: { body: string }) => {
+    this.commit(this.parse(t.body));
+    this.cur = 0;
+  };
 
   private move(d: number) {
     const j = this.cur + d;
@@ -212,6 +219,8 @@ export class ToDeck extends PagesElement<Deck> {
     const kindName = subDef ? (subDef.id === 'sheet' ? 'Table' : subDef.id === 'trip' ? 'Map' : subDef.id === 'draw' ? 'Drawing' : subDef.name) : LAYOUTS.find((l) => l.id === kind)!.name;
     const tint = ICON_COLORS[this.doc.color]?.hex ?? ICON_COLORS[''].hex;
     const fit = `--title:${L.titlePx};--body:${L.bodyPx};--icon:${tint}`;
+    // An untouched new deck is written as nothing: that is when a template is offered.
+    const blank = this.serialize(this.doc) === '';
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Slides">
         <sl-button-group label="Slides">
@@ -234,8 +243,10 @@ export class ToDeck extends PagesElement<Deck> {
           ${TRANSITIONS.map((t) => html`<sl-option value=${t.id || 'fade'}>${t.name}</sl-option>`)}
         </sl-select>
         <span class="to-hint deck-count">${n} ${n === 1 ? 'slide' : 'slides'}</span>
+        ${blank ? templateTool('deck', this.useTemplate) : nothing}
         <sl-button size="small" variant="primary" @click=${() => this.show(this.cur)}>${icon(UI.play, 14)} Present</sl-button>
       </div>
+      ${blank ? templateLine('deck', this.useTemplate) : nothing}
       <div class="deck-layout">
         ${this.rail(
           'deck',

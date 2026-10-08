@@ -4264,3 +4264,106 @@ sl-dialog.to-import {
 #short-dialog sl-radio-group {
   margin-top: 8px;
 }
+
+/* Templates */
+/* The quiet line on a blank document: where the first words would go, one way to start. */
+.to-template-line {
+  margin: 0;
+  padding: 10px 14px 0;
+  font-size: 12.5px;
+  color: var(--to-ink-3);
+}
+to-write > .to-template-line {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 6vw, 56px) 0;
+}
+.to-template-line button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--to-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* The picker: a card a template, its first page small above its name. */
+sl-dialog.to-templates {
+  --width: min(96vw, 760px);
+}
+.to-templates-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.to-template {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.to-template:hover,
+.to-template:focus-visible {
+  border-color: var(--to-accent);
+  box-shadow: var(--to-shadow);
+}
+.to-template .pic {
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--to-border);
+  border-radius: 4px;
+  background: var(--to-paper);
+}
+.to-template .pic svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.to-template b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.to-template small {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--to-ink-3);
+/* Calendar: modal and repeats */
+sl-dialog.cal-dialog {
+  --width: min(96vw, 560px);
+}
+.cal-dialog .cal-editor {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.cal-dialog::part(footer) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cal-dialog .cal-repeat {
+  width: 170px;
+}
+.cal-dialog .cal-times {
+  width: 80px;
+}
+.cal-chip .cal-rep {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 3px;
+  opacity: 0.75;
+}
+.cal-agenda .rep {
+  color: var(--to-ink-3);
+  font-size: 12.5px;
+}
