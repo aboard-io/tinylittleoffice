@@ -4500,3 +4500,42 @@ sl-dialog.cal-dialog {
   font-size: 18px;
   font-weight: 700;
 }
+
+/* A link in text being written: where it goes, under it, with Open, Edit and Remove. */
+to-write,
+to-rich {
+  position: relative;
+}
+.link-bubble {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: min(420px, calc(100% - 8px));
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--to-border);
+  border-radius: 8px;
+  background: var(--to-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  font-size: 13px;
+}
+.link-bubble .lb-href {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--to-accent);
+  margin-right: 4px;
+}
+.to-link-dialog .ld-words {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+.to-link-dialog sl-input + sl-input {
+  margin-top: 12px;
+}
+.to-link-dialog sl-input[data-invalid]::part(form-control-help-text) {
+  color: var(--to-danger);
+}

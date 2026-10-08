@@ -7,7 +7,7 @@
  */
 import { appOf, type AppDef } from '../kit/core.ts';
 import { linkToRef, makeRef, resolve } from '../kit/embed.ts';
-import { parseDoc, parseInline, serializeDoc, serializeInline, type Block, type Run } from './richtext.ts';
+import { linkable, linkTarget, parseDoc, parseInline, serializeDoc, serializeInline, type Block, type Run } from './richtext.ts';
 import { parseDeck, serializeDeck, type Slide } from './deckmodel.ts';
 import { parseGrid, serializeGrid, chartOf, typesOf } from './formula.ts';
 import { parseTodos, serializeTodos } from './todomodel.ts';
@@ -29,6 +29,19 @@ import { FIELDS, MODES, evaluate, inputs, parseCalc, serializeCalc, shown, withD
 
 /** Runs as Markdown: **bold**, *italic*, ~~strike~~, ==highlight==, <u>underline</u>, :icon:. */
 export function runsToMd(runs: Run[]): string {
+  // Linked words: "[words](address)", their marks inside.
+  if (runs.some((r) => r.href)) {
+    let out = '';
+    for (let i = 0; i < runs.length; ) {
+      const href = runs[i].href;
+      let j = i + 1;
+      while (j < runs.length && runs[j].href === href) j++;
+      const part = runs.slice(i, j).map(({ href: _, ...r }) => r);
+      out += href ? `[${runsToMd(part)}](${linkTarget(href)})` : runsToMd(part);
+      i = j;
+    }
+    return out;
+  }
   return runs
     .map((r) => {
       if (r.ic) return `:${r.ic}:`;
@@ -47,7 +60,8 @@ export function runsToMd(runs: Run[]): string {
 export function mdToRuns(line: string): Run[] {
   const text = line
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) => (t.trim() === u.trim() ? u : `${t} ${u}`))
+    // A link to somewhere a link may go stays one; any other keeps its words and address side by side.
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => (t.trim() === u.trim() ? u : linkable(u) ? `[${t}](${linkTarget(u)})` : `${t} ${u}`))
     .replace(/`([^`]+)`/g, '$1')
     .replace(/<u>(.*?)<\/u>/g, '^$1^')
     .replace(/~~(.+?)~~/g, '~$1~')

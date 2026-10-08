@@ -65,7 +65,7 @@ const GLOBAL_KEYS: Shortcut[] = [
   { keys: 'Mod+Z', does: 'Undo' },
   { keys: 'Mod+Shift+Z / Mod+Y', does: 'Redo' },
   { keys: 'Mod+/', does: 'Show these shortcuts' },
-  { keys: 'Mod+K', does: 'Open the menu of apps' },
+  { keys: 'Mod+K', does: 'Open the menu of apps (in text: link the selected words)' },
   { keys: 'Mod+S', does: 'Download (the first format in the Download menu)' },
   { keys: 'Mod+P', does: 'Download as PDF' },
   { keys: 'Mod+Shift+C', does: 'Copy the link' },
@@ -201,7 +201,8 @@ export class ToApp extends LitElement {
 
   /** Shortcuts that work in every app. Listed in GLOBAL_KEYS; shown by Mod+/. */
   private onGlobalKey = (e: KeyboardEvent) => {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    // A key a text box has used (Mod+K there makes a link) is not the page's as well.
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.defaultPrevented) return;
     const k = e.key.toLowerCase();
     // A document being edited inside another has its own undo (see editRef).
     if ((k === 'z' || k === 'y') && this.def && !this.sealed && !document.querySelector('sl-dialog.to-sub[open]')) {

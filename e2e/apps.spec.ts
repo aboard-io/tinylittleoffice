@@ -173,7 +173,10 @@ test('write: a pasted web address is a link you can click', async ({ page }) => 
   await expect(link).toHaveAttribute('href', 'https://example.com/report?year=2026');
   // It is highlighted; a click asks first, showing where it goes, and Go opens it in a new tab.
   expect(await link.evaluate((el) => getComputedStyle(el).textDecorationLine)).toBe('underline');
+  // A plain click puts the caret in it and shows where it goes; Mod+click follows it, asking first.
   await link.click();
+  await expect(page.locator('.link-bubble .lb-href')).toHaveText('https://example.com/report?year=2026');
+  await link.click({ modifiers: ['ControlOrMeta'] });
   await expect(page.locator('.to-link-guard .lg-url')).toHaveText('https://example.com/report?year=2026');
   const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: /Go/ }).click()]);
   expect(popup.url()).toBe('https://example.com/report?year=2026');
@@ -430,4 +433,49 @@ test('draw: the pen makes any shape, corner by corner; Motion morphs its corners
   await page.mouse.move(c.x + c.width / 2 + 60, c.y + c.height / 2 + 40, { steps: 6 });
   await page.mouse.up();
   await expect.poll(() => decodeEnvelope(page.url().split('/').pop()!, 'anim').body).toMatch(/@0\t.*,p\d+:\d+\/.*;n,.*,p/);
+});
+
+// Pasting formatted text goes through the browser's own insert command, and the copy is the browser's own.
+test('write: text copied from one document pastes into another with its headings, bullets, marks and links; Mod+K links', async ({ page, browserName }) => {
+  await page.goto('/#/v0/write');
+  const editor = page.getByRole('textbox', { name: 'Document' });
+  await editor.evaluate((el) => {
+    el.innerHTML = '<h1>Plan</h1><p>Some <b>bold</b> and <a href="https://a.co/r">a report</a>.</p><ul><li>One</li><li>Two</li></ul>';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  // Copied from it as a person would: everything selected, then the browser's copy.
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+A');
+  const copied = await editor.evaluate((el) => {
+    const data = new DataTransfer();
+    el.dispatchEvent(new ClipboardEvent('copy', { clipboardData: data, bubbles: true, cancelable: true }));
+    const sel = getSelection()!;
+    const holder = document.createElement('div');
+    holder.append(sel.getRangeAt(0).cloneContents());
+    return { html: data.getData('text/html') || holder.innerHTML, text: sel.toString() };
+  });
+  // Into a new document.
+  await page.goto('/#/v0/write');
+  await page.reload();
+  const fresh = page.getByRole('textbox', { name: 'Document' });
+  await fresh.click();
+  await fresh.evaluate((el, c) => {
+    const data = new DataTransfer();
+    data.setData('text/html', c.html);
+    data.setData('text/plain', c.text);
+    el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  }, copied);
+  await expect(fresh.locator('h1')).toHaveText('Plan');
+  await expect(fresh.locator('b')).toHaveText('bold');
+  await expect(fresh.locator('a')).toHaveAttribute('href', 'https://a.co/r');
+  await expect(fresh.locator('ul li')).toHaveCount(2);
+  // Mod+K links the selected words.
+  await fresh.locator('li').first().click();
+  await page.keyboard.press('End');
+  await page.keyboard.press('Shift+Home');
+  await page.keyboard.press('ControlOrMeta+K');
+  await page.locator('.to-link-dialog .ld-url input').fill('example.com');
+  await page.keyboard.press('Enter');
+  await expect(fresh.locator('li a')).toHaveAttribute('href', 'https://example.com');
+  expect(browserName).toBe('chromium');
 });

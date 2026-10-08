@@ -314,7 +314,7 @@ export class ToOutline extends DocElement<Item[]> {
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Outline">
         <sl-button-group label="Text">
-          ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
+          ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
         </sl-button-group>
         <sl-button-group label="Folding">
           ${tool('Unfold all', 'down', () => this.foldAll(false), { text: true })}${tool('Fold all', 'right', () => this.foldAll(true), { text: true })}

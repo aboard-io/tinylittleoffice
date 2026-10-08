@@ -179,6 +179,8 @@ export interface Span {
   s?: boolean;
   /** A web address: drawn as a link. */
   link?: boolean;
+  /** Where linked words go: drawn as a link to there. */
+  href?: string;
   /** Highlighted: yellow behind the words. */
   h?: boolean;
   /** An icon in the line, by name (t is then ''). */
@@ -219,7 +221,7 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
       }
       const line = lines[lines.length - 1];
       const last = line[line.length - 1];
-      if (last && !last.ic && last.b === span.b && last.i === span.i && last.u === span.u && last.s === span.s && last.h === span.h && last.link === span.link) last.t += word;
+      if (last && !last.ic && last.b === span.b && last.i === span.i && last.u === span.u && last.s === span.s && last.h === span.h && last.link === span.link && last.href === span.href) last.t += word;
       else line.push({ ...span, t: word });
       width += w;
     }
@@ -259,8 +261,10 @@ export function text(x: number, y: number, content: string | Span[], style: Text
       if (s.ic) before += iconGlyph(s.ic, x0 + at + px * 0.1, y - px * 0.85, px * 1.05, fill);
       at += w;
       if (s.ic) return `<tspan dx="${r(w)}"></tspan>`;
-      const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (s.link ? ` fill="${ACCENT}"` : '') + (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
-      return a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
+      const link = s.link || !!s.href;
+      const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (link ? ` fill="${ACCENT}"` : '') + (s.u || s.s || link ? ` text-decoration="${[(s.u || link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
+      const span = a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
+      return s.href ? `<a href="${xml(s.href)}">${span}</a>` : span;
     })
     .join('');
   return before + `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`;

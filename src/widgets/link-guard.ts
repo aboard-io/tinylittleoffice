@@ -114,6 +114,8 @@ export function installLinkGuard(root: Document = document) {
     // (An SVG link may carry its address as xlink:href.)
     const a = (e.composedPath().find((n) => n instanceof Element && n.localName === 'a' && !!hrefOf(n)) as Element | undefined) ?? null;
     if (!a || a.hasAttribute('data-trusted') || a.closest('to-link-guard')) return;
+    // In text being written, a click puts the caret in the link (the text box shows where it goes); Mod+click follows it.
+    if (a.closest('[contenteditable="true"]') && !(e.metaKey || e.ctrlKey) && e.type === 'click') return void e.preventDefault();
     // A download the page is saving is not a link out.
     if (a.hasAttribute('download') && /^(blob|data):/.test(hrefOf(a))) return;
     const url = leaving(hrefOf(a));

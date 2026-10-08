@@ -205,7 +205,7 @@ export class ToSheet extends LitElement {
   /** A cell of rich text, drawn: *bold* and _italic_ shown as such, addresses as links. */
   private rich(raw: string) {
     return parseDoc(raw.replace(/^(#+ |[-+]+ |@@)/, '\\$1'))[0].runs.map((run) => {
-      const inner = linkify(run.t).map((p) => (p.url ? html`<a href=${p.url} target="_blank" rel="noopener">${p.t}</a>` : p.t));
+      const inner = (run.href ? [{ t: run.t, url: run.href }] : linkify(run.t)).map((p) => (p.url ? html`<a href=${p.url} target="_blank" rel="noopener">${p.t}</a>` : p.t));
       return html`<span class="${run.b ? 'b' : ''} ${run.i ? 'i' : ''} ${run.u ? 'u' : ''} ${run.s ? 's' : ''}">${inner}</span>`;
     });
   }

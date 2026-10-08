@@ -73,7 +73,7 @@ test('write: other documents sit in the text as one thing each', async () => {
   expect(bodyOf()).not.toContain('@@');
 });
 
-test('write: an address typed by hand becomes a link once you leave the text, and a link asks before it opens in a new tab', async () => {
+test('write: an address typed by hand becomes a link once you leave the text, and Mod+click on a link asks before it opens in a new tab', async () => {
   await shell('#/v0/write');
   const editor = () => editorOf('write').querySelector<HTMLElement>('[role="textbox"][aria-label="Document"]')!;
   await typeRich(editor(), '<p>Read <a href="https://example.com/report">https://example.com/report</a> and say. Also http://example.org/x ok</p>', true);
@@ -83,7 +83,8 @@ test('write: an address typed by hand becomes a link once you leave the text, an
   expect([...editor().querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['https://example.com/report', 'http://example.org/x']);
   // A click on a link in the text asks first (the link guard), then Go opens it in a new tab.
   const before = opened().length;
-  editor().querySelector('a')!.click();
+  // (Mod+click: a plain click in the text puts the caret there and shows where the link goes.)
+  editor().querySelector('a')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
   await new Promise((r) => setTimeout(r, 0));
   const guard = document.querySelector('to-link-guard') as HTMLElement & { updateComplete: Promise<unknown> };
   await guard.updateComplete;

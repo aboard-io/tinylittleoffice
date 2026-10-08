@@ -10,9 +10,11 @@ import { linkToRef, makeRef, SELF } from '../kit/embed.ts';
 import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
+import { askLink } from '../widgets/link-dialog.ts';
+import { openLink } from '../widgets/link-guard.ts';
 import { templateLine, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { MAX_DEPTH, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
@@ -34,10 +36,12 @@ function runsToHtml(runs: Run[]): string {
   return runs
     .map((r) => {
       if (r.ic) return iconHtml(r.ic);
-      // Web addresses show as links; in the document they are just text.
-      let h = linkify(r.t)
-        .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
-        .join('');
+      // Linked words are a link; a web address in the text shows as one too (in the document it is just text).
+      let h = r.href
+        ? `<a href="${xml(r.href)}">${xml(r.t)}</a>`
+        : linkify(r.t)
+            .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
+            .join('');
       if (r.h) h = `<mark>${h}</mark>`;
       if (r.s) h = `<s>${h}</s>`;
       if (r.u) h = `<u>${h}</u>`;
@@ -75,7 +79,8 @@ export function blocksToHtml(blocks: Block[]): string {
   return out || '<p><br></p>';
 }
 
-type Flags = { b: boolean; i: boolean; u: boolean; s: boolean; h: boolean };
+/** The marks in force, and the address of the link the words are in (a: '' for none). */
+type Flags = { b: boolean; i: boolean; u: boolean; s: boolean; h: boolean; a?: string };
 
 /** Walk the editor DOM and produce blocks. Tolerant of whatever contentEditable emits. */
 export function domToBlocks(root: HTMLElement): Block[] {
@@ -102,8 +107,9 @@ export function domToBlocks(root: HTMLElement): Block[] {
     if (f.u) run.u = true;
     if (f.s) run.s = true;
     if (f.h) run.h = true;
+    if (f.a) run.href = f.a;
     const last = cur!.runs[cur!.runs.length - 1];
-    if (last && !last.ic && !!last.b === f.b && !!last.i === f.i && !!last.u === f.u && !!last.s === f.s && !!last.h === f.h) last.t += t;
+    if (last && !last.ic && !!last.b === f.b && !!last.i === f.i && !!last.u === f.u && !!last.s === f.s && !!last.h === f.h && (last.href ?? '') === (f.a ?? '')) last.t += t;
     else cur!.runs.push(run);
   };
 
@@ -144,9 +150,19 @@ export function domToBlocks(root: HTMLElement): Block[] {
       }
       return;
     }
+    // What is not text at all, pasted from elsewhere.
+    if (['SCRIPT', 'STYLE', 'TEMPLATE', 'META', 'LINK', 'TITLE', 'NOSCRIPT', 'IFRAME', 'OBJECT', 'SVG', 'svg', 'BUTTON', 'SELECT', 'INPUT', 'TEXTAREA'].includes(tag)) return;
     const nf: Flags = { ...f };
     const st = el.style;
-    if (tag === 'B' || tag === 'STRONG' || st.fontWeight === 'bold' || parseInt(st.fontWeight) >= 600) nf.b = true;
+    // (A tag can say bold while its style says otherwise: Google Docs wraps everything it copies in <b style="font-weight:normal">.)
+    const weight = st.fontWeight === 'bold' ? 700 : st.fontWeight === 'normal' ? 400 : parseInt(st.fontWeight);
+    if (((tag === 'B' || tag === 'STRONG') && !(weight < 600)) || weight >= 600) nf.b = true;
+    if (tag === 'A') {
+      // Words linked somewhere are a link; an address showing itself is just the address, a link wherever it is shown.
+      const href = el.getAttribute('href') ?? '';
+      const words = (el.textContent ?? '').trim();
+      nf.a = linkable(href) && words !== href && words !== href.replace(/^mailto:/, '') ? linkTarget(href) : '';
+    }
     if (tag === 'I' || tag === 'EM' || st.fontStyle === 'italic') nf.i = true;
     if (tag === 'U' || st.textDecoration.includes('underline')) nf.u = true;
     if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || st.textDecoration.includes('line-through')) nf.s = true;
@@ -158,7 +174,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
     for (const child of Array.from(el.childNodes)) inline(child, nf, k, boundary);
   };
 
-  const plain: Flags = { b: false, i: false, u: false, s: false, h: false };
+  const plain: Flags = { b: false, i: false, u: false, s: false, h: false, a: '' };
   // A block's alignment, as the browser wrote it.
   const alignOf = (el: HTMLElement): Align | undefined => ({ center: 'c', right: 'r', justify: 'j' } as Record<string, Align>)[el.style.textAlign] ?? (el.getAttribute('align') ? ({ center: 'c', right: 'r', justify: 'j' } as Record<string, Align>)[el.getAttribute('align')!] : undefined);
 
@@ -214,6 +230,13 @@ function embedBeside(page: HTMLElement, forward: boolean): HTMLElement | null {
   return beside instanceof HTMLElement && beside.dataset.ref !== undefined ? beside : null;
 }
 
+/** The paragraph (the page's own child) a node is in. */
+function blockOf(node: Node, page: HTMLElement): Node | null {
+  let n: Node | null = node;
+  while (n && n.parentNode !== page) n = n.parentNode;
+  return n;
+}
+
 function isBlockTag(tag: string): boolean {
   return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'SECTION', 'ARTICLE'].includes(tag);
 }
@@ -233,13 +256,15 @@ export class ToWrite extends LitElement {
   @property() placeholder = '';
   /** Show the formatting toolbar. (A host with several boxes may keep one toolbar of its own and call exec().) */
   @property({ type: Boolean }) tools = true;
-  @state() private fmt = { b: false, i: false, u: false, s: false, h: false, block: 'p', align: '' };
+  @state() private fmt = { b: false, i: false, u: false, s: false, h: false, link: false, block: 'p', align: '' };
   @state() private words = 0;
   @state() private chars = 0;
   private lastEmitted = '';
   private page?: HTMLElement;
   /** Where the caret last was in the text, so a menu can insert there. */
   private caret: Range | null = null;
+  /** The link the caret was put in by a click: where it goes, shown under it. */
+  @state() private bubble: { href: string; x: number; y: number; a: HTMLAnchorElement } | null = null;
 
   createRenderRoot() {
     return this;
@@ -291,6 +316,7 @@ export class ToWrite extends LitElement {
   }
 
   private onInput = () => {
+    this.bubble = null;
     const blocks = domToBlocks(this.page!);
     this.count(blocks);
     this.lastEmitted = this.write(blocks);
@@ -332,6 +358,7 @@ export class ToWrite extends LitElement {
       u: document.queryCommandState('underline'),
       s: document.queryCommandState('strikeThrough'),
       h: !!(sel?.anchorNode && (sel.anchorNode.parentElement?.closest('mark') || /rgb\(254, 240, 138\)|#fef08a/i.test(getComputedStyle(sel.anchorNode.parentElement!).backgroundColor))),
+      link: !!sel?.anchorNode?.parentElement?.closest('a[href]'),
       align: document.queryCommandState('justifyCenter') ? 'c' : document.queryCommandState('justifyRight') ? 'r' : document.queryCommandState('justifyFull') ? 'j' : '',
       block: document.queryCommandState('insertUnorderedList') ? 'ul' : document.queryCommandState('insertOrderedList') ? 'ol' : block,
     };
@@ -367,6 +394,84 @@ export class ToWrite extends LitElement {
     this.onInput();
   }
 
+  /** Put markup in where the caret is, replacing what is selected; the page is read back afterwards, which sorts out how it nests. */
+  private insertHtmlByHand(markup: string) {
+    const sel = getSelection();
+    const range = sel?.rangeCount && this.page!.contains(sel.anchorNode) ? sel.getRangeAt(0) : (() => {
+      const r = document.createRange();
+      r.selectNodeContents(this.page!);
+      r.collapse(false);
+      return r;
+    })();
+    range.deleteContents();
+    const holder = document.createElement('template');
+    holder.innerHTML = markup;
+    const last = holder.content.lastChild;
+    // Paragraphs pasted into an empty one take its place.
+    const block = blockOf(range.startContainer, this.page!);
+    const blocks = !!holder.content.firstElementChild && isBlockTag(holder.content.firstElementChild.tagName);
+    if (blocks && !this.page!.textContent && !this.page!.querySelector('[data-ref], [data-icon]')) this.page!.replaceChildren(holder.content);
+    else if (blocks && block instanceof HTMLElement && !block.textContent) block.replaceWith(holder.content);
+    else range.insertNode(holder.content);
+    if (last) {
+      const after = document.createRange();
+      after.setStartAfter(last);
+      after.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(after);
+    }
+  }
+
+  /**
+   * Link the selected words (Mod+K), or change or take off the link the
+   * caret is in; with nothing selected, the words are asked for too and
+   * put in where the caret is.
+   */
+  async link() {
+    const sel = getSelection();
+    const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret?.cloneRange() ?? null;
+    const node = range?.commonAncestorContainer ?? null;
+    const anchor = (node instanceof Element ? node : node?.parentElement)?.closest('a') ?? null;
+    const inside = anchor && this.page!.contains(anchor) ? anchor : null;
+    const words = range && !range.collapsed ? range.toString() : inside?.textContent ?? '';
+    const answer = await askLink({ url: inside?.getAttribute('href') ?? '', text: words, askText: !words.trim() });
+    this.page!.focus();
+    if (range) {
+      getSelection()?.removeAllRanges();
+      getSelection()?.addRange(range);
+    }
+    if (!answer) return;
+    if ('remove' in answer) {
+      if (inside) inside.replaceWith(...Array.from(inside.childNodes));
+    } else if (inside && (!range || range.collapsed || inside.contains(range.startContainer) && inside.contains(range.endContainer))) {
+      inside.setAttribute('href', answer.url);
+    } else {
+      const at = range ?? (() => {
+        const r = document.createRange();
+        r.selectNodeContents(this.page!);
+        r.collapse(false);
+        return r;
+      })();
+      const a = document.createElement('a');
+      a.setAttribute('href', answer.url);
+      if (at.collapsed) a.textContent = answer.text.trim();
+      else if (blockOf(at.startContainer, this.page!) === blockOf(at.endContainer, this.page!)) a.append(at.extractContents());
+      else {
+        // Across paragraphs: the browser's own command links each part.
+        document.execCommand('createLink', false, answer.url);
+        this.onInput();
+        return;
+      }
+      at.insertNode(a);
+      const after = document.createRange();
+      after.setStartAfter(a);
+      after.collapse(true);
+      getSelection()?.removeAllRanges();
+      getSelection()?.addRange(after);
+    }
+    this.onInput();
+  }
+
   private run(cmd: string, arg?: string) {
     this.page?.focus();
     // (Colours and alignment are only ever written as styles; the rest as tags.)
@@ -377,9 +482,38 @@ export class ToWrite extends LitElement {
   }
 
   private onPaste = (e: ClipboardEvent) => {
-    // Keep pasted content plain: it is the compact, predictable path.
     e.preventDefault();
     const text = e.clipboardData?.getData('text/plain') ?? '';
+    // Formatted text (from another document here, or anywhere) keeps what this text can hold: headings, lists,
+    // marks and links, read by the same reader as the page itself and written out afresh, so nothing else comes in.
+    const rich = e.clipboardData?.getData('text/html') ?? '';
+    if (rich && !linkToRef(text.trim())) {
+      const body = new DOMParser().parseFromString(rich, 'text/html').body;
+      // Spaces as a browser shows them: runs of white space are one space, none at a paragraph's ends, and a paragraph of nothing but white space (the source's own line breaks) is not one.
+      const blocks = domToBlocks(body)
+        .map((b) => {
+          const runs = b.runs.map((r) => ({ ...r, t: r.t.replace(/\s+/g, ' ') }));
+          if (runs.length && !runs[0].ic) runs[0] = { ...runs[0], t: runs[0].t.trimStart() };
+          if (runs.length && !runs[runs.length - 1].ic) runs[runs.length - 1] = { ...runs[runs.length - 1], t: runs[runs.length - 1].t.trimEnd() };
+          return { ...b, runs: runs.filter((r) => r.t || r.ic), blank: b.runs.every((r) => !r.ic && !r.t) };
+        })
+        .filter((b) => b.k === 'e' || b.runs.length || b.blank)
+        .map(({ blank: _, ...b }) => b as Block);
+      if (blocks.length) {
+        const fit: Block[] =
+          this.mode === 'doc'
+            ? blocks
+            : this.mode === 'lines'
+              ? blocks.filter((b) => b.k !== 'e').map((b) => ({ k: 'p', runs: b.runs }))
+              : [{ k: 'p', runs: blocks.filter((b) => b.k !== 'e').flatMap((b, i) => (i ? [{ t: ' ' }, ...b.runs] : b.runs)) }];
+        // One paragraph goes in as its words, into the line the caret is in; more go in as paragraphs.
+        const made = fit.length === 1 && fit[0].k === 'p' ? runsToHtml(fit[0].runs) : blocksToHtml(fit);
+        // The browser's own command keeps undo working; where there is none, it goes in by hand.
+        if (!document.execCommand('insertHTML', false, made)) this.insertHtmlByHand(made);
+        this.onInput();
+        return;
+      }
+    }
     // A TinyLittleOffice link on its own becomes a preview of that document.
     const ref = linkToRef(text);
     const link = linkify(text.trim());
@@ -446,15 +580,46 @@ export class ToWrite extends LitElement {
   }
 
   /** Links in the text open in a new tab (a click in editable text would otherwise just move the caret). */
+  /** A click in a link puts the caret there, as anywhere in the text, and shows where it goes: open, edit, remove. (Mod+click opens it.) */
   private onClick = (e: MouseEvent) => {
     const a = (e.target as HTMLElement).closest?.('a');
-    if (!a || !this.page!.contains(a) || a.closest('to-embed')) return;
+    if (!a || !this.page!.contains(a) || a.closest('to-embed')) {
+      this.bubble = null;
+      return;
+    }
     e.preventDefault();
-    window.open(a.href, '_blank', 'noopener');
+    this.showBubble(a);
   };
+  private showBubble(a: HTMLAnchorElement) {
+    const box = this.getBoundingClientRect();
+    const r = a.getBoundingClientRect();
+    this.bubble = { href: a.getAttribute('href') ?? '', x: Math.max(0, r.left - box.left), y: r.bottom - box.top + 4, a };
+  }
+  private renderBubble() {
+    const b = this.bubble;
+    if (!b) return nothing;
+    return html`<div class="link-bubble" role="dialog" aria-label="Link" style="left:${b.x}px;top:${b.y}px" @mousedown=${(e: Event) => e.preventDefault()}>
+      <span class="lb-href" title=${b.href}>${b.href}</span>
+      ${tool('Open link', 'arrow', () => ((this.bubble = null), openLink(b.href)), { keepFocus: true })}
+      ${tool('Edit link', 'pen', () => {
+        this.bubble = null;
+        const r = document.createRange();
+        r.selectNodeContents(b.a);
+        getSelection()?.removeAllRanges();
+        getSelection()?.addRange(r);
+        void this.link();
+      }, { keepFocus: true, key: 'Mod+K' })}
+      ${tool('Remove link', 'close', () => {
+        this.bubble = null;
+        b.a.replaceWith(...Array.from(b.a.childNodes));
+        this.onInput();
+      }, { keepFocus: true })}
+    </div>`;
+  }
 
   /** Addresses typed by hand become links once you leave the text. */
   private onBlur = () => {
+    this.bubble = null;
     const page = this.page!;
     if (page.contains(document.activeElement)) return;
     const html = blocksToHtml(domToBlocks(page));
@@ -494,6 +659,11 @@ export class ToWrite extends LitElement {
     const map: Record<string, [string, string?]> = {
       b: ['bold'], i: ['italic'], u: ['underline'], '1': ['formatBlock', 'h1'], '2': ['formatBlock', 'h2'], '0': ['formatBlock', 'p'],
     };
+    if (k === 'k' && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      void this.link();
+      return;
+    }
     if (k === 'h' && e.shiftKey) {
       e.preventDefault();
       this.run('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
@@ -527,6 +697,7 @@ export class ToWrite extends LitElement {
           ${this.btn('Underline', 'underline', f.u, 'underline', undefined, 'Mod+U')}
           ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
           ${this.btn('Highlight', 'highlight', f.h, 'hiliteColor', f.h ? 'transparent' : '#fef08a', 'Mod+Shift+H')}
+          ${tool('Link', 'link', () => void this.link(), { key: 'Mod+K', keepFocus: true, pressed: f.link })}
         </sl-button-group>
         <sl-button-group label="Alignment">
           ${this.btn('Align left', 'alignLeft', f.align === '', 'justifyLeft')}
@@ -566,6 +737,7 @@ export class ToWrite extends LitElement {
         @embed-remove=${(e: Event) => this.removeEmbed(e.target as HTMLElement)}
         @focus=${this.onSelection}
       ></div>
+      ${this.renderBubble()}
       ${doc ? html`<div class="to-foot write-foot">
         <span>${this.words} ${this.words === 1 ? 'word' : 'words'}</span>
         <span>${this.chars} characters</span>

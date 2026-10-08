@@ -4,7 +4,9 @@
  * Blocks: one per line.  Prefixes:  "# " h1, "## " h2, "- " bullet, "+ " numbered.
  * A list item one level in repeats its marker ("-- ", "++ "), up to MAX_DEPTH levels.
  * Inline: toggles  *bold*  _italic_  ^underline^  ~strike~  =highlight= ; an icon
- * is its name between colons, ":rocket:"; "\" escapes. A block may start with
+ * is its name between colons, ":rocket:"; words linked somewhere are
+ * "[the words](https://…)" (a web, mail or phone address, or "#…" in the
+ * document); "\" escapes. A web address on its own is a link as it stands. A block may start with
  * ">c ", ">r " or ">j " to be centred, right-aligned or justified.
  * Embed: a line "@@<app>/<payload>" is another TinyLittleOffice document, shown as
  * a preview that links to it (see lib/embed.ts).
@@ -19,6 +21,8 @@ export interface Run {
   h?: boolean;
   /** An icon, by name, in the line of text (t is then ''). */
   ic?: string;
+  /** Where these words link to. */
+  href?: string;
 }
 export type Align = 'c' | 'r' | 'j';
 export type BlockKind = 'p' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
@@ -44,6 +48,12 @@ const ALIGN = /^>([crj]) /;
 const ICON = /^:([a-z][a-z0-9-]*):/;
 const PREFIX: Record<BlockKind, string> = { p: '', h1: '# ', h2: '## ', ul: '- ', ol: '+ ', e: '@@' };
 const SPECIAL = /[\\*_^~=]/g;
+/** "[words](address)": the address a web, mail or phone one, or a place in the document. */
+const LINK = /^\[((?:\\.|[^\]\\\n])*)\]\(((?:https?:\/\/|mailto:|tel:|#)[^()\s]*)\)/;
+/** An address as it may be written in a link: what would end it early is percent-encoded. */
+export const linkTarget = (url: string) => url.trim().replace(/[\s()]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+/** Whether an address may be a link's target at all. */
+export const linkable = (url: string) => /^(?:https?:\/\/[^\s]+|mailto:[^\s]+|tel:[^\s]+|#\S*)$/.test(linkTarget(url));
 
 export function serializeDoc(blocks: Block[]): string {
   const lines: string[] = [];
@@ -63,6 +73,19 @@ export function serializeDoc(blocks: Block[]): string {
 
 /** Runs as one line of marks. With `bare`, a line that would read as a block prefix is escaped. */
 export function serializeInline(runs: Run[], bare = false): string {
+  // Linked words go out as "[words](address)", their marks inside the brackets.
+  if (runs.some((r) => r.href)) {
+    let out = '';
+    for (let i = 0; i < runs.length; ) {
+      const href = runs[i].href;
+      let j = i + 1;
+      while (j < runs.length && runs[j].href === href) j++;
+      const part = runs.slice(i, j).map(({ href: _, ...r }) => r);
+      out += href ? `[${serializeInline(part)}](${linkTarget(href)})` : serializeInline(part, bare && i === 0);
+      i = j;
+    }
+    return out;
+  }
   let out = '';
   {
     const state: Record<string, boolean> = { b: false, i: false, u: false, s: false, h: false };
@@ -84,7 +107,7 @@ export function serializeInline(runs: Run[], bare = false): string {
       // (A web address is read whole, so nothing inside it needs escaping.)
       let text = run.t
         .split(/((?:^|(?<=[\s(]))(?:https?:\/\/|mailto:)\S+)/)
-        .map((part, n) => (n % 2 ? part : part.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:')))
+        .map((part, n) => (n % 2 ? part : part.replace(SPECIAL, (m) => '\\' + m).replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:').replace(/\[(?=[^\]]*\]\()/g, '\\[')))
         .join('');
       // A paragraph that would start with a prefix marker must be escaped.
       if (first && bare && /^(#|-+ |\++ |@@|>[crj] )/.test(text)) text = '\\' + text;
@@ -114,8 +137,18 @@ export function parseInline(line: string): Run[] {
     const icon = ch === ':' ? ICON.exec(line.slice(i)) : null;
     // A web address is taken whole: the marks inside it (an "=" in its query, an "_" in its path) are its own.
     const url = (ch === 'h' || ch === 'm') && (i === 0 || /\s|\(/.test(line[i - 1])) ? /^(?:https?:\/\/|mailto:)\S+/.exec(line.slice(i)) : null;
+    const link = ch === '[' ? LINK.exec(line.slice(i)) : null;
     if (ch === '\\' && i + 1 < line.length) buf += line[++i];
-    else if (url) {
+    else if (link) {
+      // The words take the marks open around them, and their own inside.
+      flush();
+      for (const r of parseInline(link[1])) {
+        const run: Run = { ...r, href: link[2] };
+        for (const f of FLAGS) if (state[f]) run[f] = true;
+        runs.push(run);
+      }
+      i += link[0].length - 1;
+    } else if (url) {
       buf += url[0].replace(/[.,;:!?)]+$/, (tail) => ((i += -tail.length), ''));
       i += url[0].length - 1;
     } else if (icon) {

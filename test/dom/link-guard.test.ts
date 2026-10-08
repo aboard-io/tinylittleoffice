@@ -10,7 +10,8 @@ beforeEach(() => {
   vi.spyOn(window, 'open').mockImplementation(((u: string) => (opened.push(u), null)) as typeof window.open);
 });
 const guard = () => document.querySelector('to-link-guard') as ToLinkGuard;
-const click = (a: Element) => a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true }));
+// (In text being written a plain click puts the caret in a link; Mod+click follows it. Elsewhere any click does.)
+const click = (a: Element) => a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, ctrlKey: !!a.closest('[contenteditable="true"]') }));
 
 test('a link in a text asks first, showing the whole address; Cancel opens nothing, Go opens it', async () => {
   const { el } = await mount('write', 'See https://example.com/a?b=1 for more');

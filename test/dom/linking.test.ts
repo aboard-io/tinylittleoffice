@@ -1,0 +1,124 @@
+// Making links (Mod+K, the Link buttons), the bubble a click in one shows, and formatted text pasted in.
+import { test, expect } from 'vitest';
+import { mount, settle, press, button, type Editor } from './helpers.ts';
+import type { ToLinkDialog } from '../../src/widgets/link-dialog.ts';
+import type { ToWrite } from '../../src/apps/write.ts';
+
+const page = (el: Element) => el.querySelector<HTMLElement>('.write-page')!;
+const dialog = () => document.querySelector('to-link-dialog') as ToLinkDialog;
+/** Select the given words inside a text box, as a person dragging over them. */
+function selectWords(box: HTMLElement, words: string) {
+  const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const at = n.textContent!.indexOf(words);
+    if (at < 0) continue;
+    const r = document.createRange();
+    r.setStart(n, at);
+    r.setEnd(n, at + words.length);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(r);
+    return;
+  }
+  throw new Error(`no "${words}" in the text`);
+}
+/** Answer the link dialog: type the address (and words, when asked), then Link. */
+async function answer(address: string, words?: string) {
+  await new Promise((r) => setTimeout(r, 0));
+  const d = dialog();
+  await d.updateComplete;
+  if (words !== undefined) {
+    const w = d.querySelector('.ld-text') as HTMLElement & { value: string };
+    w.value = words;
+    w.dispatchEvent(new CustomEvent('sl-input', { bubbles: true }));
+  }
+  const u = d.querySelector('.ld-url') as HTMLElement & { value: string };
+  u.value = address;
+  u.dispatchEvent(new CustomEvent('sl-input', { bubbles: true }));
+  await d.updateComplete;
+  (d.querySelector('.ld-ok') as HTMLElement).click();
+  await new Promise((r) => setTimeout(r, 0));
+}
+
+test('Mod+K links the selected words; the address gets its start', async () => {
+  const { el, last } = await mount('write', 'Read our report today.');
+  page(el).focus();
+  selectWords(page(el), 'our report');
+  press(page(el), 'k', { mod: true });
+  await new Promise((r) => setTimeout(r, 0));
+  expect(dialog().querySelector('.ld-words')!.textContent).toBe('Linking our report');
+  await answer('example.com/report');
+  await settle(el);
+  expect(last()).toBe('Read [our report](https://example.com/report) today.');
+  expect(page(el).querySelector('a')!.getAttribute('href')).toBe('https://example.com/report');
+});
+
+test('with nothing selected, the dialog asks for the words too, and puts them where the caret is', async () => {
+  const { el, last } = await mount('write', 'Contact: ');
+  page(el).focus();
+  const r = document.createRange();
+  r.selectNodeContents(page(el).querySelector('p')!);
+  r.collapse(false);
+  getSelection()!.removeAllRanges();
+  getSelection()!.addRange(r);
+  button(el, 'Link').click();
+  await answer('ada@example.com', 'Ada');
+  await settle(el);
+  expect(last()).toBe('Contact: [Ada](mailto:ada@example.com)');
+});
+
+test('a click in a link shows where it goes; Remove takes the link off and keeps the words', async () => {
+  const { el, last } = await mount('write', 'See [the plan](https://a.co/plan) now');
+  const a = page(el).querySelector('a')!;
+  a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(el);
+  const bubble = el.querySelector<HTMLElement>('.link-bubble')!;
+  expect(bubble.querySelector('.lb-href')!.textContent).toBe('https://a.co/plan');
+  button(bubble, 'Remove link').click();
+  await settle(el);
+  expect(last()).toBe('See the plan now');
+  expect(el.querySelector('.link-bubble')).toBeNull();
+});
+
+test('in a deck, the Link button links words in a bullet', async () => {
+  const { el, last } = await mount('deck', 'Plan\nRead the brief');
+  const bullets = [...el.querySelectorAll<ToWrite>('to-rich')].find((r) => r.textContent?.includes('Read the brief'))!;
+  page(bullets).focus();
+  page(bullets).dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  selectWords(page(bullets), 'the brief');
+  await settle(el);
+  button(el, 'Link').click();
+  await answer('https://a.co/brief');
+  await settle(el);
+  expect(last()).toBe('Plan\nRead [the brief](https://a.co/brief)');
+});
+
+test('formatted text pasted in keeps its headings, lists, marks and links, and nothing else', async () => {
+  const { el, last } = await mount('write', '');
+  page(el).focus();
+  const html = `<meta charset="utf-8"><b style="font-weight:normal" id="docs-internal-guid-x"><h1>Plan</h1>
+    <p>Some <strong>bold</strong> and <em>slanted</em> words, <a href="https://a.co/r">a report</a>, <a href="javascript:alert(1)">a trap</a>.</p>
+    <ul><li>One</li><li>Two<ul><li>Two and a half</li></ul></li></ul><script>alert(1)</script><style>p{color:red}</style></b>`;
+  const data = new DataTransfer();
+  data.setData('text/html', html);
+  data.setData('text/plain', 'Plan\nSome bold…');
+  page(el).dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(last()).toBe('# Plan\nSome *bold* and _slanted_ words, [a report](https://a.co/r), a trap.\n- One\n- Two\n-- Two and a half');
+});
+
+test('pasted into one line (an outline item), formatted text keeps its marks and links in that line', async () => {
+  const { el, last } = await mount('outline', 'Launch the');
+  const box = page(el.querySelector('to-rich')!);
+  box.focus();
+  const r = document.createRange();
+  r.selectNodeContents(box);
+  r.collapse(false);
+  getSelection()!.removeAllRanges();
+  getSelection()!.addRange(r);
+  const data = new DataTransfer();
+  data.setData('text/html', '<p> <b>plan</b></p>\n  <p>see <a href="https://a.co">here</a></p>');
+  data.setData('text/plain', ' plan see here');
+  box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(last()).toBe('Launch the *plan* see [here](https://a.co)');
+});

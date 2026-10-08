@@ -48,7 +48,7 @@ https://tinylittleoffice.com/sheet/#title=Budget&doc=!%7Ct%24%0AItem%09Cost%0ARe
 
 ### write: a short document
 
-One block per line. `# ` heading, `## ` subheading, `- ` bullet, `+ ` numbered item; repeat the marker to nest (`-- `). Inline: `*bold*`, `_italic_`, `^underline^`, `~strike~`, `=highlight=`, and an icon in the line as its name between colons, `:rocket:`. A line may start `>c `, `>r ` or `>j ` to be centred, right-aligned or justified. Web addresses become links.
+One block per line. `# ` heading, `## ` subheading, `- ` bullet, `+ ` numbered item; repeat the marker to nest (`-- `). Inline: `*bold*`, `_italic_`, `^underline^`, `~strike~`, `=highlight=`, an icon in the line as its name between colons, `:rocket:`, and linked words as `[the words](https://example.com)` (a web, `mailto:` or `tel:` address). Every app whose text takes these marks (decks, outlines, the print apps) takes links the same way; a bare web address is a link as it stands. A line may start `>c `, `>r ` or `>j ` to be centred, right-aligned or justified. Web addresses become links.
 
 https://tinylittleoffice.com/write/#title=Meeting+notes&doc=%23+Meeting+notes%0AWe+agreed+on+*three+things*.%0A-+Ship+on+Friday%0A--+Ben+owns+the+release%0A-+Review+pricing
 

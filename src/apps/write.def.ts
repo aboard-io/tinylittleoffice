@@ -22,7 +22,7 @@ function rtfText(s: string): string {
 function rtfRun(r: Run): string {
   const on = (r.b ? '\\b' : '') + (r.i ? '\\i' : '') + (r.u ? '\\ul' : '') + (r.s ? '\\strike' : '');
   // Web addresses in the text become real hyperlinks.
-  const inner = linkify(r.t)
+  const inner = (r.href ? [{ t: r.t, url: r.href }] : linkify(r.t))
     .map((p) => (p.url ? `{\\field{\\*\\fldinst HYPERLINK "${rtfText(p.url)}"}{\\fldrslt {\\ul\\cf1 ${rtfText(p.t)}}}}` : rtfText(p.t)))
     .join('');
   return on ? `{${on} ${inner}}` : inner;
@@ -53,7 +53,7 @@ export function docToRtf(body: string, ctx: DownloadContext = { created: null })
 
 function htmlRun(r: Run): string {
   if (r.ic) return ICON_SVG[r.ic] ? `<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${xml(r.ic)}">${ICON_SVG[r.ic]}</svg>` : '';
-  let s = linkify(r.t)
+  let s = (r.href ? [{ t: r.t, url: r.href }] : linkify(r.t))
     .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
     .join('');
   if (r.h) s = `<mark>${s}</mark>`;
@@ -123,7 +123,7 @@ export function pages(body: string): Page[] {
     const [px, bold, gap] = blk.k === 'h1' ? [30, true, 18] : blk.k === 'h2' ? [22, true, 14] : [16, false, blk.k === 'p' ? 12 : 5];
     const list = blk.k === 'ul' || blk.k === 'ol';
     const left = M + (list ? 26 * (d + 1) : 0);
-    const spans: Span[] = blk.runs.flatMap((run) => linkify(run.t).map((p) => ({ ...run, t: p.t, link: !!p.url })));
+    const spans: Span[] = blk.runs.flatMap((run) => (run.href ? [run] : linkify(run.t).map((p) => ({ ...run, t: p.t, link: !!p.url }))));
     const lines = wrap(spans.length ? spans : [{ t: '' }], W - M - left, px, bold);
     const lh = px * 1.45;
     const mark = blk.k === 'ul' ? '•' : blk.k === 'ol' ? `${counts[d]}.` : '';
@@ -165,6 +165,8 @@ export default defineApp({
   downloads: [{ ext: 'rtf', label: 'Rich Text', mime: 'application/rtf', build: (b, ctx) => utf8(docToRtf(b, ctx)) }],
   shortcuts: [
     { keys: 'Mod+B / Mod+I / Mod+U / Mod+Shift+H', does: 'Bold, italic, underline, highlight' },
+    { keys: 'Mod+K', does: 'Link the selected words, or change the link the caret is in' },
+    { keys: 'Mod+click', does: 'Follow a link (a click shows where it goes)' },
     { keys: 'Mod+1 / Mod+2 / Mod+0', does: 'Heading, subheading, paragraph' },
     { keys: 'Tab / Shift+Tab', does: 'Indent a list item, or bring it back out' },
     { keys: 'Backspace / Delete', does: 'Remove the selected embedded document' },
