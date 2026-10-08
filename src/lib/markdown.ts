@@ -23,7 +23,7 @@ import { fieldsOf, kindsOf, readLines, writeLines, type Row } from './lines.ts';
 import { dayToYmd, ymdString, ymdToDay, utcToParts, pad2 } from './tz.ts';
 import { formatOf, parseFold, serializeFold } from './fold.ts';
 import { mdToSite, siteToMd } from './sitemodel.ts';
-import { FIELDS, MODES, evaluate, inputs, parseCalc, serializeCalc, shown, withDefaults } from './calc.ts';
+import { takeHead, withHead } from './tlo.ts';
 
 /* ---------- inline marks ---------- */
 
@@ -279,17 +279,20 @@ const items = (md: string) => md.split('\n').map((l) => /^\s*(?:[-*+]|\d+[.)])\s
 export function toMarkdown(def: AppDef, body: string, title = ''): string {
   const name = title || def.title(body);
   switch (def.id) {
-    case 'calc': {
-      // The mode as a heading; then each value by its name, each expression with what it comes to, or each curve.
-      const c = parseCalc(body);
-      const head = `## ${MODES.find((m) => m.id === c.mode)!.name}\n\n`;
-      const lines = c.lines.filter((l) => l.trim());
-      if (c.mode === 'calc') return head + lines.map((l) => `- ${l} = ${shown(evaluate(l))}`).join('\n') + '\n';
-      if (c.mode === 'graph') return head + lines.map((l) => `- y = ${l}`).join('\n') + '\n';
-      const v = withDefaults(c.mode, inputs(c.lines));
-      const years = Object.keys(v).filter((k) => /^year \d+$/.test(k));
-      return head + [...FIELDS[c.mode].map((f) => `- ${f.name}: ${v[f.key]}${f.unit ? ' ' + f.unit : ''}`), ...years.map((k) => `- ${k[0].toUpperCase() + k.slice(1)}: ${v[k]}`)].join('\n') + '\n';
-    }
+    // The document is Markdown already (TLO).
+    case 'calc':
+    case 'flow':
+    case 'adventure':
+    case 'hunt':
+    case 'trivia':
+    case 'madlibs':
+    case 'spinner':
+    case 'flashcards':
+    case 'poll':
+    case 'santa':
+    case 'split':
+    case 'log':
+      return body.trimEnd() + '\n';
     case 'write':
       return docToMd(body);
     case 'outline': {
@@ -420,24 +423,21 @@ export function fromMarkdown(def: AppDef, md: string): string {
   const plain = unwrapMarkdown(md);
   const text = (looksLikeCsv(plain) ? csvToMd(plain) : plain).trim();
   switch (def.id) {
-    case 'calc': {
-      // A heading names the mode; list items are "Name: value" for the money modes, "expression = result" or "y = curve" otherwise.
-      const heading = /^#+\s*(.+)$/m.exec(text)?.[1].trim().toLowerCase();
-      const mode = MODES.find((m) => m.name.toLowerCase() === heading || m.id === heading)?.id ?? 'calc';
-      const lines = items(text);
-      if (mode === 'calc') return serializeCalc({ mode, lines: lines.map((l) => l.replace(/\s*=\s*[^=]*$/, '')) });
-      if (mode === 'graph') return serializeCalc({ mode, lines: lines.map((l) => l.replace(/^y\s*=\s*/i, '')) });
-      const fields = FIELDS[mode];
-      return serializeCalc({
-        mode,
-        lines: lines.flatMap((l) => {
-          const m = /^([^:=]+?)\s*[:=]\s*(-?[\d.,]+)/.exec(l);
-          if (!m) return [];
-          const key = fields.find((f) => f.name.toLowerCase() === m[1].trim().toLowerCase() || f.key === m[1].trim().toLowerCase())?.key ?? (/^year \d+$/i.test(m[1].trim()) ? m[1].trim().toLowerCase() : '');
-          return key ? [`${key} = ${m[2].replace(/,/g, '')}`] : [];
-        }),
-      });
-    }
+    case 'calc':
+      // (Unwrapping took the header off, and with it the mode.)
+      return def.read!(withHead(text, takeHead(md.replace(/\r\n?/g, '\n').trim(), ['mode'])[0]));
+    case 'flow':
+    case 'adventure':
+    case 'hunt':
+    case 'trivia':
+    case 'madlibs':
+    case 'spinner':
+    case 'flashcards':
+    case 'poll':
+    case 'santa':
+    case 'split':
+    case 'log':
+      return def.read!(text);
     case 'write':
       return mdToDoc(text);
     case 'outline':

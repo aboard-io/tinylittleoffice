@@ -4,8 +4,9 @@
  * page, not from someone determined: it is scrambled with the answer, not
  * properly encrypted.)
  */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, seed } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1, seed } from '../lib/diagram.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { pageData, pageScript, xml } from '../kit/core.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
@@ -27,11 +28,15 @@ document.getElementById('f').onsubmit = function (e) {
 };
 `);
 
+const [, CLUE, ENDING] = [0, 1, 2];
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const scramble = (text: string, key: string) => [...text].map((c, i) => c.charCodeAt(0) ^ key.charCodeAt(i % key.length));
 
 function page(body: string): string {
-  const steps = rest(body).map((l) => l.split('|').map((p) => p.trim()));
+  // Each clue, then the ending: a last step that needs no answer.
+  const rows = readLines(body, spec.form);
+  const ending = valuesOf(rows, ENDING).map(([t]) => t).join(' ');
+  const steps = [...valuesOf(rows, CLUE), ...(ending ? [[ending, '']] : [])];
   const title = h1(body) || 'Scavenger hunt';
   // The first clue is in the open; each later one is scrambled with the answer before it.
   const data = steps.map(([clue], i) => ({ c: i ? scramble(clue, norm(steps[i - 1][1] ?? '') || ' ') : clue, h: steps[i][1] ? seed(norm(steps[i][1])) : 0 }));
@@ -50,12 +55,12 @@ ${SCRIPT}`,
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Clue', is: '{Clue:long} | {Answer}' },
+    { name: 'Clue', is: '{Clue:long} | {Answer}', table: true },
     { name: 'Ending', is: '{Text}' },
   ] as LineKind[],
-  hint: '"# Title", then a line per step: "Clue | answer". Each clue shows only once the answer before it is typed. End with a line that has no answer.',
-  example: '# Birthday hunt\nStart where the coffee is made. What colour is the kettle? | red\nGood. Now count the stairs to the attic. | 14\nLook under the thing with 88 keys. What is taped there? | envelope\nOpen it. Happy birthday!',
+  hint: '"# Title", then a table of "Clue | Answer", a row per step. Each clue shows only once the answer before it is typed. A paragraph after the table is the ending.',
+  example: '# Birthday hunt\n\nClue | Answer\n--- | ---\nStart where the coffee is made. What colour is the kettle? | red\nGood. Now count the stairs to the attic. | 14\nLook under the thing with 88 keys. What is taped there? | envelope\n\nOpen it. Happy birthday!',
   page,
 };
 
-export default definePage({ id: 'hunt', name: 'Scavenger hunt', icon: 'hunt', group: 'Play', blurb: 'A scavenger hunt: each clue opens with the answer to the one before.' }, spec);
+export default definePage({ id: 'hunt', name: 'Scavenger hunt', icon: 'hunt', group: 'Play', blurb: 'A scavenger hunt: each clue opens with the answer to the one before.', read: (text) => tidy(text, spec.form) }, spec);

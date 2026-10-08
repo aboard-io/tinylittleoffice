@@ -1,6 +1,8 @@
 /** Fill in the blanks: a story with gaps, filled in by someone who has not read it. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { plain } from '../lib/tlo.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { pageData, pageScript, xml } from '../kit/core.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
@@ -13,9 +15,11 @@ document.getElementById('f').onsubmit = function (e) {
 };
 `);
 
+const STORY = 1;
+
 function page(body: string): string {
   const title = h1(body) || 'Fill in the blanks';
-  const story = rest(body);
+  const story = valuesOf(readLines(body, spec.form), STORY).map(([line]) => plain(line));
   const blanks = [...story.join('\n').matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
   return htmlPage(
     title,
@@ -36,8 +40,8 @@ export const spec = {
     { name: 'Story', is: '{A line of the story:long}' },
   ] as LineKind[],
   hint: '"# Title", then the story, with each blank in square brackets: "[adjective]", "[a place]". The reader fills them in before seeing the story.',
-  example: '# A day at the office\nThis morning my [adjective] boss arrived riding a [animal].\n"We are moving the office to [a place]," she said, "and everyone must bring [plural noun]."\nI [verb, past tense] all the way home.',
+  example: '# A day at the office\n\nThis morning my [adjective] boss arrived riding a [animal].\n"We are moving the office to [a place]," she said, "and everyone must bring [plural noun]."\nI [verb, past tense] all the way home.',
   page,
 };
 
-export default definePage({ id: 'madlibs', name: 'Fill in the blanks', icon: 'madlibs', group: 'Play', blurb: 'A story with blanks: the reader supplies the words, then reads the result.' }, spec);
+export default definePage({ id: 'madlibs', name: 'Fill in the blanks', icon: 'madlibs', group: 'Play', blurb: 'A story with blanks: the reader supplies the words, then reads the result.', read: (text) => tidy(text, spec.form) }, spec);

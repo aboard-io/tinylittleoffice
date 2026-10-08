@@ -1,6 +1,7 @@
 /** Flashcards: a question on the front, the answer on the back. Tap to turn. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { pageData, pageScript, xml } from '../kit/core.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
@@ -14,9 +15,11 @@ document.getElementById('mix').onclick = function () { C.sort(function () { retu
 draw();
 `);
 
+const CARD = 1;
+
 function page(body: string): string {
   const title = h1(body) || 'Flashcards';
-  const cards = rest(body).map((l) => l.split('|').map((p) => p.trim()));
+  const cards = valuesOf(readLines(body, spec.form), CARD);
   return htmlPage(
     title,
     `${cards.length} cards.`,
@@ -33,12 +36,11 @@ ${SCRIPT}`,
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Card', is: '{Front} | {Back}' },
-    { name: 'Line', is: '{Text}' },
+    { name: 'Card', is: '{Front} | {Back}', table: true },
   ] as LineKind[],
-  hint: '"# Title", then a card per line: "Front | back". Tap a card to turn it over.',
-  example: '# Portuguese\nbom dia | good morning\nobrigado | thank you\npor favor | please\na conta | the bill\nonde fica...? | where is...?',
+  hint: '"# Title", then a table of "Front | Back", a card a row. Tap a card to turn it over.',
+  example: '# Portuguese\n\nFront | Back\n--- | ---\nbom dia | good morning\nobrigado | thank you\npor favor | please\na conta | the bill\nonde fica...? | where is...?',
   page,
 };
 
-export default definePage({ id: 'flashcards', name: 'Flashcards', icon: 'flashcards', group: 'Play', blurb: 'Flashcards: a question, tap, the answer. Shuffle and go again.' }, spec);
+export default definePage({ id: 'flashcards', name: 'Flashcards', icon: 'flashcards', group: 'Play', blurb: 'Flashcards: a question, tap, the answer. Shuffle and go again.', read: (text) => tidy(text, spec.form) }, spec);

@@ -103,7 +103,7 @@ test('small apps: a poll counts, a bill is settled, a log adds up, Secret Santa 
   const votes = (doc: Document, choice: string) => [...doc.querySelectorAll('li')].find((l) => l.textContent!.includes(choice))!.querySelector('.top span:last-child')!.textContent;
   expect(votes(framed(poll.el), 'Tacos')).toBe('2');
   const text = box<HTMLTextAreaElement>(poll.el, 'Poll, as text');
-  text.value += '\nGrace: Sushi';
+  text.value += '\nGrace | Sushi';
   text.dispatchEvent(new Event('input', { bubbles: true }));
   await settle(poll.el);
   expect(votes(framed(poll.el), 'Sushi')).toBe('2');

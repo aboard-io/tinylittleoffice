@@ -5,8 +5,9 @@
  * the person who opens it learns their own and nobody else's. The list's
  * own link shows every draw, so the organiser keeps it to themselves.
  */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest, seed } from '../lib/diagram.ts';
+import { readLines, writeLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1, seed } from '../lib/diagram.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { pageData, pageScript, xml } from '../kit/core.ts';
 import { hashOf } from '../kit/embed.ts';
 
@@ -25,19 +26,19 @@ export function draw(names: string[]): Record<string, string> {
   return Object.fromEntries(ring.map((n, i) => [n, ring[(i + 1) % ring.length]]));
 }
 
-/** One person's draw, as their own document: "= Ada > Grace". */
-export const ownDraw = (line: string) => /^=\s*(.+?)\s*>\s*(.+?)\s*$/.exec(line);
+const [TITLE, PERSON, DRAW] = [0, 1, 2];
 
-/** The link for one person's own draw. */
+/** The link for one person's own draw: a document of the title and that one draw, "~ Ada -> Grace". */
 export function linkFor(title: string, giver: string, to: string): string {
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
-  return `${site}santa/${hashOf('santa', `${title ? `# ${title}\n` : ''}= ${giver} > ${to}`)}`;
+  const own = writeLines([{ kind: TITLE, values: [title], depth: 0 }, { kind: DRAW, values: [giver, to], depth: 0 }], spec.form);
+  return `${site}santa/${hashOf('santa', own)}`;
 }
 
 function page(body: string): string {
   const title = h1(body) || 'Secret Santa';
-  const lines = rest(body);
-  const own = lines.map(ownDraw).find(Boolean);
+  const rows = readLines(body, spec.form);
+  const own = valuesOf(rows, DRAW)[0];
   const css = `main{max-width:32rem;margin:0 auto;padding:2.5rem 1.25rem;text-align:center}h1{font-size:1.8rem}p{color:#52525b}
 button{font:inherit;padding:.6rem 1.2rem;border:1px solid #e4e4e7;border-radius:999px;background:#fff;cursor:pointer}button:hover{background:#f4f4f5}
 #who{font-size:1.5rem;font-weight:700;color:#18181b;min-height:2.2rem}
@@ -45,7 +46,7 @@ button{font:inherit;padding:.6rem 1.2rem;border:1px solid #e4e4e7;border-radius:
 .links a{color:#4338ca;word-break:break-all;font-size:.85rem}.links a:focus,.links a:hover{text-decoration:underline}.note{background:#fef3c7;color:#78350f;border-radius:.6rem;padding:.6rem 1rem;font-size:.9rem}`;
   if (own) {
     // One person's page: their draw, shown when they ask, and hidden again after a moment.
-    const [, giver, to] = own;
+    const [giver, to] = own;
     const hidden = [...to].map((c) => c.charCodeAt(0) + 7);
     return htmlPage(
       title,
@@ -59,7 +60,7 @@ ${SCRIPT}`,
     );
   }
   // The organiser's page: a link for each person.
-  const names = [...new Set(lines.filter((l) => !ownDraw(l)))];
+  const names = [...new Set(valuesOf(rows, PERSON).map(([n]) => n))];
   const gives = names.length > 1 ? draw(names) : {};
   return htmlPage(
     title,
@@ -75,12 +76,15 @@ ${names.length > 1 ? `<ul class="links">${names.map((n) => `<li><b>${xml(n)}</b>
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Person', is: '{Name}' },
-    { name: 'One draw', is: '= {Who} > {Gives to}' },
+    { name: 'Person', is: '- {Name}' },
+    { name: 'One draw', is: '~ {Who} -> {Gives to}' },
   ] as LineKind[],
-  hint: '"# Title", then a name per line. The page gives you a link for each person that shows only their own draw. Send each theirs; keep this link to yourself.',
-  example: '# Office Secret Santa\nAda\nGrace\nAlan\nMargaret\nLinus',
+  hint: '"# Title", then the people as a list, "- Ada". The page gives you a link for each person that shows only their own draw. Send each theirs; keep this link to yourself.',
+  example: '# Office Secret Santa\n\n- Ada\n- Grace\n- Alan\n- Margaret\n- Linus',
   page,
 };
 
-export default definePage({ id: 'santa', name: 'Secret Santa', icon: 'santa', group: 'Collaborate', blurb: 'Secret Santa: names in; a private link out for each person, showing only who they give to.' }, spec);
+/** A name alone on its line is a person. */
+const read = (text: string) => tidy(text, spec.form, (line) => (line ? [PERSON, [line]] : null));
+
+export default definePage({ id: 'santa', name: 'Secret Santa', icon: 'santa', group: 'Collaborate', blurb: 'Secret Santa: names in; a private link out for each person, showing only who they give to.', read }, spec);

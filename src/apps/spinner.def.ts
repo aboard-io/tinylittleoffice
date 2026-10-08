@@ -1,6 +1,7 @@
 /** Spinner: a wheel of names or choices, to spin. */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { tidy, valuesOf } from '../lib/tidy.ts';
 import { pageData, pageScript, xml } from '../kit/core.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
@@ -14,11 +15,12 @@ document.getElementById('go').onclick = function () {
 };
 `);
 
-const COLORS = ['#4f46e5', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#db2777'];
+const CHOICE = 1;
+const COLORS =['#4f46e5', '#16a34a', '#ea580c', '#9333ea', '#dc2626', '#0891b2', '#ca8a04', '#db2777'];
 
 function page(body: string): string {
   const title = h1(body) || 'Spin';
-  const items = rest(body);
+  const items = valuesOf(readLines(body, spec.form), CHOICE).map(([c]) => c);
   const n = Math.max(1, items.length);
   const at = (i: number, r: number) => `${(Math.sin((i / n) * 2 * Math.PI) * r).toFixed(1)} ${(-Math.cos((i / n) * 2 * Math.PI) * r).toFixed(1)}`;
   const slices = items
@@ -40,11 +42,14 @@ ${SCRIPT}`,
 export const spec = {
   form: [
     { name: 'What is being decided', is: '# {What is being decided}', once: true },
-    { name: 'Choice', is: '{Choice}' },
+    { name: 'Choice', is: '- {Choice}' },
   ] as LineKind[],
-  hint: '"# What is being decided", then a line for each name or choice.',
-  example: '# Who buys lunch?\nAda\nGrace\nAlan\nMargaret\nLinus\nBarbara',
+  hint: '"# What is being decided", then the names or choices as a list, "- Ada".',
+  example: '# Who buys lunch?\n\n- Ada\n- Grace\n- Alan\n- Margaret\n- Linus\n- Barbara',
   page,
 };
 
-export default definePage({ id: 'spinner', name: 'Spinner', icon: 'spinner', group: 'Play', blurb: 'A wheel to spin: names or choices in, one picked at random.' }, spec);
+/** A choice alone on its line is a choice. */
+const read = (text: string) => tidy(text, spec.form, (line) => (line ? [CHOICE, [line]] : null));
+
+export default definePage({ id: 'spinner', name: 'Spinner', icon: 'spinner', group: 'Play', blurb: 'A wheel to spin: names or choices in, one picked at random.', read }, spec);

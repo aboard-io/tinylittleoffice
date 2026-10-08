@@ -52,7 +52,7 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
   },
   calc: {
     md: '## Mortgage\n\n- Price: 350,000\n- Deposit: 70,000\n- Interest rate: 6%\n- Term: 25 years\n',
-    check: (b) => assert.equal(b, '!mortgage\nprice = 350000\ndeposit = 70000\nrate = 6\nyears = 25'),
+    check: (b) => assert.equal(b, '---\nmode: mortgage\n---\n- price = 350000\n- deposit = 70000\n- rate = 6\n- years = 25'),
   },
   cal: {
     md: '- 2027-03-01 to 2027-03-03: Offsite\n- 2027-03-08: Launch day\n',

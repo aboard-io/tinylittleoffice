@@ -3,14 +3,15 @@
  * place to place), drawn as a Sankey diagram, with a slider for every
  * number you might want to change.
  *
- * A line "name = 1000 (0 to 5000)" is a number with a slider. A line
- * "From > To = formula" is a flow. A formula may use the sliders' names and
+ * A list item "- name = 1000 (0 to 5000)" is a number with a slider. An
+ * edge "~ From -> To: formula" is a flow. A formula may use the sliders' names and
  * the names of stocks: a stock's name stands for everything that has flowed
  * into it so far (or out of it, for one nothing flows into, unless a slider
  * has its name: then it is that number). Spaces in names become "_".
  */
-import type { Kind as LineKind } from '../lib/lines.ts';
-import { definePage, htmlPage, h1, rest } from '../lib/diagram.ts';
+import { readLines, type Kind as LineKind } from '../lib/lines.ts';
+import { definePage, htmlPage, h1 } from '../lib/diagram.ts';
+import { tidy } from '../lib/tidy.ts';
 import { pageData, pageScript, xml } from '../kit/core.ts';
 
 /** The page's script: fixed, so the site's CSP can allow it by hash (see pageScript). */
@@ -71,16 +72,23 @@ function draw() {
 document.getElementById('f').oninput = draw; draw();
 `);
 
+const [, FLOW, SLIDER] = [0, 1, 2];
 const id = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 export function parseFlow(body: string) {
   const sliders: { id: string; name: string; value: number; min: number; max: number; unit: string }[] = [];
   const flows: { from: string; to: string; formula: string }[] = [];
-  for (const l of rest(body)) {
-    const flow = /^(.+?)\s*>\s*(.+?)\s*=\s*(.+)$/.exec(l);
-    const slider = /^(.+?)\s*=\s*(-?[\d.]+)\s*(%?)\s*(?:\(\s*(-?[\d.]+)\s*(?:to|\.\.|-)\s*(-?[\d.]+)\s*\))?$/.exec(l);
-    if (flow) flows.push({ from: flow[1].trim(), to: flow[2].trim(), formula: flow[3].replace(/(\d)\s*%/g, '$1/100') });
-    else if (slider) sliders.push({ id: id(slider[1]), name: slider[1].trim(), value: +slider[2], unit: slider[3], min: +(slider[4] ?? 0), max: +(slider[5] ?? (slider[3] ? 100 : Math.max(10, +slider[2] * 2))) });
+  for (const r of readLines(body, spec.form)) {
+    if (r.kind === FLOW) {
+      const [from, to, formula] = r.values;
+      flows.push({ from, to, formula: formula.replace(/(\d)\s*%/g, '$1/100') });
+    } else if (r.kind === SLIDER) {
+      // "6%" is a rate, shown as a percentage; a slider whose value is not a number is no slider.
+      const [name, value, lo, hi] = r.values;
+      const unit = value.endsWith('%') ? '%' : '';
+      const v = Number(value.replace(/%$/, ''));
+      if (value && isFinite(v)) sliders.push({ id: id(name), name, value: v, unit, min: Number(lo) || 0, max: hi && isFinite(Number(hi)) ? Number(hi) : unit ? 100 : Math.max(10, v * 2) });
+    }
   }
   return { sliders, flows };
 }
@@ -160,13 +168,15 @@ ${SCRIPT}`,
 export const spec = {
   form: [
     { name: 'Title', is: '# {Title}', once: true },
-    { name: 'Flow', is: '{From} > {To} = {Formula}' },
-    { name: 'Slider', is: '{Name} = {Value}[ ({Lowest} to {Highest})]' },
-    { name: 'Line', is: '{Text}' },
+    { name: 'Flow', is: '~ {From} -> {To}: {Formula}' },
+    { name: 'Slider', is: '- {Name} = {Value}[ ({Lowest} to {Highest})]' },
   ] as LineKind[],
-  hint: '"name = 1000 (0 to 5000)" is a number with a slider ("5%" for a rate); "From > To = formula" is a flow. A formula can use slider names and the names of stocks (what has flowed in so far).',
-  example: '# A subscription business\nvisitors = 20000 (0 to 100000)\nsignup rate = 6% (0 to 30)\npaid rate = 25% (0 to 100)\nchurn = 8% (0 to 50)\nVisitors > Signups = visitors * signup rate\nVisitors > Bounced = visitors - visitors * signup rate\nSignups > Paying = signups * paid rate\nSignups > Free = signups - signups * paid rate\nPaying > Churned = paying * churn\nPaying > Retained = paying - paying * churn',
+  hint: '"- name = 1000 (0 to 5000)" is a number with a slider ("5%" for a rate); "~ From -> To: formula" is a flow. A formula can use slider names and the names of stocks (what has flowed in so far).',
+  example: '# A subscription business\n\n- visitors = 20000 (0 to 100000)\n- signup rate = 6% (0 to 30)\n- paid rate = 25% (0 to 100)\n- churn = 8% (0 to 50)\n\n~ Visitors -> Signups: visitors * signup rate\n~ Visitors -> Bounced: visitors - visitors * signup rate\n~ Signups -> Paying: signups * paid rate\n~ Signups -> Free: signups - signups * paid rate\n~ Paying -> Churned: paying * churn\n~ Paying -> Retained: paying - paying * churn',
   page,
 };
 
-export default definePage({ id: 'flow', name: 'Stock and flow', icon: 'flow', group: 'Track', blurb: 'A stock-and-flow model drawn as a Sankey diagram, with a slider for every assumption.' }, spec);
+/** A slider may come without its dash: "visitors = 20000". */
+const read = (text: string) => tidy(text, spec.form, (line) => ((r) => (r?.kind === SLIDER ? [SLIDER, r.values] : null))(readLines('- ' + line, spec.form)[0]));
+
+export default definePage({ id: 'flow', name: 'Stock and flow', icon: 'flow', group: 'Track', blurb: 'A stock-and-flow model drawn as a Sankey diagram, with a slider for every assumption.', read }, spec);
