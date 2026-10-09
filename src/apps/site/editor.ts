@@ -132,13 +132,16 @@ export class ToSiteEditor extends DocElement<Site> {
     clearTimeout(this.timer);
     this.timer = window.setTimeout(() => this.draw(), SETTLE);
   }
+  /** The document the page in the frame is (or is about to be) drawn from. */
+  private drawnFor: Doc | null = null;
   protected willUpdate(changed: Map<string, unknown>) {
-    const was = this.doc;
     super.willUpdate(changed);
-    if (!this.shown || this.doc !== was) {
-      if (this.doc !== was) this.cur = Math.min(this.cur, this.view.sections.length - 1);
-      this.shown ? this.drawSoon() : this.draw();
-    }
+    if (this.doc === this.drawnFor) return;
+    const first = !this.drawnFor;
+    this.drawnFor = this.doc;
+    this.cur = Math.max(0, Math.min(this.cur, this.view.sections.length - 1));
+    if (first) this.draw();
+    else this.drawSoon();
   }
   private onMessage = (e: MessageEvent) => {
     const m = e.data as FrameMessage | null;

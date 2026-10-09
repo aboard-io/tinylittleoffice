@@ -80,6 +80,8 @@ test('typing in the section in hand is ops on its own blocks; undo takes it back
   }
   expect(last()).toContain('- Espresso doppio | 3.00\n');
   expect(last()).toContain('## Coffee\n');
+  // The page in the frame is drawn again once the typing settles.
+  await until(() => frame(el).srcdoc.includes('Espresso doppio'));
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
   await settle(el);
   expect(last()).toBe(CAFE);
