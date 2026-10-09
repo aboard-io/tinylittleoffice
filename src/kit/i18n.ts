@@ -1,5 +1,5 @@
 /**
- * Every string a person sees goes through t(). English is the key: t('Find an app'). A language is a file
+ * Every string a person sees goes through t(). English is the key: t('Find app, template'). A language is a file
  * in src/i18n/ (en.ts is the list of every key, hand-edited; es.ts would map each key to Spanish), and the
  * browser chooses the one nearest navigator.languages, unless a choice was made in the menu.
  *

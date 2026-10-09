@@ -63,10 +63,19 @@ Strings: every string a person sees is `t('English words')`; English is the key,
 Deploy: `wrangler.jsonc` serves `dist/` as static assets on Cloudflare with `public/_headers`; the build
 output is deployable, but nothing here deploys.
 
+## Link and Display Link
+
+Share → **Link** copies the editing link; **Display Link** copies the same link with `?d` after the payload
+(`#/v1/<app>/<payload>?d`, never inside it), which opens the document as its pages, one under another, to
+read or print, with an Edit button that drops the flag. The QR code and a short link can carry either.
+
+A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the app's noun, the local date, and the
+first number the device's library leaves free that day); the name goes into the head with the first change.
+
 ## Living short links
 
-Share → "Shorter link that expires…" asks tinier.tinylittleoffice.com for a short link (an hour, a day, a
-week, a month or a year). The long link is encrypted in the browser with a random AES-256-GCM key; only the
+Share → "Short link…" asks tinier.tinylittleoffice.com for a short link (an hour, a day, a
+week, a month or a year), opening the editor or the pages. The long link is encrypted in the browser with a random AES-256-GCM key; only the
 ciphertext goes to the service, and the key travels in the short link's fragment (`#…`), which browsers never
 send to any server. Opening a short link fetches the ciphertext, decrypts it on the page, and goes to the
 document.

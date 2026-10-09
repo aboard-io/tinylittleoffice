@@ -1,11 +1,14 @@
-// The shell: the home page, the route to an app, the link following every edit, the title in the head, and the
-// documents kept on the device (Saved only) listed under their apps on the home page.
+// The shell: the home page, the route to an app, the link following every edit, the title in the head, a new
+// document's name, the Link and the Display Link, and the documents kept on the device (Saved only) listed
+// under their apps on the home page.
 import { test, expect, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
 import { apps } from '../../src/kit/apps.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
-import { keep, library } from '../../src/kit/library.ts';
+import { keep, library, localDay } from '../../src/kit/library.ts';
+import { encodeDoc } from '../../src/kit/codec.ts';
+import type { ToMenu } from '../../src/kit/menu.ts';
 import { keeping, setKeeping } from '../../src/kit/store.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
@@ -35,7 +38,10 @@ async function saved(body: () => Promise<void>) {
 
 afterEach(() => history.replaceState(null, '', location.pathname));
 
-test('the home page lists the apps as tiles, each with its templates', async () => {
+/** What a new document of Write is called today: "New Document 2026-10-09 #1". */
+const fresh = (n = 1) => `New Document ${localDay()} #${n}`;
+
+test('the home page lists the apps as rows, each with its templates', async () => {
   const shell = await mount('');
   const tile = shell.querySelector('.to-app')!;
   expect(tile.querySelector('b')!.textContent).toBe('Word Processor');
@@ -93,21 +99,23 @@ test('under Saved a document typed in Write is kept, listed under Write, opened 
     await type(shell, 'Launch notes');
     await until(() => library().length === 1);
     const first = library()[0];
-    expect(first).toMatchObject({ app: 'write', title: 'Launch notes', hash: location.hash });
+    // A new document is named at once, and kept by that name.
+    expect(first).toMatchObject({ app: 'write', title: fresh(), hash: location.hash });
     expect(history.state).toEqual({ kept: first.id });
     // The home page lists it under Write, with its time.
     shell = await mount('');
     const write = shell.querySelector('.to-app')!;
     const rows = write.querySelectorAll('.to-drive li');
     expect(rows).toHaveLength(1);
-    expect(rows[0].querySelector('.to-drive-open span')!.textContent).toBe('Launch notes');
+    expect(rows[0].querySelector('.to-drive-open span')!.textContent).toBe(fresh());
     expect(rows[0].querySelector('.to-drive-open small')!.textContent).toBe('now');
     expect(shell.querySelectorAll('.to-drive')).toHaveLength(1);
     // Opened from there, it is the document; a second edit is the same entry.
     rows[0].querySelector<HTMLAnchorElement>('.to-drive-open')!.click();
     await until(() => shell.querySelector('to-text .tx p')?.textContent === 'Launch notes');
     await type(shell, ', again', 'Launch notes'.length);
-    await until(() => library()[0].title === 'Launch notes, again');
+    await until(() => decodeDoc(library()[0].hash.split('/')[3]).includes('Launch notes, again'));
+    expect(library()[0].title).toBe(fresh());
     expect(library()).toHaveLength(1);
     expect(library()[0].id).toBe(first.id);
     shell = await mount('');
@@ -159,9 +167,10 @@ test('at 390px: one column, nothing wider than the screen, every tap target 44px
 test('a link opens its app, and every edit goes into the link', async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
-  // A document with no name is called by its app's noun, not the app's name.
-  expect(document.title).toBe('Untitled document · Tiny Little Office');
-  expect(shell.querySelector<HTMLInputElement>('.to-title')!.placeholder).toBe('Untitled document');
+  // A new document is named at once: shown in the title box and the tab, written nowhere until a change.
+  expect(document.title).toBe(`${fresh()} · Tiny Little Office`);
+  expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe(fresh());
+  expect(location.hash).toBe('#/v1/write');
   expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('New document');
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
@@ -173,7 +182,9 @@ test('a link opens its app, and every edit goes into the link', async () => {
   }
   await shell.updateComplete;
   expect(location.hash).toMatch(/^#\/v1\/write\/[ryz]/);
-  expect(decodeDoc(location.hash.split('/')[3])).toBe('Hello, link.\n');
+  // The first change carries the name into the head (the editor's own document is left as it was typed).
+  expect(decodeDoc(location.hash.split('/')[3])).toBe(`---\ntitle: ${fresh()}\n---\nHello, link.\n`);
+  expect(shell.editor!.value).toBe('Hello, link.\n');
   // The title field writes the head, and the tab's name follows.
   const title = shell.querySelector<HTMLInputElement>('.to-title')!;
   title.value = 'A note';
@@ -213,7 +224,7 @@ test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, t
   }
   await shell.updateComplete;
   const doc = () => decodeDoc(location.hash.split('/')[3] ?? '');
-  expect(doc()).toBe('abc\n');
+  expect(doc()).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
   const z = (target: EventTarget, init: KeyboardEventInit = {}) => {
     const ev = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true, ...init });
     target.dispatchEvent(ev);
@@ -232,10 +243,119 @@ test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, t
   expect(z(shell.querySelector('.to-title')!).defaultPrevented).toBe(false);
   expect(z(text.tx, { isComposing: true }).defaultPrevented).toBe(false);
   await shell.updateComplete;
-  expect(doc()).toBe('abc\n');
-  // In the words, the document's undo.
+  expect(doc()).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
+  // In the words, the document's undo; blank again, it is not named either.
   expect(z(text.tx).defaultPrevented).toBe(true);
   await text.updateComplete;
   await shell.updateComplete;
   expect(doc()).toBe('');
 });
+
+test('a document that arrives with no name is "Untitled"; a new one is numbered past the names the library holds for today', () =>
+  saved(async () => {
+    let shell = await mount(`#/v1/write/${encodeDoc('Old words\n')}`);
+    await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
+    expect(document.title).toBe('Untitled document · Tiny Little Office');
+    expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe('');
+    expect(shell.querySelector<HTMLInputElement>('.to-title')!.placeholder).toBe('Untitled document');
+    keep({ id: 'a', app: 'write', title: fresh(1), hash: '#/v1/write/ya', at: Date.now() });
+    keep({ id: 'b', app: 'write', title: fresh(3), hash: '#/v1/write/yb', at: Date.now() });
+    keep({ id: 'c', app: 'sheet', title: `New Spreadsheet ${localDay()} #2`, hash: '#/v1/sheet/yc', at: Date.now() });
+    shell = await mount('#/v1/write');
+    const box = shell.querySelector<HTMLInputElement>('.to-title')!;
+    expect(box.value).toBe(fresh(2));
+    // Edited, the name is chosen whole, to be typed over.
+    box.focus();
+    expect([box.selectionStart, box.selectionEnd]).toEqual([0, fresh(2).length]);
+    shell = await mount('#/v1/sheet');
+    expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe(`New Spreadsheet ${localDay()} #1`);
+  }));
+
+test('Share offers Link and Display Link; the Display Link shows the pages, no editor and no bar, and Edit goes back', async () => {
+  const payload = encodeDoc('---\ntitle: Notes\n---\nFirst words.\n');
+  const shell = await mount(`#/v1/write/${payload}`);
+  await until(() => !!shell.querySelector('to-write-editor'));
+  const items = shell.querySelector<ToMenu>('to-menu.to-share')!.items;
+  expect(items.slice(0, 2).map((i) => i.label)).toEqual(['Link', 'Display Link']);
+  for (const i of items) expect(i.label.split(' ').length).toBeLessThanOrEqual(2);
+  const base = `${location.origin}${location.pathname}#/v1/write/${payload}`;
+  expect(shell.link).toBe(base);
+  expect(shell.displayLink).toBe(`${base}?d`);
+  let copied = '';
+  const clip = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async (s: string) => void (copied = s);
+  try {
+    items[1].does();
+    await until(() => copied === `${base}?d`);
+    items[0].does();
+    await until(() => copied === base);
+  } finally {
+    navigator.clipboard.writeText = clip;
+  }
+  // The QR code holds either.
+  items.find((i) => i.label === 'QR code')!.does();
+  const qr = shell.querySelector('to-dialog.to-qr')!;
+  await until(() => !!qr.querySelector('.to-which button'));
+  const which = [...qr.querySelectorAll<HTMLButtonElement>('.to-which button')];
+  expect(which.map((b) => [b.textContent!.trim(), b.getAttribute('aria-pressed')])).toEqual([['Link', 'true'], ['Display Link', 'false']]);
+  const before = qr.querySelector('.to-qr-code')!.innerHTML;
+  which[1].click();
+  await until(() => qr.querySelector('.to-qr-code')!.innerHTML !== before);
+  expect(qr.querySelectorAll('.to-which button')[1].getAttribute('aria-pressed')).toBe('true');
+  qr.querySelector('dialog')?.close();
+
+  // Opened as the Display Link: the pages, the title, Edit; no header, no bar, no editor.
+  const display = await mount(`#/v1/write/${payload}?d`);
+  await until(() => !!display.querySelector('.to-display-page svg'));
+  expect(display.querySelector('.to-header, to-bar, to-write-editor, to-drawer')).toBeNull();
+  expect(display.querySelector('.to-display-title')!.textContent).toBe('Notes');
+  expect(display.querySelector('.to-display')!.textContent).toContain('First words.');
+  expect(document.title).toBe('Notes · Tiny Little Office');
+  const edit = display.querySelector<HTMLAnchorElement>('.to-display-edit')!;
+  expect(edit.getAttribute('href')).toBe(`#/v1/write/${payload}`);
+  edit.click();
+  await until(() => !!display.querySelector('to-write-editor to-text .tx p'));
+  expect(display.querySelector('.to-display')).toBeNull();
+  expect(display.querySelector('to-write-editor to-text .tx p')!.textContent).toBe('First words.');
+});
+
+test('a Display Link at 390px: the pages fit the screen', async () => {
+  await page.viewport(390, 844);
+  try {
+    const shell = await mount(`#/v1/write/${encodeDoc('Words on a phone.\n')}?d`);
+    await until(() => !!shell.querySelector('.to-display-page svg'));
+    await tick(50);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    const svg = shell.querySelector('.to-display-page svg')!.getBoundingClientRect();
+    expect(svg.width).toBeGreaterThan(300);
+    expect(svg.right).toBeLessThanOrEqual(390);
+    expect(shell.querySelector<HTMLElement>('.to-display-edit')!.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  } finally {
+    await page.viewport(1100, 800);
+  }
+});
+
+test('home rows at 1100 and at 390: one column of full-width rows, the same shape, no cards', () =>
+  saved(async () => {
+    keep({ id: 'x', app: 'write', title: 'Kept here', hash: '#/v1/write/yx', at: Date.now() });
+    const shapes: { lefts: number; widths: number[]; border: string; shadow: string }[] = [];
+    for (const [w, h] of [[1100, 800], [390, 844]] as const) {
+      await page.viewport(w, h);
+      const shell = await mount('');
+      await tick(50);
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+      const rows = [...shell.querySelectorAll<HTMLElement>('.to-app')];
+      const main = shell.querySelector('.to-home')!.getBoundingClientRect();
+      for (const r of rows) expect(Math.round(r.getBoundingClientRect().width)).toBe(Math.round(main.width));
+      const css = getComputedStyle(rows[0]);
+      shapes.push({ lefts: new Set(rows.map((r) => Math.round(r.getBoundingClientRect().left))).size, widths: [], border: css.borderTopWidth + css.borderLeftWidth, shadow: css.boxShadow });
+      // The documents sit under their app, indented past its icon.
+      const doc = rows[0].querySelector('.to-drive-open')!.getBoundingClientRect();
+      expect(doc.left).toBeGreaterThan(rows[0].querySelector('.to-app-open')!.getBoundingClientRect().left + 20);
+      // A thin rule between rows.
+      expect(css.borderBottomWidth).toBe('1px');
+    }
+    expect(shapes[0]).toEqual(shapes[1]);
+    expect(shapes[0]).toEqual({ lefts: 1, widths: [], border: '0px0px', shadow: 'none' });
+    await page.viewport(1100, 800);
+  }));

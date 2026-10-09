@@ -1,6 +1,6 @@
 /**
  * The smoke run on the built site, at desktop size in Chromium and at iPhone size (390 by 844) in WebKit:
- * the home page loads, the Word Processor opens from it, nothing throws, nothing is wider than the screen, and
+ * the home page loads, the Word Processor opens from it (named at once), its Display Link reads, nothing throws, nothing is wider than the screen, and
  * axe finds nothing. With SHOTS set, a screenshot of each goes there (the phone's are the report's).
  */
 import { test, expect, type Page } from '@playwright/test';
@@ -33,6 +33,8 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   await page.keyboard.type('A line written on the phone.');
   await expect(page).toHaveURL(/#\/v1\/write\/[ryz]/);
   await expect(area.locator('p')).toHaveText('A line written on the phone.');
+  // A new document has its name from the start: "New Document <today> #1".
+  await expect(page.locator('.to-title')).toHaveValue(/^New Document \d{4}-\d{2}-\d{2} #1$/);
   await page.locator('.to-title').fill('Hello');
   await page.locator('.to-title').press('Enter');
   await expect(page).toHaveTitle('Hello · Tiny Little Office');
@@ -46,6 +48,19 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   await page.keyboard.press('Escape');
   await expect(page.locator('to-insert [role=menu]')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Insert' })).toBeFocused();
+
+  // The Display Link: the pages to read, no editor, nothing wider than the screen; a tap on Edit goes back.
+  const editing = page.url();
+  await page.goto(`${editing}?d`);
+  await page.reload();
+  await expect(page.locator('.to-display-page svg')).toBeVisible();
+  await expect(page.locator('to-write-editor')).toHaveCount(0);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await shot(page, 'display');
+  expect((await axe(page)).violations).toEqual([]);
+  await page.locator('.to-display-edit').click();
+  await expect(area).toBeVisible();
+  await expect(area.locator('p')).toHaveText('A line written on the phone.');
 
   // The drawer opens; the Theme select turns the page dark.
   await page.locator('.to-burger').click();

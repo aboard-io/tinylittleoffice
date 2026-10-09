@@ -37,7 +37,6 @@ export default {
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Apps',
-  'Find an app': 'Find an app',
   'Close': 'Close',
   'Private': 'Private',
   'Private: nothing saved': 'Private: nothing saved',

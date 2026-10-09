@@ -479,10 +479,10 @@ export class ToShell extends LitElement {
   /** The Display Link: the pages one under another, to read or print; a line with the title and Edit above them. */
   private renderDisplay(def: AppDef) {
     const { payload } = parseHash(location.hash);
-    return html`<div class="to-display-head">
+    return html`<header class="to-display-head">
         <h1 class="to-display-title">${this.docTitle}</h1>
         <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
-      </div>
+      </header>
       <main class="to-display">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</main>
       <to-toast></to-toast>`;
   }

@@ -3,7 +3,7 @@ import { test, expect } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { apps } from '../../src/kit/apps.ts';
 
-test('the hamburger opens the drawer, Find filters the apps, Escape closes it', async () => {
+test('the hamburger opens the drawer, the apps are rows with their templates, Find narrows them, Escape closes it', async () => {
   const shell = await mount('');
   const burger = shell.querySelector<HTMLButtonElement>('.to-burger')!;
   burger.focus();
@@ -12,14 +12,20 @@ test('the hamburger opens the drawer, Find filters the apps, Escape closes it', 
   await until(() => dialog.open);
   expect(document.activeElement).toBe(shell.querySelector('.to-find'));
   const find = shell.querySelector<HTMLInputElement>('.to-find')!;
-  expect(shell.querySelectorAll('.to-drawer-apps a').length).toBe(apps().length);
+  // Nothing kept (Private): apps and templates are what there is to find.
+  expect(find.placeholder).toBe('Find app, template');
+  const rows = [...shell.querySelectorAll('.to-drawer-apps .to-app-head')];
+  expect(rows.map((r) => r.querySelector('.to-app-open span')!.textContent)).toEqual(apps().map((a) => a.name));
+  for (const r of rows) expect(r.querySelector('to-templates .to-templates-btn')).not.toBeNull();
   find.value = 'zzz';
   find.dispatchEvent(new Event('input', { bubbles: true }));
   await until(() => shell.querySelectorAll('.to-drawer-apps a').length === 0);
-  expect(shell.querySelector('.to-drawer-apps .to-hint')!.textContent).toBe('No app by that name');
+  expect(shell.querySelector('.to-drawer-apps .to-hint')!.textContent).toBe('Nothing by that name');
   find.value = 'processor';
   find.dispatchEvent(new Event('input', { bubbles: true }));
-  await until(() => shell.querySelectorAll('.to-drawer-apps a').length === 1);
+  await until(() => shell.querySelectorAll('.to-drawer-apps h3').length > 0);
+  expect(shell.querySelectorAll('.to-drawer-apps h3')[0].textContent).toBe('Apps');
+  expect(shell.querySelector('.to-drawer-apps a span')!.textContent).toBe('Word Processor');
   // The switches and the selects are there.
   expect(shell.querySelectorAll('.to-drawer input[role=switch]').length).toBe(2);
   expect(shell.querySelectorAll('.to-drawer select').length).toBe(2);
@@ -28,6 +34,63 @@ test('the hamburger opens the drawer, Find filters the apps, Escape closes it', 
   dialog.close();
   await until(() => !dialog.open);
   await until(() => document.activeElement === burger);
+});
+
+test('Find finds apps, templates by name or app, and kept documents by title, each under its heading; Enter opens the first', async () => {
+  const { setPrivate } = await import('../../src/kit/privacy.ts');
+  const { keep } = await import('../../src/kit/library.ts');
+  await setPrivate(false);
+  try {
+    keep({ id: 'm', app: 'write', title: 'Meeting with the printers', hash: '#/v1/write/ymeet', at: Date.now() });
+    const shell = await mount('#/v1/sheet');
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
+    await until(() => dialog.open);
+    const find = shell.querySelector<HTMLInputElement>('.to-find')!;
+    expect(find.placeholder).toBe('Find app, template, or doc');
+    find.value = 'meeting';
+    find.dispatchEvent(new Event('input', { bubbles: true }));
+    await until(() => shell.querySelectorAll('.to-drawer-apps h3').length === 2);
+    expect([...shell.querySelectorAll('.to-drawer-apps h3')].map((h) => h.textContent)).toEqual(['Templates', 'Documents']);
+    const found = [...shell.querySelectorAll<HTMLAnchorElement>('.to-drawer-apps a.to-found')];
+    const names = found.map((a) => a.querySelector('.to-found-words span')!.textContent);
+    expect(names).toContain('Meeting notes');
+    expect(found[names.indexOf('Meeting notes')].querySelector('small')!.textContent).toBe('Word Processor');
+    // The documents come last, under their heading, each with its app.
+    expect(names.at(-1)).toBe('Meeting with the printers');
+    expect(found.at(-1)!.getAttribute('href')).toBe('#/v1/write/ymeet');
+    // A template by its app's name: every Word Processor template.
+    find.value = 'word processor';
+    find.dispatchEvent(new Event('input', { bubbles: true }));
+    await until(() => shell.querySelectorAll('.to-drawer-apps a.to-found').length > 2);
+    expect(shell.querySelectorAll('.to-drawer-apps a.to-found').length).toBe(1 + apps().find((a) => a.id === 'write')!.templates.length);
+    // Enter opens the first, and the drawer closes as the document opens.
+    find.value = 'meeting';
+    find.dispatchEvent(new Event('input', { bubbles: true }));
+    await until(() => shell.querySelectorAll('.to-drawer-apps a.to-found').length === found.length);
+    const first = shell.querySelector<HTMLAnchorElement>('.to-drawer-apps a.to-found')!.getAttribute('href')!;
+    find.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await until(() => location.hash === first);
+    await until(() => !dialog.open);
+  } finally {
+    await setPrivate(true);
+    history.replaceState(null, '', location.pathname);
+  }
+});
+
+test('a template from inside an app: the drawer\'s rows carry the templates listbox, and choosing one opens it and closes the drawer', async () => {
+  const shell = await mount('#/v1/sheet');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
+  await until(() => dialog.open);
+  const row = shell.querySelectorAll('.to-drawer-apps .to-app-head')[0];
+  row.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
+  await until(() => !!row.querySelector('[role=option] svg'));
+  const options = [...row.querySelectorAll<HTMLElement>('[role=option]')];
+  options[1].click();
+  await until(() => location.hash.startsWith('#/v1/write/'));
+  await until(() => !dialog.open);
+  history.replaceState(null, '', location.pathname);
 });
 
 test('Cancel on "Save nothing on this device" leaves things kept and puts the switch back on', async () => {
