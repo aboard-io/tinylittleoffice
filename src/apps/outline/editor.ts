@@ -56,7 +56,7 @@ export const tag = 'to-outline-editor';
 export const DIR_NAME: Record<Dir, () => string> = { '--': () => t('a plain line'), '->': () => t('an arrow from the parent'), '<-': () => t('an arrow to the parent'), '<->': () => t('arrows both ways') };
 const DIR_ICON: Record<Dir, typeof ArrowRight | null> = { '--': null, '->': ArrowRight, '<-': ArrowLeft, '<->': ArrowLeftRight };
 
-/** A TinyLittleOffice link as a ref ("<app>\n<text>"), or null when the words are not one. */
+/** A Tiny Little Office link as a ref ("<app>\n<text>"), or null when the words are not one. */
 export function refOfLink(words: string): string | null {
   const s = words.trim();
   if (!/^https?:\/\/\S+#\/v\d+\//.test(s)) return null;
@@ -371,7 +371,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     // Joins name items by their words, so they follow a renamed item.
     const now = after && isText(after) ? nameOf(after.runs) : '';
     const renames = was && now !== was ? renameIn(doc, readOutline(doc), was, now) : [];
-    // A TinyLittleOffice link pasted as an item is that document, under this item.
+    // A Tiny Little Office link pasted as an item is that document, under this item.
     const link = after?.k === 'li' ? refOfLink(plainText(after.runs)) : null;
     const asDoc: Op[] = link && after?.k === 'li' ? [{ op: 'splice', at: where, n: 1, blocks: [docBlock(after.depth, link)] }] : [];
     this.edit([...all, ...renames, ...asDoc], kind === 'type' && !asDoc.length ? `type:${where}` : undefined);

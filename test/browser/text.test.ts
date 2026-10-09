@@ -265,7 +265,7 @@ test('the selection round trip: every offset of every kind of block comes back a
   expect(domSel().text).toBe('ead\nSom');
 });
 
-test('paste, each source: our HTML, a TinyLittleOffice link, an address, HTML from elsewhere, Markdown, words', async () => {
+test('paste, each source: our HTML, a Tiny Little Office link, an address, HTML from elsewhere, Markdown, words', async () => {
   const h = await mount('ab\n', 'doc', caret(0, 1));
   await paste(h, { 'text/plain': '# T\n\n- i\n', 'text/html': '<meta name="generator" content="TinyLittleOffice"><h1>T</h1>' });
   expect(h.tlo).toBe('aT\n\n- ib\n');

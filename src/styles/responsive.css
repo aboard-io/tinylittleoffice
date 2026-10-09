@@ -5,9 +5,6 @@
     :root {
       --to-gutter: 12px;
     }
-    .to-tiles {
-      grid-template-columns: 1fr;
-    }
     .to-dialog,
     .to-ask-dialog .to-dialog {
       width: calc(100vw - 16px);

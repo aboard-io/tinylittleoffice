@@ -1,9 +1,11 @@
 /**
- * <to-home>: the apps, as tiles, in the registry's order: each its icon and name (open it blank), a listbox
+ * <to-home>: the apps, as rows, in the registry's order: each its icon and name (open it blank), a listbox
  * of its templates to the right of its name (Blank first and chosen, each drawn small from its own document; choosing one opens the
  * app with that document), and under it the documents of that app kept on this device (kit/library.ts),
  * newest first. No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
- * in that format … Drive is just documents under the icons. No descriptions of apps.")
+ * in that format … Drive is just documents under the icons. No descriptions of apps.") Rows the width of
+ * the page, not cards, so it looks on a desktop as it does on a phone (round four: "Don't make apps into cards.
+ * Just make them into rows with docs below."). <to-templates> is the drawer's too.
  */
 import { LitElement, html, nothing } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -154,16 +156,16 @@ export class ToHome extends LitElement {
   render() {
     const kept = library();
     return html`<div class="to-home">
-      <h1 class="sr-only">TinyLittleOffice</h1>
-      <div class="to-tiles">
+      <h1 class="sr-only">Tiny Little Office</h1>
+      <div class="to-apps">
         ${apps().map(
-          (a) => html`<article class="to-tile">
-            <div class="to-tile-head">
-              <a class="to-tile-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<b>${a.name}</b></a>
+          (a) => html`<section class="to-app" aria-label=${a.name}>
+            <div class="to-app-head">
+              <a class="to-app-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<b>${a.name}</b></a>
               <to-templates .app=${a}></to-templates>
             </div>
             ${this.drive(a, kept.filter((k) => k.app === a.id))}
-          </article>`,
+          </section>`,
         )}
       </div>
     </div>`;

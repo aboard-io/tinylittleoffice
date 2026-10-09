@@ -76,7 +76,7 @@ export function embedOf(url: string): Embed | null {
   const host = at.hostname.toLowerCase().replace(/^(?:www|m|mobile)\./, '');
   const path = at.pathname;
   const q = at.searchParams;
-  // A TinyLittleOffice link is a document, never a thing from the web (the clipboard reads those).
+  // A Tiny Little Office link is a document, never a thing from the web (the clipboard reads those).
   if (host === 'tinylittleoffice.com' || host.endsWith('.tinylittleoffice.com')) return null;
   const file = (kind: EmbedKind): Embed => ({ kind, provider: host, src: u, title: decodeURIComponent(path.split('/').pop()!), url: u, file: true });
   const frame = (kind: EmbedKind, provider: string, src: string, title: string, h?: number): Embed => ({ kind, provider, src, title, url: u, ...(h ? { h } : {}) });

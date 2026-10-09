@@ -30,7 +30,7 @@ function afterBuild(site: string): Plugin {
       const dist = resolve(import.meta.dirname, 'dist');
       const shell = readFileSync(resolve(dist, 'index.html'), 'utf8');
       for (const app of apps()) {
-        const title = `${app.name} · TinyLittleOffice`;
+        const title = `${app.name} · Tiny Little Office`;
         const page = shell
           .replace(/(src|href)="\.\//g, '$1="../')
           .replace(/<title>[^<]*<\/title>/, `<title>${attr(title)}</title>`)

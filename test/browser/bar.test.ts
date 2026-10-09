@@ -38,3 +38,19 @@ test('tool() and btn() are named buttons, 44px to the finger, with a state when 
   expect(b.textContent!.trim()).toBe('Insert');
   expect(b.hasAttribute('aria-pressed')).toBe(false);
 });
+
+test('a label in the bar is one line, however narrow the bar; a hint is the tooltip', async () => {
+  document.body.innerHTML = '<div style="width:120px"><to-bar></to-bar></div>';
+  const bar = document.querySelector<HTMLElement>('to-bar')!;
+  render(html`${btn({ label: 'Background', hint: 'Use as background', icon: UI.image })}${btn({ label: 'Two words' })}`, bar);
+  const buttons = [...bar.querySelectorAll<HTMLButtonElement>('button')];
+  for (const b of buttons) {
+    const span = b.querySelector('span')!;
+    expect(getComputedStyle(span).whiteSpace).toBe('nowrap');
+    // One line: as tall as one line of its type.
+    expect(span.getBoundingClientRect().height).toBeLessThan(parseFloat(getComputedStyle(span).fontSize) * 2);
+  }
+  expect(buttons[0].title).toBe('Use as background');
+  expect(buttons[0].textContent!.trim()).toBe('Background');
+  expect(buttons[1].hasAttribute('title')).toBe(false);
+});

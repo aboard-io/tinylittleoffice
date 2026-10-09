@@ -26,9 +26,9 @@ test('placeholders and plurals, in English', () => {
 });
 
 test('another language: its words, its plural forms, its number', async () => {
-  register('pl', { '{n|one slide|# slides}': '{n|# slajd|# slajdy|# slajdów|# slajdu}', 'Find an app': 'Znajdź aplikację' });
+  register('pl', { '{n|one slide|# slides}': '{n|# slajd|# slajdy|# slajdów|# slajdu}', 'Find app, template': 'Znajdź aplikację' });
   await setLanguage('pl');
-  expect(t('Find an app')).toBe('Znajdź aplikację');
+  expect(t('Find app, template')).toBe('Znajdź aplikację');
   expect(t('{n|one slide|# slides}', { n: 1 })).toBe('1 slajd');
   expect(t('{n|one slide|# slides}', { n: 3 })).toBe('3 slajdy');
   expect(t('{n|one slide|# slides}', { n: 5 })).toBe('5 slajdów');
@@ -36,7 +36,7 @@ test('another language: its words, its plural forms, its number', async () => {
   // A key the dictionary lacks falls back to English.
   expect(t('Menu')).toBe('Menu');
   await setLanguage(null);
-  expect(t('Find an app')).toBe('Find an app');
+  expect(t('Find app, template')).toBe('Find app, template');
 });
 
 test('the browser language is matched to what is present', () => {

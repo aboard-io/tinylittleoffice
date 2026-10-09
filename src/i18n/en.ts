@@ -37,8 +37,6 @@ export default {
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Apps',
-  'Find an app': 'Find an app',
-  'No app by that name': 'No app by that name',
   'Close': 'Close',
   'Private': 'Private',
   'Private: nothing saved': 'Private: nothing saved',
@@ -54,7 +52,7 @@ export default {
   'Light': 'Light',
   'Dark': 'Dark',
   'About': 'About',
-  'About TinyLittleOffice': 'About TinyLittleOffice',
+  'About Tiny Little Office': 'About Tiny Little Office',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.',
   'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.',
 
@@ -69,7 +67,6 @@ export default {
   '{mb} MB': '{mb} MB',
 
   // ---- sharing ----
-  'Copy link': 'Copy link',
   'Link copied': 'Link copied',
   'Could not copy': 'Could not copy',
   'Share…': 'Share…',
@@ -77,7 +74,6 @@ export default {
   'QR code of this document': 'QR code of this document',
   'The whole document, {n} bytes, as one code. Anyone who scans it has it.': 'The whole document, {n} bytes, as one code. Anyone who scans it has it.',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.',
-  'Shorter link that expires…': 'Shorter link that expires…',
   'A shorter link that expires': 'A shorter link that expires',
   'The link is encrypted here; the key stays in the short link, which browsers never send. The service holds only the ciphertext, until the time you choose.': 'The link is encrypted here; the key stays in the short link, which browsers never send. The service holds only the ciphertext, until the time you choose.',
   'Expires after': 'Expires after',
@@ -107,7 +103,6 @@ export default {
   'Update the short link': 'Update the short link',
   'Updating…': 'Updating…',
   'Updated · version {n}': 'Updated · version {n}',
-  'Extend the short link…': 'Extend the short link…',
   'Extend': 'Extend',
   'Forget this link': 'Forget this link',
   'Forget this short link? Anyone who has it will find nothing there.': 'Forget this short link? Anyone who has it will find nothing there.',
@@ -150,7 +145,7 @@ export default {
   'Downloaded {name}': 'Downloaded {name}',
   'Download failed': 'Download failed',
   'No .{ext} view here': 'No .{ext} view here',
-  'Open in TinyLittleOffice': 'Open in TinyLittleOffice',
+  'Open in Tiny Little Office': 'Open in Tiny Little Office',
 
   // ---- the bar, shared by every app ----
   'Insert': 'Insert',
@@ -455,7 +450,6 @@ export default {
   'Shapes': 'Shapes',
   'More': 'More',
   'Icon…': 'Icon…',
-  'Pixels, {n} by {n}': 'Pixels, {n} by {n}',
   'Background': 'Background',
   'Remove the background tile': 'Remove the background tile',
   'Colour': 'Colour',
@@ -1250,4 +1244,21 @@ export default {
   'One of the words the column holds, or a new one': 'One of the words the column holds, or a new one',
   'Option': 'Option',
   'The sheet has one': 'The sheet has one',
+  'A longer life': 'A longer life',
+  'Copied, it opens the editor': 'Copied, it opens the editor',
+  'Copied, it opens the pages to read': 'Copied, it opens the pages to read',
+  'Display Link': 'Display Link',
+  'Documents': 'Documents',
+  'Expires when you choose': 'Expires when you choose',
+  'Extend…': 'Extend…',
+  'Find app, template': 'Find app, template',
+  'Find app, template, or doc': 'Find app, template, or doc',
+  'Give it this version': 'Give it this version',
+  'New {noun} {date} #{n}': 'New {noun} {date} #{n}',
+  'Nothing by that name': 'Nothing by that name',
+  'Nothing left there': 'Nothing left there',
+  'Opens': 'Opens',
+  'Pixels {n}×{n}': 'Pixels {n}×{n}',
+  'Short link…': 'Short link…',
+  'Update': 'Update',
 } satisfies Strings;

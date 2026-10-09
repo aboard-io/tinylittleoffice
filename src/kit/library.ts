@@ -91,3 +91,19 @@ export function ago(at: number, lang?: string, now = Date.now()): string {
   const d = new Date(at);
   return d.toLocaleDateString(lang || undefined, { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date(now).getFullYear() ? { year: 'numeric' } : {}) });
 }
+
+/** A day as "2026-10-09", in the device's own time zone. */
+export const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * The first number from 1 that no title of the form `name` takes, `name` holding "{n}" where the number
+ * goes ("New Spreadsheet 2026-10-09 #{n}"): how a new document is named so that it is told apart from the
+ * others of its app made that day (Paul, 2026-10-09).
+ */
+export function firstFree(titles: string[], name: string): number {
+  const [before, after = ''] = name.split('{n}');
+  const taken = new Set(titles.filter((s) => s.startsWith(before) && s.endsWith(after) && s.length > before.length + after.length).map((s) => s.slice(before.length, s.length - after.length)).filter((n) => /^\d+$/.test(n)).map(Number));
+  let n = 1;
+  while (taken.has(n)) n++;
+  return n;
+}

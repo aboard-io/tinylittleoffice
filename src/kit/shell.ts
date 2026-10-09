@@ -2,7 +2,12 @@
  * <to-shell>: owns the URL. Routes "#/v1/<app>/<payload>" to an app, hands its editor the document's text,
  * and writes every change back into the link with history.replaceState, so the address bar is always the
  * document and nothing is ever sent anywhere. The header holds the title, the room left in the link,
- * Share and Download; the hamburger opens <to-drawer>; the home page is <to-home>.
+ * Share and Download; the hamburger opens <to-drawer>; the home page is <to-home>. A Display Link ("?d",
+ * kit/route.ts) shows the document's pages instead, to read or print, with an Edit button.
+ *
+ * A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the first number that day's documents
+ * of the app in the library leave free): the name is shown in the title box and goes into the head with the
+ * first change, so a blank page left alone writes nothing (Paul, 2026-10-09).
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -18,7 +23,8 @@ import { roomFor, roomRows, shortLinkLength } from './limits.ts';
 import { EXPIRIES, forget, ownerLink, shorten, shortLink, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
 import { keeping } from './privacy.ts';
-import { firstWords, keep, library, type Kept } from './library.ts';
+import { firstFree, firstWords, keep, library, localDay, type Kept } from './library.ts';
+import { pageSvg } from './draw.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, shareNative } from './share.ts';
 import { toast } from './toast.ts';
@@ -34,7 +40,7 @@ import './home.ts';
 type Which = 'doc' | 'qr' | 'short';
 
 export class ToShell extends LitElement {
-  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true } };
+  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true } };
   declare app: string | null;
   declare doc: Doc;
   /** The editor element's tag, once its chunk has arrived. */
@@ -48,6 +54,15 @@ export class ToShell extends LitElement {
   declare owned: Owned | null;
   /** Edited since the short link last had this document. */
   declare changed: boolean;
+  /** Shown as its pages (the Display Link), not in the editor. */
+  declare display: boolean;
+  /** A new document's name, until it is given one or another: "New Spreadsheet 2026-10-09 #1"; '' otherwise. */
+  declare fresh: string;
+  /** Which link the QR code holds, and which a short link opens: the Display Link, or the editing one. */
+  declare qrDisplay: boolean;
+  declare shortDisplay: boolean;
+  /** What the editor was last given or gave: the document without the new name the link carries for it. */
+  private edited: Doc = '';
   private offLanguage = () => {};
   /** A view asked for in the link ("text.png/…"): done once the editor is up. */
   private pendingView = '';
@@ -69,6 +84,10 @@ export class ToShell extends LitElement {
     this.busy = false;
     this.owned = null;
     this.changed = false;
+    this.display = false;
+    this.fresh = '';
+    this.qrDisplay = false;
+    this.shortDisplay = false;
   }
   createRenderRoot() {
     return this;
@@ -104,7 +123,7 @@ export class ToShell extends LitElement {
 
   private onHash = () => {
     this.flushKeep();
-    const { app, payload, view, owned } = parseHash(location.hash);
+    const { app, payload, view, owned, display } = parseHash(location.hash);
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     const def = id ? appOf(id) : undefined;
     this.app = def ? id : null;
@@ -114,6 +133,11 @@ export class ToShell extends LitElement {
     this.payloadLength = payload.length;
     this.unreadable = !!payload && !decodeDoc(payload);
     this.doc = def ? (payload ? decodeDoc(payload) : def.blank()) : '';
+    this.edited = this.doc;
+    this.display = !!def && display && !!payload;
+    // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
+    if (owned && display) this.shortDisplay = true;
+    this.fresh = def && !payload ? this.newName(def) : '';
     const state = history.state as { kept?: unknown } | null;
     const hash = def && payload ? routeHash(def.id, payload) : '';
     this.keptId = typeof state?.kept === 'string' ? state.kept : hash ? (library().find((k) => k.hash === hash)?.id ?? null) : null;
@@ -152,7 +176,21 @@ export class ToShell extends LitElement {
     this.changed = true;
     this.setTitle();
   }
-  private onDocChange = (e: Event) => this.change((e as DocChange).detail);
+  /** The editor's change; a new document takes its name with the first one (and not while it is blank again). */
+  private onDocChange = (e: Event) => {
+    const doc = (e as DocChange).detail;
+    const def = this.def;
+    this.edited = doc;
+    this.change(def && this.fresh && doc !== def.blank() && !def.title(doc) ? def.retitle(doc, this.fresh) : doc);
+  };
+  /** "New Spreadsheet 2026-10-09 #2": the app's noun, today, and the first number the library leaves free. */
+  private newName(def: AppDef): string {
+    const lang = document.documentElement.lang || undefined;
+    const noun = def.noun.charAt(0).toLocaleUpperCase(lang) + def.noun.slice(1);
+    const name = t('New {noun} {date} #{n}', { noun, date: localDay() });
+    const n = firstFree(library().filter((k) => k.app === def.id).map((k) => k.title), name);
+    return name.replace('{n}', String(n));
+  }
 
   /* ---------- the library ---------- */
 
@@ -165,7 +203,7 @@ export class ToShell extends LitElement {
    */
   private keepSoon(payload: string) {
     const def = this.def;
-    if (!def || !keeping() || !this.doc.trim() || this.doc === def.blank()) return;
+    if (!def || !keeping() || !this.doc.trim() || this.doc === def.blank() || this.edited === def.blank()) return;
     this.keptId ??= crypto.randomUUID();
     this.pending = { id: this.keptId, app: def.id, title: def.title(this.doc) || firstWords(this.doc), hash: routeHash(def.id, payload), at: Date.now() };
     clearTimeout(this.keepTimer);
@@ -181,21 +219,32 @@ export class ToShell extends LitElement {
 
   private setTitle() {
     const def = this.def;
-    document.title = def ? `${this.docTitle} · TinyLittleOffice` : 'TinyLittleOffice';
+    document.title = def ? `${this.docTitle} · Tiny Little Office` : 'Tiny Little Office';
   }
-  /** What the document is called: the name it was given, or "Untitled presentation". */
+  /** What the document is called: the name it was given, a new one's name, or "Untitled presentation" (a link that came with none). */
   private get docTitle(): string {
     const def = this.def;
-    return def ? def.title(this.doc) || t('Untitled {noun}', { noun: def.noun }) : 'TinyLittleOffice';
+    return def ? def.title(this.doc) || this.fresh || t('Untitled {noun}', { noun: def.noun }) : 'Tiny Little Office';
   }
-  /** The link to share: the address, without the owner's query when there is one (that stays in the address bar alone). */
+  /** The link to share, the editing one: the address without the owner's query (that stays in the address bar alone) or the display flag. */
   get link(): string {
-    if (!this.owned || !this.app) return location.href;
+    return this.linkTo(false);
+  }
+  /** The Display Link: the same document, opened as its pages to read. */
+  get displayLink(): string {
+    return this.linkTo(true);
+  }
+  private linkTo(display: boolean): string {
+    if (!this.app) return location.href;
     const u = new URL(location.href);
-    u.hash = routeHash(this.app, parseHash(location.hash).payload);
+    u.hash = routeHash(this.app, parseHash(location.hash).payload, '', null, display);
     return u.href;
   }
-  private current = () => ({ def: this.def!, doc: this.doc, ctx: { title: this.def!.title(this.doc), link: this.link } });
+  /** What a short link opens. */
+  private get shortTarget() {
+    return this.shortDisplay ? this.displayLink : this.link;
+  }
+  private current = () => ({ def: this.def!, doc: this.doc, ctx: { title: this.def!.title(this.doc) || this.fresh, link: this.link } });
 
   /* ---------- keys ---------- */
 
@@ -236,17 +285,20 @@ export class ToShell extends LitElement {
   private shareItems(): MenuItem[] {
     const def = this.def!;
     const title = this.docTitle;
+    // Every label two words at most, so none wraps; what more there is to say is the hint under it.
+    const group = t('Short link');
     return [
-      { label: t('Copy link'), icon: UI.link, does: () => void copyText(this.link) },
+      { label: t('Link'), hint: t('Copied, it opens the editor'), icon: UI.link, does: () => void copyText(this.link) },
+      { label: t('Display Link'), hint: t('Copied, it opens the pages to read'), icon: UI.view, does: () => void copyText(this.displayLink) },
       ...(canShareNative() ? [{ label: t('Share…'), icon: UI.share, does: async () => shareNative(title, this.link, await picture(def.view(this.doc))) }] : []),
       { label: t('QR code'), icon: UI.qr, does: () => void this.dialog('qr')?.show() },
       ...(this.owned
         ? [
-            ...(this.changed ? [{ label: t('Update the short link'), icon: UI.link, does: () => void this.updateShort() }] : []),
-            { label: t('Extend the short link…'), icon: UI.link, does: () => void this.dialog('short')?.show() },
-            { label: t('Forget this link'), icon: UI.close, does: () => void this.forgetShort() },
+            ...(this.changed ? [{ group, label: t('Update'), hint: t('Give it this version'), icon: UI.link, does: () => void this.updateShort() }] : []),
+            { group, label: t('Extend…'), hint: t('A longer life'), icon: UI.link, does: () => void this.dialog('short')?.show() },
+            { group, label: t('Forget'), hint: t('Nothing left there'), icon: UI.close, does: () => void this.forgetShort() },
           ]
-        : [{ label: t('Shorter link that expires…'), icon: UI.link, does: () => void this.dialog('short')?.show() }]),
+        : [{ label: t('Short link…'), hint: t('Expires when you choose'), icon: UI.link, does: () => void this.dialog('short')?.show() }]),
     ];
   }
   /** A short link made, updated or forgotten: one request, the outcome said, errors said too. */
@@ -263,7 +315,7 @@ export class ToShell extends LitElement {
   /** A new short link; from here on this document owns it, and edits can be sent to it. */
   private makeShort = () =>
     this.shortDo(async () => {
-      this.short = await shorten(this.link, this.shortTtl);
+      this.short = await shorten(this.shortTarget, this.shortTtl);
       this.owned = this.short.owned;
       this.changed = false;
       if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned));
@@ -272,7 +324,7 @@ export class ToShell extends LitElement {
   private updateShort = (seconds?: number) =>
     this.shortDo(async () => {
       const owned = this.owned!;
-      const { ver, expires } = await update(owned, this.link, seconds);
+      const { ver, expires } = await update(owned, this.shortTarget, seconds);
       this.changed = false;
       toast(seconds ? t('Expires {when}', { when: new Date(expires).toLocaleString(document.documentElement.lang) }) : t('Updated · version {n}', { n: ver }));
       if (isKept(ownerLink(owned))) keepLink({ owner: ownerLink(owned), title: this.docTitle, made: Date.now(), expires });
@@ -308,7 +360,7 @@ export class ToShell extends LitElement {
     const def = this.def;
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
     const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Menu')} aria-haspopup="dialog" @click=${drawer}>${icon(UI.menu, 26)}</button>`;
-    if (!def) return html`<header class="to-header">${burger}<a class="to-brand" href="#/">TinyLittleOffice</a></header>`;
+    if (!def) return html`<header class="to-header">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
     const title = def.title(this.doc);
     const prefix = `${location.origin}${location.pathname}${routeHash(def.id)}/`;
     const { available } = budgetFor(prefix);
@@ -320,7 +372,7 @@ export class ToShell extends LitElement {
       ${burger}
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
-      <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" .value=${title} @change=${(e: Event) => this.change(def.retitle(this.doc, (e.target as HTMLInputElement).value.trim()))} />
+      <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" .value=${title || this.fresh} @focus=${(e: Event) => this.fresh && !title && (e.target as HTMLInputElement).select()} @change=${(e: Event) => this.retitle(def, (e.target as HTMLInputElement).value.trim())} />
       <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.dialog('doc')?.show()}>
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
       </button>
@@ -329,10 +381,26 @@ export class ToShell extends LitElement {
     </header>`;
   }
 
+  /** The title box: the name given, in the head (and to the editor); a new document's own name is spent. */
+  private retitle(def: AppDef, title: string) {
+    const doc = def.retitle(this.doc, title);
+    this.fresh = '';
+    this.edited = doc;
+    this.change(doc);
+  }
+
+  /** Link or Display Link: a pair of buttons, the one chosen pressed. */
+  private renderWhich(display: boolean, choose: (display: boolean) => void) {
+    return html`<div class="to-row to-which" role="group" aria-label=${t('Opens')}>
+      <button type="button" class="to-btn" aria-pressed=${String(!display)} @click=${() => choose(false)}>${icon(UI.link, 16)}<span>${t('Link')}</span></button>
+      <button type="button" class="to-btn" aria-pressed=${String(display)} @click=${() => choose(true)}>${icon(UI.view, 16)}<span>${t('Display Link')}</span></button>
+    </div>`;
+  }
+
   private renderDialogs() {
     const def = this.def;
-    if (!def) return nothing;
-    const bytes = new TextEncoder().encode(this.link);
+    if (!def || this.display) return nothing;
+    const bytes = new TextEncoder().encode(this.qrDisplay ? this.displayLink : this.link);
     const fits = bytes.length <= QR_MAX_BYTES;
     const qr = fits ? qrSvg(bytes, 4) : '';
     const rooms = roomRows(roomFor(this.link), document.documentElement.lang);
@@ -347,14 +415,14 @@ export class ToShell extends LitElement {
           <thead><tr><th scope="col">${t('Where')}</th><th scope="col">${t('Limit')}</th><th scope="col">${t('This link')}</th><th scope="col">${t('Left')}</th></tr></thead>
           <tbody>${rooms.map((r) => html`<tr class=${r.over ? 'over' : ''}><th scope="row">${r.name}<small>${r.note}</small></th><td>${r.max}</td><td>${r.used}</td><td>${r.left}</td></tr>`)}</tbody>
         </table>`}></to-dialog>
-      <to-dialog class="to-qr" heading=${t('QR code')} .body=${fits
+      <to-dialog class="to-qr" heading=${t('QR code')} .body=${html`${this.renderWhich(this.qrDisplay, (d) => (this.qrDisplay = d))}${fits
         ? html`<div class="to-qr-code" role="img" aria-label=${t('QR code of this document')}>${unsafeSVG(qr)}</div>
             <p class="to-hint">${t('The whole document, {n} bytes, as one code. Anyone who scans it has it.', { n: bytes.length })}</p>
             <div class="to-row">
               <button type="button" class="to-btn primary" @click=${() => void this.saveQr(qr, 'png')}>${icon(UI.download, 16)}<span>PNG</span></button>
               <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'svg')}>${icon(UI.download, 16)}<span>SVG</span></button>
             </div>`
-        : html`<p>${t('This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`}></to-dialog>
+        : html`<p>${t('This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`}`}></to-dialog>
       <to-dialog class="to-short" heading=${t('A shorter link that expires')} @to-close=${() => (this.short = null)} .body=${html`
         <p class="to-hint">${t('The link is encrypted here; the key stays in the short link, which browsers never send. The service holds only the ciphertext, until the time you choose.')}</p>
         ${this.short ? this.renderMade(this.short) : this.owned ? this.renderOwned(this.owned) : this.renderMaker()}
@@ -366,7 +434,8 @@ export class ToShell extends LitElement {
     return html`<select @change=${(e: Event) => (this.shortTtl = Number((e.target as HTMLSelectElement).value))}>${EXPIRIES.map((x) => html`<option value=${x.seconds} ?selected=${x.seconds === this.shortTtl}>${x.name()}</option>`)}</select>`;
   }
   private renderMaker() {
-    return html`<label class="to-field"><span>${t('Expires after')}</span>${this.renderTtl()}</label>
+    return html`${this.renderWhich(this.shortDisplay, (d) => (this.shortDisplay = d))}
+      <label class="to-field"><span>${t('Expires after')}</span>${this.renderTtl()}</label>
       <button type="button" class="to-btn primary" ?disabled=${this.busy} @click=${() => void this.makeShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Making…') : t('Make a short link')}</span></button>`;
   }
   /** Just made: the public link to share, and the owner's to keep. */
@@ -407,15 +476,27 @@ export class ToShell extends LitElement {
       <ul class="to-kept">${kept.map((l) => html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${t('Expires {when}', { when: new Date(l.expires).toLocaleString(lang) })}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`)}</ul>`;
   }
 
+  /** The Display Link: the pages one under another, to read or print; a line with the title and Edit above them. */
+  private renderDisplay(def: AppDef) {
+    const { payload } = parseHash(location.hash);
+    return html`<header class="to-display-head">
+        <h1 class="to-display-title">${this.docTitle}</h1>
+        <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
+      </header>
+      <main class="to-display">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</main>
+      <to-toast></to-toast>`;
+  }
+
   render() {
     const def = this.def;
+    if (def && this.display && !this.unreadable) return this.renderDisplay(def);
     let main;
     if (!def) main = html`<to-home></to-home>`;
     else if (this.unreadable) main = html`<div class="to-empty"><p>${t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
     else if (!this.tag) main = html`<div class="to-empty to-loading" aria-busy="true">${t('Loading…')}</div>`;
     else {
       const tag = unsafeStatic(this.tag);
-      main = staticHtml`<${tag} class="to-editor" .value=${this.doc} @docchange=${this.onDocChange}></${tag}>`;
+      main = staticHtml`<${tag} class="to-editor" .value=${this.edited} @docchange=${this.onDocChange}></${tag}>`;
     }
     return html`${this.renderHeader()}<main class="to-main">${main}</main><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}`;
   }

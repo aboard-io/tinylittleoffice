@@ -35,13 +35,13 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   expect(after.pageTop).toBe(0);
   // Pixel mode from the menu: a square painted, then the grid made the background.
   await page.locator('.draw-mode > button').click();
-  await page.getByRole('menuitemcheckbox', { name: 'Pixels, 8 by 8' }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Pixels 8×8' }).click();
   const grid = page.locator('svg.draw-pixels');
   await expect(grid).toBeVisible();
   await page.getByRole('button', { name: 'Red', exact: true }).click();
   const g = (await grid.boundingBox())!;
   await grid.click({ position: { x: g.width / 16, y: g.height / 16 } });
-  await page.getByRole('button', { name: 'Use as background' }).click();
+  await page.getByRole('button', { name: 'Background', exact: true }).click();
   await expect(canvas).toBeVisible();
   await expect(canvas.locator('pattern#draw-tile')).toHaveCount(1);
   expect((await measure()).wide).toBeLessThanOrEqual(0);

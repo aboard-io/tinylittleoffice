@@ -4,7 +4,7 @@ import { register, setLanguage } from '../../src/kit/i18n.ts';
 import { mount, until } from './helpers.ts';
 
 test('an in-memory Spanish dictionary takes over the shell when chosen', async () => {
-  register('es', { 'Find an app': 'Buscar una app', Menu: 'Menú', 'Word Processor': 'Procesador de textos', 'Templates for {app}': 'Plantillas de {app}', Language: 'Idioma', 'Match the device': 'Como el dispositivo' });
+  register('es', { 'Find app, template': 'Buscar app, plantilla', Menu: 'Menú', 'Word Processor': 'Procesador de textos', 'Templates for {app}': 'Plantillas de {app}', Language: 'Idioma', 'Match the device': 'Como el dispositivo' });
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
@@ -15,11 +15,11 @@ test('an in-memory Spanish dictionary takes over the shell when chosen', async (
   select.dispatchEvent(new Event('change', { bubbles: true }));
   await until(() => document.documentElement.lang === 'es');
   expect(document.documentElement.dir).toBe('ltr');
-  await until(() => shell.querySelector<HTMLInputElement>('.to-find')!.placeholder === 'Buscar una app');
+  await until(() => shell.querySelector<HTMLInputElement>('.to-find')!.placeholder === 'Buscar app, plantilla');
   expect(shell.querySelector('.to-burger')!.getAttribute('aria-label')).toBe('Menú');
-  expect(shell.querySelector('.to-tile b')!.textContent).toBe('Procesador de textos');
+  expect(shell.querySelector('.to-app b')!.textContent).toBe('Procesador de textos');
   expect(shell.querySelector('.to-templates-btn')!.getAttribute('aria-label')).toBe('Plantillas de Procesador de textos');
   await setLanguage(null);
   await until(() => document.documentElement.lang === 'en');
-  expect(shell.querySelector('.to-tile b')!.textContent).toBe('Word Processor');
+  expect(shell.querySelector('.to-app b')!.textContent).toBe('Word Processor');
 });

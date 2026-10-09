@@ -302,7 +302,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
   };
 
   /**
-   * What a paste is as cells: our own copy (its formulas move with it); another TinyLittleOffice document's
+   * What a paste is as cells: our own copy (its formulas move with it); another Tiny Little Office document's
    * table (its names the first row) or its words (a line, an item, a row each); a table from anywhere else;
    * else the text, tabs and newlines between the cells.
    */

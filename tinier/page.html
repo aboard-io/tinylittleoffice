@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>tinier · TinyLittleOffice</title>
+<title>tinier · Tiny Little Office</title>
 <style>
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #18181b; background: #fafafa; }
   main { max-width: 32rem; padding: 2rem 1.25rem; text-align: center; }
@@ -20,7 +20,7 @@
 <main>
   <div class="mark">t</div>
   <h1 id="h">Opening…</h1>
-  <p id="p">A shorter link to a <a href="https://tinylittleoffice.com/">TinyLittleOffice</a> document. The document is in the long link, encrypted here with a key this page alone has; the server keeps only the ciphertext, until the link expires.</p>
+  <p id="p">A shorter link to a <a href="https://tinylittleoffice.com/">Tiny Little Office</a> document. The document is in the long link, encrypted here with a key this page alone has; the server keeps only the ciphertext, until the link expires.</p>
   <p id="err" hidden></p>
   <p id="go" hidden><a id="a" href="#">Go to the document</a></p>
 </main>
@@ -29,7 +29,7 @@
   const id = '{{id}}';
   const h = document.getElementById('h'), p = document.getElementById('p'), err = document.getElementById('err'), go = document.getElementById('go'), a = document.getElementById('a');
   const fail = (m) => { h.textContent = 'tinier'; err.textContent = m; err.hidden = false; };
-  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Shorten a link from the Share menu in TinyLittleOffice.'); }
+  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Shorten a link from the Share menu in Tiny Little Office.'); }
   // "#<key>" opens the latest version; "#<key>.<o>" is the owner's, whose o is handed on to the site (never to this server).
   const [key, o] = location.hash.slice(1).split('.');
   if (!key) return fail('This link is missing its key (the part after #). Ask for it again.');
@@ -41,7 +41,7 @@
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
     const site = '{{site}}';
-    if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to TinyLittleOffice.');
+    if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to Tiny Little Office.');
     // The owner arrives at the document able to update this link: the id, the key and o ride in the fragment's query, which the site strips from every link it shares.
     const to = o && plain.includes('#') && /^[A-Za-z0-9_-]{43}$/.test(o) ? plain + '?s=' + id + '&k=' + key + '&o=' + o : plain;
     a.href = to; go.hidden = false;

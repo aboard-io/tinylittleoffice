@@ -1,10 +1,10 @@
 /**
  * The editor's clipboard. Copy and cut write the selected blocks as TLO
  * (text/plain) and as HTML with a generator marker (text/html), so a paste
- * into another TinyLittleOffice document comes back whole and a paste into
+ * into another Tiny Little Office document comes back whole and a paste into
  * anything else arrives with its marks. Paste reads, in order: our own HTML
  * (the marker) → the TLO, or for words from within one block their exact
- * runs; a TinyLittleOffice link alone → a fence holding that document; a
+ * runs; a Tiny Little Office link alone → a fence holding that document; a
  * web address alone → a paragraph that is the address (a card); HTML from
  * elsewhere → blocks (tags and styles to marks, lists to items, Google
  * Docs' bold-that-is-not); plain text with a line break → read as TLO
@@ -281,7 +281,7 @@ export type Pasted = { blocks: Block[] } | { runs: Run[] };
 
 const TLO_LINK = /^https?:\/\/\S+#\/v\d+\/[a-z][a-z0-9-]*(?:\.[A-Za-z0-9.]+)?\/\S+$/;
 
-/** A TinyLittleOffice link as the fence that holds its document, or null when the link is not one, or cannot be read. */
+/** A Tiny Little Office link as the fence that holds its document, or null when the link is not one, or cannot be read. */
 export function linkToFence(url: string): Block | null {
   if (!TLO_LINK.test(url)) return null;
   const { app, payload } = parseHash(url.slice(url.indexOf('#')));
