@@ -17,7 +17,7 @@ with a keyboard (those have a button or a bar item too).
 | Mod+C, Mod+X, Mod+V | Copy, cut, paste *what is selected*: words when words are selected, else the thing in hand (a shape, a node, a cell range, a card). Our own clipboard carries TLO text plus HTML with the generator marker, so a thing pastes into any app that can hold it (a drawing's shapes into a sheet as a table, an outline's nodes into Write as a list) | the contextual bar's Copy/Cut/Paste on a phone |
 | Mod+A | Select all: the words of the box first; pressed again with the box whole, everything in the document (the outline's nodes, the sheet, the canvas) | — |
 | Delete, Backspace | Remove what is selected (a thing or a selection of words); with a caret, one character back/forward; at a boundary, join with the neighbour (words) or ask the host (a row) | the contextual bar's Delete |
-| Escape | Step out: close the popover or dialog in hand first, else drop the selection, else leave edit-in-place; the focus goes back to where it came from | a tap outside |
+| Escape | Step out, one step per press: close the popover or dialog in hand (and stop there), else collapse a range of selected words, else drop the selected thing or leave edit-in-place (the host hears `text-escape`), else return the tool to Select; the focus goes back to where it came from, never to the body | a tap outside |
 | Enter | Confirm or edit: on a selected thing, edit its words in place; in a dialog, the primary button; in words, a new block | double tap / double click |
 | Tab, Shift+Tab | In a list or an outline: indent/outdent the item (its family). In a grid: next/previous cell. Elsewhere: move focus (never trapped) | the bar's Indent/Bring out |
 | Arrows | Move the caret; move between cells; nudge a selected shape by one grid step; move between rows (outline) | drag |
@@ -25,8 +25,10 @@ with a keyboard (those have a button or a bar item too).
 | Alt+Arrow Up/Down | Move the selected item(s) up or down past a neighbour (lists, outlines, slides, cards, rows) | drag by the handle, the bar's Move up/down |
 | Mod+D | Duplicate the selected thing (shape, slide, card, row) | the contextual bar |
 | Mod+B / I / U, Mod+K | Bold, italic, underline, link on selected words (or the marks for what is typed next) | the bar; the selection bubble |
-| Mod+Enter | Finish and leave edit-in-place (a shape's words, a cell's formula) keeping the change | — |
+| Mod+Enter | On a task item (Todo, a Board checklist, a task list in Write): tick or untick it. In a one-line box: done (Enter's meaning). Never anything else | the 44px box on the row |
+| Mod+Alt+Arrow Left/Right | Move the selected thing across stages or columns (Board); fold/unfold is Mod+Alt+Up/Down (Outline). Alt+Left/Right alone are never taken: they move the caret by a word on a Mac | drag; the bar |
 | Space on a focused toggle | Tick/untick | tap |
+| Undo, Redo | The last two tools of every app's bar (`undoTools()` from DocElement), disabled when there is nothing to undo; the shell forwards the keys only when the focus is in the app's editor, never from a dialog, a popover, the header or a field of the kit's own | — |
 
 Rules:
 - **Mod** is ⌘ on Apple devices and Ctrl elsewhere; tooltips write it the way the device does (`tip()` in bar.ts).
@@ -37,10 +39,10 @@ Rules:
 
 ## 2. Words (`<to-text>`, everywhere words are typed)
 
-- Enter splits the block (a new paragraph/item); Shift+Enter is a line break inside a paragraph; in a one-line box (`shape=line`) Enter is "done" (the host decides: an outline makes the next item).
-- Backspace at the start of a block joins it to the one before; on an item, it first makes the item a paragraph (unlists), then joins; at the very start of a one-line box the host decides.
+- Enter splits the block (a new paragraph/item); Shift+Enter is a line break inside a paragraph, an item or a quote (in `doc` and `lines` alike; a heading splits); in a one-line box (`shape=line`) Enter is "done" (the host decides: an outline makes the next item) and Shift+Enter says so in the event's detail.
+- Backspace at the start of a block joins it to the one before; on an item in a document (Write, Deck, Website) it first makes the item a paragraph (unlists), then joins, as Docs does; an empty item with children is removed and its children come out a level; at the very start of a one-line box the host decides (an outliner joins: §3).
 - Delete at the end joins the next block in; in a one-line box the host decides.
-- Markdown shortcuts on Space: `- `, `* `, `1. `, `# `, `## `, `> ` turn the block; straight quotes curl.
+- Markdown shortcuts on Space: `- `, `* `, `1. `, `# `, `## `, `> ` turn the block (undo gives the typed marker back); straight quotes curl. Alt+Up/Down moves an item past its neighbour.
 - Tab/Shift+Tab on an item indents/outdents it; elsewhere Tab moves focus.
 - Mod+B/I/U/K; Mod+Shift+X strikethrough and Mod+Shift+H highlight are optional; the bar has them all.
 - Selecting words shows the **selection bubble** (B, I, U, S, highlight | link, footnote | list) centred under the selection; it hides when the selection collapses or leaves. Hosts may turn it off (`no-bubble`).
@@ -74,16 +76,18 @@ Rules:
 - A tap selects a shape (the selection drawn with a handle); a tap on nothing deselects; a drag moves; the handle resizes; Shift while drawing constrains (a line to an axis; a box to a square).
 - Double tap or Enter on a selected shape edits its words **in place**, on the shape, with a contextual bar (size, colour) right under the words; Enter or a tap outside commits; Escape restores.
 - With a shape selected, the **contextual bar** sits under it: inks, style, text sizes, edit words, duplicate, front/back, copy, cut, paste, delete. The same bar order everywhere a thing is selected.
-- Arrows nudge by one grid step (Shift+Arrows by five, where it exists); Delete/Backspace removes; Mod+D duplicates; Mod+C/X/V on shapes.
-- Tool keys pick tools (letters, no modifier) only when the canvas has the focus; Escape returns to Select.
+- Arrows nudge the selected shape by one grid step, Shift+Arrows by five, Mod+Arrows resize by one (never off the canvas); Delete/Backspace removes; Mod+D duplicates; Mod+C/X/V on shapes; Shift+tap adds to the selection; Mod+A selects every shape.
+- Tool keys pick tools (letters, no modifier) only when the canvas itself has the focus (never from a bar button, a field or a popover); Escape returns to Select.
+- A handle (resize, a pen corner, a key on a scrubber) has a 44px hit area under a finger, whatever it draws. The canvas keeps `touch-action: none` only while a tool or a drag is in hand, so a finger can pan a zoomed canvas.
 - Wheel with Mod (or a pinch) zooms; the wheel alone scrolls.
 - Everything drawn is undoable in one step per gesture (a drag is one step, not one per pixel).
 
 ## 6. Things in rows and columns (Board cards, Todo items, Calendar entries, Trip stops, Website sections, Deck slides, Diagram nodes)
 
-- A tap selects (a selected thing has the contextual bar: edit, move up/down or to the next stage, duplicate, delete); a double tap or Enter edits its words in place.
-- Alt+Up/Down moves the thing among its siblings; Alt+Left/Right moves it across stages/columns where there are any; drag does the same with a drawn target.
-- Enter at the end of a thing's words makes the next thing; Backspace on an empty thing removes it; a new thing is made where the finger or the caret is (direct manipulation and Insert ▾), never from an Add button at the foot.
+- A tap on a thing's handle (its grip, bullet or thumbnail) selects it; Shift+arrows extend; a second handle tap extends on a touch screen. A selected thing has the contextual bar in this order: Edit, Move up, Move down (Move to a stage where there are stages), Indent/Bring out where things nest, Duplicate | Copy, Cut, Paste | Delete. Delete/Backspace, Mod+D, Mod+C/X/V, Alt+Up/Down and Mod+A act on the selection. Enter, a double tap, or a tap on its words edits them in place. The kit's `rows.ts` is the one implementation of this (Outline's), used by every app with rows.
+- Alt+Up/Down moves the thing among its siblings, keeping the caret in the same field; Mod+Alt+Left/Right moves it across stages/columns where there are any; drag by the handle does the same with a drawn target, by pointer events (never HTML5 drag-and-drop, which iOS starts only from a long press).
+- A thing's words follow §3 where they are one line each (Todo, a checklist, a stop, a task): Enter at the start pushes it down, at the end makes the next, in the middle splits; Backspace at the start joins, on an empty thing removes it; Delete at the end joins. A multi-line paste makes several things. A new thing is made where the finger or the caret is (direct manipulation and Insert ▾ after the thing in hand), never from an Add button at the foot.
+- Undo brings back the selection or caret of the thing that changed: every app restores it in `undone()` from the entry's first op.
 - Done/star/due toggles are 44px tap targets on the row itself.
 
 ## 7. Pointer and finger
@@ -97,9 +101,17 @@ Rules:
 
 ## 8. Deliberate differences
 
-- A grid cell replaces its content when typed on (spreadsheet convention); a selected shape, card or node does not.
-- Draw's single-letter tool keys exist only on the canvas.
-- Deck's Enter in the headline moves to the words of the slide (a headline is one line), not to a new slide; a new slide is Mod+Shift+Enter or Insert ▾.
+- A grid cell replaces its content when typed on (spreadsheet convention); a selected shape, card or node does not. Sheet's Mod+D is fill down (every spreadsheet's), and Mod+Alt+= / Mod+Alt+- insert and delete the selected rows (Google Sheets' chords); Escape in a cell restores what was there and keeps the focus on the cell.
+- Backspace at the start of an item: in a document (Write, Deck, Website) it unlists first (§2); in an outliner and in rows (Outline, Todo, checklists, stops, tasks) it joins (§3).
+- Draw's single-letter tool keys exist only on the canvas. A shape's label is plain text (no marks, no bubble); Shift+Enter in it is a line break kept as " | ".
+- Deck's Enter in the headline moves to the words of the slide (a headline is one line), not to a new slide; Delete at its end moves on too. A new slide is Mod+Shift+Enter (in every format) or Insert ▾; Present is Mod+Alt+Enter; PageUp/PageDown change slides only when the focus is on the rail, not in a box.
+- Diagram: a single tap on a thing opens its words at once (there is no selected-but-idle state) and a tap on empty space starts a thing there, held as a draft until its first letter. Its words are plain (`no-bubble`).
+- Calendar: a tap on a month entry opens its dialog (dates need fields); the schedule's tasks are rows (§6). The dialog's draft is written as one operation on Done and nothing on Escape.
+- Calculator: Up/Down in the entry line recall tape lines (with no modifier only); Escape clears the entry, and an entry is not in the undo log; the tape grows at its end.
+- Motion: `,` and `.` step a frame; arrows nudge the selected shape (with nothing selected they step a frame); K keys the shape; Space plays. Motion's Draw mode has no pixel mode.
+- Trip: the map keeps its own wheel and pinch (Leaflet's), and a double tap on it zooms (never adds two stops).
+- Website: words are edited in the panel, not in the frame; a picked section's bar is Edit, Move up, Move down, Duplicate, Delete.
+- Outline: Mod+Alt+Up/Down fold and unfold; Mod+Shift+. and Mod+Shift+, zoom in and out; Select All inside a zoom takes the zoomed family.
 
 ## 9. The audit
 
