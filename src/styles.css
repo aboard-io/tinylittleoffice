@@ -347,7 +347,8 @@ sl-button[aria-pressed='true']::part(label) {
 .to-burger {
   position: fixed;
   left: max(4px, env(safe-area-inset-left));
-  top: 6px;
+  /* (--to-vv-top: how far a phone's keyboard has slid the page up under the screen; src/app.ts.) */
+  top: calc(6px + var(--to-vv-top, 0px));
   z-index: 40;
 }
 .to-burger::part(base) {
@@ -362,7 +363,7 @@ to-app[scrolled] .to-burger::part(base) {
 /* An app's own bar sticks to the top of the screen once the header has gone; where the menu button would sit over it, it makes room. */
 .to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child {
   position: sticky;
-  top: 0;
+  top: var(--to-vv-top, 0px);
   z-index: 15;
 }
 .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
@@ -379,7 +380,7 @@ to-app[scrolled] .to-panel > div > * > .ol-bars > .to-toolbar {
 to-app[scrolled]::before {
   content: '';
   position: fixed;
-  top: 0;
+  top: var(--to-vv-top, 0px);
   left: 0;
   right: 0;
   height: calc(var(--to-stuck-h, 0px) + var(--to-stuck-gap));

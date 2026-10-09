@@ -178,12 +178,28 @@ export class ToApp extends LitElement {
    * own bar has stuck to the top, making room for the menu button, which
    * stays at the top left. Said as an attribute, so styles alone move
    * things; nothing is drawn again.
+   *
+   * "The top" is the top of what can be seen. When a phone's keyboard comes
+   * up, iOS slides the page up under the screen rather than making it
+   * shorter, and what is fixed to the page's top goes with it; so the top
+   * of the visible part is followed (--to-vv-top), and the header is gone
+   * when it is above that.
    */
-  private headerWatch: IntersectionObserver | null = null;
+  private viewportFrame = 0;
+  private onViewport = () => {
+    if (this.viewportFrame) return;
+    this.viewportFrame = requestAnimationFrame(() => {
+      this.viewportFrame = 0;
+      const top = Math.max(0, window.visualViewport?.offsetTop ?? 0);
+      this.style.setProperty('--to-vv-top', `${top}px`);
+      const header = this.querySelector('.to-header')?.getBoundingClientRect();
+      if (header?.height) this.toggleAttribute('scrolled', header.bottom <= top);
+    });
+  };
   /** The app's bar, measured: an opaque strip as tall as it fills the screen's width behind it once it is stuck (--to-stuck-h). */
   private barWatch: ResizeObserver | null = null;
   private bar: Element | null = null;
-  private watchHeader() {
+  private watchBar() {
     const bar = this.querySelector('.to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child');
     if (bar !== this.bar && typeof ResizeObserver !== 'undefined') {
       this.barWatch ??= new ResizeObserver(([e]) => this.style.setProperty('--to-stuck-h', `${(e.target as HTMLElement).offsetHeight}px`));
@@ -191,10 +207,6 @@ export class ToApp extends LitElement {
       if (bar) this.barWatch.observe(bar);
       this.bar = bar;
     }
-    const header = this.querySelector('.to-header');
-    if (!header || this.headerWatch || typeof IntersectionObserver === 'undefined') return;
-    this.headerWatch = new IntersectionObserver(([e]) => this.toggleAttribute('scrolled', !e.isIntersecting));
-    this.headerWatch.observe(header);
   }
 
   connectedCallback() {
@@ -203,6 +215,9 @@ export class ToApp extends LitElement {
     installLinkGuard();
     this.applySize();
     window.addEventListener('resize', this.fadeEdges);
+    window.addEventListener('scroll', this.onViewport, { passive: true });
+    window.visualViewport?.addEventListener('scroll', this.onViewport);
+    window.visualViewport?.addEventListener('resize', this.onViewport);
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);
     window.addEventListener(REFRESH, this.onRefresh);
@@ -212,8 +227,11 @@ export class ToApp extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.headerWatch?.disconnect();
-    this.headerWatch = null;
+    window.removeEventListener('scroll', this.onViewport);
+    window.visualViewport?.removeEventListener('scroll', this.onViewport);
+    window.visualViewport?.removeEventListener('resize', this.onViewport);
+    cancelAnimationFrame(this.viewportFrame);
+    this.viewportFrame = 0;
     this.barWatch?.disconnect();
     this.barWatch = null;
     this.bar = null;
@@ -532,7 +550,8 @@ export class ToApp extends LitElement {
   };
 
   protected updated() {
-    this.watchHeader();
+    this.watchBar();
+    this.onViewport();
     this.fadeEdges();
     // The kit knows this document's link (a QR code of it may be drawn inside it); embeds redraw when it changes.
     if (this.app && !this.sealed && this.link !== this.lastSelf) {
