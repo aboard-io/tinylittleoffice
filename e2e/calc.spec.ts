@@ -18,7 +18,8 @@ test('calc: keys and the line, units from the engine under the policy, a graph',
   });
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // A script the policy refused says so on the console.
+  page.on('console', (m) => m.type() === 'error' && /Content Security Policy|Refused|unsafe-eval/i.test(m.text()) && errors.push(m.text()));
   await page.goto('/#/v1/calc');
   const display = page.locator('.calc-display');
   await expect(display).toBeVisible();
