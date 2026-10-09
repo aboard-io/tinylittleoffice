@@ -2032,6 +2032,11 @@ svg.draw-canvas text {
   background: transparent;
   box-shadow: none;
 }
+/* A card that is one address from the web: the thing's card under the words, to tap. */
+.board-card .board-web {
+  margin: 4px 0 6px;
+  cursor: default;
+}
 /* The checklist under the words. */
 .board-items {
   list-style: none;

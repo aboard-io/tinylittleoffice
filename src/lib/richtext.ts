@@ -11,8 +11,9 @@
  * :icon:, [words](address). A web address on its own is a link as it stands.
  * A Markdown table in a text is an embedded sheet.
  */
-import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, withHead, takeHead, type Attrs, type Block as TloBlock } from './tlo.ts';
-import { embedOf } from './embeds.ts';
+import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, takeHead, type Attrs, type Block as TloBlock } from './tlo.ts';
+import { embedOf, webRef } from './embeds.ts';
+export { webRef };
 
 export interface Run {
   t: string;
@@ -95,9 +96,6 @@ export function parseDoc(text: string): Block[] {
   }
   return blocks.length ? blocks : [{ k: 'p', runs: [] }];
 }
-
-/** A thing from the web as a ref: the hidden "web" app, holding the address (and for a picture, what it shows). */
-export const webRef = (url: string, alt = '') => `web\n${withHead(url.trim(), alt ? { alt } : {})}`;
 
 export function serializeDoc(blocks: Block[]): string {
   const out: TloBlock[] = [];

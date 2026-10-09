@@ -47,8 +47,8 @@ the link and you have copied the file.
 That is `apps()` in `src/apps/index.ts`, in menu order; the diagrams sit
 under Draw in the menu, the folds under Zine, the badges under Poster. Two
 more are not in the menu, because they live inside other documents: Web
-embed (a video, a post or a picture from the web, as a card loaded only
-when tapped) and QR code (the one a deck ends with). Drive, at `#/drive`,
+embed (a video, a post, a song, a place or a picture from the web, as a
+card loaded only when tapped) and QR code (the one a deck ends with). Drive, at `#/drive`,
 is the documents saved on this device, in folders nested with a slash:
 search inside them, move, rename, download the lot as a zip, or blow it all
 away. It is private by default; the switch in the header turns it on.
@@ -209,7 +209,21 @@ the reference leaves to the apps:
   DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on them. A CSV, or a
   table without types, reads as a sheet too.
 - **Write** (`src/lib/richtext.ts`) shows a thing from the web as a card
-  that loads it only when tapped (`src/lib/embeds.ts`). `paper: a4` or
+  that loads it only when tapped (`src/lib/embeds.ts`): a line that is
+  only an address. What embeds, by the address as people paste it: a
+  YouTube, Vimeo, PeerTube or Internet Archive video; a Bluesky, Mastodon,
+  X or Reddit post; a Spotify or SoundCloud player; a place on
+  OpenStreetMap (a `#map=` or `?mlat=` link); a CodePen; a Wikipedia
+  article (its summary, with a thumbnail); a Wayback Machine page; and a
+  picture, a sound (`.mp3 .ogg .wav .m4a .flac .aac .opus`), a film (`.mp4
+  .webm .mov .m4v .ogv`) or a PDF by its own address, which the browser's
+  own `<img>`, `<audio>`, `<video>` or PDF viewer shows (an SVG only ever
+  as a picture, where it can run nothing). Instagram, TikTok, Threads,
+  Facebook, LinkedIn, GitHub gists and Bandcamp embed nothing without their
+  own script, so those are a card that opens the page there. Any other
+  address is a link. The same line does the same in an outline's item, on
+  a slide (the whole slide), in a section of a website or a Quick Links
+  page, and on a board's card. `paper: a4` or
   `letter` in the header is the paper it prints on; without it, the
   reader's own. The pages have inch (or 25 mm) margins, a heading never sits
   alone at the foot of one, and more than one page are numbered.
@@ -381,14 +395,28 @@ app was opened, never which document.
 Four things do leave the browser, each only when asked to: Trip fetches map
 tiles and place searches from openstreetmap.org; the Share menu hands the
 link to the service chosen; an embedded page's host sees that its page
-was loaded, not what the frame shows; and a video, a post or a picture
-from the web is a card naming its provider until the reader taps it, and
-only then is it fetched, from the provider's privacy endpoint
-(youtube-nocookie, Vimeo with `dnt=1`, Bluesky's embed, X's embed with
-`dnt=true`) in a sandboxed frame, with no referrer. Bluesky's embed wants
-the author's id rather than their handle, so that tap first asks
-public.api.bsky.app who the handle is; if it does not say, the card offers
-the post on Bluesky instead.
+was loaded, not what the frame shows; and a thing from the web (a video,
+a post, a song, a place, a picture, a file) is a card naming its provider
+until the reader taps it, and only then is it fetched, from the provider's
+privacy endpoint where there is one (youtube-nocookie, Vimeo with `dnt=1`,
+Bluesky's embed, X's embed with `dnt=true`, Mastodon's and PeerTube's own
+embed pages, Spotify's and SoundCloud's players, Reddit's embed,
+OpenStreetMap's export frame, CodePen's embed, archive.org's player, the
+Wayback Machine's copy) in a sandboxed frame that cannot reach the page,
+navigate it or submit a form, with no referrer. A sound, a film, a PDF or
+a picture by its own address goes through the browser's own element, the
+same way. Two cards ask before they show: Bluesky's embed wants the
+author's id rather than their handle, so that tap first asks
+public.api.bsky.app who the handle is; a Wikipedia card asks the article's
+summary of `<lang>.wikipedia.org` and shows that. If the provider does not
+answer, the card offers the thing there instead; where a provider embeds
+nothing without its own script (Instagram, TikTok, Threads, Facebook,
+LinkedIn, GitHub gists, Bandcamp) the card is only that offer. The site's
+Content-Security-Policy (`public/_headers`) allows any `https:` frame and
+sound rather than a list of providers, because a Mastodon post or a
+PeerTube video comes from its own instance, which is any host; the list
+of what embeds, and from where, is `embedOf` in `src/lib/embeds.ts`,
+which `test/embeds.test.ts` holds to the policy.
 
 ## Working offline
 
