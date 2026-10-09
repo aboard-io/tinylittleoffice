@@ -176,6 +176,16 @@
   .to-context .to-tool {
     width: 36px;
   }
+  /* Under a finger the bubble's and the contextual bar's buttons are full size. */
+  @media (pointer: coarse) {
+    .to-context .to-btn {
+      min-height: var(--to-touch);
+      min-width: var(--to-touch);
+    }
+    .to-context .to-tool {
+      width: var(--to-touch);
+    }
+  }
   .to-context .to-btn[aria-pressed='true'] {
     border-color: var(--to-accent);
   }

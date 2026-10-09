@@ -6,6 +6,10 @@
  * phone it lies along the bottom of what is visible, above the keyboard,
  * placed from the visual viewport as that moves.
  *
+ * Mod+Z and Mod+Shift+Z in the box are the box's own: a small history of
+ * the note's words since it opened (the document's undo is never reached
+ * from here; the shell does not forward keys from inside it).
+ *
  * Events: note-change (detail: the note's words as inline Markdown),
  * note-remove, note-close (once, as the box goes).
  */
@@ -14,6 +18,7 @@ import { applyAll, noteRuns, writeInline, type TextBlock } from '../doc/index.ts
 import { tool } from './bar.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
+import { History } from './history.ts';
 import { caret } from './textops.ts';
 import type { TextOps, ToText } from './text.ts';
 
@@ -46,6 +51,8 @@ export class ToNotePop extends LitElement {
   declare shown: boolean;
   private chip: HTMLElement | null = null;
   private closing = false;
+  /** The note's words as typed since the box opened, undone here. */
+  private history = new History();
 
   constructor() {
     super();
@@ -76,6 +83,7 @@ export class ToNotePop extends LitElement {
     this.chip = chip;
     this.n = n;
     this.block = { k: 'p', runs: noteRuns(fn) };
+    this.history.clear();
     this.shown = true;
     await this.updateComplete;
     const p = this.pop;
@@ -114,8 +122,25 @@ export class ToNotePop extends LitElement {
   }
   private onOps = (e: CustomEvent<TextOps>) => {
     e.stopPropagation();
-    this.block = applyAll({ head: {}, blocks: [this.block] }, e.detail.ops).blocks[0] as TextBlock;
+    const { ops, sel, before, kind } = e.detail;
+    const was = { head: {}, blocks: [this.block] };
+    this.history.record(was, ops, before, sel, kind);
+    this.block = applyAll(was, ops).blocks[0] as TextBlock;
     this.dispatchEvent(new CustomEvent<string>('note-change', { detail: this.fn, bubbles: true }));
+  };
+  /** One step of the box's own history: the words put back, the document told, the caret where it was. */
+  private step(redo: boolean): boolean {
+    const s = redo ? this.history.redo() : this.history.undo();
+    if (!s) return false;
+    this.block = applyAll({ head: {}, blocks: [this.block] }, s.ops).blocks[0] as TextBlock;
+    this.dispatchEvent(new CustomEvent<string>('note-change', { detail: this.fn, bubbles: true }));
+    const f = this.field;
+    if (f && s.sel) void this.updateComplete.then(() => (f.sel = s.sel));
+    return true;
+  }
+  private onHistory = (e: Event) => {
+    e.stopPropagation();
+    if (this.step(e.type === 'docredo')) e.preventDefault();
   };
   private removeNote = () => {
     this.closing = true;
@@ -125,6 +150,12 @@ export class ToNotePop extends LitElement {
     this.dispatchEvent(new CustomEvent('note-remove', { bubbles: true }));
   };
   private onKey = (e: KeyboardEvent) => {
+    const k = e.key.toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.isComposing && (k === 'z' || k === 'y')) {
+      e.preventDefault();
+      this.step(e.shiftKey || k === 'y');
+      return;
+    }
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
@@ -135,7 +166,7 @@ export class ToNotePop extends LitElement {
     const n = this.n;
     const inner = this.shown
       ? html`<span class="to-note-n" aria-hidden="true">${n}</span>
-          <to-text class="to-note-words" shape="line" no-bubble .blocks=${[this.block]} label=${t('Footnote {n}', { n })} placeholder=${t("The note's words")} @text-ops=${this.onOps} @text-enter=${(e: Event) => (e.stopPropagation(), this.close())} @text-exit=${(e: Event) => e.stopPropagation()} @text-select=${(e: Event) => e.stopPropagation()} @keydown=${this.onKey}></to-text>
+          <to-text class="to-note-words" shape="line" no-bubble .blocks=${[this.block]} label=${t('Footnote {n}', { n })} placeholder=${t("The note's words")} @text-ops=${this.onOps} @text-enter=${(e: Event) => (e.stopPropagation(), this.close())} @text-exit=${(e: Event) => e.stopPropagation()} @text-select=${(e: Event) => e.stopPropagation()} @text-escape=${(e: Event) => e.stopPropagation()} @docundo=${this.onHistory} @docredo=${this.onHistory} @keydown=${this.onKey}></to-text>
           ${tool({ label: t('Remove footnote'), icon: UI.trash, keep: true, does: this.removeNote })}
           ${tool({ label: t('Done'), icon: UI.check, does: () => this.close() })}`
       : nothing;

@@ -4,17 +4,34 @@
  * a list of the kernel's operations through `edit()`: applied, re-read, written back as text in a
  * "docchange" event. Undo is an op log (§8, decision 2): each entry holds the ops and their inverses, a
  * burst of typing into one place within 700 ms is one entry, and the shell's "docundo"/"docredo" events
- * are answered here.
+ * are answered here. An edit may carry a `mark` (the host's selection, whatever shape it has), handed back
+ * with the entry to `undone()` so the selection comes back with the change; `firstAt()` says where the
+ * change begins when there is no mark. `undoTools()` is the bar's last two buttons, the same in every app.
  */
-import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
+import { LitElement, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../doc/index.ts';
+import { tool } from './bar.ts';
+import { t } from './i18n.ts';
+import { UI } from './icons.ts';
 
-interface Entry {
+export interface Entry {
   ops: Op[];
   inverse: Op[];
   /** What the edit was, for coalescing ("cell:2:3"); undefined edits stand alone. */
   key?: string;
   at: number;
+  /** The host's own note of where the selection was when the edit began (a burst keeps its first). */
+  mark?: unknown;
+}
+
+/** The lowest block index an entry's ops touch (a move's either end); -1 when they touch only the head. */
+export function firstAt(entry: Pick<Entry, 'ops'>): number {
+  let low = Infinity;
+  for (const op of entry.ops) {
+    if (op.op === 'head') continue;
+    low = Math.min(low, op.at, op.op === 'move' ? op.to : Infinity);
+  }
+  return low === Infinity ? -1 : low;
 }
 
 const BURST = 700;
@@ -64,8 +81,8 @@ export abstract class DocElement<V> extends LitElement {
     }
   }
 
-  /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one. */
-  protected edit(ops: Op[], key?: string) {
+  /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one; `mark` is handed back to `undone()`. */
+  protected edit(ops: Op[], key?: string, mark?: unknown) {
     if (!ops.length) return;
     const inverse = invertAll(this.doc, ops);
     this.doc = applyAll(this.doc, ops);
@@ -75,7 +92,7 @@ export abstract class DocElement<V> extends LitElement {
       last.ops = [...last.ops, ...ops];
       last.inverse = [...inverse, ...last.inverse];
       last.at = now;
-    } else this.undo.push({ ops, inverse, key, at: now });
+    } else this.undo.push({ ops, inverse, key, at: now, ...(mark === undefined ? {} : { mark }) });
     if (this.undo.length > 500) this.undo.shift();
     this.redo = [];
     this.emit();
@@ -112,5 +129,13 @@ export abstract class DocElement<V> extends LitElement {
   }
   get canRedo(): boolean {
     return this.redo.length > 0;
+  }
+  /** Undo and Redo, the last two tools of every app's bar: they never take the focus, and are off with nothing to do. */
+  protected undoTools(): TemplateResult[] {
+    const fire = (which: 'docundo' | 'docredo') => () => this.dispatchEvent(new CustomEvent(which, { cancelable: true }));
+    return [
+      tool({ label: t('Undo'), icon: UI.undo, keys: 'Mod+Z', keep: true, disabled: !this.canUndo, does: fire('docundo') }),
+      tool({ label: t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z', keep: true, disabled: !this.canRedo, does: fire('docredo') }),
+    ];
   }
 }

@@ -3,8 +3,10 @@
  * address, Open, Edit, Remove. `ask()` opens it with a box for the address
  * (making a link, or changing one). A manual popover (nothing dismisses it
  * but the editor), placed from the visual viewport so it sits above a
- * phone's keyboard. Events: link-set (detail: the address, '' to remove),
- * link-remove.
+ * phone's keyboard. A tap outside it and outside its editor (the element
+ * it sits in) hides it. Events: link-set (detail: the address, '' to
+ * remove), link-remove, link-cancel (Escape in the address box: the editor
+ * takes the focus back).
  */
 import { LitElement, html, nothing } from 'lit';
 import { linkable, linkTarget } from '../doc/index.ts';
@@ -62,12 +64,21 @@ export class ToLinkPop extends LitElement {
     if (POPOVER && !p.matches(':popover-open')) p.showPopover();
     this.place();
     window.visualViewport?.addEventListener('resize', this.place);
+    document.addEventListener('pointerdown', this.onOutside, true);
   }
+  /** A tap on neither the box nor its editor: the box goes (the selection may well not move, a margin is not selectable). */
+  private onOutside = (e: PointerEvent) => {
+    const at = e.target as Node | null;
+    const editor = this.parentElement;
+    if (at && (this.contains(at) || editor?.contains(at))) return;
+    this.hide();
+  };
   hide() {
     if (!this.shown) return;
     this.shown = false;
     this.editing = false;
     window.visualViewport?.removeEventListener('resize', this.place);
+    document.removeEventListener('pointerdown', this.onOutside, true);
     const p = this.pop;
     if (POPOVER && p?.matches(':popover-open')) p.hidePopover();
   }
@@ -108,6 +119,10 @@ export class ToLinkPop extends LitElement {
       this.dispatchEvent(new CustomEvent('link-cancel', { bubbles: true }));
     }
   };
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('pointerdown', this.onOutside, true);
+  }
   render() {
     const keep = (e: Event) => e.preventDefault();
     const inner = !this.shown

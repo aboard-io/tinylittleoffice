@@ -25,7 +25,7 @@ export interface Sel {
   focus: Pos;
 }
 /** What the editor can be told to do; some take a word (a link's address, an icon's name, an embed's ref). */
-export type Command = 'b' | 'i' | 'u' | 's' | 'h' | 'link' | 'unlink' | 'fn' | 'icon' | 'date' | 'title' | 'h1' | 'h2' | 'p' | 'ul' | 'ol' | 'indent' | 'outdent' | 'left' | 'center' | 'right' | 'justify' | 'embed';
+export type Command = 'b' | 'i' | 'u' | 's' | 'h' | 'link' | 'unlink' | 'fn' | 'icon' | 'date' | 'title' | 'h1' | 'h2' | 'p' | 'quote' | 'ul' | 'ol' | 'indent' | 'outdent' | 'left' | 'center' | 'right' | 'justify' | 'embed';
 export type Mark = 'b' | 'i' | 'u' | 's' | 'h';
 /** The marks in force where the caret is: what the next letter typed will carry. */
 export type Fmt = Partial<Pick<Run, Mark | 'href'>>;
@@ -205,7 +205,11 @@ export function splitAt(blocks: Block[], sel: Sel): Edit {
   const end = blocks[b.block];
   const joined: TextBlock = { ...cur, runs: normalRuns([...sliceRuns(cur.runs, 0, a.offset), ...(isText(end) ? sliceRuns(end.runs, b.offset, runLength(end.runs)) : [])]) };
   const halves = splitBlock({ head: {}, blocks: [joined] }, 0, a.offset);
-  const two = halves[0]?.op === 'splice' ? halves[0].blocks : [joined];
+  let two = halves[0]?.op === 'splice' ? halves[0].blocks : [joined];
+  // At the end of an item whose children follow, the new item is their first (Docs, Workflowy).
+  const next = blocks[b.block + 1];
+  if (collapsed(sel) && cur.k === 'li' && a.offset === runLength(cur.runs) && next?.k === 'li' && next.depth === cur.depth + 1 && two.length === 2)
+    two = [two[0], { k: 'li', depth: next.depth, ...(next.ord ? { ord: true } : {}), ...(next.done !== undefined ? { done: false } : {}), runs: [] }];
   return { ops: [{ op: 'splice', at: a.block, n: b.block - a.block + 1, blocks: two }], sel: caret(a.block + 1, 0) };
 }
 
@@ -222,6 +226,15 @@ export function backspace(blocks: Block[], sel: Sel, shape: Shape): Edit | 'exit
   if (offset > 0) return { ops: [{ op: 'text', at: block, from: offset - 1, to: offset, runs: [] }], sel: caret(block, offset - 1) };
   // A line-shaped editor owns one block: at its start the host decides (an outline takes an empty item away), whatever the block's kind.
   if (shape === 'line') return 'exit';
+  // An empty item with children goes, and they come out a level to sit where it was; the caret ends the block before.
+  const under = blocks[block + 1];
+  if (cur.k === 'li' && !cur.runs.length && under?.k === 'li' && under.depth > cur.depth) {
+    let end = block + 1;
+    while (blocks[end]?.k === 'li' && (blocks[end] as Extract<Block, { k: 'li' }>).depth > cur.depth) end++;
+    const out = blocks.slice(block + 1, end).map((x) => (x.k === 'li' ? { ...x, depth: Math.max(0, x.depth - 1) } : x));
+    const prev = textBlock(blocks, block - 1, -1);
+    return { ops: [{ op: 'splice', at: block, n: end - block, blocks: out }], sel: prev >= 0 ? caret(prev, blockLength(blocks[prev])) : caret(block, 0) };
+  }
   if (cur.k === 'li') return { ops: [{ op: 'splice', at: block, n: 1, blocks: [unlist(cur)] }], sel };
   if (block === 0) return shape === 'doc' ? null : 'exit';
   const prev = blocks[block - 1];
@@ -298,11 +311,11 @@ const withAttrs = (b: Block, a: Attrs | undefined): Block => {
 };
 
 /** The kind a block is asked to be: a paragraph, a heading, the title, a list item. Asking for the kind it already is (a list) makes it a paragraph. */
-export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'title' | 'ul' | 'ol'): Edit {
+export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'title' | 'quote' | 'ul' | 'ol'): Edit {
   const [from, to] = spanOf(sel);
   const span = blocks.slice(from, to);
   const items = span.filter(isText);
-  const already = kind === 'ul' ? items.every((b) => b.k === 'li' && !b.ord) : kind === 'ol' ? items.every((b) => b.k === 'li' && !!b.ord) : false;
+  const already = kind === 'ul' ? items.every((b) => b.k === 'li' && !b.ord) : kind === 'ol' ? items.every((b) => b.k === 'li' && !!b.ord) : kind === 'quote' ? items.every((b) => b.k === 'quote') : false;
   const want = already ? 'p' : kind;
   const out = span.map((b): Block => {
     if (!isText(b)) return b;
@@ -310,6 +323,8 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
     switch (want) {
       case 'p':
         return withAttrs({ k: 'p', runs: b.runs }, a);
+      case 'quote':
+        return withAttrs({ k: 'quote', runs: b.runs }, a);
       case 'h1':
         return withAttrs({ k: 'h', level: 1, runs: b.runs }, a);
       case 'h2':
@@ -367,6 +382,49 @@ export function shiftItems(blocks: Block[], sel: Sel, by: 1 | -1): Edit | null {
   return moved ? { ops: [{ op: 'splice', at: from, n: to - from, blocks: out }], sel } : null;
 }
 
+/** Where an item's family ends: the first block after `i` that is not an item deeper than it. */
+function familyEnd(blocks: Block[], i: number): number {
+  const b = blocks[i];
+  let j = i + 1;
+  if (b?.k !== 'li') return j;
+  while (blocks[j]?.k === 'li' && (blocks[j] as Extract<Block, { k: 'li' }>).depth > b.depth) j++;
+  return j;
+}
+
+/**
+ * Alt+Up/Down: the selected items, with their deeper followers, moved past
+ * the family before (by -1) or after (by 1) at their level; never out of
+ * their parent, never past a block that is not an item. One splice over the
+ * two families, the same blocks in another order; the selection moves with
+ * them. Null when there is nowhere to go.
+ */
+export function moveItems(blocks: Block[], sel: Sel, by: 1 | -1): Edit | null {
+  const [a, z] = ordered(sel);
+  const first = blocks[a.block];
+  if (first?.k !== 'li') return null;
+  const d = first.depth;
+  let end = a.block;
+  while (end <= z.block) end = familyEnd(blocks, end);
+  for (let i = a.block; i < end; i++) {
+    const x = blocks[i];
+    if (x.k !== 'li' || x.depth < d) return null;
+  }
+  const level = (i: number) => blocks[i]?.k === 'li' && (blocks[i] as Extract<Block, { k: 'li' }>).depth === d;
+  const move = (from: number, mid: number, to: number, shift: number): Edit => ({
+    ops: [{ op: 'splice', at: from, n: to - from, blocks: [...blocks.slice(mid, to), ...blocks.slice(from, mid)] }],
+    sel: { anchor: { ...sel.anchor, block: sel.anchor.block + shift }, focus: { ...sel.focus, block: sel.focus.block + shift } },
+  });
+  if (by > 0) {
+    if (!level(end)) return null;
+    const after = familyEnd(blocks, end);
+    return move(a.block, end, after, after - end);
+  }
+  let p = a.block - 1;
+  while (p >= 0 && blocks[p].k === 'li' && (blocks[p] as Extract<Block, { k: 'li' }>).depth > d) p--;
+  if (p < 0 || !level(p)) return null;
+  return move(p, a.block, end, p - a.block);
+}
+
 /* ---------- typing ---------- */
 
 const OPENERS = /[\s(\[{‘“« ]|^$/;
@@ -376,7 +434,7 @@ export function smartQuote(q: '"' | "'", before: string): string {
   return q === '"' ? (open ? '“' : '”') : open ? '‘' : '’';
 }
 
-/** A paragraph that begins "- ", "1. " or "# " becomes a list item or a heading as the space is typed: the shortcut's op, or null. */
+/** A paragraph that begins "- ", "1. ", "# " or "> " becomes a list item, a heading or a quote as the space is typed: the shortcut's op, or null. */
 export function shortcut(blocks: Block[], sel: Sel, shape: Shape): Edit | null {
   if (!collapsed(sel) || shape === 'line') return null;
   const { block, offset } = sel.anchor;
@@ -390,6 +448,7 @@ export function shortcut(blocks: Block[], sel: Sel, shape: Shape): Edit | null {
   let made: Block | null = null;
   if (/^[-*+]$/.test(words)) made = { k: 'li', depth: 0, runs: rest, ...(a ? { a } : {}) };
   else if (/^1[.)]$/.test(words)) made = { k: 'li', depth: 0, ord: true, runs: rest, ...(a ? { a } : {}) };
+  else if (shape === 'doc' && words === '>') made = { k: 'quote', runs: rest, ...(a ? { a } : {}) };
   else if (shape === 'doc' && /^#{1,6}$/.test(words)) made = { k: 'h', level: words.length as 1 | 2 | 3 | 4 | 5 | 6, runs: rest, ...(a ? { a } : {}) };
   return made ? { ops: [{ op: 'splice', at: block, n: 1, blocks: [made] }], sel: caret(block, 0) } : null;
 }
