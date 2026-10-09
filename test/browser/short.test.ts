@@ -3,6 +3,8 @@
 import { test, expect, afterEach, vi } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
+import { parse, write } from '../../src/doc/index.ts';
+import type { ToText } from '../../src/kit/text.ts';
 import type { ToMenu } from '../../src/kit/menu.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
 
@@ -15,7 +17,7 @@ const labels = (shell: HTMLElement) => shell.querySelector<ToMenu>('to-menu.to-s
 
 test('opened from an owner link, the document can update its short link; the shared link carries no key', async () => {
   const shell = await mount(`#/v1/text/${encodeDoc('Hello')}${OWNED}`);
-  await until(() => !!shell.querySelector('to-text-editor textarea'));
+  await until(() => !!shell.querySelector('to-text-editor to-text .tx'));
   expect(shell.owned).toEqual({ id: 'abcdefg', key: 'K'.repeat(43), o: 'O'.repeat(43) });
   expect(shell.link).not.toContain('?');
   expect(shell.link.endsWith(`#/v1/text/${encodeDoc('Hello')}`)).toBe(true);
@@ -26,13 +28,17 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(labels(shell)).not.toContain('Shorter link that expires…');
 
   // An edit: the address keeps the owner's query, the shared link still has none, and Update appears.
-  const area = shell.querySelector<HTMLTextAreaElement>('textarea')!;
-  area.value = 'Hello again';
-  area.dispatchEvent(new Event('input', { bubbles: true }));
+  const text = shell.querySelector<ToText>('to-text')!;
+  text.sel = { anchor: { block: 0, offset: 5 }, focus: { block: 0, offset: 5 } };
+  for (const ch of ' again') {
+    text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
+    await text.updateComplete;
+  }
   await shell.updateComplete;
+  const again = encodeDoc(write(parse('Hello again')));
   expect(location.hash).toContain(OWNED);
-  expect(location.hash.startsWith(`#/v1/text/${encodeDoc('Hello again')}?`)).toBe(true);
-  expect(shell.link).toBe(`${location.origin}${location.pathname}#/v1/text/${encodeDoc('Hello again')}`);
+  expect(location.hash.startsWith(`#/v1/text/${again}?`)).toBe(true);
+  expect(shell.link).toBe(`${location.origin}${location.pathname}#/v1/text/${again}`);
   expect(labels(shell)).toContain('Update the short link');
 
   // One tap: a PUT with the new ciphertext and o, answered with the version; the toast says so.
@@ -81,13 +87,13 @@ test('opened from an owner link, the document can update its short link; the sha
   await until(() => shell.owned === null);
   expect(sent[2].method).toBe('DELETE');
   expect(sent[2].body).toEqual({ o: 'O'.repeat(43) });
-  expect(location.hash).toBe(`#/v1/text/${encodeDoc('Hello again')}`);
+  expect(location.hash).toBe(`#/v1/text/${again}`);
   await until(() => labels(shell).includes('Shorter link that expires…'));
 });
 
 test('a short link made here comes as two links, and the document owns it from then on', async () => {
   const shell = await mount(`#/v1/text/${encodeDoc('Hello')}`);
-  await until(() => !!shell.querySelector('to-text-editor textarea'));
+  await until(() => !!shell.querySelector('to-text-editor to-text .tx'));
   expect(shell.owned).toBeNull();
   vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body)) as { owner: string; ttl: number };
