@@ -1,8 +1,9 @@
 /** Board: what the shell knows about kanban boards. Format: lib/boardmodel.ts. */
 import { defineApp, csv, utf8, xml, text, rect, clip, wrapText, SHADE, LINE, MUTED, type Page } from '../kit/core.ts';
-import { parseBoard, readBoard } from '../lib/boardmodel.ts';
+import { parseBoard, progress, readBoard } from '../lib/boardmodel.ts';
+import { plainInline } from '../lib/richtext.ts';
 
-export const boardToCsv = (body: string) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, c]))]);
+export const boardToCsv = (body: string) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, plainInline(c.text)]))]);
 
 /** The board as a page; `upTo` cards of it (counting stage by stage) while it builds. */
 function page(body: string, upTo = Infinity): Page {
@@ -16,9 +17,10 @@ function page(body: string, upTo = Infinity): Page {
     let y = 64;
     let cards = '';
     for (const c of s.cards) {
-      const lines = wrapText(c, COL - 40, 14).slice(0, 4);
-      const h = lines.length * 19 + 18;
-      if (shown++ < upTo) cards += rect(left + 8, y, COL - 16, h, '#fff', `rx="6" stroke="${LINE}"`) + lines.map((l, k) => text(left + 20, y + 22 + k * 19, l, { px: 14 })).join('');
+      const lines = wrapText(plainInline(c.text), COL - 40, 14).slice(0, 4);
+      const done = progress(c);
+      const h = lines.length * 19 + 18 + (done ? 16 : 0);
+      if (shown++ < upTo) cards += rect(left + 8, y, COL - 16, h, '#fff', `rx="6" stroke="${LINE}"`) + lines.map((l, k) => text(left + 20, y + 22 + k * 19, l, { px: 14 })).join('') + (done ? text(left + 20, y + h - 8, `☑ ${done}`, { px: 12, fill: MUTED }) : '');
       y += h + 8;
     }
     tall = Math.max(tall, y);
@@ -41,7 +43,7 @@ export default defineApp({
   // On a slide, the stages are there and their cards arrive one at a time.
   steps: (body) => parseBoard(body).reduce((n, s) => n + s.cards.length, 0),
   read: readBoard,
-  html: (body) => `<h1>Board</h1>\n${parseBoard(body).map((s) => `<section>\n<h2>${xml(s.name)}</h2>\n<ul>\n${s.cards.map((c) => `<li>${xml(c)}</li>`).join('\n')}\n</ul>\n</section>`).join('\n')}`,
+  html: (body) => `<h1>Board</h1>\n${parseBoard(body).map((s) => `<section>\n<h2>${xml(s.name)}</h2>\n<ul>\n${s.cards.map((c) => `<li>${xml(plainInline(c.text))}${c.items.length ? `<ul>${c.items.map((i) => `<li>${i.done ? '☑' : '☐'} ${xml(i.text)}</li>`).join('')}</ul>` : ''}</li>`).join('\n')}\n</ul>\n</section>`).join('\n')}`,
   downloads: [
     { ext: 'csv', label: 'CSV', mime: 'text/csv;charset=utf-8', build: (b) => utf8('\ufeff' + boardToCsv(b)) },
   ],

@@ -1,16 +1,22 @@
 /**
- * <to-board>: a kanban board. The columns are the stages of a workflow; cards
- * move between them by drag and drop or with the arrows on each card.
- * Document format: see lib/boardmodel.ts.
+ * <to-board>: a kanban board. The columns are the stages of a workflow,
+ * each in a colour of its own if it likes; cards (a line of rich text,
+ * and a checklist under it if it has one) move between them by drag and
+ * drop or with the arrows on each card. Document format: lib/boardmodel.ts.
  */
 import { goLinks } from '../widgets/link-guard.ts';
-import { DocElement, defineElement, html, nothing, state, btn, icon, swap, UI } from '../kit.ts';
-import { MAX_STAGES, parseBoard, serializeBoard, type Stage } from '../lib/boardmodel.ts';
+import { DocElement, defineElement, html, nothing, state, btn, tool, icon, swap, UI } from '../kit.ts';
+import { MAX_STAGES, STAGE_COLORS, card, parseBoard, progress, serializeBoard, type Card, type Stage } from '../lib/boardmodel.ts';
+import { plainInline } from '../lib/richtext.ts';
+import './write.ts';
+import type { ToWrite } from './write.ts';
 
 export class ToBoard extends DocElement<Stage[]> {
   /** The card being dragged: [stage, card]. */
   @state() private drag: [number, number] | null = null;
   @state() private over = -1;
+  /** The card's text last typed in: what the text buttons work on. */
+  private field: ToWrite | null = null;
 
   protected parse = parseBoard;
   protected serialize = serializeBoard;
@@ -21,7 +27,7 @@ export class ToBoard extends DocElement<Stage[]> {
 
   private addStage() {
     if (this.doc.length >= MAX_STAGES) return;
-    this.commit([...this.doc, { name: 'New stage', limit: 0, cards: [] }]);
+    this.commit([...this.doc, { name: 'New stage', limit: 0, color: '', cards: [] }]);
     this.focusSoon('.board-col:last-of-type input.name', true);
   }
 
@@ -39,7 +45,7 @@ export class ToBoard extends DocElement<Stage[]> {
   private addCard(i: number, input: HTMLInputElement) {
     const text = input.value.trim();
     if (!text) return;
-    this.patchStage(i, { cards: [...this.doc[i].cards, text] });
+    this.patchStage(i, { cards: [...this.doc[i].cards, card(text)] });
     input.value = '';
   }
 
@@ -47,8 +53,8 @@ export class ToBoard extends DocElement<Stage[]> {
   private moveCard(from: number, card: number, to: number, at = -1) {
     if (to < 0 || to >= this.doc.length) return;
     const stages = this.doc.map((s) => ({ ...s, cards: [...s.cards] }));
-    const [text] = stages[from].cards.splice(card, 1);
-    stages[to].cards.splice(at < 0 ? stages[to].cards.length : at, 0, text);
+    const [moved] = stages[from].cards.splice(card, 1);
+    stages[to].cards.splice(at < 0 ? stages[to].cards.length : at, 0, moved);
     this.commit(stages);
   }
 
@@ -64,11 +70,24 @@ export class ToBoard extends DocElement<Stage[]> {
     if (to < 0 || to >= this.doc.length || (to === i && (at < 0 || at >= n))) return;
     if (to !== i) at = this.doc[to].cards.length;
     this.moveCard(i, c, to, at);
-    this.focusSoon(`.board-col:nth-of-type(${to + 1}) .board-card:nth-child(${at + 1}) textarea`);
+    this.focusSoon(`.board-col:nth-of-type(${to + 1}) .board-card:nth-child(${at + 1}) .write-page`);
   }
 
-  private editCard(i: number, c: number, text: string) {
-    this.patchStage(i, { cards: this.doc[i].cards.map((t, k) => (k === c ? text : t)) });
+  private patchCard(i: number, c: number, p: Partial<Card>) {
+    this.patchStage(i, { cards: this.doc[i].cards.map((t, k) => (k === c ? { ...t, ...p } : t)) });
+  }
+  /** The checklist: an item changed, ticked, or taken away (text null); Enter in one starts the next. */
+  private patchItem(i: number, c: number, k: number, p: { text?: string | null; done?: boolean }) {
+    const items = [...this.doc[i].cards[c].items];
+    if (p.text === null) items.splice(k, 1);
+    else items[k] = { ...items[k], ...(p.text !== undefined ? { text: p.text } : {}), ...(p.done !== undefined ? { done: p.done } : {}) };
+    this.patchCard(i, c, { items });
+  }
+  private addItem(i: number, c: number, after = this.doc[i].cards[c].items.length - 1) {
+    const items = [...this.doc[i].cards[c].items];
+    items.splice(after + 1, 0, { text: '', done: false });
+    this.patchCard(i, c, { items });
+    this.focusSoon(`.board-col:nth-of-type(${i + 1}) .board-card:nth-child(${c + 1}) .board-items li:nth-child(${after + 2}) input[type="text"]`);
   }
 
   private onDrop(e: DragEvent, to: number) {
@@ -88,8 +107,11 @@ export class ToBoard extends DocElement<Stage[]> {
   render() {
     const n = this.doc.length;
     return html`
-      <div class="to-toolbar">
+      <div class="to-toolbar" role="toolbar" aria-label="Board">
         <sl-button size="small" ?disabled=${n >= MAX_STAGES} @click=${this.addStage}>${icon(UI.plus, 14)} Stage</sl-button>
+        <sl-button-group label="Text">
+          ${tool('Bold', 'bold', () => this.field?.exec('bold'), { key: 'Mod+B' })}${tool('Italic', 'italic', () => this.field?.exec('italic'), { key: 'Mod+I' })}${tool('Underline', 'underline', () => this.field?.exec('underline'), { key: 'Mod+U' })}${tool('Strikethrough', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => void this.field?.insertIcon())}
+        </sl-button-group>
         <span class="to-spacer"></span>
         <span class="to-hint">${this.doc.reduce((a, s) => a + s.cards.length, 0)} cards</span>
       </div>
@@ -97,7 +119,8 @@ export class ToBoard extends DocElement<Stage[]> {
         ${this.doc.map((s, i) => {
           const full = s.limit > 0 && s.cards.length > s.limit;
           return html`<section
-            class="board-col ${this.over === i ? 'over' : ''} ${full ? 'full' : ''}"
+            class="board-col ${this.over === i ? 'over' : ''} ${full ? 'full' : ''} ${s.color ? 'tinted' : ''}"
+            style=${s.color ? `--c:${STAGE_COLORS[s.color].hex}` : nothing}
             aria-label=${s.name}
             @dragover=${(e: DragEvent) => {
               e.preventDefault();
@@ -117,6 +140,7 @@ export class ToBoard extends DocElement<Stage[]> {
                     if (v === 'left') this.moveStage(i, -1);
                     else if (v === 'right') this.moveStage(i, 1);
                     else if (v === 'delete') this.removeStage(i);
+                    else if (v.startsWith('color:')) this.patchStage(i, { color: v.slice(6) });
                     else this.patchStage(i, { limit: parseInt(v, 10) });
                   }}
                 >
@@ -126,19 +150,23 @@ export class ToBoard extends DocElement<Stage[]> {
                   <sl-menu-label>Limit</sl-menu-label>
                   ${[0, 1, 2, 3, 5, 8].map((l) => html`<sl-menu-item type="checkbox" value=${l} ?checked=${s.limit === l}>${l || 'None'}</sl-menu-item>`)}
                   <sl-divider></sl-divider>
+                  <sl-menu-label>Colour</sl-menu-label>
+                  <sl-menu-item type="checkbox" value="color:" ?checked=${!s.color}>None</sl-menu-item>
+                  ${Object.entries(STAGE_COLORS).map(([k, c]) => html`<sl-menu-item type="checkbox" value=${`color:${k}`} ?checked=${s.color === k}><i class="board-dot" style="--c:${c.hex}"></i>${c.name}</sl-menu-item>`)}
+                  <sl-divider></sl-divider>
                   <sl-menu-item value="delete" ?disabled=${n <= 1}>Delete stage</sl-menu-item>
                 </sl-menu>
               </sl-dropdown>
             </header>
             <ul>
               ${s.cards.map(
-                (text, c) => html`<li
+                (cd, c) => html`<li
                   class="board-card ${this.drag && this.drag[0] === i && this.drag[1] === c ? 'dragging' : ''}"
                   data-idx=${c}
                   draggable="true"
                   @dragstart=${(e: DragEvent) => {
                     this.drag = [i, c];
-                    e.dataTransfer?.setData('text/plain', text);
+                    e.dataTransfer?.setData('text/plain', plainInline(cd.text));
                     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
                   }}
                   @keydown=${(e: KeyboardEvent) => this.onCardKey(e, i, c)}
@@ -147,10 +175,25 @@ export class ToBoard extends DocElement<Stage[]> {
                     this.over = -1;
                   }}
                 >
-                  <textarea rows="1" aria-label="Card" .value=${text} @input=${(e: Event) => this.editCard(i, c, (e.target as HTMLTextAreaElement).value.replace(/\n/g, ' '))}></textarea>${goLinks(text)}
+                  <to-rich mode="line" .tools=${false} label="Card" placeholder="Card" .value=${cd.text} @focusin=${(e: Event) => (this.field = e.currentTarget as ToWrite)} @rich-change=${(e: CustomEvent<string>) => this.patchCard(i, c, { text: e.detail })}></to-rich>${goLinks(plainInline(cd.text))}
+                  ${cd.items.length
+                    ? html`<ul class="board-items" aria-label="Checklist">
+                        ${cd.items.map(
+                          (it, k) => html`<li class=${it.done ? 'done' : ''}>
+                            <input type="checkbox" aria-label=${`Done: ${it.text || 'item'}`} .checked=${it.done} @change=${(e: Event) => this.patchItem(i, c, k, { done: (e.target as HTMLInputElement).checked })} />
+                            <input type="text" aria-label=${`Checklist item ${k + 1}`} placeholder="To do" .value=${it.text} @input=${(e: Event) => this.patchItem(i, c, k, { text: (e.target as HTMLInputElement).value })} @keydown=${(e: KeyboardEvent) => {
+                              if (e.key === 'Enter') (e.preventDefault(), this.addItem(i, c, k));
+                              else if (e.key === 'Backspace' && !(e.target as HTMLInputElement).value) (e.preventDefault(), this.patchItem(i, c, k, { text: null }));
+                            }} />
+                          </li>`,
+                        )}
+                      </ul>`
+                    : nothing}
                   <div class="acts">
                     ${btn('Move to previous stage', 'left', () => this.moveCard(i, c, i - 1), { disabled: i === 0 })}
                     ${btn('Move to next stage', 'right', () => this.moveCard(i, c, i + 1), { disabled: i === n - 1 })}
+                    ${btn(cd.items.length ? 'Another checklist item' : 'Add a checklist', 'box', () => this.addItem(i, c))}
+                    ${cd.items.length ? html`<span class="board-progress">${progress(cd)}</span>` : nothing}
                     <span class="to-spacer"></span>
                     ${btn('Delete card', 'close', () => this.patchStage(i, { cards: s.cards.filter((_, k) => k !== c) }))}
                   </div>

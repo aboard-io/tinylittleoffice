@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { parseTodos, serializeTodos } from '../src/lib/todomodel.ts';
-import { emptyBoard, parseBoard, serializeBoard } from '../src/lib/boardmodel.ts';
+import { emptyBoard, parseBoard, progress, serializeBoard } from '../src/lib/boardmodel.ts';
 import { ganttRange, parseGantt, serializeGantt } from '../src/lib/ganttmodel.ts';
 import { distanceKm, formatKm, parseTrip, routeKm, serializeTrip } from '../src/lib/tripmodel.ts';
 import { depthScale, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes } from '../src/lib/animmodel.ts';
@@ -46,14 +46,16 @@ test('todo round trip', () => {
 test('board round trip', () => {
   assert.equal(serializeBoard(emptyBoard()), '');
   assert.deepEqual(parseBoard(''), emptyBoard());
+  const c = (text: string, items: { text: string; done: boolean }[] = []) => ({ text, items });
   const stages = [
-    { name: 'Backlog', limit: 0, cards: ['Write spec', '#hashtag card', '\\slash', '- dash'] },
-    { name: 'Doing', limit: 2, cards: [] },
-    { name: '', limit: 0, cards: ['a, b'] },
+    { name: 'Backlog', limit: 0, color: '', cards: [c('Write **spec**', [{ text: 'Outline', done: true }, { text: 'Draft', done: false }]), c('#hashtag card'), c('\\slash'), c('- dash')] },
+    { name: 'Doing', limit: 2, color: 'g', cards: [] },
+    { name: '', limit: 0, color: '', cards: [c('a, b')] },
   ];
   const s = serializeBoard(stages);
-  assert.equal(s, '## Backlog\n\n- Write spec\n- #hashtag card\n- \\slash\n- - dash\n\n## Doing {limit=2}\n\n##\n\n- a, b');
+  assert.equal(s, '## Backlog\n\n- Write **spec**\n  - [x] Outline\n  - [ ] Draft\n- #hashtag card\n- \\slash\n- - dash\n\n## Doing {limit=2 color=g}\n\n##\n\n- a, b');
   assert.deepEqual(parseBoard(s), stages);
+  assert.equal(progress(stages[0].cards[0]), '1/2');
   assert.equal(boardToCsv(s), 'Stage,Card\r\nBacklog,Write spec\r\nBacklog,#hashtag card\r\nBacklog,\\slash\r\nBacklog,- dash\r\n,"a, b"\r\n');
   assert.equal(toMarkdown(s), s + '\n');
   // Read loosely: a limit in words, any heading, cards as lines; and the board's own CSV comes back.

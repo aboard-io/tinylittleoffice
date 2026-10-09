@@ -11,7 +11,7 @@
  * the grid as it changes, that Done keeps and Escape throws away.
  */
 import { goLinks } from '../widgets/link-guard.ts';
-import { DocElement, defineElement, html, nothing, state, swatches, icon, UI, type SlCheckbox, type SlInput, type SlSelect } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, swatches, dateNav, tool, icon, UI, type SlCheckbox, type SlInput, type SlSelect } from '../kit.ts';
 import { CAL_COLORS, EVERY, clockMinutes, fromIsoDay, isoDay, occurrences, parseCalendar, repeatText, serializeCalendar, sortSpans, spanDays, spanStartMs, spanEndMs, EPOCH_DAY, MAX_LABEL, type Calendar, type Every, type Span } from '../lib/calmodel.ts';
 import { allZones, clockString, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
 
@@ -30,6 +30,10 @@ function firstWeekday(): number {
 export class ToCal extends DocElement<Calendar> {
   @state() private zone = localZone();
   @state() private view = { y: 2026, m: 1 };
+  /** A month at a time, or the whole year at a glance. */
+  @state() private mode: 'month' | 'year' = 'month';
+  /** A day picked on the year, marked once its month opens. */
+  @state() private picked = -1;
   /** The span in the dialog: its index, or the spans' length for one not yet kept. */
   @state() private sel = -1;
   /** The span as the dialog has it so far; open while this is set. */
@@ -134,6 +138,13 @@ export class ToCal extends DocElement<Calendar> {
     while (m < 1) { m += 12; y--; }
     while (m > 12) { m -= 12; y++; }
     this.view = { y, m };
+  }
+
+  /** From the year, open a month; a day tapped there is marked in it. */
+  private openMonth(m: number, day = -1) {
+    this.view = { y: this.view.y, m };
+    this.picked = day;
+    this.mode = 'month';
   }
 
   private setZone(z: string) {
@@ -301,22 +312,25 @@ export class ToCal extends DocElement<Calendar> {
     // Every time of every span that lands on the grid (a day either side, since a repeat keeps its time of day in another zone).
     const times = spans.flatMap((s, idx) => occurrences(s, gridStart - 1, gridStart + rows * 7, this.repeatZone).map((o) => ({ s: o, idx })));
 
+    const yearName = String(y);
     return html`
-      <div class="to-toolbar">
-        <sl-button-group label="Month">
-          <sl-button class="icon" size="small" aria-label="Previous month" @click=${() => this.shiftMonth(-1)}>${icon(UI.left, 16)}<span class="sr-only">Previous month</span></sl-button>
-          <sl-button class="icon" size="small" aria-label="Next month" @click=${() => this.shiftMonth(1)}>${icon(UI.right, 16)}<span class="sr-only">Next month</span></sl-button>
+      <div class="to-toolbar" role="toolbar" aria-label="Calendar">
+        ${this.mode === 'year'
+          ? dateNav(yearName, { prev: 'Previous year', next: 'Next year', onPrev: () => (this.view = { y: y - 1, m }), onNext: () => (this.view = { y: y + 1, m }), onToday: () => this.showMonthOf() })
+          : dateNav(monthName, { prev: 'Previous month', next: 'Next month', onPrev: () => this.shiftMonth(-1), onNext: () => this.shiftMonth(1), onToday: () => this.showMonthOf(), onLabel: () => (this.mode = 'year'), labelTip: 'See the year' })}
+        <sl-button-group label="View">
+          ${tool('Month', 'cal', () => (this.mode = 'month'), { text: true, pressed: this.mode === 'month' })}
+          ${tool('Year', 'pixel', () => (this.mode = 'year'), { text: true, pressed: this.mode === 'year' })}
         </sl-button-group>
-        <span class="cal-month" aria-live="polite">${monthName}</span>
-        <sl-button size="small" @click=${() => this.showMonthOf()}>Today</sl-button>
+        ${this.renderLegend()}
         <span class="to-spacer"></span>
-        <input class="cal-zone" aria-label="Time zone" list="cal-zones" autocomplete="off" spellcheck="false" .value=${this.zone.replace(/_/g, ' ')} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} @change=${this.onZone} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+        <input class="cal-zone" aria-label="Time zone" list="cal-zones" autocomplete="off" spellcheck="false" .value=${this.zone.replace(/_/g, ' ')} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} @change=${this.onZone} />
         <datalist id="cal-zones">${this.zones.map((z) => html`<option value=${z.replace(/_/g, ' ')}></option>`)}</datalist>
         ${docZone && docZone !== this.zone && isValidZone(docZone)
           ? html`<sl-button data-tip="Author's zone" size="small" @click=${() => this.setZone(docZone)}>${icon(UI.globe, 14)} ${docZone.split('/').pop()!.replace(/_/g, ' ')} time</sl-button>`
           : nothing}
       </div>
-      ${this.renderLegend()}
+      ${this.mode === 'year' ? this.renderYear(spans, today) : html`
       <div class="cal-grid" role="grid" aria-label=${monthName} tabindex="0" @pointermove=${this.onGridMove} @pointerup=${this.onGridUp} @pointercancel=${this.onGridUp}>
         <div class="cal-row" role="row">${Array.from({ length: 7 }, (_, i) => html`<div class="cal-wd" role="columnheader">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</div>`)}</div>
         ${Array.from({ length: rows }, (_, week) => html`<div class="cal-row" role="row">${Array.from({ length: 7 }, (_, weekday) => {
@@ -329,7 +343,7 @@ export class ToCal extends DocElement<Calendar> {
               ? EPOCH_DAY + s.start <= day && day < EPOCH_DAY + s.start + s.dur
               : spanStartMs(s) < dayEnd && Math.max(spanEndMs(s), spanStartMs(s) + 1) > dayStart,
           );
-          const cls = ['cal-cell', p.m !== m ? 'out' : '', day === today ? 'today' : '', range && day >= range[0] && day <= range[1] ? 'range' : ''].join(' ');
+          const cls = ['cal-cell', p.m !== m ? 'out' : '', day === today ? 'today' : '', day === this.picked ? 'picked' : '', range && day >= range[0] && day <= range[1] ? 'range' : ''].join(' ');
           return html`<div class=${cls} role="gridcell" data-day=${day} aria-label=${ymdString(p.y, p.m, p.d)} @pointerdown=${(e: PointerEvent) => this.onCellDown(e, day)}>
             <span class="n">${p.d}</span>
             ${chips.map(({ s, idx }) => {
@@ -353,9 +367,45 @@ export class ToCal extends DocElement<Calendar> {
           </div>`;
         })}</div>`)}
       </div>
-      ${spans.length ? this.renderAgenda(spans, first, first + daysInMonth - 1) : nothing}
+      ${spans.length ? this.renderAgenda(spans, first, first + daysInMonth - 1) : nothing}`}
       ${this.renderDialog()}
     `;
+  }
+
+  /** The whole year: twelve small months, a day tinted in the colour of what it holds, today ringed. A month opens on its name, a day on itself. */
+  private renderYear(spans: Span[], today: number) {
+    const { y } = this.view;
+    const from = ymdToDay(y, 1, 1);
+    const to = ymdToDay(y + 1, 1, 1);
+    // The colour of each day with something on it: the first span's, or the accent's.
+    const tint = new Map<number, string>();
+    for (const s of spans)
+      for (const o of occurrences(s, from - 1, to, this.repeatZone)) {
+        const [a, b] = o.kind === 'd' ? [EPOCH_DAY + o.start, EPOCH_DAY + o.start + o.dur - 1] : spanDays(o, this.zone);
+        for (let d = Math.max(a, from); d <= Math.min(b, to - 1); d++) if (!tint.has(d)) tint.set(d, CAL_COLORS[o.color ?? '']?.hex ?? CAL_COLORS[''].hex);
+      }
+    const wdFmt = new Intl.DateTimeFormat(undefined, { weekday: 'narrow', timeZone: 'UTC' });
+    const monthFmt = new Intl.DateTimeFormat(undefined, { month: 'long', timeZone: 'UTC' });
+    return html`<div class="cal-year" role="grid" aria-label=${String(y)}>
+      ${Array.from({ length: 12 }, (_, k) => {
+        const m = k + 1;
+        const first = ymdToDay(y, m, 1);
+        const lead = (dayToYmd(first).wd - this.week0 + 7) % 7;
+        const days = ymdToDay(y, m + 1, 1) - first;
+        return html`<section class="cal-mini" role="row" aria-label=${monthFmt.format(Date.UTC(y, k, 1))}>
+          <button class="cal-mini-name" @click=${() => this.openMonth(m)}>${monthFmt.format(Date.UTC(y, k, 1))}</button>
+          <div class="cal-mini-days">
+            ${Array.from({ length: 7 }, (_, i) => html`<span class="wd">${wdFmt.format(Date.UTC(2023, 0, 1 + ((this.week0 + i) % 7)))}</span>`)}
+            ${Array.from({ length: lead }, () => html`<span></span>`)}
+            ${Array.from({ length: days }, (_, i) => {
+              const day = first + i;
+              const c = tint.get(day);
+              return html`<button role="gridcell" class="d ${c ? 'has' : ''} ${day === today ? 'today' : ''}" style=${c ? `--c:${c}` : nothing} aria-label=${ymdString(y, m, i + 1)} @click=${() => this.openMonth(m, day)}>${i + 1}</button>`;
+            })}
+          </div>
+        </section>`;
+      })}
+    </div>`;
   }
 
   /** Whose dates are whose: pick the colour you add in, and say what it stands for. */

@@ -45,3 +45,36 @@ test('calendar: a day pressed makes a span, named and set to repeat in its dialo
   expect(spans).toHaveLength(1);
   expect(spans[0]).toMatchObject({ kind: 'd', label: 'Offsite', repeat: { every: 'w' } });
 });
+
+test('calendar: the year at a glance, days with something on them tinted; a month opens on its name, a day on itself', async () => {
+  const { el } = await mount('cal', '- 2026-01-15 to 2026-01-17 Offsite\n- 2026-03-02 Dentist {color=g}');
+  expect(el.querySelector('.to-datenav .cal-month')!.textContent).toBe('March 2026');
+  button(el, 'Year').click();
+  await settle(el);
+  expect(el.querySelector('.cal-year')).toBeTruthy();
+  expect(el.querySelector('.to-datenav .cal-month')!.textContent).toBe('2026');
+  const minis = () => [...el.querySelectorAll('.cal-mini')];
+  expect(minis()).toHaveLength(12);
+  expect(minis()[0].querySelectorAll('.d.has')).toHaveLength(3);
+  expect(minis()[2].querySelectorAll('.d.has')).toHaveLength(1);
+  // The year moves by years.
+  button(el, 'Next year').click();
+  await settle(el);
+  expect(el.querySelector('.to-datenav .cal-month')!.textContent).toBe('2027');
+  expect(el.querySelectorAll('.d.has')).toHaveLength(0);
+  button(el, 'Previous year').click();
+  await settle(el);
+  // A day tapped opens its month with the day marked.
+  el.querySelector<HTMLElement>('.cal-mini .d[aria-label="2026-03-02"]')!.click();
+  await settle(el);
+  expect(el.querySelector('.cal-year')).toBeNull();
+  expect(el.querySelector('.to-datenav .cal-month')!.textContent).toBe('March 2026');
+  expect(el.querySelector('.cal-cell.picked')!.getAttribute('aria-label')).toBe('2026-03-02');
+  // The month's name opens the year again; a month's name in it opens that month.
+  button(el, /^March 2026$/).click();
+  await settle(el);
+  expect(el.querySelector('.cal-year')).toBeTruthy();
+  minis()[5].querySelector<HTMLElement>('.cal-mini-name')!.click();
+  await settle(el);
+  expect(el.querySelector('.to-datenav .cal-month')!.textContent).toBe('June 2026');
+});

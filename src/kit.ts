@@ -131,6 +131,20 @@ export function stepper(label: string, value: string, o: { less: string; more: s
 }
 
 /**
+ * The one way through time: back, what is on view, forward, and Today.
+ * Pressing what is on view does `onLabel` when there is one (a calendar
+ * shows the year from a month's name).
+ */
+export function dateNav(label: string, o: { prev: string; next: string; onPrev(): void; onNext(): void; onToday(): void; onLabel?(): void; labelTip?: string }): TemplateResult {
+  return html`<sl-button-group class="to-datenav" label="Dates">
+    ${tool(o.prev, 'left', o.onPrev)}
+    <sl-button class="to-datenav-label" size="small" data-tip=${o.labelTip ?? nothing} ?disabled=${!o.onLabel} @click=${o.onLabel}><span class="cal-month" aria-live="polite">${label}</span></sl-button>
+    ${tool(o.next, 'right', o.onNext)}
+    <sl-button size="small" @click=${o.onToday}>Today</sl-button>
+  </sl-button-group>`;
+}
+
+/**
  * A row of colour swatches as a radio group. `colors` is id -> name and
  * hex; `names` can say what a colour stands for here ("Paul"). The arrow
  * keys move between them, as a radio group's do.

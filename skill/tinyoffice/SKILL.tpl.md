@@ -186,7 +186,7 @@ A table `Task | Start:date | Days:number | Done:percent`. A task that is part of
 
 ### board: a kanban board
 
-`## Stage` headings (`## Doing {limit=2}` limits it to two cards), each followed by a `- card` list.
+`## Stage` headings (`## Doing {limit=2 color=g}` limits it to two cards and colours the stage: b o g p r s y), each followed by a `- card` list; a card is a line of inline Markdown, and a task list indented under it (`  - [ ] step`) is its checklist.
 
 {{ex:board:Sprint}}
 
