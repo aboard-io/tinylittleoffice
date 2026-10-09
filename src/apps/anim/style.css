@@ -1,0 +1,167 @@
+/* Motion: the stage, what the selected shape can be given, and the time under them. */
+@layer apps {
+  to-anim-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* One line, always there, so the stage never jumps. */
+  .anim-hint {
+    margin: 0;
+    padding: 4px 0 8px;
+    min-height: 1.6em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .anim-wrap {
+    padding: 12px;
+    background: var(--to-surface-2);
+    border-radius: var(--to-radius);
+  }
+  svg.anim-stage {
+    display: block;
+    width: 100%;
+    max-height: calc(100dvh - var(--to-header-h) - 260px);
+    min-height: 160px;
+    height: auto;
+    aspect-ratio: 8 / 5;
+    margin: 0 auto;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+  svg.anim-stage:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 2px;
+  }
+  svg.anim-stage text {
+    font-family: var(--to-font);
+    pointer-events: none;
+  }
+  .anim-stage .hit rect {
+    fill: transparent;
+    stroke: transparent;
+    cursor: move;
+  }
+  .anim-stage .hit.sel rect {
+    stroke: var(--to-accent);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    vector-effect: non-scaling-stroke;
+  }
+  /* A pen shape's corners, draggable at the moment chosen. */
+  .anim-stage .hit .corner {
+    fill: var(--to-surface);
+    stroke: var(--to-accent);
+    stroke-width: 2;
+    pointer-events: all;
+    cursor: move;
+  }
+
+  .anim-props {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 6px 14px;
+    padding: 10px 0 0;
+  }
+  .anim-slider {
+    display: grid;
+    gap: 2px;
+    font-size: 0.85rem;
+    color: var(--to-ink-2);
+  }
+  .anim-slider b {
+    font-weight: 500;
+    color: var(--to-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .anim-slider input,
+  .anim-scrub input {
+    accent-color: var(--to-accent);
+    width: 100%;
+    min-height: 32px;
+    margin: 0;
+  }
+
+  .anim-time {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 0 4px;
+    border-top: 1px solid var(--to-border);
+  }
+  .anim-transport {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .anim-modes {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .anim-clock {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .anim-scrub {
+    position: relative;
+    padding-bottom: 14px;
+  }
+  .anim-keys {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
+    height: 14px;
+  }
+  .anim-keys .key {
+    position: absolute;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    padding: 0;
+    border: 2px solid var(--to-accent);
+    border-radius: 50%;
+    background: var(--to-surface);
+    cursor: pointer;
+  }
+  .anim-keys .key.on {
+    background: var(--to-accent);
+  }
+  .anim-thumbs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 2px;
+    scroll-snap-type: x proximity;
+  }
+  .anim-thumbs button {
+    flex: 1 0 64px;
+    max-width: 112px;
+    scroll-snap-align: start;
+    padding: 0;
+    border: 1px solid var(--to-border);
+    border-radius: 4px;
+    background: var(--to-surface);
+    cursor: pointer;
+    overflow: hidden;
+    aspect-ratio: 8 / 5;
+  }
+  .anim-thumbs button.on {
+    border-color: var(--to-accent);
+    box-shadow: 0 0 0 1px var(--to-accent);
+  }
+  .anim-thumbs svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+}
