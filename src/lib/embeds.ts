@@ -70,6 +70,3 @@ export function parseWeb(body: string): { url: string; alt: string; embed: Embed
   const url = rest.trim().split('\n')[0]?.trim() ?? '';
   return { url, alt: head.alt ?? '', embed: embedOf(url) };
 }
-
-/** The hosts a page may load into a frame when asked (the site's policy, public/_headers, says the same). */
-export const FRAME_HOSTS = ['https://www.youtube-nocookie.com', 'https://player.vimeo.com', 'https://embed.bsky.app', 'https://platform.twitter.com'];

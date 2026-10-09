@@ -405,10 +405,3 @@ export function moveItem(rows: Row[], i: number, f: number, item: number, j: num
   to.splice(Math.min(at, to.length), 0, thing);
   return rows.map((r, n) => (n === i || n === j ? { ...r, values: r.values.map((v, m) => (n === j && m === g ? joinItems(to) : n === i && m === f ? joinItems(from) : v)) } : r));
 }
-
-/** The marks written after field n of a kind ("|", "..", ":"): a value holding one would read as two. */
-export function marksAfter(given: Kind[], kind: number, n: number): string[] {
-  const is = kindsOf(given).kinds[kind].is;
-  const after = is.split('}').slice(n + 1).join('}');
-  return [...new Set(after.replace(/\{[^}]*\}/g, ' ').replace(/[[\]]/g, ' ').split(/\s+/).filter((m) => m && !/^[\w]+$/.test(m)))];
-}

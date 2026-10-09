@@ -107,5 +107,5 @@ console.log(`Created ${name}:
   src/apps/${id}.def.ts   name, title, picture, downloads
   src/apps/${id}.ts       the editor
   test/${id}.test.ts
-and added it to src/apps/index.ts and src/apps/editors.ts. Run "npm run dev" and open #/v2/${id}.
+and added it to src/apps/index.ts and src/apps/editors.ts. Run "npm run dev" and open #/v0/${id}.
 For a share card of its own, add a sketch to scripts/make-icons.mjs and run "npm run icons".`);

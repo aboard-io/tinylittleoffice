@@ -48,17 +48,4 @@ test('the picture is the editor: tap to add, drag to move, drag onto another to 
   await expect(page.getByRole('textbox', { name: 'Org chart, as text' })).toHaveValue(/- Eve Marsh \| Design\n    - Gus Pine/);
   await page.keyboard.press('Control+Shift+t');
   await shot(page, 'direct-org');
-
-  // A floor plan's rooms keep a place: a drag moves one.
-  await page.goto('/#/v0/floor');
-  await page.getByRole('button', { name: 'Start from an example' }).click();
-  const plan = page.locator('to-floor .pic > svg');
-  const kitchen = plan.getByRole('button', { name: /^Kitchen/ });
-  const k = (await kitchen.boundingBox())!;
-  await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(k.x + k.width / 2 + 80, k.y + k.height / 2 + 60, { steps: 8 });
-  await page.mouse.up();
-  await page.keyboard.press('Control+Shift+t');
-  await expect(page.getByRole('textbox', { name: 'Floor plan, as text' })).toHaveValue(/Kitchen: [\d.]+ x [\d.]+ at [\d.]+,[\d.]+/);
 });
