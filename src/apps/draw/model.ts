@@ -389,9 +389,13 @@ export function patchShape(doc: Doc, i: number, patch: Partial<Shape>): Op[] {
 export function removeShape(doc: Doc, i: number): Op[] {
   const v = readDrawing(doc);
   if (!v.shapes[i]) return [];
-  const b = new Builder(doc).push({ op: 'rows', at: v.at, r: v.rows[i], n: 1 });
-  // The shapes after i are now one earlier: the joins read the table as it stands, where i is gone.
-  return tidy(renumber(b, (old) => (old === i ? undefined : old < i ? old : old - 1))).ops;
+  // What goes: the shape, and every join to it. Rows come out from the last, so each row number still holds.
+  const gone = [i, ...v.shapes.flatMap((s, j) => (isLink(s.k) && (s.x === i || s.y === i) ? [j] : []))].sort((a, b) => b - a);
+  const b = new Builder(doc);
+  for (const j of gone) b.push({ op: 'rows', at: v.at, r: v.rows[j], n: 1 });
+  // The shapes left are numbered without those: the joins read the table as it stands and are told where their shapes are now.
+  const now = (old: number) => (gone.includes(old) ? undefined : old - gone.filter((g) => g < old).length);
+  return tidy(renumber(b, now)).ops;
 }
 
 /** Shape i brought to the front (drawn last) or sent to the back; the joins follow. Where it ended up is given with the ops. */

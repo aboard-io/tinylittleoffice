@@ -1,0 +1,41 @@
+{
+ "source": "src/apps/draw/templates.ts (the rebuilt tree)",
+ "docs": [
+  {
+   "name": "draw/request",
+   "text": "---\nalt: A browser asks a server, which reads the data.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads\n"
+  },
+  {
+   "name": "draw/flowchart",
+   "text": "---\nalt: A flowchart: start, is the kettle on? Yes: make tea. No: switch it on, then make tea. Then drink.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 30 | 2 | 20 | 6 | 1g | Start\nd | 26 | 12 | 28 | 12 | 0 | Is the kettle on?\nr | 4 | 28 | 20 | 8 | 1o | Switch it on\nr | 30 | 28 | 20 | 8 | 1b | Make tea\no | 30 | 40 | 20 | 6 | 2g | Drink\nk | 0 | 1 | 0 | 0 | 0 |\nk | 1 | 3 | 0 | 0 | 0 | yes\nk | 1 | 2 | 0 | 0 | 0 | no\nk | 2 | 3 | 0 | 0 | 0 |\nk | 3 | 4 | 0 | 0 | 0 |\n"
+  },
+  {
+   "name": "draw/tiers",
+   "text": "---\nalt: A phone and a laptop talk to an API, which reads a database and a cache.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 6 | 4 | 8 | 8 | 0 | phone2\ni | 6 | 18 | 8 | 8 | 0 | laptop\no | 30 | 10 | 20 | 8 | 1b | :server API\nc | 60 | 2 | 14 | 10 | 1p | Postgres\nc | 60 | 18 | 14 | 10 | 1o | Cache\nn | 26 | 30 | 28 | 12 | 1 | Every request is logged \\| with its latency and status\nk | 0 | 2 | 0 | 0 | 0 | https\nk | 1 | 2 | 0 | 0 | 0 | https\nk | 2 | 3 | 0 | 0 | 0 | sql\nk | 2 | 4 | 0 | 0 | 1 | get\n"
+  },
+  {
+   "name": "draw/floorplan",
+   "text": "---\nalt: The floor plan of a one-bedroom flat: a living room and kitchen on the left, a hall in the middle, a bedroom and bathroom on the right.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 2 | 36 | 26 | 1 | Living room \\| 5.2 × 4.1 m\nr | 2 | 28 | 36 | 20 | 1g | Kitchen \\| 5.2 × 3.2 m\nr | 38 | 2 | 10 | 46 | 0 | Hall\nr | 48 | 2 | 30 | 28 | 1b | Bedroom \\| 4.3 × 4.4 m\nr | 48 | 30 | 30 | 18 | 1p | Bathroom\nl | 38 | 12 | 0 | 6 | 2 |\nl | 38 | 34 | 0 | 6 | 2 |\nl | 48 | 12 | 0 | 6 | 2 |\nl | 48 | 36 | 0 | 6 | 2 |\nt | 40 | 47 | 8 | 3 | 01 | N ↑\n"
+  },
+  {
+   "name": "draw/heart",
+   "text": "---\ngrid: 16\n---\n....cc....cc....\n...cccc..cccc...\n..cccccccccccc..\n..chccccccccccc.\n..chccccccccccc.\n..cccccccccccc..\n...cccccccccc...\n....cccccccc....\n.....cccccc.....\n......cccc......\n.......cc.......\n"
+  },
+  {
+   "name": "draw/tile",
+   "text": "---\ngrid: 8\n---\nb...b\n.b.b.b\n..b\n.b.b.b\nb...b\n.....b.b\n......b\n.....b.b\n"
+  },
+  {
+   "name": "draw/example",
+   "text": "Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n"
+  },
+  {
+   "name": "draw/pixels",
+   "text": "---\ngrid: 8\n---\na..b\n.\nc\n"
+  },
+  {
+   "name": "draw/tiled",
+   "text": "---\nalt: Boxes over a tile\ntile: 8:a..a/.a.a////b\n---\nKind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 2 | 2 | 12 | 6 | 1g | Box |\nv | 20 | 2 | 12 | 12 | 1 |  | 0:0;100:0;100:100;0:100\n"
+  }
+ ]
+}
