@@ -6,7 +6,15 @@
  * (docs/kernel.md §3) and the selection after. text.ts maps events onto
  * these; the node tests work them without a browser.
  */
-import { hasClass, isAtomic, isEmbed, isText, normalRuns, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
+import { hasClass, isAtomic, isEmbed, isText as holdsRuns, normalRuns, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
+
+/**
+ * Whether a block is words the caret can sit in. A paragraph that is one web
+ * address and nothing else (an embed) holds runs, but in the editor it is a
+ * card: skipped, taken out whole, never typed into.
+ */
+export const isWords = (b: Block): b is TextBlock => holdsRuns(b) && !isEmbed(b);
+const isText = isWords;
 
 export interface Pos {
   block: number;
@@ -50,7 +58,8 @@ export function clampPos(blocks: Block[], p: Pos): Pos {
   const block = Math.max(0, Math.min(p.block, blocks.length - 1));
   return { block, offset: Math.max(0, Math.min(p.offset, blockLength(blocks[block]))) };
 }
-export const clampSel = (blocks: Block[], s: Sel): Sel => ({ anchor: clampPos(blocks, s.anchor), focus: clampPos(blocks, s.focus) });
+/** A selection held within the blocks, and never resting on a card (an embed, a picture, a table). */
+export const clampSel = (blocks: Block[], s: Sel): Sel => ({ anchor: skipEmbed(blocks, s.anchor), focus: skipEmbed(blocks, s.focus) });
 
 /** The nearest text block at or after `i` (dir 1) or at or before it (dir -1), or -1. */
 export function textBlock(blocks: Block[], i: number, dir: 1 | -1): number {

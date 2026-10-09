@@ -160,6 +160,17 @@
     -webkit-user-select: none;
     cursor: default;
   }
+  /* A card the host draws the inside of (a grid, a thing from the web): the host's look, not the editor's. */
+  to-text .tx .tx-card-own {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    user-select: text;
+    -webkit-user-select: text;
+  }
   to-text .tx .tx-card:focus-visible {
     outline: 2px solid var(--to-accent);
     outline-offset: 1px;

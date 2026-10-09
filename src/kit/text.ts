@@ -12,14 +12,20 @@
  * skips. `lines`: items and paragraphs (a slide's words), Backspace at the
  * start says `text-exit`. `line`: one block, Enter says `text-enter`.
  *
+ * What is not words (a table, a picture, another document, a web address
+ * alone on its line) is a card: `contenteditable=false`, skipped by the caret,
+ * taken out whole. The host may draw a card's inside through `card` (a table
+ * as a grid, an address as a thing from the web); whatever it puts there
+ * (inputs, buttons) keeps its own events. A task item's box is tapped to tick.
+ *
  * Nothing here calls execCommand, sets innerHTML, or reads it.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { hasClass, isAtomic, isText, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
+import { apply, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
 import { copyData, pasteFrom } from './clipboard.ts';
 import { t } from './i18n.ts';
-import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, kindAt, marksOf, ordered, runAt, sameSel, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
+import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import type { ToNotePop } from './note-pop.ts';
 import './link-pop.ts';
@@ -39,6 +45,8 @@ const EMPTY: Block = { k: 'p', runs: [] };
 const keys = new WeakMap<Block, number>();
 let nextKey = 0;
 const keyOf = (b: Block) => keys.get(b) ?? (keys.set(b, ++nextKey), nextKey);
+/** Words are keyed by identity (only a changed block is drawn again); a card by its place, so a table edited in its grid keeps its element, and the focus in it. */
+const keyAt = (b: Block, i: number): number | string => (isWords(b) ? keyOf(b) : `c${i}`);
 const WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
 const DELETES = new Set(['deleteWordBackward', 'deleteWordForward', 'deleteSoftLineBackward', 'deleteSoftLineForward', 'deleteHardLineBackward', 'deleteHardLineForward', 'deleteContent', 'deleteByCut', 'deleteByDrag']);
 const FORMATS: Record<string, Command> = { formatBold: 'b', formatItalic: 'i', formatUnderline: 'u', formatStrikeThrough: 's', insertOrderedList: 'ol', insertUnorderedList: 'ul', formatIndent: 'indent', formatOutdent: 'outdent', formatJustifyLeft: 'left', formatJustifyCenter: 'center', formatJustifyRight: 'right', formatJustifyFull: 'justify' };
@@ -75,7 +83,7 @@ export function domToRuns(el: HTMLElement): Run[] {
 }
 
 export class ToText extends LitElement {
-  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {} };
+  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false } };
   /** The blocks it owns; `at` in its ops counts from the first. */
   declare blocks: Block[];
   declare shape: Shape;
@@ -83,6 +91,8 @@ export class ToText extends LitElement {
   declare noteStart: number;
   declare label: string;
   declare placeholder: string;
+  /** The host's drawing of a card's inside, by block; null (or nothing returned) for the editor's own. */
+  declare card: ((b: Block, at: number) => TemplateResult | typeof nothing | null) | null;
 
   private _sel: Sel | null = null;
   /** The marks the next letter typed will carry. */
@@ -103,6 +113,7 @@ export class ToText extends LitElement {
     this.noteStart = 0;
     this.label = '';
     this.placeholder = '';
+    this.card = null;
   }
   createRenderRoot() {
     return this;
@@ -185,7 +196,7 @@ export class ToText extends LitElement {
     if (!el) return null;
     const block = this.blockEls().indexOf(el);
     if (block < 0) return null;
-    if (!isText(model[block])) return skipEmbed(model, { block, offset: 0 }, 1);
+    if (!isWords(model[block])) return skipEmbed(model, { block, offset: 0 }, 1);
     let count = 0;
     const walk = (n: Node): boolean => {
       if (n === node && n.nodeType !== Node.TEXT_NODE) {
@@ -220,7 +231,7 @@ export class ToText extends LitElement {
   domPoint(pos: Pos): [Node, number] | null {
     const el = this.blockEls()[pos.block];
     if (!el) return null;
-    if (!isText(this.model[pos.block])) return [this.tx, pos.block];
+    if (!isWords(this.model[pos.block])) return [this.tx, pos.block];
     let left = pos.offset;
     let last: [Node, number] = [el, 0];
     const index = (e: Node) => Array.prototype.indexOf.call(e.parentNode!.childNodes, e);
@@ -333,7 +344,14 @@ export class ToText extends LitElement {
     return this._sel ? clampSel(m, this._sel) : this.readSel() ?? caret(m.length - 1, blockLength(m[m.length - 1]));
   }
 
+  /** Whether an event comes from a control the host put inside a card (an input, a button): its own, not the editor's. */
+  private ownEvent(e: Event): boolean {
+    const el = e.target as HTMLElement | null;
+    return !!el?.closest?.('.tx-card') && (el.matches?.('input, textarea, select, button, a, [contenteditable="true"]') || !!el.closest?.('input, textarea, select, button, a, .tx-card [contenteditable="true"]'));
+  }
+
   private onBeforeInput = (e: InputEvent) => {
+    if (this.ownEvent(e)) return;
     if (this.composing || e.isComposing || /Composition/.test(e.inputType)) return;
     e.preventDefault();
     const model = this.model;
@@ -387,12 +405,21 @@ export class ToText extends LitElement {
     if (data === '"' || data === "'") {
       const [a] = ordered(sel);
       const b = model[a.block];
-      words = smartQuote(data, isText(b) ? charAt(b.runs, a.offset - 1) : '');
+      words = smartQuote(data, isWords(b) ? charAt(b.runs, a.offset - 1) : '');
     }
     this.put(sel, [{ t: words, ...(marks ? this.fmt : {}) }]);
   }
   private put(sel: Sel, runs: Run[]) {
-    const e = insertRuns(this.model, sel, runs);
+    const model = this.model;
+    const e = insertRuns(model, sel, runs);
+    const [a] = ordered(sel);
+    const op = e.ops[0];
+    // The words typed have made the paragraph one web address: it is a card now, and the caret goes on to the words after it (a new paragraph when there are none).
+    if (e.ops.length === 1 && op.op === 'text' && isEmbed(apply({ head: {}, blocks: [model[a.block]] }, { ...op, at: 0 }).blocks[0])) {
+      const next = model[a.block + 1];
+      if (next && isWords(next)) return this.emit(e.ops, caret(a.block + 1, 0), 'type');
+      return this.emit([...e.ops, { op: 'splice', at: a.block + 1, n: 0, blocks: [{ k: 'p', runs: [] }] }], caret(a.block + 1, 0), 'type');
+    }
     this.emit(e.ops, e.sel, 'type');
   }
   private enter(sel: Sel) {
@@ -408,6 +435,7 @@ export class ToText extends LitElement {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
+    if (this.ownEvent(e)) return;
     const chip = (e.target as HTMLElement).closest?.('.fn');
     if (chip && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
@@ -433,6 +461,7 @@ export class ToText extends LitElement {
     }
   };
   private onClick = (e: MouseEvent) => {
+    if (this.ownEvent(e)) return;
     const el = e.target as HTMLElement;
     const chip = el.closest?.('.fn');
     if (chip && this.tx.contains(chip)) return this.openNoteOf(chip as HTMLElement);
@@ -440,10 +469,21 @@ export class ToText extends LitElement {
     if (card && this.tx.contains(card)) {
       const block = this.blockEls().indexOf(card as HTMLElement);
       this.dispatchEvent(new CustomEvent<{ block: number }>('text-embed', { detail: { block }, bubbles: true }));
+      return;
+    }
+    // A tap on a task's box ticks it: the box is drawn in the item's left padding.
+    const li = el.closest?.('li[data-done]') as HTMLElement | null;
+    if (li && this.tx.contains(li) && e.clientX < li.getBoundingClientRect().left + parseFloat(getComputedStyle(li).paddingLeft)) {
+      const block = this.blockEls().indexOf(li);
+      const b = this.model[block];
+      if (b?.k !== 'li') return;
+      e.preventDefault();
+      this.emit([{ op: 'splice', at: block, n: 1, blocks: [{ ...b, done: !b.done }] }], this._sel ?? caret(block, 0), undefined, null);
     }
   };
 
   private onCopy = (e: ClipboardEvent) => {
+    if (this.ownEvent(e)) return;
     const sel = this.readSel() ?? this._sel;
     if (!sel || collapsed(sel) || !e.clipboardData) return;
     e.preventDefault();
@@ -456,6 +496,7 @@ export class ToText extends LitElement {
     }
   };
   private onPaste = (e: ClipboardEvent) => {
+    if (this.ownEvent(e)) return;
     e.preventDefault();
     const dt = e.clipboardData;
     if (dt) this.paste({ text: dt.getData('text/plain'), html: dt.getData('text/html') }, this.current());
@@ -474,7 +515,7 @@ export class ToText extends LitElement {
     if (!el) return;
     const i = this.blockEls().indexOf(el);
     const b = this.model[i];
-    if (i < 0 || !b || !isText(b)) return;
+    if (i < 0 || !b || !isWords(b)) return;
     const runs = domToRuns(el);
     const op = runsDiff(i, b.runs, runs);
     const sel = this.readSel() ?? caret(i, runLength(runs));
@@ -487,7 +528,7 @@ export class ToText extends LitElement {
   /** The linked words around a position, as a selection; null when the caret is not in a link. */
   private linkSpan(pos: Pos): { sel: Sel; href: string } | null {
     const b = this.model[pos.block];
-    if (!isText(b)) return null;
+    if (!isWords(b)) return null;
     const hit = (pos.offset > 0 ? runAt(b.runs, pos.offset - 1) : null) ?? runAt(b.runs, pos.offset);
     if (!hit?.run.href) return null;
     return { sel: { anchor: { block: pos.block, offset: hit.start }, focus: { block: pos.block, offset: hit.start + hit.run.t.length } }, href: hit.run.href };
@@ -528,7 +569,7 @@ export class ToText extends LitElement {
         const e = insertRuns(model, sel, [{ t: '', fn: '' }]);
         const [a] = ordered(sel);
         const b = model[a.block];
-        const nth = isText(b) ? b.runs.slice(0, runAt(b.runs, a.offset)?.index ?? b.runs.length).filter((r) => r.fn !== undefined).length : 0;
+        const nth = isWords(b) ? b.runs.slice(0, runAt(b.runs, a.offset)?.index ?? b.runs.length).filter((r) => r.fn !== undefined).length : 0;
         this.noting = { block: a.block, nth };
         return this.emit(e.ops, e.sel, undefined, null);
       }
@@ -561,7 +602,7 @@ export class ToText extends LitElement {
   /** Which run of the block is its nth footnote mark, and the character offset it sits at. */
   private fnAt(block: number, nth: number): { index: number; offset: number; fn: string } | null {
     const b = this.model[block];
-    if (!b || !isText(b)) return null;
+    if (!b || !isWords(b)) return null;
     let offset = 0;
     let seen = 0;
     for (let i = 0; i < b.runs.length; i++) {
@@ -700,8 +741,12 @@ export class ToText extends LitElement {
     if (!isAtomic(last) && last.t.endsWith('\n')) out.push(html`<br />`);
     return out;
   }
-  private renderCard(b: Block): TemplateResult {
+  private renderCard(b: Block, at: number): TemplateResult {
+    const own = this.card?.(b, at);
+    if (own) return html`<div class="tx-card tx-card-own" data-k=${b.k} contenteditable="false" tabindex="0">${own}</div>`;
     switch (b.k) {
+      case 'p':
+        return html`<div class="tx-card" data-k="web" contenteditable="false" tabindex="0" role="group" aria-label=${t('From the web')}><span class="tx-card-kind">${t('From the web')}</span><span class="tx-card-gist">${b.runs[0]?.t ?? ''}</span></div>`;
       case 'img':
         return html`<figure class="tx-card" data-k="img" contenteditable="false" tabindex="0"><img src=${b.url} alt=${b.alt} referrerpolicy="no-referrer" /></figure>`;
       case 'hr':
@@ -719,8 +764,8 @@ export class ToText extends LitElement {
         return html`<div class="tx-card" contenteditable="false"></div>`;
     }
   }
-  private renderBlock(b: Block, n: number | undefined, notes: () => number): TemplateResult {
-    if (!isText(b)) return this.renderCard(b);
+  private renderBlock(b: Block, at: number, n: number | undefined, notes: () => number): TemplateResult {
+    if (!isWords(b)) return this.renderCard(b, at);
     const cls = (b.a?.cls ?? []).filter((c) => c === 'center' || c === 'right' || c === 'justify' || c === 'title').join(' ');
     const inner = this.renderRuns(b.runs, notes);
     switch (b.k) {
@@ -742,7 +787,7 @@ export class ToText extends LitElement {
     const numbers = listNumbers();
     let notes = this.noteStart;
     const next = () => ++notes;
-    const blank = model.length === 1 && isText(model[0]) && !model[0].runs.length;
+    const blank = model.length === 1 && isWords(model[0]) && !model[0].runs.length;
     return html`<div
         class="tx ${blank ? 'blank' : ''}"
         contenteditable="true"
@@ -762,7 +807,7 @@ export class ToText extends LitElement {
         @cut=${this.onCopy}
         @paste=${this.onPaste}
       >
-        ${repeat(model, keyOf, (b) => this.renderBlock(b, numbers(b), next))}
+        ${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}
       </div>
       <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
       <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove}></to-link-pop>`;

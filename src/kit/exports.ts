@@ -157,6 +157,12 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
     await printPages(def.view(doc), title);
     return null;
   }
+  // An app's own version of a kit format (a text as a real web page rather than pictures of its pages) comes first.
+  const theirs = def.exports?.find((x) => x.ext === ext);
+  if (theirs) {
+    await saveFile(name, theirs.mime, await theirs.build(doc, ctx));
+    return name;
+  }
   if (ext === 'png') {
     const png = await picture(def.view(doc));
     if (!png) return null;
@@ -167,7 +173,7 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
     await saveFile(name, 'text/html', htmlOf(def.view(doc), title, ctx.link));
     return name;
   }
-  const own = [...kitExports(), ...(def.exports ?? [])].find((x) => x.ext === ext);
+  const own = kitExports().find((x) => x.ext === ext);
   if (!own) return null;
   await saveFile(name, own.mime, await own.build(doc, ctx));
   return name;
@@ -184,9 +190,11 @@ export function exportItems(current: () => Current): MenuItem[] {
     }
   };
   const { def } = current();
+  const theirs = new Set((def.exports ?? []).map((x) => x.ext));
   return [
     { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run('print') },
-    ...kitExports().map((x) => ({ label: x.label(), icon: x.ext === 'png' ? UI.image : x.ext === 'html' ? UI.globe : UI.text, does: () => void run(x.ext) })),
+    // The kit's formats, less any the app makes in its own way (listed among its own below).
+    ...kitExports().filter((x) => !theirs.has(x.ext)).map((x) => ({ label: x.label(), icon: x.ext === 'png' ? UI.image : x.ext === 'html' ? UI.globe : UI.text, does: () => void run(x.ext) })),
     ...(def.exports ?? []).map((x) => ({ label: x.label(), icon: UI.download, does: () => void run(x.ext) })),
   ];
 }

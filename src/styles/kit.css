@@ -621,4 +621,136 @@
     background: transparent;
     font-weight: 400;
   }
+
+  /* ---- a thing from the web (<to-embed>, kit/embeds.ts): the card until it is tapped, then the thing itself ---- */
+  .to-embed {
+    margin: 0;
+    max-width: 560px;
+    border: 1px solid var(--to-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--to-surface);
+    color: var(--to-ink);
+    white-space: normal;
+  }
+  .to-embed-pic {
+    position: relative;
+  }
+  .to-embed-card {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px;
+    color: var(--to-ink-2);
+  }
+  .to-embed-what {
+    flex: 1 1 160px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .to-embed-what b {
+    color: var(--to-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .to-embed-what small {
+    color: var(--to-ink-3);
+  }
+  .to-embed-load {
+    flex: none;
+    text-decoration: none;
+  }
+  .to-embed iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: var(--to-paper);
+  }
+  .to-embed iframe.video {
+    aspect-ratio: 16 / 9;
+  }
+  .to-embed iframe.map {
+    aspect-ratio: 4 / 3;
+  }
+  .to-embed iframe.post {
+    height: 520px;
+  }
+  .to-embed iframe.music {
+    height: 352px;
+  }
+  .to-embed iframe.code {
+    height: 400px;
+  }
+  .to-embed iframe.pdf,
+  .to-embed iframe.page {
+    height: 70vh;
+  }
+  .to-embed img {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    height: auto;
+    margin: 0 auto;
+  }
+  .to-embed video {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    background: #000;
+  }
+  .to-embed audio {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 18px 14px;
+  }
+  .to-embed-summary {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .to-embed-summary img {
+    flex: none;
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 0;
+  }
+  .to-embed-summary p {
+    margin: 4px 0 8px;
+  }
+  .to-embed-summary a {
+    font-weight: 600;
+    color: var(--to-accent);
+  }
+  .to-embed figcaption {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-top: 1px solid var(--to-border);
+    background: var(--to-surface-2);
+    font-size: 13.5px;
+  }
+  .to-embed figcaption a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .to-embed figcaption a:hover {
+    text-decoration: underline;
+  }
+  .to-embed figcaption small {
+    flex: 1;
+    color: var(--to-ink-3);
+  }
 }
