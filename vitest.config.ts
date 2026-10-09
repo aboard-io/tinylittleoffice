@@ -10,7 +10,7 @@ import { playwright } from '@vitest/browser-playwright';
 export default defineConfig({
   test: {
     projects: [
-      { test: { name: 'unit', include: ['test/*.test.ts'], environment: 'node' } },
+      { test: { name: 'unit', include: ['test/*.test.ts', 'test/doc/*.test.ts'], environment: 'node' } },
       {
         test: {
           name: 'browser',

@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/mind.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "- Launch\n  - Product\n    - Pricing\n    - Onboarding\n  - Marketing\n    - Press\n    - Social\n  - Support\n    - Help pages"
+  }
+ ]
+}

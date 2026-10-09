@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/qr.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "https://tinylittleoffice.com/"
+  }
+ ]
+}

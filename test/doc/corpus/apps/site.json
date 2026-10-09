@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/site.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "---\ntheme: amber\n---\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Farms we have visited\n- :bike: Delivered | By bike, on the day\n\n# Menu\n\nWhat we pour, and what we bake.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com"
+  }
+ ]
+}

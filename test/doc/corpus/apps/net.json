@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/net.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "~ Web -> API: requests\n~ API -> Database: queries\n~ API -> Cache\n~ Worker -> Database\n~ API -- Worker: queue\n\n- Monitoring"
+  }
+ ]
+}

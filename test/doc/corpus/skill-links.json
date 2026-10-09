@@ -1,0 +1,109 @@
+{
+ "source": "skill/tinyoffice/SKILL.md (doc= of each link)",
+ "docs": [
+  {
+   "name": "sheet: Sales by quarter",
+   "text": "---\nchart: bar\n---\nQuarter | Sales:money\n--- | ---\nQ1 | 120\nQ2 | 180\nQ3 | 240"
+  },
+  {
+   "name": "sheet: Lemonade stand",
+   "text": "---\nchart: sankey\nlock: C1:C3\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nPassers-by | Buyers | =passers_by*buy_rate/100 | Passers-by | 400\nBuyers | Takings | =buyers*price | Buy rate | 15\nTakings | Lemons | =lemons | Price | 2\n| |  |  | Lemons | 25\n| |  |  | Buyers | =SUMIF(B1:B9, \"Buyers\", C1:C9)"
+  },
+  {
+   "name": "sheet: Budget",
+   "text": "Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)"
+  },
+  {
+   "name": "write: Meeting notes",
+   "text": "# Meeting notes\n\nWe agreed on **three things**.\n\n- Ship on Friday\n  - Ben owns the release\n- Review pricing"
+  },
+  {
+   "name": "outline: Launch",
+   "text": "- Launch\n  - Product\n    - Pricing\n    - Onboarding\n  - Marketing\n    - Press\n  - Support"
+  },
+  {
+   "name": "deck: Launch plan",
+   "text": "## :rocket: Launch plan {.title}\n\n- Spring 2027\n\n---\n\n## :target: Goals\n\n- Ship the beta\n- Sign ten customers\n\n---\n\n## Now and next {.two}\n\n- Design\n- Build\n\n|\n\n- Test\n- Launch\n\n---\n\n## Sales so far\n\n```sheet\n---\nchart: bar\n---\nQuarter | Sales\n--- | ---\nQ1 | 120\nQ2 | 180\n```"
+  },
+  {
+   "name": "org: Team",
+   "text": "- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n    - Cy Lund | Platform\n    - Di Shah | Apps\n  - Eve Marsh | Design\n  - Flo Reyes | Sales\n\n~ Cy Lund -- Eve Marsh: design partner"
+  },
+  {
+   "name": "mind: Launch",
+   "text": "- Launch\n  - Product\n    - Pricing\n    - Onboarding\n  - Marketing\n    - Press\n    - Social\n  - Support\n    - Help pages"
+  },
+  {
+   "name": "lanes: Order to delivery",
+   "text": "- Customer: Places order\n- Sales: Checks stock\n- Sales: In stock?\n- Warehouse: Packs it\n- Courier: Delivers\n- Customer: Signs for it"
+  },
+  {
+   "name": "venn: Pick two",
+   "text": "- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking\n- Fast & Cheap: fast food\n- Cheap & Good: home cooking\n- Fast & Good: a great takeaway\n- Fast & Cheap & Good: toast"
+  },
+  {
+   "name": "net: System",
+   "text": "~ Web -> API: requests\n~ API -> Database: queries\n~ API -> Cache\n~ Worker -> Database\n~ API -- Worker: queue\n\n- Monitoring"
+  },
+  {
+   "name": "site: Harbor Coffee",
+   "text": "---\ntheme: amber\n---\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Farms we have visited\n- :bike: Delivered | By bike, on the day\n\n# Menu\n\nWhat we pour, and what we bake.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com"
+  },
+  {
+   "name": "links: Ada Diaz",
+   "text": "---\ntheme: rose\n---\n# Ada Diaz\n\n![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)\n\nPotter in Lisbon. Mugs, bowls, the odd lamp.\n\n> :cart: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:ada@example.com\n\n- :camera: Instagram | https://instagram.com/ada\n- :film: YouTube | https://youtube.com/@ada"
+  },
+  {
+   "name": "invoice: Invoice 0042",
+   "text": "---\nfrom: Harbor Studio | 14 Quay Street\nto: Acme Ltd | Accounts payable\nnumber: 0042\ndate: 2027-03-01\ndue: 2027-03-31\ntax: 8%\n---\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150\nBuild | 20 | hours | 140\nHosting for a year | 1 |  | 480\n\nThank you. Payment by bank transfer."
+  },
+  {
+   "name": "gantt: Website relaunch",
+   "text": "Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2027-03-01 | 10 | 50%\n- Wireframes | 2027-03-01 | 4 | 100%\n- Visual design | 2027-03-05 | 6 | 50%\nBuild | 2027-03-11 | 15 | 0%"
+  },
+  {
+   "name": "board: Sprint",
+   "text": "## To do {limit=2}\n\n- Write the brief\n- Design the page\n\n## Doing\n\n- Build the form\n\n## Done\n\n- Choose a name"
+  },
+  {
+   "name": "todo: Trip prep",
+   "text": "- [ ] Renew passport {.star due=2027-03-01}\n- [ ] Book flights\n- [x] Choose dates"
+  },
+  {
+   "name": "cal: March",
+   "text": "---\nzone: Europe/London\n---\n- 2027-03-01 to 2027-03-03: Offsite {color=green}\n- 2027-03-08: Launch day\n- 2027-03-10 09:00-10:30: Retro"
+  },
+  {
+   "name": "trip: Portugal",
+   "text": "---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 | Port cellars"
+  },
+  {
+   "name": "draw: Request flow",
+   "text": "---\nalt: A browser asks a server, which reads the data\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads"
+  },
+  {
+   "name": "anim: Lift off",
+   "text": "---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d"
+  },
+  {
+   "name": "calc: Our mortgage",
+   "text": "---\nmode: mortgage\n---\n- price = 400000\n- deposit = 80000\n- rate = 6.5\n- years = 30"
+  },
+  {
+   "name": "poster: Open mic",
+   "text": "## :music: Open mic night\n\nFriday 12 March, 8pm\n\nThe Anchor, 14 Quay Street\n\nFree. Bring a song."
+  },
+  {
+   "name": "zine: Small Joys",
+   "text": "## :coffee: Small Joys\n\nIssue one\n\n---\n\n## Coffee\n\nThe first cup."
+  },
+  {
+   "name": "comic: Biscuit",
+   "text": "## Biscuit\n\n---\n\n- :dog: Walk? | Monday"
+  },
+  {
+   "name": "timeline: Computing",
+   "text": "- 1843: Lovelace publishes her notes\n- 1936: Turing describes his machine\n- 1945: ENIAC is switched on\n- 1969: The first ARPANET message\n- 1976: The Apple I\n- 1989: The web is proposed\n- 2007: The phone becomes a computer\n- 2022: Everyone talks to a machine\n- 1969–2007: The network grows"
+  }
+ ]
+}

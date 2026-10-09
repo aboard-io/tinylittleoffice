@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/contract.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "# Dog-walking agreement\n\nBetween Paul and Sam, starting 1 March 2027.\n\n## What is agreed\n\n- Sam walks Biscuit every weekday at noon.\n- Paul pays $20 a walk, on Fridays.\n- Either can end this with a week of notice."
+  }
+ ]
+}

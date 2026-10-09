@@ -1,0 +1,9 @@
+{
+ "source": "skill/tinyoffice/SKILL.md",
+ "docs": [
+  {
+   "name": "fence 1",
+   "text": "https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>"
+  }
+ ]
+}
