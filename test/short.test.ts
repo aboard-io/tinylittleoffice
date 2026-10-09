@@ -2,7 +2,7 @@
 import { test, expect, vi, afterEach } from 'vitest';
 import { handle } from '../tinier/tinier.ts';
 import { forget, ownerHash, ownerLink, publicLink, shortCost, shorten, shortLink, unshorten, update } from '../src/kit/short.ts';
-import { MemStore } from './tinier.test.ts';
+import { MemStore } from './memstore.ts';
 
 const AT = 'https://tinier.test/';
 const PAGE = '<p>{{id}}</p>';
@@ -12,8 +12,8 @@ afterEach(() => vi.unstubAllGlobals());
 /** fetch, answered by the shortener with its rows in `store`; every request it saw is in `seen`. */
 function serve(store: MemStore, allowed = yes) {
   const seen: { method: string; body: string }[] = [];
-  vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
-    seen.push({ method: init.method ?? 'GET', body: typeof init.body === 'string' ? init.body : '' });
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    seen.push({ method: init?.method ?? 'GET', body: typeof init?.body === 'string' ? init.body : '' });
     return handle(new Request(url, init), store, allowed, PAGE);
   });
   return seen;
