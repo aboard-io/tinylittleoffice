@@ -1,0 +1,178 @@
+/* Board: the stages side by side in a box that scrolls sideways (a stage and a bit at a time on a phone), a
+   card a small sheet with its words, its grip and its checklist. A stage's colour (--c) is mixed into the
+   page's own greys, so it follows the theme. Every control is 44px to the finger. */
+@layer apps {
+  to-board-editor {
+    display: block;
+  }
+  .board {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 4px 2px 16px;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 2px;
+    overscroll-behavior-x: contain;
+  }
+  .board-col {
+    flex: 0 0 min(300px, calc(100vw - 56px));
+    min-width: 0;
+    scroll-snap-align: start;
+    padding: 8px;
+    background: color-mix(in oklab, var(--c, transparent) 14%, var(--to-surface-2));
+    border: 1px solid var(--to-border);
+    border-top: 4px solid var(--c, var(--to-border));
+    border-radius: var(--to-radius);
+  }
+  .board-col.over {
+    outline: 2px dashed var(--to-accent);
+    outline-offset: 2px;
+  }
+  .board-head {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: var(--to-touch);
+  }
+  .board-head to-text {
+    flex: 1;
+    min-width: 0;
+    padding: 0 4px;
+    font-weight: 700;
+  }
+  .board-head to-text .tx :is(h1, h2, h3, h4),
+  .board-static {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .board-static {
+    flex: 1;
+    padding: 0 4px;
+  }
+  .board-count {
+    flex: none;
+    padding: 0 6px;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: var(--to-ink-2);
+  }
+  .board-col.full .board-count {
+    color: var(--to-danger);
+    font-weight: 700;
+  }
+  .board-more,
+  .board-grip {
+    border-color: transparent;
+    background: none;
+  }
+  .board-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    min-height: 8px;
+  }
+  .board-cards.end {
+    padding-bottom: 12px;
+    box-shadow: inset 0 -3px 0 -1px var(--to-accent);
+  }
+  .board-card {
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+    box-shadow: var(--to-shadow);
+  }
+  .board-card.before {
+    box-shadow: 0 -5px 0 -1px var(--to-accent);
+  }
+  .board-card.dragging {
+    opacity: 0.5;
+  }
+  .board-main {
+    display: flex;
+    align-items: flex-start;
+  }
+  .board-main to-text {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 0 10px 10px;
+  }
+  .board-grip {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    cursor: grab;
+    color: var(--to-ink-3);
+  }
+  .board-grip:active {
+    cursor: grabbing;
+  }
+  /* The editor draws a list item with a bullet or a box in its margin; here a line has none. */
+  .board-col to-text .tx li {
+    padding-left: 0;
+  }
+  .board-col to-text .tx li::before {
+    content: none;
+  }
+  .board-web {
+    display: block;
+    padding: 0 10px 10px;
+  }
+  .board-items {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 4px;
+  }
+  .board-item {
+    display: flex;
+    align-items: flex-start;
+    min-height: var(--to-touch);
+  }
+  .board-tick {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: var(--to-touch);
+    height: var(--to-touch);
+    cursor: pointer;
+  }
+  .board-tick input {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--to-accent);
+  }
+  .board-item to-text {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 10px 10px 0;
+  }
+  .board-item.done to-text .tx {
+    color: var(--to-ink-3);
+    text-decoration: line-through;
+  }
+  .board-progress {
+    display: block;
+    padding: 0 12px 10px;
+    font-size: 13px;
+    color: var(--to-ink-3);
+  }
+  .board-none {
+    margin: 4px 4px 8px;
+  }
+  .board-menu > button {
+    display: none;
+  }
+  .board-total {
+    display: flex;
+    align-items: center;
+    height: var(--to-touch);
+    margin-left: auto;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+}
