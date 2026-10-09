@@ -23,7 +23,7 @@
  * shiftFamily, moveFamily, placeFamily, removeItem, splitBlock); the rest are splices of one block, and
  * `text` ops come from the row's editor.
  */
-import { applyAll, attr, family, fenceRef, isAtomic, moveFamily, placeFamily, plainText, refFence, removeItem, runLength, shiftFamily, splitBlock, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { applyAll, attr, family, fenceRef, isAtomic, isText, listNumbers, moveFamily, normalRuns, parse, placeFamily, plainText, refFence, removeItem, runLength, shiftFamily, sliceRuns, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
 
 export type { Dir };
 
@@ -39,6 +39,8 @@ export interface Item {
   dir?: Dir;
   /** The line to the parent: its name. */
   label?: string;
+  /** Numbered: the item counts in a numbered list with its siblings. */
+  ord?: true;
 }
 
 /** A connection between any two items, named by their plain words. */
@@ -100,7 +102,7 @@ export function readOutline(doc: Doc): OutlineView {
         if (url) return add({ at, depth: pad + b.depth, runs: [], doc: `web\n${url}` });
         const dir = b.a?.cls?.map((c) => JOIN[c]).find(Boolean);
         const label = attr(b, 'label');
-        return add({ at, depth: pad + b.depth, runs: b.runs, ...(dir ? { dir } : {}), ...(label ? { label } : {}) });
+        return add({ at, depth: pad + b.depth, runs: b.runs, ...(dir ? { dir } : {}), ...(label ? { label } : {}), ...(b.ord ? { ord: true as const } : {}) });
       }
       case 'fence': {
         const d = Number(attr(b, 'depth'));
@@ -136,14 +138,14 @@ export function readOutline(doc: Doc): OutlineView {
 }
 
 /** A list item with these words at this depth, its line to the parent as attributes. */
-export function itemBlock(depth: number, runs: Run[], dir?: Dir, label?: string, a?: Attrs): Block {
+export function itemBlock(depth: number, runs: Run[], dir?: Dir, label?: string, a?: Attrs, ord?: boolean): Block {
   const cls = [...(a?.cls ?? []).filter((c) => !JOIN[c]), ...(depth && dir && CLASS[dir] ? [CLASS[dir]!] : [])];
   const kv = { ...a?.kv };
   delete kv.label;
   delete kv.depth;
   if (depth && label) kv.label = label;
   const attrs: Attrs = { ...(a?.id ? { id: a.id } : {}), ...(cls.length ? { cls } : {}), ...(Object.keys(kv).length ? { kv } : {}) };
-  return { k: 'li', depth, runs, ...(Object.keys(attrs).length ? { a: attrs } : {}) };
+  return { k: 'li', depth, ...(ord ? { ord: true as const } : {}), runs, ...(Object.keys(attrs).length ? { a: attrs } : {}) };
 }
 /** A fence holding another document under an item, saying its depth. */
 export const docBlock = (depth: number, ref: string): Block => ({ ...refFence(ref), a: { kv: { depth: String(depth) } } });
@@ -172,7 +174,7 @@ export function listify(doc: Doc): Op[] {
         if (t) lines[lines.length - 1].push({ ...r, t });
       });
     }
-    for (const runs of lines) blocks.push(itemBlock(it.depth, runs, it.dir, it.label));
+    for (const runs of lines) blocks.push(itemBlock(it.depth, runs, it.dir, it.label, undefined, it.ord));
   }
   for (const l of v.links) blocks.push({ k: 'edge', from: l.from, to: l.to, dir: l.dir, ...(l.label ? { label: l.label } : {}) });
   return [{ op: 'splice', at: 0, n: doc.blocks.length, blocks }];
@@ -219,21 +221,216 @@ export const placeItem = (doc: Doc, v: OutlineView, at: number, to: number, how:
 /** Take the item at `at` away; its family comes out a level. */
 export const removeAt = (doc: Doc, v: OutlineView, at: number): Op[] => removeItem(doc, at, v.depths);
 
-/**
- * Enter on the item at `at`: a new item. With children showing, the first of
- * them; a leaf split at the caret (the words after it go to the new item);
- * else an empty item after the family. Returns where the new item's block
- * sits.
- */
-export function newItem(doc: Doc, v: OutlineView, at: number, offset?: number, folded = false): { ops: Op[]; at: number } {
-  const i = indexAt(v, at);
-  const it = v.items[i];
-  const end = family(doc, at, v.depths);
-  const kids = end > at + 1;
-  if (kids && !folded) return { ops: [{ op: 'splice', at: at + 1, n: 0, blocks: [itemBlock(it.depth + 1, [])] }], at: at + 1 };
-  if (!kids && !it.doc && offset !== undefined && offset < runLength(it.runs)) return { ops: splitBlock(doc, at, offset), at: at + 1 };
-  return { ops: [{ op: 'splice', at: end, n: 0, blocks: [itemBlock(it.depth, [])] }], at: end };
+/** Where an edit leaves the caret: a row's block and the offset in its words. */
+export interface Landing {
+  ops: Op[];
+  at: number;
+  offset: number;
 }
+const isOrd = (b: Block | undefined): boolean => b?.k === 'li' && !!b.ord;
+const wordsIn = (b: Block | undefined): number => (b && isText(b) ? runLength(b.runs) : 0);
+
+/**
+ * Enter in the row at `at` with the caret at `offset`. At the start of words, an empty item goes in before the row at
+ * its depth and the words move down with the caret (the row pushed down). At the end (or on an empty row), a new item:
+ * the first child when the row's children are showing, else a sibling after its family. In the middle, the words
+ * after the caret go to that new item, in the same place. A numbered row's new sibling is numbered too.
+ */
+export function enterAt(doc: Doc, v: OutlineView, at: number, offset = Infinity, folded = false): Landing {
+  const it = v.items[indexAt(v, at)];
+  const b = doc.blocks[at];
+  const end = family(doc, at, v.depths);
+  const open = end > at + 1 && !folded;
+  const len = wordsIn(b);
+  if (len > 0 && offset <= 0) return { ops: [{ op: 'splice', at, n: 0, blocks: [itemBlock(it.depth, [], undefined, undefined, undefined, isOrd(b))] }], at: at + 1, offset: 0 };
+  const where = open ? at + 1 : end;
+  const depth = open ? it.depth + 1 : it.depth;
+  const ord = open ? isOrd(doc.blocks[at + 1]) : isOrd(b);
+  const cut = len > 0 && offset < len && isText(b);
+  const ops: Op[] = cut ? [{ op: 'text', at, from: offset, to: len, runs: [] }] : [];
+  ops.push({ op: 'splice', at: where, n: 0, blocks: [itemBlock(depth, cut ? sliceRuns(b.runs, offset, len) : [], undefined, undefined, undefined, ord)] });
+  return { ops, at: where, offset: 0 };
+}
+
+/** Two rows' words made one: `into`'s block keeps its place and its attributes and takes `from`'s words; `from`'s block alone goes (its children stay where they are). Joins naming `into` follow its new words. */
+function join(doc: Doc, into: number, from: number): Landing | null {
+  const a = doc.blocks[into];
+  const b = doc.blocks[from];
+  if (!a || !b || !isText(a) || !isText(b)) return null;
+  const joined: Block = { ...a, runs: normalRuns([...a.runs, ...b.runs]) };
+  // The later block goes first, so the earlier one's index holds.
+  const ops: Op[] = into < from ? [{ op: 'splice', at: from, n: 1, blocks: [] }, { op: 'splice', at: into, n: 1, blocks: [joined] }] : [{ op: 'splice', at: into, n: 1, blocks: [joined] }, { op: 'splice', at: from, n: 1, blocks: [] }];
+  const next = applyAll(doc, ops);
+  const renames = renameIn(next, readOutline(next), nameOf(a.runs), nameOf(joined.runs));
+  return { ops: [...ops, ...renames], at: into < from ? into : into - 1, offset: runLength(a.runs) };
+}
+/** Backspace at the start of words: the row's words joined to the item before it in the document, the caret at the join. Nothing when that item is a document, or there is none. */
+export function joinBack(doc: Doc, v: OutlineView, at: number): Landing | null {
+  const i = indexAt(v, at);
+  const prev = v.items[i - 1];
+  if (i < 1 || prev.doc) return null;
+  return join(doc, prev.at, at);
+}
+/** Delete at the end of words: the next item in the document joined into this row, the caret where it was. Nothing when the next is a document, or there is none. */
+export function joinForward(doc: Doc, v: OutlineView, at: number): Landing | null {
+  const i = indexAt(v, at);
+  const next = v.items[i + 1];
+  if (i < 0 || !next || next.doc) return null;
+  return join(doc, at, next.at);
+}
+
+/** Where block `i` is after these ops: moved with its block, shifted past a splice; -1 when a splice took it (a splice that puts back as many blocks as it took keeps every place). What folds and the zoom are kept by. */
+export function mapAt(ops: Op[], i: number): number {
+  for (const o of ops) {
+    if (i < 0) return -1;
+    if (o.op === 'splice') {
+      if (i >= o.at + o.n) i += o.blocks.length - o.n;
+      else if (i >= o.at && o.blocks.length !== o.n) i = -1;
+    } else if (o.op === 'move') {
+      if (i >= o.at && i < o.at + o.n) i = o.to + (i - o.at);
+      else {
+        const rest = i < o.at ? i : i - o.n;
+        i = rest < o.to ? rest : rest + o.n;
+      }
+    }
+  }
+  return i;
+}
+
+/* ---------- a run of rows chosen as nodes ---------- */
+
+/** The blocks some chosen rows cover, [from, to). */
+export interface Span {
+  from: number;
+  to: number;
+}
+/** The span chosen rows cover: from the first row's block to the end of the furthest family among them (hidden children too); to the end of the document, joins and all, when it holds every item. */
+export function spanOf(doc: Doc, v: OutlineView, rows: number[]): Span | null {
+  if (!rows.length) return null;
+  const from = Math.min(...rows);
+  let to = Math.max(...rows.map((at) => family(doc, at, v.depths)));
+  if (v.items.length && from <= v.items[0].at && to >= itemsEnd(doc, v)) to = doc.blocks.length;
+  return { from, to };
+}
+/** The items inside a span. */
+export const itemsIn = (v: OutlineView, s: Span): Item[] => v.items.filter((it) => it.at >= s.from && it.at < s.to);
+/** The items of a span whose parent is outside it: the span's top rows. */
+export function topsOf(v: OutlineView, s: Span): Item[] {
+  return v.items.filter((it, i) => {
+    if (it.at < s.from || it.at >= s.to) return false;
+    const p = parentOf(v.items, i);
+    return p < 0 || v.items[p].at < s.from;
+  });
+}
+/** A block given a depth: a list item's own, another document's `{depth=N}`; anything else is itself. */
+function withDepth(b: Block, depth: number): Block {
+  if (b.k === 'li') return b.depth === depth ? b : { ...b, depth };
+  if (b.k === 'fence') return attr(b, 'depth') === String(depth) ? b : { ...b, a: { ...b.a, kv: { ...b.a?.kv, depth: String(depth) } } };
+  return b;
+}
+/** The span's blocks, each item stepped by `by` (its depth as read). */
+const stepped = (doc: Doc, v: OutlineView, s: Span, by: number): Block[] => doc.blocks.slice(s.from, s.to).map((b, k) => (v.depths[s.from + k] >= 0 ? withDepth(b, v.depths[s.from + k] + by) : b));
+
+/** The span taken away: one splice. */
+export const removeSpan = (s: Span): Op[] => [{ op: 'splice', at: s.from, n: s.to - s.from, blocks: [] }];
+/**
+ * Every item of the span a level in (1) or out (-1): one splice. In needs the first row to have a sibling before it;
+ * out needs every item to stay at `floor` or deeper (the zoom's first level).
+ */
+export function shiftSpan(doc: Doc, v: OutlineView, s: Span, by: 1 | -1, floor = 0): Op[] | null {
+  const inside = itemsIn(v, s);
+  if (!inside.length) return null;
+  const d = inside[0].depth;
+  if (by > 0) {
+    let p = indexAt(v, inside[0].at) - 1;
+    while (p >= 0 && v.items[p].depth > d) p--;
+    if (p < 0 || v.items[p].depth !== d) return null;
+  } else if (Math.min(...inside.map((it) => it.depth)) - 1 < floor) return null;
+  return [{ op: 'splice', at: s.from, n: s.to - s.from, blocks: stepped(doc, v, s, by) }];
+}
+/** The span moved past the family before it (-1) or after it (1) at its first row's level: one move. */
+export function moveSpan(doc: Doc, v: OutlineView, s: Span, by: 1 | -1): Op[] | null {
+  const d = v.depths[s.from];
+  const n = s.to - s.from;
+  if (by < 0) {
+    let p = s.from - 1;
+    while (p >= 0 && v.depths[p] > d) p--;
+    return p < 0 || v.depths[p] !== d ? null : [{ op: 'move', at: s.from, n, to: p }];
+  }
+  if (s.to >= itemsEnd(doc, v) || v.depths[s.to] !== d) return null;
+  return [{ op: 'move', at: s.from, n, to: family(doc, s.to, v.depths) - n }];
+}
+/** The span's blocks as a clipboard holds them: the shallowest item at the margin. */
+export function copySpan(doc: Doc, v: OutlineView, s: Span): Block[] {
+  const ds = v.depths.slice(s.from, s.to).filter((d) => d >= 0);
+  return stepped(doc, v, s, ds.length ? -Math.min(...ds) : 0);
+}
+
+/** Pasted text as blocks: TLO (and so Markdown); plain lines are a paragraph's lines, each an item once listified. */
+export const pasteText = (text: string): Block[] => parse(text.replace(/\r\n?/g, '\n')).blocks;
+/** Whether a paste into a row is items rather than words: more than one line, or a line that is a list item. */
+export function pastesAsItems(text: string): boolean {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
+  return lines.length > 1 || (lines.length === 1 && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[0]));
+}
+/**
+ * Blocks pasted into the outline: loose words listified, the items rebased to the target's depth, the joins to the
+ * end. The target: a span, replaced (at its first row's depth); a row, after its family at its depth (an empty row is
+ * replaced); none, the end. Says where the pasted items sit.
+ */
+export function pasteBlocks(doc: Doc, v: OutlineView, blocks: Block[], target: Span | number | null): { ops: Op[]; from: number; to: number } | null {
+  let pasted: Doc = { head: {}, blocks };
+  if (readOutline(pasted).loose) pasted = applyAll(pasted, listify(pasted));
+  const pv = readOutline(pasted);
+  const edges = pasted.blocks.filter((b) => b.k === 'edge');
+  if (!pv.items.length && !edges.length) return null;
+  let at = itemsEnd(doc, v);
+  let n = 0;
+  let depth = 0;
+  if (target !== null && typeof target === 'object') {
+    at = target.from;
+    n = target.to - target.from;
+    depth = Math.max(0, v.depths[target.from] ?? 0);
+  } else if (typeof target === 'number' && indexAt(v, target) >= 0) {
+    const it = v.items[indexAt(v, target)];
+    const empty = !it.doc && !plainText(it.runs).trim();
+    at = empty ? target : family(doc, target, v.depths);
+    n = empty ? 1 : 0;
+    depth = it.depth;
+  }
+  const items = pv.items.map((it) => withDepth(pasted.blocks[it.at], it.depth + depth));
+  const ops: Op[] = [{ op: 'splice', at, n, blocks: items }];
+  if (edges.length) ops.push({ op: 'splice', at: doc.blocks.length - n + items.length, n: 0, blocks: edges });
+  return { ops, from: at, to: at + items.length };
+}
+
+/* ---------- numbered lists ---------- */
+
+/** The list an item belongs to: the items at its depth under its parent (documents aside). */
+export function siblingsOf(v: OutlineView, at: number): number[] {
+  const i = indexAt(v, at);
+  if (i < 0) return [];
+  const d = v.items[i].depth;
+  const p = parentOf(v.items, i);
+  return v.items
+    .slice(p + 1, p >= 0 ? familyEnd(v.items, p) : v.items.length)
+    .filter((it) => it.depth === d && !it.doc)
+    .map((it) => it.at);
+}
+/** These items numbered (or not): a splice for each list item that changes. */
+export function setOrdered(doc: Doc, ats: number[], on: boolean): Op[] {
+  const ops: Op[] = [];
+  for (const at of ats) {
+    const b = doc.blocks[at];
+    if (b?.k !== 'li' || !!b.ord === on) continue;
+    const { ord: _, ...rest } = b;
+    ops.push({ op: 'splice', at, n: 1, blocks: [on ? { ...rest, ord: true } : rest] });
+  }
+  return ops;
+}
+/** Numbered or not, the list these items make: numbered unless every one of them already is. */
+export const toggleOrdered = (doc: Doc, ats: number[]): Op[] => setOrdered(doc, ats, !ats.every((at) => isOrd(doc.blocks[at])));
+
 /** An empty item at the end of the outline, at this depth. */
 export function appendItem(doc: Doc, v: OutlineView, depth = 0): { ops: Op[]; at: number } {
   const at = itemsEnd(doc, v);
@@ -248,7 +445,7 @@ export function setLine(doc: Doc, v: OutlineView, at: number, line: { dir?: Dir;
   const it = v.items[i];
   const dir = 'dir' in line ? line.dir : it.dir;
   const label = 'label' in line ? line.label?.trim() || undefined : it.label;
-  const next = itemBlock(b.depth, b.runs, dir === '--' ? undefined : dir, label, b.a);
+  const next = itemBlock(b.depth, b.runs, dir === '--' ? undefined : dir, label, b.a, b.ord);
   return write({ head: {}, blocks: [next] }) === write({ head: {}, blocks: [b] }) ? [] : [{ op: 'splice', at, n: 1, blocks: [next] }];
 }
 
@@ -306,11 +503,41 @@ export const liveItems = (v: OutlineView): Item[] => v.items.filter((it) => plai
 /** The joins whose two ends are items of the outline. */
 export const liveLinks = (v: OutlineView): Link[] => v.links.filter((l) => l.live);
 
-/** The tree as a few lines of plain words, indented. */
-export const outlineLines = (v: OutlineView): string[] => v.items.filter((it) => plainText(it.runs).trim() && !it.doc).map((it) => '  '.repeat(it.depth) + plainText(it.runs).trim());
+/** What an item holds in words, for a card or a listing: the app's name and the first line of the document (a thing from the web: its address). */
+export function docGist(ref: string): { app: string; gist: string } {
+  const nl = ref.indexOf('\n');
+  const app = nl < 0 ? ref : ref.slice(0, nl);
+  const body = nl < 0 ? '' : ref.slice(nl + 1);
+  if (app === 'web') return { app, gist: body.trim() };
+  const gist = body.split('\n').find((l) => l.trim() && !/^---/.test(l) && !/^[a-z]+:/.test(l)) ?? '';
+  return { app, gist: gist.trim() };
+}
+
+/**
+ * The outline as plain text: an item a line, "- " before it, "1. " and on for a numbered one, two spaces a level, a
+ * document under an item as "- [App] its first line". Empty items are left out. `appName` says an app's name.
+ */
+export function outlineText(v: OutlineView, appName: (id: string) => string = (id) => id): string {
+  const count = listNumbers();
+  const lines: string[] = [];
+  for (const it of v.items) {
+    const pad = '  '.repeat(it.depth);
+    if (it.doc) {
+      count({ k: 'hr' });
+      const { app, gist } = docGist(it.doc);
+      lines.push(`${pad}- [${appName(app)}] ${gist}`.trimEnd());
+      continue;
+    }
+    const words = plainText(it.runs).replace(/\s+/g, ' ').trim();
+    if (!words) continue;
+    const n = count({ k: 'li', depth: it.depth, ...(it.ord ? { ord: true as const } : {}), runs: [] });
+    lines.push(`${pad}${n ? `${n}.` : '-'} ${words}`);
+  }
+  return lines.length ? lines.join('\n') + '\n' : '';
+}
 
 /** The plain nested list a mind map or a family tree is: no kinds of line, no joins, no documents. */
-export const plainTree = (v: OutlineView): Block[] => v.items.filter((it) => !it.doc).map((it) => itemBlock(it.depth, it.runs));
+export const plainTree = (v: OutlineView): Block[] => v.items.filter((it) => !it.doc).map((it) => itemBlock(it.depth, it.runs, undefined, undefined, undefined, it.ord));
 
 /**
  * The outline as a deck: every item with something under it is a slide, its
@@ -328,7 +555,7 @@ export function outlineToDeck(v: OutlineView, head: Doc['head'] = {}): string {
     if (it.doc) return void slides.push([it.doc.startsWith('web\n') ? { k: 'p', runs: [{ t: it.doc.slice(4) }] } : refFence(it.doc)]);
     if (!hasChildren(live, i)) return;
     const title = it.depth === 0 && roots.length === 1 && i === 0;
-    slides.push([{ k: 'h', level: 2, runs: it.runs, ...(title ? { a: { cls: ['title'] } } : {}) }, ...kids(i).map((k): Block => ({ k: 'li', depth: 0, runs: k.runs }))]);
+    slides.push([{ k: 'h', level: 2, runs: it.runs, ...(title ? { a: { cls: ['title'] } } : {}) }, ...kids(i).map((k): Block => ({ k: 'li', depth: 0, ...(k.ord ? { ord: true as const } : {}), runs: k.runs }))]);
   });
   return write({ head: head.title ? { title: head.title } : {}, blocks: slides.flatMap((s, n) => (n ? [{ k: 'hr' } as Block, ...s] : s)) });
 }

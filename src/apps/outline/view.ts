@@ -4,12 +4,14 @@
  * and the joins listed under it. Fits a letter page's width; as tall as it needs. What def.ts builds its
  * pages on, and the print and the thumbnail.
  */
-import { markNotes, noteNumbers, noteRuns, notesOf, plainText, type Dir, type Doc, type Run } from '../../doc/index.ts';
+import { listNumbers, markNotes, noteNumbers, noteRuns, notesOf, plainText, type Dir, type Doc, type Run } from '../../doc/index.ts';
 import type { Page } from '../../kit/app.ts';
 import { ACCENT, INK, LINE, MUTED, SHADE, clip, r, rect, textWidth, xml } from '../../kit/draw.ts';
 import { glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { hasChildren, liveLinks, readOutline } from './model.ts';
+import { docGist, hasChildren, liveLinks, readOutline } from './model.ts';
+
+export { docGist };
 
 /** How each kind of line looks, drawn. */
 export const ARROW: Record<Dir, string> = { '--': '—', '->': '→', '<-': '←', '<->': '↔' };
@@ -72,15 +74,6 @@ export function richText(x: number, y: number, pieces: Piece[], px: number, bold
   return out;
 }
 
-/** What an item holds in words, for a card or a listing: the app's name and the first line of the document. */
-export function docGist(ref: string): { app: string; gist: string } {
-  const nl = ref.indexOf('\n');
-  const app = nl < 0 ? ref : ref.slice(0, nl);
-  const body = nl < 0 ? '' : ref.slice(nl + 1);
-  const gist = body.split('\n').find((l) => l.trim() && !/^---/.test(l) && !/^[a-z]+:/.test(l)) ?? '';
-  return { app, gist: gist.trim() };
-}
-
 /** The outline drawn: a dot per item, deeper ones stepped in, the words wrapped. `small`: larger type and the first dozen items, for a thumbnail. */
 export function outlinePage(doc: Doc, w = 720, small = false): Page {
   const v = readOutline(doc);
@@ -91,12 +84,15 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
   let y = 44;
   let svg = '';
   const next = noteNumbers();
+  // Numbered items count as the text export counts them: the items drawn, a document ending the list.
+  const count = listNumbers();
   let drawn = 0;
   items.forEach((it, i) => {
     if (!plainText(it.runs).trim() && !it.doc && !hasChildren(items, i)) return;
     if (small && drawn++ >= 12) return;
     const x = margin + it.depth * step;
     if (it.doc) {
+      count({ k: 'hr' });
       // Another document, as a card where its item would be: its app and its first line; a thing from the web as its address.
       const web = it.doc.startsWith('web\n');
       const { app, gist } = docGist(it.doc);
@@ -111,7 +107,10 @@ export function outlinePage(doc: Doc, w = 720, small = false): Page {
     const kind = it.depth && (it.dir || it.label) ? `${ARROW[it.dir ?? '--']}${it.label ? ' ' + it.label : ''}` : '';
     const indent = kind ? textWidth(kind, px * 0.75) + 8 : 0;
     const lines = wrapRuns(markNotes(it.runs, next), w - x - margin - indent, px, it.depth === 0);
-    svg += `<circle cx="${r(x - 12)}" cy="${r(y + px * 0.65)}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
+    const n = plainText(it.runs).trim() ? count({ k: 'li', depth: it.depth, ...(it.ord ? { ord: true as const } : {}), runs: [] }) : undefined;
+    // A numbered item's number stands where the dot would.
+    if (n) svg += `<text x="${r(x - 6)}" y="${r(y + px)}" font-size="${r(px * 0.85)}" text-anchor="end" fill="${ACCENT}"${it.depth ? '' : ' font-weight="700"'}>${n}.</text>`;
+    else svg += `<circle cx="${r(x - 12)}" cy="${r(y + px * 0.65)}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
     if (kind) svg += `<text x="${r(x)}" y="${r(y + px)}" font-size="${r(px * 0.75)}" fill="${ACCENT}">${xml(kind)}</text>`;
     for (const line of lines) svg += richText(x + indent, (y += px * 1.45) - px * 0.45, line, px, it.depth === 0);
     y += px * 0.45;

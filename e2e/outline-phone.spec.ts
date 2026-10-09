@@ -81,3 +81,28 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   expect(await measure()).toMatchObject({ pageTop: 0, rows: 1 });
   expect(errors).toEqual([]);
 });
+
+test('outline: on a phone, a tap on a row’s handle chooses it whole; the bar under it is inside the screen and its Delete takes the row away', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  const text = '- Launch\n  - Product\n  - Marketing\n';
+  await page.goto('/#/v1/outline');
+  await page.locator('to-outline-editor').evaluate((el, t) => ((el as HTMLElement & { value: string }).value = t), text);
+  const handle = page.locator('.ol-row[data-at="1"] .ol-handle');
+  await expect(handle).toBeVisible();
+  await handle.tap();
+  await expect(page.locator('.ol-row[data-at="1"]')).toHaveClass(/\branged\b/);
+  const bar = page.locator('.ol-context .to-context');
+  await expect(bar).toBeVisible();
+  const box = (await bar.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(844);
+  await bar.getByRole('button', { name: 'Delete', exact: true }).tap();
+  await expect.poll(() => page.locator('to-outline-editor').evaluate((el) => (el as HTMLElement & { value: string }).value)).toBe('- Launch\n  - Marketing\n');
+  await expect(bar).toBeHidden();
+  expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0);
+  expect(errors).toEqual([]);
+});

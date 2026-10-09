@@ -8,8 +8,8 @@ import { apply, parse, referenceNotes, write, type Doc as Kernel } from '../../d
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { liveItems, outlineLines, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
-import { outlinePage } from './view.ts';
+import { liveItems, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
+import { appName, outlinePage } from './view.ts';
 import { templates } from './templates.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
@@ -54,7 +54,7 @@ export default defineApp({
     { ext: 'opml', label: () => t('OPML (for outliners)'), mime: 'text/x-opml;charset=utf-8', build: (doc) => utf8(toOpml(readOutline(parse(doc)), nameFor(doc))) },
     // Markdown as other readers know it: the notes in reference form at the end.
     { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => utf8(write(referenceNotes(parse(doc)))) },
-    { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', build: (doc) => utf8(outlineLines(readOutline(parse(doc))).join('\n') + '\n') },
+    { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', build: (doc) => utf8(outlineText(readOutline(parse(doc)), appName)) },
   ],
   handoffs: [
     { to: 'deck', label: () => t('Show as slides'), convert: convert(outlineToDeck) },
