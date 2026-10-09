@@ -65,4 +65,8 @@ export default defineApp({
     { to: 'diagram', label: () => t('Draw as an org chart'), convert: convert(outlineToOrg) },
     { to: 'diagram', label: () => t('Draw as a network'), convert: convert(outlineToNet) },
   ],
+  keys: [
+    { keys: 'Mod+Alt+ArrowUp / Mod+Alt+ArrowDown', does: () => t('Fold, unfold') },
+    { keys: 'Mod+Shift+. / Mod+Shift+,', does: () => t('Zoom in, zoom out') },
+  ],
 });

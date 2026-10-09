@@ -59,6 +59,11 @@ export default defineApp({
       },
     },
   ],
+  keys: [
+    { keys: 'F2', does: () => t('Edit the cell, the caret at its end') },
+    { keys: 'Mod+D', does: () => t('Fill down from the top row') },
+    { keys: 'Escape', does: () => t('Put back what the cell held') },
+  ],
 });
 
 /** The sheet as a workbook: the table and its values (a rich cell's words, without their marks). */

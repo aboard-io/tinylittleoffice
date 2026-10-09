@@ -553,7 +553,10 @@ export class ToShell extends LitElement {
     const lang = document.documentElement.lang || undefined;
     const n = (x: number) => x.toLocaleString(lang);
     return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
-      <button type="button" class="to-btn to-fit-words" popovertarget="to-rooms" aria-haspopup="dialog" @pointerenter=${hover(true)} @pointerleave=${hover(false)} @click=${(e: Event) => void this.updateComplete.then(() => place(this.querySelector<HTMLElement>('.to-rooms')!, e.currentTarget as HTMLElement))}>${over > 0 ? t('{n} characters over the link limit', { n: n(over) }) : fitLine(this.link)}</button>
+      <button type="button" class="to-btn to-fit-words" popovertarget="to-rooms" aria-haspopup="dialog" @pointerenter=${hover(true)} @pointerleave=${hover(false)} @click=${(e: Event) => {
+        const btn = e.currentTarget as HTMLElement;
+        requestAnimationFrame(() => this.querySelector<HTMLElement>('.to-rooms:popover-open') && place(this.querySelector<HTMLElement>('.to-rooms')!, btn));
+      }}>${over > 0 ? t('{n} characters over the link limit', { n: n(over) }) : fitLine(this.link)}</button>
       <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('Copy link')} title=${t('Copy link')} @click=${() => void copyText(this.link)}>${icon(UI.copy, 18)}</button>
       <div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('Where the link fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
         <table>

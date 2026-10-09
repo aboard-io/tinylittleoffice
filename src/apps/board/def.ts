@@ -45,4 +45,7 @@ export default defineApp({
     // The byte order mark is how Excel knows a CSV is UTF-8.
     { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', build: (doc) => utf8('﻿' + boardToCsv(parse(doc))) },
   ],
+  keys: [
+    { keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', does: () => t('Move the cards to the stage before or after') },
+  ],
 });

@@ -42,4 +42,10 @@ export default defineApp({
     { ext: 'gpx', label: () => t('GPX route'), mime: 'application/gpx+xml', build: (doc) => utf8(tripToGpx(parse(doc))) },
     { ext: 'geojson', label: () => t('GeoJSON'), mime: 'application/geo+json', build: (doc) => utf8(tripToGeoJson(parse(doc))) },
   ],
+  keys: [
+    { keys: 'Mod+Alt+Enter', does: () => t('Present: the map flies stop to stop') },
+    { keys: 'ArrowRight / Space', does: () => t('Presenting: the next stop') },
+    { keys: 'ArrowLeft', does: () => t('Presenting: the stop before') },
+    { keys: 'Escape', does: () => t('Stop presenting') },
+  ],
 });
