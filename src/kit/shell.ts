@@ -12,6 +12,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import type { AppDef, Doc, DocChange, Editor } from './app.ts';
 import { appOf } from './apps.ts';
 import { budgetFor, decodeDoc, encodeDoc } from './codec.ts';
@@ -28,6 +29,9 @@ import { pageSvg } from './draw.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, shareNative } from './share.ts';
 import { toast } from './toast.ts';
+import { installLinkGuard } from './link-guard.ts';
+import { gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
+import { mark } from './mark.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
 import type { MenuItem } from './menu.ts';
@@ -64,6 +68,7 @@ export class ToShell extends LitElement {
   /** What the editor was last given or gave: the document without the new name the link carries for it. */
   private edited: Doc = '';
   private offLanguage = () => {};
+  private offPictures = () => {};
   /** A view asked for in the link ("text.png/…"): done once the editor is up. */
   private pendingView = '';
   private payloadLength = 0;
@@ -98,6 +103,10 @@ export class ToShell extends LitElement {
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('pagehide', this.flushKeep);
     this.offLanguage = onLanguage(() => this.requestUpdate());
+    this.offPictures = onPictures(() => this.requestUpdate());
+    // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
+    installLinkGuard();
+    installPictures();
     this.onHash();
   }
   disconnectedCallback() {
@@ -107,6 +116,7 @@ export class ToShell extends LitElement {
     window.removeEventListener('pagehide', this.flushKeep);
     this.flushKeep();
     this.offLanguage();
+    this.offPictures();
   }
 
   get def(): AppDef | undefined {
@@ -134,6 +144,8 @@ export class ToShell extends LitElement {
     this.unreadable = !!payload && !decodeDoc(payload);
     this.doc = def ? (payload ? decodeDoc(payload) : def.blank()) : '';
     this.edited = this.doc;
+    // Show pictures from the web is remembered for this document, as it arrived, for the visit.
+    setPictureDoc(def ? routeHash(def.id, payload) : '');
     this.display = !!def && display && !!payload;
     // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
     if (owned && display) this.shortDisplay = true;
@@ -359,7 +371,8 @@ export class ToShell extends LitElement {
   private renderHeader() {
     const def = this.def;
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
-    const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Menu')} aria-haspopup="dialog" @click=${drawer}>${icon(UI.menu, 26)}</button>`;
+    // The Office mark is the menu: a button with a border, so it reads as something to press.
+    const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${drawer}>${unsafeHTML(mark(26))}</button>`;
     if (!def) return html`<header class="to-header">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
     const title = def.title(this.doc);
     const prefix = `${location.origin}${location.pathname}${routeHash(def.id)}/`;
@@ -483,7 +496,7 @@ export class ToShell extends LitElement {
         <h1 class="to-display-title">${this.docTitle}</h1>
         <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
       </header>
-      <main class="to-display">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</main>
+      <main class="to-display">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
       <to-toast></to-toast>`;
   }
 

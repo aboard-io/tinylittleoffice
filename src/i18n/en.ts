@@ -56,6 +56,27 @@ export default {
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.',
   'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.',
 
+  // ---- links that leave the site, and pictures from the web (kit/link-guard.ts, kit/pictures.ts) ----
+  // The menu button's tooltip: the Office mark is the menu.
+  'Tiny Little Office menu': 'Tiny Little Office menu',
+  // The question before a link that leaves the site: "You are leaving Tiny Little Office for" over the site's name, large.
+  'Do you trust this link?': 'Do you trust this link?',
+  'You are leaving Tiny Little Office for': 'You are leaving Tiny Little Office for',
+  'This link writes an email to': 'This link writes an email to',
+  'This link calls': 'This link calls',
+  'Not a secure address: what you send there can be read on the way.': 'Not a secure address: what you send there can be read on the way.',
+  'The whole address:': 'The whole address:',
+  'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.': 'Someone wrote this link into the document. The words shown for a link need not match where it goes. Only go if you trust where it leads.',
+  'Go': 'Go',
+  'Links of this kind do not open here.': 'Links of this kind do not open here.',
+  // A picture held by its address on another site, until the reader asks for it: "A picture from example.com".
+  'A picture from {host}': 'A picture from {host}',
+  'Show pictures from the web': 'Show pictures from the web',
+  '{n|A picture from the web waits|# pictures from the web wait} to be asked for.': '{n|A picture from the web waits|# pictures from the web wait} to be asked for.',
+  'Always show pictures from the web': 'Always show pictures from the web',
+  'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.',
+  'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.',
+
   // ---- the copy kept on the device (status lines under the switch) ----
   'Only on the built site': 'Only on the built site',
   'Not possible in this browser': 'Not possible in this browser',

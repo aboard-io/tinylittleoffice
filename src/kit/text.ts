@@ -28,7 +28,8 @@
  * alone on its line) is a card: `contenteditable=false`, skipped by the caret,
  * taken out whole. The host may draw a card's inside through `card` (a table
  * as a grid, an address as a thing from the web); whatever it puts there
- * (inputs, buttons) keeps its own events. A task item's box is tapped to tick.
+ * (inputs, buttons) keeps its own events. A picture from the web waits to be asked for (kit/pictures.ts).
+ * A task item's box is tapped to tick.
  *
  * Words selected bring up the selection bubble (a <to-context> centred
  * under them): the marks, Link, Footnote and, over whole blocks of words in
@@ -49,6 +50,7 @@ import { lookup } from './app.ts';
 import { t } from './i18n.ts';
 import { UI, type IconNode } from './icons.ts';
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
+import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import type { ToNotePop } from './note-pop.ts';
 import './context.ts';
@@ -172,11 +174,14 @@ export class ToText extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     document.addEventListener('selectionchange', this.onSelectionChange);
+    this.offPictures = onPictures(() => this.requestUpdate());
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('selectionchange', this.onSelectionChange);
+    this.offPictures();
   }
+  private offPictures = () => {};
 
   /** The blocks as drawn: an editor with none shows one empty paragraph to type into. */
   get model(): Block[] {
@@ -944,7 +949,7 @@ export class ToText extends LitElement {
       case 'p':
         return html`<div class="tx-card" data-k="web" contenteditable="false" tabindex="0" role="group" aria-label=${t('From the web')}><span class="tx-card-kind">${t('From the web')}</span><span class="tx-card-gist">${b.runs[0]?.t ?? ''}</span></div>`;
       case 'img':
-        return html`<figure class="tx-card" data-k="img" contenteditable="false" tabindex="0"><img src=${b.url} alt=${b.alt} referrerpolicy="no-referrer" /></figure>`;
+        return html`<figure class="tx-card" data-k="img" contenteditable="false" tabindex="0">${picture(b.url, b.alt)}</figure>`;
       case 'hr':
         return html`<div class="tx-card" data-k="hr" contenteditable="false" tabindex="0" role="separator"><hr /></div>`;
       case 'table':

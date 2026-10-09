@@ -24,6 +24,7 @@ import { linkToFence } from './clipboard.ts';
 import type { ToDialog } from './dialog.ts';
 import { EMBED_SOURCES, embedOf, type EmbedKind } from './embeds.ts';
 import { icon, UI } from './icons.ts';
+import { authored, gateSvg, mayShow, onPictures, picture } from './pictures.ts';
 import { t } from './i18n.ts';
 import { TINIER, unshorten } from './short.ts';
 import './dialog.ts';
@@ -54,7 +55,9 @@ function ask<T>(heading: string, cls: string, body: (f: Frame<T>) => TemplateRes
       },
     };
     f.draw();
+    const off = onPictures(f.draw);
     dialog.addEventListener('to-close', () => {
+      off();
       dialog.remove();
       done(answer);
     });
@@ -86,14 +89,19 @@ export function askPicture(now: Partial<Picture> = {}): Promise<Picture | null> 
   let state: 'loading' | 'ok' | 'broken' = 'loading';
   return ask<Picture>(t('Web Picture'), 'to-ask-picture', (f) => {
     const ok = isAddress(url);
-    const submit = () => ok && f.finish({ url: url.trim(), alt: alt.trim() });
+    // The address typed here is the author's own choice: it shows at once, here and in the document (kit/pictures.ts).
+    const submit = () => ok && (authored(url.trim()), f.finish({ url: url.trim(), alt: alt.trim() }));
+    // The address the picture already had is the document's: not fetched until asked for, even here.
+    const asked = url.trim() !== (now.url ?? '').trim() || mayShow(url.trim());
     return form(
       'to-ask-picture-form',
       submit,
       html`${urlRow({ label: t('Address of the picture'), placeholder: 'https://', value: url, ok, input: (v) => ((url = v), (state = 'loading'), f.draw()) })}
         <label class="to-ask-alt"><span>${t('Words for anyone who cannot see it (optional)')}</span><input class="to-ask-text" type="text" .value=${alt} autocomplete="off" enterkeyhint="done" @input=${(e: Event) => (alt = (e.target as HTMLInputElement).value)} /></label>
         <div class="to-ask-preview" aria-live="polite">
-          ${ok
+          ${ok && !asked
+            ? picture(url.trim(), alt)
+            : ok
             ? html`<img class=${state} src=${url.trim()} alt=${alt} referrerpolicy="no-referrer" @load=${() => ((state = 'ok'), f.draw())} @error=${() => ((state = 'broken'), f.draw())} />
                 ${state === 'broken' ? html`<p class="to-hint to-ask-broken">${t('No picture came from this address. Check it, or try another.')}</p>` : nothing}`
             : html`<p class="to-hint">${t('Paste the address of a picture on the web: the picture shows here.')}</p>`}
@@ -193,7 +201,7 @@ export function askDocLink(): Promise<Block | null> {
         <div class="to-ask-preview" aria-live="polite">
           ${state === 'ok' && b?.k === 'fence'
             ? html`<figure class="to-ask-page">
-                ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt || name}>${unsafeSVG(page.svg)}</svg>` : nothing}
+                ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt || name}>${unsafeSVG(gateSvg(page.svg, true))}</svg>` : nothing}
                 <figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption>
               </figure>`
             : state === 'opening'

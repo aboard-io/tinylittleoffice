@@ -700,9 +700,15 @@
     overflow: auto;
   }
   .to-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 700;
     color: var(--to-ink);
     text-decoration: none;
+  }
+  .to-brand .to-mark {
+    flex: none;
   }
   .to-drawer-apps {
     display: flex;
@@ -885,6 +891,13 @@
     border-color: transparent;
     background: transparent;
   }
+  /* The Office mark is the menu: bordered, so it reads as a button. */
+  .to-header .to-burger {
+    width: var(--to-touch);
+    height: var(--to-touch);
+    border-color: var(--to-border-strong);
+    color: var(--to-ink);
+  }
   .to-header .to-tool:hover {
     background: var(--to-surface-2);
   }
@@ -1055,8 +1068,8 @@
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center;
+    gap: 10px;
     min-height: var(--to-touch);
     padding: 4px 0 4px 8px;
     color: var(--to-ink);
@@ -1066,13 +1079,19 @@
   .to-drive-open:hover {
     background: var(--to-surface-2);
   }
-  .to-drive-open span {
+  .to-drive-words {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+  .to-drive-words span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 15px;
   }
-  .to-drive-open small {
+  .to-drive-words small {
     color: var(--to-ink-3);
     font-size: 13px;
   }
@@ -1220,5 +1239,131 @@
   .to-embed figcaption small {
     flex: 1;
     color: var(--to-ink-3);
+  }
+
+  /* ---- a kept document's first page, small, beside its name (<to-preview>, kit/preview.ts) ---- */
+  to-preview {
+    flex: none;
+    display: flex;
+    justify-content: center;
+    height: 56px;
+    min-width: 44px;
+  }
+  to-preview svg {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: 100px;
+    background: var(--to-paper);
+    border: 1px solid var(--to-border);
+    border-radius: 2px;
+  }
+  .to-found to-preview {
+    height: 40px;
+    min-width: 32px;
+  }
+
+  /* ---- a picture from the web, not yet asked for (kit/pictures.ts) ---- */
+  .to-webpic {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px;
+    min-height: 88px;
+    color: var(--to-ink-2);
+    background: var(--to-surface-2);
+    border: 1px dashed var(--to-border-strong);
+    border-radius: var(--to-radius);
+  }
+  .to-webpic-words {
+    flex: 1 1 140px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .to-webpic-words small {
+    color: var(--to-ink-3);
+  }
+  .to-webpic-show {
+    white-space: normal;
+  }
+  .to-webpic-svg:focus-visible {
+    outline: 3px solid var(--to-accent);
+  }
+  .to-webpics-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    color: var(--to-ink-2);
+    background: var(--to-surface-2);
+    border-radius: var(--to-radius);
+  }
+  .to-webpics-bar span {
+    flex: 1 1 160px;
+  }
+
+  /* ---- the question before a link leaves the site (kit/link-guard.ts) ---- */
+  .to-link-guard .lg-what {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .to-link-guard .lg-host {
+    margin: 4px 0 12px;
+    font-size: clamp(26px, 8vw, 36px);
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .to-link-guard .lg-warn {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: var(--to-danger);
+    font-weight: 600;
+  }
+  .to-link-guard .lg-label {
+    margin: 0 0 4px;
+    color: var(--to-ink-3);
+    font-size: 14px;
+  }
+  .to-link-guard .lg-url {
+    display: block;
+    padding: 8px 10px;
+    font-family: var(--to-font-mono);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    user-select: text;
+    background: var(--to-surface-2);
+    border-radius: var(--to-radius-sm);
+  }
+  .to-link-guard .lg-note {
+    color: var(--to-ink-2);
+    font-size: 14px;
+  }
+  .to-link-guard .lg-buttons {
+    display: flex;
+    gap: 12px;
+  }
+  .to-link-guard .lg-buttons .to-btn {
+    flex: 1;
+    min-height: 52px;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--to-on-accent);
+  }
+  .to-link-guard .lg-cancel {
+    background: var(--to-danger);
+    border-color: var(--to-danger);
+  }
+  .to-link-guard .lg-go {
+    background: var(--to-success);
+    border-color: var(--to-success);
   }
 }

@@ -27,7 +27,8 @@ import { tool } from '../../kit/bar.ts';
 import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
-import { UI } from '../../kit/icons.ts';
+import { icon, UI } from '../../kit/icons.ts';
+import { gateHtml, gateSvg, picture, showPictures } from '../../kit/pictures.ts';
 import { t } from '../../kit/i18n.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
@@ -497,12 +498,12 @@ export class ToSiteEditor extends DocElement<Site> {
       const def = lookup.appOf(b.lang);
       const page = def?.view(b.body, { small: true })[0];
       const name = def?.title(b.body) || def?.name || b.lang;
-      return html`<figure class="site-doc">${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${name}>${unsafeSVG(page.svg)}</svg>` : nothing}<figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption></figure>`;
+      return html`<figure class="site-doc">${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${name}>${unsafeSVG(gateSvg(page.svg))}</svg>` : nothing}<figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption></figure>`;
     }
-    if (b.k === 'img') return b.url ? html`<img class="site-pic" src=${b.url} alt=${b.alt} referrerpolicy="no-referrer" />` : null;
+    if (b.k === 'img') return b.url ? picture(b.url, b.alt, 'site-pic') : null;
     if (b.k === 'p' && b.runs.length === 1) {
       const url = plainText(b.runs).trim();
-      if (isPicture(url)) return html`<img class="site-pic" src=${url} alt="" referrerpolicy="no-referrer" />`;
+      if (isPicture(url)) return picture(url, '', 'site-pic');
       return html`<to-embed url=${url}></to-embed>`;
     }
     return null;
@@ -586,6 +587,8 @@ export class ToSiteEditor extends DocElement<Site> {
   render() {
     const site = this.view;
     const s = this.section;
+    // The page in the frame with its pictures from the web grey until asked for (kit/pictures.ts).
+    const framed = gateHtml(this.shown);
     const x = this.sel ? this.text : null;
     const m = x?.marks ?? {};
     const th = site.theme;
@@ -604,7 +607,10 @@ export class ToSiteEditor extends DocElement<Site> {
       </to-bar>
       <div class="site-body">
         <div class="site-preview" tabindex="-1" role="group" aria-label=${t('The website, as it will look')} @keydown=${this.onBoxKey}>
-          <iframe class="site-frame" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${t('The website, as it will look')} .srcdoc=${this.shown}></iframe>
+          ${framed.hidden
+            ? html`<p class="to-webpics-bar">${icon(UI.image, 18)}<span>${t('{n|A picture from the web waits|# pictures from the web wait} to be asked for.', { n: framed.hidden })}</span><button type="button" class="to-btn" @click=${() => showPictures()}>${t('Show pictures from the web')}</button></p>`
+            : nothing}
+          <iframe class="site-frame" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${t('The website, as it will look')} .srcdoc=${framed.html}></iframe>
         </div>
         <section class="site-panel" aria-label=${t('The words of {part}', { part: this.partName(s.n) })}>
           <select class="site-part" aria-label=${t('Part being edited')} .value=${String(s.n)} @change=${(e: Event) => this.pick(Number((e.target as HTMLSelectElement).value))}>

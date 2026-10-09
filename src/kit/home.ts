@@ -5,7 +5,9 @@
  * newest first. No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
  * in that format … Drive is just documents under the icons. No descriptions of apps.") Rows the width of
  * the page, not cards, so it looks on a desktop as it does on a phone (round four: "Don't make apps into cards.
- * Just make them into rows with docs below."). <to-templates> is the drawer's too.
+ * Just make them into rows with docs below."). Each document shows its first page small at its left
+ * (<to-preview>, drawn as it scrolls into sight: "When you list documents under apps, show them with
+ * previews"). <to-templates> is the drawer's too.
  */
 import { LitElement, html, nothing } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -16,6 +18,8 @@ import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { hoverFocus, menuKey, openedByPointer, place } from './menu.ts';
 import { pageSvg } from './draw.ts';
+import { gateSvg } from './pictures.ts';
+import './preview.ts';
 import { routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
 import { onPrivacy } from './privacy.ts';
@@ -90,7 +94,7 @@ export class ToTemplates extends LitElement {
     const name = tpl?.name ?? t('Blank');
     const page = this.drawn ? this.app.view(tpl?.doc ?? this.app.blank(), { small: true })[0] : null;
     return html`<div role="option" class="to-option" tabindex="-1" aria-selected=${String(this.chosen === id)} @pointermove=${hoverFocus} @click=${() => this.choose(tpl)}>
-      <span class="to-thumb" aria-hidden="true">${page ? unsafeSVG(pageSvg(page)) : nothing}</span>
+      <span class="to-thumb" aria-hidden="true">${page ? unsafeSVG(gateSvg(pageSvg(page), true)) : nothing}</span>
       <span class="to-option-words"><span>${name}</span>${tpl?.blurb ? html`<small>${tpl.blurb}</small>` : nothing}</span>
     </div>`;
   }
@@ -146,7 +150,7 @@ export class ToHome extends LitElement {
         ${shown.map((k) => {
           const title = k.title || t('Untitled');
           return html`<li>
-            <a class="to-drive-open" href=${k.hash}><span>${title}</span><small>${ago(k.at, lang)}</small></a>
+            <a class="to-drive-open" href=${k.hash}><to-preview hash=${k.hash}></to-preview><span class="to-drive-words"><span>${title}</span><small>${ago(k.at, lang)}</small></span></a>
             <button type="button" class="to-btn to-tool" aria-label=${t('Forget {title}', { title })} title=${t('Forget')} @click=${() => this.forget(k)}>${icon(UI.close, 16)}</button>
           </li>`;
         })}

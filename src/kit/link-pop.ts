@@ -13,6 +13,7 @@ import { linkable, linkTarget } from '../doc/index.ts';
 import { tool } from './bar.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
+import { openLink } from './link-guard.ts';
 
 const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 
@@ -106,7 +107,8 @@ export class ToLinkPop extends LitElement {
     this.dispatchEvent(new CustomEvent<string>('link-set', { detail: href ? linkTarget(href) : '', bubbles: true }));
   }
   private open() {
-    window.open(this.href, '_blank', 'noopener');
+    // Asked first, as every link that leaves the site is (kit/link-guard.ts).
+    openLink(this.href);
   }
   private onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {

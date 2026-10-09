@@ -20,6 +20,7 @@
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { gateSvg } from '../../kit/pictures.ts';
 import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
 import { isEmbed, notesOf, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
@@ -331,7 +332,7 @@ export class ToWriteEditor extends DocElement<Doc> {
       const page = def?.view(b.body, { small: true })[0];
       const name = fenceTitle(b.body) || def?.name || b.lang;
       return html`<figure class="write-doc">
-        ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${name}>${unsafeSVG(page.svg)}</svg>` : html`<pre>${b.body.split('\n').slice(0, 6).join('\n')}</pre>`}
+        ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${name}>${unsafeSVG(gateSvg(page.svg))}</svg>` : html`<pre>${b.body.split('\n').slice(0, 6).join('\n')}</pre>`}
         <figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption>
       </figure>`;
     }
