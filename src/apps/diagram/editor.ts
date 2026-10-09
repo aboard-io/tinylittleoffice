@@ -334,7 +334,11 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (e.button !== 0 || !g || !hit || hit.k === 'edge' || hit.k === 'lane' || this.target) return;
     const [x, y] = this.point(e);
     this.drag = { i, hit, x, y, moved: false };
-    g.setPointerCapture(e.pointerId);
+    try {
+      g.setPointerCapture(e.pointerId);
+    } catch {
+      // A pointer the browser no longer knows of: the drag goes on without the capture.
+    }
   };
   private onMove = (e: PointerEvent) => {
     const d = this.drag;

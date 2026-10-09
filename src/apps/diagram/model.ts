@@ -443,7 +443,7 @@ export function withIcon(doc: Doc, hit: Hit, name: string): Op[] {
   const p = partFor(l, hit.part);
   if (!p) return [];
   const first = sliceRuns(l.runs, p.from, p.from + 1)[0];
-  if (first?.ic) return [{ op: 'text', at: hit.at, from: p.from, to: p.from + 1, runs: name ? [{ t: '', ic: name }] : [] }];
+  if (first?.ic) return [{ op: 'text', at: hit.at, from: p.from, to: name ? p.from + 1 : p.from + (l.chars[p.from + 1] === ' ' ? 2 : 1), runs: name ? [{ t: '', ic: name }] : [] }];
   return name ? [{ op: 'text', at: hit.at, from: p.from, to: p.from, runs: [{ t: '', ic: name }, { t: ' ' }] }] : [];
 }
 
