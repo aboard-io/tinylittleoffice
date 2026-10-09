@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import def, { titleOf } from '../def.ts';
-import { addStop, distanceKm, formatLeg, moveStop, readTrip, removeStop, routeKm, setLinked, setPlace, setText, setUnits, tabulate, type TripView } from '../model.ts';
+import { addStop, distanceKm, formatLeg, moveStop, readTrip, removeStop, routeKm, routeName, setLinked, setPlace, setText, setUnits, tabulate, type TripView } from '../model.ts';
 import { templates } from '../templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from '../view.ts';
 
@@ -114,7 +114,8 @@ test('distances, legs in the units, the title', () => {
   expect(formatLeg(100, 'h')).toBe('1 hr 38 min');
   expect(formatLeg(20, 'h')).toBe('20 min');
   expect(formatLeg(123.08, 'h')).toBe('2 hr');
-  expect(titleOf(ROUTE)).toBe('New York, NY – London');
+  expect(titleOf(ROUTE)).toBe('');
+  expect(routeName(readTrip(parse(ROUTE)))).toBe('New York, NY – London');
   expect(titleOf('---\ntitle: Away\n---\n' + ROUTE)).toBe('Away');
   expect(parse(def.retitle(ROUTE, 'Big trip')).head.title).toBe('Big trip');
 });

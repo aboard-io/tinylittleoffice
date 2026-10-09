@@ -8,15 +8,11 @@ import { apply, parse, write } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { readTrip, routeName } from './model.ts';
 import { templates } from './templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from './view.ts';
 
-/** The document's own title, else the route's ends: "Lisbon – Porto". */
-export const titleOf = (doc: Doc): string => {
-  const d = parse(doc);
-  return d.head.title ?? routeName(readTrip(d));
-};
+/** The document's own title ('' for none: a GPX or GeoJSON file falls back to the route's ends). */
+export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
 export const retitle = (doc: Doc, title: string): Doc => write(apply(parse(doc), { op: 'head', key: 'title', value: title.replace(/\n/g, ' ').trim() || undefined }));
 
 export default defineApp({
