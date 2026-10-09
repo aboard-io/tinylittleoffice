@@ -28,7 +28,7 @@ import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan 
 import { decodeDoc, encodeDoc } from '../../kit/codec.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { pageSvg } from '../../kit/draw.ts';
-import { DocElement } from '../../kit/element.ts';
+import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
@@ -62,7 +62,7 @@ export function refOfLink(words: string): string | null {
   return payload && !text ? null : `${app}\n${text}`;
 }
 
-/** Where the selection was before an edit: rows chosen whole, or the caret in a row's words. What an undo puts back. */
+/** Where the selection was before an edit: rows chosen whole, or the caret in a row's words. What an undo puts back (the entry's mark). */
 type Mark = { range: RowRange<number> } | { at: number; offset: number };
 type Ends = { from: string; to: string; dir: Dir; label?: string; edge: boolean };
 /** A line's two ends, as t() takes them. */
@@ -93,8 +93,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private rowBlocks = new WeakMap<Block, Block[]>();
   /** The block a row shows when the outline has none yet; it enters the document with the first letter typed. */
   private ghost: Block = { k: 'li', depth: 0, runs: [] };
-  /** The selection before each edit, by the edit's first op (which a burst of typing keeps). */
-  private marks = new WeakMap<Op, Mark>();
   /** Rows chosen whole, as nodes: the kit's one implementation (keys, handle, drag, clipboard, the bar under them). */
   readonly rows = new Rows<number>(this, {
     rows: () => this.rowItems(),
@@ -141,32 +139,28 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     if (this.zoom >= 0 && indexAt(this.view, this.zoom) < 0) this.zoom = -1;
   }
   /** Every edit: folds and the zoom follow the blocks they belong to; the selection before it is kept for its undo. */
-  protected edit(ops: Op[], key?: string) {
-    if (ops.length && !this.marks.has(ops[0])) {
-      const r = this.rows.range;
-      const mark: Mark | null = r ? { range: { ...r } } : this.sel >= 0 ? { at: this.sel, offset: this.caretIn(this.sel) } : null;
-      if (mark) this.marks.set(ops[0], mark);
-    }
-    super.edit(ops, key);
+  protected edit(ops: Op[], key?: string, mark?: unknown) {
+    const r = this.rows.range;
+    const now: Mark | undefined = r ? { range: { ...r } } : this.sel >= 0 ? { at: this.sel, offset: this.caretIn(this.sel) } : undefined;
+    super.edit(ops, key, mark ?? now);
     this.remap(ops);
   }
   /** After an undo the selection comes back as it was before the edit; after a redo, where the edit left it. */
-  protected undone(entry: { ops: Op[]; inverse: Op[] }, redo: boolean) {
+  protected undone(entry: Entry, redo: boolean) {
     this.menuFor = -1;
     this.connecting = null;
     this.rows.release();
     this.remap(redo ? entry.ops : entry.inverse);
-    const mark = this.marks.get(entry.ops[0]);
+    const mark = entry.mark as Mark | undefined;
     const ok = (at: number) => at >= 0 && indexAt(this.view, at) >= 0;
     if (mark && 'range' in mark) {
       const r = redo ? { anchor: mapAt(entry.ops, mark.range.anchor), focus: mapAt(entry.ops, mark.range.focus) } : mark.range;
       if (ok(r.anchor) && ok(r.focus)) return this.rows.select(r);
     } else if (mark && !redo && ok(mark.at)) return this.focusRow(mark.at, mark.offset);
     // Else the row the change touched first.
-    const ops = redo ? entry.ops : entry.inverse;
-    const first = ops.find((o) => 'at' in o) as { at: number } | undefined;
-    if (!first || !this.items.length) return;
-    const near = [...this.items].reverse().find((it) => it.at <= first.at) ?? this.items[0];
+    const first = firstAt(entry);
+    if (first < 0 || !this.items.length) return;
+    const near = [...this.items].reverse().find((it) => it.at <= first) ?? this.items[0];
     this.focusRow(near.at);
   }
   /** Folds and the zoom are block indices: moved with their blocks, dropped with them. */
@@ -607,6 +601,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const target = e.composedPath()[0] as HTMLElement;
     if (target.closest?.('[popover]') || target.closest?.('dialog')) return;
     e.preventDefault();
+    e.stopPropagation();
     this.connecting = null;
   };
   private onKey = (e: KeyboardEvent) => {
@@ -753,6 +748,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${tool({ label: t('Unfold all'), icon: UnfoldVertical, keep: true, does: () => this.foldAll(false) })}
       ${btn({ label: c ? t('Cancel connecting') : t('Connect'), icon: c ? UI.close : Link2, pressed: !!c, keep: true, does: () => this.connect() })}
       <to-menu class="ol-view-as" .label=${t('View as')} .icon=${Eye} caret .items=${this.viewItems()}></to-menu>
+      ${this.undoTools()}
     </to-bar>`;
   }
 

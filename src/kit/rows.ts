@@ -18,7 +18,8 @@
  * it calls `rows.choose(id, extend?)`, `rows.selectAll()`, `rows.release(id?)` from its own paths (Shift+Up/Down in words,
  * a second Select All). The controller owns: the range {anchor, focus}; a tap on a handle (choose; Shift+tap and, on a
  * touch screen, a second tap on another handle extend); Shift+Up/Down (from the words too, unless `fromWords` is false),
- * flipping past the anchor; Escape (in words: the row chosen, step out of edit; on a range: the caret back), plain arrows
+ * flipping past the anchor; Escape (in words, `text-escape` once <to-text> has closed its boxes and collapsed its words: the
+ * row chosen, the step out of edit; on a range: the caret back), plain arrows
  * and Enter letting go to a caret; Mod+A; Delete/Backspace; Tab/Shift+Tab; Alt+Up/Down; Mod+D; Mod+C/X/V through
  * capturing document listeners that act only while the host holds the focus (or nothing does), with a module-level
  * clipboard (`lastCopied()`) for when the system's is refused; the <to-context> under the range in the standard's order
@@ -117,8 +118,6 @@ export class Rows<Id = number> implements ReactiveController {
   private point = { x: 0, y: 0 };
   private scrolling = 0;
   private target: HTMLElement | null = null;
-  /** A popover inside the words was open when Escape went down: that Escape was the popover's. */
-  private popOpen = false;
 
   constructor(
     private host: Host,
@@ -129,8 +128,8 @@ export class Rows<Id = number> implements ReactiveController {
 
   hostConnected() {
     const h = this.host;
-    h.addEventListener('keydown', this.onKeyCapture, true);
     h.addEventListener('keydown', this.onKey);
+    h.addEventListener('text-escape', this.onTextEscape);
     h.addEventListener('focusin', this.onFocusIn);
     h.addEventListener('pointerdown', this.onDown);
     h.addEventListener('pointermove', this.onMove);
@@ -142,8 +141,8 @@ export class Rows<Id = number> implements ReactiveController {
   }
   hostDisconnected() {
     const h = this.host;
-    h.removeEventListener('keydown', this.onKeyCapture, true);
     h.removeEventListener('keydown', this.onKey);
+    h.removeEventListener('text-escape', this.onTextEscape);
     h.removeEventListener('focusin', this.onFocusIn);
     h.removeEventListener('pointerdown', this.onDown);
     h.removeEventListener('pointermove', this.onMove);
@@ -350,12 +349,6 @@ export class Rows<Id = number> implements ReactiveController {
   private inWords(el: HTMLElement): boolean {
     return !!el.closest?.('to-text, input, textarea, [contenteditable="true"]');
   }
-  private onKeyCapture = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape') return;
-    const el = e.composedPath()[0] as HTMLElement;
-    // (The selection bubble is not one: it comes and goes with the selection.)
-    this.popOpen = !!el.closest?.('to-text')?.querySelector('[popover]:popover-open:not(.to-context)');
-  };
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const el = e.composedPath()[0] as HTMLElement;
@@ -364,7 +357,7 @@ export class Rows<Id = number> implements ReactiveController {
     if (!this.range) return;
     if (this.onRangeKey(e)) e.preventDefault();
   };
-  /** In a row's words: Shift+Up/Down and Escape step out to the row chosen whole. */
+  /** In a row's words: Shift+Up/Down step out to the row chosen whole. */
   private onWordsKey(e: KeyboardEvent, el: HTMLElement) {
     if (this.o.fromWords === false || !el.closest('to-text')) return;
     const row = this.rowOf(el);
@@ -373,16 +366,16 @@ export class Rows<Id = number> implements ReactiveController {
     if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && !mod && !e.altKey) {
       e.preventDefault();
       this.choose(row.id);
-    } else if (e.key === 'Escape' && !mod && !e.shiftKey) {
-      // The popover's Escape was the popover's; selected words collapse first; then the row.
-      if (this.popOpen) return void (this.popOpen = false);
-      const tx = el.closest('to-text') as (HTMLElement & { sel: { anchor: unknown; focus: unknown } | null }) | null;
-      const s = tx?.sel as { anchor: { block: number; offset: number }; focus: { block: number; offset: number } } | null | undefined;
-      e.preventDefault();
-      if (tx && s && (s.anchor.block !== s.focus.block || s.anchor.offset !== s.focus.offset)) tx.sel = { anchor: s.focus, focus: s.focus };
-      else this.choose(row.id);
     }
   }
+  /** Escape in a row's words, once <to-text> has closed its boxes and collapsed its words: the row chosen whole, the step out of edit. */
+  private onTextEscape = (e: Event) => {
+    if (this.o.fromWords === false || e.defaultPrevented) return;
+    const row = this.rowOf(e.target as Element);
+    if (!row) return;
+    e.preventDefault();
+    this.choose(row.id);
+  };
   /** The keys a range answers to; true when the key was the range's. */
   private onRangeKey(e: KeyboardEvent): boolean {
     const r = this.range!;

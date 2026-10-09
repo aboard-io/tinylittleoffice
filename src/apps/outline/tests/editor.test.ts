@@ -853,6 +853,9 @@ test('the bar: Indent before Bring out as under chosen rows; Connect, Zoom out a
   const { el } = await editor(TREE);
   const tools = [...el.querySelectorAll<HTMLButtonElement>('.ol-bar button[aria-label]')].map((b) => b.getAttribute('aria-label'));
   expect(tools.indexOf('Indent')).toBeLessThan(tools.indexOf('Bring out'));
+  // Undo and Redo end the bar, off until there is something to do.
+  expect(tools.slice(-2)).toEqual(['Undo', 'Redo']);
+  expect(button(el, 'Undo').disabled).toBe(true);
   await choose(el, 1);
   await keyOn(el, 1, '>', { ctrlKey: true, shiftKey: true, code: 'Period' });
   const keeps = (b: HTMLElement) => {
@@ -864,6 +867,17 @@ test('the bar: Indent before Bring out as under chosen rows; Connect, Zoom out a
   expect(keeps(button(el, 'Zoom out'))).toBe(true);
   expect(keeps(row(el, 1).querySelector<HTMLElement>('.ol-fold')!)).toBe(true);
   expect(getComputedStyle(tree(el)).touchAction).toBe('manipulation');
+  // Escape while connecting cancels connecting, and does not choose the row.
+  byWords(el, 'Connect').click();
+  await el.updateComplete;
+  await keyOn(el, 1, 'Escape');
+  expect(el.querySelector('.ol.connecting')).toBeNull();
+  expect(ranged(el)).toEqual([]);
+  await typeIn(el, 1, 'X');
+  expect(button(el, 'Undo').disabled).toBe(false);
+  button(el, 'Undo').click();
+  await el.updateComplete;
+  expect(el.value).toBe(TREE);
   expect(getComputedStyle(row(el, 1).querySelector('.ol-handle')!).touchAction).toBe('none');
   // The handle is the kit's: no HTML5 drag.
   expect(row(el, 1).querySelector('.ol-handle')!.getAttribute('draggable')).toBeNull();
