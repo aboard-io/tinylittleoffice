@@ -1000,7 +1000,7 @@ export class ToShell extends LitElement {
     let main;
     if (this.comparing) main = html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>`;
     else if (!def) main = html`<to-home></to-home>`;
-    if (!def) main = html`<to-home></to-home>`;
+    else if (this.sealed) main = html`<div class="to-empty to-locked">${icon(UI.lock, 32)}<p>${t('This document is locked with a password.')}</p><button type="button" class="to-btn primary to-unlock-open" @click=${() => void this.askPassword()}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button></div>`;
     else if (this.unreadable) main = html`<div class="to-empty"><p>${t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
     else if (!this.tag) main = html`<div class="to-empty to-loading" aria-busy="true">${t('Loading…')}</div>`;
     else {
