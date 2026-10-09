@@ -41,7 +41,12 @@ export class FoldElement extends PagesElement<Folded> {
       return true;
     }
     const f = this.f;
-    if (f.grow && pages.length < f.grow) return super.nextBlank();
+    if (f.grow && pages.length < f.grow) {
+      // It grows as it does from the bar: by a sheet's worth, or a card; the document goes on the first new page.
+      this.savePages([...pages, ...Array.from({ length: f.by ?? 4 }, blankSlide)]);
+      this.cur = pages.length;
+      return true;
+    }
     toast(this, 'Every page has something on it: clear one for the document, or put it on a blank page.');
     return false;
   }

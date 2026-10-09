@@ -229,3 +229,35 @@ test('draw: a stroke by hand is a line of its own shape, closed into a shape whe
   expect(shapes()[1].querySelector('polygon')).toBeTruthy();
   expect(last()!.split('\n').at(-1)!.startsWith('v | ')).toBe(true);
 });
+
+test('timeline: one line that grows wider, an event added on the picture, an era as a band', async () => {
+  prefs();
+  localStorage.removeItem('tinyoffice.edit');
+  const { el, last } = await mount('timeline', '- 1900: Then\n- 1950: Between\n- 2000: Now\n- 1950–2000: The later half');
+  const svg = () => el.querySelector<SVGSVGElement>('.pic > svg')!;
+  // Drawn at its own width (the page scrolls sideways), the dots on one line, boxes above and below it in turn.
+  expect(svg().getAttribute('style')).toMatch(/--w:[\d.]+px/);
+  const dots = () => [...el.querySelectorAll<SVGEllipseElement>('.pic > svg ellipse')];
+  expect(dots()).toHaveLength(3);
+  expect(new Set(dots().map((d) => d.getAttribute('cy'))).size).toBe(1);
+  const boxY = (words: string) => +[...el.querySelectorAll('.pic > svg g.pick')].find((g) => g.textContent!.includes(words))!.querySelector('rect')!.getAttribute('y')!;
+  expect(boxY('Then')).toBeLessThan(150);
+  expect(boxY('Between')).toBeGreaterThan(150);
+  // The era is a band, below the boxes.
+  expect(boxY('The later half')).toBeGreaterThan(boxY('Between'));
+  // A tap on empty space, far to the right: a new event, drawn where the line ends, its When ready to type.
+  Object.assign(svg(), { createSVGPoint: () => ({ x: 0, y: 0, matrixTransform: () => ({ x: 2000, y: 20 }) }), getScreenCTM: () => ({ inverse: () => ({}) }) });
+  el.querySelector('.pic')!.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+  await settle(el);
+  expect(dots()).toHaveLength(4);
+  // Its box has a field for the When and one for what happened.
+  const field = (n: number) => el.querySelectorAll<HTMLInputElement>('.pic-edit input')[n];
+  field(0).value = '2020';
+  field(0).dispatchEvent(new Event('input', { bubbles: true }));
+  await settle(el);
+  field(1).value = 'Soon';
+  field(1).dispatchEvent(new Event('input', { bubbles: true }));
+  await settle(el);
+  expect(last()).toBe('- 1900: Then\n- 1950: Between\n- 2000: Now\n- 1950–2000: The later half\n- 2020: Soon');
+  expect(dots()).toHaveLength(4);
+});

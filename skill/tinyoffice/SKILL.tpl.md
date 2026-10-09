@@ -272,7 +272,7 @@ Each of these lays a few lines out on letter-size sheets; the PDF download print
 
 - `flow` (stock and flow, drawn as a Sankey diagram with sliders): `- name = 1000 (0 to 5000)` is a number with a slider; `~ From -> To: formula` is a flow, its formula using slider names and stocks.
 - `pixel` (16×16): a line per row, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
-- `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`, in order; years or dates are spaced as they fell.
+- `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`, in order; years or dates are spaced as they fell, and a span (`- 1990–1999: The nineties`) is a band along the foot.
 - Games: `spinner` (a `- ` list of choices), `wordsearch`.
 - Together: `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
 - Personal: `log` (a table of entries; each kind is totalled).

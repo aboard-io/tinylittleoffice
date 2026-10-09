@@ -397,7 +397,15 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   assert.equal(twice.shapes.filter((s) => s.k === 'e').length, 2);
   assert.ok(twice.shapes.filter((s) => s.text === 'instant noodles' || s.text === 'walking').every((s) => s.w > 50));
   const many = specOf('venn')!.layout!(`- X: ${Array.from({ length: 15 }, (_, i) => 'thing ' + i).join(', ')}\n- Y: b`);
-  assert.equal(new Set(many.shapes.filter((s) => s.text.startsWith('thing')).map((s) => Math.round(s.y))).size, 12);
+  const things = many.shapes.filter((s) => s.text.startsWith('thing'));
+  const [x, y] = many.shapes.filter((s) => s.k === 'e').map((c) => [c.x + c.w / 2, c.y + c.h / 2])[0];
+  assert.ok(new Set(things.map((s) => Math.round(s.x))).size > 1 && new Set(things.map((s) => Math.round(s.y))).size < 15);
+  assert.ok(things.every((s) => [[s.x, s.y], [s.x + s.w, s.y + s.h]].every(([px, py]) => Math.hypot(px - x, py - y) <= 150)));
+  assert.ok(things.every((a) => things.every((b) => a === b || a.x >= b.x + b.w || b.x >= a.x + a.w || a.y >= b.y + b.h || b.y >= a.y + a.h)));
+  // In three sets, what two share has a narrow lens: a long thing wraps onto two lines rather than running out of it.
+  const three = specOf('venn')!.layout!('- Fast: sprinting\n- Cheap: walking\n- Good: slow cooking\n- Fast & Good: a great takeaway');
+  const takeaway = three.shapes.find((s) => s.text === 'a great takeaway')!;
+  assert.ok(takeaway.h > 17 && takeaway.w < 100);
 });
 
 test('drawing: more shapes, and joins that follow', async () => {
@@ -756,6 +764,15 @@ test('small apps: the sums behind them', async () => {
   assert.ok(spaced[2] - spaced[1] > 3 * (spaced[1] - spaced[0]) && spaced[1] - spaced[0] >= 96);
   assert.ok(places(['Then', 'Now', 'Later']).every((x, i, xs) => !i || x - xs[i - 1] >= 96));
   assert.ok(specOf('timeline')!.layout!(Array.from({ length: 20 }, (_, i) => `- ${1900 + i}: x`).join('\n')).w > 1800);
+  // A span for a When is an era: a band at the foot from the one year to the other, as long as the dots are that far apart.
+  const { era } = await import('../src/apps/timeline.def.ts');
+  assert.deepEqual([era('1990–1999'), era('1990-1999'), era('1969-07-20'), era('Then - Now')], [[1990, 1999], [1990, 1999], null, null]);
+  const dated = specOf('timeline')!.layout!('- 1900: a\n- 1950: b\n- 2000: c\n- 1950–2000: later half');
+  const band = dated.shapes.find((s) => s.text.startsWith('1950–2000'))!;
+  const dots = dated.shapes.filter((s) => s.k === 'e');
+  assert.ok(Math.abs(band.x - (dots[1].x + 8)) < 1 && Math.abs(band.x + band.w - (dots[2].x + 8)) < 1 && band.y > dated.shapes.filter((s) => s.k === 'o').reduce((a, s) => Math.max(a, s.y), 0) - 1);
+  // Where the years are not known, a span is an event like the rest.
+  assert.equal(specOf('timeline')!.layout!('- Then: a\n- Now - Later: b').shapes.filter((s) => s.k === 'e').length, 2);
   // Each is read leniently: lines without their marks, other marks, a size written "4×2".
   assert.equal(appOf('timeline')!.read!('1843: Notes\n  2. 1936: A machine'), '- 1843: Notes\n- 1936: A machine');
   assert.equal(appOf('net')!.read!('A > B: calls\nB - C\nD <- E\n- Lone'), '~ A -> B: calls\n~ B -- C\n~ E -> D\n\n- Lone');

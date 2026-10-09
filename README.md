@@ -21,7 +21,7 @@ you have copied the file.
 | Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize; the calendar's own date nav. |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note; or just dots on the map. |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
-| Org chart, Mind map, Swimlanes, Venn, Network, Timeline | Diagrams drawn from a few lines of text; a timeline's years are spaced as they fell. |
+| Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
 | Store | A shop page with a working cart; orders go by email. |
 | Invoice | A form laid out like the paper: who, what, how much; the sums done as you type, a PDF to send. |
@@ -32,7 +32,7 @@ you have copied the file.
 | Poster, Name badges | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
 | Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
 | Pixel art | A grid of squares to colour. |
-| Seating chart, Family tree, Timeline | More diagrams from a few lines. |
+| Seating chart, Family tree, Timeline | More diagrams from a few lines; a timeline's years are spaced as they fell along one line, a span of years a band at its foot. |
 | Games | Word search, Spinner. |
 | Together | Secret Santa (a private link per person), Split the bill. |
 | Personal | Log. |

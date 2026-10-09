@@ -151,6 +151,7 @@ export default defineApp({
   shortcuts: [
     { keys: 'V R E D L A T', does: 'Select, rectangle, ellipse, diamond, line, arrow, text' },
     { keys: 'K', does: 'Join two shapes: press on one, let go on the other' },
+    { keys: 'P F', does: 'Pen (a tap for each corner; Enter closes it), freehand (drag; end where you began for a closed shape)' },
     { keys: 'Ctrl + wheel', does: 'Zoom in and out' },
     { keys: 'Arrows', does: 'Nudge the selected shape' },
     { keys: 'Mod+D', does: 'Duplicate' },
