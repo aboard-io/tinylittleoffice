@@ -41,6 +41,8 @@ export class ToCalcEditor extends DocElement<CalcView> {
   declare ready: boolean;
   /** Up and Down walk the tape back into the line: how far back. */
   private recall = 0;
+  /** Where the caret goes after a key, until the line is drawn with what the key typed (keys come faster than frames). */
+  private caret: number | null = null;
 
   constructor() {
     super();
@@ -78,25 +80,32 @@ export class ToCalcEditor extends DocElement<CalcView> {
   private put(typed: string, back = false) {
     const el = this.display;
     const n = this.entry.length;
-    const a = el?.selectionStart ?? n;
-    const b = el?.selectionEnd ?? n;
+    const drawn = el && el.value === this.entry;
+    const a = drawn ? (el.selectionStart ?? n) : (this.caret ?? n);
+    const b = drawn ? (el.selectionEnd ?? n) : (this.caret ?? n);
     const from = back && a === b ? Math.max(0, a - 1) : a;
     this.entry = this.entry.slice(0, from) + typed + this.entry.slice(b);
-    const caret = from + typed.length;
+    const caret = (this.caret = from + typed.length);
     void this.updateComplete.then(() => this.display?.setSelectionRange(caret, caret));
   }
   private press(k: string) {
     if (k === '=') return this.enter();
-    if (k === 'C') return void (this.entry = '');
+    if (k === 'C') return this.setEntry('');
     if (k === '⌫') return this.put('', true);
     this.put(k === 'ans' && this.view.mode === 'graph' ? 'x' : (TYPES[k] ?? k));
+  }
+
+  /** The line given words of its own: the caret at their end. */
+  private setEntry(s: string) {
+    this.entry = s;
+    this.caret = null;
   }
 
   /** Enter: the line goes on the tape, worked out; on a graph, it is drawn. */
   private enter() {
     if (!this.entry.trim()) return;
     this.run((v) => addLine(v, this.entry));
-    this.entry = '';
+    this.setEntry('');
     this.recall = 0;
   }
   private onKey = (e: KeyboardEvent) => {
@@ -106,13 +115,13 @@ export class ToCalcEditor extends DocElement<CalcView> {
       this.enter();
     } else if (e.key === 'ArrowUp' && this.recall < lines.length) {
       e.preventDefault();
-      this.entry = lines[lines.length - 1 - this.recall++];
+      this.setEntry(lines[lines.length - 1 - this.recall++]);
     } else if (e.key === 'ArrowDown' && this.recall > 0) {
       e.preventDefault();
-      this.entry = --this.recall ? lines[lines.length - this.recall] : '';
+      this.setEntry(--this.recall ? lines[lines.length - this.recall] : '');
     } else if (e.key === 'Escape' && this.entry) {
       e.preventDefault();
-      this.entry = '';
+      this.setEntry('');
     }
   };
 
@@ -120,7 +129,7 @@ export class ToCalcEditor extends DocElement<CalcView> {
 
   private mode(m: Mode) {
     this.run((v) => setMode(v, m));
-    this.entry = '';
+    this.setEntry('');
   }
   private inserts(): MenuItem[] {
     const f = (label: string, typed: string, group: string): MenuItem => ({ label, hint: typed, group, does: () => (this.put(typed), this.display?.focus()) });
@@ -194,7 +203,7 @@ export class ToCalcEditor extends DocElement<CalcView> {
         <div class="calc-pad">
           <div class="calc-entry">
             <input class="calc-display" aria-label=${graph ? t('y =') : t('Sum')} placeholder=${graph ? t('y = …') : t('Type or tap')} autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
-              .value=${this.entry} @input=${(e: Event) => (this.entry = (e.target as HTMLInputElement).value)} @keydown=${this.onKey} />
+              .value=${this.entry} @input=${(e: Event) => this.setEntry((e.target as HTMLInputElement).value)} @keydown=${this.onKey} />
             <output class="calc-live" aria-live="polite">${answer ? (graph ? t('at x = 1: {answer}', { answer }) : `= ${answer}`) : ''}</output>
           </div>
           ${this.keys()}
