@@ -49,7 +49,6 @@ export function suggestChart(d: ChartData): ChartKind | '' {
   return 'bar';
 }
 
-const COLORS = SERIES;
 const short = (n: number) => {
   const a = Math.abs(n);
   const f = (v: number, s: string) => (Math.round(v * 10) / 10).toString() + s;
@@ -71,6 +70,12 @@ function scale(values: number[]): { min: number; max: number; ticks: number[] } 
   return { min, max, ticks };
 }
 
+/** A shape in its series' colour, then again in its pattern (every series after the first has one), which `draw` is told it is drawing. */
+function painted(i: number, draw: (fill: string, pattern: boolean) => string): string {
+  const pattern = patternFill(i);
+  return draw(SERIES[i % SERIES.length], false) + (pattern ? draw(pattern, true) : '');
+}
+
 /** `upTo`: how many labels' worth of the chart to draw (bars, points or slices), for building it up. */
 export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h = 440, upTo = Infinity): Page {
   let svg = title ? text(w / 2, 34, clip(title, w - 80, 20, true), { px: 20, bold: true, anchor: 'middle' }) : '';
@@ -80,7 +85,6 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
   if (!d.series.length) return { w, h, svg: svg + text(w / 2, h / 2, 'Nothing to chart yet', { px: 16, fill: FAINT, anchor: 'middle' }) };
 
   // Besides its colour, each series after the first wears a pattern, so they can be told apart in black and white.
-  const keys: [string, string, number][] = [];
   svg += `<defs>${patternDefs()}</defs>`;
   if (kind === 'pie') {
     const values = d.series[0].values.map((v) => Math.max(0, v));
@@ -92,12 +96,11 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
     values.forEach((v, i) => {
       const b = a + (v / total) * Math.PI * 2;
       if (i >= upTo) return void (a = b);
-      const color = COLORS[i % COLORS.length];
       const p = (ang: number, k = rad) => `${r(cx + Math.cos(ang) * k)} ${r(cy + Math.sin(ang) * k)}`;
-      const wedge = v >= total ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="@"/>` : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="@" stroke="#fff" stroke-width="2"/>`;
-      svg += wedge.replace('"@"', `"${color}"`) + (patternFill(i) ? wedge.replace('"@"', `"${patternFill(i)}"`).replace(' stroke="#fff" stroke-width="2"', '') : '');
+      svg += painted(i, (fill, pattern) =>
+        v >= total ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="${fill}"/>` : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="${fill}"${pattern ? '' : ' stroke="#fff" stroke-width="2"'}/>`,
+      );
       if (v / total >= 0.06) svg += text(cx + Math.cos((a + b) / 2) * rad * 0.62, cy + Math.sin((a + b) / 2) * rad * 0.62 + 5, `${Math.round((v / total) * 100)}%`, { px: 14, bold: true, fill: '#fff', anchor: 'middle' });
-      keys.push([color, d.labels[i], i]);
       a = b;
     });
   } else {
@@ -113,23 +116,24 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
       if (i % every === 0) svg += text(left + band * (i + 0.5), bottom + 20, clip(l, band * every - 6, 12), { px: 12, fill: MUTED, anchor: 'middle' });
     });
     d.series.forEach((s, k) => {
-      const color = COLORS[k % COLORS.length];
-      keys.push([color, s.name, k]);
       if (kind === 'line') {
-        const pts = s.values.slice(0, upTo === Infinity ? undefined : upTo).map((v, i) => `${r(left + band * (i + 0.5))},${r(y(v))}`);
-        svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${['', ' stroke-dasharray="8 6"', ' stroke-dasharray="2 6"', ' stroke-dasharray="12 4 2 4"'][k % 4]}/>` + pts.map((p) => `<circle cx="${p.split(',')[0]}" cy="${p.split(',')[1]}" r="4" fill="${color}"/>`).join('');
+        const color = SERIES[k % SERIES.length];
+        const pts = s.values.slice(0, upTo).map((v, i) => [r(left + band * (i + 0.5)), r(y(v))]);
+        svg += `<polyline points="${pts.map((pt) => pt.join(',')).join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${['', ' stroke-dasharray="8 6"', ' stroke-dasharray="2 6"', ' stroke-dasharray="12 4 2 4"'][k % 4]}/>` + pts.map(([px, py]) => `<circle cx="${px}" cy="${py}" r="4" fill="${color}"/>`).join('');
       } else {
         const bw = (band * 0.76) / d.series.length;
-        s.values.forEach((v, i) => i < upTo && (svg += rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), color, 'rx="2"') + (patternFill(k) ? rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), patternFill(k), 'rx="2"') : '')));
+        s.values.slice(0, upTo).forEach((v, i) => (svg += painted(k, (fill) => rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), fill, 'rx="2"'))));
       }
     });
   }
   if (legend) {
-    const shown = keys.filter(([, name]) => name).slice(0, 8);
+    // A pie's key is its slices, as many as are drawn; other charts' is their series.
+    const keys = kind === 'pie' ? d.series[0].values.slice(0, upTo).map((_, i) => [d.labels[i], i] as const) : d.series.map((s, k) => [s.name, k] as const);
+    const shown = keys.filter(([name]) => name).slice(0, 8);
     const each = Math.min(170, (w - 48) / Math.max(1, shown.length));
     let x = (w - each * shown.length) / 2;
-    for (const [color, name, n] of shown) {
-      svg += rect(x, h - 30, 12, 12, color, 'rx="3"') + (patternFill(n) ? rect(x, h - 30, 12, 12, patternFill(n), 'rx="3"') : '') + text(x + 18, h - 19, clip(name, each - 26, 13), { px: 13, fill: INK });
+    for (const [name, n] of shown) {
+      svg += painted(n, (fill) => rect(x, h - 30, 12, 12, fill, 'rx="3"')) + text(x + 18, h - 19, clip(name, each - 26, 13), { px: 13, fill: INK });
       x += each;
     }
   }
