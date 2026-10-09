@@ -269,6 +269,10 @@ export default {
   '{kind} chart. {data}': '{kind} chart. {data}',
 
   // ---- the Spreadsheet ----
+  'Clear these cells': 'Clear these cells',
+  'Fit this column to its text': 'Fit this column to its text',
+  'The cells in hand': 'The cells in hand',
+  'Tick {ref}': 'Tick {ref}',
   // The column type that holds words as typed.
   'Text': 'Text',
   'Spreadsheet': 'Spreadsheet',

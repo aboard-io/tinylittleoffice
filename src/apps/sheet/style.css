@@ -216,8 +216,13 @@
     background: var(--to-border-strong);
     opacity: 0;
   }
-  table.sheet .grip:hover::after {
+  table.sheet .grip:hover::after,
+  table.sheet .grip:focus-visible::after {
     opacity: 1;
+  }
+  table.sheet .grip:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: -2px;
   }
   table.sheet.picking td:not(.sel) input {
     cursor: cell;
@@ -234,6 +239,8 @@
     color: var(--to-ink);
     font: 14px var(--to-font-mono);
     text-overflow: ellipsis;
+    /* A double tap edits; it never zooms the page. */
+    touch-action: manipulation;
   }
   table.sheet td input:focus-visible {
     outline: none;
@@ -256,6 +263,16 @@
   }
   table.sheet td input.tick {
     text-align: center;
+  }
+  /* A checkbox cell is one button to a tap or a click: it ticks and unticks. */
+  table.sheet td .tick-btn {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
   }
   table.sheet td input.under {
     color: transparent;
@@ -335,6 +352,12 @@
     touch-action: none;
     z-index: 3;
   }
+  /* The dot stays small; under a finger it is a 44px thing to hold. */
+  table.sheet td .fill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
   /* The menus a column head or a row number opens have no button of their own in the bar. */
   .sheet-rowmenu > button,
   .sheet-colmenu > button {
@@ -369,11 +392,41 @@
     background: var(--to-paper);
   }
   /* A phone: every box a finger lands in is 16px, so Safari has no reason to zoom in. */
+  .sheet-fx .fx {
+    touch-action: manipulation;
+  }
   @media (pointer: coarse) {
     table.sheet td input,
     table.sheet .cn,
     .sheet-fx .fx {
       font-size: 16px;
+    }
+    /* Under a finger, a row and a column's head are 44px: the row numbers and letters are buttons a thumb can hit. */
+    table.sheet th,
+    table.sheet td,
+    table.sheet td input,
+    table.sheet .cn,
+    table.sheet .col-head,
+    table.sheet .row-num {
+      height: 44px;
+    }
+    table.sheet td .rich {
+      line-height: 44px;
+      font-size: 16px;
+    }
+    table.sheet thead tr.names th,
+    table.sheet tr.names td.corner {
+      top: 44px;
+    }
+    table.sheet .grip {
+      right: -12px;
+      width: 24px;
+    }
+    table.sheet .grip::after {
+      inset: 6px 11px;
+    }
+    table.sheet td .fill::before {
+      inset: -17px;
     }
   }
 }

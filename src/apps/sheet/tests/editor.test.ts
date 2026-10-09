@@ -35,8 +35,8 @@ async function type(el: ToSheetEditor, input: HTMLInputElement, value: string) {
 /** Open a menu from a button and pick the item with these words. */
 async function pick(el: ToSheetEditor, opener: HTMLElement, words: string) {
   opener.click();
-  await until(() => !!document.querySelector('[popover]:popover-open'));
-  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')];
+  await until(() => !!document.querySelector('[popover]:popover-open:not(.to-context)'));
+  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open:not(.to-context) [role^=menuitem]')];
   const item = items.find((x) => x.textContent!.includes(words));
   if (!item) throw new Error(`no item ${words} among ${items.map((x) => x.textContent!.trim()).join(' | ')}`);
   item.click();
@@ -91,8 +91,8 @@ test('a row number opens insert above, insert below and delete; formulas follow'
   const b = button(el, 'Row 1: insert or delete rows');
   b.focus();
   b.click();
-  await until(() => !!document.querySelector('[popover]:popover-open'));
-  document.querySelector<HTMLElement>('[popover]:popover-open')!.hidePopover();
+  await until(() => !!document.querySelector('[popover]:popover-open:not(.to-context)'));
+  document.querySelector<HTMLElement>('[popover]:popover-open:not(.to-context)')!.hidePopover();
   await tick();
   expect(document.activeElement).toBe(b);
 });
@@ -117,11 +117,11 @@ test('a column head opens what it holds, a sort, add and remove; names follow th
   expect(last()).toMatch(/^Item \| Cost:money \| ColC \| Paid on:date\n/);
   // The empty one may go; A, which holds something, may not.
   head(0).click();
-  await until(() => !!document.querySelector('[popover]:popover-open'));
-  const remove = [...document.querySelectorAll<HTMLButtonElement>('[popover]:popover-open [role^=menuitem]')].find((x) => x.textContent!.includes('Remove this column'))!;
+  await until(() => !!document.querySelector('[popover]:popover-open:not(.to-context)'));
+  const remove = [...document.querySelectorAll<HTMLButtonElement>('[popover]:popover-open:not(.to-context) [role^=menuitem]')].find((x) => x.textContent!.includes('Remove this column'))!;
   expect(remove.disabled).toBe(true);
   expect(remove.textContent).toContain('Once it is empty');
-  document.querySelector<HTMLElement>('[popover]:popover-open')!.hidePopover();
+  document.querySelector<HTMLElement>('[popover]:popover-open:not(.to-context)')!.hidePopover();
   await tick();
   await pick(el, head(2), 'Remove this column');
   expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C']);
@@ -217,4 +217,300 @@ test('at phone width: the bar is one row of 44px buttons, inputs are 16px, nothi
   } finally {
     await page.viewport(1100, 800);
   }
+});
+
+/* ---------- the editing standard (docs/editing.md §1, §4, §7) ---------- */
+
+const key = (target: HTMLElement, k: string, o: KeyboardEventInit = {}) => {
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...o });
+  target.dispatchEvent(e);
+  return e;
+};
+const selected = (el: HTMLElement) => el.querySelector('[aria-label="Selected cells"]')!.textContent;
+const contextBar = () => document.querySelector<HTMLElement>('.sheet-context .to-context')!;
+const contextButton = (label: string) => contextBar().querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+async function block(el: ToSheetEditor, from: string, ...keys: string[]) {
+  const a = cell(el, from);
+  a.focus();
+  a.select();
+  for (const k of keys) key(a, k, { shiftKey: true });
+  await el.updateComplete;
+  return a;
+}
+
+test('the bar ends with Undo and Redo, which never take the focus; an undo selects again the cells it gave back', async () => {
+  const { el, last } = await editor(SHEET);
+  const tools = [...el.querySelectorAll<HTMLButtonElement>('to-bar.sheet-bar > button')];
+  expect(tools.slice(-2).map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
+  expect(button(el, 'Undo').disabled).toBe(true);
+  const b1 = await block(el, 'B1', 'ArrowDown');
+  key(b1, 'Delete');
+  await el.updateComplete;
+  expect(last()).toContain('Rent |\nFood |\n');
+  // Elsewhere, then Undo from the bar: the block is back, and selected.
+  await type(el, cell(el, 'A3'), 'Sum');
+  focusOn(cell(el, 'A3'));
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+  button(el, 'Undo').dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  button(el, 'Undo').click();
+  button(el, 'Undo').click();
+  await el.updateComplete;
+  expect(last()).toBe(SHEET);
+  await until(() => document.activeElement === cell(el, 'B1'));
+  expect(selected(el)).toBe('B1:B2');
+  button(el, 'Redo').click();
+  await el.updateComplete;
+  expect(last()).toContain('Rent |\nFood |\n');
+});
+function focusOn(input: HTMLInputElement) {
+  input.focus();
+}
+
+test('copy writes the cells as text and as our table HTML; paste reads our tables, another app\'s table and an outline\'s items', async () => {
+  const { el, last } = await editor(SHEET);
+  const a1 = await block(el, 'A1', 'ArrowDown', 'ArrowRight');
+  const data = new DataTransfer();
+  a1.dispatchEvent(new ClipboardEvent('copy', { clipboardData: data, bubbles: true, cancelable: true }));
+  expect(data.getData('text/plain')).toBe('Rent\t1200\nFood\t450');
+  const html = data.getData('text/html');
+  expect(html).toContain('<meta name="generator" content="TinyLittleOffice">');
+  expect(html).toContain('<table><tr><th>Rent</th><th>$1,200.00</th></tr><tr><td>Food</td><td>$450.00</td></tr></table>');
+  // A Write table (our marker, TLO text): its names the first row.
+  const paste = async (at: string, d: Record<string, string>) => {
+    const target = cell(el, at);
+    target.focus();
+    await el.updateComplete;
+    const dt = new DataTransfer();
+    for (const [k, v] of Object.entries(d)) dt.setData(k, v);
+    target.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    await el.updateComplete;
+  };
+  await paste('A5', { 'text/plain': 'Who | Paid:money\n--- | ---\nAnn | 3\n', 'text/html': '<meta name="generator" content="TinyLittleOffice"><table><tr><th>Who</th><th>Paid</th></tr><tr><td>Ann</td><td>3</td></tr></table>' });
+  expect(last()).toContain('\nWho | Paid:money\nAnn | 3\n');
+  // A table from anywhere else.
+  await paste('A8', { 'text/plain': 'x y', 'text/html': '<table><tr><td>x</td><td>y</td></tr><tr><td>1</td><td>2</td></tr></table>' });
+  expect(last()).toContain('\nx | y\n1 | 2\n');
+  // An outline's items, a row each.
+  await paste('C1', { 'text/plain': '- One\n  - Two\n', 'text/html': '<meta name="generator" content="TinyLittleOffice"><ul><li>One</li></ul>' });
+  expect(last()).toMatch(/^Item \| Cost:money \| ColC\n--- \| --- \| ---\nRent \| 1200 \| One\nFood \| 450 \| Two\n/);
+});
+
+test('a block has the bar under it: fill, Copy, Cut, Paste, Clear, none taking the focus', async () => {
+  const { el, last } = await editor(SHEET);
+  const b1 = await block(el, 'B1', 'ArrowDown');
+  await until(() => !!contextBar()?.matches(':popover-open'));
+  expect([...contextBar().querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Fill down from the top row', 'Fill right from the first column', 'Copy', 'Cut', 'Paste', 'Clear these cells']);
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+  contextButton('Copy').dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  contextButton('Cut').click();
+  await el.updateComplete;
+  expect(last()).toContain('Rent |\nFood |\n');
+  expect(document.activeElement).toBe(b1);
+  // Paste, from this page's own copy when the system's clipboard is refused, puts the cut cells back.
+  contextButton('Paste').click();
+  await until(() => last() === SHEET);
+  contextButton('Clear these cells').click();
+  await el.updateComplete;
+  expect(last()).toContain('Rent |\nFood |\n');
+  // One cell is not a block: the bar goes.
+  key(b1, 'Escape');
+  await el.updateComplete;
+  await until(() => !contextBar().matches(':popover-open'));
+});
+
+test('Mod+A: the words of the cell first, then the whole sheet', async () => {
+  const { el } = await editor(SHEET);
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  await el.updateComplete;
+  a1.setSelectionRange(1, 2);
+  expect(key(a1, 'a', { ctrlKey: true }).defaultPrevented).toBe(false);
+  a1.select();
+  expect(key(a1, 'a', { ctrlKey: true }).defaultPrevented).toBe(true);
+  await el.updateComplete;
+  expect(selected(el)).toBe('A1:C3');
+});
+
+test('Escape in a cell puts back what was there and keeps the focus on the cell; the formula strip does the same', async () => {
+  const { el, last } = await editor(SHEET);
+  const b1 = cell(el, 'B1');
+  await type(el, b1, '999');
+  expect(last()).toContain('Rent | 999');
+  expect(key(b1, 'Escape').defaultPrevented).toBe(true);
+  await el.updateComplete;
+  expect(last()).toBe(SHEET);
+  expect(document.activeElement).toBe(b1);
+  const fx = el.querySelector<HTMLInputElement>('.sheet-fx .fx')!;
+  fx.focus();
+  fx.value = '7';
+  fx.dispatchEvent(new Event('input', { bubbles: true }));
+  await el.updateComplete;
+  expect(last()).toContain('Rent | 7');
+  key(fx, 'Escape');
+  await el.updateComplete;
+  expect(last()).toBe(SHEET);
+  await until(() => document.activeElement === b1);
+});
+
+test('Enter and Shift+Enter in the formula strip go down and up; Mod+Enter in a cell stays on it', async () => {
+  const { el } = await editor(SHEET);
+  cell(el, 'B2').focus();
+  await el.updateComplete;
+  const fx = el.querySelector<HTMLInputElement>('.sheet-fx .fx')!;
+  fx.focus();
+  key(fx, 'Enter', { shiftKey: true });
+  await until(() => document.activeElement === cell(el, 'B1'));
+  fx.focus();
+  key(fx, 'Enter');
+  await until(() => document.activeElement === cell(el, 'B2'));
+  const b2 = cell(el, 'B2');
+  b2.setSelectionRange(1, 1);
+  expect(key(b2, 'Enter', { ctrlKey: true }).defaultPrevented).toBe(true);
+  await el.updateComplete;
+  await tick();
+  expect(document.activeElement).toBe(b2);
+  expect([b2.selectionStart, b2.selectionEnd]).toEqual([0, b2.value.length]);
+});
+
+test('Tab and Shift+Tab go to the next and previous cell, row after row, the page held still', async () => {
+  const { el } = await editor(SHEET);
+  const b1 = cell(el, 'B1');
+  b1.focus();
+  expect(key(b1, 'Tab').defaultPrevented).toBe(true);
+  await until(() => document.activeElement === cell(el, 'C1'));
+  key(cell(el, 'C1'), 'Tab');
+  await until(() => document.activeElement === cell(el, 'A2'));
+  key(cell(el, 'A2'), 'Tab', { shiftKey: true });
+  await until(() => document.activeElement === cell(el, 'C1'));
+  // At A1, Shift+Tab lets the focus leave: it is never trapped.
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  expect(key(a1, 'Tab', { shiftKey: true }).defaultPrevented).toBe(false);
+});
+
+test('Alt+Up/Down move the row (or the selected rows) past its neighbour, formulas following; the row menu has Move up and Move down', async () => {
+  const { el, last } = await editor(SHEET);
+  const a2 = cell(el, 'A2');
+  a2.focus();
+  expect(key(a2, 'ArrowUp', { altKey: true }).defaultPrevented).toBe(true);
+  await el.updateComplete;
+  expect(last()).toBe('Item | Cost:money\n--- | ---\nFood | 450\nRent | 1200\nTotal | =SUM(B1:B2)\n');
+  await until(() => document.activeElement === cell(el, 'A1'));
+  await pick(el, button(el, 'Row 1: insert or delete rows'), 'Move down');
+  expect(last()).toBe(SHEET);
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await el.updateComplete;
+  expect(last()).toContain('\nFood | 450\nRent | 1200\n');
+});
+
+test('Mod+D fills down: the block from its top row, one cell from the cell above', async () => {
+  const { el, last } = await editor(SHEET);
+  const b2 = cell(el, 'B2');
+  b2.focus();
+  await el.updateComplete;
+  expect(key(b2, 'd', { ctrlKey: true }).defaultPrevented).toBe(true);
+  await el.updateComplete;
+  expect(last()).toContain('Food | 1200');
+  expect(button(el, 'Fill down from the top row').title).toMatch(/Ctrl\+D|⌘D/);
+  const a1 = await block(el, 'A1', 'ArrowDown', 'ArrowDown');
+  key(a1, 'd', { ctrlKey: true });
+  await el.updateComplete;
+  expect(last()).toMatch(/\nRent \| 1200\nRent \| 1200\nRent \| =SUM/);
+});
+
+test('Mod+B, I, U and K mark the words selected in a rich cell, and never reach the browser elsewhere', async () => {
+  const { el, last } = await editor('Note:rich | B\n--- | ---\nhello world | x\n');
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  await el.updateComplete;
+  a1.setSelectionRange(0, 5);
+  key(a1, 'b', { ctrlKey: true });
+  await el.updateComplete;
+  expect(last()).toContain('**hello** world');
+  key(a1, 'k', { ctrlKey: true });
+  await el.updateComplete;
+  // The words stay selected inside their marks, so the link goes round them.
+  expect(last()).toContain('**[hello]()** world');
+  const b1 = cell(el, 'B1');
+  b1.focus();
+  expect(key(b1, 'i', { ctrlKey: true }).defaultPrevented).toBe(true);
+  await el.updateComplete;
+  expect(last()).toContain('| x');
+});
+
+test('a tap on a checkbox cell ticks it, without the keyboard coming up', async () => {
+  const { el, last } = await editor('Task | Done:check\n--- | ---\nWrite | \n');
+  const tickB1 = button(el, 'Tick B1');
+  expect(tickB1.getAttribute('aria-pressed')).toBe('false');
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+  tickB1.dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  tickB1.click();
+  await el.updateComplete;
+  expect(last()).toContain('Write | x');
+  expect(button(el, 'Tick B1').getAttribute('aria-pressed')).toBe('true');
+  expect(document.activeElement).not.toBe(cell(el, 'B1'));
+});
+
+test('a cell reached by a click has its words selected, so typing replaces them; F2 puts the caret at the end', async () => {
+  const { el } = await editor(SHEET);
+  const a1 = cell(el, 'A1');
+  a1.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  a1.focus();
+  await el.updateComplete;
+  expect([a1.selectionStart, a1.selectionEnd]).toEqual([0, 4]);
+  expect(key(a1, 'F2').defaultPrevented).toBe(true);
+  expect([a1.selectionStart, a1.selectionEnd]).toEqual([4, 4]);
+  // A double tap edits rather than zooms.
+  expect(getComputedStyle(a1).touchAction).toBe('manipulation');
+  expect(getComputedStyle(el.querySelector('.sheet-fx .fx')!).touchAction).toBe('manipulation');
+});
+
+test('a column head selects its column; the grip is resized from the keyboard, and the menu fits one column', async () => {
+  const { el } = await editor(SHEET);
+  const head = el.querySelectorAll<HTMLButtonElement>('th .col-head')[1];
+  head.click();
+  await until(() => !!document.querySelector('[popover]:popover-open:not(.to-context)'));
+  expect(selected(el)).toBe('B1:B3');
+  document.querySelector<HTMLElement>('[popover]:popover-open:not(.to-context)')!.hidePopover();
+  const grip = el.querySelectorAll<HTMLElement>('th .grip')[0];
+  expect(grip.tabIndex).toBe(0);
+  const w0 = grip.closest('th')!.getBoundingClientRect().width;
+  key(grip, 'ArrowRight');
+  await el.updateComplete;
+  expect(Number(grip.getAttribute('aria-valuenow'))).toBe(Math.round(w0 + 10));
+  await pick(el, head, 'Fit this column to its text');
+  expect(el.querySelector('table.sheet')!.classList.contains('sized')).toBe(true);
+});
+
+test('the bar\'s tools keep the focus in the cell', async () => {
+  const { el } = await editor(SHEET);
+  for (const label of ['Fill down from the top row', 'Fill right from the first column', 'Fit the columns to the page', 'Show all the text']) {
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    button(el, label).dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+  }
+});
+
+test('a composition is left to the browser and written once, at its end', async () => {
+  const { el, changes, last } = await editor(SHEET);
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  await el.updateComplete;
+  const n = changes.length;
+  a1.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  a1.value = 'にほ';
+  a1.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+  a1.value = '日本';
+  a1.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+  expect(key(a1, 'Enter', { isComposing: true }).defaultPrevented).toBe(false);
+  await el.updateComplete;
+  expect(changes.length).toBe(n);
+  expect(a1.value).toBe('日本');
+  a1.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '日本' }));
+  await el.updateComplete;
+  expect(changes.length).toBe(n + 1);
+  expect(last()).toContain('日本 | 1200');
 });

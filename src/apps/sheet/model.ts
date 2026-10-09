@@ -21,6 +21,7 @@ import {
   lockText,
   nameKey,
   putCells,
+  rcToRef,
   refToRC,
   sortRows,
   tableAt,
@@ -36,6 +37,7 @@ import {
   type Op,
   type Range,
   type Table,
+  ROWS,
 } from '../../doc/index.ts';
 
 /** A sheet is never narrower than three columns. */
@@ -187,6 +189,62 @@ export function deleteRows(doc: Doc, r0: number, r1: number): Op[] {
   const last = Math.min(r1, b.table.rows.length - 1);
   if (r0 > last) return b.ops;
   return trim(b.push({ op: 'rows', at: b.at, r: r0, n: last - r0 + 1 })).ops;
+}
+
+/** Where each row is once rows r0 to r1 have moved by `by` (±1, or more), the rows they passed taking their place. */
+export function rowsMoved(r0: number, r1: number, by: number): (r: number) => number {
+  const n = r1 - r0 + 1;
+  return (r) => {
+    if (r >= r0 && r <= r1) return r + by;
+    if (by < 0 && r >= r0 + by && r < r0) return r + n;
+    if (by > 0 && r > r1 && r <= r1 + by) return r - n;
+    return r;
+  };
+}
+
+/** A formula's references after rows were reordered by `to`: a cell follows its row; a range follows the rows at its corners (and stays a range, its corners in order). Words in quotes are left alone. */
+export function reorderRefs(raw: string, to: (r: number) => number): string {
+  if (!raw.startsWith('=')) return raw;
+  const at = (ref: string) => refToRC(ref.toUpperCase());
+  return raw
+    .split(/("[^"]*")/)
+    .map((part, i) =>
+      i % 2
+        ? part
+        : part.replace(/\b([A-Za-z]\d{1,4})(?::([A-Za-z]\d{1,4}))?\b/g, (whole, a: string, b?: string) => {
+            const p = at(a);
+            const q = b ? at(b) : null;
+            if (!p || (b && !q)) return whole;
+            if (!q) return rcToRef(to(p[0]), p[1]);
+            const [ra, rb] = [to(p[0]), to(q[0])];
+            return `${rcToRef(Math.min(ra, rb), p[1])}:${rcToRef(Math.max(ra, rb), q[1])}`;
+          }),
+    )
+    .join('');
+}
+
+/** Rows r0 to r1 moved up (by < 0) or down past their neighbours, formulas and the lock following them. Nothing when they would leave the sheet. */
+export function moveRows(doc: Doc, r0: number, r1: number, by: number): Op[] {
+  if (!by || r0 + by < 0 || r1 + by >= ROWS) return [];
+  const b = ensure(new Builder(doc));
+  const t = b.table;
+  const to = rowsMoved(r0, r1, by);
+  const held = Math.max(t.rows.length, r1 + Math.max(0, by) + 1);
+  const rows: string[][] = Array.from({ length: held }, () => t.cols.map(() => ''));
+  for (let r = 0; r < held; r++) rows[to(r)] = t.cols.map((_, c) => reorderRefs(t.rows[r]?.[c] ?? '', to));
+  // Each locked range follows its rows; one the move splits becomes a range per run of rows.
+  const lock = t.lock.flatMap((g) => {
+    const at = Array.from({ length: g.r1 - g.r0 + 1 }, (_, i) => to(g.r0 + i)).sort((x, y) => x - y);
+    const runs: Range[] = [];
+    for (const r of at) {
+      const last = runs[runs.length - 1];
+      if (last && last.r1 === r - 1) last.r1 = r;
+      else runs.push({ ...g, r0: r, r1: r });
+    }
+    return runs;
+  });
+  b.push(...withTable(b.doc, b.at, { ...t, rows, lock }));
+  return trim(b).ops;
 }
 
 /** A column put in before column c (after the last, from the + at the end of the header). Null when the sheet is as wide as it goes. */

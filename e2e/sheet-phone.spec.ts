@@ -59,3 +59,48 @@ test('sheet: on a phone, tapping cells neither scrolls the page nor moves the ba
   await expect(page.getByRole('button', { name: /^Column C:/ })).toBeFocused();
   expect(errors).toEqual([]);
 });
+
+test('sheet: under a finger, a tap selects a cell whole, heads and row numbers are 44px, a checkbox ticks, a block has its bar, Undo is in the bar', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  await cell('A1').tap();
+  await cell('A1').fill('Rent');
+  await cell('B1').tap();
+  await cell('A1').tap();
+  // The tap selected the words, so typing replaces them.
+  await page.keyboard.type('Food');
+  await expect(cell('A1')).toHaveValue('Food');
+  const sizes = await page.evaluate(() => {
+    const h = (sel: string) => document.querySelector<HTMLElement>(sel)!.getBoundingClientRect().height;
+    const fill = document.querySelector<HTMLElement>('table.sheet td .fill')!;
+    const hit = getComputedStyle(fill, '::before');
+    return { head: h('table.sheet .col-head'), row: h('table.sheet .row-num'), fill: fill.getBoundingClientRect().width - 2 * parseFloat(hit.left), touch: getComputedStyle(document.querySelector('table.sheet td input')!).touchAction };
+  });
+  expect(sizes.head).toBeGreaterThanOrEqual(44);
+  expect(sizes.row).toBeGreaterThanOrEqual(44);
+  expect(sizes.fill).toBeGreaterThanOrEqual(44);
+  expect(sizes.touch).toBe('manipulation');
+  // A block (a row number selects its row): the bar comes up with Copy, Cut, Paste and Clear, inside the screen.
+  await page.getByRole('button', { name: 'Row 1: insert or delete rows' }).tap();
+  await page.keyboard.press('Escape');
+  const bar = page.locator('.sheet-context .to-context');
+  await expect(bar).toBeVisible();
+  const box = (await bar.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await bar.getByRole('button', { name: 'Clear these cells' }).tap();
+  await expect(cell('A1')).toHaveValue('');
+  // Undo from the bar brings it back.
+  await page.locator('to-bar.sheet-bar').getByRole('button', { name: 'Undo' }).tap();
+  await expect(cell('A1')).toHaveValue('Food');
+  // Column C holds checkboxes: a tap on C1 ticks it, and no keyboard comes up (the focus stays off the cell).
+  await page.getByRole('button', { name: /^Column C:/ }).tap();
+  await page.locator('.sheet-colmenu [role=menu]').getByText('Checkbox', { exact: true }).tap();
+  await page.getByRole('button', { name: 'Tick C1', exact: true }).tap();
+  await expect(page.getByRole('button', { name: 'Tick C1', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(cell('C1')).not.toBeFocused();
+  expect(errors).toEqual([]);
+});

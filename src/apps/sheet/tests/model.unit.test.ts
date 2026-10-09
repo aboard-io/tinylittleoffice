@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { applyAll, parse, tableAt, write, type Doc } from '../../../doc/index.ts';
 import { chartData, suggestChart } from '../../../kit/chart.ts';
 import { toExcelFormula } from '../../../kit/xlsx.ts';
-import { addColumn, deleteRows, insertRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy } from '../model.ts';
+import { addColumn, deleteRows, insertRows, moveRows, putRect, reorderRefs, rowsMoved, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy } from '../model.ts';
 import { chartOf, chartOfSheet, gridPage, sheetPages, sheetToCsv, tablePage } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -199,4 +199,21 @@ test('charts: labels from the first column, a series a column of numbers, flows 
   expect(m.flows).toHaveLength(2);
   expect(suggestChart(chartData([['A', 'B', 5], ['B', 'C', 3]], ['From', 'To', 'Amount']))).toBe('sankey');
   expect(chartOf(readSheet(parse(MODEL)))!.svg.match(/<path/g)).toHaveLength(2);
+});
+
+test('rows moved past their neighbours: formulas follow the cells they name, a range keeps its corners in order, the lock moves with its rows', () => {
+  // Food up past Rent: the total still sums both, and a reference to Food follows it.
+  const text = 'Item | Cost:money | Note\n--- | --- | ---\nRent | 1200 | =B2\nFood | 450 |\nTotal | =SUM(B1:B2) |\n';
+  expect(after(text, (d) => moveRows(d, 1, 1, -1))).toBe('Item | Cost:money | Note\n--- | --- | ---\nFood | 450 |\nRent | 1200 | =B1\nTotal | =SUM(B1:B2) |\n');
+  // Two rows down past the third.
+  expect(colA(after(text, (d) => moveRows(d, 0, 1, 1)))).toEqual(['Total', 'Rent', 'Food']);
+  expect(after(text, (d) => moveRows(d, 0, 1, 1))).toContain('Total | =SUM(B2:B3)');
+  // Past the last row held, into the blank row under it; never off the top.
+  expect(colA(after(text, (d) => moveRows(d, 2, 2, 1)))).toEqual(['Rent', 'Food', '', 'Total']);
+  expect(moveRows(parse(text), 0, 0, -1)).toEqual([]);
+  expect(rowsMoved(1, 2, -1)(0)).toBe(2);
+  expect(reorderRefs('="B1"&B1', rowsMoved(0, 0, 1))).toBe('="B1"&B2');
+  // The lock goes with the rows it covers.
+  expect(after(MODEL, (d) => moveRows(d, 0, 0, 1))).toContain('lock: C1:C2');
+  expect(after(MODEL, (d) => moveRows(d, 1, 1, 1))).toContain('lock: C1, C3');
 });

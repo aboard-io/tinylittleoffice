@@ -10,21 +10,29 @@
  * Drag across cells (or hold Shift) to select a block: it can be copied, cut, pasted, cleared, or carried
  * on with the handle at its corner. While a formula is being edited, tapping another cell inserts its
  * reference instead of moving there. Column widths are a view setting, not part of the document.
+ *
+ * It edits as docs/editing.md §4 says a grid does: a cell reached is selected whole, so typing replaces it (F2
+ * puts the caret at the end); Enter, Tab and the arrows move; Escape puts back what the cell held; Mod+D fills
+ * down; Alt+Up/Down move rows. A block has a bar under it (fill, Copy, Cut, Paste, Clear), the clipboard holds
+ * the cells as text and as our table HTML, and every edit marks the cells it touched so an undo selects them.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ArrowDown, ArrowDownToLine, ArrowRightToLine, ArrowUp, ChartColumn, Columns3, Lock, LockOpen, Maximize2, Rows3, Scaling, Trash2 } from 'lucide';
+import { ArrowDown, ArrowDownToLine, ArrowRightToLine, ArrowUp, ChartColumn, ClipboardPaste, Columns3, Copy, Eraser, Lock, LockOpen, Maximize2, MoveHorizontal, Rows3, Scaling, Scissors, Trash2 } from 'lucide';
 import { keysText, tool } from '../../kit/bar.ts';
 import { CHART_KINDS, suggestChart, type ChartKind } from '../../kit/chart.ts';
-import { DocElement } from '../../kit/element.ts';
+import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
+import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { toast } from '../../kit/toast.ts';
-import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, clearCells, copyCells, fillCells, formatCell, isLocked, linkify, parseInline, pasteCells, rangeOf, rangeRef, rcToRef, type ColType, type Column, type Doc, type Range } from '../../doc/index.ts';
-import { MIN_COLS, addColumn, deleteRows, insertRows, isLetterName, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
+import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, clearCells, columnText, copyCells, fillCells, formatCell, isLocked, isText, linkify, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, type Block, type ColType, type Column, type Doc, type Op, type Range } from '../../doc/index.ts';
+import { MIN_COLS, addColumn, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
 import { chartOf, chartOfSheet } from './view.ts';
 import '../../kit/bar.ts';
+import '../../kit/context.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import './style.css';
@@ -38,6 +46,16 @@ const ARROWS: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: 
 /** A column put in by hand starts this wide, when widths have been set by hand. */
 const NEW_COL = 120;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+/** Where the selection was when an edit began (or the cells it wrote): an undo puts it back. */
+type Mark = { sel: [number, number]; end: [number, number] | null };
+/** What the clipboard holds: the cells as tab-and-newline text, and as our table HTML. */
+type ClipData = { text: string; html: string };
+/** The marks Mod+B, Mod+I, Mod+U and Mod+K put round the words selected in a rich cell. */
+const WRAP: Record<string, [string, string]> = { b: ['**', '**'], i: ['*', '*'], u: ['<u>', '</u>'], k: ['[', ']()'] };
+const flat = (s: string) => s.replace(/[\t\n]+/g, ' ');
+const tsv = (rows: string[][]) => rows.map((row) => row.map(flat).join('\t')).join('\n');
+/** A table block's cells, its column names as the first row: what it is as a block of a sheet. */
+const tableCells = (b: Block) => (b.k === 'table' ? tsv([b.cols.map((c) => columnText(c.name, c.type)), ...b.rows]) : '');
 
 /** What a column may hold, in the person's language. */
 const TYPES: { id: ColType; name: () => string; hint: () => string }[] = [
@@ -85,8 +103,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
   declare menuRow: number;
   declare menuCol: number;
   private dragging = false;
+  /** A press on a cell not yet selected: the click that ends it selects the cell's words whole (the browser would put a caret there). */
+  private pressed = false;
   /** What we last put on the clipboard, so pasting it back can move formulas' references. */
-  private clip: { text: string; r: number; c: number; cut: boolean } | null = null;
+  private clip: (ClipData & { r: number; c: number; cut: boolean }) | null = null;
+  /** The selected cell as it was when the focus came to it: Escape puts it back. */
+  private entered: { r: number; c: number; raw: string } | null = null;
   /** The reference most recently inserted by tapping, so the next tap can replace it. */
   private picked: { r: number; c: number; start: number; end: number; to: [number, number] } | null = null;
   /** Where the caret was when the selected cell last lost focus. */
@@ -133,6 +155,22 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private locked(r: number, c: number): boolean {
     return isLocked(this.view.table.lock, r, c);
   }
+  /** What the cell held when the focus came to it (from the cell or the formula strip), for Escape. */
+  private remember(r: number, c: number) {
+    if (!this.entered || this.entered.r !== r || this.entered.c !== c) this.entered = { r, c, raw: this.raw(r, c) };
+  }
+  /** The focus gone from the cell and its strip both: what it held is no longer what Escape goes back to. */
+  private forget(e: FocusEvent, r: number, c: number) {
+    const to = e.relatedTarget;
+    if (to instanceof HTMLElement && (to.matches('.sheet-fx .fx') || to.id === `c${r}_${c}`)) return;
+    this.entered = null;
+  }
+  /** A checkbox cell ticked or unticked by a tap: the cell selected, the focus left where it was (no keyboard comes up). */
+  private toggleTick(r: number, c: number) {
+    this.sel = [r, c];
+    this.end = null;
+    this.setCell(r, c, this.val(r, c) ? '' : 'x');
+  }
   /** The cell nearest (r, c) that is on the sheet. */
   private onSheet(r: number, c: number): [number, number] {
     return [clamp(r, 0, ROWS - 1), clamp(c, 0, this.cols - 1)];
@@ -151,6 +189,24 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /* ---------- commands ---------- */
 
+  /** Every edit carries where the selection was (or the cells it wrote), so an undo can put it back. */
+  protected edit(ops: Op[], key?: string, mark?: unknown) {
+    super.edit(ops, key, mark ?? ({ sel: [...this.sel], end: this.end && [...this.end] } satisfies Mark));
+  }
+  /** After an undo or a redo: the cells the edit touched selected again, the focus on the first. */
+  protected undone(entry: Entry) {
+    const m = entry.mark as Mark | undefined;
+    if (!m) return;
+    const [r, c] = m.sel;
+    this.end = m.end;
+    this.focusCell(r, c, true);
+    this.entered = { r, c, raw: this.raw(r, c) };
+  }
+  /** The mark for a block of cells: its top left, and its far corner when it is more than one. */
+  private markOf(g: Range): Mark {
+    return { sel: [g.r0, g.c0], end: g.r0 === g.r1 && g.c0 === g.c1 ? null : [g.r1, g.c1] };
+  }
+
   private setCell(r: number, c: number, raw: string) {
     if (this.locked(r, c)) return;
     this.edit(setCell(this.doc, r, c, raw), `cell:${r}:${c}`);
@@ -163,10 +219,19 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private chart(kind: ChartKind | '') {
     this.edit(setChart(this.doc, kind));
   }
-  /** Carry the block's first row down it, or its first column across it. */
+  /** Carry the block's first row down it, or its first column across it. One cell takes the one above it (or to its left), as Mod+D does in any spreadsheet. */
   private fill(down: boolean) {
+    let g = this.range;
+    if (!this.many) {
+      if (down ? g.r0 === 0 : g.c0 === 0) return;
+      g = down ? { ...g, r0: g.r0 - 1 } : { ...g, c0: g.c0 - 1 };
+    }
+    this.edit(putRect(this.doc, fillCells(this.view.table, down ? { ...g, r1: g.r0 } : { ...g, c1: g.c0 }, g)), undefined, this.markOf(this.range));
+  }
+  /** The selected cells emptied. */
+  private clear() {
     const g = this.range;
-    this.edit(putRect(this.doc, fillCells(this.view.table, down ? { ...g, r1: g.r0 } : { ...g, c1: g.c0 }, g)));
+    this.edit(putRect(this.doc, clearCells(g)), undefined, this.markOf(g));
   }
   private setType(c: number, type: ColType) {
     this.edit(setType(this.doc, c, type));
@@ -177,39 +242,143 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /* ---------- clipboard ---------- */
 
+  /** The block as the clipboard holds it: the raw cells as tab-and-newline text (so a paste here gets its formulas), and a table of what they show, with our marker, for any other app. */
+  private clipData(g: Range): ClipData {
+    const text = copyCells(this.view.table, g);
+    const cols = this.columns();
+    const shown: string[][] = [];
+    for (let r = g.r0; r <= g.r1; r++) shown.push(Array.from({ length: g.c1 - g.c0 + 1 }, (_, i) => formatCell(this.val(r, g.c0 + i), cols[g.c0 + i]?.type)));
+    const [head, ...rows] = shown;
+    return { text, html: docToHtml([{ k: 'table', cols: head.map((name) => ({ name, type: 'text' })), rows }]) };
+  }
+  /** The block copied (and, cut, emptied): onto `data` in a clipboard event, else onto the system clipboard. */
+  private copyOut(cut: boolean, data?: DataTransfer | null) {
+    const g = this.range;
+    const d = this.clipData(g);
+    this.clip = { ...d, r: g.r0, c: g.c0, cut };
+    if (data) {
+      data.setData('text/plain', d.text);
+      data.setData('text/html', d.html);
+    } else {
+      const plain = () => navigator.clipboard?.writeText(d.text).catch(() => undefined);
+      try {
+        void navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([d.text], { type: 'text/plain' }), 'text/html': new Blob([d.html], { type: 'text/html' }) })]).catch(plain);
+      } catch {
+        void plain();
+      }
+    }
+    if (cut) this.clear();
+  }
+
   private onCopy = (e: ClipboardEvent) => {
     const input = e.target as HTMLInputElement;
     const some = input.selectionStart !== input.selectionEnd && !(input.selectionStart === 0 && input.selectionEnd === input.value.length);
     // Some of a cell's text, picked out, is ordinary text; otherwise it is the cell (or the block) that is copied.
     if (!this.many && some) return;
-    const g = this.range;
-    const text = copyCells(this.view.table, g);
-    e.clipboardData?.setData('text/plain', text);
     e.preventDefault();
-    this.clip = { text, r: g.r0, c: g.c0, cut: e.type === 'cut' };
-    if (e.type === 'cut') this.edit(putRect(this.doc, clearCells(g)));
+    this.copyOut(e.type === 'cut', e.clipboardData);
   };
 
-  private onPaste = (e: ClipboardEvent) => {
-    const text = (e.clipboardData?.getData('text/plain') ?? '').replace(/\r\n?/g, '\n');
+  /**
+   * What a paste is as cells: our own copy (its formulas move with it); another TinyLittleOffice document's
+   * table (its names the first row) or its words (a line, an item, a row each); a table from anywhere else;
+   * else the text, tabs and newlines between the cells.
+   */
+  private asCells(data: ClipData): { text: string; ours: ToSheetEditor['clip'] } {
+    const text = data.text.replace(/\r\n?/g, '\n');
     const ours = this.clip && this.clip.text === text.replace(/\n$/, '') ? this.clip : null;
-    const block = /[\t\n]/.test(text.replace(/\n$/, ''));
-    // One value into one cell that is being typed in: let the browser paste text.
-    if (!block && !ours && !this.many) return;
-    e.preventDefault();
+    if (ours) return { text, ours };
+    const html = data.html ?? '';
+    const table = /<table[\s>]/i.test(html);
+    if (html.includes(`content="${GENERATOR}"`)) {
+      const blocks = parse(text).blocks;
+      const t = blocks.find((b) => b.k === 'table');
+      if (t) return { text: tableCells(t), ours: null };
+      // Another sheet's copy: its text is the cells already.
+      if (table) return { text, ours: null };
+      const words = blocks.filter(isText).map((b) => plainText(b.runs));
+      return { text: words.length ? words.map(flat).join('\n') : text, ours: null };
+    }
+    const t = table ? htmlToBlocks(html).find((b) => b.k === 'table') : undefined;
+    return { text: t ? tableCells(t) : text, ours: null };
+  }
+
+  /** Cells put in with their top left at the selected cell (or over the whole block, for one value). */
+  private pasteIn(text: string, ours: ToSheetEditor['clip']) {
     const g = this.range;
     // A copy moves its formulas' references by how far it travelled; a cut keeps them as they were.
     const moved = ours && !ours.cut ? { dr: g.r0 - ours.r, dc: g.c0 - ours.c } : undefined;
+    const block = /[\t\n]/.test(text.replace(/\n$/, ''));
     // A block wider than the sheet widens it, up to the last letter, rather than losing its right-hand columns.
     const widest = Math.max(...text.replace(/\n$/, '').split('\n').map((line) => line.split('\t').length));
     const cols = this.columns();
     while (block && cols.length < Math.min(MAX_COLS, g.c0 + widest)) cols.push({ name: `Col${COL_NAMES[cols.length]}`, type: 'text' });
     const done = pasteCells({ cols }, g.r0, g.c0, text, moved, this.many ? g : undefined);
-    this.edit(putRect(this.doc, done));
+    this.edit(putRect(this.doc, done), undefined, this.markOf(done.range));
     this.colsShown = Math.max(this.colsShown, done.range.c1 + 1);
     this.end = [done.range.r1, done.range.c1];
     this.focusCell(done.range.r0, done.range.c0, true);
+  }
+
+  private onPaste = (e: ClipboardEvent) => {
+    const { text, ours } = this.asCells({ text: e.clipboardData?.getData('text/plain') ?? '', html: e.clipboardData?.getData('text/html') ?? '' });
+    const block = /[\t\n]/.test(text.replace(/\n$/, ''));
+    // One value into one cell that is being typed in: let the browser paste text.
+    if (!block && !ours && !this.many) return;
+    e.preventDefault();
+    this.pasteIn(text, ours);
   };
+
+  /** The bar's Paste: the system clipboard if the page may read it, else what was last copied here. */
+  private async pasteFromClipboard() {
+    let data: ClipData | null = null;
+    try {
+      const [item] = await navigator.clipboard.read();
+      const read = async (type: string) => (item?.types.includes(type) ? (await item.getType(type)).text() : '');
+      data = { text: await read('text/plain'), html: await read('text/html') };
+    } catch {
+      try {
+        data = { text: await navigator.clipboard.readText(), html: '' };
+      } catch {
+        // Refused: this page's own copy.
+      }
+    }
+    if (!data?.text && !data?.html) data = this.clip;
+    if (!data) return;
+    const { text, ours } = this.asCells(data);
+    if (text) this.pasteIn(text, ours);
+  }
+
+  /* ---------- the bar under a block ---------- */
+
+  /** What can be done to the block in hand, right under it: the standard's order (fill, then Copy, Cut, Paste, then Clear). */
+  private contextItems(): ContextEntry[] {
+    return [
+      { label: t('Fill down from the top row'), icon: ArrowDownToLine, keys: 'Mod+D', does: () => this.fill(true) },
+      { label: t('Fill right from the first column'), icon: ArrowRightToLine, does: () => this.fill(false) },
+      SEP,
+      { label: t('Copy'), icon: Copy, keys: 'Mod+C', does: () => this.copyOut(false) },
+      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', does: () => this.copyOut(true) },
+      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteFromClipboard() },
+      SEP,
+      { label: t('Clear these cells'), icon: Eraser, keys: 'Delete', does: () => this.clear() },
+    ];
+  }
+  /** The block's box on screen: from its top-left cell to its far corner. */
+  private blockRect(): DOMRect | null {
+    const g = this.range;
+    const a = this.querySelector(`td[data-r="${g.r0}"][data-c="${g.c0}"]`)?.getBoundingClientRect();
+    const b = this.querySelector(`td[data-r="${g.r1}"][data-c="${g.c1}"]`)?.getBoundingClientRect();
+    return a && b ? new DOMRect(a.left, a.top, b.right - a.left, b.bottom - a.top) : null;
+  }
+  protected updated(changed: Map<PropertyKey, unknown>) {
+    super.updated(changed);
+    const bar = this.querySelector<ToContext>('.sheet-context');
+    if (!bar) return;
+    // Up while a block is in hand (above it under a finger, so the cells below stay free for the handle), and gone while it is being filled.
+    if (this.many && !this.fillTo) bar.show(() => this.blockRect(), matchMedia('(pointer: coarse)').matches ? 'above' : 'below');
+    else bar.hide();
+  }
 
   /* ---------- fill handle ---------- */
 
@@ -244,7 +413,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       const dest = this.fillTo;
       this.fillTo = null;
       if (!dest) return;
-      this.edit(putRect(this.doc, fillCells(this.view.table, src, dest)));
+      this.edit(putRect(this.doc, fillCells(this.view.table, src, dest)), undefined, this.markOf(dest));
       this.sel = [dest.r0, dest.c0];
       this.end = [dest.r1, dest.c1];
     });
@@ -274,6 +443,15 @@ export class ToSheetEditor extends DocElement<SheetView> {
     this.end = null;
     this.focusCell(Math.min(r0, ROWS - 1), this.sel[1]);
   }
+  /** The selected rows (or row r) moved up or down past their neighbour, the selection going with them. */
+  private moveRowsBy(by: number, r?: number) {
+    const [r0, r1] = this.rowsFor(r);
+    const ops = moveRows(this.doc, r0, r1, by);
+    if (!ops.length) return;
+    this.edit(ops);
+    this.end = this.end && [this.end[0] + by, this.end[1]];
+    this.focusCell(this.sel[0] + by, this.sel[1], true);
+  }
   /** A row's number: a tap selects the row (or keeps the selected rows it is in) and opens what can be done to it. */
   private async openRowMenu(r: number, from: HTMLElement) {
     const [r0, r1] = this.rowsFor(r);
@@ -296,6 +474,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
     return [
       { group, label: t('Insert {n|a row|# rows} above', { n }), icon: ArrowUp, hint: keysText('Mod+Alt+='), disabled: full, does: () => this.insertRowsAt(false, this.menuRow) },
       { group, label: t('Insert {n|a row|# rows} below', { n }), icon: ArrowDown, disabled: full, does: () => this.insertRowsAt(true, this.menuRow) },
+      { group, label: t('Move up'), icon: ArrowUp, hint: keysText('Alt+ArrowUp'), disabled: r0 === 0, does: () => this.moveRowsBy(-1, this.menuRow) },
+      { group, label: t('Move down'), icon: ArrowDown, hint: keysText('Alt+ArrowDown'), disabled: r1 >= ROWS - 1, does: () => this.moveRowsBy(1, this.menuRow) },
       { group, label: t('Delete {which}', { which }), icon: Trash2, hint: keysText('Mod+Alt+-'), does: () => this.deleteRowsAt(this.menuRow) },
     ];
   }
@@ -324,7 +504,13 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (this.widths) this.widths = this.widths.filter((_, i) => i !== c);
     this.focusCell(this.sel[0], Math.min(c, this.cols - 1));
   }
+  /** A column's head: a tap selects the column (or keeps the block it is in) and opens what can be done to it. */
   private async openColMenu(c: number, from: HTMLElement) {
+    const g = this.range;
+    if (!this.many || c < g.c0 || c > g.c1) {
+      this.sel = [0, c];
+      this.end = [Math.max(1, this.view.used.rows) - 1, c];
+    }
     this.menuCol = c;
     await this.updateComplete;
     const menu = this.querySelector<ToMenu>('.sheet-colmenu')!;
@@ -341,6 +527,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       ...TYPES.map((ty) => ({ group: t('Column {c} holds', { c: letter }), label: ty.name(), hint: ty.hint(), checked: cols[c].type === ty.id, does: () => this.setType(c, ty.id) })),
       { group: t('Sort the rows by it'), label: t('Low to high'), icon: ArrowDown, does: () => this.edit(sortBy(this.doc, c, false)) },
       { group: t('Sort the rows by it'), label: t('High to low'), icon: ArrowUp, does: () => this.edit(sortBy(this.doc, c, true)) },
+      { group: t('Columns'), label: t('Fit this column to its text'), icon: MoveHorizontal, does: () => this.fitColumn(c) },
       { group: t('Columns'), label: t('Add a column after'), icon: UI.plus, disabled: this.cols >= MAX_COLS, does: () => this.addColumn(c + 1) },
       { group: t('Columns'), label: t('Remove this column'), icon: Trash2, disabled: !may, hint: may ? undefined : this.cols <= MIN_COLS ? t('Three at the least') : t('Once it is empty'), does: () => this.removeColumn(c) },
     ];
@@ -380,6 +567,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     // Near the bottom of what is drawn, more rows appear.
     if (r >= this.drawn - 2) this.rowsShown = Math.min(ROWS, this.drawn + 20);
     if (!keepBlock) this.end = null;
+    if (r !== this.sel[0] || c !== this.sel[1]) this.entered = null;
     this.sel = [r, c];
     void this.updateComplete.then(() => {
       const el = this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
@@ -460,6 +648,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       return;
     }
     this.end = null;
+    this.pressed = !(e.target as HTMLElement).matches('td.sel input');
     this.dragging = true;
     window.addEventListener('mouseup', () => (this.dragging = false), { once: true });
   }
@@ -533,6 +722,17 @@ export class ToSheetEditor extends DocElement<SheetView> {
       this.widths = w;
     });
   }
+  /** The grip from the keyboard: Left and Right narrow and widen the column, Enter fits it to its text. */
+  private onGripKey(e: KeyboardEvent, c: number) {
+    const step = e.shiftKey ? 40 : 10;
+    if (e.key === 'Enter') this.fitColumn(c);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const w = this.currentWidths();
+      w[c] = Math.max(MIN_COL, Math.round(w[c] + (e.key === 'ArrowLeft' ? -step : step)));
+      this.widths = w;
+    } else return;
+    e.preventDefault();
+  }
   private fitColumn(c: number) {
     const w = this.currentWidths();
     w[c] = this.naturalWidth(c);
@@ -541,10 +741,39 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /* ---------- keys ---------- */
 
+  /** The whole sheet selected: from A1 to the last row in use, across every column. */
+  private selectAll() {
+    this.end = [Math.max(1, this.view.used.rows) - 1, this.cols - 1];
+    this.focusCell(0, 0, true);
+  }
+
+  /** Escape in a cell: what was there when the focus came is put back, and the focus stays on the cell. */
+  private cancelEdit(r: number, c: number) {
+    const b = this.entered;
+    if (b && b.r === r && b.c === c && this.raw(r, c) !== b.raw) this.setCell(r, c, b.raw);
+    this.entered = { r, c, raw: this.raw(r, c) };
+    this.focusCell(r, c);
+  }
+
+  /** Mod+B, I, U or K in a rich cell: the words selected wrapped in the marks (a link's address left for typing). */
+  private wrap(input: HTMLInputElement, r: number, c: number, k: string) {
+    const [open, close] = WRAP[k];
+    const a = input.selectionStart ?? 0;
+    const b = input.selectionEnd ?? a;
+    const v = input.value;
+    const mid = v.slice(a, b);
+    this.setCell(r, c, v.slice(0, a) + open + mid + close + v.slice(b));
+    const from = a + open.length;
+    void this.updateComplete.then(() => (k === 'k' ? input.setSelectionRange(from + mid.length + 2, from + mid.length + 2) : input.setSelectionRange(from, from + mid.length)));
+  }
+
   private onKey(e: KeyboardEvent, r: number, c: number) {
+    if (e.defaultPrevented || e.isComposing) return;
     if (this.pointWithKey(e)) return;
+    const mod = e.ctrlKey || e.metaKey;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     // Rows in and out, as in other spreadsheets: Mod+Alt+= puts rows in above, Mod+Alt+- takes the selected rows out.
-    if ((e.ctrlKey || e.metaKey) && e.altKey && (e.code === 'Equal' || e.code === 'Minus')) {
+    if (mod && e.altKey && (e.code === 'Equal' || e.code === 'Minus')) {
       e.preventDefault();
       if (e.code === 'Equal') this.insertRowsAt(false, r);
       else this.deleteRowsAt(r);
@@ -554,6 +783,55 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
     const atEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
     const all = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+    // Alt+Up/Down: the selected rows (or this one) past their neighbour.
+    if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      this.moveRowsBy(e.key === 'ArrowUp' ? -1 : 1, r);
+      return;
+    }
+    if (mod && !e.altKey && !e.shiftKey) {
+      // Mod+A: the cell's words first; with them whole (or none), the whole sheet.
+      if (k === 'a') {
+        if (!this.many && !all && input.value) return;
+        e.preventDefault();
+        this.selectAll();
+        return;
+      }
+      // Mod+D fills down (every spreadsheet's), from the block's top row or the cell above.
+      if (k === 'd') {
+        e.preventDefault();
+        this.fill(true);
+        return;
+      }
+      if (k in WRAP) {
+        // Marks on the words of a rich cell; anywhere else they do nothing (and never reach the browser's own).
+        e.preventDefault();
+        if (this.columns()[c].type === 'rich' && !this.locked(r, c)) this.wrap(input, r, c, k);
+        return;
+      }
+      // Mod+Enter: done, staying on the cell.
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.entered = { r, c, raw: this.raw(r, c) };
+        input.select();
+        return;
+      }
+    }
+    if (e.key === 'Tab' && !mod && !e.altKey) {
+      // Tab and Shift+Tab: the next and previous cell, row after row; at either end of the sheet the focus goes on.
+      const last = this.cols - 1;
+      const to: [number, number] | null = e.shiftKey ? (c > 0 ? [r, c - 1] : r > 0 ? [r - 1, last] : null) : c < last ? [r, c + 1] : r < ROWS - 1 ? [r + 1, 0] : null;
+      if (!to) return;
+      e.preventDefault();
+      this.focusCell(...to);
+      return;
+    }
+    if (e.key === 'F2') {
+      // Edit in place: the caret at the end, the words no longer all selected.
+      e.preventDefault();
+      input.setSelectionRange(input.value.length, input.value.length);
+      return;
+    }
     const arrow = ARROWS[e.key];
     if (e.shiftKey && arrow && (arrow[0] !== 0 || all || this.many)) {
       // Shift+arrows stretch the block. (Sideways, only when not selecting text inside the cell.)
@@ -570,20 +848,26 @@ export class ToSheetEditor extends DocElement<SheetView> {
     }
     if (this.many && (e.key === 'Delete' || e.key === 'Backspace')) {
       e.preventDefault();
-      this.edit(putRect(this.doc, clearCells(this.range)));
+      this.clear();
       return;
     }
     if (this.many && e.key === 'Escape') {
+      e.preventDefault();
       this.end = null;
       return;
     }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      this.cancelEdit(r, c);
+      return;
+    }
+    if (e.altKey || mod) return;
     let move: [number, number] | null = null;
     if (e.key === 'Enter') move = e.shiftKey ? [r - 1, c] : [r + 1, c];
     else if (e.key === 'ArrowDown') move = [r + 1, c];
     else if (e.key === 'ArrowUp') move = [r - 1, c];
     else if (e.key === 'ArrowLeft' && atStart) move = [r, c - 1];
     else if (e.key === 'ArrowRight' && atEnd) move = [r, c + 1];
-    else if (e.key === 'Escape') input.blur();
     if (move) {
       e.preventDefault();
       this.focusCell(move[0], move[1]);
@@ -607,11 +891,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
     return html`<to-bar class="sheet-bar">
         <to-insert .items=${this.inserts()}></to-insert>
         <to-menu class="sheet-chartmenu" .label=${t('Chart')} .icon=${ChartColumn} caret .items=${this.chartItems()}></to-menu>
-        ${tool({ label: t('Fill down from the top row'), icon: ArrowDownToLine, disabled: !this.many, does: () => this.fill(true) })}
-        ${tool({ label: t('Fill right from the first column'), icon: ArrowRightToLine, disabled: !this.many, does: () => this.fill(false) })}
-        ${tool({ label: t('Fit the columns to the page'), icon: Maximize2, pressed: !w, does: () => (this.widths = null) })}
-        ${tool({ label: t('Show all the text'), icon: Scaling, pressed: !!w, does: () => (this.widths = cols.map((_, c) => this.naturalWidth(c))) })}
-        ${tool({ label: locked ? t('Unlock these cells') : t('Lock these cells, so a reader leaves them be'), icon: locked ? Lock : LockOpen, pressed: locked, does: () => this.toggleLock() })}
+        ${tool({ label: t('Fill down from the top row'), icon: ArrowDownToLine, keys: 'Mod+D', keep: true, disabled: !this.many, does: () => this.fill(true) })}
+        ${tool({ label: t('Fill right from the first column'), icon: ArrowRightToLine, keep: true, disabled: !this.many, does: () => this.fill(false) })}
+        ${tool({ label: t('Fit the columns to the page'), icon: Maximize2, keep: true, pressed: !w, does: () => (this.widths = null) })}
+        ${tool({ label: t('Show all the text'), icon: Scaling, keep: true, pressed: !!w, does: () => (this.widths = cols.map((_, c) => this.naturalWidth(c))) })}
+        ${tool({ label: locked ? t('Unlock these cells') : t('Lock these cells, so a reader leaves them be'), icon: locked ? Lock : LockOpen, keep: true, pressed: locked, does: () => this.toggleLock() })}
+        ${this.undoTools()}
       </to-bar>
       ${v.big ? html`<div class="sheet-big"><b>${v.big.value}</b><span>${v.big.label}</span></div>` : nothing}
       <div class="sheet-fx">
@@ -624,13 +909,23 @@ export class ToSheetEditor extends DocElement<SheetView> {
           autocomplete="off"
           spellcheck="false"
           ?readonly=${locked}
-          @input=${(e: Event) => this.setCell(sr, sc, (e.target as HTMLInputElement).value)}
+          @focus=${() => this.remember(sr, sc)}
+          @input=${(e: InputEvent) => !e.isComposing && this.setCell(sr, sc, (e.target as HTMLInputElement).value)}
+          @compositionend=${(e: Event) => this.setCell(sr, sc, (e.target as HTMLInputElement).value)}
           @keydown=${(e: KeyboardEvent) => {
-            if (this.pointWithKey(e)) return;
-            if (e.key === 'Enter') this.focusCell(sr + 1, sc);
-            else if (e.key === 'Escape') this.focusCell(sr, sc);
+            if (e.isComposing || this.pointWithKey(e)) return;
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.focusCell(sr + (e.shiftKey ? -1 : 1), sc);
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              this.cancelEdit(sr, sc);
+            }
           }}
-          @blur=${(e: Event) => (this.caret = { r: sr, c: sc, pos: (e.target as HTMLInputElement).selectionStart ?? 0 })}
+          @blur=${(e: FocusEvent) => {
+            this.caret = { r: sr, c: sc, pos: (e.target as HTMLInputElement).selectionStart ?? 0 };
+            this.forget(e, sr, sc);
+          }}
         />
       </div>
       <div class="sheet-scroll">
@@ -648,7 +943,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
                   <button type="button" class="col-head" aria-label=${t('Column {c}: {type}. What it holds, sort by it, add or remove a column', { c: COL_NAMES[c], type: typeOf(col.type).name() })} title=${t('What it holds; sort; columns')} aria-haspopup="menu" aria-expanded="false" @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>
                     <span class="cl">${COL_NAMES[c]}</span>${icon(UI.down, 12)}
                   </button>
-                  <span class="grip" role="separator" aria-label=${t('Resize column {c}', { c: COL_NAMES[c] })} title=${t('Drag to resize, double-click to fit')} @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
+                  <span class="grip" role="separator" tabindex="0" aria-orientation="vertical" aria-valuenow=${w ? Math.round(w[c] ?? NEW_COL) : nothing} aria-label=${t('Resize column {c}', { c: COL_NAMES[c] })} title=${t('Drag to resize, double-click to fit')} @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)} @keydown=${(e: KeyboardEvent) => this.onGripKey(e, c)}></span>
                 </th>`,
               )}
               <td class="add-col" rowspan="2">
@@ -673,6 +968,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
         ${this.drawn < ROWS ? html`<button type="button" class="sheet-more" @click=${() => (this.rowsShown = Math.min(ROWS, this.drawn + 50))}>${icon(UI.plus, 14)} ${t('50 more rows')} <span class="to-hint">${t('({n} of {max} shown)', { n: this.drawn, max: ROWS })}</span></button>` : nothing}
       </div>
       ${chart ? html`<figure class="sheet-chart"><svg viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label=${chart.alt ?? t('Chart of the table')}>${unsafeSVG(chart.svg)}</svg></figure>` : nothing}
+      <to-context class="sheet-context" .label=${t('The cells in hand')} .items=${this.contextItems()}></to-context>
       <to-menu class="sheet-rowmenu" .label=${t('Row {n}', { n: this.menuRow + 1 })} .items=${this.rowItems()}></to-menu>
       <to-menu class="sheet-colmenu" .label=${t('Column {c}', { c: COL_NAMES[this.menuCol] })} .items=${this.colItems()}></to-menu>`;
   }
@@ -690,6 +986,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
         const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
         const rich = type === 'rich' && !isSel && raw !== '' && !raw.startsWith('=');
         const locked = this.locked(r, c);
+        // A checkbox is ticked by a tap on its cell (Space with the keyboard); one worked out by a formula is typed into.
+        const tick = type === 'check' && !locked && !raw.startsWith('=');
         const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'check' ? ' tick' : '') + (locked ? ' locked' : '') + (type === 'name' ? ' named' : '');
         const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
         const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
@@ -707,15 +1005,29 @@ export class ToSheetEditor extends DocElement<SheetView> {
               if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
               this.sel = [r, c];
               this.focused = true;
+              this.remember(r, c);
+              // A cell reached by a tap or a click is selected whole, so typing replaces it; a second tap places the caret.
+              (e.target as HTMLInputElement).select();
               this.reveal(e.target as HTMLElement);
             }}
-            @blur=${(e: Event) => {
+            @click=${(e: Event) => {
+              if (!this.pressed) return;
+              this.pressed = false;
+              const input = e.target as HTMLInputElement;
+              input.select();
+              // WebKit on a phone puts its caret where the finger was just after the click: the words are selected again once it has.
+              setTimeout(() => document.activeElement === input && input.selectionStart === input.selectionEnd && input.select(), 0);
+            }}
+            @blur=${(e: FocusEvent) => {
               this.focused = false;
               this.caret = { r, c, pos: (e.target as HTMLInputElement).selectionStart ?? 0 };
+              this.forget(e, r, c);
             }}
-            @input=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
+            @input=${(e: InputEvent) => !e.isComposing && this.setCell(r, c, (e.target as HTMLInputElement).value)}
+            @compositionend=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
             @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c)}
           />
+          ${tick ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Tick {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}></button>` : nothing}
           ${rich ? html`<span class="rich" aria-hidden="true">${this.rich(raw)}</span>` : nothing}
           ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label=${t('Open {link}', { link })} tabindex="-1">${icon(UI.link, 12)}</a>` : nothing}
           ${r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label=${t('Fill: drag to carry these cells on')} title=${t('Drag to fill')} @pointerdown=${this.onFillDown}></span>` : nothing}
