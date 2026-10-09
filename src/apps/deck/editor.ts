@@ -360,7 +360,7 @@ export class ToDeckEditor extends LitElement {
       const def = lookup.appOf(b.lang);
       return [{ label: t('Open in {app}', { app: def?.name ?? b.lang }), icon: UI.open, does: () => void window.open(here + routeHash(b.lang, encodeDoc(b.body)), '_blank', 'noopener') }, remove];
     }
-    if (b.k === 'table') return [{ label: t('Open in {app}', { app: lookup.appOf('sheet')?.name ?? 'Sheet' }), icon: UI.open, does: () => void window.open(here + routeHash('sheet', encodeDoc(write({ head: {}, blocks: [b] }))), '_blank', 'noopener') }, remove];
+    if (b.k === 'table') return [{ label: t('Open in {app}', { app: lookup.appOf('sheet')?.name ?? t('Spreadsheet') }), icon: UI.open, does: () => void window.open(here + routeHash('sheet', encodeDoc(write({ head: {}, blocks: [b] }))), '_blank', 'noopener') }, remove];
     const url = b.k === 'img' ? b.url : plainText(b.k === 'p' ? b.runs : []).trim();
     return [
       {

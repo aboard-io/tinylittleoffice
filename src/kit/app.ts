@@ -79,6 +79,8 @@ export interface AppDef {
   id: string;
   /** Through t(): a getter, so the name follows the language. */
   readonly name: string;
+  /** Through t(), lower case: what one document of the app is called ("presentation"), for "Untitled presentation", "New presentation" and a file's name. */
+  readonly noun: string;
   /** The heading it is listed under on the home page. */
   readonly group: string;
   icon: IconNode;

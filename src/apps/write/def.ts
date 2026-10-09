@@ -16,7 +16,10 @@ import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from './view.ts'
 export default defineApp({
   id: 'write',
   get name() {
-    return t('Write');
+    return t('Word Processor');
+  },
+  get noun() {
+    return t('document');
   },
   get group() {
     return t('Words');

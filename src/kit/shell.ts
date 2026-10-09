@@ -183,10 +183,10 @@ export class ToShell extends LitElement {
     const def = this.def;
     document.title = def ? `${this.docTitle} · TinyLittleOffice` : 'TinyLittleOffice';
   }
-  /** What the document is called: the name it was given, or "Untitled Text". */
+  /** What the document is called: the name it was given, or "Untitled presentation". */
   private get docTitle(): string {
     const def = this.def;
-    return def ? def.title(this.doc) || t('Untitled {app}', { app: def.name }) : 'TinyLittleOffice';
+    return def ? def.title(this.doc) || t('Untitled {noun}', { noun: def.noun }) : 'TinyLittleOffice';
   }
   /** The link to share: the address, without the owner's query when there is one (that stays in the address bar alone). */
   get link(): string {
@@ -318,9 +318,9 @@ export class ToShell extends LitElement {
     const c = 2 * Math.PI * r;
     return html`<header class="to-header">
       ${burger}
-      <a class="to-here" href=${routeHash(def.id)} title=${t('New {app}', { app: def.name })} aria-label=${t('New {app}', { app: def.name })}>${icon(def.icon, 24)}</a>
+      <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
-      <input class="to-title" type="text" placeholder=${t('Untitled {app}', { app: def.name })} aria-label=${t('Title')} autocomplete="off" .value=${title} @change=${(e: Event) => this.change(def.retitle(this.doc, (e.target as HTMLInputElement).value.trim()))} />
+      <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" .value=${title} @change=${(e: Event) => this.change(def.retitle(this.doc, (e.target as HTMLInputElement).value.trim()))} />
       <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.dialog('doc')?.show()}>
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
       </button>
@@ -411,7 +411,7 @@ export class ToShell extends LitElement {
     const def = this.def;
     let main;
     if (!def) main = html`<to-home></to-home>`;
-    else if (this.unreadable) main = html`<div class="to-empty"><p>${t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {app}', { app: def.name })}</a></div>`;
+    else if (this.unreadable) main = html`<div class="to-empty"><p>${t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
     else if (!this.tag) main = html`<div class="to-empty to-loading" aria-busy="true">${t('Loading…')}</div>`;
     else {
       const tag = unsafeStatic(this.tag);

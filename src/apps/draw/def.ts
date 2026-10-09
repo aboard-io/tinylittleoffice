@@ -30,7 +30,10 @@ const tileSide = (tile: Tile) => tile.n * 16;
 export default defineApp({
   id: 'draw',
   get name() {
-    return t('Draw');
+    return t('Drawing Tool');
+  },
+  get noun() {
+    return t('drawing');
   },
   get group() {
     return t('Design');

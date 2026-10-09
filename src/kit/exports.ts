@@ -6,7 +6,7 @@
  * and <a download> everywhere else. (The ideas of the old tree's kit/core.ts printHtml and kit/browser.ts.)
  */
 import type { AppDef, Doc, Export, ExportContext, Page } from './app.ts';
-import { INK, MUTED, FONT, pageSvg, stack, fileName, xml } from './draw.ts';
+import { INK, MUTED, FONT, pageSvg, stack, fileName, slug, xml } from './draw.ts';
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
 import { appOf } from './apps.ts';
@@ -154,8 +154,9 @@ export function kitExports(): Export[] {
 
 /** Save the document as a kind of file; the file's name, or null when there is no such kind. */
 export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise<string | null> {
-  const title = ctx.title || def.title(doc) || def.name;
-  const name = fileName(title, def.id, ext);
+  const given = ctx.title || def.title(doc);
+  const title = given || t('Untitled {noun}', { noun: def.noun });
+  const name = fileName(given, slug(def.noun) || def.id, ext);
   if (ext === 'print' || ext === 'pdf') {
     await printPages(def.view(doc), title);
     return null;

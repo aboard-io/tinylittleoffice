@@ -325,7 +325,7 @@ test('OPML, plain text and Markdown, and the page', () => {
   expect(outlineText(v)).toBe('- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n');
   const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { title: '', link: '' }) as Uint8Array);
   expect(built('txt', TREE)).toBe('- Launch\n  - Product\n    - Pricing\n  - Marketing\n');
-  expect(built('txt', '1. A\n2. B\n\n```draw {depth=0}\n```\n')).toBe('1. A\n2. B\n- [Draw]\n');
+  expect(built('txt', '1. A\n2. B\n\n```draw {depth=0}\n```\n')).toBe('1. A\n2. B\n- [Drawing Tool]\n');
   // OPML has no numbers: plain words.
   expect(built('opml', '1. A\n2. B\n')).toContain('<outline text="B"/>');
   // A numbered item's number is drawn where its dot would be; the hand-offs keep the numbers.
@@ -337,7 +337,7 @@ test('OPML, plain text and Markdown, and the page', () => {
   expect(built('opml', '---\ntitle: Plan\n---\n' + TREE)).toContain('<title>Plan</title>');
   // The page: every item's words, the kind of line before a named one, the notes and the joins under it; a document as a card.
   const page = outlinePage(parse(DOC.replace('- Launch', '- **Launch**^[the plan]') + '\n```sheet {depth=1}\na | b\n--- | ---\n```\n'));
-  for (const w of ['Launch', 'Product', 'Pricing', 'Marketing', 'Ops', 'Support', '→ sets', '↔', '— part of', 'the plan', 'Connections', 'Pricing  → feeds  Marketing', 'Sheet', 'a | b']) expect(page.svg).toContain(w);
+  for (const w of ['Launch', 'Product', 'Pricing', 'Marketing', 'Ops', 'Support', '→ sets', '↔', '— part of', 'the plan', 'Connections', 'Pricing  → feeds  Marketing', 'Spreadsheet', 'a | b']) expect(page.svg).toContain(w);
   expect(page.svg).toContain('font-weight="700">Launch</tspan>');
   expect(page.svg).toContain('baseline-shift="super"');
   expect(page.alt).toBe('Launch');

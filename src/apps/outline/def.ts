@@ -22,7 +22,7 @@ export const retitle = (doc: Doc, title: string): Doc => write(apply(headOf(doc)
 function nameFor(doc: Doc): string {
   const d = headOf(doc);
   const first = liveItems(readOutline(d)).find((it) => !it.doc);
-  return d.head.title || (first ? first.runs.map((r) => r.t).join('').trim() : '') || t('Outline');
+  return d.head.title || (first ? first.runs.map((r) => r.t).join('').trim() : '') || t('Untitled {noun}', { noun: t('outline') });
 }
 
 const convert = (how: (v: ReturnType<typeof readOutline>, head: Kernel['head']) => string) => (doc: Doc) => {
@@ -33,7 +33,10 @@ const convert = (how: (v: ReturnType<typeof readOutline>, head: Kernel['head']) 
 export default defineApp({
   id: 'outline',
   get name() {
-    return t('Outline');
+    return t('Outliner');
+  },
+  get noun() {
+    return t('outline');
   },
   get group() {
     return t('Words');

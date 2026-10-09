@@ -6,7 +6,7 @@ import { expect, test } from 'vitest';
 import { applyAll, evaluate, firstTable, formatCell, parse, write } from '../../../doc/index.ts';
 import write_ from '../def.ts';
 // The registry, so a document held in the text is drawn by its own app.
-import '../../../kit/apps.ts';
+import { appOf } from '../../../kit/apps.ts';
 import { insertRowAfter, retitle, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
 import { templates } from '../templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
@@ -97,7 +97,7 @@ test('pages draw the table worked out, the head fields, a footnote, a web card a
   expect(p.svg).toContain('Harbor Studio');
   expect(p.svg).toContain('Said in passing');
   expect(p.svg).toContain('YouTube');
-  expect(p.svg).toContain('Sheet');
+  expect(p.svg).toContain(appOf('sheet')!.name);
   // The head's currency in place of the dollar.
   const euro = pages(parse(invoice().replace('currency: $', 'currency: €')))[0];
   expect(euro.svg).toContain('€5,486.40');

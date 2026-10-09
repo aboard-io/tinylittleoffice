@@ -19,6 +19,9 @@ export default defineApp({
   get name() {
     return t('Calculator');
   },
+  get noun() {
+    return t('calculation');
+  },
   get group() {
     return t('Numbers');
   },

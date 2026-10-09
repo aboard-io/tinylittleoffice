@@ -32,14 +32,17 @@ export async function animGif(doc: Doc): Promise<Uint8Array> {
 export default defineApp({
   id: 'anim',
   get name() {
-    return t('Motion');
+    return t('Animator');
+  },
+  get noun() {
+    return t('animation');
   },
   get group() {
     return t('Design');
   },
   icon: Clapperboard,
   get blurb() {
-    return t('Anything from Draw, moving: position, depth, size and spin over time, with effects for memes.');
+    return t('Anything from the Drawing Tool, moving: position, depth, size and spin over time, with effects for memes.');
   },
   blank: () => '',
   get templates() {

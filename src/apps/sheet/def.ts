@@ -24,7 +24,10 @@ export const retitle = (doc: Doc, title: string): Doc => write(apply(headOf(doc)
 export default defineApp({
   id: 'sheet',
   get name() {
-    return t('Sheet');
+    return t('Spreadsheet');
+  },
+  get noun() {
+    return t('spreadsheet');
   },
   get group() {
     return t('Numbers');

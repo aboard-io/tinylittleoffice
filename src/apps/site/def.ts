@@ -16,7 +16,10 @@ import { sitePage, sitePictures } from './view.ts';
 export default defineApp({
   id: 'site',
   get name() {
-    return t('Website');
+    return t('Website Builder');
+  },
+  get noun() {
+    return t('site');
   },
   get group() {
     return t('Web');

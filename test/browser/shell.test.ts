@@ -38,7 +38,7 @@ afterEach(() => history.replaceState(null, '', location.pathname));
 test('the home page lists the apps as tiles, each with its templates', async () => {
   const shell = await mount('');
   const tile = shell.querySelector('.to-tile')!;
-  expect(tile.querySelector('b')!.textContent).toBe('Write');
+  expect(tile.querySelector('b')!.textContent).toBe('Word Processor');
   expect(tile.querySelector<HTMLAnchorElement>('.to-tile-open')!.getAttribute('href')).toBe('#/v1/write');
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
   expect(picker.textContent!.trim()).toBe('Blank');
@@ -155,6 +155,10 @@ test('at 390px: one column, nothing wider than the screen, every tap target 44px
 test('a link opens its app, and every edit goes into the link', async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  // A document with no name is called by its app's noun, not the app's name.
+  expect(document.title).toBe('Untitled document · TinyLittleOffice');
+  expect(shell.querySelector<HTMLInputElement>('.to-title')!.placeholder).toBe('Untitled document');
+  expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('New document');
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
   text.focus();
