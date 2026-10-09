@@ -140,6 +140,54 @@
     flex: none;
   }
 
+  /* ---- the contextual bar (<to-context>): beside the thing in hand ---- */
+  to-context {
+    display: contents;
+  }
+  .to-context {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    max-width: calc(100vw - 12px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--to-surface);
+    color: var(--to-ink);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow-pop);
+  }
+  .to-context::-webkit-scrollbar {
+    display: none;
+  }
+  .to-context .to-btn {
+    border-color: transparent;
+    min-height: 36px;
+    min-width: 36px;
+  }
+  .to-context .to-tool {
+    width: 36px;
+  }
+  .to-context .to-btn[aria-pressed='true'] {
+    border-color: var(--to-accent);
+  }
+  .to-context-text {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 6px;
+  }
+  .to-context-sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 3px;
+    background: var(--to-border);
+    flex: none;
+  }
+
   /* ---- menus (popovers) ---- */
   to-menu,
   to-insert,

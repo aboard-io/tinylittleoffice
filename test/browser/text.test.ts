@@ -400,3 +400,52 @@ test('the box holds the blocks and nothing else: one line of words is one line t
     expect(tx.getBoundingClientRect().height).toBeCloseTo(tx.firstElementChild!.getBoundingClientRect().height, 0);
   }
 });
+
+test('a block typed in keeps its element (updated in place, never swapped under the caret); a composed block is drawn afresh', async () => {
+  const h = await mount('- one\n- two\n', 'lines', caret(0, 3));
+  const li = h.el.tx.querySelector('li')!;
+  await typeIn(h, 's');
+  expect(h.tlo).toBe('- ones\n- two\n');
+  expect(h.el.tx.querySelector('li')).toBe(li);
+  expect(li.textContent).toBe('ones');
+  // A letter typed never puts a stray node in: the element holds exactly what the model says.
+  await key(h, 'Backspace');
+  expect(h.el.tx.querySelector('li')).toBe(li);
+  expect(li.textContent).toBe('one');
+  // The caret still follows the model.
+  expect(domSel().offset).toBe(3);
+});
+
+test('in a line, Delete at the end says text-exit (forward) and Backspace at the start says it (back); Select All twice says text-selectall', async () => {
+  const h = await mount('- one\n', 'line', caret(0, 3));
+  const dirs: string[] = [];
+  h.el.addEventListener('text-exit', (e) => dirs.push((e as CustomEvent<{ dir: string }>).detail.dir));
+  await key(h, 'Delete');
+  expect(dirs).toEqual(['forward']);
+  expect(h.tlo).toBe('- one\n');
+  h.el.sel = caret(0, 0);
+  await h.el.updateComplete;
+  await key(h, 'Backspace');
+  expect(dirs).toEqual(['forward', 'back']);
+  let all = 0;
+  h.el.addEventListener('text-selectall', () => all++);
+  const press = () => {
+    const ev = new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, cancelable: true });
+    h.el.tx.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  // The caret alone: the first press is the browser's (the line), not ours.
+  expect(press()).toBe(false);
+  expect(all).toBe(0);
+  // The line whole: the host is asked for everything.
+  h.el.sel = { anchor: caret(0, 0).anchor, focus: caret(0, 3).focus };
+  await h.el.updateComplete;
+  expect(press()).toBe(true);
+  expect(all).toBe(1);
+  // An empty line counts as whole.
+  const e = await mount('', 'line', caret(0, 0));
+  let empties = 0;
+  e.el.addEventListener('text-selectall', () => empties++);
+  e.el.tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, cancelable: true }));
+  expect(empties).toBe(1);
+});

@@ -10,7 +10,10 @@
  *
  * Three shapes. `doc`: any block, Enter splits, embeds are cards the caret
  * skips. `lines`: items and paragraphs (a slide's words), Backspace at the
- * start says `text-exit`. `line`: one block, Enter says `text-enter`.
+ * start says `text-exit` ({dir: 'back'}). `line`: one block, Enter says
+ * `text-enter`, Delete at its end says `text-exit` ({dir: 'forward'}), and
+ * Select All with the line already whole says `text-selectall`: the host
+ * owns what is around the line.
  *
  * What is not words (a table, a picture, another document, a web address
  * alone on its line) is a card: `contenteditable=false`, skipped by the caret,
@@ -45,8 +48,25 @@ const EMPTY: Block = { k: 'p', runs: [] };
 const keys = new WeakMap<Block, number>();
 let nextKey = 0;
 const keyOf = (b: Block) => keys.get(b) ?? (keys.set(b, ++nextKey), nextKey);
-/** Words are keyed by identity (only a changed block is drawn again); a card by its place, so a table edited in its grid keeps its element, and the focus in it. */
+/**
+ * Words are keyed by identity, so only a changed block is drawn again and a moved one keeps its element; a card by
+ * its place, so a table edited in its grid keeps its element, and the focus in it. A block typed in inherits the
+ * key of the block it replaces (`inherit`), so the element under the caret is updated in place rather than swapped:
+ * a swap under a phone's keyboard loses its autocorrect context (iOS), and Safari drops a selection set in the same
+ * task as one. The block an IME composed in is the exception: it gets a fresh key, so whatever the browser put in
+ * its element is thrown away with it.
+ */
 const keyAt = (b: Block, i: number): number | string => (isWords(b) ? keyOf(b) : `c${i}`);
+/** New blocks given the keys of the words they replace, place by place, while the kind stays the same. */
+function inherit(from: Block[] | undefined, to: Block[], fresh: number) {
+  if (!from) return;
+  const kept = new Set(to);
+  to.forEach((b, i) => {
+    const old = from[i];
+    if (i === fresh || !old || old === b || kept.has(old) || keys.has(b) || !isWords(b) || !isWords(old) || old.k !== b.k) return;
+    keys.set(b, keyOf(old));
+  });
+}
 const WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
 const DELETES = new Set(['deleteWordBackward', 'deleteWordForward', 'deleteSoftLineBackward', 'deleteSoftLineForward', 'deleteHardLineBackward', 'deleteHardLineForward', 'deleteContent', 'deleteByCut', 'deleteByDrag']);
 const FORMATS: Record<string, Command> = { formatBold: 'b', formatItalic: 'i', formatUnderline: 'u', formatStrikeThrough: 's', insertOrderedList: 'ol', insertUnorderedList: 'ul', formatIndent: 'indent', formatOutdent: 'outdent', formatJustifyLeft: 'left', formatJustifyCenter: 'center', formatJustifyRight: 'right', formatJustifyFull: 'justify' };
@@ -105,6 +125,8 @@ export class ToText extends LitElement {
   private noting: { block: number; nth: number } | null = null;
   /** The selection has left the editor (said once). */
   private away = false;
+  /** The block an IME just composed in: drawn afresh on the next draw, not updated in place. */
+  private fresh = -1;
 
   constructor() {
     super();
@@ -358,7 +380,9 @@ export class ToText extends LitElement {
     const target = e.getTargetRanges?.()[0];
     const sel = this.current();
     const type = e.inputType;
-    const edit = (r: ReturnType<typeof backspace>) => (r === 'exit' ? this.dispatchEvent(new CustomEvent('text-exit', { bubbles: true })) : r && this.emit(r.ops, r.sel, 'type'));
+    const exit = (dir: 'back' | 'forward') => this.dispatchEvent(new CustomEvent<{ dir: 'back' | 'forward' }>('text-exit', { detail: { dir }, bubbles: true }));
+    // Backspace at the very start says `text-exit` (back); in a line, Delete at the very end says it too (forward): the host owns what is around the line.
+    const edit = (r: ReturnType<typeof backspace>, forward = false) => (r === 'exit' ? exit('back') : r ? this.emit(r.ops, r.sel, 'type') : forward && this.shape === 'line' && collapsed(sel) ? exit('forward') : undefined);
     switch (type) {
       case 'insertText':
         return this.typed(e.data ?? '', sel);
@@ -374,7 +398,7 @@ export class ToText extends LitElement {
       case 'deleteContentBackward':
         return edit(backspace(model, sel, this.shape));
       case 'deleteContentForward':
-        return edit(forwardDelete(model, sel));
+        return edit(forwardDelete(model, sel), true);
       case 'insertFromPaste':
       case 'insertFromDrop': {
         const dt = e.dataTransfer;
@@ -389,7 +413,7 @@ export class ToText extends LitElement {
     if (DELETES.has(type)) {
       const range = (target && this.rangeSel(target)) ?? sel;
       if (!collapsed(range)) return edit(deleteSel(model, range));
-      return edit(/Forward/.test(type) ? forwardDelete(model, sel) : backspace(model, sel, this.shape));
+      return /Forward/.test(type) ? edit(forwardDelete(model, sel), true) : edit(backspace(model, sel, this.shape));
     }
     if (FORMATS[type]) this.exec(FORMATS[type]);
   };
@@ -445,6 +469,18 @@ export class ToText extends LitElement {
     const mod = e.metaKey || e.ctrlKey;
     if (mod && !e.altKey) {
       const k = e.key.toLowerCase();
+      // Select all in a line: the first press takes the line (the browser's own); with the line already whole, or empty, the host is asked for everything (`text-selectall`).
+      if (k === 'a' && this.shape === 'line' && !e.shiftKey) {
+        const m = this.model;
+        const sel = this.current();
+        const [a, b] = ordered(sel);
+        const whole = a.offset === 0 && b.offset >= blockLength(m[m.length - 1]) && a.block === 0 && b.block === m.length - 1;
+        if (whole) {
+          e.preventDefault();
+          this.dispatchEvent(new CustomEvent('text-selectall', { bubbles: true }));
+        }
+        return;
+      }
       const cmd = k === 'b' ? 'b' : k === 'i' ? 'i' : k === 'u' ? 'u' : k === 'k' ? 'link' : null;
       if (cmd && !(e.shiftKey && cmd !== 'link')) {
         e.preventDefault();
@@ -519,6 +555,7 @@ export class ToText extends LitElement {
     const runs = domToRuns(el);
     const op = runsDiff(i, b.runs, runs);
     const sel = this.readSel() ?? caret(i, runLength(runs));
+    this.fresh = i;
     if (op) this.emit([op], sel, 'type');
     else this._sel = sel;
   };
@@ -696,6 +733,12 @@ export class ToText extends LitElement {
 
   /* ---------- drawing ---------- */
 
+  protected willUpdate(changed: Map<string, unknown>) {
+    if (changed.has('blocks')) {
+      inherit(changed.get('blocks') as Block[] | undefined, this.blocks, this.fresh);
+      this.fresh = -1;
+    }
+  }
   protected updated(changed: Map<string, unknown>) {
     this.flushSel();
     // New blocks under the same selection: the marks there may have changed (Bold over a range); the host's bar is told.
@@ -808,7 +851,7 @@ export class ToText extends LitElement {
         @cut=${this.onCopy}
         @paste=${this.onPaste}
       >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
-      <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
+      <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @text-selectall=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
       <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove}></to-link-pop>`;
   }
 }
