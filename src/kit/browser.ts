@@ -108,17 +108,17 @@ export function picture(def: AppDef, body: string): Promise<Uint8Array | null> {
 }
 
 /**
- * Hand a file to the person. On a phone a PDF opens in a tab of its own, to
- * be read (the browser's viewer has its own share button); any other file,
- * for which a download link would only open a "blob:" address with nowhere
- * to put it, goes through the share sheet, which has Save to Files.
- * Elsewhere, and if those are refused, it is a download.
+ * Hand a file to the person. On a phone it opens in a tab of its own, to be
+ * looked at (a phone shows a PDF, a picture, a PowerPoint or a spreadsheet,
+ * and its viewer has its own share button); if the tab is refused, it goes
+ * through the share sheet, which has Save to Files. Elsewhere, and if those
+ * are refused, it is a download.
  */
 export async function saveFile(name: string, mime: string, data: Uint8Array) {
   const file = new File([data as BlobPart], name, { type: mime });
   const nav = navigator as Navigator & { canShare?(d: { files: File[] }): boolean };
   const phone = /iPhone|iPad|Android/i.test(navigator.userAgent);
-  if (phone && mime === 'application/pdf') {
+  if (phone) {
     const url = URL.createObjectURL(file);
     // Kept a while: the tab reads it after it opens, and may be reloaded.
     if (window.open(url, '_blank')) return void setTimeout(() => URL.revokeObjectURL(url), 300_000);
