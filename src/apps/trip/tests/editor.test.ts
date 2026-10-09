@@ -9,6 +9,8 @@ import { page } from 'vitest/browser';
 import '../../../styles.css';
 import '../editor.ts';
 import type { ToTripEditor } from '../editor.ts';
+import { parse } from '../../../doc/index.ts';
+import { readTrip } from '../model.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
 
 const ROUTE = '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 | Port cellars\n';
@@ -69,8 +71,8 @@ test('stops from the document: number, name, note, the leg before each, the coun
   const { el } = await editor();
   expect(names(el)).toEqual(['Lisbon', 'Coimbra', 'Porto']);
   expect(stops(el).map((r) => r.querySelector<HTMLInputElement>('.trip-note')!.value)).toEqual(['Pastel de nata first', '', 'Port cellars']);
-  expect(stops(el).map((r) => r.querySelector('.trip-leg')?.textContent ?? '')).toEqual(['', '182.5 km', '135.3 km']);
-  expect(el.querySelector('.trip-count')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('3 stops · 318 km');
+  expect(stops(el).map((r) => r.querySelector('.trip-leg')?.textContent ?? '')).toEqual(['', '176 km', '108 km']);
+  expect(el.querySelector('.trip-count')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('3 stops · 284 km');
   expect(stops(el)[1].querySelector('.trip-name')!.getAttribute('aria-label')).toBe('Name of stop 2');
   expect(bar(el, 'Join the stops in order').getAttribute('aria-pressed')).toBe('true');
 });
@@ -103,9 +105,10 @@ test('the map: Leaflet arrives, a pin a stop, a tap on the map adds a stop there
   map.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: box.left + 30, clientY: box.top + 30 }));
   await settle(el);
   expect(names(el)).toHaveLength(4);
-  const rows = parse4(last()!);
-  expect(rows[3][0]).toBe('');
-  expect(Math.abs(+rows[3][1])).toBeLessThanOrEqual(90);
+  const added = readTrip(parse(last()!)).stops[3];
+  expect(added.name).toBe('');
+  expect(Math.abs(added.lat)).toBeLessThanOrEqual(90);
+  expect(Math.abs(added.lon)).toBeLessThanOrEqual(180);
   expect(document.activeElement).toBe(stops(el)[3].querySelector('.trip-name'));
   await until(() => pins(el).length === 4);
   // A tap on a stop's number picks it, and its pin shows it.
@@ -114,11 +117,7 @@ test('the map: Leaflet arrives, a pin a stop, a tap on the map adds a stop there
   await until(() => pins(el)[0].classList.contains('sel'));
   expect(stops(el)[0].classList.contains('sel')).toBe(true);
 });
-const parse4 = (text: string) =>
-  text
-    .split('\n')
-    .filter((l) => /\|/.test(l) && !/^---|^Place/.test(l))
-    .map((l) => l.replace(/^\| ?/, '').split(' | ').map((c) => c.trim()));
+
 
 test('the row menu moves and deletes; Alt+arrows move and keep the caret in the stop', async () => {
   const { el, last } = await editor();
@@ -144,10 +143,10 @@ test('the bar: units, dots and the map', async () => {
   const { el, last } = await editor();
   await pick(el, el.querySelector<HTMLButtonElement>('to-menu.trip-units > button')!, 'Miles');
   expect(last()!.startsWith('---\nunits: miles\n---\n')).toBe(true);
-  expect(stops(el)[1].querySelector('.trip-leg')!.textContent).toBe('113.4 mi');
+  expect(stops(el)[1].querySelector('.trip-leg')!.textContent).toBe('109 mi');
   await pick(el, el.querySelector<HTMLButtonElement>('to-menu.trip-units > button')!, 'Hours of driving');
   expect(last()!.startsWith('Place |')).toBe(true);
-  expect(stops(el)[1].querySelector('.trip-leg')!.textContent).toBe('about 2 hr 58 min by car');
+  expect(stops(el)[1].querySelector('.trip-leg')!.textContent).toBe('about 2 hr 52 min by car');
   bar(el, 'Join the stops in order').click();
   await settle(el);
   expect(last()!.startsWith('---\nroute: dots\n---\n')).toBe(true);

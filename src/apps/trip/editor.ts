@@ -73,6 +73,8 @@ export class ToTripEditor extends DocElement<TripView> {
   private drawn: { view: TripView; cur: number } | null = null;
   /** Fit the map to the stops at the next drawing: a new document, or a new map. */
   private refit = true;
+  /** A zoom is on its way (Leaflet animates it). */
+  private zooming = false;
 
   constructor() {
     super();
@@ -129,6 +131,8 @@ export class ToTripEditor extends DocElement<TripView> {
     map.attributionControl.setPrefix('');
     this.layer = L.layerGroup().addTo(map);
     map.on('click', (e: Leaflet.LeafletMouseEvent) => this.add(e.latlng.lat, e.latlng.wrap().lng));
+    map.on('zoomanim', () => (this.zooming = true));
+    map.on('zoomend', () => (this.zooming = false));
     this.map = map;
     this.watch = new ResizeObserver(() => map.invalidateSize());
     this.watch.observe(el);
@@ -139,10 +143,14 @@ export class ToTripEditor extends DocElement<TripView> {
   private dropMap() {
     this.watch?.disconnect();
     this.watch = null;
-    this.map?.remove();
+    // A map taken away in the middle of a zoom would be asked for its panes when the zoom ends: it goes then.
+    const map = this.map;
+    if (map && this.zooming) map.once('zoomend', () => map.remove());
+    else map?.remove();
     this.map = null;
     this.layer = null;
     this.drawn = null;
+    this.zooming = false;
   }
   /** The pins and the line between them, drawn again. */
   private async drawPins() {
