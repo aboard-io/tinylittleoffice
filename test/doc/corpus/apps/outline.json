@@ -1,0 +1,21 @@
+{
+ "source": "src/apps/outline/templates.ts (the rebuilt tree)",
+ "docs": [
+  {
+   "name": "outline/launch",
+   "text": "- Launch\n  - Product\n    - Pricing {.from label=sets}\n    - Onboarding\n  - Marketing\n    - Press\n    - Newsletter\n  - Support\n    - Help pages\n    - A reply within a day\n\n~ Pricing -> Press: informs\n"
+  },
+  {
+   "name": "outline/talk",
+   "text": "- The link is the document\n  - The problem\n    - A file needs a place to live, an account to reach it, a server to keep it\n    - Sharing a file is sharing a place\n  - The idea\n    - Put the whole document after the # in the address\n    - Nothing is sent anywhere; the browser never shares the fragment\n    - Copy the link and you have copied the file\n  - What it means\n    - No sign-up, no saving, no servers to trust\n    - A document is as private as the link\n    - Try it: tinylittleoffice.com\n"
+  },
+  {
+   "name": "outline/book",
+   "text": "- The Lighthouse Keeper\n  - Part one: Arrival\n    - Chapter 1: The ferry\n      - Mara takes the last ferry of the season to the island\n    - Chapter 2: The keeper\n      - Old Finn shows her the lamp and will not say why he is leaving\n  - Part two: Winter\n    - Chapter 3: The storm\n      - The light fails on the worst night of the year\n    - Chapter 4: The letters\n      - A box of letters under the stairs, every one unopened\n  - Part three: Spring\n    - Chapter 5: The first ferry\n      - Mara decides whether to be on it\n"
+  },
+  {
+   "name": "outline/decision",
+   "text": "- Should we move the office?\n  - Stay where we are\n    - For: the lease is cheap and everyone knows the way\n    - Against: no room for the two people we are hiring\n  - Take the floor above\n    - For: twice the room, the same address\n    - Against: the rent goes up by a third\n  - Go remote\n    - For: no rent at all; hire anywhere\n    - Against: the workshop needs a room with a bench in it\n  - Decide by the end of the month {.to label=then}\n"
+  }
+ ]
+}
