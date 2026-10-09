@@ -17,13 +17,12 @@ const scriptsOf = (html: string) => [...html.matchAll(/<script([^>]*)>([\s\S]*?)
 
 test('every script a page carries is a registered, fixed one, so the CSP can allow it by hash', () => {
   const known = new Set(pageScripts());
-  assert.ok(known.size >= 9, `only ${known.size} page scripts are registered`);
+  assert.ok(known.size >= 8, `only ${known.size} page scripts are registered`);
   let seen = 0;
   for (const def of apps()) {
     if (!def.document) continue;
     for (const body of ['', SAMPLE, def.read?.(SAMPLE) ?? SAMPLE]) {
-      // The page as it is read, and as it is edited in place (the invoice's sums).
-      for (const html of [def.document(body, { created: null }), specOf(def.id)?.page?.(body, true) ?? '']) {
+      for (const html of [def.document(body, { created: null })]) {
         for (const [attrs, text] of scriptsOf(html)) {
           if (/type="application\/json"/.test(attrs)) continue;
           assert.ok(known.has(text), `${def.id}: a script that is not registered: ${text.slice(0, 80)}`);

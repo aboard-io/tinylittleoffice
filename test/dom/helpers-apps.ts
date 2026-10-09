@@ -100,7 +100,7 @@ export function shortcut(key: string, mods: { shift?: boolean; alt?: boolean; mo
 export const texts = (root: ParentNode, selector: string) => [...root.querySelectorAll(selector)].map((e) => e.textContent?.trim() ?? '');
 
 /**
- * The page an editor shows in its sandboxed frame (an invoice, a website, a
+ * The page an editor shows in its sandboxed frame (a website, a
  * bill split), and its side of the conversation. The frame's own script,
  * which turns typing in the page into messages, needs a real browser (one
  * e2e test drives it); here the same messages are posted to the editor as

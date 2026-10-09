@@ -24,7 +24,7 @@ you have copied the file.
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
 | Store | A shop page with a working cart; orders go by email. |
-| Invoice | Who, what, how much; sums done, PDF to send. |
+| Invoice | A form laid out like the paper: who, what, how much; the sums done as you type, a PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
 | Zine | A tiny deck, edited as Deck is: eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
 | Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |

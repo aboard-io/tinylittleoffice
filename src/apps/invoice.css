@@ -1,0 +1,214 @@
+/* The invoice: a form laid out like the paper it will be */
+.inv {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 40px) 40px;
+}
+.inv input,
+.inv textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--to-ink);
+  background: var(--to-surface);
+  border: 1px dashed var(--to-border);
+  border-radius: var(--to-radius);
+}
+.inv input:hover,
+.inv textarea:hover {
+  border-color: var(--to-ink-3);
+}
+.inv input:focus-visible,
+.inv textarea:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -1px;
+  border-style: solid;
+}
+.inv input::placeholder,
+.inv textarea::placeholder {
+  color: var(--to-ink-3);
+}
+.inv input.strong {
+  font-weight: 600;
+}
+.inv-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--to-accent);
+}
+.inv-head h2 {
+  margin: 0;
+  font-size: 2.2rem;
+  letter-spacing: -0.02em;
+}
+.inv-number {
+  flex: 0 1 12rem;
+}
+.inv-parties,
+.inv-meta {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.inv-parties {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+.inv-meta {
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+}
+.inv-party {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.inv-party legend,
+.inv-field span {
+  display: block;
+  margin-bottom: 4px;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--to-ink-3);
+}
+.inv-field {
+  display: block;
+  min-width: 0;
+}
+.inv-items {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: collapse;
+}
+.inv-items th {
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--to-ink-2);
+  background: var(--to-surface-2);
+}
+.inv-items td {
+  padding: 4px 3px;
+  border-bottom: 1px solid var(--to-border);
+  vertical-align: middle;
+}
+.inv-items .n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.inv-items td.n input {
+  text-align: right;
+}
+.inv-items td.qty,
+.inv-items td.n:not(.amount) {
+  width: 5.5rem;
+}
+.inv-items td.unit {
+  width: 6rem;
+}
+.inv-items td.amount {
+  width: 7rem;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.inv-items td.x {
+  width: 32px;
+  text-align: center;
+}
+.inv-items tfoot td {
+  border: 0;
+  padding: 6px 8px;
+  color: var(--to-ink-2);
+}
+.inv-items tfoot tr.total td {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--to-ink);
+}
+.inv-first {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  padding: 8px 14px;
+  font: inherit;
+  color: var(--to-accent);
+  background: none;
+  border: 1px dashed var(--to-accent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.inv-notes {
+  margin-top: 20px;
+  resize: vertical;
+}
+.inv-total-hint b {
+  color: var(--to-ink);
+}
+
+/* On a phone each line stacks, its boxes named. */
+@media (max-width: 640px) {
+  .inv-items thead {
+    display: none;
+  }
+  .inv-items,
+  .inv-items tbody,
+  .inv-items tfoot,
+  .inv-items tr,
+  .inv-items td {
+    display: block;
+    width: auto;
+  }
+  .inv-items tbody tr {
+    position: relative;
+    padding: 8px 0 10px;
+    border-bottom: 1px solid var(--to-border);
+  }
+  .inv-items td {
+    border: 0;
+    padding: 3px 0;
+  }
+  .inv-items td.qty,
+  .inv-items td.n:not(.amount),
+  .inv-items td.unit,
+  .inv-items td.amount {
+    width: auto;
+  }
+  .inv-items td[data-th]::before {
+    content: attr(data-th);
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--to-ink-3);
+  }
+  .inv-items td.n {
+    text-align: left;
+  }
+  .inv-items td.n input {
+    text-align: left;
+  }
+  .inv-items td.x {
+    position: absolute;
+    top: 6px;
+    right: 0;
+  }
+  .inv-items tfoot tr {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .inv-items tfoot td:empty {
+    display: none;
+  }
+}

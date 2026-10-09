@@ -4,7 +4,8 @@
  * the messages). Fixed text, so the site's CSP allows it by hash.
  *
  * A field whose words appear in the page as they are is found by them.
- * A page may also mark its fields itself (the invoice does), and then it
+ * A page may also mark its fields itself (none does now that the invoice
+ * is a form of its own; the marks stay for one that will), and then it
  * can show more than its text holds:
  *
  *   data-lf="r,f"      field f of row r, typed into where it stands

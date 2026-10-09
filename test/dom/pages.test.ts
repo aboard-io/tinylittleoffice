@@ -46,11 +46,11 @@ test('page apps: a site, a store, an invoice', async () => {
   const store = framed((await example('store')).el);
   expect([...store.querySelectorAll('button')].filter((b) => /^Add .* to the cart$/.test(b.getAttribute('aria-label') ?? ''))).toHaveLength(4);
 
-  // An invoice: the sums are done, and it is called by its number.
+  // An invoice: a form of its own (test/dom/invoice.test.ts); the sums are done, and it is called by its number.
   await visit('#/v0/invoice');
   button(editor('invoice'), 'Start from an example').click();
   await settleAll();
-  expect(framed(editor('invoice')).querySelector('tfoot tr:last-child')!.textContent).toContain('$5,486.40');
+  expect(editor('invoice').querySelector('[data-inv="total"]')!.textContent).toContain('$5,486.40');
   expect(document.title).toBe('Invoice 0042 · TinyLittleOffice');
 });
 

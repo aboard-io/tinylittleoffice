@@ -503,7 +503,7 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
   assert.equal(appOf('invoice')!.title(specOf('invoice')!.example), 'Invoice 0042');
 });
 
-test('invoice: the sums, and the page that is its editor', async () => {
+test('invoice: the sums, read loosely, and the page it downloads', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
   const { parseInvoice, readInvoice } = await import('../src/apps/invoice.def.ts');
   const spec = specOf('invoice')!;
@@ -525,21 +525,10 @@ test('invoice: the sums, and the page that is its editor', async () => {
   // A quantity may carry its units; a table may name its columns otherwise, and put them in another order.
   assert.equal(parseInvoice(readInvoice('Design, 12 hours, 150')).items[0].unit, 'hours');
   assert.deepEqual(parseInvoice(readInvoice('| Description | Rate | Quantity |\n|---|---|---|\n| Build | 140 | 20 days |')).items, [{ what: 'Build', qty: 20, unit: 'days', price: 140 }]);
-  // The page as it is read has no marks; edited, every field is marked with its row, a hint where it is empty.
+  // The page (the .html download) is the invoice read, with nothing of any editor in it; empty, it is still the invoice.
   const plain = spec.page!(spec.example);
-  assert.ok(!plain.includes('data-lf') && !plain.includes('data-inv'));
-  const edit = spec.page!(spec.example, { edit: true });
-  assert.ok(edit.includes('data-lf="2,0"') && edit.includes('>0042</span>'), 'the number is row 2');
-  assert.ok(edit.includes('data-lf="0,0,0" data-hint="Your name"') && edit.includes('data-lf="0,0,1"') && edit.includes('data-lf="0,0,2" data-hint="Another line"'), 'an address is lines, with one more to type into');
-  assert.ok(edit.includes('data-lf="6,1"') && edit.includes('data-lf="6,2"') && edit.includes('data-lf="6,3"') && edit.includes('data-inv="qty"'), 'an item\'s quantity, units and price');
-  assert.ok(edit.includes('data-lf="8,1"') && edit.includes('>1</span>'), 'one of something has its quantity to type');
-  assert.ok(edit.includes('data-lf="+7,0" data-hint="Payment terms"') && edit.includes('data-lf="+9,0"'), 'a field not written yet is a hint of its kind');
-  assert.ok(edit.includes('data-lf-add="8" data-lf-after="8"') && edit.includes('data-lf-remove="6"'));
-  assert.ok(edit.includes('data-inv="total">$5,486.40<'));
-  // Empty, it is all hints, and still the invoice.
-  const blank = spec.page!('', { edit: true });
-  assert.ok(blank.includes('data-lf="+0,0,0"') && blank.includes('data-lf-add="8" data-lf-after="-1"') && blank.includes('data-inv="total">$0.00<'));
-  assert.ok(!spec.page!('', { edit: false }).includes('data-lf'));
+  assert.ok(plain.includes('<td>Design</td><td class="n">12</td><td class="u">hours</td>') && plain.includes('$5,486.40') && !plain.includes('<script'));
+  assert.ok(spec.page!('').includes('$0.00'));
 });
 
 test('contract: two people sign the same words', async () => {

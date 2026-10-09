@@ -153,7 +153,7 @@ test('page apps: a store with a cart, an invoice as a PDF', async ({ page }) => 
   // An invoice: the PDF is the invoice.
   await page.goto('/#/v0/invoice');
   await page.getByRole('button', { name: 'Start from an example' }).click();
-  await expect(page.frameLocator('to-invoice iframe').locator('tfoot tr').last()).toContainText('$5,486.40');
+  await expect(page.locator('to-invoice [data-inv="total"]')).toHaveText('$5,486.40');
   const [pdf] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+p')]);
   expect(pdf.suggestedFilename()).toBe('invoice-0042.pdf');
   expect(readFileSync(await pdf.path()).subarray(0, 5).toString()).toBe('%PDF-');
