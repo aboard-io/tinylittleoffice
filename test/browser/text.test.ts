@@ -428,7 +428,7 @@ test('the selection bubble: the lists over whole blocks of a doc or lines editor
   inBubble('Numbered list')!.click();
   await h.el.updateComplete;
   expect(h.tlo).toBe('1. one\n2. two\n');
-  const line = await mount('one line\n', 'line', range(0, 0, 8));
+  await mount('one line\n', 'line', range(0, 0, 8));
   await until(bubbleOpen);
   expect(inBubble('Bold')).not.toBeNull();
   expect(inBubble('Bulleted list')).toBeNull();
