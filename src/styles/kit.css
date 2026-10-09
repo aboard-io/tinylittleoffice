@@ -192,6 +192,49 @@
     flex: none;
   }
 
+  /* ---- rows (kit/rows.ts): a row's handle, and where a dragged row would land ---- */
+  /* The handle alone takes a finger's drag from the page (the rest of the row scrolls as ever). */
+  .to-rows-handle {
+    position: relative;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .to-rows-target {
+    position: fixed;
+    z-index: 30;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--to-accent);
+    pointer-events: none;
+  }
+  .to-rows-target::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--to-accent);
+  }
+  .to-rows-target[hidden] {
+    display: none;
+  }
+  @media (pointer: coarse) {
+    /* Under a finger the handle is 44px to hit, whatever it draws. */
+    .to-rows-handle::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
+
   /* ---- menus (popovers) ---- */
   to-menu,
   to-insert,

@@ -1,7 +1,7 @@
 /**
  * <to-outline-editor>: an outliner. Every row is an item, its words a <to-text shape=line> over the item's
- * block; Enter makes another, Tab and Shift+Tab take it in and out with its family, Alt+arrows move and fold
- * it, a handle drags it onto another item, and any item can be zoomed in on. The one bar formats the words of
+ * block; Enter makes another, Tab and Shift+Tab take it in and out with its family, Alt+Up/Down move
+ * it, Mod+Alt+Up/Down fold it, a handle drags it onto another item, and any item can be zoomed in on. The one bar formats the words of
  * the chosen row, arranges it, zooms, folds, connects and shows the outline as other things. Each item's
  * bullet is the line to its parent, tapped to turn it (plain, an arrow out, an arrow back, both ways) and to
  * name it; Connect joins any two items. Every change is operations on the document (model.ts): the kernel's
@@ -10,19 +10,21 @@
  *
  * It behaves as a bulleted list does: Enter at the start of words pushes the row down, Backspace at the start joins
  * the row to the item before it and Delete at the end joins the next one in. Rows can be chosen whole, as nodes (a
- * range): Shift+arrows from the caret, a tap on a row's handle, Select All twice. A range is a span of blocks, every
- * chosen row's family with it; it is copied, cut, pasted, deleted, indented and moved as one, from the keys or from a
- * small bar that comes up under it. Any list can be numbered.
+ * range): Shift+arrows from the caret, Escape in the words, a tap on a row's handle, Select All twice. A range is a span
+ * of blocks, every chosen row's family with it; it is copied, cut, pasted, deleted, duplicated, indented and moved as
+ * one, from the keys or from a small bar that comes up under it. All of that is the kit's rows controller (kit/rows.ts);
+ * this editor gives it the rows and the operations. Any list can be numbered ("1. " typed at the start of a row too).
  */
 import { html, nothing, type PropertyDeclarations, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ChevronDown, ChevronRight, ClipboardPaste, Copy, Eye, FoldVertical, GripVertical, Link2, ListOrdered, Minus, Plus, Scissors, UnfoldVertical, ZoomIn, ZoomOut } from 'lucide';
+import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Eye, FoldVertical, GripVertical, Link2, ListOrdered, Minus, Plus, UnfoldVertical, ZoomIn, ZoomOut } from 'lucide';
 import { applyAll, family, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { btn, tool } from '../../kit/bar.ts';
 import { appOf, apps } from '../../kit/apps.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
-import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import type { ContextEntry } from '../../kit/context.ts';
+import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { decodeDoc, encodeDoc } from '../../kit/codec.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { pageSvg } from '../../kit/draw.ts';
@@ -33,7 +35,7 @@ import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { parseHash, routeHash } from '../../kit/route.ts';
 import type { Sel, TextOps, ToText } from '../../kit/text.ts';
 import { caret } from '../../kit/textops.ts';
-import { appendItem, connect, copySpan, docBlock, enterAt, familyEnd, hasChildren, indexAt, insertDoc, itemBlock, itemsEnd, joinBack, joinForward, listify, liveLinks, mapAt, moveItem, moveSpan, nameOf, parentOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, topsOf, unlink, webAddress, type Dir, type Item, type Link, type OutlineView, type Span } from './model.ts';
+import { appendItem, connect, copySpan, docBlock, duplicateSpan, enterAt, familyEnd, hasChildren, indexAt, insertDoc, itemBlock, itemsEnd, joinBack, joinForward, listify, liveLinks, mapAt, moveItem, moveSpan, nameOf, parentOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, topsOf, unlink, webAddress, type Dir, type Item, type Link, type OutlineView } from './model.ts';
 import { appName, docGist, outlinePage } from './view.ts';
 import def from './def.ts';
 import '../../kit/bar.ts';
@@ -60,17 +62,14 @@ export function refOfLink(words: string): string | null {
   return payload && !text ? null : `${app}\n${text}`;
 }
 
-type Drag = { at: number; over: number; how: 'under' | 'after' };
-/** Rows chosen whole: where the choosing started and where it is now, by block index. */
-type Range = { anchor: number; focus: number };
-/** The last rows copied here, so a paste in this page knows them (and works when the clipboard is refused). */
-let copied: { text: string; html: string } | null = null;
+/** Where the selection was before an edit: rows chosen whole, or the caret in a row's words. What an undo puts back. */
+type Mark = { range: RowRange<number> } | { at: number; offset: number };
 type Ends = { from: string; to: string; dir: Dir; label?: string; edge: boolean };
 /** A line's two ends, as t() takes them. */
 const ft = (e: Ends) => ({ from: e.from, to: e.to });
 
 export class ToOutlineEditor extends DocElement<OutlineView> {
-  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, range: { state: true }, drag: { state: true }, menuFor: { state: true }, naming: { state: true }, nameDraft: { state: true }, webDraft: { state: true }, showing: { state: true } };
+  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, menuFor: { state: true }, naming: { state: true }, nameDraft: { state: true }, webDraft: { state: true }, showing: { state: true } };
   /** Items folded shut, by block index. */
   declare folded: Set<number>;
   /** The item zoomed in on, by block index; -1 for the whole outline. */
@@ -79,9 +78,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   declare sel: number;
   /** Connecting: the item the join starts from (-1 until it is picked); null when not connecting. */
   declare connecting: { from: number } | null;
-  /** Rows chosen whole, as nodes; null when the caret is in words (or nowhere). */
-  declare range: Range | null;
-  declare drag: Drag | null;
   /** The block (an item or a join) whose line menu is open; -1 for none. */
   declare menuFor: number;
   /** The block whose line is being named, and the name so far; -1 when the dialog is closed. */
@@ -97,6 +93,30 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private rowBlocks = new WeakMap<Block, Block[]>();
   /** The block a row shows when the outline has none yet; it enters the document with the first letter typed. */
   private ghost: Block = { k: 'li', depth: 0, runs: [] };
+  /** The selection before each edit, by the edit's first op (which a burst of typing keeps). */
+  private marks = new WeakMap<Op, Mark>();
+  /** Rows chosen whole, as nodes: the kit's one implementation (keys, handle, drag, clipboard, the bar under them). */
+  readonly rows = new Rows<number>(this, {
+    rows: () => this.rowItems(),
+    box: () => this.querySelector<HTMLElement>('.ol'),
+    handle: '.ol-handle',
+    nests: true,
+    contextClass: 'ol-context',
+    label: t('Chosen items'),
+    current: () => (this.visible().some((x) => x.at === this.sel) ? this.sel : null),
+    span: (rows) => spanOf(this.doc, this.view, rows.map((r) => r.id)),
+    edit: (at, offset) => this.focusRow(at, offset),
+    remove: (s) => this.deleteSpan(s),
+    canMove: (s, by) => !!moveSpan(this.doc, this.view, s, by),
+    move: (s, by) => this.moveRange(s, by),
+    canShift: (s, by) => !!shiftSpan(this.doc, this.view, s, by, this.floor),
+    shift: (s, by) => this.shiftRange(s, by),
+    duplicate: (s) => this.duplicate(s),
+    copy: (s) => this.clip(s),
+    paste: (data, s) => this.pasteData(data, s),
+    drop: (at, to, how) => this.dropAt(at, to, how),
+    extra: (s) => this.extraItems(s),
+  });
 
   constructor() {
     super();
@@ -104,8 +124,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.zoom = -1;
     this.sel = -1;
     this.connecting = null;
-    this.range = null;
-    this.drag = null;
     this.menuFor = -1;
     this.naming = -1;
     this.nameDraft = '';
@@ -121,18 +139,35 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     // arriving has no history yet; one undone back to loose words is left as the undo left it).
     if (changed.has('value') && this.view.loose && !this.canUndo && !this.canRedo) this.edit(listify(this.doc));
     if (this.zoom >= 0 && indexAt(this.view, this.zoom) < 0) this.zoom = -1;
-    if (this.range && !this.rangeRows().length) this.range = null;
   }
-  /** Every edit: folds and the zoom follow the blocks they belong to. */
+  /** Every edit: folds and the zoom follow the blocks they belong to; the selection before it is kept for its undo. */
   protected edit(ops: Op[], key?: string) {
+    if (ops.length && !this.marks.has(ops[0])) {
+      const r = this.rows.range;
+      const mark: Mark | null = r ? { range: { ...r } } : this.sel >= 0 ? { at: this.sel, offset: this.caretIn(this.sel) } : null;
+      if (mark) this.marks.set(ops[0], mark);
+    }
     super.edit(ops, key);
     this.remap(ops);
   }
+  /** After an undo the selection comes back as it was before the edit; after a redo, where the edit left it. */
   protected undone(entry: { ops: Op[]; inverse: Op[] }, redo: boolean) {
     this.menuFor = -1;
     this.connecting = null;
-    this.range = null;
+    this.rows.release();
     this.remap(redo ? entry.ops : entry.inverse);
+    const mark = this.marks.get(entry.ops[0]);
+    const ok = (at: number) => at >= 0 && indexAt(this.view, at) >= 0;
+    if (mark && 'range' in mark) {
+      const r = redo ? { anchor: mapAt(entry.ops, mark.range.anchor), focus: mapAt(entry.ops, mark.range.focus) } : mark.range;
+      if (ok(r.anchor) && ok(r.focus)) return this.rows.select(r);
+    } else if (mark && !redo && ok(mark.at)) return this.focusRow(mark.at, mark.offset);
+    // Else the row the change touched first.
+    const ops = redo ? entry.ops : entry.inverse;
+    const first = ops.find((o) => 'at' in o) as { at: number } | undefined;
+    if (!first || !this.items.length) return;
+    const near = [...this.items].reverse().find((it) => it.at <= first.at) ?? this.items[0];
+    this.focusRow(near.at);
   }
   /** Folds and the zoom are block indices: moved with their blocks, dropped with them. */
   private remap(ops: Op[]) {
@@ -141,22 +176,17 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   }
   connectedCallback() {
     super.connectedCallback();
+    // (The rows controller hears the keys first; Escape while connecting is connecting's, so it is caught on the way down.)
+    this.addEventListener('keydown', this.onEscape, true);
     this.addEventListener('keydown', this.onKey);
-    // Capturing, on the document: before a row's own editor, and when nothing in the page is focused (a range's copy
-    // can land on the body).
-    for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener, true);
+    // Capturing: before a row's own editor hears a paste.
+    this.addEventListener('paste', this.onPaste, true);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener('keydown', this.onEscape, true);
     this.removeEventListener('keydown', this.onKey);
-    for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener, true);
-  }
-  protected updated(changed: Map<string, unknown>) {
-    super.updated(changed);
-    const bar = this.querySelector<ToContext>('.ol-context');
-    if (!bar) return;
-    if (this.range) bar.show(() => this.rangeRect());
-    else if (bar.isOpen) bar.hide();
+    this.removeEventListener('paste', this.onPaste, true);
   }
 
   private blocksFor(b: Block): Block[] {
@@ -216,92 +246,68 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- the words ---------- */
 
-  /* ---------- rows chosen whole ---------- */
+  /* ---------- rows chosen whole (kit/rows.ts) ---------- */
 
-  /** The chosen rows: the rows on screen from the anchor to the focus, in order. */
-  private rangeRows(): Item[] {
-    const r = this.range;
-    if (!r) return [];
-    const vis = this.visible();
-    const a = vis.findIndex((x) => x.at === r.anchor);
-    const f = vis.findIndex((x) => x.at === r.focus);
-    return a < 0 || f < 0 ? [] : vis.slice(Math.min(a, f), Math.max(a, f) + 1);
-  }
-  /** The blocks the range covers: each chosen row with its family. */
-  private span(): Span | null {
-    return spanOf(this.doc, this.view, this.rangeRows().map((it) => it.at));
+  /** The rows on screen as the rows controller takes them: each with its element and its family's blocks. */
+  private rowItems(): RowItem<number>[] {
+    return this.visible().map((it) => {
+      const host = this;
+      return {
+        id: it.at,
+        span: { from: it.at, to: family(this.doc, it.at, this.view.depths) },
+        get el() {
+          return host.querySelector<HTMLElement>(`.ol-row[data-at="${it.at}"]`)!;
+        },
+      };
+    });
   }
   /** The rows inside the zoom go no shallower than its first level. */
   private get floor(): number {
     return this.zoom >= 0 ? this.base + 1 : 0;
   }
-  /** Choose the row at `at` whole (or, extending, from where the range began to it): the words' caret goes, the tree takes the keys. */
-  private choose(at: number, extend = false) {
-    if (at < 0 || indexAt(this.view, at) < 0) return;
-    const from = this.range?.anchor ?? (this.visible().some((x) => x.at === this.sel) ? this.sel : at);
-    this.range = extend ? { anchor: from, focus: at } : { anchor: at, focus: at };
-    this.sel = at;
-    this.menuFor = -1;
-    document.getSelection()?.removeAllRanges();
-    this.querySelector<HTMLElement>('.ol')?.focus({ preventScroll: true });
-  }
-  /** Shift+Down: the focus to the next row after its family; Shift+Up: to the row before. Past the anchor the range turns. */
-  private extend(by: 1 | -1) {
-    const r = this.range!;
-    const vis = this.visible();
-    const a = vis.findIndex((x) => x.at === r.anchor);
-    const f = vis.findIndex((x) => x.at === r.focus);
-    let to: Item | undefined;
-    if (by < 0) to = vis[f - 1];
-    else if (f < a) to = vis[f + 1];
-    else {
-      const end = family(this.doc, r.focus, this.view.depths);
-      to = vis.find((x) => x.at >= end);
-    }
-    if (to) this.range = { ...r, focus: to.at };
-  }
-  /** Everything on screen chosen. */
-  private selectAll() {
-    const vis = this.visible();
-    if (!this.items.length || !vis.length) return;
-    this.choose(vis[0].at);
-    this.range = { anchor: vis[0].at, focus: vis[vis.length - 1].at };
-  }
-  /** The range let go, the caret into a row. */
-  private release(at: number, offset: number | 'end' = 'end') {
-    this.range = null;
-    this.focusRow(at, offset);
-  }
   /** The chosen rows taken away, families and all; the caret into the row before (or after, or the empty outline's first row). */
-  private deleteRange() {
-    const s = this.span();
-    const rows = this.rangeRows();
-    if (!s || !rows.length) return;
+  private deleteSpan(s: RowSpan) {
     const vis = this.visible();
-    const before = vis[vis.indexOf(rows[0]) - 1];
+    const first = vis.findIndex((x) => x.at >= s.from);
+    const before = first > 0 ? vis[first - 1] : undefined;
     const next = vis.find((x) => x.at >= s.to);
-    this.range = null;
     this.edit(removeSpan(s));
     if (before) this.focusRow(before.at);
     else if (next) this.focusRow(next.at - (s.to - s.from), 0);
     else this.focusRow(-1);
   }
-  private shiftRange(by: 1 | -1) {
-    const s = this.span();
-    const ops = s && shiftSpan(this.doc, this.view, s, by, this.floor);
+  private shiftRange(s: RowSpan, by: 1 | -1): RowRange<number> | null {
+    const r = this.rows.range;
+    const ops = shiftSpan(this.doc, this.view, s, by, this.floor);
     if (ops) this.edit(ops);
+    return r;
   }
-  private moveRange(by: 1 | -1) {
-    const s = this.span();
-    const r = this.range;
-    const ops = s && moveSpan(this.doc, this.view, s, by);
-    if (!ops || !r) return;
+  private moveRange(s: RowSpan, by: 1 | -1): RowRange<number> | null {
+    const r = this.rows.range;
+    const ops = moveSpan(this.doc, this.view, s, by);
+    if (!ops || !r) return r;
     this.edit(ops);
-    this.range = { anchor: mapAt(ops, r.anchor), focus: mapAt(ops, r.focus) };
+    return { anchor: mapAt(ops, r.anchor), focus: mapAt(ops, r.focus) };
+  }
+  /** The chosen rows again, right after them; the copy is chosen. */
+  private duplicate(s: RowSpan): RowRange<number> | null {
+    const r = this.rows.range;
+    const d = duplicateSpan(this.doc, this.view, s);
+    if (!d.ops.length) return r;
+    this.edit(d.ops);
+    return r && { anchor: r.anchor - s.from + d.at, focus: r.focus - s.from + d.at };
+  }
+  /** Mod+D in a row's words: the row and its family again after it, the caret in the copy where it was. */
+  private duplicateRow(at: number) {
+    const s = { from: at, to: family(this.doc, at, this.view.depths) };
+    const offset = this.caretIn(at);
+    const d = duplicateSpan(this.doc, this.view, s);
+    this.edit(d.ops);
+    this.focusRow(d.at, offset);
   }
   /** Numbered or not: the range's top rows, or the list the chosen row belongs to. */
   private number() {
-    const s = this.span();
+    const s = this.rows.range ? this.rows.span() : null;
     if (s) {
       const tops = topsOf(this.view, s).map((it) => it.at);
       return this.edit(setOrdered(this.doc, tops, !tops.every((at) => this.isOrd(at))));
@@ -313,139 +319,47 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const b = this.doc.blocks[at];
     return b?.k === 'li' && !!b.ord;
   }
-  /** Where the chosen rows are on screen: from the first to the last. */
-  private rangeRect(): DOMRect | null {
-    const els = this.querySelectorAll<HTMLElement>('.ol-row.ranged');
-    if (!els.length) return null;
-    const a = els[0].getBoundingClientRect();
-    const b = els[els.length - 1].getBoundingClientRect();
-    return new DOMRect(Math.min(a.left, b.left), a.top, Math.max(a.right, b.right) - Math.min(a.left, b.left), b.bottom - a.top);
-  }
-
-  /** The keys a range answers to; true when the key was the range's. */
-  private onRangeKey(e: KeyboardEvent): boolean {
-    const r = this.range!;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
-    const up = k === 'ArrowUp';
-    if (k === 'Escape') this.release(r.focus);
-    else if ((up || k === 'ArrowDown') && e.altKey) this.moveRange(up ? -1 : 1);
-    else if ((up || k === 'ArrowDown') && e.shiftKey && !mod) this.extend(up ? -1 : 1);
-    else if (up || k === 'ArrowDown') {
-      const rows = this.rangeRows();
-      const s = this.span();
-      const vis = this.visible();
-      const to = up ? (vis[vis.indexOf(rows[0]) - 1] ?? rows[0]) : (vis.find((x) => s && x.at >= s.to) ?? rows[rows.length - 1]);
-      this.release(to.at);
-    } else if (k === 'Backspace' || k === 'Delete') this.deleteRange();
-    else if (k === 'Tab' && !mod && !e.altKey) this.shiftRange(e.shiftKey ? -1 : 1);
-    else if (mod && k.toLowerCase() === 'a') this.selectAll();
-    else return false;
-    return true;
+  /** The outline's own item in the bar under chosen rows: Numbered, after Move down. */
+  private extraItems(s: RowSpan): ContextEntry[] {
+    const tops = topsOf(this.view, s);
+    return [{ label: t('Numbered'), icon: ListOrdered, pressed: tops.length > 0 && tops.every((it) => this.isOrd(it.at)), disabled: !tops.some((it) => !it.doc), does: () => this.number() }];
   }
 
   /* ---------- the clipboard ---------- */
 
-  /** What the range puts on the clipboard: its blocks as TLO, the shallowest at the margin, and as HTML. */
-  private clip(s: Span): { text: string; html: string } {
+  /** What chosen rows put on the clipboard: their blocks as TLO, the shallowest at the margin, and as HTML. */
+  private clip(s: RowSpan): Clip {
     const blocks = copySpan(this.doc, this.view, s);
-    return (copied = { text: write({ head: {}, blocks }), html: docToHtml(blocks) });
+    return { text: write({ head: {}, blocks }), html: docToHtml(blocks) };
   }
-  /** Whether an event is this editor's to answer: inside it, or on the page's body while rows are chosen. */
-  private mine(target: EventTarget | null): boolean {
-    const el = target as HTMLElement | null;
-    if (!el) return false;
-    if (el === document.body || el === document.documentElement) return !!this.range;
-    return this.contains(el) && !el.closest?.('dialog, [popover], input, textarea');
-  }
-  private onClipboard = (e: ClipboardEvent) => {
-    if (!this.mine(e.target)) return;
-    const dt = e.clipboardData;
-    if (e.type === 'paste') return this.onPaste(e);
-    const s = this.range && this.span();
-    if (!s || !dt) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const c = this.clip(s);
-    dt.setData('text/plain', c.text);
-    dt.setData('text/html', c.html);
-    if (e.type === 'cut') this.deleteRange();
-  };
   /**
-   * A paste: with rows chosen, it takes their place; into a row, lines or list items go in as items after the row's
+   * A paste into a row (chosen rows are the rows controller's): lines or list items go in as items after the row's
    * family (words alone, and words copied from a row, are the row's to paste).
    */
-  private onPaste(e: ClipboardEvent) {
+  private onPaste = (e: ClipboardEvent) => {
     const el = e.target as HTMLElement;
     const dt = e.clipboardData;
-    if (!dt || el.closest?.('.ol-doc')) return;
-    const data = { text: dt.getData('text/plain').replace(/\r\n?/g, '\n'), html: dt.getData('text/html') };
+    if (!dt || this.rows.range || el.closest?.('.ol-doc, dialog, [popover], input, textarea')) return;
     const row = el.closest?.<HTMLElement>('.ol-row');
-    if (this.range) {
-      e.preventDefault();
-      e.stopPropagation();
-      return this.pasteData(data, this.span());
-    }
     if (!row) return;
+    const data = { text: dt.getData('text/plain').replace(/\r\n?/g, '\n'), html: dt.getData('text/html') };
     const ours = data.html.includes(`content="${GENERATOR}"`);
     const oneLine = !data.text.trim().includes('\n');
-    if (!(copied?.text === data.text || (pastesAsItems(data.text) && !(ours && oneLine)))) return;
+    if (!(lastCopied()?.text === data.text || (pastesAsItems(data.text) && !(ours && oneLine)))) return;
     e.preventDefault();
     e.stopPropagation();
     const at = Number(row.dataset.at);
     this.pasteData(data, at >= 0 ? at : null);
-  }
+  };
   /** Pasted data put in as items: ours (or plain text) read as TLO, HTML from elsewhere as blocks; the caret at the end of the last. */
-  private pasteData(data: { text: string; html: string }, target: Span | number | null) {
+  private pasteData(data: Clip, target: RowSpan | number | null) {
     const html = !data.html.includes(`content="${GENERATOR}"`) && data.html.trim() ? htmlToBlocks(data.html) : [];
-    const r = pasteBlocks(this.doc, this.view, html.length ? html : pasteText(data.text), target);
+    const t0 = target ?? (this.itemAt(this.sel) ? this.sel : null);
+    const r = pasteBlocks(this.doc, this.view, html.length ? html : pasteText(data.text), t0);
     if (!r) return;
-    this.range = null;
     this.edit(r.ops);
+    this.rows.release();
     this.focusRow(r.to - 1);
-  }
-  /** The bar's Copy and Cut: the system clipboard as the page may write it, and this page's own memory of it. */
-  private copyOut(cut: boolean) {
-    const s = this.span();
-    if (!s) return;
-    const c = this.clip(s);
-    const plain = () => navigator.clipboard?.writeText(c.text).catch(() => undefined);
-    try {
-      void navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([c.text], { type: 'text/plain' }), 'text/html': new Blob([c.html], { type: 'text/html' }) })]).catch(plain);
-    } catch {
-      void plain();
-    }
-    if (cut) this.deleteRange();
-  }
-  /** The bar's Paste: the system clipboard's words if the page may read them, else what was last copied here. */
-  private async pasteIn() {
-    const target = this.span() ?? (this.itemAt(this.sel) ? this.sel : null);
-    let text = '';
-    try {
-      text = (await navigator.clipboard.readText()).replace(/\r\n?/g, '\n');
-    } catch {
-      // Refused: this page's own copy.
-    }
-    const data = text ? { text, html: copied?.text === text ? copied.html : '' } : copied;
-    if (data) this.pasteData(data, target);
-  }
-  private contextItems(): ContextEntry[] {
-    const s = this.range ? this.span() : null;
-    if (!s) return [];
-    const tops = topsOf(this.view, s);
-    return [
-      { label: t('Indent'), icon: UI.indent, keys: 'Tab', disabled: !shiftSpan(this.doc, this.view, s, 1, this.floor), does: () => this.shiftRange(1) },
-      { label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', disabled: !shiftSpan(this.doc, this.view, s, -1, this.floor), does: () => this.shiftRange(-1) },
-      { label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', disabled: !moveSpan(this.doc, this.view, s, -1), does: () => this.moveRange(-1) },
-      { label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', disabled: !moveSpan(this.doc, this.view, s, 1), does: () => this.moveRange(1) },
-      SEP,
-      { label: t('Copy'), icon: Copy, keys: 'Mod+C', does: () => this.copyOut(false) },
-      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', does: () => this.copyOut(true) },
-      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn() },
-      SEP,
-      { label: t('Numbered'), icon: ListOrdered, pressed: tops.length > 0 && tops.every((it) => this.isOrd(it.at)), disabled: !tops.some((it) => !it.doc), does: () => this.number() },
-      { label: t('Delete'), icon: UI.trash, keys: 'Delete', does: () => this.deleteRange() },
-    ];
   }
 
   private onOps(at: number, e: CustomEvent<TextOps>) {
@@ -468,6 +382,17 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.edit([...all, ...renames, ...asDoc], kind === 'type' && !asDoc.length ? `type:${where}` : undefined);
     if (ghost) this.focusRow(where, e.detail.sel.focus.offset);
     else if (asDoc.length) this.focusRow(where);
+    // "1. " typed at the start of a row numbers its list: a step of its own, so an undo gives the marker back.
+    const o = ops.length === 1 ? ops[0] : null;
+    if (!asDoc.length && o?.op === 'text' && o.from === 2 && o.to === 2 && plainText(o.runs) === ' ') this.numberShortcut(where);
+  }
+  private numberShortcut(at: number) {
+    const b = this.doc.blocks[at];
+    if (b?.k !== 'li' || b.ord || !/^1[.)] $/.test(plainText(b.runs).slice(0, 3))) return;
+    const ops: Op[] = [{ op: 'text', at, from: 0, to: 3, runs: [] }];
+    const next = applyAll(this.doc, ops);
+    this.edit([...ops, ...setOrdered(next, siblingsOf(readOutline(next), at), true)]);
+    this.focusRow(at, 0);
   }
   /** Enter: at the start of words the row is pushed down, at the end a new item, in the middle the words split (model.ts, enterAt). */
   private onEnter(at: number) {
@@ -676,62 +601,90 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- keys ---------- */
 
-  private onKey = (e: KeyboardEvent) => {
+  /** Escape while connecting cancels it (before the rows controller would take the Escape for the row). */
+  private onEscape = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || !this.connecting) return;
     const target = e.composedPath()[0] as HTMLElement;
     if (target.closest?.('[popover]') || target.closest?.('dialog')) return;
-    if (e.key === 'Escape' && this.connecting) {
-      e.preventDefault();
-      this.connecting = null;
-      return;
-    }
-    if (this.range && !target.closest?.('to-text')) {
-      if (this.onRangeKey(e)) e.preventDefault();
-      return;
-    }
+    e.preventDefault();
+    this.connecting = null;
+  };
+  private onKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    const target = e.composedPath()[0] as HTMLElement;
+    if (target.closest?.('[popover]') || target.closest?.('dialog')) return;
+    // Rows chosen whole: the rows controller has the keys.
+    if (this.rows.range && !target.closest?.('to-text')) return;
     const row = target.closest?.('.ol-row') as HTMLElement | null;
     const at = row ? Number(row.dataset.at) : NaN;
     if (!Number.isFinite(at) || at < 0) return;
     const mod = e.metaKey || e.ctrlKey;
+    const k = e.key;
+    const plain = !mod && !e.altKey && !e.shiftKey;
     const vis = this.visible();
     const i = vis.findIndex((x) => x.at === at);
-    if (e.key === 'Tab' && !mod && !e.altKey) this.shiftBy(at, e.shiftKey ? -1 : 1);
-    else if (e.altKey && e.key === 'ArrowUp') this.moveBy(at, -1);
-    else if (e.altKey && e.key === 'ArrowDown') this.moveBy(at, 1);
-    else if (e.altKey && e.key === 'ArrowLeft') this.fold(at, true);
-    else if (e.altKey && e.key === 'ArrowRight') this.fold(at, false);
-    else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.shiftKey && !mod) this.choose(at);
-    else if (e.key === 'ArrowUp' && !e.shiftKey && !mod && i > 0) this.focusRow(vis[i - 1].at);
-    else if (e.key === 'ArrowDown' && !e.shiftKey && !mod && i >= 0 && i < vis.length - 1) this.focusRow(vis[i + 1].at);
-    else if (mod && e.key === '.') this.zoomTo(at);
-    else if (mod && e.key === ',') this.zoomOut();
-    else if ((e.key === 'Backspace' || e.key === 'Delete') && this.itemAt(at)?.doc && !target.closest('to-text')) this.removeRow(at);
+    const tx = target.closest?.('to-text') as ToText | null;
+    const s = tx?.sel;
+    const flat = !!s && s.anchor.offset === s.focus.offset;
+    if (k === 'Tab' && !mod && !e.altKey) this.shiftBy(at, e.shiftKey ? -1 : 1);
+    else if (mod && e.altKey && k === 'ArrowUp') this.fold(at, true);
+    else if (mod && e.altKey && k === 'ArrowDown') this.fold(at, false);
+    else if (e.altKey && !mod && k === 'ArrowUp') this.moveBy(at, -1);
+    else if (e.altKey && !mod && k === 'ArrowDown') this.moveBy(at, 1);
+    else if (plain && (k === 'ArrowUp' || k === 'ArrowDown')) {
+      const to = vis[k === 'ArrowUp' ? i - 1 : i + 1];
+      if (!to || !tx || !this.atEdgeLine(tx, k === 'ArrowUp')) return;
+      this.focusRow(to.at, this.columnIn(to.at, k === 'ArrowUp'));
+    } else if (plain && k === 'ArrowLeft' && flat && tx && s.focus.offset === 0 && i > 0) this.focusRow(vis[i - 1].at, 'end');
+    else if (plain && k === 'ArrowRight' && flat && tx && s.focus.offset >= this.lengthOf(at) && i >= 0 && i < vis.length - 1) this.focusRow(vis[i + 1].at, 0);
+    else if (mod && e.shiftKey && !e.altKey && (e.code === 'Period' || k === '.' || k === '>')) this.zoomTo(at);
+    else if (mod && e.shiftKey && !e.altKey && (e.code === 'Comma' || k === ',' || k === '<')) this.zoomOut();
+    else if (mod && !e.shiftKey && !e.altKey && k.toLowerCase() === 'd') this.duplicateRow(at);
+    else if ((k === 'Backspace' || k === 'Delete') && this.itemAt(at)?.doc && !target.closest('to-text')) this.removeRow(at);
     else return;
     e.preventDefault();
   };
+  private lengthOf(at: number): number {
+    const b = this.doc.blocks[at];
+    return b && isText(b) ? runLength(b.runs) : 0;
+  }
+  /** Whether the caret is on the first (up) or last (down) line of its words, where Up/Down leave the row; inside a long item they walk its lines. */
+  private atEdgeLine(tx: ToText, up: boolean): boolean {
+    const dom = document.getSelection();
+    if (!dom?.rangeCount) return true;
+    const caretRect = [...dom.getRangeAt(0).getClientRects()].at(up ? 0 : -1);
+    const all = document.createRange();
+    all.selectNodeContents(tx.tx);
+    const lines = [...all.getClientRects()].filter((r) => r.height > 0);
+    if (!caretRect || !caretRect.height || lines.length < 2) return true;
+    const lh = parseFloat(getComputedStyle(tx.tx).lineHeight) || 24;
+    const top = Math.min(...lines.map((r) => r.top));
+    const bottom = Math.max(...lines.map((r) => r.bottom));
+    return up ? caretRect.top - top < lh / 2 : bottom - caretRect.bottom < lh / 2;
+  }
+  /** Where the caret lands in the row it moves to: under where it was (its last line going up, its first going down). */
+  private columnIn(at: number, up: boolean): number | 'end' {
+    const dom = document.getSelection();
+    const x = dom?.rangeCount ? dom.getRangeAt(0).getBoundingClientRect().left : NaN;
+    const tx = this.querySelector<ToText>(`.ol-row[data-at="${at}"] to-text`);
+    if (!tx || !Number.isFinite(x) || !x) return up ? 'end' : 0;
+    const all = document.createRange();
+    all.selectNodeContents(tx.tx);
+    const lines = [...all.getClientRects()].filter((r) => r.height > 0);
+    const line = up ? lines.at(-1) : lines[0];
+    if (!line) return up ? 'end' : 0;
+    const y = line.top + line.height / 2;
+    const doc = document as Document & { caretPositionFromPoint?(x: number, y: number): { offsetNode: Node; offset: number } | null };
+    const hit = doc.caretPositionFromPoint?.(x, y) ?? (() => {
+      const r = document.caretRangeFromPoint?.(x, y);
+      return r ? { offsetNode: r.startContainer, offset: r.startOffset } : null;
+    })();
+    const pos = hit && tx.tx.contains(hit.offsetNode) ? tx.readPos(hit.offsetNode, hit.offset) : null;
+    return pos ? pos.offset : x > line.right ? 'end' : 0;
+  }
 
-  /* ---------- dragging ---------- */
+  /* ---------- dragging (the rows controller's pointer drag lands here) ---------- */
 
-  private onDragStart(e: DragEvent, at: number) {
-    this.drag = { at, over: -1, how: 'after' };
-    e.dataTransfer?.setData('text/plain', plainText(this.itemAt(at)?.runs ?? []));
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-  }
-  private onDragOver(e: DragEvent, at: number) {
-    const d = this.drag;
-    if (!d || at === d.at) return;
-    e.preventDefault();
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    // The right half of a row means "inside it"; the rest, "after it".
-    const how = e.clientX - r.left > r.width * 0.5 ? 'under' : 'after';
-    if (d.over !== at || d.how !== how) this.drag = { ...d, over: at, how };
-  }
-  private onDrop(e: DragEvent) {
-    e.preventDefault();
-    const d = this.drag;
-    this.drag = null;
-    if (!d || d.over < 0) return;
-    this.dropAt(d.at, d.over, d.how);
-  }
   /** The family at `at` placed under or after the item at `to`; the caret follows it. */
   dropAt(at: number, to: number, how: 'under' | 'after') {
     const ops = placeItem(this.doc, this.view, at, to, how);
@@ -789,16 +742,16 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${tool({ label: t('Link'), icon: UI.link, keys: 'Mod+K', keep: true, pressed: !!m.href, disabled: !words, does: () => this.field?.exec('link') })}
       ${tool({ label: t('Icon'), icon: UI.icon, keep: true, disabled: !words, does: () => void this.pickIcon() })}
       ${tool({ label: t('Footnote'), icon: UI.footnote, keep: true, disabled: !words, does: () => this.field?.exec('fn') })}
-      ${tool({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', keep: true, disabled: none || !shiftItem(this.doc, this.view, s, -1), does: () => this.shiftBy(s, -1) })}
       ${tool({ label: t('Indent'), icon: UI.indent, keys: 'Tab', keep: true, disabled: none || !shiftItem(this.doc, this.view, s, 1), does: () => this.shiftBy(s, 1) })}
+      ${tool({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', keep: true, disabled: none || !shiftItem(this.doc, this.view, s, -1), does: () => this.shiftBy(s, -1) })}
       ${tool({ label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', keep: true, disabled: none || !moveItem(this.doc, this.view, s, -1), does: () => this.moveBy(s, -1) })}
       ${tool({ label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', keep: true, disabled: none || !moveItem(this.doc, this.view, s, 1), does: () => this.moveBy(s, 1) })}
       ${tool({ label: t('Numbered'), icon: ListOrdered, keep: true, pressed: !!it?.ord, disabled: !words, does: () => this.number() })}
-      ${this.zoom >= 0 ? tool({ label: t('Zoom out'), icon: ZoomOut, keys: 'Mod+,', does: () => this.zoomOut() }) : nothing}
-      ${tool({ label: t('Zoom in'), icon: ZoomIn, keys: 'Mod+.', keep: true, disabled: none || !hasChildren(this.items, i), does: () => this.zoomTo(s) })}
+      ${this.zoom >= 0 ? tool({ label: t('Zoom out'), icon: ZoomOut, keys: 'Mod+Shift+,', keep: true, does: () => this.zoomOut() }) : nothing}
+      ${tool({ label: t('Zoom in'), icon: ZoomIn, keys: 'Mod+Shift+.', keep: true, disabled: none || !hasChildren(this.items, i), does: () => this.zoomTo(s) })}
       ${tool({ label: t('Fold all'), icon: FoldVertical, keep: true, does: () => this.foldAll(true) })}
       ${tool({ label: t('Unfold all'), icon: UnfoldVertical, keep: true, does: () => this.foldAll(false) })}
-      ${btn({ label: c ? t('Cancel connecting') : t('Connect'), icon: c ? UI.close : Link2, pressed: !!c, does: () => this.connect() })}
+      ${btn({ label: c ? t('Cancel connecting') : t('Connect'), icon: c ? UI.close : Link2, pressed: !!c, keep: true, does: () => this.connect() })}
       <to-menu class="ol-view-as" .label=${t('View as')} .icon=${Eye} caret .items=${this.viewItems()}></to-menu>
     </to-bar>`;
   }
@@ -809,7 +762,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private bullet(at: number, ends: Ends, n?: number): TemplateResult {
     const glyph = DIR_ICON[ends.dir];
     const label = `${ends.edge ? t('Connection from {from} to {to}', ft(ends)) : t('Line from {from} to {to}', ft(ends))}: ${DIR_NAME[ends.dir]()}${ends.label ? t(', named “{label}”', { label: ends.label }) : ''}. ${t('Change it')}`;
-    return html`<button type="button" class="ol-kind" data-dir=${ends.dir} aria-label=${label} title=${label} aria-haspopup="menu" aria-expanded=${this.menuFor === at ? 'true' : 'false'} @mousedown=${(e: Event) => e.preventDefault()} @click=${(e: MouseEvent) => (e.shiftKey && this.itemAt(at) ? this.choose(at, true) : void this.openLineMenu(at, e.currentTarget as HTMLElement))}>${n ? html`<b class="ol-n">${n}.</b>` : glyph ? icon(glyph, 14) : html`<span></span>`}</button>`;
+    return html`<button type="button" class="ol-kind" data-dir=${ends.dir} aria-label=${label} title=${label} aria-haspopup="menu" aria-expanded=${this.menuFor === at ? 'true' : 'false'} @mousedown=${(e: Event) => e.preventDefault()} @click=${(e: MouseEvent) => (e.shiftKey && this.itemAt(at) ? this.rows.choose(at, true) : void this.openLineMenu(at, e.currentTarget as HTMLElement))}>${n ? html`<b class="ol-n">${n}.</b>` : glyph ? icon(glyph, 14) : html`<span></span>`}</button>`;
   }
   /** A line's name, as a chip before the words; tapped, it opens the name dialog. */
   private chip(at: number, label?: string) {
@@ -828,11 +781,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${tool({ label: t('Take it away'), icon: UI.close, does: () => this.removeRow(it.at) })}
     </div>`;
   }
-  /** A tap on a row's handle chooses the row whole; with Shift (or, on a touch screen, with rows already chosen) it extends the range to it. */
-  private onHandle(e: PointerEvent | MouseEvent, at: number) {
-    const touch = (e as PointerEvent).pointerType === 'touch';
-    this.choose(at, e.shiftKey || (touch && !!this.range && this.range.anchor !== at));
-  }
   private renderRow(it: Item, noteStart: number, placeholder: string, n: number | undefined, ranged: boolean): TemplateResult {
     const items = this.items;
     const i = indexAt(this.view, it.at);
@@ -840,7 +788,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const kids = i >= 0 && hasChildren(items, i);
     const shut = this.folded.has(at);
     const ends = at >= 0 ? this.endsOf(at) : null;
-    const d = this.drag;
+    const d = this.rows.drag;
     const c = this.connecting;
     const block = at >= 0 ? this.doc.blocks[at] : this.ghost;
     const words = plainText(it.runs).trim();
@@ -848,27 +796,23 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const asDoc = !!it.doc && !(it.doc.startsWith('web\n') && this.sel === at && block.k === 'li' && webAddress(block.runs));
     const inside = kids ? familyEnd(items, i) - i - 1 : 0;
     return html`<div
-      class="ol-row ${at === this.sel && !this.range ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${kids ? 'parent' : ''} ${kids && shut ? 'shut' : ''} ${d?.over === at ? `drop-${d.how}` : ''} ${c?.from === at ? 'source' : ''}"
+      class="ol-row ${at === this.sel && !this.rows.range ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${kids ? 'parent' : ''} ${kids && shut ? 'shut' : ''} ${d?.id === at ? 'dragging' : ''} ${c?.from === at ? 'source' : ''}"
       data-at=${at}
       role="treeitem"
       aria-level=${it.depth - this.base + 1}
       aria-expanded=${kids ? (shut ? 'false' : 'true') : nothing}
-      aria-selected=${ranged || (at === this.sel && !this.range) ? 'true' : 'false'}
+      aria-selected=${ranged || (at === this.sel && !this.rows.range) ? 'true' : 'false'}
       style="--d:${it.depth - this.base}"
-      @dragover=${(e: DragEvent) => this.onDragOver(e, at)}
-      @focusin=${(e: FocusEvent) => {
-        this.sel = at;
-        if (this.range && (e.target as HTMLElement).closest('to-text')) this.range = null;
-      }}
+      @focusin=${() => (this.sel = at)}
     >
       <span class="ol-gutter">
-        <button type="button" class="ol-handle" draggable="true" aria-label=${t('Move this item: drag it onto another')} title=${t('Drag to move')} tabindex="-1" @click=${(e: MouseEvent) => this.onHandle(e, at)} @dragstart=${(e: DragEvent) => this.onDragStart(e, at)} @dragend=${() => (this.drag = null)}>${icon(GripVertical, 14)}</button>
-        ${kids ? html`<button type="button" class="ol-fold" aria-label=${shut ? t('Unfold, {n|one inside|# inside}', { n: inside }) : t('Fold')} aria-expanded=${shut ? 'false' : 'true'} @click=${() => this.fold(at)}>${icon(shut ? ChevronRight : ChevronDown, 14)}</button>` : nothing}
+        <button type="button" class="ol-handle to-rows-handle" aria-label=${t('Move this item: drag it onto another')} title=${t('Drag to move')} tabindex="-1">${icon(GripVertical, 14)}</button>
+        ${kids ? html`<button type="button" class="ol-fold" aria-label=${shut ? t('Unfold, {n|one inside|# inside}', { n: inside }) : t('Fold')} aria-expanded=${shut ? 'false' : 'true'} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.fold(at)}>${icon(shut ? ChevronRight : ChevronDown, 14)}</button>` : nothing}
       </span>
-      ${ends ? html`<span class="ol-bullet">${this.bullet(at, ends, n)}</span>${this.chip(at, it.label)}` : html`<span class="ol-bullet" @click=${(e: MouseEvent) => e.shiftKey && this.choose(at, true)}><span class="ol-kind root" aria-hidden="true">${n ? html`<b class="ol-n">${n}.</b>` : html`<span></span>`}</span></span>`}
+      ${ends ? html`<span class="ol-bullet">${this.bullet(at, ends, n)}</span>${this.chip(at, it.label)}` : html`<span class="ol-bullet" @click=${(e: MouseEvent) => e.shiftKey && this.rows.choose(at, true)}><span class="ol-kind root" aria-hidden="true">${n ? html`<b class="ol-n">${n}.</b>` : html`<span></span>`}</span></span>`}
       ${asDoc
         ? this.renderDoc(it)
-        : html`<to-text shape="line" .blocks=${this.blocksFor(block)} .noteStart=${noteStart} label=${t('Item {n}', { n: i + 1 })} placeholder=${placeholder} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(at, e)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(at))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(at, e.detail.dir))} @text-selectall=${(e: Event) => (e.stopPropagation(), this.selectAll())} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect(at, e)}></to-text>`}
+        : html`<to-text shape="line" .blocks=${this.blocksFor(block)} .noteStart=${noteStart} label=${t('Item {n}', { n: i + 1 })} placeholder=${placeholder} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(at, e)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(at))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(at, e.detail.dir))} @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect(at, e)}></to-text>`}
       ${kids && shut ? html`<span class="ol-count" aria-hidden="true">${inside}</span>` : nothing}
       ${c && words && !it.doc && at !== c.from ? html`<button type="button" class="ol-pick" aria-label=${c.from < 0 ? t('Connect from “{words}”', { words }) : t('Connect “{from}” to “{to}”', { from: plainText(this.itemAt(c.from)?.runs ?? []).trim(), to: words })} @click=${() => this.pick(at)}></button>` : nothing}
     </div>`;
@@ -925,21 +869,21 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     // Numbered items show their numbers as the text writes them.
     const count = listNumbers();
     const numbers = this.doc.blocks.map((b) => count(b));
-    const s = this.range ? this.span() : null;
+    const s = this.rows.range ? this.rows.span() : null;
     const rows = items.length ? vis : [{ at: -1, depth: this.base, runs: [] } as Item];
     return html`${this.renderBar()}
       ${c ? html`<p class="ol-hint to-hint" role="status">${c.from < 0 ? t('Tap the item to connect from.') : t('Tap the item to connect “{words}” to.', { words: plainText(this.itemAt(c.from)?.runs ?? []).trim() })}</p>` : nothing}
       ${this.crumbs()}
-      <div class="ol ${c ? 'connecting' : ''}" role="tree" tabindex="-1" aria-multiselectable="true" aria-label=${t('Outline')} @drop=${this.onDrop} @dragover=${(e: DragEvent) => this.drag && e.preventDefault()}>
+      <div class="ol ${c ? 'connecting' : ''}" role="tree" tabindex="-1" aria-multiselectable="true" aria-label=${t('Outline')}>
         ${repeat(
           rows,
           (it) => it.at,
           (it) => this.renderRow(it, noteStart.get(it.at) ?? 0, items.length <= 1 ? first : '', numbers[it.at], !!s && it.at >= s.from && it.at < s.to),
         )}
-        <div class="ol-below" aria-hidden="true" @click=${() => ((this.range = null), this.addItem())}></div>
+        <div class="ol-below" aria-hidden="true" @click=${() => (this.rows.release(), this.addItem())}></div>
       </div>
       ${this.renderLinks(liveLinks(this.view))}
-      <to-context class="ol-context" .label=${t('Chosen items')} .items=${this.contextItems()}></to-context>
+      ${this.rows.renderContext()}
       <to-menu class="ol-line-menu" .label=${t('Kind of line')} .items=${this.lineItems()}></to-menu>
       ${this.renderNameDialog()}
       ${this.renderWebDialog()}

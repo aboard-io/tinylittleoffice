@@ -360,6 +360,11 @@ export function moveSpan(doc: Doc, v: OutlineView, s: Span, by: 1 | -1): Op[] | 
   if (s.to >= itemsEnd(doc, v) || v.depths[s.to] !== d) return null;
   return [{ op: 'move', at: s.from, n, to: family(doc, s.to, v.depths) - n }];
 }
+/** The span's items again, right after it (the joins stay where they are): one splice; the copy starts at `at`. */
+export function duplicateSpan(doc: Doc, v: OutlineView, s: Span): { ops: Op[]; at: number } {
+  const end = Math.min(s.to, itemsEnd(doc, v));
+  return { ops: [{ op: 'splice', at: end, n: 0, blocks: doc.blocks.slice(s.from, end).map((b) => ({ ...b })) }], at: end };
+}
 /** The span's blocks as a clipboard holds them: the shallowest item at the margin. */
 export function copySpan(doc: Doc, v: OutlineView, s: Span): Block[] {
   const ds = v.depths.slice(s.from, s.to).filter((d) => d >= 0);

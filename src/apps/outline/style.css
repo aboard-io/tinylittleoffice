@@ -12,6 +12,8 @@
     --ol-row: 36px;
     padding: 8px 8px 20px 44px;
     max-width: 820px;
+    /* A double tap edits; the page never zooms on it. */
+    touch-action: manipulation;
   }
   .ol-row {
     position: relative;
@@ -69,6 +71,15 @@
   }
   .ol-handle {
     cursor: grab;
+  }
+  /* The fold arrow sits over the handle's finger-sized hit area where they meet. */
+  .ol-fold {
+    position: relative;
+    z-index: 1;
+  }
+  /* The row carried by its handle, while it is carried (the kit draws where it would land). */
+  .ol-row.dragging {
+    opacity: 0.45;
   }
   .ol-row:hover .ol-handle,
   .ol-row:hover .ol-fold,
@@ -238,21 +249,6 @@
     outline-offset: 1px;
   }
 
-  /* Where a drag would land: a line under the row, or stepped in. */
-  .ol-row.drop-after::after,
-  .ol-row.drop-under::after {
-    content: '';
-    position: absolute;
-    left: calc(var(--d, 0) * var(--ol-step) + var(--ol-step));
-    right: 8px;
-    bottom: -1px;
-    height: 2px;
-    background: var(--to-accent);
-    border-radius: 1px;
-  }
-  .ol-row.drop-under::after {
-    left: calc((var(--d, 0) + 1) * var(--ol-step) + var(--ol-step));
-  }
   /* The space under the last item: a tap there starts the next one. */
   .ol-below {
     height: 44px;
