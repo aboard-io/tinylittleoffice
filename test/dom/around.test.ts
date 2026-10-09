@@ -1,6 +1,7 @@
 // Around every document, in the shell as a visitor finds it: templates, a link read before it is edited, the one
 // tooltip, the title, theme, room for the link and sharing it.
-import { test, expect, describe } from 'vitest';
+import { test, expect, describe, beforeAll, afterAll } from 'vitest';
+import { templatePrompt } from '../../src/widgets/template-picker.ts';
 import { shell, bodyOf, editorOf, settleAll, until, texts, reopen, choose, opened } from './helpers-apps.ts';
 import { button, press, setSl, settle } from './helpers.ts';
 import { namesOf, parseGrid } from '../../src/lib/formula.ts';
@@ -8,6 +9,8 @@ import { parseTodos } from '../../src/lib/todomodel.ts';
 
 // Starting from a template, in the shell as a visitor finds it (ported from e2e/templates.spec.ts).
 describe('templates', () => {
+  beforeAll(() => (templatePrompt.auto = true));
+  afterAll(() => (templatePrompt.auto = false));
   /** The template dialog, once it is open. */
   async function picker() {
     let dialog: HTMLElement | null = null;
@@ -37,29 +40,27 @@ describe('templates', () => {
     await settleAll();
   };
 
-  test('an empty text starts from a template: a picture of each, one undo back to blank', async () => {
+  test('an empty text starts from a template: the dialog over the blank page, Blank first, one undo back to blank', async () => {
     await shell('#/v0/write');
-    // Offered twice: the templates laid out on the blank page, Blank first, and a button in the toolbar. Never a dialog by itself.
-    const line = () => document.querySelector('.to-gallery');
-    expect(texts(line()!, '.to-template b')[0]).toBe('Blank');
-    expect(line()!.querySelectorAll('.to-template')).toHaveLength(10);
-    expect(line()!.querySelectorAll('.to-template .pic svg')).toHaveLength(9);
-    expect(texts(line()!, '.to-template b').filter((t) => t === 'Business plan')).toHaveLength(1);
+    // The moment a blank document opens, its templates are over it: Blank the first card, then the rest, each drawn. A button in the toolbar opens the same.
+    const dialog = await picker();
+    expect(texts(dialog, '.to-template b')[0]).toBe('Blank');
+    expect(dialog.querySelectorAll('.to-template').length).toBeGreaterThan(8);
+    expect(dialog.querySelectorAll('.to-template .pic svg').length).toBe(dialog.querySelectorAll('.to-template').length - 1);
+    expect(texts(dialog, '.to-template b').filter((t) => t === 'Business plan')).toHaveLength(1);
     expect(document.querySelector('.to-template-tool')).toBeTruthy();
-    expect(document.querySelector('sl-dialog.to-templates')).toBeNull();
-    [...line()!.querySelectorAll<HTMLElement>('.to-template')].find((c) => c.textContent?.includes('Meeting notes'))!.click();
-    await settleAll();
+    await choose('Meeting notes');
     const doc = editorOf('write');
     expect(texts(doc, 'h1')).toEqual(['Meeting notes']);
     expect(texts(doc, 'h2')).toEqual(['Agenda', 'Notes', 'Decisions', 'Actions']);
     await until(() => expect(location.hash).toMatch(/#\/v0\/write\/[yzr]/));
     expect(bodyOf()).toMatch(/^# Meeting notes\n/);
-    // Once there are words, the offer is gone; one undo and the blank page is back, offer and all.
-    expect(line()).toBeNull();
+    // Once there are words, the offer is gone; one undo and the blank page is back, with the button but not the dialog (it asks once).
     expect(document.querySelector('.to-template-tool')).toBeNull();
     await undo();
-    expect(doc.querySelectorAll('h1')).toHaveLength(0);
-    expect(line()).toBeTruthy();
+    expect(bodyOf()).toBe('');
+    expect(document.querySelector('sl-dialog.to-templates')).toBeNull();
+    expect(document.querySelector('.to-template-tool')).toBeTruthy();
     // The plans are templates here now: the sections, each with its questions in italics.
     await startFrom('Go-to-market plan');
     expect(texts(doc, 'h1')).toEqual(['Go-to-market plan']);
@@ -67,12 +68,14 @@ describe('templates', () => {
     expect(texts(doc, 'h2')[0]).toBe('The customer');
     // (The first italic line is the subtitle; the questions follow each heading.)
     expect(doc.querySelector('h2 + p i')?.textContent).toContain('Who buys first');
-    // Blank puts the gallery away and the cursor on the page, the document still empty.
-    await undo();
-    expect(line()).toBeTruthy();
-    line()!.querySelector<HTMLElement>('.to-template.blank')!.click();
+  });
+
+  test('Blank leaves the page blank, with the cursor on it', async () => {
+    await shell('#/v0/write');
+    const dialog = await picker();
+    dialog.querySelector<HTMLElement>('.to-template.blank')!.click();
+    await until(() => expect(document.querySelector('sl-dialog.to-templates')).toBeNull());
     await settleAll();
-    expect(line()).toBeNull();
     expect(bodyOf()).toBe('');
     expect(document.activeElement?.closest('.write-page')).toBeTruthy();
   });
@@ -80,12 +83,10 @@ describe('templates', () => {
   test('a sheet starts from a template, sums and chart included', async () => {
     await shell('#/v0/sheet');
     const cell = (ref: string) => document.querySelector<HTMLInputElement>(`to-sheet input[aria-label="${ref}"]`)!;
-    expect(document.querySelector('.to-gallery')).toBeTruthy();
-    await startFrom('Budget');
+    await choose('Budget');
     expect(namesOf(bodyOf())[0]).toBe('Item');
     expect(cell('A1').value).toBe('Rent');
     expect(cell('D7').value).toBe('$65.00');
-    expect(document.querySelector('.to-gallery')).toBeNull();
     await undo();
     expect(cell('A1').value).toBe('');
     expect(bodyOf()).toBe('');
@@ -98,18 +99,18 @@ describe('templates', () => {
   test('a deck starts from a template: slides with icons, from the first', async () => {
     await shell('#/v0/deck');
     // Blank, and a dozen decks in the themes between them.
-    const cards = texts(document.querySelector('.to-gallery')!, '.to-template b');
+    const cards = texts(await picker(), '.to-template b');
     expect(cards[0]).toBe('Blank');
     expect(cards.length).toBeGreaterThan(10);
-    await startFrom('A talk');
+    await choose('A talk');
     expect(bodyOf()).toMatch(/^---\ntheme: midnight\n/);
     expect(document.querySelectorAll('.deck-thumb')).toHaveLength(6);
     expect(document.querySelector('to-rich.title .write-page')?.textContent?.trim()).toBe('Talk title');
     expect(document.querySelector('.deck-kind')?.textContent?.trim()).toBe('Title');
-    expect(document.querySelector('.to-gallery')).toBeNull();
+    expect(document.querySelector('.to-template-tool')).toBeNull();
     await undo();
     expect(document.querySelectorAll('.deck-thumb')).toHaveLength(1);
-    expect(document.querySelector('.to-gallery')).toBeTruthy();
+    expect(document.querySelector('.to-template-tool')).toBeTruthy();
   });
 });
 
@@ -254,7 +255,7 @@ test('a link that cannot be read says so, and is left as it is', async () => {
   const hash = '#/v0/write/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz';
   await shell(hash);
   expect(document.querySelector('.to-unreadable')?.textContent).toContain("can't be opened");
-  expect(document.querySelector('.to-gallery')).toBeNull();
+  expect(document.querySelector('sl-dialog.to-templates')).toBeNull();
   expect(document.querySelector('to-write')).toBeNull();
   expect(document.querySelector<HTMLInputElement>('.to-title')!.disabled).toBe(true);
   await settleAll();

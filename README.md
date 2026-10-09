@@ -37,8 +37,9 @@ you have copied the file.
 | Together | Secret Santa (a private link per person), Split the bill. |
 | Personal | Log. |
 
-An empty Write, Sheet or Deck offers "Start from a template…" (a button in
-the toolbar, a line on the blank page): a dialog of templates, each drawn
+An empty Write, Sheet or Deck opens with its templates over it, Blank the
+first card, and offers them again from "Start from a template…" in the
+toolbar while it stays empty: a dialog of templates, each drawn
 small by the app itself, and one undo brings the blank page back. The
 templates are plain text in each app's format, in `src/lib/templates.ts`.
 A business plan, a marketing plan and a go-to-market plan are among
@@ -530,9 +531,7 @@ it, give it an icon, join it to another, edit its words, take it away),
 tap twice to type on it, drag it where it goes (onto another thing to
 put it under or after it, into a lane or a set to move it there). A line between two things is
 tapped for its words; a guest at a table is a thing of their own. The
-same document is always the text itself (Mod+Shift+T), and, for the
-apps that are rows at heart (a page, a printed sheet), a list to fill
-in (the List button). All of it comes from one description
+same document is always the text itself (Mod+Shift+T). All of it comes from one description
 (`src/lib/lines.ts`): the app lists its kinds of line as patterns,
 
 ```ts
@@ -543,10 +542,10 @@ form: [
 ]
 ```
 
-and the shared form (`src/widgets/line-form.ts`) gives each line a row and
-each `{field}` a box. `[..]` may be left out; `{Text:long}`, `{Day:date}`,
-`{Picture:icon}` and `{Colour:choice=red,green}` pick the kind of box;
-`indent: true` lets rows nest. What is saved, shared and written by
+and the picture's editing box gives each `{field}` a box. `[..]` may be
+left out; `{Text:long}`, `{Day:date}`, `{Picture:icon}` and
+`{Colour:choice=red,green}` pick the kind of box; `indent: true` lets
+rows nest. What is saved, shared and written by
 programs is always the plain text, and a test checks that every app's
 example survives the trip through its form unchanged.
 

@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import AxeBuilder from '@axe-core/playwright';
 import { shot } from './helpers';
 
 // As a new visitor finds it: the form, not the text. (The forms and pictures worked by hand are in
@@ -9,24 +8,7 @@ import { shot } from './helpers';
 const port = Number(process.env.PW_PORT ?? 4173);
 test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${port}`, localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'form' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
 
-test('frames and files: a model works itself out in its frame, and place cards download as a PDF', async ({ page }) => {
-  // The model's numbers are worked out by its frame's own script, which only a real browser runs.
-  await page.goto('/#/v0/flow');
-  const flow = page.locator('to-flow to-lines');
-  const addFlow = (kind: string) => flow.getByRole('group', { name: 'Add' }).getByRole('button', { name: kind, exact: true }).click();
-  await addFlow('Slider');
-  await page.keyboard.type('visitors');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('1000');
-  await addFlow('Flow');
-  await page.keyboard.type('Visitors');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('Signups');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('visitors * 0.1');
-  await expect(page.frameLocator('to-flow iframe').locator('#say')).toContainText('Signups 100');
-  await shot(page, 'form-flow');
-
+test('files: place cards download as a PDF', async ({ page }) => {
   // A PDF is drawn on a canvas, and downloaded.
   await page.goto('/#/v0/seating');
   await page.getByRole('button', { name: 'Start from an example' }).click();

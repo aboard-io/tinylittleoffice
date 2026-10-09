@@ -96,6 +96,8 @@ function applyTheme(theme: Theme) {
 }
 
 /** The app whose own page this is ("/deck/"), if any. */
+/** The rows that scroll sideways: the header's, and the bar of every app. */
+const BARS = '.to-header-inner, .to-toolbar, .sheet-bar';
 const pageApp = () => location.pathname.split('/').slice(-2)[0];
 
 export interface Route {
@@ -200,9 +202,12 @@ export class ToApp extends LitElement {
   private barWatch: ResizeObserver | null = null;
   private bar: Element | null = null;
   private watchBar() {
-    const bar = this.querySelector('.to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child');
+    const bar = this.querySelector('.to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child');
     if (bar !== this.bar && typeof ResizeObserver !== 'undefined') {
-      this.barWatch ??= new ResizeObserver(([e]) => this.style.setProperty('--to-stuck-h', `${(e.target as HTMLElement).offsetHeight}px`));
+      this.barWatch ??= new ResizeObserver(([e]) => {
+        this.style.setProperty('--to-stuck-h', `${(e.target as HTMLElement).offsetHeight}px`);
+        this.fadeEdges();
+      });
       if (this.bar) this.barWatch.unobserve(this.bar);
       if (bar) this.barWatch.observe(bar);
       this.bar = bar;
@@ -215,6 +220,8 @@ export class ToApp extends LitElement {
     installLinkGuard();
     this.applySize();
     window.addEventListener('resize', this.fadeEdges);
+    this.addEventListener('scroll', this.fadeEdges, { capture: true, passive: true });
+    this.barsChanged.observe(this, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'hidden', 'class', 'style'] });
     window.addEventListener('scroll', this.onViewport, { passive: true });
     window.visualViewport?.addEventListener('scroll', this.onViewport);
     window.visualViewport?.addEventListener('resize', this.onViewport);
@@ -236,6 +243,8 @@ export class ToApp extends LitElement {
     this.barWatch = null;
     this.bar = null;
     window.removeEventListener('resize', this.fadeEdges);
+    this.removeEventListener('scroll', this.fadeEdges, { capture: true });
+    this.barsChanged.disconnect();
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
     window.removeEventListener(REFRESH, this.onRefresh);
@@ -542,16 +551,27 @@ export class ToApp extends LitElement {
 
   private lastSelf = '';
   /**
-   * The header is one row that scrolls sideways when it is too long for
-   * the screen; an edge fades where there is more past it.
+   * The header and every app's bar are one row that scrolls sideways when
+   * it is too long for the screen; an edge fades where there is more past
+   * it. Marked on every bar after a render, and on the one that scrolled.
    */
-  private fadeEdges = () => {
-    const bar = this.querySelector<HTMLElement>('.to-header-inner');
-    if (!bar) return;
-    const more = bar.scrollWidth - bar.clientWidth - bar.scrollLeft;
-    bar.toggleAttribute('data-fade-start', bar.scrollLeft > 1);
-    bar.toggleAttribute('data-fade-end', more > 1);
+  private fadeEdges = (e?: Event) => {
+    const bars = e?.target instanceof HTMLElement && e.target.matches(BARS) ? [e.target] : [...this.querySelectorAll<HTMLElement>(BARS)];
+    for (const bar of bars) {
+      const more = bar.scrollWidth - bar.clientWidth - bar.scrollLeft;
+      bar.toggleAttribute('data-fade-start', bar.scrollLeft > 1);
+      bar.toggleAttribute('data-fade-end', more > 1);
+    }
   };
+  /** An app's bar fills as the app draws it, after the shell has: whatever changes on the page, the edges are looked at again, once a frame. */
+  private fadeSoon = 0;
+  private barsChanged = new MutationObserver(() => {
+    if (this.fadeSoon) return;
+    this.fadeSoon = requestAnimationFrame(() => {
+      this.fadeSoon = 0;
+      this.fadeEdges();
+    });
+  });
 
   protected updated() {
     this.watchBar();
@@ -651,7 +671,7 @@ export class ToApp extends LitElement {
       <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
       <header class="to-header">
         <!-- One row: room for the menu, then what this is (the document: its app and its title), then everything to do with it; the row scrolls sideways when it is too long, and goes up with the page. -->
-        <div class="to-header-inner" @scroll=${this.fadeEdges}>
+        <div class="to-header-inner">
           ${current ? this.renderTitleLine(current) : html`<a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 24)}</span><span>TinyLittleOffice</span></a>`}
           <span class="to-spacer"></span>
           <button class="to-keep ${keeping() ? 'on' : ''}" data-tip=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 24)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>

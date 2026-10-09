@@ -151,8 +151,9 @@ test('deck: a document on a slide has the slide to itself', async ({ page }) => 
 // Stays: the motion is drawn and moved by dragging on the canvas and the stage, by where the pointer is.
 test('deck: a motion slide is made and changed from the slide itself', async ({ page }) => {
   await page.goto('/#/v0/deck');
-  await page.getByRole('combobox', { name: 'Add a slide' }).fill('motion');
-  await page.getByRole('combobox', { name: 'Add a slide' }).press('Enter');
+  await page.getByRole('button', { name: 'Insert' }).click();
+  await page.getByRole('combobox', { name: 'Narrow the list' }).fill('motion');
+  await page.getByRole('combobox', { name: 'Narrow the list' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await expect(sub).toHaveAttribute('open');
   // An empty one opens in Draw mode: some text, then Done.

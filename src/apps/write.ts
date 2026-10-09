@@ -807,7 +807,7 @@ export class ToWrite extends LitElement {
           ${this.btn('Bring out', 'outdent', false, 'outdent', undefined, 'Shift+Tab')}
           ${this.btn('Indent', 'indent', false, 'indent', undefined, 'Tab')}
         </sl-button-group>
-        <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
+        <to-insert label="Insert" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
         ${doc && !this.value ? templateTool('write', this.useTemplate) : nothing}` : nothing}
       </div>` : nothing}
       ${doc && !this.value ? templateGallery('write', this.useTemplate) : nothing}

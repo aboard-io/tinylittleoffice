@@ -5,6 +5,7 @@
 import { test, expect } from 'vitest';
 import { button, press } from './helpers.ts';
 import { shell, reopen, editorOf, settleAll, bodyOf, until, choose, downloaded, opened } from './helpers-apps.ts';
+import { insert } from './helpers-more.ts';
 import { hashOf } from '../../src/kit/embed.ts';
 
 /** Words typed into an editable box (a text, an outline's item), replacing what was there. */
@@ -146,11 +147,7 @@ test('outline: a document as an item, made in its own editor; the outline seen a
   const item = (n: number) => ol().querySelector<HTMLElement>(`[role="textbox"][aria-label="Item ${n}"]`);
   // A document as an item: a table under Launch, made in its own editor.
   item(2)!.dispatchEvent(new FocusEvent('focusin', { bubbles: true, composed: true }));
-  const insert = ol().querySelector<HTMLInputElement>('to-insert input[role="combobox"]')!;
-  insert.value = 'table';
-  insert.dispatchEvent(new Event('input', { bubbles: true }));
-  await settleAll();
-  await key(insert, 'Enter');
+  await insert(ol(), 'Insert', 'table');
   let sub: HTMLElement | null = null;
   await until(() => expect((sub = document.querySelector('sl-dialog.to-sub'))?.querySelector('input[aria-label="A1"]')).toBeTruthy());
   const a1 = sub!.querySelector<HTMLInputElement>('input[aria-label="A1"]')!;

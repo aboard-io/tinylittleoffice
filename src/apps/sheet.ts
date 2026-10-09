@@ -532,16 +532,11 @@ export class ToSheet extends DocElement<Sheet> {
               ${COL_NAMES.map(
                 (n, c) => html`<th scope="col">
                   <sl-dropdown hoist class="col-menu-drop" @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save({ grid: sortRows(grid, c, e.detail.item.value === 'sort:desc') }) : this.setType(c, e.detail.item.value))}>
-                    <button slot="trigger" class="col-type" aria-label="Column ${n}, ${columnName(c, types, names)}: ${COLUMN_TYPES.find((t) => t.id === types[c])!.name}. Rename it, change what it holds, or sort by it" data-tip="Name, kind, sort">
-                      <span class="cl">${n}</span><span class="cn">${columnName(c, types, names)}</span>${icon(UI.down, 12)}
+                    <button slot="trigger" class="col-type" aria-label="Column ${n}: ${COLUMN_TYPES.find((t) => t.id === types[c])!.name}. Change what it holds, or sort by it" data-tip="What it holds; sort">
+                      <span class="cl">${n}</span>${icon(UI.down, 12)}
                     </button>
                     <sl-menu class="sheet-menu col-menu">
-                      <div class="col-name" @keydown=${(e: KeyboardEvent) => e.stopPropagation()} @click=${(e: Event) => e.stopPropagation()}>
-                        <sl-input size="small" label=${`Name of column ${n}`} placeholder=${defaultColumnName(c, types)} .value=${names[c] || columnName(c, types, names)}
-                          @sl-change=${(e: Event) => this.rename(c, (e.target as SlInput).value)}
-                          @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as SlInput).blur()}></sl-input>
-                      </div>
-                      <sl-menu-label>Holds</sl-menu-label>
+                      <sl-menu-label>Column ${n} holds</sl-menu-label>
                       ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${types[c] === t.id}><span class="ct-name">${t.name}</span><small class="ct-hint">${t.hint}</small></sl-menu-item>`)}
                       <sl-divider></sl-divider>
                       <sl-menu-label>Sort the rows by it</sl-menu-label>
@@ -549,6 +544,17 @@ export class ToSheet extends DocElement<Sheet> {
                       <sl-menu-item value="sort:desc">${icon(UI.up, 14, 'pre')} High to low</sl-menu-item>
                     </sl-menu>
                   </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" data-tip="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
+                </th>`,
+              )}
+            </tr>
+            <!-- The columns' names, a row of their own under the letters: typed over where they stand. -->
+            <tr class="names">
+              <td class="corner"></td>
+              ${COL_NAMES.map(
+                (n, c) => html`<th scope="col">
+                  <input class="cn" aria-label=${`Name of column ${n}`} placeholder=${defaultColumnName(c, types)} .value=${names[c] || columnName(c, types, names)} autocomplete="off" spellcheck="false"
+                    @change=${(e: Event) => this.rename(c, (e.target as HTMLInputElement).value)}
+                    @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === 'Escape') && (e.target as HTMLInputElement).blur()} />
                 </th>`,
               )}
             </tr>

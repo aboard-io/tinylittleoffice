@@ -9,12 +9,12 @@ const choose = async (el: Editor, i: number) => {
   row(el, i).querySelector('to-rich')!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
   await settle(el);
 };
-const nav = (el: Editor) => el.querySelector<HTMLElement>('.ol-nav')!;
+const nav = (el: Editor) => el.querySelector<HTMLElement>('.to-toolbar')!;
 
 test('the rows carry no indent buttons; the bar does it for the chosen item', async () => {
   const { el, last } = await mount('outline', DOC);
   expect(el.querySelector('.ol-shift')).toBeNull();
-  expect(nav(el).getAttribute('aria-label')).toBe('Arrange and connect');
+  expect(nav(el).getAttribute('aria-label')).toBe('Outline');
   expect(button(nav(el), 'Indent').hasAttribute('disabled')).toBe(true);
   await choose(el, 3);
   button(nav(el), 'Indent').click();

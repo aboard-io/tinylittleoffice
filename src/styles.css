@@ -57,6 +57,8 @@
   --to-border: var(--sl-color-neutral-200);
   --to-border-strong: var(--sl-color-neutral-400);
   --to-ink: var(--sl-color-neutral-900);
+  /* The pencil at the end of the title field. */
+  --to-pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z'/%3E%3Cpath d='m15 5 4 4'/%3E%3C/svg%3E");
   --to-ink-2: var(--sl-color-neutral-700);
   /* The quietest text still has to read on the greyest surface: neutral-600 on neutral-100 is 6.9:1. */
   --to-ink-3: var(--sl-color-neutral-600);
@@ -276,7 +278,7 @@ sl-button[aria-pressed='true']::part(label) {
 :is(.to-toolbar, .sheet-bar) {
   --sl-input-height-small: 40px;
 }
-:is(.to-toolbar, .sheet-bar) :is(sl-button, .to-icon-btn, .to-insert-icon) svg {
+:is(.to-toolbar, .sheet-bar) :is(sl-button, .to-icon-btn) svg {
   width: 24px;
   height: 24px;
 }
@@ -285,13 +287,6 @@ sl-button[aria-pressed='true']::part(label) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-:is(.to-toolbar, .sheet-bar) :is(.to-insert, .to-insert input) {
-  height: 40px;
-  min-height: 40px;
-}
-:is(.to-toolbar, .sheet-bar) .to-insert input {
-  padding-left: 40px;
 }
 :is(.to-toolbar, .sheet-bar) .deck-kind {
   align-self: stretch;
@@ -349,18 +344,16 @@ to-app[scrolled] .to-burger::part(base) {
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
 }
 /* An app's own bar sticks to the top of the screen once the header has gone; where the menu button would sit over it, it makes room. */
-.to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child {
+.to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child {
   position: sticky;
   top: var(--to-vv-top, 0px);
   z-index: 15;
 }
-.to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
-.to-panel > div > * > .ol-bars > .to-toolbar {
+.to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child{
   transition: margin-left 0.2s ease;
 }
 /* (Narrowed rather than padded, so a bar that scrolls sideways on a phone never slides under it.) */
-to-app[scrolled] .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
-to-app[scrolled] .to-panel > div > * > .ol-bars > .to-toolbar {
+to-app[scrolled] .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child{
   margin-left: max(0px, calc(var(--to-burger-w) - max(0px, (100vw - var(--to-max-w)) / 2)));
 }
 /* Behind the stuck bar, the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button.
@@ -379,8 +372,7 @@ to-app[scrolled]::before {
   z-index: 14;
 }
 @media (prefers-reduced-motion: reduce) {
-  .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
-  .to-panel > div > * > .ol-bars > .to-toolbar {
+  .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child{
     transition: none;
   }
 }
@@ -611,14 +603,54 @@ sl-menu-item svg.pre {
 }
 
 /* 4. Shared pieces --------------------------------------------------------- */
-.to-toolbar {
+/* Every app's bar is one row, however much is on it: it scrolls sideways, and a fade at an edge says there is more that way. */
+.to-toolbar,
+.sheet-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--to-border);
   background: var(--to-surface);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* What is placed absolutely inside (the labels only a screen reader reads) is held, and scrolled, with the row; else it sits where the unwrapped row would put it and widens the page. */
+  position: relative;
+}
+:is(.to-toolbar, .sheet-bar)::-webkit-scrollbar {
+  display: none;
+}
+:is(.to-toolbar, .sheet-bar) > * {
+  flex-shrink: 0;
+}
+/* The fades: a strip stuck to each edge of the scroller, over whatever has scrolled under it, shown only while there is more that way. */
+:is(.to-toolbar, .sheet-bar)::before,
+:is(.to-toolbar, .sheet-bar)::after {
+  content: '';
+  position: sticky;
+  flex: none;
+  align-self: stretch;
+  width: 56px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+:is(.to-toolbar, .sheet-bar)::before {
+  left: -12px;
+  margin-right: -56px;
+  background: linear-gradient(to right, var(--to-surface) 40%, transparent);
+}
+:is(.to-toolbar, .sheet-bar)::after {
+  right: -12px;
+  margin-left: -56px;
+  background: linear-gradient(to left, var(--to-surface) 40%, transparent);
+}
+:is(.to-toolbar, .sheet-bar)[data-fade-start]::before,
+:is(.to-toolbar, .sheet-bar)[data-fade-end]::after {
+  opacity: 1;
 }
 .to-toolbar .sep {
   width: 1px;
@@ -787,13 +819,6 @@ sl-dialog.to-doc {
 /* 5. Apps ------------------------------------------------------------------ */
 
 /* Sheet */
-.sheet-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--to-border);
-}
 .sheet-bar .ref {
   font-family: var(--sl-font-mono);
   font-weight: 600;
@@ -1000,7 +1025,6 @@ table.sheet td.sel input {
   color: var(--to-ink-3);
 }
 .deck-editor {
-  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1010,12 +1034,9 @@ table.sheet td.sel input {
 .deck-slide {
   container-type: inline-size;
   width: 100%;
-  max-width: 880px;
   aspect-ratio: 16 / 10;
   padding: 6.667cqw;
-  border: 1px solid var(--to-border);
-  border-radius: var(--sl-border-radius-large);
-  box-shadow: var(--sl-shadow-medium);
+  border-bottom: 1px solid var(--to-border);
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 2.9cqw;
@@ -1637,22 +1658,16 @@ svg.draw-canvas text {
   .to-panel {
     border-radius: var(--to-radius);
   }
-  /* On a phone a toolbar is one row that scrolls sideways, rather than a stack of wrapped rows. */
-  .to-toolbar {
+  .to-toolbar,
+  .sheet-bar {
     padding: 6px 8px;
     gap: 4px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    /* What is placed absolutely inside (the labels only a screen reader reads) is held, and scrolled, with the row; else it sits where the unwrapped row would put it and widens the page. */
-    position: relative;
   }
-  .to-toolbar::-webkit-scrollbar {
-    display: none;
+  :is(.to-toolbar, .sheet-bar)::before {
+    left: -8px;
   }
-  .to-toolbar > * {
-    flex-shrink: 0;
+  :is(.to-toolbar, .sheet-bar)::after {
+    right: -8px;
   }
   .to-toolbar .to-hint {
     display: none;
@@ -1675,9 +1690,6 @@ svg.draw-canvas text {
   .deck-thumb,
   .deck-end {
     width: 120px;
-  }
-  .deck-editor {
-    padding: 10px;
   }
   .cal-month {
     min-width: 0;
@@ -2363,9 +2375,6 @@ to-trip[present] .trip-map {
 }
 
 @media (max-width: 760px) {
-  .deck-editor {
-    padding: 10px;
-  }
   .deck-rail {
     flex-direction: row;
   }
@@ -2474,10 +2483,24 @@ textarea {
   color: var(--to-ink-2);
   opacity: 1;
 }
+.to-title {
+  border-color: var(--to-border);
+  border-style: dashed;
+  background: var(--to-surface);
+  padding-right: 26px;
+  background-image: var(--to-pen);
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 13px 13px;
+}
 .to-title:hover,
 .to-title:focus {
-  border-color: var(--to-border);
-  background: var(--to-surface);
+  border-style: solid;
+  border-color: var(--to-ink-3);
+}
+.to-title:focus {
+  background-image: none;
+  padding-right: 6px;
 }
 /* Dragging across the calendar makes a span; it must not also select the page's text. */
 .cal-grid,
@@ -2523,23 +2546,42 @@ table.sheet th .col-type:hover {
   background: var(--to-border);
   color: var(--to-ink);
 }
-/* A column's head: its letter, its name, and an arrow that says it opens. */
+/* A column's head: its letter and an arrow that says it opens; its name in the row under, typed over where it stands. */
 table.sheet th .col-type {
   align-items: center;
   width: 100%;
   justify-content: center;
 }
 table.sheet th .col-type .cl {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--to-ink-3);
 }
-table.sheet th .col-type .cn {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+table.sheet tr.names th {
+  top: 32px;
+  height: auto;
+  text-align: left;
+}
+table.sheet tr.names .cn {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 6px;
+  border: 0;
+  background: transparent;
   color: var(--to-ink);
-  font-weight: 600;
+  font: 600 12px var(--sl-font-sans);
+  text-overflow: ellipsis;
+}
+table.sheet tr.names .cn::placeholder {
+  color: var(--to-ink-3);
+  font-weight: 500;
+}
+table.sheet tr.names .cn:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -2px;
+  background: var(--to-surface);
 }
 table.sheet th .col-type > svg {
   flex-shrink: 0;
@@ -2565,22 +2607,25 @@ table.sheet th.row .row-num:focus-visible {
   background: var(--to-border);
   color: var(--to-ink);
 }
-/* The sheet's menus: a name to type, then choices each with a word of explanation under it. */
+/* The sheet's menus: a table of choices, each a name on the left and an example on the right, in a line. */
 .sheet-menu {
-  min-width: 240px;
+  min-width: 260px;
+  text-align: left;
 }
-.sheet-menu .col-name {
-  padding: 8px 12px 10px;
+.sheet-menu sl-menu-item::part(label) {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 16px;
 }
 .sheet-menu sl-menu-item .ct-name {
-  display: block;
   line-height: 1.25;
 }
 .sheet-menu sl-menu-item .ct-hint {
-  display: block;
   font-size: 11.5px;
   line-height: 1.3;
   color: var(--to-ink-3);
+  font-variant-numeric: tabular-nums;
 }
 .sheet-menu sl-menu-item.danger::part(base) {
   color: var(--to-danger);
@@ -2814,10 +2859,6 @@ table.sheet td .rich .s {
     order: -1;
     border-bottom: 1px solid var(--to-border);
   }
-  .diagram > to-lines {
-    border-right: 0;
-    max-height: none;
-  }
   .diagram textarea {
     min-height: 200px;
     border-right: 0;
@@ -3006,7 +3047,31 @@ svg.draw-canvas {
   font-size: 15px;
 }
 sl-dialog.to-icons {
-  --width: min(92vw, 520px);
+  --width: min(92vw, 640px);
+}
+/* The library in its sections, named: a long page to scroll; what is off the screen is not laid out until it nears. */
+.to-icons-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+  margin-top: 14px;
+}
+.to-icons-section h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--to-ink-2);
+  position: sticky;
+  top: -1px;
+  z-index: 1;
+  padding: 6px 0;
+  margin: 0 0 4px;
+  background: var(--to-surface);
+}
+.to-icons-section h3 span {
+  font-weight: 400;
+  color: var(--to-ink-3);
 }
 
 /* Contract: who has signed */
@@ -3222,165 +3287,6 @@ sl-dialog.to-icons {
   }
 }
 
-/* The form every text app shares: a table, a row for each line, a cell for each of its parts */
-to-lines {
-  display: block;
-  padding: 8px;
-  overflow: auto;
-  min-width: 0;
-}
-.lf-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-  background: var(--to-surface);
-  overflow: hidden;
-}
-.lf-row {
-  display: grid;
-  grid-template-columns: 5.2rem minmax(0, 1fr) auto;
-  align-items: stretch;
-  min-height: 34px;
-  border-bottom: 1px solid var(--to-border);
-}
-.lf-row:last-child {
-  border-bottom: 0;
-}
-.lf-row[hidden] {
-  display: none;
-}
-.lf-fold {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin: 0 3px 0 -4px;
-  padding: 0 2px;
-  height: 20px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--to-ink-2);
-  cursor: pointer;
-}
-.lf-fold b {
-  font-size: 10px;
-}
-.lf-fold:hover {
-  background: var(--to-border);
-}
-.lf-row.head .lf-fields input {
-  font-weight: 600;
-}
-.lf-row.rule {
-  background: var(--to-surface-2);
-}
-.lf-kind {
-  display: flex;
-  align-items: center;
-  padding: 0 6px 0 8px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.15;
-  color: var(--to-ink-3);
-  background: var(--to-surface-2);
-  border-right: 1px solid var(--to-border);
-  overflow: hidden;
-}
-.lf-fields {
-  display: flex;
-  min-width: 0;
-  /* Nested rows step in, as their lines do in the text, with a rule down each level to follow by eye. */
-  padding-left: calc(var(--d, 0) * 18px);
-  background: repeating-linear-gradient(to right, transparent 0 8px, var(--to-border) 8px 9px, transparent 9px 18px) left / calc(var(--d, 0) * 18px) 100% no-repeat;
-}
-.lf-fields :is(input, select) {
-  flex: 1 1 0;
-  min-width: 0;
-  width: 0;
-  padding: 0 8px;
-  font: 14.5px/1.3 var(--sl-font-sans);
-  color: var(--to-ink);
-  background: transparent;
-  border: 0;
-  border-right: 1px solid var(--to-border);
-  border-radius: 0;
-}
-.lf-fields input.long {
-  flex-grow: 2.4;
-}
-.lf-fields select {
-  flex: 0 0 5.6rem;
-}
-.lf-fields :is(input, select):focus-visible {
-  outline: 2px solid var(--to-accent);
-  outline-offset: -2px;
-  background: var(--to-bg);
-}
-.lf-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  border: 0;
-  border-right: 1px solid var(--to-border);
-  background: transparent;
-  color: var(--to-ink);
-  cursor: pointer;
-}
-.lf-tools {
-  display: flex;
-  align-items: center;
-}
-.lf-tools .to-icon-btn {
-  --size: 24px;
-  height: 100%;
-  min-height: 32px;
-  border-radius: 0;
-}
-.lf-add {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-.lf-add button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  font: 500 13.5px var(--sl-font-sans);
-  color: var(--to-accent);
-  background: var(--to-surface);
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius-pill);
-  cursor: pointer;
-}
-.lf-add button:hover {
-  background: var(--to-surface-2);
-}
-@media (max-width: 520px) {
-  .lf-row {
-    grid-template-columns: 3.9rem minmax(0, 1fr) auto;
-  }
-  .lf-tools button {
-    width: 22px;
-  }
-}
-
-
-/* Filling in a form wants more room than typing a line does */
-@media (min-width: 761px) {
-  .diagram:has(> to-lines) {
-    grid-template-columns: minmax(380px, 5fr) 6fr;
-  }
-}
-.diagram > to-lines {
-  border-right: 1px solid var(--to-border);
-  max-height: 80vh;
-}
-
 /* Working the picture itself: a shape is picked, and its buttons sit under it */
 .diagram .pic > svg {
   overflow: visible;
@@ -3495,21 +3401,12 @@ sl-menu-item.sub::part(base) {
   opacity: 1;
 }
 
-/* The buttons in a form row, and the picture's buttons, are a finger wide. */
-.lf-tools .to-icon-btn {
-  --size: 32px;
-  min-height: 36px;
-}
-.lf-row {
-  min-height: 40px;
-}
 
 /* On a phone: no zoom-in on tapping a box (type is 16px there), no rubber-banding, no double-tap delay. */
 @media (pointer: coarse) {
   input,
   textarea,
   select,
-  .lf-fields :is(input, select),
   .sheet input,
   .cal-zone {
     font-size: max(16px, 1em);
@@ -3534,9 +3431,6 @@ sl-menu-item.sub::part(base) {
     --to-border: var(--to-ink-2);
   }
   sl-button::part(base),
-  .lf-tools button,
-  .lf-add button,
-  .lf-fold,
   .to-swatches button,
   .to-library li button {
     border: 1px solid currentColor;
@@ -3547,12 +3441,8 @@ sl-menu-item.sub::part(base) {
 @media (forced-colors: active) {
   .to-panel,
   .to-toolbar,
-  .lf-rows,
-  .lf-row,
   .pixel-grid,
-  .to-library details,
-  .lf-row.head .lf-fields input,
-  .lf-kind {
+  .to-library details {
     forced-color-adjust: none;
     color: CanvasText;
     background: Canvas;
@@ -3595,25 +3485,7 @@ sl-menu-item.sub::part(base) {
     grid-template-columns: minmax(0, 1fr);
     display: grid;
   }
-  .to-toolbar {
-    flex-wrap: nowrap;
-  }
-  .lf-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .lf-kind {
-    border-right: 0;
-    border-bottom: 1px solid var(--to-border);
-    padding: 4px 8px;
-  }
-  .lf-fields {
-    flex-wrap: wrap;
-  }
-  .lf-fields :is(input, select) {
-    flex-basis: 100%;
-    border-right: 0;
-    border-bottom: 1px solid var(--to-border);
-  }
+
 }
 
 /* The schedule's table of tasks scrolls sideways on the narrowest screens rather than sticking out. */
@@ -3650,39 +3522,15 @@ mark {
   cursor: default;
 }
 
-/* The insert combobox: type what you want, pick it, it is added */
+/* The Insert menu: a button, and its list under it */
 .to-insert {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  /* Its own height, whatever row it sits in: a flex row in some browsers would squash it. */
-  height: 32px;
-  min-height: 32px;
   flex: 0 0 auto;
   align-self: center;
 }
-.to-insert-icon {
-  position: absolute;
-  left: 9px;
-  display: grid;
+.to-insert > sl-button::part(label) {
   color: var(--to-accent);
-  pointer-events: none;
-}
-.to-insert input {
-  box-sizing: border-box;
-  height: 32px;
-  width: 15rem;
-  max-width: 48vw;
-  padding: 0 10px 0 28px;
-  font: 14px var(--sl-font-sans);
-  color: var(--to-ink);
-  background: var(--to-surface);
-  border: 1px solid var(--to-border);
-  border-radius: var(--to-radius);
-}
-.to-insert input:focus-visible {
-  outline: 2px solid var(--to-accent);
-  outline-offset: -1px;
 }
 .deck-kind {
   display: inline-flex;
@@ -3694,15 +3542,10 @@ mark {
   font-size: 12.5px;
   white-space: nowrap;
 }
-.deck-add input {
-  width: 12rem;
-  border-radius: 0;
-}
 .deck-count {
   white-space: nowrap;
 }
 .to-toolbar sl-button-group::part(base) {
-  flex-wrap: wrap;
   align-items: center;
 }
 .to-toolbar sl-button-group to-insert {
@@ -3764,22 +3607,44 @@ mark {
   cursor: text;
 }
 
-/* The insert combobox's list: scrollable, in the menu's groups */
+/* The Insert menu's list: a box to narrow it, then the options, scrollable, in the menu's groups */
 .to-insert-list {
-  /* Placed under its box by the widget, against the window, in the top layer (widgets/insert-box.ts). */
+  /* Placed under its button by the widget, against the window, in the top layer (widgets/insert-box.ts). */
   position: fixed;
   z-index: 30;
   inset: auto;
   color: inherit;
-  max-height: min(60vh, 22rem);
-  overflow-y: auto;
+  max-height: min(60vh, 24rem);
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 4px;
-  list-style: none;
   background: var(--to-surface);
   border: 1px solid var(--to-border);
   border-radius: var(--to-radius);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+.to-insert-list input {
+  box-sizing: border-box;
+  flex: none;
+  height: 34px;
+  margin: 0 0 4px;
+  padding: 0 10px;
+  font: 14px var(--sl-font-sans);
+  color: var(--to-ink);
+  background: var(--to-surface-2);
+  border: 1px solid var(--to-border);
+  border-radius: 6px;
+}
+.to-insert-list input:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -1px;
+}
+.to-insert-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
 }
 .to-insert-list li[role='option'] {
   display: flex;
@@ -4492,17 +4357,6 @@ sl-dialog.to-open-as {
   color: var(--to-ink-2);
 }
 /* On a blank document, the templates laid out, Blank first: where the first words would go. */
-.to-gallery {
-  padding: 14px;
-  border-bottom: 1px solid var(--to-border);
-  background: var(--to-surface-2);
-}
-.to-gallery .to-templates-list {
-  margin-top: 0;
-}
-to-write > to-template-gallery .to-gallery {
-  padding: 16px clamp(16px, 4vw, 32px);
-}
 /* A deck's cards are slide-shaped. */
 .to-templates-list[data-app='deck'] .to-template .pic {
   aspect-ratio: 16 / 10;

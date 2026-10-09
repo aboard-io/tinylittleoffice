@@ -225,7 +225,7 @@ export class ToDeck extends PagesElement<Deck> {
         <sl-button-group label="Slides">
           ${tool('Slide', 'plus', () => this.addPage(), { text: true })}
           <span class="deck-kind to-hint" data-tip="What kind of slide this is">${kindName}</span>
-          <to-insert class="deck-add" label="Add a slide" placeholder="Add: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts', icon: LAYOUT_ICONS[l.id] })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
+          <to-insert class="deck-add" label="Insert" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts', icon: LAYOUT_ICONS[l.id] })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
           ${tool('Move slide up', 'up', () => this.movePage(-1), { disabled: this.cur === 0 })}
           ${tool('Move slide down', 'down', () => this.movePage(1), { disabled: this.cur === n - 1 })}
           ${tool('Delete slide', 'trash', () => this.removePage())}

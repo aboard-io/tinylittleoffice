@@ -1,7 +1,7 @@
 // The diagram apps in happy-dom: an outline typed, the picture it makes, examples, a slide that builds (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
 import { mount, settle, button, press, setSl } from './helpers.ts';
-import { open, reopen, go, prefs, asText, box, typeIn, keyIn, settleAll, until, pickIcon } from './helpers-more.ts';
+import { open, reopen, go, prefs, asText, box, typeIn, keyIn, settleAll, until, pickIcon, insert } from './helpers-more.ts';
 
 beforeEach(() => {
   prefs();
@@ -52,12 +52,7 @@ test('diagram apps: the example button fills an empty one in; each app draws its
 
 test('a diagram on a slide: chosen from Add a slide, it builds a shape per click', async () => {
   const { el, last } = await mount('deck');
-  const add = box(el, 'Add a slide');
-  add.value = 'mind';
-  add.dispatchEvent(new Event('input', { bubbles: true }));
-  await settle(el);
-  press(add, 'Enter');
-  await settleAll();
+  await insert(el, 'Insert', 'mind');
   const sub = document.querySelector('sl-dialog.to-sub')!;
   expect(sub).toBeTruthy();
   const area = box<HTMLTextAreaElement>(sub, 'Mind map, as text');

@@ -8,7 +8,7 @@
  * both ways; the plus beside it names the line. Connect joins any two
  * items. Format: a nested list, lib/outlinemodel.ts.
  */
-import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, insertedRef, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, insertedRef, SELF, appOf, apps, convert, hashOf, type TemplateResult, type SlInput, btn } from '../kit.ts';
 import { blockEnd, hasChildren, liveLinks, move, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
@@ -291,21 +291,14 @@ export class ToOutline extends DocElement<Item[]> {
   }
 
   /** The bar under the header, there however far the outline is scrolled: what to do with the chosen item. */
-  private renderNav() {
-    const s = this.sel;
-    const none = s < 0 || s >= this.doc.length;
-    const c = this.connecting;
-    return html`<div class="to-toolbar ol-nav" role="toolbar" aria-label="Arrange and connect">
-      <sl-button-group label="Arrange">
-        ${tool('Bring out', 'outdent', () => this.shiftBy(s, -1), { disabled: none, keepFocus: true, key: 'Shift+Tab' })}${tool('Indent', 'indent', () => this.shiftBy(s, 1), { disabled: none, keepFocus: true, key: 'Tab' })}
-        ${tool('Move up', 'up', () => this.moveBy(s, -1), { disabled: none, keepFocus: true, key: 'Alt+ArrowUp' })}${tool('Move down', 'down', () => this.moveBy(s, 1), { disabled: none, keepFocus: true, key: 'Alt+ArrowDown' })}
-      </sl-button-group>
-      <sl-button-group label="View">
-        ${tool('Zoom in', 'zoomIn', () => this.zoomTo(s), { disabled: none || !hasChildren(this.doc, s), keepFocus: true, key: 'Mod+.' })}${tool('Fold all', 'foldAll', () => this.foldAll(true), { keepFocus: true })}${tool('Unfold all', 'unfoldAll', () => this.foldAll(false), { keepFocus: true })}
-      </sl-button-group>
-      ${tool(c ? 'Cancel connecting' : 'Connect', c ? 'close' : 'link', () => this.connect(), { text: true, pressed: !!c })}
-      ${c ? html`<span class="to-hint ol-nav-hint" role="status">${c.from < 0 ? 'Tap the item to connect from.' : html`Tap the item to connect <b>${plainInline(this.doc[c.from].text)}</b> to.`}</span>` : nothing}
-    </div>`;
+  /** The outline seen as another kind of document, in a new tab: a mind map, a deck, a list of tasks. */
+  private viewAs() {
+    const from = appOf('outline')!;
+    const choices = apps().filter((d) => d.id !== 'outline' && d.id !== 'write' && (from.into?.[d.id] || d.read)).map((d) => ({ d, body: convert(from, this.serialize(this.doc), d) })).filter((c) => c.body.trim());
+    return html`<sl-dropdown hoist>
+      <sl-button slot="trigger" size="small" caret aria-label="View as">${icon(UI.compare, 14)} View as</sl-button>
+      <sl-menu>${choices.map(({ d, body }) => html`<sl-menu-item @click=${() => window.open(hashOf(d.id, body), '_blank', 'noopener')}>${icon(UI[d.icon as keyof typeof UI] ?? UI.write, 14, 'pre')} ${d.name}</sl-menu-item>`)}</sl-menu>
+    </sl-dropdown>`;
   }
 
   /** The joins, under the outline: each with its kind of line, its name, and a way to take it away. */
@@ -332,18 +325,28 @@ export class ToOutline extends DocElement<Item[]> {
     const items = this.doc;
     const vis = this.visible();
     const base = this.zoom >= 0 ? items[this.zoom].depth : 0;
+    const s = this.sel;
+    const none = s < 0 || s >= items.length;
+    const c = this.connecting;
     return html`
-      <div class="ol-bars">
       <div class="to-toolbar" role="toolbar" aria-label="Outline">
+        <to-insert label="Insert" .options=${[{ value: 'item', label: 'Item', group: '', icon: 'plus' as const }, ...insertOptions('outline')]} @pick=${(e: CustomEvent<string>) => (e.detail === 'item' ? this.save([...items, { depth: base, text: '' }], items.length) : this.insertDoc(e.detail))}></to-insert>
         <sl-button-group label="Text">
-          ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
+          ${tool('Bold', 'bold', () => this.field?.exec('bold'), { key: 'Mod+B' })}${tool('Italic', 'italic', () => this.field?.exec('italic'), { key: 'Mod+I' })}${tool('Underline', 'underline', () => this.field?.exec('underline'), { key: 'Mod+U' })}${tool('Strikethrough', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
         </sl-button-group>
-        ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { text: true }) : nothing}
-        <to-insert label="Insert" placeholder="Insert a document…" .options=${insertOptions('outline')} @pick=${(e: CustomEvent<string>) => this.insertDoc(e.detail)}></to-insert>
+        <sl-button-group label="Arrange">
+          ${tool('Bring out', 'shiftOut', () => this.shiftBy(s, -1), { disabled: none, keepFocus: true, key: 'Shift+Tab' })}${tool('Indent', 'shiftIn', () => this.shiftBy(s, 1), { disabled: none, keepFocus: true, key: 'Tab' })}
+          ${tool('Move up', 'up', () => this.moveBy(s, -1), { disabled: none, keepFocus: true, key: 'Alt+ArrowUp' })}${tool('Move down', 'down', () => this.moveBy(s, 1), { disabled: none, keepFocus: true, key: 'Alt+ArrowDown' })}
+        </sl-button-group>
+        <sl-button-group label="View">
+          ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { key: 'Mod+,' }) : nothing}
+          ${tool('Zoom in', 'zoomIn', () => this.zoomTo(s), { disabled: none || !hasChildren(items, s), keepFocus: true, key: 'Mod+.' })}${tool('Fold all', 'foldAll', () => this.foldAll(true), { keepFocus: true })}${tool('Unfold all', 'unfoldAll', () => this.foldAll(false), { keepFocus: true })}
+        </sl-button-group>
+        ${tool(c ? 'Cancel connecting' : 'Connect', c ? 'close' : 'link', () => this.connect(), { text: true, pressed: !!c })}
+        ${c ? html`<span class="to-hint ol-nav-hint" role="status">${c.from < 0 ? 'Tap the item to connect from.' : html`Tap the item to connect <b>${plainInline(items[c.from].text)}</b> to.`}</span>` : nothing}
+        ${this.viewAs()}
         <span class="to-spacer"></span>
         <span class="to-hint">${items.filter((it) => it.text.trim()).length} items</span>
-      </div>
-      ${this.renderNav()}
       </div>
       ${this.crumbs()}
       <div class="ol ${this.connecting ? 'connecting' : ''}" role="tree" aria-label="Outline" @drop=${this.onDrop} @dragover=${(e: DragEvent) => this.drag && e.preventDefault()} @keydown=${(e: KeyboardEvent) => this.connecting && e.key === 'Escape' && (this.connecting = null)}>
@@ -379,7 +382,7 @@ export class ToOutline extends DocElement<Item[]> {
               : nothing}
           </div>`;
         })}
-        <button class="to-add ol-add" @click=${() => this.save([...items, { depth: base, text: '' }], items.length)}>${icon(UI.plus, 14)} Add an item</button>
+        <div class="ol-below" aria-hidden="true" @click=${() => (items[items.length - 1]?.text.trim() || items[items.length - 1]?.doc ? this.save([...items, { depth: base, text: '' }], items.length) : this.focusItem(items.length - 1))}></div>
       </div>
       ${this.renderLinks()}
     `;

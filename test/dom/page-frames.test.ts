@@ -160,7 +160,7 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   const text = '# Harbor Coffee\n\nRoasted on the quay.\n\n# Menu\n\nEspresso.\n\n# Visit\n\nQuay Street.';
   type(el.querySelector('textarea[aria-label="Website, as text"]'), text);
   await settle(el);
-  button(el, 'Edit as a form').click();
+  shortcut('t', { mod: true, shift: true });
   await settle(el);
   // Menu chosen in the nav: the frame says so.
   f.post({ lf: 'hash', h: '#menu' });
@@ -186,7 +186,5 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   await settle(el);
   expect(nav(f)).toEqual(['Home', 'Menu', 'Visit']);
   expect(placed(f)).toBe('');
-  // The list beside shows the same: a page, with the lines under it one in.
-  expect(el.querySelectorAll('to-lines .lf-row.head')).toHaveLength(3);
   expect(last()).toBe(text);
 });

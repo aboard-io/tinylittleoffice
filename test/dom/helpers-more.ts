@@ -167,7 +167,7 @@ export async function pickIcon(search: string, name: string) {
   (input as unknown as { value: string }).value = search;
   input.dispatchEvent(new CustomEvent('sl-input', { bubbles: true, composed: true }));
   const found = await until(() => {
-    const b = dialog.querySelector<HTMLElement>(`[aria-label="Icon library"] button[aria-label="${name}"]`);
+    const b = dialog.querySelector<HTMLElement>(`.deck-picker:not(.suggested) button[aria-label="${name}"]`);
     if (!b) {
       input.dispatchEvent(new CustomEvent('sl-input', { bubbles: true, composed: true }));
       throw new Error(`no icon ${name}`);
@@ -197,9 +197,13 @@ export async function editSub(label: string, text: string) {
   await settleAll();
 }
 
-/** Pick from an "Insert" or "Add a slide" box: type a few letters, then Enter. */
+/** Pick from an Insert menu: open it, type a few letters to narrow the list, then Enter. */
 export async function insert(root: ParentNode, label: string, what: string) {
-  const input = box(root, label);
+  const menu = [...root.querySelectorAll<HTMLElement>('to-insert')].find((m) => m.querySelector('sl-button')?.textContent?.includes(label));
+  if (!menu) throw new Error(`no Insert menu ${label}`);
+  menu.querySelector<HTMLElement>('sl-button')!.click();
+  await settleAll();
+  const input = menu.querySelector<HTMLInputElement>('.to-insert-list input')!;
   input.value = what;
   input.dispatchEvent(new Event('input', { bubbles: true }));
   await settleAll();

@@ -20,25 +20,6 @@ async function example(app: string, mode: 'form' | 'text' | null = null) {
   return m;
 }
 
-/** The words typed into whatever has the focus, as a person types. */
-function typeHere(text: string) {
-  const box = document.activeElement as HTMLInputElement | null;
-  expect(box?.localName, 'something to type into has the focus').toMatch(/^(input|textarea)$/);
-  type(box, text);
-}
-/** Tab to the next box of the same row of a form. */
-function tab() {
-  const box = document.activeElement as HTMLElement;
-  const row = box.closest('.lf-row, .pic-edit')!;
-  const boxes = [...row.querySelectorAll<HTMLElement>('input, textarea, select')];
-  boxes[boxes.indexOf(box) + 1].focus();
-}
-/** One of the Add buttons under a form. */
-async function add(el: Editor, kind: string) {
-  [...el.querySelectorAll<HTMLElement>('to-lines [role="group"][aria-label="Add"] button')].find((b) => b.textContent?.trim() === kind)!.click();
-  await settle(el);
-}
-const lines = (el: Editor) => el.querySelector('to-lines')!;
 const box = (root: ParentNode, label: string) => root.querySelector<HTMLInputElement>(`[aria-label="${label}"]`);
 /** A thing on the picture, by the start of its name. */
 const thing = (el: Editor, name: string | RegExp) => {
@@ -95,90 +76,15 @@ test('forms: a diagram joined and given pictures on its picture, guests renamed 
   expect(seats.last()).toContain('Table 2: Linus, Barbara, Ken Thompson, Dennis, Edsger');
 });
 
-test('forms: a model of sliders and flows, and an invoice filled in from its example', async () => {
-  // The model: sliders and flows from boxes, and the diagram follows.
-  edit('form');
-  const flow = await mount('flow');
-  await add(flow.el, 'Slider');
-  typeHere('visitors');
-  tab();
-  typeHere('1000');
-  await add(flow.el, 'Flow');
-  typeHere('Visitors');
-  tab();
-  typeHere('Signups');
-  tab();
-  typeHere('visitors * 0.1');
-  await settle(flow.el);
-  expect(flow.last()).toBe('- visitors = 1000\n\n~ Visitors -> Signups: visitors * 0.1');
-  expect(framed(flow.el).page().documentElement.innerHTML).toContain('Signups');
-
-  // An example fills the form in.
-  const inv = await example('invoice', 'form');
-  const form = lines(inv.el);
-  expect(box(form, 'Who it is from, row 1')!.value).toBe('Harbor Studio | 14 Quay Street');
-  expect(form.querySelector<HTMLInputElement>('input[type="date"]')!.value).toBe('2027-03-01');
-  expect(box(form, 'Qty, row 7')!.value).toBe('12');
-  type(box(form, 'Qty, row 7'), '10');
-  await settle(inv.el);
-  expect([...framed(inv.el).page().querySelectorAll('tfoot tr')].at(-1)!.textContent).toContain('$5,162.40');
-});
-
-test('the picture is worked directly: tap a box and type; Enter for the next', async () => {
-  edit(null);
-  const { el, last } = await example('org');
-  // A tap opens the words, with the small things to do underneath; no cluster of buttons on the picture.
-  await tapThing(el, 'Ben Okoro');
-  await until(() => expect(document.activeElement).toBe(editBox(el)[0]));
-  expect(editBox(el)[0].value).toBe('Ben Okoro');
-  expect(el.querySelectorAll('.pic > svg .diagram-ctl')).toHaveLength(0);
-  // Enter: one under Ben, indented, the cursor in it.
-  await key(el, 'Enter', editBox(el)[0]);
-  expect(editBox(el)[0].value).toBe('');
-  type(editBox(el)[0], 'Gus Pine');
-  await settle(el);
-  expect(el.querySelector('.pic > svg')!.textContent).toContain('Gus Pine');
-  await key(el, 'Escape', editBox(el)[0]);
-  expect(last()).toMatch(/- Ben Okoro \| Engineering\n    - Cy Lund \| Platform\n    - Di Shah \| Apps\n    - Gus Pine/);
-  // As text, for whoever wants it: Ctrl+Shift+T, and back.
-  shortcut('t', { mod: true, shift: true });
-  await settle(el);
-  expect((box(el, 'Org chart, as text') as unknown as HTMLTextAreaElement).value).toBe(last());
-  shortcut('t', { mod: true, shift: true });
-  await settle(el);
-  // A picture on Eve; then take Flo away.
-  await tapThing(el, 'Eve Marsh');
-  button(el.querySelector('.pic-edit')!, 'Give it a picture').click();
-  await pickIcon('palette');
-  await settle(el);
-  expect(el.querySelectorAll('.pic > svg g.pick g[stroke-linecap="round"]')).toHaveLength(1);
-  await tapThing(el, 'Flo Reyes');
-  button(el.querySelector('.pic-edit')!, 'Take it away').click();
-  await settle(el);
-  expect(el.querySelector('.pic > svg')!.textContent).not.toContain('Flo Reyes');
-  // (People only: the dotted line between two of them is a button too.)
-  expect([...el.querySelectorAll('.pic > svg g.pick')].filter((g) => /^(?!Line from).*(Okoro|Lund|Shah|Marsh|Diaz|Pine)/.test(g.getAttribute('aria-label')!))).toHaveLength(6);
-  // Backspace on empty words takes one away too.
-  await tapThing(el, 'Cy Lund');
-  const [name, role] = editBox(el);
-  type(name, '');
-  type(role, '');
-  await settle(el);
-  await key(el, 'Backspace', editBox(el)[1]);
-  expect(el.querySelector('.pic > svg')!.textContent).not.toContain('Cy Lund');
-  expect(last()).not.toContain('Cy Lund');
-});
-
 test('a page is edited in the page: type into it, add with the bar, Enter for another', async () => {
-  const { el } = await example('split', 'form');
+  const { el } = await example('split');
   const f = framed(el);
   // What is written in the text is there in the page, to type into.
   expect(f.data()!.v).toContainEqual([3, 0, 'Sam', 'Who']);
   f.post({ lf: 'focus', r: 3 });
   f.post({ lf: 'set', r: 3, f: 0, v: 'Samantha' });
   await settle(el);
-  // The table beneath has it at once; once the typing pauses the page is drawn afresh, sums and all.
-  expect(box(lines(el), 'Who, row 4')!.value).toBe('Samantha');
+  // Once the typing pauses the page is drawn afresh, sums and all.
   await until(async () => {
     await settle(el);
     expect([...f.page().querySelectorAll('.pay')].at(-1)!.textContent).toContain('Samantha');
@@ -191,7 +97,6 @@ test('a page is edited in the page: type into it, add with the bar, Enter for an
   expect(f.page().querySelectorAll('tbody tr')).toHaveLength(5);
   f.post({ lf: 'set', r: 4, f: 0, v: 'Grace' });
   await settle(el);
-  expect(box(lines(el), 'Who, row 5')!.value).toBe('Grace');
   f.post({ lf: 'done' });
   await settle(el);
   expect(f.page().querySelector('tbody')!.textContent).toContain('Grace');

@@ -198,7 +198,6 @@ button.ol-kind:hover {
 }
 .ol-kind:focus-visible,
 .ol-label:focus-visible,
-.ol-add:focus-visible,
 .ol-crumbs button:focus-visible {
   outline: 2px solid var(--to-accent);
   outline-offset: 1px;
@@ -219,11 +218,10 @@ button.ol-kind:hover {
 .ol-row.drop-under::after {
   left: calc((var(--d, 0) + 1) * var(--ol-step) + var(--ol-step));
 }
-.ol-add {
-  margin: 8px 0 0 var(--ol-step);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+/* The space under the last item: a tap there starts the next one. */
+.ol-below {
+  height: 40px;
+  cursor: text;
 }
 
 /* Zoomed in: where, as a trail back out. */
@@ -253,10 +251,6 @@ button.ol-kind:hover {
   font-weight: 600;
 }
 
-/* The two bars stick to the top together (see "an app's own bar" in styles.css). */
-.ol-bars > .to-toolbar + .to-toolbar {
-  border-top: 0;
-}
 .ol-nav-hint b {
   color: var(--to-ink);
 }

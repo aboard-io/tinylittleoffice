@@ -43,28 +43,27 @@ test('Mod+Alt+= puts a row in above the cell; Mod+Alt+- takes it out', async () 
   expect(colA(last()!)).toEqual(['Rent', 'Food', 'Total', '', '']);
 });
 
-test('a column head shows its letter, its name and an arrow; it goes by what it holds until renamed', async () => {
+test('a column head shows its letter and an arrow, its name in the row under; it goes by what it holds until renamed', async () => {
   const { el, last } = await mount('sheet', SHEET);
   // A and B are named by the table's header row; C goes by its letter.
   const heads = () => el.querySelectorAll<HTMLElement>('th .col-type');
-  expect([...heads()].slice(0, 2).map((h) => h.querySelector('.cn')!.textContent)).toEqual(['Item', 'Cost']);
+  const names = () => el.querySelectorAll<HTMLInputElement>('tr.names .cn');
+  expect([...names()].slice(0, 2).map((h) => h.value)).toEqual(['Item', 'Cost']);
   const head = () => heads()[2];
   expect(head().querySelector('.cl')!.textContent).toBe('C');
-  expect(head().querySelector('.cn')!.textContent).toBe('ColC');
+  expect(names()[2].value).toBe('ColC');
   expect(head().querySelector('svg')).toBeTruthy();
   // Holding dates, it is called Date.
   await pick(el, head().closest('sl-dropdown')!, 'date');
   expect(typesOf(last()!)[2]).toBe('date');
   expect(last()).toMatch(/^Item \| Cost:money \| Date:date\n/);
-  expect(head().querySelector('.cn')!.textContent).toBe('Date');
-  // Named by hand, it keeps its name whatever it holds.
-  const name = head().closest('sl-dropdown')!.querySelector('.col-name sl-input')!;
-  setSl(name, 'Paid on', 'sl-change');
+  expect(names()[2].value).toBe('Date');
+  // Named by hand, where it stands, it keeps its name whatever it holds.
+  names()[2].value = 'Paid on';
+  names()[2].dispatchEvent(new Event('change', { bubbles: true }));
   await settle(el);
   expect(namesOf(last()!)[2]).toBe('Paid on');
   await pick(el, head().closest('sl-dropdown')!, 'text');
   expect(columnName(2, typesOf(last()!), namesOf(last()!))).toBe('Paid on');
-  expect(head().querySelector('.cn')!.textContent).toBe('Paid on');
-  // Typing in the name box is not taken as choosing from the menu.
-  expect(() => press(name, 'D')).not.toThrow();
+  expect(names()[2].value).toBe('Paid on');
 });

@@ -2,6 +2,7 @@
 // and Sheet worked as a person would, tapped, typed, pointed, copied and pasted, checked by the cells it shows and the text it saves.
 import { test, expect } from 'vitest';
 import { mount } from './helpers.ts';
+import { insert } from './helpers-more.ts';
 import { open, reopen, idle, until, link, $, $$, text, tap, fill, typeKeys, key, clip, focused, button, choose, menu, write, cell, downloads } from './helpers-shell.ts';
 import { parseGrid, typesOf, chartOf } from '../../src/lib/formula.ts';
 import { parseDoc } from '../../src/lib/richtext.ts';
@@ -54,10 +55,7 @@ test('a document can carry its own QR code, so a reader can take a copy', async 
   const page = $('[aria-label="Document"]');
   // Return at the end of the line, as the caret is there after typing.
   getSelection()!.collapse(page.querySelector('p')!.firstChild!, 'Take this home'.length);
-  const insert = $<HTMLInputElement>('input[aria-label="Insert"]');
-  fill(insert, 'qr code of this');
-  await idle();
-  await key('Enter', {}, insert);
+  await insert(document, 'Insert', 'qr code of this');
   const embed = () => $('to-embed[ref$="@self"]');
   const code = () => embed().shadowRoot!.querySelector('svg path[shape-rendering="crispEdges"]');
   // The code is drawn, named for what it is, and keeps up with the document.
@@ -83,10 +81,7 @@ test('a document can carry its own QR code, so a reader can take a copy', async 
   // On a slide too.
   await open('#/v0/deck');
   write('Headline', 'Thanks');
-  const add = $<HTMLInputElement>('input[aria-label="Add a slide"]');
-  fill(add, 'qr code of this');
-  await idle();
-  await key('Enter', {}, add);
+  await insert(document, 'Insert', 'qr code of this');
   expect($$('.deck-slide to-embed[ref$="@self"]')).toHaveLength(1);
 });
 
@@ -316,8 +311,9 @@ test('sheet: charts suggest themselves and travel with the sheet', async () => {
 
 test('sheet: columns have types, and dates do arithmetic', async () => {
   const { last } = await mount('sheet');
+  const names = () => $$<HTMLInputElement>('tr.names .cn');
   const setType = async (col: string, type: string) => {
-    const dropdown = button(new RegExp(`^Column ${col},`)).closest('sl-dropdown')!;
+    const dropdown = button(new RegExp(`^Column ${col}:`)).closest('sl-dropdown')!;
     choose($$('sl-menu-item', dropdown).find((i) => text(i).startsWith(type))!);
     await idle();
   };
@@ -327,8 +323,8 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   await setType('E', 'Link');
   await setType('F', 'Checkbox');
   // A column named by default takes the name of what it holds; a second of the same kind adds its letter.
-  expect(text(button(/^Column A, Date: Date/))).toContain('Date');
-  expect(button(/^Column B,/).getAttribute('aria-label')).toMatch(/^Column B, Date B: Date/);
+  expect(names()[0].value).toBe('Date');
+  expect(names()[1].value).toBe('Date B');
 
   await put('A1', '2027-01-31');
   await put('B1', '3/1/2027');
@@ -356,7 +352,7 @@ test('sheet: columns have types, and dates do arithmetic', async () => {
   await remount(last());
   expect(cell('C1').value).toBe('29');
   expect(cell('D1').value).toBe('$1,200.50');
-  expect(button(/^Column E, Link: Link/)).toBeTruthy();
+  expect(names()[4].value).toBe('Link');
   // Rich text shows its emphasis when you are not typing in it.
   await setType('C', 'Rich text');
   await put('C2', 'Very **important** thing');

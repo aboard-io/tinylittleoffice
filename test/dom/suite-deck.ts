@@ -1,6 +1,7 @@
 // Deck and Draw worked as a person would: slides, icons, layouts, documents on slides, presenting; shapes chosen and changed (ported from e2e/suite.spec.ts).
 import { test, expect } from 'vitest';
 import { mount, setSl } from './helpers.ts';
+import { insert } from './helpers-more.ts';
 import { idle, until, $, $$, text, tap, fill, key, focused, button, press, poke, write } from './helpers-shell.ts';
 import { deckTheme, parseDeck } from '../../src/lib/deckmodel.ts';
 import { parseDrawing } from '../../src/lib/drawmodel.ts';
@@ -9,14 +10,8 @@ const thumbs = () => $$('.deck-rail .deck-thumb');
 const show = () => document.querySelector<HTMLElement>('.deck-show');
 const slide = () => $('.deck-show .frame > svg');
 const shows = (words: string) => text(slide()).includes(words);
-/** Choose from the deck's "Add a slide" box, by typing a few letters and Return. */
-async function addSlide(what: string) {
-  const add = $<HTMLInputElement>('input[aria-label="Add a slide"]');
-  add.focus();
-  fill(add, what);
-  await idle();
-  await key('Enter', {}, add);
-}
+/** Choose from the deck's Insert menu, by typing a few letters and Return. */
+const addSlide = (what: string) => insert(document, 'Insert', what);
 
 test('deck: slides, icons and presenting', async () => {
   const { last } = await mount('deck');
@@ -29,7 +24,7 @@ test('deck: slides, icons and presenting', async () => {
   await press('Icon');
   const picker = () => document.querySelector('#icon-picker');
   expect(picker()?.hasAttribute('open')).toBe(true);
-  const library = () => $('[role="group"][aria-label="Icon library"]');
+  const library = () => $('[role="group"][aria-label="Favourites"]');
   button('star', library()).click();
   await until(() => !picker(), 'the picker to close');
   expect($$('.deck-slide .pick svg')).toHaveLength(1);
@@ -49,7 +44,8 @@ test('deck: slides, icons and presenting', async () => {
   expect($$('.deck-picker-none')).toHaveLength(1);
   fill(search, 'rock');
   await idle();
-  button('rocket', library()).click();
+  // Searched, the library is one section of matches.
+  button('rocket', $('[role="group"][aria-label="Icons"]')).click();
   await until(() => !picker(), 'the picker to close');
   expect($$('.deck-suggest')).toHaveLength(0);
   expect(text($$('.to-toolbar .to-hint').at(-1))).toBe('2 slides');
@@ -120,18 +116,18 @@ test('deck: layouts, a transition, and other documents on a slide', async () => 
   // Slide type says what this slide is, and adds a slide of whatever is chosen: the slide you are on is left alone.
   const kind = () => text($('.deck-kind'));
   expect(kind()).toContain('Big icon');
-  // A combobox: a tap drops the whole list down, in the menu's groups; typing narrows it.
-  const add = $<HTMLInputElement>('input[aria-label="Add a slide"]');
-  tap(add);
+  // The Insert menu: a tap drops the whole list down, in the menu's groups; typing narrows it.
+  tap($('.deck-add sl-button'));
   await idle();
   const list = () => $('.deck-add [role="listbox"]');
   const options = $$('[role="option"]', list()).map(text);
   for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Spinner']) expect(options).toContain(name);
   expect(text($('li.group', list()))).toBe('Layouts');
-  fill(add, 'two col');
+  const narrow = $<HTMLInputElement>('.deck-add .to-insert-list input');
+  fill(narrow, 'two col');
   await idle();
   expect($$('[role="option"]', list())).toHaveLength(1);
-  await key('Enter', {}, add);
+  await key('Enter', {}, narrow);
   expect(thumbs()).toHaveLength(5);
   expect($$('.deck-slide.lay-2')).toHaveLength(1);
   expect(kind()).toContain('Two columns');

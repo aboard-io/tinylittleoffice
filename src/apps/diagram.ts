@@ -9,7 +9,6 @@
  */
 import { DocElement, html, nothing, state, tool, btn, toast, appOf, hashOf, convert, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import '../widgets/line-form.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, type DiagramSpec } from '../lib/diagram.ts';
 import { store } from '../lib/store.ts';
@@ -594,14 +593,9 @@ export class DiagramElement extends DocElement<string> {
     const name = this.name;
     const inside = !!this.closest('sl-dialog');
     const form = this.form;
-    // A page or a sheet can be shown as a list to fill in; a picture of shapes is worked on the picture itself.
-    const lists = !!spec.form && !!this.kind;
-    const listing = lists && this.mode === 'form';
     const hint = !form
       ? spec.hint
-      : listing
-        ? 'Add a row for each thing, and fill it in.'
-        : this.joining
+      : this.joining
           ? `Tap the thing to join ${this.joining.from} to; tap empty space to stop.`
           : this.kind === 'page'
             ? 'Type into the page; the bar along the bottom adds to it.'
@@ -613,17 +607,13 @@ export class DiagramElement extends DocElement<string> {
         <span class="to-hint diagram-hint">${hint}</span>
         <span class="to-spacer"></span>
         ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
-        ${lists && this.mode === 'text' ? tool('Edit as a form', 'form', () => this.setMode('form'), { text: true }) : nothing}
-        ${lists && this.mode !== 'text' ? tool(listing ? 'Hide the list' : 'List', 'form', () => this.setMode(listing ? 'picture' : 'form'), { text: true, pressed: listing }) : nothing}
         ${form || this.kind === 'page' ? nothing : tool('Icon', 'smile', () => this.addIcon(), { text: true })}
         ${inside || !this.drawable() ? nothing : tool('Open in Draw', 'draw', () => this.toDraw(), { text: true })}
       </div>
       ${this.extra()}
-      <div class="diagram ${this.kind} ${form && !listing ? 'alone' : ''} ${this.joining ? 'joining' : ''}">
+      <div class="diagram ${this.kind} ${form ? 'alone' : ''} ${this.joining ? 'joining' : ''}">
 ${form
-          ? listing
-            ? html`<to-lines class="lf" .text=${text} .kinds=${spec.form!} name=${name} @lines-change=${(e: CustomEvent<string>) => this.type(e.detail)}></to-lines>`
-            : nothing
+          ? nothing
           : html`        <textarea aria-label="${name}, as text" spellcheck=${this.kind ? 'true' : 'false'} autocapitalize="off" placeholder=${spec.example} .value=${text} @input=${(e: Event) => this.type((e.target as HTMLTextAreaElement).value)} @keydown=${this.onKey}></textarea>`}
         <div class="pic" @click=${(e: Event) => this.onPicClick(e)}>
           ${this.renderEditBox()}

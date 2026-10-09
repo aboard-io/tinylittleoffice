@@ -131,8 +131,9 @@ test('write: Insert makes a drawing in its own editor, and Edit opens it again',
   const embeds = editor.locator('to-embed');
   // Insert makes a new one from a menu and opens it for editing.
   await editor.click();
-  await page.getByRole('combobox', { name: 'Insert' }).fill('draw');
-  await page.getByRole('combobox', { name: 'Insert' }).press('Enter');
+  await page.getByRole('button', { name: 'Insert' }).click();
+  await page.getByRole('combobox', { name: 'Narrow the list' }).fill('draw');
+  await page.getByRole('combobox', { name: 'Narrow the list' }).press('Enter');
   const sub = page.locator('sl-dialog.to-sub');
   await expect(sub).toHaveAttribute('open');
   await sub.getByRole('button', { name: 'Ellipse' }).click();

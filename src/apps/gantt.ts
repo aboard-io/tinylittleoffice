@@ -168,8 +168,8 @@ export class ToGantt extends DocElement<GanttTask[]> {
           ${tool('Move task down', 'down', () => this.move(1), { disabled: this.cur >= n - 1, key: 'Alt+ArrowDown' })}
         </sl-button-group>
         <sl-button-group label="Indent">
-          ${tool('Bring out', 'outdent', () => this.indent(-1), { disabled: !(this.doc[this.cur]?.depth ?? 0), key: 'Shift+Tab' })}
-          ${tool('Indent under the task above', 'indent', () => this.indent(1), { disabled: this.cur === 0 || !n, key: 'Tab' })}
+          ${tool('Bring out', 'shiftOut', () => this.indent(-1), { disabled: !(this.doc[this.cur]?.depth ?? 0), key: 'Shift+Tab' })}
+          ${tool('Indent under the task above', 'shiftIn', () => this.indent(1), { disabled: this.cur === 0 || !n, key: 'Tab' })}
         </sl-button-group>
         <span class="to-spacer"></span>
         ${range ? html`<span class="to-hint">${range.to - range.from} days</span>` : nothing}
