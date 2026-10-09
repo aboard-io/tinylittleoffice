@@ -6,7 +6,7 @@
  */
 import { Workflow } from 'lucide';
 import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
-import { defineApp, type Doc } from '../../kit/app.ts';
+import { defineApp, lookup, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
@@ -19,7 +19,7 @@ export const retitle = (doc: Doc, title: string): Doc => write(apply(headOf(doc)
 export default defineApp({
   id: 'diagram',
   get name() {
-    return t('Diagram');
+    return t('Diagram Maker');
   },
   get group() {
     return t('Design');
@@ -38,5 +38,5 @@ export default defineApp({
   view: (doc) => [diagramPage(parse(doc))],
   exports: [{ ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(diagramSvg(parse(doc))) }],
   // Its picture as shapes to move about by hand.
-  handoffs: [{ to: 'draw', label: () => t('Open in Draw'), convert: (doc) => toDrawing(parse(doc)) }],
+  handoffs: [{ to: 'draw', label: () => t('Open in {app}', { app: lookup.appOf('draw')?.name ?? t('Drawing Tool') }), convert: (doc) => toDrawing(parse(doc)) }],
 });

@@ -297,10 +297,10 @@ test('folding hides the family and counts it; Fold all and Unfold all; the zoom 
 test('Insert puts a document under the chosen item; a web address becomes a card once the caret leaves; a tap below the last row starts an item; View as shows the page', async () => {
   const { el, last, changes } = await editor(TREE);
   await choose(el, 1);
-  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Sheet');
+  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Spreadsheet');
   expect(last()).toBe('- Launch\n  - Product\n    - Pricing\n\n```sheet {depth=1}\n```\n\n  - Marketing\n');
   const card = row(el, 3).querySelector<HTMLElement>('.ol-doc')!;
-  expect(card.textContent).toContain('Sheet');
+  expect(card.textContent).toContain('Spreadsheet');
   expect(card.querySelector('a')!.getAttribute('href')).toMatch(/#\/v1\/sheet$/);
   expect(document.activeElement).toBe(card);
   // Delete on the card takes it away; undo brings it back.
@@ -366,7 +366,7 @@ test('loose words arriving are made an outline with one undoable splice; a paste
   await el.updateComplete;
   await tick();
   expect(last()).toBe('- Plan\n  - First\n  - Second\n\n```draw {depth=1}\n```\n');
-  expect(row(el, 3).querySelector('.ol-doc')!.textContent).toContain('Draw');
+  expect(row(el, 3).querySelector('.ol-doc')!.textContent).toContain('Drawing Tool');
 });
 
 /* ---------- bullet-list semantics, rows chosen whole, numbered lists ---------- */

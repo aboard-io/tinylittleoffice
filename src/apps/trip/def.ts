@@ -18,7 +18,7 @@ export const retitle = (doc: Doc, title: string): Doc => write(apply(parse(doc),
 export default defineApp({
   id: 'trip',
   get name() {
-    return t('Trip');
+    return t('Trip Planner');
   },
   get group() {
     return t('Plan');

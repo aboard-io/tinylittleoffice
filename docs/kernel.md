@@ -1,5 +1,7 @@
 <!-- Designed 2026-10-09 against the old tree at commit 15f0acb, before the greenfield decision. Read with
-docs/rebuild.md. Greenfield adjustments and the three decisions are at the end (§8). -->
+docs/rebuild.md. Greenfield adjustments and the three decisions are at the end (§8). The apps are named here by
+their working names (Write, Sheet, Deck, …); the names people read are listed by id at the end of the plan's
+app table in docs/rebuild.md. -->
 
 # The document kernel, the one editor, and sheets as the data model
 

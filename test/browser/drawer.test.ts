@@ -17,7 +17,7 @@ test('the hamburger opens the drawer, Find filters the apps, Escape closes it', 
   find.dispatchEvent(new Event('input', { bubbles: true }));
   await until(() => shell.querySelectorAll('.to-drawer-apps a').length === 0);
   expect(shell.querySelector('.to-drawer-apps .to-hint')!.textContent).toBe('No app by that name');
-  find.value = 'wri';
+  find.value = 'processor';
   find.dispatchEvent(new Event('input', { bubbles: true }));
   await until(() => shell.querySelectorAll('.to-drawer-apps a').length === 1);
   // The switches and the selects are there.

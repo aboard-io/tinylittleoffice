@@ -33,7 +33,7 @@ const convert = (how: (v: ReturnType<typeof readOutline>, head: Kernel['head']) 
 export default defineApp({
   id: 'outline',
   get name() {
-    return t('Outline');
+    return t('Outliner');
   },
   get group() {
     return t('Words');

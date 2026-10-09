@@ -75,6 +75,6 @@ export function todoToIcs(doc: Doc, created: number): string {
     ...(t.star ? ['PRIORITY:1'] : []),
     'END:VTODO',
   ]);
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TinyLittleOffice//Todo//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...todos.flat(), 'END:VCALENDAR'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TinyLittleOffice//To-Do List//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...todos.flat(), 'END:VCALENDAR'];
   return lines.map(fold).join('\r\n') + '\r\n';
 }

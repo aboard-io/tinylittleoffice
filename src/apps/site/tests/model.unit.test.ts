@@ -5,7 +5,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc } from '../../../doc/index.ts';
 // The registry, so a document held in a page is drawn by its own app.
-import '../../../kit/apps.ts';
+import { appOf } from '../../../kit/apps.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
@@ -86,7 +86,7 @@ test('another document on a page: a picture of it and a link that opens it', () 
   const html = page('# A\n\n# Numbers\n\n```sheet\nQ | Sales:number\n--- | ---\nQ1 | 120\n```\n', { base: 'https://tinylittleoffice.com/' });
   expect(html).toContain('<figure class="embed"><svg xmlns="http://www.w3.org/2000/svg"');
   expect(html).toContain('<figcaption><a href="https://tinylittleoffice.com/#/v1/sheet/');
-  expect(html).toContain('<small>Sheet</small>');
+  expect(html).toContain(`<small>${appOf('sheet')!.name}</small>`);
   // A table that is not a shop is a sheet on the page too.
   expect(readSite(parse('# A\n\nQ | Sales\n--- | ---\nQ1 | 120\n')).sections[0].embeds).toEqual([{ lang: 'sheet', body: 'Q | Sales\n--- | ---\nQ1 | 120' }]);
 });

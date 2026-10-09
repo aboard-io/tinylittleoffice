@@ -1,6 +1,6 @@
 /**
  * The smoke run on the built site, at desktop size in Chromium and at iPhone size (390 by 844) in WebKit:
- * the home page loads, the Write app opens from it, nothing throws, nothing is wider than the screen, and
+ * the home page loads, the Word Processor opens from it, nothing throws, nothing is wider than the screen, and
  * axe finds nothing. With SHOTS set, a screenshot of each goes there (the phone's are the report's).
  */
 import { test, expect, type Page } from '@playwright/test';
@@ -15,13 +15,13 @@ async function shot(page: Page, name: string) {
 const axe = (page: Page) => new AxeBuilder({ page }).disableRules(['meta-viewport']).analyze();
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
-test('home loads, the Write app opens, nothing throws, axe passes', async ({ page }) => {
+test('home loads, the Word Processor opens, nothing throws, axe passes', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   // (WebKit says it does not know interactive-widget, the viewport key that keeps Chrome on Android from scrolling the page under its keyboard; that is not an error of ours.)
   page.on('console', (m) => m.type() === 'error' && !/interactive-widget/.test(m.text()) && errors.push(m.text()));
   await page.goto('/');
-  await expect(page.locator('.to-tile b').first()).toHaveText('Write');
+  await expect(page.locator('.to-tile b').first()).toHaveText('Word Processor');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await shot(page, 'home');
   expect((await axe(page)).violations).toEqual([]);

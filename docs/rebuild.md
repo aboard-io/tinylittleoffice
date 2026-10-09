@@ -68,6 +68,12 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 
 Hidden: web (embeds), qr (the deck's closing slide).
 
+The names people read, by app id (Paul, 2026-10-09: "We need to rename the apps to be very generic"; the ids,
+folders and routes do not change): write, the Word Processor; sheet, the Spreadsheet; calc, the Calculator; deck,
+the Presentation Builder; outline, the Outliner; draw, the Drawing Tool; diagram, the Diagram Maker; anim, the
+Animator; board, the Kanban Board; todo, the To-Do List; cal, the Calendar; trip, the Trip Planner; site, the
+Website Builder. The names in the table above and in docs/kernel.md are the working names of the plan.
+
 ## Rules while rebuilding
 
 - Main is always green: typecheck, unit, DOM, build. A phase lands when its tests pass and the old path is gone.

@@ -21,7 +21,7 @@ export const blank = (): Doc => `## ${t('To do')}\n\n## ${t('Doing')}\n\n## ${t(
 export default defineApp({
   id: 'board',
   get name() {
-    return t('Board');
+    return t('Kanban Board');
   },
   get group() {
     return t('Plan');

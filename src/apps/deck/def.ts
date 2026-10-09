@@ -23,7 +23,7 @@ const FRAME_MS = 1400;
 export default defineApp({
   id: 'deck',
   get name() {
-    return t('Deck');
+    return t('Presentation Builder');
   },
   get group() {
     return t('Slides');
@@ -43,7 +43,7 @@ export default defineApp({
   exports: [
     { ext: 'pptx', label: () => t('PowerPoint (PPTX)'), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: (doc, ctx) => buildPptx(doc, ctx) },
     // In place of the kit's pictures of the pages: a page that plays the deck, a slide at a time, with its transition.
-    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: (doc, ctx) => deckToHtml(doc, ctx.title || titleOf(doc) || t('Deck'), ctx.link) },
+    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: (doc, ctx) => deckToHtml(doc, ctx.title || titleOf(doc) || t('Presentation'), ctx.link) },
     {
       ext: 'zip',
       label: () => t('A picture of every slide (ZIP of PNGs)'),
