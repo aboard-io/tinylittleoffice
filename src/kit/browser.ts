@@ -357,7 +357,7 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   return out;
 }
 
-const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck');
+const embeddable = (host: string) => apps().filter((a) => !a.hidden && a.id !== host && a.id !== 'write' && a.id !== 'deck');
 
 /**
  * Open an editor for a document that lives inside another one. Resolves

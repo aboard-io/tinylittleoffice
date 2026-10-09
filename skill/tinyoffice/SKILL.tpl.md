@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, name badges, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, spinners, Secret Santa draws, bill splitting, logs and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -160,30 +160,6 @@ Connections: `~ A -> B: label` for an arrow, `~ A -- B` for a line. `- name` is 
 
 {{ex:net:System}}
 
-### db: a small database
-
-Each table is a `## name` heading and a Markdown table; a column that points at another table is headed `team_id>teams`. Queries go in a `sql` fence, one per line ending `;`: `SELECT` columns (or `*`, `count(*)`, `sum/avg/min/max(col)`, `AS`), `FROM`, `JOIN ... ON a = b`, `WHERE` with `= <> < > <= >= LIKE` joined by `AND`/`OR`, `GROUP BY`, `ORDER BY ... DESC`, `LIMIT`.
-
-{{doc:db:Team directory}}
-## teams
-
-id | name
---- | ---
-1 | Platform
-2 | Design
-
-## people
-
-id | name | team_id>teams
---- | --- | ---
-1 | Ann | 1
-2 | Bo | 2
-
-```sql
-select teams.name, count(*) as people from people join teams on team_id = teams.id group by teams.name;
-```
-{{end}}
-
 ### site: a website of little pages
 
 `# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a line that is only a picture's address a picture, and a fence another document. `theme: teal serif dark` in the header sets the look.
@@ -282,10 +258,8 @@ Each of these lays a few lines out on letter-size sheets; the PDF download print
 
 - `poster`: one page, as big as the page allows.
 - `zine` (8 pages), `booklet` (8 to 20) and `brochure` (6 panels).
-- `badges`: a page per person, the name as the headline. `recipes`: a page per dish.
+- `badges`: a page per person, the name as the headline.
 - `comic`: a panel per bullet, `- :icon-name: What is said | caption`.
-- `menu`: `# Name`, a line about it, then each `## Section` followed by a table `Dish | Price:money | About`.
-- `resume`: a `write` text, fitted to one page.
 - `wordsearch`: `# Title` and the words as a `- ` list.
 
 {{ex:poster:Open mic}}
@@ -294,22 +268,18 @@ Each of these lays a few lines out on letter-size sheets; the PDF download print
 
 {{ex:comic:Biscuit}}
 
-{{ex:menu:Harbor Coffee}}
-
 ## Small apps
 
 - `flow` (stock and flow, drawn as a Sankey diagram with sliders): `- name = 1000 (0 to 5000)` is a number with a slider; `~ From -> To: formula` is a flow, its formula using slider names and stocks.
 - `pixel` (16×16): a line per row, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
-- `floor`: `- Room: 4 x 3 at 0,0`. `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`.
-- Games: `adventure` (`## scene` headings, the story as paragraphs, choices as `- [Do this](#scene)`), `trivia` (`teams: A, B` in the header, `## Round` and a table `Question | Answer`), `hunt` (a table `Clue | Answer`), `flashcards` (a table `Front | Back`), `madlibs` (a story with `[blanks]`), `spinner` (a `- ` list of choices), `wordsearch`.
-- Together: `poll` (`# Question`, the choices as a `- ` list, and a table `Name | Choice` of answers), `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
+- `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`.
+- Games: `spinner` (a `- ` list of choices), `wordsearch`.
+- Together: `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
 - Personal: `log` (a table of entries; each kind is totalled).
 
 {{ex:flow:Funnel}}
 
 {{ex:timeline:Computing}}
-
-{{ex:adventure:The Lighthouse}}
 
 ## A document's own QR code
 
@@ -328,7 +298,6 @@ After `#/v0/<app>/` comes one letter and then base64url bytes: the document's TL
 - Numbers, a table, or a chart: `sheet`.
 - People and reporting lines: `org`. Ideas branching from one topic: `mind`. Notes in a tree: `outline`.
 - A process with handoffs: `lanes`. Systems and what talks to what: `net`. Overlapping categories: `venn`.
-- Tables you want to query: `db`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
 - A wall of ideas or a retro: `board`. Something to publish: `site`, `store`, `invoice`.
 - Anything else visual: `draw`.

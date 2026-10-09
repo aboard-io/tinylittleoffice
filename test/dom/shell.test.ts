@@ -148,8 +148,8 @@ test('the menu finds an app by name', async () => {
   expect(shown()).toEqual(['Zine']);
   type(find, 'play');
   await settleAll();
-  expect(shown()).toHaveLength(7);
-  type(find, 'poll');
+  expect(shown()).toHaveLength(2);
+  type(find, 'split');
   await settleAll();
   // Enter follows the first app found, which (like every app in the menu) opens in a new tab.
   const followed: HTMLAnchorElement[] = [];
@@ -157,7 +157,7 @@ test('the menu finds an app by name', async () => {
   drawer.addEventListener('click', keep);
   press(find, 'Enter');
   drawer.removeEventListener('click', keep);
-  expect(followed.map((a) => [a.getAttribute('href'), a.target])).toEqual([['#/v0/poll', '_blank']]);
+  expect(followed.map((a) => [a.getAttribute('href'), a.target])).toEqual([['#/v0/split', '_blank']]);
 });
 
 test('keeping documents is opt in, and off again erases them', async () => {

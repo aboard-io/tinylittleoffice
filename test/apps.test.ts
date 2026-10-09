@@ -351,7 +351,7 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   const { parseDrawing, isLink } = await import('../src/lib/drawmodel.ts');
   const { pageSvg } = await import('../src/kit/core.ts');
   assert.deepEqual(placeTree(outline('- A\n  - B\n  - C\n    - D\n- E')).map((p) => [p.node.text, p.node.depth, p.across, p.parent]), [['A', 0, 0.5, -1], ['B', 1, 0, 0], ['C', 1, 1, 0], ['D', 2, 1, 2], ['E', 0, 2, -1]]);
-  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'db', 'floor', 'seating', 'family', 'timeline']) {
+  for (const id of ['org', 'mind', 'lanes', 'venn', 'net', 'seating', 'family', 'timeline']) {
     const spec = specOf(id)!;
     const def = appOf(id)!;
     const d = spec.layout!(spec.example);
@@ -409,30 +409,6 @@ test('drawing: more shapes, and joins that follow', async () => {
   assert.deepEqual([up.shapes[link.x].text, up.shapes[link.y].text], ['Web | front end', 'Data']);
 });
 
-test('tiny relational database', async () => {
-  const { parseDb, readDb, runQuery, serializeDb } = await import('../src/lib/reldb.ts');
-  const text = '## teams\n\nid | name\n--- | ---\n1 | Platform\n2 | Design\n\n## people\n\nid | name | team_id>teams | salary\n--- | --- | --- | ---\n1 | Ann | 1 | 120\n2 | Bo, Jr | 2 | 90\n3 | Cy | 1 | 100\n4 | Di | 2 | 110\n\n```sql\nselect * from teams;\n```';
-  const db = parseDb(text);
-  assert.equal(serializeDb(db), text);
-  // Written loosely: a table under another heading, a referring column spaced out, a query over two lines without its ";".
-  assert.equal(readDb('# teams\n\n| id | name |\n|-|-|\n| 1 | Platform |\n\n## people\n\nid | team_id > teams\n-|-\n1 | 1\n\n```sql\nselect *\nfrom teams\n```'), '## teams\n\nid | name\n--- | ---\n1 | Platform\n\n## people\n\nid | team_id>teams\n--- | ---\n1 | 1\n\n```sql\nselect * from teams;\n```');
-  assert.deepEqual(db.tables.map((t) => [t.name, t.cols.length, t.rows.length]), [['teams', 2, 2], ['people', 4, 4]]);
-  assert.equal(db.tables[1].cols[2].ref, 'teams');
-  assert.equal(db.tables[1].rows[1][1], 'Bo, Jr');
-  assert.deepEqual(db.queries, ['select * from teams']);
-  const q = (sql: string) => runQuery(db, sql);
-  assert.deepEqual(q('select * from teams'), { cols: ['id', 'name'], rows: [[1, 'Platform'], [2, 'Design']] });
-  assert.deepEqual(q("select name from people where salary >= 100 and team_id = 1 or name like 'bo%' order by name").rows, [['Ann'], ['Bo, Jr'], ['Cy']]);
-  assert.deepEqual(q('select people.name, teams.name from people join teams on team_id = teams.id where teams.name = \'Design\' order by people.name desc').rows, [['Di', 'Design'], ['Bo, Jr', 'Design']]);
-  assert.deepEqual(q('select teams.name, count(*) as n, sum(salary), avg(salary), max(salary) from people join teams on team_id = teams.id group by teams.name order by n desc, teams.name'), { cols: ['teams.name', 'n', 'sum(salary)', 'avg(salary)', 'max(salary)'], rows: [['Design', 2, 200, 100, 110], ['Platform', 2, 220, 110, 120]] });
-  assert.deepEqual(q('select count(*) from people where salary > 1000').rows, [[0]]);
-  assert.deepEqual(q('select name from people order by salary desc limit 2').rows, [['Ann'], ['Di']]);
-  // Mistakes are explained, not thrown.
-  assert.match(q('select * from nowhere').error!, /No table called "nowhere"/);
-  assert.match(q('select name from people join teams on team_id = teams.id').error!, /more than one table/);
-  assert.match(q('select wages from people').error!, /No column called "wages"/);
-  assert.match(q('select * from people wher x = 1').error!, /Did not understand/);
-});
 
 test('every app reveals itself a piece at a time', () => {
   const count = (id: string, body: string) => appOf(id)!.steps!(body);
@@ -501,7 +477,7 @@ test('icons in drawings and diagrams', async () => {
 
 test('page apps: a site, a store, an invoice, a contract', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  for (const id of ['site', 'store', 'invoice', 'contract', 'flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'split', 'log']) {
+  for (const id of ['site', 'store', 'invoice', 'contract', 'flow', 'spinner', 'santa', 'split', 'log']) {
     const spec = specOf(id)!;
     const page = spec.page!(spec.example);
     assert.ok(page.startsWith('<!doctype html>') && page.includes('<meta property="og:title"') && page.includes('</html>'), id);
@@ -648,7 +624,7 @@ test('paper that folds: pages land where folding needs them', async () => {
 
 test('things to print: text in, letter sheets out', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  const sizes: Record<string, number[]> = { wordsearch: [816, 1056], menu: [816, 1056], resume: [816, 1056] };
+  const sizes: Record<string, number[]> = { wordsearch: [816, 1056] };
   for (const [id, size] of Object.entries(sizes)) {
     const spec = specOf(id)!;
     for (const text of [spec.example, '', 'x']) {
@@ -667,16 +643,10 @@ test('things to print: text in, letter sheets out', async () => {
   assert.ok(px(poster('## Open mic night\n\nFriday 12 March, 8pm\n\nThe Anchor\n\nFree. Bring a song.').svg) <= px(poster('SALE').svg));
   // A page type is a deck layout on paper: two columns on a poster.
   assert.ok(poster('## Now and next {.two}\n\n- Design\n- Build\n\n|\n\n- Test\n- Launch').svg.includes('>Launch</text>'));
-  // Six badges to a sheet, one page each; two recipe cards.
+  // Six badges to a sheet, one page each.
   const pages = (...each: string[]) => each.join('\n\n---\n\n');
   assert.equal(appOf('badges')!.view(pages(...Array(7).fill('## Ada\n\nEng'))).length, 2);
   assert.equal(appOf('badges')!.view(pages('## Ada\n\nEng', '## Bob\n\nOps')).map((p) => p.svg.match(/stroke-dasharray="6 5"/g)!.length)[0], 2);
-  assert.equal(appOf('recipes')!.view(pages('## A\n\nx', '## B\n\ny', '## C\n\nz')).length, 2);
-  // The menu: dishes and their prices; a long one is shrunk onto the page rather than run off it.
-  assert.ok(svg('menu').includes('>Flat white</text>') && svg('menu').includes('>4.20</text>') && svg('menu').includes('>COFFEE</text>'));
-  const long = /<svg x="[\d.]+" y="[\d.]+" width="([\d.]+)" height="([\d.]+)"/.exec(svg('menu', '# M\n\nDish | Price | About\n--- | --- | ---\n' + Array(60).fill('Dish | 1 | about').join('\n')))!;
-  assert.ok(+long[2] <= 1056 - 2 * 84 + 1 && +long[1] < 624);
-  assert.ok(svg('resume').includes('Ada Lovelace') && svg('resume').includes('Experience'));
   // The comic: a zine whose pages are panels with bubbles and captions, a bullet each. Written loosely, it reads as one.
   const plain = '# Biscuit\n\n## \n\n:dog: Walk? | Monday, noon.\n\n:footprints: WALK! | Sam arrives.\n\n## Later\n- :moon: Zzz';
   const body = appOf('comic')!.read!(plain);
@@ -738,25 +708,14 @@ test('small apps: the sums behind them', async () => {
   const theirs = specOf('santa')!.page!(ada);
   assert.ok(theirs.includes('this link is yours alone') && !theirs.includes(`give to ${gives.Ada}`) && !theirs.includes('their link'));
 
-  const { tally } = await import('../src/apps/poll.def.ts');
-  assert.deepEqual(tally(specOf('poll')!.example).map((r) => [r.option, r.who.length]), [['Pizza', 0], ['Sushi', 1], ['Tacos', 2]]);
-  assert.deepEqual(tally('- A\n\nName | Choice\n--- | ---\nSam | B').map((r) => r.option), ['A', 'B']);
-
   // Each example is written as its form writes it; what is loosely written is read into that.
-  for (const id of ['flow', 'adventure', 'hunt', 'trivia', 'madlibs', 'spinner', 'flashcards', 'poll', 'santa', 'split', 'log']) assert.equal(appOf(id)!.read!(specOf(id)!.example), specOf(id)!.example, id);
+  for (const id of ['flow', 'spinner', 'santa', 'split', 'log']) assert.equal(appOf(id)!.read!(specOf(id)!.example), specOf(id)!.example, id);
   const read = (id: string, text: string) => appOf(id)!.read!(text);
-  assert.equal(read('poll', '# Q\n- A\nSam: A'), '# Q\n\n- A\n\nName | Choice\n--- | ---\nSam | A');
-  assert.equal(read('trivia', '---\nteams: A, B\n---\n# Quiz\n## One\nQ1 | A1'), '---\nteams: A, B\n---\n# Quiz\n\n## One\n\nQuestion | Answer\n--- | ---\nQ1 | A1');
-  assert.equal(read('flashcards', '| Term | Meaning |\n|---|---|\n| a | b |'), 'Front | Back\n--- | ---\na | b');
   assert.equal(read('split', 'between: A, B\nA: 40, taxi'), '---\nbetween: A, B\n---\nWho | Amount:money | What\n--- | --- | ---\nA | 40 | taxi');
   assert.equal(read('log', '1 March, Run, 5 km'), 'When | What | How much\n--- | --- | ---\n1 March | Run | 5 km');
   assert.equal(read('santa', 'Ada\n* Grace'), '- Ada\n- Grace');
   assert.equal(read('spinner', 'Ada\n+ Bo'), '- Ada\n- Bo');
   assert.equal(read('flow', 'visitors = 100 (0 to 500)'), '- visitors = 100 (0 to 500)');
-  assert.equal(read('hunt', 'Kettle colour? | red\nDone!'), 'Clue | Answer\n--- | ---\nKettle colour? | red\n\nDone!');
-  // An adventure's choices are links to its scenes, by name.
-  const story = specOf('adventure')!.page!('# Cave\n\n## the start\n\nDark.\n\n- [Go in](#the%20end)\n\n## The End\n\nLight.');
-  assert.ok(story.includes('"the-start":{"text":["Dark."],"go":[["Go in","the-end"]]}') && story.includes('"the-end":{"text":["Light."],"go":[]}'));
 
   const { totals } = await import('../src/apps/log.def.ts');
   assert.deepEqual(totals(specOf('log')!.example).sums.map((x) => [x.what, x.n, x.unit, x.times]), [['Run', 22.5, 'km', 3], ['Piano', 75, 'min', 2], ['Swim', 40, 'lengths', 1]]);
@@ -770,23 +729,16 @@ test('small apps: the sums behind them', async () => {
   assert.ok([lines, diag(1), diag(-1)].join(' ').includes('ESPRESSO'));
   assert.deepEqual(hide(['espresso', 'filter', 'cup'], 42).grid, grid);
 
-  // The hunt keeps later clues out of the page's plain text.
-  const hunt = specOf('hunt')!.page!(specOf('hunt')!.example);
-  assert.ok(hunt.includes('What colour is the kettle?') && !hunt.includes('count the stairs') && !hunt.includes('"red"'));
 
   const { parsePixels, serializePixels } = await import('../src/apps/pixel.def.ts');
   // One paragraph, a line a row: an empty row is a lone dot, so the paragraph holds together.
   assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.')), 'ab.c\n.\n..d');
   assert.equal(appOf('pixel')!.read!('Here:\n\n```\nab\n.c\n```'), 'ab\n.c');
   assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
-  // Rooms to scale; people round their tables; events in order.
-  const floor = specOf('floor')!.layout!('- A: 4 x 2 at 0,0\n- B: 2 x 2 at 4,0');
-  assert.deepEqual(floor.shapes.map((r) => [r.w, r.h, r.text]), [[144, 72, 'A | 4 × 2'], [72, 72, 'B | 2 × 2']]);
-  assert.equal(floor.shapes[1].x - floor.shapes[0].x, 144);
+  // People round their tables; events in order.
   assert.equal(specOf('seating')!.layout!('- T1: a, b, c\n- T2: d').shapes.length, 6);
   assert.deepEqual(specOf('timeline')!.layout!('- 1: a\n- 2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
   // Each is read leniently: lines without their marks, other marks, a size written "4×2".
-  assert.equal(appOf('floor')!.read!('A: 4×2 @ 1,0\n* B: 2 x 2'), '- A: 4 x 2 at 1,0\n- B: 2 x 2');
   assert.equal(appOf('timeline')!.read!('1843: Notes\n  2. 1936: A machine'), '- 1843: Notes\n- 1936: A machine');
   assert.equal(appOf('net')!.read!('A > B: calls\nB - C\nD <- E\n- Lone'), '~ A -> B: calls\n~ B -- C\n~ E -> D\n\n- Lone');
 });
@@ -850,8 +802,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   let forms = 0;
   for (const def of apps()) {
     const spec = specOf(def.id);
-    // (A database's tables have columns of their own, so it is written as text.)
-    if (!spec || def.id === 'db') continue;
+    if (!spec) continue;
     assert.ok(spec.form, `${def.id} has a form`);
     forms++;
     // Its own example, read into rows and written back, is the example to the letter.
@@ -863,10 +814,11 @@ test('lines: every text app can be filled in as a form, and what is saved is the
     assert.ok(own >= rows.length * 0.8, `${def.id}: ${own} of ${rows.length} lines have a kind`);
     assert.ok(kinds.every((k) => k.name));
   }
-  assert.ok(forms >= 28, String(forms));
+  assert.ok(forms >= 19, String(forms));
 
-  const menu = specOf('menu')!.form!;
-  // A table's rows are read by its column names, in whatever order.
+  // A form like a menu's: a title once, sections, a table of dishes. A table's rows are read by its column names, in whatever order.
+  const menu: LineKind[] = [{ name: 'Name', is: '# {Name}', once: true }, { name: 'Section', is: '## {Section}', head: true }, { name: 'Dish', is: '{Dish} | {Price:money} | {About}', table: true }, { name: 'Line', is: '{Text}' }];
+
   const rows = readLines('# Cafe\n## Coffee\n\nPrice | Dish | About\n--- | --- | ---\n3.00 | Espresso | Dark\n4.20 | Flat white\n\nOpen daily', menu);
   assert.deepEqual(rows.map((r) => [menu[r.kind].name, ...r.values]), [['Name', 'Cafe'], ['Section', 'Coffee'], ['Dish', 'Espresso', '3.00', 'Dark'], ['Dish', 'Flat white', '4.20', ''], ['Line', 'Open daily']]);
   assert.deepEqual(fieldsOf(menu, 2).map((f) => f.name), ['Dish', 'Price', 'About']);
@@ -881,7 +833,6 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   // Choices, optional parts, words between fields.
   const notes: LineKind[] = [{ name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' }, { name: 'Note', is: '[:{Picture:icon} ]{Note}' }];
   assert.deepEqual(readLines('green: Thank them\nCall Sam: today', notes).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
-  assert.deepEqual(readLines('- Kitchen: 4 x 3 at 5,0\n- Hall: 8 x 1.5', specOf('floor')!.form!).map((r) => r.values), [['Kitchen', '4', '3', '5', '0'], ['Hall', '8', '1.5', '', '']]);
   assert.deepEqual(readLines('- signup rate = 6% (0 to 30)\n\n~ Visitors -> Signups: visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A break that means something (the next card) is a rule, kept as a row; lines of words are paragraphs.
   const cards: LineKind[] = [{ name: 'Picture', is: ':{Picture:icon}' }, { name: 'Next card', is: '' }, { name: 'Line', is: '{Text}' }];
@@ -908,7 +859,7 @@ test('outlines: rows move with what is under them; an org chart has dotted lines
   // Take Ben away and Cy reports to Ada.
   assert.equal(after(removeRow(rows, org, 1)), '- Ada\n  - Cy\n  - Eve\n- Flo');
   // A section and its items are an outline too, though the text does not indent them.
-  const menu = specOf('menu')!.form!;
+  const menu: LineKind[] = [{ name: 'Name', is: '# {Name}', once: true }, { name: 'Section', is: '## {Section}', head: true }, { name: 'Dish', is: '{Dish} | {Price:money} | {About}', table: true }, { name: 'Line', is: '{Text}' }];
   const dishes = (...r: string[]) => `Dish | Price:money | About\n--- | --- | ---\n${r.join('\n')}`;
   const m = readLines(`# Cafe\n\n## Coffee\n\n${dishes('Espresso | 3 | Dark', 'Filter | 3 | Light')}\n\n## Food\n\n${dishes('Bun | 4 | Warm')}`, menu);
   assert.deepEqual(depths(m, menu), [0, 0, 1, 1, 0, 1]);
@@ -1074,7 +1025,6 @@ test('markdown, both ways, for every app', async () => {
     calc: '---\nmode: mortgage\n---\n- price = 300000\n- rate = 5',
     poster: '## :music: Open mic night\n\nFriday 12 March, 8pm\n',
     badges: '## Ada Lovelace\n\nEngineering\n\n---\n\n## Grace Hopper\n\nCompilers\n',
-    recipes: '## :cookie: Cardamom buns\n\n500g flour\n\n---\n\n## Cold brew\n\n100g coffee\n',
     brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     qr: 'https://tinylittleoffice.com/',
@@ -1110,10 +1060,7 @@ test('markdown, both ways, for every app', async () => {
   // A text is Markdown already: what goes out is the text itself.
   assert.equal(toMarkdown(samples.write), samples.write + '\n');
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\nSome __bold__ text.\n\n* a\n    * b\n+ c\n\n1) one\n2) two'), '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n- c\n1. one\n2. two');
-  assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), '## Doing {limit=2}\n\n- x\n- y');
-  assert.equal(toMarkdown(specOf('menu')!.example), specOf('menu')!.example + '\n');
-  assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n### Coffee\n\n| Item | Description | Price |\n|---|---|---|\n| Flat white | Smooth | 4.20 |\n\n- Tea | 3'), '# Cafe\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth\nTea | 3 |');
 });
 
 test('CSV imports as a table into any app that takes one', () => {
@@ -1125,7 +1072,6 @@ test('CSV imports as a table into any app that takes one', () => {
   assert.equal(fromMarkdown(appOf('sheet')!, 'Item,Cost\nRent,"1,200"\nFood,600'), 'Item | Cost\n--- | ---\nRent | 1,200\nFood | 600');
   assert.equal(csvToMd('Item,Cost\nRent,"$1,200"'), 'Item | Cost\n--- | ---\nRent | $1,200');
   assert.equal(appOf('sheet')!.read!('Item\tCost\nRent\t$1,200'), 'Item | Cost:money\n--- | ---\nRent | $1,200');
-  assert.equal(fromMarkdown(appOf('menu')!, 'Dish,Price,About\nFlat white,4.20,Smooth'), 'Dish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%'), fromMarkdown(appOf('gantt')!, '| Task | Start | Days | Done |\n|---|---|---|---|\n| Design | 2026-10-06 | 5 | 20% |'));
   assert.ok(appOf('gantt')!.outline(fromMarkdown(appOf('gantt')!, 'Task,Start,Days,Done\nDesign,2026-10-06,5,20%')).join(' ').includes('Design'));
 });
@@ -1307,7 +1253,7 @@ test('pen shapes: any corners, kept as hundredths of the box; Motion morphs them
 test('a document\'s contents are its words: no table rules, list marks or joins written as code', async () => {
   const { wordsOf } = await import('../src/lib/diagram.ts');
   assert.deepEqual(wordsOf('---\nteams: A, B\n---\n# Quiz\n\n## One\n\nQuestion | Answer\n--- | ---\nWhat **is** it? | A1\n\n- a list item\n\n~ Web -> API: calls'), ['Quiz', 'One', 'What is it?  ·  A1', 'a list item', 'Web → API: calls']);
-  for (const id of ['trivia', 'hunt', 'flashcards', 'menu', 'invoice', 'net']) {
+  for (const id of ['invoice', 'net', 'split', 'site']) {
     const lines = appOf(id)!.outline((await import('../src/api.ts')).example(id));
     assert.ok(lines.length && lines.every((l) => !/^(---|\||~ |- )|--- \|/.test(l)), `${id}: ${lines.join(' / ')}`);
   }

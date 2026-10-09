@@ -44,7 +44,7 @@ test('the hamburger holds every app and the theme', async () => {
   const drawer = $('#nav-drawer');
   expect(drawer.hasAttribute('open')).toBe(true);
   // (The three plans are templates in Write now: their links open, but they are not listed.)
-  expect($$('.to-drawer-nav a', drawer)).toHaveLength(51);
+  expect($$('.to-drawer-nav a', drawer)).toHaveLength(39);
   // Grouped, with the kinds of drawing listed under Draw.
   const groups = ['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
   expect($$('.to-drawer-nav h2', drawer).map(text)).toEqual(groups);
@@ -61,7 +61,7 @@ test('the hamburger holds every app and the theme', async () => {
   // Folded it stays, in a new page.
   await reopen();
   expect($$('#nav-drawer details.to-cluster[open] h2').map(text)).toEqual(groups.filter((g) => g !== 'Play'));
-  expect($$('#nav-drawer .to-drawer-nav a.sub').map(text)).toEqual(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Floor plan', 'Seating chart', 'Family tree', 'Timeline', 'Booklet', 'Brochure', 'Comic', 'Résumé', 'Name badges']);
+  expect($$('#nav-drawer .to-drawer-nav a.sub').map(text)).toEqual(['Org chart', 'Mind map', 'Swimlanes', 'Venn', 'Network', 'Seating chart', 'Family tree', 'Timeline', 'Booklet', 'Brochure', 'Comic', 'Name badges']);
   expect(text($('#nav-drawer a[aria-current="page"]'))).toContain('Sheet');
   expect(text($('#nav-drawer .to-theme'))).toContain('Theme');
   // Escape closes it.

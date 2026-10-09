@@ -1,5 +1,5 @@
 /**
- * What the small page apps (a poll, a quiz, a bill split...) share: their
+ * What the small page apps (a bill split, a log, a Secret Santa...) share: their
  * text is read through their form (lib/lines.ts), so the form is the one
  * description of the format, and the page is drawn from its rows.
  */

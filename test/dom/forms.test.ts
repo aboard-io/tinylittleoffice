@@ -69,58 +69,6 @@ async function pickIcon(name: string) {
   await until(() => expect(document.querySelector('sl-dialog.to-icons')).toBeNull());
 }
 
-test('a menu is made by filling in a form; what is saved is the text', async () => {
-  await shell('#/v0/menu', { edit: 'form', open: 'edit' });
-  const el = editorOf('menu');
-  expect(lines(el)).toBeTruthy();
-  expect(box(el, 'Menu, as text')).toBeNull();
-  await add(el, 'Name');
-  typeHere('Harbor Coffee');
-  await add(el, 'Section');
-  typeHere('Coffee');
-  await add(el, 'Dish');
-  typeHere('Espresso');
-  tab();
-  typeHere('3.00');
-  tab();
-  typeHere('Dark and syrupy');
-  // Return starts another of the same.
-  await key(el, 'Enter');
-  typeHere('Flat white');
-  tab();
-  typeHere('4.20');
-  await settleAll();
-  const sheet = () => el.querySelector('[role="img"][aria-label="Menu, sheet 1"]')!.textContent;
-  for (const words of ['Harbor Coffee', 'COFFEE', 'Dark and syrupy', '4.20']) expect(sheet()).toContain(words);
-  // A title is asked for once.
-  expect([...el.querySelectorAll('to-lines [aria-label="Add"] button')].map((b) => b.textContent?.trim())).not.toContain('Name');
-  expect(document.title).toBe('Harbor Coffee · TinyLittleOffice');
-  // Rows move and go.
-  button(lines(el), 'Move row 4 up').click();
-  await settle(el);
-  expect(box(el, 'Dish, row 3')!.value).toBe('Flat white');
-  button(lines(el), 'Remove row 4').click();
-  await settle(el);
-  expect(sheet()).not.toContain('Espresso');
-  // It is the same document either way: as text it reads as anyone would have typed it, and the choice is remembered.
-  shortcut('t', { mod: true, shift: true });
-  await settle(el);
-  const area = box(el, 'Menu, as text') as unknown as HTMLTextAreaElement;
-  expect(area.value).toBe('# Harbor Coffee\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 |');
-  type(area, '# Harbor Coffee\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 |\nFilter | 3.50 | Ask what is on');
-  await settleAll();
-  await reopen();
-  const again = editorOf('menu');
-  button(again, 'Edit as a form').click();
-  await settle(again);
-  expect(box(again, 'About, row 4')!.value).toBe('Ask what is on');
-  // Undo works on the form as on anything.
-  type(box(again, 'Price, row 4'), '9');
-  await settleAll();
-  shortcut('z', { mod: true });
-  await settleAll();
-  expect(box(again, 'Price, row 4')!.value).toBe('3.50');
-});
 
 test('forms: a diagram joined and given pictures on its picture, guests renamed where they sit', async () => {
   // A diagram is worked on its picture (its list is retired): two people joined by a dotted line, one given a picture.
@@ -277,28 +225,14 @@ test('words are typed on the picture itself: a shape, and a line of a printed sh
   await tapThing(el, 'Eve Marsh');
   expect(editBox(el)[0].value).toBe('Eve Marsh');
 
-  // On a sheet: tap the words, type.
-  const menu = await example('menu', 'form');
-  const sheet = menu.el.querySelector('[role="img"][aria-label="Menu, sheet 1"]')!;
-  [...sheet.querySelectorAll('text')].find((t) => t.textContent?.includes('Flat white'))!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  await settle(menu.el);
-  expect(editBox(menu.el)[0].value).toBe('Flat white');
-  type(editBox(menu.el)[0], 'Oat flat white');
-  await key(menu.el, 'Enter', editBox(menu.el)[0]);
-  expect(menu.el.querySelector('[role="img"][aria-label="Menu, sheet 1"]')!.textContent).toContain('Oat flat white');
-  expect(box(lines(menu.el), 'Dish, row 5')!.value).toBe('Oat flat white');
 });
 
-test('the picture is the editor: no list beside a picture of shapes; a database is its text', async () => {
+test('the picture is the editor: no list beside a picture of shapes', async () => {
   // Picture mode: the default; no list beside it.
   const org = await example('org');
   expect(org.el.querySelector('to-lines')).toBeNull();
   expect(org.el.querySelectorAll('.pic > svg g.pick:not(.line)')).toHaveLength(6);
   expect(() => button(org.el, 'List')).toThrow();
-  // A database's tables have columns of their own: it is typed as text, beside its schema.
-  const db = await example('db');
-  expect(() => button(db.el, 'List')).toThrow();
-  expect(db.el.querySelector<HTMLTextAreaElement>('textarea')!.value).toMatch(/^## teams\n/);
 });
 
 test('adding on the picture: a draft that becomes real when typed into, and goes if not', async () => {

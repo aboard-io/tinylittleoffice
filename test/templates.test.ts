@@ -21,7 +21,7 @@ test('every template is in its app\'s own spelling, draws, and has a name and a 
   for (const [app, list] of Object.entries(TEMPLATES)) {
     const def = appOf(app)!;
     assert.ok(def && rewrite[app], app);
-    assert.ok(list.length >= 5 && list.length <= (app === 'deck' ? 14 : 8), `${app}: ${list.length} templates`);
+    assert.ok(list.length >= 5 && list.length <= (app === 'deck' ? 14 : 10), `${app}: ${list.length} templates`);
     assert.equal(new Set(list.map((t) => t.id)).size, list.length, `${app}: ids are unique`);
     for (const t of list) {
       assert.ok(t.name && t.blurb && t.body.trim(), `${app}/${t.id}`);

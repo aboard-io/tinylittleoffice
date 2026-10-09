@@ -42,8 +42,8 @@ describe('templates', () => {
     // Offered twice: the templates laid out on the blank page, Blank first, and a button in the toolbar. Never a dialog by itself.
     const line = () => document.querySelector('.to-gallery');
     expect(texts(line()!, '.to-template b')[0]).toBe('Blank');
-    expect(line()!.querySelectorAll('.to-template')).toHaveLength(9);
-    expect(line()!.querySelectorAll('.to-template .pic svg')).toHaveLength(8);
+    expect(line()!.querySelectorAll('.to-template')).toHaveLength(10);
+    expect(line()!.querySelectorAll('.to-template .pic svg')).toHaveLength(9);
     expect(texts(line()!, '.to-template b').filter((t) => t === 'Business plan')).toHaveLength(1);
     expect(document.querySelector('.to-template-tool')).toBeTruthy();
     expect(document.querySelector('sl-dialog.to-templates')).toBeNull();
@@ -118,11 +118,11 @@ describe('templates', () => {
 describe('arriving', () => {
   const visitor = { edit: null, open: null } as const;
 
-  test('every link opens its editor: a text, a game, a list, a zine, a deck', async () => {
+  test('every link opens its editor: a text, a chart, a list, a zine, a deck', async () => {
     await shell({ app: 'write', body: '# Hello\n\nSee https://example.com for **more**.', title: 'A letter' }, visitor);
     expect(document.querySelector('to-write [aria-label="Document"]')?.textContent).toContain('See https://example.com');
     expect(document.title).toBe('A letter · TinyLittleOffice');
-    for (const [app, body] of [['adventure', '# Cave\n## start\nDark.'], ['todo', '- [ ] Book flights'], ['zine', 'Small Joys\nIssue one'], ['deck', 'Hello\none\ntwo']] as const) {
+    for (const [app, body] of [['org', '- Ada\n  - Ben'], ['todo', '- [ ] Book flights'], ['zine', 'Small Joys\nIssue one'], ['deck', 'Hello\none\ntwo']] as const) {
       await shell({ app, body }, visitor);
       expect(document.querySelector(`to-${app}`), app).toBeTruthy();
     }
@@ -133,10 +133,10 @@ describe('arriving', () => {
   });
 
   test('a link written for a program to fill in becomes the usual link, and opens the editor', async () => {
-    history.replaceState(null, '', '/menu/#doc=%23+Cafe%0AEspresso+%7C+3.00');
+    history.replaceState(null, '', '/spinner/#doc=%23+Lunch%0A-+Ada%0A-+Bo');
     await shell(location.hash, visitor);
-    expect(location.hash).toMatch(/^#\/v0\/menu\/[yzr]/);
-    expect(document.querySelector('to-menu')).toBeTruthy();
+    expect(location.hash).toMatch(/^#\/v0\/spinner\/[yzr]/);
+    expect(document.querySelector('to-spinner')).toBeTruthy();
     history.replaceState(null, '', '/');
   });
 });

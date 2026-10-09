@@ -29,7 +29,7 @@ test('a link is made, read, shaped from Markdown, and compared', () => {
   assert.deepEqual(c.changes.filter((x) => x.kind !== ' '), [{ kind: '-', line: 'Rent | 1200' }, { kind: '+', line: 'Rent | 1300' }]);
   assert.ok(T.compare(u, u).same);
   assert.ok(T.apps().some((a) => a.id === 'flow'));
-  assert.ok(T.example('menu').length > 10 && T.example('sheet').includes(' | '));
+  assert.ok(T.example('invoice').length > 10 && T.example('sheet').includes(' | '));
   assert.throws(() => T.link('nope', 'x'));
 });
 

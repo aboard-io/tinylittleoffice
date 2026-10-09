@@ -31,7 +31,7 @@ export const SITE = 'https://tinylittleoffice.com/';
 
 /** Every app: its id, name, group and a line on what it is for. */
 export function apps(): { id: string; name: string; group: string; blurb: string }[] {
-  return registry().map((d) => ({ id: d.id, name: d.name, group: d.group ?? '', blurb: d.blurb ?? '' }));
+  return registry().filter((d) => !d.hidden).map((d) => ({ id: d.id, name: d.name, group: d.group ?? '', blurb: d.blurb ?? '' }));
 }
 
 /** The templates an app can start from (Write, Sheet and Deck have them): a name, a line, and the body in the app's format. */
@@ -59,7 +59,6 @@ const EXAMPLES: Record<string, string> = {
   calc: '---\nmode: mortgage\n---\n- price = 400000\n- deposit = 80000\n- rate = 6.5\n- years = 30',
   poster: '## :music: Open mic night\n\nFriday 12 March, 8pm\n\nThe Anchor, 14 Quay Street\n\nFree. Bring a song.',
   badges: '## Ada Lovelace\n\nEngineering\n\nLondon\n\n---\n\n## Grace Hopper\n\nCompilers\n\nNew York',
-  recipes: '## :cookie: Cardamom buns\n\nMakes 12. 25 minutes at 200°C.\n\n500g flour, 80g sugar, 250ml milk\n\n1. Warm the milk and butter; mix; rest an hour.\n2. Roll, fill, twist into knots. Bake until golden.\n\n---\n\n## :coffee: Cold brew\n\n100g coarse coffee to 1 litre of cold water.\n\n1. Stir, cover, leave 16 hours.\n2. Strain twice.',
   brochure: '## Visit\n\n---\n\n## Why\n\nbecause',
   comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday',
 };

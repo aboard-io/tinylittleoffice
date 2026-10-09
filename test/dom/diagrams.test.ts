@@ -48,13 +48,6 @@ test('diagram apps: the example button fills an empty one in; each app draws its
     // (A line has a wide transparent twin, to be tapped: only the drawn ones are counted.)
     expect(el.querySelectorAll(`.pic svg ${sel}:not([stroke="transparent"])`), app).toHaveLength(n);
   }
-  // The database answers its queries under its schema.
-  const { el } = await mount('db');
-  button(el, 'Start from an example').click();
-  await settle(el);
-  const rows = el.querySelectorAll('.diagram-aside tbody tr');
-  expect(rows).toHaveLength(2);
-  expect(rows[0].textContent!.replace(/\s+/g, '')).toBe('Platform2');
 });
 
 test('a diagram on a slide: chosen from Add a slide, it builds a shape per click', async () => {

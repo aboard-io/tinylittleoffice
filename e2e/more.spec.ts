@@ -251,45 +251,10 @@ test('small apps: games and things to share work as pages', async ({ page }) => 
     await page.getByRole('button', { name: 'Start from an example' }).click();
     return page.frameLocator(`to-${app} iframe`);
   };
-  // An adventure: choices lead on, endings start again.
-  let f = await open('adventure');
-  await f.getByRole('button', { name: 'Climb to the lamp' }).click();
-  await f.getByRole('button', { name: 'Light it' }).click();
-  await expect(f.locator('#scene')).toContainText('The end.');
-  await f.getByRole('button', { name: 'Start again' }).click();
-  await expect(f.getByRole('button', { name: 'Run to the village' })).toBeVisible();
-  // A hunt: the right answer opens the next clue; a wrong one does not.
-  f = await open('hunt');
-  await f.getByRole('textbox', { name: 'Your answer' }).fill('blue');
-  await f.getByRole('button', { name: 'Try it' }).click();
-  await expect(f.locator('#say')).toHaveText('Not that. Look again.');
-  await f.getByRole('textbox', { name: 'Your answer' }).fill(' Red ');
-  await f.getByRole('button', { name: 'Try it' }).click();
-  await expect(f.locator('#clues li')).toHaveCount(2);
-  await expect(f.locator('#clues li').last()).toContainText('count the stairs');
-  // Trivia keeps score.
-  f = await open('trivia');
-  await f.getByRole('button', { name: 'Give Blues a point' }).click();
-  await f.getByRole('button', { name: 'Give Blues a point' }).click();
-  await expect(f.locator('.team', { hasText: 'Blues' }).locator('output')).toHaveText('2');
-  await f.getByText('What is the capital of Portugal?').click();
-  await expect(f.getByText('Lisbon')).toBeVisible();
-  // Blanks are filled in before the story is seen.
-  f = await open('madlibs');
-  for (const [i, w] of ['purple', 'llama', 'the moon', 'spoons', 'danced'].entries()) await f.locator('form input').nth(i).fill(w);
-  await f.getByRole('button', { name: 'Tell the story' }).click();
-  await expect(f.locator('#story')).toContainText('my purple boss arrived riding a llama');
   // The wheel picks someone.
-  f = await open('spinner');
+  let f = await open('spinner');
   await f.getByRole('button', { name: 'Spin' }).click();
   await expect(f.locator('#won')).toHaveText(/Ada|Grace|Alan|Margaret|Linus|Barbara/, { timeout: 8000 });
-  // A card turns over.
-  f = await open('flashcards');
-  await expect(f.locator('#card')).toHaveText('bom dia');
-  await f.locator('#card').click();
-  await expect(f.locator('#card')).toHaveText('good morning');
-  await f.getByRole('button', { name: 'Next' }).click();
-  await expect(f.locator('#card')).toHaveText('obrigado');
   // Secret Santa: a person's own link shows their draw at the press of a button.
   f = await open('santa');
   const adas = await f.locator('.links li', { hasText: 'Ada' }).getByRole('link').getAttribute('href');

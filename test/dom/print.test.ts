@@ -1,4 +1,4 @@
-// The print apps (zine, booklet, brochure, poster, badges, recipes, comic, menu, résumé) worked in happy-dom (ported from e2e/more.spec.ts).
+// The print apps (zine, booklet, brochure, poster, badges, comic, word search) worked in happy-dom (ported from e2e/more.spec.ts).
 import { test, expect, beforeEach } from 'vitest';
 import { mount, settle, button, setSl } from './helpers.ts';
 import { prefs, box, typeRich, settleAll, editSub, insert, pickIcon, pdfText } from './helpers-more.ts';
@@ -44,8 +44,8 @@ test('zine: eight pages, typed on as slides, a sheet to print either way', async
   // A page can hold another document.
   button(zine(), 'Page 3').click();
   await settleAll(2);
-  await insert(zine(), 'Insert', 'poll');
-  await editSub('Poll, as text', '# Rain on the roof?\n- Fresh bread\n- Soup');
+  await insert(zine(), 'Insert', 'spinner');
+  await editSub('Spinner, as text', '# Rain on the roof?\n- Fresh bread\n- Soup');
   expect(current(zine()).textContent).toContain('Fresh bread');
   expect(zine().querySelectorAll('.deck-slide to-embed')).toHaveLength(1);
   // Pages move as slides do.
@@ -121,8 +121,6 @@ test('paper that folds: a booklet grows, a brochure prints in order', async () =
 
 test('things to print: write a few lines, get the sheets', async () => {
   for (const [app, name, has] of [
-    ['menu', 'Menu', 'Flat white'],
-    ['resume', 'Résumé', 'Ada Lovelace'],
     ['wordsearch', 'Word search', 'espresso'],
   ] as const) {
     const { el } = await mount(app);
@@ -166,12 +164,6 @@ test('things to print: write a few lines, get the sheets', async () => {
   el.addEventListener('to-download', (e) => asked.push((e as CustomEvent<string>).detail));
   button(el, /^PDF/).click();
   expect(asked).toEqual(['pdf']);
-  const recipes = await mount('recipes');
-  headline(recipes.el, 'Cardamom buns');
-  await settle(recipes.el);
-  button(recipes.el, 'Another card').click();
-  await settle(recipes.el);
-  expect(thumbs(recipes.el)).toHaveLength(3);
 });
 
 test('comic: pages like a zine, each built from panels', async () => {

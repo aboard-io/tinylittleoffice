@@ -66,9 +66,6 @@ test('what a few of the skill examples say', async () => {
   const trip = await at('trip');
   expect(trip.querySelector<HTMLInputElement>('[aria-label="Name of stop 3"]')!.value).toBe('Porto');
   expect(trip.querySelector<HTMLInputElement>('[aria-label="Note for stop 1"]')!.value).toBe('Pastel de nata first');
-  const db = await at('db');
-  expect(db.querySelectorAll('.diagram-aside table tbody tr')).toHaveLength(2);
-  expect(db.querySelector('.diagram-aside')!.textContent).toContain('Platform');
 });
 
 test('a document can be shown inside another page: the embed code, and the page it opens', async () => {

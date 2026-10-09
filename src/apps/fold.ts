@@ -94,7 +94,7 @@ export class FoldElement extends PagesElement<Folded> {
           : html`<sl-select class="sr-label zine-layout" size="small" label="Page type" hoist .value=${fit?.layout ?? s.layout ?? ''} @sl-change=${(e: Event) => this.patch({ layout: ((e.target as SlSelect).value || undefined) as Slide['layout'] })}>
               ${PAGE_LAYOUTS.map((l) => html`<sl-option value=${l.id}>${l.name}</sl-option>`)}
             </sl-select>`}
-        <to-insert label="Insert" placeholder="Insert: a poll, a map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
+        <to-insert label="Insert" placeholder="Insert: a table, a map…" .options=${insertOptions('zine', (a) => !!formatOf(a.id))} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
         ${this.textTools()}
         ${panels ? nothing : html`<sl-button size="small" @click=${() => this.pickIcon()}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>`}
         <span class="to-spacer"></span>

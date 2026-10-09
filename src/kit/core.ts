@@ -68,6 +68,8 @@ export interface AppDef {
   group?: string;
   /** The app it is a kind of: listed indented beneath it ("draw", for the diagram apps). */
   under?: string;
+  /** Not offered anywhere (menu, home, Insert, the API's list); only reached through another document, as the QR code a deck ends with is. */
+  hidden?: boolean;
     /** For apps whose document IS a web page (a site, a store): that page, whole. Used for the .html download. */
   document?(body: string, ctx: DownloadContext): string;
   /** The document's own title, '' if it has none. */

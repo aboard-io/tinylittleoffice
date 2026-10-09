@@ -97,6 +97,12 @@ const WRITE: Template[] = [
     body: text('# Your Name', '*What you do, in a line · Town · you@example.com*', '## Now', 'Role at Place, since year. What you do there, in two sentences.', '## Before', '- Role, Place, years. One thing you did there.\n- Role, Place, years. One thing you did there.', '## Education', '- Degree, School, year', '## Skills', '- Three or four things you are good at', '## Elsewhere', 'Talks, writing, volunteering, the odd prize.'),
   },
   {
+    id: 'resume',
+    name: 'Résumé',
+    blurb: 'Name and contact, experience, education, skills: a résumé fitted to a page.',
+    body: text('# Ada Lovelace', 'London · ada@example.com · example.com/ada', '## Experience', '**Analyst, Analytical Engine** (1842 to 1843)', '- Wrote the first published program, for computing Bernoulli numbers\n- Translated and annotated Menabrea\'s paper, tripling its length', '## Education', 'Tutored in mathematics by Mary Somerville and Augustus De Morgan', '## Skills', '- Mathematics, music, French, explaining machines to people'),
+  },
+  {
     id: 'week',
     name: 'Weekly plan',
     blurb: 'The three things that matter this week, then a line for each day.',

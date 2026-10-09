@@ -126,7 +126,7 @@ test('deck: layouts, a transition, and other documents on a slide', async () => 
   await idle();
   const list = () => $('.deck-add [role="listbox"]');
   const options = $$('[role="option"]', list()).map(text);
-  for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Poll']) expect(options).toContain(name);
+  for (const name of ['Bullets slide', 'Title slide', 'Two columns slide', 'Big icon slide', 'Motion', 'Drawing', 'Table', 'Chart', 'Map', 'Org chart', 'Spinner']) expect(options).toContain(name);
   expect(text($('li.group', list()))).toBe('Layouts');
   fill(add, 'two col');
   await idle();

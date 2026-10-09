@@ -4,7 +4,7 @@ import '../src/apps/index.ts';
 import { appOf, pageScripts } from '../src/kit/core.ts';
 import { hashOf, makeRef } from '../src/kit/embed.ts';
 import { specOf } from '../src/lib/diagram.ts';
-import { depths, headLevel, movePart, readLines, removePart, writeLines } from '../src/lib/lines.ts';
+import { depths, headLevel, movePart, readLines, removePart, writeLines, type Kind as LineKind } from '../src/lib/lines.ts';
 import { fromMarkdown, toMarkdown } from '../src/lib/markdown.ts';
 import { parseSite, readSite } from '../src/lib/sitemodel.ts';
 import { EDIT_SCRIPT, PLACE_SCRIPT, editData, placeData } from '../src/lib/pageedit.ts';
@@ -129,6 +129,6 @@ test('lines: headings of two kinds nest, and a part moves or goes with everythin
   // Removed, a page takes its sections with it.
   assert.equal(writeLines(removePart(rows, form, 8), form), spec.example.replace(/# Menu[\s\S]*?(?=# Find us)/, ''));
   // An app with one heading kind: its rows sit one in under a section.
-  const menu = specOf('menu')!.form!;
+  const menu: LineKind[] = [{ name: 'Name', is: '# {Name}', once: true }, { name: 'Section', is: '## {Section}', head: true }, { name: 'Dish', is: '{Dish} | {Price:money} | {About}', table: true }, { name: 'Line', is: '{Text}' }];
   assert.deepEqual(depths(readLines('# Cafe\n\n## Coffee\n\nDish | Price\n--- | ---\nEspresso | 3.00\n\n## Tea', menu), menu), [0, 0, 1, 0]);
 });

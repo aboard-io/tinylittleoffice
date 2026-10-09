@@ -1,6 +1,7 @@
 /**
- * QR code: a link (or any short text) as a code, to put on a slide, in a
- * text or on a poster, so people can point a phone at it. A link to a
+ * QR code: a link as a code, so people can point a phone at it. Not an app
+ * of its own (hidden from every list): it is what the deck's closing slide
+ * and “QR code of this document” in Insert are made of. A link to a
  * TinyLittleOffice document is the document: whoever scans it has it.
  *
  * Document format (docs/tlo.md): the link or the words, as a paragraph.
@@ -70,4 +71,4 @@ export const spec = {
   sheets: (body: string) => [page(body)],
 };
 
-export default definePrint({ id: 'qr', under: undefined, group: 'Collaborate', name: 'QR code', icon: 'qr', blurb: 'A link as a QR code, to put on a slide or a page for phones to scan.', title: (body) => qrLabel(body), outline: (body) => [qrText(body).trim()].filter(Boolean), read }, spec);
+export default definePrint({ id: 'qr', hidden: true, name: 'QR code', icon: 'qr', blurb: 'A link as a QR code: the one a deck ends with, or put in a text as “QR code of this document”.', title: (body) => qrLabel(body), outline: (body) => [qrText(body).trim()].filter(Boolean), read }, spec);

@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','db','site','store','invoice','contract','zine','booklet','brochure','comic','poster','menu','resume','badges','recipes','flow','calc','pixel','floor','seating','family','timeline','wordsearch','adventure','hunt','trivia','madlibs','spinner','flashcards','poll','santa','split','log','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','site','store','invoice','contract','zine','booklet','brochure','comic','poster','badges','flow','calc','pixel','seating','family','timeline','wordsearch','spinner','santa','split','log','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -49,7 +49,6 @@ test('every app draws itself, and is a web page with preview tags', () => {
     calc: '2+<2>\n7*6',
     poster: '## :music: Open <mic> night\n\nFriday 12 March, 8pm\n',
     badges: '## Ada <Lovelace>\n\nEngineering\n\n---\n\n## Grace Hopper\n\nCompilers\n',
-    recipes: '## :cookie: Cardamom <buns>\n\n500g flour\n\n1. Mix\n2. Bake\n\n---\n\n## Cold brew\n\n100g coffee\n',
     brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     pixel: 'ab.c\n.<d',
     comic: '## Biscuit <out>\n\n---\n\n- :dog: Walk? | Monday\n',

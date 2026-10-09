@@ -9,20 +9,6 @@ import { shot } from './helpers';
 const port = Number(process.env.PW_PORT ?? 4173);
 test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${port}`, localStorage: [{ name: 'tinyoffice.keep', value: '1' }, { name: 'tinyoffice.edit', value: 'form' }, { name: 'tinyoffice.open', value: 'edit' }] }] } });
 
-// Accessibility scanned by axe, which needs a real browser's rendering.
-test('a menu made by filling in a form has nothing a machine can find wrong', async ({ page }) => {
-  await page.goto('/#/v0/menu');
-  const form = page.locator('to-menu to-lines');
-  await form.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Name', exact: true }).click();
-  await page.keyboard.type('Harbor Coffee');
-  await form.getByRole('group', { name: 'Add' }).getByRole('button', { name: 'Dish', exact: true }).click();
-  await page.keyboard.type('Espresso');
-  await expect(page.getByRole('img', { name: 'Menu, sheet 1' })).toContainText('Espresso');
-  await shot(page, 'form-menu');
-  const results = await new AxeBuilder({ page }).disableRules(['label-title-only']).analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.nodes[0].target.join(' ')}`)).toEqual([]);
-});
-
 test('frames and files: a model works itself out in its frame, and place cards download as a PDF', async ({ page }) => {
   // The model's numbers are worked out by its frame's own script, which only a real browser runs.
   await page.goto('/#/v0/flow');

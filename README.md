@@ -22,7 +22,6 @@ you have copied the file.
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
-| Database | A tiny relational database: tables, rows, SQL queries, schema drawn. |
 | Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
 | Store | A shop page with a working cart; orders go by email. |
 | Invoice | Who, what, how much; sums done, PDF to send. |
@@ -30,13 +29,12 @@ you have copied the file.
 | Zine | A tiny deck, edited as Deck is: eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
 | Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |
 | Comic | A zine whose pages are panels, each typed into on the page; a folded mini comic out. |
-| Poster, Name badges, Recipe cards | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
-| Menu, Résumé | A few lines in, one letter sheet out, fitted to the page. |
+| Poster, Name badges | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
 | Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
 | Pixel art | A grid of squares to colour. |
-| Floor plan, Seating chart, Family tree, Timeline | More diagrams from a few lines. |
-| Games | Word search, Adventure, Scavenger hunt, Trivia, Fill in the blanks, Spinner, Flashcards. |
-| Together | Poll, Secret Santa (a private link per person), Split the bill. |
+| Seating chart, Family tree, Timeline | More diagrams from a few lines. |
+| Games | Word search, Spinner. |
+| Together | Secret Santa (a private link per person), Split the bill. |
 | Personal | Log. |
 
 An empty Write, Sheet or Deck offers "Start from a template…" (a button in
@@ -199,8 +197,7 @@ Every format is plain text, chosen so deflate has something to chew on.
   `==highlight==`, `:icon:`, `[words](address)`, with `\` as the escape
   character. An embedded document is a fence named for its app, holding its
   text; a Markdown table is an embedded sheet. A **contract** is a text
-  followed by its signatures in a `signatures` fence; a **résumé** is a text;
-  a **QR code** is its link or words as a paragraph.
+  followed by its signatures in a `signatures` fence.
 - **Deck**: slides separated by a blank line. In each slide an optional
   `:icon-name` line, then the headline, then one bullet per line. A layout
   may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
@@ -404,7 +401,7 @@ Share has "Copy embed code": an `<iframe>` on the document's `embed` view,
 which is the document alone with a link back to the editor. The snippet has
 a title, loads lazily, keeps its shape at any width and sends no referrer.
 
-## Diagrams, and the tiny database
+## Diagrams
 
 Org chart, Mind map, Swimlanes, Venn and Network are each a few dozen lines
 (`src/apps/<id>.def.ts`): a function from an outline to Draw's shapes and
@@ -414,12 +411,6 @@ drawing, each is a picture, a PDF, a slide that builds shape by shape, and
 opens in Draw to be rearranged by hand. Draw itself has joins that follow
 their shapes, and more shapes (rounded box, hexagon, parallelogram,
 cylinder, note).
-
-Database is the same idea over `src/lib/reldb.ts`, a small relational
-engine: tables written as Markdown tables under `## name` headings, joined
-and queried, in a `sql` block, with a subset of SQL
-(`SELECT`, `JOIN ... ON`, `WHERE`, `GROUP BY`, aggregates, `ORDER BY`,
-`LIMIT`). Its picture is the schema; its queries are answered beneath.
 
 ## Adding an app
 
@@ -537,8 +528,7 @@ Every app that is "a few lines of text" is edited on its picture: tap
 empty space to add a thing, tap a thing for its buttons (add one like
 it, give it an icon, join it to another, edit its words, take it away),
 tap twice to type on it, drag it where it goes (onto another thing to
-put it under or after it, into a lane or a set to move it there; a floor
-plan's rooms keep a place and move there). A line between two things is
+put it under or after it, into a lane or a set to move it there). A line between two things is
 tapped for its words; a guest at a table is a thing of their own. The
 same document is always the text itself (Mod+Shift+T), and, for the
 apps that are rows at heart (a page, a printed sheet), a list to fill

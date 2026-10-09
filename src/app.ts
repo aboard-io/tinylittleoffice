@@ -47,11 +47,11 @@ const iconOf = (d: AppDef | undefined) => UI[(d?.icon ?? 'write') as keyof typeo
 function grouped(): { group: string; apps: AppDef[] }[] {
   const out: { group: string; apps: AppDef[] }[] = [];
   for (const d of apps()) {
-    if (d.under) continue;
+    if (d.under || d.hidden) continue;
     const group = d.group ?? 'More';
     let at = out.find((g) => g.group === group);
     if (!at) out.push((at = { group, apps: [] }));
-    at.apps.push(...apps().filter((a) => a.id === d.id || a.under === d.id));
+    at.apps.push(...apps().filter((a) => !a.hidden && (a.id === d.id || a.under === d.id)));
   }
   return out.sort((a, b) => byGroup(a.group, b.group));
 }
@@ -888,7 +888,7 @@ export class ToApp extends LitElement {
   private renderOpenAs() {
     const from = this.def;
     const q = this.asFilter.trim().toLowerCase();
-    const choices = from && this.openingAs ? apps().filter((d) => d.id !== from.id && (!q || d.name.toLowerCase().includes(q))).flatMap((d) => {
+    const choices = from && this.openingAs ? apps().filter((d) => d.id !== from.id && !d.hidden && (!q || d.name.toLowerCase().includes(q))).flatMap((d) => {
       const body = convert(from, this.env.body, d);
       return body.trim() ? [html`<li><a href=${hashOf(d.id, body, this.env.title)} target="_blank" rel="noopener">${icon(iconOf(d), 18)}<span>${d.name}</span></a></li>`] : [];
     }) : [];

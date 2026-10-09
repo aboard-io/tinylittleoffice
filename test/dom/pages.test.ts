@@ -99,16 +99,7 @@ test('contract: two people, two keys, two signatures', async () => {
   expect(both.el.querySelector('.contract-sign li.bad')!.textContent).toContain('have changed since');
 });
 
-test('small apps: a poll counts, a bill is settled, a log adds up, Secret Santa deals one link each', async () => {
-  // A poll counts; adding a line adds a vote.
-  const poll = await example('poll');
-  const votes = (doc: Document, choice: string) => [...doc.querySelectorAll('li')].find((l) => l.textContent!.includes(choice))!.querySelector('.top span:last-child')!.textContent;
-  expect(votes(framed(poll.el), 'Tacos')).toBe('2');
-  const text = box<HTMLTextAreaElement>(poll.el, 'Poll, as text');
-  text.value += '\nGrace | Sushi';
-  text.dispatchEvent(new Event('input', { bubbles: true }));
-  await settle(poll.el);
-  expect(votes(framed(poll.el), 'Sushi')).toBe('2');
+test('small apps: a bill is settled, a log adds up, Secret Santa deals one link each', async () => {
   // The bill, settled.
   expect(texts(framed((await example('split')).el).querySelectorAll('.pay'))).toEqual(['Grace pays Paul 92.88', 'Ada pays Paul 47.88', 'Sam pays Paul 6.38']);
   expect(framed((await example('log')).el).querySelector('.sums div')!.textContent).toContain('22.5 km');
@@ -124,7 +115,7 @@ test('small apps: a poll counts, a bill is settled, a log adds up, Secret Santa 
 });
 
 test('the diagram apps that draw a place, a family or a time: each example draws', async () => {
-  for (const app of ['floor', 'seating', 'family', 'timeline']) {
+  for (const app of ['seating', 'family', 'timeline']) {
     const { el } = await example(app);
     expect(el.querySelectorAll('.pic > svg g.pick, .pic > svg g.shape').length, app).toBeGreaterThan(0);
     expect(el.querySelectorAll('.pic > svg text').length, app).toBeGreaterThan(0);

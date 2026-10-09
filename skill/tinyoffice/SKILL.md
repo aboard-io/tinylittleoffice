@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, floor plan, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, databases, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, menus, résumés, name badges, recipe cards, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, choose-your-own-adventures, scavenger hunts, quizzes, flashcards, spinners, polls, Secret Santa draws, bill splitting, logs, QR codes and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, name badges, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, spinners, Secret Santa draws, bill splitting, logs and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -100,12 +100,6 @@ Connections: `~ A -> B: label` for an arrow, `~ A -- B` for a line. `- name` is 
 
 https://tinylittleoffice.com/net/#title=System&doc=~+Web+-%3E+API%3A+requests%0A~+API+-%3E+Database%3A+queries%0A~+API+-%3E+Cache%0A~+Worker+-%3E+Database%0A~+API+--+Worker%3A+queue%0A%0A-+Monitoring
 
-### db: a small database
-
-Each table is a `## name` heading and a Markdown table; a column that points at another table is headed `team_id>teams`. Queries go in a `sql` fence, one per line ending `;`: `SELECT` columns (or `*`, `count(*)`, `sum/avg/min/max(col)`, `AS`), `FROM`, `JOIN ... ON a = b`, `WHERE` with `= <> < > <= >= LIKE` joined by `AND`/`OR`, `GROUP BY`, `ORDER BY ... DESC`, `LIMIT`.
-
-https://tinylittleoffice.com/db/#title=Team+directory&doc=%23%23+teams%0A%0Aid+%7C+name%0A---+%7C+---%0A1+%7C+Platform%0A2+%7C+Design%0A%0A%23%23+people%0A%0Aid+%7C+name+%7C+team_id%3Eteams%0A---+%7C+---+%7C+---%0A1+%7C+Ann+%7C+1%0A2+%7C+Bo+%7C+2%0A%0A%60%60%60sql%0Aselect+teams.name%2C+count%28%2A%29+as+people+from+people+join+teams+on+team_id+%3D+teams.id+group+by+teams.name%3B%0A%60%60%60
-
 ### site: a website of little pages
 
 `# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a line that is only a picture's address a picture, and a fence another document. `theme: teal serif dark` in the header sets the look.
@@ -182,10 +176,8 @@ Each of these lays a few lines out on letter-size sheets; the PDF download print
 
 - `poster`: one page, as big as the page allows.
 - `zine` (8 pages), `booklet` (8 to 20) and `brochure` (6 panels).
-- `badges`: a page per person, the name as the headline. `recipes`: a page per dish.
+- `badges`: a page per person, the name as the headline.
 - `comic`: a panel per bullet, `- :icon-name: What is said | caption`.
-- `menu`: `# Name`, a line about it, then each `## Section` followed by a table `Dish | Price:money | About`.
-- `resume`: a `write` text, fitted to one page.
 - `wordsearch`: `# Title` and the words as a `- ` list.
 
 https://tinylittleoffice.com/poster/#title=Open+mic&doc=%23%23+%3Amusic%3A+Open+mic+night%0A%0AFriday+12+March%2C+8pm%0A%0AThe+Anchor%2C+14+Quay+Street%0A%0AFree.+Bring+a+song.
@@ -194,22 +186,18 @@ https://tinylittleoffice.com/zine/#title=Small+Joys&doc=%23%23+%3Acoffee%3A+Smal
 
 https://tinylittleoffice.com/comic/#title=Biscuit&doc=%23%23+Biscuit%0A%0A---%0A%0A-+%3Adog%3A+Walk%3F+%7C+Monday
 
-https://tinylittleoffice.com/menu/#title=Harbor+Coffee&doc=%23+Harbor+Coffee%0A%0ASmall-batch+coffee%2C+roasted+on+the+quay.%0A%0A%23%23+Coffee%0A%0ADish+%7C+Price%3Amoney+%7C+About%0A---+%7C+---+%7C+---%0AEspresso+%7C+3.00+%7C+Dark+and+syrupy%0AFlat+white+%7C+4.20+%7C%0AFilter+%7C+3.50+%7C+Ask+what+is+on+today%0A%0A%23%23+To+eat%0A%0ADish+%7C+Price%3Amoney+%7C+About%0A---+%7C+---+%7C+---%0ACardamom+bun+%7C+3.50+%7C+Baked+at+six%2C+gone+by+ten%0AToast+and+jam+%7C+4.00+%7C+Sourdough%2C+salted+butter
-
 ## Small apps
 
 - `flow` (stock and flow, drawn as a Sankey diagram with sliders): `- name = 1000 (0 to 5000)` is a number with a slider; `~ From -> To: formula` is a flow, its formula using slider names and stocks.
 - `pixel` (16×16): a line per row, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
-- `floor`: `- Room: 4 x 3 at 0,0`. `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`.
-- Games: `adventure` (`## scene` headings, the story as paragraphs, choices as `- [Do this](#scene)`), `trivia` (`teams: A, B` in the header, `## Round` and a table `Question | Answer`), `hunt` (a table `Clue | Answer`), `flashcards` (a table `Front | Back`), `madlibs` (a story with `[blanks]`), `spinner` (a `- ` list of choices), `wordsearch`.
-- Together: `poll` (`# Question`, the choices as a `- ` list, and a table `Name | Choice` of answers), `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
+- `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`.
+- Games: `spinner` (a `- ` list of choices), `wordsearch`.
+- Together: `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
 - Personal: `log` (a table of entries; each kind is totalled).
 
 https://tinylittleoffice.com/flow/#title=Funnel&doc=%23+A+subscription+business%0A%0A-+visitors+%3D+20000+%280+to+100000%29%0A-+signup+rate+%3D+6%25+%280+to+30%29%0A-+paid+rate+%3D+25%25+%280+to+100%29%0A-+churn+%3D+8%25+%280+to+50%29%0A%0A~+Visitors+-%3E+Signups%3A+visitors+%2A+signup+rate%0A~+Visitors+-%3E+Bounced%3A+visitors+-+visitors+%2A+signup+rate%0A~+Signups+-%3E+Paying%3A+signups+%2A+paid+rate%0A~+Signups+-%3E+Free%3A+signups+-+signups+%2A+paid+rate%0A~+Paying+-%3E+Churned%3A+paying+%2A+churn%0A~+Paying+-%3E+Retained%3A+paying+-+paying+%2A+churn
 
 https://tinylittleoffice.com/timeline/#title=Computing&doc=-+1843%3A+Lovelace+publishes+her+notes%0A-+1936%3A+Turing+describes+his+machine%0A-+1969%3A+The+first+ARPANET+message%0A-+1989%3A+The+web+is+proposed%0A-+2007%3A+The+phone+becomes+a+computer
-
-https://tinylittleoffice.com/adventure/#title=The+Lighthouse&doc=%23+The+Lighthouse%0A%0A%23%23+start%0A%0AThe+storm+has+put+the+lamp+out.+Below%2C+a+ship+is+feeling+for+the+rocks.%0A%0A-+%5BClimb+to+the+lamp%5D%28%23lamp%29%0A-+%5BRun+to+the+village%5D%28%23village%29%0A%0A%23%23+lamp%0A%0AThe+stairs+are+slick.+The+lamp+is+cold%2C+but+there+is+oil%2C+and+matches.%0A%0A-+%5BLight+it%5D%28%23lit%29%0A-+%5BGo+back+down%5D%28%23start%29%0A%0A%23%23+lit%0A%0AThe+beam+swings+out.+The+ship+turns.+You+sit+down+on+the+top+step%2C+shaking.%0A%0A%23%23+village%0A%0ABy+the+time+you+get+back+with+help%2C+there+is+only+wreckage.
 
 ## A document's own QR code
 
@@ -228,7 +216,6 @@ After `#/v0/<app>/` comes one letter and then base64url bytes: the document's TL
 - Numbers, a table, or a chart: `sheet`.
 - People and reporting lines: `org`. Ideas branching from one topic: `mind`. Notes in a tree: `outline`.
 - A process with handoffs: `lanes`. Systems and what talks to what: `net`. Overlapping categories: `venn`.
-- Tables you want to query: `db`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
 - A wall of ideas or a retro: `board`. Something to publish: `site`, `store`, `invoice`.
 - Anything else visual: `draw`.

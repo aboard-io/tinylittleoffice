@@ -11,7 +11,7 @@ import './suite-deck.ts';
 test('the launcher lists every app', async () => {
   await open('');
   const launcher = $$('.to-launcher a:not(.drive-tile)');
-  expect(launcher).toHaveLength(49);
+  expect(launcher).toHaveLength(37);
   expect(text(launcher[0])).toContain('Sheet');
 });
 
