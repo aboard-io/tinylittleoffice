@@ -10,7 +10,7 @@ import { defineApp, lookup, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
-import { diagramPage, diagramSvg, toDrawing } from './view.ts';
+import { diagramPage, diagramSvg, layout, toDrawing } from './view.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 export const titleOf = (doc: Doc): string => headOf(doc).head.title ?? '';
@@ -38,7 +38,9 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc) => [diagramPage(parse(doc))],
+  view: (doc, opts) => [diagramPage(parse(doc), opts?.upTo)],
+  // Presented on a slide, a shape a step: the picture builds as its kind lays it out.
+  steps: (doc) => layout(parse(doc)).shapes.length,
   exports: [{ ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(diagramSvg(parse(doc))) }],
   // Its picture as shapes to move about by hand.
   handoffs: [{ to: 'draw', label: () => t('Open in {app}', { app: lookup.appOf('draw')?.name ?? t('Drawing Tool') }), convert: (doc) => toDrawing(parse(doc)) }],

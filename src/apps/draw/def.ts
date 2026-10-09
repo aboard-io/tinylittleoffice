@@ -49,7 +49,12 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc) => [drawingPage(parse(doc))],
+  view: (doc, opts) => [drawingPage(parse(doc), opts?.upTo)],
+  // Presented on a slide, a shape a step, in the order they were drawn.
+  steps: (doc) => {
+    const v = readDrawing(parse(doc));
+    return v.grid ? 0 : v.shapes.length;
+  },
   exports: [
     { ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(drawingToSvg(parse(doc))) },
     { ext: 'tile.svg', label: () => t('Background tile (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(tileSvg(tileOfDoc(doc), tileSide(tileOfDoc(doc)))) },

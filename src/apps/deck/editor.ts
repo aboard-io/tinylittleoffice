@@ -606,7 +606,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     return this.slides.length + (this.end ? 1 : 0);
   }
   private steps(i = this.showing): number {
-    return i < this.slides.length ? slideSteps(this.slides[i]) : 0;
+    return i < this.slides.length ? slideSteps(this.slides[i], this.doc) : 0;
   }
   private show(i: number, shown = 0) {
     clearTimeout(this.settle);

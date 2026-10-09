@@ -17,8 +17,8 @@ const my = (lat: number) => {
 };
 const STEPS = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 45, 90];
 
-/** The stops on a map `w` × `h`: lines of latitude and longitude, the route, the numbered pins and their names. */
-function mapSvg(v: TripView, w: number, h: number): string {
+/** The stops on a map `w` × `h`: lines of latitude and longitude, the route, the numbered pins and their names. Presented, the first `upTo` of them, on the map that fits them all. */
+function mapSvg(v: TripView, w: number, h: number, upTo = Infinity): string {
   const s = v.stops;
   let out = rect(0, 0, w, h, SHADE);
   if (!s.length) return out;
@@ -40,8 +40,9 @@ function mapSvg(v: TripView, w: number, h: number): string {
   const [south, north] = [latOf(h), latOf(0)];
   for (let lat = Math.ceil(south / step) * step; lat <= north; lat += step) out += `<path d="M0 ${r(py(lat))}H${w}" stroke="${LINE}" stroke-width="1"/>`;
   const at = s.map((p) => [px(p.lon), py(p.lat)] as const);
-  if (s.length > 1 && v.linked) out += `<polyline points="${at.map(([x, y]) => `${r(x)},${r(y)}`).join(' ')}" fill="none" stroke="${ACCENT}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>`;
-  s.forEach((p, i) => {
+  const shown = Math.min(s.length, upTo);
+  if (shown > 1 && v.linked) out += `<polyline points="${at.slice(0, shown).map(([x, y]) => `${r(x)},${r(y)}`).join(' ')}" fill="none" stroke="${ACCENT}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>`;
+  s.slice(0, shown).forEach((p, i) => {
     const [x, y] = at[i];
     out += `<circle cx="${r(x)}" cy="${r(y)}" r="13" fill="${ACCENT}" stroke="#fff" stroke-width="2"/>` + text(x, y + 4.5, String(i + 1), { px: 13, bold: true, fill: '#fff', anchor: 'middle' });
     // The name beside its pin, on a white edge so the lines do not swallow it.
@@ -52,13 +53,13 @@ function mapSvg(v: TripView, w: number, h: number): string {
 }
 
 /** The route as a page: the map, then the stops in order with their notes and legs, and the total. Small: the map alone. */
-export function tripPage(doc: Doc, small = false): Page {
+export function tripPage(doc: Doc, small = false, upTo = Infinity): Page {
   const v = readTrip(doc);
   const W = 720;
   const [MW, MH] = [W - 48, small ? 420 : 340];
   const alt = v.stops.length ? v.stops.map((s, i) => `${i + 1}. ${s.name || `${s.lat}, ${s.lon}`}`).join('; ') : undefined;
   if (!v.stops.length) return { w: W, h: small ? 468 : 120, svg: small ? `<svg x="24" y="24" width="${MW}" height="${MH}">${mapSvg(v, MW, MH)}</svg>` : text(W / 2, 66, '–', { px: 16, fill: MUTED, anchor: 'middle' }) };
-  let svg = `<svg x="24" y="24" width="${MW}" height="${MH}" viewBox="0 0 ${MW} ${MH}">${mapSvg(v, MW, MH)}</svg>` + rect(24, 24, MW, MH, 'none', `stroke="${LINE}" rx="2"`);
+  let svg = `<svg x="24" y="24" width="${MW}" height="${MH}" viewBox="0 0 ${MW} ${MH}">${mapSvg(v, MW, MH, upTo)}</svg>` + rect(24, 24, MW, MH, 'none', `stroke="${LINE}" rx="2"`);
   if (small) return { w: W, h: MH + 48, svg, alt };
   let y = MH + 44;
   v.stops.forEach((s, i) => {

@@ -450,9 +450,9 @@ export function regionAt(d: Diagram, x: number, y: number): string | undefined {
 }
 
 /** The diagram's one page, with words for anyone who cannot see it. */
-export function diagramPage(doc: Doc): Page {
+export function diagramPage(doc: Doc, upTo = Infinity): Page {
   const d = layout(doc);
-  return { ...shapesPage(d.shapes, d.w, d.h), alt: doc.head.alt || describeDrawing(d.shapes) || t('An empty diagram') };
+  return { ...shapesPage(d.shapes, d.w, d.h, upTo), alt: doc.head.alt || describeDrawing(d.shapes) || t('An empty diagram') };
 }
 
 export const diagramSvg = (doc: Doc): string => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(diagramPage(doc)) + '\n';
