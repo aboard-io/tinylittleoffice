@@ -4,9 +4,10 @@
  * Document format: see lib/ganttmodel.ts.
  */
 import { goLinks } from '../widgets/link-guard.ts';
-import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI, EPOCH_DAY, dayToYmd } from '../kit.ts';
+import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI } from '../kit.ts';
+import { dayToYmd } from '../lib/tz.ts';
 import { MAX_INDENT, MAX_TASKS, ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
-import { fromIsoDay, isoDay, today } from '../lib/calmodel.ts';
+import { EPOCH_DAY, fromIsoDay, isoDay, today } from '../lib/calmodel.ts';
 
 const ROW = 36;
 const HEAD = 44;

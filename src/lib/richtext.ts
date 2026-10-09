@@ -11,7 +11,7 @@
  * :icon:, [words](address). A web address on its own is a link as it stands.
  * A Markdown table in a text is an embedded sheet.
  */
-import { parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, type Attrs, type Block as TloBlock } from './tlo.ts';
+import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, type Attrs, type Block as TloBlock } from './tlo.ts';
 
 export interface Run {
   t: string;
@@ -100,9 +100,8 @@ export function serializeDoc(blocks: Block[]): string {
   for (const blk of blocks) {
     const text = serializeInline(blk.runs);
     if (blk.k === 'e') {
-      const nl = blk.ref?.indexOf('\n') ?? -1;
-      if (nl < 0) continue;
-      const [lang, body] = [blk.ref!.slice(0, nl), blk.ref!.slice(nl + 1)];
+      if (!blk.ref?.includes('\n')) continue;
+      const { lang, body } = refFence(blk.ref);
       // A sheet that is a table and nothing more is written as that table, as it was read.
       const sheet = lang === 'sheet' ? parseTlo(body) : null;
       const table = sheet && !Object.keys(sheet.head).length && sheet.blocks.length === 1 && sheet.blocks[0].k === 'table' ? sheet.blocks[0] : null;

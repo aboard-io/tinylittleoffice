@@ -141,7 +141,7 @@ test('a repeat goes out as an RRULE, into the months drawn, the outline and Mark
   assert.deepEqual(def.outline(nine + '\n- 2020-01-04: Once'), ['2020-01-03, every week, 9 times  ·  Standup', '2020-01-04  ·  Once']);
   // Markdown is the text itself, and reads back as it went.
   const body = nine + '\n- 2020-01-04 to 2020-01-05: Once';
-  const md = toMarkdown(def, body);
+  const md = toMarkdown(body);
   assert.equal(md, body + '\n');
   assert.equal(fromMarkdown(def, md), body);
   assert.equal(fromMarkdown(def, '```markdown\n---\nzone: Europe/Paris\n---\n- 2020-01-03 09:00: Call\n```'), '---\nzone: Europe/Paris\n---\n- 2020-01-03 09:00: Call');

@@ -15,11 +15,9 @@ export { state, property } from 'lit/decorators.js';
 export { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 export * from './kit/core.ts';
 export * from './kit/embed.ts';
-export { download, editRef, fontsForPictures, insertOptions, picture } from './kit/browser.ts';
+export { download, editRef, fontsForPictures, insertOptions, insertedRef, picture } from './kit/browser.ts';
 export { icon, libraryIcon, UI, LIBRARY, ICON_SVG } from './lib/icons.ts';
 export { suggestIcons } from './lib/iconsearch.ts';
-export { EPOCH_DAY, EPOCH_MS } from './lib/calmodel.ts';
-export { dayToYmd, ymdToDay, ymdString, pad2 } from './lib/tz.ts';
 export type { SlDialog, SlInput, SlSelect, SlCheckbox, SlTextarea, SlDrawer } from './lib/shoelace.ts';
 
 /**

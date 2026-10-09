@@ -97,8 +97,8 @@ test('site: another document on a page, and the lines as the picture', () => {
 });
 
 test('site: the text is its own Markdown, and Markdown as it is written comes in canonical', () => {
-  assert.equal(toMarkdown(def, spec.example), spec.example + '\n');
-  assert.equal(fromMarkdown(def, toMarkdown(def, spec.example)), spec.example);
+  assert.equal(toMarkdown(spec.example), spec.example + '\n');
+  assert.equal(fromMarkdown(def, toMarkdown(spec.example)), spec.example);
   assert.equal(def.read!(spec.example), spec.example);
   // Pages after "---" (one with no heading of its own is named), deeper headings as sections, links alone as buttons,
   // pictures, a table as an embedded sheet, a whole TinyLittleOffice link as the document it holds.

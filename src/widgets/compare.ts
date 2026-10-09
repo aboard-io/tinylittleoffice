@@ -49,7 +49,7 @@ export class ToCompare extends LitElement {
   }
 
   private env(s: Side | null): Envelope | null {
-    return s ? decodeEnvelope(s.payload, s.app) : null;
+    return s ? decodeEnvelope(s.payload) : null;
   }
   private set(which: 'a' | 'b', link: string) {
     const side = sideOf(link);
@@ -79,7 +79,7 @@ export class ToCompare extends LitElement {
   render() {
     const [ea, eb] = [this.env(this.a), this.env(this.b)];
     const [da, db] = [this.a && appOf(this.a.app), this.b && appOf(this.b.app)];
-    const text = (d: typeof da, e: Envelope | null) => (d && e ? (this.mode === 'md' ? toMarkdown(d, e.body, e.title) : e.body) : '');
+    const text = (d: typeof da, e: Envelope | null) => (d && e ? (this.mode === 'md' ? toMarkdown(e.body, e.title) : e.body) : '');
     const changes = ea && eb ? diff(text(da, ea), text(db, eb)) : [];
     const n = { '+': changes.filter((c) => c.kind === '+').length, '-': changes.filter((c) => c.kind === '-').length };
     return html`<section class="to-compare">

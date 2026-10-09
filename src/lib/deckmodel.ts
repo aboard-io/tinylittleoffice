@@ -1,8 +1,8 @@
 import { PALETTE } from './palette.ts';
 import { ACCENT } from '../kit/core.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
-import { attr, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
-import { nested, outlineToDeck, readTree, refFence } from './outlinemodel.ts';
+import { fenceRef, attr, refFence, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
+import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
 /**
  * Deck document model. A deck is TLO (lib/tlo.ts), a slide between each
  * "---" and the next:
@@ -115,7 +115,7 @@ function slideOf(blocks: Block[], prose: boolean): Slide {
     } else if (b.k === 'p' && b.text === '|') into = s.right = [];
     else if (b.k === 'p' || b.k === 'h') into.push(...b.text.split('\n'));
     else if (b.k === 'quote') (s.notes ??= []).push(...b.text.split('\n').filter((l) => l.trim()));
-    else if (b.k === 'fence') b.lang ? (s.sub = `${b.lang}\n${b.body}`) : into.push(...b.body.split('\n'));
+    else if (b.k === 'fence') b.lang ? (s.sub = fenceRef(b)) : into.push(...b.body.split('\n'));
     else if (b.k === 'table') s.sub = sheetOf(b);
     else if (b.k === 'img') {
       const ref = linkToRef(b.url);

@@ -23,7 +23,7 @@
  * something is a rule ("---"). A kind written "@@{Document}" is another
  * document, in a fenced block.
  */
-import { parse as parseTlo, write as writeTlo, writeBlock, attrsText, column, columnText, type Block as TloBlock } from './tlo.ts';
+import { fenceRef, refFence, parse as parseTlo, write as writeTlo, writeBlock, attrsText, column, columnText, type Block as TloBlock } from './tlo.ts';
 
 export interface Kind {
   name: string;
@@ -166,7 +166,7 @@ function seen(text: string): Seen[] {
     else if (b.k === 'p') out.push(...(b.text + attrsText(b.a)).split('\n').map((line) => ({ line, depth: 0 })));
     else if (b.k === 'quote') out.push(...b.text.split('\n').map((line) => ({ line: `> ${line}`, depth: 0 })));
     else if (b.k === 'hr') out.push({ line: '', depth: 0 });
-    else if (b.k === 'fence') out.push({ line: '', depth: 0, doc: `${b.lang}\n${b.body}` });
+    else if (b.k === 'fence') out.push({ line: '', depth: 0, doc: fenceRef(b) });
     else out.push({ line: writeBlock(b), depth: 0 });
   }
   return out;
@@ -255,8 +255,7 @@ export function writeLines(rows: Row[], given: Kind[]): string {
       blocks.push({ k: 'hr' });
     } else if (isDoc(k)) {
       flush();
-      const nl = r.values[0].indexOf('\n');
-      blocks.push({ k: 'fence', lang: nl < 0 ? r.values[0] : r.values[0].slice(0, nl), body: nl < 0 ? '' : r.values[0].slice(nl + 1) });
+      blocks.push(refFence(r.values[0]));
     } else if (k.table) {
       flush();
       const fields = made[r.kind].fields;

@@ -572,6 +572,19 @@ export const plain = (s: string) =>
     .map((r) => r.t)
     .join('');
 
+/* ---------- documents inside documents ---------- */
+
+/**
+ * Another document held in this one is a fenced block named for its app;
+ * in memory it is a "ref", the app's name, a new line, and its text (see
+ * kit/embed.ts). These turn one into the other.
+ */
+export function refFence(ref: string): Extract<Block, { k: 'fence' }> {
+  const nl = ref.indexOf('\n');
+  return { k: 'fence', lang: nl < 0 ? ref : ref.slice(0, nl), body: nl < 0 ? '' : ref.slice(nl + 1) };
+}
+export const fenceRef = (b: { lang: string; body: string }) => `${b.lang}\n${b.body}`;
+
 /* ---------- typed columns ---------- */
 
 export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' | 'check' | 'url' | 'rich' | 'long' | 'icon';

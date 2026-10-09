@@ -1,6 +1,6 @@
 /** Todo: what the shell knows about task lists. Format: lib/todomodel.ts. */
 import { toMarkdown } from '../lib/markdown.ts';
-import { defineApp, appOf, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
+import { defineApp, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
 import { parseTodos, readTodos } from '../lib/todomodel.ts';
 import { isoDay } from '../lib/calmodel.ts';
 
@@ -45,7 +45,7 @@ export default defineApp({
       .map((t) => `<li><input type="checkbox" disabled${t.done ? ' checked' : ''}> ${t.star ? `<strong>${xml(t.text)}</strong>` : xml(t.text)}${t.due !== null ? ` <small><time datetime="${isoDay(t.due)}">due ${isoDay(t.due)}</time></small>` : ''}</li>`)
       .join('\n')}\n</ul>`,
   // A list's own file is Markdown: what Ctrl+S saves.
-  downloads: [{ ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(toMarkdown(appOf('todo')!, b)) }],
+  downloads: [{ ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(toMarkdown(b)) }],
   shortcuts: [
     { keys: 'Enter', does: 'Add the task being typed' },
     { keys: 'Alt+Up / Alt+Down', does: 'Move the task' },

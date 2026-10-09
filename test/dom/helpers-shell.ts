@@ -91,7 +91,7 @@ export async function until<T>(get: () => T, what = 'the condition', ms = 8000):
 export function link(): { app: string; payload: string; env: Envelope | null } {
   const m = /^#\/v\d+\/([a-z]+)(?:\.[a-z.]+)?\/?(.*)$/.exec(location.hash);
   if (!m) return { app: '', payload: '', env: null };
-  return { app: m[1], payload: m[2], env: isSealed(m[2]) ? null : decodeEnvelope(m[2], m[1]) };
+  return { app: m[1], payload: m[2], env: isSealed(m[2]) ? null : decodeEnvelope(m[2]) };
 }
 /** The document's text, as the link carries it. */
 export const body = () => link().env?.body ?? '';

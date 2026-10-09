@@ -63,7 +63,7 @@ test('signing message binds app, time and body', () => {
 
 test('who made it travels in the envelope and is bound by the signature', () => {
   const env = { created: Date.UTC(2026, 9, 6), title: 'Plan', by: 'forecast-agent', body: 'a\tb' };
-  const back = decodeEnvelope(encodeEnvelope(env, 'sheet'), 'sheet');
+  const back = decodeEnvelope(encodeEnvelope(env));
   assert.equal(back.by, 'forecast-agent');
   assert.equal(back.title, 'Plan');
   assert.equal(back.body, 'a\tb');

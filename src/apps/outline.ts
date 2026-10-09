@@ -8,9 +8,8 @@
  * both ways; the plus beside it names the line. Connect joins any two
  * items. Format: a nested list, lib/outlinemodel.ts.
  */
-import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, insertedRef, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
 import { blockEnd, hasChildren, liveLinks, move, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
-import { withHead } from '../lib/tlo.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
 import { DIR_NAME } from './outline.def.ts';
@@ -203,7 +202,7 @@ export class ToOutline extends DocElement<Item[]> {
     const i = this.sel >= 0 ? this.sel : items.length - 1;
     const at = this.sel >= 0 ? blockEnd(items, i) : items.length;
     const depth = this.sel >= 0 ? items[i].depth : 0;
-    const ref = what === 'qr-self' ? SELF : what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '');
+    const ref = insertedRef(what);
     this.commit([...this.doc.slice(0, at), { depth, text: '', doc: ref }, ...this.doc.slice(at)]);
     if (what === 'qr-self') return;
     this.patchItem(at, { doc: await editRef(ref) });

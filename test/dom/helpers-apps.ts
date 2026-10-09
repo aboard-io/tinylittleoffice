@@ -73,7 +73,7 @@ export function editorOf(id: string): Editor {
 export function bodyOf(): string {
   const m = /^#\/v\d+\/([a-z]+)(?:\.[a-z0-9.]+)?\/?(.*)$/.exec(location.hash);
   if (!m || !m[2]) return '';
-  return decodeEnvelope(m[2], m[1]).body;
+  return decodeEnvelope(m[2]).body;
 }
 
 /** Try an assertion until it holds, as a person waits for a page to catch up (a debounce, a font, a dialog's animation). */

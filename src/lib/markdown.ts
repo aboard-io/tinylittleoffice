@@ -9,7 +9,7 @@ import { DOC_KEYS } from './envelope.ts';
 import { takeHead, withHead, write as writeTlo } from './tlo.ts';
 
 /** The document as Markdown: its text, named in its header when it has a name. */
-export function toMarkdown(_def: AppDef, body: string, title = ''): string {
+export function toMarkdown(body: string, title = ''): string {
   const text = title ? withHead(body, { title }) : body;
   return text.trim() ? text.trimEnd() + '\n' : '';
 }

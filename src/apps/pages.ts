@@ -5,9 +5,8 @@
  * (deck.ts) and the folded formats (fold.ts) build on this; each adds
  * what is its own.
  */
-import { DocElement, html, nothing, state, editRef, makeRef, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, SELF, type TemplateResult } from '../kit.ts';
+import { DocElement, html, nothing, state, editRef, insertedRef, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, type TemplateResult } from '../kit.ts';
 import { blankSlide, type Slide } from '../lib/deckmodel.ts';
-import { withHead } from '../lib/tlo.ts';
 import { chooseIcon, type IconChoice } from '../widgets/icon-picker.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
@@ -79,9 +78,8 @@ export abstract class PagesElement<D> extends DocElement<D> {
 
   /** Another document on the page (a chart is a sheet that asks to be drawn as one), made in its own editor. */
   protected async insert(what: string) {
-    if (what === 'qr-self') return this.patch({ sub: SELF });
-    this.patch({ sub: what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '') });
-    await this.editSub();
+    this.patch({ sub: insertedRef(what) });
+    if (what !== 'qr-self') await this.editSub();
   }
   /** The page's other document, in its own editor; it comes back to the page it was on. */
   protected async editSub() {

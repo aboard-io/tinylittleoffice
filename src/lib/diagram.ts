@@ -5,7 +5,7 @@
  * builds shape by shape, and can be opened in Draw to be rearranged by hand.
  */
 import { readLines, writeLines, type Kind as LineKind } from './lines.ts';
-import { parse, plain, write, type Block as TloBlock } from './tlo.ts';
+import { fenceRef, parse, plain, write, type Block as TloBlock } from './tlo.ts';
 import { appOf, defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
 import { resolve } from '../kit/embed.ts';
 import { parseOutline } from './outlinemodel.ts';
@@ -196,7 +196,7 @@ export function wordsOf(body: string): string[] {
     if (b.k === 'p' || b.k === 'quote') return b.text.split('\n').map(words);
     if (b.k === 'table') return b.rows.map((r) => r.map(words).filter(Boolean).join('  ·  '));
     if (b.k === 'edge') return [`${words(b.from)} → ${words(b.to)}${b.label ? ': ' + words(b.label) : ''}`];
-    if (b.k === 'fence') return b.lang && appOf(b.lang) ? [`↗  ${resolve(`${b.lang}\n${b.body}`).title}`] : b.body.split('\n');
+    if (b.k === 'fence') return b.lang && appOf(b.lang) ? [`↗  ${resolve(fenceRef(b)).title}`] : b.body.split('\n');
     return [];
   }).filter(Boolean);
 }

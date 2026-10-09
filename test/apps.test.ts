@@ -36,7 +36,7 @@ test('todo round trip', () => {
   assert.deepEqual(parseTodos(s), tasks);
   assert.deepEqual(parseTodos(''), []);
   assert.deepEqual(parseTodos('junk\n\n- ok'), [{ text: 'ok', done: false, star: false, due: null }]);
-  assert.equal(toMarkdown(appOf('todo')!, s), s + '\n');
+  assert.equal(toMarkdown(s), s + '\n');
   // Read loosely: any bullet or none, a bold task for a star, a due date in words.
   const read = appOf('todo')!.read!;
   assert.equal(read('# Trip\n\n* [X] Choose dates\n- **Book flights** (due 2027-03-01)\nPack\n★ Renew passport'), '- [x] Choose dates\n- [ ] Book flights {.star due=2027-03-01}\n- [ ] Pack\n- [ ] Renew passport {.star}');
@@ -55,7 +55,7 @@ test('board round trip', () => {
   assert.equal(s, '## Backlog\n\n- Write spec\n- #hashtag card\n- \\slash\n- - dash\n\n## Doing {limit=2}\n\n##\n\n- a, b');
   assert.deepEqual(parseBoard(s), stages);
   assert.equal(boardToCsv(s), 'Stage,Card\r\nBacklog,Write spec\r\nBacklog,#hashtag card\r\nBacklog,\\slash\r\nBacklog,- dash\r\n,"a, b"\r\n');
-  assert.equal(toMarkdown(appOf('board')!, s), s + '\n');
+  assert.equal(toMarkdown(s), s + '\n');
   // Read loosely: a limit in words, any heading, cards as lines; and the board's own CSV comes back.
   const read = appOf('board')!.read!;
   assert.equal(read('# Doing (limit 2)\n\n* x\ny\n### Done\n1. z'), '## Doing {limit=2}\n\n- x\n- y\n\n## Done\n\n- z');
@@ -82,7 +82,7 @@ test('gantt round trip', () => {
   const spans = ganttSpans(t);
   assert.deepEqual([spans[0].parent, spans[0].start, spans[0].days, spans[0].done], [true, 2000, 8, 22]);
   assert.deepEqual([spans[1].parent, spans[2].parent, spans[4].parent], [false, true, false]);
-  assert.equal(toMarkdown(appOf('gantt')!, nested), nested + '\n');
+  assert.equal(toMarkdown(nested), nested + '\n');
   // Read loosely: columns in another order, an End in place of Days; the app's own CSV comes back with its levels.
   const read = appOf('gantt')!.read!;
   assert.equal(read('| Start | Name | End | Progress |\n|---|---|---|---|\n| 3/1/2027 | Design | 2027-03-05 | 40 |'), 'Task | Start:date | Days:number | Done:percent\n--- | --- | --- | ---\nDesign | 2027-03-01 | 5 | 40%');
@@ -112,7 +112,7 @@ test('trip round trip and distances', () => {
   assert.equal(tripUnits(serializeTrip(stops, 'm')), 'm');
   assert.equal(tripUnits(serializeTrip(stops, 'k')), 'k');
   assert.deepEqual(parseTrip(serializeTrip(stops, 'k')), stops);
-  assert.equal(toMarkdown(appOf('trip')!, s), s + '\n');
+  assert.equal(toMarkdown(s), s + '\n');
   assert.equal(formatLeg(100, 'k'), '100 km');
   assert.equal(formatLeg(100, 'm'), '62.1 mi');
   assert.equal(formatLeg(100, 'h'), '1 h 38 min');
@@ -732,7 +732,7 @@ test('small apps: the sums behind them', async () => {
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
   const organiser = specOf('santa')!.page!('# Office\n\n' + names.map((n) => `- ${n}`).join('\n'));
   assert.equal((organiser.match(/their link/g) ?? []).length, names.length);
-  const ada = decodeEnvelope(linkFor('Office', 'Ada', gives.Ada).split('/').pop()!, 'santa').body;
+  const ada = decodeEnvelope(linkFor('Office', 'Ada', gives.Ada).split('/').pop()!).body;
   assert.equal(ada, `# Office\n\n~ Ada -> ${gives.Ada}`);
   assert.ok(!ada.includes(gives.Grace === gives.Ada ? 'zzz' : gives.Grace) || gives.Grace === gives.Ada);
   const theirs = specOf('santa')!.page!(ada);
@@ -1081,7 +1081,7 @@ test('markdown, both ways, for every app', async () => {
   };
   for (const def of apps()) {
     const body = samples[def.id] ?? specOf(def.id)?.example ?? '';
-    const md = toMarkdown(def, body);
+    const md = toMarkdown(body);
     assert.ok(md.length > 0 && !/undefined|NaN/.test(md), `${def.id} exports`);
     const back = fromMarkdown(def, md);
     assert.equal(typeof back, 'string', `${def.id} imports`);
@@ -1094,25 +1094,25 @@ test('markdown, both ways, for every app', async () => {
   }
   // The shapes to expect.
   // A sheet is Markdown as it stands, and comes back as it went, chart and all.
-  assert.equal(toMarkdown(appOf('sheet')!, samples.sheet), samples.sheet + '\n');
-  assert.equal(fromMarkdown(appOf('sheet')!, toMarkdown(appOf('sheet')!, samples.sheet)), samples.sheet);
-  assert.equal(toMarkdown(appOf('pixel')!, samples.pixel), samples.pixel + '\n');
+  assert.equal(toMarkdown(samples.sheet), samples.sheet + '\n');
+  assert.equal(fromMarkdown(appOf('sheet')!, toMarkdown(samples.sheet)), samples.sheet);
+  assert.equal(toMarkdown(samples.pixel), samples.pixel + '\n');
   // The apps written as TLO export the text itself, and read it back as it went.
   for (const id of ['todo', 'board', 'gantt', 'trip', 'cal']) {
-    assert.equal(toMarkdown(appOf(id)!, samples[id]), samples[id] + '\n', id);
-    assert.equal(fromMarkdown(appOf(id)!, toMarkdown(appOf(id)!, samples[id])), samples[id], id);
+    assert.equal(toMarkdown(samples[id]), samples[id] + '\n', id);
+    assert.equal(fromMarkdown(appOf(id)!, toMarkdown(samples[id])), samples[id], id);
   }
-  assert.equal(toMarkdown(appOf('deck')!, samples.deck), samples.deck);
+  assert.equal(toMarkdown(samples.deck), samples.deck);
   // And back: a Markdown list is a to-do list; a Markdown table is a sheet; headings are slides.
   assert.equal(fromMarkdown(appOf('todo')!, '- [x] Done\n* Not yet'), '- [x] Done\n- [ ] Not yet');
   assert.equal(fromMarkdown(appOf('sheet')!, '| A | B |\n|:--|--:|\n| 1 | $2 |'), 'A | B:money\n--- | ---\n1 | $2');
   assert.equal(fromMarkdown(appOf('deck')!, '# My deck\n\nA line\n\n## Second\n\n- a\n  - b'), '## My deck {.title}\n\n- A line\n\n---\n\n## Second\n\n- a\n  - b\n');
   // A text is Markdown already: what goes out is the text itself.
-  assert.equal(toMarkdown(appOf('write')!, samples.write), samples.write + '\n');
+  assert.equal(toMarkdown(samples.write), samples.write + '\n');
   assert.equal(fromMarkdown(appOf('write')!, '# Hi\nSome __bold__ text.\n\n* a\n    * b\n+ c\n\n1) one\n2) two'), '# Hi\n\nSome **bold** text.\n\n- a\n  - b\n- c\n1. one\n2. two');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n## Coffee\n\n| Dish | Price | What it is |\n|---|---|---|\n| Flat white | 4.20 | Smooth |'), '# Cafe\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth');
   assert.equal(fromMarkdown(appOf('board')!, '## Doing (limit 2)\n\n- x\n- y'), '## Doing {limit=2}\n\n- x\n- y');
-  assert.equal(toMarkdown(appOf('menu')!, specOf('menu')!.example), specOf('menu')!.example + '\n');
+  assert.equal(toMarkdown(specOf('menu')!.example), specOf('menu')!.example + '\n');
   assert.equal(fromMarkdown(appOf('menu')!, '# Cafe\n\n### Coffee\n\n| Item | Description | Price |\n|---|---|---|\n| Flat white | Smooth | 4.20 |\n\n- Tea | 3'), '# Cafe\n\n## Coffee\n\nDish | Price:money | About\n--- | --- | ---\nFlat white | 4.20 | Smooth\nTea | 3 |');
 });
 
@@ -1184,9 +1184,9 @@ test('outline: a tree of lines, moved about, and OPML out', async () => {
   assert.ok(appOf('outline')!.view('- Launch\n  - Product').at(0)!.svg.includes('>Product</text>'));
   assert.equal(specOf('mind')!.layout!('- Launch\n  - Product\n  - Marketing').shapes.filter((s) => s.text).length, 3);
   // Its Markdown is its text; Markdown comes in through its reader.
-  assert.equal(toMarkdown(appOf('outline')!, '- Launch\n  - *Product*\n    - Pricing'), '- Launch\n  - *Product*\n    - Pricing\n');
+  assert.equal(toMarkdown('- Launch\n  - *Product*\n    - Pricing'), '- Launch\n  - *Product*\n    - Pricing\n');
   assert.equal(fromMarkdown(appOf('outline')!, '# Plan\n\n- a\n  - b\n\n## Later\n- c'), '- Plan\n  - a\n    - b\n  - Later\n    - c');
-  for (const id of ['mind', 'org', 'family']) assert.equal(fromMarkdown(appOf(id)!, toMarkdown(appOf(id)!, specOf(id)!.example)), specOf(id)!.example, id);
+  for (const id of ['mind', 'org', 'family']) assert.equal(fromMarkdown(appOf(id)!, toMarkdown(specOf(id)!.example)), specOf(id)!.example, id);
   assert.equal(appOf('org')!.read!('Ada\n  Ben\n~ Ben -> Ada: helps'), '- Ada\n  - Ben\n\n~ Ben -- Ada: helps');
 });
 

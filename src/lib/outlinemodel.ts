@@ -19,7 +19,7 @@
  * left after a fence, so an item after one says its depth too, until the
  * next top item. Edges ("~ A -> B: name") join any two items by their words.
  */
-import { parse, plain, write, type Attrs, type Block, type Dir } from './tlo.ts';
+import { fenceRef, refFence, parse, plain, write, type Attrs, type Block, type Dir } from './tlo.ts';
 
 export type { Dir };
 
@@ -42,11 +42,6 @@ export interface Link {
   label?: string;
 }
 
-/** A ref (kit/embed.ts: "<app>\n<its text>") as the fence that writes it. */
-export function refFence(ref: string): Extract<Block, { k: 'fence' }> {
-  const nl = ref.indexOf('\n');
-  return { k: 'fence', lang: nl < 0 ? ref : ref.slice(0, nl), body: nl < 0 ? '' : ref.slice(nl + 1) };
-}
 
 const JOIN: Record<string, Dir> = { from: '->', to: '<-', both: '<->' };
 const CLASS: Partial<Record<Dir, string>> = { '->': 'from', '<-': 'to', '<->': 'both' };
@@ -115,7 +110,7 @@ export function readTree(text: string): { items: Item[]; links: Link[] } {
       const label = b.a?.kv?.label;
       add({ depth: b.depth + offset, text: b.text.replace(/\n/g, ' '), ...(dir ? { dir } : {}), ...(label ? { label } : {}) });
     } else if (b.k === 'fence') {
-      add({ depth: depthOf(b) || 0, text: '', doc: `${b.lang}\n${b.body}` });
+      add({ depth: depthOf(b) || 0, text: '', doc: fenceRef(b) });
       offset = 0;
     } else if (b.k === 'edge') links.push({ from: b.from, to: b.to, dir: b.dir, ...(b.label ? { label: b.label } : {}) });
     else if (b.k === 'p' || b.k === 'h' || b.k === 'quote') for (const line of b.text.split('\n')) add({ depth: 0, text: line });

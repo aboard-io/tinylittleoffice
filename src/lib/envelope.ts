@@ -93,9 +93,9 @@ export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
 }
 
 // (A link is read the same whatever its app; some callers still name it.)
-export const encodeEnvelope = (env: Envelope, _app?: string): string => encodeDoc(envelopeText(env));
+export const encodeEnvelope = (env: Envelope): string => encodeDoc(envelopeText(env));
 /** A payload's document; an empty one for anything unreadable. */
-export const decodeEnvelope = (payload: string, _app?: string): Envelope => readEnvelope(decodeDoc(payload));
+export const decodeEnvelope = (payload: string): Envelope => readEnvelope(decodeDoc(payload));
 
 /** The bytes a signature covers: the app, the creation time, the body, and the title and author when there are any. */
 export function signingMessage(app: string, created: number | null, body: string, title = '', by = ''): string {

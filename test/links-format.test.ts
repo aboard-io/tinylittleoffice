@@ -38,10 +38,10 @@ test('Markdown links come in as links and go out as them; one to nowhere safe ke
   const write = appOf('write')!;
   const body = fromMarkdown(write, 'Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).\n\n- [x](javascript:1)');
   assert.equal(body, 'Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).\n\n- \\[x](javascript:1)');
-  assert.ok(toMarkdown(write, body).includes('Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).'));
+  assert.ok(toMarkdown(body).includes('Read [our **report**](https://ex.com/r) and [mail](mailto:a@b.co).'));
   // A deck's bullets and an outline's items take links the same way.
   const deck = appOf('deck')!;
-  assert.ok(toMarkdown(deck, 'Plan\nSee [the doc](https://a.co)').includes('[the doc](https://a.co)'));
+  assert.ok(toMarkdown('Plan\nSee [the doc](https://a.co)').includes('[the doc](https://a.co)'));
 });
 
 test('drawn, linked words are a link: on a slide, in a page, in the web page download', () => {

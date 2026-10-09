@@ -5,8 +5,8 @@
  * matters functionally, because execCommand and the selection APIs are
  * unreliable inside shadow roots in some browsers.
  */
-import { LitElement, defineElement, html, nothing, property, state, tool, icon, UI, xml, type PropertyValues } from '../kit.ts';
-import { linkToRef, makeRef, SELF } from '../kit/embed.ts';
+import { LitElement, defineElement, html, nothing, property, state, tool, icon, UI, xml, insertedRef, type PropertyValues } from '../kit.ts';
+import { linkToRef } from '../kit/embed.ts';
 import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
@@ -545,9 +545,8 @@ export class ToWrite extends LitElement {
 
   private async insertNew(what: string) {
     // The document's own QR code needs no editing: it is whatever the link is.
-    if (what === 'qr-self') return void this.insertEmbed(SELF);
-    const el = this.insertEmbed(what === 'chart' ? makeRef('sheet', '---\nchart: bar\n---\n') : makeRef(what, ''));
-    if (el) await this.editEmbed(el);
+    const el = this.insertEmbed(insertedRef(what));
+    if (el && what !== 'qr-self') await this.editEmbed(el);
   }
 
   private async editEmbed(el: HTMLElement) {

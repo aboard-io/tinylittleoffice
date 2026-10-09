@@ -6,14 +6,14 @@
  * describe it and link to it.
  */
 import { decodeEnvelope, encodeEnvelope } from '../lib/envelope.ts';
-import { takeHead, withHead } from '../lib/tlo.ts';
+import { refFence, takeHead, withHead } from '../lib/tlo.ts';
 import { LINK, appOf, listPage, type AppDef, type Page, type ViewOpts } from './core.ts';
 
 /** The document a TinyLittleOffice link holds, as a ref, if the text is exactly one such link; otherwise null. */
 export function linkToRef(text: string): string | null {
   const m = /^\S*#\/(?:v\d+\/)?([a-z]+)(?:\.[A-Za-z0-9]+)?\/([A-Za-z0-9_-]+)$/.exec(text.trim());
   if (!m || !appOf(m[1]) || m[2][0] === 'E') return null;
-  const env = decodeEnvelope(m[2], m[1]);
+  const env = decodeEnvelope(m[2]);
   return makeRef(m[1], env.body, env.title);
 }
 
@@ -30,7 +30,7 @@ export const convert = (from: AppDef, body: string, to: AppDef): string => from.
 
 /** The fragment that opens a document: "#/v0/<app>/<payload>". */
 export const hashOf = (app: string, body: string, title?: string) => {
-  const payload = encodeEnvelope({ created: null, body, title }, app);
+  const payload = encodeEnvelope({ created: null, body, title });
   return `${LINK}${app}${payload ? '/' + payload : ''}`;
 };
 
@@ -59,9 +59,8 @@ export function resolve(ref: string): Resolved {
     const link = selfLink || (typeof location !== 'undefined' ? location.href : '');
     return { def, body: link, locked: false, hash: '#/qr', title: 'This document, as a QR code' };
   }
-  const nl = ref.indexOf('\n');
-  const id = nl < 0 ? ref : ref.slice(0, nl);
-  const [head, body] = takeHead(nl < 0 ? '' : ref.slice(nl + 1), ['title']);
+  const { lang: id, body: text } = refFence(ref);
+  const [head, body] = takeHead(text, ['title']);
   const def = appOf(id);
   const kind = def?.name ?? 'Document';
   return { def, body, locked: false, hash: hashOf(id, body, head.title), title: head.title || def?.title(body) || kind };

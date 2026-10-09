@@ -30,7 +30,7 @@ test('every template is in its app\'s own spelling, draws, and has a name and a 
       assert.ok(pages.length >= 1, `${app}/${t.id} draws`);
       for (const p of pages) assert.ok(!/NaN|undefined/.test(pageSvg(p)), `${app}/${t.id} draws cleanly`);
       assert.ok(def.outline(t.body).length > 1, `${app}/${t.id} has an outline`);
-      assert.ok(!/undefined|NaN/.test(toMarkdown(def, t.body)), `${app}/${t.id} exports as Markdown`);
+      assert.ok(!/undefined|NaN/.test(toMarkdown(t.body)), `${app}/${t.id} exports as Markdown`);
     }
   }
   assert.deepEqual(templatesOf('todo'), []);

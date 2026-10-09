@@ -8,7 +8,7 @@
  * ":icon-name:" a big icon.
  */
 import { readLines, writeLines, kindsOf, type Kind } from './lines.ts';
-import { parse as parseTlo, write as writeTlo, writeBlock, type Block } from './tlo.ts';
+import { refFence, parse as parseTlo, write as writeTlo, writeBlock, type Block } from './tlo.ts';
 import { linkToRef, resolve } from '../kit/embed.ts';
 
 export interface Button {
@@ -149,8 +149,7 @@ export function readSite(text: string): string {
   const embed = (url: string) => {
     const ref = linkToRef(url);
     if (!ref) return false;
-    const nl = ref.indexOf('\n');
-    out.push({ k: 'fence', lang: ref.slice(0, nl), body: ref.slice(nl + 1) });
+    out.push(refFence(ref));
     return true;
   };
   if (doc.head.theme) line(`theme: ${themeWords(parseTheme(doc.head.theme))}`);

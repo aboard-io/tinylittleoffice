@@ -49,7 +49,7 @@ test('an animation keeps its alt text through its editor’s model', () => {
 test('alt text goes into Markdown in the header and comes back; a quote is alt text too', () => {
   for (const [app, body] of [['draw', withAlt('A browser asks a server.')], ['anim', ANIM]] as const) {
     const def = appOf(app)!;
-    const md = toMarkdown(def, body);
+    const md = toMarkdown(body);
     assert.ok(md.startsWith('---\nframes') || md.startsWith('---\nalt'), md);
     assert.equal(fromMarkdown(def, md), body);
     // Written as a model might: a quote saying what it shows, and the things in it.

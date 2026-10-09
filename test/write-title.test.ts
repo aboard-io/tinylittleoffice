@@ -19,7 +19,7 @@ test('a title is "# Words {.title}", read back as a title, and names the documen
 
 test('the title goes out large: the text itself as Markdown, set big in the web page, the PDF and RTF', () => {
   const write = appOf('write')!;
-  assert.equal(toMarkdown(write, '# Annual report {.title}\n\nWords'), '# Annual report {.title}\n\nWords\n');
+  assert.equal(toMarkdown('# Annual report {.title}\n\nWords'), '# Annual report {.title}\n\nWords\n');
   assert.match(write.html!('# Annual report {.title}', { created: null }), /<h1 class="title" style="font-size:2\.8em[^"]*">Annual report<\/h1>/);
   assert.ok(write.view('# Annual report {.title}')[0].svg.includes('font-size="48"'));
   const rtf = new TextDecoder().decode(write.downloads!.find((d) => d.ext === 'rtf')!.build!('# Annual report {.title}', { created: null }));

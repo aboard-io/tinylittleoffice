@@ -6,7 +6,7 @@
 import { html, render } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { COMMON, MOVING, FONT, History, apps, byGroup, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
-import { makeRef, refPage, resolve } from './embed.ts';
+import { SELF, makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
 import { toMarkdown } from '../lib/markdown.ts';
 import { envelopeText } from '../lib/envelope.ts';
@@ -236,7 +236,7 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
     data = utf8(envelopeText({ created: ctx.created, title: title || undefined, body: withHead(body, { app: def.id }) }));
     mime = 'text/markdown;charset=utf-8';
   } else if (ext === 'md') {
-    data = utf8(toMarkdown(def, body, title));
+    data = utf8(toMarkdown(body, title));
     mime = 'text/markdown;charset=utf-8';
   } else if (ext === 'html') {
     data = utf8(def.document ? await withFonts(def.document(body, ctx)) : docHtml({ def, body, title }, ctx, link));
@@ -324,6 +324,9 @@ export class ToEmbed extends HTMLElement {
 if (!customElements.get('to-embed')) customElements.define('to-embed', ToEmbed);
 
 /** The apps that can go inside another, as options for a combobox, in the menu's order and clusters. */
+/** What an Insert choice makes: a new document of that app (a chart is a sheet that asks to be drawn as one), or the document's own QR code. */
+export const insertedRef = (what: string) => (what === 'qr-self' ? SELF : what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, ''));
+
 export function insertOptions(host: string, skip: (a: AppDef) => boolean = () => false): { value: string; label: string; group?: string; icon?: keyof typeof UI }[] {
   const all = embeddable(host).filter((a) => !skip(a));
   const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort(byGroup);

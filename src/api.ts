@@ -138,14 +138,14 @@ export function parse(url: string): Parsed {
     if (!plain) throw new Error('Not a TinyLittleOffice link');
     const { def, body, title, by, view } = plain;
     const env = envelope(body, { title, by, created: null });
-    return { app: def.id, view, sealed: false, env, markdown: toMarkdown(def, body, title) };
+    return { app: def.id, view, sealed: false, env, markdown: toMarkdown(body, title) };
   }
   const [, app, view = '', payload = ''] = m;
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
   if (isSealed(payload)) return { app, view, sealed: true, env: { created: null, body: '' }, markdown: '' };
   const env = decodeEnvelope(payload);
-  return { app, view, sealed: false, env, markdown: toMarkdown(def, env.body, env.title) };
+  return { app, view, sealed: false, env, markdown: toMarkdown(env.body, env.title) };
 }
 
 /** Open a sealed link with its password. */
@@ -155,7 +155,7 @@ export async function open(url: string, password: string): Promise<Parsed> {
   const r = await unseal(password, m[3] ?? '');
   if (!r) throw new Error('Wrong password');
   const env = unpackEnvelope(r.flag, r.bytes);
-  return { app: m[1], view: m[2] ?? '', sealed: false, env, markdown: toMarkdown(appOf(m[1])!, env.body, env.title) };
+  return { app: m[1], view: m[2] ?? '', sealed: false, env, markdown: toMarkdown(env.body, env.title) };
 }
 
 /** The same document, sealed under a password: only someone with the password can read the link. */

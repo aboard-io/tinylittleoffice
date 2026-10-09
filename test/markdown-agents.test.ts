@@ -117,7 +117,7 @@ test('Markdown as an agent writes it becomes the document it meant', () => {
 
 test('every app: Markdown in, a link out, read back as Markdown, and lint finds nothing wrong', async () => {
   for (const def of apps()) {
-    const md = toMarkdown(def, T.example(def.id));
+    const md = toMarkdown(T.example(def.id));
     const url = T.linkFromMarkdown(def.id, md);
     assert.ok(url.includes(`/#/v0/${def.id}/`), def.id);
     const p = T.parse(url);
@@ -130,8 +130,8 @@ test('every app: Markdown in, a link out, read back as Markdown, and lint finds 
 
 test('every app: one trip through Markdown settles; the second changes nothing', () => {
   for (const def of apps()) {
-    const once = fromMarkdown(def, toMarkdown(def, T.example(def.id)));
-    const twice = fromMarkdown(def, toMarkdown(def, once));
+    const once = fromMarkdown(def, toMarkdown(T.example(def.id)));
+    const twice = fromMarkdown(def, toMarkdown(once));
     assert.equal(twice, once, `${def.id} drifts on a second trip through Markdown`);
   }
 });
@@ -169,6 +169,6 @@ test('a timed event keeps its time and zone through Markdown', () => {
   assert.equal(cal.spans[0].kind, 't');
   assert.equal(cal.spans[0].dur, 90);
   // Written canonically, the zone in the header; that goes round unchanged.
-  assert.equal(toMarkdown(def, body), '---\nzone: Europe/Lisbon\n---\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-12: Demo\n');
-  assert.equal(fromMarkdown(def, toMarkdown(def, body)), body);
+  assert.equal(toMarkdown(body), '---\nzone: Europe/Lisbon\n---\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-12: Demo\n');
+  assert.equal(fromMarkdown(def, toMarkdown(body)), body);
 });

@@ -75,7 +75,7 @@ test('motion: a drawing that moves between the moments you set', async ({ page }
   await expect(hit.first()).toHaveClass(/sel/);
   // It started where it was drawn, and the link says so: a row of keys for shape 0.
   const { decodeEnvelope } = await import('../src/lib/envelope.ts');
-  const body = () => decodeEnvelope(page.url().split('/#/v0/anim/')[1] ?? '', 'anim').body;
+  const body = () => decodeEnvelope(page.url().split('/#/v0/anim/')[1] ?? '').body;
   await expect.poll(body).toMatch(/^---\nframes: 24\nfps: 8\n---\nKind \| X \| Y \| W \| H \| Style \| Label\n--- \| --- \| --- \| --- \| --- \| --- \| ---\nr \| 8 \| 5 \| 16 \| 10 \| 0 \| Go\n\nShape \| Keys\n--- \| ---\n0 \| 0,0,0,0,1,0; 23,(299|300|301),(199|200|201),0,1,0$/);
   await expect(page.locator('.motion-keys .key')).toHaveCount(2);
 
@@ -422,7 +422,7 @@ test('draw: the pen makes any shape, corner by corner; Motion morphs its corners
   const body = decodeEnvelope(page.url().split('/').pop()!, 'draw').body;
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   // (A drawing is a motion in which nothing moves yet.)
-  await page.goto(`/#/v0/anim/${encodeEnvelope({ created: null, body }, 'anim')}`);
+  await page.goto(`/#/v0/anim/${encodeEnvelope({ created: null, body })}`);
   await page.getByRole('radio', { name: 'Move' }).click();
   await page.locator('input[type=range][aria-label="Time"]').fill('23');
   await page.locator('.motion-stage .hit').first().click();

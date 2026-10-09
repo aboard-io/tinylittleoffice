@@ -140,7 +140,7 @@ export function closingSlide(body: string): Slide | null {
 function makeClosing(body: string): Slide | null {
   if (!deckEndsWithQr(body)) return null;
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
-  const link = `${site}deck/${LINK}deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
+  const link = `${site}deck/${LINK}deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined })}`;
   if (new TextEncoder().encode(link).length > QR_MAX_BYTES || !body.trim()) return null;
   return { ...blankSlide(), sub: makeRef('qr', link) };
 }
