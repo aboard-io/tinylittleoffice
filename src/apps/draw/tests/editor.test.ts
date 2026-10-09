@@ -447,3 +447,349 @@ test('at phone width: the bar is one row of 44px buttons, the words typed on a s
     await page.viewport(1100, 800);
   }
 });
+
+/* ---------- after the editing audit: one test per path (docs/editing.md) ---------- */
+
+/** A pointer event at a canvas point, on whatever is drawn there. */
+function ptr(el: ToDrawEditor, type: string, x: number, y: number, more: PointerEventInit = {}) {
+  const svg = canvas(el);
+  const [clientX, clientY] = screen(el, x, y);
+  const under = document.elementFromPoint(clientX, clientY);
+  const on = type === 'pointerdown' && under && svg.contains(under) ? under : svg;
+  on.dispatchEvent(new PointerEvent(type, { clientX, clientY, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 1, bubbles: true, cancelable: true, isPrimary: true, ...more }));
+}
+/** A key on the canvas, cancelable, saying whether it was taken. */
+const press = async (el: ToDrawEditor, k: string, more: KeyboardEventInit = {}, on: Element = el.querySelector('.draw-wrap')!) => {
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...more });
+  on.dispatchEvent(e);
+  await el.updateComplete;
+  return e.defaultPrevented;
+};
+const undo = async (el: ToDrawEditor, which: 'docundo' | 'docredo' = 'docundo') => {
+  el.dispatchEvent(new CustomEvent(which, { cancelable: true }));
+  await el.updateComplete;
+  await tick();
+};
+const rows = (text: string | undefined) => (text ?? '').split('\n').filter((l) => /^[a-z] \|/.test(l));
+const handles = (el: HTMLElement) => el.querySelectorAll('svg.draw-canvas rect.handle:not(.handle-hit)').length;
+const outlines = (el: HTMLElement) => el.querySelectorAll('svg.draw-canvas rect[stroke-dasharray="4 3"]').length;
+
+test('§1 Undo/Redo: the last two tools of both bars, off with nothing to undo, never taking the focus; they undo and redo', async () => {
+  const { el, last } = await editor(DRAWING);
+  const tools = () => [...el.querySelectorAll<HTMLButtonElement>('to-bar > button')].slice(-2);
+  expect(tools().map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
+  expect(tools().every((b) => b.disabled)).toBe(true);
+  await tap(el, 96, 80);
+  await press(el, 'Delete');
+  expect(tools()[0].disabled).toBe(false);
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+  tools()[0].dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  tools()[0].click();
+  await el.updateComplete;
+  expect(last()).toBe(DRAWING);
+  expect(tools()[1].disabled).toBe(false);
+  tools()[1].click();
+  await el.updateComplete;
+  expect(last()).not.toContain('Browser');
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8 by 8');
+  expect(tools().map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
+});
+
+test('§1 undo chooses again what the change touched: a delete undone brings the shape back in hand, with its bar, the canvas focused', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 320, 80);
+  await press(el, 'Delete');
+  expect(rows(last())).toHaveLength(1);
+  await until(() => !ctxOpen(el));
+  (document.activeElement as HTMLElement | null)?.blur();
+  await undo(el);
+  expect(last()).toBe(DRAWING);
+  expect(handles(el)).toBe(1);
+  await until(() => ctxOpen(el));
+  expect(document.activeElement).toBe(el.querySelector('.draw-wrap'));
+  // Redo takes it out again and nothing is in hand; undo of a nudge keeps the nudged shape chosen.
+  await undo(el, 'docredo');
+  expect(handles(el)).toBe(0);
+  await undo(el);
+  await press(el, 'ArrowDown');
+  await tap(el, 600, 380);
+  expect(handles(el)).toBe(0);
+  await undo(el);
+  expect(handles(el)).toBe(1);
+  expect(last()).toBe(DRAWING);
+  // Undo while the words are typed lets them go and gives the focus back to the canvas, not the body.
+  await tap(el, 96, 80);
+  await press(el, 'Enter');
+  await typeIn(el, 'Hello');
+  await undo(el);
+  expect(words(el).hidden).toBe(true);
+  expect(document.activeElement).toBe(el.querySelector('.draw-wrap'));
+  expect(last()).toContain('| Browser\n');
+});
+
+test('§1 paste with nothing in hand: Insert ▾ has Paste, which pastes what was copied here', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 320, 80);
+  await until(() => ctxOpen(el));
+  ctxButton(el, 'Copy').click();
+  await tap(el, 600, 380);
+  expect(handles(el)).toBe(0);
+  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Paste');
+  await until(() => rows(last()).length === 4);
+  expect(rows(last()).at(-1)).toBe('o | 33 | 7 | 16 | 8 | 1b | Server');
+  expect(handles(el)).toBe(1);
+});
+
+test('§1 Mod+A chooses every shape (never the page\'s text); Delete then takes them all, and undo brings them back all chosen', async () => {
+  const { el, last } = await editor(DRAWING);
+  expect(await press(el, 'a', { ctrlKey: true })).toBe(true);
+  expect(outlines(el)).toBe(2);
+  expect(handles(el)).toBe(0);
+  await until(() => ctxOpen(el));
+  await press(el, 'Delete');
+  expect(last()).toBe('');
+  await undo(el);
+  expect(last()).toBe(DRAWING);
+  expect(outlines(el)).toBe(2);
+});
+
+test('§5 Escape: one step per press, the chosen shape first, then the tool back to Select; a join being drawn is dropped', async () => {
+  const { el } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  await press(el, 'r');
+  expect(button(el, 'Rectangle').getAttribute('aria-pressed')).toBe('true');
+  expect(await press(el, 'Escape')).toBe(true);
+  expect(handles(el)).toBe(0);
+  expect(button(el, 'Rectangle').getAttribute('aria-pressed')).toBe('true');
+  expect(await press(el, 'Escape')).toBe(true);
+  expect(button(el, 'Select').getAttribute('aria-pressed')).toBe('true');
+  expect(await press(el, 'Escape')).toBe(false);
+  await press(el, 'k');
+  ptr(el, 'pointerdown', 96, 80);
+  ptr(el, 'pointermove', 200, 200);
+  await el.updateComplete;
+  expect(el.querySelector('svg.draw-canvas line[stroke-dasharray="5 4"]')).not.toBeNull();
+  await press(el, 'Escape');
+  expect(el.querySelector('svg.draw-canvas line[stroke-dasharray="5 4"]')).toBeNull();
+  ptr(el, 'pointerup', 320, 80);
+  await el.updateComplete;
+  expect(button(el, 'Join two shapes').getAttribute('aria-pressed')).toBe('true');
+});
+
+test('§1 the canvas\'s keys never act from a bar button: Enter presses the button, a letter is no tool, Delete removes nothing; in pixel mode Space and Enter press the bar\'s buttons', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  const zoom = button(el, 'Zoom in');
+  zoom.focus();
+  expect(await press(el, 'Enter', {}, zoom)).toBe(false);
+  expect(words(el).hidden).toBe(true);
+  expect(await press(el, 'r', {}, zoom)).toBe(false);
+  expect(button(el, 'Select').getAttribute('aria-pressed')).toBe('true');
+  await press(el, 'Delete', {}, zoom);
+  expect(last()).toBeUndefined();
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8 by 8');
+  const n = last();
+  const pencil = button(el, 'Pencil');
+  pencil.focus();
+  expect(await press(el, ' ', {}, pencil)).toBe(false);
+  expect(await press(el, 'Enter', {}, pencil)).toBe(false);
+  expect(await press(el, 'ArrowRight', {}, pencil)).toBe(false);
+  expect(last()).toBe(n);
+});
+
+test('§1 Enter in the alt dialog is Done', async () => {
+  const { el, last } = await editor(DRAWING);
+  el.querySelector<HTMLButtonElement>('.draw-alt')!.click();
+  await until(() => !!el.querySelector('dialog[open]'));
+  const box = el.querySelector<HTMLTextAreaElement>('.draw-alt-dialog textarea')!;
+  box.value = 'Two boxes';
+  box.dispatchEvent(new Event('input', { bubbles: true }));
+  await el.updateComplete;
+  const e = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+  box.dispatchEvent(e);
+  expect(e.defaultPrevented).toBe(true);
+  await until(() => !el.querySelector('dialog[open]'));
+  expect(last()!.startsWith('---\nalt: Two boxes\n---\n')).toBe(true);
+});
+
+test('§5 arrows nudge by a grid step and never off the canvas, Shift+Arrows by five, Mod+Arrows resize; Alt+Up/Down move a place in the stack; Alt+Left/Right are not taken', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  await press(el, 'ArrowRight', { shiftKey: true });
+  expect(rows(last())[0]).toBe('o | 9 | 6 | 16 | 8 | 1b | Browser');
+  for (let i = 0; i < 12; i++) await press(el, 'ArrowUp', { shiftKey: true });
+  expect(rows(last())[0]).toBe('o | 9 | 0 | 16 | 8 | 1b | Browser');
+  await press(el, 'ArrowRight', { ctrlKey: true });
+  await press(el, 'ArrowDown', { ctrlKey: true });
+  expect(rows(last())[0]).toBe('o | 9 | 0 | 17 | 9 | 1b | Browser');
+  for (let i = 0; i < 30; i++) await press(el, 'ArrowLeft', { ctrlKey: true });
+  expect(rows(last())[0]).toBe('o | 9 | 0 | 1 | 9 | 1b | Browser');
+  // A run of resizes is one undo step, and the shape stays chosen.
+  await undo(el);
+  expect(rows(last())[0]).toBe('o | 9 | 0 | 16 | 8 | 1b | Browser');
+  expect(await press(el, 'ArrowUp', { altKey: true })).toBe(true);
+  expect(rows(last()).map((r) => r.split(' | ').at(-1))).toEqual(['Server', 'Browser', 'asks']);
+  expect(rows(last())[2]).toBe('k | 1 | 0 | 0 | 0 | 0 | asks');
+  expect(await press(el, 'ArrowLeft', { altKey: true })).toBe(false);
+  expect(await press(el, 'ArrowDown', { altKey: true })).toBe(true);
+  expect(rows(last()).map((r) => r.split(' | ').at(-1))).toEqual(['Browser', 'Server', 'asks']);
+});
+
+test('§1 Mod+D on the canvas is never the browser\'s, with or without a shape in hand; with one it duplicates', async () => {
+  const { el, last } = await editor(DRAWING);
+  expect(await press(el, 'd', { ctrlKey: true })).toBe(true);
+  expect(last()).toBeUndefined();
+  await tap(el, 96, 80);
+  expect(await press(el, 'd', { metaKey: true })).toBe(true);
+  expect(rows(last()).at(-1)).toBe('o | 6 | 8 | 16 | 8 | 1b | Browser');
+});
+
+test('§2 IME: a composition writes nothing until it ends, then once', async () => {
+  const { el, last, changes } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  await press(el, 'Enter');
+  const w = words(el);
+  const n = changes.length;
+  w.textContent = 'にほ';
+  w.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'にほ' }));
+  await el.updateComplete;
+  expect(changes).toHaveLength(n);
+  w.textContent = '日本';
+  w.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '日本' }));
+  await el.updateComplete;
+  expect(changes).toHaveLength(n + 1);
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | 日本');
+});
+
+test('§5 Shift+tap adds a shape to those in hand (and takes it away again); a drag moves them together as one step; Delete takes them all', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  ptr(el, 'pointerdown', 320, 80, { shiftKey: true });
+  ptr(el, 'pointerup', 320, 80, { shiftKey: true });
+  await el.updateComplete;
+  expect(outlines(el)).toBe(2);
+  expect(handles(el)).toBe(0);
+  await until(() => ctxOpen(el));
+  expect(ctxLabels(el)).toContain('Join two shapes');
+  // A drag on one of them moves both.
+  await tap(el, 96, 80, [96 + 16, 80 + 8]);
+  expect(rows(last()).slice(0, 2)).toEqual(['o | 6 | 7 | 16 | 8 | 1b | Browser', 'o | 34 | 7 | 16 | 8 | 1b | Server']);
+  await undo(el);
+  expect(last()).toBe(DRAWING);
+  expect(outlines(el)).toBe(2);
+  // Shift+tap on one in hand lets it go.
+  ptr(el, 'pointerdown', 320, 80, { shiftKey: true });
+  ptr(el, 'pointerup', 320, 80, { shiftKey: true });
+  await el.updateComplete;
+  expect(outlines(el)).toBe(1);
+  ptr(el, 'pointerdown', 320, 80, { shiftKey: true });
+  ptr(el, 'pointerup', 320, 80, { shiftKey: true });
+  await el.updateComplete;
+  await press(el, 'Backspace');
+  expect(last()).toBe('');
+});
+
+test('§5 the resize handle has a 44px hit area under a finger', async () => {
+  const real = window.matchMedia;
+  window.matchMedia = ((q: string) => ({ ...real.call(window, q), matches: q.includes('coarse') || real.call(window, q).matches })) as typeof window.matchMedia;
+  try {
+    const { el } = await editor(DRAWING);
+    await tap(el, 96, 80);
+    const hit = el.querySelector<SVGRectElement>('svg.draw-canvas rect.handle-hit')!;
+    expect(hit).not.toBeNull();
+    const r = hit.getBoundingClientRect();
+    expect(Math.round(r.width)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(r.height)).toBeGreaterThanOrEqual(44);
+    expect(getComputedStyle(hit).touchAction).toBe('none');
+  } finally {
+    window.matchMedia = real;
+  }
+});
+
+test('§5 Shift while drawing a box makes it a square', async () => {
+  const { el, last } = await editor();
+  await press(el, 'r');
+  ptr(el, 'pointerdown', 100, 100);
+  ptr(el, 'pointermove', 260, 140, { shiftKey: true });
+  ptr(el, 'pointerup', 260, 140, { shiftKey: true });
+  await el.updateComplete;
+  expect(rows(last())[0]).toBe('r | 13 | 13 | 20 | 20 | 0 |');
+});
+
+test('§5 a double tap by a finger on the shape in hand edits its words, with no dblclick', async () => {
+  const { el } = await editor(DRAWING);
+  for (let i = 0; i < 2; i++) {
+    ptr(el, 'pointerdown', 96, 80, { pointerType: 'touch' });
+    ptr(el, 'pointerup', 96, 80, { pointerType: 'touch' });
+    await el.updateComplete;
+  }
+  expect(words(el).hidden).toBe(false);
+  expect(document.activeElement).toBe(words(el));
+});
+
+test('§5 a pinch zooms the canvas, and lets go of the drag the first finger began', async () => {
+  const { el, last } = await editor(DRAWING);
+  const stage = el.querySelector<HTMLElement>('.draw-stage')!;
+  ptr(el, 'pointerdown', 300, 200, { pointerType: 'touch', pointerId: 1 });
+  ptr(el, 'pointerdown', 340, 200, { pointerType: 'touch', pointerId: 2 });
+  ptr(el, 'pointermove', 380, 200, { pointerType: 'touch', pointerId: 2 });
+  ptr(el, 'pointerup', 380, 200, { pointerType: 'touch', pointerId: 2 });
+  ptr(el, 'pointerup', 300, 200, { pointerType: 'touch', pointerId: 1 });
+  await el.updateComplete;
+  expect(stage.style.width).toBe('200%');
+  expect(last()).toBeUndefined();
+});
+
+test('§5 each pixel stroke is its own undo step, however soon the next one comes', async () => {
+  const { el, last } = await editor('---\ngrid: 8\n---\n');
+  const grid = el.querySelector<SVGSVGElement>('svg.draw-pixels')!;
+  const b = grid.getBoundingClientRect();
+  const at = (x: number, y: number, more: PointerEventInit = {}) => ({ clientX: b.left + ((x + 0.5) / 8) * b.width, clientY: b.top + ((y + 0.5) / 8) * b.height, button: 0, buttons: 1, pointerId: 1, bubbles: true, ...more });
+  for (const y of [0, 1]) {
+    grid.dispatchEvent(new PointerEvent('pointerdown', at(0, y)));
+    grid.dispatchEvent(new PointerEvent('pointermove', at(1, y)));
+    grid.dispatchEvent(new PointerEvent('pointerup', at(1, y, { buttons: 0 })));
+  }
+  await el.updateComplete;
+  expect(last()).toBe('---\ngrid: 8\n---\naa\naa\n');
+  await undo(el);
+  expect(last()).toBe('---\ngrid: 8\n---\naa\n');
+});
+
+test('§5 a join from the keys: with the Join tool the arrows go from shape to shape and Enter takes each end; K joins two shapes in hand', async () => {
+  const two = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\n';
+  const { el, last } = await editor(two);
+  await press(el, 'k');
+  expect(await press(el, 'ArrowRight')).toBe(true);
+  expect(handles(el)).toBe(1);
+  expect(await press(el, 'Enter')).toBe(true);
+  await press(el, 'ArrowRight');
+  await press(el, 'Enter');
+  expect(rows(last()).at(-1)).toBe('k | 0 | 1 | 0 | 0 | 0 |');
+  expect(button(el, 'Select').getAttribute('aria-pressed')).toBe('true');
+  await press(el, 'a', { ctrlKey: true });
+  await tap(el, 600, 380);
+  await tap(el, 320, 80);
+  ptr(el, 'pointerdown', 96, 80, { shiftKey: true });
+  ptr(el, 'pointerup', 96, 80, { shiftKey: true });
+  await el.updateComplete;
+  await press(el, 'K', { shiftKey: true });
+  expect(rows(last()).at(-1)).toBe('k | 1 | 0 | 0 | 0 | 0 |');
+});
+
+test('§7 the empty canvas lets a finger pan; a shape, a handle, a tool in hand keep it', async () => {
+  const { el } = await editor(DRAWING);
+  expect(getComputedStyle(canvas(el)).touchAction).toBe('pan-x pan-y');
+  expect(getComputedStyle(canvas(el).querySelector('.shape')!).touchAction).toBe('none');
+  await press(el, 'r');
+  expect(getComputedStyle(canvas(el)).touchAction).toBe('none');
+});
+
+test('§1 paste reads our HTML when there is no text', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  const dt = await clip(el, 'copy');
+  await clip(el, 'paste', { 'text/html': dt.getData('text/html') });
+  expect(rows(last()).at(-1)).toBe('o | 5 | 7 | 16 | 8 | 1b | Browser');
+});

@@ -29,7 +29,7 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * 0.2, y: box.height * 0.3 } });
   await expect(page).toHaveURL(/#\/v1\/draw\/[ryz]/);
-  await expect(canvas.locator('.handle')).toBeVisible();
+  await expect(canvas.locator('.handle:not(.handle-hit)')).toBeVisible();
   const after = await measure();
   expect(after.bar).toBe(first.bar);
   expect(after.pageTop).toBe(0);
@@ -38,7 +38,7 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   await page.getByRole('menuitemcheckbox', { name: 'Pixels, 8 by 8' }).click();
   const grid = page.locator('svg.draw-pixels');
   await expect(grid).toBeVisible();
-  await page.getByRole('button', { name: 'Red' }).click();
+  await page.getByRole('button', { name: 'Red', exact: true }).click();
   const g = (await grid.boundingBox())!;
   await grid.click({ position: { x: g.width / 16, y: g.height / 16 } });
   await page.getByRole('button', { name: 'Use as background' }).click();
@@ -110,5 +110,49 @@ test('draw: a shape tapped has its contextual bar inside the screen, and the bar
   else await del.click();
   await expect(canvas.locator('[data-idx]')).toHaveCount(1);
   await expect(bar).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('draw by finger: two taps on a shape type its words; the empty canvas pans and a shape keeps the finger; the bar\'s Undo brings back a deleted shape, chosen', async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/draw');
+  const canvas = page.locator('svg.draw-canvas');
+  await expect(canvas).toBeVisible();
+  const touch = !!info.project.use.hasTouch;
+  const box = (await canvas.boundingBox())!;
+  const at = (x: number, y: number) => ({ position: { x: (x / 640) * box.width, y: (y / 400) * box.height } });
+  const hit = (x: number, y: number) => (touch ? canvas.tap(at(x, y)) : canvas.click(at(x, y)));
+  await page.getByRole('button', { name: /^Rectangle/ }).click();
+  await hit(192, 120);
+  await expect(canvas.locator('[data-idx="0"]')).toHaveCount(1);
+  expect(await canvas.evaluate((el) => getComputedStyle(el).touchAction)).toBe('pan-x pan-y');
+  expect(await canvas.locator('[data-idx="0"]').evaluate((el) => getComputedStyle(el).touchAction)).toBe('none');
+  const words = page.locator('.draw-words');
+  if (touch) {
+    // Two taps on the shape (no dblclick under a finger): its words open, the focus in them.
+    await hit(240, 144);
+    await hit(240, 144);
+    await expect(words).toBeFocused();
+    await page.keyboard.type('Tapped');
+    await page.keyboard.press('Enter');
+    await expect(canvas.locator('[data-idx="0"] text')).toHaveText('Tapped');
+  } else {
+    await canvas.dblclick(at(240, 144));
+    await expect(words).toBeFocused();
+    await page.keyboard.press('Escape');
+  }
+  const bar = page.locator('.draw-context .to-context');
+  await expect(bar).toBeVisible();
+  const del = bar.getByRole('button', { name: 'Delete' });
+  if (touch) await del.tap();
+  else await del.click();
+  await expect(canvas.locator('[data-idx]')).toHaveCount(0);
+  const undo = page.locator('to-draw-editor to-bar').getByRole('button', { name: 'Undo' });
+  if (touch) await undo.tap();
+  else await undo.click();
+  await expect(canvas.locator('[data-idx]')).toHaveCount(1);
+  await expect(canvas.locator('.handle').first()).toBeVisible();
+  await expect(bar).toBeVisible();
   expect(errors).toEqual([]);
 });
