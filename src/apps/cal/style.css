@@ -21,6 +21,8 @@
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
+    /* A finger dragged along a week sweeps days; dragged up or down it scrolls the page; a double tap never zooms. */
+    touch-action: pan-y;
   }
   .cal-row {
     display: grid;
@@ -129,6 +131,11 @@
     border-radius: 50%;
     background: var(--c);
     vertical-align: -1px;
+  }
+  .cal-agenda,
+  .cal-year,
+  .cal-tasks {
+    touch-action: manipulation;
   }
   .cal-agenda {
     list-style: none;
@@ -240,26 +247,69 @@
     height: 44px;
     box-shadow: inset 0 1px var(--to-border);
   }
-  .cal-task {
-    display: block;
-    width: 100%;
-    height: 100%;
-    padding: 0 8px 0 calc(8px + var(--d) * 14px);
-    font: inherit;
-    text-align: left;
+  .cal-trow {
+    display: flex;
+    align-items: center;
+    padding-left: calc(var(--d) * 14px);
+  }
+  .cal-trow.cur {
+    background: var(--to-accent-soft);
+  }
+  .cal-trow.ranged {
+    background: color-mix(in oklab, var(--to-accent) 22%, var(--to-surface));
+  }
+  .cal-trow.dragging {
+    opacity: 0.45;
+  }
+  .cal-tasks:focus {
+    outline: none;
+  }
+  .cal-grip,
+  .cal-tick {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--to-ink-3);
+  }
+  .cal-grip {
+    width: 22px;
+    height: 44px;
+    cursor: grab;
+  }
+  /* The tick is a real 44px button on the row. */
+  .cal-tick {
+    width: 44px;
+    height: 44px;
+    color: var(--to-accent);
+  }
+  .cal-tick::before {
+    content: '';
+    grid-area: 1 / 1;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--to-ink-3);
+    border-radius: 5px;
+  }
+  .cal-tick > * {
+    grid-area: 1 / 1;
+  }
+  .cal-trow to-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .cal-trow to-text .tx {
+    padding: 10px 4px;
+    font-size: 16px;
+    line-height: 24px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--to-ink);
-    background: none;
-    border: 0;
-    cursor: pointer;
   }
-  .cal-task.parent {
+  .cal-trow.parent to-text .tx {
     font-weight: 700;
-  }
-  .cal-task.cur {
-    background: var(--to-accent-soft);
   }
   .cal-gantt-scroll {
     overflow-x: auto;
@@ -385,8 +435,10 @@
   .cal-actions {
     justify-content: flex-end;
   }
-  .cal-actions .cal-delete {
+  .cal-actions .cal-dup {
     margin-right: auto;
+  }
+  .cal-actions .cal-delete {
     color: var(--to-danger);
   }
 
@@ -414,6 +466,10 @@
       padding: 4px 2px 2px;
       font-size: 11px;
       text-align: center;
+    }
+    /* The task's words need the room on a phone: the chart scrolls beside them. */
+    .cal-gantt {
+      grid-template-columns: minmax(150px, 48%) minmax(0, 1fr);
     }
   }
 }
