@@ -8,3 +8,4 @@ playwright-report/
 .wrangler/
 .vite/
 *.local
+tinier/worker-configuration.d.ts
