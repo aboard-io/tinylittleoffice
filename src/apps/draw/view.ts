@@ -74,10 +74,10 @@ export function shapeSvg(s: Shape, all: Shape[] = [], th: Theme = PRINT, hit = f
   }
   if (!s.text) return body;
   const halo = isLine(s.k) || s.k === 'w' ? ` stroke="${th.paper}" stroke-width="4" paint-order="stroke"` : '';
-  // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note may have more).
+  // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note's and a text's lines are all alike).
   const [icon, words] = iconOf(s.text);
-  const parts = s.k === 't' ? [words] : words.split(' | ');
-  const even = s.k === 'n';
+  const parts = words.split(' | ');
+  const even = s.k === 'n' || s.k === 't';
   // The words wrap to the room inside the shape (less in a round or pointed one), and get smaller if they still do not fit; past that, the last line ends in "…".
   const inside = isLine(s.k) || s.k === 'w' ? Infinity : s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
   const big = icon && iconNamed(icon) ? 1.35 : 0;

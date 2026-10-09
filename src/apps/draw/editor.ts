@@ -1,28 +1,34 @@
 /**
  * <to-draw-editor>: a little diagram tool, and pixel art as a grid mode. Shapes are drawn on a 640 by 400
- * canvas by tools in the bar (a key each), moved and resized by hand, labelled in place (a double tap, or
- * Enter), coloured and styled from popovers; every change is operations on the document's table (model.ts).
+ * canvas by tools in the bar (a key each), moved and resized by hand, their words typed on the shape itself (a
+ * double tap, or Enter); a shape in hand has the contextual bar under it (inks, style, text size, edit, duplicate,
+ * front/back, copy, cut, paste, delete), and the clipboard carries shapes as a drawing of their own (TLO and our
+ * HTML). Every change is operations on the document's table (model.ts).
  * In pixel mode (the Shapes/Pixels menu) the canvas is a grid of squares, painted with a pencil or a fill in
  * one of eight inks, and "Use as background" makes the grid the drawing's repeating tile.
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { Accessibility, ArrowDownToLine, ArrowUpToLine, Brush, Circle, Copy, Diamond, Eraser, Grid2x2, Layers, Minus, MousePointer2, MoveRight, PaintBucket, Paintbrush, Palette, PenTool, Pencil, Shapes, Smile, Spline, Square, Tag, Trash2, Type, Wallpaper, ZoomIn, ZoomOut } from 'lucide';
+import { Accessibility, ArrowDownToLine, ArrowUpToLine, Blend, Brush, Circle, ClipboardPaste, Copy, Diamond, Ellipsis, Eraser, Grid2x2, GripHorizontal, Layers, Minus, MousePointer2, MoveRight, PaintBucket, PenTool, Pencil, Scissors, Shapes, Smile, Spline, Square, Tag, Trash2, Type, Wallpaper, ZoomIn, ZoomOut } from 'lucide';
 import { btn, tool } from '../../kit/bar.ts';
 import { DocElement } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { place, type MenuItem } from '../../kit/menu.ts';
+import type { MenuItem } from '../../kit/menu.ts';
+import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import { docToHtml } from '../../kit/clipboard.ts';
+import { textWidth } from '../../kit/draw.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { toast } from '../../kit/toast.ts';
 import { TILE_INKS, TILE_SIDES, tileCss, tileFilled, tilePattern, tileRef } from '../../kit/tile.ts';
 import type { Doc } from '../../doc/index.ts';
-import { COLORS, GRID, H, W, addShape, bounds, describeDrawing, duplicate, floodSquare, iconOf, isLink, linkEnds, paintSquare, patchShape, readDrawing, removeShape, restack, setAlt, setGrid, setPixels, setTile, simplify, strokeShape, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
+import { COLORS, GRID, H, TEXT_PX, W, addShape, bounds, describeDrawing, duplicate, floodSquare, iconOf, isLine, isLink, linkEnds, paint, paintSquare, pasteShapes, patchShape, pickShapes, readDrawing, removeShape, restack, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, simplify, strokeShape, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
 import { TILE_SIDE, arrowDefs, shapeSvg, type Theme } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/dialog.ts';
+import '../../kit/context.ts';
 import './style.css';
 
 export const tag = 'to-draw-editor';
@@ -75,11 +81,11 @@ const INKS: { c: Color | ''; name: () => string; hex: string }[] = [
   { c: 'b', name: () => t('Blue'), hex: COLORS.b },
   { c: 'p', name: () => t('Purple'), hex: COLORS.p },
 ];
-const SIZES: { z: TextSize; name: () => string }[] = [
-  { z: 1, name: () => t('Small') },
-  { z: 2, name: () => t('Normal') },
-  { z: 3, name: () => t('Large') },
-  { z: 4, name: () => t('Huge') },
+const SIZES: { z: TextSize; name: () => string; letter: () => string }[] = [
+  { z: 1, name: () => t('Small text'), letter: () => t('S') },
+  { z: 2, name: () => t('Medium text'), letter: () => t('M') },
+  { z: 3, name: () => t('Large text'), letter: () => t('L') },
+  { z: 4, name: () => t('Extra large text'), letter: () => t('XL') },
 ];
 /** The pixel inks, by letter, named. */
 const PIXEL_INKS: { k: string; name: () => string }[] = [
@@ -93,13 +99,33 @@ const PIXEL_INKS: { k: string; name: () => string }[] = [
   { k: 'h', name: () => t('Pink') },
 ];
 
+/** The last shapes copied here, so a paste in this page finds them when the system clipboard is refused. */
+let copied: { text: string; html: string } | null = null;
+
+/** Whether this browser edits plain text only (Safari, Chrome, Firefox 136 on); elsewhere the overlay strips what is pasted. */
+const PLAIN_ONLY = (() => {
+  try {
+    const d = document.createElement('div');
+    d.contentEditable = 'plaintext-only';
+    return d.contentEditable === 'plaintext-only';
+  } catch {
+    return false;
+  }
+})();
+
+/** The room for words across a shape, in canvas units, as the view wraps them (less in a round or pointed shape). */
+function wordsRoom(s: Shape): number {
+  const inside = s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
+  return Math.max(24, Math.abs(s.w) * inside - 16);
+}
+
 /** A shape of the default size, for a tap or an Insert. */
 function sized(s: Shape): Shape {
   return s.k === 'l' || s.k === 'a' ? { ...s, w: 96, h: 0 } : s.k === 't' ? { ...s, w: 96, h: 24 } : s.k === 'i' ? { ...s, w: 48, h: 48 } : { ...s, w: 96, h: 48 };
 }
 
 export class ToDrawEditor extends DocElement<DrawView> {
-  static properties: PropertyDeclarations = { tool: { state: true }, sel: { state: true }, pen: { state: true }, drag: { state: true }, live: { state: true }, zoom: { state: true }, ink: { state: true }, pmode: { state: true }, cursor: { state: true }, altDraft: { state: true } };
+  static properties: PropertyDeclarations = { tool: { state: true }, sel: { state: true }, pen: { state: true }, drag: { state: true }, live: { state: true }, zoom: { state: true }, ink: { state: true }, pmode: { state: true }, cursor: { state: true }, altDraft: { state: true }, editing: { state: true } };
   declare tool: Tool;
   /** The selected shape, -1 for none. */
   declare sel: number;
@@ -117,6 +143,15 @@ export class ToDrawEditor extends DocElement<DrawView> {
   declare cursor: [number, number];
   /** The alt text being written, while its dialog is open; null when it is closed. */
   declare altDraft: string | null;
+  /** The shape whose words are being typed on it, -1 for none. */
+  declare editing: number;
+  /** The shape as it was when its words were opened (Escape puts it back), and the icon kept out of the overlay. */
+  private wordsFrom: Shape | null = null;
+  private wordsIcon = '';
+  /** Counts the times words are opened, so each time's typing is its own undo step. */
+  private wordsTimes = 0;
+  /** A Mod+C, X or V whose clipboard event has not come (Safari sends none with nothing selected): done by hand. */
+  private clipPending: 'copy' | 'cut' | 'paste' | null = null;
   /** The icon the next tap will place, when the icon tool is armed. */
   private stamp = '';
   private svgEl: SVGSVGElement | null = null;
@@ -133,21 +168,42 @@ export class ToDrawEditor extends DocElement<DrawView> {
     this.pmode = 'pen';
     this.cursor = [0, 0];
     this.altDraft = null;
+    this.editing = -1;
   }
   protected read(doc: Doc): DrawView {
     return readDrawing(doc);
   }
   protected undone() {
+    if (this.editing >= 0) this.closeWords(false, false);
     this.sel = -1;
     this.live = null;
   }
   connectedCallback() {
     super.connectedCallback();
     this.addEventListener('keydown', this.onKey);
+    // On the document: with nothing selected a browser may send the event to the body rather than the canvas.
+    for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('keydown', this.onKey);
+    for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener);
+    this.querySelector<ToContext>('.draw-context')?.hide();
+  }
+  protected willUpdate(changed: Map<string, unknown>) {
+    super.willUpdate(changed);
+    // A new document from outside, or pixel mode: the words in hand are let go.
+    if (this.editing >= 0 && (this.view.grid || !this.view.shapes[this.editing])) this.closeWords(false, false);
+  }
+  protected updated(changed: Map<string, unknown>) {
+    super.updated(changed);
+    if (this.editing >= 0) this.placeWords();
+    const bar = this.querySelector<ToContext>('.draw-context');
+    if (!bar) return;
+    const s = this.shapes[this.editing >= 0 ? this.editing : this.sel];
+    if (!s || this.view.grid || this.drag) return void (bar.isOpen && bar.hide());
+    const words = this.wordsEl;
+    bar.show(this.editing >= 0 && words ? words : () => this.shapeRect());
   }
 
   /** The shapes as drawn right now: the document's, or the ones in motion under the pointer. */
@@ -174,8 +230,10 @@ export class ToDrawEditor extends DocElement<DrawView> {
   private insert(k: Kind, text = '') {
     const n = this.view.shapes.length;
     const s = sized({ k, x: 0, y: 0, w: 0, h: 0, f: 0, text });
+    // Words pasted on their own make the box as wide as they are.
+    if (k === 't' && text) s.w = Math.max(s.w, Math.min(W - GRID * 2, Math.ceil((textWidth(text, TEXT_PX[2]) + 8) / GRID) * GRID));
     this.add({ ...s, x: snap(clamp(W / 2 - s.w / 2 + (n % 5) * GRID * 2, 0, W - s.w)), y: snap(clamp(H / 2 - s.h / 2 + (n % 5) * GRID * 2, 0, H - s.h)) });
-    if (k === 't') void this.updateComplete.then(() => this.openLabel());
+    if (k === 't' && !text) this.openWords();
   }
   private removeSel() {
     if (this.sel < 0) return;
@@ -237,6 +295,10 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   private onDown(e: PointerEvent) {
     if (e.button !== 0) return;
+    // No mouse events after a touch: their mousedown would take the focus from words just opened by this tap.
+    e.preventDefault();
+    // A tap away from words being typed is the end of them; if that took out an empty text, it is all the tap does.
+    if (this.editing >= 0 && this.closeWords(false)) return;
     this.svgEl = e.currentTarget as SVGSVGElement;
     const [x, y] = this.point(e);
     const target = e.target as Element;
@@ -331,7 +393,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
       if (Math.abs(s.w) < GRID && Math.abs(s.h) < GRID) s = sized(s);
       if (s.k !== 'l' && s.k !== 'a') s = { ...s, x: Math.min(s.x, W - s.w), y: Math.min(s.y, H - s.h) };
       this.add(s);
-      if (s.k === 't') void this.updateComplete.then(() => this.openLabel());
+      // (Here, in the pointer's own handler, so a phone lets the focus go to the words and brings up its keyboard.)
+      if (s.k === 't') this.openWords();
       return;
     }
     // A move or a resize: what was shown is written.
@@ -344,7 +407,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   private onKey = (e: KeyboardEvent) => {
     const at = e.composedPath()[0] as HTMLElement;
-    if (at.tagName === 'INPUT' || at.tagName === 'TEXTAREA' || at.closest('[popover]') || at.closest('dialog')) return;
+    if (at.tagName === 'INPUT' || at.tagName === 'TEXTAREA' || at.closest('[popover]') || at.closest('dialog') || at.closest('.draw-words')) return;
     if (this.view.grid) return this.onPixelKey(e);
     if (this.pen.length) {
       if (e.key === 'Enter') return (e.preventDefault(), this.closePen());
@@ -357,43 +420,261 @@ export class ToDrawEditor extends DocElement<DrawView> {
       return;
     }
     const s = this.selected;
+    const mod = e.metaKey || e.ctrlKey;
+    const clip = mod && !e.altKey && !e.shiftKey ? ({ c: 'copy', x: 'cut', v: 'paste' } as const)[e.key.toLowerCase() as 'c' | 'x' | 'v'] : undefined;
+    if (clip && (s || clip === 'paste')) {
+      // Not prevented: the browser's own copy, cut or paste event follows and does it. If none comes, by hand.
+      this.clipPending = clip;
+      setTimeout(() => {
+        if (this.clipPending !== clip) return;
+        this.clipPending = null;
+        if (clip === 'paste') void this.pasteIn();
+        else this.copyOut(clip === 'cut');
+      });
+      return;
+    }
     if (!s) return;
     if (e.key === 'Delete' || e.key === 'Backspace') this.removeSel();
-    else if (e.key === 'Enter') this.openLabel();
+    else if (e.key === 'Enter') this.openWords();
     else if (isLink(s.k) && e.key.startsWith('Arrow')) return;
     else if (e.key === 'ArrowLeft') this.patchSel({ x: s.x - GRID }, `nudge:${this.sel}`);
     else if (e.key === 'ArrowRight') this.patchSel({ x: s.x + GRID }, `nudge:${this.sel}`);
     else if (e.key === 'ArrowUp') this.patchSel({ y: s.y - GRID }, `nudge:${this.sel}`);
     else if (e.key === 'ArrowDown') this.patchSel({ y: s.y + GRID }, `nudge:${this.sel}`);
     else if (e.key === 'Escape') this.sel = -1;
-    else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') this.duplicateSel();
+    else if (mod && e.key.toLowerCase() === 'd') this.duplicateSel();
     else return;
     e.preventDefault();
   };
 
-  /* ---------- the label, edited over its shape ---------- */
+  /* ---------- the words, typed on the shape ---------- */
 
-  private get labelPop(): HTMLElement | null {
-    return this.querySelector<HTMLElement>('.draw-label-pop');
+  private get wordsEl(): HTMLElement | null {
+    return this.querySelector<HTMLElement>('.draw-words');
   }
-  /** The selected shape's label, in a box over the shape (the icon picker, for an icon shape). */
-  private openLabel() {
+  /** The canvas's scale: CSS pixels to a canvas unit. */
+  private scale(): number {
+    const svg = this.querySelector<SVGSVGElement>('svg.draw-canvas');
+    return svg ? svg.getBoundingClientRect().width / W : 1;
+  }
+  /** The selected shape's box on the screen, the handle with it: where the contextual bar goes under. */
+  private shapeRect(): DOMRect | null {
     const s = this.selected;
-    if (!s) return;
-    if (s.k === 'i') return void this.pickIcon();
-    const pop = this.labelPop;
-    const anchor = this.querySelector<HTMLElement>(`[data-idx="${this.sel}"]`);
-    if (!pop || !anchor) return;
-    if (!pop.matches(':popover-open')) pop.showPopover();
-    place(pop, anchor);
-    const input = pop.querySelector<HTMLInputElement>('input');
-    input?.focus({ preventScroll: true });
-    input?.select();
+    const svg = this.querySelector<SVGSVGElement>('svg.draw-canvas');
+    if (!s || !svg) return null;
+    const r = svg.getBoundingClientRect();
+    const k = r.width / W;
+    const [x, y, w, h] = bounds(s, this.shapes);
+    return new DOMRect(r.left + (x - 4) * k, r.top + (y - 4) * k, (w + 10) * k, (h + 10) * k);
   }
-  private closeLabel(back = true) {
-    const pop = this.labelPop;
-    if (pop?.matches(':popover-open')) pop.hidePopover();
+  /**
+   * The shape's words in the overlay over it, focused and all selected, synchronously: called from the tap's,
+   * the key's or the button's own handler, so iOS lets the focus in and raises the keyboard. An icon shape
+   * opens the icon picker instead.
+   */
+  private openWords(i = this.sel) {
+    const s = this.view.shapes[i];
+    const el = this.wordsEl;
+    if (!s || !el || this.view.grid) return;
+    if (s.k === 'i') return void this.pickIcon();
+    const [ic, words] = iconOf(s.text);
+    this.sel = i;
+    this.editing = i;
+    this.wordsFrom = s;
+    this.wordsIcon = ic;
+    this.wordsTimes++;
+    el.contentEditable = PLAIN_ONLY ? 'plaintext-only' : 'true';
+    el.innerText = words.split(' | ').join('\n');
+    el.hidden = false;
+    this.placeWords();
+    el.focus({ preventScroll: true });
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }
+  /**
+   * The overlay put exactly over the shape's words: the same font at the size the canvas shows it, centred in
+   * the shape (from the left, for a text). Below 16px it is set at 16 and scaled down, so iOS does not zoom.
+   */
+  private placeWords() {
+    const el = this.wordsEl;
+    const s = this.shapes[this.editing];
+    const svg = this.querySelector<SVGSVGElement>('svg.draw-canvas');
+    const stage = svg?.parentElement;
+    if (!el || !s || !svg || !stage) return;
+    const r = svg.getBoundingClientRect();
+    const k = r.width / W;
+    const sr = stage.getBoundingClientRect();
+    const px = TEXT_PX[s.z ?? 2] * k;
+    const font = Math.max(16, px);
+    const shrink = px / font;
+    const left = s.k === 't';
+    let [cx, cy] = [s.x + s.w / 2, s.y + s.h / 2];
+    let room = wordsRoom(s);
+    if (isLine(s.k) || s.k === 'w') {
+      const [x, y, w, h] = bounds(s, this.shapes);
+      [cx, cy] = [x + w / 2, y + h / 2];
+      room = 48;
+    } else if (s.k === 'c') cy += Math.min(s.h * 0.16, 12) / 2;
+    else if (left) [cx, room] = [s.x + 4, Math.max(24, s.w - 8)];
+    const fixed = !left && !isLine(s.k) && s.k !== 'w';
+    const st = el.style;
+    st.left = `${r.left - sr.left + cx * k}px`;
+    st.top = `${r.top - sr.top + cy * k}px`;
+    st.fontSize = `${font}px`;
+    st.transform = `scale(${shrink}) translate(${left ? '0' : '-50%'}, -50%)`;
+    st.minWidth = `${(room * k) / shrink}px`;
+    st.maxWidth = fixed ? st.minWidth : '';
+    st.color = paint(s, THEME.ink, THEME.paper, THEME.shade).text;
+    el.classList.toggle('left', left);
+    el.classList.toggle('wrap', fixed);
+  }
+  /** The overlay's words as the label writes them: lines joined by " | ", the icon put back in front. */
+  private wordsText(): string {
+    const lines = (this.wordsEl?.innerText ?? '').replace(/\r/g, '').replace(/\u00a0/g, ' ').split('\n');
+    while (lines.length > 1 && !lines[lines.length - 1].trim()) lines.pop();
+    const words = lines.map((l) => l.trim()).join(' | ').trim();
+    const ic = this.wordsIcon;
+    return ic ? (words ? `:${ic} ${words}` : `:${ic}`) : words;
+  }
+  /** Every keystroke: the shape's label (and a text's box, grown to hold its words) written, so the picture follows. */
+  private onWordsInput = () => {
+    const i = this.editing;
+    const s = this.view.shapes[i];
+    const el = this.wordsEl;
+    if (!s || !el) return;
+    const patch: Partial<Shape> = { text: this.wordsText() };
+    if (s.k === 't' && this.wordsFrom) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const k = this.scale();
+      const wide = range.getBoundingClientRect().width / k + 8;
+      const lines = Math.max(1, (patch.text!.match(/ \| /g)?.length ?? 0) + 1);
+      const tall = lines * TEXT_PX[s.z ?? 2] * 1.25 + 6;
+      const up = (n: number) => Math.ceil(n / GRID) * GRID;
+      const w = Math.max(this.wordsFrom.w, Math.min(W - s.x, up(wide)));
+      const h = Math.max(this.wordsFrom.h, up(tall));
+      if (w !== s.w) patch.w = w;
+      if (h !== s.h) patch.h = h;
+    }
+    this.edit(patchShape(this.doc, i, patch), `label:${i}:${this.wordsTimes}`);
+  };
+  private onWordsKey = (e: KeyboardEvent) => {
+    if (e.isComposing) return;
+    if (e.key === 'Enter' && e.shiftKey) {
+      // A line break, which the label keeps as " | ".
+      e.preventDefault();
+      if (!document.execCommand('insertLineBreak')) document.execCommand('insertText', false, '\n');
+      this.onWordsInput();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      this.closeWords();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      // The words as they were when editing began, in the same undo step as the typing.
+      const was = this.wordsFrom;
+      const i = this.editing;
+      if (was && this.view.shapes[i]) this.edit(patchShape(this.doc, i, { text: was.text, w: was.w, h: was.h }), `label:${i}:${this.wordsTimes}`);
+      this.closeWords(true, false);
+    }
+  };
+  /** Pasted into the overlay where the browser cannot keep it plain: the words alone. */
+  private onWordsPaste = (e: ClipboardEvent) => {
+    if (PLAIN_ONLY) return;
+    e.preventDefault();
+    document.execCommand('insertText', false, e.clipboardData?.getData('text/plain') ?? '');
+  };
+  /** Done with the words: the overlay hidden, a text left with no words taken out (true then), the focus back on the canvas. */
+  private closeWords(back = true, tidy = true): boolean {
+    const i = this.editing;
+    if (i < 0) return false;
+    this.editing = -1;
+    this.wordsFrom = null;
+    const el = this.wordsEl;
+    if (el) {
+      el.hidden = true;
+      el.textContent = '';
+    }
+    const s = this.view.shapes[i];
+    const gone = tidy && s?.k === 't' && !s.text.trim();
+    if (gone) {
+      this.edit(removeShape(this.doc, i));
+      this.sel = -1;
+    }
     if (back) this.focusCanvas();
+    return gone;
+  }
+
+  /* ---------- the clipboard ---------- */
+
+  /** What copy puts on the clipboard for the shape in hand: the drawing of it in TLO, and our HTML of that table. Null when nothing can be copied. */
+  private clip(): { text: string; html: string } | null {
+    if (this.sel < 0) return null;
+    const shapes = pickShapes(this.view.shapes, [this.sel]);
+    if (!shapes.length) return null;
+    return (copied = { text: shapesToTlo(shapes), html: docToHtml([shapesTable(shapes)]) });
+  }
+  /** Pasted text into the drawing: shapes (a drawing's table) beside where they were, or a line of words as a text in the middle. */
+  private pasteText(text: string) {
+    const shapes = shapesFromText(text);
+    if (shapes.length) {
+      const { ops, sel } = pasteShapes(this.doc, shapes);
+      this.edit(ops);
+      this.sel = sel;
+      this.tool = 'select';
+      return;
+    }
+    const words = text
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .join(' | ');
+    if (words) this.insert('t', words);
+  }
+  /** Copy, cut and paste from the keys, while the canvas has the focus (the overlay's words are the browser's own). */
+  private onClipboard = (e: ClipboardEvent) => {
+    const wrap = this.querySelector<HTMLElement>('.draw-wrap');
+    if (!wrap || this.view.grid || this.editing >= 0 || document.activeElement !== wrap) return;
+    this.clipPending = null;
+    const dt = e.clipboardData;
+    if (e.type === 'paste') {
+      const text = dt?.getData('text/plain') ?? '';
+      if (!text.trim()) return;
+      e.preventDefault();
+      return this.pasteText(text);
+    }
+    const c = this.clip();
+    if (!c || !dt) return;
+    e.preventDefault();
+    dt.setData('text/plain', c.text);
+    dt.setData('text/html', c.html);
+    if (e.type === 'cut') this.removeSel();
+  };
+  /** The bar's Copy and Cut: the system clipboard as the page may write it, and this page's own memory of it. */
+  private copyOut(cut: boolean) {
+    const c = this.clip();
+    if (!c) return;
+    const plain = () => navigator.clipboard?.writeText(c.text).catch(() => undefined);
+    try {
+      void navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([c.text], { type: 'text/plain' }), 'text/html': new Blob([c.html], { type: 'text/html' }) })]).catch(plain);
+    } catch {
+      void plain();
+    }
+    if (cut) this.removeSel();
+  }
+  /** The bar's Paste: the system clipboard's words if the page may read them, else what was last copied here. */
+  private async pasteIn() {
+    let text = '';
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      // Refused: this page's own copy.
+    }
+    text ||= copied?.text ?? '';
+    if (text) this.pasteText(text);
   }
 
   /* ---------- pixel mode ---------- */
@@ -466,27 +747,47 @@ export class ToDrawEditor extends DocElement<DrawView> {
       ...(this.view.tile && !grid ? [{ group: t('Background'), label: t('Remove the background tile'), icon: Trash2, does: () => this.edit(setTile(this.doc, '')) }] : []),
     ];
   }
-  private colourItems(): MenuItem[] {
-    const s = this.selected;
-    return INKS.map((ink) => ({ label: ink.name(), swatch: ink.hex, checked: (s?.c ?? '') === ink.c, does: () => this.patchSel({ c: (ink.c || undefined) as Color | undefined }) }));
-  }
-  private styleItems(): MenuItem[] {
-    const s = this.selected;
-    const line = !!s && (s.k === 'l' || s.k === 'a' || isLink(s.k) || s.k === 'w');
-    const fills: { f: Fill; name: string }[] = line ? [{ f: 0, name: t('Solid') }, { f: 1, name: t('Dashed') }, { f: 2, name: t('Dotted') }] : [{ f: 0, name: t('No fill') }, { f: 1, name: t('Grey') }, { f: 2, name: t('Solid') }];
-    return [
-      ...(s?.k === 't' ? [] : fills.map((x) => ({ group: line ? t('Line') : t('Fill'), label: x.name, checked: s?.f === x.f, does: () => this.patchSel({ f: x.f }) }))),
-      ...SIZES.map((x) => ({ group: t('Text size'), label: x.name(), checked: (s?.z ?? 2) === x.z, does: () => this.patchSel({ z: x.z === 2 ? undefined : x.z }) })),
-    ];
-  }
   private arrangeItems(): MenuItem[] {
     const s = this.selected;
     return [
       { label: t('Bring to front'), icon: ArrowUpToLine, disabled: !s, does: () => this.reorder(true) },
       { label: t('Send to back'), icon: ArrowDownToLine, disabled: !s, does: () => this.reorder(false) },
       { label: t('Duplicate'), icon: Copy, hint: 'Mod+D', disabled: !s || isLink(s.k), does: () => this.duplicateSel() },
-      { label: t('Label…'), icon: Tag, hint: 'Enter', disabled: !s, does: () => this.openLabel() },
       { label: t('Delete'), icon: Trash2, hint: 'Delete', disabled: !s, does: () => this.removeSel() },
+    ];
+  }
+  /**
+   * The contextual bar under the shape in hand: inks | fill or line style | text size | edit the words,
+   * duplicate, front, back | copy, cut, paste | delete. While its words are typed, under them: size and ink only.
+   */
+  private contextItems(): ContextEntry[] {
+    const i = this.editing >= 0 ? this.editing : this.sel;
+    const s = this.shapes[i];
+    if (!s || this.view.grid) return [];
+    const inks: ContextEntry[] = INKS.map((ink) => ({ label: ink.name(), swatch: ink.hex, pressed: (s.c ?? '') === ink.c, does: () => this.patchSel({ c: (ink.c || undefined) as Color | undefined }) }));
+    const sizes: ContextEntry[] = s.k === 'i' ? [] : SIZES.map((x) => ({ label: x.name(), text: x.letter(), pressed: (s.z ?? 2) === x.z, does: () => this.patchSel({ z: x.z === 2 ? undefined : x.z }) }));
+    if (this.editing >= 0) return [...sizes, SEP, ...inks];
+    const line = s.k === 'l' || s.k === 'a' || isLink(s.k) || s.k === 'w';
+    const fills: { f: Fill; label: string; icon: typeof Square }[] = line
+      ? [{ f: 0, label: t('Solid line'), icon: Minus }, { f: 1, label: t('Dashed line'), icon: GripHorizontal }, { f: 2, label: t('Dotted line'), icon: Ellipsis }]
+      : [{ f: 0, label: t('No fill'), icon: Square }, { f: 1, label: t('Grey fill'), icon: Blend }, { f: 2, label: t('Solid fill'), icon: PaintBucket }];
+    const style: ContextEntry[] = s.k === 't' || s.k === 'i' ? [] : [SEP as ContextEntry, ...fills.map((x) => ({ label: x.label, icon: x.icon, pressed: s.f === x.f, does: () => this.patchSel({ f: x.f }) }))];
+    const link = isLink(s.k);
+    return [
+      ...inks,
+      ...style,
+      ...(sizes.length ? ([SEP, ...sizes] as ContextEntry[]) : []),
+      SEP,
+      s.k === 'i' ? { label: t('Change the icon'), icon: Smile, keys: 'Enter', does: () => this.openWords() } : { label: t('Edit the words'), icon: Tag, keys: 'Enter', does: () => this.openWords() },
+      { label: t('Duplicate'), icon: Copy, keys: 'Mod+D', disabled: link, does: () => this.duplicateSel() },
+      { label: t('Bring to front'), icon: ArrowUpToLine, does: () => this.reorder(true) },
+      { label: t('Send to back'), icon: ArrowDownToLine, does: () => this.reorder(false) },
+      SEP,
+      { label: t('Copy'), icon: UI.copy, keys: 'Mod+C', disabled: link, does: () => this.copyOut(false) },
+      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', disabled: link, does: () => this.copyOut(true) },
+      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn() },
+      SEP,
+      { label: t('Delete'), icon: Trash2, keys: 'Delete', does: () => this.removeSel() },
     ];
   }
 
@@ -500,7 +801,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (this.tool === 'k') return t('Press on one shape and let go on another.');
     if (this.tool === 'i') return t('Tap where the icon goes.');
     if (this.tool !== 'select') return t('Drag on the canvas to draw it, or tap to place one.');
-    if (this.selected) return t('Drag to move; the corner handle resizes; Enter or a double tap for the label.');
+    if (this.editing >= 0) return t('Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.');
+    if (this.selected) return t('Drag to move; the corner handle resizes; Enter or a double tap edits the words.');
     return t('Tap a shape to select it; choose a tool to draw.');
   }
 
@@ -509,7 +811,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     return html`${v.grid ? this.renderPixelBar() : this.renderBar()}
       <p class="draw-hint to-hint">${this.hint()}</p>
       ${v.grid ? this.renderPixels() : this.renderCanvas()}
-      ${this.renderLabel()}
+      <to-context class="draw-context" .label=${t('The shape in hand')} .items=${this.contextItems()}></to-context>
       ${this.renderAlt()}`;
   }
 
@@ -522,8 +824,6 @@ export class ToDrawEditor extends DocElement<DrawView> {
       <to-menu class="draw-mode" .label=${label} .icon=${v.grid ? Grid2x2 : Shapes} caret .items=${this.modeItems()}></to-menu>
       ${TOOLS.map((x) => tool({ label: x.name(), icon: x.icon, keys: x.key, pressed: this.tool === x.id, does: () => (this.tool = x.id) }))}
       ${tool({ label: s && !isLink(s.k) ? t('Put an icon on this shape') : t('Place an icon'), icon: Smile, pressed: this.tool === 'i', does: () => void this.pickIcon() })}
-      <to-menu class="draw-colour" icon-only .label=${t('Colour')} .icon=${Palette} .items=${this.colourItems()} ?disabled=${!s}></to-menu>
-      <to-menu class="draw-style" icon-only .label=${t('Style')} .icon=${Paintbrush} .items=${this.styleItems()}></to-menu>
       <to-menu class="draw-arrange" icon-only .label=${t('Arrange')} .icon=${Layers} .items=${this.arrangeItems()}></to-menu>
       <button type="button" class="to-btn draw-alt ${v.alt ? 'has' : ''}" aria-label=${v.alt ? t('Alt text: {alt}', { alt: v.alt }) : t('Add alt text: describe this drawing for people who cannot see it')} title=${v.alt ? t('Alt text: {alt}', { alt: v.alt }) : t('Add alt text: describe this drawing for people who cannot see it')} @click=${() => this.openAlt()}>${v.alt ? icon(UI.check, 16) : icon(Accessibility, 18)}<span>${t('Alt')}</span></button>
       ${tool({ label: t('Zoom out'), icon: ZoomOut, disabled: this.zoom <= 0.5, does: () => this.zoomBy(-0.25) })}
@@ -546,7 +846,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   /** Drawn by the same code that makes the picture everywhere else (view.ts). */
   private renderShape(s: Shape, i: number, ghost = false) {
-    return svg`<g data-idx=${i} class=${ghost ? '' : 'shape'} opacity=${ghost ? 0.6 : 1}>${unsafeSVG(shapeSvg(s, this.shapes, THEME, true))}</g>`;
+    // The shape whose words are being typed is drawn without them: the overlay holds them, nothing doubles.
+    const drawn = i >= 0 && i === this.editing ? { ...s, text: '' } : s;
+    return svg`<g data-idx=${i} class=${ghost ? '' : 'shape'} opacity=${ghost ? 0.6 : 1}>${unsafeSVG(shapeSvg(drawn, this.shapes, THEME, true))}</g>`;
   }
   private renderSelection(s: Shape) {
     if (isLink(s.k)) {
@@ -565,15 +867,16 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const s = this.selected;
     const from = d?.mode === 'link' ? this.shapes[d.from] : null;
     const tile = v.tile;
-    return html`<div class="draw-wrap" tabindex="0" role="application" aria-label=${t('Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; Enter edits the label; Delete removes.')} @wheel=${(e: WheelEvent) => {
+    return html`<div class="draw-wrap" tabindex="0" role="application" aria-label=${t('Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; Enter edits the words; Delete removes.')} @wheel=${(e: WheelEvent) => {
       // Ctrl (or a pinch on a trackpad) and the wheel zoom; the wheel alone scrolls as usual.
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       this.zoomBy(-Math.sign(e.deltaY) * 0.25);
     }}>
-      <svg class="draw-canvas ${this.tool === 'select' ? '' : 'tool'}" style="width:${this.zoom * 100}%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label=${v.alt || describeDrawing(v.shapes) || t('An empty drawing')}
+      <div class="draw-stage" style="width:${this.zoom * 100}%">
+      <svg class="draw-canvas ${this.tool === 'select' ? '' : 'tool'}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label=${v.alt || describeDrawing(v.shapes) || t('An empty drawing')}
         @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}
-        @dblclick=${() => (this.pen.length ? this.closePen() : this.sel >= 0 && this.openLabel())}>
+        @dblclick=${() => (this.pen.length ? this.closePen() : this.sel >= 0 && this.openWords())}>
         <defs>
           <pattern id="draw-grid" width=${GRID * 2} height=${GRID * 2} patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.8" fill="var(--to-border-strong)" /></pattern>
           ${unsafeSVG(arrowDefs('var(--to-ink)'))}
@@ -591,6 +894,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
         ${d?.mode === 'link' && from ? svg`<line x1=${from.x + from.w / 2} y1=${from.y + from.h / 2} x2=${d.to[0]} y2=${d.to[1]} stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none" />` : nothing}
         ${s ? this.renderSelection(s) : nothing}
       </svg>
+      <div class="draw-words" hidden role="textbox" aria-multiline="true" aria-label=${t('The words of the shape')} spellcheck="true" autocapitalize="sentences"
+        @input=${this.onWordsInput} @keydown=${this.onWordsKey} @paste=${this.onWordsPaste} @blur=${() => this.editing >= 0 && this.closeWords(false)}></div>
+      </div>
     </div>`;
   }
 
@@ -613,18 +919,6 @@ export class ToDrawEditor extends DocElement<DrawView> {
       </svg>
       <span id="draw-cursor" class="sr-only">${t('Row {y}, column {x}: {ink}', { y: cy + 1, x: cx + 1, ink: PIXEL_INKS.find((i) => i.k === p.rows[cy]?.[cx])?.name() ?? t('clear') })}</span>
       <div class="draw-tile-preview" style="background-image:${tileCss(p, 64)}" role="img" aria-label=${t('As a repeating background')}></div>
-    </div>`;
-  }
-
-  /** The label, typed over its shape. */
-  private renderLabel() {
-    const s = this.selected;
-    const value = s && s.k !== 'i' ? s.text : '';
-    return html`<div class="draw-label-pop" popover="manual" @toggle=${(e: Event) => (e as ToggleEvent).newState === 'closed' && this.focusCanvas()}>
-      <input type="text" class="draw-label" aria-label=${t('Label')} placeholder=${t('Label')} autocomplete="off" .value=${value}
-        @input=${(e: Event) => this.patchSel({ text: (e.target as HTMLInputElement).value }, `label:${this.sel}`)}
-        @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === 'Escape') && (e.preventDefault(), this.closeLabel())}
-        @blur=${() => this.closeLabel(false)} />
     </div>`;
   }
 
