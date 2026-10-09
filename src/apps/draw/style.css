@@ -1,0 +1,149 @@
+/* Draw: the canvas in a frame that scrolls when zoomed, the hint line under the bar, the label over its shape, the pixel grid. */
+@layer apps {
+  to-draw-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* One line, always there, so the canvas never jumps when the hand changes. */
+  .draw-hint {
+    margin: 0;
+    padding: 4px 0 8px;
+    min-height: 1.6em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .draw-wrap {
+    padding: 12px;
+    background: var(--to-surface-2);
+    border-radius: var(--to-radius);
+    overflow: auto;
+    max-height: calc(100dvh - var(--to-header-h) - 150px);
+    min-height: 200px;
+  }
+  .draw-wrap:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: -2px;
+  }
+  svg.draw-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  svg.draw-canvas.tool {
+    cursor: crosshair;
+  }
+  svg.draw-canvas .shape {
+    cursor: move;
+  }
+  svg.draw-canvas .handle {
+    cursor: nwse-resize;
+  }
+  svg.draw-canvas text {
+    font-family: var(--to-font);
+    pointer-events: none;
+  }
+  /* The alt text button asks until it is written (dashed, amber), then is quiet. */
+  .draw-alt {
+    border-style: dashed;
+    border-color: var(--to-warning);
+    color: var(--to-warning);
+  }
+  .draw-alt.has {
+    border-style: solid;
+    border-color: var(--to-border);
+    color: inherit;
+  }
+  .draw-alt-field {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .draw-alt-field textarea {
+    font: 16px var(--to-font);
+    padding: 8px 10px;
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-input-bg);
+    color: var(--to-ink);
+    resize: vertical;
+  }
+  .draw-alt-dialog .to-row {
+    justify-content: flex-end;
+  }
+  /* The label, in a box over its shape. */
+  .draw-label-pop {
+    position: fixed;
+    margin: 0;
+    padding: 6px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow-pop);
+    color: var(--to-ink);
+  }
+  .draw-label {
+    width: min(260px, calc(100vw - 48px));
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-input-bg);
+    color: var(--to-ink);
+    font: 16px var(--to-font);
+  }
+  /* A colour in hand, in the pixel bar. */
+  .draw-swatch .to-swatch {
+    width: 22px;
+    height: 22px;
+  }
+  /* The pixel grid: one picture, square, as wide as the frame allows; its squares are hit by where the pointer is. */
+  .draw-pixel-wrap {
+    display: grid;
+    gap: 16px;
+    justify-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+  svg.draw-pixels {
+    display: block;
+    width: min(100%, 560px);
+    height: auto;
+    aspect-ratio: 1;
+    border: 1px solid var(--to-border);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: crosshair;
+    background: var(--to-surface);
+  }
+  svg.draw-pixels.fill {
+    cursor: cell;
+  }
+  .draw-tile-preview {
+    width: 128px;
+    height: 128px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background-color: var(--to-surface);
+    background-size: 64px 64px;
+    image-rendering: pixelated;
+  }
+  @media (max-width: 760px) {
+    .draw-pixel-wrap {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .draw-tile-preview {
+      width: 96px;
+      height: 96px;
+    }
+  }
+}

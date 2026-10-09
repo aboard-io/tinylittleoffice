@@ -13,9 +13,12 @@ format `docs/tlo.md` in the old tree until it moves here.
 ```
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
                 privacy, offline, share, short (links), links (the owner links kept), exports, i18n, theme,
-                icons, app (the AppDef contract), apps (registry), element (DocElement: every editor's base,
-                with the op-log undo), draw (pages, the palette), chart (bars, lines, pie, Sankey), csv, zip,
-                xlsx (a table block as a workbook); the editor: text (<to-text>), textops (its maths),
+                icons (the UI set and the starter library a document may name), icons-search (keywords,
+                suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
+                the rest of Lucide and icons-meta, its tags and categories), app (the AppDef contract), apps
+                (registry), element (DocElement: every editor's base, with the op-log undo), draw (pages, the
+                palette), tile (a repeating background tile in one head field: `tile: 8:a..a/.a.a`), chart
+                (bars, lines, pie, Sankey), csv, zip, xlsx (a table block as a workbook); the editor: text (<to-text>), textops (its maths),
                 clipboard, history (the op log), note-pop, link-pop
 src/doc/        the document kernel (docs/kernel.md)
 dev/            text.html: the editor alone, in its three shapes, at /dev/text.html on the dev server (not built)

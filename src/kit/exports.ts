@@ -9,6 +9,9 @@ import type { AppDef, Doc, Export, ExportContext, Page } from './app.ts';
 import { INK, MUTED, FONT, pageSvg, stack, fileName, xml } from './draw.ts';
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
+import { appOf } from './apps.ts';
+import { encodeDoc } from './codec.ts';
+import { routeHash } from './route.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
@@ -173,7 +176,7 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
   return name;
 }
 
-/** The Download menu's items for a document: the kit's formats, then the app's own. */
+/** The Download menu's items for a document: the kit's formats, then the app's own, then its hand-offs to apps that exist. */
 export function exportItems(current: () => Current): MenuItem[] {
   const run = async (ext: string) => {
     try {
@@ -188,6 +191,7 @@ export function exportItems(current: () => Current): MenuItem[] {
     { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run('print') },
     ...kitExports().map((x) => ({ label: x.label(), icon: x.ext === 'png' ? UI.image : x.ext === 'html' ? UI.globe : UI.text, does: () => void run(x.ext) })),
     ...(def.exports ?? []).map((x) => ({ label: x.label(), icon: UI.download, does: () => void run(x.ext) })),
+    ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => void (location.hash = routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }
 
