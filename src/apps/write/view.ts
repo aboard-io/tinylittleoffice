@@ -121,7 +121,7 @@ function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boo
 
 /** A page placed inside another at x, y, within w by h, keeping its shape. */
 export function place(page: Page, x: number, y: number, w: number, h: number): string {
-  return `<svg x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" viewBox="0 0 ${page.w} ${page.h}" preserveAspectRatio="xMidYMin meet"><rect width="${page.w}" height="${page.h}" fill="#fff"/>${page.svg}</svg>`;
+  return `<svg x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" viewBox="0 0 ${page.w} ${page.h}" preserveAspectRatio="xMinYMin meet"><rect width="${page.w}" height="${page.h}" fill="#fff"/>${page.svg}</svg>`;
 }
 
 /** The address a document held in a fence opens at: on the site the text was shared from, else the fragment alone. */
