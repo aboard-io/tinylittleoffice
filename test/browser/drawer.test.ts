@@ -29,3 +29,33 @@ test('the hamburger opens the drawer, Find filters the apps, Escape closes it', 
   await until(() => !dialog.open);
   await until(() => document.activeElement === burger);
 });
+
+test('Cancel on "Save nothing on this device" leaves things kept and puts the switch back on', async () => {
+  const { setPrivate } = await import('../../src/kit/privacy.ts');
+  const { keeping } = await import('../../src/kit/store.ts');
+  await setPrivate(false);
+  expect(keeping()).toBe(true);
+  const shell = await mount('');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => !!shell.querySelector<HTMLDialogElement>('dialog.to-drawer')?.open);
+  const box = shell.querySelector<HTMLInputElement>('dialog.to-drawer input[role=switch]')!;
+  expect(box.checked).toBe(true);
+  const ask = window.confirm;
+  window.confirm = () => false;
+  try {
+    // What the browser does on a tap: the box flips, then change fires.
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    await until(() => box.checked);
+    expect(keeping()).toBe(true);
+    // Said yes: the device forgets, and the switch is off.
+    window.confirm = () => true;
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    await until(() => !keeping());
+    expect(box.checked).toBe(false);
+  } finally {
+    window.confirm = ask;
+    await setPrivate(true);
+  }
+});

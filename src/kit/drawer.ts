@@ -50,8 +50,14 @@ export class ToDrawer extends LitElement {
     if (this.dialog?.open) this.dialog.close();
   }
 
-  private async togglePrivate() {
-    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences, the offline copy and the list of your documents are forgotten (the documents themselves live in their links).'))) return;
+  private async togglePrivate(e: Event) {
+    const box = e.target as HTMLInputElement;
+    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences, the offline copy and the list of your documents are forgotten (the documents themselves live in their links).'))) {
+      // The browser flipped the switch before the question was asked: Cancel puts it back.
+      box.checked = true;
+      this.requestUpdate();
+      return;
+    }
     await setPrivate(keeping());
     toast(keeping() ? t('Saved on this device from now on') : t('Private: nothing saved'));
   }
@@ -74,7 +80,7 @@ export class ToDrawer extends LitElement {
               </nav>
               <section class="to-drawer-section">
                 <label class="to-switch">
-                  <input type="checkbox" role="switch" .checked=${keeping()} @change=${() => void this.togglePrivate()} />
+                  <input type="checkbox" role="switch" .checked=${keeping()} @change=${(e: Event) => void this.togglePrivate(e)} />
                   <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace.')}</small></span>
                 </label>
                 <label class="to-switch">
