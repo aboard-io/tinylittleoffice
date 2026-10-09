@@ -5,8 +5,9 @@
 import { lookup, type AppDef } from './app.ts';
 import write from '../apps/write/def.ts';
 import sheet from '../apps/sheet/def.ts';
+import draw from '../apps/draw/def.ts';
 
-const ALL: AppDef[] = [write, sheet];
+const ALL: AppDef[] = [write, sheet, draw];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);

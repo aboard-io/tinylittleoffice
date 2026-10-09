@@ -78,6 +78,40 @@ export function clip(text: string, max: number, px: number, bold = false): strin
   return t.trimEnd() + '…';
 }
 
+/**
+ * Words wrapped to a width: the lines, broken between words; a word too long for a line (a web address,
+ * say) is broken after a "/", ".", "-", "?", "&", "=" or "_" near the end of a piece, else where the line
+ * runs out.
+ */
+export function wrapText(content: string, max: number, px: number, bold = false): string[] {
+  const out: string[] = [];
+  let cur = '';
+  for (const word of content.split(/(?<= )/).flatMap((w) => breakWord(w, max, px, bold))) {
+    if (cur && textWidth(cur + word.trimEnd(), px, bold) > max) {
+      out.push(cur.trimEnd());
+      cur = '';
+    }
+    cur += word;
+  }
+  if (cur.trim() || !out.length) out.push(cur.trimEnd());
+  return out;
+}
+function breakWord(word: string, max: number, px: number, bold: boolean): string[] {
+  if (max <= 0 || textWidth(word.trimEnd(), px, bold) <= max) return [word];
+  const out: string[] = [];
+  let rest = word;
+  while (rest && textWidth(rest.trimEnd(), px, bold) > max) {
+    let n = 1;
+    while (n < rest.length && textWidth(rest.slice(0, n + 1), px, bold) <= max) n++;
+    const soft = Math.max(...['/', '.', '-', '?', '&', '=', '_'].map((c) => rest.lastIndexOf(c, n - 1)));
+    const at = soft >= Math.ceil(n * 0.66) ? soft + 1 : n;
+    out.push(rest.slice(0, at));
+    rest = rest.slice(at);
+  }
+  if (rest) out.push(rest);
+  return out;
+}
+
 export interface TextStyle {
   px?: number;
   bold?: boolean;

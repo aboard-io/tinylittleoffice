@@ -9,6 +9,8 @@ import { icon, UI, type IconNode } from './icons.ts';
 export interface MenuItem {
   label: string;
   icon?: IconNode;
+  /** A colour shown as a dot in the icon's place (a colour menu, a theme's). */
+  swatch?: string;
   /** A second line, smaller. */
   hint?: string;
   /** A heading the item sits under. */
@@ -131,7 +133,7 @@ export class ToMenu extends LitElement {
   }
   private renderItem(item: MenuItem): TemplateResult {
     return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @click=${() => this.choose(item)}>
-      ${item.icon ? icon(item.icon, 18) : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
+      ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;
   }
   render() {

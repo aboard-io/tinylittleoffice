@@ -116,6 +116,17 @@
     flex: none;
   }
 
+  /* A colour as a dot, in a menu item or a bar button (--swatch is the colour). */
+  .to-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--swatch);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
+    flex: none;
+  }
+
   /* ---- menus (popovers) ---- */
   to-menu,
   to-insert,
@@ -250,6 +261,54 @@
   .to-dialog-body > :first-child {
     margin-top: 0;
   }
+  /* The icon picker: a search box, then the library in named sections. */
+  .to-icons .to-dialog {
+    width: min(720px, calc(100vw - 32px));
+  }
+  .to-icons-search {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-input-bg);
+    color: var(--to-ink);
+    font: 16px var(--to-font);
+    margin-bottom: 12px;
+  }
+  .to-icons-section h3 {
+    margin: 12px 0 6px;
+    font-size: 13px;
+    color: var(--to-ink-3);
+    font-weight: 600;
+  }
+  .to-icons-section h3 span {
+    font-weight: 400;
+  }
+  .to-icons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 2px;
+  }
+  .to-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: var(--to-radius-sm);
+    background: transparent;
+    color: var(--to-ink);
+    cursor: pointer;
+  }
+  .to-icon-btn:hover {
+    background: var(--to-surface-2);
+  }
+  .to-icon-btn[aria-pressed='true'] {
+    border-color: var(--to-accent);
+    background: var(--to-accent-soft);
+  }
+
   .to-facts {
     display: grid;
     grid-template-columns: auto 1fr;

@@ -84,6 +84,8 @@ test('pages: letter by default, A4 when the head says so, one page drawn small, 
   expect(many.length).toBeGreaterThan(1);
   expect(many[1].svg).toContain('>2</text>');
   expect(pages(long, true)).toHaveLength(1);
+  // An icon in the words is drawn as a glyph over the space it leaves.
+  expect(pages('A :star: day\n')[0].svg).toMatch(/<g transform="translate\([\d.]+ [\d.]+\) scale\([\d.]+\)"/);
 });
 
 test('pages draw the table worked out, the head fields, a footnote, a web card and another document', () => {

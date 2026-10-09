@@ -8,6 +8,7 @@
 import { encodeDoc } from '../../kit/codec.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw.ts';
 import { embedCaption } from '../../kit/embeds.ts';
+import { glyphNamed } from '../../kit/icons.ts';
 import { routeHash } from '../../kit/route.ts';
 import { XML_HEAD, zip } from '../../kit/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/app.ts';
@@ -17,9 +18,10 @@ import { PAPERS, fenceTitle, fieldsOf, money, paperOf, tableView, titleBlock } f
 
 /* ---------- words on a page ---------- */
 
-/** A piece of a line: words with their marks, a link, a raised number (a footnote's mark), monospace. */
+/** A piece of a line: words with their marks, a link, a raised number (a footnote's mark), monospace, or an icon by name (its words a space the glyph is drawn over). */
 interface Span {
   t: string;
+  ic?: string;
   b?: true;
   i?: true;
   u?: true;
@@ -30,7 +32,7 @@ interface Span {
   mono?: boolean;
 }
 
-const same = (a: Span, b: Span) => a.b === b.b && a.i === b.i && a.u === b.u && a.s === b.s && a.h === b.h && a.link === b.link && a.sup === b.sup && a.mono === b.mono;
+const same = (a: Span, b: Span) => !a.ic && !b.ic && a.b === b.b && a.i === b.i && a.u === b.u && a.s === b.s && a.h === b.h && a.link === b.link && a.sup === b.sup && a.mono === b.mono;
 const spanWidth = (sp: Span, px: number, bold: boolean) => textWidth(sp.t, sp.sup ? px * 0.65 : px, bold || !!sp.b);
 
 /** Runs as spans: footnote marks as raised numbers, links (and web addresses in plain words) marked; an icon has no words on paper. */
@@ -41,7 +43,10 @@ function spansOf(runs: Run[], next: () => number): Span[] {
       out.push({ t: run.t, sup: true });
       continue;
     }
-    if (run.ic) continue;
+    if (run.ic) {
+      out.push({ t: '\u2003', ic: run.ic });
+      continue;
+    }
     for (const p of runLinks(run)) out.push({ t: p.t, ...(run.b ? { b: true } : {}), ...(run.i ? { i: true } : {}), ...(run.u ? { u: true } : {}), ...(run.s ? { s: true } : {}), ...(run.h ? { h: true } : {}), ...(p.url ? { link: true } : {}) });
   }
   return out;
@@ -60,7 +65,11 @@ export function wrapSpans(spans: Span[], max: number, px: number, bold = false):
     w += spanWidth(sp, px, bold);
   };
   for (const sp of spans) {
-    if (sp.sup) {
+    if (sp.sup || sp.ic) {
+      if (sp.ic && w > 0 && w + spanWidth(sp, px, bold) > max) {
+        lines.push([]);
+        w = 0;
+      }
       add(sp);
       continue;
     }
@@ -89,8 +98,13 @@ export function wrapSpans(spans: Span[], max: number, px: number, bold = false):
 /** One line of spans as SVG text at a baseline. */
 function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boolean; anchor?: 'start' | 'middle' | 'end'; fill?: string } = {}): string {
   const { bold = false, anchor = 'start', fill = INK } = o;
+  // Icons are drawn as glyphs over the space their span leaves, at the x the words before them reach (left-aligned lines).
+  let glyphs = '';
+  let at = x;
   const inner = line
     .map((sp) => {
+      if (sp.ic && anchor === 'start') glyphs += glyphNamed(sp.ic, at + px * 0.05, y - px * 0.85, px * 0.9, fill);
+      at += spanWidth(sp, px, bold);
       const a: string[] = [];
       if (sp.b && !bold) a.push('font-weight="700"');
       if (sp.i) a.push('font-style="italic"');
@@ -102,7 +116,7 @@ function lineSvg(x: number, y: number, line: Span[], px: number, o: { bold?: boo
       return a.length ? `<tspan ${a.join(' ')}>${xml(sp.t)}</tspan>` : xml(sp.t);
     })
     .join('');
-  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`;
+  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>${glyphs}`;
 }
 
 /** A page placed inside another at x, y, within w by h, keeping its shape. */

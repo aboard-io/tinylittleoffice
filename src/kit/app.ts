@@ -51,6 +51,19 @@ export interface Export {
 }
 
 /**
+ * A hand-off to another app: this document opened there, converted if need be ("Animate this drawing" from
+ * Draw to Motion). Listed under Download only once the other app is in the registry, so an app may offer
+ * one before its partner has been built.
+ */
+export interface Handoff {
+  /** The other app's id. */
+  to: string;
+  label: () => string;
+  /** This document as the other app reads it (often itself). */
+  convert(doc: Doc): Doc;
+}
+
+/**
  * The editor element an app's `editor()` names: given the document as `value`, it fires "docchange" with
  * the new text in `detail` on every edit. The shell writes it into the link. Undo and redo are the
  * kernel's (docs/kernel.md §8): the shell only forwards Mod+Z and Mod+Shift+Z as "docundo"/"docredo"
@@ -83,6 +96,7 @@ export interface AppDef {
   /** The document, drawn: always at least one page. For print, PDF, PNG, previews and thumbnails. */
   view(doc: Doc, opts?: ViewOpts): Page[];
   exports?: Export[];
+  handoffs?: Handoff[];
 }
 
 /**

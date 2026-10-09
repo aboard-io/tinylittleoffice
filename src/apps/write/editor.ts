@@ -195,11 +195,14 @@ export class ToWriteEditor extends LitElement {
     const fence = url && linkToFence(url.trim());
     if (fence) this.insertBlock(fence);
   }
-  /** An icon by its name, until the icon picker lands in the kit. */
+  /** An icon from the kit's library (a lazy chunk, the whole of Lucide), put in at the caret. */
   private async insertIcon() {
-    const name = await this.ask(t('Icon'), t('Name of the icon (Lucide)'), 'star', '', 'text');
-    const clean = name?.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-    if (clean) this.text.exec('icon', clean);
+    const sel = this.text.sel;
+    const { chooseIcon } = await import('../../kit/icons-picker.ts');
+    const name = await chooseIcon();
+    if (!name) return;
+    if (sel) this.text.sel = sel;
+    this.text.exec('icon', name);
   }
   private inserts(): MenuItem[] {
     return [
