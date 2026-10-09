@@ -733,7 +733,7 @@
   /* ---- home: the apps, each its templates and the documents kept here ---- */
   .to-tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 10px;
     align-items: start;
   }
@@ -746,15 +746,22 @@
     border-radius: var(--to-radius);
     box-shadow: var(--to-shadow);
   }
+  /* The tile's one row: the app (icon and name) and, to its right, the templates button. */
+  .to-tile-head {
+    display: flex;
+    align-items: stretch;
+  }
   .to-tile-open {
     display: flex;
+    flex: 1;
+    min-width: 0;
     align-items: center;
     gap: 10px;
     min-height: var(--to-touch);
     padding: 0 12px;
     color: var(--to-ink);
     text-decoration: none;
-    border-radius: var(--to-radius) var(--to-radius) 0 0;
+    border-radius: var(--to-radius) 0 0 var(--to-radius);
   }
   .to-tile-open:hover {
     background: var(--to-surface-2);
@@ -767,15 +774,16 @@
   }
   .to-tile to-templates {
     display: flex;
-    border-top: 1px solid var(--to-border);
+    border-left: 1px solid var(--to-border);
   }
   .to-templates-btn {
-    flex: 1;
-    justify-content: space-between;
+    width: auto;
+    padding: 0 10px;
+    gap: 2px;
     border: 0;
-    border-radius: 0 0 var(--to-radius) var(--to-radius);
+    border-radius: 0 var(--to-radius) var(--to-radius) 0;
     background: transparent;
-    font-weight: 400;
+    color: var(--to-ink-2);
   }
   .to-drive {
     list-style: none;

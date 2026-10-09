@@ -41,7 +41,11 @@ test('the home page lists the apps as tiles, each with its templates', async () 
   expect(tile.querySelector('b')!.textContent).toBe('Word Processor');
   expect(tile.querySelector<HTMLAnchorElement>('.to-tile-open')!.getAttribute('href')).toBe('#/v1/write');
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
-  expect(picker.textContent!.trim()).toBe('Blank');
+  // The button is the affordance alone, to the right of the name: no "Blank" written on every tile.
+  expect(picker.textContent!.trim()).toBe('');
+  expect(picker.getAttribute('aria-label')).toBe('Templates for Word Processor');
+  expect(tile.querySelector('.to-tile-head')!.contains(picker)).toBe(true);
+  expect(picker.getBoundingClientRect().left).toBeGreaterThan(tile.querySelector('.to-tile-open')!.getBoundingClientRect().right - 1);
   picker.click();
   await until(() => !!tile.querySelector('[role=option] svg'));
   const options = [...tile.querySelectorAll('[role=option]')];

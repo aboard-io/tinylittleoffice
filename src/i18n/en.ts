@@ -27,7 +27,6 @@ export default {
   'Blank': 'Blank',
   'Templates': 'Templates',
   // The button under an app's tile, naming the template list: "Start Text from"
-  'Start {app} from': 'Start {app} from',
   // The list of an app's documents kept on this device, under its tile: "Write documents"
   '{app} documents': '{app} documents',
   'Forget': 'Forget',
@@ -1201,4 +1200,8 @@ export default {
   'Costs against takings for a coffee cart: where the lines cross is the cups a day it needs.': 'Costs against takings for a coffee cart: where the lines cross is the cups a day it needs.',
   'Waves adding up': 'Waves adding up',
   'Sine waves summed, on their way to a square wave.': 'Sine waves summed, on their way to a square wave.',
+
+  // New — sort me into a section
+  'Templates for {app}': 'Templates for {app}',
+  'Templates for {app}: {name}': 'Templates for {app}: {name}',
 } satisfies Strings;

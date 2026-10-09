@@ -1,6 +1,6 @@
 /**
  * <to-home>: the apps, as tiles, in the registry's order: each its icon and name (open it blank), a listbox
- * of its templates (Blank first and chosen, each drawn small from its own document; choosing one opens the
+ * of its templates to the right of its name (Blank first and chosen, each drawn small from its own document; choosing one opens the
  * app with that document), and under it the documents of that app kept on this device (kit/library.ts),
  * newest first. No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
  * in that format … Drive is just documents under the icons. No descriptions of apps.")
@@ -101,8 +101,9 @@ export class ToTemplates extends LitElement {
   }
   render() {
     const chosen = this.app.templates.find((x) => x.id === this.chosen);
-    return html`<button type="button" class="to-btn to-templates-btn" popovertarget=${this.uid} aria-haspopup="listbox" aria-expanded="false" aria-label=${t('Start {app} from', { app: this.app.name })}>
-        <span>${chosen?.name ?? t('Blank')}</span>${icon(UI.down, 14, 'to-caret')}
+    // The button is the affordance alone: the icon of a sheet of paper and a caret, no words (Paul, 2026-10-09: "don't use the word Blank over and over"); its name says what it holds.
+    return html`<button type="button" class="to-btn to-tool to-templates-btn" popovertarget=${this.uid} aria-haspopup="listbox" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')}>
+        ${icon(UI.text, 18)}${icon(UI.down, 14, 'to-caret')}
       </button>
       <div id=${this.uid} popover="auto" class="to-menu to-listbox" role="listbox" aria-label=${t('Templates')} @toggle=${this.onToggle} @keydown=${this.onKey}>
         ${this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}
@@ -164,8 +165,10 @@ export class ToHome extends LitElement {
       <div class="to-tiles">
         ${apps().map(
           (a) => html`<article class="to-tile">
-            <a class="to-tile-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<b>${a.name}</b></a>
-            <to-templates .app=${a}></to-templates>
+            <div class="to-tile-head">
+              <a class="to-tile-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<b>${a.name}</b></a>
+              <to-templates .app=${a}></to-templates>
+            </div>
             ${this.drive(a, kept.filter((k) => k.app === a.id))}
           </article>`,
         )}
