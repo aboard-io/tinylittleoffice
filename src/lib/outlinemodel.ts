@@ -162,10 +162,14 @@ export function readOutline(text: string): string {
   return serializeOutline(items, links);
 }
 
-/** The outline as the plain nested list a mind map or family tree reads: no kinds of line, no joins, no documents. */
-export function plainOutline(items: Item[]): string {
-  return serializeOutline(items.filter((it) => !it.doc).map(({ depth, text }) => ({ depth, text })));
-}
+/** Whether a text is an outline: a list with something under something, and no headings or rules to make it anything else. */
+export const nested = (text: string) => {
+  const blocks = parse(text).blocks;
+  return blocks.some((b) => b.k === 'li' && b.depth > 0) && blocks.every((b) => b.k === 'li' || b.k === 'edge' || b.k === 'fence');
+};
+
+/** Text as the plain nested list a mind map or family tree is: no kinds of line, no joins, no documents. */
+export const readPlainTree = (text: string) => serializeOutline(readTree(text).items.filter((it) => !it.doc).map(({ depth, text }) => ({ depth, text })));
 
 /** Item i's parent, or -1. */
 export function parentOf(items: Item[], i: number): number {

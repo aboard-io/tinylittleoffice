@@ -1,6 +1,6 @@
 /** Menu: sections, dishes and prices on exactly one page. */
 import { readLines, writeLines, type Kind as LineKind, type Row } from '../lib/lines.ts';
-import { column, parse as parseTlo } from '../lib/tlo.ts';
+import { columnsOf, parse as parseTlo } from '../lib/tlo.ts';
 import { definePrint, onLetter } from '../lib/print.ts';
 import { text, wrapText, textWidth, ACCENT, MUTED, LINE, type Page } from '../kit/core.ts';
 
@@ -54,8 +54,7 @@ export function readMenu(md: string): string {
     else if (b.k === 'p') b.text.split('\n').forEach(line);
     else if (b.k === 'li') line(b.text);
     else if (b.k === 'table') {
-      const names = b.head.map((h) => column(h).name.toLowerCase());
-      const at = [/^(dish|item|name)$/, /^(price|cost)$/, /^(about|description|what it is)$/].map((re) => names.findIndex((n) => re.test(n)));
+      const at = columnsOf(b, /^(dish|item|name)$/, /^(price|cost)$/, /^(about|description|what it is)$/);
       for (const r of b.rows) dish(at.some((i) => i >= 0) ? at.map((i) => r[i] ?? '') : r);
     }
   }
@@ -78,7 +77,6 @@ export default definePrint(
     name: 'Menu',
     icon: 'menucard',
     blurb: 'A menu on one page: sections, dishes, prices, fitted to the sheet.',
-    outline: (body) => readLines(body, FORM).map((r) => r.values.filter(Boolean).join('  ·  ')).slice(0, 14),
     read: readMenu,
   },
   spec,

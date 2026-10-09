@@ -1,6 +1,6 @@
 /** Invoice: who, what, how much; the sums done for you. */
 import { readLines, writeLines, type Kind as LineKind, type Row } from '../lib/lines.ts';
-import { column, parse as parseTlo } from '../lib/tlo.ts';
+import { columnsOf, parse as parseTlo } from '../lib/tlo.ts';
 import { definePage, htmlPage, type PageOpts } from '../lib/diagram.ts';
 import { xml, text, rect, clip, wrapText, pageScript, ACCENT, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
 
@@ -91,12 +91,11 @@ export function readInvoice(text: string): string {
     if (b.k === 'p' || b.k === 'quote') b.text.split('\n').forEach(line);
     else if (b.k === 'li') line(b.text);
     else if (b.k === 'table') {
-      const names = b.head.map((h) => column(h).name.toLowerCase());
-      const find = (re: RegExp) => names.findIndex((n) => re.test(n));
-      let [w, q, u, p] = [find(/^(what|description|item|service|task|work)$/), find(/^(qty|quantity|hours|days|count)$/), find(/^units?$/), find(/^(price|rate|cost|unit price|each)$/)];
+      let [w, q, u, p] = columnsOf(b, /^(what|description|item|service|task|work)$/, /^(qty|quantity|hours|days|count)$/, /^units?$/, /^(price|rate|cost|unit price|each)$/);
       // Columns named nothing we know are taken in order: what, then the quantity, the units and the price, as there are columns for them.
-      if (w < 0 && q < 0 && p < 0) [w, q, u, p] = names.length >= 4 ? [0, 1, 2, 3] : names.length === 3 ? [0, 1, -1, 2] : [0, -1, -1, 1];
-      if (w < 0) w = names.findIndex((_, i) => ![q, u, p].includes(i));
+      const n = b.head.length;
+      if (w < 0 && q < 0 && p < 0) [w, q, u, p] = n >= 4 ? [0, 1, 2, 3] : n === 3 ? [0, 1, -1, 2] : [0, -1, -1, 1];
+      if (w < 0) w = b.head.findIndex((_, i) => ![q, u, p].includes(i));
       for (const r of b.rows) item(r[w] ?? '', q >= 0 ? r[q] : '1', u >= 0 ? r[u] : '', p >= 0 ? r[p] : '');
     }
   }

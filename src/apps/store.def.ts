@@ -1,6 +1,6 @@
 /** Store: a shop window and a cart, from a list of products. */
 import { readLines, writeLines, type Kind as LineKind, type Row } from '../lib/lines.ts';
-import { column, parse as parseTlo } from '../lib/tlo.ts';
+import { columnsOf, parse as parseTlo } from '../lib/tlo.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { listPage, pageScript, xml } from '../kit/core.ts';
 
@@ -57,8 +57,7 @@ export function readStore(text: string): string {
     else if (b.k === 'p' || b.k === 'quote') b.text.split('\n').forEach(line);
     else if (b.k === 'li') line(b.text);
     else if (b.k === 'table') {
-      const names = b.head.map((h) => column(h).name.toLowerCase());
-      const at = [/^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|description|details?)$/, /^(image|picture|photo)$/].map((re) => names.findIndex((n) => re.test(n)));
+      const at = columnsOf(b, /^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|description|details?)$/, /^(image|picture|photo)$/);
       for (const r of b.rows) product(at.some((i) => i >= 0) ? at.map((i) => r[i] ?? '') : r);
     }
   }

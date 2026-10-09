@@ -2,6 +2,7 @@ import { PALETTE } from './palette.ts';
 import { ACCENT } from '../kit/core.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
 import { attr, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
+import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
 /**
  * Deck document model. A deck is TLO (lib/tlo.ts), a slide between each
  * "---" and the next:
@@ -193,6 +194,8 @@ export function serializeDeck(slides: Slide[], transition: Transition = '', colo
 
 /** A deck as written loosely (see loosen; a table on a slide is a sheet), made canonical. */
 export function readDeck(text: string): string {
+  // An outline is a slide for every item with something under it.
+  if (nested(text)) return outlineToDeck(readTree(text).items);
   const doc = loosen(parse(text), true);
   return serializeDeck(doc.blocks.length ? slidesOf(doc) : [first()], deckTransition(text), deckIconColor(text), deckEndsWithQr(text));
 }

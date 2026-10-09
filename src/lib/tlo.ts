@@ -582,6 +582,11 @@ export function column(h: string): { name: string; type: ColType } {
   const m = /^(.*?):(\w+)$/.exec(h.trim());
   return m && COL_TYPES.includes(m[2] as ColType) ? { name: m[1].trim(), type: m[2] as ColType } : { name: h.trim(), type: 'text' };
 }
+/** Where in a table each column asked for is, found by its name (in any case, its type left off); -1 for one it has not got. */
+export function columnsOf(table: { head: string[] }, ...want: RegExp[]): number[] {
+  const names = table.head.map((h) => column(h).name.toLowerCase());
+  return want.map((re) => names.findIndex((n) => re.test(n)));
+}
 export const columnText = (name: string, type: ColType = 'text') => (type === 'text' ? name : `${name}:${type}`);
 
 /* ---------- structure ---------- */

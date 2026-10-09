@@ -9,7 +9,7 @@
  *   - Write the spec
  *   - Review the copy
  */
-import { parse, write, attr, column, type Block } from './tlo.ts';
+import { parse, write, attr, columnsOf, type Block } from './tlo.ts';
 
 export interface Stage {
   name: string;
@@ -59,15 +59,20 @@ export function readBoard(text: string): string {
   const stages: Stage[] = [];
   const stage = (name: string) => stages.find((s) => s.name === name) ?? (stages.push({ name, limit: 0, cards: [] }), stages[stages.length - 1]);
   const last = () => stages[stages.length - 1] ?? stage(DEFAULT_STAGES[0]);
-  for (const b of parse(text).blocks) {
-    if (b.k === 'h') {
+  const blocks = parse(text).blocks;
+  // An outline's first level is the stages (under a lone root, the level below it), and what is under each its cards.
+  const outline = blocks.some((b) => b.k === 'li' && b.depth > 0);
+  const top = outline && blocks.filter((b) => b.k === 'li' && b.depth === 0).length === 1 ? 1 : 0;
+  for (const b of blocks) {
+    if (outline && b.k === 'li' && b.depth < top) continue;
+    if (outline && b.k === 'li' && b.depth === top) stages.push({ name: b.text, limit: 0, cards: [] });
+    else if (b.k === 'h') {
       const m = /^(.*?)\s*\(limit (\d+)\)$/i.exec(b.text);
       stages.push({ name: m ? m[1] : b.text, limit: limitOf(attr(b, 'limit') ?? m?.[2]), cards: [] });
     } else if (b.k === 'li') last().cards.push(b.text.replace(/\n/g, ' '));
     else if (b.k === 'p') last().cards.push(...b.text.split('\n').map((l) => l.trim()).filter(Boolean));
     else if (b.k === 'table') {
-      const names = b.head.map((h) => column(h).name.toLowerCase());
-      const [s, c] = [names.indexOf('stage'), names.indexOf('card')];
+      const [s, c] = columnsOf(b, /^stage$/, /^card$/);
       if (c < 0) continue;
       // A row with no stage of its own is in the stage of the row above.
       let at = '';

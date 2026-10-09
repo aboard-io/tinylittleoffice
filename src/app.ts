@@ -18,7 +18,7 @@ import { store, keeping, setKeeping } from './lib/store.ts';
 import { fromMarkdown } from './lib/markdown.ts';
 import { takeHead } from './lib/tlo.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
-import { hashOf, setSelfLink } from './kit/embed.ts';
+import { convert, hashOf, setSelfLink } from './kit/embed.ts';
 import { EXPIRIES, shorten } from './lib/short.ts';
 import './widgets/drive.ts';
 import './widgets/privacy.ts';
@@ -631,13 +631,14 @@ export class ToApp extends LitElement {
                 ${this.sealed
                   ? nothing
                   : html`<div class="to-doc-actions">
-                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.querySelector<SlDialog>('#import-dialog')?.show() : this.download(e.detail.item.value))}>
+                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.querySelector<SlDialog>('#import-dialog')?.show() : e.detail.item.value === 'open-as' ? this.openAs() : this.download(e.detail.item.value))}>
                         <sl-button slot="trigger" class="icon" size="small" aria-label="Download" data-tip="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Download</sl-menu-label>
                           ${formatsOf(appOf(current.id)!).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
                           <sl-divider></sl-divider>
                           <sl-menu-item value="import">${icon(UI.insert, 14, 'pre')} Import Markdown or CSV…</sl-menu-item>
+                          <sl-menu-item value="open-as">${icon(UI.compare, 14, 'pre')} Open as another app…</sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
@@ -703,7 +704,7 @@ export class ToApp extends LitElement {
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.driving !== null ? html`<to-drive .folder=${this.driving} @drive-zip=${this.downloadAll} @drive-change=${() => this.requestUpdate()}></to-drive>` : this.renderHome()}</main>
       ${this.renderDialog(available)}
       ${this.renderPrivacyPrompt()}
-      ${current ? this.renderImport() : nothing}
+      ${current ? this.renderImport() : nothing}${current ? this.renderOpenAs() : nothing}
       ${current ? this.renderShort() : nothing}
       ${current ? html`<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
@@ -843,6 +844,28 @@ export class ToApp extends LitElement {
             <p class="to-hint">Expires ${fmtDate(this.short.expires)}. ${this.short.short.length} characters, against ${this.link.length}.</p>`
         : nothing}
       <sl-button slot="footer" variant="primary" ?loading=${this.shortBusy} @click=${make}>${icon(UI.link, 14)} Make the short link</sl-button>
+    </sl-dialog>`;
+  }
+
+  /** The same document read by another app, each a link to open it in a new tab; this one stays as it is. Worked out only while the dialog is open. */
+  @state() private openingAs = false;
+  @state() private asFilter = '';
+  private openAs() {
+    this.asFilter = '';
+    this.openingAs = true;
+    void this.updateComplete.then(() => this.querySelector<SlDialog>('#open-as')?.show());
+  }
+  private renderOpenAs() {
+    const from = this.def;
+    const q = this.asFilter.trim().toLowerCase();
+    const choices = from && this.openingAs ? apps().filter((d) => d.id !== from.id && (!q || d.name.toLowerCase().includes(q))).flatMap((d) => {
+      const body = convert(from, this.env.body, d);
+      return body.trim() ? [html`<li><a href=${hashOf(d.id, body, this.env.title)} target="_blank" rel="noopener">${icon(UI[d.icon as keyof typeof UI], 18)}<span>${d.name}</span></a></li>`] : [];
+    }) : [];
+    return html`<sl-dialog id="open-as" label="Open as another app" class="to-open-as" @sl-after-hide=${(e: Event) => e.target === e.currentTarget && (this.openingAs = false)}>
+      <p class="to-hint">The same words, read by another app, open in a new tab: an outline as slides, a list as a board. This document stays as it is.</p>
+      <sl-input size="small" placeholder="Find an app" aria-label="Find an app" clearable .value=${this.asFilter} @sl-input=${(e: Event) => (this.asFilter = (e.target as HTMLInputElement).value)}></sl-input>
+      <ul>${choices}</ul>
     </sl-dialog>`;
   }
 

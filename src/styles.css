@@ -3839,6 +3839,32 @@ sl-dialog.to-import {
   margin-top: 10px;
 }
 
+/* Open as another app: the same words, read by each app that can */
+sl-dialog.to-open-as {
+  --width: min(96vw, 640px);
+}
+.to-open-as ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.to-open-as a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--to-radius);
+  color: var(--to-ink);
+  text-decoration: none;
+}
+.to-open-as a:hover,
+.to-open-as a:focus-visible {
+  background: var(--to-surface-2);
+}
+
 /* Compare: two links side by side, and what changed */
 .to-compare {
   max-width: 1200px;

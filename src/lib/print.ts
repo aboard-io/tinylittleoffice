@@ -5,7 +5,7 @@
  */
 import { defineApp, place, rect, type AppDef, type Page } from '../kit/core.ts';
 import { LETTER } from './fold.ts';
-import { OUTLINE_KEYS, registerSpec, type DiagramSpec } from './diagram.ts';
+import { OUTLINE_KEYS, registerSpec, wordsOf, type DiagramSpec } from './diagram.ts';
 
 export { LETTER };
 
@@ -37,7 +37,8 @@ export function onLetter(p: Page, m = 48): Page {
 /** Define an app that turns text into sheets to print. */
 export function definePrint(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { sheets(text: string): Page[] }): AppDef {
   registerSpec(app.id, spec);
-  const lines = (body: string) => body.split('\n').map((l) => l.trim().replace(/^(#+|:[a-z0-9-]+$)\s*/, '')).filter(Boolean);
+  // (A line that is only an icon is a picture, not words.)
+  const lines = (body: string) => wordsOf(body).filter((l) => !/^:[a-z0-9-]+:?$/.test(l));
   return defineApp({
     group: 'Print',
     under: 'poster',

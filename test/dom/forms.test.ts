@@ -44,7 +44,7 @@ const box = (root: ParentNode, label: string) => root.querySelector<HTMLInputEle
 const thing = (el: Editor, name: string | RegExp) => {
   const all = [...el.querySelectorAll<SVGGElement>('.pic > svg g.pick')];
   const found = all.find((g) => (typeof name === 'string' ? g.getAttribute('aria-label')!.startsWith(name) : name.test(g.getAttribute('aria-label')!)));
-  if (!found) throw new Error(`no ${name}: ${all.map((g) => g.getAttribute('aria-label')).join(' |')}`);
+  if (!found) throw new Error(`no ${name}: ${all.map((g) => g.getAttribute('aria-label')).join(' | ')}`);
   return found;
 };
 /** A tap on a thing on the picture (a click: no drag starts). */

@@ -5,8 +5,8 @@
  * builds shape by shape, and can be opened in Draw to be rearranged by hand.
  */
 import { readLines, writeLines, type Kind as LineKind } from './lines.ts';
-import { parse, write, type Block as TloBlock } from './tlo.ts';
-import { defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
+import { parse, plain, write, type Block as TloBlock } from './tlo.ts';
+import { appOf, defineApp, utf8, pageSvg, listPage, xml, FONT, type AppDef, type Page } from '../kit/core.ts';
 import { resolve } from '../kit/embed.ts';
 import { parseOutline } from './outlinemodel.ts';
 import { GRID, W, H, isLink, serializeDrawing, type Color, type Fill, type Kind, type Shape, type TextSize } from './drawmodel.ts';
@@ -169,17 +169,36 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
   const { downloads = [], ...rest } = app;
   return defineApp({
     title: () => '',
-    // Its lines, without the marks that make them list items or joins.
-    outline: (body) => body.split('\n').map((l) => l.trim().replace(/^[-*+~]\s+/, '')).filter(Boolean).slice(0, 12),
+    outline: (body) => wordsOf(body).slice(0, 12),
     view: (body, opts = {}) => [page(body, opts.step)],
     // On a slide a diagram appears a shape per click, in the order it was written.
     steps: (body) => spec.layout(body).shapes.length,
     downloads: [{ ext: 'svg', label: 'SVG image', mime: 'image/svg+xml', build: (b) => utf8('<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(page(b)) + '\n') }, ...downloads],
     shortcuts: OUTLINE_KEYS,
+    // Its picture, as shapes to move about by hand.
+    into: { draw: (body) => toDrawing(spec.layout(body)) },
     // A diagram is a kind of drawing, unless it says where it belongs.
     ...(app.group === undefined && app.under === undefined ? { group: 'Design', under: 'draw' } : {}),
     ...rest,
   });
+}
+
+/**
+ * A document's words, a line each, as a list of contents or a slide shows
+ * them: headings, paragraphs and list items without their marks, a table's
+ * rows with their cells side by side, a join as "A → B", another document
+ * by its name. The header is settings, not words.
+ */
+export function wordsOf(body: string): string[] {
+  const words = (s: string) => plain(s).trim();
+  return parse(body).blocks.flatMap((b): string[] => {
+    if (b.k === 'h' || b.k === 'li') return [words(b.text)];
+    if (b.k === 'p' || b.k === 'quote') return b.text.split('\n').map(words);
+    if (b.k === 'table') return b.rows.map((r) => r.map(words).filter(Boolean).join('  ·  '));
+    if (b.k === 'edge') return [`${words(b.from)} → ${words(b.to)}${b.label ? ': ' + words(b.label) : ''}`];
+    if (b.k === 'fence') return b.lang && appOf(b.lang) ? [`↗  ${resolve(`${b.lang}\n${b.body}`).title}`] : b.body.split('\n');
+    return [];
+  }).filter(Boolean);
 }
 
 /**
@@ -189,13 +208,7 @@ export function defineDiagram(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'
  */
 export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string, opts?: PageOpts): string }): AppDef {
   registerSpec(app.id, spec);
-  // Its lines, as words: headings without their marks, an embedded document by its name.
-  const lines = (body: string) =>
-    body
-      .split('\n')
-      .map((l) => l.trim().replace(/^(#+|=+)\s*/, ''))
-      .filter(Boolean)
-      .map((l) => (l.startsWith('@@') ? `↗  ${resolve(l.slice(2)).title}` : l));
+  const lines = wordsOf;
   // Its title is its "# Heading", unless it says otherwise.
   const title = app.title ?? h1;
   return defineApp({

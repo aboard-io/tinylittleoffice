@@ -213,7 +213,7 @@ export function button(name: string | RegExp, root: ParentNode = document): HTML
   const all = $$('button, sl-button, [role="button"]', root);
   const label = (b: Element) => b.getAttribute('aria-label') ?? text(b);
   const found = all.find((b) => (typeof name === 'string' ? label(b) === name : name.test(label(b))));
-  if (!found) throw new Error(`no button ${name}: ${all.map(label).filter(Boolean).slice(0, 40).join(' |')}`);
+  if (!found) throw new Error(`no button ${name}: ${all.map(label).filter(Boolean).slice(0, 40).join(' | ')}`);
   return found;
 }
 
@@ -228,7 +228,7 @@ export async function menu(trigger: string, item: string | RegExp) {
   const dropdown = button(trigger).closest('sl-dropdown')!;
   const items = $$('sl-menu-item', dropdown);
   const found = items.find((i) => (typeof item === 'string' ? text(i) === item : item.test(text(i))));
-  if (!found) throw new Error(`no item ${item} in ${trigger}: ${items.map(text).join(' |')}`);
+  if (!found) throw new Error(`no item ${item} in ${trigger}: ${items.map(text).join(' | ')}`);
   choose(found);
   await idle();
 }

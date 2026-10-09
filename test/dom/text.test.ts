@@ -164,19 +164,23 @@ test('outline: a document as an item, made in its own editor; the outline seen a
   expect(bodyOf()).toMatch(/\n```sheet[^\n]*\n[^`]*Budget/);
   // The same text, as a deck: a slide for every level with something under it.
   const back = location.hash;
-  const seeAs = async (value: string) => {
-    const menu = [...ol().querySelectorAll('sl-dropdown')].find((d) => d.textContent?.includes('See as'))!.querySelector('sl-menu')!;
-    const it = menu.querySelector(`sl-menu-item[value="${value}"]`)!;
-    menu.dispatchEvent(new CustomEvent('sl-select', { bubbles: true, composed: true, detail: { item: it } }));
+  // Open as another app: the same words, each app's link in a list (each opens a new tab; here, followed in this one).
+  const seeAs = async (name: string, value: string) => {
+    await choose('Download', /Open as another app/);
+    const find = () => [...document.querySelectorAll<HTMLAnchorElement>('#open-as a')].find((a) => a.textContent!.trim() === name);
+    await until(() => expect(find()).toBeTruthy());
+    const link = find()!;
+    expect(link.target).toBe('_blank');
+    location.hash = link.getAttribute('href')!;
     await until(() => expect(location.hash).toMatch(new RegExp(`^#/v0/${value}/`)));
     await settleAll();
   };
-  await seeAs('deck');
+  await seeAs('Deck', 'deck');
   await until(() => expect(document.querySelectorAll('.deck-rail .deck-thumb')).toHaveLength(3));
   // And, back at the outline, as a mind map.
   location.hash = back;
   await until(() => expect(document.querySelector('to-outline')).toBeTruthy());
   await settleAll();
-  await seeAs('mind');
+  await seeAs('Mind map', 'mind');
   await until(() => expect(document.querySelector('to-mind .pic svg')?.textContent).toContain('Pricing'));
 });

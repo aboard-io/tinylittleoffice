@@ -11,7 +11,7 @@
  *   --- | --- | --- | ---
  *   Lisbon | 38.70775 | -9.13659 | Pastel de nata first
  */
-import { parse, write, column, type Block } from './tlo.ts';
+import { parse, write, columnsOf, type Block } from './tlo.ts';
 
 export interface Stop {
   lat: number;
@@ -29,9 +29,7 @@ const valid = (lat: number, lon: number) => Number.isFinite(lat) && Number.isFin
 
 /** The stops of a table, its columns found by name in any order: Place (or Name, Stop), Lat, Lon, Note. */
 function tableStops(b: Extract<Block, { k: 'table' }>): Stop[] | null {
-  const names = b.head.map((h) => column(h).name.toLowerCase());
-  const find = (...want: string[]) => names.findIndex((n) => want.includes(n));
-  const [name, lat, lon, note] = [find('place', 'name', 'stop', 'where'), find('lat', 'latitude'), find('lon', 'lng', 'long', 'longitude'), find('note', 'notes', 'description', 'desc')];
+  const [name, lat, lon, note] = columnsOf(b, /^(place|name|stop|where)$/, /^(lat|latitude)$/, /^(lon|lng|long|longitude)$/, /^(notes?|description|desc)$/);
   if (lat < 0 || lon < 0) return null;
   return b.rows.flatMap((r) => {
     const [y, x] = [parseFloat(r[lat]), parseFloat(r[lon])];

@@ -10,7 +10,7 @@
  *   Design | 2027-03-01 | 5 | 50%
  *   - Sketch | 2027-03-01 | 2 | 100%
  */
-import { parse, write, column } from './tlo.ts';
+import { parse, write, columnsOf } from './tlo.ts';
 import { EPOCH_DAY, isoDay } from './calmodel.ts';
 import { ymdToDay } from './tz.ts';
 
@@ -48,9 +48,7 @@ export function parseGantt(text: string): GanttTask[] {
   const out: GanttTask[] = [];
   for (const b of parse(text).blocks) {
     if (b.k !== 'table') continue;
-    const names = b.head.map((h) => column(h).name.toLowerCase().replace(/\s*%$/, ''));
-    const find = (...want: string[]) => names.findIndex((n) => want.includes(n));
-    const [name, start, days, end, done, level] = [find('task', 'name', 'what'), find('start', 'starts', 'from', 'date'), find('days', 'duration', 'length'), find('end', 'ends', 'to', 'until'), find('done', 'progress', 'complete'), find('level', 'depth')];
+    const [name, start, days, end, done, level] = columnsOf(b, /^(task|name|what)$/, /^(start|starts|from|date)$/, /^(days|duration|length)$/, /^(end|ends|to|until)$/, /^(done|progress|complete)( ?%)?$/, /^(level|depth)$/);
     if (start < 0) continue;
     for (const r of b.rows) {
       const from = dayOf(r[start]);

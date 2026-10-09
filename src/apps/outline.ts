@@ -8,12 +8,12 @@
  * both ways; the plus beside it names the line. Connect joins any two
  * items. Format: a nested list, lib/outlinemodel.ts.
  */
-import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, hashOf, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
-import { blockEnd, hasChildren, liveLinks, move, outlineToDeck, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
+import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, makeRef, SELF, type TemplateResult, type SlInput, btn } from '../kit.ts';
+import { blockEnd, hasChildren, liveLinks, move, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
 import { withHead } from '../lib/tlo.ts';
 import '../widgets/insert-box.ts';
 import { plainInline } from '../lib/richtext.ts';
-import { DIR_NAME, outlineAs } from './outline.def.ts';
+import { DIR_NAME } from './outline.def.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
 import './outline.css';
@@ -345,16 +345,6 @@ export class ToOutline extends DocElement<Item[]> {
         </sl-button-group>
         ${this.zoom >= 0 ? tool('Zoom out', 'left', () => this.zoomOut(), { text: true }) : nothing}
         <to-insert label="Insert" placeholder="Insert a document…" .options=${insertOptions('outline')} @pick=${(e: CustomEvent<string>) => this.insertDoc(e.detail)}></to-insert>
-        <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (location.hash = e.detail.item.value === 'deck' ? hashOf('deck', outlineToDeck(items)) : outlineAs(e.detail.item.value, this.serialize(items)))}>
-          <sl-button slot="trigger" size="small" caret>${icon(UI.mind, 14)} See as</sl-button>
-          <sl-menu>
-            <sl-menu-item value="deck">${icon(UI.deck, 14, 'pre')} Deck: a slide for every level</sl-menu-item>
-            <sl-menu-item value="mind">${icon(UI.mind, 14, 'pre')} Mind map</sl-menu-item>
-            <sl-menu-item value="org">${icon(UI.org, 14, 'pre')} Org chart</sl-menu-item>
-            <sl-menu-item value="family">${icon(UI.family, 14, 'pre')} Family tree</sl-menu-item>
-            <sl-menu-item value="net">${icon(UI.net ?? UI.mind, 14, 'pre')} Network: every line and join</sl-menu-item>
-          </sl-menu>
-        </sl-dropdown>
         <span class="to-spacer"></span>
         <span class="to-hint">${items.filter((it) => it.text.trim()).length} items</span>
       </div>

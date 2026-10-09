@@ -1,7 +1,7 @@
 // The outline's lines between items: their kinds and names as an item's attributes, joins as edges "~ A -> B: name", documents as fences.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { liveLinks, outlineToDeck, outlineToNet, outlineToOrg, parseLinks, parseOutline, plainOutline, readOutline, readTree, serializeOutline } from '../src/lib/outlinemodel.ts';
+import { liveLinks, outlineToDeck, outlineToNet, outlineToOrg, parseLinks, parseOutline, readPlainTree, readOutline, readTree, serializeOutline } from '../src/lib/outlinemodel.ts';
 
 const DOC = '- Launch\n  - Product {.from}\n    - Pricing {.from label=sets}\n  - Marketing {.both}\n  - Ops {label="part of"}\n  - Support {.to}\n\n~ Pricing -> Marketing: feeds\n~ Ops -- Product';
 
@@ -45,7 +45,7 @@ test('loose Markdown reads as the nested list: plain lines, other bullets, headi
 
 test('a mind map gets the plain list; an org chart its joins as dotted lines; a network every line and join', () => {
   const { items, links } = readTree(DOC);
-  assert.equal(plainOutline(items), '- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support');
+  assert.equal(readPlainTree(DOC), '- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support');
   assert.equal(outlineToOrg(items, links), '- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -- Marketing: feeds\n~ Ops -- Product');
   assert.equal(outlineToNet(items, links), '~ Launch -> Product\n~ Product -> Pricing: sets\n~ Launch <-> Marketing\n~ Launch -- Ops: part of\n~ Launch <- Support\n~ Pricing -> Marketing: feeds\n~ Ops -- Product');
   assert.equal(outlineToNet(parseOutline('- Alone\n- A\n  - B'), []), '- Alone\n\n~ A -- B');

@@ -1190,8 +1190,7 @@ test('outline: a tree of lines, moved about, and OPML out', async () => {
 
 test('outline: a deck for every level, and documents as items', async () => {
   const { parseOutline, serializeOutline } = await import('../src/lib/outlinemodel.ts');
-  const { outlineAs } = await import('../src/apps/outline.def.ts');
-  const { decodeEnvelope } = await import('../src/lib/envelope.ts');
+  const { convert } = await import('../src/kit/embed.ts');
   // An item that is a document: a fence, with its depth.
   const doc = '- Plan\n\n```todo {depth=1}\n- [ ] Buy milk\n```';
   const items = parseOutline(doc);
@@ -1200,14 +1199,16 @@ test('outline: a deck for every level, and documents as items', async () => {
   // The page draws it, small.
   assert.ok(appOf('outline')!.view(doc)[0].svg.includes('Buy milk'));
   assert.deepEqual(appOf('outline')!.outline(doc), ['Plan']);
-  // Seen as another app: the plain list, or the org chart with its joins as dotted lines.
-  const as = (app: string, body: string) => {
-    const m = /#\/v\d+\/([a-z]+)\/(.*)$/.exec(outlineAs(app, body))!;
-    return [m[1], decodeEnvelope(m[2], m[1]).body];
-  };
-  assert.deepEqual(as('mind', doc + '\n- Next {.to}'), ['mind', '- Plan\n- Next']);
-  assert.deepEqual(as('org', '- A\n  - B\n\n~ A -> B: helps'), ['org', '- A\n  - B\n\n~ A -- B: helps']);
-  assert.deepEqual(as('net', '- A\n  - B {.from}'), ['net', '~ A -> B']);
+  // Opened as another app, it is that app reading the words: the plain list, the org chart with its joins as
+  // dotted lines, a network of every line, a slide for every level, a board of stages.
+  const as = (app: string, body: string) => convert(appOf('outline')!, body, appOf(app)!);
+  assert.equal(as('mind', doc + '\n- Next {.to}'), '- Plan\n- Next');
+  assert.equal(as('org', '- A\n  - B\n\n~ A -> B: helps'), '- A\n  - B\n\n~ A -- B: helps');
+  assert.equal(as('net', '- A\n  - B {.from}'), '~ A -> B');
+  assert.equal(as('deck', '- Plan\n  - Build\n    - Test\n  - Ship'), '## Plan {.title}\n\n- Build\n- Ship\n\n---\n\n## Build\n\n- Test');
+  assert.equal(as('board', '- Plan\n  - To do\n    - Test\n  - Done\n    - Sketch'), '## To do\n\n- Test\n\n## Done\n\n- Sketch');
+  // A diagram has a way of its own into a drawing: its picture, as shapes.
+  assert.match(convert(appOf('mind')!, '- A\n  - B', appOf('draw')!), /^Kind \| X \| Y/);
 });
 
 test('a short link carries its key in the fragment; the server would hold only ciphertext', async () => {
@@ -1299,4 +1300,13 @@ test('pen shapes: any corners, kept as hundredths of the box; Motion morphs them
   assert.ok(text.includes(',p0:0/100:50/0:100'), text);
   assert.deepEqual(parseAnim(text).keys[0][1].pts, [0, 0, 100, 0, 100, 100]);
   assert.ok(frameSvg(parseAnim(text), 10).includes('points="16,8 112,8 112,56"'));
+});
+
+test('a document\'s contents are its words: no table rules, list marks or joins written as code', async () => {
+  const { wordsOf } = await import('../src/lib/diagram.ts');
+  assert.deepEqual(wordsOf('---\nteams: A, B\n---\n# Quiz\n\n## One\n\nQuestion | Answer\n--- | ---\nWhat **is** it? | A1\n\n- a list item\n\n~ Web -> API: calls'), ['Quiz', 'One', 'What is it?  ·  A1', 'a list item', 'Web → API: calls']);
+  for (const id of ['trivia', 'hunt', 'flashcards', 'menu', 'invoice', 'net']) {
+    const lines = appOf(id)!.outline((await import('../src/api.ts')).example(id));
+    assert.ok(lines.length && lines.every((l) => !/^(---|\||~ |- )|--- \|/.test(l)), `${id}: ${lines.join(' / ')}`);
+  }
 });

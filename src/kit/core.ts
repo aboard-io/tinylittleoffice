@@ -96,6 +96,12 @@ export interface AppDef {
    * format passes through. Used by plain-parameter links ("?doc=...").
    */
   read?(text: string): string;
+  /**
+   * This app's own ways to become another, where the other reading its
+   * words (`read`) would not do it justice: a diagram's picture as a
+   * drawing. (See kit/embed.ts convert.)
+   */
+  into?: Record<string, (body: string) => string>;
   /** Its HTML (see `html`) is the best way to read it: words that flow, rather than pictures of pages. */
   prose?: boolean;
   /** Formats beyond the ones every app gets (.html, .png, .pdf). */

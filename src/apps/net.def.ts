@@ -1,3 +1,5 @@
+import { nested, outlineToNet, readTree } from '../lib/outlinemodel.ts';
+import { plainInline } from '../lib/richtext.ts';
 /** Network: things and the connections between them. */
 import { readLines, writeLines, type Kind as LineKind } from '../lib/lines.ts';
 import { parse } from '../lib/tlo.ts';
@@ -38,6 +40,8 @@ const edge = (a: string, dir: string, b: string, label = '') => {
 
 /** A network as it is loosely written: "A > B: label" and "A - B" lines as joins, any other line a thing on its own. */
 function read(text: string): string {
+  // A nested list (an outline) is a tree: each thing joined to the one it is under.
+  if (nested(text)) return writeLines(readLines(outlineToNet(readTree(text).items, readTree(text).links, plainInline), form), form);
   const loose = (l: string) => {
     const m = /^(.+?)\s+(<->|->|<-|--|>|-)\s+([^:]+?)(?::\s*(.*))?$/.exec(l.trim());
     return m ? edge(m[1], m[2], m[3], m[4]) : `- ${l.trim()}`;

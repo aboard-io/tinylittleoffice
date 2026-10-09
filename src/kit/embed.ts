@@ -20,6 +20,14 @@ export function linkToRef(text: string): string | null {
 /** A document to embed: its app and its text (and its name, kept in its own header). */
 export const makeRef = (app: string, body: string, title?: string) => `${app}\n${title ? withHead(body, { title }) : body}`;
 
+/**
+ * A document as another app sees it: every document is TLO, which every
+ * app reads, so mostly this is the other app reading the words (an outline
+ * read by a deck is a slide a level, by a board stages of cards); an app
+ * with a better way into another says so in `into`.
+ */
+export const convert = (from: AppDef, body: string, to: AppDef): string => from.into?.[to.id]?.(body) ?? (to.read ? to.read(body) : body);
+
 /** The fragment that opens a document: "#/v0/<app>/<payload>". */
 export const hashOf = (app: string, body: string, title?: string) => {
   const payload = encodeEnvelope({ created: null, body, title }, app);

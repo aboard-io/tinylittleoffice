@@ -3,7 +3,7 @@ import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, frame, join, outline, placeTree, shape, COLOR_CYCLE, type Diagram } from '../lib/diagram.ts';
 import { textWidth, wrapText } from '../kit/core.ts';
 import { iconOf } from '../lib/drawmodel.ts';
-import { outlineLines, readOutline } from '../lib/outlinemodel.ts';
+import { outlineLines, readPlainTree } from '../lib/outlinemodel.ts';
 
 function layout(text: string): Diagram {
   const placed = placeTree(outline(text));
@@ -36,4 +36,4 @@ export const spec = {
   layout,
 };
 
-export default defineDiagram({ id: 'mind', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.', outline: outlineLines, read: readOutline }, spec);
+export default defineDiagram({ id: 'mind', name: 'Mind map', icon: 'mind', blurb: 'An idea and everything that branches from it, drawn from an indented list.', outline: outlineLines, read: readPlainTree }, spec);

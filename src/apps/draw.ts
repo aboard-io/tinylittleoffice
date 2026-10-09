@@ -7,7 +7,7 @@
  */
 import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, hashOf, UI, type SlInput, type SlSelect, type SlTextarea } from '../kit.ts';
 import { W, H, GRID, COLORS, TEXT_SIZES, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
-import { parseAnim, serializeAnim } from '../lib/animmodel.ts';
+import { appOf, convert } from '../kit.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 
@@ -358,7 +358,7 @@ export class ToDraw extends DocElement<Shape[]> {
           data-tip=${this.alt ? `Alt text: ${this.alt}` : 'Add alt text: describe this drawing'}
           @click=${() => (this.altDraft = this.alt)}
         >${this.alt ? icon(UI.check, 12) : nothing}ALT</sl-button>
-        ${tool('Animate this drawing', 'play', () => (location.hash = hashOf('anim', serializeAnim(parseAnim(this.serialize(this.doc))))), { disabled: !this.doc.length, size: 16 })}
+        ${tool('Animate this drawing', 'play', () => (location.hash = hashOf('anim', convert(appOf('draw')!, this.serialize(this.doc), appOf('anim')!))), { disabled: !this.doc.length, size: 16 })}
         <sl-button-group label="Arrange">
           ${tool('Bring to front', 'front', () => this.reorder(true), { disabled: !s, size: 16 })}
           ${tool('Send to back', 'back', () => this.reorder(false), { disabled: !s, size: 16 })}

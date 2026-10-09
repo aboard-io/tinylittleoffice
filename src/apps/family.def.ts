@@ -1,7 +1,7 @@
 /** Family tree: an org chart whose boxes are people and couples. */
 import type { Kind as LineKind } from '../lib/lines.ts';
 import { defineDiagram, specOf } from '../lib/diagram.ts';
-import { outlineLines, readOutline } from '../lib/outlinemodel.ts';
+import { outlineLines, readPlainTree } from '../lib/outlinemodel.ts';
 import './org.def.ts';
 
 export const spec = {
@@ -13,4 +13,4 @@ export const spec = {
   layout: specOf('org')!.layout!,
 };
 
-export default defineDiagram({ id: 'family', name: 'Family tree', icon: 'family', blurb: 'A family tree: people and couples, with their children beneath them.', outline: outlineLines, read: readOutline }, spec);
+export default defineDiagram({ id: 'family', name: 'Family tree', icon: 'family', blurb: 'A family tree: people and couples, with their children beneath them.', outline: outlineLines, read: readPlainTree }, spec);
