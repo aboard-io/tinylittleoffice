@@ -1,52 +1,31 @@
 /** Calendar: what the shell knows about calendars. Format: lib/calmodel.ts. */
 import { defineApp, utf8, text, rect, clip, FAINT, LINE, MUTED, SHADE, type DownloadContext, type Page } from '../kit/core.ts';
 import { CAL_COLORS, clockMinutes, isoDay, occurrences, parseCalendar, readCalendar, repeatText, spanDays, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, type Every, type Span } from '../lib/calmodel.ts';
-import { clockString, dayString, dayToYmd, pad2, ymdString, ymdToDay, utcToParts } from '../lib/tz.ts';
+import { clockString, dayToYmd, pad2, ymdString, ymdToDay, utcToParts } from '../lib/tz.ts';
+import { icsDate, icsStamp, icsText, vcalendar } from '../lib/ics.ts';
 
-const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-const icsDate = (day: number) => dayString(day).replace(/-/g, '');
-const icsStamp = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
 const FREQ: Record<Every, string> = { d: 'DAILY', w: 'WEEKLY', m: 'MONTHLY', y: 'YEARLY' };
-
-/** Content lines may not exceed 75 octets; longer ones continue on a line starting with a space. */
-function icsFold(line: string): string {
-  const enc = new TextEncoder();
-  let out = '';
-  let width = 0;
-  for (const ch of line) {
-    const n = enc.encode(ch).length;
-    if (width + n > 73) {
-      out += '\r\n ';
-      width = 1;
-    }
-    out += ch;
-    width += n;
-  }
-  return out;
-}
 
 export function calendarToIcs(body: string, ctx: DownloadContext): string {
   const cal = parseCalendar(body);
   const stamp = icsStamp(ctx.created ?? EPOCH_MS);
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TinyLittleOffice//Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
-  cal.spans.forEach((s, i) => {
-    lines.push('BEGIN:VEVENT', `UID:${s.kind}${s.start.toString(36)}-${s.dur.toString(36)}-${i}@tinyoffice`, `DTSTAMP:${stamp}`);
+  return vcalendar(cal.spans.map((s, i) => {
+    const lines = ['BEGIN:VEVENT', `UID:${s.kind}${s.start.toString(36)}-${s.dur.toString(36)}-${i}@tinyoffice`, `DTSTAMP:${stamp}`];
     if (s.kind === 'd') {
       // All-day spans are floating dates; DTEND is exclusive.
-      lines.push(`DTSTART;VALUE=DATE:${icsDate(EPOCH_DAY + s.start)}`, `DTEND;VALUE=DATE:${icsDate(EPOCH_DAY + s.start + s.dur)}`);
+      lines.push(`DTSTART;VALUE=DATE:${icsDate(s.start)}`, `DTEND;VALUE=DATE:${icsDate(s.start + s.dur)}`);
     } else {
       lines.push(`DTSTART:${icsStamp(spanStartMs(s))}`, `DTEND:${icsStamp(spanEndMs(s))}`);
     }
     if (s.repeat) {
       // UNTIL is of DTSTART's kind: a date, or the end of that day in the calendar's zone as an instant.
       const r = s.repeat;
-      const until = r.until === undefined ? '' : s.kind === 'd' ? icsDate(EPOCH_DAY + r.until) : icsStamp(EPOCH_MS + clockMinutes(EPOCH_DAY + r.until, 23, 59, cal.zone || 'UTC') * 60000);
+      const until = r.until === undefined ? '' : s.kind === 'd' ? icsDate(r.until) : icsStamp(EPOCH_MS + clockMinutes(EPOCH_DAY + r.until, 23, 59, cal.zone || 'UTC') * 60000);
       lines.push(`RRULE:FREQ=${FREQ[r.every]}${r.count ? `;COUNT=${r.count}` : until ? `;UNTIL=${until}` : ''}`);
     }
     lines.push(`SUMMARY:${icsText(s.label || 'Untitled')}`, 'END:VEVENT');
-  });
-  lines.push('END:VCALENDAR');
-  return lines.map(icsFold).join('\r\n') + '\r\n';
+    return lines;
+  }));
 }
 
 /** When a span happens, in words: floating dates as they are, instants in the calendar's own zone. */

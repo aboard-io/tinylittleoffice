@@ -46,7 +46,7 @@ test('a site of two pages: the page drawn afresh keeps its place, and the downlo
   expect(html).toContain('<section class="page" id="home">');
   expect(html).toContain('<section class="page" id="menu">');
   expect(html).toContain('<nav aria-label="Pages"><a href="#home">Home</a><a href="#menu">Menu</a></nav>');
-  expect(html).toContain('--a:#0f766e');
+  expect(html).toContain('--a:oklch(from #0f766e ');
   expect(html).not.toContain('lf-at');
   expect(html.match(/<script>/g)).toHaveLength(1);
 });
@@ -95,7 +95,7 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   theme.dispatchEvent(new CustomEvent('sl-change', { bubbles: true, composed: true }));
   await settle(el);
   expect(last()).toMatch(/^---\ntheme: forest\n---\n# Harbor Coffee/);
-  expect(f.frame().getAttribute('srcdoc')).toContain('--a:#15803d');
+  expect(f.frame().getAttribute('srcdoc')).toContain('--a:oklch(from #15803d ');
   // The "+" at the end of the Menu page offers a card (among others); chosen, the card goes after that page's last row, with the cursor in it.
   const plus = f.page().querySelector('#menu .lf-plus[data-lf-menu]')!;
   const kinds = plus.getAttribute('data-lf-kinds')!.split(',').map((k) => f.data()!.k[+k].name);
@@ -146,5 +146,5 @@ test('Quick Links: the website\'s editor with one page, its themes, Insert for i
   theme.dispatchEvent(new CustomEvent('sl-change', { bubbles: true, composed: true }));
   await settle(el);
   expect(last()).toMatch(/^---\ntheme: candy\n---\n# Ada Diaz/);
-  expect(f.frame().getAttribute('srcdoc')).toContain('--a:#db2777');
+  expect(f.frame().getAttribute('srcdoc')).toContain('--a:oklch(from #db2777 ');
 });

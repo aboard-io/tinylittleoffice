@@ -3,6 +3,7 @@ import { defineApp, utf8, xml, wrap, text, place, pageSvg, MUTED, type DownloadC
 import { linkToRef, refPage, resolve } from '../kit/embed.ts';
 import { ALIGN_NAMES, linkify, listNumbers, parseDoc, runLinks, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
 import { refFence, parse, write, takeHead } from '../lib/tlo.ts';
+import { zip, XML_HEAD } from '../kit/zip.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { parseWeb } from '../lib/embeds.ts';
 
@@ -50,6 +51,81 @@ export function docToRtf(body: string, ctx: DownloadContext = { created: null })
     else out.push(`{\\pard\\sa160 ${runs}\\par}`);
   }
   return out.join('\n') + '\n}\n';
+}
+
+/* ---------- Word ---------- */
+
+const W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+/** Paper in twentieths of a point, and the margin: Letter with an inch, A4 with 25 mm. */
+const TWIPS: Record<Paper, { w: number; h: number; m: number }> = { letter: { w: 12240, h: 15840, m: 1440 }, a4: { w: 11906, h: 16838, m: 1417 } };
+
+/** A run as WordprocessingML: its marks as run properties; a link a hyperlink, through a relationship the caller gives out. */
+function docxRun(r: Run, rel: (url: string) => string): string {
+  if (r.ic) return '';
+  const props = (r.b ? '<w:b/>' : '') + (r.i ? '<w:i/>' : '') + (r.u ? '<w:u w:val="single"/>' : '') + (r.s ? '<w:strike/>' : '') + (r.h ? '<w:highlight w:val="yellow"/>' : '');
+  const run = (t: string, extra = '') => `<w:r>${props || extra ? `<w:rPr>${extra}${props}</w:rPr>` : ''}${t.split('\n').map((line) => `<w:t xml:space="preserve">${xml(line)}</w:t>`).join('<w:br/>')}</w:r>`;
+  return runLinks(r)
+    .map((p) => (p.url ? `<w:hyperlink r:id="${rel(p.url)}">${run(p.t, '<w:rStyle w:val="Hyperlink"/>')}</w:hyperlink>` : run(p.t)))
+    .join('');
+}
+
+/**
+ * The text as a Word document (.docx): the smallest WordprocessingML that
+ * Word, LibreOffice and Pages all open. Paragraphs, the title and headings
+ * as styles, bold, italic, underline, strike and highlight, lists bulleted
+ * or numbered to three levels (each numbered list starting at 1), links,
+ * alignment, the paper from the header; an embedded document a link to it;
+ * a picture from the web left out.
+ */
+export function docToDocx(body: string, ctx: DownloadContext = { created: null }): Uint8Array {
+  const rels: string[] = [];
+  const rel = (url: string) => {
+    const i = rels.indexOf(url);
+    return `rId${(i < 0 ? rels.push(url) : i + 1) + 2}`;
+  };
+  // Every numbered list is a numbering instance of its own, so each starts again at 1.
+  const nums: string[] = [];
+  let numbered = 0;
+  let prev = '';
+  const paras: string[] = [];
+  for (const blk of parseDoc(body)) {
+    const jc = blk.a ? `<w:jc w:val="${blk.a === 'c' ? 'center' : blk.a === 'r' ? 'right' : 'both'}"/>` : '';
+    const last = prev;
+    prev = blk.k;
+    if (blk.k === 'e') {
+      const p = resolve(blk.ref!);
+      const url = (ctx.base ?? '') + p.hash;
+      paras.push(`<w:p><w:hyperlink r:id="${rel(url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:b/></w:rPr><w:t xml:space="preserve">${xml(p.title)}</w:t></w:r></w:hyperlink><w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve"> (${xml(p.def?.name ?? 'Document')})</w:t></w:r></w:p>`);
+      continue;
+    }
+    const runs = blk.runs.map((r) => docxRun(r, rel)).join('');
+    if (blk.k === 'ul' || blk.k === 'ol') {
+      if (blk.k === 'ol' && last !== 'ol') nums.push(`<w:num w:numId="${(numbered = nums.length + 2)}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`);
+      paras.push(`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${Math.min(blk.d ?? 0, 2)}"/><w:numId w:val="${blk.k === 'ul' ? 1 : numbered}"/></w:numPr>${jc}</w:pPr>${runs}</w:p>`);
+      continue;
+    }
+    const style = blk.k === 'title' ? 'Title' : blk.k === 'h1' ? 'Heading1' : blk.k === 'h2' ? 'Heading2' : '';
+    paras.push(`<w:p>${style || jc ? `<w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${jc}</w:pPr>` : ''}${runs}</w:p>`);
+  }
+  const paper = TWIPS[paperOf(body)];
+  const sect = `<w:sectPr><w:pgSz w:w="${paper.w}" w:h="${paper.h}"/><w:pgMar w:top="${paper.m}" w:right="${paper.m}" w:bottom="${paper.m}" w:left="${paper.m}" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>`;
+  const bullets = ['\u2022', '\u2013', '\u00b7'];
+  const level = (i: number, kind: 'bullet' | 'decimal') =>
+    `<w:lvl w:ilvl="${i}"><w:start w:val="1"/><w:numFmt w:val="${kind}"/><w:lvlText w:val="${kind === 'bullet' ? bullets[i] : `%${i + 1}.`}"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="${720 * (i + 1)}" w:hanging="360"/></w:pPr>${kind === 'bullet' ? '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/></w:rPr>' : ''}</w:lvl>`;
+  const levels = (kind: 'bullet' | 'decimal') => [0, 1, 2].map((i) => level(i, kind)).join('');
+  const heading = (id: string, name: string, size: number, before: number) => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="${before}" w:after="120"/><w:outlineLvl w:val="${id === 'Title' ? 0 : id === 'Heading1' ? 0 : 1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr></w:style>`;
+  return zip(
+    {
+      '[Content_Types].xml': `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`,
+      '_rels/.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/officeDocument" Target="word/document.xml"/></Relationships>`,
+      'word/_rels/document.xml.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL_NS}/styles" Target="styles.xml"/><Relationship Id="rId2" Type="${REL_NS}/numbering" Target="numbering.xml"/>${rels.map((url, i) => `<Relationship Id="rId${i + 3}" Type="${REL_NS}/hyperlink" Target="${xml(url)}" TargetMode="External"/>`).join('')}</Relationships>`,
+      'word/styles.xml': `${XML_HEAD}<w:styles ${W_NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="IBM Plex Sans" w:hAnsi="IBM Plex Sans" w:cs="IBM Plex Sans"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>${heading('Title', 'Title', 52, 0)}${heading('Heading1', 'heading 1', 32, 360)}${heading('Heading2', 'heading 2', 26, 240)}<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="60"/><w:contextualSpacing/></w:pPr></w:style><w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="4F46E5"/><w:u w:val="single"/></w:rPr></w:style></w:styles>`,
+      'word/numbering.xml': `${XML_HEAD}<w:numbering ${W_NS}><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>${levels('bullet')}</w:abstractNum><w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>${levels('decimal')}</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>${nums.join('')}</w:numbering>`,
+      'word/document.xml': `${XML_HEAD}<w:document ${W_NS}><w:body>${paras.join('')}${sect}</w:body></w:document>`,
+    },
+    ctx.created,
+  );
 }
 
 /**
@@ -147,7 +223,7 @@ const title = (body: string) => {
 };
 
 /** The paper a text prints on: its size in px (96 to the inch) and its margin, an inch or 25 mm. */
-export const PAPERS = { letter: { name: 'Letter', w: 816, h: 1056, m: 96 }, a4: { name: 'A4', w: 794, h: 1123, m: 94 } } as const;
+export const PAPERS = { letter: { name: 'Letter', w: 816, h: 1056, m: 96, size: 'letter', margin: '1in' }, a4: { name: 'A4', w: 794, h: 1123, m: 94, size: 'A4', margin: '25mm' } } as const;
 export type Paper = keyof typeof PAPERS;
 /** The paper where the reader is: letter in North America, A4 nearly everywhere else (and where there is no reader: a program). */
 export const defaultPaper = (): Paper => (typeof navigator === 'undefined' || /-(US|CA|MX|PR|PH|CL|CO|VE|GT|CR|PA|DO)$/i.test(navigator.language) ? 'letter' : 'a4');
@@ -220,7 +296,11 @@ export default defineApp({
   html: docToHtml,
   read: readText,
   prose: true,
-  downloads: [{ ext: 'rtf', label: 'Rich Text', mime: 'application/rtf', build: (b, ctx) => utf8(docToRtf(b, ctx)) }],
+  paper: (body) => ({ size: PAPERS[paperOf(body)].size, margin: PAPERS[paperOf(body)].margin }),
+  downloads: [
+    { ext: 'docx', label: 'Word', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', build: docToDocx },
+    { ext: 'rtf', label: 'Rich Text', mime: 'application/rtf', build: (b, ctx) => utf8(docToRtf(b, ctx)) },
+  ],
   shortcuts: [
     { keys: 'Mod+B / Mod+I / Mod+U / Mod+Shift+H', does: 'Bold, italic, underline, highlight' },
     { keys: 'Mod+K', does: 'Link the selected words, or change the link the caret is in' },

@@ -28,7 +28,7 @@ import './apps/index.ts';
 import './apps/editors.ts';
 import { History, LINK, LINK_VERSION, apps, appOf, byGroup, clamp, docHtml, extOf, fmtDate, fmtUtc, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { REFRESH, download, formatsOf, picture, saveFile, withFonts } from './kit/browser.ts';
+import { REFRESH, download, formatsOf, picture, printDoc, saveFile, withFonts } from './kit/browser.ts';
 import { zip } from './kit/zip.ts';
 import { roomFor } from './lib/limits.ts';
 import { roomsTable } from './widgets/meter.ts';
@@ -63,7 +63,7 @@ const GLOBAL_KEYS: Shortcut[] = [
   { keys: 'Mod+/', does: 'Show these shortcuts' },
   { keys: 'Mod+K', does: 'Open the menu of apps (in text: link the selected words)' },
   { keys: 'Mod+S', does: 'Download (the first format in the Download menu)' },
-  { keys: 'Mod+P', does: 'Download as PDF' },
+  { keys: 'Mod+P', does: 'Print, or save as a PDF' },
   { keys: 'Mod+Shift+C', does: 'Copy the link' },
   { keys: 'Mod+Shift+L', does: 'Light, dark, or match the device' },
 ];
@@ -277,7 +277,7 @@ export class ToApp extends LitElement {
           : k === 's' && !e.shiftKey && this.def
             ? () => this.download(formatsOf(this.def!)[0].ext)
             : k === 'p' && !e.shiftKey && this.def
-              ? () => this.download('pdf')
+              ? () => this.download('print')
               : k === 'c' && e.shiftKey && this.def
                 ? () => this.share('copy')
                 : k === 'l' && e.shiftKey
@@ -459,6 +459,8 @@ export class ToApp extends LitElement {
     const def = this.def;
     if (!def) return;
     try {
+      // Print is the browser's: its dialog saves a PDF too (a link "<app>.print/..." prints on arrival).
+      if (ext === 'print') return await printDoc(def, this.env.body, { created: this.env.created, base: this.root }, this.env.title);
       const name = await download(def, this.env.body, ext, { created: this.env.created, base: this.root }, this.link, this.env.title);
       this.showToast(name ? `Downloaded ${name}` : `No .${extOf(ext)} view here`);
     } catch (err) {
@@ -688,6 +690,7 @@ export class ToApp extends LitElement {
                           <sl-menu-label>Download</sl-menu-label>
                           ${formatsOf(current).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
                           <sl-divider></sl-divider>
+                          <sl-menu-item value="print">${icon(UI.printer, 14, 'pre')} Print, or save as PDF…</sl-menu-item>
                           <sl-menu-item value="import">${icon(UI.insert, 14, 'pre')} Import Markdown or CSV…</sl-menu-item>
                           <sl-menu-item value="open-as">${icon(UI.compare, 14, 'pre')} Open as another app…</sl-menu-item>
                         </sl-menu>

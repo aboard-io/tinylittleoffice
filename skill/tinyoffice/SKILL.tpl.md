@@ -18,7 +18,7 @@ https://tinylittleoffice.com/<app>/#title=<title>&doc=<document>
 - `<app>` is one of the apps below.
 - `doc` is the document: TLO (Markdown), URL-encoded. A new line is `%0A`, a space is `+` or `%20`, and `& # % + =` inside the text must be percent-encoded. A CSV works too, as a table.
 - `title` is optional: the document's name. `by` is optional: who made it (your name as an agent, say), shown as a claim; a signature proves it.
-- `view` is optional: `show` opens a deck presenting, `embed` shows the document alone (for an iframe), and `pdf`, `png`, `html`, `md` or `tlo` download it.
+- `view` is optional: `show` opens a deck presenting, `embed` shows the document alone (for an iframe), `print` opens the browser's print dialog (which saves a PDF, in any script), and `pdf`, `png`, `html`, `md` or `tlo` download it; so do an app's own formats (`docx` and `rtf` for a text, `xlsx` and `csv` for a sheet, `pptx` for a deck, `ics` for a calendar, a schedule or a list, `svg` for a drawing, `gpx` or `geojson` for a trip, `opml` for an outline). What you can promise: the file is built in the browser from the link, named after the title, UTF-8 (CSV with Excel's byte order mark; a semicolon between cells where the reader's locale uses the decimal comma).
 - The document's own header may carry these instead, and name the app: a `doc` that starts `---%0Aapp: sheet%0Atitle: Budget%0A---` needs no other parameters (`https://tinylittleoffice.com/#doc=...`).
 
 Put the parameters after `#`, exactly as shown, never after `?`. The part of an address after `#` stays in the browser: it is not sent to the server, so the document is never logged anywhere.
@@ -83,7 +83,7 @@ Total | =SUM(B1:B2)
 
 ### write: a text
 
-Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only the address of a YouTube or Vimeo video, a Bluesky or X post, or a Markdown image `![what it shows](address)` is that thing, as a card that loads it only when tapped (in an outline, such an item; on a slide, the whole slide). `paper: a4` or `letter` in the header sets the PDF's paper. **contract** is written the same way, its signatures following in a `signatures` fence.
+Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only the address of a YouTube or Vimeo video, a Bluesky or X post, or a Markdown image `![what it shows](address)` is that thing, as a card that loads it only when tapped (in an outline, such an item; on a slide, the whole slide). `paper: a4` or `letter` in the header sets the paper it prints on (and the Word file's page). **contract** is written the same way, its signatures following in a `signatures` fence.
 
 {{doc:write:Meeting notes}}
 # Meeting notes
@@ -260,7 +260,7 @@ A drawing's table, then a table `Shape | Keys`: for each moving shape (its row n
 
 ## Calculator
 
-`calc`: the header names the mode, `mode: graph` (or `mortgage`, `invest`, `cashflow`, `interest`; the calculator itself needs none). For the calculator and the grapher, an expression per line (`2+3*4`, `sqrt(16)`, `sin(x)`); a line `name = expression` keeps its answer under that name for the lines after it, and `ans` is the line before; for the money modes, `- name = value` items: mortgage `price deposit rate years`, invest `start monthly return years`, cashflow `rate` and `year 0 = -100000`, interest `principal rate years times`.
+`calc`: the header names the mode, `mode: graph` (or `mortgage`, `invest`, `cashflow`, `interest`; the calculator itself needs none). For the calculator and the grapher, an expression per line (`2+3*4`, `sqrt(16)`, `sin(x)`, `20!`, `ln(e)`, `log(100)`); a line `name = expression` keeps its answer under that name for the lines after it, and `ans` is the line before. A line may carry units and convert them, mathjs style: `3 inch to cm`, `60 mph in km/h`, `2 cups + 3 tbsp`, `100 celsius to fahrenheit`, `5 km / 2 h to mph`; a named quantity stays one (`w = 3 inch`, then `w to cm`); `derivative("x^2", "x")` and `simplify("2x + 3x")` answer as algebra. Big numbers stay numbers (`171!`); for the money modes, `- name = value` items: mortgage `price deposit rate years`, invest `start monthly return years`, cashflow `rate` and `year 0 = -100000`, interest `principal rate years times`.
 
 {{ex:calc:Our mortgage}}
 

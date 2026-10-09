@@ -5,7 +5,7 @@
  */
 import { html, render } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { COMMON, MOVING, FONT, History, apps, byGroup, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
+import { COMMON, MOVING, FONT, History, apps, byGroup, docHtml, extOf, fileName, pageSvg, printHtml, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { SELF, makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
 import { embedOf, withAccount, type Embed } from '../lib/embeds.ts';
@@ -112,13 +112,27 @@ export function picture(def: AppDef, body: string): Promise<Uint8Array | null> {
  * Hand a file to the person. On a phone it opens in a tab of its own, to be
  * looked at (a phone shows a PDF, a picture, a PowerPoint or a spreadsheet,
  * and its viewer has its own share button); if the tab is refused, it goes
- * through the share sheet, which has Save to Files. Elsewhere, and if those
- * are refused, it is a download.
+ * through the share sheet, which has Save to Files. Elsewhere, a browser
+ * that asks where to save (the File System Access API) asks; the rest, and
+ * anything refused, is a download.
  */
 export async function saveFile(name: string, mime: string, data: Uint8Array) {
   const file = new File([data as BlobPart], name, { type: mime });
   const nav = navigator as Navigator & { canShare?(d: { files: File[] }): boolean };
   const phone = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  const picker = (window as Window & { showSaveFilePicker?(o: { suggestedName: string; types: { accept: Record<string, string[]> }[] }): Promise<{ createWritable(): Promise<{ write(d: Blob): Promise<void>; close(): Promise<void> }> }> }).showSaveFilePicker;
+  if (!phone && picker && window.isSecureContext) {
+    try {
+      const handle = await picker.call(window, { suggestedName: name, types: [{ accept: { [mime.split(';')[0]]: [name.slice(name.lastIndexOf('.'))] } }] });
+      const out = await handle.createWritable();
+      await out.write(file);
+      await out.close();
+      return;
+    } catch (err) {
+      // Cancelled: nothing to do. Refused (a gesture too long ago, a frame that may not ask): a download instead.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+    }
+  }
   if (phone) {
     const url = URL.createObjectURL(file);
     // Kept a while: the tab reads it after it opens, and may be reloaded.
@@ -254,6 +268,35 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
   if (!data) throw new Error('Could not draw the document');
   await saveFile(name, mime, data);
   return name;
+}
+
+/**
+ * Print the document, or save it as a PDF from the browser's print dialog:
+ * the browser's own text engine and every font on the device do the work,
+ * so a text in any script comes out as text. The page to print
+ * (core.ts printHtml) is loaded in a frame of its own, off the screen, so
+ * the editor around the document is never on the paper; the frame goes
+ * when the dialog closes.
+ */
+export async function printDoc(def: AppDef, body: string, ctx: DownloadContext, title = ''): Promise<void> {
+  document.querySelector('.to-print')?.remove();
+  const frame = document.createElement('iframe');
+  frame.className = 'to-print';
+  frame.title = 'Print';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  frame.srcdoc = await withFonts(printHtml({ def, body, title: title || undefined }, ctx));
+  await new Promise<void>((loaded) => {
+    frame.addEventListener('load', () => loaded(), { once: true });
+    document.body.append(frame);
+  });
+  const win = frame.contentWindow;
+  const done = () => frame.remove();
+  win?.addEventListener('afterprint', done, { once: true });
+  // A browser that never says the dialog closed: the frame goes anyway, after the fonts and pictures have had their moment.
+  setTimeout(done, 120_000);
+  win?.focus();
+  win?.print();
 }
 
 /* ---------- one document inside another ---------- */

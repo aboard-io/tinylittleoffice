@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import { strFromU8, unzipSync } from 'fflate';
 
 import '../src/apps/index.ts';
-import { apps, appOf, extOf, fileName, docHtml, pageSvg } from '../src/kit/core.ts';
+import { apps, appOf, csv, csvSeparator, extOf, fileName, docHtml, pageSvg, printHtml, slug } from '../src/kit/core.ts';
 import { pdf } from '../src/kit/pdf.ts';
 import { specOf } from '../src/lib/diagram.ts';
 import { calendarToIcs } from '../src/apps/cal.def.ts';
 import { deckToPptx } from '../src/apps/deck.def.ts';
-import { docToHtml, docToRtf } from '../src/apps/write.def.ts';
+import { docToDocx, docToHtml, docToRtf } from '../src/apps/write.def.ts';
+import { ganttToIcs } from '../src/apps/gantt.def.ts';
+import { todosToIcs } from '../src/apps/todo.def.ts';
 import { drawingToSvg } from '../src/apps/draw.def.ts';
 import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.ts';
 
@@ -24,12 +26,83 @@ test('every app is defined, and download names resolve', () => {
   assert.equal(appOf('tune'), undefined);
 });
 
-test('file names come from the document title', () => {
+test('file names come from the document title, in any script, safe on every filesystem', () => {
   assert.equal(fileName(appOf('deck')!, '## :rocket: Launch plan — Q3!\n\n- one', 'pptx'), 'launch-plan-q3.pptx');
   assert.equal(fileName(appOf('write')!, '# Café *memo*\n\nbody', 'rtf'), 'cafe-memo.rtf');
   assert.equal(fileName(appOf('deck')!, '', 'pptx'), 'deck.pptx');
   assert.equal(fileName(appOf('cal')!, '- 2020-01-02: x', 'ics'), 'cal.ics');
+  // Letters of every script stay (й keeps its breve; a Latin accent goes); what no filesystem takes goes.
+  assert.equal(fileName(appOf('write')!, '# Привет, κόσμε: 日本語 / файл?', 'docx'), 'привет-κόσμε-日本語-файл.docx');
+  assert.equal(slug('Straße <in> "Köln" | 2026*'), 'straße-in-koln-2026');
+  assert.equal(slug('😀 :) ...'), '');
+  assert.equal(extOf('doc'), 'docx');
 });
+
+test('CSV takes the separator of the place: a semicolon, with decimal commas, where the decimal mark is a comma', () => {
+  assert.ok([',', ';'].includes(csvSeparator()));
+  assert.equal(csv([['A', 'B'], ['1.5', 'x;y'], [2, 'a,b']], ';'), 'A;B\r\n1,5;"x;y"\r\n2;a,b\r\n');
+  assert.equal(csv([['1.5', 'a,b']]), '1.5,"a,b"\r\n');
+  assert.equal(sheetToCsv('N | Cost:money\n--- | ---\n1.25 | 2', ';'), 'N;Cost\r\n1,25;$2.00\r\n');
+});
+
+/** Every tag opened is closed, in order: what any XML reader would check first. */
+function balanced(xml: string): boolean {
+  const open: string[] = [];
+  for (const m of xml.matchAll(/<(\/?)([\w:.-]+)[^>]*?(\/?)>/g)) {
+    if (m[1]) {
+      if (open.pop() !== m[2]) return false;
+    } else if (!m[3] && !m[0].startsWith('<?')) open.push(m[2]);
+  }
+  return open.length === 0;
+}
+
+test('write to docx: WordprocessingML that opens anywhere, with styles, lists that restart, links and the paper', () => {
+  const body = '---\npaper: a4\n---\n# Memo {.title}\n\n# Plan\n\nPlain **bold** _it_ <u>under</u> ~~gone~~ ==hi== and https://x.y/z\n\n- one\n  - two\n\n1. first\n2. second\n\nBetween {.center}\n\n1. again\n\n```sheet\nA | B\n--- | ---\n1 | 2\n```';
+  const files = unzipSync(docToDocx(body, { ...ctx, base: 'https://example.com/' }));
+  const part = (name: string) => strFromU8(files[name]);
+  for (const name of ['[Content_Types].xml', '_rels/.rels', 'word/document.xml', 'word/styles.xml', 'word/numbering.xml', 'word/_rels/document.xml.rels']) assert.ok(files[name] && balanced(part(name)), name);
+  assert.ok(part('[Content_Types].xml').includes('PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"'));
+  const doc = part('word/document.xml');
+  assert.ok(doc.startsWith('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'));
+  assert.ok(doc.includes('<w:pStyle w:val="Title"/></w:pPr><w:r><w:t xml:space="preserve">Memo</w:t></w:r>'));
+  assert.ok(doc.includes('<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t xml:space="preserve">Plan</w:t></w:r>'));
+  assert.ok(doc.includes('<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">bold</w:t></w:r>'));
+  assert.ok(doc.includes('<w:rPr><w:i/></w:rPr><w:t xml:space="preserve">it</w:t>') && doc.includes('<w:u w:val="single"/>') && doc.includes('<w:strike/>') && doc.includes('<w:highlight w:val="yellow"/>'));
+  // A nested bullet is level 1 of the bullet numbering; the two numbered lists are instances of their own, each starting at 1.
+  assert.ok(doc.includes('<w:numPr><w:ilvl w:val="1"/><w:numId w:val="1"/></w:numPr>'));
+  assert.ok(doc.includes('<w:numId w:val="2"/>') && doc.includes('<w:numId w:val="3"/>'));
+  assert.equal(part('word/numbering.xml').match(/<w:startOverride w:val="1"\/>/g)!.length, 2);
+  assert.ok(doc.includes('<w:jc w:val="center"/>'));
+  // Links in the words, and the embedded sheet as a link to it, are relationships to the outside.
+  const rels = part('word/_rels/document.xml.rels');
+  assert.ok(doc.includes('<w:hyperlink r:id="rId3"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">https://x.y/z</w:t></w:r></w:hyperlink>'));
+  assert.ok(rels.includes('Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://x.y/z" TargetMode="External"'));
+  assert.ok(rels.includes('Target="https://example.com/#/v0/sheet/') && doc.includes('<w:hyperlink r:id="rId4">'));
+  assert.ok(doc.includes('<w:pgSz w:w="11906" w:h="16838"/>'));
+  assert.ok(strFromU8(unzipSync(docToDocx('# Hi'))['word/document.xml']).includes('<w:pgSz w:w="12240" w:h="15840"/>'));
+  // Characters are what they are, escaped for XML only.
+  assert.ok(strFromU8(unzipSync(docToDocx('Привет <κόσμε> & 日本語'))['word/document.xml']).includes('<w:t xml:space="preserve">Привет &lt;κόσμε&gt; &amp; 日本語</w:t>'));
+});
+
+test('a schedule and a list as iCalendar: all-day events, to-dos; UTF-8 folded at 75 octets without breaking a character', () => {
+  const gantt = ganttToIcs('Task | Start | Days | Done\n--- | --- | --- | ---\nПишем документацию для всех: ' + 'ё'.repeat(40) + ' | 2020-01-03 | 2 | 0%\nSub | 2020-01-04 | 1 | 50%', ctx);
+  assert.ok(gantt.includes('BEGIN:VEVENT\r\nUID:') && gantt.includes('DTSTART;VALUE=DATE:20200103\r\nDTEND;VALUE=DATE:20200105\r\nSUMMARY:Пишем'));
+  assert.ok(gantt.includes('DESCRIPTION:50% done'));
+  for (const line of gantt.split('\r\n')) assert.ok(new TextEncoder().encode(line).length <= 75, line);
+  assert.ok(gantt.replace(/\r\n /g, '').includes('Пишем документацию для всех: ' + 'ё'.repeat(40)));
+  assert.equal(gantt.match(/BEGIN:VEVENT/g)!.length, 2);
+  const todo = todosToIcs('- [x] Buy milk\n- [ ] Call 日本 {.star due=2020-02-01}', ctx);
+  assert.ok(todo.includes('BEGIN:VTODO\r\nUID:') && todo.includes('SUMMARY:Buy milk\r\nSTATUS:COMPLETED\r\nEND:VTODO'));
+  assert.ok(todo.includes('SUMMARY:Call 日本\r\nSTATUS:NEEDS-ACTION\r\nDUE;VALUE=DATE:20200201\r\nPRIORITY:1\r\nEND:VTODO'));
+  assert.ok(todo.includes('DTSTAMP:20260102T030400Z') && todo.endsWith('END:VCALENDAR\r\n'));
+  // No byte order mark anywhere but CSV, where Excel wants one.
+  for (const [id, ext] of [['cal', 'ics'], ['gantt', 'ics'], ['todo', 'ics'], ['write', 'rtf'], ['outline', 'opml'], ['trip', 'gpx']]) {
+    const d = appOf(id)!.downloads!.find((x) => x.ext === ext)!;
+    assert.notEqual(d.build!(appOf(id)!.id === 'trip' ? '' : '- x', ctx)[0], 0xef, `${id}.${ext}`);
+  }
+  for (const id of ['sheet', 'board', 'gantt']) assert.equal(appOf(id)!.downloads!.find((x) => x.ext === 'csv')!.build!('A | B\n--- | ---\n1 | 2', ctx)[0], 0xef, `${id}.csv has the mark`);
+});
+
 
 test('every app draws itself, and is a web page with preview tags', () => {
   const samples: Record<string, string> = {
@@ -124,6 +197,23 @@ test('sheet to xlsx: formulas survive in Excel dialect', () => {
   assert.match(named, /<row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">Item<\/t><\/is><\/c><c r="B1" t="inlineStr"><is><t xml:space="preserve">Cost<\/t>/);
   assert.match(named, /<c r="B2" s="2"><v>1200<\/v><\/c>/);
   assert.match(named, /<c r="B3" s="2"><f>SUM\(B2:B2\)<\/f><v>1200<\/v><\/c>/);
+});
+
+test('the page to print: prose on its paper with the text of every script as text; pictures a page each at their own size', () => {
+  const write = appOf('write')!;
+  const a4 = printHtml({ def: write, body: '---\npaper: a4\n---\n# Привет, κόσμε\n\nñandú and 日本語 **bold**' }, ctx);
+  assert.ok(a4.includes('@page{size:A4;margin:25mm}'));
+  assert.ok(a4.includes('<meta charset="utf-8">'));
+  assert.ok(a4.includes('Привет, κόσμε') && a4.includes('ñandú and 日本語 <strong>bold</strong>'));
+  assert.ok(a4.includes('h1,h2,h3{break-after:avoid}'));
+  assert.ok(!a4.includes('<svg'), 'prose is text, not pictures');
+  assert.ok(printHtml({ def: write, body: '---\npaper: letter\n---\n# Hi' }, ctx).includes('@page{size:letter;margin:1in}'));
+  // A drawn document: a figure a page, the paper the page's own size, and the words still text in the SVG.
+  const zine = printHtml({ def: appOf('zine')!, body: '## Малые радости\n\nIssue one\n' }, ctx);
+  assert.ok(zine.includes('@page{size:11in 8.5in;margin:0}'));
+  assert.equal(zine.match(/<figure>/g)!.length, 1);
+  assert.ok(zine.includes('Малые радости'));
+  assert.ok(printHtml({ def: appOf('deck')!, body: '## One\n\n---\n\n## Two' }, ctx).includes('@page{size:10in 6.25in;margin:0}'));
 });
 
 test('write to rtf and html', () => {

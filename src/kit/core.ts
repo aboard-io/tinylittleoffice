@@ -106,6 +106,8 @@ export interface AppDef {
   into?: Record<string, (body: string) => string>;
   /** Its HTML (see `html`) is the best way to read it: words that flow, rather than pictures of pages. */
   prose?: boolean;
+  /** The paper its prose prints on (a text's "paper: a4"): CSS @page values. Without it, pictures print at their own size. */
+  paper?(body: string): { size: string; margin: string };
   /** Formats beyond the ones every app gets (.html, .png, .pdf). */
   downloads?: Download[];
   shortcuts?: Shortcut[];
@@ -144,8 +146,16 @@ export const xml = (s: string) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const csvCell = (s: string) => (/[",\r\n]/.test(s) || s !== s.trim() ? `"${s.replace(/"/g, '""')}"` : s);
-export const csv = (rows: (string | number)[][]) => (rows.length ? rows.map((r) => r.map((c) => csvCell(String(c))).join(',')).join('\r\n') + '\r\n' : '');
+/**
+ * The separator a CSV uses where this person is: a semicolon where the
+ * decimal mark is a comma (most of Europe, South America), as Excel there
+ * reads and writes; a comma elsewhere. Intl knows the locale's decimal mark.
+ */
+export const csvSeparator = (): string => (new Intl.NumberFormat().formatToParts(1.5).find((p) => p.type === 'decimal')?.value === ',' ? ';' : ',');
+const csvCell = (s: string, sep: string) => (s.includes(sep) || /["\r\n]/.test(s) || s !== s.trim() ? `"${s.replace(/"/g, '""')}"` : s);
+/** Rows as CSV. With a semicolon between the cells, a plain number is written with the decimal comma that goes with it. */
+export const csv = (rows: (string | number)[][], sep = ',') =>
+  rows.length ? rows.map((r) => r.map((c) => csvCell(sep === ';' && /^-?\d+\.\d+$/.test(String(c)) ? String(c).replace('.', ',') : String(c), sep)).join(sep)).join('\r\n') + '\r\n' : '';
 
 export const utf8 = (s: string) => new TextEncoder().encode(s);
 
@@ -164,12 +174,19 @@ export const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { date
 /** The same moment as anyone anywhere reads it: "2026-10-07 19:33 UTC". */
 export const fmtUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
+/**
+ * Words as a file name safe on every filesystem: letters and digits of any
+ * script (every filesystem now takes Unicode names), lowercased, joined by
+ * hyphens; Latin letters lose their accents (café is cafe), other scripts
+ * keep their marks (й is not и); nothing else, and never long.
+ */
 export function slug(s: string): string {
   return s
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/([A-Za-z])\p{M}+/gu, '$1')
+    .normalize('NFC')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48)
     .replace(/-+$/, '');
@@ -432,6 +449,39 @@ ${inner}
 `;
 }
 
+/**
+ * A document as a page for the browser to print, which is also how it
+ * becomes a PDF with real text in every script the reader's fonts have:
+ * prose as HTML on its paper (@page keeps the size and margins; headings
+ * stay with the line after them); anything else a page per picture, each
+ * at its own size with no margin, the text in the SVG still text.
+ */
+export function printHtml({ def, body, title: given }: DocRef, ctx: DownloadContext): string {
+  const title = given || def.title(body) || def.name;
+  const prose = def.prose && def.html;
+  const pages = prose ? [] : def.view(body);
+  const paper = def.paper?.(body) ?? { size: `${r(pages[0].w / 96)}in ${r(pages[0].h / 96)}in`, margin: '0' };
+  const inner = prose ? def.html!(body, ctx) : pages.map((p) => `<figure>${pageSvg(p, `role="img" aria-label="${xml(title)}"`)}</figure>`).join('\n');
+  const css = prose
+    ? `body{font:12pt/1.5 ${FONT};color:#000;margin:0}h1,h2,h3{break-after:avoid}p,li{orphans:2;widows:2}figure{break-inside:avoid;margin:1em 0}figure svg{display:block;max-width:100%;height:auto}a{color:inherit}table{border-collapse:collapse}th,td{border:1px solid ${LINE};padding:.3em .7em;text-align:left}td.n{text-align:right}ul.check{list-style:none;padding-left:0}`
+    : `body{margin:0}figure{margin:0;break-after:page}figure:last-child{break-after:auto}figure svg{display:block;width:100%;height:auto}`;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${xml(title)}</title>
+<style>
+@page{size:${paper.size};margin:${paper.margin}}
+${css}
+</style>
+</head>
+<body>
+${inner}
+</body>
+</html>
+`;
+}
+
 /** The formats every app has, after its own. */
 export const COMMON: { ext: string; label: string }[] = [
   { ext: 'pdf', label: 'PDF' },
@@ -443,7 +493,7 @@ export const COMMON: { ext: string; label: string }[] = [
 /** Apps that move offer a GIF as well. */
 export const MOVING: { ext: string; label: string } = { ext: 'gif', label: 'Animated GIF' };
 
-const ALIASES: Record<string, string> = { ppt: 'pptx', xls: 'xlsx', ical: 'ics', icalendar: 'ics', htm: 'html', markdown: 'md', json: 'geojson', image: 'png', jpg: 'png' };
+const ALIASES: Record<string, string> = { ppt: 'pptx', xls: 'xlsx', doc: 'docx', ical: 'ics', icalendar: 'ics', htm: 'html', markdown: 'md', json: 'geojson', image: 'png', jpg: 'png' };
 export const extOf = (ext: string) => ALIASES[ext.toLowerCase()] ?? ext.toLowerCase();
 
 /* ---------- undo ---------- */

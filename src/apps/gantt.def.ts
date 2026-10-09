@@ -1,12 +1,32 @@
 /** Gantt: what the shell knows about schedules. Format: lib/ganttmodel.ts. */
-import { defineApp, csv, utf8, text, rect, clip, r, ACCENT, INK, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
+import { defineApp, csv, csvSeparator, utf8, text, rect, clip, r, ACCENT, INK, LINE, MUTED, SHADE, type DownloadContext, type Page } from '../kit/core.ts';
 import { ganttRange, ganttSpans, parseGantt, readGantt } from '../lib/ganttmodel.ts';
-import { isoDay } from '../lib/calmodel.ts';
+import { EPOCH_MS, isoDay } from '../lib/calmodel.ts';
+import { icsDate, icsStamp, icsText, vcalendar } from '../lib/ics.ts';
 
-export function ganttToCsv(body: string): string {
+export function ganttToCsv(body: string, sep = csvSeparator()): string {
   const tasks = parseGantt(body);
   const spans = ganttSpans(tasks);
-  return csv([['Task', 'Level', 'Start', 'End', 'Days', 'Done %'], ...tasks.map((t, i) => [t.label, (t.depth ?? 0) + 1, isoDay(spans[i].start), isoDay(spans[i].start + spans[i].days - 1), spans[i].days, spans[i].done])]);
+  return csv([['Task', 'Level', 'Start', 'End', 'Days', 'Done %'], ...tasks.map((t, i) => [t.label, (t.depth ?? 0) + 1, isoDay(spans[i].start), isoDay(spans[i].start + spans[i].days - 1), spans[i].days, spans[i].done])], sep);
+}
+
+/** The schedule as a calendar: a task an all-day event over its days (DTEND is the day after the last), how far along it is in the description. */
+export function ganttToIcs(body: string, ctx: DownloadContext): string {
+  const tasks = parseGantt(body);
+  const spans = ganttSpans(tasks);
+  const stamp = icsStamp(ctx.created ?? EPOCH_MS);
+  return vcalendar(
+    tasks.map((t, i) => [
+      'BEGIN:VEVENT',
+      `UID:g${spans[i].start.toString(36)}-${spans[i].days.toString(36)}-${i}@tinyoffice`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${icsDate(spans[i].start)}`,
+      `DTEND;VALUE=DATE:${icsDate(spans[i].start + spans[i].days)}`,
+      `SUMMARY:${icsText(t.label || 'Untitled')}`,
+      ...(spans[i].done ? [`DESCRIPTION:${spans[i].done}% done`] : []),
+      'END:VEVENT',
+    ]),
+  );
 }
 
 /** The schedule as a page; `upTo` tasks of it while it builds. */
@@ -46,7 +66,10 @@ export default defineApp({
   // On a slide, the calendar is there and tasks arrive one at a time.
   steps: (body) => parseGantt(body).length,
   read: readGantt,
-  downloads: [{ ext: 'csv', label: 'CSV', mime: 'text/csv;charset=utf-8', build: (b) => utf8('\ufeff' + ganttToCsv(b)) }],
+  downloads: [
+    { ext: 'csv', label: 'CSV', mime: 'text/csv;charset=utf-8', build: (b) => utf8('\ufeff' + ganttToCsv(b)) },
+    { ext: 'ics', label: 'iCalendar', mime: 'text/calendar;charset=utf-8', build: (b, ctx) => utf8(ganttToIcs(b, ctx)) },
+  ],
   shortcuts: [
     { keys: 'Tab / Shift+Tab', does: 'Indent the task under the one above, or bring it back out' },
     { keys: 'Alt+Up / Alt+Down', does: 'Move the task' },

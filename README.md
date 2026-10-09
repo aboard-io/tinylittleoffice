@@ -9,7 +9,7 @@ the link and you have copied the file.
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
 | Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, named and locked cells, charts (a Sankey among them). Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT, models of a subscription business, a café, a freelancer and a mutual aid fund (each its flows as a Sankey over named assumptions), and a training log. |
-| Write | A rich text editor: headings, bold, italic, lists, other documents and things from the web in the text, a PDF on letter or A4 paper. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
+| Write | A rich text editor: headings, bold, italic, lists, other documents and things from the web in the text; printed (or saved as a PDF by the browser) on letter or A4 paper, or handed on as Word, RTF or Markdown. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
 | Deck  | Slides with a headline, bullets and an icon, or another document filling the slide; themes; Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid; a pen for any shape, corner by corner, and a freehand stroke; joins that follow their shapes. |
@@ -24,7 +24,7 @@ the link and you have copied the file.
 | Swimlanes | A process, step by step, with a lane for each person or team that acts. |
 | Venn | Two or three sets as overlapping circles, with what belongs where. |
 | Network | Things and the connections between them, drawn round a circle. |
-| Website | A site of little pages from a few lines, edited on the page itself (a "+" where anything can go); sixteen themes; a shop (a table of products, a cart, orders by email) if it lists what it sells; downloads as one HTML file with the pages switched by hash. |
+| Website | A site of little pages from a few lines, edited on the page itself (a "+" where anything can go); sixteen themes, each an accent its shades are derived from; a shop (a table of products, a cart, orders by email) if it lists what it sells; downloads as one HTML file with the pages switched by hash. |
 | Quick Links | A link-in-bio page: a picture, a line about you, a stack of buttons, the places you are at the foot. |
 | Invoice | A form laid out like the paper: who, what, how much; the sums done as you type, a PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
@@ -34,7 +34,7 @@ the link and you have copied the file.
 | Comic | A zine whose pages are panels, each typed into on the page; a folded mini comic out. |
 | Poster | A headline and a few lines, as big as one page allows. |
 | Name badges | A page per person, six to a sheet, ready to cut. |
-| Calculator | Plain (a line to type any expression into, and the tape beneath as a little program: `a = 12`, then `a * 3`, `ans`), scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
+| Calculator | Plain (a line to type any expression into, and the tape beneath as a little program: `a = 12`, then `a * 3`, `ans`; units and conversions too: `3 inch to cm`, `60 mph in km/h`, `2 cups + 3 tbsp`), scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
 | Pixel art | A 16 by 16 grid of squares to colour. |
 | Seating chart | Tables, with their people round them. |
 | Family tree | People and couples, with their children beneath them. |
@@ -63,7 +63,9 @@ Write's.
 
 Built with TypeScript, [Lit](https://lit.dev) web components,
 [Shoelace](https://shoelace.style) for the UI controls and
-[Lucide](https://lucide.dev) icons. It is responsive down to phone widths,
+[Lucide](https://lucide.dev) icons; [d3-sankey](https://github.com/d3/d3-sankey)
+lays out the Sankeys and [mathjs](https://mathjs.org) does the calculator's
+units. It is responsive down to phone widths,
 follows the system light or dark theme, and every document carries its
 creation time and can be cryptographically signed.
 
@@ -90,8 +92,9 @@ part: every app opened at both sizes, drawn, quiet, and no wider than the
 screen.
 
 The build is `index.html`, one stylesheet and one script with every app in
-it, so opening an app fetches nothing; only Trip's map library and the full
-icon set (for the icon picker) are fetched when first wanted. Cloudflare
+it, so opening an app fetches nothing; only Trip's map library, the
+calculator's units engine (mathjs) and the full icon set (for the icon
+picker) are fetched when first wanted. Cloudflare
 compresses what it serves. Host it on any static file server. `VITE_SITE_URL` in `.env` is the address it will be published
 at; the link-preview tags need it. `node scripts/make-icons.mjs` redraws the
 PNG icons and the preview card in `public/`.
@@ -141,17 +144,19 @@ as that file the moment it is opened, then shows the editor as usual:
 | ---------------------------- | ------------------------------------------------- |
 | `#/v0/sheet.xlsx/<payload>`  | Excel workbook, formulas intact (`.xls` also works) |
 | `#/v0/sheet.csv/<payload>`   | CSV of the computed values                        |
+| `#/v0/write.docx/<payload>`  | Word (`.doc` also works)                          |
 | `#/v0/write.rtf/<payload>`   | Rich Text                                         |
 | `#/v0/write.html/<payload>`  | A standalone web page                             |
 | `#/v0/deck.pptx/<payload>`   | PowerPoint, icons included (`.ppt` also works)    |
 | `#/v0/draw.svg/<payload>`    | SVG image                                         |
-| `#/v0/cal.ics/<payload>`     | iCalendar (`.ical` also works)                    |
+| `#/v0/cal.ics/<payload>`     | iCalendar (`.ical` also works); `gantt.ics` and `todo.ics` too |
 | `#/v0/<app>.md/<payload>`    | Markdown (every app; checkboxes, tables, headings) |
 | `#/v0/board.csv/<payload>`   | CSV of stage and card                             |
 | `#/v0/gantt.csv/<payload>`   | CSV of tasks with start and end dates             |
 | `#/v0/trip.gpx/<payload>`, `.geojson` | GPX route, or GeoJSON                    |
 | `#/v0/anim.svg/<payload>`    | Animated SVG                                      |
 | `#/v0/<app>.pdf/<payload>`   | PDF of any document, a page per page or slide     |
+| `#/v0/<app>.print/<payload>` | Opens the browser's print dialog, which saves a PDF too |
 | `#/v0/<app>.png/<payload>`   | The whole of any document as one picture          |
 | `#/v0/<app>.html/<payload>`  | Any document as a plain web page with preview tags |
 
@@ -161,7 +166,11 @@ lands in the show; "Edit this deck" (or Escape) takes them to the editor, and
 the Share menu also has the plain editing link.
 
 The same files are under the Download button on every document, and the
-Document dialog has a copy button for each download link. A password-locked
+Document dialog has a copy button for each download link. `docs/exports.md`
+lists every app's files and what each holds. Print (Mod+P, or the last item
+of the Download menu) is the browser's own: a text prints as text on its
+paper in any script the device has fonts for, and its dialog saves a PDF;
+anything drawn prints a page per picture at the page's own size. A password-locked
 link downloads once the password is entered. The file is named after the
 document's title when it has one. All of it is built in the browser by
 the app's definition (see "Adding an app"); nothing is sent anywhere.
@@ -201,15 +210,19 @@ the reference leaves to the apps:
   table without types, reads as a sheet too.
 - **Write** (`src/lib/richtext.ts`) shows a thing from the web as a card
   that loads it only when tapped (`src/lib/embeds.ts`). `paper: a4` or
-  `letter` in the header is the paper the PDF prints on; without it, the
-  reader's own. The pages have inch margins, a heading never sits alone at
-  the foot of one, and more than one page are numbered.
+  `letter` in the header is the paper it prints on; without it, the
+  reader's own. The pages have inch (or 25 mm) margins, a heading never sits
+  alone at the foot of one, and more than one page are numbered.
 - **Draw** (`src/lib/drawmodel.ts`) counts in 8-pixel grid units on a 640
   by 400 canvas. **Motion** (`src/lib/animmodel.ts`) is the same table with
   a table of keys per shape.
 - **Website** and **Quick Links** (`src/lib/sitemodel.ts`) share sixteen
-  themes, each a palette, a type and a corner, with the type and the mode
-  changeable on their own; the page edits itself (`src/lib/pageedit.ts`).
+  themes, each an accent, a type and a corner, with the type and the mode
+  changeable on their own. Every shade (the tint, the deep shade words take
+  on it, the accent lifted for a dark page) is the browser's own work:
+  `oklch(from <accent> …)` in the page's CSS holds the accent's hue at a
+  lightness fixed for the role, and a test checks every pair at WCAG AA;
+  the page edits itself (`src/lib/pageedit.ts`).
 - **Calendar** (`src/lib/calmodel.ts`) keeps an all-day span as a floating
   civil date, the same in every country, and a timed span as one absolute
   instant, shown in whichever zone the viewer picks. Time zone maths comes

@@ -1,9 +1,9 @@
 /** Board: what the shell knows about kanban boards. Format: lib/boardmodel.ts. */
-import { defineApp, csv, utf8, xml, text, rect, clip, wrapText, SHADE, LINE, MUTED, type Page } from '../kit/core.ts';
+import { defineApp, csv, csvSeparator, utf8, xml, text, rect, clip, wrapText, SHADE, LINE, MUTED, type Page } from '../kit/core.ts';
 import { parseBoard, progress, readBoard } from '../lib/boardmodel.ts';
 import { plainInline } from '../lib/richtext.ts';
 
-export const boardToCsv = (body: string) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, plainInline(c.text)]))]);
+export const boardToCsv = (body: string, sep = csvSeparator()) => csv([['Stage', 'Card'], ...parseBoard(body).flatMap((s) => s.cards.map((c) => [s.name, plainInline(c.text)]))], sep);
 
 /** The board as a page; `upTo` cards of it (counting stage by stage) while it builds. */
 function page(body: string, upTo = Infinity): Page {

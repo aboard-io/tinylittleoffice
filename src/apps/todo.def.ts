@@ -1,6 +1,8 @@
 /** Todo: what the shell knows about task lists. Format: lib/todomodel.ts. */
 import { toMarkdown } from '../lib/markdown.ts';
-import { defineApp, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type Page } from '../kit/core.ts';
+import { defineApp, utf8, xml, text, wrapText, rect, MUTED, ACCENT, FAINT, type DownloadContext, type Page } from '../kit/core.ts';
+import { EPOCH_MS } from '../lib/calmodel.ts';
+import { icsDate, icsStamp, icsText, vcalendar } from '../lib/ics.ts';
 import { parseTodos, readTodos } from '../lib/todomodel.ts';
 import { isoDay } from '../lib/calmodel.ts';
 
@@ -28,6 +30,23 @@ function page(body: string, upTo = Infinity, w = 720): Page {
   return { w, h: Math.max(narrow ? 60 : 120, y + 8), svg };
 }
 
+/** The list as a calendar's to-dos: each a VTODO, done or not, due on its day, a star the first priority. */
+export function todosToIcs(body: string, ctx: DownloadContext): string {
+  const stamp = icsStamp(ctx.created ?? EPOCH_MS);
+  return vcalendar(
+    parseTodos(body).map((t, i) => [
+      'BEGIN:VTODO',
+      `UID:t${i}-${(t.due ?? 0).toString(36)}@tinyoffice`,
+      `DTSTAMP:${stamp}`,
+      `SUMMARY:${icsText(t.text || 'Untitled')}`,
+      `STATUS:${t.done ? 'COMPLETED' : 'NEEDS-ACTION'}`,
+      ...(t.due !== null ? [`DUE;VALUE=DATE:${icsDate(t.due)}`] : []),
+      ...(t.star ? ['PRIORITY:1'] : []),
+      'END:VTODO',
+    ]),
+  );
+}
+
 export default defineApp({
   id: 'todo',
   group: 'Plan',
@@ -45,7 +64,10 @@ export default defineApp({
       .map((t) => `<li><input type="checkbox" disabled${t.done ? ' checked' : ''}> ${t.star ? `<strong>${xml(t.text)}</strong>` : xml(t.text)}${t.due !== null ? ` <small><time datetime="${isoDay(t.due)}">due ${isoDay(t.due)}</time></small>` : ''}</li>`)
       .join('\n')}\n</ul>`,
   // A list's own file is Markdown: what Ctrl+S saves.
-  downloads: [{ ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(toMarkdown(b)) }],
+  downloads: [
+    { ext: 'md', label: 'Markdown', mime: 'text/markdown;charset=utf-8', build: (b) => utf8(toMarkdown(b)) },
+    { ext: 'ics', label: 'iCalendar (to-dos)', mime: 'text/calendar;charset=utf-8', build: (b, ctx) => utf8(todosToIcs(b, ctx)) },
+  ],
   shortcuts: [
     { keys: 'Enter', does: 'Add the task being typed' },
     { keys: 'Alt+Up / Alt+Down', does: 'Move the task' },

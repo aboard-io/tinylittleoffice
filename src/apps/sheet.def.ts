@@ -1,5 +1,5 @@
 /** Sheet: what the shell knows about spreadsheets. Format and engine: lib/formula.ts. */
-import { defineApp, csv, utf8, xml, clip, rect, text, textWidth, LINE, SHADE, MUTED, type DownloadContext, type Page } from '../kit/core.ts';
+import { defineApp, csv, csvSeparator, utf8, xml, clip, rect, text, textWidth, LINE, SHADE, MUTED, type DownloadContext, type Page } from '../kit/core.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { COLS, ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, nameKey, namedCells, rcToRef, readSheet, serializeGrid, shiftFormula, tableIn, tableSheet, usedSize, type CellValue, type Sheet } from '../lib/formula.ts';
 import { chartData, chartPage, type ChartKind } from '../lib/chart.ts';
@@ -36,8 +36,8 @@ function lines(u: Measured): string[][] {
 }
 
 /** The table as a CSV: the names over the columns, if any, then the computed values. */
-export function sheetToCsv(body: string): string {
-  return csv(lines(usedGrid(body)));
+export function sheetToCsv(body: string, sep = csvSeparator()): string {
+  return csv(lines(usedGrid(body)), sep);
 }
 
 /**
