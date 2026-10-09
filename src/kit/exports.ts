@@ -6,7 +6,7 @@
  * and <a download> everywhere else. (The ideas of the old tree's kit/core.ts printHtml and kit/browser.ts.)
  */
 import type { AppDef, Doc, Export, ExportContext, Page } from './app.ts';
-import { INK, MUTED, FONT, PAPER, pageSvg, stack, fileName, xml } from './draw.ts';
+import { INK, MUTED, FONT, pageSvg, stack, fileName, xml } from './draw.ts';
 const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
 import { UI } from './icons.ts';
@@ -14,6 +14,8 @@ import { t } from './i18n.ts';
 import { toast } from './toast.ts';
 
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
+export { raster } from './raster.ts';
+import { raster } from './raster.ts';
 
 /* ---------- handing a file over ---------- */
 
@@ -57,26 +59,6 @@ export async function saveFile(name: string, mime: string, data: Uint8Array | st
 }
 
 /* ---------- the kit's own formats ---------- */
-
-/** Draw SVG markup as a PNG. `scale` trades sharpness for size. */
-export async function raster(svg: string, w: number, h: number, scale = 1): Promise<Uint8Array | null> {
-  try {
-    const img = new Image();
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    await img.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(w * scale);
-    canvas.height = Math.round(h * scale);
-    const g = canvas.getContext('2d')!;
-    g.fillStyle = PAPER;
-    g.fillRect(0, 0, canvas.width, canvas.height);
-    g.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/png'));
-    return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
-  } catch {
-    return null;
-  }
-}
 
 /** Sharp, but never an image so large a phone cannot hold it. */
 const sharp = (p: Page) => Math.max(1, Math.min(2, 4096 / Math.max(p.w, p.h)));

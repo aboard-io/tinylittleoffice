@@ -99,7 +99,10 @@ function bigOf(doc: Doc, at: number, t: Table, values: CellValue[][], named: Map
 /** Ops gathered in order, each applied to a running copy of the document so the next sees what it did. */
 class Builder {
   ops: Op[] = [];
-  constructor(public doc: Doc) {}
+  doc: Doc;
+  constructor(doc: Doc) {
+    this.doc = doc;
+  }
   push(...ops: Op[]) {
     for (const op of ops) {
       this.doc = apply(this.doc, op);

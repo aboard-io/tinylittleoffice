@@ -9,6 +9,7 @@ import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8, pageSvg } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
+import { raster } from '../../kit/raster.ts';
 import { tableToXlsx } from '../../kit/xlsx.ts';
 import { readSheet } from './model.ts';
 import { chartOf, sheetPages, sheetToCsv } from './view.ts';
@@ -50,7 +51,6 @@ export default defineApp({
       label: () => t('Chart (PNG)'),
       mime: 'image/png',
       build: async (doc) => {
-        const { raster } = await import('../../kit/exports.ts');
         const p = chartOf(readSheet(parse(doc)));
         return (p && (await raster(pageSvg(p), p.w, p.h, 2))) ?? new Uint8Array();
       },
