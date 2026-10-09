@@ -271,19 +271,24 @@ test('folding hides the family and counts it; Fold all and Unfold all; the zoom 
   button(el, 'Unfold all').click();
   await el.updateComplete;
   expect(rows(el)).toEqual([0, 1, 2, 3]);
-  // Alt+Left folds the row the caret is in; Alt+Right unfolds it.
+  // Mod+Alt+Up folds the row the caret is in; Mod+Alt+Down unfolds it. Alt+Left/Right are the Mac's word jumps: left alone.
   await choose(el, 1);
-  await keyOn(el, 1, 'ArrowLeft', { altKey: true });
+  await keyOn(el, 1, 'ArrowUp', { ctrlKey: true, altKey: true });
   expect(rows(el)).toEqual([0, 1, 3]);
-  await keyOn(el, 1, 'ArrowRight', { altKey: true });
+  await keyOn(el, 1, 'ArrowDown', { ctrlKey: true, altKey: true });
   expect(rows(el)).toEqual([0, 1, 2, 3]);
-  // Zoom: Mod+. on a row; the rows step in from it; Zoom out goes to the parent, then everything.
-  await keyOn(el, 1, '.', { ctrlKey: true });
+  const word = new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true });
+  textOf(el, 1).tx.dispatchEvent(word);
+  expect(word.defaultPrevented).toBe(false);
+  expect(rows(el)).toEqual([0, 1, 2, 3]);
+  // Zoom: Mod+Shift+. on a row (Mod+, is a Mac's Settings); the rows step in from it; Zoom out goes to the parent, then everything.
+  expect(button(el, 'Zoom in').title).toContain('.');
+  await keyOn(el, 1, '>', { ctrlKey: true, shiftKey: true, code: 'Period' });
   expect(rows(el)).toEqual([1, 2]);
   expect(row(el, 2).style.getPropertyValue('--d')).toBe('1');
   expect(row(el, 1).getAttribute('aria-level')).toBe('1');
-  button(el, 'Zoom out').click();
-  await el.updateComplete;
+  // Mod+Shift+, zooms out a step, the same as the bar's Zoom out.
+  await keyOn(el, 2, '<', { ctrlKey: true, shiftKey: true, code: 'Comma' });
   expect(rows(el)).toEqual([0, 1, 2, 3]);
   expect(el.querySelector('.ol-crumbs')!.textContent).toContain('Launch');
   button(el, 'Zoom out').click();
@@ -695,4 +700,204 @@ test('at phone width: the bar is one row of 44px buttons, type is 16px, nothing 
   } finally {
     await page.viewport(1100, 800);
   }
+});
+
+/* ---------- after the editing audit (docs/editing.md) ---------- */
+
+test('Enter on chosen rows edits the focus row; Escape in a row chooses it (selected words collapse first); a tap outside lets go', async () => {
+  const { el } = await editor('- A\n- B\n- C\n');
+  await choose(el, 1);
+  await keyOn(el, 1, 'Escape');
+  expect(ranged(el)).toEqual([1]);
+  expect(document.activeElement).toBe(tree(el));
+  await treeKey(el, 'Enter');
+  expect(ranged(el)).toEqual([]);
+  expect(focusedRow()).toBe(1);
+  expect(offsetIn(el, 1)).toBe(1);
+  // Words selected: the first Escape collapses them, the second chooses the row.
+  textOf(el, 2).sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 1 } };
+  await el.updateComplete;
+  await tick();
+  await keyOn(el, 2, 'Escape');
+  expect(ranged(el)).toEqual([]);
+  expect(textOf(el, 2).sel).toEqual({ anchor: { block: 0, offset: 1 }, focus: { block: 0, offset: 1 } });
+  await keyOn(el, 2, 'Escape');
+  expect(ranged(el)).toEqual([2]);
+  expect(contextOpen(el)).toBe(true);
+  // A tap on the page outside the outline lets the rows go and takes the bar away.
+  const outside = document.createElement('p');
+  outside.textContent = 'elsewhere';
+  document.body.append(outside);
+  outside.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  await el.updateComplete;
+  await tick();
+  expect(ranged(el)).toEqual([]);
+  expect(contextOpen(el)).toBe(false);
+});
+
+test('Mod+D duplicates: a row with its family after it (the caret in the copy), chosen rows (the copy chosen), and the bar’s Duplicate; undo puts the selection back', async () => {
+  const { el, last } = await editor(TREE);
+  await choose(el, 1, 3);
+  await keyOn(el, 1, 'd', { ctrlKey: true });
+  expect(last()).toBe('- Launch\n  - Product\n    - Pricing\n  - Product\n    - Pricing\n  - Marketing\n');
+  expect(focusedRow()).toBe(3);
+  expect(offsetIn(el, 3)).toBe(3);
+  await undo(el);
+  expect(last()).toBe(TREE);
+  // The caret is back in the row it was in, where it was.
+  expect(focusedRow()).toBe(1);
+  expect(offsetIn(el, 1)).toBe(3);
+  // Chosen rows: the copy follows them and is chosen.
+  await keyOn(el, 1, 'ArrowDown', { shiftKey: true });
+  await treeKey(el, 'd', { metaKey: true });
+  expect(last()).toBe('- Launch\n  - Product\n    - Pricing\n  - Product\n    - Pricing\n  - Marketing\n');
+  expect(ranged(el)).toEqual([3, 4]);
+  contextButton(el, 'Duplicate').click();
+  await el.updateComplete;
+  await tick();
+  expect(last()!.split('\n').filter((l) => l.trim() === '- Product')).toHaveLength(3);
+  expect(ranged(el)).toEqual([5, 6]);
+  // Undo: the rows chosen before the duplicate are chosen again.
+  await undo(el);
+  expect(ranged(el)).toEqual([3, 4]);
+  expect(contextOpen(el)).toBe(true);
+});
+
+test('undo brings back what was chosen: rows deleted, cut, moved or shifted are chosen again; typing puts the caret back where it began', async () => {
+  const { el, last } = await editor('- A\n- B\n- C\n');
+  row(el, 1).querySelector<HTMLButtonElement>('.ol-handle')!.click();
+  await el.updateComplete;
+  await treeKey(el, 'ArrowDown', { shiftKey: true });
+  await treeKey(el, 'Delete');
+  expect(last()).toBe('- A\n');
+  await undo(el);
+  expect(last()).toBe('- A\n- B\n- C\n');
+  expect(ranged(el)).toEqual([1, 2]);
+  expect(document.activeElement).toBe(tree(el));
+  await treeKey(el, 'ArrowUp', { altKey: true });
+  expect(last()).toBe('- B\n- C\n- A\n');
+  expect(ranged(el)).toEqual([0, 1]);
+  await undo(el);
+  expect(ranged(el)).toEqual([1, 2]);
+  await treeKey(el, 'Tab');
+  expect(last()).toBe('- A\n  - B\n  - C\n');
+  await undo(el);
+  expect(last()).toBe('- A\n- B\n- C\n');
+  expect(ranged(el)).toEqual([1, 2]);
+  // Typing, undone: the caret where the typing began.
+  await treeKey(el, 'Escape');
+  await choose(el, 0, 1);
+  await typeIn(el, 0, 'xyz');
+  expect(last()!.split('\n')[0]).toBe('- Axyz');
+  await undo(el);
+  expect(last()).toBe('- A\n- B\n- C\n');
+  expect(focusedRow()).toBe(0);
+  expect(offsetIn(el, 0)).toBe(1);
+});
+
+test('plain Up/Down keep the caret’s column and walk a long item’s lines; Left at the start and Right at the end cross into the next row', async () => {
+  const { el } = await editor('- abcdefgh\n- abcdefgh\n- abcdefgh\n');
+  await choose(el, 0, 4);
+  await tick(40);
+  await keyOn(el, 0, 'ArrowDown');
+  expect(focusedRow()).toBe(1);
+  await tick(40);
+  expect(offsetIn(el, 1)).toBe(4);
+  await keyOn(el, 1, 'ArrowUp');
+  expect(focusedRow()).toBe(0);
+  await tick(40);
+  expect(offsetIn(el, 0)).toBe(4);
+  // Right at the end of a row: the start of the next; Left at the start: the end of the one before.
+  await choose(el, 1, 8);
+  await keyOn(el, 1, 'ArrowRight');
+  expect(focusedRow()).toBe(2);
+  expect(offsetIn(el, 2)).toBe(0);
+  await keyOn(el, 2, 'ArrowLeft');
+  expect(focusedRow()).toBe(1);
+  expect(offsetIn(el, 1)).toBe(8);
+  // In the middle of the words they are the caret's own.
+  await choose(el, 1, 3);
+  const mid = new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true });
+  textOf(el, 1).tx.dispatchEvent(mid);
+  expect(mid.defaultPrevented).toBe(false);
+  // A long item that wraps: Up from its last line stays in it (the browser walks the lines).
+  const long = await editor(`- short\n- ${'many words that wrap '.repeat(12)}\n`);
+  await choose(long.el, 1);
+  await tick(40);
+  const up = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true });
+  textOf(long.el, 1).tx.dispatchEvent(up);
+  expect(up.defaultPrevented).toBe(false);
+  await choose(long.el, 1, 0);
+  await tick(40);
+  await keyOn(long.el, 1, 'ArrowUp');
+  expect(focusedRow()).toBe(0);
+});
+
+test('“1. ” typed at the start of a row numbers its list, and an undo gives the marker back', async () => {
+  const { el, last } = await editor('- A\n  - a1\n  - a2\n');
+  await choose(el, 1, 0);
+  await typeIn(el, 1, '1. ');
+  expect(last()).toBe('- A\n  1. a1\n  2. a2\n');
+  expect(row(el, 1).querySelector('.ol-n')!.textContent).toBe('1.');
+  expect(focusedRow()).toBe(1);
+  expect(offsetIn(el, 1)).toBe(0);
+  await undo(el);
+  expect(last()).toBe('- A\n  - 1. a1\n  - a2\n');
+  // Not at the start, it is words.
+  await choose(el, 2);
+  await typeIn(el, 2, ' 1. ');
+  expect(last()!.split('\n')[2]).toBe('  - a2 1.');
+});
+
+test('the bar: Indent before Bring out as under chosen rows; Connect, Zoom out and the fold arrow keep the focus; the rows never zoom the page on a double tap', async () => {
+  const { el } = await editor(TREE);
+  const tools = [...el.querySelectorAll<HTMLButtonElement>('.ol-bar button[aria-label]')].map((b) => b.getAttribute('aria-label'));
+  expect(tools.indexOf('Indent')).toBeLessThan(tools.indexOf('Bring out'));
+  await choose(el, 1);
+  await keyOn(el, 1, '>', { ctrlKey: true, shiftKey: true, code: 'Period' });
+  const keeps = (b: HTMLElement) => {
+    const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    b.dispatchEvent(e);
+    return e.defaultPrevented;
+  };
+  expect(keeps(byWords(el, 'Connect'))).toBe(true);
+  expect(keeps(button(el, 'Zoom out'))).toBe(true);
+  expect(keeps(row(el, 1).querySelector<HTMLElement>('.ol-fold')!)).toBe(true);
+  expect(getComputedStyle(tree(el)).touchAction).toBe('manipulation');
+  expect(getComputedStyle(row(el, 1).querySelector('.ol-handle')!).touchAction).toBe('none');
+  // The handle is the kit's: no HTML5 drag.
+  expect(row(el, 1).querySelector('.ol-handle')!.getAttribute('draggable')).toBeNull();
+});
+
+test('a drag by a row’s handle (pointer events) moves its family under or after another row, with the target drawn; a still tap chooses', async () => {
+  const { el, last } = await editor('- A\n- B\n  - b1\n- C\n');
+  const handle = row(el, 1).querySelector<HTMLElement>('.ol-handle')!;
+  const h = handle.getBoundingClientRect();
+  const c = row(el, 3).getBoundingClientRect();
+  const at = (type: string, x: number, y: number) => handle.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  at('pointerdown', h.left + 4, h.top + 4);
+  at('pointermove', h.left + 5, h.top + 5);
+  expect(el.rows.drag).toBeNull();
+  // Onto C's right half: under C.
+  at('pointermove', c.right - 10, c.top + c.height / 2);
+  await el.updateComplete;
+  expect(el.rows.drag).toMatchObject({ id: 1, over: 3, how: 'under' });
+  expect(row(el, 1).classList.contains('dragging')).toBe(true);
+  const line = document.querySelector<HTMLElement>('.to-rows-target')!;
+  expect(line.hidden).toBe(false);
+  expect(line.dataset.how).toBe('under');
+  expect(Math.abs(line.getBoundingClientRect().top - c.bottom)).toBeLessThan(3);
+  at('pointerup', c.right - 10, c.top + c.height / 2);
+  await el.updateComplete;
+  await tick();
+  expect(last()).toBe('- A\n- C\n  - B\n    - b1\n');
+  expect(document.querySelector('.to-rows-target')).toBeNull();
+  expect(ranged(el)).toEqual([]);
+  // A press that does not move is a tap: the row chosen.
+  const h2 = row(el, 0).querySelector<HTMLElement>('.ol-handle')!;
+  const r = h2.getBoundingClientRect();
+  for (const type of ['pointerdown', 'pointerup']) h2.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 8, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3 }));
+  h2.click();
+  await el.updateComplete;
+  expect(ranged(el)).toEqual([0]);
 });

@@ -3,7 +3,7 @@
 // documents as fences; loose words listified; the conversions a deck, a network and an org chart read.
 import { expect, test } from 'vitest';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { appendItem, connect, copySpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink } from '../model.ts';
+import { appendItem, connect, copySpan, duplicateSpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink } from '../model.ts';
 import { docGist, outlinePage, richText, wrapRuns } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -377,4 +377,14 @@ test('every template is a real outline that round-trips byte for byte and draws'
   expect(def.title('---\ntitle: Plan\n---\n' + TREE)).toBe('Plan');
   expect(def.retitle(TREE, 'Plan')).toBe('---\ntitle: Plan\n---\n' + TREE);
   expect(def.retitle('---\ntitle: Plan\n---\n' + TREE, '')).toBe(TREE);
+});
+
+test('duplicateSpan: the span’s items again right after it, one splice; the joins stay at the end', () => {
+  expect(after(TREE, (d, v) => duplicateSpan(d, v, spanOf(d, v, [1])!))).toBe('- Launch\n  - Product\n    - Pricing\n  - Product\n    - Pricing\n  - Marketing\n');
+  const d = parse('- A\n- B\n\n~ A -> B\n');
+  const v = readOutline(d);
+  const all = spanOf(d, v, [0, 1])!;
+  const r = duplicateSpan(d, v, all);
+  expect(r.at).toBe(2);
+  expect(write(applyAll(d, r.ops))).toBe('- A\n- B\n- A\n- B\n\n~ A -> B\n');
 });
