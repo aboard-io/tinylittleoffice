@@ -20,7 +20,7 @@
  * `move` (a family by the kernel's `placeFamily`) or the `text` ops that take it out of one list and put it
  * in another; a connection is a `splice` of an edge block; the kind is a `head` op.
  */
-import { apply, family, isAtomic, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, family, isAtomic, isText, moveFamily, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
 
 export const KINDS = ['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net'] as const;
 export type KindId = (typeof KINDS)[number];
@@ -466,3 +466,123 @@ export function tidy(doc: Doc, at: number): Op[] {
 
 /** The kind of diagram, as the head says it. */
 export const setKind = (doc: Doc, kind: KindId): Op[] => (kindOf(doc) === kind && doc.head.kind === kind ? [] : [{ op: 'head', key: 'kind', value: kind }]);
+
+/* ---------- a thing whole: copied, pasted, duplicated, moved ---------- */
+
+/** The part of a line a kind draws as the line's own shape: a lane's step its words, a set or a table its key, anything else all of it. */
+export const lineHit = (kind: KindId, at: number): Hit => ({ k: 'line', at, part: kind === 'lanes' ? 'words' : isListed(kind) ? 'key' : 'all' });
+
+/** A thing as blocks, for the clipboard: a line (a tree's with its family, brought to the margin), one thing of a list as a line of its own, a lane's steps, a thing only connections name, a connection. */
+export function thingBlocks(doc: Doc, hit: Hit): Block[] {
+  if (hit.k === 'edge') return doc.blocks[hit.at]?.k === 'edge' ? [doc.blocks[hit.at]] : [];
+  if (hit.k === 'node') return hit.name ? [li(0, [{ t: hit.name }])] : [];
+  if (hit.k === 'lane') return linesOf(doc).filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase()).map((l) => doc.blocks[l.at]);
+  const b = doc.blocks[hit.at];
+  if (!b || b.k !== 'li') return [];
+  if (typeof hit.part === 'number') {
+    const p = lineOf(b, hit.at).items[hit.part];
+    return p && (p.words || p.icon) ? [li(0, sliceRuns(b.runs, p.from, p.to))] : [];
+  }
+  const end = isTree(kindOf(doc)) ? family(doc, hit.at) : hit.at + 1;
+  return doc.blocks.slice(hit.at, end).map((x) => (x.k === 'li' ? { ...x, depth: x.depth - b.depth } : x));
+}
+
+/**
+ * Blocks pasted at a thing (or, with none, where a new thing goes): words alone into a list after the thing of it
+ * (a seat at a table, a thing of a set); else lines after the thing (a tree's after its family, at its level; a
+ * step into its lane), and any connections at the end, none twice. The ops, and the first thing pasted.
+ */
+export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[]): { ops: Op[]; hit: Hit | null } {
+  const kind = kindOf(doc);
+  const lis = blocks.flatMap((b): Extract<Block, { k: 'li' }>[] => (b.k === 'li' ? [b] : isText(b) && 'runs' in b && charsOf(b.runs).trim() ? [li(0, b.runs)] : []));
+  const edges = blocks.filter((b): b is Extract<Block, { k: 'edge' }> => b.k === 'edge');
+  const bd = new Builder(doc);
+  let first: Hit | null = null;
+  const at = hit?.k === 'line' && doc.blocks[hit.at]?.k === 'li' ? hit.at : -1;
+  const line = at >= 0 ? lineOf(doc.blocks[at] as Extract<Block, { k: 'li' }>, at) : null;
+  const part = hit?.k === 'line' ? hit.part : null;
+  if (lis.length && line && isListed(kind) && (typeof part === 'number' || part === 'key') && lis.every((b) => !lineOf(b, 0).key)) {
+    // Words into the list, after the thing in hand (or at the end, after the table's or the set's name).
+    const words = lis.map((b) => ({ b, p: lineOf(b, 0).all })).filter(({ p }) => p.words || p.icon);
+    const runs: Run[] = words.flatMap(({ b, p }, i) => [...(i ? [{ t: ', ' }] : []), ...sliceRuns(b.runs, p.from, p.to)]);
+    if (!runs.length) return { ops: [], hit: null };
+    const things = line.items.filter((p) => p.words || p.icon);
+    const n = typeof part === 'number' ? part : line.items.length - 1;
+    if (!things.length) bd.push({ op: 'text', at, from: line.chars.length, to: line.chars.length, runs: [{ t: line.key ? (/\s$/.test(line.chars) ? '' : ' ') : ': ' }, ...runs] });
+    else bd.push({ op: 'text', at, from: line.items[n].to, to: line.items[n].to, runs: [{ t: ', ' }, ...runs] });
+    first = { k: 'line', at, part: things.length ? n + 1 : 0 };
+  } else if (lis.length) {
+    let to: number;
+    let depth = 0;
+    const root = linesOf(doc).find((l) => l.depth === 0);
+    if (line && isTree(kind)) [to, depth] = [family(doc, at), line.depth];
+    else if (line) to = at + 1;
+    else if (hit?.k === 'lane') to = (linesOf(doc).filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase()).at(-1)?.at ?? afterLines(doc) - 1) + 1;
+    else if (isTree(kind) && root) [to, depth] = [family(doc, root.at), 1];
+    else to = afterLines(doc);
+    const low = Math.min(...lis.map((b) => b.depth));
+    const lane = kind === 'lanes' ? (line?.key ? keyRuns(line) : hit?.k === 'lane' && hit.name ? [{ t: `${hit.name}: ` }] : []) : [];
+    const put = lis.map((b) => li(isTree(kind) ? b.depth - low + depth : 0, lane.length && !lineOf(b, 0).key ? [...lane, ...b.runs] : b.runs));
+    bd.push({ op: 'splice', at: to, n: 0, blocks: put });
+    first = lineHit(kind, to);
+  }
+  for (const e of edges) {
+    if (!connect(bd.doc, e.from, e.to).length) continue;
+    bd.push({ op: 'splice', at: bd.doc.blocks.length, n: 0, blocks: [e] });
+    first ??= { k: 'edge', at: bd.doc.blocks.length - 1 };
+  }
+  return { ops: bd.ops, hit: first };
+}
+
+/** A copy of the thing, right after it. */
+export const duplicateThing = (doc: Doc, hit: Hit): { ops: Op[]; hit: Hit | null } => (hit.k === 'edge' ? { ops: [], hit: null } : pasteThings(doc, hit, thingBlocks(doc, hit)));
+
+/** The thing past its neighbour (by -1 up, 1 down): a line (a tree's with its family, among its siblings); one thing of a list past the one beside it. Null when it cannot go. */
+export function moveThing(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hit } | null {
+  if (hit.k !== 'line' || doc.blocks[hit.at]?.k !== 'li') return null;
+  if (typeof hit.part === 'number') {
+    const l = lineOf(doc.blocks[hit.at] as Extract<Block, { k: 'li' }>, hit.at);
+    const [a, b] = by < 0 ? [l.items[hit.part - 1], l.items[hit.part]] : [l.items[hit.part], l.items[hit.part + 1]];
+    if (!a || !b) return null;
+    // The later one first, so the earlier's offsets still hold.
+    const ops: Op[] = [
+      { op: 'text', at: hit.at, from: b.from, to: b.to, runs: sliceRuns(l.runs, a.from, a.to) },
+      { op: 'text', at: hit.at, from: a.from, to: a.to, runs: sliceRuns(l.runs, b.from, b.to) },
+    ];
+    return { ops, hit: { ...hit, part: hit.part + by } };
+  }
+  const ops = moveFamily(doc, hit.at, by);
+  const m = ops?.[0];
+  if (!m || m.op !== 'move') return null;
+  return { ops, hit: { ...hit, at: m.to } };
+}
+
+/** The thing into the lane above or below (a step), or to the table before or after (a seat): Mod+Alt+Left/Right. */
+export function moveAcross(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hit } | null {
+  const kind = kindOf(doc);
+  if (hit.k !== 'line' || doc.blocks[hit.at]?.k !== 'li') return null;
+  const lines = linesOf(doc);
+  const l = lines.find((x) => x.at === hit.at)!;
+  if (kind === 'lanes') {
+    const lanes: string[] = [];
+    let lane = '';
+    let mine = '';
+    for (const x of lines) {
+      if (x.key) lane = x.key.words;
+      if (!lanes.some((n) => n.toLowerCase() === lane.toLowerCase())) lanes.push(lane);
+      if (x.at === hit.at) mine = lane;
+    }
+    const to = lanes[lanes.findIndex((n) => n.toLowerCase() === mine.toLowerCase()) + by];
+    if (!to) return null;
+    const ops = dropIn(doc, hit, to);
+    return ops.length ? { ops, hit } : null;
+  }
+  if (kind === 'seating' && typeof hit.part === 'number') {
+    const tables = lines.filter((x) => x.key);
+    const to = tables[tables.findIndex((x) => x.at === l.at) + by];
+    if (!to) return null;
+    const ops = moveItem(doc, l.at, hit.part, to.at);
+    return ops.length ? { ops, hit: { k: 'line', at: to.at, part: to.items.filter((p) => p.words || p.icon).length } } : null;
+  }
+  return null;
+}
