@@ -1,6 +1,6 @@
 // <to-text> in a real Chromium: typing through beforeinput, Enter and Backspace per shape, marks, chips, cards, the
 // clipboard, the selection round trip for every kind of block, an IME composition, undo and redo through the op log,
-// and a 390px run (no page scroll on focus; the note box inside the visual viewport).
+// the selection bubble, and a 390px run (no page scroll on focus; the note box and the bubble inside the visual viewport).
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
 import { applyAll, parse, write, type Doc } from '../../src/doc/index.ts';
@@ -364,6 +364,82 @@ test('the bar keeps the selection: Tab indents an item, Mod+B bolds, every befor
   expect(h.tlo).toBe('- ***a***\n- b\n');
 });
 
+const bubble = () => document.querySelector<HTMLElement>('.tx-bubble > .to-context')!;
+const bubbleOpen = () => !!bubble()?.matches(':popover-open');
+const inBubble = (label: string) => bubble().querySelector<HTMLButtonElement>(`[aria-label="${label}"]`);
+const range = (block: number, from: number, to: number, end = block): Sel => ({ anchor: { block, offset: from }, focus: { block: end, offset: to } });
+
+test('the selection bubble: up under words selected, Bold pressed from it stays up and shows pressed, gone when the selection collapses', async () => {
+  const h = await mount('A word or two, then this bold\n', 'doc', range(0, 20, 24));
+  await until(bubbleOpen);
+  const words = document.getSelection()!.getRangeAt(0).getBoundingClientRect();
+  const r = bubble().getBoundingClientRect();
+  expect(r.top).toBeGreaterThanOrEqual(words.bottom);
+  expect(Math.abs(r.left + r.width / 2 - (words.left + words.width / 2))).toBeLessThan(2);
+  expect(inBubble('Bold')!.getAttribute('aria-pressed')).toBe('false');
+  // Words in a paragraph, not the whole of it: no list toggle.
+  expect(inBubble('Bulleted list')).toBeNull();
+  inBubble('Bold')!.click();
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('A word or two, then **this** bold\n');
+  await until(() => inBubble('Bold')?.getAttribute('aria-pressed') === 'true');
+  expect(bubbleOpen()).toBe(true);
+  expect(h.el.hasFocus()).toBe(true);
+  expect(domSel().text).toBe('this');
+  h.el.sel = caret(0, 2);
+  await until(() => !bubbleOpen());
+});
+
+test('the selection bubble: not for a range inside a card, never with no-bubble, and Link from it opens the link box in its place', async () => {
+  const h = await mount('a b\n\n```sheet\nXyz\n--- \n1\n```\n\nc\n', 'doc', range(0, 0, 1));
+  await until(bubbleOpen);
+  const gist = h.el.tx.querySelector('.tx-card .tx-card-gist')!.firstChild!;
+  document.getSelection()!.setBaseAndExtent(gist, 0, gist, 2);
+  await until(() => !bubbleOpen());
+  // Turned off by its host.
+  const off = await mount('make this bold\n', 'doc', null);
+  off.el.setAttribute('no-bubble', '');
+  await off.el.updateComplete;
+  off.el.sel = range(0, 5, 9);
+  await tick(50);
+  expect(domSel().text).toBe('this');
+  expect(bubbleOpen()).toBe(false);
+  // Link: the bubble goes, the link box comes; setting the address brings the bubble back with Link pressed.
+  const l = await mount('make this a link\n', 'doc', range(0, 5, 9));
+  await until(bubbleOpen);
+  inBubble('Link')!.click();
+  await until(() => !!document.querySelector('.to-link-pop:popover-open'));
+  expect(bubbleOpen()).toBe(false);
+  const box = document.querySelector<HTMLInputElement>('.to-link-input')!;
+  box.value = 'x.y';
+  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await until(() => l.tlo === 'make [this](https://x.y) a link\n');
+  await until(() => bubbleOpen() && inBubble('Link')!.getAttribute('aria-pressed') === 'true');
+});
+
+test('the selection bubble: the lists over whole blocks of a doc or lines editor, not in a line; Footnote puts the mark after the words', async () => {
+  const h = await mount('one\n\ntwo\n', 'doc', range(0, 0, 3, 1));
+  await until(bubbleOpen);
+  expect(inBubble('Bulleted list')!.getAttribute('aria-pressed')).toBe('false');
+  inBubble('Bulleted list')!.click();
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- one\n- two\n');
+  await until(() => inBubble('Bulleted list')?.getAttribute('aria-pressed') === 'true');
+  inBubble('Numbered list')!.click();
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('1. one\n2. two\n');
+  const line = await mount('one line\n', 'line', range(0, 0, 8));
+  await until(bubbleOpen);
+  expect(inBubble('Bold')).not.toBeNull();
+  expect(inBubble('Bulleted list')).toBeNull();
+  const fn = await mount('a word here\n', 'doc', range(0, 2, 6));
+  await until(bubbleOpen);
+  inBubble('Footnote')!.click();
+  await until(() => !!document.querySelector('.to-note-pop:popover-open'));
+  expect(fn.tlo).toBe('a word^[] here\n');
+  expect(bubbleOpen()).toBe(false);
+});
+
 test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the note box sits inside the visual viewport', async () => {
   await page.viewport(390, 844);
   try {
@@ -387,6 +463,22 @@ test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the 
     expect(r.top).toBeGreaterThanOrEqual(vv.offsetTop);
     expect(r.bottom).toBeLessThanOrEqual(vv.offsetTop + vv.height + 0.5);
     expect(parseFloat(getComputedStyle(document.querySelector('.to-note-words .tx')!).fontSize)).toBeGreaterThanOrEqual(16);
+    document.querySelector<HTMLButtonElement>('.to-note-pop [aria-label=Done]')!.click();
+    await until(() => !document.querySelector('.to-note-pop:popover-open'));
+    // The box's closing puts the caret after its mark (the toggle event comes a moment later).
+    await until(() => h.el.sel?.anchor.block === 30);
+    // The selection bubble under words selected: inside the visual viewport, below the words (the native callout sits above), covering none of them.
+    window.scrollTo(0, 0);
+    h.el.sel = { anchor: { block: 0, offset: 20 }, focus: { block: 0, offset: 60 } };
+    await until(bubbleOpen);
+    await tick(50);
+    const b = bubble().getBoundingClientRect();
+    const words = document.getSelection()!.getRangeAt(0).getBoundingClientRect();
+    expect(b.left).toBeGreaterThanOrEqual(vv.offsetLeft);
+    expect(b.right).toBeLessThanOrEqual(vv.offsetLeft + vv.width + 0.5);
+    expect(b.top).toBeGreaterThanOrEqual(words.bottom);
+    expect(b.bottom).toBeLessThanOrEqual(vv.offsetTop + vv.height + 0.5);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
   } finally {
     await page.viewport(1100, 800);
   }

@@ -320,7 +320,9 @@ export class ToText extends LitElement {
     if (!s) {
       if (!this.away) {
         this.away = true;
-        this.linkPop?.hide();
+        // Gone into the link box's own address field: the box stays (it is what was asked for).
+        const into = document.getSelection()?.anchorNode;
+        if (!(into && this.linkPop?.contains(into))) this.linkPop?.hide();
         this.bubble?.hide();
         this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: null, bubbles: true }));
       }
