@@ -77,6 +77,12 @@ the Presentation Builder; outline, the Outliner; draw, the Drawing Tool; diagram
 Animator; board, the Kanban Board; todo, the To-Do List; cal, the Calendar; trip, the Trip Planner; site, the
 Website Builder. The names in the table above and in docs/kernel.md are the working names of the plan.
 
+Round four (Paul, 2026-10-09): every link that leaves the site asks first (src/kit/link-guard.ts: the site's name
+large, the whole address, red Cancel, green Go); pictures from the web are asked for before they load (src/kit/pictures.ts:
+a card until "Show pictures from the web", the author's own inserts shown, a Saved switch to show them always,
+previews never fetch); kept documents show a small first page on the home page and in the menu (src/kit/preview.ts);
+the Office mark (src/kit/mark.ts) is the menu button, the drawer's heading, the favicon and the app icons.
+
 ## Rules while rebuilding
 
 - Main is always green: typecheck, unit, DOM, build. A phase lands when its tests pass and the old path is gone.

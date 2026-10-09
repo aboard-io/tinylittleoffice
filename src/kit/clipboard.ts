@@ -82,7 +82,7 @@ export function docToHtml(blocks: Block[]): string {
         out.push(`<p>${esc(`${b.from} ${b.dir} ${b.to}${b.label ? `: ${b.label}` : ''}`)}</p>`);
         break;
       case 'img':
-        out.push(`<img src="${esc(b.url)}" alt="${esc(b.alt)}">`);
+        out.push(`<img src="${esc(b.url)}" alt="${esc(b.alt)}" referrerpolicy="no-referrer">`);
         break;
     }
   }

@@ -1,0 +1,150 @@
+/**
+ * Pictures from the web, asked for first. A picture held by its address on another site is fetched from
+ * that site by whoever reads the document, and so tells it who read it and when: a tracking pixel. So a web
+ * picture is drawn as a quiet card (its site, its words, and "Show pictures from the web") until the reader
+ * asks; one tap shows every web picture of this document for the rest of the visit (in memory, by the
+ * document the shell has open: setPictureDoc). A picture inserted in this visit is the author's own choice
+ * and shows at once (authored). Saved on this device, a switch in the menu shows them always. data: and
+ * blob: pictures, and this site's own, are not from the web and always show. Exports (PDF, PNG, HTML,
+ * docx) draw the document as it is: the person exporting chose to.
+ *
+ * picture() is an <img> or the card, for an editor; gateSvg() and gateHtml() do the same to drawn pages
+ * (an SVG <image>) and to a generated web page (an <img>); with `quiet` (a preview, a thumbnail) a web
+ * picture is a grey box and never fetched. A card drawn inside an SVG carries data-webpic, and the one
+ * catcher installPictures() puts on the document answers its tap (and Enter) for every page at once.
+ * Every <img> drawn sends no referrer.
+ */
+import { html, type TemplateResult } from 'lit';
+import { icon, UI } from './icons.ts';
+import { t } from './i18n.ts';
+import { xml } from './draw.ts';
+import { keeping, store } from './store.ts';
+
+/** The per-device switch, kept only while Saved. */
+const ALWAYS = 'tinyoffice.pictures';
+export const PICTURES = 'to-pictures';
+
+let current = '';
+const shown = new Set<string>();
+const mine = new Set<string>();
+
+/** Whether an address is a picture from another site (http or https, another origin). */
+export function webPicture(url: string, base = typeof location === 'undefined' ? 'http://localhost/' : location.href): boolean {
+  try {
+    const u = new URL(url, base);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && u.origin !== new URL(base).origin;
+  } catch {
+    return false;
+  }
+}
+/** A web picture's site, as the card names it. */
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+const say = () => typeof window !== 'undefined' && window.dispatchEvent(new Event(PICTURES));
+/** Called when what shows changes (a tap on Show, the switch); returns the way to stop. */
+export function onPictures(cb: () => void): () => void {
+  window.addEventListener(PICTURES, cb);
+  return () => window.removeEventListener(PICTURES, cb);
+}
+
+/** The document the shell has open (its link as it arrived); Show is remembered for it. */
+export function setPictureDoc(key: string) {
+  current = key;
+}
+/** Every web picture of the open document, shown for the rest of the visit. */
+export function showPictures(key = current) {
+  shown.add(key);
+  say();
+}
+/** A picture this visit put into a document: the author's own, shown without asking. */
+export function authored(url: string) {
+  mine.add(url);
+}
+/** The switch in the menu (Saved only): web pictures always shown on this device. */
+export const alwaysPictures = (): boolean => keeping() && store.get(ALWAYS) === '1';
+export function setAlwaysPictures(on: boolean) {
+  if (on) store.set(ALWAYS, '1');
+  else store.remove(ALWAYS);
+  say();
+}
+/** Whether this picture may be fetched now. */
+export const mayShow = (url: string): boolean => !webPicture(url) || mine.has(url) || shown.has(current) || alwaysPictures();
+/** For the tests: a visit begun again. */
+export function forgetPictures() {
+  shown.clear();
+  mine.clear();
+  current = '';
+}
+
+/** A picture in an editor: the <img> (no referrer), or, from the web and not yet asked for, the card. */
+export function picture(url: string, alt: string, cls = ''): TemplateResult {
+  if (mayShow(url)) return html`<img class=${cls} src=${url} alt=${alt} referrerpolicy="no-referrer" />`;
+  return html`<span class="to-webpic ${cls}" role="group" aria-label=${t('A picture from {host}', { host: hostOf(url) })}>
+    ${icon(UI.image, 22)}
+    <span class="to-webpic-words"><b>${hostOf(url)}</b>${alt ? html`<small>${alt}</small>` : ''}</span>
+    <button type="button" class="to-btn to-webpic-show" @click=${(e: Event) => (e.stopPropagation(), showPictures())}>${t('Show pictures from the web')}</button>
+  </span>`;
+}
+
+const attr = (tag: string, name: string): string | null => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1] ?? null;
+const unxml = (s: string) => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+/** The card that stands for a web picture on a drawn page, in its box. */
+function svgCard(tag: string, url: string, quiet: boolean): string {
+  const n = (k: string, d: number) => Number(attr(tag, k) ?? d) || d;
+  const x = n('x', 0), y = n('y', 0), w = n('width', 100), h = n('height', 100);
+  const box = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e4e4e7" rx="6"/>`;
+  if (quiet) return box;
+  const px = Math.max(10, Math.min(18, h / 8, w / 16));
+  const mid = x + w / 2;
+  const words = (dy: number, s: string, extra = '') => `<text x="${mid}" y="${y + h / 2 + dy}" text-anchor="middle" font-size="${px}" fill="#3f3f46"${extra}>${xml(s)}</text>`;
+  return `<g class="to-webpic-svg" data-webpic="" role="button" tabindex="0" aria-label="${xml(t('Show pictures from the web'))}" style="cursor:pointer">${box}${words(-px * 0.4, hostOf(url), ' font-weight="700"')}${words(px * 1.2, t('Show pictures from the web'), ' text-decoration="underline"')}</g>`;
+}
+
+/** Drawn pages with every web picture not yet asked for as its card; `quiet`, every web picture a grey box. */
+export function gateSvg(svg: string, quiet = false): string {
+  if (!svg.includes('<image')) return svg;
+  return svg.replace(/<image\b[^>]*?(?:\/>|>\s*<\/image>)/g, (tag) => {
+    const url = unxml(attr(tag, 'href') ?? attr(tag, 'xlink:href') ?? '');
+    if (!webPicture(url) || (!quiet && mayShow(url))) return tag;
+    return svgCard(tag, url, quiet);
+  });
+}
+
+/** A grey picture with the site's name, as a data: address: what an <img> of a generated page shows instead. */
+const placeholder = (url: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200"><rect width="320" height="200" fill="#e4e4e7"/><text x="160" y="106" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#3f3f46">${xml(hostOf(url))}</text></svg>`)}`;
+
+/** A generated web page with every web picture not yet asked for drawn grey, and every <img> sending no referrer. */
+export function gateHtml(page: string): { html: string; hidden: number } {
+  let hidden = 0;
+  const out = page.replace(/<img\b[^>]*>/g, (tag) => {
+    const url = unxml(attr(tag, 'src') ?? '');
+    let next = /\sreferrerpolicy=/.test(tag) ? tag : tag.replace(/^<img\b/, '<img referrerpolicy="no-referrer"');
+    if (webPicture(url) && !mayShow(url)) {
+      hidden++;
+      next = next.replace(/\ssrc="[^"]*"/, ` src="${placeholder(url)}"`);
+    }
+    return next;
+  });
+  return { html: out, hidden };
+}
+
+/** Whether drawn pages hold a web picture not yet asked for. */
+export const hidesPictures = (svg: string): boolean => gateSvg(svg) !== svg;
+
+const caught = new WeakSet<Document>();
+/** One catcher for the cards drawn inside pages: a tap, or Enter or Space on one, shows the document's web pictures. */
+export function installPictures(root: Document = document) {
+  if (caught.has(root)) return;
+  caught.add(root);
+  const card = (e: Event) => e.composedPath().some((n) => n instanceof Element && n.hasAttribute('data-webpic'));
+  root.addEventListener('click', (e) => card(e) && (e.preventDefault(), e.stopPropagation(), showPictures()), true);
+  root.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && card(e) && (e.preventDefault(), showPictures()), true);
+}

@@ -37,6 +37,8 @@ export class ToDialog extends LitElement {
     if (this.dialog?.open) this.dialog.close();
   }
   private onClose = () => {
+    // The close event comes a moment after close(): shown again in between (a second link asked about), it stays open.
+    if (this.dialog.open) return;
     this.open = false;
     this.dispatchEvent(new Event('to-close'));
   };

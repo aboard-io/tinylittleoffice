@@ -236,7 +236,7 @@ function drawn(site: Site, s: Section, o: SitePageOpts, hero: boolean, products:
   const button = (b: Link, i: number) => `<a class="btn${i && !stack ? ' quiet' : ''}" href="${xml(b.url)}">${iconSvg(b.icon, 20)}${xml(b.label)}</a>`;
   const buttons = s.buttons.length ? `<p class="go${stack ? ' stack' : ''}">${s.buttons.map(button).join(' ')}</p>` : '';
   const socials = s.socials.length ? `<ul class="social" aria-label="${xml(t('Elsewhere'))}">${s.socials.map((b) => `<li><a href="${xml(b.url)}" aria-label="${xml(b.label)}" title="${xml(b.label)}">${iconSvg(b.icon && iconNamed(b.icon) ? b.icon : 'globe', 22)}</a></li>`).join('')}</ul>` : '';
-  const pics = (s.icon ? iconSvg(s.icon, hero ? 64 : 40, 'ico') : '') + s.pics.map((p) => (p.url ? `<img class="pic" src="${xml(p.url)}" alt="${xml(p.alt)}" loading="lazy">` : '')).join('');
+  const pics = (s.icon ? iconSvg(s.icon, hero ? 64 : 40, 'ico') : '') + s.pics.map((p) => (p.url ? `<img class="pic" src="${xml(p.url)}" alt="${xml(p.alt)}" referrerpolicy="no-referrer" loading="lazy">` : '')).join('');
   const paras = s.text.map((r) => `<p>${prose(r)}</p>`).join('');
   const money = (n: number) => `${xml(site.currency)}${n.toFixed(2)}`;
   // The shop: a grid of what is for sale, and, by the first of them, the cart.
@@ -245,7 +245,7 @@ function drawn(site: Site, s: Section, o: SitePageOpts, hero: boolean, products:
     ? `<div class="shop"><ul class="grid" aria-label="${xml(t('Products'))}">${s.products
         .map(
           (p) =>
-            `<li>${p.image ? `<img src="${xml(p.image)}" alt="" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${money(p.price)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
+            `<li>${p.image ? `<img src="${xml(p.image)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${money(p.price)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
         )
         .join('')}</ul>${
         first

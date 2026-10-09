@@ -19,6 +19,7 @@
 import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { gateSvg } from '../../kit/pictures.ts';
 import { ChevronDown, ChevronUp, GripVertical, LayoutTemplate, Palette, Play, Printer, Scroll, Shuffle } from 'lucide';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
@@ -790,7 +791,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
         </div>
         ${sub
           ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
-              <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(sub.svg)}</svg>
+              <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(gateSvg(sub.svg))}</svg>
             </figure>`
           : html`<div class="deck-words-row">
               <to-text class="deck-words" shape="lines" @paste=${this.onWordsPaste} .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')}></to-text>
@@ -824,7 +825,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
         const name = (g ? g.name(i, n) : t('Slide {n}', { n: i + 1 })) + (words ? `: ${words}` : '');
         const ranged = !!s && this.rows.has(i);
         return html`<div class="deck-slot ${ranged ? 'ranged' : ''} ${d?.id === i ? 'dragging' : ''}">
-          <button type="button" class="deck-thumb" data-i=${i} aria-label=${name} aria-current=${i === this.cur ? 'true' : 'false'} aria-pressed=${s ? String(ranged) : nothing} @click=${(e: MouseEvent) => this.onThumb(i, e)} @dblclick=${() => (this.rows.release(), this.go(i), this.focusBox('title'))}><span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg></button>
+          <button type="button" class="deck-thumb" data-i=${i} aria-label=${name} aria-current=${i === this.cur ? 'true' : 'false'} aria-pressed=${s ? String(ranged) : nothing} @click=${(e: MouseEvent) => this.onThumb(i, e)} @dblclick=${() => (this.rows.release(), this.go(i), this.focusBox('title'))}><span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(gateSvg(p.svg, true))}</svg></button>
           ${s ? html`<button type="button" class="deck-grip to-rows-handle" tabindex="-1" aria-label=${t('Move this slide: drag it onto another')} title=${t('Drag to move')}>${icon(GripVertical, 14)}</button>` : nothing}
         </div>`;
       })}
@@ -836,7 +837,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const g = geometryOf(st.format)!;
     return html`<div class="deck-sheets">
       <p class="to-hint">${g.how(st.two)}</p>
-      ${sheetsOf(this.doc, st).map((p, i) => html`<div class="deck-sheet">${unsafeSVG(pageSvg(p, `role="img" aria-label="${t('Sheet, side {n}', { n: i + 1 })}"`))}</div>`)}
+      ${sheetsOf(this.doc, st).map((p, i) => html`<div class="deck-sheet">${unsafeSVG(gateSvg(pageSvg(p, `role="img" aria-label="${t('Sheet, side {n}', { n: i + 1 })}"`)))}</div>`)}
     </div>`;
   }
   private renderShow(look: Look) {
@@ -848,8 +849,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const s = slides[this.showing];
     const motion = `tr-${this.settings.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
     return html`<div class="deck-show" role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick}>
-      ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(page(this.leaving).svg)}</svg></div>`) : nothing}
-      ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(p.svg)}</svg></div>`)}
+      ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(gateSvg(page(this.leaving).svg))}</svg></div>`) : nothing}
+      ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(gateSvg(p.svg))}</svg></div>`)}
       <p class="sr-only" aria-live="polite">${t('Slide {n} of {total}', { n: this.showing + 1, total })}: ${p.alt ?? ''}</p>
       <div class="ctl" role="group" aria-label=${t('Presentation')} @click=${(e: Event) => e.stopPropagation()}>
         ${tool({ label: t('Previous'), icon: ChevronUp, disabled: this.showing === 0 && this.shown === 0, does: () => this.back() })}

@@ -2,7 +2,8 @@
  * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side. Find an app, a
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
- * Theme; About. Anything that opens a document closes the drawer (it follows the hash).
+ * Theme; About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { apps } from './apps.ts';
@@ -15,6 +16,10 @@ import { THEMES, setTheme, theme, themeName, type Theme } from './theme.ts';
 import { keeping, onPrivacy, setPrivate } from './privacy.ts';
 import { offlineState, onOffline, setOffline } from './offline.ts';
 import { toast } from './toast.ts';
+import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
+import { mark } from './mark.ts';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import './preview.ts';
 import type { ToDialog } from './dialog.ts';
 import './dialog.ts';
 
@@ -37,7 +42,7 @@ export class ToDrawer extends LitElement {
     const redraw = () => this.requestUpdate();
     const away = () => this.close();
     window.addEventListener('hashchange', away);
-    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw), () => window.removeEventListener('hashchange', away)];
+    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw), onPictures(redraw), () => window.removeEventListener('hashchange', away)];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -77,10 +82,10 @@ export class ToDrawer extends LitElement {
     const docs = kept.filter((k) => has(k.title)).flatMap((k) => all.filter((a) => a.id === k.app).map((a) => ({ a, k })));
     if (!found.length && !templates.length && !docs.length) return html`<p class="to-hint">${t('Nothing by that name')}</p>`;
     const group = (heading: string, rows: TemplateResult[]) => (rows.length ? html`<h3 class="to-drawer-head3">${heading}</h3>${rows}` : nothing);
-    const row = (href: string, ico: Parameters<typeof icon>[0], name: string, sub = '') => html`<a class="to-found" href=${href} @click=${() => this.close()}>${icon(ico, 20)}<span class="to-found-words"><span>${name}</span>${sub ? html`<small>${sub}</small>` : nothing}</span></a>`;
+    const row = (href: string, ico: Parameters<typeof icon>[0], name: string, sub = '', preview = false) => html`<a class="to-found" href=${href} @click=${() => this.close()}>${preview ? html`<to-preview hash=${href}></to-preview>` : icon(ico, 20)}<span class="to-found-words"><span>${name}</span>${sub ? html`<small>${sub}</small>` : nothing}</span></a>`;
     return html`${group(t('Apps'), found.map((a) => row(routeHash(a.id), a.icon, a.name)))}
       ${group(t('Templates'), templates.map(({ a, tpl }) => row(templateHash(a, tpl), a.icon, tpl.name, a.name)))}
-      ${group(t('Documents'), docs.map(({ a, k }) => row(k.hash, a.icon, k.title || t('Untitled'), a.name)))}`;
+      ${group(t('Documents'), docs.map(({ a, k }) => row(k.hash, a.icon, k.title || t('Untitled'), a.name, true)))}`;
   }
 
   render() {
@@ -92,7 +97,7 @@ export class ToDrawer extends LitElement {
     return html`<dialog class="to-drawer" aria-label="Tiny Little Office" @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-drawer-inner">
         <header class="to-drawer-head">
-          <a class="to-brand" href="#/" @click=${() => this.close()}>Tiny Little Office</a>
+          <a class="to-brand" href="#/" @click=${() => this.close()}>${unsafeHTML(mark(24))}<span>Tiny Little Office</span></a>
           <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button>
         </header>
         ${this.open
@@ -116,6 +121,12 @@ export class ToDrawer extends LitElement {
                   <input type="checkbox" role="switch" .checked=${offline.on} ?disabled=${offline.status === 'saving'} @change=${(e: Event) => void setOffline((e.target as HTMLInputElement).checked)} />
                   <span class="to-switch-words"><b>${t('Keep the app on this device')}</b><small>${offline.line}</small></span>
                 </label>
+                ${keeping()
+                  ? html`<label class="to-switch to-pictures-switch">
+                      <input type="checkbox" role="switch" .checked=${alwaysPictures()} @change=${(e: Event) => setAlwaysPictures((e.target as HTMLInputElement).checked)} />
+                      <span class="to-switch-words"><b>${t('Always show pictures from the web')}</b><small>${t('Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.')}</small></span>
+                    </label>`
+                  : nothing}
               </section>
               <section class="to-drawer-section to-drawer-prefs">
                 <label class="to-field">${icon(UI.language, 18)}<span>${t('Language')}</span>
@@ -134,7 +145,7 @@ export class ToDrawer extends LitElement {
           : nothing}
       </div>
     </dialog>
-    <to-dialog heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p>`}></to-dialog>`;
+    <to-dialog heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);

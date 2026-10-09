@@ -72,3 +72,27 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   await shot(page, 'write-dark');
   expect(errors).toEqual([]);
 });
+
+test('a link that leaves the site asks first, in a dialog inside the screen', async ({ page }) => {
+  // "Read [the report](https://reports.example/q3) today.", as its link (the codec's raw form: "r" and base64url).
+  await page.goto(`/#/v1/write/r${Buffer.from('Read [the report](https://reports.example/q3) today.\n').toString('base64url')}`);
+  const link = page.locator('to-write-editor to-text .tx a').first();
+  await expect(link).toBeVisible();
+  await link.click();
+  await page.getByRole('button', { name: 'Open link' }).click();
+  const dialog = page.locator('to-dialog.to-link-guard dialog[open]');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('.lg-host')).toHaveText('reports.example');
+  await expect(dialog.locator('.lg-cancel')).toBeFocused();
+  const box = (await dialog.locator('.to-dialog-inner').boundingBox())!;
+  const view = page.viewportSize()!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(view.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(view.height);
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await shot(page, 'link-guard');
+  expect((await axe(page)).violations).toEqual([]);
+  await dialog.locator('.lg-cancel').click();
+  await expect(dialog).toHaveCount(0);
+});

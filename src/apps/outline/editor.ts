@@ -18,6 +18,7 @@
 import { html, nothing, type PropertyDeclarations, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import { gateSvg } from '../../kit/pictures.ts';
 import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Eye, FoldVertical, GripVertical, Link2, ListOrdered, Minus, Plus, UnfoldVertical, ZoomIn, ZoomOut } from 'lucide';
 import { applyAll, family, fenceRef, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { btn, tool } from '../../kit/bar.ts';
@@ -917,7 +918,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     </ol>`;
   }
   private renderPageDialog() {
-    return html`<to-dialog class="ol-page-dialog" heading=${t('As a page')} @to-close=${() => (this.showing = false)} .body=${this.showing ? html`<div class="ol-page">${unsafeSVG(pageSvg(outlinePage(this.doc)))}</div>` : nothing}></to-dialog>`;
+    return html`<to-dialog class="ol-page-dialog" heading=${t('As a page')} @to-close=${() => (this.showing = false)} .body=${this.showing ? html`<div class="ol-page">${unsafeSVG(gateSvg(pageSvg(outlinePage(this.doc))))}</div>` : nothing}></to-dialog>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToOutlineEditor);
