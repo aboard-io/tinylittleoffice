@@ -64,11 +64,9 @@ export class ToPrivacy extends LitElement {
     this.note = note;
     toast(this, note);
   }
-  private emitEnv(env: Envelope) {
-    this.dispatchEvent(new CustomEvent('privacy-env', { detail: env, bubbles: true }));
-  }
-  private emitLock() {
-    this.dispatchEvent(new CustomEvent('privacy-lock', { bubbles: true }));
+  /** Tell the shell: "privacy-env" with the changed document, or what else happened. */
+  private emit(name: 'privacy-env' | 'privacy-lock' | 'privacy-device' | 'privacy-zip', env?: Envelope) {
+    this.dispatchEvent(new CustomEvent(name, { detail: env, bubbles: true }));
   }
 
   /* ---------- the password ---------- */
@@ -77,11 +75,11 @@ export class ToPrivacy extends LitElement {
     if (!this.sealed || this.busy) return;
     this.busy = true;
     try {
-      const env = await this.privacy.unlock(this.pw, this.sealed, this.app ?? undefined);
+      const env = await this.privacy.unlock(this.pw, this.sealed);
       if (!env) return void (this.wrong = true);
       this.pw = '';
       this.wrong = false;
-      this.emitEnv(env);
+      this.emit('privacy-env', env);
     } finally {
       this.busy = false;
     }
@@ -92,7 +90,7 @@ export class ToPrivacy extends LitElement {
     try {
       await this.privacy.lock(this.pw);
       this.pw = '';
-      this.emitLock();
+      this.emit('privacy-lock');
     } finally {
       this.busy = false;
     }
@@ -104,7 +102,7 @@ export class ToPrivacy extends LitElement {
     if (!this.app) return;
     this.busy = true;
     try {
-      this.emitEnv(await this.privacy.sign(this.env, this.app));
+      this.emit('privacy-env', await this.privacy.sign(this.env, this.app));
       this.say('Signed');
     } catch (err) {
       this.say(errorText(err, 'Could not sign'));
@@ -163,7 +161,7 @@ export class ToPrivacy extends LitElement {
         <dt>Password</dt>
         <dd>
           ${p.locker
-            ? html`<div class="row"><sl-tag size="small" variant="success" pill>Locked</sl-tag><sl-button size="small" @click=${() => { p.unlockForGood(); this.emitLock(); }}>${icon(UI.unlock, 14)} Remove</sl-button></div>`
+            ? html`<div class="row"><sl-tag size="small" variant="success" pill>Locked</sl-tag><sl-button size="small" @click=${() => { p.unlockForGood(); this.emit('privacy-lock'); }}>${icon(UI.unlock, 14)} Remove</sl-button></div>`
             : html`<div class="row">
                 <sl-input class="sr-label" size="small" type="password" label="New password" placeholder="Password" password-toggle .value=${this.pw} @sl-input=${(e: Event) => (this.pw = (e.target as SlInput).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.lock()}></sl-input>
                 <sl-button size="small" ?loading=${this.busy} ?disabled=${!this.pw} @click=${this.lock}>${icon(UI.lock, 14)} Lock</sl-button>
@@ -177,7 +175,7 @@ export class ToPrivacy extends LitElement {
             ${p.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>Valid</sl-tag> <code>${p.signer}</code>${p.signer && p.signer === p.myKey ? html`<span class="to-hint">(yours)</span>` : nothing}` : nothing}
             ${p.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>Mismatch</sl-tag> <code>${p.signer}</code>` : nothing}
             ${p.sig !== 'valid' ? html`<sl-button size="small" variant="primary" ?loading=${this.busy} ?disabled=${!this.env.body} @click=${this.sign}>${icon(UI.shield, 14)} ${p.sig === 'invalid' ? 'Re-sign' : 'Sign'}</sl-button>` : nothing}
-            ${this.env.sig ? html`<sl-button size="small" @click=${() => this.emitEnv(p.unsign(this.env))}>Remove</sl-button>` : nothing}
+            ${this.env.sig ? html`<sl-button size="small" @click=${() => this.emit('privacy-env', p.unsign(this.env))}>Remove</sl-button>` : nothing}
           </div>
         </dd>
         <dt>Signing key</dt>
@@ -214,7 +212,7 @@ export class ToPrivacy extends LitElement {
           <tr>
             <th scope="row">Preferences<br /><small>Theme, which menu clusters are open, form or text, whether links open to read or to edit, size.</small></th>
             <td>${p.prefsKept() ? `${p.prefsKept()} set${p.keeping() ? '' : ' (this visit)'}` : 'None'}</td>
-            <td>${p.prefsKept() ? html`<sl-button size="small" @click=${() => { p.forgetPrefs(); this.dispatchEvent(new CustomEvent('privacy-device', { bubbles: true })); }}>Forget</sl-button>` : nothing}</td>
+            <td>${p.prefsKept() ? html`<sl-button size="small" @click=${() => { p.forgetPrefs(); this.emit('privacy-device'); }}>Forget</sl-button>` : nothing}</td>
           </tr>
           <tr>
             <th scope="row">The app itself<br /><small>A copy of TinyLittleOffice, so it opens with no connection. No documents are in it.</small></th>
@@ -224,10 +222,10 @@ export class ToPrivacy extends LitElement {
         </tbody>
       </table>
       <div class="row">
-        <sl-button size="small" @click=${() => this.dispatchEvent(new CustomEvent('privacy-zip', { bubbles: true }))}>${icon(UI.download, 14)} Download everything (.zip)</sl-button>
+        <sl-button size="small" @click=${() => this.emit('privacy-zip')}>${icon(UI.download, 14)} Download everything (.zip)</sl-button>
         <span class="to-hint">The app, and every document kept here, in one file.</span>
         <span class="to-spacer"></span>
-        ${p.keeping() ? html`<sl-button size="small" variant="danger" outline @click=${async () => { if (!confirm('Forget everything this site keeps in this browser, and keep nothing from now on?')) return; await p.leaveNothing(); this.offline = false; this.dispatchEvent(new CustomEvent('privacy-device', { bubbles: true })); }}>${icon(UI.trash, 14)} Leave nothing</sl-button>` : nothing}
+        ${p.keeping() ? html`<sl-button size="small" variant="danger" outline @click=${async () => { if (!confirm('Forget everything this site keeps in this browser, and keep nothing from now on?')) return; await p.leaveNothing(); this.offline = false; this.emit('privacy-device'); }}>${icon(UI.trash, 14)} Leave nothing</sl-button>` : nothing}
       </div>
     `;
   }

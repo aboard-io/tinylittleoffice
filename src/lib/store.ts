@@ -10,7 +10,8 @@
  */
 const KEEP = 'tinyoffice.keep';
 const memory = new Map<string, string>();
-const listeners = new Set<() => void>();
+/** The keys this site writes; anything else in localStorage is not ours to touch. */
+const ours = (k: string) => k !== KEEP && (k.startsWith('tinyoffice.') || k === 'to-theme');
 
 function local(): Storage | null {
   try {
@@ -41,12 +42,7 @@ export const store = {
   keys(): string[] {
     if (!keeping()) return [...memory.keys()];
     const l = local();
-    return l ? Object.keys(l).filter((k) => k !== KEEP && (k.startsWith('tinyoffice.') || k === 'to-theme')) : [];
-  },
-  /** Told when the choice changes. */
-  on(cb: () => void): () => void {
-    listeners.add(cb);
-    return () => listeners.delete(cb);
+    return l ? Object.keys(l).filter(ours) : [];
   },
 };
 
@@ -61,13 +57,19 @@ export async function setKeeping(on: boolean) {
     keepOffline();
   } else {
     // What is set stays for the visit, in memory; the device forgets all of it.
-    for (const k of store.keys()) memory.set(k, l.getItem(k)!);
-    for (const k of Object.keys(l)) if (k.startsWith('tinyoffice.') || k === 'to-theme') l.removeItem(k);
+    for (const k of store.keys()) {
+      memory.set(k, l.getItem(k)!);
+      l.removeItem(k);
+    }
     l.removeItem(KEEP);
-    if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
-    if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
+    await dropOffline();
   }
-  for (const cb of listeners) cb();
+}
+
+/** Take the offline copy of the app off the device. */
+export async function dropOffline() {
+  if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+  if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
 }
 
 /**

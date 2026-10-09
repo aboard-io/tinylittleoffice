@@ -5,7 +5,7 @@
  */
 import { html, render } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { COMMON, MOVING, FONT, History, appOf, apps, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
+import { COMMON, MOVING, FONT, History, apps, byGroup, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
 import { toMarkdown } from '../lib/markdown.ts';
@@ -73,11 +73,8 @@ export async function raster(svg: string, w: number, h: number, type: 'image/png
     }),
   );
   refs.forEach((url, i) => (svg = svg.split(`href="${url}"`).join(`href="${inlined[i]}"`)));
-  const img = new Image();
-  const fonts = await fontsForPictures();
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fonts ? svg.replace(/<svg[^>]*>/, (open) => `${open}<style>${fonts}</style>`) : svg);
   try {
-    await img.decode();
+    const img = await svgImage(svg);
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(w * scale);
     canvas.height = Math.round(h * scale);
@@ -90,6 +87,15 @@ export async function raster(svg: string, w: number, h: number, type: 'image/png
   } catch {
     return null;
   }
+}
+
+/** SVG markup as an image a canvas can draw, with the fonts inside it. Rejects if it cannot be drawn. */
+async function svgImage(svg: string): Promise<HTMLImageElement> {
+  const fonts = await fontsForPictures();
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(fonts ? svg.replace(/<svg[^>]*>/, (open) => `${open}<style>${fonts}</style>`) : svg);
+  await img.decode();
+  return img;
 }
 
 /** Sharp, but never an image so large a phone cannot hold it. */
@@ -151,18 +157,11 @@ export async function movie(def: AppDef, body: string): Promise<Uint8Array | nul
   canvas.width = w;
   canvas.height = h;
   const g = canvas.getContext('2d', { willReadFrequently: true })!;
-  const fonts = await fontsForPictures();
   const images: HTMLImageElement[] = [];
-  for (const p of pages) {
-    const img = new Image();
-    const svg = pageSvg(p).replace(/<svg[^>]*>/, (open) => `${open}<style>${fonts}</style>`);
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    try {
-      await img.decode();
-    } catch {
-      return null;
-    }
-    images.push(img);
+  try {
+    for (const p of pages) images.push(await svgImage(pageSvg(p)));
+  } catch {
+    return null;
   }
   const frames: { data: Uint8ClampedArray; delayMs: number }[] = [];
   const shot = (delay: number) => frames.push({ data: g.getImageData(0, 0, w, h).data, delayMs: delay });
@@ -326,9 +325,8 @@ if (!customElements.get('to-embed')) customElements.define('to-embed', ToEmbed);
 
 /** The apps that can go inside another, as options for a combobox, in the menu's order and clusters. */
 export function insertOptions(host: string, skip: (a: AppDef) => boolean = () => false): { value: string; label: string; group?: string; icon?: keyof typeof UI }[] {
-  const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
   const all = embeddable(host).filter((a) => !skip(a));
-  const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
+  const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort(byGroup);
   const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
   const out: { value: string; label: string; group?: string; icon?: keyof typeof UI }[] = [{ value: 'qr-self', label: 'QR code of this document', group: '', icon: 'qr' }];
   const ic = (a: AppDef) => (a.icon in UI ? (a.icon as keyof typeof UI) : undefined);
@@ -341,7 +339,7 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   return out;
 }
 
-export const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck');
+const embeddable = (host: string) => apps().filter((a) => a.id !== host && a.id !== 'write' && a.id !== 'deck');
 
 /**
  * Open an editor for a document that lives inside another one. Resolves
@@ -386,5 +384,3 @@ export async function editRef(ref: string): Promise<string> {
     void customElements.whenDefined('sl-dialog').then(() => dialog.show());
   });
 }
-
-export { appOf, apps };

@@ -17,11 +17,11 @@ import { isSealed, newLocker, seal, unseal, type Locker } from './crypt.ts';
 import { createSigner, fingerprintOf, localStorageStore, verify } from './sign.ts';
 import { packEnvelope, quantizeCreated, signingMessage, unpackEnvelope, type Envelope } from './envelope.ts';
 import { toBase64Url } from './codec.ts';
-import { library, saving, setSaving } from './library.ts';
-import { store, keeping, setKeeping } from './store.ts';
+import { library, saving } from './library.ts';
+import { dropOffline, store, keeping, setKeeping } from './store.ts';
 
 export type SigState = 'none' | 'checking' | 'valid' | 'invalid';
-export { isSealed, saving, setSaving };
+export { isSealed };
 
 /** The preferences this site may keep, by key. */
 export const PREFS = ['to-theme', 'tinyoffice.edit', 'tinyoffice.nav', 'tinyoffice.size', 'tinyoffice.dateformat'];
@@ -38,8 +38,7 @@ export class Privacy {
   private verifyRun = 0;
   /** Whoever shows this is told when something here changes, so they can redraw. */
   private listeners = new Set<() => void>();
-  constructor(changed?: () => void) {
-    if (changed) this.listeners.add(changed);
+  constructor() {
     void this.api.fingerprint().then((f) => this.set({ myKey: f }));
   }
   on(cb: () => void): () => void {
@@ -57,8 +56,8 @@ export class Privacy {
   /* ---------- the link ---------- */
 
   /** The document as a link's payload: sealed under the password if there is one. */
-  async pack(env: Envelope, app: string): Promise<string> {
-    const { flag, bytes } = packEnvelope(env, app);
+  async pack(env: Envelope): Promise<string> {
+    const { flag, bytes } = packEnvelope(env);
     return this.locker ? seal(this.locker, flag, bytes) : flag + toBase64Url(bytes);
   }
   /** A new document, or one arriving by its link: no password until one is set. */
@@ -69,11 +68,11 @@ export class Privacy {
   /* ---------- the password ---------- */
 
   /** Try a password on a sealed payload: the document if it opens, null if not. The locker is kept for re-sealing. */
-  async unlock(password: string, sealed: string, app?: string): Promise<Envelope | null> {
+  async unlock(password: string, sealed: string): Promise<Envelope | null> {
     const r = await unseal(password, sealed);
     if (!r) return null;
     this.set({ locker: r.locker });
-    return unpackEnvelope(r.flag, r.bytes, app);
+    return unpackEnvelope(r.flag, r.bytes);
   }
   async lock(password: string) {
     this.set({ locker: await newLocker(password) });
@@ -147,22 +146,19 @@ export class Privacy {
     return 'caches' in window ? (await caches.keys()).length > 0 : false;
   }
   async dropOffline() {
-    if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
-    if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
+    await dropOffline();
     this.changed();
   }
   /** Forget everything this site keeps in this browser, and keep nothing from here on: the switch, turned off. */
   async leaveNothing() {
     this.api.forget();
-    this.forgetPrefs();
     for (const k of store.keys()) store.remove(k);
     await setKeeping(false);
-    await this.dropOffline();
+    await dropOffline();
     this.set({ myKey: null });
   }
   /** Whether the device keeps things at all (the switch in the header). */
   keeping = keeping;
-  setKeeping = setKeeping;
 }
 
 /** The one privacy object: the shell and any app that signs share it. */

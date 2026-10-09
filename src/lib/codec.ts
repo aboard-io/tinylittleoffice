@@ -135,15 +135,7 @@ export function decodeDoc(payload: string): string {
   }
 }
 
-export interface Budget {
-  /** Characters consumed by origin + path + "#/app/" prefix. */
-  overhead: number;
-  /** Characters available for the payload. */
-  available: number;
-}
-
-/** Work out how many characters of payload fit under URL_LIMIT for a given prefix. */
-export function budgetFor(prefixUrl: string): Budget {
-  const overhead = prefixUrl.length;
-  return { overhead, available: Math.max(0, URL_LIMIT - overhead) };
+/** How many characters of payload fit under URL_LIMIT after a given prefix (origin, path, "#/v0/app/"). */
+export function budgetFor(prefixUrl: string): { available: number } {
+  return { available: Math.max(0, URL_LIMIT - prefixUrl.length) };
 }

@@ -42,12 +42,8 @@ export class ToDrive extends LitElement {
     let d = this.seen.get(key);
     if (!d) {
       const def = appOf(k.app);
-      let body = '';
-      try {
-        body = decodeEnvelope(k.hash.replace(/^#\/v\d+\/[a-z0-9-]+\//, '').replace(/^#\/[a-z0-9-]+\//, ''), k.app).body;
-      } catch {
-        // (Sealed, or not ours to read.)
-      }
+      // (A sealed one reads as nothing: only its title is found.)
+      const body = decodeEnvelope(k.hash.replace(/^#\/v\d+\/[a-z0-9-]+\//, '')).body;
       d = { id: k.id, title: k.title || `Untitled ${def?.name ?? k.app}`, app: def?.name ?? k.app, folder: k.folder, lines: def && body ? def.outline(body) : [], at: k.at };
       this.seen.set(key, d);
     }

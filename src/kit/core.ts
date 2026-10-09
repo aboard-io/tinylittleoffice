@@ -127,6 +127,11 @@ export function defineApp(def: AppDef): AppDef {
 export const apps = (): AppDef[] => [...REGISTRY.values()];
 export const appOf = (id: string): AppDef | undefined => REGISTRY.get(id);
 
+/** The menu's headings in the order it shows them: the apps with no heading first, then the clusters. */
+const GROUPS = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
+/** Sorts groups into the menu's order; any other heading goes last. */
+export const byGroup = (a: string, b: string) => (GROUPS.indexOf(a) + 1 || 99) - (GROUPS.indexOf(b) + 1 || 99);
+
 /* ---------- text ---------- */
 
 export const xml = (s: string) =>
@@ -154,6 +159,8 @@ export function swap<T>(list: T[], i: number, j: number): T[] {
 
 /** A moment, the way this person's locale writes one: "7 Oct 2026, 20:33". */
 export const fmtDate = (ms: number) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
+/** The same moment as anyone anywhere reads it: "2026-10-07 19:33 UTC". */
+export const fmtUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 
 export function slug(s: string): string {
   return s
@@ -196,9 +203,9 @@ export interface Span {
   /** An icon in the line, by name (t is then ''). */
   ic?: string;
 }
-export const HIGHLIGHT = '#fef08a';
+const HIGHLIGHT = '#fef08a';
 /** How wide an icon in a line of text is, in px, for its size of type. */
-export const iconWidth = (px: number) => px * 1.25;
+const iconWidth = (px: number) => px * 1.25;
 
 /**
  * Width of text in px. A browser replaces this with real measurement (see
@@ -302,7 +309,7 @@ export function text(x: number, y: number, content: string | Span[], style: Text
 }
 
 /** An icon drawn into a picture, by name; nothing if there is no such icon. Set by the icon library once it loads (the kit itself has no icons). */
-export let iconGlyph: (name: string, x: number, y: number, size: number, color: string) => string = () => '';
+let iconGlyph: (name: string, x: number, y: number, size: number, color: string) => string = () => '';
 export const setIconGlyph = (fn: typeof iconGlyph) => (iconGlyph = fn);
 
 export const r = (n: number) => String(Math.round(n * 100) / 100);
@@ -447,11 +454,9 @@ export class History {
   private future: string[] = [];
   private last = 0;
   private burst: number;
-  private limit: number;
   /** `burst`: changes closer together than this many ms are one step. */
-  constructor(burst = 700, limit = 200) {
+  constructor(burst = 700) {
     this.burst = burst;
-    this.limit = limit;
   }
 
   get canUndo() {
@@ -465,7 +470,8 @@ export class History {
   record(before: string, now = Date.now()) {
     if (now - this.last > this.burst || !this.past.length) {
       this.past.push(before);
-      if (this.past.length > this.limit) this.past.shift();
+      // (At most 200 steps back.)
+      if (this.past.length > 200) this.past.shift();
     }
     this.last = now;
     this.future = [];
