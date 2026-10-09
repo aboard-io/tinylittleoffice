@@ -218,8 +218,10 @@ export class ToText extends LitElement {
   @property() label = ''; @property() placeholder = '';
   /** Fired with the ops to apply to `blocks` (the host offsets `at` by its span's start), and the selection after. */
   // 'text-ops'  CustomEvent<{ ops: Op[]; sel: Sel }>
-  // 'text-enter' (shape line), 'text-exit' (Backspace at the very start when shape !== 'doc'), 'text-select' CustomEvent<Sel | null>
-  exec(cmd: Command): void;      // 'b'|'i'|'u'|'s'|'h'|'link'|'unlink'|'fn'|'icon'|'date'|'title'|'h1'|'h2'|'p'|'ul'|'ol'|'indent'|'outdent'|'left'|'center'|'right'|'justify'|'embed'
+  // 'text-enter' CustomEvent<{ shift: boolean }> (shape line; shift for Shift+Enter), 'text-exit' CustomEvent<{ dir: 'back' | 'forward' }>
+  // (Backspace at the very start when shape !== 'doc'; Delete at a line's end), 'text-select' CustomEvent<Sel | null>,
+  // 'text-selectall' (Mod+A with a line or lines box already whole), 'text-escape' (cancelable: Escape with no box open and no range: the host steps out)
+  exec(cmd: Command): void;      // 'b'|'i'|'u'|'s'|'h'|'link'|'unlink'|'fn'|'icon'|'date'|'title'|'h1'|'h2'|'p'|'quote'|'ul'|'ol'|'indent'|'outdent'|'left'|'center'|'right'|'justify'|'embed'
   get sel(): Sel | null; set sel(s: Sel | null);
 }
 export interface Pos { block: number; offset: number }   // offset in plain characters of the block; an icon, a footnote mark or a '\n' counts 1
@@ -234,10 +236,10 @@ Every `beforeinput` is `preventDefault()`ed and turned into ops, except while co
 
 | inputType | op(s) |
 |---|---|
-| `insertText`, `insertReplacementText` (autocorrect) | delete the selection, `text` insert `data` with the marks in force (`fmt`); `' '` after `-`/`*`/`1.` at a `p`'s start → replace to `li` (doc shape); `"`/`'` → curly |
-| `insertParagraph` | doc/lines: `splitBlock`; line: `text-enter` |
-| `insertLineBreak` | doc, in a `p`: insert `'\n'`; else as `insertParagraph` |
-| `deleteContentBackward` / `Forward` | one character or one atomic run; at a block's start: a `li` unlists (depth−1, then `p`), else `joinBlocks`; at the span's start (not doc): `text-exit`; beside an embed block: `splice` it out |
+| `insertText`, `insertReplacementText` (autocorrect) | delete the selection, `text` insert `data` with the marks in force (`fmt`); `' '` after `-`/`*`/`1.` at a `p`'s start → `li`, after `#`… → `h`, after `>` → `quote` (doc shape), as two steps (the space typed, then the kind) so an undo gives the marker back; `"`/`'` → curly |
+| `insertParagraph` | doc/lines: `splitBlock` (at the end of an item whose children follow, the new item is their first child); line: `text-enter` |
+| `insertLineBreak` | doc/lines, in a `p`, `li` or `quote`: insert `'\n'`; a heading splits; line: `text-enter` with `shift: true` |
+| `deleteContentBackward` / `Forward` | one character or one atomic run; at a block's start: an empty `li` with children goes and they come out a level, any other `li` unlists (depth−1, then `p`), else `joinBlocks`; at the span's start (not doc): `text-exit`; beside an embed block: `splice` it out |
 | `deleteWordBackward/Forward`, `deleteSoftLineBackward/Forward`, `deleteHardLineBackward/Forward`, `deleteContent`, `deleteByCut`, `deleteByDrag` | `text` delete over the target range (cut also writes the clipboard, see below) |
 | `insertFromPaste`, `insertFromDrop` | the paste pipeline |
 | `formatBold/Italic/Underline/StrikeThrough` (Safari's Mod+B…) | `exec('b'…)` |

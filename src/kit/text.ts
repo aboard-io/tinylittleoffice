@@ -810,7 +810,8 @@ export class ToText extends LitElement {
   private syncBubble() {
     const bub = this.bubble;
     if (!bub) return;
-    const sel = this._sel;
+    // Held within the blocks as they are now: a host may have taken blocks away under a selection it has not moved yet.
+    const sel = this._sel && clampSel(this.model, this._sel);
     const a = document.activeElement;
     const focused = this.hasFocus() || (!!a && bub.contains(a));
     // A DOM selection inside a card is the card's own (a grid's cell, a web thing's words), not words of ours.
