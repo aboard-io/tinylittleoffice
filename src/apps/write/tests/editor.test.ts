@@ -63,7 +63,7 @@ test('typing is the document; the bar makes the block a title and marks the word
   expect(last()).toBe('Hello there\n');
   button(el, 'Title').click();
   await until(() => last() === '# Hello there {.title}\n');
-  expect(el.querySelector('.write-page .tx h1.title')!.textContent).toBe('Hello there');
+  await until(() => el.querySelector('.write-page .tx h1.title')?.textContent === 'Hello there');
   await until(() => button(el, 'Title').getAttribute('aria-pressed') === 'true');
   el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 5 } };
   await tick();
