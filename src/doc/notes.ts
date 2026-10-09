@@ -11,7 +11,7 @@ import type { Block, Doc, Run } from './model.ts';
 import { parseInline, writeInline } from './tlo.ts';
 
 /** The notes some blocks hold, in order of appearance: each note's words, as inline Markdown. */
-export const notesOf = (blocks: { runs?: Run[] }[]): string[] => blocks.flatMap((b) => (b.runs ?? []).filter((r) => r.fn !== undefined).map((r) => r.fn!));
+export const notesOf = (blocks: readonly (Block | { runs: Run[] })[]): string[] => blocks.flatMap((b) => ('runs' in b ? b.runs : []).filter((r) => r.fn !== undefined).map((r) => r.fn!));
 
 /** A note's words as runs (a note inside a note is left out). */
 export const noteRuns = (fn: string): Run[] => parseInline(fn).filter((r) => r.fn === undefined);
@@ -43,9 +43,11 @@ export function referenceNotes(doc: Doc): Doc {
 }
 
 /**
- * Numbers a document's ordered lists as they come: given each block in
- * turn, it says an ordered item's number. A bulleted item ends the lists
- * deeper than it; anything else ends them all.
+ * Numbers a document's ordered lists as they come, as `write` numbers them:
+ * given each block in turn, it says an ordered item's number. An ordered
+ * item counts on at its depth across deeper items; a bulleted item resets
+ * the count at its depth and ends the lists deeper; anything else ends
+ * them all.
  */
 export function listNumbers(): (b: Block) => number | undefined {
   const counts: number[] = [];
@@ -54,8 +56,8 @@ export function listNumbers(): (b: Block) => number | undefined {
       counts.length = 0;
       return undefined;
     }
-    if (b.ord) counts[b.depth] = (counts[b.depth] ?? 0) + 1;
-    counts.length = b.ord ? b.depth + 1 : Math.min(counts.length, b.depth + 1);
+    counts.length = b.depth + 1;
+    counts[b.depth] = b.ord ? (counts[b.depth] ?? 0) + 1 : 0;
     return b.ord ? counts[b.depth] : undefined;
   };
 }

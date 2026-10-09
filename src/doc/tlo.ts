@@ -103,8 +103,10 @@ function readHead(lines: string[]): [Head, number] {
   return [{}, 0];
 }
 
-/** Undo the escapes that kept a line from being read as a block of another kind. */
-const unblock = (s: string) => s.replace(/^\\(?=[#>~|!`\-+*[]|\d+[.)]|\{)/, '');
+/** What a line may not open with and still be words: the guard `write` puts a backslash before. */
+const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|\||\{)/;
+/** Undo the guard that kept a line from being read as a block of another kind (and only that: "\`" is an escaped backtick). */
+const unblock = (s: string) => (s[0] === '\\' && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) ? s.slice(1) : s);
 
 /** A block as the line reader sees it: its words still inline Markdown. */
 type Raw = { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; a?: Attrs } | { k: 'p'; text: string; a?: Attrs } | { k: 'li'; depth: number; ord?: true; done?: boolean; text: string; a?: Attrs } | { k: 'quote'; text: string; a?: Attrs } | Exclude<Block, { runs: Run[] }>;
@@ -298,7 +300,7 @@ export function withHead(text: string, keys: Head): string {
 function guard(line: string): string {
   // A lone "|" is a deck's column break, and reads back as itself.
   if (line === '|') return line;
-  if (/^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|\|)/.test(line) || RULE.test(line)) return '\\' + line;
+  if (GUARDED.test(line) || RULE.test(line)) return '\\' + line;
   return line;
 }
 const guardEnd = (s: string) => (ATTRS.test(s) ? s.replace(/\{(?=[^{]*$)/, '\\{') : s);
@@ -418,7 +420,8 @@ export function parseInline(s: string): Run[] {
   const push = (t: string, extra: Partial<Run> = {}) => {
     const r: Run = { t };
     for (const f of ['b', 'i', 'u', 's', 'h'] as const) if (on[f]) r[f] = true;
-    if (href) r.href = href;
+    // (A footnote's mark is never part of a link's words: the grammar cannot write one there.)
+    if (href && extra.fn === undefined) r.href = href;
     Object.assign(r, extra);
     const last = runs[runs.length - 1];
     if (last && !r.ic && !last.ic && r.fn === undefined && last.fn === undefined && (['b', 'i', 'u', 's', 'h', 'href'] as const).every((k) => last[k] === r[k])) last.t += r.t;
@@ -553,12 +556,12 @@ function noteEnd(s: string, from: number): number {
   return -1;
 }
 
-/** A note's words as they sit between "^[" and "]": a bracket that would end the note early, or open one that never closes, is escaped. */
+/** A note's words as they sit between "^[" and "]": a bracket that would end the note early, or open one that never closes, is escaped; so is a backslash that would swallow the "]". */
 export function balanceNote(fn: string): string {
   const out = [...fn];
   const open: number[] = [];
   for (let j = 0; j < out.length; j++) {
-    if (out[j] === '\\') j++;
+    if (out[j] === '\\') j + 1 < out.length ? j++ : (out[j] = '\\\\');
     else if (out[j] === '[') open.push(j);
     else if (out[j] === ']') open.length ? open.pop() : (out[j] = '\\]');
   }
@@ -615,10 +618,11 @@ export function writeInline(runs: Run[]): string {
 
 function marked(runs: Run[], esc: (t: string) => string): string {
   let out = '';
+  const linkOf = (r: Run) => (r.fn === undefined ? r.href : undefined);
   for (let i = 0; i < runs.length; ) {
-    const href = runs[i].href;
+    const href = linkOf(runs[i]);
     let j = i + 1;
-    while (j < runs.length && runs[j].href === href) j++;
+    while (j < runs.length && linkOf(runs[j]) === href) j++;
     // Inside a link's words a "]" would end them early.
     const part = href ? markedPlain(runs.slice(i, j), esc).replace(/(?<!\\)\]/g, '\\]') : markedPlain(runs.slice(i, j), esc);
     out += href ? `[${part}](${href.replace(/[\s()]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())})` : part;

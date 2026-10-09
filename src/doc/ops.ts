@@ -243,7 +243,8 @@ export function shiftFamily(doc: Doc, i: number, by: 1 | -1, depths = doc.blocks
 /**
  * Move item i's family past the family before or after it at its level, as
  * one `move`. A lone item with no neighbour at its level steps past a block
- * that is not an item (a heading), so a line can cross from one section to
+ * that is no list item but has a depth of its own (a heading, where a lines
+ * app gives its headings depths), so a line can cross from one section to
  * the next; it never steps past its own parent.
  */
 export function moveFamily(doc: Doc, i: number, by: 1 | -1, depths = doc.blocks.map(depthOf)): Op[] | null {
@@ -253,11 +254,11 @@ export function moveFamily(doc: Doc, i: number, by: 1 | -1, depths = doc.blocks.
   if (by < 0) {
     let p = i - 1;
     while (p >= 0 && depths[p] > depths[i]) p--;
-    if (p < 0 || depths[p] < depths[i]) p = lone && i > 0 && doc.blocks[i - 1].k !== 'li' ? i - 1 : -1;
+    if (p < 0 || depths[p] < depths[i]) p = lone && i > 0 && depths[i - 1] >= 0 && doc.blocks[i - 1].k !== 'li' ? i - 1 : -1;
     return p < 0 ? null : [{ op: 'move', at: i, n, to: p }];
   }
   if (end >= doc.blocks.length) return null;
-  const next = depths[end] === depths[i] ? family(doc, end, depths) : lone && doc.blocks[end].k !== 'li' ? end + 1 : -1;
+  const next = depths[end] === depths[i] ? family(doc, end, depths) : lone && depths[end] >= 0 && doc.blocks[end].k !== 'li' ? end + 1 : -1;
   return next < 0 ? null : [{ op: 'move', at: i, n, to: next - n }];
 }
 
