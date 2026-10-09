@@ -36,24 +36,9 @@ export function isValidZone(zone: string): boolean {
   }
 }
 
-export function localZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-}
+export const localZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-export function allZones(): string[] {
-  let list: string[] = [];
-  try {
-    list = Intl.supportedValuesOf('timeZone');
-  } catch {
-    /* older engines */
-  }
-  const set = new Set(['UTC', localZone(), ...list]);
-  return Array.from(set).sort();
-}
+export const allZones = (): string[] => Array.from(new Set(['UTC', localZone(), ...Intl.supportedValuesOf('timeZone')])).sort();
 
 /** Civil fields of an instant in a zone. */
 export function utcToParts(ms: number, zone: string): Parts {
@@ -110,3 +95,10 @@ export function dayToYmd(day: number): { y: number; m: number; d: number; wd: nu
 
 export const pad2 = (n: number) => String(n).padStart(2, '0');
 export const ymdString = (y: number, m: number, d: number) => `${y}-${pad2(m)}-${pad2(d)}`;
+/** "2027-03-01" for a day number (days since 1970-01-01). */
+export function dayString(day: number): string {
+  const { y, m, d } = dayToYmd(day);
+  return ymdString(y, m, d);
+}
+/** "09:05" for the clock of some parts. */
+export const clockString = (p: { h: number; min: number }) => `${pad2(p.h)}:${pad2(p.min)}`;

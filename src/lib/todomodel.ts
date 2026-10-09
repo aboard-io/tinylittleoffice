@@ -6,8 +6,7 @@
  *   - [x] Book the venue
  */
 import { parse, write, attr, hasClass, type Block } from './tlo.ts';
-import { EPOCH_DAY, isoDay } from './calmodel.ts';
-import { ymdToDay } from './tz.ts';
+import { fromIsoDay, isoDay } from './calmodel.ts';
 
 export interface Task {
   text: string;
@@ -17,16 +16,10 @@ export interface Task {
   due: number | null;
 }
 
-/** "2027-03-01" as days since 2020-01-01, or null when it is not a date. */
-export function dayOf(iso: string | undefined): number | null {
-  const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(iso?.trim() ?? '');
-  return m ? ymdToDay(+m[1], +m[2], +m[3]) - EPOCH_DAY : null;
-}
-
 export function parseTodos(text: string): Task[] {
   return parse(text)
     .blocks.filter((b) => b.k === 'li')
-    .map((b) => ({ text: b.text.replace(/\n/g, ' '), done: !!b.done, star: hasClass(b, 'star'), due: dayOf(attr(b, 'due')) }));
+    .map((b) => ({ text: b.text.replace(/\n/g, ' '), done: !!b.done, star: hasClass(b, 'star'), due: fromIsoDay(attr(b, 'due')) }));
 }
 
 export function serializeTodos(tasks: Task[]): string {
@@ -61,7 +54,7 @@ export function readTodos(text: string): string {
         text: star ? (star[1] ?? star[2]).trim() : words,
         done: !!l.done || (!!box && box[1] !== ' '),
         star: !!star || hasClass(l, 'star'),
-        due: dayOf(attr(l, 'due')) ?? dayOf(due?.[1]),
+        due: fromIsoDay(attr(l, 'due')) ?? fromIsoDay(due?.[1]),
       });
     }
   }

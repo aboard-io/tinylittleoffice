@@ -21,7 +21,7 @@ export interface Stop {
 }
 
 export const MAX_STOPS = 40;
-export const TRIP_HEAD = ['Place', 'Lat:number', 'Lon:number', 'Note'];
+const TRIP_HEAD = ['Place', 'Lat:number', 'Lon:number', 'Note'];
 
 /** Degrees to five places, about a metre: as short as that allows. */
 const deg = (n: number) => String(Math.round(n * 1e5) / 1e5);
@@ -121,7 +121,7 @@ export const tripUnits = (text: string): Units => unitsOf(parse(text).head.units
  * Hours are a driving estimate, since stops are joined by straight lines:
  * roads run about 1.3 times the straight distance, at about 80 km/h.
  */
-export const driveHours = (km: number) => (km * 1.3) / 80;
+const driveHours = (km: number) => (km * 1.3) / 80;
 
 export function formatLeg(km: number, units: Units): string {
   if (units === 'k') return formatKm(km);

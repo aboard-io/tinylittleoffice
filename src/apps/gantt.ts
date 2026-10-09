@@ -4,21 +4,14 @@
  * Document format: see lib/ganttmodel.ts.
  */
 import { goLinks } from '../widgets/link-guard.ts';
-import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI, EPOCH_DAY, dayToYmd, ymdString, ymdToDay } from '../kit.ts';
+import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI, EPOCH_DAY, dayToYmd } from '../kit.ts';
 import { MAX_INDENT, MAX_TASKS, ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
+import { fromIsoDay, isoDay, today } from '../lib/calmodel.ts';
 
 const ROW = 36;
 const HEAD = 44;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ymd = (day: number) => dayToYmd(EPOCH_DAY + day);
-const toInput = (day: number) => {
-  const { y, m, d } = ymd(day);
-  return ymdString(y, m, d);
-};
-const today = () => {
-  const n = new Date();
-  return ymdToDay(n.getFullYear(), n.getMonth() + 1, n.getDate()) - EPOCH_DAY;
-};
 
 export class ToGantt extends DocElement<GanttTask[]> {
   @state() private cur = 0;
@@ -47,7 +40,11 @@ export class ToGantt extends DocElement<GanttTask[]> {
     tasks.splice(after + 1, 0, task);
     this.commit(tasks);
     this.cur = after + 1;
-    this.updateComplete.then(() => this.querySelector<HTMLInputElement>(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`)?.focus());
+    this.focusCurrent();
+  }
+
+  private focusCurrent() {
+    this.focusSoon(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`);
   }
 
   private removeTask() {
@@ -72,7 +69,6 @@ export class ToGantt extends DocElement<GanttTask[]> {
   }
 
   private onRowKey(e: KeyboardEvent, i: number) {
-    const refocus = () => this.focusSoon(`.gantt-rows tbody tr:nth-child(${this.cur + 1}) input.label`);
     if (e.key === 'Tab' && (e.target as HTMLElement).classList.contains('label') && !e.altKey && !e.ctrlKey && !e.metaKey) {
       // Tab indents only when it can; otherwise it moves on as Tab always does.
       const before = this.doc[i].depth ?? 0;
@@ -82,7 +78,7 @@ export class ToGantt extends DocElement<GanttTask[]> {
       e.preventDefault();
       this.cur = i;
       this.move(e.key === 'ArrowUp' ? -1 : 1);
-      refocus();
+      this.focusCurrent();
     } else if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
       // Return in any field of a task starts the next one, right below it.
       e.preventDefault();
@@ -123,13 +119,14 @@ export class ToGantt extends DocElement<GanttTask[]> {
     const height = HEAD + this.doc.length * ROW;
     const days = Array.from({ length: to - from }, (_, k) => from + k);
     // Days until the next month label, so the first one is dropped when there is no room for it.
-    const nextMonth = days.findIndex((day, k) => k > 0 && ymd(day).d === 1) < 0 ? Infinity : days.findIndex((day, k) => k > 0 && ymd(day).d === 1);
+    const firstOfMonth = days.findIndex((day, k) => k > 0 && ymd(day).d === 1);
+    const nextMonth = firstOfMonth < 0 ? Infinity : firstOfMonth;
     return svg`<svg class="gantt-chart" width=${width} height=${height} viewBox="0 0 ${width} ${height}" role="img" aria-label="Chart" @pointermove=${this.onBarMove} @pointerup=${() => (this.drag = null)} @pointercancel=${() => (this.drag = null)}>
       ${days.map((day, k) => {
-        const { d, m, wd } = ymd(day);
+        const { y, m, d, wd } = ymd(day);
         return svg`
           ${wd === 0 || wd === 6 ? svg`<rect class="weekend" x=${k * z} y=${HEAD} width=${z} height=${height - HEAD} />` : nothing}
-          ${d === 1 || (k === 0 && nextMonth * z > 70) ? svg`<text class="month" x=${k * z + 4} y="16">${MONTHS[m - 1]} ${ymd(day).y}</text>` : nothing}
+          ${d === 1 || (k === 0 && nextMonth * z > 70) ? svg`<text class="month" x=${k * z + 4} y="16">${MONTHS[m - 1]} ${y}</text>` : nothing}
           ${z >= 18 || wd === 1 ? svg`<text class="day" x=${k * z + z / 2} y="36" text-anchor="middle">${d}</text>` : nothing}
           <line class=${wd === 1 ? 'week' : 'tick'} x1=${k * z} y1=${wd === 1 ? 22 : HEAD} x2=${k * z} y2=${height} />`;
       })}
@@ -140,17 +137,18 @@ export class ToGantt extends DocElement<GanttTask[]> {
         const x = (sp.start - from) * z;
         const w = sp.days * z;
         const y = HEAD + i * ROW + 7;
+        const label = svg`<text x=${x + w + 8} y=${y + (ROW - 14) / 2} dominant-baseline="central" pointer-events="none">${t.label}</text>`;
         // A task with parts under it is a bracket around them; it moves when they do.
         if (sp.parent)
           return svg`<g class="bar parent ${i === this.cur ? 'sel' : ''}" data-idx=${i} @pointerdown=${() => (this.cur = i)}>
             <path d="M${x} ${y + 4}h${w}v14l-7 -7h${-(w - 14)}l-7 7z" />
-            <text x=${x + w + 8} y=${y + (ROW - 14) / 2} dominant-baseline="central" pointer-events="none">${t.label}</text>
+            ${label}
           </g>`;
         return svg`<g class="bar ${i === this.cur ? 'sel' : ''}" data-idx=${i}>
           <rect class="track" x=${x} y=${y} width=${w} height=${ROW - 14} rx="5" @pointerdown=${(e: PointerEvent) => this.onBarDown(e, i, 'move')} />
           ${t.done ? svg`<rect class="done" x=${x} y=${y} width=${(w * t.done) / 100} height=${ROW - 14} rx="5" pointer-events="none" />` : nothing}
           <rect class="grip" x=${x + w - 8} y=${y} width="12" height=${ROW - 14} @pointerdown=${(e: PointerEvent) => this.onBarDown(e, i, 'size')} />
-          <text x=${x + w + 8} y=${y + (ROW - 14) / 2} dominant-baseline="central" pointer-events="none">${t.label}</text>
+          ${label}
         </g>`;
       })}
     </svg>`;
@@ -159,6 +157,7 @@ export class ToGantt extends DocElement<GanttTask[]> {
   render() {
     const n = this.doc.length;
     const range = ganttRange(this.doc);
+    const spans = ganttSpans(this.doc);
     return html`
       <div class="to-toolbar">
         <sl-button size="small" ?disabled=${n >= MAX_TASKS} @click=${() => this.add()}>${icon(UI.plus, 14)} Task</sl-button>
@@ -183,16 +182,16 @@ export class ToGantt extends DocElement<GanttTask[]> {
               </thead>
               <tbody>
                 ${this.doc.map(
-                  (t, i) => html`<tr class="${i === this.cur ? 'sel' : ''} ${ganttSpans(this.doc)[i].parent ? 'parent' : ''}" @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
+                  (t, i) => html`<tr class="${i === this.cur ? 'sel' : ''} ${spans[i].parent ? 'parent' : ''}" @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, i)}>
                     <td><input class="label" style="padding-left:${4 + (t.depth ?? 0) * 18}px" aria-label="Task ${i + 1}" placeholder="Task" .value=${t.label} @input=${(e: Event) => this.patch(i, { label: (e.target as HTMLInputElement).value })} />${goLinks(t.label)}</td>
                     <td>
-                      <input type="date" aria-label="Start of task ${i + 1}" .value=${toInput(t.start)} @change=${(e: Event) => {
-                        const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec((e.target as HTMLInputElement).value);
-                        if (m) this.patch(i, { start: Math.max(0, ymdToDay(+m[1], +m[2], +m[3]) - EPOCH_DAY) });
+                      <input type="date" aria-label="Start of task ${i + 1}" .value=${isoDay(t.start)} @change=${(e: Event) => {
+                        const start = fromIsoDay((e.target as HTMLInputElement).value);
+                        if (start !== null) this.patch(i, { start: Math.max(0, start) });
                       }} />
                     </td>
-                    <td><input class="n" type="number" min="1" max="999" aria-label="Days for task ${i + 1}" .value=${String(t.days)} @change=${(e: Event) => this.patch(i, { days: Math.max(1, Math.min(999, parseInt((e.target as HTMLInputElement).value, 10) || 1)) })} /></td>
-                    <td><input class="n" type="number" min="0" max="100" step="10" aria-label="Percent done for task ${i + 1}" .value=${String(t.done)} @change=${(e: Event) => this.patch(i, { done: Math.max(0, Math.min(100, parseInt((e.target as HTMLInputElement).value, 10) || 0)) })} /></td>
+                    <td><input class="n" type="number" min="1" max="999" aria-label="Days for task ${i + 1}" .value=${String(t.days)} @change=${(e: Event) => this.patch(i, { days: clamp(parseInt((e.target as HTMLInputElement).value, 10) || 1, 1, 999) })} /></td>
+                    <td><input class="n" type="number" min="0" max="100" step="10" aria-label="Percent done for task ${i + 1}" .value=${String(t.done)} @change=${(e: Event) => this.patch(i, { done: clamp(parseInt((e.target as HTMLInputElement).value, 10) || 0, 0, 100) })} /></td>
                   </tr>`,
                 )}
               </tbody>

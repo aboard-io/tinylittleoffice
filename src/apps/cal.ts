@@ -12,8 +12,8 @@
  */
 import { goLinks } from '../widgets/link-guard.ts';
 import { DocElement, defineElement, html, nothing, state, swatches, icon, UI, type SlCheckbox, type SlInput, type SlSelect } from '../kit.ts';
-import { CAL_COLORS, EVERY, isoDay, occurrences, parseCalendar, repeatText, serializeCalendar, sortSpans, spanDays, spanStartMs, spanEndMs, EPOCH_DAY, EPOCH_MS, MAX_LABEL, type Calendar, type Every, type Span } from '../lib/calmodel.ts';
-import { allZones, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
+import { CAL_COLORS, EVERY, clockMinutes, fromIsoDay, isoDay, occurrences, parseCalendar, repeatText, serializeCalendar, sortSpans, spanDays, spanStartMs, spanEndMs, EPOCH_DAY, MAX_LABEL, type Calendar, type Every, type Span } from '../lib/calmodel.ts';
+import { allZones, clockString, dayToYmd, isValidZone, localZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay, zoneAbbr } from '../lib/tz.ts';
 
 const DAY_MS = 86400000;
 
@@ -42,8 +42,9 @@ export class ToCal extends DocElement<Calendar> {
 
   constructor() {
     super();
-    const now = utcToParts(Date.now(), this.zone);
-    this.view = { y: now.y, m: now.m };
+    this.showMonthOf();
+    // On the element itself, so it lasts as long as the element does.
+    this.addEventListener('keydown', this.onKey);
   }
 
   protected parse = parseCalendar;
@@ -54,15 +55,6 @@ export class ToCal extends DocElement<Calendar> {
     this.jumpToContent();
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.addEventListener('keydown', this.onKey);
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeEventListener('keydown', this.onKey);
-  }
-
   /** The zone a repeat keeps its time of day in: the document's, or the viewer's until the document has one. */
   private get repeatZone() {
     return this.doc.zone || this.zone;
@@ -71,14 +63,22 @@ export class ToCal extends DocElement<Calendar> {
   /** Open the month of the next thing still to come (a repeat's next time), else the last span, else today. */
   private jumpToContent() {
     const now = Date.now();
-    const p0 = utcToParts(now, this.zone);
-    const today = ymdToDay(p0.y, p0.m, p0.d);
+    const today = this.today();
     const spans = this.doc.spans;
     const next = (s: Span) => (s.repeat ? occurrences(s, today - 1, today + 400, this.repeatZone)[0] : undefined) ?? (spanEndMs(s) >= now ? s : undefined);
     const coming = spans.map(next).filter((s): s is Span => !!s);
-    const target = coming.length ? sortSpans(coming)[0] : spans[spans.length - 1];
-    const ms = target ? spanStartMs(target) : now;
-    const p = target?.kind === 'd' ? { ...dayToYmd(EPOCH_DAY + target.start) } : utcToParts(ms, this.zone);
+    this.showMonthOf(coming.length ? sortSpans(coming)[0] : spans[spans.length - 1]);
+  }
+
+  /** Today in the chosen zone, as a day since 1970. */
+  private today(): number {
+    const p = utcToParts(Date.now(), this.zone);
+    return ymdToDay(p.y, p.m, p.d);
+  }
+
+  /** Open the month a span starts in; without one, this month. */
+  private showMonthOf(s?: Span) {
+    const p = s?.kind === 'd' ? dayToYmd(EPOCH_DAY + s.start) : utcToParts(s ? spanStartMs(s) : Date.now(), this.zone);
     this.view = { y: p.y, m: p.m };
   }
 
@@ -106,9 +106,8 @@ export class ToCal extends DocElement<Calendar> {
   }
 
   private done() {
-    const d = this.draft;
-    if (!d) return;
-    this.save(this.sel < this.doc.spans.length ? this.doc.spans.map((s, i) => (i === this.sel ? d : s)) : [...this.doc.spans, d]);
+    if (!this.draft) return;
+    this.save(this.shown());
     this.cancel();
   }
 
@@ -135,11 +134,6 @@ export class ToCal extends DocElement<Calendar> {
     while (m < 1) { m += 12; y--; }
     while (m > 12) { m -= 12; y++; }
     this.view = { y, m };
-  }
-
-  private today() {
-    const p = utcToParts(Date.now(), this.zone);
-    this.view = { y: p.y, m: p.m };
   }
 
   private setZone(z: string) {
@@ -213,63 +207,38 @@ export class ToCal extends DocElement<Calendar> {
   /* ---------- editing the draft in the chosen zone ---------- */
 
   private fields(s: Span) {
-    if (s.kind === 'd') {
-      const a = dayToYmd(EPOCH_DAY + s.start);
-      const b = dayToYmd(EPOCH_DAY + s.start + s.dur - 1);
-      return { sd: ymdString(a.y, a.m, a.d), st: '', ed: ymdString(b.y, b.m, b.d), et: '' };
-    }
+    if (s.kind === 'd') return { sd: isoDay(s.start), st: '', ed: isoDay(s.start + s.dur - 1), et: '' };
     const a = utcToParts(spanStartMs(s), this.zone);
     const b = utcToParts(spanEndMs(s), this.zone);
-    return { sd: ymdString(a.y, a.m, a.d), st: `${pad2(a.h)}:${pad2(a.min)}`, ed: ymdString(b.y, b.m, b.d), et: `${pad2(b.h)}:${pad2(b.min)}` };
+    return { sd: ymdString(a.y, a.m, a.d), st: clockString(a), ed: ymdString(b.y, b.m, b.d), et: clockString(b) };
   }
 
-  private parseYmd(v: string): [number, number, number] | null {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
-    return m ? [+m[1], +m[2], +m[3]] : null;
-  }
-  private parseHm(v: string): [number, number] | null {
-    const m = /^(\d{2}):(\d{2})/.exec(v);
-    return m ? [+m[1], +m[2]] : null;
+  /** A date field and a time field as the draft counts them: a day, or for a timed span a minute in the chosen zone. */
+  private fieldsAt(date: string, time: string): number | null {
+    const day = fromIsoDay(date);
+    if (day === null || this.draft!.kind === 'd') return day;
+    const hm = /^(\d{2}):(\d{2})/.exec(time);
+    return clockMinutes(EPOCH_DAY + day, hm ? +hm[1] : 0, hm ? +hm[2] : 0, this.zone);
   }
 
   private setStart(date: string, time: string) {
-    const s = this.draft!;
-    const ymd = this.parseYmd(date);
-    if (!ymd) return;
-    if (s.kind === 'd') {
-      this.patch({ start: ymdToDay(...ymd) - EPOCH_DAY });
-    } else {
-      const hm = this.parseHm(time) ?? [0, 0];
-      const ms = partsToUtc(ymd[0], ymd[1], ymd[2], hm[0], hm[1], this.zone);
-      this.patch({ start: Math.round((ms - EPOCH_MS) / 60000) });
-    }
+    const at = this.fieldsAt(date, time);
+    if (at !== null) this.patch({ start: at });
   }
 
   private setEnd(date: string, time: string) {
     const s = this.draft!;
-    const ymd = this.parseYmd(date);
-    if (!ymd) return;
-    if (s.kind === 'd') {
-      const end = ymdToDay(...ymd) - EPOCH_DAY;
-      this.patch({ dur: Math.max(1, end - s.start + 1) });
-    } else {
-      const hm = this.parseHm(time) ?? [0, 0];
-      const ms = partsToUtc(ymd[0], ymd[1], ymd[2], hm[0], hm[1], this.zone);
-      this.patch({ dur: Math.max(0, Math.round((ms - spanStartMs(s)) / 60000)) });
-    }
+    const at = this.fieldsAt(date, time);
+    if (at !== null) this.patch({ dur: s.kind === 'd' ? Math.max(1, at - s.start + 1) : Math.max(0, at - s.start) });
   }
 
   private toggleAllDay(allDay: boolean) {
     const s = this.draft!;
     if (allDay && s.kind === 't') {
-      const a = utcToParts(spanStartMs(s), this.zone);
-      const b = utcToParts(Math.max(spanStartMs(s), spanEndMs(s) - 1), this.zone);
-      const start = ymdToDay(a.y, a.m, a.d);
-      this.patch({ kind: 'd', start: start - EPOCH_DAY, dur: Math.max(1, ymdToDay(b.y, b.m, b.d) - start + 1) });
+      const [a, b] = spanDays(s, this.zone);
+      this.patch({ kind: 'd', start: a - EPOCH_DAY, dur: Math.max(1, b - a + 1) });
     } else if (!allDay && s.kind === 'd') {
-      const a = dayToYmd(EPOCH_DAY + s.start);
-      const ms = partsToUtc(a.y, a.m, a.d, 9, 0, this.zone);
-      this.patch({ kind: 't', start: Math.round((ms - EPOCH_MS) / 60000), dur: 60 });
+      this.patch({ kind: 't', start: clockMinutes(EPOCH_DAY + s.start, 9, 0, this.zone), dur: 60 });
     }
   }
 
@@ -284,9 +253,9 @@ export class ToCal extends DocElement<Calendar> {
     }
     if ('until' in end) {
       delete repeat.count;
-      const ymd = end.until ? this.parseYmd(end.until) : null;
+      const until = fromIsoDay(end.until);
       const [first] = spanDays(this.draft!, this.zone);
-      if (ymd) repeat.until = Math.max(first, ymdToDay(...ymd)) - EPOCH_DAY;
+      if (until !== null) repeat.until = Math.max(first - EPOCH_DAY, until);
       else delete repeat.until;
     }
     this.patch({ repeat });
@@ -324,8 +293,7 @@ export class ToCal extends DocElement<Calendar> {
     const gridStart = first - lead;
     const daysInMonth = ymdToDay(y, m + 1, 1) - first;
     const rows = Math.ceil((lead + daysInMonth) / 7);
-    const todayP = utcToParts(Date.now(), this.zone);
-    const today = ymdToDay(todayP.y, todayP.m, todayP.d);
+    const today = this.today();
     const wdFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' });
     const docZone = this.doc.zone;
     const range = this.drag ? [Math.min(this.drag.from, this.drag.to), Math.max(this.drag.from, this.drag.to)] : null;
@@ -340,7 +308,7 @@ export class ToCal extends DocElement<Calendar> {
           <sl-button class="icon" size="small" aria-label="Next month" @click=${() => this.shiftMonth(1)}>${icon(UI.right, 16)}<span class="sr-only">Next month</span></sl-button>
         </sl-button-group>
         <span class="cal-month" aria-live="polite">${monthName}</span>
-        <sl-button size="small" @click=${this.today}>Today</sl-button>
+        <sl-button size="small" @click=${() => this.showMonthOf()}>Today</sl-button>
         <span class="to-spacer"></span>
         <input class="cal-zone" aria-label="Time zone" list="cal-zones" autocomplete="off" spellcheck="false" .value=${this.zone.replace(/_/g, ' ')} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} @change=${this.onZone} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
         <datalist id="cal-zones">${this.zones.map((z) => html`<option value=${z.replace(/_/g, ' ')}></option>`)}</datalist>
@@ -466,8 +434,7 @@ export class ToCal extends DocElement<Calendar> {
             class=${i === this.sel ? 'sel' : ''}
             @click=${() => {
               this.open(i);
-              const p = s.kind === 'd' ? dayToYmd(EPOCH_DAY + s.start) : utcToParts(spanStartMs(s), this.zone);
-              this.view = { y: p.y, m: p.m };
+              this.showMonthOf(s);
             }}
           >
             <span class="when">${this.fmtRange(s)}</span>

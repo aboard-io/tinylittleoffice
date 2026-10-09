@@ -19,6 +19,8 @@ let L: typeof Leaflet;
 let loading: Promise<void> | null = null;
 const leaflet = () => (loading ??= Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css')]).then(([m]) => void (L = m.default)));
 const SEARCH = 'https://nominatim.openstreetmap.org/search';
+/** Degrees to five places, about a metre, as the document keeps them. */
+const deg = (n: number) => Math.round(n * 1e5) / 1e5;
 
 interface Place {
   name: string;
@@ -107,8 +109,7 @@ export class ToTrip extends DocElement<Trip> {
 
   private addStop(lat: number, lon: number, name = '') {
     if (this.doc.stops.length >= MAX_STOPS) return;
-    const round = (n: number) => Math.round(n * 1e5) / 1e5;
-    this.save([...this.doc.stops, { lat: round(lat), lon: round(lon), name, note: '' }]);
+    this.save([...this.doc.stops, { lat: deg(lat), lon: deg(lon), name, note: '' }]);
     this.cur = this.doc.stops.length - 1;
     this.focusSoon('.trip-stops li:last-child input.name');
   }
@@ -140,7 +141,7 @@ export class ToTrip extends DocElement<Trip> {
       });
       marker.on('dragend', () => {
         const p = marker.getLatLng().wrap();
-        this.patch(i, { lat: Math.round(p.lat * 1e5) / 1e5, lon: Math.round(p.lng * 1e5) / 1e5 });
+        this.patch(i, { lat: deg(p.lat), lon: deg(p.lng) });
       });
       marker.addTo(layer);
     });
@@ -183,7 +184,7 @@ export class ToTrip extends DocElement<Trip> {
     if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
     e.preventDefault();
     this.move(i, e.key === 'ArrowUp' ? -1 : 1);
-    this.updateComplete.then(() => this.querySelector<HTMLInputElement>(`.trip-stops li:nth-child(${this.cur + 1}) input.name`)?.focus());
+    this.focusSoon(`.trip-stops li:nth-child(${this.cur + 1}) input.name`);
   }
 
   render() {
