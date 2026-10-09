@@ -3,7 +3,7 @@ import './lib/shoelace.ts';
 import './widgets/meter.ts';
 import './kit/tip.ts';
 import './app.ts';
-import { keepOffline } from './lib/store.ts';
+import { keepOffline } from './lib/offline.ts';
 
 // After a new version is published, a page opened before it may ask for a
 // piece of the old one that is gone. Reloading (once) gets the new version.

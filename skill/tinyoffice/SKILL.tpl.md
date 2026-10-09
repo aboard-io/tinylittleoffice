@@ -5,7 +5,7 @@ description: Make almost any small document as a shareable link by writing a Tin
 
 # TinyLittleOffice links
 
-TinyLittleOffice (https://tinylittleoffice.com) is an office suite whose documents live entirely in their links. You make a document by writing a URL. Nothing is uploaded or stored: opening the link shows the document in an editor, and whoever opens it can change it and share the new link.
+TinyLittleOffice (https://tinylittleoffice.com) is an office suite whose documents live entirely in their links. You make a document by writing a URL. Nothing is uploaded or stored: opening the link shows the document in an editor, and whoever opens it can change it and share the new link. The site works offline once kept on the device (a switch in its menu).
 
 Every document is written in one format, TLO: Markdown, with a few additions. If you can write Markdown, you can write any of the apps below; each section says which Markdown shapes that app reads.
 

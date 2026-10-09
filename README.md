@@ -377,6 +377,27 @@ the author's id rather than their handle, so that tap first asks
 public.api.bsky.app who the handle is; if it does not say, the card offers
 the post on Bluesky instead.
 
+## Working offline
+
+The whole site is static and a document lives in its link, so nothing needs
+a server once the shell is loaded. The menu's switch, "Keep the app on this
+device", registers a service worker (`src/sw.ts`, built by Vite as `sw.js`)
+that fetches every file of the build, the lazily loaded ones too (the map
+library, the icon set, the fonts), and from then on serves the site's own
+files from the device first, the network second: a cold start with no
+connection opens the home page or any app's page, and a link opens there.
+The list it fetches is `files.json`, written by the build
+(`scripts/offline-files.ts`); the worker carries the build's version, so a
+new build is a new worker, which fetches the new files and drops the old
+cache (the line under the switch says "Updated, reload"). Switched off, the
+worker is unregistered and its cache deleted; turning the header's switch to
+Private does the same. Map tiles, embedded pages and the short-link service
+are never kept. The line under the switch says how much the browser holds
+for the site (`navigator.storage.estimate()`), and the browser is asked to
+keep it (`navigator.storage.persist()`). The site is installable as an app
+(`public/manifest.webmanifest`); the menu offers "Add to home screen" where
+the browser has a prompt, and says how on iPhone Safari, which has none.
+
 ## Embedding
 
 Share has "Copy embed code": an `<iframe>` on the document's `embed` view,
@@ -497,6 +518,7 @@ src/lib/sign.ts       WebCrypto keys, signing, verification
 src/lib/crypt.ts      password encryption of the packed envelope
 src/lib/limits.ts     how much room a link leaves, service by service
 src/lib/icons.ts      Lucide icons; iconsearch.ts finds and suggests them
+src/lib/offline.ts    the switch that keeps the app on the device; src/sw.ts the service worker it registers
 src/widgets/meter.ts  <to-meter>: URL space ring + copy button
 src/styles.css        the stylesheet: tokens, the shell, shared pieces (.to-*), then the apps
 scripts/              new-app, share cards and icons

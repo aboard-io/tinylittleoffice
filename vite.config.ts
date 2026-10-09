@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { offlineList } from './scripts/offline-files.ts';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
 import './src/apps/index.ts';
@@ -41,30 +42,14 @@ function appPages(site: string): Plugin {
       // The guide to making documents by URL, where programs look for one: /llms.txt.
       // It is the skill in skill/tinyoffice, without the heading a skill needs.
       const skill = readFileSync(resolve(import.meta.dirname, 'skill/tinyoffice/SKILL.md'), 'utf8');
-      // The service worker: every file of the build, fetched once and then served from the device,
-      // so the whole thing works with no connection. (Share cards are for link previews; they stay behind.)
-      const files = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
+      // The files the device keeps for working offline (src/sw.ts, built as dist/sw.js, fetches them all when the
+      // switch in the menu is on), which are also what "Download everything" zips; the worker is versioned by them.
+      const built = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
         .filter((f) => f.isFile())
-        .map((f) => relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'))
-        .filter((f) => !f.startsWith('og/') && f !== 'sw.js' && f !== 'llms.txt' && f !== '_headers')
-        .sort();
-      const version = createHash('sha256').update(files.map((f) => f + readFileSync(resolve(dist, f)).length).join('|')).digest('hex').slice(0, 12);
-      // The same list, as data, for "Download everything" (the app and the library in one zip).
-      writeFileSync(resolve(dist, 'files.json'), JSON.stringify(files.map((f) => f.replace(/(^|\/)index\.html$/, '$1'))));
-      writeFileSync(
-        resolve(dist, 'sw.js'),
-        `const CACHE = 'tlo-${version}';
-const FILES = ${JSON.stringify(files.map((f) => f.replace(/(^|\/)index\.html$/, '$1')))};
-self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting())));
-self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));
-self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
-  // Only this site's own files; anything else (map tiles) goes to the network as it always did.
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request)));
-});
-`,
-      );
+        .map((f) => ({ path: relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'), bytes: statSync(resolve(f.parentPath, f.name)).size }));
+      const offline = offlineList(built);
+      writeFileSync(resolve(dist, 'files.json'), JSON.stringify(offline));
+      writeFileSync(resolve(dist, 'sw.js'), readFileSync(resolve(dist, 'sw.js'), 'utf8').replace('__TLO_VERSION__', offline.version));
       writeFileSync(resolve(dist, 'llms.txt'), skill.replace(/^---[\s\S]*?---\n+/, '').replaceAll('https://tinylittleoffice.com/', site));
     },
   };
@@ -81,5 +66,10 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: false,
     // One script for the whole suite is the point (see kit/browser.ts); only the map library and the full icon set are chunks of their own.
     chunkSizeWarningLimit: 1200,
+    // The service worker is an entry of its own, at a fixed name (a browser looks for it at one address, build after build).
+    rollupOptions: {
+      input: { main: resolve(import.meta.dirname, 'index.html'), sw: resolve(import.meta.dirname, 'src/sw.ts') },
+      output: { entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },
+    },
   },
 }));

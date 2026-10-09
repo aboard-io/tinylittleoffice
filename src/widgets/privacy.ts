@@ -13,7 +13,7 @@ import type { Privacy } from '../lib/privacy.ts';
 import type { SlInput } from '../lib/shoelace.ts';
 
 export class ToPrivacy extends LitElement {
-  static properties = { privacy: { attribute: false }, env: { attribute: false }, app: {}, sealed: {}, pw: { state: true }, busy: { state: true }, wrong: { state: true }, keyMode: { state: true }, keyText: { state: true }, offline: { state: true }, note: { state: true } };
+  static properties = { privacy: { attribute: false }, env: { attribute: false }, app: {}, sealed: {}, pw: { state: true }, busy: { state: true }, wrong: { state: true }, keyMode: { state: true }, keyText: { state: true }, note: { state: true } };
   declare privacy: Privacy;
   declare env: Envelope;
   declare app: string | null;
@@ -24,7 +24,6 @@ export class ToPrivacy extends LitElement {
   declare wrong: boolean;
   declare keyMode: 'none' | 'export' | 'import';
   declare keyText: string;
-  declare offline: boolean | null;
   declare note: string;
 
   constructor() {
@@ -37,7 +36,6 @@ export class ToPrivacy extends LitElement {
     this.wrong = false;
     this.keyMode = 'none';
     this.keyText = '';
-    this.offline = null;
     this.note = '';
   }
 
@@ -57,7 +55,6 @@ export class ToPrivacy extends LitElement {
       this.off = this.privacy.on(() => this.requestUpdate());
     }
     if (changed.has('sealed') && this.sealed) void this.updateComplete.then(() => this.querySelector<SlInput>('#pw-input')?.focus());
-    if (this.offline === null) void this.privacy.offlineKept().then((kept) => (this.offline = kept));
   }
 
   private say(note: string) {
@@ -194,7 +191,7 @@ export class ToPrivacy extends LitElement {
       </dl>
       <h3>${icon(UI.home, 14)} On this device</h3>
       ${p.keeping()
-        ? html`<p class="to-hint"><b>Saved.</b> This device saves, as you asked with the switch in the header: your documents (in folders, on the home page), your signing key, your preferences and a copy of the app for when there is no connection. Nothing is ever sent anywhere.</p>`
+        ? html`<p class="to-hint"><b>Saved.</b> This device saves, as you asked with the switch in the header: your documents (in folders, on the home page), your signing key, your preferences and, if the menu's switch is on, a copy of the app for when there is no connection. Nothing is ever sent anywhere.</p>`
         : html`<p class="to-hint"><b>Private.</b> Nothing is written to this device: no documents, no cookies, no offline copy. Settings last for this visit, in memory. The switch in the header saves things instead.</p>`}
       <table class="to-kept">
         <thead><tr><th scope="col">What</th><th scope="col">Now</th><th scope="col"></th></tr></thead>
@@ -215,9 +212,9 @@ export class ToPrivacy extends LitElement {
             <td>${p.prefsKept() ? html`<sl-button size="small" @click=${() => { p.forgetPrefs(); this.emit('privacy-device'); }}>Forget</sl-button>` : nothing}</td>
           </tr>
           <tr>
-            <th scope="row">The app itself<br /><small>A copy of TinyLittleOffice, so it opens with no connection. No documents are in it.</small></th>
-            <td>${this.offline === null ? '…' : this.offline ? 'Saved' : 'Not saved'}</td>
-            <td>${this.offline ? html`<sl-button size="small" @click=${async () => { await p.dropOffline(); this.offline = false; }}>Remove</sl-button>` : nothing}</td>
+            <th scope="row">The app itself<br /><small>A copy of TinyLittleOffice, so it opens with no connection: the switch in the menu. No documents are in it.</small></th>
+            <td>${p.offlineKept() ? 'Saved' : 'Not saved'}</td>
+            <td>${p.offlineKept() ? html`<sl-button size="small" @click=${() => p.dropOffline()}>Remove</sl-button>` : nothing}</td>
           </tr>
         </tbody>
       </table>
@@ -225,7 +222,7 @@ export class ToPrivacy extends LitElement {
         <sl-button size="small" @click=${() => this.emit('privacy-zip')}>${icon(UI.download, 14)} Download everything (.zip)</sl-button>
         <span class="to-hint">The app, and every document kept here, in one file.</span>
         <span class="to-spacer"></span>
-        ${p.keeping() ? html`<sl-button size="small" variant="danger" outline @click=${async () => { if (!confirm('Forget everything this site keeps in this browser, and keep nothing from now on?')) return; await p.leaveNothing(); this.offline = false; this.emit('privacy-device'); }}>${icon(UI.trash, 14)} Leave nothing</sl-button>` : nothing}
+        ${p.keeping() ? html`<sl-button size="small" variant="danger" outline @click=${async () => { if (!confirm('Forget everything this site keeps in this browser, and keep nothing from now on?')) return; await p.leaveNothing(); this.emit('privacy-device'); }}>${icon(UI.trash, 14)} Leave nothing</sl-button>` : nothing}
       </div>
     `;
   }
