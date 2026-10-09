@@ -74,6 +74,15 @@ const ROW = 44;
 const dot = (hex: string) => [['circle', { cx: 12, cy: 12, r: 8, fill: hex, stroke: hex }]] as IconNode;
 const HEAD = 44;
 
+/** Keep a pointer's moves coming here; a pointer the browser no longer knows (lifted already) is let go. */
+function capture(el: Element, id: number) {
+  try {
+    el.setPointerCapture(id);
+  } catch {
+    // Nothing to hold on to.
+  }
+}
+
 function firstWeekday(): number {
   try {
     const loc = new Intl.Locale(navigator.language) as Intl.Locale & { getWeekInfo?: () => { firstDay: number }; weekInfo?: { firstDay: number } };
@@ -305,7 +314,7 @@ export class ToCalEditor extends DocElement<CalView> {
     if (!this.drag) return;
     const day = this.dayAt(e);
     if (day !== null && day !== this.drag.to) {
-      if (!this.drag.moved) (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      if (!this.drag.moved) capture(e.currentTarget as Element, e.pointerId);
       this.drag = { ...this.drag, to: day, moved: true };
     }
   };
@@ -330,7 +339,7 @@ export class ToCalEditor extends DocElement<CalView> {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    capture(e.currentTarget as Element, e.pointerId);
     this.cur = b.at;
     this.bar = { at: b.at, how, x0: e.clientX, days: 0, id: e.pointerId };
   }
