@@ -59,9 +59,9 @@ test('name, note and place are cells; a note with no column makes one', () => {
   expect(run(ROUTE, (d, v) => setText(d, v, v.stops[0], 'note', 'Start here')).ops).toEqual([]);
   expect(run(ROUTE, (d, v) => setText(d, v, v.stops[0], 'note', 'two\nlines')).text).toContain('| Start here'.replace('Start here', 'two lines'));
   expect(run('Name | Lat | Lon\n--- | --- | ---\nA | 1 | 2\n', (d, v) => setText(d, v, v.stops[0], 'note', 'hello')).text).toBe('Name | Lat | Lon | Note\n--- | --- | --- | ---\nA | 1 | 2 | hello\n');
-  const moved = run(ROUTE, (d, v) => setPlace(v, v.stops[0], 40.7, -74.0060000001));
+  const moved = run(ROUTE, (_, v) => setPlace(v, v.stops[0], 40.7, -74.0060000001));
   expect(moved.ops).toEqual([{ op: 'cells', at: 0, r: 0, c: 1, values: [['40.7']] }]);
-  expect(run(ROUTE, (d, v) => setPlace(v, v.stops[0], 99, 0)).ops).toEqual([]);
+  expect(run(ROUTE, (_, v) => setPlace(v, v.stops[0], 99, 0)).ops).toEqual([]);
 });
 
 test('move is the row out and in again where its neighbour was; remove is rows; the ends stay', () => {
@@ -75,7 +75,7 @@ test('move is the row out and in again where its neighbour was; remove is rows; 
   // Past a row that is no place: the neighbour is the next stop, wherever its row is.
   const gap = 'Place | Lat | Lon\n--- | --- | ---\nA | 1 | 1\nnot here | x | y\nB | 2 | 2\n';
   expect(run(gap, (d, v) => moveStop(d, v, 0, 1)).text).toBe('Place | Lat | Lon\n--- | --- | ---\nnot here | x | y\nB | 2 | 2\nA | 1 | 1\n');
-  const gone = run(ROUTE, (d, v) => removeStop(v, v.stops[1]));
+  const gone = run(ROUTE, (_, v) => removeStop(v, v.stops[1]));
   expect(gone.ops).toEqual([{ op: 'rows', at: 0, r: 1, n: 1 }]);
   expect(readTrip(parse(gone.text)).stops).toHaveLength(2);
 });
