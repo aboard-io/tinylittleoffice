@@ -123,7 +123,7 @@ test('deck: bullets wrap under their dots, and type shrinks as a slide fills', a
   });
   expect(geometry).toEqual({ dots: 3, wrapped: true });
   // Type shrinks as the slide fills up, and grows back.
-  // (--body is the size on the 960px slide the audience sees; a phone's editor stops shrinking at 16px so it stays typeable.)
+  // (--body is the size on the 960px slide the audience sees; the editor's slide is that one, smaller, on any screen.)
   const px = () => page.locator('.deck-slide').evaluate((el) => parseFloat(getComputedStyle(el).getPropertyValue('--body')));
   await bullets.fill('Build it\nShip it\nTell people');
   const roomy = await px();
@@ -142,6 +142,9 @@ test('deck: a document on a slide has the slide to itself', async ({ page }) => 
   await expect(page.locator('.deck-slide to-embed')).toHaveCount(1);
   const full = await page.locator('.deck-slide to-embed').evaluate((el) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width);
   expect(full).toBeGreaterThan(0.9);
+  // And the slide is the shape every slide is.
+  const shape = await page.locator('.deck-slide').evaluate((el) => el.getBoundingClientRect().width / el.getBoundingClientRect().height);
+  expect(Math.abs(shape - 1.6)).toBeLessThan(0.02);
   await shot(page, 'deck-sub');
 });
 
