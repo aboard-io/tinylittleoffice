@@ -1183,11 +1183,17 @@
   }
   .to-trust-line {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     margin: 0;
     font-weight: 600;
+  }
+  .to-trust-line > span {
+    min-width: 0;
+  }
+  .to-trust-line .to-icon {
+    align-self: flex-start;
+    margin-top: 3px;
   }
   .to-trust-line.quiet {
     font-weight: 400;

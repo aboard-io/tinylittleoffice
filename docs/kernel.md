@@ -71,6 +71,21 @@ export const plainText = (runs: Run[]) => runs.map((r) => r.t).join('');
 export const text = (s: string): Run[] => parseInline(s);                 // the one way a string becomes runs
 ```
 
+**The envelope** (`src/kit/envelope.ts`). Five head keys belong to the document rather than its app: `title` (the
+editor's), and `by`, `created`, `key`, `sig`, which the shell holds and puts into every change the editor makes, so
+an edit never drops them. `created` is stamped at the first change, to the minute, as `2026-10-05T14:32Z`; `by` is
+the name a signer gave; `key` and `sig` are base64url (an Ed25519 key is 43 characters, a P-256 one 87). A signature
+covers exactly the old tree's message, so its signed documents verify:
+
+```
+tinyoffice\n<app>\n<created as base-36 minutes since 2020-01-01, or empty>\n<the text without the five keys>\0<title>\0<by>
+```
+
+The text without the five keys is `takeHead(text, SHELL_KEYS)[1]`: the app's own head keys stay, in their order. A key
+without a signature is no signature. Checked against the text as it is, a signature is valid, stale (this device's
+key signed it and the text has changed since) or invalid. A document under a password is not a head field: its whole
+payload is sealed (`E…`, `src/kit/crypt.ts`), so nothing of it, the title included, is readable without the password.
+
 Nine block kinds, as today; the two changes are `runs` in place of `text` on the four text kinds and `cols: Column[]` in place of `head: string[]` on tables. There is no `embed` kind: an embedded document is a `fence` whose `lang` is an app id (as now, `refFence`/`fenceRef`); a thing from the web is a `p` whose only run is its address, or an `img` (as `richtext.parseDoc` and `deckmodel.slideOf` already decide with `embedOf`). `isEmbed(b)` in model.ts names that rule once. A lock and a chart are not fields of the table block: they ride on the head for a sheet document and on the table's attrs anywhere else (see `tableAt` in §5), which is exactly what the format does today and keeps every sheet example byte-identical.
 
 Why runs in the model rather than text with runs derived: every view already parses inline on each draw; the editor's selection must be a run position; and footnotes/icons are run-level things the kernel must know. Why cells stay strings: the one inline construct that a canonical writer would alter (`*` and `_` in `=passers_by*buy_rate/100`) lives in cells, and the formula engine needs the raw formula. A `rich` column is parsed by its view.

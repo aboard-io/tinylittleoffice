@@ -12,7 +12,9 @@ format `docs/tlo.md` in the old tree until it moves here.
 
 ```
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
-                privacy, link-guard (links that leave ask first), pictures (web pictures asked for first),
+                privacy (Private or Saved, the password, the signature, the key, what the device holds),
+                privacy-dialog (<to-privacy>), crypt (a password: PBKDF2 to AES-GCM), sign (Ed25519, P-256 where
+                there is none), envelope (by, created, key, sig, and the signed message), link-guard (links that leave ask first), pictures (web pictures asked for first),
                 preview (a kept document's first page, small), mark (the Office mark), offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
                 icons (the UI set and the starter library a document may name), icons-search (keywords,
                 suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
@@ -68,6 +70,23 @@ address on another site is a tracking pixel for whoever reads it, so it is not f
 `src/kit/pictures.ts` draws it as a card with the site's name and "Show pictures from the web" (every picture of
 that document, for the visit); a picture the author put in this visit shows at once; under Saved a switch in the
 menu shows them always; a preview never fetches one; exports include them; every `<img>` sends no referrer.
+
+Password and signature, for every app (the shell's, `src/kit/privacy.ts`). Share holds **Password…**: the text is
+encrypted in the browser (AES-256-GCM under a key PBKDF2-SHA-256 derives from the password, 600,000 iterations,
+`src/kit/crypt.ts`) and the link carries `E<salt | iv | ciphertext>`; while a password is set every change is sealed
+again before it reaches the address bar, so the link, the library and a short link only ever hold ciphertext. A
+sealed link opens with the unlock dialog and nothing of the document, not even its title; a wrong password is said
+so; the password is never kept, but what opened a document opens it again for the rest of the visit. Share also
+holds **Sign**: the document is signed with this browser's key (Ed25519, ECDSA P-256 where Ed25519 is missing,
+`src/kit/sign.ts`), made the first time and kept through `src/kit/store.ts` (under Private for the visit, under Saved
+on the device); the name asked once and kept. The head carries `by`, `created` (stamped to the minute at the first
+change), `key` and `sig` (`src/kit/envelope.ts`, docs/kernel.md §1); the signature is checked on open and after every
+change. Beside the title, the state: Unsigned (quiet), Signed by a name (green, the key's fingerprint on hover),
+Changed since signed or Signature does not match (red), Locked; it opens the Privacy dialog
+(`src/kit/privacy-dialog.ts`, also "Privacy and keys" in the menu): the document's state, the key with Export
+(a file and the text), Import and Forget, what this device holds item by item with Forget and Forget everything,
+and Download everything, every kept document as its .tlo text in one zip (a locked one as its link), the key
+if asked. A signature proves who holds the key and that nothing changed; the name and the time are the signer's word.
 
 The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and the favicon; `npm run icons`
 (`scripts/icons.ts`, through sharp) draws the app icons and the share card from it into `public/`.
