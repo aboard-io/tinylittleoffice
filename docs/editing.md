@@ -40,8 +40,10 @@ Rules:
 ## 2. Words (`<to-text>`, everywhere words are typed)
 
 - Enter splits the block (a new paragraph/item); Shift+Enter is a line break inside a paragraph, an item or a quote (in `doc` and `lines` alike; a heading splits); in a one-line box (`shape=line`) Enter is "done" (the host decides: an outline makes the next item) and Shift+Enter says so in the event's detail.
-- Backspace at the start of a block joins it to the one before; on an item in a document (the Word Processor, the Presentation Builder, the Website Builder) it first makes the item a paragraph (unlists), then joins, as Docs does; an empty item with children is removed and its children come out a level; at the very start of a one-line box the host decides (an outliner joins: §3).
-- Delete at the end joins the next block in; in a one-line box the host decides.
+- Enter at the very start of a block's words opens an empty paragraph above it and leaves the block as it was (a heading pushed down stays a heading).
+- Backspace at the start of a block joins it to the one before (the block before keeps its kind; when either of the two is empty, the empty one simply goes, so words pulled up into an empty line keep their heading, as in Docs); on an item in a document (the Word Processor, the Presentation Builder, the Website Builder) it first makes the item a paragraph (unlists), then joins, as Docs does; an empty item with children is removed and its children come out a level; at the very start of a one-line box the host decides (an outliner joins: §3).
+- Delete at the end joins the next block in, by the same rule; in a one-line box the host decides.
+- Copy and paste keep the words exactly: the spaces at either end of words copied from within a block come back with them.
 - Markdown shortcuts on Space: `- `, `* `, `1. `, `# `, `## `, `> ` turn the block (undo gives the typed marker back); straight quotes curl. Alt+Up/Down moves an item past its neighbour.
 - Tab/Shift+Tab on an item indents/outdents it; elsewhere Tab moves focus.
 - Mod+B/I/U/K; Mod+Shift+X strikethrough and Mod+Shift+H highlight are optional; the bar has them all.
@@ -116,6 +118,7 @@ Rules:
 - The Drawing Tool: Alt+Up/Down move the chosen shapes one place in the stack (there is no "past a neighbour" on a canvas). The Diagram Maker drags the thing itself (a 6px threshold, `touch-action: none` on the thing alone) since a tap on it edits; it has no grip.
 - The Calendar's month: entries are drawn small (about 16px) so a cell can hold several; the finger's way to every entry is the month's list below, whose rows are 44px.
 - The Kanban Board: a card whose words are one web address shows that thing's preview under the line.
+- The Word Processor: Mod+Shift+Enter (or Insert ▾ Page break) puts a page break at the caret, the kernel's rule (`---`): a card drawn as a dashed rule, the next page on paper, in print, in .docx and in .rtf. It is the one Mod+Shift+Enter outside the Presentation Builder, where the same rule is the next slide.
 
 ## 9. The audit
 

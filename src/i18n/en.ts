@@ -213,6 +213,8 @@ export default {
   'Align right': 'Align right',
   'Justify': 'Justify',
   'Paper: {paper}': 'Paper: {paper}',
+  // Insert ▾'s rule in a document: what follows starts the next page.
+  'Page break': 'Page break',
   'Picture…': 'Picture…',
   'Picture': 'Picture',
   'Address of the picture': 'Address of the picture',

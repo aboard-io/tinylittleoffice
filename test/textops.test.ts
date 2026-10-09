@@ -53,6 +53,11 @@ test('Enter splits a block; a heading leaves a paragraph; an empty item leaves i
   const h = after(B, splitAt(B, caret(0, 4)));
   expect(h[0]).toMatchObject({ k: 'h', level: 1 });
   expect(h[1]).toMatchObject({ k: 'p' });
+  // At a heading's start: an empty paragraph above, the heading the same block, the caret still at its start.
+  const top = splitAt(B, caret(0, 0));
+  expect(after(B, top).slice(0, 2)).toEqual([{ k: 'p', runs: [] }, B[0]]);
+  expect(after(B, top)[1]).toBe(B[0]);
+  expect(top.sel).toEqual(caret(1, 0));
   const items = blocks('- a\n  - \n');
   const out = after(items, splitAt(items, caret(1, 0)));
   expect(out[1]).toMatchObject({ k: 'li', depth: 0 });
@@ -77,6 +82,29 @@ test('Backspace: a character, a chip, an unlist, a join, an embed taken out, an 
   expect(backspace(B, caret(0, 0), 'lines')).toBe('exit');
   expect(after(B, forwardDelete(B, caret(3, 1)))).toHaveLength(B.length - 1);
   expect(forwardDelete(B, caret(5, 5))).toBeNull();
+});
+
+test('a join that meets an empty block: the empty one goes, the words keep their kind and their block; with words in both the first keeps its kind', () => {
+  const title: Block = { k: 'h', level: 1, runs: [{ t: 'Title' }], a: { cls: ['title'] } };
+  const b: Block[] = [{ k: 'p', runs: [] }, title, { k: 'p', runs: [] }];
+  // Delete at the end of the empty line above: the line goes, the title is the same block.
+  const del = forwardDelete(b, caret(0, 0))!;
+  expect(after(b, del)).toEqual([title, { k: 'p', runs: [] }]);
+  expect(after(b, del)[0]).toBe(title);
+  expect(del.sel).toEqual(caret(0, 0));
+  // Backspace at the title's start does the same.
+  const back = backspace(b, caret(1, 0), 'doc') as Edit;
+  expect(after(b, back)[0]).toBe(title);
+  expect(back.sel).toEqual(caret(0, 0));
+  // Delete at the title's end into the empty line under it, and Backspace from that line: the line goes, the caret at the title's end.
+  expect(after(b, forwardDelete(b, caret(1, 5)))).toEqual([{ k: 'p', runs: [] }, title]);
+  const up = backspace(b, caret(2, 0), 'doc') as Edit;
+  expect(after(b, up)[1]).toBe(title);
+  expect(up.sel).toEqual(caret(1, 5));
+  // Words in both: the block before keeps its kind, as ever.
+  const two = blocks('Para\n\n# Head\n');
+  expect(tlo(after(two, backspace(two, caret(1, 0), 'doc') as Edit))).toBe('ParaHead\n');
+  expect(tlo(after(two, forwardDelete(two, caret(0, 4))))).toBe('ParaHead\n');
 });
 
 test('marks over a selection: on unless every word has it, then off; links set and taken off; the selection stays', () => {

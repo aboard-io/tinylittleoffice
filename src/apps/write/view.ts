@@ -3,7 +3,8 @@
  * title large, the document's own head fields under it, headings, paragraphs, lists, quotes, a table block
  * drawn by the sheet's renderer and worked out in place, another document as a picture of its first page,
  * a thing from the web as a card, and the footnotes small at the end; and the same text as a web page, as
- * Word (.docx), as RTF and as Markdown. (Ported from the old tree's write.def.ts onto runs.)
+ * Word (.docx), as RTF and as Markdown. A rule (`hr`) is a page break: the next page on paper, in print
+ * and in .docx and .rtf; `---` in Markdown. (Ported from the old tree's write.def.ts onto runs.)
  */
 import { encodeDoc } from '../../kit/codec.ts';
 import { ACCENT, FAINT, FONT, INK, LINE, MUTED, SHADE, pageSvg, r, rect, text as svgText, textWidth, xml } from '../../kit/draw.ts';
@@ -145,6 +146,8 @@ interface Bit {
   svg: (y: number) => string;
   keep?: boolean;
   first: number;
+  /** A page break: what follows starts the next page. */
+  brk?: true;
 }
 
 const SIZE: Record<string, [number, boolean, number]> = { title: [40, true, 20], h1: [28, true, 16], h2: [21, true, 12], h3: [17, true, 10], p: [16, false, 12], li: [16, false, 5], quote: [16, false, 12] };
@@ -230,7 +233,7 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
       continue;
     }
     if (b.k === 'hr') {
-      bits.push({ h: 32, first: 32, svg: (y) => `<line x1="${M}" y1="${y + 16}" x2="${W - M}" y2="${y + 16}" stroke="${LINE}"/>` });
+      bits.push({ h: 0, first: 0, brk: true, svg: () => '' });
       continue;
     }
     if (b.k === 'edge') {
@@ -283,6 +286,15 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
   let y = M;
   const alt = (title ? plainText(title.runs) : '') || doc.head.title || '';
   bits.forEach((b, i) => {
+    // A page break: the next page, unless this one has nothing on it yet.
+    if (b.brk) {
+      if (y > M) {
+        out.push({ w: W, h: PAGE_H, svg, alt });
+        svg = '';
+        y = M;
+      }
+      return;
+    }
     // A heading goes to the next page rather than sit alone at the foot of this one.
     const need = b.keep ? b.h + (bits[i + 1]?.first ?? 0) : b.h;
     if (y + need > PAGE_H - M && y > M) {
@@ -390,7 +402,7 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
         case 'quote':
           return `<blockquote${alignStyle(b)}>${inner(b) || '<br>'}</blockquote>`;
         case 'hr':
-          return '<hr>';
+          return '<hr class="page-break">';
         case 'table':
           return tableHtml(doc, doc.blocks.indexOf(b));
         case 'img':
@@ -443,6 +455,7 @@ table{border-collapse:collapse;margin:0 0 1em;font-size:.95em}th{background:${SH
 figure{margin:1em 0}figure.embed svg{display:block;max-width:100%;height:auto;border:1px solid ${LINE};border-radius:8px}figure img{max-width:100%;height:auto}figcaption,figure.embed{color:${MUTED};font-size:.9em}figure.embed.web{padding:.8em 1em;border:1px solid ${LINE};border-radius:8px}
 mark{background:#fde68a}pre{padding:.8em 1em;background:${SHADE};border-radius:8px;overflow:auto;font-size:.85em}
 a{color:${ACCENT}}.fn a{text-decoration:none}.fn-notes{margin-top:2em;font-size:.8em;color:${MUTED}}.fn-notes hr{width:72px;margin:0 0 .6em;border:0;border-top:1px solid ${LINE}}.fn-notes ol{padding-left:1.6em}
+hr.page-break{margin:2em 0;border:0;border-top:1px dashed ${LINE}}@media print{hr.page-break{break-after:page;margin:0;border:0}}
 footer{margin-top:3em;color:${MUTED};font-size:.85em}
 </style>
 </head>
@@ -527,7 +540,7 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
       continue;
     }
     if (b.k === 'hr') {
-      out.push('{\\pard\\brdrb\\brdrs\\brdrw10\\brsp20\\sa160\\par}');
+      out.push('\\page');
       continue;
     }
     if (b.k === 'edge') {
@@ -634,7 +647,7 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
       continue;
     }
     if (b.k === 'hr') {
-      paras.push('<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="D4D4D8"/></w:pBdr></w:pPr></w:p>');
+      paras.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
       continue;
     }
     if (b.k === 'edge') {

@@ -197,11 +197,13 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
 /** A block of another kind in place of a list item that has no words: a level out, or a paragraph. */
 const unlist = (b: Extract<Block, { k: 'li' }>): Block => (b.depth > 0 ? { ...b, depth: b.depth - 1 } : { k: 'p', runs: b.runs, ...(b.a ? { a: b.a } : {}) });
 
-/** Enter: the block split at the caret (a selection goes first). An empty list item comes out of its list instead. */
+/** Enter: the block split at the caret (a selection goes first). An empty list item comes out of its list instead; at the start of a block's words a paragraph opens above it. */
 export function splitAt(blocks: Block[], sel: Sel): Edit {
   const [a, b] = ordered(sel);
   const cur = text(blocks[a.block]);
   if (collapsed(sel) && cur.k === 'li' && !cur.runs.length) return { ops: [{ op: 'splice', at: a.block, n: 1, blocks: [unlist(cur)] }], sel };
+  // At the start of words that are not an item, an empty paragraph goes in above and the block stays as it is: a heading pushed down stays a heading, and nothing empty is left styled as one.
+  if (collapsed(sel) && a.offset === 0 && cur.k !== 'li' && cur.runs.length) return { ops: [{ op: 'splice', at: a.block, n: 0, blocks: [{ k: 'p', runs: [] }] }], sel: caret(a.block + 1, 0) };
   const end = blocks[b.block];
   const joined: TextBlock = { ...cur, runs: normalRuns([...sliceRuns(cur.runs, 0, a.offset), ...(isText(end) ? sliceRuns(end.runs, b.offset, runLength(end.runs)) : [])]) };
   const halves = splitBlock({ head: {}, blocks: [joined] }, 0, a.offset);
@@ -239,7 +241,7 @@ export function backspace(blocks: Block[], sel: Sel, shape: Shape): Edit | 'exit
   if (block === 0) return shape === 'doc' ? null : 'exit';
   const prev = blocks[block - 1];
   if (!isText(prev)) return { ops: [{ op: 'splice', at: block - 1, n: 1, blocks: [] }], sel: caret(block - 1, 0) };
-  return { ops: [{ op: 'splice', at: block - 1, n: 2, blocks: [{ ...prev, runs: normalRuns([...prev.runs, ...cur.runs]) }] }], sel: caret(block - 1, runLength(prev.runs)) };
+  return join(block - 1, prev, cur, caret(block - 1, runLength(prev.runs)));
 }
 
 /** Delete: one character or atomic run forward; at a block's end the next block joins this one, or an embed after it is taken out. */
@@ -251,7 +253,20 @@ export function forwardDelete(blocks: Block[], sel: Sel): Edit | null {
   const next = blocks[block + 1];
   if (!next) return null;
   if (!isText(next)) return { ops: [{ op: 'splice', at: block + 1, n: 1, blocks: [] }], sel };
-  return { ops: [{ op: 'splice', at: block, n: 2, blocks: [{ ...cur, runs: normalRuns([...cur.runs, ...next.runs]) }] }], sel };
+  return join(block, cur, next, sel);
+}
+
+/**
+ * Two blocks of words made one (Backspace at the second's start, Delete at
+ * the first's end). An empty one simply goes, so the block with words keeps
+ * its kind and its element: a heading pulled up into an empty line stays a
+ * heading (Docs). With words in both, the first keeps its kind. The caret
+ * lands where the two met.
+ */
+function join(at: number, first: TextBlock, second: TextBlock, sel: Sel): Edit {
+  if (!first.runs.length) return { ops: [{ op: 'splice', at, n: 1, blocks: [] }], sel: caret(at, 0) };
+  if (!second.runs.length) return { ops: [{ op: 'splice', at: at + 1, n: 1, blocks: [] }], sel };
+  return { ops: [{ op: 'splice', at, n: 2, blocks: [{ ...first, runs: normalRuns([...first.runs, ...second.runs]) }] }], sel };
 }
 
 /** The runs between two offsets with a mark set or taken off; runs outside, and atomic runs, as they were. */

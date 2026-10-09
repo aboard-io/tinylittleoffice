@@ -179,3 +179,22 @@ test('DOCX: a zip with the document, its styles and numbering; the table, the ti
 test('Markdown: the footnotes in the reference form', () => {
   expect(docToMarkdown(parse('Words^[A note] here.\n'))).toBe('Words[^1] here.\n\n[^1]: A note\n');
 });
+
+test('a page break: the next page on paper (never a blank one), break-after in print, a page break in .docx and .rtf, --- in Markdown', () => {
+  const text = 'One.\n\n---\n\nTwo.\n';
+  const all = pages(text);
+  expect(all).toHaveLength(2);
+  expect(all[0].svg).toContain('One.');
+  expect(all[0].svg).not.toContain('Two.');
+  expect(all[1].svg).toContain('Two.');
+  // A break at the very top of a page starts nothing new; two in a row make one.
+  expect(pages('---\n\nTop.\n')).toHaveLength(1);
+  expect(pages('A.\n\n---\n\n---\n\nB.\n')).toHaveLength(2);
+  const html = docToHtml(parse(text), ctx);
+  expect(html).toContain('<p>One.</p>\n<hr class="page-break">\n<p>Two.</p>');
+  expect(html).toContain('@media print{hr.page-break{break-after:page');
+  const docXml = strFromU8(unzipSync(docToDocx(parse(text), ctx))['word/document.xml']);
+  expect(docXml).toContain('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+  expect(docToRtf(parse(text), ctx)).toMatch(/One\.\\par\}\n\\page\n\{\\pard[^\n]* Two\./);
+  expect(docToMarkdown(parse(text))).toBe(text);
+});

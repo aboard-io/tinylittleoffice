@@ -592,3 +592,33 @@ test('§7 Align is a keep menu: chosen by a pointer, the words keep the focus; t
   expect(getComputedStyle(el.querySelector('.write-page')!).touchAction).toBe('manipulation');
   expect(getComputedStyle(cell(el, 'A1')).touchAction).toBe('manipulation');
 });
+
+test('a page break: from Insert ▾ or Mod+Shift+Enter at the caret, drawn as a dashed rule named in its middle; a tap takes it in hand, Delete takes it out', async () => {
+  const { el, last } = await editor('One two\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 3 } };
+  await tick();
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Page break');
+  await until(() => last() === 'One\n\n---\n\n two\n');
+  const brk = card(el, 1);
+  expect(brk.classList.contains('tx-card')).toBe(true);
+  expect(brk.getAttribute('contenteditable')).toBe('false');
+  const drawn = brk.querySelector('.write-break')!;
+  expect(drawn.getAttribute('role')).toBe('separator');
+  expect(drawn.textContent).toBe('Page break');
+  expect(getComputedStyle(drawn, '::before').borderTopStyle).toBe('dashed');
+  // The caret went on to the words after it.
+  expect(el.text.sel).toEqual({ anchor: { block: 2, offset: 0 }, focus: { block: 2, offset: 0 } });
+  // Mod+Shift+Enter in the words: another, and the browser's own line break never happens.
+  el.text.sel = { anchor: { block: 2, offset: 4 }, focus: { block: 2, offset: 4 } };
+  await tick();
+  expect(key(el.text.tx, 'Enter', { ctrlKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+  await until(() => last() === 'One\n\n---\n\n two\n\n---\n\n<br>\n');
+  // A tap takes it in hand (the bar under it), Delete takes it out.
+  brk.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await until(() => document.activeElement === card(el, 1));
+  await until(() => barItems().length > 0);
+  expect(barItems()).toEqual(['Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  key(card(el, 1), 'Delete');
+  await until(() => last() === 'One\n\n two\n\n---\n\n<br>\n');
+});

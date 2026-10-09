@@ -3,11 +3,12 @@
  * (text/plain) and as HTML with a generator marker (text/html), so a paste
  * into another TinyLittleOffice document comes back whole and a paste into
  * anything else arrives with its marks. Paste reads, in order: our own HTML
- * (the marker) → the TLO; a TinyLittleOffice link alone → a fence holding
- * that document; a web address alone → a paragraph that is the address (a
- * card); HTML from elsewhere → blocks (tags and styles to marks, lists to
- * items, Google Docs' bold-that-is-not); plain text with a line break → read
- * as TLO (pasted Markdown becomes headings and lists); plain words → words.
+ * (the marker) → the TLO, or for words from within one block their exact
+ * runs; a TinyLittleOffice link alone → a fence holding that document; a
+ * web address alone → a paragraph that is the address (a card); HTML from
+ * elsewhere → blocks (tags and styles to marks, lists to items, Google
+ * Docs' bold-that-is-not); plain text with a line break → read as TLO
+ * (pasted Markdown becomes headings and lists); plain words → words.
  * What comes back is fitted to the editor's shape: lines keeps items and
  * paragraphs only; a line takes the words alone.
  */
@@ -89,10 +90,45 @@ export function docToHtml(blocks: Block[]): string {
   return out.join('\n');
 }
 
-/** What copy puts on the clipboard for a selection: the TLO, and the HTML. */
+/**
+ * What copy puts on the clipboard for a selection: the TLO, and the HTML.
+ * Words from within one block carry their runs exactly as well, in a meta
+ * of our HTML: the TLO is read as Markdown is, and Markdown drops the
+ * spaces at a line's ends, so "a sentence " would come back without its
+ * space.
+ */
 export function copyData(blocks: Block[], sel: Sel): { text: string; html: string } {
   const picked = sliceBlocks(blocks, sel);
-  return { text: write({ head: {}, blocks: picked }), html: docToHtml(picked) };
+  const one = picked.length === 1 && isText(picked[0]) ? picked[0] : null;
+  const html = docToHtml(picked);
+  return { text: write({ head: {}, blocks: picked }), html: one ? html.replace(MARKER, `${MARKER}\n<meta name="${RUNS}" content="${esc(JSON.stringify(one.runs))}">`) : html };
+}
+
+/** The meta our HTML carries the exact runs of a fragment in. */
+const RUNS = 'tlo-runs';
+const RUN_KEYS = ['b', 'i', 'u', 's', 'h'] as const;
+
+/** The exact runs our HTML carries for words from within one block, or null: only words and marks are taken from it. */
+function carriedRuns(html: string): Run[] | null {
+  if (!html.includes(`name="${RUNS}"`)) return null;
+  const meta = new DOMParser().parseFromString(html, 'text/html').querySelector(`meta[name="${RUNS}"]`);
+  try {
+    const got: unknown = JSON.parse(meta?.getAttribute('content') ?? '');
+    if (!Array.isArray(got)) return null;
+    const runs: Run[] = [];
+    for (const r of got as Record<string, unknown>[]) {
+      if (!r || typeof r.t !== 'string') return null;
+      const run: Run = { t: r.t };
+      for (const k of RUN_KEYS) if (r[k] === true) run[k] = true;
+      if (typeof r.href === 'string' && r.href) run.href = r.href;
+      if (typeof r.ic === 'string' && r.ic) run.ic = r.ic;
+      if (typeof r.fn === 'string') run.fn = r.fn;
+      runs.push(run);
+    }
+    return normalRuns(runs);
+  } catch {
+    return null;
+  }
 }
 
 /* ---------- HTML from elsewhere ---------- */
@@ -271,7 +307,13 @@ export function fitBlocks(blocks: Block[], shape: Shape): Pasted {
 export function pasteFrom(data: { text: string; html: string }, shape: Shape): Pasted | null {
   const text = data.text.replace(/\r\n?/g, '\n');
   const html = data.html;
-  if (html.includes(MARKER)) return fitBlocks(parse(text).blocks, shape);
+  if (html.includes(MARKER)) {
+    const blocks = parse(text).blocks;
+    // Words from within one block: their own runs, spaces at the ends and all.
+    const runs = blocks.length <= 1 ? carriedRuns(html) : null;
+    if (runs) return fitBlocks([{ ...(blocks[0] && isText(blocks[0]) ? blocks[0] : { k: 'p' as const }), runs }], shape);
+    return fitBlocks(blocks, shape);
+  }
   const trimmed = text.trim();
   if (shape === 'doc' && !/\s/.test(trimmed)) {
     const fence = linkToFence(trimmed);

@@ -7,7 +7,8 @@
  *
  * What is not words is a card the editor asks this host to draw: a table block as a grid whose cells are
  * `cells` ops, worked out in place by the formula engine; another document as a picture of its first page;
- * a web address alone as a click-to-load card (<to-embed>). The document's own head fields (an invoice's
+ * a web address alone as a click-to-load card (<to-embed>); a page break (the kernel's `hr`, from Insert ▾ or
+ * Mod+Shift+Enter) as a thin dashed rule with its name in the middle. The document's own head fields (an invoice's
  * from and to) are inputs over the text; the footnotes are listed under it from notesOf, and the words are
  * counted at the foot.
  *
@@ -19,10 +20,10 @@
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Pilcrow, Ruler, Scissors, SquarePen } from 'lucide';
+import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
 import { isEmbed, noteRuns, notesOf, parse, plainText, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
-import { tool } from '../../kit/bar.ts';
+import { keysText, tool } from '../../kit/bar.ts';
 import { copyData, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
@@ -97,6 +98,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   connectedCallback() {
     super.connectedCallback();
     this.addEventListener('keydown', this.onCardKey, true);
+    this.addEventListener('keydown', this.onKey);
     this.addEventListener('focusin', this.onFocusIn);
     this.addEventListener('focusout', this.onFocusOut);
     for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener, true);
@@ -104,6 +106,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('keydown', this.onCardKey, true);
+    this.removeEventListener('keydown', this.onKey);
     this.removeEventListener('focusin', this.onFocusIn);
     this.removeEventListener('focusout', this.onFocusOut);
     for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener, true);
@@ -227,8 +230,16 @@ export class ToWriteEditor extends DocElement<Doc> {
       { label: t('From the web…'), icon: UI.globe, does: () => void this.insertWeb() },
       { label: t('A document by link…'), icon: UI.insert, does: () => void this.insertDocument() },
       { label: t('Date'), icon: UI.calendar, does: () => this.text.exec('date') },
+      { label: t('Page break'), icon: SeparatorHorizontal, hint: keysText('Mod+Shift+Enter'), does: () => this.insertBlock({ k: 'hr' }) },
     ];
   }
+  /** Mod+Shift+Enter in the words: a page break at the caret (the browser's own would be a line break). */
+  private onKey = (e: KeyboardEvent) => {
+    const at = e.target as HTMLElement;
+    if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey) || !e.shiftKey || e.altKey || e.isComposing || !this.text?.tx.contains(at) || at.closest?.('.tx-card')) return;
+    e.preventDefault();
+    this.insertBlock({ k: 'hr' });
+  };
 
   /* ---------- the paper and the fields ---------- */
 
@@ -291,6 +302,7 @@ export class ToWriteEditor extends DocElement<Doc> {
         <figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption>
       </figure>`;
     }
+    if (b.k === 'hr') return html`<div class="write-break" role="separator" aria-label=${t('Page break')}><span>${t('Page break')}</span></div>`;
     if (b.k === 'p' && isEmbed(b)) return html`<to-embed url=${plainText(b.runs).trim()}></to-embed>`;
     return null;
   };

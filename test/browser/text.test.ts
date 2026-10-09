@@ -152,6 +152,36 @@ test('Backspace joins blocks, unlists an item, takes an embed out, and says text
   expect(lines.tlo).toBe('a\n');
 });
 
+test('a heading pulled up into an empty line stays a heading: one <h1> left, nothing stale styled as it, the caret at its start', async () => {
+  for (const how of ['Delete', 'Backspace'] as const) {
+    const h = await mount('# Title\n', 'doc', caret(0, 0));
+    // The empty line above the heading, as Enter at its start leaves it.
+    await key(h, 'Enter');
+    expect(h.doc.blocks.map((b) => b.k)).toEqual(['p', 'h']);
+    const heading = h.el.tx.querySelector('h1')!;
+    h.el.sel = how === 'Delete' ? caret(0, 0) : caret(1, 0);
+    await h.el.updateComplete;
+    await key(h, how);
+    await tick();
+    expect(h.tlo).toBe('# Title\n');
+    expect(h.el.tx.children).toHaveLength(1);
+    expect(h.el.tx.querySelectorAll('h1')).toHaveLength(1);
+    expect(h.el.tx.querySelector('h1')).toBe(heading);
+    expect(heading.textContent).toBe('Title');
+    expect(h.el.tx.querySelector('p')).toBeNull();
+    expect(h.el.sel).toEqual(caret(0, 0));
+    expect(domSel().node && heading.contains(domSel().node!)).toBe(true);
+  }
+  // And the empty line below the heading goes the same way, the caret at the heading's end.
+  const below = await mount('# Title\n', 'doc', caret(0, 5));
+  await key(below, 'Enter');
+  await key(below, 'Backspace');
+  expect(below.tlo).toBe('# Title\n');
+  expect(below.el.tx.children).toHaveLength(1);
+  expect(below.el.tx.firstElementChild!.tagName).toBe('H1');
+  expect(below.el.sel).toEqual(caret(0, 5));
+});
+
 test('marks over a selection: one op, the <b> drawn, the selection kept on the same words', async () => {
   const h = await mount('make this bold\n', 'doc', { anchor: { block: 0, offset: 5 }, focus: { block: 0, offset: 9 } });
   expect(domSel().text).toBe('this');
@@ -283,6 +313,38 @@ test('copy writes the selection as TLO and as HTML with the marker; cut takes it
   expect(cut.getData('text/plain')).toBe('# ad\n\nSome **bold**\n');
   expect(h.tlo).toBe('# He words\n');
   expect(h.el.sel).toEqual(caret(0, 2));
+});
+
+test('the spaces at a copied fragment\'s ends survive the paste; a copy across whole blocks still pastes as blocks', async () => {
+  // "a sentence " with its space, cut from the middle of a paragraph and pasted inside other words.
+  const h = await mount('First a sentence here.\n\nSecond.\n', 'doc', { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 17 } });
+  const dt = new DataTransfer();
+  h.el.tx.dispatchEvent(new ClipboardEvent('cut', { clipboardData: dt, bubbles: true, cancelable: true }));
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('First here.\n\nSecond.\n');
+  h.el.sel = caret(1, 0);
+  await h.el.updateComplete;
+  await paste(h, { 'text/plain': dt.getData('text/plain'), 'text/html': dt.getData('text/html') });
+  expect(h.tlo).toBe('First here.\n\na sentence Second.\n');
+  expect(h.el.sel).toEqual(caret(1, 11));
+  // A leading space too, and the marks with it.
+  const m = await mount('one **two** three\n', 'doc', { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 8 } });
+  const md = new DataTransfer();
+  m.el.tx.dispatchEvent(new ClipboardEvent('copy', { clipboardData: md, bubbles: true, cancelable: true }));
+  m.el.sel = caret(0, 0);
+  await m.el.updateComplete;
+  await paste(m, { 'text/plain': md.getData('text/plain'), 'text/html': md.getData('text/html') });
+  expect(m.doc.blocks[0]).toMatchObject({ runs: [{ t: ' ' }, { t: 'two', b: true }, { t: ' one ' }, { t: 'two', b: true }, { t: ' three' }] });
+  // Two whole blocks copied go in as blocks, as before: the first one's words join the line, the second stands on its own.
+  const w = await mount('# Head\n\nBody\n\nend\n', 'doc', { anchor: { block: 0, offset: 0 }, focus: { block: 1, offset: 4 } });
+  const wd = new DataTransfer();
+  w.el.tx.dispatchEvent(new ClipboardEvent('copy', { clipboardData: wd, bubbles: true, cancelable: true }));
+  expect(wd.getData('text/html')).not.toContain('tlo-runs');
+  w.el.sel = caret(2, 3);
+  await w.el.updateComplete;
+  await paste(w, { 'text/plain': wd.getData('text/plain'), 'text/html': wd.getData('text/html') });
+  expect(w.tlo).toBe('# Head\n\nBody\n\nendHead\n\nBody\n');
+  expect(w.doc.blocks).toHaveLength(4);
 });
 
 test('an IME composition: the browser writes into the block, compositionend reads it back as one op', async () => {
