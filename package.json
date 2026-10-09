@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "A tiny office suite that lives entirely in the URL.",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 4178 --strictPort",
     "build": "tsc --noEmit && vite build",
@@ -22,6 +24,7 @@
     "tinier:dev": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --local --file=tinier/schema.sql && wrangler dev -c tinier/wrangler.jsonc --port 8787 --var SITE:${SITE:-http://localhost:4178}"
   },
   "dependencies": {
+    "d3-sankey": "0.12.3",
     "fflate": "0.8.3",
     "lit": "3.3.3",
     "lucide": "1.54.0"
@@ -29,6 +32,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.0",
+    "@types/d3-sankey": "0.12.5",
     "@types/node": "26.6.4",
     "@vitest/browser-playwright": "5.0.3",
     "playwright": "1.64.0",

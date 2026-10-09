@@ -10,11 +10,13 @@ import { playwright } from '@vitest/browser-playwright';
 export default defineConfig({
   test: {
     projects: [
-      { test: { name: 'unit', include: ['test/*.test.ts', 'test/doc/*.test.ts'], environment: 'node' } },
+      // An app's model and view tests are node tests too: src/apps/<id>/tests/*.unit.test.ts.
+      { test: { name: 'unit', include: ['test/*.test.ts', 'test/doc/*.test.ts', 'src/**/tests/*.unit.test.ts'], environment: 'node' } },
       {
         test: {
           name: 'browser',
           include: ['test/browser/**/*.test.ts', 'src/**/tests/*.test.ts'],
+          exclude: ['**/node_modules/**', 'src/**/tests/*.unit.test.ts'],
           browser: { enabled: true, headless: true, provider: playwright(), instances: [{ browser: 'chromium' }], screenshotFailures: false },
         },
       },

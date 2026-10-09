@@ -1,0 +1,116 @@
+/**
+ * DocElement: what every app's editor extends (docs/kernel.md §3). The shell hands it the document's text
+ * as `value`; it parses once, keeps the kernel's Doc, and draws a view of it (`read`, pure). Every edit is
+ * a list of the kernel's operations through `edit()`: applied, re-read, written back as text in a
+ * "docchange" event. Undo is an op log (§8, decision 2): each entry holds the ops and their inverses, a
+ * burst of typing into one place within 700 ms is one entry, and the shell's "docundo"/"docredo" events
+ * are answered here.
+ */
+import { LitElement, type PropertyDeclarations, type PropertyValues } from 'lit';
+import { applyAll, invertAll, parse, write, type Doc, type Op } from '../doc/index.ts';
+
+interface Entry {
+  ops: Op[];
+  inverse: Op[];
+  /** What the edit was, for coalescing ("cell:2:3"); undefined edits stand alone. */
+  key?: string;
+  at: number;
+}
+
+const BURST = 700;
+
+export abstract class DocElement<V> extends LitElement {
+  static properties: PropertyDeclarations = { value: {} };
+  declare value: string;
+  protected doc: Doc = { head: {}, blocks: [] };
+  protected view!: V;
+  /** The text as last read or written: a `value` that is this text is ours, not a new document. */
+  private seen: string | null = null;
+  private undo: Entry[] = [];
+  private redo: Entry[] = [];
+
+  constructor() {
+    super();
+    this.value = '';
+  }
+  createRenderRoot() {
+    return this;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('docundo', this.onUndo);
+    this.addEventListener('docredo', this.onRedo);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('docundo', this.onUndo);
+    this.removeEventListener('docredo', this.onRedo);
+  }
+
+  /** The pure function from the document to what the app draws. */
+  protected abstract read(doc: Doc): V;
+  /** After an undo or a redo: a chance to move the selection to what changed. */
+  protected undone(_entry: Entry, _redo: boolean): void {}
+
+  protected willUpdate(changed: PropertyValues) {
+    super.willUpdate(changed);
+    if (this.seen === null || (changed.has('value') && this.value !== this.seen)) {
+      // A new document from the shell: read afresh, and the history starts over.
+      this.doc = parse(this.value);
+      this.view = this.read(this.doc);
+      this.seen = this.value;
+      this.undo = [];
+      this.redo = [];
+    }
+  }
+
+  /** The document with these operations applied; the shell is told. `key` names a burst of typing that undoes as one. */
+  protected edit(ops: Op[], key?: string) {
+    if (!ops.length) return;
+    const inverse = invertAll(this.doc, ops);
+    this.doc = applyAll(this.doc, ops);
+    const now = Date.now();
+    const last = this.undo[this.undo.length - 1];
+    if (key && last && last.key === key && now - last.at < BURST) {
+      last.ops = [...last.ops, ...ops];
+      last.inverse = [...inverse, ...last.inverse];
+      last.at = now;
+    } else this.undo.push({ ops, inverse, key, at: now });
+    if (this.undo.length > 500) this.undo.shift();
+    this.redo = [];
+    this.emit();
+  }
+  /** The view read again and the text written out; the shell hears of the change. */
+  private emit() {
+    this.view = this.read(this.doc);
+    const text = write(this.doc);
+    this.seen = text;
+    this.value = text;
+    this.requestUpdate();
+    this.dispatchEvent(new CustomEvent<string>('docchange', { detail: text, bubbles: true }));
+  }
+  private onUndo = (e: Event) => {
+    const entry = this.undo.pop();
+    if (!entry) return;
+    e.preventDefault();
+    this.doc = applyAll(this.doc, entry.inverse);
+    this.redo.push(entry);
+    this.emit();
+    this.undone(entry, false);
+  };
+  private onRedo = (e: Event) => {
+    const entry = this.redo.pop();
+    if (!entry) return;
+    e.preventDefault();
+    this.doc = applyAll(this.doc, entry.ops);
+    this.undo.push(entry);
+    this.emit();
+    this.undone(entry, true);
+  };
+  get canUndo(): boolean {
+    return this.undo.length > 0;
+  }
+  get canRedo(): boolean {
+    return this.redo.length > 0;
+  }
+}

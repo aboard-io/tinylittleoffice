@@ -4,8 +4,9 @@
  */
 import type { AppDef } from './app.ts';
 import text from '../apps/text/def.ts';
+import sheet from '../apps/sheet/def.ts';
 
-const ALL: AppDef[] = [text];
+const ALL: AppDef[] = [text, sheet];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);

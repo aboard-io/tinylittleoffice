@@ -187,7 +187,7 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
   }
   const own = [...kitExports(), ...(def.exports ?? [])].find((x) => x.ext === ext);
   if (!own) return null;
-  await saveFile(name, own.mime, own.build(doc, ctx));
+  await saveFile(name, own.mime, await own.build(doc, ctx));
   return name;
 }
 

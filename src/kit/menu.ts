@@ -42,6 +42,8 @@ let n = 0;
 export class ToMenu extends LitElement {
   static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' } };
   declare label: string;
+  /** Another button the menu was opened from (openAt): placed beside it, focus goes back to it. */
+  private anchor: HTMLElement | null = null;
   declare icon: IconNode | null;
   declare items: MenuItem[];
   /** A small arrow after the words. */
@@ -77,6 +79,11 @@ export class ToMenu extends LitElement {
   open() {
     this.menu.showPopover();
   }
+  /** Open beside `anchor` instead of this menu's own button: one menu for many openers (a sheet's column heads). */
+  openAt(anchor: HTMLElement) {
+    this.anchor = anchor;
+    this.menu.showPopover();
+  }
   close() {
     if (this.isOpen) this.menu.hidePopover();
   }
@@ -85,18 +92,20 @@ export class ToMenu extends LitElement {
   }
   private onToggle = (e: Event) => {
     const open = (e as ToggleEvent).newState === 'open';
-    this.button.setAttribute('aria-expanded', String(open));
+    const from = this.anchor ?? this.button;
+    from.setAttribute('aria-expanded', String(open));
     if (open) {
-      place(this.menu, this.button);
+      place(this.menu, from);
       this.menuItems()[0]?.focus();
       window.visualViewport?.addEventListener('resize', this.replace);
     } else {
       window.visualViewport?.removeEventListener('resize', this.replace);
       // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere.
-      if (document.activeElement === document.body || this.menu.contains(document.activeElement)) this.button.focus();
+      if (document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
+      this.anchor = null;
     }
   };
-  private replace = () => this.isOpen && place(this.menu, this.button);
+  private replace = () => this.isOpen && place(this.menu, this.anchor ?? this.button);
   private onKey = (e: KeyboardEvent) => {
     const items = this.menuItems();
     const at = items.indexOf(document.activeElement as HTMLElement);
@@ -115,8 +124,9 @@ export class ToMenu extends LitElement {
     }
   };
   private choose(item: MenuItem) {
+    const from = this.anchor ?? this.button;
     this.close();
-    this.button.focus();
+    from.focus();
     item.does();
   }
   private renderItem(item: MenuItem): TemplateResult {

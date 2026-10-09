@@ -46,7 +46,8 @@ export interface Export {
   ext: string;
   label: () => string;
   mime: string;
-  build(doc: Doc, ctx: ExportContext): Uint8Array | string;
+  /** The file's bytes or text; a promise where drawing in the browser is needed (a picture). */
+  build(doc: Doc, ctx: ExportContext): Uint8Array | string | Promise<Uint8Array | string>;
 }
 
 /**

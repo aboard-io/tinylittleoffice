@@ -55,3 +55,56 @@ export function slug(s: string): string {
 
 export const fileName = (title: string, fallback: string, ext: string) => `${slug(title) || fallback}.${ext}`;
 export const utf8 = (s: string) => new TextEncoder().encode(s);
+
+/* ---------- lines, shades and words on a page ---------- */
+
+/** The lightest grey for words: 4.9:1 on white, which is enough to read. */
+export const FAINT = '#6b7280';
+export const LINE = '#d4d4d8';
+export const SHADE = '#f4f4f5';
+export const ACCENT = '#4f46e5';
+
+export const r = (n: number) => String(Math.round(n * 100) / 100);
+export const rect = (x: number, y: number, w: number, h: number, fill: string, extra = '') => `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${fill}"${extra ? ' ' + extra : ''}/>`;
+
+/** Width of text in px, estimated: a page is drawn the same under node and in a browser. */
+export const textWidth = (text: string, px: number, bold = false) => text.length * px * (bold ? 0.56 : 0.52);
+
+/** Cut text to fit a width, with an ellipsis. */
+export function clip(text: string, max: number, px: number, bold = false): string {
+  if (textWidth(text, px, bold) <= max) return text;
+  let t = text;
+  while (t.length > 1 && textWidth(t + '…', px, bold) > max) t = t.slice(0, -1);
+  return t.trimEnd() + '…';
+}
+
+export interface TextStyle {
+  px?: number;
+  bold?: boolean;
+  fill?: string;
+  anchor?: 'start' | 'middle' | 'end';
+}
+
+/** One line of words. y is the baseline. */
+export function text(x: number, y: number, content: string, style: TextStyle = {}): string {
+  const { px = 16, bold = false, fill = INK, anchor = 'start' } = style;
+  return `<text x="${r(x)}" y="${r(y)}" font-size="${px}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${xml(content)}</text>`;
+}
+
+/* ---------- the palette ---------- */
+
+/**
+ * Colours in the order a series takes them: each a clear step from the last, whatever your eyes. Blue,
+ * orange, green, purple and red are the Okabe–Ito colours, with lightness as well as hue between them.
+ */
+export const SERIES = ['#0072b2', '#d55e00', '#009e73', '#a05ca8', '#56b4e9', '#e8b400', '#b3261e', '#18181b'];
+
+/**
+ * Something besides colour, for charts: a pattern to lay over each series after the first, so bars and
+ * slices can be told apart in black and white. The patterns, as SVG defs, and the fill that uses one.
+ */
+export function patternDefs(id = 'p'): string {
+  const marks = ['', 'M0 0L6 6M-1 5L1 7M5 -1L7 1', 'M3 0V6', 'M0 3H6', 'M0 6L6 0M-1 1L1 -1M5 7L7 5', 'M3 3m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M0 0L6 6M0 6L6 0', 'M0 3H6M3 0V6'];
+  return marks.map((d, i) => (d ? `<pattern id="${id}${i}" width="6" height="6" patternUnits="userSpaceOnUse"><path d="${d}" stroke="#fff" stroke-width="1.2" fill="#fff" stroke-opacity="0.55" fill-opacity="0.55"/></pattern>` : '')).join('');
+}
+export const patternFill = (i: number, id = 'p') => (i % 8 ? `url(#${id}${i % 8})` : '');
