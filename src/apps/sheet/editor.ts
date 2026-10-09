@@ -3,7 +3,9 @@
  * kernel's table (model.ts reads it; every command is Op[] through edit()).
  *
  * Three columns to start; the + at the end of the header adds one, and a column's menu puts one in after
- * it or takes it out (an empty one; the sheet never goes under three). The table scrolls in a box of its
+ * it or takes it out (whatever it holds: references into it become #REF; the table keeps one column, and
+ * the sheet is drawn three wide at the least). The letters over the columns and the numbers down the side
+ * are the sheet's own controls, not cells: drawn quietly, the side as narrow as its widest number. The table scrolls in a box of its
  * own, its header rows and row numbers stuck to its edges, and the page under it holds still: a cell is
  * focused without scrolling the page, and the bar above keeps its shape whatever is selected.
  *
@@ -15,11 +17,17 @@
  * puts the caret at the end); Enter, Tab and the arrows move; Escape puts back what the cell held; Mod+D fills
  * down; Alt+Up/Down move rows. A block has a bar under it (fill, Copy, Cut, Paste, Clear), the clipboard holds
  * the cells as text and as our table HTML, and every edit marks the cells it touched so an undo selects them.
+ *
+ * What a column holds changes its cells: a checkbox is a box a tap (or Space) ticks; an option cell offers
+ * the words its column already holds (a <datalist>, opened by its caret) and takes new ones; a rich cell is a
+ * <to-text shape=line> (the selection bubble for its marks), its words written by the code in the kernel's
+ * inline form, the grid's keys kept round it and the formula strip showing its plain words, read-only.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { ArrowDown, ArrowDownToLine, ArrowRightToLine, ArrowUp, ChartColumn, ClipboardPaste, Columns3, Copy, Eraser, Lock, LockOpen, Maximize2, MoveHorizontal, Rows3, Scaling, Scissors, Trash2 } from 'lucide';
 import { keysText, tool } from '../../kit/bar.ts';
+import type { TextOps, ToText, Sel } from '../../kit/text.ts';
 import { CHART_KINDS, suggestChart, type ChartKind } from '../../kit/chart.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
@@ -28,13 +36,14 @@ import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { toast } from '../../kit/toast.ts';
-import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, clearCells, columnText, copyCells, fillCells, formatCell, isLocked, isText, linkify, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, type Block, type ColType, type Column, type Doc, type Op, type Range } from '../../doc/index.ts';
+import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, applyAll, clearCells, columnText, copyCells, fillCells, isLocked, isText, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, runLength, writeInline, type Block, type ColType, type Column, type Doc, type Op, type Range, type Run } from '../../doc/index.ts';
 import { MIN_COLS, addColumn, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
-import { chartOf, chartOfSheet } from './view.ts';
+import { cellText, chartOf, chartOfSheet } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
+import '../../kit/text.ts';
 import './style.css';
 
 export const tag = 'to-sheet-editor';
@@ -50,8 +59,8 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 type Mark = { sel: [number, number]; end: [number, number] | null };
 /** What the clipboard holds: the cells as tab-and-newline text, and as our table HTML. */
 type ClipData = { text: string; html: string };
-/** The marks Mod+B, Mod+I, Mod+U and Mod+K put round the words selected in a rich cell. */
-const WRAP: Record<string, [string, string]> = { b: ['**', '**'], i: ['*', '*'], u: ['<u>', '</u>'], k: ['[', ']()'] };
+/** Where the caret is in the cell being typed in (an <input>, or a rich cell's words), as the grid's keys ask, and the two ways they move it. */
+type Caret = { rich: boolean; atStart: boolean; atEnd: boolean; all: boolean; empty: boolean; selectAll(): void; toEnd(): void };
 const flat = (s: string) => s.replace(/[\t\n]+/g, ' ');
 const tsv = (rows: string[][]) => rows.map((row) => row.map(flat).join('\t')).join('\n');
 /** A table block's cells, its column names as the first row: what it is as a block of a sheet. */
@@ -66,10 +75,16 @@ const TYPES: { id: ColType; name: () => string; hint: () => string }[] = [
   { id: 'date', name: () => t('Date'), hint: () => '2027-03-01' },
   { id: 'url', name: () => t('Link'), hint: () => t('Opens when clicked') },
   { id: 'check', name: () => t('Checkbox'), hint: () => '☑ ☐' },
-  { id: 'rich', name: () => t('Rich text'), hint: () => '**bold** *italic*' },
+  { id: 'option', name: () => t('Option'), hint: () => t('One of the words the column holds, or a new one') },
+  { id: 'rich', name: () => t('Rich text'), hint: () => t('Bold, italic and links') },
   { id: 'name', name: () => t('Name'), hint: () => t('Names the cell to its right') },
 ];
 const typeOf = (id: ColType) => TYPES.find((x) => x.id === id) ?? TYPES[0];
+/** A rich cell, drawn as a <to-text>: any of a rich column's cells but one worked out by a formula. */
+const isRich = (type: ColType, raw: string) => type === 'rich' && !raw.startsWith('=');
+/** The words of a rich cell's paragraph, all of them selected. */
+const whole = (runs: Run[]): Sel => ({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: runLength(runs) } });
+let sheets = 0;
 
 /** Follow a pointer that `el` has captured: `move` as it goes, then `done` once it lifts. */
 function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {}) {
@@ -113,6 +128,11 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private picked: { r: number; c: number; start: number; end: number; to: [number, number] } | null = null;
   /** Where the caret was when the selected cell last lost focus. */
   private caret: { r: number; c: number; pos: number } | null = null;
+  /** Names this sheet's option lists apart from another's on the page. */
+  private readonly uid = `sheet-${++sheets}`;
+  /** Each rich cell's paragraph as its <to-text> last had it, kept while the cell still holds those words, so the editor keeps its element and its caret. */
+  private drafts = new Map<string, Block>();
+  private ones = new WeakMap<Block, Block[]>();
 
   constructor() {
     super();
@@ -162,7 +182,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
   /** The focus gone from the cell and its strip both: what it held is no longer what Escape goes back to. */
   private forget(e: FocusEvent, r: number, c: number) {
     const to = e.relatedTarget;
-    if (to instanceof HTMLElement && (to.matches('.sheet-fx .fx') || to.id === `c${r}_${c}`)) return;
+    if (to instanceof HTMLElement && (to.matches('.sheet-fx .fx') || to.closest(`#c${r}_${c}`))) return;
     this.entered = null;
   }
   /** A checkbox cell ticked or unticked by a tap: the cell selected, the focus left where it was (no keyboard comes up). */
@@ -247,7 +267,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const text = copyCells(this.view.table, g);
     const cols = this.columns();
     const shown: string[][] = [];
-    for (let r = g.r0; r <= g.r1; r++) shown.push(Array.from({ length: g.c1 - g.c0 + 1 }, (_, i) => formatCell(this.val(r, g.c0 + i), cols[g.c0 + i]?.type)));
+    for (let r = g.r0; r <= g.r1; r++) shown.push(Array.from({ length: g.c1 - g.c0 + 1 }, (_, i) => cellText(this.val(r, g.c0 + i), cols[g.c0 + i]?.type)));
     const [head, ...rows] = shown;
     return { text, html: docToHtml([{ k: 'table', cols: head.map((name) => ({ name, type: 'text' })), rows }]) };
   }
@@ -270,12 +290,14 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (cut) this.clear();
   }
 
+  /** Heard on the way down (capture), before a rich cell's editor: a block is the sheet's to copy; a rich cell's words alone are its editor's. */
   private onCopy = (e: ClipboardEvent) => {
     const input = e.target as HTMLInputElement;
-    const some = input.selectionStart !== input.selectionEnd && !(input.selectionStart === 0 && input.selectionEnd === input.value.length);
+    const some = !(input instanceof HTMLInputElement) || (input.selectionStart !== input.selectionEnd && !(input.selectionStart === 0 && input.selectionEnd === input.value.length));
     // Some of a cell's text, picked out, is ordinary text; otherwise it is the cell (or the block) that is copied.
     if (!this.many && some) return;
     e.preventDefault();
+    e.stopPropagation();
     this.copyOut(e.type === 'cut', e.clipboardData);
   };
 
@@ -323,9 +345,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private onPaste = (e: ClipboardEvent) => {
     const { text, ours } = this.asCells({ text: e.clipboardData?.getData('text/plain') ?? '', html: e.clipboardData?.getData('text/html') ?? '' });
     const block = /[\t\n]/.test(text.replace(/\n$/, ''));
-    // One value into one cell that is being typed in: let the browser paste text.
+    // One value into one cell that is being typed in: let the browser (or a rich cell's editor) paste it.
     if (!block && !ours && !this.many) return;
     e.preventDefault();
+    e.stopPropagation();
     this.pasteIn(text, ours);
   };
 
@@ -529,7 +552,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       { group: t('Sort the rows by it'), label: t('High to low'), icon: ArrowUp, does: () => this.edit(sortBy(this.doc, c, true)) },
       { group: t('Columns'), label: t('Fit this column to its text'), icon: MoveHorizontal, does: () => this.fitColumn(c) },
       { group: t('Columns'), label: t('Add a column after'), icon: UI.plus, disabled: this.cols >= MAX_COLS, does: () => this.addColumn(c + 1) },
-      { group: t('Columns'), label: t('Remove this column'), icon: Trash2, disabled: !may, hint: may ? undefined : this.cols <= MIN_COLS ? t('Three at the least') : t('Once it is empty'), does: () => this.removeColumn(c) },
+      { group: t('Columns'), label: t('Remove this column'), icon: Trash2, disabled: !may, hint: may ? undefined : c < this.view.table.cols.length ? t('A sheet keeps one column') : t('Three at the least'), does: () => this.removeColumn(c) },
     ];
   }
 
@@ -540,6 +563,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
       { label: t('Row above'), icon: Rows3, hint: keysText('Mod+Alt+='), does: () => this.insertRowsAt(false) },
       { label: t('Row below'), icon: Rows3, does: () => this.insertRowsAt(true) },
       { label: t('Column after'), icon: Columns3, disabled: this.cols >= MAX_COLS, does: () => this.addColumn(this.sel[1] + 1) },
+      // A chart goes above the table, of the kind the numbers suggest; the Chart menu changes its kind.
+      { label: t('Chart'), icon: ChartColumn, hint: this.view.table.chart ? t('The sheet has one') : undefined, disabled: !!this.view.table.chart, does: () => this.chart(suggestChart(chartOfSheet(this.view)) || 'bar') },
       ...FUNCTIONS.map(([name, args, what]) => ({ group: t('Function'), label: `${name}(${args})`, hint: what, does: () => this.insertFunction(name) })),
     ];
   }
@@ -552,12 +577,72 @@ export class ToSheetEditor extends DocElement<SheetView> {
     ];
   }
 
-  /** A cell of rich text, drawn: **bold** and *italic* shown as such, addresses as links. */
-  private rich(raw: string) {
-    return parseInline(raw).map((run) => {
-      const inner = (run.href ? [{ t: run.t, url: run.href }] : linkify(run.t)).map((p) => (p.url ? html`<a href=${p.url} target="_blank" rel="noopener">${p.t}</a>` : p.t));
-      return html`<span class="${run.b ? 'b' : ''} ${run.i ? 'i' : ''} ${run.u ? 'u' : ''} ${run.s ? 's' : ''}">${inner}</span>`;
-    });
+  /* ---------- rich cells ---------- */
+
+  /** A rich cell's words as the one paragraph its <to-text> edits (the same array while the cell holds the same words). */
+  private richBlocks(r: number, c: number): Block[] {
+    const key = `${r}:${c}`;
+    const raw = this.raw(r, c);
+    let b = this.drafts.get(key);
+    if (b?.k !== 'p' || writeInline(b.runs) !== raw) this.drafts.set(key, (b = { k: 'p', runs: parseInline(raw) }));
+    let one = this.ones.get(b);
+    if (!one) this.ones.set(b, (one = [b]));
+    return one;
+  }
+  /** What a rich cell's editor did, written back as the cell's inline form: a burst of typing undoes as one, per cell. A locked cell is left be. */
+  private onRichOps(e: CustomEvent<TextOps>, r: number, c: number) {
+    e.stopPropagation();
+    if (this.locked(r, c)) return void this.requestUpdate();
+    const { ops, kind } = e.detail;
+    const runs = applyAll({ head: {}, blocks: this.richBlocks(r, c) }, ops).blocks.flatMap((b) => (isText(b) ? b.runs : []));
+    const block: Block = { k: 'p', runs };
+    this.drafts.set(`${r}:${c}`, block);
+    this.edit(setCell(this.doc, r, c, writeInline(runs)), kind === 'type' ? `cell:${r}:${c}` : undefined);
+    this.requestUpdate();
+  }
+  /** Where the caret is in a rich cell, as the grid's keys ask. */
+  private richCaret(x: ToText): Caret {
+    const runs = (x.blocks[0] as { runs?: Run[] } | undefined)?.runs ?? [];
+    const len = runLength(runs);
+    const s = x.sel;
+    const [a, b] = s ? [Math.min(s.anchor.offset, s.focus.offset), Math.max(s.anchor.offset, s.focus.offset)] : [len, len];
+    return {
+      rich: true,
+      atStart: b === 0,
+      atEnd: a === len,
+      all: a === 0 && b === len,
+      empty: !len,
+      selectAll: () => (x.sel = whole(runs)),
+      toEnd: () => (x.sel = { anchor: { block: 0, offset: len }, focus: { block: 0, offset: len } }),
+    };
+  }
+  /** Where the caret is in a cell's <input>, as the grid's keys ask. */
+  private inputCaret(input: HTMLInputElement): Caret {
+    const [a, b, len] = [input.selectionStart ?? 0, input.selectionEnd ?? 0, input.value.length];
+    return {
+      rich: false,
+      atStart: a === 0 && b === 0,
+      atEnd: a === len && b === len,
+      all: a === 0 && b === len,
+      empty: !len,
+      selectAll: () => input.select(),
+      toEnd: () => input.setSelectionRange(len, len),
+    };
+  }
+  /** The focus come to a cell (its input, or a rich cell's words): it is the selected cell. */
+  private entering(r: number, c: number, el: HTMLElement) {
+    if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
+    this.sel = [r, c];
+    this.focused = true;
+    this.remember(r, c);
+    this.reveal(el);
+  }
+  private leaving(e: FocusEvent, r: number, c: number) {
+    const x = e.currentTarget as HTMLElement;
+    // Within a rich cell (its link box, its note box) the focus has not left.
+    if (e.relatedTarget instanceof Node && x.contains(e.relatedTarget)) return;
+    this.focused = false;
+    this.forget(e, r, c);
   }
 
   /* ---------- focus and the caret ---------- */
@@ -569,13 +654,22 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (!keepBlock) this.end = null;
     if (r !== this.sel[0] || c !== this.sel[1]) this.entered = null;
     this.sel = [r, c];
-    void this.updateComplete.then(() => {
-      const el = this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
+    void this.updateComplete.then(async () => {
+      const el = this.querySelector<HTMLElement>(`#c${r}_${c}`);
       if (!el) return;
+      if (el.localName === 'to-text') {
+        // A rich cell: its words selected whole, so typing replaces them (the editor takes the focus with its selection).
+        const x = el as ToText;
+        await x.updateComplete;
+        x.sel = whole((x.blocks[0] as { runs?: Run[] } | undefined)?.runs ?? []);
+        this.reveal(x);
+        return;
+      }
+      const input = el as HTMLInputElement;
       // The page holds still: the table's own box scrolls to show the cell (focus() would scroll every ancestor, the page too).
-      el.focus({ preventScroll: true });
-      el.select();
-      this.reveal(el);
+      input.focus({ preventScroll: true });
+      input.select();
+      this.reveal(input);
     });
   }
 
@@ -648,7 +742,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       return;
     }
     this.end = null;
-    this.pressed = !(e.target as HTMLElement).matches('td.sel input');
+    this.pressed = !(e.target as HTMLElement).closest('td.sel');
     this.dragging = true;
     window.addEventListener('mouseup', () => (this.dragging = false), { once: true });
   }
@@ -703,7 +797,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
     let w = 0;
     const type = this.columns()[c].type;
-    for (let r = 0; r < this.view.used.rows; r++) w = Math.max(w, ctx.measureText(formatCell(this.val(r, c), type)).width);
+    for (let r = 0; r < this.view.used.rows; r++) w = Math.max(w, ctx.measureText(cellText(this.val(r, c), type)).width);
     return Math.max(MIN_COL, Math.ceil(w + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 6));
   }
   private currentWidths(): number[] {
@@ -755,19 +849,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
     this.focusCell(r, c);
   }
 
-  /** Mod+B, I, U or K in a rich cell: the words selected wrapped in the marks (a link's address left for typing). */
-  private wrap(input: HTMLInputElement, r: number, c: number, k: string) {
-    const [open, close] = WRAP[k];
-    const a = input.selectionStart ?? 0;
-    const b = input.selectionEnd ?? a;
-    const v = input.value;
-    const mid = v.slice(a, b);
-    this.setCell(r, c, v.slice(0, a) + open + mid + close + v.slice(b));
-    const from = a + open.length;
-    void this.updateComplete.then(() => (k === 'k' ? input.setSelectionRange(from + mid.length + 2, from + mid.length + 2) : input.setSelectionRange(from, from + mid.length)));
-  }
-
-  private onKey(e: KeyboardEvent, r: number, c: number) {
+  /** The grid's keys in a cell, `at` saying where its caret is. A rich cell's editor hears them first (they are caught on the way down to it), and has those left over: its marks, its Escape, its own Select All. */
+  private onKey(e: KeyboardEvent, r: number, c: number, at: Caret) {
     if (e.defaultPrevented || e.isComposing) return;
     if (this.pointWithKey(e)) return;
     const mod = e.ctrlKey || e.metaKey;
@@ -779,10 +862,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
       else this.deleteRowsAt(r);
       return;
     }
-    const input = e.target as HTMLInputElement;
-    const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
-    const atEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
-    const all = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+    const { atStart, atEnd, all } = at;
     // Alt+Up/Down: the selected rows (or this one) past their neighbour.
     if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
@@ -792,7 +872,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (mod && !e.altKey && !e.shiftKey) {
       // Mod+A: the cell's words first; with them whole (or none), the whole sheet.
       if (k === 'a') {
-        if (!this.many && !all && input.value) return;
+        if (at.rich || (!this.many && !all && !at.empty)) return;
         e.preventDefault();
         this.selectAll();
         return;
@@ -803,17 +883,16 @@ export class ToSheetEditor extends DocElement<SheetView> {
         this.fill(true);
         return;
       }
-      if (k in WRAP) {
-        // Marks on the words of a rich cell; anywhere else they do nothing (and never reach the browser's own).
-        e.preventDefault();
-        if (this.columns()[c].type === 'rich' && !this.locked(r, c)) this.wrap(input, r, c, k);
+      if (k === 'b' || k === 'i' || k === 'u' || k === 'k') {
+        // Marks are a rich cell's (its editor's own keys); anywhere else they do nothing, and never reach the browser's.
+        if (!at.rich) e.preventDefault();
         return;
       }
       // Mod+Enter: done, staying on the cell.
       if (e.key === 'Enter') {
         e.preventDefault();
         this.entered = { r, c, raw: this.raw(r, c) };
-        input.select();
+        at.selectAll();
         return;
       }
     }
@@ -829,7 +908,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (e.key === 'F2') {
       // Edit in place: the caret at the end, the words no longer all selected.
       e.preventDefault();
-      input.setSelectionRange(input.value.length, input.value.length);
+      at.toEnd();
       return;
     }
     const arrow = ARROWS[e.key];
@@ -857,6 +936,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
       return;
     }
     if (e.key === 'Escape') {
+      // A rich cell's editor steps out first (a box, a range of words) and says `text-escape` when it is done.
+      if (at.rich) return;
       e.preventDefault();
       this.cancelEdit(r, c);
       return;
@@ -886,7 +967,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const g = this.range;
     const fill = this.fillTo;
     const locked = this.locked(sr, sc);
+    // A rich cell's words are its editor's: the strip shows them, plain and read-only.
+    const richSel = isRich(cols[sc]?.type ?? 'text', this.raw(sr, sc));
     const chart = chartOf(v);
+    const figure = chart ? html`<figure class="sheet-chart ${v.table.above ? 'above' : ''}"><svg viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label=${chart.alt ?? t('Chart of the table')}>${unsafeSVG(chart.svg)}</svg></figure>` : nothing;
+    // The row numbers' side is as wide as the widest number drawn, and no wider.
+    const gutter = `--sheet-row-w: calc(${String(this.drawn).length}ch + 8px);`;
     // The bar holds the same tools whatever is selected (a tool that does not apply is disabled, not gone), so it never changes shape under a finger.
     return html`<to-bar class="sheet-bar">
         <to-insert .items=${this.inserts()}></to-insert>
@@ -899,16 +985,17 @@ export class ToSheetEditor extends DocElement<SheetView> {
         ${this.undoTools()}
       </to-bar>
       ${v.big ? html`<div class="sheet-big"><b>${v.big.value}</b><span>${v.big.label}</span></div>` : nothing}
+      ${v.table.above ? figure : nothing}
       <div class="sheet-fx">
         <span class="ref" aria-label=${t('Selected cells')}>${rangeRef(g)}</span>
         <input
           class="fx"
           aria-label=${t('Formula')}
-          .value=${this.raw(sr, sc)}
+          .value=${richSel ? cellText(this.raw(sr, sc), 'rich') : this.raw(sr, sc)}
           placeholder="="
           autocomplete="off"
           spellcheck="false"
-          ?readonly=${locked}
+          ?readonly=${locked || richSel}
           @focus=${() => this.remember(sr, sc)}
           @input=${(e: InputEvent) => !e.isComposing && this.setCell(sr, sc, (e.target as HTMLInputElement).value)}
           @compositionend=${(e: Event) => this.setCell(sr, sc, (e.target as HTMLInputElement).value)}
@@ -929,9 +1016,9 @@ export class ToSheetEditor extends DocElement<SheetView> {
         />
       </div>
       <div class="sheet-scroll">
-        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${this.onCopy} @cut=${this.onCopy} @paste=${this.onPaste} style=${w ? `width: calc(var(--sheet-row-w) + var(--sheet-add-w) + ${w.slice(0, n).reduce((a, b) => a + b, 0)}px)` : ''}>
+        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${{ handleEvent: this.onCopy, capture: true }} @cut=${{ handleEvent: this.onCopy, capture: true }} @paste=${{ handleEvent: this.onPaste, capture: true }} style=${gutter + (w ? `width: calc(var(--sheet-row-w) + var(--sheet-add-w) + ${w.slice(0, n).reduce((a, b) => a + b, 0)}px)` : '')}>
           <colgroup>
-            <col />
+            <col class="gutter" />
             ${cols.map((_, c) => html`<col style=${w ? `width:${w[c] ?? NEW_COL}px` : ''} />`)}
             <col class="add" />
           </colgroup>
@@ -967,10 +1054,27 @@ export class ToSheetEditor extends DocElement<SheetView> {
         </table>
         ${this.drawn < ROWS ? html`<button type="button" class="sheet-more" @click=${() => (this.rowsShown = Math.min(ROWS, this.drawn + 50))}>${icon(UI.plus, 14)} ${t('50 more rows')} <span class="to-hint">${t('({n} of {max} shown)', { n: this.drawn, max: ROWS })}</span></button>` : nothing}
       </div>
-      ${chart ? html`<figure class="sheet-chart"><svg viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label=${chart.alt ?? t('Chart of the table')}>${unsafeSVG(chart.svg)}</svg></figure>` : nothing}
+      ${v.table.above ? nothing : figure}
+      ${cols.map((col, c) => (col.type === 'option' ? html`<datalist id="${this.uid}-o${c}">${this.choices(c).map((x) => html`<option value=${x}></option>`)}</datalist>` : nothing))}
       <to-context class="sheet-context" .label=${t('The cells in hand')} .items=${this.contextItems()}></to-context>
       <to-menu class="sheet-rowmenu" .label=${t('Row {n}', { n: this.menuRow + 1 })} .items=${this.rowItems()}></to-menu>
       <to-menu class="sheet-colmenu" .label=${t('Column {c}', { c: COL_NAMES[this.menuCol] })} .items=${this.colItems()}></to-menu>`;
+  }
+
+  /** The words an option column offers: those its cells already hold, each once, in the order they first come (a formula's are its own). */
+  private choices(c: number): string[] {
+    return [...new Set(this.view.table.rows.map((row) => (row[c] ?? '').trim()).filter((x) => x && !x.startsWith('=')))];
+  }
+  /** An option cell's caret: the cell selected and its list opened, where the browser can open it (elsewhere its words come up as it is typed in). */
+  private async openChoices(r: number, c: number) {
+    this.focusCell(r, c);
+    await this.updateComplete;
+    const input = this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
+    try {
+      input?.showPicker();
+    } catch {
+      // No picker for a list here: the words are offered as the cell is typed in.
+    }
   }
 
   private renderRow(r: number, cols: Column[], g: Range, fill: Range | null) {
@@ -982,33 +1086,58 @@ export class ToSheetEditor extends DocElement<SheetView> {
         const isSel = this.focused && r === sr && c === sc;
         const v = this.val(r, c);
         const type = col.type;
-        const shown = isSel ? raw : formatCell(v, type);
-        const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
-        const rich = type === 'rich' && !isSel && raw !== '' && !raw.startsWith('=');
         const locked = this.locked(r, c);
-        // A checkbox is ticked by a tap on its cell (Space with the keyboard); one worked out by a formula is typed into.
-        const tick = type === 'check' && !locked && !raw.startsWith('=');
-        const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'check' ? ' tick' : '') + (locked ? ' locked' : '') + (type === 'name' ? ' named' : '');
         const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
         const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
-        return html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>
-          <input
+        const fillHandle = r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label=${t('Fill: drag to carry these cells on')} title=${t('Drag to fill')} @pointerdown=${this.onFillDown}></span>` : nothing;
+        const td = (inner: unknown) =>
+          html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>${inner}${fillHandle}</td>`;
+        if (isRich(type, raw)) {
+          // A rich cell is its words' editor; the grid's keys are caught on their way down to it.
+          return td(html`<to-text
+            id="c${r}_${c}"
+            class="rich ${locked ? 'locked' : ''}"
+            shape="line"
+            .blocks=${this.richBlocks(r, c)}
+            label=${rcToRef(r, c)}
+            title=${locked ? t('Locked: part of the model') : nothing}
+            @keydown=${{ handleEvent: (e: KeyboardEvent) => this.onKey(e, r, c, this.richCaret(e.currentTarget as ToText)), capture: true }}
+            @focusin=${(e: FocusEvent) => this.entering(r, c, e.currentTarget as HTMLElement)}
+            @focusout=${(e: FocusEvent) => this.leaving(e, r, c)}
+            @click=${(e: Event) => {
+              if (!this.pressed) return;
+              this.pressed = false;
+              // Reached by a tap or a click, the words are selected whole, so typing replaces them; a second tap places the caret.
+              const x = e.currentTarget as ToText;
+              x.sel = whole((x.blocks[0] as { runs?: Run[] } | undefined)?.runs ?? []);
+            }}
+            @text-ops=${(e: CustomEvent<TextOps>) => this.onRichOps(e, r, c)}
+            @text-enter=${(e: CustomEvent<{ shift: boolean }>) => (e.stopPropagation(), this.focusCell(r + (e.detail.shift ? -1 : 1), c))}
+            @text-exit=${(e: Event) => e.stopPropagation()}
+            @text-escape=${(e: Event) => (e.stopPropagation(), this.cancelEdit(r, c))}
+            @text-selectall=${(e: Event) => (e.stopPropagation(), this.selectAll())}
+          ></to-text>`);
+        }
+        const shown = isSel && (type !== 'rich' || raw.startsWith('=')) ? raw : cellText(v, type);
+        const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
+        // A checkbox is ticked by a tap on its cell (Space with the keyboard); one worked out by a formula is typed into.
+        const tick = type === 'check' && !locked && !raw.startsWith('=');
+        const option = type === 'option' && !locked;
+        const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (tick ? ' tick' : '') + (option ? ' option' : '') + (locked ? ' locked' : '') + (type === 'name' ? ' named' : '');
+        return td(html`<input
             id="c${r}_${c}"
             class=${cls}
             aria-label=${rcToRef(r, c)}
             .value=${shown}
+            list=${option ? `${this.uid}-o${c}` : nothing}
             title=${locked ? t('Locked: part of the model') : raw.startsWith('=') ? raw : nothing}
             placeholder=${isSel && type === 'date' ? 'YYYY-MM-DD' : nothing}
             ?readonly=${locked}
             autocomplete="off"
             @focus=${(e: Event) => {
-              if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
-              this.sel = [r, c];
-              this.focused = true;
-              this.remember(r, c);
+              this.entering(r, c, e.target as HTMLElement);
               // A cell reached by a tap or a click is selected whole, so typing replaces it; a second tap places the caret.
               (e.target as HTMLInputElement).select();
-              this.reveal(e.target as HTMLElement);
             }}
             @click=${(e: Event) => {
               if (!this.pressed) return;
@@ -1019,19 +1148,20 @@ export class ToSheetEditor extends DocElement<SheetView> {
               setTimeout(() => document.activeElement === input && input.selectionStart === input.selectionEnd && input.select(), 0);
             }}
             @blur=${(e: FocusEvent) => {
-              this.focused = false;
               this.caret = { r, c, pos: (e.target as HTMLInputElement).selectionStart ?? 0 };
-              this.forget(e, r, c);
+              this.leaving(e, r, c);
             }}
             @input=${(e: InputEvent) => !e.isComposing && this.setCell(r, c, (e.target as HTMLInputElement).value)}
             @compositionend=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
-            @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c)}
+            @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c, this.inputCaret(e.target as HTMLInputElement))}
           />
-          ${tick ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Tick {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}></button>` : nothing}
-          ${rich ? html`<span class="rich" aria-hidden="true">${this.rich(raw)}</span>` : nothing}
-          ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label=${t('Open {link}', { link })} tabindex="-1">${icon(UI.link, 12)}</a>` : nothing}
-          ${r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label=${t('Fill: drag to carry these cells on')} title=${t('Drag to fill')} @pointerdown=${this.onFillDown}></span>` : nothing}
-        </td>`;
+          ${tick
+            ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Tick {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}>
+                <span class="box" aria-hidden="true">${v ? icon(UI.check, 18) : nothing}</span>
+              </button>`
+            : nothing}
+          ${option ? html`<button type="button" class="opt-btn" tabindex="-1" aria-label=${t('Choices for {ref}', { ref: rcToRef(r, c) })} title=${t('Choices')} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => void this.openChoices(r, c)}>${icon(UI.down, 14)}</button>` : nothing}
+          ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label=${t('Open {link}', { link })} tabindex="-1">${icon(UI.link, 12)}</a>` : nothing}`);
       })}
     </tr>`;
   }

@@ -102,18 +102,34 @@
   }
   table.sheet thead tr.names th {
     top: 32px;
+    border-top: 1px solid var(--to-border);
   }
+  /* The letters over the columns, the numbers down the side and the corner are the sheet's own controls, not cells: no shading, no lines, muted type (opaque, as they are stuck over the cells scrolling under them). The side is as narrow as its widest number and 8px. */
+  table.sheet thead tr:first-child th,
+  table.sheet th.row,
+  table.sheet td.corner {
+    border: 0;
+    background: var(--to-surface);
+  }
+  table.sheet col.gutter,
   table.sheet th.row {
     width: var(--sheet-row-w);
+    font-size: 12px;
+  }
+  table.sheet th.row {
     top: auto;
     left: 0;
+  }
+  /* The cells' left edge, now the side draws none. */
+  table.sheet tbody td:nth-child(2),
+  table.sheet tr.names th:nth-child(2) {
+    border-left: 1px solid var(--to-border);
   }
   table.sheet td.corner {
     position: sticky;
     left: 0;
     top: 0;
     z-index: 2;
-    background: var(--to-surface-2);
   }
   table.sheet tr.names td.corner {
     top: 32px;
@@ -128,11 +144,16 @@
     width: 100%;
     height: 32px;
     border: 0;
+    border-radius: var(--to-radius-sm);
     background: transparent;
     color: inherit;
     font: inherit;
-    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     cursor: pointer;
+  }
+  table.sheet .row-num {
+    justify-content: flex-end;
+    padding: 0 4px;
   }
   table.sheet .col-head:hover,
   table.sheet .row-num:hover,
@@ -261,51 +282,76 @@
     font-family: var(--to-font);
     font-weight: 600;
   }
+  /* A checkbox cell is one button to a tap or a click (the whole cell: 44px under a finger), drawn as a box: 24px, a 2px border in the ink, empty or holding a thick check in the accent. Its input, under it, takes the keys (Space ticks) and shows nothing. */
   table.sheet td input.tick {
-    text-align: center;
+    color: transparent;
+    caret-color: transparent;
   }
-  /* A checkbox cell is one button to a tap or a click: it ticks and unticks. */
   table.sheet td .tick-btn {
     position: absolute;
     inset: 0;
+    display: grid;
+    place-items: center;
     border: 0;
     padding: 0;
     background: transparent;
     cursor: pointer;
     touch-action: manipulation;
   }
-  table.sheet td input.under {
-    color: transparent;
+  table.sheet td .tick-btn .box {
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--to-ink);
+    border-radius: 4px;
+    color: var(--to-accent);
   }
-  table.sheet td input.under::selection {
+  table.sheet td .tick-btn .box svg {
+    stroke-width: 4;
+  }
+  /* An option cell: the words its column holds come up as it is typed in (the browser's own list), and its caret opens them; the browser's own arrow is hidden for ours. */
+  table.sheet td input.option {
+    padding-right: 28px;
+  }
+  table.sheet td input.option::-webkit-calendar-picker-indicator {
+    display: none !important;
+  }
+  table.sheet td .opt-btn {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--to-ink-3);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  table.sheet td .opt-btn:hover {
+    background: var(--to-border);
     color: var(--to-ink);
   }
-  /* Rich text shown over its cell's input, until the cell is typed in. */
-  table.sheet td .rich {
-    position: absolute;
-    inset: 0;
+  /* A rich cell is its words' editor, one line high, in the cell's own type. */
+  table.sheet td to-text.rich .tx {
+    min-height: 32px;
     padding: 0 8px;
-    line-height: 32px;
-    font-size: 14px;
+    font: 14px/32px var(--to-font);
+    color: var(--to-ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    pointer-events: none;
   }
-  table.sheet td .rich .b {
-    font-weight: 700;
-  }
-  table.sheet td .rich .i {
-    font-style: italic;
-  }
-  table.sheet td .rich .u {
-    text-decoration: underline;
-  }
-  table.sheet td .rich .s {
-    text-decoration: line-through;
-  }
-  table.sheet td .rich a {
-    pointer-events: auto;
+  table.sheet td to-text.rich.locked .tx {
+    background: var(--to-surface-2);
+    color: var(--to-ink-2);
   }
   /* A link's cell: the address, and a small way to open it. */
   table.sheet td input.link {
@@ -382,6 +428,10 @@
   .sheet-chart {
     margin: 16px 0 0;
   }
+  /* A chart put in goes above the table. */
+  .sheet-chart.above {
+    margin: 0 0 12px;
+  }
   .sheet-chart svg {
     display: block;
     width: 100%;
@@ -410,9 +460,15 @@
     table.sheet .row-num {
       height: 44px;
     }
-    table.sheet td .rich {
-      line-height: 44px;
+    table.sheet td to-text.rich .tx {
+      min-height: 44px;
       font-size: 16px;
+      line-height: 44px;
+    }
+    table.sheet td .opt-btn {
+      right: 0;
+      width: 32px;
+      height: 44px;
     }
     table.sheet thead tr.names th,
     table.sheet tr.names td.corner {

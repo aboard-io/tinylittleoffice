@@ -290,7 +290,7 @@ export default {
   'Training log': 'Training log',
   'What you did and how much, a line a time; a total for each kind of thing.': 'What you did and how much, a line a time; a total for each kind of thing.',
   'Project tracker': 'Project tracker',
-  'Tasks with owners, start and due dates counted from today, days each, and a tick when done.': 'Tasks with owners, start and due dates counted from today, days each, and a tick when done.',
+  'Tasks with owners, start and due dates counted from today, days each, how each is going, and a tick when done.': 'Tasks with owners, start and due dates counted from today, days each, how each is going, and a tick when done.',
   'Loans compared': 'Loans compared',
   'Amount, rate and years for each loan; the monthly payment (PMT), what it costs in all, and the interest.': 'Amount, rate and years for each loan; the monthly payment (PMT), what it costs in all, and the interest.',
   'A subscription business': 'A subscription business',
@@ -341,7 +341,6 @@ export default {
   'Names the cell to its right': 'Names the cell to its right',
   'No chart': 'No chart',
   'Number': 'Number',
-  'Once it is empty': 'Once it is empty',
   'Open {link}': 'Open {link}',
   'Opens when clicked': 'Opens when clicked',
   'Percent': 'Percent',
@@ -1217,4 +1216,12 @@ export default {
   // The grip on a line of the tape; the bar under lines chosen whole.
   'Choose line {n}: drag it to move it': 'Choose line {n}: drag it to move it',
   'Chosen lines': 'Chosen lines',
+  // The Spreadsheet: any column removed, the Option column, rich cells, a chart put in from Insert.
+  'A sheet keeps one column': 'A sheet keeps one column',
+  'Bold, italic and links': 'Bold, italic and links',
+  'Choices': 'Choices',
+  'Choices for {ref}': 'Choices for {ref}',
+  'One of the words the column holds, or a new one': 'One of the words the column holds, or a new one',
+  'Option': 'Option',
+  'The sheet has one': 'The sheet has one',
 } satisfies Strings;
