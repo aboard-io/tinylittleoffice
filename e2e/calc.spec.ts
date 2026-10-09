@@ -50,3 +50,33 @@ test('calc: keys and the line, units from the engine under the policy, a graph',
   expect((await measure()).wide).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
 });
+
+test('calc: on a phone, a tape line is chosen by its grip and moved by the bar under it; nothing zooms or scrolls', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/calc');
+  const display = page.locator('.calc-display');
+  for (const s of ['a = 4', 'a * 2', 'a + 1']) {
+    await display.fill(s);
+    await display.press('Enter');
+  }
+  await expect(page.locator('.calc-line')).toHaveCount(3);
+  await expect(page.locator('.calc-line').nth(2)).toHaveValue('a + 1');
+  // The grip is a finger's width to hit, whatever it draws; a tap on it chooses the line, the bar above it.
+  const grip = page.locator('.calc-grip').nth(2);
+  const box = (await grip.boundingBox())!;
+  const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('.calc-grip') !== null, { x: box.x + box.width / 2, y: box.y + box.height / 2 - 18 });
+  expect(hit).toBe(true);
+  await grip.tap();
+  await expect(page.locator('.calc-row.ranged')).toHaveCount(1);
+  const bar = page.locator('to-context.to-rows-context');
+  await expect(bar.getByRole('button', { name: 'Move up' })).toBeVisible();
+  await bar.getByRole('button', { name: 'Move up' }).tap();
+  await expect.poll(() => page.locator('.calc-line').evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value))).toEqual(['a = 4', 'a + 1', 'a * 2']);
+  await expect(page.locator('.calc-row').nth(1)).toHaveClass(/ranged/);
+  const state = await page.evaluate(() => ({ zoom: window.visualViewport?.scale ?? 1, top: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, touch: getComputedStyle(document.querySelector('.calc')!).touchAction }));
+  expect(state).toMatchObject({ zoom: 1, touch: 'manipulation' });
+  expect(state.wide).toBeLessThanOrEqual(0);
+  expect(errors).toEqual([]);
+});

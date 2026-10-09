@@ -1201,4 +1201,7 @@ export default {
   'Costs against takings for a coffee cart: where the lines cross is the cups a day it needs.': 'Costs against takings for a coffee cart: where the lines cross is the cups a day it needs.',
   'Waves adding up': 'Waves adding up',
   'Sine waves summed, on their way to a square wave.': 'Sine waves summed, on their way to a square wave.',
+  // The grip on a line of the tape; the bar under lines chosen whole.
+  'Choose line {n}: drag it to move it': 'Choose line {n}: drag it to move it',
+  'Chosen lines': 'Chosen lines',
 } satisfies Strings;
