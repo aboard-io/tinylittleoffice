@@ -27,12 +27,12 @@ test('home loads, the Write app opens, nothing throws, axe passes', async ({ pag
   expect((await axe(page)).violations).toEqual([]);
 
   await page.locator('.to-tile-open').first().click();
-  await expect(page).toHaveURL(/#\/v1\/text$/);
+  await expect(page).toHaveURL(/#\/v1\/write$/);
   const area = page.locator('to-write-editor to-text .tx');
   await expect(area).toBeVisible();
   await area.click();
   await page.keyboard.type('A line written on the phone.');
-  await expect(page).toHaveURL(/#\/v1\/text\/[ryz]/);
+  await expect(page).toHaveURL(/#\/v1\/write\/[ryz]/);
   await expect(area.locator('p')).toHaveText('A line written on the phone.');
   await page.locator('.to-title').fill('Hello');
   await page.locator('.to-title').press('Enter');

@@ -230,6 +230,8 @@
   .to-link-pop:not(:popover-open):not([popover]) {
     display: flex;
   }
+  /* A manual popover is hidden by the browser's own sheet, which the display above would otherwise beat. */
+  .to-link-pop[popover]:not(:popover-open),
   .to-link-pop[hidden] {
     display: none;
   }
