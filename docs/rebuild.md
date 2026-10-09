@@ -50,7 +50,7 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 
 | keep as app | why | absorbs (as templates or kinds) |
 |---|---|---|
-| Text | rich text | letter, résumé, contract |
+| Write | rich text | letter, résumé, contract, invoice (a table block with an Amount formula column, evaluated in place, printed as paper) |
 | Sheet | the data model | budget, models, log, training log |
 | Outline | tree of text | — |
 | Slides | pages with layout | zine, booklet, brochure, comic, poster, badges (page formats) |
@@ -61,11 +61,24 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 | Todo | the simplest list | — |
 | Board | columns of cards | — |
 | Map | places | trip |
-| Page | a web page | website, quick links, invoice, contract? |
+| Website | a web page | quick links |
 | Calculator | a tape | — |
-| Wordsearch, Spinner, Santa, Split | small tools people asked for | — |
 
-Hidden: web (embeds), qr (the deck's closing slide).
+Hidden: web (embeds), qr (the deck's closing slide). The small tools (wordsearch, spinner, santa, split) are
+dropped (Paul, 2026-10-09).
+
+## Home and templates (Paul, 2026-10-09)
+
+"Keep the templates with the apps as a combo box dropdown below each one, defaulting to blank. With previews.
+No template popup when I enter an app." Home is the apps; under each, a dropdown of its templates with Blank
+first and selected, each option with a small preview; choosing one opens the app on that document. No template
+dialog anywhere.
+
+## Living short links (Paul: build them)
+
+A short link may be updated by whoever holds its owner key: the key is a capability in the link the author
+keeps (never sent as plaintext, never in the public short link); tinier stores a new ciphertext under the same
+id. The public link always opens the latest version; the service never reads a document.
 
 ## Rules while rebuilding
 
