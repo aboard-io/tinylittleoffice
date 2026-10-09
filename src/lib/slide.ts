@@ -4,7 +4,7 @@
  * are both laid out here, at their own size.
  */
 import { wrap, text, place, r, rect, ACCENT, type Page, type Span } from '../kit/core.ts';
-import { parseInline } from './richtext.ts';
+import { markNotes, noteNumbers, noteRuns, notesIn, parseInline } from './richtext.ts';
 import { refPage, refSteps } from '../kit/embed.ts';
 import { ICON_SVG } from './icons.ts';
 import { depthOf, iconHex, live, type Look, type Slide } from './deckmodel.ts';
@@ -27,7 +27,12 @@ export interface SlideLayout {
   cols: (Box & { items: Span[][][]; depths: number[] })[];
   icon?: Box;
   sub?: Box;
+  /** The slide's footnotes, at its foot: each note's lines, and the size of their type. */
+  notes?: Box & { lines: Span[][][]; px: number };
 }
+
+/** The footnotes a slide holds, in the order their marks are drawn: the headline's, then the words', column by column. */
+export const slideNotes = (s: Slide): string[] => (s.sub ? [] : notesIn([s.title, ...live(s.bullets), ...(s.layout === '2' ? live(s.right) : [])]));
 
 /** How far a bullet steps in a level, in the size of the type. */
 const IN = 1.4;
@@ -52,17 +57,30 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   const kind = s.layout ?? '';
   const left = live(s.bullets);
   const right = kind === '2' ? live(s.right) : [];
+  // Footnotes are numbered as their marks come: the headline's first, then the words'.
+  const titleRuns = () => markNotes(parseInline(s.title), noteNumbers());
+  const bodyRuns = (cols: { src: string[] }[]) => {
+    const next = noteNumbers(titleRuns().filter((r) => r.sup).length);
+    return cols.map((c) => c.src.map((b) => markNotes(parseInline(b.trim()), next)));
+  };
+  // The notes themselves, at the foot, in small type; the words above make room for them.
+  const notes = slideNotes(s);
+  const notePx = 15 * k;
+  const noteLines = notes.map((fn, i) => wrap([{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...noteRuns(fn)], SW - 2 * M, notePx));
+  const notesH = notes.length ? noteLines.reduce((a, l) => a + l.length * notePx * 1.3, 0) + 14 * k : 0;
+  const foot = notes.length ? { x: M, y: SH - 40 * k - notesH + 14 * k, w: SW - 2 * M, h: notesH - 14 * k, lines: noteLines, px: notePx } : undefined;
   const fitTitle = (w: number, sizes: number[], maxLines: number) => {
     for (const px of sizes) {
-      const lines = wrap(parseInline(s.title), w, px, true);
+      const lines = wrap(titleRuns(), w, px, true);
       if (lines.length <= maxLines) return { px, lines };
     }
     const px = sizes[sizes.length - 1];
-    return { px, lines: wrap(parseInline(s.title), w, px, true).slice(0, maxLines) };
+    return { px, lines: wrap(titleRuns(), w, px, true).slice(0, maxLines) };
   };
   const fitBody = (cols: (Box & { src: string[] })[], sizes: number[], bullet: boolean) => {
+    const runs = bodyRuns(cols);
     for (const px of sizes) {
-      const laid = cols.map((c) => c.src.map((b) => wrap(parseInline(b.trim()), c.w - (bullet ? px * (1.1 + depthOf(b) * IN) : 0), px)));
+      const laid = cols.map((c, i) => c.src.map((b, j) => wrap(runs[i][j], c.w - (bullet ? px * (1.1 + depthOf(b) * IN) : 0), px)));
       const tall = (items: Span[][][]) => items.reduce((a, l) => a + l.length * px * 1.3 + px * 0.45, 0);
       if (laid.every((items, i) => tall(items) <= cols[i].h) || px === sizes[sizes.length - 1]) return { px, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i], depths: c.src.map(depthOf) })) };
     }
@@ -74,7 +92,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
     const sub = fitBody([{ x: M, y: 0, w: SW - 2 * M, h: SH * 0.25 + (SH > SW ? SH * 0.25 : 0), src: left }], sz([30, 26, 22, 18]), false);
     const iconH = s.icon ? 112 * k : 0;
     const tall = iconH + t.lines.length * t.px * 1.15 + (left.length ? 24 + sub.cols[0].items.reduce((a, l) => a + l.length * sub.px * 1.3, 0) : 0);
-    const top = (SH - tall) / 2;
+    const top = (SH - notesH - tall) / 2;
     const ty = top + iconH;
     return {
       titlePx: t.px,
@@ -82,6 +100,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
       title: { x: M, y: ty, w: SW - 2 * M, h: t.lines.length * t.px * 1.15, lines: t.lines, center: true },
       cols: [{ ...sub.cols[0], y: ty + t.lines.length * t.px * 1.15 + 24 }],
       icon: s.icon ? { x: SW / 2 - 48 * k, y: top, w: 96 * k, h: 96 * k } : undefined,
+      notes: foot,
     };
   }
 
@@ -90,7 +109,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   const t = fitTitle(SW - M - tx, sz([46, 40, 34, 28]), 2);
   const headH = Math.max(headIcon ? 72 * k : 0, t.lines.length * t.px * 1.15);
   const top = M + headH + 28 * k;
-  const bodyH = SH - top - 48 * k;
+  const bodyH = SH - top - 48 * k - notesH;
   const half = (SW - 2 * M - 40 * k) / 2;
   const split = kind === 'i' || kind === '2';
   const colsIn: (Box & { src: string[] })[] = [{ x: M, y: top, w: split ? half : SW - 2 * M, h: bodyH, src: left }];
@@ -103,6 +122,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
     title: { x: tx, y: M + (headH - t.lines.length * t.px * 1.15) / 2, w: SW - M - tx, h: headH, lines: t.lines, center: false },
     cols: body.cols,
     icon: headIcon ? { x: M, y: M + (headH - 72 * k) / 2, w: 72 * k, h: 72 * k } : kind === 'i' && s.icon ? { x: sideBox.x + (sideBox.w - 260 * k) / 2, y: sideBox.y + (sideBox.h - 260 * k) / 2, w: 260 * k, h: 260 * k } : undefined,
+    notes: foot,
   };
 }
 
@@ -148,6 +168,13 @@ export function slidePage(s: Slide, bullets = Infinity, sub?: number, look: Look
       n++;
       y += item.length * L.bodyPx * 1.3 + L.bodyPx * (cover ? 0 : 0.45);
     });
+  }
+  // The footnotes at the foot, under a thin rule, in the theme's muted ink.
+  if (L.notes) {
+    const N = L.notes;
+    svg += `<line x1="${r(N.x)}" y1="${r(N.y - 8)}" x2="${r(N.x + 72)}" y2="${r(N.y - 8)}" stroke="${T.muted}" stroke-width="1"/>`;
+    let y = N.y;
+    for (const lines of N.lines) for (const line of lines) (svg += text(N.x, y + N.px, line, { px: N.px, fill: T.muted, link })), (y += N.px * 1.3);
   }
   // A document is drawn for white paper: on a dark slide it sits on a white card.
   if (L.sub && s.sub && T.dark) svg += rect(L.sub.x, L.sub.y, L.sub.w, L.sub.h, '#ffffff', 'rx="12"');

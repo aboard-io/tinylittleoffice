@@ -6,6 +6,7 @@
  * unreliable inside shadow roots in some browsers.
  */
 import { LitElement, defineElement, html, nothing, property, state, tool, icon, UI, xml, insertedRef, type PropertyValues } from '../kit.ts';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { linkToRef } from '../kit/embed.ts';
 import { editRef, insertOptions } from '../kit/browser.ts';
 import '../widgets/insert-box.ts';
@@ -15,12 +16,13 @@ import { askDate } from '../widgets/date-dialog.ts';
 import { openLink } from '../widgets/link-guard.ts';
 import { templateGallery, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, ALIGN_OF, type Align, type Block, type BlockKind, type Run, webRef } from '../lib/richtext.ts';
+import { MAX_DEPTH, linkable, linkTarget, linkify, noteNumbers, noteRuns, notesOf, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, ALIGN_OF, type Align, type Block, type BlockKind, type Run, webRef } from '../lib/richtext.ts';
 import { embedOf } from '../lib/embeds.ts';
 import { takeHead, withHead } from '../lib/tlo.ts';
 import { PAPERS, defaultPaper, type Paper } from './write.def.ts';
 import type { SlSelect } from '../kit.ts';
 import { blocksHtml, markedHtml } from './write.def.ts';
+import './footnotes.css';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', title: 'h1', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
 
@@ -36,23 +38,32 @@ function embedHtml(ref: string): string {
 /** An icon in a line of text: one thing, not editable inside, so the caret steps over it. */
 const iconHtml = (name: string) => `<span class="ic" data-icon="${xml(name)}" contenteditable="false" role="img" aria-label="${xml(name)} icon">${ICON_SVG[name] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : `:${xml(name)}:`}</span>`;
 
-/** Runs as the editor's HTML. Linked words are a link; a web address in the text shows as one too (in the document it is just text). */
-function runsToHtml(runs: Run[]): string {
+/**
+ * A footnote's mark in the text: one thing, not editable inside, that
+ * carries the note's words; a tap opens them. (The numbers are put right
+ * after every change, in the order the marks come.)
+ */
+const noteHtml = (fn: string, n: number) => `<sup class="fn" data-fn="${xml(fn)}" contenteditable="false" tabindex="0" role="doc-noteref" aria-label="Footnote ${n}">${n}</sup>`;
+/** A note's words as HTML, for the list of notes under the text or at a slide's foot. */
+export const noteWordsHtml = (fn: string) => runsToHtml(noteRuns(fn));
+
+/** Runs as the editor's HTML. Linked words are a link; a web address in the text shows as one too (in the document it is just text). `next` numbers the footnotes. */
+function runsToHtml(runs: Run[], next: () => number = noteNumbers()): string {
   if (!runs.length) return '<br>';
-  return runs.map((r) => (r.ic ? iconHtml(r.ic) : markedHtml(r, 'b', 'i'))).join('');
+  return runs.map((r) => (r.ic ? iconHtml(r.ic) : r.fn !== undefined ? noteHtml(r.fn, next()) : markedHtml(r, 'b', 'i'))).join('');
 }
 
-function blocksToHtml(blocks: Block[]): string {
+function blocksToHtml(blocks: Block[], next: () => number = noteNumbers()): string {
   const other = (b: Block) =>
-    b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.k === 'title' ? ' class="doc-title"' : ''}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
-  return blocksHtml(blocks, (b) => runsToHtml(b.runs), other).join('') || '<p><br></p>';
+    b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.k === 'title' ? ' class="doc-title"' : ''}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs, next)}</${KIND_TAG[b.k]}>`;
+  return blocksHtml(blocks, (b) => runsToHtml(b.runs, next), other).join('') || '<p><br></p>';
 }
 
 /** The marks in force, and the address of the link the words are in (href: '' for none). */
 type Flags = Pick<Run, 'b' | 'i' | 'u' | 's' | 'h' | 'href'>;
 
 /** Whether two runs have the same marks and link, and so can be one. */
-const sameMarks = (a: Run, b: Run) => !a.ic && !b.ic && !!a.b === !!b.b && !!a.i === !!b.i && !!a.u === !!b.u && !!a.s === !!b.s && !!a.h === !!b.h && (a.href ?? '') === (b.href ?? '');
+const sameMarks = (a: Run, b: Run) => !a.ic && !b.ic && a.fn === undefined && b.fn === undefined && !!a.b === !!b.b && !!a.i === !!b.i && !!a.u === !!b.u && !!a.s === !!b.s && !!a.h === !!b.h && (a.href ?? '') === (b.href ?? '');
 
 /** Walk the editor DOM and produce blocks. Tolerant of whatever contentEditable emits. */
 function domToBlocks(root: HTMLElement): Block[] {
@@ -109,6 +120,11 @@ function domToBlocks(root: HTMLElement): Block[] {
     if (el.dataset.icon) {
       if (!cur) open(k);
       cur!.runs.push({ t: '', ic: el.dataset.icon });
+      return;
+    }
+    if (el.dataset.fn !== undefined) {
+      if (!cur) open(k);
+      cur!.runs.push({ t: '', fn: el.dataset.fn });
       return;
     }
     if (tag === 'BR') {
@@ -196,6 +212,20 @@ function embedBeside(page: HTMLElement, forward: boolean): HTMLElement | null {
   return beside instanceof HTMLElement && beside.dataset.ref !== undefined ? beside : null;
 }
 
+/** The footnote's mark just before (or after) the caret, if the caret is collapsed right beside it. */
+function noteBeside(page: HTMLElement, forward: boolean): HTMLElement | null {
+  const sel = getSelection();
+  if (!sel?.rangeCount || !sel.isCollapsed || !page.contains(sel.anchorNode)) return null;
+  const node = sel.anchorNode!;
+  const off = sel.anchorOffset;
+  let beside: Node | null;
+  if (node.nodeType === Node.TEXT_NODE) {
+    if (forward ? off < (node as Text).length : off > 0) return null;
+    beside = forward ? node.nextSibling : node.previousSibling;
+  } else beside = node.childNodes[forward ? off : off - 1] ?? null;
+  return beside instanceof HTMLElement && beside.dataset.fn !== undefined ? beside : null;
+}
+
 /** The paragraph (the page's own child) a node is in. */
 function blockOf(node: Node | null, page: HTMLElement): Node | null {
   let n: Node | null = node;
@@ -216,6 +246,9 @@ function caretAfter(node: Node) {
   getSelection()?.addRange(after);
 }
 
+/** Each editor names its footnotes' ids after itself, so two texts on one page keep apart. */
+let editors = 0;
+
 /**
  * The one rich text editor. As <to-write> it is the Write app: a whole
  * document, with headings, lists, embeds and a word count. As <to-rich>
@@ -231,6 +264,13 @@ export class ToWrite extends LitElement {
   @property() placeholder = '';
   /** Show the formatting toolbar. (A host with several boxes may keep one toolbar of its own and call exec().) */
   @property({ type: Boolean }) tools = true;
+  /** How many footnotes come before this box's (a slide's bullets number on from its headline's). */
+  @property({ type: Number }) noteStart = 0;
+  /** The footnotes in the text, in order: their words. */
+  @state() private notes: string[] = [];
+  /** The footnote whose words are open for editing (its place among the marks), -1 for none. */
+  @state() private noting = -1;
+  private stem = `fn${++editors}`;
   @state() private fmt = { b: false, i: false, u: false, s: false, h: false, link: false, block: 'p', align: '' };
   @state() private words = 0;
   @state() private chars = 0;
@@ -265,6 +305,9 @@ export class ToWrite extends LitElement {
       if (this.page) this.loadHtml();
     }
   }
+  updated(changed: PropertyValues) {
+    if (changed.has('noteStart') && this.page) this.renumber();
+  }
 
   /** What the header says that the page does not show: the paper it prints on. */
   private head: Record<string, string> = {};
@@ -285,8 +328,164 @@ export class ToWrite extends LitElement {
 
   private loadHtml() {
     const blocks = this.read(this.value);
-    this.page!.innerHTML = blocksToHtml(blocks);
+    this.page!.innerHTML = blocksToHtml(blocks, noteNumbers(this.noteStart));
+    this.notes = notesOf(blocks);
     this.count(blocks);
+  }
+
+  /* ---------- footnotes ---------- */
+
+  /** The footnotes' marks, in the order they come. */
+  private chips = () => Array.from(this.page?.querySelectorAll<HTMLElement>('sup.fn') ?? []);
+  /** Every mark says its number, counted from the start of the text (or on from the box before). */
+  private renumber() {
+    this.chips().forEach((el, i) => {
+      el.textContent = String(this.noteStart + i + 1);
+      el.setAttribute('aria-label', `Footnote ${this.noteStart + i + 1}`);
+    });
+  }
+
+  /** A footnote at the caret: a mark in the text, its words asked for beside it. */
+  insertNote() {
+    this.page!.focus();
+    const at = this.caretRange() ?? this.endOfPage();
+    at.deleteContents();
+    const holder = document.createElement('template');
+    holder.innerHTML = noteHtml('', 0);
+    const chip = holder.content.firstElementChild as HTMLElement;
+    at.insertNode(chip);
+    caretAfter(chip);
+    this.onInput();
+    void this.openNote(chip);
+  }
+
+  /** The popover (or, where the browser has none, the dialog) a footnote's words are edited in. */
+  private get pop(): (HTMLElement & { showPopover?(): void; hidePopover?(): void; show?(): void; close?(): void; open?: boolean }) | null {
+    return this.querySelector('.fn-pop');
+  }
+
+  /** Open a footnote's words for editing, in a small box beside its mark. */
+  private async openNote(chip: HTMLElement) {
+    this.noting = this.chips().indexOf(chip);
+    await this.updateComplete;
+    const pop = this.pop;
+    if (!pop) return;
+    if (pop.showPopover) {
+      if (!pop.matches(':popover-open')) pop.showPopover();
+    } else if (!pop.open) pop.show?.();
+    this.placeNote();
+    window.visualViewport?.addEventListener('resize', this.placeNote);
+    window.visualViewport?.addEventListener('scroll', this.placeNote);
+    const field = pop.querySelector<HTMLElement>('.write-page');
+    field?.focus();
+    const sel = getSelection();
+    if (field && sel) {
+      sel.selectAllChildren(field);
+      sel.collapseToEnd();
+    }
+  }
+
+  /**
+   * Where the box sits: under its mark, or above it when there is no room
+   * below. On a phone it lies along the bottom of what is visible, above
+   * the keyboard.
+   */
+  private placeNote = () => {
+    const pop = this.pop;
+    const chip = this.chips()[this.noting];
+    if (!pop || !chip) return;
+    const vv = window.visualViewport;
+    const top = vv?.offsetTop ?? 0;
+    const left = vv?.offsetLeft ?? 0;
+    const w = vv?.width ?? innerWidth;
+    const h = vv?.height ?? innerHeight;
+    if (w < 600) {
+      pop.style.left = `${left + 8}px`;
+      pop.style.width = `${w - 16}px`;
+      pop.style.top = `${Math.max(top + 8, top + h - pop.offsetHeight - 8)}px`;
+      return;
+    }
+    const r = chip.getBoundingClientRect();
+    pop.style.width = '';
+    pop.style.left = `${Math.max(left + 8, Math.min(r.left, left + w - pop.offsetWidth - 8))}px`;
+    pop.style.top = `${r.bottom + pop.offsetHeight + 6 > top + h ? r.top - pop.offsetHeight - 6 : r.bottom + 6}px`;
+  };
+
+  /** The words of a footnote, as typed in its box. */
+  private setNote(fn: string) {
+    const chip = this.chips()[this.noting];
+    if (!chip) return;
+    chip.dataset.fn = fn;
+    this.onInput();
+  }
+
+  /** The box closes; a note with no words goes with it; the focus comes back to the mark. */
+  private closeNote(focus = true) {
+    const pop = this.pop;
+    const chip = this.chips()[this.noting];
+    window.visualViewport?.removeEventListener('resize', this.placeNote);
+    window.visualViewport?.removeEventListener('scroll', this.placeNote);
+    if (pop?.hidePopover && pop.matches(':popover-open')) pop.hidePopover();
+    else if (pop?.open) pop.close?.();
+    this.noting = -1;
+    if (!chip) return;
+    if (!chip.dataset.fn?.trim()) return void this.removeNote(chip, focus);
+    if (focus) chip.focus();
+  }
+
+  private removeNote(chip: HTMLElement, focus = true) {
+    const next = chip.nextSibling;
+    const parent = chip.parentNode;
+    chip.remove();
+    if (!this.page!.firstChild) this.page!.innerHTML = '<p><br></p>';
+    if (focus) {
+      // The caret where the mark was, then the focus (which reads the caret).
+      const sel = getSelection();
+      if (next?.isConnected) sel?.collapse(next, 0);
+      else if (parent?.isConnected) sel?.collapse(parent, parent.childNodes.length);
+      this.page!.focus();
+    }
+    this.onInput();
+  }
+
+  /** From a note in the list under the text, back to its mark. */
+  private backTo(i: number) {
+    const chip = this.chips()[i];
+    if (!chip) return;
+    chip.scrollIntoView({ block: 'center' });
+    chip.focus();
+  }
+
+  /** The footnotes' words, under the text: a thin rule, small type, each with the way back to its mark. */
+  private renderNotes() {
+    if (this.mode !== 'doc' || !this.notes.length) return nothing;
+    return html`<section class="fn-notes" role="doc-endnotes" aria-label="Footnotes">
+      <hr />
+      <ol>
+        ${this.notes.map((fn, i) => html`<li id="${this.stem}-${i + 1}">${unsafeHTML(noteWordsHtml(fn))} <button type="button" class="fn-back" role="doc-backlink" aria-label="Back to footnote ${i + 1} in the text" data-tip="Back to the text" @click=${() => this.backTo(i)}>\u21a9</button></li>`)}
+      </ol>
+    </section>`;
+  }
+
+  /** The box a footnote's words are edited in: the Popover API, placed by placeNote; a plain dialog where the browser has no popovers. */
+  private renderNoteBox() {
+    const chip = this.chips()[this.noting];
+    if (!chip) return nothing;
+    const n = this.noteStart + this.noting + 1;
+    const remove = () => {
+      this.closeNote(false);
+      if (chip.isConnected) this.removeNote(chip);
+    };
+    const inner = html`<span class="fn-pop-n" aria-hidden="true">${n}</span>
+      <to-rich class="fn-words" mode="line" .tools=${false} label=${`Footnote ${n}`} placeholder="The note's words" .value=${chip.dataset.fn ?? ''}
+        @rich-change=${(e: CustomEvent<string>) => this.setNote(e.detail)}
+        @rich-enter=${() => this.closeNote()}
+        @keydown=${(e: KeyboardEvent) => e.key === 'Escape' && (e.preventDefault(), e.stopPropagation(), this.closeNote())}></to-rich>
+      ${tool('Remove footnote', 'trash', remove, { keepFocus: true })}
+      ${tool('Done', 'check', () => this.closeNote())}`;
+    return 'showPopover' in HTMLElement.prototype
+      ? html`<div class="fn-pop" popover="auto" role="dialog" aria-label="Footnote" @toggle=${(e: Event) => (e as ToggleEvent).newState === 'closed' && this.noting >= 0 && this.closeNote(false)}>${inner}</div>`
+      : html`<dialog class="fn-pop" aria-label="Footnote" @cancel=${(e: Event) => (e.preventDefault(), this.closeNote())}>${inner}</dialog>`;
   }
 
   private count(blocks: Block[]) {
@@ -298,6 +497,8 @@ export class ToWrite extends LitElement {
   private onInput = () => {
     this.bubble = null;
     const blocks = domToBlocks(this.page!);
+    this.renumber();
+    this.notes = notesOf(blocks);
     this.count(blocks);
     this.lastEmitted = this.write(blocks);
     this.page!.classList.toggle('blank', this.lastEmitted === '');
@@ -326,12 +527,14 @@ export class ToWrite extends LitElement {
     const sel = getSelection();
     if (sel?.rangeCount && this.page.contains(sel.anchorNode)) this.caret = sel.getRangeAt(0).cloneRange();
     const block = (document.queryCommandValue('formatBlock') || 'p').toLowerCase();
+    // (The anchor's parent, when the anchor is still in the page: a node just taken out has none.)
+    const anchor = sel?.anchorNode?.parentElement ?? null;
     this.fmt = {
       b: document.queryCommandState('bold'),
       i: document.queryCommandState('italic'),
       u: document.queryCommandState('underline'),
       s: document.queryCommandState('strikeThrough'),
-      h: !!(sel?.anchorNode && (sel.anchorNode.parentElement?.closest('mark') || /rgb\(254, 240, 138\)|#fef08a/i.test(getComputedStyle(sel.anchorNode.parentElement!).backgroundColor))),
+      h: !!(anchor && (anchor.closest('mark') || /rgb\(254, 240, 138\)|#fef08a/i.test(getComputedStyle(anchor).backgroundColor))),
       link: !!sel?.anchorNode?.parentElement?.closest('a[href]'),
       align: document.queryCommandState('justifyCenter') ? 'c' : document.queryCommandState('justifyRight') ? 'r' : document.queryCommandState('justifyFull') ? 'j' : '',
       block: document.queryCommandState('insertUnorderedList') ? 'ul' : document.queryCommandState('insertOrderedList') ? 'ol' : sel?.anchorNode?.parentElement?.closest('h1.doc-title') || (sel?.anchorNode instanceof Element && sel.anchorNode.closest('h1.doc-title')) ? 'title' : block,
@@ -344,10 +547,11 @@ export class ToWrite extends LitElement {
     return sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret?.cloneRange() ?? null;
   }
 
-  /** A range at the very end of the text. */
+  /** A range at the very end of the text: inside its last paragraph, where there is one. */
   private endOfPage(): Range {
     const r = document.createRange();
-    r.selectNodeContents(this.page!);
+    const last = this.page!.lastElementChild;
+    r.selectNodeContents(last instanceof HTMLElement && last.dataset.ref === undefined && !/^[UO]L$/.test(last.tagName) ? last : this.page!);
     r.collapse(false);
     return r;
   }
@@ -395,7 +599,7 @@ export class ToWrite extends LitElement {
     // Paragraphs pasted into an empty one take its place.
     const block = blockOf(range.startContainer, this.page!);
     const blocks = !!holder.content.firstElementChild && isBlockTag(holder.content.firstElementChild.tagName);
-    if (blocks && !this.page!.textContent && !this.page!.querySelector('[data-ref], [data-icon]')) this.page!.replaceChildren(holder.content);
+    if (blocks && !this.page!.textContent && !this.page!.querySelector('[data-ref], [data-icon], [data-fn]')) this.page!.replaceChildren(holder.content);
     else if (blocks && block instanceof HTMLElement && !block.textContent) block.replaceWith(holder.content);
     else range.insertNode(holder.content);
     if (last) caretAfter(last);
@@ -497,7 +701,7 @@ export class ToWrite extends LitElement {
           const runs = b.runs.map((r) => ({ ...r, t: r.t.replace(/\s+/g, ' ') }));
           if (runs.length && !runs[0].ic) runs[0] = { ...runs[0], t: runs[0].t.trimStart() };
           if (runs.length && !runs[runs.length - 1].ic) runs[runs.length - 1] = { ...runs[runs.length - 1], t: runs[runs.length - 1].t.trimEnd() };
-          return { ...b, runs: runs.filter((r) => r.t || r.ic), blank: b.runs.every((r) => !r.ic && !r.t) };
+          return { ...b, runs: runs.filter((r) => r.t || r.ic || r.fn !== undefined), blank: b.runs.every((r) => !r.ic && !r.t && r.fn === undefined) };
         })
         .filter((b) => b.k === 'e' || b.runs.length || b.blank)
         .map(({ blank: _, ...b }) => b as Block);
@@ -585,8 +789,15 @@ export class ToWrite extends LitElement {
     this.onInput();
   }
 
-  /** A click in a link puts the caret there, as anywhere in the text, and shows where it goes: open, edit, remove. (Mod+click opens it.) */
+  /** A click in a link puts the caret there, as anywhere in the text, and shows where it goes: open, edit, remove. (Mod+click opens it.) A tap on a footnote's mark opens its words. */
   private onClick = (e: MouseEvent) => {
+    const chip = (e.target as HTMLElement).closest?.<HTMLElement>('sup.fn');
+    if (chip && this.page!.contains(chip)) {
+      e.preventDefault();
+      this.bubble = null;
+      void this.openNote(chip);
+      return;
+    }
     const a = (e.target as HTMLElement).closest?.('a');
     if (!a || !this.page!.contains(a) || a.closest('to-embed')) {
       this.bubble = null;
@@ -647,7 +858,7 @@ export class ToWrite extends LitElement {
     before.selectNodeContents(li);
     before.setEnd(sel.anchorNode!, sel.anchorOffset);
     if (before.toString() !== '') return null;
-    return [li as HTMLLIElement, !(li.textContent ?? '').trim() && !li.querySelector('[data-icon], [data-ref]')];
+    return [li as HTMLLIElement, !(li.textContent ?? '').trim() && !li.querySelector('[data-icon], [data-ref], [data-fn]')];
   }
 
   /**
@@ -735,13 +946,20 @@ export class ToWrite extends LitElement {
       }
     }
     if (e.key === 'Backspace' || e.key === 'Delete') {
-      // An embedded document is one thing: one key removes it, whether it has the focus or the caret is next to it.
+      // An embedded document, or a footnote, is one thing: one key removes it, whether it has the focus or the caret is next to it.
       const target = e.target as HTMLElement;
-      const embed = target.dataset?.ref !== undefined ? target : embedBeside(this.page!, e.key === 'Delete');
-      if (embed) {
+      const own = target.dataset?.ref !== undefined || target.dataset?.fn !== undefined ? target : null;
+      const thing = own ?? embedBeside(this.page!, e.key === 'Delete') ?? noteBeside(this.page!, e.key === 'Delete');
+      if (thing) {
         e.preventDefault();
-        this.removeEmbed(embed);
+        thing.dataset.fn !== undefined ? this.removeNote(thing) : this.removeEmbed(thing);
       }
+      return;
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement).dataset?.fn !== undefined) {
+      // A footnote's mark with the focus: Return opens its words.
+      e.preventDefault();
+      void this.openNote(e.target as HTMLElement);
       return;
     }
     if (e.key === 'Enter' && this.mode === 'line') {
@@ -806,6 +1024,7 @@ export class ToWrite extends LitElement {
           ${this.btn('Strikethrough', 'strike', f.s, 'strikeThrough')}
           ${this.btn('Highlight', 'highlight', f.h, 'hiliteColor', f.h ? 'transparent' : '#fef08a', 'Mod+Shift+H')}
           ${tool('Link', 'link', () => void this.link(), { key: 'Mod+K', keepFocus: true, pressed: f.link })}
+          ${tool('Footnote', 'footnote', () => this.insertNote(), { keepFocus: true })}
         </sl-button-group>
         <sl-button-group label="Alignment">
           ${this.btn('Align left', 'alignLeft', f.align === '', 'justifyLeft')}
@@ -853,7 +1072,9 @@ export class ToWrite extends LitElement {
         @embed-remove=${(e: Event) => this.removeEmbed(e.target as HTMLElement)}
         @focus=${this.onSelection}
       ></div>
+      ${this.renderNotes()}
       ${this.renderBubble()}
+      ${this.renderNoteBox()}
       ${doc ? html`<div class="to-foot write-foot">
         <span>${this.words} ${this.words === 1 ? 'word' : 'words'}</span>
         <span>${this.chars} characters</span>

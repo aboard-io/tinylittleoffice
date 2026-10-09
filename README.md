@@ -9,7 +9,7 @@ the link and you have copied the file.
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
 | Sheet | A 1,000-row spreadsheet, three columns to start and as wide as its table (up to Z; a + at the end of the header adds one): formulas, business functions, named and locked cells, charts (a Sankey among them). Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT, models of a subscription business, a café, a freelancer and a mutual aid fund (each its flows as a Sankey over named assumptions), and a training log. |
-| Write | A rich text editor: headings, bold, italic, lists, other documents and things from the web in the text; printed (or saved as a PDF by the browser) on letter or A4 paper, or handed on as Word, RTF or Markdown. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
+| Write | A rich text editor: headings, bold, italic, lists, footnotes, other documents and things from the web in the text; printed (or saved as a PDF by the browser) on letter or A4 paper, or handed on as Word, RTF or Markdown. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
 | Deck  | Slides with a headline, bullets and an icon, or another document filling the slide; themes; Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid; a pen for any shape, corner by corner, and a freehand stroke; joins that follow their shapes. |
@@ -227,6 +227,20 @@ the reference leaves to the apps:
   `letter` in the header is the paper it prints on; without it, the
   reader's own. The pages have inch (or 25 mm) margins, a heading never sits
   alone at the foot of one, and more than one page are numbered.
+- **Footnotes** (`src/lib/richtext.ts`) are written where their mark
+  sits, `^[the note's words]`, and numbered by order of appearance when
+  drawn; the note is rich text itself (marks and links, no blocks).
+  Markdown's reference form, `[^id]` with a `[^id]: the note` paragraph
+  anywhere, reads too and is folded into the inline form. Write draws the
+  notes at the end of the document (a `<section role="doc-endnotes">`, in
+  the editor, on paper and in the web page), a slide at its own foot
+  (numbered from 1 on each slide, the headline's first), the outline under
+  its items; Word and RTF get the marks raised and the notes as small
+  paragraphs at the end; the Markdown export writes the reference form.
+  In the editor the mark is a chip the caret steps over; the bar's
+  Footnote tool puts one in and opens its words in a small popover (the
+  Popover API, a dialog where there is none) beside it; Backspace over
+  the chip takes the note away.
 - **Draw** (`src/lib/drawmodel.ts`) counts in 8-pixel grid units on a 640
   by 400 canvas. **Motion** (`src/lib/animmodel.ts`) is the same table with
   a table of keys per shape.

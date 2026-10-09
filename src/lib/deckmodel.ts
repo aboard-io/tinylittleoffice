@@ -4,7 +4,7 @@ import { ACCENT } from '../kit/core.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
 import { fenceRef, attr, refFence, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
 import { embedOf } from './embeds.ts';
-import { webRef } from './richtext.ts';
+import { foldNotes, webRef } from './richtext.ts';
 import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
 /**
  * Deck document model. A deck is TLO (lib/tlo.ts), a slide between each
@@ -156,7 +156,7 @@ function slideOf(blocks: Block[], prose: boolean): Slide {
 }
 
 /** The slides (or pages) a text's blocks make, a slide between rules. */
-export const slidesOf = (doc: Tlo, prose = false): Slide[] => pages(doc.blocks).map((p) => slideOf(p, prose));
+export const slidesOf = (doc: Tlo, prose = false): Slide[] => pages(foldNotes(doc.blocks)).map((p) => slideOf(p, prose));
 
 /** A slide's blocks: the headline, the words, the right column, the document, the notes. */
 function slideBlocks(s: Slide, prose: boolean): Block[] {

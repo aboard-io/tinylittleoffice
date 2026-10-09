@@ -12,7 +12,7 @@ import type { Run } from '../lib/richtext.ts';
 export interface TextBlock {
   /** 'title' at the top; 'h' a section, a bookmark; 'li' a bullet, `depth` levels in (0 the first); 'p' plain words. */
   kind: 'title' | 'h' | 'li' | 'p';
-  runs: Run[];
+  runs: (Run & { sup?: boolean })[];
   depth?: number;
 }
 
@@ -48,6 +48,8 @@ interface Piece {
   b: boolean;
   i: boolean;
   href?: string;
+  /** A footnote's number: small and raised. */
+  sup?: boolean;
 }
 interface Line {
   pieces: { p: Piece; x: number; w: number }[];
@@ -61,8 +63,8 @@ interface Line {
 }
 
 /** The words of runs as pieces, a word (with its space) each, so lines break between them. */
-function piecesOf(runs: Run[], bold: boolean): Piece[] {
-  return runs.flatMap((r) => (r.ic ? [] : r.t.split(/(?<= )/).filter(Boolean).map((t) => ({ t, b: bold || !!r.b, i: !!r.i, href: r.href }))));
+function piecesOf(runs: (Run & { sup?: boolean })[], bold: boolean): Piece[] {
+  return runs.flatMap<Piece>((r) => (r.ic ? [] : r.sup ? [{ t: r.t, b: false, i: false, sup: true }] : r.t.split(/(?<= )/).filter(Boolean).map((t) => ({ t, b: bold || !!r.b, i: !!r.i, href: r.href }))));
 }
 
 export function textPdf(blocks: TextBlock[], title = ''): Uint8Array {
@@ -81,11 +83,13 @@ export function textPdf(blocks: TextBlock[], title = ''): Uint8Array {
     for (const p of piecesOf(blk.runs, blk.kind === 'title' || blk.kind === 'h')) {
       // A word too long for a line is cut where the line ends.
       let rest = p.t;
+      const sz = p.sup ? size * 0.65 : size;
       while (rest) {
-        const w = measure(rest.trimEnd(), size, p.b);
-        if (at + w <= room || (at === 0 && w <= room)) {
-          cur.pieces.push({ p: { ...p, t: rest }, x: at, w: measure(rest, size, p.b) });
-          at += measure(rest, size, p.b);
+        const w = measure(rest.trimEnd(), sz, p.b);
+        // (A note's mark stays with the word before it.)
+        if (at + w <= room || (at === 0 && w <= room) || p.sup) {
+          cur.pieces.push({ p: { ...p, t: rest }, x: at, w: measure(rest, sz, p.b) });
+          at += measure(rest, sz, p.b);
           rest = '';
         } else if (at > 0) {
           lines.push(cur);
@@ -129,7 +133,7 @@ export function textPdf(blocks: TextBlock[], title = ''): Uint8Array {
       if (line.bullet) s += `BT /F1 ${line.size} Tf 0 g 1 0 0 1 ${(line.x - 12).toFixed(2)} ${base.toFixed(2)} Tm ${str(line.bullet)} Tj ET\n`;
       line.pieces.forEach(({ p, x, w }, k) => {
         const px = line.x + x;
-        s += `BT ${font(p.b, p.i)} ${line.size} Tf ${p.href ? LINK + ' rg' : '0 g'} 1 0 0 1 ${px.toFixed(2)} ${base.toFixed(2)} Tm ${str(p.t)} Tj ET\n`;
+        s += `BT ${font(p.b, p.i)} ${p.sup ? (line.size * 0.65).toFixed(2) : line.size} Tf ${p.href ? LINK + ' rg' : '0 g'} 1 0 0 1 ${px.toFixed(2)} ${(p.sup ? base + line.size * 0.35 : base).toFixed(2)} Tm ${str(p.t)} Tj ET\n`;
         if (!p.href) return;
         // A link of several words is one underline and one place to click, as far as the line goes.
         const goesOn = line.pieces[k + 1]?.p.href === p.href;

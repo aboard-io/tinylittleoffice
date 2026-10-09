@@ -29,7 +29,7 @@ Length: a QR code holds at most 2,953 characters, and some chat apps cut a link 
 
 ## TLO: Markdown, and what it adds
 
-Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested by two spaces, `- [ ]` and `- [x]` tasks, `> ` quotes, `---` rules, tables with a `--- | ---` line under their header, and inline `**bold**`, `*italic*`, `~~strike~~`, `[words](https://…)`. TLO adds:
+Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested by two spaces, `- [ ]` and `- [x]` tasks, `> ` quotes, `---` rules, tables with a `--- | ---` line under their header, and inline `**bold**`, `*italic*`, `~~strike~~`, `[words](https://…)`, and footnotes written where they sit: `^[the note's words]` (Markdown's `[^1]` with a `[^1]: the note` paragraph reads too). TLO adds:
 
 | Write | Means |
 | --- | --- |
@@ -39,6 +39,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | `~ A -> B: label` | A connection between two things (`->`, `<-`, `<->`, `--`) |
 | a code fence named for an app: ```` ```sheet ```` | Another document inside this one, written in that app's TLO: a chart on a slide, a table in a text |
 | `==highlight==`, `++underline++`, `:icon-name:` | A highlight, an underline, a Lucide icon in the line |
+| `^[the note's words]` | A footnote, in any rich text: numbered as it comes, shown at the end of a Write document or the foot of the slide that holds it; the words may carry marks and links |
 
 `---` between blocks starts the next slide, page or card. A Markdown table in a text or on a slide becomes a spreadsheet.
 
@@ -83,7 +84,7 @@ Total | =SUM(B1:B2)
 
 ### write: a text
 
-Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only a web address is that thing, as a card that loads it only when the reader taps it (in an outline, such an item; on a slide, the whole slide; in a section of a website or a Quick Links page; on a board's card), when it is a YouTube, Vimeo, PeerTube or Internet Archive video; a Bluesky, Mastodon, X or Reddit post; a Spotify or SoundCloud track, album, playlist or episode; a place on OpenStreetMap (`#map=zoom/lat/lon` or `?mlat=&mlon=`); a CodePen; a Wikipedia article (shown as its summary); a Wayback Machine page; or a picture, a sound (`.mp3 .ogg .wav .m4a .flac`), a film (`.mp4 .webm .mov`) or a PDF by its own address (the browser's own player or viewer). A Markdown image `![what it shows](address)` is a picture with its words. Instagram, TikTok, Threads, Facebook, LinkedIn, GitHub gist and Bandcamp addresses become a card that opens the page there (they embed nothing without their script); any other address alone on a line is a plain link. What you can promise: nothing is fetched from the provider until the tap, and then from its privacy endpoint, in a sandboxed frame with no referrer. `paper: a4` or `letter` in the header sets the paper it prints on (and the Word file's page). **contract** is written the same way, its signatures following in a `signatures` fence.
+Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only a web address is that thing, as a card that loads it only when the reader taps it (in an outline, such an item; on a slide, the whole slide; in a section of a website or a Quick Links page; on a board's card), when it is a YouTube, Vimeo, PeerTube or Internet Archive video; a Bluesky, Mastodon, X or Reddit post; a Spotify or SoundCloud track, album, playlist or episode; a place on OpenStreetMap (`#map=zoom/lat/lon` or `?mlat=&mlon=`); a CodePen; a Wikipedia article (shown as its summary); a Wayback Machine page; or a picture, a sound (`.mp3 .ogg .wav .m4a .flac`), a film (`.mp4 .webm .mov`) or a PDF by its own address (the browser's own player or viewer). A Markdown image `![what it shows](address)` is a picture with its words. Instagram, TikTok, Threads, Facebook, LinkedIn, GitHub gist and Bandcamp addresses become a card that opens the page there (they embed nothing without their script); any other address alone on a line is a plain link. What you can promise: nothing is fetched from the provider until the tap, and then from its privacy endpoint, in a sandboxed frame with no referrer. A footnote is `^[its words]` right after the word it belongs to; the notes are listed at the end of the document, in the editor, on paper, in the web page and in Word. `paper: a4` or `letter` in the header sets the paper it prints on (and the Word file's page). **contract** is written the same way, its signatures following in a `signatures` fence.
 
 {{doc:write:Meeting notes}}
 # Meeting notes
@@ -103,7 +104,7 @@ A nested list, two spaces a level. The same list opens as `mind`, `org` and `fam
 
 ### deck: slides
 
-A slide between each `---`. The headline is `## :icon-name: Headline`, with its layout as an attribute: `{.title}` (a title slide: the headline and a line under it), `{.two}` (two columns, a paragraph `|` between them) or `{.icon}` (bullets beside one big icon). The words are `- ` bullets, nested by two spaces; `> ` lines are speaker notes. A chart or another document is a fence: a sheet's table with `chart: bar` in its header becomes a chart on the slide. The header may hold `theme: midnight` (or boardroom, ivory, graphite; for fun confetti, sunset, ocean, bubblegum, arcade, chalkboard; plain otherwise), `transition: cut` (or `slide`, `zoom`; a fade otherwise), `color: red` and `qr: no` (every deck otherwise ends with a QR code of itself). A model's `# Title` and `## Slide` headings without rules read as a deck too.
+A slide between each `---`. The headline is `## :icon-name: Headline`, with its layout as an attribute: `{.title}` (a title slide: the headline and a line under it), `{.two}` (two columns, a paragraph `|` between them) or `{.icon}` (bullets beside one big icon). The words are `- ` bullets, nested by two spaces; `> ` lines are speaker notes; a `^[footnote]` in the headline or a bullet is shown at the foot of that slide. A chart or another document is a fence: a sheet's table with `chart: bar` in its header becomes a chart on the slide. The header may hold `theme: midnight` (or boardroom, ivory, graphite; for fun confetti, sunset, ocean, bubblegum, arcade, chalkboard; plain otherwise), `transition: cut` (or `slide`, `zoom`; a fade otherwise), `color: red` and `qr: no` (every deck otherwise ends with a QR code of itself). A model's `# Title` and `## Slide` headings without rules read as a deck too.
 
 {{doc:deck:Launch plan}}
 ## :rocket: Launch plan {.title}

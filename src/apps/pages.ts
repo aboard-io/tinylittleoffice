@@ -6,10 +6,13 @@
  * what is its own.
  */
 import { DocElement, html, nothing, state, editRef, insertedRef, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, type TemplateResult } from '../kit.ts';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { blankSlide, isBlank, type Slide } from '../lib/deckmodel.ts';
+import { notesIn } from '../lib/richtext.ts';
+import { slideNotes } from '../lib/slide.ts';
 import { chooseIcon, type IconChoice } from '../widgets/icon-picker.ts';
 import './write.ts';
-import type { ToWrite } from './write.ts';
+import { noteWordsHtml, type ToWrite } from './write.ts';
 import '../widgets/insert-box.ts';
 
 /** How the canvas shows a page. */
@@ -115,16 +118,21 @@ export abstract class PagesElement<D> extends DocElement<D> {
   protected headline(placeholder: string, label = 'Headline') {
     return html`<to-rich class="title" mode="line" .tools=${false} label=${label} placeholder=${placeholder} .value=${this.page.title} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => this.patch({ title: e.detail })} @rich-enter=${() => this.querySelector<HTMLElement>('to-rich.words .write-page, .bullets .write-page, .comic-panels input')?.focus()}></to-rich>`;
   }
-  /** A column of words: one rich box, a line a bullet (or a paragraph). */
-  protected words(label: string, list: string[], placeholder: string, save: (list: string[]) => void) {
-    return html`<div class="bullets"><to-rich class="words" mode="lines" .tools=${false} label=${label} placeholder=${placeholder} .value=${list.join('\n')} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => save(e.detail.split('\n'))}></to-rich></div>`;
+  /** A column of words: one rich box, a line a bullet (or a paragraph). `noteStart`: how many footnotes come before this box's on the page. */
+  protected words(label: string, list: string[], placeholder: string, save: (list: string[]) => void, noteStart = 0) {
+    return html`<div class="bullets"><to-rich class="words" mode="lines" .tools=${false} label=${label} placeholder=${placeholder} .value=${list.join('\n')} .noteStart=${noteStart} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => save(e.detail.split('\n'))}></to-rich></div>`;
+  }
+  /** The page's footnotes at its foot, numbered as their marks come. */
+  protected notes() {
+    const notes = slideNotes(this.page);
+    return notes.length ? html`<ol class="deck-fn" aria-label="Footnotes">${notes.map((fn) => html`<li>${unsafeHTML(noteWordsHtml(fn))}</li>`)}</ol>` : nothing;
   }
   /** The text buttons: marks, the bullet's depth, an icon among the words; they work on the box last typed in. */
   protected textTools() {
     return html`<sl-button-group label="Text">
       ${tool('Bold', 'bold', () => this.field?.exec('bold'))}${tool('Italic', 'italic', () => this.field?.exec('italic'))}${tool('Underline', 'underline', () => this.field?.exec('underline'))}${tool('Strike', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}
       ${tool('Bring the bullet out', 'outdent', () => this.field?.shift(-1))}${tool('Indent the bullet', 'indent', () => this.field?.shift(1))}
-      ${tool('Icon in text', 'smile', () => void this.field?.insertIcon())}
+      ${tool('Icon in text', 'smile', () => void this.field?.insertIcon())}${tool('Footnote', 'footnote', () => this.field?.insertNote())}
     </sl-button-group>`;
   }
 
@@ -148,9 +156,9 @@ export abstract class PagesElement<D> extends DocElement<D> {
               ${this.headline(c.title ?? (c.kind === 't' ? 'Title' : 'Headline'))}
             </div>
             <div class="body">
-              ${this.words(wordsLabel, s.bullets, wordsHint, (bullets) => this.patch({ bullets }))}
+              ${this.words(wordsLabel, s.bullets, wordsHint, (bullets) => this.patch({ bullets }), notesIn([s.title]).length)}
               ${c.kind === '2'
-                ? this.words('Right column', s.right ?? [], 'One bullet per line', (right) => this.patch({ right }))
+                ? this.words('Right column', s.right ?? [], 'One bullet per line', (right) => this.patch({ right }), notesIn([s.title, ...s.bullets]).length)
                 : c.kind === 'i'
                   ? html`<button class="big ${s.icon ? '' : 'empty'}" aria-label="Big icon" @click=${c.pick}>${s.icon ? libraryIcon(s.icon, 120) : html`${icon(UI.smile, 40)}<span>Pick an icon</span>`}</button>`
                   : nothing}
@@ -161,6 +169,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
             ${suggested.slice(0, 4).map((name) => html`<button data-tip=${`Use ${name}`} aria-label=${`Use ${name} icon`} @click=${() => this.patch({ icon: name })}>${icon(LIBRARY[name], 16)}</button>`)}
           </div>`
         : nothing}
+      ${c.inner ? nothing : this.notes()}
       ${c.foot ? html`<span class="num">${c.foot}</span>` : nothing}
     </div>`;
   }

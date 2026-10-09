@@ -11,7 +11,7 @@
 import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, insertedRef, SELF, appOf, apps, convert, hashOf, type TemplateResult, type SlInput, btn } from '../kit.ts';
 import { blockEnd, hasChildren, liveLinks, move, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
-import { plainInline, webRef } from '../lib/richtext.ts';
+import { notesIn, plainInline, webRef } from '../lib/richtext.ts';
 import { embedOf } from '../lib/embeds.ts';
 import { DIR_NAME } from './outline.def.ts';
 import './write.ts';
@@ -331,11 +331,18 @@ export class ToOutline extends DocElement<Item[]> {
     const s = this.sel;
     const none = s < 0 || s >= items.length;
     const c = this.connecting;
+    // Footnotes number through the whole outline, as the picture of it does: each item's marks count on from the items before.
+    let noted = 0;
+    const noteStart = items.map((it) => {
+      const from = noted;
+      if (it.text.includes('^[')) noted += notesIn([it.text]).length;
+      return from;
+    });
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Outline">
         <to-insert label="Insert" .options=${[{ value: 'item', label: 'Item', group: '', icon: 'plus' as const }, ...insertOptions('outline')]} @pick=${(e: CustomEvent<string>) => (e.detail === 'item' ? this.save([...items, { depth: base, text: '' }], items.length) : this.insertDoc(e.detail))}></to-insert>
         <sl-button-group label="Text">
-          ${tool('Bold', 'bold', () => this.field?.exec('bold'), { key: 'Mod+B' })}${tool('Italic', 'italic', () => this.field?.exec('italic'), { key: 'Mod+I' })}${tool('Underline', 'underline', () => this.field?.exec('underline'), { key: 'Mod+U' })}${tool('Strikethrough', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}
+          ${tool('Bold', 'bold', () => this.field?.exec('bold'), { key: 'Mod+B' })}${tool('Italic', 'italic', () => this.field?.exec('italic'), { key: 'Mod+I' })}${tool('Underline', 'underline', () => this.field?.exec('underline'), { key: 'Mod+U' })}${tool('Strikethrough', 'strike', () => this.field?.exec('strikeThrough'))}${tool('Highlight', 'highlight', () => this.field?.highlight())}${tool('Link', 'link', () => void this.field?.link(), { key: 'Mod+K', keepFocus: true })}${tool('Icon in text', 'smile', () => this.field?.insertIcon())}${tool('Footnote', 'footnote', () => this.field?.insertNote())}
         </sl-button-group>
         <sl-button-group label="Arrange">
           ${tool('Bring out', 'shiftOut', () => this.shiftBy(s, -1), { disabled: none, keepFocus: true, key: 'Shift+Tab' })}${tool('Indent', 'shiftIn', () => this.shiftBy(s, 1), { disabled: none, keepFocus: true, key: 'Tab' })}
@@ -378,7 +385,7 @@ export class ToOutline extends DocElement<Item[]> {
               : html`<span class="ol-bullet"><span class="ol-kind root" aria-hidden="true"><span></span></span></span>`}
             ${it.doc
               ? html`<to-embed class="ol-doc" ref=${it.doc} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`
-              : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}
+              : html`<to-rich mode="line" .tools=${false} label=${`Item ${i + 1}`} placeholder=${i === 0 && items.length === 1 ? 'Start with an idea; Enter for the next; Tab to put it under' : ''} .value=${it.text} .noteStart=${noteStart[i]} @focusin=${(e: Event) => ((this.field = e.currentTarget as ToWrite), (this.sel = i))} @rich-change=${(e: CustomEvent<string>) => this.setText(i, e.detail)} @rich-enter=${() => this.enter(i)}></to-rich>`}
             ${kids && shut ? html`<span class="to-count ol-count" aria-hidden="true">${blockEnd(items, i) - i - 1}</span>` : nothing}
             ${this.connecting && it.text.trim() && !it.doc && i !== this.connecting.from
               ? html`<button class="ol-pick" aria-label=${this.connecting.from < 0 ? `Connect from “${plainInline(it.text)}”` : `Connect “${plainInline(items[this.connecting.from].text)}” to “${plainInline(it.text)}”`} @click=${() => this.pick(i)}></button>`

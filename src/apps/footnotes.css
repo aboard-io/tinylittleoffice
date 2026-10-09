@@ -1,0 +1,143 @@
+/* Footnotes in rich text (lib/richtext.ts): the mark in the text, the notes at the end of a Write document
+   or the foot of a slide, and the small box a mark opens to edit its words. */
+
+/* The mark: a small raised number, one thing the caret steps over. */
+.write-page sup.fn {
+  display: inline-block;
+  min-width: 1.2em;
+  padding: 0 0.25em;
+  margin: 0 0.05em;
+  border-radius: 4px;
+  font-size: 0.7em;
+  line-height: 1.4;
+  vertical-align: super;
+  color: var(--to-accent);
+  background: color-mix(in srgb, var(--to-accent) 10%, transparent);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.write-page sup.fn:hover,
+.write-page sup.fn:focus-visible {
+  background: color-mix(in srgb, var(--to-accent) 22%, transparent);
+  outline: none;
+}
+
+/* The notes under a Write document: a thin rule, small type, each with the way back. */
+.fn-notes {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 6vw, 56px) 24px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--to-ink-2);
+}
+.fn-notes hr {
+  width: 72px;
+  margin: 0 0 10px;
+  border: 0;
+  border-top: 1px solid var(--to-border);
+}
+.fn-notes ol {
+  margin: 0;
+  padding-left: 1.6em;
+}
+.fn-notes li {
+  margin: 0 0 4px;
+}
+.fn-notes li::marker {
+  color: var(--to-accent);
+  font-size: 0.85em;
+}
+.fn-notes .ic {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.1em;
+}
+.fn-back {
+  border: 0;
+  background: none;
+  padding: 0 4px;
+  font: inherit;
+  color: var(--to-accent);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.fn-back:hover,
+.fn-back:focus-visible {
+  background: color-mix(in srgb, var(--to-accent) 12%, transparent);
+  outline: none;
+}
+
+/* The notes at the foot of a slide in the editor, as the slide draws them. */
+.deck-slide .deck-fn {
+  margin: 0;
+  padding: 0.6cqw 0 0 1.6em;
+  border-top: 1px solid var(--to-border);
+  font-size: calc(15 / 960 * 100cqw);
+  line-height: 1.3;
+  color: var(--slide-muted, var(--to-ink-2));
+  align-self: end;
+}
+.deck-slide .deck-fn li::marker {
+  font-size: 0.75em;
+}
+
+/* The box a footnote is written in: the Popover API, placed beside its mark by the editor; a plain dialog where there is none. */
+.fn-pop {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(420px, calc(100vw - 16px));
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--to-border);
+  border-radius: 10px;
+  background: var(--to-surface);
+  color: var(--to-ink);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+  font-size: 14px;
+}
+.fn-pop:not([open]):not(:popover-open) {
+  display: none;
+}
+.fn-pop .fn-pop-n {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--to-accent);
+}
+.fn-pop .fn-words {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.fn-pop .fn-words .write-page {
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--to-bg);
+  /* 16px: under a finger, Safari would zoom on anything smaller. */
+  font-size: 16px;
+  line-height: 1.4;
+}
+.fn-pop .fn-words .write-page p {
+  margin: 0;
+}
+.fn-pop .fn-words .write-page.blank::before {
+  position: static;
+}
+
+@media print {
+  .fn-notes {
+    break-inside: avoid;
+  }
+  .fn-back,
+  .fn-pop {
+    display: none !important;
+  }
+}

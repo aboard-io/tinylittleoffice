@@ -1,6 +1,6 @@
 /** Outline: what the shell knows about outlines. Format: a nested list, lib/outlinemodel.ts. */
 import { defineApp, utf8, wrap, text, xml, place, textWidth, ACCENT, type Page } from '../kit/core.ts';
-import { parseInline, plainInline, type Run } from '../lib/richtext.ts';
+import { markNotes, noteNumbers, noteRuns, notesIn, parseInline, plainInline } from '../lib/richtext.ts';
 import { textPdf, type TextBlock } from '../kit/textpdf.ts';
 import { parseOutline, parseLinks, outlineLines, readOutline, toOpml, hasChildren, type Dir, type Item } from '../lib/outlinemodel.ts';
 import { refPage, resolve } from '../kit/embed.ts';
@@ -16,6 +16,7 @@ export function outlinePage(body: string, w = 720): Page {
   const step = 28;
   let y = 44;
   let svg = '';
+  const next = noteNumbers();
   items.forEach((it, i) => {
     if (!it.text.trim() && !it.doc && !hasChildren(items, i)) return;
     const x = 48 + it.depth * step;
@@ -31,13 +32,24 @@ export function outlinePage(body: string, w = 720): Page {
     // The kind of line to the parent, and its name, small before the words.
     const kind = it.depth && (it.dir || it.label) ? `${ARROW[it.dir ?? '--']}${it.label ? ' ' + it.label : ''}` : '';
     const indent = kind ? textWidth(kind, px * 0.75) + 8 : 0;
-    const lines = wrap(parseInline(it.text), w - x - 48 - indent, px, it.depth === 0);
+    const lines = wrap(markNotes(parseInline(it.text), next), w - x - 48 - indent, px, it.depth === 0);
     const top = y;
     svg += `<circle cx="${x - 12}" cy="${top + px * 0.65}" r="${it.depth ? 3 : 4}" fill="${it.depth ? 'none' : ACCENT}" stroke="${ACCENT}" stroke-width="1.5"/>`;
     if (kind) svg += `<text x="${x}" y="${top + px}" font-size="${px * 0.75}" fill="${ACCENT}">${xml(kind)}</text>`;
     for (const line of lines) svg += text(x + indent, (y += px * 1.45) - px * 0.45, line, { px, bold: it.depth === 0 });
     y += px * 0.45;
   });
+  // The footnotes, listed under the outline, small.
+  const notes = notesIn(items.filter((it) => !it.doc).map((it) => it.text));
+  if (notes.length) {
+    y += 12;
+    svg += `<line x1="48" y1="${y}" x2="120" y2="${y}" stroke="#d4d4d8"/>`;
+    y += 4;
+    notes.forEach((fn, i) => {
+      for (const part of wrap([{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...noteRuns(fn)], w - 96, px * 0.8)) svg += text(48, (y += px * 1.2) - px * 0.3, part, { px: px * 0.8 });
+    });
+    y += px * 0.45;
+  }
   // The joins, listed under the outline.
   const links = parseLinks(body);
   if (links.length) {
@@ -65,9 +77,10 @@ export function outlineBlocks(body: string, docTitle = ''): TextBlock[] {
   const roots = all.filter((it) => it.depth === 0);
   const lone = roots.length === 1;
   const base = lone ? 1 : 0;
-  const words = (it: Item): Run[] => {
+  const next = noteNumbers();
+  const words = (it: Item): TextBlock['runs'] => {
     if (it.doc) return [{ t: `[${resolve(it.doc).title}]`, i: true }];
-    return [...(it.label ? [{ t: `${it.label} \u2014 `, i: true }] : []), ...parseInline(it.text)];
+    return [...(it.label ? [{ t: `${it.label} \u2014 `, i: true }] : []), ...markNotes(parseInline(it.text), next)];
   };
   const out: TextBlock[] = [];
   // A lone top item is what the outline is called; otherwise its title, if it has one.
@@ -76,6 +89,12 @@ export function outlineBlocks(body: string, docTitle = ''): TextBlock[] {
   for (const it of all) {
     if (lone && it.depth === 0) continue;
     out.push(it.depth === base ? { kind: 'h', runs: words(it) } : { kind: 'li', depth: it.depth - base - 1, runs: words(it) });
+  }
+  // The footnotes, numbered as their marks came, then the joins.
+  const notes = notesIn(all.filter((it) => !it.doc).map((it) => it.text));
+  if (notes.length) {
+    out.push({ kind: 'h', runs: [{ t: 'Notes' }] });
+    notes.forEach((fn, i) => out.push({ kind: 'p', runs: [{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...noteRuns(fn)] }));
   }
   const links = parseLinks(body);
   if (links.length) {

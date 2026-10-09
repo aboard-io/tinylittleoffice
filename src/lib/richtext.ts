@@ -10,8 +10,18 @@
  * Inline: **bold**, *italic*, ++underline++, ~~strike~~, ==highlight==,
  * :icon:, [words](address). A web address on its own is a link as it stands.
  * A Markdown table in a text is an embedded sheet.
+ *
+ * A footnote is written where its mark sits, ^[the note's words] (Pandoc's
+ * inline note): the note travels with its sentence, and is numbered by
+ * order of appearance when drawn. Its words are rich text themselves
+ * (marks and links; no blocks). Markdown's reference form is read too,
+ * [^id] in the text with a paragraph "[^id]: the note" anywhere, and is
+ * folded into the inline form; the inline form is the one written. The
+ * notes are drawn at the end of a text (a section of endnotes) or at the
+ * foot of the slide that holds them; Markdown export writes them back out
+ * in the reference form, for other readers.
  */
-import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, takeHead, type Attrs, type Block as TloBlock } from './tlo.ts';
+import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, takeHead, balanceNote, type Attrs, type Block as TloBlock } from './tlo.ts';
 import { embedOf, webRef } from './embeds.ts';
 export { webRef };
 
@@ -27,6 +37,8 @@ export interface Run {
   ic?: string;
   /** Where these words link to. */
   href?: string;
+  /** A footnote: the note's words, as inline Markdown (t is then ''). */
+  fn?: string;
 }
 export type Align = 'c' | 'r' | 'j';
 export type BlockKind = 'p' | 'title' | 'h1' | 'h2' | 'ul' | 'ol' | 'e';
@@ -59,7 +71,7 @@ export const serializeInline = (runs: Run[]): string =>
   writeInline(
     runs.reduce<Run[]>((out, r) => {
       const last = out[out.length - 1];
-      if (last && !last.ic && !r.ic && !r.t.trim() && last.href === r.href) out[out.length - 1] = { ...last, t: last.t + r.t };
+      if (last && !last.ic && !r.ic && last.fn === undefined && r.fn === undefined && !r.t.trim() && last.href === r.href) out[out.length - 1] = { ...last, t: last.t + r.t };
       else out.push(r);
       return out;
     }, []),
@@ -72,6 +84,69 @@ export const plainInline = (line: string) => parseInline(line).map((r) => r.t).j
 const alignOf = (a?: Attrs): Align | undefined => a?.cls?.map((c) => ALIGN_OF[c]).find(Boolean);
 const alignAttrs = (a?: Align, more: string[] = []): Attrs | undefined => (a || more.length ? { cls: [...more, ...(a ? [ALIGN_NAMES[a]] : [])] } : undefined);
 
+/* ---------- footnotes ---------- */
+
+const NOTE_DEF = /^\[\^([^\]\s]+)\]:\s*([\s\S]*)$/;
+const NOTE_REF = /\[\^([^\]\s]+)\]/g;
+
+/**
+ * Markdown's reference footnotes folded into the inline form: a paragraph
+ * "[^id]: the note" is taken out, and each "[^id]" in the words becomes
+ * "^[the note]". A reference with no note stays as it was written.
+ */
+export function foldNotes(blocks: TloBlock[]): TloBlock[] {
+  const defs = new Map<string, string>();
+  // A paragraph that opens with a definition is definitions: each "[^id]:" line one, the lines under it carrying it on.
+  const isDefs = (b: TloBlock) => b.k === 'p' && NOTE_DEF.test(b.text);
+  for (const b of blocks.filter(isDefs)) {
+    let id = '';
+    for (const line of (b as { text: string }).text.split('\n')) {
+      const m = NOTE_DEF.exec(line);
+      if (m) defs.set((id = m[1]), m[2].trim());
+      else if (id) defs.set(id, `${defs.get(id)} ${line.trim()}`.trim());
+    }
+  }
+  if (!defs.size) return blocks;
+  const fold = (t: string) => t.replace(NOTE_REF, (ref, id) => (defs.has(id) ? `^[${balanceNote(defs.get(id)!)}]` : ref));
+  return blocks.filter((b) => !isDefs(b)).map((b) => ('text' in b ? { ...b, text: fold(b.text) } : b));
+}
+
+/** The notes a text holds, in order of appearance: each note's words, as inline Markdown. */
+export const notesOf = (blocks: { runs: Run[] }[]): string[] => blocks.flatMap((b) => b.runs.filter((r) => r.fn !== undefined).map((r) => r.fn!));
+/** The notes in lines of inline Markdown (a slide's words), in order. */
+export const notesIn = (lines: string[]): string[] => notesOf(lines.map((l) => ({ runs: parseInline(l) })));
+/** A note's words as runs (a note inside a note is left out). */
+export const noteRuns = (fn: string): Run[] => parseInline(fn).filter((r) => r.fn === undefined);
+
+/** Numbers notes as they come: each call is the next number. */
+export const noteNumbers = (from = 0) => () => ++from;
+/**
+ * Runs as they are drawn: a note's mark is its number, raised (`sup`), the
+ * numbers given by `next` (noteNumbers()).
+ */
+export const markNotes = (runs: Run[], next: () => number): (Run & { sup?: boolean })[] => runs.map((r) => (r.fn === undefined ? r : { t: String(next()), sup: true }));
+
+/**
+ * A text's notes written the way Markdown's other readers know: "[^n]" in
+ * the words and "[^n]: the note" paragraphs at the end. For export; the
+ * text itself keeps the inline form. A text with no notes is itself.
+ */
+export function referenceNotes(text: string): string {
+  const doc = parseTlo(text);
+  const notes: string[] = [];
+  const out = (t: string) =>
+    writeInline(
+      parseInline(t).map((r) => {
+        if (r.fn === undefined) return r;
+        notes.push(r.fn);
+        return { t: `[^${notes.length}]` };
+      }),
+    );
+  const blocks = doc.blocks.map((b) => (b.k === 'h' || b.k === 'p' || b.k === 'li' || b.k === 'quote') && b.text.includes('^[') ? { ...b, text: b.text.split('\n').map(out).join('\n') } : b);
+  if (!notes.length) return text;
+  return writeTlo({ head: doc.head, blocks: [...blocks, ...notes.map((n, i) => ({ k: 'p', text: `[^${i + 1}]: ${n}` }) as TloBlock)] }).trimEnd();
+}
+
 /** A text's blocks from its TLO. What a text cannot hold (a quote, a rule) is kept as words. */
 export function parseDoc(text: string): Block[] {
   if (!text.trim()) return [{ k: 'p', runs: [] }];
@@ -83,7 +158,7 @@ export function parseDoc(text: string): Block[] {
     if (al) blk.a = al;
     blocks.push(blk);
   };
-  for (const b of parseTlo(text).blocks) {
+  for (const b of foldNotes(parseTlo(text).blocks)) {
     if (b.k === 'h') line(hasClass(b, 'title') ? 'title' : b.level === 1 ? 'h1' : 'h2', b.text, b.a);
     // An empty paragraph, kept as the space it makes. A paragraph that is only a video's, a post's or a picture's address is that thing, from the web.
     else if (b.k === 'p') b.text.trim() === '<br>' ? blocks.push({ k: 'p', runs: [] }) : embedOf(b.text) ? blocks.push({ k: 'e', runs: [], ref: webRef(b.text.trim()) }) : line('p', b.text.replace(/\n/g, ' '), b.a);

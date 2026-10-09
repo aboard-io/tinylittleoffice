@@ -1,7 +1,7 @@
 /** Write: what the shell knows about texts. Format: lib/richtext.ts, and docs/tlo.md. */
 import { defineApp, utf8, xml, wrap, text, place, pageSvg, MUTED, type DownloadContext, type Page, type Span } from '../kit/core.ts';
 import { linkToRef, refPage, resolve } from '../kit/embed.ts';
-import { ALIGN_NAMES, linkify, listNumbers, parseDoc, runLinks, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
+import { ALIGN_NAMES, linkify, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, parseDoc, runLinks, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
 import { refFence, parse, write, takeHead } from '../lib/tlo.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { ICON_SVG } from '../lib/icons.ts';
@@ -22,7 +22,8 @@ function rtfText(s: string): string {
   return out;
 }
 
-function rtfRun(r: Run): string {
+function rtfRun(r: Run, next: () => number = noteNumbers()): string {
+  if (r.fn !== undefined) return `{\\super ${next()}}`;
   const on = (r.b ? '\\b' : '') + (r.i ? '\\i' : '') + (r.u ? '\\ul' : '') + (r.s ? '\\strike' : '');
   // Web addresses in the text become real hyperlinks.
   const inner = runLinks(r)
@@ -34,8 +35,10 @@ function rtfRun(r: Run): string {
 export function docToRtf(body: string, ctx: DownloadContext = { created: null }): string {
   const out: string[] = ['{\\rtf1\\ansi\\ansicpg1252\\deff0\\uc1{\\fonttbl{\\f0\\fswiss\\fcharset0 Helvetica;}}{\\colortbl;\\red79\\green70\\blue229;}', '\\f0\\fs24'];
   const number = listNumbers();
-  for (const blk of parseDoc(body)) {
-    const runs = blk.runs.map(rtfRun).join('');
+  const next = noteNumbers();
+  const blocks = parseDoc(body);
+  for (const blk of blocks) {
+    const runs = blk.runs.map((r) => rtfRun(r, next)).join('');
     const n = number(blk);
     const li = 720 + 360 * (blk.d ?? 0);
     if (blk.k === 'e') {
@@ -50,6 +53,8 @@ export function docToRtf(body: string, ctx: DownloadContext = { created: null })
     else if (blk.k === 'ol') out.push(`{\\pard\\li${li}\\fi-360\\sa60 ${n}.\\tab ${runs}\\par}`);
     else out.push(`{\\pard\\sa160 ${runs}\\par}`);
   }
+  // The notes at the end, small, under a rule.
+  notesOf(blocks).forEach((fn, i) => out.push(`{\\pard${i ? '' : '\\brdrt\\brdrs\\brdrw10\\brsp120'}\\sa60\\fs18 {\\super ${i + 1}} ${noteRuns(fn).map((r) => rtfRun(r)).join('')}\\par}`));
   return out.join('\n') + '\n}\n';
 }
 
@@ -60,10 +65,12 @@ const REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationsh
 /** Paper in twentieths of a point, and the margin: Letter with an inch, A4 with 25 mm. */
 const TWIPS: Record<Paper, { w: number; h: number; m: number }> = { letter: { w: 12240, h: 15840, m: 1440 }, a4: { w: 11906, h: 16838, m: 1417 } };
 
-/** A run as WordprocessingML: its marks as run properties; a link a hyperlink, through a relationship the caller gives out. */
-function docxRun(r: Run, rel: (url: string) => string): string {
+/** A run as WordprocessingML: its marks as run properties; a link a hyperlink, through a relationship the caller gives out; a footnote's mark its number, raised. `small` for the notes themselves. */
+function docxRun(r: Run, rel: (url: string) => string, next: () => number = noteNumbers(), small = false): string {
   if (r.ic) return '';
-  const props = (r.b ? '<w:b/>' : '') + (r.i ? '<w:i/>' : '') + (r.u ? '<w:u w:val="single"/>' : '') + (r.s ? '<w:strike/>' : '') + (r.h ? '<w:highlight w:val="yellow"/>' : '');
+  const size = small ? '<w:sz w:val="18"/>' : '';
+  if (r.fn !== undefined) return `<w:r><w:rPr><w:vertAlign w:val="superscript"/>${size}</w:rPr><w:t>${next()}</w:t></w:r>`;
+  const props = size + (r.b ? '<w:b/>' : '') + (r.i ? '<w:i/>' : '') + (r.u ? '<w:u w:val="single"/>' : '') + (r.s ? '<w:strike/>' : '') + (r.h ? '<w:highlight w:val="yellow"/>' : '');
   const run = (t: string, extra = '') => `<w:r>${props || extra ? `<w:rPr>${extra}${props}</w:rPr>` : ''}${t.split('\n').map((line) => `<w:t xml:space="preserve">${xml(line)}</w:t>`).join('<w:br/>')}</w:r>`;
   return runLinks(r)
     .map((p) => (p.url ? `<w:hyperlink r:id="${rel(p.url)}">${run(p.t, '<w:rStyle w:val="Hyperlink"/>')}</w:hyperlink>` : run(p.t)))
@@ -76,7 +83,8 @@ function docxRun(r: Run, rel: (url: string) => string): string {
  * as styles, bold, italic, underline, strike and highlight, lists bulleted
  * or numbered to three levels (each numbered list starting at 1), links,
  * alignment, the paper from the header; an embedded document a link to it;
- * a picture from the web left out.
+ * a picture from the web left out. Footnotes are marks in the text and the
+ * notes as small paragraphs at the end (Word's own notes are deep).
  */
 export function docToDocx(body: string, ctx: DownloadContext = { created: null }): Uint8Array {
   const rels: string[] = [];
@@ -89,7 +97,9 @@ export function docToDocx(body: string, ctx: DownloadContext = { created: null }
   let numbered = 0;
   let prev = '';
   const paras: string[] = [];
-  for (const blk of parseDoc(body)) {
+  const next = noteNumbers();
+  const blocks = parseDoc(body);
+  for (const blk of blocks) {
     const jc = blk.a ? `<w:jc w:val="${blk.a === 'c' ? 'center' : blk.a === 'r' ? 'right' : 'both'}"/>` : '';
     const last = prev;
     prev = blk.k;
@@ -99,7 +109,7 @@ export function docToDocx(body: string, ctx: DownloadContext = { created: null }
       paras.push(`<w:p><w:hyperlink r:id="${rel(url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:b/></w:rPr><w:t xml:space="preserve">${xml(p.title)}</w:t></w:r></w:hyperlink><w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve"> (${xml(p.def?.name ?? 'Document')})</w:t></w:r></w:p>`);
       continue;
     }
-    const runs = blk.runs.map((r) => docxRun(r, rel)).join('');
+    const runs = blk.runs.map((r) => docxRun(r, rel, next)).join('');
     if (blk.k === 'ul' || blk.k === 'ol') {
       if (blk.k === 'ol' && last !== 'ol') nums.push(`<w:num w:numId="${(numbered = nums.length + 2)}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`);
       paras.push(`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${Math.min(blk.d ?? 0, 2)}"/><w:numId w:val="${blk.k === 'ul' ? 1 : numbered}"/></w:numPr>${jc}</w:pPr>${runs}</w:p>`);
@@ -108,6 +118,9 @@ export function docToDocx(body: string, ctx: DownloadContext = { created: null }
     const style = blk.k === 'title' ? 'Title' : blk.k === 'h1' ? 'Heading1' : blk.k === 'h2' ? 'Heading2' : '';
     paras.push(`<w:p>${style || jc ? `<w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${jc}</w:pPr>` : ''}${runs}</w:p>`);
   }
+  notesOf(blocks).forEach((fn, i) =>
+    paras.push(`<w:p><w:pPr>${i ? '' : '<w:pBdr><w:top w:val="single" w:sz="4" w:space="6" w:color="A1A1AA"/></w:pBdr><w:spacing w:before="360" w:after="60"/>'}${i ? '<w:spacing w:after="60"/>' : ''}</w:pPr>${docxRun({ t: '', fn }, rel, () => i + 1, true)}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve"> </w:t></w:r>${noteRuns(fn).map((r) => docxRun(r, rel, noteNumbers(), true)).join('')}</w:p>`),
+  );
   const paper = TWIPS[paperOf(body)];
   const sect = `<w:sectPr><w:pgSz w:w="${paper.w}" w:h="${paper.h}"/><w:pgMar w:top="${paper.m}" w:right="${paper.m}" w:bottom="${paper.m}" w:left="${paper.m}" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>`;
   const bullets = ['\u2022', '\u2013', '\u00b7'];
@@ -150,6 +163,18 @@ function htmlRun(r: Run): string {
 }
 
 /**
+ * A footnote's mark in HTML: its number, raised, a link to the note.
+ * `stem` names the ids ("fn": fn-3 for the note, fnref-3 for its mark),
+ * and is what keeps two documents on one page apart.
+ */
+export const noteMarkHtml = (n: number, stem = 'fn') => `<sup class="fn" role="doc-noteref"><a href="#${stem}-${n}" id="${stem}ref-${n}">${n}</a></sup>`;
+/** The notes themselves, at the end of a text or the foot of a slide: a thin rule, small type, each with a way back to its mark. Nothing when there are none. */
+export function endnotesHtml(notes: string[], stem = 'fn', words: (runs: Run[]) => string = (runs) => runs.map(htmlRun).join('')): string {
+  if (!notes.length) return '';
+  return `<section class="fn-notes" role="doc-endnotes" aria-label="Footnotes"><hr><ol>${notes.map((fn, i) => `<li id="${stem}-${i + 1}">${words(noteRuns(fn))} <a href="#${stem}ref-${i + 1}" role="doc-backlink" aria-label="Back to the text">\u21a9</a></li>`).join('')}</ol></section>`;
+}
+
+/**
  * Blocks as pieces of HTML, the list items properly nested: item(blk) is
  * what a list item holds, other(blk) the whole of any other block.
  */
@@ -180,10 +205,13 @@ export function blocksHtml(blocks: Block[], item: (blk: Block) => string, other:
   return out;
 }
 
-/** The text as HTML: headings, paragraphs, properly nested lists, and embedded documents as figures. */
-export function docToHtml(body: string, ctx: DownloadContext = { created: null }): string {
-  const inner = (blk: Block) => blk.runs.map(htmlRun).join('');
-  return blocksHtml(parseDoc(body), inner, (blk) => {
+/** The text as HTML: headings, paragraphs, properly nested lists, embedded documents as figures, and its footnotes at the end (`stem` names their ids; see noteMarkHtml). */
+export function docToHtml(body: string, ctx: DownloadContext = { created: null }, stem = 'fn'): string {
+  const next = noteNumbers();
+  const inner = (blk: Block) => blk.runs.map((r) => (r.fn === undefined ? htmlRun(r) : noteMarkHtml(next(), stem))).join('');
+  const blocks = parseDoc(body);
+  const notes = endnotesHtml(notesOf(blocks), stem);
+  return [...blocksHtml(blocks, inner, (blk) => {
     if (blk.k === 'e' && blk.ref!.startsWith('web\n')) {
       const { url, alt, embed } = parseWeb(refFence(blk.ref!).body);
       const page = refPage(blk.ref!);
@@ -198,7 +226,7 @@ export function docToHtml(body: string, ctx: DownloadContext = { created: null }
     const tag = blk.k === 'title' ? 'h1' : blk.k;
     const style = [blk.k === 'title' ? 'font-size:2.8em;line-height:1.1;letter-spacing:-0.02em' : '', blk.a ? `text-align:${ALIGN_NAMES[blk.a]}` : ''].filter(Boolean).join(';');
     return `<${tag}${blk.k === 'title' ? ' class="title"' : ''}${style ? ` style="${style}"` : ''}>${inner(blk) || '<br>'}</${tag}>`;
-  }).join('\n');
+  }), ...(notes ? [notes] : [])].join('\n');
 }
 
 /**
@@ -239,7 +267,9 @@ export function pages(body: string): Page[] {
   // Each block as a strip: its height, how to draw it at a y, whether it must stay with the strip after it (a heading), and its first line's height.
   const bits: { h: number; svg: (y: number) => string; keep?: boolean; first: number }[] = [];
   const number = listNumbers();
-  for (const blk of parseDoc(body)) {
+  const next = noteNumbers();
+  const blocks = parseDoc(body);
+  for (const blk of blocks) {
     const d = blk.d ?? 0;
     const n = number(blk);
     if (blk.k === 'e') {
@@ -251,7 +281,7 @@ export function pages(body: string): Page[] {
     const [px, bold, gap] = blk.k === 'title' ? [48, true, 24] : blk.k === 'h1' ? [30, true, 18] : blk.k === 'h2' ? [22, true, 14] : [16, false, blk.k === 'p' ? 12 : 5];
     const list = blk.k === 'ul' || blk.k === 'ol';
     const left = M + (list ? 26 * (d + 1) : 0);
-    const spans: Span[] = blk.runs.flatMap((run) => (run.href ? [run] : linkify(run.t).map((p) => ({ ...run, t: p.t, link: !!p.url }))));
+    const spans: Span[] = markNotes(blk.runs, next).flatMap((run) => (run.href || run.sup ? [run] : linkify(run.t).map((p) => ({ ...run, t: p.t, link: !!p.url }))));
     const lines = wrap(spans.length ? spans : [{ t: '' }], W - M - left, px, bold);
     const lh = px * 1.45;
     const mark = blk.k === 'ul' ? '•' : blk.k === 'ol' ? `${n}.` : '';
@@ -262,6 +292,17 @@ export function pages(body: string): Page[] {
       first: lh + gap,
       keep: blk.k === 'title' || blk.k === 'h1' || blk.k === 'h2',
       svg: (y) => (mark ? text(left - 8, y + px, mark, { px, anchor: 'end' }) : '') + lines.map((l, i) => text(tx, y + px + i * lh, l, { px, bold, anchor })).join(''),
+    });
+  }
+  // The notes at the end, small, under a thin rule.
+  const notes = notesOf(blocks);
+  if (notes.length) {
+    const px = 11;
+    const lh = px * 1.45;
+    bits.push({ h: 20, first: 20, keep: true, svg: (y) => `<line x1="${M}" y1="${y + 10}" x2="${M + 72}" y2="${y + 10}" stroke="#d4d4d8"/>` });
+    notes.forEach((fn, i) => {
+      const lines = wrap([{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...noteRuns(fn)], W - 2 * M, px);
+      bits.push({ h: lines.length * lh + 4, first: lh + 4, svg: (y) => lines.map((l, k) => text(M, y + px + k * lh, l, { px })).join('') });
     });
   }
   const total = bits.reduce((a, b) => a + b.h, 0) + 2 * M;
@@ -307,6 +348,6 @@ export default defineApp({
     { keys: 'Mod+click', does: 'Follow a link (a click shows where it goes)' },
     { keys: 'Mod+1 / Mod+2 / Mod+0', does: 'Heading, subheading, paragraph' },
     { keys: 'Tab / Shift+Tab', does: 'Indent a list item, or bring it back out' },
-    { keys: 'Backspace / Delete', does: 'Remove the selected embedded document' },
+    { keys: 'Backspace / Delete', does: 'Remove the selected embedded document, or the footnote beside the caret' },
   ],
 });

@@ -21,7 +21,8 @@
  *   ![alt](address)          an image, or another document by its link, alone on a line
  *
  * Any block may end with attributes, "{#id .kind key=value}".
- * Inline: **bold**, *italic*, ++underline++, ~~strike~~, ==highlight==, [words](address), :icon:.
+ * Inline: **bold**, *italic*, ++underline++, ~~strike~~, ==highlight==, [words](address), :icon:,
+ * ^[a footnote's words] (lib/richtext.ts says how notes are drawn).
  */
 import type { Run } from './richtext.ts';
 
@@ -376,7 +377,7 @@ export function parseInline(s: string): Run[] {
     if (href) r.href = href;
     Object.assign(r, extra);
     const last = runs[runs.length - 1];
-    if (last && !r.ic && !last.ic && ['b', 'i', 'u', 's', 'h', 'href'].every((k) => last[k as keyof Run] === r[k as keyof Run])) last.t += r.t;
+    if (last && !r.ic && !last.ic && r.fn === undefined && last.fn === undefined && ['b', 'i', 'u', 's', 'h', 'href'].every((k) => last[k as keyof Run] === r[k as keyof Run])) last.t += r.t;
     else runs.push(r);
   };
   const flush = () => {
@@ -404,7 +405,7 @@ export function parseInline(s: string): Run[] {
       continue;
     }
     const c = s[i];
-    if (c === '\\' && i + 1 < s.length && /[\\`*_{}[\]()#+\-.!|~=:<>]/.test(s[i + 1])) {
+    if (c === '\\' && i + 1 < s.length && /[\\`*_{}[\]()#+\-.!|~=:<>^]/.test(s[i + 1])) {
       buf += s[i + 1];
       i += 2;
       continue;
@@ -413,6 +414,16 @@ export function parseInline(s: string): Run[] {
       const end = s.indexOf('`', i + 1);
       if (end > i) {
         buf += s.slice(i + 1, end);
+        i = end + 1;
+        continue;
+      }
+    }
+    // A footnote, inline: its words between "^[" and the "]" that matches it (brackets inside balance, "\\]" is a bracket).
+    if (c === '^' && s[i + 1] === '[') {
+      const end = noteEnd(s, i + 2);
+      if (end >= 0) {
+        flush();
+        push('', { fn: s.slice(i + 2, end) });
         i = end + 1;
         continue;
       }
@@ -483,7 +494,32 @@ export function parseInline(s: string): Run[] {
     i++;
   }
   flush();
-  return runs.filter((r) => r.t || r.ic);
+  return runs.filter((r) => r.t || r.ic || r.fn !== undefined);
+}
+
+/** Where the "]" that closes a note opened at `from` is, or -1: brackets inside balance, and an escaped one is a bracket. */
+function noteEnd(s: string, from: number): number {
+  let depth = 0;
+  for (let j = from; j < s.length; j++) {
+    const c = s[j];
+    if (c === '\\') j++;
+    else if (c === '[') depth++;
+    else if (c === ']' && !depth--) return j;
+  }
+  return -1;
+}
+
+/** A note's words as they sit between "^[" and "]": a bracket that would end the note early, or open one that never closes, is escaped. */
+export function balanceNote(fn: string): string {
+  const out = [...fn];
+  const open: number[] = [];
+  for (let j = 0; j < out.length; j++) {
+    if (out[j] === '\\') j++;
+    else if (out[j] === '[') open.push(j);
+    else if (out[j] === ']') open.length ? open.pop() : (out[j] = '\\]');
+  }
+  for (const j of open) out[j] = '\\[';
+  return out.join('');
 }
 
 /** Plain words as Markdown: anything that would read as a mark is escaped. */
@@ -501,6 +537,7 @@ function escapePlain(t: string): string {
     .replace(/[\\`*_]/g, '\\$&')
     .replace(/(~~|==|\+\+)/g, (m) => '\\' + m[0] + '\\' + m[1])
     .replace(/\[(?=(?:\\.|[^\]\\\n])*\]\()/g, '\\[')
+    .replace(/\^(?=\[)/g, '\\^')
     .replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:')
     .replace(/<(?=\/?u>)/g, '\\<');
 }
@@ -543,6 +580,11 @@ function marked(runs: Run[]): string {
     if (r.ic) {
       close(new Set());
       out += `:${r.ic}:`;
+      continue;
+    }
+    if (r.fn !== undefined) {
+      close(new Set());
+      out += `^[${balanceNote(r.fn)}]`;
       continue;
     }
     const want = new Set<string>(FLAGS.filter(([f]) => r[f]).map(([f]) => f));

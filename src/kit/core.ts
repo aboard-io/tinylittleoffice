@@ -221,6 +221,8 @@ export interface Span {
   h?: boolean;
   /** An icon in the line, by name (t is then ''). */
   ic?: string;
+  /** Raised and small: a footnote's number. */
+  sup?: boolean;
 }
 const HIGHLIGHT = '#fef08a';
 /** How wide an icon in a line of text is, in px, for its size of type. */
@@ -233,6 +235,9 @@ const iconWidth = (px: number) => px * 1.25;
 let measurer = (text: string, px: number, bold: boolean) => text.length * px * (bold ? 0.56 : 0.52);
 export const setMeasurer = (fn: typeof measurer) => (measurer = fn);
 export const textWidth = (text: string, px: number, bold = false) => measurer(text, px, bold);
+
+/** How much smaller a footnote's mark is than its line. */
+const SUP = 0.62;
 
 /** Break styled text into lines no wider than `max`. */
 export function wrap(spans: Span[], max: number, px: number, bold = false): Span[][] {
@@ -249,6 +254,12 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
       width += w;
       continue;
     }
+    // A note's mark stays with the word before it, whatever the width.
+    if (span.sup) {
+      lines[lines.length - 1].push({ ...span });
+      width += textWidth(span.t, px * SUP, bold || !!span.b);
+      continue;
+    }
     for (const word of span.t.split(/(?<= )/).flatMap((wd) => breakWord(wd, max, px, bold || !!span.b))) {
       const w = textWidth(word, px, bold || !!span.b);
       if (width + textWidth(word.trimEnd(), px, bold || !!span.b) > max && width > 0) {
@@ -257,7 +268,7 @@ export function wrap(spans: Span[], max: number, px: number, bold = false): Span
       }
       const line = lines[lines.length - 1];
       const last = line[line.length - 1];
-      if (last && !last.ic && last.b === span.b && last.i === span.i && last.u === span.u && last.s === span.s && last.h === span.h && last.link === span.link && last.href === span.href) last.t += word;
+      if (last && !last.ic && !last.sup && last.b === span.b && last.i === span.i && last.u === span.u && last.s === span.s && last.h === span.h && last.link === span.link && last.href === span.href) last.t += word;
       else line.push({ ...span, t: word });
       width += w;
     }
@@ -311,15 +322,18 @@ export function text(x: number, y: number, content: string | Span[], style: Text
   let before = '';
   let at = 0;
   const spans = typeof content === 'string' ? [{ t: content } as Span] : content;
-  const total = spans.reduce((a, s) => a + (s.ic ? iconWidth(px) : textWidth(s.t, px, bold || !!s.b)), 0);
+  const width = (s: Span) => (s.ic ? iconWidth(px) : textWidth(s.t, s.sup ? px * SUP : px, bold || !!s.b));
+  const total = spans.reduce((a, s) => a + width(s), 0);
   const x0 = anchor === 'middle' ? x - total / 2 : anchor === 'end' ? x - total : x;
   const inner = spans
     .map((s) => {
-      const w = s.ic ? iconWidth(px) : textWidth(s.t, px, bold || !!s.b);
+      const w = width(s);
       if (s.h && !s.ic) before += `<rect x="${r(x0 + at)}" y="${r(y - px * 0.82)}" width="${r(w)}" height="${r(px * 1.1)}" fill="${HIGHLIGHT}" rx="2"/>`;
       if (s.ic) before += iconGlyph(s.ic, x0 + at + px * 0.1, y - px * 0.85, px * 1.05, fill);
       at += w;
       if (s.ic) return `<tspan dx="${r(w)}"></tspan>`;
+      // A footnote's mark: its number, small and raised.
+      if (s.sup) return `<tspan font-size="${r(px * SUP)}" baseline-shift="super">${xml(s.t)}</tspan>`;
       const link = s.link || !!s.href;
       const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (link ? ` fill="${linkFill}"` : s.h ? ` fill="${INK}"` : '') + (s.u || s.s || link ? ` text-decoration="${[(s.u || link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
       const span = a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
@@ -463,7 +477,7 @@ export function printHtml({ def, body, title: given }: DocRef, ctx: DownloadCont
   const paper = def.paper?.(body) ?? { size: `${r(pages[0].w / 96)}in ${r(pages[0].h / 96)}in`, margin: '0' };
   const inner = prose ? def.html!(body, ctx) : pages.map((p) => `<figure>${pageSvg(p, `role="img" aria-label="${xml(title)}"`)}</figure>`).join('\n');
   const css = prose
-    ? `body{font:12pt/1.5 ${FONT};color:#000;margin:0}h1,h2,h3{break-after:avoid}p,li{orphans:2;widows:2}figure{break-inside:avoid;margin:1em 0}figure svg{display:block;max-width:100%;height:auto}a{color:inherit}table{border-collapse:collapse}th,td{border:1px solid ${LINE};padding:.3em .7em;text-align:left}td.n{text-align:right}ul.check{list-style:none;padding-left:0}`
+    ? `body{font:12pt/1.5 ${FONT};color:#000;margin:0}h1,h2,h3{break-after:avoid}p,li{orphans:2;widows:2}figure{break-inside:avoid;margin:1em 0}figure svg{display:block;max-width:100%;height:auto}a{color:inherit}sup[role=doc-noteref]{line-height:0}sup[role=doc-noteref] a,[role=doc-backlink]{text-decoration:none}section[role=doc-endnotes]{margin-top:2em;font-size:.85em;break-inside:avoid}section[role=doc-endnotes] hr{width:6em;margin:0 0 .6em;border:0;border-top:1px solid ${LINE}}section[role=doc-endnotes] ol{margin:0;padding-left:1.6em}table{border-collapse:collapse}th,td{border:1px solid ${LINE};padding:.3em .7em;text-align:left}td.n{text-align:right}ul.check{list-style:none;padding-left:0}`
     : `body{margin:0}figure{margin:0;break-after:page}figure:last-child{break-after:auto}figure svg{display:block;width:100%;height:auto}`;
   return `<!doctype html>
 <html lang="en">

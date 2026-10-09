@@ -1,7 +1,8 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
 import { LINK, defineApp, xml, pageSvg, type DownloadContext, type Page } from '../kit/core.ts';
-import { SW, SH, layoutSlide, slidePage, slideSteps } from '../lib/slide.ts';
-import { parseInline, plainInline } from '../lib/richtext.ts';
+import { SW, SH, layoutSlide, slideNotes, slidePage, slideSteps } from '../lib/slide.ts';
+import { markNotes, noteNumbers, parseInline, plainInline } from '../lib/richtext.ts';
+import { endnotesHtml, noteMarkHtml } from './write.def.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { encodeEnvelope } from '../lib/envelope.ts';
@@ -32,10 +33,10 @@ function placeholder(id: number, kind: 'title' | 'body', paragraphs: string, fra
   const ph = kind === 'title' ? '<p:ph type="title"/>' : '<p:ph type="body" idx="1"/>';
   return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${kind === 'title' ? 'Title' : 'Content'}"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr>${ph}</p:nvPr></p:nvSpPr><p:spPr>${frame ? frame + RECT : ''}</p:spPr><p:txBody><a:bodyPr${kind === 'title' ? ' anchor="ctr"' : ''}><a:normAutofit/></a:bodyPr><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
 }
-const para = (line: string, pPr = '', size = 0) => {
+const para = (line: string, pPr = '', size = 0, next = noteNumbers()) => {
   const rPr = `lang="en-US"${size ? ` sz="${size}"` : ''} dirty="0"`;
-  const runs = parseInline(line);
-  return runs.length ? `<a:p>${pPr}${runs.map((ru) => `<a:r><a:rPr ${rPr}${ru.b ? ' b="1"' : ''}${ru.i ? ' i="1"' : ''}${ru.u ? ' u="sng"' : ''}${ru.s ? ' strike="sngStrike"' : ''}/><a:t>${x(ru.t)}</a:t></a:r>`).join('')}</a:p>` : `<a:p>${pPr}<a:endParaRPr ${rPr}/></a:p>`;
+  const runs = markNotes(parseInline(line), next);
+  return runs.length ? `<a:p>${pPr}${runs.map((ru) => `<a:r><a:rPr ${rPr}${ru.b ? ' b="1"' : ''}${ru.i ? ' i="1"' : ''}${ru.u ? ' u="sng"' : ''}${ru.s ? ' strike="sngStrike"' : ''}${ru.sup ? ' baseline="30000"' : ''}/><a:t>${x(ru.t)}</a:t></a:r>`).join('')}</a:p>` : `<a:p>${pPr}<a:endParaRPr ${rPr}/></a:p>`;
 };
 
 /** The deck's theme as PowerPoint's: its paper is the background (lt1), its ink the words (dk1), its accent the first accent. */
@@ -99,7 +100,11 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
     }
     const lines = s.sub ? [] : [...live(s.bullets), ...(s.layout === '2' ? live(s.right) : [])];
     const centre = cover ? '<a:pPr marL="0" indent="0" algn="ctr"><a:buNone/></a:pPr>' : '';
-    const paras = (lines.length ? lines : ['']).map((b) => para(b.trim(), centre || (depthOf(b) ? `<a:pPr lvl="${depthOf(b)}" marL="${342900 * (depthOf(b) + 1)}" indent="-342900"/>` : ''), Math.round((L.bodyPx || 20) * 75))).join('');
+    // Footnotes are numbered as on the slide: the headline's first, then the words'; the notes follow the words, small.
+    const next = noteNumbers();
+    const headline = para(s.sub ? '' : s.title, cover ? '<a:pPr algn="ctr"/>' : '', Math.round((L.titlePx || 20) * 75), next);
+    const notes = slideNotes(s).map((fn, i) => para(`${i + 1} ${fn}`, '<a:pPr marL="0" indent="0"><a:buNone/></a:pPr>', Math.round((L.notes?.px ?? 15) * 75)));
+    const paras = [...(lines.length ? lines : ['']).map((b) => para(b.trim(), centre || (depthOf(b) ? `<a:pPr lvl="${depthOf(b)}" marL="${342900 * (depthOf(b) + 1)}" indent="-342900"/>` : ''), Math.round((L.bodyPx || 20) * 75), next)), ...notes].join('');
     // (A slide given over to a document keeps empty placeholders, tucked along the bottom edge.)
     const col = L.cols[0] ?? { x: 64, y: SH - 40, w: SW - 2 * 64, h: 20 };
     const bodyW = L.cols.length > 1 ? L.cols[1].x + L.cols[1].w - col.x : col.w;
@@ -107,7 +112,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
     const titleFrame = xfrm(E(titleBox.x), E(titleBox.y), E(titleBox.w), E(Math.max(titleBox.h, 60)));
     const bodyFrame = xfrm(E(col.x), E(col.y), E(bodyW), E(Math.max(col.h, 80)));
     files[`ppt/slides/slide${n}.xml`] =
-      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${pics}${placeholder(2, 'title', para(s.sub ? '' : s.title, cover ? '<a:pPr algn="ctr"/>' : '', Math.round((L.titlePx || 20) * 75)), titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${pics}${placeholder(2, 'title', headline, titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
     files[`ppt/slides/_rels/slide${n}.xml.rels`] = rels(links);
     slideRels.push([`rId${n + 2}`, 'slide', `slides/slide${n}.xml`]);
     types += `<Override PartName="/ppt/slides/slide${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
@@ -196,10 +201,15 @@ export default defineApp({
     parseDeck(body)
       .map((s, i) => {
         const tag = i === 0 ? 'h1' : 'h2';
-        const marks = (b: string) => parseInline(b).map((ru) => { let h = x(ru.t); if (ru.b) h = `<b>${h}</b>`; if (ru.i) h = `<i>${h}</i>`; if (ru.u) h = `<u>${h}</u>`; if (ru.s) h = `<s>${h}</s>`; return h; }).join('');
+        // Each slide numbers its footnotes from 1 and holds them at its end; their ids are the slide's own.
+        const stem = `s${i + 1}-fn`;
+        const next = noteNumbers();
+        const words = (runs: ReturnType<typeof parseInline>) => runs.map((ru) => { if (ru.fn !== undefined) return noteMarkHtml(next(), stem); let h = x(ru.t); if (ru.b) h = `<b>${h}</b>`; if (ru.i) h = `<i>${h}</i>`; if (ru.u) h = `<u>${h}</u>`; if (ru.s) h = `<s>${h}</s>`; return h; }).join('');
+        const marks = (b: string) => words(parseInline(b));
         const list = (items: string[]) => (live(items).length ? `<ul>\n${live(items).map((b) => `<li>${marks(b)}</li>`).join('\n')}\n</ul>` : '');
         const sub = s.sub ? `<figure>${pageSvg(refPage(s.sub), `role="img" aria-label="${x(resolve(s.sub).title)}"`)}<figcaption><small>${x(resolve(s.sub).title)}</small></figcaption></figure>` : '';
-        return `<section>\n<${tag}>${s.title ? marks(s.title) : x(`Slide ${i + 1}`)}</${tag}>\n${list(s.bullets)}${s.layout === '2' ? list(s.right ?? []) : ''}${sub}\n</section>`;
+        const head = `<${tag}>${s.title ? marks(s.title) : x(`Slide ${i + 1}`)}</${tag}>`;
+        return `<section>\n${head}\n${list(s.bullets)}${s.layout === '2' ? list(s.right ?? []) : ''}${sub}${endnotesHtml(slideNotes(s), stem, (runs) => words(runs))}\n</section>`;
       })
       .join('\n'),
   downloads: [{ ext: 'pptx', label: 'PowerPoint', mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: deckToPptx, needs: pictures }],

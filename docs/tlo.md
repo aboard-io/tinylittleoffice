@@ -27,8 +27,8 @@ Every app reads its document from it. The reader and writer are
    whose columns are in another order. The editor always writes the
    canonical form.
 6. **Words are inline Markdown.** Use `**bold**`, `*italic*`, `++underline++`,
-   `~~strike~~`, `==highlight==`, `:icon-name:` and `[words](address)`.
-   Escape with `\`.
+   `~~strike~~`, `==highlight==`, `:icon-name:`, `[words](address)` and
+   `^[a footnote]`. Escape with `\`.
 
 ## The additions
 
@@ -43,6 +43,7 @@ Every app reads its document from it. The reader and writer are
 | The address of a video (YouTube, Vimeo, PeerTube, the Internet Archive), a post (Bluesky, Mastodon, X, Reddit), a Spotify or SoundCloud player, a place on OpenStreetMap, a CodePen, a Wikipedia article, a Wayback Machine page, or a sound, a film, a PDF or a picture by its own address, alone on a line; `![what it shows](a picture's address)` | A thing from the web, shown as a card that loads it only when tapped (`src/lib/embeds.ts`). |
 | `---` between blocks | A break: the next slide, page or card. |
 | `> words` | A note: a speaker's note, a page's aside. |
+| `^[the note's words]` in a line | A footnote, written where its mark sits (Pandoc's inline note). Numbered by order of appearance when drawn: at the end of a text, at the foot of the slide that holds it. The words are inline Markdown (no blocks). Markdown's reference form, `[^id]` with a `[^id]: the note` paragraph anywhere, is read and folded into this one; this one is what is written. |
 
 ## Each app's shape
 
@@ -51,7 +52,8 @@ The examples are canonical: what the editor writes.
 **write**: rich text. `# Words {.title}` is the title. `#` and `##` are
 headings. Lists nest by two spaces. `{.center}`, `{.right}` and
 `{.justify}` set alignment. An embedded document is a fence, and a
-Markdown table is an embedded sheet. **contract** is a write text followed
+Markdown table is an embedded sheet. Footnotes are `^[inline]`, drawn
+at the end. **contract** is a write text followed
 by its signatures, in a `signatures` fence.
 
 **outline**, **mind**, **family**: a nested list. The first level is the

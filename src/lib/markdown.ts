@@ -7,10 +7,11 @@
 import { appOf, type AppDef } from '../kit/core.ts';
 import { DOC_KEYS } from './envelope.ts';
 import { takeHead, withHead, write as writeTlo } from './tlo.ts';
+import { referenceNotes } from './richtext.ts';
 
-/** The document as Markdown: its text, named in its header when it has a name. */
+/** The document as Markdown: its text, named in its header when it has a name; its footnotes in the form other readers know, [^1] and "[^1]: the note" at the end. */
 export function toMarkdown(body: string, title = ''): string {
-  const text = title ? withHead(body, { title }) : body;
+  const text = referenceNotes(title ? withHead(body, { title }) : body);
   return text.trim() ? text.trimEnd() + '\n' : '';
 }
 
