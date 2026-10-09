@@ -6,7 +6,7 @@
  * document's list items (model.ts); the one bar holds Insert ▾, the filter, clear done, undo and redo.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
-import { CalendarDays, Ellipsis, ListFilter, Star } from 'lucide';
+import { ArrowDown, ArrowUp, CalendarDays, Ellipsis, ListFilter, Star } from 'lucide';
 import { runLength, type Block, type Doc } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
 import { DocElement } from '../../kit/element.ts';
@@ -85,24 +85,7 @@ export class ToTodoEditor extends DocElement<TodoView> {
     if (!x.words && this.view.tasks.at(-1) === x) return;
     this.add(x.at);
   };
-  /**
-   * Backspace at the very start of a task. The editor would bring a list item out of its list; here the
-   * row is the item, so an empty task goes (the caret to the one above) and a task with words stays.
-   */
-  private onBackspace = {
-    capture: true,
-    handleEvent: (e: Event) => {
-      const ev = e as InputEvent;
-      if (ev.inputType !== 'deleteContentBackward') return;
-      const row = (e.currentTarget as HTMLElement).closest<HTMLElement>('.todo-row')!;
-      const x = this.taskAt(Number(row.dataset.at));
-      const sel = row.querySelector<ToText>('to-text')?.sel;
-      if (!x || !sel || sel.anchor.offset !== 0 || sel.focus.offset !== 0) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      this.removeEmpty(x);
-    },
-  };
+  /** Backspace at the very start of a task (the line-shaped editor says so): an empty task goes, the caret to the one above; one with words stays. */
   private removeEmpty = (x: Task) => {
     if (x.words || this.view.tasks.length < 2) return;
     const i = this.view.tasks.indexOf(x);
@@ -159,8 +142,8 @@ export class ToTodoEditor extends DocElement<TodoView> {
         },
       },
       ...(x.due ? [{ label: t('No due date'), icon: UI.close, does: () => this.edit(setDue(x, '')) }] : []),
-      { label: t('Move up'), icon: UI.down, disabled: i <= 0, does: () => this.move(x, -1) },
-      { label: t('Move down'), icon: UI.down, disabled: i < 0 || i >= rows.length - 1, does: () => this.move(x, 1) },
+      { label: t('Move up'), icon: ArrowUp, disabled: i <= 0, does: () => this.move(x, -1) },
+      { label: t('Move down'), icon: ArrowDown, disabled: i < 0 || i >= rows.length - 1, does: () => this.move(x, 1) },
       { label: t('Delete task'), icon: UI.trash, does: () => this.edit(removeTask(x)) },
     ];
   }
@@ -180,10 +163,10 @@ export class ToTodoEditor extends DocElement<TodoView> {
   private row(x: Task, now: string) {
     const late = !!x.due && !x.done && x.due < now;
     const name = x.words || t('empty task');
-    return html`<li class="todo-row ${x.done ? 'done' : ''} ${late ? 'late' : ''}" data-at=${x.at} @beforeinput=${this.onBackspace} @focusin=${() => (this.cur = x.at)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, x)}>
+    return html`<li class="todo-row ${x.done ? 'done' : ''} ${late ? 'late' : ''}" data-at=${x.at} @focusin=${() => (this.cur = x.at)} @keydown=${(e: KeyboardEvent) => this.onRowKey(e, x)}>
       <label class="todo-tick"><input type="checkbox" .checked=${x.done} aria-label=${t('Done: {task}', { task: name })} @change=${(e: Event) => this.edit(setDone(x, (e.target as HTMLInputElement).checked))} /></label>
       <div class="todo-body">
-        <to-text shape="line" data-at=${x.at} .blocks=${this.one(x.block)} label=${t('Task')} placeholder=${t('Task')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, x.at)} @text-enter=${() => this.onEnter(x)}></to-text>
+        <to-text shape="line" data-at=${x.at} .blocks=${this.one(x.block)} label=${t('Task')} placeholder=${t('Task')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, x.at)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(x))} @text-exit=${(e: Event) => (e.stopPropagation(), this.removeEmpty(x))}></to-text>
         ${x.due || this.dueAt === x.at
           ? html`<input class="todo-due" type="date" .value=${x.due} aria-label=${t('Due date of {task}', { task: name })} @change=${(e: Event) => {
               this.dueAt = -1;

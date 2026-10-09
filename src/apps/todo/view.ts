@@ -43,7 +43,7 @@ export function todoToMarkdown(doc: Doc): string {
 
 /* ---------- iCalendar ---------- */
 
-const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 const icsStamp = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
 /** Content lines may not exceed 75 octets; a longer one continues on a line starting with a space, never splitting a character. */
 function fold(line: string): string {

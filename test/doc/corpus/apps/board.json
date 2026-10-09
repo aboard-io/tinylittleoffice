@@ -1,0 +1,25 @@
+{
+ "source": "src/apps/board/templates.ts (the rebuilt tree)",
+ "docs": [
+  {
+   "name": "board/blank",
+   "text": "## To do\n\n## Doing\n\n## Done\n"
+  },
+  {
+   "name": "board/project",
+   "text": "## To do {color=b}\n\n- Write the words for the **About** page\n  - [x] Interview Mara\n  - [ ] First draft\n  - [ ] Dee reads it\n- Photograph the studio\n- Set up the contact form\n\n## Doing {limit=2 color=g}\n\n- Build the home page\n  - [x] Layout\n  - [x] Header and footer\n  - [ ] The gallery\n- Choose the typeface\n\n## Done {color=p}\n\n- Pick the domain name\n- Sign the contract\n"
+  },
+  {
+   "name": "board/hiring",
+   "text": "## Applied\n\n- Ada Okafor, designer\n- Ben Ruiz, designer\n- Caro Lindqvist, illustrator\n\n## Phone call {limit=3 color=s}\n\n- Dev Patel, designer\n  - [x] Call on Tuesday\n  - [ ] Send the questions\n\n## Visit the studio {limit=2 color=o}\n\n- Eli Moss, illustrator\n  - [ ] Show the portfolio\n  - [ ] Lunch with the team\n\n## Offer {color=g}\n\n- Fay Adeyemi, designer\n"
+  },
+  {
+   "name": "board/content",
+   "text": "## Ideas\n\n- How we choose a typeface\n- A day at the harbour studio\n- Why the invoice is a letter\n\n## Writing {limit=2 color=y}\n\n- Notes from the launch call\n  - [x] Outline\n  - [ ] Draft\n  - [ ] Pictures\n\n## Review {limit=1 color=o}\n\n- The **spring** newsletter\n\n## Published {color=g}\n\n- Hello from the studio\n- Our new site\n"
+  },
+  {
+   "name": "board/example 1",
+   "text": "title: Studio site\n\n## Doing {limit=2 color=g}\n\n- Write the **spec**, see [the brief](https://example.com/brief)\n  - [x] Outline\n  - [ ] Draft :pencil:\n- Review the copy\n\n## Done\n"
+  }
+ ]
+}

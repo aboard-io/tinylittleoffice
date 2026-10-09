@@ -121,40 +121,27 @@ export class ToBoardEditor extends DocElement<BoardView> {
     else this.requestUpdate();
   };
   /**
-   * Backspace at the very start of a line. The editor would bring a list item out of its list; here a line is
-   * its own item, so an empty card or checklist item goes (the caret to the line above) and one with words stays.
+   * Backspace at the very start of a line (the line-shaped editor says so). A line is its own item here, so an
+   * empty card or checklist item goes (the caret to the line above) and one with words stays.
    */
-  private onBackspace = {
-    capture: true,
-    handleEvent: (e: Event) => {
-      const ev = e as InputEvent;
-      if (ev.inputType !== 'deleteContentBackward') return;
-      const x = (e.target as HTMLElement).closest<ToText>('to-text');
-      const sel = x?.sel;
-      const at = Number(x?.dataset.at);
-      if (!x || !sel || sel.anchor.offset !== 0 || sel.focus.offset !== 0) return;
-      const b = this.doc.blocks[at];
-      if (b?.k !== 'li') return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      const empty = !runLength(b.runs);
-      const card = this.cardAt(at);
-      if (!empty || !card) return;
-      if (card.at === at) {
-        // An empty card with a checklist keeps it; one without goes, and the caret to the card above (or the heading).
-        if (card.items.length) return;
-        const stage = this.stageAt(at)!;
-        const before = stage.cards[stage.cards.indexOf(card) - 1];
-        this.edit(removeCard(card));
-        void this.focusText(before ? before.at : stage.at >= 0 ? stage.at : -1, 'end');
-      } else {
-        const item = card.items.find((i) => i.at === at)!;
-        const prev = card.items[card.items.indexOf(item) - 1];
-        this.edit(removeItem(item));
-        void this.focusText(prev ? prev.at : card.at, 'end');
-      }
-    },
-  };
+  private onExit(at: number) {
+    const b = this.doc.blocks[at];
+    const card = this.cardAt(at);
+    if (b?.k !== 'li' || runLength(b.runs) || !card) return;
+    if (card.at === at) {
+      // An empty card with a checklist keeps it; one without goes, and the caret to the card above (or the heading).
+      if (card.items.length) return;
+      const stage = this.stageAt(at)!;
+      const before = stage.cards[stage.cards.indexOf(card) - 1];
+      this.edit(removeCard(card));
+      void this.focusText(before ? before.at : stage.at, 'end');
+    } else {
+      const item = card.items.find((i) => i.at === at)!;
+      const prev = card.items[card.items.indexOf(item) - 1];
+      this.edit(removeItem(item));
+      void this.focusText(prev ? prev.at : card.at, 'end');
+    }
+  }
   /** Enter in a card: the next card, below this one's checklist. */
   private onCardEnter(s: Stage, c: Card) {
     // An empty card at the end is enough.
@@ -361,9 +348,9 @@ export class ToBoardEditor extends DocElement<BoardView> {
 
   private item(c: Card, k: number, it: Item) {
     const name = it.words || t('empty item');
-    return html`<li class="board-item ${it.done ? 'done' : ''}" @beforeinput=${this.onBackspace}>
+    return html`<li class="board-item ${it.done ? 'done' : ''}">
       <label class="board-tick"><input type="checkbox" .checked=${it.done} aria-label=${t('Done: {task}', { task: name })} @change=${(e: Event) => this.edit(setItemDone(it, (e.target as HTMLInputElement).checked))} /></label>
-      <to-text shape="line" data-at=${it.at} .blocks=${this.one(it.block)} label=${t('Checklist item {n}', { n: k + 1 })} placeholder=${t('To do')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, it.at)} @text-select=${this.onSelect} @text-enter=${() => this.onItemEnter(c, k)} @focusin=${(e: Event) => this.at(it.at, e)}></to-text>
+      <to-text shape="line" data-at=${it.at} .blocks=${this.one(it.block)} label=${t('Checklist item {n}', { n: k + 1 })} placeholder=${t('To do')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, it.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onItemEnter(c, k))} @text-exit=${(e: Event) => (e.stopPropagation(), this.onExit(it.at))} @focusin=${(e: Event) => this.at(it.at, e)}></to-text>
     </li>`;
   }
   private card(s: Stage, c: Card, j: number) {
@@ -371,8 +358,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const dragging = this.drag === c.at;
     const before = this.over?.stage === this.view.stages.indexOf(s) && this.over.pos === j && this.drag !== null;
     return html`<li class="board-card ${dragging ? 'dragging' : ''} ${before ? 'before' : ''}" data-at=${c.at}>
-      <div class="board-main" @keydown=${(e: KeyboardEvent) => this.onCardKey(e, s, c)} @beforeinput=${this.onBackspace}>
-        <to-text shape="line" data-at=${c.at} .blocks=${this.one(c.block)} label=${t('Card')} placeholder=${t('Card')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, c.at)} @text-select=${this.onSelect} @text-enter=${() => this.onCardEnter(s, c)} @focusin=${(e: Event) => this.at(c.at, e)}></to-text>
+      <div class="board-main" @keydown=${(e: KeyboardEvent) => this.onCardKey(e, s, c)}>
+        <to-text shape="line" data-at=${c.at} .blocks=${this.one(c.block)} label=${t('Card')} placeholder=${t('Card')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, c.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onCardEnter(s, c))} @text-exit=${(e: Event) => (e.stopPropagation(), this.onExit(c.at))} @focusin=${(e: Event) => this.at(c.at, e)}></to-text>
         <button type="button" class="to-btn to-tool board-grip" aria-haspopup="menu" aria-label=${t('Card options')} title=${t('Drag to move; tap for options')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: Event) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
       </div>
       ${web ? html`<to-embed class="board-web" url=${web}></to-embed>` : nothing}
@@ -389,7 +376,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     return html`<section class="board-col ${s.color ? 'tinted' : ''} ${over ? 'full' : ''} ${this.drag !== null && this.over?.stage === i ? 'over' : ''}" data-stage=${i} style=${s.color ? `--c:${STAGE_COLORS[s.color].hex}` : nothing} aria-label=${s.name || t('Stage')}>
       <header class="board-head" @focusin=${(e: Event) => this.at(s.at, e)}>
         ${s.block
-          ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${() => this.onStageEnter(s)}></to-text>`
+          ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onStageEnter(s))} @text-exit=${(e: Event) => e.stopPropagation()}></to-text>`
           : html`<h2 class="board-static">${s.name}</h2>`}
         <span class="board-count" aria-label=${over ? t('{n} cards, over the limit of {limit}', { n: s.cards.length, limit: s.limit }) : s.limit ? t('{n} cards, limit {limit}', { n: s.cards.length, limit: s.limit }) : t('{n|one card|# cards}', { n: s.cards.length })}>${count}</span>
         <button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('Stage options: {stage}', { stage: s.name || t('Stage') })} title=${t('Stage options')} @click=${(e: Event) => void this.openMenu({ kind: 'stage', at: s.at }, e.currentTarget as HTMLElement)}>${icon(Ellipsis, 18)}</button>
