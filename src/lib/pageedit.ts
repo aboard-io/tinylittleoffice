@@ -16,12 +16,17 @@
  *   data-hint="..."    what to put there, shown while it is empty
  *   data-lf-add="k"    a button that adds a row of kind k, after row
  *                      data-lf-after (else where the cursor is, else last)
+ *   data-lf-menu="r"   a "+" that opens a chooser of the kinds of row that
+ *                      can go after row r (all of them, or data-lf-kinds,
+ *                      a list of kinds), where it stands
+ *   data-lf-part="r"   with data-lf-do, a button that moves the heading at
+ *                      row r (with all under it) up or down, or removes it
  *   data-lf-remove="r" a button that takes row r away
  *   <input data-lf>    a field typed (or picked: a date) in a box of the
  *                      browser's own rather than where it stands
  *
- * A page that marks its fields itself offers its own ways to add and
- * remove (data-lf-add, data-lf-remove), and gets no bar along the bottom.
+ * A page with no way of its own to add (no data-lf-add or data-lf-menu)
+ * gets a "+" at its foot that opens the chooser of every kind.
  *
  * Where the cursor goes ("r,f,p" or "+k,f,p"; a trailing comma selects
  * the words, as for a field reached by keyboard or a row just added). The
@@ -47,7 +52,7 @@ if(h&&h!==location.hash){try{history.replaceState(null,'',location.href.split('#
 })();`);
 
 export const EDIT_SCRIPT = pageScript(`(function(){
-var D=JSON.parse(document.getElementById('lf').textContent),V=D.v,K=D.k,F=D.f,S=D.p||[];
+var D=JSON.parse(document.getElementById('lf').textContent),V=D.v,K=D.k,F=D.f;
 function send(m){m.s=D.s;parent.postMessage(m,'*');}
 function key(s){return s.getAttribute('data-lf').split(',').slice(0,2).join(',');}
 var fields=[].slice.call(document.querySelectorAll('[data-lf]')),keys=fields.map(key),own=fields.length>0;
@@ -70,29 +75,30 @@ document.addEventListener('focusout',function(ev){var t=ev.target,n=ev.relatedTa
 function button(b,m){b.addEventListener('mousedown',function(ev){ev.preventDefault();});b.addEventListener('click',function(){send(m());});}
 [].forEach.call(document.querySelectorAll('[data-lf-add]'),function(b){button(b,function(){var m={lf:'add',k:+b.getAttribute('data-lf-add')};if(b.hasAttribute('data-lf-after'))m.r=+b.getAttribute('data-lf-after');return m;});});
 [].forEach.call(document.querySelectorAll('[data-lf-remove]'),function(b){button(b,function(){return {lf:'remove',r:+b.getAttribute('data-lf-remove')};});});
-var bar=document.createElement('div');bar.id='lf-bar';bar.setAttribute('role','group');bar.setAttribute('aria-label','Add');var lab=document.createElement('span');lab.textContent='Add:';bar.appendChild(lab);var some=false;
-K.forEach(function(k,i){if(k.hidden||document.querySelector('[data-lf-add="'+i+'"],[data-lf^="+'+i+',"]'))return;var b=document.createElement('button');b.type='button';b.textContent='+ '+k.name;button(b,function(){return {lf:'add',k:i};});bar.appendChild(b);some=true;});
-if(!document.querySelector('[data-lf-remove]')){var x=document.createElement('button');x.type='button';x.id='lf-x';x.textContent='× Remove this';x.hidden=true;button(x,function(){return {lf:'remove'};});bar.appendChild(x);some=true;
-document.addEventListener('focusin',function(ev){x.hidden=!(ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-lf'));});}
-var part=null,pb=[];
-function partOf(el){var h=el&&el.closest?el.closest('[id]'):null,id=h?h.id:location.hash.slice(1);for(var i=0;i<S.length;i++)if(S[i][0]===id)return S[i];return null;}
-function showPart(el){part=partOf(el);pb.forEach(function(b){b.hidden=!part;});if(part){var k=part[2].toLowerCase();pb[0].textContent='← '+part[2]+' earlier';pb[1].textContent=part[2]+' later →';pb[2].textContent='× Remove '+k;}}
-if(S.length){['up','down','remove'].forEach(function(a){var b=document.createElement('button');b.type='button';b.className='lf-part';b.hidden=true;button(b,function(){return part?{lf:'part',r:part[1],do:a}:{lf:'noop'};});pb.push(b);bar.appendChild(b);});some=true;
-document.addEventListener('focusin',function(ev){var t=ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-lf');showPart(t?ev.target:null);});
-window.addEventListener('hashchange',function(){var a=document.activeElement;if(!a||!a.getAttribute('data-lf'))showPart(null);});}
-if(some&&!own){document.body.appendChild(bar);document.body.style.paddingBottom='60px';}
+var menu=null;function closeMenu(){if(menu){menu.remove();menu=null;}}
+document.addEventListener('click',function(ev){if(menu&&!menu.contains(ev.target)&&!(ev.target.closest&&ev.target.closest('[data-lf-menu]')))closeMenu();});
+document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&menu){closeMenu();}});
+function offer(b){var after=b.getAttribute('data-lf-menu'),only=b.getAttribute('data-lf-kinds'),ks=only?only.split(',').map(Number):K.map(function(k,i){return i;});
+if(menu&&menu.previousSibling===b)return closeMenu();closeMenu();
+menu=document.createElement('div');menu.className='lf-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','Add');
+ks.forEach(function(i){var k=K[i];if(!k||k.hidden)return;var it=document.createElement('button');it.type='button';it.setAttribute('role','menuitem');it.textContent=k.name;
+it.addEventListener('mousedown',function(ev){ev.preventDefault();});it.addEventListener('click',function(){var m={lf:'add',k:i};if(after!==''&&after!==null)m.r=+after;closeMenu();send(m);});menu.appendChild(it);});
+b.parentNode.insertBefore(menu,b.nextSibling);var first=menu.querySelector('button');if(first)first.focus();}
+function plusses(){[].forEach.call(document.querySelectorAll('[data-lf-menu]'),function(b){b.addEventListener('mousedown',function(ev){ev.preventDefault();});b.addEventListener('click',function(){offer(b);});});}
+[].forEach.call(document.querySelectorAll('[data-lf-part]'),function(b){button(b,function(){return {lf:'part',r:+b.getAttribute('data-lf-part'),do:b.getAttribute('data-lf-do')};});});
+if(!document.querySelector('[data-lf-add],[data-lf-menu]')){var kinds=K.filter(function(k){return !k.hidden;});if(kinds.length){var foot=document.createElement('p');foot.className='lf-foot';var pb=document.createElement('button');pb.type='button';pb.className='lf-plus';pb.setAttribute('data-lf-menu','');pb.setAttribute('aria-label','Add a line');pb.textContent='+';foot.appendChild(pb);(document.querySelector('main')||document.body).appendChild(foot);}}
+plusses();
 var el=null;if(F){var q=F.slice(-1)===','?F.slice(0,-1):F;el=document.querySelector('[data-lf="'+q+'"],[data-lf^="'+q+',"]');}
 var host=el?el.closest('[id]'):null;
 if(host&&'#'+host.id!==location.hash){try{history.replaceState(null,'',location.href.split('#')[0]+'#'+host.id);}catch(e){location.hash=host.id;}window.dispatchEvent(new Event('hashchange'));}
-if(el){var all=F.slice(-1)===',';select(el,all);window.addEventListener('load',function(){var a=document.activeElement;if(!a||a===document.body)select(el,all);});}else showPart(null);
+if(el){var all=F.slice(-1)===',';select(el,all);window.addEventListener('load',function(){var a=document.activeElement;if(!a||a===document.body)select(el,all);});}
 })();`);
 
 /**
  * What the editing script needs: the values in the page, the kinds of row
- * that can be added, where the cursor goes, which drawing of the page this
- * is (a message from an earlier one is stale), and the page's parts (its
- * headings, [id, row, kind]) that can be moved or taken away.
+ * that can be added, where the cursor goes, and which drawing of the page
+ * this is (a message from an earlier one is stale).
  */
-export const editData = (values: unknown, adds: unknown, focus: unknown, stamp = 0, parts: unknown = []) => pageData('lf', { v: values, k: adds, f: focus, s: stamp, p: parts });
+export const editData = (values: unknown, adds: unknown, focus: unknown, stamp = 0) => pageData('lf', { v: values, k: adds, f: focus, s: stamp });
 /** What the place script needs: the hash the page was showing. */
 export const placeData = (hash: string) => pageData('lf-at', hash);

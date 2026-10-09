@@ -8,6 +8,8 @@ import { parseDoc, serializeDoc } from '../src/lib/richtext.ts';
 import { readSheet, serializeGrid } from '../src/lib/formula.ts';
 import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr, deckTheme } from '../src/lib/deckmodel.ts';
 import { toMarkdown } from '../src/lib/markdown.ts';
+import { readSite } from '../src/lib/sitemodel.ts';
+import { LINKS_FORM } from '../src/apps/links.def.ts';
 import * as T from '../src/api.ts';
 
 /** A template as its app would write it back: the same text, or the template is not in the app's own spelling. */
@@ -15,6 +17,7 @@ const rewrite: Record<string, (body: string) => string> = {
   write: (b) => serializeDoc(parseDoc(b)),
   sheet: (b) => ((s) => serializeGrid(s.grid, s.chart, s.types, s.names))(readSheet(b)),
   deck: (b) => serializeDeck(parseDeck(b), deckTransition(b), deckIconColor(b), deckEndsWithQr(b), deckTheme(b)),
+  links: (b) => readSite(b, LINKS_FORM),
 };
 
 test('every template is in its app\'s own spelling, draws, and has a name and a line', () => {

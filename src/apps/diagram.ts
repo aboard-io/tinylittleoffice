@@ -9,6 +9,8 @@
  */
 import { DocElement, html, nothing, state, tool, btn, toast, appOf, hashOf, convert, type TemplateResult } from '../kit.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
+import { templateGallery, templateTool } from '../widgets/template-picker.ts';
+import { templatesOf } from '../lib/templates.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, type DiagramSpec } from '../lib/diagram.ts';
 import { store } from '../lib/store.ts';
@@ -231,6 +233,12 @@ export class DiagramElement extends DocElement<string> {
   protected extra(): TemplateResult | typeof nothing {
     return nothing;
   }
+  /** Anything an app adds to its toolbar (a site's theme menu). */
+  protected tools(): TemplateResult | typeof nothing {
+    return nothing;
+  }
+  /** A template (or the example) becomes the document: one change, so one undo brings the blank page back. */
+  protected useTemplate = (t: { body: string }) => this.type(t.body);
   protected type(text: string) {
     this.commit(this.withText(this.doc, text));
   }
@@ -598,18 +606,23 @@ export class DiagramElement extends DocElement<string> {
       : this.joining
           ? `Tap the thing to join ${this.joining.from} to; tap empty space to stop.`
           : this.kind === 'page'
-            ? 'Type into the page; the bar along the bottom adds to it.'
+            ? 'Type into the page; a + adds to it where it stands.'
             : this.kind === 'print'
               ? 'Tap words on the sheet to change them.'
               : 'Tap empty space to add a thing; tap a thing to type on it, Enter for the next; drag it where it goes.';
+    const id = (this.constructor as typeof DiagramElement).app;
+    // An app with templates offers them over the blank page and from the bar; the rest offer their example.
+    const templated = templatesOf(id).length > 0 && !inside;
     return html`
       <div class="to-toolbar">
         <span class="to-hint diagram-hint">${hint}</span>
         <span class="to-spacer"></span>
-        ${text.trim() ? nothing : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
+        ${this.tools()}
+        ${text.trim() ? nothing : templated ? templateTool(id, this.useTemplate) : tool('Start from an example', 'sparkles', () => this.type(spec.example), { text: true })}
         ${form || this.kind === 'page' ? nothing : tool('Icon', 'smile', () => this.addIcon(), { text: true })}
         ${inside || !this.drawable() ? nothing : tool('Open in Draw', 'draw', () => this.toDraw(), { text: true })}
       </div>
+      ${templated && !text.trim() ? templateGallery(id, this.useTemplate) : nothing}
       ${this.extra()}
       <div class="diagram ${this.kind} ${form ? 'alone' : ''} ${this.joining ? 'joining' : ''}">
 ${form

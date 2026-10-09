@@ -2,7 +2,7 @@
  * The page view: the document as a web page in a sandboxed frame of its
  * own (its scripts run, but it cannot reach this one). With a form, the
  * page is editable in place: every field whose words appear in it can be
- * typed into, and a bar along the bottom adds rows. Changes come back as
+ * typed into, and a "+" where it stands adds rows. Changes come back as
  * messages, the only way the frame can speak to us.
  */
 import { html, state, fontsForPictures, slug, type TemplateResult } from '../kit.ts';
@@ -187,7 +187,7 @@ export class PageView extends DiagramElement {
 
   /**
    * The page, made editable in place: every field whose words appear in
-   * it as they are can be typed into; a bar along the bottom adds rows.
+   * it as they are can be typed into; a "+" where it stands adds rows.
    * Changes come back as messages (the frame is sandboxed: this is the
    * only way it can speak to us), and are written into the text. Null
    * while nothing is written, unless the page has fields to type into
@@ -213,10 +213,10 @@ export class PageView extends DiagramElement {
     if (key !== this.stamped) (this.stamped = key), this.stamp++;
     const script = `<style>[data-lf]{outline:1px dashed rgba(79,70,229,.5);outline-offset:2px;border-radius:3px;cursor:text;min-width:1ch;display:inline-block}[data-lf]:focus{outline:2px solid #4f46e5;background:#eef2ff;color:#18181b}
 [data-lf]:empty::before{content:attr(data-hint);color:#a1a1aa;font-weight:400}
-#lf-bar{position:fixed;left:0;right:0;bottom:0;z-index:9;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 10px;background:rgba(255,255,255,.96);border-top:1px solid #e4e4e7;font:13px system-ui,sans-serif}
-#lf-bar button{font:inherit;padding:5px 11px;border:1px dashed #4f46e5;background:#fff;color:#4338ca;border-radius:999px;cursor:pointer}#lf-bar button:focus-visible{outline:2px solid #4f46e5}
-#lf-x{margin-left:auto;border-color:#dc2626;color:#b91c1c}#lf-bar span{color:#52525b;margin-right:4px}</style>
-${placeData(this.pageHash)}${PLACE_SCRIPT}${editData(values, adds, focus, this.stamp, this.parts(rows))}${EDIT_SCRIPT}`;
+.lf-menu{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;padding:8px;background:#fff;border:1px solid #e4e4e7;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);font:13px system-ui,sans-serif;color:#18181b}
+.lf-menu button{font:inherit;padding:5px 11px;border:1px dashed #4f46e5;background:#fff;color:#4338ca;border-radius:999px;cursor:pointer}.lf-menu button:focus-visible,.lf-plus:focus-visible{outline:2px solid #4f46e5}
+.lf-foot{margin:1.5rem 0}.lf-foot .lf-plus{display:inline-grid;place-items:center;width:2rem;height:2rem;padding:0;border-radius:50%;border:1px dashed #4f46e5;background:#fff;color:#4338ca;font:600 1.2rem/1 system-ui,sans-serif;cursor:pointer}</style>
+${placeData(this.pageHash)}${PLACE_SCRIPT}${editData(values, adds, focus, this.stamp)}${EDIT_SCRIPT}`;
     return this.framed(page, script);
   }
 

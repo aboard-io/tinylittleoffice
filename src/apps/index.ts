@@ -21,7 +21,7 @@ import './lanes.def.ts';
 import './venn.def.ts';
 import './net.def.ts';
 import './site.def.ts';
-import './store.def.ts';
+import './links.def.ts';
 import './invoice.def.ts';
 import './contract.def.ts';
 import './zine.def.ts';

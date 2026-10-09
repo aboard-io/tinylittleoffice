@@ -166,11 +166,13 @@ Connections: `~ A -> B: label` for an arrow, `~ A -- B` for a line. `- name` is 
 
 {{ex:site:Harbor Coffee}}
 
-### store: a shop page with a cart
+A table `Name | Price:money | About | Image` in a section is a shop: a grid of products with a cart. The header holds `currency: $` and `orders: someone@example.com` (where orders are emailed).
 
-`# Name` and a line about it; products in a table `Name | Price:money | About | Image`. The header holds `currency: $` and `orders: someone@example.com` (where orders are emailed).
+### links: a link-in-bio page
 
-{{ex:store:Shop}}
+`# Name`, `![](https://… a picture)`, a line about you; `> :icon: Label | https://…` for each button; `- :instagram: Instagram | https://…` for a small icon at the foot; `theme: candy` for the look.
+
+{{ex:links:Ada Diaz}}
 
 ### invoice: an invoice
 
@@ -299,7 +301,7 @@ After `#/v0/<app>/` comes one letter and then base64url bytes: the document's TL
 - People and reporting lines: `org`. Ideas branching from one topic: `mind`. Notes in a tree: `outline`.
 - A process with handoffs: `lanes`. Systems and what talks to what: `net`. Overlapping categories: `venn`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
-- A wall of ideas or a retro: `board`. Something to publish: `site`, `store`, `invoice`.
+- A wall of ideas or a retro: `board`. Something to publish: `site`, `links`, `invoice`.
 - Anything else visual: `draw`.
 
 ## Without a browser

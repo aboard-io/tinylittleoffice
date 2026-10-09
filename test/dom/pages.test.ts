@@ -4,6 +4,7 @@ import { mount, settle, button, setSl, type Editor } from './helpers.ts';
 import { open, visit, prefs, asText, box, settleAll, until, saved, editor } from './helpers-more.ts';
 import { privacy } from '../../src/lib/privacy.ts';
 import { parseContract } from '../../src/apps/contract.def.ts';
+import { spec as linksSpec } from '../../src/apps/links.def.ts';
 
 beforeEach(() => {
   prefs();
@@ -21,7 +22,7 @@ async function example(app: string) {
   return m;
 }
 
-test('page apps: a site, a store, an invoice', async () => {
+test('page apps: a site, Quick Links, an invoice', async () => {
   // What downloads is the page itself, whole.
   await open('#/v0/site');
   button(editor('site'), 'Start from an example').click();
@@ -42,9 +43,10 @@ test('page apps: a site, a store, an invoice', async () => {
   expect(site.querySelectorAll('ul.cards li')).toHaveLength(6);
   expect(texts(site.querySelectorAll('header a'))).toEqual(['Home', 'Menu', 'Find us']);
 
-  // A store: a button for each thing (the cart itself is e2e's: its script).
-  const store = framed((await example('store')).el);
-  expect([...store.querySelectorAll('button')].filter((b) => /^Add .* to the cart$/.test(b.getAttribute('aria-label') ?? ''))).toHaveLength(4);
+  // Quick Links (it offers templates rather than an example): a stack of buttons, and the small links at the foot.
+  const links = framed((await mount('links', linksSpec.example)).el);
+  expect(links.querySelectorAll('.go.stack a.btn')).toHaveLength(3);
+  expect(links.querySelectorAll('.social a')).toHaveLength(2);
 
   // An invoice: the sums are done, and it is called by its number.
   await visit('#/v0/invoice');
