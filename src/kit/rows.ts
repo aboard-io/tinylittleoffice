@@ -397,7 +397,8 @@ export class Rows<Id = number> implements ReactiveController {
       const rows = this.chosen();
       const s = this.span();
       const vis = this.o.rows();
-      const to = up ? (vis[vis.indexOf(rows[0]) - 1] ?? rows[0]) : (vis.find((x) => s && x.span.from >= s.to) ?? rows[rows.length - 1]);
+      const first = vis.findIndex((x) => x.id === rows[0].id);
+      const to = up ? (vis[first - 1] ?? rows[0]) : (vis.find((x) => s && x.span.from >= s.to) ?? rows[rows.length - 1]);
       this.release(to.id, up ? 'end' : 0);
     } else if ((k === 'ArrowLeft' || k === 'ArrowRight') && !mod && !e.altKey && !e.shiftKey) {
       const rows = this.chosen();
@@ -579,7 +580,7 @@ export class Rows<Id = number> implements ReactiveController {
   private scroller(): HTMLElement {
     const given = this.o.scroller?.();
     if (given) return given;
-    for (let el = this.o.box()?.parentElement ?? null; el; el = el.parentElement) {
+    for (let el = this.o.box() ?? null; el; el = el.parentElement) {
       const oy = getComputedStyle(el).overflowY;
       if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
     }
