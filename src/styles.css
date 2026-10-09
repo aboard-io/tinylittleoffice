@@ -1516,7 +1516,7 @@ svg.draw-canvas text {
   background: var(--to-surface-2);
 }
 .cal-mini-days .d.has {
-  background: color-mix(in srgb, var(--c) 28%, var(--to-surface));
+  background: color-mix(in oklch, var(--c) 28%, var(--to-surface));
   color: var(--to-ink);
   font-weight: 600;
 }
@@ -1943,7 +1943,7 @@ svg.draw-canvas text {
   background: color-mix(in srgb, var(--to-surface-2) 55%, var(--to-bg));
 }
 .board-col.tinted {
-  background: color-mix(in srgb, var(--c) 7%, var(--to-bg));
+  background: color-mix(in oklch, var(--c) 7%, var(--to-bg));
 }
 .board-col.tinted input.name {
   color: var(--c);
@@ -3023,7 +3023,7 @@ to-timeline .diagram .pic > svg {
   border-radius: 50%;
 }
 .cal-chip.tint {
-  background: color-mix(in srgb, var(--c) 16%, var(--to-surface));
+  background: color-mix(in oklch, var(--c) 16%, var(--to-surface));
   border-color: var(--c);
   color: var(--to-ink);
 }

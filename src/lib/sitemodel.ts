@@ -65,13 +65,10 @@ export interface Page {
 
 export type Face = 'sans' | 'serif' | 'rounded' | 'mono';
 
-/** A look: the accent, its tint, the deep shade words take on the tint, the pale shade they take in the dark; the type; how round the corners are. Every pair reads at AA. */
+/** A look: one accent, from which every shade is derived (themeCss); the type; how round the corners are. */
 export interface SiteTheme {
   name: string;
   a: string;
-  tint: string;
-  deep: string;
-  pale: string;
   face: Face;
   /** Corner radius, in rem. */
   round: number;
@@ -80,22 +77,22 @@ export interface SiteTheme {
 }
 
 export const THEMES: Record<string, SiteTheme> = {
-  indigo: { name: 'Indigo', a: '#4f46e5', tint: '#eef2ff', deep: '#3730a3', pale: '#a5b4fc', face: 'sans', round: 0.9 },
-  teal: { name: 'Teal', a: '#0f766e', tint: '#ccfbf1', deep: '#115e59', pale: '#5eead4', face: 'sans', round: 0.9 },
-  rose: { name: 'Rose', a: '#be123c', tint: '#ffe4e6', deep: '#9f1239', pale: '#fda4af', face: 'serif', round: 1.2 },
-  amber: { name: 'Amber', a: '#b45309', tint: '#fef3c7', deep: '#92400e', pale: '#fcd34d', face: 'serif', round: 0.6 },
-  ink: { name: 'Ink', a: '#18181b', tint: '#f4f4f5', deep: '#18181b', pale: '#e4e4e7', face: 'sans', round: 0.3 },
-  forest: { name: 'Forest', a: '#15803d', tint: '#dcfce7', deep: '#14532d', pale: '#86efac', face: 'serif', round: 0.9 },
-  ocean: { name: 'Ocean', a: '#0369a1', tint: '#e0f2fe', deep: '#075985', pale: '#7dd3fc', face: 'sans', round: 1.4 },
-  sunset: { name: 'Sunset', a: '#c2410c', tint: '#ffedd5', deep: '#9a3412', pale: '#fdba74', face: 'rounded', round: 1.6 },
-  plum: { name: 'Plum', a: '#7e22ce', tint: '#f3e8ff', deep: '#581c87', pale: '#d8b4fe', face: 'sans', round: 1.2 },
-  candy: { name: 'Candy', a: '#db2777', tint: '#fce7f3', deep: '#9d174d', pale: '#f9a8d4', face: 'rounded', round: 2 },
-  olive: { name: 'Olive', a: '#4d7c0f', tint: '#ecfccb', deep: '#3f6212', pale: '#bef264', face: 'serif', round: 0.4 },
-  slate: { name: 'Slate', a: '#334155', tint: '#f1f5f9', deep: '#1e293b', pale: '#cbd5e1', face: 'sans', round: 0.5 },
-  paper: { name: 'Paper', a: '#78350f', tint: '#fdf6e3', deep: '#451a03', pale: '#fde68a', face: 'serif', round: 0 },
-  typewriter: { name: 'Typewriter', a: '#111827', tint: '#f3f4f6', deep: '#111827', pale: '#d1d5db', face: 'mono', round: 0 },
-  midnight: { name: 'Midnight', a: '#818cf8', tint: '#1e1b4b', deep: '#c7d2fe', pale: '#c7d2fe', face: 'sans', round: 0.9, dark: true },
-  coal: { name: 'Coal', a: '#f59e0b', tint: '#292524', deep: '#fde68a', pale: '#fde68a', face: 'rounded', round: 1.2, dark: true },
+  indigo: { name: 'Indigo', a: '#4f46e5', face: 'sans', round: 0.9 },
+  teal: { name: 'Teal', a: '#0f766e', face: 'sans', round: 0.9 },
+  rose: { name: 'Rose', a: '#be123c', face: 'serif', round: 1.2 },
+  amber: { name: 'Amber', a: '#b45309', face: 'serif', round: 0.6 },
+  ink: { name: 'Ink', a: '#18181b', face: 'sans', round: 0.3 },
+  forest: { name: 'Forest', a: '#15803d', face: 'serif', round: 0.9 },
+  ocean: { name: 'Ocean', a: '#0369a1', face: 'sans', round: 1.4 },
+  sunset: { name: 'Sunset', a: '#c2410c', face: 'rounded', round: 1.6 },
+  plum: { name: 'Plum', a: '#7e22ce', face: 'sans', round: 1.2 },
+  candy: { name: 'Candy', a: '#db2777', face: 'rounded', round: 2 },
+  olive: { name: 'Olive', a: '#4d7c0f', face: 'serif', round: 0.4 },
+  slate: { name: 'Slate', a: '#334155', face: 'sans', round: 0.5 },
+  paper: { name: 'Paper', a: '#78350f', face: 'serif', round: 0 },
+  typewriter: { name: 'Typewriter', a: '#111827', face: 'mono', round: 0 },
+  midnight: { name: 'Midnight', a: '#818cf8', face: 'sans', round: 0.9, dark: true },
+  coal: { name: 'Coal', a: '#f59e0b', face: 'rounded', round: 1.2, dark: true },
 };
 
 export interface Theme {
@@ -131,24 +128,37 @@ export const themeWords = (t: Theme) => {
   return [t.id, t.face && t.face !== T.face ? t.face : '', t.dark === true && !T.dark ? 'dark' : t.dark === false && T.dark ? 'light' : ''].filter(Boolean).join(' ');
 };
 
-/** How light a colour is, 0 to 1: a near-black accent cannot stand on a dark page, and goes pale there. */
-const light = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).reduce((a, c, i) => a + c * [0.2126, 0.7152, 0.0722][i], 0);
-
 /** Whether the page is dark: by the theme's nature, or asked for. */
 export const isDark = (t: Theme) => t.dark ?? !!(THEMES[t.id] ?? THEMES.indigo).dark;
+
+/** A shade of the accent: its lightness, exactly or as a bound (`at`), and the most chroma it keeps, if capped. */
+export interface Shade {
+  l: number;
+  at?: 'min' | 'max';
+  c?: number;
+}
+/**
+ * Every shade is the accent's hue at a lightness fixed for its role, in
+ * oklch, where one lightness reads the same in every hue. On a light page
+ * the accent is held dark enough for white words on it, the tint is nearly
+ * white and the deep shade (links, words on the tint) nearly black; on a
+ * dark page the accent is lifted for dark words, the tint is a dark wash
+ * and the deep shade pale. test/site.test.ts checks every pair at AA.
+ */
+export const SHADES: Record<'light' | 'dark', Record<'a' | 'tint' | 'deep', Shade>> = {
+  light: { a: { l: 0.52, at: 'min' }, tint: { l: 0.96, c: 0.05 }, deep: { l: 0.4 } },
+  dark: { a: { l: 0.75, at: 'max', c: 0.15 }, tint: { l: 0.28, c: 0.06 }, deep: { l: 0.85, c: 0.12 } },
+};
+/** The shade as CSS: the browser derives it from the accent (relative colour syntax). */
+const shade = (a: string, s: Shade) => `oklch(from ${a} ${s.at === 'min' ? `min(l, ${s.l})` : s.at === 'max' ? `max(l, ${s.l})` : s.l} ${s.c === undefined ? 'c' : `min(c, ${s.c})`} h)`;
 
 /** The theme as CSS variables on :root, and the face. */
 export function themeCss(t: Theme): string {
   const T = THEMES[t.id] ?? THEMES.indigo;
-  let vars: string;
-  if (isDark(t)) {
-    const a = T.dark || light(T.a) > 0.12 ? T.a : T.pale;
-    vars = `--a:${a};--on:${light(a) > 0.5 ? '#18181b' : '#fff'};--tint:${T.dark ? T.tint : '#27272a'};--deep:${T.pale};--bg:${T.dark ? '#141418' : '#18181b'};--glass:rgba(20,20,24,.92);--ink:#fafafa;--ink2:#d4d4d8;--ink3:#a1a1aa;--line:#3f3f46`;
-  } else {
-    // A theme dark by nature, asked to be light, keeps its deep shade for an accent.
-    const a = T.dark ? T.tint : T.a;
-    vars = `--a:${a};--on:#fff;--tint:${T.dark ? '#f4f4f5' : T.tint};--deep:${T.dark ? T.tint : T.deep};--bg:${t.id === 'paper' ? '#fffdf5' : '#fff'};--glass:rgba(255,255,255,.92);--ink:#18181b;--ink2:#3f3f46;--ink3:#52525b;--line:#e4e4e7`;
-  }
+  const S = SHADES[isDark(t) ? 'dark' : 'light'];
+  const vars = isDark(t)
+    ? `--a:${shade(T.a, S.a)};--on:#18181b;--tint:${shade(T.a, S.tint)};--deep:${shade(T.a, S.deep)};--bg:${T.dark ? '#141418' : '#18181b'};--glass:rgba(20,20,24,.92);--ink:#fafafa;--ink2:#d4d4d8;--ink3:#a1a1aa;--line:#3f3f46`
+    : `--a:${shade(T.a, S.a)};--on:#fff;--tint:${shade(T.a, S.tint)};--deep:${shade(T.a, S.deep)};--bg:${t.id === 'paper' ? '#fffdf5' : '#fff'};--glass:rgba(255,255,255,.92);--ink:#18181b;--ink2:#3f3f46;--ink3:#52525b;--line:#e4e4e7`;
   return `:root{${vars};--r:${T.round}rem;--font:${FACES[t.face ?? T.face]}}body,h1,h2,h3,button,.btn{font-family:var(--font)}`;
 }
 

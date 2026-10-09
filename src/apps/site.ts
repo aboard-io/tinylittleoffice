@@ -61,7 +61,7 @@ class SiteView extends PageView {
     const t = parseTheme(this.theme());
     return html`<to-insert label="Insert" .options=${this.inserts()} @pick=${(e: CustomEvent<string>) => this.insert(e.detail)}></to-insert>
       <sl-select class="sr-label deck-theme" size="small" label="Theme" hoist .value=${t.id} @sl-change=${(e: Event) => this.setTheme(`${(e.target as SlSelect).value} ${t.dark === undefined ? '' : t.dark ? 'dark' : 'light'}`)}>
-        ${Object.entries(THEMES).map(([key, T]) => html`<sl-option value=${key}><span slot="prefix" class="deck-theme-chip" style="--p:${T.dark ? T.tint : '#fff'};--i:${T.dark ? '#fafafa' : '#18181b'};--a:${T.a}" aria-hidden="true"></span>${T.name}</sl-option>`)}
+        ${Object.entries(THEMES).map(([key, T]) => html`<sl-option value=${key}><span slot="prefix" class="deck-theme-chip" style="--p:${T.dark ? '#141418' : '#fff'};--i:${T.dark ? '#fafafa' : '#18181b'};--a:${T.a}" aria-hidden="true"></span>${T.name}</sl-option>`)}
       </sl-select>
       <sl-select class="sr-label site-mode" size="small" label="Light or dark" hoist .value=${t.dark === undefined ? 'auto' : t.dark ? 'dark' : 'light'} @sl-change=${(e: Event) => this.setTheme(`${t.id} ${(e.target as SlSelect).value === 'auto' ? '' : (e.target as SlSelect).value}`)}>
         <sl-option value="auto">As the theme is</sl-option>

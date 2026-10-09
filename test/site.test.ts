@@ -6,7 +6,9 @@ import { hashOf, makeRef } from '../src/kit/embed.ts';
 import { specOf } from '../src/lib/diagram.ts';
 import { depths, headLevel, movePart, readLines, removePart, writeLines, type Kind as LineKind } from '../src/lib/lines.ts';
 import { fromMarkdown, toMarkdown } from '../src/lib/markdown.ts';
-import { parseSite, readSite, THEMES, parseTheme, themeWords, themeCss, isDark } from '../src/lib/sitemodel.ts';
+import { parseSite, readSite, THEMES, SHADES, parseTheme, themeWords, themeCss, isDark, type Shade } from '../src/lib/sitemodel.ts';
+import { THEMES as DECK_THEMES } from '../src/lib/decktheme.ts';
+import { clampChroma, formatHex, oklch, parse, wcagContrast } from 'culori';
 import { EDIT_SCRIPT, PLACE_SCRIPT, editData, placeData } from '../src/lib/pageedit.ts';
 
 const spec = specOf('site')!;
@@ -47,7 +49,7 @@ test('site: the page has a nav of its pages, each a section switched by a fixed 
   // Each page has its own heading; a section within a page its own id.
   assert.ok(html.includes('<h1>Harbor Coffee</h1>') && html.includes('<h1>Menu</h1>') && html.includes('<section class="part" id="coffee"><div class="wrap"><h2>Coffee</h2>'));
   // The theme: amber, whose type is serif, light.
-  assert.ok(html.includes('--a:#b45309') && html.includes('--bg:#fff') && html.includes("--font:'Iowan Old Style'"));
+  assert.ok(html.includes('--a:oklch(from #b45309 ') && html.includes('--bg:#fff') && html.includes("--font:'Iowan Old Style'"));
   assert.ok(html.includes('<title>Harbor Coffee</title>') && html.includes('content="Small-batch coffee, roasted on the quay every morning."'));
   // Two buttons sit side by side; the second is quiet.
   assert.ok(html.includes('<p class="go"><a class="btn" href="#menu">See the menu</a> <a class="btn quiet" href="#find-us">Find us</a></p>'));
@@ -60,7 +62,7 @@ test('site: the page has a nav of its pages, each a section switched by a fixed 
   assert.ok(editData([], [], '', 3).includes('"s":3'));
   // Dark (an ink accent goes pale on a dark page), and a site of one page has a nav of its sections.
   const dark = page('theme: ink dark\n\n# A\n\nabout\n\n## B\n\n- x\n\n## C');
-  assert.ok(dark.includes('--a:#e4e4e7;--on:#18181b') && dark.includes('--bg:#18181b'));
+  assert.ok(dark.includes('--a:oklch(from #18181b max(l, 0.75) min(c, 0.15) h);--on:#18181b') && dark.includes('--bg:#18181b'));
   assert.ok(dark.includes('<nav aria-label="Sections"><a href="#b">B</a><a href="#c">C</a></nav>'));
   // A page and a section may share a name: the page keeps it.
   const same = page('# A\n\n## Menu\n\n# Menu\n\nx');
@@ -81,7 +83,7 @@ test('site: a link-in-bio page is a picture, a line of words and a stack of butt
   assert.ok(!html.includes('class="btn quiet"'));
   // Each button carries its icon; the look is rose, which is serif.
   assert.ok(html.includes('<a class="btn" href="mailto:ada@example.com"><svg viewBox="0 0 24 24" width="20"'));
-  assert.ok(html.includes('--a:#be123c') && html.includes('Georgia,serif'));
+  assert.ok(html.includes('--a:oklch(from #be123c ') && html.includes('Georgia,serif'));
   // No pages, so no page nav; and the whole thing is small.
   assert.ok(html.includes('<nav aria-label="Sections"></nav>'));
   assert.ok(BIO.length < 400);
@@ -116,7 +118,7 @@ test('site: sixteen themes, each a look, a type and a shape; dark by nature or b
   assert.ok(Object.keys(THEMES).length >= 16);
   for (const [id, T] of Object.entries(THEMES)) {
     const css = themeCss({ id });
-    assert.ok(css.includes(`--a:${T.dark ? T.a : T.a}`) && css.includes(`--r:${T.round}rem`) && css.includes('--font:'), id);
+    assert.ok(css.includes(`--a:oklch(from ${T.a} `) && css.includes(`--r:${T.round}rem`) && css.includes('--font:'), id);
     assert.equal(themeWords(parseTheme(`${id} dark`)), T.dark ? id : `${id} dark`);
     assert.equal(themeWords(parseTheme(`${id} light`)), T.dark ? `${id} light` : id);
   }
@@ -191,7 +193,7 @@ test('links: a Quick Links page is a picture, a name, a line, a stack of buttons
   assert.ok(html.includes('<img class="pic" src="https://images.unsplash.com/') && html.includes('<h1>Ada Diaz</h1>'));
   assert.ok(html.includes('<p class="go stack">') && html.match(/<a class="btn" href=/g)!.length === 3);
   assert.ok(html.includes('<ul class="social" aria-label="Elsewhere"><li><a href="https://instagram.com/ada" aria-label="Instagram"'));
-  assert.ok(html.includes('--a:#be123c') && !html.includes('<nav'));
+  assert.ok(html.includes('--a:oklch(from #be123c ') && !html.includes('<nav'));
   assert.equal(appOf('links')!.title(l.example), 'Ada Diaz');
   assert.equal(appOf('links')!.read!(l.example), l.example);
   // Written loosely, it comes in canonical: a link alone is a button, a list item a small link.
@@ -231,4 +233,34 @@ test('lines: headings of two kinds nest, and a part moves or goes with everythin
   // An app with one heading kind: its rows sit one in under a section.
   const menu: LineKind[] = [{ name: 'Name', is: '# {Name}', once: true }, { name: 'Section', is: '## {Section}', head: true }, { name: 'Dish', is: '{Dish} | {Price:money} | {About}', table: true }, { name: 'Line', is: '{Text}' }];
   assert.deepEqual(depths(readLines('# Cafe\n\n## Coffee\n\nDish | Price\n--- | ---\nEspresso | 3.00\n\n## Tea', menu), menu), [0, 0, 1, 0]);
+});
+
+/** The shade as the browser derives it (oklch(from a …)), worked out here: the same lightness and chroma rules, gamut-mapped as CSS does, by chroma. */
+const shade = (a: string, s: Shade) => {
+  const o = oklch(parse(a))!;
+  const l = s.at === 'min' ? Math.min(o.l, s.l) : s.at === 'max' ? Math.max(o.l, s.l) : s.l;
+  return formatHex(clampChroma({ mode: 'oklch', l, c: s.c === undefined ? o.c : Math.min(o.c, s.c), h: o.h }, 'oklch'));
+};
+const reads = (ink: string, bg: string, least: number, what: string) => assert.ok(wcagContrast(ink, bg) >= least, `${what}: ${ink} on ${bg} is ${wcagContrast(ink, bg).toFixed(2)}:1, below ${least}:1`);
+
+test('every theme reads at AA, light and dark: words on the accent, the deep shade on the tint and the page, the accent itself as a mark', () => {
+  for (const [id, T] of Object.entries(THEMES)) {
+    for (const mode of ['light', 'dark'] as const) {
+      const S = SHADES[mode];
+      const bg = mode === 'dark' ? (T.dark ? '#141418' : '#18181b') : id === 'paper' ? '#fffdf5' : '#fff';
+      const [a, tint, deep] = [shade(T.a, S.a), shade(T.a, S.tint), shade(T.a, S.deep)];
+      reads(mode === 'dark' ? '#18181b' : '#fff', a, 4.5, `${id} ${mode}: words on the accent`);
+      reads(deep, tint, 4.5, `${id} ${mode}: deep on the tint`);
+      reads(deep, bg, 4.5, `${id} ${mode}: deep on the page (links)`);
+      reads(a, bg, 3, `${id} ${mode}: the accent as a mark (icons, the underline of the page you are on)`);
+      reads(mode === 'dark' ? '#a1a1aa' : '#52525b', bg, 4.5, `${id} ${mode}: the faintest words`);
+    }
+  }
+  // A deck's themes are hand-picked hexes (they go into SVG and PowerPoint): the same bar, checked.
+  for (const [id, T] of Object.entries(DECK_THEMES)) {
+    reads(T.ink, T.paper, 4.5, `deck ${id || 'plain'}: ink`);
+    reads(T.muted, T.paper, 4.5, `deck ${id || 'plain'}: muted`);
+    reads(T.link ?? T.accent, T.paper, 4.5, `deck ${id || 'plain'}: links`);
+    reads(T.accent, T.paper, 3, `deck ${id || 'plain'}: bullets and icons`);
+  }
 });
