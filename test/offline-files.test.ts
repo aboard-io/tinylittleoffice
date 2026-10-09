@@ -25,3 +25,8 @@ test('the version follows the files: the same build is the same version, a chang
   expect(offlineList([...built].reverse()).version).toBe(a.version);
   expect(offlineList(built.map((f) => (f.path === 'index.html' ? { ...f, bytes: 4001 } : f))).version).not.toBe(a.version);
 });
+
+test('what is for other sites and programs stays behind: the share cards, the embed page, /api.js, /llms.txt', () => {
+  const more = [...built, { path: 'og/write.png', bytes: 20000 }, { path: 'embed/index.html', bytes: 4000 }, { path: 'api.js', bytes: 3000 }, { path: 'api/apps-abc.js', bytes: 9000 }, { path: 'llms.txt', bytes: 30000 }];
+  expect(offlineList(more).files).toEqual(offlineList(built).files);
+});

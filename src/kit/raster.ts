@@ -38,3 +38,11 @@ export async function pixels(svg: string, w: number, h: number, paper: string | 
   const canvas = await paint(svg, w, h, 1, paper);
   return canvas ? canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data : null;
 }
+
+/** Draw SVG markup as a JPEG (over the paper, which a JPEG cannot leave clear): a page of the .pdf file. */
+export async function jpeg(svg: string, w: number, h: number, scale = 1, quality = 0.9): Promise<Uint8Array | null> {
+  const canvas = await paint(svg, w, h, scale, PAPER);
+  if (!canvas) return null;
+  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/jpeg', quality));
+  return blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+}

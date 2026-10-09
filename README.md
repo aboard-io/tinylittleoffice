@@ -34,6 +34,9 @@ scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the s
 test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode)
 e2e/            the small Playwright smoke on the built site, desktop Chromium and iPhone-sized WebKit
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
+src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
+packages/doc/   the `tinyoffice` command line, over src/api.ts
+skill/          the agent skill (SKILL.md, written from SKILL.tpl.md by scripts/make-skill.ts; also /llms.txt)
 ```
 
 ## Commands
@@ -48,6 +51,9 @@ npm run test:e2e      # the smoke, on a fresh build; SHOTS=<dir> saves screensho
 npm run i18n:check    # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
 npm run i18n:extract  # append the missing keys to en.ts, at the end, to be sorted by hand
 npm run tinier:dev    # the link shortener on this machine (see "Living short links")
+npm run skill         # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
+npm run cards         # public/og/<app>.png, each app's share card (Chromium through Playwright)
+npm run tinyoffice -- link todo list.md   # the command line (packages/doc/README.md)
 ```
 
 The editor: `<to-text>` (src/kit/text.ts) is the one rich-text editor, model-driven over the kernel: every
@@ -145,3 +151,30 @@ The dev server hands everything under `/tinier/` to it, so short links come out 
 address. `SITE` is that address as the browser sees it: the only place a local short link may lead.
 `npm run typecheck` generates the Worker's types (`tinier/worker-configuration.d.ts`, not committed) and
 checks `tinier/` with them.
+
+## Documents by URL, for agents and programs
+
+A document can be written as a plain link, by a person or an agent, with no codec: `/<app>/#title=…&doc=…`
+(`by=` says who made it, `view=` asks for a file or a deck's show; `md=` is `doc=` by another name, a text when no
+app is named). The shell turns it into the packed `#/v1/…` link on arrival (`src/kit/plain.ts`). The guide to every
+app's format is the agent skill, `skill/tinyoffice/SKILL.md`, served as `/llms.txt`; every example in it is one of
+an app's templates, checked to round-trip (`npm run skill`, `test/skill.test.ts`).
+
+Programs import `/api.js` (`link`, `plain`, `read`, `encode`/`decode`, `parse`/`write`, `compare`, `apps`,
+`templates`, `file`); `packages/doc/tinyoffice.ts` is the same from the command line: links from files and files
+from links. A page of anyone's can import `/tinyoffice.js` (`link()` for a plain link, `embed()` for the frame), with
+no build and no other code.
+
+A `.tlo` file is a document's text with `app:` in its head: Download → Text (TLO) makes one, and dropping one on the
+page, or Open a file… in the menu, opens it as its own app (a `.md` or `.txt` opens in the app at hand). Every app
+also downloads Markdown and a `.pdf` file (its pages as JPEGs, `src/kit/pdf.ts`; Print saves a PDF whose words stay
+words); the Outliner's `.pdf` is its words, as sections and bullets (`src/kit/textpdf.ts`). Download's last group
+copies a link that downloads a file as it opens (`#/v1/<app>.<ext>/…`).
+
+Compare… in the menu (`#/compare/<app>/<payload>/<app>/<payload>`) puts two links side by side, block by block,
+with what the second changed marked (`src/kit/compare.ts`, `src/kit/diff.ts`). Share posts the link to Bluesky,
+Mastodon (its server asked once), X, LinkedIn or email, each through the link guard; copies a deck's show link
+(`…?show`, which opens presenting); and copies the embed code: a lazy, no-referrer frame of `/embed/#/v1/<app>.embed/…`,
+the pages alone with Open in Tiny Little Office, the one address `public/_headers` lets another site frame. Each
+app's own page previews with its card, `public/og/<app>.png` (`npm run cards`); the home page's is the Office mark.
+

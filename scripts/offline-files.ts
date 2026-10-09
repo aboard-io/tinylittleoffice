@@ -2,7 +2,8 @@
  * The files of a build that the device keeps, for working with no connection (src/sw.ts fetches them all
  * when the switch in the menu is turned on). The build writes the list as dist/files.json.
  *
- * The server's own files (_headers, files.json) and the worker itself stay behind. A page is named by its
+ * The server's own files (_headers, files.json), the worker itself, the share cards, and what is for other
+ * sites and programs (the embed page, /api.js and its pieces, /llms.txt) stay behind. A page is named by its
  * folder ("text/", "" for the home page): that is the address a browser asks for, so a cold start offline
  * finds it. (Ported from the old tree's scripts/offline-files.ts.)
  */
@@ -20,7 +21,7 @@ export interface OfflineList {
   files: string[];
 }
 
-const left = (path: string) => path.startsWith('og/') || path === 'sw.js' || path === '_headers' || path === 'files.json';
+const left = (path: string) => path.startsWith('og/') || path.startsWith('embed/') || path.startsWith('api/') || ['sw.js', '_headers', 'files.json', 'api.js', 'llms.txt'].includes(path);
 
 export function offlineList(built: Built[]): OfflineList {
   const kept = built

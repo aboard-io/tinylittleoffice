@@ -14,6 +14,11 @@
  * A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the first number that day's documents
  * of the app in the library leave free): the name is shown in the title box and goes into the head with the
  * first change, so a blank page left alone writes nothing (Paul, 2026-10-09).
+ *
+ * A plain-parameter link ("#title=…&doc=…", kit/plain.ts) becomes the packed link on arrival; "#/compare/…"
+ * is the compare view (kit/compare.ts); a file dropped on the page opens (kit/open.ts); "…?show" opens a deck
+ * presenting; the ".embed" view is the pages alone, for another site's frame. Share also posts the link to a
+ * service's compose box (through the link guard) and copies the embed code.
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -34,7 +39,11 @@ import { store } from './store.ts';
 import { firstFree, firstWords, keep, library, localDay, type Kept } from './library.ts';
 import { pageSvg } from './draw.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
-import { canShareNative, copyText, shareNative } from './share.ts';
+import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from './share.ts';
+import { readPlain } from './plain.ts';
+import { openFile } from './open.ts';
+import { parseCompare, type Side } from './compare.ts';
+import { openLink } from './link-guard.ts';
 import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
 import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
@@ -46,6 +55,10 @@ import './menu.ts';
 import './dialog.ts';
 import './drawer.ts';
 import './home.ts';
+import './compare.ts';
+
+/** The Mastodon server a link is posted to, asked once and remembered (under Saved; for the visit under Private). */
+const MASTODON_KEY = 'tinyoffice.mastodon';
 
 /** Where the lifetime chosen for short links is remembered (under Saved; for the visit under Private). */
 const TTL_KEY = 'tinyoffice.shortTtl';
@@ -54,8 +67,15 @@ const savedTtl = () => {
   return EXPIRIES.some((x) => x.seconds === n) ? n : DEFAULT_TTL;
 };
 
+/** Where the site is served from: the page's folder, less an app's own page ("/sheet/") or the embed page's. */
+function siteDir(): string {
+  const dir = location.pathname.replace(/[^/]*$/, '');
+  const last = dir.split('/').slice(-2)[0];
+  return last && (appOf(last) || last === 'embed') ? dir.slice(0, -(last.length + 1)) : dir;
+}
+
 export class ToShell extends LitElement {
-  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { state: true } };
+  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { state: true }, comparing: { state: true }, embed: { state: true }, askMastodon: { state: true } };
   declare app: string | null;
   declare doc: Doc;
   /** The editor element's tag, once its chunk has arrived. */
@@ -84,6 +104,14 @@ export class ToShell extends LitElement {
   declare arrived: boolean;
   /** The page scrolled past the top: the banner goes small. */
   declare scrolled: boolean;
+  /** "#/compare/…": the two sides being compared, or null. */
+  declare comparing: [Side | null, Side | null] | null;
+  /** The embed view: the pages alone, for another site's frame. */
+  declare embed: boolean;
+  /** Mastodon asked for with no server known: the field for one shows. */
+  declare askMastodon: boolean;
+  /** A deck's show link: presenting starts once the editor is up. */
+  private presentSoon = false;
   /** What the editor was last given or gave: the document without the new name the link carries for it. */
   private edited: Doc = '';
   private offLanguage = () => {};
@@ -116,6 +144,9 @@ export class ToShell extends LitElement {
     this.expires = 0;
     this.arrived = false;
     this.scrolled = false;
+    this.comparing = null;
+    this.embed = false;
+    this.askMastodon = false;
   }
   createRenderRoot() {
     return this;
@@ -126,6 +157,8 @@ export class ToShell extends LitElement {
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('pagehide', this.flushKeep);
     window.addEventListener('scroll', this.onScroll, { passive: true });
+    window.addEventListener('dragover', this.onDragOver);
+    window.addEventListener('drop', this.onDrop);
     this.offLanguage = onLanguage(() => this.requestUpdate());
     this.offPictures = onPictures(() => this.requestUpdate());
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
@@ -139,6 +172,8 @@ export class ToShell extends LitElement {
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pagehide', this.flushKeep);
     window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('dragover', this.onDragOver);
+    window.removeEventListener('drop', this.onDrop);
     this.flushKeep();
     this.offLanguage();
     this.offPictures();
@@ -156,9 +191,22 @@ export class ToShell extends LitElement {
   /** The app whose own page this is ("/text/"), if any. */
   private pageApp = () => location.pathname.split('/').slice(-2)[0];
 
+  /** A plain-parameter link, made the packed link it stands for (the address replaced: Back does not return to it). */
+  private unplain() {
+    const plain = readPlain(location.hash, this.pageApp(), (id) => !!appOf(id));
+    if (!plain) return;
+    const def = appOf(plain.app)!;
+    const doc = plain.title ? def.retitle(plain.text, plain.title) : plain.text;
+    const view = plain.view === 'show' ? '' : plain.view;
+    history.replaceState(null, '', routeHash(def.id, encodeDoc(doc), view) + (plain.view === 'show' ? '?show' : ''));
+  }
+
   private onHash = () => {
     this.flushKeep();
-    const { app, payload, view, owned, display, arrived } = parseHash(location.hash);
+    this.unplain();
+    this.comparing = parseCompare(location.hash);
+    const { app, payload, view: asked, owned, display, arrived, show } = parseHash(location.hash);
+    const view = asked === 'embed' ? '' : asked;
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     const def = id ? appOf(id) : undefined;
     this.app = def ? id : null;
@@ -172,6 +220,8 @@ export class ToShell extends LitElement {
     // Show pictures from the web is remembered for this document, as it arrived, for the visit.
     setPictureDoc(def ? routeHash(def.id, payload) : '');
     this.display = !!def && display && !!payload;
+    this.embed = !!def && asked === 'embed' && !!payload;
+    this.presentSoon = !!def && !!show && !display && !this.embed;
     // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
     if (owned && display) this.shortDisplay = true;
     this.expires = def && arrived ? arrived.expires : 0;
@@ -203,6 +253,28 @@ export class ToShell extends LitElement {
       toast(t('Download failed'));
     }
   }
+
+  /** Once the editor is up, a show link starts presenting (an app with nothing to present ignores it). */
+  protected updated() {
+    const editor = this.editor as (Editor & { present?: (fromLink?: boolean) => void }) | null;
+    if (!this.presentSoon || !editor) return;
+    this.presentSoon = false;
+    void (editor as unknown as { updateComplete?: Promise<unknown> }).updateComplete?.then(() => editor.present?.(true));
+  }
+
+  /* ---------- a file dropped on the page ---------- */
+
+  private onDragOver = (e: DragEvent) => {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  private onDrop = (e: DragEvent) => {
+    const file = e.dataTransfer?.files[0];
+    if (!file) return;
+    e.preventDefault();
+    void openFile(file, this.app ?? this.pageApp());
+  };
 
   /** The document is now `doc`: into the link with it. */
   private change(doc: Doc) {
@@ -466,8 +538,80 @@ export class ToShell extends LitElement {
         <h3 id="to-share-short-h">${t('Short link that expires')}</h3>
         ${this.short ? this.renderMade(this.short) : this.owned ? this.renderOwned(this.owned) : this.renderMaker()}
       </section>
+      ${this.renderPost()}
       ${this.renderQr()}
+      ${this.renderEmbedCode()}
       ${this.renderKept()}`;
+  }
+
+  /** A deck's show link: the same deck, opening already presenting. */
+  get showLink(): string {
+    return `${this.link}?show`;
+  }
+
+  /** The link to a service's compose box: Bluesky, Mastodon (its server asked once), X, LinkedIn, Email; each opened through the link guard. */
+  private post(service: Service) {
+    const server = mastodonHost(store.get(MASTODON_KEY) ?? '');
+    if (service === 'mastodon' && !server) {
+      this.askMastodon = true;
+      void this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.to-mastodon-server')?.focus());
+      return;
+    }
+    openLink(shareUrl(service, this.docTitle, this.link, server));
+  }
+  private setMastodon(e: Event) {
+    e.preventDefault();
+    const box = this.querySelector<HTMLInputElement>('.to-mastodon-server')!;
+    const host = mastodonHost(box.value);
+    box.setCustomValidity(host ? '' : t('A Mastodon server, like mastodon.social'));
+    if (!box.reportValidity()) return;
+    store.set(MASTODON_KEY, host);
+    this.askMastodon = false;
+    this.post('mastodon');
+  }
+  private renderPost() {
+    const server = mastodonHost(store.get(MASTODON_KEY) ?? '');
+    return html`<section class="to-share-section to-share-post" aria-labelledby="to-share-post-h">
+      <h3 id="to-share-post-h">${t('Post the link')}</h3>
+      <div class="to-post">${SERVICES.map(
+        (s) => html`<button type="button" class="to-btn to-post-${s}" @click=${() => this.post(s)}>${icon(s === 'email' ? UI.mail : UI.post, 16)}<span>${SERVICE_NAMES[s]}</span></button>`,
+      )}</div>
+      ${this.askMastodon || server
+        ? html`<form class="to-share-field to-mastodon" @submit=${(e: Event) => this.setMastodon(e)}>
+            <input type="text" class="to-mastodon-server" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label=${t('Your Mastodon server')} placeholder="mastodon.social" .value=${server} />
+            <button type="submit" class="to-btn">${server ? t('Change') : t('Post')}</button>
+          </form>`
+        : nothing}
+      ${this.app === 'deck' ? html`<button type="button" class="to-btn to-copy-show" @click=${() => void copyText(this.showLink)}>${icon(UI.play, 16)}<span>${t('Copy show link')}</span></button><p class="to-hint">${t('Opens the deck already presenting.')}</p>` : nothing}
+    </section>`;
+  }
+  /** The embed code: the document's pages in another site's page, in a frame. */
+  get embedLink(): string {
+    const u = new URL(location.href);
+    u.pathname = `${siteDir()}embed/`;
+    u.search = '';
+    u.hash = routeHash(this.app!, parseHash(location.hash).payload, 'embed');
+    return u.href;
+  }
+  private renderEmbedCode() {
+    return html`<section class="to-share-section to-share-embed" aria-labelledby="to-share-embed-h">
+      <h3 id="to-share-embed-h">${t('Embed')}</h3>
+      <p class="to-hint">${t('The pages, in a frame on another site, with a link to open them here.')}</p>
+      <button type="button" class="to-btn to-copy-embed" @click=${() => void copyText(embedCode(this.embedLink, this.docTitle), t('Embed code copied'))}>${icon(UI.code, 16)}<span>${t('Copy embed code')}</span></button>
+    </section>`;
+  }
+
+  /** The embed view: the pages alone, one under another, with the title and Open in Tiny Little Office over them. */
+  private renderEmbed(def: AppDef) {
+    const { payload } = parseHash(location.hash);
+    const u = new URL(location.href);
+    u.pathname = siteDir();
+    u.hash = routeHash(def.id, payload);
+    return html`<header class="to-embed-head">
+        <span class="to-embed-title">${this.docTitle}</span>
+        <a class="to-btn to-embed-open" href=${u.href} target="_blank" rel="noopener">${icon(UI.open, 16)}<span>${t('Open in Tiny Little Office')}</span></a>
+      </header>
+      <main class="to-display to-embed">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>`;
   }
 
   /** Link or Display Link: a pair of buttons, the one chosen pressed. */
@@ -582,9 +726,11 @@ export class ToShell extends LitElement {
 
   render() {
     const def = this.def;
+    if (def && this.embed && !this.unreadable) return this.renderEmbed(def);
     if (def && this.display && !this.unreadable) return this.renderDisplay(def);
     let main;
-    if (!def) main = html`<to-home></to-home>`;
+    if (this.comparing) main = html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>`;
+    else if (!def) main = html`<to-home></to-home>`;
     else if (this.unreadable) main = html`<div class="to-empty"><p>${t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
     else if (!this.tag) main = html`<div class="to-empty to-loading" aria-busy="true">${t('Loading…')}</div>`;
     else {

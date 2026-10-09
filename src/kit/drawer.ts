@@ -4,6 +4,8 @@
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
  * Theme; About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
+ * Open a file… (a .tlo, a .md, a .txt: kit/open.ts) and Compare… (this document beside another link:
+ * kit/compare.ts) sit above the switches.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { apps } from './apps.ts';
@@ -18,6 +20,9 @@ import { offlineState, onOffline, setOffline } from './offline.ts';
 import { toast } from './toast.ts';
 import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
 import { mark } from './mark.ts';
+import { openFile, OPENS } from './open.ts';
+import { compareHash } from './compare.ts';
+import { parseHash } from './route.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import './preview.ts';
 import type { ToDialog } from './dialog.ts';
@@ -73,6 +78,18 @@ export class ToDrawer extends LitElement {
     toast(keeping() ? t('Saved on this device from now on') : t('Private: nothing saved'));
   }
 
+  /** A file chosen: opened as a document (the drawer closes as the address changes). */
+  private opened(input: HTMLInputElement) {
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) void openFile(file, parseHash(location.hash).app ?? location.pathname.split('/').slice(-2)[0]);
+  }
+  /** Compare, beginning with the document open now (if one is). */
+  private compareHref(): string {
+    const { app, payload } = parseHash(location.hash);
+    return compareHash(app && payload ? { app, payload } : null);
+  }
+
   /** What Find finds: apps (by name and blurb), templates (by name, blurb and app), kept documents (by title), each under its heading. */
   private renderFound(want: string, kept: ReturnType<typeof library>): TemplateResult {
     const has = (...words: string[]) => words.some((w) => w.toLowerCase().includes(want));
@@ -112,6 +129,11 @@ export class ToDrawer extends LitElement {
                       </div>`,
                     )}
               </nav>
+              <section class="to-drawer-section to-drawer-files">
+                <button type="button" class="to-btn to-drawer-open" @click=${() => this.querySelector<HTMLInputElement>('.to-open-input')?.click()}>${icon(UI.openFile, 18)}<span>${t('Open a file…')}</span></button>
+                <input type="file" class="to-open-input" hidden accept=${OPENS} @change=${(e: Event) => this.opened(e.target as HTMLInputElement)} />
+                <a class="to-btn to-drawer-compare" href=${this.compareHref()} @click=${() => this.close()}>${icon(UI.compare, 18)}<span>${t('Compare…')}</span></a>
+              </section>
               <section class="to-drawer-section">
                 <label class="to-switch">
                   <input type="checkbox" role="switch" .checked=${keeping()} @change=${(e: Event) => void this.togglePrivate(e)} />

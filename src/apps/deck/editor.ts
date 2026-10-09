@@ -89,6 +89,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   declare sheets: boolean;
   /** The sub-document's menu is open. */
   declare subMenu: boolean;
+  /** Presenting began with the deck's show link ("?show"): the way out says "Edit this deck". */
+  private fromLink = false;
   /** The selection the editor last reported, and which box it was in. */
   private sel: Sel | null = null;
   private field: Field = 'title';
@@ -612,6 +614,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.forwards = i >= this.showing;
     if (this.leaving >= 0) this.settle = window.setTimeout(() => (this.leaving = -1), 650);
     const was = this.showing;
+    if (i < 0) this.fromLink = false;
     this.showing = i;
     this.shown = shown;
     // Into the show, the focus goes with it: no key reaches the box behind.
@@ -621,6 +624,11 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     }
     // Out of the show, the focus comes back to the button that began it.
     if (i < 0 && was >= 0) void this.updateComplete.then(() => this.querySelector<HTMLButtonElement>('button.deck-present')?.focus({ preventScroll: true }));
+  }
+  /** Present from the first slide: what a show link ("…?show", kit/route.ts) asks of the deck on arrival. */
+  present(fromLink = false) {
+    this.fromLink = fromLink;
+    if (this.slides.length) this.show(0);
   }
   private forward() {
     if (this.shown < this.steps()) this.shown++;
@@ -855,7 +863,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       <div class="ctl" role="group" aria-label=${t('Presentation')} @click=${(e: Event) => e.stopPropagation()}>
         ${tool({ label: t('Previous'), icon: ChevronUp, disabled: this.showing === 0 && this.shown === 0, does: () => this.back() })}
         ${tool({ label: t('Next'), icon: ChevronDown, does: () => this.forward() })}
-        ${tool({ label: t('Stop presenting'), icon: UI.close, keys: 'Esc', does: () => this.show(-1) })}
+        ${tool({ label: this.fromLink ? t('Edit this deck') : t('Stop presenting'), icon: UI.close, keys: 'Esc', does: () => this.show(-1) })}
       </div>
       <span class="pos">${this.showing + 1} / ${total}</span>
       ${s?.noteLines.length && this.noting ? html`<div class="notes" @click=${(e: Event) => e.stopPropagation()}><b>${t('Notes')}</b> ${s.noteLines.map((ln) => html`<p>${ln}</p>`)}<small>${t('N hides them')}</small></div>` : nothing}
