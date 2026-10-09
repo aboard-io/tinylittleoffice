@@ -176,15 +176,17 @@ Connections: `~ A -> B: label` for an arrow, `~ A -- B` for a line. `- name` is 
 
 ### site: a website of little pages
 
-`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a line that is only a picture's address a picture, and a fence another document. `theme: teal serif dark` in the header sets the look.
+`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a line that is only a picture's address a picture, a line that is only `:icon:` a big icon, and a fence another document. `theme: forest` in the header sets the look: one of indigo, teal, rose, amber, ink, forest, ocean, sunset, plum, candy, olive, slate, paper, typewriter, midnight, coal (each its own colours, type and corners), with `serif`, `sans`, `rounded` or `mono` to change the type and `dark` or `light` to change the mode (`theme: teal serif dark`).
 
 {{ex:site:Harbor Coffee}}
 
-### store: a shop page with a cart
+A table `Name | Price:money | About | Image` in a section is a shop: a grid of products with a cart. The header holds `currency: $` and `orders: someone@example.com` (where orders are emailed).
 
-`# Name` and a line about it; products in a table `Name | Price:money | About | Image`. The header holds `currency: $` and `orders: someone@example.com` (where orders are emailed).
+### links: a link-in-bio page
 
-{{ex:store:Shop}}
+`# Name`, `![](https://… a picture)` (or `:icon:` for a big icon), a line about you; `> :icon: Label | https://…` for each button; `- :camera: Instagram | https://…` for a small icon at the foot; `theme: candy` for the look, the same themes as a website's. Icons are from the suite's own set (camera, film, music, mail, globe, phone, map-pin, calendar, cart, book…).
+
+{{ex:links:Ada Diaz}}
 
 ### invoice: an invoice
 
@@ -309,7 +311,7 @@ After `#/v0/<app>/` comes one letter and then base64url bytes: the document's TL
 - People and reporting lines: `org`. Ideas branching from one topic: `mind`. Notes in a tree: `outline`.
 - A process with handoffs: `lanes`. Systems and what talks to what: `net`. Overlapping categories: `venn`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
-- A wall of ideas or a retro: `board`. Something to publish: `site`, `store`, `invoice`.
+- A wall of ideas or a retro: `board`. Something to publish: `site`, `links`, `invoice`.
 - Anything else visual: `draw`.
 
 ## Without a browser

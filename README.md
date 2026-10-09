@@ -22,8 +22,8 @@ you have copied the file.
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note; or just dots on the map. |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
-| Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
-| Store | A shop page with a working cart; orders go by email. |
+| Website | A site of little pages from a few lines, with a shop (a table of products, a cart, orders by email) if it lists what it sells; many themes; edited on the page itself, a "+" where anything can go; downloads as one HTML file with the pages switched by hash. |
+| Quick Links | A link-in-bio page: a picture, a line about you, a stack of buttons, the places you are at the foot. |
 | Invoice | A form laid out like the paper: who, what, how much; the sums done as you type, a PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
 | Zine | A tiny deck, edited as Deck is: eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
@@ -35,7 +35,7 @@ you have copied the file.
 | Games | Word search, Spinner. |
 | Together | Secret Santa (a private link per person), Split the bill. |
 
-An empty Write, Sheet or Deck opens with its templates over it, Blank the
+An empty Write, Sheet, Deck or Quick Links opens with its templates over it, Blank the
 first card, and offers them again from "Start from a template…" in the
 toolbar while it stays empty: a dialog of templates, each drawn
 small by the app itself, and one undo brings the blank page back. The
@@ -247,10 +247,19 @@ Every format is plain text, chosen so deflate has something to chew on.
   in the header.
 - **Website** (TLO): `# Name` and a line about it, a further `# Title` for
   each further page, `## Section` within a page, `- Point | detail` cards,
-  `> Label | url` buttons, a fenced document for another document on the
-  page, `theme: amber serif dark` for the look. A line that is only a
-  picture's address is a picture. The home page is what comes before the
-  second `#`; a site with one is one page navigated by its sections.
+  `> Label | url` buttons, `![](url)` (or a line that is only a picture's
+  address) a picture, a line that is only `:icon:` a big icon, a table
+  `Name | Price | About | Image` the products of a shop (with `currency:`
+  and `orders:` in the header), a fenced document for another document on
+  the page, `theme: forest serif dark` for the look (one of sixteen themes
+  in `src/lib/sitemodel.ts`, each a palette, a type and a corner; a type
+  and a mode after it change those alone). The home page is what comes
+  before the second `#`; a site with one is one page navigated by its
+  sections. The editor is the page itself: words typed where they stand, a
+  "+" at the end of each part for what can go there, icons tapped to
+  change, pages and sections moved or taken away by the buttons on their
+  headings (`src/lib/pageedit.ts`). **Quick Links** is the same with one
+  page: `- :icon: Label | url` lines are the small links at its foot.
 - **Calendar**: an optional `@Zone/Name` line (the zone the document was last
   edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
   span whose start is a day count from 2020-01-01: a floating civil date, the
@@ -268,7 +277,7 @@ Every format is plain text, chosen so deflate has something to chew on.
 
 Every TinyLittleOffice component renders into light DOM, so there is no CSS hidden
 in shadow roots. The look lives in `src/styles.css` (three apps keep a
-sheet of their own beside their editor: `anim.css`, `calc.css`, `outline.css`):
+sheet of their own beside their editor: `anim.css`, `calc.css`, `invoice.css`, `outline.css`, `site.css`, `web.css`):
 
 1. **Tokens.** Shoelace's design tokens are overridden at the top of the file
    (accent ramp, fonts, radii) and a small set of `--to-*` variables is built
@@ -365,7 +374,7 @@ import { link, parse, lint, compare, evaluateSheet, runModel, templates } from '
 some of its named cells changed, and gives back its flows and every named
 cell's value.
 
-`templates('write')` (or `'sheet'`, `'deck'`) is the list a person is offered
+`templates('write')` (or `'sheet'`, `'deck'`, `'links'`) is the list a person is offered
 on an empty document: each a name, a line on what it is for, and its body in
 the app's format, ready for `link()` or to be filled in by a program.
 
@@ -593,7 +602,7 @@ check in a real browser too (about half a minute more). `-- --full` runs
 every browser test first; `-- --dry-run` checks without shipping.
 
 The Content-Security-Policy allows no inline script. The scripts of the
-pages apps make (a store's cart, a game, the in-place editing of a page
+pages apps make (a shop's cart, a game, the in-place editing of a page
 preview) are fixed texts registered with `pageScript()` and hashed into
 the policy at build time; a page's data travels beside its script as JSON
 (`pageData()`), never inside it. A test checks that every page keeps to

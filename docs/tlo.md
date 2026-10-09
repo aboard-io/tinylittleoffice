@@ -128,17 +128,22 @@ or `until=2027-06-01`; a timed span over midnight is
 `currency` and `terms`. The lines are a table `What | Qty:number | Units |
 Price:money`. Notes are paragraphs.
 
-**store**: `# Name` and a paragraph about it. The header holds `currency`
-and `orders`. Products are a table `Name | Price:money | About | Image:url`.
-
 **menu**: `# Name` and a paragraph about it. Each `## Section` is followed
 by a table `Dish | Price:money | About`.
 
 **site**: `# Name` and a line about it; each further `# Title` starts a
 page, and `## Section` a part of one. `- :icon: Point | detail` is a card,
 `> Label | https://…` a button, a line that is only a picture's address a
-picture. The header holds `theme: teal serif dark`. (A page break written
-`---` reads too.)
+picture, a line that is only `:icon:` a big icon. A table `Name |
+Price:money | About | Image` is a shop: a grid of products with a cart; the
+header holds `currency` and `orders` (the address orders are mailed to).
+The header holds `theme: teal serif dark`: a named theme, and a type and a
+mode if they are not the theme's own. (A page break written `---` reads
+too.)
+
+**links**: a website of one page: `# Name`, a picture or a big icon, a line
+of words, `> :icon: Label | https://…` buttons, and `- :icon: Label |
+https://…` small links at the foot.
 
 **adventure**: `# Title`, then `## scene` headings with the story as
 paragraphs. Choices are links to scenes: `- [Climb to the lamp](#lamp)`.

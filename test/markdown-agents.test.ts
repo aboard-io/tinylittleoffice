@@ -100,7 +100,7 @@ const AGENT: Record<string, { md: string; check(body: string): void }> = {
       assert.equal(site.name, 'Ada Diaz');
       assert.deepEqual(site.pages.map((p) => p.title), ['', 'About']);
       assert.deepEqual(site.pages[0].sections[0].buttons.map((x) => x.url), ['https://example.com/shop', 'https://instagram.com/ada']);
-      assert.deepEqual(site.pages[0].sections[1].points, [{ icon: '', head: '**Mugs**', detail: 'Thrown by hand' }]);
+      assert.deepEqual(site.pages[0].sections[1].points, [{ icon: '', head: '**Mugs**', detail: 'Thrown by hand', row: 5 }]);
     },
   },
 };

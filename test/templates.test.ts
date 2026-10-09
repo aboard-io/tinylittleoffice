@@ -8,6 +8,8 @@ import { parseDoc, serializeDoc } from '../src/lib/richtext.ts';
 import * as formula from '../src/lib/formula.ts';
 import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr, deckTheme } from '../src/lib/deckmodel.ts';
 import { toMarkdown } from '../src/lib/markdown.ts';
+import { readSite } from '../src/lib/sitemodel.ts';
+import { LINKS_FORM } from '../src/apps/links.def.ts';
 import * as T from '../src/api.ts';
 
 const { readSheet, serializeGrid } = formula;
@@ -17,6 +19,7 @@ const rewrite: Record<string, (body: string) => string> = {
   write: (b) => serializeDoc(parseDoc(b)),
   sheet: (b) => ((s) => serializeGrid(s.grid, s.chart, s.types, s.names, s.lock))(readSheet(b)),
   deck: (b) => serializeDeck(parseDeck(b), deckTransition(b), deckIconColor(b), deckEndsWithQr(b), deckTheme(b)),
+  links: (b) => readSite(b, LINKS_FORM),
 };
 
 test('every template is in its app\'s own spelling, draws, and has a name and a line', () => {

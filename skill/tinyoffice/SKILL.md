@@ -104,15 +104,17 @@ https://tinylittleoffice.com/net/#title=System&doc=~+Web+-%3E+API%3A+requests%0A
 
 ### site: a website of little pages
 
-`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a line that is only a picture's address a picture, and a fence another document. `theme: teal serif dark` in the header sets the look.
+`# Name` and a line about it; each further `# Title` starts a page, `## Section` a part of one. `- :icon: Point | detail` makes a card, `> Label | https://…` a button (`#page-or-section` links within the site), a line that is only a picture's address a picture, a line that is only `:icon:` a big icon, and a fence another document. `theme: forest` in the header sets the look: one of indigo, teal, rose, amber, ink, forest, ocean, sunset, plum, candy, olive, slate, paper, typewriter, midnight, coal (each its own colours, type and corners), with `serif`, `sans`, `rounded` or `mono` to change the type and `dark` or `light` to change the mode (`theme: teal serif dark`).
 
-https://tinylittleoffice.com/site/#title=Harbor+Coffee&doc=---%0Atheme%3A+amber+serif%0A---%0A%23+Harbor+Coffee%0A%0ASmall-batch+coffee%2C+roasted+on+the+quay+every+morning.%0A%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A%0A-+%3Acoffee%3A+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf%3A+Fair+trade+%7C+Bought+direct+from+six+farms%0A-+%3Abike%3A+Delivered+%7C+By+bike%2C+across+the+old+town%0A%0A%23+Menu%0A%0AEspresso%2C+filter%2C+and+a+pastry+case+that+empties+by+ten.%0A%0A%23%23+Coffee%0A%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A%0A%23%23+Pastry%0A%0A-+Cardamom+bun+%7C+3.50%0A%0A%23+Find+us%0A%0A14+Quay+Street%2C+open+7+to+3%2C+every+day+but+Monday.%0A%0A%3E+Email+us+%7C+mailto%3Ahello%40example.com
+https://tinylittleoffice.com/site/#title=Harbor+Coffee&doc=---%0Atheme%3A+amber%0A---%0A%23+Harbor+Coffee%0A%0ASmall-batch+coffee%2C+roasted+on+the+quay+every+morning.%0A%0A%3E+See+the+menu+%7C+%23menu%0A%3E+Find+us+%7C+%23find-us%0A%0A-+%3Acoffee%3A+Roasted+daily+%7C+Never+more+than+a+week+old%0A-+%3Aleaf%3A+Fair+trade+%7C+Farms+we+have+visited%0A-+%3Abike%3A+Delivered+%7C+By+bike%2C+on+the+day%0A%0A%23+Menu%0A%0AWhat+we+pour%2C+and+what+we+bake.%0A%0A%23%23+Coffee%0A%0A-+Espresso+%7C+3.00%0A-+Flat+white+%7C+4.20%0A%0A%23%23+Pastry%0A%0A-+Cardamom+bun+%7C+3.50%0A%0A%23+Find+us%0A%0A14+Quay+Street%2C+open+7+to+3%2C+every+day+but+Monday.%0A%0A%3E+Email+us+%7C+mailto%3Ahello%40example.com
 
-### store: a shop page with a cart
+A table `Name | Price:money | About | Image` in a section is a shop: a grid of products with a cart. The header holds `currency: $` and `orders: someone@example.com` (where orders are emailed).
 
-`# Name` and a line about it; products in a table `Name | Price:money | About | Image`. The header holds `currency: $` and `orders: someone@example.com` (where orders are emailed).
+### links: a link-in-bio page
 
-https://tinylittleoffice.com/store/#title=Shop&doc=---%0Acurrency%3A+%24%0Aorders%3A+orders%40example.com%0A---%0A%23+Harbor+Coffee+Shop%0A%0ABeans+and+things%2C+posted+on+Fridays.%0A%0AName+%7C+Price%3Amoney+%7C+About+%7C+Image%0A---+%7C+---+%7C+---+%7C+---%0AHouse+blend%2C+250g+%7C+12.50+%7C+Chocolate+and+orange.+Good+for+anything.+%7C%0AQuay+espresso%2C+250g+%7C+14.00+%7C+Dark%2C+syrupy%2C+made+for+milk.+%7C%0AFilter+papers+%7C+4.00+%7C+A+hundred%2C+unbleached.+%7C%0ATin+mug+%7C+9.00+%7C+Enamel.+Survives+the+boat.+%7C
+`# Name`, `![](https://… a picture)` (or `:icon:` for a big icon), a line about you; `> :icon: Label | https://…` for each button; `- :camera: Instagram | https://…` for a small icon at the foot; `theme: candy` for the look, the same themes as a website's. Icons are from the suite's own set (camera, film, music, mail, globe, phone, map-pin, calendar, cart, book…).
+
+https://tinylittleoffice.com/links/#title=Ada+Diaz&doc=---%0Atheme%3A+rose%0A---%0A%23+Ada+Diaz%0A%0A%21%5B%5D%28https%3A%2F%2Fimages.unsplash.com%2Fphoto-1544005313-94ddf0286df2%3Fw%3D400%29%0A%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0A%0A%3E+%3Acart%3A+The+shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Acalendar%3A+Book+a+class+%7C+https%3A%2F%2Fexample.com%2Fclasses%0A%3E+%3Amail%3A+Email+me+%7C+mailto%3Aada%40example.com%0A%0A-+%3Acamera%3A+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A-+%3Afilm%3A+YouTube+%7C+https%3A%2F%2Fyoutube.com%2F%40ada
 
 ### invoice: an invoice
 
@@ -215,7 +217,7 @@ After `#/v0/<app>/` comes one letter and then base64url bytes: the document's TL
 - People and reporting lines: `org`. Ideas branching from one topic: `mind`. Notes in a tree: `outline`.
 - A process with handoffs: `lanes`. Systems and what talks to what: `net`. Overlapping categories: `venn`.
 - Dates and durations: `gantt` for tasks, `cal` for events.
-- A wall of ideas or a retro: `board`. Something to publish: `site`, `store`, `invoice`.
+- A wall of ideas or a retro: `board`. Something to publish: `site`, `links`, `invoice`.
 - Anything else visual: `draw`.
 
 ## Without a browser

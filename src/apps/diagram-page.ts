@@ -2,13 +2,14 @@
  * The page view: the document as a web page in a sandboxed frame of its
  * own (its scripts run, but it cannot reach this one). With a form, the
  * page is editable in place: every field whose words appear in it can be
- * typed into, and a bar along the bottom adds rows. Changes come back as
+ * typed into, and a "+" where it stands adds rows. Changes come back as
  * messages, the only way the frame can speak to us.
  */
 import { html, state, fontsForPictures, slug, type TemplateResult } from '../kit.ts';
 import { DiagramElement } from './diagram.ts';
 import { EDIT_SCRIPT, PLACE_SCRIPT, editData, placeData } from '../lib/pageedit.ts';
-import { blockEnd, fieldsOf, headLevel, kindsOf, movePart, readLines, removePart, removeRow, writeLines, type Row } from '../lib/lines.ts';
+import { chooseIcon } from '../widgets/icon-picker.ts';
+import { blockEnd, fieldsOf, headLevel, kindsOf, movePart, readLines, removePart, removeRow, withValue, writeLines, type Row } from '../lib/lines.ts';
 
 export class PageView extends DiagramElement {
   /** The fonts, as CSS, for the page shown in its frame. */
@@ -86,20 +87,6 @@ export class PageView extends DiagramElement {
       this.focusRow = focus;
       this.requestUpdate();
     };
-    // A new row starts with its fields' names as its words, so it shows up on the page to be typed into (a number where a number is wanted).
-    const fresh = (kind: number): Row => ({
-      kind,
-      values: fieldsOf(form, kind).map((f) => (f.optional ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
-      depth: 0,
-    });
-    // Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last.
-    const slot = (kind: number, after: number) => {
-      const k = kinds[kind];
-      const top = rows.findIndex((r) => !kinds[r.kind].once || (k.once && r.kind > kind));
-      const base = top < 0 ? rows.length : top;
-      if (k.once) return base;
-      return after >= 0 && after < rows.length ? Math.max(base, k.indent ? blockEnd(rows, form, after) : after + 1) : rows.length;
-    };
     const hold = () => (this.held ??= this.lastSrc);
     if (m.lf === 'focus') this.pageRow = now(m.r!);
     else if (m.lf === 'set') {
@@ -108,7 +95,7 @@ export class PageView extends DiagramElement {
       let r = m.r === undefined ? madeAt(m.k!) : now(m.r);
       if (r < 0) {
         // A hint typed into: its row is made, blank but for this field.
-        r = slot(m.k!, -1);
+        r = this.slotFor(rows, m.k!, -1);
         rows.splice(r, 0, { kind: m.k!, values: fieldsOf(form, m.k!).map(() => ''), depth: 0 });
         this.born.push({ kind: m.k!, at: r });
       }
@@ -137,22 +124,10 @@ export class PageView extends DiagramElement {
     } else if (m.lf === 'enter' || m.lf === 'add') {
       const after = m.r !== undefined ? now(m.r) : this.pageRow;
       const kind = m.lf === 'add' ? m.k! : rows[after]?.kind;
-      if (kind === undefined) return;
-      const k = kinds[kind];
-      // With no row being typed in, a heading goes in the part on show.
-      const near = after >= 0 ? after : (this.parts(rows).find((p) => '#' + p[0] === this.pageHash)?.[1] ?? -1);
-      let at = slot(kind, near);
-      const level = headLevel(form, kind);
-      if (level && !k.once) {
-        // A heading goes after the part it belongs in: the heading of its level (or above) that holds the row, with all that is under it; before the first such heading when none does (a new page after the home page).
-        let enclosing = Math.min(near, rows.length - 1);
-        while (enclosing >= 0 && !(headLevel(form, rows[enclosing].kind) && headLevel(form, rows[enclosing].kind) <= level)) enclosing--;
-        const first = rows.findIndex((r) => headLevel(form, r.kind) && headLevel(form, r.kind) <= level);
-        at = enclosing >= 0 ? blockEnd(rows, form, enclosing) : first >= 0 ? first : rows.length;
-      }
-      this.release();
-      this.focusRow = at;
-      this.putRows([...rows.slice(0, at), fresh(kind), ...rows.slice(at)]);
+      if (kind !== undefined) this.addRow(kind, after);
+    } else if (m.lf === 'icon') {
+      const r = now(m.r!);
+      if (rows[r]) void this.pickIcon(r, m.f!);
     } else if (m.lf === 'remove') {
       const r = m.r !== undefined ? now(m.r) : this.pageRow;
       if (!rows[r]) return;
@@ -170,6 +145,66 @@ export class PageView extends DiagramElement {
     }
   };
 
+  /** A new row starts with its fields' names as its words, so it shows up on the page to be typed into (a number where a number is wanted; a star where the row is only an icon). */
+  private fresh(kind: number): Row {
+    const form = this.spec.form!;
+    const fields = fieldsOf(form, kind);
+    const onlyIcon = fields.every((f) => f.type === 'icon');
+    return {
+      kind,
+      values: fields.map((f) => (f.optional ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? (onlyIcon ? 'star' : '') : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
+      depth: 0,
+    };
+  }
+  /** Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last. */
+  private slotFor(rows: Row[], kind: number, after: number) {
+    const form = this.spec.form!;
+    const { kinds } = kindsOf(form);
+    const k = kinds[kind];
+    const top = rows.findIndex((r) => !kinds[r.kind].once || (k.once && r.kind > kind));
+    const base = top < 0 ? rows.length : top;
+    if (k.once) return base;
+    return after >= 0 && after < rows.length ? Math.max(base, k.indent ? blockEnd(rows, form, after) : after + 1) : rows.length;
+  }
+  /**
+   * A new row of a kind, after a row (the one being typed in, if none is
+   * said; with none, in the part on show), with the cursor in it. A row
+   * that is only an icon opens the icon picker instead. The Insert menu
+   * and the "+" on the page both come here.
+   */
+  protected addRow(kind: number, after = this.pageRow) {
+    const form = this.spec.form!;
+    const rows = readLines(this.textOf(this.doc), form);
+    const { kinds } = kindsOf(form);
+    const k = kinds[kind];
+    if (!k) return;
+    const near = after >= 0 ? after : (this.parts(rows).find((p) => '#' + p[0] === this.pageHash)?.[1] ?? -1);
+    let at = this.slotFor(rows, kind, near);
+    const level = headLevel(form, kind);
+    if (level && !k.once) {
+      // A heading goes after the part it belongs in: the heading of its level (or above) that holds the row, with all that is under it; before the first such heading when none does (a new page after the home page).
+      let enclosing = Math.min(near, rows.length - 1);
+      while (enclosing >= 0 && !(headLevel(form, rows[enclosing].kind) && headLevel(form, rows[enclosing].kind) <= level)) enclosing--;
+      const first = rows.findIndex((r) => headLevel(form, r.kind) && headLevel(form, r.kind) <= level);
+      at = enclosing >= 0 ? blockEnd(rows, form, enclosing) : first >= 0 ? first : rows.length;
+    }
+    this.release();
+    this.focusRow = at;
+    this.putRows([...rows.slice(0, at), this.fresh(kind), ...rows.slice(at)]);
+    if (fieldsOf(form, kind).every((f) => f.type === 'icon')) void this.pickIcon(at, 0);
+  }
+  /** The icon picker for field f of row r (a card's, a button's, the big one); "No icon" takes it away, and a row that was only an icon goes with it. */
+  private async pickIcon(r: number, f: number) {
+    const form = this.spec.form!;
+    const current = readLines(this.textOf(this.doc), form)[r]?.values[f];
+    const name = await chooseIcon({ current, none: true });
+    if (name === null) return;
+    const rows = readLines(this.textOf(this.doc), form);
+    if (!rows[r]) return;
+    this.release();
+    this.putRows(withValue(rows, r, f, () => name));
+  }
+
   /** The page as it stands, for its frame: the example while nothing is written. */
   private pageHtml(): string {
     const spec = this.spec;
@@ -185,7 +220,7 @@ export class PageView extends DiagramElement {
 
   /**
    * The page, made editable in place: every field whose words appear in
-   * it as they are can be typed into; a bar along the bottom adds rows.
+   * it as they are can be typed into; a "+" where it stands adds rows.
    * Changes come back as messages (the frame is sandboxed: this is the
    * only way it can speak to us), and are written into the text. Null
    * while nothing is written, unless the page has fields to type into
@@ -211,10 +246,10 @@ export class PageView extends DiagramElement {
     if (key !== this.stamped) (this.stamped = key), this.stamp++;
     const script = `<style>[data-lf]{outline:1px dashed rgba(79,70,229,.5);outline-offset:2px;border-radius:3px;cursor:text;min-width:1ch;display:inline-block}[data-lf]:focus{outline:2px solid #4f46e5;background:#eef2ff;color:#18181b}
 [data-lf]:empty::before{content:attr(data-hint);color:#a1a1aa;font-weight:400}
-#lf-bar{position:fixed;left:0;right:0;bottom:0;z-index:9;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 10px;background:rgba(255,255,255,.96);border-top:1px solid #e4e4e7;font:13px system-ui,sans-serif}
-#lf-bar button{font:inherit;padding:5px 11px;border:1px dashed #4f46e5;background:#fff;color:#4338ca;border-radius:999px;cursor:pointer}#lf-bar button:focus-visible{outline:2px solid #4f46e5}
-#lf-x{margin-left:auto;border-color:#dc2626;color:#b91c1c}#lf-bar span{color:#52525b;margin-right:4px}</style>
-${placeData(this.pageHash)}${PLACE_SCRIPT}${editData(values, adds, focus, this.stamp, this.parts(rows))}${EDIT_SCRIPT}`;
+.lf-menu{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;padding:8px;background:#fff;border:1px solid #e4e4e7;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);font:13px system-ui,sans-serif;color:#18181b}
+.lf-menu button{font:inherit;padding:5px 11px;border:1px dashed #4f46e5;background:#fff;color:#4338ca;border-radius:999px;cursor:pointer}.lf-menu button:focus-visible,.lf-plus:focus-visible{outline:2px solid #4f46e5}
+.lf-foot{margin:1.5rem 0}.lf-foot .lf-plus{display:inline-grid;place-items:center;width:2rem;height:2rem;padding:0;border-radius:50%;border:1px dashed #4f46e5;background:#fff;color:#4338ca;font:600 1.2rem/1 system-ui,sans-serif;cursor:pointer}</style>
+${placeData(this.pageHash)}${PLACE_SCRIPT}${editData(values, adds, focus, this.stamp)}${EDIT_SCRIPT}`;
     return this.framed(page, script);
   }
 
