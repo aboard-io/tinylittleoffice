@@ -424,6 +424,7 @@ export default {
   'Bring to front': 'Bring to front',
   'Send to back': 'Send to back',
   'Duplicate': 'Duplicate',
+  'Edit': 'Edit',
   'Delete': 'Delete',
   'Label': 'Label',
   'Put an icon on this shape': 'Put an icon on this shape',
