@@ -64,3 +64,31 @@ test('calendar: a drag across days is a span over them', async ({ page }, info) 
   const iso = (d: number) => new Date(d * 86400000).toISOString().slice(0, 10);
   await expect.poll(() => value(page)).toBe(`- ${iso(days[1])} to ${iso(days[3])}: Sprint\n`);
 });
+
+test('calendar: on a phone, the schedule\'s tasks are rows: a tap on a grip chooses a task, the bar\'s Move down and Indent act on it, the tick is 44px; the month pans only up and down', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/cal');
+  expect(await page.locator('.cal-grid').evaluate((g) => getComputedStyle(g).touchAction)).toBe('pan-y');
+  const PLAN = '---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n- 2027-03-08 to 2027-03-10: Build\n';
+  await page.locator('to-cal-editor').evaluate((el, t) => ((el as HTMLElement & { value: string }).value = t), PLAN);
+  const grip = page.locator('.cal-trow[data-at="0"] .cal-grip');
+  await expect(grip).toBeVisible();
+  const hit = await grip.evaluate((h) => ({ coarse: matchMedia('(pointer: coarse)').matches, w: getComputedStyle(h, '::before').width, touch: getComputedStyle(h).touchAction }));
+  expect(hit).toEqual({ coarse: true, w: '44px', touch: 'none' });
+  await grip.tap();
+  const bar = page.locator('.cal-context .to-context');
+  await expect(bar).toBeVisible();
+  await bar.getByRole('button', { name: 'Move down' }).tap();
+  await expect.poll(() => value(page)).toBe('---\nview: gantt\n---\n- 2027-03-08 to 2027-03-10: Build\n- 2027-03-01 to 2027-03-05: Design\n');
+  await bar.getByRole('button', { name: 'Indent' }).tap();
+  await expect.poll(() => value(page)).toBe('---\nview: gantt\n---\n- 2027-03-08 to 2027-03-10: Build\n  - 2027-03-01 to 2027-03-05: Design\n');
+  const tick = page.locator('.cal-trow[data-at="1"] .cal-tick');
+  const box = (await tick.boundingBox())!;
+  expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+  await tick.tap();
+  await expect.poll(() => value(page)).toContain('  - [x] 2027-03-01 to 2027-03-05: Design\n');
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  expect(errors).toEqual([]);
+});

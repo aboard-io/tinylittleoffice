@@ -4,7 +4,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, ymdToDay, type Doc, type Op } from '../../../doc/index.ts';
 import { icsFold } from '../../../kit/ics.ts';
-import { ganttBars, ganttRange, itemBlock, moveItem, nameColor, newDraft, occurrences, openingDay, putItem, readCal, readWhen, removeSpan, repeatText, resizeItem, setGantt, spanStartMs, draftOf, writeZone, type Span } from '../model.ts';
+import { copyTasks, duplicateTasks, enterTask, joinTask, mapAt, moveTasks, pasteItems, setLabel, shiftTasks, toggleDone, ganttBars, ganttRange, itemBlock, moveItem, nameColor, newDraft, occurrences, openingDay, putItem, readCal, readWhen, removeSpan, repeatText, resizeItem, setGantt, spanStartMs, draftOf, writeZone, type Span } from '../model.ts';
 import { calPages, calToCsv, calToIcs } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -204,4 +204,70 @@ test('the templates are canonical, and the definition names its exports', () => 
   expect(def.exports!.map((e) => e.ext)).toEqual(['ics', 'csv']);
   expect(def.retitle(DOC, 'Team')).toBe(DOC.replace('green: Sam\n', 'green: Sam\ntitle: Team\n'));
   expect(def.title(def.retitle(DOC, 'Team'))).toBe('Team');
+});
+
+const PLAN = '---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: Draw\n- 2027-03-08 to 2027-03-10: Build\n';
+const item = (doc: Doc, at: number) => readCal(doc).items.find((i) => i.at === at)!;
+
+test('tasks as rows: a span moved past its neighbour, nested and brought out, duplicated, copied to the margin', () => {
+  expect(run(PLAN, (d) => moveTasks(d, { from: 0, to: 3 }, 1)!)).toBe('---\nview: gantt\n---\n- 2027-03-08 to 2027-03-10: Build\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: Draw\n');
+  expect(moveTasks(parse(PLAN), { from: 0, to: 3 }, -1)).toBeNull();
+  // A part moves among its siblings only.
+  expect(moveTasks(parse(PLAN), { from: 2, to: 3 }, 1)).toBeNull();
+  expect(run(PLAN, (d) => shiftTasks(d, { from: 3, to: 4 }, 1)!)).toBe(PLAN.replace('- 2027-03-08', '  - 2027-03-08'));
+  expect(shiftTasks(parse(PLAN), { from: 0, to: 3 }, 1)).toBeNull();
+  expect(shiftTasks(parse(PLAN), { from: 0, to: 3 }, -1)).toBeNull();
+  expect(run(PLAN, (d) => shiftTasks(d, { from: 1, to: 3 }, -1)!)).toBe(PLAN.replace('  - 2027-03-01 to 2027-03-02', '- 2027-03-01 to 2027-03-02').replace('  - 2027-03-03', '- 2027-03-03'));
+  expect(run(PLAN, (d) => duplicateTasks(d, { from: 3, to: 4 }).ops)).toBe(PLAN + '- 2027-03-08 to 2027-03-10: Build\n');
+  expect(duplicateTasks(parse(PLAN), { from: 1, to: 2 }).at).toBe(2);
+  expect(write({ head: {}, blocks: copyTasks(parse(PLAN), { from: 1, to: 3 }) })).toBe('- 2027-03-01 to 2027-03-02: Sketch {done=50%}\n- 2027-03-03 to 2027-03-05: Draw\n');
+  expect(mapAt([{ op: 'move', at: 0, n: 3, to: 1 }], 3)).toBe(0);
+  expect(mapAt([{ op: 'splice', at: 0, n: 1, blocks: [] }], 0)).toBe(-1);
+});
+
+test('a task\'s words in place: set, ticked and unticked, Enter at the start, end and middle, Backspace and Delete joining, an empty task taken away', () => {
+  const doc = parse(PLAN);
+  const v = readCal(doc);
+  expect(run(PLAN, (d) => setLabel(v, item(d, 3), [{ t: 'Ship', b: true }]))).toBe(PLAN.replace(': Build', ': **Ship**'));
+  expect(run(PLAN, (d) => toggleDone(v, item(d, 1)))).toBe(PLAN.replace('  - 2027-03-01 to 2027-03-02: Sketch {done=50%}', '  - [x] 2027-03-01 to 2027-03-02: Sketch'));
+  const ticked = PLAN.replace('  - 2027-03-03', '  - [x] 2027-03-03');
+  expect(run(ticked, (d) => toggleDone(readCal(d), item(d, 2)))).toBe(PLAN);
+  // Enter: at the end the next task, on the same days; with parts, the first of them.
+  const end = enterTask(doc, v, item(doc, 3), 5);
+  expect(write(applyAll(doc, end.ops))).toBe(PLAN + '- 2027-03-08 to 2027-03-10:\n');
+  expect([end.at, end.offset]).toEqual([4, 0]);
+  expect(write(applyAll(doc, enterTask(doc, v, item(doc, 0), 6).ops))).toBe(PLAN.replace('Design\n', 'Design\n  - 2027-03-01 to 2027-03-05:\n'));
+  const start = enterTask(doc, v, item(doc, 3), 0);
+  expect(write(applyAll(doc, start.ops))).toBe(PLAN.replace('- 2027-03-08 to 2027-03-10: Build', '- 2027-03-08 to 2027-03-10:\n- 2027-03-08 to 2027-03-10: Build'));
+  expect(start.at).toBe(4);
+  const mid = enterTask(doc, v, item(doc, 3), 2);
+  expect(write(applyAll(doc, mid.ops))).toBe(PLAN.replace(': Build', ': Bu\n- 2027-03-08 to 2027-03-10: ild'));
+  // Backspace at the start joins to the task before; its parts stay where they are.
+  const back = joinTask(doc, v, item(doc, 3), 'back')!;
+  expect(run(PLAN, () => back.ops)).toBe('---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: DrawBuild\n');
+  expect([back.at, back.offset]).toEqual([2, 4]);
+  const fwd = joinTask(doc, v, item(doc, 0), 'forward')!;
+  expect(run(PLAN, () => fwd.ops)).toBe('---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: DesignSketch\n  - 2027-03-03 to 2027-03-05: Draw\n- 2027-03-08 to 2027-03-10: Build\n');
+  expect(joinTask(doc, v, item(doc, 0), 'back')).toBeNull();
+  // An empty task goes; its parts come out a level.
+  const empty = PLAN.replace(': Design', ':');
+  const gone = joinTask(parse(empty), readCal(parse(empty)), item(parse(empty), 0), 'back')!;
+  expect(run(empty, () => gone.ops)).toBe('---\nview: gantt\n---\n- 2027-03-01 to 2027-03-02: Sketch {done=50%}\n- 2027-03-03 to 2027-03-05: Draw\n- 2027-03-08 to 2027-03-10: Build\n');
+  expect([gone.at, gone.offset]).toEqual([0, 0]);
+});
+
+test('pasted items: dated ones keep their dates or move to the day pasted on, words alone are an event that day; in date order on a calendar, in place on a schedule', () => {
+  const doc = parse(DOC);
+  const v = readCal(doc);
+  const blocks = parse('- 2027-03-01 to 2027-03-03: Fair {color=green}\nPicnic\n').blocks;
+  const onDay = pasteItems(doc, v, blocks, null, 0, day(2027, 3, 20))!;
+  expect(run(DOC, () => onDay.ops)).toBe(DOC + '- 2027-03-20 to 2027-03-22: Fair {color=green}\n- 2027-03-20: Picnic\n');
+  const own = pasteItems(doc, v, parse('- 2027-03-02: Lunch\n').blocks, null, 0)!;
+  expect(run(DOC, () => own.ops)).toBe(DOC.replace('- 2027-03-10', '- 2027-03-02: Lunch\n- 2027-03-10'));
+  expect(own.from).toBe(2);
+  const plan = parse(PLAN);
+  const swap = pasteItems(plan, readCal(plan), parse('- 2027-04-01: A\n  - 2027-04-02: B\n').blocks, { from: 3, to: 4 }, 0)!;
+  expect(run(PLAN, () => swap.ops)).toBe(PLAN.replace('- 2027-03-08 to 2027-03-10: Build\n', '- 2027-04-01: A\n  - 2027-04-02: B\n'));
+  expect([swap.from, swap.to]).toEqual([3, 5]);
+  expect(pasteItems(doc, v, [], null, 0)).toBeNull();
 });

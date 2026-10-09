@@ -62,6 +62,36 @@ const undo = async (el: ToCalEditor) => {
 function pointer(target: Element, type: string, x: number, y: number) {
   target.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 7, bubbles: true, cancelable: true, composed: true }));
 }
+const trow = (el: HTMLElement, at: number) => el.querySelector<HTMLElement>(`.cal-trow[data-at="${at}"]`)!;
+const words = (el: HTMLElement, at: number) => trow(el, at).querySelector<ToText>('to-text')!;
+const names = (el: HTMLElement) => [...el.querySelectorAll('.cal-trow to-text')].map((x) => x.textContent!.trim());
+const ranged = (el: HTMLElement) => [...el.querySelectorAll<HTMLElement>('.cal-trow.ranged')].map((r) => Number(r.dataset.at));
+const contextButton = (el: HTMLElement, label: string) => el.querySelector<HTMLButtonElement>(`.cal-context button[aria-label="${label}"]`)!;
+const contextOpen = (el: HTMLElement) => !!el.querySelector('.cal-context .to-context')?.matches(':popover-open');
+/** A key on what has the focus: a task's words, the tasks' box, a day, an entry. */
+async function key(el: ToCalEditor, on: Element, k: string, more: KeyboardEventInit = {}) {
+  on.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...more }));
+  await settle(el);
+}
+/** The caret into a task's words at `offset`. */
+async function caretAt(el: ToCalEditor, at: number, offset: number) {
+  const tx = words(el, at);
+  tx.focus();
+  tx.sel = { anchor: { block: 0, offset }, focus: { block: 0, offset } };
+  await settle(el);
+  return tx;
+}
+async function input(el: ToCalEditor, tx: ToText, inputType: string, data?: string) {
+  tx.tx.dispatchEvent(new InputEvent('beforeinput', { inputType, data, bubbles: true, cancelable: true, composed: true }));
+  await settle(el);
+}
+async function clip(el: ToCalEditor, type: 'copy' | 'cut' | 'paste', on: Element, data: Record<string, string> = {}) {
+  const dt = new DataTransfer();
+  for (const [k, v] of Object.entries(data)) dt.setData(k, v);
+  on.dispatchEvent(new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true }));
+  await settle(el);
+  return dt;
+}
 const centre = (e: Element) => {
   const r = e.getBoundingClientRect();
   return [r.left + r.width / 2, r.top + r.height / 2] as const;
@@ -200,14 +230,14 @@ test('the year at a glance: a day with something on it is tinted; a tap on a day
   expect(cell(el, '2027-03-17').classList.contains('picked')).toBe(true);
 });
 
-test('the schedule: the head says so; a bar dragged moves its task, its end makes it longer; Tab nests a task, Alt+arrows move it', async () => {
+test('the schedule: the head says so; a bar dragged moves its task, its end (44px to hit, past the bar) makes it longer', async () => {
   const { el, last } = await editor(DOC);
   await pick(el, el.querySelector<HTMLElement>('to-menu.cal-view > button')!, 'Schedule');
   expect(last()).toBe(DOC.replace('green: Sam\n', 'green: Sam\nview: gantt\n'));
   const fresh = await editor(PLAN);
   const e2 = fresh.el;
-  expect([...e2.querySelectorAll('.cal-task')].map((b) => b.textContent!.trim())).toEqual(['Design', 'Sketch', 'Draw', 'Build']);
-  expect(e2.querySelector('.cal-task')!.classList.contains('parent')).toBe(true);
+  expect(names(e2)).toEqual(['Design', 'Sketch', 'Draw', 'Build']);
+  expect(trow(e2, 0).classList.contains('parent')).toBe(true);
   // Build, dragged two days on (24px a day).
   const svgEl = e2.querySelector('.cal-chart')!;
   const build = e2.querySelector<SVGRectElement>('.track[data-at="3"]')!;
@@ -219,29 +249,18 @@ test('the schedule: the head says so; a bar dragged moves its task, its end make
   pointer(svgEl, 'pointerup', bx + 48, by);
   await settle(e2);
   expect(fresh.last()).toBe(PLAN.replace('2027-03-08 to 2027-03-10: Build', '2027-03-10 to 2027-03-12: Build'));
-  // Draw, a day longer by its end.
+  // Draw, a day longer by its end; the end's hit area is 44px and reaches past the bar.
   const grip = e2.querySelector<SVGRectElement>('.grip[data-at="2"]')!;
+  const g = grip.getBoundingClientRect();
+  expect(g.width).toBeGreaterThanOrEqual(44);
+  expect(g.height).toBeGreaterThanOrEqual(44);
+  expect(g.right).toBeGreaterThan(e2.querySelector('.track[data-at="2"]')!.getBoundingClientRect().right + 20);
   const [gx, gy] = centre(grip);
   pointer(grip, 'pointerdown', gx, gy);
   pointer(svgEl, 'pointermove', gx + 24, gy);
   pointer(svgEl, 'pointerup', gx + 24, gy);
   await settle(e2);
   expect(fresh.last()).toContain('  - 2027-03-03 to 2027-03-06: Draw\n');
-  // Build under Design, by Tab on its row; then back out with Shift+Tab.
-  const row = () => e2.querySelector<HTMLButtonElement>('.cal-task[data-at="3"]')!;
-  row().focus();
-  row().dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
-  await settle(e2);
-  expect(fresh.last()).toContain('  - 2027-03-10 to 2027-03-12: Build\n');
-  row().dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
-  await settle(e2);
-  expect(fresh.last()).toContain('\n- 2027-03-10 to 2027-03-12: Build\n');
-  // Sketch below Draw.
-  e2.querySelector<HTMLButtonElement>('.cal-task[data-at="1"]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
-  await settle(e2);
-  expect(fresh.last()).toMatch(/Draw\n {2}- 2027-03-01 to 2027-03-02: Sketch \{done=50%\}\n/);
-  for (let i = 0; i < 5; i++) await undo(e2);
-  expect(fresh.last()).toBe(PLAN);
 });
 
 test('on the schedule a tap on a bar opens its task, with how far along it is; Insert adds a task after the current one', async () => {
@@ -294,8 +313,343 @@ test('at phone width: the bar is one row, nothing is wider than the screen, the 
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     const scroller = plan.el.querySelector<HTMLElement>('.cal-gantt-scroll')!;
     expect(scroller.scrollWidth).toBeGreaterThan(scroller.clientWidth);
-    for (const r of plan.el.querySelectorAll<HTMLElement>('.cal-task')) expect(r.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    for (const r of plan.el.querySelectorAll<HTMLElement>('.cal-trow')) expect(r.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    for (const b of plan.el.querySelectorAll<HTMLElement>('.cal-tick')) expect(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+    // The words have room beside the chart.
+    expect(plan.el.querySelector('.cal-trow to-text')!.getBoundingClientRect().width).toBeGreaterThanOrEqual(60);
   } finally {
     await page.viewport(1100, 800);
   }
+});
+
+/* ---------- the editing standard (docs/editing.md) ---------- */
+
+const G = '---\nview: gantt\n---\n';
+const BUILD = '- 2027-03-08 to 2027-03-10: Build\n';
+
+test('the bar ends with the kit\'s Undo and Redo; the month, its list and the tasks never zoom on a double tap, the grid pans only up and down', async () => {
+  const { el } = await editor();
+  const tools = [...el.querySelectorAll<HTMLButtonElement>('to-bar.cal-bar button')].filter((b) => b.closest('to-bar') === el.querySelector('to-bar.cal-bar') && !b.closest('[popover]'));
+  expect(tools.slice(-2).map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
+  expect(getComputedStyle(el.querySelector('.cal-grid')!).touchAction).toBe('pan-y');
+  expect(getComputedStyle(el.querySelector('.cal-agenda')!).touchAction).toBe('manipulation');
+  const plan = await editor(PLAN);
+  expect(getComputedStyle(plan.el.querySelector('.cal-tasks')!).touchAction).toBe('manipulation');
+  expect(getComputedStyle(plan.el.querySelector('.cal-grip')!).touchAction).toBe('none');
+});
+
+test('Mod+Z with the dialog open is the field\'s: the calendar underneath is not undone and the draft stays', async () => {
+  const { el, changes } = await editor();
+  const launch = cell(el, '2027-03-01').querySelector<HTMLButtonElement>('.cal-chip')!;
+  launch.focus();
+  await key(el, launch, 'Delete');
+  expect(changes.at(-1)).toBe(DOC.replace('- 2027-03-01: Launch\n', ''));
+  cell(el, '2027-03-01').querySelector<HTMLButtonElement>('.cal-chip')!.click();
+  await settle(el);
+  await type(el, 'X');
+  const n = changes.length;
+  await undo(el);
+  expect(changes).toHaveLength(n);
+  expect(dialog().open).toBe(true);
+  expect(label().tx.textContent).toContain('X');
+  dialog().close();
+  await settle(el);
+  await undo(el);
+  expect(changes.at(-1)).toBe(DOC);
+});
+
+test('the dialog gives the focus back to what opened it: the day, the entry, or the day when a tap on the cell opened it', async () => {
+  const { el } = await editor();
+  const n5 = cell(el, '2027-03-05').querySelector<HTMLButtonElement>('.cal-n')!;
+  n5.focus();
+  n5.click();
+  await settle(el);
+  expect(dialog().open).toBe(true);
+  dialog().close();
+  await settle(el);
+  await until(() => document.activeElement === n5);
+  // A tap on the cell itself (no focus to remember): its day's button.
+  (document.activeElement as HTMLElement).blur();
+  cell(el, '2027-03-06').click();
+  await settle(el);
+  dialog().close();
+  await settle(el);
+  await until(() => document.activeElement === cell(el, '2027-03-06').querySelector('.cal-n'));
+  // An entry tapped (Safari does not focus a tapped button): the entry.
+  (document.activeElement as HTMLElement).blur();
+  cell(el, '2027-03-02').querySelector<HTMLButtonElement>('.cal-chip')!.click();
+  await settle(el);
+  dialog().close();
+  await settle(el);
+  await until(() => (document.activeElement as HTMLElement)?.matches('.cal-chip[data-at="1"]'));
+});
+
+test('Mod+Enter in the dialog is Done, in the words and in a field; Duplicate writes another beside it', async () => {
+  const { el, last } = await editor();
+  cell(el, '2027-03-05').click();
+  await settle(el);
+  await until(() => document.activeElement === label().tx);
+  await type(el, 'Tea');
+  await key(el, label().tx, 'Enter', { metaKey: true });
+  expect(dialog().open).toBe(false);
+  expect(last()).toBe(DOC.replace('- 2027-03-10', '- 2027-03-05: Tea\n- 2027-03-10'));
+  cell(el, '2027-03-12').click();
+  await settle(el);
+  await type(el, 'Run');
+  await key(el, dialog().querySelector('input[type=date]')!, 'Enter', { ctrlKey: true });
+  expect(dialog().open).toBe(false);
+  expect(last()).toContain('- 2027-03-12: Run\n');
+  cell(el, '2027-03-01').querySelectorAll<HTMLButtonElement>('.cal-chip')[1].click();
+  await settle(el);
+  button(dialog(), 'Duplicate').click();
+  await settle(el);
+  expect(dialog().open).toBe(false);
+  expect(last()!.match(/Offsite \{color=green\}/g)).toHaveLength(2);
+});
+
+test('the month by keys: one day in the tab order, the arrows walk days and weeks, PageDown/PageUp the months, Shift+arrows sweep days that Enter makes a span over', async () => {
+  const { el, last } = await editor();
+  const days = () => [...el.querySelectorAll<HTMLButtonElement>('.cal-n')];
+  expect(days().filter((b) => b.tabIndex === 0)).toHaveLength(1);
+  const n = (iso: string) => cell(el, iso).querySelector<HTMLButtonElement>('.cal-n')!;
+  expect(n('2027-03-01').tabIndex).toBe(0);
+  n('2027-03-01').focus();
+  await key(el, n('2027-03-01'), 'ArrowRight');
+  expect(document.activeElement).toBe(n('2027-03-02'));
+  await key(el, n('2027-03-02'), 'ArrowDown');
+  expect(document.activeElement).toBe(n('2027-03-09'));
+  expect(n('2027-03-09').tabIndex).toBe(0);
+  await key(el, n('2027-03-09'), 'PageDown');
+  expect(el.querySelector('.to-datenav-label')!.textContent).toBe('April 2027');
+  expect(document.activeElement).toBe(n('2027-04-09'));
+  await key(el, n('2027-04-09'), 'PageUp');
+  expect(document.activeElement).toBe(n('2027-03-09'));
+  await key(el, n('2027-03-09'), 'ArrowRight', { shiftKey: true });
+  await key(el, n('2027-03-10'), 'ArrowRight', { shiftKey: true });
+  expect(['09', '10', '11'].every((d) => cell(el, `2027-03-${d}`).classList.contains('range'))).toBe(true);
+  await key(el, n('2027-03-11'), 'Enter');
+  expect(dialog().open).toBe(true);
+  await type(el, 'Fair');
+  button(dialog(), 'Done').click();
+  await settle(el);
+  expect(last()).toBe(DOC.replace('- 2027-03-10', '- 2027-03-09 to 2027-03-11: Fair\n- 2027-03-10'));
+});
+
+test('a focused entry is the thing in hand: Delete takes it out (the focus stays near, an undo brings back its month and its focus), Mod+D makes another', async () => {
+  const { el, last } = await editor();
+  const launch = cell(el, '2027-03-01').querySelector<HTMLButtonElement>('.cal-chip')!;
+  launch.focus();
+  await key(el, launch, 'Backspace');
+  expect(last()).toBe(DOC.replace('- 2027-03-01: Launch\n', ''));
+  expect((document.activeElement as HTMLElement).matches('.cal-chip')).toBe(true);
+  button(el, 'Next month').click();
+  await settle(el);
+  await undo(el);
+  expect(last()).toBe(DOC);
+  expect(el.querySelector('.to-datenav-label')!.textContent).toBe('March 2027');
+  expect((document.activeElement as HTMLElement).matches('.cal-chip[data-at="0"]')).toBe(true);
+  const offsite = cell(el, '2027-03-01').querySelectorAll<HTMLButtonElement>('.cal-chip')[1];
+  offsite.focus();
+  await key(el, offsite, 'd', { ctrlKey: true });
+  expect(last()).toBe(DOC.replace('- 2027-03-10', '- 2027-03-01 to 2027-03-03: Offsite {color=green}\n- 2027-03-10'));
+  // In the month's list too.
+  const item = el.querySelector<HTMLButtonElement>('.cal-agenda-item[data-at="0"]')!;
+  item.focus();
+  await key(el, item, 'Delete');
+  expect(last()).not.toContain('Launch');
+});
+
+test('an entry is copied and cut as TLO and our HTML; a paste onto a day lands there, words alone as an event that day', async () => {
+  const { el, last } = await editor();
+  const offsite = cell(el, '2027-03-01').querySelectorAll<HTMLButtonElement>('.cal-chip')[1];
+  offsite.focus();
+  const dt = await clip(el, 'copy', offsite);
+  expect(dt.getData('text/plain')).toBe('- 2027-03-01 to 2027-03-03: Offsite {color=green}\n');
+  expect(dt.getData('text/html')).toContain('TinyLittleOffice');
+  const launch = cell(el, '2027-03-01').querySelector<HTMLButtonElement>('.cal-chip')!;
+  launch.focus();
+  const cut = await clip(el, 'cut', launch);
+  expect(cut.getData('text/plain')).toBe('- 2027-03-01: Launch\n');
+  expect(last()).toBe(DOC.replace('- 2027-03-01: Launch\n', ''));
+  const day = cell(el, '2027-03-20').querySelector<HTMLButtonElement>('.cal-n')!;
+  day.focus();
+  await clip(el, 'paste', day, { 'text/plain': dt.getData('text/plain'), 'text/html': dt.getData('text/html') });
+  expect(last()).toBe(DOC.replace('- 2027-03-01: Launch\n', '') + '- 2027-03-20 to 2027-03-22: Offsite {color=green}\n');
+  await clip(el, 'paste', cell(el, '2027-03-21').querySelector('.cal-n')!, { 'text/plain': 'Picnic' });
+  expect(last()).toContain('- 2027-03-21: Picnic\n');
+});
+
+test('a task\'s words are typed in place, one undo a burst; Enter at the end makes the next task, in the middle splits; Backspace joins, and takes an empty task away', async () => {
+  const { el, last } = await editor(PLAN);
+  let tx = await caretAt(el, 3, 5);
+  await input(el, tx, 'insertText', 'e');
+  await input(el, tx, 'insertText', 'r');
+  expect(last()).toBe(PLAN.replace(': Build', ': Builder'));
+  await undo(el);
+  expect(last()).toBe(PLAN);
+  await until(() => words(el, 3).contains(document.activeElement) || document.activeElement === words(el, 3).tx);
+  expect(words(el, 3).sel?.focus.offset).toBe(5);
+  tx = await caretAt(el, 3, 5);
+  await input(el, tx, 'insertParagraph');
+  expect(last()).toBe(PLAN + '- 2027-03-08 to 2027-03-10:\n');
+  expect(words(el, 4).sel?.focus.offset).toBe(0);
+  await input(el, words(el, 4), 'deleteContentBackward');
+  expect(last()).toBe(PLAN);
+  expect(words(el, 3).sel?.focus.offset).toBe(5);
+  tx = await caretAt(el, 0, 3);
+  await input(el, tx, 'insertParagraph');
+  expect(last()).toBe(PLAN.replace('Design\n', 'Des\n- 2027-03-01 to 2027-03-05: ign\n'));
+  await input(el, words(el, 1), 'deleteContentBackward');
+  expect(last()).toBe(PLAN);
+  expect(words(el, 0).sel?.focus.offset).toBe(3);
+});
+
+test('keys in a task\'s words: Tab nests it, Alt+arrows move it (the caret kept, an undo puts it back), the arrows go between tasks, Mod+D, Mod+Enter ticks, Mod+Alt+arrows move it a day', async () => {
+  const { el, last } = await editor(PLAN);
+  let tx = await caretAt(el, 3, 2);
+  await key(el, tx, 'Tab');
+  expect(last()).toBe(PLAN.replace(BUILD, '  ' + BUILD));
+  expect(words(el, 3).sel?.focus.offset).toBe(2);
+  await key(el, words(el, 3), 'Tab', { shiftKey: true });
+  expect(last()).toBe(PLAN);
+  tx = await caretAt(el, 1, 1);
+  await key(el, tx, 'ArrowDown', { altKey: true });
+  expect(names(el)).toEqual(['Design', 'Draw', 'Sketch', 'Build']);
+  expect(words(el, 2).sel?.focus.offset).toBe(1);
+  await undo(el);
+  expect(last()).toBe(PLAN);
+  expect(words(el, 1).sel?.focus.offset).toBe(1);
+  tx = await caretAt(el, 0, 2);
+  await key(el, tx, 'ArrowDown');
+  await until(() => words(el, 1).contains(document.activeElement));
+  expect(words(el, 1).sel?.focus.offset).toBe(2);
+  tx = await caretAt(el, 3, 0);
+  await key(el, tx, 'd', { metaKey: true });
+  expect(last()).toBe(PLAN + BUILD);
+  await undo(el);
+  await key(el, words(el, 2), 'Enter', { ctrlKey: true });
+  expect(last()).toContain('  - [x] 2027-03-03 to 2027-03-05: Draw\n');
+  await undo(el);
+  await key(el, words(el, 3), 'ArrowRight', { ctrlKey: true, altKey: true });
+  expect(last()).toBe(PLAN.replace(BUILD, '- 2027-03-09 to 2027-03-11: Build\n'));
+  // Alt+Enter: the task's dates, in the dialog.
+  await key(el, words(el, 3), 'Enter', { altKey: true });
+  expect(dialog().open).toBe(true);
+  expect(document.querySelector('to-dialog.cal-dialog h2')!.textContent).toBe('Edit task');
+  dialog().close();
+  await settle(el);
+  // The focus back in the words it came from.
+  await until(() => words(el, 3).hasFocus());
+});
+
+test('a tap on a task\'s grip chooses it with its parts; the bar under it in the standard\'s order; its keys and buttons act on the chosen tasks, and an undo chooses them again', async () => {
+  const { el, last } = await editor(PLAN);
+  trow(el, 0).querySelector<HTMLButtonElement>('.cal-grip')!.click();
+  await settle(el);
+  expect(ranged(el)).toEqual([0, 1, 2]);
+  expect(trow(el, 0).getAttribute('aria-selected')).toBe('true');
+  await until(() => contextOpen(el));
+  const labels = [...el.querySelectorAll('.cal-context button')].map((b) => b.getAttribute('aria-label'));
+  expect(labels).toEqual(['Edit', 'Move up', 'Move down', 'A day earlier', 'A day later', 'Dates…', 'Indent', 'Bring out', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  expect(contextButton(el, 'Move up').disabled).toBe(true);
+  contextButton(el, 'Move down').click();
+  await settle(el);
+  expect(names(el)).toEqual(['Build', 'Design', 'Sketch', 'Draw']);
+  expect(ranged(el)).toEqual([1, 2, 3]);
+  await undo(el);
+  expect(last()).toBe(PLAN);
+  expect(ranged(el)).toEqual([0, 1, 2]);
+  const box = el.querySelector<HTMLElement>('.cal-tasks')!;
+  await key(el, box, 'Delete');
+  expect(last()).toBe(G + BUILD);
+  await undo(el);
+  expect(last()).toBe(PLAN);
+  expect(ranged(el)).toEqual([0, 1, 2]);
+  // Build chosen: Mod+D, a day earlier by Mod+Alt+Left, Indent from the bar.
+  trow(el, 3).querySelector<HTMLButtonElement>('.cal-grip')!.click();
+  await settle(el);
+  await key(el, box, 'd', { metaKey: true });
+  expect(last()).toBe(PLAN + BUILD);
+  expect(ranged(el)).toEqual([4]);
+  await key(el, box, 'ArrowLeft', { ctrlKey: true, altKey: true });
+  expect(last()).toBe(PLAN + '- 2027-03-07 to 2027-03-09: Build\n');
+  contextButton(el, 'Indent').click();
+  await settle(el);
+  expect(last()).toBe(PLAN + '  - 2027-03-07 to 2027-03-09: Build\n');
+  // Escape lets go, to the caret.
+  await key(el, box, 'Escape');
+  expect(ranged(el)).toEqual([]);
+  // Mod+A with a task's words whole takes every task.
+  const tx = words(el, 0);
+  tx.focus();
+  tx.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 6 } };
+  await settle(el);
+  await key(el, tx.tx, 'a', { metaKey: true });
+  expect(ranged(el)).toEqual([0, 1, 2, 3, 4]);
+});
+
+test('chosen tasks are copied, cut and pasted as TLO and our HTML; lines pasted into a task\'s words are tasks after it', async () => {
+  const { el, last } = await editor(PLAN);
+  const box = el.querySelector<HTMLElement>('.cal-tasks')!;
+  trow(el, 1).querySelector<HTMLButtonElement>('.cal-grip')!.click();
+  await settle(el);
+  const dt = await clip(el, 'copy', box);
+  expect(dt.getData('text/plain')).toBe('- 2027-03-01 to 2027-03-02: Sketch {done=50%}\n');
+  expect(dt.getData('text/html')).toContain('TinyLittleOffice');
+  await clip(el, 'cut', box);
+  expect(names(el)).toEqual(['Design', 'Draw', 'Build']);
+  trow(el, 2).querySelector<HTMLButtonElement>('.cal-grip')!.click();
+  await settle(el);
+  await clip(el, 'paste', box, { 'text/plain': dt.getData('text/plain'), 'text/html': dt.getData('text/html') });
+  expect(last()).toBe(`${G}- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-03 to 2027-03-05: Draw\n- 2027-03-01 to 2027-03-02: Sketch {done=50%}\n`);
+  const tx = await caretAt(el, 0, 6);
+  await clip(el, 'paste', tx.tx, { 'text/plain': 'Test\nShip' });
+  expect(last()).toBe(`${G}- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-03 to 2027-03-05: Draw\n- 2027-03-01: Test\n- 2027-03-01: Ship\n- 2027-03-01 to 2027-03-02: Sketch {done=50%}\n`);
+});
+
+test('a task carried by its grip (pointer events) goes under another; the tick on a row (44px) says it is done', async () => {
+  const { el, last } = await editor(PLAN);
+  const grip = trow(el, 3).querySelector<HTMLElement>('.cal-grip')!;
+  const h = grip.getBoundingClientRect();
+  const d = trow(el, 0).getBoundingClientRect();
+  const at = (type: string, x: number, y: number) => grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  at('pointerdown', h.left + 4, h.top + 4);
+  at('pointermove', d.right - 10, d.top + d.height / 2);
+  await settle(el);
+  expect(el.rows.drag).toMatchObject({ id: 3, over: 0, how: 'under' });
+  expect(trow(el, 3).classList.contains('dragging')).toBe(true);
+  at('pointerup', d.right - 10, d.top + d.height / 2);
+  await settle(el);
+  expect(last()).toBe(PLAN.replace(BUILD, '  ' + BUILD));
+  await undo(el);
+  const tick = trow(el, 2).querySelector<HTMLButtonElement>('.cal-tick')!;
+  expect(tick.getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+  expect(tick.getAttribute('aria-checked')).toBe('false');
+  tick.click();
+  await settle(el);
+  expect(last()).toContain('  - [x] 2027-03-03 to 2027-03-05: Draw\n');
+  expect(trow(el, 2).querySelector('.cal-tick')!.getAttribute('aria-checked')).toBe('true');
+  trow(el, 2).querySelector<HTMLButtonElement>('.cal-tick')!.click();
+  await settle(el);
+  expect(last()).toBe(PLAN);
+  expect(trow(el, 0).querySelector('.cal-tick')).toBeNull();
+});
+
+test('the What field is one line: Markdown markers typed there stay words, and a footnote in an entry\'s words goes round the dialog unchanged', async () => {
+  const { el, last } = await editor();
+  cell(el, '2027-03-05').click();
+  await settle(el);
+  await until(() => document.activeElement === label().tx);
+  await type(el, '# - Gig');
+  button(dialog(), 'Done').click();
+  await settle(el);
+  expect(last()).toContain('- 2027-03-05: # - Gig\n');
+  const noted = DOC.replace(': Launch', ': Launch^[bring cash]');
+  const n = await editor(noted);
+  cell(n.el, '2027-03-01').querySelector<HTMLButtonElement>('.cal-chip')!.click();
+  await settle(n.el);
+  expect(label().querySelector('.fn')).not.toBeNull();
+  button(dialog(), 'Done').click();
+  await settle(n.el);
+  expect(n.last()).toBe(noted);
 });

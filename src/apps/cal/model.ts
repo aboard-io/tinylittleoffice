@@ -24,7 +24,7 @@
  * sees primitives only. Days are counted from 1970-01-01, as the kernel counts them; a timed span's start is
  * minutes since 1970 UTC. Nothing here touches the DOM.
  */
-import { attr, dayToYmd, family, isAtomic, normalRuns, plainText, removeItem, runLength, sliceRuns, ymdString, ymdToDay, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { applyAll, attr, dayToYmd, family, isAtomic, normalRuns, plainText, removeItem, runLength, sliceRuns, ymdString, ymdToDay, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { ACCENT } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { clockString, dayString, isValidZone, partsToUtc, utcToParts } from './tz.ts';
@@ -373,4 +373,183 @@ export function ganttBars(v: CalView): Bar[] {
 export function ganttRange(bars: Bar[]): { from: number; to: number } | null {
   if (!bars.length) return null;
   return { from: Math.min(...bars.map((b) => b.start)), to: Math.max(...bars.map((b) => b.start + b.days)) };
+}
+
+/* ---------- tasks as rows, events as things: spans of blocks moved, nested, copied ---------- */
+
+/** Blocks [from, to): a task with its family, or a run of them. */
+export interface BlockSpan {
+  from: number;
+  to: number;
+}
+
+/** Where block i is after these operations, or -1 when they took it away. */
+export function mapAt(ops: Op[], i: number): number {
+  for (const o of ops) {
+    if (i < 0) return -1;
+    if (o.op === 'splice') {
+      if (i >= o.at + o.n) i += o.blocks.length - o.n;
+      else if (i >= o.at && o.blocks.length !== o.n) i = -1;
+    } else if (o.op === 'move') {
+      if (i >= o.at && i < o.at + o.n) i = o.to + (i - o.at);
+      else {
+        const rest = i < o.at ? i : i - o.n;
+        i = rest < o.to ? rest : rest + o.n;
+      }
+    }
+  }
+  return i;
+}
+
+const liDepth = (b: Block | undefined): number => (b?.k === 'li' ? b.depth : -1);
+const withDepth = (b: Block, by: number): Block => (b.k === 'li' ? { ...b, depth: Math.max(0, Math.min(MAX_DEPTH, b.depth + by)) } : b);
+
+/** The span moved past the task (with its family) before it (-1) or after it (1) at its first task's level: one move; null when there is none. */
+export function moveTasks(doc: Doc, s: BlockSpan, by: 1 | -1): Op[] | null {
+  const d = liDepth(doc.blocks[s.from]);
+  const n = s.to - s.from;
+  if (d < 0) return null;
+  if (by < 0) {
+    let p = s.from - 1;
+    while (p >= 0 && liDepth(doc.blocks[p]) > d) p--;
+    return p < 0 || liDepth(doc.blocks[p]) !== d ? null : [{ op: 'move', at: s.from, n, to: p }];
+  }
+  if (liDepth(doc.blocks[s.to]) !== d) return null;
+  return [{ op: 'move', at: s.from, n, to: family(doc, s.to) - n }];
+}
+
+/** The span indented under the task before it (1) or brought out a level (-1), at most MAX_DEPTH deep; null when it cannot go. */
+export function shiftTasks(doc: Doc, s: BlockSpan, by: 1 | -1): Op[] | null {
+  const blocks = doc.blocks.slice(s.from, s.to);
+  const depths = blocks.map(liDepth).filter((d) => d >= 0);
+  if (!depths.length) return null;
+  const d = liDepth(doc.blocks[s.from]);
+  if (by > 0) {
+    let p = s.from - 1;
+    while (p >= 0 && liDepth(doc.blocks[p]) > d) p--;
+    if (p < 0 || liDepth(doc.blocks[p]) !== d || Math.max(...depths) + 1 > MAX_DEPTH) return null;
+  } else if (Math.min(...depths) < 1) return null;
+  return [{ op: 'splice', at: s.from, n: s.to - s.from, blocks: blocks.map((b) => withDepth(b, by)) }];
+}
+
+/** The span's blocks again right after it; the copy starts at `at`. */
+export const duplicateTasks = (doc: Doc, s: BlockSpan): { ops: Op[]; at: number } => ({ ops: [{ op: 'splice', at: s.to, n: 0, blocks: doc.blocks.slice(s.from, s.to).map((b) => ({ ...b })) }], at: s.to });
+
+/** The span's blocks as a clipboard holds them: the shallowest task at the margin. */
+export function copyTasks(doc: Doc, s: BlockSpan): Block[] {
+  const blocks = doc.blocks.slice(s.from, s.to);
+  const ds = blocks.map(liDepth).filter((d) => d >= 0);
+  const low = ds.length ? Math.min(...ds) : 0;
+  return blocks.map((b) => withDepth(b, -low));
+}
+
+/** An item's words replaced (typed in place), its "when" and attributes kept. */
+export function setLabel(v: CalView, i: Item, label: Run[]): Op[] {
+  return [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock({ ...draftOf(i), label }, v.zone || 'UTC', i.block)] }];
+}
+
+/** Ticked when it is not done, else not done at all: Mod+Enter and the tick on the row. */
+export const toggleDone = (v: CalView, i: Item): Op[] => [{ op: 'splice', at: i.at, n: 1, blocks: [itemBlock({ ...draftOf(i), done: i.done >= 100 ? 0 : 100 }, v.zone || 'UTC', i.block)] }];
+
+/** A task over the same days as `i`, with these words and nothing done. */
+const sibling = (v: CalView, i: Item, label: Run[], depth: number): Li => itemBlock({ ...draftOf(i), repeat: undefined, done: 0, label }, v.zone || 'UTC', undefined, depth);
+
+/**
+ * Enter in a task's words (§3): at the start a new empty task above (the task is pushed down); at the end the next task
+ * (the first part of it when it has parts); in the middle the words split. Says where the caret goes.
+ */
+export function enterTask(doc: Doc, v: CalView, i: Item, offset: number): { ops: Op[]; at: number; offset: number } {
+  const len = runLength(i.label);
+  if (offset <= 0 && len > 0) return { ops: [{ op: 'splice', at: i.at, n: 0, blocks: [sibling(v, i, [], i.depth)] }], at: i.at + 1, offset: 0 };
+  if (offset >= len) {
+    const kids = family(doc, i.at) > i.at + 1;
+    return { ops: [{ op: 'splice', at: i.at + 1, n: 0, blocks: [sibling(v, i, [], kids ? i.depth + 1 : i.depth)] }], at: i.at + 1, offset: 0 };
+  }
+  const zone = v.zone || 'UTC';
+  const left = itemBlock({ ...draftOf(i), label: sliceRuns(i.label, 0, offset) }, zone, i.block);
+  return { ops: [{ op: 'splice', at: i.at, n: 1, blocks: [left, sibling(v, i, sliceRuns(i.label, offset, len), i.depth)] }], at: i.at + 1, offset: 0 };
+}
+
+/**
+ * Backspace at the start of a task's words ('back') or Delete at their end ('forward'): an empty task goes (its parts
+ * come out a level); else its words join the task before it, or the next task's words join it (its parts staying where
+ * they are). Null at either end.
+ */
+export function joinTask(doc: Doc, v: CalView, i: Item, dir: 'back' | 'forward'): { ops: Op[]; at: number; offset: number } | null {
+  const k = v.items.findIndex((x) => x.at === i.at);
+  if (!plainText(i.label).trim() && !i.label.some(isAtomic)) {
+    const ops = removeItem(doc, i.at);
+    const to = dir === 'back' ? (v.items[k - 1] ?? v.items[k + 1]) : (v.items[k + 1] ?? v.items[k - 1]);
+    if (!to) return { ops, at: -1, offset: 0 };
+    // A part of the task that went is one block nearer the top; anything else is where the splice put it.
+    const end = family(doc, i.at);
+    const at = to.at > i.at && to.at < end ? to.at - 1 : mapAt(ops, to.at);
+    return { ops, at, offset: to.at > i.at ? 0 : runLength(to.label) };
+  }
+  const [a, b] = dir === 'back' ? [v.items[k - 1], i] : [i, v.items[k + 1]];
+  if (!a || !b) return null;
+  const zone = v.zone || 'UTC';
+  const offset = runLength(a.label);
+  const first: Op[] = [{ op: 'splice', at: a.at, n: 1, blocks: [itemBlock({ ...draftOf(a), label: normalRuns([...a.label, ...b.label]) }, zone, a.block)] }];
+  // The joined task's parts stay where they are, under the task the words went into.
+  const ops: Op[] = [...first, { op: 'splice', at: b.at, n: 1, blocks: [] }];
+  return { ops, at: a.at, offset };
+}
+
+type Texty = Extract<Block, { runs: Run[] }>;
+/** A block cut at its line breaks, a block a line. */
+function linesOf(b: Texty): Texty[] {
+  const text = plainText(b.runs);
+  if (!text.includes('\n')) return [b];
+  const out: Texty[] = [];
+  let from = 0;
+  for (const part of text.split('\n')) {
+    out.push({ ...b, runs: sliceRuns(b.runs, from, from + part.length) } as Texty);
+    from += part.length + 1;
+  }
+  return out;
+}
+
+/**
+ * Pasted blocks as items: a dated item keeps its "when" (moved to start on `day` with the rest of the paste when a day
+ * is given), any other words become an item on `day` (else the first pasted date, else `fallback`). On a schedule
+ * (`target` given) they go in place of the span at its depth (or `depth`), in their order; on a calendar each goes in date order.
+ */
+export function pasteItems(doc: Doc, v: CalView, blocks: Block[], target: BlockSpan | null, fallback: number, day?: number, depth?: number): { ops: Op[]; from: number; to: number } | null {
+  const zone = v.zone || 'UTC';
+  // A paragraph's lines are a line each (plain text pasted is one paragraph of lines).
+  const lines = blocks.flatMap((b) => ('runs' in b ? linesOf(b) : [])).filter((b) => plainText(b.runs).trim() || b.k === 'li');
+  if (!lines.length) return null;
+  const read = lines.map((b) => readItem(b.k === 'li' ? b : { k: 'li', depth: 0, runs: b.runs }, 0, zone));
+  const startDay = (x: Item) => spanDays(x, zone)[0];
+  const first = read.find((x): x is Item => !!x);
+  const by = day !== undefined && first ? day - startDay(first) : 0;
+  const home = day ?? (first ? startDay(first) : fallback);
+  const drafts = lines.map((b, k): { d: Draft; base?: Li; depth: number } => {
+    const it = read[k];
+    const depth = b.k === 'li' ? b.depth : 0;
+    if (it) return { d: shiftDraft(draftOf(it), by, zone), base: it.block, depth };
+    return { d: { ...newDraft(home), label: normalRuns(b.runs.filter((r) => r.t !== '\n')) }, depth };
+  });
+  if (target) {
+    const low = Math.min(...drafts.map((x) => x.depth));
+    const base = depth ?? Math.max(0, liDepth(doc.blocks[target.from]));
+    const items = drafts.map((x) => itemBlock(x.d, zone, x.base, x.depth - low + base));
+    return { ops: [{ op: 'splice', at: target.from, n: target.to - target.from, blocks: items }], from: target.from, to: target.from + items.length };
+  }
+  const ops: Op[] = [];
+  let now = doc;
+  let from = Infinity;
+  let to = -Infinity;
+  for (const x of drafts) {
+    const put = putItem(now, readCal(now), null, x.d, zone);
+    const splice = put.find((o) => o.op === 'splice');
+    ops.push(...put);
+    now = applyAll(now, put);
+    if (splice && splice.op === 'splice') {
+      from = Math.min(from, splice.at);
+      to = Math.max(to, splice.at + 1);
+    }
+  }
+  return { ops, from, to };
 }
