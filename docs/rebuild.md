@@ -42,7 +42,8 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 8. **A chunk per app** — route-level lazy import; the home page loads the kit and nothing else.
 9. **Living short links** — a short link may be updated by whoever holds its owner key (a capability in the
    fragment, never sent as plaintext); tinier stores a new ciphertext under the same id. The latest version of a
-   document without the service ever reading it.
+   document without the service ever reading it. (Built ahead of its turn, on the skeleton: `tinier/`,
+   `src/kit/short.ts`, `src/kit/links.ts`, the router's `?s=&k=&o=`; the README's "Living short links".)
 10. **The tour deck** — every feature, real sample data per insert, an architecture diagram, tested in several
     scripts and every export, as a short link.
 
