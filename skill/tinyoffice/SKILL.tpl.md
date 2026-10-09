@@ -89,7 +89,7 @@ A nested list, two spaces a level. The same list opens as `mind`, `org` and `fam
 
 ### deck: slides
 
-A slide between each `---`. The headline is `## :icon-name: Headline`, with its layout as an attribute: `{.title}` (a title slide: the headline and a line under it), `{.two}` (two columns, a paragraph `|` between them) or `{.icon}` (bullets beside one big icon). The words are `- ` bullets, nested by two spaces; `> ` lines are speaker notes. A chart or another document is a fence: a sheet's table with `chart: bar` in its header becomes a chart on the slide. The header may hold `transition: cut` (or `slide`, `zoom`; a fade otherwise), `color: red` and `qr: no` (every deck otherwise ends with a QR code of itself). A model's `# Title` and `## Slide` headings without rules read as a deck too.
+A slide between each `---`. The headline is `## :icon-name: Headline`, with its layout as an attribute: `{.title}` (a title slide: the headline and a line under it), `{.two}` (two columns, a paragraph `|` between them) or `{.icon}` (bullets beside one big icon). The words are `- ` bullets, nested by two spaces; `> ` lines are speaker notes. A chart or another document is a fence: a sheet's table with `chart: bar` in its header becomes a chart on the slide. The header may hold `theme: midnight` (or boardroom, ivory, graphite; for fun confetti, sunset, ocean, bubblegum, arcade, chalkboard; plain otherwise), `transition: cut` (or `slide`, `zoom`; a fade otherwise), `color: red` and `qr: no` (every deck otherwise ends with a QR code of itself). A model's `# Title` and `## Slide` headings without rules read as a deck too.
 
 {{doc:deck:Launch plan}}
 ## :rocket: Launch plan {.title}

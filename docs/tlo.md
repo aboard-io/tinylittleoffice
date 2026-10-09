@@ -78,8 +78,9 @@ headline: `{.title}` (headline and subtitle), `{.two}` (a paragraph `|`
 between the columns) or `{.icon}` (bullets beside one big icon). The words
 are `- ` bullets, nested by two spaces; a print app's page with no layout is
 prose, as paragraphs. Speaker notes are `> `. A chart or another document
-is a fence. The deck's settings go in the header: `transition: cut`
-(`slide`, `zoom`; a fade when absent), `color: red`, `qr: no`; a print
+is a fence. The deck's settings go in the header: `theme: midnight`
+(plain when absent: boardroom, ivory, midnight, graphite; for fun confetti, sunset, ocean, bubblegum, arcade, chalkboard), `transition: cut` (`slide`, `zoom`; a
+fade when absent), `color: red`, `qr: no`; a print
 app's are `sides: 2` and `pages: 12`. **comic** panels are bullets:
 `- :dog: Walk? | Monday, noon.`.
 

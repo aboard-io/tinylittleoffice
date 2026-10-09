@@ -10,7 +10,8 @@ import { keyed } from 'lit/directives/keyed.js';
 import { defineElement, html, nothing, state, property, unsafeSVG, tool, swatches, icon, libraryIcon, UI, insertOptions, resolve, isKey } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import { PagesElement } from './pages.ts';
-import { ICON_COLORS, LAYOUTS, TRANSITIONS, blankSlide, deckEndsWithQr, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
+import { ICON_COLORS, LAYOUTS, TRANSITIONS, blankSlide, deckEndsWithQr, deckIconColor, deckTheme, deckTransition, iconHex, parseDeck, serializeDeck, type Layout, type Look, type Slide, type Transition } from '../lib/deckmodel.ts';
+import { THEMES, themeOf } from '../lib/decktheme.ts';
 import { SH, SW, layoutSlide, slidePage, slideSteps } from '../lib/slide.ts';
 import { closingSlide, slidesWith } from './deck.def.ts';
 import { templateLine, templateTool } from '../widgets/template-picker.ts';
@@ -20,8 +21,10 @@ interface Deck {
   transition: Transition;
   /** Ends with a QR code of itself (the default). */
   qr: boolean;
-  /** The colour of every icon in the deck: a key of ICON_COLORS. */
+  /** The colour of every icon in the deck: a key of ICON_COLORS ('' the theme's accent). */
   color: string;
+  /** How every slide looks: a key of THEMES ('' plain). */
+  theme: string;
 }
 
 /** Two clicks closer together than this are a double click: show the whole slide. */
@@ -46,10 +49,10 @@ export class ToDeck extends PagesElement<Deck> {
   private lastClick = 0;
 
   protected parse(text: string): Deck {
-    return { slides: parseDeck(text), transition: deckTransition(text), color: deckIconColor(text), qr: deckEndsWithQr(text) };
+    return { slides: parseDeck(text), transition: deckTransition(text), color: deckIconColor(text), qr: deckEndsWithQr(text), theme: deckTheme(text) };
   }
   protected serialize(d: Deck) {
-    return serializeDeck(d.slides, d.transition, d.color, d.qr);
+    return serializeDeck(d.slides, d.transition, d.color, d.qr, d.theme);
   }
   protected loaded() {
     this.cur = Math.min(this.cur, this.doc.slides.length - 1);
@@ -97,6 +100,38 @@ export class ToDeck extends PagesElement<Deck> {
   private setTransition(e: Event) {
     const t = (e.target as SlSelect).value as string;
     this.commit({ ...this.doc, transition: (t === 'fade' ? '' : t) as Transition });
+  }
+
+  /** How the slides are drawn: the theme and the icon colour. */
+  private get look(): Look {
+    return { theme: this.doc.theme, color: this.doc.color };
+  }
+
+  /** The theme as the canvas wears it: its colours, and its decoration as the background. */
+  private themeStyle() {
+    if (!this.doc.theme) return '';
+    const T = themeOf(this.doc.theme);
+    const deco = T.deco ? `;--slide-deco:url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}" preserveAspectRatio="none">${T.deco}</svg>`)}")` : '';
+    return `;--slide-paper:${T.paper};--slide-ink:${T.ink};--slide-muted:${T.muted};--slide-accent:${T.accent}${deco}`;
+  }
+
+  /** The theme menu: the plain one, the businesslike ones, the fun ones; each with a chip of its colours. */
+  private themeMenu() {
+    const option = (id: string) => {
+      const T = THEMES[id];
+      return html`<sl-option value=${id || 'plain'}><span slot="prefix" class="deck-theme-chip" style="--p:${T.paper};--i:${T.ink};--a:${T.accent}" aria-hidden="true"></span>${T.name}</sl-option>`;
+    };
+    const ids = Object.keys(THEMES);
+    return html`<sl-select class="sr-label deck-theme" size="small" label="Theme" hoist .value=${this.doc.theme || 'plain'} @sl-change=${(e: Event) => {
+      const v = (e.target as SlSelect).value as string;
+      this.commit({ ...this.doc, theme: v === 'plain' ? '' : v });
+    }}>
+      ${option('')}
+      <small>Professional</small>
+      ${ids.filter((id) => id && !THEMES[id].fun).map(option)}
+      <small>Fun</small>
+      ${ids.filter((id) => THEMES[id].fun).map(option)}
+    </sl-select>`;
   }
 
   /* ---------- presenting ---------- */
@@ -167,7 +202,8 @@ export class ToDeck extends PagesElement<Deck> {
   /** The slide's icon: the library, with the slide's own words suggesting, and the deck's icon colour in the footer. */
   private openPicker = () => {
     void this.pickIcon({
-      footer: () => swatches('Icon colour, for the whole deck', ICON_COLORS, this.doc.color, (id) => this.commit({ ...this.doc, color: id }), { cls: 'deck-icon-color' }),
+      // No colour of its own: the theme's accent.
+      footer: () => swatches('Icon colour, for the whole deck', { ...ICON_COLORS, '': { name: this.doc.theme ? 'Theme' : ICON_COLORS[''].name, hex: iconHex({ theme: this.doc.theme }) } }, this.doc.color, (id) => this.commit({ ...this.doc, color: id }), { cls: 'deck-icon-color' }),
     });
   };
 
@@ -180,8 +216,7 @@ export class ToDeck extends PagesElement<Deck> {
     const subDef = s.sub ? resolve(s.sub).def : undefined;
     // What kind of slide this is, in a word: its layout, or what it shows.
     const kindName = subDef ? (subDef.id === 'sheet' ? 'Table' : subDef.id === 'trip' ? 'Map' : subDef.id === 'draw' ? 'Drawing' : subDef.name) : LAYOUTS.find((l) => l.id === kind)!.name;
-    const tint = ICON_COLORS[this.doc.color]?.hex ?? ICON_COLORS[''].hex;
-    const fit = `--title:${L.titlePx};--body:${L.bodyPx};--icon:${tint}`;
+    const fit = `--title:${L.titlePx};--body:${L.bodyPx};--icon:${iconHex(this.look)}${this.themeStyle()}`;
     // An untouched new deck is written as nothing: that is when a template is offered.
     const blank = this.serialize(this.doc) === '';
     return html`
@@ -199,6 +234,7 @@ export class ToDeck extends PagesElement<Deck> {
         <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
         <span class="to-spacer"></span>
         ${tool('End with a QR code of this deck', 'qr', () => this.commit({ ...this.doc, qr: !this.doc.qr }), { pressed: this.doc.qr })}
+        ${this.themeMenu()}
         <sl-select class="sr-label deck-transition" size="small" label="Transition" hoist .value=${this.doc.transition || 'fade'} @sl-change=${this.setTransition}>
           ${TRANSITIONS.map((t) => html`<sl-option value=${t.id || 'fade'}>${t.name}</sl-option>`)}
         </sl-select>
@@ -209,14 +245,14 @@ export class ToDeck extends PagesElement<Deck> {
       <div class="deck-layout">
         <!-- The slide first, then the row of every slide under it. -->
         <div class="deck-editor">
-          ${this.canvas({ kind, style: fit, pick: this.openPicker, iconLabel: 'Slide icon', foot: `${this.cur + 1} / ${n}` })}
+          ${this.canvas({ kind, cls: this.doc.theme ? 'themed' : '', style: fit, pick: this.openPicker, iconLabel: 'Slide icon', foot: `${this.cur + 1} / ${n}` })}
           <textarea class="deck-notes" aria-label="Speaker notes" placeholder="Speaker notes: for you when presenting, never on the slide" rows="2" .value=${(s.notes ?? []).join('\n')} @input=${(e: Event) => this.patch({ notes: (e.target as HTMLTextAreaElement).value.split('\n').filter((l) => l.trim()) })}></textarea>
         </div>
         ${this.rail(
           'deck',
           'Slides',
           (sl, i) => {
-            const p = slidePage(sl, Infinity, undefined, this.doc.color);
+            const p = slidePage(sl, Infinity, undefined, this.look);
             return html`<span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>`;
           },
           (sl, i) => `Slide ${i + 1}: ${sl.title || 'untitled'}`,
@@ -240,12 +276,12 @@ export class ToDeck extends PagesElement<Deck> {
     const sub = s.sub ? resolve(s.sub) : null;
     // A map is shown live, over the place its picture would be, so it can fly from stop to stop.
     const map = sub?.def?.id === 'trip' ? layoutSlide(s).sub : undefined;
-    const p = slidePage(s, this.shown, map ? 0 : subStep, this.doc.color);
+    const p = slidePage(s, this.shown, map ? 0 : subStep, this.look);
     // How the slide arrives, and which way: back when going back.
     const motion = `tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
     return html`<div class="deck-show" role="dialog" aria-modal="true" aria-label="Presentation" @click=${this.onShowClick}>
       ${this.leaving >= 0 && shows[this.leaving]
-        ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(slidePage(shows[this.leaving], Infinity, undefined, this.doc.color).svg)}</svg></div>`)
+        ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(slidePage(shows[this.leaving], Infinity, undefined, this.look).svg)}</svg></div>`)
         : nothing}
       ${keyed(
         this.showing,

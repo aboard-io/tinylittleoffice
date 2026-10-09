@@ -1,8 +1,8 @@
 // Deck and Draw worked as a person would: slides, icons, layouts, documents on slides, presenting; shapes chosen and changed (ported from e2e/suite.spec.ts).
 import { test, expect } from 'vitest';
-import { mount } from './helpers.ts';
+import { mount, setSl } from './helpers.ts';
 import { idle, until, $, $$, text, tap, fill, key, focused, button, press, poke, write } from './helpers-shell.ts';
-import { parseDeck } from '../../src/lib/deckmodel.ts';
+import { deckTheme, parseDeck } from '../../src/lib/deckmodel.ts';
 import { parseDrawing } from '../../src/lib/drawmodel.ts';
 
 const thumbs = () => $$('.deck-rail .deck-thumb');
@@ -233,4 +233,25 @@ test('draw: a shape chosen takes a colour and a text size, kept in what is saved
   await poke(shapes()[0]);
   await key('d', { ctrl: true }, $('.draw-wrap'));
   expect(shapes()).toHaveLength(3);
+});
+
+test('deck: a theme, chosen from the toolbar, dresses the slide and is written in the header', async () => {
+  const { last } = await mount('deck', '---\nqr: no\n---\n## Hello\n\n- one');
+  const menu = $('sl-select.deck-theme') as HTMLElement & { value: string };
+  expect(menu.value).toBe('plain');
+  // Plain first, then the professional themes, then the fun ones.
+  expect([...menu.querySelectorAll('small')].map((s) => s.textContent)).toEqual(['Professional', 'Fun']);
+  setSl(menu, 'confetti');
+  await idle();
+  expect(deckTheme(last()!)).toBe('confetti');
+  const slide = $('.deck-slide') as HTMLElement;
+  expect(slide.classList.contains('themed')).toBe(true);
+  expect(slide.getAttribute('style')).toContain('--slide-paper:#fffdf7');
+  // The thumbnail is drawn on the theme's paper too.
+  expect(thumbs()[0].innerHTML).toContain('fill="#fffdf7"');
+  // Back to plain: nothing about it is written.
+  setSl(menu, 'plain');
+  await idle();
+  expect(last()).not.toContain('theme:');
+  expect(slide.classList.contains('themed')).toBe(false);
 });

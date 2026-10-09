@@ -944,7 +944,7 @@ test('slides take bold, italic and the rest, like a text does', async () => {
   const { deckToPptx } = await import('../src/apps/deck.def.ts');
   const { parseInline } = await import('../src/lib/richtext.ts');
   const [s] = parseDeck('## A **big** _day_\n\n- Ship ++it++ and ~~rest~~');
-  const svg = slidePage(s, Infinity, undefined, '').svg;
+  const svg = slidePage(s, Infinity, undefined, {}).svg;
   assert.ok(svg.includes('>big<') && !svg.includes('**big**'), 'marks are drawn, not shown');
   assert.ok(/font-weight="700"[^>]*>big</.test(svg) || /<tspan[^>]*font-weight[^>]*>big/.test(svg), 'bold is bold');
   assert.ok(/font-style="italic"[^>]*>day</.test(svg) || /<tspan[^>]*italic[^>]*>day/.test(svg), 'italic is italic');
@@ -975,7 +975,7 @@ test('slides: bullets nest', async () => {
   assert.equal(serializeDeck(parseDeck(text)), text);
   const L = layoutSlide(parseDeck(text)[0]);
   assert.deepEqual(L.cols[0].depths, [0, 1, 2, 0]);
-  const svg = slidePage(parseDeck(text)[0], Infinity, undefined, '').svg;
+  const svg = slidePage(parseDeck(text)[0], Infinity, undefined, {}).svg;
   // Deeper bullets sit further right, with hollow dots.
   const xs = [...svg.matchAll(/<text x="([\d.]+)"[^>]*>(Ship|Beta first|Then everyone|Rest)</g)].map((m) => +m[1]);
   assert.ok(xs[0] < xs[1] && xs[1] < xs[2] && xs[3] === xs[0], xs.join(','));
@@ -1006,7 +1006,7 @@ test('a QR code document: a link as a code, labelled with what it is of', async 
   // It can go on a slide.
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
   const { slidePage } = await import('../src/lib/slide.ts');
-  const slide = slidePage(parseDeck('## Scan this\n\n```qr\n' + link + '\n```')[0], Infinity, undefined, '').svg;
+  const slide = slidePage(parseDeck('## Scan this\n\n```qr\n' + link + '\n```')[0], Infinity, undefined, {}).svg;
   assert.ok(slide.includes('shape-rendering="crispEdges"'));
 });
 
@@ -1030,7 +1030,7 @@ test('rich text: highlight, icons in the line, and alignment, in text and in pic
   assert.ok(svg.includes('fill="#fef08a"') && svg.includes('stroke-linecap="round"') && svg.includes('<tspan dx='));
   const { slidePage } = await import('../src/lib/slide.ts');
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
-  assert.ok(slidePage(parseDeck('## Go :rocket:\n\n- ==now==')[0], Infinity, undefined, '').svg.includes('#fef08a'));
+  assert.ok(slidePage(parseDeck('## Go :rocket:\n\n- ==now==')[0], Infinity, undefined, {}).svg.includes('#fef08a'));
   assert.ok(appOf('write')!.html!('Hello ==there== :star: {.center}', { created: null }).includes('text-align:center') && appOf('write')!.html!('==x==', { created: null }).includes('<mark>'));
 });
 

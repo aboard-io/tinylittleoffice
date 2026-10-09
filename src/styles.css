@@ -982,6 +982,39 @@ table.sheet td.sel input {
   background: var(--to-surface);
   position: relative;
 }
+/* A deck's theme (lib/decktheme.ts): its paper, ink and accent, and its decoration behind everything. */
+.deck-slide.themed {
+  background: var(--slide-deco, none) 0 0 / 100% 100% no-repeat, var(--slide-paper);
+  border-color: color-mix(in srgb, var(--slide-ink) 25%, transparent);
+}
+.deck-slide.themed to-rich.title .write-page,
+.deck-slide.themed .bullets .write-page {
+  color: var(--slide-ink);
+}
+.deck-slide.themed.lay-t .bullets .write-page,
+.deck-slide.themed .write-page.blank::before,
+.deck-slide.themed .num,
+.deck-slide.themed .deck-suggest span,
+.deck-slide.themed .pick.empty,
+.deck-slide.themed .big.empty {
+  color: var(--slide-muted);
+}
+.deck-slide.themed .bullets .write-page > p:not(:empty)::before {
+  color: var(--slide-accent);
+}
+.deck-slide.themed .pick,
+.deck-slide.themed .big {
+  border-color: color-mix(in srgb, var(--slide-ink) 30%, transparent);
+  background: color-mix(in srgb, var(--icon) 14%, transparent);
+}
+.deck-slide.themed .pick.empty,
+.deck-slide.themed .big.empty {
+  background: transparent;
+}
+/* Highlighted words stay dark on their yellow, whatever the theme. */
+.deck-slide.themed mark {
+  color: #18181b;
+}
 .deck-slide .head {
   display: flex;
   align-items: center;
@@ -1127,6 +1160,20 @@ to-rich {
 }
 .deck-transition {
   width: 96px;
+}
+.deck-theme {
+  width: 140px;
+}
+.deck-theme::part(listbox) {
+  min-width: 180px;
+}
+/* A theme in the menu: its paper, with its ink and its accent on it. */
+.deck-theme-chip {
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--to-border);
+  background: linear-gradient(var(--i), var(--i)) 4px 4px / 8px 2px no-repeat, linear-gradient(var(--a), var(--a)) 4px 8px / 12px 2px no-repeat, var(--p);
 }
 .deck-suggest {
   position: absolute;

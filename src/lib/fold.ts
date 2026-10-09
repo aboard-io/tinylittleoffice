@@ -150,7 +150,7 @@ export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Fitted {
     // 'b' is a deck's own default: bullets.
     const laid = s.layout === 'b' ? { ...s, layout: '' as const } : s;
     const L = layoutSlide(laid, size);
-    const p = slidePage(laid, Infinity, undefined, '', size);
+    const p = slidePage(laid, Infinity, undefined, {}, size);
     const sizes = { layout: s.layout, cover: s.layout === 't', titlePx: L.titlePx, bodyPx: L.bodyPx, m: (64 * w * size.loud) / 960 };
     return { ...p, ...sizes, svg: o.foot ? p.svg + text(w / 2, h - (o.m ?? 20) * 0.55, o.foot, { px: 11, fill: FAINT, anchor: 'middle' }) : p.svg };
   }

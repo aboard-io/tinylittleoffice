@@ -1,5 +1,5 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
-import { LINK, defineApp, xml, pageSvg, ACCENT, type DownloadContext, type Page } from '../kit/core.ts';
+import { LINK, defineApp, xml, pageSvg, type DownloadContext, type Page } from '../kit/core.ts';
 import { SW, SH, layoutSlide, slidePage, slideSteps } from '../lib/slide.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
@@ -7,7 +7,8 @@ import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { encodeEnvelope } from '../lib/envelope.ts';
 import { QR_MAX_BYTES } from '../lib/qr.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { ICON_COLORS, blankSlide, deckEndsWithQr, deckIconColor, depthOf, live, parseDeck, readDeck, type Slide } from '../lib/deckmodel.ts';
+import { blankSlide, deckEndsWithQr, deckLook, deckTheme, depthOf, iconHex, live, parseDeck, readDeck, type Slide } from '../lib/deckmodel.ts';
+import { themeOf, type DeckTheme } from '../lib/decktheme.ts';
 
 const x = xml;
 
@@ -37,7 +38,8 @@ const para = (line: string, pPr = '', size = 0) => {
   return runs.length ? `<a:p>${pPr}${runs.map((ru) => `<a:r><a:rPr ${rPr}${ru.b ? ' b="1"' : ''}${ru.i ? ' i="1"' : ''}${ru.u ? ' u="sng"' : ''}${ru.s ? ' strike="sngStrike"' : ''}/><a:t>${x(ru.t)}</a:t></a:r>`).join('')}</a:p>` : `<a:p>${pPr}<a:endParaRPr ${rPr}/></a:p>`;
 };
 
-const THEME = `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TinyLittleOffice"><a:themeElements><a:clrScheme name="TinyLittleOffice"><a:dk1><a:srgbClr val="18181B"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="4F46E5"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="4F46E5"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="TinyLittleOffice"><a:majorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TinyLittleOffice"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+/** The deck's theme as PowerPoint's: its paper is the background (lt1), its ink the words (dk1), its accent the first accent. */
+const pptTheme = (T: DeckTheme) => `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="TinyLittleOffice"><a:themeElements><a:clrScheme name="TinyLittleOffice"><a:dk1><a:srgbClr val="${T.ink.slice(1).toUpperCase()}"/></a:dk1><a:lt1><a:srgbClr val="${T.paper.slice(1).toUpperCase()}"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="${T.accent.slice(1).toUpperCase()}"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="${(T.link ?? T.accent).slice(1).toUpperCase()}"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="TinyLittleOffice"><a:majorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="IBM Plex Sans"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="TinyLittleOffice"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
 
 const TITLE_FRAME = xfrm(MARGIN, 685800, SLIDE_W - 2 * MARGIN, ICON);
 const BODY_FRAME = xfrm(MARGIN, 2133600, SLIDE_W - 2 * MARGIN, SLIDE_H - 2133600 - 685800);
@@ -53,8 +55,10 @@ const pic = (id: number, rel: string, name: string, frame: string) =>
 /** The pictures PowerPoint needs drawn: each icon used, and each embedded document. */
 function pictures(body: string): Record<string, { svg: string; w: number; h: number }> {
   const out: Record<string, { svg: string; w: number; h: number }> = {};
+  const deco = themeOf(deckTheme(body)).deco;
+  if (deco) out.theme = { w: SW * 2, h: SH * 2, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${SW * 2}" height="${SH * 2}" viewBox="0 0 ${SW} ${SH}">${deco}</svg>` };
   slidesWith(body).forEach((s, i) => {
-    if (s.icon && ICON_SVG[s.icon]) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" stroke="${ICON_COLORS[deckIconColor(body)]?.hex ?? ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[s.icon]}</svg>` };
+    if (s.icon && ICON_SVG[s.icon]) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" stroke="${iconHex(deckLook(body))}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[s.icon]}</svg>` };
     if (s.sub) {
       const p = refPage(s.sub);
       out[`sub-${i + 1}`] = { w: p.w * 2, h: p.h * 2, svg: pageSvg(p) };
@@ -84,6 +88,8 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
       links.push([rel, 'image', `../media/${key}.png`]);
       pics += pic(3 + links.length, rel, name, xfrm(E(box.x), E(box.y), E(box.w), E(box.h)));
     };
+    // The theme's decoration is a picture behind each slide (pictures go under the words).
+    addPicture('theme', { x: 0, y: 0, w: SW, h: SH }, '');
     if (L.icon) addPicture(`icon-${s.icon}`, L.icon, s.icon);
     if (L.sub && s.sub) {
       // Keep the picture's own shape inside the space the slide gives it.
@@ -101,7 +107,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
     const titleFrame = xfrm(E(titleBox.x), E(titleBox.y), E(titleBox.w), E(Math.max(titleBox.h, 60)));
     const bodyFrame = xfrm(E(col.x), E(col.y), E(bodyW), E(Math.max(col.h, 80)));
     files[`ppt/slides/slide${n}.xml`] =
-      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${placeholder(2, 'title', para(s.sub ? '' : s.title, cover ? '<a:pPr algn="ctr"/>' : '', Math.round((L.titlePx || 20) * 75)), titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}${pics}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${pics}${placeholder(2, 'title', para(s.sub ? '' : s.title, cover ? '<a:pPr algn="ctr"/>' : '', Math.round((L.titlePx || 20) * 75)), titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
     files[`ppt/slides/_rels/slide${n}.xml.rels`] = rels(links);
     slideRels.push([`rId${n + 2}`, 'slide', `slides/slide${n}.xml`]);
     types += `<Override PartName="/ppt/slides/slide${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
@@ -127,7 +133,7 @@ export function deckToPptx(body: string, ctx: DownloadContext): Uint8Array {
       'ppt/slideMasters/_rels/slideMaster1.xml.rels': rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']]),
       'ppt/slideLayouts/slideLayout1.xml': LAYOUT,
       'ppt/slideLayouts/_rels/slideLayout1.xml.rels': rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']]),
-      'ppt/theme/theme1.xml': THEME,
+      'ppt/theme/theme1.xml': pptTheme(themeOf(deckTheme(body))),
       ...files,
     },
     ctx.created,
@@ -164,12 +170,12 @@ const title = (body: string) => plainInline(parseDeck(body).find((s) => s.title.
 
 /** The deck as it plays: every slide, every reveal, the QR slide last; a cross-fade between them. */
 export function deckFrames(body: string): { pages: Page[]; delayMs: number; fade: boolean } {
-  const color = deckIconColor(body);
+  const look = deckLook(body);
   const pages: Page[] = [];
   for (const s of slidesWith(body)) {
     const st = slideSteps(s);
     const clicks = st.bullets + st.sub;
-    for (let shown = 0; shown <= clicks; shown++) pages.push(slidePage(s, shown, st.sub ? shown : undefined, color));
+    for (let shown = 0; shown <= clicks; shown++) pages.push(slidePage(s, shown, st.sub ? shown : undefined, look));
   }
   return { pages, delayMs: 1400, fade: true };
 }
@@ -184,7 +190,7 @@ export default defineApp({
   blurb: 'Slides: titles, bullets, two columns, big icons, and other documents shown on a slide.',
   title,
   outline: (body) => parseDeck(body).flatMap((s) => [s.title, ...[...s.bullets, ...(s.right ?? [])].map((b) => (b.trim() ? '•  ' + b : ''))]).map((l) => plainInline(l.trim())).filter(Boolean),
-  view: (body) => slidesWith(body).map((s) => slidePage(s, Infinity, undefined, deckIconColor(body))),
+  view: (body) => slidesWith(body).map((s) => slidePage(s, Infinity, undefined, deckLook(body))),
   presents: true,
   html: (body) =>
     parseDeck(body)

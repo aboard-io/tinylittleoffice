@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { deckEndsWithQr, deckIconColor, deckTransition, parseDeck, readDeck, serializeDeck } from '../src/lib/deckmodel.ts';
+import { deckEndsWithQr, deckIconColor, deckLook, deckTheme, deckTransition, iconHex, parseDeck, readDeck, serializeDeck } from '../src/lib/deckmodel.ts';
+import { THEMES } from '../src/lib/decktheme.ts';
+import { slidePage } from '../src/lib/slide.ts';
+import { deckToPptx } from '../src/apps/deck.def.ts';
+import { strFromU8, unzipSync } from 'fflate';
 import { parseDrawing, serializeDrawing } from '../src/lib/drawmodel.ts';
 
 test('deck round trip', () => {
@@ -34,6 +38,37 @@ test('deck title slides and settings', () => {
   // A new deck opens on a title slide and costs nothing until it is touched.
   assert.deepEqual(parseDeck(''), [{ icon: '', title: '', bullets: [], layout: 't' }]);
   assert.equal(serializeDeck(parseDeck('')), '');
+});
+
+test('deck themes: written in the header, drawn on every slide', () => {
+  const slides = [{ icon: 'star', title: 'Hello', bullets: ['one'] }];
+  const text = serializeDeck(slides, '', '', true, 'midnight');
+  assert.equal(text, '---\ntheme: midnight\n---\n## :star: Hello\n\n- one\n');
+  assert.equal(deckTheme(text), 'midnight');
+  assert.equal(readDeck(text), text);
+  // A theme only, on an untouched deck, is still a choice worth keeping.
+  assert.notEqual(serializeDeck(parseDeck(''), '', '', true, 'sunset'), '');
+  // Named loosely, or not at all, or wrongly: plain.
+  assert.equal(deckTheme('---\ntheme: Midnight\n---\n## A'), 'midnight');
+  assert.equal(deckTheme('---\ntheme: paisley\n---\n## A'), '');
+  // The slide wears the theme: its paper, its decoration, its ink, its accent on the bullets and the icon.
+  const T = THEMES.midnight;
+  const svg = slidePage(slides[0], Infinity, undefined, deckLook(text)).svg;
+  assert.ok(svg.startsWith(`<rect x="0" y="0" width="960" height="600" fill="${T.paper}"/>${T.deco}`));
+  assert.ok(svg.includes(`fill="${T.ink}"`) && svg.includes(`stroke="${T.accent}"`) && svg.includes(`<circle`) && svg.includes(`fill="${T.accent}"`));
+  // An icon colour chosen beats the theme's accent; plain draws nothing behind.
+  assert.equal(iconHex({ theme: 'midnight', color: 'r' }), iconHex({ color: 'r' }));
+  assert.equal(iconHex({ theme: 'midnight' }), T.accent);
+  assert.ok(!slidePage(slides[0]).svg.startsWith('<rect'));
+  // Every theme is complete.
+  for (const t of Object.values(THEMES)) assert.ok(t.name && t.paper && t.ink && t.muted && t.accent);
+  // PowerPoint: the theme's colours, and its decoration as a picture under the words.
+  const png = { theme: new Uint8Array([137, 80, 78, 71]) };
+  const files = unzipSync(deckToPptx(text, { created: null, png } as never));
+  const theme = strFromU8(files['ppt/theme/theme1.xml']);
+  assert.ok(theme.includes('<a:lt1><a:srgbClr val="0B1220"/></a:lt1>') && theme.includes('<a:dk1><a:srgbClr val="F1F5F9"/></a:dk1>'));
+  const slide = strFromU8(files['ppt/slides/slide1.xml']);
+  assert.ok(files['ppt/media/theme.png'] && slide.indexOf('theme.png') < 0 && slide.indexOf('<p:pic>') < slide.indexOf('<p:sp>'));
 });
 
 test('deck empties', () => {

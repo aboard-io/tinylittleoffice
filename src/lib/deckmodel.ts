@@ -1,4 +1,5 @@
 import { PALETTE } from './palette.ts';
+import { THEMES, themeOf } from './decktheme.ts';
 import { ACCENT } from '../kit/core.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
 import { fenceRef, attr, refFence, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
@@ -15,9 +16,10 @@ import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
  *   ```sheet                         another document shown on the slide: its app, its text
  *   > Say this first                 speaker notes, never on the slide
  *
- * The header holds the deck's settings: "transition: cut" (fade unless
- * said), "color: red" (every icon in the deck) and "qr: no" (no closing QR
- * slide). The pages of a printed thing (lib/fold.ts) are written the same
+ * The header holds the deck's settings: "theme: midnight" (how every
+ * slide looks, lib/decktheme.ts; plain unless said), "transition: cut"
+ * (fade unless said), "color: red" (every icon in the deck; the theme's
+ * accent unless said) and "qr: no" (no closing QR slide). The pages of a printed thing (lib/fold.ts) are written the same
  * way, their prose as paragraphs.
  */
 /** '' bullets (a deck's default), 't' title, '2' two columns, 'i' big icon; 'b' says bullets where the default is prose (a printed page). */
@@ -68,11 +70,26 @@ export const blankSlide = (): Slide => ({ icon: '', title: '', bullets: [] });
 /** Nothing written on it, nothing shown on it. */
 export const isBlank = (s: Slide) => !s.icon && !s.title && !s.sub && !live(s.bullets).length;
 
-const settings = (text: string): Head => takeHead(text, ['transition', 'color', 'qr'])[0];
+const settings = (text: string): Head => takeHead(text, ['theme', 'transition', 'color', 'qr'])[0];
 /** A colour as the header names it ("red"), as its letter. */
 const colorOf = (name = '') => Object.keys(ICON_COLORS).find((k) => ICON_COLORS[k].name.toLowerCase() === name.trim().toLowerCase()) ?? '';
 
 export const deckIconColor = (text: string): string => colorOf(settings(text).color);
+
+/** The deck's theme, a key of THEMES ('' the plain one). */
+export function deckTheme(text: string): string {
+  const t = (settings(text).theme ?? '').trim().toLowerCase();
+  return t in THEMES ? t : '';
+}
+
+/** How a deck's slides are drawn: its theme, and the colour of its icons. */
+export interface Look {
+  theme?: string;
+  color?: string;
+}
+export const deckLook = (text: string): Look => ({ theme: deckTheme(text), color: deckIconColor(text) });
+/** The colour icons are drawn: the one chosen, or the theme's accent. */
+export const iconHex = (look: Look = {}) => (look.color && ICON_COLORS[look.color]?.hex) || themeOf(look.theme).accent;
 
 /** Whether the deck ends with the slide that is a QR code of itself: it does unless it says not to. */
 export const deckEndsWithQr = (text: string): boolean => !/^(no|false|off)$/i.test(settings(text).qr ?? '');
@@ -183,11 +200,11 @@ const deckOf = (doc: Tlo): Slide[] => (doc.blocks.length ? slidesOf(doc) : [{ ..
 
 export const parseDeck = (text: string): Slide[] => deckOf(parse(text));
 
-export function serializeDeck(slides: Slide[], transition: Transition = '', color = '', qr = true): string {
-  const head: Head = { transition, color: color ? ICON_COLORS[color]?.name.toLowerCase() ?? '' : '', qr: qr ? '' : 'no' };
+export function serializeDeck(slides: Slide[], transition: Transition = '', color = '', qr = true, theme = ''): string {
+  const head: Head = { theme, transition, color: color ? ICON_COLORS[color]?.name.toLowerCase() ?? '' : '', qr: qr ? '' : 'no' };
   // An untouched new deck costs nothing.
   const s = slides[0];
-  if (slides.length === 1 && s.layout === 't' && isBlank(s) && !live(s.notes).length && !transition && !color && qr) return '';
+  if (slides.length === 1 && s.layout === 't' && isBlank(s) && !live(s.notes).length && !transition && !color && qr && !theme) return '';
   return writeSlides(head, slides);
 }
 
@@ -195,5 +212,5 @@ export function serializeDeck(slides: Slide[], transition: Transition = '', colo
 export function readDeck(text: string): string {
   // An outline is a slide for every item with something under it.
   if (nested(text)) return outlineToDeck(readTree(text).items);
-  return serializeDeck(deckOf(loosen(parse(text), true)), deckTransition(text), deckIconColor(text), deckEndsWithQr(text));
+  return serializeDeck(deckOf(loosen(parse(text), true)), deckTransition(text), deckIconColor(text), deckEndsWithQr(text), deckTheme(text));
 }

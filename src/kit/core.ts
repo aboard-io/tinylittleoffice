@@ -280,12 +280,14 @@ export interface TextStyle {
   px?: number;
   bold?: boolean;
   fill?: string;
+  /** The colour of links, on paper where the accent will not do. */
+  link?: string;
   anchor?: 'start' | 'middle' | 'end';
 }
 
 /** One line of text. y is the baseline. */
 export function text(x: number, y: number, content: string | Span[], style: TextStyle = {}): string {
-  const { px = 16, bold = false, fill = INK, anchor = 'start' } = style;
+  const { px = 16, bold = false, fill = INK, link: linkFill = ACCENT, anchor = 'start' } = style;
   // Highlights and icons need to know where each span falls, so the line is measured span by span.
   let before = '';
   let at = 0;
@@ -300,7 +302,7 @@ export function text(x: number, y: number, content: string | Span[], style: Text
       at += w;
       if (s.ic) return `<tspan dx="${r(w)}"></tspan>`;
       const link = s.link || !!s.href;
-      const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (link ? ` fill="${ACCENT}"` : '') + (s.u || s.s || link ? ` text-decoration="${[(s.u || link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
+      const a = (s.b ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (link ? ` fill="${linkFill}"` : s.h ? ` fill="${INK}"` : '') + (s.u || s.s || link ? ` text-decoration="${[(s.u || link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
       const span = a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
       return s.href ? `<a href="${xml(s.href)}">${span}</a>` : span;
     })

@@ -3,11 +3,12 @@
  * it all fits. A deck's slides and a printed page with a layout (lib/fold.ts)
  * are both laid out here, at their own size.
  */
-import { wrap, text, place, r, ACCENT, MUTED, type Page, type Span } from '../kit/core.ts';
+import { wrap, text, place, r, rect, ACCENT, type Page, type Span } from '../kit/core.ts';
 import { parseInline } from './richtext.ts';
 import { refPage, refSteps } from '../kit/embed.ts';
 import { ICON_SVG } from './icons.ts';
-import { ICON_COLORS, depthOf, live, type Slide } from './deckmodel.ts';
+import { depthOf, iconHex, live, type Look, type Slide } from './deckmodel.ts';
+import { themeOf } from './decktheme.ts';
 
 export const SW = 960;
 export const SH = 600;
@@ -120,15 +121,19 @@ const iconAt = (name: string, b: Box, color = ACCENT) =>
 /**
  * A slide as a page. `bullets` and `sub` say how much has been revealed
  * (absent: everything). Unrevealed things keep their place, so nothing
- * moves as the slide builds.
+ * moves as the slide builds. `look`: the deck's theme and icon colour.
  */
-export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = '', o: SlideSize = {}): Page {
+export function slidePage(s: Slide, bullets = Infinity, sub?: number, look: Look = {}, o: SlideSize = {}): Page {
   const SW = o.w ?? 960;
   const SH = o.h ?? 600;
   const L = layoutSlide(s, o);
   const cover = s.layout === 't';
-  let svg = L.icon ? iconAt(s.icon, L.icon, ICON_COLORS[tint]?.hex) : '';
-  L.title.lines.forEach((line, i) => (svg += text(L.title.center ? SW / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), line, { px: L.titlePx, bold: true, anchor: L.title.center ? 'middle' : 'start' })));
+  const T = themeOf(look.theme);
+  const link = T.link ?? T.accent;
+  // The plain theme is the page's own white; any other brings its paper and what is drawn on it.
+  let svg = look.theme ? rect(0, 0, SW, SH, T.paper) + (T.deco ?? '') : '';
+  if (L.icon) svg += iconAt(s.icon, L.icon, iconHex(look));
+  L.title.lines.forEach((line, i) => (svg += text(L.title.center ? SW / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), line, { px: L.titlePx, bold: true, fill: T.ink, link, anchor: L.title.center ? 'middle' : 'start' })));
   let n = 0;
   for (const col of L.cols) {
     let y = col.y;
@@ -137,13 +142,15 @@ export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = '',
       const x = col.x + L.bodyPx * d * IN;
       if (cover || n < bullets) {
         // A deeper bullet steps in, with a smaller, hollow dot.
-        if (!cover) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : ACCENT}"${d ? ` stroke="${ACCENT}" stroke-width="2"` : ''}/>`;
-        item.forEach((line, i) => (svg += text(cover ? SW / 2 : x + L.bodyPx * 1.1, y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? MUTED : undefined, anchor: cover ? 'middle' : 'start' })));
+        if (!cover) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : T.accent}"${d ? ` stroke="${T.accent}" stroke-width="2"` : ''}/>`;
+        item.forEach((line, i) => (svg += text(cover ? SW / 2 : x + L.bodyPx * 1.1, y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? T.muted : T.ink, link, anchor: cover ? 'middle' : 'start' })));
       }
       n++;
       y += item.length * L.bodyPx * 1.3 + L.bodyPx * (cover ? 0 : 0.45);
     });
   }
+  // A document is drawn for white paper: on a dark slide it sits on a white card.
+  if (L.sub && s.sub && T.dark) svg += rect(L.sub.x, L.sub.y, L.sub.w, L.sub.h, '#ffffff', 'rx="12"');
   if (L.sub && s.sub) svg += `<g data-sub="${r(L.sub.x)},${r(L.sub.y)},${r(L.sub.w)},${r(L.sub.h)}">${place(refPage(s.sub, sub === undefined ? {} : { step: sub }), L.sub.x, L.sub.y, L.sub.w, L.sub.h)}</g>`;
   return { w: SW, h: SH, svg };
 }

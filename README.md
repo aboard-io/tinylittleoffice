@@ -216,8 +216,9 @@ Every format is plain text, chosen so deflate has something to chew on.
   (a paragraph `|` starts the right column) or `{.icon}`. The words are `- `
   bullets, nested by two spaces; `> ` lines are speaker notes; a fence named
   for an app (```` ```sheet ````) shows that document on the slide. The
-  header holds `transition: cut` (`slide`, `zoom`; a fade unless said),
-  `color: red` and `qr: no`. The print apps (zine, booklet, comic and the
+  header holds `theme: midnight` (plain unless said: boardroom, ivory, midnight, graphite; for fun confetti, sunset, ocean, bubblegum, arcade, chalkboard),
+  `transition: cut` (`slide`, `zoom`; a fade unless said), `color: red` and
+  `qr: no`. The print apps (zine, booklet, comic and the
   rest) write their pages the same way, prose as paragraphs, with
   `sides: 2` and `pages: 12` in the header.
 - **Draw**: a table, a row per shape, `Kind | X | Y | W | H | Style |
