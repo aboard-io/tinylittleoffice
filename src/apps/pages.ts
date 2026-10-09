@@ -132,7 +132,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
     const [wordsLabel, wordsHint] = c.words ?? ['Bullets', c.kind === 't' ? 'Subtitle' : 'One bullet per line'];
     return html`<div class="deck-slide lay-${c.kind || 'b'} ${s.sub ? 'has-sub' : ''} ${c.cls ?? ''}" style=${c.style}>
       ${s.sub
-        ? html`<to-embed ref=${s.sub} controls @embed-edit=${this.editSub} @embed-remove=${() => this.patch({ sub: undefined })}></to-embed>`
+        ? html`<to-embed ref=${s.sub} controls fill @embed-edit=${this.editSub} @embed-remove=${() => this.patch({ sub: undefined })}></to-embed>`
         : (c.inner ??
           html`<div class="head">
               <button class="pick ${s.icon ? '' : 'empty'}" data-tip=${s.icon ? 'Change icon' : 'Add an icon'} aria-label=${c.iconLabel ?? 'Page icon'} @click=${c.pick}>

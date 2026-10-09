@@ -1033,6 +1033,9 @@ table.sheet td.sel input {
   gap: 2.9cqw;
   background: var(--to-surface);
   position: relative;
+  /* Every slide is one size, whatever is on it: what does not fit does not stretch it. */
+  min-height: 0;
+  overflow: clip;
 }
 /* A deck's theme (lib/decktheme.ts): its paper, ink and accent, and its decoration behind everything. */
 .deck-slide.themed {
@@ -1104,7 +1107,10 @@ table.sheet td.sel input {
 .deck-slide .big {
   align-self: center;
   justify-self: center;
-  width: 70%;
+  /* As large as its half of the slide allows, and square. */
+  width: auto;
+  height: min(100%, 26cqw);
+  max-width: 100%;
   aspect-ratio: 1;
   border-radius: 24px;
 }
@@ -1143,17 +1149,16 @@ to-rich {
 .deck-slide.lay-i .body {
   grid-template-columns: 1fr 1fr;
 }
-/* A document shown on a slide has the whole slide. */
+/* A document shown on a slide has the whole slide, its picture scaled to fit above the bar that says what it is. */
 .deck-slide.has-sub {
   display: block;
   padding: 2cqw;
-  /* Tall enough for the picture and the bar under it that says what it is. */
-  aspect-ratio: auto;
 }
-.deck-slide to-embed {
-  margin: 0;
-  align-self: start;
+/* (Its bar has its buttons where the slide's number would be; the row of slides numbers it.) */
+.deck-slide.has-sub .num {
+  display: none;
 }
+
 .deck-slide .bullets {
   position: relative;
   align-self: start;
@@ -2407,24 +2412,6 @@ table.sheet td.corner {
 .sl-theme-dark .to-here,
 .sl-theme-dark .to-drawer-nav a[aria-current='page'] {
   color: var(--to-ink);
-}
-
-@media (max-width: 760px) {
-  /* Phones zoom into anything typed under 16px, so the editor's type stops shrinking there and the slide grows instead. */
-  .deck-slide {
-    aspect-ratio: auto;
-    min-height: 62.5cqw;
-  }
-  .deck-slide to-rich.title .write-page {
-    font-size: max(18px, calc(var(--title) / 960 * 100cqw));
-  }
-  .deck-slide .bullets .write-page {
-    font-size: max(16px, calc(var(--body) / 960 * 100cqw));
-  }
-  .deck-slide.lay-2 .body,
-  .deck-slide.lay-i .body {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Write: web addresses in the text */

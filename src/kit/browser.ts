@@ -262,6 +262,8 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
  * itself in a shadow root, so the text around it cannot reach in and edit
  * it: it is one thing, to open, change or remove.
  *   step      how much to reveal (documents that build up)
+ *   fill      it takes the height of where it is (a slide), its picture
+ *             scaled to fit
  *   controls  it can be changed here: the picture itself and an Edit button
  *             open its editor ("embed-edit"), Remove takes it away
  *             ("embed-remove"). Without controls its title links to it.
@@ -298,6 +300,11 @@ export class ToEmbed extends HTMLElement {
       html`<style>
           /* (white-space: inside a text being written the page keeps its spaces, which would draw this markup's own line breaks as blank lines.) */
           :host { display: block; margin: 0.8em 0; user-select: none; white-space: normal; }
+          /* fill: it has the height of where it is (a slide), the picture shrinking to fit above the caption. */
+          :host([fill]) { margin: 0; height: 100%; }
+          :host([fill]) figure { height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+          :host([fill]) .pic { flex: 1; min-height: 0; display: grid; place-items: center; }
+          :host([fill]) .pic > svg { max-height: 100%; height: 100%; }
           figure { margin: 0; border: 1px solid var(--to-border, #d4d4d8); border-radius: 10px; overflow: hidden; background: #fff; }
           .pic > svg { display: block; width: 100%; height: auto; max-height: 60vh; margin: 0 auto; }
           /* (Never drawn larger than its own size: a small table is not blown up to fill the width.) */
