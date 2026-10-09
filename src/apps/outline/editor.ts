@@ -821,7 +821,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const { app, gist } = docGist(it.doc!);
     const body = it.doc!.slice(it.doc!.indexOf('\n') + 1);
     const href = web ? it.doc!.slice(4) : location.pathname + routeHash(app, encodeDoc(body));
-    return html`<div class="ol-doc" tabindex="0" role="group" aria-label=${web ? t('From the web: {url}', { url: href }) : t('{app} document', { app: appName(app) })} @paste=${(e: ClipboardEvent) => this.onDocPaste(it.at, e)}>
+    return html`<div class="ol-doc" tabindex="0" role="group" aria-label=${web ? t('From the web: {url}', { url: href }) : appOf(app) ? t('A {noun}', { noun: appOf(app)!.noun }) : t('{app} document', { app: appName(app) })} @paste=${(e: ClipboardEvent) => this.onDocPaste(it.at, e)}>
       <span class="ol-doc-kind">${web ? icon(UI.globe, 16) : appOf(app) ? icon(appOf(app)!.icon, 16) : nothing}<b>${web ? t('From the web') : appName(app)}</b></span>
       <span class="ol-doc-gist">${web ? href : gist || t('Empty')}</span>
       <a class="to-btn to-tool" href=${href} target="_blank" rel="noopener" aria-label=${t('Open in a new tab')} title=${t('Open in a new tab')}>${icon(UI.open, 16)}</a>

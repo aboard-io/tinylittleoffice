@@ -21,6 +21,9 @@ export default defineApp({
   get name() {
     return t('Diagram Maker');
   },
+  get noun() {
+    return t('diagram');
+  },
   get group() {
     return t('Design');
   },

@@ -20,6 +20,9 @@ export default defineApp({
   get name() {
     return t('Calendar');
   },
+  get noun() {
+    return t('calendar');
+  },
   get group() {
     return t('Plan');
   },

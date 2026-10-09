@@ -43,6 +43,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { apply, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
 import { copyData, pasteFrom } from './clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
+import { lookup } from './app.ts';
 import { t } from './i18n.ts';
 import { UI, type IconNode } from './icons.ts';
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
@@ -945,7 +946,8 @@ export class ToText extends LitElement {
       case 'table':
         return html`<div class="tx-card" data-k="table" contenteditable="false" tabindex="0" role="group" aria-label=${t('Table')}><span class="tx-card-kind">${t('Table')}</span><span class="tx-card-gist">${b.cols.map((c) => c.name).join(' · ')} — ${t('{n|one row|# rows}', { n: b.rows.length })}</span></div>`;
       case 'fence': {
-        const kind = b.lang ? t('{app} document', { app: b.lang }) : t('Code');
+        const def = b.lang ? lookup.appOf(b.lang) : undefined;
+        const kind = def ? t('A {noun}', { noun: def.noun }) : b.lang ? t('{app} document', { app: b.lang }) : t('Code');
         const gist = b.body.split('\n').find((l) => l.trim() && !/^---/.test(l)) ?? '';
         return html`<div class="tx-card" data-k="fence" contenteditable="false" tabindex="0" role="group" aria-label=${kind}><span class="tx-card-kind">${kind}</span><span class="tx-card-gist">${gist.slice(0, 80)}</span></div>`;
       }

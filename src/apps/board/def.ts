@@ -23,6 +23,9 @@ export default defineApp({
   get name() {
     return t('Kanban Board');
   },
+  get noun() {
+    return t('board');
+  },
   get group() {
     return t('Plan');
   },

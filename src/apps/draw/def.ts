@@ -32,6 +32,9 @@ export default defineApp({
   get name() {
     return t('Drawing Tool');
   },
+  get noun() {
+    return t('drawing');
+  },
   get group() {
     return t('Design');
   },

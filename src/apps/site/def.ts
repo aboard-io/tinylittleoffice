@@ -18,6 +18,9 @@ export default defineApp({
   get name() {
     return t('Website Builder');
   },
+  get noun() {
+    return t('site');
+  },
   get group() {
     return t('Web');
   },

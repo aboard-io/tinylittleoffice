@@ -20,6 +20,9 @@ export default defineApp({
   get name() {
     return t('Trip Planner');
   },
+  get noun() {
+    return t('trip');
+  },
   get group() {
     return t('Plan');
   },

@@ -12,6 +12,7 @@ import type { TextOps, ToText } from '../../src/kit/text.ts';
 import { tick, until } from './helpers.ts';
 import '../../src/styles.css';
 import '../../src/kit/text.ts';
+import { appOf } from '../../src/kit/apps.ts';
 
 /** The smallest host: applies the ops with the kernel, keeps the op log, hands the blocks back. */
 class Host {
@@ -242,7 +243,7 @@ test('paste, each source: our HTML, a TinyLittleOffice link, an address, HTML fr
   await paste(link, { 'text/plain': `https://tinylittleoffice.com/#/v1/sheet/${encodeDoc('A | B\n--- | ---\n1 | 2\n')}` });
   expect(link.doc.blocks.map((b) => b.k)).toEqual(['p', 'fence', 'p']);
   expect(link.doc.blocks[1]).toMatchObject({ lang: 'sheet' });
-  expect(link.el.tx.querySelector('.tx-card-kind')!.textContent).toBe('sheet document');
+  expect(link.el.tx.querySelector('.tx-card-kind')!.textContent).toBe(`A ${appOf('sheet')!.noun}`);
   const url = await mount('ab\n', 'doc', caret(0, 1));
   await paste(url, { 'text/plain': 'https://example.com/x' });
   expect(url.tlo).toBe('a\n\nhttps://example.com/x\n\nb\n');

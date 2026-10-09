@@ -27,6 +27,10 @@ test('the home page lists the apps as tiles, each with its templates', async () 
 test('a link opens its app, and every edit goes into the link', async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  // A document with no name is called by its app's noun, not the app's name.
+  expect(document.title).toBe('Untitled document · TinyLittleOffice');
+  expect(shell.querySelector<HTMLInputElement>('.to-title')!.placeholder).toBe('Untitled document');
+  expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('New document');
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
   text.focus();

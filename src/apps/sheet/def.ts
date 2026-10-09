@@ -26,6 +26,9 @@ export default defineApp({
   get name() {
     return t('Spreadsheet');
   },
+  get noun() {
+    return t('spreadsheet');
+  },
   get group() {
     return t('Numbers');
   },

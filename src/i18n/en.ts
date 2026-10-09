@@ -13,8 +13,9 @@ export default {
   // ---- the shell: header ----
   'Menu': 'Menu',
   'Title': 'Title',
-  'New {app}': 'New {app}',
-  'Untitled {app}': 'Untitled {app}',
+  // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
+  'New {noun}': 'New {noun}',
+  'Untitled {noun}': 'Untitled {noun}',
   'Share': 'Share',
   'Download': 'Download',
   'Loading…': 'Loading…',
@@ -166,8 +167,10 @@ export default {
   // ---- the editor (<to-text>): chips, cards and the bubbles ----
   // A footnote's mark, by its number: spoken.
   'Footnote {n}': 'Footnote {n}',
-  // A card standing for another document held in this one: "Spreadsheet document".
+  // A card standing for another document held in this one, of a kind no app here reads: "abc document".
   '{app} document': '{app} document',
+  // The same card when its app is known; {noun} is the app's noun: "A spreadsheet".
+  'A {noun}': 'A {noun}',
   'Code': 'Code',
   'Connection': 'Connection',
   '{n|one row|# rows}': '{n|one row|# rows}',
@@ -188,6 +191,8 @@ export default {
 
   // ---- the Word Processor ----
   'Word Processor': 'Word Processor',
+  // What one of its documents is called, in running text: "Untitled document"; each app's noun is in its section.
+  'document': 'document',
   // The group heading the Word Processor sits under on the home page.
   'Words': 'Words',
   'Words on a page: headings, lists, links and notes, a table that adds up, printed on letter or A4.': 'Words on a page: headings, lists, links and notes, a table that adds up, printed on letter or A4.',
@@ -261,6 +266,7 @@ export default {
   // The column type that holds words as typed.
   'Text': 'Text',
   'Spreadsheet': 'Spreadsheet',
+  'spreadsheet': 'spreadsheet',
   'Numbers': 'Numbers',
   'A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them.': 'A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them.',
   'Budget': 'Budget',
@@ -362,6 +368,7 @@ export default {
   // The group heading the Drawing Tool sits under on the home page: Design. 'Draw' is the Animator's mode for drawing.
   'Draw': 'Draw',
   'Drawing Tool': 'Drawing Tool',
+  'drawing': 'drawing',
   'Design': 'Design',
   'Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile.': 'Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile.',
   'Request flow': 'Request flow',
@@ -477,6 +484,7 @@ export default {
   'XL': 'XL',
 
   // ---- the Animator ----
+  'animation': 'animation',
   // A key is a moment a shape is set at; between keys it travels. The effects (Impact … Blur) are meme looks.
   'Anything from the Drawing Tool, moving: position, depth, size and spin over time, with effects for memes.': 'Anything from the Drawing Tool, moving: position, depth, size and spin over time, with effects for memes.',
   'Lift off': 'Lift off',
@@ -581,6 +589,7 @@ export default {
   'Open in a new tab': 'Open in a new tab',
   'Outline': 'Outline',
   'Outliner': 'Outliner',
+  'outline': 'outline',
   'Parts and chapters, with a line under each chapter for what happens in it.': 'Parts and chapters, with a line under each chapter for what happens in it.',
   'Paste': 'Paste',
   'Plain line': 'Plain line',
@@ -612,6 +621,7 @@ export default {
   'this item': 'this item',
 
   // ---- the Kanban Board ----
+  'board': 'board',
   // A stage is a column of the board; 'Plan' is the group heading the Kanban Board and the To-Do List sit under on the home page.
   'A checklist': 'A checklist',
   'A kanban board: the stages of a workflow, cards, and limits per stage.': 'A kanban board: the stages of a workflow, cards, and limits per stage.',
@@ -654,6 +664,7 @@ export default {
   '{n} cards, over the limit of {limit}': '{n} cards, over the limit of {limit}',
 
   // ---- the To-Do List ----
+  'list': 'list',
   // {task} is the task's words.
   'A few things to do by a day, the important ones starred, one already done.': 'A few things to do by a day, the important ones starred, one already done.',
   'All': 'All',
@@ -680,6 +691,7 @@ export default {
   'What to take and what to do before you go.': 'What to take and what to do before you go.',
   'empty task': 'empty task',
   // ---- the Presentation Builder ----
+  'presentation': 'presentation',
   'Slides': 'Slides',
   'Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold.': 'Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold.',
 
@@ -822,6 +834,7 @@ export default {
   'Name badges for a meetup, one page per person, six to a sheet, ready to cut.': 'Name badges for a meetup, one page per person, six to a sheet, ready to cut.',
 
   // ---- the Calendar app ----
+  'calendar': 'calendar',
   // A span is an event on the calendar or a task on the schedule (the Gantt view); {every} is "Every week" and the like.
   'A name (yours, say)': 'A name (yours, say)',
   'A schedule: phases with their tasks under them, how far along each is, the launch at the end.': 'A schedule: phases with their tasks under them, how far along each is, the launch at the end.',
@@ -892,6 +905,7 @@ export default {
   '{n}% done': '{n}% done',
 
   // ---- the Diagram Maker ----
+  'diagram': 'diagram',
   // One app, eight kinds (mind map, org chart…); a 'thing' is whatever the kind is made of: an idea, a person, a step.
   'Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines.': 'Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines.',
   'An empty diagram': 'An empty diagram',
@@ -968,6 +982,7 @@ export default {
   'What to grow and the jobs to do, as a mind map.': 'What to grow and the jobs to do, as a mind map.',
 
   // ---- the Trip Planner ----
+  'trip': 'trip',
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'A route on a map: stops in order, each with a note, and how far between them.',
   'GPX route': 'GPX route',
@@ -1015,6 +1030,7 @@ export default {
   'Places as dots, not a route: what to see and when to go.': 'Places as dots, not a route: what to see and when to go.',
 
   // ---- the Website Builder ----
+  'site': 'site',
   // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
   'Web': 'Web',
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.',
@@ -1114,6 +1130,7 @@ export default {
   'Quick Links: a writer': 'Quick Links: a writer',
   'The newsletter, the book, the latest piece, and a way to say hello.': 'The newsletter, the book, the latest piece, and a way to say hello.',
   // ---- the Calculator app ----
+  'calculation': 'calculation',
   // The tape is the list of lines worked out, as on a printing calculator. 'Calculator' and 'Numbers' are above.
   'A calculator that keeps its working: names, units and conversions, and graphs of y = f(x).': 'A calculator that keeps its working: names, units and conversions, and graphs of y = f(x).',
   'The tape (text)': 'The tape (text)',

@@ -19,6 +19,9 @@ export default defineApp({
   get name() {
     return t('To-Do List');
   },
+  get noun() {
+    return t('list');
+  },
   get group() {
     return t('Plan');
   },

@@ -34,6 +34,9 @@ export default defineApp({
   get name() {
     return t('Animator');
   },
+  get noun() {
+    return t('animation');
+  },
   get group() {
     return t('Design');
   },

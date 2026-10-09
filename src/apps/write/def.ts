@@ -18,6 +18,9 @@ export default defineApp({
   get name() {
     return t('Word Processor');
   },
+  get noun() {
+    return t('document');
+  },
   get group() {
     return t('Words');
   },
