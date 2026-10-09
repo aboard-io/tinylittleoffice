@@ -88,6 +88,8 @@ test('zones on Intl, with clock changes', () => {
 test('a new span goes in date order; a time written into a calendar with no zone gives it the viewer\'s', () => {
   expect(run(DOC, (doc) => putItem(doc, readCal(doc), null, { ...newDraft(day(2027, 3, 5)), label: [{ t: 'Mid' }] }, 'Asia/Tokyo'))).toBe(DOC.replace('- 2027-03-10', '- 2027-03-05: Mid\n- 2027-03-10'));
   expect(run(DOC, (doc) => putItem(doc, readCal(doc), null, newDraft(day(2027, 4, 1), day(2027, 4, 2), 'g'), 'UTC'))).toBe(DOC + '- 2027-04-01 to 2027-04-02: {color=green}\n');
+  // A span of days is the same everywhere: no zone is written for it.
+  expect(run('', (doc) => putItem(doc, readCal(doc), null, newDraft(day(2027, 4, 1)), 'Asia/Tokyo'))).toBe('- 2027-04-01:\n');
   const timed = { kind: 't' as const, start: Date.UTC(2027, 2, 1, 0, 0) / 60000, dur: 60, color: '', label: [{ t: 'Call' }], done: 0 };
   // Tokyo is nine hours on: midnight UTC is 9:00 there, and the head says so.
   expect(run('- 2027-03-01: a\n', (doc) => putItem(doc, readCal(doc), null, timed, 'Asia/Tokyo'))).toBe('---\nzone: Asia/Tokyo\n---\n- 2027-03-01: a\n- 2027-03-01 09:00-10:00: Call\n');

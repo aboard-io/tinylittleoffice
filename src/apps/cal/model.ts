@@ -302,7 +302,8 @@ function placeOf(doc: Doc, v: CalView, d: Draft): number {
  * schedule's task added under another), else in date order.
  */
 export function putItem(doc: Doc, v: CalView, item: Item | null, d: Draft, viewer: string, after?: Item): Op[] {
-  const w = writeZone(v, viewer, item ?? undefined);
+  // A span of days is the same everywhere: only a time needs a zone.
+  const w = d.kind === 't' ? writeZone(v, viewer, item ?? undefined) : { zone: v.zone || 'UTC', ops: [] };
   if (item) return [...w.ops, { op: 'splice', at: item.at, n: 1, blocks: [itemBlock(d, w.zone, item.block)] }];
   const at = after ? family(doc, after.at) : placeOf(doc, v, d);
   return [...w.ops, { op: 'splice', at, n: 0, blocks: [itemBlock(d, w.zone, undefined, after?.depth ?? 0)] }];
