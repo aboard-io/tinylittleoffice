@@ -225,7 +225,7 @@ function drawn(site: Site, s: Section, o: SitePageOpts, hero: boolean, products:
   const paras = s.text.map((r) => `<p>${prose(r)}</p>`).join('');
   const money = (n: number) => `${xml(site.currency)}${n.toFixed(2)}`;
   // The shop: a grid of what is for sale, and, by the first of them, the cart.
-  const first = site.sections.find((x) => x.products.length) === s;
+  const first = site.sections.find((x) => x.products.length)?.n === s.n;
   const shop = s.products.length
     ? `<div class="shop"><ul class="grid" aria-label="${xml(t('Products'))}">${s.products
         .map(
