@@ -121,6 +121,8 @@ export class ToText extends LitElement {
   private composingEl: HTMLElement | null = null;
   /** Write the model selection to the DOM after the next draw; 'focus' takes the focus too. */
   private pendingSel: 'keep' | 'focus' | null = null;
+  /** A selection write is on its way (WebKit's is a frame later): what the DOM says meanwhile is stale and not read back. */
+  private writing = false;
   /** The footnote open in the popover: its block, and which of the block's marks it is. */
   private noting: { block: number; nth: number } | null = null;
   /** The selection has left the editor (said once). */
@@ -297,7 +299,8 @@ export class ToText extends LitElement {
     return anchor && focus ? { anchor, focus } : null;
   }
   private onSelectionChange = () => {
-    if (this.composing || !this.isConnected) return;
+    // While a write is pending the DOM caret is wherever the draw left it (WebKit puts it at 0 of a text node updated in place): not ours to read.
+    if (this.composing || this.pendingSel || this.writing || !this.isConnected) return;
     const s = this.readSel();
     if (!s) {
       if (!this.away) {
@@ -318,7 +321,9 @@ export class ToText extends LitElement {
     const how = this.pendingSel;
     if (!how) return;
     this.pendingSel = null;
+    this.writing = true;
     const go = () => {
+      this.writing = false;
       const s = this._sel;
       if (!s || !this.isConnected || !this.tx) return;
       if (how === 'focus') this.focus();
