@@ -13,13 +13,13 @@ you have copied the file.
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
 | Write | A rich text editor: headings, bold, italic, lists, things from the web, a PDF on letter or A4 paper. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
 | Deck  | Slides with a headline, bullets and an icon. Press Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
-| Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
+| Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid; a pen for any shape, corner by corner, and a freehand stroke. |
 | Calculator | Plain (a line to type any expression into, and the tape beneath as a little program: `a = 12`, then `a * 3`, `ans`), scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
 | Calendar | Labelled spans of time on a month grid, or the year at a glance, shown in any time zone. |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
 | Board | A kanban board: the stages of a workflow, each in a colour if it likes; cards of rich text with checklists; limits per stage. |
 | Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize; the calendar's own date nav. |
-| Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
+| Trip  | A route on an OpenStreetMap map: stops in order, each with a note; or just dots on the map. |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
 | Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
@@ -32,7 +32,7 @@ you have copied the file.
 | Poster, Name badges | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
 | Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
 | Pixel art | A grid of squares to colour. |
-| Seating chart, Family tree, Timeline | More diagrams from a few lines. |
+| Seating chart, Family tree, Timeline | More diagrams from a few lines; a timeline's years are spaced as they fell along one line, a span of years a band at its foot. |
 | Games | Word search, Spinner. |
 | Together | Secret Santa (a private link per person), Split the bill. |
 | Personal | Log. |
@@ -229,7 +229,9 @@ Every format is plain text, chosen so deflate has something to chew on.
 - **Draw**: a table, a row per shape, `Kind | X | Y | W | H | Style |
   Label`, and the alt text in the header (`alt: ...`). Kinds are `r`
   rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text and
-  more (`src/lib/drawmodel.ts`); a join (`k`, `j`) names the rows of the two
+  more (`src/lib/drawmodel.ts`); `v` is any shape and `w` an open stroke,
+  their corners in a `Points` column as hundredths of the box
+  (`0:0;50:100;100:0`); a join (`k`, `j`) names the rows of the two
   shapes it joins, counting from 0, in X and Y. `Style` is the fill, and may
   carry a colour letter and a text size digit after it (`1b3`). Coordinates
   are in 8-pixel grid units on a 640 by 400 canvas. **Motion** is the same

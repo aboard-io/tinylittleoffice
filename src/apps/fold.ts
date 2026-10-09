@@ -4,7 +4,7 @@
  * the page's own shape, with the rail of pages beside it; Print shows the
  * sheets the pages land on, and how to fold them.
  */
-import { defineElement, html, nothing, state, unsafeSVG, tool, btn, icon, libraryIcon, UI, insertOptions, pageSvg } from '../kit.ts';
+import { defineElement, html, nothing, state, unsafeSVG, tool, btn, icon, libraryIcon, UI, insertOptions, pageSvg, toast } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
 import { blankSlide, isBlank, type Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
@@ -30,6 +30,25 @@ export class FoldElement extends PagesElement<Folded> {
   }
   protected savePages(pages: Slide[]) {
     this.commit({ ...this.doc, pages });
+  }
+
+  /** A folded thing has as many pages as its sheet holds: the next blank one, or more pages where the format grows; else a word about it. */
+  protected nextBlank(): boolean {
+    const pages = this.pages();
+    const blank = pages.findIndex((p, i) => i > this.cur && isBlank(p));
+    if (blank >= 0) {
+      this.cur = blank;
+      return true;
+    }
+    const f = this.f;
+    if (f.grow && pages.length < f.grow) {
+      // It grows as it does from the bar: by a sheet's worth, or a card; the document goes on the first new page.
+      this.savePages([...pages, ...Array.from({ length: f.by ?? 4 }, blankSlide)]);
+      this.cur = pages.length;
+      return true;
+    }
+    toast(this, 'Every page has something on it: clear one for the document, or put it on a blank page.');
+    return false;
   }
 
   /** What one page is called, for a format that grows a page at a time: a badge, a card, a section. */

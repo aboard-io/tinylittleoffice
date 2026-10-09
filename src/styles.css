@@ -2930,6 +2930,11 @@ table.sheet td .rich .s {
   margin: 0 auto;
   font-family: var(--sl-font-sans);
 }
+/* A timeline is as wide as its years: it is drawn at its own width and scrolled sideways, never shrunk to a thread. */
+to-timeline .diagram .pic > svg {
+  width: var(--w);
+  max-width: none;
+}
 .diagram-hint {
   flex: 1 1 320px;
   white-space: normal;

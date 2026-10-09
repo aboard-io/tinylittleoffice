@@ -226,6 +226,30 @@ describe('trip', () => {
     expect(stops()).toHaveLength(2);
     expect(parseTrip(bodyOf()).map((s) => s.name)).toEqual(['Coimbra', 'Second stop']);
   });
+
+  test('trip: the stops joined in order, or just dots on the map', async () => {
+    const route = serializeTrip([
+      { lat: 38.70775, lon: -9.13659, name: 'Lisbon', note: '' },
+      { lat: 41.1496, lon: -8.611, name: 'Porto', note: '' },
+    ]);
+    await shell({ app: 'trip', body: route });
+    const joined = () => button(editorOf('trip'), 'Join the stops in order');
+    expect(joined().getAttribute('aria-pressed')).toBe('true');
+    expect(stops()[1].querySelector('.leg')).toBeTruthy();
+    joined().click();
+    await settleAll();
+    // Dots: no legs, no distance, and the choice travels in the link.
+    expect(joined().getAttribute('aria-pressed')).toBe('false');
+    expect(stops()[1].querySelector('.leg')).toBeNull();
+    expect(hint()).toBe('2 stops');
+    expect(bodyOf()).toMatch(/^---\nroute: dots\n---\n/);
+    await reopen();
+    expect(button(editorOf('trip'), 'Join the stops in order').getAttribute('aria-pressed')).toBe('false');
+    joined().click();
+    await settleAll();
+    expect(bodyOf()).not.toContain('route:');
+    expect(stops()[1].querySelector('.leg')).toBeTruthy();
+  });
 });
 
 // Motion: a drawing that moves between the moments you set, worked with its controls (ported from e2e/apps.spec.ts;

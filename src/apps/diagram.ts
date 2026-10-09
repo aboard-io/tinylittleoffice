@@ -20,6 +20,8 @@ const KEYED = /^\s*(?:- )?(?:\[:\{[^}]*\}\s*\])?\{[^}]*\}:\s\{[^}]*\}(?:\s*\[[^\
 const HAS_KEY = /^[^:[\]]*\}:\s\{/;
 /** The fields that name another thing on the picture: the two ends of a line, the sets something is shared by. */
 const NAMES = /^(from|to|one set|other sets)$/i;
+/** A list with at least `item` + 1 things in it: an empty list holds nothing, not even the draft being added to it. */
+const padded = (items: string[], item: number) => (items.length > item ? items : [...items, ...Array.from({ length: item + 1 - items.length }, () => '')]);
 /** Words without the picture written before them (":rocket Launch"). */
 export const unIcon = (v: string) => v.replace(/^:[a-z0-9-]+\s*/, '');
 /** A name as it is compared: without its picture, its case or its edges. */
@@ -133,7 +135,7 @@ export class DiagramElement extends DocElement<string> {
     const write = (f: number, typed: string) => {
       const was = this.drafted()[e.row];
       const old = value(f);
-      const set = (v: string) => (e.item !== undefined ? joinItems(listItems(v).map((x, k) => (k === e.item ? typed : x))) : typed);
+      const set = (v: string) => (e.item !== undefined ? joinItems(padded(listItems(v), e.item).map((x, k) => (k === e.item ? typed : x))) : typed);
       let next = withValue(this.drafted(), e.row, f, set);
       if (this.draft) {
         // The first keystroke makes the draft real.
@@ -326,7 +328,7 @@ export class DiagramElement extends DocElement<string> {
     const shown = {
       ...d.row,
       values: d.row.values.map((v, n) => {
-        if (d.item !== undefined && n === d.field) return joinItems(listItems(v).map((x, k) => (k === d.item && !x ? fields[n].name : x)));
+        if (d.item !== undefined && n === d.field) return joinItems(padded(listItems(v), d.item).map((x, k) => (k === d.item && !x ? fields[n].name : x)));
         return !v && !fields[n].optional && holdsWords(fields[n]) ? fields[n].name : v;
       }),
     };

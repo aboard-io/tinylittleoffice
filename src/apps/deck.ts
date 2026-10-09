@@ -89,10 +89,9 @@ export class ToDeck extends PagesElement<Deck> {
 
   /* ---------- another document on the slide ---------- */
 
-  /** The Add menu: a new slide after this one, of a layout or showing a document; the slide you are on is left as it is. */
+  /** The Insert menu: a new slide after this one, of a layout; or a document, on this slide if it is blank, else on a new one after it. */
   private pickKind(what: string) {
     if (what.startsWith('layout:')) return this.addPage({ ...blankSlide(), layout: what.slice(7) as Layout });
-    this.addPage();
     void this.insert(what);
   }
 

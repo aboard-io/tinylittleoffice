@@ -144,13 +144,13 @@ https://tinylittleoffice.com/cal/#title=March&doc=---%0Azone%3A+Europe%2FLondon%
 
 ### trip: a route on a map
 
-A table `Place | Lat:number | Lon:number | Note`, in decimal degrees. `units: km` or `units: miles` in the header (otherwise driving hours are estimated).
+A table `Place | Lat:number | Lon:number | Note`, in decimal degrees. `units: km` or `units: miles` in the header (otherwise driving hours are estimated); `route: dots` for stops that stand alone, not joined in order.
 
 https://tinylittleoffice.com/trip/#title=Portugal&doc=---%0Aunits%3A+km%0A---%0APlace+%7C+Lat%3Anumber+%7C+Lon%3Anumber+%7C+Note%0A---+%7C+---+%7C+---+%7C+---%0ALisbon+%7C+38.7223+%7C+-9.1393+%7C+Pastel+de+nata+first%0ACoimbra+%7C+40.2033+%7C+-8.4103+%7C%0APorto+%7C+41.1579+%7C+-8.6291+%7C+Port+cellars
 
 ### draw: a free drawing
 
-A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid 80 wide and 50 tall. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `l` line, `a` arrow. `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid) optionally followed by a colour letter (`r o g b p`) and a text size (`1` to `4`). `alt:` in the header describes the drawing for people who cannot see it. Prefer the diagram apps above when one fits: they lay themselves out.
+A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid 80 wide and 50 tall. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `l` line, `a` arrow; `v` any shape and `w` an open stroke, their corners in a last column `Points` as hundredths of the box (`0:0;50:100;100:0`). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid) optionally followed by a colour letter (`r o g b p`) and a text size (`1` to `4`). `alt:` in the header describes the drawing for people who cannot see it. Prefer the diagram apps above when one fits: they lay themselves out.
 
 https://tinylittleoffice.com/draw/#title=Request+flow&doc=---%0Aalt%3A+A+browser+asks+a+server%2C+which+reads+the+data%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Ao+%7C+4+%7C+6+%7C+16+%7C+8+%7C+1b+%7C+Browser%0Ao+%7C+32+%7C+6+%7C+16+%7C+8+%7C+1b+%7C+Server%0Ac+%7C+60+%7C+5+%7C+14+%7C+10+%7C+1g+%7C+Data%0Ak+%7C+0+%7C+1+%7C+0+%7C+0+%7C+0+%7C+asks%0Ak+%7C+1+%7C+2+%7C+0+%7C+0+%7C+0+%7C+reads
 
@@ -190,14 +190,14 @@ https://tinylittleoffice.com/comic/#title=Biscuit&doc=%23%23+Biscuit%0A%0A---%0A
 
 - `flow` (stock and flow, drawn as a Sankey diagram with sliders): `- name = 1000 (0 to 5000)` is a number with a slider; `~ From -> To: formula` is a flow, its formula using slider names and stocks.
 - `pixel` (16×16): a line per row, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
-- `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`.
+- `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`, in order; years or dates are spaced as they fell, and a span (`- 1990–1999: The nineties`) is a band along the foot.
 - Games: `spinner` (a `- ` list of choices), `wordsearch`.
 - Together: `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
 - Personal: `log` (a table of entries; each kind is totalled).
 
 https://tinylittleoffice.com/flow/#title=Funnel&doc=%23+A+subscription+business%0A%0A-+visitors+%3D+20000+%280+to+100000%29%0A-+signup+rate+%3D+6%25+%280+to+30%29%0A-+paid+rate+%3D+25%25+%280+to+100%29%0A-+churn+%3D+8%25+%280+to+50%29%0A%0A~+Visitors+-%3E+Signups%3A+visitors+%2A+signup+rate%0A~+Visitors+-%3E+Bounced%3A+visitors+-+visitors+%2A+signup+rate%0A~+Signups+-%3E+Paying%3A+signups+%2A+paid+rate%0A~+Signups+-%3E+Free%3A+signups+-+signups+%2A+paid+rate%0A~+Paying+-%3E+Churned%3A+paying+%2A+churn%0A~+Paying+-%3E+Retained%3A+paying+-+paying+%2A+churn
 
-https://tinylittleoffice.com/timeline/#title=Computing&doc=-+1843%3A+Lovelace+publishes+her+notes%0A-+1936%3A+Turing+describes+his+machine%0A-+1969%3A+The+first+ARPANET+message%0A-+1989%3A+The+web+is+proposed%0A-+2007%3A+The+phone+becomes+a+computer
+https://tinylittleoffice.com/timeline/#title=Computing&doc=-+1843%3A+Lovelace+publishes+her+notes%0A-+1936%3A+Turing+describes+his+machine%0A-+1945%3A+ENIAC+is+switched+on%0A-+1969%3A+The+first+ARPANET+message%0A-+1976%3A+The+Apple+I%0A-+1989%3A+The+web+is+proposed%0A-+2007%3A+The+phone+becomes+a+computer%0A-+2022%3A+Everyone+talks+to+a+machine%0A-+1969%E2%80%932007%3A+The+network+grows
 
 ## A document's own QR code
 
