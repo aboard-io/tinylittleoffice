@@ -1363,7 +1363,7 @@
     border-color: var(--to-danger);
   }
   .to-link-guard .lg-go {
-    background: var(--to-success);
-    border-color: var(--to-success);
+    background: var(--to-go);
+    border-color: var(--to-go);
   }
 }

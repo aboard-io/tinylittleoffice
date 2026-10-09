@@ -12,7 +12,8 @@ format `docs/tlo.md` in the old tree until it moves here.
 
 ```
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
-                privacy, offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
+                privacy, link-guard (links that leave ask first), pictures (web pictures asked for first),
+                preview (a kept document's first page, small), mark (the Office mark), offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
                 icons (the UI set and the starter library a document may name), icons-search (keywords,
                 suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
                 the rest of Lucide and icons-meta, its tags and categories), app (the AppDef contract), apps
@@ -56,6 +57,20 @@ blocks whose identity changed are drawn again. Undo is an op log (src/kit/histor
 The home page: every app as its icon and name (open it blank), its templates ▾, and under it the documents of that
 app kept on this device, newest first, only while the drawer's switch says Saved (`src/kit/library.ts`, through
 `src/kit/store.ts`); under Private nothing is kept and the list is not there.
+Each kept document shows its first page small at its left (`src/kit/preview.ts`), drawn only as its row comes into
+sight and kept in memory by its link.
+
+Privacy, links and pictures: a link that leaves Tiny Little Office never opens by itself. One catcher on the page
+(`src/kit/link-guard.ts`, installed by the shell) asks first, in a dialog with the site's name in large type and the
+whole address under it, a red Cancel (the default) and a green Go (a new tab, no opener, no referrer); a link to
+anything but a web page, an email or a phone number does not open at all. A picture a document holds by its
+address on another site is a tracking pixel for whoever reads it, so it is not fetched until the reader asks:
+`src/kit/pictures.ts` draws it as a card with the site's name and "Show pictures from the web" (every picture of
+that document, for the visit); a picture the author put in this visit shows at once; under Saved a switch in the
+menu shows them always; a preview never fetches one; exports include them; every `<img>` sends no referrer.
+
+The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and the favicon; `npm run icons`
+(`scripts/icons.ts`, through sharp) draws the app icons and the share card from it into `public/`.
 
 Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
 `{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.

@@ -21,6 +21,8 @@
     --to-on-accent: hsl(0 0% 100%);
     --to-danger: hsl(0 72.2% 50.6%);
     --to-success: hsl(142.1 76.2% 36.3%);
+    /* Go, under words: the green deep enough for white words (the link guard's button). */
+    --to-go: hsl(142.1 76.2% 27%);
     --to-warning: hsl(32.1 94.6% 43.7%);
     /* Paper: white in both themes, a page stays a page, so its ink, its lines and its accent are the light theme's whatever the theme. */
     --to-paper: hsl(0 0% 100%);
@@ -58,6 +60,7 @@
     --to-on-accent: hsl(240 5.9% 11%);
     --to-danger: hsl(0 98.6% 67.9%);
     --to-success: hsl(141.6 72.4% 55.2%);
+    --to-go: var(--to-success);
     --to-warning: hsl(43.3 100% 53.4%);
     --to-input-bg: hsl(240 5.9% 11%);
     --to-shadow: 0 1px 2px rgb(0 0 0 / 24%);
