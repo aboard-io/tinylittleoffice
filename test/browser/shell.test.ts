@@ -2,6 +2,7 @@
 import { test, expect, afterEach } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
+import type { ToText } from '../../src/kit/text.ts';
 
 afterEach(() => history.replaceState(null, '', location.pathname));
 
@@ -25,24 +26,29 @@ test('the home page lists the apps as tiles, each with its templates', async () 
 
 test('a link opens its app, and every edit goes into the link', async () => {
   const shell = await mount('#/v1/text');
-  await until(() => !!shell.querySelector('to-text-editor textarea'));
-  const area = shell.querySelector<HTMLTextAreaElement>('textarea')!;
-  area.value = 'Hello, link.';
-  area.dispatchEvent(new Event('input', { bubbles: true }));
+  await until(() => !!shell.querySelector('to-text-editor to-text .tx'));
+  const text = shell.querySelector<ToText>('to-text')!;
+  await text.updateComplete;
+  text.focus();
+  text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  for (const ch of 'Hello, link.') {
+    text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
+    await text.updateComplete;
+  }
   await shell.updateComplete;
   expect(location.hash).toMatch(/^#\/v1\/text\/[ryz]/);
-  expect(decodeDoc(location.hash.split('/')[3])).toBe('Hello, link.');
+  expect(decodeDoc(location.hash.split('/')[3])).toBe('Hello, link.\n');
   // The title field writes the head, and the tab's name follows.
   const title = shell.querySelector<HTMLInputElement>('.to-title')!;
   title.value = 'A note';
   title.dispatchEvent(new Event('change', { bubbles: true }));
   await shell.updateComplete;
-  expect(decodeDoc(location.hash.split('/')[3])).toBe('---\ntitle: A note\n---\nHello, link.');
+  expect(decodeDoc(location.hash.split('/')[3])).toBe('---\ntitle: A note\n---\nHello, link.\n');
   expect(document.title).toBe('A note · TinyLittleOffice');
   // The same link, opened again, is the same document.
   const again = await mount(location.hash);
-  await until(() => !!again.querySelector('textarea'));
-  expect(again.querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('---\ntitle: A note\n---\nHello, link.');
+  await until(() => !!again.querySelector('to-text .tx p'));
+  expect(again.querySelector('to-text .tx p')!.textContent).toBe('Hello, link.');
   expect(again.querySelector<HTMLInputElement>('.to-title')!.value).toBe('A note');
 });
 

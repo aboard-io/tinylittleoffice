@@ -109,13 +109,12 @@ export class ToTextEditor extends LitElement {
   };
 
   private inserts(): MenuItem[] {
-    const x = this.text;
     return [
-      { label: t('Heading'), icon: UI.heading, does: () => x.exec('h2') },
-      { label: t('List'), icon: UI.list, does: () => x.exec('ul') },
-      { label: t('Numbered list'), icon: UI.listOrdered, does: () => x.exec('ol') },
-      { label: t('Footnote'), icon: UI.footnote, does: () => x.exec('fn') },
-      { label: t('Date'), icon: UI.calendar, does: () => x.exec('date') },
+      { label: t('Heading'), icon: UI.heading, does: () => this.text.exec('h2') },
+      { label: t('List'), icon: UI.list, does: () => this.text.exec('ul') },
+      { label: t('Numbered list'), icon: UI.listOrdered, does: () => this.text.exec('ol') },
+      { label: t('Footnote'), icon: UI.footnote, does: () => this.text.exec('fn') },
+      { label: t('Date'), icon: UI.calendar, does: () => this.text.exec('date') },
     ];
   }
   render() {

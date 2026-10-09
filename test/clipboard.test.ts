@@ -41,7 +41,8 @@ test('paste, in order: our HTML → the TLO; a TinyLittleOffice link → a fence
   expect(pasteFrom({ text: '## Two\n\n- one\n- two\n', html: '' }, 'doc')).toEqual({ blocks: parse('## Two\n\n- one\n- two\n').blocks });
   expect(pasteFrom({ text: 'just words', html: '' }, 'doc')).toEqual({ runs: [{ t: 'just words' }] });
   expect(pasteFrom({ text: 'two\r\nlines', html: '' }, 'line')).toEqual({ runs: [{ t: 'two lines' }] });
-  expect(pasteFrom({ text: 'two\nlines', html: '' }, 'lines')).toEqual({ runs: [{ t: 'two\nlines' }] });
+  expect(pasteFrom({ text: 'two\nlines', html: '' }, 'lines')).toEqual({ blocks: [{ k: 'p', runs: [{ t: 'two\nlines' }] }] });
+  expect(pasteFrom({ text: '# H\n\n- i\n', html: '' }, 'lines')).toEqual({ blocks: [{ k: 'p', runs: [{ t: 'H' }] }, { k: 'li', depth: 0, runs: [{ t: 'i' }] }] });
   expect(pasteFrom({ text: '', html: '' }, 'doc')).toBeNull();
 });
 

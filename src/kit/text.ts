@@ -19,7 +19,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { hasClass, isAtomic, isText, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
 import { copyData, pasteFrom } from './clipboard.ts';
 import { t } from './i18n.ts';
-import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, ordered, runAt, sameSel, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
+import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, kindAt, marksOf, ordered, runAt, sameSel, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import type { ToNotePop } from './note-pop.ts';
 import './link-pop.ts';
@@ -142,7 +142,8 @@ export class ToText extends LitElement {
     this._sel = s ? clampSel(this.model, s) : null;
     if (!s) return;
     this.pendingSel = 'focus';
-    if (!this.isUpdatePending) void this.updateComplete.then(() => this.flushSel());
+    // Drawn and nothing pending: written now; otherwise updated() writes it after the draw.
+    if (this.hasUpdated && !this.isUpdatePending) this.flushSel();
   }
   /** The marks at the caret (what a bar shows pressed). */
   get marks(): Fmt {
@@ -276,9 +277,7 @@ export class ToText extends LitElement {
     this.away = false;
     if (sameSel(s, this._sel)) return;
     this._sel = s;
-    const [a] = ordered(s);
-    const b = this.model[a.block];
-    this.fmt = isText(b) ? marksAt(b.runs, a.offset) : {};
+    this.fmt = marksOf(this.model, s);
     this.showLink();
     this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: s, bubbles: true }));
   };
@@ -315,14 +314,18 @@ export class ToText extends LitElement {
 
   /* ---------- edits ---------- */
 
-  /** The ops are the host's to apply; the selection after them is kept here and written once the new blocks are drawn. */
+  /**
+   * The ops are the host's to apply; the selection after them is kept here
+   * and written once the host's new `blocks` are drawn (the draw comes from
+   * that property alone, whether the host applies the ops in the event or
+   * in a render of its own).
+   */
   private emit(ops: Op[], sel: Sel, kind?: 'type', how: 'keep' | 'focus' | null = 'keep') {
     if (!ops.length) return;
     const before = this._sel;
     if (!this.blocks.length) ops = [{ op: 'splice', at: 0, n: 0, blocks: [EMPTY] }, ...ops];
     this._sel = sel;
     if (how) this.pendingSel = how;
-    this.requestUpdate();
     this.dispatchEvent(new CustomEvent<TextOps>('text-ops', { detail: { ops, sel, before, ...(kind ? { kind } : {}) }, bubbles: true }));
   }
   private current(): Sel {
@@ -652,8 +655,13 @@ export class ToText extends LitElement {
 
   /* ---------- drawing ---------- */
 
-  protected updated() {
+  protected updated(changed: Map<string, unknown>) {
     this.flushSel();
+    // New blocks under the same selection: the marks there may have changed (Bold over a range); the host's bar is told.
+    if (changed.has('blocks') && this._sel && this.hasUpdated && changed.get('blocks') !== undefined) {
+      this.fmt = marksOf(this.model, this._sel);
+      this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: this._sel, bubbles: true }));
+    }
     if (this.noting) {
       const n = this.noting;
       const chip = this.chipOf(n.block, n.nth);

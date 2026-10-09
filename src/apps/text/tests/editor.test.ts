@@ -41,6 +41,8 @@ test('Bold marks the selection, shows pressed, and keeps the selection', async (
   const bold = el.querySelector<HTMLButtonElement>('[aria-label=Bold]')!;
   bold.click();
   await el.updateComplete;
+  await el.text.updateComplete;
+  await tick();
   expect(changes.at(-1)).toBe('make **this** bold\n');
   expect(document.getSelection()!.toString()).toBe('this');
   await until(() => el.querySelector<HTMLButtonElement>('[aria-label=Bold]')!.getAttribute('aria-pressed') === 'true');

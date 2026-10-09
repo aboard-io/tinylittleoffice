@@ -117,7 +117,8 @@ test('paragraphs: consecutive lines merge, a blank separates, a line that reads 
   same('\\# not a heading\n');
   same('Left\n|\nRight\n');
   same('<br>\n');
-  expect(parse('<br>\n').blocks).toStrictEqual([{ k: 'p', runs: [{ t: '<br>' }] }]);
+  // The model holds the empty paragraph itself (the editor draws and edits it); the text keeps the <br>.
+  expect(parse('<br>\n').blocks).toStrictEqual([{ k: 'p', runs: [] }]);
 });
 
 test('inline: the marks, no space just inside, backticks as plain words, links, icons, notes, escapes, a web address whole, marks close before trailing spaces', () => {

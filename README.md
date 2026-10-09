@@ -12,8 +12,10 @@ format `docs/tlo.md` in the old tree until it moves here.
 
 ```
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
-                privacy, offline, share, exports, i18n, theme, icons, app (the AppDef contract), apps (registry)
-src/doc/        the document kernel (docs/kernel.md); empty until it lands
+                privacy, offline, share, exports, i18n, theme, icons, app (the AppDef contract), apps (registry);
+                the editor: text (<to-text>), textops (its maths), clipboard, history (the op log), note-pop, link-pop
+src/doc/        the document kernel (docs/kernel.md)
+dev/            text.html: the editor alone, in its three shapes, at /dev/text.html on the dev server (not built)
 src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy chunk), style.css
                 (wrapped in @layer apps), templates.ts, tests/
 src/i18n/       the strings: en.ts is every key, by hand; a sibling file is a language
@@ -37,6 +39,10 @@ npm run test:e2e      # the smoke, on a fresh build; SHOTS=<dir> saves screensho
 npm run i18n:check    # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
 npm run i18n:extract  # append the missing keys to en.ts, at the end, to be sorted by hand
 ```
+
+The editor: `<to-text>` (src/kit/text.ts) is the one rich-text editor, model-driven over the kernel: every
+`beforeinput` becomes operations fired as `text-ops`, the host applies them and hands the blocks back, and only the
+blocks whose identity changed are drawn again. Undo is an op log (src/kit/history.ts). See docs/kernel.md §4 and §8.
 
 Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
 `{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.

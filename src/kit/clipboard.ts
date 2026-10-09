@@ -283,6 +283,6 @@ export function pasteFrom(data: { text: string; html: string }, shape: Shape): P
     if (blocks.length) return fitBlocks(blocks, shape);
   }
   if (!text) return null;
-  if (shape === 'doc' && text.includes('\n')) return { blocks: parse(text).blocks };
-  return { runs: [{ t: shape === 'line' ? text.replace(/\n/g, ' ') : text }] };
+  if (text.includes('\n')) return fitBlocks(parse(text).blocks, shape);
+  return { runs: [{ t: text }] };
 }

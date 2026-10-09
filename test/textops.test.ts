@@ -2,7 +2,7 @@
 // each of the editor's ops back exactly.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Block, type Doc } from '../src/doc/index.ts';
-import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, type Edit, type Sel } from '../src/kit/textops.ts';
+import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, marksOf, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, type Edit, type Sel } from '../src/kit/textops.ts';
 import { rng } from './doc/helpers.ts';
 
 const doc = (tlo: string): Doc => parse(tlo);
@@ -28,6 +28,10 @@ test('positions: a chip and a line break count one; clamping; a caret on a card 
   expect(marksAt(runs, 5)).toEqual({});
   expect(marksAt(runs, 0)).toEqual({});
   expect(marksAt(runs, 17)).toEqual({});
+  // Over a range: the marks every selected word has.
+  expect(marksOf(B, sel([1, 5], [1, 9]))).toEqual({ b: true });
+  expect(marksOf(B, sel([1, 0], [1, 9]))).toEqual({});
+  expect(marksOf(B, caret(1, 7))).toEqual({ b: true });
 });
 
 test('typing: words go in with the marks in force; a selection across blocks joins them around what is typed', () => {

@@ -201,3 +201,10 @@ test('tlo: lines of a paragraph are runs with a line break among the words; mark
   expect(write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'a\nb', b: true }] }] })).toBe('**a**\n**b**\n');
   expect(write({ head: {}, blocks: [{ k: 'li', depth: 1, runs: [{ t: 'one\ntwo' }], a: { id: 'x' } }] })).toBe('  - one\n    two {#x}\n');
 });
+
+test('an empty paragraph is written <br> and read back empty, so a blank line typed between two others survives the link', () => {
+  const d = parse('a\n\n<br>\n\nb\n');
+  expect(d.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'a' }] }, { k: 'p', runs: [] }, { k: 'p', runs: [{ t: 'b' }] }]);
+  expect(write(d)).toBe('a\n\n<br>\n\nb\n');
+  expect(write({ head: {}, blocks: [{ k: 'p', runs: [] }] })).toBe('<br>\n');
+});

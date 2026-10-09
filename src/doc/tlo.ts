@@ -164,7 +164,8 @@ export function parse(text: string): Doc {
   const flush = () => {
     if (para.length) {
       const [text, a] = splitAttrs(para.join('\n'));
-      blocks.push({ k: paraKind, text, ...(a ? { a } : {}) });
+      // An empty paragraph is written "<br>" (a blank line alone would not survive the read).
+      blocks.push({ k: paraKind, text: paraKind === 'p' && text.trim() === '<br>' ? '' : text, ...(a ? { a } : {}) });
     }
     para = [];
   };
@@ -337,7 +338,7 @@ export function writeBlock(b: Block, n = 1): string {
     case 'h':
       return `${'#'.repeat(b.level)} ${guardEnd(writeLines(b.runs))}${at}`.trimEnd();
     case 'p':
-      return guardEnd(writeLines(b.runs).split('\n').map(guard).join('\n')) + at;
+      return (b.runs.length ? guardEnd(writeLines(b.runs).split('\n').map(guard).join('\n')) : '<br>') + at;
     case 'quote':
       return guardEnd(writeLines(b.runs))
         .split('\n')

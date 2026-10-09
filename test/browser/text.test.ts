@@ -113,11 +113,14 @@ test('Enter splits per shape: doc and lines split the block, a heading leaves a 
   await key(h, 'Enter');
   expect(h.tlo).toBe('# Head\n\n<br>\n\nwords\n\n here\n');
   expect(h.doc.blocks[1]).toMatchObject({ k: 'p', runs: [] });
+  expect(parse(h.tlo).blocks).toHaveLength(4);
   const lines = await mount('- a\n- b\n', 'lines', caret(1, 1));
   await key(lines, 'Enter');
-  expect(lines.tlo).toBe('- a\n- b\n- \n');
+  expect(lines.tlo).toBe('- a\n- b\n-\n');
+  // Enter (or a line break) on an empty item takes it out of the list instead.
   await key(lines, 'Shift+Enter');
-  expect(lines.doc.blocks).toHaveLength(4);
+  expect(lines.doc.blocks).toHaveLength(3);
+  expect(lines.doc.blocks[2]).toMatchObject({ k: 'p', runs: [] });
   const line = await mount('one\n', 'line', caret(0, 3));
   await key(line, 'Enter');
   expect(line.tlo).toBe('one\n');
@@ -284,7 +287,7 @@ test('copy writes the selection as TLO and as HTML with the marker; cut takes it
 test('an IME composition: the browser writes into the block, compositionend reads it back as one op', async () => {
   const h = await mount('hello world\n', 'doc', caret(0, 5));
   const p = h.el.tx.querySelector('p')!;
-  const textNode = p.firstChild as Text;
+  const textNode = [...p.childNodes].find((n) => n.nodeType === Node.TEXT_NODE) as Text;
   p.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
   // What the browser does during a composition, which we let through: the DOM changes under us.
   textNode.data = 'hello ä world';
@@ -297,13 +300,15 @@ test('an IME composition: the browser writes into the block, compositionend read
   expect(h.history.length).toBe(1);
   expect(h.el.sel).toEqual(caret(0, 7));
   expect(h.el.tx.querySelector('p')!.textContent).toBe('hello ä world');
-  // Android's deleteContentBackward while composing is left to the browser too.
-  p.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  // Android's deleteContentBackward while composing is left to the browser too. (The block was drawn anew: a new element.)
+  const p2 = h.el.tx.querySelector('p')!;
+  expect(p2).not.toBe(p);
+  p2.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
   const ev = new InputEvent('beforeinput', { inputType: 'deleteContentBackward', isComposing: true, bubbles: true, cancelable: true });
   h.el.tx.dispatchEvent(ev);
   expect(ev.defaultPrevented).toBe(false);
-  (h.el.tx.querySelector('p')!.firstChild as Text).data = 'hello  world';
-  p.dispatchEvent(new CompositionEvent('compositionend', { data: '', bubbles: true }));
+  ([...p2.childNodes].find((n) => n.nodeType === Node.TEXT_NODE) as Text).data = 'hello  world';
+  p2.dispatchEvent(new CompositionEvent('compositionend', { data: '', bubbles: true }));
   await h.el.updateComplete;
   expect(h.tlo).toBe('hello  world\n');
 });
@@ -316,7 +321,7 @@ test('undo and redo through the op log: a typing burst is one step, the caret co
   expect(h.tlo).toBe('abcd\n\nef\n');
   h.step('undo');
   await h.el.updateComplete;
-  expect(h.tlo).toBe('abcd\n\n\n');
+  expect(h.tlo).toBe('abcd\n\n<br>\n');
   expect(h.el.sel).toEqual(caret(1, 0));
   h.step('undo');
   await h.el.updateComplete;

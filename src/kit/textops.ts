@@ -6,7 +6,7 @@
  * (docs/kernel.md §3) and the selection after. text.ts maps events onto
  * these; the node tests work them without a browser.
  */
-import { hasClass, isAtomic, isText, normalRuns, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
+import { hasClass, isAtomic, isEmbed, isText, normalRuns, runLength, sliceRuns, splitBlock, type Attrs, type Block, type Op, type Run, type TextBlock } from '../doc/index.ts';
 
 export interface Pos {
   block: number;
@@ -88,6 +88,20 @@ export function marksAt(runs: Run[], offset: number): Fmt {
   return out;
 }
 
+/** The marks a selection shows: at a caret, those of the words before it; over a range, those every selected word has (a link when all share one). */
+export function marksOf(blocks: Block[], sel: Sel): Fmt {
+  const [a] = ordered(sel);
+  const b = blocks[a.block];
+  if (!b || !isText(b)) return {};
+  if (collapsed(sel)) return marksAt(b.runs, a.offset);
+  const picked = sliceBlocks(blocks, sel).flatMap((x) => (isText(x) ? x.runs : [])).filter((r) => !isAtomic(r) && r.t);
+  if (!picked.length) return {};
+  const out: Fmt = {};
+  for (const m of MARKS) if (picked.every((r) => r[m])) out[m] = true;
+  if (picked[0].href && picked.every((r) => r.href === picked[0].href)) out.href = picked[0].href;
+  return out;
+}
+
 /** The plain character at `offset`: '' for an atomic run or past the end. */
 export function charAt(runs: Run[], offset: number): string {
   const hit = runAt(runs, offset);
@@ -146,7 +160,8 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const [a, b] = ordered(sel);
   const first = put[0];
   const last = put[put.length - 1];
-  if (put.length === 1 && isText(first)) return insertRuns(blocks, sel, first.runs);
+  // One block of words goes in as words; a paragraph that is one web address (a card) stands on its own.
+  if (put.length === 1 && isText(first) && !isEmbed(first)) return insertRuns(blocks, sel, first.runs);
   const cur = text(blocks[a.block]);
   const end = blocks[b.block];
   const left = sliceRuns(cur.runs, 0, a.offset);
@@ -154,12 +169,13 @@ export function insertBlocks(blocks: Block[], sel: Sel, put: Block[]): Edit {
   const out: Block[] = [];
   let from = 0;
   let to = put.length;
-  if (isText(first)) {
-    out.push({ ...cur, runs: normalRuns([...left, ...first.runs]) });
+  if (isText(first) && !isEmbed(first)) {
+    // Into a block with no words, the pasted block comes as it is (its own kind); else its words join the block.
+    out.push(cur.runs.length ? { ...cur, runs: normalRuns([...left, ...first.runs]) } : first);
     from = 1;
   } else if (left.length) out.push({ ...cur, runs: left });
   let tail: TextBlock;
-  if (isText(last) && put.length > 1) {
+  if (isText(last) && !isEmbed(last) && put.length > 1) {
     to = put.length - 1;
     tail = { ...last, runs: normalRuns([...last.runs, ...right]) };
   } else tail = { k: 'p', runs: right };
