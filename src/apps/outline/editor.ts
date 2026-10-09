@@ -25,7 +25,7 @@ import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { parseHash, routeHash } from '../../kit/route.ts';
 import type { Sel, TextOps, ToText } from '../../kit/text.ts';
 import { caret } from '../../kit/textops.ts';
-import { appendItem, connect, docBlock, familyEnd, hasChildren, indexAt, insertDoc, listify, liveLinks, moveItem, nameOf, newItem, parentOf, placeItem, readOutline, removeAt, renameIn, setDoc, setLine, setLink, shiftItem, unlink, webAddress, type Dir, type Item, type Link, type OutlineView } from './model.ts';
+import { appendItem, connect, docBlock, familyEnd, hasChildren, indexAt, insertDoc, itemBlock, itemsEnd, listify, liveLinks, moveItem, nameOf, newItem, parentOf, placeItem, readOutline, removeAt, renameIn, setDoc, setLine, setLink, shiftItem, unlink, webAddress, type Dir, type Item, type Link, type OutlineView } from './model.ts';
 import { appName, docGist, outlinePage } from './view.ts';
 import def from './def.ts';
 import '../../kit/bar.ts';
@@ -101,8 +101,9 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   }
   protected willUpdate(changed: Map<string, unknown>) {
     super.willUpdate(changed);
-    // Loose words (headings, paragraphs) arriving are made an outline: one splice, undoable like any edit.
-    if (changed.has('value') && this.view.loose) this.edit(listify(this.doc));
+    // Loose words (headings, paragraphs) arriving are made an outline: one splice, undoable like any edit (a document
+    // arriving has no history yet; one undone back to loose words is left as the undo left it).
+    if (changed.has('value') && this.view.loose && !this.canUndo && !this.canRedo) this.edit(listify(this.doc));
     if (this.zoom >= 0 && indexAt(this.view, this.zoom) < 0) this.zoom = -1;
   }
   protected undone() {
@@ -267,13 +268,16 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const p = parentOf(this.items, i);
     this.zoomTo(p >= 0 ? this.items[p].at : -1);
   }
-  /** A new item at the end of what is shown, from Insert or a tap under the last row. */
+  /** A new item at the end of what is shown, from Insert or a tap under the last row: at the margin, or last inside the zoomed item. */
   private addItem() {
     const vis = this.visible();
     const last = vis[vis.length - 1];
     if (last && !last.doc && !plainText(last.runs).trim()) return this.focusRow(last.at);
-    const r = last ? newItem(this.doc, this.view, last.at, undefined, true) : appendItem(this.doc, this.view, this.base);
-    this.edit(r.ops);
+    const z = indexAt(this.view, this.zoom);
+    const end = z >= 0 ? familyEnd(this.items, z) : -1;
+    const r = z < 0 ? appendItem(this.doc, this.view, 0) : { at: end < this.items.length ? this.items[end].at : itemsEnd(this.doc, this.view), depth: this.base + 1 };
+    const ops: Op[] = 'ops' in r ? r.ops : [{ op: 'splice', at: r.at, n: 0, blocks: [itemBlock(r.depth, [])] }];
+    this.edit(ops);
     this.focusRow(r.at, 0);
   }
 
