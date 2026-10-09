@@ -89,6 +89,9 @@
     display: none;
   }
   .todo-count {
+    display: flex;
+    align-items: center;
+    height: var(--to-touch);
     margin-left: auto;
     padding: 0 6px;
     white-space: nowrap;
