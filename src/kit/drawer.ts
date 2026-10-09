@@ -51,7 +51,7 @@ export class ToDrawer extends LitElement {
   }
 
   private async togglePrivate() {
-    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences and the offline copy are forgotten (your documents live in their links).'))) return;
+    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences, the offline copy and the list of your documents are forgotten (the documents themselves live in their links).'))) return;
     await setPrivate(keeping());
     toast(keeping() ? t('Saved on this device from now on') : t('Private: nothing saved'));
   }
@@ -75,7 +75,7 @@ export class ToDrawer extends LitElement {
               <section class="to-drawer-section">
                 <label class="to-switch">
                   <input type="checkbox" role="switch" .checked=${keeping()} @change=${() => void this.togglePrivate()} />
-                  <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences and the offline copy stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace.')}</small></span>
+                  <span class="to-switch-words"><b>${keeping() ? t('Saved on this device') : t('Private')}</b><small>${keeping() ? t('Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.') : t('Nothing is saved on this device: no cookies, no trace.')}</small></span>
                 </label>
                 <label class="to-switch">
                   <input type="checkbox" role="switch" .checked=${offline.on} ?disabled=${offline.status === 'saving'} @change=${(e: Event) => void setOffline((e.target as HTMLInputElement).checked)} />
@@ -99,7 +99,7 @@ export class ToDrawer extends LitElement {
           : nothing}
       </div>
     </dialog>
-    <to-dialog heading=${t('About TinyLittleOffice')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default; the switch in this menu keeps your settings on this device.')}</p>`}></to-dialog>`;
+    <to-dialog heading=${t('About TinyLittleOffice')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);

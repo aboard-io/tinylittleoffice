@@ -18,6 +18,7 @@ import { roomFor, roomRows, shortLinkLength } from './limits.ts';
 import { EXPIRIES, forget, ownerLink, shorten, shortLink, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
 import { keeping } from './privacy.ts';
+import { firstWords, keep, library, type Kept } from './library.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, shareNative } from './share.ts';
 import { toast } from './toast.ts';
@@ -51,6 +52,11 @@ export class ToShell extends LitElement {
   /** A view asked for in the link ("text.png/…"): done once the editor is up. */
   private pendingView = '';
   private payloadLength = 0;
+  /** This document's entry in the library (kit/library.ts): adopted by its hash on load, made at the first keep, carried in history.state. */
+  private keptId: string | null = null;
+  /** The keep waiting out the debounce, and its timer. */
+  private pending: Kept | null = null;
+  private keepTimer = 0;
 
   constructor() {
     super();
@@ -71,6 +77,7 @@ export class ToShell extends LitElement {
     super.connectedCallback();
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onKey);
+    window.addEventListener('pagehide', this.flushKeep);
     this.offLanguage = onLanguage(() => this.requestUpdate());
     this.onHash();
   }
@@ -78,6 +85,8 @@ export class ToShell extends LitElement {
     super.disconnectedCallback();
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onKey);
+    window.removeEventListener('pagehide', this.flushKeep);
+    this.flushKeep();
     this.offLanguage();
   }
 
@@ -94,6 +103,7 @@ export class ToShell extends LitElement {
   private pageApp = () => location.pathname.split('/').slice(-2)[0];
 
   private onHash = () => {
+    this.flushKeep();
     const { app, payload, view, owned } = parseHash(location.hash);
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     const def = id ? appOf(id) : undefined;
@@ -104,6 +114,9 @@ export class ToShell extends LitElement {
     this.payloadLength = payload.length;
     this.unreadable = !!payload && !decodeDoc(payload);
     this.doc = def ? (payload ? decodeDoc(payload) : def.blank()) : '';
+    const state = history.state as { kept?: unknown } | null;
+    const hash = def && payload ? routeHash(def.id, payload) : '';
+    this.keptId = typeof state?.kept === 'string' ? state.kept : hash ? (library().find((k) => k.hash === hash)?.id ?? null) : null;
     this.setTitle();
     if (def && this.tag !== `to-${def.id}-editor`) {
       this.tag = '';
@@ -118,7 +131,7 @@ export class ToShell extends LitElement {
     const view = this.pendingView;
     this.pendingView = '';
     if (!view || !this.def) return;
-    history.replaceState(null, '', routeHash(this.def.id, encodeDoc(this.doc), '', this.owned));
+    history.replaceState(this.state(), '', routeHash(this.def.id, encodeDoc(this.doc), '', this.owned));
     try {
       const name = await exportAs(view, this.current());
       if (name) toast(t('Downloaded {name}', { name }));
@@ -134,11 +147,37 @@ export class ToShell extends LitElement {
     this.doc = doc;
     const payload = encodeDoc(doc);
     this.payloadLength = payload.length;
-    history.replaceState(null, '', routeHash(this.app, payload, '', this.owned));
+    this.keepSoon(payload);
+    history.replaceState(this.state(), '', routeHash(this.app, payload, '', this.owned));
     this.changed = true;
     this.setTitle();
   }
   private onDocChange = (e: Event) => this.change((e as DocChange).detail);
+
+  /* ---------- the library ---------- */
+
+  /** What the tab carries in history.state: the library entry this document is. */
+  private state = () => (this.keptId ? { kept: this.keptId } : null);
+  /**
+   * Into the library, 800 ms after the last change, while the device is Saved. A document empty again (or
+   * blank) is not kept anew. The id is made here the first time; change() writes it into the tab's
+   * history.state with the link, so the next change, and a reload, are the same entry.
+   */
+  private keepSoon(payload: string) {
+    const def = this.def;
+    if (!def || !keeping() || !this.doc.trim() || this.doc === def.blank()) return;
+    this.keptId ??= crypto.randomUUID();
+    this.pending = { id: this.keptId, app: def.id, title: def.title(this.doc) || firstWords(this.doc), hash: routeHash(def.id, payload), at: Date.now() };
+    clearTimeout(this.keepTimer);
+    this.keepTimer = window.setTimeout(this.flushKeep, 800);
+  }
+  /** The waiting keep, now (leaving the document, or the page). */
+  private flushKeep = () => {
+    clearTimeout(this.keepTimer);
+    const entry = this.pending;
+    this.pending = null;
+    if (entry) keep({ ...entry, at: Date.now() });
+  };
 
   private setTitle() {
     const def = this.def;
@@ -227,7 +266,7 @@ export class ToShell extends LitElement {
       this.short = await shorten(this.link, this.shortTtl);
       this.owned = this.short.owned;
       this.changed = false;
-      if (this.app) history.replaceState(null, '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned));
+      if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned));
     });
   /** The short link given this version; with `seconds`, a longer life too. */
   private updateShort = (seconds?: number) =>
@@ -246,7 +285,7 @@ export class ToShell extends LitElement {
       dropKept(ownerLink(owned));
       this.owned = null;
       this.short = null;
-      if (this.app) history.replaceState(null, '', routeHash(this.app, parseHash(location.hash).payload));
+      if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload));
       this.dialog('short')?.close();
       toast(t('Forgotten'));
     });

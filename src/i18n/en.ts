@@ -23,11 +23,17 @@ export default {
   '{n} characters over the link limit': '{n} characters over the link limit',
 
   // ---- the home page ----
-  'A tiny office suite that lives entirely in the URL. The link is the document.': 'A tiny office suite that lives entirely in the URL. The link is the document.',
   'Blank': 'Blank',
   'Templates': 'Templates',
   // The button under an app's tile, naming the template list: "Start Text from"
   'Start {app} from': 'Start {app} from',
+  // The list of an app's documents kept on this device, under its tile: "Write documents"
+  '{app} documents': '{app} documents',
+  'Forget': 'Forget',
+  // The button that forgets one kept document: "Forget Launch notes"
+  'Forget {title}': 'Forget {title}',
+  // Under an app's documents, the rest folded away: "3 more"
+  '{n} more': '{n} more',
 
   // ---- the drawer (hamburger menu) ----
   'Apps': 'Apps',
@@ -39,8 +45,8 @@ export default {
   'Nothing is saved on this device: no cookies, no trace.': 'Nothing is saved on this device: no cookies, no trace.',
   'Saved on this device': 'Saved on this device',
   'Saved on this device from now on': 'Saved on this device from now on',
-  'Your preferences and the offline copy stay here. Turn off to forget all of it.': 'Your preferences and the offline copy stay here. Turn off to forget all of it.',
-  'Save nothing on this device from now on? Your preferences and the offline copy are forgotten (your documents live in their links).': 'Save nothing on this device from now on? Your preferences and the offline copy are forgotten (your documents live in their links).',
+  'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.': 'Your preferences, the offline copy and the documents you open stay here. Turn off to forget all of it.',
+  'Save nothing on this device from now on? Your preferences, the offline copy and the list of your documents are forgotten (the documents themselves live in their links).': 'Save nothing on this device from now on? Your preferences, the offline copy and the list of your documents are forgotten (the documents themselves live in their links).',
   'Keep the app on this device': 'Keep the app on this device',
   'Language': 'Language',
   'Theme': 'Theme',
@@ -50,7 +56,7 @@ export default {
   'About': 'About',
   'About TinyLittleOffice': 'About TinyLittleOffice',
   'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.': 'A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.',
-  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default; the switch in this menu keeps your settings on this device.': 'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default; the switch in this menu keeps your settings on this device.',
+  'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.': 'Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.',
 
   // ---- the copy kept on the device (status lines under the switch) ----
   'Only on the built site': 'Only on the built site',

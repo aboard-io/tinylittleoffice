@@ -1,7 +1,7 @@
 /**
  * Private or Saved: whether the device keeps anything. Private (the default) writes nothing: no cookies,
  * no storage, no trace. Saved keeps the preferences (theme, language), and the copy of the app for working
- * offline; later, the documents list and a signing key. Turned back to Private, everything goes.
+ * offline, and the documents opened here (kit/library.ts); later, a signing key. Turned back to Private, everything goes.
  */
 import { keeping, setKeeping, store } from './store.ts';
 import { dropOffline } from './offline.ts';
