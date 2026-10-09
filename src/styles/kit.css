@@ -611,9 +611,53 @@
 
   /* ---- the Share dialog: one column of sections, hung from the top; a full-screen sheet on a phone ---- */
   .to-share-fit {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     margin: 0 0 12px;
     color: var(--to-ink-3);
     font-size: 14px;
+  }
+  /* The words open the rooms the link fits in: a button that reads as a line. */
+  .to-share-fit .to-fit-words {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+    text-align: start;
+    border-color: transparent;
+    background: transparent;
+    color: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    white-space: normal;
+  }
+  .to-share-fit.over .to-fit-words {
+    color: var(--to-danger);
+    font-weight: 600;
+  }
+  .to-rooms {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .to-rooms table {
+    border-collapse: collapse;
+  }
+  .to-rooms th,
+  .to-rooms td {
+    padding: 3px 8px;
+    text-align: start;
+    white-space: nowrap;
+  }
+  .to-rooms td {
+    font-variant-numeric: tabular-nums;
+  }
+  .to-rooms thead th {
+    color: var(--to-ink-3);
+    font-weight: 500;
+  }
+  .to-rooms tr.over td,
+  .to-rooms tr.over th {
+    color: var(--to-danger);
   }
   .to-share-links {
     display: grid;
@@ -1178,6 +1222,12 @@
     border-radius: var(--to-radius);
     background: #fff;
   }
+  /* A page at its paper's width (a letter page about 816px), smaller only to fit a narrower screen, centred; never stretched. */
+  .to-display-page {
+    width: 100%;
+    max-width: var(--page-w, 816px);
+    margin: 0 auto;
+  }
   .to-display-page svg {
     display: block;
     width: 100%;
@@ -1562,5 +1612,158 @@
   .to-link-guard .lg-go {
     background: var(--to-go);
     border-color: var(--to-go);
+  }
+
+  /* ---- the skip link: off the page until it has the focus ---- */
+  .to-skip {
+    position: fixed;
+    top: 4px;
+    left: 4px;
+    z-index: 10;
+    transform: translateY(-200%);
+  }
+  .to-skip:focus-visible {
+    transform: none;
+  }
+
+  /* ---- another version kept here: a quiet line above the bar ---- */
+  .to-other {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: var(--to-max-w);
+    margin: 8px auto 0;
+    padding: 6px 8px 6px 12px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface-2);
+    color: var(--to-ink-2);
+    font-size: 14px;
+  }
+  .to-other p {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* ---- Find in this document: a small bar under the app's bar ---- */
+  to-find {
+    position: fixed;
+    right: max(var(--to-gutter), env(safe-area-inset-right));
+    z-index: 4;
+  }
+  .to-find {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 4px 4px 8px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow);
+  }
+  .to-find-input {
+    width: 14em;
+    min-width: 0;
+    font-size: 16px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+  }
+  .to-find-input:focus {
+    outline: none;
+  }
+  .to-find:focus-within {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+  .to-find-count {
+    min-width: 4.5em;
+    color: var(--to-ink-3);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  ::highlight(to-find) {
+    background-color: color-mix(in srgb, var(--to-warning) 35%, transparent);
+  }
+  ::highlight(to-find-now) {
+    background-color: var(--to-warning);
+    color: #18181b;
+  }
+
+  /* ---- the keyboard shortcuts: a table a group ---- */
+  .to-keys {
+    width: 100%;
+    margin: 0 0 16px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .to-keys caption {
+    padding: 4px 0;
+    text-align: start;
+    font-weight: 600;
+  }
+  .to-keys th,
+  .to-keys td {
+    padding: 5px 0;
+    border-top: 1px solid var(--to-border);
+    text-align: start;
+    vertical-align: top;
+  }
+  .to-keys th {
+    width: 45%;
+    padding-right: 12px;
+    font-weight: 400;
+  }
+  .to-keys kbd {
+    font-family: var(--to-font-mono);
+    font-size: 13px;
+  }
+
+  /* ---- the size of everything, in the menu ---- */
+  .to-size-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+  }
+  .to-size-now {
+    min-width: 4.2em;
+    font-variant-numeric: tabular-nums;
+  }
+  .to-install-how {
+    margin: 0;
+  }
+
+  /* ---- search on the home page ---- */
+  .to-search {
+    display: block;
+    width: 100%;
+    margin: 8px 0 4px;
+    font-size: 16px;
+  }
+  .to-found-docs {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .to-found-docs a {
+    display: block;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--to-border);
+    color: inherit;
+    text-decoration: none;
+  }
+  .to-found-docs a:hover {
+    background: var(--to-surface-2);
+  }
+  .to-found-docs small {
+    display: block;
+    color: var(--to-ink-3);
+  }
+  .to-found-docs mark {
+    background: color-mix(in srgb, var(--to-warning) 35%, transparent);
+    color: inherit;
   }
 }

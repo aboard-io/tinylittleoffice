@@ -24,6 +24,15 @@ export interface Page {
 export interface ViewOpts {
   /** Drawn inside another document, or as a thumbnail: the gist rather than the whole thing. */
   small?: boolean;
+  /** Presented a step at a time (a slide that holds this document): draw only the first `upTo` of its `steps`, the rest keeping their places. */
+  upTo?: number;
+}
+
+/** A key the app answers, for the shortcuts dialog (Mod+/): "Mod+Alt+Enter", "V". */
+export interface Shortcut {
+  keys: string;
+  /** What it does, through t(). */
+  does: () => string;
 }
 
 /** A way to start: Blank first on the home page, then these, each drawn small from its own document. */
@@ -101,6 +110,10 @@ export interface AppDef {
   page?(doc: Doc, base: string): string;
   exports?: Export[];
   handoffs?: Handoff[];
+  /** The app's own keys, beyond the standard's (docs/editing.md §1): listed in the shortcuts dialog. */
+  keys?: Shortcut[];
+  /** How many steps the document builds up in when presented (a list an item a step, a trip a stop a step); `view(doc, { upTo })` draws a part of it. Absent or 0: shown whole. */
+  steps?(doc: Doc): number;
 }
 
 /**

@@ -12,6 +12,7 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from './icons.ts';
+import { zoomed } from './zoom.ts';
 
 export interface MenuItem {
   label: string;
@@ -36,14 +37,16 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   const vw = vv?.width ?? window.innerWidth;
   const vh = vv?.height ?? window.innerHeight;
   const a = anchor.getBoundingClientRect();
-  pop.style.maxHeight = `${Math.max(120, vh - 2 * gap)}px`;
+  // Under the size of everything (zoom.ts) a length set here is drawn larger: the page's coordinates are divided by it.
+  const z = zoomed();
+  pop.style.maxHeight = `${Math.max(120, vh - 2 * gap) / z}px`;
   const r = pop.getBoundingClientRect();
   let top = a.bottom + gap;
   if (top + r.height > top0 + vh && a.top - gap - r.height >= top0) top = a.top - gap - r.height;
   top = Math.max(top0 + gap, Math.min(top, top0 + vh - r.height - gap));
   const left = Math.max(left0 + gap, Math.min(a.left, left0 + vw - r.width - gap));
-  pop.style.top = `${Math.round(top)}px`;
-  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top / z)}px`;
+  pop.style.left = `${Math.round(left / z)}px`;
 }
 
 let n = 0;

@@ -7,7 +7,7 @@ import { keeping, setKeeping, store } from './store.ts';
 import { dropOffline } from './offline.ts';
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang'];
+export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.size'];
 
 const listeners = new Set<() => void>();
 export function onPrivacy(cb: () => void): () => void {

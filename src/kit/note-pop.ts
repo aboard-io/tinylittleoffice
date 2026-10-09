@@ -21,6 +21,7 @@ import { t } from './i18n.ts';
 import { History } from './history.ts';
 import { caret } from './textops.ts';
 import type { TextOps, ToText } from './text.ts';
+import { zoomed } from './zoom.ts';
 
 /** A note's words drawn where the notes are listed (under a page, at a slide's foot, under an outline): its marks, links and icons. */
 export function noteWords(fn: string): unknown[] {
@@ -46,16 +47,17 @@ export function placeNote(pop: HTMLElement, chip: HTMLElement) {
   const left = vv?.offsetLeft ?? 0;
   const w = vv?.width ?? innerWidth;
   const h = vv?.height ?? innerHeight;
+  const z = zoomed();
   if (w < 600) {
-    pop.style.left = `${left + 8}px`;
-    pop.style.width = `${w - 16}px`;
-    pop.style.top = `${Math.max(top + 8, top + h - pop.offsetHeight - 8)}px`;
+    pop.style.left = `${(left + 8) / z}px`;
+    pop.style.width = `${(w - 16) / z}px`;
+    pop.style.top = `${Math.max(top + 8, top + h - pop.offsetHeight - 8) / z}px`;
     return;
   }
   const r = chip.getBoundingClientRect();
   pop.style.width = '';
-  pop.style.left = `${Math.max(left + 8, Math.min(r.left, left + w - pop.offsetWidth - 8))}px`;
-  pop.style.top = `${r.bottom + pop.offsetHeight + 6 > top + h ? r.top - pop.offsetHeight - 6 : r.bottom + 6}px`;
+  pop.style.left = `${Math.max(left + 8, Math.min(r.left, left + w - pop.offsetWidth - 8)) / z}px`;
+  pop.style.top = `${(r.bottom + pop.offsetHeight + 6 > top + h ? r.top - pop.offsetHeight - 6 : r.bottom + 6) / z}px`;
 }
 
 export class ToNotePop extends LitElement {

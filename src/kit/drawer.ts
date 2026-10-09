@@ -2,7 +2,8 @@
  * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side. Find an app, a
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
- * Theme; About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
+ * (on an iPhone, the line that says how); About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -14,7 +15,8 @@ import { routeHash } from './route.ts';
 import { chosenLanguage, languageName, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { THEMES, setTheme, theme, themeName, type Theme } from './theme.ts';
 import { keeping, onPrivacy, setPrivate } from './privacy.ts';
-import { offlineState, onOffline, setOffline } from './offline.ts';
+import { canInstall, install, installByHand, offlineState, onOffline, setOffline } from './offline.ts';
+import { size, SIZE_MAX, SIZE_MIN, stepSize } from './zoom.ts';
 import { toast } from './toast.ts';
 import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
 import { mark } from './mark.ts';
@@ -140,6 +142,19 @@ export class ToDrawer extends LitElement {
                     ${THEMES.map((th) => html`<option value=${th} ?selected=${th === theme()}>${themeName(th)}</option>`)}
                   </select>
                 </label>
+                <div class="to-field to-size" role="group" aria-label=${t('Size of everything')}>${icon(UI.view, 18)}<span>${t('Size of everything')}</span>
+                  <span class="to-size-step">
+                    <button type="button" class="to-btn to-tool to-size-less" aria-label=${t('Everything a little smaller')} title=${t('Everything a little smaller')} ?disabled=${size() <= SIZE_MIN} @click=${() => (stepSize(-1), this.requestUpdate())}>${icon(UI.minus, 16)}</button>
+                    <button type="button" class="to-btn to-size-now" aria-label=${t('Back to the normal size')} title=${t('Back to the normal size')} @click=${() => (stepSize(0), this.requestUpdate())}>${Math.round(size() * 100)}%</button>
+                    <button type="button" class="to-btn to-tool to-size-more" aria-label=${t('Everything a little larger')} title=${t('Everything a little larger')} ?disabled=${size() >= SIZE_MAX} @click=${() => (stepSize(1), this.requestUpdate())}>${icon(UI.plus, 16)}</button>
+                  </span>
+                </div>
+                <button type="button" class="to-btn to-drawer-keys" @click=${() => { this.close(); this.dispatchEvent(new CustomEvent('to-keys', { bubbles: true })); }}>${icon(UI.keys, 18)}<span>${t('Keyboard shortcuts')}</span></button>
+                ${canInstall()
+                  ? html`<button type="button" class="to-btn to-install" @click=${() => void install()}>${icon(UI.download, 18)}<span>${t('Add to home screen')}</span></button>`
+                  : installByHand()
+                    ? html`<p class="to-hint to-install-how">${t('To add Tiny Little Office to the home screen: Share, then Add to Home Screen.')}</p>`
+                    : nothing}
                 <button type="button" class="to-btn to-drawer-about" @click=${() => void this.querySelector<ToDialog>('to-dialog')?.show()}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
               </section>`
           : nothing}
