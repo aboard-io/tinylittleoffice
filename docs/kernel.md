@@ -239,9 +239,9 @@ Every `beforeinput` is `preventDefault()`ed and turned into ops, except while co
 | inputType | op(s) |
 |---|---|
 | `insertText`, `insertReplacementText` (autocorrect) | delete the selection, `text` insert `data` with the marks in force (`fmt`); `' '` after `-`/`*`/`1.` at a `p`'s start → `li`, after `#`… → `h`, after `>` → `quote` (doc shape), as two steps (the space typed, then the kind) so an undo gives the marker back; `"`/`'` → curly |
-| `insertParagraph` | doc/lines: `splitBlock` (at the end of an item whose children follow, the new item is their first child); line: `text-enter` |
+| `insertParagraph` | doc/lines: `splitBlock` (at the end of an item whose children follow, the new item is their first child; at the very start of words that are not an item, an empty `p` is spliced in above and the block is left as it is); line: `text-enter` |
 | `insertLineBreak` | doc/lines, in a `p`, `li` or `quote`: insert `'\n'`; a heading splits; line: `text-enter` with `shift: true` |
-| `deleteContentBackward` / `Forward` | one character or one atomic run; at a block's start: an empty `li` with children goes and they come out a level, any other `li` unlists (depth−1, then `p`), else `joinBlocks`; at the span's start (not doc): `text-exit`; beside an embed block: `splice` it out |
+| `deleteContentBackward` / `Forward` | one character or one atomic run; at a block's start: an empty `li` with children goes and they come out a level, any other `li` unlists (depth−1, then `p`), else a join (the block before keeps its kind; when either is empty the empty one is spliced out, so words keep their heading); at the span's start (not doc): `text-exit`; beside an embed block: `splice` it out |
 | `deleteWordBackward/Forward`, `deleteSoftLineBackward/Forward`, `deleteHardLineBackward/Forward`, `deleteContent`, `deleteByCut`, `deleteByDrag` | `text` delete over the target range (cut also writes the clipboard, see below) |
 | `insertFromPaste`, `insertFromDrop` | the paste pipeline |
 | `formatBold/Italic/Underline/StrikeThrough` (Safari's Mod+B…) | `exec('b'…)` |

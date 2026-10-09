@@ -133,6 +133,24 @@
     outline-offset: -1px;
   }
 
+  /* A page break: a thin dashed rule with its name small in the middle, as tall as a finger. */
+  .write-break {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: var(--to-paper-muted);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  .write-break::before,
+  .write-break::after {
+    content: '';
+    flex: 1;
+    border-top: 1px dashed color-mix(in srgb, var(--to-paper-muted) 60%, transparent);
+  }
+
   /* A card in hand (it has the focus): outlined, whichever way it was taken. */
   .write-page .tx .tx-card:focus {
     outline: 2px solid var(--to-paper-accent);
