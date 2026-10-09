@@ -42,10 +42,12 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
   } else if (s.k === 'p') {
     const i = Math.min(w * 0.2, 20);
     body = `<polygon points="${r(X + i)},${Y} ${X + w},${Y} ${r(X + w - i)},${Y + h} ${X},${Y + h}" ${look}/>`;
-  } else if (s.k === 'v') {
-    // Any shape at all: its corners, as hundredths of its box.
+  } else if (s.k === 'v' || s.k === 'w') {
+    // Any shape at all: its corners, as hundredths of its box; a stroke is the same corners as an open line.
     const pts = s.pts && s.pts.length >= 4 ? s.pts : [0, 0, 100, 0, 100, 100, 0, 100];
-    body = `<polygon points="${pairs(pts).map(([px, py]) => `${r(X + (px / 100) * w)},${r(Y + (py / 100) * h)}`).join(' ')}" ${look}/>`;
+    const points = pairs(pts).map(([px, py]) => `${r(X + (px / 100) * w)},${r(Y + (py / 100) * h)}`).join(' ');
+    const dash = s.f === 1 ? ' stroke-dasharray="6 4"' : s.f === 2 ? ' stroke-dasharray="2 3"' : '';
+    body = s.k === 'v' ? `<polygon points="${points}" ${look}/>` : (hit ? `<polyline points="${points}" fill="none" stroke="transparent" stroke-width="14"/>` : '') + `<polyline points="${points}" fill="none" stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${dash}/>`;
   } else if (s.k === 'c') {
     // A cylinder: the classic database.
     const e = Math.min(h * 0.16, 12);
@@ -64,13 +66,13 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
     return hitBox + glyph(s.text, X + (w - size) / 2, Y + (h - size) / 2, size, p.stroke);
   }
   if (!s.text) return body;
-  const halo = isLine(s.k) ? ` stroke="${t.paper}" stroke-width="4" paint-order="stroke"` : '';
+  const halo = isLine(s.k) || s.k === 'w' ? ` stroke="${t.paper}" stroke-width="4" paint-order="stroke"` : '';
   // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note may have more).
   const [icon, words] = iconOf(s.text);
   const parts = s.k === 't' ? [words] : words.split(' | ');
   const even = s.k === 'n';
   // The words wrap to the room inside the shape (less in a round or pointed one), and get smaller if they still do not fit; past that, the last line ends in "…".
-  const inside = isLine(s.k) ? Infinity : s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
+  const inside = isLine(s.k) || s.k === 'w' ? Infinity : s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
   const big = icon && ICON_SVG[icon] ? 1.35 : 0;
   const fit = (scale: number) => {
     const px = p.px * scale;
@@ -85,7 +87,7 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
   };
   let laid = fit(1);
   const tall = (l: typeof laid) => l.lines.length * l.px * 1.25;
-  const height = isLine(s.k) || s.k === 't' ? Infinity : h * (s.k === 'd' ? 0.6 : s.k === 'e' ? 0.8 : 1) - 6;
+  const height = isLine(s.k) || s.k === 't' || s.k === 'w' ? Infinity : h * (s.k === 'd' ? 0.6 : s.k === 'e' ? 0.8 : 1) - 6;
   for (let k = 0.9; tall(laid) > height && k >= 0.6; k -= 0.1) laid = fit(k);
   if (tall(laid) > height) {
     const keep = Math.max(1, Math.floor(height / (laid.px * 1.25)));

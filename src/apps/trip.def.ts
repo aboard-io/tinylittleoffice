@@ -1,6 +1,6 @@
 /** Trip: what the shell knows about routes. Format: lib/tripmodel.ts. */
 import { defineApp, utf8, xml, text, clip, r, ACCENT, LINE, MUTED, SHADE, rect, type Page } from '../kit/core.ts';
-import { distanceKm, formatLeg, parseTrip, readTrip, routeKm, tripUnits } from '../lib/tripmodel.ts';
+import { distanceKm, formatLeg, parseTrip, readTrip, routeKm, tripLinked, tripUnits } from '../lib/tripmodel.ts';
 
 const title = (body: string) => {
   const named = parseTrip(body).filter((s) => s.name.trim());
@@ -17,7 +17,7 @@ export function tripToGpx(body: string): string {
 export function tripToGeoJson(body: string): string {
   const stops = parseTrip(body);
   const features: unknown[] = stops.map((s, i) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lon, s.lat] }, properties: { name: s.name || String(i + 1), note: s.note, order: i + 1 } }));
-  if (stops.length > 1) features.unshift({ type: 'Feature', geometry: { type: 'LineString', coordinates: stops.map((s) => [s.lon, s.lat]) }, properties: { name: title(body), km: Math.round(routeKm(stops) * 10) / 10 } });
+  if (stops.length > 1 && tripLinked(body)) features.unshift({ type: 'Feature', geometry: { type: 'LineString', coordinates: stops.map((s) => [s.lon, s.lat]) }, properties: { name: title(body), km: Math.round(routeKm(stops) * 10) / 10 } });
   return JSON.stringify({ type: 'FeatureCollection', features }, null, 1) + '\n';
 }
 
@@ -37,6 +37,7 @@ const my = (lat: number, z: number) => {
 function page(body: string, upTo = Infinity): Page {
   const stops = parseTrip(body);
   const units = tripUnits(body);
+  const linked = tripLinked(body);
   const W = 720;
   const MW = W - 48;
   const MH = 340;
@@ -59,7 +60,7 @@ function page(body: string, upTo = Infinity): Page {
   const at = (i: number): [number, number] => [mx(stops[i].lon, z) - ox, my(stops[i].lat, z) - oy];
   const seen = stops.slice(0, upTo);
   let map = rect(0, 0, MW, MH, SHADE) + tiles;
-  if (seen.length > 1) map += `<polyline points="${seen.map((_, i) => at(i).map(r).join(',')).join(' ')}" fill="none" stroke="${ACCENT}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>`;
+  if (seen.length > 1 && linked) map += `<polyline points="${seen.map((_, i) => at(i).map(r).join(',')).join(' ')}" fill="none" stroke="${ACCENT}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>`;
   seen.forEach((s, i) => {
     const [px, py] = at(i);
     const name = clip(s.name, 180, 13, true);
@@ -72,7 +73,7 @@ function page(body: string, upTo = Infinity): Page {
   let y = MH + 44;
   stops.forEach((s, i) => {
     const on = i < upTo;
-    if (i && on) svg += text(W - 40, y + 4, formatLeg(distanceKm(stops[i - 1], s), units), { px: 13, fill: MUTED, anchor: 'end' });
+    if (i && on && linked) svg += text(W - 40, y + 4, formatLeg(distanceKm(stops[i - 1], s), units), { px: 13, fill: MUTED, anchor: 'end' });
     y += 26;
     if (on) svg += text(40, y, `${i + 1}.  ${clip(s.name, W - 220, 17, true)}`.trimEnd(), { px: 17, bold: true });
     if (s.note) {
@@ -82,7 +83,7 @@ function page(body: string, upTo = Infinity): Page {
     if (on) svg += `<line x1="40" y1="${y + 12}" x2="${W - 40}" y2="${y + 12}" stroke="${LINE}"/>`;
     y += 8;
   });
-  if (stops.length > 1) {
+  if (stops.length > 1 && linked) {
     y += 30;
     if (upTo >= stops.length) svg += text(W - 40, y, `Total ${formatLeg(routeKm(stops), units)}`, { px: 15, bold: true, anchor: 'end' });
   }
@@ -98,7 +99,7 @@ export default defineApp({
   title,
   outline(body) {
     const stops = parseTrip(body);
-    return [...stops.map((s, i) => `${i + 1}.  ${s.name}`.trimEnd()), ...(stops.length > 1 ? [formatLeg(routeKm(stops), tripUnits(body))] : [])];
+    return [...stops.map((s, i) => `${i + 1}.  ${s.name}`.trimEnd()), ...(stops.length > 1 && tripLinked(body) ? [formatLeg(routeKm(stops), tripUnits(body))] : [])];
   },
   view: (body, opts = {}) => [page(body, opts.step)],
   read: readTrip,
@@ -107,9 +108,10 @@ export default defineApp({
   html(body) {
     const stops = parseTrip(body);
     const units = tripUnits(body);
+    const linked = tripLinked(body);
     return `<h1>${xml(title(body) || 'Trip')}</h1>\n<ol>\n${stops
-      .map((s, i) => `<li><strong>${xml(s.name || String(i + 1))}</strong>${i ? ` <small>${xml(formatLeg(distanceKm(stops[i - 1], s), units))} from the last stop</small>` : ''}${s.note ? `<br>${xml(s.note)}` : ''} <small><a href="https://www.openstreetmap.org/?mlat=${s.lat}&amp;mlon=${s.lon}#map=14/${s.lat}/${s.lon}">map</a></small></li>`)
-      .join('\n')}\n</ol>${stops.length > 1 ? `\n<p>Total: ${xml(formatLeg(routeKm(stops), units))}</p>` : ''}`;
+      .map((s, i) => `<li><strong>${xml(s.name || String(i + 1))}</strong>${i && linked ? ` <small>${xml(formatLeg(distanceKm(stops[i - 1], s), units))} from the last stop</small>` : ''}${s.note ? `<br>${xml(s.note)}` : ''} <small><a href="https://www.openstreetmap.org/?mlat=${s.lat}&amp;mlon=${s.lon}#map=14/${s.lat}/${s.lon}">map</a></small></li>`)
+      .join('\n')}\n</ol>${stops.length > 1 && linked ? `\n<p>Total: ${xml(formatLeg(routeKm(stops), units))}</p>` : ''}`;
   },
   downloads: [
     { ext: 'gpx', label: 'GPX route', mime: 'application/gpx+xml', build: (b) => utf8(tripToGpx(b)) },

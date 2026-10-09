@@ -42,12 +42,16 @@ export function parseTrip(text: string): Stop[] {
   return [];
 }
 
-export function serializeTrip(stops: Stop[], units: Units = 'h'): string {
+/** With `linked` false the stops are dots on the map, not a route: no line between them, no legs ("route: dots" in the header). */
+export function serializeTrip(stops: Stop[], units: Units = 'h', linked = true): string {
   if (!stops.length) return '';
   const flat = (s: string) => s.replace(/\n/g, ' ').trim();
   const rows = stops.map((s) => [flat(s.name), deg(s.lat), deg(s.lon), flat(s.note)]);
-  return write({ head: units === 'h' ? {} : { units: UNIT_WORD[units] }, blocks: [{ k: 'table', head: TRIP_HEAD, rows }] }).trimEnd();
+  return write({ head: { ...(units === 'h' ? {} : { units: UNIT_WORD[units] }), ...(linked ? {} : { route: 'dots' }) }, blocks: [{ k: 'table', head: TRIP_HEAD, rows }] }).trimEnd();
 }
+
+/** Whether the stops are joined in order (a route) or stand alone (dots): the header's "route", a route without it. */
+export const tripLinked = (text: string): boolean => !/^(dots|no|none|off)$/i.test(String(parse(text).head.route ?? ''));
 
 /**
  * A route as a person or a model writes it, made canonical: a table whose
@@ -81,7 +85,7 @@ export function readTrip(text: string): string {
       else if (b.k === 'p' && stops.length && !stops[stops.length - 1].note) stops[stops.length - 1].note = line.trim();
     }
   }
-  return serializeTrip(stops, units);
+  return serializeTrip(stops, units, tripLinked(text));
 }
 
 /** Great-circle distance in kilometres. */

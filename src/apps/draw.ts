@@ -15,7 +15,8 @@ const INKS: Record<string, { name: string; hex: string }> = { '': { name: 'Black
 
 const snap = (n: number) => Math.round(n / GRID) * GRID;
 
-type Tool = 'select' | Kind;
+/** 'f' draws by hand: a drag is a stroke, closed into a shape when it ends where it began. */
+type Tool = 'select' | Kind | 'f';
 /** The page's own colours, so a drawing looks right in the dark too. Motion's stage uses them as well. */
 export const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
 
@@ -23,7 +24,8 @@ type Drag =
   | { mode: 'link'; from: number; to: [number, number] }
   | { mode: 'draw'; start: [number, number]; shape: Shape }
   | { mode: 'move'; idx: number; off: [number, number]; orig: Shape }
-  | { mode: 'resize'; idx: number; orig: Shape };
+  | { mode: 'resize'; idx: number; orig: Shape }
+  | { mode: 'free'; pts: [number, number][] };
 
 const TOOLS: { id: Tool; label: string; icon: keyof typeof UI; key: string }[] = [
   { id: 'select', label: 'Select', icon: 'select', key: 'V' },
@@ -34,8 +36,23 @@ const TOOLS: { id: Tool; label: string; icon: keyof typeof UI; key: string }[] =
   { id: 'a', label: 'Arrow', icon: 'arrow', key: 'A' },
   { id: 't', label: 'Text', icon: 'text', key: 'T' },
   { id: 'k', label: 'Join two shapes', icon: 'join', key: 'K' },
-  { id: 'v', label: 'Pen: any shape, corner by corner', icon: 'pen', key: 'P' },
+  { id: 'v', label: 'Pen: any shape, a tap for each corner', icon: 'pen', key: 'P' },
+  { id: 'f', label: 'Freehand: drag to draw a line or a shape', icon: 'brush', key: 'F' },
 ];
+
+/** A path with the points that do not change its course taken out (Ramer–Douglas–Peucker), so a hand's wobble is a few corners. */
+function simplify(pts: [number, number][], eps = 2.5): [number, number][] {
+  if (pts.length < 3) return pts;
+  const [a, b] = [pts[0], pts[pts.length - 1]];
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  let far = 0;
+  let at = 0;
+  pts.forEach((p, i) => {
+    const d = len ? Math.abs((b[0] - a[0]) * (a[1] - p[1]) - (a[0] - p[0]) * (b[1] - a[1])) / len : Math.hypot(p[0] - a[0], p[1] - a[1]);
+    if (d > far) (far = d), (at = i);
+  });
+  return far > eps ? [...simplify(pts.slice(0, at + 1), eps).slice(0, -1), ...simplify(pts.slice(at), eps)] : [a, b];
+}
 
 /** More shapes, behind one button. */
 const MORE: { id: Kind; label: string }[] = [
@@ -102,6 +119,11 @@ export class ToDraw extends DocElement<Shape[]> {
     // (Without scrolling: the page must not jump under a drag that has just begun.)
     this.querySelector<HTMLElement>('.draw-wrap')?.focus({ preventScroll: true });
 
+    if (this.tool === 'f') {
+      // By hand: the stroke follows the pointer until it lifts.
+      this.drag = { mode: 'free', pts: [[x, y]] };
+      return;
+    }
     if (this.tool === 'v') {
       // The pen: a corner a tap; tapping the first corner again closes it.
       const first = this.pen[0];
@@ -137,7 +159,10 @@ export class ToDraw extends DocElement<Shape[]> {
     if (!this.drag) return;
     const [x, y] = this.point(e);
     const d = this.drag;
-    if (d.mode === 'link') {
+    if (d.mode === 'free') {
+      const last = d.pts[d.pts.length - 1];
+      if (Math.hypot(x - last[0], y - last[1]) >= 2) this.drag = { ...d, pts: [...d.pts, [x, y]] };
+    } else if (d.mode === 'link') {
       this.drag = { ...d, to: [x, y] };
     } else if (d.mode === 'draw') {
       const s = d.shape;
@@ -173,6 +198,7 @@ export class ToDraw extends DocElement<Shape[]> {
     const d = this.drag;
     this.drag = null;
     if (!d) return;
+    if (d.mode === 'free') return this.stroke(simplify(d.pts));
     if (d.mode === 'link') {
       const over = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest('[data-idx]')?.getAttribute('data-idx');
       const to = over ? parseInt(over, 10) : -1;
@@ -200,12 +226,20 @@ export class ToDraw extends DocElement<Shape[]> {
   private closePen() {
     const pts = this.pen;
     this.pen = [];
-    if (pts.length < 3) return;
+    if (pts.length >= 3) this.stroke(pts, true);
+  }
+
+  /** Points drawn become a shape (closed, filled) or, open, a stroke: a hand-drawn line that ends near where it began is closed too. */
+  private stroke(pts: [number, number][], closed = false) {
+    if (pts.length < 2) return;
+    const [a, b] = [pts[0], pts[pts.length - 1]];
+    const shut = closed || (pts.length >= 3 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 14);
+    if (shut && !closed) pts = pts.slice(0, -1);
     const xs = pts.map((p) => p[0]);
     const ys = pts.map((p) => p[1]);
     const [x0, y0, x1, y1] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     const [w, h] = [Math.max(GRID, x1 - x0), Math.max(GRID, y1 - y0)];
-    this.add({ k: 'v', x: x0, y: y0, w, h, f: 1, text: '', pts: pts.flatMap(([px, py]) => [((px - x0) / w) * 100, ((py - y0) / h) * 100]) });
+    this.add({ k: shut ? 'v' : 'w', x: x0, y: y0, w, h, f: shut ? 1 : 0, text: '', pts: pts.flatMap(([px, py]) => [((px - x0) / w) * 100, ((py - y0) / h) * 100]) });
   }
 
   /** A new shape, chosen, and the select tool back in hand. */
@@ -306,7 +340,7 @@ export class ToDraw extends DocElement<Shape[]> {
 
   render() {
     const s = this.sel >= 0 ? this.doc[this.sel] : null;
-    const line = !!s && isLine(s.k);
+    const line = !!s && (isLine(s.k) || s.k === 'w');
     const d = this.drag;
     const from = d?.mode === 'link' ? this.doc[d.from] : null;
     return html`
@@ -315,6 +349,7 @@ export class ToDraw extends DocElement<Shape[]> {
           ${TOOLS.map((t) => tool(t.label, t.icon, () => (this.tool = t.id), { pressed: this.tool === t.id, key: t.key, size: 16 }))}
         </sl-button-group>
         <sl-button data-tip=${s && !isLink(s.k) ? 'Put an icon on this shape' : 'Place an icon'} size="small" aria-label="Icon" @click=${this.pickIcon}>${icon(UI.smile, 14)} Icon</sl-button>
+        ${this.tool === 'v' || this.tool === 'f' || this.pen.length ? html`<span class="to-hint draw-hint">${this.tool === 'f' ? 'Drag to draw; end where you began to close it into a shape.' : 'Tap each corner; tap the first again, or press Enter, to close it.'}</span>` : nothing}
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => (this.tool = e.detail.item.value as Kind)}>
           <sl-button slot="trigger" size="small" caret aria-pressed=${MORE.some((m) => m.id === this.tool) ? 'true' : 'false'}>Shapes</sl-button>
           <sl-menu>${MORE.map((m) => html`<sl-menu-item value=${m.id}>${m.label}</sl-menu-item>`)}</sl-menu>
@@ -392,6 +427,7 @@ export class ToDraw extends DocElement<Shape[]> {
             : nothing}
           ${this.doc.map((sh, i) => this.renderShape(sh, i))}
           ${d?.mode === 'draw' ? this.renderShape(d.shape, -1, true) : nothing}
+          ${d?.mode === 'free' ? svg`<polyline points=${d.pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--to-accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>` : nothing}
           ${d?.mode === 'link' && from ? svg`<line x1=${from.x + from.w / 2} y1=${from.y + from.h / 2} x2=${d.to[0]} y2=${d.to[1]} stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none" />` : nothing}
           ${s ? this.renderSelection(s) : nothing}
         </svg>

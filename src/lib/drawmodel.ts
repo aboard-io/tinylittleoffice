@@ -35,8 +35,8 @@ export const W = 640;
 export const H = 400;
 export const GRID = 8;
 
-const KINDS = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v'] as const;
-/** 'v' is any shape at all: its points, as hundredths of its box, drawn with the pen. */
+const KINDS = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v', 'w'] as const;
+/** 'v' is any shape at all: its points, as hundredths of its box, drawn with the pen or by hand; 'w' the same points as an open line, a stroke. */
 export type Kind = (typeof KINDS)[number];
 
 /** A label's icon and its words: ":rocket Launch" is ['rocket', 'Launch']. */
@@ -64,7 +64,7 @@ export interface Shape {
   c?: Color;
   /** Text size; absent for the normal size (2). */
   z?: TextSize;
-  /** For 'v': the corners, x,y pairs as hundredths of the box, in order. */
+  /** For 'v' and 'w': the corners, x,y pairs as hundredths of the box, in order. */
   pts?: number[];
 }
 
@@ -85,7 +85,7 @@ export const TEXT_SIZES: Record<TextSize, { name: string; px: number }> = {
 /** How a shape is painted, given the theme's ink, paper and grey. */
 export function paint(s: Shape, ink: string, paper: string, shade: string) {
   const color = s.c ? COLORS[s.c].hex : ink;
-  const closed = !isLine(s.k) && s.k !== 't' && s.k !== 'i';
+  const closed = !isLine(s.k) && s.k !== 't' && s.k !== 'i' && s.k !== 'w';
   return {
     stroke: color,
     fill: s.f === 2 ? color : s.f === 1 ? (s.c ? color : shade) : paper,
@@ -118,7 +118,7 @@ export function describeDrawing(shapes: Shape[]): string {
 }
 
 /** Kinds by name, for a table written by hand. */
-const NAMED: Record<string, Kind> = { rect: 'r', rectangle: 'r', box: 'o', rounded: 'o', ellipse: 'e', circle: 'e', oval: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', database: 'c', note: 'n', icon: 'i', line: 'l', arrow: 'a', text: 't', shape: 'v', join: 'k', link: 'j' };
+const NAMED: Record<string, Kind> = { rect: 'r', rectangle: 'r', box: 'o', rounded: 'o', ellipse: 'e', circle: 'e', oval: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', database: 'c', note: 'n', icon: 'i', line: 'l', arrow: 'a', text: 't', shape: 'v', stroke: 'w', freehand: 'w', join: 'k', link: 'j' };
 const COLS = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label'];
 type Table = Extract<Block, { k: 'table' }>;
 
@@ -148,7 +148,7 @@ export function tableShapes(table: Table | undefined): Shape[] {
       f: (look ? +look[1] : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
       text: get(labelAt),
     };
-    if (k === 'v') shape.pts = ptsOf(get(pointsAt));
+    if (k === 'v' || k === 'w') shape.pts = ptsOf(get(pointsAt));
     if (look && look[2] in COLORS) shape.c = look[2] as Color;
     if (look && look[3] && look[3] !== '2') shape.z = +look[3] as TextSize;
     out.push(shape);
@@ -159,11 +159,11 @@ export function tableShapes(table: Table | undefined): Shape[] {
 /** Shapes as their table (with a Points column when one of them is drawn with the pen). */
 export function shapesTable(shapes: Shape[]): Table {
   const g = (n: number) => String(Math.round(n / GRID));
-  const pen = shapes.some((s) => s.k === 'v');
+  const pen = shapes.some((s) => s.k === 'v' || s.k === 'w');
   return {
     k: 'table',
     head: pen ? [...COLS, 'Points'] : COLS,
-    rows: shapes.map((s) => [s.k, isLink(s.k) ? String(s.x) : g(s.x), isLink(s.k) ? String(s.y) : g(s.y), g(s.w), g(s.h), `${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}`, s.text.replace(/\n/g, ' '), ...(pen ? [s.k === 'v' ? ptsText(s.pts ?? []) : ''] : [])]),
+    rows: shapes.map((s) => [s.k, isLink(s.k) ? String(s.x) : g(s.x), isLink(s.k) ? String(s.y) : g(s.y), g(s.w), g(s.h), `${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}`, s.text.replace(/\n/g, ' '), ...(pen ? [s.k === 'v' || s.k === 'w' ? ptsText(s.pts ?? []) : ''] : [])]),
   };
 }
 

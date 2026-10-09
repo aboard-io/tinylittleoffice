@@ -10,7 +10,7 @@
  */
 import type * as Leaflet from 'leaflet';
 import { DocElement, defineElement, html, nothing, state, property, btn, tool, icon, swap, UI, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
-import { MAX_STOPS, UNITS, distanceKm, formatLeg, parseTrip, routeKm, serializeTrip, tripUnits, type Stop, type Units } from '../lib/tripmodel.ts';
+import { MAX_STOPS, UNITS, distanceKm, formatLeg, parseTrip, routeKm, serializeTrip, tripLinked, tripUnits, type Stop, type Units } from '../lib/tripmodel.ts';
 
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
@@ -29,10 +29,11 @@ interface Place {
   lon: number;
 }
 
-/** The document as the editor works with it: the stops, and the unit the legs are given in. */
+/** The document as the editor works with it: the stops, the unit the legs are given in, and whether they are joined in order at all. */
 interface Trip {
   stops: Stop[];
   units: Units;
+  linked: boolean;
 }
 
 export class ToTrip extends DocElement<Trip> {
@@ -49,9 +50,10 @@ export class ToTrip extends DocElement<Trip> {
   private refit = true;
   /** The stops as last drawn, so a render that changed nothing else leaves the map alone. */
   private drawn: Stop[] | null = null;
+  private drawnLinked = true;
 
-  protected parse = (text: string): Trip => ({ stops: parseTrip(text), units: tripUnits(text) });
-  protected serialize = (t: Trip) => serializeTrip(t.stops, t.units);
+  protected parse = (text: string): Trip => ({ stops: parseTrip(text), units: tripUnits(text), linked: tripLinked(text) });
+  protected serialize = (t: Trip) => serializeTrip(t.stops, t.units, t.linked);
 
   protected loaded() {
     this.cur = -1;
@@ -73,7 +75,7 @@ export class ToTrip extends DocElement<Trip> {
   }
 
   updated(changed: PropertyValues) {
-    const moved = this.doc.stops !== this.drawn;
+    const moved = this.doc.stops !== this.drawn || this.doc.linked !== this.drawnLinked;
     if (moved || changed.has('cur')) this.draw();
     if (this.present && (changed.has('step') || moved)) this.goTo(this.step);
   }
@@ -99,8 +101,8 @@ export class ToTrip extends DocElement<Trip> {
     this.map = null;
   }
 
-  private save(stops: Stop[], units = this.doc.units) {
-    this.commit({ stops, units });
+  private save(stops: Stop[], units = this.doc.units, linked = this.doc.linked) {
+    this.commit({ stops, units, linked });
   }
 
   private patch(i: number, p: Partial<Stop>) {
@@ -126,9 +128,10 @@ export class ToTrip extends DocElement<Trip> {
     const layer = this.layer;
     if (!this.map || !layer) return;
     this.drawn = this.doc.stops;
+    this.drawnLinked = this.doc.linked;
     layer.clearLayers();
     const pts = this.doc.stops.map((s) => L.latLng(s.lat, s.lon));
-    if (pts.length > 1) L.polyline(pts, { color: '#4f46e5', weight: 4, opacity: 0.85 }).addTo(layer);
+    if (pts.length > 1 && this.doc.linked) L.polyline(pts, { color: '#4f46e5', weight: 4, opacity: 0.85 }).addTo(layer);
     this.doc.stops.forEach((s, i) => {
       const marker = L.marker(pts[i], {
         draggable: !this.present,
@@ -206,7 +209,8 @@ export class ToTrip extends DocElement<Trip> {
         ><span slot="prefix">${icon(UI.search, 14)}</span></sl-input>
         <sl-button size="small" ?loading=${this.searching} ?disabled=${!this.query.trim()} @click=${this.search}>Search</sl-button>
         <span class="to-spacer"></span>
-        <span class="to-hint">${n} ${n === 1 ? 'stop' : 'stops'}${n > 1 ? html` · <b>${formatLeg(routeKm(this.doc.stops), this.doc.units)}</b>` : nothing}</span>
+        <span class="to-hint">${n} ${n === 1 ? 'stop' : 'stops'}${n > 1 && this.doc.linked ? html` · <b>${formatLeg(routeKm(this.doc.stops), this.doc.units)}</b>` : nothing}</span>
+        ${tool('Join the stops in order', 'trip', () => this.save(this.doc.stops, this.doc.units, !this.doc.linked), { pressed: this.doc.linked })}
         <sl-select class="sr-label trip-units" size="small" label="Measure in" hoist .value=${this.doc.units} @sl-change=${(e: Event) => this.save(this.doc.stops, (e.target as SlSelect).value as Units)}>
           ${UNITS.map((u) => html`<sl-option value=${u.id}>${u.name}</sl-option>`)}
         </sl-select>
@@ -223,7 +227,7 @@ export class ToTrip extends DocElement<Trip> {
         <ol class="trip-stops" aria-label="Stops">
           ${this.doc.stops.map(
             (s, i) => html`<li class=${i === this.cur ? 'sel' : ''} @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onStopKey(e, i)}>
-              ${i > 0 ? html`<span class="leg">${this.doc.units === 'h' ? '≈ ' : ''}${formatLeg(distanceKm(this.doc.stops[i - 1], s), this.doc.units)}${this.doc.units === 'h' ? ' drive' : ''}</span>` : nothing}
+              ${i > 0 && this.doc.linked ? html`<span class="leg">${this.doc.units === 'h' ? '≈ ' : ''}${formatLeg(distanceKm(this.doc.stops[i - 1], s), this.doc.units)}${this.doc.units === 'h' ? ' drive' : ''}</span>` : nothing}
               <span class="n">${i + 1}</span>
               <input class="name" aria-label="Name of stop ${i + 1}" placeholder="Name" .value=${s.name} @input=${(e: Event) => this.patch(i, { name: (e.target as HTMLInputElement).value })} />
               <div class="acts">

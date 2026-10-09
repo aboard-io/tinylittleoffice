@@ -6,7 +6,7 @@
  * what is its own.
  */
 import { DocElement, html, nothing, state, editRef, insertedRef, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, type TemplateResult } from '../kit.ts';
-import { blankSlide, type Slide } from '../lib/deckmodel.ts';
+import { blankSlide, isBlank, type Slide } from '../lib/deckmodel.ts';
 import { chooseIcon, type IconChoice } from '../widgets/icon-picker.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
@@ -78,8 +78,15 @@ export abstract class PagesElement<D> extends DocElement<D> {
 
   /** Another document on the page (a chart is a sheet that asks to be drawn as one), made in its own editor. */
   protected async insert(what: string) {
+    // A blank page shows the document itself; a page with anything on it keeps it, and the document goes on the next page.
+    if (!isBlank(this.page) && !this.nextBlank()) return;
     this.patch({ sub: insertedRef(what) });
     if (what !== 'qr-self') await this.editSub();
+  }
+  /** On to a blank page for a document: a new one after this (a deck grows); false when there can be none. */
+  protected nextBlank(): boolean {
+    this.addPage();
+    return true;
   }
   /** The page's other document, in its own editor; it comes back to the page it was on. */
   protected async editSub() {

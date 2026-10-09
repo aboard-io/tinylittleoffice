@@ -17,7 +17,7 @@ import { toMarkdown, fromMarkdown, parseCsv, looksLikeCsv, csvToMd } from '../sr
 import { ganttToCsv } from '../src/apps/gantt.def.ts';
 import { tripToGeoJson, tripToGpx } from '../src/apps/trip.def.ts';
 import { ganttSpans } from '../src/lib/ganttmodel.ts';
-import { formatLeg, tripUnits } from '../src/lib/tripmodel.ts';
+import { formatLeg, tripLinked, tripUnits } from '../src/lib/tripmodel.ts';
 
 /** A drawing's table of shapes, a row each: "r | 2 | 1 | 12 | 6 | 1b3 | Box". */
 const drawn = (...rows: string[]) => ['Kind | X | Y | W | H | Style | Label', '--- | --- | --- | --- | --- | --- | ---', ...rows].join('\n');
@@ -119,6 +119,11 @@ test('trip round trip and distances', () => {
   assert.equal(formatLeg(100, 'm'), '62.1 mi');
   assert.equal(formatLeg(100, 'h'), '1 h 38 min');
   assert.equal(formatLeg(20, 'h'), '20 min');
+  // Stops as dots, not a route: said in the header, no line and no legs drawn, and no line in the GeoJSON.
+  const dots = serializeTrip(stops, 'h', false);
+  assert.ok(dots.startsWith('---\nroute: dots\n---\n') && !tripLinked(dots) && tripLinked(s));
+  assert.ok(!appOf('trip')!.view(dots)[0].svg.includes('<polyline') && !appOf('trip')!.view(dots)[0].svg.includes('Total'));
+  assert.equal(JSON.parse(tripToGeoJson(dots)).features.length, 3);
   const gpx = tripToGpx(s);
   assert.ok(gpx.includes('<rtept lat="40.71280" lon="-74.00600"><name>New York, NY</name><desc>Start here</desc></rtept>'));
   assert.equal(gpx.match(/<wpt /g)!.length, 3);
@@ -130,6 +135,7 @@ test('trip round trip and distances', () => {
   assert.equal(fromMarkdown(appOf('trip')!, 'name,longitude,latitude\nLisbon,-9.1393,38.7223'), 'Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 |');
   assert.equal(read('km\n38.7223, -9.1393, Lisbon | Pastel de nata first\n- Porto (41.1579, -8.6291)\n  Port cellars'), '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nPorto | 41.1579 | -8.6291 | Port cellars');
   assert.equal(read(serializeTrip(stops, 'm')), serializeTrip(stops, 'm'));
+  assert.equal(read(dots), dots);
 });
 
 test('motion round trip and interpolation', () => {
@@ -386,6 +392,12 @@ test('diagram apps: outlines become shapes Draw can draw', async () => {
   const venn = specOf('venn')!.layout!('- X: a\n- Y: b\n- X & Y: both');
   assert.equal(venn.shapes.filter((s) => s.k === 'e').length, 2);
   assert.ok(venn.shapes.some((s) => s.text === 'both'));
+  // A set named twice is one set; every thing's box is wide enough for its words, so none wraps; a long list spills into a second column.
+  const twice = specOf('venn')!.layout!('- X: instant noodles\n- X: walking\n- Y: b');
+  assert.equal(twice.shapes.filter((s) => s.k === 'e').length, 2);
+  assert.ok(twice.shapes.filter((s) => s.text === 'instant noodles' || s.text === 'walking').every((s) => s.w > 50));
+  const many = specOf('venn')!.layout!(`- X: ${Array.from({ length: 15 }, (_, i) => 'thing ' + i).join(', ')}\n- Y: b`);
+  assert.equal(new Set(many.shapes.filter((s) => s.text.startsWith('thing')).map((s) => Math.round(s.y))).size, 12);
 });
 
 test('drawing: more shapes, and joins that follow', async () => {
@@ -394,6 +406,11 @@ test('drawing: more shapes, and joins that follow', async () => {
   const text = drawn('o | 2 | 2 | 12 | 6 | 1b | Web \\| front end', 'c | 30 | 2 | 12 | 8 | 0 | Data', 'n | 2 | 20 | 12 | 8 | 0 | Note', 'k | 0 | 1 | 0 | 0 | 1 | reads', 'j | 0 | 2 | 0 | 0 | 0 |', 'h | 30 | 20 | 10 | 6 | 0 |', 'p | 50 | 20 | 10 | 6 | 0 |');
   const shapes = parseDrawing(text);
   assert.equal(serializeDrawing(shapes), text);
+  // A stroke drawn by hand: its corners in a Points column, drawn as an open line.
+  const stroked = 'Kind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\nw | 2 | 2 | 12 | 6 | 0 |  | 0:0;50:100;100:0\nv | 20 | 2 | 8 | 8 | 1 |  | 0:0;100:0;50:100';
+  assert.equal(serializeDrawing(parseDrawing(stroked)), stroked);
+  const strokeSvg = drawingToSvg(stroked);
+  assert.ok(strokeSvg.includes('<polyline points="16,16 64,64 112,16" fill="none"') && strokeSvg.includes('<polygon points="160,16 224,16 192,80"'));
   assert.deepEqual([shapes[3].x, shapes[3].y], [0, 1]);
   const svg = drawingToSvg(text);
   assert.ok(svg.includes('marker-end') && svg.includes('>reads</text>') && svg.includes('>front end</text>'));
@@ -728,7 +745,17 @@ test('small apps: the sums behind them', async () => {
   assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
   // People round their tables; events in order.
   assert.equal(specOf('seating')!.layout!('- T1: a, b, c\n- T2: d').shapes.length, 6);
-  assert.deepEqual(specOf('timeline')!.layout!('- 1: a\n- 2: b').shapes.map((x) => x.k), ['e', 'o', 'j', 'e', 'j', 'o', 'j']);
+  // A timeline: the axis, then for each event its dot, its box (above, then below) and the tick between them.
+  const tl = specOf('timeline')!.layout!('- 1: a\n- 2: b');
+  assert.deepEqual(tl.shapes.map((x) => x.k), ['l', 'e', 'o', 'j', 'e', 'o', 'j']);
+  assert.ok(tl.shapes[2].y < tl.shapes[1].y && tl.shapes[5].y > tl.shapes[4].y);
+  // Years in order are spaced as they fell, never closer than a box apart; words that are not years, evenly; a long one grows wider.
+  const { places, moment } = await import('../src/apps/timeline.def.ts');
+  assert.deepEqual([moment('1969'), moment('44 BC'), moment('1969-07'), moment('July 1969'), moment('Then')].map((v) => (Number.isNaN(v) ? 'nan' : Math.round(v * 100) / 100)), [1969, -44, 1969.5, 1969.5, 'nan']);
+  const spaced = places(['1900', '1910', '1990', '2000']);
+  assert.ok(spaced[2] - spaced[1] > 3 * (spaced[1] - spaced[0]) && spaced[1] - spaced[0] >= 96);
+  assert.ok(places(['Then', 'Now', 'Later']).every((x, i, xs) => !i || x - xs[i - 1] >= 96));
+  assert.ok(specOf('timeline')!.layout!(Array.from({ length: 20 }, (_, i) => `- ${1900 + i}: x`).join('\n')).w > 1800);
   // Each is read leniently: lines without their marks, other marks, a size written "4×2".
   assert.equal(appOf('timeline')!.read!('1843: Notes\n  2. 1936: A machine'), '- 1843: Notes\n- 1936: A machine');
   assert.equal(appOf('net')!.read!('A > B: calls\nB - C\nD <- E\n- Lone'), '~ A -> B: calls\n~ B -- C\n~ E -> D\n\n- Lone');
