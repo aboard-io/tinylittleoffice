@@ -1,0 +1,37 @@
+{
+  "name": "tinyoffice",
+  "version": "1.0.0-next",
+  "private": true,
+  "type": "module",
+  "description": "A tiny office suite that lives entirely in the URL.",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4178 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:browser": "vitest run --project browser",
+    "test:e2e": "playwright test",
+    "i18n:check": "node scripts/i18n-extract.ts --check",
+    "i18n:extract": "node scripts/i18n-extract.ts"
+  },
+  "dependencies": {
+    "fflate": "0.8.3",
+    "lit": "3.3.3",
+    "lucide": "1.54.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "26.6.4",
+    "@vitest/browser-playwright": "5.0.3",
+    "playwright": "1.64.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.3",
+    "wrangler": "4.149.0"
+  }
+}

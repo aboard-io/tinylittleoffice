@@ -1,0 +1,66 @@
+import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+import { offlineList } from './scripts/offline-files.ts';
+import { apps } from './src/kit/apps.ts';
+import { pageScripts } from './src/kit/page.ts';
+
+/**
+ * After the build: a page per app (dist/<id>/index.html, the shell with that app's name and blurb in its
+ * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes written into
+ * _headers (public/_headers has the placeholder; src/kit/page.ts has the scripts); and the list of files the
+ * device keeps for working offline (dist/files.json), whose hash versions the service worker (src/sw.ts).
+ */
+function afterBuild(site: string): Plugin {
+  const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return {
+    name: 'tinyoffice-after-build',
+    apply: 'build',
+    closeBundle() {
+      const dist = resolve(import.meta.dirname, 'dist');
+      const shell = readFileSync(resolve(dist, 'index.html'), 'utf8');
+      for (const app of apps()) {
+        const title = `${app.name} · TinyLittleOffice`;
+        const page = shell
+          .replace(/(src|href)="\.\//g, '$1="../')
+          .replace(/<title>[^<]*<\/title>/, `<title>${attr(title)}</title>`)
+          .replace(/(<meta name="description" content=")[^"]*"/, `$1${attr(app.blurb)}"`)
+          .replace(/(<meta property="og:title" content=")[^"]*"/, `$1${attr(title)}"`)
+          .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${attr(app.blurb)}"`)
+          .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${site}${app.id}/"`)
+          .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${site}${app.id}/"`);
+        mkdirSync(resolve(dist, app.id), { recursive: true });
+        writeFileSync(resolve(dist, app.id, 'index.html'), page);
+      }
+      const hashes = pageScripts().map((code) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`);
+      writeFileSync(resolve(dist, '_headers'), readFileSync(resolve(dist, '_headers'), 'utf8').replaceAll('{{scripts}}', hashes.join(' ')));
+      const built = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
+        .filter((f) => f.isFile())
+        .map((f) => ({ path: relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'), bytes: statSync(resolve(f.parentPath, f.name)).size }));
+      const offline = offlineList(built);
+      writeFileSync(resolve(dist, 'files.json'), JSON.stringify(offline));
+      writeFileSync(resolve(dist, 'sw.js'), readFileSync(resolve(dist, 'sw.js'), 'utf8').replace('__TLO_VERSION__', offline.version));
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => ({
+  base: './',
+  server: {
+    // The dev box's own name, beside localhost; VITE_ALLOWED_HOSTS adds more (comma-separated).
+    allowedHosts: ['pefdev.exe.xyz', ...(loadEnv(mode, import.meta.dirname).VITE_ALLOWED_HOSTS?.split(',').filter(Boolean) ?? [])],
+    // The shortener on this machine, under the dev server's own address.
+    proxy: { '/tinier/': { target: 'http://127.0.0.1:8787', rewrite: (p) => p.slice('/tinier'.length) } },
+  },
+  plugins: [afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '')],
+  build: {
+    target: 'es2022',
+    outDir: 'dist',
+    // The service worker is an entry of its own, at a fixed name: a browser looks for it at one address, build after build.
+    rollupOptions: {
+      input: { main: resolve(import.meta.dirname, 'index.html'), sw: resolve(import.meta.dirname, 'src/sw.ts') },
+      output: { entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },
+    },
+  },
+}));
