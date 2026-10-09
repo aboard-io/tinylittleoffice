@@ -8,7 +8,7 @@ import { until } from './helpers.ts';
 import '../../src/styles.css';
 
 async function insert(): Promise<ToInsert> {
-  document.body.innerHTML = '';
+  document.body.innerHTML = '<div id="box"></div>';
   const chosen: string[] = [];
   render(
     html`<to-insert .items=${[
@@ -16,7 +16,7 @@ async function insert(): Promise<ToInsert> {
       { label: 'List', icon: UI.list, does: () => chosen.push('list') },
       { label: 'Table', icon: UI.table, group: 'Data', does: () => chosen.push('table') },
     ]}></to-insert>`,
-    document.body,
+    document.querySelector('#box')!,
   );
   const el = document.querySelector<ToInsert>('to-insert')!;
   await el.updateComplete;
@@ -31,8 +31,8 @@ test('Insert ▾ opens a menu, the arrows walk it, Enter chooses, focus returns'
   expect(button.getAttribute('aria-haspopup')).toBe('menu');
   button.focus();
   button.click();
-  await until(() => el.isOpen);
-  expect(button.getAttribute('aria-expanded')).toBe('true');
+  await until(() => button.getAttribute('aria-expanded') === 'true');
+  expect(el.isOpen).toBe(true);
   const items = [...el.querySelectorAll<HTMLElement>('[role=menuitem]')];
   expect(items.map((i) => i.textContent!.trim())).toEqual(['Heading', 'List', 'Table']);
   expect(el.querySelector('[role=group]')!.getAttribute('aria-label')).toBe('Data');
@@ -44,10 +44,10 @@ test('Insert ▾ opens a menu, the arrows walk it, Enter chooses, focus returns'
   expect(document.activeElement).toBe(items[2]);
   items[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
   (document.activeElement as HTMLElement).click();
-  await until(() => !el.isOpen);
+  await until(() => button.getAttribute('aria-expanded') === 'false');
+  expect(el.isOpen).toBe(false);
   expect((el as ToInsert & { chosen: string[] }).chosen).toEqual(['table']);
   expect(document.activeElement).toBe(button);
-  expect(button.getAttribute('aria-expanded')).toBe('false');
 });
 
 test('Escape closes the menu and puts focus back on the button', async () => {

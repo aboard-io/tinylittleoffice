@@ -50,8 +50,9 @@ export class ToTextEditor extends LitElement {
     const a = this.area;
     const at = a.value.indexOf('\n', a.selectionEnd);
     const end = at < 0 ? a.value.length : at;
-    const lead = end === 0 || a.value[end - 1] === '\n' ? '' : '\n';
-    const text = `${lead}${a.value.slice(0, end).trim() ? '\n' : ''}${block}\n`;
+    const before = a.value.slice(0, end);
+    const after = a.value.slice(end);
+    const text = `${before.trim() ? '\n\n' : ''}${block}${after.startsWith('\n') ? '' : '\n'}`;
     a.setRangeText(text, end, end, 'end');
     a.focus();
     this.set(a.value);

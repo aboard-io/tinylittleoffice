@@ -28,6 +28,8 @@ export class ToTemplates extends LitElement {
   declare drawn: boolean;
   readonly uid = `to-templates-${++n}`;
 
+  private off = () => {};
+
   constructor() {
     super();
     this.chosen = '';
@@ -35,6 +37,14 @@ export class ToTemplates extends LitElement {
   }
   createRenderRoot() {
     return this;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.off = onLanguage(() => this.requestUpdate());
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.off();
   }
   get button(): HTMLButtonElement {
     return this.querySelector<HTMLButtonElement>(':scope > button')!;
