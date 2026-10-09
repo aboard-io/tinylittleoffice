@@ -2,9 +2,16 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { offlineList } from './scripts/offline-files.ts';
-import { apps } from './src/kit/apps.ts';
-import { pageScripts } from './src/kit/page.ts';
+import type { AppDef } from './src/kit/app.ts';
+
+/**
+ * The registry and the page scripts, read from the source under node at the end of the build (the
+ * definitions touch no DOM). Loaded by a computed path, so the config's own bundler does not follow the
+ * apps into their editors and stylesheets.
+ */
+const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve(import.meta.dirname, path)).href) as Promise<T>;
 
 /**
  * After the build: a page per app (dist/<id>/index.html, the shell with that app's name and blurb in its
@@ -17,7 +24,9 @@ function afterBuild(site: string): Plugin {
   return {
     name: 'tinyoffice-after-build',
     apply: 'build',
-    closeBundle() {
+    async closeBundle() {
+      const { apps } = await fromSource<{ apps(): AppDef[] }>('src/kit/apps.ts');
+      const { pageScripts } = await fromSource<{ pageScripts(): string[] }>('src/kit/page.ts');
       const dist = resolve(import.meta.dirname, 'dist');
       const shell = readFileSync(resolve(dist, 'index.html'), 'utf8');
       for (const app of apps()) {

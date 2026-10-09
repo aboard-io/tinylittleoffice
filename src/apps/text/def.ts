@@ -6,7 +6,7 @@
 import { FileText } from 'lucide';
 import { defineApp, type Doc, type Page } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
-import { INK, MUTED, xml } from '../../kit/exports.ts';
+import { INK, MUTED, xml } from '../../kit/draw.ts';
 import { templates } from './templates.ts';
 
 const HEAD = /^---\n([\s\S]*?)\n---\n?/;

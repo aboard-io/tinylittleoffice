@@ -11,7 +11,7 @@ import { encodeDoc } from './codec.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { place } from './menu.ts';
-import { pageSvg } from './exports.ts';
+import { pageSvg } from './draw.ts';
 import { routeHash } from './route.ts';
 
 let n = 0;

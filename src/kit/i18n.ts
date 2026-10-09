@@ -22,7 +22,7 @@ const ORDER = ['zero', 'one', 'two', 'few', 'many', 'other'];
 // Languages written right to left, for a browser whose Intl.Locale cannot say.
 const RTL = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ug', 'yi', 'dv', 'ckb'];
 
-const files: Record<string, Loader> = typeof import.meta.glob === 'function' ? (import.meta.glob('../i18n/*.ts') as Record<string, Loader>) : {};
+const files: Record<string, Loader> = typeof import.meta.glob === 'function' ? (import.meta.glob(['../i18n/*.ts', '!../i18n/en.ts']) as Record<string, Loader>) : {};
 const loaders = new Map<string, Loader>(Object.entries(files).map(([path, load]) => [path.replace(/^.*\/([^/]+)\.ts$/, '$1'), load]));
 const dicts = new Map<string, Strings>();
 let current = 'en';
