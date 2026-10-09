@@ -34,7 +34,9 @@
  * under them): the marks, Link, Footnote and, over whole blocks of words in
  * a doc or lines editor, the two lists. It goes when the selection collapses
  * or leaves, while an IME composes, and while the link or note box is open;
- * `no-bubble` turns it off.
+ * `no-bubble` turns it off. `marks-only` keeps the five marks alone (words
+ * that are drawn, not read: a shape's label): no Link, no Footnote, no
+ * lists, Mod+K does nothing, and a paste brings its words without links or notes.
  *
  * Nothing here calls execCommand, sets innerHTML, or reads it.
  */
@@ -122,7 +124,7 @@ export function domToRuns(el: HTMLElement): Run[] {
 }
 
 export class ToText extends LitElement {
-  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false }, noBubble: { type: Boolean, attribute: 'no-bubble' } };
+  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false }, noBubble: { type: Boolean, attribute: 'no-bubble' }, marksOnly: { type: Boolean, attribute: 'marks-only' } };
   /** The blocks it owns; `at` in its ops counts from the first. */
   declare blocks: Block[];
   declare shape: Shape;
@@ -134,6 +136,8 @@ export class ToText extends LitElement {
   declare card: ((b: Block, at: number) => TemplateResult | typeof nothing | null) | null;
   /** No selection bubble (a host with marks of its own beside the words, or none). */
   declare noBubble: boolean;
+  /** The marks and nothing else: no links, no footnotes, no lists. */
+  declare marksOnly: boolean;
 
   private _sel: Sel | null = null;
   /** The marks the next letter typed will carry. */
@@ -160,6 +164,7 @@ export class ToText extends LitElement {
     this.placeholder = '';
     this.card = null;
     this.noBubble = false;
+    this.marksOnly = false;
   }
   createRenderRoot() {
     return this;
@@ -494,8 +499,9 @@ export class ToText extends LitElement {
     this.emit(e.ops, e.sel);
   }
   private paste(data: { text: string; html: string }, sel: Sel) {
-    const got = pasteFrom(data, this.shape);
+    let got = pasteFrom(data, this.shape);
     if (!got) return;
+    if (this.marksOnly && 'runs' in got) got = { runs: got.runs.filter((r) => r.fn === undefined).map(({ href: _href, ...r }) => r) };
     const e = 'runs' in got ? insertRuns(this.model, sel, got.runs) : insertBlocks(this.model, sel, got.blocks);
     this.emit(e.ops, e.sel);
   }
@@ -543,7 +549,7 @@ export class ToText extends LitElement {
         }
         return;
       }
-      const cmd = e.shiftKey ? (k === 'x' ? 's' : k === 'h' ? 'h' : null) : k === 'b' ? 'b' : k === 'i' ? 'i' : k === 'u' ? 'u' : k === 'k' ? 'link' : null;
+      const cmd = e.shiftKey ? (k === 'x' ? 's' : k === 'h' ? 'h' : null) : k === 'b' ? 'b' : k === 'i' ? 'i' : k === 'u' ? 'u' : k === 'k' && !this.marksOnly ? 'link' : null;
       if (cmd) {
         e.preventDefault();
         this.exec(cmd);
@@ -827,11 +833,9 @@ export class ToText extends LitElement {
       mark('u', t('Underline'), UI.underline, 'Mod+U'),
       mark('s', t('Strikethrough'), UI.strike, 'Mod+Shift+X'),
       mark('h', t('Highlight'), UI.highlight, 'Mod+Shift+H'),
-      SEP,
-      { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') },
-      { label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') },
     ];
-    if (this.shape !== 'line' && this.wholeBlocks(sel)) {
+    if (!this.marksOnly) items.push(SEP, { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') }, { label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') });
+    if (!this.marksOnly && this.shape !== 'line' && this.wholeBlocks(sel)) {
       const kind = kindAt(this.model, sel);
       items.push(SEP, { label: t('Bulleted list'), icon: UI.list, pressed: kind === 'ul', does: () => this.exec('ul') }, { label: t('Numbered list'), icon: UI.listOrdered, pressed: kind === 'ol', does: () => this.exec('ol') });
     }

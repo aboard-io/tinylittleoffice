@@ -89,6 +89,14 @@ test('two solid frames: header, screen size, loop block, trailer', () => {
   assert.equal(encodeGif(8, 8, [], { loop: 3 })[29], 3);
 });
 
+test('loop: false leaves the loop block out, so the GIF plays once; the frames still read back', () => {
+  const once = encodeGif(2, 2, [{ data: solid(2, 2, [255, 0, 0, 255]), delayMs: 100 }], { loop: false });
+  assert.equal(String.fromCharCode(...once).includes('NETSCAPE2.0'), false);
+  assert.equal(once[13], 0x21);
+  assert.equal(once[14], 0xf9);
+  assert.equal(decodeFirstFrame(once).width, 2);
+});
+
 test('delay is in hundredths and never below 2', () => {
   const gif = encodeGif(2, 2, [{ data: solid(2, 2, [1, 2, 3, 255]), delayMs: 5 }]);
   assert.equal(decodeFirstFrame(gif).delay, 2);

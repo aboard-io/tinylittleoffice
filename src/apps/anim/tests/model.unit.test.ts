@@ -1,8 +1,8 @@
 // Motion as a view of the document, and each command as the ops it produces: under node, no DOM.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { drawingOf, duplicateShape, duplicateShapes, follow, keysOf, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShape, removeShapes, restKey, room, setLength, stateAt, withKey, withKeys } from '../model.ts';
-import { animFrames, animPage, animToSvg, frameSvg } from '../view.ts';
+import { depthDim, drawingOf, duplicateShape, duplicateShapes, follow, frameOrder, gifLoop, keysOf, loopOf, loosen, motionOf, pasteMotion, playhead, readAnim, redraw, removeKey, removeShape, removeShapes, restKey, room, setLength, setLoop, stateAt, turnScale, withKey, withKeys } from '../model.ts';
+import { animFrames, animPage, animToSvg, drawOrder, frameSvg, transformOf } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
 import draw from '../../draw/def.ts';
@@ -30,7 +30,9 @@ test('read: length, speed, shapes, keys by shape number; defaults for a bare dra
   expect([bare.frames, bare.fps, bare.keysAt, bare.keys]).toEqual([24, 8, -1, [[], [], []]]);
   // Leniently: out-of-range length and speed, a frame past the end, a duplicate frame (the last wins), unknown effects, corners.
   const loose = readAnim(parse('---\nframes: 900\nfps: 5\n---\n' + DRAWING + '\nShape | Keys\n--- | ---\n0 | 3,1,2,999,0.04,5,xyzd; 3,9,9,0,1,0; 500,0,0,0,1,0,,p0:0/100:50\n7 | 0,1,1,1,1,1\n'));
-  expect([loose.frames, loose.fps]).toEqual([120, 8]);
+  expect([loose.frames, loose.fps]).toEqual([120, 5]);
+  expect(readAnim(parse('---\nfps: 99\n---\n' + DRAWING)).fps).toBe(30);
+  expect(readAnim(parse('---\nfps: x\n---\n' + DRAWING)).fps).toBe(8);
   expect(loose.keys[0]).toEqual([{ t: 3, dx: 9, dy: 9, z: 0, s: 1, r: 0, fx: '' }, { t: 119, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 50] }]);
   expect(keysOf('2,0,0,999,0.04,0,ddz', 24)).toEqual([{ t: 2, dx: 0, dy: 0, z: 200, s: 0.1, r: 0, fx: 'd' }]);
 });
@@ -69,7 +71,9 @@ test('withKey: the keys table replaced by one splice (put in with the first key)
 test('setLength: head ops, and the keys past the new end gone', () => {
   expect(after(LIFT, (d) => setLength(d, 12, 12))).toBe('---\nframes: 12\nfps: 12\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0\n1 | 0,0,0,0,1,0\n');
   expect(setLength(parse(LIFT), 24, 8)).toEqual([]);
-  expect(setLength(parse(LIFT), 999, 7)).toEqual([{ op: 'head', key: 'frames', value: '120' }]);
+  expect(setLength(parse(LIFT), 999, 7)).toEqual([{ op: 'head', key: 'frames', value: '120' }, { op: 'head', key: 'fps', value: '7' }]);
+  expect(setLength(parse(LIFT), 24, 0)).toEqual([]);
+  expect(setLength(parse(LIFT), 24, 60)).toEqual([{ op: 'head', key: 'fps', value: '30' }]);
 });
 
 test('removeShape and duplicateShape: Draw ops on the shapes, and the keys go with their shapes', () => {
@@ -202,4 +206,78 @@ test('motionOf and pasteMotion: the shapes in hand travel with their keys, and c
   expect(keysTable(short)).toContain('\n2 | 0,0,0,0,1,0\n');
   expect(after(DRAWING, (d) => pasteMotion(d, parse(DRAWING)).ops)).not.toContain('Shape | Keys');
   expect(pasteMotion(parse(LIFT), parse('just words\n'))).toEqual({ ops: [], sel: [] });
+});
+
+test('loop: the head field read leniently and written only when not for ever; byte-stable', () => {
+  expect(['', 'forever', 'once', '1', 'bounce', '3', '0', 'often'].map((v) => loopOf(v))).toEqual(['forever', 'forever', 'once', 'once', 'bounce', 3, 'forever', 'forever']);
+  expect(readAnim(parse(LIFT)).loop).toBe('forever');
+  const bounced = after(LIFT, (d) => setLoop(d, 'bounce'));
+  expect(bounced.startsWith('---\nframes: 24\nfps: 8\nloop: bounce\n---\n')).toBe(true);
+  expect(write(parse(bounced))).toBe(bounced);
+  expect(readAnim(parse(bounced)).loop).toBe('bounce');
+  expect(after(bounced, (d) => setLoop(d, 3)).includes('\nloop: 3\n')).toBe(true);
+  expect(after(bounced, (d) => setLoop(d, 'forever'))).toBe(LIFT);
+  expect(setLoop(parse(bounced), 'bounce')).toEqual([]);
+  // A copy carries it.
+  expect(write(motionOf(parse(bounced), [0])!)).toContain('loop: bounce');
+});
+
+test('playback: for ever wraps, once and n times stop on the last frame, bounce goes there and back; the GIF\'s frames and loop count follow', () => {
+  expect(playhead(4, 'forever', 5)).toEqual({ frame: 1, done: false });
+  expect(playhead(4, 'once', 3.5)).toEqual({ frame: 3.5, done: false });
+  expect(playhead(4, 'once', 4)).toEqual({ frame: 3, done: true });
+  expect(playhead(4, 2, 7)).toEqual({ frame: 3, done: false });
+  expect(playhead(4, 2, 8)).toEqual({ frame: 3, done: true });
+  expect([0, 1, 2, 3, 4, 5, 6, 7].map((f) => playhead(4, 'bounce', f).frame)).toEqual([0, 1, 2, 3, 2, 1, 0, 1]);
+  expect(frameOrder(4, 'bounce')).toEqual([0, 1, 2, 3, 2, 1]);
+  expect(frameOrder(4, 'once')).toEqual([0, 1, 2, 3]);
+  expect([gifLoop('forever'), gifLoop('bounce'), gifLoop('once'), gifLoop(3)]).toEqual([0, 0, false, 2]);
+  const doc = parse(LIFT.replace('fps: 8\n', 'fps: 8\nloop: bounce\n'));
+  const frames = animFrames(doc);
+  expect(frames.pages).toHaveLength(24 + 22);
+  expect(frames.loop).toBe('bounce');
+  expect(frames.pages[25].svg).toBe(frames.pages[21].svg);
+});
+
+test('the animated SVG repeats as the motion says: for ever, a number of times, or there and back on twice the time', () => {
+  expect(animPage(readAnim(parse(LIFT))).svg).toContain('repeatCount="indefinite"');
+  const thrice = animPage(readAnim(parse(LIFT.replace('fps: 8\n', 'fps: 8\nloop: 3\n')))).svg;
+  expect(thrice).toContain('repeatCount="3" fill="freeze"');
+  const bounce = animPage(readAnim(parse(LIFT.replace('fps: 8\n', 'fps: 8\nloop: bounce\n')))).svg;
+  // 23 frames there and 23 back at 8 a second: 5.75 s, the keys at 0, 23 and 46 of 46.
+  expect(bounce).toContain('dur="5.75s" repeatCount="indefinite"');
+  expect(bounce).toContain('keyTimes="0;0.5;1"');
+  // A still rests where it ends, whatever the loop.
+  expect(animPage(readAnim(parse(LIFT.replace('fps: 8\n', 'fps: 8\nloop: bounce\n'))), true).svg).toContain('repeatCount="1" fill="freeze"');
+});
+
+test('depth is the order, not the size: the stage sorts by depth at the moment, a far shape is a little dimmer, never smaller', () => {
+  const v = readAnim(parse(LIFT));
+  // Shape 1 comes forward (z 0 to 80): at the end it is drawn last.
+  expect(drawOrder(v, 0)).toEqual([0, 1]);
+  const back = readAnim(parse(LIFT.replace('23,200,-200,80,1,-30,d', '23,200,-200,-200,1,-30,d').replace('0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i', '0 | 0,0,0,50,1,0')));
+  expect(drawOrder(back, 23)).toEqual([1, 0]);
+  expect(transformOf(v.shapes[1], v.shapes, { ...restKey(0), z: 200 })).toContain('scale(1 1)');
+  expect(depthDim(0)).toBe(1);
+  expect(depthDim(120)).toBe(1);
+  expect(depthDim(-200)).toBe(0.67);
+  expect(frameSvg(back, 23)).toContain('opacity="0.67"');
+});
+
+test('turn: a keyed turn about the upright axis, written as u<deg> and read back; drawn as a squeeze across of cos(turn), mirrored past 90°', () => {
+  expect(keysOf('3,0,0,0,1,0,,u120', 24)).toEqual([{ t: 3, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', u: 120 }]);
+  expect(keysOf('3,0,0,0,1,0,d,p0:0/100:50,u-45', 24)[0]).toMatchObject({ fx: 'd', pts: [0, 0, 100, 50], u: -45 });
+  const doc = after(LIFT, (d) => withKey(d, 1, { ...restKey(12), u: 180 }));
+  expect(keysTable(doc)).toContain('12,0,0,0,1,0,,u180');
+  expect(write(parse(doc))).toBe(doc);
+  const v = readAnim(parse(doc));
+  expect(stateAt(v, 1, 6).u).toBe(90);
+  expect(turnScale(0)).toBe(1);
+  expect(turnScale(90)).toBe(0);
+  expect(turnScale(180)).toBe(-1);
+  expect(turnScale(60)).toBeCloseTo(0.5);
+  expect(transformOf(v.shapes[1], v.shapes, { ...restKey(0), u: 180 })).toContain('scale(-1 1)');
+  expect(transformOf(v.shapes[1], v.shapes, { ...restKey(0), u: 60, s: 2 })).toContain('scale(1 2)');
+  // The self-playing SVG samples a turning shape every frame.
+  expect(animPage(v).svg.split('keyTimes="').at(-1)!.split('"')[0].split(';')).toHaveLength(24);
 });

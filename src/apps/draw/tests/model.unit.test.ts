@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { blankTile, parseTile, tileCss, tilePattern, tileRef, tileSvg } from '../../../kit/tile.ts';
-import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape } from '../model.ts';
+import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape, shapesWithin, labelLines, labelText, labelPlain } from '../model.ts';
 import { drawingPage, drawingToSvg, shapeSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def, { tileOfDoc } from '../def.ts';
@@ -291,4 +291,54 @@ test('duplicateShapes: copies of the chosen shapes and the joins among them, two
   expect(d.sel).toEqual([4, 5, 6]);
   expect(readDrawing(parse(text)).shapes[4].x).toBe(8 + 16);
   expect(duplicateShapes(parse(FOUR), [2]).ops).toEqual([]);
+});
+
+test('rot: a Rot column read leniently, written only while a shape is turned, the text byte-stable; lines are never turned', () => {
+  const turned = 'Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 4 | 6 | 16 | 8 | 0 | A | 30\nl | 1 | 1 | 4 | 0 | 0 |  | 45\no | 2 | 2 | 4 | 4 | 0 | B |\n';
+  const v = readDrawing(parse(turned));
+  expect(v.shapes[0].rot).toBe(30);
+  expect(v.shapes[1].rot).toBeUndefined();
+  expect(v.shapes[2].rot).toBeUndefined();
+  expect(write(parse(turned))).toBe(turned);
+  expect(readDrawing(parse(turned.replace('| 30', '| -90'))).shapes[0].rot).toBe(270);
+  // Turning a shape adds the column; turning it back takes the column away again.
+  const on = after(DRAWING, (d) => patchShape(d, 0, { rot: 45 }));
+  expect(on).toBe('Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser | 45\no | 32 | 6 | 16 | 8 | 1b | Server |\nk | 0 | 1 | 0 | 0 | 0 | asks |\n');
+  expect(after(on, (d) => patchShape(d, 0, { rot: 360 }))).toBe(DRAWING);
+  // Drawn turned about the centre; a copy keeps its turn.
+  expect(shapeSvg(readDrawing(parse(on)).shapes[0])).toMatch(/^<g transform="rotate\(45 96 80\)">/);
+  expect(shapesToTlo(pickShapes(readDrawing(parse(on)).shapes, [0]))).toContain('| Rot\n');
+  expect(shapesFromText(shapesToTlo(pickShapes(readDrawing(parse(on)).shapes, [0])))[0].rot).toBe(45);
+});
+
+test('the marquee takes every shape whose box lies inside it (as it shows, turned), and the joins whose two ends it takes', () => {
+  const shapes = readDrawing(parse(DRAWING)).shapes;
+  // Browser is 32..160 by 48..112, Server 256..384 by 48..112.
+  expect(shapesWithin(shapes, 0, 0, 200, 200)).toEqual([0]);
+  expect(shapesWithin(shapes, 400, 300, 0, 0)).toEqual([0, 1, 2]);
+  expect(shapesWithin(shapes, 40, 40, 400, 200)).toEqual([1]);
+  // Turned a quarter, Browser stands 64 wide and 128 tall about its centre (96, 80): out of a box it fitted unturned.
+  const turned = shapes.map((s, i) => (i === 0 ? { ...s, rot: 90 } : s));
+  expect(shapesWithin(turned, 0, 40, 200, 120)).toEqual([]);
+  expect(shapesWithin(turned, 60, 10, 140, 150)).toEqual([0]);
+});
+
+test('a rich label: inline Markdown read as runs and written back the same; " | " lines; drawn as tspans', () => {
+  const label = '**Bold** and *italic* ++under++ | ~~gone~~ ==marked==';
+  const lines = labelLines(label);
+  expect(lines).toHaveLength(2);
+  expect(lines[0]).toEqual([{ t: 'Bold', b: true }, { t: ' and ' }, { t: 'italic', i: true }, { t: ' ' }, { t: 'under', u: true }]);
+  expect(labelText(lines)).toBe(label);
+  expect(labelPlain(':rocket **Go** now')).toBe(':rocket Go now');
+  const doc = `Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 4 | 6 | 30 | 8 | 0 | ${label.replace(/\|/g, '\\|')}\n`;
+  expect(write(parse(doc))).toBe(doc);
+  const svg = shapeSvg(readDrawing(parse(doc)).shapes[0]);
+  expect(svg).toContain('<tspan font-weight="700">Bold</tspan>');
+  expect(svg).toContain('<tspan font-style="italic">italic</tspan>');
+  expect(svg).toContain('<tspan text-decoration="underline">under</tspan>');
+  expect(svg).toContain('<tspan text-decoration="line-through">gone</tspan>');
+  expect(svg).toMatch(/<tspan stroke="#facc15"[^>]*>marked<\/tspan>/);
+  // A link's words are drawn, not its address; the description reads plain words.
+  expect(labelText(labelLines('[Site](https://example.com) here'))).toBe('Site here');
+  expect(describeDrawing(readDrawing(parse(doc)).shapes)).toBe('A drawing of Bold and italic under | gone marked.');
 });

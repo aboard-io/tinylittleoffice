@@ -8,8 +8,8 @@ import { INK, PAPER, SHADE, clip, pageSvg, r, rect, textWidth, wrapText, xml } f
 import { glyphNamed, iconNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { TILE_INKS, tilePattern, type Tile } from '../../kit/tile.ts';
-import type { Doc } from '../../doc/index.ts';
-import { COLORS, H, W, describeDrawing, iconOf, isLine, isLink, linkEnds, paint, pairs, readDrawing, type DrawView, type Shape } from './model.ts';
+import { sliceRuns, type Doc, type Run } from '../../doc/index.ts';
+import { COLORS, H, W, canTurn, describeDrawing, iconOf, isLine, isLink, labelLines, linkEnds, paint, pairs, readDrawing, type DrawView, type Shape } from './model.ts';
 
 export interface Theme {
   ink: string;
@@ -18,12 +18,35 @@ export interface Theme {
 }
 export const PRINT: Theme = { ink: INK, paper: PAPER, shade: SHADE };
 
+/** The highlighter's colour under marked words (a stroke behind the letters, so it shows in the dark too). */
+const MARKER = '#facc15';
+
+/** Runs as tspans: bold, italic, underline, struck and marked words drawn as such; a run with no marks is plain words. */
+export function runsSvg(runs: Run[], px: number): string {
+  return runs
+    .map((run) => {
+      const deco = [run.u ? 'underline' : '', run.s ? 'line-through' : ''].filter(Boolean).join(' ');
+      const attrs = `${run.b ? ' font-weight="700"' : ''}${run.i ? ' font-style="italic"' : ''}${deco ? ` text-decoration="${deco}"` : ''}${run.h ? ` stroke="${MARKER}" stroke-opacity="0.55" stroke-width="${r(px * 0.9)}" stroke-linejoin="round" paint-order="stroke"` : ''}`;
+      return attrs ? `<tspan${attrs}>${xml(run.t)}</tspan>` : xml(run.t);
+    })
+    .join('');
+}
+
+/** A shape's turn about its centre, as a transform ('' for none: a line is never turned). */
+export const turnOf = (s: Shape): string => (s.rot && canTurn(s.k) ? `rotate(${s.rot} ${r(s.x + s.w / 2)} ${r(s.y + s.h / 2)})` : '');
+
 /**
  * One shape as SVG. `all` is the drawing it belongs to (joins need to find their shapes). The editor draws
  * with the same function, passing the page's colours and asking for a fat invisible line to make thin ones
- * easy to hit.
+ * easy to hit. A turned shape is drawn in a group turned about its centre, its words with it.
  */
 export function shapeSvg(s: Shape, all: Shape[] = [], th: Theme = PRINT, hit = false): string {
+  const body = flatSvg(s, all, th, hit);
+  const turn = turnOf(s);
+  return turn && body ? `<g transform="${turn}">${body}</g>` : body;
+}
+
+function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
   const p = paint(s, th.ink, th.paper, th.shade);
   const look = `fill="${p.fill}"${p.fillOpacity < 1 ? ` fill-opacity="${p.fillOpacity}"` : ''} stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round"`;
   const { x: X, y: Y, w, h } = s;
@@ -74,21 +97,29 @@ export function shapeSvg(s: Shape, all: Shape[] = [], th: Theme = PRINT, hit = f
   }
   if (!s.text) return body;
   const halo = isLine(s.k) || s.k === 'w' ? ` stroke="${th.paper}" stroke-width="4" paint-order="stroke"` : '';
-  // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note's and a text's lines are all alike).
+  // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note's and a text's lines are all alike). The words are runs with marks.
   const [icon, words] = iconOf(s.text);
-  const parts = words.split(' | ');
+  const parts = labelLines(words);
   const even = s.k === 'n' || s.k === 't';
+  const plain = (runs: Run[]) => runs.map((x) => x.t).join('');
   // The words wrap to the room inside the shape (less in a round or pointed one), and get smaller if they still do not fit; past that, the last line ends in "…".
   const inside = isLine(s.k) || s.k === 'w' ? Infinity : s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
   const big = icon && iconNamed(icon) ? 1.35 : 0;
+  type Line = { runs: Run[]; t: string; small: boolean; strong: boolean };
   const fit = (scale: number) => {
     const px = p.px * scale;
     const room = inside === Infinity ? Infinity : Math.max(24, w * inside - (s.k === 't' ? 8 : 16) - (big ? px * big + 6 : 0));
-    const lines: { t: string; small: boolean; strong: boolean }[] = [];
+    const lines: Line[] = [];
     parts.forEach((part, i) => {
       const small = i > 0 && !even;
       const strong = !i && parts.length > 1 && !even;
-      for (const line of room === Infinity ? [part] : wrapText(part, room, small ? px * 0.8 : px, strong)) lines.push({ t: line, small, strong });
+      const text = plain(part);
+      let from = 0;
+      for (const line of room === Infinity ? [text] : wrapText(text, room, small ? px * 0.8 : px, strong || part.some((x) => x.b))) {
+        const at = Math.max(from, text.indexOf(line, from));
+        lines.push({ runs: sliceRuns(part, at, at + line.length), t: line, small, strong });
+        from = at + line.length;
+      }
     });
     return { px, lines, room };
   };
@@ -100,7 +131,11 @@ export function shapeSvg(s: Shape, all: Shape[] = [], th: Theme = PRINT, hit = f
     const keep = Math.max(1, Math.floor(height / (laid.px * 1.25)));
     const cut = laid.lines.slice(0, keep);
     const end = cut[keep - 1];
-    cut[keep - 1] = { ...end, t: clip(end.t + '…', laid.room, end.small ? laid.px * 0.8 : laid.px, end.strong).replace(/……$/, '…') };
+    const t = clip(end.t + '…', laid.room, end.small ? laid.px * 0.8 : laid.px, end.strong).replace(/……$/, '…');
+    const n = t.endsWith('…') ? t.length - 1 : t.length;
+    const runs = sliceRuns(end.runs, 0, n);
+    const last = runs[runs.length - 1];
+    cut[keep - 1] = { ...end, t, runs: [...runs, { ...(last ?? {}), t: t.slice(n) }] };
     laid = { ...laid, lines: cut };
   }
   const fs = laid.px;
@@ -114,7 +149,7 @@ export function shapeSvg(s: Shape, all: Shape[] = [], th: Theme = PRINT, hit = f
   const anchor = left ? 'start' : 'middle';
   const top = ty - ((laid.lines.length - 1) * lh) / 2;
   const out = laid.lines
-    .map((l, i) => `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" font-size="${r(l.small ? fs * 0.8 : fs)}"${l.strong ? ' font-weight="600"' : ''} fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${xml(l.t)}</text>`)
+    .map((l, i) => `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" font-size="${r(l.small ? fs * 0.8 : fs)}"${l.strong ? ' font-weight="600"' : ''} fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${runsSvg(l.runs, l.small ? fs * 0.8 : fs)}</text>`)
     .join('');
   return body + (mark ? glyphNamed(icon, start, ty - mark / 2, mark, p.text) : '') + out;
 }

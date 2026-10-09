@@ -11,22 +11,22 @@ import { encodeGif, type GifFrame } from '../../kit/gif.ts';
 import { t } from '../../kit/i18n.ts';
 import { pixels } from '../../kit/raster.ts';
 import { H, W } from '../draw/model.ts';
-import { readAnim } from './model.ts';
+import { gifLoop, readAnim } from './model.ts';
 import { templates } from './templates.ts';
 import { altOf, animFrames, animPage, animToSvg, frameSvg } from './view.ts';
 
 export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
 export const retitle = (doc: Doc, title: string): Doc => write(apply(parse(doc), { op: 'head', key: 'title', value: title.replace(/\n/g, ' ').trim() || undefined }));
 
-/** The animated GIF: every frame drawn in the browser, each held 1/fps of a second, looping. */
+/** The animated GIF: every frame of a round drawn in the browser, each held 1/fps of a second, repeating as the motion says. */
 export async function animGif(doc: Doc): Promise<Uint8Array> {
-  const { pages, delayMs } = animFrames(parse(doc));
+  const { pages, delayMs, loop } = animFrames(parse(doc));
   const frames: GifFrame[] = [];
   for (const p of pages) {
     const px = await pixels(pageSvg(p), W, H);
     if (px) frames.push({ data: px, delayMs });
   }
-  return encodeGif(W, H, frames);
+  return encodeGif(W, H, frames, { loop: gifLoop(loop) });
 }
 
 export default defineApp({
@@ -42,7 +42,7 @@ export default defineApp({
   },
   icon: Clapperboard,
   get blurb() {
-    return t('Anything from the Drawing Tool, moving: position, depth, size and spin over time, with effects for memes.');
+    return t('Anything from the Drawing Tool, moving: position, depth, size, spin and turn over time, with effects for memes.');
   },
   blank: () => '',
   get templates() {

@@ -13,7 +13,9 @@
  *
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use X, Y as the start and W, H as
  * the distance to the end. Style is the fill (0, 1 or 2), then optionally a colour letter and a text size
- * digit: "1", "2b", "0r3". Black and the normal text size are the defaults and are left out.
+ * digit: "1", "2b", "0r3". Black and the normal text size are the defaults and are left out. A shape may be
+ * turned: a Rot column, in whole degrees clockwise about the shape's centre, there only while a shape is
+ * turned and blank (0) for the others; lines, arrows and joins are never turned.
  *
  * Kinds: r rectangle, o rounded box, e ellipse, d diamond, h hexagon, p parallelogram, c cylinder, n note,
  * t text, i icon (its label is the icon's name), l line, a arrow, v any shape and w a stroke (their corners
@@ -21,7 +23,9 @@
  * For those, X and Y are not places but the numbers of the two shapes joined, counting rows from 0, so the
  * join follows its shapes wherever they go. Read leniently, a kind may be named in words ("rectangle",
  * "arrow") and the columns may come in any order. A label may start with an icon, ":rocket Launch", drawn
- * before the words; " | " in a label starts a second, smaller line.
+ * before the words; " | " in a label starts a second, smaller line. The words are rich: each line is inline
+ * Markdown as the kernel writes runs (writeInline: **bold**, *italic*, ++underline++, ~~struck~~, ==marked==),
+ * read by parseInline and drawn as tspans; a person never types the marks, the label's editor writes them.
  *
  * Pixel mode (`grid: 8|16|32|64` in the head): the one `p` block is the grid, a line a row, a letter a
  * square (a to h the inks, "." clear), as the old pixel app wrote it. "Use as background" writes the grid
@@ -35,7 +39,7 @@
  * The clipboard carries shapes as a drawing of their own (shapesToTlo): a table of their rows, the joins among
  * them numbered within it, so a copy pastes into another drawing, into Motion, or into a sheet as a table.
  */
-import { apply, columnsOf, parse, plainText, write, type Block, type Column, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import { apply, columnsOf, parse, parseInline, plainText, write, writeInline, type Block, type Column, type Doc, type Op, type Run, type TableBlock } from '../../doc/index.ts';
 import { t } from '../../kit/i18n.ts';
 import { TILE_INKS, TILE_SIDES, parseTile, tileOf, type Tile } from '../../kit/tile.ts';
 
@@ -52,10 +56,32 @@ export function iconOf(label: string): [string, string] {
   return m ? [m[1], m[2]] : ['', label];
 }
 
+/** A label's words (after its icon) as lines of runs: " | " starts a line; the marks are inline Markdown. Links and notes are not a label's: their words stay, plain. */
+export function labelLines(words: string): Run[][] {
+  return words.split(' | ').map((part) => parseInline(part).flatMap((r): Run[] => (r.fn !== undefined ? [] : r.ic ? [{ t: `:${r.ic}:` }] : [plainRun(r)])));
+}
+/** A run with its link let go (a label draws words, not addresses). */
+function plainRun(r: Run): Run {
+  if (!r.href) return r;
+  const out = { ...r };
+  delete out.href;
+  return out;
+}
+/** Lines of runs as a label's words: each line inline Markdown, joined by " | ". */
+export const labelText = (lines: Run[][]): string => lines.map((runs) => writeInline(runs.map((r) => plainRun({ ...r, t: r.t.replace(/\n/g, ' ') }))).trim()).join(' | ');
+/** A label as plain words, the marks taken out (what is read aloud, measured, described). */
+export const labelPlain = (text: string): string => {
+  const [ic, words] = iconOf(text);
+  const plain = labelLines(words).map((runs) => runs.map((r) => r.t).join('')).join(' | ');
+  return ic ? (plain ? `:${ic} ${plain}` : `:${ic}`) : plain;
+};
+
 /** Kinds that join two shapes rather than sit somewhere. */
 export const isLink = (k: Kind) => k === 'k' || k === 'j';
 /** Kinds drawn as a stroke with no inside. */
 export const isLine = (k: Kind) => k === 'l' || k === 'a' || isLink(k);
+/** Kinds that may be turned (every one but lines, arrows and joins). */
+export const canTurn = (k: Kind) => !isLine(k);
 /** Kinds with corners of their own (the pen's and the hand's). */
 export const isDrawn = (k: Kind) => k === 'v' || k === 'w';
 export type Fill = 0 | 1 | 2;
@@ -75,7 +101,12 @@ export interface Shape {
   z?: TextSize;
   /** For 'v' and 'w': the corners, x,y pairs as hundredths of the box, in order. */
   pts?: number[];
+  /** Turned this many whole degrees clockwise about its centre (0 to 359); absent for none. */
+  rot?: number;
 }
+
+/** Degrees as a shape keeps them: whole, 0 to 359. */
+export const normRot = (deg: number): number => ((Math.round(deg) % 360) + 360) % 360;
 
 /** Points as x, y pairs (a stray last number is left out). */
 export const pairs = (pts: number[]): [number, number][] => Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => [pts[2 * i], pts[2 * i + 1]]);
@@ -105,7 +136,7 @@ export function paint(s: Shape, ink: string, paper: string, shade: string) {
 /** A description made from the shapes themselves, when nobody wrote one: what is labelled, and what leads to what. A start, not a substitute. '' for no shapes. */
 export function describeDrawing(shapes: Shape[]): string {
   if (!shapes.length) return '';
-  const words = (s: Shape | undefined) => iconOf(s?.text ?? '')[1].trim();
+  const words = (s: Shape | undefined) => iconOf(labelPlain(s?.text ?? ''))[1].trim();
   // A shape with no words is named by its icon.
   const named = (i: number) => words(shapes[i]) || iconOf(shapes[i]?.text ?? '')[0];
   const things = shapes.map((s, i) => (isLink(s.k) ? '' : named(i))).filter(Boolean);
@@ -120,10 +151,10 @@ export function describeDrawing(shapes: Shape[]): string {
 
 /** Kinds by name, for a table written by hand. */
 const NAMED: Record<string, Kind> = { rect: 'r', rectangle: 'r', box: 'o', rounded: 'o', ellipse: 'e', circle: 'e', oval: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', database: 'c', note: 'n', icon: 'i', line: 'l', arrow: 'a', text: 't', shape: 'v', stroke: 'w', freehand: 'w', join: 'k', link: 'j' };
-const FIELDS = ['kind', 'x', 'y', 'w', 'h', 'style', 'label', 'points'] as const;
+const FIELDS = ['kind', 'x', 'y', 'w', 'h', 'style', 'label', 'points', 'rot'] as const;
 type Field = (typeof FIELDS)[number];
-const NAMES: Record<Field, string> = { kind: 'Kind', x: 'X', y: 'Y', w: 'W', h: 'H', style: 'Style', label: 'Label', points: 'Points' };
-const PATTERNS: Record<Field, RegExp> = { kind: /^kind$/, x: /^x$/, y: /^y$/, w: /^w$/, h: /^h$/, style: /^style$/, label: /^label$/, points: /^points$/ };
+const NAMES: Record<Field, string> = { kind: 'Kind', x: 'X', y: 'Y', w: 'W', h: 'H', style: 'Style', label: 'Label', points: 'Points', rot: 'Rot' };
+const PATTERNS: Record<Field, RegExp> = { kind: /^kind$/, x: /^x$/, y: /^y$/, w: /^w$/, h: /^h$/, style: /^style$/, label: /^label$/, points: /^points$/, rot: /^(rot|rotate|rotation|angle)$/ };
 
 /** Where each field's column is in a table, -1 for one it has not got. */
 export type Cols = Record<Field, number>;
@@ -156,6 +187,8 @@ export function rowShape(row: string[], cols: Cols): Shape | null {
   if (isDrawn(k)) shape.pts = ptsOf(get('points'));
   if (look && look[2] in COLORS) shape.c = look[2] as Color;
   if (look && look[3] && look[3] !== '2') shape.z = +look[3] as TextSize;
+  const rot = canTurn(k) ? normRot(parseFloat(get('rot')) || 0) : 0;
+  if (rot) shape.rot = rot;
   return shape;
 }
 
@@ -183,6 +216,7 @@ export function shapeCells(s: Shape): Record<Field, string> {
     style: `${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}`,
     label: s.text.replace(/\n/g, ' '),
     points: isDrawn(s.k) ? ptsText(s.pts ?? []) : '',
+    rot: s.rot && canTurn(s.k) ? String(normRot(s.rot)) : '',
   };
 }
 
@@ -204,7 +238,7 @@ export interface DrawView {
   tile: Tile | null;
 }
 
-const EMPTY: Cols = { kind: -1, x: -1, y: -1, w: -1, h: -1, style: -1, label: -1, points: -1 };
+const EMPTY: Cols = { kind: -1, x: -1, y: -1, w: -1, h: -1, style: -1, label: -1, points: -1, rot: -1 };
 
 /** The grid's side from "grid: 16"; 0 for anything else. */
 export const gridOf = (value: string | undefined): number => {
@@ -255,6 +289,38 @@ export function linkEnds(s: Shape, all: Shape[]): [number, number, number, numbe
 export function bounds(s: Shape, all: Shape[]): [number, number, number, number] {
   const [x1, y1, x2, y2] = isLink(s.k) ? (linkEnds(s, all) ?? [0, 0, 0, 0]) : [s.x, s.y, s.x + s.w, s.y + s.h];
   return [Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)];
+}
+
+/** A point turned `deg` degrees clockwise about (cx, cy). */
+export function turnPoint(x: number, y: number, cx: number, cy: number, deg: number): [number, number] {
+  const a = (deg * Math.PI) / 180;
+  const [dx, dy] = [x - cx, y - cy];
+  return [cx + dx * Math.cos(a) - dy * Math.sin(a), cy + dx * Math.sin(a) + dy * Math.cos(a)];
+}
+/** A shape's box as it shows, turned: the box round its turned corners (the same as `bounds` for a shape not turned). */
+export function turnedBounds(s: Shape, all: Shape[]): [number, number, number, number] {
+  const b = bounds(s, all);
+  if (!s.rot || !canTurn(s.k)) return b;
+  const [x, y, w, h] = b;
+  const [cx, cy] = [x + w / 2, y + h / 2];
+  const pts = [turnPoint(x, y, cx, cy, s.rot), turnPoint(x + w, y, cx, cy, s.rot), turnPoint(x, y + h, cx, cy, s.rot), turnPoint(x + w, y + h, cx, cy, s.rot)];
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+}
+
+/**
+ * The shapes a marquee from (x0, y0) to (x1, y1) takes: every shape whose box (as it shows) lies inside it, and
+ * every join whose two shapes are taken. In the drawing's order.
+ */
+export function shapesWithin(all: Shape[], x0: number, y0: number, x1: number, y1: number): number[] {
+  const [l, t, r, b] = [Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1)];
+  const inside = all.map((s) => {
+    if (isLink(s.k)) return false;
+    const [x, y, w, h] = turnedBounds(s, all);
+    return x >= l && y >= t && x + w <= r && y + h <= b;
+  });
+  return all.flatMap((s, i) => (inside[i] || (isLink(s.k) && inside[s.x] && inside[s.y]) ? [i] : []));
 }
 
 /** A path with the points that do not change its course taken out (Ramer–Douglas–Peucker), so a hand's wobble is a few corners. */
@@ -310,6 +376,8 @@ class Builder {
 
 const col = (f: Field): Column => ({ name: NAMES[f], type: 'text' });
 const BASE: Field[] = ['kind', 'x', 'y', 'w', 'h', 'style', 'label'];
+/** The columns shapes like these need: the base, Points for a drawn one, Rot for a turned one. */
+const needOf = (shapes: Shape[]): Field[] => [...BASE, ...(shapes.some((s) => isDrawn(s.k)) ? (['points'] as const) : []), ...(shapes.some((s) => s.rot && canTurn(s.k)) ? (['rot'] as const) : [])];
 
 /** The document given its table of shapes if it has none, and the columns `need` after any it lacks (Points only when asked for). */
 function ensure(b: Builder, need: Field[] = BASE): Builder {
@@ -356,6 +424,8 @@ function tidy(b: Builder): Builder {
   if (v.at < 0) return b;
   if (!v.shapes.length && b.table.rows.length === 0) return b.push({ op: 'splice', at: v.at, n: 1, blocks: [] });
   if (v.cols.points >= 0 && !v.shapes.some((s) => isDrawn(s.k)) && b.table.rows.every((row) => !row[v.cols.points])) b.push({ op: 'cols', at: v.at, c: v.cols.points, n: 1 });
+  const w = b.view;
+  if (w.cols.rot >= 0 && !w.shapes.some((s) => s.rot) && b.table.rows.every((row) => !(row[w.cols.rot] ?? '').trim())) b.push({ op: 'cols', at: w.at, c: w.cols.rot, n: 1 });
   return b;
 }
 
@@ -374,7 +444,7 @@ function renumber(b: Builder, now: (old: number) => number | undefined): Builder
 
 /** A new shape, at the end. */
 export function addShape(doc: Doc, s: Shape): Op[] {
-  const b = ensure(new Builder(doc), isDrawn(s.k) ? [...BASE, 'points'] : BASE);
+  const b = ensure(new Builder(doc), needOf([s]));
   return b.push({ op: 'rows', at: b.view.at, r: b.table.rows.length, n: 1, rows: [rowOf(b, s)] }).ops;
 }
 
@@ -384,7 +454,8 @@ export function patchShape(doc: Doc, i: number, patch: Partial<Shape>): Op[] {
   const s = v.shapes[i];
   if (!s) return [];
   const next = { ...s, ...patch };
-  const b = ensure(new Builder(doc), isDrawn(next.k) ? [...BASE, 'points'] : BASE);
+  if (next.rot !== undefined) next.rot = canTurn(next.k) ? normRot(next.rot) || undefined : undefined;
+  const b = ensure(new Builder(doc), needOf([next]));
   return tidy(patchRow(b, v.rows[i], next)).ops;
 }
 
@@ -544,7 +615,7 @@ export function pickShapes(all: Shape[], picked: number[]): Shape[] {
 
 /** Shapes as the table that holds them (Points only when one is drawn with the pen or by hand). */
 export function shapesTable(shapes: Shape[]): TableBlock {
-  const fields = shapes.some((s) => isDrawn(s.k)) ? [...BASE, 'points' as const] : BASE;
+  const fields = needOf(shapes);
   return { k: 'table', cols: fields.map(col), rows: shapes.map((s) => fields.map((f) => shapeCells(s)[f])) };
 }
 
@@ -573,7 +644,7 @@ export function pasteShapes(doc: Doc, shapes: Shape[], step = GRID): { ops: Op[]
   let d = step;
   while (first && have.some((s) => !isLink(s.k) && s.k === first.k && s.x === first.x + d && s.y === first.y + d)) d += GRID;
   const moved = kept.map((s) => (isLink(s.k) ? { ...s, x: s.x + base, y: s.y + base } : { ...s, x: s.x + d, y: s.y + d }));
-  const b = ensure(new Builder(doc), moved.some((s) => isDrawn(s.k)) ? [...BASE, 'points'] : BASE);
+  const b = ensure(new Builder(doc), needOf(moved));
   b.push({ op: 'rows', at: b.view.at, r: b.table.rows.length, n: moved.length, rows: moved.map((s) => rowOf(b, s)) });
   let last = moved.length - 1;
   while (last > 0 && isLink(moved[last].k)) last--;

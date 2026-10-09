@@ -453,6 +453,28 @@ test('the selection bubble: up under words selected, Bold pressed from it stays 
   await until(() => !bubbleOpen());
 });
 
+test('marks-only: the bubble has the five marks and nothing else, Mod+K is no link, and a paste brings words without their link', async () => {
+  document.body.innerHTML = '';
+  const h = new Host('A label here\n', 'line');
+  h.el.marksOnly = true;
+  document.body.append(h.el);
+  await h.el.updateComplete;
+  h.el.focus();
+  h.el.sel = range(0, 2, 7);
+  await until(bubbleOpen);
+  expect([...bubble().querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Bold', 'Italic', 'Underline', 'Strikethrough', 'Highlight']);
+  inBubble('Underline')!.click();
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('A ++label++ here\n');
+  const k = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true });
+  h.el.tx.dispatchEvent(k);
+  expect(k.defaultPrevented).toBe(false);
+  h.el.sel = caret(0, 0);
+  await h.el.updateComplete;
+  await paste(h, { 'text/html': '<a href="https://example.com">site</a>', 'text/plain': 'site' });
+  expect(h.tlo).toBe('siteA ++label++ here\n');
+});
+
 test('the selection bubble: not for a range inside a card, never with no-bubble, and Link from it opens the link box in its place', async () => {
   const h = await mount('a b\n\n```sheet\nXyz\n--- \n1\n```\n\nc\n', 'doc', range(0, 0, 1));
   await until(bubbleOpen);

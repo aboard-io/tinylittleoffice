@@ -44,12 +44,18 @@
     user-select: none;
     -webkit-user-select: none;
   }
-  /* With a tool in hand, a drag on, or a finger on a shape or a handle, the canvas keeps the finger. */
+  /* With a tool in hand, a drag on, or a finger on a shape or a handle, the canvas keeps the finger; and so it does
+     while the drawing fits the frame, where a finger's drag on nothing draws the box that chooses shapes (zoomed in, it pans). */
   svg.draw-canvas.tool,
   svg.draw-canvas.held,
+  svg.draw-canvas.fit,
   svg.draw-canvas .shape,
-  svg.draw-canvas .handle {
+  svg.draw-canvas .handle,
+  svg.draw-canvas .rotor {
     touch-action: none;
+  }
+  svg.draw-canvas .rotor {
+    cursor: grab;
   }
   svg.draw-canvas.tool {
     cursor: crosshair;
@@ -96,6 +102,7 @@
      (set at 16px or more and scaled, so iOS does not zoom); the editor places it (placeWords). */
   .draw-words {
     position: absolute;
+    display: block;
     z-index: 1;
     margin: 0;
     padding: 0 2px;
@@ -107,14 +114,26 @@
     font-family: var(--to-font);
     line-height: 1.25;
     text-align: center;
-    white-space: pre;
     transform-origin: 0 0;
     cursor: text;
     touch-action: manipulation;
     user-select: text;
     -webkit-user-select: text;
   }
-  .draw-words.wrap {
+  /* <to-text>'s boxes for a note and a link are popovers: they take no room over the shape. */
+  .draw-words > :not(.tx) {
+    position: absolute;
+  }
+  /* <to-text>'s box inside: no room of its own, the shape's line height, one line unless the shape wraps. */
+  .draw-words .tx {
+    min-height: 0;
+    font-size: inherit;
+    line-height: 1.25;
+  }
+  .draw-words .tx > * {
+    white-space: pre;
+  }
+  .draw-words.wrap .tx > * {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

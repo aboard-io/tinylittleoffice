@@ -10,15 +10,18 @@ import { tilePattern } from '../../kit/tile.ts';
 import type { Doc } from '../../doc/index.ts';
 import { H, W, bounds, describeDrawing, isLine, type Shape } from '../draw/model.ts';
 import { TILE_SIDE, arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
-import { depthScale, readAnim, stateAt, type AnimView, type Key } from './model.ts';
+import { depthDim, frameOrder, readAnim, stateAt, turnScale, type AnimView, type Key, type Loop } from './model.ts';
 
-/** The transform that puts a shape where a key says, turning and growing about its centre. */
+/** How wide and how tall a key draws a shape: its size, squeezed across by its turn, mirrored by the Mirror effect. Depth never sizes it. */
+const scaleOf = (k: Key): [number, number] => [(k.fx.includes('m') ? -1 : 1) * k.s * turnScale(k.u), k.s];
+
+/** The transform that puts a shape where a key says, spinning, sizing and turning it about its centre. */
 export function transformOf(s: Shape, all: Shape[], k: Key, frame = k.t): string {
   const [x, y, w, h] = bounds(s, all);
   const [cx, cy] = [x + w / 2, y + h / 2];
-  const scale = k.s * depthScale(k.z);
+  const [sx, sy] = scaleOf(k);
   const spin = k.r + (k.fx.includes('w') ? (Math.floor(frame) % 2 ? 4 : -4) : 0);
-  return `translate(${r(cx + k.dx)} ${r(cy + k.dy)}) rotate(${r(spin)}) scale(${r(k.fx.includes('m') ? -scale : scale)} ${r(scale)}) translate(${r(-cx)} ${r(-cy)})`;
+  return `translate(${r(cx + k.dx)} ${r(cy + k.dy)}) rotate(${r(spin)}) scale(${r(sx)} ${r(sy)}) translate(${r(-cx)} ${r(-cy)})`;
 }
 
 /** The filters the effects use, once per picture; those that spread reach past the edge of the stage. */
@@ -60,7 +63,7 @@ export function effectsSvg(s: Shape, i: number, all: Shape[], fx: string, theme?
   return body;
 }
 
-/** Shape numbers from the furthest to the nearest, so near things are drawn over far ones. */
+/** Shape numbers from the furthest to the nearest, so near things are drawn over far ones (depth is the order, not the size). */
 export const drawOrder = (anim: AnimView, frame: number) => anim.shapes.map((_, i) => i).sort((a, b) => stateAt(anim, a, frame).z - stateAt(anim, b, frame).z || a - b);
 
 /** The background tile the drawing carries, as defs and a rect; '' for none. */
@@ -74,7 +77,8 @@ export function frameSvg(anim: AnimView, frame: number, theme?: Theme): string {
       const s = anim.shapes[i];
       const k = stateAt(anim, i, frame);
       const body = effectsSvg(k.pts && (s.k === 'v' || s.k === 'w') ? { ...s, pts: k.pts } : s, i, anim.shapes, k.fx, theme, defs);
-      return body ? `<g transform="${transformOf(s, anim.shapes, k, frame)}">${body}</g>` : '';
+      const dim = depthDim(k.z);
+      return body ? `<g transform="${transformOf(s, anim.shapes, k, frame)}"${dim < 1 ? ` opacity="${dim}"` : ''}>${body}</g>` : '';
     })
     .join('');
   const b = back(anim);
@@ -84,32 +88,46 @@ export function frameSvg(anim: AnimView, frame: number, theme?: Theme): string {
 /** What the motion shows, in words. */
 export const altOf = (anim: AnimView) => anim.alt || describeDrawing(anim.shapes) || t('An empty stage');
 
+/** How a self-playing SVG repeats: SMIL's repeatCount, and whether it rests where it ends. */
+const repeatOf = (loop: Loop): string => (loop === 'forever' || loop === 'bounce' ? 'repeatCount="indefinite"' : `repeatCount="${loop === 'once' ? 1 : loop}" fill="freeze"`);
+
 /**
- * The motion as a page that plays (SVG animates itself): each shape's offset, spin and size tweened between
- * its keys, its effects held as they are at the start. On its own it loops; `once`, it plays once and rests
- * where it ends, which is also what a still of it (print, a picture) shows.
+ * The motion as a page that plays (SVG animates itself): each shape's offset, spin, size, turn and depth's dimming
+ * tweened between its keys, its effects held as they are at the start. It repeats as the motion says (for ever, a
+ * number of times, or forward and back); `once`, it plays once and rests where it ends, which is also what a still of
+ * it (print, a picture) shows. A shape that turns is sampled every frame (a turn's squeeze is no straight line).
  */
 export function animPage(anim: AnimView, once = false): Page {
   const defs = new Set<string>();
-  const last = anim.frames - 1;
-  const dur = (last / anim.fps).toFixed(2);
-  const shapes = drawOrder(anim, 0)
+  const last = Math.max(1, anim.frames - 1);
+  const loop: Loop = once ? 'once' : anim.loop;
+  const bounce = loop === 'bounce';
+  const span = bounce ? 2 * last : last;
+  const dur = (span / anim.fps).toFixed(2);
+  const repeat = repeatOf(loop);
+  const shapes = drawOrder(anim, once ? anim.frames - 1 : 0)
     .map((i) => {
       const s = anim.shapes[i];
       const keys = anim.keys[i] ?? [];
-      const times = [...new Set([0, ...keys.map((k) => k.t), last])].sort((a, b) => a - b);
-      const states = times.map((tm) => stateAt(anim, i, tm));
+      const turns = keys.some((k) => k.u);
+      const ahead = turns ? frameOrder(anim.frames, 'forever') : [...new Set([0, ...keys.map((k) => k.t), last])].sort((a, b) => a - b);
+      // Bounce: the same moments again, backwards, on the second half of the time.
+      const times = bounce ? [...ahead, ...ahead.slice(0, -1).reverse().map((tm) => 2 * last - tm)] : ahead;
+      const states = times.map((tm) => stateAt(anim, i, tm > last ? 2 * last - tm : tm));
       const at = once ? states[states.length - 1] : states[0];
       const body = effectsSvg(s, i, anim.shapes, at.fx, undefined, defs);
       if (!body) return '';
-      if (keys.length < 2) return `<g transform="${transformOf(s, anim.shapes, at)}">${body}</g>`;
+      const dim = (k: Key) => depthDim(k.z);
+      const still = (k: Key) => (dim(k) < 1 ? ` opacity="${dim(k)}"` : '');
+      if (keys.length < 2) return `<g transform="${transformOf(s, anim.shapes, at)}"${still(at)}>${body}</g>`;
       const [x, y, w, h] = bounds(s, anim.shapes);
       const [cx, cy] = [x + w / 2, y + h / 2];
-      const keyTimes = times.map((tm) => r(tm / last)).join(';');
-      const tween = (type: string, values: string) => `<animateTransform attributeName="transform" type="${type}" values="${values}" keyTimes="${keyTimes}" dur="${dur}s" ${once ? 'repeatCount="1" fill="freeze"' : 'repeatCount="indefinite"'}/>`;
-      const scale = (k: Key) => `${r((k.fx.includes('m') ? -1 : 1) * k.s * depthScale(k.z))} ${r(k.s * depthScale(k.z))}`;
+      const keyTimes = times.map((tm) => r(tm / span)).join(';');
+      const tween = (type: string, values: string) => `<animateTransform attributeName="transform" type="${type}" values="${values}" keyTimes="${keyTimes}" dur="${dur}s" ${repeat}/>`;
+      const scale = (k: Key) => scaleOf(k).map(r).join(' ');
+      const fade = states.some((k) => dim(k) < 1) ? `<animate attributeName="opacity" values="${states.map(dim).join(';')}" keyTimes="${keyTimes}" dur="${dur}s" ${repeat}/>` : '';
       return (
-        `<g transform="translate(${r(cx + at.dx)} ${r(cy + at.dy)})">${tween('translate', states.map((k) => `${r(cx + k.dx)} ${r(cy + k.dy)}`).join(';'))}` +
+        `<g transform="translate(${r(cx + at.dx)} ${r(cy + at.dy)})"${still(at)}>${fade}${tween('translate', states.map((k) => `${r(cx + k.dx)} ${r(cy + k.dy)}`).join(';'))}` +
         `<g transform="rotate(${r(at.r)})">${tween('rotate', states.map((k) => r(k.r)).join(';'))}` +
         `<g transform="scale(${scale(at)})">${tween('scale', states.map(scale).join(';'))}` +
         `<g transform="translate(${r(-cx)} ${r(-cy)})">${body}</g></g></g></g>`
@@ -123,8 +141,8 @@ export function animPage(anim: AnimView, once = false): Page {
 /** The animated SVG file. */
 export const animToSvg = (doc: Doc) => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(animPage(readAnim(doc))) + '\n';
 
-/** Every frame as a page, for the GIF; and how long each stays. */
-export function animFrames(doc: Doc): { pages: Page[]; delayMs: number } {
+/** Every frame of one round as a page, for the GIF, in the order they show (bounce: there and back); how long each stays; and how it repeats. */
+export function animFrames(doc: Doc): { pages: Page[]; delayMs: number; loop: Loop } {
   const anim = readAnim(doc);
-  return { pages: Array.from({ length: anim.frames }, (_, f) => ({ w: W, h: H, svg: frameSvg(anim, f) })), delayMs: Math.round(1000 / anim.fps) };
+  return { pages: frameOrder(anim.frames, anim.loop).map((f) => ({ w: W, h: H, svg: frameSvg(anim, f) })), delayMs: Math.round(1000 / anim.fps), loop: anim.loop };
 }

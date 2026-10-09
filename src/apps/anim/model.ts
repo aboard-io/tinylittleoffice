@@ -1,12 +1,13 @@
 /**
  * Motion as a view of the document, and its commands as operations (ported from the old tree's
  * lib/animmodel.ts). A motion document is a drawing whose shapes move: Draw's table of shapes as Draw
- * writes it (src/apps/draw/model.ts), the length and the speed in the head, and a table of the shapes that
- * move:
+ * writes it (src/apps/draw/model.ts), the length, the speed and how it repeats in the head, and a table of
+ * the shapes that move:
  *
  *   ---
  *   frames: 24
  *   fps: 8
+ *   loop: bounce
  *   ---
  *   Kind | X | Y | W | H | Style | Label
  *   --- | --- | --- | --- | --- | --- | ---
@@ -17,10 +18,16 @@
  *   0 | 0,0,0,0,1,0; 23,200,-200,100,1,-30,d
  *
  * A shape is its number among the drawing's shapes, from 0 (as a join counts them). Keys are separated by
- * ";", each "<t>,<dx>,<dy>,<z>,<s>,<r>[,<fx>[,p<corners>]]": the frame, the offset in px from where the
- * shape was drawn, its depth in px (nearer when positive), its scale (1 = as drawn), its spin in degrees,
- * letters for effects (EFFECTS), and for a pen shape its corners ("p0:0/100:50/0:100"). Between keys a
- * shape travels in straight lines. A Draw document on its own is a motion document in which nothing moves
+ * ";", each "<t>,<dx>,<dy>,<z>,<s>,<r>[,<fx>[,p<corners>][,u<turn>]]": the frame, the offset in px from
+ * where the shape was drawn, its depth (which shape is in front: nearer when positive, -200 to 200; a far
+ * shape is drawn a little dimmer, never smaller), its size (1 = as drawn), its spin in the plane in degrees
+ * (on top of the turn the drawing gives it), letters for effects (EFFECTS), for a pen shape its corners
+ * ("p0:0/100:50/0:100"), and its turn about its upright axis in degrees ("u180": a card turned over, drawn
+ * as a squeeze across of cos(turn), mirrored past 90°). Between keys a shape travels in straight lines.
+ *
+ * The head: `frames` (2 to 120, 24 when absent), `fps` (1 to 30, 8 when absent) and `loop`: absent for
+ * forever, "once", a number of times ("3"), or "bounce" (forward, then back, and again). Playback, the GIF
+ * and the animated SVG all keep it. A Draw document on its own is a motion document in which nothing moves
  * yet, which is the whole of Draw's hand-off.
  *
  * The commands: the shapes are Draw's, so a shape taken out or copied is Draw's own ops on the shapes table
@@ -32,9 +39,13 @@ import { applyAll, column, columnsOf, plainText, type Block, type Doc, type Op, 
 import { bounds, duplicate as drawDuplicate, readDrawing, removeShape as drawRemove, isLink, pasteShapes, ptsOf, ptsText, shapeCells, shapesTable, H, W, type DrawView, type Shape } from '../draw/model.ts';
 
 export const DEFAULT_FRAMES = 24;
+export const MIN_FRAMES = 2;
 export const MAX_FRAMES = 120;
-export const FPS_CHOICES = [4, 8, 12] as const;
+export const MIN_FPS = 1;
+export const MAX_FPS = 30;
 export const DEFAULT_FPS = 8;
+/** How it repeats: for ever, once, a number of times, or forward and back for ever. */
+export type Loop = 'forever' | 'once' | 'bounce' | number;
 /** How far a thing may come forward or go back, in px. */
 export const MAX_Z = 200;
 
@@ -61,8 +72,10 @@ export interface Key {
   z: number;
   /** Scale, 1 = as drawn. */
   s: number;
-  /** Spin, degrees. */
+  /** Spin in the plane, degrees. */
   r: number;
+  /** Turn about the upright axis, degrees; absent for none. */
+  u?: number;
   /** Effect letters, any combination. */
   fx: string;
   /** For a pen shape: its corners at this key (hundredths of its box), tweened to the next key's when both have as many. */
@@ -73,6 +86,7 @@ export interface Key {
 export interface AnimView {
   frames: number;
   fps: number;
+  loop: Loop;
   /** Draw's reading of the same document: the shapes, their table, the alt, the tile. */
   draw: DrawView;
   shapes: Shape[];
@@ -88,8 +102,13 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 /** A key that leaves the shape as it was drawn. */
 export const restKey = (t: number): Key => ({ t, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '' });
 
-/** How much nearer things look larger: 1 + z / 400, so z = 200 is half as big again. */
-export const depthScale = (z: number) => 1 + z / (2 * MAX_Z);
+/** How bright a shape is drawn at a depth: as drawn in front (0 and nearer), down to two thirds at the very back. Depth never changes the size. */
+export const depthDim = (z: number) => (z < 0 ? Math.round((1 - (Math.min(-z, MAX_Z) / MAX_Z) / 3) * 100) / 100 : 1);
+/** How wide a shape turned about its upright axis is drawn: cos(turn), so it narrows to an edge at 90° and comes back mirrored. */
+export const turnScale = (u: number | undefined) => {
+  const c = Math.cos(((u ?? 0) * Math.PI) / 180);
+  return Math.abs(c) < 1e-9 ? 0 : c;
+};
 
 const sortKeys = (keys: Key[]) => keys.sort((p, q) => p.t - q.t);
 const letters = (fx: string) => [...new Set(fx.replace(/[^3dnogmwbi]/g, ''))].join('');
@@ -104,22 +123,58 @@ export const framesOf = (v: string | undefined) => {
 };
 export const fpsOf = (v: string | undefined) => {
   const n = parseInt(v ?? '', 10);
-  return (FPS_CHOICES as readonly number[]).includes(n) ? n : DEFAULT_FPS;
+  return Number.isFinite(n) ? clamp(n, MIN_FPS, MAX_FPS) : DEFAULT_FPS;
 };
+/** How it repeats, from "loop: once" (leniently: "1" is once, "0", "", "forever" and anything else for ever). */
+export function loopOf(v: string | undefined): Loop {
+  const w = (v ?? '').trim().toLowerCase();
+  if (w === 'once' || w === '1') return 'once';
+  if (w === 'bounce') return 'bounce';
+  const n = parseInt(w, 10);
+  return /^\d+$/.test(w) && n >= 2 ? Math.min(n, 99) : 'forever';
+}
+/** How the head writes a loop: nothing for ever. */
+export const loopText = (l: Loop): string | undefined => (l === 'forever' ? undefined : String(l));
+
+/**
+ * Where a playback is after `f` frames' time (fractional): the frame to show and whether it has stopped. For
+ * ever and bounce never stop (bounce runs to the end and back); once and a number stop on the last frame.
+ */
+export function playhead(frames: number, loop: Loop, f: number): { frame: number; done: boolean } {
+  const n = Math.max(1, frames);
+  if (loop === 'bounce') {
+    const period = Math.max(1, 2 * (n - 1));
+    const at = f % period;
+    return { frame: at <= n - 1 ? at : period - at, done: false };
+  }
+  const times = loop === 'once' ? 1 : loop === 'forever' ? Infinity : loop;
+  if (f >= n * times) return { frame: n - 1, done: true };
+  return { frame: f % n, done: false };
+}
+/** The frames of one round, in the order they show: 0 to the end, and for bounce back again (the ends shown once each). */
+export const frameOrder = (frames: number, loop: Loop): number[] => {
+  const ahead = Array.from({ length: frames }, (_, i) => i);
+  return loop === 'bounce' ? [...ahead, ...ahead.slice(1, -1).reverse()] : ahead;
+};
+/** The GIF's loop count (the NETSCAPE block's: 0 for ever, else the repeats after the first play), or false for none at all (it plays once). */
+export const gifLoop = (loop: Loop): number | false => (loop === 'once' ? false : typeof loop === 'number' ? loop - 1 : 0);
 
 /** One key as the cell writes it. */
-const keyText = (k: Key) => `${k.t},${k.dx},${k.dy},${k.z},${k.s},${k.r}${k.fx || k.pts ? `,${letters(k.fx)}` : ''}${k.pts ? `,p${ptsText(k.pts).replace(/;/g, '/')}` : ''}`;
+const keyText = (k: Key) => `${k.t},${k.dx},${k.dy},${k.z},${k.s},${k.r}${k.fx || k.pts || k.u ? `,${letters(k.fx)}` : ''}${k.pts ? `,p${ptsText(k.pts).replace(/;/g, '/')}` : ''}${k.u ? `,u${k.u}` : ''}`;
 
 /** A cell of keys read, for a motion `frames` long. */
 export function keysOf(cell: string, frames: number): Key[] {
   const out: Key[] = [];
   for (const part of cell.split(';')) {
-    const [t, dx, dy, z, s, r, fx = '', p = ''] = part.split(',').map((v) => v.trim());
+    const [t, dx, dy, z, s, r, fx = '', ...more] = part.split(',').map((v) => v.trim());
     const n = (v: string | undefined, dflt: number) => (v !== undefined && Number.isFinite(parseFloat(v)) ? parseFloat(v) : dflt);
     if (!Number.isFinite(parseInt(t, 10))) continue;
     const at = clamp(Math.round(n(t, 0)), 0, frames - 1);
     const key: Key = { t: at, dx: Math.round(n(dx, 0)), dy: Math.round(n(dy, 0)), z: clamp(Math.round(n(z, 0)), -MAX_Z, MAX_Z), s: Math.max(0.1, Math.round(n(s, 1) * 10) / 10), r: Math.round(n(r, 0)), fx: letters(fx) };
-    if (p.startsWith('p')) key.pts = ptsOf(p.slice(1).replace(/\//g, ';'));
+    for (const m of more) {
+      if (m.startsWith('p')) key.pts = ptsOf(m.slice(1).replace(/\//g, ';'));
+      else if (m.startsWith('u') && Math.round(parseFloat(m.slice(1)))) key.u = Math.round(parseFloat(m.slice(1)));
+    }
     const was = out.findIndex((k) => k.t === at);
     if (was >= 0) out.splice(was, 1);
     out.push(key);
@@ -142,7 +197,7 @@ export function readAnim(doc: Doc): AnimView {
       keys[i] = sortKeys([...keys[i].filter((k) => !more.some((q) => q.t === k.t)), ...more]);
     }
   }
-  return { frames, fps: fpsOf(doc.head.fps), draw, shapes: draw.shapes, keys, keysAt: at, alt: draw.alt };
+  return { frames, fps: fpsOf(doc.head.fps), loop: loopOf(doc.head.loop), draw, shapes: draw.shapes, keys, keysAt: at, alt: draw.alt };
 }
 
 /** The keys table as it is written: a row for each shape with a key; null when none has. */
@@ -182,6 +237,7 @@ export function stateAt(anim: AnimView, i: number, frame: number): Key {
   const f = (frame - p.t) / (q.t - p.t);
   const mix = (m: number, n: number) => m + (n - m) * f;
   const out: Key = { t: frame, dx: mix(p.dx, q.dx), dy: mix(p.dy, q.dy), z: mix(p.z, q.z), s: mix(p.s, q.s), r: mix(p.r, q.r), fx: p.fx };
+  if (p.u || q.u) out.u = mix(p.u ?? 0, q.u ?? 0);
   // Corners morph when both keys have the same number of them; otherwise they hold.
   if (p.pts && q.pts && p.pts.length === q.pts.length) out.pts = p.pts.map((v, n) => mix(v, q.pts![n]));
   else if (p.pts) out.pts = p.pts;
@@ -195,6 +251,7 @@ export const hasKey = (anim: AnimView, i: number, t: number) => !!anim.keys[i]?.
 const tidyKey = (key: Key): Key => {
   const k: Key = { t: Math.round(key.t), dx: Math.round(key.dx), dy: Math.round(key.dy), z: clamp(Math.round(key.z), -MAX_Z, MAX_Z), s: Math.max(0.1, Math.round(key.s * 10) / 10), r: Math.round(key.r), fx: letters(key.fx) };
   if (key.pts) k.pts = key.pts.map(Math.round);
+  if (Math.round(key.u ?? 0)) k.u = Math.round(key.u!);
   return k;
 };
 
@@ -248,10 +305,16 @@ export function removeKey(doc: Doc, i: number, t: number): Op[] {
 /** The length and the speed: `head` ops, and the keys past the new end taken out. */
 export function setLength(doc: Doc, frames: number, fps: number): Op[] {
   const v = readAnim(doc);
-  const f = clamp(Math.round(frames) || v.frames, 2, MAX_FRAMES);
-  const s = (FPS_CHOICES as readonly number[]).includes(fps) ? fps : v.fps;
+  const f = clamp(Math.round(frames) || v.frames, MIN_FRAMES, MAX_FRAMES);
+  const s = clamp(Math.round(fps) || v.fps, MIN_FPS, MAX_FPS);
   if (f === v.frames && s === v.fps && doc.head.frames && doc.head.fps) return [];
   return [...headOps(doc, f, s), ...setKeys(doc, v.keys.map((ks) => ks.filter((k) => k.t < f)))];
+}
+
+/** How it repeats: a `head` op ([] when it is so already). */
+export function setLoop(doc: Doc, loop: Loop): Op[] {
+  const value = loopText(loop);
+  return (doc.head.loop ?? undefined) === value ? [] : [{ op: 'head', key: 'loop', value }];
 }
 
 /** How a shape is known across an edit: its row, and for a join the rows of the shapes it joins (so renumbering keeps it itself). */
@@ -345,7 +408,9 @@ export function motionOf(doc: Doc, list: number[]): Doc | null {
   const now = new Map(kept.map((old, n) => [old, n]));
   const shapes = kept.map((i) => (isLink(v.shapes[i].k) ? { ...v.shapes[i], x: now.get(v.shapes[i].x)!, y: now.get(v.shapes[i].y)! } : v.shapes[i]));
   const keys = keysBlock(kept.map((i) => v.keys[i] ?? []));
-  return { head: { frames: String(v.frames), fps: String(v.fps) }, blocks: keys ? [shapesTable(shapes), keys] : [shapesTable(shapes)] };
+  const head: Doc['head'] = { frames: String(v.frames), fps: String(v.fps) };
+  if (loopText(v.loop)) head.loop = loopText(v.loop)!;
+  return { head, blocks: keys ? [shapesTable(shapes), keys] : [shapesTable(shapes)] };
 }
 
 /**

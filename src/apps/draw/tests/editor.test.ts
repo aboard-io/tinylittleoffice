@@ -3,10 +3,11 @@
 // phone width the bar is one row and nothing is wider than the screen.
 import { test, expect } from 'vitest';
 import { page } from 'vitest/browser';
+// The page's styles first, as on the site, so the layers come in their order.
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToDrawEditor } from '../editor.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n';
 
@@ -98,18 +99,27 @@ const ctxOpen = (el: HTMLElement) => ctx(el).matches(':popover-open');
 const ctxButton = (el: HTMLElement, label: string) => ctx(el).querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
 const ctxLabels = (el: HTMLElement) => [...ctx(el).querySelectorAll('button')].map((b) => b.getAttribute('aria-label'));
 const words = (el: HTMLElement) => el.querySelector<HTMLElement>('.draw-words')!;
+/** The words editor's own box (<to-text>'s .tx): where the focus and the caret are. */
+const box = (el: HTMLElement) => el.querySelector<HTMLElement>('.draw-words .tx')!;
 /** Where a canvas point is on the screen. */
 const screen = (el: HTMLElement, x: number, y: number) => {
   const b = canvas(el).getBoundingClientRect();
   return [b.left + (x / 640) * b.width, b.top + (y / 400) * b.height];
 };
+/** Words typed into the words editor as the browser sends them to <to-text>: a beforeinput a letter. */
 const typeIn = async (el: ToDrawEditor, text: string) => {
-  document.execCommand('insertText', false, text);
-  await el.updateComplete;
+  for (const ch of text) {
+    box(el).dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true, composed: true }));
+    await el.updateComplete;
+    await tick();
+  }
 };
+/** A key in the words: Enter and Shift+Enter as the browser sends them to <to-text> (beforeinput), the rest as keydown. */
 const wordsKey = async (el: ToDrawEditor, k: string, more: KeyboardEventInit = {}) => {
-  words(el).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...more }));
+  if (k === 'Enter') box(el).dispatchEvent(new InputEvent('beforeinput', { inputType: more.shiftKey ? 'insertLineBreak' : 'insertParagraph', bubbles: true, cancelable: true, composed: true }));
+  else box(el).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...more }));
   await el.updateComplete;
+  await tick();
 };
 async function clip(el: ToDrawEditor, type: 'copy' | 'cut' | 'paste', data: Record<string, string> = {}) {
   const dt = new DataTransfer();
@@ -133,7 +143,7 @@ test('a shape tapped has the contextual bar under it: the inks, the style, the s
   expect(bar.top).toBeLessThan(bottom + 40);
   expect(Math.abs(bar.left + bar.width / 2 - cx) < 4 || bar.left <= 8).toBe(true);
   expect(ctx(el).querySelectorAll('.to-context-swatch')).toHaveLength(6);
-  expect(ctxLabels(el)).toEqual(['Black', 'Red', 'Orange', 'Green', 'Blue', 'Purple', 'No fill', 'Grey fill', 'Solid fill', 'Small text', 'Medium text', 'Large text', 'Extra large text', 'Edit the words', 'Duplicate', 'Bring to front', 'Send to back', 'Copy', 'Cut', 'Paste', 'Delete']);
+  expect(ctxLabels(el)).toEqual(['Black', 'Red', 'Orange', 'Green', 'Blue', 'Purple', 'No fill', 'Grey fill', 'Solid fill', 'Small text', 'Medium text', 'Large text', 'Extra large text', 'Rotate left', 'Rotate right', 'Edit the words', 'Duplicate', 'Bring to front', 'Send to back', 'Copy', 'Cut', 'Paste', 'Delete']);
   expect(ctxButton(el, 'Medium text').getAttribute('aria-pressed')).toBe('true');
   expect(ctxButton(el, 'Medium text').textContent).toBe('M');
   expect(ctxButton(el, 'Blue').getAttribute('aria-pressed')).toBe('true');
@@ -240,10 +250,10 @@ test('a double tap puts the words on the shape: typed live into the model, Enter
   await el.updateComplete;
   const w = words(el);
   expect(w.hidden).toBe(false);
-  expect(document.activeElement).toBe(w);
-  expect(w.innerText).toBe('Browser');
+  expect(document.activeElement).toBe(box(el));
+  expect(box(el).innerText).toBe('Browser');
   expect(getSelection()!.toString()).toBe('Browser');
-  expect(['plaintext-only', 'true']).toContain(w.contentEditable);
+  expect(w.tagName).toBe('TO-TEXT');
   expect(el.querySelector('.draw-label-pop, input.draw-label')).toBeNull();
   // Over the shape: centred on it, the shape's size of words on the screen.
   const r = w.getBoundingClientRect();
@@ -267,7 +277,7 @@ test('a double tap puts the words on the shape: typed live into the model, Enter
   ctxButton(el, 'Large text').click();
   await el.updateComplete;
   expect(last()).toContain('| 1b3 | Client\n');
-  expect(document.activeElement).toBe(w);
+  expect(document.activeElement).toBe(box(el));
   await wordsKey(el, 'Enter');
   expect(w.hidden).toBe(true);
   expect(document.activeElement).toBe(el.querySelector('.draw-wrap'));
@@ -276,14 +286,15 @@ test('a double tap puts the words on the shape: typed live into the model, Enter
   const n = changes.length;
   key(el, 'Enter');
   await el.updateComplete;
-  expect(document.activeElement).toBe(w);
+  expect(document.activeElement).toBe(box(el));
   await typeIn(el, 'Oops');
   expect(last()).toContain('| Oops\n');
   await wordsKey(el, 'Escape');
   expect(last()).toContain('| 1b3 | Client\n');
   expect(w.hidden).toBe(true);
   expect(document.activeElement).toBe(el.querySelector('.draw-wrap'));
-  expect(changes.length).toBe(n + 2);
+  // A change a letter, and the one that puts the words back: all one undo step.
+  expect(changes.length).toBe(n + 'Oops'.length + 1);
   // Shift+Enter: a new line, written as " | ".
   key(el, 'Enter');
   await el.updateComplete;
@@ -303,7 +314,8 @@ test('an icon before the words stays out of the overlay and is put back', async 
   await tap(el, 96, 80);
   key(el, 'Enter');
   await el.updateComplete;
-  expect(words(el).innerText).toBe('Launch');
+  await tick();
+  expect(box(el).innerText).toBe('Launch');
   await typeIn(el, 'Go');
   expect(last()).toContain('| :rocket Go\n');
 });
@@ -315,7 +327,7 @@ test('a new text shape starts with its words open and selected; typing replaces 
   await tap(el, 100, 100);
   const w = words(el);
   expect(w.hidden).toBe(false);
-  expect(document.activeElement).toBe(w);
+  expect(document.activeElement).toBe(box(el));
   expect(getSelection()!.toString()).toBe('Text');
   expect(w.classList.contains('left')).toBe(true);
   await typeIn(el, 'A longer line of words than the box');
@@ -331,8 +343,9 @@ test('a new text shape starts with its words open and selected; typing replaces 
   button(el, 'Text').click();
   await el.updateComplete;
   await tap(el, 100, 300);
-  document.execCommand('delete');
+  box(el).dispatchEvent(new InputEvent('beforeinput', { inputType: 'deleteContentBackward', bubbles: true, cancelable: true, composed: true }));
   await el.updateComplete;
+  await tick();
   await wordsKey(el, 'Enter');
   expect(last()!.split('\n').filter((l) => l.startsWith('t |'))).toHaveLength(1);
 });
@@ -649,14 +662,18 @@ test('§2 IME: a composition writes nothing until it ends, then once', async () 
   const { el, last, changes } = await editor(DRAWING);
   await tap(el, 96, 80);
   await press(el, 'Enter');
-  const w = words(el);
+  await tick();
+  const p = box(el).querySelector('p')!;
   const n = changes.length;
-  w.textContent = 'にほ';
-  w.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'にほ' }));
+  p.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  // What the browser does during a composition, which is let through: the words change under the editor.
+  p.textContent = 'にほ';
+  p.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertCompositionText', data: 'にほ', bubbles: true, cancelable: true }));
   await el.updateComplete;
   expect(changes).toHaveLength(n);
-  w.textContent = '日本';
-  w.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '日本' }));
+  p.textContent = '日本';
+  getSelection()!.collapse(p.firstChild, 2);
+  p.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '日本' }));
   await el.updateComplete;
   expect(changes).toHaveLength(n + 1);
   expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | 日本');
@@ -725,7 +742,7 @@ test('§5 a double tap by a finger on the shape in hand edits its words, with no
     await el.updateComplete;
   }
   expect(words(el).hidden).toBe(false);
-  expect(document.activeElement).toBe(words(el));
+  expect(document.activeElement).toBe(box(el));
 });
 
 test('§5 a pinch zooms the canvas, and lets go of the drag the first finger began', async () => {
@@ -778,8 +795,11 @@ test('§5 a join from the keys: with the Join tool the arrows go from shape to s
   expect(rows(last()).at(-1)).toBe('k | 1 | 0 | 0 | 0 | 0 |');
 });
 
-test('§7 the empty canvas lets a finger pan; a shape, a handle, a tool in hand keep it', async () => {
+test('§7 the empty canvas keeps a finger for the marquee while the drawing fits, and lets it pan once zoomed in; a shape, a handle, a tool in hand keep it', async () => {
   const { el } = await editor(DRAWING);
+  expect(getComputedStyle(canvas(el)).touchAction).toBe('none');
+  button(el, 'Zoom in').click();
+  await el.updateComplete;
   expect(getComputedStyle(canvas(el)).touchAction).toBe('pan-x pan-y');
   expect(getComputedStyle(canvas(el).querySelector('.shape')!).touchAction).toBe('none');
   await press(el, 'r');
@@ -792,4 +812,118 @@ test('§1 paste reads our HTML when there is no text', async () => {
   const dt = await clip(el, 'copy');
   await clip(el, 'paste', { 'text/html': dt.getData('text/html') });
   expect(rows(last()).at(-1)).toBe('o | 5 | 7 | 16 | 8 | 1b | Browser');
+});
+
+test('turning: the round handle above a shape turns it about its centre (Shift holds 15° steps); [ and ] and the bar turn by 15°; one undo a drag', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  // Browser is 32..160 by 48..112: its round handle sits above the middle of its top.
+  const rotor = canvas(el).querySelector('.rotor circle:not(.rotor-hit)')!;
+  expect(+rotor.getAttribute('cx')!).toBe(96);
+  expect(+rotor.getAttribute('cy')!).toBe(26);
+  // Dragged round to the right of the centre: a quarter turn.
+  ptr(el, 'pointerdown', 96, 26);
+  ptr(el, 'pointermove', 200, 82, { shiftKey: true });
+  ptr(el, 'pointerup', 200, 82, { shiftKey: true });
+  await el.updateComplete;
+  expect(last()).toBe('Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser | 90\no | 32 | 6 | 16 | 8 | 1b | Server |\nk | 0 | 1 | 0 | 0 | 0 | asks |\n');
+  // The shape, its outline and its handles are drawn turned.
+  expect(canvas(el).querySelector('[data-idx="0"] > g')!.getAttribute('transform')).toBe('rotate(90 96 80)');
+  expect(canvas(el).querySelector('rect[stroke-dasharray="4 3"]')!.getAttribute('transform')).toBe('rotate(90 96 80)');
+  expect(await press(el, ']')).toBe(true);
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | Browser | 105');
+  expect(await press(el, '[')).toBe(true);
+  expect(await press(el, '[')).toBe(true);
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | Browser | 75');
+  await until(() => ctxOpen(el));
+  ctxButton(el, 'Rotate right').click();
+  await el.updateComplete;
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | Browser | 90');
+  // The presses and the bar were one step; then the drag.
+  await undo(el);
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | Browser | 90');
+  await undo(el);
+  expect(last()).toBe(DRAWING);
+  // A join is never turned: [ does nothing to it.
+  await tap(el, 208, 80);
+  expect(await press(el, ']')).toBe(false);
+});
+
+test('one Mod+V is one paste: whether the browser\'s paste event comes before the editor does it by hand, or after', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 320, 80);
+  // Copied by the keys: the browser's copy event carries it.
+  await press(el, 'c', { ctrlKey: true });
+  const copied = await clip(el, 'copy');
+  const text = copied.getData('text/plain');
+  expect(text).toContain('Server');
+  // The event first: one shape more, and the hand never does it again.
+  await press(el, 'v', { ctrlKey: true });
+  await clip(el, 'paste', { 'text/plain': text });
+  await tick(300);
+  expect(rows(last())).toHaveLength(4);
+  // The event late (Safari's comes after the hand has done it): still one shape more.
+  await navigator.clipboard?.writeText(text).catch(() => undefined);
+  await press(el, 'v', { ctrlKey: true });
+  await tick(300);
+  const n = rows(last()).length;
+  await clip(el, 'paste', { 'text/plain': text });
+  expect(rows(last())).toHaveLength(n);
+  expect(n).toBe(5);
+});
+
+test('the marquee: a drag on empty canvas with Select in hand chooses the shapes inside its box; the bar acts on them all; Shift adds; a tap lets go', async () => {
+  const three = DRAWING.replace('k | 0 | 1 | 0 | 0 | 0 | asks\n', 'r | 4 | 30 | 8 | 4 | 0 | Far\n');
+  const { el, last } = await editor(three);
+  // From the top left to past Server, above Far: Browser and Server, not Far.
+  ptr(el, 'pointerdown', 8, 8);
+  ptr(el, 'pointermove', 200, 100);
+  await el.updateComplete;
+  expect(canvas(el).querySelector('.draw-marquee')).not.toBeNull();
+  ptr(el, 'pointermove', 400, 200);
+  ptr(el, 'pointerup', 400, 200);
+  await el.updateComplete;
+  expect(canvas(el).querySelector('.draw-marquee')).toBeNull();
+  expect(outlines(el)).toBe(2);
+  expect(el.sel).toBe(1);
+  await until(() => ctxOpen(el));
+  // A colour and a fill from the bar: both change, in one step.
+  ctxButton(el, 'Red').click();
+  await el.updateComplete;
+  expect(rows(last())).toEqual(['o | 4 | 6 | 16 | 8 | 1r | Browser', 'o | 32 | 6 | 16 | 8 | 1r | Server', 'r | 4 | 30 | 8 | 4 | 0 | Far']);
+  ctxButton(el, 'Solid fill').click();
+  await el.updateComplete;
+  expect(rows(last()).slice(0, 2)).toEqual(['o | 4 | 6 | 16 | 8 | 2r | Browser', 'o | 32 | 6 | 16 | 8 | 2r | Server']);
+  // Shift and another box adds Far.
+  ptr(el, 'pointerdown', 16, 230, { shiftKey: true });
+  ptr(el, 'pointermove', 120, 280, { shiftKey: true });
+  ptr(el, 'pointerup', 120, 280, { shiftKey: true });
+  await el.updateComplete;
+  expect(outlines(el)).toBe(3);
+  // A tap on nothing lets them all go.
+  await tap(el, 600, 380);
+  expect(outlines(el)).toBe(0);
+});
+
+test('a label is rich: words chosen and Bold from the bubble write **…** and the canvas draws a bold tspan; the bubble has the marks alone', async () => {
+  const { el, last } = await editor(DRAWING);
+  await tap(el, 96, 80);
+  await press(el, 'Enter');
+  await tick();
+  // All the words are chosen: the bubble comes up with the five marks, no link, no footnote.
+  const bubble = () => el.querySelector<HTMLElement>('.draw-words .tx-bubble .to-context')!;
+  await until(() => bubble().matches(':popover-open'));
+  expect([...bubble().querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Bold', 'Italic', 'Underline', 'Strikethrough', 'Highlight']);
+  bubble().querySelector<HTMLButtonElement>('button[aria-label="Bold"]')!.click();
+  await el.updateComplete;
+  await tick();
+  expect(rows(last())[0]).toBe('o | 4 | 6 | 16 | 8 | 1b | **Browser**');
+  await wordsKey(el, 'Enter');
+  expect(canvas(el).querySelector('[data-idx="0"] text tspan[font-weight="700"]')!.textContent).toBe('Browser');
+  // Mod+K in a label is no link.
+  await press(el, 'Enter');
+  await tick();
+  const k = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true });
+  box(el).dispatchEvent(k);
+  expect(k.defaultPrevented).toBe(false);
 });

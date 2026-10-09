@@ -59,6 +59,18 @@ test('motion: a shape drawn, then moved at the last moment, keys itself there', 
   expect(after.bar).toBe(first.bar);
   expect(after.pageTop).toBe(top);
   expect(after.wide).toBeLessThanOrEqual(0);
+  // The length is typed, the speed too, and the repeat chosen: the head says so, and the seconds follow.
+  await page.getByRole('spinbutton', { name: 'Frames', exact: true }).fill('48');
+  await page.keyboard.press('Enter');
+  await page.getByRole('spinbutton', { name: 'Frames a second' }).fill('12');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.anim-secs')).toHaveText('4.0 s');
+  await page.locator('.anim-loop > button').click();
+  await page.getByRole('menuitemcheckbox', { name: /Back and forth/ }).click();
+  await expect.poll(() => value(page)).toMatch(/^---\nframes: 48\nfps: 12\nloop: bounce\n---\n/);
+  // The Turn slider is there beside Depth, Size and Spin.
+  await expect(page.getByRole('slider', { name: /^Turn/ })).toBeVisible();
+  expect((await measure(page)).wide).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
 });
 
@@ -97,7 +109,7 @@ test('motion: a tap chooses a shape and its contextual bar comes up under it, 44
   await hit.click();
   const words = page.locator('to-anim-editor .draw-words');
   await expect(words).toBeVisible();
-  await expect(words).toBeFocused();
+  await expect(words.locator('.tx')).toBeFocused();
   await page.keyboard.type('Go');
   await page.keyboard.press('Enter');
   await expect.poll(() => value(page)).toMatch(/\nr \| \d+ \| \d+ \| 12 \| 6 \| 0 \| Go\n/);
