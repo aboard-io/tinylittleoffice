@@ -1,0 +1,115 @@
+/* Diagram: the picture in a frame that scrolls when it is wider than the screen, the hint line under the bar, and the
+   line editor over the thing tapped, with its few buttons under the words. */
+@layer apps {
+  to-diagram-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* One line, always there, so the picture never jumps when the hint changes. */
+  .dg-hint {
+    margin: 0;
+    padding: 4px 0 8px;
+    min-height: 1.6em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dg-wrap {
+    position: relative;
+    padding: 12px;
+    background: var(--to-surface-2);
+    border-radius: var(--to-radius);
+    overflow: auto;
+    max-height: calc(100dvh - var(--to-header-h) - 150px);
+    min-height: 220px;
+    cursor: copy;
+  }
+  .dg-wrap:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: -2px;
+  }
+  .dg-wrap.joining {
+    cursor: crosshair;
+  }
+  svg.dg-pic {
+    display: block;
+    height: auto;
+    margin: 0 auto;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    touch-action: pan-x pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  svg.dg-pic text {
+    font-family: var(--to-font);
+    pointer-events: none;
+  }
+  .dg-thing {
+    cursor: pointer;
+    outline: none;
+  }
+  .dg-thing:not(.edge) {
+    touch-action: none;
+  }
+  .dg-thing:focus-visible,
+  .dg-thing.on,
+  .dg-thing.over {
+    filter: drop-shadow(0 0 3px var(--to-accent)) drop-shadow(0 0 1px var(--to-accent));
+  }
+  .dg-thing.dragging {
+    opacity: 0.7;
+    cursor: grabbing;
+  }
+  .dg-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 24px;
+    text-align: center;
+    pointer-events: none;
+  }
+  .dg-anchor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+  .dg-pop {
+    position: fixed;
+    margin: 0;
+    padding: 6px;
+    width: min(320px, calc(100vw - 24px));
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow-pop);
+    color: var(--to-ink);
+  }
+  .dg-pop to-text .tx {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 16px;
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-input-bg);
+  }
+  /* The editor draws a list item with a bullet in its margin; here the line stands alone. */
+  .dg-pop to-text .tx li {
+    padding-left: 0;
+    list-style: none;
+  }
+  .dg-pop to-text .tx li::before {
+    content: none;
+  }
+  .dg-acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+}
