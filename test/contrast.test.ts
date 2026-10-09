@@ -54,6 +54,8 @@ const TEXT: [string, string][] = [
   ['--to-accent', '--to-bg'], ['--to-accent', '--to-surface'], ['--to-accent', '--to-surface-2'], ['--to-accent', '--to-accent-soft'],
   ['--to-on-accent', '--to-accent'], ['--to-bg', '--to-ink'],
   ['--to-danger', '--to-surface'], ['--to-danger', '--to-bg'],
+  // The arrival banner, coloured by how long a short link has left.
+  ['--to-ok-ink', '--to-ok-bg'], ['--to-soon-ink', '--to-soon-bg'], ['--to-last-ink', '--to-last-bg'],
   // Paper stays white in both themes: its ink, its quieter words and its accent must read on it and on its shading.
   ['--to-paper-ink', '--to-paper'], ['--to-paper-muted', '--to-paper'], ['--to-paper-accent', '--to-paper'], ['--to-paper-ink', '--to-paper-shade'], ['--to-paper-muted', '--to-paper-shade'],
   ['--to-placeholder', '--to-input-bg'], ['--to-ink', '--to-input-bg'],

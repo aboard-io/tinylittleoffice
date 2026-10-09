@@ -65,7 +65,7 @@ output is deployable, but nothing here deploys.
 
 ## Link and Display Link
 
-Share → **Link** copies the editing link; **Display Link** copies the same link with `?d` after the payload
+Share → **Copy link** copies the editing link; **Copy display link** copies the same link with `?d` after the payload
 (`#/v1/<app>/<payload>?d`, never inside it), which opens the document as its pages, one under another, to
 read or print, with an Edit button that drops the flag. The QR code and a short link can carry either.
 
@@ -74,22 +74,30 @@ first number the device's library leaves free that day); the name goes into the 
 
 ## Living short links
 
-Share → "Short link…" asks tinier.tinylittleoffice.com for a short link (an hour, a day, a
-week, a month or a year), opening the editor or the pages. The long link is encrypted in the browser with a random AES-256-GCM key; only the
-ciphertext goes to the service, and the key travels in the short link's fragment (`#…`), which browsers never
-send to any server. Opening a short link fetches the ciphertext, decrypts it on the page, and goes to the
-document.
+Share opens one dialog: the document's title and, in one line, where its link fits ("This link: 1,240
+characters, too long for an NFC sticker"); **Copy link** (opens in the editor) and **Copy display link** (opens
+as pages to read), and the device's own share sheet where there is one; a short link that expires; the QR code,
+drawn in place when the link fits in one; and, folded, the short links kept on this device.
+
+A short link comes from tinier.tinylittleoffice.com and lives an hour, a day, a week (the default, and the
+choice is remembered under Saved), a month or a year, chosen in one row; it opens the editor or the pages. The
+long link is encrypted in the browser with a random AES-256-GCM key; only the ciphertext goes to the service,
+and the key travels in the short link's fragment (`#…`), which browsers never send to any server. Opening a
+short link fetches the ciphertext, decrypts it on the page, and goes to the document with `?s=<id>&x=<expires>`
+after it, so whoever arrives sees a banner above the bar, green over a week, amber within one, red on the last
+day: "This link expires in 12 days", with **Copy into a new document** (the same document, "Copy of …", as a
+plain link of its own in a new tab).
 
 A short link comes as two links. The **public** one, `…/<id>#<key>`, is for sharing; it always opens the
-latest version. The **owner's**, `…/<id>#<key>.<o>`, is what the author keeps: `o` is 32 random bytes made
-beside the key, and the service stores only `sha256(o)`. Opened, the owner link arrives at the document as
-`#/v1/<app>/<payload>?s=<id>&k=<key>&o=<o>`; the query stays in the address while the owner edits (so a reload
-keeps it) and is stripped from every link the shell shares, copies or shows as a code. Share then offers
-"Update the short link" (one tap, once the document has changed: a new ciphertext under the same id, with
-the same key), "Extend the short link…" (the lifetimes; a longer life from now, never a shorter one) and
-"Forget this link". A document that has just made a short link owns it the same way. Under "Saved on this
-device" the owner link can be kept in the device's list (`src/kit/links.ts`), shown at the foot of the short
-link panel; under Private it is offered as words to copy and nothing is written.
+latest version, and is shown big with Copy beside it. The **owner's**, `…/<id>#<key>.<o>`, is folded under it
+("Keep the owner link, to update it later"): `o` is 32 random bytes made beside the key, and the service stores
+only `sha256(o)`. Opened, the owner link arrives at the document as `#/v1/<app>/<payload>?s=<id>&k=<key>&o=<o>&x=<expires>`;
+the query stays in the address while the owner edits (so a reload keeps it) and is stripped from every link the
+shell shares, copies or shows as a code. The dialog then says "You own this short link", with **Update** (once
+the document has changed: a new ciphertext under the same id, with the same key), the lifetimes with
+**Extend** (a longer life from now, never a shorter one), and **Forget**; the banner's Extend opens it there. A
+document that has just made a short link owns it the same way. Under "Saved on this device" the owner link can
+be kept in the device's list (`src/kit/links.ts`); under Private it is offered to copy and nothing is written.
 
 What the service knows: ciphertext, an IV, a hash of the owner key, timestamps, and that a request came. It
 cannot read a link, cannot tell one version from another, and cannot forge an update. `o` is never in a public

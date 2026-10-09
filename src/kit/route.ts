@@ -57,9 +57,10 @@ export function parseHash(hash: string): Route {
   return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived };
 }
 
-/** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update (and, with `expires`, when it expires); with `display`, the Display Link. */
-export function routeHash(app: string, payload = '', view = '', owned: Owned | null = null, display = false, expires = 0): string {
-  const parts = [...(display ? ['d'] : []), ...(owned ? [`s=${owned.id}`, `k=${owned.key}`, `o=${owned.o}`, ...(expires ? [`x=${expires}`] : [])] : [])];
+/** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update; with `display`, the Display Link; with `arrived`, the short link it came by and when that expires. */
+export function routeHash(app: string, payload = '', view = '', owned: Owned | null = null, display = false, arrived: Route['arrived'] = null): string {
+  const tie = owned ? [`s=${owned.id}`, `k=${owned.key}`, `o=${owned.o}`] : arrived ? [`s=${arrived.id}`] : [];
+  const parts = [...(display ? ['d'] : []), ...tie, ...(arrived && (!owned || owned.id === arrived.id) ? [`x=${arrived.expires}`] : [])];
   const query = parts.length ? `?${parts.join('&')}` : '';
   return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + payload : ''}${query}`;
 }

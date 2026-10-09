@@ -10,7 +10,30 @@
       width: calc(100vw - 16px);
       margin-top: 8px;
     }
-    /* Another document edited in place takes the whole screen on a phone. */
+    /* Another document edited in place, and the Share dialog, take the whole screen on a phone. */
+    .to-share-dialog .to-dialog {
+      margin: 0;
+      width: 100vw;
+      height: 100dvh;
+    }
+    .to-share-dialog .to-dialog-inner {
+      height: 100%;
+      max-height: none;
+      border-radius: 0;
+      border: 0;
+      padding-top: env(safe-area-inset-top);
+    }
+    /* The words and Close on the first line, what can be done under them. */
+    .to-arrival {
+      grid-template-columns: 1fr auto;
+    }
+    .to-arrival-words {
+      font-size: 20px;
+    }
+    .to-arrival-acts {
+      grid-row: 2;
+      grid-column: 1 / -1;
+    }
     .to-doc-dialog {
       margin: 0;
       width: 100vw;

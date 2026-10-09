@@ -29,7 +29,7 @@
   const id = '{{id}}';
   const h = document.getElementById('h'), p = document.getElementById('p'), err = document.getElementById('err'), go = document.getElementById('go'), a = document.getElementById('a');
   const fail = (m) => { h.textContent = 'tinier'; err.textContent = m; err.hidden = false; };
-  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Shorten a link from the Share menu in Tiny Little Office.'); }
+  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Make a short link from Share in Tiny Little Office.'); }
   // "#<key>" opens the latest version; "#<key>.<o>" is the owner's, whose o is handed on to the site (never to this server).
   const [key, o] = location.hash.slice(1).split('.');
   if (!key) return fail('This link is missing its key (the part after #). Ask for it again.');

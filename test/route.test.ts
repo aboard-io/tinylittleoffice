@@ -48,9 +48,11 @@ test('arriving by a short link: "?s=<id>&x=<expires>", from tinier for everyone;
   expect(parseHash('#/v1/text/yABC?s=abcdefg&x=soon').arrived).toBeNull();
   expect(parseHash('#/v1/text/yABC?x=1791000000000').arrived).toBeNull();
   const owned = { id: 'abcdefg', key: 'K'.repeat(43), o: 'O'.repeat(43) };
-  const hash = routeHash('text', 'yABC', '', owned, false, 1791000000000);
+  const hash = routeHash('text', 'yABC', '', owned, false, { id: 'abcdefg', expires: 1791000000000 });
   expect(hash).toBe(`#/v1/text/yABC?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}&x=1791000000000`);
   expect(parseHash(hash)).toMatchObject({ owned, arrived: { id: 'abcdefg', expires: 1791000000000 } });
-  // Without an owner, nothing of the short link is written back.
-  expect(routeHash('text', 'yABC', '', null, false, 1791000000000)).toBe('#/v1/text/yABC');
+  // Without an owner, the id and the expiry alone; they round-trip.
+  const plain = routeHash('text', 'yABC', '', null, true, { id: 'abcdefg', expires: 1791000000000 });
+  expect(plain).toBe('#/v1/text/yABC?d&s=abcdefg&x=1791000000000');
+  expect(parseHash(plain)).toMatchObject({ owned: null, display: true, arrived: { id: 'abcdefg', expires: 1791000000000 } });
 });
