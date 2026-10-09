@@ -8,7 +8,7 @@
  * drawn beside them (lib/calc.ts, calc.def.ts). The working is the document.
  */
 import { DocElement, defineElement, html, nothing, state, unsafeSVG, pageSvg, tool, btn } from '../kit.ts';
-import { MODES, FIELDS, evaluate, inputs, isMoney, parseCalc, serializeCalc, shown, tape, withDefaults, type Calc, type Mode } from '../lib/calc.ts';
+import { MODES, FIELDS, hasEngine, inputs, isMoney, parseCalc, result, serializeCalc, setEngine, tape, withDefaults, type Calc, type Mode } from '../lib/calc.ts';
 import { calcPage } from './calc.def.ts';
 import './calc.css';
 
@@ -27,6 +27,12 @@ export class ToCalc extends DocElement<Calc> {
   @state() private entry = '';
   /** Up and Down walk the tape back into the line: how far back. */
   private recall = 0;
+
+  connectedCallback() {
+    super.connectedCallback();
+    // Units, conversions and algebra come from a second engine, fetched the first time a calculator opens.
+    if (!hasEngine()) void import('../lib/calc-math.ts').then(({ engine }) => (setEngine(engine), this.requestUpdate()));
+  }
 
   protected parse(text: string) {
     return parseCalc(text);
@@ -108,14 +114,14 @@ export class ToCalc extends DocElement<Calc> {
 
   private keypad(sci: boolean) {
     const graph = this.doc.mode === 'graph';
-    const { names } = tape(graph ? [] : this.doc.lines);
-    const live = this.entry.trim() ? shown(evaluate(this.entry.replace(/^\s*[a-zπ_][a-z0-9_ ]*=/i, ''), graph ? 1 : NaN, names)) : '';
+    const { scope } = tape(graph ? [] : this.doc.lines);
+    const live = this.entry.trim() ? result(this.entry.replace(/^\s*[a-zπ_][a-z0-9_ ]*=/i, ''), scope, graph ? 1 : NaN).text : '';
     return html`<div class="calc-pad">
       <div class="calc-row">
         <input
           class="calc-display"
           aria-label=${graph ? 'y = ' : 'Expression'}
-          placeholder=${graph ? 'y = … in x, then Enter to draw it' : 'Type or tap; Enter works it out'}
+          placeholder=${graph ? 'y = … in x, then Enter to draw it' : 'Type or tap (3 inch to cm works too); Enter works it out'}
           autocomplete="off"
           autocapitalize="off"
           spellcheck="false"
@@ -138,12 +144,12 @@ export class ToCalc extends DocElement<Calc> {
     const lines = this.doc.lines;
     if (!lines.length) return nothing;
     const graph = this.doc.mode === 'graph';
-    const { results } = tape(graph ? [] : lines);
+    const { texts } = tape(graph ? [] : lines);
     return html`<ol class="calc-tape" aria-label="Tape">
       ${lines.map(
         (l, i) => html`<li>
           <input class="calc-line" aria-label=${`Line ${i + 1}`} .value=${l} @change=${(e: Event) => this.setLine(i, (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
-          ${graph ? nothing : html`<button type="button" class="calc-ans" data-tip="Put this answer in the line" @mousedown=${keep} @click=${() => this.press(shown(results[i]).replace('−', '-'))}>= ${shown(results[i]) || '?'}</button>`}
+          ${graph ? nothing : html`<button type="button" class="calc-ans" data-tip="Put this answer in the line" @mousedown=${keep} @click=${() => this.press(texts[i].replace('−', '-'))}>= ${texts[i] || '?'}</button>`}
           ${btn(`Take away line ${i + 1}`, 'close', () => this.setLine(i, ''), { size: 12 })}
         </li>`,
       )}

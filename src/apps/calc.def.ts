@@ -120,12 +120,12 @@ export function calcPage(body: string): Page {
   }
   // The tape: each line and what it comes to.
   const lines = c.lines.filter((l) => l.trim());
-  const { results } = tape(lines);
+  const { texts } = tape(lines);
   let y = 56;
   let svg = text(48, y, 'Calculator', { px: 26, bold: true });
   lines.slice(-24).forEach((l, i) => {
     y += 30;
-    svg += text(48, y, l, { px: 16, fill: MUTED }) + text(W - 48, y, shown(results[lines.length - Math.min(24, lines.length) + i]), { px: 18, bold: true, anchor: 'end' });
+    svg += text(48, y, l, { px: 16, fill: MUTED }) + text(W - 48, y, texts[lines.length - Math.min(24, lines.length) + i], { px: 18, bold: true, anchor: 'end' });
   });
   if (!lines.length) svg += text(48, (y += 30), 'Nothing worked out yet.', { px: 14, fill: FAINT });
   return { w: W, h: y + 48, svg };
@@ -147,8 +147,8 @@ export default defineApp({
   outline: (body) => {
     const c = parseCalc(body);
     const lines = c.lines.filter((l) => l.trim());
-    const { results } = tape(lines);
-    return c.mode === 'calc' || c.mode === 'graph' ? lines.map((l, i) => (c.mode === 'calc' ? `${l} = ${shown(results[i])}` : `y = ${l}`)) : FIELDS[c.mode].map((f) => `${f.name}: ${money(withDefaults(c.mode as never, inputs(c.lines))[f.key], f.key === 'years' || f.key === 'times' ? 0 : 2)}${f.unit ? ' ' + f.unit : ''}`);
+    const { texts } = tape(lines);
+    return c.mode === 'calc' || c.mode === 'graph' ? lines.map((l, i) => (c.mode === 'calc' ? `${l} = ${texts[i]}` : `y = ${l}`)) : FIELDS[c.mode].map((f) => `${f.name}: ${money(withDefaults(c.mode as never, inputs(c.lines))[f.key], f.key === 'years' || f.key === 'times' ? 0 : 2)}${f.unit ? ' ' + f.unit : ''}`);
   },
   view: (body) => [calcPage(body)],
 });

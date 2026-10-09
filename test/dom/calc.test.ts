@@ -2,8 +2,8 @@
 import { test, expect, beforeEach } from 'vitest';
 import { mount } from './helpers.ts';
 import { prefs, box, settleAll } from './helpers-more.ts';
-import { idle, typeKeys, key } from './helpers-shell.ts';
-import { parseCalc } from '../../src/lib/calc.ts';
+import { idle, typeKeys, key, until } from './helpers-shell.ts';
+import { hasEngine, parseCalc } from '../../src/lib/calc.ts';
 
 beforeEach(() => prefs());
 
@@ -72,4 +72,13 @@ test('calculator: typed, the line is worked out as it goes; Enter puts it on the
   await settleAll();
   expect(tape()).toHaveLength(3);
   expect(parseCalc(m.last()!).lines[0]).toBe('a = 10');
+  // Units: the second engine, fetched when the calculator opened, reads what the hand parser cannot.
+  await until(() => hasEngine(), 'the units engine');
+  await press('C');
+  await typeKeys('3 inch to cm');
+  expect(live()).toBe('7.62 cm');
+  await key('Enter');
+  expect(tape().at(-1)).toBe('3 inch to cm = 7.62 cm');
+  // The page beside the tape says the same.
+  expect(calc().querySelector('.calc-right svg')!.textContent).toContain('7.62 cm');
 });

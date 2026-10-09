@@ -109,21 +109,53 @@ export function evaluate(src: string, x = NaN, names: Record<string, number> = {
 }
 
 /**
+ * A second engine, for what the hand parser does not read: units and
+ * conversions, numbers past a double, a little algebra (calc-math.ts, a
+ * chunk loaded when the calculator opens). Given the expression and the
+ * values the lines before kept, it answers with the value (for the lines
+ * after), its text, and the number it is, NaN when it is not one.
+ */
+export type Engine = (src: string, scope: Record<string, unknown>) => { value: unknown; text: string; number: number };
+let engine: Engine | null = null;
+export const setEngine = (e: Engine | null) => void (engine = e);
+export const hasEngine = () => engine !== null;
+
+/** What a line comes to: the hand parser's number where it reads the line, else the engine's answer, else nothing. */
+export interface Result {
+  number: number;
+  text: string;
+  value: unknown;
+}
+const numbersIn = (scope: Record<string, unknown>) => Object.fromEntries(Object.entries(scope).filter(([, v]) => typeof v === 'number')) as Record<string, number>;
+export function result(src: string, scope: Record<string, unknown> = {}, x = NaN): Result {
+  const n = evaluate(src, x, numbersIn(scope));
+  if (isFinite(n) || !engine) return { number: n, text: shown(n), value: n };
+  try {
+    return engine(src.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-'), scope);
+  } catch {
+    return { number: NaN, text: '', value: NaN };
+  }
+}
+
+/**
  * The tape worked out line by line, as the little program it is: a line
  * "name = expression" keeps its result under that name for the lines after
- * it, and "ans" is always the line before. Each line's result, and the
- * names in force after the last.
+ * it, and "ans" is always the line before. Each line's result (as a number,
+ * and as its text), and what the names hold after the last.
  */
-export function tape(lines: string[]): { results: number[]; names: Record<string, number> } {
-  const names: Record<string, number> = {};
+export function tape(lines: string[]): { results: number[]; texts: string[]; names: Record<string, number>; scope: Record<string, unknown> } {
+  const scope: Record<string, unknown> = {};
+  const texts: string[] = [];
   const results = lines.map((l) => {
     const m = /^\s*([a-zπ_][a-z0-9_ ]*?)\s*=\s*(.+?)\s*$/i.exec(l);
-    const v = evaluate(m ? m[2] : l, NaN, names);
-    if (m && !(m[1].trim().toLowerCase() in FN) && !(m[1].trim().toLowerCase() in CONST)) names[m[1].trim().toLowerCase().replace(/\s+/g, '_')] = v;
-    if (isFinite(v)) names.ans = v;
-    return v;
+    const r = result(m ? m[2] : l, scope);
+    const ok = isFinite(r.number) || r.text !== '';
+    if (m && ok && !(m[1].trim().toLowerCase() in FN) && !(m[1].trim().toLowerCase() in CONST)) scope[m[1].trim().toLowerCase().replace(/\s+/g, '_')] = r.value;
+    if (ok) scope.ans = r.value;
+    texts.push(r.text);
+    return r.number;
   });
-  return { results, names };
+  return { results, texts, names: numbersIn(scope), scope };
 }
 
 /** A number as a calculator shows it: up to 10 significant digits, no trailing noise. */

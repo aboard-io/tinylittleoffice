@@ -5,6 +5,7 @@
  * SVG so a chart works wherever a picture does.
  */
 import { SERIES, patternDefs, patternFill } from './palette.ts';
+import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import { FAINT, INK, LINE, MUTED, clip, r, rect, text, type Page } from '../kit/core.ts';
 
 export type ChartKind = 'bar' | 'line' | 'pie' | 'sankey';
@@ -109,66 +110,60 @@ function painted(i: number, draw: (fill: string, pattern: boolean) => string): s
 /** A number as a Sankey labels it. */
 const fmt = (n: number) => (Math.abs(n) >= 1000 ? Math.round(n).toLocaleString('en-US') : String(Math.round(n * 100) / 100));
 
+interface SNode {
+  name: string;
+}
+interface SLink {
+  source: string;
+  target: string;
+  value: number;
+  /** Where the flow stands in the table: what a slide reveals one of at a time. */
+  i: number;
+}
+
 /**
  * Flows as a Sankey: a bar for each thing, as tall as what passes through
  * it, in columns from where the flows start to where they end; a band for
- * each flow, as thick as its amount. The first `upTo` flows are drawn.
+ * each flow, as thick as its amount. d3-sankey orders the bars and places
+ * the bands (its own domain: Sugiyama-style layering with the crossings
+ * relaxed); this draws them. The first `upTo` flows are drawn, the layout
+ * the same however many are, so a slide builds it without a jump. A flow
+ * that would turn back on itself (A to A, or closing a loop) has no place
+ * in a flow diagram and is left out.
  */
 export function sankeyPage(flows: Flow[], title = '', w = 720, h = 440, upTo = Infinity): Page {
   let svg = title ? text(w / 2, 34, clip(title, w - 80, 20, true), { px: 20, bold: true, anchor: 'middle' }) : '';
   const top = title ? 56 : 12;
   if (!flows.length) return { w, h, svg: svg + text(w / 2, h / 2, 'Nothing to chart yet: rows of From | To | Amount', { px: 16, fill: FAINT, anchor: 'middle' }) };
-  interface N { name: string; in: number; out: number; col: number; x: number; y: number; h: number; oy: number; iy: number }
-  const nodes = new Map<string, N>();
-  const node = (name: string) => {
-    let n = nodes.get(name);
-    if (!n) nodes.set(name, (n = { name, in: 0, out: 0, col: 0, x: 0, y: 0, h: 0, oy: 0, iy: 0 }));
-    return n;
-  };
-  const shown = flows.slice(0, upTo);
-  for (const f of flows) {
-    const a = node(f.from);
-    const b = node(f.to);
-    if (shown.includes(f)) (a.out += f.value), (b.in += f.value);
-  }
-  const order = [...nodes.values()];
-  // Each thing sits one column to the right of the furthest thing that feeds it.
-  for (let pass = 0; pass < order.length; pass++) for (const f of flows) if (f.from !== f.to) node(f.to).col = Math.max(node(f.to).col, Math.min(order.length, node(f.from).col + 1));
+  // The things, in the order they are first named; the flows that keep moving forward.
+  const names: string[] = [];
+  const name = (n: string) => (names.includes(n) || names.push(n), n);
+  const reaches = (from: string, to: string, links: SLink[]): boolean => from === to || links.some((l) => l.source === from && reaches(l.target, to, links));
+  const links: SLink[] = [];
+  flows.forEach((f, i) => {
+    name(f.from);
+    name(f.to);
+    if (!reaches(f.to, f.from, links)) links.push({ source: f.from, target: f.to, value: f.value, i });
+  });
   const nw = 14;
-  const pad = 14;
-  const cols: N[][] = [];
-  for (const n of order) (cols[n.col] ??= []).push(n);
-  const columns = cols.filter(Boolean);
-  const size = (n: N) => Math.max(n.in, n.out);
-  const bottom = h - 12;
-  const scale = Math.min(...columns.map((c) => ((bottom - top - pad * (c.length - 1)) / c.reduce((a, n) => a + size(n), 0)) || Infinity));
-  const k = isFinite(scale) ? scale : 0;
-  const right = w - nw - 150;
-  columns.forEach((c, ci) => {
-    let y = top;
-    for (const n of c) {
-      n.x = columns.length > 1 ? (ci * right) / (columns.length - 1) : 0;
-      n.y = n.oy = n.iy = y;
-      n.h = Math.max(2, size(n) * k);
-      y += n.h + pad;
-    }
-  });
-  for (const f of shown) {
-    const a = node(f.from);
-    const b = node(f.to);
-    const t = f.value * k;
-    if (t <= 0) continue;
-    const [x0, x1, y0, y1] = [a.x + nw, b.x, a.oy + t / 2, b.iy + t / 2];
-    const mx = (x0 + x1) / 2;
-    a.oy += t;
-    b.iy += t;
-    svg += `<path d="M${r(x0)} ${r(y0)}C${r(mx)} ${r(y0)} ${r(mx)} ${r(y1)} ${r(x1)} ${r(y1)}" fill="none" stroke="${SERIES[order.indexOf(a) % SERIES.length]}" stroke-opacity="0.35" stroke-width="${r(t)}"/>`;
+  const graph = sankey<SNode, SLink>()
+    .nodeId((n) => n.name)
+    .nodeWidth(nw)
+    .nodePadding(14)
+    .extent([[0, top], [w - 150, h - 12]])({ nodes: names.map((n) => ({ name: n })), links });
+  const path = sankeyLinkHorizontal<SNode, SLink>();
+  const color = (n: SNode) => SERIES[names.indexOf(n.name) % SERIES.length];
+  for (const l of graph.links) {
+    if (l.i >= upTo) continue;
+    svg += `<path d="${path(l)!.replace(/-?\d+\.\d+/g, (v) => String(r(+v)))}" fill="none" stroke="${color(l.source as SNode)}" stroke-opacity="0.35" stroke-width="${r(Math.max(1, l.width ?? 1))}"/>`;
   }
-  order.forEach((n, i) => {
-    svg += rect(n.x, n.y, nw, n.h, SERIES[i % SERIES.length], 'rx="3"');
-    const ly = n.y + Math.min(n.h / 2, 60);
-    svg += text(n.x + nw + 6, ly + 1, clip(n.name, 150, 12, true), { px: 12, bold: true, fill: INK }) + text(n.x + nw + 6, ly + 15, fmt(size(n)), { px: 12, fill: MUTED });
-  });
+  for (const n of graph.nodes) {
+    const nh = Math.max(2, n.y1! - n.y0!);
+    svg += rect(n.x0!, n.y0!, nw, nh, color(n), 'rx="3"');
+    const ly = n.y0! + Math.min(nh / 2, 60);
+    svg += text(n.x0! + nw + 6, ly + 1, clip(n.name, 150, 12, true), { px: 12, bold: true, fill: INK }) + text(n.x0! + nw + 6, ly + 15, fmt(n.value ?? 0), { px: 12, fill: MUTED });
+  }
+  const shown = flows.slice(0, upTo);
   return { w, h, svg, alt: `Flows: ${shown.map((f) => `${f.from} to ${f.to} ${fmt(f.value)}`).join('; ')}.` };
 }
 
