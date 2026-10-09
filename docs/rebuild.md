@@ -1,8 +1,12 @@
 # The rebuild
 
-Decided 2026-10-09, before launch: rebuild TinyLittleOffice to the shape below. In place, phase by phase, on
-main, with the test suite as the contract and the product working at every commit. Pre-launch, so formats and
-URLs may change freely; no compatibility shims. The order is the order of dependence.
+Decided 2026-10-09, before launch: rebuild TinyLittleOffice to the shape below. Greenfield (Paul: "It's okay to
+greenfield this it has no users yet"): a fresh tree on the orphan branch `next` (worktree
+`~/workspace/tinyoffice-next`), which becomes `main` when it is whole; the old tree is tagged `v0-before-rebuild`
+and stays readable at `~/workspace/tinyoffice` for porting. Pure modules worth keeping are ported (the TLO grammar
+knowledge, the formula engine, charts, embeds, ics/docx/xlsx/pptx writers, codec, crypt, short links, icons, qr,
+gif, the tinier worker, the skill); everything that touches the DOM is written anew on the kernel and the editor.
+No compatibility shims. The phases below are the order of building.
 
 ## What stays
 
@@ -42,7 +46,7 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 10. **The tour deck** — every feature, real sample data per insert, an architecture diagram, tested in several
     scripts and every export, as a short link.
 
-## Apps after phase 4 (proposal)
+## Apps after phase 4 (Paul: "The template idea is right")
 
 | keep as app | why | absorbs (as templates or kinds) |
 |---|---|---|
@@ -50,7 +54,7 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 | Sheet | the data model | budget, models, log, training log |
 | Outline | tree of text | — |
 | Slides | pages with layout | zine, booklet, brochure, comic, poster, badges (page formats) |
-| Drawing | free shapes | pixel? (grid mode) |
+| Drawing | free shapes | pixel art: a grid mode with a choice of grid sizes; a grid can be saved as a repeating background tile (Paul, 2026-10-09) |
 | Motion | time | — (kept separate by earlier decision) |
 | Diagram | shapes with meaning | org, mind, lanes, venn, net, timeline, seating, family (kinds) |
 | Calendar | dates | gantt (a span view of the same dated items) |
