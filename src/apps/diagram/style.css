@@ -1,5 +1,5 @@
 /* Diagram: the picture in a frame that scrolls when it is wider than the screen, the hint line under the bar, and the
-   line editor over the thing tapped, with its few buttons under the words. */
+   line editor over the thing tapped (the things to do to it are a <to-context> under the words). */
 @layer apps {
   to-diagram-editor {
     display: flex;
@@ -39,7 +39,8 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
-    touch-action: pan-x pan-y;
+    /* Pans and pinches (the page zooms), never a double-tap zoom; a thing takes the finger only for its drag. */
+    touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
   }
@@ -105,11 +106,5 @@
   }
   .dg-pop to-text .tx li::before {
     content: none;
-  }
-  .dg-acts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
   }
 }

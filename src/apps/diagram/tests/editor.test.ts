@@ -52,15 +52,42 @@ async function type(el: ToDiagramEditor, s: string) {
     await settle(el);
   }
 }
-async function key(el: ToDiagramEditor, k: string) {
-  if (k === 'Enter') {
+async function key(el: ToDiagramEditor, k: string, mods: KeyboardEventInit = {}) {
+  if (k === 'Enter' && !mods.ctrlKey) {
     input(line(el), 'insertParagraph');
     return settle(el);
   }
-  line(el).tx.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true }));
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...mods });
+  line(el).tx.dispatchEvent(e);
   await settle(el);
+  return e;
 }
-const action = (el: HTMLElement, label: string) => [...pop(el).querySelectorAll<HTMLButtonElement>('.dg-acts button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent!.trim()) === label)!;
+/** A key pressed on a thing that has the focus. */
+async function press(el: ToDiagramEditor, g: Element, k: string, mods: KeyboardEventInit = {}) {
+  (g as SVGGElement).focus();
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...mods });
+  g.dispatchEvent(e);
+  await settle(el);
+  return e;
+}
+async function clip(el: ToDiagramEditor, g: Element, type: 'copy' | 'cut' | 'paste', data?: { text: string; html?: string }) {
+  (g as HTMLElement).focus();
+  const dt = new DataTransfer();
+  if (data) {
+    dt.setData('text/plain', data.text);
+    if (data.html) dt.setData('text/html', data.html);
+  }
+  const e = new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true });
+  g.dispatchEvent(e);
+  await settle(el);
+  return { e, text: dt.getData('text/plain'), html: dt.getData('text/html') };
+}
+const undo = async (el: ToDiagramEditor) => {
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+};
+const ctx = (el: HTMLElement) => el.querySelector<HTMLElement>('to-context.dg-context .to-context')!;
+const action = (el: HTMLElement, label: string) => [...ctx(el).querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent!.trim()) === label)!;
 
 test('the picture from the document: a thing per person, each a button with its words; the kind in the bar', async () => {
   const { el } = await editor(ORG);
@@ -80,12 +107,14 @@ test('a tap opens the words over the thing; typing is text ops on its line, and 
   expect(last()).toContain('  - Bea Okoro | Engineering\n');
   expect(last()).toContain('~ Bea Okoro -- Eve Marsh: design partner');
   expect(thing(el, 'Bea Okoro')).toBeTruthy();
-  // Escape closes; one undo takes the burst of typing back.
-  await key(el, 'Escape');
+  // Enter-like Mod+Enter keeps it; one undo takes the burst of typing back, and the focus goes to the thing.
+  await key(el, 'Enter', { ctrlKey: true });
   expect(isOpen(el)).toBe(false);
+  expect(last()).toContain('Bea Okoro');
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
   await settle(el);
   expect(last()).toBe(ORG);
+  expect(document.activeElement).toBe(thing(el, 'Ben Okoro'));
 });
 
 test('Enter types the next one; a tap on empty space a new one, gone if nothing is typed', async () => {
@@ -198,7 +227,12 @@ test('at phone width: the bar one row, nothing wider than the screen, the line e
     expect(p.left).toBeGreaterThanOrEqual(0);
     expect(p.right).toBeLessThanOrEqual(390);
     expect(parseFloat(getComputedStyle(line(el).tx).fontSize)).toBeGreaterThanOrEqual(16);
-    for (const b of pop(el).querySelectorAll<HTMLElement>('.dg-acts button')) expect(b.getBoundingClientRect().height).toBeGreaterThanOrEqual(40);
+    expect(ctx(el).matches(':popover-open')).toBe(true);
+    const c = ctx(el).getBoundingClientRect();
+    expect(c.left).toBeGreaterThanOrEqual(0);
+    expect(c.right).toBeLessThanOrEqual(390);
+    // 36px to a mouse; 44px under a finger (kit.css, proved on the iPhone in e2e/diagram.spec.ts).
+    for (const b of ctx(el).querySelectorAll<HTMLElement>('button')) expect(b.getBoundingClientRect().height).toBeGreaterThanOrEqual(36);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     expect(document.scrollingElement!.scrollTop).toBe(0);
   } finally {
@@ -226,4 +260,204 @@ test('a Venn: a tap where two circles cross adds to what they share; a seat drag
   sam.dispatchEvent(new PointerEvent('pointerup', { ...to, pointerId: 5, bubbles: true }));
   await settle(seats.el);
   expect(seats.last()).toBe('---\nkind: seating\n---\n- Top table: Jo\n- Table 2: Ann, Sam\n');
+});
+
+/* ---------- docs/editing.md, path by path ---------- */
+
+test('§1 undo: the bar ends with Undo and Redo; a thing deleted by its key comes back with the focus on it', async () => {
+  const { el, last } = await editor(ORG);
+  const tools = [...el.querySelectorAll<HTMLButtonElement>('to-bar > button, to-bar > * > button')].slice(-2).map((b) => b.getAttribute('aria-label') ?? b.title);
+  expect(tools.join(' ')).toMatch(/Undo.*Redo/);
+  const e = await press(el, thing(el, 'Eve Marsh'), 'Delete');
+  expect(e.defaultPrevented).toBe(true);
+  expect(last()).not.toContain('Eve Marsh');
+  expect(document.activeElement).toBe(el.querySelector('.dg-wrap'));
+  await undo(el);
+  expect(last()).toBe(ORG);
+  expect(document.activeElement).toBe(thing(el, 'Eve Marsh'));
+});
+
+test('§1 Mod+C/X/V on a thing: TLO and our HTML out; cut takes it away; paste puts it after the thing in hand', async () => {
+  const { el, last } = await editor('---\nkind: mind\n---\n- Root\n  - A\n    - A1\n  - B\n');
+  const c = await clip(el, thing(el, 'A'), 'copy');
+  expect(c.e.defaultPrevented).toBe(true);
+  expect(c.text).toBe('- A\n  - A1\n');
+  expect(c.html).toContain('content="TinyLittleOffice"');
+  const x = await clip(el, thing(el, 'B'), 'cut');
+  expect(x.text).toBe('- B\n');
+  expect(last()).not.toContain('- B');
+  await clip(el, thing(el, 'Root'), 'paste', { text: c.text, html: c.html });
+  expect(last()).toContain('- Root\n  - A\n    - A1\n  - A\n    - A1\n');
+  // Words from elsewhere are things too, and the focus is on the first one pasted.
+  await clip(el, thing(el, 'A1'), 'paste', { text: 'Plain words' });
+  expect(last()).toContain('    - A1\n    - Plain words\n');
+  expect(document.activeElement).toBe(thing(el, 'Plain words'));
+});
+
+test('§1 Mod+C/X/V by finger, §5 the context bar: in the standard order under the words, and its Copy, Paste and Duplicate act on the thing', async () => {
+  const { el, last } = await editor('---\nkind: seating\n---\n- Top table: Jo, Sam\n');
+  await tap(el, thing(el, 'Jo'));
+  const labels = [...ctx(el).querySelectorAll('button, .to-context-sep')].map((b) => (b.classList.contains('to-context-sep') ? '|' : b.getAttribute('aria-label')));
+  expect(labels).toEqual(['Move up', 'Move down', 'Add one more', 'Icon', 'Duplicate', '|', 'Copy', 'Cut', 'Paste', '|', 'Delete']);
+  expect(action(el, 'Move up').disabled).toBe(true);
+  action(el, 'Duplicate').click();
+  await settle(el);
+  expect(last()).toContain('- Top table: Jo, Jo, Sam');
+  await undo(el);
+  await tap(el, thing(el, 'Sam'));
+  action(el, 'Copy').click();
+  await settle(el);
+  action(el, 'Paste').click();
+  await until(() => last().includes('Sam, Sam'));
+  expect(last()).toContain('- Top table: Jo, Sam, Sam');
+});
+
+test('§1 Mod+A: on the picture it selects no page words; in the words, pressed again, the line stays whole and open', async () => {
+  const { el } = await editor(ORG);
+  const e = await press(el, thing(el, 'Ada Diaz'), 'a', { ctrlKey: true });
+  expect(e.defaultPrevented).toBe(true);
+  await tap(el, thing(el, 'Ben Okoro'));
+  let heard = false;
+  document.addEventListener('text-selectall', () => (heard = true), { once: true });
+  const k = await key(el, 'a', { ctrlKey: true });
+  expect(k!.defaultPrevented).toBe(true);
+  expect(heard).toBe(false);
+  expect(isOpen(el)).toBe(true);
+});
+
+test('§1 Escape: the first press collapses the words chosen, the next puts the words back as they were and the focus on the thing', async () => {
+  const { el, last } = await editor(ORG);
+  await tap(el, thing(el, 'Ben Okoro'));
+  await key(el, 'Escape');
+  expect(isOpen(el)).toBe(true);
+  await type(el, ' Jr');
+  expect(last()).toContain('Engineering Jr');
+  await key(el, 'Escape');
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toBe(ORG);
+  expect(document.activeElement).toBe(thing(el, 'Ben Okoro'));
+  // A draft abandoned leaves nothing; the focus goes to the picture.
+  const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const r = pic.getBoundingClientRect();
+  await tap(el, pic, { clientX: r.left + 6, clientY: r.bottom - 6 });
+  await type(el, 'Zed');
+  await key(el, 'Escape');
+  expect(last()).toBe(ORG);
+  expect(document.activeElement).toBe(el.querySelector('.dg-wrap'));
+  // While joining, Escape on the picture stops the join.
+  await tap(el, thing(el, 'Eve Marsh'));
+  action(el, 'Join').click();
+  await settle(el);
+  const wrap = el.querySelector<HTMLElement>('.dg-wrap')!;
+  wrap.focus();
+  wrap.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(el.querySelector('.dg-hint')!.textContent).not.toContain('join');
+});
+
+test('§1 Escape by pointer: a press outside the picture and the words closes them, keeping what was typed', async () => {
+  const { el, last } = await editor(ORG);
+  await tap(el, thing(el, 'Eve Marsh'));
+  await type(el, 'Eva');
+  const out = document.createElement('button');
+  out.textContent = 'elsewhere';
+  document.body.append(out);
+  out.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+  await settle(el);
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toContain('  - Eva\n');
+  // A press in the context bar under the words does not.
+  await tap(el, thing(el, 'Eva'));
+  action(el, 'Copy').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+  await settle(el);
+  expect(isOpen(el)).toBe(true);
+});
+
+test('§1 Arrows: from a thing to the nearest one that way; from the picture to the first', async () => {
+  const { el } = await editor('---\nkind: mind\n---\n- Root\n  - A\n  - B\n');
+  const wrap = el.querySelector<HTMLElement>('.dg-wrap')!;
+  await press(el, wrap, 'ArrowDown');
+  expect(document.activeElement).toBe(thing(el, 'Root'));
+  const e = await press(el, thing(el, 'Root'), 'ArrowRight');
+  expect(e.defaultPrevented).toBe(true);
+  expect(['A', 'B']).toContain(document.activeElement!.getAttribute('aria-label'));
+  await press(el, thing(el, 'A'), 'ArrowDown');
+  expect(document.activeElement).toBe(thing(el, 'B'));
+  await press(el, thing(el, 'B'), 'ArrowLeft');
+  expect(document.activeElement).toBe(thing(el, 'Root'));
+});
+
+test('§1 Alt+Up/Down and §6 Move up/down: a thing past its sibling, from the focus or in its words; undo puts it and the focus back', async () => {
+  const { el, last } = await editor('---\nkind: mind\n---\n- Root\n  - A\n    - A1\n  - B\n');
+  await press(el, thing(el, 'A'), 'ArrowDown', { altKey: true });
+  expect(last()).toContain('- Root\n  - B\n  - A\n    - A1\n');
+  expect(document.activeElement).toBe(thing(el, 'A'));
+  await undo(el);
+  expect(last()).toContain('- Root\n  - A\n    - A1\n  - B\n');
+  expect(document.activeElement).toBe(thing(el, 'A'));
+  // In the words: the thing moves and the words stay open on it.
+  await tap(el, thing(el, 'B'));
+  await key(el, 'ArrowUp', { altKey: true });
+  expect(last()).toContain('- Root\n  - B\n  - A\n');
+  expect(isOpen(el)).toBe(true);
+  expect(line(el).tx.textContent).toBe('B');
+  action(el, 'Move down').click();
+  await settle(el);
+  expect(last()).toContain('- Root\n  - A\n    - A1\n  - B\n');
+  expect(isOpen(el)).toBe(true);
+});
+
+test('§1 Mod+Alt+Left/Right: a step into the next lane', async () => {
+  const { el, last } = await editor('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n');
+  await press(el, thing(el, 'Calls'), 'ArrowRight', { altKey: true, ctrlKey: true });
+  expect(last()).toBe('---\nkind: lanes\n---\n- Shop: Calls\n- Shop: Sells\n');
+});
+
+test('§1 Mod+D: a copy of the focused thing right after it, the focus on the copy; in the words too', async () => {
+  const { el, last } = await editor('---\nkind: timeline\n---\n- 1990: Web\n- 2000: Phones\n');
+  const e = await press(el, thing(el, '1990'), 'd', { ctrlKey: true });
+  expect(e.defaultPrevented).toBe(true);
+  expect(last()).toBe('---\nkind: timeline\n---\n- 1990: Web\n- 1990: Web\n- 2000: Phones\n');
+  expect(document.activeElement!.getAttribute('aria-label')).toContain('Web');
+  expect(document.activeElement).not.toBe(thing(el, '1990'));
+  await tap(el, thing(el, '2000'));
+  await key(el, 'd', { ctrlKey: true });
+  expect(last()).toContain('- 2000: Phones\n- 2000: Phones\n');
+});
+
+test('§1 Mod+B/I/U/K and §2 the bubble: the words are plain, no bubble, the marks\' keys do nothing', async () => {
+  const { el, last } = await editor(ORG);
+  await tap(el, thing(el, 'Ben Okoro'));
+  expect(line(el).noBubble).toBe(true);
+  for (const k of ['b', 'i', 'u', 'k']) expect((await key(el, k, { ctrlKey: true }))!.defaultPrevented).toBe(true);
+  expect(last()).toBe(ORG);
+  expect(document.querySelector('.tx-bubble .to-context:popover-open')).toBeNull();
+});
+
+test('§1 Mod+Enter in the words: done, the words kept, the focus on the thing (never the next thing)', async () => {
+  const { el, last } = await editor(ORG);
+  await tap(el, thing(el, 'Eve Marsh'));
+  await type(el, 'Eve');
+  const e = await key(el, 'Enter', { ctrlKey: true });
+  expect(e!.defaultPrevented).toBe(true);
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toContain('  - Eve\n');
+  expect(things(el)).toHaveLength(4);
+  expect(document.activeElement).toBe(thing(el, 'Eve'));
+});
+
+test('§5 Mod+wheel zooms the picture; the wheel alone does not', async () => {
+  const { el } = await editor(ORG);
+  const wrap = el.querySelector<HTMLElement>('.dg-wrap')!;
+  const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const w = pic.getBoundingClientRect().width;
+  wrap.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(pic.getBoundingClientRect().width).toBe(w);
+  const e = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true });
+  wrap.dispatchEvent(e);
+  await settle(el);
+  expect(e.defaultPrevented).toBe(true);
+  expect(pic.getBoundingClientRect().width).toBeGreaterThan(w);
+  expect(getComputedStyle(pic).touchAction).toBe('manipulation');
 });

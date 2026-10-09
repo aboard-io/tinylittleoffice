@@ -7,7 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
-import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, follow, kindOf, lineOf, linesOf, moveItem, newThing, nextThing, removeThing, rename, setEdge, setKind, tidy, withIcon, type Hit } from '../model.ts';
+import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, follow, kindOf, lineOf, linesOf, moveAcross, moveItem, moveThing, newThing, nextThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Hit } from '../model.ts';
 import { templates } from '../templates.ts';
 import { diagramPage, era, layout, moment, places, regionAt, toDrawing } from '../view.ts';
 
@@ -234,5 +234,74 @@ describe('commands as ops', () => {
     const d = doc('lanes', '- Sales: Calls\n');
     const l = lineOf(applyAll(d, [{ op: 'text', at: 0, from: 7, to: 12, runs: [{ t: 'Rings' }] }]).blocks[0] as never, 0);
     expect([l.key!.words, l.words.words]).toEqual(['Sales', 'Rings']);
+  });
+});
+
+describe('a thing whole: copied, pasted, duplicated, moved', () => {
+  test('a thing as blocks: a tree\'s line with its family at the margin, a seat as a line, a lane\'s steps, a connection', () => {
+    const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');
+    expect(write({ head: {}, blocks: thingBlocks(t, { k: 'line', at: 1, part: 'all' }) })).toBe('- A\n  - A1\n');
+    const s = doc('seating', '- Top: Jo, Sam\n');
+    expect(write({ head: {}, blocks: thingBlocks(s, { k: 'line', at: 0, part: 1 }) })).toBe('- Sam\n');
+    const l = doc('lanes', '- Sales: Calls\n- Shop: Sells\n- Sales: Closes\n');
+    expect(thingBlocks(l, { k: 'lane', name: 'sales' })).toHaveLength(2);
+    const n = doc('net', '- Web\n\n~ Web -> API\n');
+    expect(thingBlocks(n, { k: 'edge', at: 1 })).toEqual([n.blocks[1]]);
+    expect(write({ head: {}, blocks: thingBlocks(n, { k: 'node', name: 'API' }) })).toBe('- API\n');
+  });
+  test('pasted at a thing: a tree\'s after its family at its level; a seat after the one in hand; a step into its lane; a connection once', () => {
+    const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');
+    const p = pasteThings(t, { k: 'line', at: 1, part: 'all' }, parse('- X\n  - Y\n').blocks);
+    expect(run(t, p.ops)).toBe('- Root\n  - A\n    - A1\n  - X\n    - Y\n  - B\n');
+    expect(p.hit).toEqual({ k: 'line', at: 3, part: 'all' });
+    expect(run(t, pasteThings(t, { k: 'line', at: 0, part: 'all' }, parse('- X\n').blocks).ops)).toBe('- Root\n  - A\n    - A1\n  - B\n  - X\n');
+    expect(run(t, pasteThings(t, null, parse('Words\n').blocks).ops)).toBe('- Root\n  - A\n    - A1\n  - B\n  - Words\n');
+    const s = doc('seating', '- Top: Jo, Sam\n- Two:\n');
+    const q = pasteThings(s, { k: 'line', at: 0, part: 0 }, parse('- Ann\n').blocks);
+    expect(run(s, q.ops)).toBe('- Top: Jo, Ann, Sam\n- Two:\n');
+    expect(q.hit).toEqual({ k: 'line', at: 0, part: 1 });
+    expect(run(s, pasteThings(s, { k: 'line', at: 1, part: 'key' }, parse('- Ann\n').blocks).ops)).toBe('- Top: Jo, Sam\n- Two: Ann\n');
+    const l = doc('lanes', '- Sales: Calls\n- Shop: Sells\n');
+    expect(run(l, pasteThings(l, { k: 'line', at: 0, part: 'words' }, parse('- Rings\n').blocks).ops)).toBe('- Sales: Calls\n- Sales: Rings\n- Shop: Sells\n');
+    const n = doc('net', '- Web\n- API\n\n~ Web -> API\n');
+    expect(pasteThings(n, null, [n.blocks[2]]).ops).toEqual([]);
+    expect(run(n, pasteThings(n, null, parse('~ API -> Web\n').blocks).ops)).toBe('- Web\n- API\n\n~ Web -> API\n');
+    expect(run(n, pasteThings(n, null, parse('~ API -> DB\n').blocks).ops)).toBe('- Web\n- API\n\n~ Web -> API\n~ API -> DB\n');
+  });
+  test('duplicated: a copy right after it; a connection is never doubled', () => {
+    const t = doc('org', '- Ada\n  - Ben\n');
+    expect(run(t, duplicateThing(t, { k: 'line', at: 1, part: 'all' }).ops)).toBe('- Ada\n  - Ben\n  - Ben\n');
+    expect(run(t, duplicateThing(t, { k: 'line', at: 0, part: 'all' }).ops)).toBe('- Ada\n  - Ben\n- Ada\n  - Ben\n');
+    const s = doc('seating', '- Top: Jo, Sam\n');
+    expect(run(s, duplicateThing(s, { k: 'line', at: 0, part: 0 }).ops)).toBe('- Top: Jo, Jo, Sam\n');
+    expect(duplicateThing(doc('net', '~ A -> B\n'), { k: 'edge', at: 0 }).ops).toEqual([]);
+    expect(duplicateThing(doc('net', '- A\n'), { k: 'line', at: 0, part: 'all' }).ops).toEqual([]);
+  });
+  test('moved past a neighbour: a tree\'s family among its siblings, a step, a seat past the one beside it; none past the end', () => {
+    const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');
+    const down = moveThing(t, { k: 'line', at: 1, part: 'all' }, 1)!;
+    expect(run(t, down.ops)).toBe('- Root\n  - B\n  - A\n    - A1\n');
+    expect(down.hit).toEqual({ k: 'line', at: 2, part: 'all' });
+    const up = moveThing(t, { k: 'line', at: 3, part: 'all' }, -1)!;
+    expect(run(t, up.ops)).toBe('- Root\n  - B\n  - A\n    - A1\n');
+    expect(up.hit).toEqual({ k: 'line', at: 1, part: 'all' });
+    expect(moveThing(t, { k: 'line', at: 1, part: 'all' }, -1)).toBeNull();
+    const s = doc('seating', '- Top: Jo, **Sam**, Cy\n');
+    const m = moveThing(s, { k: 'line', at: 0, part: 1 }, -1)!;
+    expect(run(s, m.ops)).toBe('- Top: **Sam**, Jo, Cy\n');
+    expect(m.hit).toEqual({ k: 'line', at: 0, part: 0 });
+    expect(moveThing(s, { k: 'line', at: 0, part: 2 }, 1)).toBeNull();
+    const tl = doc('timeline', '- 1990: a\n- 2000: b\n\n~ x -> y\n');
+    expect(run(tl, moveThing(tl, { k: 'line', at: 0, part: 'all' }, 1)!.ops)).toBe('- 2000: b\n- 1990: a\n\n~ x -> y\n');
+    expect(moveThing(tl, { k: 'line', at: 1, part: 'all' }, 1)).toBeNull();
+  });
+  test('moved across: a step to the next lane, a seat to the next table', () => {
+    const l = doc('lanes', '- Sales: Calls\n- Shop: Sells\n');
+    expect(run(l, moveAcross(l, { k: 'line', at: 0, part: 'words' }, 1)!.ops)).toBe('- Shop: Calls\n- Shop: Sells\n');
+    expect(moveAcross(l, { k: 'line', at: 0, part: 'words' }, -1)).toBeNull();
+    const s = doc('seating', '- Top: Jo, Sam\n- Two: Ann\n');
+    const m = moveAcross(s, { k: 'line', at: 0, part: 1 }, 1)!;
+    expect(run(s, m.ops)).toBe('- Top: Jo\n- Two: Ann, Sam\n');
+    expect(m.hit).toEqual({ k: 'line', at: 1, part: 1 });
   });
 });
