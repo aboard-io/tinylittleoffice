@@ -1225,10 +1225,10 @@ test('a short link carries its key in the fragment; the server would hold only c
   try {
     const long = 'https://tinylittleoffice.com/sheet/#/v0/sheet/WAbcdef';
     const { short } = await shorten(long, 86400, 'https://tinier.example/');
-    assert.match(short, /^https:\/\/tinier\.example\/abc2345#[A-Za-z0-9_-]{22}$/);
+    assert.match(short, /^https:\/\/tinier\.example\/abc2345#[A-Za-z0-9_-]{43}$/);
     assert.ok(posted && !JSON.stringify(posted).includes('WAbcdef') && posted.ttl === 86400);
     assert.equal(await unshorten(posted!.c, posted!.iv, short.split('#')[1]), long);
-    await assert.rejects(unshorten(posted!.c, posted!.iv, 'AAAAAAAAAAAAAAAAAAAAAA'));
+    await assert.rejects(unshorten(posted!.c, posted!.iv, 'A'.repeat(43)));
   } finally {
     globalThis.fetch = realFetch;
   }

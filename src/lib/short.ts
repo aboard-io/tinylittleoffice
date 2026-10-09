@@ -17,7 +17,7 @@ export const EXPIRIES: { seconds: number; name: string }[] = [
 ];
 
 export async function shorten(link: string, seconds: number, at = TINIER): Promise<{ short: string; expires: number }> {
-  const raw = crypto.getRandomValues(new Uint8Array(16));
+  const raw = crypto.getRandomValues(new Uint8Array(32)); // AES-256
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt']);
   const c = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(link)));

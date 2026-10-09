@@ -137,7 +137,7 @@ test('a shorter link that expires, with the key kept out of the server', async (
     await idle();
     await press(/Make the short link/, dialog);
     await until(() => dialog.querySelector('code'), 'the short link');
-    expect(text($('code', dialog))).toMatch(/^https:\/\/tinier\.tinylittleoffice\.com\/abc2345#[A-Za-z0-9_-]{22}$/);
+    expect(text($('code', dialog))).toMatch(/^https:\/\/tinier\.tinylittleoffice\.com\/abc2345#[A-Za-z0-9_-]{43}$/);
     expect(text(dialog)).toContain('Expires');
     expect(sent!.ttl).toBe(86400);
     // Nothing of the document went to the server: not its words, not its link.

@@ -358,7 +358,7 @@ Plain links also take `&md=` (Markdown or CSV, shaped on opening) and `&by=` (wh
 
 Share → "Shorter link that expires…" asks tinier.tinylittleoffice.com
 for a short link (an hour, a day, a week or a month). The long link is
-encrypted in the browser with a random key; only the ciphertext is
+encrypted in the browser with a random AES-256-GCM key; only the ciphertext is
 sent, and the key travels in the short link's fragment (`#…`), which
 browsers never send to any server. Opening a short link fetches the
 ciphertext, decrypts it on the page, and goes to the document. The
