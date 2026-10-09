@@ -173,25 +173,12 @@ export class ToApp extends LitElement {
     return this;
   }
 
-  /**
-   * Scrolled past the header: it has gone up with the page, the app's own
-   * bar has stuck to the top, and undo and redo go to the top right corner
-   * (the menu button is always at the top left). Said as an attribute, so
-   * styles alone move things; nothing is drawn again.
-   */
-  private headerWatch: IntersectionObserver | null = null;
-  private watchHeader() {
-    const header = this.querySelector('.to-header');
-    if (!header || this.headerWatch || typeof IntersectionObserver === 'undefined') return;
-    this.headerWatch = new IntersectionObserver(([e]) => this.toggleAttribute('scrolled', !e.isIntersecting));
-    this.headerWatch.observe(header);
-  }
-
   connectedCallback() {
     super.connectedCallback();
     // No link in a document opens without showing where it goes and asking.
     installLinkGuard();
     this.applySize();
+    window.addEventListener('resize', this.fadeEdges);
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onGlobalKey);
     window.addEventListener(REFRESH, this.onRefresh);
@@ -201,8 +188,7 @@ export class ToApp extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.headerWatch?.disconnect();
-    this.headerWatch = null;
+    window.removeEventListener('resize', this.fadeEdges);
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
     window.removeEventListener(REFRESH, this.onRefresh);
@@ -504,8 +490,20 @@ export class ToApp extends LitElement {
   }
 
   private lastSelf = '';
+  /**
+   * The header is one row that scrolls sideways when it is too long for
+   * the screen; an edge fades where there is more past it.
+   */
+  private fadeEdges = () => {
+    const bar = this.querySelector<HTMLElement>('.to-header-inner');
+    if (!bar) return;
+    const more = bar.scrollWidth - bar.clientWidth - bar.scrollLeft;
+    bar.toggleAttribute('data-fade-start', bar.scrollLeft > 1);
+    bar.toggleAttribute('data-fade-end', more > 1);
+  };
+
   protected updated() {
-    this.watchHeader();
+    this.fadeEdges();
     // The kit knows this document's link (a QR code of it may be drawn inside it); embeds redraw when it changes.
     if (this.app && !this.sealed && this.link !== this.lastSelf) {
       this.lastSelf = this.link;
@@ -597,12 +595,13 @@ export class ToApp extends LitElement {
     return html`
       <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
       <header class="to-header">
-        <!-- The menu is always at the very top left, wherever the page is scrolled to and however wide it is. -->
-        <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 22)}<span class="sr-only">Menu</span></sl-button>
-        <div class="to-header-inner">
-          <a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 16)}</span><span>TinyLittleOffice</span></a>
-          <button class="to-keep ${keeping() ? 'on' : ''}" data-tip=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 16)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
-          ${current ? this.renderDocHead() : html`<span class="to-spacer"></span>`}
+        <!-- One row, held at the top of the screen: the menu, then what this is (the document: its app and its title), then everything to do with it; the row scrolls sideways when it is too long. -->
+        <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
+        <div class="to-header-inner" @scroll=${this.fadeEdges}>
+          ${current ? this.renderTitleLine(current) : html`<a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 24)}</span><span>TinyLittleOffice</span></a>`}
+          <span class="to-spacer"></span>
+          <button class="to-keep ${keeping() ? 'on' : ''}" data-tip=${keeping() ? 'Saved on this device: your documents, in folders, and your settings. Tap to save nothing and forget all of it.' : 'Private: nothing is saved on this device, no cookies, no trace. Tap to save your documents here, in folders.'} aria-pressed=${keeping() ? 'true' : 'false'} aria-label=${keeping() ? 'Saved on this device' : 'Private: nothing saved on this device'} @click=${this.toggleKeeping}>${icon(keeping() ? UI.folder : UI.shield, 24)}<span aria-hidden="true">${keeping() ? 'Saved' : 'Private'}</span></button>
+          ${current ? this.renderDocHead() : nothing}
           ${current
             ? html`
                 <to-meter .used=${this.payloadLength} .available=${available} .href=${this.link} .rooms=${roomFor(this.link)} @to-info=${() => this.dialog()?.show()} @to-copy=${() => this.share('copy')}></to-meter>
@@ -610,7 +609,7 @@ export class ToApp extends LitElement {
                   ? nothing
                   : html`<div class="to-doc-actions">
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.dialog('import-dialog')?.show() : e.detail.item.value === 'open-as' ? this.openAs() : this.download(e.detail.item.value))}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Download" data-tip="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Download" data-tip="Download">${icon(UI.download, 24)}<span class="sr-only">Download</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Download</sl-menu-label>
                           ${formatsOf(current).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
@@ -620,7 +619,7 @@ export class ToApp extends LitElement {
                         </sl-menu>
                       </sl-dropdown>
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => this.share(e.detail.item.value)}>
-                        <sl-button slot="trigger" class="icon" size="small" aria-label="Share" data-tip="Share">${icon(UI.share, 16)}<span class="sr-only">Share</span></sl-button>
+                        <sl-button slot="trigger" class="icon" size="small" aria-label="Share" data-tip="Share">${icon(UI.share, 24)}<span class="sr-only">Share</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Share</sl-menu-label>
                           ${'share' in navigator ? html`<sl-menu-item value="native">Share…</sl-menu-item>` : nothing}
@@ -635,7 +634,7 @@ export class ToApp extends LitElement {
                           ${SERVICES.map((s) => html`<sl-menu-item value=${s.id}>${s.name}</sl-menu-item>`)}
                         </sl-menu>
                       </sl-dropdown>
-                      ${tool('QR code', 'qr', () => this.share('qr'), { cls: 'to-qr-btn', size: 16 })}
+                      ${tool('QR code', 'qr', () => this.share('qr'), { cls: 'to-qr-btn', size: 24 })}
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
                         ${this.renderTrust()}
                         <sl-menu>
@@ -645,7 +644,7 @@ export class ToApp extends LitElement {
                         </sl-menu>
                       </sl-dropdown>
                     </div>`}
-                ${tool(`New ${current.name}, in a new tab`, 'plus', () => {}, { href: routeHash(current.id), target: '_blank', cls: 'to-new', size: 16 })}
+                ${tool(`New ${current.name}, in a new tab`, 'plus', () => {}, { href: routeHash(current.id), target: '_blank', cls: 'to-new', size: 24 })}
               `
             : nothing}
         </div>
@@ -710,25 +709,23 @@ export class ToApp extends LitElement {
         : sig === 'valid'
           ? (['success', UI.shield, `Signed; key ${signer ?? ''}. The words are as the signer left them.`] as const)
           : (['danger', UI.unlock, 'Unsigned: anyone could have written this. Sign it from here.'] as const);
-    return html`<sl-button slot="trigger" class="icon to-trust" size="small" aria-label="Privacy" data-tip=${tip} variant=${variant} outline>${icon(glyph, 16)}<span class="sr-only">Privacy</span></sl-button>`;
+    return html`<sl-button slot="trigger" class="icon to-trust" size="small" aria-label="Privacy" data-tip=${tip} variant=${variant} outline>${icon(glyph, 24)}<span class="sr-only">Privacy</span></sl-button>`;
   }
 
-  /** In the header beside the document: undo and redo. */
+  /** In the header after the document's name: undo and redo. */
   private renderDocHead() {
-    return html`<span class="to-spacer"></span>
-        ${this.sealed
-          ? nothing
-          : html`<sl-button-group class="to-undo" label="Undo and redo">
-              ${tool('Undo', 'undo', () => this.step(true), { disabled: !this.history.canUndo, key: 'Mod+Z' })}
-              ${tool('Redo', 'redo', () => this.step(false), { disabled: !this.history.canRedo, key: 'Mod+Shift+Z' })}
-            </sl-button-group>`}`;
+    return this.sealed
+      ? nothing
+      : html`<sl-button-group class="to-undo" label="Undo and redo">
+          ${tool('Undo', 'undo', () => this.step(true), { disabled: !this.history.canUndo, key: 'Mod+Z', size: 24 })}
+          ${tool('Redo', 'redo', () => this.step(false), { disabled: !this.history.canRedo, key: 'Mod+Shift+Z', size: 24 })}
+        </sl-button-group>`;
   }
 
-  /** One line above the document: what kind it is, its title, when it was made, and its state. */
+  /** The start of the header: what kind of document this is, its title, when it was made, and its state. */
   private renderTitleLine(current: AppDef) {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
-    return html`<div class="to-panel-head">
-      <a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(iconOf(current), 15)}<span>${current.name}</span></a>
+    return html`<a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(iconOf(current), 24)}</a>
       <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${current.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
       <span class="meta">
         ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
@@ -737,14 +734,12 @@ export class ToApp extends LitElement {
         ${this.privacy.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
         ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
         ${this.version > LINK_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
-      </span>
-    </div>`;
+      </span>`;
   }
 
   private renderPanel(current: AppDef) {
     return html`<section class="to-panel" aria-label=${current.name}>
       <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
-      ${this.renderTitleLine(current)}
       <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
     </section>`;
   }

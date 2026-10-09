@@ -30,7 +30,7 @@ test('the meter flags a document that outgrows the URL', async () => {
   page.dispatchEvent(new Event('input', { bubbles: true }));
   await idle();
   expect(meter.classList.contains('over')).toBe(true);
-  expect(text($('.to-panel-head'))).toContain('over limit');
+  expect(text($('.to-header .meta'))).toContain('over limit');
   expect(location.href.length).toBeGreaterThan(2048);
 });
 

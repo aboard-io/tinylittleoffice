@@ -38,7 +38,7 @@ test('navigation: the menu leads to each app, and closes behind it', async () =>
 test('the hamburger holds every app and the theme', async () => {
   localStorage.removeItem('tinyoffice.nav');
   await open('#/v0/sheet');
-  expect(text($('.to-here'))).toBe('Sheet');
+  expect($('.to-here').getAttribute('aria-label')).toBe('Sheet: new document');
   button('Menu').click();
   await idle();
   const drawer = $('#nav-drawer');
@@ -106,7 +106,7 @@ test('the meter counts down, and copies the link through the app’s own page', 
 
 test('documents record their creation time, in the link', async () => {
   await open('#/v0/write');
-  const meta = () => text($('.to-panel-head .meta'));
+  const meta = () => text($('.to-header .meta'));
   expect(meta()).toBe('');
   write('Document', 'hello');
   await idle();
@@ -133,7 +133,7 @@ test('links carry the format version, v0, and nothing else opens', async () => {
   expect(document.querySelector('to-write')).toBeNull();
   // A link from a future version says so.
   await open(location.hash.replace('#/', '#/v7/'));
-  expect(text($('.to-panel-head'))).toContain('newer TinyLittleOffice (v7)');
+  expect(text($('.to-header .meta'))).toContain('newer TinyLittleOffice (v7)');
 });
 
 test('keyboard shortcuts are listed, and work everywhere', async () => {

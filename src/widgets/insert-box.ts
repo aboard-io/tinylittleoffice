@@ -60,7 +60,11 @@ export class ToInsert extends LitElement {
     list.style.width = `${width}px`;
   };
   protected updated() {
-    if (this.open) this.place();
+    if (!this.open) return;
+    // In the top layer, over everything on the page, whatever sits in front of the toolbar.
+    const list = this.querySelector<HTMLElement>('.to-insert-list');
+    if (list?.showPopover && !list.matches(':popover-open')) list.showPopover();
+    this.place();
   }
   connectedCallback() {
     super.connectedCallback();
@@ -125,7 +129,7 @@ export class ToInsert extends LitElement {
         @keydown=${this.onKey}
       />
       ${this.open
-        ? html`<ul id=${this.listId} class="to-insert-list" role="listbox" aria-label=${this.label}>
+        ? html`<ul id=${this.listId} class="to-insert-list" popover="manual" role="listbox" aria-label=${this.label}>
             ${list.length ? nothing : html`<li class="none">Nothing called “${this.text.trim()}”</li>`}
             ${list.map((o, i) => {
               const head = o.group && o.group !== lastGroup && !this.text.trim() ? html`<li class="group" role="presentation">${o.group}</li>` : nothing;

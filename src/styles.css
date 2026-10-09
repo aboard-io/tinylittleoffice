@@ -96,11 +96,14 @@
 }
 html {
   -webkit-text-size-adjust: 100%;
+  /* The page is never wider than the screen, so on a phone it cannot be panned sideways: what is too wide scrolls inside itself. */
+  overflow-x: clip;
   /* Keep anchored or scrolled-to elements clear of the sticky header. */
   scroll-padding-top: calc(var(--to-header-h) + 8px);
 }
 body {
   margin: 0;
+  overflow-x: clip;
   min-height: 100dvh;
   font: 14px/1.5 var(--sl-font-sans);
   color: var(--to-ink);
@@ -233,28 +236,52 @@ sl-button[aria-pressed='true']::part(label) {
 }
 
 /* 3. Shell ----------------------------------------------------------------- */
-/* The header goes up with the page; what stays is the menu button (top left), the app's own bar (stuck to the top), and undo and redo (top right). */
+/* The header is one row held at the top of the screen: the menu, what the document is (its app, its title), then everything
+   to do with it. Too long for the screen, it scrolls sideways, an edge fading where there is more past it. */
 .to-header {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 20;
+  display: flex;
+  align-items: center;
   height: var(--to-header-h);
+  padding-left: max(4px, env(safe-area-inset-left));
   background: var(--to-surface);
   border-bottom: 1px solid var(--to-border);
 }
 .to-header-inner {
+  flex: 1;
+  min-width: 0;
   max-width: var(--to-max-w);
   margin: 0 auto;
   height: 100%;
-  padding: 0 var(--to-gutter);
-  /* Room for the menu button at the edge, until the page is wide enough that the column clears it anyway. */
-  padding-left: max(var(--to-gutter), calc(48px - max(0px, (100vw - var(--to-max-w)) / 2)));
+  padding: 0 var(--to-gutter) 0 6px;
   display: flex;
   align-items: center;
   gap: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  --fade-start: 0px;
+  --fade-end: 0px;
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent);
+}
+.to-header-inner::-webkit-scrollbar {
+  display: none;
+}
+.to-header-inner[data-fade-start] {
+  --fade-start: 32px;
+}
+.to-header-inner[data-fade-end] {
+  --fade-end: 32px;
 }
 .to-header-inner > * {
   flex-shrink: 0;
+}
+/* The header's icons are big enough to hit with a thumb. */
+.to-header sl-button::part(base) {
+  min-height: 40px;
+  line-height: 38px;
 }
 
 .to-brand {
@@ -269,8 +296,8 @@ sl-button[aria-pressed='true']::part(label) {
   margin-right: 8px;
 }
 .to-brand .mark {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   background: var(--to-accent);
   color: var(--to-on-accent);
@@ -281,7 +308,7 @@ sl-button[aria-pressed='true']::part(label) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 8px;
   border-radius: var(--to-radius-pill);
   background: var(--to-accent-soft);
   color: var(--to-accent);
@@ -293,46 +320,22 @@ sl-button[aria-pressed='true']::part(label) {
   flex: 1;
 }
 .to-burger {
-  position: fixed;
-  left: 4px;
-  top: calc(var(--to-header-h) / 2);
-  transform: translateY(-50%);
-  z-index: 40;
+  flex-shrink: 0;
 }
-/* Over the app's bar once the header has gone, the menu button and undo and redo sit on a card of their own. */
-to-app[scrolled] .to-burger::part(base),
-to-app[scrolled] .to-undo {
-  background: var(--to-surface);
-  border-radius: 8px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+.to-burger::part(base) {
+  padding: 0 4px;
 }
-to-app[scrolled] .to-undo {
-  position: fixed;
-  top: 8px;
-  right: 8px;
-  z-index: 40;
-  padding: 2px;
-}
-/* An app's own bar sticks to the top of the screen once the header has gone; where the menu button or undo would sit over it, it makes room. */
+/* An app's own bar sticks under the header. */
 .to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child {
   position: sticky;
-  top: 0;
+  top: var(--to-header-h);
   z-index: 15;
-}
-/* (Narrowed rather than padded, so a bar that scrolls sideways on a phone never slides under them; what it gives up is painted its own colour.) */
-to-app[scrolled] .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
-to-app[scrolled] .to-panel > div > * > .ol-bars > .to-toolbar {
-  --ml: max(0px, calc(52px - max(0px, (100vw - var(--to-max-w)) / 2)));
-  --mr: max(0px, calc(100px - max(0px, (100vw - var(--to-max-w)) / 2)));
-  margin-left: var(--ml);
-  margin-right: var(--mr);
-  box-shadow: calc(-1 * var(--ml)) 0 0 var(--to-surface), var(--mr) 0 0 var(--to-surface);
 }
 sl-menu-item svg.pre {
   vertical-align: -2px;
   margin-right: 4px;
 }
-.to-panel-head .when {
+.to-header .when {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -379,29 +382,13 @@ sl-menu-item svg.pre {
   /* Clipped to its rounded corners without becoming a scroller, so bars inside it can stick under the header. */
   overflow: clip;
 }
-.to-panel-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--to-border);
-}
-.to-panel-head h1 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.to-panel-head .to-spacer {
-  flex: 1 1 0;
-}
-.to-panel-head .meta {
+.to-header .meta {
   color: var(--to-ink-3);
   font-size: 12.5px;
   white-space: nowrap;
+}
+.to-header .meta:empty {
+  display: none;
 }
 .to-doc-actions {
   display: flex;
@@ -616,7 +603,7 @@ sl-menu-item svg.pre {
   background: var(--to-surface);
 }
 .to-meter sl-progress-ring {
-  --size: 26px;
+  --size: 36px;
   --track-width: 3px;
   --indicator-color: var(--to-accent);
   --track-color: var(--to-surface-2);
@@ -1575,7 +1562,7 @@ svg.draw-canvas text {
   :root {
     --to-gutter: 10px;
   }
-  .to-panel-head .when {
+  .to-header .when {
     display: none;
   }
 
@@ -1670,68 +1657,18 @@ svg.draw-canvas text {
     width: 140px;
   }
 }
-/* On a phone the name stays, smaller; the document's tags go, and the title shrinks to what is left. */
+/* On a phone the header keeps every icon (the row scrolls to them); the words beside them go, and the title keeps room to be read. */
 @media (max-width: 600px) {
-  .to-brand {
-    font-size: 13px;
-    gap: 5px;
-    margin-right: 0;
-  }
-  .to-header-inner {
-    gap: 3px;
-  }
+  .to-header-inner,
   .to-doc-actions {
-    gap: 3px;
-  }
-  .to-brand .mark {
-    width: 22px;
-    height: 22px;
+    gap: 4px;
   }
   .to-header .to-meter .text {
     display: none;
   }
-  .to-panel-head .meta .when {
-    display: none;
-  }
-  /* "+" is the menu's job on a phone (any app there starts a new document); undo and redo have no keyboard to fall back on. */
-  .to-new,
-  .to-header .to-meter .copy,
-  .to-brand .mark {
-    display: none;
-  }
-  /* The app's name gives way to the title on a phone; its icon stays. */
-  .to-here span {
-    display: none;
-  }
-  .to-here {
-    padding: 6px;
-  }
   .to-title {
-    flex: 1 1 3em;
-    min-width: 3em;
-  }
-  /* Privacy is a tap away in the document dialog (the ring); here it would cost the title its room. */
-  .to-doc-actions sl-dropdown:has(> [aria-label="Privacy"]) {
-    display: none;
-  }
-}
-/* The narrowest phones: Download is in the same dialog. */
-@media (max-width: 400px) {
-  .to-doc-actions sl-dropdown:has(> [aria-label="Download"]) {
-    display: none;
-  }
-}
-/* On a phone the site's mark stands for its name (the privacy switch and the title need the room). */
-@media (max-width: 380px) {
-  .to-brand span {
-    display: none;
-  }
-  .to-brand .mark {
-    display: inline-grid;
-  }
-  /* The QR button is in the Share menu as well; here it would crowd the row. */
-  .to-qr-btn {
-    display: none;
+    flex: 1 0 9em;
+    min-width: 9em;
   }
 }
 
@@ -2482,7 +2419,7 @@ textarea {
 }
 .to-title {
   flex: 0 1 22em;
-  min-width: 4em;
+  min-width: 9em;
   border: 1px solid transparent;
   border-radius: var(--to-radius);
   background: transparent;
@@ -3788,9 +3725,11 @@ mark {
 
 /* The insert combobox's list: scrollable, in the menu's groups */
 .to-insert-list {
-  /* Placed under its box by the widget, against the window (widgets/insert-box.ts). */
+  /* Placed under its box by the widget, against the window, in the top layer (widgets/insert-box.ts). */
   position: fixed;
   z-index: 30;
+  inset: auto;
+  color: inherit;
   max-height: min(60vh, 22rem);
   overflow-y: auto;
   margin: 0;

@@ -4,7 +4,7 @@ import { test, expect } from 'vitest';
 import { open, fresh, reopen, idle, until, link, $, $$, text, fill, press, menu, slBox, downloads } from './helpers-shell.ts';
 
 const dialog = () => $('#doc-dialog');
-const head = () => text($('.to-panel-head'));
+const head = () => text($('.to-header .meta'));
 /** The ring of the meter opens the document's dialog. */
 async function info() {
   $('.to-meter sl-progress-ring').click();
@@ -53,7 +53,7 @@ test('signing a document, and a change after it is seen', async () => {
   await press('Remove', dialog());
   await until(() => text(dialog()).includes('Unsigned'), 'unsigned');
   await done();
-  expect($$('.to-panel-head sl-tag')).toHaveLength(0);
+  expect($$('.to-header .meta sl-tag')).toHaveLength(0);
   expect(link().env!.sig).toBeUndefined();
 
   // A tampered link reads as a mismatch, never as valid.

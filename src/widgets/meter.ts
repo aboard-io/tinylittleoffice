@@ -46,7 +46,7 @@ export class ToMeter extends LitElement {
         ></sl-progress-ring>
         <span class="text" @click=${this.info}>${left < 0 ? html`<b>${(-left).toLocaleString()} over</b>` : html`<b>${left.toLocaleString()}</b> left`}</span>
       </span>
-      ${btn('Copy link', 'copy', () => this.dispatchEvent(new CustomEvent('to-copy', { bubbles: true, composed: true })), { cls: 'copy', size: 15 })}
+      ${btn('Copy link', 'copy', () => this.dispatchEvent(new CustomEvent('to-copy', { bubbles: true, composed: true })), { cls: 'copy', size: 22 })}
     </div>`;
   }
 }
