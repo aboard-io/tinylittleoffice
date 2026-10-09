@@ -50,7 +50,8 @@ test('formula: refs and literals', () => {
   assert.deepEqual(refToRC('C20'), [19, 2]);
   assert.deepEqual(refToRC('F1000'), [999, 5]);
   assert.equal(refToRC('C1001'), null);
-  assert.equal(refToRC('G1'), null);
+  assert.deepEqual(refToRC('Z1'), [0, 25]);
+  assert.equal(refToRC('AA1'), null);
   assert.equal(rcToRef(0, 0), 'A1');
   assert.equal(parseLiteral(' 12.5 '), 12.5);
   assert.equal(parseLiteral('1e3'), 1000);

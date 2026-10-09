@@ -800,20 +800,41 @@ sl-dialog.to-doc {
 
 /* 5. Apps ------------------------------------------------------------------ */
 
-/* Sheet */
-.sheet-bar .ref {
+/* Sheet. Under the bar, a strip of one height: the selected cells' reference and the raw formula, typed into here or in the cell. Nothing under it moves as the selection does. */
+.sheet-fx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--to-border);
+  background: var(--to-surface);
+}
+.sheet-fx .ref {
   font-family: var(--sl-font-mono);
   font-weight: 600;
   font-size: 13px;
-  min-width: 40px;
+  min-width: 48px;
   text-align: center;
   padding: 5px 6px;
   border-radius: var(--to-radius);
   background: var(--to-surface-2);
+  white-space: nowrap;
 }
-.sheet-bar sl-input {
+.sheet-fx .fx {
   flex: 1;
-  --sl-input-font-family: var(--sl-font-mono);
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--to-border);
+  border-radius: var(--to-radius);
+  background: var(--to-surface);
+  color: var(--to-ink);
+  font: 14px var(--sl-font-mono);
+}
+.sheet-fx .fx:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -1px;
 }
 .sheet-fns .what {
   margin-left: 10px;
@@ -825,11 +846,16 @@ sl-dialog.to-doc {
   color: var(--to-ink-3);
   margin-left: 16px;
 }
+/* The table scrolls in a box of its own, both ways, so the page under it holds still; the header rows and the row numbers are stuck to its edges. */
 .sheet-scroll {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: calc(100dvh - 230px);
+  min-height: 200px;
+  overscroll-behavior: contain;
 }
 table.sheet {
   --sheet-row-w: 40px;
+  --sheet-add-w: 44px;
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
@@ -856,6 +882,41 @@ table.sheet th {
 }
 table.sheet th.row {
   width: var(--sheet-row-w);
+  top: auto;
+  left: 0;
+}
+/* The + at the end of the header: one more column, a tap away; the height of a thumb on a phone. */
+table.sheet col.add {
+  width: var(--sheet-add-w);
+}
+table.sheet td.add-col {
+  position: sticky;
+  top: 0;
+  width: var(--sheet-add-w);
+  border: 0;
+  background: var(--to-surface);
+  vertical-align: top;
+  z-index: 1;
+}
+table.sheet .add-col-btn {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--to-ink-3);
+  cursor: pointer;
+}
+table.sheet .add-col-btn:hover,
+table.sheet .add-col-btn:focus-visible {
+  background: var(--to-border);
+  color: var(--to-ink);
+}
+table.sheet .add-col-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 /* Explicit column widths: the table is as wide as its columns and scrolls. */
 table.sheet.sized {
@@ -1732,9 +1793,11 @@ svg.draw-canvas text {
     min-width: 0;
     --sheet-row-w: 30px;
   }
-  .sheet-bar {
-    gap: 6px;
-    padding: 8px;
+  .sheet-scroll {
+    max-height: calc(100dvh - 200px);
+  }
+  .sheet-fx {
+    padding: 0 8px;
   }
   table.sheet td input {
     padding: 0 6px;
@@ -2494,21 +2557,18 @@ to-trip[present] .trip-map {
   .sheet-chart-pick {
     width: 124px;
   }
-  /* The bar wraps on a phone: the formula keeps a row to itself. */
-  .sheet-bar {
-    flex-wrap: wrap;
-  }
-  .sheet-bar > sl-input {
-    flex: 1 1 100%;
-    order: 9;
-  }
 }
 
 table.sheet td.corner {
   background: var(--to-surface-2);
   position: sticky;
   top: 0;
+  left: 0;
   width: var(--sheet-row-w);
+  z-index: 2;
+}
+table.sheet tr.names td.corner {
+  top: 32px;
 }
 
 .cal-row {
@@ -2695,6 +2755,14 @@ table.sheet tr.names .cn:focus-visible {
   outline: 2px solid var(--to-accent);
   outline-offset: -2px;
   background: var(--to-surface);
+}
+/* Under a finger, every box is 16px or more (the cells, the names, the strip), so Safari has no reason to zoom in on a tap. */
+@media (pointer: coarse) {
+  table.sheet td input,
+  table.sheet tr.names .cn,
+  .sheet-fx .fx {
+    font-size: 16px;
+  }
 }
 table.sheet th .col-type > svg {
   flex-shrink: 0;

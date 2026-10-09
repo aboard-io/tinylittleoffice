@@ -1,5 +1,6 @@
 /**
- * A small spreadsheet engine: 6 columns (A-F) by 1,000 rows.
+ * A small spreadsheet engine: 1,000 rows, and as many columns as the
+ * document uses, three at the least (A-C) and twenty-six at the most (A-Z).
  * Supports + - * / ^ %, comparisons (= <> < > <= >=, giving 1 or 0),
  * parentheses, unary minus, cell refs (A1), ranges (A1:A5), "words" and the
  * functions in FUNCTIONS below: enough for a small business model.
@@ -22,9 +23,14 @@
  */
 import { dayToYmd, ymdString, ymdToDay } from './tz.ts';
 import { column, columnText, parse as parseTlo, write as writeTlo, type Block, type ColType } from './tlo.ts';
-export const COLS = 6;
+/** A sheet is as wide as its widest row or named column, never narrower than this. */
+export const MIN_COLS = 3;
+/** One letter a column: A to Z. */
+export const MAX_COLS = 26;
 export const ROWS = 1000;
-export const COL_NAMES = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
+export const COL_NAMES = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+/** How many columns a grid has: every row is the same width. */
+export const widthOf = (grid: Grid) => grid[0]?.length ?? 0;
 
 /** Every function the engine knows: name, example arguments, what it does. */
 export const FUNCTIONS: [string, string, string][] = [
@@ -277,11 +283,11 @@ function parse(toks: Tok[]): Node {
 }
 
 export function refToRC(ref: string): [number, number] | null {
-  const m = /^([A-F])(\d+)$/.exec(ref);
+  const m = /^([A-Z])(\d+)$/.exec(ref);
   if (!m) return null;
   const col = m[1].charCodeAt(0) - 65;
   const row = parseInt(m[2], 10) - 1;
-  if (row < 0 || row >= ROWS || col >= COLS) return null;
+  if (row < 0 || row >= ROWS) return null;
   return [row, col];
 }
 
@@ -327,7 +333,7 @@ export const nameKey = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]+/g, '_'
 export function namedCells(grid: Grid, types: string[]): Map<string, [number, number]> {
   const out = new Map<string, [number, number]>();
   types.forEach((t, c) => {
-    if (t !== 'name' || c + 1 >= COLS) return;
+    if (t !== 'name' || c + 1 >= widthOf(grid)) return;
     grid.forEach((row, r) => {
       const key = nameKey(row[c]);
       if (key && !out.has(key)) out.set(key, [r, c + 1]);
@@ -580,7 +586,8 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
     }
   }
 
-  return Array.from({ length: ROWS }, (_, r) => Array.from({ length: COLS }, (_, c) => cell(r, c)));
+  const cols = widthOf(grid);
+  return Array.from({ length: ROWS }, (_, r) => Array.from({ length: cols }, (_, c) => cell(r, c)));
 }
 
 /** Format a computed value for display. */
@@ -641,7 +648,7 @@ export function lockedRanges(lock: string): Range[] {
   return lock
     .split(/[,\s]+/)
     .map((part) => {
-      const m = /^([A-F]\d+)(?::([A-F]\d+))?$/i.exec(part);
+      const m = /^([A-Z]\d+)(?::([A-Z]\d+))?$/i.exec(part);
       const a = m && refToRC(m[1].toUpperCase());
       const b = m?.[2] ? refToRC(m[2].toUpperCase()) : a;
       return a && b ? rangeOf(a, b) : null;
@@ -660,12 +667,12 @@ type Table = Extract<Block, { k: 'table' }>;
 /** The first table among some blocks. */
 export const tableIn = (blocks: Block[]) => blocks.find((b): b is Table => b.k === 'table');
 const CHARTS = ['bar', 'line', 'pie', 'sankey'];
-const blankRows = (n: number): Grid => Array.from({ length: n }, () => Array<string>(COLS).fill(''));
+const blankRows = (n: number, cols: number): Grid => Array.from({ length: n }, () => Array<string>(cols).fill(''));
 
 /**
  * How much of the sheet is in use: rows down to the last with something in
  * it, columns across to the last with something in it or a name or type of
- * its own.
+ * its own. (A sheet is drawn wider: see MIN_COLS and tableSheet.)
  */
 export function usedSize(grid: Grid, types: string[] = [], names: string[] = []): { rows: number; cols: number } {
   let rows = 0;
@@ -677,24 +684,29 @@ export function usedSize(grid: Grid, types: string[] = [], names: string[] = [])
       cols = Math.max(cols, c + 1);
     }),
   );
-  for (let c = 0; c < COLS; c++) if (names[c]?.trim() || (types[c] && types[c] !== 'text')) cols = Math.max(cols, c + 1);
+  for (let c = 0; c < Math.max(types.length, names.length); c++) if (names[c]?.trim() || (types[c] && types[c] !== 'text')) cols = Math.max(cols, c + 1);
   return { rows, cols };
 }
 
-/** A table as a sheet: its header row the names and types, its rows the cells. Columns past F and rows past the last are left out. */
+/**
+ * A table as a sheet: its header row the names and types, its rows the
+ * cells. The sheet is as wide as the table, never narrower than MIN_COLS;
+ * columns past Z and rows past the last are left out.
+ */
 export function tableSheet(table: Table | undefined, chart = '', lock = ''): Sheet {
-  const grid = blankRows(ROWS);
-  const types = Array<string>(COLS).fill('text');
-  const names = Array<string>(COLS).fill('');
+  const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, table?.head.length ?? 0, ...(table?.rows.map((r) => r.length) ?? [])));
+  const grid = blankRows(ROWS, cols);
+  const types = Array<string>(cols).fill('text');
+  const names = Array<string>(cols).fill('');
   if (table) {
-    table.head.slice(0, COLS).forEach((h, c) => {
+    table.head.slice(0, cols).forEach((h, c) => {
       const col = column(h);
       types[c] = COLUMN_TYPES.some((t) => t.id === col.type) ? col.type : 'text';
       names[c] = col.name;
     });
     // A name that is only the default ("ColA", "Date") is no name: it follows the column's type.
     names.forEach((n, c) => n === defaultColumnName(c, types) && (names[c] = ''));
-    table.rows.slice(0, ROWS).forEach((row, r) => row.slice(0, COLS).forEach((v, c) => (grid[r][c] = v)));
+    table.rows.slice(0, ROWS).forEach((row, r) => row.slice(0, cols).forEach((v, c) => (grid[r][c] = v)));
   }
   return { grid, chart: CHARTS.includes(chart) ? chart : '', types, names, lock: lockedRanges(lock).map(rangeRef).join(', ') };
 }
@@ -739,16 +751,25 @@ export interface Range {
 
 export const rangeOf = (a: [number, number], b: [number, number] = a): Range => ({ r0: Math.min(a[0], b[0]), c0: Math.min(a[1], b[1]), r1: Math.max(a[0], b[0]), c1: Math.max(a[1], b[1]) });
 export const rangeRef = (g: Range) => (g.r0 === g.r1 && g.c0 === g.c1 ? rcToRef(g.r0, g.c0) : `${rcToRef(g.r0, g.c0)}:${rcToRef(g.r1, g.c1)}`);
-const inGrid = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+const inGrid = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < MAX_COLS;
+/** A column's letter as its index. */
+const colOf = (letter: string) => letter.toUpperCase().charCodeAt(0) - 65;
 
-/** A formula as it reads after moving by (dr, dc): its references move with it. Other text is untouched. */
+/** A formula as it reads after moving by (dr, dc): its references move with it. Words in quotes, and other text, are untouched. */
 export function shiftFormula(raw: string, dr: number, dc: number): string {
   if (!raw.startsWith('=') || (!dr && !dc)) return raw;
-  return raw.replace(/\b([A-Fa-f])(\d{1,4})\b/g, (whole, col: string, row: string) => {
-    const at = refToRC(col.toUpperCase() + row);
-    if (!at) return whole;
-    return inGrid(at[0] + dr, at[1] + dc) ? rcToRef(at[0] + dr, at[1] + dc) : '#REF';
-  });
+  return raw
+    .split(/("[^"]*")/)
+    .map((part, i) =>
+      i % 2
+        ? part
+        : part.replace(/\b([A-Za-z])(\d{1,4})\b/g, (whole, col: string, row: string) => {
+            const at = refToRC(col.toUpperCase() + row);
+            if (!at) return whole;
+            return inGrid(at[0] + dr, at[1] + dc) ? rcToRef(at[0] + dr, at[1] + dc) : '#REF';
+          }),
+    )
+    .join('');
 }
 
 /** The cells of a range as text: tabs between cells, newlines between rows. What spreadsheets put on the clipboard. */
@@ -771,7 +792,7 @@ export function pasteCells(grid: Grid, r: number, c: number, text: string, moved
   const rows = text.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').map((line) => line.split('\t'));
   const out = grid.map((row) => row.slice());
   const single = rows.length === 1 && rows[0].length === 1;
-  const g: Range = single && into ? into : { r0: r, c0: c, r1: Math.min(ROWS - 1, r + rows.length - 1), c1: Math.min(COLS - 1, c + Math.max(...rows.map((x) => x.length)) - 1) };
+  const g: Range = single && into ? into : { r0: r, c0: c, r1: Math.min(ROWS - 1, r + rows.length - 1), c1: Math.min(widthOf(grid) - 1, c + Math.max(...rows.map((x) => x.length)) - 1) };
   for (let y = g.r0; y <= g.r1; y++)
     for (let x = g.c0; x <= g.c1; x++) {
       const raw = single ? rows[0][0] : (rows[y - r]?.[x - c] ?? '');
@@ -906,16 +927,27 @@ export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
   return out;
 }
 
-/* ---------- rows put in and taken out ---------- */
+/* ---------- rows and columns put in and taken out ---------- */
+
+/** Where a row (or column) is after some move: its new place, or null when it is gone. */
+export type Moved = (i: number) => number | null;
+const stays: Moved = (i) => i;
+/** Where each row (column) is once n are put in before `at`. */
+export const movedIn = (at: number, n: number): Moved => (i) => (i >= at ? i + n : i);
+/** Where each row (column) is once `a` to `b` are taken out: null for one of those. */
+export const movedOut = (a: number, b: number): Moved => (i) => (i < a ? i : i > b ? i - (b - a + 1) : null);
 
 /**
- * A formula's references after rows move: `to(r)` is where row r is now,
- * or null if it is gone. A range keeps what is left of it (taking rows out
- * of its middle shrinks it; putting rows in its middle grows it); a
- * reference to a row that is gone is #REF. Words in quotes are left alone.
+ * A formula's references after rows or columns move: `rows(r)` is where
+ * row r is now, `cols(c)` where column c is, null if it is gone. A range
+ * keeps what is left of it (taking rows out of its middle shrinks it;
+ * putting rows in its middle grows it); a reference to a row or column
+ * that is gone is #REF. Words in quotes are left alone.
  */
-function remapRows(raw: string, to: (r: number) => number | null, gone: [number, number] | null): string {
+function remapRefs(raw: string, rows: Moved, cols: Moved, gone: { rows?: [number, number]; cols?: [number, number] }): string {
   if (!raw.startsWith('=')) return raw;
+  /** One end of a range: where its row (column) went, or the nearest still there. */
+  const end = (to: Moved, at: number, taken: [number, number] | undefined, first: boolean) => to(at) ?? (taken ? taken[0] - (first ? 0 : 1) : at);
   return raw
     .split(/("[^"]*")/)
     .map((part, i) => {
@@ -923,50 +955,86 @@ function remapRows(raw: string, to: (r: number) => number | null, gone: [number,
       // Ranges first, set aside so their cells are not moved twice; then single cells; then the ranges back.
       const ranges: string[] = [];
       const out = part
-        .replace(/\b([A-Fa-f])(\d{1,4}):([A-Fa-f])(\d{1,4})\b/g, (_, c0: string, r0: string, c1: string, r1: string) => {
+        .replace(/\b([A-Za-z])(\d{1,4}):([A-Za-z])(\d{1,4})\b/g, (_, c0: string, r0: string, c1: string, r1: string) => {
           let [a, b] = [+r0 - 1, +r1 - 1];
           if (a > b) [a, b] = [b, a];
-          // Each end goes where its row went; an end whose row is gone comes to the nearest row still there.
-          let na = to(a);
-          let nb = to(b);
-          if (na === null) na = gone ? gone[0] : a;
-          if (nb === null) nb = gone ? gone[0] - 1 : b;
-          ranges.push(nb < na || na < 0 || nb >= ROWS ? '#REF' : `${c0.toUpperCase()}${na + 1}:${c1.toUpperCase()}${nb + 1}`);
+          let [x, y] = [colOf(c0), colOf(c1)];
+          if (x > y) [x, y] = [y, x];
+          const [na, nb] = [end(rows, a, gone.rows, true), end(rows, b, gone.rows, false)];
+          const [nx, ny] = [end(cols, x, gone.cols, true), end(cols, y, gone.cols, false)];
+          ranges.push(nb < na || na < 0 || nb >= ROWS || ny < nx || nx < 0 || ny >= MAX_COLS ? '#REF' : `${COL_NAMES[nx]}${na + 1}:${COL_NAMES[ny]}${nb + 1}`);
           return `\u0001${ranges.length - 1}\u0002`;
         })
-        .replace(/\b([A-Fa-f])(\d{1,4})\b/g, (_, c: string, r: string) => {
-          const n = to(+r - 1);
-          return n === null || n >= ROWS ? '#REF' : `${c.toUpperCase()}${n + 1}`;
+        .replace(/\b([A-Za-z])(\d{1,4})\b/g, (_, c: string, r: string) => {
+          const n = rows(+r - 1);
+          const m = cols(colOf(c));
+          return n === null || n >= ROWS || m === null || m >= MAX_COLS ? '#REF' : `${COL_NAMES[m]}${n + 1}`;
         });
       return out.replace(/\u0001(\d+)\u0002/g, (_, k: string) => ranges[+k]);
     })
     .join('');
 }
 
-/** Where each row is once n rows are put in before row `at`. */
-export const rowsIn = (at: number, n: number) => (r: number) => (r >= at ? r + n : r);
-/** Where each row is once rows r0 to r1 are taken out: null for one of those. */
-export const rowsOut = (r0: number, r1: number) => (r: number) => (r < r0 ? r : r > r1 ? r - (r1 - r0 + 1) : null);
-
 /** n empty rows put in before row `at`; null when the sheet has no room (its last rows are not empty). */
 export function insertRows(grid: Grid, at: number, n = 1): Grid | null {
   if (grid.slice(ROWS - n).some((row) => row.some((v) => v !== ''))) return null;
-  const moved = [...grid.slice(0, at), ...blankRows(n), ...grid.slice(at, ROWS - n)];
-  return moved.map((row) => row.map((v) => remapRows(v, rowsIn(at, n), null)));
+  const moved = [...grid.slice(0, at), ...blankRows(n, widthOf(grid)), ...grid.slice(at, ROWS - n)];
+  return moved.map((row) => row.map((v) => remapRefs(v, movedIn(at, n), stays, {})));
 }
 
 /** Rows r0 to r1 taken out; those below come up, and empty rows fill the foot of the sheet. */
 export function deleteRows(grid: Grid, r0: number, r1: number): Grid {
-  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...blankRows(r1 - r0 + 1)];
-  return kept.map((row) => row.map((v) => remapRows(v, rowsOut(r0, r1), [r0, r1])));
+  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...blankRows(r1 - r0 + 1, widthOf(grid))];
+  return kept.map((row) => row.map((v) => remapRefs(v, movedOut(r0, r1), stays, { rows: [r0, r1] })));
 }
 
-/** The lock after rows move (rowsIn, rowsOut): each range follows its rows and keeps what is left of them, and goes when none are. */
-export function remapLock(lock: string, to: (r: number) => number | null): string {
+/** Whether nothing is in column c. */
+export const columnEmpty = (grid: Grid, c: number) => grid.every((row) => row[c] === '');
+
+/**
+ * n empty columns put in before column `at`: the cells, the types, the
+ * names and the lock move together, and formulas follow. Null when the
+ * sheet is as wide as it goes (MAX_COLS).
+ */
+export function insertColumns(sheet: Sheet, at: number, n = 1): Sheet | null {
+  const cols = widthOf(sheet.grid);
+  if (cols + n > MAX_COLS) return null;
+  const put = <T,>(row: T[], v: T) => [...row.slice(0, at), ...Array<T>(n).fill(v), ...row.slice(at)];
+  return {
+    ...sheet,
+    grid: sheet.grid.map((row) => put(row, '').map((v) => remapRefs(v, stays, movedIn(at, n), {}))),
+    types: put(sheet.types, 'text'),
+    names: put(sheet.names, ''),
+    lock: remapLock(sheet.lock, stays, movedIn(at, n)),
+  };
+}
+
+/**
+ * Columns c0 to c1 taken out; those to the right come across. Null when
+ * that would leave fewer than MIN_COLS. A reference to a column gone is
+ * #REF, as a row's is.
+ */
+export function deleteColumns(sheet: Sheet, c0: number, c1 = c0): Sheet | null {
+  const cols = widthOf(sheet.grid);
+  if (cols - (c1 - c0 + 1) < MIN_COLS) return null;
+  const cut = <T,>(row: T[]) => [...row.slice(0, c0), ...row.slice(c1 + 1)];
+  return {
+    ...sheet,
+    grid: sheet.grid.map((row) => cut(row).map((v) => remapRefs(v, stays, movedOut(c0, c1), { cols: [c0, c1] }))),
+    types: cut(sheet.types),
+    names: cut(sheet.names),
+    lock: remapLock(sheet.lock, stays, movedOut(c0, c1)),
+  };
+}
+
+/** The lock after rows or columns move (movedIn, movedOut): each range follows them and keeps what is left of it, and goes when nothing is. */
+export function remapLock(lock: string, rows: Moved, cols: Moved = stays): string {
+  const kept = (a: number, b: number, to: Moved, most: number) => Array.from({ length: b - a + 1 }, (_, i) => to(a + i)).filter((x): x is number => x !== null && x < most);
   return lockedRanges(lock)
     .flatMap((g) => {
-      const rows = Array.from({ length: g.r1 - g.r0 + 1 }, (_, i) => to(g.r0 + i)).filter((r): r is number => r !== null && r < ROWS);
-      return rows.length ? [rangeRef({ ...g, r0: rows[0], r1: rows[rows.length - 1] })] : [];
+      const r = kept(g.r0, g.r1, rows, ROWS);
+      const c = kept(g.c0, g.c1, cols, MAX_COLS);
+      return r.length && c.length ? [rangeRef({ r0: r[0], r1: r[r.length - 1], c0: c[0], c1: c[c.length - 1] })] : [];
     })
     .join(', ');
 }

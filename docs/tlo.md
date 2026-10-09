@@ -86,7 +86,9 @@ app's are `sides: 2` and `pages: 12`. **comic** panels are bullets:
 `- :dog: Walk? | Monday, noon.`.
 
 **sheet**: one table. Its header row holds the column names (shown above
-the letters), each with its type. Its rows are rows 1, 2, 3 and so on, so
+the letters), each with its type. A sheet is as wide as its table: write
+any number of columns up to twenty-six (A to Z); the editor draws three
+at the least. Its rows are rows 1, 2, 3 and so on, so
 `=SUM(B1:B3)` adds the first three. The header holds `chart: bar`
 (`line`, `pie`, or `sankey` for rows of From | To | Amount), and
 `lock: C1:C6, E7`, the cells a reader is to leave be. A column typed
