@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
-import { addCard, addItem, addStage, moveCard, moveStage, progress, readBoard, removeCard, removeItem, removeStage, setItemDone, setStage, shifted, type BoardView } from '../model.ts';
+import { addCard, addItem, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeItem, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView } from '../model.ts';
 import { boardPage, boardToCsv } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -112,6 +112,82 @@ test('a checklist: items added in the card, ticked, removed', () => {
   expect(run(BOARD, () => setItemDone(spec.items[1], true)).text).toContain('  - [x] Draft');
   expect(run(BOARD, () => setItemDone(spec.items[0], true)).ops).toEqual([]);
   expect(run(BOARD, () => removeItem(spec.items[0])).text).toContain('- Write the **spec**\n  - [ ] Draft\n');
+});
+
+test('chosen cards: found by their span, removed with their checklists, moved past a neighbour as a run, carried to a stage, duplicated', () => {
+  const v = readBoard(parse(BOARD));
+  const [spec, review] = v.stages[0].cards;
+  const ship = v.stages[1].cards[0];
+  expect(cardsIn(v, 1, 5)).toEqual([spec, review]);
+  expect(cardsIn(v, 4, 7)).toEqual([review, ship]);
+  expect(blocksOf(spec)).toHaveLength(3);
+  expect(stageOf(v, [spec, review])).toBe(v.stages[0]);
+  expect(stageOf(v, [review, ship])).toBeUndefined();
+  // Removed: each with its checklist, the stage between them kept.
+  expect(run(BOARD, () => removeCards([review, spec])).text).toBe('## To do {color=b}\n\n## Doing {limit=1 color=g}\n\n- Ship it\n\n## Done\n');
+  expect(run(BOARD, () => removeCards([review, ship])).text).toBe('## To do {color=b}\n\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n\n## Doing {limit=1 color=g}\n\n## Done\n');
+  // Moved: down past the card after, up past the card before; nothing at an edge or across stages.
+  const down = moveCards(v, [spec], 1)!;
+  expect(down.at).toBe(2);
+  expect(run(BOARD, () => down).text).toContain('## To do {color=b}\n\n- Review the copy\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n\n## Doing');
+  expect(run(BOARD, () => moveCards(v, [review], -1)).text).toContain('## To do {color=b}\n\n- Review the copy\n- Write the **spec**\n');
+  expect(moveCards(v, [review], -1)!.at).toBe(1);
+  expect(moveCards(v, [spec], -1)).toBeNull();
+  expect(moveCards(v, [spec, review], 1)).toBeNull();
+  expect(moveCards(v, [review, ship], 1)).toBeNull();
+  // Carried to the end of a stage, as a run; nothing to their own stage or from several.
+  const carried = carryCards(v, [spec, review], v.stages[2])!;
+  expect(run(BOARD, () => carried).text).toBe('## To do {color=b}\n\n## Doing {limit=1 color=g}\n\n- Ship it\n\n## Done\n\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n- Review the copy\n');
+  expect(carried.at).toBe(4);
+  expect(run(BOARD, () => carryCards(v, [ship], v.stages[0])).text).toContain('- Review the copy\n- Ship it\n\n## Doing {limit=1 color=g}\n\n## Done');
+  expect(carryCards(v, [ship], v.stages[0])!.at).toBe(5);
+  expect(carryCards(v, [spec], v.stages[0])).toBeNull();
+  expect(carryCards(v, [review, ship], v.stages[2])).toBeNull();
+  // Duplicated: one card after itself; a run after the run, each stage's after its own.
+  expect(run(BOARD, () => duplicateCard(spec)).text).toContain('  - [ ] Draft\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n- Review');
+  expect(duplicateCard(spec).at).toBe(4);
+  const twice = duplicateCards(v, [spec, review]);
+  expect(twice.at).toBe(5);
+  expect(run(BOARD, () => twice).text).toContain('- Review the copy\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n- Review the copy\n\n## Doing');
+  expect(run(BOARD, () => duplicateCards(v, [review, ship])).text).toContain('- Review the copy\n- Review the copy\n\n## Doing {limit=1 color=g}\n\n- Ship it\n- Ship it\n');
+});
+
+test('pasted blocks as cards and items: a line a card, a task under a card its item, lines of a paragraph a card each', () => {
+  expect(write({ head: {}, blocks: asCards(parse('- a\n  - [x] b\n- [ ] c\n  - d\n\nOne\nTwo\n\n## Three\n').blocks) })).toBe('- a\n  - [x] b\n- c\n- d\n- One\n- Two\n- Three\n');
+  expect(asCards(parse('  - [ ] lone\n').blocks)).toEqual([{ k: 'li', depth: 0, runs: [{ t: 'lone' }] }]);
+  expect(asCards([{ k: 'p', runs: [{ t: 'x\n\ny', b: true }] }])).toEqual([
+    { k: 'li', depth: 0, runs: [{ t: 'x', b: true }] },
+    { k: 'li', depth: 0, runs: [{ t: 'y', b: true }] },
+  ]);
+  expect(write({ head: {}, blocks: asItems(parse('- [x] done\n- open\n\nOne\nTwo\n').blocks) })).toBe('  - [x] done\n  - [ ] open\n  - [ ] One\n  - [ ] Two\n');
+});
+
+test('the words of a line: Enter splits a card (its checklist stays with the first half) or an item; Backspace joins the line before; Alt+arrows move an item', () => {
+  const v = readBoard(parse(BOARD));
+  const [spec, review] = v.stages[0].cards;
+  // At the start: an empty card above; in the middle: the rest after the checklist; at the end: an empty card after it.
+  expect(run(BOARD, () => splitCard(review, 0)).text).toContain('  - [ ] Draft\n-\n- Review the copy\n');
+  expect(splitCard(review, 0).at).toBe(5);
+  expect(run(BOARD, () => splitCard(spec, 6)).text).toContain('- Write\n  - [x] Outline\n  - [ ] Draft\n- the **spec**\n- Review');
+  expect(splitCard(spec, 6).at).toBe(4);
+  expect(run(BOARD, () => splitCard(review, 15)).text).toContain('- Review the copy\n-\n\n## Doing');
+  // An empty card at its start: one after it.
+  expect(run('## A\n\n-\n', (w) => splitCard(w.stages[0].cards[0], 0)).text).toBe('## A\n\n-\n-\n');
+  expect(run(BOARD, () => splitItem(spec.items[1], 2)).text).toContain('  - [ ] Dr\n  - [ ] aft\n');
+  expect(run(BOARD, () => splitItem(spec.items[0], 7)).text).toContain('  - [x] Outline\n  - [ ]\n  - [ ] Draft');
+  expect(run(BOARD, () => splitItem(spec.items[0], 0)).text).toContain('- Write the **spec**\n  - [ ]\n  - [x] Outline');
+  // Joins: an item to the item before, an item to its card, a card to the last item of the card above; never to a heading.
+  const doc = parse(BOARD);
+  expect(run(BOARD, () => joinLine(doc, 3)).text).toContain('  - [x] OutlineDraft\n');
+  expect(run(BOARD, () => joinLine(doc, 2)).text).toContain('- Write the **spec**Outline\n  - [ ] Draft\n');
+  expect(run(BOARD, () => joinLine(doc, 4)).text).toContain('  - [ ] DraftReview the copy\n\n## Doing');
+  expect(joinLine(doc, 1)).toEqual([]);
+  expect(joinLine(doc, 6)).toEqual([]);
+  // An item past its neighbour, within its checklist only.
+  expect(run(BOARD, () => moveItem(spec, 0, 1)).text).toContain('- Write the **spec**\n  - [ ] Draft\n  - [x] Outline\n');
+  expect(moveItem(spec, 1, -1)!.at).toBe(2);
+  expect(moveItem(spec, 0, -1)).toBeNull();
+  expect(moveItem(spec, 1, 1)).toBeNull();
 });
 
 test('ops from an editor over one block are carried to where the block is', () => {

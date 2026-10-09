@@ -13,7 +13,7 @@
  * `readBoard` is the view, a pure function of the document, each stage and card knowing the span of blocks it
  * holds; every command gives operations (`Op[]`) for the editor to apply. Nothing here touches the DOM.
  */
-import { attr, plainText, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { attr, isText, joinBlocks, plainText, runLength, sliceRuns, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { t } from '../../kit/i18n.ts';
 
 type Li = Extract<Block, { k: 'li' }>;
@@ -159,6 +159,129 @@ export function moveCard(c: Card, to: Stage, pos: number): { ops: Op[]; at: numb
   return { ops: [{ op: 'move', at: c.at, n, to: target }], at: target };
 }
 
+/** The cards of a span of blocks (a run of chosen cards), in order. */
+export const cardsIn = (v: BoardView, from: number, to: number): Card[] => v.stages.flatMap((s) => s.cards).filter((c) => c.at >= from && c.at < to);
+/** A card's blocks: its words and its checklist. */
+export const blocksOf = (c: Card): Block[] => [c.block, ...c.items.map((i) => i.block)];
+/** Cards taken out, each with its checklist (the headings between them stay). */
+export const removeCards = (cards: Card[]): Op[] => [...cards].sort((a, b) => b.at - a.at).map((c) => ({ op: 'splice', at: c.at, n: c.end - c.at, blocks: [] }));
+/** The stage holding all of these cards, or undefined when they are spread over several. */
+export function stageOf(v: BoardView, cards: Card[]): Stage | undefined {
+  const s = v.stages.find((x) => cards.length > 0 && cards.every((c) => x.cards.includes(c)));
+  return s;
+}
+/**
+ * A run of cards side by side in one stage moved past the card before (-1) or after (1) it, checklists and all.
+ * `at` is where the first of them lands. Null at the stage's edge, or when the cards are not one run in one stage.
+ */
+export function moveCards(v: BoardView, cards: Card[], by: -1 | 1): { ops: Op[]; at: number } | null {
+  const s = stageOf(v, cards);
+  if (!s) return null;
+  const i = s.cards.indexOf(cards[0]);
+  const j = s.cards.indexOf(cards[cards.length - 1]);
+  if (j - i !== cards.length - 1) return null;
+  const past = s.cards[by < 0 ? i - 1 : j + 1];
+  if (!past) return null;
+  const from = cards[0].at;
+  const n = cards[cards.length - 1].end - from;
+  const to = by < 0 ? past.at : from + (past.end - past.at);
+  return { ops: [{ op: 'move', at: from, n, to }], at: to };
+}
+/** A run of cards in one stage carried to the end of stage `to`; `at` is where the first lands. Null when nothing would move. */
+export function carryCards(v: BoardView, cards: Card[], to: Stage): { ops: Op[]; at: number } | null {
+  const s = stageOf(v, cards);
+  if (!s || s === to) return null;
+  const from = cards[0].at;
+  const end = cards[cards.length - 1].end;
+  const n = end - from;
+  const dest = to.cards.at(-1)?.end ?? to.start + 1;
+  const target = dest > end ? dest - n : dest;
+  return { ops: [{ op: 'move', at: from, n, to: target }], at: target };
+}
+/** Card `c` again right after it, checklist and all; `at` is the copy's block index. */
+export function duplicateCard(c: Card): { ops: Op[]; at: number } {
+  return { ops: [{ op: 'splice', at: c.end, n: 0, blocks: blocksOf(c) }], at: c.end };
+}
+/** Cards again, each stage's run of them right after itself; `at` is the first copy's index when they are one run. */
+export function duplicateCards(v: BoardView, cards: Card[]): { ops: Op[]; at: number } {
+  const ops: Op[] = [];
+  let first = -1;
+  for (const s of [...v.stages].reverse()) {
+    const mine = s.cards.filter((c) => cards.includes(c));
+    if (!mine.length) continue;
+    const end = mine[mine.length - 1].end;
+    ops.push({ op: 'splice', at: end, n: 0, blocks: mine.flatMap(blocksOf) });
+    first = end;
+  }
+  return { ops, at: first };
+}
+/**
+ * Pasted blocks made cards: an item at the margin, a paragraph or a heading is a card; a task further in is an item of
+ * the card before it (a card if there is none); what holds no words is left out.
+ */
+export function asCards(blocks: Block[]): Li[] {
+  const out: Li[] = [];
+  for (const b of blocks) {
+    if (!isText(b)) continue;
+    const task = b.k === 'li' && b.depth > 0 && b.done !== undefined && out.length > 0;
+    if (task) out.push({ k: 'li', depth: 1, done: !!b.done, runs: b.runs });
+    else if (b.k === 'li' && b.depth === 0 && b.done === undefined) out.push(b);
+    else if (b.k === 'li') out.push({ k: 'li', depth: 0, runs: b.runs });
+    else out.push(...linesOf(b.runs).map((runs): Li => ({ k: 'li', depth: 0, runs })));
+  }
+  return out;
+}
+/** Pasted blocks made checklist items, a paragraph's lines an item each. */
+export const asItems = (blocks: Block[]): Li[] =>
+  blocks.filter(isText).flatMap((b) => (b.k === 'li' ? [b.runs] : linesOf(b.runs)).map((runs): Li => ({ k: 'li', depth: 1, done: b.k === 'li' && !!b.done, runs })));
+/** A paragraph's words cut at its line breaks, the empty lines left out: pasted lines are a card each. */
+function linesOf(runs: Run[]): Run[][] {
+  const lines: Run[][] = [[]];
+  for (const r of runs) {
+    if (r.ic || r.fn !== undefined || !r.t.includes('\n')) {
+      lines[lines.length - 1].push(r);
+      continue;
+    }
+    r.t.split('\n').forEach((part, i) => {
+      if (i) lines.push([]);
+      if (part) lines[lines.length - 1].push({ ...r, t: part });
+    });
+  }
+  return lines.filter((l) => l.some((r) => r.ic || r.fn !== undefined || r.t.trim()));
+}
+/* ---------- the words of a line ---------- */
+
+/**
+ * Enter in card `c` with the caret at `offset`: at the start of words, an empty card above it (the caret stays with the
+ * words); elsewhere the words after the caret are a new card after this one's checklist. `at` is the card the caret goes to.
+ */
+export function splitCard(c: Card, offset: number): { ops: Op[]; at: number } {
+  const len = runLength(c.block.runs);
+  if (offset <= 0 && len > 0) return { ops: [{ op: 'splice', at: c.at, n: 0, blocks: [{ k: 'li', depth: 0, runs: [] }] }], at: c.at + 1 };
+  const right = sliceRuns(c.block.runs, offset, len);
+  const ops: Op[] = [];
+  if (right.length) ops.push({ op: 'splice', at: c.at, n: 1, blocks: [{ ...c.block, runs: sliceRuns(c.block.runs, 0, offset) }] });
+  ops.push({ op: 'splice', at: c.end, n: 0, blocks: [{ k: 'li', depth: 0, runs: right }] });
+  return { ops, at: c.end };
+}
+/** Enter in item `i` at `offset`: at the start of words, an empty item above; else split there, the new item ticked off. */
+export function splitItem(i: Item, offset: number): { ops: Op[]; at: number } {
+  const len = runLength(i.block.runs);
+  if (offset <= 0 && len > 0) return { ops: [{ op: 'splice', at: i.at, n: 0, blocks: [{ k: 'li', depth: 1, done: false, runs: [] }] }], at: i.at + 1 };
+  return {
+    ops: [{ op: 'splice', at: i.at, n: 1, blocks: [{ ...i.block, runs: sliceRuns(i.block.runs, 0, offset) }, { k: 'li', depth: 1, done: false, runs: sliceRuns(i.block.runs, offset, len) }] }],
+    at: i.at + 1,
+  };
+}
+/**
+ * The line at `at` (a card or an item) joined onto the line before it (a card or an item), as Backspace at its start does;
+ * a card's checklist then follows the line it joined. Nothing when the line before is a heading or none.
+ */
+export function joinLine(doc: Doc, at: number): Op[] {
+  const prev = doc.blocks[at - 1];
+  return prev?.k === 'li' && doc.blocks[at]?.k === 'li' ? joinBlocks(doc, at) : [];
+}
+
 /* ---------- the checklist ---------- */
 
 /** An empty task after item `k` of card `c` (or first when -1; the end when `k` is omitted). */
@@ -168,6 +291,12 @@ export function addItem(c: Card, k: number = c.items.length - 1): { ops: Op[]; a
 }
 export const setItemDone = (i: Item, done: boolean): Op[] => (i.done === done ? [] : [{ op: 'splice', at: i.at, n: 1, blocks: [{ ...i.block, done }] }]);
 export const removeItem = (i: Item): Op[] => [{ op: 'splice', at: i.at, n: 1, blocks: [] }];
+/** Item `k` of card `c` past its neighbour; null at either end of the checklist. */
+export function moveItem(c: Card, k: number, by: -1 | 1): { ops: Op[]; at: number } | null {
+  const i = c.items[k];
+  if (!i || !c.items[k + by]) return null;
+  return { ops: [{ op: 'move', at: i.at, n: 1, to: i.at + by }], at: i.at + by };
+}
 
 /** Operations from an editor over one block, moved to where that block is in the document. */
 export function shifted(ops: Op[], by: number): Op[] {

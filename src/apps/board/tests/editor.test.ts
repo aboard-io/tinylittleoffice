@@ -1,6 +1,7 @@
 // The Board editor in a real browser: stages and cards from the document; typing, Enter and Backspace per line; the
-// checklist; the stage and card menus; a card carried by its grip into another stage, or by Alt+arrows; Insert and the
-// marks; undo; and at phone width a stage and a bit across, controls a finger tall, the bar one row.
+// checklist; the stage menu; cards chosen whole (the kit's rows) and what is done to them; a card carried by its grip
+// into another stage, or by the keys; joins and splits; the clipboard; Insert and the marks; undo; and at phone width a
+// stage and a bit across, controls a finger tall, the bar one row.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
 // The cascade's order is declared by the stylesheet, so it comes before the app's own (as in main.ts).
@@ -127,7 +128,7 @@ test('typing writes the card; Enter makes the next one below the checklist; a ba
   expect(stage.changes).toHaveLength(n);
 });
 
-test('Backspace at the start: an empty card goes (the caret to the card above), an empty item goes, a line with words stays', async () => {
+test('Backspace at the start: an empty item or card goes (the caret to the line above), a line with words joins the line before', async () => {
   const { el, last, changes } = await editor('## A\n\n- one\n  - [ ] a\n  - [ ]\n-\n- three\n');
   // The empty item (3): removed, the caret to the item above.
   await focusAt(el, 3, 0);
@@ -135,22 +136,85 @@ test('Backspace at the start: an empty card goes (the caret to the card above), 
   await settle(el);
   expect(last()).toBe('## A\n\n- one\n  - [ ] a\n-\n- three\n');
   expect(document.activeElement).toBe(text(el, 2).tx);
-  // The empty card (3): removed, the caret to the end of the card above.
+  // The empty card (3): removed, the caret to the end of the line above.
   await focusAt(el, 3, 0);
   input(text(el, 3), 'deleteContentBackward');
   await settle(el);
   expect(last()).toBe('## A\n\n- one\n  - [ ] a\n- three\n');
-  expect(document.activeElement).toBe(text(el, 1).tx);
-  // A card with words stays, and is not brought out of the list.
+  expect(document.activeElement).toBe(text(el, 2).tx);
+  // A card with words joins the line before (here the last item of the card above), the caret at the seam.
   await focusAt(el, 3, 0);
-  const n = changes.length;
   input(text(el, 3), 'deleteContentBackward');
   await settle(el);
+  expect(last()).toBe('## A\n\n- one\n  - [ ] athree\n');
+  expect(document.activeElement).toBe(text(el, 2).tx);
+  expect(text(el, 2).sel!.focus.offset).toBe(1);
+  // The first card with words, after the stage's name: nothing.
+  await focusAt(el, 1, 0);
+  const n = changes.length;
+  input(text(el, 1), 'deleteContentBackward');
+  await settle(el);
   expect(changes).toHaveLength(n);
-  expect(cardsOf(el, 0).map(words)).toEqual(['one', 'three']);
+  await undo(el);
+  // The undo puts the caret back where it was before the join.
+  expect(document.activeElement).toBe(text(el, 3).tx);
+  expect(text(el, 3).sel!.focus.offset).toBe(0);
   await undo(el);
   await undo(el);
   expect(last()).toBe('## A\n\n- one\n  - [ ] a\n  - [ ]\n-\n- three\n');
+});
+
+test('Backspace at the start of an item with words joins it to the item before (the first to the card); Delete at the end joins the next line in', async () => {
+  const { el, last } = await editor();
+  await focusAt(el, 3, 0);
+  input(text(el, 3), 'deleteContentBackward');
+  await settle(el);
+  expect(last()).toContain('- Write the **spec**\n  - [x] OutlineDraft\n- Review');
+  expect(document.activeElement).toBe(text(el, 2).tx);
+  expect(text(el, 2).sel!.focus.offset).toBe(7);
+  await focusAt(el, 2, 0);
+  input(text(el, 2), 'deleteContentBackward');
+  await settle(el);
+  expect(last()).toContain('- Write the **spec**OutlineDraft\n- Review the copy\n');
+  // Delete at the end of a card: the next card comes in, the caret stays at the seam.
+  const b = await editor('## A\n\n- one\n- two\n  - [ ] x\n\n## B\n\n- three\n');
+  await focusAt(b.el, 1);
+  input(text(b.el, 1), 'deleteContentForward');
+  await settle(b.el);
+  expect(b.last()).toBe('## A\n\n- onetwo\n  - [ ] x\n\n## B\n\n- three\n');
+  expect(document.activeElement).toBe(text(b.el, 1).tx);
+  expect(text(b.el, 1).sel!.focus.offset).toBe(3);
+  // At the end of a card's checklist, the end of the stage: nothing (never the next stage's name).
+  await focusAt(b.el, 2);
+  const n = b.changes.length;
+  input(text(b.el, 2), 'deleteContentForward');
+  await settle(b.el);
+  expect(b.changes).toHaveLength(n);
+});
+
+test('Enter at the start of a card pushes it down, in the middle splits it (the checklist stays with the first half); in an item the same', async () => {
+  const { el, last } = await editor();
+  await focusAt(el, 4, 0);
+  input(text(el, 4), 'insertParagraph');
+  await settle(el);
+  expect(last()).toContain('  - [ ] Draft\n-\n- Review the copy\n');
+  expect(document.activeElement).toBe(text(el, 5).tx);
+  expect(text(el, 5).sel!.focus.offset).toBe(0);
+  await focusAt(el, 1, 6);
+  input(text(el, 1), 'insertParagraph');
+  await settle(el);
+  expect(last()).toContain('- Write\n  - [x] Outline\n  - [ ] Draft\n- the **spec**\n-\n- Review');
+  expect(document.activeElement).toBe(text(el, 4).tx);
+  await focusAt(el, 3, 2);
+  input(text(el, 3), 'insertParagraph');
+  await settle(el);
+  expect(last()).toContain('  - [x] Outline\n  - [ ] Dr\n  - [ ] aft\n');
+  expect(document.activeElement).toBe(text(el, 4).tx);
+  await focusAt(el, 2, 0);
+  input(text(el, 2), 'insertParagraph');
+  await settle(el);
+  expect(last()).toContain('- Write\n  - [ ]\n  - [x] Outline\n');
+  expect(document.activeElement).toBe(text(el, 3).tx);
 });
 
 test('the checklist: Enter in an item starts the next, a tap ticks, the progress follows', async () => {
@@ -195,20 +259,164 @@ test('the stage menu: add a card, limit, colour, move, delete; the name is typed
   expect(last()).toContain('## To do {color=b}');
 });
 
-test('the card menu: move to another stage, a checklist, delete', async () => {
+const key = (on: Element, k: string, o: KeyboardEventInit = {}) => on.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o }));
+const box = (el: HTMLElement) => el.querySelector<HTMLElement>('.board')!;
+const chosen = (el: HTMLElement) => [...el.querySelectorAll<HTMLElement>('.board-card.ranged')].map(words);
+const contextLabels = () => [...document.querySelectorAll<HTMLElement>('to-context.to-rows-context button')].map((b) => b.getAttribute('aria-label'));
+const contextButton = (label: string) => [...document.querySelectorAll<HTMLButtonElement>('to-context.to-rows-context button')].find((b) => b.getAttribute('aria-label') === label)!;
+async function tapGrip(el: ToBoardEditor, card: HTMLElement, o: MouseEventInit = {}) {
+  grip(card).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...o }));
+  await settle(el);
+}
+
+test('a tap on the grip chooses the card: the bar under it in the standard order; Delete, Mod+D, Alt+arrows, Mod+Alt+arrows act on it; Escape and Enter let go', async () => {
   const { el, last } = await editor();
-  await pick(el, grip(cardsOf(el, 1)[0]), 'Done');
+  await tapGrip(el, cardsOf(el, 0)[1]);
+  expect(chosen(el)).toEqual(['Review the copy']);
+  expect(document.activeElement).toBe(box(el));
+  expect(cardsOf(el, 0)[1].getAttribute('aria-selected')).toBe('true');
+  expect(contextLabels()).toEqual(['Edit', 'Move up', 'Move down', 'Move to the stage before', 'Move to Doing', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  // Typing with a card chosen does nothing to it.
+  const n = last();
+  key(box(el), 'x');
+  await settle(el);
+  expect(last()).toBe(n);
+  // Alt+Up moves it past the card above, still chosen.
+  key(box(el), 'ArrowUp', { altKey: true });
+  await settle(el);
+  expect(last()).toContain('## To do {color=b}\n\n- Review the copy\n- Write the **spec**\n');
+  expect(chosen(el)).toEqual(['Review the copy']);
+  // Mod+D: a copy after it, the copy chosen.
+  key(box(el), 'd', { ctrlKey: true });
+  await settle(el);
+  expect(last()).toContain('- Review the copy\n- Review the copy\n- Write the **spec**\n');
+  expect(el.querySelector<HTMLElement>('.board-card.ranged')!.dataset.at).toBe('2');
+  // Mod+Alt+Right: to the end of Doing, still chosen; Alt+Right alone is never taken.
+  key(box(el), 'ArrowRight', { altKey: true });
+  await settle(el);
+  expect(last()).toContain('- Review the copy\n- Review the copy\n- Write');
+  key(box(el), 'ArrowRight', { altKey: true, ctrlKey: true });
+  await settle(el);
+  expect(last()).toContain('## Doing {limit=1 color=g}\n\n- Ship it\n- Fix the footer\n- Review the copy\n');
+  expect(chosen(el)).toEqual(['Review the copy']);
+  expect(cols(el)[1].querySelector('.board-card.ranged')).not.toBeNull();
+  // Delete: gone; the caret to the card above.
+  key(box(el), 'Delete');
+  await settle(el);
+  expect(last()).toContain('- Ship it\n- Fix the footer\n\n## Done');
+  expect(chosen(el)).toEqual([]);
+  expect(document.activeElement).toBe(text(el, 7).tx);
+  // The undo brings it back chosen.
+  await undo(el);
+  expect(chosen(el)).toEqual(['Review the copy']);
+  expect(document.activeElement).toBe(box(el));
+  // Escape lets go, the caret into its words; a second tap and Enter edits it.
+  key(box(el), 'Escape');
+  await settle(el);
+  expect(chosen(el)).toEqual([]);
+  expect(document.activeElement).toBe(text(el, 8).tx);
+  await tapGrip(el, cardsOf(el, 0)[0]);
+  key(box(el), 'Enter');
+  await settle(el);
+  expect(chosen(el)).toEqual([]);
+  expect(document.activeElement).toBe(text(el, 1).tx);
+});
+
+test('the bar under a chosen card: Move down, Move to a stage, Duplicate, Delete; Insert puts a checklist item in the chosen card', async () => {
+  const { el, last } = await editor();
+  await tapGrip(el, cardsOf(el, 0)[0]);
+  contextButton('Move down').click();
+  await settle(el);
+  expect(last()).toContain('## To do {color=b}\n\n- Review the copy\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n\n## Doing');
+  expect(chosen(el)).toEqual(['Write the spec']);
+  expect(contextButton('Move down').disabled).toBe(true);
+  contextButton('Move to Doing').click();
+  await settle(el);
+  expect(last()).toContain('- Fix the footer\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n\n## Done');
+  contextButton('Move to Done').click();
+  await settle(el);
+  expect(cardsOf(el, 2).map(words)).toEqual(['Write the spec']);
+  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Checklist item');
+  expect(last()!.endsWith('## Done\n\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n  - [ ]\n')).toBe(true);
+  expect(document.activeElement).toBe(text(el, 9).tx);
+  await tapGrip(el, cardsOf(el, 2)[0]);
+  contextButton('Duplicate').click();
+  await settle(el);
+  expect(cardsOf(el, 2).map(words)).toEqual(['Write the spec', 'Write the spec']);
+  contextButton('Delete').click();
+  await settle(el);
+  expect(cardsOf(el, 2).map(words)).toEqual(['Write the spec']);
+});
+
+test('Shift+tap and Shift+arrows extend the chosen cards; Escape and Shift+Down in words choose the card; Mod+A twice takes every card', async () => {
+  const { el } = await editor();
+  await focusAt(el, 1);
+  key(text(el, 1).tx, 'Escape');
+  await settle(el);
+  expect(chosen(el)).toEqual(['Write the spec']);
+  key(box(el), 'ArrowDown', { shiftKey: true });
+  await settle(el);
+  expect(chosen(el)).toEqual(['Write the spec', 'Review the copy']);
+  key(box(el), 'Escape');
+  await settle(el);
+  await focusAt(el, 6);
+  key(text(el, 6).tx, 'ArrowDown', { shiftKey: true });
+  await settle(el);
+  expect(chosen(el)).toEqual(['Ship it']);
+  await tapGrip(el, cardsOf(el, 1)[1], { shiftKey: true });
+  expect(chosen(el)).toEqual(['Ship it', 'Fix the footer']);
+  // Mod+A in a card's words: the words first (the browser's own), then with the words whole, every card.
+  await focusAt(el, 4);
+  const x = text(el, 4);
+  x.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 15 } };
+  await x.updateComplete;
+  key(x.tx, 'a', { ctrlKey: true });
+  await settle(el);
+  expect(chosen(el)).toEqual(['Write the spec', 'Review the copy', 'Ship it', 'Fix the footer']);
+});
+
+test('copy, cut and paste of chosen cards: TLO with their checklists and our HTML; a paste of several lines into a card makes cards', async () => {
+  const { el, last } = await editor();
+  await tapGrip(el, cardsOf(el, 0)[0]);
+  const clip = (type: string, on: Element, dt = new DataTransfer()) => {
+    on.dispatchEvent(new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true }));
+    return dt;
+  };
+  const dt = clip('copy', box(el));
+  expect(dt.getData('text/plain')).toBe('- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n');
+  expect(dt.getData('text/html')).toContain('content="TinyLittleOffice"');
+  // Cut the card in Doing, then paste after the chosen card: it comes back with its checklist.
+  await tapGrip(el, cardsOf(el, 1)[0]);
+  const cut = clip('cut', box(el));
+  await settle(el);
+  expect(cut.getData('text/plain')).toBe('- Ship it\n');
   expect(cardsOf(el, 1).map(words)).toEqual(['Fix the footer']);
-  expect(cardsOf(el, 2).map(words)).toEqual(['Ship it']);
-  expect(last()).toContain('## Done\n\n- Ship it\n');
-  await pick(el, grip(cardsOf(el, 0)[1]), 'A checklist');
-  expect(last()).toContain('- Review the copy\n  - [ ]\n');
-  expect(document.activeElement).toBe(text(el, 5).tx);
-  await pick(el, grip(cardsOf(el, 0)[1]), 'Another checklist item');
-  expect(last()).toContain('- Review the copy\n  - [ ]\n  - [ ]\n');
-  await pick(el, grip(cardsOf(el, 0)[1]), 'Delete card');
-  expect(last()).not.toContain('Review the copy');
-  expect(cardsOf(el, 0).map(words)).toEqual(['Write the spec']);
+  await tapGrip(el, cardsOf(el, 0)[1]);
+  clip('paste', box(el), dt);
+  await settle(el);
+  expect(last()).toContain('- Review the copy\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n\n## Doing');
+  // Several lines pasted into a card's words: a card a line, after it; into an empty card, in its place.
+  const lines = new DataTransfer();
+  lines.setData('text/plain', 'Book the room\nOrder lunch');
+  await focusAt(el, 9);
+  clip('paste', text(el, 9).tx, lines);
+  await settle(el);
+  expect(last()).toContain('- Fix the footer\n- Book the room\n- Order lunch\n\n## Done');
+  expect(document.activeElement).toBe(text(el, 11).tx);
+  // Into a checklist item: items.
+  await focusAt(el, 2);
+  clip('paste', text(el, 2).tx, lines);
+  await settle(el);
+  expect(last()).toContain('  - [x] Outline\n  - [ ] Book the room\n  - [ ] Order lunch\n  - [ ] Draft\n');
+  // Words alone are the words'.
+  const one = new DataTransfer();
+  one.setData('text/plain', 'soon');
+  const n = el.querySelectorAll('.board-card').length;
+  await focusAt(el, 1);
+  clip('paste', text(el, 1).tx, one);
+  await settle(el);
+  expect(el.querySelectorAll('.board-card')).toHaveLength(n);
+  expect(last()).toContain('- Write the **spec**soon\n');
 });
 
 test('a card carried by its grip into another stage lands before the card the pointer is above; a tap is not a drag', async () => {
@@ -252,46 +460,130 @@ test('a card carried by its grip into another stage lands before the card the po
   await settle(el);
   expect(last()!.endsWith('## Done\n\n- Review the copy\n')).toBe(true);
   expect(el.querySelectorAll('.board-card')).toHaveLength(n);
-  // A tap opens the menu and moves nothing.
+  // A tap chooses the card and moves nothing.
   const before = last();
   g3.dispatchEvent(pointer('pointerdown', f3.x, f3.y));
   g3.dispatchEvent(pointer('pointerup', f3.x, f3.y, 0));
   g3.click();
-  await until(() => !!document.querySelector('[popover]:popover-open'));
+  await settle(el);
   expect(last()).toBe(before);
-  (document.querySelector('[popover]:popover-open') as HTMLElement).hidePopover();
+  expect(el.querySelectorAll('.board-card.ranged')).toHaveLength(1);
+  // Escape during a drag lets it go: nothing moves.
+  const g4 = grip(cardsOf(el, 1)[0]);
+  const f4 = centre(g4);
+  g4.dispatchEvent(pointer('pointerdown', f4.x, f4.y));
+  g4.dispatchEvent(pointer('pointermove', done.left + 30, done.top + 30));
+  await el.updateComplete;
+  expect(el.querySelector('.board-card.dragging')).not.toBeNull();
+  g4.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  expect(el.querySelector('.board-card.dragging')).toBeNull();
+  g4.dispatchEvent(pointer('pointerup', done.left + 30, done.top + 30, 0));
+  await settle(el);
+  expect(last()).toBe(before);
 });
 
-test('the keys: Alt+Right carries the card to the end of the next stage, Alt+Up and Down along its own; the caret goes with it', async () => {
+test('the keys: Mod+Alt+Right carries the card to the end of the next stage, Alt+Up and Down along its own; the caret goes with it', async () => {
   const { el, last } = await editor();
-  await focusAt(el, 4);
-  text(el, 4).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+  await focusAt(el, 4, 3);
+  // Alt+Right alone is the Mac's word jump: never taken.
+  const n = last();
+  text(el, 4).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(last()).toBe(n);
+  text(el, 4).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, ctrlKey: true, bubbles: true, cancelable: true }));
   await settle(el);
   expect(last()).toContain('## Doing {limit=1 color=g}\n\n- Ship it\n- Fix the footer\n- Review the copy\n');
   expect(document.activeElement).toBe(text(el, 7).tx);
-  text(el, 7).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true }));
+  expect(text(el, 7).sel!.focus.offset).toBe(3);
+  text(el, 7).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true, cancelable: true }));
   await settle(el);
   expect(last()).toContain('- Ship it\n- Review the copy\n- Fix the footer\n');
   expect(document.activeElement).toBe(text(el, 6).tx);
-  text(el, 6).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }));
+  text(el, 6).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
   await settle(el);
   expect(last()).toContain('- Ship it\n- Fix the footer\n- Review the copy\n');
   // At the edge nothing happens.
-  const n = last();
-  text(el, 7).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }));
-  text(el, 7).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+  const m = last();
+  text(el, 7).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
   await settle(el);
-  expect(last()).toContain('## Done\n\n- Review the copy\n');
-  expect(n).not.toBe(last());
+  expect(last()).toBe(m);
+  // The undo puts the caret back in the card where it was.
+  await undo(el);
+  expect(document.activeElement).toBe(text(el, 6).tx);
+});
+
+test('more keys in the words: Up/Down go line to line in a stage; Alt+Up/Down move a checklist item; Mod+Enter ticks it; Mod+D duplicates the card; Mod+Alt+arrows in a name move the stage', async () => {
+  const { el, last } = await editor();
+  await focusAt(el, 0);
+  key(text(el, 0).tx, 'ArrowDown');
+  await settle(el);
+  expect(document.activeElement).toBe(text(el, 1).tx);
+  key(text(el, 1).tx, 'ArrowDown');
+  await settle(el);
+  expect(document.activeElement).toBe(text(el, 2).tx);
+  key(text(el, 2).tx, 'ArrowUp');
+  await settle(el);
+  expect(document.activeElement).toBe(text(el, 1).tx);
+  // The last line of a stage goes nowhere.
+  await focusAt(el, 4);
+  key(text(el, 4).tx, 'ArrowDown');
+  await settle(el);
+  expect(document.activeElement).toBe(text(el, 4).tx);
+  // Option+Shift+arrows select words on a Mac: never taken.
+  await focusAt(el, 3, 2);
+  const wordKey = new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, shiftKey: true, bubbles: true, cancelable: true });
+  text(el, 3).tx.dispatchEvent(wordKey);
+  expect(wordKey.defaultPrevented).toBe(false);
+  // A checklist item moves, the caret with it.
+  await focusAt(el, 3, 2);
+  key(text(el, 3).tx, 'ArrowUp', { altKey: true });
+  await settle(el);
+  expect(last()).toContain('- Write the **spec**\n  - [ ] Draft\n  - [x] Outline\n');
+  expect(document.activeElement).toBe(text(el, 2).tx);
+  expect(text(el, 2).sel!.focus.offset).toBe(2);
+  key(text(el, 2).tx, 'Enter', { ctrlKey: true });
+  await settle(el);
+  expect(last()).toContain('  - [x] Draft\n  - [x] Outline\n');
+  // Mod+D in a card: the card and its checklist again, the caret in the copy.
+  await focusAt(el, 1, 2);
+  key(text(el, 1).tx, 'd', { ctrlKey: true });
+  await settle(el);
+  expect(last()).toContain('  - [x] Outline\n- Write the **spec**\n  - [x] Draft\n  - [x] Outline\n- Review');
+  expect(document.activeElement).toBe(text(el, 4).tx);
+  // A stage's name: Mod+Alt+Right moves the stage, the caret in its name.
+  await focusAt(el, 8);
+  key(text(el, 8).tx, 'ArrowRight', { ctrlKey: true, altKey: true });
+  await settle(el);
+  expect(names(el)).toEqual(['To do', 'Done', 'Doing']);
+  expect(document.activeElement).toBe(text(el, 9).tx);
+  // Keys from the bar's buttons are never the words'.
+  const n = last();
+  key(bar(el, 'Bold'), 'd', { ctrlKey: true });
+  await settle(el);
+  expect(last()).toBe(n);
+});
+
+test('undo brings back the caret where the change was; the bar ends with Undo and Redo; the board never zooms on a double tap', async () => {
+  const { el } = await editor();
+  await focusAt(el, 6, 2);
+  await type(el, 6, 'ip');
+  await focusAt(el, 1, 0);
+  await undo(el);
+  expect(document.activeElement).toBe(text(el, 6).tx);
+  expect(words(cardsOf(el, 1)[0])).toBe('Ship it');
+  const tools = [...el.querySelectorAll('to-bar button')].map((b) => b.getAttribute('aria-label'));
+  expect(tools.slice(-2)).toEqual(['Undo', 'Redo']);
+  expect(getComputedStyle(box(el)).touchAction).toBe('manipulation');
 });
 
 test('Insert: a card in the stage the caret is in, a checklist item in its card, a stage named and selected; the marks work the words', async () => {
   const { el, last } = await editor();
   const insert = el.querySelector<HTMLButtonElement>('to-insert button')!;
-  await focusAt(el, 7);
+  await focusAt(el, 6);
   await pick(el, insert, 'Card');
-  expect(last()).toContain('- Fix the footer\n-\n');
-  expect(document.activeElement).toBe(text(el, 8).tx);
+  expect(last()).toContain('- Ship it\n-\n- Fix the footer\n');
+  expect(document.activeElement).toBe(text(el, 7).tx);
   await focusAt(el, 1);
   await pick(el, insert, 'Checklist item');
   expect(last()).toContain('  - [ ] Draft\n  - [ ]\n- Review the copy');
