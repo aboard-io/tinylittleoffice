@@ -264,3 +264,37 @@ test('every theme reads at AA, light and dark: words on the accent, the deep sha
     reads(T.accent, T.paper, 3, `deck ${id || 'plain'}: bullets and icons`);
   }
 });
+
+test('site: a video, a song or a place pasted into a section is a card on the page, loaded only by its button; a Quick Links page the same', () => {
+  const text = '# A\n\nWatch this.\n\nhttps://youtu.be/dQw4w9WgXcQ\n\n## Listen\n\nhttps://example.org/talk.mp3\n\nhttps://en.wikipedia.org/wiki/Ada_Lovelace\n\nhttps://www.instagram.com/p/C1a2b3c4d5e/';
+  const site = parseSite(text);
+  assert.deepEqual(site.pages[0].sections[0].text, ['Watch this.']);
+  assert.deepEqual(site.pages[0].sections[0].embeds, ['web\nhttps://youtu.be/dQw4w9WgXcQ']);
+  assert.equal(site.pages[0].sections[1].embeds.length, 3);
+  assert.deepEqual(def.outline(text), ['A', 'Watch this.', '↗  YouTube: Video dQw4w9WgXcQ', 'Listen', '↗  example.org: talk.mp3', '↗  Wikipedia: Ada Lovelace', '↗  Instagram: p/C1a2b3c4d5e']);
+  const html = spec.page!(text);
+  // The video: its card, a button that makes the sandboxed frame, a link to it; nothing from YouTube in the page itself.
+  assert.ok(html.includes('<div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-title="Video dQw4w9WgXcQ">'));
+  assert.ok(html.includes('<button type="button" class="btn web-load">Play (loads it from YouTube)</button>'));
+  assert.ok(html.includes('<figcaption><a href="https://youtu.be/dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">Video dQw4w9WgXcQ</a> <small>YouTube</small></figcaption>'));
+  assert.ok(!html.includes('<iframe'));
+  // The sound: the browser's own element, once tapped.
+  assert.ok(html.includes('data-as="audio" data-kind="audio" data-src="https://example.org/talk.mp3"'));
+  // What must be asked first (Wikipedia), or embeds nothing (Instagram): the card and the link, no button.
+  assert.ok(html.includes('>Ada Lovelace</a> <small>Wikipedia</small>') && !html.includes('loads it from Wikipedia'));
+  assert.ok(html.includes('>p/C1a2b3c4d5e</a> <small>Instagram</small>') && !html.includes('loads it from Instagram'));
+  // The script that loads them is a fixed one the policy allows by hash, and is only on a page that has such a card.
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  assert.equal(scripts.length, 2);
+  assert.ok(scripts.every((s) => pageScripts().includes(s)));
+  assert.ok(scripts[1].includes("'referrerpolicy','no-referrer'") && scripts[1].includes('sandbox'));
+  assert.equal([...spec.page!('# A\n\nJust words.').matchAll(/<script>/g)].length, 1);
+  // Quick Links: the same card, the same script.
+  const links = specOf('links')!;
+  const bio = links.page!('# Ada\n\nhttps://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC\n\n> Shop | https://example.com');
+  assert.ok(bio.includes('data-as="frame" data-kind="music" data-src="https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC" data-title="Track 4uLU6hMCjMI75M1A2tKUQC" data-h="152"'));
+  assert.ok(bio.includes('Play (loads it from Spotify)') && bio.includes("'referrerpolicy','no-referrer'"));
+  assert.ok(!links.page!('# Ada\n\n> Shop | https://example.com').includes('<script>'));
+  // The text is kept as written: the address, alone on its line.
+  assert.equal(readSite(text), text);
+});

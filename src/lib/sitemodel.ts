@@ -15,6 +15,7 @@
 import { readLines, writeLines, kindsOf, type Kind } from './lines.ts';
 import { refFence, parse as parseTlo, write as writeTlo, writeBlock, columnsOf, amountOf, type Block } from './tlo.ts';
 import { linkToRef, resolve } from '../kit/embed.ts';
+import { embedOf, webRef } from './embeds.ts';
 
 export interface Button {
   icon: string;
@@ -258,6 +259,8 @@ export function parseSite(text: string, form: Kind[] = FORM): Site {
         break;
       default:
         if (isPicture(line)) cur.pics.push(line), cur.rows.pics.push([i, 0]);
+        // A line that is the address of a video, a post, a song or a place is that, as a card (lib/embeds.ts), with the documents.
+        else if (embedOf(line)) cur.embeds.push(webRef(line));
         else if (/^:[a-z0-9-]+:$/.test(line)) (cur.icon = line.slice(1, -1)), (cur.rows.icon = i);
         else if (line) cur.text.push(line);
     }

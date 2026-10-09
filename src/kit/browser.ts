@@ -312,12 +312,18 @@ export async function printDoc(def: AppDef, body: string, ctx: DownloadContext, 
  *             open its editor ("embed-edit"), Remove takes it away
  *             ("embed-remove"). Without controls its title links to it.
  */
+/** What Wikipedia says of an article, on the tap: enough for the card. */
+interface Summary {
+  title: string;
+  extract: string;
+  thumb: string;
+}
 export class ToEmbed extends HTMLElement {
   static observedAttributes = ['ref', 'step', 'controls'];
   /** A thing from the web, loaded: the reader asked for it by tapping its card. */
   private loaded = false;
-  /** Bluesky's answer to who the handle is, once asked; '' when it did not say. */
-  private account: string | null = null;
+  /** The lookup's answer, once asked: who a Bluesky handle is, or Wikipedia's summary; '' when it did not say. */
+  private answer: string | Summary | null = null;
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -331,13 +337,14 @@ export class ToEmbed extends HTMLElement {
     window.removeEventListener(REFRESH, this.redraw);
   }
   attributeChangedCallback(name: string) {
-    if (name === 'ref') (this.loaded = false), (this.account = null);
+    if (name === 'ref') (this.loaded = false), (this.answer = null);
     this.draw();
   }
   /**
    * The card tapped: the thing itself. Bluesky is first asked who the
-   * handle is (its embed wants the account's id); if it does not say, the
-   * card offers the post on Bluesky itself instead.
+   * handle is (its embed wants the account's id); Wikipedia is asked for
+   * the article's summary, which is what the card then shows. If the
+   * provider does not answer, the card offers the thing there instead.
    */
   private async load(web: Embed) {
     this.loaded = true;
@@ -345,9 +352,10 @@ export class ToEmbed extends HTMLElement {
     if (!web.lookup) return;
     try {
       const r = await fetch(web.lookup, { referrerPolicy: 'no-referrer' });
-      this.account = (r.ok && ((await r.json()) as { did?: string }).did) || '';
+      const got = r.ok ? ((await r.json()) as { did?: string; title?: string; extract?: string; thumbnail?: { source: string } }) : {};
+      this.answer = web.kind === 'article' ? (got.extract ? { title: got.title ?? web.title, extract: got.extract, thumb: got.thumbnail?.source ?? '' } : '') : (got.did ?? '');
     } catch {
-      this.account = '';
+      this.answer = '';
     }
     this.draw();
   }
@@ -362,10 +370,14 @@ export class ToEmbed extends HTMLElement {
     const page = refPage(ref, { preview: true, ...(step === null ? {} : { step: Number(step) }) });
     const kind = d.def?.name ?? 'Document';
     const editable = this.hasAttribute('controls') && !d.locked;
-    // From the web: the card until it is tapped; then the thing itself, in a frame that can reach nothing here, or the picture.
+    // From the web: the card until it is tapped; then the thing itself, in a frame that can reach nothing here, or by the browser's own element.
     const asked = d.def?.id === 'web' ? embedOf(d.body.split('\n').find((l) => /^https?:/.test(l.trim()))?.trim() ?? '') : null;
-    const web = asked && this.account ? withAccount(asked, this.account) : asked;
-    const live = web && this.loaded && !web.lookup;
+    const web = asked && typeof this.answer === 'string' && this.answer && asked.kind !== 'article' ? withAccount(asked, this.answer) : asked;
+    const summary = web?.kind === 'article' && typeof this.answer === 'object' ? this.answer : null;
+    const live = web && this.loaded && (!web.lookup || summary);
+    const plays = web && (web.kind === 'video' || web.kind === 'audio' || web.kind === 'music');
+    // Nothing to load: the card is the way there (the provider embeds nothing without its script, or did not answer).
+    const out = web && (web.kind === 'link' || this.answer === '');
     render(
       html`<style>
           /* (white-space: inside a text being written the page keeps its spaces, which would draw this markup's own line breaks as blank lines.) */
@@ -390,10 +402,21 @@ export class ToEmbed extends HTMLElement {
           .pic .load:hover { filter: brightness(1.1); }
           iframe { display: block; width: 100%; border: 0; background: #fff; }
           iframe.video { aspect-ratio: 16 / 9; }
+          iframe.map { aspect-ratio: 4 / 3; }
           iframe.post { height: 520px; }
+          iframe.music { height: 352px; }
+          iframe.code { height: 400px; }
+          iframe.pdf, iframe.page { height: 70vh; }
           :host([fill]) iframe { height: 100%; aspect-ratio: auto; }
           img { display: block; max-width: 100%; max-height: 70vh; height: auto; margin: 0 auto; }
           :host([fill]) img { max-height: 100%; height: 100%; object-fit: contain; }
+          video { display: block; width: 100%; max-height: 70vh; background: #000; }
+          :host([fill]) video { height: 100%; }
+          audio { display: block; width: 100%; box-sizing: border-box; padding: 18px 14px; }
+          .summary { display: flex; gap: 16px; padding: 16px; font: 15px/1.5 system-ui, sans-serif; color: var(--to-ink, #18181b); text-align: left; }
+          .summary img { flex-shrink: 0; width: 120px; height: 120px; object-fit: cover; border-radius: 8px; margin: 0; }
+          .summary p { margin: 4px 0 8px; }
+          .summary a { font-weight: 600; color: var(--to-accent, #4f46e5); white-space: normal; }
           .pic .hint { position: absolute; right: 10px; top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--to-accent, #4f46e5); color: #fff; font: 600 12.5px system-ui, sans-serif; opacity: 0.92; pointer-events: none; }
           button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; border: 1px solid var(--to-border, #d4d4d8); border-radius: 6px; background: var(--to-surface, #fff); color: inherit; font: inherit; padding: 3px 8px; cursor: pointer; }
           button:hover { border-color: var(--to-accent, #4f46e5); }
@@ -402,19 +425,33 @@ export class ToEmbed extends HTMLElement {
         <figure>
           <div class="pic ${editable && !web ? 'edit' : ''} ${web ? 'web' : ''}" @click=${editable && !web ? () => this.fire('embed-edit') : null}>
             ${live
-              ? web.kind === 'image'
-                ? html`<img src=${web.src} alt=${d.title} referrerpolicy="no-referrer" loading="lazy" />`
-                : html`<iframe class=${web.kind} src=${web.src} title=${d.title} sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation" allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe>`
+              ? summary
+                ? html`<div class="summary">
+                    ${summary.thumb ? html`<img src=${summary.thumb} alt="" referrerpolicy="no-referrer" loading="lazy" />` : ''}
+                    <div><b>${summary.title}</b><p>${summary.extract}</p><a href=${web.url} target="_blank" rel="noopener noreferrer">Read on Wikipedia</a></div>
+                  </div>`
+                : web.kind === 'image'
+                  ? html`<img src=${web.src} alt=${d.title} referrerpolicy="no-referrer" loading="lazy" />`
+                  : // (The site answers every request with Referrer-Policy: no-referrer, so a sound or a film carries none either.)
+                    web.kind === 'audio'
+                    ? html`<audio controls preload="none" src=${web.src} title=${d.title}></audio>`
+                    : web.file && web.kind === 'video'
+                      ? html`<video controls preload="none" playsinline src=${web.src} title=${d.title}></video>`
+                      : html`<iframe class=${web.kind} src=${web.src} title=${d.title} style=${web.h ? `height:${web.h}px` : ''} sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation" allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe>`
               : html`<svg viewBox="0 0 ${page.w} ${page.h}" style="width:min(100%, ${page.w}px)" role="img" aria-label="${d.title}">${unsafeSVG(page.svg)}</svg>`}
             ${editable && !web ? html`<span class="hint" aria-hidden="true">Tap to edit</span>` : ''}
             ${web && !live
-              ? this.account === ''
+              ? out
                 ? html`<a class="load" href=${web.url} target="_blank" rel="noopener noreferrer">${icon(UI.globe, 14)} Open on ${web.provider}</a>`
-                : html`<button type="button" class="load" ?disabled=${this.loaded} @click=${() => this.load(web)}>${icon(web.kind === 'video' ? UI.play : UI.globe, 14)} ${web.kind === 'video' ? 'Play' : 'Show'} (loads it from ${web.provider})</button>`
+                : html`<button type="button" class="load" ?disabled=${this.loaded} @click=${() => this.load(web)}>${icon(plays ? UI.play : UI.globe, 14)} ${plays ? 'Play' : 'Show'} (loads it from ${web.provider})</button>`
               : ''}
           </div>
           <figcaption>
-            ${editable ? html`<b>${d.title}</b>` : html`<a href=${d.hash} data-tip="Open this ${kind.toLowerCase()}">${d.title}</a>`}<small>${d.title === kind ? '' : kind}</small>
+            ${editable
+              ? html`<b>${d.title}</b>`
+              : web
+                ? html`<a href=${web.url} target="_blank" rel="noopener noreferrer" data-tip="Open on ${web.provider}">${d.title}</a>`
+                : html`<a href=${d.hash} data-tip="Open this ${kind.toLowerCase()}">${d.title}</a>`}<small>${d.title === kind ? '' : kind}</small>
             ${editable
               ? html`<button type="button" @click=${() => this.fire('embed-edit')}>${icon(UI.pen, 13)} Edit</button><button type="button" aria-label="Remove this ${kind.toLowerCase()}" @click=${() => this.fire('embed-remove')}>${icon(UI.close, 13)} Remove</button>`
               : ''}
@@ -436,7 +473,7 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
   const out: { value: string; label: string; group?: string; icon?: keyof typeof UI }[] = [
     { value: 'qr-self', label: 'QR code of this document', group: '', icon: 'qr' },
-    { value: 'web', label: 'From the web: a video, a post, a picture', group: '', icon: 'globe' },
+    { value: 'web', label: 'From the web: a video, a post, a song, a place, a picture, a file', group: '', icon: 'globe' },
   ];
   const ic = (a: AppDef) => (a.icon in UI ? (a.icon as keyof typeof UI) : undefined);
   for (const g of groups)

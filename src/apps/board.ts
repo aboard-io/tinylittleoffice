@@ -7,7 +7,8 @@
 import { goLinks } from '../widgets/link-guard.ts';
 import { DocElement, defineElement, html, nothing, state, btn, tool, icon, swap, UI } from '../kit.ts';
 import { MAX_STAGES, STAGE_COLORS, card, parseBoard, progress, serializeBoard, type Card, type Stage } from '../lib/boardmodel.ts';
-import { plainInline } from '../lib/richtext.ts';
+import { plainInline, webRef } from '../lib/richtext.ts';
+import { embedOf } from '../lib/embeds.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
 
@@ -175,7 +176,7 @@ export class ToBoard extends DocElement<Stage[]> {
                     this.over = -1;
                   }}
                 >
-                  <to-rich mode="line" .tools=${false} label="Card" placeholder="Card" .value=${cd.text} @focusin=${(e: Event) => (this.field = e.currentTarget as ToWrite)} @rich-change=${(e: CustomEvent<string>) => this.patchCard(i, c, { text: e.detail })}></to-rich>${goLinks(plainInline(cd.text))}
+                  <to-rich mode="line" .tools=${false} label="Card" placeholder="Card" .value=${cd.text} @focusin=${(e: Event) => (this.field = e.currentTarget as ToWrite)} @rich-change=${(e: CustomEvent<string>) => this.patchCard(i, c, { text: e.detail })}></to-rich>${embedOf(plainInline(cd.text)) ? html`<to-embed class="board-web" ref=${webRef(plainInline(cd.text))}></to-embed>` : goLinks(plainInline(cd.text))}
                   ${cd.items.length
                     ? html`<ul class="board-items" aria-label="Checklist">
                         ${cd.items.map(

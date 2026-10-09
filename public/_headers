@@ -2,14 +2,22 @@
 # script the apps' pages carry (pageScript in src/kit/core.ts), so no other inline script can run, even in a frame.
 # The site is its own only source of code and style (its UI library reads its own small icons as data:
 # addresses); pictures and places come from OpenStreetMap; nothing may embed the editor, though a
-# document's own ".embed" view may be embedded anywhere. A video, a post or a picture from the web (lib/embeds.ts) is
-# loaded only where a reader taps its card, from the provider's privacy endpoint; those are the frame-src hosts, and
-# public.api.bsky.app (connect-src) is asked, on that tap, who a Bluesky handle is.
+# document's own ".embed" view may be embedded anywhere.
+#
+# A thing from the web (lib/embeds.ts: a video, a post, a song, a place, a picture, a file) is loaded only where a
+# reader taps its card, from the provider's privacy endpoint where there is one, in a sandboxed frame that sends no
+# referrer. frame-src is any https: address rather than a list of providers, because two of them are the fediverse:
+# a Mastodon post or a PeerTube video is embedded from its own instance, which is any host; the list of what embeds,
+# and from where, is embedOf in lib/embeds.ts, which test/embeds.test.ts holds to this policy. The frame cannot
+# reach this page, navigate it or submit a form, and is made only after the tap, from the address the document holds.
+# media-src https: is a sound or a film by its address, through the browser's own <audio> and <video>, the same way.
+# connect-src: public.api.bsky.app is asked, on the tap, who a Bluesky handle is; *.wikipedia.org for an article's
+# summary (its REST API), which is what a Wikipedia card shows.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' data: https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com https://public.api.bsky.app; worker-src 'self'; frame-src 'self' about: blob: https://www.youtube-nocookie.com https://player.vimeo.com https://embed.bsky.app https://platform.twitter.com; object-src 'none'; base-uri 'self'; form-action 'self' mailto:
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src https:; connect-src 'self' data: https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com https://public.api.bsky.app https://*.wikipedia.org; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:
   Cache-Control: no-cache
 # The pages themselves: no-transform, so Cloudflare does not rewrite them to add its analytics beacon (which the
 # policy above would block anyway, leaving an error in every console). Only the HTML: the scripts keep their compression.

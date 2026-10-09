@@ -12,7 +12,7 @@ import { listPage, xml } from '../kit/core.ts';
 import { plain } from '../lib/tlo.ts';
 import { FORM, parseSite, readSite, siteOutline, themeCss } from '../lib/sitemodel.ts';
 import type { Kind } from '../lib/lines.ts';
-import { EDIT_CSS, SITE_CSS, drawn, type SitePageOpts } from './site.def.ts';
+import { EDIT_CSS, SITE_CSS, WEB, drawn, hasWeb, type SitePageOpts } from './site.def.ts';
 
 const of = (name: string) => FORM.find((k) => k.name === name)!;
 export const LINKS_FORM: Kind[] = [
@@ -40,7 +40,7 @@ function page(text: string, opts: SitePageOpts = {}): string {
     name,
     s.text[0] ? plain(s.text[0]) : name,
     `${themeCss(site.theme)}\n${SITE_CSS}${LINKS_CSS}${opts.edit ? EDIT_CSS : ''}`,
-    `<main class="hero">${d.pics}<h1>${xml(name)}</h1>${d.body}${d.add}<footer>${xml(name)}</footer></main>`,
+    `<main class="hero">${d.pics}<h1>${xml(name)}</h1>${d.body}${d.add}<footer>${xml(name)}</footer></main>${hasWeb(site) ? WEB : ''}`,
   );
 }
 

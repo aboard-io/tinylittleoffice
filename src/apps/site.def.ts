@@ -5,6 +5,7 @@ import { refPage, resolve } from '../kit/embed.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { parseInline, plain } from '../lib/tlo.ts';
 import { linkify } from '../lib/richtext.ts';
+import { parseWeb } from '../lib/embeds.ts';
 import { FORM, kindNamed, parseSite, readSite, safeUrl, siteOutline, themeCss, type Card, type Page, type Product, type Section, type Site } from '../lib/sitemodel.ts';
 import type { Kind } from '../lib/lines.ts';
 
@@ -32,6 +33,27 @@ if(at&&at!==page)at.scrollIntoView();else if(was&&was!==page){window.scrollTo(0,
 was=page;}
 window.addEventListener('hashchange',show);show();
 })();`);
+
+/**
+ * A thing from the web (lib/embeds.ts) on a page: its card, and under the
+ * card's button the thing itself, loaded only then, in a sandboxed frame
+ * that sends no referrer, or by the browser's own element for a sound, a
+ * film or a picture. The card says what to make in its attributes; this
+ * script holds no document text.
+ */
+export const WEB = pageScript(`(function(){
+document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('.web-load'):null;if(!b)return;
+var box=b.parentNode,as=box.getAttribute('data-as'),el=document.createElement(as==='frame'?'iframe':as);
+if(as==='frame'){el.setAttribute('sandbox','allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation');el.setAttribute('allow','autoplay; fullscreen; picture-in-picture');el.setAttribute('loading','lazy');el.title=box.getAttribute('data-title');}
+else if(as==='img')el.alt=box.getAttribute('data-title');
+else{el.controls=true;el.preload='none';el.setAttribute('playsinline','');}
+el.className='web-'+box.getAttribute('data-kind');if(box.getAttribute('data-h'))el.style.height=box.getAttribute('data-h')+'px';
+el.setAttribute('referrerpolicy','no-referrer');el.src=box.getAttribute('data-src');
+while(box.firstChild)box.removeChild(box.firstChild);box.appendChild(el);});
+})();`);
+
+/** Whether any page holds a thing from the web, which wants WEB. */
+export const hasWeb = (site: Site) => site.pages.some((p) => p.sections.some((s) => s.embeds.some((e) => e.startsWith('web\n'))));
 
 /**
  * The cart, in the page itself: no server, nothing stored beyond the
@@ -86,6 +108,8 @@ nav{display:flex;gap:1.1rem;margin-left:auto;overflow-x:auto;scrollbar-width:non
 .go.stack{flex-direction:column;max-width:22rem;margin:1.6rem auto 0}.go.stack .btn{padding:.85rem 1.1rem;font-size:1.05rem;text-align:center}
 .social{list-style:none;padding:0;margin:2rem 0 0;display:flex;justify-content:center;gap:.8rem}.social a{display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:50%;background:var(--tint);color:var(--deep)}
 .embed{margin:1.6rem 0 0}.embed svg{display:block;width:100%;max-width:48rem;height:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff}.embed figcaption{font-size:.9rem;color:var(--ink3);margin-top:.4rem}
+.web-pic{position:relative;max-width:48rem}.web-load{position:absolute;left:50%;bottom:1rem;transform:translateX(-50%);white-space:nowrap}.web-pic iframe,.web-pic video,.web-pic audio,.web-pic img{display:block;width:100%;border:0;border-radius:var(--r);background:#fff}
+.web-pic img{height:auto}.web-video{aspect-ratio:16/9}.web-map{aspect-ratio:4/3}.web-post{height:520px}.web-music{height:352px}.web-code{height:400px}.web-pdf,.web-page{height:70vh}
 .shop{display:grid;grid-template-columns:1fr 18rem;gap:1.6rem;align-items:start;margin-top:1.6rem}.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:1rem}
 .grid li{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}.grid img,.grid .ph{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--tint);display:block}
 .grid div{padding:.9rem;display:flex;flex-direction:column;gap:.3rem;flex:1}.grid span{color:var(--ink3);font-size:.92rem;flex:1}.price{font-weight:700}
@@ -142,7 +166,19 @@ export function drawn(site: Site, s: Section, { edit = false, base = '', form = 
   const pics = (s.icon ? ico(s.icon, hero ? 64 : 40, s.rows.icon, 'Big icon', 'ico') : '') + s.pics.map(pic).join('');
   const embed = (ref: string) => {
     const d = resolve(ref);
-    return `<figure class="embed">${pageSvg(refPage(ref), `role="img" aria-label="${xml(d.title)}"`)}<figcaption><a href="${xml(base + d.hash)}">${xml(d.title)}</a> <small>${xml(d.def?.name ?? 'Document')}</small></figcaption></figure>`;
+    const card = pageSvg(refPage(ref), `role="img" aria-label="${xml(d.title)}"`);
+    if (d.def?.id !== 'web') return `<figure class="embed">${card}<figcaption><a href="${xml(base + d.hash)}">${xml(d.title)}</a> <small>${xml(d.def?.name ?? 'Document')}</small></figcaption></figure>`;
+    // From the web: the card, a button that loads the thing in its place (WEB), and a link to it where it lives. What needs asking first (a Bluesky handle, a Wikipedia summary) is a link alone.
+    const { embed: w, alt } = parseWeb(d.body);
+    if (!w) return '';
+    const as = w.kind === 'image' ? 'img' : w.kind === 'audio' ? 'audio' : w.file && w.kind === 'video' ? 'video' : 'frame';
+    const loads = w.src && !w.lookup && w.kind !== 'link';
+    const plays = w.kind === 'video' || w.kind === 'audio' || w.kind === 'music';
+    return `<figure class="embed">${
+      loads
+        ? `<div class="web-pic" data-as="${as}" data-kind="${w.kind}" data-src="${xml(w.src)}" data-title="${xml(alt || w.title)}"${w.h ? ` data-h="${w.h}"` : ''}>${card}<button type="button" class="btn web-load">${plays ? 'Play' : 'Show'} (loads it from ${xml(w.provider)})</button></div>`
+        : card
+    }<figcaption><a href="${xml(w.url)}" target="_blank" rel="noopener noreferrer">${xml(alt || w.title)}</a> <small>${xml(w.provider)}</small></figcaption></figure>`;
   };
   const paras = s.text.map((t) => `<p>${prose(t)}</p>`).join('');
   // Editing, the shop's settings (header lines) are typed over in the cart: a hint until written, the row once it is.
@@ -206,13 +242,13 @@ ${rest
 ${site.pages.map((_, i) => render(i)).join('\n')}
 </main>
 <footer><div class="wrap">${xml(name)}</div></footer>
-${ROUTER}`,
+${ROUTER}${hasWeb(site) ? WEB : ''}`,
   );
 }
 
 export const spec = {
   form: FORM,
-  hint: '"# Name" and a line about it; each further "# Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon:" first for an icon); "> Label | https://..." a button; a table "Name | Price | About | Image" a shop with a cart; "theme: forest serif dark" the look.',
+  hint: '"# Name" and a line about it; each further "# Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon:" first for an icon); "> Label | https://..." a button; a video\'s, a song\'s or a place\'s address alone on a line that, to tap; a table "Name | Price | About | Image" a shop with a cart; "theme: forest serif dark" the look.',
   example:
     '---\ntheme: amber\n---\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Farms we have visited\n- :bike: Delivered | By bike, on the day\n\n# Menu\n\nWhat we pour, and what we bake.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com',
   page,

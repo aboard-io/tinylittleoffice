@@ -5,7 +5,7 @@
  */
 import { DocElement, defineElement, html, nothing, unsafeSVG, pageSvg, type SlInput } from '../kit.ts';
 import { withHead } from '../lib/tlo.ts';
-import { parseWeb } from '../lib/embeds.ts';
+import { KNOWN, parseWeb } from '../lib/embeds.ts';
 import { webCard } from './web.def.ts';
 import './web.css';
 
@@ -23,9 +23,11 @@ export class ToWeb extends DocElement<{ url: string; alt: string }> {
   render() {
     const { embed } = parseWeb(this.serialize(this.doc));
     return html`<div class="web">
-      <sl-input class="web-url" size="small" label="Address" placeholder="https://… a YouTube or Vimeo video, a Bluesky or X post, a picture" autocomplete="off" spellcheck="false" .value=${this.doc.url} @sl-input=${(e: Event) => this.commit({ ...this.doc, url: (e.target as SlInput).value })}></sl-input>
+      <sl-input class="web-url" size="small" label="Address" placeholder="https://… a video, a post, a song, a place, a picture, a file" autocomplete="off" spellcheck="false" .value=${this.doc.url} @sl-input=${(e: Event) => this.commit({ ...this.doc, url: (e.target as SlInput).value })}></sl-input>
       ${embed?.kind === 'image' ? html`<sl-input class="web-alt" size="small" label="What the picture shows" placeholder="A few words, for anyone who cannot see it" .value=${this.doc.alt} @sl-input=${(e: Event) => this.commit({ ...this.doc, alt: (e.target as SlInput).value })}></sl-input>` : nothing}
-      <p class="to-hint">${embed ? `${embed.provider}: shown as a card; loaded from ${embed.provider} only where a reader taps it.` : 'The document keeps the address and nothing else.'}</p>
+      <p class="to-hint">
+        ${embed?.kind === 'link' ? `${embed.provider} embeds nothing without its script: the card opens it there.` : embed ? `${embed.provider}: shown as a card; loaded from ${embed.provider} only where a reader taps it.` : `What embeds: ${KNOWN}. The document keeps the address and nothing else.`}
+      </p>
       <div class="web-card">${unsafeSVG(pageSvg(webCard(this.serialize(this.doc)), 'role="img" aria-label="The card"'))}</div>
     </div>`;
   }
