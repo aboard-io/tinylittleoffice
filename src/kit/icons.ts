@@ -11,7 +11,7 @@ import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Calendar, Check, ChevronDown, Copy, Download, ExternalLink, Eye, FilePlus2,
   FileText, Folder, Globe, HardDrive, Heading1, Heading2, Highlighter, Image, IndentDecrease, IndentIncrease, Info, Italic,
   Languages, LayoutGrid, Link, List, ListOrdered, Menu, Moon, Pencil, Plus, Printer, QrCode, Redo2, Search, Share2, ShieldCheck,
-  Smile, Strikethrough, Sun, SunMoon, Superscript, Table2, Trash2, Underline, Undo2, Unlink, X, LockOpen, ShieldX, KeyRound, Upload, Signature,
+  Smile, Strikethrough, Sun, SunMoon, Superscript, Table2, Trash2, Underline, Undo2, Unlink, X, LockOpen, ShieldX, KeyRound, Upload, Signature, GitCompare, Code, FolderOpen, Play, Send,
   // the starter library
   Rocket, Lightbulb, Target, TrendingUp, TrendingDown, BarChart3, PieChart, Users, User, Heart, Star, Flag, Mail, Phone, Clock,
   MapPin, Home, Building2, Briefcase, DollarSign, ShoppingCart, Gift, Coffee, Cloud, Zap, Flame, Leaf, Trees, Mountain, Car,
@@ -31,7 +31,7 @@ export const UI = {
   info: Info, italic: Italic, language: Languages, home: LayoutGrid, link: Link, list: List, listOrdered: ListOrdered, menu: Menu, moon: Moon,
   pen: Pencil, plus: Plus, print: Printer, qr: QrCode, redo: Redo2, search: Search, share: Share2, shield: ShieldCheck, icon: Smile,
   strike: Strikethrough, sun: Sun, auto: SunMoon, footnote: Superscript, table: Table2, trash: Trash2, underline: Underline, undo: Undo2,
-  unlink: Unlink, close: X, lock: Lock, unlock: LockOpen, unsigned: Shield, mismatch: ShieldX, key: KeyRound, upload: Upload, sign: Signature,
+  unlink: Unlink, close: X, lock: Lock, unlock: LockOpen, unsigned: Shield, mismatch: ShieldX, key: KeyRound, upload: Upload, sign: Signature, compare: GitCompare, code: Code, openFile: FolderOpen, play: Play, mail: Mail, post: Send,
 } as const;
 
 /**

@@ -11,14 +11,18 @@ const r = (n: number) => String(Math.round(n * 100) / 100);
 import type { MenuItem } from './menu.ts';
 import { appOf } from './apps.ts';
 import { encodeDoc } from './codec.ts';
-import { routeHash } from './route.ts';
+import { parseHash, routeHash } from './route.ts';
+import { parse, referenceNotes, write } from '../doc/index.ts';
+import { pdf } from './pdf.ts';
+import { tloText } from './plain.ts';
+import { copyText } from './share.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
 
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
 export { raster } from './raster.ts';
-import { raster } from './raster.ts';
+import { jpeg, raster } from './raster.ts';
 
 /* ---------- handing a file over ---------- */
 
@@ -70,6 +74,17 @@ const sharp = (p: Page) => Math.max(1, Math.min(2, 4096 / Math.max(p.w, p.h)));
 export function picture(pages: Page[]): Promise<Uint8Array | null> {
   const page = stack(pages);
   return raster(pageSvg(page), page.w, page.h, sharp(page));
+}
+
+/** The pages as a .pdf file: each drawn as a JPEG, as sharp as the page size allows (kit/pdf.ts says why raster). */
+export async function pdfOf(pages: Page[], title: string): Promise<Uint8Array | null> {
+  const drawn = [];
+  for (const p of pages) {
+    const k = sharp(p);
+    const bytes = await jpeg(pageSvg(p), p.w, p.h, k);
+    if (bytes) drawn.push({ w: p.w, h: p.h, pw: Math.round(p.w * k), ph: Math.round(p.h * k), jpeg: bytes });
+  }
+  return drawn.length ? pdf(drawn, title) : null;
 }
 
 /** A document as a standalone web page: its pages as pictures, with the tags link previews read. */
@@ -143,11 +158,17 @@ export interface Current {
   ctx: ExportContext;
 }
 
-/** The formats every app has, after its own: print (PDF), picture, web page, the text. */
+/**
+ * The formats every app has, after its own: the .pdf file, a picture, a web page, Markdown, the text. (The
+ * drawn ones are made in exportAs, which has the pages; a .tlo carries its app, which only exportAs knows.)
+ * Markdown is the document's own text (TLO is Markdown), its footnotes in the reference form other readers know.
+ */
 export function kitExports(): Export[] {
   return [
+    { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', build: () => new Uint8Array() },
     { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', build: () => new Uint8Array() },
     { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: () => '' },
+    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => write(referenceNotes(parse(doc))) },
     { ext: 'tlo', label: () => t('Text (TLO)'), mime: 'text/plain;charset=utf-8', build: (doc) => doc },
   ];
 }
@@ -157,7 +178,7 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
   const given = ctx.title || def.title(doc);
   const title = given || t('Untitled {noun}', { noun: def.noun });
   const name = fileName(given, slug(def.noun) || def.id, ext);
-  if (ext === 'print' || ext === 'pdf') {
+  if (ext === 'print') {
     await printPages(def.view(doc), title);
     return null;
   }
@@ -165,6 +186,16 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
   const theirs = def.exports?.find((x) => x.ext === ext);
   if (theirs) {
     await saveFile(name, theirs.mime, await theirs.build(doc, ctx));
+    return name;
+  }
+  if (ext === 'pdf') {
+    const file = await pdfOf(def.view(doc), title);
+    if (!file) return null;
+    await saveFile(name, 'application/pdf', file);
+    return name;
+  }
+  if (ext === 'tlo') {
+    await saveFile(name, 'text/plain;charset=utf-8', tloText(def.id, doc));
     return name;
   }
   if (ext === 'png') {
@@ -195,11 +226,19 @@ export function exportItems(current: () => Current): MenuItem[] {
   };
   const { def } = current();
   const theirs = new Set((def.exports ?? []).map((x) => x.ext));
+  // A link that downloads the file as it opens ("#/v1/<app>.<ext>/<payload>"): for the .pdf and the app's own formats.
+  const linkTo = (ext: string) => {
+    const u = new URL(current().ctx.link);
+    u.hash = routeHash(def.id, parseHash(u.hash).payload, ext);
+    return u.href;
+  };
+  const linked = [...new Set(['pdf', ...theirs])];
   return [
     { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run('print') },
     // The kit's formats, less any the app makes in its own way (listed among its own below).
     ...kitExports().filter((x) => !theirs.has(x.ext)).map((x) => ({ label: x.label(), icon: x.ext === 'png' ? UI.image : x.ext === 'html' ? UI.globe : UI.text, does: () => void run(x.ext) })),
     ...(def.exports ?? []).map((x) => ({ label: x.label(), icon: UI.download, does: () => void run(x.ext) })),
+    ...linked.map((ext) => ({ label: t('Link to the .{ext}', { ext }), icon: UI.link, group: t('Copy a link that downloads'), does: () => void copyText(linkTo(ext)) })),
     ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => void (location.hash = routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }

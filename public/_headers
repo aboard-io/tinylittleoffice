@@ -1,13 +1,14 @@
 # Headers for the site on Cloudflare (Workers static assets). The build fills {{scripts}} with the hash of every
 # script the apps' pages carry (pageScript in src/kit/page.ts), so no other inline script can run, even in a frame.
-# The site is its own only source of code and style; nothing may embed the editor. connect-src names the
+# The site is its own only source of code and style; nothing may embed the editor (frame-ancestors 'none') but the
+# embed page, /embed/ (the embed view: the pages alone, for another site's frame), below. connect-src names the
 # short-link service and the places later apps ask (OpenStreetMap, Bluesky, Wikipedia); frame-src and
 # media-src allow a thing from the web only in a sandboxed frame made after a tap, as the embeds will.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src https:; connect-src 'self' data: https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com https://public.api.bsky.app https://*.wikipedia.org; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src https:; connect-src 'self' data: https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com https://public.api.bsky.app https://*.wikipedia.org; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors 'none'
   Cache-Control: no-cache
 # The pages themselves: no-transform, so Cloudflare does not rewrite them to add its analytics beacon (which the
 # policy above would block anyway). Only the HTML: the scripts keep their compression.
@@ -22,4 +23,20 @@
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
 /files.json
+  Access-Control-Allow-Origin: *
+# The embed page: the same policy, but any page may frame it (it shows the document's pages and a link to open them).
+/embed/
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src https:; connect-src 'self' data:; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors *
+  ! Cache-Control
+  Cache-Control: no-cache, no-transform
+# For programs: the guide (/llms.txt), the API (/api.js, and the pieces of it under /api/) and the helper for
+# pages (/tinyoffice.js) from any origin.
+/tinyoffice.js
+  Access-Control-Allow-Origin: *
+/llms.txt
+  Access-Control-Allow-Origin: *
+/api.js
+  Access-Control-Allow-Origin: *
+/api/*
   Access-Control-Allow-Origin: *

@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { offlineList } from './scripts/offline-files.ts';
@@ -18,6 +18,9 @@ const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve
  * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes written into
  * _headers (public/_headers has the placeholder; src/kit/page.ts has the scripts); and the list of files the
  * device keeps for working offline (dist/files.json), whose hash versions the service worker (src/sw.ts).
+ * Each app's page names its own share card (public/og/<id>.png, drawn by scripts/make-cards.ts) where there
+ * is one; dist/embed/index.html is the shell again, at the one address another site may frame (the embed
+ * view, public/_headers).
  */
 function afterBuild(site: string): Plugin {
   const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -29,6 +32,8 @@ function afterBuild(site: string): Plugin {
       const { pageScripts } = await fromSource<{ pageScripts(): string[] }>('src/kit/page.ts');
       const dist = resolve(import.meta.dirname, 'dist');
       const shell = readFileSync(resolve(dist, 'index.html'), 'utf8');
+      mkdirSync(resolve(dist, 'embed'), { recursive: true });
+      writeFileSync(resolve(dist, 'embed', 'index.html'), shell.replace(/(src|href)="\.\//g, '$1="../').replace('</title>', '</title>\n    <meta name="robots" content="noindex" />'));
       for (const app of apps()) {
         const title = `${app.name} · Tiny Little Office`;
         const page = shell
@@ -38,7 +43,9 @@ function afterBuild(site: string): Plugin {
           .replace(/(<meta property="og:title" content=")[^"]*"/, `$1${attr(title)}"`)
           .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${attr(app.blurb)}"`)
           .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${site}${app.id}/"`)
-          .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${site}${app.id}/"`);
+          .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${site}${app.id}/"`)
+          .replace(/(<meta property="og:image" content=")[^"]*"/, (m, a) => (existsSync(resolve(dist, 'og', `${app.id}.png`)) ? `${a}${site}og/${app.id}.png"` : m))
+          .replace(/(<meta property="og:image:alt" content=")[^"]*"/, (m, a) => (existsSync(resolve(dist, 'og', `${app.id}.png`)) ? `${a}${attr(`${app.name}: ${app.blurb}`)}"` : m));
         mkdirSync(resolve(dist, app.id), { recursive: true });
         writeFileSync(resolve(dist, app.id, 'index.html'), page);
       }
@@ -67,6 +74,7 @@ export default defineConfig(({ mode }) => ({
     target: 'es2022',
     outDir: 'dist',
     // The service worker is an entry of its own, at a fixed name: a browser looks for it at one address, build after build.
+    // (The API for programs, /api.js, is a build of its own after this one: vite.api.config.ts.)
     rollupOptions: {
       input: { main: resolve(import.meta.dirname, 'index.html'), sw: resolve(import.meta.dirname, 'src/sw.ts') },
       output: { entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },

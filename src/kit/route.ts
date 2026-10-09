@@ -10,7 +10,9 @@
  * arrives with "?s=<id>&x=<expires>" (ms since the epoch), the owner with k and o too: the shell shows how long
  * the link has left (Paul, 2026-10-09), and keeps x in the address beside the owner's query.
  * A payload that starts "E" is sealed under a password (kit/crypt.ts): `sealed` says so, and the shell asks
- * for the password before anything of the document is shown.
+ * for the password before anything of the document is shown. "…?show" is a
+ * deck's show link: it opens presenting. "#/v1/<app>.embed/<payload>" is the embed view: the pages alone, for
+ * another site's frame (served at "<site>embed/", the one address the site lets be framed).
  * Pure: the shell and the tests both read links through here.
  */
 
@@ -43,6 +45,8 @@ export interface Route {
   arrived: { id: string; expires: number } | null;
   /** The payload is sealed under a password. */
   sealed: boolean;
+  /** A deck's show link: opens presenting. (Absent, not false, when it is not one.) */
+  show?: true;
 }
 
 const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?(?:\?(.*))?$/;
@@ -60,7 +64,7 @@ export function parseHash(hash: string): Route {
   const q = new URLSearchParams((m[5] ?? '').replace(/\?/g, '&'));
   const id = q.get('s') ?? '', x = q.get('x') ?? '';
   const arrived = /^[a-z0-9]{7}$/.test(id) && /^\d{1,15}$/.test(x) ? { id, expires: Number(x) } : null;
-  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived, sealed: isSealed(m[4] ?? '') };
+  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived, sealed: isSealed(m[4] ?? ''), ...(q.has('show') ? { show: true as const } : {}) };
 }
 
 /** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update; with `display`, the Display Link; with `arrived`, the short link it came by and when that expires. */

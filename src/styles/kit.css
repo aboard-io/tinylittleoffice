@@ -1755,4 +1755,142 @@
     background: var(--to-go);
     border-color: var(--to-go);
   }
+
+  /* ---- Share: post the link to a service; the show link; the embed code ---- */
+  .to-post {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .to-mastodon {
+    max-width: 420px;
+  }
+  .to-mastodon input {
+    height: var(--to-touch) !important;
+    font-size: 16px;
+  }
+  .to-mastodon .to-btn {
+    height: var(--to-touch);
+  }
+
+  /* ---- the embed view: the pages alone, in another site's frame ---- */
+  .to-embed-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .to-embed-title {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .to-embed {
+    padding: 0 12px 12px;
+  }
+
+  /* ---- the drawer's files: Open a file…, Compare… ---- */
+  .to-drawer-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .to-drawer-files .to-btn {
+    flex: 1 1 auto;
+    text-decoration: none;
+  }
+
+  /* ---- Compare: two documents side by side, a row per block; stacked on a phone ---- */
+  .to-compare {
+    max-width: var(--to-max-w);
+    margin: 0 auto;
+    padding: 16px var(--to-gutter) 48px;
+  }
+  .to-compare h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    font-size: 22px;
+  }
+  .cmp-sides,
+  .cmp-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+  }
+  .cmp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-weight: 600;
+  }
+  .cmp-field input {
+    width: 100%;
+    min-height: var(--to-touch);
+    font-size: 16px;
+    font-family: var(--to-font-mono);
+  }
+  .cmp-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 0;
+    color: var(--to-ink-2);
+  }
+  .cmp-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 16px 0 8px;
+  }
+  .cmp-sum {
+    margin: 0;
+    font-weight: 600;
+  }
+  .cmp-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cmp-cell {
+    display: block;
+    padding: 6px 10px;
+    border-radius: var(--to-radius-sm);
+    font-family: var(--to-font-mono);
+    font-size: 14px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    color: var(--to-ink-2);
+  }
+  .cmp-del {
+    background: var(--to-last-bg);
+    color: var(--to-last-ink);
+    text-decoration: line-through;
+  }
+  .cmp-add {
+    background: var(--to-ok-bg);
+    color: var(--to-ok-ink);
+  }
+  @media (max-width: 640px) {
+    .cmp-sides,
+    .cmp-row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+    .cmp-same,
+    .cmp-none {
+      display: none;
+    }
+    .cmp-row.changed {
+      padding: 4px 0;
+    }
+  }
 }

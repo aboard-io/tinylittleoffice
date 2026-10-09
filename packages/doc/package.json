@@ -1,0 +1,10 @@
+{
+  "name": "@tinylittleoffice/doc",
+  "private": true,
+  "version": "1.0.0-next",
+  "description": "Tiny Little Office from the command line: links from files, files from links.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "tinyoffice": "tinyoffice.ts" },
+  "engines": { "node": ">=24" }
+}

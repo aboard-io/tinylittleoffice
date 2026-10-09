@@ -23,7 +23,8 @@
  * shiftFamily, moveFamily, placeFamily, removeItem, splitBlock); the rest are splices of one block, and
  * `text` ops come from the row's editor.
  */
-import { applyAll, attr, family, fenceRef, isAtomic, isText, listNumbers, moveFamily, normalRuns, noteRuns, parse, placeFamily, plainText, referenceNotes, refFence, removeItem, runLength, shiftFamily, sliceRuns, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { applyAll, attr, family, fenceRef, isAtomic, isText, listNumbers, markNotes, moveFamily, normalRuns, noteNumbers, noteRuns, notesOf, parse, placeFamily, plainText, referenceNotes, refFence, removeItem, runLength, shiftFamily, sliceRuns, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import type { TextBlock as PdfBlock } from '../../kit/textpdf.ts';
 
 export type { Dir };
 
@@ -654,4 +655,40 @@ export function toOpml(v: OutlineView, title: string): string {
   });
   while (open-- > 0) out += `  </outline>\n`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<opml version="2.0">\n  <head><title>${esc(title)}</title></head>\n  <body>\n${out}  </body>\n</opml>\n`;
+}
+
+/* ---------- the text PDF: sections and bullets ---------- */
+
+/**
+ * The outline as the text PDF lays it out (kit/textpdf.ts): a lone top item is the title and its children
+ * the sections; otherwise the document's title heads it and the top items are the sections. Deeper items are
+ * bullets; an item holding a document is that document's app and first line, in brackets; the notes follow,
+ * numbered as their marks came. (The old tree's outlineBlocks.)
+ */
+export function outlineBlocks(v: OutlineView, docTitle = '', notesHeading = 'Notes'): PdfBlock[] {
+  const all = liveItems(v);
+  const roots = all.filter((it) => it.depth === 0);
+  const lone = roots.length === 1;
+  const base = lone ? 1 : 0;
+  const next = noteNumbers();
+  const words = (it: Item): PdfBlock['runs'] => {
+    if (it.doc) {
+      const { app, gist } = docGist(it.doc);
+      return [{ t: `[${app}${gist ? ': ' + gist : ''}]`, i: true }];
+    }
+    return [...(it.label ? [{ t: `${it.label} — `, i: true as const }] : []), ...markNotes(it.runs, next)];
+  };
+  const out: PdfBlock[] = [];
+  const title = lone ? plainText(roots[0].runs).trim() : docTitle;
+  if (title) out.push({ kind: 'title', runs: [{ t: title }] });
+  for (const it of all) {
+    if (lone && it.depth === 0) continue;
+    out.push(it.depth === base ? { kind: 'h', runs: words(it) } : { kind: 'li', depth: Math.max(0, it.depth - base - 1), runs: words(it) });
+  }
+  const notes = notesOf(all.filter((it) => !it.doc));
+  if (notes.length) {
+    out.push({ kind: 'h', runs: [{ t: notesHeading }] });
+    notes.forEach((fn, i) => out.push({ kind: 'p', runs: [{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...noteRuns(fn)] }));
+  }
+  return out;
 }
