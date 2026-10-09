@@ -254,6 +254,7 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     const p = pasteThings(t, { k: 'line', at: 1, part: 'all' }, parse('- X\n  - Y\n').blocks);
     expect(run(t, p.ops)).toBe('- Root\n  - A\n    - A1\n  - X\n    - Y\n  - B\n');
     expect(p.hit).toEqual({ k: 'line', at: 3, part: 'all' });
+    expect(run(t, pasteThings(t, { k: 'line', at: 0, part: 'all' }, parse('- X\n').blocks).ops)).toBe('- Root\n  - A\n    - A1\n  - B\n  - X\n');
     expect(run(t, pasteThings(t, null, parse('Words\n').blocks).ops)).toBe('- Root\n  - A\n    - A1\n  - B\n  - Words\n');
     const s = doc('seating', '- Top: Jo, Sam\n- Two:\n');
     const q = pasteThings(s, { k: 'line', at: 0, part: 0 }, parse('- Ann\n').blocks);
@@ -270,9 +271,11 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
   test('duplicated: a copy right after it; a connection is never doubled', () => {
     const t = doc('org', '- Ada\n  - Ben\n');
     expect(run(t, duplicateThing(t, { k: 'line', at: 1, part: 'all' }).ops)).toBe('- Ada\n  - Ben\n  - Ben\n');
+    expect(run(t, duplicateThing(t, { k: 'line', at: 0, part: 'all' }).ops)).toBe('- Ada\n  - Ben\n- Ada\n  - Ben\n');
     const s = doc('seating', '- Top: Jo, Sam\n');
     expect(run(s, duplicateThing(s, { k: 'line', at: 0, part: 0 }).ops)).toBe('- Top: Jo, Jo, Sam\n');
     expect(duplicateThing(doc('net', '~ A -> B\n'), { k: 'edge', at: 0 }).ops).toEqual([]);
+    expect(duplicateThing(doc('net', '- A\n'), { k: 'line', at: 0, part: 'all' }).ops).toEqual([]);
   });
   test('moved past a neighbour: a tree\'s family among its siblings, a step, a seat past the one beside it; none past the end', () => {
     const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');

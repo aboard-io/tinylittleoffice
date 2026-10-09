@@ -489,10 +489,10 @@ export function thingBlocks(doc: Doc, hit: Hit): Block[] {
 
 /**
  * Blocks pasted at a thing (or, with none, where a new thing goes): words alone into a list after the thing of it
- * (a seat at a table, a thing of a set); else lines after the thing (a tree's after its family, at its level; a
- * step into its lane), and any connections at the end, none twice. The ops, and the first thing pasted.
+ * (a seat at a table, a thing of a set); else lines after the thing (a tree's after its family, at its level, or
+ * under a root unless `beside`; a step into its lane), and any connections at the end, none twice. The ops, and the first thing pasted.
  */
-export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[]): { ops: Op[]; hit: Hit | null } {
+export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[], beside = false): { ops: Op[]; hit: Hit | null } {
   const kind = kindOf(doc);
   const lis = blocks.flatMap((b): Extract<Block, { k: 'li' }>[] => (b.k === 'li' ? [b] : isText(b) && 'runs' in b && charsOf(b.runs).trim() ? [li(0, b.runs)] : []));
   const edges = blocks.filter((b): b is Extract<Block, { k: 'edge' }> => b.k === 'edge');
@@ -515,7 +515,8 @@ export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[]): { ops: 
     let to: number;
     let depth = 0;
     const root = linesOf(doc).find((l) => l.depth === 0);
-    if (line && isTree(kind)) [to, depth] = [family(doc, at), line.depth];
+    // At a tree's root, under it (as Enter there makes a branch); at anything else, beside it.
+    if (line && isTree(kind)) [to, depth] = [family(doc, at), line.depth === 0 && !beside ? 1 : line.depth];
     else if (line) to = at + 1;
     else if (hit?.k === 'lane') to = (linesOf(doc).filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase()).at(-1)?.at ?? afterLines(doc) - 1) + 1;
     else if (isTree(kind) && root) [to, depth] = [family(doc, root.at), 1];
@@ -534,8 +535,10 @@ export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[]): { ops: 
   return { ops: bd.ops, hit: first };
 }
 
+/** Whether a thing can be duplicated: not a connection (never twice), not a thing of a network (one name is one thing). */
+export const canDuplicate = (doc: Doc, hit: Hit): boolean => hit.k !== 'edge' && kindOf(doc) !== 'net';
 /** A copy of the thing, right after it. */
-export const duplicateThing = (doc: Doc, hit: Hit): { ops: Op[]; hit: Hit | null } => (hit.k === 'edge' ? { ops: [], hit: null } : pasteThings(doc, hit, thingBlocks(doc, hit)));
+export const duplicateThing = (doc: Doc, hit: Hit): { ops: Op[]; hit: Hit | null } => (canDuplicate(doc, hit) ? pasteThings(doc, hit, thingBlocks(doc, hit), true) : { ops: [], hit: null });
 
 /** The thing past its neighbour (by -1 up, 1 down): a line (a tree's with its family, among its siblings); one thing of a list past the one beside it. Null when it cannot go. */
 export function moveThing(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hit } | null {
