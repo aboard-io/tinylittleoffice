@@ -85,19 +85,24 @@ else if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){
 draw();})();`);
 
 /**
- * The preview's half of editing: a tap on a section picks it for the editor beside the frame; the "+"
- * opens a chooser of what the section can take (the kinds and their names come in the data "site-edit");
- * a heading's handles move or remove its part; a link out of the site does not leave the preview; the
- * page shown is told, so the next drawing keeps it; undo and redo keys go to the editor. The editor checks
- * that a message comes from its own frame.
+ * The preview's half of editing: a tap on a section picks it for the editor beside the frame, with where
+ * it is on screen (and again as the page scrolls, and when a drawing opens with a section in hand), so the
+ * editor's bar for it sits under it; the "+" opens a chooser of what the section can take (the kinds and
+ * their names come in the data "site-edit"), walked by arrows, closed by Escape with the focus back on the
+ * "+"; a heading's handles move or remove its part; a link out of the site does not leave the preview; the
+ * page shown is told, so the next drawing keeps it; undo and redo keys go to the editor, and Select All
+ * never selects the page. Each section listens for its own click, for WebKit counts a finger's tap as a
+ * click only on an element that does. The editor checks that a message comes from its own frame.
  */
 export const EDIT = pageScript(`(function(){
-var D=JSON.parse(document.getElementById('site-edit').textContent),menu=null;
+var D=JSON.parse(document.getElementById('site-edit').textContent),menu=null,held=D.held?D.cur:-1,soon=0;
 function send(m){m.site=D.stamp;parent.postMessage(m,'*');}
-function close(){if(menu){menu.parentNode.removeChild(menu);menu=null;}}
+function rect(n){var el=document.querySelector('[data-s="'+n+'"]');if(!el)return null;var r=el.getBoundingClientRect();return [r.left,r.top,r.width,r.height];}
+function where(){soon=0;if(held>=0)send({do:'at',s:held,r:rect(held)});}
+function close(){if(!menu)return;var b=menu.previousSibling,had=menu.contains(document.activeElement);menu.parentNode.removeChild(menu);menu=null;if(had&&b&&b.focus)b.focus();}
 function offer(b){var n=+b.getAttribute('data-site-add');if(menu&&menu.previousSibling===b)return close();close();
 menu=document.createElement('div');menu.className='site-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label',D.add);
-D.kinds.forEach(function(k){var it=document.createElement('button');it.type='button';it.setAttribute('role','menuitem');it.textContent=k[1];
+D.kinds.forEach(function(k){var it=document.createElement('button');it.type='button';it.setAttribute('role','menuitem');it.tabIndex=-1;it.textContent=k[1];
 it.addEventListener('click',function(ev){ev.stopPropagation();close();send({do:'add',s:n,kind:k[0]});});menu.appendChild(it);});
 b.parentNode.insertBefore(menu,b.nextSibling);menu.querySelector('button').focus();}
 document.addEventListener('click',function(ev){var el=ev.target;if(!el||!el.closest)return;
@@ -105,12 +110,22 @@ var plus=el.closest('[data-site-add]');if(plus){ev.preventDefault();return offer
 var part=el.closest('[data-site-part]');if(part){ev.preventDefault();close();return send({do:part.getAttribute('data-site-do'),s:+part.getAttribute('data-site-part')});}
 if(menu&&!menu.contains(el))close();
 var a=el.closest('a[href]');if(a&&a.getAttribute('href').charAt(0)!=='#')ev.preventDefault();
-var s=el.closest('[data-s]');if(s&&!el.closest('nav'))send({do:'pick',s:+s.getAttribute('data-s')});},true);
-document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase();if(ev.key==='Escape'&&menu){close();return;}
-if((ev.ctrlKey||ev.metaKey)&&(k==='z'||k==='y')){ev.preventDefault();send({do:k==='y'||ev.shiftKey?'redo':'undo'});}});
+var s=el.closest('[data-s]');if(s&&!el.closest('nav')){held=+s.getAttribute('data-s');send({do:'pick',s:held,r:rect(held)});}},true);
+document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase(),mod=ev.ctrlKey||ev.metaKey;
+if(menu&&menu.contains(ev.target)){var items=[].slice.call(menu.querySelectorAll('button')),i=items.indexOf(ev.target);
+if(ev.key==='Escape'){ev.preventDefault();close();return;}
+var to=ev.key==='ArrowRight'||ev.key==='ArrowDown'?i+1:ev.key==='ArrowLeft'||ev.key==='ArrowUp'?i-1:ev.key==='Home'?0:ev.key==='End'?items.length-1:null;
+if(to!==null){ev.preventDefault();items[(to+items.length)%items.length].focus();return;}
+if(ev.key==='Tab'){close();return;}}
+if(ev.key==='Escape'&&menu){close();return;}
+if(mod&&(k==='z'||k==='y')){ev.preventDefault();send({do:k==='y'||ev.shiftKey?'redo':'undo'});return;}
+if(mod&&k==='a'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))ev.preventDefault();});
+window.addEventListener('scroll',function(){if(held>=0&&!soon)soon=requestAnimationFrame(where);},{passive:true});
+window.addEventListener('resize',function(){if(held>=0&&!soon)soon=requestAnimationFrame(where);});
+[].forEach.call(document.querySelectorAll('[data-s]'),function(el){el.addEventListener('click',function(){});});
 window.addEventListener('hashchange',function(){send({do:'page',id:decodeURIComponent(location.hash.slice(1))});});
 var cur=document.querySelector('[data-s="'+D.cur+'"]');if(cur&&D.cur>0)cur.scrollIntoView({block:'start'});
-send({do:'ready'});
+send({do:'ready'});where();
 })();`);
 
 /* ---------- words ---------- */
@@ -171,7 +186,7 @@ h1{font-size:2rem;margin:0 0 .6rem}p{color:var(--ink2);margin:0 0 1rem}
 footer{border:0;padding:1rem 0 0;font-size:.85rem}`;
 
 /** The preview's marks: the section being edited outlined, the "+" and the handles thumb-sized. */
-const EDIT_CSS = `[data-s]{cursor:pointer}.site-cur{outline:2px dashed var(--a);outline-offset:-2px}
+const EDIT_CSS = `[data-s]{cursor:pointer;touch-action:manipulation}.site-plus,.site-tools button,.site-menu button{touch-action:manipulation}.site-cur{outline:2px dashed var(--a);outline-offset:-2px}
 .site-plus{display:inline-grid;place-items:center;width:2.75rem;height:2.75rem;padding:0;border-radius:50%;border:1px dashed var(--a);background:var(--bg);color:var(--a);font:600 1.3rem/1 var(--font);margin:1.2rem 0 0}.hero .site-plus,main>.site-plus{margin:1.2rem auto 0}
 .site-tools{display:inline-flex;gap:.3rem;vertical-align:middle;margin-left:.6rem}.site-tools button{width:2.75rem;height:2.75rem;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--bg);color:var(--ink2);font:1rem/1 var(--font)}.site-tools button:hover{color:var(--deep);border-color:var(--a)}
 .site-menu{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.8rem auto 0;max-width:30rem}.site-menu button{background:var(--tint);color:var(--deep);padding:.55rem .9rem;min-height:2.75rem}`;
@@ -180,7 +195,7 @@ export interface SitePageOpts {
   /** Where another document's link begins: the site the link is on. */
   base?: string;
   /** The preview in the editor: the section being edited, and a stamp the frame's messages carry back. */
-  edit?: { cur: number; stamp: number };
+  edit?: { cur: number; stamp: number; held?: boolean };
 }
 
 /** The buttons a page's or a section's heading carries in the preview: earlier, later, away. */
@@ -294,7 +309,7 @@ ${site.pages.map((_, i) => render(i)).join('\n')}
   }
   const shown = edit ? site.pages[site.sections[edit.cur]?.page ?? 0]?.id ?? '' : '';
   const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${
-    edit ? pageData('site-edit', { cur: edit.cur, stamp: edit.stamp, add: t('Add'), kinds: kindsOf(site).map((k) => [k, kindName(k)]) }) + EDIT : ''
+    edit ? pageData('site-edit', { cur: edit.cur, stamp: edit.stamp, held: !!edit.held, add: t('Add'), kinds: kindsOf(site).map((k) => [k, kindName(k)]) }) + EDIT : ''
   }`;
   const lang = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
   return `<!doctype html>

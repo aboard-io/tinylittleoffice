@@ -265,16 +265,20 @@ export function blockOf(k: Kind, arg = ''): Block {
 }
 const newProduct = () => [t('New thing'), '10', '', ''];
 
-/** A thing added to section `n`: the ops, and the block it is (or the table it went into). */
-export function addOps(doc: Doc, site: Site, n: number, k: Kind, arg = ''): { ops: Op[]; at: number } {
+/**
+ * A thing added to section `n`: the ops, and the block it is (or the table it went into). `after` is the block the
+ * caret is in (a document index): the thing goes under it, as Insert ▾ does in the Word Processor; without one, at the
+ * end of the section (the frame's "+"). A page always goes after the page the section is on.
+ */
+export function addOps(doc: Doc, site: Site, n: number, k: Kind, arg = '', after?: number): { ops: Op[]; at: number } {
   const s = site.sections[n] ?? site.sections[0];
   if (k === 'product' && s.shop >= 0) {
     const b = doc.blocks[s.shop] as Extract<Block, { k: 'table' }>;
     const row = b.cols.map((_, c) => newProduct()[columnsOf(b, ...PRODUCT).indexOf(c)] ?? '');
     return { ops: [{ op: 'rows', at: s.shop, r: b.rows.length, n: 1, rows: [row] }], at: s.shop };
   }
-  // A page goes after the page the section is on; anything else at the end of the section.
-  const at = k === 'page' ? site.pages[s.page].to : s.to;
+  // A page goes after the page the section is on; anything else under the caret's block, or at the end of the section.
+  const at = k === 'page' ? site.pages[s.page].to : after !== undefined && after >= s.from && after < s.to ? after + 1 : s.to;
   return { ops: [{ op: 'splice', at, n: 0, blocks: [blockOf(k, arg)] }], at };
 }
 
@@ -308,6 +312,27 @@ export function moveOps(site: Site, n: number, by: -1 | 1): Op[] | null {
 export function removeOps(site: Site, n: number): Op[] | null {
   const part = partOf(site, n);
   return part ? [{ op: 'splice', at: part.from, n: part.to - part.from, blocks: [] }] : null;
+}
+/** A copy of a page with its sections, or of a section, put right after it: one `splice`; `at` is where the copy begins. */
+export function duplicateOps(doc: Doc, site: Site, n: number): { ops: Op[]; at: number } | null {
+  const part = partOf(site, n);
+  if (!part) return null;
+  const blocks = structuredClone(doc.blocks.slice(part.from, part.to));
+  return { ops: [{ op: 'splice', at: part.to, n: 0, blocks }], at: part.to };
+}
+/** The blocks section `n` stands for when it is copied: its part (a page with its sections), or the home page's front section. */
+export function partBlocks(doc: Doc, site: Site, n: number): Block[] {
+  const s = site.sections[n];
+  if (!s) return [];
+  const part = partOf(site, n);
+  return doc.blocks.slice(part ? part.from : s.from, part ? part.to : s.to);
+}
+/** Blocks pasted after the part section `n` stands for (after the home page's front section for the home page): one `splice`. */
+export function pasteOps(site: Site, n: number, blocks: Block[]): { ops: Op[]; at: number } | null {
+  const s = site.sections[n];
+  if (!s || !blocks.length) return null;
+  const at = partOf(site, n)?.to ?? s.to;
+  return { ops: [{ op: 'splice', at, n: 0, blocks }], at };
 }
 /** The look: the theme words in the head (indigo, the default, is not written). */
 export function themeOp(theme: Theme): Op {

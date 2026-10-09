@@ -17,6 +17,16 @@
   }
   .site-preview {
     min-width: 0;
+    border-radius: var(--to-radius);
+    touch-action: manipulation;
+  }
+  /* A section in hand: the focus is on the box round the frame. */
+  .site-preview:focus {
+    outline: none;
+  }
+  .site-preview:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 2px;
   }
   .site-frame {
     display: block;
@@ -64,7 +74,12 @@
     font-size: 16px;
     min-width: 0;
   }
+  /* Inputs at 16px, so Safari does not zoom when one takes the focus. */
+  .site-ask-form input {
+    font-size: 16px;
+  }
   .site-text .tx {
+    touch-action: manipulation;
     min-height: 8em;
     font-size: 16px;
     line-height: 1.55;
