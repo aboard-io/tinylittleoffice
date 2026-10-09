@@ -71,8 +71,8 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   f.post({ lf: 'set', r: 4, f: 0, v: 'Hours' });
   f.post({ lf: 'done' });
   await drawn(el, () => expect(nav(f)).toEqual(['Home', 'Menu', 'Hours', 'Visit']));
-  // The page on show can be moved past its neighbour, and taken away with everything in it.
-  const row = (id: string) => f.data()!.p.find((p) => p[0] === id)![1];
+  // The page on show can be moved past its neighbour, and taken away with everything in it: its heading carries the buttons, with its row.
+  const row = (id: string) => +f.page().querySelector(`#${id} h1 [data-lf-part]`)!.getAttribute('data-lf-part')!;
   f.post({ lf: 'part', r: row('hours'), do: 'down' });
   await settle(el);
   expect(nav(f)).toEqual(['Home', 'Menu', 'Visit', 'Hours']);
@@ -84,4 +84,14 @@ test('on the picture: a page is added after the one on show, named, moved, and t
   expect(nav(f)).toEqual(['Home', 'Menu', 'Visit']);
   expect(placed(f)).toBe('');
   expect(last()).toBe(text);
+  // No bar along the bottom: the "+" at the end of each page offers what can go there.
+  expect(f.page().getElementById('lf-bar')).toBeNull();
+  expect(f.page().querySelectorAll('.lf-plus[data-lf-menu]')).toHaveLength(3);
+  // The theme is chosen from the bar, and written to the header.
+  const theme = el.querySelector('sl-select.deck-theme')!;
+  (theme as unknown as { value: string }).value = 'forest';
+  theme.dispatchEvent(new CustomEvent('sl-change', { bubbles: true, composed: true }));
+  await settle(el);
+  expect(last()).toMatch(/^---\ntheme: forest\n---\n# Harbor Coffee/);
+  expect(f.frame().getAttribute('srcdoc')).toContain('--a:#15803d');
 });

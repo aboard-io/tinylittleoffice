@@ -502,9 +502,9 @@ test('icons in drawings and diagrams', async () => {
   assert.ok(shapeSvg(org.shapes[0], org.shapes).includes('stroke-linecap="round"'));
 });
 
-test('page apps: a site, a store, an invoice, a contract', async () => {
+test('page apps: a site, a shop, Quick Links, an invoice, a contract', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  for (const id of ['site', 'store', 'invoice', 'contract', 'flow', 'spinner', 'santa', 'split', 'log']) {
+  for (const id of ['site', 'links', 'invoice', 'contract', 'flow', 'spinner', 'santa', 'split', 'log']) {
     const spec = specOf(id)!;
     const page = spec.page!(spec.example);
     assert.ok(page.startsWith('<!doctype html>') && page.includes('<meta property="og:title"') && page.includes('</html>'), id);
@@ -515,13 +515,15 @@ test('page apps: a site, a store, an invoice, a contract', async () => {
   }
   const site = specOf('site')!.page!(specOf('site')!.example);
   assert.ok(site.includes('<h1>Harbor Coffee</h1>') && site.includes('href="#menu"') && site.includes('<section class="page" id="menu">') && site.includes('<strong>Roasted daily</strong>'));
-  const store = specOf('store')!.page!(specOf('store')!.example);
+  // A shop is a site with a table of products: a button for each, the cart beside them, orders to the address in the header.
+  const SHOP = '---\ncurrency: $\norders: orders@example.com\n---\n# Harbor Coffee Shop\n\nBeans and things, posted on Fridays.\n\n## Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nHouse blend, 250g | 12.50 | Chocolate and orange. |\nQuay espresso, 250g | 14.00 | Dark, syrupy. |\nFilter papers | 4.00 | A hundred, unbleached. |\nTin mug | 9.00 | Enamel. |';
+  const store = specOf('site')!.page!(SHOP);
   assert.ok(store.includes('data-add="3"') && store.includes('$12.50') && store.includes('orders@example.com') && store.includes('Send order by email'));
   // Nothing typed into a page can break out of it.
-  assert.ok(!specOf('store')!.page!('# <script>alert(1)</script>\n\nName | Price | About\n--- | --- | ---\nx | 1 | </script><script>alert(2)</script>').includes('<script>alert'));
-  // A shop written loosely (a list of products, another table) comes in as the table.
-  assert.equal(appOf('store')!.read!('# Shop\nBeans.\n- House blend | 12.50 | Good\n\n| Product | Cost |\n|---|---|\n| Mug | 9 |'), '# Shop\n\nBeans.\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nHouse blend | 12.50 | Good |\nMug | 9 |  |');
-  assert.equal(appOf('store')!.read!(specOf('store')!.example), specOf('store')!.example);
+  assert.ok(!specOf('site')!.page!('# <script>alert(1)</script>\n\nName | Price | About\n--- | --- | ---\nx | 1 | </script><script>alert(2)</script>').includes('<script>alert'));
+  // A shop written as one once was (a table whose columns are named otherwise) comes in as the products.
+  assert.equal(appOf('site')!.read!('# Shop\nBeans.\n\n| Product | Cost |\n|---|---|\n| Mug | 9 |'), '# Shop\n\nBeans.\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nMug | 9 |  |');
+  assert.equal(appOf('site')!.read!(SHOP), SHOP);
   const { parseInvoice } = await import('../src/apps/invoice.def.ts');
   const inv = parseInvoice(specOf('invoice')!.example);
   assert.deepEqual([inv.items.length, inv.subtotal, inv.tax, inv.total], [3, 5080, 406.4, 5486.4]);

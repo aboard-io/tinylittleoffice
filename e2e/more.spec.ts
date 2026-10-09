@@ -133,12 +133,12 @@ test('draw: zoom, and an icon placed by a click', async ({ page }) => {
   await shot(page, 'draw-icons');
 });
 
-// Stays: the store's cart is its page's own script, in a frame, and the invoice's PDF is drawn on a canvas (the pages as written, and the download, are in test/dom/pages.test.ts).
-test('page apps: a store with a cart, an invoice as a PDF', async ({ page }) => {
-  // A store: things go in the cart, and the total adds up.
-  await page.goto('/#/v0/store');
-  await page.getByRole('button', { name: 'Start from an example' }).click();
-  const store = page.frameLocator('to-store iframe');
+// Stays: a shop's cart is its page's own script, in a frame, and the invoice's PDF is drawn on a canvas (the pages as written, and the download, are in test/dom/pages.test.ts).
+test('page apps: a shop with a cart, an invoice as a PDF', async ({ page }) => {
+  // A shop: things go in the cart, and the total adds up.
+  const { encodeEnvelope } = await import('../src/lib/envelope.ts');
+  await page.goto('/#/v0/site/' + encodeEnvelope({ created: null, body: '---\norders: orders@example.com\n---\n# Harbor Coffee Shop\n\nBeans and things.\n\n## Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nHouse blend, 250g | 12.50 | Chocolate and orange. |\nTin mug | 9.00 | Enamel. |' }));
+  const store = page.frameLocator('to-site iframe');
   await expect(store.getByRole('button', { name: 'Send order by email' })).toBeDisabled();
   await store.getByRole('button', { name: 'Add House blend, 250g to the cart' }).click();
   await store.getByRole('button', { name: 'Add House blend, 250g to the cart' }).click();

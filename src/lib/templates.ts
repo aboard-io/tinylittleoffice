@@ -327,7 +327,42 @@ const DECK: Template[] = [
   },
 ];
 
-export const TEMPLATES: Record<string, Template[]> = { write: WRITE, sheet: SHEET, deck: DECK };
+/* ---------- Quick Links ---------- */
+
+const LINKS: Template[] = [
+  {
+    id: 'maker',
+    name: 'A maker',
+    blurb: 'A picture, a line, the shop, the classes, the inbox; the places you post at the foot.',
+    body: '---\ntheme: rose\n---\n# Your name\n\n![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)\n\nWhat you make, and where.\n\n> :shopping-bag: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:you@example.com\n\n~ :instagram: Instagram | https://instagram.com/you\n~ :youtube: YouTube | https://youtube.com/@you',
+  },
+  {
+    id: 'group',
+    name: 'A group',
+    blurb: 'A mutual-aid group or a club: how to join, how to help, the next meeting, the signal group.',
+    body: '---\ntheme: forest\n---\n# Quayside Mutual Aid\n\n:hand-heart:\n\nNeighbours helping neighbours, since the flood.\n\n> :hand-helping: Ask for help | https://example.com/ask\n> :heart-handshake: Offer help | https://example.com/offer\n> :calendar: Next meeting | https://example.com/meet\n> :message-circle: Join the group chat | https://example.com/chat\n\n~ :instagram: Instagram | https://instagram.com/quayside\n~ :mail: Email | mailto:hello@example.com',
+  },
+  {
+    id: 'band',
+    name: 'A band',
+    blurb: 'The new record, the dates, the merch, every place the music is.',
+    body: '---\ntheme: midnight\n---\n# The Harbour Lights\n\n![](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400)\n\nNew record out Friday.\n\n> :disc-3: Listen | https://example.com/listen\n> :ticket: Tour dates | https://example.com/dates\n> :shirt: Merch | https://example.com/merch\n\n~ :instagram: Instagram | https://instagram.com/harbourlights\n~ :youtube: YouTube | https://youtube.com/@harbourlights\n~ :music: Bandcamp | https://harbourlights.bandcamp.com',
+  },
+  {
+    id: 'shop',
+    name: 'A small business',
+    blurb: 'Hours, the menu, a table booked, the way there, the phone.',
+    body: '---\ntheme: amber\n---\n# Harbor Coffee\n\n:coffee:\n\n14 Quay Street. Open 7 to 3, every day but Monday.\n\n> :utensils: The menu | https://example.com/menu\n> :calendar-check: Book a table | https://example.com/book\n> :map-pin: Find us | https://maps.example.com/harbor\n> :phone: Call | tel:+351000000000\n\n- :instagram: Instagram | https://instagram.com/harborcoffee\n- :mail: Email | mailto:hello@example.com',
+  },
+  {
+    id: 'writer',
+    name: 'A writer',
+    blurb: 'The newsletter, the book, the latest piece, and a way to say hello.',
+    body: '---\ntheme: paper\n---\n# Your name\n\n:pen-line:\n\nEssays about small towns and smaller machines.\n\n> :mail-open: The newsletter | https://example.com/newsletter\n> :book-open: The book | https://example.com/book\n> :newspaper: The latest piece | https://example.com/latest\n> :mail: Say hello | mailto:you@example.com\n\n~ :at-sign: Bluesky | https://bsky.app/profile/you\n~ :rss: RSS | https://example.com/feed',
+  },
+];
+
+export const TEMPLATES: Record<string, Template[]> = { write: WRITE, sheet: SHEET, deck: DECK, links: LINKS };
 
 /** The templates an app can start from; none for most apps. */
 export const templatesOf = (app: string): Template[] => TEMPLATES[app] ?? [];

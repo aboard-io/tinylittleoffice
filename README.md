@@ -22,8 +22,8 @@ you have copied the file.
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note; or just dots on the map. |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
-| Website | A site of little pages from a few lines, a link-in-bio page included; downloads as one HTML file with the pages switched by hash. |
-| Store | A shop page with a working cart; orders go by email. |
+| Website | A site of little pages from a few lines, with a shop (a table of products, a cart, orders by email) if it lists what it sells; many themes; edited on the page itself, a "+" where anything can go; downloads as one HTML file with the pages switched by hash. |
+| Quick Links | A link-in-bio page: a picture, a line about you, a stack of buttons, the places you are at the foot. |
 | Invoice | A form laid out like the paper: who, what, how much; the sums done as you type, a PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
 | Zine | A tiny deck, edited as Deck is: eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
@@ -239,10 +239,14 @@ Every format is plain text, chosen so deflate has something to chew on.
   in the header.
 - **Website** (TLO): `# Name` and a line about it, a further `# Title` for
   each further page, `## Section` within a page, `- Point | detail` cards,
-  `> Label | url` buttons, a fenced document for another document on the
-  page, `theme: amber serif dark` for the look. A line that is only a
-  picture's address is a picture. The home page is what comes before the
-  second `#`; a site with one is one page navigated by its sections.
+  `> Label | url` buttons, `![](url)` (or a line that is only a picture's
+  address) a picture, a table `Name | Price | About | Image` the products
+  of a shop (with `currency:` and `orders:` in the header), a fenced
+  document for another document on the page, `theme: forest serif dark`
+  for the look (one of sixteen themes, a type and a mode). The home page
+  is what comes before the second `#`; a site with one is one page
+  navigated by its sections. **Quick Links** is the same with one page:
+  `- :icon: Label | url` lines are the small links at its foot.
 - **Calendar**: an optional `@Zone/Name` line (the zone the document was last
   edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
   span whose start is a day count from 2020-01-01: a floating civil date, the
@@ -581,7 +585,7 @@ check in a real browser too (about half a minute more). `-- --full` runs
 every browser test first; `-- --dry-run` checks without shipping.
 
 The Content-Security-Policy allows no inline script. The scripts of the
-pages apps make (a store's cart, a game, the in-place editing of a page
+pages apps make (a shop's cart, a game, the in-place editing of a page
 preview) are fixed texts registered with `pageScript()` and hashed into
 the policy at build time; a page's data travels beside its script as JSON
 (`pageData()`), never inside it. A test checks that every page keeps to
