@@ -56,7 +56,7 @@ test('signing a document, and a change after it is seen', async () => {
   expect($$('.to-header .meta sl-tag')).toHaveLength(0);
   expect(link().env!.sig).toBeUndefined();
 
-  // A tampered link reads as a mismatch, never as valid.
+  // A tampered link reads as a mismatch, or cannot be read at all; never as valid.
   const tampered = signed.replace(/#\/v0\/todo\/([yzr])(.)/, (_m, f: string, c: string) => `#/v0/todo/${f}${c === 'A' ? 'B' : 'A'}`);
   await open(tampered);
   await idle();

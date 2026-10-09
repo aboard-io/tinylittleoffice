@@ -4503,6 +4503,19 @@ sl-dialog.to-open-as {
 }
 
 /* Templates */
+/* A link that cannot be read. */
+.to-unreadable {
+  max-width: 34em;
+  padding: 32px clamp(16px, 5vw, 40px);
+}
+.to-unreadable h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.to-unreadable p {
+  margin: 0 0 16px;
+  color: var(--to-ink-2);
+}
 /* On a blank document, the templates laid out, Blank first: where the first words would go. */
 .to-gallery {
   padding: 14px;

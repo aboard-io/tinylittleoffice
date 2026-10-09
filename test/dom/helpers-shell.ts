@@ -28,12 +28,12 @@ export async function open(hash: string, path = '/') {
   return app;
 }
 
-/** Wait for the page to show what the link holds: its editor drawn (unless it waits for a password), then everything settled. */
+/** Wait for the page to show what the link holds: its editor drawn (unless it waits for a password, or the link cannot be read), then everything settled. */
 async function arrived() {
   await idle();
   const m = /^#\/v\d+\/([a-z]+)(\.[a-z.]+)?(?:\/(E?))?/.exec(location.hash);
   if (m && m[2] !== '.embed' && m[3] !== 'E') {
-    await until(() => (document.querySelector(`to-${m[1]}`) as (Element & { hasUpdated?: boolean }) | null)?.hasUpdated, `the ${m[1]} editor`);
+    await until(() => document.querySelector('.to-unreadable') || (document.querySelector(`to-${m[1]}`) as (Element & { hasUpdated?: boolean }) | null)?.hasUpdated, `the ${m[1]} editor`);
     await idle();
   }
 }

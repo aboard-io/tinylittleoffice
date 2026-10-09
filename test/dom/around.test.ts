@@ -248,3 +248,15 @@ describe('sharing', () => {
     expect(decodeURIComponent(opened().at(-1)!)).toContain('Quarterly memo ' + location.href.replace('/#/', '/write/#/'));
   });
 });
+
+// A link cut short when it was copied: said so, and left alone; never an empty document (or its templates) over it.
+test('a link that cannot be read says so, and is left as it is', async () => {
+  const hash = '#/v0/write/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz';
+  await shell(hash);
+  expect(document.querySelector('.to-unreadable')?.textContent).toContain("can't be opened");
+  expect(document.querySelector('.to-gallery')).toBeNull();
+  expect(document.querySelector('to-write')).toBeNull();
+  expect(document.querySelector<HTMLInputElement>('.to-title')!.disabled).toBe(true);
+  await settleAll();
+  expect(location.hash).toBe(hash);
+});

@@ -11,7 +11,7 @@ import { keep, library, saving } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
-import { budgetFor } from './lib/codec.ts';
+import { budgetFor, decodeDoc } from './lib/codec.ts';
 import { DOC_KEYS, encodeEnvelope, decodeEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { privacy, isSealed } from './lib/privacy.ts';
 import { store, keeping, setKeeping } from './lib/store.ts';
@@ -304,6 +304,8 @@ export class ToApp extends LitElement {
   @state() private comparing: [Side | null, Side | null] | null = null;
   /** Drive, at #/drive[/folder]: the documents saved on this device. */
   @state() private driving: string | null = null;
+  /** The link holds something that cannot be read (cut short when it was copied, most often): said so, and left as it is. */
+  @state() private unreadable = false;
 
   private onHash = () => {
     this.readPlainLink();
@@ -329,7 +331,9 @@ export class ToApp extends LitElement {
       return;
     }
     this.sealed = '';
+    this.unreadable = !!payload && !decodeDoc(payload);
     this.env = decodeEnvelope(payload);
+    if (this.unreadable) return;
     this.remember();
     void this.privacy.check(this.env, this.app);
     this.downloadPending();
@@ -776,7 +780,7 @@ export class ToApp extends LitElement {
   private renderTitleLine(current: AppDef) {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
     return html`<a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(iconOf(current), 24)}</a>
-      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${current.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
+      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${current.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed || this.unreadable} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
       <span class="meta">
         ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
         ${this.privacy.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
@@ -790,8 +794,17 @@ export class ToApp extends LitElement {
   private renderPanel(current: AppDef) {
     return html`<section class="to-panel" aria-label=${current.name}>
       <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
-      <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.renderApp()}</div>
+      <div @docchange=${this.onDocChange}>${this.sealed ? nothing : this.unreadable ? this.renderUnreadable(current) : this.renderApp()}</div>
     </section>`;
+  }
+
+  /** A link that cannot be read: no editor (it would write a blank document over the link), but what happened, and a way on. */
+  private renderUnreadable(current: AppDef) {
+    return html`<div class="to-unreadable" role="alert">
+      <h2>This link can't be opened</h2>
+      <p>Part of it is missing or changed, most often because it was cut short when it was copied. The whole document lives in the link, so it needs every character. Ask whoever sent it for the whole link.</p>
+      <sl-button variant="primary" href=${routeHash(current.id)}>${icon(UI.plus, 16)} New ${current.name}</sl-button>
+    </div>`;
   }
 
   /** The viewer of a "show" link wants the editor: from here on the link is an ordinary one. */
