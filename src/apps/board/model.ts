@@ -10,6 +10,9 @@
  *     - [ ] Draft
  *   - Review the copy
  *
+ * Every stage has a colour: the one written, else the palette's by its place (`hue`). `look: rows` in the head
+ * draws the stages as bands one under another, their cards flowing across; columns, the default, is not written.
+ *
  * `readBoard` is the view, a pure function of the document, each stage and card knowing the span of blocks it
  * holds; every command gives operations (`Op[]`) for the editor to apply. Nothing here touches the DOM.
  */
@@ -42,13 +45,17 @@ export interface Stage {
   name: string;
   /** The most cards it should hold, 0 for no limit. */
   limit: number;
-  /** A key of STAGE_COLORS, or ''. */
+  /** A key of STAGE_COLORS as written, or '' for none written. */
   color: string;
+  /** The colour it is drawn in: the one written, else the palette's by its place (AUTO). */
+  hue: string;
   cards: Card[];
 }
 export interface BoardView {
   stages: Stage[];
   cards: number;
+  /** `look: rows` in the head: the stages drawn as bands one under another, their cards flowing across. */
+  rows: boolean;
 }
 
 /** The colours a stage may take, by the letter a document carries (the kit's palette without black). */
@@ -61,11 +68,24 @@ export const STAGE_COLORS: Record<string, { name: () => string; hex: string }> =
   r: { name: () => t('Red'), hex: '#b3261e' },
   p: { name: () => t('Purple'), hex: '#a05ca8' },
 };
+/** The colours stages take by their place when none is written: the order a chart's series takes them (draw.ts SERIES). */
+export const AUTO = ['b', 'o', 'g', 'p', 's', 'y', 'r'];
+/**
+ * How much of a stage's colour its edges and its heading's tint keep, the rest the page's ink (style.css mixes it
+ * so, in sRGB): toward the dark ink in the light theme, the light ink in the dark, so every colour reads at 3:1 on
+ * the page's surfaces in both (model.unit.test.ts checks it against tokens.css).
+ */
+export const EDGE_MIX = 70;
 export const LIMITS = [0, 1, 2, 3, 5, 8];
 
 const limitOf = (v: string | undefined) => Math.max(0, parseInt(v ?? '', 10) || 0);
 const colorOf = (v: string | undefined) => (v && v in STAGE_COLORS ? v : '');
 const oneLine = (s: string) => s.replace(/\n/g, ' ');
+const rowsOf = (doc: Doc) => (doc.head.look ?? '').trim().toLowerCase() === 'rows';
+/** A stage's colour as drawn: the one written, else the palette's by its place. */
+const hueOf = (color: string, i: number) => color || autoHue(i);
+/** The palette's colour for the `i`th stage. */
+export const autoHue = (i: number) => AUTO[i % AUTO.length];
 
 /** The stages of a document with their cards; nothing in the document is nothing on the board. */
 export function readBoard(doc: Doc): BoardView {
@@ -73,13 +93,14 @@ export function readBoard(doc: Doc): BoardView {
   let cards = 0;
   // Cards that come before any heading are in a stage of their own, named for the first of the usual three.
   const open = (i: number): Stage => {
-    if (!stages.length) stages.push({ at: -1, start: 0, end: 0, name: t('To do'), limit: 0, color: '', cards: [] });
+    if (!stages.length) stages.push({ at: -1, start: 0, end: 0, name: t('To do'), limit: 0, color: '', hue: hueOf('', 0), cards: [] });
     stages[stages.length - 1].end = i + 1;
     return stages[stages.length - 1];
   };
   doc.blocks.forEach((b, i) => {
     if (b.k === 'h') {
-      stages.push({ at: i, start: i, end: i + 1, block: b, name: oneLine(plainText(b.runs)), limit: limitOf(attr(b, 'limit')), color: colorOf(attr(b, 'color')), cards: [] });
+      const color = colorOf(attr(b, 'color'));
+      stages.push({ at: i, start: i, end: i + 1, block: b, name: oneLine(plainText(b.runs)), limit: limitOf(attr(b, 'limit')), color, hue: hueOf(color, stages.length), cards: [] });
     } else if (b.k === 'li') {
       const s = open(i);
       const last = s.cards.at(-1);
@@ -96,8 +117,11 @@ export function readBoard(doc: Doc): BoardView {
       stages[stages.length - 1].end = i + 1;
     }
   });
-  return { stages, cards };
+  return { stages, cards, rows: rowsOf(doc) };
 }
+
+/** The stages as rows (`look: rows`) or as columns, the default, which is not written. */
+export const setLook = (doc: Doc, rows: boolean): Op[] => (rowsOf(doc) === rows ? [] : [{ op: 'head', key: 'look', value: rows ? 'rows' : undefined }]);
 
 /** How much of a card's checklist is done, as "2/5"; '' without one. */
 export const progress = (c: Card) => (c.items.length ? `${c.items.filter((i) => i.done).length}/${c.items.length}` : '');

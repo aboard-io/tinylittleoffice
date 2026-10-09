@@ -3,7 +3,7 @@
 // documents as fences; loose words listified; the conversions a deck, a network and an org chart read.
 import { expect, test } from 'vitest';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { appendItem, connect, copySpan, duplicateSpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink } from '../model.ts';
+import { appendItem, connect, copySpan, duplicateSpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink, notesApart, notesAsItems } from '../model.ts';
 import { docGist, outlinePage, richText, wrapRuns } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -332,7 +332,8 @@ test('OPML, plain text and Markdown, and the page', () => {
   expect(def.view('1. A\n2. B\n')[0].svg).toContain('>2.</text>');
   expect(outlineToMind(readOutline(parse('1. A\n2. B\n')))).toBe('---\nkind: mind\n---\n1. A\n2. B\n');
   expect(outlineToDeck(readOutline(parse('- A\n  1. a\n  2. b\n')))).toBe('## A {.title}\n\n1. a\n2. b\n');
-  expect(built('md', '- A^[a note]\n  - B\n')).toBe('- A[^1]\n  - B\n\n[^1]: a note\n');
+  // An item's note is a numbered item right under it, first among its children.
+  expect(built('md', '- A^[a note]\n  - B\n')).toBe('- A[1]\n  1. a note\n  - B\n');
   expect(built('opml', TREE)).toContain('<title>Launch</title>');
   expect(built('opml', '---\ntitle: Plan\n---\n' + TREE)).toContain('<title>Plan</title>');
   // The page: every item's words, the kind of line before a named one, the notes and the joins under it; a document as a card.
@@ -387,4 +388,32 @@ test('duplicateSpan: the span’s items again right after it, one splice; the jo
   const r = duplicateSpan(d, v, all);
   expect(r.at).toBe(2);
   expect(write(applyAll(d, r.ops))).toBe('- A\n- B\n- A\n- B\n\n~ A -> B\n');
+});
+
+const NOTED = '- Launch the **app**^[After the *beta*, see https://example.com] in May^[Or June]\n  - Product\n    - Pricing^[Per seat]\n  1. Marketing\n- Wrap up\n';
+
+test('footnotes in the files: each an item right under its own, first among its children, numbered in the item; the marks "[1]" in its words', () => {
+  // The words of an item and its notes, apart.
+  const it = readOutline(parse(NOTED)).items[0];
+  const apart = notesApart(it.runs);
+  expect(apart.notes).toEqual(['After the *beta*, see https://example.com', 'Or June']);
+  expect(write({ head: {}, blocks: [{ k: 'li', depth: 0, runs: apart.runs }] })).toBe('- Launch the **app**[1] in May[2]\n');
+  expect(notesApart([{ t: 'plain' }]).runs).toEqual([{ t: 'plain' }]);
+  const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { title: '', link: '' }) as Uint8Array);
+  // Plain text: the note's plain words, numbered under the item, before its children; the item's own numbering untouched.
+  expect(built('txt', NOTED)).toBe('- Launch the app[1] in May[2]\n  1. After the beta, see https://example.com\n  2. Or June\n  - Product\n    - Pricing[1]\n      1. Per seat\n  1. Marketing\n- Wrap up\n');
+  // Markdown: the same as a numbered list under the item, the note's marks kept as Markdown; no reference notes left.
+  const md = built('md', NOTED);
+  expect(md).toBe('- Launch the **app**[1] in May[2]\n  1. After the *beta*, see https://example.com\n  2. Or June\n  - Product\n    - Pricing[1]\n      1. Per seat\n  1. Marketing\n- Wrap up\n');
+  expect(md).not.toContain('[^');
+  // A note somewhere else than an item (an outline that is not yet a list) keeps the reference form.
+  expect(write(notesAsItems(parse('A paragraph^[aside]\n')))).toBe('A paragraph[^1]\n\n[^1]: aside\n');
+  expect(write(notesAsItems(parse('- plain\n')))).toBe('- plain\n');
+  // OPML: the note an outline of its own, first under the item, its mark and its plain words; an item with only notes opens and closes.
+  const opml = built('opml', NOTED);
+  expect(opml).toContain('    <outline text="Launch the app[1] in May[2]">\n      <outline text="[1] After the beta, see https://example.com"/>\n      <outline text="[2] Or June"/>\n      <outline text="Product">\n');
+  expect(opml).toContain('        <outline text="Pricing[1]">\n          <outline text="[1] Per seat"/>\n        </outline>\n      </outline>\n      <outline text="Marketing"/>\n    </outline>\n    <outline text="Wrap up"/>\n');
+  expect(built('opml', '- Only^[note & <more>]\n')).toContain('    <outline text="Only[1]">\n      <outline text="[1] note &amp; &lt;more>"/>\n    </outline>\n  </body>');
+  // The document itself is untouched: the notes stay inline.
+  expect(write(parse(NOTED))).toBe(NOTED);
 });

@@ -15,7 +15,10 @@
  * whole route in view, the map on or off, and ends with undo and redo.
  *
  * This is the one app that talks to the network by itself: while the map is on view its pictures come from
- * tile.openstreetmap.org. The route itself lives only in the link. Every change is operations on the
+ * tile.openstreetmap.org. The route itself lives only in the link. A trip with no stops, opened with the map on
+ * view, asks the browser once where the device is (no watching, 5 s at most) and centres the map there at a
+ * city's zoom; refused or unknown, the map stays on the world. The position is used for that and nothing else:
+ * it is never written into the document or kept anywhere. Every change is operations on the
  * document's table (model.ts).
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
@@ -44,6 +47,8 @@ export const tag = 'to-trip-editor';
 
 export const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const SEARCH = 'https://nominatim.openstreetmap.org/search';
+/** The zoom a map opened on the device's position shows: a city. */
+const CITY = 12;
 /** How long a tap on the map waits to be sure it is not the first of a double tap (which zooms). */
 const DOUBLE = 300;
 /** A focused pin's nudge, in screen pixels (Shift: five times). */
@@ -89,6 +94,8 @@ export class ToTripEditor extends DocElement<TripView> {
   declare found: Place[] | null;
   declare searching: boolean;
   private map: Leaflet.Map | null = null;
+  /** The browser has been asked where the device is (once per editor, for a trip with no stops). */
+  private located = false;
   private layer: Leaflet.LayerGroup | null = null;
   private mapEl: HTMLElement | null = null;
   private watch: ResizeObserver | null = null;
@@ -239,7 +246,31 @@ export class ToTripEditor extends DocElement<TripView> {
     this.watch.observe(el);
     this.refit = true;
     void this.drawPins();
+    this.locate(map);
     this.dispatchEvent(new Event('trip-map'));
+  }
+  /**
+   * A trip with no stops opens on where the device is: the browser asked once (the first map this editor makes),
+   * the map centred there at a city's zoom if the trip is still empty and the map still this one. Refused, too slow
+   * or unknown, nothing happens. The position is never written anywhere.
+   */
+  private locate(map: Leaflet.Map) {
+    if (this.located || this.view.stops.length) return;
+    this.located = true;
+    const geo = navigator.geolocation;
+    if (!geo) return;
+    try {
+      geo.getCurrentPosition(
+        (p) => {
+          if (this.map !== map || this.view.stops.length) return;
+          map.setView([p.coords.latitude, p.coords.longitude], CITY, { animate: false });
+        },
+        () => undefined,
+        { timeout: 5000, maximumAge: 600000, enableHighAccuracy: false },
+      );
+    } catch {
+      // A browser that will not even ask (an insecure page): the map stays on the world.
+    }
   }
   private dropMap() {
     this.watch?.disconnect();
@@ -685,7 +716,7 @@ export class ToTripEditor extends DocElement<TripView> {
         ${this.showMap
           ? html`<div class="trip-side">
               <div class="trip-map" role="region" aria-label=${t('Map: tap to add a stop')}></div>
-              <p class="to-hint trip-privacy">${t('The map’s pictures come from OpenStreetMap while it is shown.')}</p>
+              <p class="to-hint trip-privacy">${t('The map’s pictures come from OpenStreetMap while it is shown.')} ${n ? nothing : t('Your location is asked for only to centre the map, and is never written anywhere.')}</p>
             </div>`
           : nothing}
         ${n

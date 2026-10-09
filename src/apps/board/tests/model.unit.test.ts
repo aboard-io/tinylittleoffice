@@ -1,8 +1,9 @@
 // Board as a view of the document, each command as the ops it produces, and the files: under node, no DOM.
+import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
-import { addCard, addItem, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeItem, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView } from '../model.ts';
+import { AUTO, EDGE_MIX, STAGE_COLORS, addCard, addItem, autoHue, setLook, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeItem, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView } from '../model.ts';
 import { boardPage, boardToCsv } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -226,4 +227,91 @@ test('the definition: a blank board is three stages to type under; the templates
   }
   expect(def.retitle(def.blank(), 'Studio').startsWith('---\ntitle: Studio\n---\n## To do')).toBe(true);
   expect(def.exports!.map((e) => e.ext)).toEqual(['csv']);
+});
+
+test('every stage has a colour: the one written, else the palette by its place; Automatic writes none', () => {
+  const v = readBoard(parse(BOARD));
+  // To do and Doing say theirs; Done, third, takes the palette's third.
+  expect(v.stages.map((s) => [s.color, s.hue])).toEqual([['b', 'b'], ['g', 'g'], ['', AUTO[2]]]);
+  expect(readBoard(parse('## A\n\n## B\n\n## C\n\n## D\n\n## E\n\n## F\n\n## G\n\n## H\n')).stages.map((s) => s.hue)).toEqual([...AUTO, AUTO[0]]);
+  // Cards before any heading are the first stage, and take the first colour.
+  expect(readBoard(parse('- a\n\n## B\n')).stages.map((s) => s.hue)).toEqual([AUTO[0], AUTO[1]]);
+  expect(autoHue(9)).toBe(AUTO[2]);
+  // The palette is the kit's, each colour once, in the order a chart's series takes them.
+  expect(new Set(AUTO).size).toBe(AUTO.length);
+  expect(AUTO.every((k) => k in STAGE_COLORS)).toBe(true);
+  expect(AUTO.map((k) => STAGE_COLORS[k].hex).slice(0, 4)).toEqual(['#0072b2', '#d55e00', '#009e73', '#a05ca8']);
+  // A template's colours read as they did: nothing about them is written.
+  for (const tpl of templates()) expect(write(parse(tpl.doc))).toBe(tpl.doc);
+  // The page draws each stage's colour, chosen or not.
+  const svg = boardPage(parse('## A\n\n- x\n\n## B {color=r}\n\n- y\n')).svg;
+  expect(svg).toContain(STAGE_COLORS[AUTO[0]].hex);
+  expect(svg).toContain(STAGE_COLORS.r.hex);
+});
+
+/* The stage colours against the page, as style.css draws them: mixed EDGE_MIX% with the ink, in sRGB. */
+type Rgb = [number, number, number];
+const tokens = readFileSync(new URL('../../../styles/tokens.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+function theme(selector: RegExp): Map<string, string> {
+  const vars = new Map<string, string>();
+  for (const m of tokens.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) if (selector.test(m[1].trim())) for (const d of m[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars.set(d[1], d[2].trim());
+  return vars;
+}
+const LIGHT = theme(/^:root$/);
+const DARK = new Map([...LIGHT, ...theme(/^:root\[data-theme='dark'\]$/)]);
+function rgb(c: string): Rgb {
+  const h = /^#([0-9a-f]{6})$/i.exec(c);
+  if (h) return [0, 2, 4].map((i) => parseInt(h[1].slice(i, i + 2), 16) / 255) as Rgb;
+  const m = /^hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/.exec(c);
+  if (!m) throw new Error(`not a colour: ${c}`);
+  const [hh, s, l] = [+m[1] / 360, +m[2] / 100, +m[3] / 100];
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const f = (t: number) => ((t = (t + 1) % 1), t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p);
+  return [f(hh + 1 / 3), f(hh), f(hh - 1 / 3)];
+}
+const mix = (a: Rgb, b: Rgb, pa: number): Rgb => a.map((v, i) => v * pa + b[i] * (1 - pa)) as Rgb;
+const lum = (c: Rgb) => [0.2126, 0.7152, 0.0722].reduce((n, w, i) => n + w * (c[i] <= 0.03928 ? c[i] / 12.92 : ((c[i] + 0.055) / 1.055) ** 2.4), 0);
+const contrast = (a: Rgb, b: Rgb) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+
+test('the stage colours read in the light and in the dark: edges at 3:1 on every surface, the heading words on its tint, each colour its own', () => {
+  const css = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  expect(css).toContain(`--edge: color-mix(in srgb, var(--c) ${EDGE_MIX}%, var(--to-ink));`);
+  expect(css).toContain('background: color-mix(in srgb, var(--edge) 18%, var(--to-surface-2));');
+  for (const vars of [LIGHT, DARK]) {
+    const ink = rgb(vars.get('--to-ink')!);
+    const edges = Object.values(STAGE_COLORS).map((c) => mix(rgb(c.hex), ink, EDGE_MIX / 100));
+    for (const e of edges) {
+      for (const surface of ['--to-bg', '--to-surface', '--to-surface-2']) expect(contrast(e, rgb(vars.get(surface)!))).toBeGreaterThanOrEqual(3);
+      const tint = mix(e, rgb(vars.get('--to-surface-2')!), 0.18);
+      expect(contrast(ink, tint)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(rgb(vars.get('--to-ink-2')!), tint)).toBeGreaterThanOrEqual(4.5);
+    }
+    // No two colours alike: each pair apart by a clear step in some channel.
+    for (let i = 0; i < edges.length; i++) for (let j = i + 1; j < edges.length; j++) expect(Math.max(...edges[i].map((v, k) => Math.abs(v - edges[j][k])))).toBeGreaterThan(0.12);
+  }
+});
+
+test('the look: stages as rows is `look: rows` in the head, columns the default and not written; the page draws bands', () => {
+  expect(readBoard(parse(BOARD)).rows).toBe(false);
+  const on = run(BOARD, (v) => (expect(v.rows).toBe(false), setLook(parse(BOARD), true)));
+  expect(on.text.startsWith('---\nlook: rows\n---\n## To do {color=b}')).toBe(true);
+  expect(readBoard(parse(on.text)).rows).toBe(true);
+  expect(run(on.text, () => setLook(parse(on.text), false)).text).toBe(BOARD);
+  expect(setLook(parse(on.text), true)).toEqual([]);
+  expect(setLook(parse(BOARD), false)).toEqual([]);
+  // Read leniently, written as it was.
+  expect(readBoard(parse('---\nlook: Rows\n---\n## A\n')).rows).toBe(true);
+  expect(write(parse('---\nlook: columns\n---\n## A\n'))).toBe('---\nlook: columns\n---\n## A\n');
+  // The page: a band a stage, one under another, the cards across it.
+  const p = boardPage(parse(on.text));
+  expect(p.svg).toContain('data-row="2"');
+  expect(p.svg).not.toContain('data-col');
+  expect(p.svg).toContain('☑ 1/2');
+  expect(p.alt).toBe('To do: Write the spec, Review the copy. Doing: Ship it. Done: –');
+  expect(boardPage(parse(on.text), 1).svg).not.toContain('Review the copy');
+  const band = (n: number) => boardPage(parse(`---\nlook: rows\n---\n## A\n\n${'- x\n'.repeat(n)}\n## B\n\n- y\n`)).h;
+  // Four cards are one line across; a fifth wraps onto a second line of the band, a card taller.
+  expect(band(4)).toBe(band(1));
+  expect(band(5)).toBe(band(4) + 37 + 8);
 });

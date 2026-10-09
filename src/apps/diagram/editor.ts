@@ -67,6 +67,8 @@ type Drag = { i: number; hit: Hit; x: number; y: number; moved: boolean };
 const shifted = (ops: Op[], by: number): Op[] => ops.map((o) => (o.op === 'head' ? o : o.op === 'move' ? { ...o, at: o.at + by, to: o.to + by } : { ...o, at: o.at + by }));
 const li = (words: string): Extract<Block, { k: 'li' }> => ({ k: 'li', depth: 0, runs: words ? [{ t: words }] : [] });
 const plain = (b: Block) => ('runs' in b ? charsOf(b.runs).replace(/￼/g, '').trim() : '');
+/** What the line editor holds while nothing is open: it is always there, so a tap can focus it at once. */
+const IDLE: Block[] = [{ k: 'li', depth: 0, runs: [] }];
 const sameHit = (a: Hit | null | undefined, b: Hit | null | undefined) => !!a && !!b && JSON.stringify(a) === JSON.stringify(b);
 
 /** Where an edit leaves the thing in hand: before it (what undo comes back to) and after it (what redo does). */
@@ -90,7 +92,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   static properties: PropertyDeclarations = { target: { state: true }, joining: { state: true }, zoom: { state: true } };
   /** The thing open in the line editor, or null. */
   declare target: Target | null;
-  /** Half a connection: the name of the thing it starts from; the next thing tapped is its other end. */
+  /**
+   * Joining, armed (the bar's Join, the thing's own Join): the name of the thing the connection starts from, and the
+   * next thing tapped is its other end; '' while the first end is still to be tapped. Null when not joining.
+   */
   declare joining: string | null;
   /** The picture's scale: 0 fits it to the width. */
   declare zoom: number;
@@ -187,32 +192,41 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private get line(): ToText | null {
     return this.querySelector<ToText>('.dg-pop to-text');
   }
-  /** The block the line editor shows. */
-  private shown(): Block | null {
-    const tg = this.target;
+  /** The block the line editor shows (for the target given, else the one open). */
+  private shown(tg = this.target): Block | null {
     if (!tg) return null;
     if (tg.draft) return tg.draft.block;
     if (tg.at >= 0) return this.doc.blocks[tg.at]?.k === 'li' ? this.doc.blocks[tg.at] : null;
     return tg.block;
   }
+  /** What the line editor is called, and what it says while empty, for a target. */
+  private wording(tg: Target | null): { label: string; placeholder: string } {
+    const kind = this.view.kind;
+    const edge = tg?.hit?.k === 'edge';
+    return { label: edge ? t('What the connection says') : thingName(kind), placeholder: edge ? t('What the connection says') : tg?.hit?.k === 'lane' ? t('Who') : lineHint(kind) };
+  }
 
-  /** Open the line editor on a target, over `anchor`, the caret (or a selection) at [from, to). */
-  private async open(tg: Target, anchor: Element, sel?: [number, number], fresh = true) {
+  /**
+   * Open the line editor on a target, over `anchor`, the caret (or a selection) at [from, to). The words are focused
+   * here, synchronously, in the tap's, the key's or the menu's own handler, as the Drawing Tool's are: iOS lets the
+   * focus in and raises the keyboard only so. The selection is written once the words are drawn.
+   */
+  private open(tg: Target, anchor: Element, sel?: [number, number], fresh = true) {
     if (fresh) {
       this.session++;
       this.openText = write(this.doc);
       this.openHitAt = tg.hit;
     }
     this.target = tg;
-    await this.updateComplete;
     const pop = this.pop;
     const x = this.line;
     if (!pop || !x) return;
+    const b = this.shown(tg);
+    x.blocks = b ? this.one(b) : IDLE;
+    Object.assign(x, this.wording(tg));
     if (!pop.matches(':popover-open')) pop.showPopover();
     place(pop, anchor as HTMLElement, 6);
-    this.syncContext();
-    await x.updateComplete;
-    const b = this.shown();
+    x.focus();
     const end = b && 'runs' in b ? charsOf(b.runs).length : 0;
     const [from, to] = sel ?? [end, end];
     x.sel = { anchor: { block: 0, offset: from }, focus: { block: 0, offset: to } };
@@ -223,15 +237,15 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       const b = this.doc.blocks[hit.at];
       if (b?.k !== 'li') return;
       const p = partFor(lineOf(b, hit.at), hit.part);
-      return void this.open({ hit, at: hit.at, draft: null, block: null, name: '' }, anchor, p ? [p.from, p.to] : undefined);
+      return this.open({ hit, at: hit.at, draft: null, block: null, name: '' }, anchor, p ? [p.from, p.to] : undefined);
     }
     const name = hit.k === 'edge' ? (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '') : hit.name;
     const block = li(name);
-    void this.open({ hit, at: -1, draft: null, block, name }, anchor, [0, charsOf(block.runs).length]);
+    this.open({ hit, at: -1, draft: null, block, name }, anchor, [0, charsOf(block.runs).length]);
   }
   /** A new thing, typed over `anchor`: it is in the document from its first letter. */
   private openDraft(d: Draft, anchor: Element) {
-    void this.open({ hit: null, at: -1, draft: d, block: null, name: '' }, anchor, d.sel);
+    this.open({ hit: null, at: -1, draft: d, block: null, name: '' }, anchor, d.sel);
   }
   /** The line editor closed; a list it leaves is tidied. */
   private shut(tidyUp = true) {
@@ -378,7 +392,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const b = this.doc.blocks[hit.at];
     const p = b?.k === 'li' ? partFor(lineOf(b, hit.at), hit.part) : null;
     if (!g || !p) return this.focusThing(hit);
-    await this.open({ hit, at: hit.at, draft: null, block: null, name: '' }, g, [p.from, p.to], false);
+    this.open({ hit, at: hit.at, draft: null, block: null, name: '' }, g, [p.from, p.to], false);
   }
   /** Past its neighbour (Alt+Up/Down, Move up/down); the words stay open on it if they were. */
   private move(hit: Hit, by: 1 | -1) {
@@ -486,11 +500,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       this.shut();
       if (d) this.openDraft(d, anchor());
     };
-    const name = hit.k === 'line' ? lineOf(this.doc.blocks[hit.at] as Extract<Block, { k: 'li' }>, hit.at).all.words : hit.k === 'edge' ? '' : hit.name;
-    const join = () => {
-      this.shut();
-      this.joining = name;
-    };
+    const name = this.nameOf(hit);
     const out: ContextEntry[] = [];
     if (hit.k === 'line') {
       out.push({ label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', disabled: !moveThing(this.doc, hit, -1), does: () => this.move(hit, -1) });
@@ -500,7 +510,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       out.push({ label: t('Icon'), icon: Smile, does: () => void this.iconFor(hit) });
     }
     if (hit.k === 'lane') out.push({ label: t('Add a step'), icon: UI.plus, does: () => add(newThing(this.doc, hit.name)) });
-    if (joins(kind) && hit.k !== 'edge' && name) out.push({ label: t('Join'), icon: Spline, does: join });
+    if (joins(kind) && hit.k !== 'edge' && name) out.push({ label: t('Join'), icon: Spline, does: () => this.armJoin() });
     if (hit.k === 'edge' && kind === 'net') {
       const e = edgesOf(this.doc).find((x) => x.at === hit.at);
       const arrow = e?.dir === '->' || e?.dir === '<-';
@@ -539,16 +549,32 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
     const hit = g ? this.view.d.shapes[+g.dataset.i!]?.hit : undefined;
     if (this.target) return this.shut();
-    if (this.joining !== null) {
-      const from = this.joining;
-      this.joining = null;
-      if (hit && hit.k !== 'edge' && hit.k !== 'lane') this.change(connect(this.doc, from, this.nameOf(hit)), hit);
-      return;
-    }
+    if (this.joining !== null) return this.joinTo(hit);
     if (hit && g) return this.openHit(hit, g);
     const [x, y] = this.point(e);
     this.openDraft(newThing(this.doc, regionAt(this.view.d, x, y)), this.anchorAt(e));
   };
+  /**
+   * Join, from the bar or the thing's own row: armed from the thing in hand (open or focused), the next thing tapped
+   * is joined to it; with nothing in hand, the next two tapped are joined. Pressed again, or Escape, disarms it.
+   */
+  private armJoin() {
+    if (this.joining !== null) return void (this.joining = null);
+    const hit = this.inHand();
+    const from = hit && hit.k !== 'edge' && hit.k !== 'lane' ? this.nameOf(hit) : '';
+    this.shut();
+    this.joining = from;
+    // The focus on the picture, where Escape is heard.
+    void this.focusThing(from ? hit : null);
+  }
+  /** A thing tapped (or Enter on it) while joining: the first end taken, or the connection made and joining done. */
+  private joinTo(hit: Hit | undefined) {
+    const from = this.joining;
+    const name = hit && hit.k !== 'edge' && hit.k !== 'lane' ? this.nameOf(hit) : '';
+    if (from === '' && name) return void (this.joining = name);
+    this.joining = null;
+    if (from && name) this.change(connect(this.doc, from, name), hit!);
+  }
   private nameOf(hit: Hit): string {
     if (hit.k === 'line') {
       const b = this.doc.blocks[hit.at];
@@ -618,12 +644,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     }
     if ((e.key === 'Enter' || e.key === ' ') && !mod && !e.altKey) {
       e.preventDefault();
-      if (this.joining !== null) {
-        const from = this.joining;
-        this.joining = null;
-        if (hit.k !== 'edge' && hit.k !== 'lane') this.change(connect(this.doc, from, this.nameOf(hit)), hit);
-        return;
-      }
+      if (this.joining !== null) return this.joinTo(hit);
       this.openHit(hit, g);
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && !mod && !e.altKey) {
       e.preventDefault();
@@ -742,11 +763,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     const on = tg ? this.indexOf(tg) : -1;
     const shown = this.shown();
+    const words = this.wording(tg);
     const width = this.zoom ? `width:${Math.round(d.w * this.zoom)}px;max-width:none` : `width:100%;max-width:${d.w}px`;
-    const hint = this.joining !== null ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining }) : kindHint(kind);
+    const hint = this.joining === '' ? t('Tap the first thing to join, then the other; tap empty space to stop.') : this.joining !== null ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining }) : kindHint(kind);
     return html`<to-bar class="dg-bar">
         <to-menu class="dg-kind" caret .label=${kindName(kind)} .icon=${KIND_ICON[kind]} .items=${this.kindItems()}></to-menu>
         <to-insert .items=${this.inserts()}></to-insert>
+        ${joins(kind) ? tool({ label: t('Join'), icon: Spline, keep: true, pressed: this.joining !== null, does: () => this.armJoin() }) : nothing}
         ${tool({ label: t('Zoom out'), icon: ZoomOut, does: () => this.zoomBy(-0.25) })}
         ${tool({ label: t('Zoom in'), icon: ZoomIn, does: () => this.zoomBy(0.25) })}
         ${this.undoTools()}
@@ -762,10 +785,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
         <span class="dg-anchor" aria-hidden="true"></span>
       </div>
       <div class="dg-pop" popover="manual" @keydown=${{ handleEvent: this.onPopKey, capture: true }}>
-        ${shown
-          ? html`<to-text shape="line" .blocks=${this.one(shown)} label=${tg?.hit?.k === 'edge' ? t('What the connection says') : thingName(kind)} placeholder=${tg?.hit?.k === 'edge' ? t('What the connection says') : tg?.hit?.k === 'lane' ? t('Who') : lineHint(kind)}
-              no-bubble @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>`
-          : nothing}
+        <to-text shape="line" .blocks=${shown ? this.one(shown) : IDLE} .label=${words.label} .placeholder=${words.placeholder}
+          no-bubble @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
       </div>
       <to-context class="dg-context" .label=${t('This thing')} .items=${this.contextItems(tg)}></to-context>`;
   }

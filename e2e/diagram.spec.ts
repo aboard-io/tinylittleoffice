@@ -72,3 +72,32 @@ test('diagram: on a phone, a tap on a thing opens its words with the context bar
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('.dg-pic')!).touchAction)).toBe('manipulation');
   expect(errors).toEqual([]);
 });
+
+test('diagram: on a phone, Join in the bar joins the thing open to the next one tapped', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/diagram');
+  await page.locator('.dg-kind > button').tap();
+  await page.locator('[popover]:popover-open [role^=menuitem]').getByText('Network').tap();
+  await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
+  const line = page.locator('.dg-pop to-text .tx');
+  await expect(line).toBeFocused();
+  await line.pressSequentially('Web');
+  await line.press('Enter');
+  await expect(line).toBeFocused();
+  await line.pressSequentially('API');
+  await page.locator('.dg-hint').tap();
+  await expect(page.locator('.dg-pop')).toBeHidden();
+  await page.locator('.dg-pic g.dg-thing[aria-label="Web"]').tap();
+  const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
+  const r = (await join.boundingBox())!;
+  expect(r.height).toBeGreaterThanOrEqual(44);
+  await join.tap();
+  await expect(join).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.dg-pic g.dg-thing[aria-label="API"]').tap();
+  const value = () => page.evaluate(() => (document.querySelector('to-diagram-editor') as HTMLElement & { value: string }).value);
+  await expect.poll(value).toContain('~ Web -> API');
+  await expect(join).toHaveAttribute('aria-pressed', 'false');
+  expect(errors).toEqual([]);
+});

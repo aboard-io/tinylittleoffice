@@ -1,6 +1,9 @@
 /* Board: the stages side by side in a box that scrolls sideways (a stage and a bit at a time on a phone), a
-   card a small sheet with its words, its grip and its checklist. A stage's colour (--c) is mixed into the
-   page's own greys, so it follows the theme. Every control is 44px to the finger. */
+   card a small sheet with its words, its grip and its checklist; or (.rows) the stages as bands one under
+   another, their cards across and wrapping. Every stage has a colour (--c): mixed 70% with the page's ink
+   (--edge, which reads at 3:1 on the page's surfaces in both themes: model.unit.test.ts checks it) for the
+   stage's top edge and its cards' top edges, and a little of it into the heading's tint, so it follows the
+   theme. Every control is 44px to the finger. */
 @layer apps {
   to-board-editor {
     display: block;
@@ -22,14 +25,45 @@
     outline: none;
   }
   .board-col {
+    --edge: color-mix(in srgb, var(--c) 70%, var(--to-ink));
     flex: 0 0 min(300px, calc(100vw - 56px));
     min-width: 0;
     scroll-snap-align: start;
     padding: 8px;
-    background: color-mix(in oklab, var(--c, transparent) 14%, var(--to-surface-2));
+    background: var(--to-surface-2);
     border: 1px solid var(--to-border);
-    border-top: 4px solid var(--c, var(--to-border));
+    border-top: 4px solid var(--edge);
     border-radius: var(--to-radius);
+  }
+  /* The stages as rows: bands one under another, the page scrolling, the cards across each band and wrapping. */
+  .board.rows {
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+  .board.rows .board-col {
+    flex: none;
+    border-top-width: 1px;
+    border-left: 4px solid var(--edge);
+  }
+  .board.rows .board-cards {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .board.rows .board-card {
+    flex: 1 1 220px;
+    min-width: 0;
+    max-width: 340px;
+  }
+  .board.rows .board-card.before {
+    box-shadow: -5px 0 0 -1px var(--to-accent);
+  }
+  .board.rows .board-cards.end {
+    padding-bottom: 0;
+    padding-right: 12px;
+    box-shadow: inset -3px 0 0 -1px var(--to-accent);
   }
   .board-col.over {
     outline: 2px dashed var(--to-accent);
@@ -40,6 +74,10 @@
     align-items: center;
     gap: 2px;
     min-height: var(--to-touch);
+    margin: -8px -8px 8px;
+    padding: 0 8px;
+    border-radius: var(--to-radius) var(--to-radius) 0 0;
+    background: color-mix(in srgb, var(--edge) 18%, var(--to-surface-2));
   }
   .board-head to-text {
     flex: 1;
@@ -89,6 +127,7 @@
   .board-card {
     background: var(--to-surface);
     border: 1px solid var(--to-border);
+    border-top: 3px solid var(--edge);
     border-radius: var(--to-radius-sm);
     box-shadow: var(--to-shadow);
   }

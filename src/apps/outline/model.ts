@@ -23,7 +23,7 @@
  * shiftFamily, moveFamily, placeFamily, removeItem, splitBlock); the rest are splices of one block, and
  * `text` ops come from the row's editor.
  */
-import { applyAll, attr, family, fenceRef, isAtomic, isText, listNumbers, moveFamily, normalRuns, parse, placeFamily, plainText, refFence, removeItem, runLength, shiftFamily, sliceRuns, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { applyAll, attr, family, fenceRef, isAtomic, isText, listNumbers, moveFamily, normalRuns, noteRuns, parse, placeFamily, plainText, referenceNotes, refFence, removeItem, runLength, shiftFamily, sliceRuns, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
 
 export type { Dir };
 
@@ -518,9 +518,42 @@ export function docGist(ref: string): { app: string; gist: string } {
   return { app, gist: gist.trim() };
 }
 
+/* ---------- footnotes in the files: a sub-item each, right under the item ---------- */
+
+/**
+ * An item's words with each footnote's mark written as "[k]" (k counting the item's own notes from 1), and the notes'
+ * words in that order (inline Markdown, as the document keeps them). The files put each note right under its item, as
+ * the first of its children, so the note travels with the idea it is about.
+ */
+export function notesApart(runs: Run[]): { runs: Run[]; notes: string[] } {
+  const notes: string[] = [];
+  const out = runs.map((r) => (r.fn === undefined ? r : (notes.push(r.fn), { t: `[${notes.length}]` })));
+  return { runs: notes.length ? normalRuns(out) : runs, notes };
+}
+const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
+/** A note's words, plain. */
+const notePlain = (fn: string) => oneLine(plainText(noteRuns(fn)));
+
+/**
+ * The document for Markdown: each item's notes made numbered items right under it, first among its children ("1. the
+ * note", numbered as the outline's writer numbers a list), the marks in its words "[1]"; any other note (on a heading
+ * or a paragraph) in Markdown's reference form at the end. The document itself keeps the inline form.
+ */
+export function notesAsItems(doc: Doc): Doc {
+  if (!doc.blocks.some((b) => b.k === 'li' && b.runs.some((r) => r.fn !== undefined))) return referenceNotes(doc);
+  const blocks = doc.blocks.flatMap((b): Block[] => {
+    if (b.k !== 'li') return [b];
+    const { runs, notes } = notesApart(b.runs);
+    if (!notes.length) return [b];
+    return [{ ...b, runs }, ...notes.map((fn): Block => ({ k: 'li', depth: b.depth + 1, ord: true, runs: noteRuns(fn) }))];
+  });
+  return referenceNotes({ head: doc.head, blocks });
+}
+
 /**
  * The outline as plain text: an item a line, "- " before it, "1. " and on for a numbered one, two spaces a level, a
- * document under an item as "- [App] its first line". Empty items are left out. `appName` says an app's name.
+ * document under an item as "- [App] its first line". Empty items are left out. An item's footnotes are lines right
+ * under it, numbered "1. ", "2. " (the marks in its words "[1]", "[2]"). `appName` says an app's name.
  */
 export function outlineText(v: OutlineView, appName: (id: string) => string = (id) => id): string {
   const count = listNumbers();
@@ -533,10 +566,12 @@ export function outlineText(v: OutlineView, appName: (id: string) => string = (i
       lines.push(`${pad}- [${appName(app)}] ${gist}`.trimEnd());
       continue;
     }
-    const words = plainText(it.runs).replace(/\s+/g, ' ').trim();
+    const { runs, notes } = notesApart(it.runs);
+    const words = oneLine(plainText(runs));
     if (!words) continue;
     const n = count({ k: 'li', depth: it.depth, ...(it.ord ? { ord: true as const } : {}), runs: [] });
     lines.push(`${pad}${n ? `${n}.` : '-'} ${words}`);
+    notes.forEach((fn, k) => lines.push(`${pad}  ${k + 1}. ${notePlain(fn)}`));
   }
   return lines.length ? lines.join('\n') + '\n' : '';
 }
@@ -593,15 +628,22 @@ export function outlineToOrg(v: OutlineView, head: Doc['head'] = {}): string {
 /** The outline as a mind map: the plain tree. */
 export const outlineToMind = (v: OutlineView, head: Doc['head'] = {}): string => write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'mind' }, blocks: plainTree(v) });
 
-/** The outline as OPML, what every outliner reads. A document is named by its app. */
+/**
+ * The outline as OPML, what every outliner reads. A document is named by its app. An item's footnotes are outlines
+ * right under it, first among its children, each its mark and its words ("[1] the note"); the marks stay in its words.
+ */
 export function toOpml(v: OutlineView, title: string): string {
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const items = liveItems(v);
   let out = '';
   let open = 0;
   items.forEach((it, i) => {
+    const { runs, notes } = it.doc ? { runs: it.runs, notes: [] } : notesApart(it.runs);
     const kids = hasChildren(items, i);
-    out += `${'  '.repeat(it.depth + 2)}<outline text="${esc(it.doc ? it.doc.split('\n')[0] : plainText(it.runs))}"${kids ? '>' : '/>'}\n`;
+    const pad = '  '.repeat(it.depth + 2);
+    out += `${pad}<outline text="${esc(it.doc ? it.doc.split('\n')[0] : plainText(runs))}"${kids || notes.length ? '>' : '/>'}\n`;
+    for (const [k, fn] of notes.entries()) out += `${pad}  <outline text="${esc(`[${k + 1}] ${notePlain(fn)}`)}"/>\n`;
+    if (notes.length && !kids) out += `${pad}</outline>\n`;
     if (kids) open++;
     // Close the families this item ends.
     const until = items[i + 1]?.depth ?? 0;

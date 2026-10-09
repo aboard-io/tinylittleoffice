@@ -126,6 +126,9 @@ describe('commands as ops', () => {
     expect(charsOf(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').block.runs)).toBe('Sales: ');
     expect(newThing(doc('lanes', '- Sales: Calls\n- Shop: Sells\n'), 'Sales').at).toBe(1);
     expect(charsOf(newThing(doc('seating', '- Top table: Jo\n')).block.runs)).toBe('Table 2: ');
+    // The table's offered name is chosen whole, so the first letter typed replaces it and the ": " stays.
+    expect(newThing(doc('seating', '- Top table: Jo\n')).sel).toEqual([0, 7]);
+    expect(newThing(doc('seating', '')).sel).toEqual([0, 9]);
   });
   test('a thing more in a list is the line with a comma on the end, replacing it once typed', () => {
     const d = doc('venn', '- Fast: sprinting\n- Cheap: walking\n');
