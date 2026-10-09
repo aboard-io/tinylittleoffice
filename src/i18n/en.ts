@@ -923,7 +923,6 @@ export default {
   'Map: tap to add a stop': 'Map: tap to add a stop',
   'The map’s pictures come from OpenStreetMap while it is shown.': 'The map’s pictures come from OpenStreetMap while it is shown.',
   '{n|one stop|# stops}': '{n|one stop|# stops}',
-  'Stops': 'Stops',
   'Stop': 'Stop',
   'Stop {n}': 'Stop {n}',
   'Stop {n} options': 'Stop {n} options',
