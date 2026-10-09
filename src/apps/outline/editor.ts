@@ -289,6 +289,8 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const menu = this.querySelector<ToMenu>('.ol-line-menu')!;
     await menu.updateComplete;
     menu.openAt(from);
+    // (A toggle event does not bubble: the popover itself says when it has closed.)
+    menu.menu.addEventListener('toggle', (e) => (e as ToggleEvent).newState === 'closed' && this.menuFor === at && (this.menuFor = -1), { once: true });
   }
   /** The two ends of a line: an item's parent and the item, or a join's. */
   private endsOf(at: number): Ends | null {
@@ -513,7 +515,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private bullet(at: number, ends: Ends): TemplateResult {
     const glyph = DIR_ICON[ends.dir];
     const label = `${ends.edge ? t('Connection from {from} to {to}', ft(ends)) : t('Line from {from} to {to}', ft(ends))}: ${DIR_NAME[ends.dir]()}${ends.label ? t(', named “{label}”', { label: ends.label }) : ''}. ${t('Change it')}`;
-    return html`<button type="button" class="ol-kind" data-dir=${ends.dir} aria-label=${label} title=${label} aria-haspopup="menu" aria-expanded=${this.menuFor === at ? 'true' : 'false'} @pointerdown=${(e: Event) => e.preventDefault()} @click=${(e: Event) => void this.openLineMenu(at, e.currentTarget as HTMLElement)}>${glyph ? icon(glyph, 14) : html`<span></span>`}</button>`;
+    return html`<button type="button" class="ol-kind" data-dir=${ends.dir} aria-label=${label} title=${label} aria-haspopup="menu" aria-expanded=${this.menuFor === at ? 'true' : 'false'} @mousedown=${(e: Event) => e.preventDefault()} @click=${(e: Event) => void this.openLineMenu(at, e.currentTarget as HTMLElement)}>${glyph ? icon(glyph, 14) : html`<span></span>`}</button>`;
   }
   /** A line's name, as a chip before the words; tapped, it opens the name dialog. */
   private chip(at: number, label?: string) {
@@ -631,7 +633,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
         <div class="ol-below" aria-hidden="true" @click=${() => this.addItem()}></div>
       </div>
       ${this.renderLinks(liveLinks(this.view))}
-      <to-menu class="ol-line-menu" .label=${t('Kind of line')} .items=${this.lineItems()} @toggle=${(e: Event) => (e as ToggleEvent).newState === 'closed' && (this.menuFor = -1)}></to-menu>
+      <to-menu class="ol-line-menu" .label=${t('Kind of line')} .items=${this.lineItems()}></to-menu>
       ${this.renderNameDialog()}
       ${this.renderWebDialog()}
       ${this.renderPageDialog()}`;

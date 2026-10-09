@@ -26,16 +26,19 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   await expect(page).toHaveURL(/#\/v1\/outline\/[ryz]/);
   const seen: { bar: number; rows: number; pageTop: number }[] = [await measure()];
   // Enter for the next item, Tab to put it under, words in each.
+  // (The caret lands in the new row a frame later, as Safari wants; a finger is never that quick, so the test waits as one would.)
   await page.keyboard.press('Enter');
-  await expect(row(1)).toBeVisible();
+  await expect(row(1)).toBeFocused();
   await page.keyboard.type('Product');
   await page.keyboard.press('Tab');
   seen.push(await measure());
   await page.keyboard.press('Enter');
+  await expect(row(2)).toBeFocused();
   await page.keyboard.type('Pricing');
   await page.keyboard.press('Tab');
   seen.push(await measure());
   await page.keyboard.press('Enter');
+  await expect(row(3)).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await page.keyboard.type('Marketing');
   seen.push(await measure());
@@ -43,6 +46,8 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   expect(doc).toBe('- Launch\n  - Product\n    - Pricing\n  - Marketing\n');
   // Tapping another row, and the bar's Indent on it.
   await row(1).tap();
+  await expect(page.locator('.ol-row[data-at="1"]')).toHaveClass(/\bsel\b/);
+  await expect(page.getByRole('button', { name: 'Move down', exact: true })).toBeEnabled();
   seen.push(await measure());
   await page.getByRole('button', { name: 'Move down', exact: true }).tap();
   await expect(page.locator('.ol-row[data-at="1"] to-text .tx')).toHaveText('Marketing');
@@ -60,16 +65,19 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   // Every box a finger may land in is 16px or more, so Safari has no reason to zoom in.
   const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('to-outline-editor .tx, to-outline-editor input')].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`));
   expect(small).toEqual([]);
-  // A bullet's menu opens inside the screen and Escape closes it, focus back on the bullet.
+  // A bullet's menu opens inside the screen and Escape closes it; the caret is back in the row's words (the bullet never takes the focus).
   const bullet = page.locator('.ol-row[data-at="2"] button.ol-kind');
   await bullet.tap();
   const menu = page.locator('.ol-line-menu [role=menu]');
   await expect(menu).toBeVisible();
+  await expect(bullet).toHaveAttribute('aria-expanded', 'true');
   const box = (await menu.boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
-  await expect(bullet).toBeFocused();
+  await expect(row(2)).toBeFocused();
+  await expect(bullet).toHaveAttribute('aria-expanded', 'false');
+  expect(await measure()).toMatchObject({ pageTop: 0, rows: 1 });
   expect(errors).toEqual([]);
 });
