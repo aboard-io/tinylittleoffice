@@ -275,7 +275,10 @@ function removeNamed(doc: Doc, name: string, at: number): Op[] {
 /** Ops gathered in order, each applied to a running copy so the next sees what it did. */
 class Builder {
   ops: Op[] = [];
-  constructor(public doc: Doc) {}
+  doc: Doc;
+  constructor(doc: Doc) {
+    this.doc = doc;
+  }
   push(...ops: Op[]) {
     for (const op of ops) {
       this.doc = apply(this.doc, op);
