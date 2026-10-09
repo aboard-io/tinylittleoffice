@@ -6,7 +6,7 @@ import { appOf, apps, pageSvg } from '../src/kit/core.ts';
 import { TEMPLATES, templatesOf, planText } from '../src/lib/templates.ts';
 import { parseDoc, serializeDoc } from '../src/lib/richtext.ts';
 import { readSheet, serializeGrid } from '../src/lib/formula.ts';
-import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr } from '../src/lib/deckmodel.ts';
+import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr, deckTheme } from '../src/lib/deckmodel.ts';
 import { toMarkdown } from '../src/lib/markdown.ts';
 import * as T from '../src/api.ts';
 
@@ -14,14 +14,14 @@ import * as T from '../src/api.ts';
 const rewrite: Record<string, (body: string) => string> = {
   write: (b) => serializeDoc(parseDoc(b)),
   sheet: (b) => ((s) => serializeGrid(s.grid, s.chart, s.types, s.names))(readSheet(b)),
-  deck: (b) => serializeDeck(parseDeck(b), deckTransition(b), deckIconColor(b), deckEndsWithQr(b)),
+  deck: (b) => serializeDeck(parseDeck(b), deckTransition(b), deckIconColor(b), deckEndsWithQr(b), deckTheme(b)),
 };
 
 test('every template is in its app\'s own spelling, draws, and has a name and a line', () => {
   for (const [app, list] of Object.entries(TEMPLATES)) {
     const def = appOf(app)!;
     assert.ok(def && rewrite[app], app);
-    assert.ok(list.length >= 5 && list.length <= 8, `${app}: ${list.length} templates`);
+    assert.ok(list.length >= 5 && list.length <= (app === 'deck' ? 14 : 8), `${app}: ${list.length} templates`);
     assert.equal(new Set(list.map((t) => t.id)).size, list.length, `${app}: ids are unique`);
     for (const t of list) {
       assert.ok(t.name && t.blurb && t.body.trim(), `${app}/${t.id}`);
@@ -50,6 +50,12 @@ test('the sheets add up: no errors in any computed cell, and the formulas mean w
   assert.match(tracker[0][2], /^\d{4}-\d{2}-\d{2}$/);
   assert.deepEqual(tracker.map((r) => r[4]), ['5', '14', '28', '1']);
   assert.equal(tracker[0][5], '☑');
+});
+
+test('the decks come in every theme', async () => {
+  const { THEMES } = await import('../src/lib/decktheme.ts');
+  const used = new Set(TEMPLATES.deck.map((t) => deckTheme(t.body)));
+  for (const id of Object.keys(THEMES).filter(Boolean)) assert.ok(used.has(id), `a deck in ${id}`);
 });
 
 test('the decks name only icons the library has, and lay out as they say', async () => {

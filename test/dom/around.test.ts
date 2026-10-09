@@ -39,18 +39,16 @@ describe('templates', () => {
 
   test('an empty text starts from a template: a picture of each, one undo back to blank', async () => {
     await shell('#/v0/write');
-    // Offered twice, quietly: a line on the blank page and a button in the toolbar. Never a dialog by itself.
-    const line = () => document.querySelector('.to-template-line');
-    expect(line()?.textContent).toContain('Start from a template');
+    // Offered twice: the templates laid out on the blank page, Blank first, and a button in the toolbar. Never a dialog by itself.
+    const line = () => document.querySelector('.to-gallery');
+    expect(texts(line()!, '.to-template b')[0]).toBe('Blank');
+    expect(line()!.querySelectorAll('.to-template')).toHaveLength(9);
+    expect(line()!.querySelectorAll('.to-template .pic svg')).toHaveLength(8);
+    expect(texts(line()!, '.to-template b').filter((t) => t === 'Business plan')).toHaveLength(1);
     expect(document.querySelector('.to-template-tool')).toBeTruthy();
     expect(document.querySelector('sl-dialog.to-templates')).toBeNull();
-    line()!.querySelector('button')!.click();
-    const dialog = await picker();
-    const cards = dialog.querySelectorAll('.to-template');
-    expect(cards).toHaveLength(8);
-    expect(dialog.querySelectorAll('.to-template .pic svg')).toHaveLength(8);
-    expect(texts(dialog, '.to-template b').filter((t) => t === 'Business plan')).toHaveLength(1);
-    await choose('Meeting notes');
+    [...line()!.querySelectorAll<HTMLElement>('.to-template')].find((c) => c.textContent?.includes('Meeting notes'))!.click();
+    await settleAll();
     const doc = editorOf('write');
     expect(texts(doc, 'h1')).toEqual(['Meeting notes']);
     expect(texts(doc, 'h2')).toEqual(['Agenda', 'Notes', 'Decisions', 'Actions']);
@@ -69,17 +67,25 @@ describe('templates', () => {
     expect(texts(doc, 'h2')[0]).toBe('The customer');
     // (The first italic line is the subtitle; the questions follow each heading.)
     expect(doc.querySelector('h2 + p i')?.textContent).toContain('Who buys first');
+    // Blank puts the gallery away and the cursor on the page, the document still empty.
+    await undo();
+    expect(line()).toBeTruthy();
+    line()!.querySelector<HTMLElement>('.to-template.blank')!.click();
+    await settleAll();
+    expect(line()).toBeNull();
+    expect(bodyOf()).toBe('');
+    expect(document.activeElement?.closest('.write-page')).toBeTruthy();
   });
 
   test('a sheet starts from a template, sums and chart included', async () => {
     await shell('#/v0/sheet');
     const cell = (ref: string) => document.querySelector<HTMLInputElement>(`to-sheet input[aria-label="${ref}"]`)!;
-    expect(document.querySelector('.to-template-line')).toBeTruthy();
+    expect(document.querySelector('.to-gallery')).toBeTruthy();
     await startFrom('Budget');
     expect(namesOf(bodyOf())[0]).toBe('Item');
     expect(cell('A1').value).toBe('Rent');
     expect(cell('D7').value).toBe('$65.00');
-    expect(document.querySelector('.to-template-line')).toBeNull();
+    expect(document.querySelector('.to-gallery')).toBeNull();
     await undo();
     expect(cell('A1').value).toBe('');
     expect(bodyOf()).toBe('');
@@ -91,15 +97,19 @@ describe('templates', () => {
 
   test('a deck starts from a template: slides with icons, from the first', async () => {
     await shell('#/v0/deck');
-    expect(document.querySelector('.to-template-line')).toBeTruthy();
+    // Blank, and a dozen decks in the themes between them.
+    const cards = texts(document.querySelector('.to-gallery')!, '.to-template b');
+    expect(cards[0]).toBe('Blank');
+    expect(cards.length).toBeGreaterThan(10);
     await startFrom('A talk');
+    expect(bodyOf()).toMatch(/^---\ntheme: midnight\n/);
     expect(document.querySelectorAll('.deck-thumb')).toHaveLength(6);
     expect(document.querySelector('to-rich.title .write-page')?.textContent?.trim()).toBe('Talk title');
     expect(document.querySelector('.deck-kind')?.textContent?.trim()).toBe('Title');
-    expect(document.querySelector('.to-template-line')).toBeNull();
+    expect(document.querySelector('.to-gallery')).toBeNull();
     await undo();
     expect(document.querySelectorAll('.deck-thumb')).toHaveLength(1);
-    expect(document.querySelector('.to-template-line')).toBeTruthy();
+    expect(document.querySelector('.to-gallery')).toBeTruthy();
   });
 });
 

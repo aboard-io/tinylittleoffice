@@ -14,7 +14,7 @@ import { ICON_COLORS, LAYOUTS, TRANSITIONS, blankSlide, deckEndsWithQr, deckIcon
 import { THEMES, themeOf } from '../lib/decktheme.ts';
 import { SH, SW, layoutSlide, slidePage, slideSteps } from '../lib/slide.ts';
 import { closingSlide, slidesWith } from './deck.def.ts';
-import { templateLine, templateTool } from '../widgets/template-picker.ts';
+import { templateGallery, templateTool } from '../widgets/template-picker.ts';
 
 interface Deck {
   slides: Slide[];
@@ -241,7 +241,7 @@ export class ToDeck extends PagesElement<Deck> {
         <span class="to-hint deck-count">${n} ${n === 1 ? 'slide' : 'slides'}</span>
         ${blank ? templateTool('deck', this.useTemplate) : nothing}
       </div>
-      ${blank ? templateLine('deck', this.useTemplate) : nothing}
+      ${blank ? templateGallery('deck', this.useTemplate) : nothing}
       <div class="deck-layout">
         <!-- The slide first, then the row of every slide under it. -->
         <div class="deck-editor">

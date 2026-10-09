@@ -15,7 +15,7 @@ import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, columnName, defaultColu
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet, measured } from './sheet.def.ts';
 import { linkify, parseInline } from '../lib/richtext.ts';
-import { templateLine, templateTool } from '../widgets/template-picker.ts';
+import { templateGallery, templateTool } from '../widgets/template-picker.ts';
 
 const MIN_COL = 48;
 /** A reference fits wherever the formula is waiting for a value. */
@@ -519,7 +519,7 @@ export class ToSheet extends DocElement<Sheet> {
         </sl-button-group>
         ${this.text ? '' : templateTool('sheet', this.useTemplate)}
       </div>
-      ${this.text ? '' : templateLine('sheet', this.useTemplate)}
+      ${this.text ? '' : templateGallery('sheet', this.useTemplate)}
       <div class="sheet-scroll">
         <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${this.onCopy} @cut=${this.onCopy} @paste=${this.onPaste} style=${w ? `width: calc(var(--sheet-row-w) + ${w.reduce((a, b) => a + b, 0)}px)` : ''}>
           <colgroup>

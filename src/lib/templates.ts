@@ -157,13 +157,16 @@ const SHEET: Template[] = [
 
 /** A deck's slides, a rule between each. */
 const slides = (...each: string[]) => each.join('\n\n---\n\n') + '\n';
+/** A deck in one of its themes (lib/decktheme.ts). */
+const themed = (theme: string, ...each: string[]) => `---\ntheme: ${theme}\n---\n${slides(...each)}`;
 
 const DECK: Template[] = [
   {
     id: 'talk',
     name: 'A talk',
     blurb: 'Title, agenda, three points, and a close.',
-    body: slides(
+    body: themed(
+      'midnight',
       '## :rocket: Talk title {.title}\n\n- Your name · Where · Date',
       '## :compass: Agenda\n\n- The first point\n- The second point\n- The third point\n\n> Say what the talk is for, and how long it takes.',
       '## :lightbulb: The first point\n\n- What it is\n- Why it matters\n- An example',
@@ -176,7 +179,8 @@ const DECK: Template[] = [
     id: 'status',
     name: 'Status update',
     blurb: 'Done and next side by side, then risks, then asks.',
-    body: slides(
+    body: themed(
+      'boardroom',
       '## :calendar: Status update {.title}\n\n- Project · Week of',
       '## This week and next {.two}\n\n- Done: the first thing\n- Done: the second thing\n\n|\n\n- Next: the third thing\n- Next: the fourth thing\n\n> Left, what shipped; right, what is planned.',
       '## :warning: Risks and blockers\n\n- What is in the way\n- Who can clear it',
@@ -187,7 +191,8 @@ const DECK: Template[] = [
     id: 'pitch',
     name: 'A pitch',
     blurb: 'Problem, solution, why now, the team, the ask.',
-    body: slides(
+    body: themed(
+      'graphite',
       '## :rocket: Company {.title}\n\n- What it is, for whom, in a line',
       '## :puzzle: The problem\n\n- Who has it\n- What it costs them\n- How they cope today',
       '## :lightbulb: The solution\n\n- What we do\n- Why it works\n- Why now',
@@ -200,7 +205,8 @@ const DECK: Template[] = [
     id: 'lesson',
     name: 'A lesson',
     blurb: 'What you will learn, a starter, the idea, a task, a recap.',
-    body: slides(
+    body: themed(
+      'chalkboard',
       '## :graduation: Lesson title {.title}\n\n- Subject · Class · Date',
       '## :target: What you will learn\n\n- The first goal\n- The second goal',
       '## :help: Starter\n\n- A question to think about\n\n> Two minutes, in pairs.',
@@ -213,13 +219,104 @@ const DECK: Template[] = [
     id: 'kickoff',
     name: 'Project kickoff',
     blurb: 'Why, who, how, when, and the open questions.',
-    body: slides(
+    body: themed(
+      'ocean',
       '## :flag: Project name {.title}\n\n- Kickoff · Date',
       '## :target: Why\n\n- The problem this project solves\n- What success looks like',
       '## :users: Who\n\n- Name · role\n- Name · role\n- Name · role',
       '## :map: How\n\n- Phase one\n- Phase two\n- Phase three',
       '## :calendar: When\n\n- Milestone · date\n- Milestone · date\n- Milestone · date',
       '## :help: Open questions\n\n- What is still to decide\n- Who decides it',
+    ),
+  },
+  {
+    id: 'review',
+    name: 'Quarterly review',
+    blurb: 'The numbers, what worked, what did not, the next quarter.',
+    body: themed(
+      'ivory',
+      '## :bar-chart: Quarter in review {.title}\n\n- Team · Q1 Year',
+      '## :target: The numbers\n\n- Goal against result, one line each\n- The one number that matters most',
+      '## What worked, and what did not {.two}\n\n- Worked: the first thing\n- Worked: the second thing\n\n|\n\n- Did not: the first thing\n- Did not: the second thing',
+      '## :lightbulb: What we learned\n\n- The lesson\n- What we will do differently',
+      '## :flag: Next quarter\n\n- The three goals\n- What we need to reach them',
+    ),
+  },
+  {
+    id: 'launch',
+    name: 'Product launch',
+    blurb: 'What is new, who it is for, how it works, when it ships.',
+    body: themed(
+      'arcade',
+      '## :zap: Introducing the product {.title}\n\n- The one line that says why it matters',
+      '## :users: Who it is for\n\n- The person, and their problem\n- What they do today',
+      '## :rocket: What is new\n\n- The first thing it does\n- The second thing it does\n- The thing nobody else does',
+      '## :star: The one to remember {.icon}\n\n- The feature to remember\n- Shown, not told\n\n> Show it working here.',
+      '## :calendar: When and how\n\n- The date\n- The price\n- Where to get it',
+    ),
+  },
+  {
+    id: 'party',
+    name: 'Party invitation',
+    blurb: 'Who it is for, when, where, what to bring, how to reply.',
+    body: themed(
+      'confetti',
+      '## :gift: You are invited! {.title}\n\n- A party for Name',
+      '## :calendar: When and where\n\n- Day, date, time\n- The address\n- How to get there',
+      '## :pizza: What to expect\n\n- Food and drink\n- Music and games\n- What to wear',
+      '## :heart: Please reply\n\n- By date\n- To name, at phone or email',
+    ),
+  },
+  {
+    id: 'offsite',
+    name: 'Team offsite',
+    blurb: 'Why we are here, the plan for the day, the questions, what we leave with.',
+    body: themed(
+      'sunset',
+      '## :sun: Team offsite {.title}\n\n- Place · Date',
+      '## :compass: Why we are here\n\n- The question this day answers\n- What a good day looks like',
+      '## :clock: The plan\n\n- Morning: where we are\n- Afternoon: where we are going\n- Evening: dinner together',
+      '## :puzzle: Questions to work on\n\n- The first question\n- The second question\n- The third question',
+      '## :check: What we leave with\n\n- Decisions\n- Owners and dates',
+    ),
+  },
+  {
+    id: 'workshop',
+    name: 'Workshop',
+    blurb: 'Warm-up, the method, hands-on time, share-back, next steps.',
+    body: themed(
+      'bubblegum',
+      '## :palette: Workshop title {.title}\n\n- Host · Date · Room',
+      '## :smile: Warm-up\n\n- Names, and one thing you hope to learn\n\n> Five minutes, round the room.',
+      '## :lightbulb: The method\n\n- Step one\n- Step two\n- Step three',
+      '## :brush: Your turn\n\n- The task\n- In groups of three\n- Twenty minutes',
+      '## :message: Share back\n\n- What each group made\n- What surprised you',
+      '## :flag: Next steps\n\n- What to try this week\n- Where to find the materials',
+    ),
+  },
+  {
+    id: 'research',
+    name: 'Research findings',
+    blurb: 'The question, how it was studied, what was found, what it means.',
+    body: themed(
+      'boardroom',
+      '## :search: Research findings {.title}\n\n- Study name · Researcher · Date',
+      '## :help: The question\n\n- What we wanted to know\n- Why it matters',
+      '## :book: How we studied it\n\n- Who took part\n- What we did\n- When and where',
+      '## :pie-chart: What we found\n\n- The first finding\n- The second finding\n- The third finding',
+      '## :lightbulb: What it means\n\n- For the product\n- For the next study',
+    ),
+  },
+  {
+    id: 'trip',
+    name: 'Trip recap',
+    blurb: 'Where you went, the highlights, the pictures, the tips.',
+    body: themed(
+      'ocean',
+      '## :plane: Our trip {.title}\n\n- Where · When · Who',
+      '## :map: The route\n\n- First stop\n- Second stop\n- Third stop',
+      '## :camera: Highlights\n\n- The best day\n- The best meal\n- The view nobody will believe',
+      '## :thumbs-up: Tips for next time\n\n- What to bring\n- What to skip\n- Where to stay',
     ),
   },
 ];

@@ -13,7 +13,7 @@ import { chooseIcon } from '../widgets/icon-picker.ts';
 import { askLink } from '../widgets/link-dialog.ts';
 import { askDate } from '../widgets/date-dialog.ts';
 import { openLink } from '../widgets/link-guard.ts';
-import { templateLine, templateTool } from '../widgets/template-picker.ts';
+import { templateGallery, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, ALIGN_OF, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
 import { blocksHtml, markedHtml } from './write.def.ts';
@@ -810,7 +810,7 @@ export class ToWrite extends LitElement {
         <to-insert label="Insert" placeholder="Insert: table, map, drawing…" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
         ${doc && !this.value ? templateTool('write', this.useTemplate) : nothing}` : nothing}
       </div>` : nothing}
-      ${doc && !this.value ? templateLine('write', this.useTemplate) : nothing}
+      ${doc && !this.value ? templateGallery('write', this.useTemplate) : nothing}
       <div
         class="write-page ${doc ? '' : 'rich-' + this.mode} ${this.value ? '' : 'blank'}"
         contenteditable="true"

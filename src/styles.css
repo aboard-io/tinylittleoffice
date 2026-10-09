@@ -4503,27 +4503,25 @@ sl-dialog.to-open-as {
 }
 
 /* Templates */
-/* The quiet line on a blank document: where the first words would go, one way to start. */
-.to-template-line {
-  margin: 0;
-  padding: 10px 14px 0;
-  font-size: 12.5px;
-  color: var(--to-ink-3);
+/* On a blank document, the templates laid out, Blank first: where the first words would go. */
+.to-gallery {
+  padding: 14px;
+  border-bottom: 1px solid var(--to-border);
+  background: var(--to-surface-2);
 }
-to-write > .to-template-line {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 24px clamp(16px, 6vw, 56px) 0;
+.to-gallery .to-templates-list {
+  margin-top: 0;
 }
-.to-template-line button {
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: var(--to-accent);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+to-write > to-template-gallery .to-gallery {
+  padding: 16px clamp(16px, 4vw, 32px);
+}
+/* A deck's cards are slide-shaped. */
+.to-templates-list[data-app='deck'] .to-template .pic {
+  aspect-ratio: 16 / 10;
+}
+/* Blank: an empty page, nothing on it. */
+.to-template.blank .pic {
+  background: var(--to-paper);
 }
 /* The picker: a card a template, its first page small above its name. */
 sl-dialog.to-templates {
