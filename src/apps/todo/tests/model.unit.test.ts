@@ -90,7 +90,7 @@ test('iCalendar: a VTODO each, done or not, due on its day, a star the first pri
   expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true);
   // Commas and semicolons are escaped; long lines are folded at 75 octets.
   const long = todoToIcs(parse(`- [ ] a, b; c ${'日本'.repeat(30)}\n`), 0);
-  expect(long).toContain('SUMMARY:a\\, b\; c ');
+  expect(long).toContain('SUMMARY:a\\, b\\; c ');
   for (const line of long.split('\r\n')) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
 });
 

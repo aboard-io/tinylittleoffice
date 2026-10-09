@@ -3,12 +3,13 @@
 // done, Insert, undo; and at phone width a row is a finger tall, the bar one row, the page never wider.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
+// The cascade's order is declared by the stylesheet, so it comes before the app's own (as in main.ts).
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToTodoEditor } from '../editor.ts';
 import { caret } from '../../../kit/textops.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 const LIST = '- [x] Buy milk\n- [ ] Call the printer {.star due=2020-02-01}\n- [ ] Pay rent {due=2999-03-01}\n';
 

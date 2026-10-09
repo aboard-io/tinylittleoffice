@@ -788,6 +788,7 @@ export class ToText extends LitElement {
     let notes = this.noteStart;
     const next = () => ++notes;
     const blank = model.length === 1 && isWords(model[0]) && !model[0].runs.length;
+    // Nothing but the blocks inside the box: it keeps white space as typed, so a newline of this template would be a line.
     return html`<div
         class="tx ${blank ? 'blank' : ''}"
         contenteditable="true"
@@ -806,9 +807,7 @@ export class ToText extends LitElement {
         @copy=${this.onCopy}
         @cut=${this.onCopy}
         @paste=${this.onPaste}
-      >
-        ${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}
-      </div>
+      >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
       <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
       <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove}></to-link-pop>`;
   }

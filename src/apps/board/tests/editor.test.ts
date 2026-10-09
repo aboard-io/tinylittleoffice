@@ -3,12 +3,13 @@
 // marks; undo; and at phone width a stage and a bit across, controls a finger tall, the bar one row.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
+// The cascade's order is declared by the stylesheet, so it comes before the app's own (as in main.ts).
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToBoardEditor } from '../editor.ts';
 import { caret } from '../../../kit/textops.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 const BOARD = `## To do {color=b}
 
@@ -333,10 +334,13 @@ test('at phone width: a stage and a bit across, controls a finger tall, the bar 
     const tops = new Set([...barEl.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
     expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    // A card's words are one line tall, the row a finger: nothing of the editor's own adds lines.
+    expect(text(el, 1).tx.getBoundingClientRect().height).toBeLessThanOrEqual(30);
+    expect(el.querySelector<HTMLElement>('.board-main')!.getBoundingClientRect().height).toBe(44);
+    // The page starts at its top (a test before may have left it scrolled); focusing and typing keep it there.
+    window.scrollTo(0, 0);
     await focusAt(el, 1);
-    console.log('S1', document.scrollingElement!.scrollTop, innerHeight, visualViewport?.height, document.documentElement.scrollHeight);
     await type(el, 1, ' now');
-    console.log('S2', document.scrollingElement!.scrollTop, text(el, 1).tx.getBoundingClientRect().top);
     expect(document.scrollingElement!.scrollTop).toBe(0);
     expect(parseFloat(getComputedStyle(text(el, 1).tx).fontSize)).toBeGreaterThanOrEqual(16);
     expect(barEl.offsetHeight).toBeLessThanOrEqual(56);

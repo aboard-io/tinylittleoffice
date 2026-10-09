@@ -391,3 +391,12 @@ test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the 
     await page.viewport(1100, 800);
   }
 });
+
+test('the box holds the blocks and nothing else: one line of words is one line tall, whatever the shape', async () => {
+  for (const shape of ['line', 'lines', 'doc'] as const) {
+    const h = await mount('- [ ] One line\n', shape);
+    const tx = h.el.tx;
+    expect([...tx.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE)).toHaveLength(0);
+    expect(tx.getBoundingClientRect().height).toBeCloseTo(tx.firstElementChild!.getBoundingClientRect().height, 0);
+  }
+});
