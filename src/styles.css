@@ -29,7 +29,6 @@
 /* 1. Tokens ---------------------------------------------------------------- */
 :root,
 :host,
-.sl-theme-light,
 .sl-theme-dark {
   /* Accent: Shoelace's indigo ramp becomes "primary". */
   --sl-color-primary-50: var(--sl-color-indigo-50);
@@ -503,7 +502,6 @@ sl-menu-item svg.pre {
   white-space: nowrap;
 }
 /* Small capitals over a group: a heading that labels rather than speaks. */
-.to-eyebrow,
 .to-doc h3,
 .to-kept thead th,
 .cal-agenda h2,
@@ -1468,13 +1466,6 @@ svg.draw-canvas text {
 }
 .cal-editor sl-input[type='time'] {
   width: 120px;
-}
-.cal-editor .actions {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
 }
 .cal-agenda {
   padding: 10px 14px 14px;
@@ -3368,26 +3359,6 @@ to-lines {
 .diagram .pic > svg g.pick:focus-visible :is(rect, ellipse, polygon, path):first-of-type {
   filter: drop-shadow(0 0 3px var(--to-accent));
 }
-.diagram-ctl g[role='button'] {
-  cursor: pointer;
-  color: var(--to-ink);
-}
-.diagram-ctl g[role='button'] rect {
-  fill: var(--to-surface);
-  stroke: var(--to-border);
-  stroke-width: 1;
-}
-.diagram-ctl g[role='button']:hover rect,
-.diagram-ctl g[role='button']:focus-visible rect {
-  fill: var(--to-accent);
-  stroke: var(--to-accent);
-}
-.diagram-ctl g[role='button']:hover,
-.diagram-ctl g[role='button']:focus-visible {
-  color: var(--to-on-accent);
-  outline: none;
-}
-
 /* The document as a QR code */
 sl-dialog.to-qr {
   --width: min(92vw, 420px);
@@ -3543,9 +3514,6 @@ sl-menu-item.sub::part(base) {
   .lf-row,
   .pixel-grid,
   .to-library details,
-  .diagram-ctl g[role='button'] rect {
-    border: 1px solid CanvasText;
-  }
   .lf-row.head .lf-fields input,
   .lf-kind {
     forced-color-adjust: none;
