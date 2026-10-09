@@ -45,20 +45,19 @@ export class ToOutline extends DocElement<Item[]> {
     this.commit(items);
     if (focus >= 0) this.focusItem(focus);
   }
-  private focusItem(i: number, atEnd = true) {
+  /** Choose item i and put the cursor at the end of its words. */
+  private focusItem(i: number) {
     this.sel = i;
     void this.updateComplete.then(() => {
       const box = this.querySelector<HTMLElement>(`.ol-row[data-i="${i}"] .write-page`);
       if (!box) return;
       box.focus();
-      if (atEnd) {
-        const range = document.createRange();
-        range.selectNodeContents(box);
-        range.collapse(false);
-        const sel = getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
+      const range = document.createRange();
+      range.selectNodeContents(box);
+      range.collapse(false);
+      const sel = getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     });
   }
 
@@ -80,32 +79,28 @@ export class ToOutline extends DocElement<Item[]> {
 
   /* ---------- changes ---------- */
 
+  private patchItem(i: number, change: Partial<Item>) {
+    this.commit(this.doc.map((it, n) => (n === i ? { ...it, ...change } : it)));
+  }
   private setText(i: number, text: string) {
     // Joins name items by their words, so they follow a renamed item (when no other item has its old name).
     const was = this.doc[i].text.trim();
     if (was && !this.doc.some((it, n) => n !== i && it.text.trim() === was)) this.links = this.links.map((l) => ({ ...l, from: l.from === was ? text.trim() : l.from, to: l.to === was ? text.trim() : l.to }));
-    this.commit(this.doc.map((it, n) => (n === i ? { ...it, text } : it)));
+    this.patchItem(i, { text });
   }
 
   /* ---------- lines between items ---------- */
 
-  private setLine(i: number, dir: Dir) {
-    this.commit(this.doc.map((it, n) => (n === i ? { ...it, dir: dir === '--' ? undefined : dir } : it)));
-  }
-  private nameLine(i: number, label: string) {
-    this.commit(this.doc.map((it, n) => (n === i ? { ...it, label: label.trim() || undefined } : it)));
-  }
-  private setLink(k: number, dir: Dir) {
-    this.links = this.links.map((l, n) => (n === k ? { ...l, dir } : l));
+  /** The joins are kept beside the items, so a change to them is written by committing the items again. */
+  private saveLinks(links: Link[]) {
+    this.links = links;
     this.commit(this.doc);
   }
-  private nameLink(k: number, label: string) {
-    this.links = this.links.map((l, n) => (n === k ? { ...l, label: label.trim() || undefined } : l));
-    this.commit(this.doc);
+  private patchLink(k: number, change: Partial<Link>) {
+    this.saveLinks(this.links.map((l, n) => (n === k ? { ...l, ...change } : l)));
   }
   private unlink(k: number) {
-    this.links = this.links.filter((_, n) => n !== k);
-    this.commit(this.doc);
+    this.saveLinks(this.links.filter((_, n) => n !== k));
   }
   /** Connect: start from the chosen item, or pick one first; everything else goes grey until the other end is tapped. */
   private connect() {
@@ -118,8 +113,14 @@ export class ToOutline extends DocElement<Item[]> {
     const [from, to] = [this.doc[c.from].text.trim(), this.doc[i].text.trim()];
     this.connecting = null;
     if (from === to || this.links.some((l) => (l.from === from && l.to === to) || (l.from === to && l.to === from))) return;
-    this.links = [...this.links, { from, to, dir: '--' }];
-    this.commit(this.doc);
+    this.saveLinks([...this.links, { from, to, dir: '--' }]);
+  }
+
+  /** Open the menu of bullet `key`: it is drawn only once asked for. */
+  private async openMenu(key: string) {
+    this.menuFor = key;
+    await this.updateComplete;
+    void (this.querySelector('.ol-menu') as (HTMLElement & { show(): Promise<void> }) | null)?.show();
   }
 
   /**
@@ -132,12 +133,7 @@ export class ToOutline extends DocElement<Item[]> {
     const glyph = o.dir === '->' ? UI.arrow : o.dir === '<-' ? UI.arrowLeft : o.dir === '<->' ? UI.arrowBoth : null;
     const face = glyph ? icon(glyph, 14) : html`<span></span>`;
     const label = `${o.said}: ${DIR_NAME[o.dir]}${o.label ? `, named “${o.label}”` : ''}. Change it`;
-    const open = async () => {
-      this.menuFor = key;
-      await this.updateComplete;
-      void (this.querySelector('.ol-menu') as (HTMLElement & { show(): Promise<void> }) | null)?.show();
-    };
-    if (this.menuFor !== key) return html`<button class="ol-kind" data-dir=${o.dir} aria-label=${label} aria-haspopup="menu" data-tip="Kind of line, its name" @mousedown=${(e: Event) => e.preventDefault()} @click=${open}>${face}</button>`;
+    if (this.menuFor !== key) return html`<button class="ol-kind" data-dir=${o.dir} aria-label=${label} aria-haspopup="menu" data-tip="Kind of line, its name" @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.openMenu(key)}>${face}</button>`;
     const kinds: [Dir, string, keyof typeof UI | null][] = [
       ['--', 'Plain line', null],
       ['->', `Arrow from ${o.from} to ${o.to}`, 'arrow'],
@@ -167,10 +163,15 @@ export class ToOutline extends DocElement<Item[]> {
   /** A line's name, as a chip before the words; tapped, it opens the bullet's menu. */
   private chip(key: string, label?: string) {
     if (!label) return nothing;
-    return html`<button class="ol-label" aria-label=${`Line named “${label}”: change it`} @click=${() => {
-      this.menuFor = key;
-      void this.updateComplete.then(() => (this.querySelector('.ol-menu') as (HTMLElement & { show(): Promise<void> }) | null)?.show());
-    }}>${label}</button>`;
+    return html`<button class="ol-label" aria-label=${`Line named “${label}”: change it`} @click=${() => this.openMenu(key)}>${label}</button>`;
+  }
+  /** Item i's bullet, the line to its parent p, and the line's name. */
+  private lineToParent(i: number, p: number, kids: boolean) {
+    const it = this.doc[i];
+    const parent = plainInline(this.doc[p].text) || 'the item above';
+    const said = `Line from ${parent} to ${plainInline(it.text) || `item ${i + 1}`}`;
+    const bullet = this.bullet(`i${i}`, { dir: it.dir ?? '--', label: it.label, said, from: parent, to: plainInline(it.text) || 'this', onDir: (dir) => this.patchItem(i, { dir: dir === '--' ? undefined : dir }), onName: (v) => this.patchItem(i, { label: v.trim() || undefined }), zoom: kids ? () => this.zoomTo(i) : undefined });
+    return html`<span class="ol-bullet">${bullet}</span>${this.chip(`i${i}`, it.label)}`;
   }
 
   /** Enter: a new item right after this one (as its first child when it is open and has children). */
@@ -205,14 +206,12 @@ export class ToOutline extends DocElement<Item[]> {
     const ref = what === 'qr-self' ? SELF : what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '');
     this.commit([...this.doc.slice(0, at), { depth, text: '', doc: ref }, ...this.doc.slice(at)]);
     if (what === 'qr-self') return;
-    const made = await editRef(ref);
-    this.commit(this.doc.map((it, n) => (n === at ? { ...it, doc: made } : it)));
+    this.patchItem(at, { doc: await editRef(ref) });
   }
   private async editDoc(i: number) {
     const ref = this.doc[i].doc;
     if (!ref || ref === SELF) return;
-    const made = await editRef(ref);
-    this.commit(this.doc.map((it, n) => (n === i ? { ...it, doc: made } : it)));
+    this.patchItem(i, { doc: await editRef(ref) });
   }
 
   private fold(i: number, shut = !this.folded.has(i)) {
@@ -230,11 +229,7 @@ export class ToOutline extends DocElement<Item[]> {
     this.focusItem(i >= 0 ? i : 0);
   }
   private zoomOut() {
-    if (this.zoom < 0) return;
-    const items = this.doc;
-    let p = this.zoom - 1;
-    while (p >= 0 && items[p].depth >= items[this.zoom].depth) p--;
-    this.zoomTo(p);
+    if (this.zoom >= 0) this.zoomTo(parentOf(this.doc, this.zoom));
   }
 
   private onKey(e: KeyboardEvent, i: number) {
@@ -287,8 +282,9 @@ export class ToOutline extends DocElement<Item[]> {
   private crumbs(): TemplateResult | typeof nothing {
     if (this.zoom < 0) return nothing;
     const items = this.doc;
+    // The item zoomed in on, and the items it is under.
     const trail: number[] = [];
-    for (let p = this.zoom; p >= 0; p--) if (items[p].depth < (trail.length ? items[trail[0]].depth : items[this.zoom].depth + 1)) trail.unshift(p);
+    for (let p = this.zoom; p >= 0; p = parentOf(items, p)) trail.unshift(p);
     return html`<nav class="ol-crumbs" aria-label="Zoomed in on">
       <button @click=${() => this.zoomTo(-1)}>${icon(UI.home, 14)} Everything</button>
       ${trail.map((p) => html`<span aria-hidden="true">›</span><button @click=${() => this.zoomTo(p)} aria-current=${p === this.zoom ? 'true' : 'false'}>${plainInline(items[p].text) || 'Untitled'}</button>`)}
@@ -324,7 +320,7 @@ export class ToOutline extends DocElement<Item[]> {
         const said = `Connection from ${plainInline(l.from)} to ${plainInline(l.to)}`;
         return html`<div class="ol-link">
           <span class="ol-end">${plainInline(l.from)}</span>
-          ${this.bullet(`l${k}`, { dir: l.dir, label: l.label, said, from: plainInline(l.from), to: plainInline(l.to), onDir: (d) => this.setLink(k, d), onName: (v) => this.nameLink(k, v), remove: () => this.unlink(k) })}
+          ${this.bullet(`l${k}`, { dir: l.dir, label: l.label, said, from: plainInline(l.from), to: plainInline(l.to), onDir: (dir) => this.patchLink(k, { dir }), onName: (v) => this.patchLink(k, { label: v.trim() || undefined }), remove: () => this.unlink(k) })}
           ${this.chip(`l${k}`, l.label)}
           <span class="ol-end">${plainInline(l.to)}</span>
           ${btn(`Take away ${said.toLowerCase()}`, 'close', () => this.unlink(k), { size: 13, tip: 'Take it away' })}
@@ -356,6 +352,7 @@ export class ToOutline extends DocElement<Item[]> {
           const it = items[i];
           const kids = hasChildren(items, i);
           const shut = this.folded.has(i);
+          const parent = parentOf(items, i);
           const d = this.drag;
           return html`<div
             class="ol-row ${i === this.sel ? 'sel' : ''} ${kids ? 'parent' : ''} ${kids && shut ? 'shut' : ''} ${d?.over === i ? `drop-${d.how}` : ''} ${this.connecting?.from === i ? 'source' : ''}"
@@ -371,12 +368,8 @@ export class ToOutline extends DocElement<Item[]> {
               <button class="ol-handle" draggable="true" aria-label="Move this item: drag it onto another" data-tip="Drag to move" @dragstart=${(e: DragEvent) => this.onDragStart(e, i)} @dragend=${() => ((this.drag = null), this.requestUpdate())} tabindex="-1">${icon(UI.grip, 13)}</button>
               ${kids ? html`<button class="ol-fold" aria-label=${shut ? `Unfold, ${blockEnd(items, i) - i - 1} inside` : 'Fold'} @click=${() => this.fold(i)}>${icon(shut ? UI.right : UI.down, 13)}</button>` : nothing}
             </span>
-            ${it.depth > 0 && parentOf(items, i) >= 0
-              ? (() => {
-                  const said = `line from ${plainInline(items[parentOf(items, i)].text) || 'the item above'} to ${plainInline(it.text) || `item ${i + 1}`}`;
-                  const parent = plainInline(items[parentOf(items, i)].text) || 'the item above';
-                  return html`<span class="ol-bullet">${this.bullet(`i${i}`, { dir: it.dir ?? '--', label: it.label, said: said[0].toUpperCase() + said.slice(1), from: parent, to: plainInline(it.text) || 'this', onDir: (dir) => this.setLine(i, dir), onName: (v) => this.nameLine(i, v), zoom: kids ? () => this.zoomTo(i) : undefined })}</span>${this.chip(`i${i}`, it.label)}`;
-                })()
+            ${parent >= 0
+              ? this.lineToParent(i, parent, kids)
               : html`<span class="ol-bullet"><span class="ol-kind root" aria-hidden="true"><span></span></span></span>`}
             ${it.doc
               ? html`<to-embed class="ol-doc" ref=${it.doc} controls tabindex="0" @focusin=${() => (this.sel = i)} @embed-edit=${() => this.editDoc(i)} @embed-remove=${() => this.save(remove(items, i), Math.max(0, i - 1))}></to-embed>`

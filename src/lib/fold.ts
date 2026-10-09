@@ -35,10 +35,10 @@ document.onkeydown = function (e) {
 go(0);
 `);
 import { refPage } from '../kit/embed.ts';
-import { loosen, slidesOf, writeSlides, type Layout, type Slide } from './deckmodel.ts';
+import { blankSlide, isBlank, loosen, slidesOf, writeSlides, type Layout, type Slide } from './deckmodel.ts';
 import { escapeInline, parse, plain } from './tlo.ts';
 import { ICON_SVG } from './icons.ts';
-import { layoutSlide, slidePage, type SlideSize } from './slide.ts';
+import { layoutSlide, slidePage } from './slide.ts';
 
 export interface Format {
   /** How many pages; with `grow`, how many to start with. */
@@ -70,15 +70,13 @@ export interface Folded {
 
 const FORMATS = new Map<string, Format>();
 export const formatOf = (id: string) => FORMATS.get(id);
-const isBlank = (s: Slide) => !s.icon && !s.title && !s.sub && s.bullets.every((b) => !b.trim());
-const blank = (): Slide => ({ icon: '', title: '', bullets: [] });
 
 export function parseFold(body: string, f: Format, loose = false): Folded {
   const doc = parse(body);
   const pages = slidesOf(loose ? loosen(doc, false) : doc, !f.panels);
   const by = f.by ?? 4;
   const want = f.grow ? Math.min(f.grow, Math.max(f.count, +(doc.head.pages ?? 0) || 0, Math.ceil(pages.length / by) * by)) : f.count;
-  while (pages.length < want) pages.push(blank());
+  while (pages.length < want) pages.push(blankSlide());
   return { two: !!f.sides && doc.head.sides === '2', pages: pages.slice(0, want) };
 }
 
@@ -90,9 +88,6 @@ export function serializeFold(z: Folded, f: Format): string {
   const head = { sides: z.two ? '2' : '', pages: z.pages.length > Math.max(f.count, Math.ceil(pages.length / by) * by) ? String(z.pages.length) : '' };
   return pages.length === 1 && isBlank(pages[0]) && !head.sides && !head.pages ? '' : writeSlides(head, pages, !f.panels);
 }
-
-/** A printed thing as written loosely (with no rules, each heading starts a page), made canonical. */
-export const readFold = (text: string, f: Format) => serializeFold(parseFold(text, f, true), f);
 
 /** A comic's panel: its picture, what is said, and the caption, written as a bullet ":dog: Walk? | Monday, noon." */
 export interface Panel {
@@ -151,11 +146,12 @@ export const isFitted = (p: Page): p is Fitted => 'titlePx' in p;
 export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Fitted {
   // A page with a layout is a slide laid on paper: the deck's engine, at this size, louder on a cover.
   if (s.layout) {
-    const size: SlideSize = { w, h, loud: o.loud ?? (o.cover ? 1.6 : 1), prose: s.layout === 'b' ? false : s.layout !== '2' && s.layout !== 'i' && s.layout !== 't' };
+    const size = { w, h, loud: o.loud ?? (o.cover ? 1.6 : 1) };
+    // 'b' is a deck's own default: bullets.
     const laid = s.layout === 'b' ? { ...s, layout: '' as const } : s;
     const L = layoutSlide(laid, size);
     const p = slidePage(laid, Infinity, undefined, '', size);
-    const sizes = { layout: s.layout, cover: s.layout === 't', titlePx: L.titlePx, bodyPx: L.bodyPx, m: (64 * w * (size.loud ?? 1)) / 960 };
+    const sizes = { layout: s.layout, cover: s.layout === 't', titlePx: L.titlePx, bodyPx: L.bodyPx, m: (64 * w * size.loud) / 960 };
     return { ...p, ...sizes, svg: o.foot ? p.svg + text(w / 2, h - (o.m ?? 20) * 0.55, o.foot, { px: 11, fill: FAINT, anchor: 'middle' }) : p.svg };
   }
   const k = w / 264;
@@ -210,8 +206,8 @@ export function fitted(s: Slide, w: number, h: number, o: Fit = {}): Fitted {
 
 /** Page i of a folded thing: the first is its cover; inside pages are numbered. */
 export const foldPage = (z: Folded, i: number, f: Format): Page => {
-  const { w, h } = f.size(z.two);
   if (f.page) return f.page(z.pages[i], i);
+  const { w, h } = f.size(z.two);
   return fitted(z.pages[i], w, h, { cover: i === 0, foot: i === 0 || i === z.pages.length - 1 ? '' : String(i + 1) });
 };
 const pagesOf = (z: Folded, f: Format) => z.pages.map((_, i) => foldPage(z, i, f));
@@ -294,7 +290,8 @@ export function defineFold(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> &
   const title = (body: string) => parseFold(body, f).pages[0].title;
   return defineApp({
     group: 'Print',
-    read: (text) => readFold(text, f),
+    // Written loosely, with no rules, each heading starts a page.
+    read: (text) => serializeFold(parseFold(text, f, true), f),
     title,
     outline: (body) => parseFold(body, f).pages.map((p) => p.title).filter(Boolean),
     // Printed, it is its sheets. Shown inside something else it is its pages, turned one per click.

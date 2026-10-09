@@ -1,17 +1,18 @@
 /**
- * <to-deck>: up to ten slides. A slide is a headline with bullets, a title,
- * two columns, or bullets beside a big icon; any of them can also show
- * another document (a drawing, a chart, a map...), which then has the whole
- * slide. Type shrinks as a slide
- * fills up, and when presenting, a slide builds one reveal per click.
+ * <to-deck>: slides. A slide is a headline with bullets, a title, two
+ * columns, or bullets beside a big icon; any of them can also show another
+ * document (a drawing, a chart, a map...), which then has the whole slide.
+ * Type shrinks as a slide fills up, and when presenting, a slide builds one
+ * reveal per click.
  * Document format: see lib/deckmodel.ts. Layout and drawing: deck.def.ts.
  */
 import { keyed } from 'lit/directives/keyed.js';
 import { defineElement, html, nothing, state, property, unsafeSVG, tool, swatches, icon, libraryIcon, UI, insertOptions, resolve, isKey } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
-import { PagesElement, blankPage } from './pages.ts';
-import { ICON_COLORS, LAYOUTS, MAX_SLIDES, TRANSITIONS, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition, deckEndsWithQr } from '../lib/deckmodel.ts';
-import { SH, SW, closingSlide, layoutSlide, slidePage, slideSteps, slidesWith } from './deck.def.ts';
+import { PagesElement } from './pages.ts';
+import { ICON_COLORS, LAYOUTS, TRANSITIONS, blankSlide, deckEndsWithQr, deckIconColor, deckTransition, parseDeck, serializeDeck, type Layout, type Slide, type Transition } from '../lib/deckmodel.ts';
+import { SH, SW, layoutSlide, slidePage, slideSteps } from '../lib/slide.ts';
+import { closingSlide, slidesWith } from './deck.def.ts';
 import { templateLine, templateTool } from '../widgets/template-picker.ts';
 
 interface Deck {
@@ -70,17 +71,11 @@ export class ToDeck extends PagesElement<Deck> {
     window.removeEventListener('keydown', this.onKey);
   }
 
-  private get slides() {
-    return this.doc.slides;
-  }
   protected pages() {
     return this.doc.slides;
   }
   protected savePages(slides: Slide[]) {
     this.commit({ ...this.doc, slides });
-  }
-  private add() {
-    if (this.slides.length < MAX_SLIDES) this.addPage();
   }
 
   /** A template becomes the deck, from its first slide: one change, one undo. */
@@ -91,12 +86,17 @@ export class ToDeck extends PagesElement<Deck> {
 
   /* ---------- another document on the slide ---------- */
 
-  /** The Slide type menu: a layout for the slide, or a document to show on it. */
+  /** The Add menu: a new slide after this one, of a layout or showing a document; the slide you are on is left as it is. */
   private pickKind(what: string) {
-    // A new slide of that type goes in after this one; the slide you are on is left as it is.
-    if (this.slides.length >= MAX_SLIDES) return;
-    this.addPage(what.startsWith('layout:') ? { ...blankPage(), layout: what.slice(7) as Layout } : blankPage());
-    if (!what.startsWith('layout:')) void this.insert(what);
+    if (what.startsWith('layout:')) return this.addPage({ ...blankSlide(), layout: what.slice(7) as Layout });
+    this.addPage();
+    void this.insert(what);
+  }
+
+  /** The transition menu says "fade" for the default, which is written as nothing. */
+  private setTransition(e: Event) {
+    const t = (e.target as SlSelect).value as string;
+    this.commit({ ...this.doc, transition: (t === 'fade' ? '' : t) as Transition });
   }
 
   /* ---------- presenting ---------- */
@@ -157,8 +157,8 @@ export class ToDeck extends PagesElement<Deck> {
     // Only while this deck is the document on screen, not one being edited inside another.
     if (!this.isConnected || this.closest('sl-dialog:not([open])')) return;
     if (isKey(e, 'Mod+Shift+Enter')) this.show(this.cur);
-    else if (isKey(e, 'Mod+Enter')) this.add();
-    else if (e.key === 'PageDown' && this.cur < this.slides.length - 1) this.cur++;
+    else if (isKey(e, 'Mod+Enter')) this.addPage();
+    else if (e.key === 'PageDown' && this.cur < this.doc.slides.length - 1) this.cur++;
     else if (e.key === 'PageUp' && this.cur > 0) this.cur--;
     else return;
     e.preventDefault();
@@ -172,8 +172,8 @@ export class ToDeck extends PagesElement<Deck> {
   };
 
   render() {
-    const s = this.slides[this.cur];
-    const n = this.slides.length;
+    const s = this.doc.slides[this.cur];
+    const n = this.doc.slides.length;
     const kind = s.layout ?? '';
     const L = layoutSlide(s);
     // Type is sized in the slide's own width, so the editor shows what the audience will see.
@@ -187,7 +187,7 @@ export class ToDeck extends PagesElement<Deck> {
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Slides">
         <sl-button-group label="Slides">
-          ${tool('Slide', 'plus', () => this.add(), { text: true, disabled: n >= MAX_SLIDES })}
+          ${tool('Slide', 'plus', () => this.addPage(), { text: true })}
           <span class="deck-kind to-hint" data-tip="What kind of slide this is">${kindName}</span>
           <to-insert class="deck-add" label="Add a slide" placeholder="Add: type, table, map…" .options=${[...LAYOUTS.map((l) => ({ value: `layout:${l.id}`, label: `${l.name} slide`, group: 'Layouts', icon: LAYOUT_ICONS[l.id] })), ...insertOptions('deck')]} @pick=${(e: CustomEvent<string>) => this.pickKind(e.detail)}></to-insert>
           ${tool('Move slide up', 'up', () => this.movePage(-1), { disabled: this.cur === 0 })}
@@ -198,7 +198,7 @@ export class ToDeck extends PagesElement<Deck> {
         <sl-button size="small" @click=${this.openPicker}>${s.icon ? libraryIcon(s.icon, 14) : icon(UI.smile, 14)} Icon</sl-button>
         <span class="to-spacer"></span>
         ${tool('End with a QR code of this deck', 'qr', () => this.commit({ ...this.doc, qr: !this.doc.qr }), { pressed: this.doc.qr })}
-        <sl-select class="sr-label deck-transition" size="small" label="Transition" hoist .value=${this.doc.transition || 'fade'} @sl-change=${(e: Event) => this.commit({ ...this.doc, transition: (((e.target as SlSelect).value as string) === 'fade' ? '' : (e.target as SlSelect).value) as Transition })}>
+        <sl-select class="sr-label deck-transition" size="small" label="Transition" hoist .value=${this.doc.transition || 'fade'} @sl-change=${this.setTransition}>
           ${TRANSITIONS.map((t) => html`<sl-option value=${t.id || 'fade'}>${t.name}</sl-option>`)}
         </sl-select>
         <span class="to-hint deck-count">${n} ${n === 1 ? 'slide' : 'slides'}</span>
@@ -215,13 +215,12 @@ export class ToDeck extends PagesElement<Deck> {
             return html`<span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg>`;
           },
           (sl, i) => `Slide ${i + 1}: ${sl.title || 'untitled'}`,
-          (() => {
-            // The closing slide is made, not written: a QR code of the deck, shown here so it is no surprise.
-            if (!closingSlide(this.serialize(this.doc))) return nothing;
-            return html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" data-tip="Ends with a QR code of this deck, so the room can take it home. Turn it off in the toolbar.">
-              ${icon(UI.qr, 28)}<span>QR code of this deck</span>
-            </div>`;
-          })(),
+          // The closing slide is made, not written: a QR code of the deck, shown here so it is no surprise.
+          closingSlide(this.serialize(this.doc))
+            ? html`<div class="deck-end" role="img" aria-label="Last slide, added for you: a QR code of this whole deck" data-tip="Ends with a QR code of this deck, so the room can take it home. Turn it off in the toolbar.">
+                ${icon(UI.qr, 28)}<span>QR code of this deck</span>
+              </div>`
+            : nothing,
         )}
         <div class="deck-editor">
           ${this.canvas({ kind, style: fit, pick: this.openPicker, iconLabel: 'Slide icon', foot: `${this.cur + 1} / ${n}` })}
@@ -241,13 +240,15 @@ export class ToDeck extends PagesElement<Deck> {
     // A map is shown live, over the place its picture would be, so it can fly from stop to stop.
     const map = sub?.def?.id === 'trip' ? layoutSlide(s).sub : undefined;
     const p = slidePage(s, this.shown, map ? 0 : subStep, this.doc.color);
+    // How the slide arrives, and which way: back when going back.
+    const motion = `tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
     return html`<div class="deck-show" role="dialog" aria-modal="true" aria-label="Presentation" @click=${this.onShowClick}>
       ${this.leaving >= 0 && shows[this.leaving]
-        ? keyed(this.leaving, html`<div class="was tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(slidePage(shows[this.leaving], Infinity, undefined, this.doc.color).svg)}</svg></div>`)
+        ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(slidePage(shows[this.leaving], Infinity, undefined, this.doc.color).svg)}</svg></div>`)
         : nothing}
       ${keyed(
         this.showing,
-        html`<div class="frame tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}">
+        html`<div class="frame ${motion}">
           <svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label="${s.title}">${unsafeSVG(p.svg)}</svg>
           ${map && sub ? html`<to-trip class="deck-map" present .value=${sub.body} .step=${subStep ?? 0} style="left:${(map.x / SW) * 100}%;top:${(map.y / SH) * 100}%;width:${(map.w / SW) * 100}%;height:${(map.h / SH) * 100}%" @click=${(e: Event) => e.stopPropagation()}></to-trip>` : nothing}
         </div>`,

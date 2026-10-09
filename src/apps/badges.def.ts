@@ -9,8 +9,8 @@ export const BADGES: Format = {
   size: () => ({ w: 384, h: 288 }),
   name: (i) => `Badge ${i + 1}`,
   page: (s) => fitted({ ...s, layout: s.layout ?? 't' }, 384, 288, { cover: true, loud: 1.1, max: 22 }),
-  sheets: (p) => tile(p.filter((_, i) => i < p.length), 2, 3),
+  sheets: (p) => tile(p, 2, 3),
   how: () => 'Download the PDF and print it on letter paper, at actual size. Cut along the dashes: six badges a sheet.',
 };
 
-export default defineFold({ id: 'badges', group: 'Print', under: 'poster', name: 'Name badges', icon: 'badges', blurb: 'Name badges, one page per person, six to a sheet, ready to cut.' }, BADGES);
+export default defineFold({ id: 'badges', under: 'poster', name: 'Name badges', icon: 'badges', blurb: 'Name badges, one page per person, six to a sheet, ready to cut.' }, BADGES);

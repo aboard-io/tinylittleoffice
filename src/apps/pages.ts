@@ -6,14 +6,12 @@
  * what is its own.
  */
 import { DocElement, html, nothing, state, editRef, makeRef, tool, icon, libraryIcon, UI, LIBRARY, suggestIcons, SELF, type TemplateResult } from '../kit.ts';
-import type { Slide } from '../lib/deckmodel.ts';
+import { blankSlide, type Slide } from '../lib/deckmodel.ts';
 import { withHead } from '../lib/tlo.ts';
 import { chooseIcon, type IconChoice } from '../widgets/icon-picker.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
 import '../widgets/insert-box.ts';
-
-export const blankPage = (): Slide => ({ icon: '', title: '', bullets: [] });
 
 /** How the canvas shows a page. */
 export interface Canvas {
@@ -55,7 +53,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
   }
 
   /** A new page after this one, opened with the cursor in its headline. */
-  protected addPage(page: Slide = blankPage()) {
+  protected addPage(page: Slide = blankSlide()) {
     const pages = [...this.pages()];
     pages.splice(this.cur + 1, 0, page);
     this.savePages(pages);
@@ -64,7 +62,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
   }
   /** This page goes; the last one is emptied rather than taken away. */
   protected removePage() {
-    if (this.pages().length <= 1) return this.savePages([blankPage()]);
+    if (this.pages().length <= 1) return this.savePages([blankSlide()]);
     const pages = this.pages().filter((_, j) => j !== this.cur);
     this.savePages(pages);
     this.cur = Math.min(this.cur, pages.length - 1);
@@ -79,17 +77,13 @@ export abstract class PagesElement<D> extends DocElement<D> {
     this.cur = j;
   }
 
-  /** Another document on the page (a chart is a sheet that asks to be drawn as one), made in its own editor; 'remove' takes it away. */
+  /** Another document on the page (a chart is a sheet that asks to be drawn as one), made in its own editor. */
   protected async insert(what: string) {
-    if (what === 'remove') return this.patch({ sub: undefined });
     if (what === 'qr-self') return this.patch({ sub: SELF });
-    const at = this.cur;
-    const ref = what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '');
-    this.patch({ sub: ref }, at);
-    const made = await editRef(ref);
-    this.cur = at;
-    this.patch({ sub: made }, at);
+    this.patch({ sub: what === 'chart' ? makeRef('sheet', withHead('', { chart: 'bar' })) : makeRef(what, '') });
+    await this.editSub();
   }
+  /** The page's other document, in its own editor; it comes back to the page it was on. */
   protected async editSub() {
     const at = this.cur;
     const ref = this.pages()[at].sub;
@@ -120,11 +114,6 @@ export abstract class PagesElement<D> extends DocElement<D> {
   protected words(label: string, list: string[], placeholder: string, save: (list: string[]) => void) {
     return html`<div class="bullets"><to-rich class="words" mode="lines" .tools=${false} label=${label} placeholder=${placeholder} .value=${list.join('\n')} @focusin=${this.onField} @rich-change=${(e: CustomEvent<string>) => save(e.detail.split('\n'))}></to-rich></div>`;
   }
-  /** The other document on the page, with its buttons, when there is one. */
-  protected embed() {
-    const s = this.page;
-    return s.sub ? html`<to-embed ref=${s.sub} controls @embed-edit=${this.editSub} @embed-remove=${() => this.patch({ sub: undefined })}></to-embed>` : null;
-  }
   /** The text buttons: marks, the bullet's depth, an icon among the words; they work on the box last typed in. */
   protected textTools() {
     return html`<sl-button-group label="Text">
@@ -145,7 +134,7 @@ export abstract class PagesElement<D> extends DocElement<D> {
     const [wordsLabel, wordsHint] = c.words ?? ['Bullets', c.kind === 't' ? 'Subtitle' : 'One bullet per line'];
     return html`<div class="deck-slide lay-${c.kind || 'b'} ${s.sub ? 'has-sub' : ''} ${c.cls ?? ''}" style=${c.style}>
       ${s.sub
-        ? this.embed()
+        ? html`<to-embed ref=${s.sub} controls @embed-edit=${this.editSub} @embed-remove=${() => this.patch({ sub: undefined })}></to-embed>`
         : (c.inner ??
           html`<div class="head">
               <button class="pick ${s.icon ? '' : 'empty'}" data-tip=${s.icon ? 'Change icon' : 'Add an icon'} aria-label=${c.iconLabel ?? 'Page icon'} @click=${c.pick}>

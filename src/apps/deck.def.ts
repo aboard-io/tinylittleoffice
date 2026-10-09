@@ -1,17 +1,15 @@
 /** Deck: what the shell knows about slides. Format: lib/deckmodel.ts. */
 import { LINK, defineApp, xml, pageSvg, ACCENT, type DownloadContext, type Page } from '../kit/core.ts';
-import { SW, SH, depthOf, layoutSlide, slidePage, slideSteps, live } from '../lib/slide.ts';
+import { SW, SH, layoutSlide, slidePage, slideSteps } from '../lib/slide.ts';
 import { parseInline, plainInline } from '../lib/richtext.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
 import { makeRef, refPage, resolve } from '../kit/embed.ts';
 import { encodeEnvelope } from '../lib/envelope.ts';
 import { QR_MAX_BYTES } from '../lib/qr.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { ICON_COLORS, deckIconColor, parseDeck, readDeck, type Slide, deckEndsWithQr } from '../lib/deckmodel.ts';
+import { ICON_COLORS, blankSlide, deckEndsWithQr, deckIconColor, depthOf, live, parseDeck, readDeck, type Slide } from '../lib/deckmodel.ts';
 
 const x = xml;
-
-export { SW, SH, depthOf, layoutSlide, slidePage, slideSteps, type SlideLayout, type SlideSize } from '../lib/slide.ts';
 
 /* ---------- PowerPoint ---------- */
 
@@ -144,7 +142,7 @@ function makeClosing(body: string): Slide | null {
   const site = (import.meta.env?.VITE_SITE_URL as string | undefined) ?? '';
   const link = `${site}deck/${LINK}deck/${encodeEnvelope({ created: null, body, title: title(body) || undefined }, 'deck')}`;
   if (new TextEncoder().encode(link).length > QR_MAX_BYTES || !body.trim()) return null;
-  return { icon: '', title: '', bullets: [], sub: makeRef('qr', link) };
+  return { ...blankSlide(), sub: makeRef('qr', link) };
 }
 /** The slides as shown and printed: what was written, then the closing code. */
 export const slidesWith = (body: string): Slide[] => {

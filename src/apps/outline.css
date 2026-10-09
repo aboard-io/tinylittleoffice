@@ -45,14 +45,11 @@
   color: var(--to-ink-3);
   border-radius: 5px;
   cursor: pointer;
+  /* Shown where they are wanted: on the row under the pointer or being typed in; a folded item always shows its arrow. */
+  opacity: 0;
 }
 .ol-handle {
   cursor: grab;
-}
-/* Shown where they are wanted: on the row under the pointer or being typed in; a folded item always shows its arrow. */
-.ol-handle,
-.ol-fold {
-  opacity: 0;
 }
 .ol-row:hover .ol-handle,
 .ol-row:hover .ol-fold,
@@ -135,8 +132,6 @@ button.ol-kind:hover {
   font: inherit;
   font-size: 12px;
   border-radius: var(--to-radius-pill);
-}
-.ol-label {
   max-width: 12em;
   padding: 1px 8px;
   border: 0;

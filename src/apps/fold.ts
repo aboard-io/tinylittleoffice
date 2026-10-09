@@ -6,12 +6,10 @@
  */
 import { defineElement, html, nothing, state, unsafeSVG, tool, btn, icon, libraryIcon, UI, insertOptions, pageSvg } from '../kit.ts';
 import type { SlSelect } from '../kit.ts';
-import type { Slide } from '../lib/deckmodel.ts';
+import { blankSlide, isBlank, type Slide } from '../lib/deckmodel.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
-import { PagesElement, blankPage } from './pages.ts';
+import { PagesElement } from './pages.ts';
 import { PAGE_LAYOUTS, panelOf, panelText, foldPage, foldSheets, formatOf, isFitted, parseFold, serializeFold, type Folded, type Format, type Panel } from '../lib/fold.ts';
-
-const isBlank = (p: Slide) => !p.icon && !p.title && !p.sub && p.bullets.every((b) => !b.trim());
 
 export class FoldElement extends PagesElement<Folded> {
   static app = '';
@@ -77,7 +75,6 @@ export class FoldElement extends PagesElement<Folded> {
     const drawn = foldPage(z, this.cur, f);
     const fit = isFitted(drawn) ? drawn : null;
     const panels = f.panels && !fit ? this.panelsOf(s) : null;
-    const pic = (p: { w: number; h: number; svg: string }, label: string) => unsafeSVG(pageSvg(p, `role="img" aria-label="${label}"`));
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Pages" @keydown=${this.onPageKey}>
         <sl-button-group label="Pages">
@@ -85,7 +82,7 @@ export class FoldElement extends PagesElement<Folded> {
             ? html`${tool(`Another ${this.noun}`, 'plus', () => this.addPage(), { text: true, disabled: n >= f.grow })}
               ${tool(`Remove this ${this.noun}`, 'trash', () => this.removePage(), { disabled: n <= f.count })}`
             : f.grow
-              ? html`${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: by }, blankPage)] }), { text: true, disabled: n >= f.grow })}
+              ? html`${tool('Four more pages', 'plus', () => this.commit({ ...z, pages: [...z.pages, ...Array.from({ length: by }, blankSlide)] }), { text: true, disabled: n >= f.grow })}
                 ${tool('Four fewer pages', 'trash', () => this.commit({ ...z, pages: z.pages.slice(0, n - by) }), { disabled: n <= f.count || !z.pages.slice(n - by).every(isBlank) })}`
               : nothing}
           ${f.panels ? tool('Add a panel', 'plus', () => this.savePanels([...(panels ?? []), { glyph: 'smile', said: '', caption: '' }]), { text: true, disabled: (panels?.length ?? 0) >= f.panels }) : nothing}
@@ -115,7 +112,7 @@ export class FoldElement extends PagesElement<Folded> {
       ${this.sheet
         ? html`<div class="zine-sheets">
             <p class="to-hint">${f.how(z.two)}</p>
-            ${foldSheets(z, f).map((p, i) => html`<div class="zine-sheet">${pic(p, `Sheet, side ${i + 1}`)}</div>`)}
+            ${foldSheets(z, f).map((p, i) => html`<div class="zine-sheet">${unsafeSVG(pageSvg(p, `role="img" aria-label="Sheet, side ${i + 1}"`))}</div>`)}
           </div>`
         : html`<div class="deck-layout print" @keydown=${this.onPageKey}>
             ${this.rail(
@@ -135,7 +132,7 @@ export class FoldElement extends PagesElement<Folded> {
                       cls: `print ${fit.layout ? '' : 'prose'} ${fit.cover ? 'cover' : ''}`,
                       style: '',
                       title: this.cur === 0 ? 'Title' : name(this.cur).startsWith('Page') ? 'Headline' : name(this.cur),
-                      words: fit.layout === '' ? ['Words', 'What this page says. A new line starts a new paragraph. The type shrinks to fit the page.'] : fit.layout === 't' ? ['Words', 'A line or two under the title'] : ['Words', 'One bullet per line'],
+                      words: ['Words', fit.layout === '' ? 'What this page says. A new line starts a new paragraph. The type shrinks to fit the page.' : fit.layout === 't' ? 'A line or two under the title' : 'One bullet per line'],
                       pick: () => this.pickIcon(),
                       foot: name(this.cur),
                     })

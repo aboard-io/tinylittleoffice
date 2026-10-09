@@ -22,7 +22,6 @@
 import { parse, plain, write, type Attrs, type Block, type Dir } from './tlo.ts';
 
 export type { Dir };
-export const DIRS: Dir[] = ['--', '->', '<-', '<->'];
 
 export interface Item {
   depth: number;
@@ -41,6 +40,12 @@ export interface Link {
   to: string;
   dir: Dir;
   label?: string;
+}
+
+/** A ref (kit/embed.ts: "<app>\n<its text>") as the fence that writes it. */
+export function refFence(ref: string): Extract<Block, { k: 'fence' }> {
+  const nl = ref.indexOf('\n');
+  return { k: 'fence', lang: nl < 0 ? ref : ref.slice(0, nl), body: nl < 0 ? '' : ref.slice(nl + 1) };
 }
 
 const JOIN: Record<string, Dir> = { from: '->', to: '<-', both: '<->' };
@@ -131,8 +136,7 @@ export function serializeOutline(items: Item[], links: Link[] = []): string {
   let fenced = false;
   for (const it of out) {
     if (it.doc) {
-      const nl = it.doc.indexOf('\n');
-      blocks.push({ k: 'fence', lang: nl < 0 ? it.doc : it.doc.slice(0, nl), body: nl < 0 ? '' : it.doc.slice(nl + 1), ...(it.depth ? { a: { kv: { depth: String(it.depth) } } } : {}) });
+      blocks.push({ ...refFence(it.doc), ...(it.depth ? { a: { kv: { depth: String(it.depth) } } } : {}) });
       fenced = true;
       continue;
     }
@@ -190,10 +194,7 @@ export function outlineToDeck(items: Item[]): string {
   const slides: Block[][] = [];
   const kids = (i: number) => live.slice(i + 1, blockEnd(live, i)).filter((it) => it.depth === live[i].depth + 1 && !it.doc);
   live.forEach((it, i) => {
-    if (it.doc) {
-      const nl = it.doc.indexOf('\n');
-      return void slides.push([{ k: 'fence', lang: it.doc.slice(0, nl < 0 ? undefined : nl), body: nl < 0 ? '' : it.doc.slice(nl + 1) }]);
-    }
+    if (it.doc) return void slides.push([refFence(it.doc)]);
     if (!hasChildren(live, i)) return;
     // A title slide names its parts beneath; elsewhere the family is the bullets, and a child that is a document has a slide to itself after.
     const title = it.depth === 0 && roots.length === 1 && i === 0;

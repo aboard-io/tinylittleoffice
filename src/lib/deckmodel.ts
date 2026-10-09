@@ -2,7 +2,7 @@ import { PALETTE } from './palette.ts';
 import { ACCENT } from '../kit/core.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
 import { attr, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
-import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
+import { nested, outlineToDeck, readTree, refFence } from './outlinemodel.ts';
 /**
  * Deck document model. A deck is TLO (lib/tlo.ts), a slide between each
  * "---" and the next:
@@ -20,9 +20,6 @@ import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
  * slide). The pages of a printed thing (lib/fold.ts) are written the same
  * way, their prose as paragraphs.
  */
-/** No cap on slides: the link's length is the only limit, and the meter shows it. */
-export const MAX_SLIDES = Infinity;
-
 /** '' bullets (a deck's default), 't' title, '2' two columns, 'i' big icon; 'b' says bullets where the default is prose (a printed page). */
 export type Layout = '' | 't' | '2' | 'i' | 'b';
 export const LAYOUTS: { id: Layout; name: string }[] = [
@@ -61,6 +58,16 @@ const LAYOUT_OF: Record<string, Layout> = { title: 't', two: '2', icon: 'i' };
 /** The colours a deck's icons can be: the accent (no letter), or one of these. */
 export const ICON_COLORS: Record<string, { name: string; hex: string }> = { '': { name: 'Indigo', hex: ACCENT }, k: PALETTE.k, r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
 
+/** The lines with words in them. */
+export const live = (lines: string[] = []) => lines.filter((l) => l.trim());
+/** How far in a bullet goes: two spaces (or a tab) a level, up to three levels. */
+export const depthOf = (b: string) => Math.min(3, Math.floor(/^[ \t]*/.exec(b)![0].replace(/\t/g, '  ').length / 2));
+
+/** A slide with nothing on it yet. */
+export const blankSlide = (): Slide => ({ icon: '', title: '', bullets: [] });
+/** Nothing written on it, nothing shown on it. */
+export const isBlank = (s: Slide) => !s.icon && !s.title && !s.sub && !live(s.bullets).length;
+
 const settings = (text: string): Head => takeHead(text, ['transition', 'color', 'qr'])[0];
 /** A colour as the header names it ("red"), as its letter. */
 const colorOf = (name = '') => Object.keys(ICON_COLORS).find((k) => ICON_COLORS[k].name.toLowerCase() === name.trim().toLowerCase()) ?? '';
@@ -75,8 +82,6 @@ export function deckTransition(text: string): Transition {
   return TRANSITIONS.some((x) => x.id === t) ? (t as Transition) : '';
 }
 
-/** What a new deck opens with: a title slide. */
-const first = (): Slide => ({ icon: '', title: '', bullets: [], layout: 't' });
 
 /** A table on a slide is a sheet holding it; "{chart=bar}" after it asks for the sheet drawn as a chart. */
 function sheetOf(t: Extract<Block, { k: 'table' }>): string {
@@ -90,7 +95,7 @@ function sheetOf(t: Extract<Block, { k: 'table' }>): string {
  * where a list says bullets ('b') and paragraphs are the default.
  */
 function slideOf(blocks: Block[], prose: boolean): Slide {
-  const s: Slide = { icon: '', title: '', bullets: [] };
+  const s = blankSlide();
   let into = s.bullets;
   let headed = false;
   let listed = false;
@@ -129,9 +134,6 @@ function slideOf(blocks: Block[], prose: boolean): Slide {
 /** The slides (or pages) a text's blocks make, a slide between rules. */
 export const slidesOf = (doc: Tlo, prose = false): Slide[] => pages(doc.blocks).map((p) => slideOf(p, prose));
 
-const live = (lines: string[] = []) => lines.filter((l) => l.trim());
-const depth = (b: string) => Math.min(3, Math.floor(/^[ \t]*/.exec(b)![0].replace(/\t/g, '  ').length / 2));
-
 /** A slide's blocks: the headline, the words, the right column, the document, the notes. */
 function slideBlocks(s: Slide, prose: boolean): Block[] {
   const layout = s.layout ?? '';
@@ -143,14 +145,11 @@ function slideBlocks(s: Slide, prose: boolean): Block[] {
   const words = (lines: string[]): Block[] =>
     live(lines).map((l) => {
       const step = paras && /^\d{1,9}[.)]\s+(.*)$/.exec(l.trim());
-      return step ? { k: 'li', ord: true, depth: 0, text: step[1] } : paras ? { k: 'p', text: l.trim() } : { k: 'li', depth: depth(l), text: l.trim() };
+      return step ? { k: 'li', ord: true, depth: 0, text: step[1] } : paras ? { k: 'p', text: l.trim() } : { k: 'li', depth: depthOf(l), text: l.trim() };
     });
   out.push(...words(s.bullets));
   if (layout === '2' && live(s.right).length) out.push({ k: 'p', text: '|' }, ...words(s.right!));
-  if (s.sub) {
-    const nl = s.sub.indexOf('\n');
-    out.push({ k: 'fence', lang: nl < 0 ? s.sub : s.sub.slice(0, nl), body: nl < 0 ? '' : s.sub.slice(nl + 1) });
-  }
+  if (s.sub) out.push(refFence(s.sub));
   if (live(s.notes).length) out.push({ k: 'quote', text: live(s.notes).map((n) => n.replace(/\n/g, ' ')).join('\n') });
   return out;
 }
@@ -179,16 +178,16 @@ export function loosen(doc: Tlo, title: boolean): Tlo {
   return { ...doc, blocks };
 }
 
-export function parseDeck(text: string): Slide[] {
-  const doc = parse(text);
-  return doc.blocks.length ? slidesOf(doc) : [first()];
-}
+/** A deck's slides; a new deck opens with a title slide. */
+const deckOf = (doc: Tlo): Slide[] => (doc.blocks.length ? slidesOf(doc) : [{ ...blankSlide(), layout: 't' }]);
+
+export const parseDeck = (text: string): Slide[] => deckOf(parse(text));
 
 export function serializeDeck(slides: Slide[], transition: Transition = '', color = '', qr = true): string {
   const head: Head = { transition, color: color ? ICON_COLORS[color]?.name.toLowerCase() ?? '' : '', qr: qr ? '' : 'no' };
   // An untouched new deck costs nothing.
   const s = slides[0];
-  if (slides.length === 1 && s.layout === 't' && !s.icon && !s.title && !s.sub && !live(s.bullets).length && !live(s.notes).length && !transition && !color && qr) return '';
+  if (slides.length === 1 && s.layout === 't' && isBlank(s) && !live(s.notes).length && !transition && !color && qr) return '';
   return writeSlides(head, slides);
 }
 
@@ -196,6 +195,5 @@ export function serializeDeck(slides: Slide[], transition: Transition = '', colo
 export function readDeck(text: string): string {
   // An outline is a slide for every item with something under it.
   if (nested(text)) return outlineToDeck(readTree(text).items);
-  const doc = loosen(parse(text), true);
-  return serializeDeck(doc.blocks.length ? slidesOf(doc) : [first()], deckTransition(text), deckIconColor(text), deckEndsWithQr(text));
+  return serializeDeck(deckOf(loosen(parse(text), true)), deckTransition(text), deckIconColor(text), deckEndsWithQr(text));
 }
