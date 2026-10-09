@@ -12,11 +12,15 @@ const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number |
 
 async function editor(value = ''): Promise<{ el: ToSheetEditor; last: () => string | undefined; changes: string[] }> {
   document.body.innerHTML = '';
+  // As on the page: inside the shell's <main>, whose gutter the bar's margins assume.
+  const main = document.createElement('main');
+  main.className = 'to-main';
+  document.body.append(main);
   const el = document.createElement('to-sheet-editor') as ToSheetEditor;
   el.value = value;
   const changes: string[] = [];
   el.addEventListener('docchange', (e) => changes.push((e as CustomEvent<string>).detail));
-  document.body.append(el);
+  main.append(el);
   await el.updateComplete;
   return { el, changes, last: () => changes.at(-1) };
 }
@@ -46,12 +50,12 @@ test('a blank sheet is three columns and no document; typing a cell makes the ta
   expect(changes).toEqual([]);
   await type(el, cell(el, 'B2'), 'hello');
   expect(last()).toBe('ColA | ColB | ColC\n--- | --- | ---\n| |  |\n| | hello |\n');
-  // The + adds a column that is drawn, and written once typed into.
+  // The + adds a column that is drawn (the new cell on the selected row is focused), and written once typed into.
   button(el, 'Add a column').click();
   await el.updateComplete;
   expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C', 'D']);
   expect(changes).toHaveLength(1);
-  await until(() => document.activeElement === cell(el, 'D1'));
+  await until(() => document.activeElement === cell(el, 'D2'));
   await type(el, cell(el, 'D1'), 'four');
   expect(last()).toBe('ColA | ColB | ColC | ColD\n--- | --- | --- | ---\n| |  |  | four\n| | hello |  |\n');
 });
@@ -83,8 +87,9 @@ test('a row number opens insert above, insert below and delete; formulas follow'
   expect(last()).toBe('Item | Cost:money\n--- | ---\nRent | 1200\n| |\nFood | 450\nTotal | =SUM(B1:B3)\n');
   await pick(el, button(el, 'Row 1: insert or delete rows'), 'Delete');
   expect(last()).toBe('Item | Cost:money\n--- | ---\n| |\nFood | 450\nTotal | =SUM(B1:B2)\n');
-  // Escape closes a menu and focus returns to the row's button.
+  // Closed without choosing, the menu gives focus back to the row's button it opened from.
   const b = button(el, 'Row 1: insert or delete rows');
+  b.focus();
   b.click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
   document.querySelector<HTMLElement>('[popover]:popover-open')!.hidePopover();
