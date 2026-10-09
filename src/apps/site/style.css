@@ -1,0 +1,122 @@
+/* Website: the page as it will look in a frame, and the words of the section in hand beside it (under it
+   on a phone, where the frame keeps half the screen). The page in the frame has its own theme; around it
+   only the kit's tokens, so dark mode is the tokens' doing. */
+@layer apps {
+  to-site-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--to-gutter);
+    min-height: 0;
+  }
+  .site-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    gap: var(--to-gutter);
+    align-items: start;
+    min-width: 0;
+  }
+  .site-preview {
+    min-width: 0;
+  }
+  .site-frame {
+    display: block;
+    width: 100%;
+    height: calc(100dvh - var(--to-header-h) - 120px);
+    min-height: 420px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: #fff;
+    box-shadow: var(--to-shadow);
+  }
+  .site-panel {
+    position: sticky;
+    top: calc(var(--to-header-h) + 8px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    max-height: calc(100dvh - var(--to-header-h) - 120px);
+    overflow: auto;
+    padding: 12px;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow);
+  }
+  .site-part {
+    width: 100%;
+    min-height: var(--to-touch);
+    padding: 0 10px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--to-ink);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .site-shop {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+  .site-shop input {
+    font-size: 16px;
+    min-width: 0;
+  }
+  .site-text .tx {
+    min-height: 8em;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .site-hint {
+    margin: 0;
+  }
+  .site-pic {
+    display: block;
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: var(--to-radius-sm);
+  }
+  .site-doc {
+    margin: 0;
+    max-width: 320px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+    overflow: hidden;
+    background: #fff;
+    cursor: pointer;
+  }
+  .site-doc svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .site-doc figcaption {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 6px 10px;
+    color: var(--to-paper-ink);
+    background: var(--to-paper-shade);
+  }
+  .site-doc small {
+    color: var(--to-paper-muted);
+  }
+
+  /* A phone: the page above, half the screen; the words under it, the whole width. */
+  @media (max-width: 760px) {
+    .site-body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .site-frame {
+      height: 52dvh;
+      min-height: 300px;
+    }
+    .site-panel {
+      position: static;
+      max-height: none;
+      overflow: visible;
+    }
+  }
+}
