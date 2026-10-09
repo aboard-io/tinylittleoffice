@@ -912,22 +912,23 @@ table.sheet td.sel input {
 /* Deck */
 .deck-layout {
   display: grid;
-  grid-template-columns: 168px 1fr;
+  grid-template-columns: 1fr;
   min-height: 420px;
 }
+/* A deck's slides sit in a row under the one being edited; the print apps keep theirs down the side (below). */
 .deck-rail {
   display: flex;
-  flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border-right: 1px solid var(--to-border);
+  border-top: 1px solid var(--to-border);
+  overflow-x: auto;
   background: var(--to-surface-2);
-  overflow-y: auto;
 }
 .deck-thumb,
 .deck-end {
   position: relative;
   flex-shrink: 0;
+  width: 150px;
   padding: 0;
   border: 2px solid var(--to-border);
   border-radius: var(--to-radius);
@@ -948,7 +949,16 @@ table.sheet td.sel input {
 .deck-thumb[aria-current='true'] {
   border-color: var(--to-accent);
 }
-.deck-thumb .n,
+/* Which slide or page a thumbnail is: a strip of its own above the picture, so it covers none of it. */
+.deck-thumb .n {
+  display: block;
+  padding: 1px 6px;
+  border-bottom: 1px solid var(--to-border);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: left;
+  color: var(--to-ink-3);
+}
 .deck-editor {
   padding: 20px;
   display: flex;
@@ -1569,16 +1579,8 @@ svg.draw-canvas text {
     padding: 20px 16px;
     min-height: 50vh;
   }
-  .deck-layout {
-    grid-template-columns: 1fr;
-  }
-  .deck-rail {
-    flex-direction: row;
-    border-right: 0;
-    border-bottom: 1px solid var(--to-border);
-    overflow-x: auto;
-  }
-  .deck-thumb {
+  .deck-thumb,
+  .deck-end {
     width: 120px;
   }
   .deck-editor {
@@ -2179,6 +2181,16 @@ svg.gantt-chart {
   }
   .to-launcher b {
     font-size: 14px;
+  }
+  /* A third of a phone is a big tile: its icon is made to fill it. */
+  .to-launcher .ic {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+  }
+  .to-launcher .ic svg {
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -3729,11 +3741,9 @@ mark {
 
 /* The insert combobox's list: scrollable, in the menu's groups */
 .to-insert-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  /* Placed under its box by the widget, against the window (widgets/insert-box.ts). */
+  position: fixed;
   z-index: 30;
-  width: max(100%, 16rem);
   max-height: min(60vh, 22rem);
   overflow-y: auto;
   margin: 0;
@@ -4228,6 +4238,14 @@ sl-dialog.to-open-as {
 .deck-layout.print {
   grid-template-columns: 132px 1fr;
 }
+.deck-layout.print .deck-rail {
+  flex-direction: column;
+  border-top: 0;
+  border-right: 1px solid var(--to-border);
+}
+.deck-layout.print .deck-thumb {
+  width: auto;
+}
 /* The rail keeps to the window and scrolls on its own: eight upright pages are tall. */
 .deck-layout.print .deck-rail {
   align-self: start;
@@ -4370,6 +4388,9 @@ sl-dialog.to-open-as {
   .deck-layout.print .deck-rail {
     position: static;
     max-height: none;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--to-border);
   }
   .deck-layout.print .deck-thumb {
     width: 72px;

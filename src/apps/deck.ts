@@ -186,6 +186,7 @@ export class ToDeck extends PagesElement<Deck> {
     const blank = this.serialize(this.doc) === '';
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Slides">
+        <sl-button size="small" variant="primary" @click=${() => this.show(this.cur)}>${icon(UI.play, 14)} Present</sl-button>
         <sl-button-group label="Slides">
           ${tool('Slide', 'plus', () => this.addPage(), { text: true })}
           <span class="deck-kind to-hint" data-tip="What kind of slide this is">${kindName}</span>
@@ -203,10 +204,14 @@ export class ToDeck extends PagesElement<Deck> {
         </sl-select>
         <span class="to-hint deck-count">${n} ${n === 1 ? 'slide' : 'slides'}</span>
         ${blank ? templateTool('deck', this.useTemplate) : nothing}
-        <sl-button size="small" variant="primary" @click=${() => this.show(this.cur)}>${icon(UI.play, 14)} Present</sl-button>
       </div>
       ${blank ? templateLine('deck', this.useTemplate) : nothing}
       <div class="deck-layout">
+        <!-- The slide first, then the row of every slide under it. -->
+        <div class="deck-editor">
+          ${this.canvas({ kind, style: fit, pick: this.openPicker, iconLabel: 'Slide icon', foot: `${this.cur + 1} / ${n}` })}
+          <textarea class="deck-notes" aria-label="Speaker notes" placeholder="Speaker notes: for you when presenting, never on the slide" rows="2" .value=${(s.notes ?? []).join('\n')} @input=${(e: Event) => this.patch({ notes: (e.target as HTMLTextAreaElement).value.split('\n').filter((l) => l.trim()) })}></textarea>
+        </div>
         ${this.rail(
           'deck',
           'Slides',
@@ -222,10 +227,6 @@ export class ToDeck extends PagesElement<Deck> {
               </div>`
             : nothing,
         )}
-        <div class="deck-editor">
-          ${this.canvas({ kind, style: fit, pick: this.openPicker, iconLabel: 'Slide icon', foot: `${this.cur + 1} / ${n}` })}
-          <textarea class="deck-notes" aria-label="Speaker notes" placeholder="Speaker notes: for you when presenting, never on the slide" rows="2" .value=${(s.notes ?? []).join('\n')} @input=${(e: Event) => this.patch({ notes: (e.target as HTMLTextAreaElement).value.split('\n').filter((l) => l.trim()) })}></textarea>
-        </div>
       </div>
       ${this.showing >= 0 ? this.renderShow() : nothing}
     `;

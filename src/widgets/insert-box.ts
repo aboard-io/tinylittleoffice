@@ -2,7 +2,9 @@
  * <to-insert>: a combobox for adding something. Tap it and a list drops
  * down, in the menu's groups, to scroll or to narrow by typing a few
  * letters ("org", "two col"); arrows move, Enter or a tap picks. Fires
- * "pick" with the option's value.
+ * "pick" with the option's value. Focus alone does not open the list:
+ * focus comes back here when what was picked has been edited, and the
+ * list would open over it.
  */
 import { LitElement, html, nothing } from '../kit.ts';
 import { icon, UI } from '../lib/icons.ts';
@@ -41,6 +43,34 @@ export class ToInsert extends LitElement {
 
   protected createRenderRoot() {
     return this;
+  }
+
+  /**
+   * The list is placed against the window, under the box: a toolbar that
+   * scrolls sideways (on a phone) would otherwise cut it off. It follows the
+   * box while the page or the toolbar scrolls.
+   */
+  private place = () => {
+    const list = this.querySelector<HTMLElement>('.to-insert-list');
+    const box = this.querySelector('input')?.getBoundingClientRect();
+    if (!list || !box) return;
+    const width = Math.min(Math.max(box.width, 256), innerWidth - 16);
+    list.style.top = `${box.bottom + 4}px`;
+    list.style.left = `${Math.max(8, Math.min(box.left, innerWidth - width - 8))}px`;
+    list.style.width = `${width}px`;
+  };
+  protected updated() {
+    if (this.open) this.place();
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    addEventListener('scroll', this.place, true);
+    addEventListener('resize', this.place);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    removeEventListener('scroll', this.place, true);
+    removeEventListener('resize', this.place);
   }
 
   /** The options that fit what was typed: by the start of a word first, then anywhere. */
@@ -90,7 +120,6 @@ export class ToInsert extends LitElement {
         spellcheck="false"
         placeholder=${this.placeholder}
         .value=${this.text}
-        @focus=${() => (this.open = true)}
         @click=${() => (this.open = true)}
         @input=${(e: Event) => ((this.text = (e.target as HTMLInputElement).value), (this.at = 0), (this.open = true))}
         @keydown=${this.onKey}
