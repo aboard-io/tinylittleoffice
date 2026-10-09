@@ -4,11 +4,12 @@
 // export is a real GIF; and at phone width the bar is one row and nothing is wider than the screen.
 import { test, expect } from 'vitest';
 import { page } from 'vitest/browser';
+// The page's styles first, as on the site, so the layers come in their order.
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToAnimEditor } from '../editor.ts';
 import def from '../def.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 const SHAPES = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n';
 const LIFT = '---\nframes: 24\nfps: 8\n---\n' + SHAPES + '\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
@@ -30,11 +31,15 @@ const button = (el: HTMLElement, label: string) => el.querySelector<HTMLButtonEl
 const byWords = (el: HTMLElement, words: string) => [...el.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.trim() === words)!;
 const stage = (el: HTMLElement) => el.querySelector<SVGSVGElement>('svg.anim-stage')!;
 const keysTable = (text: string | undefined) => (text ?? '').slice((text ?? '').indexOf('Shape | Keys'));
+/** A point on the stage (in stage units) on the screen. */
+function screen(svg: SVGSVGElement, x: number, y: number) {
+  const p = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM()!);
+  return { clientX: p.x, clientY: p.y };
+}
 /** A pointer put down on the stage at a point (in stage units, 640 by 400), on whatever is drawn there, and lifted, perhaps elsewhere. */
 async function drag(el: ToAnimEditor, x: number, y: number, to?: [number, number]) {
   const svg = stage(el);
-  const b = svg.getBoundingClientRect();
-  const at = (cx: number, cy: number) => ({ clientX: b.left + (cx / 640) * b.width, clientY: b.top + (cy / 400) * b.height, button: 0, buttons: 1, pointerId: 1, bubbles: true, isPrimary: true });
+  const at = (cx: number, cy: number) => ({ ...screen(svg, cx, cy), button: 0, buttons: 1, pointerId: 1, bubbles: true, isPrimary: true });
   const down = at(x, y);
   const under = document.elementFromPoint(down.clientX, down.clientY);
   (under && svg.contains(under) ? under : svg).dispatchEvent(new PointerEvent('pointerdown', down));
@@ -66,8 +71,8 @@ test('a drawing opens in Move mode; a tap selects the rocket, a drag keys it now
   expect(changes).toHaveLength(0);
   await drag(el, 96, 320, [136, 300]);
   expect(keysTable(last())).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,40,-20,0,1,0; 23,200,-200,80,1,-30,d\n');
-  // The arrow keys move in time; at frame 6 a drag sets a key where the shape is then, moved by the drag.
-  for (let i = 0; i < 6; i++) key(el, 'ArrowRight');
+  // Full stop steps in time; at frame 6 a drag sets a key where the shape is then, moved by the drag.
+  for (let i = 0; i < 6; i++) key(el, '.');
   await el.updateComplete;
   expect(el.querySelector<HTMLInputElement>('.anim-scrub input')!.value).toBe('6');
   const [x, y] = [96 + 40 + (160 * 6) / 23, 320 - 20 - (180 * 6) / 23];
@@ -86,8 +91,8 @@ test('a drawing opens in Move mode; a tap selects the rocket, a drag keys it now
 test('K keeps a key; the effects menu, the sliders and Remove this key write the keys; the length menu the head; Delete takes the shape and its keys', async () => {
   const { el, last } = await editor(LIFT);
   await drag(el, 96, 320);
-  key(el, 'ArrowRight');
-  key(el, 'ArrowRight');
+  key(el, '.');
+  key(el, '.');
   key(el, 'k');
   await el.updateComplete;
   expect(keysTable(last())).toContain('\n1 | 0,0,0,0,1,0; 2,17,-17,7,1,-3; 23,');
@@ -193,4 +198,285 @@ test('at phone width: the bar is one row, the stage fits, nothing is wider than 
   } finally {
     await page.viewport(1100, 800);
   }
+});
+
+/* ---------- the editing audit: each path the standard (docs/editing.md) asks of a canvas ---------- */
+
+const undo = async (el: ToAnimEditor, which: 'docundo' | 'docredo' = 'docundo') => {
+  el.dispatchEvent(new CustomEvent(which, { cancelable: true }));
+  await el.updateComplete;
+  await tick();
+};
+const chosen = (el: HTMLElement) => [...el.querySelectorAll('.anim-stage .hit.sel')].map((g) => g.getAttribute('data-idx'));
+const press = async (el: ToAnimEditor, k: string, more: KeyboardEventInit = {}) => {
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...more });
+  stage(el).dispatchEvent(e);
+  await el.updateComplete;
+  return e;
+};
+const scrub = (el: HTMLElement) => el.querySelector<HTMLInputElement>('.anim-scrub input')!.value;
+async function tap(el: ToAnimEditor, x: number, y: number, more: PointerEventInit = {}) {
+  const svg = stage(el);
+  const at = { ...screen(svg, x, y), button: 0, pointerId: 1, bubbles: true, isPrimary: true, ...more };
+  const under = document.elementFromPoint(at.clientX, at.clientY);
+  (under && svg.contains(under) ? under : svg).dispatchEvent(new PointerEvent('pointerdown', { ...at, buttons: 1 }));
+  svg.dispatchEvent(new PointerEvent('pointerup', { ...at, buttons: 0 }));
+  await el.updateComplete;
+}
+const clipboard = (type: 'copy' | 'cut' | 'paste', data?: Record<string, string>) => {
+  const dt = new DataTransfer();
+  for (const [k, v] of Object.entries(data ?? {})) dt.setData(k, v);
+  const e = new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true });
+  document.activeElement!.dispatchEvent(e);
+  return dt;
+};
+
+test('the arrows nudge the shape in hand a grid step (Shift: five), never off the stage; Mod+arrows size it; with nothing in hand Left and Right step a frame, and comma and full stop always do', async () => {
+  const { el, last } = await editor(LIFT);
+  // Nothing in hand: Right steps the time, Up is left alone.
+  expect((await press(el, 'ArrowRight')).defaultPrevented).toBe(true);
+  expect(scrub(el)).toBe('1');
+  expect((await press(el, 'ArrowUp')).defaultPrevented).toBe(false);
+  await press(el, ',');
+  expect(scrub(el)).toBe('0');
+  await tap(el, 96, 320);
+  await press(el, 'ArrowRight');
+  await press(el, 'ArrowRight');
+  expect(scrub(el)).toBe('0');
+  expect(keysTable(last())).toContain('\n1 | 0,16,0,0,1,0; 23,');
+  await press(el, 'ArrowUp', { shiftKey: true });
+  expect(keysTable(last())).toContain('\n1 | 0,16,-40,0,1,0; 23,');
+  // Alt+arrows are the caret's (a word at a time on a Mac): not taken.
+  expect((await press(el, 'ArrowLeft', { altKey: true })).defaultPrevented).toBe(false);
+  // Never off the stage: the rocket's box is 64 wide at x 64, so it goes left 64 at most.
+  for (let i = 0; i < 3; i++) await press(el, 'ArrowLeft', { shiftKey: true });
+  expect(keysTable(last())).toContain('\n1 | 0,-64,-40,0,1,0; 23,');
+  await press(el, 'ArrowUp', { ctrlKey: true });
+  expect(keysTable(last())).toContain('\n1 | 0,-64,-40,0,1.1,0; 23,');
+  // Full stop steps a frame with a shape in hand; the arrows then key it there.
+  await press(el, '.');
+  expect(scrub(el)).toBe('1');
+  // One burst of nudges at a moment is one undo step, and the shape stays in hand.
+  await undo(el);
+  await undo(el);
+  expect(keysTable(last())).toBe(keysTable(LIFT));
+  expect(chosen(el)).toEqual(['1']);
+});
+
+test('undo and redo put the shapes in hand back: a deletion undone chooses the shape again, a duplicate redone chooses the copy; the stage has the focus', async () => {
+  const { el, last } = await editor(LIFT);
+  await tap(el, 96, 320);
+  await press(el, 'Delete');
+  expect(chosen(el)).toEqual([]);
+  expect(last()).not.toContain('rocket');
+  await undo(el);
+  expect(last()).toBe(LIFT);
+  expect(chosen(el)).toEqual(['1']);
+  expect(document.activeElement).toBe(stage(el));
+  await press(el, 'd', { ctrlKey: true });
+  expect(chosen(el)).toEqual(['2']);
+  await undo(el);
+  expect(chosen(el)).toEqual(['1']);
+  await undo(el, 'docredo');
+  expect(chosen(el)).toEqual(['2']);
+});
+
+test('Mod+A takes every shape; Shift+tap adds one or takes it away; a drag moves all in hand; Delete takes them all; Escape lets go, and first stops the playing', async () => {
+  const { el, last } = await editor(LIFT);
+  expect((await press(el, 'a', { ctrlKey: true })).defaultPrevented).toBe(true);
+  expect(chosen(el)).toEqual(['0', '1']);
+  expect(await press(el, 'Escape').then((e) => e.defaultPrevented)).toBe(true);
+  expect(chosen(el)).toEqual([]);
+  await tap(el, 96, 320);
+  await tap(el, 64, 176, { shiftKey: true });
+  expect(chosen(el)).toEqual(['0', '1']);
+  await tap(el, 64, 176, { shiftKey: true });
+  expect(chosen(el)).toEqual(['1']);
+  await tap(el, 64, 176, { shiftKey: true });
+  await drag(el, 96, 320, [104, 328]);
+  expect(keysTable(last())).toBe('Shape | Keys\n--- | ---\n0 | 0,8,8,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,8,8,0,1,0; 23,200,-200,80,1,-30,d\n');
+  await press(el, ' ');
+  expect(button(el, 'Pause')).not.toBeNull();
+  await press(el, 'Escape');
+  expect(button(el, 'Play')).not.toBeNull();
+  expect(chosen(el)).toEqual(['0', '1']);
+  await press(el, 'Delete');
+  expect(last()).not.toContain('Kind');
+  await undo(el);
+  expect(chosen(el)).toEqual(['0', '1']);
+});
+
+test('the keys are the stage\'s: K, Delete and the arrows do nothing from a bar button or the editor itself', async () => {
+  const { el, changes } = await editor(LIFT);
+  await tap(el, 96, 320);
+  const play = button(el, 'Play');
+  for (const target of [play, el as HTMLElement]) {
+    for (const k of ['k', 'Delete', 'ArrowRight']) target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  }
+  await el.updateComplete;
+  expect(changes).toHaveLength(0);
+  expect(scrub(el)).toBe('0');
+});
+
+test('a shape in hand has the contextual bar under it, in the standard\'s order, its buttons keeping the focus; the bar ends with Undo and Redo, which keep it too', async () => {
+  const { el, last } = await editor(LIFT);
+  const ctx = el.querySelector<HTMLElement>('to-context.anim-context')!;
+  expect(ctx.querySelector('.to-context')!.matches(':popover-open')).toBe(false);
+  await tap(el, 96, 320);
+  await until(() => ctx.querySelector('.to-context')!.matches(':popover-open'));
+  const names = [...ctx.querySelectorAll('.to-context > *')].map((b) => (b.matches('[role=separator]') ? '|' : b.getAttribute('aria-label')));
+  expect(names).toEqual(['Add a key here', 'Remove this key', '|', 'Edit the words', 'Duplicate', '|', 'Copy', 'Cut', 'Paste', '|', 'Delete']);
+  // Under the shape.
+  const box = el.querySelector('.anim-stage .hit.sel > rect')!.getBoundingClientRect();
+  expect(ctx.querySelector('.to-context')!.getBoundingClientRect().top).toBeGreaterThanOrEqual(box.bottom - 1);
+  const bar = [...el.querySelectorAll<HTMLButtonElement>('to-bar.anim-bar > button, to-bar.anim-bar > to-menu > button')].map((b) => b.getAttribute('aria-label') ?? b.textContent!.trim());
+  expect(bar.slice(-2)).toEqual(['Undo', 'Redo']);
+  for (const b of [...el.querySelectorAll<HTMLButtonElement>('to-bar.anim-bar button.to-tool'), ...ctx.querySelectorAll<HTMLButtonElement>('button')]) {
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    b.dispatchEvent(down);
+    expect(down.defaultPrevented, b.getAttribute('aria-label')!).toBe(true);
+  }
+  // The key dots and the moments keep the focus on the stage too.
+  for (const b of [el.querySelector('.anim-keys .key')!, el.querySelector('.anim-thumbs button')!]) {
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    b.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+  }
+  ctx.querySelector<HTMLButtonElement>('button[aria-label="Delete"]')!.click();
+  await el.updateComplete;
+  expect(last()).not.toContain('rocket');
+  await until(() => !ctx.querySelector('.to-context')!.matches(':popover-open'));
+  button(el, 'Undo').click();
+  await el.updateComplete;
+  expect(last()).toBe(LIFT);
+});
+
+test('copy, cut and paste carry the shapes in hand with their keys, as TLO and our HTML; a paste puts them beside themselves, moving as they did; words paste as a text', async () => {
+  const { el, last } = await editor(LIFT);
+  await tap(el, 96, 320);
+  const copy = clipboard('copy');
+  expect(copy.getData('text/plain')).toBe('---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(copy.getData('text/html')).toContain('<meta name="generator" content="TinyLittleOffice">');
+  expect(copy.getData('text/html')).toContain('<td>rocket</td>');
+  clipboard('paste', { 'text/plain': copy.getData('text/plain') });
+  await el.updateComplete;
+  expect(last()).toContain('\ni | 9 | 37 | 8 | 8 | 0b | rocket\n');
+  expect(keysTable(last())).toContain('\n2 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(chosen(el)).toEqual(['2']);
+  // Our HTML alone (no text) pastes too.
+  clipboard('paste', { 'text/html': copy.getData('text/html') });
+  await el.updateComplete;
+  expect(el.querySelectorAll('.anim-stage .hit')).toHaveLength(4);
+  const cut = clipboard('cut');
+  await el.updateComplete;
+  expect(cut.getData('text/plain')).toContain('rocket');
+  expect(el.querySelectorAll('.anim-stage .hit')).toHaveLength(3);
+  clipboard('paste', { 'text/plain': 'Hello\nthere' });
+  await el.updateComplete;
+  expect(last()).toContain('| Hello \\| there\n');
+  await undo(el);
+  expect(el.querySelectorAll('.anim-stage .hit')).toHaveLength(3);
+});
+
+test('Enter, or two taps, on a shape in hand opens its words in place (Draw\'s own, on the same shape); undo with the words open takes the typing back and closes them', async () => {
+  const { el, last, changes } = await editor(LIFT);
+  await tap(el, 64, 176);
+  await press(el, 'Enter');
+  await el.updateComplete;
+  const draw = el.querySelector<HTMLElement & { updateComplete: Promise<unknown> }>('to-draw-editor')!;
+  expect(draw).not.toBeNull();
+  const words = draw.querySelector<HTMLElement>('.draw-words')!;
+  expect(words.hidden).toBe(false);
+  expect(document.activeElement).toBe(words);
+  expect(words.innerText).toBe('Lift off');
+  // Typing: one burst in Motion's log, as in Draw's own.
+  words.innerText = 'Lift';
+  words.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  words.innerText = 'Lift up';
+  words.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  await el.updateComplete;
+  expect(last()).toContain('| Lift up\n');
+  expect(changes).toHaveLength(2);
+  // The shell's Mod+Z from the words is Motion's: the words go back, and Draw is not left with them open.
+  await undo(el);
+  await el.updateComplete;
+  expect(last()).toBe(LIFT);
+  const again = el.querySelector<HTMLElement>('to-draw-editor')!;
+  await until(() => !!again.querySelector('.draw-words'));
+  expect(again.querySelector<HTMLElement>('.draw-words')!.hidden).toBe(true);
+  // Back in Move mode, the shape is still in hand; two taps on it open its words.
+  byWords(el, 'Move').click();
+  await el.updateComplete;
+  expect(chosen(el)).toEqual(['0']);
+  await tap(el, 64, 176);
+  await tap(el, 64, 176);
+  await el.updateComplete;
+  expect(el.querySelector<HTMLElement>('to-draw-editor .draw-words')?.hidden).toBe(false);
+});
+
+test('Draw mode: the shapes in hand go in and come out with the mode; Draw\'s own Undo is Motion\'s; Draw offers no pixel mode, and a pixel grid from it is refused, not silently lost', async () => {
+  const { el, last, changes } = await editor(LIFT);
+  await tap(el, 96, 320);
+  byWords(el, 'Draw').click();
+  await el.updateComplete;
+  type D = HTMLElement & { sel?: number; picked?: number[]; updateComplete: Promise<unknown> };
+  const draw = el.querySelector<D>('to-draw-editor')!;
+  await draw.updateComplete;
+  await tick();
+  const selOf = (d: D) => (Array.isArray(d.picked) ? d.picked : [d.sel]);
+  expect(selOf(draw)).toEqual([1]);
+  // Draw's mode menu (Shapes / Pixels) is not offered here.
+  expect(draw.querySelector<HTMLElement>('.draw-mode')!.offsetParent).toBeNull();
+  // A change Draw makes with a grid in it is put back, with a word why.
+  const said: string[] = [];
+  const hear = (e: Event) => said.push((e as CustomEvent<string>).detail);
+  window.addEventListener('to-toast', hear);
+  draw.dispatchEvent(new CustomEvent('docchange', { detail: '---\ngrid: 16\n---\n................\n', bubbles: true }));
+  await el.updateComplete;
+  expect(changes).toHaveLength(0);
+  window.removeEventListener('to-toast', hear);
+  expect(said.join()).toContain('Pixel art');
+  // Draw's Undo (an event on Draw itself) undoes Motion's last change.
+  const now = el.querySelector<D>('to-draw-editor')!;
+  await now.updateComplete;
+  now.querySelector<HTMLButtonElement>('to-insert button')!.click();
+  await until(() => !!document.querySelector('[popover]:popover-open'));
+  [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].find((x) => x.textContent!.includes('Ellipse'))!.click();
+  await el.updateComplete;
+  await tick();
+  expect(last()).toContain('\ne | ');
+  const out = new CustomEvent('docundo', { cancelable: true });
+  el.querySelector('to-draw-editor')!.dispatchEvent(out);
+  await el.updateComplete;
+  expect(out.defaultPrevented).toBe(true);
+  expect(last()).toBe(LIFT);
+  // Out of Draw mode, Draw's choice is Motion's.
+  await tick();
+  const d2 = el.querySelector<D>('to-draw-editor')!;
+  if (Array.isArray(d2.picked)) d2.picked = [0];
+  else d2.sel = 0;
+  byWords(el, 'Move').click();
+  await el.updateComplete;
+  expect(chosen(el)).toEqual(['0']);
+});
+
+test('the size handle grows the shape in hand at this moment; Mod and the wheel zoom the stage', async () => {
+  const { el, last } = await editor(LIFT);
+  await tap(el, 96, 320);
+  const handle = el.querySelector<SVGGElement>('.anim-stage .hit.sel [data-handle]')!;
+  expect(handle).not.toBeNull();
+  // The rocket's centre is (96, 320); its handle about (134, 358). Dragged twice as far from the centre, it is twice the size.
+  const svg = stage(el);
+  const b = svg.getBoundingClientRect();
+  const at = (x: number, y: number) => ({ ...screen(svg, x, y), button: 0, buttons: 1, pointerId: 1, bubbles: true });
+  handle.querySelector('rect')!.dispatchEvent(new PointerEvent('pointerdown', at(134, 358)));
+  svg.dispatchEvent(new PointerEvent('pointermove', at(172, 396)));
+  svg.dispatchEvent(new PointerEvent('pointerup', { ...at(172, 396), buttons: 0 }));
+  await el.updateComplete;
+  expect(keysTable(last())).toContain('\n1 | 0,0,0,0,2,0; 23,');
+  const wheel = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true });
+  svg.dispatchEvent(wheel);
+  await el.updateComplete;
+  expect(wheel.defaultPrevented).toBe(true);
+  expect(stage(el).getBoundingClientRect().width).toBeGreaterThan(b.width * 1.2);
 });

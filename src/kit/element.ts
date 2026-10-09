@@ -14,6 +14,9 @@ import { tool } from './bar.ts';
 import { t } from './i18n.ts';
 import { UI } from './icons.ts';
 
+/** A change, as the shell and a host hear it: the text in `detail`, and the edit's burst key (none for an undo, a redo or an edit that stands alone), so a host that holds this editor inside it (the Animator holds the Drawing Tool) keeps the same bursts in its own log. */
+export type DocChange = CustomEvent<string> & { key?: string };
+
 export interface Entry {
   ops: Op[];
   inverse: Op[];
@@ -95,16 +98,18 @@ export abstract class DocElement<V> extends LitElement {
     } else this.undo.push({ ops, inverse, key, at: now, ...(mark === undefined ? {} : { mark }) });
     if (this.undo.length > 500) this.undo.shift();
     this.redo = [];
-    this.emit();
+    this.emit(key);
   }
   /** The view read again and the text written out; the shell hears of the change. */
-  private emit() {
+  private emit(key?: string) {
     this.view = this.read(this.doc);
     const text = write(this.doc);
     this.seen = text;
     this.value = text;
     this.requestUpdate();
-    this.dispatchEvent(new CustomEvent<string>('docchange', { detail: text, bubbles: true }));
+    const change = new CustomEvent<string>('docchange', { detail: text, bubbles: true }) as DocChange;
+    change.key = key;
+    this.dispatchEvent(change);
   }
   private onUndo = (e: Event) => {
     const entry = this.undo.pop();

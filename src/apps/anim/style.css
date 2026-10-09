@@ -16,6 +16,7 @@
   }
   .anim-wrap {
     padding: 12px;
+    overflow: auto;
     background: var(--to-surface-2);
     border-radius: var(--to-radius);
   }
@@ -30,10 +31,17 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
-    touch-action: none;
+    /* A finger on the empty stage scrolls the page; on a shape, a corner or the handle, or while a drag is on, the stage keeps it. */
+    touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
     overflow: hidden;
+  }
+  svg.anim-stage.held,
+  .anim-stage .hit,
+  .anim-stage .hit .corner,
+  .anim-stage .hit .handle {
+    touch-action: none;
   }
   svg.anim-stage:focus-visible {
     outline: 2px solid var(--to-accent);
@@ -43,24 +51,41 @@
     font-family: var(--to-font);
     pointer-events: none;
   }
-  .anim-stage .hit rect {
+  .anim-stage .hit > rect {
     fill: transparent;
     stroke: transparent;
     cursor: move;
   }
-  .anim-stage .hit.sel rect {
+  .anim-stage .hit.sel > rect {
     stroke: var(--to-accent);
     stroke-width: 1.5;
     stroke-dasharray: 4 3;
     vector-effect: non-scaling-stroke;
   }
-  /* A pen shape's corners, draggable at the moment chosen. */
-  .anim-stage .hit .corner {
+  /* A pen shape's corners, draggable at the moment chosen, and the size handle; each reaches a finger's 44px (the transparent circle). */
+  .anim-stage .hit .corner,
+  .anim-stage .hit .handle {
+    pointer-events: all;
+    cursor: move;
+  }
+  .anim-stage .hit .handle {
+    cursor: nwse-resize;
+  }
+  .anim-stage .hit .reach {
+    fill: transparent;
+    stroke: none;
+  }
+  .anim-stage .hit .corner .dot,
+  .anim-stage .hit .handle rect {
     fill: var(--to-surface);
     stroke: var(--to-accent);
     stroke-width: 2;
-    pointer-events: all;
-    cursor: move;
+    stroke-dasharray: none;
+    vector-effect: non-scaling-stroke;
+  }
+  /* Pixel art is the Drawing Tool's own: Draw mode here draws shapes (the menu stays where a background tile can be taken off). */
+  .anim-draw:not([data-tile]) .draw-mode {
+    display: none;
   }
 
   .anim-props {
@@ -135,12 +160,30 @@
   .anim-keys .key.on {
     background: var(--to-accent);
   }
+  .anim-keys .key::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+  @media (pointer: coarse) {
+    /* A key dot is drawn 14px and reached at 44. */
+    .anim-keys .key::before {
+      inset: -15px;
+    }
+    .anim-thumbs button {
+      min-height: 44px;
+    }
+  }
   .anim-thumbs {
     display: flex;
     gap: 4px;
     overflow-x: auto;
     padding: 2px;
     scroll-snap-type: x proximity;
+  }
+  .anim-thumbs button,
+  .anim-modes button {
+    touch-action: manipulation;
   }
   .anim-thumbs button {
     flex: 1 0 64px;
