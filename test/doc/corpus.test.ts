@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { parse, write } from '../../src/doc/index.ts';
+import { apps } from '../../src/kit/apps.ts';
 
 const dir = join(import.meta.dirname, 'corpus');
 const files = [...readdirSync(dir).filter((f) => f.endsWith('.json')), ...readdirSync(join(dir, 'apps')).map((f) => `apps/${f}`)];
@@ -23,4 +24,12 @@ for (const { file, docs } of corpus)
       expect(write(parse(text))).toBe(canon);
       // And reading what was written gives the same document.
       expect(parse(write(parse(text)))).toStrictEqual(parse(text));
+    });
+
+// And every template of every app on this tree: what the apps themselves write is canonical too.
+for (const app of apps())
+  for (const tpl of app.templates)
+    test(`${app.id}/${tpl.id}: write(parse(x)) === x`, () => {
+      expect(write(parse(tpl.doc))).toBe(tpl.doc);
+      expect(parse(write(parse(tpl.doc)))).toStrictEqual(parse(tpl.doc));
     });

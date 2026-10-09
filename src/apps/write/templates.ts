@@ -112,11 +112,11 @@ What | Qty:number | Units | Price:money | Amount:money
 Design | 12 | hours | 150 | =B1*D1
 Build | 20 | hours | 140 | =B2*D2
 Hosting for a year | 1 |  | 480 | =B3*D3
-| |  |  |  |  |
+| |  |  |  |
 Subtotal |  |  |  | =SUM(E1:E4)
 Tax | 8 | % |  | =E5*B6/100
 Total |  |  |  | =E5+E6
-{lock="E1:E7"}
+{lock=E1:E7}
 
 Thank you for your business.
 `;
