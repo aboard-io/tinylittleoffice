@@ -11,7 +11,7 @@
     "dev": "vite --host 0.0.0.0 --port 4178 --strictPort",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit && npm run -s tinier:types && tsc -p tinier",
+    "typecheck": "tsc --noEmit && npm run -s tinier:types && tsc -p tinier && npm run -s media:types && tsc -p media",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
@@ -22,7 +22,10 @@
     "icons": "node scripts/icons.ts",
     "tinier:types": "wrangler types -c tinier/wrangler.jsonc tinier/worker-configuration.d.ts",
     "tinier:schema": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --remote --file=tinier/schema.sql",
-    "tinier:dev": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --local --file=tinier/schema.sql && wrangler dev -c tinier/wrangler.jsonc --port 8787 --var SITE:${SITE:-http://localhost:4178}"
+    "tinier:dev": "wrangler d1 execute tinier -c tinier/wrangler.jsonc --local --file=tinier/schema.sql && wrangler dev -c tinier/wrangler.jsonc --port 8787 --var SITE:${SITE:-http://localhost:4178}",
+    "media:types": "wrangler types -c media/wrangler.jsonc media/worker-configuration.d.ts",
+    "media:dev": "wrangler dev -c media/wrangler.jsonc --port 8788 --var SITE:${SITE:-http://localhost:4178}",
+    "deploy": "npm run build && wrangler deploy && wrangler deploy -c tinier/wrangler.jsonc && wrangler deploy -c media/wrangler.jsonc"
   },
   "dependencies": {
     "d3-sankey": "0.12.3",

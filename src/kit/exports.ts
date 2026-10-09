@@ -15,6 +15,7 @@ import { routeHash } from './route.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
+import { embedPictures } from './media.ts';
 
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
 export { raster } from './raster.ts';
@@ -135,6 +136,9 @@ export async function printPages(pages: Page[], title: string): Promise<void> {
   win?.print();
 }
 
+/** Pages with every web picture's bytes inside them, fetched through the proxy: a file never asks a picture's site anything. */
+export const withPictures = (pages: Page[]): Promise<Page[]> => Promise.all(pages.map(async (p) => (p.svg.includes('<image') ? { ...p, svg: await embedPictures(p.svg) } : p)));
+
 /* ---------- the Download menu ---------- */
 
 export interface Current {
@@ -158,23 +162,25 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
   const title = given || t('Untitled {noun}', { noun: def.noun });
   const name = fileName(given, slug(def.noun) || def.id, ext);
   if (ext === 'print' || ext === 'pdf') {
-    await printPages(def.view(doc), title);
+    await printPages(await withPictures(def.view(doc)), title);
     return null;
   }
   // An app's own version of a kit format (a text as a real web page rather than pictures of its pages) comes first.
   const theirs = def.exports?.find((x) => x.ext === ext);
   if (theirs) {
-    await saveFile(name, theirs.mime, await theirs.build(doc, ctx));
+    const built = await theirs.build(doc, ctx);
+    // An app's own web page holds its pictures' bytes too.
+    await saveFile(name, theirs.mime, typeof built === 'string' && theirs.mime.startsWith('text/html') ? await embedPictures(built) : built);
     return name;
   }
   if (ext === 'png') {
-    const png = await picture(def.view(doc));
+    const png = await picture(await withPictures(def.view(doc)));
     if (!png) return null;
     await saveFile(name, 'image/png', png);
     return name;
   }
   if (ext === 'html') {
-    await saveFile(name, 'text/html', htmlOf(def.view(doc), title, ctx.link));
+    await saveFile(name, 'text/html', htmlOf(await withPictures(def.view(doc)), title, ctx.link));
     return name;
   }
   const own = kitExports().find((x) => x.ext === ext);

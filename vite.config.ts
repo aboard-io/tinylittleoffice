@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'n
 import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { offlineList } from './scripts/offline-files.ts';
+import { fillHeaders, mediaSource } from './scripts/headers.ts';
 import type { AppDef } from './src/kit/app.ts';
 
 /**
@@ -15,11 +16,11 @@ const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve
 
 /**
  * After the build: a page per app (dist/<id>/index.html, the shell with that app's name and blurb in its
- * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes written into
- * _headers (public/_headers has the placeholder; src/kit/page.ts has the scripts); and the list of files the
+ * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes and the picture
+ * proxy written into _headers (public/_headers has the placeholders, scripts/headers.ts fills them); and the list of files the
  * device keeps for working offline (dist/files.json), whose hash versions the service worker (src/sw.ts).
  */
-function afterBuild(site: string): Plugin {
+function afterBuild(site: string, media: string | undefined): Plugin {
   const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   return {
     name: 'tinyoffice-after-build',
@@ -43,7 +44,7 @@ function afterBuild(site: string): Plugin {
         writeFileSync(resolve(dist, app.id, 'index.html'), page);
       }
       const hashes = pageScripts().map((code) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`);
-      writeFileSync(resolve(dist, '_headers'), readFileSync(resolve(dist, '_headers'), 'utf8').replaceAll('{{scripts}}', hashes.join(' ')));
+      writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, media: mediaSource(media) }));
       const built = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
         .filter((f) => f.isFile())
         .map((f) => ({ path: relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'), bytes: statSync(resolve(f.parentPath, f.name)).size }));
@@ -59,10 +60,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     // The dev box's own name, beside localhost; VITE_ALLOWED_HOSTS adds more (comma-separated).
     allowedHosts: ['pefdev.exe.xyz', ...(loadEnv(mode, import.meta.dirname).VITE_ALLOWED_HOSTS?.split(',').filter(Boolean) ?? [])],
-    // The shortener on this machine, under the dev server's own address.
-    proxy: { '/tinier/': { target: 'http://127.0.0.1:8787', rewrite: (p) => p.slice('/tinier'.length) } },
+    // The shortener and the picture proxy on this machine (npm run tinier:dev, media:dev), under the dev server's own address.
+    proxy: {
+      '/tinier/': { target: 'http://127.0.0.1:8787', rewrite: (p) => p.slice('/tinier'.length) },
+      '/media/': { target: 'http://127.0.0.1:8788', rewrite: (p) => p.slice('/media'.length) },
+    },
   },
-  plugins: [afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '')],
+  plugins: [afterBuild(loadEnv(mode, import.meta.dirname).VITE_SITE_URL ?? '', loadEnv(mode, import.meta.dirname).VITE_MEDIA_URL)],
   build: {
     target: 'es2022',
     outDir: 'dist',

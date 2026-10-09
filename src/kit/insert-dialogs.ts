@@ -25,6 +25,7 @@ import type { ToDialog } from './dialog.ts';
 import { EMBED_SOURCES, embedOf, type EmbedKind } from './embeds.ts';
 import { icon, UI } from './icons.ts';
 import { authored, gateSvg, mayShow, onPictures, picture } from './pictures.ts';
+import { pictureSrc } from './media.ts';
 import { t } from './i18n.ts';
 import { TINIER, unshorten } from './short.ts';
 import './dialog.ts';
@@ -102,7 +103,7 @@ export function askPicture(now: Partial<Picture> = {}): Promise<Picture | null> 
           ${ok && !asked
             ? picture(url.trim(), alt)
             : ok
-            ? html`<img class=${state} src=${url.trim()} alt=${alt} referrerpolicy="no-referrer" @load=${() => ((state = 'ok'), f.draw())} @error=${() => ((state = 'broken'), f.draw())} />
+            ? html`<img class=${state} src=${pictureSrc(url.trim())} alt=${alt} referrerpolicy="no-referrer" @load=${() => ((state = 'ok'), f.draw())} @error=${() => ((state = 'broken'), f.draw())} />
                 ${state === 'broken' ? html`<p class="to-hint to-ask-broken">${t('No picture came from this address. Check it, or try another.')}</p>` : nothing}`
             : html`<p class="to-hint">${t('Paste the address of a picture on the web: the picture shows here.')}</p>`}
         </div>`,

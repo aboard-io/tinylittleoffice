@@ -14,7 +14,7 @@ format `docs/tlo.md` in the old tree until it moves here.
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
                 privacy (Private or Saved, the password, the signature, the key, what the device holds),
                 privacy-dialog (<to-privacy>), crypt (a password: PBKDF2 to AES-GCM), sign (Ed25519, P-256 where
-                there is none), envelope (by, created, key, sig, and the signed message), link-guard (links that leave ask first), pictures (web pictures asked for first),
+                there is none), envelope (by, created, key, sig, and the signed message), link-guard (links that leave ask first), pictures (web pictures asked for first), media (the picture proxy's address, the whitelist, an export's picture bytes),
                 preview (a kept document's first page, small), mark (the Office mark), offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
                 icons (the UI set and the starter library a document may name), icons-search (keywords,
                 suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
@@ -36,6 +36,7 @@ scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the s
 test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode)
 e2e/            the small Playwright smoke on the built site, desktop Chromium and iPhone-sized WebKit
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
+media/          the picture proxy at media.tinylittleoffice.com: a Worker, no storage, no logs (docs/network.md)
 ```
 
 ## Commands
@@ -50,6 +51,7 @@ npm run test:e2e      # the smoke, on a fresh build; SHOTS=<dir> saves screensho
 npm run i18n:check    # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
 npm run i18n:extract  # append the missing keys to en.ts, at the end, to be sorted by hand
 npm run tinier:dev    # the link shortener on this machine (see "Living short links")
+npm run media:dev     # the picture proxy on this machine, port 8788; VITE_MEDIA_URL=/media uses it through the dev server
 ```
 
 The editor: `<to-text>` (src/kit/text.ts) is the one rich-text editor, model-driven over the kernel: every
@@ -66,10 +68,15 @@ Privacy, links and pictures: a link that leaves Tiny Little Office never opens b
 (`src/kit/link-guard.ts`, installed by the shell) asks first, in a dialog with the site's name in large type and the
 whole address under it, a red Cancel (the default) and a green Go (a new tab, no opener, no referrer); a link to
 anything but a web page, an email or a phone number does not open at all. A picture a document holds by its
-address on another site is a tracking pixel for whoever reads it, so it is not fetched until the reader asks:
-`src/kit/pictures.ts` draws it as a card with the site's name and "Show pictures from the web" (every picture of
-that document, for the visit); a picture the author put in this visit shows at once; under Saved a switch in the
-menu shows them always; a preview never fetches one; exports include them; every `<img>` sends no referrer.
+address on another site is a tracking pixel for whoever reads it, so no picture is ever fetched from its own site:
+every one comes through the picture proxy at media.tinylittleoffice.com (`media/`, a Worker that keeps a week's
+cache and logs nothing; `src/kit/media.ts` `pictureSrc`). A picture from a host on the whitelist (Wikimedia, the
+Internet Archive, Unsplash, Pexels, Flickr, GitHub: public, licensed pictures; docs/network.md says why each) shows
+at once; any other is not fetched until the reader asks: `src/kit/pictures.ts` draws it as a card with the site's
+name and "Show pictures from the web" (every picture of that document, for the visit); a picture the author put in
+this visit shows at once; under Saved a switch in the menu shows them always; a preview never fetches one; exports
+hold the pictures' bytes, fetched through the proxy; every `<img>` sends no referrer. `VITE_MEDIA_URL` names a
+self-hoster's own proxy; empty, pictures load directly and every host asks first.
 
 Password and signature, for every app (the shell's, `src/kit/privacy.ts`). Share holds **Password…**: the text is
 encrypted in the browser (AES-256-GCM under a key PBKDF2-SHA-256 derives from the password, 600,000 iterations,
@@ -94,8 +101,9 @@ The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and
 Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
 `{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.
 
-Deploy: `wrangler.jsonc` serves `dist/` as static assets on Cloudflare with `public/_headers`; the build
-output is deployable, but nothing here deploys.
+Deploy: `wrangler.jsonc` serves `dist/` as static assets on Cloudflare with `public/_headers`; the shortener
+(`tinier/`) and the picture proxy (`media/`) are Workers of their own, each with its wrangler config.
+`npm run deploy` builds and deploys all three; nothing deploys by itself.
 
 ## Link and Display Link
 

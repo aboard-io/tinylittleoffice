@@ -15,6 +15,14 @@ leak. Everything here makes that checkable by a stranger.
    or never until a switch), what it carries, and the switch that stops it. A test in `test/network.test.ts`
    greps the built site for every host it can reach and fails if one is not on the page. The `connect-src`,
    `img-src` and `frame-src` of the CSP are generated from the same list.
+   *Pictures (built, 2026-10-09).* Every web picture the site draws goes through the picture proxy at
+   media.tinylittleoffice.com (`media/`, a Worker that logs nothing), so a picture's site never learns who
+   read a document; a whitelist of hosts with public, licensed pictures shows at once, every other host asks
+   first; exports carry the bytes. docs/network.md has the rules, the whitelist with a reason for each host,
+   and what else the site may ask and why. The CSP's `img-src` is the site, the proxy and the map's tiles
+   (no `https:` at large), filled from `VITE_MEDIA_URL` by `scripts/headers.ts` and held by
+   `test/csp.test.ts`. *For this item's network test:* docs/network.md is hand-written until it is
+   generated; the generator should take the proxy's host from `scripts/headers.ts` `mediaSource`.
 2. **A threat model** (gate). `docs/threat-model.md`: what we protect against (the host learning a document;
    a short link's service reading one; a shared link altered in transit; a scam link or a tracking picture
    inside a document; a reader fetching a picture and revealing their IP), what we do not (someone you gave
