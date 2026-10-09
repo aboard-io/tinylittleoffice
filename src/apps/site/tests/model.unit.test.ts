@@ -9,7 +9,7 @@ import { appOf } from '../../../kit/apps.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
-import { addOps, fieldsOf, kindsOf, linesOf, linksOp, moveOps, readSite, removeOps, retitle, sectionAt, settingOp, themeOp, titleOf } from '../model.ts';
+import { addOps, duplicateOps, fieldsOf, partBlocks, pasteOps, kindsOf, linesOf, linksOp, moveOps, readSite, removeOps, retitle, sectionAt, settingOp, themeOp, titleOf } from '../model.ts';
 import { templates } from '../templates.ts';
 import { contrast, isDark, paletteOf, parseTheme, themeCss, themeWords, THEMES } from '../theme.ts';
 import { CART, EDIT, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
@@ -239,6 +239,39 @@ test('commands as ops: a thing added is one splice (a product one rows), a part 
   expect(write(applyAll(doc, [themeOp({ id: 'indigo' })]))).toMatch(/^# Harbor Coffee/);
   expect(write(applyAll(doc, [linksOp(true)]))).toMatch(/^---\ntheme: amber\nlook: links\n---\n/);
   expect(write(applyAll(shop, [settingOp('currency', ' ')]))).not.toContain('currency:');
+});
+
+test('a thing at the caret, a part duplicated, copied and pasted after itself: each one splice that undoes exactly', () => {
+  const doc = parse(CAFE);
+  const s = readSite(doc);
+  const coffee = s.sections[2];
+  const check = (ops: ReturnType<typeof addOps>['ops']) => {
+    const after = applyAll(doc, ops);
+    expect(write(applyAll(after, invertAll(doc, ops)))).toBe(CAFE);
+    return write(after);
+  };
+  // Under the caret's block (Espresso), not at the end of the section; a caret outside the section is the end; a page still goes after its page.
+  const card = addOps(doc, s, 2, 'card', '', coffee.from + 1);
+  expect(card.at).toBe(coffee.from + 2);
+  expect(check(card.ops)).toContain('- Espresso | 3.00\n- Heading | A line about it\n- Flat white');
+  expect(addOps(doc, s, 2, 'card', '', 0).at).toBe(coffee.to);
+  expect(addOps(doc, s, 2, 'page', '', coffee.from + 1).at).toBe(s.pages[1].to);
+  // A section duplicated: its copy right after it, in the same page; a page with its sections; never the home page.
+  const dup = duplicateOps(doc, s, 2)!;
+  expect(dup.at).toBe(coffee.to);
+  const twice = check(dup.ops);
+  expect(twice.match(/## Coffee/g)!.length).toBe(2);
+  expect(twice).toContain('- Filter, by the cup | 3.50\n\n## Coffee\n\n- Espresso');
+  expect(readSite(applyAll(doc, dup.ops)).sections[3].title).toBe('Coffee');
+  expect(check(duplicateOps(doc, s, 1)!.ops).match(/# Menu\n/g)!.length).toBe(2);
+  expect(duplicateOps(doc, s, 0)).toBeNull();
+  // Copied: the part's blocks (a page with its sections; the home page its front section); pasted after the part in hand.
+  expect(partBlocks(doc, s, 1).length).toBe(s.pages[1].to - s.pages[1].from);
+  expect(partBlocks(doc, s, 0)).toEqual(doc.blocks.slice(0, s.sections[0].to));
+  const pasted = pasteOps(s, 4, partBlocks(doc, s, 3))!;
+  expect(pasted.at).toBe(s.sections[4].to);
+  expect(check(pasted.ops).trimEnd().endsWith('## Pastry\n\n- Cardamom bun | 3.50\n- Sourdough toast, butter and jam | 4.00')).toBe(true);
+  expect(pasteOps(s, 0, [])).toBeNull();
 });
 
 test('the name is the first heading; renamed, that heading changes, or one is put in at the top', () => {

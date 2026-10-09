@@ -192,3 +192,316 @@ test('a phone: the bar one row, the page above the words, nothing wider than the
   expect(Number.parseFloat(getComputedStyle(part(el)).fontSize)).toBeGreaterThanOrEqual(16);
   await page.viewport(1100, 800);
 });
+
+// ---- the editing standard (docs/editing.md): the section in hand, its bar and keys, undo, the words' keys ----
+
+const key = (target: EventTarget, k: string, o: KeyboardEventInit = {}) => {
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o });
+  target.dispatchEvent(e);
+  return e;
+};
+const box = (el: HTMLElement) => el.querySelector<HTMLElement>('.site-preview')!;
+const ctxItems = (el: HTMLElement) => [...el.querySelectorAll<HTMLButtonElement>('to-context.site-context .to-context button')];
+const ctxOpen = (el: HTMLElement) => !!el.querySelector('to-context.site-context .to-context:popover-open');
+const ctxButton = (el: HTMLElement, label: string) => ctxItems(el).find((b) => b.getAttribute('aria-label') === label)!;
+/** Section `s` tapped in the frame, where the frame says it is. */
+async function hold(el: ToSiteEditor, s: number) {
+  await tick(30);
+  say(el, { do: 'pick', s, r: [0, 40, 600, 300] });
+  await settle(el);
+}
+const clip = (el: HTMLElement, type: 'copy' | 'cut' | 'paste', data?: { text: string; html: string }) => {
+  const dt = new DataTransfer();
+  if (data) dt.setData('text/plain', data.text), dt.setData('text/html', data.html);
+  box(el).dispatchEvent(new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true }));
+  return dt;
+};
+
+test('a tap in the frame takes the section in hand: the focus on the box, the bar under it in §8’s order; Escape lets go to the frame', async () => {
+  const { el } = await editor();
+  await hold(el, 2);
+  expect(document.activeElement).toBe(box(el));
+  expect(part(el).value).toBe('2');
+  await until(() => ctxOpen(el));
+  expect(ctxItems(el).map((b) => b.getAttribute('aria-label'))).toEqual(['Edit', 'Move up', 'Move down', 'Duplicate', 'Delete']);
+  // Coffee is the first section of its page: it cannot go up; the bar's buttons never take the focus.
+  expect(ctxButton(el, 'Move up').disabled).toBe(true);
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+  ctxButton(el, 'Move down').dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  // The bar hangs under the section as the frame says it is.
+  const bar = el.querySelector<HTMLElement>('to-context.site-context .to-context')!.getBoundingClientRect();
+  const f = frame(el).getBoundingClientRect();
+  expect(bar.top).toBeGreaterThanOrEqual(f.top + 340 - 1);
+  // The frame says the section scrolled: the bar follows.
+  say(el, { do: 'at', s: 2, r: [0, 10, 600, 200] });
+  await tick(40);
+  expect(el.querySelector<HTMLElement>('to-context.site-context .to-context')!.getBoundingClientRect().top).toBeLessThan(bar.top);
+  // Escape: the section let go, the bar gone, the focus back on the frame.
+  expect(key(box(el), 'Escape').defaultPrevented).toBe(true);
+  await settle(el);
+  expect(ctxOpen(el)).toBe(false);
+  expect(document.activeElement).toBe(frame(el));
+  // The home page has nothing to move, duplicate or delete; Edit is there.
+  await hold(el, 0);
+  await until(() => ctxOpen(el));
+  expect(ctxItems(el).filter((b) => b.disabled).map((b) => b.getAttribute('aria-label'))).toEqual(['Move up', 'Move down', 'Duplicate', 'Delete']);
+  // The focus gone elsewhere (the panel's picker) lets it go; the app's own bar does not.
+  el.querySelector<HTMLButtonElement>('to-bar button[aria-label="Bold"]')!.focus();
+  await settle(el);
+  expect(ctxOpen(el)).toBe(true);
+  part(el).focus();
+  await settle(el);
+  expect(ctxOpen(el)).toBe(false);
+});
+
+test('the section in hand by key: Alt+Down moves it, Mod+D duplicates it, Delete removes it, Up/Down take the next; undo puts each back in hand', async () => {
+  const { el, last } = await editor();
+  await hold(el, 2);
+  // Alt+Down: Coffee past Pastry, still in hand.
+  expect(key(box(el), 'ArrowDown', { altKey: true }).defaultPrevented).toBe(true);
+  await settle(el);
+  expect(last().indexOf('## Pastry')).toBeLessThan(last().indexOf('## Coffee'));
+  expect(part(el).selectedOptions[0].textContent!.trim()).toBe('— Coffee');
+  expect(document.activeElement).toBe(box(el));
+  // Undo: Coffee back first, and in hand.
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+  expect(last()).toBe(CAFE);
+  expect(part(el).selectedOptions[0].textContent!.trim()).toBe('— Coffee');
+  expect(document.activeElement).toBe(box(el));
+  // Mod+D: a copy right after it, the copy in hand.
+  expect(key(box(el), 'd', { ctrlKey: true }).defaultPrevented).toBe(true);
+  await settle(el);
+  expect(last().match(/## Coffee/g)!.length).toBe(2);
+  expect(part(el).value).toBe('3');
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+  expect(last()).toBe(CAFE);
+  expect(part(el).value).toBe('2');
+  // Down takes Pastry; Delete removes it; undo brings it back, in hand.
+  key(box(el), 'ArrowDown');
+  await settle(el);
+  expect(part(el).value).toBe('3');
+  key(box(el), 'Delete');
+  await settle(el);
+  expect(last()).not.toContain('## Pastry');
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+  expect(last()).toBe(CAFE);
+  expect(part(el).value).toBe('3');
+  expect(document.activeElement).toBe(box(el));
+  await until(() => ctxOpen(el));
+  // Backspace too; and redo takes it away again.
+  key(box(el), 'Backspace');
+  await settle(el);
+  expect(last()).not.toContain('## Pastry');
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+  el.dispatchEvent(new CustomEvent('docredo', { cancelable: true }));
+  await settle(el);
+  expect(last()).not.toContain('## Pastry');
+  // Mod+A never selects the page.
+  expect(key(box(el), 'a', { ctrlKey: true }).defaultPrevented).toBe(true);
+});
+
+test('the section in hand: its bar’s Delete, Duplicate and Move by a tap; keys from a bar button or the words never act on it', async () => {
+  const { el, last } = await editor();
+  await hold(el, 3);
+  await until(() => ctxOpen(el));
+  ctxButton(el, 'Move up').click();
+  await settle(el);
+  expect(last().indexOf('## Pastry')).toBeLessThan(last().indexOf('## Coffee'));
+  ctxButton(el, 'Duplicate').click();
+  await settle(el);
+  expect(last().match(/## Pastry/g)!.length).toBe(2);
+  ctxButton(el, 'Delete').click();
+  await settle(el);
+  expect(last().match(/## Pastry/g)!.length).toBe(1);
+  // Delete pressed on a bar button, or in the words, removes no section.
+  const before = last();
+  const bold = el.querySelector<HTMLButtonElement>('to-bar button[aria-label="Bold"]')!;
+  key(bold, 'Delete');
+  key(textOf(el).tx, 'd', { ctrlKey: true });
+  await settle(el);
+  expect(last()).toBe(before);
+});
+
+test('Enter on the section in hand edits its words in the panel, the caret at the end of its heading; Escape in the words takes it back in hand', async () => {
+  const { el } = await editor();
+  await hold(el, 4);
+  key(box(el), 'Enter');
+  await settle(el);
+  const x = textOf(el);
+  expect(x.contains(document.activeElement)).toBe(true);
+  expect(x.sel).toEqual({ anchor: { block: 0, offset: 7 }, focus: { block: 0, offset: 7 } });
+  expect(ctxOpen(el)).toBe(false);
+  // Escape with nothing to close and a caret: the section in hand again.
+  key(x.tx, 'Escape');
+  await settle(el);
+  expect(document.activeElement).toBe(box(el));
+  expect(part(el).value).toBe('4');
+  await until(() => ctxOpen(el));
+  // The bar's Edit does the same as Enter.
+  ctxButton(el, 'Edit').click();
+  await settle(el);
+  expect(x.contains(document.activeElement)).toBe(true);
+});
+
+test('Mod+C, Mod+X, Mod+V on the section in hand: TLO text and our marked HTML out, pasted after the part in hand', async () => {
+  const { el, last } = await editor();
+  await hold(el, 3);
+  const copied = clip(el, 'copy');
+  expect(copied.getData('text/plain')).toBe('## Pastry\n\n- Cardamom bun | 3.50\n- Sourdough toast, butter and jam | 4.00\n');
+  expect(copied.getData('text/html')).toContain('<meta name="generator" content="TinyLittleOffice">');
+  expect(copied.getData('text/html')).toContain('<h2>Pastry</h2>');
+  expect(last()).toBe('');
+  // Pasted while Find us is in hand: after Find us, and the pasted section in hand.
+  await hold(el, 4);
+  clip(el, 'paste', { text: copied.getData('text/plain'), html: copied.getData('text/html') });
+  await settle(el);
+  expect(last().trimEnd().endsWith('## Pastry\n\n- Cardamom bun | 3.50\n- Sourdough toast, butter and jam | 4.00')).toBe(true);
+  expect(part(el).value).toBe('5');
+  // Cut: on the clipboard and gone; undo brings it back in hand.
+  const cut = clip(el, 'cut');
+  await settle(el);
+  expect(cut.getData('text/plain')).toContain('## Pastry');
+  expect(last().match(/## Pastry/g)!.length).toBe(1);
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+  expect(last().match(/## Pastry/g)!.length).toBe(2);
+  expect(part(el).value).toBe('5');
+  // With the words in hand, a copy is the words' own (to-text's), not the section's.
+  key(box(el), 'Enter');
+  await settle(el);
+  const dt = new DataTransfer();
+  const e = new ClipboardEvent('copy', { clipboardData: dt, bubbles: true, cancelable: true });
+  document.dispatchEvent(e);
+  expect(dt.getData('text/plain')).toBe('');
+});
+
+test('undo brings the words’ caret back to the section it was typed in, wherever the editor is now', async () => {
+  const { el, last } = await editor();
+  part(el).value = '2';
+  part(el).dispatchEvent(new Event('change'));
+  await settle(el);
+  const x = textOf(el);
+  x.sel = { anchor: { block: 2, offset: 10 }, focus: { block: 2, offset: 10 } };
+  await tick();
+  input(x, 'insertText', '!');
+  await settle(el);
+  expect(last()).toContain('- Flat white! | 4.20');
+  // Elsewhere now: the Find us page.
+  part(el).value = '4';
+  part(el).dispatchEvent(new Event('change'));
+  await settle(el);
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await settle(el);
+  expect(last()).toBe(CAFE);
+  expect(part(el).value).toBe('2');
+  expect(textOf(el).sel).toEqual({ anchor: { block: 2, offset: 10 }, focus: { block: 2, offset: 10 } });
+  expect(textOf(el).contains(document.activeElement)).toBe(true);
+});
+
+test('Insert puts a thing under the caret’s block, not at the end of the section; with a section in hand, at its end', async () => {
+  const { el, last } = await editor();
+  part(el).value = '2';
+  part(el).dispatchEvent(new Event('change'));
+  await settle(el);
+  const x = textOf(el);
+  x.focus();
+  x.sel = { anchor: { block: 1, offset: 3 }, focus: { block: 1, offset: 3 } };
+  x.dispatchEvent(new CustomEvent('text-select', { detail: x.sel, bubbles: true }));
+  await settle(el);
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Card');
+  await tick(30);
+  expect(last()).toContain('- Espresso | 3.00\n- Heading | A line about it\n- Flat white');
+  expect(textOf(el).sel).toEqual({ anchor: { block: 2, offset: 0 }, focus: { block: 2, offset: 25 } });
+  await hold(el, 2);
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Button');
+  await tick(30);
+  expect(last()).toContain('- Filter, by the cup | 3.50\n\n> Label | https://\n');
+});
+
+test('the words’ keys: Alt+Up moves a card item past its neighbour; Enter on a card opens its menu, which copies, cuts and removes', async () => {
+  const { el, last } = await editor('# Site\n\nWords.\n\n![A cup](https://x.example/cup.png)\n\n- One | first\n- Two | second\n');
+  await settle(el);
+  const x = textOf(el);
+  x.focus();
+  x.sel = { anchor: { block: 4, offset: 1 }, focus: { block: 4, offset: 1 } };
+  await tick();
+  expect(key(x.tx, 'ArrowUp', { altKey: true }).defaultPrevented).toBe(true);
+  await settle(el);
+  expect(last()).toContain('- Two | second\n- One | first');
+  // A card focused, Enter: its menu opens beside it.
+  const card = x.tx.children[2] as HTMLElement;
+  expect(card.classList.contains('tx-card')).toBe(true);
+  card.focus();
+  expect(key(card, 'Enter').defaultPrevented).toBe(true);
+  await until(() => !!document.querySelector('to-menu.site-cardmenu [popover]:popover-open'));
+  const labels = [...document.querySelectorAll<HTMLElement>('to-menu.site-cardmenu [popover]:popover-open [role^=menuitem]')].map((b) => b.textContent!.trim());
+  expect(labels).toEqual(['Change the address…', 'Copy', 'Cut', 'Remove']);
+  [...document.querySelectorAll<HTMLElement>('to-menu.site-cardmenu [popover]:popover-open [role^=menuitem]')].find((b) => b.textContent!.trim() === 'Cut')!.click();
+  await settle(el);
+  expect(last()).not.toContain('cup.png');
+});
+
+test('the bar: the marks, Undo and Redo last and never taking the focus; the ask dialog’s field and the words keep a phone from zooming', async () => {
+  const { el } = await editor(SHOP);
+  const tools = [...el.querySelectorAll<HTMLButtonElement>('to-bar.site-bar > button, to-bar.site-bar > to-insert, to-bar.site-bar > to-menu')];
+  const names = tools.map((b) => b.getAttribute('aria-label') ?? b.tagName.toLowerCase());
+  expect(names.slice(-2)).toEqual(['Undo', 'Redo']);
+  expect(names).toEqual(expect.arrayContaining(['Bold', 'Italic', 'Underline', 'Strikethrough', 'Highlight', 'Link']));
+  for (const label of ['Underline', 'Undo']) {
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    el.querySelector<HTMLButtonElement>(`to-bar button[aria-label="${label}"]`)!.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+  }
+  expect(getComputedStyle(textOf(el).tx).touchAction).toBe('manipulation');
+  expect(frame(el).srcdoc).toMatch(/\[data-s\]\{cursor:pointer;touch-action:manipulation\}/);
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Picture');
+  await until(() => !!el.querySelector('.site-ask-form input'));
+  expect(Number.parseFloat(getComputedStyle(el.querySelector('.site-ask-form input')!).fontSize)).toBeGreaterThanOrEqual(16);
+  el.querySelector<HTMLDialogElement>('to-dialog.site-ask dialog')?.close();
+});
+
+test('the preview’s own script: a tap says where the section is; the "+" chooser walks by arrows and Escape puts the focus back on the "+"; Select All never takes the page', async () => {
+  // The page drawn for the preview, run same-origin here so its document can be reached.
+  const { sitePage } = await import('../view.ts');
+  const { parse } = await import('../../../doc/index.ts');
+  document.body.innerHTML = '';
+  const f = document.createElement('iframe');
+  f.style.width = '800px';
+  f.style.height = '600px';
+  const said: { do: string; s?: number; r?: number[] }[] = [];
+  window.addEventListener('message', (e) => e.source === f.contentWindow && said.push(e.data));
+  f.srcdoc = sitePage(parse(CAFE), { edit: { cur: 2, stamp: 7, held: true } });
+  document.body.append(f);
+  await until(() => said.some((m) => m.do === 'ready'));
+  // Drawn with a section in hand: it says where that section is.
+  await until(() => said.some((m) => m.do === 'at' && m.s === 2));
+  const d = f.contentDocument!;
+  const w = f.contentWindow! as Window & typeof globalThis;
+  const pastry = d.querySelector<HTMLElement>('[data-s="3"] p, [data-s="3"] li')!;
+  pastry.click();
+  await until(() => said.some((m) => m.do === 'pick'));
+  const pick = said.find((m) => m.do === 'pick')!;
+  expect(pick.s).toBe(3);
+  expect(pick.r).toHaveLength(4);
+  const plus = d.querySelector<HTMLButtonElement>('[data-site-add="3"]')!;
+  plus.click();
+  const items = [...d.querySelectorAll<HTMLButtonElement>('.site-menu [role=menuitem]')];
+  expect(d.activeElement).toBe(items[0]);
+  items[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+  expect(d.activeElement).toBe(items[1]);
+  items[1].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  items[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+  expect(d.activeElement).toBe(items.at(-1));
+  d.activeElement!.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  expect(d.querySelector('.site-menu')).toBeNull();
+  expect(d.activeElement).toBe(plus);
+  const all = new w.KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, cancelable: true });
+  d.body.dispatchEvent(all);
+  expect(all.defaultPrevented).toBe(true);
+  f.remove();
+});
