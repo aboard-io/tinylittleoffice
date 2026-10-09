@@ -1,9 +1,10 @@
 /**
  * Board and Todo on a phone: typing tasks and cards neither scrolls the page nor moves the bar, which is one row;
  * every row and control is a finger tall; a card carried by its grip lands in the next stage. Real layout on a
- * real phone engine (the phone project: WebKit, 390 by 844). Run on its own:
+ * real phone engine (the phone project: WebKit, 390 by 844). Run on its own (not on port 4190, which WebKit
+ * refuses as ManageSieve's):
  *
- *   PW_PORT=4190 npx playwright test e2e/board-todo-phone.spec.ts --project=phone --workers=1
+ *   PW_PORT=4191 npx playwright test e2e/board-todo-phone.spec.ts --project=phone --workers=1
  */
 import { test, expect, type Page } from '@playwright/test';
 
