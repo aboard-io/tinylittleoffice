@@ -258,13 +258,23 @@
     flex: 1 1 auto;
     min-width: 0;
   }
+  /* The note's box is the same in every app: it sits inside the words it belongs to (a headline, a page, a
+     row), so what those set for their own words is kept out of it here (important in the kit's layer beats
+     an app's ordinary rules). */
+  .to-note-pop {
+    font: 400 16px/1.4 var(--to-font) !important;
+    color: var(--to-ink) !important;
+    text-align: start !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+  }
   .to-note-words .tx {
-    min-height: 0;
-    padding: 6px 8px;
+    min-height: 0 !important;
+    padding: 6px 8px !important;
     border-radius: 6px;
     background: var(--to-bg);
-    font-size: 16px;
-    line-height: 1.4;
+    font: inherit !important;
+    caret-color: auto;
   }
   .to-link-pop {
     width: auto;

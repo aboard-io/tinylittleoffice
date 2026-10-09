@@ -460,9 +460,9 @@ test('the bar: the marks, Undo and Redo last and never taking the focus; the ask
   expect(getComputedStyle(textOf(el).tx).touchAction).toBe('manipulation');
   expect(frame(el).srcdoc).toMatch(/\[data-s\]\{cursor:pointer;touch-action:manipulation\}/);
   await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Picture');
-  await until(() => !!el.querySelector('.site-ask-form input'));
-  expect(Number.parseFloat(getComputedStyle(el.querySelector('.site-ask-form input')!).fontSize)).toBeGreaterThanOrEqual(16);
-  el.querySelector<HTMLDialogElement>('to-dialog.site-ask dialog')?.close();
+  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
+  expect(Number.parseFloat(getComputedStyle(document.querySelector('.to-ask-picture .to-ask-url')!).fontSize)).toBeGreaterThanOrEqual(16);
+  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')?.close();
 });
 
 test('the preview’s own script: a tap says where the section is; the "+" chooser walks by arrows and Escape puts the focus back on the "+"; Select All never takes the page', async () => {

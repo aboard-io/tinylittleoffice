@@ -346,8 +346,9 @@
   .to-drawer::backdrop {
     background: rgb(0 0 0 / 40%);
   }
+  /* Every dialog hangs from the top: what grows inside it (a preview arriving) grows downwards, and nothing above it moves. */
   .to-dialog {
-    margin: auto;
+    margin: max(16px, 8vh) auto auto;
     width: min(520px, calc(100vw - 32px));
   }
   .to-dialog-inner {
@@ -379,6 +380,176 @@
   .to-dialog-body > :first-child {
     margin-top: 0;
   }
+  /* ---- Insert's address dialogs (insert-dialogs.ts): the address and OK in one row, what it will be under them ---- */
+  .to-ask-dialog .to-dialog {
+    width: min(640px, calc(100vw - 32px));
+  }
+  .to-ask {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .to-ask-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .to-ask-url {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 48px;
+    font-size: 16px;
+  }
+  .to-ask-ok {
+    flex: none;
+    height: 48px;
+    min-width: 72px;
+  }
+  .to-ask-alt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--to-ink-2);
+  }
+  .to-ask-alt input {
+    font-size: 16px;
+  }
+  .to-ask-preview:empty {
+    display: none;
+  }
+  .to-ask-preview > p {
+    margin: 0;
+  }
+  .to-ask-preview img {
+    display: block;
+    max-width: 100%;
+    max-height: 50vh;
+    border-radius: var(--to-radius-sm);
+  }
+  .to-ask-preview img.broken {
+    display: none;
+  }
+  .to-ask-broken {
+    color: var(--to-danger);
+  }
+  .to-ask-sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .to-ask-sources li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--to-ink-2);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-pill);
+  }
+  .to-ask-sources li.on {
+    color: var(--to-accent);
+    border-color: var(--to-accent);
+  }
+  .to-ask-page {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0;
+  }
+  .to-ask-page svg {
+    width: min(260px, 60%);
+    height: auto;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius-sm);
+    background: #fff;
+  }
+  .to-ask-page figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .to-ask-page small {
+    color: var(--to-ink-3);
+  }
+
+  /* ---- another document edited in place (doc-dialog.ts): large, its own editor filling it ---- */
+  .to-doc-dialog {
+    padding: 0;
+    border: 0;
+    margin: 16px auto auto;
+    width: min(1200px, calc(100vw - 32px));
+    height: calc(100dvh - 32px);
+    max-width: none;
+    max-height: none;
+    color: var(--to-ink);
+    background: var(--to-bg);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow-pop);
+  }
+  .to-doc-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .to-doc-dialog::backdrop {
+    background: rgb(0 0 0 / 40%);
+  }
+  .to-doc-dialog-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 16px;
+    background: var(--to-surface);
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-doc-dialog-head h2 {
+    margin: 0;
+    min-width: 0;
+    font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .to-doc-dialog-gap {
+    flex: 1 1 0;
+  }
+  .to-doc-dialog-sizes,
+  .to-doc-dialog-size {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .to-doc-dialog-sizes {
+    margin-left: 8px;
+  }
+  .to-doc-dialog-size span {
+    font-size: 14px;
+    color: var(--to-ink-2);
+  }
+  .to-doc-dialog-size input {
+    width: 72px;
+    height: 40px;
+    font-size: 16px;
+  }
+  .to-doc-dialog-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 var(--to-gutter) var(--to-gutter);
+    /* The editor inside measures itself against the screen less the header; here the dialog's head and margins stand for it. */
+    --to-header-h: 112px;
+  }
+  .to-doc-dialog-body:focus {
+    outline: none;
+  }
+
   /* The icon picker: a search box, then the library in named sections. */
   .to-icons .to-dialog {
     width: min(720px, calc(100vw - 32px));

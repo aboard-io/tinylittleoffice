@@ -131,6 +131,26 @@ export function embedOf(url: string): Embed | null {
   return null;
 }
 
+/**
+ * The places embedOf() knows, by name and by what they hold, for the Web Embed dialog's row of sources (a
+ * film, a sound, a PDF or a picture by its own address is known anywhere, and is listed last, as "A file").
+ */
+export const EMBED_SOURCES: { name: string; kind: EmbedKind }[] = [
+  { name: 'YouTube', kind: 'video' },
+  { name: 'Vimeo', kind: 'video' },
+  { name: 'PeerTube', kind: 'video' },
+  { name: 'Internet Archive', kind: 'page' },
+  { name: 'Spotify', kind: 'music' },
+  { name: 'SoundCloud', kind: 'music' },
+  { name: 'Bluesky', kind: 'post' },
+  { name: 'Mastodon', kind: 'post' },
+  { name: 'Reddit', kind: 'post' },
+  { name: 'X', kind: 'post' },
+  { name: 'OpenStreetMap', kind: 'map' },
+  { name: 'Wikipedia', kind: 'article' },
+  { name: 'CodePen', kind: 'code' },
+];
+
 /** The embed with the account's id in place of its handle, once the lookup has answered. */
 export const withAccount = (e: Embed, did: string): Embed => ({ ...e, src: e.src.replace(/\/embed\/[^/]+\//, `/embed/${did}/`), lookup: undefined });
 

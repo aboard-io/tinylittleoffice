@@ -5,11 +5,12 @@
 // the bar is one row and nothing is wider than the screen.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
+// The page's styles first, as the app has them: they name the layers' order (an app's own rules over the kit's).
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToDeckEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 async function editor(value = ''): Promise<{ el: ToDeckEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
@@ -413,14 +414,15 @@ test('keys never act from a dialog or a field; PageUp/PageDown change slides fro
   await settle(el);
   expect(el.cur).toBe(1);
   await until(() => document.activeElement === thumbs(el)[1]);
-  // The address box of Insert ▾'s Picture…: Mod+Shift+Enter there makes no slide.
-  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Picture');
-  await until(() => !!el.querySelector('.deck-ask-form input'));
-  const field = el.querySelector<HTMLInputElement>('.deck-ask-form input')!;
+  // The address box of Insert ▾'s Web Picture: Mod+Shift+Enter there makes no slide.
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Web Picture');
+  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
+  const field = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
   key(field, 'Enter', { ctrlKey: true, shiftKey: true });
   key(field, 'd', { ctrlKey: true });
   await settle(el);
   expect(thumbs(el)).toHaveLength(4);
+  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
 });
 
 test('undo shows the slide the change was on and puts the caret back where it was', async () => {
@@ -489,4 +491,95 @@ test('a lone web address pasted into empty words is the thing from the web on th
   await clip(box(el, 'words'), 'paste', { 'text/plain': 'https://example.com/b' });
   await settle(el);
   expect(last()).toContain('- Hi https://example.com/b');
+});
+
+/* ---------- Insert ▾: the kit's dialogs, other documents on the slide, the speaker notes ---------- */
+
+const docDialog = () => document.querySelector('to-doc-dialog');
+
+test('Insert ▾ puts other local documents on the slide: a Kanban board is made in its own editor, and Done puts it on the slide', async () => {
+  const { el, last } = await editor('## Plan\n');
+  const opener = el.querySelector<HTMLElement>('to-insert button')!;
+  opener.click();
+  await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
+  const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
+  expect(labels).toEqual(expect.arrayContaining(['Web Picture…', 'Table', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board']));
+  expect(labels).not.toContain('Presentation Builder');
+  opener.click();
+  await tick();
+  await pick(el, opener, 'Kanban Board');
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-board-editor'));
+  docDialog()!.querySelector('to-board-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: '## To do\n\n- Write it\n', bubbles: true }));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => (last() ?? '').includes('```board'));
+  // The slide has its headline, so the board goes on a new slide after it.
+  expect(last()).toBe('## Plan\n\n---\n\n```board\n## To do\n\n- Write it\n```\n');
+  await until(() => !!el.querySelector('figure.deck-sub svg'));
+});
+
+test('the table on a slide: Insert ▾ Table opens the Spreadsheet at three by three; its menu\'s Edit opens it again; Cancel changes nothing', async () => {
+  const { el, last } = await editor('');
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Table');
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-sheet-editor'));
+  const [rows] = [...document.querySelectorAll<HTMLInputElement>('.to-doc-dialog-size input')];
+  rows.value = '2';
+  rows.dispatchEvent(new Event('change', { bubbles: true }));
+  await tick();
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => (last() ?? '').includes('ColA | ColB | ColC'));
+  expect(last()).toBe('ColA | ColB | ColC\n--- | --- | ---\n| |  |\n| |  |\n');
+  const before = last();
+  // The menu has Edit (no "Open in Spreadsheet"); Cancel leaves the slide alone.
+  el.querySelector<HTMLElement>('figure.deck-sub')!.click();
+  await until(() => !!document.querySelector('to-menu.deck-submenu [popover]:popover-open [role^=menuitem]'));
+  const items = [...document.querySelectorAll<HTMLElement>('to-menu.deck-submenu [popover]:popover-open [role^=menuitem]')];
+  expect(items.map((x) => x.textContent!.trim())).toEqual(['Edit', 'Remove from the slide']);
+  items[0].click();
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-sheet-editor'));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
+  await until(() => !docDialog());
+  expect(last()).toBe(before);
+});
+
+test('a document on a slide: Edit then Open in a new tab; Done writes it back, one undo takes it back', async () => {
+  const { el, last } = await editor('## Map\n\n```draw\nrect 10 10 100 60\n```\n');
+  await until(() => !!el.querySelector('figure.deck-sub'));
+  el.querySelector<HTMLElement>('figure.deck-sub')!.click();
+  await until(() => !!document.querySelector('to-menu.deck-submenu [popover]:popover-open [role^=menuitem]'));
+  const items = [...document.querySelectorAll<HTMLElement>('to-menu.deck-submenu [popover]:popover-open [role^=menuitem]')];
+  expect(items.map((x) => x.textContent!.trim())).toEqual(['Edit', 'Open in a new tab', 'Remove from the slide']);
+  items[0].click();
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
+  docDialog()!.querySelector('to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 300 60\n', bubbles: true }));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => last() === '## Map\n\n```draw\nrect 10 10 300 60\n```\n');
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true, bubbles: true }));
+  await until(() => last() === '## Map\n\n```draw\nrect 10 10 100 60\n```\n');
+});
+
+test('the speaker notes have room round them, as the words do: 12px, the hint inside it, while editing and while presenting', async () => {
+  const { el } = await editor('## Hello\n\n> Say hi\n');
+  const notes = box(el, 'notes');
+  const cs = getComputedStyle(notes);
+  expect([cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft]).toEqual(['12px', '12px', '12px', '12px']);
+  const empty = await editor('## Hello\n');
+  await until(() => !!box(empty.el, 'notes')?.classList.contains('blank'));
+  const hint = getComputedStyle(box(empty.el, 'notes'), '::before');
+  expect([hint.top, hint.left]).toEqual(['12px', '12px']);
+  const { el: shown } = await editor('## Hello\n\n> Say hi\n');
+  button(shown, 'Present').click();
+  await until(() => !!shown.querySelector('.deck-show .notes'));
+  expect(getComputedStyle(shown.querySelector('.deck-show .notes')!).padding).toBe('12px');
+  key(window, 'Escape');
+});
+
+test('a footnote\'s box is one line of 16px words, wherever its mark is (even in the headline)', async () => {
+  const { el } = await editor('## Big words\n');
+  await caretIn(el, 'title');
+  button(el, 'Footnote').click();
+  await until(() => !!el.querySelector('to-note-pop to-text .tx'));
+  const words = el.querySelector<HTMLElement>('to-note-pop to-text .tx')!;
+  expect(getComputedStyle(words).fontSize).toBe('16px');
+  expect(getComputedStyle(words).fontWeight).toBe('400');
+  expect(words.getBoundingClientRect().height).toBeLessThan(60);
 });

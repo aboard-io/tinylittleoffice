@@ -21,24 +21,30 @@
 import { html, nothing, type PropertyDeclarations, type PropertyValues, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { ArrowDown, ArrowUp, ClipboardPaste, Copy, CopyPlus, Pilcrow, Ruler, Scissors, SeparatorHorizontal, SquarePen } from 'lucide';
-import { isEmbed, noteRuns, notesOf, parse, plainText, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { isEmbed, notesOf, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
+import { apps } from '../../kit/apps.ts';
 import { keysText, tool } from '../../kit/bar.ts';
 import { copyData, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
+import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
+import { noteWords } from '../../kit/note-pop.ts';
+import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { PAPERS, blankTable, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
+import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
+import def from './def.ts';
 import { fenceLink } from './view.ts';
 import type { TableCmd, ToWriteTable } from './table.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/dialog.ts';
+import '../../kit/doc-dialog.ts';
 import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -179,12 +185,12 @@ export class ToWriteEditor extends DocElement<Doc> {
     const blocks = this.doc.blocks;
     return this.text?.sel ?? caret(Math.max(0, blocks.length - 1), 0);
   }
-  /** A block put in at the caret (the editor's own rule for blocks: words join, cards stand alone), with the caret after it. */
-  private insertBlock(b: Block) {
+  /** A block put in at the caret, or where it was (`at`, kept while a dialog was open): the editor's own rule for blocks (words join, cards stand alone), the caret after it. */
+  private insertBlock(b: Block, at: Sel = this.where()) {
     const blocks = this.doc.blocks.length ? this.doc.blocks : [{ k: 'p', runs: [] } as Block];
     const prefix: Op[] = this.doc.blocks.length ? [] : [{ op: 'splice', at: 0, n: 0, blocks }];
-    const e = insertBlocks(blocks, this.where(), [b]);
-    this.apply([...prefix, ...e.ops], e.sel);
+    const e = insertBlocks(blocks, at, [b]);
+    this.change([...prefix, ...e.ops], { before: at, after: e.sel });
     void this.drawn().then(() => (this.text.sel = e.sel));
   }
   /** One question, asked in the dialog; null when it is closed without an answer. */
@@ -201,18 +207,42 @@ export class ToWriteEditor extends DocElement<Doc> {
     this.querySelector<ToDialog>('to-dialog.write-ask')?.close();
     a.done(value);
   }
+  /** Insert ▾'s things with an address, each asked for in the kit's dialog, then put in where the caret was. */
   private async insertPicture() {
-    const url = await this.ask(t('Picture'), t('Address of the picture'), 'https://');
-    if (url?.trim()) this.insertBlock({ k: 'img', alt: '', url: url.trim() });
+    const at = this.where();
+    const pic = await askPicture();
+    if (pic) this.insertBlock({ k: 'img', alt: pic.alt, url: pic.url }, at);
   }
   private async insertWeb() {
-    const url = await this.ask(t('From the web'), t('Address of a video, a post, a song, a place, a page'), 'https://');
-    if (url?.trim()) this.insertBlock(webBlock(url));
+    const at = this.where();
+    const url = await askEmbed();
+    if (url) this.insertBlock(linkToFence(url) ?? webBlock(url), at);
   }
   private async insertDocument() {
-    const url = await this.ask(t('A document by link'), t('A TinyLittleOffice link'), 'https://tinylittleoffice.com/#/v1/…');
-    const fence = url && linkToFence(url.trim());
-    if (fence) this.insertBlock(fence);
+    const at = this.where();
+    const fence = await askDocLink();
+    if (fence) this.insertBlock(fence, at);
+  }
+  /** A table: three by three, opened in the Spreadsheet at once; Done (or Cancel, which keeps it blank) puts it in as one step. */
+  private async insertTable() {
+    const at = this.where();
+    const blank = newTable();
+    this.insertBlock((await editTable(blank)) ?? blank, at);
+  }
+  /** A new document of another app, made in its own editor in the dialog; Done puts it in, Cancel puts nothing in. */
+  private async insertApp(id: string) {
+    const at = this.where();
+    const fence = await makeDoc(id);
+    if (fence) this.insertBlock(fence, at);
+  }
+  /** The document or the table at `at` edited in its app, in the dialog: Done writes it back as one step, and it is in hand again. */
+  private async editCard(at: number) {
+    const b = this.doc.blocks[at];
+    let next: Block | null = null;
+    if (b?.k === 'table') next = await editTable(b);
+    else if (b?.k === 'fence' && b.lang) next = await editFence(b);
+    if (next && this.doc.blocks[at] === b) this.change([{ op: 'splice', at, n: 1, blocks: [next] }], { before: null, after: null, card: at, cardAfter: at });
+    this.holdCard(at);
   }
   /** An icon from the kit's library (a lazy chunk, the whole of Lucide), put in at the caret. */
   private async insertIcon() {
@@ -225,12 +255,15 @@ export class ToWriteEditor extends DocElement<Doc> {
   }
   private inserts(): MenuItem[] {
     return [
-      { label: t('Table'), icon: UI.table, does: () => this.insertBlock(blankTable()) },
-      { label: t('Picture…'), icon: UI.image, does: () => void this.insertPicture() },
-      { label: t('From the web…'), icon: UI.globe, does: () => void this.insertWeb() },
-      { label: t('A document by link…'), icon: UI.insert, does: () => void this.insertDocument() },
+      { label: t('Table'), icon: UI.table, does: () => void this.insertTable() },
+      { label: t('Web Picture…'), icon: UI.image, does: () => void this.insertPicture() },
+      { label: t('Web Embed…'), icon: UI.globe, does: () => void this.insertWeb() },
+      { label: t('Tiny Little Office Doc…'), icon: UI.insert, does: () => void this.insertDocument() },
       { label: t('Date'), icon: UI.calendar, does: () => this.text.exec('date') },
       { label: t('Page break'), icon: SeparatorHorizontal, hint: keysText('Mod+Shift+Enter'), does: () => this.insertBlock({ k: 'hr' }) },
+      ...apps()
+        .filter((a) => a.id !== def.id)
+        .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
     ];
   }
   /** Mod+Shift+Enter in the words: a page break at the caret (the browser's own would be a line break). */
@@ -395,25 +428,33 @@ export class ToWriteEditor extends DocElement<Doc> {
   private editOf(at: number): ContextEntry | null {
     const b = this.doc.blocks[at];
     if (!b) return null;
-    if (b.k === 'table') return { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.focusCell(at, 0, 0) };
-    if (b.k === 'fence' && b.lang && b.lang !== 'signatures') {
-      const link = fenceLink(b.lang, b.body, `${location.origin}${location.pathname}`);
-      return { label: t('Open in {app}', { app: lookup.appOf(b.lang)?.name ?? b.lang }), icon: UI.open, keys: 'Enter', does: () => void window.open(link, '_blank', 'noopener') };
-    }
+    if (b.k === 'table' || (b.k === 'fence' && b.lang && b.lang !== 'signatures' && lookup.appOf(b.lang))) return { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editCard(at) };
     if (b.k === 'img' || (b.k === 'p' && isEmbed(b))) {
-      const url = b.k === 'img' ? b.url : plainText(b.runs).trim();
+      const swap = (next: Block) => this.change([{ op: 'splice', at, n: 1, blocks: [next] }], { before: null, after: null, card: at, cardAfter: at });
       return {
         label: t('Change the address…'),
         icon: UI.pen,
         keys: 'Enter',
         does: async () => {
-          const next = await this.ask(b.k === 'img' ? t('Picture') : t('From the web'), t('Address'), 'https://', url);
-          if (next?.trim()) this.change([{ op: 'splice', at, n: 1, blocks: [b.k === 'img' ? { ...b, url: next.trim() } : webBlock(next)] }], { before: null, after: null, card: at, cardAfter: at });
+          if (b.k === 'img') {
+            const pic = await askPicture({ url: b.url, alt: b.alt });
+            if (pic) swap({ ...b, url: pic.url, alt: pic.alt });
+          } else {
+            const url = await askEmbed(plainText(b.runs).trim());
+            if (url) swap(webBlock(url));
+          }
           this.holdCard(at);
         },
       };
     }
     return null;
+  }
+  /** A document held here, opened in its own app in a new tab: the lesser way, after Edit. */
+  private openOf(at: number): ContextEntry[] {
+    const b = this.doc.blocks[at];
+    if (b?.k !== 'fence' || !b.lang || b.lang === 'signatures') return [];
+    const link = fenceLink(b.lang, b.body, `${location.origin}${location.pathname}`);
+    return [{ label: t('Open in a new tab'), icon: UI.open, does: () => void window.open(link, '_blank', 'noopener') }];
   }
   private moveCard(at: number, by: 1 | -1) {
     const ops = moveBlock(this.doc, at, by);
@@ -520,6 +561,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     const edit = this.editOf(at);
     return [
       ...(edit ? [edit] : []),
+      ...this.openOf(at),
       { label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', disabled: at === 0, does: () => this.moveCard(at, -1) },
       { label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', disabled: at >= n - 1, does: () => this.moveCard(at, 1) },
       { label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', does: () => this.duplicateCard(at) },
@@ -534,19 +576,6 @@ export class ToWriteEditor extends DocElement<Doc> {
 
   /* ---------- the notes ---------- */
 
-  private noteWords(fn: string): unknown[] {
-    return noteRuns(fn).map((run: Run) => {
-      if (run.ic) return html`<span class="ic" data-icon=${run.ic} role="img" aria-label=${run.ic}></span>`;
-      let node: unknown = run.t;
-      if (run.h) node = html`<mark>${node}</mark>`;
-      if (run.s) node = html`<s>${node}</s>`;
-      if (run.u) node = html`<u>${node}</u>`;
-      if (run.i) node = html`<i>${node}</i>`;
-      if (run.b) node = html`<b>${node}</b>`;
-      if (run.href) node = html`<a href=${run.href} target="_blank" rel="noopener">${node}</a>`;
-      return node;
-    });
-  }
   /** Back to a note's mark in the text: the mark takes the focus. */
   private backTo(i: number) {
     const chips = this.text.tx.querySelectorAll<HTMLElement>('.fn');
@@ -559,7 +588,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     return html`<section class="write-notes" role="doc-endnotes" aria-label=${t('Footnotes')}>
       <hr />
       <ol>
-        ${notes.map((fn, i) => html`<li>${this.noteWords(fn)} <button type="button" class="write-back" role="doc-backlink" aria-label=${t('Back to footnote {n} in the text', { n: i + 1 })} title=${t('Back to the text')} @click=${() => this.backTo(i)}>↩</button></li>`)}
+        ${notes.map((fn, i) => html`<li>${noteWords(fn)} <button type="button" class="write-back" role="doc-backlink" aria-label=${t('Back to footnote {n} in the text', { n: i + 1 })} title=${t('Back to the text')} @click=${() => this.backTo(i)}>↩</button></li>`)}
       </ol>
     </section>`;
   }

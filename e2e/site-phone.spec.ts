@@ -2,7 +2,7 @@
  * Website on a phone, in WebKit at 390 by 844 with a finger: a tap on a section in the page takes it in hand
  * with its bar (Edit, Move up, Move down, Duplicate, Delete) inside the screen; the bar's Delete takes it away
  * and Undo brings it back in hand; Edit puts the caret in its words; the words and the page's handles never
- * zoom on a double tap, and the ask dialog's field is 16px. Run on its own:
+ * zoom on a double tap, and the Web Picture dialog's field is 16px. Run on its own:
  *
  *   PW_PORT=4321 npx playwright test e2e/site-phone.spec.ts --project=phone --workers=1
  */
@@ -47,12 +47,12 @@ test('website: on a phone, a tapped section has its bar; Delete, Undo and Edit b
   await bar.getByRole('button', { name: 'Edit' }).tap();
   await expect(bar).toBeHidden();
   expect(await page.evaluate(() => !!document.activeElement?.closest('to-text.site-text'))).toBe(true);
-  // Never zoomed on a double tap: the words and the page's handles; the ask dialog's field is 16px.
+  // Never zoomed on a double tap: the words and the page's handles; the Web Picture dialog's field is 16px.
   expect(await words.evaluate((el) => getComputedStyle(el).touchAction)).toBe('manipulation');
   expect(await site.locator('.site-plus').first().evaluate((el) => getComputedStyle(el).touchAction)).toBe('manipulation');
   await page.locator('to-site-editor to-insert button').first().tap();
   await page.getByRole('menuitem', { name: 'Picture' }).tap();
-  const field = page.locator('.site-ask-form input');
+  const field = page.locator('.to-ask-picture .to-ask-url');
   await expect(field).toBeVisible();
   expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);

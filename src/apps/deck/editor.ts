@@ -20,26 +20,30 @@ import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { ChevronDown, ChevronUp, GripVertical, LayoutTemplate, Palette, Play, Printer, Scroll, Shuffle } from 'lucide';
-import { applyAll, noteRuns, parse, plainText, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
+import { apps } from '../../kit/apps.ts';
 import { tool } from '../../kit/bar.ts';
 import { docToHtml, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
 import { encodeDoc } from '../../kit/codec.ts';
-import type { ToDialog } from '../../kit/dialog.ts';
+import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts';
 import { pageSvg } from '../../kit/draw.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, iconNamed, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
+import { noteWords } from '../../kit/note-pop.ts';
+import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { routeHash } from '../../kit/route.ts';
 import { Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import type { Sel } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { addSlide, duplicateSlides, FORMATS, isBlank, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
+import def from './def.ts';
 import { ICON_COLORS, THEMES } from './theme.ts';
 import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
-import '../../kit/dialog.ts';
+import '../../kit/doc-dialog.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
@@ -47,14 +51,6 @@ import './style.css';
 
 export const tag = 'to-deck-editor';
 
-/** A question with one box: what it asks, the box's name and hint, what is in it to begin with. */
-interface Ask {
-  heading: string;
-  label: string;
-  placeholder: string;
-  value: string;
-  done: (answer: string | null) => void;
-}
 /** Which box the bar's text buttons work on. */
 type Field = 'title' | 'words' | 'right' | 'notes';
 /** Where the selection was when an edit began, handed back to undone(): the slide, and the slides chosen or the caret in a box. */
@@ -77,10 +73,9 @@ export function offset(ops: Op[], by: number): Op[] {
 }
 
 export class ToDeckEditor extends DocElement<Slide[]> {
-  static properties = { cur: { state: true }, asking: { state: true }, showing: { state: true }, shown: { state: true }, leaving: { state: true }, noting: { state: true }, sheets: { state: true }, subMenu: { state: true } };
+  static properties = { cur: { state: true }, showing: { state: true }, shown: { state: true }, leaving: { state: true }, noting: { state: true }, sheets: { state: true }, subMenu: { state: true } };
   /** The slide open for editing. */
   declare cur: number;
-  declare asking: Ask | null;
   /** The slide being presented, -1 when not presenting. */
   declare showing: number;
   /** Reveals made on the slide being presented. */
@@ -134,7 +129,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   constructor() {
     super();
     this.cur = 0;
-    this.asking = null;
     this.showing = -1;
     this.shown = 0;
     this.leaving = -1;
@@ -469,22 +463,40 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const here = `${location.origin}${location.pathname}`;
     const remove = { label: t('Remove from the slide'), icon: UI.trash, does: () => this.change(setSub(s, null)) };
     if (b.k === 'fence' && b.lang) {
-      const def = lookup.appOf(b.lang);
-      return [{ label: t('Open in {app}', { app: def?.name ?? b.lang }), icon: UI.open, does: () => void window.open(here + routeHash(b.lang, encodeDoc(b.body)), '_blank', 'noopener') }, remove];
+      const known = !!lookup.appOf(b.lang);
+      return [
+        ...(known ? [{ label: t('Edit'), icon: UI.pen, does: () => void this.editSub() }] : []),
+        { label: t('Open in a new tab'), icon: UI.open, does: () => void window.open(here + routeHash(b.lang, encodeDoc(b.body)), '_blank', 'noopener') },
+        remove,
+      ];
     }
-    if (b.k === 'table') return [{ label: t('Open in {app}', { app: lookup.appOf('sheet')?.name ?? t('Spreadsheet') }), icon: UI.open, does: () => void window.open(here + routeHash('sheet', encodeDoc(write({ head: {}, blocks: [b] }))), '_blank', 'noopener') }, remove];
-    const url = b.k === 'img' ? b.url : plainText(b.k === 'p' ? b.runs : []).trim();
+    if (b.k === 'table') return [{ label: t('Edit'), icon: UI.pen, does: () => void this.editSub() }, remove];
     return [
       {
         label: t('Change the address…'),
         icon: UI.pen,
         does: async () => {
-          const next = await this.ask(b.k === 'img' ? t('Picture') : t('From the web'), t('Address'), 'https://', url);
-          if (next?.trim()) this.change(setSub(s, b.k === 'img' ? { ...b, url: next.trim() } : webBlock(next)));
+          if (b.k === 'img') {
+            const pic = await askPicture({ url: b.url, alt: b.alt });
+            if (pic) this.change(setSub(this.slide, { ...b, url: pic.url, alt: pic.alt }));
+          } else {
+            const url = await askEmbed(plainText(b.k === 'p' ? b.runs : []).trim());
+            if (url) this.change(setSub(this.slide, webBlock(url)));
+          }
         },
       },
       remove,
     ];
+  }
+  /** The document or table on the slide, edited in its app in the dialog: Done writes it back as one step. */
+  private async editSub() {
+    const s = this.slide;
+    const b = s.sub >= 0 ? this.doc.blocks[s.sub] : null;
+    let next: Block | null = null;
+    if (b?.k === 'table') next = await editTable(b);
+    else if (b?.k === 'fence' && b.lang) next = await editFence(b);
+    if (next && this.doc.blocks[s.sub] === b) this.change(setSub(this.slide, next));
+    void this.updateComplete.then(() => this.querySelector<HTMLElement>('.deck-sub')?.focus({ preventScroll: true }));
   }
   private openSubMenu = (e: Event) => {
     this.subMenu = true;
@@ -497,32 +509,28 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     });
   };
 
-  /* ---------- asking ---------- */
+  /* ---------- putting things on the slide ---------- */
 
-  private ask(heading: string, label: string, placeholder: string, value = ''): Promise<string | null> {
-    return new Promise((done) => {
-      this.asking = { heading, label, placeholder, value, done };
-      void this.updateComplete.then(() => void this.querySelector<ToDialog>('to-dialog.deck-ask')?.show());
-    });
-  }
-  private answer(value: string | null) {
-    const a = this.asking;
-    if (!a) return;
-    this.asking = null;
-    this.querySelector<ToDialog>('to-dialog.deck-ask')?.close();
-    a.done(value);
-  }
   private async insertPicture() {
-    const url = await this.ask(t('Picture'), t('Address of the picture'), 'https://');
-    if (url?.trim()) this.putSub({ k: 'img', alt: '', url: url.trim() });
+    const pic = await askPicture();
+    if (pic) this.putSub({ k: 'img', alt: pic.alt, url: pic.url });
   }
   private async insertWeb() {
-    const url = await this.ask(t('From the web'), t('Address of a video, a post, a song, a place, a page'), 'https://');
-    if (url?.trim()) this.putSub(webBlock(url));
+    const url = await askEmbed();
+    if (url) this.putSub(linkToFence(url) ?? webBlock(url));
   }
   private async insertDocument() {
-    const url = await this.ask(t('A document by link'), t('A TinyLittleOffice link'), 'https://tinylittleoffice.com/#/v1/…');
-    const fence = url && linkToFence(url.trim());
+    const fence = await askDocLink();
+    if (fence) this.putSub(fence);
+  }
+  /** A table, three by three, made in the Spreadsheet in the dialog; Cancel puts it on blank. */
+  private async insertTable() {
+    const blank = newTable();
+    this.putSub((await editTable(blank)) ?? blank);
+  }
+  /** A new document of another app, made in its own editor in the dialog: Done puts it on the slide, Cancel puts nothing. */
+  private async insertApp(id: string) {
+    const fence = await makeDoc(id);
     if (fence) this.putSub(fence);
   }
   private inserts(): MenuItem[] {
@@ -538,10 +546,13 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       ...(bySheet
         ? [{ label: t('Four more pages'), icon: UI.plus, group, disabled: full, does: () => this.change(setHead('pages', String(Math.min(g!.grow!, this.count + (g!.by ?? 4))))) }]
         : LAYOUTS.map((l) => ({ label: name(l.id), icon: icons[l.id], group, disabled: full, does: () => this.newSlide(l.id) }))),
-      { label: t('Picture…'), icon: UI.image, group: onSlide, does: () => void this.insertPicture() },
-      { label: t('Table'), icon: UI.table, group: onSlide, does: () => this.putSub({ k: 'table', cols: [{ name: 'ColA', type: 'text' }, { name: 'ColB', type: 'text' }, { name: 'ColC', type: 'text' }], rows: [] }) },
-      { label: t('From the web…'), icon: UI.globe, group: onSlide, does: () => void this.insertWeb() },
-      { label: t('A document by link…'), icon: UI.insert, group: onSlide, does: () => void this.insertDocument() },
+      { label: t('Web Picture…'), icon: UI.image, group: onSlide, does: () => void this.insertPicture() },
+      { label: t('Table'), icon: UI.table, group: onSlide, does: () => void this.insertTable() },
+      { label: t('Web Embed…'), icon: UI.globe, group: onSlide, does: () => void this.insertWeb() },
+      { label: t('Tiny Little Office Doc…'), icon: UI.insert, group: onSlide, does: () => void this.insertDocument() },
+      ...apps()
+        .filter((a) => a.id !== def.id)
+        .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
     ];
   }
 
@@ -747,19 +758,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
 
   /* ---------- drawing ---------- */
 
-  private noteWords(fn: string): unknown[] {
-    return noteRuns(fn).map((run: Run) => {
-      if (run.ic) return html`<span class="ic" data-icon=${run.ic} role="img" aria-label=${run.ic}></span>`;
-      let node: unknown = run.t;
-      if (run.h) node = html`<mark>${node}</mark>`;
-      if (run.s) node = html`<s>${node}</s>`;
-      if (run.u) node = html`<u>${node}</u>`;
-      if (run.i) node = html`<i>${node}</i>`;
-      if (run.b) node = html`<b>${node}</b>`;
-      if (run.href) node = html`<a href=${run.href} target="_blank" rel="noopener">${node}</a>`;
-      return node;
-    });
-  }
   /** The theme as the canvas wears it: its colours, the sizes the layout chose (in the canvas's own width), and its decoration as the background. */
   private canvasStyle(s: Slide, look: Look, size: { w: number; h: number }): string {
     const loud = this.settings.format === 'poster' ? 2 : this.settings.format && s.layout === 't' ? 1.6 : 1;
@@ -804,7 +802,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
             </div>`}
         ${notes.length
           ? html`<ol class="deck-fn" aria-label=${t('Footnotes')}>
-              ${notes.map((fn) => html`<li>${this.noteWords(fn)}</li>`)}
+              ${notes.map((fn) => html`<li>${noteWords(fn)}</li>`)}
             </ol>`
           : nothing}
         <span class="deck-num">${foot}</span>
@@ -872,7 +870,6 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const m = box?.marks ?? {};
     const on = (c: 'b' | 'i' | 'u' | 's' | 'h') => !!m[c];
     const canIndent = this.field !== 'title' && box?.kind === 'ul';
-    const a = this.asking;
     const n = this.count;
     return html`<to-bar class="deck-bar">
         <to-insert .items=${this.inserts()}></to-insert>
@@ -907,16 +904,9 @@ export class ToDeckEditor extends DocElement<Slide[]> {
           </div>`}
       ${this.showing >= 0 ? this.renderShow(look) : nothing}
       ${this.rows.renderContext()}
-      <to-menu class="deck-submenu" .label=${t('This document')} .items=${this.subMenu ? this.subItems() : []}></to-menu>
-      <to-dialog class="deck-ask" heading=${a?.heading ?? ''} @to-close=${() => this.answer(null)} .body=${a
-        ? html`<form class="deck-ask-form" @submit=${(e: Event) => (e.preventDefault(), this.answer((e.target as HTMLFormElement).querySelector('input')!.value))}>
-            <label class="to-field"><span>${a.label}</span><input type="url" name="answer" .value=${a.value} placeholder=${a.placeholder} autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" enterkeyhint="done" required /></label>
-            <div class="to-row"><button type="submit" class="to-btn primary">${icon(UI.check, 16)}<span>${t('OK')}</span></button></div>
-          </form>`
-        : nothing}></to-dialog>`;
+      <to-menu class="deck-submenu" .label=${t('This document')} .items=${this.subMenu ? this.subItems() : []}></to-menu>`;
   }
-  protected updated(changed: Map<string, unknown>) {
-    if (changed.has('asking') && this.asking) void this.updateComplete.then(() => this.querySelector<HTMLInputElement>('.deck-ask-form input')?.focus({ preventScroll: true }));
+  protected updated() {
     if (this.focusNext) void this.updateComplete.then(() => this.placeFocus());
   }
 }

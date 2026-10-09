@@ -273,14 +273,18 @@
     right: 0;
     text-align: center;
   }
+  /* The speaker notes have room round them, as the slide's words do; the hint sits where the words will. */
   .deck-notes .tx {
     min-height: 2.4em;
-    padding: 8px 12px;
+    padding: 12px;
     font-size: 16px;
     color: var(--to-ink-2);
     background: var(--to-surface);
     border: 1px dashed var(--to-border);
     border-radius: var(--to-radius);
+  }
+  .deck-notes .tx.blank::before {
+    inset: 12px 12px auto 12px;
   }
   .deck-notes .tx blockquote {
     margin: 0;
@@ -463,7 +467,7 @@
     bottom: 36px;
     max-height: 30vh;
     overflow: auto;
-    padding: 10px 14px;
+    padding: 12px;
     font-size: 15px;
     line-height: 1.4;
     color: #fafafa;
