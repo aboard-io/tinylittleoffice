@@ -4,5 +4,6 @@
 @layer tokens, kit, apps, responsive, a11y;
 @import './styles/tokens.css';
 @import './styles/kit.css';
+@import './styles/text.css';
 @import './styles/responsive.css';
 @import './styles/a11y.css';

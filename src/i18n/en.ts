@@ -125,9 +125,35 @@ export default {
   'Insert': 'Insert',
   'Bold': 'Bold',
   'Italic': 'Italic',
+  'Underline': 'Underline',
+  'Strikethrough': 'Strikethrough',
+  'Highlight': 'Highlight',
   'Heading': 'Heading',
   'List': 'List',
+  'Numbered list': 'Numbered list',
   'Table': 'Table',
+  'Footnote': 'Footnote',
+  'Date': 'Date',
+  'Undo': 'Undo',
+  'Redo': 'Redo',
+
+  // ---- the editor (<to-text>): chips, cards and the two bubbles ----
+  // A footnote's mark, by its number: spoken.
+  'Footnote {n}': 'Footnote {n}',
+  // A card standing for another document held in this one: "Sheet document".
+  '{app} document': '{app} document',
+  'Code': 'Code',
+  'Connection': 'Connection',
+  '{n|one row|# rows}': '{n|one row|# rows}',
+  'The note\'s words': 'The note\'s words',
+  'Remove footnote': 'Remove footnote',
+  'Done': 'Done',
+  'Address': 'Address',
+  'Not an address': 'Not an address',
+  'Set link': 'Set link',
+  'Open link': 'Open link',
+  'Edit link': 'Edit link',
+  'Remove link': 'Remove link',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|one slide|# slides}',
