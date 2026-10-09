@@ -15,10 +15,10 @@ you have copied the file.
 | Deck  | Slides with a headline, bullets and an icon. Press Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
 | Calculator | Plain, scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
-| Calendar | Labelled spans of time on a month grid, shown in any time zone.    |
+| Calendar | Labelled spans of time on a month grid, or the year at a glance, shown in any time zone. |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
-| Board | A kanban board: the stages of a workflow, cards, and limits per stage. |
-| Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize.   |
+| Board | A kanban board: the stages of a workflow, each in a colour if it likes; cards of rich text with checklists; limits per stage. |
+| Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize; the calendar's own date nav. |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note.    |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
 | Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |

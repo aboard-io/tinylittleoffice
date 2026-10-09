@@ -4,7 +4,7 @@
  * Document format: see lib/ganttmodel.ts.
  */
 import { goLinks } from '../widgets/link-guard.ts';
-import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, icon, clamp, swap, UI } from '../kit.ts';
+import { DocElement, defineElement, html, svg, nothing, state, tool, stepper, dateNav, icon, clamp, swap, UI } from '../kit.ts';
 import { dayToYmd } from '../lib/tz.ts';
 import { MAX_INDENT, MAX_TASKS, ganttRange, ganttSpans, parseGantt, serializeGantt, type GanttTask } from '../lib/ganttmodel.ts';
 import { EPOCH_DAY, fromIsoDay, isoDay, today } from '../lib/calmodel.ts';
@@ -18,6 +18,8 @@ export class ToGantt extends DocElement<GanttTask[]> {
   @state() private cur = 0;
   /** Pixels per day. */
   @state() private zoom = 24;
+  /** How far the chart has scrolled, in px: the month at its left edge is named in the bar. */
+  @state() private scrolled = 0;
   private drag: { i: number; mode: 'move' | 'size'; x0: number; start: number; days: number } | null = null;
 
   protected parse = parseGantt;
@@ -109,11 +111,22 @@ export class ToGantt extends DocElement<GanttTask[]> {
     }
   }
 
+  /** The first day the chart draws: two before the earliest task. */
+  private chartFrom() {
+    return ganttRange(this.doc)!.from - 2;
+  }
+  /** Scroll the chart by so many days, or (with `to`) so that a day is at its left edge. */
+  private scrollDays(by: number, to?: number) {
+    const box = this.querySelector<HTMLElement>('.gantt-scroll');
+    if (!box) return;
+    box.scrollLeft = to === undefined ? box.scrollLeft + by * this.zoom : Math.max(0, (to - this.chartFrom() - 1) * this.zoom);
+  }
+
   private renderChart() {
     const range = ganttRange(this.doc)!;
     const spans = ganttSpans(this.doc);
     const now = today();
-    const from = range.from - 2;
+    const from = this.chartFrom();
     const to = Math.max(range.to + 3, from + 21);
     const z = this.zoom;
     const width = (to - from) * z;
@@ -171,6 +184,9 @@ export class ToGantt extends DocElement<GanttTask[]> {
           ${tool('Bring out', 'shiftOut', () => this.indent(-1), { disabled: !(this.doc[this.cur]?.depth ?? 0), key: 'Shift+Tab' })}
           ${tool('Indent under the task above', 'shiftIn', () => this.indent(1), { disabled: this.cur === 0 || !n, key: 'Tab' })}
         </sl-button-group>
+        ${range
+          ? dateNav(((d) => `${MONTHS[d.m - 1]} ${d.y}`)(ymd(this.chartFrom() + Math.floor(this.scrolled / this.zoom))), { prev: 'A week earlier', next: 'A week later', onPrev: () => this.scrollDays(-7), onNext: () => this.scrollDays(7), onToday: () => this.scrollDays(0, today()) })
+          : nothing}
         <span class="to-spacer"></span>
         ${range ? html`<span class="to-hint">${range.to - range.from} days</span>` : nothing}
         ${stepper('Zoom', `${this.zoom}px`, { less: 'Zoom out', more: 'Zoom in', onLess: () => (this.zoom = Math.max(8, this.zoom - 8)), onMore: () => (this.zoom = Math.min(40, this.zoom + 8)), canLess: this.zoom > 8, canMore: this.zoom < 40, reset: 'Back to the usual zoom', onReset: () => (this.zoom = 24) })}
@@ -197,7 +213,7 @@ export class ToGantt extends DocElement<GanttTask[]> {
                 )}
               </tbody>
             </table>
-            <div class="gantt-scroll" tabindex="0" role="group" aria-label="Chart, scrolls sideways">${this.renderChart()}</div>
+            <div class="gantt-scroll" tabindex="0" role="group" aria-label="Chart, scrolls sideways" @scroll=${(e: Event) => (this.scrolled = (e.target as HTMLElement).scrollLeft)}>${this.renderChart()}</div>
           </div>`
         : html`<p class="to-empty">No tasks yet.</p>`}
     `;

@@ -126,7 +126,7 @@ https://tinylittleoffice.com/gantt/#title=Website+relaunch&doc=Task+%7C+Start%3A
 
 ### board: a kanban board
 
-`## Stage` headings (`## Doing {limit=2}` limits it to two cards), each followed by a `- card` list.
+`## Stage` headings (`## Doing {limit=2 color=g}` limits it to two cards and colours the stage: b o g p r s y), each followed by a `- card` list; a card is a line of inline Markdown, and a task list indented under it (`  - [ ] step`) is its checklist.
 
 https://tinylittleoffice.com/board/#title=Sprint&doc=%23%23+To+do+%7Blimit%3D2%7D%0A%0A-+Write+the+brief%0A-+Design+the+page%0A%0A%23%23+Doing%0A%0A-+Build+the+form%0A%0A%23%23+Done%0A%0A-+Choose+a+name
 

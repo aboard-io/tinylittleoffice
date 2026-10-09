@@ -1463,11 +1463,71 @@ svg.draw-canvas text {
 }
 
 /* Calendar */
-.cal-month {
+.to-datenav-label::part(base) {
+  min-width: 9em;
   font-weight: 600;
-  font-size: 15px;
-  min-width: 150px;
+}
+.to-datenav-label[disabled]::part(base) {
+  opacity: 1;
+  cursor: default;
+  color: var(--to-ink);
+}
+/* The year: twelve small months, a day with something on it tinted in its colour, today ringed. */
+.cal-year {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+.cal-mini-name {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--to-ink);
+  font: 600 14px var(--sl-font-sans);
+  text-align: left;
+  padding: 4px 2px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cal-mini-name:hover {
+  background: var(--to-surface-2);
+}
+.cal-mini-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+.cal-mini-days .wd {
+  font-size: 10px;
+  color: var(--to-ink-3);
   text-align: center;
+  padding-bottom: 2px;
+}
+.cal-mini-days .d {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--to-ink-2);
+  font: 11.5px var(--sl-font-sans);
+  cursor: pointer;
+  padding: 0;
+}
+.cal-mini-days .d:hover {
+  background: var(--to-surface-2);
+}
+.cal-mini-days .d.has {
+  background: color-mix(in srgb, var(--c) 28%, var(--to-surface));
+  color: var(--to-ink);
+  font-weight: 600;
+}
+.cal-mini-days .d.today {
+  box-shadow: inset 0 0 0 2px var(--to-accent);
+}
+.cal-cell.picked {
+  box-shadow: inset 0 0 0 2px var(--to-accent);
 }
 .cal-zone {
   min-width: 220px;
@@ -1691,9 +1751,8 @@ svg.draw-canvas text {
   .deck-end {
     width: 120px;
   }
-  .cal-month {
+  .to-datenav-label::part(base) {
     min-width: 0;
-    font-size: 14px;
   }
   .cal-zone {
     min-width: 0;
@@ -1879,8 +1938,28 @@ svg.draw-canvas text {
   gap: 8px;
   padding: 8px;
   border: 1px solid var(--to-border);
+  border-top: 3px solid var(--c, var(--to-border));
   border-radius: var(--sl-border-radius-large);
   background: var(--to-bg);
+}
+/* Each stage a shade apart from its neighbours, so the columns read as columns; one with a colour wears a wash of it. */
+.board-col:nth-child(even) {
+  background: color-mix(in srgb, var(--to-surface-2) 55%, var(--to-bg));
+}
+.board-col.tinted {
+  background: color-mix(in srgb, var(--c) 7%, var(--to-bg));
+}
+.board-col.tinted input.name {
+  color: var(--c);
+}
+.board-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c);
+  margin-right: 8px;
+  vertical-align: -1px;
 }
 .board-col.over {
   border-color: var(--to-accent);
@@ -1915,26 +1994,64 @@ svg.draw-canvas text {
 }
 .board-card {
   border: 1px solid var(--to-border);
+  border-left: 3px solid var(--c, var(--to-border));
   border-radius: var(--to-radius);
   background: var(--to-surface);
-  box-shadow: var(--to-shadow);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.05);
   padding: 6px 6px 2px;
   cursor: grab;
 }
 .board-card.dragging {
   opacity: 0.4;
 }
-.board-card textarea {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
+/* A card's words: one rich line, wrapping, no page of its own. */
+.board-card to-rich .write-page {
+  min-height: 0;
+  padding: 2px 4px;
+  font: 14px/1.4 var(--sl-font-sans);
   border: 0;
-  resize: none;
+  background: transparent;
+  box-shadow: none;
+}
+/* The checklist under the words. */
+.board-items {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.board-items li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.board-items input[type='checkbox'] {
+  accent-color: var(--c, var(--to-accent));
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: none;
+}
+.board-items input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  border: 0;
   background: transparent;
   color: var(--to-ink);
-  font: 14px/1.4 var(--sl-font-sans);
-  padding: 2px 4px;
-  field-sizing: content;
+  font: 13px/1.4 var(--sl-font-sans);
+  padding: 2px 0;
+}
+.board-items li.done input[type='text'] {
+  color: var(--to-ink-3);
+  text-decoration: line-through;
+}
+.board-progress {
+  font-size: 11.5px;
+  color: var(--to-ink-3);
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
 }
 .board-card .acts {
   display: flex;
@@ -2879,15 +2996,12 @@ table.sheet td .rich .s {
   padding: 0 8px;
 }
 .cal-legend {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 8px 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--to-border);
+  gap: 8px;
 }
 .cal-legend .who {
-  width: 220px;
+  width: 160px;
   max-width: 100%;
   border: 1px solid var(--to-border);
   border-radius: var(--to-radius);
