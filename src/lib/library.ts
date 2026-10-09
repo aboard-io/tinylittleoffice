@@ -4,7 +4,7 @@
  * asked (see saving()). Nothing here leaves the device; a document is
  * still, entirely, its link.
  */
-import { keeping, setKeeping, store } from './store.ts';
+import { keeping, store } from './store.ts';
 
 export interface Kept {
   /** The app and when the document was made: what makes it the same document after a change. */
@@ -44,7 +44,6 @@ function write(all: Kept[]) {
 
 /** Whether documents are kept here at all: only while the device keeps things (lib/store.ts). */
 export const saving = keeping;
-export const setSaving = (on: boolean) => void setKeeping(on);
 
 /** Keep a document, or the newer state of one already kept (which stays in its folder). */
 export function keep(doc: Omit<Kept, 'folder' | 'at'>, folder: string) {
@@ -79,8 +78,3 @@ export function folderTree(all = library()): string[] {
   return [...set].sort((a, b) => a.localeCompare(b));
 }
 
-/** The library by folder, folders in alphabetical order, each newest first. */
-export function folders(all = library()): { folder: string; docs: Kept[] }[] {
-  const names = [...new Set(all.map((k) => k.folder))].sort((a, b) => a.localeCompare(b));
-  return names.map((folder) => ({ folder, docs: all.filter((k) => k.folder === folder).sort((a, b) => b.at - a.at) }));
-}

@@ -15,7 +15,7 @@
  * The payload is the codec's flag (see lib/codec.ts) and the packed text.
  * A document with none of these is its text alone.
  */
-import { packDoc, unpackDoc, toBase64Url, fromBase64Url } from './codec.ts';
+import { decodeDoc, encodeDoc, packDoc, unpackDoc } from './codec.ts';
 import { splitHead, takeHead, writeHead } from './tlo.ts';
 
 export const CREATED_EPOCH_MS = Date.UTC(2020, 0, 1);
@@ -47,6 +47,8 @@ export function decodeCreated(s: string): number | null {
 }
 
 const SHELL = ['title', 'by', 'created', 'key', 'sig'];
+/** The header keys that belong to the document rather than its app: which app opens it, and the envelope's. */
+export const DOC_KEYS = ['app', ...SHELL];
 
 /** When, as the header writes it: "2026-10-05T14:32Z". */
 const isoMinute = (ms: number) => new Date(quantizeCreated(ms)).toISOString().slice(0, 16) + 'Z';
@@ -78,18 +80,11 @@ export function readEnvelope(text: string): Envelope {
   return env;
 }
 
-export function packEnvelope(env: Envelope, _app?: string): { flag: string; bytes: Uint8Array } {
+export function packEnvelope(env: Envelope): { flag: string; bytes: Uint8Array } {
   return packDoc(envelopeText(env));
 }
 
-export function encodeEnvelope(env: Envelope, _app?: string): string {
-  const text = envelopeText(env);
-  if (!text) return '';
-  const { flag, bytes } = packDoc(text);
-  return flag + toBase64Url(bytes);
-}
-
-export function unpackEnvelope(flag: string, bytes: Uint8Array, _app?: string): Envelope {
+export function unpackEnvelope(flag: string, bytes: Uint8Array): Envelope {
   try {
     return readEnvelope(unpackDoc(flag, bytes));
   } catch {
@@ -97,14 +92,10 @@ export function unpackEnvelope(flag: string, bytes: Uint8Array, _app?: string): 
   }
 }
 
-export function decodeEnvelope(payload: string, app?: string): Envelope {
-  if (!payload) return { created: null, body: '' };
-  try {
-    return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)), app);
-  } catch {
-    return { created: null, body: '' };
-  }
-}
+// (A link is read the same whatever its app; some callers still name it.)
+export const encodeEnvelope = (env: Envelope, _app?: string): string => encodeDoc(envelopeText(env));
+/** A payload's document; an empty one for anything unreadable. */
+export const decodeEnvelope = (payload: string, _app?: string): Envelope => readEnvelope(decodeDoc(payload));
 
 /** The bytes a signature covers: the app, the creation time, the body, and the title and author when there are any. */
 export function signingMessage(app: string, created: number | null, body: string, title = '', by = ''): string {

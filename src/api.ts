@@ -8,9 +8,8 @@
 import { altOf } from './lib/drawmodel.ts';
 import './apps/index.ts';
 import { LINK, appOf, apps as registry, type AppDef } from './kit/core.ts';
-import { takeHead } from './lib/tlo.ts';
-import { decodeEnvelope, encodeEnvelope, quantizeCreated, signingMessage, type Envelope } from './lib/envelope.ts';
-import { fromMarkdown, toMarkdown, parseCsv, looksLikeCsv } from './lib/markdown.ts';
+import { decodeEnvelope, encodeEnvelope, packEnvelope, quantizeCreated, signingMessage, unpackEnvelope, type Envelope } from './lib/envelope.ts';
+import { fromMarkdown, toMarkdown, parseCsv, looksLikeCsv, readPlainLink } from './lib/markdown.ts';
 import { evaluateGrid, formatCell, parseGrid, typesOf } from './lib/formula.ts';
 import { parseFlow, runFlow } from './apps/flow.def.ts';
 import { createSigner, fingerprintOf, verify, type KeyStore, type Signer } from './lib/sign.ts';
@@ -63,7 +62,6 @@ const EXAMPLES: Record<string, string> = {
   recipes: '## :cookie: Cardamom buns\n\nMakes 12. 25 minutes at 200°C.\n\n500g flour, 80g sugar, 250ml milk\n\n1. Warm the milk and butter; mix; rest an hour.\n2. Roll, fill, twist into knots. Bake until golden.\n\n---\n\n## :coffee: Cold brew\n\n100g coarse coffee to 1 litre of cold water.\n\n1. Stir, cover, leave 16 hours.\n2. Strain twice.',
   brochure: '## Visit\n\n---\n\n## Why\n\nbecause',
   comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday',
-  qr: 'https://tinylittleoffice.com/',
 };
 
 /** An app's example document, in its own format: the quickest way to see what a body looks like. */
@@ -98,7 +96,7 @@ export function link(app: string, body: string, opts: MakeOptions = {}): string 
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
   const read = def.read ? def.read(body) : body;
-  const payload = encodeEnvelope(envelope(read, opts), app);
+  const payload = encodeEnvelope(envelope(read, opts));
   const site = (opts.site ?? SITE).replace(/\/?$/, '/');
   return `${site}${app}/${LINK}${app}${opts.view ? '.' + opts.view : ''}/${payload}`;
 }
@@ -128,7 +126,7 @@ export interface Parsed {
   markdown: string;
 }
 
-const ROUTE = /#\/(?:v(\d+)\/)?([a-z0-9-]+)(?:\.([A-Za-z0-9]+))?(?:\/(.*))?$/;
+const ROUTE = /#\/v\d+\/([a-z0-9-]+)(?:\.([A-Za-z0-9]+))?(?:\/(.*))?$/;
 
 /** Read a link (or just its fragment): the app, the view, and the document. */
 export function parse(url: string): Parsed {
@@ -136,40 +134,34 @@ export function parse(url: string): Parsed {
   const m = ROUTE.exec(hash);
   if (!m) {
     // A plain link: /<app>/#title=…&doc=… or &md=…
-    const q = new URLSearchParams(hash.slice(1));
-    const [head, text] = takeHead(q.get('doc') ?? q.get('md') ?? '', ['app', 'title', 'by', 'created', 'key', 'sig']);
-    const app = q.get('app') ?? head.app ?? /\/([a-z0-9-]+)\/#/.exec(url)?.[1] ?? '';
-    const def = appOf(app);
-    if (!def) throw new Error('Not a TinyLittleOffice link');
-    const body = fromMarkdown(def, text);
-    const env = envelope(body, { title: q.get('title') ?? head.title ?? undefined, by: q.get('by') ?? head.by ?? undefined, created: null });
-    return { app, view: q.get('view') ?? '', sealed: false, env, markdown: toMarkdown(def, body, env.title) };
+    const plain = readPlainLink(new URLSearchParams(hash.slice(1)), /\/([a-z0-9-]+)\/#/.exec(url)?.[1]);
+    if (!plain) throw new Error('Not a TinyLittleOffice link');
+    const { def, body, title, by, view } = plain;
+    const env = envelope(body, { title, by, created: null });
+    return { app: def.id, view, sealed: false, env, markdown: toMarkdown(def, body, title) };
   }
-  const app = m[2];
+  const [, app, view = '', payload = ''] = m;
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
-  const payload = m[4] ?? '';
-  if (isSealed(payload)) return { app, view: m[3] ?? '', sealed: true, env: { created: null, body: '' }, markdown: '' };
-  const env = decodeEnvelope(payload, app);
-  return { app, view: m[3] ?? '', sealed: false, env, markdown: toMarkdown(def, env.body, env.title) };
+  if (isSealed(payload)) return { app, view, sealed: true, env: { created: null, body: '' }, markdown: '' };
+  const env = decodeEnvelope(payload);
+  return { app, view, sealed: false, env, markdown: toMarkdown(def, env.body, env.title) };
 }
 
 /** Open a sealed link with its password. */
 export async function open(url: string, password: string): Promise<Parsed> {
   const m = ROUTE.exec(url.slice(url.indexOf('#')));
   if (!m) throw new Error('Not a TinyLittleOffice link');
-  const r = await unseal(password, m[4] ?? '');
+  const r = await unseal(password, m[3] ?? '');
   if (!r) throw new Error('Wrong password');
-  const { unpackEnvelope } = await import('./lib/envelope.ts');
-  const env = unpackEnvelope(r.flag, r.bytes, m[2]);
-  return { app: m[2], view: m[3] ?? '', sealed: false, env, markdown: toMarkdown(appOf(m[2])!, env.body, env.title) };
+  const env = unpackEnvelope(r.flag, r.bytes);
+  return { app: m[1], view: m[2] ?? '', sealed: false, env, markdown: toMarkdown(appOf(m[1])!, env.body, env.title) };
 }
 
 /** The same document, sealed under a password: only someone with the password can read the link. */
 export async function sealed(url: string, password: string): Promise<string> {
   const p = parse(url);
-  const { packEnvelope } = await import('./lib/envelope.ts');
-  const { flag, bytes } = packEnvelope(p.env, p.app);
+  const { flag, bytes } = packEnvelope(p.env);
   const payload = await seal(await newLocker(password), flag, bytes);
   return url.slice(0, url.indexOf('#')) + `${LINK}${p.app}${p.view ? '.' + p.view : ''}/${payload}`;
 }
@@ -179,7 +171,7 @@ export async function signed(url: string, signer: Signer): Promise<string> {
   const p = parse(url);
   const created = p.env.created ?? quantizeCreated(Date.now());
   const { key, sig } = await signer.sign(signingMessage(p.app, created, p.env.body, p.env.title, p.env.by));
-  const payload = encodeEnvelope({ ...p.env, created, key, sig }, p.app);
+  const payload = encodeEnvelope({ ...p.env, created, key, sig });
   return url.slice(0, url.indexOf('#')) + `${LINK}${p.app}${p.view ? '.' + p.view : ''}/${payload}`;
 }
 
@@ -264,6 +256,6 @@ export async function lint(app: string, body: string, opts: MakeOptions = {}): P
 /** Two links compared: the apps, the titles, and the lines the second changed. */
 export function compare(a: string, b: string): { same: boolean; a: Parsed; b: Parsed; changes: ReturnType<typeof diff> } {
   const [pa, pb] = [parse(a), parse(b)];
-  const changes = diff(pa.env.body, pb.env.body).filter((c) => c.kind !== ' ');
-  return { same: changes.length === 0 && pa.app === pb.app, a: pa, b: pb, changes: diff(pa.env.body, pb.env.body) };
+  const changes = diff(pa.env.body, pb.env.body);
+  return { same: pa.app === pb.app && changes.every((c) => c.kind === ' '), a: pa, b: pb, changes };
 }

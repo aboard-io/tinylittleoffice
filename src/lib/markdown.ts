@@ -5,7 +5,7 @@
  * anything written loosely, by its `read`.
  */
 import { appOf, type AppDef } from '../kit/core.ts';
-import { makeRef } from '../kit/embed.ts';
+import { DOC_KEYS } from './envelope.ts';
 import { takeHead, withHead, write as writeTlo } from './tlo.ts';
 
 /** The document as Markdown: its text, named in its header when it has a name. */
@@ -75,8 +75,20 @@ export function unwrapMarkdown(md: string): string {
 export function fromMarkdown(def: AppDef, md: string): string {
   let text = unwrapMarkdown(md);
   if (looksLikeCsv(text)) text = csvToMd(text);
-  [, text] = takeHead(text, ['app', 'title', 'by', 'created', 'key', 'sig']);
+  [, text] = takeHead(text, DOC_KEYS);
   return def.read ? def.read(text) : text;
 }
 
-export { appOf, makeRef };
+/**
+ * A link written with ordinary parameters instead of a packed document
+ * ("#title=Plan&doc=%23+Launch"): the document ("doc", or "md": the same) is
+ * TLO read leniently, and its header may name the app, the title and the
+ * author, as may the parameters. `pageApp` is the app whose page the link
+ * is on, for when nothing else names one. Null when no app is named.
+ */
+export function readPlainLink(q: URLSearchParams, pageApp = ''): { def: AppDef; body: string; title?: string; by?: string; view: string } | null {
+  const [head, text] = takeHead((q.get('doc') ?? q.get('md') ?? '').replace(/\r\n?/g, '\n'), DOC_KEYS);
+  const def = appOf(q.get('app') ?? head.app ?? '') ?? appOf(pageApp);
+  if (!def) return null;
+  return { def, body: fromMarkdown(def, text), title: q.get('title')?.trim() || head.title || undefined, by: q.get('by')?.trim() || head.by || undefined, view: q.get('view') ?? '' };
+}

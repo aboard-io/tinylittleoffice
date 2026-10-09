@@ -11,11 +11,11 @@ import { keep, library, saving } from './lib/library.ts';
 import { LitElement, nothing } from 'lit';
 import { html, unsafeStatic } from 'lit/static-html.js';
 import { customElement, state } from 'lit/decorators.js';
-import { budgetFor, fromBase64Url } from './lib/codec.ts';
-import { encodeEnvelope, decodeEnvelope, unpackEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
+import { budgetFor } from './lib/codec.ts';
+import { DOC_KEYS, encodeEnvelope, decodeEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { privacy, isSealed } from './lib/privacy.ts';
 import { store, keeping, setKeeping } from './lib/store.ts';
-import { fromMarkdown } from './lib/markdown.ts';
+import { fromMarkdown, readPlainLink } from './lib/markdown.ts';
 import { takeHead } from './lib/tlo.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
 import { convert, hashOf, setSelfLink } from './kit/embed.ts';
@@ -26,39 +26,34 @@ import { installLinkGuard } from './widgets/link-guard.ts';
 import { icon, UI } from './lib/icons.ts';
 import './apps/index.ts';
 import './apps/editors.ts';
-import { History, LINK, LINK_VERSION, apps, appOf, docHtml, extOf, fmtDate, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
+import { History, LINK, LINK_VERSION, apps, appOf, byGroup, clamp, docHtml, extOf, fmtDate, fmtUtc, pageSvg, xml, type AppDef, type Shortcut } from './kit/core.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { REFRESH, download, formatsOf, picture, saveFile, withFonts } from './kit/browser.ts';
 import { zip } from './kit/zip.ts';
-import './lib/icons.ts';
 import { roomFor } from './lib/limits.ts';
 import { roomsTable } from './widgets/meter.ts';
 import { ToQrDialog } from './widgets/qr-dialog.ts';
 import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
 import { btn, errorText, keyLabel, stepper, tool } from './kit.ts';
 
-export type AppId = string;
-
-/** The apps, in menu order, straight from their definitions (src/apps/index.ts). */
-export const APPS: { id: AppId; name: string; icon: keyof typeof UI; under?: string }[] = apps().map((d) => ({ id: d.id, name: d.name, icon: d.icon as keyof typeof UI, under: d.under }));
+/** An app's icon, or a kept document's (by its app's id). */
+const iconOf = (d: AppDef | undefined) => UI[(d?.icon ?? 'write') as keyof typeof UI];
 
 /**
- * The apps as the menu shows them: under their group's heading, each app
- * followed by the apps that are kinds of it. A hidden app is not shown
+ * The apps as the menu shows them (src/apps/index.ts has their order):
+ * under their group's heading, each app followed by the apps that are
+ * kinds of it, the apps with no group first, on their own.
  */
-function grouped(): { group: string; apps: typeof APPS }[] {
-  const out: { group: string; apps: typeof APPS }[] = [];
+function grouped(): { group: string; apps: AppDef[] }[] {
+  const out: { group: string; apps: AppDef[] }[] = [];
   for (const d of apps()) {
     if (d.under) continue;
     const group = d.group ?? 'More';
-    // (The apps with no group come first, on their own.)
     let at = out.find((g) => g.group === group);
     if (!at) out.push((at = { group, apps: [] }));
-    at.apps.push(...APPS.filter((a) => a.id === d.id || a.under === d.id));
+    at.apps.push(...apps().filter((a) => a.id === d.id || a.under === d.id));
   }
-  // In the order the menu shows them: the apps on their own first, then the clusters.
-  const ORDER = ['', 'Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
-  return out.sort((a, b) => (ORDER.indexOf(a.group) + 1 || 99) - (ORDER.indexOf(b.group) + 1 || 99));
+  return out.sort((a, b) => byGroup(a.group, b.group));
 }
 
 /** Shortcuts that work in every app. "Mod" is Ctrl, or Command on a Mac. */
@@ -71,6 +66,16 @@ const GLOBAL_KEYS: Shortcut[] = [
   { keys: 'Mod+P', does: 'Download as PDF' },
   { keys: 'Mod+Shift+C', does: 'Copy the link' },
   { keys: 'Mod+Shift+L', does: 'Light, dark, or match the device' },
+];
+
+const q = encodeURIComponent;
+/** The places Share opens a compose box in, with the document's title and link already written. */
+const SERVICES: { id: string; name: string; compose(title: string, url: string): string }[] = [
+  { id: 'bluesky', name: 'Bluesky', compose: (title, url) => `https://bsky.app/intent/compose?text=${q(`${title} ${url}`)}` },
+  { id: 'mastodon', name: 'Mastodon', compose: (title, url) => `https://mastodonshare.com/?text=${q(title)}&url=${q(url)}` },
+  { id: 'x', name: 'X', compose: (title, url) => `https://twitter.com/intent/tweet?text=${q(title)}&url=${q(url)}` },
+  { id: 'linkedin', name: 'LinkedIn', compose: (_, url) => `https://www.linkedin.com/sharing/share-offsite/?url=${q(url)}` },
+  { id: 'email', name: 'Email', compose: (title, url) => `mailto:?subject=${q(title)}&body=${q(url)}` },
 ];
 
 type Theme = 'auto' | 'light' | 'dark';
@@ -90,13 +95,11 @@ function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle('sl-theme-dark', dark);
 }
 
-type SigState = 'none' | 'checking' | 'valid' | 'invalid';
-
-/** The version of the link format (kit/core.ts LINK_VERSION): a link from a newer one says so. */
-export const URL_VERSION = LINK_VERSION;
+/** The app whose own page this is ("/deck/"), if any. */
+const pageApp = () => location.pathname.split('/').slice(-2)[0];
 
 export interface Route {
-  app: AppId | null;
+  app: string | null;
   payload: string;
   version: number;
   /** Extension of a download view, '' for the editor. */
@@ -104,34 +107,31 @@ export interface Route {
 }
 
 // (An extension may have a dot in it: "seating.cards.pdf" is the chart's place cards.)
-const ROUTE = new RegExp(`^#/v(\\d+)/(${APPS.map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9.]+))?(?:/(.*))?$`);
+const ROUTE = new RegExp(`^#/v(\\d+)/(${apps().map((a) => a.id).join('|')})(?:\\.([A-Za-z0-9.]+))?(?:/(.*))?$`);
 
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);
-  if (!m) return { app: null, payload: '', version: URL_VERSION, ext: '' };
-  return { app: m[2] as AppId, payload: m[4] ?? '', version: parseInt(m[1], 10), ext: m[3] ?? '' };
+  if (!m) return { app: null, payload: '', version: LINK_VERSION, ext: '' };
+  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), ext: m[3] ?? '' };
 }
 
 /** The fragment for a document, optionally as a download view. */
-export function routeHash(app: AppId, payload = '', ext = ''): string {
+export function routeHash(app: string, payload = '', ext = ''): string {
   return `${LINK}${app}${ext ? '.' + ext : ''}${payload ? '/' + payload : ''}`;
 }
 
-const fmtUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
-
 @customElement('to-app')
 export class ToApp extends LitElement {
-  @state() private app: AppId | null = null;
+  @state() private app: string | null = null;
   @state() private env: Envelope = { created: null, body: '' };
   @state() private payloadLength = 0;
-  @state() private sig: SigState = 'none';
   @state() private toast = '';
-  // Password protection: `sealed` holds a payload waiting for its password.
   /** Everything that protects a document or touches what the device keeps: one object, one widget. */
   private privacy = privacy;
   private offPrivacy = () => {};
+  /** A payload waiting for its password; '' when the document is open. */
   @state() private sealed = '';
-  @state() private version = URL_VERSION;
+  @state() private version = LINK_VERSION;
   @state() private theme: Theme = storedTheme();
   private history = new History();
   /** Opened from a "show" link: the editor is presenting, until the viewer asks to edit. */
@@ -139,9 +139,9 @@ export class ToApp extends LitElement {
   /** What is typed into the menu's search box: only apps whose names match are listed. */
   @state() private find = '';
   /** How big everything is drawn, as a factor; remembered. Browser zoom works too; this is for a tap. */
-  @state() private size = Math.min(2, Math.max(0.8, parseFloat(store.get('tinyoffice.size') ?? '1') || 1));
+  @state() private size = clamp(parseFloat(store.get('tinyoffice.size') ?? '1') || 1, 0.8, 2);
   private resize(by: number) {
-    this.size = Math.round(Math.min(2, Math.max(0.8, this.size + by)) * 20) / 20;
+    this.size = Math.round(clamp(this.size + by, 0.8, 2) * 20) / 20;
     if (this.size === 1) store.remove('tinyoffice.size');
     else store.set('tinyoffice.size', String(this.size));
     this.applySize();
@@ -229,7 +229,7 @@ export class ToApp extends LitElement {
     }
     const act: (() => void) | undefined =
       k === '/' || k === '?'
-        ? () => this.querySelector<SlDialog>('#keys-dialog')?.show()
+        ? () => this.dialog('keys-dialog')?.show()
         : k === 'k' && !e.shiftKey
           ? () => this.drawer()?.show()
           : k === 's' && !e.shiftKey && this.def
@@ -247,30 +247,24 @@ export class ToApp extends LitElement {
   };
 
   /**
-   * A link written with ordinary parameters instead of a packed document:
-   *   /deck/#title=Plan&doc=%23+Launch%0A-+Build+it
-   * The document ("doc", or "md": the same) is TLO, which is Markdown, read
-   * leniently; its header may name the app, the title and the author. The
-   * app, title, by and view may also be parameters. It is turned into the
-   * usual link on arrival, so what is shared afterwards is compact.
+   * A link written with ordinary parameters instead of a packed document
+   * (/deck/#title=Plan&doc=%23+Launch%0A-+Build+it, read by lib/markdown.ts)
+   * is turned into the usual link on arrival, so what is shared afterwards
+   * is compact.
    *
    * Only after "#": that part of an address stays in the browser. The same
    * parameters after "?" would be sent to the server (and into its logs), so
    * they are deliberately not understood.
    */
-  private readPlainLink(): boolean {
-    if (location.hash.length < 2 || location.hash.startsWith('#/')) return false;
+  private readPlainLink() {
+    if (location.hash.length < 2 || location.hash.startsWith('#/')) return;
     const q = new URLSearchParams(location.hash.slice(1));
-    if (!q.has('doc') && !q.has('md') && !q.has('title') && !q.has('app')) return false;
-    const [head, text] = takeHead((q.get('doc') ?? q.get('md') ?? '').replace(/\r\n?/g, '\n'), ['app', 'title', 'by', 'created', 'key', 'sig']);
-    const def = appOf(q.get('app') ?? head.app ?? '') ?? appOf(location.pathname.split('/').slice(-2)[0]);
-    if (!def) return false;
-    const body = fromMarkdown(def, text);
-    const title = q.get('title')?.trim() || head.title || undefined;
-    const by = q.get('by')?.trim() || head.by || undefined;
-    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, by, body }, def.id);
-    history.replaceState(null, '', `${this.root}${location.protocol === 'file:' ? '' : def.id + '/'}${routeHash(def.id, payload, q.get('view') ?? '')}`);
-    return true;
+    if (!q.has('doc') && !q.has('md') && !q.has('title') && !q.has('app')) return;
+    const plain = readPlainLink(q, pageApp());
+    if (!plain) return;
+    const { def, body, title, by, view } = plain;
+    const payload = encodeEnvelope({ created: body || title ? quantizeCreated(Date.now()) : null, title, by, body });
+    history.replaceState(null, '', `${this.root}${location.protocol === 'file:' ? '' : def.id + '/'}${routeHash(def.id, payload, view)}`);
   }
 
   /** Two documents side by side, at #/compare: not an app, a page of the shell. */
@@ -284,8 +278,7 @@ export class ToApp extends LitElement {
     this.driving = /^#\/drive(\/|$)/.test(location.hash) ? decodeURIComponent(location.hash.replace(/^#\/drive\/?/, '')) : null;
     const { app, payload, version, ext } = parseHash(location.hash);
     // An app's own page (".../deck/") with nothing after it opens a new document there.
-    const page = location.pathname.split('/').slice(-2)[0];
-    this.app = app ?? (!location.hash && appOf(page) ? page : null);
+    this.app = app ?? (!location.hash && appOf(pageApp()) ? pageApp() : null);
     // A different link is a different document: its history starts here, and a write of the last one
     // still under way (a locked document being sealed) must not land on top of it.
     this.history.clear();
@@ -303,20 +296,11 @@ export class ToApp extends LitElement {
       return;
     }
     this.sealed = '';
-    this.env = this.decode(payload);
+    this.env = decodeEnvelope(payload);
     this.remember();
     void this.privacy.check(this.env, this.app);
     this.downloadPending();
   };
-
-  private decode(payload: string): Envelope {
-    if (!payload) return { created: null, body: '' };
-    try {
-      return unpackEnvelope(payload[0], fromBase64Url(payload.slice(1)), this.app ?? undefined);
-    } catch {
-      return { created: null, body: '' };
-    }
-  }
 
   private get urlPrefix(): string {
     return `${location.origin}${location.pathname}${location.search}${routeHash(this.app!)}/`;
@@ -329,12 +313,12 @@ export class ToApp extends LitElement {
     const empty = !this.env.body && this.env.created === null && !this.env.key && !this.env.title;
     let payload = '';
     if (!empty) {
-      payload = await this.privacy.pack(this.env, this.app);
+      payload = await this.privacy.pack(this.env);
       // A later write, or another link followed meanwhile (the address changed under us): this one is stale.
       if (run !== this.writeRun || location.hash !== from) return;
     }
     this.payloadLength = payload.length;
-    this.version = URL_VERSION;
+    this.version = LINK_VERSION;
     history.replaceState(null, '', routeHash(this.app, payload) + (payload ? '' : '/'));
     this.remember();
   }
@@ -358,12 +342,14 @@ export class ToApp extends LitElement {
     }
     const kept = library();
     files['library.json'] = JSON.stringify(kept, null, 2);
+    // (Characters no file system allows in a name.)
+    const safe = (name: string) => name.replace(/[\\/:*?"<>|]+/g, '-');
     for (const k of kept) {
       const def = appOf(k.app);
-      const env = decodeEnvelope(parseHash(k.hash).payload, k.app);
+      const env = decodeEnvelope(parseHash(k.hash).payload);
       if (!def) continue;
-      const name = (k.title || def.title(env.body) || def.name).replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80);
-      files[`library/${(k.folder || def.name).replace(/[\\/:*?"<>|]+/g, '-')}/${name}.html`] = await withFonts(def.document ? def.document(env.body, { created: env.created }) : docHtml({ def, body: env.body, title: k.title }, { created: env.created }, `${this.root}${k.app}/${k.hash}`));
+      const name = safe(k.title || def.title(env.body) || def.name).slice(0, 80);
+      files[`library/${safe(k.folder || def.name)}/${name}.html`] = await withFonts(def.document ? def.document(env.body, { created: env.created }) : docHtml({ def, body: env.body, title: k.title }, { created: env.created }, `${this.root}${k.app}/${k.hash}`));
     }
     files['README.txt'] = 'TinyLittleOffice, and your documents.\n\nlibrary/: each document as a web page of its own; open it in any browser. Its link (the whole document) is inside.\nlibrary.json: the same list, as data.\n\nThe app itself is the rest. Open index.html in Firefox or Safari, or serve the folder (for example: python3 -m http.server) and open http://localhost:8000/ in any browser.\n';
     await saveFile('tinylittleoffice.zip', 'application/zip', zip(files, Date.now()));
@@ -404,10 +390,10 @@ export class ToApp extends LitElement {
 
   /** The site's own address, whichever app page we were opened from. */
   private get root(): string {
-    return new URL(/\/[a-z]+\/$/.test(location.pathname) && appOf(location.pathname.split('/').slice(-2)[0]) ? '..' : '.', location.origin + location.pathname).href;
+    return new URL(/\/[a-z]+\/$/.test(location.pathname) && appOf(pageApp()) ? '..' : '.', location.origin + location.pathname).href;
   }
 
-  /** The link to this document: from its app's own page, so it previews as that app. */
+  /** The link to this document, to edit it (see linkTo). */
   private get link(): string {
     return this.linkTo('');
   }
@@ -442,10 +428,15 @@ export class ToApp extends LitElement {
   }
 
   private setTitle(title: string) {
-    if ((title.trim() ? title.replace(/\n/g, ' ') : undefined) !== this.env.title) this.history.record(this.state());
-    const created = this.env.created ?? (title ? quantizeCreated(Date.now()) : null);
-    this.env = { ...this.env, created, title: title.trim() ? title.replace(/\n/g, ' ') : undefined };
-    this.writeUrl();
+    const named = title.trim() ? title.replace(/\n/g, ' ') : undefined;
+    if (named !== this.env.title) this.history.record(this.state());
+    this.change({ ...this.env, created: this.env.created ?? (title ? quantizeCreated(Date.now()) : null), title: named });
+  }
+
+  /** The document is now `env`: into the link with it, and its signature checked against it. */
+  private change(env: Envelope) {
+    this.env = env;
+    void this.writeUrl();
     void this.privacy.check(this.env, this.app);
   }
 
@@ -459,7 +450,6 @@ export class ToApp extends LitElement {
   private async share(how: string) {
     const url = this.link;
     const title = this.docTitle;
-    const q = encodeURIComponent;
     if (how === 'native') {
       const data: ShareData = { title, text: title, url };
       const png = this.def ? await picture(this.def, this.env.body) : null;
@@ -480,7 +470,7 @@ export class ToApp extends LitElement {
     }
     if (how === 'png') return void this.download('png');
     if (how === 'qr') return void this.querySelector<ToQrDialog>('to-qr-dialog')?.show();
-    if (how === 'shorten') return void this.querySelector<SlDialog>('#short-dialog')?.show();
+    if (how === 'shorten') return void this.dialog('short-dialog')?.show();
     if (how === 'compare') {
       // This document as the first; the other is pasted on the compare page (or comes from the clipboard, when allowed).
       const me = sideOf(url);
@@ -493,14 +483,8 @@ export class ToApp extends LitElement {
       await this.copy(this.embedCode(), 'Embed code copied');
       return;
     }
-    const to: Record<string, string> = {
-      bluesky: `https://bsky.app/intent/compose?text=${q(`${title} ${url}`)}`,
-      mastodon: `https://mastodonshare.com/?text=${q(title)}&url=${q(url)}`,
-      x: `https://twitter.com/intent/tweet?text=${q(title)}&url=${q(url)}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${q(url)}`,
-      email: `mailto:?subject=${q(title)}&body=${q(url)}`,
-    };
-    if (to[how]) window.open(to[how], '_blank', 'noopener');
+    const service = SERVICES.find((s) => s.id === how);
+    if (service) window.open(service.compose(title, url), '_blank', 'noopener');
   }
 
   /**
@@ -536,39 +520,32 @@ export class ToApp extends LitElement {
     if (!this.app) return;
     const body = e.detail;
     if (body !== this.env.body) this.history.record(this.state());
-    const created = this.env.created ?? (body ? quantizeCreated(Date.now()) : null);
-    this.env = { ...this.env, created, body };
-    this.writeUrl();
-    void this.privacy.check(this.env, this.app);
+    this.change({ ...this.env, created: this.env.created ?? (body ? quantizeCreated(Date.now()) : null), body });
   }
 
   /* ---------- undo ---------- */
 
-  /** Step the document back or forward. Works the same in every app: the editor is simply handed the earlier text. */
   /** What undo goes back through: the document's title and its body, together, so a title typed is undone like any other change. */
   private state() {
     return JSON.stringify([this.env.title ?? '', this.env.body]);
   }
+  /** Step the document back or forward. Works the same in every app: the editor is simply handed the earlier text. */
   private step(back: boolean) {
     const was = back ? this.history.undo(this.state()) : this.history.redo(this.state());
     if (was === null || !this.app) return;
     const [title, body] = JSON.parse(was) as [string, string];
-    this.env = { ...this.env, title: title || undefined, body };
-    this.writeUrl();
-    void this.privacy.check(this.env, this.app);
-    this.requestUpdate();
+    this.change({ ...this.env, title: title || undefined, body });
   }
 
   /** The privacy widget unlocked, signed or unsigned the document. */
   private onPrivacyEnv = (e: CustomEvent<Envelope>) => {
-    const wasSealed = !!this.sealed;
-    this.env = e.detail;
-    if (wasSealed) {
+    if (this.sealed) {
+      // Opened: a download its link asked for can go ahead now.
+      this.env = e.detail;
       this.sealed = '';
       this.downloadPending();
     }
-    void this.writeUrl();
-    void this.privacy.check(this.env, this.app);
+    this.change(e.detail);
   };
 
   private showToast(msg: string) {
@@ -587,8 +564,9 @@ export class ToApp extends LitElement {
     );
   }
 
-  private dialog(): SlDialog | null {
-    return this.querySelector<SlDialog>('#doc-dialog');
+  /** One of the shell's dialogs, by id: the document's own unless another is named. */
+  private dialog(id = 'doc-dialog'): SlDialog | null {
+    return this.querySelector<SlDialog>(`#${id}`);
   }
   private drawer(): SlDrawer | null {
     return this.querySelector<SlDrawer>('#nav-drawer');
@@ -614,7 +592,7 @@ export class ToApp extends LitElement {
 
   render() {
     if (this.embedded && this.def) return this.renderEmbedded(this.def);
-    const current = APPS.find((a) => a.id === this.app);
+    const current = this.def;
     const { available } = budgetFor(this.urlPrefix);
     return html`
       <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
@@ -631,11 +609,11 @@ export class ToApp extends LitElement {
                 ${this.sealed
                   ? nothing
                   : html`<div class="to-doc-actions">
-                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.querySelector<SlDialog>('#import-dialog')?.show() : e.detail.item.value === 'open-as' ? this.openAs() : this.download(e.detail.item.value))}>
+                      <sl-dropdown hoist placement="bottom-end" @sl-select=${(e: CustomEvent) => (e.detail.item.value === 'import' ? this.dialog('import-dialog')?.show() : e.detail.item.value === 'open-as' ? this.openAs() : this.download(e.detail.item.value))}>
                         <sl-button slot="trigger" class="icon" size="small" aria-label="Download" data-tip="Download">${icon(UI.download, 16)}<span class="sr-only">Download</span></sl-button>
                         <sl-menu>
                           <sl-menu-label>Download</sl-menu-label>
-                          ${formatsOf(appOf(current.id)!).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
+                          ${formatsOf(current).map((f) => html`<sl-menu-item value=${f.ext}>${f.label}<code slot="suffix">.${f.ext}</code></sl-menu-item>`)}
                           <sl-divider></sl-divider>
                           <sl-menu-item value="import">${icon(UI.insert, 14, 'pre')} Import Markdown or CSV…</sl-menu-item>
                           <sl-menu-item value="open-as">${icon(UI.compare, 14, 'pre')} Open as another app…</sl-menu-item>
@@ -647,27 +625,23 @@ export class ToApp extends LitElement {
                           <sl-menu-label>Share</sl-menu-label>
                           ${'share' in navigator ? html`<sl-menu-item value="native">Share…</sl-menu-item>` : nothing}
                           <sl-menu-item value="copy">Copy link</sl-menu-item>
-                          ${this.def?.presents ? html`<sl-menu-item value="copy-show">${icon(UI.play, 14, 'pre')} Copy link (opens presenting)</sl-menu-item>` : nothing}
+                          ${current.presents ? html`<sl-menu-item value="copy-show">${icon(UI.play, 14, 'pre')} Copy link (opens presenting)</sl-menu-item>` : nothing}
                           <sl-menu-item value="png">Save a picture</sl-menu-item>
                           <sl-menu-item value="embed">Copy embed code</sl-menu-item>
                           <sl-menu-item value="qr">QR code</sl-menu-item>
                           <sl-menu-item value="compare">Compare with another link…</sl-menu-item>
                           <sl-menu-item value="shorten">${icon(UI.link, 14, 'pre')} Shorter link that expires…</sl-menu-item>
                           <sl-divider></sl-divider>
-                          <sl-menu-item value="bluesky">Bluesky</sl-menu-item>
-                          <sl-menu-item value="mastodon">Mastodon</sl-menu-item>
-                          <sl-menu-item value="x">X</sl-menu-item>
-                          <sl-menu-item value="linkedin">LinkedIn</sl-menu-item>
-                          <sl-menu-item value="email">Email</sl-menu-item>
+                          ${SERVICES.map((s) => html`<sl-menu-item value=${s.id}>${s.name}</sl-menu-item>`)}
                         </sl-menu>
                       </sl-dropdown>
-                      ${tool('QR code', 'qr', () => this.querySelector<ToQrDialog>('to-qr-dialog')?.show(), { cls: 'to-qr-btn', size: 16 })}
+                      ${tool('QR code', 'qr', () => this.share('qr'), { cls: 'to-qr-btn', size: 16 })}
                       <sl-dropdown hoist placement="bottom-end" @sl-select=${() => this.dialog()?.show()}>
                         ${this.renderTrust()}
                         <sl-menu>
                           <sl-menu-label>Privacy</sl-menu-label>
                           <sl-menu-item value="password">${icon(UI.lock, 14, 'pre')} Password<span slot="suffix" class="to-hint">${this.privacy.locker ? 'Locked' : 'None'}</span></sl-menu-item>
-                          <sl-menu-item value="signature">${icon(UI.shield, 14, 'pre')} Signature<span slot="suffix" class="to-hint">${this.privacy.sig === 'valid' ? 'Signed' : this.sig === 'invalid' ? 'Mismatch' : 'None'}</span></sl-menu-item>
+                          <sl-menu-item value="signature">${icon(UI.shield, 14, 'pre')} Signature<span slot="suffix" class="to-hint">${this.privacy.sig === 'valid' ? 'Signed' : this.privacy.sig === 'invalid' ? 'Mismatch' : 'None'}</span></sl-menu-item>
                         </sl-menu>
                       </sl-dropdown>
                     </div>`}
@@ -685,7 +659,7 @@ export class ToApp extends LitElement {
             const want = this.find.trim().toLowerCase();
             const apps = want ? g.apps.filter((a) => a.name.toLowerCase().includes(want) || g.group.toLowerCase().includes(want)) : g.apps;
             if (!apps.length) return nothing;
-            const links = apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} target="_blank" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(UI[a.icon], a.under ? 17 : 20)}<span>${a.name}</span></a>`);
+            const links = apps.map((a) => html`<a class=${a.under && !want ? 'sub' : ''} href=${routeHash(a.id)} target="_blank" aria-current=${a.id === this.app ? 'page' : nothing}>${icon(iconOf(a), a.under ? 17 : 20)}<span>${a.name}</span></a>`);
             // The first few apps stand on their own; the rest are clusters that fold, open where you are.
             if (!g.group) return links;
             const here = apps.some((a) => a.id === this.app);
@@ -695,7 +669,7 @@ export class ToApp extends LitElement {
             </details>`;
           })}
         </nav>
-        <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.querySelector<SlDialog>('#keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
+        <sl-button slot="footer" class="to-keys" @click=${() => { this.drawer()?.hide(); this.dialog('keys-dialog')?.show(); }}>${icon(UI.keys, 16)} Keyboard shortcuts</sl-button>
         <div slot="footer" class="to-size">
           ${stepper('Size of everything', `${Math.round(this.size * 100)}%`, { less: 'Everything a little smaller', more: 'Everything a little larger', onLess: () => this.resize(-0.1), onMore: () => this.resize(0.1), canLess: this.size > 0.8, canMore: this.size < 2, reset: 'Back to the normal size', onReset: () => this.resize(1 - this.size) })}
         </div>
@@ -703,10 +677,8 @@ export class ToApp extends LitElement {
       </sl-drawer>
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.driving !== null ? html`<to-drive .folder=${this.driving} @drive-zip=${this.downloadAll} @drive-change=${() => this.requestUpdate()}></to-drive>` : this.renderHome()}</main>
       ${this.renderDialog(available)}
-      ${this.renderPrivacyPrompt()}
-      ${current ? this.renderImport() : nothing}${current ? this.renderOpenAs() : nothing}
-      ${current ? this.renderShort() : nothing}
-      ${current ? html`<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
+      <to-privacy-prompt .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv}></to-privacy-prompt>
+      ${current ? html`${this.renderImport()}${this.renderOpenAs()}${this.renderShort()}<to-qr-dialog .link=${this.link} .name=${this.docTitle}></to-qr-dialog>` : nothing}
       <sl-dialog id="keys-dialog" label="Keyboard shortcuts">
         ${[
           ['Everywhere', GLOBAL_KEYS] as const,
@@ -717,7 +689,7 @@ export class ToApp extends LitElement {
               ${keys.map((k) => html`<dt>${keyLabel(k.keys).split(' / ').map((combo, i) => html`${i ? ' / ' : ''}<kbd>${combo}</kbd>`)}</dt><dd>${k.does}</dd>`)}
             </dl>`,
         )}
-        <sl-button slot="footer" variant="primary" @click=${() => this.querySelector<SlDialog>('#keys-dialog')?.hide()}>Done</sl-button>
+        <sl-button slot="footer" variant="primary" @click=${() => this.dialog('keys-dialog')?.hide()}>Done</sl-button>
       </sl-dialog>
       ${this.toast ? html`<div class="to-toast" role="status">${this.toast}</div>` : nothing}
     `;
@@ -753,23 +725,23 @@ export class ToApp extends LitElement {
   }
 
   /** One line above the document: what kind it is, its title, when it was made, and its state. */
-  private renderTitleLine(current: (typeof APPS)[number]) {
+  private renderTitleLine(current: AppDef) {
     const over = this.payloadLength > budgetFor(this.urlPrefix).available;
     return html`<div class="to-panel-head">
-      <a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(UI[current.icon], 15)}<span>${current.name}</span></a>
-      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${this.def?.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
+      <a class="to-here" href=${routeHash(current.id)} data-tip="New ${current.name}" aria-label="${current.name}: new document">${icon(iconOf(current), 15)}<span>${current.name}</span></a>
+      <input class="to-title" aria-label="Title" autocomplete="off" spellcheck="false" .value=${this.env.title ?? ''} placeholder=${current.title(this.env.body) || `Untitled ${current.name}`} ?disabled=${!!this.sealed} @input=${(e: Event) => this.setTitle((e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLElement).blur()} />
       <span class="meta">
         ${this.env.created !== null ? html`<span class="when">${icon(UI.clock, 12)} ${fmtDate(this.env.created)}</span>` : nothing}
         ${this.privacy.locker || this.sealed ? html`<sl-tag size="small" pill>${icon(UI.lock, 12)} locked</sl-tag>` : nothing}
         ${this.privacy.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : nothing}
         ${this.privacy.sig === 'invalid' ? html`<sl-tag size="small" variant="danger" pill>${icon(UI.shieldOff, 12)} signature mismatch</sl-tag>` : nothing}
         ${over ? html`<sl-tag size="small" variant="danger" pill>over limit</sl-tag>` : nothing}
-        ${this.version > URL_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
+        ${this.version > LINK_VERSION ? html`<sl-tag size="small" variant="warning" pill>made by a newer TinyLittleOffice (v${this.version})</sl-tag>` : nothing}
       </span>
     </div>`;
   }
 
-  private renderPanel(current: (typeof APPS)[number]) {
+  private renderPanel(current: AppDef) {
     return html`<section class="to-panel" aria-label=${current.name}>
       <h1 class="sr-only">${current.name}: ${this.docTitle}</h1>
       ${this.renderTitleLine(current)}
@@ -799,7 +771,7 @@ export class ToApp extends LitElement {
         (g, n) => html`${g.group ? html`<h2 class="to-group">${g.group}</h2>` : nothing}
           <div class="to-launcher">
             ${n === 0 && saving() ? html`<a href="#/drive" class="drive-tile"><span class="ic">${icon(UI.drive, 22)}</span><b>Drive</b></a>` : nothing}
-            ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)}><span class="ic">${icon(UI[a.icon], 22)}</span><b>${a.name}</b></a>`)}
+            ${g.apps.map((a) => html`<a class=${a.under ? 'sub' : ''} href=${routeHash(a.id)}><span class="ic">${icon(iconOf(a), 22)}</span><b>${a.name}</b></a>`)}
           </div>`,
       )}
     </section>`;
@@ -813,7 +785,7 @@ export class ToApp extends LitElement {
     return html`<section class="to-library" aria-labelledby="library-h">
       <h2 class="to-group" id="library-h">Recent <a href="#/drive" class="to-more">${icon(UI.drive, 14)} Drive, all ${all.length}</a></h2>
       <ul>
-        ${all.slice(0, 6).map((k) => html`<li><a href=${k.hash}>${icon(UI[(appOf(k.app)?.icon ?? 'write') as keyof typeof UI], 16)}<b>${k.title || `Untitled ${appOf(k.app)?.name ?? k.app}`}</b><small>${k.folder} · ${fmtDate(k.at)}</small></a></li>`)}
+        ${all.slice(0, 6).map((k) => html`<li><a href=${k.hash}>${icon(iconOf(appOf(k.app)), 16)}<b>${k.title || `Untitled ${appOf(k.app)?.name ?? k.app}`}</b><small>${k.folder} · ${fmtDate(k.at)}</small></a></li>`)}
       </ul>
     </section>`;
   }
@@ -860,7 +832,7 @@ export class ToApp extends LitElement {
     const q = this.asFilter.trim().toLowerCase();
     const choices = from && this.openingAs ? apps().filter((d) => d.id !== from.id && (!q || d.name.toLowerCase().includes(q))).flatMap((d) => {
       const body = convert(from, this.env.body, d);
-      return body.trim() ? [html`<li><a href=${hashOf(d.id, body, this.env.title)} target="_blank" rel="noopener">${icon(UI[d.icon as keyof typeof UI], 18)}<span>${d.name}</span></a></li>`] : [];
+      return body.trim() ? [html`<li><a href=${hashOf(d.id, body, this.env.title)} target="_blank" rel="noopener">${icon(iconOf(d), 18)}<span>${d.name}</span></a></li>`] : [];
     }) : [];
     return html`<sl-dialog id="open-as" label="Open as another app" class="to-open-as" @sl-after-hide=${(e: Event) => e.target === e.currentTarget && (this.openingAs = false)}>
       <p class="to-hint">The same words, read by another app, open in a new tab: an outline as slides, a list as a board. This document stays as it is.</p>
@@ -875,21 +847,17 @@ export class ToApp extends LitElement {
     const apply = () => {
       if (!this.def || !this.importText.trim()) return;
       // A .tlo file says which app it is, and what it is called.
-      const [head, rest] = takeHead(this.importText, ['app', 'title', 'by', 'created', 'key', 'sig']);
+      const [head, rest] = takeHead(this.importText, DOC_KEYS);
       const other = head.app && head.app !== this.def.id ? appOf(head.app) : undefined;
+      this.importText = '';
+      this.dialog('import-dialog')?.hide();
       if (other) {
-        this.importText = '';
-        this.querySelector<SlDialog>('#import-dialog')?.hide();
         location.hash = hashOf(other.id, fromMarkdown(other, rest), head.title);
         return;
       }
       if (head.title) this.env = { ...this.env, title: head.title };
-      const body = fromMarkdown(this.def, rest);
       this.history.record(this.state());
-      this.env = { ...this.env, created: this.env.created ?? quantizeCreated(Date.now()), body };
-      this.importText = '';
-      void this.writeUrl();
-      this.querySelector<SlDialog>('#import-dialog')?.hide();
+      this.change({ ...this.env, created: this.env.created ?? quantizeCreated(Date.now()), body: fromMarkdown(this.def, rest) });
       this.showToast('Imported');
     };
     const pick = async (e: Event) => {
@@ -907,14 +875,6 @@ export class ToApp extends LitElement {
     </sl-dialog>`;
   }
 
-  /** The privacy widget: one element, drawn in the dialog; its prompt for a sealed link drawn beside the dialogs. */
-  private renderPrivacy() {
-    return html`<to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-zip=${this.downloadAll}></to-privacy>`;
-  }
-  private renderPrivacyPrompt() {
-    return html`<to-privacy-prompt .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv}></to-privacy-prompt>`;
-  }
-
   private renderDialog(available: number) {
     const left = available - this.payloadLength;
     const created = this.env.created;
@@ -926,7 +886,7 @@ export class ToApp extends LitElement {
         <dt>By</dt>
         <dd>
           <div class="row">
-            <sl-input class="sr-label to-by" size="small" label="Who made it" placeholder="A name, or an agent's" .value=${this.env.by ?? ''} @sl-change=${(e: Event) => { const by = (e.target as SlInput).value.trim() || undefined; this.env = { ...this.env, by }; void this.writeUrl(); void this.privacy.check(this.env, this.app); }}></sl-input>
+            <sl-input class="sr-label to-by" size="small" label="Who made it" placeholder="A name, or an agent's" .value=${this.env.by ?? ''} @sl-change=${(e: Event) => this.change({ ...this.env, by: (e.target as SlInput).value.trim() || undefined })}></sl-input>
             ${this.env.by && this.privacy.sig === 'valid' ? html`<sl-tag size="small" variant="success" pill>${icon(UI.shield, 12)} signed</sl-tag>` : this.env.by ? html`<span class="to-hint">unsigned: a claim, not proof</span>` : nothing}
           </div>
         </dd>
@@ -948,7 +908,7 @@ export class ToApp extends LitElement {
       </dl>
       <h3>${icon(UI.send, 14)} Where the link fits</h3>
       ${roomsTable(roomFor(this.link))}
-      ${this.renderPrivacy()}
+      <to-privacy .privacy=${this.privacy} .env=${this.env} .app=${this.app} .sealed=${this.sealed} @privacy-env=${this.onPrivacyEnv} @privacy-lock=${() => this.writeUrl()} @privacy-device=${this.onDevice} @privacy-zip=${this.downloadAll}></to-privacy>
       <sl-button slot="footer" variant="primary" @click=${() => this.dialog()?.hide()}>Done</sl-button>
     </sl-dialog>`;
   }
