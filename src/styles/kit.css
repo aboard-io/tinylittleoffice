@@ -281,12 +281,18 @@
     border-radius: var(--to-radius-sm);
     cursor: pointer;
   }
-  .to-menu-item:hover,
-  .to-menu-item:focus-visible,
-  .to-option:hover,
-  .to-option:focus-visible {
+  /* One highlight: the item with the focus (a mouse over an item takes the focus to it), or the one under the mouse while the focus is not in the menu. */
+  .to-menu:not(:focus-within) .to-menu-item:hover,
+  .to-menu-item:focus,
+  .to-menu:not(:focus-within) .to-option:hover,
+  .to-option:focus {
     background: var(--to-surface-2);
     outline-offset: -2px;
+  }
+  .to-menu-item:focus:not(:focus-visible),
+  .to-option:focus:not(:focus-visible),
+  .to-menu:focus {
+    outline: none;
   }
   .to-menu-item:disabled {
     opacity: 0.5;

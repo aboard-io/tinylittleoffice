@@ -255,14 +255,14 @@ export function addColumn(doc: Doc, c: number): Op[] | null {
   return reletter(b).ops;
 }
 
-/** Whether column c may go: only one with nothing in its cells, and never one of the last three. */
+/** Whether column c may go: any column, whatever it holds, while the table keeps one; one drawn past the table's edge while the sheet is wider than three. */
 export function removable(view: SheetView, c: number): boolean {
   const { table } = view;
   if (c >= table.cols.length) return view.cols.length > MIN_COLS;
-  return table.cols.length > MIN_COLS && table.rows.every((row) => row[c] === '');
+  return table.cols.length > 1;
 }
 
-/** Column c taken out, when it may go. */
+/** Column c taken out, cells and all: the columns after it move left, and references into it become #REF (the kernel's `cols` op). */
 export function removeColumn(doc: Doc, view: SheetView, c: number): Op[] {
   if (!removable(view, c) || c >= view.table.cols.length) return [];
   const b = new Builder(doc).push({ op: 'cols', at: view.at, c, n: 1 });
@@ -287,12 +287,20 @@ export function rename(doc: Doc, c: number, name: string): Op[] {
   return b.push({ op: 'col', at: b.at, c, col: { ...cols[c], name: clean } }).ops;
 }
 
-/** The chart the sheet asks for: one head op where the chart lives in the head (a sheet document), else the table's attribute. */
+/**
+ * The chart the sheet asks for: head ops where the chart lives in the head (a sheet document), else the table's
+ * attributes. A chart put in where there was none goes above the table ("chart-at: top"); another kind keeps the
+ * place of the one it replaces (a chart already below stays there); no chart takes the place away with it.
+ */
 export function setChart(doc: Doc, chart: Chart): Op[] {
   const b = ensure(new Builder(doc));
-  if (b.table.chart === chart) return b.ops;
-  if (inHead(b.doc, b.at, 'chart')) return b.push({ op: 'head', key: 'chart', value: chart || undefined }).ops;
-  return b.push(...withTable(b.doc, b.at, { ...b.table, chart })).ops;
+  const t = b.table;
+  const above = !!chart && (t.chart ? !!t.above : true);
+  if (t.chart === chart && !!t.above === above) return b.ops;
+  if (!inHead(b.doc, b.at, 'chart')) return b.push(...withTable(b.doc, b.at, { ...t, chart, above: above || undefined })).ops;
+  if (t.chart !== chart) b.push({ op: 'head', key: 'chart', value: chart || undefined });
+  if (!!t.above !== above) b.push({ op: 'head', key: 'chart-at', value: above ? 'top' : undefined });
+  return b.ops;
 }
 
 /** The cells of `g` locked, or (`on` false) every lock touching them let go; a head op where the lock lives in the head. */

@@ -104,3 +104,49 @@ test('sheet: under a finger, a tap selects a cell whole, heads and row numbers a
   await expect(cell('C1')).not.toBeFocused();
   expect(errors).toEqual([]);
 });
+
+test('sheet: on a phone, the row numbers are a narrow quiet side, a checkbox is a big box a tap ticks, an option cell has a caret that opens its words', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/sheet');
+  const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
+  await expect(cell('A1')).toBeVisible();
+  // The side: as wide as two digits and 8px, unshaded and unruled; the heads 44px for the finger and as quiet.
+  const look = await page.evaluate(() => {
+    const th = document.querySelector<HTMLElement>('table.sheet th.row')!;
+    const head = document.querySelector<HTMLElement>('table.sheet thead tr:first-child th')!;
+    const surface = getComputedStyle(document.querySelector('.sheet-scroll')!).backgroundColor;
+    const quiet = (el: HTMLElement) => getComputedStyle(el).backgroundColor === surface && getComputedStyle(el).borderRightWidth === '0px' && getComputedStyle(el).borderBottomWidth === '0px';
+    return { side: th.getBoundingClientRect().width, head: document.querySelector<HTMLElement>('table.sheet .col-head')!.getBoundingClientRect().height, quiet: quiet(th) && quiet(head) };
+  });
+  expect(look.side).toBeLessThanOrEqual(30);
+  expect(look.head).toBeGreaterThanOrEqual(44);
+  expect(look.quiet).toBe(true);
+  // Column B holds checkboxes: a 24px box in a cell a finger can hit, ticked by a tap, no keyboard coming up.
+  await page.getByRole('button', { name: /^Column B:/ }).tap();
+  await page.locator('.sheet-colmenu [role=menu]').getByText('Checkbox', { exact: true }).tap();
+  const tick = page.getByRole('button', { name: 'Tick B1', exact: true });
+  expect((await tick.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  const box = (await tick.locator('.box').boundingBox())!;
+  expect([box.width, box.height]).toEqual([24, 24]);
+  await tick.tap();
+  await expect(tick).toHaveAttribute('aria-pressed', 'true');
+  await expect(cell('B1')).not.toBeFocused();
+  // Column C holds options: what it holds is offered, and the caret on a cell takes the finger to it.
+  await page.getByRole('button', { name: /^Column C:/ }).tap();
+  await page.locator('.sheet-colmenu [role=menu]').getByText('Option', { exact: true }).tap();
+  // (An input with a list of words is a combo box.)
+  const option = (ref: string) => page.getByRole('combobox', { name: ref, exact: true });
+  await option('C1').tap();
+  await option('C1').fill('GOOD');
+  await option('C2').tap();
+  await option('C2').fill('BAD');
+  const caret = page.getByRole('button', { name: 'Choices for C3', exact: true });
+  expect((await caret.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await caret.tap();
+  await expect(option('C3')).toBeFocused();
+  const offered = await option('C3').evaluate((el) => [...(el as HTMLInputElement).list!.options].map((o) => o.value));
+  expect(offered).toEqual(['GOOD', 'BAD']);
+  expect(errors).toEqual([]);
+});

@@ -2,10 +2,12 @@
 // undo takes an edit back, and at phone width the bar is one row and the page never scrolls.
 import { test, expect } from 'vitest';
 import { page } from 'vitest/browser';
+// The cascade's order first (tokens, kit, apps), as on the page: the editor's sheet is in the apps layer.
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToSheetEditor } from '../editor.ts';
+import type { ToText } from '../../../kit/text.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 const SHEET = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)\n';
 const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n';
@@ -115,17 +117,33 @@ test('a column head opens what it holds, a sort, add and remove; names follow th
   await pick(el, head(1), 'Add a column after');
   expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C', 'D']);
   expect(last()).toMatch(/^Item \| Cost:money \| ColC \| Paid on:date\n/);
-  // The empty one may go; A, which holds something, may not.
+  await pick(el, head(2), 'Remove this column');
+  expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C']);
+  expect(last()).toMatch(/^Item \| Cost:money \| Paid on:date\n/);
+});
+
+test('any column may go, whatever it holds: in one step undone, references into it #REF; the table keeps one, the sheet draws three', async () => {
+  const { el, last } = await editor('Item | Cost:money | Twice:money\n--- | --- | ---\nRent | 1200 | =B1*2\nFood | 450 | =SUM(B1:B2)\n');
+  const head = (c: number) => el.querySelectorAll<HTMLButtonElement>('th .col-head')[c];
+  await pick(el, head(1), 'Remove this column');
+  expect(last()).toBe('Item | Twice:money\n--- | ---\nRent | =#REF*2\nFood | =SUM(#REF)\n');
+  // Still three across: the third drawn by its letter, nothing written for it.
+  expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C']);
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await el.updateComplete;
+  expect(last()).toBe('Item | Cost:money | Twice:money\n--- | --- | ---\nRent | 1200 | =B1*2\nFood | 450 | =SUM(B1:B2)\n');
+  expect(cell(el, 'C1').value).toBe('$2,400.00');
+  // Down to one column; that one stays, and says why.
+  await pick(el, head(0), 'Remove this column');
+  await pick(el, head(0), 'Remove this column');
+  expect(last()).toBe('| Twice:money |\n| --- |\n| =#REF*2 |\n| =SUM(#REF) |\n');
   head(0).click();
   await until(() => !!document.querySelector('[popover]:popover-open:not(.to-context)'));
   const remove = [...document.querySelectorAll<HTMLButtonElement>('[popover]:popover-open:not(.to-context) [role^=menuitem]')].find((x) => x.textContent!.includes('Remove this column'))!;
   expect(remove.disabled).toBe(true);
-  expect(remove.textContent).toContain('Once it is empty');
+  expect(remove.textContent).toContain('A sheet keeps one column');
   document.querySelector<HTMLElement>('[popover]:popover-open:not(.to-context)')!.hidePopover();
   await tick();
-  await pick(el, head(2), 'Remove this column');
-  expect([...el.querySelectorAll('th .cl')].map((x) => x.textContent)).toEqual(['A', 'B', 'C']);
-  expect(last()).toMatch(/^Item \| Cost:money \| Paid on:date\n/);
 });
 
 test('a model: named cells work, locked cells are left be, the lock moves with rows, the bar unlocks, the Sankey is drawn', async () => {
@@ -420,30 +438,97 @@ test('Mod+D fills down: the block from its top row, one cell from the cell above
   expect(last()).toMatch(/\nRent \| 1200\nRent \| 1200\nRent \| =SUM/);
 });
 
-test('Mod+B, I, U and K mark the words selected in a rich cell, and never reach the browser elsewhere', async () => {
-  const { el, last } = await editor('Note:rich | B\n--- | ---\nhello world | x\n');
-  const a1 = cell(el, 'A1');
-  a1.focus();
+const bubble = (el: HTMLElement) => el.querySelector<HTMLElement>('.tx-bubble > .to-context');
+test('a rich cell is edited in its words, never in Markdown: the bubble marks them, the code writes the inline form, the grid keys go on round it', async () => {
+  const { el, last } = await editor('Note:rich | B\n--- | ---\n**big** news | x\n');
+  const a1 = el.querySelector<ToText>('to-text#c0_0')!;
+  expect(a1).not.toBeNull();
+  // Drawn rich, no marker in sight.
+  expect(a1.tx.textContent).toBe('big news');
+  expect(a1.tx.querySelector('strong, b')!.textContent).toBe('big');
+  // One line, however narrow the column: the cell is as tall as its neighbours.
+  expect(getComputedStyle(a1.tx.firstElementChild!).whiteSpace).toBe('pre');
+  expect(a1.closest('td')!.clientHeight).toBe(cell(el, 'B1').closest('td')!.clientHeight);
+  // Reached, its words are selected whole; the strip shows them plain, read-only.
+  cell(el, 'B1').focus();
+  cell(el, 'B1').setSelectionRange(0, 0);
+  key(cell(el, 'B1'), 'ArrowLeft');
+  await until(() => a1.hasFocus());
   await el.updateComplete;
-  a1.setSelectionRange(0, 5);
-  key(a1, 'b', { ctrlKey: true });
+  expect(a1.sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 8 } });
+  const fx = el.querySelector<HTMLInputElement>('.sheet-fx .fx')!;
+  expect(fx.value).toBe('big news');
+  expect(fx.readOnly).toBe(true);
+  // Words picked out: the bubble comes up, and Italic from it marks them; the cell is written in the kernel's form.
+  a1.sel = { anchor: { block: 0, offset: 4 }, focus: { block: 0, offset: 8 } };
+  await until(() => !!bubble(el)?.matches(':popover-open'));
+  bubble(el)!.querySelector<HTMLButtonElement>('[aria-label="Italic"]')!.click();
   await el.updateComplete;
-  expect(last()).toContain('**hello** world');
-  key(a1, 'k', { ctrlKey: true });
+  expect(last()).toBe('Note:rich | B\n--- | ---\n**big** *news* | x\n');
+  // Mod+U from the keyboard, too.
+  a1.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 3 } };
   await el.updateComplete;
-  // The words stay selected inside their marks, so the link goes round them.
-  expect(last()).toContain('**[hello]()** world');
-  const b1 = cell(el, 'B1');
-  b1.focus();
-  expect(key(b1, 'i', { ctrlKey: true }).defaultPrevented).toBe(true);
+  key(a1.tx, 'u', { ctrlKey: true });
   await el.updateComplete;
-  expect(last()).toContain('| x');
+  expect(last()).toContain('**++big++** *news*');
+  // Typing is a burst: one undo takes back the letters typed in this cell.
+  // (The caret put where a click would put it: the letters take the marks of the words before them.)
+  const words = [...a1.tx.querySelector('i')!.childNodes].find((n) => n.nodeType === Node.TEXT_NODE) as Text;
+  document.getSelection()!.setBaseAndExtent(words, 4, words, 4);
+  await until(() => a1.sel?.focus.offset === 8 && a1.sel.anchor.offset === 8);
+  for (const ch of '!!') a1.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  expect(last()).toContain('*news!!* | x');
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await el.updateComplete;
+  expect(last()).toContain('*news* | x');
+  // The grid's keys: Right at the end goes on to B1, Down to the next row, Escape puts back what the cell held.
+  await until(() => a1.hasFocus());
+  a1.sel = { anchor: { block: 0, offset: 8 }, focus: { block: 0, offset: 8 } };
+  await el.updateComplete;
+  expect(key(a1.tx, 'ArrowRight').defaultPrevented).toBe(true);
+  await until(() => document.activeElement === cell(el, 'B1'));
+  cell(el, 'B1').setSelectionRange(0, 0);
+  key(cell(el, 'B1'), 'ArrowLeft');
+  await until(() => a1.hasFocus());
+  expect(key(a1.tx, 'ArrowDown').defaultPrevented).toBe(true);
+  const a2 = el.querySelector<ToText>('to-text#c1_0')!;
+  await until(() => a2.hasFocus());
+  a2.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: 'z', bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  expect(last()).toContain('\nz |');
+  key(a2.tx, 'Escape');
+  await el.updateComplete;
+  expect(last()).not.toContain('\nz |');
+  expect(a2.hasFocus()).toBe(true);
+  // Enter goes down, Tab across.
+  expect(key(a2.tx, 'Tab').defaultPrevented).toBe(true);
+  await until(() => document.activeElement === cell(el, 'B2'));
+  // Elsewhere the mark keys never reach the browser.
+  expect(key(cell(el, 'B2'), 'i', { ctrlKey: true }).defaultPrevented).toBe(true);
 });
 
-test('a tap on a checkbox cell ticks it, without the keyboard coming up', async () => {
-  const { el, last } = await editor('Task | Done:check\n--- | ---\nWrite | \n');
+test('a checkbox is a 24px box with a 2px ink border, empty or holding a thick accent check; a tap or Space ticks it, the keyboard never comes up', async () => {
+  const { el, last } = await editor('Task | Done:check\n--- | ---\nWrite | \nRead | x\n');
   const tickB1 = button(el, 'Tick B1');
   expect(tickB1.getAttribute('aria-pressed')).toBe('false');
+  const box = tickB1.querySelector<HTMLElement>('.box')!;
+  const look = getComputedStyle(box);
+  expect([box.getBoundingClientRect().width, box.getBoundingClientRect().height]).toEqual([24, 24]);
+  expect(look.borderTopWidth).toBe('2px');
+  const ink = getComputedStyle(el).getPropertyValue('--to-ink').trim();
+  const probe = document.createElement('i');
+  probe.style.color = ink;
+  el.append(probe);
+  expect(look.borderTopColor).toBe(getComputedStyle(probe).color);
+  probe.remove();
+  expect(box.querySelector('svg')).toBeNull();
+  // The ticked one holds the check, thick, in the accent.
+  const check = button(el, 'Tick B2').querySelector<SVGElement>('.box svg')!;
+  expect(getComputedStyle(check).strokeWidth).toBe('4px');
+  // The whole cell is the button; nothing of the value shows through.
+  expect(tickB1.getBoundingClientRect().height).toBe(tickB1.closest('td')!.clientHeight);
+  expect(getComputedStyle(cell(el, 'B1')).color).toBe('rgba(0, 0, 0, 0)');
   const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
   tickB1.dispatchEvent(down);
   expect(down.defaultPrevented).toBe(true);
@@ -452,6 +537,93 @@ test('a tap on a checkbox cell ticks it, without the keyboard coming up', async 
   expect(last()).toContain('Write | x');
   expect(button(el, 'Tick B1').getAttribute('aria-pressed')).toBe('true');
   expect(document.activeElement).not.toBe(cell(el, 'B1'));
+  // Space on the cell ticks and unticks; what is written stays as it was ("x", or nothing).
+  cell(el, 'B2').focus();
+  expect(key(cell(el, 'B2'), ' ').defaultPrevented).toBe(true);
+  await el.updateComplete;
+  expect(last()).toBe('Task | Done:check\n--- | ---\nWrite | x\nRead |\n');
+});
+
+test('the row numbers are as narrow as their widest number and the heads are quiet: no shading, no lines, 32px on a mouse', async () => {
+  const { el } = await editor(SHEET);
+  const side = () => el.querySelector<HTMLElement>('th.row')!.getBoundingClientRect().width;
+  // Thirty rows drawn: two digits, 12px type, and 8px.
+  const digit = (() => {
+    const c = document.createElement('canvas').getContext('2d')!;
+    const cs = getComputedStyle(el.querySelector('.row-num')!);
+    c.font = `${cs.fontSize} ${cs.fontFamily}`;
+    return c.measureText('0').width;
+  })();
+  expect(Math.abs(side() - (2 * digit + 8))).toBeLessThan(2);
+  const th = el.querySelector<HTMLElement>('th.row')!;
+  const head = el.querySelector<HTMLElement>('thead tr:first-child th')!;
+  const surface = getComputedStyle(el.querySelector('.sheet-scroll')!).backgroundColor;
+  for (const x of [th, head, el.querySelector<HTMLElement>('td.corner')!]) {
+    expect(getComputedStyle(x).backgroundColor).toBe(surface);
+    expect(getComputedStyle(x).borderRightWidth).toBe('0px');
+    expect(getComputedStyle(x).borderBottomWidth).toBe('0px');
+  }
+  expect(getComputedStyle(el.querySelector('.row-num')!).justifyContent).toBe('flex-end');
+  expect(el.querySelector<HTMLElement>('.col-head')!.getBoundingClientRect().height).toBe(32);
+  // A hundred rows and more: three digits, one digit wider.
+  const narrow = side();
+  el.querySelector<HTMLButtonElement>('.sheet-more')!.click();
+  await el.updateComplete;
+  el.querySelector<HTMLButtonElement>('.sheet-more')!.click();
+  await el.updateComplete;
+  expect(Math.abs(side() - narrow - digit)).toBeLessThan(2);
+});
+
+test('an option column offers the words it holds as the cell is typed in, takes new ones, and its caret opens the list', async () => {
+  const { el, last } = await editor('Task | Status\n--- | ---\nBrief | BAD\nDesign | OKAY\nBuild | GOOD\nShip | OKAY\n');
+  const head = (c: number) => el.querySelectorAll<HTMLButtonElement>('th .col-head')[c];
+  await pick(el, head(1), 'Option');
+  expect(last()).toMatch(/^Task \| Status:option\n/);
+  const b5 = cell(el, 'B5');
+  const list = document.getElementById(b5.getAttribute('list')!) as HTMLDataListElement;
+  expect(list.localName).toBe('datalist');
+  expect([...list.options].map((o) => o.value)).toEqual(['BAD', 'OKAY', 'GOOD']);
+  // A word not in the list is taken as it is, and offered from then on.
+  await type(el, b5, 'GREAT');
+  expect(last()).toContain('| GREAT\n');
+  expect([...list.options].map((o) => o.value)).toEqual(['BAD', 'OKAY', 'GOOD', 'GREAT']);
+  // The caret selects the cell and opens its list, without taking the focus on the way.
+  const caret = button(el, 'Choices for B2');
+  const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+  caret.dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  const shown: HTMLInputElement[] = [];
+  const picker = HTMLInputElement.prototype.showPicker;
+  HTMLInputElement.prototype.showPicker = function (this: HTMLInputElement) {
+    shown.push(this);
+  };
+  try {
+    caret.click();
+    await until(() => shown.length === 1);
+  } finally {
+    HTMLInputElement.prototype.showPicker = picker;
+  }
+  expect(shown[0]).toBe(cell(el, 'B2'));
+  expect(document.activeElement).toBe(cell(el, 'B2'));
+  // A text column has no list.
+  expect(cell(el, 'A1').hasAttribute('list')).toBe(false);
+});
+
+test('a chart put in from Insert goes above the table; one already under it stays there when its kind changes', async () => {
+  const { el, last } = await editor('Month | Sales:money\n--- | ---\nJan | 10\nFeb | 20\n');
+  await pick(el, el.querySelector<HTMLButtonElement>('to-insert > button')!, 'Chart');
+  expect(last()).toMatch(/^---\nchart: \w+\nchart-at: top\n---\nMonth/);
+  const figure = el.querySelector('.sheet-chart')!;
+  expect(figure.compareDocumentPosition(el.querySelector('.sheet-scroll')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  // No chart takes the place away with it.
+  await pick(el, el.querySelector<HTMLButtonElement>('.sheet-chartmenu button')!, 'No chart');
+  expect(last()).toBe('Month | Sales:money\n--- | ---\nJan | 10\nFeb | 20\n');
+  // A document whose chart is below keeps it below.
+  const below = await editor('---\nchart: line\n---\nMonth | Sales:money\n--- | ---\nJan | 10\nFeb | 20\n');
+  await pick(below.el, below.el.querySelector<HTMLButtonElement>('.sheet-chartmenu button')!, 'Bars');
+  expect(below.last()).toBe('---\nchart: bar\n---\nMonth | Sales:money\n--- | ---\nJan | 10\nFeb | 20\n');
+  const fig = below.el.querySelector('.sheet-chart')!;
+  expect(fig.compareDocumentPosition(below.el.querySelector('.sheet-scroll')!) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
 });
 
 test('a cell reached by a click has its words selected, so typing replaces them; F2 puts the caret at the end', async () => {

@@ -12,7 +12,7 @@ import { t } from '../../kit/i18n.ts';
 import { raster } from '../../kit/raster.ts';
 import { tableToXlsx } from '../../kit/xlsx.ts';
 import { readSheet } from './model.ts';
-import { chartOf, sheetPages, sheetToCsv } from './view.ts';
+import { cellText, chartOf, sheetPages, sheetToCsv } from './view.ts';
 import { templates } from './templates.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
@@ -61,10 +61,11 @@ export default defineApp({
   ],
 });
 
-/** The sheet as a workbook: the table and its values. */
+/** The sheet as a workbook: the table and its values (a rich cell's words, without their marks). */
 function xlsx(doc: Doc): Uint8Array {
   const v = readSheet(parse(doc));
-  return tableToXlsx(v.table, { values: v.values, named: v.named });
+  const rows = v.table.rows.map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' && !x.startsWith('=') ? cellText(x, 'rich') : x)));
+  return tableToXlsx({ ...v.table, rows }, { values: v.values, named: v.named });
 }
 
 /** The chart as an SVG file; an empty chart's page when the sheet asks for none. */

@@ -63,7 +63,7 @@ export interface Run {
 }
 
 /** What a table's column holds. */
-export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' | 'check' | 'url' | 'rich' | 'long' | 'icon' | 'name';
+export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' | 'check' | 'url' | 'rich' | 'long' | 'icon' | 'name' | 'option';
 /** A column of a table: its name and what it holds. */
 export interface Column {
   name: string;

@@ -1,7 +1,12 @@
 /**
  * <to-menu>: a button that opens a menu of items, on the Popover API: light-dismissed, on top of
- * everything, Escape closes it and focus comes back to the button. Arrow keys walk the items. Placed by
- * hand below (or above) its button, inside the visual viewport, so it sits above a phone's keyboard.
+ * everything, Escape closes it and focus comes back to the button. Placed by hand below (or above) its
+ * button, inside the visual viewport, so it sits above a phone's keyboard.
+ *
+ * Its keys are `menuKey`'s, the one set every menu and listbox here keeps (the templates' too): the focus
+ * roves over the items, so there is one item in hand and one highlight, the focused item's (a mouse over an
+ * item takes the focus to it). Opened by a key, the first item has the focus; opened by a pointer, the menu
+ * itself does, and the first arrow goes in.
  * `keep`: a menu that acts on an editor's selection (Align) never takes the focus from it by a pointer, so a
  * phone's keyboard stays up; opened from the keyboard, its items still take the focus to be walked.
  */
@@ -42,6 +47,88 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
 }
 
 let n = 0;
+
+/** Whether the last thing reached for was reached by a pointer (rather than a key): a menu opened so focuses itself, not its first item. */
+let byPointer = false;
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'Fn']);
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', () => (byPointer = true), true);
+  document.addEventListener('keydown', (e) => !MODIFIERS.has(e.key) && (byPointer = false), true);
+}
+/** Whether a pointer, not a key, opened what is opening now. */
+export const openedByPointer = () => byPointer;
+
+/** The letters typed into each menu lately, for type-ahead. */
+const typed = new WeakMap<HTMLElement, { s: string; at: number }>();
+/** An item's name, as type-ahead reads it: its words, not its hint. */
+const nameOf = (el: HTMLElement) => (el.querySelector(':scope > [class$=-words] > span')?.textContent ?? el.textContent ?? '').trim().toLowerCase();
+
+/**
+ * A key pressed in a menu (or a listbox) whose items are `items`, the same in every one: ArrowDown and
+ * ArrowUp to the next and the previous item, round the ends (from the menu itself, the first and the last);
+ * Home and End (PageUp and PageDown) to the first and the last; letters to the next item whose name starts
+ * with them; Enter or Space chooses (a click on the item); Escape and Tab close (`close` puts the focus back
+ * on the opener). Shift, Alt, Ctrl and ⌘ change none of these. True, the key stopped here, when it was the menu's.
+ */
+export function menuKey(e: KeyboardEvent, box: HTMLElement, items: HTMLElement[], close: () => void): boolean {
+  if (e.isComposing) return false;
+  const n = items.length;
+  const at = items.indexOf(document.activeElement as HTMLElement);
+  const go = (i: number) => n && items[((i % n) + n) % n].focus({ preventScroll: true });
+  switch (e.key) {
+    case 'ArrowDown':
+      go(at < 0 ? 0 : at + 1);
+      break;
+    case 'ArrowUp':
+      go(at < 0 ? n - 1 : at - 1);
+      break;
+    case 'Home':
+    case 'PageUp':
+      go(0);
+      break;
+    case 'End':
+    case 'PageDown':
+      go(n - 1);
+      break;
+    case 'Enter':
+    case ' ':
+      if (at >= 0) items[at].click();
+      break;
+    case 'Escape':
+    case 'Tab':
+      close();
+      break;
+    default: {
+      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || !n) return false;
+      const now = Date.now();
+      const last = typed.get(box);
+      const key = e.key.toLowerCase();
+      let s = (last && now - last.at < 800 ? last.s : '') + key;
+      const find = (want: string, from: number) => {
+        for (let k = 0; k < n; k++) {
+          const el = items[(((from + k) % n) + n) % n];
+          if (nameOf(el).startsWith(want)) return el;
+        }
+        return null;
+      };
+      // One letter again and again goes round the items starting with it; letters in a row find a longer name from this item on; letters that find nothing start again from the last.
+      const same = [...s].every((ch) => ch === key);
+      let hit = same ? find(key, at + 1) : find(s, Math.max(0, at));
+      if (!hit && !same) hit = find((s = key), at + 1);
+      typed.set(box, { s, at: now });
+      hit?.focus({ preventScroll: true });
+    }
+  }
+  e.preventDefault();
+  e.stopPropagation();
+  return true;
+}
+
+/** A mouse over an item takes the focus to it, so the item under the mouse is the one the arrows go on from. */
+export function hoverFocus(e: PointerEvent) {
+  const el = e.currentTarget as HTMLElement;
+  if (e.pointerType === 'mouse' && document.activeElement !== el && !el.matches(':disabled, [aria-disabled=true]')) el.focus({ preventScroll: true });
+}
 
 export class ToMenu extends LitElement {
   static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keep: { type: Boolean } };
@@ -105,10 +192,14 @@ export class ToMenu extends LitElement {
     from.setAttribute('aria-expanded', String(open));
     if (open) {
       place(this.menu, from);
-      if (!this.kept) this.menuItems()[0]?.focus();
+      // Opened by a key, the first item has the focus; by a pointer, the menu itself (a `keep` menu leaves it where it is, and its arrows still come here).
+      if (this.kept) document.addEventListener('keydown', this.onKeptKey, true);
+      else if (byPointer) this.menu.focus({ preventScroll: true });
+      else this.menuItems()[0]?.focus({ preventScroll: true });
       window.visualViewport?.addEventListener('resize', this.replace);
     } else {
       window.visualViewport?.removeEventListener('resize', this.replace);
+      document.removeEventListener('keydown', this.onKeptKey, true);
       // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere.
       if (document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
       this.anchor = null;
@@ -116,24 +207,16 @@ export class ToMenu extends LitElement {
     }
   };
   private replace = () => this.isOpen && place(this.menu, this.anchor ?? this.button);
-  private onKey = (e: KeyboardEvent) => {
-    const items = this.menuItems();
-    const at = items.indexOf(document.activeElement as HTMLElement);
-    const go = (i: number) => {
-      e.preventDefault();
-      items[(i + items.length) % items.length]?.focus();
-    };
-    if (e.key === 'ArrowDown') go(at + 1);
-    else if (e.key === 'ArrowUp') go(at - 1);
-    else if (e.key === 'Home') go(0);
-    else if (e.key === 'End') go(items.length - 1);
-    else if (e.key === 'Tab') {
-      e.preventDefault();
-      this.close();
-      this.button.focus();
-    }
+  private onKey = (e: KeyboardEvent) => menuKey(e, this.menu, this.menuItems(), () => this.close());
+  /** A `keep` menu open while the focus stays in the editor: Up and Down take the focus into the menu, which is then an ordinary one. */
+  private onKeptKey = (e: KeyboardEvent) => {
+    if (!this.isOpen || this.menu.contains(document.activeElement) || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+    this.kept = false;
+    document.removeEventListener('keydown', this.onKeptKey, true);
+    menuKey(e, this.menu, this.menuItems(), () => this.close());
   };
   private choose(item: MenuItem) {
+    if (!this.isOpen) return;
     const from = this.anchor ?? this.button;
     const kept = this.kept;
     this.kept = false;
@@ -148,7 +231,7 @@ export class ToMenu extends LitElement {
     if (!this.isOpen) this.kept = true;
   };
   private renderItem(item: MenuItem): TemplateResult {
-    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @click=${() => this.choose(item)}>
+    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
       ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;
   }
@@ -174,7 +257,7 @@ export class ToMenu extends LitElement {
     return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
         ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
       </button>
-      <div id=${this.uid} popover="auto" class="to-menu" role="menu" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${parts}</div>`;
+      <div id=${this.uid} popover="auto" class="to-menu" role="menu" tabindex="-1" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${parts}</div>`;
   }
 }
 customElements.define('to-menu', ToMenu);

@@ -52,8 +52,15 @@ export const templates = (): Template[] => [
   {
     id: 'tracker',
     name: t('Project tracker'),
-    blurb: t('Tasks with owners, start and due dates counted from today, days each, and a tick when done.'),
-    doc: sheet('', ['Task', 'Owner', 'Start:date', 'Due:date', 'Days:number', 'Done:check'], ['Brief', 'Ana', '=TODAY()', '=C1+4', '=D1-C1+1', 'x'], ['Design', 'Ben', '=D1+1', '=C2+13', '=D2-C2+1'], ['Build', 'Cy', '=D2+1', '=C3+27', '=D3-C3+1'], ['Launch', 'Ana', '=D3+1', '=C4', '=D4-C4+1']),
+    blurb: t('Tasks with owners, start and due dates counted from today, days each, how each is going, and a tick when done.'),
+    doc: sheet(
+      '',
+      ['Task', 'Owner', 'Start:date', 'Due:date', 'Days:number', 'Status:option', 'Done:check'],
+      ['Brief', 'Ana', '=TODAY()', '=C1+4', '=D1-C1+1', 'Done', 'x'],
+      ['Design', 'Ben', '=D1+1', '=C2+13', '=D2-C2+1', 'Going well'],
+      ['Build', 'Cy', '=D2+1', '=C3+27', '=D3-C3+1', 'Not started'],
+      ['Launch', 'Ana', '=D3+1', '=C4', '=D4-C4+1', 'Not started'],
+    ),
   },
   {
     id: 'loan',

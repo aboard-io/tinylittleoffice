@@ -72,6 +72,8 @@ Rules:
 - Mod+C/X/V on a range: TSV text plus our table HTML; pasted references move with the paste (relative), a pasted block wider than the sheet widens it.
 - Fill handle drags a cell's content/series; a column header tap selects the column, a row number the row.
 - Formulas: `=` starts one; a reference is typed or tapped.
+- The row numbers and the column letters are the grid's controls, not cells: drawn quietly (no shading, no lines), the side as narrow as its widest number; a tap opens their menus. A column's menu removes it whatever it holds (references into it become #REF; one undo).
+- What a column holds changes its cells, never what a person types: a checkbox is a 24px box the whole cell taps (Space with the keys); an option cell offers the words its column holds (the browser's list, opened by its caret) and takes new ones; a rich cell is a `<to-text shape=line>` with the selection bubble, the grid's keys caught on their way down to it (Arrows at its edges, Enter, Tab, Escape after its own steps), the formula strip showing its words plain and read-only.
 
 ## 5. Canvases (the Drawing Tool, the Animator, the Diagram Maker's kinds)
 
@@ -95,6 +97,7 @@ Rules:
 ## 7. Pointer and finger
 
 - Every button is a real `<button>` with a name; icon buttons are 44px to the finger; a button that acts on an editor's selection never takes the focus (`keep: true`), so the phone keyboard stays up.
+- Every menu and list of choices (`<to-menu>`, Insert ▾, the templates) is a roving-focus menu (`menuKey` in menu.ts): Up and Down move, round the ends; Home and End; letters find an item; Enter or Space choose; Escape and Tab close to the opener; Shift, Alt, Ctrl and ⌘ change none of these. Opened by a key the first item has the focus; by a pointer the menu itself, and a mouse over an item takes the focus to it.
 - Popovers and dialogs are native (`popover`, `<dialog>`), placed inside the visual viewport, closed by Escape and by a tap outside (menus) or the Close button (dialogs), returning the focus to their opener.
 - A long press is not used for anything a tap cannot do (iOS owns it for the selection callout).
 - Drag works with a mouse and a finger alike (pointer events, `touch-action: none` on the thing dragged only); the page never pans while a drag is on; a drag has a 44px handle where a tap would otherwise edit.

@@ -64,7 +64,8 @@ export const COLUMN_TYPES: { id: ColType; name: string; hint: string }[] = [
   { id: 'date', name: 'Date', hint: '2027-03-01' },
   { id: 'url', name: 'Link', hint: 'Opens when clicked' },
   { id: 'check', name: 'Checkbox', hint: '☑ or ☐' },
-  { id: 'rich', name: 'Rich text', hint: '**bold** and *italic*' },
+  { id: 'rich', name: 'Rich text', hint: 'Bold, italic and links' },
+  { id: 'option', name: 'Option', hint: 'One of the words the column already holds, or a new one' },
   { id: 'name', name: 'Name', hint: 'Names the cell to its right' },
 ];
 

@@ -692,7 +692,7 @@ export const fenceRef = (b: { lang: string; body: string }): string => `${b.lang
 /* ---------- typed columns ---------- */
 
 /** Every type a column heading may name. */
-export const COL_TYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name'];
+export const COL_TYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name', 'option'];
 
 /** A column heading, "Price:money", as its name and type ("Price: money" reads too; "Time: 10am" is a name). */
 export function column(h: string): Column {
