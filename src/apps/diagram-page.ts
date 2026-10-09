@@ -31,9 +31,14 @@ export class PageView extends DiagramElement {
 
   /** The document changed from outside (undo, an import): the page shows it as it now is. */
   protected loaded() {
-    this.held = null;
+    this.release();
     this.born = [];
+  }
+
+  /** Let go of the page held while typing, and of any redraw waiting for the typing to pause. */
+  private release() {
     clearTimeout(this.settle);
+    this.held = null;
   }
 
   /** The page's parts: its headings as [id, row, kind name], the id being what the page calls that part. Outer headings first, so a page is found before a section of the same name. */
@@ -70,16 +75,14 @@ export class PageView extends DiagramElement {
     const rows = readLines(this.textOf(this.doc), form);
     const { kinds } = kindsOf(form);
     // A row number from the page, as it is now: each row made since pushes down the rows from where it went.
-    const shift = (r: number, from = 0) => this.born.slice(from).reduce((x, b) => (b.at <= x ? x + 1 : x), r);
-    const now = (r: number) => shift(r);
+    const now = (r: number, from = 0) => this.born.slice(from).reduce((x, b) => (b.at <= x ? x + 1 : x), r);
     // The row a hint of this kind made, where it is now.
     const madeAt = (kind: number) => {
       const i = this.born.findIndex((b) => b.kind === kind);
-      return i < 0 ? -1 : shift(this.born[i].at, i + 1);
+      return i < 0 ? -1 : now(this.born[i].at, i + 1);
     };
     const redraw = (focus: number | string) => {
-      clearTimeout(this.settle);
-      this.held = null;
+      this.release();
       this.focusRow = focus;
       this.requestUpdate();
     };
@@ -149,23 +152,20 @@ export class PageView extends DiagramElement {
         const first = rows.findIndex((r) => headLevel(form, r.kind) && headLevel(form, r.kind) <= level);
         at = enclosing >= 0 ? blockEnd(rows, form, enclosing) : first >= 0 ? first : rows.length;
       }
-      clearTimeout(this.settle);
-      this.held = null;
+      this.release();
       this.focusRow = at;
       this.putRows([...rows.slice(0, at), fresh(kind), ...rows.slice(at)]);
     } else if (m.lf === 'remove') {
       const r = m.r !== undefined ? now(m.r) : this.pageRow;
       if (!rows[r]) return;
-      clearTimeout(this.settle);
-      this.held = null;
+      this.release();
       this.putRows(removeRow(rows, form, r));
       this.pageRow = -1;
-    } else if (m.lf === 'part' && rows[m.r!] && kindsOf(form).kinds[rows[m.r!].kind].head) {
+    } else if (m.lf === 'part' && rows[m.r!] && kinds[rows[m.r!].kind].head) {
       // A heading and all that is under it (a page with its sections) moved past its neighbour, or taken away.
       const moved = m.do === 'remove' ? removePart(rows, form, m.r!) : movePart(rows, form, m.r!, m.do === 'up' ? -1 : 1);
       if (!moved) return;
-      clearTimeout(this.settle);
-      this.held = null;
+      this.release();
       this.pageRow = -1;
       if (m.do === 'remove') this.pageHash = '';
       this.putRows(moved);
@@ -177,7 +177,12 @@ export class PageView extends DiagramElement {
     const spec = this.spec;
     const text = this.textOf(this.doc);
     // Drawn afresh, the page goes back to the part it was showing.
-    return (text.trim() ? spec.page!(this.doc) : spec.page!(spec.example)).replace('<head>', `<head><style>${this.faces}</style>`).replace('</body>', placeData(this.pageHash) + PLACE_SCRIPT + '</body>');
+    return this.framed(text.trim() ? spec.page!(this.doc) : spec.page!(spec.example), placeData(this.pageHash) + PLACE_SCRIPT);
+  }
+
+  /** A page for the frame: with the fonts, and with a script of ours at the end of its body. */
+  private framed(page: string, script: string): string {
+    return page.replace('<head>', `<head><style>${this.faces}</style>`).replace('</body>', script + '</body>');
   }
 
   /**
@@ -212,7 +217,7 @@ export class PageView extends DiagramElement {
 #lf-bar button{font:inherit;padding:5px 11px;border:1px dashed #4f46e5;background:#fff;color:#4338ca;border-radius:999px;cursor:pointer}#lf-bar button:focus-visible{outline:2px solid #4f46e5}
 #lf-x{margin-left:auto;border-color:#dc2626;color:#b91c1c}#lf-bar span{color:#52525b;margin-right:4px}</style>
 ${placeData(this.pageHash)}${PLACE_SCRIPT}${editData(values, adds, focus, this.stamp, this.parts(rows))}${EDIT_SCRIPT}`;
-    return page.replace('<head>', `<head><style>${this.faces}</style>`).replace('</body>', script + '</body>');
+    return this.framed(page, script);
   }
 
   connectedCallback() {

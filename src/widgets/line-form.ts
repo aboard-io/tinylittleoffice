@@ -5,7 +5,7 @@
  */
 import { goLinks } from './link-guard.ts';
 import { LitElement, html, nothing, btn, icon, libraryIcon, UI, type PropertyValues } from '../kit.ts';
-import { blockEnd, depths, fieldsOf, kindsOf, marksAfter, moveBlock, readLines, removeRow, shiftBlock, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
+import { blankValues, blockEnd, depths, fieldsOf, kindsOf, marksAfter, moveBlock, readLines, removeRow, shiftBlock, withValue, writeLines, type Field, type Kind, type Row } from '../lib/lines.ts';
 import { chooseIcon } from './icon-picker.ts';
 
 export class ToLines extends LitElement {
@@ -47,25 +47,18 @@ export class ToLines extends LitElement {
   }
 
   private set(i: number, f: number, value: string) {
-    this.save(this.rows.map((r, n) => (n === i ? { ...r, values: r.values.map((v, m) => (m === f ? value : v)) } : r)));
-  }
-
-  /** A new row of a kind at a place, from outside (a picture's "+" button): the cursor goes to it. */
-  insert(kind: number, at: number, depth: number) {
-    const fields = fieldsOf(this.kinds, kind);
-    this.save([...this.rows.slice(0, at), { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth }, ...this.rows.slice(at)], at);
+    this.save(withValue(this.rows, i, f, () => value));
   }
 
   private add(kind: number, after = this.at) {
     const { kinds } = kindsOf(this.kinds);
     const k = kinds[kind];
-    const fields = fieldsOf(this.kinds, kind);
     // A title or a setting goes to the top; anything else, after the row last worked in.
     const top = this.rows.findIndex((r) => !kinds[r.kind].once);
     // (After a row of its own kind that has rows under it, it goes below those: a sibling, not a new parent for them.)
     const here = after >= 0 && after < this.rows.length;
     const i = k.once ? (top < 0 ? this.rows.length : top) : !here ? this.rows.length : k.indent && this.rows[after].kind === kind ? blockEnd(this.rows, this.kinds, after) : after + 1;
-    const row: Row = { kind, values: fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth: (k.indent && here && kinds[this.rows[after].kind].indent ? this.rows[after].depth : 0) };
+    const row: Row = { kind, values: blankValues(this.kinds, kind), depth: (k.indent && here && kinds[this.rows[after].kind].indent ? this.rows[after].depth : 0) };
     this.save([...this.rows.slice(0, i), row, ...this.rows.slice(i)], i);
   }
 

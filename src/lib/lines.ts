@@ -113,18 +113,32 @@ function compile(kind: Kind): Compiled {
 /** What is left for a line no kind claims: kept exactly as it was written. */
 const OTHER: Kind = { name: 'Line', is: '{Text}' };
 const cache = new WeakMap<Kind[], { kinds: Kind[]; made: Compiled[] }>();
+/** A kind that is one field and nothing else: it takes whatever no other kind claims. */
+export const isCatchAll = (k: Kind) => /^\{[^}]*\}$/.test(k.is);
+/** The marks a kind's pattern opens with ("# ", "- "), before any field or optional part. */
+const opening = (k: Kind) => /^[^{[]*/.exec(k.is)![0];
 
 /** An app's kinds, ready to use: with the catch-all added, unless it has one of its own. */
 export function kindsOf(given: Kind[]): { kinds: Kind[]; made: Compiled[] } {
   let hit = cache.get(given);
   if (!hit) {
-    const kinds = given.some((k) => /^\{[^}]*\}$/.test(k.is)) ? given : [...given, OTHER];
+    const kinds = given.some(isCatchAll) ? given : [...given, OTHER];
     cache.set(given, (hit = { kinds, made: kinds.map(compile) }));
   }
   return hit;
 }
 
 export const fieldsOf = (given: Kind[], kind: number) => kindsOf(given).made[kind].fields;
+
+/** A field that holds words: not a picture, nor a choice of a few. */
+export const holdsWords = (f: Field) => f.type !== 'icon' && f.type !== 'choice';
+
+/** What a new row of a kind starts with: a choice at its first option, everything else empty. */
+export const blankValues = (given: Kind[], kind: number) => fieldsOf(given, kind).map((f) => (f.type === 'choice' ? f.options[0] : ''));
+
+/** The rows with field f of row i changed by `to`. */
+export const withValue = (rows: Row[], i: number, f: number, to: (v: string) => string): Row[] =>
+  rows.map((r, n) => (n === i ? { ...r, values: r.values.map((v, m) => (m === f ? to(v) : v)) } : r));
 
 /** The lines of a TLO text as the patterns see them, each with how far in it sits; table rows come with their columns. */
 interface Seen {
@@ -163,7 +177,7 @@ const isDoc = (k: Kind) => /^@@\{[^}]*\}$/.test(k.is);
 export function readLines(text: string, given: Kind[]): Row[] {
   const { kinds, made } = kindsOf(given);
   const divider = kinds.findIndex((k) => k.is === '');
-  const mark = (k: Kind) => /^[^{[]*/.exec(k.is)![0].length;
+  const mark = (k: Kind) => opening(k).length;
   const order = kinds.map((_, i) => i).sort((a, b) => mark(kinds[b]) - mark(kinds[a]) || a - b);
   const rows: Row[] = [];
   for (const s of seen(text)) {
@@ -202,7 +216,7 @@ export function readLines(text: string, given: Kind[]): Row[] {
     const claimed =
       order.find((i) => kinds[i].is !== '' && !kinds[i].table && !isDoc(kinds[i]) && made[i].re.test(line) && (mark(kinds[i]) > 0 || nests < 0)) ??
       // Whatever nothing else claims is words, kept as they are.
-      kinds.findIndex((k) => /^\{[^}]*\}$/.test(k.is));
+      kinds.findIndex(isCatchAll);
     const kind = nests >= 0 && (claimed === undefined || !mark(kinds[claimed])) ? nests : claimed;
     const k = kinds[kind];
     const words = kind === nests ? s.item!.trim() : line;
@@ -251,7 +265,7 @@ export function writeLines(rows: Row[], given: Kind[]): string {
       i--;
       blocks.push(table);
     } else if (k === OTHER) push(r.values[0]);
-    else if (k.indent && !/^[^{[]*/.exec(k.is)![0]) push(`${'  '.repeat(r.depth)}- ${made[r.kind].write(r.values)}`);
+    else if (k.indent && !opening(k)) push(`${'  '.repeat(r.depth)}- ${made[r.kind].write(r.values)}`);
     else push('  '.repeat(r.depth) + made[r.kind].write(r.values));
   }
   flush();

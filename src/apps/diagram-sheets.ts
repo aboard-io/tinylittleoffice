@@ -28,13 +28,8 @@ export class SheetsView extends DiagramElement {
     const t = e.target as Element;
     if (t.closest('text')) return this.onSheetClick(e);
     // Empty paper, tapped: a new line at the end, open for its words.
-    if (!t.closest('.sheet')) return;
-    const form = this.spec.form!;
-    const { kinds } = kindsOf(form);
-    const kind = kinds.findIndex((k, n) => n < form.length && !k.once && k.is !== '' && !k.is.startsWith('#') && !k.head && fieldsOf(form, n).some((f) => f.type !== 'icon' && f.type !== 'choice'));
-    if (kind < 0) return;
-    if (this.editing || this.draft || this.justClosed) return;
-    this.startDraft(kind, this.rows().length, 0);
+    if (!t.closest('.sheet') || this.mainKind < 0 || this.editing || this.draft || this.justClosed) return;
+    this.startDraft(this.mainKind, this.rows().length, 0);
   }
 
   /** The draft's line on the sheet: the words are its kind's name. */
