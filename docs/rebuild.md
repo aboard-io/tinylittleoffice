@@ -40,6 +40,8 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 7. **Phone first** — every editor designed at 390px in WebKit and widened; 16px inputs, one-row bars, no page
    scroll on focus, popovers above the keyboard.
 8. **A chunk per app** — route-level lazy import; the home page loads the kit and nothing else.
+   The home page is no copy: each app its icon and name, its templates ▾, and under it the documents kept on this
+   device while Saved (Paul: "Drive is just documents under the icons"; `src/kit/library.ts`).
 9. **Living short links** — a short link may be updated by whoever holds its owner key (a capability in the
    fragment, never sent as plaintext); tinier stores a new ciphertext under the same id. The latest version of a
    document without the service ever reading it. (Built ahead of its turn, on the skeleton: `tinier/`,

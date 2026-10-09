@@ -12,7 +12,7 @@ format `docs/tlo.md` in the old tree until it moves here.
 
 ```
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
-                privacy, offline, share, short (links), links (the owner links kept), exports, i18n, theme,
+                privacy, offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
                 icons (the UI set and the starter library a document may name), icons-search (keywords,
                 suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
                 the rest of Lucide and icons-meta, its tags and categories), app (the AppDef contract), apps
@@ -52,6 +52,10 @@ npm run tinier:dev    # the link shortener on this machine (see "Living short li
 The editor: `<to-text>` (src/kit/text.ts) is the one rich-text editor, model-driven over the kernel: every
 `beforeinput` becomes operations fired as `text-ops`, the host applies them and hands the blocks back, and only the
 blocks whose identity changed are drawn again. Undo is an op log (src/kit/history.ts). See docs/kernel.md §4 and §8.
+
+The home page: every app as its icon and name (open it blank), its templates ▾, and under it the documents of that
+app kept on this device, newest first, only while the drawer's switch says Saved (`src/kit/library.ts`, through
+`src/kit/store.ts`); under Private nothing is kept and the list is not there.
 
 Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
 `{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.
