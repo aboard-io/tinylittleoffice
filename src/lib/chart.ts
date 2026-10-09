@@ -1,24 +1,49 @@
 /**
  * Charts from a table, with no setup: the first column is the labels, every
- * other column of numbers is a series, named by its column's name. Drawn as
+ * other column of numbers is a series, named by its column's name. A table
+ * of From | To | Amount is also a set of flows, drawn as a Sankey. Drawn as
  * SVG so a chart works wherever a picture does.
  */
 import { SERIES, patternDefs, patternFill } from './palette.ts';
 import { FAINT, INK, LINE, MUTED, clip, r, rect, text, type Page } from '../kit/core.ts';
 
-export type ChartKind = 'bar' | 'line' | 'pie';
+export type ChartKind = 'bar' | 'line' | 'pie' | 'sankey';
 export const CHART_KINDS: { id: ChartKind; name: string }[] = [
   { id: 'bar', name: 'Bars' },
   { id: 'line', name: 'Lines' },
   { id: 'pie', name: 'Pie' },
+  { id: 'sankey', name: 'Flows (Sankey)' },
 ];
 
+export interface Flow {
+  from: string;
+  to: string;
+  value: number;
+}
 export interface ChartData {
   labels: string[];
   series: { name: string; values: number[] }[];
+  /** The rows that read as From | To | Amount: what a Sankey draws. */
+  flows?: Flow[];
 }
 
 type Cell = number | string | null;
+
+/** The From, To and Amount columns: those named so (From or Source; To or Target; Amount, Value or How much), else the first three. */
+function flowColumns(names: string[]): [number, number, number] {
+  const find = (re: RegExp, or: number) => {
+    const i = names.findIndex((n) => re.test(n.trim()));
+    return i < 0 ? or : i;
+  };
+  return [find(/^(from|source)$/i, 0), find(/^(to|target|into)$/i, 1), find(/^(amount|value|how much|flow)$/i, 2)];
+}
+
+/** The rows whose From and To are words and whose Amount is a number: each a flow from one thing to another. */
+export function flowsOf(rows: Cell[][], names: string[] = []): Flow[] {
+  const [f, t, a] = flowColumns(names);
+  const word = (c: Cell): c is string => typeof c === 'string' && c.trim() !== '' && !c.startsWith('#');
+  return rows.flatMap((row) => (word(row[f]) && word(row[t]) && typeof row[a] === 'number' && isFinite(row[a]) && row[a] > 0 ? [{ from: row[f].trim(), to: row[t].trim(), value: row[a] }] : []));
+}
 
 /** `names`: each column's name, for its series. */
 export function chartData(rows: Cell[][], names: string[] = []): ChartData {
@@ -29,17 +54,21 @@ export function chartData(rows: Cell[][], names: string[] = []): ChartData {
   // The first column names each row, unless it is the only column of numbers there is.
   let numeric = Array.from({ length: cols }, (_, c) => c).filter((c) => c > 0 && holdsNumbers(c));
   const labelled = cols > 1 && numeric.length > 0;
+  const flows = flowsOf(used, names);
   if (!numeric.length && holdsNumbers(0)) numeric = [0];
-  if (!numeric.length) return { labels: [], series: [] };
+  if (!numeric.length) return { labels: [], series: [], flows };
   const body = used.filter((row) => numeric.some((c) => isNum(row[c])));
   return {
     labels: body.map((row, i) => (labelled ? String(row[0] ?? '') : String(i + 1))),
     series: numeric.map((c) => ({ name: names[c] ?? '', values: body.map((row) => (isNum(row[c]) ? (row[c] as number) : 0)) })),
+    flows,
   };
 }
 
 /** The chart that suits the data, or '' if there is nothing to chart. */
 export function suggestChart(d: ChartData): ChartKind | '' {
+  // Things that flow on, from one to another to a third: a Sankey. (A table of Item | Kind | Cost is not that.)
+  if (d.flows && d.flows.length >= 2 && d.flows.some((f) => d.flows!.some((g) => g.from === f.to))) return 'sankey';
   if (!d.series.length || !d.labels.length) return '';
   const first = d.series[0].values;
   // Parts of a whole: one series, a handful of positive numbers.
@@ -77,7 +106,74 @@ function painted(i: number, draw: (fill: string, pattern: boolean) => string): s
 }
 
 /** `upTo`: how many labels' worth of the chart to draw (bars, points or slices), for building it up. */
+/** A number as a Sankey labels it. */
+const fmt = (n: number) => (Math.abs(n) >= 1000 ? Math.round(n).toLocaleString('en-US') : String(Math.round(n * 100) / 100));
+
+/**
+ * Flows as a Sankey: a bar for each thing, as tall as what passes through
+ * it, in columns from where the flows start to where they end; a band for
+ * each flow, as thick as its amount. The first `upTo` flows are drawn.
+ */
+export function sankeyPage(flows: Flow[], title = '', w = 720, h = 440, upTo = Infinity): Page {
+  let svg = title ? text(w / 2, 34, clip(title, w - 80, 20, true), { px: 20, bold: true, anchor: 'middle' }) : '';
+  const top = title ? 56 : 12;
+  if (!flows.length) return { w, h, svg: svg + text(w / 2, h / 2, 'Nothing to chart yet: rows of From | To | Amount', { px: 16, fill: FAINT, anchor: 'middle' }) };
+  interface N { name: string; in: number; out: number; col: number; x: number; y: number; h: number; oy: number; iy: number }
+  const nodes = new Map<string, N>();
+  const node = (name: string) => {
+    let n = nodes.get(name);
+    if (!n) nodes.set(name, (n = { name, in: 0, out: 0, col: 0, x: 0, y: 0, h: 0, oy: 0, iy: 0 }));
+    return n;
+  };
+  const shown = flows.slice(0, upTo);
+  for (const f of flows) {
+    const a = node(f.from);
+    const b = node(f.to);
+    if (shown.includes(f)) (a.out += f.value), (b.in += f.value);
+  }
+  const order = [...nodes.values()];
+  // Each thing sits one column to the right of the furthest thing that feeds it.
+  for (let pass = 0; pass < order.length; pass++) for (const f of flows) if (f.from !== f.to) node(f.to).col = Math.max(node(f.to).col, Math.min(order.length, node(f.from).col + 1));
+  const nw = 14;
+  const pad = 14;
+  const cols: N[][] = [];
+  for (const n of order) (cols[n.col] ??= []).push(n);
+  const columns = cols.filter(Boolean);
+  const size = (n: N) => Math.max(n.in, n.out);
+  const bottom = h - 12;
+  const scale = Math.min(...columns.map((c) => ((bottom - top - pad * (c.length - 1)) / c.reduce((a, n) => a + size(n), 0)) || Infinity));
+  const k = isFinite(scale) ? scale : 0;
+  const right = w - nw - 150;
+  columns.forEach((c, ci) => {
+    let y = top;
+    for (const n of c) {
+      n.x = columns.length > 1 ? (ci * right) / (columns.length - 1) : 0;
+      n.y = n.oy = n.iy = y;
+      n.h = Math.max(2, size(n) * k);
+      y += n.h + pad;
+    }
+  });
+  for (const f of shown) {
+    const a = node(f.from);
+    const b = node(f.to);
+    const t = f.value * k;
+    if (t <= 0) continue;
+    const [x0, x1, y0, y1] = [a.x + nw, b.x, a.oy + t / 2, b.iy + t / 2];
+    const mx = (x0 + x1) / 2;
+    a.oy += t;
+    b.iy += t;
+    svg += `<path d="M${r(x0)} ${r(y0)}C${r(mx)} ${r(y0)} ${r(mx)} ${r(y1)} ${r(x1)} ${r(y1)}" fill="none" stroke="${SERIES[order.indexOf(a) % SERIES.length]}" stroke-opacity="0.35" stroke-width="${r(t)}"/>`;
+  }
+  order.forEach((n, i) => {
+    svg += rect(n.x, n.y, nw, n.h, SERIES[i % SERIES.length], 'rx="3"');
+    const ly = n.y + Math.min(n.h / 2, 60);
+    svg += text(n.x + nw + 6, ly + 1, clip(n.name, 150, 12, true), { px: 12, bold: true, fill: INK }) + text(n.x + nw + 6, ly + 15, fmt(size(n)), { px: 12, fill: MUTED });
+  });
+  return { w, h, svg, alt: `Flows: ${shown.map((f) => `${f.from} to ${f.to} ${fmt(f.value)}`).join('; ')}.` };
+}
+
 export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h = 440, upTo = Infinity): Page {
+  if (kind === 'sankey') return sankeyPage(d.flows ?? [], title, w, h, upTo);
   let svg = title ? text(w / 2, 34, clip(title, w - 80, 20, true), { px: 20, bold: true, anchor: 'middle' }) : '';
   const top = title ? 56 : 24;
   const legend = d.series.length > 1 || kind === 'pie';

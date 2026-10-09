@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chartOf, evaluateGrid, namesOf, parseGrid, pasteCells, serializeGrid, formatValue } from '../src/lib/formula.ts';
+import { chartOf, evaluateGrid, namesOf, parseGrid, pasteCells, serializeGrid, formatValue, typesOf, namedCells, nameKey, readSheet, isLocked, withLock, rangeOf, remapLock, rowsIn, rowsOut } from '../src/lib/formula.ts';
+import { chartData, chartPage, suggestChart } from '../src/lib/chart.ts';
 
 /** Cells as a spreadsheet's clipboard holds them, tabs between and lines down, put in at A1. */
 const tabs = (text: string) => pasteCells(parseGrid(''), 0, 0, text).grid;
@@ -207,4 +208,74 @@ test('sheet: rows sort by a column, numbers first, blanks last (the names over t
   assert.equal(rows(sortRows(g, 1, true)), 'Apple,10 Pear,3 Berry,2 Fig,');
   assert.equal(rows(sortRows(g, 0)), 'Apple,10 Berry,2 Fig, Pear,3');
   assert.deepEqual(sortRows(parseGrid(''), 0), parseGrid(''));
+});
+
+test('named cells: a name column names the cell to its right, and a formula may say so', () => {
+  const types = ['text', 'text', 'number', 'name', 'number'];
+  const g = grid([
+    ['Visitors', 'Signups', '=visitors*signup_rate/100', 'Visitors', '20000'],
+    ['Visitors', 'Bounced', '=visitors-signups', 'Signup rate', '6'],
+    ['', '', '', 'Signups', '=SUMIF(B1:B9, "Signups", C1:C9)'],
+    ['', '', '', 'Nobody', '=nothing+1'],
+  ]);
+  const v = evaluateGrid(g, types);
+  assert.deepEqual([v[0][2], v[1][2], v[2][4]], [1200, 18800, 1200]);
+  // Case and spaces do not matter; a name nothing holds is #NAME; the name column itself is words.
+  assert.equal(v[3][4], '#NAME');
+  assert.equal(v[0][3], 'Visitors');
+  assert.deepEqual([...namedCells(g, types).keys()], ['VISITORS', 'SIGNUP_RATE', 'SIGNUPS', 'NOBODY']);
+  // The name column is written as its type, and read back.
+  const text = serializeGrid(g, 'sankey', types, ['From', 'To', 'Amount', 'Assumption', 'Value']);
+  assert.ok(text.includes('Assumption:name'));
+  assert.deepEqual(typesOf(text), types.concat('text'));
+  assert.equal(nameKey('One-off gifts '), 'ONE_OFF_GIFTS');
+});
+
+test('SUMIF and COUNTIF: by words, by a cell, by a comparison; only the cells that match are worked out', () => {
+  const g = grid([
+    ['Run', '5', '=SUMIF(A1:A4, "run", B1:B4)'],
+    ['Piano', '30', '=COUNTIF(A1:A4, "Run")'],
+    ['Run', '7.5', '=SUMIF(B1:B4, ">6", B1:B4)'],
+    ['Swim', '40', '=SUMIF(A1:A4, A2, B1:B4)'],
+    // A total among the rows it sums: not circular, since its own row's words do not match.
+    ['Total', '=SUMIF(A1:A5, "Run", B1:B5)', '=COUNTIF(B1:B4, "<>5")'],
+  ]);
+  const v = evaluateGrid(g);
+  assert.deepEqual([v[0][2], v[1][2], v[2][2], v[3][2], v[4][1], v[4][2]], [12.5, 2, 77.5, 30, 12.5, 3]);
+});
+
+test('the lock is a setting in the header: ranges, kept as written, read as cells', () => {
+  const text = '---\nlock: C1:C3, E2\n---\na | b | c | d | e\n--- | --- | --- | --- | ---\n1 | 2 | =A1+B1 | 4 | 5';
+  const s = readSheet(text);
+  assert.equal(s.lock, 'C1:C3, E2');
+  assert.deepEqual([isLocked(s.lock, 0, 2), isLocked(s.lock, 2, 2), isLocked(s.lock, 1, 4), isLocked(s.lock, 0, 0)], [true, true, true, false]);
+  assert.equal(serializeGrid(s.grid, '', s.types, s.names, s.lock), text);
+  // Locked, unlocked: a range added; every range touching the cells let go.
+  assert.equal(withLock(s.lock, rangeOf([0, 0], [1, 0]), true), 'C1:C3, E2, A1:A2');
+  assert.equal(withLock(s.lock, rangeOf([1, 2]), false), 'E2');
+  assert.equal(readSheet('---\nlock: nonsense, Z9\n---\na | b\n--- | ---').lock, '');
+  // Rows put in or taken out move the lock as they move the formulas: a range follows its rows, grows round rows put in its middle, and goes when all its rows are gone.
+  assert.equal(remapLock('C1:C3, E2', rowsIn(0, 2)), 'C3:C5, E4');
+  assert.equal(remapLock('C1:C3, E2', rowsIn(1, 1)), 'C1:C4, E3');
+  assert.equal(remapLock('C1:C3, E2', rowsOut(1, 1)), 'C1:C2');
+  assert.equal(remapLock('C1:C3, E2', rowsOut(0, 2)), '');
+});
+
+test('a Sankey: rows of From | To | Amount are flows, drawn as bands between bars', () => {
+  const rows = [['Visitors', 'Signups', 1200], ['Visitors', 'Bounced', 18800], ['Signups', 'Paying', 300], ['', '', null]] as (string | number | null)[][];
+  const d = chartData(rows, ['From', 'To', 'Amount']);
+  assert.deepEqual(d.flows?.map((f) => [f.from, f.to, f.value]), [['Visitors', 'Signups', 1200], ['Visitors', 'Bounced', 18800], ['Signups', 'Paying', 300]]);
+  assert.equal(suggestChart(d), 'sankey');
+  const p = chartPage(d, 'sankey');
+  assert.equal((p.svg.match(/<path /g) ?? []).length, 3);
+  assert.equal((p.svg.match(/<rect /g) ?? []).length, 4);
+  assert.ok(p.svg.includes('>Signups</text>') && p.svg.includes('>1,200</text>'));
+  // On a slide, a flow per click.
+  assert.equal((chartPage(d, 'sankey', '', 720, 440, 1).svg.match(/<path /g) ?? []).length, 1);
+  assert.ok(chartPage({ labels: [], series: [], flows: [] }, 'sankey').svg.includes('Nothing to chart yet'));
+  // The columns are found by name where they are named so; a table of things in kinds with a cost is no Sankey, though its rows read as words, words and a number.
+  assert.deepEqual(chartData([[5, 'A', 'B'], [3, 'B', 'C']], ['Amount', 'From', 'To']).flows?.map((f) => [f.from, f.to, f.value]), [['A', 'B', 5], ['B', 'C', 3]]);
+  const kinds = chartData([['Rent', 'Home', 1200], ['Food', 'Home', 450], ['Bus', 'Travel', 60]], ['Item', 'Kind', 'Cost']);
+  assert.equal(kinds.flows?.length, 3);
+  assert.notEqual(suggestChart(kinds), 'sankey');
 });

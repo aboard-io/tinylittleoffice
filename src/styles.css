@@ -123,7 +123,6 @@ to-deck,
 to-draw,
 to-cal,
 to-zine,
-to-flow,
 to-pixel,
 to-pattern,
 to-seating,
@@ -139,7 +138,6 @@ to-habits,
 to-countdown,
 to-bio,
 to-checklist,
-to-log,
 to-reading,
 to-booklet,
 to-programme,
@@ -918,6 +916,15 @@ table.sheet td input.num {
 }
 table.sheet td input.err {
   color: var(--to-danger);
+}
+/* A locked cell is the model's own: shaded, its words a little quieter; a name is a label. */
+table.sheet td input.locked {
+  background: var(--to-surface-2);
+  color: var(--to-ink-2);
+}
+table.sheet td input.named {
+  font-family: var(--sl-font-sans);
+  font-weight: 600;
 }
 table.sheet td.sel {
   box-shadow: inset 0 0 0 2px var(--to-accent);

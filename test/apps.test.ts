@@ -504,7 +504,7 @@ test('icons in drawings and diagrams', async () => {
 
 test('page apps: a site, a store, an invoice, a contract', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  for (const id of ['site', 'store', 'invoice', 'contract', 'flow', 'spinner', 'santa', 'split', 'log']) {
+  for (const id of ['site', 'store', 'invoice', 'contract', 'spinner', 'santa', 'split']) {
     const spec = specOf(id)!;
     const page = spec.page!(spec.example);
     assert.ok(page.startsWith('<!doctype html>') && page.includes('<meta property="og:title"') && page.includes('</html>'), id);
@@ -689,18 +689,6 @@ test('a document on a zine page has the page, at a size to read', async () => {
 
 test('small apps: the sums behind them', async () => {
   const { specOf } = await import('../src/lib/diagram.ts');
-  // Stock and flow: sliders, and flows worked out from them and from the stocks they fill.
-  const { parseFlow, runFlow } = await import('../src/apps/flow.def.ts');
-  const m = parseFlow(specOf('flow')!.example);
-  assert.deepEqual(m.sliders.map((s) => [s.id, s.value, s.unit, s.max]), [['visitors', 20000, '', 100000], ['signup_rate', 6, '%', 30], ['paid_rate', 25, '%', 100], ['churn', 8, '%', 50]]);
-  assert.deepEqual(runFlow(m, {}), [1200, 18800, 300, 900, 24, 276]);
-  assert.deepEqual(runFlow(m, { visitors: 10000, signup_rate: 10 }).slice(0, 3), [1000, 9000, 250]);
-  // Only arithmetic is ever worked out, and by hand: no code runs.
-  const { arithmetic } = await import('../src/apps/flow.def.ts');
-  assert.deepEqual(['1+2*3', '(1+2)*3', '10/4', '-2*-3', '1e3+1', '2 (3)', 'alert(1)', '1/0', ''].map(arithmetic), [7, 9, 2.5, 6, 1001, 0, 0, 0, 0]);
-  assert.deepEqual(runFlow(parseFlow('- a = 1\n\n~ A -> B: alert(1)\n~ A -> C: a + 2'), {}), [0, 3]);
-  assert.ok(specOf('flow')!.page!(specOf('flow')!.example).includes('type="range" id="s_signup_rate" min="0" max="30"'));
-
   const { settle } = await import('../src/apps/split.def.ts');
   const s = settle(specOf('split')!.example);
   assert.equal(s.total, 371.5);
@@ -725,16 +713,11 @@ test('small apps: the sums behind them', async () => {
   assert.ok(theirs.includes('this link is yours alone') && !theirs.includes(`give to ${gives.Ada}`) && !theirs.includes('their link'));
 
   // Each example is written as its form writes it; what is loosely written is read into that.
-  for (const id of ['flow', 'spinner', 'santa', 'split', 'log']) assert.equal(appOf(id)!.read!(specOf(id)!.example), specOf(id)!.example, id);
+  for (const id of ['spinner', 'santa', 'split']) assert.equal(appOf(id)!.read!(specOf(id)!.example), specOf(id)!.example, id);
   const read = (id: string, text: string) => appOf(id)!.read!(text);
   assert.equal(read('split', 'between: A, B\nA: 40, taxi'), '---\nbetween: A, B\n---\nWho | Amount:money | What\n--- | --- | ---\nA | 40 | taxi');
-  assert.equal(read('log', '1 March, Run, 5 km'), 'When | What | How much\n--- | --- | ---\n1 March | Run | 5 km');
   assert.equal(read('santa', 'Ada\n* Grace'), '- Ada\n- Grace');
   assert.equal(read('spinner', 'Ada\n+ Bo'), '- Ada\n- Bo');
-  assert.equal(read('flow', 'visitors = 100 (0 to 500)'), '- visitors = 100 (0 to 500)');
-
-  const { totals } = await import('../src/apps/log.def.ts');
-  assert.deepEqual(totals(specOf('log')!.example).sums.map((x) => [x.what, x.n, x.unit, x.times]), [['Run', 22.5, 'km', 3], ['Piano', 75, 'min', 2], ['Swim', 40, 'lengths', 1]]);
 
   const { hide } = await import('../src/apps/wordsearch.def.ts');
   const { grid, placed } = hide(['espresso', 'filter', 'cup'], 42);
@@ -849,7 +832,7 @@ test('lines: every text app can be filled in as a form, and what is saved is the
     assert.ok(own >= rows.length * 0.8, `${def.id}: ${own} of ${rows.length} lines have a kind`);
     assert.ok(kinds.every((k) => k.name));
   }
-  assert.ok(forms >= 19, String(forms));
+  assert.ok(forms >= 17, String(forms));
 
   // A form like a menu's: a title once, sections, a table of dishes. A table's rows are read by its column names, in whatever order.
   const menu: LineKind[] = [{ name: 'Name', is: '# {Name}', once: true }, { name: 'Section', is: '## {Section}', head: true }, { name: 'Dish', is: '{Dish} | {Price:money} | {About}', table: true }, { name: 'Line', is: '{Text}' }];
@@ -868,7 +851,6 @@ test('lines: every text app can be filled in as a form, and what is saved is the
   // Choices, optional parts, words between fields.
   const notes: LineKind[] = [{ name: 'Coloured note', is: '{Colour:choice=red,orange,green,blue,purple}: [:{Picture:icon} ]{Note}' }, { name: 'Note', is: '[:{Picture:icon} ]{Note}' }];
   assert.deepEqual(readLines('green: Thank them\nCall Sam: today', notes).map((r) => r.values), [['green', '', 'Thank them'], ['', 'Call Sam: today']]);
-  assert.deepEqual(readLines('- signup rate = 6% (0 to 30)\n\n~ Visitors -> Signups: visitors * signup rate', specOf('flow')!.form!).map((r) => r.values), [['signup rate', '6%', '0', '30'], ['Visitors', 'Signups', 'visitors * signup rate']]);
   // A break that means something (the next card) is a rule, kept as a row; lines of words are paragraphs.
   const cards: LineKind[] = [{ name: 'Picture', is: ':{Picture:icon}' }, { name: 'Next card', is: '' }, { name: 'Line', is: '{Text}' }];
   assert.equal(writeLines(readLines('A\nx\n\n---\n\nB\ny', cards), cards), 'A\n\nx\n\n---\n\nB\n\ny');

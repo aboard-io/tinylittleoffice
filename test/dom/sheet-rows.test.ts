@@ -1,6 +1,6 @@
 // The sheet's rows and columns, worked as a person would: a row's number opens insert and delete; a column's head opens its name, kind and sort.
 import { test, expect } from 'vitest';
-import { mount, settle, button, press, setSl } from './helpers.ts';
+import { mount, settle, button, press, setSl, type } from './helpers.ts';
 import { columnName, namesOf, parseGrid, typesOf } from '../../src/lib/formula.ts';
 
 const SHEET = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)';
@@ -66,4 +66,51 @@ test('a column head shows its letter and an arrow, its name in the row under; it
   await pick(el, head().closest('sl-dropdown')!, 'text');
   expect(columnName(2, typesOf(last()!), namesOf(last()!))).toBe('Paid on');
   expect(names()[2].value).toBe('Paid on');
+});
+
+test('a model: named cells work, locked cells are left be when typed into, and the bar unlocks them', async () => {
+  const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10';
+  const { el, last } = await mount('sheet', MODEL);
+  const cell = (ref: string) => el.querySelector<HTMLInputElement>(`input[aria-label="${ref}"]`)!;
+  expect(cell('C1').value).toBe('100');
+  expect(cell('C2').value).toBe('900');
+  // The Sankey is drawn under the table: a band a flow.
+  expect(el.querySelectorAll('.sheet-chart svg path')).toHaveLength(2);
+  // A reader changes an assumption and the model follows.
+  type(cell('E2'), '20');
+  await settle(el);
+  expect(cell('C1').value).toBe('200');
+  // The formulas are locked: typing into one changes nothing, and nor does a fill across it.
+  expect(cell('C1').readOnly).toBe(true);
+  expect(cell('C1').classList.contains('locked')).toBe(true);
+  type(cell('C1'), '5');
+  await settle(el);
+  expect(last()).toContain('=visitors*rate/100');
+  cell('B1').dispatchEvent(new FocusEvent('focus'));
+  cell('B1').select();
+  press(cell('B1'), 'ArrowRight', { shift: true });
+  await settle(el);
+  expect(el.querySelector('[aria-label="Selected cells"]')!.textContent).toBe('B1:C1');
+  button(el, 'Fill right from the first column').click();
+  await settle(el);
+  expect(last()).toContain('=visitors*rate/100');
+  // A row put in above moves the model down, lock and all; taken out again, it comes back up.
+  button(el, 'Row 1: insert or delete rows').click();
+  await settle(el);
+  await pick(el, el.querySelector('.row-menu')!, 'above');
+  expect(last()).toContain('lock: C2:C3');
+  expect(cell('C2').readOnly && cell('C2').value === '200').toBe(true);
+  button(el, 'Row 1: insert or delete rows').click();
+  await settle(el);
+  await pick(el, el.querySelector('.row-menu')!, 'delete');
+  expect(last()).toContain('lock: C1:C2');
+  // The author unlocks them from the bar, and may type then.
+  cell('C1').dispatchEvent(new FocusEvent('focus'));
+  await settle(el);
+  button(el, 'Unlock these cells').click();
+  await settle(el);
+  expect(last()).not.toContain('lock:');
+  type(cell('C1'), '5');
+  await settle(el);
+  expect(last()).toContain('| 5 |');
 });

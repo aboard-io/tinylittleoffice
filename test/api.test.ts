@@ -28,16 +28,19 @@ test('a link is made, read, shaped from Markdown, and compared', () => {
   assert.equal(c.same, false);
   assert.deepEqual(c.changes.filter((x) => x.kind !== ' '), [{ kind: '-', line: 'Rent | 1200' }, { kind: '+', line: 'Rent | 1300' }]);
   assert.ok(T.compare(u, u).same);
-  assert.ok(T.apps().some((a) => a.id === 'flow'));
+  assert.ok(T.apps().some((a) => a.id === 'sheet'));
   assert.ok(T.example('invoice').length > 10 && T.example('sheet').includes(' | '));
   assert.throws(() => T.link('nope', 'x'));
 });
 
-test('a model runs for the sliders as set', () => {
-  const r = T.runModel(T.example('flow'), { visitors: 10000 });
-  assert.equal(r.flows[0].from, 'Visitors');
-  assert.equal(r.flows[0].value, 600);
-  assert.ok(r.sliders.some((s) => s.name === 'visitors'));
+test('a model is a sheet: run with its assumptions changed by name, it gives its flows and its named values', () => {
+  const body = T.templates('sheet').find((t) => t.id === 'subscription')!.body;
+  const r = T.runModel(body, { Visitors: 10000, signup_rate: 10 });
+  assert.deepEqual(r.flows.slice(0, 2).map((f) => [f.from, f.to, f.value]), [['Visitors', 'Signups', 1000], ['Visitors', 'Bounced', 9000]]);
+  assert.equal(r.values.signups, 1000);
+  assert.equal(r.values.paying, 250);
+  // As it stands.
+  assert.deepEqual(T.runModel(body).flows.map((f) => f.value), [1200, 18800, 300, 900, 24, 276]);
 });
 
 test('signed, verified, sealed and opened', async () => {

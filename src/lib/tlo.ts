@@ -587,8 +587,8 @@ export const fenceRef = (b: { lang: string; body: string }) => `${b.lang}\n${b.b
 
 /* ---------- typed columns ---------- */
 
-export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' | 'check' | 'url' | 'rich' | 'long' | 'icon';
-export const COL_TYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon'];
+export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' | 'check' | 'url' | 'rich' | 'long' | 'icon' | 'name';
+export const COL_TYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name'];
 
 /** A column heading, "Price:money", as its name and type. */
 export function column(h: string): { name: string; type: ColType } {

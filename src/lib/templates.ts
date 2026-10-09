@@ -115,6 +115,16 @@ const WRITE: Template[] = [
 
 /** A sheet: its chart (or ''), the names over its columns with their types ("Price:money"), and its rows, A1 the first. */
 const sheet = (chart: string, head: string[], ...rows: string[][]) => writeTlo({ head: chart ? { chart } : {}, blocks: [{ k: 'table', head, rows: rows.map((r) => head.map((_, c) => r[c] ?? '')) }] }).trimEnd();
+/**
+ * A model: flows of From | To | Amount drawn as a Sankey, the assumptions
+ * beside them as named cells to play with, and the formulas locked so a
+ * reader changes the numbers and not the model. A total named for a stock
+ * is what flows into it (SUMIF over the To column), which a formula may
+ * then use by name.
+ */
+const MODEL_HEAD = ['From', 'To', 'Amount:number', 'Assumption:name', 'Value:number'];
+const model = (lock: string, ...rows: string[][]) => writeTlo({ head: { chart: 'sankey', lock }, blocks: [{ k: 'table', head: MODEL_HEAD, rows: rows.map((r) => MODEL_HEAD.map((_, c) => r[c] ?? '')) }] }).trimEnd();
+const into = (name: string) => `=SUMIF(B1:B20, "${name}", C1:C20)`;
 
 const SHEET: Template[] = [
   {
@@ -152,6 +162,93 @@ const SHEET: Template[] = [
     name: 'Loans compared',
     blurb: 'Amount, rate and years for each loan; the monthly payment (PMT), what it costs in all, and the interest.',
     body: sheet('', ['Loan:money', 'Rate:percent', 'Years:number', 'Monthly:money', 'Total paid:money', 'Interest:money'], ['20000', '6.5%', '5', '=PMT(B1/12,C1*12,-A1)', '=D1*C1*12', '=E1-A1'], ['15000', '7.9%', '3', '=PMT(B2/12,C2*12,-A2)', '=D2*C2*12', '=E2-A2'], ['30000', '5.5%', '7', '=PMT(B3/12,C3*12,-A3)', '=D3*C3*12', '=E3-A3']),
+  },
+  {
+    id: 'subscription',
+    name: 'A subscription business',
+    blurb: 'Visitors who sign up, pay and stay: a model as flows, with the assumptions beside it to change.',
+    body: model(
+      'C1:C6, E6:E8',
+      ['Visitors', 'Signups', '=visitors*signup_rate/100', 'Visitors', '20000'],
+      ['Visitors', 'Bounced', '=visitors-signups', 'Signup rate', '6'],
+      ['Signups', 'Paying', '=signups*paid_rate/100', 'Paid rate', '25'],
+      ['Signups', 'Free', '=signups-paying', 'Churn', '8'],
+      ['Paying', 'Churned', '=paying*churn/100'],
+      ['Paying', 'Retained', '=paying-churned', 'Signups', into('Signups')],
+      ['', '', '', 'Paying', into('Paying')],
+      ['', '', '', 'Churned', into('Churned')],
+    ),
+  },
+  {
+    id: 'cafe',
+    name: 'A café',
+    blurb: 'Customers a day, what they spend, and where the month\u2019s takings go: supplies, rent, wages, profit.',
+    body: model(
+      'C1:C5, E8:E9',
+      ['Customers', 'Revenue', '=customers_a_day*average_spend*days_open', 'Customers a day', '85'],
+      ['Revenue', 'Supplies', '=revenue*supplies_share/100', 'Average spend', '6.5'],
+      ['Revenue', 'Rent', '=rent', 'Days open', '26'],
+      ['Revenue', 'Wages', '=wages', 'Supplies share', '30'],
+      ['Revenue', 'Profit', '=revenue-supplies-rent-wages', 'Rent', '2400'],
+      ['', '', '', 'Wages', '5200'],
+      [],
+      ['', '', '', 'Revenue', into('Revenue')],
+      ['', '', '', 'Supplies', into('Supplies')],
+    ),
+  },
+  {
+    id: 'freelancer',
+    name: 'A freelancer',
+    blurb: 'Hours, rate and weeks make the year\u2019s invoices; expenses and tax come off; what is left is take-home.',
+    body: model(
+      'C1:C4, E7:E8',
+      ['Clients', 'Invoiced', '=hours_a_week*rate*weeks_a_year', 'Hours a week', '25'],
+      ['Invoiced', 'Expenses', '=expenses', 'Rate', '85'],
+      ['Invoiced', 'Tax', '=(invoiced-expenses)*tax_rate/100', 'Weeks a year', '46'],
+      ['Invoiced', 'Take-home', '=invoiced-expenses-tax', 'Expenses', '6000'],
+      ['', '', '', 'Tax rate', '28'],
+      [],
+      ['', '', '', 'Invoiced', into('Invoiced')],
+      ['', '', '', 'Tax', into('Tax')],
+    ),
+  },
+  {
+    id: 'fund',
+    name: 'A mutual aid fund',
+    blurb: 'Monthly donors and one-off gifts fill the fund; grants, a little admin and a reserve come out of it.',
+    body: model(
+      'C1:C5, E7:E8',
+      ['Monthly donors', 'Fund', '=monthly_donors*average_gift', 'Monthly donors', '120'],
+      ['One-off gifts', 'Fund', '=one_off_gifts', 'Average gift', '15'],
+      ['Fund', 'Grants', '=fund*grant_share/100', 'One-off gifts', '900'],
+      ['Fund', 'Admin', '=admin', 'Grant share', '80'],
+      ['Fund', 'Reserve', '=fund-grants-admin', 'Admin', '150'],
+      [],
+      ['', '', '', 'Fund', into('Fund')],
+      ['', '', '', 'Grants', into('Grants')],
+    ),
+  },
+  {
+    id: 'training',
+    name: 'Training log',
+    blurb: 'What you did and how much, a line a time; a total for each kind of thing.',
+    body: writeTlo({
+      head: { lock: 'F1:F3' },
+      blocks: [
+        {
+          k: 'table',
+          head: ['Date:date', 'What', 'How much:number', 'Unit', 'Kind', 'Total:number'],
+          rows: [
+            ['2027-03-01', 'Run', '5', 'km', 'Run', '=SUMIF(B1:B30, E1, C1:C30)'],
+            ['2027-03-02', 'Piano', '30', 'min', 'Piano', '=SUMIF(B1:B30, E2, C1:C30)'],
+            ['2027-03-03', 'Run', '7.5', 'km', 'Swim', '=SUMIF(B1:B30, E3, C1:C30)'],
+            ['2027-03-05', 'Swim', '40', 'lengths', '', ''],
+            ['2027-03-06', 'Piano', '45', 'min', '', ''],
+            ['2027-03-07', 'Run', '10', 'km', '', ''],
+          ],
+        },
+      ],
+    }).trimEnd(),
   },
   {
     id: 'months',

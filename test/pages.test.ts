@@ -17,7 +17,7 @@ const scriptsOf = (html: string) => [...html.matchAll(/<script([^>]*)>([\s\S]*?)
 
 test('every script a page carries is a registered, fixed one, so the CSP can allow it by hash', () => {
   const known = new Set(pageScripts());
-  assert.ok(known.size >= 8, `only ${known.size} page scripts are registered`);
+  assert.ok(known.size >= 7, `only ${known.size} page scripts are registered`);
   let seen = 0;
   for (const def of apps()) {
     if (!def.document) continue;

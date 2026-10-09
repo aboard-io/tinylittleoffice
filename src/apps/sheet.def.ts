@@ -1,7 +1,7 @@
 /** Sheet: what the shell knows about spreadsheets. Format and engine: lib/formula.ts. */
 import { defineApp, csv, utf8, xml, clip, rect, text, textWidth, LINE, SHADE, MUTED, type DownloadContext, type Page } from '../kit/core.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
-import { COLS, ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, rcToRef, readSheet, serializeGrid, shiftFormula, tableIn, tableSheet, usedSize, type CellValue, type Sheet } from '../lib/formula.ts';
+import { COLS, ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, nameKey, namedCells, rcToRef, readSheet, serializeGrid, shiftFormula, tableIn, tableSheet, usedSize, type CellValue, type Sheet } from '../lib/formula.ts';
 import { chartData, chartPage, type ChartKind } from '../lib/chart.ts';
 import { column, parse } from '../lib/tlo.ts';
 import { parseCsv } from '../lib/markdown.ts';
@@ -53,7 +53,7 @@ export function readSheetText(text: string): string {
     const rows = parseCsv(text.replace(/^﻿/, '').trim()).map((r) => r.map((v) => v.trim()));
     if (rows.length) table = { k: 'table', head: rows[0], rows: rows.slice(1) };
   }
-  const s = tableSheet(table, (doc.head.chart ?? '').toLowerCase());
+  const s = tableSheet(table, (doc.head.chart ?? '').toLowerCase(), doc.head.lock ?? '');
   if (table?.head.every((h) => column(h).type === 'text'))
     s.types = s.types.map((t, c) => {
       const cells = s.grid.map((row) => row[c].trim()).filter((v) => v && !v.startsWith('='));
@@ -63,12 +63,22 @@ export function readSheetText(text: string): string {
       if (cells.every((v) => /^\d{4}-\d{1,2}-\d{1,2}$/.test(v))) return 'date';
       return t;
     });
-  return serializeGrid(s.grid, s.chart, s.types, s.names);
+  return serializeGrid(s.grid, s.chart, s.types, s.names, s.lock);
 }
 
-/** Our formula dialect in Excel's: the only difference is the name of AVG. */
-export function toExcelFormula(raw: string): string {
-  return raw.slice(1).toUpperCase().replace(/\bAVG\s*\(/g, 'AVERAGE(');
+/** Our formula dialect in Excel's: AVG is AVERAGE there, and a named cell (see namedCells) is its reference, `off` rows down for the names' row. */
+export function toExcelFormula(raw: string, named?: Map<string, [number, number]>, off = 0): string {
+  const ref = (word: string) => {
+    const at = named?.get(nameKey(word));
+    return at && !/^[A-Za-z]{1,2}\d+$/.test(word) ? rcToRef(at[0] + off, at[1]) : word;
+  };
+  return raw
+    .slice(1)
+    .split(/("[^"]*")/)
+    .map((part, i) => (i % 2 ? part : part.replace(/\b[A-Za-z_][A-Za-z0-9_]*\b(?!\s*\()/g, ref)))
+    .join('')
+    .toUpperCase()
+    .replace(/\bAVG\s*\(/g, 'AVERAGE(');
 }
 
 export function sheetToXlsx(body: string, ctx: DownloadContext): Uint8Array {
@@ -80,6 +90,7 @@ export function sheetToXlsx(body: string, ctx: DownloadContext): Uint8Array {
   // The names go in Excel's first row, so every row of ours is one further down, and so is every reference.
   const h = headings(u);
   const off = h ? 1 : 0;
+  const named = namedCells(grid, types);
   let data = h ? `<row r="1">${h.map((name, c) => (name ? str(rcToRef(0, c), name) : '')).join('')}</row>` : '';
   for (let r = 0; r < rows; r++) {
     let cells = '';
@@ -90,7 +101,7 @@ export function sheetToXlsx(body: string, ctx: DownloadContext): Uint8Array {
       const v = values[r][c];
       if (raw.startsWith('=')) {
         // Excel recalculates on open; the cached value is for everything else.
-        const f = `<f>${x(toExcelFormula(shiftFormula(raw, off, 0)))}</f>`;
+        const f = `<f>${x(toExcelFormula(shiftFormula(raw, off, 0), named, off))}</f>`;
         cells += typeof v === 'number' && isFinite(v) ? `<c r="${ref}"${styleOf(c)}>${f}<v>${v}</v></c>` : `<c r="${ref}" t="str">${f}<v>${x(formatValue(v))}</v></c>`;
       } else if (typeof v === 'number' && isFinite(v) && types[c] !== 'check') {
         cells += `<c r="${ref}"${styleOf(c)}><v>${v}</v></c>`;
@@ -197,7 +208,7 @@ function gridPage(u: Measured): Page {
 
 /** The table as a chart reads it: numbers where a column holds numbers, words (dates, links, ticks) elsewhere; each series named by its column. */
 export function chartOfSheet({ values, rows, types, names }: Measured) {
-  const counts = ['text', 'number', 'money', 'percent'];
+  const counts = ['text', 'name', 'number', 'money', 'percent'];
   return chartData(
     values.slice(0, rows).map((row) => row.map((v, c) => (counts.includes(types[c]) || typeof v !== 'number' ? v : formatCell(v, types[c])))),
     names.map((_, c) => columnName(c, types, names)),
@@ -224,7 +235,8 @@ export default defineApp({
   // (A chart builds too: a bar, a point or a slice per click.)
   steps(body) {
     const u = usedGrid(body);
-    return u.chart ? chartOfSheet(u).labels.length : shown(u).flat().filter(Boolean).length;
+    const d = u.chart ? chartOfSheet(u) : null;
+    return d ? (u.chart === 'sankey' ? (d.flows ?? []).length : d.labels.length) : shown(u).flat().filter(Boolean).length;
   },
   html(body) {
     const u = usedGrid(body);

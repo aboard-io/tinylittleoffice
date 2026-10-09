@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','site','store','invoice','contract','zine','booklet','brochure','comic','poster','badges','flow','calc','pixel','seating','family','timeline','wordsearch','spinner','santa','split','log','web','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','site','store','invoice','contract','zine','booklet','brochure','comic','poster','badges','calc','pixel','seating','family','timeline','wordsearch','spinner','santa','split','web','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -108,6 +108,10 @@ test('sheet to csv: the names over the columns, computed values, quoting, used r
 
 test('sheet to xlsx: formulas survive in Excel dialect', () => {
   assert.equal(toExcelFormula('=round(avg(A1:A3),1)'), 'ROUND(AVERAGE(A1:A3),1)');
+  // A named cell is its reference there (a row down, for the names' row); words in quotes and functions are left alone.
+  const refs = new Map<string, [number, number]>([['VISITORS', [0, 4]], ['SIGNUP_RATE', [1, 4]]]);
+  assert.equal(toExcelFormula('=visitors*signup_rate/100', refs, 1), 'E2*E3/100');
+  assert.equal(toExcelFormula('=SUMIF(B1:B9, "visitors", C1:C9)+ROUND(visitors)', refs, 1), 'SUMIF(B1:B9, "VISITORS", C1:C9)+ROUND(E2)');
   const files = unzipSync(sheetToXlsx('ColA | ColB\n--- | ---\n10 | A & <B>\n32 |\n=AVG(A1:A2) | =A1/0', ctx));
   assert.equal(Object.keys(files)[0], '[Content_Types].xml');
   const sheet = strFromU8(files['xl/worksheets/sheet1.xml']);

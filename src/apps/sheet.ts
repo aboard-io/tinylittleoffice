@@ -11,7 +11,7 @@
  * to its longest value, and header edges can be dragged.
  */
 import { DocElement, defineElement, html, state, unsafeSVG, tool, icon, UI, keyLabel, clamp, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
-import { COLS, ROWS, COL_NAMES, COLUMN_TYPES, FUNCTIONS, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, readSheet, serializeGrid, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, usedSize, type CellValue, type Range, type Sheet } from '../lib/formula.ts';
+import { COLS, ROWS, COL_NAMES, isLocked, lockedRanges, remapLock, rowsIn, rowsOut, withLock, COLUMN_TYPES, FUNCTIONS, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, readSheet, serializeGrid, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, usedSize, type CellValue, type Range, type Sheet } from '../lib/formula.ts';
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet, measured } from './sheet.def.ts';
 import { linkify, parseInline } from '../lib/richtext.ts';
@@ -70,8 +70,8 @@ export class ToSheet extends DocElement<Sheet> {
     this.text = text;
     return readSheet(text);
   }
-  protected serialize({ grid, chart, types, names }: Sheet) {
-    return (this.text = serializeGrid(grid, chart, types, names));
+  protected serialize({ grid, chart, types, names, lock }: Sheet) {
+    return (this.text = serializeGrid(grid, chart, types, names, lock));
   }
 
   protected willUpdate(changed: PropertyValues) {
@@ -84,11 +84,31 @@ export class ToSheet extends DocElement<Sheet> {
     }
   }
 
+  /**
+   * Locked cells are the model's own: whatever typing, pasting, filling or
+   * clearing would do to them is undone here. A change that brings its own
+   * lock (rows put in or taken out, or the lock itself) has moved the cells
+   * and the lock together, and goes through as it is.
+   */
   private save(change: Partial<Sheet>) {
+    const { lock, grid: was } = this.doc;
+    if (change.grid && lock && change.lock === undefined) {
+      const grid = change.grid;
+      for (const g of lockedRanges(lock)) for (let r = g.r0; r <= g.r1; r++) for (let c = g.c0; c <= g.c1; c++) if (grid[r][c] !== was[r][c]) (grid[r] = grid[r].slice())[c] = was[r][c];
+    }
     this.commit({ ...this.doc, ...change });
+  }
+  private locked(r: number, c: number) {
+    return !!this.doc.lock && isLocked(this.doc.lock, r, c);
+  }
+  /** The selected cells locked, or let go. */
+  private toggleLock() {
+    const g = this.range;
+    this.save({ lock: withLock(this.doc.lock, g, !this.locked(g.r0, g.c0)) });
   }
 
   private setCell(r: number, c: number, raw: string) {
+    if (this.locked(r, c)) return;
     const grid = this.doc.grid.map((row) => row.slice());
     grid[r][c] = raw;
     this.save({ grid });
@@ -212,9 +232,9 @@ export class ToSheet extends DocElement<Sheet> {
     const grid = insertRows(this.doc.grid, below ? r1 + 1 : r0, n);
     this.rowMenu = null;
     if (!grid) return void this.dispatchEvent(new CustomEvent('to-toast', { detail: 'The sheet is full: its last rows hold something.', bubbles: true, composed: true }));
-    this.save({ grid });
-    // The new rows are selected, ready to type into.
     const at = below ? r1 + 1 : r0;
+    this.save({ grid, lock: remapLock(this.doc.lock, rowsIn(at, n)) });
+    // The new rows are selected, ready to type into.
     this.sel = [at, this.sel[1]];
     this.end = n > 1 ? [at + n - 1, this.sel[1]] : null;
     this.focusCell(at, this.sel[1], n > 1);
@@ -222,7 +242,7 @@ export class ToSheet extends DocElement<Sheet> {
   private deleteRowsAt(r?: number) {
     const [r0, r1] = this.rowsFor(r);
     this.rowMenu = null;
-    this.save({ grid: deleteRows(this.doc.grid, r0, r1) });
+    this.save({ grid: deleteRows(this.doc.grid, r0, r1), lock: remapLock(this.doc.lock, rowsOut(r0, r1)) });
     this.end = null;
     this.focusCell(Math.min(r0, ROWS - 1), this.sel[1]);
   }
@@ -517,6 +537,7 @@ export class ToSheet extends DocElement<Sheet> {
           ${tool('Fit to page', 'fit', () => (this.widths = null), { pressed: !w })}
           ${tool('Show all text', 'expand', () => (this.widths = COL_NAMES.map((_, c) => this.naturalWidth(c))))}
         </sl-button-group>
+        ${tool(this.locked(sr, sc) ? 'Unlock these cells' : 'Lock these cells, so a reader leaves them be', this.locked(sr, sc) ? 'lock' : 'unlock', () => this.toggleLock(), { pressed: this.locked(sr, sc) })}
         ${this.text ? '' : templateTool('sheet', this.useTemplate)}
       </div>
       ${this.text ? '' : templateGallery('sheet', this.useTemplate)}
@@ -531,7 +552,7 @@ export class ToSheet extends DocElement<Sheet> {
               <td class="corner"></td>
               ${COL_NAMES.map(
                 (n, c) => html`<th scope="col">
-                  <sl-dropdown hoist class="col-menu-drop" @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save({ grid: sortRows(grid, c, e.detail.item.value === 'sort:desc') }) : this.setType(c, e.detail.item.value))}>
+                  <sl-dropdown hoist class="col-menu-drop" @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save({ grid: sortRows(grid, c, e.detail.item.value === 'sort:desc'), lock: this.doc.lock }) : this.setType(c, e.detail.item.value))}>
                     <button slot="trigger" class="col-type" aria-label="Column ${n}: ${COLUMN_TYPES.find((t) => t.id === types[c])!.name}. Change what it holds, or sort by it" data-tip="What it holds; sort">
                       <span class="cl">${n}</span>${icon(UI.down, 12)}
                     </button>
@@ -570,7 +591,8 @@ export class ToSheet extends DocElement<Sheet> {
                   const shown = isSel ? raw : formatCell(v, type);
                   const link = type === 'url' && /^https?:\/\/\S+$/.test(raw.trim()) ? raw.trim() : '';
                   const rich = type === 'rich' && !isSel && raw !== '' && !raw.startsWith('=');
-                  const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'check' ? ' tick' : '');
+                  const locked = this.locked(r, c);
+                  const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (rich ? ' under' : '') + (type === 'check' ? ' tick' : '') + (locked ? ' locked' : '') + (type === 'name' ? ' named' : '');
                   const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
                   const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
                   return html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>
@@ -579,8 +601,9 @@ export class ToSheet extends DocElement<Sheet> {
                       class=${cls}
                       aria-label=${rcToRef(r, c)}
                       .value=${shown}
-                      data-tip=${raw.startsWith('=') ? raw : ''}
+                      data-tip=${locked ? `${raw.startsWith('=') ? raw + '. ' : ''}Locked: part of the model` : raw.startsWith('=') ? raw : ''}
                       placeholder=${isSel && type === 'date' ? 'YYYY-MM-DD' : ''}
+                      ?readonly=${locked}
                       autocomplete="off"
                       @focus=${() => {
                         if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;

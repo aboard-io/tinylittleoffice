@@ -88,8 +88,11 @@ app's are `sides: 2` and `pages: 12`. **comic** panels are bullets:
 **sheet**: one table. Its header row holds the column names (shown above
 the letters), each with its type. Its rows are rows 1, 2, 3 and so on, so
 `=SUM(B1:B3)` adds the first three. The header holds `chart: bar`
-(`line`, `pie`). A sheet is written with at least two columns; a table of
-one column keeps its outer pipes.
+(`line`, `pie`, or `sankey` for rows of From | To | Amount), and
+`lock: C1:C6, E7`, the cells a reader is to leave be. A column typed
+`name` names, with each of its cells, the cell to its right, and a formula
+may use the name (`=visitors*signup_rate`). A sheet is written with at
+least two columns; a table of one column keeps its outer pipes.
 
 ```
 ---
@@ -149,11 +152,6 @@ table `Name | Choice`. **spinner** is a `- ` list of choices. **madlibs**
 is paragraphs with `[blanks]`. **split** has the header
 `between: Ann, Bo` and a table `Who | Amount:money | What`. **santa**
 lists the people as a `- ` list, and each draw is an edge `~ Ann -> Bo`.
-**log** is a table of its entries.
-
-**flow**: the sliders are a list,
-`- visitors = 20000 (0 to 100000)`. The flows are edges,
-`~ Visitors -> Signups: visitors * signup rate`.
 
 **lanes**: `- Who: what they do`, in order. **venn**: `- Set: thing, thing`
 and `- A & B: thing`. **net**: edges, plus `- name` for a node on its own.

@@ -1,8 +1,8 @@
 /**
  * The API for programs (and agents): TinyLittleOffice without a browser.
  * A document is a link; this makes links, reads them, turns documents to
- * and from Markdown or CSV, evaluates a sheet or a stock-and-flow model,
- * and signs and verifies. Nothing here touches the DOM; it runs in Node
+ * and from Markdown or CSV, evaluates a sheet (a model is a sheet), and
+ * signs and verifies. Nothing here touches the DOM; it runs in Node
  * as it runs in the page. Published as @tinylittleoffice/doc.
  */
 import { altOf } from './lib/drawmodel.ts';
@@ -10,8 +10,8 @@ import './apps/index.ts';
 import { LINK, appOf, apps as registry, type AppDef } from './kit/core.ts';
 import { decodeEnvelope, encodeEnvelope, packEnvelope, quantizeCreated, signingMessage, unpackEnvelope, type Envelope } from './lib/envelope.ts';
 import { fromMarkdown, toMarkdown, parseCsv, looksLikeCsv, readPlainLink } from './lib/markdown.ts';
-import { evaluateGrid, formatCell, parseGrid, typesOf } from './lib/formula.ts';
-import { parseFlow, runFlow } from './apps/flow.def.ts';
+import { evaluateGrid, formatCell, nameKey, namedCells, parseGrid, readSheet, typesOf } from './lib/formula.ts';
+import { flowsOf } from './lib/chart.ts';
 import { createSigner, fingerprintOf, verify, type KeyStore, type Signer } from './lib/sign.ts';
 import { newLocker, seal, unseal, isSealed } from './lib/crypt.ts';
 import { URL_LIMIT } from './lib/codec.ts';
@@ -201,13 +201,24 @@ export function evaluateSheet(body: string): string[][] {
   return rows.map((r) => r.slice(0, w));
 }
 
-/** A stock-and-flow model, run: every flow's value for the sliders as set (by id or name), with the model's own values where not. */
-export function runModel(body: string, sliders: Record<string, number> = {}): { flows: { from: string; to: string; value: number }[]; sliders: { id: string; name: string; value: number; min: number; max: number; unit: string }[] } {
-  const m = parseFlow(body);
-  const values: Record<string, number> = {};
-  for (const [k, v] of Object.entries(sliders)) values[m.sliders.find((s) => s.name.toLowerCase() === k.toLowerCase())?.id ?? k] = v;
-  const out = runFlow(m, values);
-  return { flows: m.flows.map((f, i) => ({ from: f.from, to: f.to, value: out[i] })), sliders: m.sliders };
+/**
+ * A model is a sheet with named cells (see lib/formula.ts): run it with
+ * some of its assumptions changed, by name ("Signup rate" or signup_rate),
+ * and read the flows it draws (rows of From | To | Amount) and every named
+ * cell's value.
+ */
+export function runModel(body: string, assumptions: Record<string, number> = {}): { flows: { from: string; to: string; value: number }[]; values: Record<string, number> } {
+  const sheet = readSheet(body);
+  const grid = sheet.grid.map((row) => row.slice());
+  const named = namedCells(grid, sheet.types);
+  for (const [k, v] of Object.entries(assumptions)) {
+    const at = named.get(nameKey(k));
+    if (at) grid[at[0]][at[1]] = String(v);
+  }
+  const values = evaluateGrid(grid, sheet.types);
+  const out: Record<string, number> = {};
+  for (const [name, [r, c]] of named) if (typeof values[r][c] === 'number') out[name.toLowerCase()] = values[r][c] as number;
+  return { flows: flowsOf(values, sheet.names), values: out };
 }
 
 export interface Warning {
