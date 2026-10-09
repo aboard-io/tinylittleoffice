@@ -119,6 +119,7 @@ export class ToHome extends LitElement {
   }
   render() {
     return html`<div class="to-home">
+      <h1 class="to-home-title">TinyLittleOffice</h1>
       <p class="to-home-lede">${t('A tiny office suite that lives entirely in the URL. The link is the document.')}</p>
       ${groups().map(
         (g) => html`<section class="to-group" aria-labelledby="group-${g.group}">

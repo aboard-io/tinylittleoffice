@@ -530,8 +530,12 @@
   }
 
   /* ---- home ---- */
+  .to-home-title {
+    margin: 8px 0 0;
+    font-size: 24px;
+  }
   .to-home-lede {
-    margin: 8px 0 24px;
+    margin: 4px 0 24px;
     font-size: 18px;
     color: var(--to-ink-2);
     max-width: 40em;

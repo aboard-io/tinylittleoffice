@@ -210,6 +210,7 @@ export class ToShell extends LitElement {
     return html`<header class="to-header">
       ${burger}
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {app}', { app: def.name })} aria-label=${t('New {app}', { app: def.name })}>${icon(def.icon, 24)}</a>
+      <h1 class="sr-only">${this.docTitle}</h1>
       <input class="to-title" type="text" placeholder=${t('Untitled {app}', { app: def.name })} aria-label=${t('Title')} autocomplete="off" .value=${title} @change=${(e: Event) => this.change(def.retitle(this.doc, (e.target as HTMLInputElement).value.trim()))} />
       <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.dialog('doc')?.show()}>
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
