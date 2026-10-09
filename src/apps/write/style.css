@@ -11,6 +11,7 @@
 
   /* The paper: as wide as its page at 96 px to the inch, the margin an inch, less on a phone. */
   .write-page {
+    touch-action: manipulation;
     --write-w: 816px;
     --write-m: 96px;
     width: 100%;
@@ -132,7 +133,19 @@
     outline-offset: -1px;
   }
 
-  /* A table block: a small grid, the names over the columns, numbers to the right, the locked cells shaded. */
+  /* A card in hand (it has the focus): outlined, whichever way it was taken. */
+  .write-page .tx .tx-card:focus {
+    outline: 2px solid var(--to-paper-accent);
+    outline-offset: 2px;
+  }
+
+  /* A table block: a small grid, the names over the columns, numbers to the right, the locked cells shaded.
+     It scrolls sideways in its own box when it is wider than the paper, so the page never does. */
+  to-write-table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
   table.wt {
     width: 100%;
     margin: 4px 0;
@@ -158,6 +171,118 @@
     font-weight: 500;
     text-align: center;
   }
+  /* A column's head and a row's number are buttons: a tap chooses the column or the row and opens its menu. */
+  table.wt th:has(> .wt-col) {
+    padding: 0;
+  }
+  table.wt .wt-col,
+  table.wt .wt-num,
+  table.wt .wt-hand,
+  table.wt .wt-add-col {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    cursor: pointer;
+  }
+  table.wt th.letter .wt-col,
+  table.wt .wt-num,
+  table.wt .wt-hand,
+  table.wt .wt-add-col {
+    justify-content: center;
+  }
+  table.wt .wt-col:hover,
+  table.wt .wt-num:hover,
+  table.wt .wt-hand:hover,
+  table.wt .wt-add-col:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--to-paper-accent) 10%, transparent);
+  }
+  table.wt .wt-col:focus-visible,
+  table.wt .wt-num:focus-visible,
+  table.wt .wt-hand:focus-visible,
+  table.wt .wt-add-col:focus-visible {
+    outline: 2px solid var(--to-paper-accent);
+    outline-offset: -2px;
+  }
+  table.wt th.wt-row,
+  table.wt .wt-corner {
+    width: 28px;
+    padding: 0;
+    background: var(--to-paper-shade);
+  }
+  table.wt .wt-num,
+  table.wt .wt-hand,
+  table.wt .wt-add-col {
+    padding: 0;
+    color: var(--to-paper-muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  table.wt .wt-add,
+  table.wt .wt-pad {
+    width: 28px;
+    border: 0;
+    background: none;
+  }
+  table.wt .wt-add-col:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  @media (pointer: coarse) {
+    table.wt .wt-col,
+    table.wt .wt-num,
+    table.wt .wt-hand,
+    table.wt .wt-add-col {
+      min-height: var(--to-touch);
+    }
+  }
+  /* The cells of a range, and those a fill would write; the handle at the range's corner. */
+  table.wt td {
+    position: relative;
+  }
+  table.wt td.in {
+    background: color-mix(in srgb, var(--to-paper-accent) 14%, transparent);
+  }
+  table.wt td.filling {
+    outline: 1px dashed var(--to-paper-accent);
+    outline-offset: -1px;
+  }
+  table.wt.selecting td input {
+    caret-color: transparent;
+  }
+  table.wt .wt-fill {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--to-paper);
+    background: var(--to-paper-accent);
+    cursor: crosshair;
+    touch-action: none;
+    z-index: 1;
+  }
+  @media (pointer: coarse) {
+    table.wt .wt-fill::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+  }
+  .wt-rowmenu > button,
+  .wt-colmenu > button {
+    display: none;
+  }
   table.wt td input {
     width: 100%;
     min-width: 4em;
@@ -169,6 +294,7 @@
     font: inherit;
     font-size: 16px;
     text-overflow: ellipsis;
+    touch-action: manipulation;
   }
   table.wt td input.num {
     text-align: right;
@@ -309,10 +435,6 @@
     color: var(--to-ink-3);
   }
 
-  /* The menus a card opens have no button of their own in the bar. */
-  .write-cardmenu > button {
-    display: none;
-  }
   .write-ask-form {
     display: flex;
     flex-direction: column;

@@ -3,6 +3,8 @@ import { test, expect } from 'vitest';
 import { render, html } from 'lit';
 import '../../src/kit/insert.ts';
 import type { ToInsert } from '../../src/kit/insert.ts';
+import type { ToMenu } from '../../src/kit/menu.ts';
+import '../../src/kit/menu.ts';
 import { UI } from '../../src/kit/icons.ts';
 import { until } from './helpers.ts';
 import '../../src/styles.css';
@@ -63,4 +65,34 @@ test('Escape closes the menu and puts focus back on the button', async () => {
   el.close();
   await until(() => !el.isOpen);
   expect(document.activeElement).toBe(el.button);
+});
+
+test('a keep menu, opened and chosen from by a pointer, never takes the focus from the editor it acts on', async () => {
+  document.body.innerHTML = '<div id="box"></div>';
+  const chosen: string[] = [];
+  render(
+    html`<div contenteditable="true" id="words">words</div>
+      <to-menu keep label="Align" .items=${[{ label: 'Centre', does: () => chosen.push('centre') }]}></to-menu>`,
+    document.querySelector('#box')!,
+  );
+  const words = document.querySelector<HTMLElement>('#words')!;
+  const el = document.querySelector<ToMenu>('to-menu')!;
+  await el.updateComplete;
+  words.focus();
+  const down = (target: HTMLElement) => target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  expect(down(el.button)).toBe(false);
+  el.button.click();
+  await until(() => el.isOpen);
+  expect(document.activeElement).toBe(words);
+  const item = el.querySelector<HTMLElement>('[role=menuitem]')!;
+  expect(down(item)).toBe(false);
+  item.click();
+  await until(() => !el.isOpen);
+  expect(chosen).toEqual(['centre']);
+  expect(document.activeElement).toBe(words);
+  // From the keyboard it is an ordinary menu: the items take the focus to be walked.
+  el.button.focus();
+  el.open();
+  await until(() => document.activeElement === el.querySelector('[role=menuitem]'));
+  el.close();
 });

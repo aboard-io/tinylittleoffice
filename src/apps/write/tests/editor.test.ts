@@ -5,10 +5,11 @@
 // the page never scrolls.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
+import { parse } from '../../../doc/index.ts';
 import '../editor.ts';
 import type { ToWriteEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
-import { tick, until } from '../../../../test/browser/helpers.ts';
+import { mount, tick, until } from '../../../../test/browser/helpers.ts';
 import '../../../styles.css';
 
 async function editor(value = ''): Promise<{ el: ToWriteEditor; changes: string[]; last: () => string | undefined }> {
@@ -73,7 +74,7 @@ test('typing is the document; the bar makes the block a title and marks the word
   // The title the shell sets is a head op in the history, undone like any other.
   el.value = '---\ntitle: Named\n---\n# **Hello** there {.title}\n';
   await el.updateComplete;
-  expect(el.history.canUndo).toBe(true);
+  expect(el.canUndo).toBe(true);
   expect(el.dispatchEvent(new CustomEvent('docundo', { cancelable: true, bubbles: true }))).toBe(false);
   await until(() => last() === '# **Hello** there {.title}\n');
 });
@@ -124,7 +125,7 @@ test('Insert ▾ puts in a table: a grid whose cells are the document, a formula
   expect(document.activeElement).toBe(b1);
 });
 
-test('the invoice: money in the head\'s currency, Amount locked, a quantity changed changes the amount, Enter puts a line in inside the sum', async () => {
+test('the invoice: money in the head\'s currency, Amount locked, a quantity changed changes the amount; Enter goes down, a row comes from its menu inside the sum', async () => {
   const { el, last } = await editor(invoice().replace('currency: $', 'currency: €'));
   await until(() => !!cell(el, 'E7'));
   expect(cell(el, 'E7').value).toBe('€5,486.40');
@@ -132,10 +133,15 @@ test('the invoice: money in the head\'s currency, Amount locked, a quantity chan
   expect(el.querySelector<HTMLTextAreaElement>('#write-field-from')!.value).toBe('Harbor Studio\n14 Quay Street\nPortland, ME 04101');
   await typeCell(el, cell(el, 'B1'), '20');
   await until(() => cell(el, 'E7').value === '€6,782.40');
-  cell(el, 'B1').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  await until(() => (last() ?? '').includes('=SUM(E1:E5)'));
+  const before = last();
+  cell(el, 'B1').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   await until(() => document.activeElement === cell(el, 'B2'));
-  expect(cell(el, 'B2').value).toBe('');
+  expect(last()).toBe(before);
+  // A row is put in by its number's menu, never by a key: under the last line, inside the subtotal's reach.
+  await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-num')[2], 'Insert a row below');
+  await until(() => (last() ?? '').includes('=SUM(E1:E5)'));
+  await until(() => document.activeElement === cell(el, 'A4'));
+  expect(cell(el, 'A4').value).toBe('');
   // The head's fields are inputs over the text; a change is a head op.
   const number = el.querySelector<HTMLInputElement>('#write-field-number')!;
   number.value = '0043';
@@ -186,4 +192,403 @@ test('at phone width: the bar is one row, nothing is wider than the screen, and 
   } finally {
     await page.viewport(1100, 800);
   }
+});
+
+/* ---------- the editing standard (docs/editing.md), path by path ---------- */
+
+const key = (target: EventTarget, k: string, init: KeyboardEventInit = {}) => {
+  const ev = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...init });
+  target.dispatchEvent(ev);
+  return ev;
+};
+const clip = (target: EventTarget, type: 'copy' | 'cut' | 'paste', data: Record<string, string> = {}) => {
+  const dt = new DataTransfer();
+  for (const [k, v] of Object.entries(data)) dt.setData(k, v);
+  const ev = new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true, composed: true });
+  target.dispatchEvent(ev);
+  return { ev, dt };
+};
+const undo = (el: ToWriteEditor) => el.dispatchEvent(new CustomEvent('docundo', { cancelable: true, bubbles: true }));
+const redo = (el: ToWriteEditor) => el.dispatchEvent(new CustomEvent('docredo', { cancelable: true, bubbles: true }));
+const card = (el: ToWriteEditor, at: number) => el.text.tx.children[at] as HTMLElement;
+const barItems = () => [...document.querySelectorAll<HTMLButtonElement>('to-context.write-cardbar .to-context:popover-open button')].map((b) => b.getAttribute('aria-label'));
+const PIC = '![a picture](https://example.com/a.png)';
+
+test('§1 the bar ends with Undo and Redo, off with nothing to do', async () => {
+  const { el } = await editor('Words\n');
+  const tools = [...el.querySelectorAll<HTMLButtonElement>('to-bar.write-bar > *')];
+  expect(tools.slice(-2).map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
+  expect(button(el, 'Undo').disabled).toBe(true);
+});
+
+test('§1 Mod+Z: a burst of typing is one step only in one place; typing here and then at once there is two, each with its caret', async () => {
+  const { el, last } = await editor('One\n\nTwo\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 3 }, focus: { block: 0, offset: 3 } };
+  await tick();
+  await type(el, 'ab');
+  el.text.sel = { anchor: { block: 1, offset: 3 }, focus: { block: 1, offset: 3 } };
+  await tick();
+  await type(el, 'cd');
+  expect(last()).toBe('Oneab\n\nTwocd\n');
+  undo(el);
+  await until(() => last() === 'Oneab\n\nTwo\n');
+  await until(() => el.text.sel?.focus.block === 1 && el.text.sel.focus.offset === 3);
+  undo(el);
+  await until(() => last() === 'One\n\nTwo\n');
+  await until(() => el.text.sel?.focus.block === 0 && el.text.sel.focus.offset === 3);
+  redo(el);
+  await until(() => last() === 'Oneab\n\nTwo\n');
+  await until(() => el.text.sel?.focus.block === 0 && el.text.sel.focus.offset === 5);
+});
+
+test('§1 Mod+Z after a cell edit puts the focus back in that cell', async () => {
+  const { el, last } = await editor('Words\n\nA | B\n--- | ---\n1 | 2\n\nAfter\n');
+  await until(() => !!cell(el, 'B1'));
+  await typeCell(el, cell(el, 'B1'), '22');
+  await until(() => (last() ?? '').includes('1 | 22'));
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  await tick();
+  undo(el);
+  await until(() => (last() ?? '').includes('1 | 2\n'));
+  await until(() => document.activeElement === cell(el, 'B1'));
+});
+
+test('§1 Mod+Z in the Ask dialog is the field\'s own: the document behind it is left alone', async () => {
+  const shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  const el = shell.querySelector<ToWriteEditor>('to-write-editor')!;
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  await type(el, 'abc');
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Picture');
+  await until(() => !!el.querySelector('.write-ask-form input'));
+  const field = el.querySelector<HTMLInputElement>('.write-ask-form input')!;
+  field.focus();
+  expect(key(field, 'z', { ctrlKey: true }).defaultPrevented).toBe(false);
+  await tick(50);
+  expect(el.value).toBe('abc\n');
+});
+
+test('§1/§6 a card in hand: a tap takes it, the bar under it is in the standard\'s order, and Enter edits it', async () => {
+  const { el } = await editor(`One\n\n${PIC}\n\nTwo\n`);
+  await until(() => !!card(el, 1)?.classList.contains('tx-card'));
+  card(el, 1).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await until(() => document.activeElement === card(el, 1));
+  await until(() => barItems().length > 0);
+  expect(barItems()).toEqual(['Change the address…', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  // The bar's buttons never take the focus from the card.
+  const del = document.querySelector<HTMLButtonElement>('to-context.write-cardbar button[aria-label="Delete"]')!;
+  expect(del.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))).toBe(false);
+  expect(key(card(el, 1), 'Enter').defaultPrevented).toBe(true);
+  await until(() => !!el.querySelector<HTMLInputElement>('.write-ask-form input'));
+  expect(el.querySelector<HTMLInputElement>('.write-ask-form input')!.value).toBe('https://example.com/a.png');
+});
+
+test('§1 Mod+C, Mod+X, Mod+V on a card in hand: TLO and our HTML; a cut takes it out, a paste puts it in after the card in hand', async () => {
+  const { el, last } = await editor(`One\n\n${PIC}\n\nTwo\n`);
+  await until(() => !!card(el, 1));
+  card(el, 1).focus();
+  await until(() => el.cardAt === 1);
+  const { ev, dt } = clip(card(el, 1), 'copy');
+  expect(ev.defaultPrevented).toBe(true);
+  expect(dt.getData('text/plain')).toBe(`${PIC}\n`);
+  expect(dt.getData('text/html')).toContain('<meta name="generator" content="TinyLittleOffice">');
+  expect(dt.getData('text/html')).toContain('<img src="https://example.com/a.png"');
+  const cut = clip(card(el, 1), 'cut');
+  expect(cut.dt.getData('text/plain')).toBe(`${PIC}\n`);
+  await until(() => last() === 'One\n\nTwo\n');
+  // Into the words, an ordinary paste; onto a card in hand, after it.
+  const { el: el2, last: last2 } = await editor(`One\n\n${PIC}\n\nTwo\n`);
+  await until(() => !!card(el2, 1));
+  card(el2, 1).focus();
+  await until(() => el2.cardAt === 1);
+  clip(card(el2, 1), 'paste', { 'text/plain': `${PIC}\n`, 'text/html': dt.getData('text/html') });
+  await until(() => last2() === `One\n\n${PIC}\n\n${PIC}\n\nTwo\n`);
+  await until(() => document.activeElement === card(el2, 2));
+});
+
+test('§1 Mod+D, Alt+Up/Down, Delete on a card in hand; each undone with the card back in hand', async () => {
+  const { el, last } = await editor(`One\n\n${PIC}\n\nTwo\n`);
+  await until(() => !!card(el, 1));
+  card(el, 1).focus();
+  await until(() => el.cardAt === 1);
+  expect(key(card(el, 1), 'd', { ctrlKey: true }).defaultPrevented).toBe(true);
+  await until(() => last() === `One\n\n${PIC}\n\n${PIC}\n\nTwo\n`);
+  await until(() => document.activeElement === card(el, 2));
+  undo(el);
+  await until(() => last() === `One\n\n${PIC}\n\nTwo\n`);
+  await until(() => document.activeElement === card(el, 1));
+  key(card(el, 1), 'ArrowUp', { altKey: true });
+  await until(() => last() === `${PIC}\n\nOne\n\nTwo\n`);
+  await until(() => document.activeElement === card(el, 0));
+  key(card(el, 0), 'ArrowDown', { altKey: true });
+  await until(() => last() === `One\n\n${PIC}\n\nTwo\n`);
+  await until(() => document.activeElement === card(el, 1));
+  key(card(el, 1), 'Delete');
+  await until(() => last() === 'One\n\nTwo\n');
+  await until(() => el.text.hasFocus() && el.text.sel?.focus.block === 1);
+  undo(el);
+  await until(() => last() === `One\n\n${PIC}\n\nTwo\n`);
+  await until(() => document.activeElement === card(el, 1));
+});
+
+test('§1 Escape or an arrow on a card in hand goes back to the words, never to the body', async () => {
+  const { el } = await editor(`One\n\n${PIC}\n\nTwo\n`);
+  await until(() => !!card(el, 1));
+  card(el, 1).focus();
+  key(card(el, 1), 'Escape');
+  await until(() => el.text.hasFocus() && el.text.sel?.focus.block === 2 && el.text.sel.focus.offset === 0);
+  card(el, 1).focus();
+  key(card(el, 1), 'ArrowUp');
+  await until(() => el.text.hasFocus() && el.text.sel?.focus.block === 0 && el.text.sel.focus.offset === 3);
+  // Typing on a card in hand does nothing to it.
+  card(el, 1).focus();
+  key(card(el, 1), 'x');
+  expect(el.value).toBe(`One\n\n${PIC}\n\nTwo\n`);
+});
+
+test('§1 a table is taken in hand by its corner handle (or Escape from a cell) and taken out from its bar', async () => {
+  const { el, last } = await editor('Words\n\nA | B\n--- | ---\n1 | 2\n\nAfter\n');
+  await until(() => !!cell(el, 'A1'));
+  el.querySelector<HTMLButtonElement>('to-write-table .wt-hand')!.click();
+  await until(() => document.activeElement === card(el, 1));
+  await until(() => barItems().length > 0);
+  expect(barItems()).toEqual(['Edit', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  // Enter on it edits: the first cell.
+  key(card(el, 1), 'Enter');
+  await until(() => document.activeElement === cell(el, 'A1'));
+  // Escape from a cell left as it was: the table in hand.
+  key(cell(el, 'A1'), 'Escape');
+  await until(() => document.activeElement === card(el, 1));
+  await until(() => barItems().length > 0);
+  document.querySelector<HTMLButtonElement>('to-context.write-cardbar button[aria-label="Delete"]')!.click();
+  await until(() => last() === 'Words\n\nAfter\n');
+});
+
+test('§4 Enter commits and goes down, Shift+Enter up, no row put in; Mod+Enter goes back to the words after the table', async () => {
+  const { el, last } = await editor('A | B\n--- | ---\n1 | 2\n3 | 4\n\nAfter\n');
+  await until(() => !!cell(el, 'A1'));
+  cell(el, 'A1').focus();
+  key(cell(el, 'A1'), 'Enter');
+  await until(() => document.activeElement === cell(el, 'A2'));
+  key(cell(el, 'A2'), 'Enter', { shiftKey: true });
+  await until(() => document.activeElement === cell(el, 'A1'));
+  key(cell(el, 'A1'), 'Enter', { ctrlKey: true });
+  await until(() => el.text.hasFocus() && el.text.sel?.focus.block === 1);
+  expect(last()).toBeUndefined();
+});
+
+test('§4 the arrows cross cells sideways from either end of the words', async () => {
+  const { el } = await editor('A | B\n--- | ---\nab | cd\n');
+  await until(() => !!cell(el, 'A1'));
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  a1.setSelectionRange(1, 1);
+  expect(key(a1, 'ArrowRight').defaultPrevented).toBe(false);
+  a1.setSelectionRange(2, 2);
+  expect(key(a1, 'ArrowRight').defaultPrevented).toBe(true);
+  await until(() => document.activeElement === cell(el, 'B1'));
+  const b1 = cell(el, 'B1');
+  b1.setSelectionRange(0, 0);
+  key(b1, 'ArrowLeft');
+  await until(() => document.activeElement === cell(el, 'A1'));
+});
+
+test('§4 Escape puts back what the cell held and keeps the focus there', async () => {
+  const { el, last } = await editor('A | B\n--- | ---\n1 | 2\n');
+  await until(() => !!cell(el, 'B1'));
+  await typeCell(el, cell(el, 'B1'), '99');
+  await until(() => last() === 'A | B\n--- | ---\n1 | 99\n');
+  key(cell(el, 'B1'), 'Escape');
+  await until(() => last() === 'A | B\n--- | ---\n1 | 2\n');
+  expect(document.activeElement).toBe(cell(el, 'B1'));
+  expect(cell(el, 'B1').value).toBe('2');
+});
+
+test('§4 Shift+arrows stretch a range, Delete clears it (undone at once), and a first tap chooses the cell so typing replaces it', async () => {
+  const { el, last } = await editor('A | B\n--- | ---\n1 | 2\n3 | 4\n\nAfter\n');
+  await until(() => !!cell(el, 'A1'));
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  a1.select();
+  key(a1, 'ArrowDown', { shiftKey: true });
+  key(a1, 'ArrowRight', { shiftKey: true });
+  await el.updateComplete;
+  await until(() => el.querySelectorAll('to-write-table td.in').length === 4);
+  key(a1, 'Delete');
+  await until(() => last() === 'A | B\n--- | ---\n\nAfter\n');
+  undo(el);
+  await until(() => last() === 'A | B\n--- | ---\n1 | 2\n3 | 4\n\nAfter\n');
+  // A tap on a cell not being typed in chooses its words; F2 puts the caret at the end.
+  await until(() => !!cell(el, 'B2'));
+  const b2 = cell(el, 'B2');
+  el.text.focus();
+  b2.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }));
+  b2.focus();
+  b2.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  expect([b2.selectionStart, b2.selectionEnd]).toEqual([0, b2.value.length]);
+  key(b2, 'F2');
+  expect([b2.selectionStart, b2.selectionEnd]).toEqual([b2.value.length, b2.value.length]);
+});
+
+test('§4 Mod+C/X/V on a range: tab-separated text with our table HTML; a block pasted spreads over the cells and widens the table', async () => {
+  const { el, last } = await editor('A | B\n--- | ---\n1 | 2\n3 | 4\n');
+  await until(() => !!cell(el, 'A1'));
+  const a1 = cell(el, 'A1');
+  a1.focus();
+  a1.select();
+  key(a1, 'ArrowDown', { shiftKey: true });
+  key(a1, 'ArrowRight', { shiftKey: true });
+  await el.updateComplete;
+  const { ev, dt } = clip(a1, 'copy');
+  expect(ev.defaultPrevented).toBe(true);
+  expect(dt.getData('text/plain')).toBe('1\t2\n3\t4');
+  expect(dt.getData('text/html')).toContain('<meta name="generator" content="TinyLittleOffice">');
+  expect(dt.getData('text/html')).toContain('<td>4</td>');
+  // Pasted into B2: the block goes right and down from there, the table given a third column.
+  const b2 = cell(el, 'B2');
+  b2.focus();
+  await el.updateComplete;
+  clip(b2, 'paste', { 'text/plain': 'x\ty\nz\tw' });
+  await until(() => (last() ?? '').includes('ColC'));
+  const rows = () => { const b = parse(last()!).blocks[0]; return b.k === 'table' ? b.rows : []; };
+  expect(rows()).toEqual([['1', '2', ''], ['3', 'x', 'y'], ['', 'z', 'w']]);
+  // Our HTML alone (no text) is read too.
+  await until(() => !!cell(el, 'C1'));
+  const c1 = cell(el, 'C1');
+  c1.focus();
+  await el.updateComplete;
+  clip(c1, 'paste', { 'text/html': '<table><tr><td>p</td></tr><tr><td>q</td></tr></table>' });
+  await until(() => rows()[0][2] === 'p');
+  expect(rows().map((r) => r[2])).toEqual(['p', 'q', 'w']);
+});
+
+test('§4 a column\'s head and a row\'s number open their menus; the + adds a column; never a key', async () => {
+  const { el, last } = await editor('A | B\n--- | ---\n1 | 2\n3 | 4\n');
+  await until(() => !!cell(el, 'A1'));
+  await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[0], 'Add a column after');
+  await until(() => last() === 'A | ColB | B\n--- | --- | ---\n1 |  | 2\n3 |  | 4\n');
+  await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[1], 'Remove this column');
+  await until(() => last() === 'A | B\n--- | ---\n1 | 2\n3 | 4\n');
+  el.querySelector<HTMLButtonElement>('to-write-table .wt-add-col')!.click();
+  await until(() => last() === 'A | B | ColC\n--- | --- | ---\n1 | 2 |\n3 | 4 |\n');
+  await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-num')[0], 'Delete row 1');
+  await until(() => last() === 'A | B | ColC\n--- | --- | ---\n3 | 4 |\n');
+  // A column named from its menu (the dialog asks).
+  await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[2], 'Name this column');
+  await until(() => !!el.querySelector<HTMLInputElement>('.write-ask-form input'));
+  const field = el.querySelector<HTMLInputElement>('.write-ask-form input')!;
+  field.value = 'Notes';
+  el.querySelector<HTMLFormElement>('.write-ask-form')!.requestSubmit();
+  await until(() => last() === 'A | B | Notes\n--- | --- | ---\n3 | 4 |\n');
+});
+
+test('§4 the fill handle carries a cell down; a tap on a cell while a formula waits puts in its reference', async () => {
+  const { el, last } = await editor('A | B\n--- | ---\n5 | 1\nx | 2\ny | 3\n');
+  await until(() => !!cell(el, 'A1'));
+  cell(el, 'A1').focus();
+  await el.updateComplete;
+  const handle = el.querySelector<HTMLElement>('to-write-table .wt-fill')!;
+  const at = (ref: string) => {
+    const r = cell(el, ref).getBoundingClientRect();
+    return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+  };
+  const h = handle.getBoundingClientRect();
+  handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX: h.left + 2, clientY: h.top + 2 }));
+  handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', ...at('A3') }));
+  await el.updateComplete;
+  handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'mouse', ...at('A3') }));
+  await until(() => last() === 'A | B\n--- | ---\n5 | 1\n5 | 2\n5 | 3\n');
+  // The cells filled are the range now.
+  await until(() => document.activeElement === cell(el, 'A1') && el.querySelectorAll('to-write-table td.in').length === 3);
+  // A formula waiting for a value: a tap on B3 puts "B3" in.
+  const b1 = cell(el, 'B1');
+  await typeCell(el, b1, '=1+');
+  b1.setSelectionRange(3, 3);
+  const b3 = cell(el, 'B3');
+  const td = b3.closest('td')!;
+  const down = new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' });
+  td.dispatchEvent(down);
+  expect(down.defaultPrevented).toBe(true);
+  await until(() => (last() ?? '').includes('5 | =1+B3'));
+});
+
+test('§1 Escape: the link box closes and the focus is back in the words; pressed again, a selection of words collapses', async () => {
+  const { el } = await editor('Some words\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 4 } };
+  await tick();
+  button(el, 'Link').click();
+  const pop = el.querySelector<HTMLElement>('to-link-pop')!;
+  await until(() => !!pop.querySelector('input') && (el.querySelector('to-link-pop') as HTMLElement & { shown: boolean }).shown);
+  const input = pop.querySelector<HTMLInputElement>('input')!;
+  input.focus();
+  key(input, 'Escape');
+  await until(() => el.text.hasFocus());
+  expect(el.text.sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 4 } });
+  key(el.text.tx, 'Escape');
+  await until(() => el.text.sel?.anchor.offset === 4 && el.text.sel.focus.offset === 4);
+});
+
+test('§2 Shift+Enter breaks a line in an item and a quote; "> " makes a quote; Mod+Shift+X and Mod+Shift+H mark the words', async () => {
+  const { el, last } = await editor('- item\n\n> said\n\nplain\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 4 }, focus: { block: 0, offset: 4 } };
+  await tick();
+  input(el.text.tx, 'insertLineBreak');
+  await until(() => last() !== undefined);
+  expect(el.text.model[0].k).toBe('li');
+  expect(el.text.model).toHaveLength(3);
+  el.text.sel = { anchor: { block: 1, offset: 4 }, focus: { block: 1, offset: 4 } };
+  await tick();
+  const was = el.value;
+  input(el.text.tx, 'insertLineBreak');
+  await until(() => el.value !== was);
+  expect(el.text.model[1].k).toBe('quote');
+  expect(el.text.model).toHaveLength(3);
+  el.text.sel = { anchor: { block: 2, offset: 0 }, focus: { block: 2, offset: 0 } };
+  await tick();
+  await type(el, '> ');
+  await until(() => el.text.model[2].k === 'quote');
+  el.text.sel = { anchor: { block: 2, offset: 0 }, focus: { block: 2, offset: 5 } };
+  await tick();
+  key(el.text.tx, 'x', { ctrlKey: true, shiftKey: true });
+  await until(() => (last() ?? '').endsWith('> ~~plain~~\n'));
+  key(el.text.tx, 'h', { ctrlKey: true, shiftKey: true });
+  await until(() => (last() ?? '').includes('=='));
+});
+
+test('§1 Alt+Up/Down moves a list item past its neighbour; Mod+Enter ticks a task item', async () => {
+  const { el, last } = await editor('- one\n- two\n- [ ] task\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 1, offset: 1 }, focus: { block: 1, offset: 1 } };
+  await tick();
+  key(el.text.tx, 'ArrowUp', { altKey: true });
+  await until(() => last() === '- two\n- one\n- [ ] task\n');
+  el.text.sel = { anchor: { block: 2, offset: 1 }, focus: { block: 2, offset: 1 } };
+  await tick();
+  key(el.text.tx, 'Enter', { ctrlKey: true });
+  await until(() => last() === '- two\n- one\n- [x] task\n');
+});
+
+test('§7 Align is a keep menu: chosen by a pointer, the words keep the focus; the page and the cells never zoom on a double tap', async () => {
+  const { el } = await editor('Some words\n\nA | B\n--- | ---\n1 | 2\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 2 }, focus: { block: 0, offset: 2 } };
+  await tick();
+  const align = el.querySelector<HTMLElement>('to-menu.write-align')!;
+  const btn = align.querySelector<HTMLButtonElement>(':scope > button')!;
+  expect(btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))).toBe(false);
+  btn.click();
+  await until(() => !!document.querySelector('[popover]:popover-open'));
+  expect(el.text.hasFocus()).toBe(true);
+  const centre = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].find((x) => x.textContent!.includes('Centre'))!;
+  centre.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  centre.click();
+  await until(() => (el.value ?? '').startsWith('Some words {.center}'));
+  expect(el.text.hasFocus()).toBe(true);
+  expect(getComputedStyle(el.querySelector('.write-page')!).touchAction).toBe('manipulation');
+  expect(getComputedStyle(cell(el, 'A1')).touchAction).toBe('manipulation');
 });
