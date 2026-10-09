@@ -115,6 +115,19 @@
   to-bar > * {
     flex: none;
   }
+  /* dateNav(): back, what is on view, on, Today. */
+  .to-datenav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .to-datenav-label {
+    min-width: 8.5em;
+    padding: 0 4px;
+    text-align: center;
+    font-weight: 600;
+    white-space: nowrap;
+  }
 
   /* A colour as a dot, in a menu item or a bar button (--swatch is the colour). */
   .to-swatch {

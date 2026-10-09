@@ -1,0 +1,13 @@
+{
+ "source": "src/api.ts (cal) and docs/tlo.md (cal)",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "---\nzone: Europe/London\ngreen: Sam\n---\n- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite {color=green}\n- 2027-03-10 09:00-10:30: Retro {every=week times=6}"
+  },
+  {
+   "name": "docs/tlo.md spans",
+   "text": "- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-10 22:00 to 2027-03-11 01:00: Party\n- 2027-03-12: Standup {color=green every=week times=9}\n- 2027-03-13: Rent {every=month until=2027-06-01}"
+  }
+ ]
+}

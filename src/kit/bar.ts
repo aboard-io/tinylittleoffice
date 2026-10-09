@@ -2,10 +2,12 @@
  * <to-bar>: the one bar an app has. A single row that scrolls sideways when it must; a fade at either edge
  * says there is more (data-fade-start, data-fade-end: set here, drawn by the stylesheet). The buttons in
  * it are made with tool() and btn(): real <button>s, named, 44px to the finger, aria-pressed when they
- * are a state.
+ * are a state; dateNav() is the group an app with dates has (back, what is on view, on, Today).
  */
 import { html, nothing, type TemplateResult } from 'lit';
+import { ChevronLeft, ChevronRight } from 'lucide';
 import { icon, type IconNode } from './icons.ts';
+import { t } from './i18n.ts';
 
 export class ToBar extends HTMLElement {
   private watch: ResizeObserver | null = null;
@@ -71,3 +73,21 @@ export const btn = (o: BtnOpts): TemplateResult =>
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
   html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+
+export interface DateNavOpts {
+  /** What is on view: "March 2027". */
+  label: string;
+  /** The two arrows' names: "Previous month", "A week earlier". */
+  prev: string;
+  next: string;
+  onPrev: () => void;
+  onNext: () => void;
+  onToday: () => void;
+}
+
+/**
+ * Where an app with dates is: back, what is on view, on, and Today. A group in the bar, the arrows icon
+ * buttons with their names, Today words on a button.
+ */
+export const dateNav = (o: DateNavOpts): TemplateResult =>
+  html`<span class="to-datenav" role="group" aria-label=${o.label}>${tool({ label: o.prev, icon: ChevronLeft, does: o.onPrev })}<span class="to-datenav-label" aria-live="polite">${o.label}</span>${tool({ label: o.next, icon: ChevronRight, does: o.onNext })}${btn({ label: t('Today'), cls: 'to-datenav-today', does: o.onToday })}</span>`;
