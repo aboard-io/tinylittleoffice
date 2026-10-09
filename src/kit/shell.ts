@@ -620,7 +620,7 @@ export class ToShell extends LitElement {
     const where = keeping() ? t('Saved on this device') : t('Private');
     const tip = [words, sig.fingerprint && !this.sealed ? t('Key {fp}', { fp: sig.fingerprint }) : '', this.locker ? t('Protected by a password') : '', where].filter(Boolean).join(' · ');
     const ico = this.sealed ? UI.lock : sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : UI.mismatch;
-    const open = () => (this.sealed ? void this.askPassword() : void this.querySelector<ToPrivacy>('to-privacy')?.show());
+    const open = () => (this.sealed ? void this.askPassword() : void this.querySelector<ToPrivacy>('to-privacy[doc]')?.show());
     return html`<button type="button" class="to-btn to-trust ${tone}" aria-haspopup="dialog" aria-label=${tip} title=${tip} @click=${open}>
       ${this.locker && !this.sealed ? icon(UI.lock, 16, 'to-trust-lock') : nothing}${icon(ico, 18)}<span class="to-trust-words">${words}</span>
     </button>`;
