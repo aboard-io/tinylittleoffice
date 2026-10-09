@@ -10,6 +10,7 @@ import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
 import { boardPage, boardToCsv } from './view.ts';
+import { boardToTodo } from './convert.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 export const titleOf = (doc: Doc): string => headOf(doc).head.title ?? '';
@@ -48,4 +49,5 @@ export default defineApp({
   keys: [
     { keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', does: () => t('Move the cards to the stage before or after') },
   ],
+  handoffs: [{ to: 'todo', label: () => t('Make a to-do list of the cards'), convert: boardToTodo }],
 });

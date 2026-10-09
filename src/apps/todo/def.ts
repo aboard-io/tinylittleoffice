@@ -9,6 +9,7 @@ import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
 import { todoPage, todoToIcs, todoToMarkdown } from './view.ts';
+import { todoToBoard, todoToCal } from './convert.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 export const titleOf = (doc: Doc): string => headOf(doc).head.title ?? '';
@@ -41,5 +42,9 @@ export default defineApp({
   exports: [
     { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => todoToMarkdown(parse(doc)) },
     { ext: 'ics', label: () => t('Calendar to-dos (ICS)'), mime: 'text/calendar;charset=utf-8', build: (doc) => utf8(todoToIcs(parse(doc), Date.now())) },
+  ],
+  handoffs: [
+    { to: 'board', label: () => t('Show on a board'), convert: todoToBoard },
+    { to: 'cal', label: () => t('Put the dated tasks on a calendar'), convert: todoToCal },
   ],
 });

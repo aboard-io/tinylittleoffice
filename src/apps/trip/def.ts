@@ -10,6 +10,7 @@ import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from './view.ts';
+import { tripToCal } from './convert.ts';
 
 /** The document's own title ('' for none: a GPX or GeoJSON file falls back to the route's ends). */
 export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
@@ -48,4 +49,5 @@ export default defineApp({
     { keys: 'ArrowLeft', does: () => t('Presenting: the stop before') },
     { keys: 'Escape', does: () => t('Stop presenting') },
   ],
+  handoffs: [{ to: 'cal', label: () => t('Put the stops on a calendar, a day each'), convert: (doc) => tripToCal(doc) }],
 });

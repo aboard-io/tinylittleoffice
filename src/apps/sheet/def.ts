@@ -14,6 +14,7 @@ import { tableToXlsx } from '../../kit/xlsx.ts';
 import { readSheet } from './model.ts';
 import { cellText, chartOf, sheetPages, sheetToCsv } from './view.ts';
 import { templates } from './templates.ts';
+import { sheetToCal } from './convert.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 /** The document's name: its title head field. */
@@ -64,6 +65,7 @@ export default defineApp({
     { keys: 'Mod+D', does: () => t('Fill down from the top row') },
     { keys: 'Escape', does: () => t('Put back what the cell held') },
   ],
+  handoffs: [{ to: 'cal', label: () => t('Put the dated rows on a calendar'), convert: sheetToCal }],
 });
 
 /** The sheet as a workbook: the table and its values (a rich cell's words, without their marks). */
