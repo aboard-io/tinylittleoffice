@@ -21,12 +21,12 @@ test('home loads, the Text app opens, nothing throws, axe passes', async ({ page
   // (WebKit says it does not know interactive-widget, the viewport key that keeps Chrome on Android from scrolling the page under its keyboard; that is not an error of ours.)
   page.on('console', (m) => m.type() === 'error' && !/interactive-widget/.test(m.text()) && errors.push(m.text()));
   await page.goto('/');
-  await expect(page.locator('.to-tile b')).toHaveText('Text');
+  await expect(page.locator('.to-tile b').first()).toHaveText('Text');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await shot(page, 'home');
   expect((await axe(page)).violations).toEqual([]);
 
-  await page.locator('.to-tile-open').click();
+  await page.locator('.to-tile-open').first().click();
   await expect(page).toHaveURL(/#\/v1\/text$/);
   const area = page.locator('to-text-editor textarea');
   await expect(area).toBeVisible();

@@ -17,6 +17,8 @@ import {
   evaluateTable,
   firstTable,
   formatCell,
+  inHead,
+  lockText,
   nameKey,
   putCells,
   refToRC,
@@ -227,15 +229,18 @@ export function rename(doc: Doc, c: number, name: string): Op[] {
   return b.push({ op: 'col', at: b.at, c, col: { ...cols[c], name: clean } }).ops;
 }
 
-/** The chart the sheet asks for. */
+/** The chart the sheet asks for: one head op where the chart lives in the head (a sheet document), else the table's attribute. */
 export function setChart(doc: Doc, chart: Chart): Op[] {
   const b = ensure(new Builder(doc));
   if (b.table.chart === chart) return b.ops;
+  if (inHead(b.doc, b.at, 'chart')) return b.push({ op: 'head', key: 'chart', value: chart || undefined }).ops;
   return b.push(...withTable(b.doc, b.at, { ...b.table, chart })).ops;
 }
 
-/** The cells of `g` locked, or (`on` false) every lock touching them let go. */
+/** The cells of `g` locked, or (`on` false) every lock touching them let go; a head op where the lock lives in the head. */
 export function setLock(doc: Doc, g: Range, on: boolean): Op[] {
   const b = ensure(new Builder(doc), g.c1 + 1);
-  return b.push(...withTable(b.doc, b.at, { ...b.table, lock: withLock(b.table.lock, g, on) })).ops;
+  const lock = withLock(b.table.lock, g, on);
+  if (inHead(b.doc, b.at, 'lock')) return b.push({ op: 'head', key: 'lock', value: lockText(lock) || undefined }).ops;
+  return b.push(...withTable(b.doc, b.at, { ...b.table, lock })).ops;
 }

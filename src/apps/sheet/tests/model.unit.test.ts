@@ -118,6 +118,11 @@ test('sort, fill, clear and paste write rectangles; a sort moves whole rows thro
   expect(write(applyAll(model, putRect(model, { r: 0, c: 2, values: [['5']] })))).toContain('=visitors*rate/100');
   expect(write(applyAll(model, putRect(model, sortRows(tableAt(model, 0)!, 4), true)))).toContain('Rate | 10');
   expect(after(SHEET, (d) => setChart(d, 'bar'))).toBe('---\nchart: bar\n---\n' + SHEET);
+  expect(setChart(parse(SHEET), 'bar')).toEqual([{ op: 'head', key: 'chart', value: 'bar' }]);
+  expect(setLock(parse(SHEET), { r0: 2, c0: 1, r1: 2, c1: 1 }, true)).toEqual([{ op: 'head', key: 'lock', value: 'B3' }]);
+  // A table inside another document keeps its chart and lock as attributes.
+  const inText = parse('# Costs\n\n' + SHEET);
+  expect(write(applyAll(inText, setChart(inText, 'pie')))).toContain('{chart=pie}');
   expect(after(MODEL, (d) => setChart(d, ''))).not.toContain('chart:');
   expect(after(SHEET, (d) => setLock(d, { r0: 2, c0: 1, r1: 2, c1: 1 }, true))).toBe('---\nlock: B3\n---\n' + SHEET);
   expect(after(MODEL, (d) => setLock(d, { r0: 0, c0: 2, r1: 0, c1: 2 }, false))).not.toContain('lock:');
