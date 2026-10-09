@@ -1,25 +1,32 @@
 /**
  * <to-board-editor>: the Board app. The stages are columns side by side (one and a bit at a time on a
  * phone, scrolling sideways), each with its name, how many cards it holds against its limit, and a menu.
- * A card is a line of rich text (a one-line <to-text>) with, if it has one, a checklist under it. Pick a
- * card up by its grip and drop it in any stage (the grip is a button too: a tap opens the card's menu, with
- * "Move to" for each stage); Alt+arrows move the card from the keys. Enter in a card starts the next card,
- * Enter in a checklist item the next item. Every change is operations on the document's headings and list
- * items (model.ts); the one bar holds Insert ▾, the marks for the words being typed, undo and redo.
+ * A card is a line of rich text (a one-line <to-text>) with, if it has one, a checklist under it. Cards are
+ * the kit's rows (kit/rows.ts): a tap on a card's grip, Escape or Shift+Up/Down in its words choose it whole,
+ * and chosen cards are moved, duplicated, copied, cut, pasted and deleted from the keys or the small bar
+ * under them. The grip also carries a card into any stage by a drag; Alt+Up/Down move a card along its
+ * stage and Mod+Alt+Left/Right to the stage beside, the caret going with it. The words of each line follow
+ * the outliner's rules: Enter splits (at the start it pushes the line down), Backspace at the start joins the
+ * line before, Delete at the end joins the next one in. Every change is operations on the document's headings
+ * and list items (model.ts); the one bar holds Insert ▾, the marks for the words being typed, undo and redo.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
-import { Columns3, Ellipsis, GripVertical, ListChecks } from 'lucide';
-import { runLength, type Block, type Doc } from '../../doc/index.ts';
+import { ArrowLeft, ArrowRight, Columns3, Ellipsis, GripVertical, ListChecks } from 'lucide';
+import { runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
-import { DocElement } from '../../kit/element.ts';
+import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
+import type { ContextEntry } from '../../kit/context.ts';
+import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { embedOf } from '../../kit/embeds.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
+import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { LIMITS, STAGE_COLORS, addCard, addItem, addStage, moveCard, moveStage, progress, readBoard, removeCard, removeItem, removeStage, setItemDone, setStage, shifted, type BoardView, type Card, type Item, type Stage } from './model.ts';
+import { LIMITS, STAGE_COLORS, addCard, addItem, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView, type Card, type Item, type Stage } from './model.ts';
 import '../../kit/bar.ts';
+import '../../kit/context.ts';
 import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -33,15 +40,13 @@ interface Over {
   stage: number;
   pos: number;
 }
-/** What a menu is open for: a card or a stage, by block index. */
-interface Menu {
-  kind: 'card' | 'stage';
-  at: number;
-}
+/** Where the selection was before an edit: cards chosen whole, or the caret in a line's words. What an undo puts back. */
+type Mark = { range: RowRange<number> } | { at: number; offset: number };
 
 export class ToBoardEditor extends DocElement<BoardView> {
   static properties: PropertyDeclarations = { menu: { state: true }, drag: { state: true }, over: { state: true }, mark: { state: true } };
-  declare menu: Menu | null;
+  /** The stage whose menu is open, by its heading's block index. */
+  declare menu: number | null;
   /** The card being carried: its block index. */
   declare drag: number | null;
   declare over: Over | null;
@@ -51,11 +56,28 @@ export class ToBoardEditor extends DocElement<BoardView> {
   private cur = -1;
   /** A block's one-item array, kept so <to-text> sees the same `blocks` until the block itself changes. */
   private ones = new WeakMap<Block, Block[]>();
-  private press: { id: number; x: number; y: number; at: number; moved: boolean } | null = null;
+  private press: { id: number; x: number; y: number; at: number; moved: boolean; touch: boolean } | null = null;
   private lastPoint = { x: 0, y: 0 };
   private scroller = 0;
   /** A drag just ended on the grip: the click that follows it is not a tap. */
   private dragged = false;
+  /** Cards chosen whole: the kit's one implementation (keys, the bar under them, the clipboard). The grip's drag is the board's own (across stages). */
+  readonly rows = new Rows<number>(this, {
+    rows: () => this.rowItems(),
+    box: () => this.querySelector<HTMLElement>('.board'),
+    handle: '.board-grip',
+    label: t('Chosen cards'),
+    contextClass: 'board-context',
+    current: () => this.cardAt(this.cur)?.at ?? null,
+    edit: (at, offset) => void this.focusText(at, offset === 'end' ? 'end' : offset),
+    remove: (s) => this.removeSpan(s),
+    canMove: (s, by) => !!moveCards(this.view, cardsIn(this.view, s.from, s.to), by),
+    move: (s, by) => this.moveSpan(s, by),
+    duplicate: (s) => this.duplicateSpan(s),
+    copy: (s) => this.clip(s),
+    paste: (data, s) => this.pasteCards(data, s ? (cardsIn(this.view, s.from, s.to).at(-1) ?? null) : null),
+    extra: (s) => this.extraItems(s),
+  });
 
   constructor() {
     super();
@@ -63,6 +85,21 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.drag = null;
     this.over = null;
     this.mark = null;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    // After the rows controller's own: it has the keys of chosen cards first.
+    this.addEventListener('keydown', this.onKey);
+    // Escape during a drag lets it go, before anything else hears the key.
+    this.addEventListener('keydown', this.onEscape, true);
+    // Capturing: before a line's own editor hears a paste.
+    this.addEventListener('paste', this.onPaste, true);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('keydown', this.onKey);
+    this.removeEventListener('keydown', this.onEscape, true);
+    this.removeEventListener('paste', this.onPaste, true);
   }
 
   protected read(doc: Doc): BoardView {
@@ -74,6 +111,30 @@ export class ToBoardEditor extends DocElement<BoardView> {
     return a;
   }
 
+  /* ---------- undo ---------- */
+
+  /** Every edit keeps where the selection was before it, for its undo. */
+  protected edit(ops: Op[], key?: string, mark?: unknown) {
+    const r = this.rows.range;
+    const now: Mark | undefined = r ? { range: { ...r } } : this.cur >= 0 && this.textAt(this.cur) ? { at: this.cur, offset: this.caretIn(this.cur) } : undefined;
+    super.edit(ops, key, mark ?? now);
+  }
+  /** After an undo the selection comes back as it was before the edit; after a redo, the line the change touched first. */
+  protected undone(entry: Entry, redo: boolean) {
+    this.menu = null;
+    this.rows.release();
+    const mark = entry.mark as Mark | undefined;
+    const card = (at: number) => this.cardAt(at)?.at === at;
+    if (!redo && mark && 'range' in mark) {
+      const r = mark.range;
+      if (card(r.anchor) && card(r.focus)) return void this.updateComplete.then(() => this.rows.select(r));
+    } else if (!redo && mark && !('range' in mark) && this.lines().includes(mark.at)) return void this.focusText(mark.at, mark.offset);
+    const first = firstAt(entry);
+    const lines = this.lines();
+    if (first < 0 || !lines.length) return;
+    void this.focusText([...lines].reverse().find((at) => at <= first) ?? lines[0], 'end');
+  }
+
   /* ---------- finding things ---------- */
 
   private stageAt(at: number): Stage | undefined {
@@ -82,18 +143,38 @@ export class ToBoardEditor extends DocElement<BoardView> {
   private cardAt(at: number): Card | undefined {
     return this.view.stages.flatMap((s) => s.cards).find((c) => at >= c.at && at < c.end);
   }
+  private itemAt(at: number): { card: Card; item: Item; k: number } | undefined {
+    const card = this.cardAt(at);
+    const k = card ? card.items.findIndex((i) => i.at === at) : -1;
+    return card && k >= 0 ? { card, item: card.items[k], k } : undefined;
+  }
+  /** Every line with words a caret can be in, in a stage's order: its name, then each card and its checklist. */
+  private stageLines(s: Stage): number[] {
+    return [...(s.block ? [s.at] : []), ...s.cards.flatMap((c) => [c.at, ...c.items.map((i) => i.at)])];
+  }
+  private lines(): number[] {
+    return this.view.stages.flatMap((s) => this.stageLines(s));
+  }
   private textAt(at: number): ToText | null {
     return this.querySelector<ToText>(`to-text[data-at="${at}"]`);
   }
-  /** Focus the words of the block at `at`, once it is drawn; `end` puts the caret after them, `all` selects them. */
-  private async focusText(at: number, how: 'start' | 'end' | 'all' = 'start') {
+  private lengthOf(at: number): number {
+    const b = this.doc.blocks[at];
+    return b && 'runs' in b ? runLength(b.runs) : 0;
+  }
+  /** Where the caret is in a line's words (the end when it is not there). */
+  private caretIn(at: number): number {
+    const s = this.textAt(at)?.sel;
+    return s ? s.focus.offset : this.lengthOf(at);
+  }
+  /** Focus the words of the block at `at`, once it is drawn; `end` puts the caret after them, `all` selects them, a number there. */
+  private async focusText(at: number, how: 'start' | 'end' | 'all' | number = 'start') {
     await this.updateComplete;
     await new Promise((r) => requestAnimationFrame(r));
     const x = this.textAt(at);
-    const b = this.doc.blocks[at];
     if (!x) return;
-    const n = b && 'runs' in b ? runLength(b.runs) : 0;
-    x.sel = how === 'all' ? { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: n } } : caret(0, how === 'end' ? n : 0);
+    const n = this.lengthOf(at);
+    x.sel = how === 'all' ? { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: n } } : caret(0, how === 'end' ? n : how === 'start' ? 0 : Math.min(how, n));
     x.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
@@ -121,32 +202,39 @@ export class ToBoardEditor extends DocElement<BoardView> {
     else this.requestUpdate();
   };
   /**
-   * Backspace at the very start of a line (the line-shaped editor says so). A line is its own item here, so an
-   * empty card or checklist item goes (the caret to the line above) and one with words stays.
+   * Backspace at the very start of a line, or Delete at its very end (the line-shaped editor says which). Backspace joins
+   * the line to the one before (a card's checklist goes with it), and on an empty first card removes it; an empty card
+   * with a checklist and nothing before it stays. Delete joins the next card or item in.
    */
-  private onExit(at: number) {
-    const b = this.doc.blocks[at];
+  private onExit(at: number, dir: 'back' | 'forward') {
     const card = this.cardAt(at);
-    if (b?.k !== 'li' || runLength(b.runs) || !card) return;
-    if (card.at === at) {
-      // An empty card with a checklist keeps it; one without goes, and the caret to the card above (or the heading).
-      if (card.items.length) return;
-      const stage = this.stageAt(at)!;
-      const before = stage.cards[stage.cards.indexOf(card) - 1];
-      this.edit(removeCard(card));
-      void this.focusText(before ? before.at : stage.at, 'end');
-    } else {
-      const item = card.items.find((i) => i.at === at)!;
-      const prev = card.items[card.items.indexOf(item) - 1];
-      this.edit(removeItem(item));
-      void this.focusText(prev ? prev.at : card.at, 'end');
+    if (!card) return;
+    if (dir === 'forward') {
+      const ops = this.doc.blocks[at + 1] && this.stageAt(at + 1) === this.stageAt(at) ? joinLine(this.doc, at + 1) : [];
+      if (!ops.length) return;
+      const offset = this.lengthOf(at);
+      this.edit(ops);
+      return void this.focusText(at, offset);
     }
+    const empty = !this.lengthOf(at);
+    if (card.at === at && card.items.length && empty) return;
+    const ops = joinLine(this.doc, at);
+    if (ops.length) {
+      const offset = this.lengthOf(at - 1);
+      this.edit(ops);
+      return void this.focusText(at - 1, offset);
+    }
+    // The first card of its stage: an empty one goes, the caret to the stage's name.
+    const stage = this.stageAt(at);
+    if (card.at !== at || !empty || !stage) return;
+    this.edit(removeCard(card));
+    if (stage.block) void this.focusText(stage.at, 'end');
   }
-  /** Enter in a card: the next card, below this one's checklist. */
+  /** Enter in a card: at its end the next card, below its checklist; at the start of its words a card above; in the middle a split. */
   private onCardEnter(s: Stage, c: Card) {
     // An empty card at the end is enough.
     if (!c.words && !c.items.length && s.cards.at(-1) === c) return;
-    const made = addCard(s, c);
+    const made = splitCard(c, this.caretIn(c.at));
     this.edit(made.ops);
     void this.focusText(made.at);
   }
@@ -158,9 +246,104 @@ export class ToBoardEditor extends DocElement<BoardView> {
     void this.focusText(made.at);
   }
   private onItemEnter(c: Card, k: number) {
-    const made = addItem(c, k);
+    const made = splitItem(c.items[k], this.caretIn(c.items[k].at));
     this.edit(made.ops);
     void this.focusText(made.at);
+  }
+
+  /* ---------- the keys ---------- */
+
+  private onEscape = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || !this.press) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.cancel();
+  };
+  /**
+   * The keys in the words: Alt+Up/Down move the card (or the checklist item) along, Mod+Alt+Left/Right carry the card to
+   * the stage beside (a stage's name: the stage itself), Up/Down go from line to line, Mod+D duplicates the card,
+   * Mod+Enter ticks an item. Chosen cards: Mod+Alt+Left/Right carry them (the rest are the rows controller's).
+   */
+  private onKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    const target = e.composedPath()[0] as HTMLElement;
+    if (target.closest?.('[popover], dialog, to-bar, input, textarea, select')) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key;
+    const side = k === 'ArrowLeft' ? -1 : k === 'ArrowRight' ? 1 : 0;
+    const tx = target.closest?.('to-text') as ToText | null;
+    if (this.rows.range && !tx) {
+      if (mod && e.altKey && !e.shiftKey && side) {
+        e.preventDefault();
+        this.carryChosen(side);
+      }
+      return;
+    }
+    if (!tx || !this.contains(tx)) return;
+    const at = Number(tx.dataset.at);
+    const stage = this.stageAt(at);
+    if (!stage || !Number.isFinite(at)) return;
+    const card = this.cardAt(at);
+    const item = this.itemAt(at);
+    const up = k === 'ArrowUp';
+    const vertical = up || k === 'ArrowDown';
+    const plain = !mod && !e.altKey && !e.shiftKey;
+    const i = this.view.stages.indexOf(stage);
+    if (mod && e.altKey && !e.shiftKey && side) {
+      if (card && card.at === at) {
+        const to = this.view.stages[i + side];
+        if (to) this.carry(card, to, to.cards.length);
+      } else if (!card && stage.at === at) this.moveStageBy(i, side);
+      else return;
+    } else if (e.altKey && !mod && !e.shiftKey && vertical) {
+      if (item) this.moveItemBy(item.card, item.k, up ? -1 : 1);
+      else if (card) {
+        const j = stage.cards.indexOf(card);
+        if (up && j > 0) this.carry(card, stage, j - 1);
+        else if (!up && j < stage.cards.length - 1) this.carry(card, stage, j + 2);
+      } else return;
+    } else if (plain && vertical) {
+      const lines = this.stageLines(stage);
+      const to = lines[lines.indexOf(at) + (up ? -1 : 1)];
+      if (to === undefined || !this.atEdgeLine(tx, up)) return;
+      void this.focusText(to, up ? 'end' : 'start');
+    } else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd' && card) {
+      const made = duplicateCard(card);
+      const offset = this.caretIn(at);
+      this.edit(made.ops);
+      void this.focusText(made.at + (at - card.at), offset);
+    } else if (mod && !e.altKey && !e.shiftKey && k === 'Enter' && item) this.edit(setItemDone(item.item, !item.item.done));
+    else return;
+    e.preventDefault();
+  };
+  /** Whether the caret is on the first (up) or last (down) line of its words, where Up/Down leave the line; inside long words they walk its lines. */
+  private atEdgeLine(tx: ToText, up: boolean): boolean {
+    const dom = document.getSelection();
+    if (!dom?.rangeCount) return true;
+    const caretRect = [...dom.getRangeAt(0).getClientRects()].at(up ? 0 : -1);
+    const all = document.createRange();
+    all.selectNodeContents(tx.tx);
+    const lines = [...all.getClientRects()].filter((r) => r.height > 0);
+    if (!caretRect || !caretRect.height || lines.length < 2) return true;
+    const lh = parseFloat(getComputedStyle(tx.tx).lineHeight) || 24;
+    const top = Math.min(...lines.map((r) => r.top));
+    const bottom = Math.max(...lines.map((r) => r.bottom));
+    return up ? caretRect.top - top < lh / 2 : bottom - caretRect.bottom < lh / 2;
+  }
+  private moveItemBy(c: Card, k: number, by: -1 | 1) {
+    const made = moveItem(c, k, by);
+    if (!made) return;
+    const offset = this.caretIn(c.items[k].at);
+    this.edit(made.ops);
+    void this.focusText(made.at, offset);
+  }
+  private moveStageBy(i: number, by: -1 | 1) {
+    const ops = moveStage(this.view, i, by);
+    if (!ops.length) return;
+    const offset = this.caretIn(this.view.stages[i].at);
+    this.edit(ops);
+    const s = this.view.stages[i + by];
+    if (s?.block) void this.focusText(s.at, offset);
   }
 
   /* ---------- moving ---------- */
@@ -169,28 +352,150 @@ export class ToBoardEditor extends DocElement<BoardView> {
   private carry(c: Card, to: Stage, pos: number, focus = true) {
     const moved = moveCard(c, to, pos);
     if (!moved) return;
+    const offset = this.cur === c.at ? this.caretIn(c.at) : this.lengthOf(c.at);
     this.edit(moved.ops);
-    if (focus) void this.focusText(moved.at, 'end');
+    if (focus) void this.focusText(moved.at, offset);
   }
-  /** Alt+arrows: left and right carry the card to the end of the stage beside, up and down along its own. */
-  private onCardKey(e: KeyboardEvent, s: Stage, c: Card) {
-    if (!e.altKey || !e.key.startsWith('Arrow')) return;
-    e.preventDefault();
-    const i = this.view.stages.indexOf(s);
-    const j = s.cards.indexOf(c);
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const to = this.view.stages[i + (e.key === 'ArrowLeft' ? -1 : 1)];
-      if (to) this.carry(c, to, to.cards.length);
-    } else if (e.key === 'ArrowUp' && j > 0) this.carry(c, s, j - 1);
-    else if (e.key === 'ArrowDown' && j < s.cards.length - 1) this.carry(c, s, j + 2);
+  /** The chosen cards carried to the end of the stage beside; they stay chosen. */
+  private carryChosen(by: -1 | 1) {
+    const s = this.rows.span();
+    if (!s) return;
+    const cards = cardsIn(this.view, s.from, s.to);
+    const from = stageOf(this.view, cards);
+    const to = from && this.view.stages[this.view.stages.indexOf(from) + by];
+    const made = to && carryCards(this.view, cards, to);
+    if (!made) return;
+    const last = cards.length - 1;
+    const r = this.rows.range!;
+    const flip = r.anchor > r.focus;
+    this.edit(made.ops);
+    const moved = this.view.stages.flatMap((x) => x.cards).filter((c) => c.at >= made.at).slice(0, last + 1);
+    const a = moved[0].at;
+    const b = moved[last].at;
+    void this.updateComplete.then(() => this.rows.select(flip ? { anchor: b, focus: a } : { anchor: a, focus: b }));
   }
 
-  /* ---------- the grip: a drag, or a tap for the menu ---------- */
+  /* ---------- cards chosen whole (kit/rows.ts) ---------- */
+
+  /** The cards on screen as the rows controller takes them: each with its element and its checklist's blocks. */
+  private rowItems(): RowItem<number>[] {
+    const host = this;
+    return this.view.stages.flatMap((s) =>
+      s.cards.map((c) => ({
+        id: c.at,
+        span: { from: c.at, to: c.end },
+        get el() {
+          return host.querySelector<HTMLElement>(`.board-card[data-at="${c.at}"]`)!;
+        },
+      })),
+    );
+  }
+  /** The chosen cards taken away; the caret into the line before the first of them (the card before, or the stage's name). */
+  private removeSpan(s: RowSpan) {
+    const cards = cardsIn(this.view, s.from, s.to);
+    if (!cards.length) return;
+    const stage = this.stageAt(cards[0].at)!;
+    const lines = this.stageLines(stage);
+    const before = [...lines].reverse().find((at) => at < cards[0].at);
+    const after = stage.cards.find((c) => c.at >= s.to && !cards.includes(c));
+    this.edit(removeCards(cards));
+    if (before !== undefined) void this.focusText(before, 'end');
+    else if (after) void this.focusText(after.at - cards.filter((c) => c.at < after.at).reduce((n, c) => n + c.end - c.at, 0), 'end');
+  }
+  private moveSpan(s: RowSpan, by: 1 | -1): RowRange<number> | null {
+    const r = this.rows.range;
+    const made = moveCards(this.view, cardsIn(this.view, s.from, s.to), by);
+    if (!made || !r) return r;
+    this.edit(made.ops);
+    return { anchor: r.anchor - s.from + made.at, focus: r.focus - s.from + made.at };
+  }
+  /** The chosen cards again, right after them; the copies are chosen when they are one run. */
+  private duplicateSpan(s: RowSpan): RowRange<number> | null {
+    const r = this.rows.range;
+    const cards = cardsIn(this.view, s.from, s.to);
+    const made = duplicateCards(this.view, cards);
+    if (!made.ops.length) return r;
+    this.edit(made.ops);
+    if (!r || made.ops.length > 1) return null;
+    return { anchor: r.anchor - s.from + made.at, focus: r.focus - s.from + made.at };
+  }
+  /** What chosen cards put on the clipboard: their blocks (the stages' names left out) as TLO, and as HTML. */
+  private clip(s: RowSpan): Clip {
+    const blocks = cardsIn(this.view, s.from, s.to).flatMap(blocksOf);
+    return { text: write({ head: {}, blocks }), html: docToHtml(blocks) };
+  }
+  /** The board's own items in the bar under chosen cards: to the stage before and the stage after. */
+  private extraItems(s: RowSpan): ContextEntry[] {
+    const from = stageOf(this.view, cardsIn(this.view, s.from, s.to));
+    const i = from ? this.view.stages.indexOf(from) : -1;
+    const prev = i > 0 ? this.view.stages[i - 1] : undefined;
+    const next = i >= 0 ? this.view.stages[i + 1] : undefined;
+    return [
+      { label: prev ? t('Move to {stage}', { stage: prev.name || t('Stage') }) : t('Move to the stage before'), icon: ArrowLeft, keys: 'Mod+Alt+ArrowLeft', disabled: !prev, does: () => this.carryChosen(-1) },
+      { label: next ? t('Move to {stage}', { stage: next.name || t('Stage') }) : t('Move to the stage after'), icon: ArrowRight, keys: 'Mod+Alt+ArrowRight', disabled: !next, does: () => this.carryChosen(1) },
+    ];
+  }
+  /**
+   * Pasted data as cards after `after` (the end of the first stage without one); in an empty card without a checklist,
+   * in place of it. The caret goes to the end of the last.
+   */
+  private pasteCards(data: Clip, after: Card | null, replace?: Card) {
+    const got = pasteFrom(data, 'doc');
+    if (!got) return;
+    const blocks = asCards('blocks' in got ? got.blocks : [{ k: 'p', runs: got.runs }]);
+    if (!blocks.length) return;
+    const stage = after ? this.stageAt(after.at) : this.view.stages[0];
+    if (!stage && !after) {
+      // No stages yet: the cards are a stage of their own at the top.
+      this.edit([{ op: 'splice', at: 0, n: 0, blocks }]);
+      return void this.focusText(this.lastLineOf(0, blocks), 'end');
+    }
+    const at = replace ? replace.at : after ? after.end : (stage!.cards.at(-1)?.end ?? stage!.start + 1);
+    this.edit([{ op: 'splice', at, n: replace ? replace.end - replace.at : 0, blocks }]);
+    this.rows.release();
+    void this.focusText(this.lastLineOf(at, blocks), 'end');
+  }
+  private lastLineOf(at: number, blocks: Block[]): number {
+    return at + blocks.length - 1;
+  }
+  /**
+   * A paste into a line's words (chosen cards are the rows controller's): several lines, or cards copied here, are cards
+   * after the card (items after the item, in a checklist); words alone are the line's to paste.
+   */
+  private onPaste = (e: ClipboardEvent) => {
+    const el = e.target as HTMLElement;
+    const dt = e.clipboardData;
+    if (!dt || this.rows.range || el.closest?.('dialog, [popover], input, textarea, .board-head')) return;
+    const tx = el.closest?.('to-text') as ToText | null;
+    if (!tx || !this.contains(tx)) return;
+    const data = { text: dt.getData('text/plain').replace(/\r\n?/g, '\n'), html: dt.getData('text/html') };
+    const lines = data.text.split('\n').filter((l) => l.trim()).length;
+    if (lastCopied()?.text !== data.text && lines < 2) return;
+    const at = Number(tx.dataset.at);
+    const card = this.cardAt(at);
+    if (!card) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const item = this.itemAt(at);
+    if (item) {
+      const got = pasteFrom(data, 'doc');
+      const blocks = got ? asItems('blocks' in got ? got.blocks : [{ k: 'p', runs: got.runs }]) : [];
+      if (!blocks.length) return;
+      const empty = !this.lengthOf(at);
+      this.edit([{ op: 'splice', at: empty ? at : at + 1, n: empty ? 1 : 0, blocks }]);
+      return void this.focusText((empty ? at : at + 1) + blocks.length - 1, 'end');
+    }
+    this.pasteCards(data, card, !card.words && !card.items.length ? card : undefined);
+  };
+
+  /* ---------- the grip: a drag, or a tap to choose the card ---------- */
 
   private down = (e: PointerEvent, c: Card) => {
+    // The grip's drag is the board's (across stages); the rows controller hears none of it.
+    e.stopPropagation();
     if (e.button !== 0 || !e.isPrimary) return;
     this.dragged = false;
-    this.press = { id: e.pointerId, x: e.clientX, y: e.clientY, at: c.at, moved: false };
+    this.press = { id: e.pointerId, x: e.clientX, y: e.clientY, at: c.at, moved: false, touch: e.pointerType === 'touch' || e.pointerType === 'pen' };
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch {
@@ -198,6 +503,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     }
   };
   private move = (e: PointerEvent) => {
+    e.stopPropagation();
     const p = this.press;
     if (!p || e.pointerId !== p.id) return;
     this.lastPoint = { x: e.clientX, y: e.clientY };
@@ -206,6 +512,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
       p.moved = true;
       this.drag = p.at;
       this.menu = null;
+      this.rows.release();
     }
     this.aim();
     this.edges();
@@ -244,6 +551,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     this.scroller = requestAnimationFrame(step);
   }
   private up = (e: PointerEvent) => {
+    e.stopPropagation();
     const p = this.press;
     if (!p || e.pointerId !== p.id) return;
     this.press = null;
@@ -259,20 +567,28 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const to = over && this.view.stages[over.stage];
     if (c && to) this.carry(c, to, over.pos, false);
   };
-  private cancel = () => {
+  private cancel = (e?: Event) => {
+    e?.stopPropagation();
+    if (this.press?.moved) this.dragged = true;
     this.press = null;
     this.drag = null;
     this.over = null;
+    cancelAnimationFrame(this.scroller);
+    this.scroller = 0;
   };
-  private tapGrip = (e: Event, c: Card) => {
+  /** A tap (or Enter, Space) on the grip chooses the card; Shift, or on a touch screen a second card's grip, extends the range. */
+  private tapGrip = (e: MouseEvent, c: Card) => {
+    e.stopPropagation();
     if (this.dragged) return void (this.dragged = false);
-    void this.openMenu({ kind: 'card', at: c.at }, e.currentTarget as HTMLElement);
+    const touch = !!this.press?.touch || (e as PointerEvent).pointerType === 'touch';
+    const r = this.rows.range;
+    this.rows.choose(c.at, e.shiftKey || (touch && !!r && r.anchor !== c.at));
   };
 
-  /* ---------- the menus ---------- */
+  /* ---------- the stage menu ---------- */
 
-  private async openMenu(m: Menu, anchor: HTMLElement) {
-    this.menu = m;
+  private async openMenu(at: number, anchor: HTMLElement) {
+    this.menu = at;
     await this.updateComplete;
     const menu = this.querySelector<ToMenu>('to-menu.board-menu');
     await menu?.updateComplete;
@@ -280,20 +596,9 @@ export class ToBoardEditor extends DocElement<BoardView> {
   }
   private menuItems(): MenuItem[] {
     const m = this.menu;
-    if (!m) return [];
+    if (m === null) return [];
     const v = this.view;
-    if (m.kind === 'card') {
-      const c = this.cardAt(m.at);
-      const here = c && this.stageAt(c.at);
-      if (!c || !here) return [];
-      const group = t('Move to');
-      return [
-        ...v.stages.filter((s) => s !== here).map((s) => ({ label: s.name || t('Stage'), group, does: () => this.carry(c, s, s.cards.length) })),
-        { label: c.items.length ? t('Another checklist item') : t('A checklist'), icon: UI.plus, group: t('Card'), does: () => this.checklist(c) },
-        { label: t('Delete card'), icon: UI.trash, group: t('Card'), does: () => this.edit(removeCard(c)) },
-      ];
-    }
-    const i = v.stages.findIndex((s) => s.at === m.at || (m.at < 0 && s.at < 0));
+    const i = v.stages.findIndex((s) => s.at === m || (m < 0 && s.at < 0));
     const s = v.stages[i];
     if (!s) return [];
     const limit = t('Limit');
@@ -311,25 +616,33 @@ export class ToBoardEditor extends DocElement<BoardView> {
 
   /* ---------- the bar ---------- */
 
-  private newCard(s: Stage) {
-    const made = addCard(s);
+  /** A new empty card after card `after` (the end of the stage without one). */
+  private newCard(s: Stage, after?: Card) {
+    const made = addCard(s, after);
+    this.rows.release();
     this.edit(made.ops);
     void this.focusText(made.at);
   }
   private checklist(c: Card) {
     const made = addItem(c);
+    this.rows.release();
     this.edit(made.ops);
     void this.focusText(made.at);
   }
   private newStage() {
+    this.rows.release();
     this.edit(addStage(this.doc, t('New stage')));
     void this.focusText(this.doc.blocks.length - 1, 'all');
   }
+  /** Insert ▾ puts things after the thing in hand: the last chosen card, or the card (and stage) the caret is in. */
   private inserts(): MenuItem[] {
-    const stage = this.stageAt(this.cur) ?? this.view.stages[0];
-    const card = this.cardAt(this.cur);
+    const s = this.rows.range ? this.rows.span() : null;
+    const chosen = s ? cardsIn(this.view, s.from, s.to).at(-1) : undefined;
+    const at = chosen ? chosen.at : this.cur;
+    const stage = this.stageAt(at) ?? this.view.stages[0];
+    const card = this.cardAt(at);
     return [
-      { label: t('Card'), icon: UI.plus, disabled: !stage, does: () => stage && this.newCard(stage) },
+      { label: t('Card'), icon: UI.plus, disabled: !stage, does: () => stage && this.newCard(stage, card) },
       { label: t('Checklist item'), icon: ListChecks, disabled: !card, does: () => card && this.checklist(card) },
       { label: t('Stage'), icon: Columns3, does: () => this.newStage() },
     ];
@@ -350,17 +663,22 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const name = it.words || t('empty item');
     return html`<li class="board-item ${it.done ? 'done' : ''}">
       <label class="board-tick"><input type="checkbox" .checked=${it.done} aria-label=${t('Done: {task}', { task: name })} @change=${(e: Event) => this.edit(setItemDone(it, (e.target as HTMLInputElement).checked))} /></label>
-      <to-text shape="line" data-at=${it.at} .blocks=${this.one(it.block)} label=${t('Checklist item {n}', { n: k + 1 })} placeholder=${t('To do')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, it.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onItemEnter(c, k))} @text-exit=${(e: Event) => (e.stopPropagation(), this.onExit(it.at))} @focusin=${(e: Event) => this.at(it.at, e)}></to-text>
+      <to-text shape="line" data-at=${it.at} .blocks=${this.one(it.block)} label=${t('Checklist item {n}', { n: k + 1 })} placeholder=${t('To do')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, it.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onItemEnter(c, k))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(it.at, e.detail.dir))} @text-selectall=${this.onSelectAll} @focusin=${(e: Event) => this.at(it.at, e)}></to-text>
     </li>`;
   }
+  private onSelectAll = (e: Event) => {
+    e.stopPropagation();
+    this.rows.selectAll();
+  };
   private card(s: Stage, c: Card, j: number) {
     const web = c.words.trim() && !/\s/.test(c.words.trim()) && embedOf(c.words.trim()) ? c.words.trim() : '';
     const dragging = this.drag === c.at;
     const before = this.over?.stage === this.view.stages.indexOf(s) && this.over.pos === j && this.drag !== null;
-    return html`<li class="board-card ${dragging ? 'dragging' : ''} ${before ? 'before' : ''}" data-at=${c.at}>
-      <div class="board-main" @keydown=${(e: KeyboardEvent) => this.onCardKey(e, s, c)}>
-        <to-text shape="line" data-at=${c.at} .blocks=${this.one(c.block)} label=${t('Card')} placeholder=${t('Card')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, c.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onCardEnter(s, c))} @text-exit=${(e: Event) => (e.stopPropagation(), this.onExit(c.at))} @focusin=${(e: Event) => this.at(c.at, e)}></to-text>
-        <button type="button" class="to-btn to-tool board-grip" aria-haspopup="menu" aria-label=${t('Card options')} title=${t('Drag to move; tap for options')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: Event) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
+    const ranged = this.rows.has(c.at);
+    return html`<li class="board-card ${dragging ? 'dragging' : ''} ${before ? 'before' : ''} ${ranged ? 'ranged' : ''}" data-at=${c.at} aria-selected=${ranged ? 'true' : 'false'}>
+      <div class="board-main">
+        <to-text shape="line" data-at=${c.at} .blocks=${this.one(c.block)} label=${t('Card')} placeholder=${t('Card')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, c.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onCardEnter(s, c))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(c.at, e.detail.dir))} @text-selectall=${this.onSelectAll} @focusin=${(e: Event) => this.at(c.at, e)}></to-text>
+        <button type="button" class="to-btn to-tool board-grip to-rows-handle" aria-label=${t('Choose this card: drag it to move it')} title=${t('Drag to move; tap to choose')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: MouseEvent) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
       </div>
       ${web ? html`<to-embed class="board-web" url=${web}></to-embed>` : nothing}
       ${c.items.length
@@ -376,10 +694,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     return html`<section class="board-col ${s.color ? 'tinted' : ''} ${over ? 'full' : ''} ${this.drag !== null && this.over?.stage === i ? 'over' : ''}" data-stage=${i} style=${s.color ? `--c:${STAGE_COLORS[s.color].hex}` : nothing} aria-label=${s.name || t('Stage')}>
       <header class="board-head" @focusin=${(e: Event) => this.at(s.at, e)}>
         ${s.block
-          ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onStageEnter(s))} @text-exit=${(e: Event) => e.stopPropagation()}></to-text>`
+          ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onStageEnter(s))} @text-exit=${(e: Event) => e.stopPropagation()} @text-selectall=${this.onSelectAll}></to-text>`
           : html`<h2 class="board-static">${s.name}</h2>`}
         <span class="board-count" aria-label=${over ? t('{n} cards, over the limit of {limit}', { n: s.cards.length, limit: s.limit }) : s.limit ? t('{n} cards, limit {limit}', { n: s.cards.length, limit: s.limit }) : t('{n|one card|# cards}', { n: s.cards.length })}>${count}</span>
-        <button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('Stage options: {stage}', { stage: s.name || t('Stage') })} title=${t('Stage options')} @click=${(e: Event) => void this.openMenu({ kind: 'stage', at: s.at }, e.currentTarget as HTMLElement)}>${icon(Ellipsis, 18)}</button>
+        <button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('Stage options: {stage}', { stage: s.name || t('Stage') })} title=${t('Stage options')} @click=${(e: Event) => void this.openMenu(s.at, e.currentTarget as HTMLElement)}>${icon(Ellipsis, 18)}</button>
       </header>
       <ul class="board-cards ${end ? 'end' : ''}">${s.cards.map((c, j) => this.card(s, c, j))}</ul>
       ${s.cards.length ? nothing : html`<p class="board-none to-hint">${t('No cards.')}</p>`}
@@ -395,12 +713,12 @@ export class ToBoardEditor extends DocElement<BoardView> {
         <to-insert .items=${this.inserts()}></to-insert>
         ${words('b', t('Bold'), UI.bold, 'Mod+B')}${words('i', t('Italic'), UI.italic, 'Mod+I')}${words('u', t('Underline'), UI.underline, 'Mod+U')}${words('s', t('Strikethrough'), UI.strike)}${words('h', t('Highlight'), UI.highlight)}${words('link', t('Link'), UI.link, 'Mod+K')}
         ${tool({ label: t('Icon'), icon: UI.icon, keep: true, disabled: !x, does: () => void this.insertIcon() })}
-        ${tool({ label: t('Undo'), icon: UI.undo, keys: 'Mod+Z', keep: true, disabled: !this.canUndo, does: () => this.dispatchEvent(new CustomEvent('docundo', { cancelable: true })) })}
-        ${tool({ label: t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z', keep: true, disabled: !this.canRedo, does: () => this.dispatchEvent(new CustomEvent('docredo', { cancelable: true })) })}
         <span class="to-hint board-total">${t('{n|one card|# cards}', { n: v.cards })}</span>
+        ${this.undoTools()}
       </to-bar>
-      ${v.stages.length ? html`<div class="board" role="group" aria-label=${t('Board')}>${v.stages.map((s, i) => this.stage(s, i))}</div>` : html`<p class="to-hint board-none">${t('No stages. Insert a stage.')}</p>`}
-      <to-menu class="board-menu" .label=${this.menu?.kind === 'stage' ? t('Stage') : t('Card')} .items=${this.menuItems()}></to-menu>`;
+      ${v.stages.length ? html`<div class="board" role="group" tabindex="-1" aria-label=${t('Board')}>${v.stages.map((s, i) => this.stage(s, i))}</div>` : html`<p class="to-hint board-none">${t('No stages. Insert a stage.')}</p>`}
+      ${this.rows.renderContext()}
+      <to-menu class="board-menu" .label=${t('Stage')} .items=${this.menuItems()}></to-menu>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToBoardEditor);

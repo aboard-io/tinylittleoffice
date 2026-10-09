@@ -82,3 +82,44 @@ test('board: on a phone, a card is typed without the page moving, and carried by
   expect(await small(page, 'to-board-editor')).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('board: on a phone, a tap on a grip chooses the card, the bar above it moves and deletes it, and a double tap never zooms', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/board');
+  const cols = page.locator('.board-col');
+  await expect(cols).toHaveCount(3);
+  await cols.first().locator('.board-more').tap();
+  await page.locator('.board-menu [role=menu]').getByText('Add a card').tap();
+  await expect(page.locator('to-text[data-at="1"] .tx')).toBeFocused();
+  await page.keyboard.type('Call the printer');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('to-text[data-at="2"] .tx')).toBeFocused();
+  await page.keyboard.type('Pay rent');
+  await expect.poll(() => value(page, 'to-board-editor')).toContain('- Call the printer\n- Pay rent\n');
+  expect(await page.locator('.board').evaluate((el) => getComputedStyle(el).touchAction)).toBe('manipulation');
+  // A tap on the second card's grip chooses it; the bar comes up above it, inside the screen.
+  await page.locator('.board-card').nth(1).locator('.board-grip').tap();
+  await expect(page.locator('.board-card.ranged')).toHaveCount(1);
+  const bar = page.locator('to-context.to-rows-context .to-context');
+  await expect(bar).toBeVisible();
+  const b = (await bar.boundingBox())!;
+  const card = (await page.locator('.board-card.ranged').boundingBox())!;
+  expect(b.y + b.height).toBeLessThanOrEqual(card.y + 1);
+  expect(b.x).toBeGreaterThanOrEqual(0);
+  expect(b.x + b.width).toBeLessThanOrEqual(390);
+  for (const btn of await bar.locator('button').all()) {
+    const r = (await btn.boundingBox())!;
+    expect(r.height).toBeGreaterThanOrEqual(44);
+  }
+  await bar.getByRole('button', { name: 'Move up' }).tap();
+  await expect.poll(() => value(page, 'to-board-editor')).toContain('- Pay rent\n- Call the printer\n');
+  await expect(page.locator('.board-card.ranged')).toHaveCount(1);
+  await bar.getByRole('button', { name: 'Delete' }).tap();
+  await expect.poll(() => value(page, 'to-board-editor')).not.toContain('Pay rent');
+  // A double tap on a card's words: the page does not zoom.
+  await page.locator('.board-card').first().locator('.tx').dblclick();
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  expect(errors).toEqual([]);
+});

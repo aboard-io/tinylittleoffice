@@ -14,6 +14,12 @@
     scroll-snap-type: x proximity;
     scroll-padding-inline: 2px;
     overscroll-behavior-x: contain;
+    /* A double tap edits; the page never zooms on it. */
+    touch-action: manipulation;
+  }
+  /* Chosen cards hold the focus here; the cards themselves show it. */
+  .board:focus {
+    outline: none;
   }
   .board-col {
     flex: 0 0 min(300px, calc(100vw - 56px));
@@ -88,6 +94,14 @@
   }
   .board-card.before {
     box-shadow: 0 -5px 0 -1px var(--to-accent);
+  }
+  .board-card.ranged {
+    background: var(--to-accent-soft);
+    border-color: var(--to-accent);
+    box-shadow: 0 0 0 1px var(--to-accent);
+  }
+  .board-card.ranged .board-grip {
+    color: var(--to-accent);
   }
   .board-card.dragging {
     opacity: 0.5;
