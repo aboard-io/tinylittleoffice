@@ -465,6 +465,8 @@ export default {
   'Tap each corner; tap the first again, or press Enter, to close it.': 'Tap each corner; tap the first again, or press Enter, to close it.',
   'Drag to draw; end where you began to close it into a shape.': 'Drag to draw; end where you began to close it into a shape.',
   'Press on one shape and let go on another.': 'Press on one shape and let go on another.',
+  'Now the other shape: tap it, or choose it with the arrows and press Enter.': 'Now the other shape: tap it, or choose it with the arrows and press Enter.',
+  'Drag to move them together; Shift and a tap adds a shape or takes it away.': 'Drag to move them together; Shift and a tap adds a shape or takes it away.',
   'Press on one shape and let go on another': 'Press on one shape and let go on another',
   'Tap where the icon goes.': 'Tap where the icon goes.',
   'Drag on the canvas to draw it, or tap to place one.': 'Drag on the canvas to draw it, or tap to place one.',

@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { blankTile, parseTile, tileCss, tilePattern, tileRef, tileSvg } from '../../../kit/tile.ts';
-import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, restack, setAlt, setGrid, setPixels, setTile, simplify, strokeShape } from '../model.ts';
+import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape } from '../model.ts';
 import { drawingPage, drawingToSvg, shapeSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def, { tileOfDoc } from '../def.ts';
@@ -252,11 +252,43 @@ test('the clipboard: shapes pasted as one rows op, a grid step down and right (f
   const fresh = pasteShapes(parse(''), [{ k: 'r', x: 8, y: 8, w: 32, h: 16, f: 0, text: 'Hi' }]);
   expect(fresh.ops.map((o) => o.op)).toEqual(['splice', 'rows']);
   expect(write(applyAll(parse(''), fresh.ops))).toBe('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 2 | 4 | 2 | 0 | Hi\n');
-  expect(pasteShapes(doc, [])).toEqual({ ops: [], sel: -1 });
+  expect(pasteShapes(doc, [])).toEqual({ ops: [], sel: -1, all: [] });
 });
 
 test('a text shape draws " | " as a new line, like a note', () => {
   const svg = shapeSvg({ k: 't', x: 0, y: 0, w: 200, h: 40, f: 0, text: 'One | Two' });
   expect(svg.match(/<text /g)).toHaveLength(2);
   expect(svg).not.toContain('|');
+});
+
+const FOUR = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 4 | 4 | 0 | A\nr | 8 | 1 | 4 | 4 | 0 | B\nk | 0 | 1 | 0 | 0 | 0 |\nr | 16 | 1 | 4 | 4 | 0 | C\n';
+const labels = (text: string) => readDrawing(parse(text)).shapes.map((s) => (s.k === 'k' ? `${s.x}>${s.y}` : s.text)).join(' ');
+
+test('several shapes at once: removed with their joins, patched each its own way', () => {
+  expect(labels(after(FOUR, (d) => removeShapes(d, [0, 3])))).toBe('B');
+  expect(labels(after(FOUR, (d) => removeShapes(d, [3])))).toBe('A B 0>1');
+  expect(removeShapes(parse(FOUR), [9])).toEqual([]);
+  const moved = readDrawing(parse(after(FOUR, (d) => patchShapes(d, [[0, { x: 16 }], [3, { x: 200, text: 'D' }]])))).shapes;
+  expect([moved[0].x, moved[3].x, moved[3].text, moved[1].x]).toEqual([16, 200, 'D', 64]);
+});
+
+test('restackTo and restackShapes: one place forward or back, to the front or back, together and in order; the joins follow', () => {
+  expect(labels(after(FOUR, (d) => restackTo(d, 0, 1)))).toBe('B A 1>0 C');
+  expect(labels(after(FOUR, (d) => restackShapes(d, [0, 1], 1).ops))).toBe('1>2 A B C');
+  const front = restackShapes(parse(FOUR), [0, 1], 'front');
+  expect(labels(after(FOUR, () => front.ops))).toBe('2>3 C A B');
+  expect(front.at).toEqual([2, 3]);
+  expect(labels(after(FOUR, (d) => restackShapes(d, [3], 'back').ops))).toBe('C A B 1>2');
+  // Already at the front: nothing moves, and none passes another.
+  expect(restackShapes(parse(FOUR), [3], 1).ops).toEqual([]);
+  expect(labels(after(FOUR, (d) => restackShapes(d, [1, 3], -1).ops))).toBe('B A C 1>0');
+});
+
+test('duplicateShapes: copies of the chosen shapes and the joins among them, two steps down and right, all chosen', () => {
+  const d = duplicateShapes(parse(FOUR), [0, 1, 2]);
+  const text = after(FOUR, () => d.ops);
+  expect(labels(text)).toBe('A B 0>1 C A B 4>5');
+  expect(d.sel).toEqual([4, 5, 6]);
+  expect(readDrawing(parse(text)).shapes[4].x).toBe(8 + 16);
+  expect(duplicateShapes(parse(FOUR), [2]).ops).toEqual([]);
 });

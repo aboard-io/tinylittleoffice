@@ -39,9 +39,17 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
-    touch-action: none;
+    /* A finger on empty canvas pans a zoomed drawing (or the page); a pinch is the editor's, and so is a double tap. */
+    touch-action: pan-x pan-y;
     user-select: none;
     -webkit-user-select: none;
+  }
+  /* With a tool in hand, a drag on, or a finger on a shape or a handle, the canvas keeps the finger. */
+  svg.draw-canvas.tool,
+  svg.draw-canvas.held,
+  svg.draw-canvas .shape,
+  svg.draw-canvas .handle {
+    touch-action: none;
   }
   svg.draw-canvas.tool {
     cursor: crosshair;

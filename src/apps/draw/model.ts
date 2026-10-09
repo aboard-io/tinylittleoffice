@@ -389,11 +389,15 @@ export function patchShape(doc: Doc, i: number, patch: Partial<Shape>): Op[] {
 }
 
 /** Shape i taken out, along with any joins to it; the joins that remain keep pointing at the right shapes. */
-export function removeShape(doc: Doc, i: number): Op[] {
+export const removeShape = (doc: Doc, i: number): Op[] => removeShapes(doc, [i]);
+
+/** Several shapes taken out together, with every join to any of them; the joins that remain are renumbered. */
+export function removeShapes(doc: Doc, picked: number[]): Op[] {
   const v = readDrawing(doc);
-  if (!v.shapes[i]) return [];
-  // What goes: the shape, and every join to it. Rows come out from the last, so each row number still holds.
-  const gone = [i, ...v.shapes.flatMap((s, j) => (isLink(s.k) && (s.x === i || s.y === i) ? [j] : []))].sort((a, b) => b - a);
+  const pick = new Set(picked.filter((i) => v.shapes[i]));
+  if (!pick.size) return [];
+  // What goes: the shapes, and every join to one. Rows come out from the last, so each row number still holds.
+  const gone = [...new Set([...pick, ...v.shapes.flatMap((s, j) => (isLink(s.k) && (pick.has(s.x) || pick.has(s.y)) ? [j] : []))])].sort((a, b) => b - a);
   const b = new Builder(doc);
   for (const j of gone) b.push({ op: 'rows', at: v.at, r: v.rows[j], n: 1 });
   // The shapes left are numbered without those: the joins read the table as it stands and are told where their shapes are now.
@@ -401,28 +405,80 @@ export function removeShape(doc: Doc, i: number): Op[] {
   return tidy(renumber(b, now)).ops;
 }
 
-/** Shape i brought to the front (drawn last) or sent to the back; the joins follow. Where it ended up is given with the ops. */
-export function restack(doc: Doc, i: number, toFront: boolean): { ops: Op[]; at: number } {
+/** Several shapes changed at once, each its own patch: the ops of each written against the document the ones before it left. */
+export function patchShapes(doc: Doc, patches: [number, Partial<Shape>][]): Op[] {
+  const out: Op[] = [];
+  let d = doc;
+  for (const [i, p] of patches) {
+    const ops = patchShape(d, i, p);
+    for (const op of ops) d = apply(d, op);
+    out.push(...ops);
+  }
+  return out;
+}
+
+/** Shape i put at place `to` in the stack (0 the back, drawn first); the joins follow. */
+export function restackTo(doc: Doc, i: number, to: number): Op[] {
   const v = readDrawing(doc);
   const s = v.shapes[i];
-  if (!s) return { ops: [], at: i };
   const n = v.shapes.length;
-  const at = toFront ? n - 1 : 0;
-  if (at === i) return { ops: [], at };
+  const at = Math.max(0, Math.min(n - 1, to));
+  if (!s || at === i) return [];
   const b = new Builder(doc);
-  // Out, then back in at the far end: a row only moves by leaving and arriving.
+  // Out, then back in at its place: a row only moves by leaving and arriving.
   b.push({ op: 'rows', at: v.at, r: v.rows[i], n: 1 });
   const after = b.view;
-  const r = toFront ? (after.rows[after.rows.length - 1] ?? -1) + 1 : (after.rows[0] ?? 0);
+  const r = at < after.rows.length ? after.rows[at] : (after.rows[after.rows.length - 1] ?? -1) + 1;
   b.push({ op: 'rows', at: v.at, r, n: 1, rows: [rowOf(b, s)] });
-  const now = (old: number) => (old === i ? at : toFront ? (old > i ? old - 1 : old) : old < i ? old + 1 : old);
-  return { ops: renumber(b, now).ops, at };
+  const now = (old: number) => (old === i ? at : i < at ? (old > i && old <= at ? old - 1 : old) : old >= at && old < i ? old + 1 : old);
+  return renumber(b, now).ops;
+}
+
+/**
+ * Shapes moved in the stack together, keeping their order among themselves: to the front, to the back, or one
+ * place forward (1) or back (-1), never past one another. Where they ended up is given with the ops.
+ */
+export function restackShapes(doc: Doc, picked: number[], how: 'front' | 'back' | 1 | -1): { ops: Op[]; at: number[] } {
+  const n = readDrawing(doc).shapes.length;
+  const order = [...new Set(picked)].filter((i) => i >= 0 && i < n).sort((a, b) => a - b);
+  const up = how === 'front' || how === 1;
+  // Forward goes from the front-most down, back from the back-most up, so a move never shifts one still to come.
+  if (up) order.reverse();
+  let limit = up ? n - 1 : 0;
+  const out: Op[] = [];
+  const at: number[] = [];
+  let d = doc;
+  for (const i of order) {
+    const to = how === 'front' || how === 'back' ? limit : up ? Math.min(i + 1, limit) : Math.max(i - 1, limit);
+    const ops = restackTo(d, i, to);
+    for (const op of ops) d = apply(d, op);
+    out.push(...ops);
+    at.push(to);
+    limit = up ? to - 1 : to + 1;
+  }
+  return { ops: out, at: at.sort((a, b) => a - b) };
+}
+
+/** Shape i brought to the front (drawn last) or sent to the back; the joins follow. Where it ended up is given with the ops. */
+export function restack(doc: Doc, i: number, toFront: boolean): { ops: Op[]; at: number } {
+  const n = readDrawing(doc).shapes.length;
+  const at = toFront ? n - 1 : 0;
+  return i >= 0 && i < n ? { ops: restackTo(doc, i, at), at } : { ops: [], at: i };
 }
 
 /** A copy of shape i, a little down and to the right, at the end. */
 export function duplicate(doc: Doc, i: number): Op[] {
   const s = readDrawing(doc).shapes[i];
   return s && !isLink(s.k) ? addShape(doc, { ...s, x: s.x + GRID * 2, y: s.y + GRID * 2 }) : [];
+}
+
+/** Copies of several shapes (and the joins among them), a little down and to the right, at the end; `sel` is every copy. */
+export function duplicateShapes(doc: Doc, picked: number[]): { ops: Op[]; sel: number[] } {
+  const v = readDrawing(doc);
+  const shapes = pickShapes(v.shapes, picked);
+  if (!shapes.some((s) => !isLink(s.k))) return { ops: [], sel: [] };
+  const { ops, all } = pasteShapes(doc, shapes, GRID * 2);
+  return { ops, sel: all };
 }
 
 /** The alt text: what the drawing shows, in words. */
@@ -508,18 +564,18 @@ export function shapesFromText(text: string): Shape[] {
  * sits there, so a paste over its copy shows), the joins among them renumbered to their new rows. `sel` is the
  * last pasted shape that is no join (the one drawn on top).
  */
-export function pasteShapes(doc: Doc, shapes: Shape[]): { ops: Op[]; sel: number } {
+export function pasteShapes(doc: Doc, shapes: Shape[], step = GRID): { ops: Op[]; sel: number; all: number[] } {
   const kept = keepJoins(shapes);
-  if (!kept.length) return { ops: [], sel: -1 };
+  if (!kept.length) return { ops: [], sel: -1, all: [] };
   const have = readDrawing(doc).shapes;
   const base = have.length;
   const first = kept.find((s) => !isLink(s.k));
-  let d = GRID;
+  let d = step;
   while (first && have.some((s) => !isLink(s.k) && s.k === first.k && s.x === first.x + d && s.y === first.y + d)) d += GRID;
   const moved = kept.map((s) => (isLink(s.k) ? { ...s, x: s.x + base, y: s.y + base } : { ...s, x: s.x + d, y: s.y + d }));
   const b = ensure(new Builder(doc), moved.some((s) => isDrawn(s.k)) ? [...BASE, 'points'] : BASE);
   b.push({ op: 'rows', at: b.view.at, r: b.table.rows.length, n: moved.length, rows: moved.map((s) => rowOf(b, s)) });
   let last = moved.length - 1;
   while (last > 0 && isLink(moved[last].k)) last--;
-  return { ops: b.ops, sel: base + last };
+  return { ops: b.ops, sel: base + last, all: moved.map((_, i) => base + i) };
 }
