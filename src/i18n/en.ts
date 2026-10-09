@@ -870,7 +870,6 @@ export default {
   'Edit event': 'Edit event',
   'Edit task': 'Edit task',
   'Choose {task}': 'Choose {task}',
-  'Chosen tasks': 'Chosen tasks',
   'A day earlier': 'A day earlier',
   'A day later': 'A day later',
   'Dates…': 'Dates…',
