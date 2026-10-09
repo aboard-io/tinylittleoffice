@@ -152,11 +152,11 @@ test('outline: on a phone, a finger drags a row by its handle (pointer events, n
   });
   await expect.poll(() => page.locator('to-outline-editor').evaluate((el) => (el as HTMLElement & { value: string }).value)).toBe('- B\n- C\n- A\n');
   await expect(page.locator('.to-rows-target')).toHaveCount(0);
-  // A finger's tap on a handle chooses; a second tap on another extends.
+  // A finger's tap on a handle chooses; a second tap on another extends (the row after the range is under its bar, so the one after that).
   await page.locator('.ol-row[data-at="0"] .ol-handle').tap();
   await expect(page.locator('.ol-row[data-at="0"]')).toHaveClass(/\branged\b/);
-  await page.locator('.ol-row[data-at="1"] .ol-handle').tap();
-  await expect(page.locator('.ol-row.ranged')).toHaveCount(2);
+  await page.locator('.ol-row[data-at="2"] .ol-handle').tap();
+  await expect(page.locator('.ol-row.ranged')).toHaveCount(3);
   expect(await page.evaluate(() => document.scrollingElement!.scrollTop)).toBe(0);
   expect(errors).toEqual([]);
 });

@@ -280,6 +280,27 @@ The editable's font-size is never below 16px (prevents the focus zoom); `focus({
 
 Tests: `test/dom/text.test.ts`, `deck-write.test.ts`, `footnotes.test.ts`, `lists.test.ts` (the board card case), `outline.test.ts` type by setting `innerHTML` and firing `input` — that is the contentEditable contract and it goes. They are rewritten against a helper `typeIn(el, text)` that dispatches `beforeinput` (`inputType: 'insertText'`, `data`) and `key(el, 'Enter')` that dispatches `beforeinput insertParagraph`; selection is set through the element's `sel` setter. Whether happy-dom's `InputEvent`/`Selection` suffice is the first risk below; if not, the editor's tests land in Vitest browser mode (phase 6 pulled forward for this one file).
 
+### Rows chosen whole: `src/kit/rows.ts`
+
+Every app with rows (Outline's items now; Todo, Board's cards, Trip's stops and the schedule's tasks as they adopt it) chooses rows whole through one Lit `ReactiveController`, so the keys, the handle, the drag, the clipboard and the bar under a range are the same everywhere (docs/editing.md §3, §6). The host knows its rows and its document; the controller knows nothing of either.
+
+```ts
+const rows = new Rows<Id>(host, {
+  rows(): { id: Id; el: HTMLElement; span: { from: number; to: number } }[],  // on screen, in order; span = the row's blocks with its family
+  box(): HTMLElement | null,              // takes the focus while rows are chosen (tabindex=-1)
+  handle: '.my-handle',                   // also given class to-rows-handle: touch-action none, 44px under a coarse pointer
+  nests?: boolean, fromWords?: boolean,   // Indent/Bring out and drops "under"; Shift+Up/Down and Escape in words choose the row
+  current?(): Id | null, span?(rows): RowSpan | null,
+  edit(id, offset: number | 'end'),       // the caret into a row's words
+  remove(span, ids), move(span, by), canMove(span, by), shift?(span, by), canShift?(span, by), duplicate(span),
+  copy(span): { text, html }, paste(data, span | null), drop?(id, to, 'under' | 'after'), extra?(span): ContextEntry[],
+});
+rows.range; rows.drag; rows.has(id); rows.span(); rows.choose(id, extend?); rows.extend(±1); rows.selectAll();
+rows.release(id?, offset?); rows.select(range); rows.renderContext(); lastCopied();
+```
+
+`move`, `shift` and `duplicate` return the range to keep chosen (ids after the edit), or null to let go. The controller listens on the host for keys, focus and the handle's pointer events, and on the document (capturing) for copy, cut and paste while a range is chosen and the focus is in the host or nowhere, and for a pointerdown outside the host, which lets the range go. A drag is pointer events with `setPointerCapture`, a 6px threshold, `elementFromPoint`, the insertion line drawn as `.to-rows-target` in the body, and auto-scroll within 48px of the scroller's edges; a still press is the tap that chooses (on a touch screen, a second tap on another handle extends). Undo is the host's: Outline keeps the range or the caret from before each edit, keyed by the edit's first op, and puts it back in `undone()`.
+
 ---
 
 ## 5. The formula engine over a table block (phase 3)
