@@ -162,3 +162,70 @@ test('draw: an icon on a shape; and the diagram apps take icons too', async () =
   expect(box<HTMLTextAreaElement>(org.el, 'Org chart, as text').value).toBe(':crown Ada | CEO');
   expect(org.el.querySelectorAll('.pic svg g[stroke-linecap="round"]')).toHaveLength(1);
 });
+
+test('venn: a third set is added on the picture and typed into, its things one under another and none wrapped', async () => {
+  prefs();
+  localStorage.removeItem('tinyoffice.edit');
+  const { el, last } = await mount('venn', '- Fast: sprinting, espresso\n- Cheap: instant noodles, walking');
+  const texts = () => [...el.querySelectorAll('.pic > svg text')].map((t) => t.textContent);
+  // Each thing is one line of text: "instant noodles" is not broken over two.
+  expect(texts()).toContain('instant noodles');
+  expect(el.querySelectorAll('.pic > svg ellipse')).toHaveLength(2);
+  // A tap on empty space, well away from the circles: a third set, named where it stands.
+  const svg = el.querySelector<SVGSVGElement>('.pic > svg')!;
+  Object.assign(svg, { createSVGPoint: () => ({ x: 0, y: 0, matrixTransform: () => ({ x: 700, y: 700 }) }), getScreenCTM: () => ({ inverse: () => ({}) }) });
+  el.querySelector('.pic')!.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+  await settle(el);
+  expect(el.querySelectorAll('.pic > svg ellipse')).toHaveLength(3);
+  const box = () => el.querySelector<HTMLInputElement>('.pic-edit input')!;
+  box().value = 'Good';
+  box().dispatchEvent(new Event('input', { bubbles: true }));
+  await settle(el);
+  expect(last()).toBe('- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good:');
+  expect(el.querySelectorAll('.pic > svg ellipse')).toHaveLength(3);
+  // Enter: the first thing in it, drawn with its field's name until typed into (the set stays on the picture throughout).
+  press(box(), 'Enter');
+  await settle(el);
+  expect(el.querySelectorAll('.pic > svg ellipse')).toHaveLength(3);
+  expect(texts()).toContain('What is in it');
+  box().value = 'slow cooking';
+  box().dispatchEvent(new Event('input', { bubbles: true }));
+  await settle(el);
+  expect(last()).toBe('- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking');
+  expect(texts().filter((t) => t === 'slow cooking')).toHaveLength(1);
+});
+
+test('draw: a stroke by hand is a line of its own shape, closed into a shape when it ends where it began', async () => {
+  const { el, last } = await mount('draw');
+  const { canvas, shapes } = canvasOf(el);
+  // The canvas as laid out: 640 by 400 at the top left, so pointer places are the drawing's own.
+  canvas().getBoundingClientRect = () => ({ left: 0, top: 0, width: 640, height: 400, right: 640, bottom: 400, x: 0, y: 0, toJSON: () => ({}) });
+  const at = (type: string, x: number, y: number) => canvas().dispatchEvent(new PointerEvent(type, { bubbles: true, composed: true, button: 0, pointerId: 1, clientX: x, clientY: y }));
+  button(el, /^Freehand/).click();
+  await settle(el);
+  expect(el.querySelector('.draw-hint')?.textContent).toContain('Drag to draw');
+  // A wobbly line from left to right, then down: a stroke, its wobble smoothed to a few corners.
+  at('pointerdown', 40, 100);
+  for (let x = 44; x <= 200; x += 4) at('pointermove', x, 100 + (x % 8 === 0 ? 1 : 0));
+  at('pointermove', 200, 160);
+  at('pointerup', 200, 160);
+  await settle(el);
+  expect(shapes()).toHaveLength(1);
+  expect(shapes()[0].querySelector('polyline[fill="none"]')).toBeTruthy();
+  const stroke = last()!.split('\n').at(-1)!;
+  expect(stroke.startsWith('w | ')).toBe(true);
+  expect(stroke.split(' | ').at(-1)!.split(';').length).toBeLessThan(6);
+  // Drawn round and back to its start: a shape, filled.
+  button(el, /^Freehand/).click();
+  await settle(el);
+  at('pointerdown', 300, 100);
+  at('pointermove', 400, 100);
+  at('pointermove', 400, 200);
+  at('pointermove', 300, 200);
+  at('pointermove', 302, 104);
+  at('pointerup', 302, 104);
+  await settle(el);
+  expect(shapes()).toHaveLength(2);
+  expect(shapes()[1].querySelector('polygon')).toBeTruthy();
+  expect(last()!.split('\n').at(-1)!.startsWith('v | ')).toBe(true);
+});

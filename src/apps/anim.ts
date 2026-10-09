@@ -231,7 +231,7 @@ export class ToAnim extends DocElement<Anim> {
             const [x, y, w, h] = bounds(s, shapes);
             const pad = 6;
             const k = stateAt(this.doc, i, now);
-            const pts = s.k === 'v' && i === this.sel ? (k.pts ?? s.pts ?? []) : [];
+            const pts = (s.k === 'v' || s.k === 'w') && i === this.sel ? (k.pts ?? s.pts ?? []) : [];
             return svg`<g class="hit ${i === this.sel ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, shapes, k, now)}><rect x=${x - pad} y=${y - pad} width=${w + pad * 2} height=${h + pad * 2} rx="4" />
               ${Array.from({ length: Math.floor(pts.length / 2) }, (_, c) => svg`<circle class="corner" data-corner=${c} cx=${s.x + (pts[2 * c] / 100) * s.w} cy=${s.y + (pts[2 * c + 1] / 100) * s.h} r="6" />`)}</g>`;
           })}

@@ -85,6 +85,33 @@ test('zine: eight pages, typed on as slides, a sheet to print either way', async
   expect(page.querySelector('section')!.getAttribute('aria-label')).toBe('Front cover');
 });
 
+test('a document inserted on a page with words goes to the next blank page; none left, it says so', async () => {
+  const m = await mount('zine');
+  const zine = () => m.el;
+  headline(zine(), 'Small Joys');
+  await settleAll(2);
+  button(zine(), 'Page 2').click();
+  await settleAll(2);
+  headline(zine(), 'Coffee');
+  await settleAll(2);
+  // Inserted on page 2, which has words: the words stay, and the document takes page 3.
+  await insert(zine(), 'Insert', 'spinner');
+  await editSub('Spinner, as text', '# Rain?\n- Yes\n- No');
+  expect(thumbs(zine())[1].textContent).toContain('Coffee');
+  expect(thumbs(zine())[2].textContent).toContain('Rain?');
+  expect(zine().querySelector('.deck-thumb[aria-current="true"]')).toBe(thumbs(zine())[2]);
+  expect(thumbs(zine())).toHaveLength(8);
+  // A deck, with words on its only slide, grows a slide for the document.
+  const d = await mount('deck');
+  headline(d.el, 'Hello');
+  await settleAll(2);
+  await insert(d.el, 'Insert', 'spinner');
+  await editSub('Spinner, as text', '# A\n- B\n- C');
+  expect(thumbs(d.el)).toHaveLength(2);
+  expect(thumbs(d.el)[0].textContent).toContain('Hello');
+  expect(d.el.querySelectorAll('.deck-slide to-embed')).toHaveLength(1);
+});
+
 test('paper that folds: a booklet grows, a brochure prints in order', async () => {
   const { el, last } = await mount('booklet');
   expect(thumbs(el)).toHaveLength(8);
