@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/spinner.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "# Who buys lunch?\n\n- Ada\n- Grace\n- Alan\n- Margaret\n- Linus\n- Barbara"
+  }
+ ]
+}

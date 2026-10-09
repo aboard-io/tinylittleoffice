@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/family.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "- Rose + Albert | m. 1948\n  - Helen + Tom | m. 1975\n    - Paul | b. 1978\n    - Sam | b. 1981\n  - David | b. 1952\n    - Ada | b. 1985"
+  }
+ ]
+}

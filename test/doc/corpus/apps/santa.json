@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/santa.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "# Office Secret Santa\n\n- Ada\n- Grace\n- Alan\n- Margaret\n- Linus"
+  }
+ ]
+}

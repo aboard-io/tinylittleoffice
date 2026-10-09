@@ -1,0 +1,9 @@
+{
+ "source": "src/apps/wordsearch.def.ts",
+ "docs": [
+  {
+   "name": "example 1",
+   "text": "# Coffee\n\n- espresso\n- filter\n- crema\n- roast\n- grinder\n- kettle\n- milk\n- beans\n- cup"
+  }
+ ]
+}

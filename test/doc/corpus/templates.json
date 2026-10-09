@@ -1,0 +1,157 @@
+{
+ "source": "src/lib/templates.ts",
+ "docs": [
+  {
+   "name": "write/meeting",
+   "text": "# Meeting notes\n\n*Date · Where · Who was there*\n\n## Agenda\n\n1. The first thing\n2. The second thing\n3. Any other business\n\n## Notes\n\nWhat was said, a line or two a topic.\n\n## Decisions\n\n- What was decided, and by whom\n\n## Actions\n\n- Who does what, by when"
+  },
+  {
+   "name": "write/letter",
+   "text": "Your name {.right}\n\nStreet {.right}\n\nTown, postcode {.right}\n\nyou@example.com {.right}\n\n<br>\n\nDay Month Year\n\n<br>\n\nDear Name,\n\n<br>\n\nWhy you are writing, in a sentence.\n\n<br>\n\nThe detail: what happened, what you would like, and by when.\n\n<br>\n\nThank you for your time. I look forward to hearing from you.\n\n<br>\n\nYours sincerely,\n\n<br>\n\nYour name"
+  },
+  {
+   "name": "write/memo",
+   "text": "# Memo\n\n**To:** Everyone\n\n**From:** Your name\n\n**Date:** Day Month Year\n\n**Subject:** The one thing this memo is about\n\n## Summary\n\nWhat this memo says, in two sentences.\n\n## Background\n\nWhat led here, briefly.\n\n## What we propose\n\n- The change\n- What it costs\n- When\n\n## What we need from you\n\nA decision, a reply, or nothing: say which, and by when."
+  },
+  {
+   "name": "write/bio",
+   "text": "# Your Name\n\n*What you do, in a line · Town · you@example.com*\n\n## Now\n\nRole at Place, since year. What you do there, in two sentences.\n\n## Before\n\n- Role, Place, years. One thing you did there.\n- Role, Place, years. One thing you did there.\n\n## Education\n\n- Degree, School, year\n\n## Skills\n\n- Three or four things you are good at\n\n## Elsewhere\n\nTalks, writing, volunteering, the odd prize."
+  },
+  {
+   "name": "write/resume",
+   "text": "# Ada Lovelace\n\nLondon · ada@example.com · example.com/ada\n\n## Experience\n\n**Analyst, Analytical Engine** (1842 to 1843)\n\n- Wrote the first published program, for computing Bernoulli numbers\n- Translated and annotated Menabrea's paper, tripling its length\n\n## Education\n\nTutored in mathematics by Mary Somerville and Augustus De Morgan\n\n## Skills\n\n- Mathematics, music, French, explaining machines to people"
+  },
+  {
+   "name": "write/week",
+   "text": "# This week\n\n*The one thing this week is for.*\n\n## Must do\n\n1.\n2.\n3.\n\n## Monday\n\n-\n\n## Tuesday\n\n-\n\n## Wednesday\n\n-\n\n## Thursday\n\n-\n\n## Friday\n\n-\n\n## Notes\n\nWhat came up, and what moves to next week."
+  },
+  {
+   "name": "write/bizplan",
+   "text": "# Business plan\n\n*Company name · Month Year*\n\n## Summary\n\n*What the business does, in two sentences.*\n\n*Who it is for, and what they get.*\n\n*Where it is now, and what the next year holds.*\n\n*What you are asking for, if anything.*\n\n## The problem\n\n*What is hard, slow or costly for the customer today.*\n\n*How they cope with it now.*\n\n*Why it matters enough to pay to fix.*\n\n## The product\n\n*What it is and how it works, plainly.*\n\n*What makes it better than the way things are done now.*\n\n*What exists today, and what is still to build.*\n\n## The market\n\n*Who the customers are, and how many of them there are.*\n\n*How the market is changing.*\n\n*Who else serves them, and how you differ.*\n\n## How it makes money\n\n*What is sold, at what price, how often.*\n\n*What it costs to make and to sell.*\n\n*The margin, and how it improves with scale.*\n\n## Going to market\n\n*How customers hear of it.*\n\n*How they try it, buy it and stay.*\n\n*The first hundred customers: where they come from.*\n\n## The team\n\n*Who is building this, and why these people.*\n\n*Who is missing, and when they join.*\n\n*Advisers and partners.*\n\n## The numbers\n\n*Revenue and costs for the next three years, by year.*\n\n*When it breaks even.*\n\n*The assumptions that matter most.*\n\n## Risks\n\n*What could stop this working.*\n\n*What you would do about each.*\n\n*What you do not know yet.*\n\n## The ask\n\n*How much, for what, until when.*\n\n*What it buys: the milestones.*\n\n*What the money gets whoever gives it.*"
+  },
+  {
+   "name": "write/mktplan",
+   "text": "# Marketing plan\n\n*Product · Period*\n\n## Goals\n\n*What marketing must achieve this period, as numbers.*\n\n*By when.*\n\n*What success looks like, and what it does not.*\n\n## Audience\n\n*Who you are talking to: the two or three kinds of person.*\n\n*What they want, worry about, and read.*\n\n*Where they are when they decide.*\n\n## Positioning and message\n\n*What this is, for whom, and why it is the one to choose, in one sentence.*\n\n*The three things to say every time.*\n\n*The proof for each.*\n\n## Channels\n\n*Where the audience is, and what you will do in each place.*\n\n*What is owned (site, list), earned (press, word of mouth) and paid (ads, sponsorship).*\n\n*What you will not do.*\n\n## Calendar\n\n*What ships when: launches, campaigns, events, content.*\n\n*The rhythm: weekly, monthly.*\n\n*Dates that are fixed by others.*\n\n## Budget\n\n*How much, and where it goes, by channel.*\n\n*People and time, not only money.*\n\n*What you cut first if it has to shrink.*\n\n## Measures\n\n*The numbers you watch, and where they come from.*\n\n*The targets for each.*\n\n*When you look, and who decides what changes.*"
+  },
+  {
+   "name": "write/gtm",
+   "text": "# Go-to-market plan\n\n*Product · Launch*\n\n## The customer\n\n*Who buys first, exactly: role, company, situation.*\n\n*The moment they feel the need.*\n\n*Who else has a say in the purchase.*\n\n## The offer\n\n*What they get, in their words.*\n\n*The one thing it does that nothing else does.*\n\n*What is included, what is not, what comes later.*\n\n## Pricing and packaging\n\n*The price, and why that number.*\n\n*Tiers or plans, if any, and who each is for.*\n\n*Trials, discounts, guarantees.*\n\n## The route to them\n\n*How they find out: the first channel, and the second.*\n\n*Self-serve, sales, partners, or a mix.*\n\n*What a sale takes, step by step, and how long.*\n\n## The launch\n\n*What happens on the day, and the week before and after.*\n\n*Who does what.*\n\n*What is ready: pages, materials, support, billing.*\n\n## Enablement\n\n*What sales and support need to know and have.*\n\n*The objections, and the answers.*\n\n*The demo.*\n\n## Measures\n\n*Leads, trials, customers, revenue: the targets for the first month and the first quarter.*\n\n*What a good first week looks like.*\n\n*When you decide to push harder, change course or stop.*"
+  },
+  {
+   "name": "sheet/budget",
+   "text": "Item | Planned:money | Actual:money | Difference:money\n--- | --- | --- | ---\nRent | 1200 | 1200 | =C1-B1\nGroceries | 500 | 540 | =C2-B2\nTransport | 150 | 120 | =C3-B3\nUtilities | 180 | 175 | =C4-B4\nFun | 200 | 260 | =C5-B5\nSavings | 400 | 400 | =C6-B6\nTotal | =SUM(B1:B6) | =SUM(C1:C6) | =SUM(D1:D6)"
+  },
+  {
+   "name": "sheet/expenses",
+   "text": "Date:date | What | Amount:money | Category\n--- | --- | --- | ---\n2027-03-01 | Coffee with a client | 14.50 | Meals\n2027-03-02 | Train to the city | 38 | Travel\n2027-03-03 | Notebook | 6.25 | Supplies\nTotal |  | =SUM(C1:C3) |"
+  },
+  {
+   "name": "sheet/invoice",
+   "text": "Item | Qty:number | Price:money | Amount:money\n--- | --- | --- | ---\nDesign | 12 | 150 | =B1*C1\nBuild | 20 | 140 | =B2*C2\nHosting, a year | 1 | 120 | =B3*C3\nSubtotal |  |  | =SUM(D1:D3)\nTax 8% |  |  | =ROUND(D4*0.08,2)\nTotal |  |  | =D4+D5"
+  },
+  {
+   "name": "sheet/tracker",
+   "text": "Task | Owner | Start:date | Due:date | Days:number | Done:check\n--- | --- | --- | --- | --- | ---\nBrief | Ana | =TODAY() | =C1+4 | =D1-C1+1 | x\nDesign | Ben | =D1+1 | =C2+13 | =D2-C2+1 |\nBuild | Cy | =D2+1 | =C3+27 | =D3-C3+1 |\nLaunch | Ana | =D3+1 | =C4 | =D4-C4+1 |"
+  },
+  {
+   "name": "sheet/compare",
+   "text": "---\nchart: bar\n---\nOption | Price:number | Speed:number | Support:number\n--- | --- | --- | ---\nAlpha | 3 | 4 | 5\nBeta | 4 | 3 | 3\nGamma | 2 | 5 | 4"
+  },
+  {
+   "name": "sheet/loan",
+   "text": "Loan:money | Rate:percent | Years:number | Monthly:money | Total paid:money | Interest:money\n--- | --- | --- | --- | --- | ---\n20000 | 6.5% | 5 | =PMT(B1/12,C1*12,-A1) | =D1*C1*12 | =E1-A1\n15000 | 7.9% | 3 | =PMT(B2/12,C2*12,-A2) | =D2*C2*12 | =E2-A2\n30000 | 5.5% | 7 | =PMT(B3/12,C3*12,-A3) | =D3*C3*12 | =E3-A3"
+  },
+  {
+   "name": "sheet/subscription",
+   "text": "---\nchart: sankey\nlock: C1:C6, E6:E8\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*signup_rate/100 | Visitors | 20000\nVisitors | Bounced | =visitors-signups | Signup rate | 6\nSignups | Paying | =signups*paid_rate/100 | Paid rate | 25\nSignups | Free | =signups-paying | Churn | 8\nPaying | Churned | =paying*churn/100 |  |\nPaying | Retained | =paying-churned | Signups | =SUMIF(B1:B20, \"Signups\", C1:C20)\n| |  |  | Paying | =SUMIF(B1:B20, \"Paying\", C1:C20)\n| |  |  | Churned | =SUMIF(B1:B20, \"Churned\", C1:C20)"
+  },
+  {
+   "name": "sheet/cafe",
+   "text": "---\nchart: sankey\nlock: C1:C5, E8:E9\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nCustomers | Revenue | =customers_a_day*average_spend*days_open | Customers a day | 85\nRevenue | Supplies | =revenue*supplies_share/100 | Average spend | 6.5\nRevenue | Rent | =rent | Days open | 26\nRevenue | Wages | =wages | Supplies share | 30\nRevenue | Profit | =revenue-supplies-rent-wages | Rent | 2400\n| |  |  | Wages | 5200\n| |  |  |  |\n| |  |  | Revenue | =SUMIF(B1:B20, \"Revenue\", C1:C20)\n| |  |  | Supplies | =SUMIF(B1:B20, \"Supplies\", C1:C20)"
+  },
+  {
+   "name": "sheet/freelancer",
+   "text": "---\nchart: sankey\nlock: C1:C4, E7:E8\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nClients | Invoiced | =hours_a_week*rate*weeks_a_year | Hours a week | 25\nInvoiced | Expenses | =expenses | Rate | 85\nInvoiced | Tax | =(invoiced-expenses)*tax_rate/100 | Weeks a year | 46\nInvoiced | Take-home | =invoiced-expenses-tax | Expenses | 6000\n| |  |  | Tax rate | 28\n| |  |  |  |\n| |  |  | Invoiced | =SUMIF(B1:B20, \"Invoiced\", C1:C20)\n| |  |  | Tax | =SUMIF(B1:B20, \"Tax\", C1:C20)"
+  },
+  {
+   "name": "sheet/fund",
+   "text": "---\nchart: sankey\nlock: C1:C5, E7:E8\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nMonthly donors | Fund | =monthly_donors*average_gift | Monthly donors | 120\nOne-off gifts | Fund | =one_off_gifts | Average gift | 15\nFund | Grants | =fund*grant_share/100 | One-off gifts | 900\nFund | Admin | =admin | Grant share | 80\nFund | Reserve | =fund-grants-admin | Admin | 150\n| |  |  |  |\n| |  |  | Fund | =SUMIF(B1:B20, \"Fund\", C1:C20)\n| |  |  | Grants | =SUMIF(B1:B20, \"Grants\", C1:C20)"
+  },
+  {
+   "name": "sheet/training",
+   "text": "---\nlock: F1:F3\n---\nDate:date | What | How much:number | Unit | Kind | Total:number\n--- | --- | --- | --- | --- | ---\n2027-03-01 | Run | 5 | km | Run | =SUMIF(B1:B30, E1, C1:C30)\n2027-03-02 | Piano | 30 | min | Piano | =SUMIF(B1:B30, E2, C1:C30)\n2027-03-03 | Run | 7.5 | km | Swim | =SUMIF(B1:B30, E3, C1:C30)\n2027-03-05 | Swim | 40 | lengths |  |\n2027-03-06 | Piano | 45 | min |  |\n2027-03-07 | Run | 10 | km |  |"
+  },
+  {
+   "name": "sheet/months",
+   "text": "---\nchart: line\n---\nMonth | This year:money | Last year:money\n--- | --- | ---\nJan | 1200 | 980\nFeb | 1350 | 1010\nMar | 1100 | 1200\nApr | 1600 | 1150\nMay | 1750 | 1300\nJun | 1900 | 1420"
+  },
+  {
+   "name": "deck/talk",
+   "text": "---\ntheme: midnight\n---\n## :rocket: Talk title {.title}\n\n- Your name · Where · Date\n\n---\n\n## :compass: Agenda\n\n- The first point\n- The second point\n- The third point\n\n> Say what the talk is for, and how long it takes.\n\n---\n\n## :lightbulb: The first point\n\n- What it is\n- Why it matters\n- An example\n\n---\n\n## :target: The second point\n\n- What it is\n- Why it matters\n- An example\n\n---\n\n## :trending-up: The third point\n\n- What it is\n- Why it matters\n- An example\n\n---\n\n## :flag: To close\n\n- The one thing to remember\n- What happens next\n- Thank you\n"
+  },
+  {
+   "name": "deck/status",
+   "text": "---\ntheme: boardroom\n---\n## :calendar: Status update {.title}\n\n- Project · Week of\n\n---\n\n## This week and next {.two}\n\n- Done: the first thing\n- Done: the second thing\n\n|\n\n- Next: the third thing\n- Next: the fourth thing\n\n> Left, what shipped; right, what is planned.\n\n---\n\n## :warning: Risks and blockers\n\n- What is in the way\n- Who can clear it\n\n---\n\n## :help: Asks\n\n- What we need\n- From whom\n- By when\n"
+  },
+  {
+   "name": "deck/pitch",
+   "text": "---\ntheme: graphite\n---\n## :rocket: Company {.title}\n\n- What it is, for whom, in a line\n\n---\n\n## :puzzle: The problem\n\n- Who has it\n- What it costs them\n- How they cope today\n\n---\n\n## :lightbulb: The solution\n\n- What we do\n- Why it works\n- Why now\n\n---\n\n## :bar-chart: Where we are\n\n- Customers, revenue, growth\n- What we have learned\n\n---\n\n## :users: The team\n\n- Who, and why these people\n- Who is missing\n\n---\n\n## :dollar: The ask\n\n- How much\n- What it buys\n- When we are back\n"
+  },
+  {
+   "name": "deck/lesson",
+   "text": "---\ntheme: chalkboard\n---\n## :graduation: Lesson title {.title}\n\n- Subject · Class · Date\n\n---\n\n## :target: What you will learn\n\n- The first goal\n- The second goal\n\n---\n\n## :help: Starter\n\n- A question to think about\n\n> Two minutes, in pairs.\n\n---\n\n## :book: The idea\n\n- The main point, plainly\n- An example\n- Another example\n\n---\n\n## :puzzle: Try it\n\n- A task to do now\n- How long it takes\n\n---\n\n## :check: Recap\n\n- What we learned\n- What to do before next time\n"
+  },
+  {
+   "name": "deck/kickoff",
+   "text": "---\ntheme: ocean\n---\n## :flag: Project name {.title}\n\n- Kickoff · Date\n\n---\n\n## :target: Why\n\n- The problem this project solves\n- What success looks like\n\n---\n\n## :users: Who\n\n- Name · role\n- Name · role\n- Name · role\n\n---\n\n## :map: How\n\n- Phase one\n- Phase two\n- Phase three\n\n---\n\n## :calendar: When\n\n- Milestone · date\n- Milestone · date\n- Milestone · date\n\n---\n\n## :help: Open questions\n\n- What is still to decide\n- Who decides it\n"
+  },
+  {
+   "name": "deck/review",
+   "text": "---\ntheme: ivory\n---\n## :bar-chart: Quarter in review {.title}\n\n- Team · Q1 Year\n\n---\n\n## :target: The numbers\n\n- Goal against result, one line each\n- The one number that matters most\n\n---\n\n## What worked, and what did not {.two}\n\n- Worked: the first thing\n- Worked: the second thing\n\n|\n\n- Did not: the first thing\n- Did not: the second thing\n\n---\n\n## :lightbulb: What we learned\n\n- The lesson\n- What we will do differently\n\n---\n\n## :flag: Next quarter\n\n- The three goals\n- What we need to reach them\n"
+  },
+  {
+   "name": "deck/launch",
+   "text": "---\ntheme: arcade\n---\n## :zap: Introducing the product {.title}\n\n- The one line that says why it matters\n\n---\n\n## :users: Who it is for\n\n- The person, and their problem\n- What they do today\n\n---\n\n## :rocket: What is new\n\n- The first thing it does\n- The second thing it does\n- The thing nobody else does\n\n---\n\n## :star: The one to remember {.icon}\n\n- The feature to remember\n- Shown, not told\n\n> Show it working here.\n\n---\n\n## :calendar: When and how\n\n- The date\n- The price\n- Where to get it\n"
+  },
+  {
+   "name": "deck/party",
+   "text": "---\ntheme: confetti\n---\n## :gift: You are invited! {.title}\n\n- A party for Name\n\n---\n\n## :calendar: When and where\n\n- Day, date, time\n- The address\n- How to get there\n\n---\n\n## :pizza: What to expect\n\n- Food and drink\n- Music and games\n- What to wear\n\n---\n\n## :heart: Please reply\n\n- By date\n- To name, at phone or email\n"
+  },
+  {
+   "name": "deck/offsite",
+   "text": "---\ntheme: sunset\n---\n## :sun: Team offsite {.title}\n\n- Place · Date\n\n---\n\n## :compass: Why we are here\n\n- The question this day answers\n- What a good day looks like\n\n---\n\n## :clock: The plan\n\n- Morning: where we are\n- Afternoon: where we are going\n- Evening: dinner together\n\n---\n\n## :puzzle: Questions to work on\n\n- The first question\n- The second question\n- The third question\n\n---\n\n## :check: What we leave with\n\n- Decisions\n- Owners and dates\n"
+  },
+  {
+   "name": "deck/workshop",
+   "text": "---\ntheme: bubblegum\n---\n## :palette: Workshop title {.title}\n\n- Host · Date · Room\n\n---\n\n## :smile: Warm-up\n\n- Names, and one thing you hope to learn\n\n> Five minutes, round the room.\n\n---\n\n## :lightbulb: The method\n\n- Step one\n- Step two\n- Step three\n\n---\n\n## :brush: Your turn\n\n- The task\n- In groups of three\n- Twenty minutes\n\n---\n\n## :message: Share back\n\n- What each group made\n- What surprised you\n\n---\n\n## :flag: Next steps\n\n- What to try this week\n- Where to find the materials\n"
+  },
+  {
+   "name": "deck/research",
+   "text": "---\ntheme: boardroom\n---\n## :search: Research findings {.title}\n\n- Study name · Researcher · Date\n\n---\n\n## :help: The question\n\n- What we wanted to know\n- Why it matters\n\n---\n\n## :book: How we studied it\n\n- Who took part\n- What we did\n- When and where\n\n---\n\n## :pie-chart: What we found\n\n- The first finding\n- The second finding\n- The third finding\n\n---\n\n## :lightbulb: What it means\n\n- For the product\n- For the next study\n"
+  },
+  {
+   "name": "deck/trip",
+   "text": "---\ntheme: ocean\n---\n## :plane: Our trip {.title}\n\n- Where · When · Who\n\n---\n\n## :map: The route\n\n- First stop\n- Second stop\n- Third stop\n\n---\n\n## :camera: Highlights\n\n- The best day\n- The best meal\n- The view nobody will believe\n\n---\n\n## :thumbs-up: Tips for next time\n\n- What to bring\n- What to skip\n- Where to stay\n"
+  },
+  {
+   "name": "links/maker",
+   "text": "---\ntheme: rose\n---\n# Your name\n\n![](https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400)\n\nWhat you make, and where.\n\n> :cart: The shop | https://example.com/shop\n> :calendar: Book a class | https://example.com/classes\n> :mail: Email me | mailto:you@example.com\n\n- :camera: Instagram | https://instagram.com/you\n- :film: YouTube | https://youtube.com/@you"
+  },
+  {
+   "name": "links/group",
+   "text": "---\ntheme: forest\n---\n# Quayside Mutual Aid\n\n:heart:\n\nNeighbours helping neighbours, since the flood.\n\n> :message: Ask for help | https://example.com/ask\n> :users: Offer help | https://example.com/offer\n> :calendar: Next meeting | https://example.com/meet\n> :megaphone: Join the group chat | https://example.com/chat\n\n- :camera: Instagram | https://instagram.com/quayside\n- :mail: Email | mailto:hello@example.com"
+  },
+  {
+   "name": "links/band",
+   "text": "---\ntheme: midnight\n---\n# The Harbour Lights\n\n![](https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400)\n\nNew record out Friday.\n\n> :headphones: Listen | https://example.com/listen\n> :calendar: Tour dates | https://example.com/dates\n> :gift: Merch | https://example.com/merch\n\n- :camera: Instagram | https://instagram.com/harbourlights\n- :film: YouTube | https://youtube.com/@harbourlights\n- :music: Bandcamp | https://harbourlights.bandcamp.com"
+  },
+  {
+   "name": "links/shop",
+   "text": "---\ntheme: amber\n---\n# Harbor Coffee\n\n:coffee:\n\n14 Quay Street. Open 7 to 3, every day but Monday.\n\n> :book: The menu | https://example.com/menu\n> :calendar: Book a table | https://example.com/book\n> :map-pin: Find us | https://maps.example.com/harbor\n> :phone: Call | tel:+351000000000\n\n- :camera: Instagram | https://instagram.com/harborcoffee\n- :mail: Email | mailto:hello@example.com"
+  },
+  {
+   "name": "links/writer",
+   "text": "---\ntheme: paper\n---\n# Your name\n\n:book:\n\nEssays about small towns and smaller machines.\n\n> :mail: The newsletter | https://example.com/newsletter\n> :bookmark: The book | https://example.com/book\n> :star: The latest piece | https://example.com/latest\n> :message: Say hello | mailto:you@example.com\n\n- :globe: Bluesky | https://bsky.app/profile/you\n- :bell: RSS | https://example.com/feed"
+  }
+ ]
+}
