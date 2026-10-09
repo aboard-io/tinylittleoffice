@@ -102,17 +102,21 @@ export function menuKey(e: KeyboardEvent, box: HTMLElement, items: HTMLElement[]
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || !n) return false;
       const now = Date.now();
       const last = typed.get(box);
-      const s = (last && now - last.at < 800 ? last.s : '') + e.key.toLowerCase();
-      typed.set(box, { s, at: now });
-      // A first letter looks on from the item after this one; more letters go on matching from this one.
-      const from = s.length > 1 ? Math.max(0, at) : at + 1;
-      for (let k = 0; k < n; k++) {
-        const el = items[(from + k) % n];
-        if (nameOf(el).startsWith(s)) {
-          el.focus({ preventScroll: true });
-          break;
+      const key = e.key.toLowerCase();
+      let s = (last && now - last.at < 800 ? last.s : '') + key;
+      const find = (want: string, from: number) => {
+        for (let k = 0; k < n; k++) {
+          const el = items[(((from + k) % n) + n) % n];
+          if (nameOf(el).startsWith(want)) return el;
         }
-      }
+        return null;
+      };
+      // One letter again and again goes round the items starting with it; letters in a row find a longer name from this item on; letters that find nothing start again from the last.
+      const same = [...s].every((ch) => ch === key);
+      let hit = same ? find(key, at + 1) : find(s, Math.max(0, at));
+      if (!hit && !same) hit = find((s = key), at + 1);
+      typed.set(box, { s, at: now });
+      hit?.focus({ preventScroll: true });
     }
   }
   e.preventDefault();

@@ -63,7 +63,7 @@ test('rows put in and taken out: formulas follow; the names over the columns are
   expect(after('a | b\n--- | ---\n1 | 2\n| |\n3 | 4\n', (d) => deleteRows(d, 2, 2))).toBe('a | b\n--- | ---\n1 | 2\n');
 });
 
-test('columns: added after any, removed only when empty and never one of the last three; letter names follow their place', () => {
+test('columns: added after any, removed whatever they hold while the table keeps one; letter names follow their place', () => {
   const four = after('', (d) => setCell(d, 0, 3, 'four'));
   const a1 = after(four, (d) => setCell(d, 0, 0, '=D1'));
   const five = after(a1, (d) => addColumn(d, 2));
@@ -71,18 +71,23 @@ test('columns: added after any, removed only when empty and never one of the las
   expect(t.cols.map((c) => c.name)).toEqual(['ColA', 'ColB', 'ColC', 'ColD', 'ColE']);
   expect(t.rows[0]).toEqual(['=E1', '', '', '', 'four']);
   const v = readSheet(parse(five));
-  expect(removable(v, 0)).toBe(false);
+  expect(removable(v, 0)).toBe(true);
   expect(removable(v, 2)).toBe(true);
   const back = after(five, (d) => removeColumn(d, readSheet(d), 2));
   expect(tableAt(parse(back), 0)!.cols.map((c) => c.name)).toEqual(['ColA', 'ColB', 'ColC', 'ColD']);
   expect(tableAt(parse(back), 0)!.rows[0]).toEqual(['=D1', '', '', 'four']);
-  // Three is the floor: a column of a three-column table stays, however empty.
+  // A column with something in it goes too, cells and all: references into it are #REF, the rest follow it left.
+  expect(tableAt(parse(after(five, (d) => removeColumn(d, readSheet(d), 4))), 0)!.rows).toEqual([['=#REF', '', '', '']]);
+  // The table keeps one column; a column drawn past its edge (the sheet is three wide at the least) is nothing to take out.
+  const one = readSheet(parse('Item\n---\nRent\n'));
+  expect(removable(one, 0)).toBe(false);
+  expect(removable(one, 2)).toBe(false);
   expect(removable(readSheet(parse(SHEET)), 2)).toBe(false);
   // A locked column moves with its neighbours.
   const locked = '---\nlock: C1\n---\nItem | Gap | Cost:money | Note\n--- | --- | --- | ---\nRent |  | =1200 | paid\n';
   const lv = readSheet(parse(locked));
   expect(removable(lv, 1)).toBe(true);
-  expect(removable(lv, 0)).toBe(false);
+  expect(removable(lv, 0)).toBe(true);
   const out = after(locked, (d) => removeColumn(d, lv, 1));
   expect(out).toContain('lock: B1');
   expect(tableAt(parse(out), 0)!.cols.map((c) => `${c.name}:${c.type}`)).toEqual(['Item:text', 'Cost:money', 'Note:text']);
@@ -117,17 +122,27 @@ test('sort, fill, clear and paste write rectangles; a sort moves whole rows thro
   const model = parse(MODEL);
   expect(write(applyAll(model, putRect(model, { r: 0, c: 2, values: [['5']] })))).toContain('=visitors*rate/100');
   expect(write(applyAll(model, putRect(model, sortRows(tableAt(model, 0)!, 4), true)))).toContain('Rate | 10');
-  expect(after(SHEET, (d) => setChart(d, 'bar'))).toBe('---\nchart: bar\n---\n' + SHEET);
-  expect(setChart(parse(SHEET), 'bar')).toEqual([{ op: 'head', key: 'chart', value: 'bar' }]);
+  // A chart put in goes above the table; another kind keeps the place of the one it replaces; none takes the place away.
+  expect(after(SHEET, (d) => setChart(d, 'bar'))).toBe('---\nchart: bar\nchart-at: top\n---\n' + SHEET);
+  expect(setChart(parse(SHEET), 'bar')).toEqual([
+    { op: 'head', key: 'chart', value: 'bar' },
+    { op: 'head', key: 'chart-at', value: 'top' },
+  ]);
+  const above = after(SHEET, (d) => setChart(d, 'bar'));
+  expect(after(above, (d) => setChart(d, 'pie'))).toBe('---\nchart: pie\nchart-at: top\n---\n' + SHEET);
+  expect(after(above, (d) => setChart(d, ''))).toBe(SHEET);
+  expect(after('---\nchart: line\n---\n' + SHEET, (d) => setChart(d, 'bar'))).toBe('---\nchart: bar\n---\n' + SHEET);
   expect(setLock(parse(SHEET), { r0: 2, c0: 1, r1: 2, c1: 1 }, true)).toEqual([{ op: 'head', key: 'lock', value: 'B3' }]);
   // A table that carries its chart as an attribute keeps it there (the kernel's rule: tableAt reads it from where it is).
   const attributed = parse('A | B:number\n--- | ---\nx | 1\n{chart=bar}\n');
   expect(write(applyAll(attributed, setChart(attributed, 'pie')))).toBe('A | B:number\n--- | ---\nx | 1\n{chart=pie}\n');
+  const bare = parse('Words\n\nA | B:number\n--- | ---\nx | 1\n{big=B1}\n');
+  expect(write(applyAll(bare, setChart(bare, 'bar')))).toBe('---\nchart: bar\nchart-at: top\n---\nWords\n\nA | B:number\n--- | ---\nx | 1\n{big=B1}\n');
   expect(after(MODEL, (d) => setChart(d, ''))).not.toContain('chart:');
   expect(after(SHEET, (d) => setLock(d, { r0: 2, c0: 1, r1: 2, c1: 1 }, true))).toBe('---\nlock: B3\n---\n' + SHEET);
   expect(after(MODEL, (d) => setLock(d, { r0: 0, c0: 2, r1: 0, c1: 2 }, false))).not.toContain('lock:');
   // On a blank document a chart makes the table first.
-  expect(after('', (d) => setChart(d, 'pie'))).toBe('---\nchart: pie\n---\nColA | ColB | ColC\n--- | --- | ---\n');
+  expect(after('', (d) => setChart(d, 'pie'))).toBe('---\nchart: pie\nchart-at: top\n---\nColA | ColB | ColC\n--- | --- | ---\n');
 });
 
 test('every template is a real document that round-trips byte for byte, and the headline is drawn', () => {
@@ -216,4 +231,47 @@ test('rows moved past their neighbours: formulas follow the cells they name, a r
   // The lock goes with the rows it covers.
   expect(after(MODEL, (d) => moveRows(d, 0, 0, 1))).toContain('lock: C1:C2');
   expect(after(MODEL, (d) => moveRows(d, 1, 1, 1))).toContain('lock: C1, C3');
+});
+
+test('an option column: typed in the header as the kernel writes types, read back the same, its cells words; byte-stable', () => {
+  const text = 'Task | Status:option\n--- | ---\nBrief | GOOD\nDesign | GREAT\nBuild | 3\n';
+  const doc = parse(text);
+  expect(tableAt(doc, 0)!.cols[1]).toEqual({ name: 'Status', type: 'option' });
+  expect(write(doc)).toBe(text);
+  const v = readSheet(doc);
+  expect(v.values.map((r) => r[1])).toEqual(['GOOD', 'GREAT', 3]);
+  // Chosen from a column's menu, it takes the type's name.
+  expect(after('A | ColB\n--- | ---\nx | y\n', (d) => setType(d, 1, 'option'))).toBe('A | Option:option\n--- | ---\nx | y\n');
+  // The page draws the words, the CSV holds them.
+  expect(sheetToCsv(doc, ',')).toBe('Task,Status\r\nBrief,GOOD\r\nDesign,GREAT\r\nBuild,3\r\n');
+  expect(tablePage(v).svg).toContain('GREAT');
+});
+
+test(`the chart's place: "chart-at: top" draws the chart above the table, in the pages and the exports; a chart without it stays below`, () => {
+  const below = '---\nchart: bar\n---\nMonth | Sales:number\n--- | ---\nJan | 10\nFeb | 20\n';
+  const above = '---\nchart: bar\nchart-at: top\n---\nMonth | Sales:number\n--- | ---\nJan | 10\nFeb | 20\n';
+  expect(write(parse(above))).toBe(above);
+  expect(tableAt(parse(above), 0)!.above).toBe(true);
+  expect(tableAt(parse(below), 0)!.above).toBeUndefined();
+  const [first, second] = sheetPages(above);
+  expect(first.svg).toBe(chartOf(readSheet(parse(above)))!.svg);
+  expect(second.svg).toContain('Jan');
+  const [one, two] = sheetPages(below);
+  expect(one.svg).toContain('Jan');
+  expect(two.svg).toBe(chartOf(readSheet(parse(below)))!.svg);
+  // On a table inside another document the place rides with the chart, as an attribute.
+  const inText = parse('Words\n\nA | B:number\n--- | ---\nx | 1\n{chart=bar chart-at=top}\n');
+  expect(tableAt(inText, 1)!.above).toBe(true);
+  expect(write(inText)).toBe('Words\n\nA | B:number\n--- | ---\nx | 1\n{chart=bar chart-at=top}\n');
+});
+
+test("a rich column's words are drawn with their marks and written to CSV and the page without Markdown", () => {
+  const text = 'Note:rich | B:number\n--- | ---\n**big** *news* | 1\n';
+  const v = readSheet(parse(text));
+  expect(sheetToCsv(parse(text), ',')).toBe('Note,B\r\nbig news,1\r\n');
+  const svg = tablePage(v).svg;
+  expect(svg).toContain('<tspan font-weight="700">big</tspan>');
+  expect(svg).toContain('<tspan font-style="italic">news</tspan>');
+  expect(svg).not.toContain('**');
+  expect(gridPage(v).svg).toContain('big news');
 });
