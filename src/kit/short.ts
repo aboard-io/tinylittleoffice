@@ -38,9 +38,10 @@ export interface Left {
 }
 export function timeLeft(expires: number, now = Date.now()): Left {
   const ms = Math.max(0, expires - now);
-  if (ms >= DAY) {
+  // A day link just made has a breath under 24 hours: said as "1 day", and red, its last day.
+  if (Math.round(ms / HOUR) >= 24) {
     const n = Math.round(ms / DAY);
-    return { n, unit: 'day', urgency: n >= 7 ? 'ok' : 'soon' };
+    return { n, unit: 'day', urgency: n >= 7 ? 'ok' : ms < DAY ? 'last' : 'soon' };
   }
   if (ms >= HOUR) return { n: Math.round(ms / HOUR), unit: 'hour', urgency: 'last' };
   return { n: Math.max(1, Math.round(ms / 60_000)), unit: 'minute', urgency: 'last' };

@@ -52,7 +52,7 @@ test('the head: the title, and where the link fits in one line', async () => {
   expect(d.querySelector('table, dl')).toBeNull();
   // The meter in the header opens the same dialog.
   d.close();
-  await until(() => !d.dialog.open);
+  await until(() => !shell.sharing);
   shell.querySelector<HTMLButtonElement>('.to-meter')!.click();
   await until(() => d.dialog.open);
 });

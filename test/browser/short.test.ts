@@ -43,7 +43,7 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(s.querySelector<HTMLButtonElement>('.to-update')!.disabled).toBe(true);
   expect(s.querySelector('.to-make')).toBeNull();
   dialog.close();
-  await until(() => !dialog.dialog.open);
+  await until(() => !shell.sharing); // the dialog's close event, a task later
 
   // An edit: the address keeps the owner's query, the shared link still has none, and Update wakes.
   const text = shell.querySelector<ToText>('to-text')!;
@@ -152,7 +152,7 @@ test('a short link made here: the lifetime from the row, the link big with Copy,
   expect(location.hash).toContain(`?s=qrstuvw&k=${shell.owned!.key}&o=${shell.owned!.o}&x=${exp}`);
   expect(shell.link).not.toContain('?');
   dialog.close();
-  await until(() => !dialog.dialog.open);
+  await until(() => !shell.sharing); // the dialog's close event, a task later
   // Opened again: the owner's section.
   await open(shell);
   expect(section(shell).textContent).toContain('You own this short link');

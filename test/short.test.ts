@@ -99,6 +99,7 @@ test('how long a short link has left: days over a week are green, within a week 
   expect(timeLeft(now + 7 * day - 1000, now)).toEqual({ n: 7, unit: 'day', urgency: 'ok' });
   expect(timeLeft(now + 3 * day, now)).toEqual({ n: 3, unit: 'day', urgency: 'soon' });
   expect(timeLeft(now + day, now)).toEqual({ n: 1, unit: 'day', urgency: 'soon' });
+  expect(timeLeft(now + day - 2000, now)).toEqual({ n: 1, unit: 'day', urgency: 'last' });
   expect(timeLeft(now + 3 * hour, now)).toEqual({ n: 3, unit: 'hour', urgency: 'last' });
   expect(timeLeft(now + 20 * 60_000, now)).toEqual({ n: 20, unit: 'minute', urgency: 'last' });
   expect(timeLeft(now - 1, now)).toEqual({ n: 1, unit: 'minute', urgency: 'last' });
