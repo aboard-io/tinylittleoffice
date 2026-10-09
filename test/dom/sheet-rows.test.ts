@@ -114,3 +114,50 @@ test('a model: named cells work, locked cells are left be when typed into, and t
   await settle(el);
   expect(last()).toContain('| 5 |');
 });
+
+test('a blank sheet is three columns; the + at the end of the header adds one, and the column menu puts one in after any', async () => {
+  const { el, last } = await mount('sheet');
+  const heads = () => [...el.querySelectorAll<HTMLElement>('th .col-type .cl')].map((h) => h.textContent);
+  expect(heads()).toEqual(['A', 'B', 'C']);
+  // Nothing is written for empty columns: the document stays blank until something is typed.
+  button(el, 'Add a column').click();
+  await settle(el);
+  expect(heads()).toEqual(['A', 'B', 'C', 'D']);
+  expect(last()).toBe('');
+  const d1 = el.querySelector<HTMLInputElement>('input[aria-label="D1"]')!;
+  expect(document.activeElement).toBe(d1);
+  type(d1, 'four');
+  await settle(el);
+  expect(last()).toBe('ColA | ColB | ColC | ColD\n--- | --- | --- | ---\n| |  |  | four');
+  // From B's menu, a column after B: D moves to E, and a formula that used D follows.
+  type(el.querySelector('input[aria-label="A1"]'), '=D1');
+  await settle(el);
+  await pick(el, el.querySelectorAll('th .col-type')[1].closest('sl-dropdown')!, 'col:add');
+  expect(heads()).toEqual(['A', 'B', 'C', 'D', 'E']);
+  expect(parseGrid(last()!)[0]).toEqual(['=E1', '', '', '', 'four']);
+});
+
+test('a column is removed only when it is empty, and never one of the last three; names and the lock move with the columns', async () => {
+  const { el, last } = await mount('sheet', '---\nlock: C1\n---\nItem | Gap | Cost:money | Note\n--- | --- | --- | ---\nRent |  | =1200 | paid');
+  const heads = () => [...el.querySelectorAll<HTMLElement>('th .col-type .cl')].map((h) => h.textContent);
+  const menu = (c: number) => el.querySelectorAll('th .col-type')[c].closest('sl-dropdown')!;
+  const remove = (c: number) => menu(c).querySelector<HTMLElement & { disabled: boolean }>('sl-menu-item[value="col:remove"]')!;
+  expect(heads()).toEqual(['A', 'B', 'C', 'D']);
+  // A holds something: its item is disabled and says why; B is empty and may go.
+  expect(remove(0).disabled).toBe(true);
+  expect(remove(0).textContent).toContain('Once it is empty');
+  expect(remove(1).disabled).toBe(false);
+  await pick(el, menu(1), 'col:remove');
+  expect(heads()).toEqual(['A', 'B', 'C']);
+  expect(namesOf(last()!)).toEqual(['Item', 'Cost', 'Note']);
+  expect(typesOf(last()!)).toEqual(['text', 'money', 'text']);
+  expect(last()).toContain('lock: B1');
+  expect(el.querySelector<HTMLInputElement>('input[aria-label="B1"]')!.readOnly).toBe(true);
+  // Three is the floor: even an empty column stays.
+  button(el, 'Add a column').click();
+  await settle(el);
+  await pick(el, menu(3), 'col:remove');
+  expect(heads()).toEqual(['A', 'B', 'C']);
+  expect(remove(2).disabled).toBe(true);
+  expect(remove(2).textContent).toContain('Three at the least');
+});

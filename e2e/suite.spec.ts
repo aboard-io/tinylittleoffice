@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { shot, reopen, pickOption } from './helpers';
+import { shot, reopen, pickOption, blank } from './helpers';
 
 // Stays: the corner handle and a mouse drag find their cells by where the pointer is on screen (the rest of blocks is in test/dom/suite.test.ts).
 test('sheet: the corner handle carries a block on, and a mouse drag selects one', async ({ page, isMobile }) => {
   await page.goto('/#/v0/sheet');
+  await blank(page);
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   const ref = page.getByLabel('Selected cells');
   // The handle at the corner of a block carries it on: numbers in step keep counting.
@@ -21,7 +22,7 @@ test('sheet: the corner handle carries a block on, and a mouse drag selects one'
   await expect(page.locator('table.sheet td.filling')).toHaveCount(5);
   await page.mouse.up();
   await expect(ref).toHaveText('A1:A5');
-  await cell('F1').click();
+  await cell('C1').click();
   await expect(cell('A3')).toHaveValue('15');
   await expect(cell('A5')).toHaveValue('25');
 
@@ -43,6 +44,7 @@ test('sheet: the corner handle carries a block on, and a mouse drag selects one'
 // Stays: whether a column clips its text, and how wide it is dragged, is real layout.
 test('sheet: columns squeeze to fit or widen to show everything', async ({ page }) => {
   await page.goto('/#/v0/sheet');
+  await blank(page);
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   const long = 'A sentence that is far too long for one third of a small page to show';
   await cell('B1').fill(long);
@@ -252,6 +254,7 @@ test('draw: shapes with labels persist', async ({ page }) => {
 test('sheet: on a touch screen the corner handle stretches the block any way, and buttons fill it', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'touch only');
   await page.goto('/#/v0/sheet');
+  await blank(page);
   const cell = (ref: string) => page.getByRole('textbox', { name: ref, exact: true });
   await cell('A1').fill('1');
   await cell('B1').fill('=A1*2');
@@ -266,7 +269,7 @@ test('sheet: on a touch screen the corner handle stretches the block any way, an
   await touch('pointerup', to.x + to.width / 2, to.y + to.height / 2);
   await expect(page.getByLabel('Selected cells')).toHaveText('A1:B3');
   await page.getByRole('button', { name: 'Fill down' }).click();
-  await cell('D1').click();
+  await cell('C1').click();
   await expect(cell('A3')).toHaveValue('1');
   await expect(cell('B3')).toHaveValue('2');
 });

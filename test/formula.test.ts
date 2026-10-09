@@ -1,10 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chartOf, evaluateGrid, namesOf, parseGrid, pasteCells, serializeGrid, formatValue, typesOf, namedCells, nameKey, readSheet, isLocked, withLock, rangeOf, remapLock, rowsIn, rowsOut } from '../src/lib/formula.ts';
+import { chartOf, evaluateGrid, namesOf, parseGrid, pasteCells, serializeGrid, formatValue, typesOf, namedCells, nameKey, readSheet, isLocked, withLock, rangeOf, remapLock, movedIn, movedOut, insertColumns, deleteColumns, columnEmpty, widthOf, MIN_COLS, MAX_COLS } from '../src/lib/formula.ts';
 import { chartData, chartPage, suggestChart } from '../src/lib/chart.ts';
 
+/** A blank sheet six columns wide (a blank one is three), for blocks wider than three. */
+const wide = () => insertColumns(readSheet(''), MIN_COLS, 6 - MIN_COLS)!.grid;
 /** Cells as a spreadsheet's clipboard holds them, tabs between and lines down, put in at A1. */
-const tabs = (text: string) => pasteCells(parseGrid(''), 0, 0, text).grid;
+const tabs = (text: string) => pasteCells(wide(), 0, 0, text).grid;
 function grid(rows: string[][]) {
   return tabs(rows.map((r) => r.join('\t')).join('\n'));
 }
@@ -41,7 +43,7 @@ test('refs, ranges and functions', () => {
 });
 
 test('errors', () => {
-  const g = grid([['=1/0', '=A1+1', '=foo(1)'], ['=A2', '=A3', '=x'], ['=B2', '=Z9', 'hello'], ['=C3+1', '=(1', '=1 2']]);
+  const g = grid([['=1/0', '=A1+1', '=foo(1)'], ['=A2', '=A3', '=x'], ['=B2', '=AA9', 'hello'], ['=C3+1', '=(1', '=1 2']]);
   const v = evaluateGrid(g);
   assert.equal(v[0][0], '#DIV/0');
   assert.equal(v[0][1], '#DIV/0');
@@ -51,6 +53,8 @@ test('errors', () => {
   assert.equal(v[1][2], '#NAME');
   assert.equal(v[2][0], '#CIRC');
   assert.equal(v[2][1], '#REF');
+  // A column past the sheet's width is empty, as a row past its last is.
+  assert.equal(evaluateGrid(grid([['=Z9+1']]))[0][0], 1);
   assert.equal(v[3][0], '#VALUE');
   assert.equal(v[3][1], '#ERR');
   assert.equal(v[3][2], '#ERR');
@@ -70,14 +74,14 @@ test('the document is one table: the names over the columns, then rows 1, 2, 3',
   assert.equal(serializeGrid(g, '', [], namesOf(text)), text);
   assert.equal(serializeGrid(parseGrid('')), '');
   assert.equal(g.length, 1000);
-  assert.equal(g[0].length, 6);
+  assert.equal(g[0].length, 3);
   // Columns that go by their letters are named for them, and read back as no name; a lone column is written with a second, so it reads as a table.
   assert.equal(serializeGrid(tabs('a\n\nb')), 'ColA | ColB\n--- | ---\na |\n| |\nb |');
-  assert.deepEqual(namesOf(serializeGrid(tabs('a'))), ['', '', '', '', '', '']);
+  assert.deepEqual(namesOf(serializeGrid(tabs('a'))), ['', '', '']);
   // Pipes and line breaks in a cell are kept.
   assert.equal(parseGrid(serializeGrid(tabs('a|b\tc')))[0][0], 'a|b');
-  // Past the sixth column, nothing is read.
-  assert.equal(parseGrid('A | B | C | D | E | F | G\n--- | --- | --- | --- | --- | --- | ---\n1 | 2 | 3 | 4 | 5 | 6 | 7')[0].join(','), '1,2,3,4,5,6');
+  // A table is read as wide as it is written, up to Z.
+  assert.equal(parseGrid('A | B | C | D | E | F | G\n--- | --- | --- | --- | --- | --- | ---\n1 | 2 | 3 | 4 | 5 | 6 | 7')[0].join(','), '1,2,3,4,5,6,7');
 });
 
 test('format', () => {
@@ -162,7 +166,7 @@ test('typed columns: dates are numbers, and each type reads and shows its own wa
   const text = '---\nchart: line\n---\nWhen | Date:date | Cost:money | Share:percent | Link:url | Done:check\n--- | --- | --- | --- | --- | ---\nStart | 2027-03-01 | $1,200.5 | 12.5% | https://example.com/ | x\nEnd | 3/31/2027 | 80 | 7';
   assert.equal(chartOf(text), 'line');
   assert.deepEqual(typesOf(text), ['text', 'date', 'money', 'percent', 'url', 'check']);
-  assert.deepEqual(typesOf('a | b\n--- | ---'), ['text', 'text', 'text', 'text', 'text', 'text']);
+  assert.deepEqual(typesOf('a | b\n--- | ---'), ['text', 'text', 'text']);
   assert.deepEqual(namesOf(text), ['When', '', 'Cost', 'Share', '', 'Done']);
   assert.equal(serializeGrid(parseGrid(text), 'line', typesOf(text), namesOf(text)), text.replace(/\| 7$/, '| 7 |  |'));
   assert.equal(serializeGrid(tabs('a'), '', ['text', 'date']), 'ColA | Date:date\n--- | ---\na |');
@@ -227,7 +231,7 @@ test('named cells: a name column names the cell to its right, and a formula may 
   // The name column is written as its type, and read back.
   const text = serializeGrid(g, 'sankey', types, ['From', 'To', 'Amount', 'Assumption', 'Value']);
   assert.ok(text.includes('Assumption:name'));
-  assert.deepEqual(typesOf(text), types.concat('text'));
+  assert.deepEqual(typesOf(text), types);
   assert.equal(nameKey('One-off gifts '), 'ONE_OFF_GIFTS');
 });
 
@@ -253,12 +257,54 @@ test('the lock is a setting in the header: ranges, kept as written, read as cell
   // Locked, unlocked: a range added; every range touching the cells let go.
   assert.equal(withLock(s.lock, rangeOf([0, 0], [1, 0]), true), 'C1:C3, E2, A1:A2');
   assert.equal(withLock(s.lock, rangeOf([1, 2]), false), 'E2');
-  assert.equal(readSheet('---\nlock: nonsense, Z9\n---\na | b\n--- | ---').lock, '');
+  assert.equal(readSheet('---\nlock: nonsense, AA9\n---\na | b\n--- | ---').lock, '');
   // Rows put in or taken out move the lock as they move the formulas: a range follows its rows, grows round rows put in its middle, and goes when all its rows are gone.
-  assert.equal(remapLock('C1:C3, E2', rowsIn(0, 2)), 'C3:C5, E4');
-  assert.equal(remapLock('C1:C3, E2', rowsIn(1, 1)), 'C1:C4, E3');
-  assert.equal(remapLock('C1:C3, E2', rowsOut(1, 1)), 'C1:C2');
-  assert.equal(remapLock('C1:C3, E2', rowsOut(0, 2)), '');
+  assert.equal(remapLock('C1:C3, E2', movedIn(0, 2)), 'C3:C5, E4');
+  assert.equal(remapLock('C1:C3, E2', movedIn(1, 1)), 'C1:C4, E3');
+  assert.equal(remapLock('C1:C3, E2', movedOut(1, 1)), 'C1:C2');
+  assert.equal(remapLock('C1:C3, E2', movedOut(0, 2)), '');
+  // Columns too: a range follows its columns, and goes when all of them are gone.
+  assert.equal(remapLock('C1:C3, E2', (r) => r, movedIn(0, 1)), 'D1:D3, F2');
+  assert.equal(remapLock('B1:D3, E2', (r) => r, movedOut(2, 2)), 'B1:C3, D2');
+  assert.equal(remapLock('C1:C3, E2', (r) => r, movedOut(2, 2)), 'D2');
+});
+
+test('a sheet is as wide as its table, three columns at the least and twenty-six at the most', () => {
+  assert.equal(widthOf(readSheet('').grid), MIN_COLS);
+  assert.equal(readSheet('').types.length, MIN_COLS);
+  assert.equal(widthOf(readSheet('a | b\n--- | ---\n1 | 2').grid), MIN_COLS);
+  const five = readSheet('a | b | c | d | e\n--- | --- | --- | --- | ---\n1 | 2 | 3 | 4 | 5');
+  assert.equal(widthOf(five.grid), 5);
+  assert.deepEqual(five.names, ['a', 'b', 'c', 'd', 'e']);
+  // A column past the width is an empty cell to a formula; the sheet is written only as wide as what it holds.
+  assert.equal(evaluateGrid(parseGrid('a | b\n--- | ---\n=Z9+1 | 2'))[0][0], 1);
+  const z = readSheet(Array.from({ length: 30 }, (_, i) => `c${i}`).join(' | ') + '\n' + Array(30).fill('---').join(' | '));
+  assert.equal(widthOf(z.grid), MAX_COLS);
+  assert.equal(insertColumns(z, 0), null);
+});
+
+test('columns put in and taken out: cells, names, types and the lock move together, and formulas follow', () => {
+  const s = readSheet('---\nlock: C1:C2\n---\nItem | Qty:number | Total:money\n--- | --- | ---\nPen | 2 | =B1*3\nInk | 1 | =SUM(B1:B2)+"B1"');
+  // A column after A: B and C become C and D.
+  const wider = insertColumns(s, 1)!;
+  assert.equal(widthOf(wider.grid), 4);
+  assert.deepEqual(wider.types, ['text', 'text', 'number', 'money']);
+  assert.deepEqual(wider.names, ['Item', '', 'Qty', 'Total']);
+  assert.deepEqual(wider.grid[0].slice(0, 4), ['Pen', '', '2', '=C1*3']);
+  assert.equal(wider.grid[1][3], '=SUM(C1:C2)+"B1"');
+  assert.equal(wider.lock, 'D1:D2');
+  assert.equal(serializeGrid(wider.grid, '', wider.types, wider.names, wider.lock), '---\nlock: D1:D2\n---\nItem | ColB | Qty:number | Total:money\n--- | --- | --- | ---\nPen |  | 2 | =C1*3\nInk |  | 1 | =SUM(C1:C2)+"B1"');
+  // Taken out again, everything comes back.
+  const back = deleteColumns(wider, 1)!;
+  assert.deepEqual([back.grid[0].slice(0, 3), back.grid[1][2], back.types, back.names, back.lock], [['Pen', '2', '=B1*3'], '=SUM(B1:B2)+"B1"', s.types, s.names, 'C1:C2']);
+  // A column gone that formulas used: #REF, as a row gone would be; a range loses what it lost.
+  const noB = deleteColumns(insertColumns(s, 3)!, 1)!;
+  assert.deepEqual(noB.grid[0].slice(0, 3), ['Pen', '=#REF*3', '']);
+  assert.equal(noB.grid[1][1], '=SUM(#REF)+"B1"');
+  assert.equal(deleteColumns(insertColumns(readSheet('a | b | c | d\n--- | --- | --- | ---\n1 | 2 | 3 | =SUM(A1:C1)'), 4)!, 1)!.grid[0][2], '=SUM(A1:B1)');
+  // Never narrower than three.
+  assert.equal(deleteColumns(s, 1), null);
+  assert.deepEqual([columnEmpty(s.grid, 1), columnEmpty(insertColumns(s, 3)!.grid, 3)], [false, true]);
 });
 
 test('a Sankey: rows of From | To | Amount are flows, drawn as bands between bars', () => {

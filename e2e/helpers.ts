@@ -6,6 +6,12 @@ export async function shot(page: Page, name: string) {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}-${page.viewportSize()!.width}.png`, fullPage: true });
 }
 
+/** A blank Write, Sheet, Deck or Quick Links offers its templates first; Blank is the document itself. */
+export async function blank(page: Page) {
+  await page.getByRole('listitem', { name: /^Blank/ }).click();
+  await expect(page.locator('sl-dialog.to-templates')).toHaveCount(0);
+}
+
 /** Reload the page at its current URL: the URL is the document, so this is the persistence test. */
 export async function reopen(page: Page) {
   const url = page.url();

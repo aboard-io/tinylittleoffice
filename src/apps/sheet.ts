@@ -2,6 +2,13 @@
  * <to-sheet>: a spreadsheet with formulas, and a chart of it if you ask.
  * Document format: one table, its header row the columns' names and types (lib/formula.ts).
  *
+ * Three columns to start; the + at the end of the header adds one, and a
+ * column's menu puts one in after it or takes it out (an empty one; the
+ * sheet never goes under three). The table scrolls in a box of its own,
+ * its header rows and row numbers stuck to its edges, and the page under
+ * it holds still: a cell is focused without scrolling the page, and the
+ * bar above keeps its shape whatever is selected.
+ *
  * Drag across cells (or hold Shift) to select a block: it can be copied,
  * cut, pasted, cleared, or carried on with the handle at its corner.
  *
@@ -10,8 +17,8 @@
  * document: "fit" squeezes the columns into the page, "show all" sizes each
  * to its longest value, and header edges can be dragged.
  */
-import { DocElement, defineElement, html, state, unsafeSVG, tool, icon, UI, keyLabel, clamp, type PropertyValues, type SlInput, type SlSelect } from '../kit.ts';
-import { COLS, ROWS, COL_NAMES, isLocked, lockedRanges, remapLock, rowsIn, rowsOut, withLock, COLUMN_TYPES, FUNCTIONS, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, readSheet, serializeGrid, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, usedSize, type CellValue, type Range, type Sheet } from '../lib/formula.ts';
+import { DocElement, defineElement, html, state, unsafeSVG, tool, toast, icon, UI, keyLabel, clamp, type PropertyValues, type SlSelect } from '../kit.ts';
+import { MIN_COLS, MAX_COLS, ROWS, COL_NAMES, columnEmpty, deleteColumns, insertColumns, isLocked, lockedRanges, movedIn, movedOut, remapLock, widthOf, withLock, COLUMN_TYPES, FUNCTIONS, columnName, defaultColumnName, deleteRows, evaluateGrid, formatCell, insertRows, readSheet, serializeGrid, rcToRef, clearCells, copyCells, fillCells, pasteCells, rangeOf, rangeRef, sortRows, usedSize, type CellValue, type Range, type Sheet } from '../lib/formula.ts';
 import { CHART_KINDS, chartPage, suggestChart, type ChartData, type ChartKind } from '../lib/chart.ts';
 import { chartOfSheet, measured } from './sheet.def.ts';
 import { linkify, parseInline } from '../lib/richtext.ts';
@@ -21,8 +28,8 @@ const MIN_COL = 48;
 /** A reference fits wherever the formula is waiting for a value. */
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
 const ARROWS: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-/** The cell nearest (r, c) that is on the sheet. */
-const onSheet = (r: number, c: number): [number, number] => [clamp(r, 0, ROWS - 1), clamp(c, 0, COLS - 1)];
+/** A column put in by hand starts this wide, when widths have been set by hand. */
+const NEW_COL = 120;
 
 /** Follow a pointer that `el` has captured: `move` as it goes, then `done` once it lifts. */
 function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {}) {
@@ -74,6 +81,15 @@ export class ToSheet extends DocElement<Sheet> {
     return (this.text = serializeGrid(grid, chart, types, names, lock));
   }
 
+  /** How many columns the sheet has now: three at the least, more as they are added or typed into. */
+  private get cols(): number {
+    return widthOf(this.doc.grid);
+  }
+  /** The cell nearest (r, c) that is on the sheet. */
+  private onSheet(r: number, c: number): [number, number] {
+    return [clamp(r, 0, ROWS - 1), clamp(c, 0, this.cols - 1)];
+  }
+
   protected willUpdate(changed: PropertyValues) {
     super.willUpdate(changed);
     // The values are worked out again only when the cells or what the columns hold have changed.
@@ -87,12 +103,13 @@ export class ToSheet extends DocElement<Sheet> {
   /**
    * Locked cells are the model's own: whatever typing, pasting, filling or
    * clearing would do to them is undone here. A change that brings its own
-   * lock (rows put in or taken out, or the lock itself) has moved the cells
-   * and the lock together, and goes through as it is.
+   * lock (rows or columns put in or taken out, or the lock itself) has
+   * moved the cells and the lock together, and goes through as it is;
+   * `moved` says so when a change carries the lock along for another reason.
    */
-  private save(change: Partial<Sheet>) {
+  private save(change: Partial<Sheet>, moved = change.lock !== undefined) {
     const { lock, grid: was } = this.doc;
-    if (change.grid && lock && change.lock === undefined) {
+    if (change.grid && lock && !moved) {
       const grid = change.grid;
       for (const g of lockedRanges(lock)) for (let r = g.r0; r <= g.r1; r++) for (let c = g.c0; c <= g.c1; c++) if (grid[r][c] !== was[r][c]) (grid[r] = grid[r].slice())[c] = was[r][c];
     }
@@ -158,8 +175,11 @@ export class ToSheet extends DocElement<Sheet> {
     const g = this.range;
     // A copy moves its formulas' references by how far it travelled; a cut keeps them as they were.
     const moved = ours && !ours.cut ? { dr: g.r0 - ours.r, dc: g.c0 - ours.c } : undefined;
-    const done = pasteCells(this.doc.grid, g.r0, g.c0, text, moved, this.many ? g : undefined);
-    this.save({ grid: done.grid });
+    // A block wider than the sheet widens it, up to the last letter, rather than losing its right-hand columns.
+    const widest = Math.max(...text.replace(/\n$/, '').split('\n').map((line) => line.split('\t').length));
+    const sheet = (block && g.c0 + widest > this.cols && insertColumns(this.doc, this.cols, Math.min(MAX_COLS, g.c0 + widest) - this.cols)) || this.doc;
+    const done = pasteCells(sheet.grid, g.r0, g.c0, text, moved, this.many ? g : undefined);
+    this.save({ ...sheet, grid: done.grid }, false);
     this.end = [done.range.r1, done.range.c1];
     this.focusCell(done.range.r0, done.range.c0, true);
   }
@@ -233,7 +253,7 @@ export class ToSheet extends DocElement<Sheet> {
     this.rowMenu = null;
     if (!grid) return void this.dispatchEvent(new CustomEvent('to-toast', { detail: 'The sheet is full: its last rows hold something.', bubbles: true, composed: true }));
     const at = below ? r1 + 1 : r0;
-    this.save({ grid, lock: remapLock(this.doc.lock, rowsIn(at, n)) });
+    this.save({ grid, lock: remapLock(this.doc.lock, movedIn(at, n)) });
     // The new rows are selected, ready to type into.
     this.sel = [at, this.sel[1]];
     this.end = n > 1 ? [at + n - 1, this.sel[1]] : null;
@@ -242,7 +262,7 @@ export class ToSheet extends DocElement<Sheet> {
   private deleteRowsAt(r?: number) {
     const [r0, r1] = this.rowsFor(r);
     this.rowMenu = null;
-    this.save({ grid: deleteRows(this.doc.grid, r0, r1), lock: remapLock(this.doc.lock, rowsOut(r0, r1)) });
+    this.save({ grid: deleteRows(this.doc.grid, r0, r1), lock: remapLock(this.doc.lock, movedOut(r0, r1)) });
     this.end = null;
     this.focusCell(Math.min(r0, ROWS - 1), this.sel[1]);
   }
@@ -251,7 +271,7 @@ export class ToSheet extends DocElement<Sheet> {
     const [r0, r1] = this.rowsFor(r);
     if (r0 === r1) {
       this.sel = [r, 0];
-      this.end = [r, COLS - 1];
+      this.end = [r, this.cols - 1];
     }
     this.rowMenu = r;
     await this.updateComplete;
@@ -279,6 +299,35 @@ export class ToSheet extends DocElement<Sheet> {
     </sl-dropdown>`;
   }
 
+  /* ---------- columns put in and taken out ---------- */
+
+  /** A column put in before column `at`: after the last, from the + at the end of the header; after any, from its menu. */
+  private addColumn(at: number) {
+    const sheet = insertColumns(this.doc, at);
+    if (!sheet) return void toast(this, 'The sheet is as wide as it goes: twenty-six columns.');
+    if (this.widths) this.widths = [...this.widths.slice(0, at), NEW_COL, ...this.widths.slice(at)];
+    this.save(sheet);
+    this.focusCell(this.sel[0], at);
+  }
+  /** Whether column c may go: only an empty one, and never one of the last three. */
+  private removable(c: number): boolean {
+    return this.cols > MIN_COLS && columnEmpty(this.doc.grid, c);
+  }
+  private removeColumn(c: number) {
+    const sheet = this.removable(c) ? deleteColumns(this.doc, c) : null;
+    if (!sheet) return;
+    if (this.widths) this.widths = this.widths.filter((_, i) => i !== c);
+    this.save(sheet);
+    this.focusCell(this.sel[0], c);
+  }
+  /** What a column's menu does: what it holds, a sort by it, a column after it, or the column gone. */
+  private onColumnMenu(c: number, value: string) {
+    if (value.startsWith('sort:')) this.save({ grid: sortRows(this.doc.grid, c, value === 'sort:desc'), lock: this.doc.lock });
+    else if (value === 'col:add') this.addColumn(c + 1);
+    else if (value === 'col:remove') this.removeColumn(c);
+    else this.setType(c, value);
+  }
+
   /** A cell of rich text, drawn: **bold** and *italic* shown as such, addresses as links. */
   private rich(raw: string) {
     return parseInline(raw).map((run) => {
@@ -288,30 +337,49 @@ export class ToSheet extends DocElement<Sheet> {
   }
 
   private focusCell(row: number, col: number, keepBlock = false) {
-    const [r, c] = onSheet(row, col);
+    const [r, c] = this.onSheet(row, col);
     // Near the bottom of what is drawn, more rows appear.
     if (r >= this.drawn - 2) this.rowsShown = Math.min(ROWS, this.drawn + 20);
     if (!keepBlock) this.end = null;
     this.sel = [r, c];
-    this.focusSoon(`#c${r}_${c}`, true);
+    void this.updateComplete.then(() => {
+      const el = this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
+      if (!el) return;
+      // The page holds still: the table's own box scrolls to show the cell (focus() would scroll every ancestor, the page too).
+      el.focus({ preventScroll: true });
+      el.select();
+      this.reveal(el);
+    });
   }
 
-  /** The <input> being typed in right now: a cell or the formula bar. */
+  /** The cell on screen, by scrolling the table's box alone, with the stuck header rows and row numbers allowed for. */
+  private reveal(el: HTMLElement) {
+    const box = this.querySelector<HTMLElement>('.sheet-scroll');
+    const td = el.closest('td');
+    if (!box || !td) return;
+    const b = box.getBoundingClientRect();
+    const t = td.getBoundingClientRect();
+    const head = this.querySelector('table.sheet thead')?.getBoundingClientRect().height ?? 0;
+    const side = this.querySelector('table.sheet th.row')?.getBoundingClientRect().width ?? 0;
+    if (t.top < b.top + head) box.scrollTop -= b.top + head - t.top;
+    else if (t.bottom > b.bottom) box.scrollTop += t.bottom - b.bottom;
+    if (t.left < b.left + side) box.scrollLeft -= b.left + side - t.left;
+    else if (t.right > b.right) box.scrollLeft += t.right - b.right;
+  }
+
+  /** The <input> being typed in right now: a cell or the formula strip. */
   private editor(): HTMLInputElement | null {
     const a = document.activeElement;
-    if (!a || !this.contains(a)) return null;
-    if (a instanceof HTMLInputElement) return a;
-    return a.tagName === 'SL-INPUT' ? (a as SlInput).input : null;
+    return a instanceof HTMLInputElement && this.contains(a) && a.matches('td input, .sheet-fx .fx') ? a : null;
   }
 
   /** Put the caret at `pos` in `ed` (or in the selected cell) once the new value has rendered. */
   private async caretTo(pos: number, ed?: HTMLInputElement | null) {
     await this.updateComplete;
-    await this.querySelector<SlInput>('.sheet-bar sl-input')?.updateComplete;
     const [r, c] = this.sel;
     const el = ed ?? this.querySelector<HTMLInputElement>(`#c${r}_${c}`);
     if (!el) return;
-    el.focus();
+    el.focus({ preventScroll: true });
     // Focusing a cell swaps its computed value for the raw formula on the next render.
     await this.updateComplete;
     el.setSelectionRange(pos, pos);
@@ -387,7 +455,7 @@ export class ToSheet extends DocElement<Sheet> {
     if (move[1] !== 0 && at !== val.length) return false;
     const [fr, fc] = p ? p.to : [sr, sc];
     e.preventDefault();
-    this.point(ed, ...onSheet(fr + move[0], fc + move[1]));
+    this.point(ed, ...this.onSheet(fr + move[0], fc + move[1]));
     return true;
   }
 
@@ -461,7 +529,7 @@ export class ToSheet extends DocElement<Sheet> {
       // Shift+arrows stretch the block. (Sideways, only when not selecting text inside the cell.)
       const [fr, fc] = this.end ?? this.sel;
       e.preventDefault();
-      this.end = onSheet(fr + arrow[0], fc + arrow[1]);
+      this.end = this.onSheet(fr + arrow[0], fc + arrow[1]);
       return;
     }
     if (e.key === ' ' && this.doc.types[c] === 'check' && !this.doc.grid[r][c].startsWith('=')) {
@@ -495,15 +563,17 @@ export class ToSheet extends DocElement<Sheet> {
   render() {
     const { grid, chart, types, names } = this.doc;
     const [sr, sc] = this.sel;
+    const cols = this.cols;
     const w = this.widths;
     const picking = grid[sr][sc].startsWith('=');
     const g = this.range;
     const fill = this.fillTo;
     const data = chartOfSheet(measured(this.doc, this.computed));
     const best = suggestChart(data);
+    const locked = this.locked(sr, sc);
+    // The bar holds the same tools whatever is selected (a tool that does not apply is disabled, not gone), so it never changes shape under a finger.
     return html`
       <div class="to-toolbar sheet-bar">
-        <span class="ref" aria-label="Selected cells">${rangeRef(this.range)}</span>
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insertFunction(e.detail.item.value)}>
           <sl-button slot="trigger" class="icon" size="small" caret aria-label="Functions">${icon(UI.fn, 14)}<span class="sr-only">Functions</span></sl-button>
           <sl-menu class="sheet-fns">
@@ -512,68 +582,84 @@ export class ToSheet extends DocElement<Sheet> {
             <sl-menu-label>+ &minus; * / ^ % ( ) &nbsp; A1 &nbsp; A1:C3</sl-menu-label>
           </sl-menu>
         </sl-dropdown>
-        <sl-input
-          size="small"
-          label="Formula"
-          class="sr-label"
-          .value=${grid[sr][sc]}
-          placeholder="="
-          @sl-input=${(e: Event) => this.setCell(sr, sc, (e.target as SlInput).value)}
-          @keydown=${(e: KeyboardEvent) => !this.pointWithKey(e) && e.key === 'Enter' && this.focusCell(sr + 1, sc)}
-          @sl-blur=${(e: Event) => (this.caret = { r: sr, c: sc, pos: (e.target as SlInput).input.selectionStart ?? 0 })}
-        ></sl-input>
         <sl-select class="sr-label sheet-chart-pick" size="small" label="Chart" placeholder="Chart" hoist .value=${chart || 'none'} @sl-change=${(e: Event) => this.save({ chart: ((e.target as SlSelect).value as string).replace('none', '') })}>
           <span slot="prefix">${icon(UI.chart, 14)}</span>
           <sl-option value="none">No chart</sl-option>
           ${CHART_KINDS.map((k) => html`<sl-option value=${k.id}>${k.name}${k.id === best ? ' (suggested)' : ''}</sl-option>`)}
         </sl-select>
-        ${this.many
-          ? html`<sl-button-group label="Fill">
-              ${tool('Fill down from the top row', 'back', () => this.fill(true))}
-              ${tool('Fill right from the first column', 'arrow', () => this.fill(false))}
-            </sl-button-group>`
-          : ''}
+        <sl-button-group label="Fill">
+          ${tool('Fill down from the top row', 'back', () => this.fill(true), { disabled: !this.many })}
+          ${tool('Fill right from the first column', 'arrow', () => this.fill(false), { disabled: !this.many })}
+        </sl-button-group>
         <sl-button-group label="Column widths">
           ${tool('Fit to page', 'fit', () => (this.widths = null), { pressed: !w })}
-          ${tool('Show all text', 'expand', () => (this.widths = COL_NAMES.map((_, c) => this.naturalWidth(c))))}
+          ${tool('Show all text', 'expand', () => (this.widths = types.map((_, c) => this.naturalWidth(c))))}
         </sl-button-group>
-        ${tool(this.locked(sr, sc) ? 'Unlock these cells' : 'Lock these cells, so a reader leaves them be', this.locked(sr, sc) ? 'lock' : 'unlock', () => this.toggleLock(), { pressed: this.locked(sr, sc) })}
+        ${tool(locked ? 'Unlock these cells' : 'Lock these cells, so a reader leaves them be', locked ? 'lock' : 'unlock', () => this.toggleLock(), { pressed: locked })}
         ${this.text ? '' : templateTool('sheet', this.useTemplate)}
+      </div>
+      <!-- The selected cells and the raw formula, a strip of one height under the bar: typed into here, or in the cell itself. -->
+      <div class="sheet-fx">
+        <span class="ref" aria-label="Selected cells">${rangeRef(this.range)}</span>
+        <input
+          class="fx"
+          aria-label="Formula"
+          .value=${grid[sr][sc]}
+          placeholder="="
+          autocomplete="off"
+          spellcheck="false"
+          ?readonly=${locked}
+          @input=${(e: Event) => this.setCell(sr, sc, (e.target as HTMLInputElement).value)}
+          @keydown=${(e: KeyboardEvent) => {
+            if (this.pointWithKey(e)) return;
+            if (e.key === 'Enter') this.focusCell(sr + 1, sc);
+            else if (e.key === 'Escape') this.focusCell(sr, sc);
+          }}
+          @blur=${(e: Event) => (this.caret = { r: sr, c: sc, pos: (e.target as HTMLInputElement).selectionStart ?? 0 })}
+        />
       </div>
       ${this.text ? '' : templateGallery('sheet', this.useTemplate)}
       <div class="sheet-scroll">
-        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${this.onCopy} @cut=${this.onCopy} @paste=${this.onPaste} style=${w ? `width: calc(var(--sheet-row-w) + ${w.reduce((a, b) => a + b, 0)}px)` : ''}>
+        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${this.onCopy} @cut=${this.onCopy} @paste=${this.onPaste} style=${w ? `width: calc(var(--sheet-row-w) + var(--sheet-add-w) + ${w.reduce((a, b) => a + b, 0)}px)` : ''}>
           <colgroup>
             <col />
-            ${COL_NAMES.map((_, c) => html`<col style=${w ? `width:${w[c]}px` : ''} />`)}
+            ${types.map((_, c) => html`<col style=${w ? `width:${w[c]}px` : ''} />`)}
+            <col class="add" />
           </colgroup>
           <thead>
             <tr>
               <td class="corner"></td>
-              ${COL_NAMES.map(
-                (n, c) => html`<th scope="col">
-                  <sl-dropdown hoist class="col-menu-drop" @sl-select=${(e: CustomEvent) => (String(e.detail.item.value).startsWith('sort:') ? this.save({ grid: sortRows(grid, c, e.detail.item.value === 'sort:desc'), lock: this.doc.lock }) : this.setType(c, e.detail.item.value))}>
-                    <button slot="trigger" class="col-type" aria-label="Column ${n}: ${COLUMN_TYPES.find((t) => t.id === types[c])!.name}. Change what it holds, or sort by it" data-tip="What it holds; sort">
-                      <span class="cl">${n}</span>${icon(UI.down, 12)}
+              ${types.map(
+                (_, c) => html`<th scope="col">
+                  <sl-dropdown hoist class="col-menu-drop" @sl-select=${(e: CustomEvent) => this.onColumnMenu(c, String(e.detail.item.value))}>
+                    <button slot="trigger" class="col-type" aria-label="Column ${COL_NAMES[c]}: ${COLUMN_TYPES.find((t) => t.id === types[c])!.name}. Change what it holds, sort by it, add or remove a column" data-tip="What it holds; sort; columns">
+                      <span class="cl">${COL_NAMES[c]}</span>${icon(UI.down, 12)}
                     </button>
                     <sl-menu class="sheet-menu col-menu">
-                      <sl-menu-label>Column ${n} holds</sl-menu-label>
+                      <sl-menu-label>Column ${COL_NAMES[c]} holds</sl-menu-label>
                       ${COLUMN_TYPES.map((t) => html`<sl-menu-item type="checkbox" value=${t.id} ?checked=${types[c] === t.id}><span class="ct-name">${t.name}</span><small class="ct-hint">${t.hint}</small></sl-menu-item>`)}
                       <sl-divider></sl-divider>
                       <sl-menu-label>Sort the rows by it</sl-menu-label>
                       <sl-menu-item value="sort:asc">${icon(UI.down, 14, 'pre')} Low to high</sl-menu-item>
                       <sl-menu-item value="sort:desc">${icon(UI.up, 14, 'pre')} High to low</sl-menu-item>
+                      <sl-divider></sl-divider>
+                      <sl-menu-item value="col:add" ?disabled=${cols >= MAX_COLS}>${icon(UI.plus, 14, 'pre')} Add a column after</sl-menu-item>
+                      <sl-menu-item value="col:remove" class="danger" ?disabled=${!this.removable(c)}>${icon(UI.trash, 14, 'pre')} Remove this column${this.removable(c) ? '' : html`<small class="ct-hint">${cols <= MIN_COLS ? 'Three at the least' : 'Once it is empty'}</small>`}</sl-menu-item>
                     </sl-menu>
-                  </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${n}" data-tip="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
+                  </sl-dropdown><span class="grip" role="separator" aria-label="Resize column ${COL_NAMES[c]}" data-tip="Drag to resize, double-click to fit" @pointerdown=${(e: PointerEvent) => this.onGripDown(e, c)} @dblclick=${() => this.fitColumn(c)}></span>
                 </th>`,
               )}
+              <!-- One more column, a tap away; thumb-sized on a phone. -->
+              <td class="add-col" rowspan="2">
+                <button type="button" class="add-col-btn" aria-label="Add a column" data-tip="Add a column" ?disabled=${cols >= MAX_COLS} @click=${() => this.addColumn(cols)}>${icon(UI.plus, 16)}</button>
+              </td>
             </tr>
             <!-- The columns' names, a row of their own under the letters: typed over where they stand. -->
             <tr class="names">
               <td class="corner"></td>
-              ${COL_NAMES.map(
-                (n, c) => html`<th scope="col">
-                  <input class="cn" aria-label=${`Name of column ${n}`} placeholder=${defaultColumnName(c, types)} .value=${names[c] || columnName(c, types, names)} autocomplete="off" spellcheck="false"
+              ${types.map(
+                (_, c) => html`<th scope="col">
+                  <input class="cn" aria-label=${`Name of column ${COL_NAMES[c]}`} placeholder=${defaultColumnName(c, types)} .value=${names[c] || columnName(c, types, names)} autocomplete="off" spellcheck="false"
                     @change=${(e: Event) => this.rename(c, (e.target as HTMLInputElement).value)}
                     @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === 'Escape') && (e.target as HTMLInputElement).blur()} />
                 </th>`,
@@ -605,10 +691,11 @@ export class ToSheet extends DocElement<Sheet> {
                       placeholder=${isSel && type === 'date' ? 'YYYY-MM-DD' : ''}
                       ?readonly=${locked}
                       autocomplete="off"
-                      @focus=${() => {
+                      @focus=${(e: Event) => {
                         if (r !== this.sel[0] || c !== this.sel[1]) this.end = null;
                         this.sel = [r, c];
                         this.focused = true;
+                        this.reveal(e.target as HTMLElement);
                       }}
                       @blur=${(e: Event) => {
                         this.focused = false;

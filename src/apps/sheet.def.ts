@@ -1,7 +1,7 @@
 /** Sheet: what the shell knows about spreadsheets. Format and engine: lib/formula.ts. */
 import { defineApp, csv, csvSeparator, utf8, xml, clip, rect, text, textWidth, LINE, SHADE, MUTED, type DownloadContext, type Page } from '../kit/core.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
-import { COLS, ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, nameKey, namedCells, rcToRef, readSheet, serializeGrid, shiftFormula, tableIn, tableSheet, usedSize, type CellValue, type Sheet } from '../lib/formula.ts';
+import { ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, nameKey, namedCells, rcToRef, readSheet, serializeGrid, shiftFormula, tableIn, tableSheet, usedSize, type CellValue, type Sheet } from '../lib/formula.ts';
 import { chartData, chartPage, type ChartKind } from '../lib/chart.ts';
 import { column, parse } from '../lib/tlo.ts';
 import { parseCsv } from '../lib/markdown.ts';
@@ -220,7 +220,7 @@ export default defineApp({
   group: '',
   name: 'Sheet',
   icon: 'sheet',
-  blurb: `A ${ROWS}-row, ${COLS}-column spreadsheet with formulas and charts.`,
+  blurb: `A ${ROWS}-row spreadsheet with formulas and charts; three columns to start, more as you need them.`,
   title: () => '',
   outline: (body) => lines(usedGrid(body)).map((row) => row.filter(Boolean).join('  ·  ')).filter(Boolean),
   read: readSheetText,

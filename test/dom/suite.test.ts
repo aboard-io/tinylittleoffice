@@ -91,7 +91,17 @@ async function put(ref: string, v: string) {
   fill(cell(ref), v);
   await idle();
 }
-const bar = () => $('sl-input[label="Formula"]') as HTMLElement & { value: string };
+const bar = () => $('input[aria-label="Formula"]') as HTMLInputElement;
+/** A blank sheet is three columns; the + at the end of the header makes it six, for what wants D to F. */
+async function six() {
+  const { last } = await mount('sheet');
+  for (let i = 0; i < 3; i++) {
+    button('Add a column').click();
+    await idle();
+  }
+  expect($$('table.sheet th .col-type')).toHaveLength(6);
+  return { last };
+}
 const selected = () => text($('[aria-label="Selected cells"]'));
 /** Open the sheet again from the text it saved: what a reopened link shows. */
 const remount = async (saved: string | undefined) => mount('sheet', saved ?? '');
@@ -125,7 +135,7 @@ test('sheet: formulas compute, and persist in what is saved', async () => {
 });
 
 test('sheet: tapping cells builds a formula, and every function is one tap away', async () => {
-  await mount('sheet');
+  await six();
   await put('A1', '10');
   await put('A2', '32');
   tap(cell('B1'));
@@ -202,7 +212,7 @@ test('sheet: tapping cells builds a formula, and every function is one tap away'
 });
 
 test('sheet: blocks of cells are selected, copied, cut, cleared and filled', async () => {
-  const { last } = await mount('sheet');
+  const { last } = await six();
   for (const [at, v] of [['A1', '1'], ['A2', '2'], ['B1', '10'], ['B2', '20'], ['C1', '=A1+B1']]) await put(at, v);
 
   // Shift+arrows stretch a block from the cell you are in.
@@ -310,7 +320,7 @@ test('sheet: charts suggest themselves and travel with the sheet', async () => {
 });
 
 test('sheet: columns have types, and dates do arithmetic', async () => {
-  const { last } = await mount('sheet');
+  const { last } = await six();
   const names = () => $$<HTMLInputElement>('tr.names .cn');
   const setType = async (col: string, type: string) => {
     const dropdown = button(new RegExp(`^Column ${col}:`)).closest('sl-dropdown')!;
