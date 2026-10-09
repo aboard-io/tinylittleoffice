@@ -306,3 +306,64 @@ export const clearTape = (v: CalcView): Op[] => (v.at < 0 ? [] : [{ op: 'splice'
 
 /** The other mode: its lines mean something else there, so the tape starts again (one undo brings it back). */
 export const setMode = (v: CalcView, mode: Mode): Op[] => (mode === v.mode ? [] : [{ op: 'head', key: 'mode', value: mode === 'graph' ? 'graph' : undefined }, ...clearTape(v)]);
+
+/**
+ * Lines [from, to) given way to `put` (each cleaned, the empty ones dropped): one op over the tape's words, so a
+ * run of lines moved, copied in, pasted or taken away is one step to undo. Every all-lines command is this.
+ */
+export function replaceLines(v: CalcView, from: number, to: number, put: string[]): Op[] {
+  const add = put.map(clean).filter(Boolean);
+  const n = v.lines.length;
+  from = Math.max(0, Math.min(from, n));
+  to = Math.max(from, Math.min(to, n));
+  if (v.at < 0 || !n) return add.length ? [{ op: 'splice', at: 0, n: v.at < 0 ? 0 : 1, blocks: [tapeBlock(add)] }] : [];
+  if (from === 0 && to === n && !add.length) return clearTape(v);
+  const words = add.join('\n');
+  if (from === to) {
+    if (!add.length) return [];
+    if (from < n) {
+      const at = span(v, from)[0];
+      return [{ op: 'text', at: v.at, from: at, to: at, runs: [{ t: words + '\n' }] }];
+    }
+    const end = span(v, n - 1)[1];
+    return [{ op: 'text', at: v.at, from: end, to: end, runs: [{ t: '\n' + words }] }];
+  }
+  let a = span(v, from)[0];
+  let b = span(v, to - 1)[1];
+  if (!add.length) {
+    if (to < n) b += 1;
+    else a -= 1;
+  }
+  return [{ op: 'text', at: v.at, from: a, to: b, runs: add.length ? [{ t: words }] : [] }];
+}
+
+/** The tape in a new order: only the lines between the first and the last that moved are written. */
+function reorder(v: CalcView, next: string[]): Op[] {
+  let lo = 0;
+  while (lo < next.length && next[lo] === v.lines[lo]) lo++;
+  if (lo === next.length) return [];
+  let hi = next.length;
+  while (hi > lo && next[hi - 1] === v.lines[hi - 1]) hi--;
+  return replaceLines(v, lo, hi, next.slice(lo, hi));
+}
+
+/** Lines [from, to) moved one past their neighbour (by -1 up, 1 down); nothing at the ends. */
+export function moveLines(v: CalcView, from: number, to: number, by: 1 | -1): Op[] {
+  if (from < 0 || to > v.lines.length || from >= to || (by < 0 && from === 0) || (by > 0 && to >= v.lines.length)) return [];
+  const ls = [...v.lines];
+  const run = ls.splice(from, to - from);
+  ls.splice(from + by, 0, ...run);
+  return reorder(v, ls);
+}
+
+/** Line i carried to just after line `after` (a drag by its grip). */
+export function dropLine(v: CalcView, i: number, after: number): Op[] {
+  if (!v.lines[i] || after < -1 || after >= v.lines.length || after === i) return [];
+  const ls = [...v.lines];
+  const [line] = ls.splice(i, 1);
+  ls.splice(after < i ? after + 1 : after, 0, line);
+  return reorder(v, ls);
+}
+
+/** Pasted blocks read as tape lines, the way a document is read (a result after a sum goes; on a graph, "y =" goes). */
+export const pastedLines = (blocks: Block[], mode: Mode): string[] => loosely({ head: { mode }, blocks }).lines;

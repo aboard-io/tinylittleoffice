@@ -9,6 +9,8 @@
     display: grid;
     gap: 12px;
     grid-template-areas: 'graph' 'paper' 'pad';
+    /* A double tap selects a word; the page never zooms on it. */
+    touch-action: manipulation;
   }
   .calc-graph {
     grid-area: graph;
@@ -51,6 +53,36 @@
   }
   .calc-row + .calc-row {
     border-top: 1px solid var(--to-border);
+  }
+  .calc-tape:focus {
+    outline: none;
+  }
+  /* Lines chosen whole (kit/rows.ts), and the one being carried. */
+  .calc-row.ranged {
+    background: var(--to-accent-soft);
+  }
+  .calc-row.dragging {
+    opacity: 0.5;
+  }
+  /* The grip: a tap chooses the line, a drag carries it (44px to a finger: .to-rows-handle). */
+  .calc-grip {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    min-height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--to-radius-sm);
+    background: none;
+    color: var(--to-ink-3);
+    cursor: grab;
+  }
+  .calc-grip:hover {
+    color: var(--to-ink);
+  }
+  .calc-grip:focus-visible {
+    outline: 2px solid var(--to-accent);
   }
   .calc-swatch {
     flex: none;

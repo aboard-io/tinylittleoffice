@@ -8,7 +8,7 @@ import { afterEach, expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
 import { engine } from '../math.ts';
-import { addLine, clearTape, evaluate, live, plot, readCalc, removeLine, result, setEngine, setLine, setMode, shown, tape, tidy, type CalcView } from '../model.ts';
+import { addLine, clearTape, dropLine, evaluate, live, moveLines, pastedLines, plot, readCalc, removeLine, replaceLines, result, setEngine, setLine, setMode, shown, tape, tidy, type CalcView } from '../model.ts';
 import { calcPage, graphPage, tapePage, tapeText } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -143,6 +143,32 @@ test('the commands: a line in, changed or out is a text op on the tape; its birt
   expect(run('2+2\n', (v) => setMode(v, 'graph'))).toEqual({ ops: [{ op: 'head', key: 'mode', value: 'graph' }, { op: 'splice', at: 0, n: 1, blocks: [] }], text: '---\nmode: graph\n---\n' });
   expect(run('---\nmode: graph\n---\n', (v) => setMode(v, 'calc')).text).toBe('');
   expect(run('2+2\n', (v) => setMode(v, 'calc')).ops).toEqual([]);
+});
+
+test('lines as rows: a run of lines replaced, moved past a neighbour, carried by a drag or copied under itself is one text op', () => {
+  // Replaced: only the lines given way to are written.
+  expect(run('a\nb\nc\n', (v) => replaceLines(v, 1, 2, ['x', ' y ']))).toEqual({ ops: [{ op: 'text', at: 0, from: 2, to: 3, runs: [{ t: 'x\ny' }] }], text: 'a\nx\ny\nc\n' });
+  // Put in between (a duplicate, a paste with nothing chosen), at the start, at the end; empty lines dropped.
+  expect(run('a\nb\n', (v) => replaceLines(v, 1, 1, ['a', ''])).text).toBe('a\na\nb\n');
+  expect(run('a\nb\n', (v) => replaceLines(v, 0, 0, ['z'])).text).toBe('z\na\nb\n');
+  expect(run('a\nb\n', (v) => replaceLines(v, 2, 2, ['c', 'd'])).text).toBe('a\nb\nc\nd\n');
+  expect(run('', (v) => replaceLines(v, 0, 0, ['1+1', '2+2'])).text).toBe('1+1\n2+2\n');
+  // Taken away: a run in the middle, at the end, or all of it.
+  expect(run('a\nb\nc\nd\n', (v) => replaceLines(v, 1, 3, [])).text).toBe('a\nd\n');
+  expect(run('a\nb\nc\n', (v) => replaceLines(v, 1, 3, [])).text).toBe('a\n');
+  expect(run('---\ntitle: T\n---\na\nb\n', (v) => replaceLines(v, 0, 2, [])).text).toBe('---\ntitle: T\n---\n');
+  // Moved: up and down past one neighbour; nothing past the ends.
+  expect(run('a = 1\na + 1\nb\n', (v) => moveLines(v, 1, 2, -1))).toEqual({ ops: [{ op: 'text', at: 0, from: 0, to: 11, runs: [{ t: 'a + 1\na = 1' }] }], text: 'a + 1\na = 1\nb\n' });
+  expect(run('a\nb\nc\nd\n', (v) => moveLines(v, 0, 2, 1)).text).toBe('c\na\nb\nd\n');
+  expect(run('a\nb\n', (v) => moveLines(v, 0, 1, -1)).ops).toEqual([]);
+  expect(run('a\nb\n', (v) => moveLines(v, 1, 2, 1)).ops).toEqual([]);
+  // Carried by the grip to just after another line, either way.
+  expect(run('a\nb\nc\nd\n', (v) => dropLine(v, 0, 2)).text).toBe('b\nc\na\nd\n');
+  expect(run('a\nb\nc\nd\n', (v) => dropLine(v, 3, 0)).text).toBe('a\nd\nb\nc\n');
+  expect(run('a\nb\n', (v) => dropLine(v, 1, 0)).ops).toEqual([]);
+  // A paste read as tape lines: results after sums go; on a graph "y =" goes.
+  expect(pastedLines(parse('2+2 = 4\n\n- a = 12\n').blocks, 'calc')).toEqual(['2+2', 'a = 12']);
+  expect(pastedLines(parse('y = x^2\nsin(x)\n').blocks, 'graph')).toEqual(['x^2', 'sin(x)']);
 });
 
 test('the pages: the tape with its answers, the graph with its curves; the text; the definition', () => {
