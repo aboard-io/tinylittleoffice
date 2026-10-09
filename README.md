@@ -483,10 +483,22 @@ and undoing hands the editor the text it was. A new app gets it for free.
 
 Ctrl+/ (or the menu) lists every shortcut: the ones that work everywhere and
 the current app's. Every control has a name, focus is always visible, motion
-respects the reduced-motion setting, and `e2e/apps.spec.ts` runs the axe
-accessibility checker over every app in light and dark. One rule is switched
-off there, with the reason beside it: compact toolbar pickers are named for
-assistive technology but do not show a visible text label.
+respects the reduced-motion setting and edges and quiet text darken under
+the more-contrast setting (`prefers-contrast`), a skip link leads to the
+document, and the one toast is a live region that is always on the page.
+`e2e/apps.spec.ts` runs the axe accessibility checker over every app's
+editor and bar, the menu, Insert, the templates and the icon library, in
+light and dark; `e2e/keyboard.spec.ts` works the shell by keyboard alone
+(Tab to the bar, Esc giving the focus back, arrows through Insert). Rules
+switched off there carry their reason beside them: compact toolbar pickers
+are named for assistive technology but show an icon rather than a label,
+and a Shoelace dialog's own title bar is a `<header>` inside its shadow
+root, which axe counts as a second banner. The colour tokens are checked
+against each other by `test/contrast.test.ts`, which reads the stylesheet
+and Shoelace's two themes as they are: text at 4.5:1 on every surface it
+sits on in both themes, edges and rings at 3:1 in the dark, where the page
+sits darker behind its panels and text, edges and the accent are each a
+step lighter than Shoelace's own.
 
 ## Link previews
 

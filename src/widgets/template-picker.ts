@@ -17,7 +17,7 @@ import type { SlDialog } from '../lib/shoelace.ts';
 
 /** A template as a card: its first page, drawn by the app itself (what the document will look like, small), its name and its line. */
 const card = (app: string, t: Template, pick: () => void) =>
-  html`<button class="to-template" role="listitem" aria-label="${t.name}: ${t.blurb}" @click=${pick}><span class="pic">${unsafeHTML(pageSvg(appOf(app)!.view(t.body)[0], 'aria-hidden="true"'))}</span><b>${t.name}</b><small>${t.blurb}</small></button>`;
+  html`<button class="to-template" aria-label="${t.name}: ${t.blurb}" @click=${pick}><span class="pic">${unsafeHTML(pageSvg(appOf(app)!.view(t.body)[0], 'aria-hidden="true"'))}</span><b>${t.name}</b><small>${t.blurb}</small></button>`;
 
 export function chooseTemplate(app: string, opts: { blank?: boolean } = {}): Promise<Template | null> {
   return new Promise((done) => {
@@ -34,8 +34,8 @@ export function chooseTemplate(app: string, opts: { blank?: boolean } = {}): Pro
     };
     render(
       html`<p class="to-hint">A start, not a finish: everything in it is yours to change. Undo brings the blank page back.</p>
-        <div class="to-templates-list" role="list" data-app=${app}>
-          ${opts.blank ? html`<button class="to-template blank" role="listitem" aria-label="Blank: an empty page" @click=${() => pick(null)}><span class="pic" aria-hidden="true"></span><b>Blank</b><small>An empty page</small></button>` : nothing}
+        <div class="to-templates-list" role="group" aria-label="Templates" data-app=${app}>
+          ${opts.blank ? html`<button class="to-template blank" aria-label="Blank: an empty page" @click=${() => pick(null)}><span class="pic" aria-hidden="true"></span><b>Blank</b><small>An empty page</small></button>` : nothing}
           ${list.map((t) => card(app, t, () => pick(t)))}
         </div>`,
       dialog,

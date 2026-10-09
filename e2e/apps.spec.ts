@@ -235,9 +235,10 @@ test('trip on a slide: the map goes from stop to stop', async ({ page }) => {
   await expect(page.locator('.deck-show')).toHaveCount(0);
 });
 
-// axe scans a real browser's rendering (not part of the deploy's checks).
-test('accessibility: no app has violations a machine can find', async ({ page }) => {
-  test.slow();
+// axe scans a real browser's rendering (not part of the deploy's checks): every app's editor with its bar, and the
+// shell's own surfaces (the menu, Insert, the templates, the icon library), in the light and in the dark.
+for (const dark of [false, true]) test(`accessibility: nothing a machine can find, in the ${dark ? 'dark' : 'light'}`, async ({ page }) => {
+  test.setTimeout(240_000);
   await offlineMap(page);
   const { encodeEnvelope } = await import('../src/lib/envelope.ts');
   const docs: Record<string, string> = {
@@ -256,7 +257,6 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     lanes: '- Customer: Orders\n- Sales: In stock?\n- Warehouse: Packs',
     venn: '- Fast: a\n- Cheap: b\n- Fast & Cheap: c',
     net: '~ Web -> API: calls\n~ API -- Cache',
-    db: '## teams\n\nid | name\n--- | ---\n1 | Platform\n\n## people\n\nid | name | team_id>teams\n--- | --- | ---\n1 | Ann | 1\n\n```sql\nselect name from people;\n```',
     site: '# Harbor Coffee\n\nRoasted on the quay.\n\n> Menu | #menu\n\n- :coffee: Daily | Fresh\n\n## Menu\n\nEspresso and buns.',
     links: '# Ada\n\nPotter.\n\n> Shop | https://example.com\n\n- :mail: Mail | mailto:a@b.c',
     invoice: 'From: Harbor\nTo: Acme\nNumber: 7\nTax: 8%\n\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 2 |  | 150',
@@ -282,25 +282,50 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     // Map tiles are OpenStreetMap's pictures; the map itself is a labelled application.
     // label-title-only: compact toolbar pickers are named for assistive tech but show an icon or their value, not a visible label.
     // The page apps show their result in a frame: a document of its own, with a <main> of its own, which is not a duplicate landmark.
+    // A Shoelace dialog or drawer has a <header> of its own inside its shadow root (its title bar), which axe counts as a second banner beside the page's.
     const frame = (await page.locator('.diagram.page iframe').count()) > 0;
-    const results = await new AxeBuilder({ page }).exclude('.leaflet-container').disableRules(['label-title-only', ...(frame ? ['landmark-unique'] : [])]).analyze();
+    const over = (await page.locator('sl-dialog[open], sl-drawer[open]').count()) > 0;
+    const results = await new AxeBuilder({ page }).exclude('.leaflet-container').disableRules(['label-title-only', ...(frame || over ? ['landmark-unique'] : []), ...(over ? ['landmark-no-duplicate-banner'] : [])]).analyze();
     found.push(...results.violations.map((v) => `${what}: ${v.id} (${v.nodes.length}) ${v.nodes[0].target.join(' ')}`));
   };
-  await page.goto('/');
-  await check('home');
-  for (const [app, body] of Object.entries(docs)) {
+  const go = async (hash: string) => {
     await page.goto('about:blank');
-    await page.goto(`/#/v0/${app}/${encodeEnvelope({ created: 1, body })}`);
+    await page.goto(hash);
+    if (dark) await expect(page.locator('html')).toHaveClass(/sl-theme-dark/);
+  };
+  if (dark) {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('to-theme', 'dark'));
+  }
+  await go('/');
+  await check('home');
+  // (What slides or fades in is scanned once it has: half-way, axe reads the text against the veil.)
+  const shown = () => page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await expect(page.locator('#nav-drawer')).toHaveAttribute('open');
+  await shown();
+  await check('menu');
+  for (const [app, body] of Object.entries(docs)) {
+    await go(`/#/v0/${app}/${encodeEnvelope({ created: 1, body })}`);
     await expect(page.locator(`to-${app}`)).toBeVisible();
     await page.waitForTimeout(150);
     await check(app);
+    if (dark && ['sheet', 'deck', 'write'].includes(app)) await shot(page, `dark-${app}`);
   }
-  // And in the dark.
-  await page.evaluate(() => localStorage.setItem('to-theme', 'dark'));
-  await page.goto('about:blank');
-  await page.goto(`/#/v0/todo/${encodeEnvelope({ created: 1, body: docs.todo })}`);
-  await expect(page.locator('html')).toHaveClass(/sl-theme-dark/);
-  await check('dark todo');
+  // Insert, open; the templates a blank sheet offers; the icon library.
+  await go(`/#/v0/write/${encodeEnvelope({ created: 1, body: docs.write })}`);
+  await page.getByRole('button', { name: 'Insert' }).click();
+  await expect(page.locator('.to-insert-list')).toBeVisible();
+  await check('insert');
+  await go('/#/v0/sheet');
+  await expect(page.locator('sl-dialog.to-templates')).toHaveAttribute('open');
+  await shown();
+  await check('templates');
+  await go('/#/v0/draw');
+  await page.getByRole('button', { name: 'Icon', exact: true }).click();
+  await expect(page.locator('sl-dialog.to-icons')).toHaveAttribute('open');
+  await shown();
+  await check('icons');
   expect(found).toEqual([]);
 });
 

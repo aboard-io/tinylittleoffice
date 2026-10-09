@@ -682,9 +682,9 @@ export class ToApp extends LitElement {
     const { available } = budgetFor(this.urlPrefix);
     return html`
       <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
-      <!-- The menu, always at the very top left, wherever the page is scrolled to: outside the header, which goes up with the page. -->
-      <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
       <header class="to-header">
+        <!-- The menu, always at the very top left, wherever the page is scrolled to: fixed to the screen, though the header goes up with the page. -->
+        <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" aria-haspopup="dialog" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
         <!-- One row: room for the menu, then what this is (the document: its app and its title), then everything to do with it; the row scrolls sideways when it is too long, and goes up with the page. -->
         <div class="to-header-inner">
           ${current ? this.renderTitleLine(current) : html`<a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 24)}</span><span>TinyLittleOffice</span></a>`}
@@ -740,7 +740,7 @@ export class ToApp extends LitElement {
       </header>
       <sl-drawer id="nav-drawer" label="TinyLittleOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
-          <input class="to-find" type="search" placeholder="Find an app" aria-label="Find an app" autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-nav a[href]:not([hidden])')?.click()} />
+          <input class="to-find" type="search" placeholder="Find an app" aria-label="Find an app" autocomplete="off" autofocus .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-nav a[href]:not([hidden])')?.click()} />
           <a href="#/" aria-current=${this.app === null && this.driving === null ? 'page' : nothing} ?hidden=${!!this.find.trim()}>${icon(UI.home, 20)}<span>Home</span></a>
           <a href="#/drive" aria-current=${this.driving !== null ? 'page' : nothing} ?hidden=${!!this.find.trim() && !'drive'.includes(this.find.trim().toLowerCase())}>${icon(UI.drive, 20)}<span>Drive</span>${saving() ? html`<small>${library().length}</small>` : nothing}</a>
           ${grouped().map((g) => {
@@ -780,7 +780,7 @@ export class ToApp extends LitElement {
         )}
         <sl-button slot="footer" variant="primary" @click=${() => this.dialog('keys-dialog')?.hide()}>Done</sl-button>
       </sl-dialog>
-      ${this.toast ? html`<div class="to-toast" role="status">${this.toast}</div>` : nothing}
+      <div class="to-toast" role="status" aria-live="polite">${this.toast}</div>
     `;
   }
 
