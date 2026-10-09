@@ -40,7 +40,8 @@ test('pages, sections, theme, pictures, icons, documents and buttons are read fr
   expect(sectionAt(s, 7)).toBe(2);
   // A site of one page is navigated by its sections; lines and fields are cut where the text says.
   expect(readSite(parse('# A\n\nabout\n\n## B\n\n- x\n')).pages[0].sections.map((x) => x.title)).toEqual(['A', 'B']);
-  const [a, b] = fieldsOf(parse('- **Big** one | small *words*\n').blocks[0].k === 'li' ? (parse('- **Big** one | small *words*\n').blocks[0] as { runs: [] }).runs : []);
+  const li = parse('- **Big** one | small *words*\n').blocks[0];
+  const [a, b] = fieldsOf(li.k === 'li' ? li.runs : []);
   expect([a, b]).toEqual([[{ t: 'Big', b: true }, { t: ' one' }], [{ t: 'small ' }, { t: 'words', i: true }]]);
   expect(linesOf([{ t: 'a\nb', b: true }, { t: '', ic: 'star' }])).toEqual([[{ t: 'a', b: true }], [{ t: 'b', b: true }, { t: '', ic: 'star' }]]);
 });

@@ -1008,6 +1008,7 @@ export default {
   'Sans serif': 'Sans serif',
   'Serif': 'Serif',
   'Rounded': 'Rounded',
+  'Monospace': 'Monospace',
   'Shape': 'Shape',
   'A website of pages': 'A website of pages',
   'Quick links: one column': 'Quick links: one column',

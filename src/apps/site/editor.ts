@@ -70,7 +70,7 @@ const THEME_NAMES = (): Record<string, string> => ({
   indigo: t('Indigo'), teal: t('Teal'), rose: t('Rose'), amber: t('Amber'), ink: t('Ink'), forest: t('Forest'), ocean: t('Ocean'), sunset: t('Sunset'),
   plum: t('Plum'), candy: t('Candy'), olive: t('Olive'), slate: t('Slate'), paper: t('Paper'), typewriter: t('Typewriter'), midnight: t('Midnight'), coal: t('Coal'),
 });
-const FACE_NAMES = (): Record<Face, string> => ({ sans: t('Sans serif'), serif: t('Serif'), rounded: t('Rounded'), mono: t('Typewriter') });
+const FACE_NAMES = (): Record<Face, string> => ({ sans: t('Sans serif'), serif: t('Serif'), rounded: t('Rounded'), mono: t('Monospace') });
 
 export class ToSiteEditor extends DocElement<Site> {
   static properties: PropertyDeclarations = { cur: { state: true }, asking: { state: true }, cardAt: { state: true }, shown: { state: true } };

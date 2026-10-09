@@ -72,6 +72,10 @@
   .site-hint {
     margin: 0;
   }
+  /* The card menu opens beside the card tapped; its own button is never shown. */
+  .site-cardmenu > button {
+    display: none;
+  }
   .site-pic {
     display: block;
     max-width: 100%;

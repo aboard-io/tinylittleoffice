@@ -165,8 +165,8 @@ nav{display:flex;gap:1.1rem;margin-left:auto;overflow-x:auto;scrollbar-width:non
 footer{padding:2rem 0;color:var(--ink3);font-size:.9rem;border-top:1px solid var(--line)}`;
 
 /** A Quick Links page's own look: everything centred in one narrow column, the buttons always stacked and all of one colour. */
-const LINKS_CSS = `main{max-width:26rem;margin:0 auto;padding:3rem 1.25rem 4rem;text-align:center}
-.hero{background:none;padding:0}.go{flex-direction:column}.go .btn{padding:.9rem 1.1rem;font-size:1.05rem;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06)}.go .btn.quiet{background:var(--a);color:var(--on)}
+const LINKS_CSS = `main.hero{max-width:26rem;margin:0 auto;padding:3rem 1.25rem 4rem;text-align:center;background:none}
+.go{flex-direction:column}.go .btn{padding:.9rem 1.1rem;font-size:1.05rem;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.06)}.go .btn.quiet{background:var(--a);color:var(--on)}
 h1{font-size:2rem;margin:0 0 .6rem}p{color:var(--ink2);margin:0 0 1rem}
 footer{border:0;padding:1rem 0 0;font-size:.85rem}`;
 
