@@ -68,22 +68,17 @@ export const COLUMN_TYPES: { id: ColType; name: string; hint: string }[] = [
   { id: 'rich', name: 'Rich text', hint: '**bold** and *italic*' },
 ];
 
-const DAY_MS = 86400000;
 /** Days from the spreadsheet epoch (30 December 1899) to 1 January 1970. */
 const EPOCH_SERIAL = 25569;
-export const dateToSerial = (y: number, m: number, d: number) => Math.round(Date.UTC(y, m - 1, d) / DAY_MS) + EPOCH_SERIAL;
-export function serialToDate(serial: number): { y: number; m: number; d: number; wd: number } {
-  const t = new Date((Math.floor(serial) - EPOCH_SERIAL) * DAY_MS);
-  return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate(), wd: t.getUTCDay() };
-}
+export const dateToSerial = (y: number, m: number, d: number) => ymdToDay(y, m, d) + EPOCH_SERIAL;
+const serialToDate = (serial: number) => dayToYmd(Math.floor(serial) - EPOCH_SERIAL);
 export const todaySerial = () => {
   const n = new Date();
   return dateToSerial(n.getFullYear(), n.getMonth() + 1, n.getDate());
 };
-const pad = (n: number) => String(n).padStart(2, '0');
 export const serialToIso = (serial: number) => {
   const { y, m, d } = serialToDate(serial);
-  return `${y}-${pad(m)}-${pad(d)}`;
+  return ymdString(y, m, d);
 };
 
 export type CellValue = number | string | null;
@@ -104,13 +99,28 @@ type Node =
   | { k: 'bin'; op: string; a: Node; b: Node }
   | { k: 'call'; fn: string; args: Node[] };
 
-export class FormulaError extends Error {
+class FormulaError extends Error {
   code: string;
   constructor(code: string) {
     super(code);
     this.code = code;
   }
 }
+
+/** What each operator does to two numbers. Comparisons give 1 or 0. */
+const BINARY: Record<string, (a: number, b: number) => number> = {
+  '+': (a, b) => a + b,
+  '-': (a, b) => a - b,
+  '*': (a, b) => a * b,
+  '/': (a, b) => a / b,
+  '^': (a, b) => Math.pow(a, b),
+  '=': (a, b) => +(a === b),
+  '<>': (a, b) => +(a !== b),
+  '<': (a, b) => +(a < b),
+  '>': (a, b) => +(a > b),
+  '<=': (a, b) => +(a <= b),
+  '>=': (a, b) => +(a >= b),
+};
 
 function tokenize(src: string): Tok[] {
   const toks: Tok[] = [];
@@ -216,22 +226,17 @@ function parse(toks: Tok[]): Node {
     }
     return a;
   }
-  function term(): Node {
-    let a = power();
-    while (isOp('*') || isOp('/')) {
+  /** Operands of `operand` joined by any of `ops`, taken left to right. */
+  function leftToRight(operand: () => Node, ops: string[]): Node {
+    let a = operand();
+    while (ops.some(isOp)) {
       const op = (next() as { v: string }).v;
-      a = { k: 'bin', op, a, b: power() };
+      a = { k: 'bin', op, a, b: operand() };
     }
     return a;
   }
-  function expr(): Node {
-    let a = term();
-    while (isOp('+') || isOp('-')) {
-      const op = (next() as { v: string }).v;
-      a = { k: 'bin', op, a, b: term() };
-    }
-    return a;
-  }
+  const term = () => leftToRight(power, ['*', '/']);
+  const expr = () => leftToRight(term, ['+', '-']);
   function compare(): Node {
     const a = expr();
     const t = peek();
@@ -356,32 +361,8 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
       case 'bin': {
         const a = num(evalNode(n.a));
         const b = num(evalNode(n.b));
-        switch (n.op) {
-          case '+':
-            return a + b;
-          case '-':
-            return a - b;
-          case '*':
-            return a * b;
-          case '/':
-            if (b === 0) throw new FormulaError('#DIV/0');
-            return a / b;
-          case '^':
-            return Math.pow(a, b);
-          case '=':
-            return a === b ? 1 : 0;
-          case '<>':
-            return a !== b ? 1 : 0;
-          case '<':
-            return a < b ? 1 : 0;
-          case '>':
-            return a > b ? 1 : 0;
-          case '<=':
-            return a <= b ? 1 : 0;
-          case '>=':
-            return a >= b ? 1 : 0;
-        }
-        throw new FormulaError('#ERR');
+        if (n.op === '/' && b === 0) throw new FormulaError('#DIV/0');
+        return BINARY[n.op](a, b);
       }
       case 'call': {
         const xs = () => flatten(n.args);
@@ -490,13 +471,10 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
             if (!v.length) throw new FormulaError('#DIV/0');
             return v.reduce((s, x) => s + x, 0) / v.length;
           }
-          case 'MIN': {
-            const v = xs();
-            return v.length ? Math.min(...v) : 0;
-          }
+          case 'MIN':
           case 'MAX': {
             const v = xs();
-            return v.length ? Math.max(...v) : 0;
+            return v.length ? (n.fn === 'MIN' ? Math.min(...v) : Math.max(...v)) : 0;
           }
           case 'COUNT':
             return xs().length;
@@ -511,8 +489,7 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
             return Math.floor(num(evalNode(n.args[0])));
           case 'ROUND': {
             const v = num(evalNode(n.args[0]));
-            const d = n.args[1] ? num(evalNode(n.args[1])) : 0;
-            const f = Math.pow(10, d);
+            const f = Math.pow(10, arg(1, 0));
             return Math.round(v * f) / f;
           }
           case 'MOD': {
@@ -527,13 +504,7 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
     }
   }
 
-  const out: CellValue[][] = [];
-  for (let r = 0; r < ROWS; r++) {
-    const row: CellValue[] = [];
-    for (let c = 0; c < COLS; c++) row.push(cell(r, c));
-    out.push(row);
-  }
-  return out;
+  return Array.from({ length: ROWS }, (_, r) => Array.from({ length: COLS }, (_, c) => cell(r, c)));
 }
 
 /** Format a computed value for display. */
@@ -541,8 +512,7 @@ export function formatValue(v: CellValue): string {
   if (v === null) return '';
   if (typeof v === 'number') {
     if (!isFinite(v)) return '#NUM';
-    const s = Math.abs(v) >= 1e15 || (Math.abs(v) < 1e-6 && v !== 0) ? v.toExponential(4) : String(Math.round(v * 1e8) / 1e8);
-    return s;
+    return Math.abs(v) >= 1e15 || (Math.abs(v) < 1e-6 && v !== 0) ? v.toExponential(4) : String(Math.round(v * 1e8) / 1e8);
   }
   return v;
 }
@@ -589,12 +559,33 @@ export interface Sheet {
 }
 
 type Table = Extract<Block, { k: 'table' }>;
+/** The first table among some blocks. */
+export const tableIn = (blocks: Block[]) => blocks.find((b): b is Table => b.k === 'table');
 const CHARTS = ['bar', 'line', 'pie'];
-const blankGrid = (): Grid => Array.from({ length: ROWS }, () => Array<string>(COLS).fill(''));
+const blankRows = (n: number): Grid => Array.from({ length: n }, () => Array<string>(COLS).fill(''));
+
+/**
+ * How much of the sheet is in use: rows down to the last with something in
+ * it, columns across to the last with something in it or a name or type of
+ * its own.
+ */
+export function usedSize(grid: Grid, types: string[] = [], names: string[] = []): { rows: number; cols: number } {
+  let rows = 0;
+  let cols = 0;
+  grid.forEach((row, r) =>
+    row.forEach((v, c) => {
+      if (v === '') return;
+      rows = Math.max(rows, r + 1);
+      cols = Math.max(cols, c + 1);
+    }),
+  );
+  for (let c = 0; c < COLS; c++) if (names[c]?.trim() || (types[c] && types[c] !== 'text')) cols = Math.max(cols, c + 1);
+  return { rows, cols };
+}
 
 /** A table as a sheet: its header row the names and types, its rows the cells. Columns past F and rows past the last are left out. */
 export function tableSheet(table: Table | undefined, chart = ''): Sheet {
-  const grid = blankGrid();
+  const grid = blankRows(ROWS);
   const types = Array<string>(COLS).fill('text');
   const names = Array<string>(COLS).fill('');
   if (table) {
@@ -613,7 +604,7 @@ export function tableSheet(table: Table | undefined, chart = ''): Sheet {
 /** A sheet's document read: the first table in it, and the chart in its header. */
 export function readSheet(text: string): Sheet {
   const doc = parseTlo(text);
-  return tableSheet(doc.blocks.find((b): b is Table => b.k === 'table'), (doc.head.chart ?? '').toLowerCase());
+  return tableSheet(tableIn(doc.blocks), (doc.head.chart ?? '').toLowerCase());
 }
 
 export const parseGrid = (text: string): Grid => readSheet(text).grid;
@@ -630,16 +621,7 @@ export const namesOf = (text: string): string[] => readSheet(text).names;
  * reads as one (a lone column has no "|" to tell it from words).
  */
 export function serializeGrid(grid: Grid, chart = '', types: string[] = [], names: string[] = []): string {
-  let rows = 0;
-  let cols = 0;
-  grid.forEach((row, r) =>
-    row.forEach((v, c) => {
-      if (v === '') return;
-      rows = Math.max(rows, r + 1);
-      cols = Math.max(cols, c + 1);
-    }),
-  );
-  for (let c = 0; c < COLS; c++) if (names[c]?.trim() || (types[c] && types[c] !== 'text')) cols = Math.max(cols, c + 1);
+  const { rows, cols } = usedSize(grid, types, names);
   const across = cols ? Math.max(2, cols) : 0;
   const blocks: Block[] = across
     ? [{ k: 'table', head: Array.from({ length: across }, (_, c) => columnText(columnName(c, types, names), (types[c] ?? 'text') as ColType)), rows: grid.slice(0, rows).map((row) => Array.from({ length: across }, (_, c) => row[c] ?? '')) }]
@@ -702,17 +684,12 @@ export function pasteCells(grid: Grid, r: number, c: number, text: string, moved
 }
 
 /**
- * Drag-fill: carry the cells of `src` out to `dest` (which contains it and
- * extends one way). Formulas move their references; two or more numbers in
- * step carry on counting; anything else repeats.
- */
-/**
  * The rows in order of column `c`, numbers before words, blanks last.
  * (The names above the columns are not a row, so they stay where they are.)
  * Formulas move with their rows as they are.
  */
 export function sortRows(grid: Grid, c: number, descending = false): Grid {
-  const used = grid.reduce((n, row, r) => (row.some((v) => v !== '') ? r + 1 : n), 0);
+  const used = usedSize(grid).rows;
   if (used < 2) return grid;
   const num = (s: string) => (/^[+-]?(\d+\.?\d*|\.\d+)%?$/.test(s.trim()) ? parseFloat(s) : NaN);
   const rows = grid.slice(0, used);
@@ -807,6 +784,11 @@ export function seriesOf(seed: string[]): ((k: number) => string) | null {
   return null;
 }
 
+/**
+ * Drag-fill: carry the cells of `src` out to `dest` (which contains it and
+ * extends one way). Formulas move their references; two or more numbers in
+ * step carry on counting; anything else repeats.
+ */
 export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
   const out = grid.map((row) => row.slice());
   const down = dest.r0 < src.r0 || dest.r1 > src.r1;
@@ -826,7 +808,6 @@ export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
   return out;
 }
 
-
 /* ---------- rows put in and taken out ---------- */
 
 /**
@@ -837,7 +818,6 @@ export function fillCells(grid: Grid, src: Range, dest: Range): Grid {
  */
 function remapRows(raw: string, to: (r: number) => number | null, gone: [number, number] | null): string {
   if (!raw.startsWith('=')) return raw;
-  const one = (r: number) => to(r);
   return raw
     .split(/("[^"]*")/)
     .map((part, i) => {
@@ -849,15 +829,15 @@ function remapRows(raw: string, to: (r: number) => number | null, gone: [number,
           let [a, b] = [+r0 - 1, +r1 - 1];
           if (a > b) [a, b] = [b, a];
           // Each end goes where its row went; an end whose row is gone comes to the nearest row still there.
-          let na = one(a);
-          let nb = one(b);
+          let na = to(a);
+          let nb = to(b);
           if (na === null) na = gone ? gone[0] : a;
           if (nb === null) nb = gone ? gone[0] - 1 : b;
           ranges.push(nb < na || na < 0 || nb >= ROWS ? '#REF' : `${c0.toUpperCase()}${na + 1}:${c1.toUpperCase()}${nb + 1}`);
           return `\u0001${ranges.length - 1}\u0002`;
         })
         .replace(/\b([A-Fa-f])(\d{1,4})\b/g, (_, c: string, r: string) => {
-          const n = one(+r - 1);
+          const n = to(+r - 1);
           return n === null || n >= ROWS ? '#REF' : `${c.toUpperCase()}${n + 1}`;
         });
       return out.replace(/\u0001(\d+)\u0002/g, (_, k: string) => ranges[+k]);
@@ -869,7 +849,7 @@ function remapRows(raw: string, to: (r: number) => number | null, gone: [number,
 export function insertRows(grid: Grid, at: number, n = 1): Grid | null {
   if (grid.slice(ROWS - n).some((row) => row.some((v) => v !== ''))) return null;
   const to = (r: number) => (r >= at ? r + n : r);
-  const moved = [...grid.slice(0, at), ...Array.from({ length: n }, () => Array<string>(COLS).fill('')), ...grid.slice(at, ROWS - n)];
+  const moved = [...grid.slice(0, at), ...blankRows(n), ...grid.slice(at, ROWS - n)];
   return moved.map((row) => row.map((v) => remapRows(v, to, null)));
 }
 
@@ -877,6 +857,6 @@ export function insertRows(grid: Grid, at: number, n = 1): Grid | null {
 export function deleteRows(grid: Grid, r0: number, r1: number): Grid {
   const n = r1 - r0 + 1;
   const to = (r: number) => (r < r0 ? r : r > r1 ? r - n : null);
-  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...Array.from({ length: n }, () => Array<string>(COLS).fill(''))];
+  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...blankRows(n)];
   return kept.map((row) => row.map((v) => remapRows(v, to, [r0, r1])));
 }

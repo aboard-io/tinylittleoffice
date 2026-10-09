@@ -1,53 +1,44 @@
 /** Sheet: what the shell knows about spreadsheets. Format and engine: lib/formula.ts. */
 import { defineApp, csv, utf8, xml, clip, rect, text, textWidth, LINE, SHADE, MUTED, type DownloadContext, type Page } from '../kit/core.ts';
 import { zip, XML_HEAD } from '../kit/zip.ts';
-import { COLS, ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, rcToRef, readSheet, serializeGrid, shiftFormula, tableSheet } from '../lib/formula.ts';
+import { COLS, ROWS, columnName, defaultColumnName, evaluateGrid, formatCell, formatValue, rcToRef, readSheet, serializeGrid, shiftFormula, tableIn, tableSheet, usedSize, type CellValue, type Sheet } from '../lib/formula.ts';
 import { chartData, chartPage, type ChartKind } from '../lib/chart.ts';
-import { column, parse, type Block } from '../lib/tlo.ts';
+import { column, parse } from '../lib/tlo.ts';
 import { parseCsv } from '../lib/markdown.ts';
 
 const x = xml;
 
-/** The used part of the sheet: raw text and computed values, trailing blanks dropped. A named or typed column counts as used. */
-function usedGrid(body: string) {
-  const { grid, chart, types, names } = readSheet(body);
-  const values = evaluateGrid(grid, types);
-  let rows = 0;
-  let cols = 0;
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      if (grid[r][c] !== '') {
-        rows = Math.max(rows, r + 1);
-        cols = Math.max(cols, c + 1);
-      }
-  for (let c = 0; c < COLS; c++) if (names[c] || types[c] !== 'text') cols = Math.max(cols, c + 1);
-  return { grid, values, rows, cols, types, names, chart };
+/** A sheet worked out: its cells' values, and how much of it is in use (trailing blanks dropped; a named or typed column counts). */
+export function measured(sheet: Sheet, values: CellValue[][] = evaluateGrid(sheet.grid, sheet.types)) {
+  return { ...sheet, values, ...usedSize(sheet.grid, sheet.types, sheet.names) };
 }
+type Measured = ReturnType<typeof measured>;
+const usedGrid = (body: string) => measured(readSheet(body));
 
 /**
  * The names over the used columns, as a reader sees them: '' over a column
  * that goes by its letter alone ("ColA"); null when every column does.
  */
-function headings(body: string): string[] | null {
-  const { cols, types, names } = usedGrid(body);
+function headings({ cols, types, names }: Measured): string[] | null {
   const h = Array.from({ length: cols }, (_, c) => names[c] || (types[c] !== 'text' ? defaultColumnName(c, types) : ''));
   return h.some(Boolean) ? h : null;
 }
 
 /** The used cells as shown: computed values. */
-export function shown(body: string): string[][] {
-  const { values, rows, cols, types } = usedGrid(body);
+function shown({ values, rows, cols, types }: Measured): string[][] {
   return Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => formatCell(values[r][c], types[c])));
+}
+
+/** The names over the columns, if any, then the used cells as shown. */
+function lines(u: Measured): string[][] {
+  const head = headings(u);
+  return [...(head ? [head] : []), ...shown(u)];
 }
 
 /** The table as a CSV: the names over the columns, if any, then the computed values. */
 export function sheetToCsv(body: string): string {
-  const h = headings(body);
-  return csv([...(h ? [h] : []), ...shown(body)]);
+  return csv(lines(usedGrid(body)));
 }
-
-type Table = Extract<Block, { k: 'table' }>;
-const tableIn = (blocks: Block[]) => blocks.find((b): b is Table => b.k === 'table');
 
 /**
  * A sheet as a person or a model writes it: a Markdown table (with pipes at
@@ -81,12 +72,13 @@ export function toExcelFormula(raw: string): string {
 }
 
 export function sheetToXlsx(body: string, ctx: DownloadContext): Uint8Array {
-  const { grid, values, rows, cols, types } = usedGrid(body);
+  const u = usedGrid(body);
+  const { grid, values, rows, cols, types } = u;
   // Number formats for typed columns: 1 date, 2 money, 3 percent (see styles.xml below).
   const styleOf = (c: number) => ({ date: ' s="1"', money: ' s="2"', percent: ' s="3"' })[types[c]] ?? '';
   const str = (ref: string, s: string) => `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${x(s)}</t></is></c>`;
   // The names go in Excel's first row, so every row of ours is one further down, and so is every reference.
-  const h = headings(body);
+  const h = headings(u);
   const off = h ? 1 : 0;
   let data = h ? `<row r="1">${h.map((name, c) => (name ? str(rcToRef(0, c), name) : '')).join('')}</row>` : '';
   for (let r = 0; r < rows; r++) {
@@ -129,29 +121,28 @@ export function sheetToXlsx(body: string, ctx: DownloadContext): Uint8Array {
  * its filled cells have their contents, in reading order: across each row,
  * rows top to bottom.
  */
-function tablePage(body: string, upTo = Infinity): Page {
-  const { values } = usedGrid(body);
-  const head = headings(body);
-  const lines = [...(head ? [head] : []), ...shown(body)];
-  if (!lines.length) return { w: 480, h: 120, svg: text(240, 66, 'Empty sheet', { px: 16, fill: MUTED, anchor: 'middle' }) };
+function tablePage(u: Measured, upTo = Infinity): Page {
+  const head = headings(u);
+  const rows = lines(u);
+  if (!rows.length) return { w: 480, h: 120, svg: text(240, 66, 'Empty sheet', { px: 16, fill: MUTED, anchor: 'middle' }) };
   const PX = 15;
   const H = 30;
-  const widths = Array.from({ length: lines[0].length }, (_, c) => Math.min(240, Math.max(64, ...lines.map((row) => textWidth(row[c], PX) + 24))));
+  const widths = Array.from({ length: rows[0].length }, (_, c) => Math.min(240, Math.max(64, ...rows.map((row) => textWidth(row[c], PX) + 24))));
   const w = widths.reduce((a, b) => a + b, 0);
   let svg = '';
   let filled = 0;
-  lines.forEach((row, i) => {
+  rows.forEach((row, i) => {
     let at = 24;
     const names = !!head && i === 0;
     const r = i - (head ? 1 : 0);
     row.forEach((cell, c) => {
-      const num = !names && typeof values[r][c] === 'number';
+      const num = !names && typeof u.values[r][c] === 'number';
       svg += rect(at, 24 + i * H, widths[c], H, names ? SHADE : 'none', `stroke="${LINE}"`);
       if (cell !== '' && (names || filled++ < upTo)) svg += text(num ? at + widths[c] - 12 : at + 12, 24 + i * H + 20, clip(cell, widths[c] - 20, PX, names), { px: PX, bold: names, anchor: num ? 'end' : 'start' });
       at += widths[c];
     });
   });
-  return { w: w + 48, h: lines.length * H + 48, svg };
+  return { w: w + 48, h: rows.length * H + 48, svg };
 }
 
 /**
@@ -160,19 +151,18 @@ function tablePage(body: string, upTo = Infinity): Page {
  * lines, words at an ordinary size, numbers to the right. What a table in
  * a text being written is.
  */
-function gridPage(body: string): Page {
-  const { values, rows, cols } = usedGrid(body);
-  const head = headings(body);
-  const cells = shown(body);
+function gridPage(u: Measured): Page {
+  const { values, rows, cols } = u;
+  const head = headings(u);
+  const rowsShown = lines(u);
   const PX = 13;
   const H = 24;
   const HEAD = 22;
   const NUM = 34;
   const n = Math.max(1, rows);
   const across = Math.max(1, cols);
-  const lines = [...(head ? [head] : []), ...cells.slice(0, n)];
   const top = head ? 1 : 0;
-  const widths = Array.from({ length: across }, (_, c) => Math.min(200, Math.max(72, ...lines.map((row) => textWidth(row[c] ?? '', PX) + 18))));
+  const widths = Array.from({ length: across }, (_, c) => Math.min(200, Math.max(72, ...rowsShown.map((row) => textWidth(row[c] ?? '', PX) + 18))));
   const w = NUM + widths.reduce((a, b) => a + b, 0);
   const h = HEAD + (n + top) * H;
   let svg = rect(0, 0, w, h, '#fff');
@@ -185,7 +175,7 @@ function gridPage(body: string): Page {
   });
   for (let r = 0; r < n; r++) svg += text(NUM / 2, HEAD + (r + top) * H + 16, String(r + 1), { px: 11, fill: MUTED, anchor: 'middle' });
   // The names, then the cells.
-  lines.forEach((row, i) => {
+  rowsShown.forEach((row, i) => {
     let at = NUM;
     const names = !!head && i === 0;
     widths.forEach((cw, c) => {
@@ -206,8 +196,7 @@ function gridPage(body: string): Page {
 }
 
 /** The table as a chart reads it: numbers where a column holds numbers, words (dates, links, ticks) elsewhere; each series named by its column. */
-export function chartOfSheet(body: string) {
-  const { values, rows, types, names } = usedGrid(body);
+export function chartOfSheet({ values, rows, types, names }: Measured) {
   const counts = ['text', 'number', 'money', 'percent'];
   return chartData(
     values.slice(0, rows).map((row) => row.map((v, c) => (counts.includes(types[c]) || typeof v !== 'number' ? v : formatCell(v, types[c])))),
@@ -222,26 +211,30 @@ export default defineApp({
   icon: 'sheet',
   blurb: `A ${ROWS}-row, ${COLS}-column spreadsheet with formulas and charts.`,
   title: () => '',
-  outline: (body) => [headings(body) ?? [], ...shown(body)].map((row) => row.filter(Boolean).join('  ·  ')).filter(Boolean),
+  outline: (body) => lines(usedGrid(body)).map((row) => row.filter(Boolean).join('  ·  ')).filter(Boolean),
   read: readSheetText,
   view(body, opts = {}) {
-    const kind = usedGrid(body).chart as ChartKind | '';
-    const chart = kind ? chartPage(chartOfSheet(body), kind, '', 720, 440, opts.step) : null;
+    const u = usedGrid(body);
+    const chart = u.chart ? chartPage(chartOfSheet(u), u.chart as ChartKind, '', 720, 440, opts.step) : null;
     // Inside another document a charted sheet is its chart; on its own it is both.
-    if (opts.embed) return [chart ?? (opts.preview ? gridPage(body) : tablePage(body, opts.step))];
-    return chart ? [tablePage(body), chart] : [tablePage(body)];
+    if (opts.embed) return [chart ?? (opts.preview ? gridPage(u) : tablePage(u, opts.step))];
+    return chart ? [tablePage(u), chart] : [tablePage(u)];
   },
   // A table on a slide fills in a cell per click.
   // (A chart builds too: a bar, a point or a slice per click.)
-  steps: (body) => (usedGrid(body).chart ? chartOfSheet(body).labels.length : shown(body).flat().filter(Boolean).length),
+  steps(body) {
+    const u = usedGrid(body);
+    return u.chart ? chartOfSheet(u).labels.length : shown(u).flat().filter(Boolean).length;
+  },
   html(body) {
-    const { values, rows, chart: kind } = usedGrid(body);
-    const head = headings(body);
+    const u = usedGrid(body);
+    const { values, rows, chart: kind } = u;
+    const head = headings(u);
     const table = [
       ...(head ? [`<thead><tr>${head.map((name) => `<th scope="col">${x(name)}</th>`).join('')}</tr></thead>`] : []),
-      ...shown(body).map((row, r) => `<tr>${row.map((cell, c) => (typeof values[r][c] === 'number' ? `<td class="n">${x(cell)}</td>` : `<td>${x(cell)}</td>`)).join('')}</tr>`),
+      ...shown(u).map((row, r) => `<tr>${row.map((cell, c) => (typeof values[r][c] === 'number' ? `<td class="n">${x(cell)}</td>` : `<td>${x(cell)}</td>`)).join('')}</tr>`),
     ].join('\n');
-    const chart = kind ? chartPage(chartOfSheet(body), kind as ChartKind) : null;
+    const chart = kind ? chartPage(chartOfSheet(u), kind as ChartKind) : null;
     return `<h1>Sheet</h1>\n${rows || head ? `<table>\n${table}\n</table>` : '<p>Empty sheet</p>'}${chart ? `\n<figure><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label="Chart">${chart.svg}</svg></figure>` : ''}`;
   },
   downloads: [
