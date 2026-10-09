@@ -730,44 +730,28 @@
     color: var(--to-ink-2);
   }
 
-  /* ---- home ---- */
-  .to-home-title {
-    margin: 8px 0 0;
-    font-size: 24px;
-  }
-  .to-home-lede {
-    margin: 4px 0 24px;
-    font-size: 18px;
-    color: var(--to-ink-2);
-    max-width: 40em;
-  }
-  .to-group h2 {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--to-ink-3);
-    margin: 24px 0 8px;
-  }
+  /* ---- home: the apps, each its templates and the documents kept here ---- */
   .to-tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    align-items: start;
   }
   .to-tile {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     box-shadow: var(--to-shadow);
   }
   .to-tile-open {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    column-gap: 12px;
-    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--to-touch);
+    padding: 0 12px;
     color: var(--to-ink);
     text-decoration: none;
     border-radius: var(--to-radius) var(--to-radius) 0 0;
@@ -776,15 +760,10 @@
     background: var(--to-surface-2);
   }
   .to-tile-open .to-icon {
-    grid-row: 1 / 3;
     color: var(--to-accent);
   }
   .to-tile-open b {
-    font-size: 17px;
-  }
-  .to-tile-open small {
-    color: var(--to-ink-3);
-    font-size: 14px;
+    font-size: 16px;
   }
   .to-tile to-templates {
     display: flex;
@@ -797,6 +776,53 @@
     border-radius: 0 0 var(--to-radius) var(--to-radius);
     background: transparent;
     font-weight: 400;
+  }
+  .to-drive {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--to-border);
+  }
+  .to-drive li {
+    display: flex;
+    align-items: center;
+  }
+  .to-drive-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--to-touch);
+    padding: 4px 0 4px 12px;
+    color: var(--to-ink);
+    text-decoration: none;
+  }
+  .to-drive-open:hover {
+    background: var(--to-surface-2);
+  }
+  .to-drive-open span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+  }
+  .to-drive-open small {
+    color: var(--to-ink-3);
+    font-size: 13px;
+  }
+  .to-drive .to-tool {
+    border-color: transparent;
+    background: transparent;
+    color: var(--to-ink-3);
+  }
+  .to-drive-more {
+    border: 0;
+    border-top: 1px solid var(--to-border);
+    border-radius: 0 0 var(--to-radius) var(--to-radius);
+    background: transparent;
+    font-weight: 400;
+    color: var(--to-ink-2);
   }
 
   /* ---- a thing from the web (<to-embed>, kit/embeds.ts): the card until it is tapped, then the thing itself ---- */

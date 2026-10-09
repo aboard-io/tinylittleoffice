@@ -22,10 +22,3 @@ const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, b
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
 lookup.appOf = appOf;
-
-/** The apps by group, in order of first appearance. */
-export function groups(): { group: string; apps: AppDef[] }[] {
-  const out: { group: string; apps: AppDef[] }[] = [];
-  for (const a of ALL) (out.find((g) => g.group === a.group) ?? out[out.push({ group: a.group, apps: [] }) - 1]).apps.push(a);
-  return out;
-}

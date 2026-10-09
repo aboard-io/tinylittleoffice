@@ -1,18 +1,25 @@
 /**
- * <to-home>: the apps, as tiles, by group. Under each tile a listbox of its templates, Blank first and
- * chosen, each drawn small from its own document; choosing one opens the app with that document. (Paul,
- * 2026-10-09: templates with the apps, on the home page; no template popup inside an app.)
+ * <to-home>: the apps, as tiles, in the registry's order: each its icon and name (open it blank), a listbox
+ * of its templates (Blank first and chosen, each drawn small from its own document; choosing one opens the
+ * app with that document), and under it the documents of that app kept on this device (kit/library.ts),
+ * newest first. No copy. (Paul, 2026-10-09: "Small icon and app name, then templates menu. Then documents
+ * in that format … Drive is just documents under the icons. No descriptions of apps.")
  */
 import { LitElement, html, nothing } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import type { AppDef, Template } from './app.ts';
-import { groups } from './apps.ts';
+import { apps } from './apps.ts';
 import { encodeDoc } from './codec.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { place } from './menu.ts';
 import { pageSvg } from './draw.ts';
 import { routeHash } from './route.ts';
+import { ago, forget, library, type Kept } from './library.ts';
+import { onPrivacy } from './privacy.ts';
+
+/** The documents shown under an app before "n more". */
+const SHOWN = 5;
 
 let n = 0;
 
@@ -105,35 +112,64 @@ export class ToTemplates extends LitElement {
 customElements.define('to-templates', ToTemplates);
 
 export class ToHome extends LitElement {
-  private off = () => {};
+  static properties = { unfolded: { state: true } };
+  /** The apps whose whole list of documents is shown, past the first five. */
+  declare unfolded: Set<string>;
+  private offs: (() => void)[] = [];
+  private redraw = () => this.requestUpdate();
+  private onVisible = () => document.visibilityState === 'visible' && this.redraw();
+
+  constructor() {
+    super();
+    this.unfolded = new Set();
+  }
   createRenderRoot() {
     return this;
   }
   connectedCallback() {
     super.connectedCallback();
-    this.off = onLanguage(() => this.requestUpdate());
+    window.addEventListener('pageshow', this.redraw);
+    document.addEventListener('visibilitychange', this.onVisible);
+    this.offs = [onLanguage(this.redraw), onPrivacy(this.redraw), () => window.removeEventListener('pageshow', this.redraw), () => document.removeEventListener('visibilitychange', this.onVisible)];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.off();
+    for (const off of this.offs) off();
+  }
+  private forget(k: Kept) {
+    forget(k.id);
+    this.redraw();
+  }
+  /** An app's kept documents, newest first: five, then "n more". Nothing kept, nothing shown. */
+  private drive(app: AppDef, kept: Kept[]) {
+    if (!kept.length) return nothing;
+    const all = this.unfolded.has(app.id);
+    const shown = all ? kept : kept.slice(0, SHOWN);
+    const lang = document.documentElement.lang;
+    return html`<ul class="to-drive" aria-label=${t('{app} documents', { app: app.name })}>
+        ${shown.map((k) => {
+          const title = k.title || t('Untitled');
+          return html`<li>
+            <a class="to-drive-open" href=${k.hash}><span>${title}</span><small>${ago(k.at, lang)}</small></a>
+            <button type="button" class="to-btn to-tool" aria-label=${t('Forget {title}', { title })} title=${t('Forget')} @click=${() => this.forget(k)}>${icon(UI.close, 16)}</button>
+          </li>`;
+        })}
+      </ul>
+      ${kept.length > SHOWN && !all ? html`<button type="button" class="to-btn to-drive-more" @click=${() => (this.unfolded = new Set([...this.unfolded, app.id]))}>${t('{n} more', { n: kept.length - SHOWN })}</button>` : nothing}`;
   }
   render() {
+    const kept = library();
     return html`<div class="to-home">
-      <h1 class="to-home-title">TinyLittleOffice</h1>
-      <p class="to-home-lede">${t('A tiny office suite that lives entirely in the URL. The link is the document.')}</p>
-      ${groups().map(
-        (g) => html`<section class="to-group" aria-labelledby="group-${g.group}">
-          <h2 id="group-${g.group}">${g.group}</h2>
-          <div class="to-tiles">
-            ${g.apps.map(
-              (a) => html`<article class="to-tile">
-                <a class="to-tile-open" href=${routeHash(a.id)}>${icon(a.icon, 28)}<b>${a.name}</b><small>${a.blurb}</small></a>
-                <to-templates .app=${a}></to-templates>
-              </article>`,
-            )}
-          </div>
-        </section>`,
-      )}
+      <h1 class="sr-only">TinyLittleOffice</h1>
+      <div class="to-tiles">
+        ${apps().map(
+          (a) => html`<article class="to-tile">
+            <a class="to-tile-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<b>${a.name}</b></a>
+            <to-templates .app=${a}></to-templates>
+            ${this.drive(a, kept.filter((k) => k.app === a.id))}
+          </article>`,
+        )}
+      </div>
     </div>`;
   }
 }
