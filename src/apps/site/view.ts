@@ -2,14 +2,14 @@
  * The site drawn: as the web page it is (one HTML file, its pages switched by hash, a shop's cart, things
  * from the web loaded only when tapped), and as pictures of its pages for print, thumbnails and previews.
  * Every script in the page is a fixed text registered with the kit (src/kit/page.ts), so the site's
- * Content-Security-Policy allows it by hash and nothing typed can run, not even in the editor's preview
- * frame; a page's data goes beside its script as JSON. In the preview (`edit`), the page also carries the
- * "+" that offers what a section can take and, on each page's and section's heading, the handles that
- * move or remove it: each sends a message to the editor, which makes the change as ops. The words are
- * never edited in the frame (docs/kernel.md §8, decision 3). (Ported from the old tree's apps/site.def.ts,
+ * Content-Security-Policy allows it by hash and nothing typed can run, not even in the editor's frame; a
+ * page's data goes beside its script as JSON. A section's things are drawn in the order of the document (a
+ * run of cards, of buttons or of small links in one row). In the editor's frame (`edit`) every thing is also
+ * marked with its id and the EDIT script says what is tapped; the words are never edited in the page itself
+ * but in each thing's form (docs/kernel.md §8, decision 3). (Ported from the old tree's apps/site.def.ts,
  * apps/links.def.ts and lib/pageedit.ts.)
  */
-import { isAtomic, linkify, parse, plainText, type Doc, type Run } from '../../doc/index.ts';
+import { isAtomic, linkify, parse, plainText, write, type Doc, type Run } from '../../doc/index.ts';
 import { lookup, type Page as Picture } from '../../kit/app.ts';
 import { clip, pageSvg, rect, text as line, wrapText, xml } from '../../kit/draw.ts';
 import { embedOf, embedCaption } from '../../kit/embeds.ts';
@@ -17,7 +17,7 @@ import { iconInner, iconNamed, glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { pageData, pageScript } from '../../kit/page.ts';
 import { fenceLink } from '../write/view.ts';
-import { kindName, kindsOf, readSite, safeUrl, type Card, type Embed, type Link, type Product, type Section, type Site } from './model.ts';
+import { cardFields, iconOf, linesOf, linkFields, objId, readSite, ROW, safeUrl, type Embed, type Obj, type ObjKind, type Product, type Section, type Site } from './model.ts';
 import { paletteOf, themeCss } from './theme.ts';
 
 /* ---------- the scripts ---------- */
@@ -85,54 +85,56 @@ else if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){
 draw();})();`);
 
 /**
- * The preview's half of editing: a tap on a section picks it for the editor beside the frame, with where
- * it is on screen (and again as the page scrolls, and when a drawing opens with a section in hand), so the
- * editor's bar for it sits under it; the "+" opens a chooser of what the section can take (the kinds and
- * their names come in the data "site-edit"), walked by arrows, closed by Escape with the focus back on the
- * "+"; a heading's handles move or remove its part; a link out of the site does not leave the preview; the
- * page shown is told, so the next drawing keeps it; undo and redo keys go to the editor, and Select All
- * never selects the page. Each section listens for its own click, for WebKit counts a finger's tap as a
- * click only on an element that does. The editor checks that a message comes from its own frame.
+ * The editor's half of editing, in its frame: every thing on the page is marked with its id (data-o), and every
+ * section with its heading's (data-sec). A tap on a thing takes it in hand (outlined; the editor is told where it
+ * is, and again as the page scrolls), a tap on the thing in hand asks for its form, a tap on a section's empty
+ * room takes its heading; nothing in the page is followed or bought meanwhile, but the nav still goes from page to
+ * page. The editor says which thing is in hand by a message (Up and Down, Escape, a change made); undo and redo
+ * keys go to the editor, and Select All never selects the page. Each thing listens for its own click, for WebKit
+ * counts a finger's tap as a click only on an element that does. The page keeps its place when drawn again ("y").
+ * The editor checks that a message comes from its own frame, and this script that one comes from its parent.
  */
 export const EDIT = pageScript(`(function(){
-var D=JSON.parse(document.getElementById('site-edit').textContent),menu=null,held=D.held?D.cur:-1,soon=0;
+var D=JSON.parse(document.getElementById('site-edit').textContent),held=D.held,soon=0;
 function send(m){m.site=D.stamp;parent.postMessage(m,'*');}
-function rect(n){var el=document.querySelector('[data-s="'+n+'"]');if(!el)return null;var r=el.getBoundingClientRect();return [r.left,r.top,r.width,r.height];}
-function where(){soon=0;if(held>=0)send({do:'at',s:held,r:rect(held)});}
-function close(){if(!menu)return;var b=menu.previousSibling,had=menu.contains(document.activeElement);menu.parentNode.removeChild(menu);menu=null;if(had&&b&&b.focus)b.focus();}
-function offer(b){var n=+b.getAttribute('data-site-add');if(menu&&menu.previousSibling===b)return close();close();
-menu=document.createElement('div');menu.className='site-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label',D.add);
-D.kinds.forEach(function(k){var it=document.createElement('button');it.type='button';it.setAttribute('role','menuitem');it.tabIndex=-1;it.textContent=k[1];
-it.addEventListener('click',function(ev){ev.stopPropagation();close();send({do:'add',s:n,kind:k[0]});});menu.appendChild(it);});
-b.parentNode.insertBefore(menu,b.nextSibling);menu.querySelector('button').focus();}
-document.addEventListener('click',function(ev){var el=ev.target;if(!el||!el.closest)return;
-var plus=el.closest('[data-site-add]');if(plus){ev.preventDefault();return offer(plus);}
-var part=el.closest('[data-site-part]');if(part){ev.preventDefault();close();return send({do:part.getAttribute('data-site-do'),s:+part.getAttribute('data-site-part')});}
-if(menu&&!menu.contains(el))close();
-var a=el.closest('a[href]');if(a&&a.getAttribute('href').charAt(0)!=='#')ev.preventDefault();
-var s=el.closest('[data-s]');if(s&&!el.closest('nav')){held=+s.getAttribute('data-s');send({do:'pick',s:held,r:rect(held)});}},true);
+function el(id){return id===null?null:document.querySelector('[data-o="'+id+'"]');}
+function rect(id){var e=el(id);if(!e)return null;var r=e.getBoundingClientRect();return [r.left,r.top,r.width,r.height];}
+function mark(id){[].forEach.call(document.querySelectorAll('.site-cur'),function(e){e.classList.remove('site-cur');});var e=el(id);if(e)e.classList.add('site-cur');}
+function where(){soon=0;send({do:'at',o:held,r:rect(held),y:window.scrollY});}
+function later(){if(!soon)soon=requestAnimationFrame(where);}
+document.addEventListener('click',function(ev){var t=ev.target;if(!t||!t.closest)return;
+var o=t.closest('[data-o]');if(!o){var sec=t.closest('[data-sec]');if(sec&&!t.closest('nav'))o=el(sec.getAttribute('data-sec'));}
+if(!o){var a=t.closest('a[href]');if(a&&a.getAttribute('href').charAt(0)!=='#')ev.preventDefault();return;}
+ev.preventDefault();ev.stopPropagation();var id=o.getAttribute('data-o');
+if(id===held)return send({do:'edit',o:id});
+held=id;mark(id);send({do:'pick',o:id,r:rect(id),y:window.scrollY});},true);
+window.addEventListener('message',function(ev){var m=ev.data;if(ev.source!==parent||!m||m.site!==D.stamp)return;
+held=m.held===undefined?null:m.held;mark(held);var e=el(held);if(e&&m.show)e.scrollIntoView({block:'nearest'});where();});
 document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase(),mod=ev.ctrlKey||ev.metaKey;
-if(menu&&menu.contains(ev.target)){var items=[].slice.call(menu.querySelectorAll('button')),i=items.indexOf(ev.target);
-if(ev.key==='Escape'){ev.preventDefault();close();return;}
-var to=ev.key==='ArrowRight'||ev.key==='ArrowDown'?i+1:ev.key==='ArrowLeft'||ev.key==='ArrowUp'?i-1:ev.key==='Home'?0:ev.key==='End'?items.length-1:null;
-if(to!==null){ev.preventDefault();items[(to+items.length)%items.length].focus();return;}
-if(ev.key==='Tab'){close();return;}}
-if(ev.key==='Escape'&&menu){close();return;}
 if(mod&&(k==='z'||k==='y')){ev.preventDefault();send({do:k==='y'||ev.shiftKey?'redo':'undo'});return;}
 if(mod&&k==='a'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))ev.preventDefault();});
-window.addEventListener('scroll',function(){if(held>=0&&!soon)soon=requestAnimationFrame(where);},{passive:true});
-window.addEventListener('resize',function(){if(held>=0&&!soon)soon=requestAnimationFrame(where);});
-[].forEach.call(document.querySelectorAll('[data-s]'),function(el){el.addEventListener('click',function(){});});
+window.addEventListener('scroll',later,{passive:true});window.addEventListener('resize',later);
+[].forEach.call(document.querySelectorAll('[data-o],[data-sec]'),function(e){e.addEventListener('click',function(){});});
 window.addEventListener('hashchange',function(){send({do:'page',id:decodeURIComponent(location.hash.slice(1))});});
-var cur=document.querySelector('[data-s="'+D.cur+'"]');if(cur&&D.cur>0)cur.scrollIntoView({block:'start'});
+if(D.y)window.scrollTo(0,D.y);mark(held);var e0=el(held);if(e0&&D.show)e0.scrollIntoView({block:'nearest'});
 send({do:'ready'});where();
+})();`);
+
+/**
+ * The editor's Preview: the page as a visitor has it, with one thing more. Escape in the page tells the editor
+ * (which goes back to editing), and a link out of the site opens beside the editor, not in its frame.
+ */
+export const PEEK = pageScript(`(function(){
+var D=JSON.parse(document.getElementById('site-peek').textContent);
+document.addEventListener('keydown',function(ev){if(ev.key==='Escape')parent.postMessage({site:D.stamp,do:'leave'},'*');});
+document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest?ev.target.closest('a[href]'):null;if(a&&a.getAttribute('href').charAt(0)!=='#'){a.target='_blank';a.rel='noopener noreferrer';}},true);
 })();`);
 
 /* ---------- words ---------- */
 
-export const iconSvg = (name: string, size: number, cls = '') => {
+export const iconSvg = (name: string, size: number, cls = '', attrs = '') => {
   const node = iconNamed(name);
-  return node ? `<svg${cls ? ` class="${cls}"` : ''} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconInner(node)}</svg>` : '';
+  return node ? `<svg${cls ? ` class="${cls}"` : ''}${attrs} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconInner(node)}</svg>` : '';
 };
 const MARKS = [['b', 'strong'], ['i', 'em'], ['u', 'u'], ['s', 's'], ['h', 'mark']] as const;
 /** Runs as HTML: their marks, their links (a bare web address too), their icons; a footnote as its words, on hover. */
@@ -164,6 +166,8 @@ nav{display:flex;gap:1.1rem;margin-left:auto;overflow-x:auto;scrollbar-width:non
 .part{padding:3.2rem 0;border-top:1px solid var(--line)}.part h2{font-size:1.8rem;margin:0 0 1rem}.part p{max-width:44rem;color:var(--ink2)}.part .pic{display:block;max-width:100%;border-radius:var(--r);margin:0 0 1.2rem}
 .cards{list-style:none;padding:0;margin:1.6rem 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem}
 .cards li{border:1px solid var(--line);border-radius:var(--r);padding:1.2rem;display:flex;flex-direction:column;gap:.4rem;background:var(--bg)}.cards svg{color:var(--a)}.cards span{color:var(--ink3);font-size:.95rem}
+.go-card{position:relative}.go-card strong a{color:inherit;text-decoration:none}.go-card strong a::after{content:'';position:absolute;inset:0;border-radius:var(--r)}.go-card:hover{border-color:var(--a)}
+.part h3{font-size:1.25rem;margin:1.8rem 0 .6rem}.pic.ph{width:8rem;height:6rem;background:var(--tint);border-radius:var(--r)}
 .go{margin:1.6rem 0 0;display:flex;flex-wrap:wrap;gap:.6rem}.hero .go{justify-content:center}.btn svg{vertical-align:-.25em;margin-right:.4rem}
 .go.stack{flex-direction:column;max-width:22rem;margin:1.6rem auto 0}.go.stack .btn{padding:.85rem 1.1rem;font-size:1.05rem;text-align:center}
 .social{list-style:none;padding:0;margin:2rem 0 0;display:flex;justify-content:center;gap:.8rem}.social a{display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;background:var(--tint);color:var(--deep)}
@@ -185,117 +189,189 @@ const LINKS_CSS = `main.hero{max-width:26rem;margin:0 auto;padding:3rem 1.25rem 
 h1{font-size:2rem;margin:0 0 .6rem}p{color:var(--ink2);margin:0 0 1rem}
 footer{border:0;padding:1rem 0 0;font-size:.85rem}`;
 
-/** The preview's marks: the section being edited outlined, the "+" and the handles thumb-sized. */
-const EDIT_CSS = `[data-s]{cursor:pointer;touch-action:manipulation}.site-plus,.site-tools button,.site-menu button{touch-action:manipulation}.site-cur{outline:2px dashed var(--a);outline-offset:-2px}
-.site-plus{display:inline-grid;place-items:center;width:2.75rem;height:2.75rem;padding:0;border-radius:50%;border:1px dashed var(--a);background:var(--bg);color:var(--a);font:600 1.3rem/1 var(--font);margin:1.2rem 0 0}.hero .site-plus,main>.site-plus{margin:1.2rem auto 0}
-.site-tools{display:inline-flex;gap:.3rem;vertical-align:middle;margin-left:.6rem}.site-tools button{width:2.75rem;height:2.75rem;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--bg);color:var(--ink2);font:1rem/1 var(--font)}.site-tools button:hover{color:var(--deep);border-color:var(--a)}
-.site-menu{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.8rem auto 0;max-width:30rem}.site-menu button{background:var(--tint);color:var(--deep);padding:.55rem .9rem;min-height:2.75rem}`;
+/** The editor's marks: every thing a finger's target, the one under the pointer outlined lightly, the one in hand firmly. */
+const EDIT_CSS = `[data-o],[data-sec]{cursor:pointer;touch-action:manipulation}[data-o]:hover{outline:1px dashed var(--a);outline-offset:3px}
+.site-cur,.site-cur:hover{outline:2px solid var(--a);outline-offset:3px;border-radius:2px}
+h1[data-o]:empty::before{content:attr(data-empty);color:var(--ink3)}`;
 
 export interface SitePageOpts {
   /** Where another document's link begins: the site the link is on. */
   base?: string;
-  /** The preview in the editor: the section being edited, and a stamp the frame's messages carry back. */
-  edit?: { cur: number; stamp: number; held?: boolean };
+  /** The section whose page shows first (the editor's frame and its Preview). */
+  cur?: number;
+  /** The editor's frame: the thing in hand (`show`: scrolled into view), the scroll to keep, a stamp the frame's messages carry back. */
+  edit?: { stamp: number; held?: string | null; y?: number; show?: boolean };
+  /** The editor's Preview: the page as a visitor has it, which tells the editor of Escape. */
+  peek?: number;
 }
 
-/** The buttons a page's or a section's heading carries in the preview: earlier, later, away. */
-function tools(n: number, page: boolean) {
-  const what = page ? [t('Move this page earlier'), t('Move this page later'), t('Remove this page')] : [t('Move this section earlier'), t('Move this section later'), t('Remove this section')];
-  return `<span class="site-tools" role="group" aria-label="${xml(page ? t('This page') : t('This section'))}">${['up', 'down', 'remove']
-    .map((d, i) => `<button type="button" data-site-part="${n}" data-site-do="${d}" aria-label="${xml(what[i])}">${['↑', '↓', '×'][i]}</button>`)
-    .join('')}</span>`;
-}
-const plus = (s: Section) => `<button type="button" class="site-plus" data-site-add="${s.n}" aria-label="${xml(s.title ? t('Add to {part}', { part: s.title }) : t('Add to this page'))}">+</button>`;
-
-function embedHtml(e: Embed, base: string): string {
+function embedHtml(e: Embed, base: string, attrs = ''): string {
   if ('lang' in e) {
     const def = lookup.appOf(e.lang);
     const page = def?.view(e.body, { small: true })[0];
     const name = (def && def.title(e.body)) || def?.name || e.lang;
-    return `<figure class="embed">${page ? pageSvg(page, `role="img" aria-label="${xml(name)}"`) : ''}<figcaption><a href="${xml(fenceLink(e.lang, e.body, base))}">${xml(name)}</a> <small>${xml(def?.name ?? t('Document'))}</small></figcaption></figure>`;
+    return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(name)}"`) : ''}<figcaption><a href="${xml(fenceLink(e.lang, e.body, base))}">${xml(name)}</a> <small>${xml(def?.name ?? t('Document'))}</small></figcaption></figure>`;
   }
   // From the web: a card, a button that loads the thing in its place (WEB), and a link to it where it lives. What must be asked first (a Wikipedia summary), or embeds nothing, is the link alone.
   const w = embedOf(e.web);
   const { provider, title } = embedCaption(e.web);
   const caption = `<figcaption><a href="${xml(e.web)}" target="_blank" rel="noopener noreferrer">${xml(title)}</a> <small>${xml(provider)}</small></figcaption>`;
-  if (!w || !w.src || w.lookup || w.kind === 'link') return `<figure class="embed">${caption}</figure>`;
+  if (!w || !w.src || w.lookup || w.kind === 'link') return `<figure class="embed"${attrs}>${caption}</figure>`;
   const as = w.kind === 'image' ? 'img' : w.kind === 'audio' ? 'audio' : w.file && w.kind === 'video' ? 'video' : 'frame';
   const plays = w.kind === 'video' || w.kind === 'audio' || w.kind === 'music';
   const label = plays ? t('Play (loads it from {provider})', { provider: w.provider }) : t('Show (loads it from {provider})', { provider: w.provider });
-  return `<figure class="embed"><div class="web-pic" data-as="${as}" data-kind="${w.kind}" data-src="${xml(w.src)}" data-title="${xml(w.title)}"${w.h ? ` data-h="${w.h}"` : ''}><button type="button" class="btn web-load">${xml(label)}</button></div>${caption}</figure>`;
+  return `<figure class="embed"${attrs}><div class="web-pic" data-as="${as}" data-kind="${w.kind}" data-src="${xml(w.src)}" data-title="${xml(w.title)}"${w.h ? ` data-h="${w.h}"` : ''}><button type="button" class="btn web-load">${xml(label)}</button></div>${caption}</figure>`;
 }
 
 const hasWeb = (site: Site) => site.sections.some((s) => s.embeds.some((e) => 'web' in e && !!embedOf(e.web)?.src));
 
-/** What a section is drawn as, in pieces: its pictures and icon (a page's front puts its title after them), the rest. */
-function drawn(site: Site, s: Section, o: SitePageOpts, hero: boolean, products: Product[]): { pics: string; body: string } {
-  const card = (c: Card) => `<li>${iconSvg(c.icon, 28)}<strong>${prose(c.head)}</strong>${c.detail.length ? `<span>${prose(c.detail)}</span>` : ''}</li>`;
-  const cards = s.cards.length ? `<ul class="cards">${s.cards.map(card).join('')}</ul>` : '';
-  // Three or more buttons on a page's front are the page: stacked, as a link-in-bio page is.
-  const stack = hero && (s.buttons.length >= 3 || site.links);
-  const button = (b: Link, i: number) => `<a class="btn${i && !stack ? ' quiet' : ''}" href="${xml(b.url)}">${iconSvg(b.icon, 20)}${xml(b.label)}</a>`;
-  const buttons = s.buttons.length ? `<p class="go${stack ? ' stack' : ''}">${s.buttons.map(button).join(' ')}</p>` : '';
-  const socials = s.socials.length ? `<ul class="social" aria-label="${xml(t('Elsewhere'))}">${s.socials.map((b) => `<li><a href="${xml(b.url)}" aria-label="${xml(b.label)}" title="${xml(b.label)}">${iconSvg(b.icon && iconNamed(b.icon) ? b.icon : 'globe', 22)}</a></li>`).join('')}</ul>` : '';
-  const pics = (s.icon ? iconSvg(s.icon, hero ? 64 : 40, 'ico') : '') + s.pics.map((p) => (p.url ? `<img class="pic" src="${xml(p.url)}" alt="${xml(p.alt)}" loading="lazy">` : '')).join('');
-  const paras = s.text.map((r) => `<p>${prose(r)}</p>`).join('');
-  const money = (n: number) => `${xml(site.currency)}${n.toFixed(2)}`;
-  // The shop: a grid of what is for sale, and, by the first of them, the cart.
-  const first = site.sections.find((x) => x.products.length)?.n === s.n;
-  const shop = s.products.length
-    ? `<div class="shop"><ul class="grid" aria-label="${xml(t('Products'))}">${s.products
-        .map(
-          (p) =>
-            `<li>${p.image ? `<img src="${xml(p.image)}" alt="" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${money(p.price)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
-        )
-        .join('')}</ul>${
-        first
-          ? `<aside class="cart" aria-label="${xml(t('Cart'))}"><h3>${xml(t('Cart'))} (<span id="count">0</span>)</h3><p id="empty">${xml(t('Nothing in it yet.'))}</p><ul id="lines"></ul><div class="tot"><span>${xml(t('Total'))}</span><span id="total"></span></div><button type="button" id="send">${xml(site.orders ? t('Send order by email') : t('Copy order'))}</button><p id="said" role="status" aria-live="polite"></p>${pageData('products', products)}${pageData('shop', {
-              currency: site.currency,
-              orders: site.orders,
-              words: { total: t('Total'), fewer: t('One fewer'), more: t('One more'), added: t('added to the cart'), copied: t('Order copied'), order: t('Order from {site}', { site: site.name || t('My site') }) },
-            })}${CART}</aside>`
-          : ''
-      }</div>`
-    : '';
-  return { pics, body: `${paras}${cards}${shop}${s.embeds.map((e) => embedHtml(e, o.base ?? '')).join('')}${buttons}${socials}` };
+/** What sits under a page's title: the things that are not words, buttons or pictures begin the part below the front. */
+const BODY: ReadonlySet<ObjKind> = new Set(['heading', 'card', 'products', 'web', 'doc', 'table']);
+
+interface Ctx {
+  doc: Doc;
+  site: Site;
+  o: SitePageOpts;
+  products: Product[];
 }
 
-/** The document as one web page: every page of the site in it, switched by the router; in the preview, the editing marks too. */
+/** A section's things as HTML, in the order of the document; a run of cards, of buttons or of small links in one row. `hero`: on a page's front (buttons may stack). */
+function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
+  const { doc, site, o } = c;
+  const mark = (x: Obj) => (o.edit ? ` data-o="${objId(x)}"` : '');
+  let out = '';
+  for (let i = 0; i < items.length; ) {
+    const x = items[i];
+    let j = i + 1;
+    if (ROW.has(x.kind)) while (j < items.length && items[j].kind === x.kind) j++;
+    const row = items.slice(i, j);
+    const b = doc.blocks[x.at];
+    i = j;
+    switch (x.kind) {
+      case 'card':
+        out += `<ul class="cards">${row
+          .map((y) => {
+            const r = doc.blocks[y.at];
+            const f = cardFields(r.k === 'li' ? r.runs : []);
+            const head = f.url ? `<a href="${xml(safeUrl(f.url))}">${prose(f.head)}</a>` : prose(f.head);
+            return `<li${mark(y)}${f.url ? ' class="go-card"' : ''}>${iconSvg(f.icon, 28)}<strong>${head}</strong>${f.detail.length ? `<span>${prose(f.detail)}</span>` : ''}</li>`;
+          })
+          .join('')}</ul>`;
+        break;
+      case 'button': {
+        // Three or more buttons on a page's front are the page: stacked, as a link-in-bio page is.
+        const stack = hero && (row.length >= 3 || site.links);
+        const button = (y: Obj, k: number) => {
+          const r = doc.blocks[y.at];
+          const l = linkFields(r.k === 'quote' ? linesOf(r.runs)[y.line] : []);
+          return `<a class="btn${k && !stack ? ' quiet' : ''}"${mark(y)} href="${xml(safeUrl(l.url))}">${iconSvg(l.icon, 20)}${xml(l.label)}</a>`;
+        };
+        out += `<p class="go${stack ? ' stack' : ''}">${row.map(button).join(' ')}</p>`;
+        break;
+      }
+      case 'link':
+        out += `<ul class="social" aria-label="${xml(t('Elsewhere'))}">${row
+          .map((y) => {
+            const r = doc.blocks[y.at];
+            const l = linkFields(r.k === 'li' ? r.runs : []);
+            return `<li${mark(y)}><a href="${xml(safeUrl(l.url))}" aria-label="${xml(l.label)}" title="${xml(l.label)}">${iconSvg(l.icon && iconNamed(l.icon) ? l.icon : 'globe', 22)}</a></li>`;
+          })
+          .join('')}</ul>`;
+        break;
+      case 'heading':
+        out += `<h3${mark(x)}>${xml(words(b.k === 'h' ? b.runs : []))}</h3>`;
+        break;
+      case 'p':
+        out += `<p${mark(x)}>${linesOf(b.k === 'p' ? b.runs : [])
+          .filter((l) => l.length)
+          .map(prose)
+          .join('<br>')}</p>`;
+        break;
+      case 'icon':
+        out += iconSvg(iconOf(b.k === 'p' ? b.runs : [])[0], hero ? 64 : 40, 'ico', mark(x));
+        break;
+      case 'picture': {
+        const url = b.k === 'img' ? b.url : b.k === 'p' ? plainText(b.runs).trim() : '';
+        const alt = b.k === 'img' ? b.alt : '';
+        out += /^https?:\/\//.test(url) ? `<img class="pic"${mark(x)} src="${xml(url)}" alt="${xml(alt)}" loading="lazy">` : o.edit ? `<span class="pic ph"${mark(x)} role="img" aria-label="${xml(t('Web Picture'))}"></span>` : '';
+        break;
+      }
+      case 'web':
+        out += embedHtml({ web: plainText(b.k === 'p' ? b.runs : []).trim() }, o.base ?? '', mark(x));
+        break;
+      case 'doc':
+        if (b.k === 'fence') out += embedHtml({ lang: b.lang, body: b.body }, o.base ?? '', mark(x));
+        break;
+      case 'table':
+        out += embedHtml({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }, o.base ?? '', mark(x));
+        break;
+      case 'products':
+        out += shopHtml(c, s, mark(x));
+        break;
+    }
+  }
+  return out;
+}
+
+/** The shop: a grid of what is for sale, and, by the first of them on the site, the cart. */
+function shopHtml(c: Ctx, s: Section, attrs: string): string {
+  const { site, products } = c;
+  const money = (n: number) => `${xml(site.currency)}${n.toFixed(2)}`;
+  const first = site.sections.find((x) => x.products.length)?.n === s.n;
+  return `<div class="shop"${attrs}><ul class="grid" aria-label="${xml(t('Products'))}">${s.products
+    .map(
+      (p) =>
+        `<li>${p.image ? `<img src="${xml(p.image)}" alt="" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${xml(p.about)}</span><b class="price">${money(p.price)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="${xml(t('Add {thing} to the cart', { thing: p.name }))}">${xml(t('Add to cart'))}</button></div></li>`,
+    )
+    .join('')}</ul>${
+    first
+      ? `<aside class="cart" aria-label="${xml(t('Cart'))}"><h3>${xml(t('Cart'))} (<span id="count">0</span>)</h3><p id="empty">${xml(t('Nothing in it yet.'))}</p><ul id="lines"></ul><div class="tot"><span>${xml(t('Total'))}</span><span id="total"></span></div><button type="button" id="send">${xml(site.orders ? t('Send order by email') : t('Copy order'))}</button><p id="said" role="status" aria-live="polite"></p>${pageData('products', products)}${pageData('shop', {
+          currency: site.currency,
+          orders: site.orders,
+          words: { total: t('Total'), fewer: t('One fewer'), more: t('One more'), added: t('added to the cart'), copied: t('Order copied'), order: t('Order from {site}', { site: site.name || t('My site') }) },
+        })}${CART}</aside>`
+      : ''
+  }</div>`;
+}
+
+/** A front's things cut in three: the pictures and the big icon before anything else (drawn over the title), the words and buttons under the title, the rest in the part below. */
+function front(items: Obj[]) {
+  const cut = items.findIndex((x) => BODY.has(x.kind));
+  const top = cut < 0 ? items : items.slice(0, cut);
+  const isPic = (x: Obj) => x.kind === 'picture' || x.kind === 'icon';
+  return { pics: top.filter(isPic), hero: top.filter((x) => !isPic(x)), rest: cut < 0 ? [] : items.slice(cut) };
+}
+
+/** The document as one web page: every page of the site in it, switched by the router; in the editor's frame, every thing marked too. */
 export function sitePage(doc: Doc, o: SitePageOpts = {}): string {
   const site = readSite(doc);
   const name = site.name || (site.links ? t('Quick Links') : t('My site'));
   const edit = o.edit;
-  const products = site.sections.flatMap((s) => s.products);
-  const front = site.sections[0];
-  const about = front.text[0] ? words(front.text[0]) : name;
-  const mark = (s: Section) => (edit ? ` data-s="${s.n}"${edit.cur === s.n ? ' class="site-cur"' : ''}` : '');
-  const cls = (s: Section, base: string) => (edit && edit.cur === s.n ? `${base} site-cur` : base);
-  const at = (s: Section) => (edit ? ` data-s="${s.n}"` : '');
+  const c: Ctx = { doc, site, o, products: site.sections.flatMap((s) => s.products) };
+  const lead = site.sections[0];
+  const about = lead.text[0] ? words(lead.text[0]) : name;
+  const sec = (s: Section) => (edit ? ` data-sec="${objId(s.head)}"` : '');
+  const head = (s: Section) => (edit ? ` data-o="${objId(s.head)}"` : '');
   let body: string;
   if (site.links) {
     // One column: the front's pictures, the name, the words, the stacked buttons, the small links; anything else under them.
     const parts = site.sections.map((s, i) => {
-      const d = drawn(site, s, o, true, products);
-      return `<div${mark(s)}>${i ? '' : d.pics}${i ? `<h2>${xml(s.title)}</h2>${d.pics}` : `<h1>${xml(name)}</h1>`}${d.body}${edit ? plus(s) : ''}</div>`;
+      if (i) return `<div${sec(s)}><h2${head(s)}>${xml(s.title)}</h2>${things(c, s, s.items, true)}</div>`;
+      const f = front(s.items);
+      return `<div${sec(s)}>${things(c, s, f.pics, true)}<h1${head(s)}>${xml(name)}</h1>${things(c, s, [...f.hero, ...f.rest], true)}</div>`;
     });
     body = `<main class="hero">${parts.join('')}<footer>${xml(name)}</footer></main>`;
   } else {
     const render = (i: number) => {
       const p = site.pages[i];
-      const [head, ...rest] = p.sections;
+      const [lead, ...rest] = p.sections;
       const title = i ? p.title || t('Page {n}', { n: i + 1 }) : name;
-      const f = drawn(site, { ...head, cards: [], products: [], embeds: [] }, o, true, products);
-      const more = head.cards.length || head.embeds.length || head.products.length ? drawn(site, { ...head, text: [], buttons: [], pics: [], icon: '', socials: [] }, o, false, products).body : '';
-      const handles = edit && i ? tools(head.n, true) : '';
+      const f = front(lead.items);
+      const more = f.rest.length ? `<div class="part"${sec(lead)}><div class="wrap">${things(c, lead, f.rest, false)}</div></div>` : '';
       return `<section class="page" id="${p.id}">
-<div class="${cls(head, `hero${i ? ' top' : ''}`)}"${at(head)}><div class="wrap">${f.pics}<h1>${xml(title)}${handles}</h1>${f.body}${edit && !more ? plus(head) : ''}</div></div>
-${more ? `<div class="${cls(head, 'part')}"${at(head)}><div class="wrap">${more}${edit ? plus(head) : ''}</div></div>` : ''}
-${rest
-  .map((s) => {
-    const d = drawn(site, s, o, false, products);
-    return `<section class="${cls(s, 'part')}" id="${s.id}"${at(s)}><div class="wrap"><h2>${xml(s.title)}${edit ? tools(s.n, false) : ''}</h2>${d.pics}${d.body}${edit ? plus(s) : ''}</div></section>`;
-  })
-  .join('\n')}
+<div class="hero${i ? ' top' : ''}"${sec(lead)}><div class="wrap">${things(c, lead, f.pics, true)}<h1${head(lead)}>${xml(title)}</h1>${things(c, lead, f.hero, true)}</div></div>
+${more}
+${rest.map((s) => `<section class="part" id="${s.id}"${sec(s)}><div class="wrap"><h2${head(s)}>${xml(s.title)}</h2>${things(c, s, s.items, false)}</div></section>`).join('\n')}
 </section>`;
     };
     // The nav: the pages, or for a site of one page its sections.
@@ -307,9 +383,9 @@ ${site.pages.map((_, i) => render(i)).join('\n')}
 </main>
 <footer><div class="wrap">${xml(name)}</div></footer>`;
   }
-  const shown = edit ? site.pages[site.sections[edit.cur]?.page ?? 0]?.id ?? '' : '';
-  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${
-    edit ? pageData('site-edit', { cur: edit.cur, stamp: edit.stamp, held: !!edit.held, add: t('Add'), kinds: kindsOf(site).map((k) => [k, kindName(k)]) }) + EDIT : ''
+  const shown = o.cur !== undefined && !site.links ? (site.pages[site.sections[o.cur]?.page ?? 0]?.id ?? '') : '';
+  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${edit ? pageData('site-edit', { stamp: edit.stamp, held: edit.held ?? null, y: edit.y ?? 0, show: !!edit.show }) + EDIT : ''}${
+    o.peek !== undefined && !edit ? pageData('site-peek', { stamp: o.peek }) + PEEK : ''
   }`;
   const lang = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
   return `<!doctype html>
@@ -322,7 +398,7 @@ ${site.pages.map((_, i) => render(i)).join('\n')}
 <meta property="og:type" content="website">
 <meta property="og:title" content="${xml(name)}">
 <meta property="og:description" content="${xml(about)}">
-<meta name="generator" content="TinyLittleOffice">
+<meta name="generator" content="Tiny Little Office">
 <style>
 ${themeCss(site.theme)}
 ${CSS}${site.links ? `\n${LINKS_CSS}` : ''}${edit ? `\n${EDIT_CSS}` : ''}

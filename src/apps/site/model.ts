@@ -8,11 +8,13 @@
  * address alone). The head holds `theme:`, `currency:` and `orders:` (where orders go); `look: links` makes
  * it a Quick Links page: one column, the buttons stacked, and the list items small links at the foot.
  *
- * Every command is a list of the kernel's ops: a part moved is one `move`, removed one `splice`, a thing
- * added one `splice` (a product one `rows`), the look a `head`. (Ported from the old tree's
- * lib/sitemodel.ts and links.def.ts; its lines form and row numbers are gone, the blocks are the rows.)
+ * Every thing on a page (Obj) has an id from its block; every command is a list of the kernel's ops: a thing
+ * or a part moved is one `move` (buttons, lines of a quote, a `splice`), removed one `splice`, a thing put in one
+ * `splice`, the look a `head`. A thing's fields go to and from its line here, so nobody types a separator.
+ * (Ported from the old tree's lib/sitemodel.ts and links.def.ts; its lines form and row numbers are gone, the
+ * blocks are the rows.)
  */
-import { apply, columnsOf, evaluate, isAtomic, parse, plainText, runLength, sliceRuns, text, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, applyAll, columnsOf, evaluate, isAtomic, normalRuns, parse, plainText, runLength, sliceRuns, text, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { slug } from '../../kit/draw.ts';
 import { embedOf } from '../../kit/embeds.ts';
 import { t } from '../../kit/i18n.ts';
@@ -34,6 +36,24 @@ export interface Product {
   about: string;
   image: string;
 }
+/**
+ * A thing on a page, as a person sees it and taps it: a page's or a section's heading, a heading inside a
+ * section, a paragraph, a button (a line of a quote), a big link (a card: a list item), a small link (a list
+ * item on a Quick Links page), a picture, a big icon, a thing from the web, another document, a table, the
+ * shop's products. `at` is its block (-1 for the heading of a home page with no name), `line` a button's line
+ * in its quote (-1 for the rest), `n` the section it is in. Its id in the page is objId().
+ */
+export type ObjKind = 'page' | 'section' | 'heading' | 'p' | 'card' | 'button' | 'link' | 'picture' | 'icon' | 'web' | 'doc' | 'table' | 'products';
+export interface Obj {
+  kind: ObjKind;
+  at: number;
+  line: number;
+  n: number;
+}
+/** The things that sit side by side in a row: they move left and right among themselves, and up and down as the row. */
+export const ROW: ReadonlySet<ObjKind> = new Set(['card', 'button', 'link']);
+export const objId = (o: Pick<Obj, 'at' | 'line'>): string => (o.line >= 0 ? `${o.at}.${o.line}` : String(o.at));
+
 /** Another document (a fence: its app and its text) or a thing from the web (its address). */
 export type Embed = { lang: string; body: string } | { web: string };
 
@@ -60,6 +80,10 @@ export interface Section {
   /** The products table's block, -1 for none. */
   shop: number;
   products: Product[];
+  /** Its heading as a thing on the page (a page's or a section's). */
+  head: Obj;
+  /** What is in it, in the order of its blocks. */
+  items: Obj[];
 }
 
 export interface Page {
@@ -139,8 +163,8 @@ const PRODUCT = [/^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|descr
 /** Whether a table is the products of a shop: it has something to call each thing, and a price. */
 export const isShop = (b: Block) => b.k === 'table' && (([n, p]) => n >= 0 && p >= 0)(columnsOf(b, ...PRODUCT));
 
-function section(n: number, page: number, title: string, at: number, from: number): Section {
-  return { n, page, title, at, from, to: from, id: '', text: [], cards: [], buttons: [], socials: [], pics: [], icon: '', embeds: [], shop: -1, products: [] };
+function section(n: number, page: number, title: string, at: number, from: number, front: boolean): Section {
+  return { n, page, title, at, from, to: from, id: '', text: [], cards: [], buttons: [], socials: [], pics: [], icon: '', embeds: [], shop: -1, products: [], head: { kind: front ? 'page' : 'section', at, line: -1, n }, items: [] };
 }
 
 export function readSite(doc: Doc): Site {
@@ -149,7 +173,7 @@ export function readSite(doc: Doc): Site {
   const page = (title: string, at: number, from: number) => {
     const p: Page = { title, at, from, to: from, id: '', sections: [] };
     site.pages.push(p);
-    open(section(site.sections.length, site.pages.length - 1, title, at, from));
+    open(section(site.sections.length, site.pages.length - 1, title, at, from, true));
   };
   const open = (s: Section) => {
     site.sections.push(s);
@@ -159,6 +183,7 @@ export function readSite(doc: Doc): Site {
   let named = false;
   doc.blocks.forEach((b, i) => {
     const cur = site.sections[site.sections.length - 1];
+    const item = (kind: ObjKind, line = -1) => cur.items.push({ kind, at: i, line, n: cur.n });
     if (b.k === 'h' && b.level === 1) {
       const words = plain(b.runs);
       // The first is the site's name, over the home page; each after it a page.
@@ -166,27 +191,38 @@ export function readSite(doc: Doc): Site {
         named = true;
         site.name = words;
         site.pages[0].at = i;
-        if (cur.n === 0) (cur.title = words), (cur.at = i);
+        if (cur.n === 0) (cur.title = words), (cur.at = i), (cur.head.at = i);
       } else page(words, i, i);
-    } else if (b.k === 'h') open(section(site.sections.length, site.pages.length - 1, plain(b.runs), i, i));
-    else if (b.k === 'p') {
+    } else if (b.k === 'h' && b.level === 2) open(section(site.sections.length, site.pages.length - 1, plain(b.runs), i, i, false));
+    else if (b.k === 'h') {
+      // A heading inside a section (### and below): words over what follows, not a section of its own.
+      item('heading');
+      cur.text.push(b.runs);
+    } else if (b.k === 'p') {
       const words = plain(b.runs);
       const [ic, rest] = iconOf(b.runs);
-      if (ic && !rest.length) cur.icon = ic;
-      else if (b.runs.length === 1 && isPicture(words)) cur.pics.push({ url: words, alt: '' });
-      else if (b.runs.length === 1 && /^https?:\/\/\S+$/.test(words) && embedOf(words)) cur.embeds.push({ web: words });
-      else if (words || ic) cur.text.push(...linesOf(b.runs).filter((l) => l.length));
-    } else if (b.k === 'quote') for (const l of linesOf(b.runs)) l.length && cur.buttons.push(linkOf(l));
+      if (ic && !rest.length) (cur.icon = ic), item('icon');
+      else if (b.runs.length === 1 && isPicture(words)) cur.pics.push({ url: words, alt: '' }), item('picture');
+      else if (b.runs.length === 1 && /^https?:\/\/\S+$/.test(words) && embedOf(words)) cur.embeds.push({ web: words }), item('web');
+      else if (words || ic) cur.text.push(...linesOf(b.runs).filter((l) => l.length)), item('p');
+    } else if (b.k === 'quote')
+      linesOf(b.runs).forEach((l, k) => {
+        if (!l.length) return;
+        cur.buttons.push(linkOf(l));
+        item('button', k);
+      });
     else if (b.k === 'li') {
-      if (links) cur.socials.push(linkOf(b.runs));
+      if (links) cur.socials.push(linkOf(b.runs)), item('link');
       else {
         const [icon, rest] = iconOf(b.runs);
         const [head, detail] = fieldsOf(rest);
         cur.cards.push({ icon, head, detail });
+        item('card');
       }
-    } else if (b.k === 'img') cur.pics.push({ url: /^https?:\/\//.test(b.url) ? b.url : '', alt: b.alt });
+    } else if (b.k === 'img') cur.pics.push({ url: /^https?:\/\//.test(b.url) ? b.url : '', alt: b.alt }), item('picture');
     else if (b.k === 'table') {
       if (isShop(b) && cur.shop < 0) {
+        item('products');
         cur.shop = i;
         const [n, p, a, im] = columnsOf(b, ...PRODUCT);
         const values = evaluate(doc, i)?.values ?? [];
@@ -198,8 +234,8 @@ export function readSite(doc: Doc): Site {
           const image = (r[im] ?? '').trim();
           cur.products.push({ name, price, about: a >= 0 ? (r[a] ?? '').trim() : '', image: /^https?:\/\//.test(image) ? image : '' });
         });
-      } else cur.embeds.push({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() });
-    } else if (b.k === 'fence' && b.lang) cur.embeds.push({ lang: b.lang, body: b.body });
+      } else cur.embeds.push({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }), item('table');
+    } else if (b.k === 'fence' && b.lang) cur.embeds.push({ lang: b.lang, body: b.body }), item('doc');
   });
   // Spans: a section runs to the next one; a page to the next page.
   site.sections.forEach((s, k) => (s.to = site.sections[k + 1]?.from ?? doc.blocks.length));
@@ -234,53 +270,216 @@ export function retitle(textDoc: string, title: string): string {
 
 /* ---------- commands, as ops ---------- */
 
-/** What can be put in a section: a website's, and a Quick Links page's. */
-export type Kind = 'p' | 'card' | 'button' | 'link' | 'picture' | 'icon' | 'product' | 'section' | 'page';
-export const kindsOf = (site: Site): Kind[] => (site.links ? ['p', 'button', 'link', 'picture', 'icon'] : ['p', 'card', 'button', 'picture', 'icon', 'product', 'section', 'page']);
+/** What Insert ▾ can put in: a website's things, and a Quick Links page's. */
+export type Kind = 'page' | 'section' | 'heading' | 'p' | 'button' | 'card' | 'link' | 'picture' | 'icon' | 'web' | 'doc' | 'product';
+export const kindsOf = (site: Site, n = 0): Kind[] =>
+  site.links
+    ? ['p', 'button', 'link', 'picture', 'icon', 'web']
+    : ['page', 'section', 'heading', 'p', 'button', 'card', 'picture', 'icon', 'web', 'doc', ...((site.sections[n]?.shop ?? -1) < 0 ? (['product'] as const) : [])];
 export const kindName = (k: Kind): string =>
-  ({ p: t('Paragraph'), card: t('Card'), button: t('Button'), link: t('Small link'), picture: t('Picture'), icon: t('Big icon'), product: t('Product'), section: t('Section'), page: t('Page') })[k];
+  ({
+    page: t('Page'), section: t('Section'), heading: t('Heading'), p: t('Paragraph'), button: t('Button'), card: t('Big link'), link: t('Small link'),
+    picture: t('Web Picture'), icon: t('Big icon'), web: t('Web Embed'), doc: t('Tiny Little Office Doc'), product: t('Products'),
+  })[k];
 
-/** What a thing added is, before it is typed over: words to replace, in the right kind of block. */
-export function blockOf(k: Kind, arg = ''): Block {
-  switch (k) {
-    case 'card':
-      return { k: 'li', depth: 0, runs: [{ t: `${t('Heading')} | ${t('A line about it')}` }] };
-    case 'button':
-      return { k: 'quote', runs: [{ t: `${t('Label')} | ${arg || 'https://'}` }] };
-    case 'link':
-      return { k: 'li', depth: 0, runs: [{ t: '', ic: 'globe' }, { t: ` ${t('Name')} | ${arg || 'https://'}` }] };
-    case 'picture':
-      return { k: 'img', alt: '', url: arg };
-    case 'icon':
-      return { k: 'p', runs: [{ t: '', ic: arg || 'star' }] };
-    case 'section':
-      return { k: 'h', level: 2, runs: [{ t: t('New section') }] };
-    case 'page':
-      return { k: 'h', level: 1, runs: [{ t: t('New page') }] };
-    case 'product':
-      return { k: 'table', cols: [{ name: 'Name', type: 'text' }, { name: 'Price', type: 'money' }, { name: 'About', type: 'text' }, { name: 'Image', type: 'text' }], rows: [newProduct()] };
-    default:
-      return { k: 'p', runs: [] };
+/** A new products table: what each thing is called, its price, a line about it, a picture; one thing to begin with. */
+export const productsBlock = (): Block => ({
+  k: 'table',
+  cols: [{ name: 'Name', type: 'text' }, { name: 'Price', type: 'money' }, { name: 'About', type: 'text' }, { name: 'Image', type: 'text' }],
+  rows: [[t('New thing'), '10', '', '']],
+});
+
+/* ---------- the things on a page ---------- */
+
+/** Every thing on the site, in the order of the document: each section's heading, then what is in it. */
+export const objectsOf = (site: Site): Obj[] => site.sections.flatMap((s) => [s.head, ...s.items]);
+/** The thing with this id, or null. */
+export const objectAt = (site: Site, id: string | null): Obj | null => (id === null ? null : (objectsOf(site).find((o) => objId(o) === id) ?? null));
+
+/** A section's things in rows: a run of cards, of buttons or of small links is one row; anything else is a row of its own. Each with its span of blocks. */
+export function rowsOf(s: Section): { items: Obj[]; from: number; to: number }[] {
+  const out: { items: Obj[]; from: number; to: number }[] = [];
+  for (const o of s.items) {
+    const last = out[out.length - 1];
+    if (last && ROW.has(o.kind) && last.items[0].kind === o.kind) {
+      last.items.push(o);
+      last.to = o.at + 1;
+    } else out.push({ items: [o], from: o.at, to: o.at + 1 });
   }
+  return out;
 }
-const newProduct = () => [t('New thing'), '10', '', ''];
+
+/** A quote's lines, and the quote made again from lines. */
+const quoteLines = (b: Block): Run[][] => (b.k === 'quote' ? linesOf(b.runs) : []);
+/** A quote with line `line` made these runs. */
+export const withLine = (b: Block, line: number, runs: Run[]): Block => {
+  const ls = quoteLines(b);
+  ls[line] = runs;
+  return quoteOf(ls);
+};
+const quoteOf = (lines: Run[][]): Block => ({ k: 'quote', runs: normalRuns(lines.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l))) });
+
+/** What a change to a thing comes to: the ops, and the id of the thing in hand after them (null for none). */
+export interface Change {
+  ops: Op[];
+  id: string | null;
+}
 
 /**
- * A thing added to section `n`: the ops, and the block it is (or the table it went into). `after` is the block the
- * caret is in (a document index): the thing goes under it, as Insert ▾ does in the Word Processor; without one, at the
- * end of the section (the frame's "+"). A page always goes after the page the section is on.
+ * A thing moved: up and down past the row before or after it (a card, a button or a small link takes its whole
+ * row), left and right past its neighbour in its row; a page or a section past its neighbour. Things stay in their
+ * section. Null where it cannot go.
  */
-export function addOps(doc: Doc, site: Site, n: number, k: Kind, arg = '', after?: number): { ops: Op[]; at: number } {
-  const s = site.sections[n] ?? site.sections[0];
-  if (k === 'product' && s.shop >= 0) {
-    const b = doc.blocks[s.shop] as Extract<Block, { k: 'table' }>;
-    const row = b.cols.map((_, c) => newProduct()[columnsOf(b, ...PRODUCT).indexOf(c)] ?? '');
-    return { ops: [{ op: 'rows', at: s.shop, r: b.rows.length, n: 1, rows: [row] }], at: s.shop };
+export function moveObj(doc: Doc, site: Site, id: string, dir: 'up' | 'down' | 'left' | 'right'): Change | null {
+  const o = objectAt(site, id);
+  if (!o) return null;
+  const vertical = dir === 'up' || dir === 'down';
+  if (o.kind === 'page' || o.kind === 'section') {
+    const ops = vertical ? moveOps(site, o.n, dir === 'up' ? -1 : 1) : null;
+    if (!ops) return null;
+    const head = doc.blocks[o.at];
+    return { ops, id: String(applyAll(doc, ops).blocks.indexOf(head)) };
   }
-  // A page goes after the page the section is on; anything else under the caret's block, or at the end of the section.
-  const at = k === 'page' ? site.pages[s.page].to : after !== undefined && after >= s.from && after < s.to ? after + 1 : s.to;
-  return { ops: [{ op: 'splice', at, n: 0, blocks: [blockOf(k, arg)] }], at };
+  const rows = rowsOf(site.sections[o.n]);
+  const k = rows.findIndex((r) => r.items.includes(o));
+  const row = rows[k];
+  if (vertical) {
+    const other = rows[k + (dir === 'up' ? -1 : 1)];
+    if (!other) return null;
+    const len = row.to - row.from;
+    const to = dir === 'up' ? other.from : other.to - len;
+    return { ops: [{ op: 'move', at: row.from, n: len, to }], id: objId({ at: o.at + to - row.from, line: o.line }) };
+  }
+  if (!ROW.has(o.kind)) return null;
+  const j = row.items.indexOf(o);
+  const next = row.items[j + (dir === 'left' ? -1 : 1)];
+  if (!next) return null;
+  if (o.kind !== 'button') return { ops: [{ op: 'move', at: o.at, n: 1, to: next.at }], id: String(next.at) };
+  // A button changes places with its neighbour, line for line; each quote keeps its number of lines.
+  const lines = new Map<number, Run[][]>();
+  for (const x of [o, next]) if (!lines.has(x.at)) lines.set(x.at, quoteLines(doc.blocks[x.at]));
+  const mine = lines.get(o.at)![o.line];
+  lines.get(o.at)![o.line] = lines.get(next.at)![next.line];
+  lines.get(next.at)![next.line] = mine;
+  return { ops: [...lines].map(([at, ls]) => ({ op: 'splice', at, n: 1, blocks: [quoteOf(ls)] })), id: objId(next) };
 }
+
+/** A thing taken away (a page with its sections, a section with what is in it, a button's line); the thing before it is in hand after. */
+export function removeObj(doc: Doc, site: Site, id: string): Change | null {
+  const all = objectsOf(site);
+  const k = all.findIndex((x) => objId(x) === id);
+  const o = all[k];
+  if (!o) return null;
+  const before = all[k - 1];
+  let ops: Op[] | null;
+  if (o.kind === 'page' || o.kind === 'section') ops = removeOps(site, o.n);
+  else if (o.kind === 'button' && quoteLines(doc.blocks[o.at]).length > 1) {
+    const ls = quoteLines(doc.blocks[o.at]);
+    ls.splice(o.line, 1);
+    ops = [{ op: 'splice', at: o.at, n: 1, blocks: [quoteOf(ls)] }];
+  } else ops = [{ op: 'splice', at: o.at, n: 1, blocks: [] }];
+  if (!ops) return null;
+  return { ops, id: before && before.at >= 0 ? objId(before) : null };
+}
+
+/** A copy of a thing right after it (a button in its row), in hand after. */
+export function duplicateObj(doc: Doc, site: Site, id: string): Change | null {
+  const o = objectAt(site, id);
+  if (!o || o.at < 0) return null;
+  if (o.kind === 'page' || o.kind === 'section') {
+    const r = duplicateOps(doc, site, o.n);
+    return r && { ops: r.ops, id: String(r.at) };
+  }
+  if (o.kind === 'button') {
+    const ls = quoteLines(doc.blocks[o.at]);
+    ls.splice(o.line + 1, 0, structuredClone(ls[o.line]));
+    return { ops: [{ op: 'splice', at: o.at, n: 1, blocks: [quoteOf(ls)] }], id: objId({ at: o.at, line: o.line + 1 }) };
+  }
+  return { ops: [{ op: 'splice', at: o.at + 1, n: 0, blocks: [structuredClone(doc.blocks[o.at])] }], id: String(o.at + 1) };
+}
+
+/** The blocks a thing is when copied: a page with its sections, a section with what is in it, a button as a quote of its own line. */
+export function objBlocks(doc: Doc, site: Site, id: string): Block[] {
+  const o = objectAt(site, id);
+  if (!o) return [];
+  if (o.kind === 'page' || o.kind === 'section') return partBlocks(doc, site, o.n);
+  if (o.kind === 'button') return [quoteOf([quoteLines(doc.blocks[o.at])[o.line]])];
+  return [doc.blocks[o.at]];
+}
+
+/** Where a thing goes after the one in hand: after its part (a page or a section), after its block (a button's quote). */
+function afterObj(site: Site, o: Obj): number {
+  if (o.kind === 'page' || o.kind === 'section') return partOf(site, o.n)?.to ?? site.sections[o.n].to;
+  return o.at + 1;
+}
+/** Blocks pasted after the thing in hand: one splice; the first of them in hand after. */
+export function pasteObj(site: Site, id: string, blocks: Block[]): { ops: Op[]; at: number } | null {
+  const o = objectAt(site, id);
+  if (!o || !blocks.length) return null;
+  const at = afterObj(site, o);
+  return { ops: [{ op: 'splice', at, n: 0, blocks }], at };
+}
+
+/**
+ * A new thing put in: a page after the page in hand's, a section at the end of the section in hand's; anything
+ * else right after the thing in hand (under a page's or a section's heading when that is in hand; a button after a
+ * button goes in its row), or, with nothing in hand, at the end of section `cur`. One splice; the new thing's id.
+ */
+export function insertObj(doc: Doc, site: Site, held: string | null, cur: number, block: Block): Change {
+  const o = objectAt(site, held);
+  const s = site.sections[o ? o.n : cur] ?? site.sections[0];
+  let at: number;
+  if (block.k === 'h' && block.level === 1) at = site.pages[s.page].to;
+  else if (block.k === 'h' && block.level === 2) at = s.to;
+  else if (!o) at = s.to;
+  else if (o.kind === 'page' || o.kind === 'section') at = Math.max(0, o.at + 1);
+  else if (o.kind === 'button' && block.k === 'quote') {
+    const ls = quoteLines(doc.blocks[o.at]);
+    ls.splice(o.line + 1, 0, ...quoteLines(block));
+    return { ops: [{ op: 'splice', at: o.at, n: 1, blocks: [quoteOf(ls)] }], id: objId({ at: o.at, line: o.line + 1 }) };
+  } else at = o.at + 1;
+  return { ops: [{ op: 'splice', at, n: 0, blocks: [block] }], id: objId({ at, line: block.k === 'quote' ? 0 : -1 }) };
+}
+
+/* ---------- a thing's fields, and the block they make ---------- */
+
+/** Words a person typed, kept from reading as a separator: "|" is what cuts a line into fields, so a typed one is a broken bar. */
+const noBar = (s: string) => s.replace(/\|/g, '¦');
+const noBarRuns = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: noBar(r.t) }));
+const iconRuns = (icon: string): Run[] => (icon ? [{ t: '', ic: icon }, { t: ' ' }] : []);
+
+/** A button's or a small link's fields, from its line. */
+export const linkFields = (runs: Run[]): Link => {
+  const [icon, rest] = iconOf(runs);
+  const [label, url] = fieldsOf(rest);
+  return { icon, label: plain(label), url: plain(url) };
+};
+/** The line of a button or a small link: its icon, its words and where it goes ("Label | url"), written by the code. */
+export const linkRuns = (l: Link): Run[] => normalRuns([...iconRuns(l.icon), { t: noBar(l.label.trim()) + (l.url.trim() ? ` | ${l.url.trim()}` : '') }]);
+
+/** A big link (a card): its icon, its words (rich), the line under them (rich) and where it goes. */
+export interface CardFields {
+  icon: string;
+  head: Run[];
+  detail: Run[];
+  url: string;
+}
+export function cardFields(runs: Run[]): CardFields {
+  const [icon, rest] = iconOf(runs);
+  const [head, detail] = fieldsOf(rest);
+  const words = head.filter((r) => !isAtomic(r));
+  const url = words.length && words.every((r) => r.href && r.href === words[0].href) ? words[0].href! : '';
+  return { icon, head: url ? head.map(({ href: _h, ...r }) => r) : head, detail, url };
+}
+export function cardRuns(c: CardFields): Run[] {
+  const url = c.url.trim();
+  const head = noBarRuns(trimRuns(c.head)).map((r) => (url && !isAtomic(r) ? { ...r, href: url } : r));
+  const detail = noBarRuns(trimRuns(c.detail));
+  return normalRuns([...iconRuns(c.icon), ...head, ...(detail.length ? [{ t: ' | ' }, ...detail] : [])]);
+}
+
+/** Plain words as a heading's runs (a heading is drawn as it is typed, never as Markdown). */
+export const plainRuns = (words: string): Run[] => (words.trim() ? [{ t: words.replace(/\s+/g, ' ').trim() }] : []);
 
 /** The part a section stands for when it is moved or removed: a page (its front), a section, or nothing (the home page). */
 export function partOf(site: Site, n: number): { from: number; to: number; page: boolean } | null {
@@ -327,13 +526,6 @@ export function partBlocks(doc: Doc, site: Site, n: number): Block[] {
   const part = partOf(site, n);
   return doc.blocks.slice(part ? part.from : s.from, part ? part.to : s.to);
 }
-/** Blocks pasted after the part section `n` stands for (after the home page's front section for the home page): one `splice`. */
-export function pasteOps(site: Site, n: number, blocks: Block[]): { ops: Op[]; at: number } | null {
-  const s = site.sections[n];
-  if (!s || !blocks.length) return null;
-  const at = partOf(site, n)?.to ?? s.to;
-  return { ops: [{ op: 'splice', at, n: 0, blocks }], at };
-}
 /** The look: the theme words in the head (indigo, the default, is not written). */
 export function themeOp(theme: Theme): Op {
   const words = themeWords(theme);
@@ -342,10 +534,3 @@ export function themeOp(theme: Theme): Op {
 export const linksOp = (on: boolean): Op => ({ op: 'head', key: 'look', value: on ? 'links' : undefined });
 /** A shop setting: `currency:` or `orders:`, gone when empty. */
 export const settingOp = (key: 'currency' | 'orders', value: string): Op => ({ op: 'head', key, value: value.trim() || undefined });
-
-/** The section a block is in. */
-export const sectionAt = (site: Site, at: number): number => {
-  let n = 0;
-  for (const s of site.sections) if (s.from <= at) n = s.n;
-  return n;
-};

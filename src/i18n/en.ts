@@ -210,7 +210,6 @@ export default {
   'Paper: {paper}': 'Paper: {paper}',
   // Insert ▾'s rule in a document: what follows starts the next page.
   'Page break': 'Page break',
-  'Picture': 'Picture',
   'Address of the picture': 'Address of the picture',
   'Address of a video, a post, a song, a place, a page': 'Address of a video, a post, a song, a place, a page',
   'OK': 'OK',
@@ -1086,35 +1085,31 @@ export default {
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.',
   'The website (HTML)': 'The website (HTML)',
 
-  // What a section can take (Insert, and the "+" on the page), and the words a new one starts with
+  // What Insert can put in, each thing's form (its fields and Done), and Preview
+  'A line under them': 'A line under them',
+  'Big link': 'Big link',
+  'Edit the products…': 'Edit the products…',
+  'Goes to': 'Goes to',
+  'Icon: none': 'Icon: none',
+  'Icon: {name}': 'Icon: {name}',
+  'Preview': 'Preview',
+  'The site’s name': 'The site’s name',
+  'The website, as a visitor sees it': 'The website, as a visitor sees it',
+  'Words for the page': 'Words for the page',
+  'https://…, or a page of the site': 'https://…, or a page of the site',
+  '{n|one thing|# things} for sale': '{n|one thing|# things} for sale',
+
+  // The words a new thing starts with
   'Button': 'Button',
   'Small link': 'Small link',
   'Section': 'Section',
-  'Product': 'Product',
-  'Add': 'Add',
-  'Add to {part}': 'Add to {part}',
-  'Add to this page': 'Add to this page',
   'A line about it': 'A line about it',
   'New section': 'New section',
   'New page': 'New page',
   'New thing': 'New thing',
 
-  // The editor: the page in its frame, the words of a part beside it
+  // The editor: the page in its frame
   'The website, as it will look': 'The website, as it will look',
-  'Part being edited': 'Part being edited',
-  'The words of {part}': 'The words of {part}',
-  'Your site’s name, then a line about it': 'Your site’s name, then a line about it',
-  'Words for this part': 'Words for this part',
-  'A card is a list item: “Heading | a line about it”. A button is a quote: “Label | https://…”.': 'A card is a list item: “Heading | a line about it”. A button is a quote: “Label | https://…”.',
-  'A button is a quote: “Label | https://…”. A small link is a list item: “:icon: Name | https://…”.': 'A button is a quote: “Label | https://…”. A small link is a list item: “:icon: Name | https://…”.',
-  'This page': 'This page',
-  'This section': 'This section',
-  'Move this page earlier': 'Move this page earlier',
-  'Move this page later': 'Move this page later',
-  'Remove this page': 'Remove this page',
-  'Move this section earlier': 'Move this section earlier',
-  'Move this section later': 'Move this section later',
-  'Remove this section': 'Remove this section',
 
   // The look: the themes, light or dark, the type, the shape
   'Teal': 'Teal',
