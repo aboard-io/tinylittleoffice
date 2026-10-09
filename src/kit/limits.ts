@@ -5,6 +5,7 @@
  * (Ported from the old tree's src/lib/limits.ts.)
  */
 import { t } from './i18n.ts';
+import { SHORT_MAX, shortCost, TINIER } from './short.ts';
 
 export interface Target {
   id: string;
@@ -44,7 +45,12 @@ export const TARGETS: Target[] = [
   // NFC tags hold a link as an NDEF record: 7 bytes of framing, and "https://" packed into one.
   { id: 'ntag215', name: () => t('NTAG215 tag'), max: 504, cost: (u) => bytes(u) - 7 + 7, note: () => t('an NFC sticker (504 bytes)') },
   { id: 'ntag216', name: () => t('NTAG216 tag'), max: 888, cost: (u) => bytes(u) - 7 + 7, note: () => t('a bigger NFC sticker (888 bytes)') },
+  // The shortener keeps the link encrypted; what it holds is the ciphertext, and it holds 16 KiB of it.
+  { id: 'short', name: () => t('Short link'), max: SHORT_MAX, cost: shortCost, note: () => t('what the shortener holds, encrypted') },
 ];
+
+/** How long a short link itself is: the service, seven letters of id, "#" and a 43-character key; the owner's has ".<o>" after that. */
+export const shortLinkLength = (owner = false): number => TINIER.length + 7 + 1 + 43 + (owner ? 44 : 0);
 
 export interface Room {
   target: Target;
