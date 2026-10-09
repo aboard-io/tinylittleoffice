@@ -66,9 +66,10 @@ One bar per app, Insert ▾, direct manipulation. Ponytail minimalism.
 | Map | places | trip |
 | Page | a web page | website, quick links, invoice, contract? |
 | Calculator | a tape | — |
-| Wordsearch, Spinner, Santa, Split | small tools people asked for | — |
 
-Hidden: web (embeds), qr (the deck's closing slide).
+Hidden: web (embeds), qr (the deck's closing slide). The small tools (wordsearch, spinner, santa, split) are
+dropped (Paul, 2026-10-09), as are list mode and the lenient importers of loosely written documents (pre-launch:
+no compatibility code).
 
 The names people read, by app id (Paul, 2026-10-09: "We need to rename the apps to be very generic"; the ids,
 folders and routes do not change): write, the Word Processor; sheet, the Spreadsheet; calc, the Calculator; deck,
