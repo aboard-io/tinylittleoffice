@@ -3,7 +3,8 @@
 // order; a short link made here comes big with Copy, the owner link folded under it.
 import { test, expect, afterEach, vi } from 'vitest';
 import { mount, until } from './helpers.ts';
-import { encodeDoc } from '../../src/kit/codec.ts';
+import { decodeDoc, encodeDoc } from '../../src/kit/codec.ts';
+import { parseHash } from '../../src/kit/route.ts';
 import { parse, write } from '../../src/doc/index.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -53,7 +54,9 @@ test('opened from an owner link, the document can update its short link; the sha
     await text.updateComplete;
   }
   await shell.updateComplete;
-  const again = encodeDoc(write(parse('Hello again')));
+  // (The first change stamps the time the document was first written into its head.)
+  const again = parseHash(location.hash).payload;
+  expect(decodeDoc(again).replace(/^---\ncreated: \d{4}-\d\d-\d\dT\d\d:\d\dZ\n---\n/, '')).toBe(write(parse('Hello again')));
   expect(location.hash).toContain(OWNED);
   expect(location.hash.startsWith(`#/v1/write/${again}?`)).toBe(true);
   expect(shell.link).toBe(`${location.origin}${location.pathname}#/v1/write/${again}`);
