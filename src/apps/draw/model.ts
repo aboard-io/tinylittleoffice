@@ -31,8 +31,11 @@
  * is `cells` on its row; one added or taken away is `rows`; the joins that must be renumbered are `cells`;
  * a column that is wanted and missing is `cols`. The one `splice` is the table's birth and death (and the
  * pixel block, which is replaced whole, as a paragraph is).
+ *
+ * The clipboard carries shapes as a drawing of their own (shapesToTlo): a table of their rows, the joins among
+ * them numbered within it, so a copy pastes into another drawing, into Motion, or into a sheet as a table.
  */
-import { apply, columnsOf, plainText, type Block, type Column, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import { apply, columnsOf, parse, plainText, write, type Block, type Column, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
 import { t } from '../../kit/i18n.ts';
 import { TILE_INKS, TILE_SIDES, parseTile, tileOf, type Tile } from '../../kit/tile.ts';
 
@@ -462,4 +465,61 @@ export function floodSquare(p: Tile, x: number, y: number, ink: string): Tile {
     stack.push([cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]);
   }
   return { n: p.n, rows: grid.map((r) => r.join('')) };
+}
+
+/* ---------- the clipboard: shapes as a drawing of their own ---------- */
+
+/** Joins kept only where both their shapes are there (and are no joins), renumbered past the ones dropped. */
+function keepJoins(shapes: Shape[]): Shape[] {
+  const ok = (n: number) => Number.isInteger(n) && !!shapes[n] && !isLink(shapes[n].k);
+  const keep = shapes.map((s) => !isLink(s.k) || (ok(s.x) && ok(s.y) && s.x !== s.y));
+  const now: number[] = [];
+  let n = 0;
+  keep.forEach((k, i) => (now[i] = k ? n++ : -1));
+  return shapes.flatMap((s, i) => (!keep[i] ? [] : isLink(s.k) ? [{ ...s, x: now[s.x], y: now[s.y] }] : [s]));
+}
+
+/** Shapes picked out of a drawing by number, in the drawing's order, as a drawing of their own: the joins among them renumbered, joins to a shape left behind dropped. */
+export function pickShapes(all: Shape[], picked: number[]): Shape[] {
+  const order = [...new Set(picked)].filter((i) => all[i]).sort((a, b) => a - b);
+  const now = new Map(order.map((old, i) => [old, i]));
+  return keepJoins(order.map((i) => (isLink(all[i].k) ? { ...all[i], x: now.get(all[i].x) ?? -1, y: now.get(all[i].y) ?? -1 } : all[i])));
+}
+
+/** Shapes as the table that holds them (Points only when one is drawn with the pen or by hand). */
+export function shapesTable(shapes: Shape[]): TableBlock {
+  const fields = shapes.some((s) => isDrawn(s.k)) ? [...BASE, 'points' as const] : BASE;
+  return { k: 'table', cols: fields.map(col), rows: shapes.map((s) => fields.map((f) => shapeCells(s)[f])) };
+}
+
+/** Shapes as a complete drawing in TLO: what the clipboard's text holds. */
+export const shapesToTlo = (shapes: Shape[]): string => write({ head: {}, blocks: [shapesTable(shapes)] });
+
+/** Shapes read from pasted text: the first table with a Kind column, its joins numbered within it (joins to shapes not there dropped). [] when there is none. */
+export function shapesFromText(text: string): Shape[] {
+  const doc = parse(text.replace(/\r\n?/g, '\n'));
+  const at = shapesAt(doc);
+  return at < 0 ? [] : keepJoins(tableShapes(doc.blocks[at] as TableBlock).shapes);
+}
+
+/**
+ * Shapes pasted into a drawing: added at the end as one `rows` op (after the table's birth or a missing
+ * column, if need be), each a grid step down and to the right of where it was (further, while a shape already
+ * sits there, so a paste over its copy shows), the joins among them renumbered to their new rows. `sel` is the
+ * last pasted shape that is no join (the one drawn on top).
+ */
+export function pasteShapes(doc: Doc, shapes: Shape[]): { ops: Op[]; sel: number } {
+  const kept = keepJoins(shapes);
+  if (!kept.length) return { ops: [], sel: -1 };
+  const have = readDrawing(doc).shapes;
+  const base = have.length;
+  const first = kept.find((s) => !isLink(s.k));
+  let d = GRID;
+  while (first && have.some((s) => !isLink(s.k) && s.k === first.k && s.x === first.x + d && s.y === first.y + d)) d += GRID;
+  const moved = kept.map((s) => (isLink(s.k) ? { ...s, x: s.x + base, y: s.y + base } : { ...s, x: s.x + d, y: s.y + d }));
+  const b = ensure(new Builder(doc), moved.some((s) => isDrawn(s.k)) ? [...BASE, 'points'] : BASE);
+  b.push({ op: 'rows', at: b.view.at, r: b.table.rows.length, n: moved.length, rows: moved.map((s) => rowOf(b, s)) });
+  let last = moved.length - 1;
+  while (last > 0 && isLink(moved[last].k)) last--;
+  return { ops: b.ops, sel: base + last };
 }

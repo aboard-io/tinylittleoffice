@@ -1,4 +1,4 @@
-/* Draw: the canvas in a frame that scrolls when zoomed, the hint line under the bar, the label over its shape, the pixel grid. */
+/* Draw: the canvas in a frame that scrolls when zoomed, the hint line under the bar, the words over their shape, the pixel grid. */
 @layer apps {
   to-draw-editor {
     display: flex;
@@ -25,6 +25,11 @@
   .draw-wrap:focus-visible {
     outline: 2px solid var(--to-accent);
     outline-offset: -2px;
+  }
+  /* The canvas and the words over it share one box, as wide as the zoom says. */
+  .draw-stage {
+    position: relative;
+    margin: 0 auto;
   }
   svg.draw-canvas {
     display: block;
@@ -79,26 +84,37 @@
   .draw-alt-dialog .to-row {
     justify-content: flex-end;
   }
-  /* The label, in a box over its shape. */
-  .draw-label-pop {
-    position: fixed;
+  /* The words, typed on the shape itself: an overlay over the canvas, the shape's own font at the size it is shown
+     (set at 16px or more and scaled, so iOS does not zoom); the editor places it (placeWords). */
+  .draw-words {
+    position: absolute;
+    z-index: 1;
     margin: 0;
-    padding: 6px;
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
-    background: var(--to-surface);
-    box-shadow: var(--to-shadow-pop);
-    color: var(--to-ink);
+    padding: 0 2px;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    outline: 1px solid var(--to-accent);
+    outline-offset: 2px;
+    font-family: var(--to-font);
+    line-height: 1.25;
+    text-align: center;
+    white-space: pre;
+    transform-origin: 0 0;
+    cursor: text;
+    touch-action: manipulation;
+    user-select: text;
+    -webkit-user-select: text;
   }
-  .draw-label {
-    width: min(260px, calc(100vw - 48px));
-    height: 36px;
-    padding: 0 10px;
-    border: 1px solid var(--to-input-border);
-    border-radius: var(--to-radius-sm);
-    background: var(--to-input-bg);
-    color: var(--to-ink);
-    font: 16px var(--to-font);
+  .draw-words.wrap {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .draw-words.left {
+    text-align: left;
+  }
+  .draw-words[hidden] {
+    display: none;
   }
   /* A colour in hand, in the pixel bar. */
   .draw-swatch .to-swatch {

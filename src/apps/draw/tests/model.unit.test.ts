@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { blankTile, parseTile, tileCss, tilePattern, tileRef, tileSvg } from '../../../kit/tile.ts';
-import { addShape, describeDrawing, type Shape, duplicate, floodSquare, paintSquare, patchShape, readDrawing, removeShape, restack, setAlt, setGrid, setPixels, setTile, simplify, strokeShape } from '../model.ts';
+import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, restack, setAlt, setGrid, setPixels, setTile, simplify, strokeShape } from '../model.ts';
 import { drawingPage, drawingToSvg, shapeSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def, { tileOfDoc } from '../def.ts';
@@ -219,4 +219,44 @@ test('every template is a real document that round-trips byte for byte and draws
   expect(def.title('---\ntitle: Flow\n---\n' + DRAWING)).toBe('Flow');
   expect(def.retitle(DRAWING, 'Flow')).toBe('---\ntitle: Flow\n---\n' + DRAWING);
   expect(def.retitle('---\ntitle: Flow\n---\n' + DRAWING, '')).toBe(DRAWING);
+});
+
+test('the clipboard: shapes picked out as a drawing of their own, the joins among them renumbered and the rest dropped', () => {
+  const all = readDrawing(parse(DRAWING + 'r | 10 | 20 | 4 | 4 | 0 | Cache\nj | 1 | 3 | 0 | 0 | 0 |\n')).shapes;
+  // Server, the cache and the line between them: the join from Browser goes, the line is numbered within the copy.
+  const picked = pickShapes(all, [3, 4, 1, 2]);
+  expect(picked.map((s) => [s.k, s.x, s.y])).toEqual([['o', 256, 48], ['r', 80, 160], ['j', 0, 1]]);
+  expect(pickShapes(all, [2])).toEqual([]);
+  const tlo = shapesToTlo(picked);
+  expect(tlo).toBe('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 32 | 6 | 16 | 8 | 1b | Server\nr | 10 | 20 | 4 | 4 | 0 | Cache\nj | 0 | 1 | 0 | 0 | 0 |\n');
+  expect(write(parse(tlo))).toBe(tlo);
+  expect(shapesFromText(tlo)).toEqual(picked);
+  // Points come along for a shape drawn by hand.
+  expect(shapesToTlo([{ k: 'w', x: 8, y: 8, w: 16, h: 16, f: 0, text: '', pts: [0, 0, 100, 100] }])).toContain('| Points\n');
+  // Read from anything holding a drawing's table: words around it, CRLF; a join to a shape not there is dropped.
+  expect(shapesFromText('Some words\r\n\r\nKind | X | Y\r\n--- | --- | ---\r\nr | 1 | 1\r\nk | 0 | 5\r\n').map((s) => s.k)).toEqual(['r']);
+  expect(shapesFromText('just words')).toEqual([]);
+});
+
+test('the clipboard: shapes pasted as one rows op, a grid step down and right (further while a copy sits there), joins renumbered, the last shape chosen', () => {
+  const doc = parse(DRAWING);
+  const copy = shapesFromText(shapesToTlo(pickShapes(readDrawing(doc).shapes, [0, 1, 2])));
+  const { ops, sel } = pasteShapes(doc, copy);
+  expect(ops).toEqual([{ op: 'rows', at: 0, r: 3, n: 3, rows: [['o', '5', '7', '16', '8', '1b', 'Browser'], ['o', '33', '7', '16', '8', '1b', 'Server'], ['k', '3', '4', '0', '0', '0', 'asks']] }]);
+  expect(sel).toBe(4);
+  const once = applyAll(doc, ops);
+  // A second paste of the same copy lands a step further on, so it shows.
+  const again = pasteShapes(once, copy);
+  expect((again.ops[0] as Extract<Op, { op: 'rows' }>).rows![0].slice(0, 3)).toEqual(['o', '6', '8']);
+  // Into an empty drawing: the table is born, then the rows.
+  const fresh = pasteShapes(parse(''), [{ k: 'r', x: 8, y: 8, w: 32, h: 16, f: 0, text: 'Hi' }]);
+  expect(fresh.ops.map((o) => o.op)).toEqual(['splice', 'rows']);
+  expect(write(applyAll(parse(''), fresh.ops))).toBe('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 2 | 4 | 2 | 0 | Hi\n');
+  expect(pasteShapes(doc, [])).toEqual({ ops: [], sel: -1 });
+});
+
+test('a text shape draws " | " as a new line, like a note', () => {
+  const svg = shapeSvg({ k: 't', x: 0, y: 0, w: 200, h: 40, f: 0, text: 'One | Two' });
+  expect(svg.match(/<text /g)).toHaveLength(2);
+  expect(svg).not.toContain('|');
 });
