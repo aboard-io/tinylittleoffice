@@ -349,6 +349,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  table.sheet td to-text.rich .tx > * {
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   table.sheet td to-text.rich.locked .tx {
     background: var(--to-surface-2);
     color: var(--to-ink-2);

@@ -2,11 +2,12 @@
 // undo takes an edit back, and at phone width the bar is one row and the page never scrolls.
 import { test, expect } from 'vitest';
 import { page } from 'vitest/browser';
+// The cascade's order first (tokens, kit, apps), as on the page: the editor's sheet is in the apps layer.
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToSheetEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 const SHEET = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)\n';
 const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n';
@@ -445,6 +446,9 @@ test('a rich cell is edited in its words, never in Markdown: the bubble marks th
   // Drawn rich, no marker in sight.
   expect(a1.tx.textContent).toBe('big news');
   expect(a1.tx.querySelector('strong, b')!.textContent).toBe('big');
+  // One line, however narrow the column: the cell is as tall as its neighbours.
+  expect(getComputedStyle(a1.tx.firstElementChild!).whiteSpace).toBe('pre');
+  expect(a1.closest('td')!.clientHeight).toBe(cell(el, 'B1').closest('td')!.clientHeight);
   // Reached, its words are selected whole; the strip shows them plain, read-only.
   cell(el, 'B1').focus();
   cell(el, 'B1').setSelectionRange(0, 0);
