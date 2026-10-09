@@ -535,9 +535,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const v = this.view;
     return html`<to-bar class="draw-bar">
       <to-menu class="draw-mode" .label=${t('Pixels, {n} by {n}', { n: v.grid })} .icon=${Grid2x2} caret .items=${this.modeItems()}></to-menu>
-      ${PIXEL_INKS.map((ink) => html`<button type="button" class="to-btn to-tool draw-swatch" aria-label=${ink.name()} title=${ink.name()} aria-pressed=${String(this.ink === ink.k && this.pmode === 'pen')} @click=${() => ((this.ink = ink.k), (this.pmode = 'pen'))}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`)}
-      ${tool({ label: t('Eraser'), icon: Eraser, pressed: this.ink === '.', does: () => ((this.ink = '.'), (this.pmode = 'pen')) })}
-      ${tool({ label: t('Pencil'), icon: Pencil, pressed: this.pmode === 'pen' && this.ink !== '.', does: () => ((this.pmode = 'pen'), this.ink === '.' && (this.ink = 'a')) })}
+      ${PIXEL_INKS.map((ink) => html`<button type="button" class="to-btn to-tool draw-swatch" aria-label=${ink.name()} title=${ink.name()} aria-pressed=${String(this.ink === ink.k)} @click=${() => (this.ink = ink.k)}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`)}
+      ${tool({ label: t('Eraser'), icon: Eraser, pressed: this.ink === '.', does: () => (this.ink = '.') })}
+      ${tool({ label: t('Pencil'), icon: Pencil, pressed: this.pmode === 'pen', does: () => ((this.pmode = 'pen'), this.ink === '.' && (this.ink = 'a')) })}
       ${tool({ label: t('Fill'), icon: PaintBucket, pressed: this.pmode === 'fill', does: () => ((this.pmode = 'fill'), this.ink === '.' && (this.ink = 'a')) })}
       ${tool({ label: t('Clear the grid'), icon: Trash2, disabled: !tileFilled(v.pixels), does: () => this.clearPixels() })}
       ${btn({ label: t('Use as background'), icon: Wallpaper, disabled: !tileFilled(v.pixels), does: () => this.useAsBackground() })}

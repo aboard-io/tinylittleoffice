@@ -24,13 +24,16 @@ async function editor(value = ''): Promise<{ el: ToDrawEditor; last: () => strin
   return { el, changes, last: () => changes.at(-1) };
 }
 const button = (el: HTMLElement, label: string) => el.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+const byWords = (el: HTMLElement, words: string) => [...el.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.includes(words))!;
 const canvas = (el: HTMLElement) => el.querySelector<SVGSVGElement>('svg.draw-canvas')!;
-/** A pointer put down and lifted at a point of the canvas, in canvas units (640 by 400). */
+/** A pointer put down and lifted at a point of the canvas, in canvas units (640 by 400): on whatever is drawn there, as a real pointer lands. */
 async function tap(el: ToDrawEditor, x: number, y: number, to?: [number, number]) {
   const svg = canvas(el);
   const b = svg.getBoundingClientRect();
   const at = (cx: number, cy: number) => ({ clientX: b.left + (cx / 640) * b.width, clientY: b.top + (cy / 400) * b.height, button: 0, buttons: 1, pointerId: 1, bubbles: true, isPrimary: true });
-  svg.dispatchEvent(new PointerEvent('pointerdown', at(x, y)));
+  const down = at(x, y);
+  const under = document.elementFromPoint(down.clientX, down.clientY);
+  (under && svg.contains(under) ? under : svg).dispatchEvent(new PointerEvent('pointerdown', down));
   if (to) svg.dispatchEvent(new PointerEvent('pointermove', at(to[0], to[1])));
   svg.dispatchEvent(new PointerEvent('pointerup', { ...at(...(to ?? [x, y])), buttons: 0 }));
   await el.updateComplete;
@@ -98,15 +101,18 @@ test('tapping a shape selects it; a drag moves it; Enter opens the label over it
   expect(last()).toContain('| 1g | Client\n');
   await pick(el, el.querySelector<HTMLButtonElement>('.draw-style button')!, 'Solid');
   expect(last()).toContain('| 2g | Client\n');
+  // Already at the back, Send to back writes nothing; Bring to front moves the row to the end and the join follows.
+  const n = last()!;
   await pick(el, el.querySelector<HTMLButtonElement>('.draw-arrange button')!, 'Send to back');
-  expect(last()!.split('\n')[2]).toBe('o | 32 | 6 | 16 | 8 | 1b | Server');
-  expect(last()!.split('\n')[4]).toBe('k | 1 | 0 | 0 | 0 | 0 | asks');
+  expect(last()).toBe(n);
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-arrange button')!, 'Bring to front');
+  expect(last()!.split('\n').slice(2)).toEqual(['o | 32 | 6 | 16 | 8 | 1b | Server', 'k | 2 | 0 | 0 | 0 | 0 | asks', 'o | 12 | 10 | 16 | 8 | 2g | Client', '']);
 });
 
 test('Insert places a shape in the middle; the alt dialog asks until written and saves on Done', async () => {
   const { el, last, changes } = await editor(DRAWING);
   await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Cylinder');
-  expect(last()).toContain('\nc | 34 | 22 | 12 | 6 | 0 |\n');
+  expect(last()).toContain('\nc | 40 | 28 | 12 | 6 | 0 |\n');
   const alt = el.querySelector<HTMLButtonElement>('.draw-alt')!;
   expect(alt.getAttribute('aria-label')).toMatch(/^Add alt text/);
   alt.click();
@@ -143,23 +149,27 @@ test('pixel mode: the menu sets the grid, taps paint squares, fill floods, Use a
   key(el, 'Enter');
   await el.updateComplete;
   expect(last()).toBe('---\ngrid: 8\n---\ncc\nc\n');
-  button(el, 'Fill').click();
   button(el, 'Sky').click();
+  button(el, 'Fill').click();
   await el.updateComplete;
+  expect(button(el, 'Sky').getAttribute('aria-pressed')).toBe('true');
   grid.dispatchEvent(new PointerEvent('pointerdown', at(7, 7)));
   grid.dispatchEvent(new PointerEvent('pointerup', { ...at(7, 7), buttons: 0 }));
   await el.updateComplete;
   expect(last()!.split('\n')[3]).toBe('ccgggggg');
   expect(last()!.split('\n')[4]).toBe('cggggggg');
   button(el, 'Eraser').click();
+  await el.updateComplete;
+  expect(button(el, 'Fill').getAttribute('aria-pressed')).toBe('true');
   button(el, 'Pencil').click();
   await el.updateComplete;
   expect(button(el, 'Eraser').getAttribute('aria-pressed')).toBe('false');
+  expect(button(el, 'Black').getAttribute('aria-pressed')).toBe('true');
   const n = last()!;
   el.querySelector<HTMLButtonElement>('.draw-bar button:has(> span.to-swatch)')!.click();
   await el.updateComplete;
   expect(last()).toBe(n);
-  button(el, 'Use as background').click();
+  byWords(el, 'Use as background').click();
   await el.updateComplete;
   const doc = last()!;
   expect(doc.startsWith('---\ntile: 8:ccgggggg/cggggggg/gggggggg/gggggggg/gggggggg/gggggggg/gggggggg/gggggggg\n---\n')).toBe(true);
