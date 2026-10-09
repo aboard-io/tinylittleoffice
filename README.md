@@ -18,7 +18,7 @@ src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, 
                 the rest of Lucide and icons-meta, its tags and categories), app (the AppDef contract), apps
                 (registry), element (DocElement: every editor's base, with the op-log undo), draw (pages, the
                 palette), tile (a repeating background tile in one head field: `tile: 8:a..a/.a.a`), chart
-                (bars, lines, pie, Sankey), csv, zip, xlsx (a table block as a workbook), embeds (a thing from the web by
+                (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded lines, escaped text), zip, xlsx (a table block as a workbook), embeds (a thing from the web by
                 its address: the providers and the click-to-load <to-embed> card); the editor: text (<to-text>), textops
                 (its maths), clipboard, history (the op log), note-pop, link-pop
 src/doc/        the document kernel (docs/kernel.md)
