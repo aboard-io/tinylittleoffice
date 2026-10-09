@@ -93,12 +93,14 @@
   .deck-title .tx li::before {
     content: none;
   }
+  /* The words take the room under the headline; more words than the shape holds make the canvas taller
+     rather than hide them (the rail shows the slide as it will really fit). */
   .deck-words-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 4.2cqw;
     flex: 1;
-    min-height: 0;
+    min-height: auto;
   }
   .lay-2 .deck-words-row,
   .lay-i .deck-words-row {

@@ -99,6 +99,11 @@ test('Insert ▾ makes a slide of a layout after this one, with the caret in its
   thumbs(el)[1].click();
   await el.updateComplete;
   expect(el.cur).toBe(1);
+  // The headline box holds the words alone; the icon stays in front of whatever is typed.
+  expect(box(el, 'title').textContent!.trim()).toBe('Tonight');
+  await caretIn(el, 'title');
+  await type(el, box(el, 'title'), '!');
+  expect(last()).toContain('## :compass: Tonight!\n');
   await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Two-column slide');
   expect(el.cur).toBe(2);
   expect(thumbs(el)).toHaveLength(7);
