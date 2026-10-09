@@ -6,7 +6,9 @@
  * update, and stays in the address while they edit; every link the shell shares is written without it.
  * "…?d" is the Display Link: the same document shown as its pages, to read or print, with an Edit button
  * (never inside the payload, so the document is the same bytes either way). tinier hands an owner on by
- * adding "?s=…" to whatever link it held, so "?d?s=…" reads as "?d&s=…".
+ * adding "?s=…" to whatever link it held, so "?d?s=…" reads as "?d&s=…". Everyone who arrives by a short link
+ * arrives with "?s=<id>&x=<expires>" (ms since the epoch), the owner with k and o too: the shell shows how long
+ * the link has left (Paul, 2026-10-09), and keeps x in the address beside the owner's query.
  * Pure: the shell and the tests both read links through here.
  */
 
@@ -33,6 +35,8 @@ export interface Route {
   owned: Owned | null;
   /** Shown as its pages to read (the Display Link), not opened in the editor. */
   display: boolean;
+  /** Arrived by a short link: its id, and when it expires (ms since the epoch); null otherwise. */
+  arrived: { id: string; expires: number } | null;
 }
 
 const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?(?:\?(.*))?$/;
@@ -46,14 +50,17 @@ function parseOwned(q: URLSearchParams): Owned | null {
 
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);
-  if (!m) return { app: null, payload: '', version: LINK_VERSION, view: '', owned: null, display: false };
+  if (!m) return { app: null, payload: '', version: LINK_VERSION, view: '', owned: null, display: false, arrived: null };
   const q = new URLSearchParams((m[5] ?? '').replace(/\?/g, '&'));
-  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d') };
+  const id = q.get('s') ?? '', x = q.get('x') ?? '';
+  const arrived = /^[a-z0-9]{7}$/.test(id) && /^\d{1,15}$/.test(x) ? { id, expires: Number(x) } : null;
+  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived };
 }
 
-/** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update; with `display`, the Display Link. */
-export function routeHash(app: string, payload = '', view = '', owned: Owned | null = null, display = false): string {
-  const parts = [...(display ? ['d'] : []), ...(owned ? [`s=${owned.id}`, `k=${owned.key}`, `o=${owned.o}`] : [])];
+/** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update; with `display`, the Display Link; with `arrived`, the short link it came by and when that expires. */
+export function routeHash(app: string, payload = '', view = '', owned: Owned | null = null, display = false, arrived: Route['arrived'] = null): string {
+  const tie = owned ? [`s=${owned.id}`, `k=${owned.key}`, `o=${owned.o}`] : arrived ? [`s=${arrived.id}`] : [];
+  const parts = [...(display ? ['d'] : []), ...tie, ...(arrived && (!owned || owned.id === arrived.id) ? [`x=${arrived.expires}`] : [])];
   const query = parts.length ? `?${parts.join('&')}` : '';
   return `${LINK}${app}${view ? '.' + view : ''}${payload ? '/' + payload : ''}${query}`;
 }

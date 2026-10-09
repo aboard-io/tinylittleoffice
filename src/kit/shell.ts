@@ -5,6 +5,12 @@
  * Share and Download; the hamburger opens <to-drawer>; the home page is <to-home>. A Display Link ("?d",
  * kit/route.ts) shows the document's pages instead, to read or print, with an Edit button.
  *
+ * Share opens one dialog (Paul, 2026-10-09: "The short link function modal needs to be redesigned"): the
+ * title and where the link fits in one line; Copy link and Copy display link; a short link that expires (the
+ * lifetimes as one row, Make, then the link with Copy; its owner's Update, Extend and Forget); the QR code;
+ * the short links kept here. Arriving by a short link ("?s=…&x=…"), a banner above the bar says how long the
+ * link has left, coloured by how soon, with Copy into a new document, and Extend for the owner.
+ *
  * A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the first number that day's documents
  * of the app in the library leave free): the name is shown in the title box and goes into the head with the
  * first change, so a blank page left alone writes nothing (Paul, 2026-10-09).
@@ -20,10 +26,11 @@ import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportAs, exportItems, picture, raster, saveFile, slug, utf8 } from './exports.ts';
 import { parseHash, routeHash, type Owned } from './route.ts';
-import { roomFor, roomRows, shortLinkLength } from './limits.ts';
-import { EXPIRIES, forget, ownerLink, shorten, shortLink, update, type Shortened } from './short.ts';
+import { fitLine } from './limits.ts';
+import { DEFAULT_TTL, EXPIRIES, expiresLine, expiresSentence, forget, ownerLink, shorten, shortLink, timeLeft, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
 import { keeping } from './privacy.ts';
+import { store } from './store.ts';
 import { firstFree, firstWords, keep, library, localDay, type Kept } from './library.ts';
 import { pageSvg } from './draw.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
@@ -34,17 +41,21 @@ import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from '.
 import { mark } from './mark.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
-import type { MenuItem } from './menu.ts';
 import './toast.ts';
 import './menu.ts';
 import './dialog.ts';
 import './drawer.ts';
 import './home.ts';
 
-type Which = 'doc' | 'qr' | 'short';
+/** Where the lifetime chosen for short links is remembered (under Saved; for the visit under Private). */
+const TTL_KEY = 'tinyoffice.shortTtl';
+const savedTtl = () => {
+  const n = Number(store.get(TTL_KEY));
+  return EXPIRIES.some((x) => x.seconds === n) ? n : DEFAULT_TTL;
+};
 
 export class ToShell extends LitElement {
-  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true } };
+  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { state: true } };
   declare app: string | null;
   declare doc: Doc;
   /** The editor element's tag, once its chunk has arrived. */
@@ -65,6 +76,14 @@ export class ToShell extends LitElement {
   /** Which link the QR code holds, and which a short link opens: the Display Link, or the editing one. */
   declare qrDisplay: boolean;
   declare shortDisplay: boolean;
+  /** The Share dialog is open: what it shows (the QR code above all) is drawn only then. */
+  declare sharing: boolean;
+  /** When the short link this document is tied to expires (arrived by, or made here), ms since the epoch; 0 when none is known. */
+  declare expires: number;
+  /** Arrived by a short link this visit, its banner not closed. */
+  declare arrived: boolean;
+  /** The page scrolled past the top: the banner goes small. */
+  declare scrolled: boolean;
   /** What the editor was last given or gave: the document without the new name the link carries for it. */
   private edited: Doc = '';
   private offLanguage = () => {};
@@ -85,7 +104,7 @@ export class ToShell extends LitElement {
     this.tag = '';
     this.unreadable = false;
     this.short = null;
-    this.shortTtl = EXPIRIES[1].seconds;
+    this.shortTtl = savedTtl();
     this.busy = false;
     this.owned = null;
     this.changed = false;
@@ -93,6 +112,10 @@ export class ToShell extends LitElement {
     this.fresh = '';
     this.qrDisplay = false;
     this.shortDisplay = false;
+    this.sharing = false;
+    this.expires = 0;
+    this.arrived = false;
+    this.scrolled = false;
   }
   createRenderRoot() {
     return this;
@@ -102,6 +125,7 @@ export class ToShell extends LitElement {
     window.addEventListener('hashchange', this.onHash);
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('pagehide', this.flushKeep);
+    window.addEventListener('scroll', this.onScroll, { passive: true });
     this.offLanguage = onLanguage(() => this.requestUpdate());
     this.offPictures = onPictures(() => this.requestUpdate());
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
@@ -114,6 +138,7 @@ export class ToShell extends LitElement {
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pagehide', this.flushKeep);
+    window.removeEventListener('scroll', this.onScroll);
     this.flushKeep();
     this.offLanguage();
     this.offPictures();
@@ -133,7 +158,7 @@ export class ToShell extends LitElement {
 
   private onHash = () => {
     this.flushKeep();
-    const { app, payload, view, owned, display } = parseHash(location.hash);
+    const { app, payload, view, owned, display, arrived } = parseHash(location.hash);
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     const def = id ? appOf(id) : undefined;
     this.app = def ? id : null;
@@ -149,6 +174,8 @@ export class ToShell extends LitElement {
     this.display = !!def && display && !!payload;
     // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
     if (owned && display) this.shortDisplay = true;
+    this.expires = def && arrived ? arrived.expires : 0;
+    this.arrived = !!def && !!arrived;
     this.fresh = def && !payload ? this.newName(def) : '';
     const state = history.state as { kept?: unknown } | null;
     const hash = def && payload ? routeHash(def.id, payload) : '';
@@ -167,7 +194,7 @@ export class ToShell extends LitElement {
     const view = this.pendingView;
     this.pendingView = '';
     if (!view || !this.def) return;
-    history.replaceState(this.state(), '', routeHash(this.def.id, encodeDoc(this.doc), '', this.owned));
+    history.replaceState(this.state(), '', routeHash(this.def.id, encodeDoc(this.doc), '', this.owned, false, this.tie));
     try {
       const name = await exportAs(view, this.current());
       if (name) toast(t('Downloaded {name}', { name }));
@@ -184,7 +211,7 @@ export class ToShell extends LitElement {
     const payload = encodeDoc(doc);
     this.payloadLength = payload.length;
     this.keepSoon(payload);
-    history.replaceState(this.state(), '', routeHash(this.app, payload, '', this.owned));
+    history.replaceState(this.state(), '', routeHash(this.app, payload, '', this.owned, false, this.tie));
     this.changed = true;
     this.setTitle();
   }
@@ -252,6 +279,10 @@ export class ToShell extends LitElement {
     u.hash = routeHash(this.app, parseHash(location.hash).payload, '', null, display);
     return u.href;
   }
+  /** The short link this document owns and its expiry, as the address carries them beside the owner's query; null unless both are known. */
+  private get tie() {
+    return this.owned && this.expires ? { id: this.owned.id, expires: this.expires } : null;
+  }
   /** What a short link opens. */
   private get shortTarget() {
     return this.shortDisplay ? this.displayLink : this.link;
@@ -291,28 +322,38 @@ export class ToShell extends LitElement {
 
   /* ---------- sharing ---------- */
 
-  private dialog(which: Which): ToDialog | null {
-    return this.querySelector<ToDialog>(`to-dialog.to-${which}`);
+  private get shareDialog(): ToDialog | null {
+    return this.querySelector<ToDialog>('to-dialog.to-share-dialog');
   }
-  private shareItems(): MenuItem[] {
-    const def = this.def!;
-    const title = this.docTitle;
-    // Every label two words at most, so none wraps; what more there is to say is the hint under it.
-    const group = t('Short link');
-    return [
-      { label: t('Link'), hint: t('Copied, it opens the editor'), icon: UI.link, does: () => void copyText(this.link) },
-      { label: t('Display Link'), hint: t('Copied, it opens the pages to read'), icon: UI.view, does: () => void copyText(this.displayLink) },
-      ...(canShareNative() ? [{ label: t('Share…'), icon: UI.share, does: async () => shareNative(title, this.link, await picture(def.view(this.doc))) }] : []),
-      { label: t('QR code'), icon: UI.qr, does: () => void this.dialog('qr')?.show() },
-      ...(this.owned
-        ? [
-            ...(this.changed ? [{ group, label: t('Update'), hint: t('Give it this version'), icon: UI.link, does: () => void this.updateShort() }] : []),
-            { group, label: t('Extend…'), hint: t('A longer life'), icon: UI.link, does: () => void this.dialog('short')?.show() },
-            { group, label: t('Forget'), hint: t('Nothing left there'), icon: UI.close, does: () => void this.forgetShort() },
-          ]
-        : [{ label: t('Short link…'), hint: t('Expires when you choose'), icon: UI.link, does: () => void this.dialog('short')?.show() }]),
-    ];
+  /** The Share dialog, open; `short` scrolls it to the short link's section (the banner's Extend). */
+  async openShare(short = false) {
+    this.sharing = true;
+    await this.updateComplete;
+    await this.shareDialog?.show();
+    if (!short) return;
+    const section = this.querySelector<HTMLElement>('.to-share-short');
+    section?.scrollIntoView({ block: 'start' });
+    section?.querySelector<HTMLInputElement>('input[type=radio]:checked')?.focus({ preventScroll: true });
   }
+  private onScroll = () => {
+    const past = window.scrollY > 24;
+    if (past !== this.scrolled) this.scrolled = past;
+  };
+  /** The lifetime chosen, remembered. */
+  private setTtl(seconds: number) {
+    this.shortTtl = seconds;
+    store.set(TTL_KEY, String(seconds));
+  }
+  /** This document, as a fresh plain link in a new tab: "Copy of …", no owner, nothing tying it to the short link. */
+  copyIntoNew = () => {
+    const def = this.def;
+    if (!def) return;
+    const doc = def.retitle(this.doc, t('Copy of {title}', { title: this.docTitle }));
+    const u = new URL(location.href);
+    u.hash = routeHash(def.id, encodeDoc(doc));
+    window.open(u.href, '_blank', 'noopener');
+    toast(t('A copy opened in a new tab'));
+  };
   /** A short link made, updated or forgotten: one request, the outcome said, errors said too. */
   private async shortDo(work: () => Promise<void>) {
     this.busy = true;
@@ -329,8 +370,9 @@ export class ToShell extends LitElement {
     this.shortDo(async () => {
       this.short = await shorten(this.shortTarget, this.shortTtl);
       this.owned = this.short.owned;
+      this.expires = this.short.expires;
       this.changed = false;
-      if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned));
+      if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned, false, this.tie));
     });
   /** The short link given this version; with `seconds`, a longer life too. */
   private updateShort = (seconds?: number) =>
@@ -338,7 +380,9 @@ export class ToShell extends LitElement {
       const owned = this.owned!;
       const { ver, expires } = await update(owned, this.shortTarget, seconds);
       this.changed = false;
-      toast(seconds ? t('Expires {when}', { when: new Date(expires).toLocaleString(document.documentElement.lang) }) : t('Updated · version {n}', { n: ver }));
+      this.expires = expires;
+      if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload, '', this.owned, false, this.tie));
+      toast(seconds ? expiresLine(expires, Date.now(), document.documentElement.lang) : t('Updated · version {n}', { n: ver }));
       if (isKept(ownerLink(owned))) keepLink({ owner: ownerLink(owned), title: this.docTitle, made: Date.now(), expires });
     });
   private forgetShort = () => {
@@ -349,8 +393,9 @@ export class ToShell extends LitElement {
       dropKept(ownerLink(owned));
       this.owned = null;
       this.short = null;
+      this.expires = 0;
+      this.arrived = false;
       if (this.app) history.replaceState(this.state(), '', routeHash(this.app, parseHash(location.hash).payload));
-      this.dialog('short')?.close();
       toast(t('Forgotten'));
     });
   };
@@ -386,10 +431,10 @@ export class ToShell extends LitElement {
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
       <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" .value=${title || this.fresh} @focus=${(e: Event) => this.fresh && !title && (e.target as HTMLInputElement).select()} @change=${(e: Event) => this.retitle(def, (e.target as HTMLInputElement).value.trim())} />
-      <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.dialog('doc')?.show()}>
+      <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.openShare()}>
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
       </button>
-      <to-menu class="to-share" icon-only .label=${t('Share')} .icon=${UI.share} .items=${this.shareItems()}></to-menu>
+      <button type="button" class="to-btn to-tool to-share" aria-label=${t('Share')} title=${t('Share')} aria-haspopup="dialog" @click=${() => void this.openShare()}>${icon(UI.share, 22)}</button>
       <to-menu class="to-download" icon-only .label=${t('Download')} .icon=${UI.download} .items=${exportItems(this.current)}></to-menu>
     </header>`;
   }
@@ -402,91 +447,123 @@ export class ToShell extends LitElement {
     this.change(doc);
   }
 
+  private renderDialogs() {
+    if (!this.def || this.display) return nothing;
+    return html`<to-dialog class="to-share-dialog" heading=${this.docTitle} @to-close=${() => ((this.short = null), (this.sharing = false))} .body=${this.sharing ? this.renderShare() : nothing}></to-dialog>`;
+  }
+
+  /** The one Share dialog: where the link fits, the two copies, the short link, the QR code, the short links kept here. */
+  private renderShare() {
+    const def = this.def!;
+    const share = async () => shareNative(this.docTitle, this.link, await picture(def.view(this.doc)));
+    return html`<p class="to-share-fit">${fitLine(this.link)}</p>
+      <div class="to-share-links">
+        <button type="button" class="to-btn to-share-copy to-copy-link" @click=${() => void copyText(this.link)}><span>${icon(UI.link, 18)}${t('Copy link')}</span><small>${t('Opens in the editor')}</small></button>
+        <button type="button" class="to-btn to-share-copy to-copy-display" @click=${() => void copyText(this.displayLink)}><span>${icon(UI.view, 18)}${t('Copy display link')}</span><small>${t('Opens as pages to read')}</small></button>
+        ${canShareNative() ? html`<button type="button" class="to-btn to-share-native" @click=${() => void share()}>${icon(UI.share, 18)}<span>${t('Share…')}</span></button>` : nothing}
+      </div>
+      <section class="to-share-section to-share-short" aria-labelledby="to-share-short-h">
+        <h3 id="to-share-short-h">${t('Short link that expires')}</h3>
+        ${this.short ? this.renderMade(this.short) : this.owned ? this.renderOwned(this.owned) : this.renderMaker()}
+      </section>
+      ${this.renderQr()}
+      ${this.renderKept()}`;
+  }
+
   /** Link or Display Link: a pair of buttons, the one chosen pressed. */
   private renderWhich(display: boolean, choose: (display: boolean) => void) {
-    return html`<div class="to-row to-which" role="group" aria-label=${t('Opens')}>
+    return html`<div class="to-seg to-which" role="group" aria-label=${t('Opens')}>
       <button type="button" class="to-btn" aria-pressed=${String(!display)} @click=${() => choose(false)}>${icon(UI.link, 16)}<span>${t('Link')}</span></button>
       <button type="button" class="to-btn" aria-pressed=${String(display)} @click=${() => choose(true)}>${icon(UI.view, 16)}<span>${t('Display Link')}</span></button>
     </div>`;
   }
-
-  private renderDialogs() {
-    const def = this.def;
-    if (!def || this.display) return nothing;
+  /** The lifetimes, one row of segments (a radio group) writing shortTtl. */
+  private renderTtl() {
+    return html`<fieldset class="to-seg to-ttl"><legend class="sr-only">${t('Expires after')}</legend>${EXPIRIES.map(
+      (x) => html`<label><input type="radio" name="to-ttl" value=${x.seconds} .checked=${x.seconds === this.shortTtl} @change=${() => this.setTtl(x.seconds)} /><span>${x.name()}</span></label>`,
+    )}</fieldset>`;
+  }
+  /** A link to copy: big, read-only, Copy at its right. */
+  private renderField(link: string, cls: string, label: string, primary = true) {
+    return html`<div class="to-share-field">
+      <input type="text" class=${cls} readonly .value=${link} aria-label=${label} @focus=${(e: Event) => (e.target as HTMLInputElement).select()} />
+      <button type="button" class="to-btn ${primary ? 'primary' : ''}" @click=${() => void copyText(link)}>${icon(UI.copy, 16)}<span>${t('Copy')}</span></button>
+    </div>`;
+  }
+  private renderMaker() {
+    return html`${this.renderTtl()}
+      ${this.renderWhich(this.shortDisplay, (d) => (this.shortDisplay = d))}
+      <p class="to-hint">${t('Encrypted here: the service holds only ciphertext, and only until then.')}</p>
+      <button type="button" class="to-btn primary to-make" ?disabled=${this.busy} @click=${() => void this.makeShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Making…') : t('Make a short link')}</span></button>`;
+  }
+  /** Just made: the public link to share, big, and the owner's folded away. */
+  private renderMade(short: Shortened) {
+    const kept = isKept(short.owner);
+    return html`${this.renderField(short.short, 'to-short-field', t('Short link'))}
+      <p class="to-hint to-short-expires">${expiresLine(short.expires, Date.now(), document.documentElement.lang)}</p>
+      <details class="to-owner">
+        <summary>${t('Keep the owner link, to update it later')}</summary>
+        ${this.renderField(short.owner, 'to-owner-field', t('Owner link'), false)}
+        ${keeping()
+          ? html`<button type="button" class="to-btn to-keep" ?disabled=${kept} @click=${() => this.keepShort(short)}>${icon(UI.check, 16)}<span>${kept ? t('Kept') : t('Keep on this device')}</span></button>`
+          : html`<p class="to-hint">${t('Turn on Saved on this device, in the menu, to keep owner links here.')}</p>`}
+      </details>`;
+  }
+  /** Opened from an owner link (or made here): the link, Update, the lifetimes with Extend, Forget. */
+  private renderOwned(owned: Owned) {
+    const link = shortLink(owned);
+    return html`<p class="to-share-own">${t('You own this short link')}</p>
+      ${this.renderField(link, 'to-short-field', t('Short link'), false)}
+      ${this.expires ? html`<p class="to-hint to-short-expires">${expiresLine(this.expires, Date.now(), document.documentElement.lang)}</p>` : nothing}
+      <button type="button" class="to-btn primary to-update" ?disabled=${this.busy || !this.changed} @click=${() => void this.updateShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Updating…') : this.changed ? t('Update') : t('Up to date')}</span></button>
+      <div class="to-share-extend">
+        ${this.renderTtl()}
+        <button type="button" class="to-btn to-extend" ?disabled=${this.busy} @click=${() => void this.updateShort(this.shortTtl)}>${icon(UI.calendar, 16)}<span>${t('Extend')}</span></button>
+      </div>
+      <button type="button" class="to-btn to-forget" ?disabled=${this.busy} @click=${() => void this.forgetShort()}>${icon(UI.trash, 16)}<span>${t('Forget')}</span></button>`;
+  }
+  /** The QR code, drawn here when the link fits in one; else why not, in a sentence. */
+  private renderQr() {
     const bytes = new TextEncoder().encode(this.qrDisplay ? this.displayLink : this.link);
     const fits = bytes.length <= QR_MAX_BYTES;
     const qr = fits ? qrSvg(bytes, 4) : '';
-    const rooms = roomRows(roomFor(this.link), document.documentElement.lang);
-    return html`<to-dialog class="to-doc" heading=${t('This document')} .body=${html`
-        <dl class="to-facts">
-          <dt>${t('Title')}</dt><dd>${this.docTitle}</dd>
-          <dt>${t('Link')}</dt><dd>${t('{n} characters', { n: this.link.length })}</dd>
-          <dt>${t('Short link')}</dt><dd>${t('{n} characters', { n: shortLinkLength() })}</dd>
-        </dl>
-        <table class="to-rooms">
-          <caption>${t('Where the link fits')}</caption>
-          <thead><tr><th scope="col">${t('Where')}</th><th scope="col">${t('Limit')}</th><th scope="col">${t('This link')}</th><th scope="col">${t('Left')}</th></tr></thead>
-          <tbody>${rooms.map((r) => html`<tr class=${r.over ? 'over' : ''}><th scope="row">${r.name}<small>${r.note}</small></th><td>${r.max}</td><td>${r.used}</td><td>${r.left}</td></tr>`)}</tbody>
-        </table>`}></to-dialog>
-      <to-dialog class="to-qr" heading=${t('QR code')} .body=${html`${this.renderWhich(this.qrDisplay, (d) => (this.qrDisplay = d))}${fits
-        ? html`<div class="to-qr-code" role="img" aria-label=${t('QR code of this document')}>${unsafeSVG(qr)}</div>
-            <p class="to-hint">${t('The whole document, {n} bytes, as one code. Anyone who scans it has it.', { n: bytes.length })}</p>
+    return html`<section class="to-share-section to-share-qr" aria-labelledby="to-share-qr-h">
+      <h3 id="to-share-qr-h">${t('QR code')}</h3>
+      ${fits
+        ? html`${this.renderWhich(this.qrDisplay, (d) => (this.qrDisplay = d))}
+            <div class="to-qr-code" role="img" aria-label=${t('QR code of this document')}>${unsafeSVG(qr)}</div>
             <div class="to-row">
-              <button type="button" class="to-btn primary" @click=${() => void this.saveQr(qr, 'png')}>${icon(UI.download, 16)}<span>PNG</span></button>
+              <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'png')}>${icon(UI.download, 16)}<span>PNG</span></button>
               <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'svg')}>${icon(UI.download, 16)}<span>SVG</span></button>
             </div>`
-        : html`<p>${t('This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`}`}></to-dialog>
-      <to-dialog class="to-short" heading=${t('A shorter link that expires')} @to-close=${() => (this.short = null)} .body=${html`
-        <p class="to-hint">${t('The link is encrypted here; the key stays in the short link, which browsers never send. The service holds only the ciphertext, until the time you choose.')}</p>
-        ${this.short ? this.renderMade(this.short) : this.owned ? this.renderOwned(this.owned) : this.renderMaker()}
-        ${this.renderKept()}`}></to-dialog>`;
+        : html`<p class="to-hint to-qr-why">${t('This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`}
+    </section>`;
   }
-
-  /** The lifetimes, as a select writing shortTtl. */
-  private renderTtl() {
-    return html`<select @change=${(e: Event) => (this.shortTtl = Number((e.target as HTMLSelectElement).value))}>${EXPIRIES.map((x) => html`<option value=${x.seconds} ?selected=${x.seconds === this.shortTtl}>${x.name()}</option>`)}</select>`;
-  }
-  private renderMaker() {
-    return html`${this.renderWhich(this.shortDisplay, (d) => (this.shortDisplay = d))}
-      <label class="to-field"><span>${t('Expires after')}</span>${this.renderTtl()}</label>
-      <button type="button" class="to-btn primary" ?disabled=${this.busy} @click=${() => void this.makeShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Making…') : t('Make a short link')}</span></button>`;
-  }
-  /** Just made: the public link to share, and the owner's to keep. */
-  private renderMade(short: Shortened) {
-    const kept = isKept(short.owner);
-    return html`<p class="to-hint">${t('Expires {when}', { when: new Date(short.expires).toLocaleString(document.documentElement.lang) })}</p>
-      <p><b>${t('Share this one')}</b><br /><a href=${short.short} class="to-short-link">${short.short}</a></p>
-      <div class="to-row"><button type="button" class="to-btn primary" @click=${() => void copyText(short.short)}>${icon(UI.copy, 16)}<span>${t('Copy short link')}</span></button></div>
-      <p><b>${t('Keep this one to update it later')}</b><br /><a href=${short.owner} class="to-short-link to-owner-link">${short.owner}</a></p>
-      <div class="to-row">
-        <button type="button" class="to-btn" @click=${() => void copyText(short.owner)}>${icon(UI.copy, 16)}<span>${t('Copy owner link')}</span></button>
-        ${keeping() ? html`<button type="button" class="to-btn to-keep" ?disabled=${kept} @click=${() => this.keepShort(short)}>${icon(UI.check, 16)}<span>${kept ? t('Kept') : t('Keep on this device')}</span></button>` : nothing}
-      </div>
-      ${keeping() ? nothing : html`<p class="to-hint">${t('Turn on Saved on this device, in the menu, to keep owner links here.')}</p>`}`;
-  }
-  /** Opened from an owner link (or made here): update, extend, forget. */
-  private renderOwned(owned: Owned) {
-    const link = shortLink(owned);
-    return html`<p class="to-hint">${t('You opened this document from its owner link: the short link below can be given this version, a longer life, or forgotten.')}</p>
-      <p><a href=${link} class="to-short-link">${link}</a></p>
-      <div class="to-row">
-        <button type="button" class="to-btn primary to-update" ?disabled=${this.busy || !this.changed} @click=${() => void this.updateShort()}>${icon(UI.link, 16)}<span>${this.busy ? t('Updating…') : t('Update the short link')}</span></button>
-        <button type="button" class="to-btn" @click=${() => void copyText(link)}>${icon(UI.copy, 16)}<span>${t('Copy short link')}</span></button>
-      </div>
-      ${this.changed ? nothing : html`<p class="to-hint">${t('The short link has this version.')}</p>`}
-      <label class="to-field"><span>${t('Expires after')}</span>${this.renderTtl()}</label>
-      <div class="to-row">
-        <button type="button" class="to-btn to-extend" ?disabled=${this.busy} @click=${() => void this.updateShort(this.shortTtl)}>${icon(UI.link, 16)}<span>${t('Extend')}</span></button>
-        <button type="button" class="to-btn to-forget" ?disabled=${this.busy} @click=${() => void this.forgetShort()}>${icon(UI.close, 16)}<span>${t('Forget this link')}</span></button>
-      </div>`;
-  }
-  /** The owner links kept on this device, if any. */
+  /** The owner links kept on this device, folded: "2 short links kept here". */
   private renderKept() {
     const kept = keptLinks();
     if (!kept.length) return nothing;
     const lang = document.documentElement.lang;
-    return html`<h3 class="to-kept-head">${t('Kept on this device')}</h3>
-      <ul class="to-kept">${kept.map((l) => html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${t('Expires {when}', { when: new Date(l.expires).toLocaleString(lang) })}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`)}</ul>`;
+    return html`<details class="to-share-section to-kept-list">
+      <summary>${t('{n|# short link kept here|# short links kept here}', { n: kept.length })}</summary>
+      <ul class="to-kept">${kept.map(
+        (l) => html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${expiresLine(l.expires, Date.now(), lang)}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`,
+      )}</ul>
+    </details>`;
+  }
+
+  /** Arrived by a short link: how long it has left, big and coloured by how soon, sticky under the header and small once scrolled. */
+  private renderArrival() {
+    if (!this.arrived || !this.expires) return nothing;
+    const { urgency } = timeLeft(this.expires);
+    return html`<div class="to-arrival ${urgency} ${this.scrolled ? 'small' : ''} ${this.display ? 'in-display' : ''}" role="region" aria-label=${t('Short link')}>
+      <p class="to-arrival-words">${expiresSentence(this.expires)}</p>
+      <div class="to-arrival-acts">
+        <button type="button" class="to-btn to-arrival-copy" @click=${this.copyIntoNew}>${icon(UI.copy, 16)}<span>${t('Copy into a new document')}</span></button>
+        ${this.owned && !this.display ? html`<button type="button" class="to-btn to-arrival-extend" @click=${() => void this.openShare(true)}>${icon(UI.calendar, 16)}<span>${t('Extend')}</span></button>` : nothing}
+      </div>
+      <button type="button" class="to-btn to-tool to-arrival-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => (this.arrived = false)}>${icon(UI.close, 20)}</button>
+    </div>`;
   }
 
   /** The Display Link: the pages one under another, to read or print (a website: the site itself, as a visitor has it); a line with the title and Edit above them. */
@@ -494,8 +571,9 @@ export class ToShell extends LitElement {
     const { payload } = parseHash(location.hash);
     return html`<header class="to-display-head">
         <h1 class="to-display-title">${this.docTitle}</h1>
-        <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
+        <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: parseHash(location.hash).arrived?.id ?? '', expires: this.expires } : null)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
       </header>
+      ${this.renderArrival()}
       <main class="to-display">${def.page
         ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>`
         : def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
@@ -513,7 +591,7 @@ export class ToShell extends LitElement {
       const tag = unsafeStatic(this.tag);
       main = staticHtml`<${tag} class="to-editor" .value=${this.edited} @docchange=${this.onDocChange}></${tag}>`;
     }
-    return html`${this.renderHeader()}<main class="to-main">${main}</main><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}`;
+    return html`${this.renderHeader()}${this.renderArrival()}<main class="to-main">${main}</main><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}`;
   }
 }
 customElements.define('to-shell', ToShell);

@@ -1,21 +1,22 @@
 /**
  * How much room a link takes, and leaves, in the places links get pasted. Some services count every
  * character of a link, some charge a flat rate however long it is, and Bluesky's app shortens what it
- * shows. `cost` is what the link uses of `max`; the rest is room for your own words.
+ * shows. `cost` is what the link uses of `max`; the rest is room for your own words. The Share dialog says it
+ * in one line (fitLine): the tightest place the link fits, or the first, from the roomiest down, it does not.
  * (Ported from the old tree's src/lib/limits.ts.)
  */
 import { t } from './i18n.ts';
-import { SHORT_MAX, shortCost, TINIER } from './short.ts';
+import { SHORT_MAX, shortCost } from './short.ts';
 
 export interface Target {
   id: string;
-  name: () => string;
   /** The size of one message, post or code. */
   max: number;
   /** What a link costs against `max`. */
   cost(url: string): number;
-  note: () => string;
-  /** The service charges the same for any link, however long: the document can grow freely. */
+  /** Where, as the end of "too long for …": "a text message". */
+  where: () => string;
+  /** The service charges the same for any link, however long: it never decides whether a link fits. */
   flat?: boolean;
 }
 
@@ -34,23 +35,20 @@ export function blueskyCost(url: string): number {
 }
 
 export const TARGETS: Target[] = [
-  { id: 'link', name: () => t('Any browser'), max: 2048, cost: full, note: () => t('the classic safe length for a link') },
-  { id: 'bluesky', name: () => 'Bluesky', max: 300, cost: blueskyCost, note: () => t('shows a short form of any link'), flat: true },
-  { id: 'mastodon', name: () => 'Mastodon', max: 500, cost: () => 23, note: () => t('any link counts as 23'), flat: true },
-  { id: 'x', name: () => 'X', max: 280, cost: () => 23, note: () => t('any link counts as 23'), flat: true },
-  { id: 'sms', name: () => t('Text message'), max: 160, cost: full, note: () => t('one SMS') },
-  { id: 'discord', name: () => 'Discord', max: 2000, cost: full, note: () => t('one message') },
-  { id: 'telegram', name: () => 'Telegram', max: 4096, cost: full, note: () => t('one message') },
-  { id: 'qr', name: () => t('QR code'), max: 2953, cost: bytes, note: () => t('the largest code there is (version 40)') },
+  { id: 'link', max: 2048, cost: full, where: () => t('some browsers') },
+  { id: 'bluesky', max: 300, cost: blueskyCost, where: () => 'Bluesky', flat: true },
+  { id: 'mastodon', max: 500, cost: () => 23, where: () => 'Mastodon', flat: true },
+  { id: 'x', max: 280, cost: () => 23, where: () => 'X', flat: true },
+  { id: 'sms', max: 160, cost: full, where: () => t('a text message') },
+  { id: 'discord', max: 2000, cost: full, where: () => t('a Discord message') },
+  { id: 'telegram', max: 4096, cost: full, where: () => t('a Telegram message') },
+  { id: 'qr', max: 2953, cost: bytes, where: () => t('a QR code') },
   // NFC tags hold a link as an NDEF record: 7 bytes of framing, and "https://" packed into one.
-  { id: 'ntag215', name: () => t('NTAG215 tag'), max: 504, cost: (u) => bytes(u) - 7 + 7, note: () => t('an NFC sticker (504 bytes)') },
-  { id: 'ntag216', name: () => t('NTAG216 tag'), max: 888, cost: (u) => bytes(u) - 7 + 7, note: () => t('a bigger NFC sticker (888 bytes)') },
+  { id: 'ntag215', max: 504, cost: (u) => bytes(u) - 7 + 7, where: () => t('a small NFC sticker') },
+  { id: 'ntag216', max: 888, cost: (u) => bytes(u) - 7 + 7, where: () => t('an NFC sticker') },
   // The shortener keeps the link encrypted; what it holds is the ciphertext, and it holds 16 KiB of it.
-  { id: 'short', name: () => t('Short link'), max: SHORT_MAX, cost: shortCost, note: () => t('what the shortener holds, encrypted') },
+  { id: 'short', max: SHORT_MAX, cost: shortCost, where: () => t('a short link') },
 ];
-
-/** How long a short link itself is: the service, seven letters of id, "#" and a 43-character key; the owner's has ".<o>" after that. */
-export const shortLinkLength = (owner = false): number => TINIER.length + 7 + 1 + 43 + (owner ? 44 : 0);
 
 export interface Room {
   target: Target;
@@ -66,15 +64,15 @@ export function roomFor(url: string): Room[] {
   });
 }
 
-/** The rooms as one table: where, its limit, what this link takes there, and what is left. */
-export function roomRows(rooms: Room[], locale?: string): { name: string; max: string; used: string; left: string; note: string; over: boolean }[] {
-  const n = (x: number) => x.toLocaleString(locale);
-  return rooms.map((r) => ({
-    name: r.target.name(),
-    max: n(r.target.max),
-    used: r.target.flat ? t('{n} (any length)', { n: n(r.used) }) : n(r.used),
-    left: r.left < 0 ? t('{n} over', { n: n(-r.left) }) : n(r.left),
-    note: r.target.note(),
-    over: r.left < 0,
-  }));
+/**
+ * "This link: 1,240 characters, too long for an NFC sticker": walking from the roomiest place to the tightest,
+ * the first the link does not fit; or, fitting them all, "fits in a text message". Flat-rate services never decide.
+ */
+export function fitLine(url: string): string {
+  const n = url.length;
+  const over = roomFor(url)
+    .filter((r) => !r.target.flat)
+    .sort((a, b) => b.target.max - a.target.max)
+    .find((r) => r.left < 0);
+  return over ? t('This link: {n} characters, too long for {where}', { n, where: over.target.where() }) : t('This link: {n} characters, fits in a text message', { n });
 }

@@ -609,60 +609,187 @@
     background: var(--to-accent-soft);
   }
 
-  .to-facts {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 12px;
-    margin: 0 0 16px;
-  }
-  .to-facts dt {
+  /* ---- the Share dialog: one column of sections, hung from the top; a full-screen sheet on a phone ---- */
+  .to-share-fit {
+    margin: 0 0 12px;
     color: var(--to-ink-3);
-  }
-  .to-facts dd {
-    margin: 0;
-    overflow-wrap: anywhere;
-  }
-  .to-rooms {
-    width: 100%;
-    border-collapse: collapse;
     font-size: 14px;
   }
-  .to-rooms caption {
+  .to-share-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .to-share-copy {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 12px;
+    white-space: normal;
     text-align: left;
+  }
+  .to-share-copy > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 600;
-    padding-bottom: 6px;
   }
-  .to-rooms th,
-  .to-rooms td {
-    padding: 4px 6px;
-    text-align: left;
-    border-top: 1px solid var(--to-border);
-    vertical-align: top;
-  }
-  .to-rooms th small {
-    display: block;
+  .to-share-copy small {
+    color: var(--to-ink-3);
+    font-size: 13px;
     font-weight: 400;
+  }
+  .to-share-native {
+    grid-column: 1 / -1;
+  }
+  .to-share-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--to-border);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .to-share-section h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .to-share-section .to-hint,
+  .to-share-own {
+    margin: 0;
+  }
+  .to-share-own {
+    font-weight: 600;
+  }
+  .to-share-field {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .to-share-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 48px;
+    font-family: var(--to-font-mono);
+  }
+  .to-short-field {
+    font-size: 18px !important;
+    font-weight: 600;
+  }
+  .to-share-field .to-btn {
+    height: 48px;
+  }
+  .to-share-extend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  /* A row of segments: a radio group (the lifetimes) or two pressed buttons (Link, Display Link). */
+  .to-seg {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .to-seg > label,
+  .to-seg > .to-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .to-seg > label > span,
+  .to-seg > .to-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: var(--to-touch);
+    padding: 0 8px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--to-ink);
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: 0;
+    margin-left: -1px;
+    cursor: pointer;
+  }
+  .to-seg > :first-child > span,
+  .to-seg > .to-btn:first-child {
+    border-radius: var(--to-radius) 0 0 var(--to-radius);
+    margin-left: 0;
+  }
+  .to-seg > :last-child > span,
+  .to-seg > .to-btn:last-child {
+    border-radius: 0 var(--to-radius) var(--to-radius) 0;
+  }
+  .to-ttl {
+    width: 100%;
+  }
+  .to-seg input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .to-seg input:checked + span {
+    background: var(--to-accent-soft);
+    border-color: var(--to-accent);
+    position: relative;
+    font-weight: 600;
+  }
+  .to-seg input:focus-visible + span {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 2px;
+    position: relative;
+  }
+  .to-owner,
+  .to-kept-list {
+    width: 100%;
+  }
+  .to-owner summary,
+  .to-kept-list summary {
+    min-height: var(--to-touch);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    list-style-position: inside;
+  }
+  .to-owner summary::before,
+  .to-kept-list summary::before {
+    content: '▸';
+    margin-right: 8px;
     color: var(--to-ink-3);
   }
-  .to-rooms td {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  .to-owner[open] summary::before,
+  .to-kept-list[open] summary::before {
+    content: '▾';
   }
-  .to-rooms tr.over td {
-    color: var(--to-danger);
+  .to-owner summary::-webkit-details-marker,
+  .to-kept-list summary::-webkit-details-marker {
+    display: none;
+  }
+  .to-owner summary,
+  .to-kept-list summary {
+    list-style: none;
+  }
+  .to-owner[open] {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
   .to-qr-code svg {
     display: block;
-    width: min(100%, 320px);
+    width: min(100%, 280px);
     height: auto;
-    margin: 0 auto 12px;
   }
   .to-short-link {
     overflow-wrap: anywhere;
-  }
-  .to-kept-head {
-    font-size: 14px;
-    margin: 20px 0 6px;
   }
   .to-kept {
     list-style: none;
@@ -683,6 +810,67 @@
   }
   .to-kept li button {
     grid-row: 1 / 3;
+    grid-column: 2;
+  }
+
+  /* ---- arriving by a short link: how long it has left, big and coloured, sticky under the header ---- */
+  .to-arrival {
+    position: sticky;
+    top: var(--to-header-h);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 14px var(--to-gutter);
+    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
+    background: var(--to-ok-bg);
+    color: var(--to-ok-ink);
+  }
+  .to-arrival.soon {
+    background: var(--to-soon-bg);
+    color: var(--to-soon-ink);
+  }
+  .to-arrival.last {
+    background: var(--to-last-bg);
+    color: var(--to-last-ink);
+  }
+  .to-arrival.in-display {
+    top: 0;
+  }
+  .to-arrival-words {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .to-arrival-acts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .to-arrival .to-btn {
+    color: inherit;
+    background: transparent;
+    border-color: currentColor;
+  }
+  .to-arrival .to-btn:hover {
+    background: rgb(0 0 0 / 10%);
+  }
+  .to-arrival .to-arrival-close {
+    border-color: transparent;
+  }
+  .to-arrival.small {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .to-arrival.small .to-arrival-words {
+    font-size: 15px;
+  }
+  .to-arrival.small .to-btn {
+    min-height: 36px;
   }
 
   /* ---- the drawer ---- */

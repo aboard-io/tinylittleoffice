@@ -8,7 +8,6 @@ import { apps } from '../../src/kit/apps.ts';
 import { decodeDoc } from '../../src/kit/codec.ts';
 import { keep, library, localDay } from '../../src/kit/library.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
-import type { ToMenu } from '../../src/kit/menu.ts';
 import { keeping, setKeeping } from '../../src/kit/store.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
@@ -271,38 +270,13 @@ test('a document that arrives with no name is "Untitled"; a new one is numbered 
     expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe(`New Spreadsheet ${localDay()} #1`);
   }));
 
-test('Share offers Link and Display Link; the Display Link shows the pages, no editor and no bar, and Edit goes back', async () => {
+test('the Link and the Display Link; the Display Link shows the pages, no editor and no bar, and Edit goes back', async () => {
   const payload = encodeDoc('---\ntitle: Notes\n---\nFirst words.\n');
   const shell = await mount(`#/v1/write/${payload}`);
   await until(() => !!shell.querySelector('to-write-editor'));
-  const items = shell.querySelector<ToMenu>('to-menu.to-share')!.items;
-  expect(items.slice(0, 2).map((i) => i.label)).toEqual(['Link', 'Display Link']);
-  for (const i of items) expect(i.label.split(' ').length).toBeLessThanOrEqual(2);
   const base = `${location.origin}${location.pathname}#/v1/write/${payload}`;
   expect(shell.link).toBe(base);
   expect(shell.displayLink).toBe(`${base}?d`);
-  let copied = '';
-  const clip = navigator.clipboard.writeText;
-  navigator.clipboard.writeText = async (s: string) => void (copied = s);
-  try {
-    items[1].does();
-    await until(() => copied === `${base}?d`);
-    items[0].does();
-    await until(() => copied === base);
-  } finally {
-    navigator.clipboard.writeText = clip;
-  }
-  // The QR code holds either.
-  items.find((i) => i.label === 'QR code')!.does();
-  const qr = shell.querySelector('to-dialog.to-qr')!;
-  await until(() => !!qr.querySelector('.to-which button'));
-  const which = [...qr.querySelectorAll<HTMLButtonElement>('.to-which button')];
-  expect(which.map((b) => [b.textContent!.trim(), b.getAttribute('aria-pressed')])).toEqual([['Link', 'true'], ['Display Link', 'false']]);
-  const before = qr.querySelector('.to-qr-code')!.innerHTML;
-  which[1].click();
-  await until(() => qr.querySelector('.to-qr-code')!.innerHTML !== before);
-  expect(qr.querySelectorAll('.to-which button')[1].getAttribute('aria-pressed')).toBe('true');
-  qr.querySelector('dialog')?.close();
 
   // Opened as the Display Link: the pages, the title, Edit; no header, no bar, no editor.
   const display = await mount(`#/v1/write/${payload}?d`);

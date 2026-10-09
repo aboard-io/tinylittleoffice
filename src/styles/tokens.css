@@ -24,6 +24,13 @@
     /* Go, under words: the green deep enough for white words (the link guard's button). */
     --to-go: hsl(142.1 76.2% 27%);
     --to-warning: hsl(32.1 94.6% 43.7%);
+    /* How long a short link has left (the arrival banner): over a week, within a week, the last day. Filled, with words that read on them. */
+    --to-ok-bg: hsl(142.4 71.8% 29.2%);
+    --to-ok-ink: hsl(0 0% 100%);
+    --to-soon-bg: hsl(43.3 96.4% 56.3%);
+    --to-soon-ink: hsl(240 5.9% 10%);
+    --to-last-bg: hsl(0 73.7% 41.8%);
+    --to-last-ink: hsl(0 0% 100%);
     /* Paper: white in both themes, a page stays a page, so its ink, its lines and its accent are the light theme's whatever the theme. */
     --to-paper: hsl(0 0% 100%);
     --to-paper-ink: hsl(240 5.9% 10%);
@@ -62,6 +69,9 @@
     --to-success: hsl(141.6 72.4% 55.2%);
     --to-go: var(--to-success);
     --to-warning: hsl(43.3 100% 53.4%);
+    --to-ok-bg: hsl(142.8 64.2% 24.1%);
+    --to-soon-bg: hsl(37.7 92.1% 50.2%);
+    --to-last-bg: hsl(0 70% 35.3%);
     --to-input-bg: hsl(240 5.9% 11%);
     --to-shadow: 0 1px 2px rgb(0 0 0 / 24%);
     --to-shadow-pop: 0 4px 16px rgb(0 0 0 / 50%);

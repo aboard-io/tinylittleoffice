@@ -29,7 +29,7 @@
   const id = '{{id}}';
   const h = document.getElementById('h'), p = document.getElementById('p'), err = document.getElementById('err'), go = document.getElementById('go'), a = document.getElementById('a');
   const fail = (m) => { h.textContent = 'tinier'; err.textContent = m; err.hidden = false; };
-  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Shorten a link from the Share menu in Tiny Little Office.'); }
+  if (!id) { h.textContent = 'tinier'; return fail(location.pathname.length > 1 ? 'No such link, or it has expired.' : 'Make a short link from Share in Tiny Little Office.'); }
   // "#<key>" opens the latest version; "#<key>.<o>" is the owner's, whose o is handed on to the site (never to this server).
   const [key, o] = location.hash.slice(1).split('.');
   if (!key) return fail('This link is missing its key (the part after #). Ask for it again.');
@@ -42,8 +42,9 @@
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
     const site = '{{site}}';
     if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to Tiny Little Office.');
-    // The owner arrives at the document able to update this link: the id, the key and o ride in the fragment's query, which the site strips from every link it shares.
-    const to = o && plain.includes('#') && /^[A-Za-z0-9_-]{43}$/.test(o) ? plain + '?s=' + id + '&k=' + key + '&o=' + o : plain;
+    // Everyone arrives knowing how long the link has left (s, x); the owner arrives able to update it too (k, o). All of it rides in the fragment's query, which the site strips from every link it shares.
+    const owner = o && /^[A-Za-z0-9_-]{43}$/.test(o) ? '&k=' + key + '&o=' + o : '';
+    const to = plain.includes('#') ? plain + '?s=' + id + owner + '&x=' + exp : plain;
     a.href = to; go.hidden = false;
     p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + (ver > 1 ? ' (version ' + ver + ')' : '') + '.';
     location.replace(to);
