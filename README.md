@@ -11,10 +11,10 @@ you have copied the file.
 | Drive | The documents saved on this device, in folders (nested with a slash): search inside them, move, rename, download the lot as a zip, or blow it all away. Private by default; the switch in the header turns it on. |
 | Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, charts. Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT. |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
-| Write | A one-page rich text editor: headings, bold, italic, lists. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
+| Write | A rich text editor: headings, bold, italic, lists, things from the web, a PDF on letter or A4 paper. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
 | Deck  | Slides with a headline, bullets and an icon. Press Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
 | Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid.   |
-| Calculator | Plain, scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
+| Calculator | Plain (a line to type any expression into, and the tape beneath as a little program: `a = 12`, then `a * 3`, `ans`), scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
 | Calendar | Labelled spans of time on a month grid, or the year at a glance, shown in any time zone. |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
 | Board | A kanban board: the stages of a workflow, each in a colour if it likes; cards of rich text with checklists; limits per stage. |
@@ -197,8 +197,15 @@ Every format is plain text, chosen so deflate has something to chew on.
   Inline `**bold**`, `*italic*`, `++underline++`, `~~strike~~`,
   `==highlight==`, `:icon:`, `[words](address)`, with `\` as the escape
   character. An embedded document is a fence named for its app, holding its
-  text; a Markdown table is an embedded sheet. A **contract** is a text
-  followed by its signatures in a `signatures` fence.
+  text; a Markdown table is an embedded sheet. A line that is only the
+  address of a YouTube or Vimeo video, a Bluesky or X post, or a picture
+  (`![what it shows](address)`) is that thing, shown as a card that loads it
+  only when tapped (`src/lib/embeds.ts`). `paper: a4` or `letter` in the
+  header is the paper the PDF prints on; without it, the reader's own. The
+  pages have inch margins, a heading never sits alone at the foot of one,
+  and more than one page are numbered.
+  A **contract** is a text followed by its signatures in a `signatures`
+  fence.
 - **Deck**: slides separated by a blank line. In each slide an optional
   `:icon-name` line, then the headline, then one bullet per line. A layout
   may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
@@ -391,10 +398,17 @@ which serves the files, keeps its own record of requests (an address, a
 path such as `/deck/`, a browser) under its own policy; a path says which
 app was opened, never which document.
 
-Three things do leave the browser, each only when asked to: Trip fetches map
+Four things do leave the browser, each only when asked to: Trip fetches map
 tiles and place searches from openstreetmap.org; the Share menu hands the
-link to the service chosen; and an embedded page's host sees that its page
-was loaded, not what the frame shows.
+link to the service chosen; an embedded page's host sees that its page
+was loaded, not what the frame shows; and a video, a post or a picture
+from the web is a card naming its provider until the reader taps it, and
+only then is it fetched, from the provider's privacy endpoint
+(youtube-nocookie, Vimeo with `dnt=1`, Bluesky's embed, X's embed with
+`dnt=true`) in a sandboxed frame, with no referrer. Bluesky's embed wants
+the author's id rather than their handle, so that tap first asks
+public.api.bsky.app who the handle is; if it does not say, the card offers
+the post on Bluesky instead.
 
 ## Embedding
 

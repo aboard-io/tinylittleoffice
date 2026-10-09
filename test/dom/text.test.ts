@@ -181,3 +181,43 @@ test('outline: a document as an item, made in its own editor; the outline seen a
   await seeAs('Mind map', 'mind');
   await until(() => expect(document.querySelector('to-mind .pic svg')?.textContent).toContain('Pricing'));
 });
+
+// A video, a post or a picture from the web: its address alone is the thing, shown as a card that loads it only when tapped.
+test('write and outline: an address from the web is a card, loaded only on a tap; the text keeps the address alone', async () => {
+  await shell('#/v0/write');
+  const editor = () => editorOf('write').querySelector<HTMLElement>('[role="textbox"][aria-label="Document"]')!;
+  await typeRich(editor(), '<p>Watch this:</p>', true);
+  await paste(editor(), 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  const embed = () => editor().querySelector<HTMLElement>('to-embed')!;
+  expect(embed()).toBeTruthy();
+  const inside = () => embed().shadowRoot!;
+  // The card: the provider named, nothing loaded, a button that loads it.
+  expect(inside().textContent).toContain('YouTube');
+  expect(inside().querySelector('iframe')).toBeNull();
+  const load = inside().querySelector<HTMLButtonElement>('button.load')!;
+  expect(load.textContent).toContain('Play');
+  // The text holds the address and nothing else.
+  expect(bodyOf()).toBe('Watch this:\n\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  load.click();
+  await settleAll();
+  const frame = inside().querySelector('iframe')!;
+  expect(frame.getAttribute('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  expect(frame.getAttribute('sandbox')).toContain('allow-scripts');
+  // A picture is a Markdown image, with what it shows when that is said.
+  await paste(editor(), 'https://example.org/sea.jpg');
+  expect(bodyOf()).toContain('![](https://example.org/sea.jpg)');
+  await reopen();
+  expect(editor().querySelectorAll('to-embed')).toHaveLength(2);
+
+  // In an outline, an item that is such an address is that thing.
+  await shell('#/v0/outline');
+  const ol = () => editorOf('outline');
+  const item = (n: number) => ol().querySelector<HTMLElement>(`[role="textbox"][aria-label="Item ${n}"]`);
+  await typeRich(item(1), 'Sources');
+  await key(item(1), 'Enter');
+  await key(item(2), 'Tab');
+  await typeRich(item(2), 'https://bsky.app/profile/ftrain.com/post/3kqz2abcde2a');
+  await until(() => expect(ol().querySelector('to-embed')).toBeTruthy());
+  expect(ol().querySelector('to-embed')!.shadowRoot!.textContent).toContain('Bluesky');
+  expect(bodyOf()).toBe('- Sources\n  - https://bsky.app/profile/ftrain.com/post/3kqz2abcde2a');
+});

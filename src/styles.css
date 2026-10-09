@@ -1343,6 +1343,12 @@ to-rich {
   overflow: hidden;
   pointer-events: none;
 }
+/* A thing from the web on a slide being shown: over its place, and for tapping (to load it, then to play it). */
+.deck-show .deck-live {
+  position: absolute;
+  border-radius: 8px;
+  overflow: hidden;
+}
 /* (Leaflet turns pointer events back on for pins and popups; not here.) */
 .deck-show .deck-map * {
   pointer-events: none !important;

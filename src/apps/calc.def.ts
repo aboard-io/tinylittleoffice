@@ -1,7 +1,7 @@
 /** Calculator: what the shell knows. Modes and maths: lib/calc.ts. */
 import { defineApp, text, rect, place, ACCENT, MUTED, INK, FAINT, type Page } from '../kit/core.ts';
 import { chartPage } from '../lib/chart.ts';
-import { MODES, FIELDS, cashflow, evaluate, inputs, interest, invest, money, mortgage, parseCalc, plot, readCalc, shown, withDefaults, type Calc } from '../lib/calc.ts';
+import { MODES, FIELDS, cashflow, inputs, interest, invest, money, mortgage, parseCalc, plot, readCalc, shown, tape, withDefaults, type Calc } from '../lib/calc.ts';
 
 const W = 720;
 
@@ -120,12 +120,13 @@ export function calcPage(body: string): Page {
   }
   // The tape: each line and what it comes to.
   const lines = c.lines.filter((l) => l.trim());
+  const { results } = tape(lines);
   let y = 56;
   let svg = text(48, y, 'Calculator', { px: 26, bold: true });
-  for (const l of lines.slice(-24)) {
+  lines.slice(-24).forEach((l, i) => {
     y += 30;
-    svg += text(48, y, l, { px: 16, fill: MUTED }) + text(W - 48, y, shown(evaluate(l)), { px: 18, bold: true, anchor: 'end' });
-  }
+    svg += text(48, y, l, { px: 16, fill: MUTED }) + text(W - 48, y, shown(results[lines.length - Math.min(24, lines.length) + i]), { px: 18, bold: true, anchor: 'end' });
+  });
   if (!lines.length) svg += text(48, (y += 30), 'Nothing worked out yet.', { px: 14, fill: FAINT });
   return { w: W, h: y + 48, svg };
 }
@@ -145,7 +146,9 @@ export default defineApp({
   read: readCalc,
   outline: (body) => {
     const c = parseCalc(body);
-    return c.mode === 'calc' || c.mode === 'graph' ? c.lines.filter((l) => l.trim()).map((l) => (c.mode === 'calc' ? `${l} = ${shown(evaluate(l))}` : `y = ${l}`)) : FIELDS[c.mode].map((f) => `${f.name}: ${money(withDefaults(c.mode as never, inputs(c.lines))[f.key], f.key === 'years' || f.key === 'times' ? 0 : 2)}${f.unit ? ' ' + f.unit : ''}`);
+    const lines = c.lines.filter((l) => l.trim());
+    const { results } = tape(lines);
+    return c.mode === 'calc' || c.mode === 'graph' ? lines.map((l, i) => (c.mode === 'calc' ? `${l} = ${shown(results[i])}` : `y = ${l}`)) : FIELDS[c.mode].map((f) => `${f.name}: ${money(withDefaults(c.mode as never, inputs(c.lines))[f.key], f.key === 'years' || f.key === 'times' ? 0 : 2)}${f.unit ? ' ' + f.unit : ''}`);
   },
   view: (body) => [calcPage(body)],
 });

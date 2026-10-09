@@ -8,6 +8,7 @@ import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { COMMON, MOVING, FONT, History, apps, byGroup, docHtml, extOf, fileName, pageSvg, setMeasurer, stack, utf8, type AppDef, type DownloadContext, type Page } from './core.ts';
 import { SELF, makeRef, refPage, resolve } from './embed.ts';
 import { pdf, type PdfPage } from './pdf.ts';
+import { embedOf, withAccount, type Embed } from '../lib/embeds.ts';
 import { toMarkdown } from '../lib/markdown.ts';
 import { envelopeText } from '../lib/envelope.ts';
 import { withHead } from '../lib/tlo.ts';
@@ -270,6 +271,10 @@ export async function download(def: AppDef, body: string, wanted: string, ctx: D
  */
 export class ToEmbed extends HTMLElement {
   static observedAttributes = ['ref', 'step', 'controls'];
+  /** A thing from the web, loaded: the reader asked for it by tapping its card. */
+  private loaded = false;
+  /** Bluesky's answer to who the handle is, once asked; '' when it did not say. */
+  private account: string | null = null;
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -282,7 +287,25 @@ export class ToEmbed extends HTMLElement {
   disconnectedCallback() {
     window.removeEventListener(REFRESH, this.redraw);
   }
-  attributeChangedCallback() {
+  attributeChangedCallback(name: string) {
+    if (name === 'ref') (this.loaded = false), (this.account = null);
+    this.draw();
+  }
+  /**
+   * The card tapped: the thing itself. Bluesky is first asked who the
+   * handle is (its embed wants the account's id); if it does not say, the
+   * card offers the post on Bluesky itself instead.
+   */
+  private async load(web: Embed) {
+    this.loaded = true;
+    this.draw();
+    if (!web.lookup) return;
+    try {
+      const r = await fetch(web.lookup, { referrerPolicy: 'no-referrer' });
+      this.account = (r.ok && ((await r.json()) as { did?: string }).did) || '';
+    } catch {
+      this.account = '';
+    }
     this.draw();
   }
   private fire(name: string) {
@@ -296,6 +319,10 @@ export class ToEmbed extends HTMLElement {
     const page = refPage(ref, { preview: true, ...(step === null ? {} : { step: Number(step) }) });
     const kind = d.def?.name ?? 'Document';
     const editable = this.hasAttribute('controls') && !d.locked;
+    // From the web: the card until it is tapped; then the thing itself, in a frame that can reach nothing here, or the picture.
+    const asked = d.def?.id === 'web' ? embedOf(d.body.split('\n').find((l) => /^https?:/.test(l.trim()))?.trim() ?? '') : null;
+    const web = asked && this.account ? withAccount(asked, this.account) : asked;
+    const live = web && this.loaded && !web.lookup;
     render(
       html`<style>
           /* (white-space: inside a text being written the page keeps its spaces, which would draw this markup's own line breaks as blank lines.) */
@@ -315,15 +342,33 @@ export class ToEmbed extends HTMLElement {
           small { color: var(--to-ink-3, #71717a); flex: 1; }
           .pic { position: relative; padding: 10px; }
           .pic.edit { cursor: pointer; }
+          .pic.web { padding: 0; }
+          .pic .load { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 8px 14px; border: 0; border-radius: 999px; background: var(--to-accent, #4f46e5); color: #fff; font: 600 13px system-ui, sans-serif; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+          .pic .load:hover { filter: brightness(1.1); }
+          iframe { display: block; width: 100%; border: 0; background: #fff; }
+          iframe.video { aspect-ratio: 16 / 9; }
+          iframe.post { height: 520px; }
+          :host([fill]) iframe { height: 100%; aspect-ratio: auto; }
+          img { display: block; max-width: 100%; max-height: 70vh; height: auto; margin: 0 auto; }
+          :host([fill]) img { max-height: 100%; height: 100%; object-fit: contain; }
           .pic .hint { position: absolute; right: 10px; top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--to-accent, #4f46e5); color: #fff; font: 600 12.5px system-ui, sans-serif; opacity: 0.92; pointer-events: none; }
           button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex-shrink: 0; border: 1px solid var(--to-border, #d4d4d8); border-radius: 6px; background: var(--to-surface, #fff); color: inherit; font: inherit; padding: 3px 8px; cursor: pointer; }
           button:hover { border-color: var(--to-accent, #4f46e5); }
           button:focus-visible, a:focus-visible { outline: 2px solid var(--to-accent, #4f46e5); outline-offset: 1px; }
         </style>
         <figure>
-          <div class="pic ${editable ? 'edit' : ''}" @click=${editable ? () => this.fire('embed-edit') : null}>
-            <svg viewBox="0 0 ${page.w} ${page.h}" style="width:min(100%, ${page.w}px)" role="img" aria-label="${d.title}">${unsafeSVG(page.svg)}</svg>
-            ${editable ? html`<span class="hint" aria-hidden="true">Tap to edit</span>` : ''}
+          <div class="pic ${editable && !web ? 'edit' : ''} ${web ? 'web' : ''}" @click=${editable && !web ? () => this.fire('embed-edit') : null}>
+            ${live
+              ? web.kind === 'image'
+                ? html`<img src=${web.src} alt=${d.title} referrerpolicy="no-referrer" loading="lazy" />`
+                : html`<iframe class=${web.kind} src=${web.src} title=${d.title} sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation" allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe>`
+              : html`<svg viewBox="0 0 ${page.w} ${page.h}" style="width:min(100%, ${page.w}px)" role="img" aria-label="${d.title}">${unsafeSVG(page.svg)}</svg>`}
+            ${editable && !web ? html`<span class="hint" aria-hidden="true">Tap to edit</span>` : ''}
+            ${web && !live
+              ? this.account === ''
+                ? html`<a class="load" href=${web.url} target="_blank" rel="noopener noreferrer">${icon(UI.globe, 14)} Open on ${web.provider}</a>`
+                : html`<button type="button" class="load" ?disabled=${this.loaded} @click=${() => this.load(web)}>${icon(web.kind === 'video' ? UI.play : UI.globe, 14)} ${web.kind === 'video' ? 'Play' : 'Show'} (loads it from ${web.provider})</button>`
+              : ''}
           </div>
           <figcaption>
             ${editable ? html`<b>${d.title}</b>` : html`<a href=${d.hash} data-tip="Open this ${kind.toLowerCase()}">${d.title}</a>`}<small>${d.title === kind ? '' : kind}</small>
@@ -346,7 +391,10 @@ export function insertOptions(host: string, skip: (a: AppDef) => boolean = () =>
   const all = embeddable(host).filter((a) => !skip(a));
   const groups = [...new Set(all.filter((a) => !a.under).map((a) => a.group ?? ''))].sort(byGroup);
   const name = (a: AppDef) => (a.id === 'sheet' ? 'Table' : a.id === 'trip' ? 'Map' : a.id === 'draw' ? 'Drawing' : a.name);
-  const out: { value: string; label: string; group?: string; icon?: keyof typeof UI }[] = [{ value: 'qr-self', label: 'QR code of this document', group: '', icon: 'qr' }];
+  const out: { value: string; label: string; group?: string; icon?: keyof typeof UI }[] = [
+    { value: 'qr-self', label: 'QR code of this document', group: '', icon: 'qr' },
+    { value: 'web', label: 'From the web: a video, a post, a picture', group: '', icon: 'globe' },
+  ];
   const ic = (a: AppDef) => (a.icon in UI ? (a.icon as keyof typeof UI) : undefined);
   for (const g of groups)
     for (const a of all.filter((x) => !x.under && (x.group ?? '') === g)) {

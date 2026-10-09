@@ -20,6 +20,7 @@ import './calc.ts';
 import './pixel.ts';
 import './contract.ts';
 import './invoice.ts';
+import './web.ts';
 import { apps } from '../kit/core.ts';
 import { specOf } from '../lib/diagram.ts';
 import { formatOf } from '../lib/fold.ts';

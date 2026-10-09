@@ -11,7 +11,8 @@
  * :icon:, [words](address). A web address on its own is a link as it stands.
  * A Markdown table in a text is an embedded sheet.
  */
-import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, type Attrs, type Block as TloBlock } from './tlo.ts';
+import { refFence, parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, withHead, takeHead, type Attrs, type Block as TloBlock } from './tlo.ts';
+import { embedOf } from './embeds.ts';
 
 export interface Run {
   t: string;
@@ -83,17 +84,20 @@ export function parseDoc(text: string): Block[] {
   };
   for (const b of parseTlo(text).blocks) {
     if (b.k === 'h') line(hasClass(b, 'title') ? 'title' : b.level === 1 ? 'h1' : 'h2', b.text, b.a);
-    // An empty paragraph, kept as the space it makes.
-    else if (b.k === 'p') b.text.trim() === '<br>' ? blocks.push({ k: 'p', runs: [] }) : line('p', b.text.replace(/\n/g, ' '), b.a);
+    // An empty paragraph, kept as the space it makes. A paragraph that is only a video's, a post's or a picture's address is that thing, from the web.
+    else if (b.k === 'p') b.text.trim() === '<br>' ? blocks.push({ k: 'p', runs: [] }) : embedOf(b.text) ? blocks.push({ k: 'e', runs: [], ref: webRef(b.text.trim()) }) : line('p', b.text.replace(/\n/g, ' '), b.a);
     else if (b.k === 'li') line(b.ord ? 'ol' : 'ul', (b.done === undefined ? '' : b.done ? '☑ ' : '☐ ') + b.text.replace(/\n/g, ' '), b.a, b.depth);
     else if (b.k === 'quote') line('p', b.text.replace(/\n/g, ' '), b.a);
     else if (b.k === 'fence') blocks.push({ k: 'e', runs: [], ref: `${b.lang || 'write'}\n${b.body}` });
     else if (b.k === 'table') blocks.push({ k: 'e', runs: [], ref: `sheet\n${writeTlo({ head: {}, blocks: [b] }).trimEnd()}` });
-    else if (b.k === 'img') line('p', `[${b.alt || b.url}](${b.url})`);
+    else if (b.k === 'img') embedOf(b.url) ? blocks.push({ k: 'e', runs: [], ref: webRef(b.url, b.alt) }) : line('p', `[${b.alt || b.url}](${b.url})`);
     else if (b.k === 'edge') line('p', `${b.from} ${b.dir} ${b.to}${b.label ? ': ' + b.label : ''}`);
   }
   return blocks.length ? blocks : [{ k: 'p', runs: [] }];
 }
+
+/** A thing from the web as a ref: the hidden "web" app, holding the address (and for a picture, what it shows). */
+export const webRef = (url: string, alt = '') => `web\n${withHead(url.trim(), alt ? { alt } : {})}`;
 
 export function serializeDoc(blocks: Block[]): string {
   const out: TloBlock[] = [];
@@ -102,6 +106,12 @@ export function serializeDoc(blocks: Block[]): string {
     if (blk.k === 'e') {
       if (!blk.ref?.includes('\n')) continue;
       const { lang, body } = refFence(blk.ref);
+      // A thing from the web is written as its address alone: a picture as Markdown's image, the rest as a line.
+      if (lang === 'web') {
+        const [head, url] = takeHead(body, ['alt']);
+        out.push(embedOf(url)?.kind === 'image' ? { k: 'img', alt: head.alt ?? '', url: url.trim() } : { k: 'p', text: url.trim() });
+        continue;
+      }
       // A sheet that is a table and nothing more is written as that table, as it was read.
       const sheet = lang === 'sheet' ? parseTlo(body) : null;
       const table = sheet && !Object.keys(sheet.head).length && sheet.blocks.length === 1 && sheet.blocks[0].k === 'table' ? sheet.blocks[0] : null;

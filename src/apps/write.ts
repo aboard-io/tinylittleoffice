@@ -15,7 +15,11 @@ import { askDate } from '../widgets/date-dialog.ts';
 import { openLink } from '../widgets/link-guard.ts';
 import { templateGallery, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, ALIGN_OF, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, ALIGN_OF, type Align, type Block, type BlockKind, type Run, webRef } from '../lib/richtext.ts';
+import { embedOf } from '../lib/embeds.ts';
+import { takeHead, withHead } from '../lib/tlo.ts';
+import { PAPERS, defaultPaper, type Paper } from './write.def.ts';
+import type { SlSelect } from '../kit.ts';
 import { blocksHtml, markedHtml } from './write.def.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', title: 'h1', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
@@ -262,14 +266,19 @@ export class ToWrite extends LitElement {
     }
   }
 
+  /** What the header says that the page does not show: the paper it prints on. */
+  private head: Record<string, string> = {};
   /** The value as blocks: a document, or a paragraph per line. */
   private read(value: string): Block[] {
-    if (this.mode === 'doc') return parseDoc(value);
+    if (this.mode === 'doc') {
+      this.head = takeHead(value, ['paper'])[0];
+      return parseDoc(value);
+    }
     return (value ? value.split('\n') : ['']).map((line) => ({ k: 'p', runs: parseInline(line) }));
   }
   /** Blocks as the value: a document, or marked lines. */
   private write(blocks: Block[]): string {
-    if (this.mode === 'doc') return serializeDoc(blocks);
+    if (this.mode === 'doc') return withHead(serializeDoc(blocks), this.head);
     const lines = blocks.filter((b) => b.k !== 'e').map((b) => serializeInline(b.runs).replace(/\n/g, ' '));
     return this.mode === 'line' ? lines.join(' ').trim() : lines.join('\n');
   }
@@ -475,6 +484,11 @@ export class ToWrite extends LitElement {
     // Formatted text (from another document here, or anywhere) keeps what this text can hold: headings, lists,
     // marks and links, read by the same reader as the page itself and written out afresh, so nothing else comes in.
     const rich = e.clipboardData?.getData('text/html') ?? '';
+    // The address of a video, a post or a picture, pasted on its own, is that thing (in a text; in a line it stays words).
+    if (this.mode === 'doc' && embedOf(text.trim()) && !/<[a-z][^>]*>[\s\S]*<\/[a-z]+>/i.test(rich.replace(/<a [^>]*>|<\/a>|<\/?(?:p|span|div|br)[^>]*>/gi, ''))) {
+      this.insertEmbed(webRef(text.trim()));
+      return;
+    }
     if (rich && !linkToRef(text.trim())) {
       const body = new DOMParser().parseFromString(rich, 'text/html').body;
       // Spaces as a browser shows them: runs of white space are one space, none at a paragraph's ends, and a paragraph of nothing but white space (the source's own line breaks) is not one.
@@ -533,6 +547,12 @@ export class ToWrite extends LitElement {
     sel.collapse(after, 0);
     this.onInput();
     return el;
+  }
+
+  /** The paper the text prints on, kept in its header; the reader's own paper is written as nothing. */
+  private setPaper(paper: Paper) {
+    this.head = paper === defaultPaper() ? {} : { paper };
+    this.onInput();
   }
 
   /** A template becomes the document: one change, so one undo brings the blank page back. */
@@ -808,6 +828,11 @@ export class ToWrite extends LitElement {
           ${this.btn('Indent', 'indent', false, 'indent', undefined, 'Tab')}
         </sl-button-group>
         <to-insert label="Insert" .options=${insertOptions('write')} @pick=${(e: CustomEvent<string>) => this.insertNew(e.detail)}></to-insert>
+        ${doc
+          ? html`<sl-select class="sr-label write-paper" size="small" label="Paper" hoist .value=${this.head.paper && this.head.paper in PAPERS ? this.head.paper : defaultPaper()} @sl-change=${(e: Event) => this.setPaper((e.target as SlSelect).value as Paper)}>
+              ${(Object.keys(PAPERS) as Paper[]).map((p) => html`<sl-option value=${p}>${PAPERS[p].name}</sl-option>`)}
+            </sl-select>`
+          : nothing}
         ${doc && !this.value ? templateTool('write', this.useTemplate) : nothing}` : nothing}
       </div>` : nothing}
       ${doc && !this.value ? templateGallery('write', this.useTemplate) : nothing}

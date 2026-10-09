@@ -11,7 +11,8 @@
 import { DocElement, defineElement, html, nothing, state, tool, icon, UI, isKey, editRef, insertOptions, insertedRef, SELF, appOf, apps, convert, hashOf, type TemplateResult, type SlInput, btn } from '../kit.ts';
 import { blockEnd, hasChildren, liveLinks, move, parentOf, place, readTree, remove, serializeOutline, shift, type Dir, type Item, type Link } from '../lib/outlinemodel.ts';
 import '../widgets/insert-box.ts';
-import { plainInline } from '../lib/richtext.ts';
+import { plainInline, webRef } from '../lib/richtext.ts';
+import { embedOf } from '../lib/embeds.ts';
 import { DIR_NAME } from './outline.def.ts';
 import './write.ts';
 import type { ToWrite } from './write.ts';
@@ -82,6 +83,8 @@ export class ToOutline extends DocElement<Item[]> {
     this.commit(this.doc.map((it, n) => (n === i ? { ...it, ...change } : it)));
   }
   private setText(i: number, text: string) {
+    // The address of a video, a post or a picture, typed or pasted as an item, is that thing.
+    if (embedOf(text)) return this.patchItem(i, { text: '', doc: webRef(text.trim()) });
     // Joins name items by their words, so they follow a renamed item (when no other item has its old name).
     const was = this.doc[i].text.trim();
     if (was && !this.doc.some((it, n) => n !== i && it.text.trim() === was)) this.links = this.links.map((l) => ({ ...l, from: l.from === was ? text.trim() : l.from, to: l.to === was ? text.trim() : l.to }));

@@ -7,6 +7,8 @@ globalThis.fetch = (async (input: RequestInfo | URL) => {
   return new Response('', { status: 503 });
 }) as typeof fetch;
 (globalThis as unknown as { __requested: string[] }).__requested = requested;
+// Nor a page loaded into a frame (a thing from the web, once its card is tapped, would otherwise be fetched for real).
+(window as unknown as { happyDOM?: { settings: { disableIframePageLoading: boolean } } }).happyDOM?.settings && ((window as unknown as { happyDOM: { settings: { disableIframePageLoading: boolean } } }).happyDOM.settings.disableIframePageLoading = true);
 // No animations: Shoelace cancels a dialog's running ones as it opens, and happy-dom's cancel rejects a promise nobody awaits.
 Element.prototype.getAnimations = () => [];
 Element.prototype.animate = function () {

@@ -20,6 +20,8 @@
  * next top item. Edges ("~ A -> B: name") join any two items by their words.
  */
 import { fenceRef, refFence, parse, plain, write, type Attrs, type Block, type Dir } from './tlo.ts';
+import { embedOf } from './embeds.ts';
+import { webRef } from './richtext.ts';
 
 export type { Dir };
 
@@ -108,7 +110,8 @@ export function readTree(text: string): { items: Item[]; links: Link[] } {
       else if (b.depth === 0 && offset) offset = 0;
       const dir = b.a?.cls?.map((c) => JOIN[c]).find(Boolean);
       const label = b.a?.kv?.label;
-      add({ depth: b.depth + offset, text: b.text.replace(/\n/g, ' '), ...(dir ? { dir } : {}), ...(label ? { label } : {}) });
+      if (embedOf(b.text)) add({ depth: b.depth + offset, text: '', doc: webRef(b.text) });
+      else add({ depth: b.depth + offset, text: b.text.replace(/\n/g, ' '), ...(dir ? { dir } : {}), ...(label ? { label } : {}) });
     } else if (b.k === 'fence') {
       add({ depth: depthOf(b) || 0, text: '', doc: fenceRef(b) });
       offset = 0;
@@ -131,6 +134,11 @@ export function serializeOutline(items: Item[], links: Link[] = []): string {
   let fenced = false;
   for (const it of out) {
     if (it.doc) {
+      // A thing from the web is an item that is its address; any other document is fenced.
+      if (it.doc.startsWith('web\n')) {
+        blocks.push({ k: 'li', depth: it.depth, text: refFence(it.doc).body.split('\n').pop()!.trim(), ...(fenced ? { a: { kv: { depth: String(it.depth) } } } : {}) });
+        continue;
+      }
       blocks.push({ ...refFence(it.doc), ...(it.depth ? { a: { kv: { depth: String(it.depth) } } } : {}) });
       fenced = true;
       continue;

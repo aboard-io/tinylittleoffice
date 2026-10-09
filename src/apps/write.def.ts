@@ -1,9 +1,10 @@
 /** Write: what the shell knows about texts. Format: lib/richtext.ts, and docs/tlo.md. */
-import { defineApp, utf8, xml, wrap, text, place, pageSvg, type DownloadContext, type Page, type Span } from '../kit/core.ts';
+import { defineApp, utf8, xml, wrap, text, place, pageSvg, MUTED, type DownloadContext, type Page, type Span } from '../kit/core.ts';
 import { linkToRef, refPage, resolve } from '../kit/embed.ts';
 import { ALIGN_NAMES, linkify, listNumbers, parseDoc, runLinks, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
-import { refFence, parse, write } from '../lib/tlo.ts';
+import { refFence, parse, write, takeHead } from '../lib/tlo.ts';
 import { ICON_SVG } from '../lib/icons.ts';
+import { parseWeb } from '../lib/embeds.ts';
 
 function rtfText(s: string): string {
   let out = '';
@@ -107,6 +108,11 @@ export function blocksHtml(blocks: Block[], item: (blk: Block) => string, other:
 export function docToHtml(body: string, ctx: DownloadContext = { created: null }): string {
   const inner = (blk: Block) => blk.runs.map(htmlRun).join('');
   return blocksHtml(parseDoc(body), inner, (blk) => {
+    if (blk.k === 'e' && blk.ref!.startsWith('web\n')) {
+      const { url, alt, embed } = parseWeb(refFence(blk.ref!).body);
+      const page = refPage(blk.ref!);
+      return `<figure class="embed"><a href="${xml(url)}" rel="noopener">${pageSvg(page, `role="img" aria-label="${xml(alt || embed?.title || url)}"`)}</a><figcaption>${xml(embed ? `${embed.provider}: ${alt || embed.title}` : url)}</figcaption></figure>`;
+    }
     if (blk.k === 'e') {
       const p = resolve(blk.ref!);
       const page = refPage(blk.ref!);
@@ -140,13 +146,22 @@ const title = (body: string) => {
   return first ? docText([first]).trim() : '';
 };
 
-const W = 720;
-const M = 56;
-const PAGE_H = 1018; // the shape of a sheet of paper
+/** The paper a text prints on: its size in px (96 to the inch) and its margin, an inch or 25 mm. */
+export const PAPERS = { letter: { name: 'Letter', w: 816, h: 1056, m: 96 }, a4: { name: 'A4', w: 794, h: 1123, m: 94 } } as const;
+export type Paper = keyof typeof PAPERS;
+/** The paper where the reader is: letter in North America, A4 nearly everywhere else (and where there is no reader: a program). */
+export const defaultPaper = (): Paper => (typeof navigator === 'undefined' || /-(US|CA|MX|PR|PH|CL|CO|VE|GT|CR|PA|DO)$/i.test(navigator.language) ? 'letter' : 'a4');
+/** The paper the text says, in its header ("paper: a4"), or the reader's. */
+export const paperOf = (body: string): Paper => {
+  const [head] = takeHead(body, ['paper']);
+  return head.paper && head.paper in PAPERS ? (head.paper as Paper) : defaultPaper();
+};
 
-/** The text laid out on pages. A text that fits on one page is exactly as tall as it needs to be. */
+/** The text laid out on pages of its paper. A text that fits on one page is exactly as tall as it needs to be. */
 export function pages(body: string): Page[] {
-  const bits: { h: number; svg: (y: number) => string }[] = [];
+  const { w: W, h: PAGE_H, m: M } = PAPERS[paperOf(body)];
+  // Each block as a strip: its height, how to draw it at a y, whether it must stay with the strip after it (a heading), and its first line's height.
+  const bits: { h: number; svg: (y: number) => string; keep?: boolean; first: number }[] = [];
   const number = listNumbers();
   for (const blk of parseDoc(body)) {
     const d = blk.d ?? 0;
@@ -154,7 +169,7 @@ export function pages(body: string): Page[] {
     if (blk.k === 'e') {
       const page = refPage(blk.ref!);
       const h = Math.min(360, (page.h * (W - 2 * M)) / page.w);
-      bits.push({ h: h + 24, svg: (y) => `<rect x="${M}" y="${y}" width="${W - 2 * M}" height="${h}" fill="#fff" stroke="#d4d4d8" rx="6"/>` + place(page, M, y, W - 2 * M, h) });
+      bits.push({ h: h + 24, first: h + 24, svg: (y) => `<rect x="${M}" y="${y}" width="${W - 2 * M}" height="${h}" fill="#fff" stroke="#d4d4d8" rx="6"/>` + place(page, M, y, W - 2 * M, h) });
       continue;
     }
     const [px, bold, gap] = blk.k === 'title' ? [48, true, 24] : blk.k === 'h1' ? [30, true, 18] : blk.k === 'h2' ? [22, true, 14] : [16, false, blk.k === 'p' ? 12 : 5];
@@ -168,6 +183,8 @@ export function pages(body: string): Page[] {
     const [tx, anchor] = blk.a === 'c' ? [(left + W - M) / 2, 'middle' as const] : blk.a === 'r' ? [W - M, 'end' as const] : [left, 'start' as const];
     bits.push({
       h: lines.length * lh + gap,
+      first: lh + gap,
+      keep: blk.k === 'title' || blk.k === 'h1' || blk.k === 'h2',
       svg: (y) => (mark ? text(left - 8, y + px, mark, { px, anchor: 'end' }) : '') + lines.map((l, i) => text(tx, y + px + i * lh, l, { px, bold, anchor })).join(''),
     });
   }
@@ -175,17 +192,20 @@ export function pages(body: string): Page[] {
   const out: Page[] = [];
   let svg = '';
   let y = M;
-  for (const b of bits) {
-    if (y + b.h > PAGE_H - M && y > M) {
+  bits.forEach((b, i) => {
+    // A heading goes to the next page rather than sit alone at the foot of this one.
+    const need = b.keep ? b.h + (bits[i + 1]?.first ?? 0) : b.h;
+    if (y + need > PAGE_H - M && y > M) {
       out.push({ w: W, h: PAGE_H, svg });
       svg = '';
       y = M;
     }
     svg += b.svg(y);
     y += b.h;
-  }
+  });
   out.push({ w: W, h: total <= PAGE_H ? Math.max(160, total) : PAGE_H, svg });
-  return out;
+  // More than one page: each numbered at its foot, in the margin.
+  return out.length > 1 ? out.map((p, i) => ({ ...p, svg: p.svg + text(W / 2, PAGE_H - M / 2 + 4, String(i + 1), { px: 11, fill: MUTED, anchor: 'middle' }) })) : out;
 }
 
 export default defineApp({

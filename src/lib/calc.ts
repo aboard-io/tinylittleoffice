@@ -30,8 +30,12 @@ const FN: Record<string, (a: number, b?: number) => number> = {
 };
 const CONST: Record<string, number> = { pi: Math.PI, π: Math.PI, e: Math.E, tau: 2 * Math.PI };
 
-/** Evaluate an expression; NaN when it does not parse. `x` may be given. Degrees are not assumed: sin takes radians, as the keys say. */
-export function evaluate(src: string, x = NaN): number {
+/**
+ * Evaluate an expression; NaN when it does not parse. `x` may be given, and
+ * `names` the values of names from earlier lines of the tape. Degrees are
+ * not assumed: sin takes radians, as the keys say.
+ */
+export function evaluate(src: string, x = NaN, names: Record<string, number> = {}): number {
   const s = src.replace(/\s+/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/\^/g, '^');
   let at = 0;
   const peek = () => s[at];
@@ -53,10 +57,11 @@ export function evaluate(src: string, x = NaN): number {
       at += m[0].length;
       return m[0].endsWith('%') ? parseFloat(m[0]) / 100 : parseFloat(m[0]);
     }
-    const w = /^[a-zπ]+\d*/i.exec(s.slice(at));
+    const w = /^[a-zπ_][a-z0-9_]*/i.exec(s.slice(at));
     if (!w) return fail();
     at += w[0].length;
     const name = w[0].toLowerCase();
+    if (name in names) return names[name];
     if (peek() === '(' && FN[name]) {
       at++;
       const a = expr();
@@ -101,6 +106,24 @@ export function evaluate(src: string, x = NaN): number {
   } catch {
     return NaN;
   }
+}
+
+/**
+ * The tape worked out line by line, as the little program it is: a line
+ * "name = expression" keeps its result under that name for the lines after
+ * it, and "ans" is always the line before. Each line's result, and the
+ * names in force after the last.
+ */
+export function tape(lines: string[]): { results: number[]; names: Record<string, number> } {
+  const names: Record<string, number> = {};
+  const results = lines.map((l) => {
+    const m = /^\s*([a-zπ_][a-z0-9_ ]*?)\s*=\s*(.+?)\s*$/i.exec(l);
+    const v = evaluate(m ? m[2] : l, NaN, names);
+    if (m && !(m[1].trim().toLowerCase() in FN) && !(m[1].trim().toLowerCase() in CONST)) names[m[1].trim().toLowerCase().replace(/\s+/g, '_')] = v;
+    if (isFinite(v)) names.ans = v;
+    return v;
+  });
+  return { results, names };
 }
 
 /** A number as a calculator shows it: up to 10 significant digits, no trailing noise. */

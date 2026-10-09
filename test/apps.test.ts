@@ -1019,6 +1019,7 @@ test('markdown, both ways, for every app', async () => {
     brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     qr: 'https://tinylittleoffice.com/',
+    web: 'https://youtu.be/dQw4w9WgXcQ',
   };
   for (const def of apps()) {
     const body = samples[def.id] ?? specOf(def.id)?.example ?? '';
@@ -1180,6 +1181,11 @@ test('calculator: expressions, money modes, and the page they draw', async () =>
   assert.equal(evaluate('2x', 3), 6);
   assert.equal(evaluate('10%'), 0.1);
   assert.ok(isNaN(evaluate('2+')) && isNaN(evaluate('alert(1)')) && isNaN(evaluate('foo')));
+  // The tape is a little program: a name kept for the lines after it, "ans" the line before, a bad line NaN and no more.
+  const { tape } = await import('../src/lib/calc.ts');
+  assert.deepEqual(tape(['a = 12', 'a * 3', 'ans + 1', 'unit price = 2.5', 'unit_price * a', 'nope']).results, [12, 36, 37, 2.5, 30, NaN]);
+  assert.equal(tape(['sin = 2', 'sin(0)']).results[1], 0);
+  assert.equal(evaluate('total', NaN, { total: 7 }), 7);
   assert.equal(shown(1 / 3), '0.3333333333');
   assert.equal(shown(-2), '−2');
   const m = mortgage(withDefaults('mortgage', { price: 400000, deposit: 80000, rate: 6.5, years: 30 }));

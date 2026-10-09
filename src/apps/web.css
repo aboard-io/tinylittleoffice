@@ -1,0 +1,13 @@
+/* The editor for a thing from the web: its address, what a picture shows, and the card it will be. */
+.web {
+  display: grid;
+  gap: 12px;
+}
+.web-card svg {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 12px;
+}

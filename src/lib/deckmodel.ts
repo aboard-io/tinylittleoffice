@@ -3,6 +3,8 @@ import { THEMES, themeOf } from './decktheme.ts';
 import { ACCENT } from '../kit/core.ts';
 import { linkToRef, makeRef } from '../kit/embed.ts';
 import { fenceRef, attr, refFence, pages, parse, takeHead, write, type Block, type Head, type Tlo } from './tlo.ts';
+import { embedOf } from './embeds.ts';
+import { webRef } from './richtext.ts';
 import { nested, outlineToDeck, readTree } from './outlinemodel.ts';
 /**
  * Deck document model. A deck is TLO (lib/tlo.ts), a slide between each
@@ -140,6 +142,11 @@ function slideOf(blocks: Block[], prose: boolean): Slide {
       else into.push(`[${b.alt || b.url}](${b.url})`);
     }
   }
+  // A slide whose words are one address from the web (a video, a post, a picture) shows that, whole.
+  if (!s.sub && live(s.bullets).length === 1 && !live(s.right).length && embedOf(s.bullets.find((l) => l.trim())!)) {
+    s.sub = webRef(s.bullets.find((l) => l.trim())!);
+    s.bullets = [];
+  }
   if (!s.layout && prose && listed) s.layout = 'b';
   // A column break on a slide with no layout makes it two columns; on one with another layout, the columns run together.
   if (s.right && !s.layout) s.layout = '2';
@@ -166,7 +173,7 @@ function slideBlocks(s: Slide, prose: boolean): Block[] {
     });
   out.push(...words(s.bullets));
   if (layout === '2' && live(s.right).length) out.push({ k: 'p', text: '|' }, ...words(s.right!));
-  if (s.sub) out.push(refFence(s.sub));
+  if (s.sub) out.push(s.sub.startsWith('web\n') ? { k: 'p', text: refFence(s.sub).body.split('\n').pop()!.trim() } : refFence(s.sub));
   if (live(s.notes).length) out.push({ k: 'quote', text: live(s.notes).map((n) => n.replace(/\n/g, ' ')).join('\n') });
   return out;
 }

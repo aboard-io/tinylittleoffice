@@ -145,3 +145,24 @@ test('on slides, the documents arrive a piece at a time', async () => {
   expect(slide().textContent).toContain('Offsite');
   expect(slide().textContent).not.toContain('Launch');
 });
+
+test('a slide that is one address from the web: a card in the editor, live over the slide when shown, loaded only on the tap', async () => {
+  const deck = await mount('deck', '## The film\n\nhttps://youtu.be/dQw4w9WgXcQ\n\n---\n\n## After');
+  expect(parseDeck(deck.el.value)[0].sub).toBe('web\nhttps://youtu.be/dQw4w9WgXcQ');
+  // In the editor: the card, naming the provider; nothing from YouTube.
+  expect(deck.el.querySelector('to-embed')!.shadowRoot!.textContent).toContain('YouTube');
+  expect(deck.el.querySelector('to-embed')!.shadowRoot!.querySelector('iframe')).toBeNull();
+  button(deck.el, /Present/).click();
+  await settle(deck.el);
+  const live = () => deck.el.querySelector<HTMLElement>('.deck-show to-embed.deck-live')!;
+  expect(live()).toBeTruthy();
+  expect(live().shadowRoot!.querySelector('iframe')).toBeNull();
+  live().shadowRoot!.querySelector<HTMLButtonElement>('button.load')!.click();
+  await settleAll();
+  expect(live().shadowRoot!.querySelector('iframe')!.getAttribute('src')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  // The next slide is an ordinary one, with nothing live over it.
+  presenting(deck.el);
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  await settle(deck.el);
+  expect(deck.el.querySelector('.deck-show to-embed.deck-live')).toBeNull();
+});

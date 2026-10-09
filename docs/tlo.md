@@ -40,6 +40,7 @@ Every app reads its document from it. The reader and writer are
 | `~ A -> B: label` | An edge between two things in the document, by their words or `#id`. The kinds are `->`, `<-`, `<->` and `--`. |
 | A fenced block whose language is an app | Another document, embedded: its whole TLO text. `sheet`, `draw`, `trip` and so on. |
 | `![alt](a TinyLittleOffice link)` alone on a line | Another document, by its link. |
+| The address of a YouTube or Vimeo video, a Bluesky or X post, alone on a line; `![what it shows](a picture's address)` | A thing from the web, shown as a card that loads it only when tapped. |
 | `---` between blocks | A break: the next slide, page or card. |
 | `> words` | A note: a speaker's note, a page's aside. |
 

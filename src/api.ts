@@ -61,6 +61,7 @@ const EXAMPLES: Record<string, string> = {
   badges: '## Ada Lovelace\n\nEngineering\n\nLondon\n\n---\n\n## Grace Hopper\n\nCompilers\n\nNew York',
   brochure: '## Visit\n\n---\n\n## Why\n\nbecause',
   comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday',
+  web: 'https://youtu.be/dQw4w9WgXcQ',
 };
 
 /** An app's example document, in its own format: the quickest way to see what a body looks like. */

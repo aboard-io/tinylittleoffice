@@ -54,8 +54,10 @@
   margin-bottom: 8px;
 }
 .calc-keys button {
-  padding: 12px 0;
+  min-height: 48px;
+  padding: 8px 0;
   font: 500 18px var(--sl-font-sans);
+  touch-action: manipulation;
   color: var(--to-ink);
   background: var(--to-surface);
   border: 1px solid var(--to-border);
@@ -78,13 +80,11 @@
 }
 .calc-keys.sci button {
   font-size: 14px;
-  padding: 8px 0;
+  min-height: 40px;
   color: var(--to-ink-2);
 }
 .calc-keys button:focus-visible,
-.calc-soft:focus-visible,
-.calc-reuse:focus-visible,
-.calc-x:focus-visible {
+.calc-ans:focus-visible {
   outline: 2px solid var(--to-accent);
   outline-offset: 1px;
 }
@@ -97,30 +97,44 @@
 .calc-tape li {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: 6px;
+  padding: 4px 0;
   border-bottom: 1px solid var(--to-border);
   font: 14px var(--sl-font-mono);
 }
-.calc-reuse {
+/* A line of the tape: a box to change where it stands. */
+.calc-line {
   flex: 1 1 auto;
-  text-align: left;
-  border: 0;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   background: none;
   font: inherit;
   color: var(--to-ink-2);
-  cursor: pointer;
-  padding: 2px 4px;
+}
+.calc-line:hover {
+  border-color: var(--to-border);
+}
+.calc-line:focus-visible {
+  outline: 2px solid var(--to-accent);
+  outline-offset: -1px;
+  color: var(--to-ink);
+}
+/* Its answer: a key that puts it into the line. */
+.calc-ans {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 2px 6px;
   border-radius: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font: 600 15px var(--sl-font-mono);
+  color: var(--to-ink);
+  cursor: pointer;
   white-space: nowrap;
 }
-.calc-reuse:hover {
+.calc-ans:hover {
   background: var(--to-surface-2);
-}
-.calc-tape b {
-  white-space: nowrap;
 }
 .calc-form {
   display: grid;

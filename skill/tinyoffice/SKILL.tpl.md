@@ -69,7 +69,7 @@ Total | =SUM(B1:B2)
 
 ### write: a text
 
-Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. **contract** and **resume** are written the same way.
+Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only the address of a YouTube or Vimeo video, a Bluesky or X post, or a Markdown image `![what it shows](address)` is that thing, as a card that loads it only when tapped (in an outline, such an item; on a slide, the whole slide). `paper: a4` or `letter` in the header sets the PDF's paper. **contract** and **resume** are written the same way.
 
 {{doc:write:Meeting notes}}
 # Meeting notes
@@ -244,7 +244,7 @@ A drawing's table, then a table `Shape | Keys`: for each moving shape (its row n
 
 ## Calculator
 
-`calc`: the header names the mode, `mode: graph` (or `mortgage`, `invest`, `cashflow`, `interest`; the calculator itself needs none). For the calculator and the grapher, an expression per line (`2+3*4`, `sqrt(16)`, `sin(x)`); for the money modes, `- name = value` items: mortgage `price deposit rate years`, invest `start monthly return years`, cashflow `rate` and `year 0 = -100000`, interest `principal rate years times`.
+`calc`: the header names the mode, `mode: graph` (or `mortgage`, `invest`, `cashflow`, `interest`; the calculator itself needs none). For the calculator and the grapher, an expression per line (`2+3*4`, `sqrt(16)`, `sin(x)`); a line `name = expression` keeps its answer under that name for the lines after it, and `ans` is the line before; for the money modes, `- name = value` items: mortgage `price deposit rate years`, invest `start monthly return years`, cashflow `rate` and `year 0 = -100000`, interest `principal rate years times`.
 
 {{ex:calc:Our mortgage}}
 

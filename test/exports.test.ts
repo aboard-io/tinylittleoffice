@@ -15,7 +15,7 @@ import { sheetToCsv, sheetToXlsx, toExcelFormula } from '../src/apps/sheet.def.t
 const ctx = { created: Date.UTC(2026, 0, 2, 3, 4) };
 
 test('every app is defined, and download names resolve', () => {
-  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','site','store','invoice','contract','zine','booklet','brochure','comic','poster','badges','flow','calc','pixel','seating','family','timeline','wordsearch','spinner','santa','split','log','qr']);
+  assert.deepEqual(apps().map((a) => a.id), ['sheet','write','outline','deck','draw','cal','todo','board','gantt','trip','anim','org','mind','lanes','venn','net','site','store','invoice','contract','zine','booklet','brochure','comic','poster','badges','flow','calc','pixel','seating','family','timeline','wordsearch','spinner','santa','split','log','web','qr']);
   assert.equal(extOf('ppt'), 'pptx');
   assert.equal(extOf('PPTX'), 'pptx');
   assert.equal(extOf('ical'), 'ics');
@@ -52,6 +52,7 @@ test('every app draws itself, and is a web page with preview tags', () => {
     brochure: '## Visit\n\n---\n\n## Why\n\nbecause\n',
     pixel: 'ab.c\n.<d',
     comic: '## Biscuit <out>\n\n---\n\n- :dog: Walk? | Monday\n',
+    web: '---\nalt: The <sea>\n---\nhttps://example.org/sea.jpg',
   };
   for (const def of apps()) {
     for (const body of [samples[def.id] ?? specOf(def.id)!.example, '']) {

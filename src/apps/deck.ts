@@ -276,6 +276,8 @@ export class ToDeck extends PagesElement<Deck> {
     const sub = s.sub ? resolve(s.sub) : null;
     // A map is shown live, over the place its picture would be, so it can fly from stop to stop.
     const map = sub?.def?.id === 'trip' ? layoutSlide(s).sub : undefined;
+    // A thing from the web is live over its place too: its card until it is tapped, then the thing itself.
+    const web = sub?.def?.id === 'web' ? layoutSlide(s).sub : undefined;
     const p = slidePage(s, this.shown, map ? 0 : subStep, this.look);
     // How the slide arrives, and which way: back when going back.
     const motion = `tr-${this.doc.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
@@ -287,6 +289,7 @@ export class ToDeck extends PagesElement<Deck> {
         this.showing,
         html`<div class="frame ${motion}">
           <svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label="${s.title}">${unsafeSVG(p.svg)}</svg>
+          ${web && s.sub ? html`<to-embed class="deck-live" ref=${s.sub} fill style="left:${(web.x / SW) * 100}%;top:${(web.y / SH) * 100}%;width:${(web.w / SW) * 100}%;height:${(web.h / SH) * 100}%" @click=${(e: Event) => e.stopPropagation()}></to-embed>` : nothing}
           ${map && sub ? html`<to-trip class="deck-map" present .value=${sub.body} .step=${subStep ?? 0} style="left:${(map.x / SW) * 100}%;top:${(map.y / SH) * 100}%;width:${(map.w / SW) * 100}%;height:${(map.h / SH) * 100}%" @click=${(e: Event) => e.stopPropagation()}></to-trip>` : nothing}
         </div>`,
       )}
