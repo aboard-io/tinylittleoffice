@@ -28,7 +28,8 @@
     "fflate": "0.8.3",
     "leaflet": "1.9.4",
     "lit": "3.3.3",
-    "lucide": "1.54.0"
+    "lucide": "1.54.0",
+    "mathjs": "15.2.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
