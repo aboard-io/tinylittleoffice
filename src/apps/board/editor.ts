@@ -8,7 +8,7 @@
  * items (model.ts); the one bar holds Insert ▾, the marks for the words being typed, undo and redo.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
-import { Ellipsis, GripVertical } from 'lucide';
+import { Columns3, Ellipsis, GripVertical, ListChecks } from 'lucide';
 import { runLength, type Block, type Doc } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
 import { DocElement } from '../../kit/element.ts';
@@ -330,8 +330,8 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const card = this.cardAt(this.cur);
     return [
       { label: t('Card'), icon: UI.plus, disabled: !stage, does: () => stage && this.newCard(stage) },
-      { label: t('Checklist item'), icon: UI.list, disabled: !card, does: () => card && this.checklist(card) },
-      { label: t('Stage'), icon: UI.table, does: () => this.newStage() },
+      { label: t('Checklist item'), icon: ListChecks, disabled: !card, does: () => card && this.checklist(card) },
+      { label: t('Stage'), icon: Columns3, does: () => this.newStage() },
     ];
   }
   private async insertIcon() {
