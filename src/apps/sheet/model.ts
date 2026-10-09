@@ -115,9 +115,9 @@ class Builder {
   }
 }
 
-/** The document given a table if it has none, and columns out to `cols` (letter-named, text). */
-function ensure(b: Builder, cols = MIN_COLS): Builder {
-  if (b.at < 0) b.push({ op: 'splice', at: b.doc.blocks.length, n: 0, blocks: [{ k: 'table', cols: Array.from({ length: Math.max(MIN_COLS, cols) }, (_, c) => col(c)), rows: [] }] });
+/** The document given a table if it has none (three letter-named text columns), and columns out to `cols` where a command needs them. */
+function ensure(b: Builder, cols = 0): Builder {
+  if (b.at < 0) b.push({ op: 'splice', at: b.doc.blocks.length, n: 0, blocks: [{ k: 'table', cols: Array.from({ length: Math.max(MIN_COLS, Math.min(MAX_COLS, cols)) }, (_, c) => col(c)), rows: [] }] });
   const have = b.table.cols.length;
   if (cols > have) b.push({ op: 'cols', at: b.at, c: have, n: 0, cols: Array.from({ length: Math.min(MAX_COLS, cols) - have }, (_, i) => col(have + i)) });
   return b;
@@ -192,12 +192,11 @@ export function addColumn(doc: Doc, c: number): Op[] | null {
   return reletter(b).ops;
 }
 
-/** Whether column c may go: only an empty one, and never one of the last three. */
+/** Whether column c may go: only one with nothing in its cells, and never one of the last three. */
 export function removable(view: SheetView, c: number): boolean {
   const { table } = view;
   if (c >= table.cols.length) return view.cols.length > MIN_COLS;
-  const { name, type } = table.cols[c];
-  return table.cols.length > MIN_COLS && (isLetterName(name) || !name.trim()) && type === 'text' && table.rows.every((row) => row[c] === '');
+  return table.cols.length > MIN_COLS && table.rows.every((row) => row[c] === '');
 }
 
 /** Column c taken out, when it may go. */

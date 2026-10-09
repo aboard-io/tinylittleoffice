@@ -43,7 +43,7 @@ export default defineApp({
   exports: [
     { ext: 'xlsx', label: () => t('Excel (XLSX)'), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', build: (doc) => xlsx(doc) },
     // The byte order mark is how Excel knows a CSV is UTF-8.
-    { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', build: (doc) => utf8('﻿' + sheetToCsv(parse(doc))) },
+    { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', build: (doc) => utf8('\ufeff' + sheetToCsv(parse(doc))) },
     { ext: 'chart.svg', label: () => t('Chart (SVG)'), mime: 'image/svg+xml', build: (doc) => chartSvg(doc) },
     {
       ext: 'chart.png',
