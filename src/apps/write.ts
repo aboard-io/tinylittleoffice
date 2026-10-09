@@ -15,76 +15,43 @@ import { askDate } from '../widgets/date-dialog.ts';
 import { openLink } from '../widgets/link-guard.ts';
 import { templateLine, templateTool } from '../widgets/template-picker.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { MAX_DEPTH, linkable, linkTarget, linkify, parseDoc, parseInline, serializeDoc, serializeInline, docText, ALIGN_NAMES, ALIGN_OF, type Align, type Block, type BlockKind, type Run } from '../lib/richtext.ts';
+import { blocksHtml, markedHtml } from './write.def.ts';
 
 const KIND_TAG: Record<BlockKind, string> = { p: 'p', title: 'h1', h1: 'h1', h2: 'h2', ul: 'li', ol: 'li', e: 'figure' };
-
 
 /**
  * An embedded TinyLittleOffice document. <to-embed> draws itself in a shadow root
  * and is not editable, so the text around it treats it as one thing.
  */
-export function embedHtml(ref: string): string {
+function embedHtml(ref: string): string {
   const r = xml(ref);
   return `<to-embed contenteditable="false" tabindex="0" controls ref="${r}" data-ref="${r}"></to-embed>`;
 }
 
 /** An icon in a line of text: one thing, not editable inside, so the caret steps over it. */
-export const iconHtml = (name: string) => `<span class="ic" data-icon="${xml(name)}" contenteditable="false" role="img" aria-label="${xml(name)} icon">${ICON_SVG[name] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : `:${xml(name)}:`}</span>`;
+const iconHtml = (name: string) => `<span class="ic" data-icon="${xml(name)}" contenteditable="false" role="img" aria-label="${xml(name)} icon">${ICON_SVG[name] ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_SVG[name]}</svg>` : `:${xml(name)}:`}</span>`;
 
+/** Runs as the editor's HTML. Linked words are a link; a web address in the text shows as one too (in the document it is just text). */
 function runsToHtml(runs: Run[]): string {
   if (!runs.length) return '<br>';
-  return runs
-    .map((r) => {
-      if (r.ic) return iconHtml(r.ic);
-      // Linked words are a link; a web address in the text shows as one too (in the document it is just text).
-      let h = r.href
-        ? `<a href="${xml(r.href)}">${xml(r.t)}</a>`
-        : linkify(r.t)
-            .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
-            .join('');
-      if (r.h) h = `<mark>${h}</mark>`;
-      if (r.s) h = `<s>${h}</s>`;
-      if (r.u) h = `<u>${h}</u>`;
-      if (r.i) h = `<i>${h}</i>`;
-      if (r.b) h = `<b>${h}</b>`;
-      return h;
-    })
-    .join('');
+  return runs.map((r) => (r.ic ? iconHtml(r.ic) : markedHtml(r, 'b', 'i'))).join('');
 }
 
-export function blocksToHtml(blocks: Block[]): string {
-  let out = '';
-  const open: string[] = []; // the lists we are inside, outermost first
-  const closeTo = (depth: number) => {
-    while (open.length > depth) out += `</li></${open.pop()}>`;
-  };
-  for (const b of blocks) {
-    if (b.k === 'ul' || b.k === 'ol') {
-      const depth = (b.d ?? 0) + 1;
-      closeTo(depth);
-      if (open.length === depth && open[depth - 1] !== b.k) closeTo(depth - 1);
-      if (open.length === depth) out += '</li>';
-      while (open.length < depth) {
-        out += `<${b.k}>`;
-        open.push(b.k);
-        if (open.length < depth) out += '<li>';
-      }
-      out += `<li${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}`;
-      continue;
-    }
-    closeTo(0);
-    out += b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.k === 'title' ? ' class="doc-title"' : ''}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
-  }
-  closeTo(0);
-  return out || '<p><br></p>';
+function blocksToHtml(blocks: Block[]): string {
+  const other = (b: Block) =>
+    b.k === 'e' ? embedHtml(b.ref!) : `<${KIND_TAG[b.k]}${b.k === 'title' ? ' class="doc-title"' : ''}${b.a ? ` style="text-align:${ALIGN_NAMES[b.a]}"` : ''}>${runsToHtml(b.runs)}</${KIND_TAG[b.k]}>`;
+  return blocksHtml(blocks, (b) => runsToHtml(b.runs), other).join('') || '<p><br></p>';
 }
 
-/** The marks in force, and the address of the link the words are in (a: '' for none). */
-type Flags = { b: boolean; i: boolean; u: boolean; s: boolean; h: boolean; a?: string };
+/** The marks in force, and the address of the link the words are in (href: '' for none). */
+type Flags = Pick<Run, 'b' | 'i' | 'u' | 's' | 'h' | 'href'>;
+
+/** Whether two runs have the same marks and link, and so can be one. */
+const sameMarks = (a: Run, b: Run) => !a.ic && !b.ic && !!a.b === !!b.b && !!a.i === !!b.i && !!a.u === !!b.u && !!a.s === !!b.s && !!a.h === !!b.h && (a.href ?? '') === (b.href ?? '');
 
 /** Walk the editor DOM and produce blocks. Tolerant of whatever contentEditable emits. */
-export function domToBlocks(root: HTMLElement): Block[] {
+function domToBlocks(root: HTMLElement): Block[] {
   const blocks: Block[] = [];
   let cur: Block | null = null;
   /** How many lists deep we are. */
@@ -102,15 +69,12 @@ export function domToBlocks(root: HTMLElement): Block[] {
     if (!cur) open(k);
     const t = text.replace(/ /g, ' ');
     if (!t) return;
-    const run: Run = { t };
-    if (f.b) run.b = true;
-    if (f.i) run.i = true;
-    if (f.u) run.u = true;
-    if (f.s) run.s = true;
-    if (f.h) run.h = true;
-    if (f.a) run.href = f.a;
+    const run: Run = { t, ...f };
+    if (!run.href) delete run.href;
+    // A heading is bold through and through, so bold in one says nothing.
+    if (cur!.k === 'title' || cur!.k === 'h1' || cur!.k === 'h2') delete run.b;
     const last = cur!.runs[cur!.runs.length - 1];
-    if (last && !last.ic && !!last.b === f.b && !!last.i === f.i && !!last.u === f.u && !!last.s === f.s && !!last.h === f.h && (last.href ?? '') === (f.a ?? '')) last.t += t;
+    if (last && sameMarks(last, run)) last.t += t;
     else cur!.runs.push(run);
   };
 
@@ -162,7 +126,7 @@ export function domToBlocks(root: HTMLElement): Block[] {
       // Words linked somewhere are a link; an address showing itself is just the address, a link wherever it is shown.
       const href = el.getAttribute('href') ?? '';
       const words = (el.textContent ?? '').trim();
-      nf.a = linkable(href) && words !== href && words !== href.replace(/^mailto:/, '') ? linkTarget(href) : '';
+      nf.href = linkable(href) && words !== href && words !== href.replace(/^mailto:/, '') ? linkTarget(href) : '';
     }
     if (tag === 'I' || tag === 'EM' || st.fontStyle === 'italic') nf.i = true;
     if (tag === 'U' || st.textDecoration.includes('underline')) nf.u = true;
@@ -175,30 +139,12 @@ export function domToBlocks(root: HTMLElement): Block[] {
     for (const child of Array.from(el.childNodes)) inline(child, nf, k, boundary);
   };
 
-  const plain: Flags = { b: false, i: false, u: false, s: false, h: false, a: '' };
+  const plain: Flags = {};
   // A block's alignment, as the browser wrote it.
-  const alignOf = (el: HTMLElement): Align | undefined => ({ center: 'c', right: 'r', justify: 'j' } as Record<string, Align>)[el.style.textAlign] ?? (el.getAttribute('align') ? ({ center: 'c', right: 'r', justify: 'j' } as Record<string, Align>)[el.getAttribute('align')!] : undefined);
+  const alignOf = (el: HTMLElement): Align | undefined => ALIGN_OF[el.style.textAlign] ?? ALIGN_OF[el.getAttribute('align') ?? ''];
 
-  const block = (el: HTMLElement, inherited: BlockKind) => {
-    const tag = el.tagName;
-    if (tag === 'UL' || tag === 'OL') {
-      const k: BlockKind = tag === 'UL' ? 'ul' : 'ol';
-      lists++;
-      for (const child of Array.from(el.childNodes)) {
-        if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName === 'LI') {
-          close();
-          open(k);
-          const a = alignOf(child as HTMLElement);
-          if (a) cur!.a = a;
-          for (const c of Array.from(child.childNodes)) inline(c, plain, k, child);
-          close();
-        } else inline(child, plain, k, el);
-      }
-      lists--;
-      close();
-      return;
-    }
-    const k: BlockKind = tag === 'H1' ? (el.classList.contains('doc-title') ? 'title' : 'h1') : tag === 'H2' || tag === 'H3' ? 'h2' : tag === 'LI' ? inherited : 'p';
+  /** A block of its own, of kind k, holding what the element holds. */
+  const fill = (el: HTMLElement, k: BlockKind) => {
     close();
     open(k);
     const a = alignOf(el);
@@ -207,28 +153,35 @@ export function domToBlocks(root: HTMLElement): Block[] {
     close();
   };
 
+  const block = (el: HTMLElement, inherited: BlockKind) => {
+    const tag = el.tagName;
+    if (tag === 'UL' || tag === 'OL') {
+      const k: BlockKind = tag === 'UL' ? 'ul' : 'ol';
+      lists++;
+      for (const child of Array.from(el.childNodes)) {
+        if (child.nodeType === Node.ELEMENT_NODE && (child as HTMLElement).tagName === 'LI') fill(child as HTMLElement, k);
+        else inline(child, plain, k, el);
+      }
+      lists--;
+      close();
+      return;
+    }
+    fill(el, tag === 'H1' ? (el.classList.contains('doc-title') ? 'title' : 'h1') : tag === 'H2' || tag === 'H3' ? 'h2' : tag === 'LI' ? inherited : 'p');
+  };
+
   for (const child of Array.from(root.childNodes)) {
     if (child.nodeType === Node.ELEMENT_NODE && isBlockTag((child as HTMLElement).tagName)) {
       block(child as HTMLElement, 'p');
     } else inline(child, plain, 'p', root);
   }
-  // A heading is bold through and through, so bold in one says nothing.
-  for (const b of blocks) if (b.k === 'title' || b.k === 'h1' || b.k === 'h2') b.runs = mergeRuns(b.runs.map(({ b: _, ...r }) => r));
   return blocks.length ? blocks : [{ k: 'p', runs: [] }];
-}
-
-/** Neighbouring runs with the same marks and link, as one. */
-function mergeRuns(runs: Run[]): Run[] {
-  const same = (a: Run, b: Run) => !a.ic && !b.ic && !!a.b === !!b.b && !!a.i === !!b.i && !!a.u === !!b.u && !!a.s === !!b.s && !!a.h === !!b.h && (a.href ?? '') === (b.href ?? '');
-  return runs.reduce<Run[]>((out, r) => (out.length && same(out[out.length - 1], r) ? (out[out.length - 1] = { ...out[out.length - 1], t: out[out.length - 1].t + r.t }, out) : [...out, r]), []);
 }
 
 /** The embedded document just before or after the caret, if the caret is at that edge of its block. */
 function embedBeside(page: HTMLElement, forward: boolean): HTMLElement | null {
   const sel = getSelection();
   if (!sel?.rangeCount || !sel.isCollapsed) return null;
-  let block: Node | null = sel.anchorNode;
-  while (block && block.parentNode !== page) block = block.parentNode;
+  const block = blockOf(sel.anchorNode, page);
   if (!block) return null;
   const edge = document.createRange();
   edge.selectNodeContents(block);
@@ -240,7 +193,7 @@ function embedBeside(page: HTMLElement, forward: boolean): HTMLElement | null {
 }
 
 /** The paragraph (the page's own child) a node is in. */
-function blockOf(node: Node, page: HTMLElement): Node | null {
+function blockOf(node: Node | null, page: HTMLElement): Node | null {
   let n: Node | null = node;
   while (n && n.parentNode !== page) n = n.parentNode;
   return n;
@@ -248,6 +201,15 @@ function blockOf(node: Node, page: HTMLElement): Node | null {
 
 function isBlockTag(tag: string): boolean {
   return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'PRE', 'SECTION', 'ARTICLE'].includes(tag);
+}
+
+/** Put the caret just after a node. */
+function caretAfter(node: Node) {
+  const after = document.createRange();
+  after.setStartAfter(node);
+  after.collapse(true);
+  getSelection()?.removeAllRanges();
+  getSelection()?.addRange(after);
 }
 
 /**
@@ -334,19 +296,13 @@ export class ToWrite extends LitElement {
     else this.dispatchEvent(new CustomEvent('rich-change', { detail: this.lastEmitted }));
   };
 
-  /** Run a formatting command from outside (a host's own toolbar). */
-  exec(cmd: string, arg?: string) {
-    this.run(cmd, arg);
-  }
-  /** Toggle highlight from outside. */
+  /** Toggle highlight (from the keyboard, or a host's own toolbar). */
   highlight() {
-    this.run('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
+    this.exec('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
   }
   /** In "lines" mode: step the line the caret is on in or out by two spaces (a slide's bullets nest that way). */
   shift(by: -1 | 1) {
-    const sel = getSelection();
-    let block: Node | null = sel?.anchorNode ?? null;
-    while (block && block.parentNode !== this.page) block = block.parentNode;
+    const block = blockOf(getSelection()?.anchorNode ?? null, this.page!);
     if (!block) return;
     const first = block.firstChild?.nodeType === Node.TEXT_NODE ? (block.firstChild as Text) : null;
     if (by > 0) {
@@ -373,69 +329,56 @@ export class ToWrite extends LitElement {
     };
   };
 
-  /** A date at the caret, picked from a calendar and written out in words. */
-  async insertDate() {
+  /** Where the caret is in the text, or failing that where it last was. */
+  private caretRange(): Range | null {
     const sel = getSelection();
-    const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret;
-    const words = await askDate();
-    if (!words) return;
+    return sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret?.cloneRange() ?? null;
+  }
+
+  /** A range at the very end of the text. */
+  private endOfPage(): Range {
+    const r = document.createRange();
+    r.selectNodeContents(this.page!);
+    r.collapse(false);
+    return r;
+  }
+
+  /**
+   * Ask for something in a dialog, then put it in by hand where the caret
+   * was, with the caret after it. The dialog takes the focus and with it
+   * the caret: so the caret is kept, and put back.
+   */
+  private async insertAsked(ask: () => Promise<string | null>, make: (answer: string) => Node[]) {
+    const range = this.caretRange();
+    const answer = await ask();
+    if (!answer) return;
     this.page?.focus();
-    const at = range ?? (() => {
-      const r = document.createRange();
-      r.selectNodeContents(this.page!);
-      r.collapse(false);
-      return r;
-    })();
+    const at = range ?? this.endOfPage();
     at.deleteContents();
-    const t = document.createTextNode(words);
-    at.insertNode(t);
-    const after = document.createRange();
-    after.setStartAfter(t);
-    after.collapse(true);
-    getSelection()?.removeAllRanges();
-    getSelection()?.addRange(after);
+    const nodes = make(answer);
+    for (const n of [...nodes].reverse()) at.insertNode(n);
+    caretAfter(nodes[nodes.length - 1]);
     this.onInput();
   }
 
-  /** An icon at the caret, as one thing in the line. */
-  async insertIcon() {
-    // The picker is a dialog, which takes the focus and with it the caret: so the caret is kept, and put back.
-    const sel = getSelection();
-    const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret;
-    const name = await chooseIcon();
-    if (!name) return;
-    this.page?.focus();
-    const at = range ?? (() => {
-      const r = document.createRange();
-      r.selectNodeContents(this.page!);
-      r.collapse(false);
-      return r;
-    })();
-    // Put in by hand, where the caret was; then the caret goes after it.
-    at.deleteContents();
-    const holder = document.createElement('span');
-    holder.innerHTML = iconHtml(name) + '\u00a0';
-    const space = holder.lastChild!;
-    const node = holder.firstChild!;
-    at.insertNode(space);
-    at.insertNode(node);
-    const after = document.createRange();
-    after.setStartAfter(space);
-    after.collapse(true);
-    getSelection()?.removeAllRanges();
-    getSelection()?.addRange(after);
-    this.onInput();
+  /** A date at the caret, picked from a calendar and written out in words. */
+  insertDate() {
+    return this.insertAsked(askDate, (words) => [document.createTextNode(words)]);
+  }
+
+  /** An icon at the caret, as one thing in the line, with a space after it. */
+  insertIcon() {
+    return this.insertAsked(chooseIcon, (name) => {
+      const holder = document.createElement('span');
+      holder.innerHTML = iconHtml(name) + '\u00a0';
+      return Array.from(holder.childNodes);
+    });
   }
 
   /** Put markup in where the caret is, replacing what is selected; the page is read back afterwards, which sorts out how it nests. */
   private insertHtmlByHand(markup: string) {
     const sel = getSelection();
-    const range = sel?.rangeCount && this.page!.contains(sel.anchorNode) ? sel.getRangeAt(0) : (() => {
-      const r = document.createRange();
-      r.selectNodeContents(this.page!);
-      r.collapse(false);
-      return r;
-    })();
+    const range = sel?.rangeCount && this.page!.contains(sel.anchorNode) ? sel.getRangeAt(0) : this.endOfPage();
     range.deleteContents();
     const holder = document.createElement('template');
     holder.innerHTML = markup;
@@ -446,13 +389,7 @@ export class ToWrite extends LitElement {
     if (blocks && !this.page!.textContent && !this.page!.querySelector('[data-ref], [data-icon]')) this.page!.replaceChildren(holder.content);
     else if (blocks && block instanceof HTMLElement && !block.textContent) block.replaceWith(holder.content);
     else range.insertNode(holder.content);
-    if (last) {
-      const after = document.createRange();
-      after.setStartAfter(last);
-      after.collapse(true);
-      sel?.removeAllRanges();
-      sel?.addRange(after);
-    }
+    if (last) caretAfter(last);
   }
 
   /**
@@ -461,8 +398,7 @@ export class ToWrite extends LitElement {
    * put in where the caret is.
    */
   async link() {
-    const sel = getSelection();
-    const range = sel?.rangeCount && this.page?.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : this.caret?.cloneRange() ?? null;
+    const range = this.caretRange();
     const node = range?.commonAncestorContainer ?? null;
     const anchor = (node instanceof Element ? node : node?.parentElement)?.closest('a') ?? null;
     const inside = anchor && this.page!.contains(anchor) ? anchor : null;
@@ -479,12 +415,7 @@ export class ToWrite extends LitElement {
     } else if (inside && (!range || range.collapsed || inside.contains(range.startContainer) && inside.contains(range.endContainer))) {
       inside.setAttribute('href', answer.url);
     } else {
-      const at = range ?? (() => {
-        const r = document.createRange();
-        r.selectNodeContents(this.page!);
-        r.collapse(false);
-        return r;
-      })();
+      const at = range ?? this.endOfPage();
       const a = document.createElement('a');
       a.setAttribute('href', answer.url);
       if (at.collapsed) a.textContent = answer.text.trim();
@@ -496,11 +427,7 @@ export class ToWrite extends LitElement {
         return;
       }
       at.insertNode(a);
-      const after = document.createRange();
-      after.setStartAfter(a);
-      after.collapse(true);
-      getSelection()?.removeAllRanges();
-      getSelection()?.addRange(after);
+      caretAfter(a);
     }
     this.onInput();
   }
@@ -525,16 +452,13 @@ export class ToWrite extends LitElement {
     made.append(...Array.from(block.childNodes));
     if (!made.childNodes.length) made.innerHTML = '<br>';
     block.replaceWith(made);
-    const r = document.createRange();
-    r.selectNodeContents(made);
-    r.collapse(false);
-    sel!.removeAllRanges();
-    sel!.addRange(r);
+    sel!.collapse(made, made.childNodes.length);
     this.onInput();
     this.onSelection();
   }
 
-  private run(cmd: string, arg?: string) {
+  /** Run a formatting command, from this toolbar or a host's own. */
+  exec(cmd: string, arg?: string) {
     if (cmd === 'bold' && this.inHeading()) return;
     if (cmd === 'formatBlock' && arg === 'title') return void this.makeTitle();
     this.page?.focus();
@@ -596,8 +520,7 @@ export class ToWrite extends LitElement {
       sel.removeAllRanges();
       sel.addRange(this.caret);
     }
-    let block: Node | null = page.contains(sel.anchorNode) ? sel.anchorNode : null;
-    while (block && block.parentNode !== page) block = block.parentNode;
+    const block = blockOf(page.contains(sel.anchorNode) ? sel.anchorNode : null, page);
     const box = document.createElement('div');
     box.innerHTML = embedHtml(ref);
     const el = box.firstElementChild as HTMLElement;
@@ -643,7 +566,6 @@ export class ToWrite extends LitElement {
     this.onInput();
   }
 
-  /** Links in the text open in a new tab (a click in editable text would otherwise just move the caret). */
   /** A click in a link puts the caret there, as anywhere in the text, and shows where it goes: open, edit, remove. (Mod+click opens it.) */
   private onClick = (e: MouseEvent) => {
     const a = (e.target as HTMLElement).closest?.('a');
@@ -718,7 +640,7 @@ export class ToWrite extends LitElement {
     const list = li.parentElement!;
     const outer = list.parentElement?.closest('li');
     if (empty && outer && this.page!.contains(outer)) {
-      this.run('outdent');
+      this.exec('outdent');
       return;
     }
     // The item becomes a paragraph where it stood: the items before stay a list above it, those after a list below.
@@ -732,11 +654,7 @@ export class ToWrite extends LitElement {
     list.after(p);
     if (rest.children.length) p.after(rest);
     if (!list.children.length) list.remove();
-    const r = document.createRange();
-    r.setStart(p, 0);
-    r.collapse(true);
-    getSelection()?.removeAllRanges();
-    getSelection()?.addRange(r);
+    getSelection()?.collapse(p, 0);
     this.onInput();
   }
 
@@ -768,11 +686,7 @@ export class ToWrite extends LitElement {
         li.append(...Array.from(block.childNodes));
         l.append(li);
         block.replaceWith(l);
-        const at = document.createRange();
-        at.setStart(li, 0);
-        at.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(at);
+        sel.collapse(li, 0);
         this.onInput();
         return;
       }
@@ -786,11 +700,7 @@ export class ToWrite extends LitElement {
         range.deleteContents();
         const t = document.createTextNode(curly);
         range.insertNode(t);
-        const at = document.createRange();
-        at.setStartAfter(t);
-        at.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(at);
+        caretAfter(t);
         this.onInput();
       }
     }
@@ -829,7 +739,7 @@ export class ToWrite extends LitElement {
     if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey && (this.fmt.block === 'ul' || this.fmt.block === 'ol')) {
       // In a list, Tab moves the item in a level and Shift+Tab back out.
       e.preventDefault();
-      this.run(e.shiftKey ? 'outdent' : 'indent');
+      this.exec(e.shiftKey ? 'outdent' : 'indent');
       return;
     }
     if (!(e.ctrlKey || e.metaKey)) return;
@@ -844,12 +754,12 @@ export class ToWrite extends LitElement {
     }
     if (k === 'h' && e.shiftKey) {
       e.preventDefault();
-      this.run('hiliteColor', this.fmt.h ? 'transparent' : '#fef08a');
+      this.highlight();
       return;
     }
     if (map[k] && !e.shiftKey && (this.mode === 'doc' || map[k][0] !== 'formatBlock')) {
       e.preventDefault();
-      this.run(map[k][0], map[k][1]);
+      this.exec(map[k][0], map[k][1]);
     }
   };
 
@@ -861,7 +771,7 @@ export class ToWrite extends LitElement {
         aria-pressed=${pressed ? 'true' : 'false'}
         ?disabled=${disabled}
         @mousedown=${(e: Event) => e.preventDefault()}
-        @click=${() => this.run(cmd, arg)}
+        @click=${() => this.exec(cmd, arg)}
       >${icon(UI[ico], 16)}<span class="sr-only">${label}</span></sl-button>`;
   }
 

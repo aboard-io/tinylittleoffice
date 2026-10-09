@@ -11,7 +11,7 @@
  * :icon:, [words](address). A web address on its own is a link as it stands.
  * A Markdown table in a text is an embedded sheet.
  */
-import { parse as parseTlo, write as writeTlo, parseInline as tloInline, writeInline, hasClass, type Attrs, type Block as TloBlock } from './tlo.ts';
+import { parse as parseTlo, write as writeTlo, parseInline, writeInline, hasClass, type Attrs, type Block as TloBlock } from './tlo.ts';
 
 export interface Run {
   t: string;
@@ -41,7 +41,7 @@ export interface Block {
 
 export const MAX_DEPTH = 3;
 export const ALIGN_NAMES: Record<Align, string> = { c: 'center', r: 'right', j: 'justify' };
-const ALIGN_OF: Record<string, Align> = { center: 'c', right: 'r', justify: 'j' };
+export const ALIGN_OF: Record<string, Align> = { center: 'c', right: 'r', justify: 'j' };
 
 /** An address as it may be written in a link: what would end it early is percent-encoded. */
 export const linkTarget = (url: string) => url.trim().replace(/[\s()]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
@@ -63,7 +63,7 @@ export const serializeInline = (runs: Run[]): string =>
     }, []),
   );
 /** One line of inline Markdown as runs. */
-export const parseInline = (line: string): Run[] => tloInline(line);
+export { parseInline };
 /** The marks as words: what a line says, without them. */
 export const plainInline = (line: string) => parseInline(line).map((r) => r.t).join('');
 
@@ -108,10 +108,10 @@ export function serializeDoc(blocks: Block[]): string {
       const table = sheet && !Object.keys(sheet.head).length && sheet.blocks.length === 1 && sheet.blocks[0].k === 'table' ? sheet.blocks[0] : null;
       out.push(table ?? { k: 'fence', lang, body });
     } else if (blk.k === 'title') out.push({ k: 'h', level: 1, text, a: alignAttrs(blk.a, ['title']) });
-    else if (blk.k === 'h1' || blk.k === 'h2') out.push({ k: 'h', level: blk.k === 'h1' ? 1 : 2, text, ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
-    else if (blk.k === 'ul' || blk.k === 'ol') out.push({ k: 'li', depth: blk.d ?? 0, ...(blk.k === 'ol' ? { ord: true } : {}), text, ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
+    else if (blk.k === 'h1' || blk.k === 'h2') out.push({ k: 'h', level: blk.k === 'h1' ? 1 : 2, text, a: alignAttrs(blk.a) });
+    else if (blk.k === 'ul' || blk.k === 'ol') out.push({ k: 'li', depth: blk.d ?? 0, ord: blk.k === 'ol', text, a: alignAttrs(blk.a) });
     // (An empty paragraph is written "<br>"; words that say "<br>" are escaped.)
-    else out.push({ k: 'p', text: text === '<br>' ? '\\<br>' : text || '<br>', ...(blk.a ? { a: alignAttrs(blk.a) } : {}) });
+    else out.push({ k: 'p', text: text === '<br>' ? '\\<br>' : text || '<br>', a: alignAttrs(blk.a) });
   }
   // Trailing empty paragraphs say nothing.
   while (out.length && out[out.length - 1].k === 'p' && (out[out.length - 1] as { text: string }).text === '<br>') out.pop();
@@ -122,6 +122,24 @@ export function serializeDoc(blocks: Block[]): string {
 export function docText(blocks: Block[]): string {
   return blocks.map((b) => b.runs.map((r) => r.t).join('')).join('\n');
 }
+
+/**
+ * Numbers a document's numbered lists as they come: given each block in
+ * turn, it says a numbered item's number. A bulleted item ends the lists
+ * deeper than it; anything else ends them all.
+ */
+export function listNumbers(): (blk: Block) => number | undefined {
+  const counts: number[] = [];
+  return (blk) => {
+    const d = blk.d ?? 0;
+    if (blk.k === 'ol') counts[d] = (counts[d] ?? 0) + 1;
+    counts.length = blk.k === 'ol' ? d + 1 : blk.k === 'ul' ? Math.min(counts.length, d + 1) : 0;
+    return counts[d];
+  };
+}
+
+/** A run's words in pieces, each a link or not: linked words are one link, and a web address in plain words is a link as it stands. */
+export const runLinks = (r: Run): { t: string; url?: string }[] => (r.href ? [{ t: r.t, url: r.href }] : linkify(r.t));
 
 /**
  * Web addresses in a piece of text. Nothing is stored for a link: an address

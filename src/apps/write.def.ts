@@ -1,7 +1,7 @@
 /** Write: what the shell knows about texts. Format: lib/richtext.ts, and docs/tlo.md. */
 import { defineApp, utf8, xml, wrap, text, place, pageSvg, type DownloadContext, type Page, type Span } from '../kit/core.ts';
 import { linkToRef, refPage, resolve } from '../kit/embed.ts';
-import { ALIGN_NAMES, linkify, parseDoc, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
+import { ALIGN_NAMES, linkify, listNumbers, parseDoc, runLinks, serializeDoc, docText, type Block, type Run } from '../lib/richtext.ts';
 import { parse, write } from '../lib/tlo.ts';
 import { ICON_SVG } from '../lib/icons.ts';
 
@@ -23,7 +23,7 @@ function rtfText(s: string): string {
 function rtfRun(r: Run): string {
   const on = (r.b ? '\\b' : '') + (r.i ? '\\i' : '') + (r.u ? '\\ul' : '') + (r.s ? '\\strike' : '');
   // Web addresses in the text become real hyperlinks.
-  const inner = (r.href ? [{ t: r.t, url: r.href }] : linkify(r.t))
+  const inner = runLinks(r)
     .map((p) => (p.url ? `{\\field{\\*\\fldinst HYPERLINK "${rtfText(p.url)}"}{\\fldrslt {\\ul\\cf1 ${rtfText(p.t)}}}}` : rtfText(p.t)))
     .join('');
   return on ? `{${on} ${inner}}` : inner;
@@ -31,13 +31,11 @@ function rtfRun(r: Run): string {
 
 export function docToRtf(body: string, ctx: DownloadContext = { created: null }): string {
   const out: string[] = ['{\\rtf1\\ansi\\ansicpg1252\\deff0\\uc1{\\fonttbl{\\f0\\fswiss\\fcharset0 Helvetica;}}{\\colortbl;\\red79\\green70\\blue229;}', '\\f0\\fs24'];
-  const counts: number[] = [];
+  const number = listNumbers();
   for (const blk of parseDoc(body)) {
     const runs = blk.runs.map(rtfRun).join('');
-    const d = blk.d ?? 0;
-    if (blk.k === 'ol') counts[d] = (counts[d] ?? 0) + 1;
-    counts.length = blk.k === 'ol' ? d + 1 : blk.k === 'ul' ? Math.min(counts.length, d + 1) : 0;
-    const li = 720 + 360 * d;
+    const n = number(blk);
+    const li = 720 + 360 * (blk.d ?? 0);
     if (blk.k === 'e') {
       // An embedded document: a real hyperlink, then a few lines of what is in it.
       const p = resolve(blk.ref!);
@@ -47,34 +45,44 @@ export function docToRtf(body: string, ctx: DownloadContext = { created: null })
     else if (blk.k === 'h1') out.push(`{\\pard\\sb240\\sa160\\b\\fs40 ${runs}\\par}`);
     else if (blk.k === 'h2') out.push(`{\\pard\\sb200\\sa120\\b\\fs30 ${runs}\\par}`);
     else if (blk.k === 'ul') out.push(`{\\pard\\li${li}\\fi-360\\sa60 \\bullet\\tab ${runs}\\par}`);
-    else if (blk.k === 'ol') out.push(`{\\pard\\li${li}\\fi-360\\sa60 ${counts[d]}.\\tab ${runs}\\par}`);
+    else if (blk.k === 'ol') out.push(`{\\pard\\li${li}\\fi-360\\sa60 ${n}.\\tab ${runs}\\par}`);
     else out.push(`{\\pard\\sa160 ${runs}\\par}`);
   }
   return out.join('\n') + '\n}\n';
 }
 
-function htmlRun(r: Run): string {
-  if (r.ic) return ICON_SVG[r.ic] ? `<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${xml(r.ic)}">${ICON_SVG[r.ic]}</svg>` : '';
-  let s = (r.href ? [{ t: r.t, url: r.href }] : linkify(r.t))
+/**
+ * A run's words as HTML, with their marks and links. The editor names bold
+ * and italic as the browser's own commands write them, <b> and <i>.
+ */
+export function markedHtml(r: Run, bold = 'strong', italic = 'em'): string {
+  let s = runLinks(r)
     .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
     .join('');
   if (r.h) s = `<mark>${s}</mark>`;
   if (r.s) s = `<s>${s}</s>`;
   if (r.u) s = `<u>${s}</u>`;
-  if (r.i) s = `<em>${s}</em>`;
-  if (r.b) s = `<strong>${s}</strong>`;
+  if (r.i) s = `<${italic}>${s}</${italic}>`;
+  if (r.b) s = `<${bold}>${s}</${bold}>`;
   return s;
 }
 
-/** The text as HTML: headings, paragraphs, properly nested lists, and embedded documents as figures. */
-export function docToHtml(body: string, ctx: DownloadContext = { created: null }): string {
+function htmlRun(r: Run): string {
+  if (r.ic) return ICON_SVG[r.ic] ? `<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${xml(r.ic)}">${ICON_SVG[r.ic]}</svg>` : '';
+  return markedHtml(r);
+}
+
+/**
+ * Blocks as pieces of HTML, the list items properly nested: item(blk) is
+ * what a list item holds, other(blk) the whole of any other block.
+ */
+export function blocksHtml(blocks: Block[], item: (blk: Block) => string, other: (blk: Block) => string): string[] {
   const out: string[] = [];
   const open: string[] = []; // the lists we are inside, outermost first
   const closeTo = (depth: number) => {
     while (open.length > depth) out.push(`</li></${open.pop()}>`);
   };
-  for (const blk of parseDoc(body)) {
-    const inner = blk.runs.map(htmlRun).join('');
+  for (const blk of blocks) {
     if (blk.k === 'ul' || blk.k === 'ol') {
       const depth = (blk.d ?? 0) + 1;
       closeTo(depth);
@@ -85,23 +93,30 @@ export function docToHtml(body: string, ctx: DownloadContext = { created: null }
         open.push(blk.k);
         if (open.length < depth) out.push('<li>');
       }
-      out.push(`<li${blk.a ? ` style="text-align:${ALIGN_NAMES[blk.a]}"` : ''}>${inner}`);
+      out.push(`<li${blk.a ? ` style="text-align:${ALIGN_NAMES[blk.a]}"` : ''}>${item(blk)}`);
       continue;
     }
     closeTo(0);
+    out.push(other(blk));
+  }
+  closeTo(0);
+  return out;
+}
+
+/** The text as HTML: headings, paragraphs, properly nested lists, and embedded documents as figures. */
+export function docToHtml(body: string, ctx: DownloadContext = { created: null }): string {
+  const inner = (blk: Block) => blk.runs.map(htmlRun).join('');
+  return blocksHtml(parseDoc(body), inner, (blk) => {
     if (blk.k === 'e') {
       const p = resolve(blk.ref!);
       const page = refPage(blk.ref!);
-      out.push(`<figure class="embed">${pageSvg(page, `role="img" aria-label="${xml(p.title)}"`)}<figcaption><a href="${xml((ctx.base ?? '') + p.hash)}">${xml(p.title)}</a> <small>${xml(p.def?.name ?? 'Document')}</small></figcaption></figure>`);
-    } else {
-      // The title is the page's own first heading, set large.
-      const tag = blk.k === 'title' ? 'h1' : blk.k;
-      const style = [blk.k === 'title' ? 'font-size:2.8em;line-height:1.1;letter-spacing:-0.02em' : '', blk.a ? `text-align:${ALIGN_NAMES[blk.a]}` : ''].filter(Boolean).join(';');
-      out.push(`<${tag}${blk.k === 'title' ? ' class="title"' : ''}${style ? ` style="${style}"` : ''}>${inner || '<br>'}</${tag}>`);
+      return `<figure class="embed">${pageSvg(page, `role="img" aria-label="${xml(p.title)}"`)}<figcaption><a href="${xml((ctx.base ?? '') + p.hash)}">${xml(p.title)}</a> <small>${xml(p.def?.name ?? 'Document')}</small></figcaption></figure>`;
     }
-  }
-  closeTo(0);
-  return out.join('\n');
+    // The title is the page's own first heading, set large.
+    const tag = blk.k === 'title' ? 'h1' : blk.k;
+    const style = [blk.k === 'title' ? 'font-size:2.8em;line-height:1.1;letter-spacing:-0.02em' : '', blk.a ? `text-align:${ALIGN_NAMES[blk.a]}` : ''].filter(Boolean).join(';');
+    return `<${tag}${blk.k === 'title' ? ' class="title"' : ''}${style ? ` style="${style}"` : ''}>${inner(blk) || '<br>'}</${tag}>`;
+  }).join('\n');
 }
 
 /**
@@ -134,11 +149,10 @@ const PAGE_H = 1018; // the shape of a sheet of paper
 /** The text laid out on pages. A text that fits on one page is exactly as tall as it needs to be. */
 export function pages(body: string): Page[] {
   const bits: { h: number; svg: (y: number) => string }[] = [];
-  const counts: number[] = [];
+  const number = listNumbers();
   for (const blk of parseDoc(body)) {
     const d = blk.d ?? 0;
-    if (blk.k === 'ol') counts[d] = (counts[d] ?? 0) + 1;
-    counts.length = blk.k === 'ol' ? d + 1 : blk.k === 'ul' ? Math.min(counts.length, d + 1) : 0;
+    const n = number(blk);
     if (blk.k === 'e') {
       const page = refPage(blk.ref!);
       const h = Math.min(360, (page.h * (W - 2 * M)) / page.w);
@@ -151,7 +165,7 @@ export function pages(body: string): Page[] {
     const spans: Span[] = blk.runs.flatMap((run) => (run.href ? [run] : linkify(run.t).map((p) => ({ ...run, t: p.t, link: !!p.url }))));
     const lines = wrap(spans.length ? spans : [{ t: '' }], W - M - left, px, bold);
     const lh = px * 1.45;
-    const mark = blk.k === 'ul' ? '•' : blk.k === 'ol' ? `${counts[d]}.` : '';
+    const mark = blk.k === 'ul' ? '•' : blk.k === 'ol' ? `${n}.` : '';
     // Centred or right-aligned lines sit against the other edge (justified is drawn as left).
     const [tx, anchor] = blk.a === 'c' ? [(left + W - M) / 2, 'middle' as const] : blk.a === 'r' ? [W - M, 'end' as const] : [left, 'start' as const];
     bits.push({
