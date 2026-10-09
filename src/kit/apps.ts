@@ -16,9 +16,11 @@ import anim from '../apps/anim/def.ts';
 import trip from '../apps/trip/def.ts';
 import site from '../apps/site/def.ts';
 import calc from '../apps/calc/def.ts';
+import { QR_LANG, qrPicture } from './qr-picture.ts';
 
 const ALL: AppDef[] = [write, outline, deck, sheet, calc, draw, diagram, anim, board, todo, cal, trip, site];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
-lookup.appOf = appOf;
+// A document's QR code (kit/qr-picture.ts) is drawn by the hosts as a document they hold, though it is not an app.
+lookup.appOf = (id) => appOf(id) ?? (id === QR_LANG ? qrPicture : undefined);

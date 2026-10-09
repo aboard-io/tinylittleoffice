@@ -45,6 +45,7 @@ import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
 import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { mark } from './mark.ts';
+import { setSelfLink } from './qr-picture.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
 import type { ToFind } from './find.ts';
@@ -307,6 +308,8 @@ export class ToShell extends LitElement {
 
   private setTitle() {
     const def = this.def;
+    // A QR code the document holds of itself is drawn from its link as it now is.
+    setSelfLink(def ? this.link : '');
     document.title = def ? `${this.docTitle} · Tiny Little Office` : 'Tiny Little Office';
   }
   /** What the document is called: the name it was given, a new one's name, or "Untitled presentation" (a link that came with none). */

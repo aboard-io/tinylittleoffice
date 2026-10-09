@@ -22,7 +22,8 @@ import { applyAll, plainText, write, type Block, type Doc, type Op, type TableBl
 import { btn } from '../../kit/bar.ts';
 import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
-import { editFence, editTable } from '../../kit/doc-dialog.ts';
+import { editFence, editTable, makeDoc } from '../../kit/doc-dialog.ts';
+import { apps } from '../../kit/apps.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI, type IconNode } from '../../kit/icons.ts';
 import { gateHtml, showPictures } from '../../kit/pictures.ts';
@@ -42,6 +43,7 @@ import '../../kit/context.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import './style.css';
+import { qrBlock } from '../../kit/qr-picture.ts';
 
 export const tag = 'to-site-editor';
 
@@ -484,7 +486,17 @@ export class ToSiteEditor extends DocElement<Site> {
   /** What Insert ▾ offers here: what the section of the thing in hand (or the one on view) can take. */
   private inserts(): MenuItem[] {
     const o = objectAt(this.view, this.held);
-    return kindsOf(this.view, o ? o.n : this.cur).map((k) => ({ label: kindName(k), icon: KIND_ICON[k], does: () => void this.insert(k) }));
+    const put = (block: Block) => this.change(insertObj(this.doc, this.view, this.held, this.cur, block));
+    return [
+      ...kindsOf(this.view, o ? o.n : this.cur).map((k) => ({ label: kindName(k), icon: KIND_ICON[k], does: () => void this.insert(k) })),
+      { label: t('QR code of this document'), icon: UI.qr, does: () => put(qrBlock()) },
+      // A new document of another app, made in its own editor in the dialog (kit/doc-dialog.ts): a website of pages holds them, a Quick Links page does not.
+      ...(this.view.links
+        ? []
+        : apps()
+            .filter((a) => a.id !== 'site')
+            .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void makeDoc(a.id).then((f) => f && put(f)) }))),
+    ];
   }
   private setTheme(next: Partial<Theme>) {
     this.edit([themeOp({ ...this.view.theme, ...next })]);

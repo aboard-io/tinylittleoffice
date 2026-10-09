@@ -49,6 +49,7 @@ import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
 import './style.css';
+import { qrBlock } from '../../kit/qr-picture.ts';
 
 export const tag = 'to-deck-editor';
 
@@ -551,6 +552,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       { label: t('Table'), icon: UI.table, group: onSlide, does: () => void this.insertTable() },
       { label: t('Web Embed…'), icon: UI.globe, group: onSlide, does: () => void this.insertWeb() },
       { label: t('Tiny Little Office Doc…'), icon: UI.insert, group: onSlide, does: () => void this.insertDocument() },
+      { label: t('QR code of this document'), icon: UI.qr, group: onSlide, does: () => this.putSub(qrBlock()) },
       ...apps()
         .filter((a) => a.id !== def.id)
         .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),

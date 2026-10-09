@@ -1766,4 +1766,11 @@
     background: color-mix(in srgb, var(--to-warning) 35%, transparent);
     color: inherit;
   }
+
+  /* ---- Insert ▾ narrowed by the letters typed ---- */
+  .to-menu-filter {
+    padding: 4px 10px 6px;
+    color: var(--to-ink-3);
+    font-size: 13px;
+  }
 }
