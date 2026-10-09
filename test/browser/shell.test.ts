@@ -37,6 +37,12 @@ async function saved(body: () => Promise<void>) {
 
 afterEach(() => history.replaceState(null, '', location.pathname));
 
+/** A document's text without the time the shell stamps it with at its first change (kit/envelope.ts), which it must carry. */
+function unstamped(text: string): string {
+  expect(text).toMatch(/\ncreated: \d{4}-\d\d-\d\dT\d\d:\d\dZ\n/);
+  return text.replace(/\ncreated: [^\n]*\n/, '\n');
+}
+
 /** What a new document of Write is called today: "New Document 2026-10-09 #1". */
 const fresh = (n = 1) => `New Document ${localDay()} #${n}`;
 
@@ -181,15 +187,15 @@ test('a link opens its app, and every edit goes into the link', async () => {
   }
   await shell.updateComplete;
   expect(location.hash).toMatch(/^#\/v1\/write\/[ryz]/);
-  // The first change carries the name into the head (the editor's own document is left as it was typed).
-  expect(decodeDoc(location.hash.split('/')[3])).toBe(`---\ntitle: ${fresh()}\n---\nHello, link.\n`);
+  // The first change carries the name into the head, and the time it was first written (the editor's own document is left as it was typed).
+  expect(unstamped(decodeDoc(location.hash.split('/')[3]))).toBe(`---\ntitle: ${fresh()}\n---\nHello, link.\n`);
   expect(shell.editor!.value).toBe('Hello, link.\n');
   // The title field writes the head, and the tab's name follows.
   const title = shell.querySelector<HTMLInputElement>('.to-title')!;
   title.value = 'A note';
   title.dispatchEvent(new Event('change', { bubbles: true }));
   await shell.updateComplete;
-  expect(decodeDoc(location.hash.split('/')[3])).toBe('---\ntitle: A note\n---\nHello, link.\n');
+  expect(unstamped(decodeDoc(location.hash.split('/')[3]))).toBe('---\ntitle: A note\n---\nHello, link.\n');
   expect(document.title).toBe('A note · Tiny Little Office');
   // The same link, opened again, is the same document.
   const again = await mount(location.hash);
@@ -223,7 +229,7 @@ test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, t
   }
   await shell.updateComplete;
   const doc = () => decodeDoc(location.hash.split('/')[3] ?? '');
-  expect(doc()).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
+  expect(unstamped(doc())).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
   const z = (target: EventTarget, init: KeyboardEventInit = {}) => {
     const ev = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true, ...init });
     target.dispatchEvent(ev);
@@ -242,7 +248,7 @@ test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, t
   expect(z(shell.querySelector('.to-title')!).defaultPrevented).toBe(false);
   expect(z(text.tx, { isComposing: true }).defaultPrevented).toBe(false);
   await shell.updateComplete;
-  expect(doc()).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
+  expect(unstamped(doc())).toBe(`---\ntitle: ${fresh()}\n---\nabc\n`);
   // In the words, the document's undo; blank again, it is not named either.
   expect(z(text.tx).defaultPrevented).toBe(true);
   await text.updateComplete;

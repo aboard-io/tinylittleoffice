@@ -504,16 +504,20 @@ export class ToShell extends LitElement {
     store.set(TTL_KEY, String(seconds));
   }
   /** This document, as a fresh plain link in a new tab: "Copy of …", no owner, nothing tying it to the short link. */
-  copyIntoNew = async () => {
+  copyIntoNew = () => {
     const def = this.def;
     if (!def || this.sealed) return;
     // A copy is a new document: not signed, not yet written.
     const doc = withHead(def.retitle(this.doc, t('Copy of {title}', { title: this.docTitle })), { by: '', created: '', key: '', sig: '' });
-    const u = new URL(location.href);
-    // Under a password, the copy is sealed with it too.
-    u.hash = routeHash(def.id, await pack(doc, this.locker));
-    window.open(u.href, '_blank', 'noopener');
-    toast(t('A copy opened in a new tab'));
+    const open = (payload: string) => {
+      const u = new URL(location.href);
+      u.hash = routeHash(def.id, payload);
+      window.open(u.href, '_blank', 'noopener');
+      toast(t('A copy opened in a new tab'));
+    };
+    // Under a password, the copy is sealed with it too; a plain one opens at once, inside the tap.
+    if (this.locker) void pack(doc, this.locker).then(open);
+    else open(encodeDoc(doc));
   };
   /** A short link made, updated or forgotten: one request, the outcome said, errors said too. */
   private async shortDo(work: () => Promise<void>) {
