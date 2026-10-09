@@ -12,7 +12,7 @@ import { apps } from './apps.ts';
 import { encodeDoc } from './codec.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
-import { place } from './menu.ts';
+import { hoverFocus, menuKey, openedByPointer, place } from './menu.ts';
 import { pageSvg } from './draw.ts';
 import { routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
@@ -67,24 +67,17 @@ export class ToTemplates extends LitElement {
     this.button.setAttribute('aria-expanded', String(open));
     if (open) {
       this.drawn = true;
+      const pointer = openedByPointer();
       void this.updateComplete.then(() => {
         place(this.listbox, this.button);
-        (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus();
+        // Opened by a key, the chosen template has the focus; by a pointer, the list itself, and the first arrow goes in.
+        if (pointer) this.listbox.focus({ preventScroll: true });
+        else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus({ preventScroll: true });
       });
     } else if (document.activeElement === document.body || this.listbox.contains(document.activeElement)) this.button.focus();
   };
-  private onKey = (e: KeyboardEvent) => {
-    const opts = this.options();
-    const at = opts.indexOf(document.activeElement as HTMLElement);
-    const go = (i: number) => {
-      e.preventDefault();
-      opts[(i + opts.length) % opts.length]?.focus();
-    };
-    if (e.key === 'ArrowDown') go(at + 1);
-    else if (e.key === 'ArrowUp') go(at - 1);
-    else if (e.key === 'Home') go(0);
-    else if (e.key === 'End') go(opts.length - 1);
-  };
+  /** The keys every menu here keeps (menu.ts). */
+  private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.listbox.hidePopover());
   private choose(tpl: Template | null) {
     this.chosen = tpl?.id ?? '';
     this.listbox.hidePopover();
@@ -94,7 +87,7 @@ export class ToTemplates extends LitElement {
     const id = tpl?.id ?? '';
     const name = tpl?.name ?? t('Blank');
     const page = this.drawn ? this.app.view(tpl?.doc ?? this.app.blank(), { small: true })[0] : null;
-    return html`<div role="option" class="to-option" tabindex="-1" aria-selected=${String(this.chosen === id)} @click=${() => this.choose(tpl)} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), this.choose(tpl))}>
+    return html`<div role="option" class="to-option" tabindex="-1" aria-selected=${String(this.chosen === id)} @pointermove=${hoverFocus} @click=${() => this.choose(tpl)}>
       <span class="to-thumb" aria-hidden="true">${page ? unsafeSVG(pageSvg(page)) : nothing}</span>
       <span class="to-option-words"><span>${name}</span>${tpl?.blurb ? html`<small>${tpl.blurb}</small>` : nothing}</span>
     </div>`;
@@ -105,7 +98,7 @@ export class ToTemplates extends LitElement {
     return html`<button type="button" class="to-btn to-tool to-templates-btn" popovertarget=${this.uid} aria-haspopup="listbox" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')}>
         ${icon(UI.text, 18)}${icon(UI.down, 14, 'to-caret')}
       </button>
-      <div id=${this.uid} popover="auto" class="to-menu to-listbox" role="listbox" aria-label=${t('Templates')} @toggle=${this.onToggle} @keydown=${this.onKey}>
+      <div id=${this.uid} popover="auto" class="to-menu to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @toggle=${this.onToggle} @keydown=${this.onKey}>
         ${this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}
       </div>`;
   }

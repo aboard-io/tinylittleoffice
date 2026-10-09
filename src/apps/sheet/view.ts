@@ -6,19 +6,35 @@
  */
 import { chartData, chartPage, type ChartData } from '../../kit/chart.ts';
 import { csv, csvSeparator } from '../../kit/csv.ts';
-import { INK, LINE, MUTED, SHADE, clip, rect, text, textWidth } from '../../kit/draw.ts';
+import { INK, LINE, MUTED, SHADE, clip, r as px2, rect, text, textWidth, xml } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { sheetHeadings } from '../../kit/xlsx.ts';
-import { formatCell, parse, type Doc } from '../../doc/index.ts';
+import { formatCell, parse, parseInline, plainText, type CellValue, type Doc } from '../../doc/index.ts';
 import type { Page } from '../../kit/app.ts';
 import { readSheet, type SheetView } from './model.ts';
 
 /** The names over the used columns, or null when every column goes by its letter alone. */
 export const headings = (v: SheetView): string[] | null => sheetHeadings(v.table, v.used.cols);
 
+/** A value as its column shows it, in words: a rich cell's words without their marks. */
+export const cellText = (v: CellValue, type?: string): string => (type === 'rich' && typeof v === 'string' ? plainText(parseInline(v)) : formatCell(v, type));
+
 /** The used cells as shown: computed values. */
 export function shown(v: SheetView): string[][] {
-  return Array.from({ length: v.used.rows }, (_, r) => Array.from({ length: v.used.cols }, (_, c) => formatCell(v.values[r]?.[c] ?? null, v.cols[c]?.type)));
+  return Array.from({ length: v.used.rows }, (_, r) => Array.from({ length: v.used.cols }, (_, c) => cellText(v.values[r]?.[c] ?? null, v.cols[c]?.type)));
+}
+
+/** A rich cell drawn as one line with its marks (bold, italic, underline, strike), or its words alone, cut, when they do not fit. */
+function richText(x: number, y: number, raw: string, max: number, size: number): string {
+  const runs = parseInline(raw);
+  const words = plainText(runs);
+  if (textWidth(words, size) > max) return text(x, y, clip(words, max, size), { px: size });
+  const spans = runs.map((run) => {
+    const deco = [run.u || run.href ? 'underline' : '', run.s ? 'line-through' : ''].filter(Boolean).join(' ');
+    const attrs = `${run.b ? ' font-weight="700"' : ''}${run.i ? ' font-style="italic"' : ''}${deco ? ` text-decoration="${deco}"` : ''}`;
+    return attrs ? `<tspan${attrs}>${xml(run.t)}</tspan>` : xml(run.t);
+  });
+  return `<text x="${px2(x)}" y="${px2(y)}" font-size="${size}" fill="${INK}" xml:space="preserve">${spans.join('')}</text>`;
 }
 
 /** The names over the columns, if any, then the used cells as shown. */
@@ -34,7 +50,7 @@ export const sheetToCsv = (doc: Doc, sep = csvSeparator()): string => csv(lines(
 export function chartOfSheet(v: SheetView): ChartData {
   const counts = ['text', 'name', 'number', 'money', 'percent'];
   return chartData(
-    v.values.slice(0, v.used.rows).map((row) => row.map((x, c) => (counts.includes(v.cols[c]?.type) || typeof x !== 'number' ? x : formatCell(x, v.cols[c]?.type)))),
+    v.values.slice(0, v.used.rows).map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' ? cellText(x, 'rich') : counts.includes(v.cols[c]?.type) || typeof x !== 'number' ? x : formatCell(x, v.cols[c]?.type)))),
     v.cols.map((c) => c.name),
   );
 }
@@ -66,7 +82,10 @@ export function tablePage(v: SheetView, upTo = Infinity): Page {
     row.forEach((cell, c) => {
       const num = !names && typeof v.values[r]?.[c] === 'number';
       svg += rect(at, top + i * H, widths[c], H, names ? SHADE : 'none', `stroke="${LINE}"`);
-      if (cell !== '' && (names || filled++ < upTo)) svg += text(num ? at + widths[c] - 12 : at + 12, top + i * H + 20, clip(cell, widths[c] - 20, PX, names), { px: PX, bold: names, anchor: num ? 'end' : 'start' });
+      const raw = names ? '' : (v.table.rows[r]?.[c] ?? '');
+      const rich = v.cols[c]?.type === 'rich' && raw !== '' && !raw.startsWith('=');
+      if (cell !== '' && (names || filled++ < upTo))
+        svg += rich ? richText(at + 12, top + i * H + 20, raw, widths[c] - 20, PX) : text(num ? at + widths[c] - 12 : at + 12, top + i * H + 20, clip(cell, widths[c] - 20, PX, names), { px: PX, bold: names, anchor: num ? 'end' : 'start' });
       at += widths[c];
     });
   });
@@ -122,10 +141,11 @@ export function gridPage(v: SheetView): Page {
   return { w, h, svg, alt: rowsShown.length ? rowsShown.map((row) => row.filter(Boolean).join(', ')).join('; ') : t('Empty sheet') };
 }
 
-/** A sheet document's pages: the table (its headline above it), then its chart; drawn small, the grid alone (or the chart). */
+/** A sheet document's pages: the table (its headline above it) and its chart, the chart first when it is drawn above the table; drawn small, the grid alone (or the chart). */
 export function sheetPages(text: string, small = false): Page[] {
   const v = readSheet(parse(text));
   const chart = chartOf(v);
   if (small) return [chart ?? gridPage(v)];
-  return chart ? [tablePage(v), chart] : [tablePage(v)];
+  if (!chart) return [tablePage(v)];
+  return v.table.above ? [chart, tablePage(v)] : [tablePage(v), chart];
 }

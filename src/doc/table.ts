@@ -9,7 +9,8 @@
  * The lock and the chart are not fields of the table block: they ride on
  * the document's header for a sheet document (its first table) and on the
  * table's own attributes anywhere else. tableAt reads them from where they
- * are; withTable writes them back there.
+ * are; withTable writes them back there. A chart is drawn under its table
+ * unless "chart-at: top" (beside the chart, wherever it is) puts it above.
  */
 import { attr, type Attrs, type Column, type Doc, type TableBlock } from './model.ts';
 import type { Op } from './ops.ts';
@@ -32,6 +33,8 @@ export interface Table {
   /** From "lock:" (head or attr): the cells a reader is to leave be. */
   lock: Range[];
   chart: Chart;
+  /** From "chart-at: top": the chart is drawn above the table rather than under it. */
+  above?: true;
 }
 
 /** A rectangle of cells, corners included. */
@@ -187,7 +190,8 @@ export function tableAt(doc: Doc, at: number): Table | null {
   if (b?.k !== 'table') return null;
   const read = (key: 'lock' | 'chart') => (inHead(doc, at, key) ? doc.head[key] : attr(b, key)) ?? '';
   const chart = read('chart').toLowerCase();
-  return { cols: b.cols, rows: b.rows, lock: lockedRanges(read('lock')), chart: (CHARTS as readonly string[]).includes(chart) ? (chart as Chart) : '' };
+  const above = (inHead(doc, at, 'chart') ? doc.head['chart-at'] : attr(b, 'chart-at')) === 'top';
+  return { cols: b.cols, rows: b.rows, lock: lockedRanges(read('lock')), chart: (CHARTS as readonly string[]).includes(chart) ? (chart as Chart) : '', ...(above ? { above: true as const } : {}) };
 }
 
 /** The doc with block `at` written from `t`: cells and columns into the block; lock and chart where they were read from. */
@@ -196,12 +200,15 @@ export function withTable(doc: Doc, at: number, t: Table): Op[] {
   if (b?.k !== 'table') return [];
   const ops: Op[] = [];
   const kv = { ...b.a?.kv };
-  for (const [key, value] of [
-    ['lock', lockText(t.lock)],
-    ['chart', t.chart],
+  for (const [key, value, home] of [
+    ['lock', lockText(t.lock), 'lock'],
+    ['chart', t.chart, 'chart'],
+    ['chart-at', t.chart && t.above ? 'top' : '', 'chart'],
   ] as const) {
-    if (inHead(doc, at, key)) ops.push({ op: 'head', key, value: value || undefined });
-    else value ? (kv[key] = value) : delete kv[key];
+    if (inHead(doc, at, home)) {
+      // The chart's place is written only where it changes, so a table that never had one gains no op for it.
+      if (key !== 'chart-at' || (doc.head[key] ?? '') !== value) ops.push({ op: 'head', key, value: value || undefined });
+    } else value ? (kv[key] = value) : delete kv[key];
   }
   const a: Attrs = { ...b.a, kv };
   if (!Object.keys(kv).length) delete a.kv;
