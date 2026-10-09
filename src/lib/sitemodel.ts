@@ -9,7 +9,8 @@
  * the look; a line that is only ":icon-name:" a big icon. The header may
  * hold "currency: £" and "orders: you@example.com" for the shop.
  *
- * Quick Links (apps/links.def.ts) is the same model with one page.
+ * Quick Links (apps/links.def.ts) is the same model with one page, and
+ * "- :icon: Label | url" a small link at the foot rather than a card.
  */
 import { readLines, writeLines, kindsOf, type Kind } from './lines.ts';
 import { refFence, parse as parseTlo, write as writeTlo, writeBlock, columnsOf, type Block } from './tlo.ts';
@@ -19,12 +20,15 @@ export interface Button {
   icon: string;
   label: string;
   url: string;
+  /** Its row in the text, for editing in place. */
+  row: number;
 }
 
 export interface Card {
   icon: string;
   head: string;
   detail: string;
+  row: number;
 }
 
 export interface Product {
@@ -45,8 +49,8 @@ export interface Section {
   products: Product[];
   /** Small links at the foot (a Quick Links page's social accounts). */
   socials: Button[];
-  /** Where it is in the text, for editing in place: its heading's row (-1 for the words under a page's title), its last row, and for each picture the row and the field its address is in. */
-  rows: { head: number; end: number; pics: [number, number][] };
+  /** Where it is in the text, for editing in place: its heading's row (-1 for the words under a page's title), its last row, its big icon's row (-1 for none), and for each picture the row and the field its address is in. */
+  rows: { head: number; end: number; icon: number; pics: [number, number][] };
 }
 
 /** A page: an untitled first section (its words under the title), then its "## Section"s. */
@@ -156,6 +160,8 @@ export interface Site {
   /** The shop's: the currency's symbol, and where orders go (an email address, or '' to let the shopper copy their order). */
   currency: string;
   orders: string;
+  /** The rows the shop's settings are on, -1 where not written, for editing in place. */
+  rows: { currency: number; orders: number };
   /** The home page first. */
   pages: Page[];
 }
@@ -172,11 +178,12 @@ export const FORM: Kind[] = [
   { name: 'Picture', is: '!\\[[{Alt}]\\]({Address})' },
   { name: 'Product', is: '{Name} | {Price:money}[ | {About}][ | {Image}]', table: true },
   { name: 'Document', is: '@@{Link}' },
+  { name: 'Big icon', is: ':{Icon:icon}:' },
   { name: 'Paragraph', is: '{Text:long}' },
 ];
 export const kindNamed = (form: Kind[], name: string) => form.findIndex((k) => k.name === name);
 
-export const section = (title = '', head = -1): Section => ({ title, text: [], points: [], buttons: [], pics: [], icon: '', embeds: [], products: [], socials: [], rows: { head, end: head, pics: [] } });
+export const section = (title = '', head = -1): Section => ({ title, text: [], points: [], buttons: [], pics: [], icon: '', embeds: [], products: [], socials: [], rows: { head, end: head, icon: -1, pics: [] } });
 const page = (title = '', row = -1): Page => ({ title, row, sections: [section()] });
 
 /** A line that is only a picture's address. */
@@ -190,7 +197,7 @@ const money = (s: string) => parseFloat(s.replace(/[^0-9.-]/g, '')) || 0;
  * this one) read into pages and sections.
  */
 export function parseSite(text: string, form: Kind[] = FORM): Site {
-  const site: Site = { name: '', theme: defaultTheme(), currency: '$', orders: '', pages: [page()] };
+  const site: Site = { name: '', theme: defaultTheme(), currency: '$', orders: '', rows: { currency: -1, orders: -1 }, pages: [page()] };
   const { kinds } = kindsOf(form);
   let named = false;
   readLines(text, form).forEach(({ kind, values: v }, i) => {
@@ -209,21 +216,27 @@ export function parseSite(text: string, form: Kind[] = FORM): Site {
         break;
       case 'Currency':
         site.currency = line || '$';
+        site.rows.currency = i;
         break;
       case 'Orders go to':
         site.orders = line;
+        site.rows.orders = i;
         break;
       case 'Section':
         last.sections.push(section(line, i));
         break;
       case 'Card':
-        cur.points.push({ icon: v[0], head: v[1], detail: v[2] });
+        cur.points.push({ icon: v[0], head: v[1], detail: v[2], row: i });
         break;
       case 'Button':
-        cur.buttons.push({ icon: v[0], label: v[1], url: safeUrl(v[2]) });
+        cur.buttons.push({ icon: v[0], label: v[1], url: safeUrl(v[2]), row: i });
         break;
-      case 'Social':
-        cur.socials.push({ icon: v[0], label: v[1], url: safeUrl(v[2]) });
+      case 'Small link':
+        cur.socials.push({ icon: v[0], label: v[1], url: safeUrl(v[2]), row: i });
+        break;
+      case 'Big icon':
+        cur.icon = v[0];
+        cur.rows.icon = i;
         break;
       case 'Picture':
         cur.pics.push(/^https?:\/\//.test(v[1]) ? v[1] : '');
@@ -237,7 +250,7 @@ export function parseSite(text: string, form: Kind[] = FORM): Site {
         break;
       default:
         if (isPicture(line)) cur.pics.push(line), cur.rows.pics.push([i, 0]);
-        else if (/^:[a-z0-9-]+:$/.test(line)) cur.icon = line.slice(1, -1);
+        else if (/^:[a-z0-9-]+:$/.test(line)) (cur.icon = line.slice(1, -1)), (cur.rows.icon = i);
         else if (line) cur.text.push(line);
     }
     // The row is the last of the section it went to (a heading's own, for a heading).

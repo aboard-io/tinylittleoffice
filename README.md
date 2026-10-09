@@ -37,7 +37,7 @@ you have copied the file.
 | Together | Secret Santa (a private link per person), Split the bill. |
 | Personal | Log. |
 
-An empty Write, Sheet or Deck opens with its templates over it, Blank the
+An empty Write, Sheet, Deck or Quick Links opens with its templates over it, Blank the
 first card, and offers them again from "Start from a template…" in the
 toolbar while it stays empty: a dialog of templates, each drawn
 small by the app itself, and one undo brings the blank page back. The
@@ -240,13 +240,18 @@ Every format is plain text, chosen so deflate has something to chew on.
 - **Website** (TLO): `# Name` and a line about it, a further `# Title` for
   each further page, `## Section` within a page, `- Point | detail` cards,
   `> Label | url` buttons, `![](url)` (or a line that is only a picture's
-  address) a picture, a table `Name | Price | About | Image` the products
-  of a shop (with `currency:` and `orders:` in the header), a fenced
-  document for another document on the page, `theme: forest serif dark`
-  for the look (one of sixteen themes, a type and a mode). The home page
-  is what comes before the second `#`; a site with one is one page
-  navigated by its sections. **Quick Links** is the same with one page:
-  `- :icon: Label | url` lines are the small links at its foot.
+  address) a picture, a line that is only `:icon:` a big icon, a table
+  `Name | Price | About | Image` the products of a shop (with `currency:`
+  and `orders:` in the header), a fenced document for another document on
+  the page, `theme: forest serif dark` for the look (one of sixteen themes
+  in `src/lib/sitemodel.ts`, each a palette, a type and a corner; a type
+  and a mode after it change those alone). The home page is what comes
+  before the second `#`; a site with one is one page navigated by its
+  sections. The editor is the page itself: words typed where they stand, a
+  "+" at the end of each part for what can go there, icons tapped to
+  change, pages and sections moved or taken away by the buttons on their
+  headings (`src/lib/pageedit.ts`). **Quick Links** is the same with one
+  page: `- :icon: Label | url` lines are the small links at its foot.
 - **Calendar**: an optional `@Zone/Name` line (the zone the document was last
   edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
   span whose start is a day count from 2020-01-01: a floating civil date, the
@@ -264,7 +269,7 @@ Every format is plain text, chosen so deflate has something to chew on.
 
 Every TinyLittleOffice component renders into light DOM, so there is no CSS hidden
 in shadow roots. The look lives in `src/styles.css` (three apps keep a
-sheet of their own beside their editor: `anim.css`, `calc.css`, `outline.css`):
+sheet of their own beside their editor: `anim.css`, `calc.css`, `invoice.css`, `outline.css`, `site.css`, `web.css`):
 
 1. **Tokens.** Shoelace's design tokens are overridden at the top of the file
    (accent ramp, fonts, radii) and a small set of `--to-*` variables is built
@@ -357,7 +362,7 @@ A document is a link, so a program makes one by making a string. The site serves
 import { link, parse, lint, compare, evaluateSheet, runModel, templates } from 'https://tinylittleoffice.com/api.js';
 ```
 
-`templates('write')` (or `'sheet'`, `'deck'`) is the list a person is offered
+`templates('write')` (or `'sheet'`, `'deck'`, `'links'`) is the list a person is offered
 on an empty document: each a name, a line on what it is for, and its body in
 the app's format, ready for `link()` or to be filled in by a program.
 

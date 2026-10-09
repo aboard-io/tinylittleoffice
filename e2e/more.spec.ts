@@ -148,7 +148,7 @@ test('page apps: a shop with a cart, an invoice as a PDF', async ({ page }) => {
   await store.getByRole('button', { name: 'One fewer House blend, 250g' }).click();
   await expect(store.locator('#total')).toHaveText('$21.50');
   await expect(store.getByRole('button', { name: 'Send order by email' })).toBeEnabled();
-  await shot(page, 'store');
+  await shot(page, 'shop');
 
   // An invoice: the PDF is the invoice.
   await page.goto('/#/v0/invoice');

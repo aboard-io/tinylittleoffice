@@ -22,6 +22,8 @@
  *                      a list of kinds), where it stands
  *   data-lf-part="r"   with data-lf-do, a button that moves the heading at
  *                      row r (with all under it) up or down, or removes it
+ *   data-lf-icon="r,f" an icon, field f of row r: tapped, the editor opens
+ *                      its icon picker for it
  *   data-lf-remove="r" a button that takes row r away
  *   <input data-lf>    a field typed (or picked: a date) in a box of the
  *                      browser's own rather than where it stands
@@ -76,6 +78,7 @@ document.addEventListener('focusout',function(ev){var t=ev.target,n=ev.relatedTa
 function button(b,m){b.addEventListener('mousedown',function(ev){ev.preventDefault();});b.addEventListener('click',function(){send(m());});}
 [].forEach.call(document.querySelectorAll('[data-lf-add]'),function(b){button(b,function(){var m={lf:'add',k:+b.getAttribute('data-lf-add')};if(b.hasAttribute('data-lf-after'))m.r=+b.getAttribute('data-lf-after');return m;});});
 [].forEach.call(document.querySelectorAll('[data-lf-remove]'),function(b){button(b,function(){return {lf:'remove',r:+b.getAttribute('data-lf-remove')};});});
+[].forEach.call(document.querySelectorAll('[data-lf-icon]'),function(b){function go(ev){ev.preventDefault();ev.stopPropagation();var a=b.getAttribute('data-lf-icon').split(',');send({lf:'icon',r:+a[0],f:+a[1]});}b.addEventListener('click',go);b.addEventListener('keydown',function(ev){if(ev.key==='Enter'||ev.key===' ')go(ev);});});
 var menu=null;function closeMenu(){if(menu){menu.remove();menu=null;}}
 document.addEventListener('click',function(ev){if(menu&&!menu.contains(ev.target)&&!(ev.target.closest&&ev.target.closest('[data-lf-menu]')))closeMenu();});
 document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&menu){closeMenu();}});

@@ -8,7 +8,8 @@
 import { html, state, fontsForPictures, slug, type TemplateResult } from '../kit.ts';
 import { DiagramElement } from './diagram.ts';
 import { EDIT_SCRIPT, PLACE_SCRIPT, editData, placeData } from '../lib/pageedit.ts';
-import { blockEnd, fieldsOf, headLevel, kindsOf, movePart, readLines, removePart, removeRow, writeLines, type Row } from '../lib/lines.ts';
+import { chooseIcon } from '../widgets/icon-picker.ts';
+import { blockEnd, fieldsOf, headLevel, kindsOf, movePart, readLines, removePart, removeRow, withValue, writeLines, type Row } from '../lib/lines.ts';
 
 export class PageView extends DiagramElement {
   /** The fonts, as CSS, for the page shown in its frame. */
@@ -86,20 +87,6 @@ export class PageView extends DiagramElement {
       this.focusRow = focus;
       this.requestUpdate();
     };
-    // A new row starts with its fields' names as its words, so it shows up on the page to be typed into (a number where a number is wanted).
-    const fresh = (kind: number): Row => ({
-      kind,
-      values: fieldsOf(form, kind).map((f) => (f.optional ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? '' : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
-      depth: 0,
-    });
-    // Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last.
-    const slot = (kind: number, after: number) => {
-      const k = kinds[kind];
-      const top = rows.findIndex((r) => !kinds[r.kind].once || (k.once && r.kind > kind));
-      const base = top < 0 ? rows.length : top;
-      if (k.once) return base;
-      return after >= 0 && after < rows.length ? Math.max(base, k.indent ? blockEnd(rows, form, after) : after + 1) : rows.length;
-    };
     const hold = () => (this.held ??= this.lastSrc);
     if (m.lf === 'focus') this.pageRow = now(m.r!);
     else if (m.lf === 'set') {
@@ -108,7 +95,7 @@ export class PageView extends DiagramElement {
       let r = m.r === undefined ? madeAt(m.k!) : now(m.r);
       if (r < 0) {
         // A hint typed into: its row is made, blank but for this field.
-        r = slot(m.k!, -1);
+        r = this.slotFor(rows, m.k!, -1);
         rows.splice(r, 0, { kind: m.k!, values: fieldsOf(form, m.k!).map(() => ''), depth: 0 });
         this.born.push({ kind: m.k!, at: r });
       }
@@ -137,22 +124,10 @@ export class PageView extends DiagramElement {
     } else if (m.lf === 'enter' || m.lf === 'add') {
       const after = m.r !== undefined ? now(m.r) : this.pageRow;
       const kind = m.lf === 'add' ? m.k! : rows[after]?.kind;
-      if (kind === undefined) return;
-      const k = kinds[kind];
-      // With no row being typed in, a heading goes in the part on show.
-      const near = after >= 0 ? after : (this.parts(rows).find((p) => '#' + p[0] === this.pageHash)?.[1] ?? -1);
-      let at = slot(kind, near);
-      const level = headLevel(form, kind);
-      if (level && !k.once) {
-        // A heading goes after the part it belongs in: the heading of its level (or above) that holds the row, with all that is under it; before the first such heading when none does (a new page after the home page).
-        let enclosing = Math.min(near, rows.length - 1);
-        while (enclosing >= 0 && !(headLevel(form, rows[enclosing].kind) && headLevel(form, rows[enclosing].kind) <= level)) enclosing--;
-        const first = rows.findIndex((r) => headLevel(form, r.kind) && headLevel(form, r.kind) <= level);
-        at = enclosing >= 0 ? blockEnd(rows, form, enclosing) : first >= 0 ? first : rows.length;
-      }
-      this.release();
-      this.focusRow = at;
-      this.putRows([...rows.slice(0, at), fresh(kind), ...rows.slice(at)]);
+      if (kind !== undefined) this.addRow(kind, after);
+    } else if (m.lf === 'icon') {
+      const r = now(m.r!);
+      if (rows[r]) void this.pickIcon(r, m.f!);
     } else if (m.lf === 'remove') {
       const r = m.r !== undefined ? now(m.r) : this.pageRow;
       if (!rows[r]) return;
@@ -169,6 +144,66 @@ export class PageView extends DiagramElement {
       this.putRows(moved);
     }
   };
+
+  /** A new row starts with its fields' names as its words, so it shows up on the page to be typed into (a number where a number is wanted; a star where the row is only an icon). */
+  private fresh(kind: number): Row {
+    const form = this.spec.form!;
+    const fields = fieldsOf(form, kind);
+    const onlyIcon = fields.every((f) => f.type === 'icon');
+    return {
+      kind,
+      values: fields.map((f) => (f.optional ? '' : f.type === 'choice' ? f.options[0] : f.type === 'date' ? new Date().toISOString().slice(0, 10) : f.type === 'icon' ? (onlyIcon ? 'star' : '') : /quantity|qty/i.test(f.name) ? '1' : /amount|price|stars|value|lowest|highest|width|depth|left|top|semitones|how much/i.test(f.name) ? '10' : f.name)),
+      depth: 0,
+    };
+  }
+  /** Where a row of a kind goes. The rows there is one of sit at the top in the form's order, and a new one goes among them; anything else goes after the row given (and what is under it), past the top, or last. */
+  private slotFor(rows: Row[], kind: number, after: number) {
+    const form = this.spec.form!;
+    const { kinds } = kindsOf(form);
+    const k = kinds[kind];
+    const top = rows.findIndex((r) => !kinds[r.kind].once || (k.once && r.kind > kind));
+    const base = top < 0 ? rows.length : top;
+    if (k.once) return base;
+    return after >= 0 && after < rows.length ? Math.max(base, k.indent ? blockEnd(rows, form, after) : after + 1) : rows.length;
+  }
+  /**
+   * A new row of a kind, after a row (the one being typed in, if none is
+   * said; with none, in the part on show), with the cursor in it. A row
+   * that is only an icon opens the icon picker instead. The Insert menu
+   * and the "+" on the page both come here.
+   */
+  protected addRow(kind: number, after = this.pageRow) {
+    const form = this.spec.form!;
+    const rows = readLines(this.textOf(this.doc), form);
+    const { kinds } = kindsOf(form);
+    const k = kinds[kind];
+    if (!k) return;
+    const near = after >= 0 ? after : (this.parts(rows).find((p) => '#' + p[0] === this.pageHash)?.[1] ?? -1);
+    let at = this.slotFor(rows, kind, near);
+    const level = headLevel(form, kind);
+    if (level && !k.once) {
+      // A heading goes after the part it belongs in: the heading of its level (or above) that holds the row, with all that is under it; before the first such heading when none does (a new page after the home page).
+      let enclosing = Math.min(near, rows.length - 1);
+      while (enclosing >= 0 && !(headLevel(form, rows[enclosing].kind) && headLevel(form, rows[enclosing].kind) <= level)) enclosing--;
+      const first = rows.findIndex((r) => headLevel(form, r.kind) && headLevel(form, r.kind) <= level);
+      at = enclosing >= 0 ? blockEnd(rows, form, enclosing) : first >= 0 ? first : rows.length;
+    }
+    this.release();
+    this.focusRow = at;
+    this.putRows([...rows.slice(0, at), this.fresh(kind), ...rows.slice(at)]);
+    if (fieldsOf(form, kind).every((f) => f.type === 'icon')) void this.pickIcon(at, 0);
+  }
+  /** The icon picker for field f of row r (a card's, a button's, the big one); "No icon" takes it away, and a row that was only an icon goes with it. */
+  private async pickIcon(r: number, f: number) {
+    const form = this.spec.form!;
+    const current = readLines(this.textOf(this.doc), form)[r]?.values[f];
+    const name = await chooseIcon({ current, none: true });
+    if (name === null) return;
+    const rows = readLines(this.textOf(this.doc), form);
+    if (!rows[r]) return;
+    this.release();
+    this.putRows(withValue(rows, r, f, () => name));
+  }
 
   /** The page as it stands, for its frame: the example while nothing is written. */
   private pageHtml(): string {

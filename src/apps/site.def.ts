@@ -99,11 +99,18 @@ footer{padding:2rem 0;color:var(--ink3);font-size:.9rem;border-top:1px solid var
  * Edited in place: a "+" at the end of every section opens a chooser of
  * what can go there; a page or section heading carries its own buttons to
  * move it past its neighbour or take it away; a picture shows its address
- * under it, to type over. The marks are lib/pageedit.ts's.
+ * under it, to type over; an icon (a card's, a button's, the big one) is
+ * tapped to choose another, a dashed ring where there is none yet; the
+ * cart shows where orders go and the currency, to type over. The marks are
+ * lib/pageedit.ts's. Thumb-sized on a phone.
  */
 export const EDIT_CSS = `.lf-plus{display:inline-grid;place-items:center;width:2rem;height:2rem;padding:0;border-radius:50%;border:1px dashed var(--a);background:var(--bg);color:var(--a);font:600 1.2rem/1 var(--font);cursor:pointer;margin:1.2rem 0 0}.hero .lf-plus{margin:1.2rem auto 0}
 .lf-tools{display:inline-flex;gap:.3rem;vertical-align:middle;margin-left:.6rem}.lf-tools button{width:1.7rem;height:1.7rem;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--bg);color:var(--ink3);font:.85rem/1 var(--font);cursor:pointer}.lf-tools button:hover{color:var(--deep);border-color:var(--a)}
-.pic-at{display:block;font-size:.85rem;color:var(--ink3);margin:-.8rem 0 1.2rem}.hero .pic-at{text-align:center}`;
+.pic-at{display:block;font-size:.85rem;color:var(--ink3);margin:-.8rem 0 1.2rem}.hero .pic-at{text-align:center}
+.lf-ico{display:inline-block;cursor:pointer;border-radius:50%;outline:1px dashed rgba(79,70,229,.5);outline-offset:3px;line-height:0}.lf-ico.ico{display:inline-block;line-height:0}.lf-ico:hover,.lf-ico:focus-visible{outline:2px solid #4f46e5}
+.lf-ico.none{width:1em;height:1em;vertical-align:-.15em;margin-right:.4rem;opacity:.6}.lf-ico.none svg{display:none}.cards .lf-ico.none{margin:0 0 .4rem}
+.lf-set{font-size:.85rem;color:var(--ink3);margin:.8rem 0 0}.lf-set [data-lf]{color:var(--ink)}
+@media(pointer:coarse){.lf-plus{width:2.6rem;height:2.6rem}.lf-tools button{width:2.2rem;height:2.2rem}}`;
 
 /** The buttons a page or section heading carries while editing: earlier, later, away. */
 const partTools = (row: number, what: string) =>
@@ -118,28 +125,35 @@ export interface SitePageOpts extends PageOpts {
 
 /** What a section is drawn as, in pieces: its pictures and icon (a page's front puts its title after them), the rest, and the "+" of editing. */
 export function drawn(site: Site, s: Section, { edit = false, base = '', form = FORM }: SitePageOpts, hero: boolean, products: Product[]): { pics: string; body: string; add: string } {
-  const card = (c: Card) => `<li>${icon(c.icon, 28)}<strong>${prose(c.head)}</strong>${c.detail ? `<span>${prose(c.detail)}</span>` : ''}</li>`;
+  // Editing, an icon is tapped to choose another (a dashed ring stands where there is none yet); the page as read has the icon alone.
+  const ico = (name: string, size: number, row: number, what: string, cls = '') =>
+    edit && row >= 0 ? `<span class="lf-ico${cls ? ` ${cls}` : ''}${name ? '' : ' none'}" role="button" tabindex="0" data-lf-icon="${row},0" aria-label="${xml(what)}">${icon(name, size)}</span>` : icon(name, size, cls);
+  const card = (c: Card) => `<li>${ico(c.icon, 28, c.row, `Icon of ${plain(c.head)}`)}<strong>${prose(c.head)}</strong>${c.detail ? `<span>${prose(c.detail)}</span>` : ''}</li>`;
   const cards = s.points.length ? `<ul class="cards">${s.points.map(card).join('')}</ul>` : '';
   // Three or more buttons on a page's front are the page: stacked, as a link-in-bio page is.
   const stack = hero && s.buttons.length >= 3;
-  const buttons = s.buttons.length ? `<p class="go${stack ? ' stack' : ''}">${s.buttons.map((b, i) => `<a class="btn${i && !stack ? ' quiet' : ''}" href="${xml(b.url)}">${icon(b.icon, 20)}${xml(b.label)}</a>`).join(' ')}</p>` : '';
-  const socials = s.socials.length ? `<ul class="social" aria-label="Elsewhere">${s.socials.map((b) => `<li><a href="${xml(b.url)}" aria-label="${xml(b.label)}" title="${xml(b.label)}">${icon(b.icon || 'link', 22)}</a></li>`).join('')}</ul>` : '';
+  const buttons = s.buttons.length ? `<p class="go${stack ? ' stack' : ''}">${s.buttons.map((b, i) => `<a class="btn${i && !stack ? ' quiet' : ''}" href="${xml(b.url)}">${ico(b.icon, 20, b.row, `Icon of ${b.label}`)}${xml(b.label)}</a>`).join(' ')}</p>` : '';
+  const socials = s.socials.length ? `<ul class="social" aria-label="Elsewhere">${s.socials.map((b) => `<li><a href="${xml(b.url)}" aria-label="${xml(b.label)}" title="${xml(b.label)}">${ico(b.icon || 'globe', 22, b.row, `Icon of ${b.label}`)}</a></li>`).join('')}</ul>` : '';
   // Editing, a picture's address sits under it, to type over.
   const pic = (url: string, n: number) => {
     const at = s.rows.pics[n];
     return (url ? `<img class="pic" src="${xml(url)}" alt="" loading="lazy">` : '') + (edit && at ? `<span class="pic-at" data-lf="${at[0]},${at[1]}" data-hint="https://… the picture's address" aria-label="Picture, row ${at[0] + 1}">${xml(url)}</span>` : '');
   };
-  const pics = (s.icon ? icon(s.icon, hero ? 64 : 40, 'ico') : '') + s.pics.map(pic).join('');
+  const pics = (s.icon ? ico(s.icon, hero ? 64 : 40, s.rows.icon, 'Big icon', 'ico') : '') + s.pics.map(pic).join('');
   const embed = (ref: string) => {
     const d = resolve(ref);
     return `<figure class="embed">${pageSvg(refPage(ref), `role="img" aria-label="${xml(d.title)}"`)}<figcaption><a href="${xml(base + d.hash)}">${xml(d.title)}</a> <small>${xml(d.def?.name ?? 'Document')}</small></figcaption></figure>`;
   };
   const paras = s.text.map((t) => `<p>${prose(t)}</p>`).join('');
+  // Editing, the shop's settings (header lines) are typed over in the cart: a hint until written, the row once it is.
+  const setting = (name: string, row: number, value: string, hint: string) =>
+    `<p class="lf-set">${name} <span data-lf="${row >= 0 ? `${row},0` : `+${kindNamed(form, name)},0`}" data-hint="${hint}" aria-label="${name}">${xml(value)}</span></p>`;
+  const settings = edit ? setting('Orders go to', site.rows.orders, site.orders, 'you@example.com, or orders are copied') + setting('Currency', site.rows.currency, site.rows.currency >= 0 ? site.currency : '', '$') : '';
   // The shop: a grid of what is for sale, and, by the first of them, the cart.
   const shop = s.products.length
-    ? `<div class="shop"><ul class="grid" aria-label="Products">${s.products.map((p) => `<li>${p.image ? `<img src="${xml(p.image)}" alt="" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${prose(p.about)}</span><b class="price">${xml(site.currency)}${p.price.toFixed(2)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="Add ${xml(p.name)} to the cart">Add to cart</button></div></li>`).join('')}</ul>${products[0] === s.products[0] ? `<aside class="cart" aria-label="Cart"><h3>Cart (<span id="count">0</span>)</h3><p id="empty">Nothing in it yet.</p><ul id="lines"></ul><div class="tot"><span>Total</span><span id="total"></span></div><button type="button" id="send">${site.orders ? 'Send order by email' : 'Copy order'}</button><p id="said" role="status" aria-live="polite"></p>${pageData('products', products)}${pageData('shop', { name: site.name || 'My site', currency: site.currency, orders: site.orders })}${CART}</aside>` : ''}</div>`
+    ? `<div class="shop"><ul class="grid" aria-label="Products">${s.products.map((p) => `<li>${p.image ? `<img src="${xml(p.image)}" alt="" loading="lazy">` : '<div class="ph" aria-hidden="true"></div>'}<div><strong>${xml(p.name)}</strong><span>${prose(p.about)}</span><b class="price">${xml(site.currency)}${p.price.toFixed(2)}</b><button type="button" data-add="${products.indexOf(p)}" aria-label="Add ${xml(p.name)} to the cart">Add to cart</button></div></li>`).join('')}</ul>${products[0] === s.products[0] ? `<aside class="cart" aria-label="Cart"><h3>Cart (<span id="count">0</span>)</h3><p id="empty">Nothing in it yet.</p><ul id="lines"></ul><div class="tot"><span>Total</span><span id="total"></span></div><button type="button" id="send">${site.orders ? 'Send order by email' : 'Copy order'}</button><p id="said" role="status" aria-live="polite"></p>${settings}${pageData('products', products)}${pageData('shop', { name: site.name || 'My site', currency: site.currency, orders: site.orders })}${CART}</aside>` : ''}</div>`
     : '';
-  const kinds = form === FORM ? ['Paragraph', 'Card', 'Button', 'Picture', 'Product', 'Section', 'Page'] : ['Paragraph', 'Button', 'Social', 'Picture'];
+  const kinds = form === FORM ? ['Paragraph', 'Card', 'Button', 'Picture', 'Big icon', 'Product', 'Section', 'Page'] : ['Paragraph', 'Button', 'Small link', 'Picture', 'Big icon'];
   const add = edit ? plus(form, s.rows.end, kinds, s.title ? `Add to ${s.title}` : 'Add to this page') : '';
   return { pics, body: `${paras}${cards}${shop}${s.embeds.map(embed).join('')}${buttons}${socials}`, add };
 }
@@ -168,7 +182,7 @@ function page(text: string, opts: SitePageOpts = {}): string {
     const [front, ...rest] = p.sections;
     const title = i ? p.title || `Page ${i + 1}` : name;
     const f = drawn(site, { ...front, points: [], products: [], embeds: [] }, o, true, products);
-    const more = front.points.length || front.embeds.length || front.products.length ? drawn(site, { ...front, text: [], buttons: [], pics: [], icon: '', socials: [] }, { ...o, edit: false }, false, products).body : '';
+    const more = front.points.length || front.embeds.length || front.products.length ? drawn(site, { ...front, text: [], buttons: [], pics: [], icon: '', socials: [] }, o, false, products).body : '';
     return `<section class="page" id="${pageIds[i]}">
 <div class="hero${i ? ' top' : ''}"><div class="wrap">${f.pics}<h1>${xml(title)}${edit && i ? partTools(p.row, 'page') : ''}</h1>${f.body}${more ? '' : f.add}</div></div>
 ${more ? `<div class="part"><div class="wrap">${more}${f.add}</div></div>` : ''}
@@ -200,7 +214,7 @@ export const spec = {
   form: FORM,
   hint: '"# Name" and a line about it; each further "# Title" starts a page, "## Section" a part of one; "- Point | detail" makes a card (":icon:" first for an icon); "> Label | https://..." a button; a table "Name | Price | About | Image" a shop with a cart; "theme: forest serif dark" the look.',
   example:
-    '---\ntheme: amber serif\n---\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Farms we have visited\n- :bike: Delivered | By bike, on the day\n\n# Menu\n\nWhat we pour, and what we bake.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com',
+    '---\ntheme: amber\n---\n# Harbor Coffee\n\nSmall-batch coffee, roasted on the quay every morning.\n\n> See the menu | #menu\n> Find us | #find-us\n\n- :coffee: Roasted daily | Never more than a week old\n- :leaf: Fair trade | Farms we have visited\n- :bike: Delivered | By bike, on the day\n\n# Menu\n\nWhat we pour, and what we bake.\n\n## Coffee\n\n- Espresso | 3.00\n- Flat white | 4.20\n\n## Pastry\n\n- Cardamom bun | 3.50\n\n# Find us\n\n14 Quay Street, open 7 to 3, every day but Monday.\n\n> Email us | mailto:hello@example.com',
   page,
 };
 

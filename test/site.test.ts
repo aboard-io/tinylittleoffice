@@ -25,9 +25,11 @@ test('site: pages, sections, theme, pictures, icons, embeds and buttons are read
   const [home, menu, last] = site.pages;
   assert.deepEqual(home.sections[0].text, ['On the quay.']);
   assert.equal(home.sections[0].icon, 'coffee');
-  assert.deepEqual(home.sections[0].buttons, [{ icon: 'mail', label: 'Write', url: 'mailto:a@b.c' }, { icon: '', label: 'Menu', url: '#menu' }, { icon: '', label: 'Bad', url: '#' }]);
+  // Each button, card and big icon knows its row, for editing in place.
+  assert.equal(home.sections[0].rows.icon, 3);
+  assert.deepEqual(home.sections[0].buttons, [{ icon: 'mail', label: 'Write', url: 'mailto:a@b.c', row: 4 }, { icon: '', label: 'Menu', url: '#menu', row: 5 }, { icon: '', label: 'Bad', url: '#', row: 6 }]);
   assert.deepEqual(menu.sections.map((s) => s.title), ['', 'Coffee']);
-  assert.deepEqual(menu.sections[1].points, [{ icon: 'coffee', head: 'Espresso', detail: '3.00' }]);
+  assert.deepEqual(menu.sections[1].points, [{ icon: 'coffee', head: 'Espresso', detail: '3.00', row: 10 }]);
   assert.deepEqual(menu.sections[1].pics, ['https://example.com/beans.png']);
   assert.deepEqual(menu.sections[1].embeds, [ref]);
   assert.deepEqual(last.sections[0].text, ['Last.']);
@@ -130,7 +132,7 @@ test('site: sixteen themes, each a look, a type and a shape; dark by nature or b
 test('site: a shop is a table of products in a section: a grid, one cart for the site, orders where the header says', () => {
   const SHOP = '---\ncurrency: £\norders: hi@example.com\n---\n# Harbor\n\nBeans.\n\n## Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nHouse blend | 12.50 | Good | https://x.y/a.jpg\nMug | 9 |  |\n\n# More\n\n## Also\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nHat | 20 |  |';
   const site = parseSite(SHOP);
-  assert.deepEqual([site.currency, site.orders], ['£', 'hi@example.com']);
+  assert.deepEqual([site.currency, site.orders, site.rows], ['£', 'hi@example.com', { currency: 0, orders: 1 }]);
   assert.deepEqual(site.pages[0].sections[1].products.map((p) => [p.name, p.price, p.image]), [['House blend', 12.5, 'https://x.y/a.jpg'], ['Mug', 9, '']]);
   const html = page(SHOP);
   // Every product has its button, numbered across the whole site; the cart sits by the first grid, and its script is a registered one.
@@ -143,6 +145,15 @@ test('site: a shop is a table of products in a section: a grid, one cart for the
   assert.ok(page('# A\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nMug | 9 |  |').includes('Copy order'));
   assert.ok(def.outline(SHOP).includes('Mug  ·  £9.00'));
   assert.equal(def.read!(SHOP), SHOP);
+  // Edited, the cart shows where orders go and the currency, each typed over where it stands: its row, or a hint that makes the row.
+  const edit = spec.page!(SHOP, { edit: true });
+  assert.ok(edit.includes('<p class="lf-set">Orders go to <span data-lf="1,0" data-hint="you@example.com, or orders are copied" aria-label="Orders go to">hi@example.com</span></p>'));
+  assert.ok(edit.includes('<p class="lf-set">Currency <span data-lf="0,0" data-hint="$" aria-label="Currency">£</span></p>'));
+  const bare = spec.page!('# A\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nMug | 9 |  |', { edit: true });
+  const kind = (name: string) => spec.form!.findIndex((k) => k.name === name);
+  assert.ok(bare.includes(`<span data-lf="+${kind('Orders go to')},0" data-hint="you@example.com, or orders are copied" aria-label="Orders go to"></span>`));
+  assert.ok(bare.includes(`<span data-lf="+${kind('Currency')},0" data-hint="$" aria-label="Currency"></span>`));
+  assert.ok(!page(SHOP).includes('lf-set'));
 });
 
 test('site: edited on the page itself, a "+" at the end of every section offers what can go there, and headings carry their buttons', () => {
@@ -150,7 +161,7 @@ test('site: edited on the page itself, a "+" at the end of every section offers 
   const kind = (name: string) => spec.form!.findIndex((k) => k.name === name);
   // The home page's front, then each section: a "+" after the last row of each, offering the kinds in a sensible order; a page's "+" offers a page too.
   const plus = [...html.matchAll(/<button type="button" class="lf-plus" data-lf-menu="(\d+)" data-lf-kinds="([\d,]+)"/g)].map((m) => [+m[1], m[2]]);
-  assert.deepEqual(plus[0], [7, ['Paragraph', 'Card', 'Button', 'Picture', 'Product', 'Section', 'Page'].map(kind).join(',')]);
+  assert.deepEqual(plus[0], [7, ['Paragraph', 'Card', 'Button', 'Picture', 'Big icon', 'Product', 'Section', 'Page'].map(kind).join(',')]);
   // (The home page's front has cards, so its "+" sits in the part under its title; the other pages' fronts and the sections have their own.)
   assert.equal(plus.length, 5);
   // Pages after the home page and every section have buttons to move or remove them, by their row.
@@ -161,11 +172,20 @@ test('site: edited on the page itself, a "+" at the end of every section offers 
   // A picture's address sits under it to type over, whichever way it was written.
   const pics = spec.page!('# A\n\n![](https://x.y/a.jpg)\n\nhttps://x.y/b.png', { edit: true });
   assert.ok(pics.includes('<span class="pic-at" data-lf="1,1"') && pics.includes('<span class="pic-at" data-lf="2,0"'));
+  // An icon is tapped to choose another: a card's by its row, a button's (a dashed ring where it has none), the big one.
+  assert.ok(html.includes('<li><span class="lf-ico" role="button" tabindex="0" data-lf-icon="5,0" aria-label="Icon of Roasted daily"><svg'));
+  assert.ok(html.includes('<a class="btn" href="#menu"><span class="lf-ico none" role="button" tabindex="0" data-lf-icon="3,0" aria-label="Icon of See the menu"></span>See the menu</a>'));
+  const big = spec.page!('# A\n\n:star:\n\nHi', { edit: true });
+  assert.ok(big.includes('<span class="lf-ico ico" role="button" tabindex="0" data-lf-icon="1,0" aria-label="Big icon"><svg'));
+  assert.ok(page('# A\n\n:star:\n\nHi').includes('<svg class="ico"'));
+  // A big icon is a kind of line of its own, so the "+" can offer it.
+  assert.equal(parseSite('# A\n\n:star:').pages[0].sections[0].icon, 'star');
+  assert.deepEqual(readLines('# A\n\n:star:', spec.form!)[1], { kind: kind('Big icon'), values: ['star'], depth: 0 });
   // None of it in the page as it is read or downloaded.
   assert.ok(!page(spec.example).includes('lf-') && !page(spec.example).includes('lf-tools'));
 });
 
-test('links: a Quick Links page is a picture, a name, a line, a stack of buttons and the small links at the foot', () => {
+test('links: a Quick Links page is a picture, a name, a line, a stack of buttons and the small links at the foot', async () => {
   const l = specOf('links')!;
   const html = l.page!(l.example);
   assert.ok(html.includes('<img class="pic" src="https://images.unsplash.com/') && html.includes('<h1>Ada Diaz</h1>'));
@@ -176,11 +196,18 @@ test('links: a Quick Links page is a picture, a name, a line, a stack of buttons
   assert.equal(appOf('links')!.read!(l.example), l.example);
   // Written loosely, it comes in canonical: a link alone is a button, a list item a small link.
   assert.equal(appOf('links')!.read!('# Ada\n\n[Shop](https://x.y)\n\n- :mail: Mail | mailto:a@b.c'), '# Ada\n\n> Shop | https://x.y\n\n- :mail: Mail | mailto:a@b.c');
-  // Edited: a "+" offering a paragraph, a button, a small link, a picture; no sections or pages.
+  // A big icon stands where a picture would.
+  assert.ok(l.page!('# Ada\n\n:heart:\n\nHi').includes('<svg class="ico"'));
+  // Edited: a "+" offering a paragraph, a button, a small link, a picture, a big icon; no sections or pages; the small links' icons tapped to change.
   const edit = l.page!(l.example, { edit: true });
   const kind = (name: string) => l.form!.findIndex((k) => k.name === name);
-  assert.ok(edit.includes(`data-lf-kinds="${['Paragraph', 'Button', 'Social', 'Picture'].map(kind).join(',')}"`));
+  assert.ok(edit.includes(`data-lf-kinds="${['Paragraph', 'Button', 'Small link', 'Picture', 'Big icon'].map(kind).join(',')}"`));
+  assert.ok(edit.includes('data-lf-icon="7,0" aria-label="Icon of Instagram"'));
   assert.ok(!edit.includes('data-lf-part'));
+  // The icons in the examples and templates are ones a page can draw.
+  const { ICON_SVG } = await import('../src/lib/icons.ts');
+  const { templatesOf } = await import('../src/lib/templates.ts');
+  for (const body of [l.example, spec.example, ...templatesOf('links').map((t) => t.body)]) for (const [, name] of body.matchAll(/:([a-z0-9-]+):/g)) assert.ok(ICON_SVG[name], name);
 });
 
 test('lines: headings of two kinds nest, and a part moves or goes with everything under it', () => {
