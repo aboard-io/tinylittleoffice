@@ -24,7 +24,7 @@ test('docToHtml: lists nest by depth, chips and links and pictures come through'
   expect(html).toContain('<span data-icon="star">:star:</span>');
   expect(html).toContain('<sup data-fn="a note">*</sup>');
   expect(html).toContain('<hr>');
-  expect(html).toContain('<img src="https://p.q/r.png" alt="pic">');
+  expect(html).toContain('<img src="https://p.q/r.png" alt="pic" referrerpolicy="no-referrer">');
   expect(runsToHtml([{ t: 'a<b', b: true, i: true, u: true, s: true, h: true }, { t: 'x\ny' }])).toBe('<b><i><u><s><mark>a&lt;b</mark></s></u></i></b>x<br>y');
 });
 

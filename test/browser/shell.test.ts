@@ -107,8 +107,8 @@ test('under Saved a document typed in Write is kept, listed under Write, opened 
     const write = shell.querySelector('.to-app')!;
     const rows = write.querySelectorAll('.to-drive li');
     expect(rows).toHaveLength(1);
-    expect(rows[0].querySelector('.to-drive-open span')!.textContent).toBe(fresh());
-    expect(rows[0].querySelector('.to-drive-open small')!.textContent).toBe('now');
+    expect(rows[0].querySelector('.to-drive-words > span')!.textContent).toBe(fresh());
+    expect(rows[0].querySelector('.to-drive-words small')!.textContent).toBe('now');
     expect(shell.querySelectorAll('.to-drive')).toHaveLength(1);
     // Opened from there, it is the document; a second edit is the same entry.
     rows[0].querySelector<HTMLAnchorElement>('.to-drive-open')!.click();
@@ -133,8 +133,8 @@ test('more than five documents under an app: five, then "n more" unfolds the res
     for (let i = 0; i < 8; i++) keep({ id: `d${i}`, app: 'write', title: i ? `Doc ${i}` : '', hash: `#/v1/write/y${i}`, at: Date.now() - i * 3600e3 });
     const shell = await mount('');
     const write = shell.querySelector('.to-app')!;
-    expect([...write.querySelectorAll('.to-drive-open span')].map((s) => s.textContent)).toEqual(['Untitled', 'Doc 1', 'Doc 2', 'Doc 3', 'Doc 4']);
-    expect(write.querySelectorAll('.to-drive-open small')[2].textContent).toBe('2 hours ago');
+    expect([...write.querySelectorAll('.to-drive-words > span')].map((s) => s.textContent)).toEqual(['Untitled', 'Doc 1', 'Doc 2', 'Doc 3', 'Doc 4']);
+    expect(write.querySelectorAll('.to-drive-words small')[2].textContent).toBe('2 hours ago');
     const more = write.querySelector<HTMLButtonElement>('.to-drive-more')!;
     expect(more.textContent).toBe('3 more');
     more.click();
