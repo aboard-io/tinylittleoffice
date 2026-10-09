@@ -1,10 +1,18 @@
 /**
  * <to-trip-editor>: the Trip app. A map (Leaflet, a lazy chunk of its own) above the stops, beside them when
- * there is room. A tap on the map adds a stop there; a pin dragged moves its stop; Insert ▾ finds a place by
- * name (OpenStreetMap's Nominatim, asked only when Search is tapped) or puts a stop at the map's middle.
- * Each stop is a row: its number (a tap shows it on the map), its name and note (plain inputs, as the table's
- * cells are plain words), and a menu to move or delete it; Alt+Up/Down move it too. The bar holds Insert ▾,
- * the units, whether the stops are a route or dots, the whole route in view, the map on or off, undo and redo.
+ * there is room. A tap on the map adds a stop there (after the stop in hand); a pin dragged moves its stop, and a
+ * focused pin is nudged by the arrows; Insert ▾ finds a place by name (OpenStreetMap's Nominatim, asked only when
+ * Search is tapped) or puts a stop at the map's middle. Each stop is a row: its number (the handle: a tap chooses
+ * the stop, a drag carries it), its name and note (one-line <to-text>s over the table's plain cells).
+ *
+ * The words follow docs/editing.md §6: Enter in the name goes to the note, Enter in the note asks for the next
+ * stop by name; Backspace in an empty stop takes it away; Up/Down go from stop to stop, Alt+Up/Down move the stop
+ * and Mod+D duplicates it, the caret kept where it was. Stops are rows of the kit's rows.ts: a tap on the number,
+ * Escape or Shift+Up/Down in the words choose them whole, and chosen stops are moved, duplicated, copied (TLO and
+ * our HTML), cut, pasted and deleted from the keys or the bar under them. The map keeps its own wheel and pinch
+ * (§8), and a double tap on it zooms without adding a stop. Every edit carries where the caret or the chosen stops
+ * were, so an undo puts them back. The bar holds Insert ▾, the units, whether the stops are a route or dots, the
+ * whole route in view, the map on or off, and ends with undo and redo.
  *
  * This is the one app that talks to the network by itself: while the map is on view its pictures come from
  * tile.openstreetmap.org. The route itself lives only in the link. Every change is operations on the
@@ -12,25 +20,34 @@
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
 import type * as Leaflet from 'leaflet';
-import { ArrowDown, ArrowUp, Crosshair, Ellipsis, Map as MapIcon, Ruler, Scan, Spline } from 'lucide';
-import type { Doc } from '../../doc/index.ts';
+import { Crosshair, Map as MapIcon, Ruler, Scan, Spline } from 'lucide';
+import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
-import { DocElement } from '../../kit/element.ts';
+import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
+import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
-import type { MenuItem, ToMenu } from '../../kit/menu.ts';
-import { addStop, distanceKm, formatLeg, MAX_STOPS, moveStop, readTrip, removeStop, routeKm, setLinked, setPlace, setText, setUnits, tabulate, type Stop, type TripView, type Units } from './model.ts';
+import type { MenuItem } from '../../kit/menu.ts';
+import { lastCopied, Rows, type Clip, type RowItem, type RowRange } from '../../kit/rows.ts';
+import { caret } from '../../kit/textops.ts';
+import type { TextOps, ToText } from '../../kit/text.ts';
+import { addStop, distanceKm, duplicateStops, formatLeg, MAX_STOPS, moveStops, pasteStops, placesIn, putAfter, readTrip, removeStops, routeKm, setLinked, setPlace, setText, setUnits, stopsTable, tabulate, type Stop, type TripView, type Units } from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/dialog.ts';
+import '../../kit/text.ts';
 import './style.css';
 
 export const tag = 'to-trip-editor';
 
 export const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 const SEARCH = 'https://nominatim.openstreetmap.org/search';
+/** How long a tap on the map waits to be sure it is not the first of a double tap (which zooms). */
+const DOUBLE = 300;
+/** A focused pin's nudge, in screen pixels (Shift: five times). */
+const NUDGE = 10;
 
 type L = typeof Leaflet;
 // The map library is the one large thing only this app needs: it arrives with the first map, in a chunk of its own.
@@ -43,24 +60,30 @@ export interface Place {
   lat: number;
   lon: number;
 }
+type Field = 'name' | 'note';
+/** Where the selection was when an edit began (the entry's mark): stops chosen whole, or the caret in a stop's words. */
+type Mark = { range: RowRange<number> } | { i: number; field: Field; offset: number };
+const words = (b: Block[]): string =>
+  b
+    .map((x) => ('runs' in x ? plainText(x.runs) : ''))
+    .join(' ')
+    .replace(/\n/g, ' ');
+const plainBlock = (s: string): Block => ({ k: 'p', runs: s ? [{ t: s }] : [] });
 
 export class ToTripEditor extends DocElement<TripView> {
   static properties: PropertyDeclarations = {
     tiles: { attribute: false },
     cur: { state: true },
     showMap: { state: true },
-    menuAt: { state: true },
     query: { state: true },
     found: { state: true },
     searching: { state: true },
   };
   /** Where the map's pictures come from; '' draws none (a test, or a map with no network). */
   declare tiles: string;
-  /** The stop picked, by its place in the route; -1 for none. */
+  /** The stop in hand (the caret's, or the last picked), by its place in the route; -1 for none. */
   declare cur: number;
   declare showMap: boolean;
-  /** The stop whose menu is open. */
-  declare menuAt: number;
   declare query: string;
   /** What a search found; null before one. */
   declare found: Place[] | null;
@@ -70,21 +93,65 @@ export class ToTripEditor extends DocElement<TripView> {
   private mapEl: HTMLElement | null = null;
   private watch: ResizeObserver | null = null;
   /** What the pins were last drawn from, so a render that changed nothing else leaves the map alone. */
-  private drawn: { view: TripView; cur: number } | null = null;
+  private drawn: { view: TripView; sel: string } | null = null;
   /** Fit the map to the stops at the next drawing: a new document, or a new map. */
   private refit = true;
   /** A zoom is on its way (Leaflet animates it). */
   private zooming = false;
+  /** A tap on the map waiting out a double tap. */
+  private tapping = 0;
+  /** The pin to give the focus back to once the pins are drawn again (a nudge, by the keys). */
+  private pinFocus = -1;
+  /** The stop the map last showed for a choice, so it pans once per choice. */
+  private panned = -1;
+  /** Where a stop found by name goes: after this one (null: the route's end). */
+  private findAfter: number | null = null;
+  /** The words of each name and note as their editor holds them (a space typed at the end the table does not keep). */
+  private drafts = new Map<string, Block>();
+  private ones = new WeakMap<Block, Block[]>();
+  /** Stops chosen whole: the kit's one implementation (keys, the handle, drag, clipboard, the bar under them). */
+  readonly rows = new Rows<number>(this, {
+    rows: () => this.rowItems(),
+    box: () => this.querySelector<HTMLElement>('.trip-stops'),
+    handle: '.trip-n',
+    label: t('Chosen stops'),
+    contextClass: 'trip-context',
+    current: () => (this.view.stops[this.cur] ? this.cur : null),
+    edit: (i, offset) => void this.focusField(i, 'name', offset),
+    remove: (_s, ids) => this.deleteStops(ids),
+    canMove: (s, by) => (by < 0 ? s.from > 0 : s.to < this.view.stops.length),
+    move: (s, by) => this.moveRange(s.from, s.to, by),
+    duplicate: (s) => this.duplicateRange(s.from, s.to),
+    copy: (s) => this.clip(s.from, s.to),
+    paste: (data, s) => this.pasteData(data, s ? { replace: [s.from, s.to] } : { after: this.view.stops[this.cur] ? this.cur : null }),
+    drop: (i, to) => this.dropAfter(i, to),
+    extra: (s) => [{ label: t('Show on the map'), icon: Crosshair, disabled: !this.map, does: () => this.pick(s.from) }],
+  });
 
   constructor() {
     super();
     this.tiles = TILES;
     this.cur = -1;
     this.showMap = true;
-    this.menuAt = -1;
     this.query = '';
     this.found = null;
     this.searching = false;
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('keydown', this.onKey);
+    // Capturing: before a stop's own editor hears a paste.
+    this.addEventListener('paste', this.onPaste, true);
+    this.addEventListener('focusout', this.onFocusOut);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('keydown', this.onKey);
+    this.removeEventListener('paste', this.onPaste, true);
+    this.removeEventListener('focusout', this.onFocusOut);
+    clearTimeout(this.tapping);
+    this.dropMap();
+    this.mapEl = null;
   }
 
   protected read(doc: Doc): TripView {
@@ -99,16 +166,44 @@ export class ToTripEditor extends DocElement<TripView> {
     this.cur = -1;
     if (this.view.loose) this.edit(tabulate(this.doc));
   }
-  protected undone() {
-    if (this.cur >= this.view.stops.length) this.cur = -1;
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.dropMap();
-    this.mapEl = null;
-  }
   protected updated() {
     void this.syncMap();
+    // A stop chosen whole is shown on the map, when it is off the map's view.
+    const f = this.rows.range?.focus ?? -1;
+    if (f !== this.panned) {
+      this.panned = f;
+      const s = this.view.stops[f];
+      if (s && this.map && !this.map.getBounds().contains([s.lat, s.lon])) this.map.panTo([s.lat, s.lon]);
+    }
+  }
+
+  /* ---------- undo: the caret or the chosen stops come back ---------- */
+
+  private mark(): Mark | undefined {
+    const r = this.rows.range;
+    if (r) return { range: { ...r } };
+    const field = this.fieldOf(document.activeElement);
+    return this.view.stops[this.cur] ? { i: this.cur, field: field ?? 'name', offset: field ? this.caretIn(this.cur, field) : 0 } : undefined;
+  }
+  /** Every edit carries where the selection was before it. */
+  protected edit(ops: Op[], key?: string, mark?: unknown) {
+    super.edit(ops, key, mark ?? this.mark());
+  }
+  /** After an undo the caret or the chosen stops come back as they were before the edit; else (and after a redo) the stop the change touched first. */
+  protected undone(entry: Entry, redo: boolean) {
+    this.rows.release();
+    const n = this.view.stops.length;
+    const m = entry.mark as Mark | undefined;
+    if (m && !redo && 'range' in m) {
+      const r = m.range;
+      if (r.anchor < n && r.focus < n) return void this.updateComplete.then(() => this.rows.select(r));
+    } else if (m && !redo && 'i' in m && m.i < n) return void this.focusField(m.i, m.field, m.offset);
+    const row = entry.ops.find((o) => o.op === 'rows' || o.op === 'cells');
+    const r = row && (row.op === 'rows' || row.op === 'cells') ? row.r : 0;
+    const stops = this.view.stops;
+    if (!stops.length) return void (this.cur = -1);
+    const i = Math.max(0, stops.findIndex((s) => s.row >= r));
+    void this.focusField(stops[i] ? i : stops.length - 1, 'name', 'end');
   }
 
   /* ---------- the map ---------- */
@@ -121,7 +216,7 @@ export class ToTripEditor extends DocElement<TripView> {
       if (el) await this.makeMap(el);
       return;
     }
-    if (this.map && (this.drawn?.view !== this.view || this.drawn.cur !== this.cur)) this.drawPins();
+    if (this.map && (this.drawn?.view !== this.view || this.drawn.sel !== this.selKey())) void this.drawPins();
   }
   private async makeMap(el: HTMLElement) {
     const L = await leaflet();
@@ -130,14 +225,20 @@ export class ToTripEditor extends DocElement<TripView> {
     if (this.tiles) L.tileLayer(this.tiles, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
     map.attributionControl.setPrefix('');
     this.layer = L.layerGroup().addTo(map);
-    map.on('click', (e: Leaflet.LeafletMouseEvent) => this.add(e.latlng.lat, e.latlng.wrap().lng));
+    // A tap adds a stop once it is sure not to be the first of a double tap, which zooms (§8): never two stops.
+    map.on('click', (e: Leaflet.LeafletMouseEvent) => {
+      clearTimeout(this.tapping);
+      const p = e.latlng.wrap();
+      this.tapping = window.setTimeout(() => this.add(p.lat, p.lng), DOUBLE);
+    });
+    map.on('dblclick', () => clearTimeout(this.tapping));
     map.on('zoomanim', () => (this.zooming = true));
     map.on('zoomend', () => (this.zooming = false));
     this.map = map;
     this.watch = new ResizeObserver(() => map.invalidateSize());
     this.watch.observe(el);
     this.refit = true;
-    this.drawPins();
+    void this.drawPins();
     this.dispatchEvent(new Event('trip-map'));
   }
   private dropMap() {
@@ -152,22 +253,33 @@ export class ToTripEditor extends DocElement<TripView> {
     this.drawn = null;
     this.zooming = false;
   }
+  /** Whether a stop is in hand (the caret's) or chosen: its pin is drawn picked. */
+  private isSel(i: number): boolean {
+    return i === this.cur || this.rows.has(i);
+  }
+  private selKey(): string {
+    return this.view.stops.map((_, i) => (this.isSel(i) ? 1 : 0)).join('');
+  }
   /** The pins and the line between them, drawn again. */
   private async drawPins() {
     const L = await leaflet();
     const { map, layer } = this;
     if (!map || !layer) return;
     const v = this.view;
-    this.drawn = { view: v, cur: this.cur };
+    this.drawn = { view: v, sel: this.selKey() };
+    // A pin that has the focus has it again once drawn anew.
+    const had = [...(this.mapEl?.querySelectorAll('.trip-pin') ?? [])].indexOf(document.activeElement as Element);
+    if (had >= 0) this.pinFocus = had;
     layer.clearLayers();
     const pts = v.stops.map((s) => L.latLng(s.lat, s.lon));
     if (pts.length > 1 && v.linked) L.polyline(pts, { color: '#4f46e5', weight: 4, opacity: 0.85, interactive: false }).addTo(layer);
     v.stops.forEach((s, i) => {
+      // The pin is a finger wide to hit (44px), its dot drawn smaller inside.
       const pin = L.marker(pts[i], {
         draggable: true,
         keyboard: true,
         title: s.name || t('Stop {n}', { n: i + 1 }),
-        icon: L.divIcon({ className: `trip-pin${i === this.cur ? ' sel' : ''}`, html: String(i + 1), iconSize: [30, 30], iconAnchor: [15, 15] }),
+        icon: L.divIcon({ className: `trip-pin${this.isSel(i) ? ' sel' : ''}`, html: `<span>${i + 1}</span>`, iconSize: [44, 44], iconAnchor: [22, 22] }),
       });
       pin.on('click', () => this.pick(i, false));
       pin.on('dragend', () => {
@@ -176,7 +288,11 @@ export class ToTripEditor extends DocElement<TripView> {
         this.cur = i;
       });
       pin.addTo(layer);
+      const el = pin.getElement();
+      el?.addEventListener('keydown', (e) => this.onPinKey(e, i));
+      if (this.pinFocus === i) el?.focus({ preventScroll: true });
     });
+    this.pinFocus = -1;
     if (this.refit) {
       this.refit = false;
       this.fit(false);
@@ -190,50 +306,255 @@ export class ToTripEditor extends DocElement<TripView> {
     if (s.length === 1) map.setView([s[0].lat, s[0].lon], 12, { animate });
     else map.fitBounds(s.map((p) => [p.lat, p.lon] as [number, number]), { padding: [36, 36], animate });
   }
-  /** A stop picked: shown on the map, its row in view (and focused, when asked from the list). */
+  /** A stop shown on the map (from the list's bar), or picked on it (a pin: the stop chosen, its row in view). */
   private pick(i: number, toMap = true) {
-    this.cur = i;
     const s = this.view.stops[i];
-    if (toMap && s && this.map) this.map.setView([s.lat, s.lon], Math.max(this.map.getZoom(), 11));
-    if (!toMap) void this.updateComplete.then(() => this.querySelector(`.trip-stop[data-i="${i}"]`)?.scrollIntoView({ block: 'nearest' }));
+    if (!s) return;
+    this.cur = i;
+    if (toMap && this.map) this.map.setView([s.lat, s.lon], Math.max(this.map.getZoom(), 11));
+    if (!toMap) {
+      this.panned = i;
+      this.rows.choose(i);
+      void this.updateComplete.then(() => this.querySelector(`.trip-stop[data-i="${i}"]`)?.scrollIntoView({ block: 'nearest' }));
+    }
   }
-
-  /* ---------- editing ---------- */
-
-  private add(lat: number, lon: number, name = '') {
-    const ops = addStop(this.doc, this.view, lat, lon, name);
-    if (!ops.length) return;
-    this.edit(ops);
-    this.cur = this.view.stops.length - 1;
-    // A stop found by name has one; one tapped on the map is named next.
-    if (!name) void this.focusField(this.cur, 'name');
-  }
-  private async focusField(i: number, field: 'name' | 'note') {
-    await this.updateComplete;
-    const input = this.querySelector<HTMLInputElement>(`.trip-stop[data-i="${i}"] .trip-${field}`);
-    input?.focus({ preventScroll: true });
-    input?.scrollIntoView({ block: 'nearest' });
-  }
-  private typed(s: Stop, field: 'name' | 'note', value: string) {
-    this.edit(setText(this.doc, this.view, s, field, value), `${field}:${s.row}`);
-  }
-  private move(i: number, by: -1 | 1, field?: 'name' | 'note') {
-    const ops = moveStop(this.doc, this.view, i, by);
-    if (!ops.length) return;
-    this.edit(ops);
-    this.cur = i + by;
-    if (field) void this.focusField(i + by, field);
-  }
-  private removeAt(i: number) {
-    this.edit(removeStop(this.view, this.view.stops[i]));
-    this.cur = -1;
-  }
-  private onStopKey = (e: KeyboardEvent, i: number) => {
-    if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  /** A focused pin: the arrows nudge its stop (a burst is one undo), Delete takes it away, Escape gives the focus back to the map. */
+  private onPinKey(e: KeyboardEvent, i: number) {
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key;
+    const map = this.map;
+    const s = this.view.stops[i];
+    if (!map || !s || mod || e.altKey) return;
+    const by = e.shiftKey ? NUDGE * 5 : NUDGE;
+    const d = k === 'ArrowLeft' ? [-by, 0] : k === 'ArrowRight' ? [by, 0] : k === 'ArrowUp' ? [0, -by] : k === 'ArrowDown' ? [0, by] : null;
+    if (d) {
+      const p = map.latLngToContainerPoint([s.lat, s.lon]);
+      const to = map.containerPointToLatLng([p.x + d[0], p.y + d[1]]).wrap();
+      this.cur = i;
+      this.pinFocus = i;
+      this.edit(setPlace(this.view, s, to.lat, to.lng), `place:${s.row}`);
+    } else if (k === 'Delete' || k === 'Backspace') {
+      this.deleteStops([i]);
+    } else if (k === 'Escape') {
+      this.cur = -1;
+      this.mapEl?.focus({ preventScroll: true });
+    } else return;
+    // Not the map's own keys (Leaflet pans on the arrows): the pin's.
     e.preventDefault();
-    const field = (e.target as HTMLElement).classList.contains('trip-note') ? 'note' : 'name';
-    this.move(i, e.key === 'ArrowUp' ? -1 : 1, field);
+    e.stopPropagation();
+  }
+
+  /* ---------- the words ---------- */
+
+  private stopEl(i: number): HTMLElement | null {
+    return this.querySelector<HTMLElement>(`.trip-stop[data-i="${i}"]`);
+  }
+  private textOf(i: number, field: Field): ToText | null {
+    return this.querySelector<ToText>(`.trip-stop[data-i="${i}"] to-text.trip-${field}`);
+  }
+  private fieldOf(el: Element | null): Field | null {
+    const x = el?.closest?.('to-text');
+    return x?.classList.contains('trip-name') ? 'name' : x?.classList.contains('trip-note') ? 'note' : null;
+  }
+  /** A stop's name or note as its editor takes it: the words it holds (a draft kept while it says what the table says). */
+  private blocksFor(s: Stop, field: Field): Block[] {
+    const key = `${field}:${s.row}`;
+    let b = this.drafts.get(key);
+    if (!b || words([b]).replace(/\s+/g, ' ').trim() !== s[field]) this.drafts.set(key, (b = plainBlock(s[field])));
+    let a = this.ones.get(b);
+    if (!a) this.ones.set(b, (a = [b]));
+    return a;
+  }
+  private onOps(e: CustomEvent<TextOps>, i: number, field: Field) {
+    e.stopPropagation();
+    const s = this.view.stops[i];
+    if (!s) return;
+    const { ops, kind, before } = e.detail;
+    const key = `${field}:${s.row}`;
+    // The words are plain cells: whatever the ops made is read back as words (no marks, one line).
+    const now = words(applyAll({ head: {}, blocks: this.blocksFor(s, field) }, ops).blocks);
+    this.drafts.set(key, plainBlock(now));
+    const mark: Mark = { i, field, offset: before ? before.focus.offset : 0 };
+    this.edit(setText(this.doc, this.view, s, field, now), kind ? key : undefined, mark);
+    this.requestUpdate();
+  }
+  /** The words of a stop's name or note, once drawn, with the caret at `offset`. */
+  private async focusField(i: number, field: Field, offset: number | 'end' = 'end') {
+    this.cur = i;
+    await this.updateComplete;
+    const x = this.textOf(i, field);
+    if (!x) return;
+    await x.updateComplete;
+    const len = words(x.blocks).length;
+    x.sel = caret(0, offset === 'end' ? len : Math.min(offset, len));
+    this.stopEl(i)?.scrollIntoView({ block: 'nearest' });
+  }
+  /** Where the caret is in a stop's name or note, or their end. */
+  private caretIn(i: number, field: Field): number {
+    const x = this.textOf(i, field);
+    return x?.sel ? x.sel.focus.offset : words(x?.blocks ?? []).length;
+  }
+  /** A stop at a place, after stop `after` (by default the one in hand; null: the route's end). */
+  private add(lat: number, lon: number, name = '', after: number | null = this.view.stops[this.cur] ? this.cur : null) {
+    const ops = addStop(this.doc, this.view, lat, lon, name, after);
+    if (!ops.length) return;
+    this.edit(ops);
+    this.cur = after === null ? this.view.stops.length - 1 : after + 1;
+    // A stop found by name has one; one tapped on the map is named next.
+    if (!name) void this.focusField(this.cur, 'name', 0);
+  }
+  /** Enter: from the name to the note; from the note, the next stop, asked for by name (a stop needs a place). */
+  private onEnter(i: number, field: Field) {
+    if (field === 'name') return void this.focusField(i, 'note', 0);
+    if (this.view.stops.length >= MAX_STOPS) return;
+    this.findAfter = i;
+    void this.openSearch();
+  }
+  /**
+   * Backspace at the start of words, or Delete at their end (the line says which). A stop with no name and no note
+   * goes, the caret to the stop above (Delete: below); Backspace at the start of a note goes back to the name.
+   */
+  private onExit(i: number, field: Field, dir: 'back' | 'forward') {
+    const s = this.view.stops[i];
+    if (!s) return;
+    if (field === 'note' && dir === 'back') return void this.focusField(i, 'name', 'end');
+    if (s.name || s.note || words(this.blocksFor(s, field)).length) return;
+    this.edit(removeStops(this.view, [i]));
+    const n = this.view.stops.length;
+    if (!n) return void this.leave();
+    if (dir === 'back' && i > 0) void this.focusField(i - 1, 'note', 'end');
+    else void this.focusField(Math.min(i, n - 1), 'name', 0);
+  }
+  /** Alt+Up/Down in the words: the stop past its neighbour, the caret where it was. */
+  private moveOne(i: number, by: -1 | 1, field: Field) {
+    const ops = moveStops(this.doc, this.view, i, i + 1, by);
+    if (!ops.length) return;
+    const offset = this.caretIn(i, field);
+    this.edit(ops);
+    void this.focusField(i + by, field, offset);
+  }
+  /** Mod+D in the words: the stop again after it, the caret in the copy where it was. */
+  private duplicateOne(i: number, field: Field) {
+    const ops = duplicateStops(this.doc, this.view, i, i + 1);
+    if (!ops.length) return;
+    const offset = this.caretIn(i, field);
+    this.edit(ops);
+    void this.focusField(i + 1, field, offset);
+  }
+  private onKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    const target = e.composedPath()[0] as HTMLElement;
+    // Only words being typed in a stop: never a bar button, a field, the list, a popover or a dialog.
+    if (target.closest?.('[popover], dialog')) return;
+    const row = target.closest?.<HTMLElement>('.trip-stop');
+    const field = this.fieldOf(target);
+    if (!row || !field) return;
+    const i = Number(row.dataset.i);
+    if (!this.view.stops[i]) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key;
+    const vertical = k === 'ArrowUp' || k === 'ArrowDown';
+    const by = k === 'ArrowUp' ? -1 : 1;
+    if (vertical && e.altKey && !mod && !e.shiftKey) this.moveOne(i, by, field);
+    else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd') this.duplicateOne(i, field);
+    else if (vertical && !mod && !e.altKey && !e.shiftKey) {
+      if (!this.view.stops[i + by]) return;
+      void this.focusField(i + by, field, this.caretIn(i, field));
+    } else return;
+    e.preventDefault();
   };
+  /** The focus gone from the editor altogether: no stop is in hand. */
+  private onFocusOut = (e: FocusEvent) => {
+    const to = e.relatedTarget as Node | null;
+    if (!to || !this.contains(to)) this.cur = -1;
+  };
+  /** With no stop left to hold the focus, it goes to Insert (never to the page). */
+  private leave() {
+    this.cur = -1;
+    void this.updateComplete.then(() => this.querySelector<HTMLElement>('to-insert button')?.focus({ preventScroll: true }));
+  }
+
+  /* ---------- stops chosen whole (kit/rows.ts) ---------- */
+
+  private rowItems(): RowItem<number>[] {
+    const host = this;
+    return this.view.stops.map((_, i) => ({
+      id: i,
+      span: { from: i, to: i + 1 },
+      get el() {
+        return host.stopEl(i)!;
+      },
+    }));
+  }
+  /** Stops taken away (by their places); the caret into the stop before them (or the one after, as it is then). */
+  private deleteStops(ids: number[]) {
+    if (!ids.length) return;
+    const first = Math.min(...ids);
+    this.edit(removeStops(this.view, ids));
+    const n = this.view.stops.length;
+    if (!n) return this.leave();
+    if (first > 0) void this.focusField(first - 1, 'name', 'end');
+    else void this.focusField(0, 'name', 0);
+  }
+  private moveRange(from: number, to: number, by: -1 | 1): RowRange<number> | null {
+    const r = this.rows.range;
+    const ops = moveStops(this.doc, this.view, from, to, by);
+    if (!r || !ops.length) return r;
+    this.edit(ops);
+    return { anchor: r.anchor + by, focus: r.focus + by };
+  }
+  /** The chosen stops again, right after them; the copies are chosen. */
+  private duplicateRange(from: number, to: number): RowRange<number> | null {
+    const r = this.rows.range;
+    const ops = duplicateStops(this.doc, this.view, from, to);
+    if (!r || !ops.length) return r;
+    this.edit(ops);
+    return { anchor: r.anchor + to - from, focus: r.focus + to - from };
+  }
+  /** A stop carried by its number, put after another; the caret follows it. */
+  private dropAfter(i: number, to: number) {
+    const p = putAfter(this.doc, this.view, i, to);
+    if (!p.ops.length) return;
+    this.edit(p.ops);
+    void this.focusField(p.at, 'name', 'end');
+  }
+
+  /* ---------- the clipboard ---------- */
+
+  /** What chosen stops put on the clipboard: a table of them as TLO, and as our HTML (a sheet takes it as a table). */
+  private clip(from: number, to: number): Clip {
+    const table = stopsTable(this.view, from, to);
+    return { text: write({ head: {}, blocks: [table] }), html: docToHtml([table]) };
+  }
+  /** The places pasted data holds: ours (or plain text) read as TLO, HTML from elsewhere as blocks. */
+  private placesOf(data: Clip) {
+    const ours = data.html.includes(`content="${GENERATOR}"`);
+    const fromHtml = !ours && data.html.trim() ? placesIn({ head: {}, blocks: htmlToBlocks(data.html) }) : [];
+    return fromHtml.length ? fromHtml : placesIn(parse(data.text));
+  }
+  /** A paste into a stop's words (chosen stops are the rows controller's): places are stops after it; words alone are its own. */
+  private onPaste = (e: ClipboardEvent) => {
+    const el = e.target as HTMLElement;
+    const dt = e.clipboardData;
+    if (!dt || this.rows.range || !el.closest?.('to-text') || el.closest('dialog, [popover]')) return;
+    const row = el.closest<HTMLElement>('.trip-stop');
+    if (!row) return;
+    const text = dt.getData('text/plain').replace(/\r\n?/g, '\n');
+    const mine = lastCopied();
+    const data = { text, html: dt.getData('text/html') || (mine?.text === text ? mine.html : '') };
+    if (!this.placesOf(data).length) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.pasteData(data, { after: Number(row.dataset.i) });
+  };
+  /** Pasted places put in as stops; the caret at the end of the last one's name. */
+  private pasteData(data: Clip, at: { replace: [number, number] } | { after: number | null }) {
+    const r = pasteStops(this.doc, this.view, this.placesOf(data), at);
+    if (!r) return;
+    this.edit(r.ops);
+    this.rows.release();
+    void this.focusField(r.at + r.n - 1, 'name', 'end');
+  }
 
   /* ---------- finding a place by name ---------- */
 
@@ -262,23 +583,34 @@ export class ToTripEditor extends DocElement<TripView> {
     this.querySelector<ToDialog>('to-dialog.trip-find')?.close();
     this.query = '';
     this.found = null;
-    this.add(p.lat, p.lon, p.name);
+    this.add(p.lat, p.lon, p.name, this.findAfter);
     this.map?.setView([p.lat, p.lon], Math.max(this.map.getZoom(), 11));
+    if (this.view.stops[this.cur]) void this.focusField(this.cur, 'note', 0);
   }
 
-  /* ---------- the bar and the menus ---------- */
+  /* ---------- the bar ---------- */
 
+  /** Insert ▾: a stop after the one in hand. */
   private inserts(): MenuItem[] {
     const full = this.view.stops.length >= MAX_STOPS;
+    const after = () => (this.view.stops[this.cur] ? this.cur : null);
     return [
-      { label: t('A place by name…'), icon: UI.search, disabled: full, does: () => void this.openSearch() },
+      {
+        label: t('A place by name…'),
+        icon: UI.search,
+        disabled: full,
+        does: () => {
+          this.findAfter = after();
+          void this.openSearch();
+        },
+      },
       {
         label: t('A stop at the middle of the map'),
         icon: Crosshair,
         disabled: full || !this.map,
         does: () => {
           const c = this.map?.getCenter().wrap();
-          if (c) this.add(c.lat, c.lng);
+          if (c) this.add(c.lat, c.lng, '', after());
         },
       },
     ];
@@ -286,22 +618,6 @@ export class ToTripEditor extends DocElement<TripView> {
   private unitItems(): MenuItem[] {
     const pick = (u: Units, label: string): MenuItem => ({ label, checked: this.view.units === u, does: () => this.edit(setUnits(this.doc, u)) });
     return [pick('h', t('Hours of driving')), pick('m', t('Miles')), pick('k', t('Kilometres'))];
-  }
-  private async openMenu(i: number, button: HTMLElement) {
-    this.menuAt = i;
-    await this.updateComplete;
-    const menu = this.querySelector<ToMenu>('to-menu.trip-rowmenu');
-    await menu?.updateComplete;
-    menu?.openAt(button);
-  }
-  private rowItems(): MenuItem[] {
-    const i = this.menuAt;
-    if (!this.view.stops[i]) return [];
-    return [
-      { label: t('Move up'), icon: ArrowUp, disabled: i === 0, does: () => this.move(i, -1) },
-      { label: t('Move down'), icon: ArrowDown, disabled: i === this.view.stops.length - 1, does: () => this.move(i, 1) },
-      { label: t('Delete stop'), icon: UI.trash, does: () => this.removeAt(i) },
-    ];
   }
 
   /* ---------- drawing ---------- */
@@ -312,16 +628,29 @@ export class ToTripEditor extends DocElement<TripView> {
     const d = formatLeg(distanceKm(v.stops[i - 1], v.stops[i]), v.units);
     return html`<span class="trip-leg">${v.units === 'h' ? t('about {time} by car', { time: d }) : d}</span>`;
   }
+  private wordsBox(s: Stop, i: number, field: Field) {
+    const n = i + 1;
+    return html`<to-text
+      class="trip-${field}"
+      shape="line"
+      no-bubble
+      .blocks=${this.blocksFor(s, field)}
+      label=${field === 'name' ? t('Name of stop {n}', { n }) : t('Note for stop {n}', { n })}
+      placeholder=${field === 'name' ? t('Name') : t('Note')}
+      @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, i, field)}
+      @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(i, field))}
+      @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(i, field, e.detail.dir))}
+      @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}
+    ></to-text>`;
+  }
   private row(s: Stop, i: number) {
     const n = i + 1;
-    return html`<li class="trip-stop ${i === this.cur ? 'sel' : ''}" data-i=${i} @focusin=${() => (this.cur = i)} @keydown=${(e: KeyboardEvent) => this.onStopKey(e, i)}>
+    const ranged = this.rows.has(i);
+    const label = t('Stop {n}: a tap chooses it, a drag moves it', { n });
+    return html`<li class="trip-stop ${i === this.cur ? 'sel' : ''} ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}" data-i=${i} aria-selected=${String(ranged)} @focusin=${() => (this.cur = i)}>
       ${this.leg(i)}
-      <button type="button" class="trip-n" aria-label=${t('Show stop {n} on the map', { n })} title=${t('Show stop {n} on the map', { n })} @click=${() => this.pick(i)}>${n}</button>
-      <div class="trip-fields">
-        <input class="trip-name" enterkeyhint="next" autocomplete="off" aria-label=${t('Name of stop {n}', { n })} placeholder=${t('Name')} .value=${s.name} @input=${(e: Event) => this.typed(s, 'name', (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), void this.focusField(i, 'note'))} />
-        <input class="trip-note" enterkeyhint="done" autocomplete="off" aria-label=${t('Note for stop {n}', { n })} placeholder=${t('Note')} .value=${s.note} @input=${(e: Event) => this.typed(s, 'note', (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
-      </div>
-      <button type="button" class="to-btn to-tool trip-more" aria-haspopup="menu" aria-label=${t('Stop {n} options', { n })} title=${t('Stop {n} options', { n })} @click=${(e: Event) => void this.openMenu(i, e.currentTarget as HTMLElement)}>${icon(Ellipsis, 18)}</button>
+      <button type="button" class="trip-n to-rows-handle" aria-pressed=${String(ranged)} aria-label=${label} title=${label}>${n}</button>
+      <div class="trip-fields">${this.wordsBox(s, i, 'name')}${this.wordsBox(s, i, 'note')}</div>
     </li>`;
   }
   private findBody() {
@@ -349,9 +678,8 @@ export class ToTripEditor extends DocElement<TripView> {
         ${tool({ label: t('Join the stops in order'), icon: Spline, pressed: v.linked, does: () => this.edit(setLinked(this.doc, !v.linked)) })}
         ${tool({ label: t('Show the whole route'), icon: Scan, disabled: !n || !this.showMap, does: () => this.fit() })}
         ${tool({ label: t('Map'), icon: MapIcon, pressed: this.showMap, does: () => (this.showMap = !this.showMap) })}
-        ${tool({ label: t('Undo'), icon: UI.undo, keys: 'Mod+Z', keep: true, disabled: !this.canUndo, does: () => this.dispatchEvent(new CustomEvent('docundo', { cancelable: true })) })}
-        ${tool({ label: t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z', keep: true, disabled: !this.canRedo, does: () => this.dispatchEvent(new CustomEvent('docredo', { cancelable: true })) })}
         <span class="to-hint trip-count">${t('{n|one stop|# stops}', { n })}${total ? html` · <b>${total}</b>` : nothing}</span>
+        ${this.undoTools()}
       </to-bar>
       <div class="trip ${this.showMap ? '' : 'no-map'}">
         ${this.showMap
@@ -361,10 +689,10 @@ export class ToTripEditor extends DocElement<TripView> {
             </div>`
           : nothing}
         ${n
-          ? html`<ol class="trip-stops" aria-label=${t('Stops')}>${v.stops.map((s, i) => this.row(s, i))}</ol>`
+          ? html`<ol class="trip-stops" tabindex="-1" aria-label=${t('Stops')} aria-multiselectable="true">${v.stops.map((s, i) => this.row(s, i))}</ol>`
           : html`<p class="to-hint trip-empty">${this.showMap ? t('Tap the map to add the first stop, or Insert a place by name.') : t('Insert a place by name.')}</p>`}
       </div>
-      <to-menu class="trip-rowmenu" .label=${t('Stop')} .items=${this.rowItems()}></to-menu>
+      ${this.rows.renderContext()}
       <to-dialog class="trip-find" heading=${t('A place by name')} .body=${this.findBody()}></to-dialog>`;
   }
 }

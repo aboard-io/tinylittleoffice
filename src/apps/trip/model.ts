@@ -123,20 +123,36 @@ export function tabulate(doc: Doc): Op[] {
 
 /* ---------- the commands ---------- */
 
-/** A stop at the end of the route; the first is the table's birth, after whatever else the document holds. */
-export function addStop(doc: Doc, v: TripView, lat: number, lon: number, name = ''): Op[] {
+/** A row for a stop in the table's own columns ('' where it has none). */
+function rowIn(b: TableBlock, c: Cols, s: Pick<Stop, 'lat' | 'lon' | 'name' | 'note'>): string[] {
+  const row = b.cols.map(() => '');
+  const put = (i: number, value: string) => i >= 0 && (row[i] = value);
+  put(c.name, flat(s.name));
+  put(c.lat, deg(s.lat));
+  put(c.lon, deg(s.lon));
+  put(c.note, flat(s.note));
+  return row;
+}
+/** The table row a stop put after stop `after` goes in at (the table's end when there is no such stop). */
+const rowAfter = (doc: Doc, v: TripView, after: number | null | undefined): number => {
+  const s = after !== null && after !== undefined ? v.stops[after] : undefined;
+  return s ? s.row + 1 : (doc.blocks[v.at] as TableBlock).rows.length;
+};
+
+/**
+ * A stop after stop `after` (the route's end when none is given); the first is the table's birth, after whatever
+ * else the document holds.
+ */
+export function addStop(doc: Doc, v: TripView, lat: number, lon: number, name = '', after: number | null = null): Op[] {
   if (v.stops.length >= MAX_STOPS || !valid(lat, lon)) return [];
   const s = { lat, lon, name, note: '' };
   if (v.at < 0) return [{ op: 'splice', at: doc.blocks.length, n: 0, blocks: [tripTable([stopRow(s)])] }];
   const b = doc.blocks[v.at] as TableBlock;
-  const row = b.cols.map(() => '');
-  const put = (c: number, value: string) => c >= 0 && (row[c] = value);
-  put(v.cols.name, flat(name));
-  put(v.cols.lat, deg(lat));
-  put(v.cols.lon, deg(lon));
+  const row = rowIn(b, v.cols, s);
+  const r = rowAfter(doc, v, after);
   // A name with no Place column to go in: the column comes first, at the start.
-  if (v.cols.name < 0 && name) return [{ op: 'cols', at: v.at, c: 0, n: 1, cols: [column('Place')] }, { op: 'rows', at: v.at, r: b.rows.length, n: 1, rows: [[flat(name), ...row]] }];
-  return [{ op: 'rows', at: v.at, r: b.rows.length, n: 1, rows: [row] }];
+  if (v.cols.name < 0 && name) return [{ op: 'cols', at: v.at, c: 0, n: 1, cols: [column('Place')] }, { op: 'rows', at: v.at, r, n: 1, rows: [[flat(name), ...row]] }];
+  return [{ op: 'rows', at: v.at, r, n: 1, rows: [row] }];
 }
 
 /** The stop's name or note as typed. A note with no Note column makes one, at the end. */
@@ -163,19 +179,75 @@ export function setPlace(v: TripView, s: Stop, lat: number, lon: number): Op[] {
 }
 
 /** Stop `i` moved one place earlier or later: its row out, and in again where its neighbour's is. */
-export function moveStop(doc: Doc, v: TripView, i: number, by: -1 | 1): Op[] {
-  const s = v.stops[i];
-  const over = v.stops[i + by];
-  if (!s || !over) return [];
-  const row = (doc.blocks[v.at] as TableBlock).rows[s.row];
-  // Without the moved row, the neighbour's row is where the stop goes: before an earlier one, after a later one.
-  return [
-    { op: 'rows', at: v.at, r: s.row, n: 1 },
-    { op: 'rows', at: v.at, r: over.row, n: 1, rows: [row] },
-  ];
+export const moveStop = (doc: Doc, v: TripView, i: number, by: -1 | 1): Op[] => moveStops(doc, v, i, i + 1, by);
+
+/** Stops [from, to) moved one place earlier or later, past their neighbour: their rows out, and in again beside it. */
+export function moveStops(doc: Doc, v: TripView, from: number, to: number, by: -1 | 1): Op[] {
+  const chosen = v.stops.slice(from, to);
+  const over = v.stops[by < 0 ? from - 1 : to];
+  if (!chosen.length || !over || from < 0) return [];
+  const b = doc.blocks[v.at] as TableBlock;
+  const rows = chosen.map((s) => b.rows[s.row]);
+  // Without the moved rows, the neighbour's row is where they go: before an earlier one, after a later one.
+  const r = by < 0 ? over.row : over.row - chosen.length + 1;
+  return [...removeStops(v, chosen.map((_, k) => from + k)), { op: 'rows', at: v.at, r, n: rows.length, rows }];
 }
 
+/** Stop `i` carried to just after stop `to` (a drag by its number). Where it lands in the route: `to`'s place, or the one after. */
+export function putAfter(doc: Doc, v: TripView, i: number, to: number): { ops: Op[]; at: number } {
+  const s = v.stops[i];
+  const over = v.stops[to];
+  if (!s || !over || i === to || i === to + 1) return { ops: [], at: i };
+  const row = (doc.blocks[v.at] as TableBlock).rows[s.row];
+  const r = over.row + 1 - (s.row < over.row ? 1 : 0);
+  return { ops: [{ op: 'rows', at: v.at, r: s.row, n: 1 }, { op: 'rows', at: v.at, r, n: 1, rows: [row] }], at: i < to ? to : to + 1 };
+}
+
+/** Some stops taken away (by their places in the route): their rows, from the last up, so each index holds. */
+export function removeStops(v: TripView, idx: number[]): Op[] {
+  const rows = [...new Set(idx)].flatMap((i) => (v.stops[i] ? [v.stops[i].row] : [])).sort((a, b) => b - a);
+  return rows.map((r): Op => ({ op: 'rows', at: v.at, r, n: 1 }));
+}
 export const removeStop = (v: TripView, s: Stop): Op[] => [{ op: 'rows', at: v.at, r: s.row, n: 1 }];
+
+/** Stops [from, to) again, right after the last of them (never past the most a route holds). */
+export function duplicateStops(doc: Doc, v: TripView, from: number, to: number): Op[] {
+  const chosen = v.stops.slice(Math.max(0, from), to);
+  if (!chosen.length || v.stops.length + chosen.length > MAX_STOPS) return [];
+  const b = doc.blocks[v.at] as TableBlock;
+  return [{ op: 'rows', at: v.at, r: chosen[chosen.length - 1].row + 1, n: chosen.length, rows: chosen.map((s) => [...b.rows[s.row]]) }];
+}
+
+/** Stops [from, to) as a table of their own (the clipboard's): the trip's columns, whatever the document's were. */
+export const stopsTable = (v: TripView, from: number, to: number): TableBlock => tripTable(v.stops.slice(from, to).map(stopRow));
+
+/** The places some blocks hold: a trip's table (ours, or one pasted from elsewhere), else words that say where. */
+export function placesIn(doc: Doc): Omit<Stop, 'row'>[] {
+  const v = readTrip(doc);
+  return v.at >= 0 ? v.stops.map(({ lat, lon, name, note }) => ({ lat, lon, name, note })) : looseStops(doc).stops;
+}
+
+/**
+ * Places pasted in as stops: in place of stops [from, to) when some are chosen, else after stop `after` (the route's
+ * end when none). Says where the first of them sits in the route, and how many there are (a route holds 40 at most).
+ */
+export function pasteStops(doc: Doc, v: TripView, places: Omit<Stop, 'row'>[], at: { replace: [number, number] } | { after: number | null }): { ops: Op[]; at: number; n: number } | null {
+  const gone = 'replace' in at ? v.stops.slice(at.replace[0], at.replace[1]) : [];
+  const room = MAX_STOPS - v.stops.length + gone.length;
+  const put = places.filter((p) => valid(p.lat, p.lon)).slice(0, Math.max(0, room));
+  if (!put.length) return null;
+  if (v.at < 0) return { ops: [{ op: 'splice', at: doc.blocks.length, n: 0, blocks: [tripTable(put.map(stopRow))] }], at: 0, n: put.length };
+  const b = doc.blocks[v.at] as TableBlock;
+  const rows = put.map((p) => rowIn(b, v.cols, p));
+  if ('replace' in at && gone.length) {
+    const [from] = at.replace;
+    const ops = removeStops(v, gone.map((_, k) => from + k));
+    return { ops: [...ops, { op: 'rows', at: v.at, r: gone[0].row, n: rows.length, rows }], at: from, n: put.length };
+  }
+  const after = 'after' in at ? at.after : null;
+  const first = after !== null && v.stops[after] ? after + 1 : v.stops.length;
+  return { ops: [{ op: 'rows', at: v.at, r: rowAfter(doc, v, after), n: rows.length, rows }], at: first, n: put.length };
+}
 
 export function setUnits(doc: Doc, u: Units): Op[] {
   return unitsOf(doc.head.units) === u && doc.head.units === UNIT_WORD[u] ? [] : [{ op: 'head', key: 'units', value: UNIT_WORD[u] }];

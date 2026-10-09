@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import def, { titleOf } from '../def.ts';
-import { addStop, distanceKm, formatLeg, moveStop, readTrip, removeStop, routeKm, routeName, setLinked, setPlace, setText, setUnits, tabulate, type TripView } from '../model.ts';
+import { addStop, distanceKm, duplicateStops, formatLeg, MAX_STOPS, moveStop, moveStops, pasteStops, placesIn, putAfter, readTrip, removeStop, removeStops, routeKm, routeName, setLinked, setPlace, setText, setUnits, stopsTable, tabulate, type TripView } from '../model.ts';
 import { templates } from '../templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from '../view.ts';
 
@@ -78,6 +78,65 @@ test('move is the row out and in again where its neighbour was; remove is rows; 
   const gone = run(ROUTE, (_, v) => removeStop(v, v.stops[1]));
   expect(gone.ops).toEqual([{ op: 'rows', at: 0, r: 1, n: 1 }]);
   expect(readTrip(parse(gone.text)).stops).toHaveLength(2);
+});
+
+test('a stop added after another goes in after its row; at the end without one', () => {
+  const after = run(ROUTE, (d, v) => addStop(d, v, 1, 2, 'Here', 0));
+  expect(after.ops).toEqual([{ op: 'rows', at: 0, r: 1, n: 1, rows: [['Here', '1', '2', '']] }]);
+  expect(readTrip(parse(after.text)).stops.map((s) => s.name)).toEqual(['New York, NY', 'Here', 'London', '']);
+  expect(run(ROUTE, (d, v) => addStop(d, v, 1, 2, '', null)).ops).toEqual([{ op: 'rows', at: 0, r: 3, n: 1, rows: [['', '1', '2', '']] }]);
+});
+
+const names = (text: string) => readTrip(parse(text)).stops.map((s) => s.name || '-');
+test('several stops: moved past their neighbour as a block, removed from the last up, duplicated after the last', () => {
+  expect(names(run(ROUTE, (d, v) => moveStops(d, v, 0, 2, 1)).text)).toEqual(['-', 'New York, NY', 'London']);
+  expect(names(run(ROUTE, (d, v) => moveStops(d, v, 1, 3, -1)).text)).toEqual(['London', '-', 'New York, NY']);
+  expect(run(ROUTE, (d, v) => moveStops(d, v, 0, 2, -1)).ops).toEqual([]);
+  expect(run(ROUTE, (d, v) => moveStops(d, v, 1, 3, 1)).ops).toEqual([]);
+  // The one-stop move is the same thing.
+  expect(run(ROUTE, (d, v) => moveStop(d, v, 0, 1)).ops).toEqual(run(ROUTE, (d, v) => moveStops(d, v, 0, 1, 1)).ops);
+  const gone = run(ROUTE, (_, v) => removeStops(v, [0, 2]));
+  expect(gone.ops).toEqual([{ op: 'rows', at: 0, r: 2, n: 1 }, { op: 'rows', at: 0, r: 0, n: 1 }]);
+  expect(names(gone.text)).toEqual(['London']);
+  const twice = run(ROUTE, (d, v) => duplicateStops(d, v, 0, 2));
+  expect(names(twice.text)).toEqual(['New York, NY', 'London', 'New York, NY', 'London', '-']);
+  // Never past the most a route holds.
+  const full = Array.from({ length: MAX_STOPS }, (_, i) => `S${i} | 1 | ${i}\n`).join('');
+  expect(run(`Place | Lat | Lon\n--- | --- | ---\n${full}`, (d, v) => duplicateStops(d, v, 0, 1)).ops).toEqual([]);
+});
+
+test('a stop carried after another: its row out and in again after the other’s; says where it lands', () => {
+  const doc = parse(ROUTE);
+  const v = readTrip(doc);
+  const down = putAfter(doc, v, 0, 2);
+  expect(down.at).toBe(2);
+  expect(names(write(applyAll(doc, down.ops)))).toEqual(['London', '-', 'New York, NY']);
+  const up = putAfter(doc, v, 2, 0);
+  expect(up.at).toBe(1);
+  expect(names(write(applyAll(doc, up.ops)))).toEqual(['New York, NY', '-', 'London']);
+  expect(applyAll(applyAll(doc, up.ops), invertAll(doc, up.ops))).toEqual(doc);
+  // Already there: nothing.
+  expect(putAfter(doc, v, 1, 0).ops).toEqual([]);
+  expect(putAfter(doc, v, 1, 1).ops).toEqual([]);
+});
+
+test('the clipboard: chosen stops are a trip table of their own; places are read from a table or from words; a paste is stops in place or after', () => {
+  const v = readTrip(parse(ROUTE));
+  const t = stopsTable(v, 1, 3);
+  expect(write({ head: {}, blocks: [t] })).toBe('Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLondon | 51.50735 | -0.12776 |\n| | -33.8688 | 151.2093 | far \\| away\n');
+  expect(placesIn({ head: {}, blocks: [t] }).map((p) => p.name)).toEqual(['London', '']);
+  expect(placesIn(parse('Porto (41.1579, -8.6291) cellars\n'))).toEqual([{ lat: 41.1579, lon: -8.6291, name: 'Porto', note: 'cellars' }]);
+  expect(placesIn(parse('Just words\n'))).toEqual([]);
+  const porto = [{ lat: 41.1579, lon: -8.6291, name: 'Porto', note: '' }];
+  const after = run(ROUTE, (d, v) => pasteStops(d, v, porto, { after: 0 })!.ops);
+  expect(names(after.text)).toEqual(['New York, NY', 'Porto', 'London', '-']);
+  expect(pasteStops(parse(ROUTE), v, porto, { after: 0 })).toMatchObject({ at: 1, n: 1 });
+  const over = run(ROUTE, (d, v) => pasteStops(d, v, porto, { replace: [1, 3] })!.ops);
+  expect(names(over.text)).toEqual(['New York, NY', 'Porto']);
+  expect(names(run(ROUTE, (d, v) => pasteStops(d, v, porto, { after: null })!.ops).text)).toEqual(['New York, NY', 'London', '-', 'Porto']);
+  // No table yet: the paste is its birth.
+  expect(run('', (d, v) => pasteStops(d, v, porto, { after: null })!.ops).text).toBe('Place | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nPorto | 41.1579 | -8.6291 |\n');
+  expect(pasteStops(parse(ROUTE), v, [], { after: 0 })).toBeNull();
 });
 
 test('units and dots are the head', () => {

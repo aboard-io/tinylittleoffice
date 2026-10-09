@@ -1,5 +1,6 @@
 /* Trip: the map above the stops on a phone, beside them when there is room. A stop is a row a finger tall: its
-   number (a tap shows it on the map), its name and note, its menu; the leg from the stop before above it. */
+   number (the handle: a tap chooses the stop, a drag carries it), its name and note; the leg from the stop before
+   above it. A pin is a finger wide to hit, its dot drawn smaller inside. */
 @layer apps {
   to-trip-editor {
     display: block;
@@ -29,14 +30,24 @@
     display: grid;
     place-items: center;
     border-radius: 50%;
+  }
+  .trip-map .trip-pin > span {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    box-sizing: border-box;
+    border-radius: 50%;
     background: var(--to-paper-accent);
     color: #fff;
     font: 700 13px var(--to-font);
     border: 2px solid #fff;
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
   }
-  .trip-map .trip-pin.sel {
+  .trip-map .trip-pin.sel > span {
     background: #b3261e;
+  }
+  .trip-map .trip-pin.sel {
     z-index: 1000 !important;
   }
   .trip-map .trip-pin:focus-visible {
@@ -50,10 +61,15 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
+    /* A double tap selects a word; it never zooms the page. */
+    touch-action: manipulation;
+  }
+  .trip-stops:focus {
+    outline: none;
   }
   .trip-stop {
     display: grid;
-    grid-template-columns: var(--to-touch) minmax(0, 1fr) var(--to-touch);
+    grid-template-columns: var(--to-touch) minmax(0, 1fr);
     align-items: start;
     gap: 0 4px;
     padding: 6px 2px 6px 4px;
@@ -61,8 +77,15 @@
   .trip-stop + .trip-stop {
     border-top: 1px solid var(--to-border);
   }
-  .trip-stop.sel {
+  .trip-stop.sel,
+  .trip-stop.ranged {
     background: var(--to-accent-soft);
+  }
+  .trip-stop.ranged {
+    box-shadow: inset 3px 0 0 var(--to-accent);
+  }
+  .trip-stop.dragging {
+    opacity: 0.5;
   }
   .trip-leg {
     grid-column: 2 / -1;
@@ -78,9 +101,12 @@
     padding: 0;
     border: 0;
     background: radial-gradient(circle closest-side, var(--to-accent) 13px, transparent 14px);
-    cursor: pointer;
+    cursor: grab;
     color: var(--to-on-accent);
     font: 700 14px var(--to-font);
+  }
+  .trip-n[aria-pressed='true'] {
+    background: radial-gradient(circle closest-side, var(--to-accent) 13px, var(--to-ink) 14px, var(--to-ink) 16px, transparent 17px);
   }
   .trip-n:focus-visible {
     outline: 2px solid var(--to-accent);
@@ -92,39 +118,29 @@
     gap: 2px;
     min-width: 0;
   }
-  .trip-fields input {
-    min-width: 0;
-    width: 100%;
+  .trip-fields to-text .tx {
     min-height: 36px;
-    padding: 4px 6px;
+    padding: 6px 6px;
     border: 1px solid transparent;
     border-radius: var(--to-radius-sm);
-    background: transparent;
     color: var(--to-ink);
     font: 600 16px var(--to-font);
+    line-height: 1.5;
   }
-  .trip-fields .trip-note {
+  .trip-fields to-text.trip-note .tx {
     font-weight: 400;
     color: var(--to-ink-2);
   }
-  .trip-fields input:hover {
-    border-color: var(--to-border);
-  }
-  .trip-fields input:focus {
-    outline: none;
-    border-color: var(--to-accent);
-    background: var(--to-input-bg);
-  }
-  .trip-fields input::placeholder {
-    color: var(--to-placeholder);
+  .trip-fields to-text .tx.blank::before {
+    inset: 6px auto auto 7px;
     font-weight: 400;
   }
-  .trip-more {
-    border-color: transparent;
-    background: none;
+  .trip-fields to-text .tx:hover {
+    border-color: var(--to-border);
   }
-  .trip-rowmenu > button {
-    display: none;
+  .trip-fields to-text .tx:focus {
+    border-color: var(--to-accent);
+    background: var(--to-input-bg);
   }
   .trip-count {
     display: flex;
