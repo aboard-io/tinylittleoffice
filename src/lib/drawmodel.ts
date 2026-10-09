@@ -1,5 +1,5 @@
 import { PALETTE } from './palette.ts';
-import { parse, write, takeHead, withHead, type Block } from './tlo.ts';
+import { columnsOf, parse, write, takeHead, type Block, type Tlo } from './tlo.ts';
 /**
  * Drawing document model. The text is TLO (lib/tlo.ts): a table, a row per
  * shape, and the alt text in the header:
@@ -35,8 +35,9 @@ export const W = 640;
 export const H = 400;
 export const GRID = 8;
 
+const KINDS = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v'] as const;
 /** 'v' is any shape at all: its points, as hundredths of its box, drawn with the pen. */
-export type Kind = 'r' | 'o' | 'e' | 'd' | 'h' | 'p' | 'c' | 'n' | 'i' | 'l' | 'a' | 't' | 'k' | 'j' | 'v';
+export type Kind = (typeof KINDS)[number];
 
 /** A label's icon and its words: ":rocket Launch" is ['rocket', 'Launch']. */
 export function iconOf(label: string): [string, string] {
@@ -67,8 +68,10 @@ export interface Shape {
   pts?: number[];
 }
 
+/** Points as x, y pairs (a stray last number is left out). */
+export const pairs = (pts: number[]): [number, number][] => Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => [pts[2 * i], pts[2 * i + 1]]);
 /** Points as the text keeps them: "12:0;100:50;0:100". */
-export const ptsText = (pts: number[]) => Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => `${Math.round(pts[2 * i])}:${Math.round(pts[2 * i + 1])}`).join(';');
+export const ptsText = (pts: number[]) => pairs(pts).map(([x, y]) => `${Math.round(x)}:${Math.round(y)}`).join(';');
 export const ptsOf = (text: string): number[] => text.split(';').flatMap((p) => p.split(':').map((n) => +n)).filter((n) => isFinite(n));
 
 export const COLORS: Record<Color, { name: string; hex: string }> = { r: PALETTE.r, o: PALETTE.o, g: PALETTE.g, b: PALETTE.b, p: PALETTE.p };
@@ -94,25 +97,22 @@ export function paint(s: Shape, ink: string, paper: string, shade: string) {
   };
 }
 
-const KINDS: Kind[] = ['r', 'o', 'e', 'd', 'h', 'p', 'c', 'n', 'i', 'l', 'a', 't', 'k', 'j', 'v'];
-
 /** What a drawing shows, said in words for anyone who cannot see it (alt text): the header's "alt". '' when there is none. */
 export const altOf = (text: string): string => takeHead(text, ['alt'])[0].alt ?? '';
-
-/** The drawing's text with its alt text set (or taken out, when empty). */
-export const withAlt = (text: string, alt: string): string => withHead(text, { alt: alt.replace(/\s+/g, ' ').trim() });
 
 /**
  * A description made from the shapes themselves, when nobody wrote one: what
  * is labelled, and what leads to what. A start, not a substitute.
  */
 export function describeDrawing(shapes: Shape[]): string {
-  const named = (i: number) => iconOf(shapes[i]?.text ?? '')[1].trim() || iconOf(shapes[i]?.text ?? '')[0];
+  if (!shapes.length) return '';
+  const words = (s: Shape | undefined) => iconOf(s?.text ?? '')[1].trim();
+  // A shape with no words is named by its icon.
+  const named = (i: number) => words(shapes[i]) || iconOf(shapes[i]?.text ?? '')[0];
   const things = shapes.map((s, i) => (isLink(s.k) ? '' : named(i))).filter(Boolean);
   const joins = shapes
     .filter((s) => isLink(s.k) && named(s.x) && named(s.y))
-    .map((s) => `${named(s.x)} ${s.k === 'k' ? 'leads to' : 'joins'} ${named(s.y)}${iconOf(s.text)[1].trim() ? ` (${iconOf(s.text)[1].trim()})` : ''}`);
-  if (!shapes.length) return '';
+    .map((s) => `${named(s.x)} ${s.k === 'k' ? 'leads to' : 'joins'} ${named(s.y)}${words(s) ? ` (${words(s)})` : ''}`);
   const head = things.length ? `A drawing of ${things.join(', ')}.` : `A drawing of ${shapes.length} unlabelled shape${shapes.length === 1 ? '' : 's'}.`;
   return joins.length ? `${head} ${joins.join('; ')}.` : head;
 }
@@ -128,30 +128,29 @@ export const shapesBlock = (blocks: Block[]) => blocks.find((b) => b.k === 'tabl
 /** A table's rows as shapes. Rows that are not a shape are left out. */
 export function tableShapes(table: Table | undefined): Shape[] {
   if (!table) return [];
-  const at = (c: string) => table.head.findIndex((h) => h.trim().toLowerCase() === c);
-  const cols = Object.fromEntries([...COLS, 'Points'].map((c) => [c, at(c.toLowerCase())]));
+  const [kindAt, xAt, yAt, wAt, hAt, styleAt, labelAt, pointsAt] = columnsOf(table, /^kind$/, /^x$/, /^y$/, /^w$/, /^h$/, /^style$/, /^label$/, /^points$/);
   const out: Shape[] = [];
   for (const row of table.rows) {
-    const get = (c: string) => (cols[c] >= 0 ? (row[cols[c]] ?? '').trim() : '');
-    const word = get('Kind').toLowerCase();
+    const get = (col: number) => (col >= 0 ? (row[col] ?? '').trim() : '');
+    const word = get(kindAt).toLowerCase();
     const k = (KINDS.includes(word as Kind) ? word : NAMED[word]) as Kind | undefined;
     if (!k) continue;
-    const n = (c: string) => Math.round(parseFloat(get(c))) || 0;
-    const f = get('Style');
-    const style = /^([0-2])([a-z]?)([1-4]?)$/.exec(f);
+    const n = (col: number) => Math.round(parseFloat(get(col))) || 0;
+    const f = get(styleAt);
+    const look = /^([0-2])([a-z]?)([1-4]?)$/.exec(f);
     const shape: Shape = {
       k,
       // (A join's x and y are shape numbers, not places.)
-      x: n('X') * (isLink(k) ? 1 : GRID),
-      y: n('Y') * (isLink(k) ? 1 : GRID),
-      w: n('W') * GRID,
-      h: n('H') * GRID,
-      f: (style ? +style[1] : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
-      text: get('Label'),
+      x: n(xAt) * (isLink(k) ? 1 : GRID),
+      y: n(yAt) * (isLink(k) ? 1 : GRID),
+      w: n(wAt) * GRID,
+      h: n(hAt) * GRID,
+      f: (look ? +look[1] : Math.min(2, Math.max(0, parseInt(f, 10) || 0))) as Fill,
+      text: get(labelAt),
     };
-    if (k === 'v') shape.pts = ptsOf(get('Points'));
-    if (style && style[2] in COLORS) shape.c = style[2] as Color;
-    if (style && style[3] && style[3] !== '2') shape.z = +style[3] as TextSize;
+    if (k === 'v') shape.pts = ptsOf(get(pointsAt));
+    if (look && look[2] in COLORS) shape.c = look[2] as Color;
+    if (look && look[3] && look[3] !== '2') shape.z = +look[3] as TextSize;
     out.push(shape);
   }
   return out;
@@ -176,16 +175,24 @@ export function serializeDrawing(shapes: Shape[], alt = ''): string {
 }
 
 /**
+ * What a drawing written loosely, with no table, says: the things it lists
+ * (items, or the lines of paragraphs and headings), and what it shows (the
+ * header's alt, or else a quote). Motion reads its loose form the same way.
+ */
+export function looseDrawing(doc: Tlo): { labels: string[]; alt: string } {
+  const quote = doc.blocks.find((b) => b.k === 'quote');
+  const labels = doc.blocks.flatMap((b) => (b.k === 'li' ? [b.text] : b.k === 'p' || b.k === 'h' ? b.text.split('\n') : [])).map((t) => t.trim()).filter(Boolean);
+  return { labels, alt: doc.head.alt ?? (quote?.k === 'quote' ? quote.text : '') };
+}
+
+/**
  * A drawing as a person or a program loosely writes it: its table, tidied;
- * or, with no table, a box for each thing listed (four to a row), and a
- * quote saying what it shows.
+ * or, with no table, a box for each thing listed (four to a row).
  */
 export function readDrawing(text: string): string {
   const doc = parse(text);
-  const quote = doc.blocks.find((b) => b.k === 'quote');
-  const alt = doc.head.alt ?? (quote?.k === 'quote' ? quote.text : '');
+  const { labels, alt } = looseDrawing(doc);
   if (shapesBlock(doc.blocks)) return serializeDrawing(parseDrawing(text), alt);
-  const labels = doc.blocks.flatMap((b) => (b.k === 'li' ? [b.text] : b.k === 'p' || b.k === 'h' ? b.text.split('\n') : [])).map((t) => t.trim()).filter(Boolean);
   return serializeDrawing(labels.map((text, i) => ({ k: 'r', x: (2 + (i % 4) * 14) * GRID, y: (2 + Math.floor(i / 4) * 8) * GRID, w: 12 * GRID, h: 6 * GRID, f: 1, text })), alt);
 }
 
@@ -206,6 +213,12 @@ export function linkEnds(s: Shape, all: Shape[]): [number, number, number, numbe
     return [cx + dx * k, cy + dy * k];
   };
   return [...edge(a, ax, ay, bx, by), ...edge(b, bx, by, ax, ay)];
+}
+
+/** A shape's box as drawn: [x, y, w, h], never negative (a join's is the line between its shapes). */
+export function bounds(s: Shape, all: Shape[]): [number, number, number, number] {
+  const [x1, y1, x2, y2] = isLink(s.k) ? (linkEnds(s, all) ?? [0, 0, 0, 0]) : [s.x, s.y, s.x + s.w, s.y + s.h];
+  return [Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)];
 }
 
 /** Take a shape out, along with any joins to it; the joins that remain keep pointing at the right shapes. */

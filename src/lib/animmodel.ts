@@ -27,11 +27,10 @@
  * ("p0:0/100:50/0:100"). A Draw document on its own is a motion document in
  * which nothing moves yet; its alt text is the header's "alt" here too.
  */
-import { parse, write, type Block, type Head } from './tlo.ts';
-import { ptsOf, ptsText, removeShape, shapesBlock, shapesTable, tableShapes, type Shape } from './drawmodel.ts';
+import { clamp } from '../kit/core.ts';
+import { columnsOf, parse, write, type Block, type Head } from './tlo.ts';
+import { W, H, looseDrawing, ptsOf, ptsText, removeShape, shapesBlock, shapesTable, tableShapes, type Shape } from './drawmodel.ts';
 
-export const W = 640;
-export const H = 400;
 export const DEFAULT_FRAMES = 24;
 export const MAX_FRAMES = 120;
 export const FPS_CHOICES = [4, 8, 12];
@@ -87,7 +86,6 @@ const atRest = (k: Key) => !k.dx && !k.dy && !k.z && k.s === 1 && !k.r && !k.fx 
 export const depthScale = (z: number) => 1 + z / (2 * MAX_Z);
 
 const sortKeys = (keys: Key[]) => keys.sort((p, q) => p.t - q.t);
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const letters = (fx: string) => [...new Set(fx.replace(/[^3dnogmwbi]/g, ''))].join('');
 
 export function parseAnim(text: string): Anim {
@@ -101,8 +99,9 @@ export function parseAnim(text: string): Anim {
   anim.shapes = tableShapes(shapesBlock(blocks));
   anim.keys = anim.shapes.map(() => []);
   const table = blocks.find((b) => b.k === 'table' && b.head.some((h) => /^keys$/i.test(h.trim()))) as Extract<Block, { k: 'table' }> | undefined;
-  const [which, what] = ['shape', 'keys'].map((c) => table?.head.findIndex((h) => h.trim().toLowerCase() === c) ?? -1);
-  for (const row of table?.rows ?? []) {
+  if (!table) return anim;
+  const [which, what] = columnsOf(table, /^shape$/, /^keys$/);
+  for (const row of table.rows) {
     const i = parseInt(row[which], 10);
     if (!anim.keys[i]) continue;
     for (const part of (row[what] ?? '').split(';')) {
@@ -201,8 +200,7 @@ export const hasKey = (anim: Anim, i: number, t: number) => !!anim.keys[i]?.some
 export function readAnim(text: string): string {
   const doc = parse(text);
   if (shapesBlock(doc.blocks)) return serializeAnim(parseAnim(text));
-  const quote = doc.blocks.find((b) => b.k === 'quote');
-  const list = doc.blocks.flatMap((b) => (b.k === 'li' ? [b.text] : b.k === 'p' || b.k === 'h' ? b.text.split('\n') : [])).map((t) => t.trim()).filter(Boolean);
+  const { labels: list, alt } = looseDrawing(doc);
   const anim = parseAnim('');
   anim.shapes = list.map((l, i): Shape => {
     const ic = /^:([a-z][a-z0-9-]*):$/.exec(l);
@@ -210,7 +208,6 @@ export function readAnim(text: string): string {
     return ic ? { k: 'i', x: 80, y, w: 48, h: 48, f: 0, text: ic[1] } : { k: 't', x: 80, y, w: 160, h: 32, f: 0, text: l, z: 3 };
   });
   anim.keys = anim.shapes.map(() => [restKey(0), { ...restKey(DEFAULT_FRAMES - 1), dx: Math.round(W * 0.6) }]);
-  const alt = doc.head.alt ?? (quote?.k === 'quote' ? quote.text : '');
   if (alt) anim.alt = alt;
   return serializeAnim(anim);
 }

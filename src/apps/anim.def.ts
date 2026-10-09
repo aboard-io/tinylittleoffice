@@ -1,18 +1,8 @@
 /** Motion: what the shell knows about a drawing that moves. Format: lib/animmodel.ts. */
 import { defineApp, utf8, pageSvg, r, INK, type Page } from '../kit/core.ts';
-import { describeDrawing, isLine, isLink, linkEnds, type Shape } from '../lib/drawmodel.ts';
-import { parseAnim, readAnim, stateAt, depthScale, W, H, type Anim, type Key } from '../lib/animmodel.ts';
+import { W, H, bounds, describeDrawing, isLine, type Shape } from '../lib/drawmodel.ts';
+import { parseAnim, readAnim, stateAt, depthScale, type Anim, type Key } from '../lib/animmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
-
-/** A shape's box as drawn: [x, y, w, h], never negative (a join's is the line between its shapes). */
-export function bounds(s: Shape, all: Shape[]): [number, number, number, number] {
-  if (isLink(s.k)) {
-    const e = linkEnds(s, all);
-    if (!e) return [0, 0, 0, 0];
-    return [Math.min(e[0], e[2]), Math.min(e[1], e[3]), Math.abs(e[2] - e[0]), Math.abs(e[3] - e[1])];
-  }
-  return isLine(s.k) ? [Math.min(s.x, s.x + s.w), Math.min(s.y, s.y + s.h), Math.abs(s.w), Math.abs(s.h)] : [s.x, s.y, s.w, s.h];
-}
 
 /** The transform that puts a shape where a key says, turning and growing about its centre. */
 export function transformOf(s: Shape, all: Shape[], k: Key, frame = k.t): string {
@@ -23,11 +13,12 @@ export function transformOf(s: Shape, all: Shape[], k: Key, frame = k.t): string
   return `translate(${r(cx + k.dx)} ${r(cy + k.dy)}) rotate(${r(spin)}) scale(${r(k.fx.includes('m') ? -scale : scale)} ${r(scale)}) translate(${r(-cx)} ${r(-cy)})`;
 }
 
-/** The filters the effects use, once per picture. */
+/** The filters the effects use, once per picture; those that spread reach past the edge of the stage. */
+const WIDE = `filterUnits="userSpaceOnUse" x="-100" y="-100" width="${W + 200}" height="${H + 200}"`;
 const FX_DEFS =
-  `<filter id="fx-d" filterUnits="userSpaceOnUse" x="-100" y="-100" width="${W + 200}" height="${H + 200}"><feDropShadow dx="4" dy="5" stdDeviation="3" flood-opacity="0.45"/></filter>` +
-  `<filter id="fx-n" filterUnits="userSpaceOnUse" x="-100" y="-100" width="${W + 200}" height="${H + 200}"><feGaussianBlur stdDeviation="6" result="b"/><feComponentTransfer in="b" result="g"><feFuncA type="linear" slope="2.5"/></feComponentTransfer><feMerge><feMergeNode in="g"/><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` +
-  `<filter id="fx-b" filterUnits="userSpaceOnUse" x="-100" y="-100" width="${W + 200}" height="${H + 200}"><feGaussianBlur stdDeviation="3"/></filter>` +
+  `<filter id="fx-d" ${WIDE}><feDropShadow dx="4" dy="5" stdDeviation="3" flood-opacity="0.45"/></filter>` +
+  `<filter id="fx-n" ${WIDE}><feGaussianBlur stdDeviation="6" result="b"/><feComponentTransfer in="b" result="g"><feFuncA type="linear" slope="2.5"/></feComponentTransfer><feMerge><feMergeNode in="g"/><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` +
+  `<filter id="fx-b" ${WIDE}><feGaussianBlur stdDeviation="3"/></filter>` +
   `<filter id="fx-dark"><feColorMatrix type="matrix" values="0.4 0 0 0 0 0 0.4 0 0 0 0 0 0.4 0 0 0 0 0 1 0"/></filter>`;
 
 const RAINBOW = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
@@ -81,8 +72,6 @@ export function frameSvg(anim: Anim, frame: number, theme?: Theme): string {
   return `<defs>${arrowDefs(theme?.ink)}${FX_DEFS}${[...defs].join('')}</defs>${shapes}`;
 }
 
-export const framePage = (anim: Anim, frame: number): Page => ({ w: W, h: H, svg: frameSvg(anim, frame) });
-
 /**
  * The animation as a page that plays (SVG animates itself): each shape's
  * offset, spin and size are tweened between its keys, its effects held as
@@ -94,7 +83,6 @@ export function animPage(anim: Anim, once = false): Page {
   const defs = new Set<string>();
   const last = anim.frames - 1;
   const dur = (last / anim.fps).toFixed(2);
-  const n = (v: number) => r(v);
   const shapes = drawOrder(anim, 0)
     .map((i) => {
       const s = anim.shapes[i];
@@ -107,14 +95,14 @@ export function animPage(anim: Anim, once = false): Page {
       if (keys.length < 2) return `<g transform="${transformOf(s, anim.shapes, at)}">${body}</g>`;
       const [x, y, w, h] = bounds(s, anim.shapes);
       const [cx, cy] = [x + w / 2, y + h / 2];
-      const keyTimes = times.map((t) => n(t / last)).join(';');
+      const keyTimes = times.map((t) => r(t / last)).join(';');
       const tween = (type: string, values: string) => `<animateTransform attributeName="transform" type="${type}" values="${values}" keyTimes="${keyTimes}" dur="${dur}s" ${once ? 'repeatCount="1" fill="freeze"' : 'repeatCount="indefinite"'}/>`;
-      const scale = (k: Key) => `${n((k.fx.includes('m') ? -1 : 1) * k.s * depthScale(k.z))} ${n(k.s * depthScale(k.z))}`;
+      const scale = (k: Key) => `${r((k.fx.includes('m') ? -1 : 1) * k.s * depthScale(k.z))} ${r(k.s * depthScale(k.z))}`;
       return (
-        `<g transform="translate(${n(cx + at.dx)} ${n(cy + at.dy)})">${tween('translate', states.map((k) => `${n(cx + k.dx)} ${n(cy + k.dy)}`).join(';'))}` +
-        `<g transform="rotate(${n(at.r)})">${tween('rotate', states.map((k) => n(k.r)).join(';'))}` +
+        `<g transform="translate(${r(cx + at.dx)} ${r(cy + at.dy)})">${tween('translate', states.map((k) => `${r(cx + k.dx)} ${r(cy + k.dy)}`).join(';'))}` +
+        `<g transform="rotate(${r(at.r)})">${tween('rotate', states.map((k) => r(k.r)).join(';'))}` +
         `<g transform="scale(${scale(at)})">${tween('scale', states.map(scale).join(';'))}` +
-        `<g transform="translate(${n(-cx)} ${n(-cy)})">${body}</g></g></g></g>`
+        `<g transform="translate(${r(-cx)} ${r(-cy)})">${body}</g></g></g></g>`
       );
     })
     .join('');
@@ -126,7 +114,7 @@ export const animToSvg = (body: string) => '<?xml version="1.0" encoding="UTF-8"
 /** Every frame as a page, for the animated GIF. */
 export function animFrames(body: string): { pages: Page[]; delayMs: number } {
   const anim = parseAnim(body);
-  return { pages: Array.from({ length: anim.frames }, (_, f) => framePage(anim, f)), delayMs: Math.round(1000 / anim.fps) };
+  return { pages: Array.from({ length: anim.frames }, (_, f) => ({ w: W, h: H, svg: frameSvg(anim, f) })), delayMs: Math.round(1000 / anim.fps) };
 }
 
 export default defineApp({

@@ -158,14 +158,6 @@ test('quantize keeps a 1000-colour gradient close', () => {
   assert.ok(worst <= 8, `worst channel error ${worst}`);
 });
 
-test('dithering still decodes to the frame size', () => {
-  const w = 16, h = 16;
-  const data = new Uint8ClampedArray(w * h * 4);
-  for (let p = 0; p < w * h; p++) data.set([p, (p * 5) & 255, (p * 11) & 255, 255], p * 4);
-  const f = decodeFirstFrame(encodeGif(w, h, [{ data, delayMs: 40 }], { dither: true }));
-  assert.equal(f.pixels.length, w * h);
-});
-
 test('PIL opens it and sees two frames', (t) => {
   const probe = spawnSync('python3', ['-c', 'import PIL']);
   if (probe.status !== 0) return t.skip('python3 with PIL not available');

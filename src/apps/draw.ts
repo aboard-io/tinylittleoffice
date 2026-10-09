@@ -5,9 +5,8 @@
  * Document format (lib/drawmodel.ts): a table, a row per shape,
  * "Kind | X | Y | W | H | Style | Label", and the alt text in the header.
  */
-import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, hashOf, UI, type SlInput, type SlSelect, type SlTextarea } from '../kit.ts';
-import { W, H, GRID, COLORS, TEXT_SIZES, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
-import { appOf, convert } from '../kit.ts';
+import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, stepper, swatches, icon, clamp, isKey, hashOf, appOf, convert, UI, type SlInput, type SlSelect, type SlTextarea } from '../kit.ts';
+import { W, H, GRID, COLORS, TEXT_SIZES, altOf, bounds, describeDrawing, iconOf, isLine, isLink, linkEnds, parseDrawing, removeShape, restack, serializeDrawing, type Color, type Kind, type Fill, type Shape, type TextSize } from '../lib/drawmodel.ts';
 import { arrowDefs, shapeSvg, type Theme } from './draw.def.ts';
 import { chooseIcon } from '../widgets/icon-picker.ts';
 
@@ -17,8 +16,8 @@ const INKS: Record<string, { name: string; hex: string }> = { '': { name: 'Black
 const snap = (n: number) => Math.round(n / GRID) * GRID;
 
 type Tool = 'select' | Kind;
-/** The page's own colours, so a drawing looks right in the dark too. */
-const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
+/** The page's own colours, so a drawing looks right in the dark too. Motion's stage uses them as well. */
+export const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
 
 type Drag =
   | { mode: 'link'; from: number; to: [number, number] }
@@ -178,9 +177,7 @@ export class ToDraw extends DocElement<Shape[]> {
       const over = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest('[data-idx]')?.getAttribute('data-idx');
       const to = over ? parseInt(over, 10) : -1;
       if (to >= 0 && to !== d.from && this.doc[to] && !isLink(this.doc[to].k)) {
-        this.commit([...this.doc, { k: 'k', x: d.from, y: to, w: 0, h: 0, f: 0, text: '' }]);
-        this.sel = this.doc.length - 1;
-        this.tool = 'select';
+        this.add({ k: 'k', x: d.from, y: to, w: 0, h: 0, f: 0, text: '' });
       }
       return;
     }
@@ -192,9 +189,7 @@ export class ToDraw extends DocElement<Shape[]> {
         s = s.k === 'l' || s.k === 'a' ? { ...s, w: 96, h: 0 } : s.k === 't' ? { ...s, w: 96, h: 24 } : s.k === 'i' ? { ...s, w: 48, h: 48 } : { ...s, w: 96, h: 48 };
       }
       if (s.k !== 'l' && s.k !== 'a') s = { ...s, x: Math.min(s.x, W - s.w), y: Math.min(s.y, H - s.h) };
-      this.commit([...this.doc, s]);
-      this.sel = this.doc.length - 1;
-      this.tool = 'select';
+      this.add(s);
       if (s.k === 't') this.updateComplete.then(() => this.querySelector<SlInput>('.draw-label')?.select());
     } else {
       this.commit(this.doc);
@@ -210,8 +205,12 @@ export class ToDraw extends DocElement<Shape[]> {
     const ys = pts.map((p) => p[1]);
     const [x0, y0, x1, y1] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
     const [w, h] = [Math.max(GRID, x1 - x0), Math.max(GRID, y1 - y0)];
-    const shape: Shape = { k: 'v', x: x0, y: y0, w, h, f: 1, text: '', pts: pts.flatMap(([px, py]) => [((px - x0) / w) * 100, ((py - y0) / h) * 100]) };
-    this.commit([...this.doc, shape]);
+    this.add({ k: 'v', x: x0, y: y0, w, h, f: 1, text: '', pts: pts.flatMap(([px, py]) => [((px - x0) / w) * 100, ((py - y0) / h) * 100]) });
+  }
+
+  /** A new shape, chosen, and the select tool back in hand. */
+  private add(s: Shape) {
+    this.commit([...this.doc, s]);
     this.sel = this.doc.length - 1;
     this.tool = 'select';
   }
@@ -227,7 +226,7 @@ export class ToDraw extends DocElement<Shape[]> {
       if (e.key === 'Escape') return (e.preventDefault(), void (this.pen = []));
       if (e.key === 'Backspace') return (e.preventDefault(), void (this.pen = this.pen.slice(0, -1)));
     }
-    const tool = [...TOOLS].find((x) => x.key.toLowerCase() === e.key.toLowerCase());
+    const tool = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
     if (tool && !e.ctrlKey && !e.metaKey) {
       this.tool = tool.id;
       return;
@@ -299,15 +298,10 @@ export class ToDraw extends DocElement<Shape[]> {
       const ends = linkEnds(s, this.doc);
       return ends ? svg`<line x1=${ends[0]} y1=${ends[1]} x2=${ends[2]} y2=${ends[3]} stroke="var(--to-accent)" stroke-width="6" stroke-linecap="round" opacity="0.35" pointer-events="none" />` : nothing;
     }
-    const line = isLine(s.k);
-    const x = line ? Math.min(s.x, s.x + s.w) : s.x;
-    const y = line ? Math.min(s.y, s.y + s.h) : s.y;
-    const w = Math.abs(s.w);
-    const h = Math.abs(s.h);
-    const hx = s.x + s.w;
-    const hy = s.y + s.h;
+    const [x, y, w, h] = bounds(s, this.doc);
+    // The handle is at the shape's end: its far corner, or where its line stops.
     return svg`<rect x=${x - 3} y=${y - 3} width=${w + 6} height=${h + 6} fill="none" stroke="var(--to-accent)" stroke-dasharray="4 3" pointer-events="none" />
-      <rect class="handle" x=${hx - 5} y=${hy - 5} width="10" height="10" fill="var(--to-surface)" stroke="var(--to-accent)" stroke-width="2" />`;
+      <rect class="handle" x=${s.x + s.w - 5} y=${s.y + s.h - 5} width="10" height="10" fill="var(--to-surface)" stroke="var(--to-accent)" stroke-width="2" />`;
   }
 
   render() {

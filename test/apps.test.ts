@@ -776,7 +776,7 @@ test('small apps: the sums behind them', async () => {
 
   const { parsePixels, serializePixels } = await import('../src/apps/pixel.def.ts');
   // One paragraph, a line a row: an empty row is a lone dot, so the paragraph holds together.
-  assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.', 16)), 'ab.c\n.\n..d');
+  assert.equal(serializePixels(parsePixels('ab.c\n\n.zd.')), 'ab.c\n.\n..d');
   assert.equal(appOf('pixel')!.read!('Here:\n\n```\nab\n.c\n```'), 'ab\n.c');
   assert.equal(appOf('pixel')!.view('ab')[0].svg.match(/<rect/g)!.length, 2);
   // Rooms to scale; people round their tables; events in order.

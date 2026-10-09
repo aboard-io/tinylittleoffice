@@ -6,16 +6,11 @@
  * Document format: see lib/animmodel.ts.
  */
 import './anim.css';
-import './draw.ts';
-import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, icon, UI, isKey } from '../kit.ts';
-import type { SlInput, SlSelect } from '../kit.ts';
-import { GRID, altOf, isLink, parseDrawing, removeShape, serializeDrawing } from '../lib/drawmodel.ts';
-import { EFFECTS, FPS_CHOICES, MAX_FRAMES, MAX_Z, W, H, hasKey, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes, type Anim, type Key } from '../lib/animmodel.ts';
-import { bounds, frameSvg, transformOf } from './anim.def.ts';
-import type { Theme } from './draw.def.ts';
-
-/** The page's own colours, so the stage looks right in the dark too. */
-const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
+import { THEME } from './draw.ts';
+import { DocElement, defineElement, html, svg, nothing, state, unsafeSVG, tool, icon, clamp, UI, isKey, type SlInput, type SlSelect } from '../kit.ts';
+import { W, H, GRID, altOf, bounds, isLink, parseDrawing, removeShape, serializeDrawing } from '../lib/drawmodel.ts';
+import { EFFECTS, FPS_CHOICES, MAX_FRAMES, MAX_Z, hasKey, parseAnim, removeKey, restKey, serializeAnim, stateAt, withKey, withShapes, type Anim, type Key } from '../lib/animmodel.ts';
+import { frameSvg, transformOf } from './anim.def.ts';
 /** At most this many little pictures under the slider. */
 const THUMBS = 16;
 
@@ -31,12 +26,8 @@ export class ToAnim extends DocElement<Anim> {
   private drag: { i: number; x: number; y: number; dx: number; dy: number; moved: boolean; corner?: number } | null = null;
   private thumbs: { at: number; svg: string }[] | null = null;
 
-  protected parse(text: string) {
-    return parseAnim(text);
-  }
-  protected serialize(doc: Anim) {
-    return serializeAnim(doc);
-  }
+  protected parse = parseAnim;
+  protected serialize = serializeAnim;
   protected loaded() {
     this.thumbs = null;
     this.frame = Math.min(this.frame, this.doc.frames - 1);
@@ -64,7 +55,7 @@ export class ToAnim extends DocElement<Anim> {
 
   private seek(frame: number) {
     this.pause();
-    this.frame = Math.max(0, Math.min(this.doc.frames - 1, Math.round(frame)));
+    this.frame = clamp(Math.round(frame), 0, this.doc.frames - 1);
   }
 
   private pause() {
@@ -87,7 +78,7 @@ export class ToAnim extends DocElement<Anim> {
   }
 
   private setLength(frames: number, fps: number) {
-    const f = Math.max(2, Math.min(MAX_FRAMES, Math.round(frames) || this.doc.frames));
+    const f = clamp(Math.round(frames) || this.doc.frames, 2, MAX_FRAMES);
     this.frame = Math.min(this.frame, f - 1);
     this.commit({ ...this.doc, frames: f, fps, keys: this.doc.keys.map((ks) => ks.filter((k) => k.t < f)) });
   }
@@ -150,24 +141,17 @@ export class ToAnim extends DocElement<Anim> {
     const corner = (e.target as Element).closest('[data-corner]')?.getAttribute('data-corner');
     this.pause();
     (e.currentTarget as HTMLElement).focus({ preventScroll: true });
-    if (corner !== undefined && corner !== null && this.sel >= 0) {
-      // A corner of a pen shape: dragged, it moves at this moment (and the shape morphs between moments).
-      e.preventDefault();
-      const [x, y] = this.point(e);
-      const at = stateAt(this.doc, this.sel, this.frame);
-      this.drag = { i: this.sel, x, y, dx: at.dx, dy: at.dy, moved: false, corner: +corner };
-      (e.currentTarget as Element).setPointerCapture(e.pointerId);
-      return;
-    }
-    if (idx === undefined || idx === null) {
+    // A corner of a pen shape: dragged, it moves at this moment (and the shape morphs between moments).
+    const onCorner = corner != null && this.sel >= 0;
+    if (!onCorner && idx == null) {
       this.sel = -1;
       return;
     }
     e.preventDefault();
-    this.sel = parseInt(idx, 10);
+    if (!onCorner) this.sel = parseInt(idx!, 10);
     const [x, y] = this.point(e);
     const at = stateAt(this.doc, this.sel, this.frame);
-    this.drag = { i: this.sel, x, y, dx: at.dx, dy: at.dy, moved: false };
+    this.drag = { i: this.sel, x, y, dx: at.dx, dy: at.dy, moved: false, corner: onCorner ? +corner! : undefined };
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
   }
 
@@ -176,25 +160,26 @@ export class ToAnim extends DocElement<Anim> {
     if (!d) return;
     const [x, y] = this.point(e);
     const at = stateAt(this.doc, d.i, this.frame);
+    const s = this.doc.shapes[d.i];
+    let change: Partial<Key>;
+    let rest = restKey(0);
     if (d.corner !== undefined) {
       // The corner goes where the pointer is, in hundredths of the shape's box (its offset undone).
-      const s = this.doc.shapes[d.i];
       const pts = (at.pts ?? s.pts ?? []).slice();
       pts[2 * d.corner] = Math.round(((x - at.dx - s.x) / s.w) * 100);
       pts[2 * d.corner + 1] = Math.round(((y - at.dy - s.y) / s.h) * 100);
-      d.moved = true;
-      const from = this.doc.keys[d.i]?.length || !this.frame ? this.doc : withKey(this.doc, d.i, { ...restKey(0), pts: s.pts });
-      this.doc = withKey(from, d.i, { ...at, t: this.frame, pts });
-      this.requestUpdate();
-      return;
+      change = { pts };
+      rest = { ...rest, pts: s.pts };
+    } else {
+      const [dx, dy] = [Math.round(d.dx + x - d.x), Math.round(d.dy + y - d.y)];
+      if (dx === at.dx && dy === at.dy && d.moved) return;
+      change = { dx, dy };
     }
-    const [dx, dy] = [Math.round(d.dx + x - d.x), Math.round(d.dy + y - d.y)];
-    if (dx === at.dx && dy === at.dy && d.moved) return;
     d.moved = true;
     // Shown as it goes; written to the link when the pointer lets go. A shape moved for the
     // first time at a later moment starts from where it was drawn.
-    const from = this.doc.keys[d.i]?.length || !this.frame ? this.doc : withKey(this.doc, d.i, restKey(0));
-    this.doc = withKey(from, d.i, { ...at, t: this.frame, dx, dy });
+    const from = this.doc.keys[d.i]?.length || !this.frame ? this.doc : withKey(this.doc, d.i, rest);
+    this.doc = withKey(from, d.i, { ...at, t: this.frame, ...change });
     this.requestUpdate();
   }
 
