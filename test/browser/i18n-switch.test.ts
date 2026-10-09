@@ -4,7 +4,7 @@ import { register, setLanguage } from '../../src/kit/i18n.ts';
 import { mount, until } from './helpers.ts';
 
 test('an in-memory Spanish dictionary takes over the shell when chosen', async () => {
-  register('es', { 'Find an app': 'Buscar una app', Menu: 'Menú', Text: 'Texto', Blank: 'En blanco', Language: 'Idioma', 'Match the device': 'Como el dispositivo' });
+  register('es', { 'Find an app': 'Buscar una app', Menu: 'Menú', Write: 'Escribir', Blank: 'En blanco', Language: 'Idioma', 'Match the device': 'Como el dispositivo' });
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);
@@ -17,9 +17,9 @@ test('an in-memory Spanish dictionary takes over the shell when chosen', async (
   expect(document.documentElement.dir).toBe('ltr');
   await until(() => shell.querySelector<HTMLInputElement>('.to-find')!.placeholder === 'Buscar una app');
   expect(shell.querySelector('.to-burger')!.getAttribute('aria-label')).toBe('Menú');
-  expect(shell.querySelector('.to-tile b')!.textContent).toBe('Texto');
+  expect(shell.querySelector('.to-tile b')!.textContent).toBe('Escribir');
   expect(shell.querySelector('.to-templates-btn span')!.textContent).toBe('En blanco');
   await setLanguage(null);
   await until(() => document.documentElement.lang === 'en');
-  expect(shell.querySelector('.to-tile b')!.textContent).toBe('Text');
+  expect(shell.querySelector('.to-tile b')!.textContent).toBe('Write');
 });

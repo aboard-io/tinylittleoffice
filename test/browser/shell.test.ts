@@ -21,7 +21,7 @@ test('the home page lists the apps as tiles, each with its templates', async () 
   // Choosing a template opens the app with that document.
   (options[2] as HTMLElement).click();
   await until(() => location.hash.startsWith('#/v1/write/'));
-  expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Meeting notes');
+  expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Launch meeting {.title}');
 });
 
 test('a link opens its app, and every edit goes into the link', async () => {
@@ -36,7 +36,7 @@ test('a link opens its app, and every edit goes into the link', async () => {
     await text.updateComplete;
   }
   await shell.updateComplete;
-  expect(location.hash).toMatch(/^#\/v1\/text\/[ryz]/);
+  expect(location.hash).toMatch(/^#\/v1\/write\/[ryz]/);
   expect(decodeDoc(location.hash.split('/')[3])).toBe('Hello, link.\n');
   // The title field writes the head, and the tab's name follows.
   const title = shell.querySelector<HTMLInputElement>('.to-title')!;
