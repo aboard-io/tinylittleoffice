@@ -962,6 +962,7 @@
   /* ---- fields ---- */
   input[type='text'],
   input[type='search'],
+  input[type='password'],
   select,
   textarea {
     font: inherit;
@@ -1136,6 +1137,191 @@
     gap: 12px;
     padding: 32px 0;
     color: var(--to-ink-2);
+  }
+
+  /* ---- privacy: the signed state beside the title, the unlock and password dialogs, the Privacy dialog ---- */
+  .to-header .to-trust,
+  .to-trust {
+    gap: 4px;
+    padding: 0 10px;
+    min-width: var(--to-touch);
+    min-height: var(--to-touch);
+    border-radius: var(--to-radius-pill);
+    font-size: 14px;
+    color: var(--to-ink-3);
+  }
+  .to-header .to-trust.signed,
+  .to-trust.signed {
+    color: var(--to-signed-ink);
+    background: var(--to-signed-bg);
+  }
+  .to-header .to-trust.mismatch,
+  .to-trust.mismatch {
+    color: var(--to-mismatch-ink);
+    background: var(--to-mismatch-bg);
+  }
+  .to-header .to-trust.locked,
+  .to-trust.locked {
+    color: var(--to-ink);
+    background: var(--to-accent-soft);
+  }
+  .to-trust-words {
+    max-width: 16em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .to-title-locked {
+    margin: 0;
+    font-size: 16px;
+    color: var(--to-ink-3);
+    padding: 0 10px;
+    border: 0;
+  }
+  .to-locked {
+    align-items: center;
+    text-align: center;
+  }
+  .to-trust-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-weight: 600;
+  }
+  .to-trust-line.quiet {
+    font-weight: 400;
+    color: var(--to-ink-2);
+  }
+  .to-trust-line.signed {
+    color: var(--to-signed-ink);
+  }
+  .to-trust-line.mismatch {
+    color: var(--to-mismatch-ink);
+  }
+  .to-trust-line small {
+    font-weight: 400;
+    color: var(--to-ink-3);
+    font-family: var(--to-font-mono);
+  }
+  .to-share-made {
+    margin: 0 0 4px;
+    color: var(--to-ink-2);
+    font-size: 14px;
+  }
+  .to-share-protect-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+  .to-sign,
+  .to-password,
+  .to-unlock {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .to-sign-label,
+  .to-password-label,
+  .to-privacy-keytext {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--to-ink-2);
+  }
+  .to-sign-name,
+  .to-password-new,
+  .to-unlock-field,
+  .to-key-text {
+    font-size: 16px;
+    width: 100%;
+  }
+  .to-unlock .to-ask-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 48px;
+  }
+  .to-unlock p,
+  .to-password p {
+    margin: 0;
+  }
+  .to-unlock-wrong {
+    min-height: 1.5em;
+    color: var(--to-danger);
+    font-weight: 600;
+  }
+  .to-key-text {
+    font-family: var(--to-font-mono);
+    font-size: 13px;
+  }
+  .to-privacy-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .to-privacy-section + .to-privacy-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--to-border);
+  }
+  .to-privacy-section h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .to-privacy-section p {
+    margin: 0;
+  }
+  .to-privacy-fp {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .to-privacy-fp code,
+  .to-held-now {
+    font-family: var(--to-font-mono);
+  }
+  .to-held {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  .to-held li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-held-words {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .to-held-words small {
+    color: var(--to-ink-3);
+    font-size: 13px;
+  }
+  .to-held-now {
+    font-size: 14px;
+    color: var(--to-ink-2);
+    white-space: nowrap;
+  }
+  .to-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--to-touch);
+  }
+  .to-key-file {
+    position: relative;
   }
 
   /* ---- the Display Link: the pages one under another, the title and Edit above them ---- */

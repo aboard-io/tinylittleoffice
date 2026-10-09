@@ -2,7 +2,7 @@
  * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side. Find an app, a
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
- * Theme; About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * Theme; Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -21,7 +21,9 @@ import { mark } from './mark.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import './preview.ts';
 import type { ToDialog } from './dialog.ts';
+import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
+import './privacy-dialog.ts';
 
 export class ToDrawer extends LitElement {
   static properties = { find: { state: true }, open: { state: true } };
@@ -63,7 +65,7 @@ export class ToDrawer extends LitElement {
 
   private async togglePrivate(e: Event) {
     const box = e.target as HTMLInputElement;
-    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences, the offline copy and the list of your documents are forgotten (the documents themselves live in their links).'))) {
+    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).'))) {
       // The browser flipped the switch before the question was asked: Cancel puts it back.
       box.checked = true;
       this.requestUpdate();
@@ -140,12 +142,14 @@ export class ToDrawer extends LitElement {
                     ${THEMES.map((th) => html`<option value=${th} ?selected=${th === theme()}>${themeName(th)}</option>`)}
                   </select>
                 </label>
-                <button type="button" class="to-btn to-drawer-about" @click=${() => void this.querySelector<ToDialog>('to-dialog')?.show()}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
+                <button type="button" class="to-btn to-drawer-privacy" @click=${() => void this.querySelector<ToPrivacy>('to-privacy')?.show()}>${icon(UI.key, 18)}<span>${t('Privacy and keys')}</span></button>
+                <button type="button" class="to-btn to-drawer-about" @click=${() => void this.querySelector<ToDialog>('to-dialog.to-about-dialog')?.show()}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
               </section>`
           : nothing}
       </div>
     </dialog>
-    <to-dialog heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p>`}></to-dialog>`;
+    <to-privacy></to-privacy>
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);

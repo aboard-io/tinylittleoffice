@@ -31,6 +31,11 @@
     --to-soon-ink: hsl(240 5.9% 10%);
     --to-last-bg: hsl(0 73.7% 41.8%);
     --to-last-ink: hsl(0 0% 100%);
+    /* A document's signed state beside its title: signed (green), changed or not matching (red); words on a soft fill. */
+    --to-signed-ink: hsl(142.4 71.8% 24%);
+    --to-signed-bg: hsl(141 78.9% 92%);
+    --to-mismatch-ink: hsl(0 73.7% 38%);
+    --to-mismatch-bg: hsl(0 93.3% 94.1%);
     /* Paper: white in both themes, a page stays a page, so its ink, its lines and its accent are the light theme's whatever the theme. */
     --to-paper: hsl(0 0% 100%);
     --to-paper-ink: hsl(240 5.9% 10%);
@@ -72,6 +77,10 @@
     --to-ok-bg: hsl(142.8 64.2% 24.1%);
     --to-soon-bg: hsl(37.7 92.1% 50.2%);
     --to-last-bg: hsl(0 70% 35.3%);
+    --to-signed-ink: hsl(141.7 76.6% 73.1%);
+    --to-signed-bg: hsl(144.9 61.2% 15%);
+    --to-mismatch-ink: hsl(0 93.5% 81.8%);
+    --to-mismatch-bg: hsl(0 62.8% 20%);
     --to-input-bg: hsl(240 5.9% 11%);
     --to-shadow: 0 1px 2px rgb(0 0 0 / 24%);
     --to-shadow-pop: 0 4px 16px rgb(0 0 0 / 50%);

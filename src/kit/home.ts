@@ -13,14 +13,14 @@ import { LitElement, html, nothing } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import type { AppDef, Template } from './app.ts';
 import { apps } from './apps.ts';
-import { encodeDoc } from './codec.ts';
+import { encodeDoc, isSealed } from './codec.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { hoverFocus, menuKey, openedByPointer, place } from './menu.ts';
 import { pageSvg } from './draw.ts';
 import { gateSvg } from './pictures.ts';
 import './preview.ts';
-import { routeHash } from './route.ts';
+import { parseHash, routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
 import { onPrivacy } from './privacy.ts';
 
@@ -148,7 +148,7 @@ export class ToHome extends LitElement {
     const lang = document.documentElement.lang;
     return html`<ul class="to-drive" aria-label=${t('{app} documents', { app: app.name })}>
         ${shown.map((k) => {
-          const title = k.title || t('Untitled');
+          const title = k.title || (isSealed(parseHash(k.hash).payload) ? t('Locked document') : t('Untitled'));
           return html`<li>
             <a class="to-drive-open" href=${k.hash}><to-preview hash=${k.hash}></to-preview><span class="to-drive-words"><span>${title}</span><small>${ago(k.at, lang)}</small></span></a>
             <button type="button" class="to-btn to-tool" aria-label=${t('Forget {title}', { title })} title=${t('Forget')} @click=${() => this.forget(k)}>${icon(UI.close, 16)}</button>
