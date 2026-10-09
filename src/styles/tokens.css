@@ -1,0 +1,63 @@
+/* Tokens: the colours, type, radii and shadows everything is built from. Light at :root, dark under
+   [data-theme=dark] (set by public/theme.js before the first paint and kit/theme.ts after). The dark
+   theme keeps the separation Paul asked for: the page darker than the panels, text a step lighter, edges
+   that can be seen (3:1), the accent lighter with dark words on it. test/contrast.test.ts reads every pair. */
+@layer tokens {
+  :root {
+    --to-font: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --to-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    --to-bg: hsl(0 0% 97.5%);
+    --to-surface: hsl(0 0% 100%);
+    --to-surface-2: hsl(240 4.8% 95.9%);
+    --to-border: hsl(240 4.9% 83.9%);
+    --to-border-strong: hsl(240 5% 64.9%);
+    --to-ink: hsl(240 5.9% 10%);
+    --to-ink-2: hsl(240 5.3% 26.1%);
+    /* The quietest text still has to read on the greyest surface: 6.9:1 on --to-surface-2. */
+    --to-ink-3: hsl(240 5.2% 33.9%);
+    --to-accent: hsl(243.4 75.4% 58.6%);
+    --to-accent-soft: hsl(226.5 100% 93.9%);
+    --to-on-accent: hsl(0 0% 100%);
+    --to-danger: hsl(0 72.2% 50.6%);
+    --to-success: hsl(142.1 76.2% 36.3%);
+    --to-warning: hsl(32.1 94.6% 43.7%);
+    /* Paper: white in both themes, a page stays a page. */
+    --to-paper: hsl(0 0% 100%);
+    --to-paper-ink: hsl(240 5% 34%);
+    --to-placeholder: var(--to-ink-3);
+    --to-input-bg: var(--to-surface);
+    --to-input-border: var(--to-border);
+
+    --to-radius: 8px;
+    --to-radius-sm: 6px;
+    --to-radius-pill: 999px;
+    --to-shadow: 0 1px 2px hsl(240 3.8% 46.1% / 12%);
+    --to-shadow-pop: 0 4px 16px rgb(0 0 0 / 16%);
+    --to-header-h: 56px;
+    --to-touch: 44px;
+    --to-max-w: 1080px;
+    --to-gutter: 16px;
+    color-scheme: light;
+  }
+  :root[data-theme='dark'] {
+    --to-bg: hsl(240 6% 8%);
+    --to-surface: hsl(240 5.1% 15%);
+    --to-surface-2: hsl(240 5.7% 18.2%);
+    --to-border: hsl(240 5.3% 58%);
+    --to-border-strong: hsl(240 5% 68%);
+    --to-ink: hsl(240 9.1% 91.8%);
+    --to-ink-2: hsl(240 7.3% 84%);
+    --to-ink-3: hsl(240 5.6% 73%);
+    --to-accent: hsl(229.4 100% 78.3%);
+    --to-accent-soft: hsl(243.5 40.8% 27%);
+    --to-on-accent: hsl(240 5.9% 11%);
+    --to-danger: hsl(0 98.6% 67.9%);
+    --to-success: hsl(141.6 72.4% 55.2%);
+    --to-warning: hsl(43.3 100% 53.4%);
+    --to-input-bg: hsl(240 5.9% 11%);
+    --to-shadow: 0 1px 2px rgb(0 0 0 / 24%);
+    --to-shadow-pop: 0 4px 16px rgb(0 0 0 / 50%);
+    color-scheme: dark;
+  }
+}

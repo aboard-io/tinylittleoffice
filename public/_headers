@@ -1,0 +1,25 @@
+# Headers for the site on Cloudflare (Workers static assets). The build fills {{scripts}} with the hash of every
+# script the apps' pages carry (pageScript in src/kit/page.ts), so no other inline script can run, even in a frame.
+# The site is its own only source of code and style; nothing may embed the editor. connect-src names the
+# short-link service and the places later apps ask (OpenStreetMap, Bluesky, Wikipedia); frame-src and
+# media-src allow a thing from the web only in a sandboxed frame made after a tap, as the embeds will.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src https:; connect-src 'self' data: https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com https://public.api.bsky.app https://*.wikipedia.org; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:
+  Cache-Control: no-cache
+# The pages themselves: no-transform, so Cloudflare does not rewrite them to add its analytics beacon (which the
+# policy above would block anyway). Only the HTML: the scripts keep their compression.
+/
+  ! Cache-Control
+  Cache-Control: no-cache, no-transform
+/:app/
+  ! Cache-Control
+  Cache-Control: no-cache, no-transform
+# Built files carry a hash in their name: once fetched, they are never asked for again.
+/assets/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
+/files.json
+  Access-Control-Allow-Origin: *

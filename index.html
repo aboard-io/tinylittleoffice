@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>TinyLittleOffice</title>
+    <meta name="description" content="A tiny office suite that lives entirely in the URL: text, sheets, slides, drawings, calendars, lists, boards, maps and pages. No server, no accounts, no saving: the link is the document." />
+    <meta name="application-name" content="TinyLittleOffice" />
+    <meta name="apple-mobile-web-app-title" content="TinyLittleOffice" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="canonical" href="%VITE_SITE_URL%" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Link previews. A document lives in the part of the address after "#", which is never sent to a server,
+         so every TinyLittleOffice link previews as this same card. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TinyLittleOffice" />
+    <meta property="og:title" content="TinyLittleOffice: the link is the document" />
+    <meta property="og:description" content="A tiny office suite that lives entirely in the URL. No server, no accounts, no saving." />
+    <meta property="og:url" content="%VITE_SITE_URL%" />
+    <meta property="og:image" content="%VITE_SITE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TinyLittleOffice: a tiny office suite that lives entirely in the URL." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script src="./theme.js"></script>
+    <script type="module" src="./src/main.ts"></script>
+  </head>
+  <body>
+    <to-shell></to-shell>
+    <noscript>
+      <h1>TinyLittleOffice</h1>
+      <p>A tiny office suite that lives entirely in the URL. The document is the link; nothing is sent to a server. TinyLittleOffice needs JavaScript to show a document.</p>
+    </noscript>
+  </body>
+</html>

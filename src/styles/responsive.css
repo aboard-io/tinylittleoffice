@@ -1,0 +1,28 @@
+/* What changes with the width and the pointer: phones first, in WebKit at 390px. Fingers get 44px, type
+   stays at 16px in every box (an iPhone zooms in on anything smaller), and the bar keeps one row. */
+@layer responsive {
+  @media (max-width: 760px) {
+    :root {
+      --to-gutter: 12px;
+    }
+    .to-tiles {
+      grid-template-columns: 1fr;
+    }
+    .to-dialog {
+      width: calc(100vw - 16px);
+    }
+  }
+  @media (pointer: coarse) {
+    .to-btn {
+      font-size: 16px;
+    }
+  }
+  @media print {
+    .to-header,
+    to-bar,
+    to-drawer,
+    to-toast {
+      display: none !important;
+    }
+  }
+}

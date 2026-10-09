@@ -1,0 +1,8 @@
+/* The cascade, said once: tokens under everything, then the kit, then each app's own sheet, then what
+   changes by width, then what changes for a person's settings (contrast, motion). An app's style.css
+   wraps itself in @layer apps; nothing outside a layer exists. */
+@layer tokens, kit, apps, responsive, a11y;
+@import './styles/tokens.css';
+@import './styles/kit.css';
+@import './styles/responsive.css';
+@import './styles/a11y.css';

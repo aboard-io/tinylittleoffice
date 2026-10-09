@@ -1,0 +1,20 @@
+// The site on Cloudflare: the build in dist/, served as static assets, with public/_headers.
+// There is no script; a static site needs none. The link shortener is its own Worker (tinier/).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tinylittleoffice",
+  "compatibility_date": "2026-10-08",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  // Only on its own domain: no workers.dev copy once this is live.
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "tinylittleoffice.com", "custom_domain": true },
+    { "pattern": "www.tinylittleoffice.com", "custom_domain": true }
+  ],
+  // A static site keeps no record of who asked for what; see "What the server sees" in the README.
+  "observability": { "enabled": false }
+}

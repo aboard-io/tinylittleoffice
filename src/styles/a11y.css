@@ -1,0 +1,34 @@
+/* What changes for a person's settings: less motion, more contrast, forced colours. Last, so it wins. */
+@layer a11y {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+  @media (prefers-contrast: more) {
+    :root {
+      --to-ink-3: var(--to-ink-2);
+      --to-border: var(--to-border-strong);
+    }
+  }
+  @media (forced-colors: active) {
+    .to-btn[aria-pressed='true'] {
+      outline: 2px solid currentColor;
+    }
+    to-bar[data-fade-start],
+    to-bar[data-fade-end] {
+      mask-image: none;
+    }
+  }
+}

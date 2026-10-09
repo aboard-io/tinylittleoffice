@@ -1,0 +1,25 @@
+/* Text: the placeholder editor's own look. Every app's sheet sits in the apps layer, above the kit's. */
+@layer apps {
+  to-text-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--to-gutter);
+    min-height: 0;
+  }
+  .text-body {
+    flex: 1;
+    width: 100%;
+    min-height: 60vh;
+    padding: 16px;
+    font: 16px/1.6 var(--to-font-mono);
+    color: var(--to-ink);
+    background: var(--to-paper);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    resize: vertical;
+  }
+  .text-body:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+}
