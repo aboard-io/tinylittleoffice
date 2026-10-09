@@ -248,6 +248,14 @@
     color: var(--deck-muted);
     pointer-events: none;
   }
+  /* The menu a document on the slide opens has no button of its own in the bar. */
+  .deck-submenu > button {
+    display: none;
+  }
+  .lay-t .deck-words .tx.blank::before {
+    right: 0;
+    text-align: center;
+  }
   .deck-notes .tx {
     min-height: 2.4em;
     padding: 8px 12px;

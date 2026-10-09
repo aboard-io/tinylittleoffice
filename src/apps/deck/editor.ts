@@ -28,7 +28,7 @@ import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { routeHash } from '../../kit/route.ts';
 import type { Sel } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { addSlide, FORMATS, LAYOUTS, loosen, moveSlide, removeSlide, setHead, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
+import { addSlide, FORMATS, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
 import { ICON_COLORS, THEMES } from './theme.ts';
 import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
@@ -156,7 +156,8 @@ export class ToDeckEditor extends LitElement {
     this.spans = {
       doc: this.doc,
       cur: this.cur,
-      title: written && s.head >= 0 ? [b[s.head]] : [],
+      // The headline box owns the words alone: the icon is the button beside it (the ops come back joined, see onOps).
+      title: written && s.head >= 0 ? [{ ...(b[s.head] as Extract<Block, { k: 'h' }>), runs: s.title }] : [],
       words: written ? b.slice(s.words[0], s.layout === '2' && s.pipe >= 0 ? s.pipe : s.words[1]) : [],
       right: written && s.layout === '2' && s.pipe >= 0 ? b.slice(s.pipe + 1, s.words[1]) : [],
       notes: written ? b.slice(s.notes[0], s.notes[1]) : [],
@@ -213,7 +214,21 @@ export class ToDeckEditor extends LitElement {
     const { ops, sel, before, kind } = e.detail;
     const s = this.slide;
     const made = this.ensure(this.cur);
-    const start = made.start >= 0 ? made.start : field === 'title' ? (s.head >= 0 ? s.head : s.from) : field === 'words' ? s.words[0] : field === 'right' ? s.pipe + 1 : s.notes[0];
+    if (field === 'title') {
+      // The headline: the ops are applied to the words alone, and the block put back whole with its icon in front.
+      const was = s.head >= 0 ? (this.doc.blocks[s.head] as Extract<Block, { k: 'h' }>) : null;
+      const next = applyAll({ head: {}, blocks: this.boxes(s).title }, ops).blocks[0];
+      const runs = next && 'runs' in next ? next.runs : [];
+      const h: Block = { k: 'h', level: was?.level ?? 2, runs: joinHeadline(s.icon, runs), ...(was?.a ? { a: was.a } : {}) };
+      const put: Op = was ? { op: 'splice', at: s.head, n: 1, blocks: [h] } : { op: 'splice', at: made.start >= 0 ? made.start : s.from, n: 0, blocks: [h] };
+      const all = [...made.ops, put];
+      const before_ = this.doc;
+      this.doc = applyAll(before_, all);
+      this.history.record(before_, all, before, sel, kind);
+      this.emit();
+      return;
+    }
+    const start = made.start >= 0 ? made.start : field === 'words' ? s.words[0] : field === 'right' ? s.pipe + 1 : s.notes[0];
     let moved = offset(ops, start);
     const first = moved[0];
     // The editor over an empty span puts a paragraph in first: here it is the block the box is for.
