@@ -423,7 +423,7 @@ export default {
   'A product launch: the product, the marketing and the support under it, with a join between two branches.': 'A product launch: the product, the marketing and the support under it, with a join between two branches.',
   'A talk': 'A talk',
   'An empty outline': 'An empty outline',
-  'An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same text a deck or a mind map reads.': 'An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same text a deck or a mind map reads.',
+  'An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same tree a deck or a mind map reads.': 'An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same tree a deck or a mind map reads.',
   'Arrow from {from} to {to}': 'Arrow from {from} to {to}',
   'Arrows both ways': 'Arrows both ways',
   'As a page': 'As a page',

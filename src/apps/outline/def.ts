@@ -40,7 +40,7 @@ export default defineApp({
   },
   icon: ListTree,
   get blurb() {
-    return t('An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same text a deck or a mind map reads.');
+    return t('An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same tree a deck or a mind map reads.');
   },
   blank: () => '',
   get templates() {
