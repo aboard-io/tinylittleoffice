@@ -24,6 +24,22 @@
   .ol-row.sel {
     background: var(--to-surface-2);
   }
+  /* Rows chosen whole: a soft wash of the accent, each family under it too. */
+  .ol-row.ranged {
+    background: var(--to-accent-soft);
+    border-radius: 0;
+  }
+  .ol:focus {
+    outline: none;
+  }
+  /* A numbered item's number, where its dot would be. */
+  .ol-n {
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--to-ink-2);
+    white-space: nowrap;
+  }
 
   /* The gutter: drag handle and fold arrow, out to the left of the bullet. */
   .ol-gutter {
@@ -58,6 +74,7 @@
   .ol-row:hover .ol-fold,
   .ol-row.sel .ol-handle,
   .ol-row.sel .ol-fold,
+  .ol-row.ranged .ol-handle,
   .ol-row.shut .ol-fold,
   .ol-handle:focus-visible,
   .ol-fold:focus-visible {
@@ -370,12 +387,12 @@
     border-radius: var(--to-radius);
   }
   @media (pointer: coarse) {
-    /* No hover on a touch screen: parents show their arrows; dragging is the arrange buttons' work. */
+    /* No hover on a touch screen: parents show their arrows, and every row its handle, which a tap chooses the row by. */
     .ol-row.parent .ol-fold {
       opacity: 1;
     }
     .ol-handle {
-      display: none;
+      opacity: 0.5;
     }
   }
   @media (max-width: 600px) {
@@ -387,6 +404,10 @@
     .ol-gutter {
       left: calc(var(--d, 0) * var(--ol-step) - 36px);
       width: 36px;
+    }
+    .ol-handle,
+    .ol-fold {
+      width: 18px;
     }
     .ol {
       --ol-step: 18px;

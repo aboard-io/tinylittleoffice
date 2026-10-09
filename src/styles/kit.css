@@ -161,6 +161,10 @@
     border-radius: var(--to-radius);
     box-shadow: var(--to-shadow-pop);
   }
+  /* Its own display would otherwise outweigh the browser's hiding of a closed popover. */
+  .to-context:not(:popover-open) {
+    display: none;
+  }
   .to-context::-webkit-scrollbar {
     display: none;
   }
