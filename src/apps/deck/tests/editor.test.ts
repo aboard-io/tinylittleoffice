@@ -203,3 +203,290 @@ test('at phone width the bar is one row, nothing is wider than the screen, and t
   for (const tx of el.querySelectorAll<HTMLElement>('.tx')) expect(parseFloat(getComputedStyle(tx).fontSize)).toBeGreaterThanOrEqual(16);
   await page.viewport(1100, 800);
 });
+
+/* ---------- the editing standard (docs/editing.md): slides chosen on the rail, the keys, undo ---------- */
+
+const FOUR = '## A\n\n- a\n\n---\n\n## B\n\n---\n\n## C\n\n---\n\n## D\n';
+const titles = (text: string | undefined) => (text ?? '').split('\n').filter((l) => l.startsWith('## ')).map((l) => l.slice(3));
+const key = (on: EventTarget, k: string, o: KeyboardEventInit = {}) => {
+  const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o });
+  on.dispatchEvent(e);
+  return e;
+};
+const rail = (el: ToDeckEditor) => el.querySelector<HTMLElement>('.deck-rail')!;
+const ranged = (el: ToDeckEditor) => [...el.querySelectorAll('.deck-slot')].flatMap((s, i) => (s.classList.contains('ranged') ? [i] : []));
+const settle = async (el: ToDeckEditor) => {
+  await el.updateComplete;
+  await tick();
+  await el.updateComplete;
+};
+async function clip(on: EventTarget, type: 'copy' | 'cut' | 'paste', data: Record<string, string> = {}) {
+  const dt = new DataTransfer();
+  for (const [k, v] of Object.entries(data)) dt.setData(k, v);
+  on.dispatchEvent(new ClipboardEvent(type, { clipboardData: dt, bubbles: true, cancelable: true }));
+  return dt;
+}
+const undo = (el: ToDeckEditor) => el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+const contextLabels = () => [...document.querySelectorAll('to-context.deck-context .to-context > *')].map((b) => (b.getAttribute('role') === 'separator' ? '|' : b.getAttribute('aria-label')));
+
+test('a tap on a thumbnail chooses the slide, with the contextual bar in the standard order; Enter and a double tap edit its words; the bar ends with Undo, Redo', async () => {
+  const { el } = await editor(FOUR);
+  thumbs(el)[1].click();
+  await settle(el);
+  expect(el.cur).toBe(1);
+  expect(ranged(el)).toEqual([1]);
+  expect(document.activeElement).toBe(rail(el));
+  await until(() => !!document.querySelector('to-context.deck-context .to-context:popover-open'));
+  expect(contextLabels()).toEqual(['Edit', 'Move up', 'Move down', 'Duplicate', '|', 'Copy', 'Cut', 'Paste', '|', 'Delete']);
+  // Shift+tap extends.
+  thumbs(el)[2].dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  await settle(el);
+  expect(ranged(el)).toEqual([1, 2]);
+  // Enter on the range: the caret into its words.
+  key(rail(el), 'Enter');
+  await until(() => document.activeElement === box(el, 'title'));
+  expect(ranged(el)).toEqual([]);
+  // Enter on a focused thumbnail edits its slide's words at once.
+  thumbs(el)[3].focus();
+  key(thumbs(el)[3], 'Enter');
+  await until(() => document.activeElement === box(el, 'title') && el.cur === 3);
+  // A double tap does too.
+  thumbs(el)[0].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await until(() => document.activeElement === box(el, 'title') && el.cur === 0);
+  const tools = [...el.querySelectorAll('to-bar > button')].map((b) => b.getAttribute('aria-label'));
+  expect(tools.slice(-2)).toEqual(['Undo', 'Redo']);
+});
+
+test('Escape in the words chooses the slide on the rail (never the body); Escape again puts the caret back; Mod+A twice takes every slide', async () => {
+  const { el } = await editor(FOUR);
+  thumbs(el)[2].click();
+  await settle(el);
+  key(rail(el), 'Escape');
+  await until(() => document.activeElement === box(el, 'title'));
+  key(box(el, 'title'), 'Escape');
+  await settle(el);
+  expect(ranged(el)).toEqual([2]);
+  expect(document.activeElement).toBe(rail(el));
+  // Select All with the headline whole: every slide.
+  await caretIn(el, 'title');
+  el.text('title')!.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 1 } };
+  await settle(el);
+  key(box(el, 'title'), 'a', { ctrlKey: true });
+  await settle(el);
+  expect(ranged(el)).toEqual([0, 1, 2, 3]);
+});
+
+test('chosen slides: Delete takes them out, Alt+arrows move them, Mod+D duplicates them, Shift+arrows extend; undo shows the slide and chooses them again', async () => {
+  const { el, last } = await editor(FOUR);
+  // Delete on a focused thumbnail.
+  thumbs(el)[1].focus();
+  key(thumbs(el)[1], 'Delete');
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'C', 'D']);
+  expect(document.activeElement).toBe(thumbs(el)[1]);
+  el.cur = 0;
+  undo(el);
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'B', 'C', 'D']);
+  expect(el.cur).toBe(1);
+  expect(ranged(el)).toEqual([1]);
+  // Shift+Down extends, Alt+Down moves both past C… past D.
+  key(rail(el), 'ArrowDown', { shiftKey: true });
+  await settle(el);
+  expect(ranged(el)).toEqual([1, 2]);
+  key(rail(el), 'ArrowDown', { altKey: true });
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'D', 'B', 'C']);
+  expect(ranged(el)).toEqual([2, 3]);
+  key(rail(el), 'ArrowUp', { altKey: true });
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'B', 'C', 'D']);
+  // Mod+D: the copies after them, chosen.
+  key(rail(el), 'd', { ctrlKey: true });
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'B', 'C', 'B', 'C', 'D']);
+  expect(ranged(el)).toEqual([3, 4]);
+  expect(el.cur).toBe(4);
+});
+
+test('copy, cut and paste of chosen slides: TLO with the rules between, and our HTML; paste puts them after the range', async () => {
+  const { el, last } = await editor(FOUR);
+  thumbs(el)[0].click();
+  await settle(el);
+  key(rail(el), 'ArrowDown', { shiftKey: true });
+  await settle(el);
+  const dt = await clip(rail(el), 'copy');
+  expect(dt.getData('text/plain')).toBe('## A\n\n- a\n\n---\n\n## B\n');
+  expect(dt.getData('text/html')).toContain('content="TinyLittleOffice"');
+  expect(dt.getData('text/html')).toContain('<hr>');
+  thumbs(el)[3].click();
+  await settle(el);
+  await clip(rail(el), 'paste', { 'text/plain': dt.getData('text/plain'), 'text/html': dt.getData('text/html') });
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'B', 'C', 'D', 'A', 'B']);
+  expect(last()).toContain('## D\n\n---\n\n## A\n\n- a\n\n---\n\n## B\n');
+  thumbs(el)[2].click();
+  await settle(el);
+  const cut = await clip(rail(el), 'cut');
+  await settle(el);
+  expect(cut.getData('text/plain')).toBe('## C\n');
+  expect(titles(last())).toEqual(['A', 'B', 'D', 'A', 'B']);
+});
+
+test('a slide dragged by its grip (pointer events) lands after the slide it is let go over, the target drawn; touch-action none on the grip alone', async () => {
+  const { el, last } = await editor(FOUR);
+  const grip = el.querySelectorAll<HTMLElement>('.deck-grip')[0];
+  expect(getComputedStyle(grip).touchAction).toBe('none');
+  expect(getComputedStyle(thumbs(el)[0]).touchAction).not.toBe('none');
+  expect(grip.getAttribute('draggable')).toBeNull();
+  const g = grip.getBoundingClientRect();
+  const c = thumbs(el)[2].getBoundingClientRect();
+  const at = (type: string, x: number, y: number) => grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 5, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  at('pointerdown', g.left + 3, g.top + 3);
+  at('pointermove', c.left + c.width / 3, c.top + c.height / 2);
+  await settle(el);
+  expect(el.rows.drag).toMatchObject({ id: 0, over: 2, how: 'after' });
+  expect(el.querySelectorAll('.deck-slot')[0].classList.contains('dragging')).toBe(true);
+  expect(document.querySelector<HTMLElement>('.to-rows-target')!.hidden).toBe(false);
+  at('pointerup', c.left + c.width / 3, c.top + c.height / 2);
+  await settle(el);
+  expect(titles(last())).toEqual(['B', 'C', 'A', 'D']);
+  expect(el.cur).toBe(2);
+  expect(document.querySelector('.to-rows-target')).toBeNull();
+});
+
+test('the keys from a box: Mod+Shift+Enter a new slide in every format, Mod+Alt+Enter presents, Mod+Enter in the headline goes on to the words, Mod+D and Alt+Up/Down act on the slide', async () => {
+  const { el, last } = await editor(FOUR);
+  thumbs(el)[1].click();
+  await settle(el);
+  await caretIn(el, 'title');
+  // Alt+Up in the headline: the slide moves, the caret stays in its headline.
+  key(box(el, 'title'), 'ArrowUp', { altKey: true });
+  await settle(el);
+  expect(titles(last())).toEqual(['B', 'A', 'C', 'D']);
+  expect(el.cur).toBe(0);
+  await until(() => document.activeElement === box(el, 'title'));
+  expect(box(el, 'title').textContent!.trim()).toBe('B');
+  // Mod+D from the words: the slide again after it, the caret in the copy.
+  key(box(el, 'title'), 'd', { ctrlKey: true });
+  await settle(el);
+  expect(titles(last())).toEqual(['B', 'B', 'A', 'C', 'D']);
+  expect(el.cur).toBe(1);
+  // Mod+Enter in the headline: on to the words (a line's "done"), no slide made.
+  await caretIn(el, 'title');
+  key(box(el, 'title'), 'Enter', { ctrlKey: true });
+  await until(() => document.activeElement === box(el, 'words'));
+  expect(titles(last())).toHaveLength(5);
+  // Mod+Shift+Enter: a new slide after this one, the caret in its headline.
+  key(box(el, 'words'), 'Enter', { ctrlKey: true, shiftKey: true });
+  await settle(el);
+  expect(el.cur).toBe(2);
+  expect(thumbs(el)).toHaveLength(6);
+  await until(() => document.activeElement === box(el, 'title'));
+  // Mod+Alt+Enter presents; the focus goes into the show, and letters never reach the box behind.
+  key(box(el, 'title'), 'Enter', { ctrlKey: true, altKey: true });
+  await settle(el);
+  expect(el.querySelector('.deck-show')).toBeTruthy();
+  await until(() => document.activeElement === el.querySelector('.deck-show'));
+  const typed = new KeyboardEvent('keydown', { key: 'q', bubbles: true, cancelable: true });
+  window.dispatchEvent(typed);
+  expect(typed.defaultPrevented).toBe(true);
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await settle(el);
+  // In a printed format Mod+Shift+Enter is a new page too.
+  const z = await editor('---\nformat: poster\n---\n## One\n');
+  await caretIn(z.el, 'title');
+  key(box(z.el, 'title'), 'Enter', { ctrlKey: true, shiftKey: true });
+  await settle(z.el);
+  expect(z.last()).toBe('---\nformat: poster\n---\n## One\n\n---\n');
+  expect(z.el.querySelector('.deck-show')).toBeNull();
+});
+
+test('keys never act from a dialog or a field; PageUp/PageDown change slides from the rail only', async () => {
+  const { el } = await editor(FOUR);
+  await caretIn(el, 'title');
+  key(box(el, 'title'), 'PageDown');
+  await settle(el);
+  expect(el.cur).toBe(0);
+  thumbs(el)[0].focus();
+  key(thumbs(el)[0], 'PageDown');
+  await settle(el);
+  expect(el.cur).toBe(1);
+  await until(() => document.activeElement === thumbs(el)[1]);
+  // The address box of Insert ▾'s Picture…: Mod+Shift+Enter there makes no slide.
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Picture');
+  await until(() => !!el.querySelector('.deck-ask-form input'));
+  const field = el.querySelector<HTMLInputElement>('.deck-ask-form input')!;
+  key(field, 'Enter', { ctrlKey: true, shiftKey: true });
+  key(field, 'd', { ctrlKey: true });
+  await settle(el);
+  expect(thumbs(el)).toHaveLength(4);
+});
+
+test('undo shows the slide the change was on and puts the caret back where it was', async () => {
+  const { el, last } = await editor(FOUR);
+  thumbs(el)[2].click();
+  await settle(el);
+  await caretIn(el, 'title');
+  await type(el, box(el, 'title'), 'xy');
+  expect(titles(last())).toEqual(['A', 'B', 'Cxy', 'D']);
+  thumbs(el)[0].click();
+  await settle(el);
+  expect(el.cur).toBe(0);
+  undo(el);
+  await settle(el);
+  expect(titles(last())).toEqual(['A', 'B', 'C', 'D']);
+  expect(el.cur).toBe(2);
+  await until(() => document.activeElement === box(el, 'title'));
+  expect(el.text('title')!.sel).toEqual({ anchor: { block: 0, offset: 1 }, focus: { block: 0, offset: 1 } });
+});
+
+test('a box’s edges: Delete at the headline’s end goes on to the words; Backspace in the empty headline of an empty slide takes it away; Shift+Enter in the words is a line break', async () => {
+  const { el, last } = await editor('## A\n\n- a\n\n---\n\n## B\n');
+  thumbs(el)[1].click();
+  await settle(el);
+  await caretIn(el, 'title');
+  input(box(el, 'title'), 'deleteContentForward');
+  await until(() => document.activeElement === box(el, 'words'));
+  // Shift+Enter in a bullet: a line break in it, not a new bullet.
+  thumbs(el)[0].click();
+  await settle(el);
+  await caretIn(el, 'words');
+  input(box(el, 'words'), 'insertLineBreak');
+  await settle(el);
+  await type(el, box(el, 'words'), 'b');
+  expect(last()).toContain('- a\n  b\n\n---');
+  expect(box(el, 'words').querySelectorAll('li')).toHaveLength(1);
+  // A new, empty slide: Backspace in its headline takes it away, the caret at the end of the slide before.
+  thumbs(el)[1].click();
+  await settle(el);
+  await caretIn(el, 'title');
+  key(box(el, 'title'), 'Enter', { ctrlKey: true, shiftKey: true });
+  await settle(el);
+  expect(thumbs(el)).toHaveLength(3);
+  await until(() => document.activeElement === box(el, 'title') && el.cur === 2);
+  input(box(el, 'title'), 'deleteContentBackward');
+  await settle(el);
+  expect(thumbs(el)).toHaveLength(2);
+  expect(el.cur).toBe(1);
+});
+
+test('a lone web address pasted into empty words is the thing from the web on the slide; Delete on it takes it off', async () => {
+  const { el, last } = await editor('## Watch\n');
+  await caretIn(el, 'words');
+  await clip(box(el, 'words'), 'paste', { 'text/plain': 'https://example.com/a' });
+  await settle(el);
+  expect(last()).toBe('## Watch\n\nhttps://example.com/a\n');
+  const fig = el.querySelector<HTMLElement>('figure.deck-sub')!;
+  expect(fig).toBeTruthy();
+  fig.focus();
+  key(fig, 'Delete');
+  await settle(el);
+  expect(last()).toBe('## Watch\n');
+  // Words already there: the address is words.
+  await caretIn(el, 'words');
+  await type(el, box(el, 'words'), 'Hi ');
+  await clip(box(el, 'words'), 'paste', { 'text/plain': 'https://example.com/b' });
+  await settle(el);
+  expect(last()).toContain('- Hi https://example.com/b');
+});

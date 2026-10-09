@@ -72,3 +72,36 @@ test('deck: on a phone, typing a slide neither scrolls the page nor moves the ba
   expect(small).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('deck: on a phone, a tap on a thumbnail chooses the slide with its bar inside the screen; Duplicate works by finger; the icon button and the grip are 44px to a finger; a double tap never zooms', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  await page.goto('/#/v1/deck');
+  const title = page.locator('to-deck-editor to-text.deck-title .tx');
+  await title.tap();
+  await page.keyboard.type('First');
+  await expect(page.locator('.deck-thumb')).toHaveCount(1);
+  await page.locator('.deck-thumb').first().tap();
+  await expect(page.locator('.deck-slot.ranged')).toHaveCount(1);
+  const bar = page.locator('to-context.deck-context .to-context');
+  await expect(bar).toBeVisible();
+  const b = (await bar.boundingBox())!;
+  expect(b.x).toBeGreaterThanOrEqual(0);
+  expect(b.x + b.width).toBeLessThanOrEqual(390);
+  await bar.getByRole('button', { name: 'Duplicate' }).tap();
+  await expect(page.locator('.deck-thumb')).toHaveCount(2);
+  await expect(page.locator('.deck-thumb').nth(1)).toHaveAttribute('aria-label', 'Slide 2: First');
+  const sizes = await page.evaluate(() => {
+    const hit = (sel: string) => {
+      const before = getComputedStyle(document.querySelector(sel)!, '::before');
+      return [parseFloat(before.width), parseFloat(before.height)];
+    };
+    const ta = (sel: string) => getComputedStyle(document.querySelector(sel)!).touchAction;
+    return { pick: hit('.deck-pick'), grip: hit('.deck-grip'), canvas: ta('.deck-canvas'), rail: ta('.deck-rail'), thumb: ta('.deck-thumb'), gripTa: ta('.deck-grip') };
+  });
+  expect(Math.min(...sizes.pick)).toBeGreaterThanOrEqual(44);
+  expect(Math.min(...sizes.grip)).toBeGreaterThanOrEqual(44);
+  // touch-action is not inherited but applies to all inside: the rail's manipulation holds on a thumbnail, which a finger still scrolls sideways; the grip alone takes a drag.
+  expect([sizes.canvas, sizes.rail, sizes.gripTa]).toEqual(['manipulation', 'manipulation', 'none']);
+  expect(sizes.thumb).not.toBe('none');
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+});

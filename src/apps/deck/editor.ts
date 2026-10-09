@@ -1,34 +1,41 @@
 /**
  * <to-deck-editor>: the Deck app. One bar (Insert ▾, Present, the marks, link, footnote, the slide's icon,
- * indent, Layout, Look, Transition, Format, the QR toggle, move, delete, undo, redo) over the current
+ * indent, Layout, Look, Transition, Format, the QR toggle, move, delete, then undoTools()) over the current
  * slide, which fills the editor in its format's shape: the headline is a <to-text shape=line> over the
  * slide's heading block, the words a <to-text shape=lines> over its items and paragraphs (two of them for
  * two columns, either side of the "|"), the speaker notes a <to-text shape=lines> over its quote blocks.
- * Every op from an editor is offset by its span's start and applied here with the kernel, recorded in the
- * op-log history (kit/history.ts) and written back to the shell as TLO. A slide that shows another
- * document (a fence, a table, a picture, a web address alone) shows it as a card with a menu. A rail of
- * thumbnails is drawn by the view; a printed format shows its sheets on request; presenting shows one
- * slide at a time with the transition the header names, and ends on the QR code of the deck.
+ * Every op from an editor is offset by its span's start and applied through DocElement's edit(), with a mark
+ * of the slide and the caret (or the slides chosen) that undone() puts back. A slide that shows another
+ * document (a fence, a table, a picture, a web address alone) shows it as a card with a menu.
+ *
+ * The rail's thumbnails are the slides as rows (kit/rows.ts, docs/editing.md §6): a tap chooses one (Shift
+ * extends), its grip drags it, and chosen slides have the contextual bar and the keys (Delete, Alt+Up/Down,
+ * Mod+D, Shift+arrows, Mod+A, Mod+C/X/V as TLO with our HTML). Escape in a box chooses its slide; Select All
+ * with a box whole takes every slide; Enter or a double tap on a thumbnail edits it. The keys of §8: a new
+ * slide is Mod+Shift+Enter, Present Mod+Alt+Enter, PageUp/PageDown on the rail only. A printed format shows
+ * its sheets on request; presenting takes the focus and shows one slide at a time with the transition the
+ * header names, and ends on the QR code of the deck.
  */
-import { LitElement, html, nothing } from 'lit';
+import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ChevronDown, ChevronUp, LayoutTemplate, Palette, Play, Printer, Scroll, Shuffle } from 'lucide';
+import { ChevronDown, ChevronUp, GripVertical, LayoutTemplate, Palette, Play, Printer, Scroll, Shuffle } from 'lucide';
 import { applyAll, noteRuns, parse, plainText, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { tool } from '../../kit/bar.ts';
-import { linkToFence } from '../../kit/clipboard.ts';
+import { docToHtml, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
 import { encodeDoc } from '../../kit/codec.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { pageSvg } from '../../kit/draw.ts';
-import { History } from '../../kit/history.ts';
+import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, iconNamed, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { routeHash } from '../../kit/route.ts';
+import { Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import type { Sel } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { addSlide, FORMATS, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
+import { addSlide, duplicateSlides, FORMATS, isBlank, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
 import { ICON_COLORS, THEMES } from './theme.ts';
 import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
@@ -50,6 +57,13 @@ interface Ask {
 }
 /** Which box the bar's text buttons work on. */
 type Field = 'title' | 'words' | 'right' | 'notes';
+/** Where the selection was when an edit began, handed back to undone(): the slide, and the slides chosen or the caret in a box. */
+interface Mark {
+  slide: number;
+  range?: RowRange<number>;
+  field?: Field;
+  sel?: Sel | null;
+}
 /** Two clicks closer together than this are a double click: show the whole slide. */
 const FAST = 350;
 
@@ -62,11 +76,8 @@ export function offset(ops: Op[], by: number): Op[] {
   });
 }
 
-export class ToDeckEditor extends LitElement {
-  static properties = { value: {}, doc: { state: true }, cur: { state: true }, asking: { state: true }, showing: { state: true }, shown: { state: true }, leaving: { state: true }, noting: { state: true }, sheets: { state: true }, subMenu: { state: true } };
-  /** The document's text, from the shell. */
-  declare value: string;
-  declare doc: Doc;
+export class ToDeckEditor extends DocElement<Slide[]> {
+  static properties = { cur: { state: true }, asking: { state: true }, showing: { state: true }, shown: { state: true }, leaving: { state: true }, noting: { state: true }, sheets: { state: true }, subMenu: { state: true } };
   /** The slide open for editing. */
   declare cur: number;
   declare asking: Ask | null;
@@ -82,22 +93,46 @@ export class ToDeckEditor extends LitElement {
   declare sheets: boolean;
   /** The sub-document's menu is open. */
   declare subMenu: boolean;
-  readonly history = new History();
-  /** The text last written out, so a value coming back is known for ours. */
-  private emitted = '';
   /** The selection the editor last reported, and which box it was in. */
   private sel: Sel | null = null;
   private field: Field = 'title';
   private forwards = true;
   private settle = 0;
   private lastClick = 0;
-  /** Focus asked for after the next draw: the box, and the caret's place in it. */
-  private focusNext: { field: Field; at: 'start' | 'end' } | null = null;
+  /** Focus asked for after the next draw: the box, and the caret's place in it (or a selection to put back). */
+  private focusNext: { field: Field; at: 'start' | 'end' | Sel } | null = null;
+  /** A document has been read: a value after it is either ours, the head edited, or another document. */
+  private loaded = false;
+
+  /** The slides chosen whole on the rail (kit/rows.ts): a tap on a thumbnail, its grip, Shift+arrows, Select All twice. */
+  readonly rows = new Rows<number>(this, {
+    rows: () => this.rowItems(),
+    box: () => this.querySelector<HTMLElement>('.deck-rail'),
+    handle: '.deck-grip',
+    fromWords: false,
+    current: () => (this.cur < this.slides.length ? this.cur : null),
+    // A chosen slide's span runs to the rule after it, so an empty slide (no blocks) is still inside it.
+    span: (rows) => ({ from: this.slides[rows[0].id].from, to: this.slides[rows[rows.length - 1].id].to + 1 }),
+    edit: (id, offset) => {
+      this.go(id);
+      this.focusBox('title', offset === 0 ? 'start' : 'end');
+    },
+    remove: (span) => this.removeRange(span),
+    canMove: (span, by) => {
+      const [lo, hi] = this.idsOf(span);
+      return by < 0 ? lo > 0 : hi + 1 < this.count;
+    },
+    move: (span, by) => this.moveRange(span, by),
+    duplicate: (span) => this.duplicateRange(span),
+    copy: (span) => this.copyRange(span),
+    paste: (data, span) => this.pasteSlides(data, span ? this.idsOf(span)[1] : this.cur),
+    drop: (id, to) => this.dropSlide(id, to),
+    label: t('Chosen slides'),
+    contextClass: 'deck-context',
+  });
 
   constructor() {
     super();
-    this.value = '';
-    this.doc = parse('');
     this.cur = 0;
     this.asking = null;
     this.showing = -1;
@@ -112,22 +147,28 @@ export class ToDeckEditor extends LitElement {
   }
   connectedCallback() {
     super.connectedCallback();
-    this.addEventListener('docundo', this.onUndo);
-    this.addEventListener('docredo', this.onRedo);
-    window.addEventListener('keydown', this.onKey);
+    // After the rows controller's own (added as the element connects): what it answers is not answered again.
+    this.addEventListener('keydown', this.onEditKey);
+    this.addEventListener('text-escape', this.onTextEscape);
+    this.addEventListener('text-selectall', this.onSelectAll);
+    window.addEventListener('keydown', this.onShowKey);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.removeEventListener('docundo', this.onUndo);
-    this.removeEventListener('docredo', this.onRedo);
-    window.removeEventListener('keydown', this.onKey);
+    this.removeEventListener('keydown', this.onEditKey);
+    this.removeEventListener('text-escape', this.onTextEscape);
+    this.removeEventListener('text-selectall', this.onSelectAll);
+    window.removeEventListener('keydown', this.onShowKey);
     clearTimeout(this.settle);
+  }
+  protected read(doc: Doc): Slide[] {
+    return slidesOf(doc);
   }
 
   /* ---------- the document ---------- */
 
   get slides(): Slide[] {
-    return slidesOf(this.doc);
+    return this.view ?? slidesOf(this.doc);
   }
   get settings(): Settings {
     return settingsOf(this.doc);
@@ -165,41 +206,61 @@ export class ToDeckEditor extends LitElement {
     return this.spans;
   }
 
-  protected willUpdate(changed: Map<string, unknown>) {
-    if (changed.has('value') && this.value !== this.emitted) this.take(this.value);
+  protected willUpdate(changed: PropertyValues<this>) {
+    if (changed.has('value') || !this.loaded) this.take(this.value ?? '');
+    super.willUpdate(changed);
     if (this.cur >= this.count) this.cur = this.count - 1;
+    // The slide on show follows the slides chosen.
+    const r = this.rows.range;
+    if (r && r.focus !== this.seenFocus && r.focus < this.count) this.cur = r.focus;
+    this.seenFocus = r?.focus ?? null;
   }
-  /** A value from outside: the same blocks with another head is the head edited (undoable); anything else is another document, loosened if written loosely. */
+  /** The slide the range last reached: the slide on show follows it when it moves, and is free while it stays. */
+  private seenFocus: number | null = null;
+  /** A value from outside: ours is nothing new; the same blocks with another head is the head edited (undoable); anything else is another document, loosened if written loosely. */
   private take(text: string) {
+    if (this.loaded && text === write(this.doc)) return;
     const parsed = parse(text);
-    const same = parsed.blocks.length === this.doc.blocks.length && write({ head: {}, blocks: parsed.blocks }) === write({ head: {}, blocks: this.doc.blocks });
-    if (same && this.emitted) {
+    if (this.loaded && parsed.blocks.length === this.doc.blocks.length && write({ head: {}, blocks: parsed.blocks }) === write({ head: {}, blocks: this.doc.blocks })) {
       const keys = new Set([...Object.keys(this.doc.head), ...Object.keys(parsed.head)]);
-      const ops: Op[] = [...keys].filter((k) => this.doc.head[k] !== parsed.head[k]).map((key) => ({ op: 'head', key, value: parsed.head[key] }));
-      this.history.record(this.doc, ops, this.sel, this.sel);
-      this.doc = { head: parsed.head, blocks: this.doc.blocks };
-      this.emitted = text;
+      this.edit([...keys].filter((k) => this.doc.head[k] !== parsed.head[k]).map((key): Op => ({ op: 'head', key, value: parsed.head[key] })));
       return;
     }
-    this.history.clear();
+    if (this.loaded) this.cur = 0;
+    this.loaded = true;
     const next = loosen(parsed);
-    this.doc = next;
-    this.cur = 0;
-    this.emitted = text;
-    if (next !== parsed) this.emit();
+    if (next === parsed) return;
+    this.value = write(next);
+    this.dispatchEvent(new CustomEvent<string>('docchange', { detail: this.value, bubbles: true }));
   }
-  private emit() {
-    this.emitted = write(this.doc);
-    this.value = this.emitted;
-    this.dispatchEvent(new CustomEvent<string>('docchange', { detail: this.emitted, bubbles: true }));
+  /** Where the selection is now, for an edit to carry to its undo. */
+  private mark(): Mark {
+    const r = this.rows.range;
+    return r ? { slide: this.cur, range: { ...r } } : { slide: this.cur, field: this.field, sel: this.sel };
   }
-  /** Ops from anywhere: applied, recorded, the shell told. */
-  private edit(ops: Op[], key?: string) {
-    if (!ops.length) return;
-    const was = this.doc;
-    this.doc = applyAll(was, ops);
-    this.history.record(was, ops, this.sel, this.sel, key);
-    this.emit();
+  /** Ops from anywhere: applied, recorded with where the selection was, the shell told. */
+  private change(ops: Op[], key?: string, mark: Mark = this.mark()) {
+    this.edit(ops, key, mark);
+  }
+  /** After an undo or a redo: the slide it changed shown, and the slides chosen or the caret put back as they were. */
+  protected undone(entry: Entry) {
+    const m = entry.mark as Mark | undefined;
+    const at = firstAt(entry);
+    if (!m && at < 0) return;
+    const slide = m ? m.slide : this.slideAt(at);
+    this.rows.release();
+    this.go(slide);
+    if (m?.range) {
+      const r = m.range;
+      void this.updateComplete.then(() => (r.anchor < this.slides.length && r.focus < this.slides.length ? this.rows.select(r) : undefined));
+    } else if (m?.field && m.sel) this.focusNext = { field: m.field, at: m.sel };
+    else this.focusNext = { field: 'title', at: 'end' };
+    this.requestUpdate();
+  }
+  /** The slide holding block `at`. */
+  private slideAt(at: number): number {
+    const i = this.slides.findIndex((s) => at <= s.to);
+    return i < 0 ? this.slides.length - 1 : i;
   }
   /** The rules that make slide i exist, when it is a page past what is written: the ops, and where its (empty) span will sit. */
   private ensure(i: number): { ops: Op[]; start: number } {
@@ -211,7 +272,7 @@ export class ToDeckEditor extends LitElement {
   /** Ops from one of the boxes: offset to its span, the first block of an empty span given the kind the box is for. */
   private onOps(field: Field, e: CustomEvent<TextOps>) {
     e.stopPropagation();
-    const { ops, sel, before, kind } = e.detail;
+    const { ops, before, kind } = e.detail;
     const s = this.slide;
     const made = this.ensure(this.cur);
     if (field === 'title') {
@@ -221,11 +282,7 @@ export class ToDeckEditor extends LitElement {
       const runs = next && 'runs' in next ? next.runs : [];
       const h: Block = { k: 'h', level: was?.level ?? 2, runs: joinHeadline(s.icon, runs), ...(was?.a ? { a: was.a } : {}) };
       const put: Op = was ? { op: 'splice', at: s.head, n: 1, blocks: [h] } : { op: 'splice', at: made.start >= 0 ? made.start : s.from, n: 0, blocks: [h] };
-      const all = [...made.ops, put];
-      const before_ = this.doc;
-      this.doc = applyAll(before_, all);
-      this.history.record(before_, all, before, sel, kind);
-      this.emit();
+      this.change([...made.ops, put], kind ? `type:${this.cur}:title` : undefined, { slide: this.cur, field, sel: before });
       return;
     }
     const start = made.start >= 0 ? made.start : field === 'words' ? s.words[0] : field === 'right' ? s.pipe + 1 : s.notes[0];
@@ -233,11 +290,7 @@ export class ToDeckEditor extends LitElement {
     const first = moved[0];
     // The editor over an empty span puts a paragraph in first: here it is the block the box is for.
     if (first?.op === 'splice' && first.n === 0 && first.blocks.length === 1 && first.blocks[0].k === 'p' && !first.blocks[0].runs.length) moved = [{ ...first, blocks: [this.born(field, s)] }, ...moved.slice(1)];
-    const all = [...made.ops, ...moved];
-    const was = this.doc;
-    this.doc = applyAll(was, all);
-    this.history.record(was, all, before, sel, kind);
-    this.emit();
+    this.change([...made.ops, ...moved], kind ? `type:${this.cur}:${field}` : undefined, { slide: this.cur, field, sel: before });
   }
   /** The block an empty box's first words make: a headline, a bullet (prose on a printed page), a note. */
   private born(field: Field, s: Slide): Block {
@@ -246,25 +299,6 @@ export class ToDeckEditor extends LitElement {
     const prose = !!this.settings.format && this.settings.format !== 'comic' && !s.layout;
     return prose ? { k: 'p', runs: [] } : { k: 'li', depth: 0, runs: [] };
   }
-  private step(which: 'undo' | 'redo') {
-    const st = which === 'undo' ? this.history.undo() : this.history.redo();
-    if (!st) return;
-    this.doc = applyAll(this.doc, st.ops);
-    this.emit();
-    void this.updateComplete.then(() => {
-      const box = this.current;
-      if (box && st.sel) box.sel = st.sel;
-      else box?.focus({ preventScroll: true });
-    });
-  }
-  private onUndo = (e: Event) => {
-    e.preventDefault();
-    this.step('undo');
-  };
-  private onRedo = (e: Event) => {
-    e.preventDefault();
-    this.step('redo');
-  };
   /** A box's selection, for the bar's pressed states (the box itself is known from its focus). */
   private onSelect(field: Field, e: CustomEvent<Sel | null>) {
     e.stopPropagation();
@@ -286,8 +320,11 @@ export class ToDeckEditor extends LitElement {
     const model = box.model;
     const last = model.length - 1;
     const len = (b: Block) => ('runs' in b ? b.runs.reduce((n, r) => n + (r.ic || r.fn !== undefined ? 1 : r.t.length), 0) : 0);
-    const pos = f.at === 'start' ? { block: 0, offset: 0 } : { block: last, offset: len(model[last]) };
-    box.sel = { anchor: pos, focus: pos };
+    if (typeof f.at === 'object') box.sel = f.at;
+    else {
+      const pos = f.at === 'start' ? { block: 0, offset: 0 } : { block: last, offset: len(model[last]) };
+      box.sel = { anchor: pos, focus: pos };
+    }
     box.focus({ preventScroll: true });
   }
 
@@ -304,13 +341,13 @@ export class ToDeckEditor extends LitElement {
     const made = this.ensure(this.cur);
     const doc = applyAll(this.doc, made.ops);
     const added = addSlide(doc, this.cur, layout, blocks);
-    this.edit([...made.ops, ...added.ops]);
+    this.change([...made.ops, ...added.ops]);
     this.cur = added.at;
     this.focusBox('title');
   }
   private deleteSlide() {
     if (this.cur >= this.slides.length) return;
-    this.edit(removeSlide(this.doc, this.cur));
+    this.change(removeSlide(this.doc, this.cur));
     this.cur = Math.max(0, Math.min(this.cur, this.count - 1));
   }
   private move(by: 1 | -1) {
@@ -319,9 +356,84 @@ export class ToDeckEditor extends LitElement {
     // Moving against a page not yet written: the rules are written first, so that both exist.
     const made = this.ensure(Math.max(j, this.cur));
     const doc = applyAll(this.doc, made.ops);
-    this.edit([...made.ops, ...moveSlide(doc, this.cur, j)]);
+    this.change([...made.ops, ...moveSlide(doc, this.cur, j)]);
     this.cur = j;
   }
+  /* ---------- slides chosen whole (kit/rows.ts) ---------- */
+
+  /** The thumbnails of the slides written, as the rows controller takes them: each with the blocks of its slide. */
+  private rowItems(): RowItem<number>[] {
+    const els = this.querySelectorAll<HTMLElement>('.deck-slot');
+    const out: RowItem<number>[] = [];
+    this.slides.forEach((s, i) => els[i] && out.push({ id: i, el: els[i], span: { from: s.from, to: s.to } }));
+    return out;
+  }
+  /** The first and last slides a span covers. */
+  private idsOf(span: RowSpan): [number, number] {
+    const ids = this.slides.flatMap((s, i) => (s.from >= span.from && s.from < span.to ? [i] : []));
+    return [ids[0] ?? this.cur, ids[ids.length - 1] ?? this.cur];
+  }
+  /** The chosen slides taken out; the focus on the thumbnail of the slide now in their place. */
+  private removeRange(span: RowSpan) {
+    const [lo, hi] = this.idsOf(span);
+    this.change(removeSlide(this.doc, lo, hi));
+    this.cur = Math.max(0, Math.min(lo, this.count - 1));
+    void this.updateComplete.then(() => this.querySelectorAll<HTMLElement>('.deck-thumb')[this.cur]?.focus({ preventScroll: true }));
+  }
+  /** The chosen slides past the slide before them or after them; they stay chosen. */
+  private moveRange(span: RowSpan, by: 1 | -1): RowRange<number> | null {
+    const [lo, hi] = this.idsOf(span);
+    const r = this.rows.range;
+    if (by < 0 ? lo === 0 : hi + 1 >= this.count) return null;
+    // Moving against a page not yet written: the rules are written first, so that both exist.
+    const made = this.ensure(hi + 1);
+    const doc = applyAll(this.doc, made.ops);
+    this.change([...made.ops, ...(by < 0 ? moveSlide(doc, lo - 1, hi) : moveSlide(doc, hi + 1, lo))]);
+    this.cur += by;
+    return r ? { anchor: r.anchor + by, focus: r.focus + by } : { anchor: lo + by, focus: hi + by };
+  }
+  /** The chosen slides again, right after them; the copies are chosen. */
+  private duplicateRange(span: RowSpan): RowRange<number> | null {
+    const [lo, hi] = this.idsOf(span);
+    const d = duplicateSlides(this.doc, lo, hi);
+    if (!d.ops.length) return null;
+    this.change(d.ops);
+    return { anchor: d.at, focus: d.at + hi - lo };
+  }
+  /** Mod+D with the caret in a slide's words: the slide again after it, the caret in the copy's headline. */
+  private duplicateSlide() {
+    if (this.cur >= this.slides.length) return;
+    const d = duplicateSlides(this.doc, this.cur);
+    this.change(d.ops);
+    this.cur = d.at;
+    this.focusBox('title');
+  }
+  /** What chosen slides put on the clipboard: their blocks as TLO, the rules between them kept, and as HTML with our marker. */
+  private copyRange(span: RowSpan): Clip {
+    const [lo, hi] = this.idsOf(span);
+    const blocks = slideBlocks(this.doc, lo, hi);
+    return { text: write({ head: {}, blocks }), html: docToHtml(blocks) };
+  }
+  /** Slides pasted after slide `after`: our own copy comes back as the slides it was; anything else is read as a slide's blocks (a line of words, its headline). */
+  private pasteSlides(data: Clip, after: number) {
+    const got = pasteFrom(data, 'doc');
+    if (!got) return;
+    const blocks: Block[] = 'runs' in got ? [{ k: 'h', level: 2, runs: got.runs }] : got.blocks;
+    if (!blocks.length) return;
+    const made = this.ensure(after);
+    const doc = applyAll(this.doc, made.ops);
+    const added = addSlide(doc, after, '', blocks);
+    this.change([...made.ops, ...added.ops]);
+    this.cur = added.at;
+  }
+  /** A slide dragged by its grip and let go over another: it comes after that one. */
+  private dropSlide(id: number, to: number) {
+    const j = id < to ? to : to + 1;
+    if (j === id) return;
+    this.change(moveSlide(this.doc, id, j));
+    this.cur = j;
+  }
+
   /** The current slide, made to exist first: the ops that make it, and the slide as it then is. */
   private existing(): { ops: Op[]; doc: Doc; s: Slide } {
     const made = this.ensure(this.cur);
@@ -330,7 +442,7 @@ export class ToDeckEditor extends LitElement {
   }
   private setLayout(layout: Layout) {
     const { ops, doc, s } = this.existing();
-    this.edit([...ops, ...setLayout(doc, s, layout)]);
+    this.change([...ops, ...setLayout(doc, s, layout)]);
   }
   /** The slide's icon, from the library, its own words suggesting; the deck's icon colour is in the Look menu. */
   private async pickIcon() {
@@ -340,7 +452,7 @@ export class ToDeckEditor extends LitElement {
     const name = await chooseIcon({ current: s.icon, none: true, suggested: suggestIcons(plainText(s.title), s.items.map((it) => plainText(it.runs))) });
     if (name === null) return;
     const made = this.existing();
-    this.edit([...made.ops, ...setIcon(made.doc, made.s, name)]);
+    this.change([...made.ops, ...setIcon(made.doc, made.s, name)]);
   }
   /** Another document on the slide: on this one if it has nothing on it, else on a new slide after it. */
   private putSub(block: Block) {
@@ -348,14 +460,14 @@ export class ToDeckEditor extends LitElement {
     const blank = this.cur >= this.slides.length || (s.sub < 0 && !s.items.length && !s.right.length && !plainText(s.title).trim() && !s.icon);
     if (!blank) return this.newSlide('', [block]);
     const made = this.existing();
-    this.edit([...made.ops, ...setSub(made.s, block)]);
+    this.change([...made.ops, ...setSub(made.s, block)]);
   }
   private subItems(): MenuItem[] {
     const s = this.slide;
     const b = s.sub >= 0 ? this.doc.blocks[s.sub] : null;
     if (!b) return [];
     const here = `${location.origin}${location.pathname}`;
-    const remove = { label: t('Remove from the slide'), icon: UI.trash, does: () => this.edit(setSub(s, null)) };
+    const remove = { label: t('Remove from the slide'), icon: UI.trash, does: () => this.change(setSub(s, null)) };
     if (b.k === 'fence' && b.lang) {
       const def = lookup.appOf(b.lang);
       return [{ label: t('Open in {app}', { app: def?.name ?? b.lang }), icon: UI.open, does: () => void window.open(here + routeHash(b.lang, encodeDoc(b.body)), '_blank', 'noopener') }, remove];
@@ -368,7 +480,7 @@ export class ToDeckEditor extends LitElement {
         icon: UI.pen,
         does: async () => {
           const next = await this.ask(b.k === 'img' ? t('Picture') : t('From the web'), t('Address'), 'https://', url);
-          if (next?.trim()) this.edit(setSub(s, b.k === 'img' ? { ...b, url: next.trim() } : webBlock(next)));
+          if (next?.trim()) this.change(setSub(s, b.k === 'img' ? { ...b, url: next.trim() } : webBlock(next)));
         },
       },
       remove,
@@ -424,7 +536,7 @@ export class ToDeckEditor extends LitElement {
     const onSlide = page ? t('On the page') : t('On the slide');
     return [
       ...(bySheet
-        ? [{ label: t('Four more pages'), icon: UI.plus, group, disabled: full, does: () => this.edit(setHead('pages', String(Math.min(g!.grow!, this.count + (g!.by ?? 4))))) }]
+        ? [{ label: t('Four more pages'), icon: UI.plus, group, disabled: full, does: () => this.change(setHead('pages', String(Math.min(g!.grow!, this.count + (g!.by ?? 4))))) }]
         : LAYOUTS.map((l) => ({ label: name(l.id), icon: icons[l.id], group, disabled: full, does: () => this.newSlide(l.id) }))),
       { label: t('Picture…'), icon: UI.image, group: onSlide, does: () => void this.insertPicture() },
       { label: t('Table'), icon: UI.table, group: onSlide, does: () => this.putSub({ k: 'table', cols: [{ name: 'ColA', type: 'text' }, { name: 'ColB', type: 'text' }, { name: 'ColC', type: 'text' }], rows: [] }) },
@@ -441,16 +553,16 @@ export class ToDeckEditor extends LitElement {
   }
   private lookItems(): MenuItem[] {
     const s = this.settings;
-    const theme = (id: string) => ({ label: THEMES[id].name(), swatch: THEMES[id].dark ? THEMES[id].paper : THEMES[id].accent, group: THEMES[id].fun ? t('Fun') : t('Theme'), checked: s.theme === id, does: () => this.edit(setHead('theme', id)) });
+    const theme = (id: string) => ({ label: THEMES[id].name(), swatch: THEMES[id].dark ? THEMES[id].paper : THEMES[id].accent, group: THEMES[id].fun ? t('Fun') : t('Theme'), checked: s.theme === id, does: () => this.change(setHead('theme', id)) });
     return [
       ...Object.keys(THEMES).map(theme),
-      { label: t('The theme\'s colour'), swatch: THEMES[s.theme].accent, group: t('Icons'), checked: !s.color, does: () => this.edit(setHead('color', '')) },
-      ...Object.entries(ICON_COLORS).map(([id, c]) => ({ label: c.name(), swatch: c.hex, group: t('Icons'), checked: s.color === id, does: () => this.edit(setHead('color', id)) })),
+      { label: t('The theme\'s colour'), swatch: THEMES[s.theme].accent, group: t('Icons'), checked: !s.color, does: () => this.change(setHead('color', '')) },
+      ...Object.entries(ICON_COLORS).map(([id, c]) => ({ label: c.name(), swatch: c.hex, group: t('Icons'), checked: s.color === id, does: () => this.change(setHead('color', id)) })),
     ];
   }
   private transitionItems(): MenuItem[] {
     const now = this.settings.transition;
-    return TRANSITIONS.map((x) => ({ label: x.name(), checked: x.id === now, does: () => this.edit(setHead('transition', x.id)) }));
+    return TRANSITIONS.map((x) => ({ label: x.name(), checked: x.id === now, does: () => this.change(setHead('transition', x.id)) }));
   }
   private formatItems(): MenuItem[] {
     const s = this.settings;
@@ -459,14 +571,14 @@ export class ToDeckEditor extends LitElement {
       ...FORMATS.map((f) => ({ label: f.name(), group: t('Format'), checked: f.id === s.format, does: () => this.setFormat(f.id) })),
       ...(g?.sides
         ? [
-            { label: t('One-sided: fold and cut'), group: t('Printing'), checked: !s.two, does: () => this.edit(setHead('sides', '')) },
-            { label: t('Two-sided: cut and nest'), group: t('Printing'), checked: s.two, does: () => this.edit(setHead('sides', '2')) },
+            { label: t('One-sided: fold and cut'), group: t('Printing'), checked: !s.two, does: () => this.change(setHead('sides', '')) },
+            { label: t('Two-sided: cut and nest'), group: t('Printing'), checked: s.two, does: () => this.change(setHead('sides', '2')) },
           ]
         : []),
     ];
   }
   private setFormat(format: Format) {
-    this.edit([...setHead('format', format), ...setHead('sides', ''), ...setHead('pages', '')]);
+    this.change([...setHead('format', format), ...setHead('sides', ''), ...setHead('pages', '')]);
     this.sheets = false;
   }
 
@@ -474,7 +586,7 @@ export class ToDeckEditor extends LitElement {
 
   /** The closing code, drawn from the deck as it stands. */
   private get end() {
-    return closingPage(this.emitted || write(this.doc), this.doc, this.settings);
+    return closingPage(this.value || write(this.doc), this.doc, this.settings);
   }
   private total(): number {
     return this.slides.length + (this.end ? 1 : 0);
@@ -490,6 +602,11 @@ export class ToDeckEditor extends LitElement {
     const was = this.showing;
     this.showing = i;
     this.shown = shown;
+    // Into the show, the focus goes with it: no key reaches the box behind.
+    if (i >= 0 && was < 0) {
+      this.rows.release();
+      void this.updateComplete.then(() => this.querySelector<HTMLElement>('.deck-show')?.focus({ preventScroll: true }));
+    }
     // Out of the show, the focus comes back to the button that began it.
     if (i < 0 && was >= 0) void this.updateComplete.then(() => this.querySelector<HTMLButtonElement>('button.deck-present')?.focus({ preventScroll: true }));
   }
@@ -509,25 +626,123 @@ export class ToDeckEditor extends LitElement {
     else this.forward();
     this.lastClick = now;
   };
-  private onKey = (e: KeyboardEvent) => {
-    if (!this.isConnected) return;
-    if (this.showing >= 0) {
-      if (e.key === 'Escape') this.show(-1);
-      else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') this.forward();
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') this.back();
-      else if (e.key === 'End') this.shown = this.steps();
-      else if (e.key.toLowerCase() === 'n') this.noting = !this.noting;
-      else return;
+  /** While presenting, the keys are the show's: nothing reaches the boxes behind it. */
+  private onShowKey = (e: KeyboardEvent) => {
+    if (!this.isConnected || this.showing < 0) return;
+    const mod = e.metaKey || e.ctrlKey;
+    if (e.key === 'Escape') this.show(-1);
+    else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') this.forward();
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') this.back();
+    else if (e.key === 'End') this.shown = this.steps();
+    else if (e.key.toLowerCase() === 'n' && !mod) this.noting = !this.noting;
+    else if (e.key.length !== 1 || mod) return;
+    e.preventDefault();
+  };
+  /**
+   * The editor's own keys, after the boxes and the rows controller have had theirs: Mod+Shift+Enter a new slide
+   * (in every format), Mod+Alt+Enter present, Mod+Enter in the headline on to the words (a line's "done"), Mod+D
+   * the slide again, Alt+Up/Down in the headline the slide past its neighbour (the caret stays). Never from a
+   * dialog, a popover, a field or a bar button.
+   */
+  private onEditKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented || this.showing >= 0) return;
+    const el = e.target as HTMLElement;
+    if (el.closest?.('dialog, [popover], input, textarea, select, to-bar, to-context, .deck-show')) return;
+    const words = el.closest?.('to-text');
+    if (this.rows.range && !words) return;
+    const mod = e.metaKey || e.ctrlKey;
+    const k = e.key;
+    const inTitle = !!words?.classList.contains('deck-title');
+    if (mod && e.shiftKey && !e.altKey && k === 'Enter') this.newSlide();
+    else if (mod && e.altKey && !e.shiftKey && k === 'Enter') {
+      if (this.settings.format) return;
+      this.show(this.cur);
+    } else if (mod && !e.altKey && !e.shiftKey && k === 'Enter' && inTitle) this.focusBox(this.slide.sub >= 0 ? 'notes' : 'words', 'start');
+    else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd' && (words || el.closest?.('.deck-canvas'))) this.duplicateSlide();
+    else if (e.altKey && !mod && !e.shiftKey && (k === 'ArrowUp' || k === 'ArrowDown') && inTitle) {
+      const sel = this.text('title')?.sel ?? null;
+      const by = k === 'ArrowUp' ? -1 : 1;
+      if (this.cur + by < 0 || this.cur + by >= this.count) return;
+      this.move(by);
+      this.focusNext = { field: 'title', at: sel ?? 'end' };
+    } else return;
+    e.preventDefault();
+  };
+  /** Escape in a box, once it has closed its boxes and collapsed its words: out of the words, the slide chosen on the rail. */
+  private onTextEscape = (e: Event) => {
+    if (e.defaultPrevented || this.cur >= this.slides.length) return;
+    e.preventDefault();
+    this.rows.choose(this.cur);
+  };
+  /** Select All with a box already whole: every slide. */
+  private onSelectAll = (e: Event) => {
+    e.stopPropagation();
+    this.rows.selectAll();
+  };
+  /** A thumbnail tapped: its slide on show, and chosen (Shift extends). */
+  private onThumb(i: number, e: MouseEvent) {
+    this.go(i);
+    if (i < this.slides.length) this.rows.choose(i, e.shiftKey);
+  }
+  /** Keys on the rail: PageUp/PageDown change slides; on a thumbnail, Enter edits its words, and the keys that act on a chosen slide choose it first (the rows controller then answers them). */
+  private onRailKey = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    const mod = e.metaKey || e.ctrlKey;
+    if ((e.key === 'PageDown' || e.key === 'PageUp') && !mod && !e.altKey) {
       e.preventDefault();
+      this.rows.release();
+      this.go(this.cur + (e.key === 'PageDown' ? 1 : -1));
+      void this.updateComplete.then(() => this.querySelectorAll<HTMLElement>('.deck-thumb')[this.cur]?.focus({ preventScroll: true }));
       return;
     }
-    const mod = e.metaKey || e.ctrlKey;
-    if (mod && e.shiftKey && e.key === 'Enter' && !this.settings.format) this.show(this.cur);
-    else if (mod && e.key === 'Enter') this.newSlide();
-    else if (e.key === 'PageDown' && !mod) this.go(this.cur + 1);
-    else if (e.key === 'PageUp' && !mod) this.go(this.cur - 1);
-    else return;
-    e.preventDefault();
+    const thumb = (e.target as HTMLElement).closest?.<HTMLElement>('.deck-thumb');
+    if (!thumb || this.rows.range) return;
+    const i = Number(thumb.dataset.i);
+    if (e.key === 'Enter' && !mod && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      this.go(i);
+      this.focusBox('title');
+      return;
+    }
+    if (i >= this.slides.length) return;
+    const k = e.key.toLowerCase();
+    const vertical = e.key === 'ArrowUp' || e.key === 'ArrowDown';
+    const takes = e.key === 'Delete' || e.key === 'Backspace' || (vertical && (e.altKey || e.shiftKey) && !mod) || (mod && !e.altKey && ['a', 'c', 'd', 'v', 'x'].includes(k));
+    if (takes) this.rows.choose(i);
+  };
+  /** The headline's edges: Backspace at the start of an empty slide takes the slide away (the caret to the end of the one before); Delete at its end goes on to the words. */
+  private onTitleExit(e: CustomEvent<{ dir: 'back' | 'forward' }>) {
+    e.stopPropagation();
+    const s = this.slide;
+    if (e.detail.dir === 'forward') return this.focusBox(s.sub >= 0 ? 'notes' : 'words', 'start');
+    if (this.cur === 0 || this.cur >= this.slides.length || !isBlank(s) || s.layout) return;
+    this.change(removeSlide(this.doc, this.cur));
+    this.go(this.cur - 1);
+    this.focusBox(this.slide.sub >= 0 ? 'title' : 'words', 'end');
+  }
+  /** A lone web address pasted into empty words: the thing from the web on the slide, as Insert ▾ would put it. */
+  private onWordsPaste = {
+    capture: true,
+    handleEvent: (e: ClipboardEvent) => {
+      const text = (e.clipboardData?.getData('text/plain') ?? '').trim();
+      const box = this.text('words');
+      if (!/^https?:\/\/\S+$/.test(text) || !box || box.model.some((b) => 'runs' in b && plainText(b.runs).trim())) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const made = this.existing();
+      this.change([...made.ops, ...setSub(made.s, linkToFence(text) ?? webBlock(text))]);
+    },
+  };
+  /** Delete or Backspace on the document on the slide takes it off; Enter or Space opens its menu. */
+  private onSubKey = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.openSubMenu(e);
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      this.change(setSub(this.slide, null));
+      this.focusBox('title');
+    }
   };
 
   /* ---------- drawing ---------- */
@@ -573,14 +788,14 @@ export class ToDeckEditor extends LitElement {
     return html`<div class="deck-canvas lay-${s.layout || 'b'} ${look.themed ? 'themed' : ''} ${look.theme.dark ? 'dark' : ''} ${sub ? 'has-sub' : ''} ${prose ? 'prose' : ''}" style=${this.canvasStyle(s, look, size)} data-format=${st.format || 'deck'}>
         <div class="deck-head">
           ${s.layout === 'i' ? nothing : pick}
-          <to-text class="deck-title" shape="line" .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @focusin=${() => (this.field = 'title')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')}></to-text>
+          <to-text class="deck-title" shape="line" .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @focusin=${() => (this.field = 'title')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => this.onTitleExit(e)}></to-text>
         </div>
         ${sub
-          ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), this.openSubMenu(e))}>
+          ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
               <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(sub.svg)}</svg>
             </figure>`
           : html`<div class="deck-words-row">
-              <to-text class="deck-words" shape="lines" .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')}></to-text>
+              <to-text class="deck-words" shape="lines" @paste=${this.onWordsPaste} .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')}></to-text>
               ${s.layout === '2'
                 ? html`<to-text class="deck-right" shape="lines" .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @focusin=${() => (this.field = 'right')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')}></to-text>`
                 : s.layout === 'i'
@@ -602,13 +817,18 @@ export class ToDeckEditor extends LitElement {
     const n = this.count;
     const slides = this.slides;
     const end = g ? null : this.end;
-    return html`<nav class="deck-rail" aria-label=${g ? t('Pages') : t('Slides')}>
+    const d = this.rows.drag;
+    return html`<nav class="deck-rail" tabindex="-1" aria-label=${g ? t('Pages') : t('Slides')} @keydown=${this.onRailKey}>
       ${Array.from({ length: n }, (_, i) => {
         const s = slides[i];
         const p = pageOf(this.doc, i, st, slides, look);
         const words = s ? plainText(s.title).trim() || plainText(s.items[0]?.runs ?? []).trim() : '';
         const name = (g ? g.name(i, n) : t('Slide {n}', { n: i + 1 })) + (words ? `: ${words}` : '');
-        return html`<button type="button" class="deck-thumb" aria-label=${name} aria-current=${i === this.cur ? 'true' : 'false'} @click=${() => this.go(i)}><span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg></button>`;
+        const ranged = !!s && this.rows.has(i);
+        return html`<div class="deck-slot ${ranged ? 'ranged' : ''} ${d?.id === i ? 'dragging' : ''}">
+          <button type="button" class="deck-thumb" data-i=${i} aria-label=${name} aria-current=${i === this.cur ? 'true' : 'false'} aria-pressed=${s ? String(ranged) : nothing} @click=${(e: MouseEvent) => this.onThumb(i, e)} @dblclick=${() => (this.rows.release(), this.go(i), this.focusBox('title'))}><span class="n">${i + 1}</span><svg viewBox="0 0 ${p.w} ${p.h}" aria-hidden="true">${unsafeSVG(p.svg)}</svg></button>
+          ${s ? html`<button type="button" class="deck-grip to-rows-handle" tabindex="-1" aria-label=${t('Move this slide: drag it onto another')} title=${t('Drag to move')}>${icon(GripVertical, 14)}</button>` : nothing}
+        </div>`;
       })}
       ${end ? html`<div class="deck-end" role="img" aria-label=${t('Last slide, added for you: a QR code of this whole deck')} title=${t('Ends with a QR code of this deck, so the room can take it home. The QR button turns it off.')}>${icon(UI.qr, 28)}<span>${t('QR code of this deck')}</span></div>` : nothing}
     </nav>`;
@@ -629,7 +849,7 @@ export class ToDeckEditor extends LitElement {
     const p = page(this.showing, this.shown);
     const s = slides[this.showing];
     const motion = `tr-${this.settings.transition || 'fade'} ${this.forwards ? '' : 'back'}`;
-    return html`<div class="deck-show" role="dialog" aria-modal="true" aria-label=${t('Presentation')} @click=${this.onShowClick}>
+    return html`<div class="deck-show" role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presentation')} @click=${this.onShowClick}>
       ${this.leaving >= 0 && this.leaving < total ? keyed(this.leaving, html`<div class="was ${motion}" aria-hidden="true"><svg viewBox="0 0 ${SW} ${SH}">${unsafeSVG(page(this.leaving).svg)}</svg></div>`) : nothing}
       ${keyed(this.showing, html`<div class="frame ${motion}"><svg viewBox="0 0 ${SW} ${SH}" role="img" aria-label=${p.alt || ''}>${unsafeSVG(p.svg)}</svg></div>`)}
       <p class="sr-only" aria-live="polite">${t('Slide {n} of {total}', { n: this.showing + 1, total })}: ${p.alt ?? ''}</p>
@@ -658,7 +878,7 @@ export class ToDeckEditor extends LitElement {
         <to-insert .items=${this.inserts()}></to-insert>
         ${g
           ? tool({ label: this.sheets ? t('Back to the pages') : t('See the sheets to print'), icon: Printer, pressed: this.sheets, cls: 'deck-present', does: () => (this.sheets = !this.sheets) })
-          : tool({ label: t('Present'), icon: Play, keys: 'Mod+Shift+Enter', cls: 'deck-present', does: () => this.show(this.cur) })}
+          : tool({ label: t('Present'), icon: Play, keys: 'Mod+Alt+Enter', cls: 'deck-present', does: () => this.show(this.cur) })}
         ${tool({ label: t('Bold'), icon: UI.bold, keys: 'Mod+B', keep: true, pressed: on('b'), does: () => this.current?.exec('b') })}
         ${tool({ label: t('Italic'), icon: UI.italic, keys: 'Mod+I', keep: true, pressed: on('i'), does: () => this.current?.exec('i') })}
         ${tool({ label: t('Underline'), icon: UI.underline, keys: 'Mod+U', keep: true, pressed: on('u'), does: () => this.current?.exec('u') })}
@@ -673,12 +893,11 @@ export class ToDeckEditor extends LitElement {
         <to-menu class="deck-look" icon-only .label=${t('Look: {theme}', { theme: THEMES[st.theme].name() })} .icon=${Palette} .items=${this.lookItems()}></to-menu>
         ${g ? nothing : html`<to-menu class="deck-transition" icon-only .label=${t('Transition: {transition}', { transition: TRANSITIONS.find((x) => x.id === st.transition)!.name() })} .icon=${Shuffle} .items=${this.transitionItems()}></to-menu>`}
         <to-menu class="deck-format" icon-only .label=${t('Format: {format}', { format: FORMATS.find((f) => f.id === st.format)!.name() })} .icon=${Scroll} .items=${this.formatItems()}></to-menu>
-        ${g ? nothing : tool({ label: t('End with a QR code of this deck'), icon: UI.qr, pressed: st.qr, does: () => this.edit(setHead('qr', st.qr ? 'no' : '')) })}
+        ${g ? nothing : tool({ label: t('End with a QR code of this deck'), icon: UI.qr, pressed: st.qr, does: () => this.change(setHead('qr', st.qr ? 'no' : '')) })}
         ${tool({ label: g ? t('Move page up') : t('Move slide up'), icon: ChevronUp, disabled: this.cur === 0, does: () => this.move(-1) })}
         ${tool({ label: g ? t('Move page down') : t('Move slide down'), icon: ChevronDown, disabled: this.cur >= n - 1, does: () => this.move(1) })}
         ${tool({ label: g ? t('Delete page') : t('Delete slide'), icon: UI.trash, disabled: this.cur >= this.slides.length, does: () => this.deleteSlide() })}
-        ${tool({ label: t('Undo'), icon: UI.undo, keys: 'Mod+Z', keep: true, disabled: !this.history.canUndo, does: () => this.step('undo') })}
-        ${tool({ label: t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z', keep: true, disabled: !this.history.canRedo, does: () => this.step('redo') })}
+        ${this.undoTools()}
       </to-bar>
       ${this.sheets && g
         ? this.renderSheets()
@@ -687,6 +906,7 @@ export class ToDeckEditor extends LitElement {
             ${this.renderRail(look)}
           </div>`}
       ${this.showing >= 0 ? this.renderShow(look) : nothing}
+      ${this.rows.renderContext()}
       <to-menu class="deck-submenu" .label=${t('This document')} .items=${this.subMenu ? this.subItems() : []}></to-menu>
       <to-dialog class="deck-ask" heading=${a?.heading ?? ''} @to-close=${() => this.answer(null)} .body=${a
         ? html`<form class="deck-ask-form" @submit=${(e: Event) => (e.preventDefault(), this.answer((e.target as HTMLFormElement).querySelector('input')!.value))}>

@@ -44,6 +44,8 @@
     box-shadow: var(--to-shadow);
     font-family: var(--to-font);
     overflow: hidden;
+    /* A double tap edits, it never zooms the page. */
+    touch-action: manipulation;
   }
   .deck-canvas[data-format='zine'],
   .deck-canvas[data-format='comic'],
@@ -165,6 +167,19 @@
     border: 1px dashed transparent;
     border-radius: var(--to-radius-sm);
     cursor: pointer;
+    position: relative;
+  }
+  @media (pointer: coarse) {
+    /* 44px to a finger, whatever size the icon is drawn. */
+    .deck-pick::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
   }
   .deck-pick svg {
     width: 100%;
@@ -283,10 +298,54 @@
     max-height: calc(100dvh - var(--to-header-h, 56px) - 120px);
     overflow: auto;
     padding: 2px;
+    touch-action: manipulation;
+  }
+  .deck-rail:focus {
+    outline: none;
+  }
+  /* A thumbnail and its grip: the grip alone takes a drag (kit/rows.ts), so a finger on the rail still scrolls it. */
+  .deck-slot {
+    position: relative;
+    flex: none;
+  }
+  .deck-slot.dragging {
+    opacity: 0.5;
+  }
+  .deck-slot.ranged .deck-thumb {
+    border-color: var(--to-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--to-accent) 45%, transparent);
+  }
+  .deck-grip {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    color: var(--to-ink-3);
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: 3px;
+    cursor: grab;
+    opacity: 0;
+  }
+  .deck-slot:hover .deck-grip,
+  .deck-slot.ranged .deck-grip,
+  .deck-thumb:focus-visible + .deck-grip {
+    opacity: 1;
+  }
+  @media (pointer: coarse) {
+    .deck-grip {
+      opacity: 1;
+    }
   }
   .deck-thumb {
     position: relative;
     display: block;
+    width: 100%;
     padding: 0;
     background: var(--to-paper);
     border: 2px solid var(--to-border);
@@ -496,7 +555,7 @@
       overflow-y: hidden;
       padding-bottom: 4px;
     }
-    .deck-thumb {
+    .deck-slot {
       width: 96px;
     }
     .deck-end {

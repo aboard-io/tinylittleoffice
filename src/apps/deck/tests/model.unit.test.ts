@@ -7,7 +7,7 @@ import { applyAll, parse, plainText, write } from '../../../doc/index.ts';
 import deck from '../def.ts';
 // The registry, so a sheet on a slide is drawn by its own app.
 import '../../../kit/apps.ts';
-import { addSlide, FORMATS, isBlank, loosen, moveSlide, panelOf, removeSlide, retitle, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, titleOf, webBlock } from '../model.ts';
+import { addSlide, duplicateSlides, FORMATS, isBlank, loosen, moveSlide, panelOf, removeSlide, retitle, slideBlocks, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, titleOf, webBlock } from '../model.ts';
 import { deckToPptx } from '../pptx.ts';
 import { templates } from '../templates.ts';
 import { contrast, THEMES } from '../theme.ts';
@@ -36,6 +36,21 @@ test('slides are spans between rules: headline, icon, layout, words, the right c
   // An empty document is one blank slide.
   expect(slidesOf(parse('')).map(isBlank)).toEqual([true]);
   expect(slidesOf(parse('a\n\n---\n\n---\n\nb\n')).map((s) => [s.from, s.to])).toEqual([[0, 1], [2, 2], [3, 4]]);
+});
+
+test('slides chosen together: removed, duplicated after the last of them, copied with the rules between', () => {
+  const doc = parse('## A\n\n---\n\n## B\n\n- b\n\n---\n\n## C\n\n---\n\n## D\n');
+  const titles = (d: typeof doc) => slidesOf(d).map((s) => plainText(s.title));
+  expect(titles(applyAll(doc, removeSlide(doc, 1, 2)))).toEqual(['A', 'D']);
+  expect(titles(applyAll(doc, removeSlide(doc, 0, 1)))).toEqual(['C', 'D']);
+  expect(write(applyAll(doc, removeSlide(doc, 0, 3)))).toBe('');
+  expect(write({ head: {}, blocks: slideBlocks(doc, 1, 2) })).toBe('## B\n\n- b\n\n---\n\n## C\n');
+  const dup = duplicateSlides(doc, 1, 2);
+  const after = applyAll(doc, dup.ops);
+  expect(dup.at).toBe(3);
+  expect(titles(after)).toEqual(['A', 'B', 'C', 'B', 'C', 'D']);
+  expect(write(parse(write(after)))).toBe(write(after));
+  expect(titles(applyAll(doc, duplicateSlides(doc, 3).ops))).toEqual(['A', 'B', 'C', 'D', 'D']);
 });
 
 test('commands are ops: a slide added, removed, moved; a layout, an icon, a document set; each writes back canonically', () => {
