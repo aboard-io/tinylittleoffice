@@ -9,8 +9,12 @@
  * adding "?s=…" to whatever link it held, so "?d?s=…" reads as "?d&s=…". Everyone who arrives by a short link
  * arrives with "?s=<id>&x=<expires>" (ms since the epoch), the owner with k and o too: the shell shows how long
  * the link has left (Paul, 2026-10-09), and keeps x in the address beside the owner's query.
+ * A payload that starts "E" is sealed under a password (kit/crypt.ts): `sealed` says so, and the shell asks
+ * for the password before anything of the document is shown.
  * Pure: the shell and the tests both read links through here.
  */
+
+import { isSealed } from './codec.ts';
 
 /** The version of the link format. 1 is the rebuilt format; nothing older is read. */
 export const LINK_VERSION = 1;
@@ -37,6 +41,8 @@ export interface Route {
   display: boolean;
   /** Arrived by a short link: its id, and when it expires (ms since the epoch); null otherwise. */
   arrived: { id: string; expires: number } | null;
+  /** The payload is sealed under a password. */
+  sealed: boolean;
 }
 
 const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?(?:\?(.*))?$/;
@@ -50,11 +56,11 @@ function parseOwned(q: URLSearchParams): Owned | null {
 
 export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);
-  if (!m) return { app: null, payload: '', version: LINK_VERSION, view: '', owned: null, display: false, arrived: null };
+  if (!m) return { app: null, payload: '', version: LINK_VERSION, view: '', owned: null, display: false, arrived: null, sealed: false };
   const q = new URLSearchParams((m[5] ?? '').replace(/\?/g, '&'));
   const id = q.get('s') ?? '', x = q.get('x') ?? '';
   const arrived = /^[a-z0-9]{7}$/.test(id) && /^\d{1,15}$/.test(x) ? { id, expires: Number(x) } : null;
-  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived };
+  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived, sealed: isSealed(m[4] ?? '') };
 }
 
 /** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update; with `display`, the Display Link; with `arrived`, the short link it came by and when that expires. */

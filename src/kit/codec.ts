@@ -4,6 +4,8 @@
  *   y<base64url(deflate-raw(utf8, DICTIONARY))>   compressed against the dictionary of TLO's own words
  *   z<base64url(deflate-raw(utf8))>               compressed, without a dictionary
  *   r<base64url(utf8)>                            raw (wins for very short documents)
+ * A document under a password is a fourth shape, E<base64url(salt | iv | AES-GCM(flag + packed bytes))>
+ * (kit/crypt.ts): decodeDoc reads it as nothing, and the shell asks for the password instead.
  *
  * fflate rather than the browser's CompressionStream: the native API has no dictionary, is asynchronous,
  * and is absent under node for the tests; the dictionary is what makes short documents 20 to 35 percent
@@ -118,6 +120,9 @@ export function unpackDoc(flag: string, bytes: Uint8Array): string {
   if (flag === 'r') return strFromU8(bytes);
   throw new Error('unknown flag');
 }
+
+/** Whether a payload is sealed under a password (kit/crypt.ts), rather than one of the three packings. */
+export const isSealed = (payload: string): boolean => payload.startsWith('E');
 
 /** A document's text as a link payload; '' for an empty document. */
 export function encodeDoc(doc: string): string {
