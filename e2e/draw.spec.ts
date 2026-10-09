@@ -33,7 +33,7 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   expect(after.bar).toBe(first.bar);
   expect(after.pageTop).toBe(0);
   // Pixel mode from the menu: a square painted, then the grid made the background.
-  await page.locator('.draw-mode button').click();
+  await page.locator('.draw-mode > button').click();
   await page.getByRole('menuitemcheckbox', { name: 'Pixels, 8 by 8' }).click();
   const grid = page.locator('svg.draw-pixels');
   await expect(grid).toBeVisible();
