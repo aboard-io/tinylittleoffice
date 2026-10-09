@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
-import { addAfter, clearDone, dueOf, moveOver, readTodo, removeTask, setDone, setDue, setStar, shifted, today } from '../model.ts';
+import { addAfter, asTasks, clearDone, dueOf, duplicateTasks, enterAt, joinTasks, moveOver, moveTasks, pastesAsTasks, pasteTasks, readTodo, removeTask, removeTasks, setDone, setDue, setStar, shifted, textTasks, today } from '../model.ts';
 import { todoPage, todoToIcs, todoToMarkdown } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -107,4 +107,72 @@ test('the definition: a blank list is one empty task; the templates are canonica
   expect(def.retitle('- [ ] a\n', 'Errands')).toBe('---\ntitle: Errands\n---\n- [ ] a\n');
   expect(def.title(def.retitle('', 'Errands'))).toBe('Errands');
   expect(def.exports!.map((e) => e.ext)).toEqual(['md', 'ics']);
+});
+
+test('enterAt: at the start the task is pushed down, at the end a new one, in the middle the words split into an open task', () => {
+  const L = '- [x] Buy **milk** {.star due=2027-01-02}\n- [ ] two\n';
+  const v = readTodo(parse(L));
+  const start = enterAt(v.tasks[0], 0);
+  expect(run(L, () => start.ops).text).toBe('- [ ]\n- [x] Buy **milk** {.star due=2027-01-02}\n- [ ] two\n');
+  expect([start.at, start.offset]).toEqual([1, 0]);
+  const end = enterAt(v.tasks[0], 8);
+  expect(run(L, () => end.ops).text).toBe('- [x] Buy **milk** {.star due=2027-01-02}\n- [ ]\n- [ ] two\n');
+  const mid = enterAt(v.tasks[0], 6);
+  expect(run(L, () => mid.ops).text).toBe('- [x] Buy **mi** {.star due=2027-01-02}\n- [ ] **lk**\n- [ ] two\n');
+  expect([mid.at, mid.offset]).toEqual([1, 0]);
+  // The space where the words part goes.
+  expect(run('- [ ] Buy milk\n', (w) => enterAt(w.tasks[0], 4).ops).text).toBe('- [ ] Buy\n- [ ] milk\n');
+  // An empty task: Enter at its start is its end.
+  expect(run('- [ ]\n', (w) => enterAt(w.tasks[0], 0).ops).text).toBe('- [ ]\n- [ ]\n');
+});
+
+test('joinTasks: the later words onto the earlier task, which keeps its tick, star and date; the caret at the join', () => {
+  const L = '- [ ] one {.star}\n\nA note.\n\n- [x] *two*\n';
+  const v = readTodo(parse(L));
+  const r = joinTasks(v.tasks[0], v.tasks[1]);
+  expect(run(L, () => r.ops).text).toBe('- [ ] one*two* {.star}\n\nA note.\n');
+  expect([r.at, r.offset]).toEqual([0, 3]);
+});
+
+test('removeTasks, moveTasks, duplicateTasks: several tasks at once, each undone exactly', () => {
+  const L = '- [ ] a\n- [ ] b\n- [ ] c\n- [ ] d\n';
+  expect(run(L, () => removeTasks([1, 3, 1])).text).toBe('- [ ] a\n- [ ] c\n');
+  const v = readTodo(parse(L));
+  const [a, b, c, d] = v.tasks;
+  const down = moveTasks([b, c], d, 1);
+  expect(run(L, () => down.ops).text).toBe('- [ ] a\n- [ ] d\n- [ ] b\n- [ ] c\n');
+  expect(down.ats).toEqual([2, 3]);
+  const up = moveTasks([b, c], a, -1);
+  expect(run(L, () => up.ops).text).toBe('- [ ] b\n- [ ] c\n- [ ] a\n- [ ] d\n');
+  expect(up.ats).toEqual([0, 1]);
+  // Apart (a filter hid what is between): they land together.
+  const apart = moveTasks([a, c], d, 1);
+  expect(run(L, () => apart.ops).text).toBe('- [ ] b\n- [ ] d\n- [ ] a\n- [ ] c\n');
+  expect(apart.ats).toEqual([2, 3]);
+  const dup = duplicateTasks([b, c]);
+  expect(run(L, () => dup.ops).text).toBe('- [ ] a\n- [ ] b\n- [ ] c\n- [ ] b\n- [ ] c\n- [ ] d\n');
+  expect(dup.at).toBe(3);
+  // An id names one block: the copy has none.
+  expect(run('- [ ] x {#k .star}\n', (w) => duplicateTasks(w.tasks).ops).text).toBe('- [ ] x {#k .star}\n- [ ] x {.star}\n');
+});
+
+test('paste: lines and items are tasks; in place of chosen tasks, after a task (in place of an empty one), or at the end', () => {
+  expect(pastesAsTasks('one')).toBe(false);
+  expect(pastesAsTasks('- one')).toBe(true);
+  expect(pastesAsTasks('one\n\ntwo')).toBe(true);
+  expect(write({ head: {}, blocks: textTasks('Eggs\n\n- [x] Milk {.star}\n# Bread\n* jam') })).toBe('- [ ] Eggs\n- [x] Milk {.star}\n- [ ] Bread\n- [ ] jam\n');
+  expect(asTasks(parse('# A\n\n  - [ ] b\n\n```table\na\n```\n').blocks).map((b) => [b.depth, write({ head: {}, blocks: [b] })])).toEqual([
+    [0, '- [ ] A\n'],
+    [0, '- [ ] b\n'],
+  ]);
+  const L = '- [ ] a\n- [ ]\n- [ ] c\n';
+  const tasks = textTasks('x\ny');
+  const v = readTodo(parse(L));
+  const after = pasteTasks(v, parse(L), tasks, 0)!;
+  expect(run(L, () => after.ops).text).toBe('- [ ] a\n- [ ] x\n- [ ] y\n- [ ]\n- [ ] c\n');
+  expect([after.from, after.to]).toEqual([1, 3]);
+  expect(run(L, (w) => pasteTasks(w, parse(L), tasks, 1)!.ops).text).toBe('- [ ] a\n- [ ] x\n- [ ] y\n- [ ] c\n');
+  expect(run(L, (w) => pasteTasks(w, parse(L), tasks, [0, 2])!.ops).text).toBe('- [ ] x\n- [ ] y\n- [ ]\n');
+  expect(run(L, (w) => pasteTasks(w, parse(L), tasks, null)!.ops).text).toBe('- [ ] a\n- [ ]\n- [ ] c\n- [ ] x\n- [ ] y\n');
+  expect(pasteTasks(v, parse(L), [], 0)).toBeNull();
 });

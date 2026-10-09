@@ -1,5 +1,5 @@
-/* Todo: a list of rows, each at least 44px to the finger: the box, the words, the star, the menu. The due date is
-   a small native date input under the words, only once there is one. */
+/* Todo: a list of rows, each at least 44px to the finger: the grip, the box, the words, the star, the menu. The due
+   date is a small native date input under the words, only once there is one. */
 @layer apps {
   to-todo-editor {
     display: block;
@@ -11,6 +11,11 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
+    /* A double tap edits; the page never zooms on it. */
+    touch-action: manipulation;
+  }
+  .todo-list:focus {
+    outline: none;
   }
   .todo-row {
     display: flex;
@@ -21,6 +26,39 @@
   }
   .todo-row + .todo-row {
     border-top: 1px solid var(--to-border);
+  }
+  /* Tasks chosen whole (kit/rows.ts): a soft wash of the accent. */
+  .todo-row.ranged {
+    background: var(--to-accent-soft);
+  }
+  /* The task carried by its grip, while it is carried (the kit draws where it would land). */
+  .todo-row.dragging {
+    opacity: 0.45;
+  }
+  /* The grip: a tap chooses the task, a drag moves it (its 44px hit area under a finger is the kit's). */
+  .todo-grip {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: var(--to-touch);
+    margin-left: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: none;
+    color: var(--to-ink-3);
+    cursor: grab;
+    opacity: 0;
+  }
+  .todo-row:hover .todo-grip,
+  .todo-row:focus-within .todo-grip,
+  .todo-row.ranged .todo-grip {
+    opacity: 1;
+  }
+  .todo-grip:hover {
+    background: var(--to-surface-2);
+    color: var(--to-ink);
   }
   .todo-tick {
     display: grid;
@@ -95,6 +133,15 @@
     margin-left: auto;
     padding: 0 6px;
     white-space: nowrap;
+  }
+  @media (pointer: coarse) {
+    /* No hover on a touch screen: every row shows its grip; the date is a finger tall. */
+    .todo-grip {
+      opacity: 0.5;
+    }
+    .todo-due {
+      min-height: var(--to-touch);
+    }
   }
   .todo-empty {
     padding: 24px 0;
