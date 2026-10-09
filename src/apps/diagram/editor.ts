@@ -67,7 +67,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   /** The picture's scale: 0 fits it to the width. */
   declare zoom: number;
   private drag: Drag | null = null;
-  /** When a drag last ended, or the line editor last closed: the click that follows is not a tap. */
+  /** When a drag last ended: the click that follows it is not a tap. */
   private quietUntil = 0;
   private ones = new WeakMap<Block, Block[]>();
 
@@ -143,7 +143,6 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     if (!tg) return;
     this.target = null;
-    this.quietUntil = performance.now() + 350;
     const pop = this.pop;
     if (pop?.matches(':popover-open')) pop.hidePopover();
     if (tidyUp && tg.at >= 0 && !tg.draft) this.edit(tidy(this.doc, tg.at));
