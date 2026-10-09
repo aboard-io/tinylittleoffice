@@ -24,12 +24,12 @@ import { blockLength, caret, type Sel } from '../../kit/textops.ts';
 import { isText, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { tool } from '../../kit/bar.ts';
-import { docToHtml, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
+import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
-import type { ToDialog } from '../../kit/dialog.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
-import { icon, UI } from '../../kit/icons.ts';
+import { UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
+import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { insertRowAfter, setCellAt, tableView, webBlock } from '../write/model.ts';
@@ -42,7 +42,6 @@ import { FACES, THEMES, faceOf, isDark, type Face, type Theme } from './theme.ts
 import { sitePage } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
-import '../../kit/dialog.ts';
 import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -53,13 +52,6 @@ export const tag = 'to-site-editor';
 
 /** How long the page waits after a change before it is drawn again: typing does not reload it a letter at a time. */
 const SETTLE = 350;
-
-interface Ask {
-  heading: string;
-  label: string;
-  value: string;
-  done: (answer: string | null) => void;
-}
 
 /** A message from the preview: what was done, to which section. */
 interface FrameMessage {
@@ -99,14 +91,13 @@ const THEME_NAMES = (): Record<string, string> => ({
 const FACE_NAMES = (): Record<Face, string> => ({ sans: t('Sans serif'), serif: t('Serif'), rounded: t('Rounded'), mono: t('Monospace') });
 
 export class ToSiteEditor extends DocElement<Site> {
-  static properties: PropertyDeclarations = { cur: { state: true }, held: { state: true }, asking: { state: true }, cardAt: { state: true }, shown: { state: true } };
+  static properties: PropertyDeclarations = { cur: { state: true }, held: { state: true }, cardAt: { state: true }, shown: { state: true } };
   /** The section being edited. */
   declare cur: number;
   /** The section in hand as a thing (tapped in the frame), or null when the words are. */
   declare held: number | null;
   /** Where the section in hand is in the frame, as the frame last said. */
   private heldRect: number[] | null = null;
-  declare asking: Ask | null;
   /** The card whose menu is open: its block. */
   declare cardAt: number;
   /** The page drawn in the frame, and the stamp its messages carry. */
@@ -121,7 +112,6 @@ export class ToSiteEditor extends DocElement<Site> {
     super();
     this.cur = 0;
     this.held = null;
-    this.asking = null;
     this.cardAt = -1;
     this.shown = '';
   }
@@ -421,7 +411,7 @@ export class ToSiteEditor extends DocElement<Site> {
     n ??= this.section.n;
     let arg = '';
     if (k === 'picture') {
-      arg = (await this.ask(t('Picture'), t('Address of the picture'), 'https://'))?.trim() ?? '';
+      arg = (await askPicture())?.url ?? '';
       if (!arg) return;
     }
     if (k === 'icon') {
@@ -470,7 +460,7 @@ export class ToSiteEditor extends DocElement<Site> {
   }
   private async addWeb() {
     const after = this.caretBlock();
-    const url = (await this.ask(t('From the web'), t('Address of a video, a post, a song, a place, a page'), 'https://'))?.trim();
+    const url = await askEmbed();
     if (!url) return;
     const at = after === undefined ? this.section.to : after + 1;
     this.edit([{ op: 'splice', at, n: 0, blocks: [webBlock(url)] }]);
@@ -478,8 +468,7 @@ export class ToSiteEditor extends DocElement<Site> {
   }
   private async addDocument() {
     const after = this.caretBlock();
-    const url = await this.ask(t('A document by link'), t('A TinyLittleOffice link'), 'https://tinylittleoffice.com/#/v1/…');
-    const fence = url && linkToFence(url.trim());
+    const fence = await askDocLink();
     if (!fence) return;
     const at = after === undefined ? this.section.to : after + 1;
     this.edit([{ op: 'splice', at, n: 0, blocks: [fence] }]);
@@ -493,26 +482,6 @@ export class ToSiteEditor extends DocElement<Site> {
     if (!name || !x) return;
     if (sel) x.sel = sel;
     x.exec('icon', name);
-  }
-
-  /* ---------- asking ---------- */
-
-  private ask(heading: string, label: string, placeholder: string, value = ''): Promise<string | null> {
-    return new Promise((done) => {
-      this.asking = { heading, label, value, done };
-      void this.updateComplete.then(async () => {
-        await this.querySelector<ToDialog>('to-dialog.site-ask')?.show();
-        this.querySelector<HTMLInputElement>('.site-ask-form input')?.setAttribute('placeholder', placeholder);
-        this.querySelector<HTMLInputElement>('.site-ask-form input')?.focus({ preventScroll: true });
-      });
-    });
-  }
-  private answer(value: string | null) {
-    const a = this.asking;
-    if (!a) return;
-    this.asking = null;
-    this.querySelector<ToDialog>('to-dialog.site-ask')?.close();
-    a.done(value);
   }
 
   /* ---------- the cards: what in a section is not words ---------- */
@@ -572,7 +541,7 @@ export class ToSiteEditor extends DocElement<Site> {
         label: t('Change the address…'),
         icon: UI.pen,
         does: async () => {
-          const next = (await this.ask(b.k === 'img' ? t('Picture') : t('From the web'), t('Address'), 'https://', url))?.trim();
+          const next = b.k === 'img' ? (await askPicture({ url, alt: b.alt }))?.url : await askEmbed(url);
           if (next) this.edit([{ op: 'splice', at, n: 1, blocks: [b.k === 'img' ? { ...b, url: next } : webBlock(next)] }]);
         },
       },
@@ -587,8 +556,8 @@ export class ToSiteEditor extends DocElement<Site> {
     const ic: Partial<Record<Kind, MenuItem['icon']>> = { p: UI.text, picture: UI.image, icon: UI.icon, section: UI.heading, page: UI.heading1, product: UI.table, button: UI.link, link: UI.link, card: UI.list };
     return [
       ...kindsOf(this.view).map((k) => ({ label: kindName(k), icon: ic[k], does: () => void this.add(k) })),
-      { label: t('From the web…'), icon: UI.globe, does: () => void this.addWeb() },
-      ...(this.view.links ? [] : [{ label: t('A document by link…'), icon: UI.insert, does: () => void this.addDocument() }]),
+      { label: t('Web Embed…'), icon: UI.globe, does: () => void this.addWeb() },
+      ...(this.view.links ? [] : [{ label: t('Tiny Little Office Doc…'), icon: UI.insert, does: () => void this.addDocument() }]),
     ];
   }
   private lookItems(): MenuItem[] {
@@ -620,7 +589,6 @@ export class ToSiteEditor extends DocElement<Site> {
     const x = this.sel ? this.text : null;
     const m = x?.marks ?? {};
     const th = site.theme;
-    const a = this.asking;
     const shop = s.shop >= 0;
     return html`<to-bar class="site-bar">
         <to-insert .items=${this.inserts()}></to-insert>
@@ -653,13 +621,7 @@ export class ToSiteEditor extends DocElement<Site> {
         </section>
       </div>
       <to-context class="site-context" .label=${this.held !== null && partOf(site, this.held)?.page ? t('This page') : t('This section')} .items=${this.heldItems()}></to-context>
-      <to-menu class="site-cardmenu" .label=${t('This card')} .items=${this.cardItems()}></to-menu>
-      <to-dialog class="site-ask" heading=${a?.heading ?? ''} @to-close=${() => this.answer(null)} .body=${a
-        ? html`<form class="site-ask-form" @submit=${(e: Event) => (e.preventDefault(), this.answer((e.target as HTMLFormElement).querySelector('input')!.value))}>
-            <label class="to-field"><span>${a.label}</span><input type="url" name="answer" .value=${a.value} autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" enterkeyhint="done" required /></label>
-            <div class="to-row"><button type="submit" class="to-btn primary">${icon(UI.check, 16)}<span>${t('OK')}</span></button></div>
-          </form>`
-        : nothing}></to-dialog>`;
+      <to-menu class="site-cardmenu" .label=${t('This card')} .items=${this.cardItems()}></to-menu>`;
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToSiteEditor);

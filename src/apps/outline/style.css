@@ -320,6 +320,18 @@
     padding: 4px 8px 20px 44px;
     max-width: 820px;
   }
+  /* The footnotes under the outline, numbered as their marks are: as a slide shows them at its foot. */
+  .ol-fn {
+    max-width: 820px;
+    margin: 8px 0 20px 44px;
+    padding: 8px 8px 0 calc(var(--ol-step, 22px) + 1.4em);
+    font-size: 14px;
+    color: var(--to-ink-2);
+    border-top: 1px solid var(--to-border);
+  }
+  .ol-fn li {
+    margin: 0.2em 0;
+  }
   .ol-links h3 {
     margin: 0 0 4px var(--ol-step, 22px);
     font-size: 12px;
@@ -396,6 +408,9 @@
     .ol-links,
     .ol-crumbs {
       padding-left: 36px;
+    }
+    .ol-fn {
+      margin-left: 36px;
     }
     .ol-gutter {
       left: calc(var(--d, 0) * var(--ol-step) - 36px);

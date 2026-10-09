@@ -105,3 +105,40 @@ test('deck: on a phone, a tap on a thumbnail chooses the slide with its bar insi
   expect(sizes.thumb).not.toBe('none');
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
 });
+
+test('deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills the screen, with Done reachable by finger; Web Picture\'s field and OK are one row inside the screen', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/deck');
+  await expect(page.locator('to-deck-editor to-text.deck-title .tx')).toBeVisible();
+  await page.getByRole('button', { name: 'Insert', exact: true }).tap();
+  await page.getByRole('menuitem', { name: 'Drawing Tool' }).tap();
+  const dialog = page.locator('to-doc-dialog dialog[open]');
+  await expect(dialog.locator('to-draw-editor')).toBeVisible();
+  // The whole screen, nothing wider than it; Done inside it and a finger tall.
+  const d = (await dialog.boundingBox())!;
+  expect([Math.round(d.x), Math.round(d.y), Math.round(d.width)]).toEqual([0, 0, 390]);
+  expect(d.height).toBeGreaterThanOrEqual(840);
+  const done = dialog.getByRole('button', { name: 'Done' });
+  const b = (await done.boundingBox())!;
+  expect(b.x + b.width).toBeLessThanOrEqual(390);
+  expect(b.height).toBeGreaterThanOrEqual(44);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/deck-390-doc-dialog.png` });
+  await done.tap();
+  await expect(page.locator('to-doc-dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/v1\/deck\/[ryz]/);
+  await expect(page.locator('figure.deck-sub')).toBeVisible();
+  // Web Picture: the address and OK on one row, both inside the screen, the field 16px.
+  await page.getByRole('button', { name: 'Insert', exact: true }).tap();
+  await page.getByRole('menuitem', { name: 'Web Picture…' }).tap();
+  const field = page.locator('.to-ask-picture .to-ask-url');
+  const ok = page.locator('.to-ask-picture .to-ask-ok');
+  await expect(field).toBeVisible();
+  const [f, o] = [(await field.boundingBox())!, (await ok.boundingBox())!];
+  expect(Math.abs(f.y + f.height / 2 - (o.y + o.height / 2))).toBeLessThan(2);
+  expect(o.x + o.width).toBeLessThanOrEqual(390);
+  expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  expect(errors).toEqual([]);
+});

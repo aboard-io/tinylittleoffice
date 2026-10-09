@@ -4,12 +4,14 @@
 // is one row and nothing is wider than the screen.
 import { test, expect } from 'vitest';
 import { page } from 'vitest/browser';
+// The page's styles first, as the app has them: they name the layers' order (an app's own rules over the kit's).
+import '../../../styles.css';
 import '../editor.ts';
 import type { ToOutlineEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { caret } from '../../../kit/textops.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
+import { encodeDoc } from '../../../kit/codec.ts';
 
 const TREE = '- Launch\n  - Product\n    - Pricing\n  - Marketing\n';
 
@@ -303,6 +305,11 @@ test('Insert puts a document under the chosen item; a web address becomes a card
   const { el, last, changes } = await editor(TREE);
   await choose(el, 1);
   await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Spreadsheet');
+  // The new spreadsheet is made in its own editor, in the dialog; Done puts it under the item.
+  await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-sheet-editor'));
+  document.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => (last() ?? '').includes('```sheet'));
+  await until(() => !!row(el, 3)?.querySelector('.ol-doc') && document.activeElement === row(el, 3).querySelector('.ol-doc'));
   expect(last()).toBe('- Launch\n  - Product\n    - Pricing\n\n```sheet {depth=1}\n```\n\n  - Marketing\n');
   const card = row(el, 3).querySelector<HTMLElement>('.ol-doc')!;
   expect(card.textContent).toContain('Spreadsheet');
@@ -315,17 +322,18 @@ test('Insert puts a document under the chosen item; a web address becomes a card
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
   await el.updateComplete;
   expect(last()).toContain('```sheet {depth=1}');
-  // The web dialog makes an item that is its address, shown as a card.
+  // Web Embed (the kit's dialog) makes an item that is its address, shown as a card.
   await choose(el, 4);
-  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'From the web');
-  await until(() => !!el.querySelector('.ol-web-dialog dialog[open]'));
-  const box = el.querySelector<HTMLInputElement>('.ol-web-dialog input')!;
-  expect(el.querySelector<HTMLButtonElement>('.ol-web-done')!.disabled).toBe(true);
+  await pick(el, el.querySelector<HTMLButtonElement>('to-insert button')!, 'Web Embed');
+  await until(() => !!document.querySelector('.to-ask-embed dialog[open]'));
+  const box = document.querySelector<HTMLInputElement>('.to-ask-embed .to-ask-url')!;
+  expect(document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.disabled).toBe(true);
   box.value = 'https://example.com/watch?v=1';
   box.dispatchEvent(new Event('input', { bubbles: true }));
-  await el.updateComplete;
-  el.querySelector<HTMLButtonElement>('.ol-web-done')!.click();
-  await until(() => !el.querySelector('.ol-web-dialog dialog[open]'));
+  await tick();
+  document.querySelector<HTMLButtonElement>('.to-ask-embed .to-ask-ok')!.click();
+  await until(() => !document.querySelector('.to-ask-embed'));
+  await until(() => (last() ?? '').includes('https://example.com/watch?v=1'));
   await tick();
   expect(last()!.split('\n')[8]).toBe('  - https://example.com/watch?v=1');
   // While the caret is in it the address can still be edited; once the caret leaves it is a card.
@@ -914,4 +922,57 @@ test('a drag by a row’s handle (pointer events) moves its family under or afte
   h2.click();
   await el.updateComplete;
   expect(ranged(el)).toEqual([0]);
+});
+
+/* ---------- documents edited in place; the footnotes ---------- */
+
+test('a document under an item: Edit opens its own editor in the dialog; Done writes it back, one undo takes it back; Cancel changes nothing', async () => {
+  const FENCE = '- Map\n\n```draw {depth=1}\nrect 10 10 100 60\n```\n';
+  const { el, last } = await editor(FENCE);
+  await until(() => !!el.querySelector('.ol-doc-edit'));
+  el.querySelector<HTMLButtonElement>('.ol-doc-edit')!.click();
+  await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-draw-editor'));
+  expect(document.querySelector<HTMLElement & { value: string }>('to-doc-dialog to-draw-editor')!.value).toBe('rect 10 10 100 60\n');
+  document.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
+  await until(() => !document.querySelector('to-doc-dialog'));
+  expect(last()).toBeUndefined();
+  el.querySelector<HTMLButtonElement>('.ol-doc-edit')!.click();
+  await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-draw-editor'));
+  document.querySelector('to-doc-dialog to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 300 60\n', bubbles: true }));
+  document.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => last() === '- Map\n\n```draw {depth=1}\nrect 10 10 300 60\n```\n');
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  await until(() => last() === FENCE);
+});
+
+test('Insert ▾ lists Web Embed, Tiny Little Office Doc and every other app; a Tiny Little Office link goes in after the chosen item as its document', async () => {
+  const { el, last } = await editor('- One\n');
+  await choose(el, 0);
+  const opener = el.querySelector<HTMLButtonElement>('to-insert button')!;
+  opener.click();
+  await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
+  const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
+  expect(labels).toEqual(expect.arrayContaining(['Item', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board']));
+  expect(labels).not.toContain('Outliner');
+  opener.click();
+  await tick();
+  await choose(el, 0);
+  await pick(el, opener, 'Tiny Little Office Doc');
+  await until(() => !!document.querySelector('.to-ask-doc .to-ask-url'));
+  const box = document.querySelector<HTMLInputElement>('.to-ask-doc .to-ask-url')!;
+  box.value = 'https://tinylittleoffice.com/#/v1/draw/' + encodeDoc('rect 1 1 5 5\n');
+  box.dispatchEvent(new Event('input', { bubbles: true }));
+  await until(() => !document.querySelector<HTMLButtonElement>('.to-ask-doc .to-ask-ok')!.disabled);
+  document.querySelector<HTMLButtonElement>('.to-ask-doc .to-ask-ok')!.click();
+  await until(() => (last() ?? '').includes('```draw'));
+  expect(last()).toBe('- One\n\n```draw {depth=0}\nrect 1 1 5 5\n```\n');
+});
+
+test('footnotes are listed under the outline, numbered as their marks are, as a slide lists them at its foot', async () => {
+  const { el } = await editor('- One^[The first note]\n  - Two^[The **second** note]\n');
+  await until(() => !!el.querySelector('.ol-fn'));
+  const items = [...el.querySelectorAll('.ol-fn li')];
+  expect(items.map((li) => li.textContent!.trim())).toEqual(['The first note', 'The second note']);
+  expect(items[1].querySelector('b')!.textContent).toBe('second');
+  expect(el.querySelector('.ol-fn')!.getAttribute('aria-label')).toBe('Footnotes');
 });

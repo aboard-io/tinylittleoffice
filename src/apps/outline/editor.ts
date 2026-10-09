@@ -19,7 +19,7 @@ import { html, nothing, type PropertyDeclarations, type TemplateResult } from 'l
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Eye, FoldVertical, GripVertical, Link2, ListOrdered, Minus, Plus, UnfoldVertical, ZoomIn, ZoomOut } from 'lucide';
-import { applyAll, family, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { applyAll, family, fenceRef, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { btn, tool } from '../../kit/bar.ts';
 import { appOf, apps } from '../../kit/apps.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
@@ -27,10 +27,13 @@ import type { ContextEntry } from '../../kit/context.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { decodeDoc, encodeDoc } from '../../kit/codec.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
+import { editFence, makeDoc } from '../../kit/doc-dialog.ts';
 import { pageSvg } from '../../kit/draw.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
+import { noteWords } from '../../kit/note-pop.ts';
+import { askDocLink, askEmbed } from '../../kit/insert-dialogs.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { parseHash, routeHash } from '../../kit/route.ts';
 import type { Sel, TextOps, ToText } from '../../kit/text.ts';
@@ -42,6 +45,7 @@ import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/dialog.ts';
+import '../../kit/doc-dialog.ts';
 import '../../kit/text.ts';
 import '../../kit/context.ts';
 import './style.css';
@@ -69,7 +73,7 @@ type Ends = { from: string; to: string; dir: Dir; label?: string; edge: boolean 
 const ft = (e: Ends) => ({ from: e.from, to: e.to });
 
 export class ToOutlineEditor extends DocElement<OutlineView> {
-  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, menuFor: { state: true }, naming: { state: true }, nameDraft: { state: true }, webDraft: { state: true }, showing: { state: true } };
+  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, menuFor: { state: true }, naming: { state: true }, nameDraft: { state: true }, showing: { state: true } };
   /** Items folded shut, by block index. */
   declare folded: Set<number>;
   /** The item zoomed in on, by block index; -1 for the whole outline. */
@@ -83,8 +87,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   /** The block whose line is being named, and the name so far; -1 when the dialog is closed. */
   declare naming: number;
   declare nameDraft: string;
-  /** The address being typed for a thing from the web; null when that dialog is closed. */
-  declare webDraft: string | null;
   /** The outline shown as a page, in a dialog. */
   declare showing: boolean;
   /** The row editor last focused: what the bar's text tools act on. */
@@ -125,7 +127,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.menuFor = -1;
     this.naming = -1;
     this.nameDraft = '';
-    this.webDraft = null;
     this.showing = false;
   }
   protected read(doc: Doc) {
@@ -563,26 +564,35 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- documents ---------- */
 
-  /** Another document under the chosen item (or at the end), as an empty document of that app. */
-  private insertApp(id: string) {
-    const app = appOf(id);
-    if (!app) return;
-    const r = insertDoc(this.doc, this.view, this.sel, `${id}\n${app.blank()}`);
+  /** A document (or a thing from the web, `web\n<address>`) under the item chosen when it was asked for (or at the end). */
+  private putDoc(sel: number, ref: string) {
+    const r = insertDoc(this.doc, this.view, sel, ref);
     this.edit(r.ops);
     this.focusRow(r.at);
   }
-  private openWeb() {
-    this.webDraft = '';
-    void this.updateComplete.then(() => this.querySelector<ToDialog>('.ol-web-dialog')?.show().then(() => this.querySelector<HTMLInputElement>('.ol-web-dialog input')?.focus()));
+  /** A new document of that app, made in its own editor in the dialog: Done puts it under the chosen item, Cancel puts nothing. */
+  private async insertApp(id: string) {
+    const sel = this.sel;
+    const fence = await makeDoc(id);
+    if (fence) this.putDoc(sel, fenceRef(fence));
   }
-  private saveWeb() {
-    const url = (this.webDraft ?? '').trim();
-    if (!/^https?:\/\/\S+$/.test(url)) return;
-    const ref = refOfLink(url);
-    const r = insertDoc(this.doc, this.view, this.sel, ref ?? `web\n${url}`);
-    this.edit(r.ops);
-    this.querySelector<ToDialog>('.ol-web-dialog')?.close();
-    this.focusRow(r.at);
+  private async insertWeb() {
+    const sel = this.sel;
+    const url = await askEmbed();
+    if (url) this.putDoc(sel, refOfLink(url) ?? `web\n${url}`);
+  }
+  private async insertLinked() {
+    const sel = this.sel;
+    const fence = await askDocLink();
+    if (fence?.k === 'fence') this.putDoc(sel, fenceRef(fence));
+  }
+  /** The document under an item, edited in its own app in the dialog: Done writes it back as one step. */
+  private async editRow(at: number) {
+    const b = this.doc.blocks[at];
+    if (b?.k !== 'fence' || !appOf(b.lang)) return;
+    const next = await editFence(b);
+    if (next && this.doc.blocks[at] === b) this.edit(setDoc(this.doc, at, fenceRef(next)));
+    this.focusRow(at);
   }
   /** A document's link pasted over its card replaces it: the way an edit made in its own app comes back. */
   private onDocPaste(at: number, e: ClipboardEvent) {
@@ -693,10 +703,11 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private inserts(): MenuItem[] {
     return [
       { label: t('Item'), icon: Plus, does: () => this.addItem() },
-      { label: t('From the web: a video, a post, a place, a picture'), icon: UI.globe, does: () => this.openWeb() },
+      { label: t('Web Embed…'), icon: UI.globe, does: () => void this.insertWeb() },
+      { label: t('Tiny Little Office Doc…'), icon: UI.insert, does: () => void this.insertLinked() },
       ...apps()
         .filter((a) => a.id !== def.id)
-        .map((a) => ({ group: t('A document'), label: a.name, icon: a.icon, does: () => this.insertApp(a.id) })),
+        .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
     ];
   }
   /** The outline seen as another kind of document: as a page here; in another app, in a new tab, where that app exists. */
@@ -773,6 +784,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     return html`<div class="ol-doc" tabindex="0" role="group" aria-label=${web ? t('From the web: {url}', { url: href }) : appOf(app) ? t('A {noun}', { noun: appOf(app)!.noun }) : t('{app} document', { app: appName(app) })} @paste=${(e: ClipboardEvent) => this.onDocPaste(it.at, e)}>
       <span class="ol-doc-kind">${web ? icon(UI.globe, 16) : appOf(app) ? icon(appOf(app)!.icon, 16) : nothing}<b>${web ? t('From the web') : appName(app)}</b></span>
       <span class="ol-doc-gist">${web ? href : gist || t('Empty')}</span>
+      ${!web && appOf(app) ? tool({ label: t('Edit'), icon: UI.pen, cls: 'ol-doc-edit', does: () => void this.editRow(it.at) }) : nothing}
       <a class="to-btn to-tool" href=${href} target="_blank" rel="noopener" aria-label=${t('Open in a new tab')} title=${t('Open in a new tab')}>${icon(UI.open, 16)}</a>
       ${tool({ label: t('Take it away'), icon: UI.close, does: () => this.removeRow(it.at) })}
     </div>`;
@@ -881,8 +893,8 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${this.renderLinks(liveLinks(this.view))}
       ${this.rows.renderContext()}
       <to-menu class="ol-line-menu" .label=${t('Kind of line')} .items=${this.lineItems()}></to-menu>
+      ${this.renderNotes(items)}
       ${this.renderNameDialog()}
-      ${this.renderWebDialog()}
       ${this.renderPageDialog()}`;
   }
 
@@ -896,15 +908,13 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
         <button type="button" class="to-btn primary ol-name-done" @click=${() => this.saveName()}>${icon(UI.check, 16)}<span>${t('Done')}</span></button>
       </div>`}></to-dialog>`;
   }
-  private renderWebDialog() {
-    return html`<to-dialog class="ol-web-dialog" heading=${t('From the web')} @to-close=${() => (this.webDraft = null)} .body=${html`
-      <label class="ol-field"><span>${t('The address of a video, a post, a place, a picture, or another TinyLittleOffice document')}</span>
-        <input type="url" .value=${this.webDraft ?? ''} placeholder="https://" autocomplete="off" inputmode="url" @input=${(e: Event) => (this.webDraft = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.saveWeb())} />
-      </label>
-      <p class="to-hint">${t('Nothing is fetched until the item is opened.')}</p>
-      <div class="to-row">
-        <button type="button" class="to-btn primary ol-web-done" ?disabled=${!/^https?:\/\/\S+$/.test((this.webDraft ?? '').trim())} @click=${() => this.saveWeb()}>${icon(UI.check, 16)}<span>${t('Done')}</span></button>
-      </div>`}></to-dialog>`;
+  /** The footnotes, under the outline, numbered as their marks are (as a slide's are at its foot). */
+  private renderNotes(items: Item[]) {
+    const notes = items.flatMap((it) => it.runs.filter((r) => r.fn !== undefined).map((r) => r.fn!));
+    if (!notes.length) return nothing;
+    return html`<ol class="ol-fn" aria-label=${t('Footnotes')}>
+      ${notes.map((fn) => html`<li>${noteWords(fn)}</li>`)}
+    </ol>`;
   }
   private renderPageDialog() {
     return html`<to-dialog class="ol-page-dialog" heading=${t('As a page')} @to-close=${() => (this.showing = false)} .body=${this.showing ? html`<div class="ol-page">${unsafeSVG(pageSvg(outlinePage(this.doc)))}</div>` : nothing}></to-dialog>`;

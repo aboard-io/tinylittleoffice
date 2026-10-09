@@ -5,12 +5,13 @@
 // the page never scrolls.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
+// The page's styles first, as the app has them: they name the layers' order (an app's own rules over the kit's).
+import '../../../styles.css';
 import { parse } from '../../../doc/index.ts';
 import '../editor.ts';
 import type { ToWriteEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import { mount, tick, until } from '../../../../test/browser/helpers.ts';
-import '../../../styles.css';
 
 async function editor(value = ''): Promise<{ el: ToWriteEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
@@ -90,6 +91,10 @@ test('a footnote from the bar opens its box; its words are listed under the text
   await until(() => !!pop.querySelector('to-text .tx'));
   await type(el, 'Said in passing', pop.querySelector<HTMLElement>('to-text .tx')!);
   await until(() => last() === 'Some words^[Said in passing]\n');
+  // The note's box is the same one line everywhere: the page's own rules for its words (its height, its size) stay out of it.
+  const words = pop.querySelector<HTMLElement>('to-text .tx')!;
+  expect(words.getBoundingClientRect().height).toBeLessThan(60);
+  expect(getComputedStyle(words).fontSize).toBe('16px');
   const notes = el.querySelector('section[role="doc-endnotes"]')!;
   expect(notes.querySelectorAll('li')).toHaveLength(1);
   expect(notes.querySelector('li')!.textContent).toContain('Said in passing');
@@ -99,14 +104,18 @@ test('a footnote from the bar opens its box; its words are listed under the text
   expect(document.activeElement).toBe(el.querySelector('.write-page .tx .fn'));
 });
 
-test('Insert ▾ puts in a table: a grid whose cells are the document, a formula worked out in place', async () => {
+test('Insert ▾ puts in a table: three by three, opened in the Spreadsheet first; then a grid whose cells are the document, a formula worked out in place', async () => {
   const { el, last } = await editor('Before\n');
   el.text.focus();
   el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
   await tick();
   await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Table');
+  // The table is made in the Spreadsheet, in the dialog; nothing is in the document until Done.
+  await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-sheet-editor'));
+  expect(last()).toBeUndefined();
+  document.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
   await until(() => !!el.querySelector('to-write-table'));
-  expect(last()).toBe('Before\n\nColA | ColB | ColC\n--- | --- | ---\n\n<br>\n');
+  expect(last()).toBe('Before\n\nColA | ColB | ColC\n--- | --- | ---\n| |  |\n| |  |\n| |  |\n\n<br>\n');
   // The blank row to type into is there; a letter typed in it makes the row.
   await typeCell(el, cell(el, 'A1'), 'Rent');
   await until(() => last() === 'Before\n\nColA | ColB | ColC\n--- | --- | ---\nRent |  |\n\n<br>\n');
@@ -262,13 +271,14 @@ test('§1 Mod+Z in the Ask dialog is the field\'s own: the document behind it is
   el.text.focus();
   el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
   await type(el, 'abc');
-  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Picture');
-  await until(() => !!el.querySelector('.write-ask-form input'));
-  const field = el.querySelector<HTMLInputElement>('.write-ask-form input')!;
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Web Picture');
+  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
+  const field = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
   field.focus();
   expect(key(field, 'z', { ctrlKey: true }).defaultPrevented).toBe(false);
   await tick(50);
   expect(el.value).toBe('abc\n');
+  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
 });
 
 test('§1/§6 a card in hand: a tap takes it, the bar under it is in the standard\'s order, and Enter edits it', async () => {
@@ -282,8 +292,9 @@ test('§1/§6 a card in hand: a tap takes it, the bar under it is in the standar
   const del = document.querySelector<HTMLButtonElement>('to-context.write-cardbar button[aria-label="Delete"]')!;
   expect(del.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))).toBe(false);
   expect(key(card(el, 1), 'Enter').defaultPrevented).toBe(true);
-  await until(() => !!el.querySelector<HTMLInputElement>('.write-ask-form input'));
-  expect(el.querySelector<HTMLInputElement>('.write-ask-form input')!.value).toBe('https://example.com/a.png');
+  await until(() => !!document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url'));
+  expect(document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!.value).toBe('https://example.com/a.png');
+  document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
 });
 
 test('§1 Mod+C, Mod+X, Mod+V on a card in hand: TLO and our HTML; a cut takes it out, a paste puts it in after the card in hand', async () => {
@@ -356,10 +367,14 @@ test('§1 a table is taken in hand by its corner handle (or Escape from a cell) 
   await until(() => document.activeElement === card(el, 1));
   await until(() => barItems().length > 0);
   expect(barItems()).toEqual(['Edit', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
-  // Enter on it edits: the first cell.
+  // Enter on it edits: the table in the Spreadsheet, in the dialog; Cancel leaves it as it was, in hand.
   key(card(el, 1), 'Enter');
-  await until(() => document.activeElement === cell(el, 'A1'));
-  // Escape from a cell left as it was: the table in hand.
+  await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-sheet-editor'));
+  document.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
+  await until(() => document.activeElement === card(el, 1));
+  expect(last()).toBeUndefined();
+  // Typing in place is the grid's: Escape from a cell left as it was puts the table in hand.
+  cell(el, 'A1').focus();
   key(cell(el, 'A1'), 'Escape');
   await until(() => document.activeElement === card(el, 1));
   await until(() => barItems().length > 0);
@@ -591,4 +606,83 @@ test('§7 Align is a keep menu: chosen by a pointer, the words keep the focus; t
   expect(el.text.hasFocus()).toBe(true);
   expect(getComputedStyle(el.querySelector('.write-page')!).touchAction).toBe('manipulation');
   expect(getComputedStyle(cell(el, 'A1')).touchAction).toBe('manipulation');
+});
+
+/* ---------- Insert ▾: the kit's dialogs, and documents made and edited in place ---------- */
+
+const FENCE = '```draw\nrect 10 10 100 60\n```';
+const docDialog = () => document.querySelector('to-doc-dialog');
+
+test('Insert ▾ lists the web things by their names and every other app; a new drawing is made in the Drawing Tool first, and Done puts it in as one step', async () => {
+  const { el, last } = await editor('Before\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
+  await tick();
+  const opener = el.querySelector<HTMLElement>('to-insert button')!;
+  opener.click();
+  await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
+  const labels = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')].map((x) => x.textContent!.trim());
+  expect(labels).toEqual(expect.arrayContaining(['Table', 'Web Picture…', 'Web Embed…', 'Tiny Little Office Doc…', 'Drawing Tool', 'Kanban Board', 'Spreadsheet']));
+  expect(labels).not.toContain('Word Processor');
+  opener.click();
+  await tick();
+  await pick(el, opener, 'Drawing Tool');
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
+  expect(last()).toBeUndefined();
+  docDialog()!.querySelector('to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 100 60\n', bubbles: true }));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => (last() ?? '').includes('```draw'));
+  expect(last()).toBe(`Before\n\n${FENCE}\n\n<br>\n`);
+  // The drawing is drawn as a picture of its page, and one undo takes it all back.
+  await until(() => !!el.querySelector('.write-doc svg'));
+  undo(el);
+  await until(() => last() === 'Before\n');
+});
+
+test('Insert ▾ Web Picture: the kit\'s dialog; OK puts the picture in, with its words, where the caret was', async () => {
+  const { el, last } = await editor('Before\n');
+  el.text.focus();
+  el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
+  await tick();
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Web Picture');
+  await until(() => !!document.querySelector('.to-ask-picture .to-ask-url'));
+  const url = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-url')!;
+  url.value = 'https://example.com/a.png';
+  url.dispatchEvent(new Event('input', { bubbles: true }));
+  const alt = document.querySelector<HTMLInputElement>('.to-ask-picture .to-ask-alt input')!;
+  alt.value = 'a picture';
+  alt.dispatchEvent(new Event('input', { bubbles: true }));
+  await tick();
+  document.querySelector<HTMLButtonElement>('.to-ask-picture .to-ask-ok')!.click();
+  await until(() => (last() ?? '').includes(PIC));
+  expect(last()).toBe(`Before\n\n${PIC}\n\n<br>\n`);
+});
+
+test('a document in the text: its bar is Edit then Open in a new tab; Edit opens its own editor, Done writes it back as one undo step, Cancel changes nothing', async () => {
+  const { el, last } = await editor(`One\n\n${FENCE}\n\nTwo\n`);
+  await until(() => !!card(el, 1)?.classList.contains('tx-card'));
+  card(el, 1).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await until(() => barItems().length > 0);
+  expect(barItems()).toEqual(['Edit', 'Open in a new tab', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
+  // Cancel: nothing changes, and the document is in hand again.
+  key(card(el, 1), 'Enter');
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
+  expect(docDialog()!.querySelector<HTMLElement & { value: string }>('to-draw-editor')!.value).toBe('rect 10 10 100 60\n');
+  expect(docDialog()!.querySelector('h2')!.textContent).toBe('Drawing Tool');
+  docDialog()!.querySelector('to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 0 0 5 5\n', bubbles: true }));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
+  await until(() => document.activeElement === card(el, 1));
+  expect(last()).toBeUndefined();
+  // Done: the new drawing, as one step.
+  await until(() => barItems().length > 0);
+  document.querySelector<HTMLButtonElement>('to-context.write-cardbar .to-context:popover-open button[aria-label="Edit"]')!.click();
+  await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
+  const ed = docDialog()!.querySelector('to-draw-editor')!;
+  ed.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 120 60\n', bubbles: true }));
+  ed.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 140 60\n', bubbles: true }));
+  docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
+  await until(() => last() === 'One\n\n```draw\nrect 10 10 140 60\n```\n\nTwo\n');
+  await until(() => document.activeElement === card(el, 1));
+  undo(el);
+  await until(() => last() === `One\n\n${FENCE}\n\nTwo\n`);
 });

@@ -14,13 +14,28 @@
  * note-remove, note-close (once, as the box goes).
  */
 import { LitElement, html, nothing } from 'lit';
-import { applyAll, noteRuns, writeInline, type TextBlock } from '../doc/index.ts';
+import { applyAll, noteRuns, writeInline, type Run, type TextBlock } from '../doc/index.ts';
 import { tool } from './bar.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { History } from './history.ts';
 import { caret } from './textops.ts';
 import type { TextOps, ToText } from './text.ts';
+
+/** A note's words drawn where the notes are listed (under a page, at a slide's foot, under an outline): its marks, links and icons. */
+export function noteWords(fn: string): unknown[] {
+  return noteRuns(fn).map((run: Run) => {
+    if (run.ic) return html`<span class="ic" data-icon=${run.ic} role="img" aria-label=${run.ic}></span>`;
+    let node: unknown = run.t;
+    if (run.h) node = html`<mark>${node}</mark>`;
+    if (run.s) node = html`<s>${node}</s>`;
+    if (run.u) node = html`<u>${node}</u>`;
+    if (run.i) node = html`<i>${node}</i>`;
+    if (run.b) node = html`<b>${node}</b>`;
+    if (run.href) node = html`<a href=${run.href} target="_blank" rel="noopener">${node}</a>`;
+    return node;
+  });
+}
 
 const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 

@@ -8,8 +8,27 @@
     .to-tiles {
       grid-template-columns: 1fr;
     }
-    .to-dialog {
+    .to-dialog,
+    .to-ask-dialog .to-dialog {
       width: calc(100vw - 16px);
+      margin-top: 8px;
+    }
+    /* Another document edited in place takes the whole screen on a phone. */
+    .to-doc-dialog {
+      margin: 0;
+      width: 100vw;
+      height: 100dvh;
+      border-radius: 0;
+      padding-top: env(safe-area-inset-top);
+    }
+    .to-doc-dialog-head {
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(8px, env(safe-area-inset-right));
+    }
+    .to-doc-dialog-sizes {
+      order: 1;
+      flex-basis: 100%;
+      margin-left: 0;
     }
   }
   @media (pointer: coarse) {
