@@ -3,16 +3,16 @@
 // scripts, nothing typed able to run), the preview's marks, a Quick Links page, the sixteen themes at AA in
 // light and dark, every command as ops, the pictures of the pages, and the templates.
 import { expect, test } from 'vitest';
-import { applyAll, invertAll, parse, write, type Doc } from '../../../doc/index.ts';
+import { applyAll, invertAll, parse, write, type Block } from '../../../doc/index.ts';
 // The registry, so a document held in a page is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
-import { addOps, duplicateOps, fieldsOf, partBlocks, pasteOps, kindsOf, linesOf, linksOp, moveOps, readSite, removeOps, retitle, sectionAt, settingOp, themeOp, titleOf } from '../model.ts';
+import { cardFields, cardRuns, duplicateObj, fieldsOf, insertObj, kindsOf, linesOf, linkFields, linkRuns, linksOp, moveObj, moveOps, objBlocks, objectsOf, objId, pasteObj, readSite, removeObj, retitle, settingOp, themeOp, titleOf, withLine } from '../model.ts';
 import { templates } from '../templates.ts';
 import { contrast, isDark, paletteOf, parseTheme, themeCss, themeWords, THEMES } from '../theme.ts';
-import { CART, EDIT, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
+import { CART, EDIT, PEEK, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
 
 const CAFE = templates().find((t) => t.id === 'cafe')!.doc;
 const SHOP = templates().find((t) => t.id === 'shop')!.doc;
@@ -20,7 +20,6 @@ const MAKER = templates().find((t) => t.id === 'links-maker')!.doc;
 const page = (text: string, o = {}) => sitePage(parse(text), o);
 const scriptsIn = (html: string) => [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
 const code = (tag: string) => tag.slice('<script>'.length, -'</script>'.length);
-const run = (doc: Doc, ops: ReturnType<typeof removeOps>) => write(applyAll(doc, ops!));
 
 test('pages, sections, theme, pictures, icons, documents and buttons are read from the blocks, each with its span', () => {
   const text = '---\ntheme: teal serif dark\n---\n# Harbor\n\nOn the quay.\n\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n```todo\n- grind\n```\n\n# Last\n\nLast.\n';
@@ -37,7 +36,6 @@ test('pages, sections, theme, pictures, icons, documents and buttons are read fr
   expect(coffee.cards.map((c) => [c.icon, c.head[0].t, c.detail[0].t])).toEqual([['coffee', 'Espresso', '3.00']]);
   expect(coffee.pics).toEqual([{ url: 'https://example.com/beans.png', alt: '' }]);
   expect(coffee.embeds).toEqual([{ lang: 'todo', body: '- grind' }]);
-  expect(sectionAt(s, 7)).toBe(2);
   // A site of one page is navigated by its sections; lines and fields are cut where the text says.
   expect(readSite(parse('# A\n\nabout\n\n## B\n\n- x\n')).pages[0].sections.map((x) => x.title)).toEqual(['A', 'B']);
   const li = parse('- **Big** one | small *words*\n').blocks[0];
@@ -63,7 +61,7 @@ test('the page: a nav of its pages, each a section switched by a registered scri
   const scripts = scriptsIn(html);
   expect(scripts).toEqual([code(ROUTER), code(WEB)]);
   for (const s of scripts) expect(pageScripts()).toContain(s);
-  for (const s of [ROUTER, WEB, CART, EDIT]) expect(pageScripts()).toContain(code(s));
+  for (const s of [ROUTER, WEB, CART, EDIT, PEEK]) expect(pageScripts()).toContain(code(s));
   // Dark: an ink accent goes pale; a site of one page has a nav of its sections.
   const dark = page('---\ntheme: ink dark\n---\n# A\n\nabout\n\n## B\n\n- x\n\n## C\n');
   expect(dark).toContain('--on:#18181b');
@@ -111,24 +109,39 @@ test('a shop: a table of products, one cart for the site, its words and the orde
   expect(page(bare)).toContain('Copy order');
 });
 
-test('the preview: a "+" in every section, handles on every heading but the home page’s, each part marked, the section in hand outlined', () => {
-  const html = page(CAFE, { edit: { cur: 2, stamp: 7 } });
-  const plus = [...html.matchAll(/data-site-add="(\d+)"/g)].map((m) => +m[1]);
-  expect(plus).toEqual([0, 1, 2, 3, 4]);
-  expect(html).toContain('<h1>Menu<span class="site-tools" role="group" aria-label="This page"><button type="button" data-site-part="1" data-site-do="up" aria-label="Move this page earlier">↑</button>');
-  expect(html).toContain('<h2>Coffee<span class="site-tools" role="group" aria-label="This section"><button type="button" data-site-part="2" data-site-do="up"');
-  expect(html).toContain('data-site-do="remove" aria-label="Remove this section">×</button>');
-  expect(html).not.toContain('<h1>Harbor Coffee<span');
-  expect(html).toContain('<section class="part site-cur" id="coffee" data-s="2">');
-  // What the frame's script needs: the stamp, the section, the kinds and their names; the page to show first.
-  expect(html).toContain('"cur":2,"stamp":7');
-  expect(html).toContain('["card","Card"]');
+test('the editor’s frame: every thing marked with its id, every section with its heading’s, the thing in hand in the data; none of it downloaded', () => {
+  const html = page(CAFE, { cur: 2, edit: { stamp: 7, held: '2.1', y: 120 } });
+  // The site's name, its line, its two buttons (lines of one quote), its three big links; a page's heading; a section's.
+  expect(html).toContain('<h1 data-o="0">Harbor Coffee</h1><p data-o="1">Small-batch coffee, roasted on the quay every morning.</p>');
+  expect(html).toContain('<p class="go"><a class="btn" data-o="2.0" href="#menu">See the menu</a> <a class="btn quiet" data-o="2.1" href="#find-us">Find us</a></p>');
+  expect(html).toContain('<ul class="cards"><li data-o="3"><svg');
+  expect(html).toContain('<div class="hero" data-sec="0">');
+  expect(html).toContain('<section class="part" id="coffee" data-sec="8"><div class="wrap"><h2 data-o="8">Coffee</h2>');
+  expect(html).toContain('<figure class="embed" data-o="17">');
+  // What the frame's script needs: the stamp, the thing in hand, the scroll to keep; the page to show first.
+  expect(html).toContain('{"stamp":7,"held":"2.1","y":120,"show":false}');
   expect(html).toContain('<script type="application/json" id="site-at">"menu"</script>');
   expect(scriptsIn(html)).toEqual([code(ROUTER), code(WEB), code(EDIT)]);
-  // None of it in the page as it is downloaded.
+  // None of it in the page as it is downloaded; the Preview carries only its Escape.
   const plain = page(CAFE);
-  for (const mark of ['site-plus', 'site-tools', 'site-cur', 'site-edit', 'site-at"']) expect(plain).not.toContain(mark);
-  expect(plain).not.toContain('data-s=');
+  for (const mark of ['data-o=', 'data-sec=', 'site-cur', 'site-edit', 'site-at"', 'site-peek']) expect(plain).not.toContain(mark);
+  const peek = page(CAFE, { cur: 4, peek: 3 });
+  expect(peek).not.toContain('data-o=');
+  expect(peek).toContain('<script type="application/json" id="site-at">"find-us"</script>');
+  expect(scriptsIn(peek)).toEqual([code(ROUTER), code(WEB), '{"stamp":3}', code(PEEK)].filter((x) => !x.startsWith('{')));
+  // A home page with no name yet: its heading is still a thing to tap, its id -1.
+  expect(page('', { edit: { stamp: 1 } })).toContain('<h1 data-o="-1">My site</h1>');
+});
+
+test('the things of a site in the order of the document, rows of cards, buttons and small links; a heading inside a section is a thing, not a section', () => {
+  const doc = parse('# Site\n\nWords.\n\n> A | #a\n> B | #b\n\n- :star: One | first\n- Two | second\n\n![Cup](https://x.example/c.png)\n\n## Part\n\n### Under\n\nMore.\n\n:heart:\n');
+  const s = readSite(doc);
+  expect(s.sections.map((x) => x.title)).toEqual(['Site', 'Part']);
+  expect(objectsOf(s).map((o) => `${o.kind}:${objId(o)}`)).toEqual(['page:0', 'p:1', 'button:2.0', 'button:2.1', 'card:3', 'card:4', 'picture:5', 'section:6', 'heading:7', 'p:8', 'icon:9']);
+  const html = page(write(doc));
+  // In order: the words and buttons under the title; the cards, a row, begin the part below; the picture after them.
+  expect(html).toMatch(/<h1>Site<\/h1><p>Words\.<\/p><p class="go">.*<\/p><\/div><\/div>\n<div class="part"><div class="wrap"><ul class="cards">.*<\/ul><img class="pic" src="https:\/\/x\.example\/c\.png" alt="Cup"/);
+  expect(html).toContain('<h2>Part</h2><h3>Under</h3><p>More.</p><svg class="ico"');
 });
 
 test('Quick Links: one column, a picture, a name, a line, a stack of buttons, the small links at the foot', () => {
@@ -141,9 +154,9 @@ test('Quick Links: one column, a picture, a name, a line, a stack of buttons, th
   expect(html).not.toContain('<nav');
   expect(scriptsIn(html)).toEqual([]);
   expect(titleOf(MAKER)).toBe('Ada Diaz');
-  // Edited: a "+" offering what a links page takes.
-  expect(kindsOf(readSite(parse(MAKER)))).toEqual(['p', 'button', 'link', 'picture', 'icon']);
-  expect(page(MAKER, { edit: { cur: 0, stamp: 1 } })).toContain('["link","Small link"]');
+  // Edited: Insert offers what a links page takes; its small links are things to tap.
+  expect(kindsOf(readSite(parse(MAKER)))).toEqual(['p', 'button', 'link', 'picture', 'icon', 'web']);
+  expect(page(MAKER, { edit: { stamp: 1 } })).toContain('<li data-o="4"><a href="https://instagram.com/ada"');
   // The same lines with the shape changed are a website: the list items cards.
   const asSite = write(applyAll(parse(MAKER), [linksOp(false)]));
   expect(readSite(parse(asSite)).sections[0].cards.length).toBe(2);
@@ -192,86 +205,88 @@ test('every theme reads at AA, light and dark: words on the accent, the deep sha
     }
 });
 
-test('commands as ops: a thing added is one splice (a product one rows), a part moved one move, removed one splice; each undoes exactly', () => {
+test('the things as ops: each moved, removed, duplicated, copied, pasted and put in is a splice or a move that undoes exactly, and says what is in hand after', () => {
   const doc = parse(CAFE);
   const s = readSite(doc);
-  const check = (ops: ReturnType<typeof addOps>['ops']) => {
-    const after = applyAll(doc, ops);
+  const check = (c: { ops: Parameters<typeof applyAll>[1] } | null) => {
+    const after = applyAll(doc, c!.ops);
     expect(write(parse(write(after)))).toBe(write(after));
-    expect(write(applyAll(after, invertAll(doc, ops)))).toBe(CAFE);
+    expect(write(applyAll(after, invertAll(doc, c!.ops)))).toBe(CAFE);
     return write(after);
   };
-  // A card at the end of the Coffee section; a section after it; a page after the Menu page.
-  const card = addOps(doc, s, 2, 'card');
-  expect(card.ops).toEqual([{ op: 'splice', at: 12, n: 0, blocks: [{ k: 'li', depth: 0, runs: [{ t: 'Heading | A line about it' }] }] }]);
-  expect(check(card.ops)).toContain('- Filter, by the cup | 3.50\n- Heading | A line about it\n');
-  expect(addOps(doc, s, 2, 'section').ops).toEqual([{ op: 'splice', at: 12, n: 0, blocks: [{ k: 'h', level: 2, runs: [{ t: 'New section' }] }] }]);
-  expect(check(addOps(doc, s, 2, 'page').ops)).toContain('- Sourdough toast, butter and jam | 4.00\n\n# New page\n\n# Find us');
-  expect(check(addOps(doc, s, 0, 'button', 'https://x.y').ops)).toContain('> Label | https://x.y\n');
-  expect(check(addOps(doc, s, 4, 'picture', 'https://x.y/p.jpg').ops)).toContain('![](https://x.y/p.jpg)\n');
-  expect(check(addOps(doc, s, 4, 'icon', 'heart').ops)).toContain('> Email us | mailto:hello@harborcoffee.example\n\n:heart:\n');
-  // A product: a new table where there is none, a row where there is.
-  expect(check(addOps(doc, s, 4, 'product').ops)).toContain('Name | Price:money | About | Image\n--- | --- | --- | ---\nNew thing | 10 |  |\n');
-  const shop = parse(SHOP);
-  const ss = readSite(shop);
-  const row = addOps(shop, ss, 1, 'product');
-  expect(row.ops).toEqual([{ op: 'rows', at: ss.sections[1].shop, r: 3, n: 1, rows: [['New thing', '10', '', '']] }]);
-  expect(readSite(applyAll(shop, row.ops)).sections[1].products.length).toBe(4);
-  // Find us, moved earlier, goes before Menu with its words; the Menu page moved later is the same; the first page cannot pass the home page.
-  const up = moveOps(s, 4, -1)!;
-  expect(up).toEqual([{ op: 'move', at: 15, n: 4, to: 6 }]);
-  expect(check(up).indexOf('# Find us')).toBeLessThan(check(up).indexOf('# Menu'));
-  expect(write(applyAll(doc, moveOps(s, 1, 1)!))).toBe(write(applyAll(doc, up)));
-  expect(moveOps(s, 1, -1)).toBeNull();
-  expect(moveOps(s, 4, 1)).toBeNull();
-  expect(moveOps(s, 0, 1)).toBeNull();
-  // A section passes its neighbour within its page, not out of it.
-  expect(check(moveOps(s, 3, -1)!)).toContain('## Pastry\n\n- Cardamom bun | 3.50\n- Sourdough toast, butter and jam | 4.00\n\n## Coffee');
-  expect(moveOps(s, 2, -1)).toBeNull();
-  expect(moveOps(s, 3, 1)).toBeNull();
-  // Removed, a page takes its sections with it; the home page stays.
-  expect(run(doc, removeOps(s, 1))).not.toContain('## Coffee');
-  expect(run(doc, removeOps(s, 1))).toContain('# Find us');
-  expect(run(doc, removeOps(s, 3))).not.toContain('Pastry');
-  expect(removeOps(s, 0)).toBeNull();
+  // A big link left and right in its row; up, its whole row past the buttons; it cannot leave its section.
+  const right = moveObj(doc, s, '3', 'right')!;
+  expect(right).toEqual({ ops: [{ op: 'move', at: 3, n: 1, to: 4 }], id: '4' });
+  expect(check(right)).toContain('- :leaf: Fair trade | From farms we have visited\n- :coffee: Roasted daily');
+  expect(moveObj(doc, s, '3', 'left')).toBeNull();
+  const up = moveObj(doc, s, '4', 'up')!;
+  expect(up).toEqual({ ops: [{ op: 'move', at: 3, n: 3, to: 2 }], id: '3' });
+  expect(check(up)).toContain('Small-batch coffee, roasted on the quay every morning.\n\n- :coffee: Roasted daily');
+  expect(moveObj(doc, s, '5', 'down')).toBeNull();
+  expect(moveObj(doc, s, '1', 'up')).toBeNull();
+  // Buttons change places line for line in their quote; a paragraph has no left or right.
+  const swap = moveObj(doc, s, '2.0', 'right')!;
+  expect(swap.id).toBe('2.1');
+  expect(check(swap)).toContain('> Find us | #find-us\n> See the menu | #menu\n');
+  expect(moveObj(doc, s, '1', 'right')).toBeNull();
+  // A page or a section moves with its part: Find us before Menu; Pastry before Coffee.
+  expect(moveObj(doc, s, '15', 'up')).toEqual({ ops: moveOps(s, 4, -1), id: '6' });
+  expect(check(moveObj(doc, s, '12', 'up'))).toContain('## Pastry\n\n- Cardamom bun | 3.50\n- Sourdough toast, butter and jam | 4.00\n\n## Coffee');
+  expect(moveObj(doc, s, '0', 'down')).toBeNull();
+  // Removed: a button is its line (the quote stays with the other), a big link its block, a page its part; the thing before is in hand after.
+  const lone = removeObj(doc, s, '2.1')!;
+  expect(lone.id).toBe('2.0');
+  expect(check(lone)).toContain('> See the menu | #menu\n\n- :coffee:');
+  expect(check(removeObj(doc, s, '4'))).not.toContain('Fair trade');
+  expect(check(removeObj(doc, s, '6'))).not.toContain('# Menu');
+  expect(removeObj(doc, s, '0')).toBeNull();
+  // Duplicated: a button in its row, a big link after itself, a section with its things.
+  const twin = duplicateObj(doc, s, '2.0')!;
+  expect(twin.id).toBe('2.1');
+  expect(check(twin)).toContain('> See the menu | #menu\n> See the menu | #menu\n> Find us');
+  expect(duplicateObj(doc, s, '5')!.id).toBe('6');
+  expect(check(duplicateObj(doc, s, '8')).match(/## Coffee/g)!.length).toBe(2);
+  expect(duplicateObj(doc, s, '0')).toBeNull();
+  // Copied: a button as a quote of its own line, a section as its part; pasted after the thing in hand.
+  expect(write({ head: {}, blocks: objBlocks(doc, s, '2.1') })).toBe('> Find us | #find-us\n');
+  expect(objBlocks(doc, s, '12').length).toBe(3);
+  const pasted = pasteObj(s, '3', objBlocks(doc, s, '2.1'))!;
+  expect(pasted.at).toBe(4);
+  expect(check(pasted)).toContain('- :coffee: Roasted daily | Never more than a week old\n\n> Find us | #find-us\n\n- :leaf:');
+  // Put in: after the thing in hand; a button after a button in its row; under a section's heading; with nothing in hand at the end of the section on view; a page after its page.
+  const para: Block = { k: 'p', runs: [{ t: 'New words.' }] };
+  expect(insertObj(doc, s, '1', 0, para)).toEqual({ ops: [{ op: 'splice', at: 2, n: 0, blocks: [para] }], id: '2' });
+  const btn = insertObj(doc, s, '2.0', 0, { k: 'quote', runs: linkRuns({ icon: 'mail', label: 'Write', url: 'mailto:a@b.c' }) });
+  expect(btn.id).toBe('2.1');
+  expect(check(btn)).toContain('> See the menu | #menu\n> :mail: Write | mailto:a@b.c\n> Find us | #find-us\n');
+  expect(insertObj(doc, s, '8', 0, para).ops).toEqual([{ op: 'splice', at: 9, n: 0, blocks: [para] }]);
+  expect(insertObj(doc, s, null, 3, para).ops).toEqual([{ op: 'splice', at: 15, n: 0, blocks: [para] }]);
+  expect(check(insertObj(doc, s, '9', 0, { k: 'h', level: 1, runs: [{ t: 'Hours' }] }))).toContain('- Sourdough toast, butter and jam | 4.00\n\n# Hours\n\n# Find us');
+  expect(insertObj(doc, s, '9', 0, { k: 'h', level: 2, runs: [{ t: 'Tea' }] }).ops[0]).toMatchObject({ at: 12 });
   // The look and the shop's settings are head fields.
   expect(write(applyAll(doc, [themeOp({ id: 'forest', dark: true })]))).toMatch(/^---\ntheme: forest dark\n---\n/);
   expect(write(applyAll(doc, [themeOp({ id: 'indigo' })]))).toMatch(/^# Harbor Coffee/);
   expect(write(applyAll(doc, [linksOp(true)]))).toMatch(/^---\ntheme: amber\nlook: links\n---\n/);
-  expect(write(applyAll(shop, [settingOp('currency', ' ')]))).not.toContain('currency:');
+  expect(write(applyAll(parse(SHOP), [settingOp('currency', ' ')]))).not.toContain('currency:');
 });
 
-test('a thing at the caret, a part duplicated, copied and pasted after itself: each one splice that undoes exactly', () => {
+test('a thing’s fields and the line the code writes from them: nothing typed is a marker or a separator', () => {
   const doc = parse(CAFE);
-  const s = readSite(doc);
-  const coffee = s.sections[2];
-  const check = (ops: ReturnType<typeof addOps>['ops']) => {
-    const after = applyAll(doc, ops);
-    expect(write(applyAll(after, invertAll(doc, ops)))).toBe(CAFE);
-    return write(after);
-  };
-  // Under the caret's block (Espresso), not at the end of the section; a caret outside the section is the end; a page still goes after its page.
-  const card = addOps(doc, s, 2, 'card', '', coffee.from + 1);
-  expect(card.at).toBe(coffee.from + 2);
-  expect(check(card.ops)).toContain('- Espresso | 3.00\n- Heading | A line about it\n- Flat white');
-  expect(addOps(doc, s, 2, 'card', '', 0).at).toBe(coffee.to);
-  expect(addOps(doc, s, 2, 'page', '', coffee.from + 1).at).toBe(s.pages[1].to);
-  // A section duplicated: its copy right after it, in the same page; a page with its sections; never the home page.
-  const dup = duplicateOps(doc, s, 2)!;
-  expect(dup.at).toBe(coffee.to);
-  const twice = check(dup.ops);
-  expect(twice.match(/## Coffee/g)!.length).toBe(2);
-  expect(twice).toContain('- Filter, by the cup | 3.50\n\n## Coffee\n\n- Espresso');
-  expect(readSite(applyAll(doc, dup.ops)).sections[3].title).toBe('Coffee');
-  expect(check(duplicateOps(doc, s, 1)!.ops).match(/# Menu\n/g)!.length).toBe(2);
-  expect(duplicateOps(doc, s, 0)).toBeNull();
-  // Copied: the part's blocks (a page with its sections; the home page its front section); pasted after the part in hand.
-  expect(partBlocks(doc, s, 1).length).toBe(s.pages[1].to - s.pages[1].from);
-  expect(partBlocks(doc, s, 0)).toEqual(doc.blocks.slice(0, s.sections[0].to));
-  const pasted = pasteOps(s, 4, partBlocks(doc, s, 3))!;
-  expect(pasted.at).toBe(s.sections[4].to);
-  expect(check(pasted.ops).trimEnd().endsWith('## Pastry\n\n- Cardamom bun | 3.50\n- Sourdough toast, butter and jam | 4.00')).toBe(true);
-  expect(pasteOps(s, 0, [])).toBeNull();
+  // A button: its icon, its words, where it goes; a "|" typed in the words cannot cut the line.
+  const q = doc.blocks[2];
+  expect(linkFields(linesOf(q.k === 'quote' ? q.runs : [])[1])).toEqual({ icon: '', label: 'Find us', url: '#find-us' });
+  const line = linkRuns({ icon: 'map-pin', label: 'Find | us', url: '#find-us' });
+  expect(write({ head: {}, blocks: [withLine(q, 1, line)] })).toBe('> See the menu | #menu\n> :map-pin: Find ¦ us | #find-us\n');
+  expect(write({ head: {}, blocks: [{ k: 'quote', runs: linkRuns({ icon: '', label: '**Big** :star:', url: '' }) }] })).toBe('> \\*\\*Big\\*\\* \\:star:\n');
+  // A big link: rich words that link where it goes, a rich line under them, its icon; read back the same.
+  const card = cardRuns({ icon: 'coffee', head: [{ t: 'Roasted ' }, { t: 'daily', b: true }], detail: [{ t: 'Never | old', i: true }], url: '#menu' });
+  const text = write({ head: {}, blocks: [{ k: 'li', depth: 0, runs: card }] });
+  expect(text).toBe('- :coffee: [Roasted **daily**](#menu) | *Never ¦ old*\n');
+  const back = parse(text).blocks[0];
+  expect(cardFields(back.k === 'li' ? back.runs : [])).toEqual({ icon: 'coffee', head: [{ t: 'Roasted ' }, { t: 'daily', b: true }], detail: [{ t: 'Never ¦ old', i: true }], url: '#menu' });
+  // Drawn: the whole card is the link.
+  expect(page(`# A\n\n${text}`)).toContain('<li class="go-card"><svg');
+  expect(page(`# A\n\n${text}`)).toContain('<strong><a href="#menu">Roasted <strong>daily</strong></a></strong>');
 });
 
 test('the name is the first heading; renamed, that heading changes, or one is put in at the top', () => {

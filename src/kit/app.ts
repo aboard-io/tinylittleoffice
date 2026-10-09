@@ -97,6 +97,8 @@ export interface AppDef {
   retitle(doc: Doc, title: string): Doc;
   /** The document, drawn: always at least one page. For print, PDF, PNG, previews and thumbnails. */
   view(doc: Doc, opts?: ViewOpts): Page[];
+  /** The document as a web page of its own (a website): the Display Link shows it, in a sandboxed frame, in place of its pages. `base` is where another document's link begins. */
+  page?(doc: Doc, base: string): string;
   exports?: Export[];
   handoffs?: Handoff[];
 }

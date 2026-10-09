@@ -30,7 +30,7 @@ import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, shareNative } from './share.ts';
 import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
-import { gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
+import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { mark } from './mark.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
@@ -489,14 +489,16 @@ export class ToShell extends LitElement {
       <ul class="to-kept">${kept.map((l) => html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${t('Expires {when}', { when: new Date(l.expires).toLocaleString(lang) })}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`)}</ul>`;
   }
 
-  /** The Display Link: the pages one under another, to read or print; a line with the title and Edit above them. */
+  /** The Display Link: the pages one under another, to read or print (a website: the site itself, as a visitor has it); a line with the title and Edit above them. */
   private renderDisplay(def: AppDef) {
     const { payload } = parseHash(location.hash);
     return html`<header class="to-display-head">
         <h1 class="to-display-title">${this.docTitle}</h1>
         <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
       </header>
-      <main class="to-display">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
+      <main class="to-display">${def.page
+        ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>`
+        : def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
       <to-toast></to-toast>`;
   }
 

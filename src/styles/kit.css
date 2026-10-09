@@ -981,6 +981,15 @@
     padding-left: max(var(--to-gutter), env(safe-area-inset-left));
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
   }
+  /* A website's Display Link: the site itself, the screen's height under the line with Edit. */
+  .to-display-site {
+    display: block;
+    width: 100%;
+    height: calc(100dvh - 72px);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: #fff;
+  }
   .to-display-page svg {
     display: block;
     width: 100%;
