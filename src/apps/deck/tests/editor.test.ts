@@ -27,8 +27,16 @@ async function editor(value = ''): Promise<{ el: ToDeckEditor; changes: string[]
 }
 const input = (tx: HTMLElement, inputType: string, data: string | null = null) => tx.dispatchEvent(new InputEvent('beforeinput', { inputType, data, bubbles: true, cancelable: true, composed: true }));
 const box = (el: ToDeckEditor, which: 'title' | 'words' | 'right' | 'notes') => el.querySelector<HTMLElement>(`to-text.deck-${which} .tx`)!;
+/** The caret at the end of a box (its selection setter focuses it). */
+async function caretIn(el: ToDeckEditor, which: 'title' | 'words' | 'right' | 'notes') {
+  const t = el.text(which)!;
+  const last = t.model.length - 1;
+  const len = t.model[last] && 'runs' in t.model[last] ? t.model[last].runs.reduce((n, r) => n + (r.ic || r.fn !== undefined ? 1 : r.t.length), 0) : 0;
+  t.sel = { anchor: { block: last, offset: len }, focus: { block: last, offset: len } };
+  await el.updateComplete;
+  await tick();
+}
 async function type(el: ToDeckEditor, tx: HTMLElement, s: string) {
-  tx.focus();
   for (const ch of s) {
     input(tx, 'insertText', ch);
     await el.updateComplete;
@@ -52,6 +60,7 @@ const talk = () => templates().find((x) => x.id === 'talk')!.doc;
 test('typing a headline and words is the document; Enter in the headline goes on to the words; the rail follows', async () => {
   const { el, last } = await editor();
   expect(thumbs(el)).toHaveLength(1);
+  await caretIn(el, 'title');
   await type(el, box(el, 'title'), 'Hello');
   expect(last()).toBe('## Hello\n');
   input(box(el, 'title'), 'insertParagraph');
@@ -66,6 +75,7 @@ test('typing a headline and words is the document; Enter in the headline goes on
   box(el, 'words').dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
   await until(() => last() === '## Hello\n\n- One\n  - Two\n');
   // Speaker notes are a quote block at the slide's end.
+  await caretIn(el, 'notes');
   await type(el, box(el, 'notes'), 'Say hi');
   await until(() => last() === '## Hello\n\n- One\n  - Two\n\n> Say hi\n');
   expect(thumbs(el)[0].getAttribute('aria-label')).toBe('Slide 1: Hello');
@@ -78,7 +88,7 @@ test('typing a headline and words is the document; Enter in the headline goes on
   const pop = el.querySelector<HTMLElement>('to-text.deck-words to-note-pop')!;
   await until(() => !!pop.querySelector('to-text .tx'));
   await type(el, pop.querySelector<HTMLElement>('to-text .tx')!, 'A note');
-  await until(() => last()?.includes('- One^[A note]'));
+  await until(() => !!last()?.includes('- One^[A note]'));
   expect(el.querySelector('.deck-fn')!.textContent).toContain('A note');
 });
 
@@ -89,7 +99,7 @@ test('Insert ▾ makes a slide of a layout after this one, with the caret in its
   thumbs(el)[1].click();
   await el.updateComplete;
   expect(el.cur).toBe(1);
-  await pick(el, button(el, 'Insert'), 'Two-column slide');
+  await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Two-column slide');
   expect(el.cur).toBe(2);
   expect(thumbs(el)).toHaveLength(7);
   expect(last()).toContain('\n\n---\n\n##  {.two}\n\n|\n\n---\n\n');
@@ -97,6 +107,7 @@ test('Insert ▾ makes a slide of a layout after this one, with the caret in its
   expect(el.querySelector('to-text.deck-right')).toBeTruthy();
   await type(el, box(el, 'title'), 'Both');
   expect(last()).toContain('## Both {.two}');
+  await caretIn(el, 'right');
   await type(el, box(el, 'right'), 'Right');
   expect(last()).toContain('## Both {.two}\n\n|\n\n- Right\n');
   await pick(el, el.querySelector<HTMLElement>('to-menu.deck-look button')!, 'Ocean');
@@ -130,6 +141,7 @@ test('a format changes the page, the rail and the bar; a page past what is writt
   thumbs(el)[2].click();
   await el.updateComplete;
   await until(() => !!box(el, 'title'));
+  await caretIn(el, 'title');
   await type(el, box(el, 'title'), 'Coffee');
   expect(last()).toBe('---\nformat: zine\n---\n## Small Joys\n\nIssue one\n\n---\n\n---\n\n## Coffee\n');
   // Prose on a page: the words are paragraphs.
@@ -143,9 +155,10 @@ test('a format changes the page, the rail and the bar; a page past what is writt
   expect(el.querySelector('.deck-sheets .to-hint')!.textContent).toContain('Fold it in half');
   await pick(el, el.querySelector<HTMLElement>('to-menu.deck-format button')!, 'Two-sided');
   expect(last()).toMatch(/^---\nformat: zine\nsides: 2\n---\n/);
-  button(el, 'See the sheets to print').click();
+  await until(() => el.querySelectorAll('.deck-sheet').length === 2);
+  button(el, 'Back to the pages').click();
   await el.updateComplete;
-  expect(el.querySelectorAll('.deck-sheet')).toHaveLength(2);
+  expect(el.querySelectorAll('.deck-sheet')).toHaveLength(0);
 });
 
 test('presenting shows the slide large, reveals a line a click, and Escape comes back to the Present button', async () => {

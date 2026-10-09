@@ -222,8 +222,8 @@ export const retitle = (text: string, title: string): string => write(apply(pars
 
 /* ---------- commands, as operations ---------- */
 
-/** The blocks a new slide is born with: nothing for the default layout; a headline that carries the layout otherwise. */
-export const blankSlideBlocks = (layout: Layout = ''): Block[] => (layout ? [{ k: 'h', level: 2, runs: [], a: { cls: [CLASS_OF[layout]] } }] : []);
+/** The blocks a new slide is born with: nothing for the default layout; a headline that carries the layout otherwise, and for two columns the "|" between them. */
+export const blankSlideBlocks = (layout: Layout = ''): Block[] => (layout ? [{ k: 'h', level: 2, runs: [], a: { cls: [CLASS_OF[layout]] } }, ...(layout === '2' ? [{ k: 'p', runs: [{ t: '|' }] } as Block] : [])] : []);
 
 /** A new slide after slide `after` (-1: before the first), of a layout; the index it will have. */
 export function addSlide(doc: Doc, after: number, layout: Layout = '', blocks: Block[] = blankSlideBlocks(layout)): { ops: Op[]; at: number } {

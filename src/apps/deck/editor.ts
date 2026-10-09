@@ -147,6 +147,22 @@ export class ToDeckEditor extends LitElement {
   get current(): ToText | null {
     return this.text(this.field) ?? this.text('words') ?? this.text('title');
   }
+  /** The spans of blocks each box owns, cut once per document and slide: the same arrays on every draw, so <to-text> redraws only what changed. */
+  private spans: { doc: Doc; cur: number; title: Block[]; words: Block[]; right: Block[]; notes: Block[] } | null = null;
+  private boxes(s: Slide): { title: Block[]; words: Block[]; right: Block[]; notes: Block[] } {
+    if (this.spans && this.spans.doc === this.doc && this.spans.cur === this.cur) return this.spans;
+    const b = this.doc.blocks;
+    const written = this.cur < this.slides.length;
+    this.spans = {
+      doc: this.doc,
+      cur: this.cur,
+      title: written && s.head >= 0 ? [b[s.head]] : [],
+      words: written ? b.slice(s.words[0], s.layout === '2' && s.pipe >= 0 ? s.pipe : s.words[1]) : [],
+      right: written && s.layout === '2' && s.pipe >= 0 ? b.slice(s.pipe + 1, s.words[1]) : [],
+      notes: written ? b.slice(s.notes[0], s.notes[1]) : [],
+    };
+    return this.spans;
+  }
 
   protected willUpdate(changed: Map<string, unknown>) {
     if (changed.has('value') && this.value !== this.emitted) this.take(this.value);
@@ -234,6 +250,7 @@ export class ToDeckEditor extends LitElement {
     e.preventDefault();
     this.step('redo');
   };
+  /** A box's selection, for the bar's pressed states (the box itself is known from its focus). */
   private onSelect(field: Field, e: CustomEvent<Sel | null>) {
     e.stopPropagation();
     if (e.detail) this.field = field;
@@ -527,12 +544,8 @@ export class ToDeckEditor extends LitElement {
     const st = this.settings;
     const g = geometryOf(st.format);
     const size = pageSize(st);
-    const written = this.cur < this.slides.length;
     const n = this.count;
-    const titleBlocks = written && s.head >= 0 ? [this.doc.blocks[s.head]] : [];
-    const wordsBlocks = written ? this.doc.blocks.slice(s.words[0], s.layout === '2' && s.pipe >= 0 ? s.pipe : s.words[1]) : [];
-    const rightBlocks = written && s.layout === '2' && s.pipe >= 0 ? this.doc.blocks.slice(s.pipe + 1, s.words[1]) : [];
-    const noteBlocks = written ? this.doc.blocks.slice(s.notes[0], s.notes[1]) : [];
+    const { title: titleBlocks, words: wordsBlocks, right: rightBlocks, notes: noteBlocks } = this.boxes(s);
     const titleNotes = s.title.filter((r) => r.fn !== undefined).length;
     const leftNotes = s.items.reduce((k, it) => k + it.runs.filter((r) => r.fn !== undefined).length, 0);
     const notes = slideNotes(s);
@@ -545,16 +558,16 @@ export class ToDeckEditor extends LitElement {
     return html`<div class="deck-canvas lay-${s.layout || 'b'} ${look.themed ? 'themed' : ''} ${look.theme.dark ? 'dark' : ''} ${sub ? 'has-sub' : ''} ${prose ? 'prose' : ''}" style=${this.canvasStyle(s, look, size)} data-format=${st.format || 'deck'}>
         <div class="deck-head">
           ${s.layout === 'i' ? nothing : pick}
-          <to-text class="deck-title" shape="line" .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')}></to-text>
+          <to-text class="deck-title" shape="line" .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @focusin=${() => (this.field = 'title')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')}></to-text>
         </div>
         ${sub
           ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${(e: KeyboardEvent) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), this.openSubMenu(e))}>
               <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(sub.svg)}</svg>
             </figure>`
           : html`<div class="deck-words-row">
-              <to-text class="deck-words" shape="lines" .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')}></to-text>
+              <to-text class="deck-words" shape="lines" .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')}></to-text>
               ${s.layout === '2'
-                ? html`<to-text class="deck-right" shape="lines" .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')}></to-text>`
+                ? html`<to-text class="deck-right" shape="lines" .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @focusin=${() => (this.field = 'right')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')}></to-text>`
                 : s.layout === 'i'
                   ? html`<button type="button" class="deck-big ${s.icon ? '' : 'empty'}" aria-label=${pickLabel} @click=${() => void this.pickIcon()}>${s.icon && iconNamed(s.icon) ? icon(iconNamed(s.icon)!, 120) : html`${icon(UI.icon, 40)}<span>${t('Pick an icon')}</span>`}</button>`
                   : nothing}
@@ -566,7 +579,7 @@ export class ToDeckEditor extends LitElement {
           : nothing}
         <span class="deck-num">${foot}</span>
       </div>
-      <to-text class="deck-notes" shape="lines" .blocks=${noteBlocks} label=${t('Speaker notes')} placeholder=${t('Speaker notes: for you when presenting, never on the slide')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('notes', e)} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('notes', e)} @text-exit=${() => this.focusBox(sub ? 'title' : 'words')}></to-text>`;
+      <to-text class="deck-notes" shape="lines" .blocks=${noteBlocks} label=${t('Speaker notes')} placeholder=${t('Speaker notes: for you when presenting, never on the slide')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('notes', e)} @focusin=${() => (this.field = 'notes')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('notes', e)} @text-exit=${() => this.focusBox(sub ? 'title' : 'words')}></to-text>`;
   }
   private renderRail(look: Look) {
     const st = this.settings;
