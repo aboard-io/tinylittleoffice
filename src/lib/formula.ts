@@ -1,14 +1,20 @@
 /**
  * A small spreadsheet engine: 6 columns (A-F) by 1,000 rows.
  * Supports + - * / ^ %, comparisons (= <> < > <= >=, giving 1 or 0),
- * parentheses, unary minus, cell refs (A1), ranges (A1:A5) and the functions
- * in FUNCTIONS below: enough for a small business model.
+ * parentheses, unary minus, cell refs (A1), ranges (A1:A5), "words" and the
+ * functions in FUNCTIONS below: enough for a small business model.
+ *
+ * A cell can have a name: a column that holds names ("Assumption:name")
+ * names, with each of its cells, the cell to the right of it, and a
+ * formula may say `=visitors * signup_rate` (a space in a name is written
+ * "_"; case does not matter). That is what makes a model readable.
  *
  * Document format (TLO, lib/tlo.ts): one table. Its header row names the
  * columns, each with what it holds ("Price:money"; see COLUMN_TYPES), and
  * its rows are rows 1, 2, 3 and so on, so A1 is the first row under the
- * names. The chart of the table, if any, is "chart: bar" (line, pie) in the
- * document's header.
+ * names. The chart of the table, if any, is "chart: bar" (line, pie,
+ * sankey) in the document's header; "lock: B6:D9, F2" says which cells are
+ * the model's own (its formulas), not to be typed over by a reader.
  *
  * Dates are numbers: days counted the way spreadsheets count them (1900
  * system), so a date minus a date is a number of days and a date plus 30 is
@@ -27,6 +33,8 @@ export const FUNCTIONS: [string, string, string][] = [
   ['MIN', 'A1:A5', 'Smallest'],
   ['MAX', 'A1:A5', 'Largest'],
   ['COUNT', 'A1:A5', 'How many numbers'],
+  ['SUMIF', 'B1:B9, "Run", C1:C9', 'Add up where the words match'],
+  ['COUNTIF', 'B1:B9, "Run"', 'How many match'],
   ['MEDIAN', 'A1:A5', 'Middle value'],
   ['PRODUCT', 'A1:A5', 'Multiply together'],
   ['IF', 'A1>0, B1, C1', 'One thing or another'],
@@ -66,6 +74,7 @@ export const COLUMN_TYPES: { id: ColType; name: string; hint: string }[] = [
   { id: 'url', name: 'Link', hint: 'Opens when clicked' },
   { id: 'check', name: 'Checkbox', hint: '☑ or ☐' },
   { id: 'rich', name: 'Rich text', hint: '**bold** and *italic*' },
+  { id: 'name', name: 'Name', hint: 'Names the cell to its right' },
 ];
 
 /** Days from the spreadsheet epoch (30 December 1899) to 1 January 1970. */
@@ -86,6 +95,8 @@ export type Grid = string[][]; // grid[row][col], raw text
 
 type Tok =
   | { t: 'num'; v: number }
+  | { t: 'str'; v: string }
+  | { t: 'name'; v: string }
   | { t: 'ref'; v: string }
   | { t: 'range'; v: [string, string] }
   | { t: 'fn'; v: string }
@@ -93,6 +104,8 @@ type Tok =
 
 type Node =
   | { k: 'num'; v: number }
+  | { k: 'str'; v: string }
+  | { k: 'name'; v: string }
   | { k: 'ref'; v: string }
   | { k: 'range'; v: [string, string] }
   | { k: 'neg'; a: Node }
@@ -138,8 +151,15 @@ function tokenize(src: string): Tok[] {
       i += m[0].length;
       continue;
     }
-    if (/[a-z]/i.test(c)) {
-      const m = /^[a-z]+\d*/i.exec(src.slice(i))!;
+    if (c === '"') {
+      const end = src.indexOf('"', i + 1);
+      if (end < 0) throw new FormulaError('#ERR');
+      toks.push({ t: 'str', v: src.slice(i + 1, end) });
+      i = end + 1;
+      continue;
+    }
+    if (/[a-z_]/i.test(c)) {
+      const m = /^[a-z_][a-z0-9_]*/i.exec(src.slice(i))!;
       const word = m[0].toUpperCase();
       i += m[0].length;
       if (/^[A-Z]{1,2}\d+$/.test(word)) {
@@ -151,8 +171,11 @@ function tokenize(src: string): Tok[] {
         } else {
           toks.push({ t: 'ref', v: word });
         }
-      } else {
+      } else if (/^\s*\(/.test(src.slice(i))) {
         toks.push({ t: 'fn', v: word });
+      } else {
+        // A word that is no cell and calls nothing is a name: a cell named by the one to its left.
+        toks.push({ t: 'name', v: word });
       }
       continue;
     }
@@ -183,6 +206,8 @@ function parse(toks: Tok[]): Node {
     const t = next();
     if (!t) throw new FormulaError('#ERR');
     if (t.t === 'num') return { k: 'num', v: t.v };
+    if (t.t === 'str') return { k: 'str', v: t.v };
+    if (t.t === 'name') return { k: 'name', v: t.v };
     if (t.t === 'ref') return { k: 'ref', v: t.v };
     if (t.t === 'range') return { k: 'range', v: t.v };
     if (t.t === 'fn') {
@@ -295,10 +320,27 @@ export function parseLiteral(raw: string, type = 'text'): CellValue {
   return raw;
 }
 
+/** A name as a formula writes it: upper case, anything that is not a letter or a digit as "_" ("One-off gifts" is ONE_OFF_GIFTS). */
+export const nameKey = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+/** The cells with names: each cell of a name column names the cell to its right. The first of a name, reading down, is the one. */
+export function namedCells(grid: Grid, types: string[]): Map<string, [number, number]> {
+  const out = new Map<string, [number, number]>();
+  types.forEach((t, c) => {
+    if (t !== 'name' || c + 1 >= COLS) return;
+    grid.forEach((row, r) => {
+      const key = nameKey(row[c]);
+      if (key && !out.has(key)) out.set(key, [r, c + 1]);
+    });
+  });
+  return out;
+}
+
 /** Evaluate every cell of the grid. Returns computed values in the same shape. */
 export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
   const cache = new Map<string, CellValue>();
   const visiting = new Set<string>();
+  const named = namedCells(grid, types);
 
   function cell(r: number, c: number): CellValue {
     const key = rcToRef(r, c);
@@ -349,6 +391,13 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
     switch (n.k) {
       case 'num':
         return n.v;
+      case 'str':
+        return n.v;
+      case 'name': {
+        const rc = named.get(n.v);
+        if (!rc) throw new FormulaError('#NAME');
+        return cell(rc[0], rc[1]);
+      }
       case 'ref': {
         const rc = refToRC(n.v);
         if (!rc) throw new FormulaError('#REF');
@@ -463,6 +512,33 @@ export function evaluateGrid(grid: Grid, types: string[] = []): CellValue[][] {
             const g = Math.pow(1 + rate, nper);
             return -(fv + (pmt * (g - 1)) / rate) / g;
           }
+          case 'SUMIF':
+          case 'COUNTIF': {
+            // Only the cells whose test passes are worked out, so a total of inflows may sit among the flows it sums.
+            const [range, test, sums] = n.args;
+            if (range?.k !== 'range' || !test || (n.fn === 'SUMIF' && sums?.k !== 'range')) throw new FormulaError('#VALUE');
+            const want = evalNode(test);
+            const op = typeof want === 'string' ? /^(<>|<=|>=|<|>|=)(.*)$/.exec(want) : null;
+            const target = op ? parseLiteral(op[2]) : want;
+            const matches = (v: CellValue) => {
+              if (op && op[1] !== '=' && op[1] !== '<>' && typeof target === 'number') return typeof v === 'number' && BINARY[op[1]](v, target) === 1;
+              const same = typeof target === 'string' && typeof v === 'string' ? v.trim().toLowerCase() === target.trim().toLowerCase() : v === target || (v === null && target === '');
+              return op?.[1] === '<>' ? !same : same;
+            };
+            const over = rangeCells(range.v[0], range.v[1]);
+            const into = sums?.k === 'range' ? rangeCells(sums.v[0], sums.v[1]) : [];
+            let total = 0;
+            over.forEach(([r, c], i) => {
+              if (!matches(cell(r, c))) return;
+              if (n.fn === 'COUNTIF') return void total++;
+              const at = into[i];
+              if (!at) return;
+              const v = cell(at[0], at[1]);
+              if (typeof v === 'number') total += v;
+              else if (typeof v === 'string' && v.startsWith('#')) throw new FormulaError(v);
+            });
+            return total;
+          }
           case 'SUM':
             return xs().reduce((s, x) => s + x, 0);
           case 'AVG':
@@ -550,18 +626,40 @@ export function formatCell(v: CellValue, type = 'text'): string {
 /** A sheet as its document holds it: the cells, the chart asked for, and each column's type and name. */
 export interface Sheet {
   grid: Grid;
-  /** 'bar', 'line', 'pie' or ''. */
+  /** 'bar', 'line', 'pie', 'sankey' or ''. */
   chart: string;
   /** One of COLUMN_TYPES' ids per column. */
   types: string[];
   /** The names given to the columns: '' where a column goes by its default (see defaultColumnName). */
   names: string[];
+  /** The cells a reader should leave be, as ranges ("B6:D9, F2"); '' for none. */
+  lock: string;
+}
+
+/** The locked ranges, read: each a rectangle of cells. */
+export function lockedRanges(lock: string): Range[] {
+  return lock
+    .split(/[,\s]+/)
+    .map((part) => {
+      const m = /^([A-F]\d+)(?::([A-F]\d+))?$/i.exec(part);
+      const a = m && refToRC(m[1].toUpperCase());
+      const b = m?.[2] ? refToRC(m[2].toUpperCase()) : a;
+      return a && b ? rangeOf(a, b) : null;
+    })
+    .filter((g): g is Range => !!g);
+}
+/** Whether a reader is to leave this cell be. */
+export const isLocked = (lock: string, r: number, c: number) => lockedRanges(lock).some((g) => r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1);
+/** The lock with these cells locked (or, `on` false, with every range that touches them let go). */
+export function withLock(lock: string, g: Range, on: boolean): string {
+  const kept = lockedRanges(lock).filter((x) => on || x.r1 < g.r0 || x.r0 > g.r1 || x.c1 < g.c0 || x.c0 > g.c1);
+  return [...kept.map(rangeRef), ...(on ? [rangeRef(g)] : [])].join(', ');
 }
 
 type Table = Extract<Block, { k: 'table' }>;
 /** The first table among some blocks. */
 export const tableIn = (blocks: Block[]) => blocks.find((b): b is Table => b.k === 'table');
-const CHARTS = ['bar', 'line', 'pie'];
+const CHARTS = ['bar', 'line', 'pie', 'sankey'];
 const blankRows = (n: number): Grid => Array.from({ length: n }, () => Array<string>(COLS).fill(''));
 
 /**
@@ -584,7 +682,7 @@ export function usedSize(grid: Grid, types: string[] = [], names: string[] = [])
 }
 
 /** A table as a sheet: its header row the names and types, its rows the cells. Columns past F and rows past the last are left out. */
-export function tableSheet(table: Table | undefined, chart = ''): Sheet {
+export function tableSheet(table: Table | undefined, chart = '', lock = ''): Sheet {
   const grid = blankRows(ROWS);
   const types = Array<string>(COLS).fill('text');
   const names = Array<string>(COLS).fill('');
@@ -598,17 +696,17 @@ export function tableSheet(table: Table | undefined, chart = ''): Sheet {
     names.forEach((n, c) => n === defaultColumnName(c, types) && (names[c] = ''));
     table.rows.slice(0, ROWS).forEach((row, r) => row.slice(0, COLS).forEach((v, c) => (grid[r][c] = v)));
   }
-  return { grid, chart: CHARTS.includes(chart) ? chart : '', types, names };
+  return { grid, chart: CHARTS.includes(chart) ? chart : '', types, names, lock: lockedRanges(lock).map(rangeRef).join(', ') };
 }
 
-/** A sheet's document read: the first table in it, and the chart in its header. */
+/** A sheet's document read: the first table in it, and the chart and the lock in its header. */
 export function readSheet(text: string): Sheet {
   const doc = parseTlo(text);
-  return tableSheet(tableIn(doc.blocks), (doc.head.chart ?? '').toLowerCase());
+  return tableSheet(tableIn(doc.blocks), (doc.head.chart ?? '').toLowerCase(), doc.head.lock ?? '');
 }
 
 export const parseGrid = (text: string): Grid => readSheet(text).grid;
-/** The chart a sheet asks for: 'bar', 'line', 'pie' or ''. */
+/** The chart a sheet asks for: 'bar', 'line', 'pie', 'sankey' or ''. */
 export const chartOf = (text: string): string => readSheet(text).chart;
 /** What each column holds: one of COLUMN_TYPES' ids per column, 'text' where nothing was said. */
 export const typesOf = (text: string): string[] => readSheet(text).types;
@@ -620,13 +718,13 @@ export const namesOf = (text: string): string[] => readSheet(text).names;
  * column's name and type. At least two columns are written, so the table
  * reads as one (a lone column has no "|" to tell it from words).
  */
-export function serializeGrid(grid: Grid, chart = '', types: string[] = [], names: string[] = []): string {
+export function serializeGrid(grid: Grid, chart = '', types: string[] = [], names: string[] = [], lock = ''): string {
   const { rows, cols } = usedSize(grid, types, names);
   const across = cols ? Math.max(2, cols) : 0;
   const blocks: Block[] = across
     ? [{ k: 'table', head: Array.from({ length: across }, (_, c) => columnText(columnName(c, types, names), (types[c] ?? 'text') as ColType)), rows: grid.slice(0, rows).map((row) => Array.from({ length: across }, (_, c) => row[c] ?? '')) }]
     : [];
-  return writeTlo({ head: chart ? { chart } : {}, blocks }).trimEnd();
+  return writeTlo({ head: { ...(chart ? { chart } : {}), ...(lock ? { lock } : {}) }, blocks }).trimEnd();
 }
 
 /* ---------- blocks of cells: copy, paste, clear, fill ---------- */
@@ -845,18 +943,30 @@ function remapRows(raw: string, to: (r: number) => number | null, gone: [number,
     .join('');
 }
 
+/** Where each row is once n rows are put in before row `at`. */
+export const rowsIn = (at: number, n: number) => (r: number) => (r >= at ? r + n : r);
+/** Where each row is once rows r0 to r1 are taken out: null for one of those. */
+export const rowsOut = (r0: number, r1: number) => (r: number) => (r < r0 ? r : r > r1 ? r - (r1 - r0 + 1) : null);
+
 /** n empty rows put in before row `at`; null when the sheet has no room (its last rows are not empty). */
 export function insertRows(grid: Grid, at: number, n = 1): Grid | null {
   if (grid.slice(ROWS - n).some((row) => row.some((v) => v !== ''))) return null;
-  const to = (r: number) => (r >= at ? r + n : r);
   const moved = [...grid.slice(0, at), ...blankRows(n), ...grid.slice(at, ROWS - n)];
-  return moved.map((row) => row.map((v) => remapRows(v, to, null)));
+  return moved.map((row) => row.map((v) => remapRows(v, rowsIn(at, n), null)));
 }
 
 /** Rows r0 to r1 taken out; those below come up, and empty rows fill the foot of the sheet. */
 export function deleteRows(grid: Grid, r0: number, r1: number): Grid {
-  const n = r1 - r0 + 1;
-  const to = (r: number) => (r < r0 ? r : r > r1 ? r - n : null);
-  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...blankRows(n)];
-  return kept.map((row) => row.map((v) => remapRows(v, to, [r0, r1])));
+  const kept = [...grid.slice(0, r0), ...grid.slice(r1 + 1), ...blankRows(r1 - r0 + 1)];
+  return kept.map((row) => row.map((v) => remapRows(v, rowsOut(r0, r1), [r0, r1])));
+}
+
+/** The lock after rows move (rowsIn, rowsOut): each range follows its rows and keeps what is left of them, and goes when none are. */
+export function remapLock(lock: string, to: (r: number) => number | null): string {
+  return lockedRanges(lock)
+    .flatMap((g) => {
+      const rows = Array.from({ length: g.r1 - g.r0 + 1 }, (_, i) => to(g.r0 + i)).filter((r): r is number => r !== null && r < ROWS);
+      return rows.length ? [rangeRef({ ...g, r0: rows[0], r1: rows[rows.length - 1] })] : [];
+    })
+    .join(', ');
 }

@@ -267,7 +267,6 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     poster: '## :music: Open mic\n\nFriday 8pm\n',
     badges: '## Ada\n\nEng\n\n---\n\n## Grace\n\nCompilers\n',
-    flow: '# Model\n\n- visitors = 100 (0 to 500)\n- rate = 10% (0 to 50)\n\n~ Visitors -> Signups: visitors * rate\n~ Visitors -> Gone: visitors - visitors * rate',
     pixel: 'ab.c\n.dd',
     seating: '- Top: Sam, Paul, Ada',
     family: '- Rose + Albert\n  - Helen',
@@ -276,7 +275,6 @@ test('accessibility: no app has violations a machine can find', async ({ page })
     spinner: '# Lunch?\n\n- Ada\n- Grace\n- Alan',
     santa: '# Santa\n\n- Ada\n- Grace\n- Alan',
     split: '# Trip\n\nWho | Amount:money | What\n--- | --- | ---\nPaul | 60 | dinner\nSam | 20 | taxi',
-    log: '# Log\n\nWhen | What | How much\n--- | --- | ---\n1 March | Run | 5 km',
     qr: 'https://tinylittleoffice.com/',
   };
   const found: string[] = [];
@@ -340,7 +338,6 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     comic: '## Biscuit\n\n---\n\n- :dog: Walk? | Monday\n',
     poster: '## :music: Open mic\n\nFriday 8pm\n',
     badges: '## Ada\n\nEng\n\n---\n\n## Grace\n\nCompilers\n',
-    flow: '# Model\n\n- visitors = 100 (0 to 500)\n- rate = 10% (0 to 50)\n\n~ Visitors -> Signups: visitors * rate\n~ Visitors -> Gone: visitors - visitors * rate',
     pixel: 'ab.c\n.dd',
     seating: '- Top: Sam, Paul, Ada',
     family: '- Rose + Albert\n  - Helen',
@@ -349,7 +346,6 @@ for (const narrow of [false, true]) test(`nothing is cut off at the right edge${
     spinner: '# Lunch?\n\n- Ada\n- Grace\n- Alan',
     santa: '# Santa\n\n- Ada\n- Grace\n- Alan',
     split: '# Trip\n\nWho | Amount:money | What\n--- | --- | ---\nPaul | 60 | dinner\nSam | 20 | taxi',
-    log: '# Log\n\nWhen | What | How much\n--- | --- | ---\n1 March | Run | 5 km',
     qr: 'https://tinylittleoffice.com/',
   };
   const found: string[] = [];

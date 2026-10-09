@@ -5,15 +5,17 @@ import '../src/apps/index.ts';
 import { appOf, apps, pageSvg } from '../src/kit/core.ts';
 import { TEMPLATES, templatesOf, planText } from '../src/lib/templates.ts';
 import { parseDoc, serializeDoc } from '../src/lib/richtext.ts';
-import { readSheet, serializeGrid } from '../src/lib/formula.ts';
+import * as formula from '../src/lib/formula.ts';
 import { parseDeck, serializeDeck, deckTransition, deckIconColor, deckEndsWithQr, deckTheme } from '../src/lib/deckmodel.ts';
 import { toMarkdown } from '../src/lib/markdown.ts';
 import * as T from '../src/api.ts';
 
+const { readSheet, serializeGrid } = formula;
+
 /** A template as its app would write it back: the same text, or the template is not in the app's own spelling. */
 const rewrite: Record<string, (body: string) => string> = {
   write: (b) => serializeDoc(parseDoc(b)),
-  sheet: (b) => ((s) => serializeGrid(s.grid, s.chart, s.types, s.names))(readSheet(b)),
+  sheet: (b) => ((s) => serializeGrid(s.grid, s.chart, s.types, s.names, s.lock))(readSheet(b)),
   deck: (b) => serializeDeck(parseDeck(b), deckTransition(b), deckIconColor(b), deckEndsWithQr(b), deckTheme(b)),
 };
 
@@ -21,7 +23,7 @@ test('every template is in its app\'s own spelling, draws, and has a name and a 
   for (const [app, list] of Object.entries(TEMPLATES)) {
     const def = appOf(app)!;
     assert.ok(def && rewrite[app], app);
-    assert.ok(list.length >= 5 && list.length <= (app === 'deck' ? 14 : 10), `${app}: ${list.length} templates`);
+    assert.ok(list.length >= 5 && list.length <= (app === 'deck' ? 14 : 12), `${app}: ${list.length} templates`);
     assert.equal(new Set(list.map((t) => t.id)).size, list.length, `${app}: ids are unique`);
     for (const t of list) {
       assert.ok(t.name && t.blurb && t.body.trim(), `${app}/${t.id}`);
@@ -50,6 +52,34 @@ test('the sheets add up: no errors in any computed cell, and the formulas mean w
   assert.match(tracker[0][2], /^\d{4}-\d{2}-\d{2}$/);
   assert.deepEqual(tracker.map((r) => r[4]), ['5', '14', '28', '1']);
   assert.equal(tracker[0][5], '☑');
+});
+
+test('the models: every locked cell is a formula that works out, the flows are drawn, and the assumptions move them', () => {
+  const { isLocked, lockedRanges } = formula;
+  const models = TEMPLATES.sheet.filter((t) => readSheet(t.body).lock);
+  assert.deepEqual(models.map((t) => t.id), ['subscription', 'cafe', 'freelancer', 'fund', 'training']);
+  for (const t of models) {
+    const s = readSheet(t.body);
+    const values = T.evaluateSheet(t.body);
+    for (const g of lockedRanges(s.lock))
+      for (let r = g.r0; r <= g.r1; r++)
+        for (let c = g.c0; c <= g.c1; c++) {
+          assert.ok(s.grid[r][c].startsWith('='), `${t.id}: ${r + 1},${c + 1} is locked, so a formula`);
+          assert.match(values[r][c], /^-?[\d,.]+$/, `${t.id}: ${s.grid[r][c]} works out`);
+        }
+    // Nothing a reader is meant to type is locked.
+    s.grid.forEach((row, r) => row.forEach((v, c) => v && !v.startsWith('=') && assert.ok(!isLocked(s.lock, r, c), `${t.id}: ${v} is a reader's`)));
+    if (s.chart !== 'sankey') continue;
+    const m = T.runModel(t.body);
+    assert.ok(m.flows.length >= 3 && m.flows.every((f) => f.value > 0), `${t.id} flows`);
+    assert.ok(Object.keys(m.values).length >= 4, `${t.id} names`);
+    // Twice the first assumption: the first flow doubles with it.
+    const [first] = [...formula.namedCells(s.grid, s.types)];
+    const more = T.runModel(t.body, { [first[0]]: Number(s.grid[first[1][0]][first[1][1]]) * 2 });
+    assert.ok(Math.abs(more.flows[0].value - m.flows[0].value * 2) < 1e-9, `${t.id}: ${first[0]} drives the first flow`);
+  }
+  // The training log totals each kind of thing.
+  assert.deepEqual(T.evaluateSheet(models[4].body).map((r) => r[5]).filter(Boolean), ['22.5', '75', '40']);
 });
 
 test('the decks come in every theme', async () => {

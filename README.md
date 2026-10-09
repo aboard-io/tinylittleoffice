@@ -9,7 +9,7 @@ you have copied the file.
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
 | Drive | The documents saved on this device, in folders (nested with a slash): search inside them, move, rename, download the lot as a zip, or blow it all away. Private by default; the switch in the header turns it on. |
-| Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, charts. Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT. |
+| Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, named cells, locked cells, charts (a Sankey among them). Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT, and models of a subscription business, a café, a freelancer and a mutual aid fund, each flows drawn as a Sankey with its assumptions beside it; a training log. |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
 | Write | A rich text editor: headings, bold, italic, lists, things from the web, a PDF on letter or A4 paper. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
 | Deck  | Slides with a headline, bullets and an icon. Press Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
@@ -30,12 +30,10 @@ you have copied the file.
 | Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |
 | Comic | A zine whose pages are panels, each typed into on the page; a folded mini comic out. |
 | Poster, Name badges | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
-| Stock and flow | A model as a Sankey diagram with a slider for every assumption. |
 | Pixel art | A grid of squares to colour. |
 | Seating chart, Family tree, Timeline | More diagrams from a few lines. |
 | Games | Word search, Spinner. |
 | Together | Secret Santa (a private link per person), Split the bill. |
-| Personal | Log. |
 
 An empty Write, Sheet or Deck opens with its templates over it, Blank the
 first card, and offers them again from "Start from a template…" in the
@@ -172,14 +170,24 @@ Every format is plain text, chosen so deflate has something to chew on.
 
 - **Sheet**: one Markdown table. Its header row names the columns, each
   with its type after a colon (`Price:money`; `text`, `number`, `money`,
-  `percent`, `date`, `url`, `check`, `rich`), and its rows are rows 1, 2, 3,
+  `percent`, `date`, `url`, `check`, `rich`, `name`), and its rows are rows 1, 2, 3,
   so `A1` is the first row under the names. `chart: bar` (`line`, `pie`) in
   the header asks for a chart: the first column is its labels, each other
-  column of numbers a series named by its column.
+  column of numbers a series named by its column; `chart: sankey` draws the
+  rows that read as From | To | Amount (the columns found by those names,
+  else the first three) as flows between the things named.
   Formulas start with `=` and support `+ - * / ^ %`, parentheses, cell
-  references (`B7`), ranges (`A1:C3`), comparisons (`= <> < > <= >=`) and
-  `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN
-  INT ABS SQRT MOD NPV IRR PMT FV PV`. Errors show as `#DIV/0`, `#REF`,
+  references (`B7`), ranges (`A1:C3`), `"words"`, comparisons (`= <> < > <= >=`) and
+  `SUM AVG MIN MAX COUNT SUMIF COUNTIF MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN
+  INT ABS SQRT MOD NPV IRR PMT FV PV`. A column of type `name`
+  (`Assumption:name`) names, with each of its cells, the cell to its right,
+  and a formula may use the name (`=visitors * signup_rate`: a space, or
+  anything that is not a letter or digit, is `_`; case does not matter).
+  That is what a model is: assumptions as named cells, flows as formulas over
+  them, `SUMIF` over the To column for what a stock holds. `lock: C1:C6, E7`
+  in the header names the cells that are the model's own: the editor shades
+  them and leaves them be when a reader types, pastes or fills (the author
+  unlocks them from the bar). Errors show as `#DIV/0`, `#REF`,
   `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. Dates are day counts, so they
   add and subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`
   work on them. A CSV, or a table without types, reads as a sheet too.
@@ -350,6 +358,10 @@ A document is a link, so a program makes one by making a string. The site serves
 ```js
 import { link, parse, lint, compare, evaluateSheet, runModel, templates } from 'https://tinylittleoffice.com/api.js';
 ```
+
+`runModel(body, { signup_rate: 10 })` runs a sheet that is a model with
+some of its named cells changed, and gives back its flows and every named
+cell's value.
 
 `templates('write')` (or `'sheet'`, `'deck'`) is the list a person is offered
 on an empty document: each a name, a line on what it is for, and its body in

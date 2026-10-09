@@ -44,7 +44,7 @@ test('the hamburger holds every app and the theme', async () => {
   const drawer = $('#nav-drawer');
   expect(drawer.hasAttribute('open')).toBe(true);
   // (The three plans are templates in Write now: their links open, but they are not listed.)
-  expect($$('.to-drawer-nav a', drawer)).toHaveLength(39);
+  expect($$('.to-drawer-nav a', drawer)).toHaveLength(37);
   // Grouped, with the kinds of drawing listed under Draw.
   const groups = ['Plan', 'Create', 'Collaborate', 'Play', 'Design', 'Print', 'Track'];
   expect($$('.to-drawer-nav h2', drawer).map(text)).toEqual(groups);

@@ -1,6 +1,6 @@
 ---
 name: tinyoffice
-description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, name badges, stock-and-flow models, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, spinners, Secret Santa draws, bill splitting, logs and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
+description: Make almost any small document as a shareable link by writing a TinyLittleOffice URL: spreadsheets and charts, text, slide decks, outlines, business/marketing/go-to-market plans, drawings and diagrams (org chart, mind map, swimlanes, Venn, network, seating, family tree, timeline), calendars, to-do lists, kanban boards, Gantt charts, map routes, websites of little pages, link-in-bio pages, shops, invoices, contracts, zines, booklets, brochures, comics, posters, name badges, models of a small business (a sheet with named cells, drawn as a Sankey), training logs, a calculator (mortgage, investment, cash flow, interest, graphs), pixel art, word searches, spinners, Secret Santa draws, bill splitting and more. Use when someone asks for any of these and a link they can open, edit and share would serve them better than a file.
 ---
 
 # TinyLittleOffice links
@@ -35,7 +35,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 | --- | --- |
 | `---` / `key: value` lines / `---` at the very top | The header: the document's settings (`chart: bar`, `currency: $`, `zone: Europe/London`), and its `title` and `by` |
 | `{#id .class key=value}` at the end of a line | Attributes: a layout (`{.title}`, `{.two}`), a setting for that line (`{due=2027-03-01}`) |
-| `Price:money` in a table's header | A typed column: `text number money percent date time check url rich` |
+| `Price:money` in a table's header | A typed column: `text number money percent date time check url rich name` |
 | `~ A -> B: label` | A connection between two things (`->`, `<-`, `<->`, `--`) |
 | a code fence named for an app: ```` ```sheet ```` | Another document inside this one, written in that app's TLO: a chart on a slide, a table in a text |
 | `==highlight==`, `++underline++`, `:icon-name:` | A highlight, an underline, a Lucide icon in the line |
@@ -46,7 +46,7 @@ Write ordinary Markdown: `#` headings, paragraphs, `- ` and `1. ` lists nested b
 
 ### sheet: a spreadsheet, and charts
 
-One table. Its header row names the columns, each optionally typed (`Sales:money`); the rows under it are rows 1, 2, 3, so `=SUM(B1:B3)` adds the first three. Up to 6 columns. A cell starting with `=` is a formula: `+ - * / ^`, comparisons, references (`B2`), ranges (`A1:A5`), and `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN INT ABS SQRT MOD NPV IRR PMT FV PV TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`. Dates are written `2027-03-01` in a `date` column and count in days. `chart: bar` (or `line`, `pie`) in the header draws the labels in the first column against the numbers beside them.
+One table. Its header row names the columns, each optionally typed (`Sales:money`); the rows under it are rows 1, 2, 3, so `=SUM(B1:B3)` adds the first three. Up to 6 columns. A cell starting with `=` is a formula: `+ - * / ^`, comparisons, references (`B2`), ranges (`A1:A5`), and `SUM AVG MIN MAX COUNT MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN INT ABS SQRT MOD NPV IRR PMT FV PV TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`. Dates are written `2027-03-01` in a `date` column and count in days. `chart: bar` (or `line`, `pie`) in the header draws the labels in the first column against the numbers beside them; `chart: sankey` draws rows of `From | To | Amount` (the columns found by those names, else the first three) as flows. A model is a sheet: a column typed `name` (`Assumption:name`) names the cell to its right, and formulas use the names (`=visitors*signup_rate/100`; a space is `_`); `SUMIF(B1:B20, "Signups", C1:C20)` totals what flows into a stock; `lock: C1:C6, E7` in the header marks the formulas as the model's own, so a reader changes the assumptions and not the model. `SUMIF` and `COUNTIF` take `"words"`, a cell, or `">6"`. The sheet templates (`templates('sheet')` in the API) include a subscription business, a café, a freelancer, a mutual aid fund and a training log, ready to fill in.
 
 {{doc:sheet:Sales by quarter}}
 ---
@@ -57,6 +57,20 @@ Quarter | Sales:money
 Q1 | 120
 Q2 | 180
 Q3 | 240
+{{end}}
+
+{{doc:sheet:Lemonade stand}}
+---
+chart: sankey
+lock: C1:C3
+---
+From | To | Amount:number | Assumption:name | Value:number
+--- | --- | --- | --- | ---
+Passers-by | Buyers | =passers_by*buy_rate/100 | Passers-by | 400
+Buyers | Takings | =buyers*price | Buy rate | 15
+Takings | Lemons | =lemons | Price | 2
+| |  |  | Lemons | 25
+| |  |  | Buyers | =SUMIF(B1:B9, "Buyers", C1:C9)
 {{end}}
 
 {{doc:sheet:Budget}}
@@ -270,14 +284,10 @@ Each of these lays a few lines out on letter-size sheets; the PDF download print
 
 ## Small apps
 
-- `flow` (stock and flow, drawn as a Sankey diagram with sliders): `- name = 1000 (0 to 5000)` is a number with a slider; `~ From -> To: formula` is a flow, its formula using slider names and stocks.
 - `pixel` (16×16): a line per row, a letter per square; `.` empty, `a` black, `b` indigo, `c` red, `d` orange, `e` yellow, `f` green, `g` sky, `h` pink.
 - `seating`: `- Table: Ann, Bob, Cy`. `family`: a nested list, a person or couple per item. `timeline`: `- When: what happened`.
 - Games: `spinner` (a `- ` list of choices), `wordsearch`.
 - Together: `santa` (the people as a `- ` list; each gets a private link to their own draw), `split` (`between: A, B, C` in the header, and a table `Who | Amount:money | What`).
-- Personal: `log` (a table of entries; each kind is totalled).
-
-{{ex:flow:Funnel}}
 
 {{ex:timeline:Computing}}
 

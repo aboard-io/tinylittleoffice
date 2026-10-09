@@ -12,7 +12,7 @@ import './suite-deck.ts';
 test('the launcher lists every app', async () => {
   await open('');
   const launcher = $$('.to-launcher a:not(.drive-tile)');
-  expect(launcher).toHaveLength(37);
+  expect(launcher).toHaveLength(35);
   expect(text(launcher[0])).toContain('Sheet');
 });
 
@@ -151,7 +151,7 @@ test('sheet: tapping cells builds a formula, and every function is one tap away'
 
   // The function menu starts a formula; taps fill in its arguments.
   const fns = $$('sl-menu-item', button('Functions').closest('sl-dropdown')!);
-  expect(fns).toHaveLength(32);
+  expect(fns).toHaveLength(34);
   choose(fns.find((i) => text(i).startsWith('MAX'))!);
   await idle();
   expect(focused()).toBe(cell('C1'));

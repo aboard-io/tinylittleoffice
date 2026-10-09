@@ -28,9 +28,9 @@ p.app;          // 'sheet'
 p.env.by;       // 'planner-agent'
 p.markdown;     // '# Budget\n\n| Item | Cost |\n| --- | --- |\n| Rent | 1200 | …'
 
-// Compute. A sheet gives its shown values; a stock-and-flow model runs for the sliders you set.
+// Compute. A sheet gives its shown values; a model (a sheet with named cells) runs with the assumptions you set, by name.
 evaluateSheet(p.env.body);                  // [['Item','Cost'],['Rent','1200'],['Food','600'],['Total','1800']]
-runModel(modelBody, { visitors: 10000 });   // { flows: [{ from, to, value }…], sliders }
+runModel(modelBody, { visitors: 10000 });   // { flows: [{ from, to, value }…], values: { visitors, signups, … } }
 
 // Compare two versions: what the second changed.
 compare(budget, revised).changes;           // [{ kind: ' ' | '-' | '+', line }…]

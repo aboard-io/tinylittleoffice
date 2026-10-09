@@ -98,8 +98,8 @@ export function looksLikeCsv(text: string): boolean;
 
 /** A sheet, computed: each cell's shown value, row by row, trimmed to what there is. */
 export function evaluateSheet(body: string): string[][];
-/** A stock-and-flow model, run for the sliders as set (by id or name). */
-export function runModel(body: string, sliders?: Record<string, number>): { flows: { from: string; to: string; value: number }[]; sliders: { id: string; name: string; value: number; min: number; max: number; unit: string }[] };
+/** A model is a sheet with named cells: run it with some assumptions changed, by name; the flows (rows of From | To | Amount) and every named cell's value come back. */
+export function runModel(body: string, assumptions?: Record<string, number>): { flows: { from: string; to: string; value: number }[]; values: Record<string, number> };
 
 export interface Warning {
   level: 'error' | 'warning' | 'note';

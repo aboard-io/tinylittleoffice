@@ -99,10 +99,9 @@ test('contract: two people, two keys, two signatures', async () => {
   expect(both.el.querySelector('.contract-sign li.bad')!.textContent).toContain('have changed since');
 });
 
-test('small apps: a bill is settled, a log adds up, Secret Santa deals one link each', async () => {
+test('small apps: a bill is settled, Secret Santa deals one link each', async () => {
   // The bill, settled.
   expect(texts(framed((await example('split')).el).querySelectorAll('.pay'))).toEqual(['Grace pays Paul 92.88', 'Ada pays Paul 47.88', 'Sam pays Paul 6.38']);
-  expect(framed((await example('log')).el).querySelector('.sums div')!.textContent).toContain('22.5 km');
   // Secret Santa: the organiser gets a link per person; each shows one draw only (shown at the press of a button: e2e).
   const santa = framed((await example('santa')).el);
   const links = [...santa.querySelectorAll('.links li')];

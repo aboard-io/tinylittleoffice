@@ -202,28 +202,6 @@ test('zine: the words fit the page, the PDF is drawn, and the web page turns', a
   await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
 });
 
-// Stays: the model is worked by its page's own script, in a frame, as the sliders move.
-test('stock and flow: sliders move the diagram', async ({ page }) => {
-  await page.goto('/#/v0/flow');
-  await page.getByRole('button', { name: 'Start from an example' }).click();
-  const model = page.frameLocator('to-flow iframe');
-  await expect(model.locator('input[type="range"]')).toHaveCount(4);
-  await expect(model.locator('svg path')).toHaveCount(6);
-  await expect(model.locator('svg rect')).toHaveCount(7);
-  // Every stock says how much is in it.
-  await expect(model.locator('svg')).toContainText('Signups');
-  await expect(model.locator('#say')).toContainText('Signups 1,200');
-  const band = () => model.locator('svg path').first().getAttribute('stroke-width').then(Number);
-  const before = await band();
-  // More people sign up: the number changes, and the band to Signups thickens.
-  await model.locator('#s_signup_rate').fill('30');
-  await expect(model.locator('#o_signup_rate')).toHaveText('30%');
-  await expect(model.locator('#say')).toContainText('Signups 6,000');
-  await expect(model.locator('#say')).toContainText('Paying 1,500');
-  expect(await band()).toBeGreaterThan(before * 3);
-  await shot(page, 'flow');
-});
-
 // Stays: a drag with the real mouse finds the squares under it by their place on the screen (the rest is in test/dom/tools.test.ts).
 test('pixel art: a drag colours the squares under the pointer', async ({ page }) => {
   await page.goto('/#/v0/pixel');
