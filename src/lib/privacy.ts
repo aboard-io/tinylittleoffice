@@ -18,7 +18,8 @@ import { createSigner, fingerprintOf, localStorageStore, verify } from './sign.t
 import { packEnvelope, quantizeCreated, signingMessage, unpackEnvelope, type Envelope } from './envelope.ts';
 import { toBase64Url } from './codec.ts';
 import { library, saving } from './library.ts';
-import { dropOffline, store, keeping, setKeeping } from './store.ts';
+import { store, keeping, setKeeping } from './store.ts';
+import { offlineOn, setOffline } from './offline.ts';
 
 export type SigState = 'none' | 'checking' | 'valid' | 'invalid';
 export { isSealed };
@@ -142,11 +143,10 @@ export class Privacy {
   documentsKept(): number {
     return saving() ? library().length : 0;
   }
-  async offlineKept(): Promise<boolean> {
-    return 'caches' in window ? (await caches.keys()).length > 0 : false;
-  }
+  /** The copy of the app for working offline: the switch in the menu. */
+  offlineKept = offlineOn;
   async dropOffline() {
-    await dropOffline();
+    await setOffline(false);
     this.changed();
   }
   /** Forget everything this site keeps in this browser, and keep nothing from here on: the switch, turned off. */
@@ -154,7 +154,6 @@ export class Privacy {
     this.api.forget();
     for (const k of store.keys()) store.remove(k);
     await setKeeping(false);
-    await dropOffline();
     this.set({ myKey: null });
   }
   /** Whether the device keeps things at all (the switch in the header). */

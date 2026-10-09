@@ -8,6 +8,7 @@ import { namesOf, parseGrid } from '../../src/lib/formula.ts';
 // and warmed, once rather than once a file.
 import './shell-privacy.ts';
 import './shell-undo.ts';
+import './shell-offline.ts';
 
 /** Open the menu and follow its link to an app, unfolding its cluster first if it is shut. */
 async function navTo(name: string) {

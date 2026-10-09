@@ -390,6 +390,27 @@ the author's id rather than their handle, so that tap first asks
 public.api.bsky.app who the handle is; if it does not say, the card offers
 the post on Bluesky instead.
 
+## Working offline
+
+The whole site is static and a document lives in its link, so nothing needs
+a server once the shell is loaded. The menu's switch, "Keep the app on this
+device", registers a service worker (`src/sw.ts`, built by Vite as `sw.js`)
+that fetches every file of the build, the lazily loaded ones too (the map
+library, the icon set, the fonts), and from then on serves the site's own
+files from the device first, the network second: a cold start with no
+connection opens the home page or any app's page, and a link opens there.
+The list it fetches is `files.json`, written by the build
+(`scripts/offline-files.ts`); the worker carries the build's version, so a
+new build is a new worker, which fetches the new files and drops the old
+cache (the line under the switch says "Updated, reload"). Switched off, the
+worker is unregistered and its cache deleted; turning the header's switch to
+Private does the same. Map tiles, embedded pages and the short-link service
+are never kept. The line under the switch says how much the browser holds
+for the site (`navigator.storage.estimate()`), and the browser is asked to
+keep it (`navigator.storage.persist()`). The site is installable as an app
+(`public/manifest.webmanifest`); the menu offers "Add to home screen" where
+the browser has a prompt, and says how on iPhone Safari, which has none.
+
 ## Embedding
 
 Share has "Copy embed code": an `<iframe>` on the document's `embed` view,
@@ -475,10 +496,22 @@ and undoing hands the editor the text it was. A new app gets it for free.
 
 Ctrl+/ (or the menu) lists every shortcut: the ones that work everywhere and
 the current app's. Every control has a name, focus is always visible, motion
-respects the reduced-motion setting, and `e2e/apps.spec.ts` runs the axe
-accessibility checker over every app in light and dark. One rule is switched
-off there, with the reason beside it: compact toolbar pickers are named for
-assistive technology but do not show a visible text label.
+respects the reduced-motion setting and edges and quiet text darken under
+the more-contrast setting (`prefers-contrast`), a skip link leads to the
+document, and the one toast is a live region that is always on the page.
+`e2e/apps.spec.ts` runs the axe accessibility checker over every app's
+editor and bar, the menu, Insert, the templates and the icon library, in
+light and dark; `e2e/keyboard.spec.ts` works the shell by keyboard alone
+(Tab to the bar, Esc giving the focus back, arrows through Insert). Rules
+switched off there carry their reason beside them: compact toolbar pickers
+are named for assistive technology but show an icon rather than a label,
+and a Shoelace dialog's own title bar is a `<header>` inside its shadow
+root, which axe counts as a second banner. The colour tokens are checked
+against each other by `test/contrast.test.ts`, which reads the stylesheet
+and Shoelace's two themes as they are: text at 4.5:1 on every surface it
+sits on in both themes, edges and rings at 3:1 in the dark, where the page
+sits darker behind its panels and text, edges and the accent are each a
+step lighter than Shoelace's own.
 
 ## Link previews
 
@@ -510,6 +543,7 @@ src/lib/sign.ts       WebCrypto keys, signing, verification
 src/lib/crypt.ts      password encryption of the packed envelope
 src/lib/limits.ts     how much room a link leaves, service by service
 src/lib/icons.ts      Lucide icons; iconsearch.ts finds and suggests them
+src/lib/offline.ts    the switch that keeps the app on the device; src/sw.ts the service worker it registers
 src/widgets/meter.ts  <to-meter>: URL space ring + copy button
 src/styles.css        the stylesheet: tokens, the shell, shared pieces (.to-*), then the apps
 scripts/              new-app, share cards and icons

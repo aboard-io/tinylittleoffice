@@ -19,6 +19,7 @@ import '@shoelace-style/shoelace/dist/components/menu-label/menu-label.js';
 import '@shoelace-style/shoelace/dist/components/option/option.js';
 import '@shoelace-style/shoelace/dist/components/progress-ring/progress-ring.js';
 import '@shoelace-style/shoelace/dist/components/select/select.js';
+import '@shoelace-style/shoelace/dist/components/switch/switch.js';
 import '@shoelace-style/shoelace/dist/components/tag/tag.js';
 import '@shoelace-style/shoelace/dist/components/textarea/textarea.js';
 import Popup from '@shoelace-style/shoelace/dist/components/popup/popup.js';
@@ -28,6 +29,7 @@ export type { default as SlSelect } from '@shoelace-style/shoelace/dist/componen
 export type { default as SlCheckbox } from '@shoelace-style/shoelace/dist/components/checkbox/checkbox.js';
 export type { default as SlTextarea } from '@shoelace-style/shoelace/dist/components/textarea/textarea.js';
 export type { default as SlDialog } from '@shoelace-style/shoelace/dist/components/dialog/dialog.js';
+export type { default as SlSwitch } from '@shoelace-style/shoelace/dist/components/switch/switch.js';
 export type { default as SlDrawer } from '@shoelace-style/shoelace/dist/components/drawer/drawer.js';
 
 /**

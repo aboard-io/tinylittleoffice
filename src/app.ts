@@ -15,6 +15,7 @@ import { budgetFor, decodeDoc } from './lib/codec.ts';
 import { DOC_KEYS, encodeEnvelope, decodeEnvelope, quantizeCreated, type Envelope } from './lib/envelope.ts';
 import { privacy, isSealed } from './lib/privacy.ts';
 import { store, keeping, setKeeping } from './lib/store.ts';
+import { canInstall, install, installByHand, offlineState, onOffline, setOffline, siteRoot } from './lib/offline.ts';
 import { fromMarkdown, readPlainLink } from './lib/markdown.ts';
 import { takeHead } from './lib/tlo.ts';
 import { compareHash, parseCompare, sideOf, type Side } from './widgets/compare.ts';
@@ -33,7 +34,7 @@ import { zip } from './kit/zip.ts';
 import { roomFor } from './lib/limits.ts';
 import { roomsTable } from './widgets/meter.ts';
 import { ToQrDialog } from './widgets/qr-dialog.ts';
-import type { SlDialog, SlDrawer, SlInput } from './lib/shoelace.ts';
+import type { SlDialog, SlDrawer, SlInput, SlSwitch } from './lib/shoelace.ts';
 import { btn, errorText, keyLabel, stepper, tool } from './kit.ts';
 
 /** An app's icon, or a kept document's (by its app's id). */
@@ -131,6 +132,7 @@ export class ToApp extends LitElement {
   /** Everything that protects a document or touches what the device keeps: one object, one widget. */
   private privacy = privacy;
   private offPrivacy = () => {};
+  private offOffline = () => {};
   /** A payload waiting for its password; '' when the document is open. */
   @state() private sealed = '';
   @state() private version = LINK_VERSION;
@@ -230,6 +232,7 @@ export class ToApp extends LitElement {
     window.addEventListener(REFRESH, this.onRefresh);
     window.addEventListener('to-toast', this.onToast);
     this.offPrivacy = this.privacy.on(() => this.requestUpdate());
+    this.offOffline = onOffline(() => this.requestUpdate());
     this.onHash();
   }
   disconnectedCallback() {
@@ -250,6 +253,7 @@ export class ToApp extends LitElement {
     window.removeEventListener(REFRESH, this.onRefresh);
     window.removeEventListener('to-toast', this.onToast);
     this.offPrivacy();
+    this.offOffline();
   }
 
   /** The fonts or the full icon set have arrived: draw again with them. */
@@ -377,11 +381,22 @@ export class ToApp extends LitElement {
     this.showToast(keeping() ? 'Saved on this device from now on' : 'Private: nothing saved');
   };
 
+  /** The switch that keeps the app on the device, with how it stands beneath it; and the way to the home screen. */
+  private renderOffline() {
+    const { on, status, line } = offlineState();
+    return html`<sl-switch slot="footer" class="to-offline" ?checked=${on} ?disabled=${status === 'saving'} help-text=${line} @sl-change=${(e: Event) => void setOffline((e.target as SlSwitch).checked)}>Keep the app on this device</sl-switch>
+      ${canInstall()
+        ? html`<sl-button slot="footer" class="to-install" @click=${() => void install()}>${icon(UI.home, 16)} Add to home screen</sl-button>`
+        : installByHand()
+          ? html`<p slot="footer" class="to-install to-hint">To add to the home screen: Share, then Add to Home Screen.</p>`
+          : nothing}`;
+  }
+
   /** Everything, in one file: the app (it runs from a folder) and every document kept here as a page of its own. */
   private async downloadAll() {
     const files: Record<string, string | Uint8Array> = {};
     try {
-      const list: string[] = await (await fetch(new URL('files.json', this.root))).json();
+      const { files: list } = (await (await fetch(new URL('files.json', this.root))).json()) as { files: string[] };
       for (const f of list) files[f === '' ? 'index.html' : f.endsWith('/') ? f + 'index.html' : f] = new Uint8Array(await (await fetch(new URL(f, this.root))).arrayBuffer());
     } catch {
       // (Not built with a file list: the documents alone, then.)
@@ -436,7 +451,7 @@ export class ToApp extends LitElement {
 
   /** The site's own address, whichever app page we were opened from. */
   private get root(): string {
-    return new URL(/\/[a-z]+\/$/.test(location.pathname) && appOf(pageApp()) ? '..' : '.', location.origin + location.pathname).href;
+    return siteRoot();
   }
 
   /** The link to this document, to edit it (see linkTo). */
@@ -669,9 +684,9 @@ export class ToApp extends LitElement {
     const { available } = budgetFor(this.urlPrefix);
     return html`
       <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
-      <!-- The menu, always at the very top left, wherever the page is scrolled to: outside the header, which goes up with the page. -->
-      <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
       <header class="to-header">
+        <!-- The menu, always at the very top left, wherever the page is scrolled to: fixed to the screen, though the header goes up with the page. -->
+        <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" aria-haspopup="dialog" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
         <!-- One row: room for the menu, then what this is (the document: its app and its title), then everything to do with it; the row scrolls sideways when it is too long, and goes up with the page. -->
         <div class="to-header-inner">
           ${current ? this.renderTitleLine(current) : html`<a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 24)}</span><span>TinyLittleOffice</span></a>`}
@@ -728,7 +743,7 @@ export class ToApp extends LitElement {
       </header>
       <sl-drawer id="nav-drawer" label="TinyLittleOffice" placement="start" style="--size: 280px" @click=${(e: Event) => (e.target as HTMLElement).closest('a') && this.drawer()?.hide()}>
         <nav class="to-drawer-nav" aria-label="Apps">
-          <input class="to-find" type="search" placeholder="Find an app" aria-label="Find an app" autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-nav a[href]:not([hidden])')?.click()} />
+          <input class="to-find" type="search" placeholder="Find an app" aria-label="Find an app" autocomplete="off" autofocus .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-nav a[href]:not([hidden])')?.click()} />
           <a href="#/" aria-current=${this.app === null && this.driving === null ? 'page' : nothing} ?hidden=${!!this.find.trim()}>${icon(UI.home, 20)}<span>Home</span></a>
           <a href="#/drive" aria-current=${this.driving !== null ? 'page' : nothing} ?hidden=${!!this.find.trim() && !'drive'.includes(this.find.trim().toLowerCase())}>${icon(UI.drive, 20)}<span>Drive</span>${saving() ? html`<small>${library().length}</small>` : nothing}</a>
           ${grouped().map((g) => {
@@ -750,6 +765,7 @@ export class ToApp extends LitElement {
           ${stepper('Size of everything', `${Math.round(this.size * 100)}%`, { less: 'Everything a little smaller', more: 'Everything a little larger', onLess: () => this.resize(-0.1), onMore: () => this.resize(0.1), canLess: this.size > 0.8, canMore: this.size < 2, reset: 'Back to the normal size', onReset: () => this.resize(1 - this.size) })}
         </div>
         <sl-button slot="footer" class="to-theme" @click=${this.cycleTheme}>${icon(this.theme === 'auto' ? UI.auto : this.theme === 'dark' ? UI.moon : UI.sun, 16)} Theme: ${THEME_NAMES[this.theme]}</sl-button>
+        ${this.renderOffline()}
       </sl-drawer>
       <main class="to-main" tabindex="-1">${current ? this.renderPanel(current) : this.comparing ? html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>` : this.driving !== null ? html`<to-drive .folder=${this.driving} @drive-zip=${this.downloadAll} @drive-change=${() => this.requestUpdate()}></to-drive>` : this.renderHome()}</main>
       ${this.renderDialog(available)}
@@ -767,7 +783,7 @@ export class ToApp extends LitElement {
         )}
         <sl-button slot="footer" variant="primary" @click=${() => this.dialog('keys-dialog')?.hide()}>Done</sl-button>
       </sl-dialog>
-      ${this.toast ? html`<div class="to-toast" role="status">${this.toast}</div>` : nothing}
+      <div class="to-toast" role="status" aria-live="polite">${this.toast}</div>
     `;
   }
 

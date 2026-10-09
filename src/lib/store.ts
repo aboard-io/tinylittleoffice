@@ -2,12 +2,14 @@
  * The one place this site keeps anything on the device. Private by
  * default: settings live in memory for the visit and nothing is written.
  * Asked to keep things (the switch in the header), it writes to
- * localStorage instead, and the library, the signing key, the offline
- * copy and the preferences all follow. Private again, every trace goes.
+ * localStorage instead, and the library, the signing key, the copy of the
+ * app (lib/offline.ts) and the preferences all follow. Private again, every trace goes.
  *
  * The one key written in either state is the choice itself, and only
  * when it is "keep": a private visit writes nothing at all.
  */
+import { dropOffline } from './offline.ts';
+
 const KEEP = 'tinyoffice.keep';
 const memory = new Map<string, string>();
 /** The keys this site writes; anything else in localStorage is not ours to touch. */
@@ -54,29 +56,14 @@ export async function setKeeping(on: boolean) {
     l.setItem(KEEP, '1');
     for (const [k, v] of memory) l.setItem(k, v);
     memory.clear();
-    keepOffline();
   } else {
-    // What is set stays for the visit, in memory; the device forgets all of it.
+    // What is set stays for the visit, in memory; the device forgets all of it, the copy of the app too.
     for (const k of store.keys()) {
       memory.set(k, l.getItem(k)!);
       l.removeItem(k);
     }
+    memory.delete('tinyoffice.offline');
     l.removeItem(KEEP);
     await dropOffline();
   }
-}
-
-/** Take the offline copy of the app off the device. */
-export async function dropOffline() {
-  if ('serviceWorker' in navigator) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
-  if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
-}
-
-/**
- * Keep the whole site on the device, so it opens with no connection (sw.js,
- * written by the build). Only when asked to keep things: private by default
- * means no offline copy either.
- */
-export function keepOffline() {
-  if (keeping() && 'serviceWorker' in navigator && !import.meta.env?.DEV) void navigator.serviceWorker.register(new URL('../../sw.js', import.meta.url)).catch(() => {});
 }

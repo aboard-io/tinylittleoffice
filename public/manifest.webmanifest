@@ -1,5 +1,7 @@
 {
+  "id": "/",
   "name": "TinyLittleOffice",
+  "lang": "en",
   "short_name": "TinyLittleOffice",
   "description": "A tiny office suite that lives entirely in the URL.",
   "start_url": "./",

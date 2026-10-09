@@ -67,9 +67,14 @@
   --to-danger: var(--sl-color-danger-600);
   --to-success: var(--sl-color-success-600);
   --to-warning: var(--sl-color-warning-600);
-  /* Words on the accent, and paper: white in both themes. A page stays a page in the dark. */
+  /* Words on the accent (dark words on the lighter accent in the dark), and paper: white in both themes, a page stays a page. */
   --to-on-accent: #fff;
   --to-paper: #fff;
+  /* A placeholder, and the line under a control, are quiet text, in the quiet text's colour (Shoelace's own reads at 4.4:1 on the greyest surface). */
+  --sl-input-placeholder-color: var(--to-ink-3);
+  --sl-input-help-text-color: var(--to-ink-3);
+  /* Quiet words on paper, which is white in both themes. */
+  --to-paper-ink: hsl(240 5% 34%);
   --to-radius: var(--sl-border-radius-medium);
   --to-radius-sm: 6px;
   --to-radius-pill: 999px;
@@ -86,11 +91,25 @@
   --to-gutter: 16px;
 }
 /* Shoelace's dark theme turns its own scales over (neutral-0 becomes the
-   darkest, neutral-1000 white), so the variables above are already right in
-   the dark. Only the page needs lifting off the panels. */
+   darkest, neutral-1000 white), so most of the variables above are right in
+   the dark as they are. What the dark asks for beyond that is separation:
+   the page darker than the panels on it, text a step lighter, edges that
+   can be seen (3:1 on what they divide; Shoelace's own are nearer 1.3:1),
+   and the accent a step lighter, with dark words on it. test/contrast.test.ts
+   reads every pair. */
 .sl-theme-dark {
-  --to-bg: var(--sl-color-neutral-0);
+  --to-bg: hsl(240 6% 8%);
   --to-surface: var(--sl-color-neutral-50);
+  --to-surface-2: var(--sl-color-neutral-100);
+  --to-border: hsl(240 5% 48%);
+  --to-border-strong: var(--sl-color-neutral-600);
+  --to-ink-2: var(--sl-color-neutral-800);
+  --to-ink-3: var(--sl-color-neutral-700);
+  --to-accent: var(--sl-color-primary-700);
+  --to-accent-soft: var(--sl-color-primary-50);
+  --to-on-accent: var(--sl-color-neutral-0);
+  --sl-input-border-color: var(--to-border);
+  --sl-panel-border-color: var(--to-border);
   color-scheme: dark;
 }
 
@@ -426,6 +445,10 @@ sl-menu-item svg.pre {
 .to-dl {
   display: inline-flex;
   align-items: center;
+}
+/* The one live region: always on the page, so what is put in it is read out; shown only while it has words. */
+.to-toast:empty {
+  display: none;
 }
 .to-toast {
   position: fixed;
@@ -998,7 +1021,7 @@ table.sheet td.sel input {
   place-items: center;
   gap: 4px;
   aspect-ratio: 16 / 10;
-  color: var(--to-ink-3);
+  color: var(--to-paper-ink);
   font-size: 11px;
   text-align: center;
 }
@@ -1013,7 +1036,7 @@ table.sheet td.sel input {
   font-size: 11px;
   line-height: 16px;
   text-align: left;
-  color: var(--to-ink-3);
+  color: var(--to-paper-ink);
 }
 .deck-editor {
   display: flex;
@@ -2516,7 +2539,7 @@ table.sheet td.corner {
 }
 .to-here,
 .to-drawer-nav a[aria-current='page'] {
-  color: var(--sl-color-primary-700);
+  color: var(--sl-color-primary-800);
 }
 
 .sl-theme-dark .to-here,
@@ -3578,6 +3601,15 @@ sl-menu-item.sub::part(base) {
   }
 }
 
+/* More contrast when asked (the device's own setting): edges in their strong colour, quiet text a step darker. */
+@media (prefers-contrast: more) {
+  :root,
+  :host,
+  .sl-theme-dark {
+    --to-border: var(--to-border-strong);
+    --to-ink-3: var(--to-ink-2);
+  }
+}
 /* No motion when asked: slides cut, nothing slides or fades. */
 @media (prefers-reduced-motion: reduce) {
   *,
