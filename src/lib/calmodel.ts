@@ -28,7 +28,7 @@ import { ACCENT } from '../kit/core.ts';
  * nine o'clock across a clock change.
  */
 import { parse, write, attr, type Block, type Head } from './tlo.ts';
-import { dayToYmd, isValidZone, pad2, partsToUtc, utcToParts, ymdString, ymdToDay } from './tz.ts';
+import { clockString, dayString, dayToYmd, isValidZone, partsToUtc, utcToParts, ymdString, ymdToDay } from './tz.ts';
 
 export const EPOCH_MS = Date.UTC(2020, 0, 1);
 export const EPOCH_DAY = ymdToDay(2020, 1, 1);
@@ -100,15 +100,11 @@ function readWhen(text: string, zone: string): [Omit<Span, 'label'>, string] | n
   const b = end?.[1] ? dayOf(end[1])! : a;
   const words = rest.replace(/^\s*:?\s*/, '');
   if (!t0) return [{ kind: 'd', start: a - EPOCH_DAY, dur: Math.max(1, b - a + 1) }, words];
-  const at = (day: number, h: number, min: number) => {
-    const { y, m, d } = dayToYmd(day);
-    return partsToUtc(y, m, d, h, min, zone);
-  };
-  const from = at(a, +t0[1], +t0[2]);
+  const from = clockMinutes(a, +t0[1], +t0[2], zone);
   const [h, min] = end?.[4] ? [+end[4], +end[5]] : end?.[2] ? [+end[2], +end[3]] : [+t0[1], +t0[2]];
-  let to = at(b, h, min);
-  if (end?.[4] && to < from) to = at(b + 1, h, min);
-  return [{ kind: 't', start: Math.round((from - EPOCH_MS) / 60000), dur: Math.max(0, Math.round((to - from) / 60000)) }, words];
+  let to = clockMinutes(b, h, min, zone);
+  if (end?.[4] && to < from) to = clockMinutes(b + 1, h, min, zone);
+  return [{ kind: 't', start: from, dur: Math.max(0, to - from) }, words];
 }
 
 /** The spans of a text: its items, each from its date. Loosely, also lines that are not items, a repeat written after the label and "(3 days)". */
@@ -125,7 +121,7 @@ function readSpans(text: string, loose: boolean): Calendar {
   for (const l of lines) {
     let line = l.text.replace(/\n/g, ' ');
     // "2027-03-01 (3 days): Offsite", as some write a span of days.
-    if (loose) line = line.replace(/^(\d{4})-(\d\d?)-(\d\d?)\s*\((\d+) days?\)/, (_, y, m, d, n) => (+n > 1 ? `${y}-${m}-${d} to ${(({ y: Y, m: M, d: D }) => ymdString(Y, M, D))(dayToYmd(ymdToDay(+y, +m, +d) + +n - 1))}` : `${y}-${m}-${d}`));
+    if (loose) line = line.replace(/^(\d{4})-(\d\d?)-(\d\d?)\s*\((\d+) days?\)/, (_, y, m, d, n) => (+n > 1 ? `${y}-${m}-${d} to ${dayString(ymdToDay(+y, +m, +d) + +n - 1)}` : `${y}-${m}-${d}`));
     const read = readWhen(line, zone || 'UTC');
     if (!read) continue;
     const [when, words] = read;
@@ -160,12 +156,11 @@ export const readCalendar = (text: string): string => serializeCalendar(readSpan
 
 /** When a span is, as its item starts: dates as they are, times as the clock reads in `zone`. */
 function whenText(s: Span, zone: string): string {
-  const day = (n: number) => ((p) => ymdString(p.y, p.m, p.d))(dayToYmd(n));
-  if (s.kind === 'd') return day(EPOCH_DAY + s.start) + (s.dur > 1 ? ` to ${day(EPOCH_DAY + s.start + s.dur - 1)}` : '');
-  const a = utcToParts(EPOCH_MS + s.start * 60000, zone);
-  const b = utcToParts(EPOCH_MS + (s.start + s.dur) * 60000, zone);
+  if (s.kind === 'd') return isoDay(s.start) + (s.dur > 1 ? ` to ${isoDay(s.start + s.dur - 1)}` : '');
+  const a = utcToParts(spanStartMs(s), zone);
+  const b = utcToParts(spanEndMs(s), zone);
   const [da, db] = [ymdString(a.y, a.m, a.d), ymdString(b.y, b.m, b.d)];
-  const [ta, tb] = [`${pad2(a.h)}:${pad2(a.min)}`, `${pad2(b.h)}:${pad2(b.min)}`];
+  const [ta, tb] = [clockString(a), clockString(b)];
   return !s.dur ? `${da} ${ta}` : da === db ? `${da} ${ta}-${tb}` : `${da} ${ta} to ${db} ${tb}`;
 }
 
@@ -246,14 +241,28 @@ export function occurrences(s: Span, fromDay: number, toDay: number, zone: strin
     if (!step && dayToYmd(day).d !== p.d) continue;
     seen++;
     if (day + b - a < fromDay) continue;
-    const { y, m, d } = dayToYmd(day);
-    out.push({ ...s, start: t ? Math.round((partsToUtc(y, m, d, t.h, t.min, zone) - EPOCH_MS) / 60000) : day - EPOCH_DAY });
+    out.push({ ...s, start: t ? clockMinutes(day, t.h, t.min, zone) : day - EPOCH_DAY });
   }
   return out;
 }
 
 /** "2026-03-01" for a day counted from 2020-01-01, the way todo and gantt count. */
-export function isoDay(day: number): string {
-  const { y, m, d } = dayToYmd(EPOCH_DAY + day);
-  return ymdString(y, m, d);
+export const isoDay = (day: number): string => dayString(EPOCH_DAY + day);
+
+/** And back: "2026-03-01" as days since 2020-01-01, or null when it is not a date. */
+export function fromIsoDay(s: string | undefined): number | null {
+  const day = dayOf(s);
+  return day === null ? null : day - EPOCH_DAY;
+}
+
+/** Today by the viewer's own clock, counted from 2020-01-01. */
+export function today(): number {
+  const n = new Date();
+  return ymdToDay(n.getFullYear(), n.getMonth() + 1, n.getDate()) - EPOCH_DAY;
+}
+
+/** The time a clock in `zone` reads h:min on a day (counted from 1970), as a timed span counts it: minutes since EPOCH_MS. */
+export function clockMinutes(day: number, h: number, min: number, zone: string): number {
+  const { y, m, d } = dayToYmd(day);
+  return Math.round((partsToUtc(y, m, d, h, min, zone) - EPOCH_MS) / 60000);
 }

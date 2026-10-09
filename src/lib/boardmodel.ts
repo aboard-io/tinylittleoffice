@@ -18,7 +18,7 @@ export interface Stage {
   cards: string[];
 }
 
-export const DEFAULT_STAGES = ['To do', 'Doing', 'Done'];
+const DEFAULT_STAGES = ['To do', 'Doing', 'Done'];
 export const MAX_STAGES = 8;
 
 export function emptyBoard(): Stage[] {

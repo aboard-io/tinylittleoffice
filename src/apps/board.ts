@@ -64,7 +64,7 @@ export class ToBoard extends DocElement<Stage[]> {
     if (to < 0 || to >= this.doc.length || (to === i && (at < 0 || at >= n))) return;
     if (to !== i) at = this.doc[to].cards.length;
     this.moveCard(i, c, to, at);
-    this.updateComplete.then(() => this.querySelector<HTMLElement>(`.board-col:nth-of-type(${to + 1}) .board-card:nth-child(${at + 1}) textarea`)?.focus());
+    this.focusSoon(`.board-col:nth-of-type(${to + 1}) .board-card:nth-child(${at + 1}) textarea`);
   }
 
   private editCard(i: number, c: number, text: string) {

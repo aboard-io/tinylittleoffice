@@ -11,7 +11,7 @@
  *   - Sketch | 2027-03-01 | 2 | 100%
  */
 import { parse, write, columnsOf } from './tlo.ts';
-import { EPOCH_DAY, isoDay } from './calmodel.ts';
+import { EPOCH_DAY, fromIsoDay, isoDay } from './calmodel.ts';
 import { ymdToDay } from './tz.ts';
 
 export interface GanttTask {
@@ -29,13 +29,12 @@ export const MAX_INDENT = 3;
 
 export const MAX_TASKS = 40;
 
-export const GANTT_HEAD = ['Task', 'Start:date', 'Days:number', 'Done:percent'];
+const GANTT_HEAD = ['Task', 'Start:date', 'Days:number', 'Done:percent'];
 
 /** A day as written in a table: "2027-03-01", or "3/1/2027". */
 function dayOf(s: string): number | null {
-  const iso = /^(\d{4})-(\d\d?)-(\d\d?)$/.exec(s.trim());
   const us = /^(\d\d?)\/(\d\d?)\/(\d{4})$/.exec(s.trim());
-  return iso ? ymdToDay(+iso[1], +iso[2], +iso[3]) - EPOCH_DAY : us ? ymdToDay(+us[3], +us[1], +us[2]) - EPOCH_DAY : null;
+  return us ? ymdToDay(+us[3], +us[1], +us[2]) - EPOCH_DAY : fromIsoDay(s);
 }
 const num = (s: string | undefined) => parseFloat((s ?? '').replace(/[%\s]/g, ''));
 

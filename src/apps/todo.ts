@@ -3,24 +3,11 @@
  * Document format: see lib/todomodel.ts.
  */
 import { goLinks } from '../widgets/link-guard.ts';
-import { DocElement, defineElement, html, nothing, state, btn, tool, icon, swap, isKey, UI, EPOCH_DAY, dayToYmd, ymdString, ymdToDay, type SlInput, type SlSelect } from '../kit.ts';
+import { DocElement, defineElement, html, nothing, state, btn, tool, icon, clamp, swap, isKey, UI, type SlInput, type SlSelect } from '../kit.ts';
 import { parseTodos, serializeTodos, type Task } from '../lib/todomodel.ts';
+import { fromIsoDay, isoDay, today } from '../lib/calmodel.ts';
 
 type Filter = 'all' | 'open' | 'done';
-
-const dayToInput = (day: number | null) => {
-  if (day === null) return '';
-  const { y, m, d } = dayToYmd(EPOCH_DAY + day);
-  return ymdString(y, m, d);
-};
-const inputToDay = (v: string): number | null => {
-  const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(v);
-  return m ? ymdToDay(+m[1], +m[2], +m[3]) - EPOCH_DAY : null;
-};
-const today = () => {
-  const n = new Date();
-  return ymdToDay(n.getFullYear(), n.getMonth() + 1, n.getDate()) - EPOCH_DAY;
-};
 
 export class ToTodo extends DocElement<Task[]> {
   @state() private filter: Filter = 'all';
@@ -47,10 +34,10 @@ export class ToTodo extends DocElement<Task[]> {
 
   private onRowKey(e: KeyboardEvent, i: number) {
     if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-      const j = i + (e.key === 'ArrowUp' ? -1 : 1);
+      const d = e.key === 'ArrowUp' ? -1 : 1;
       e.preventDefault();
-      this.move(i, j - i);
-      this.focusSoon(`.todo-list input[aria-label="Task ${Math.max(0, Math.min(this.doc.length - 1, j)) + 1}"]`);
+      this.move(i, d);
+      this.focusSoon(`.todo-list input[aria-label="Task ${clamp(i + d, 0, this.doc.length - 1) + 1}"]`);
     } else if (isKey(e, 'Mod+Enter')) {
       e.preventDefault();
       this.patch(i, { done: !this.doc[i].done });
@@ -88,7 +75,7 @@ export class ToTodo extends DocElement<Task[]> {
             <sl-checkbox ?checked=${t.done} @sl-change=${(e: Event) => this.patch(i, { done: (e.target as HTMLInputElement).checked })}><span class="sr-only">Done: ${t.text}</span></sl-checkbox>
             <input class="text" aria-label="Task ${i + 1}" .value=${t.text} @input=${(e: Event) => this.patch(i, { text: (e.target as HTMLInputElement).value })} />
             ${goLinks(t.text)}
-            <input class="due" type="date" aria-label="Due date" .value=${dayToInput(t.due)} @change=${(e: Event) => this.patch(i, { due: inputToDay((e.target as HTMLInputElement).value) })} />
+            <input class="due" type="date" aria-label="Due date" .value=${t.due === null ? '' : isoDay(t.due)} @change=${(e: Event) => this.patch(i, { due: fromIsoDay((e.target as HTMLInputElement).value) })} />
             <button class="star" aria-label="Star" aria-pressed=${t.star ? 'true' : 'false'} @click=${() => this.patch(i, { star: !t.star })}>${icon(UI.star, 16)}</button>
             ${btn('Move up', 'up', () => this.move(i, -1), { disabled: i === 0, size: 16 })}
             ${btn('Move down', 'down', () => this.move(i, 1), { disabled: i === this.doc.length - 1, size: 16 })}
