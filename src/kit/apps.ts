@@ -11,8 +11,9 @@ import deck from '../apps/deck/def.ts';
 import todo from '../apps/todo/def.ts';
 import board from '../apps/board/def.ts';
 import cal from '../apps/cal/def.ts';
+import diagram from '../apps/diagram/def.ts';
 
-const ALL: AppDef[] = [write, outline, deck, sheet, draw, board, todo, cal];
+const ALL: AppDef[] = [write, outline, deck, sheet, draw, diagram, board, todo, cal];
 
 export const apps = (): AppDef[] => ALL;
 export const appOf = (id: string): AppDef | undefined => ALL.find((a) => a.id === id);
