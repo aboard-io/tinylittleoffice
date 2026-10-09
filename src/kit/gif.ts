@@ -114,17 +114,19 @@ function lzw(indices: Uint8Array, minCodeSize: number): number[] {
   return out;
 }
 
-/** Encode RGBA frames of one size as an animated GIF (looping forever by default). */
-export function encodeGif(width: number, height: number, frames: GifFrame[], opts: { loop?: number } = {}): Uint8Array {
+/** Encode RGBA frames of one size as an animated GIF: looping for ever by default; `loop` repeats it that many times after the first play, and false leaves the loop block out (it plays once). */
+export function encodeGif(width: number, height: number, frames: GifFrame[], opts: { loop?: number | false } = {}): Uint8Array {
   const out: number[] = [];
   const u16 = (n: number) => out.push(n & 255, (n >> 8) & 255);
   out.push(...[...'GIF89a'].map((c) => c.charCodeAt(0)));
   u16(width);
   u16(height);
   out.push(0x70, 0, 0); // no global colour table; 8-bit colour
-  out.push(0x21, 0xff, 0x0b, ...[...'NETSCAPE2.0'].map((c) => c.charCodeAt(0)), 3, 1);
-  u16(opts.loop ?? 0);
-  out.push(0);
+  if (opts.loop !== false) {
+    out.push(0x21, 0xff, 0x0b, ...[...'NETSCAPE2.0'].map((c) => c.charCodeAt(0)), 3, 1);
+    u16(opts.loop ?? 0);
+    out.push(0);
+  }
 
   for (const frame of frames) {
     const { palette, indices } = quantize(frame.data);

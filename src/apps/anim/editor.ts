@@ -2,19 +2,21 @@
  * <to-anim-editor>: a drawing that moves. Draw mode is Draw's own editor, given the drawing alone; what it
  * changes comes back as one splice of the table of shapes (in Draw's own bursts), and the keys follow their
  * shapes. Move mode puts the time on a moment and lets you drag a shape to where it should be then, bring it
- * nearer, grow it (the handle, or the slider), spin it and give it effects; between the moments you set, it
- * travels in straight lines. A canvas as the standard has it (docs/editing.md §5, §8): a tap chooses a shape,
+ * in front of the others (depth), grow it (the handle, or the slider), spin it in the plane, turn it about its
+ * upright axis like a card, and give it effects; between the moments you set, it travels in straight lines. A canvas as the standard has it (docs/editing.md §5, §8): a tap chooses a shape,
  * Shift+tap adds one, Mod+A takes them all; the shapes in hand have a contextual bar under them (a key here,
  * the words, duplicate, copy, cut, paste, delete); the arrows nudge them (with none in hand, and always by
  * comma and full stop, they step a frame); Enter or two taps open a shape's words in Draw; the clipboard
  * carries the shapes with their keys. Every change is operations on the document (model.ts), and an undo
- * puts the shapes in hand back. Under either mode, the time: Draw/Move, the clock, the scrubber with the
- * chosen shape's keys on it, and a strip of moments.
+ * puts the shapes in hand back. Under either mode, the time: Draw/Move and the clock; in Move mode the length
+ * (frames, with its seconds), the speed (frames a second) and how it repeats (for ever, once, a number of
+ * times, back and forth), the scrubber with the chosen shape's keys on it, and a strip of moments.
  */
 import { html, nothing, svg, type PropertyDeclarations, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
+import { live } from 'lit/directives/live.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { ClipboardPaste, Copy, Key, Pause, PenTool, Play, Scissors, Sparkles, Tag, Timer } from 'lucide';
+import { ClipboardPaste, Copy, Key, Pause, PenTool, Play, Repeat, Scissors, Sparkles, Tag } from 'lucide';
 import { tool } from '../../kit/bar.ts';
 import { DocElement, type DocChange, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
@@ -26,8 +28,9 @@ import { toast } from '../../kit/toast.ts';
 import { applyAll, parse, write, type Doc, type Op } from '../../doc/index.ts';
 import { GRID, H, W, bounds, isDrawn, isLink, shapesTable, type Shape } from '../draw/model.ts';
 import { THEME } from '../draw/editor.ts';
-import { EFFECTS, FPS_CHOICES, MAX_FRAMES, MAX_Z, drawingOf, duplicateShapes, hasKey, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShapes, room, setLength, stateAt, withKeys, type AnimView, type Key as AnimKey } from './model.ts';
+import { EFFECTS, MAX_FPS, MAX_FRAMES, MAX_Z, MIN_FPS, MIN_FRAMES, drawingOf, playhead, setLoop, type Loop, duplicateShapes, hasKey, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShapes, room, setLength, stateAt, withKeys, type AnimView, type Key as AnimKey } from './model.ts';
 import { frameSvg, transformOf, altOf } from './view.ts';
+import { turnOf } from '../draw/view.ts';
 import '../../kit/bar.ts';
 import '../../kit/menu.ts';
 import '../../kit/context.ts';
@@ -37,8 +40,12 @@ export const tag = 'to-anim-editor';
 
 /** At most this many little pictures under the scrubber. */
 const THUMBS = 16;
-/** The lengths offered, in frames. */
-const LENGTHS = [12, 24, 36, 48, 72, 96, MAX_FRAMES];
+/** The numbers of times the repeat menu offers (the motion's own, if another, is offered too). */
+const TIMES = [2, 3, 5, 10];
+/** How long a Mod+C, X or V waits for the browser's own clipboard event before doing it by hand (Safari's comes late, or never). */
+const CLIP_WAIT = 120;
+/** A repeat, named. */
+const loopName = (l: Loop): string => (l === 'forever' ? t('Loop for ever') : l === 'once' ? t('Play once') : l === 'bounce' ? t('Back and forth') : t('{n} times', { n: l }));
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 /** The effects' names, by letter. */
@@ -103,8 +110,8 @@ export class ToAnimEditor extends DocElement<AnimView> {
   private handOver: number[] | null = null;
   /** The last tap on a shape: which, and when (for two taps). */
   private lastTap: { i: number; at: number } | null = null;
-  /** A Mod+C, X or V whose clipboard event has not come (Safari sends none with nothing selected): done by hand. */
-  private clipPending: 'copy' | 'cut' | 'paste' | null = null;
+  /** The last Mod+C, X or V on the stage: done by the browser's own event or by hand, whichever comes first, never both. */
+  private press: { clip: 'copy' | 'cut' | 'paste'; done: boolean; at: number } | null = null;
 
   constructor() {
     super();
@@ -213,13 +220,18 @@ export class ToAnimEditor extends DocElement<AnimView> {
     cancelAnimationFrame(this.raf);
     this.frame = Math.min(this.view.frames - 1, Math.round(this.clock));
   }
+  /** Play from the moment in hand (from the start, when a play that stops has ended), as the motion repeats: for ever, once, a number of times, or back and forth. */
   private toggle() {
     if (this.playing) return this.pause();
+    const { frames, loop } = this.view;
+    const from = (loop === 'once' || typeof loop === 'number') && this.frame >= frames - 1 ? 0 : this.frame;
     this.playing = true;
-    const t0 = performance.now() - (this.frame / this.view.fps) * 1000;
+    const t0 = performance.now() - (from / this.view.fps) * 1000;
     const tick = () => {
       if (!this.playing) return;
-      this.clock = (((performance.now() - t0) / 1000) * this.view.fps) % this.view.frames;
+      const at = playhead(this.view.frames, this.view.loop, ((performance.now() - t0) / 1000) * this.view.fps);
+      this.clock = at.frame;
+      if (at.done) return this.pause();
       this.raf = requestAnimationFrame(tick);
     };
     tick();
@@ -371,7 +383,12 @@ export class ToAnimEditor extends DocElement<AnimView> {
   private onClipboard = (e: ClipboardEvent) => {
     const stage = this.stageEl;
     if (this.mode !== 'move' || !stage || document.activeElement !== stage) return;
-    this.clipPending = null;
+    // The key's paste already done by hand (the browser's event came late): not again.
+    const press = this.press;
+    if (press && press.clip === e.type && performance.now() - press.at < 2000) {
+      if (press.done && e.type === 'paste') return void e.preventDefault();
+      press.done = true;
+    }
     const dt = e.clipboardData;
     if (e.type === 'paste') {
       e.preventDefault();
@@ -421,14 +438,15 @@ export class ToAnimEditor extends DocElement<AnimView> {
     if (mod && !e.altKey && !e.shiftKey && (k === 'c' || k === 'x' || k === 'v')) {
       const clip = ({ c: 'copy', x: 'cut', v: 'paste' } as const)[k];
       if (!any && clip !== 'paste') return;
-      // Not prevented: the browser's own copy, cut or paste event follows and does it. If none comes, by hand.
-      this.clipPending = clip;
+      // Not prevented: the browser's own copy, cut or paste event follows and does it. If none comes, by hand; never both.
+      const press = { clip, done: false, at: performance.now() };
+      this.press = press;
       setTimeout(() => {
-        if (this.clipPending !== clip) return;
-        this.clipPending = null;
+        if (press.done) return;
+        press.done = true;
         if (clip === 'paste') void this.pasteIn();
         else this.copyOut(clip === 'cut');
-      });
+      }, CLIP_WAIT);
       return;
     }
     const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key] as [number, number] | undefined;
@@ -584,13 +602,20 @@ export class ToAnimEditor extends DocElement<AnimView> {
     const fx = this.sel >= 0 ? stateAt(this.view, this.sel, this.frame).fx : '';
     return EFFECTS.map((f) => ({ label: FX_NAMES[f.letter](), checked: fx.includes(f.letter), disabled: this.sel < 0, does: () => this.toggleFx(f.letter) }));
   }
-  private lengthItems(): MenuItem[] {
+  private loopItems(): MenuItem[] {
+    const { loop } = this.view;
+    const times = [...new Set([...TIMES, ...(typeof loop === 'number' ? [loop] : [])])].sort((a, b) => a - b);
+    const list: Loop[] = ['forever', 'once', 'bounce', ...times];
+    return list.map((l) => ({ label: loopName(l), hint: l === 'bounce' ? t('Forward, then back') : undefined, checked: l === loop, does: () => this.act(setLoop(this.doc, l)) }));
+  }
+  /** A number field's words committed: the length or the speed, held to what it may be (the field shows what was kept). */
+  private setNumber(which: 'frames' | 'fps', input: HTMLInputElement) {
+    const n = Math.round(parseFloat(input.value));
     const { frames, fps } = this.view;
-    const lengths = [...new Set([...LENGTHS, frames])].sort((a, b) => a - b);
-    return [
-      ...lengths.map((n) => ({ group: t('Length'), label: t('{n} frames', { n }), hint: t('{s} seconds', { s: (n / fps).toFixed(1) }), checked: n === frames, does: () => this.act(setLength(this.doc, n, fps)) })),
-      ...FPS_CHOICES.map((f) => ({ group: t('Speed'), label: t('{n} frames a second', { n: f }), checked: f === fps, does: () => this.act(setLength(this.doc, frames, f)) })),
-    ];
+    const ops = Number.isFinite(n) ? setLength(this.doc, which === 'frames' ? n : frames, which === 'fps' ? n : fps) : [];
+    if (ops.length) this.act(ops);
+    // Out of bounds or not a number: the field shows what the motion has.
+    input.value = String(which === 'frames' ? this.view.frames : this.view.fps);
   }
   /**
    * The contextual bar under the shapes in hand (§5's order, for a motion): add a key here, remove this key |
@@ -634,7 +659,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
   private hint(): string {
     if (!this.view.shapes.length) return t('Nothing here yet: switch to Draw and draw something.');
     if (this.sel < 0) return t('Tap a shape, then drag it to where it should be at this moment.');
-    return t('Drag to move it at {s} s; depth, size and spin below; K keeps it here.', { s: this.secs(this.frame) });
+    return t('Drag to move it at {s} s; depth, size, spin and turn below; K keeps it here.', { s: this.secs(this.frame) });
   }
 
   private renderBar() {
@@ -642,7 +667,6 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return html`<to-bar class="anim-bar">
       ${tool({ label: this.playing ? t('Pause') : t('Play'), icon: this.playing ? Pause : Play, keys: 'Space', pressed: this.playing, keep: true, does: () => this.toggle() })}
       <to-menu class="anim-fx" keep .label=${t('Effects')} .icon=${Sparkles} caret ?disabled=${!s} .items=${this.fxItems()}></to-menu>
-      <to-menu class="anim-length" keep icon-only .label=${t('Length and speed')} .icon=${Timer} .items=${this.lengthItems()}></to-menu>
       ${this.undoTools()}
     </to-bar>`;
   }
@@ -666,7 +690,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
               const chosen = this.sels.includes(i);
               const pts = isDrawn(s.k) && i === one ? (k.pts ?? s.pts ?? []) : [];
               const sized = i === one && !isLink(s.k);
-              return svg`<g class="hit ${chosen ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, a.shapes, k, now)}><rect x=${x - 6} y=${y - 6} width=${w + 12} height=${h + 12} rx="4" />
+              return svg`<g class="hit ${chosen ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, a.shapes, k, now)}><rect x=${x - 6} y=${y - 6} width=${w + 12} height=${h + 12} rx="4" transform=${turnOf(s) || nothing} />
                 ${sized ? svg`<g class="handle" data-handle="1"><circle class="reach" cx=${x + w + 6} cy=${y + h + 6} r=${reach(8)} /><rect x=${x + w} y=${y + h} width="12" height="12" /></g>` : nothing}
                 ${Array.from({ length: Math.floor(pts.length / 2) }, (_, c) => {
                   const [cx, cy] = [s.x + (pts[2 * c] / 100) * s.w, s.y + (pts[2 * c + 1] / 100) * s.h];
@@ -680,13 +704,30 @@ export class ToAnimEditor extends DocElement<AnimView> {
   private renderProps() {
     if (this.sel < 0 || !this.view.shapes[this.sel]) return nothing;
     const at = stateAt(this.anim, this.sel, this.frame);
-    const slider = (label: string, field: 'z' | 's' | 'r', min: number, max: number, step: number, shown: string) =>
-      html`<label class="anim-slider"><span>${label} <b>${shown}</b></span>
-        <input type="range" min=${min} max=${max} step=${step} .value=${String(at[field])} @input=${(e: Event) => this.key({ [field]: parseFloat((e.target as HTMLInputElement).value) }, `${field}:${this.sels.join(',')}:${this.frame}`)} /></label>`;
+    // Each says what it does in its tooltip: depth is which shape is in front, size is how large, spin is in the plane, turn about the upright axis.
+    const slider = (label: string, tip: string, field: 'z' | 's' | 'r' | 'u', min: number, max: number, step: number, shown: string) =>
+      html`<label class="anim-slider anim-${field}" title=${tip}><span>${label} <b>${shown}</b></span>
+        <input type="range" min=${min} max=${max} step=${step} aria-description=${tip} .value=${String(at[field] ?? 0)} @input=${(e: Event) => this.key({ [field]: parseFloat((e.target as HTMLInputElement).value) }, `${field}:${this.sels.join(',')}:${this.frame}`)} /></label>`;
     return html`<div class="anim-props">
-      ${slider(t('Depth'), 'z', -MAX_Z, MAX_Z, 1, `${Math.round(at.z)}`)}
-      ${slider(t('Size'), 's', 0.2, 4, 0.1, `${at.s.toFixed(1)}×`)}
-      ${slider(t('Spin'), 'r', -360, 360, 1, `${Math.round(at.r)}°`)}
+      ${slider(t('Depth'), t('Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.'), 'z', -MAX_Z, MAX_Z, 1, `${Math.round(at.z)}`)}
+      ${slider(t('Size'), t('How large the shape is drawn: 1× is as drawn.'), 's', 0.2, 4, 0.1, `${at.s.toFixed(1)}×`)}
+      ${slider(t('Spin'), t('Turns the shape round in the plane of the stage, like a wheel.'), 'r', -360, 360, 1, `${Math.round(at.r)}°`)}
+      ${slider(t('Turn'), t('Turns the shape about its upright axis, like a card: edge on at 90°, mirrored past it.'), 'u', -360, 360, 1, `${Math.round(at.u ?? 0)}°`)}
+    </div>`;
+  }
+
+  /** The length in frames (and so in seconds), the speed in frames a second, and how it repeats: fields and a menu, written as the head's frames, fps and loop. */
+  private renderLength() {
+    const { frames, fps, loop } = this.view;
+    const field = (which: 'frames' | 'fps', label: string, value: number, min: number, max: number) =>
+      html`<label class="anim-field anim-${which}"><span>${label}</span><input type="number" inputmode="numeric" min=${min} max=${max} step="1" .value=${live(String(value))}
+        @change=${(e: Event) => this.setNumber(which, e.target as HTMLInputElement)}
+        @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && !e.isComposing && (e.preventDefault(), this.setNumber(which, e.target as HTMLInputElement))} /></label>`;
+    return html`<div class="anim-length" role="group" aria-label=${t('Length, speed and repeat')}>
+      ${field('frames', t('Frames'), frames, MIN_FRAMES, MAX_FRAMES)}
+      <span class="anim-secs to-hint" aria-live="polite">${t('{s} s', { s: (frames / fps).toFixed(1) })}</span>
+      ${field('fps', t('Frames a second'), fps, MIN_FPS, MAX_FPS)}
+      <to-menu class="anim-loop" .label=${loopName(loop)} .icon=${Repeat} caret .items=${this.loopItems()}></to-menu>
     </div>`;
   }
 
@@ -718,7 +759,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
         <span class="anim-clock to-hint">${t('{now} s of {all} s', { now: this.secs(shown), all: this.secs(frames - 1) })}</span>
       </div>
       ${move
-        ? html`<div class="anim-scrub">
+        ? html`${this.renderLength()}<div class="anim-scrub">
               <input type="range" aria-label=${t('Time')} min="0" max=${frames - 1} step="1" .value=${String(shown)} @input=${(e: Event) => this.seek(parseInt((e.target as HTMLInputElement).value, 10))} />
               <div class="anim-keys">
                 ${keys.map((k) => html`<button type="button" class=${k.t === this.frame && !this.playing ? 'key on' : 'key'} style="left:${(k.t / Math.max(1, frames - 1)) * 100}%" aria-label=${t('Key at {s} s', { s: this.secs(k.t) })} @mousedown=${keep} @click=${() => this.seek(k.t)}></button>`)}

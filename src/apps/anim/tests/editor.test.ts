@@ -48,6 +48,14 @@ async function drag(el: ToAnimEditor, x: number, y: number, to?: [number, number
   await el.updateComplete;
 }
 const key = (el: ToAnimEditor, k: string, more: KeyboardEventInit = {}) => stage(el).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, ...more }));
+/** A number field given words and committed (Enter), as a person types in it. */
+async function setField(el: ToAnimEditor, selector: string, value: string) {
+  const input = el.querySelector<HTMLInputElement>(selector)!;
+  input.focus();
+  input.value = value;
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await el.updateComplete;
+}
 async function pick(el: HTMLElement, opener: HTMLElement, words: string) {
   opener.click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
@@ -67,7 +75,7 @@ test('a drawing opens in Move mode; a tap selects the rocket, a drag keys it now
   // The rocket's box is at (64, 288), 64 square: a tap in it selects it, and the hint and the sliders follow.
   await drag(el, 96, 320);
   expect(el.querySelector('.anim-stage .hit.sel')?.getAttribute('data-idx')).toBe('1');
-  expect(el.querySelectorAll('.anim-props input[type=range]')).toHaveLength(3);
+  expect(el.querySelectorAll('.anim-props input[type=range]')).toHaveLength(4);
   expect(changes).toHaveLength(0);
   await drag(el, 96, 320, [136, 300]);
   expect(keysTable(last())).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,40,-20,0,1,0; 23,200,-200,80,1,-30,d\n');
@@ -88,7 +96,7 @@ test('a drawing opens in Move mode; a tap selects the rocket, a drag keys it now
   expect(keysTable(last())).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,40,-20,0,1,0; 23,200,-200,80,1,-30,d\n');
 });
 
-test('K keeps a key; the effects menu, the sliders and Remove this key write the keys; the length menu the head; Delete takes the shape and its keys', async () => {
+test('K keeps a key; the effects menu, the sliders and Remove this key write the keys; the length fields the head; Delete takes the shape and its keys', async () => {
   const { el, last } = await editor(LIFT);
   await drag(el, 96, 320);
   key(el, '.');
@@ -107,9 +115,9 @@ test('K keeps a key; the effects menu, the sliders and Remove this key write the
   button(el, 'Remove this key').click();
   await el.updateComplete;
   expect(keysTable(last())).toContain('\n1 | 0,0,0,0,1,0; 23,200');
-  await pick(el, el.querySelector<HTMLButtonElement>('.anim-length button')!, '12 frames a second');
+  await setField(el, '.anim-fps input', '12');
   expect(last()!.startsWith('---\nframes: 24\nfps: 12\n---\n')).toBe(true);
-  await pick(el, el.querySelector<HTMLButtonElement>('.anim-length button')!, '12 frames');
+  await setField(el, '.anim-frames input', '12');
   expect(last()!.startsWith('---\nframes: 12\nfps: 12\n---\n')).toBe(true);
   expect(keysTable(last())).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0\n1 | 0,0,0,0,1,0\n');
   await drag(el, 96, 320);
@@ -176,6 +184,73 @@ test('the GIF export: GIF89a, the stage size, a frame for every frame', async ()
   let frames = 0;
   for (let i = 0; i < gif.length - 2; i++) if (gif[i] === 0x21 && gif[i + 1] === 0xf9 && gif[i + 2] === 4) frames++;
   expect(frames).toBeGreaterThanOrEqual(24);
+});
+
+test('the GIF repeats as the motion says (once: no loop block; bounce: there and back), and its frames draw a label\'s marks', async () => {
+  const build = (doc: string) => def.exports!.find((e) => e.ext === 'gif')!.build(doc, { title: '', link: '' }) as Promise<Uint8Array>;
+  const count = (gif: Uint8Array) => {
+    let n = 0;
+    for (let i = 0; i < gif.length - 2; i++) if (gif[i] === 0x21 && gif[i + 1] === 0xf9 && gif[i + 2] === 4) n++;
+    return n;
+  };
+  const has = (gif: Uint8Array) => new TextDecoder('latin1').decode(gif.slice(0, 64)).includes('NETSCAPE2.0');
+  const short = LIFT.replace('frames: 24', 'frames: 6').replace(/; 23,/g, '; 5,');
+  const once = await build(short.replace('fps: 8\n', 'fps: 8\nloop: once\n'));
+  expect(has(once)).toBe(false);
+  expect(count(once)).toBe(6);
+  const bounce = await build(short.replace('fps: 8\n', 'fps: 8\nloop: bounce\n'));
+  expect(has(bounce)).toBe(true);
+  expect(count(bounce)).toBe(10);
+  // A bold label rasterises differently from a plain one: the tspan is drawn.
+  const { pixels } = await import('../../../kit/raster.ts');
+  const { pageSvg } = await import('../../../kit/draw.ts');
+  const { frameSvg } = await import('../view.ts');
+  const { readAnim } = await import('../model.ts');
+  const { parse } = await import('../../../doc/index.ts');
+  const ink = async (doc: string) => {
+    const px = (await pixels(pageSvg({ w: 640, h: 400, svg: frameSvg(readAnim(parse(doc)), 0) }), 640, 400))!;
+    let dark = 0;
+    for (let i = 0; i < px.length; i += 4) if (px[i] + px[i + 1] + px[i + 2] < 300) dark++;
+    return dark;
+  };
+  expect(await ink(LIFT.replace('| Lift off', '| **Lift off**'))).toBeGreaterThan((await ink(LIFT)) * 1.1);
+});
+
+test('Move mode\'s length, speed and repeat: the frames and fps fields write the head (out of bounds held, nonsense refused), the seconds follow; the repeat menu; the Turn slider keys a turn; playing once stops at the end', async () => {
+  const { el, last } = await editor(LIFT);
+  const secs = () => el.querySelector('.anim-secs')!.textContent;
+  expect(secs()).toBe('3.0 s');
+  await setField(el, '.anim-frames input', '500');
+  expect(last()!.startsWith('---\nframes: 120\nfps: 8\n---\n')).toBe(true);
+  expect(el.querySelector<HTMLInputElement>('.anim-frames input')!.value).toBe('120');
+  expect(secs()).toBe('15.0 s');
+  const n = last();
+  await setField(el, '.anim-fps input', 'fast');
+  expect(last()).toBe(n);
+  expect(el.querySelector<HTMLInputElement>('.anim-fps input')!.value).toBe('8');
+  await setField(el, '.anim-fps input', '24');
+  expect(secs()).toBe('5.0 s');
+  await pick(el, el.querySelector<HTMLButtonElement>('.anim-loop button')!, 'Back and forth');
+  expect(last()!.startsWith('---\nframes: 120\nfps: 24\nloop: bounce\n---\n')).toBe(true);
+  await pick(el, el.querySelector<HTMLButtonElement>('.anim-loop button')!, '3 times');
+  expect(last()).toContain('\nloop: 3\n');
+  // The Turn slider: a key with its turn.
+  await drag(el, 96, 320);
+  const turn = el.querySelector<HTMLInputElement>('.anim-u input')!;
+  expect(el.querySelector('.anim-u')!.getAttribute('title')).toContain('upright axis');
+  expect(el.querySelector('.anim-z')!.getAttribute('title')).toContain('never changes the size');
+  turn.value = '180';
+  turn.dispatchEvent(new Event('input', { bubbles: true }));
+  await el.updateComplete;
+  expect(keysTable(last())).toContain('\n1 | 0,0,0,0,1,0,,u180; 23,');
+  // Played once from near the end, it stops on the last frame.
+  await pick(el, el.querySelector<HTMLButtonElement>('.anim-loop button')!, 'Play once');
+  await setField(el, '.anim-frames input', '4');
+  key(el, ' ');
+  await el.updateComplete;
+  expect(button(el, 'Pause')).not.toBeNull();
+  await until(() => !!button(el, 'Play'), 2000);
+  expect(el.querySelector<HTMLInputElement>('.anim-scrub input')!.value).toBe('3');
 });
 
 test('at phone width: the bar is one row, the stage fits, nothing is wider than the screen, the page does not scroll on a tap', async () => {
@@ -386,17 +461,20 @@ test('Enter, or two taps, on a shape in hand opens its words in place (Draw\'s o
   const draw = el.querySelector<HTMLElement & { updateComplete: Promise<unknown> }>('to-draw-editor')!;
   expect(draw).not.toBeNull();
   const words = draw.querySelector<HTMLElement>('.draw-words')!;
+  const box = words.querySelector<HTMLElement>('.tx')!;
   expect(words.hidden).toBe(false);
-  expect(document.activeElement).toBe(words);
-  expect(words.innerText).toBe('Lift off');
-  // Typing: one burst in Motion's log, as in Draw's own.
-  words.innerText = 'Lift';
-  words.dispatchEvent(new InputEvent('input', { bubbles: true }));
-  words.innerText = 'Lift up';
-  words.dispatchEvent(new InputEvent('input', { bubbles: true }));
-  await el.updateComplete;
+  expect(document.activeElement).toBe(box);
+  await tick();
+  expect(box.innerText).toBe('Lift off');
+  // Typing over the words chosen: one burst in Motion's log, as in Draw's own.
+  for (const ch of 'Lift up') {
+    box.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true, composed: true }));
+    await el.updateComplete;
+    await tick();
+  }
   expect(last()).toContain('| Lift up\n');
-  expect(changes).toHaveLength(2);
+  // (A space at the end is no change to the label until a word follows it.)
+  expect(changes).toHaveLength('Lift up'.length - 1);
   // The shell's Mod+Z from the words is Motion's: the words go back, and Draw is not left with them open.
   await undo(el);
   await el.updateComplete;

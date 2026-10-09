@@ -134,6 +134,36 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
+  /* The length (frames and its seconds), the speed and the repeat: one row that wraps on a phone. */
+  .anim-length {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+  }
+  .anim-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--to-ink-2);
+  }
+  .anim-field input {
+    width: 4.5em;
+    min-height: 36px;
+    padding: 4px 8px;
+    /* 16px, so a phone does not zoom on it. */
+    font: 16px var(--to-font);
+    font-variant-numeric: tabular-nums;
+    color: var(--to-ink);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .anim-secs {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
   .anim-scrub {
     position: relative;
     padding-bottom: 14px;
@@ -170,7 +200,8 @@
     .anim-keys .key::before {
       inset: -15px;
     }
-    .anim-thumbs button {
+    .anim-thumbs button,
+    .anim-field input {
       min-height: 44px;
     }
   }

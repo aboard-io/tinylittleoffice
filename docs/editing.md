@@ -73,12 +73,12 @@ Rules:
 
 ## 5. Canvases (the Drawing Tool, the Animator, the Diagram Maker's kinds)
 
-- A tap selects a shape (the selection drawn with a handle); a tap on nothing deselects; a drag moves; the handle resizes; Shift while drawing constrains (a line to an axis; a box to a square).
+- A tap selects a shape (the selection drawn with a handle); a tap on nothing deselects; a drag moves; the handle resizes; Shift while drawing constrains (a line to an axis; a box to a square). With Select in hand, a drag that starts on nothing draws a dashed box (the marquee) and chooses every shape whose box lies inside it (Shift adds to the choice); the contextual bar then acts on them all.
 - Double tap or Enter on a selected shape edits its words **in place**, on the shape, with a contextual bar (size, colour) right under the words; Enter or a tap outside commits; Escape restores.
 - With a shape selected, the **contextual bar** sits under it: inks, style, text sizes, edit words, duplicate, front/back, copy, cut, paste, delete. The same bar order everywhere a thing is selected.
 - Arrows nudge the selected shape by one grid step, Shift+Arrows by five, Mod+Arrows resize by one (never off the canvas); Delete/Backspace removes; Mod+D duplicates; Mod+C/X/V on shapes; Shift+tap adds to the selection; Mod+A selects every shape.
 - Tool keys pick tools (letters, no modifier) only when the canvas itself has the focus (never from a bar button, a field or a popover); Escape returns to Select.
-- A handle (resize, a pen corner, a key on a scrubber) has a 44px hit area under a finger, whatever it draws. The canvas keeps `touch-action: none` only while a tool or a drag is in hand, so a finger can pan a zoomed canvas.
+- A handle (resize, rotate, a pen corner, a key on a scrubber) has a 44px hit area under a finger, whatever it draws. The canvas keeps `touch-action: none` while a tool or a drag is in hand, and while the drawing fits its frame (a finger's drag on nothing is the marquee); zoomed in, a finger on nothing pans.
 - Wheel with Mod (or a pinch) zooms; the wheel alone scrolls.
 - Everything drawn is undoable in one step per gesture (a drag is one step, not one per pixel).
 
@@ -103,12 +103,12 @@ Rules:
 
 - A grid cell replaces its content when typed on (spreadsheet convention); a selected shape, card or node does not. The Spreadsheet's Mod+D is fill down (every spreadsheet's), and Mod+Alt+= / Mod+Alt+- insert and delete the selected rows (Google Sheets' chords); Escape in a cell restores what was there and keeps the focus on the cell.
 - Backspace at the start of an item: in a document (the Word Processor, the Presentation Builder, the Website Builder) it unlists first (§2); in an outliner and in rows (the Outliner, the To-Do List, checklists, stops, tasks) it joins (§3).
-- The Drawing Tool's single-letter tool keys exist only on the canvas. A shape's label is plain text (no marks, no bubble); Shift+Enter in it is a line break kept as " | ".
+- The Drawing Tool's single-letter tool keys exist only on the canvas. A shape's label is rich: a one-line `<to-text>` whose bubble holds the five marks alone (`marks-only`: no link, no footnote, no list; Mod+K does nothing), written as inline Markdown in the Label column by the code, never typed; Shift+Enter in it is a line break kept as " | ". A shape (not a line, an arrow or a join) rotates: by the round handle above it (Shift holds 15° steps), by the bar's Rotate left and Rotate right, and by `[` and `]` on the canvas (15° each), all about its centre (the Rot column). The Animator's Draw mode is the same editor.
 - The Presentation Builder's Enter in the headline moves to the words of the slide (a headline is one line), not to a new slide; Delete at its end moves on too. A new slide is Mod+Shift+Enter (in every format) or Insert ▾; Present is Mod+Alt+Enter; PageUp/PageDown change slides only when the focus is on the rail, not in a box.
 - The Diagram Maker: a single tap on a thing opens its words at once (there is no selected-but-idle state) and a tap on empty space starts a thing there, held as a draft until its first letter. Its words are plain (`no-bubble`).
 - Calendar: a tap on a month entry opens its dialog (dates need fields); the schedule's tasks are rows (§6). The dialog's draft is written as one operation on Done and nothing on Escape.
 - Calculator: Up/Down in the entry line recall tape lines (with no modifier only); Escape clears the entry, and an entry is not in the undo log; the tape grows at its end.
-- The Animator: `,` and `.` step a frame; arrows nudge the selected shape (with nothing selected they step a frame); K keys the shape; Space plays. The Animator's Draw mode has no pixel mode.
+- The Animator: `,` and `.` step a frame; arrows nudge the selected shape (with nothing selected they step a frame); K keys the shape; Space plays. The Animator's Draw mode has no pixel mode. Its length (frames, with the seconds beside), speed (frames a second) and repeat (for ever, once, a number of times, back and forth) are fields and a menu under the stage in Move mode; Depth is which shape is in front (a far one a little dimmer), Size how large, Spin the turn in the plane, Turn the turn about the upright axis (a card turning, mirrored past 90°).
 - The Trip Planner: the map keeps its own wheel and pinch (Leaflet's), and a double tap on it zooms (never adds two stops).
 - The Website Builder: words are edited in the panel, not in the frame; a picked section's bar is Edit, Move up, Move down, Duplicate, Delete.
 - The Outliner: Mod+Alt+Up/Down fold and unfold; Mod+Shift+. and Mod+Shift+, zoom in and out; Select All inside a zoom takes the zoomed family. A document or a web thing under an item is a whole row, not a one-character card.

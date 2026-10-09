@@ -79,7 +79,7 @@ test('draw: a shape tapped has its contextual bar inside the screen, and the bar
   const edit = bar.getByRole('button', { name: 'Edit the words' });
   if (touch) await edit.tap();
   else await edit.click();
-  const words = page.locator('.draw-words');
+  const words = page.locator('.draw-words .tx');
   await expect(words).toBeFocused();
   await page.keyboard.type('Hi there');
   await page.keyboard.press('Enter');
@@ -98,9 +98,11 @@ test('draw: a shape tapped has its contextual bar inside the screen, and the bar
   else await canvas.click(at(240, 144));
   await expect(bar).toBeVisible();
   if (!touch) {
-    // A double click opens the words too; Escape leaves them as they were.
+    // A double click opens the words too, all chosen; Escape lets the choice go, and again leaves them as they were.
     await canvas.dblclick(at(240, 144));
     await expect(words).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(words).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(words).toBeHidden();
     await expect(canvas.locator('[data-idx="0"] text')).toHaveText('Hi there');
@@ -113,7 +115,7 @@ test('draw: a shape tapped has its contextual bar inside the screen, and the bar
   expect(errors).toEqual([]);
 });
 
-test('draw by finger: two taps on a shape type its words; the empty canvas pans and a shape keeps the finger; the bar\'s Undo brings back a deleted shape, chosen', async ({ page }, info) => {
+test('draw by finger: two taps on a shape type its words; the fitted canvas and a shape keep the finger; the bar\'s Undo brings back a deleted shape, chosen', async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/draw');
@@ -126,9 +128,10 @@ test('draw by finger: two taps on a shape type its words; the empty canvas pans 
   await page.getByRole('button', { name: /^Rectangle/ }).click();
   await hit(192, 120);
   await expect(canvas.locator('[data-idx="0"]')).toHaveCount(1);
-  expect(await canvas.evaluate((el) => getComputedStyle(el).touchAction)).toBe('pan-x pan-y');
+  // While the drawing fits, a finger on the empty canvas draws the marquee rather than panning.
+  expect(await canvas.evaluate((el) => getComputedStyle(el).touchAction)).toBe('none');
   expect(await canvas.locator('[data-idx="0"]').evaluate((el) => getComputedStyle(el).touchAction)).toBe('none');
-  const words = page.locator('.draw-words');
+  const words = page.locator('.draw-words .tx');
   if (touch) {
     // Two taps on the shape (no dblclick under a finger): its words open, the focus in them.
     await hit(240, 144);
@@ -154,5 +157,50 @@ test('draw by finger: two taps on a shape type its words; the empty canvas pans 
   await expect(canvas.locator('[data-idx]')).toHaveCount(1);
   await expect(canvas.locator('.handle').first()).toBeVisible();
   await expect(bar).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('draw: the turn handle is in reach above a chosen shape and turns it; a finger\'s drag on the empty canvas with Select in hand chooses the shapes inside its box', async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/draw');
+  const canvas = page.locator('svg.draw-canvas');
+  await expect(canvas).toBeVisible();
+  const touch = !!info.project.use.hasTouch;
+  const box = (await canvas.boundingBox())!;
+  const at = (x: number, y: number) => ({ position: { x: (x / 640) * box.width, y: (y / 400) * box.height } });
+  const hit = (x: number, y: number) => (touch ? canvas.tap(at(x, y)) : canvas.click(at(x, y)));
+  // Two rectangles, 96 by 48: at (96, 120) and (320, 120).
+  for (const x of [96, 320]) {
+    await page.getByRole('button', { name: /^Rectangle/ }).click();
+    await hit(x, 120);
+  }
+  await expect(canvas.locator('[data-idx]')).toHaveCount(2);
+  // The second is in hand: its round handle sits above the middle of its top, and is what a finger there finds.
+  const rotor = canvas.locator('.rotor circle:not(.rotor-hit)');
+  await expect(rotor).toHaveCount(1);
+  const r = (await rotor.boundingBox())!;
+  const [rx, ry] = [r.x + r.width / 2, r.y + r.height / 2];
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.rotor'), [rx, ry])).toBe(true);
+  if (touch) expect((await canvas.locator('.rotor-hit').boundingBox())!.width).toBeGreaterThanOrEqual(43);
+  // Dragged round to the right of the shape's centre: a quarter turn, in the link.
+  const c = [box.x + (368 / 640) * box.width, box.y + (144 / 400) * box.height];
+  await page.mouse.move(rx, ry);
+  await page.mouse.down();
+  await page.mouse.move(c[0] + 60, c[1], { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => (document.querySelector('to-draw-editor') as HTMLElement & { value: string }).value)).toContain('| Rot\n');
+  // A finger's drag from the empty top left round both: both are chosen, and the bar is theirs.
+  await page.evaluate(([x0, y0, x1, y1]) => {
+    const svg = document.querySelector('svg.draw-canvas')!;
+    const send = (type: string, x: number, y: number) => (type === 'pointerdown' ? document.elementFromPoint(x, y) ?? svg : svg).dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 7, pointerType: 'touch', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }));
+    send('pointerdown', x0, y0);
+    for (let i = 1; i <= 5; i++) send('pointermove', x0 + ((x1 - x0) * i) / 5, y0 + ((y1 - y0) * i) / 5);
+    send('pointerup', x1, y1);
+  }, [box.x + 4, box.y + 4, box.x + (480 / 640) * box.width, box.y + (260 / 400) * box.height]);
+  await expect(canvas.locator('rect[stroke-dasharray="4 3"]')).toHaveCount(2);
+  const bar = page.locator('.draw-context .to-context');
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Join two shapes' })).toBeVisible();
   expect(errors).toEqual([]);
 });
