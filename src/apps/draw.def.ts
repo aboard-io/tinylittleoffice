@@ -1,10 +1,7 @@
 /** Draw: what the shell knows about drawings. Format: lib/drawmodel.ts. */
-import { defineApp, utf8, xml, pageSvg, r, INK, PAPER, SHADE, type Page } from '../kit/core.ts';
-import { COLORS, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, paint, parseDrawing, readDrawing, W, H, type Shape } from '../lib/drawmodel.ts';
+import { defineApp, utf8, xml, pageSvg, r, textWidth, wrapText, clip, INK, PAPER, SHADE, type Page } from '../kit/core.ts';
+import { COLORS, altOf, describeDrawing, iconOf, isLine, isLink, linkEnds, pairs, paint, parseDrawing, readDrawing, W, H, type Shape } from '../lib/drawmodel.ts';
 import { ICON_SVG } from '../lib/icons.ts';
-import { textWidth, wrapText, clip } from '../kit/core.ts';
-
-const x = xml;
 
 export interface Theme {
   ink: string;
@@ -23,6 +20,8 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
   const p = paint(s, t.ink, t.paper, t.shade);
   const look = `fill="${p.fill}"${p.fillOpacity < 1 ? ` fill-opacity="${p.fillOpacity}"` : ''} stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round"`;
   const { x: X, y: Y, w, h } = s;
+  // Something to catch the pointer where a shape has no paint of its own.
+  const hitBox = hit ? `<rect x="${X}" y="${Y}" width="${w}" height="${h}" fill="transparent"/>` : '';
   let body = '';
   let [tx, ty] = [X + w / 2, Y + h / 2];
   if (isLine(s.k)) {
@@ -46,7 +45,7 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
   } else if (s.k === 'v') {
     // Any shape at all: its corners, as hundredths of its box.
     const pts = s.pts && s.pts.length >= 4 ? s.pts : [0, 0, 100, 0, 100, 100, 0, 100];
-    body = `<polygon points="${Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => `${r(X + (pts[2 * i] / 100) * w)},${r(Y + (pts[2 * i + 1] / 100) * h)}`).join(' ')}" ${look}/>`;
+    body = `<polygon points="${pairs(pts).map(([px, py]) => `${r(X + (px / 100) * w)},${r(Y + (py / 100) * h)}`).join(' ')}" ${look}/>`;
   } else if (s.k === 'c') {
     // A cylinder: the classic database.
     const e = Math.min(h * 0.16, 12);
@@ -56,13 +55,13 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
     // A note, with its corner folded.
     const f = Math.min(14, w / 3, h / 3);
     body = `<path d="M${X} ${Y}h${r(w - f)}l${r(f)} ${r(f)}v${r(h - f)}h${-w}z" ${look}/><path d="M${r(X + w - f)} ${Y}v${r(f)}h${r(f)}" fill="none" stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round"/>`;
-  } else if (s.k === 't' && hit) body = `<rect x="${X}" y="${Y}" width="${w}" height="${h}" fill="transparent"/>`;
+  } else if (s.k === 't') body = hitBox;
   const glyph = (name: string, gx: number, gy: number, size: number, color: string) =>
     ICON_SVG[name] ? `<g transform="translate(${r(gx)} ${r(gy)}) scale(${r(size / 24)})" fill="none" stroke="${color}" stroke-width="${size > 40 ? 1.6 : 2}" stroke-linecap="round" stroke-linejoin="round">${ICON_SVG[name]}</g>` : '';
   if (s.k === 'i') {
     // An icon on its own: as large as its box allows.
     const size = Math.max(8, Math.min(Math.abs(w), Math.abs(h)));
-    return (hit ? `<rect x="${X}" y="${Y}" width="${w}" height="${h}" fill="transparent"/>` : '') + glyph(s.text, X + (w - size) / 2, Y + (h - size) / 2, size, p.stroke);
+    return hitBox + glyph(s.text, X + (w - size) / 2, Y + (h - size) / 2, size, p.stroke);
   }
   if (!s.text) return body;
   const halo = isLine(s.k) ? ` stroke="${t.paper}" stroke-width="4" paint-order="stroke"` : '';
@@ -109,7 +108,7 @@ export function shapeSvg(s: Shape, all: Shape[] = [], t: Theme = PRINT, hit = fa
   const out = laid.lines
     .map((l, i) => {
       const weight = l.strong ? ';font-weight:600' : '';
-      return `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" style="font-size:${r(l.small ? fs * 0.8 : fs)}px${weight}" fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${x(l.t)}</text>`;
+      return `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" style="font-size:${r(l.small ? fs * 0.8 : fs)}px${weight}" fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${xml(l.t)}</text>`;
     })
     .join('');
   return body + (mark ? glyph(icon, start, ty - mark / 2, mark, p.text) : '') + out;
@@ -129,9 +128,8 @@ export function shapesPage(shapes: Shape[], w = W, h = H, upTo = Infinity): Page
   return { w, h, svg: `<defs>${arrowDefs()}</defs><g>${shapes.map((s, i) => (i < upTo ? shapeSvg(s, shapes) : '')).join('')}</g>` };
 }
 
-export const drawingPage = (body: string, upTo = Infinity): Page => ({ ...shapesPage(parseDrawing(body), W, H, upTo), alt: drawingAlt(body) });
-/** The alt text its author wrote, or else a description made from its shapes. */
-export const drawingAlt = (body: string) => altOf(body) || describeDrawing(parseDrawing(body));
+/** A drawing as a page, with the alt text its author wrote, or else a description made from its shapes. */
+const drawingPage = (body: string, upTo = Infinity): Page => ({ ...shapesPage(parseDrawing(body), W, H, upTo), alt: altOf(body) || describeDrawing(parseDrawing(body)) });
 
 export const drawingToSvg = (body: string) => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(drawingPage(body)) + '\n';
 
