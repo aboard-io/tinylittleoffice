@@ -246,7 +246,6 @@ export default {
   'Column {c} holds': 'Column {c} holds',
   'Column {c}: {type}. What it holds, sort by it, add or remove a column': 'Column {c}: {type}. What it holds, sort by it, add or remove a column',
   'Columns': 'Columns',
-  'Date': 'Date',
   'Delete {which}': 'Delete {which}',
   'Drag to fill': 'Drag to fill',
   'Drag to resize, double-click to fit': 'Drag to resize, double-click to fit',
