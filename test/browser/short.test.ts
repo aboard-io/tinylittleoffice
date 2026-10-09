@@ -16,11 +16,11 @@ afterEach(() => {
 const labels = (shell: HTMLElement) => shell.querySelector<ToMenu>('to-menu.to-share')!.items.map((i) => i.label);
 
 test('opened from an owner link, the document can update its short link; the shared link carries no key', async () => {
-  const shell = await mount(`#/v1/text/${encodeDoc('Hello')}${OWNED}`);
-  await until(() => !!shell.querySelector('to-text-editor to-text .tx'));
+  const shell = await mount(`#/v1/write/${encodeDoc('Hello')}${OWNED}`);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   expect(shell.owned).toEqual({ id: 'abcdefg', key: 'K'.repeat(43), o: 'O'.repeat(43) });
   expect(shell.link).not.toContain('?');
-  expect(shell.link.endsWith(`#/v1/text/${encodeDoc('Hello')}`)).toBe(true);
+  expect(shell.link.endsWith(`#/v1/write/${encodeDoc('Hello')}`)).toBe(true);
   // Nothing changed yet: extend and forget are offered, an update is not.
   expect(labels(shell)).toContain('Extend the short link…');
   expect(labels(shell)).toContain('Forget this link');
@@ -37,8 +37,8 @@ test('opened from an owner link, the document can update its short link; the sha
   await shell.updateComplete;
   const again = encodeDoc(write(parse('Hello again')));
   expect(location.hash).toContain(OWNED);
-  expect(location.hash.startsWith(`#/v1/text/${again}?`)).toBe(true);
-  expect(shell.link).toBe(`${location.origin}${location.pathname}#/v1/text/${again}`);
+  expect(location.hash.startsWith(`#/v1/write/${again}?`)).toBe(true);
+  expect(shell.link).toBe(`${location.origin}${location.pathname}#/v1/write/${again}`);
   expect(labels(shell)).toContain('Update the short link');
 
   // One tap: a PUT with the new ciphertext and o, answered with the version; the toast says so.
@@ -87,13 +87,13 @@ test('opened from an owner link, the document can update its short link; the sha
   await until(() => shell.owned === null);
   expect(sent[2].method).toBe('DELETE');
   expect(sent[2].body).toEqual({ o: 'O'.repeat(43) });
-  expect(location.hash).toBe(`#/v1/text/${again}`);
+  expect(location.hash).toBe(`#/v1/write/${again}`);
   await until(() => labels(shell).includes('Shorter link that expires…'));
 });
 
 test('a short link made here comes as two links, and the document owns it from then on', async () => {
-  const shell = await mount(`#/v1/text/${encodeDoc('Hello')}`);
-  await until(() => !!shell.querySelector('to-text-editor to-text .tx'));
+  const shell = await mount(`#/v1/write/${encodeDoc('Hello')}`);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   expect(shell.owned).toBeNull();
   vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body)) as { owner: string; ttl: number };

@@ -1,0 +1,339 @@
+/* Write: the text as paper (white in either theme, a page stays a page), the document's fields over it, a
+   table block as a small grid, another document as a picture, the notes under the text, the count at the
+   foot. Every app's sheet sits in the apps layer, above the kit's. */
+@layer apps {
+  to-write-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--to-gutter);
+    min-height: 0;
+  }
+
+  /* The paper: as wide as its page at 96 px to the inch, the margin an inch, less on a phone. */
+  .write-page {
+    --write-w: 816px;
+    --write-m: 96px;
+    width: 100%;
+    max-width: var(--write-w);
+    margin: 0 auto;
+    padding: clamp(20px, 6vw, var(--write-m)) clamp(16px, 6vw, var(--write-m));
+    color: var(--to-paper-ink);
+    background: var(--to-paper);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow);
+    font-family: var(--to-font);
+  }
+  .write-page[data-paper='a4'] {
+    --write-w: 794px;
+    --write-m: 94px;
+  }
+  .write-page .tx {
+    min-height: 50vh;
+    font-size: 17px;
+    line-height: 1.6;
+    caret-color: var(--to-paper-accent);
+  }
+  .write-page:focus-within {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+  .write-page .tx h1.title {
+    font-size: 2.4em;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5em;
+  }
+  .write-page .tx h1 {
+    margin-top: 0.6em;
+  }
+  .write-page .tx h2 {
+    margin-top: 0.5em;
+  }
+  .write-page .tx a,
+  .write-page .tx .ic,
+  .write-page .tx .fn,
+  .write-notes li::marker,
+  .write-back {
+    color: var(--to-paper-accent);
+  }
+  .write-page .tx .ic,
+  .write-page .tx .fn {
+    background: color-mix(in srgb, var(--to-paper-accent) 10%, transparent);
+  }
+  .write-page .tx .ic:hover,
+  .write-page .tx .fn:hover,
+  .write-page .tx .fn:focus-visible {
+    background: color-mix(in srgb, var(--to-paper-accent) 22%, transparent);
+  }
+  .write-page .tx li::before,
+  .write-page .tx blockquote,
+  .write-page .tx li[data-done='true'] {
+    color: var(--to-paper-muted);
+  }
+  .write-page .tx li[data-done]::before {
+    cursor: pointer;
+  }
+  .write-page .tx blockquote {
+    border-left-color: var(--to-paper-line);
+  }
+  .write-page .tx .tx-card:not(.tx-card-own) {
+    background: var(--to-paper-shade);
+    border-color: var(--to-paper-line);
+    color: var(--to-paper-muted);
+  }
+  .write-page .tx .tx-card-kind {
+    color: var(--to-paper-ink);
+  }
+  .write-page .tx .tx-card hr {
+    border-top-color: var(--to-paper-line);
+  }
+
+  /* The document's own head fields (an invoice's from and to): small labels over boxes, two to a row. */
+  .write-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12em, 1fr));
+    gap: 10px 16px;
+    margin: 0 0 20px;
+    padding: 0 0 16px;
+    border-bottom: 1px solid var(--to-paper-line);
+  }
+  .write-fields > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .write-fields dt {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--to-paper-muted);
+  }
+  .write-fields dd {
+    margin: 0;
+  }
+  .write-fields input,
+  .write-fields textarea {
+    width: 100%;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.4;
+    color: var(--to-paper-ink);
+    background: var(--to-paper-shade);
+    border: 1px solid var(--to-paper-line);
+    border-radius: var(--to-radius-sm);
+    resize: vertical;
+  }
+  .write-fields input:focus-visible,
+  .write-fields textarea:focus-visible {
+    outline: 2px solid var(--to-paper-accent);
+    outline-offset: -1px;
+  }
+
+  /* A table block: a small grid, the names over the columns, numbers to the right, the locked cells shaded. */
+  table.wt {
+    width: 100%;
+    margin: 4px 0;
+    border-collapse: collapse;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--to-paper-ink);
+  }
+  table.wt th,
+  table.wt td {
+    padding: 0;
+    border: 1px solid var(--to-paper-line);
+  }
+  table.wt th {
+    padding: 6px 8px;
+    background: var(--to-paper-shade);
+    font-weight: 600;
+    font-size: 13px;
+    text-align: left;
+  }
+  table.wt th.letter {
+    color: var(--to-paper-muted);
+    font-weight: 500;
+    text-align: center;
+  }
+  table.wt td input {
+    width: 100%;
+    min-width: 4em;
+    height: 36px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 16px;
+    text-overflow: ellipsis;
+  }
+  table.wt td input.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  table.wt td input.err {
+    color: var(--to-danger);
+  }
+  table.wt td input.locked {
+    background: var(--to-paper-shade);
+    color: var(--to-paper-muted);
+  }
+  table.wt td input:focus-visible {
+    outline: 2px solid var(--to-paper-accent);
+    outline-offset: -2px;
+  }
+  table.wt td:has(input:focus) {
+    background: color-mix(in srgb, var(--to-paper-accent) 8%, transparent);
+  }
+
+  /* Another document held in the text: a picture of its first page and its name; what signing wrote. */
+  .write-doc {
+    margin: 0;
+    max-width: 560px;
+    border: 1px solid var(--to-paper-line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    cursor: pointer;
+  }
+  .write-doc svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 50vh;
+  }
+  .write-doc pre {
+    margin: 0;
+    padding: 12px;
+    font: 13px/1.5 var(--to-font-mono);
+    color: var(--to-paper-muted);
+    white-space: pre-wrap;
+  }
+  .write-doc figcaption,
+  .write-signatures {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-top: 1px solid var(--to-paper-line);
+    background: var(--to-paper-shade);
+    font-size: 13.5px;
+    color: var(--to-paper-ink);
+  }
+  .write-doc figcaption b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .write-doc figcaption small,
+  .write-signatures small {
+    color: var(--to-paper-muted);
+  }
+  .write-signatures {
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    padding: 12px;
+    border: 1px solid var(--to-paper-line);
+    border-radius: 10px;
+  }
+  .write-signatures > div {
+    display: flex;
+    flex-direction: column;
+    padding-top: 6px;
+    border-top: 2px solid var(--to-paper-ink);
+    min-width: 12em;
+  }
+  .write-page .to-embed {
+    color: var(--to-paper-ink);
+    border-color: var(--to-paper-line);
+    background: #fff;
+  }
+  .write-page .to-embed figcaption {
+    background: var(--to-paper-shade);
+    border-top-color: var(--to-paper-line);
+  }
+  .write-page .to-embed-what small,
+  .write-page .to-embed figcaption small {
+    color: var(--to-paper-muted);
+  }
+
+  /* The notes under the text: a thin rule, small type, each with the way back to its mark. */
+  .write-notes {
+    margin-top: 24px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--to-paper-muted);
+  }
+  .write-notes hr {
+    width: 72px;
+    margin: 0 0 10px;
+    border: 0;
+    border-top: 1px solid var(--to-paper-line);
+  }
+  .write-notes ol {
+    margin: 0;
+    padding-left: 1.6em;
+  }
+  .write-notes li {
+    margin: 0 0 4px;
+  }
+  .write-notes li::marker {
+    font-size: 0.85em;
+  }
+  .write-notes a {
+    color: var(--to-paper-accent);
+  }
+  .write-back {
+    border: 0;
+    background: none;
+    padding: 0 4px;
+    font: inherit;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .write-back:hover,
+  .write-back:focus-visible {
+    background: color-mix(in srgb, var(--to-paper-accent) 12%, transparent);
+    outline: none;
+  }
+
+  /* The foot: the count, the paper. */
+  .write-foot {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--to-ink-3);
+  }
+
+  /* The menus a card opens have no button of their own in the bar. */
+  .write-cardmenu > button {
+    display: none;
+  }
+  .write-ask-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .write-ask-form input {
+    width: 100%;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 16px;
+    color: var(--to-ink);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+  }
+
+  @media print {
+    to-write-editor to-bar,
+    .write-foot,
+    .write-back {
+      display: none !important;
+    }
+  }
+}

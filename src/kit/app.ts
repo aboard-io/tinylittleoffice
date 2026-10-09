@@ -85,5 +85,11 @@ export interface AppDef {
   exports?: Export[];
 }
 
+/**
+ * The registry's lookup, reached from a definition that draws other apps' documents (a text holding a
+ * sheet): set by src/kit/apps.ts once every definition is loaded, so no definition imports the registry.
+ */
+export const lookup: { appOf: (id: string) => AppDef | undefined } = { appOf: () => undefined };
+
 /** Type an app's definition; nothing else happens here (the registry is src/kit/apps.ts). */
 export const defineApp = (def: AppDef): AppDef => def;

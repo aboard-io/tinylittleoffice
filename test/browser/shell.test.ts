@@ -9,24 +9,24 @@ afterEach(() => history.replaceState(null, '', location.pathname));
 test('the home page lists the apps as tiles, each with its templates', async () => {
   const shell = await mount('');
   const tile = shell.querySelector('.to-tile')!;
-  expect(tile.querySelector('b')!.textContent).toBe('Text');
-  expect(tile.querySelector<HTMLAnchorElement>('.to-tile-open')!.getAttribute('href')).toBe('#/v1/text');
+  expect(tile.querySelector('b')!.textContent).toBe('Write');
+  expect(tile.querySelector<HTMLAnchorElement>('.to-tile-open')!.getAttribute('href')).toBe('#/v1/write');
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
   expect(picker.textContent!.trim()).toBe('Blank');
   picker.click();
   await until(() => !!tile.querySelector('[role=option] svg'));
   const options = [...tile.querySelectorAll('[role=option]')];
-  expect(options.map((o) => o.querySelector('.to-option-words span')!.textContent)).toEqual(['Blank', 'Meeting notes']);
+  expect(options.map((o) => o.querySelector('.to-option-words span')!.textContent)).toEqual(['Blank', 'A letter', 'Meeting notes', 'Résumé', 'Contract', 'Invoice']);
   expect(options[0].getAttribute('aria-selected')).toBe('true');
   // Choosing a template opens the app with that document.
-  (options[1] as HTMLElement).click();
-  await until(() => location.hash.startsWith('#/v1/text/'));
-  expect(decodeDoc(location.hash.slice('#/v1/text/'.length))).toContain('# Meeting notes');
+  (options[2] as HTMLElement).click();
+  await until(() => location.hash.startsWith('#/v1/write/'));
+  expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Meeting notes');
 });
 
 test('a link opens its app, and every edit goes into the link', async () => {
-  const shell = await mount('#/v1/text');
-  await until(() => !!shell.querySelector('to-text-editor to-text .tx'));
+  const shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const text = shell.querySelector<ToText>('to-text')!;
   await text.updateComplete;
   text.focus();
@@ -53,10 +53,10 @@ test('a link opens its app, and every edit goes into the link', async () => {
 });
 
 test('an unreadable link is said so, not thrown', async () => {
-  const shell = await mount('#/v1/text/yNOTREALLY');
+  const shell = await mount('#/v1/write/yNOTREALLY');
   await shell.updateComplete;
   expect(shell.querySelector('.to-empty')!.textContent).toContain('cannot be read');
-  expect(shell.querySelector('.to-empty a')!.getAttribute('href')).toBe('#/v1/text');
+  expect(shell.querySelector('.to-empty a')!.getAttribute('href')).toBe('#/v1/write');
 });
 
 test('an unknown app is the home page', async () => {

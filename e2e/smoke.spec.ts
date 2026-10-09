@@ -1,6 +1,6 @@
 /**
  * The smoke run on the built site, at desktop size in Chromium and at iPhone size (390 by 844) in WebKit:
- * the home page loads, the Text app opens from it, nothing throws, nothing is wider than the screen, and
+ * the home page loads, the Write app opens from it, nothing throws, nothing is wider than the screen, and
  * axe finds nothing. With SHOTS set, a screenshot of each goes there (the phone's are the report's).
  */
 import { test, expect, type Page } from '@playwright/test';
@@ -15,20 +15,20 @@ async function shot(page: Page, name: string) {
 const axe = (page: Page) => new AxeBuilder({ page }).disableRules(['meta-viewport']).analyze();
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
-test('home loads, the Text app opens, nothing throws, axe passes', async ({ page }) => {
+test('home loads, the Write app opens, nothing throws, axe passes', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   // (WebKit says it does not know interactive-widget, the viewport key that keeps Chrome on Android from scrolling the page under its keyboard; that is not an error of ours.)
   page.on('console', (m) => m.type() === 'error' && !/interactive-widget/.test(m.text()) && errors.push(m.text()));
   await page.goto('/');
-  await expect(page.locator('.to-tile b').first()).toHaveText('Text');
+  await expect(page.locator('.to-tile b').first()).toHaveText('Write');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await shot(page, 'home');
   expect((await axe(page)).violations).toEqual([]);
 
   await page.locator('.to-tile-open').first().click();
   await expect(page).toHaveURL(/#\/v1\/text$/);
-  const area = page.locator('to-text-editor to-text .tx');
+  const area = page.locator('to-write-editor to-text .tx');
   await expect(area).toBeVisible();
   await area.click();
   await page.keyboard.type('A line written on the phone.');
@@ -38,7 +38,7 @@ test('home loads, the Text app opens, nothing throws, axe passes', async ({ page
   await page.locator('.to-title').press('Enter');
   await expect(page).toHaveTitle('Hello · TinyLittleOffice');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
-  await shot(page, 'text');
+  await shot(page, 'write');
   expect((await axe(page)).violations).toEqual([]);
 
   // The Insert menu opens inside the screen and Escape closes it.
@@ -55,6 +55,6 @@ test('home loads, the Text app opens, nothing throws, axe passes', async ({ page
   await page.locator('.to-drawer select').nth(1).selectOption('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.keyboard.press('Escape');
-  await shot(page, 'text-dark');
+  await shot(page, 'write-dark');
   expect(errors).toEqual([]);
 });

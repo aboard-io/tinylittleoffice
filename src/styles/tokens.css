@@ -22,9 +22,13 @@
     --to-danger: hsl(0 72.2% 50.6%);
     --to-success: hsl(142.1 76.2% 36.3%);
     --to-warning: hsl(32.1 94.6% 43.7%);
-    /* Paper: white in both themes, a page stays a page. */
+    /* Paper: white in both themes, a page stays a page, so its ink, its lines and its accent are the light theme's whatever the theme. */
     --to-paper: hsl(0 0% 100%);
-    --to-paper-ink: hsl(240 5% 34%);
+    --to-paper-ink: hsl(240 5.9% 10%);
+    --to-paper-muted: hsl(240 5.2% 33.9%);
+    --to-paper-line: hsl(240 4.9% 83.9%);
+    --to-paper-shade: hsl(240 4.8% 95.9%);
+    --to-paper-accent: hsl(243.4 75.4% 58.6%);
     --to-placeholder: var(--to-ink-3);
     --to-input-bg: var(--to-surface);
     --to-input-border: var(--to-border);
