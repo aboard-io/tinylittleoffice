@@ -123,3 +123,39 @@ test('board: on a phone, a tap on a grip chooses the card, the bar above it move
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   expect(errors).toEqual([]);
 });
+
+test('board: on a phone, stages as rows read top to bottom; a card is carried by its grip into the stage below', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/board');
+  const cols = page.locator('.board-col');
+  await expect(cols).toHaveCount(3);
+  await page.getByRole('button', { name: 'Stages as rows' }).tap();
+  await expect(page.locator('.board.rows')).toHaveCount(1);
+  await expect.poll(() => value(page, 'to-board-editor')).toMatch(/^---\nlook: rows\n---\n/);
+  await cols.first().locator('.board-more').tap();
+  await page.locator('.board-menu [role=menu]').getByText('Add a card').tap();
+  await expect(page.locator('to-text[data-at="1"] .tx')).toBeFocused();
+  await page.keyboard.type('Call the printer');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('to-text[data-at="2"] .tx')).toBeFocused();
+  await page.keyboard.type('Pay rent');
+  await expect.poll(() => value(page, 'to-board-editor')).toContain('- Call the printer\n- Pay rent\n');
+  // The stages one under another, the cards of one top to bottom, nothing wider than the screen.
+  const [a, b] = await page.locator('.board-card').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+  expect(b.top).toBeGreaterThanOrEqual(a.bottom - 1);
+  const bands = await cols.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+  expect(bands[1].top).toBeGreaterThanOrEqual(bands[0].bottom);
+  expect((await measure(page, 'to-board-editor')).wide).toBeLessThanOrEqual(0);
+  // The first card carried by its grip into Doing, the band below.
+  const grip = (await page.locator('.board-grip').first().boundingBox())!;
+  const next = (await cols.nth(1).boundingBox())!;
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 10, grip.y + 20, { steps: 3 });
+  await page.mouse.move(next.x + 40, next.y + next.height - 8, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(() => value(page, 'to-board-editor')).toContain('## Doing\n\n- Call the printer\n');
+  expect(errors).toEqual([]);
+});

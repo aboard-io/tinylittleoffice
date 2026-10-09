@@ -246,7 +246,7 @@ test('the stage menu: add a card, limit, colour, move, delete; the name is typed
   await pick(el, more(1), 'Orange');
   expect(last()).toContain('## Doing now {limit=3 color=o}');
   await pick(el, more(1), 'No limit');
-  await pick(el, more(1), 'No colour');
+  await pick(el, more(1), 'Automatic');
   expect(last()).toContain('## Doing now\n');
   await pick(el, more(2), 'Add a card');
   expect(last()!.endsWith('## Done\n\n-\n')).toBe(true);
@@ -640,6 +640,117 @@ test('at phone width: a stage and a bit across, controls a finger tall, the bar 
     // The menu opens inside the screen.
     await pick(el, cols(el)[0].querySelector<HTMLButtonElement>('.board-more')!, 'Move right');
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+  } finally {
+    await page.viewport(1100, 800);
+  }
+});
+
+test('every stage has its colour: the one chosen, else the palette by its place; the heading tinted, each card a thin top edge of it', async () => {
+  const { el, last } = await editor();
+  // To do is blue and Doing green, as written; Done, third, takes the palette's third (green's place is taken by its own: it is the same green).
+  expect(cols(el).map((c) => c.dataset.hue)).toEqual(['b', 'g', 'g']);
+  expect(cols(el).map((c) => c.style.getPropertyValue('--c'))).toEqual(['#0072b2', '#009e73', '#009e73']);
+  const edge = (card: HTMLElement) => getComputedStyle(card).borderTopColor;
+  const card = cardsOf(el, 0)[0];
+  expect(parseFloat(getComputedStyle(card).borderTopWidth)).toBe(3);
+  const blue = edge(card);
+  expect(blue).not.toBe(edge(cardsOf(el, 1)[0]));
+  expect(blue).not.toBe(getComputedStyle(card).borderLeftColor);
+  // The heading is tinted with it, not the plain grey of the stage.
+  const head = cols(el)[0].querySelector<HTMLElement>('.board-head')!;
+  expect(getComputedStyle(head).backgroundColor).not.toBe(getComputedStyle(cols(el)[0]).backgroundColor);
+  // Chosen in the menu, it overrides; Automatic gives the place's colour back and writes nothing.
+  const more = (i: number) => cols(el)[i].querySelector<HTMLButtonElement>('.board-more')!;
+  await pick(el, more(2), 'Purple');
+  expect(last()!.endsWith('## Done {color=p}\n')).toBe(true);
+  expect(cols(el)[2].dataset.hue).toBe('p');
+  await pick(el, more(0), 'Automatic');
+  expect(last()!.startsWith('## To do\n')).toBe(true);
+  // The first place's colour is blue too: the colour stays, the document says nothing of it.
+  expect(cols(el)[0].dataset.hue).toBe('b');
+  // A board of plain headings: each its own colour.
+  const plain = await editor('## A\n\n- a\n\n## B\n\n- b\n\n## C\n\n- c\n\n## D\n');
+  expect(cols(plain.el).map((c) => c.dataset.hue)).toEqual(['b', 'o', 'g', 'p']);
+  expect(new Set(cardsOf(plain.el, 0).concat(cardsOf(plain.el, 1), cardsOf(plain.el, 2)).map(edge)).size).toBe(3);
+});
+
+test('stages as rows: the bar’s toggle writes `look: rows`; bands one under another, cards across; drag, keys and the bar under a card carry it up and down', async () => {
+  await page.viewport(1100, 800);
+  const { el, last } = await editor();
+  const toggle = bar(el, 'Stages as rows');
+  expect(toggle.getAttribute('aria-pressed')).toBe('false');
+  toggle.click();
+  await settle(el);
+  expect(last()!.startsWith('---\nlook: rows\n---\n## To do {color=b}')).toBe(true);
+  expect(bar(el, 'Stages as rows').getAttribute('aria-pressed')).toBe('true');
+  expect(box(el).classList.contains('rows')).toBe(true);
+  // The stages one under another, each the board's width; the cards of a stage side by side.
+  const [a, b, c] = cols(el).map((x) => x.getBoundingClientRect());
+  expect(b.top).toBeGreaterThanOrEqual(a.bottom);
+  expect(c.top).toBeGreaterThanOrEqual(b.bottom);
+  expect(Math.round(a.width)).toBe(Math.round(b.width));
+  const [c0, c1] = cardsOf(el, 0).map((x) => x.getBoundingClientRect());
+  expect(Math.round(c1.top)).toBe(Math.round(c0.top));
+  expect(c1.left).toBeGreaterThan(c0.right - 1);
+  // The stage menu moves a stage up and down.
+  await pick(el, cols(el)[1].querySelector<HTMLButtonElement>('.board-more')!, 'Move up');
+  expect(names(el)).toEqual(['Doing', 'To do', 'Done']);
+  await undo(el);
+  expect(names(el)).toEqual(['To do', 'Doing', 'Done']);
+  // A card dragged by its grip onto the left half of another lands before it; onto its right half, after it.
+  const g = grip(cardsOf(el, 0)[1]);
+  const target = cardsOf(el, 1)[1].getBoundingClientRect();
+  const from = centre(g);
+  g.dispatchEvent(pointer('pointerdown', from.x, from.y));
+  g.dispatchEvent(pointer('pointermove', target.left + 10, target.top + 10));
+  await el.updateComplete;
+  expect(cardsOf(el, 1)[1].classList.contains('before')).toBe(true);
+  g.dispatchEvent(pointer('pointerup', target.left + 10, target.top + 10, 0));
+  // The click a drag ends with is not a tap.
+  g.click();
+  await settle(el);
+  expect(last()).toContain('## Doing {limit=1 color=g}\n\n- Ship it\n- Review the copy\n- Fix the footer\n');
+  const g2 = grip(cardsOf(el, 1)[1]);
+  const t2 = cardsOf(el, 1)[2].getBoundingClientRect();
+  const f2 = centre(g2);
+  g2.dispatchEvent(pointer('pointerdown', f2.x, f2.y));
+  g2.dispatchEvent(pointer('pointermove', t2.right - 10, t2.top + 10));
+  await el.updateComplete;
+  g2.dispatchEvent(pointer('pointerup', t2.right - 10, t2.top + 10, 0));
+  g2.click();
+  await settle(el);
+  expect(last()).toContain('- Ship it\n- Fix the footer\n- Review the copy\n');
+  // Mod+Alt+Right carries a card to the stage below, keys unchanged.
+  await focusAt(el, 1, 2);
+  text(el, 1).tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, ctrlKey: true, bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(last()).toContain('- Review the copy\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n\n## Done');
+  expect(cardsOf(el, 1).map(words)).toContain('Write the spec');
+  // The bar under a chosen card names the stage above and below, with arrows up and down.
+  await tapGrip(el, cardsOf(el, 1)[0]);
+  expect(contextLabels()).toContain('Move to To do');
+  expect(contextLabels()).toContain('Move to Done');
+  contextButton('Move to Done').click();
+  await settle(el);
+  expect(cardsOf(el, 2).map(words)).toEqual(['Ship it']);
+  // Back to columns: the head field goes.
+  bar(el, 'Stages as rows').click();
+  await settle(el);
+  expect(last()!.startsWith('## To do {color=b}')).toBe(true);
+  expect(box(el).classList.contains('rows')).toBe(false);
+});
+
+test('stages as rows at phone width: the stages one under another, the cards top to bottom, nothing sideways', async () => {
+  await page.viewport(390, 844);
+  try {
+    const { el } = await editor('---\nlook: rows\n---\n' + BOARD);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+    const board = box(el);
+    expect(board.scrollWidth).toBeLessThanOrEqual(board.clientWidth + 1);
+    const [c0, c1] = cardsOf(el, 0).map((x) => x.getBoundingClientRect());
+    expect(c1.top).toBeGreaterThanOrEqual(c0.bottom);
+    expect(cols(el)[1].getBoundingClientRect().top).toBeGreaterThanOrEqual(cols(el)[0].getBoundingClientRect().bottom);
+    for (const g of el.querySelectorAll<HTMLElement>('.board-grip, .board-more')) expect(g.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
   } finally {
     await page.viewport(1100, 800);
   }

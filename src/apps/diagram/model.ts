@@ -207,8 +207,10 @@ export function newThing(doc: Doc, key?: string): Draft {
     return l ? appendTo(doc, l) : draftOf(afterLines(doc), 0, li(0, [{ t: `${key}: ` }]));
   }
   if (kind === 'seating') {
+    // A table's name is offered, chosen whole so the first letter typed replaces it.
     const n = lines.length + 1;
-    return draftOf(afterLines(doc), 0, li(0, [{ t: `${n === 1 ? 'Top table' : `Table ${n}`}: ` }]));
+    const name = n === 1 ? 'Top table' : `Table ${n}`;
+    return { ...draftOf(afterLines(doc), 0, li(0, [{ t: `${name}: ` }])), sel: [0, name.length] };
   }
   return draftOf(afterLines(doc), 0, li(0, []));
 }

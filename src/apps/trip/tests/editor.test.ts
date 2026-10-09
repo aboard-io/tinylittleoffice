@@ -504,3 +504,78 @@ test('at phone width: rows a finger tall, 16px words, the bar one row, the page 
     await page.viewport(1100, 800);
   }
 });
+
+/** The browser's geolocation faked: each ask recorded, answered by `answer` (a position, a refusal, or never). */
+function fakeGeo(answer: { lat: number; lon: number } | 'refuse' | 'never') {
+  const asks: PositionOptions[] = [];
+  const geo = {
+    getCurrentPosition(ok: PositionCallback, fail?: PositionErrorCallback | null, o?: PositionOptions) {
+      asks.push(o ?? {});
+      setTimeout(() => {
+        if (answer === 'never') return;
+        if (answer === 'refuse') return fail?.({ code: 1, message: 'denied', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
+        ok({ coords: { latitude: answer.lat, longitude: answer.lon, accuracy: 20 }, timestamp: Date.now() } as GeolocationPosition);
+      }, 10);
+    },
+    watchPosition: () => {
+      throw new Error('never watched');
+    },
+    clearWatch: () => undefined,
+  };
+  Object.defineProperty(navigator, 'geolocation', { value: geo, configurable: true });
+  return { asks, restore: () => delete (navigator as { geolocation?: unknown }).geolocation };
+}
+type MapLike = { getCenter(): { lat: number; lng: number }; getZoom(): number };
+const mapOf = (el: ToTripEditor) => (el as unknown as { map: MapLike | null }).map!;
+
+test('a trip with no stops opens on where the device is: asked once, 5 s at most, the map centred there at a city’s zoom; nothing written', async () => {
+  const geo = fakeGeo({ lat: 51.5072, lon: -0.1276 });
+  try {
+    const { el, changes } = await editor('');
+    await mapReady(el);
+    await until(() => Math.abs(mapOf(el).getCenter().lat - 51.5072) < 0.01, 3000);
+    expect(mapOf(el).getCenter().lng).toBeCloseTo(-0.1276, 2);
+    expect(mapOf(el).getZoom()).toBe(12);
+    expect(geo.asks).toHaveLength(1);
+    expect(geo.asks[0].timeout).toBe(5000);
+    expect(changes).toEqual([]);
+    expect(el.querySelector('.trip-privacy')!.textContent).toContain('Your location is asked for only to centre the map, and is never written anywhere.');
+    // The map off and on again: not asked a second time.
+    bar(el, 'Map').click();
+    await settle(el);
+    bar(el, 'Map').click();
+    await settle(el);
+    await mapReady(el);
+    await tick(50);
+    expect(geo.asks).toHaveLength(1);
+  } finally {
+    geo.restore();
+  }
+});
+
+test('the location refused, or a trip with stops: the map stays where it was (the world, or fitted to the stops)', async () => {
+  const refused = fakeGeo('refuse');
+  try {
+    const { el } = await editor('');
+    await mapReady(el);
+    await tick(80);
+    expect(refused.asks).toHaveLength(1);
+    expect(mapOf(el).getZoom()).toBe(2);
+    expect(mapOf(el).getCenter().lat).toBeCloseTo(25, 0);
+  } finally {
+    refused.restore();
+  }
+  const withStops = fakeGeo({ lat: 51.5072, lon: -0.1276 });
+  try {
+    const { el } = await editor();
+    await mapReady(el);
+    await tick(80);
+    expect(withStops.asks).toHaveLength(0);
+    // Fitted to Lisbon, Coimbra and Porto.
+    expect(mapOf(el).getCenter().lat).toBeGreaterThan(38);
+    expect(mapOf(el).getCenter().lat).toBeLessThan(42);
+    expect(el.querySelector('.trip-privacy')!.textContent).not.toContain('location');
+  } finally {
+    withStops.restore();
+  }
+});

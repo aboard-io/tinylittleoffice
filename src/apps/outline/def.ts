@@ -4,11 +4,11 @@
  * tree a deck, a mind map, an org chart or a network reads: those are hand-offs, shown once the apps exist.
  */
 import { ListTree } from 'lucide';
-import { apply, parse, referenceNotes, write, type Doc as Kernel } from '../../doc/index.ts';
+import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { liveItems, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
+import { liveItems, notesAsItems, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
 import { appName, outlinePage } from './view.ts';
 import { templates } from './templates.ts';
 
@@ -55,8 +55,8 @@ export default defineApp({
   view: (doc, opts) => [outlinePage(parse(doc), 720, opts?.small)],
   exports: [
     { ext: 'opml', label: () => t('OPML (for outliners)'), mime: 'text/x-opml;charset=utf-8', build: (doc) => utf8(toOpml(readOutline(parse(doc)), nameFor(doc))) },
-    // Markdown as other readers know it: the notes in reference form at the end.
-    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => utf8(write(referenceNotes(parse(doc)))) },
+    // Markdown as other readers know it: an item's notes a numbered list right under it (any other in reference form at the end).
+    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => utf8(write(notesAsItems(parse(doc)))) },
     { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', build: (doc) => utf8(outlineText(readOutline(parse(doc)), appName)) },
   ],
   handoffs: [

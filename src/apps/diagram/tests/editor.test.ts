@@ -461,3 +461,159 @@ test('§5 Mod+wheel zooms the picture; the wheel alone does not', async () => {
   expect(pic.getBoundingClientRect().width).toBeGreaterThan(w);
   expect(getComputedStyle(pic).touchAction).toBe('manipulation');
 });
+
+/** Whether the line editor holds the focus right now, in the very handler that opened it (iOS raises its keyboard only so). */
+const focusedNow = (el: HTMLElement) => isOpen(el) && document.activeElement === line(el).tx;
+/** A click dispatched, and the focus read before anything else runs. */
+function tapNow(target: Element, at: { clientX: number; clientY: number } = center(target)): void {
+  target.dispatchEvent(new MouseEvent('click', { ...at, bubbles: true, composed: true }));
+}
+const SAMPLES: Record<string, string> = {
+  mind: '---\nkind: mind\n---\n- Root\n  - A\n',
+  org: ORG,
+  family: '---\nkind: family\n---\n- Ada + Charles | 1815\n  - Byron\n',
+  lanes: '---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n',
+  timeline: '---\nkind: timeline\n---\n- 1990: Began\n- 2000: Grew\n',
+  venn: '---\nkind: venn\n---\n- Fast: cars\n- Cheap: bikes\n',
+  seating: '---\nkind: seating\n---\n- Top table: Jo, Sam\n',
+  net: NET,
+};
+
+test('a new thing starts with its words in hand, on every kind: a tap on empty space, Insert, Enter and the Add item focus them at once', async () => {
+  for (const [kind, doc] of Object.entries(SAMPLES)) {
+    const { el, last } = await editor(doc);
+    // A tap on empty space (in a lane: beside its name; in a Venn: outside the circles still makes a thing).
+    const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
+    const r = pic.getBoundingClientRect();
+    const shop = kind === 'lanes' ? thing(el, 'Shop').getBoundingClientRect() : null;
+    const at = shop ? { clientX: shop.right + 5, clientY: shop.top + shop.height / 2 } : { clientX: r.left + 6, clientY: r.bottom - 6 };
+    tapNow(pic, at);
+    expect(focusedNow(el), `${kind}: a tap`).toBe(true);
+    await settle(el);
+    await type(el, 'Q');
+    expect(last(), `${kind}: typed`).toContain('Q');
+    await key(el, 'Escape');
+    await key(el, 'Escape');
+    await settle(el);
+    // Insert ▾ and its one item.
+    el.querySelector<HTMLButtonElement>('to-insert button')!.click();
+    await until(() => !!document.querySelector('[popover]:popover-open [role^=menuitem]'));
+    document.querySelector<HTMLElement>('[popover]:popover-open [role^=menuitem]')!.click();
+    expect(focusedNow(el), `${kind}: Insert`).toBe(true);
+    await settle(el);
+    expect(focusedNow(el), `${kind}: Insert, drawn`).toBe(true);
+    // The first Escape lets go of words chosen (a table's offered name), the next closes them.
+    await key(el, 'Escape');
+    if (isOpen(el)) await key(el, 'Escape');
+    expect(isOpen(el)).toBe(false);
+    // A thing's words, then Enter: the next one, focused.
+    const first = things(el).find((g) => !g.classList.contains('edge'))!;
+    tapNow(first);
+    expect(focusedNow(el), `${kind}: a tap on a thing`).toBe(true);
+    await settle(el);
+    input(line(el), 'insertParagraph');
+    expect(focusedNow(el), `${kind}: Enter`).toBe(true);
+    await settle(el);
+    expect(focusedNow(el), `${kind}: Enter, drawn`).toBe(true);
+    await key(el, 'Escape');
+    if (isOpen(el)) await key(el, 'Escape');
+    // The Add item under a thing's words: one under it, one more, one after it.
+    tapNow(things(el).find((g) => !g.classList.contains('edge'))!);
+    await settle(el);
+    const add = [...ctx(el).querySelectorAll<HTMLButtonElement>('button')].find((b) => /^Add /.test(b.getAttribute('aria-label') ?? ''));
+    if (add) {
+      add.click();
+      expect(focusedNow(el), `${kind}: ${add.getAttribute('aria-label')}`).toBe(true);
+      await settle(el);
+    }
+    await key(el, 'Escape');
+    if (isOpen(el)) await key(el, 'Escape');
+  }
+});
+
+test('Enter and the Add items open the next thing focused, its words empty; a table is offered by name, chosen whole so typing replaces it', async () => {
+  const { el, last } = await editor(ORG);
+  tapNow(thing(el, 'Eve Marsh'));
+  await settle(el);
+  input(line(el), 'insertParagraph');
+  expect(focusedNow(el)).toBe(true);
+  await settle(el);
+  expect(line(el).tx.textContent).toBe('');
+  await key(el, 'Escape');
+  tapNow(thing(el, 'Ada Diaz'));
+  await settle(el);
+  action(el, 'Add under it').click();
+  expect(focusedNow(el)).toBe(true);
+  await settle(el);
+  expect(line(el).placeholder).toBe('Name | Role');
+  await type(el, 'Gus');
+  expect(last()).toContain('  - Eve Marsh | Design\n  - Gus\n');
+  await key(el, 'Escape');
+  // Seating: a new table's name is chosen whole: the first letter typed replaces it, the ": " stays.
+  const seats = await editor(SAMPLES.seating);
+  const pic = seats.el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const r = pic.getBoundingClientRect();
+  tapNow(pic, { clientX: r.left + 6, clientY: r.bottom - 6 });
+  expect(focusedNow(seats.el)).toBe(true);
+  await settle(seats.el);
+  expect(line(seats.el).tx.textContent).toBe('Table 2: ');
+  expect(line(seats.el).sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 7 } });
+  await type(seats.el, 'Head');
+  expect(seats.last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Sam\n- Head:\n');
+});
+
+test('Join in the bar: with a thing open or focused it arms joining from it, the next tap makes the connection; Escape or a second press disarms; with nothing in hand the next two tapped are joined', async () => {
+  const { el, last } = await editor(NET);
+  const join = () => el.querySelector<HTMLButtonElement>('to-bar button[aria-label="Join"]')!;
+  expect(join()).not.toBeNull();
+  expect(join().getAttribute('aria-pressed')).toBe('false');
+  // From a thing open: the words close, the bar's Join is pressed, a tap on another joins them.
+  await tap(el, thing(el, 'Web'));
+  join().click();
+  await settle(el);
+  expect(isOpen(el)).toBe(false);
+  expect(join().getAttribute('aria-pressed')).toBe('true');
+  expect(el.querySelector('.dg-wrap')!.classList.contains('joining')).toBe(true);
+  expect(el.querySelector('.dg-hint')!.textContent).toContain('join Web to');
+  await tap(el, thing(el, 'API'));
+  expect(last()).toContain('~ Web -> API');
+  expect(join().getAttribute('aria-pressed')).toBe('false');
+  // From a thing focused (chosen by the keys): Escape disarms, nothing joined.
+  thing(el, 'Database').focus();
+  join().click();
+  await settle(el);
+  expect(el.querySelector('.dg-hint')!.textContent).toContain('join Database to');
+  const n = last();
+  document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(join().getAttribute('aria-pressed')).toBe('false');
+  await tap(el, thing(el, 'Web'));
+  expect(last()).toBe(n);
+  await key(el, 'Escape');
+  // Pressed twice: off again.
+  join().click();
+  await settle(el);
+  join().click();
+  await settle(el);
+  expect(join().getAttribute('aria-pressed')).toBe('false');
+  // With nothing in hand: the first tap takes one end, the second the other.
+  (document.activeElement as HTMLElement | null)?.blur();
+  join().click();
+  await settle(el);
+  expect(el.querySelector('.dg-hint')!.textContent).toContain('Tap the first thing to join');
+  await tap(el, thing(el, 'Database'));
+  expect(el.querySelector('.dg-hint')!.textContent).toContain('join Database to');
+  await tap(el, thing(el, 'Web'));
+  expect(last()).toContain('~ Database -> Web');
+  // The old way stays: the thing's own Join, then a tap.
+  await tap(el, thing(el, 'API'));
+  action(el, 'Join').click();
+  await settle(el);
+  await tap(el, thing(el, 'Database'));
+  expect(last()).toContain('~ API -> Database');
+  // An org chart has it too (a dotted line); a mind map, which has no joins, does not.
+  const org = await editor(ORG);
+  expect(org.el.querySelector('to-bar button[aria-label="Join"]')).not.toBeNull();
+  const mind = await editor(SAMPLES.mind);
+  expect(mind.el.querySelector('to-bar button[aria-label="Join"]')).toBeNull();
+});

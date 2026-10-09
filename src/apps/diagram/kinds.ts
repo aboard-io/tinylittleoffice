@@ -30,5 +30,5 @@ export const kindHint = (k: KindId): string =>
     timeline: t('Tap empty space for an event, "When: what happened"; years and dates are spaced as they fell; a span is a band.'),
     venn: t('Tap inside the circles to add a thing there; tap a set\'s name to rename it; drag a thing into other circles.'),
     seating: t('Tap empty space for a table; tap a table or a person to type; drag a person to another table.'),
-    net: t('Tap empty space for a thing; tap one, then "Join", then another to connect them; or drag one onto another.'),
+    net: t('Tap empty space for a thing; Join in the bar, then the two things, connects them; or drag one onto another.'),
   })[k];

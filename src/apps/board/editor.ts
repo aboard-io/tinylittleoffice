@@ -1,6 +1,10 @@
 /**
  * <to-board-editor>: the Board app. The stages are columns side by side (one and a bit at a time on a
- * phone, scrolling sideways), each with its name, how many cards it holds against its limit, and a menu.
+ * phone, scrolling sideways), each with its name, how many cards it holds against its limit, and a menu; or,
+ * with the bar's Stages as rows (`look: rows`), bands one under another whose cards flow across and wrap, so a
+ * phone reads them top to bottom. Each stage has its colour (the one chosen, else the palette's by its place):
+ * its heading's tint and a thin top edge on its cards. In rows the stage beside is the one above or below: the
+ * same keys (Mod+Alt+Left/Right) and the same bar items carry a card there, named and drawn for up and down.
  * A card is a line of rich text (a one-line <to-text>) with, if it has one, a checklist under it. Cards are
  * the kit's rows (kit/rows.ts): a tap on a card's grip, Escape or Shift+Up/Down in its words choose it whole,
  * and chosen cards are moved, duplicated, copied, cut, pasted and deleted from the keys or the small bar
@@ -11,7 +15,7 @@
  * and list items (model.ts); the one bar holds Insert ▾, the marks for the words being typed, undo and redo.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
-import { ArrowLeft, ArrowRight, Columns3, Ellipsis, GripVertical, ListChecks } from 'lucide';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Columns3, Ellipsis, GripVertical, ListChecks, Rows3 } from 'lucide';
 import { runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
 import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
@@ -24,7 +28,7 @@ import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { LIMITS, STAGE_COLORS, addCard, addItem, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView, type Card, type Item, type Stage } from './model.ts';
+import { LIMITS, STAGE_COLORS, addCard, autoHue, setLook, addItem, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView, type Card, type Item, type Stage } from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/embeds.ts';
@@ -430,9 +434,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const i = from ? this.view.stages.indexOf(from) : -1;
     const prev = i > 0 ? this.view.stages[i - 1] : undefined;
     const next = i >= 0 ? this.view.stages[i + 1] : undefined;
+    const rows = this.view.rows;
     return [
-      { label: prev ? t('Move to {stage}', { stage: prev.name || t('Stage') }) : t('Move to the stage before'), icon: ArrowLeft, keys: 'Mod+Alt+ArrowLeft', disabled: !prev, does: () => this.carryChosen(-1) },
-      { label: next ? t('Move to {stage}', { stage: next.name || t('Stage') }) : t('Move to the stage after'), icon: ArrowRight, keys: 'Mod+Alt+ArrowRight', disabled: !next, does: () => this.carryChosen(1) },
+      { label: prev ? t('Move to {stage}', { stage: prev.name || t('Stage') }) : t('Move to the stage before'), icon: rows ? ArrowUp : ArrowLeft, keys: 'Mod+Alt+ArrowLeft', disabled: !prev, does: () => this.carryChosen(-1) },
+      { label: next ? t('Move to {stage}', { stage: next.name || t('Stage') }) : t('Move to the stage after'), icon: rows ? ArrowDown : ArrowRight, keys: 'Mod+Alt+ArrowRight', disabled: !next, does: () => this.carryChosen(1) },
     ];
   }
   /**
@@ -524,16 +529,20 @@ export class ToBoardEditor extends DocElement<BoardView> {
     if (!col) return void (this.over = null);
     const stage = Number(col.dataset.stage);
     const cards = [...col.querySelectorAll<HTMLElement>(':scope .board-card')];
+    // In columns, before the card whose middle is below the pointer; in rows (cards across, wrapping), before the
+    // first card on a line below the pointer, or on its line and whose middle is right of it.
+    const rows = this.view.rows;
     let pos = cards.findIndex((el) => {
       const r = el.getBoundingClientRect();
-      return y < r.top + r.height / 2;
+      return rows ? y < r.top || (y < r.bottom && x < r.left + r.width / 2) : y < r.top + r.height / 2;
     });
     if (pos < 0) pos = cards.length;
     if (!this.over || this.over.stage !== stage || this.over.pos !== pos) this.over = { stage, pos };
   }
   /** Near either side of the board, it scrolls to bring more stages under the pointer. */
   private edges() {
-    if (this.scroller) return;
+    // In rows the page itself scrolls; only columns scroll sideways in a box of their own.
+    if (this.scroller || this.view.rows) return;
     const board = this.querySelector<HTMLElement>('.board');
     if (!board) return;
     const step = () => {
@@ -605,10 +614,11 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const colour = t('Colour');
     return [
       { label: t('Add a card'), icon: UI.plus, does: () => this.newCard(s) },
-      { label: t('Move left'), icon: UI.outdent, disabled: i === 0, does: () => this.edit(moveStage(v, i, -1)) },
-      { label: t('Move right'), icon: UI.indent, disabled: i === v.stages.length - 1, does: () => this.edit(moveStage(v, i, 1)) },
+      { label: v.rows ? t('Move up') : t('Move left'), icon: v.rows ? ArrowUp : UI.outdent, disabled: i === 0, does: () => this.edit(moveStage(v, i, -1)) },
+      { label: v.rows ? t('Move down') : t('Move right'), icon: v.rows ? ArrowDown : UI.indent, disabled: i === v.stages.length - 1, does: () => this.edit(moveStage(v, i, 1)) },
       ...LIMITS.map((n) => ({ label: n ? String(n) : t('No limit'), group: limit, checked: s.limit === n, does: () => this.edit(setStage(s, { limit: n })) })),
-      { label: t('No colour'), group: colour, checked: !s.color, does: () => this.edit(setStage(s, { color: '' })) },
+      // Unchosen, a stage takes the palette's colour for its place, which this shows.
+      { label: t('Automatic'), swatch: STAGE_COLORS[autoHue(i)].hex, group: colour, checked: !s.color, does: () => this.edit(setStage(s, { color: '' })) },
       ...Object.entries(STAGE_COLORS).map(([k, c]) => ({ label: c.name(), swatch: c.hex, group: colour, checked: s.color === k, does: () => this.edit(setStage(s, { color: k })) })),
       { label: t('Delete stage'), icon: UI.trash, group: t('Stage'), does: () => this.edit(removeStage(s)) },
     ];
@@ -691,7 +701,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const over = s.limit > 0 && s.cards.length > s.limit;
     const count = s.limit ? `${s.cards.length} / ${s.limit}` : String(s.cards.length);
     const end = this.drag !== null && this.over?.stage === i && this.over.pos >= s.cards.length;
-    return html`<section class="board-col ${s.color ? 'tinted' : ''} ${over ? 'full' : ''} ${this.drag !== null && this.over?.stage === i ? 'over' : ''}" data-stage=${i} style=${s.color ? `--c:${STAGE_COLORS[s.color].hex}` : nothing} aria-label=${s.name || t('Stage')}>
+    return html`<section class="board-col ${over ? 'full' : ''} ${this.drag !== null && this.over?.stage === i ? 'over' : ''}" data-stage=${i} data-hue=${s.hue} style=${`--c:${STAGE_COLORS[s.hue].hex}`} aria-label=${s.name || t('Stage')}>
       <header class="board-head" @focusin=${(e: Event) => this.at(s.at, e)}>
         ${s.block
           ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onStageEnter(s))} @text-exit=${(e: Event) => e.stopPropagation()} @text-selectall=${this.onSelectAll}></to-text>`
@@ -713,10 +723,11 @@ export class ToBoardEditor extends DocElement<BoardView> {
         <to-insert .items=${this.inserts()}></to-insert>
         ${words('b', t('Bold'), UI.bold, 'Mod+B')}${words('i', t('Italic'), UI.italic, 'Mod+I')}${words('u', t('Underline'), UI.underline, 'Mod+U')}${words('s', t('Strikethrough'), UI.strike)}${words('h', t('Highlight'), UI.highlight)}${words('link', t('Link'), UI.link, 'Mod+K')}
         ${tool({ label: t('Icon'), icon: UI.icon, keep: true, disabled: !x, does: () => void this.insertIcon() })}
+        ${tool({ label: t('Stages as rows'), icon: Rows3, pressed: v.rows, keep: true, does: () => this.edit(setLook(this.doc, !v.rows)) })}
         <span class="to-hint board-total">${t('{n|one card|# cards}', { n: v.cards })}</span>
         ${this.undoTools()}
       </to-bar>
-      ${v.stages.length ? html`<div class="board" role="group" tabindex="-1" aria-label=${t('Board')}>${v.stages.map((s, i) => this.stage(s, i))}</div>` : html`<p class="to-hint board-none">${t('No stages. Insert a stage.')}</p>`}
+      ${v.stages.length ? html`<div class="board ${v.rows ? 'rows' : ''}" role="group" tabindex="-1" aria-label=${t('Board')}>${v.stages.map((s, i) => this.stage(s, i))}</div>` : html`<p class="to-hint board-none">${t('No stages. Insert a stage.')}</p>`}
       ${this.rows.renderContext()}
       <to-menu class="board-menu" .label=${t('Stage')} .items=${this.menuItems()}></to-menu>`;
   }
