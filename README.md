@@ -13,7 +13,9 @@ format `docs/tlo.md` in the old tree until it moves here.
 ```
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
                 privacy, offline, share, short (links), links (the owner links kept), exports, i18n, theme,
-                icons, app (the AppDef contract), apps (registry)
+                icons, app (the AppDef contract), apps (registry), element (DocElement: every editor's base,
+                with the op-log undo), draw (pages, the palette), chart (bars, lines, pie, Sankey), csv, zip,
+                xlsx (a table block as a workbook)
 src/doc/        the document kernel (docs/kernel.md); empty until it lands
 src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy chunk), style.css
                 (wrapped in @layer apps), templates.ts, tests/

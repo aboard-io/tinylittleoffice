@@ -99,7 +99,6 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    position: sticky;
   }
   table.sheet thead tr.names th {
     top: 32px;
@@ -147,12 +146,6 @@
   table.sheet .add-col-btn:focus-visible {
     outline: 2px solid var(--to-accent);
     outline-offset: -2px;
-  }
-  table.sheet th {
-    position: sticky;
-  }
-  table.sheet thead th[scope='col'] {
-    position: sticky;
   }
   /* The columns' names, a row of their own under the letters: typed over where they stand. */
   table.sheet .cn {
@@ -204,9 +197,6 @@
   /* Explicit column widths: the table is as wide as its columns and scrolls. */
   table.sheet.sized {
     min-width: 0;
-  }
-  table.sheet th[scope='col'] {
-    position: sticky;
   }
   table.sheet .grip {
     position: absolute;
