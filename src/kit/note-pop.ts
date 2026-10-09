@@ -135,7 +135,7 @@ export class ToNotePop extends LitElement {
     const n = this.n;
     const inner = this.shown
       ? html`<span class="to-note-n" aria-hidden="true">${n}</span>
-          <to-text class="to-note-words" shape="line" .blocks=${[this.block]} label=${t('Footnote {n}', { n })} placeholder=${t("The note's words")} @text-ops=${this.onOps} @text-enter=${(e: Event) => (e.stopPropagation(), this.close())} @text-exit=${(e: Event) => e.stopPropagation()} @text-select=${(e: Event) => e.stopPropagation()} @keydown=${this.onKey}></to-text>
+          <to-text class="to-note-words" shape="line" no-bubble .blocks=${[this.block]} label=${t('Footnote {n}', { n })} placeholder=${t("The note's words")} @text-ops=${this.onOps} @text-enter=${(e: Event) => (e.stopPropagation(), this.close())} @text-exit=${(e: Event) => e.stopPropagation()} @text-select=${(e: Event) => e.stopPropagation()} @keydown=${this.onKey}></to-text>
           ${tool({ label: t('Remove footnote'), icon: UI.trash, keep: true, does: this.removeNote })}
           ${tool({ label: t('Done'), icon: UI.check, does: () => this.close() })}`
       : nothing;

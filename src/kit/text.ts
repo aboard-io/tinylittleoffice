@@ -21,16 +21,25 @@
  * as a grid, an address as a thing from the web); whatever it puts there
  * (inputs, buttons) keeps its own events. A task item's box is tapped to tick.
  *
+ * Words selected bring up the selection bubble (a <to-context> centred
+ * under them): the marks, Link, Footnote and, over whole blocks of words in
+ * a doc or lines editor, the two lists. It goes when the selection collapses
+ * or leaves, while an IME composes, and while the link or note box is open;
+ * `no-bubble` turns it off.
+ *
  * Nothing here calls execCommand, sets innerHTML, or reads it.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { apply, hasClass, isAtomic, isEmbed, listNumbers, normalRuns, refFence, runLength, type Block, type Op, type Run } from '../doc/index.ts';
 import { copyData, pasteFrom } from './clipboard.ts';
+import { SEP, type ContextEntry, type ToContext } from './context.ts';
 import { t } from './i18n.ts';
+import { UI, type IconNode } from './icons.ts';
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import type { ToNotePop } from './note-pop.ts';
+import './context.ts';
 import './link-pop.ts';
 import './note-pop.ts';
 
@@ -103,7 +112,7 @@ export function domToRuns(el: HTMLElement): Run[] {
 }
 
 export class ToText extends LitElement {
-  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false } };
+  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false }, noBubble: { type: Boolean, attribute: 'no-bubble' } };
   /** The blocks it owns; `at` in its ops counts from the first. */
   declare blocks: Block[];
   declare shape: Shape;
@@ -113,6 +122,8 @@ export class ToText extends LitElement {
   declare placeholder: string;
   /** The host's drawing of a card's inside, by block; null (or nothing returned) for the editor's own. */
   declare card: ((b: Block, at: number) => TemplateResult | typeof nothing | null) | null;
+  /** No selection bubble (a host with marks of its own beside the words, or none). */
+  declare noBubble: boolean;
 
   private _sel: Sel | null = null;
   /** The marks the next letter typed will carry. */
@@ -138,6 +149,7 @@ export class ToText extends LitElement {
     this.label = '';
     this.placeholder = '';
     this.card = null;
+    this.noBubble = false;
   }
   createRenderRoot() {
     return this;
@@ -164,6 +176,9 @@ export class ToText extends LitElement {
   }
   private get linkPop(): ToLinkPop {
     return this.querySelector<ToLinkPop>(':scope > to-link-pop')!;
+  }
+  private get bubble(): ToContext | null {
+    return this.querySelector<ToContext>(':scope > to-context.tx-bubble');
   }
 
   /* ---------- the selection ---------- */
@@ -306,15 +321,17 @@ export class ToText extends LitElement {
       if (!this.away) {
         this.away = true;
         this.linkPop?.hide();
+        this.bubble?.hide();
         this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: null, bubbles: true }));
       }
       return;
     }
     this.away = false;
-    if (sameSel(s, this._sel)) return;
+    if (sameSel(s, this._sel)) return this.syncBubble();
     this._sel = s;
     this.fmt = marksOf(this.model, s);
     this.showLink();
+    this.syncBubble();
     this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: s, bubbles: true }));
   };
   private flushSel() {
@@ -334,6 +351,7 @@ export class ToText extends LitElement {
       if (!a || !f || !dom) return;
       dom.setBaseAndExtent(a[0], a[1], f[0], f[1]);
       this.keepCaretVisible(dom);
+      this.syncBubble();
     };
     // Safari drops a selection set in the same task as a DOM swap.
     WEBKIT ? requestAnimationFrame(go) : go();
@@ -543,6 +561,10 @@ export class ToText extends LitElement {
     if (dt) this.paste({ text: dt.getData('text/plain'), html: dt.getData('text/html') }, this.current());
   };
 
+  private onFocusOut = (e: FocusEvent) => {
+    const to = e.relatedTarget as Node | null;
+    if (!to || !this.bubble?.contains(to)) this.bubble?.hide();
+  };
   private onCompositionStart = () => {
     this.composing = true;
     this.composingEl = this.blockElOf(document.getSelection()?.anchorNode ?? null);
@@ -597,7 +619,7 @@ export class ToText extends LitElement {
         return go(toggleMark(model, sel, cmd as Mark));
       case 'link': {
         const link = collapsed(sel) ? this.linkSpan(sel.anchor) : null;
-        if (arg === undefined) return void this.linkPop.ask(this.selRect(link?.sel ?? sel), link?.href ?? '');
+        if (arg === undefined) return void (this.bubble?.hide(), this.linkPop.ask(this.selRect(link?.sel ?? sel), link?.href ?? ''));
         if (!arg) return go(setMark(model, link?.sel ?? sel, 'href', ''));
         if (link) return go(setMark(model, link.sel, 'href', arg));
         if (collapsed(sel)) return go(insertRuns(model, sel, [{ t: arg, href: arg }]));
@@ -608,8 +630,9 @@ export class ToText extends LitElement {
         return go(setMark(model, link?.sel ?? sel, 'href', ''));
       }
       case 'fn': {
-        const e = insertRuns(model, sel, [{ t: '', fn: '' }]);
-        const [a] = ordered(sel);
+        // Over words selected, the mark goes after them (the words stay).
+        const [, a] = ordered(sel);
+        const e = insertRuns(model, { anchor: a, focus: a }, [{ t: '', fn: '' }]);
         const b = model[a.block];
         const nth = isWords(b) ? b.runs.slice(0, runAt(b.runs, a.offset)?.index ?? b.runs.length).filter((r) => r.fn !== undefined).length : 0;
         this.noting = { block: a.block, nth };
@@ -671,6 +694,7 @@ export class ToText extends LitElement {
     const chip = n && this.chipOf(n.block, n.nth);
     if (!hit || !chip) return void (this.noting = null);
     this.linkPop.hide();
+    this.bubble?.hide();
     void this.notePop.open(chip, hit.fn, Number(chip.textContent));
   }
   private onNoteChange = (e: CustomEvent<string>) => {
@@ -700,6 +724,45 @@ export class ToText extends LitElement {
   private closePops() {
     this.notePop?.close();
     this.linkPop?.hide();
+    this.bubble?.hide();
+  }
+  /** Whether the selection is whole blocks of words that can be a list (a paragraph, an item, a heading). */
+  private wholeBlocks(sel: Sel): boolean {
+    const m = this.model;
+    const [a, b] = ordered(sel);
+    if (a.offset !== 0 || b.offset < blockLength(m[b.block])) return false;
+    for (let i = a.block; i <= b.block; i++) if (!['p', 'li', 'h'].includes(m[i].k) || !isWords(m[i])) return false;
+    return true;
+  }
+  /** The selection bubble, as the selection is now: up under words selected while the editor has the focus, else gone. */
+  private syncBubble() {
+    const bub = this.bubble;
+    if (!bub) return;
+    const sel = this._sel;
+    const a = document.activeElement;
+    const focused = this.hasFocus() || (!!a && bub.contains(a));
+    // A DOM selection inside a card is the card's own (a grid's cell, a web thing's words), not words of ours.
+    const dom = !this.writing && !this.pendingSel ? document.getSelection() : null;
+    const inCard = (n: Node | null | undefined) => !!(n && (n instanceof Element ? n : n.parentElement)?.closest('.tx-card'));
+    if (this.noBubble || this.composing || !sel || collapsed(sel) || !focused || this.linkPop?.shown || this.notePop?.isOpen || inCard(dom?.anchorNode) || inCard(dom?.focusNode)) return bub.hide();
+    const m = marksOf(this.model, sel);
+    const mark = (cmd: Mark, label: string, icon: IconNode, keys?: string): ContextEntry => ({ label, icon, keys, pressed: !!m[cmd], does: () => this.exec(cmd) });
+    const items: ContextEntry[] = [
+      mark('b', t('Bold'), UI.bold, 'Mod+B'),
+      mark('i', t('Italic'), UI.italic, 'Mod+I'),
+      mark('u', t('Underline'), UI.underline, 'Mod+U'),
+      mark('s', t('Strikethrough'), UI.strike),
+      mark('h', t('Highlight'), UI.highlight),
+      SEP,
+      { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') },
+      { label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') },
+    ];
+    if (this.shape !== 'line' && this.wholeBlocks(sel)) {
+      const kind = kindAt(this.model, sel);
+      items.push(SEP, { label: t('Bulleted list'), icon: UI.list, pressed: kind === 'ul', does: () => this.exec('ul') }, { label: t('Numbered list'), icon: UI.listOrdered, pressed: kind === 'ol', does: () => this.exec('ol') });
+    }
+    bub.items = items;
+    bub.show(() => (this._sel && !collapsed(this._sel) && this.isConnected ? this.selRect(this._sel) : null));
   }
   /** Where a selection is on the screen, for a bubble. */
   private selRect(sel: Sel): DOMRect {
@@ -751,6 +814,7 @@ export class ToText extends LitElement {
       this.fmt = marksOf(this.model, this._sel);
       this.dispatchEvent(new CustomEvent<Sel | null>('text-select', { detail: this._sel, bubbles: true }));
     }
+    this.syncBubble();
     if (this.noting) {
       const n = this.noting;
       const chip = this.chipOf(n.block, n.nth);
@@ -849,6 +913,7 @@ export class ToText extends LitElement {
         enterkeyhint=${this.shape === 'line' ? 'done' : 'enter'}
         @beforeinput=${this.onBeforeInput}
         @keydown=${this.onKeyDown}
+        @focusout=${this.onFocusOut}
         @click=${this.onClick}
         @compositionstart=${this.onCompositionStart}
         @compositionend=${this.onCompositionEnd}
@@ -857,7 +922,8 @@ export class ToText extends LitElement {
         @paste=${this.onPaste}
       >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
       <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @text-selectall=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
-      <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove}></to-link-pop>`;
+      <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove}></to-link-pop>
+      <to-context class="tx-bubble" .label=${t('Format')}></to-context>`;
   }
 }
 if (!customElements.get('to-text')) customElements.define('to-text', ToText);

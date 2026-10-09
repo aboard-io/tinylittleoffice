@@ -154,6 +154,7 @@ export default {
   'Strikethrough': 'Strikethrough',
   'Highlight': 'Highlight',
   'Heading': 'Heading',
+  'Bulleted list': 'Bulleted list',
   'Numbered list': 'Numbered list',
   'Table': 'Table',
   'Footnote': 'Footnote',
@@ -162,7 +163,7 @@ export default {
   'Redo': 'Redo',
   'Today': 'Today',
 
-  // ---- the editor (<to-text>): chips, cards and the two bubbles ----
+  // ---- the editor (<to-text>): chips, cards and the bubbles ----
   // A footnote's mark, by its number: spoken.
   'Footnote {n}': 'Footnote {n}',
   // A card standing for another document held in this one: "Sheet document".
@@ -179,6 +180,8 @@ export default {
   'Open link': 'Open link',
   'Edit link': 'Edit link',
   'Remove link': 'Remove link',
+  // The selection bubble's name: what can be done to the words selected.
+  'Format': 'Format',
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|one slide|# slides}',
@@ -192,7 +195,6 @@ export default {
   'Write here.': 'Write here.',
   'Subheading': 'Subheading',
   'Paragraph': 'Paragraph',
-  'Bulleted list': 'Bulleted list',
   'Bring out': 'Bring out',
   'Indent': 'Indent',
   'Align': 'Align',
@@ -710,7 +712,6 @@ export default {
   'Look: {theme}': 'Look: {theme}',
   'Transition: {transition}': 'Transition: {transition}',
   'Format: {format}': 'Format: {format}',
-  'Format': 'Format',
   'Printing': 'Printing',
   'One-sided: fold and cut': 'One-sided: fold and cut',
   'Two-sided: cut and nest': 'Two-sided: cut and nest',
