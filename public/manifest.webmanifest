@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Tiny Little Office",
   "lang": "en",
-  "short_name": "Tiny Little Office",
+  "short_name": "Tiny Office",
   "description": "A tiny office suite that lives entirely in the URL.",
   "start_url": "./",
   "scope": "./",
