@@ -78,6 +78,8 @@
   --to-header-h: 56px;
   /* What the menu button, fixed at the top left, takes of the width. */
   --to-burger-w: 66px;
+  /* The gutter under the header, kept under an app's bar once it has stuck to the top. */
+  --to-stuck-gap: 20px;
   --to-max-w: 1080px;
   --to-gutter: 16px;
 }
@@ -372,16 +374,19 @@ to-app[scrolled] .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
 to-app[scrolled] .to-panel > div > * > .ol-bars > .to-toolbar {
   margin-left: max(0px, calc(var(--to-burger-w) - max(0px, (100vw - var(--to-max-w)) / 2)));
 }
-/* Behind the stuck bar, the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
+/* Behind the stuck bar, the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button.
+   Under it, a gutter of the page's own colour, as there is under the header, before the document goes on. */
 to-app[scrolled]::before {
   content: '';
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: var(--to-stuck-h, 0px);
-  background: var(--to-surface);
-  border-bottom: 1px solid var(--to-border);
+  height: calc(var(--to-stuck-h, 0px) + var(--to-stuck-gap));
+  background:
+    linear-gradient(var(--to-surface) 0 0) 0 0 / 100% calc(var(--to-stuck-h, 0px) - 1px) no-repeat,
+    linear-gradient(var(--to-border) 0 0) 0 calc(var(--to-stuck-h, 0px) - 1px) / 100% 1px no-repeat,
+    var(--to-bg);
   z-index: 14;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1620,6 +1625,7 @@ svg.draw-canvas text {
 @media (max-width: 760px) {
   :root {
     --to-gutter: 10px;
+    --to-stuck-gap: 10px;
   }
   .to-header .when {
     display: none;
