@@ -7,7 +7,7 @@ import { applyAll, evaluate, firstTable, formatCell, parse, write } from '../../
 import write_ from '../def.ts';
 // The registry, so a document held in the text is drawn by its own app.
 import '../../../kit/apps.ts';
-import { insertRowAfter, retitle, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
+import { duplicateBlock, moveBlock, putAfter, removeBlock, retitle, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
 import { templates } from '../templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
 
@@ -53,8 +53,8 @@ test('the invoice adds up in place: Amount is Qty × Price and locked, the total
   // A line's quantity changed changes its amount.
   const more = applyAll(doc, setCellAt(doc, at, 0, 1, '20'));
   expect(evaluate(more, at)!.values[0][4]).toBe(3000);
-  // Enter on the last line puts a row in before the blank one, inside the subtotal's reach.
-  const grown = applyAll(doc, insertRowAfter(at, 2));
+  // A row put in under the last line (its row's menu), inside the subtotal's reach.
+  const grown = applyAll(doc, tableRowsIn(doc, at, 3));
   const t = grown.blocks[at];
   expect(t.k === 'table' && t.rows.length).toBe(8);
   expect(t.k === 'table' && t.rows[5][4]).toBe('=SUM(E1:E5)');
@@ -70,6 +70,39 @@ test('a cell typed into the blank row under a table adds the row; a row cleared 
   const shrunk = applyAll(grown, setCellAt(grown, 0, 1, 0, ''));
   expect(write(shrunk)).toBe('A | B\n--- | ---\n1 | 2\n');
   expect(setCellAt(doc, 0, 3, 0, '')).toEqual([]);
+});
+
+test('a table\'s rows and columns, by their menus: put in, taken out, named; a range written; each on the table where it stands', () => {
+  const doc = parse('Before\n\nA | B\n--- | ---\n1 | =A1*2\n2 | =A2*2\n\nAfter\n');
+  const at = 1;
+  const w = (ops: ReturnType<typeof tableRowsIn>) => write(applyAll(doc, ops));
+  expect(w(tableRowsIn(doc, at, 1))).toBe('Before\n\nA | B\n--- | ---\n1 | =A1*2\n| |\n2 | =A3*2\n\nAfter\n');
+  expect(w(tableRowsOut(doc, at, 0, 0))).toBe('Before\n\nA | B\n--- | ---\n2 | =A1*2\n\nAfter\n');
+  expect(w(tableColIn(doc, at, 1))).toBe('Before\n\nA | ColB | B\n--- | --- | ---\n1 |  | =A1*2\n2 |  | =A2*2\n\nAfter\n');
+  // A column taken out with what it holds: a formula that pointed into it says so.
+  expect(w(tableColOut(doc, at, 0))).toBe('Before\n\n| B |\n| --- |\n| =#REF*2 |\n| =#REF*2 |\n\nAfter\n');
+  expect(w(tableRename(doc, at, 0, 'Qty'))).toBe('Before\n\nQty | B\n--- | ---\n1 | =A1*2\n2 | =A2*2\n\nAfter\n');
+  expect(w(tablePut(doc, at, { r: 1, c: 0, values: [['5', '6'], ['7', '8']] }))).toBe('Before\n\nA | B\n--- | ---\n1 | =A1*2\n5 | 6\n7 | 8\n\nAfter\n');
+  // A range cleared at the end of the table takes its rows with it.
+  expect(w(tablePut(doc, at, { r: 1, c: 0, values: [['', '']] }))).toBe('Before\n\nA | B\n--- | ---\n1 | =A1*2\n\nAfter\n');
+  // Letter-named columns follow their places when one goes; a table keeps one column.
+  const letters = parse('ColA | ColB | ColC\n--- | --- | ---\nx | y | z\n');
+  expect(write(applyAll(letters, tableColOut(letters, 0, 0)))).toBe('ColA | ColB\n--- | ---\ny | z\n');
+  const one = parse('A\n---\nx\n');
+  expect(tableColOut(one, 0, 0)).toEqual([]);
+  // Nothing on a block that is no table.
+  expect(tableRowsIn(doc, 0, 0)).toEqual([]);
+});
+
+test('a card in hand: moved past its neighbour, copied after itself, taken out, something pasted after it', () => {
+  const doc = parse('One\n\n![a picture](https://example.com/a.png)\n\nTwo\n');
+  expect(write(applyAll(doc, moveBlock(doc, 1, -1)!))).toBe('![a picture](https://example.com/a.png)\n\nOne\n\nTwo\n');
+  expect(write(applyAll(doc, moveBlock(doc, 1, 1)!))).toBe('One\n\nTwo\n\n![a picture](https://example.com/a.png)\n');
+  expect(moveBlock(doc, 0, -1)).toBeNull();
+  expect(moveBlock(doc, 2, 1)).toBeNull();
+  expect(write(applyAll(doc, duplicateBlock(doc, 1)))).toBe('One\n\n![a picture](https://example.com/a.png)\n\n![a picture](https://example.com/a.png)\n\nTwo\n');
+  expect(write(applyAll(doc, removeBlock(doc, 1)))).toBe('One\n\nTwo\n');
+  expect(write(applyAll(doc, putAfter(1, [{ k: 'p', runs: [{ t: 'Pasted' }] }])))).toBe('One\n\n![a picture](https://example.com/a.png)\n\nPasted\n\nTwo\n');
 });
 
 test('pages: letter by default, A4 when the head says so, one page drawn small, many when the words run over', () => {

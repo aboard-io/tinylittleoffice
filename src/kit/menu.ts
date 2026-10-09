@@ -2,6 +2,8 @@
  * <to-menu>: a button that opens a menu of items, on the Popover API: light-dismissed, on top of
  * everything, Escape closes it and focus comes back to the button. Arrow keys walk the items. Placed by
  * hand below (or above) its button, inside the visual viewport, so it sits above a phone's keyboard.
+ * `keep`: a menu that acts on an editor's selection (Align) never takes the focus from it by a pointer, so a
+ * phone's keyboard stays up; opened from the keyboard, its items still take the focus to be walked.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from './icons.ts';
@@ -42,7 +44,7 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
 let n = 0;
 
 export class ToMenu extends LitElement {
-  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' } };
+  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keep: { type: Boolean } };
   declare label: string;
   /** Another button the menu was opened from (openAt): placed beside it, focus goes back to it. */
   private anchor: HTMLElement | null = null;
@@ -52,6 +54,10 @@ export class ToMenu extends LitElement {
   declare caret: boolean;
   /** The icon alone; the label is the button's name. */
   declare iconOnly: boolean;
+  /** Never takes the focus by a pointer (it acts on an editor's selection). */
+  declare keep: boolean;
+  /** This opening came from a pointer on a `keep` menu: the focus stays where it was. */
+  private kept = false;
   readonly uid = `to-menu-${++n}`;
 
   constructor() {
@@ -61,6 +67,7 @@ export class ToMenu extends LitElement {
     this.items = [];
     this.caret = false;
     this.iconOnly = false;
+    this.keep = false;
   }
   createRenderRoot() {
     return this;
@@ -98,13 +105,14 @@ export class ToMenu extends LitElement {
     from.setAttribute('aria-expanded', String(open));
     if (open) {
       place(this.menu, from);
-      this.menuItems()[0]?.focus();
+      if (!this.kept) this.menuItems()[0]?.focus();
       window.visualViewport?.addEventListener('resize', this.replace);
     } else {
       window.visualViewport?.removeEventListener('resize', this.replace);
       // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere.
       if (document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
       this.anchor = null;
+      this.kept = false;
     }
   };
   private replace = () => this.isOpen && place(this.menu, this.anchor ?? this.button);
@@ -127,12 +135,20 @@ export class ToMenu extends LitElement {
   };
   private choose(item: MenuItem) {
     const from = this.anchor ?? this.button;
+    const kept = this.kept;
+    this.kept = false;
     this.close();
-    from.focus();
+    if (!kept) from.focus();
     item.does();
   }
+  /** A pointer on a `keep` menu's button or items: no focus moves. */
+  private hold = (e: Event) => {
+    if (!this.keep) return;
+    e.preventDefault();
+    if (!this.isOpen) this.kept = true;
+  };
   private renderItem(item: MenuItem): TemplateResult {
-    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @click=${() => this.choose(item)}>
+    return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @click=${() => this.choose(item)}>
       ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;
   }
@@ -155,7 +171,7 @@ export class ToMenu extends LitElement {
       run.push(item);
     }
     flush();
-    return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing}>
+    return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
         ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
       </button>
       <div id=${this.uid} popover="auto" class="to-menu" role="menu" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${parts}</div>`;
