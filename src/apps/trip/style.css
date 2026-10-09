@@ -1,0 +1,196 @@
+/* Trip: the map above the stops on a phone, beside them when there is room. A stop is a row a finger tall: its
+   number (a tap shows it on the map), its name and note, its menu; the leg from the stop before above it. */
+@layer apps {
+  to-trip-editor {
+    display: block;
+  }
+  .trip {
+    display: grid;
+    gap: 12px;
+  }
+  .trip-side {
+    min-width: 0;
+  }
+  .trip .trip-map {
+    position: relative;
+    isolation: isolate;
+    z-index: 0;
+    height: max(240px, 42dvh);
+    background: var(--to-surface-2);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    font: 14px var(--to-font);
+  }
+  .trip-privacy {
+    margin: 4px 0 0;
+    font-size: 13px;
+  }
+  .trip-map .trip-pin {
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--to-paper-accent);
+    color: #fff;
+    font: 700 13px var(--to-font);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  }
+  .trip-map .trip-pin.sel {
+    background: #b3261e;
+    z-index: 1000 !important;
+  }
+  .trip-map .trip-pin:focus-visible {
+    outline: 3px solid var(--to-ink);
+    outline-offset: 2px;
+  }
+  .trip-stops {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--to-surface);
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+  }
+  .trip-stop {
+    display: grid;
+    grid-template-columns: var(--to-touch) minmax(0, 1fr) var(--to-touch);
+    align-items: start;
+    gap: 0 4px;
+    padding: 6px 2px 6px 4px;
+  }
+  .trip-stop + .trip-stop {
+    border-top: 1px solid var(--to-border);
+  }
+  .trip-stop.sel {
+    background: var(--to-accent-soft);
+  }
+  .trip-leg {
+    grid-column: 2 / -1;
+    font-size: 13px;
+    color: var(--to-ink-3);
+    padding: 0 6px 2px;
+  }
+  .trip-n {
+    display: grid;
+    place-items: center;
+    width: var(--to-touch);
+    height: var(--to-touch);
+    padding: 0;
+    border: 0;
+    background: radial-gradient(circle closest-side, var(--to-accent) 13px, transparent 14px);
+    cursor: pointer;
+    color: var(--to-on-accent);
+    font: 700 14px var(--to-font);
+  }
+  .trip-n:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: -2px;
+    border-radius: 50%;
+  }
+  .trip-fields {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .trip-fields input {
+    min-width: 0;
+    width: 100%;
+    min-height: 36px;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: var(--to-radius-sm);
+    background: transparent;
+    color: var(--to-ink);
+    font: 600 16px var(--to-font);
+  }
+  .trip-fields .trip-note {
+    font-weight: 400;
+    color: var(--to-ink-2);
+  }
+  .trip-fields input:hover {
+    border-color: var(--to-border);
+  }
+  .trip-fields input:focus {
+    outline: none;
+    border-color: var(--to-accent);
+    background: var(--to-input-bg);
+  }
+  .trip-fields input::placeholder {
+    color: var(--to-placeholder);
+    font-weight: 400;
+  }
+  .trip-more {
+    border-color: transparent;
+    background: none;
+  }
+  .trip-rowmenu > button {
+    display: none;
+  }
+  .trip-count {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    height: var(--to-touch);
+    margin-left: auto;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+  .trip-empty {
+    padding: 24px 0;
+    text-align: center;
+  }
+  .trip-find-form {
+    display: flex;
+    gap: 8px;
+  }
+  .trip-find-form input {
+    flex: 1;
+    min-width: 0;
+    min-height: var(--to-touch);
+    padding: 0 10px;
+    font: 16px var(--to-font);
+    color: var(--to-ink);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .trip-found {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+  .trip-found button {
+    display: grid;
+    width: 100%;
+    min-height: var(--to-touch);
+    padding: 8px 10px;
+    text-align: start;
+    border: 0;
+    border-radius: var(--to-radius-sm);
+    background: none;
+    color: var(--to-ink);
+    font: 16px var(--to-font);
+    cursor: pointer;
+  }
+  .trip-found button:hover,
+  .trip-found button:focus-visible {
+    background: var(--to-accent-soft);
+  }
+  .trip-found span {
+    font-size: 13px;
+    color: var(--to-ink-3);
+  }
+  @media (min-width: 900px) {
+    .trip:not(.no-map) {
+      grid-template-columns: minmax(0, 1fr) 340px;
+      align-items: start;
+    }
+    .trip .trip-map {
+      height: min(70dvh, 640px);
+    }
+    .trip:not(.no-map) .trip-stops {
+      max-height: min(70dvh, 640px);
+      overflow-y: auto;
+    }
+  }
+}

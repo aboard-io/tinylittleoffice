@@ -99,7 +99,7 @@ export class ToDrawer extends LitElement {
           : nothing}
       </div>
     </dialog>
-    <to-dialog heading=${t('About TinyLittleOffice')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. Private by default; the switch in this menu keeps your settings on this device.')}</p>`}></to-dialog>`;
+    <to-dialog heading=${t('About TinyLittleOffice')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default; the switch in this menu keeps your settings on this device.')}</p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);
