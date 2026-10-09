@@ -3,7 +3,7 @@
  * text is read through their form (lib/lines.ts), so the form is the one
  * description of the format, and the page is drawn from its rows.
  */
-import { kindsOf, readLines, writeLines, type Kind, type Row } from './lines.ts';
+import { isCatchAll, kindsOf, readLines, writeLines, type Kind, type Row } from './lines.ts';
 import { cells, takeHead } from './tlo.ts';
 
 /** The values of the rows of one kind, in order. */
@@ -25,7 +25,7 @@ export function tidy(text: string, form: Kind[], loose?: (line: string) => [kind
   const settings = Object.entries(head).map(([k, v]) => `${k}: ${v}\n\n`).join('');
   const table = kinds.findIndex((k) => k.table);
   const rows = readLines(settings + rest, form).map((r): Row => {
-    if (kinds[r.kind].table || !/^\{[^}]*\}$/.test(kinds[r.kind].is)) return r;
+    if (kinds[r.kind].table || !isCatchAll(kinds[r.kind])) return r;
     const hit = loose?.(r.values[0].trim()) ?? (table >= 0 && r.values[0].includes('|') ? ([table, cells(r.values[0])] as [number, string[]]) : null);
     return hit ? { kind: hit[0], values: hit[1], depth: 0 } : r;
   });

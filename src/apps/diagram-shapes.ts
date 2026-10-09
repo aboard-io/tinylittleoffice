@@ -6,10 +6,9 @@
  * it under or after it, into a lane or a set to move it there. A line
  * between two things is tapped for its words.
  */
-import { html, state, unsafeSVG, type TemplateResult } from '../kit.ts';
-import { svg } from '../kit.ts';
-import { DiagramElement, clean } from './diagram.ts';
-import { fieldsOf, kindsOf, listItems, moveItem, placeBlock, readLines, type Row } from '../lib/lines.ts';
+import { html, state, svg, unsafeSVG, type TemplateResult } from '../kit.ts';
+import { DiagramElement, clean, unIcon } from './diagram.ts';
+import { blankValues, fieldsOf, holdsWords, kindsOf, listItems, moveItem, placeBlock, readLines, withValue, type Row } from '../lib/lines.ts';
 import { isLink, type Shape } from '../lib/drawmodel.ts';
 import { arrowDefs, shapeSvg } from './draw.def.ts';
 
@@ -18,6 +17,12 @@ interface Hit {
   row: number;
   field: number;
   item?: number;
+}
+
+/** Where the things of a picture start: the least x and y of its shapes, lines aside (Infinity with none). */
+function corner(shapes: Shape[]): [number, number] {
+  const solid = shapes.filter((s) => !isLink(s.k));
+  return [Math.min(...solid.map((s) => s.x)), Math.min(...solid.map((s) => s.y))];
 }
 
 export class ShapesView extends DiagramElement {
@@ -48,7 +53,7 @@ export class ShapesView extends DiagramElement {
         if (r.kind >= form.length) continue;
         const fields = fieldsOf(form, r.kind);
         for (const [m, v] of r.values.entries()) {
-          if (fields[m].type === 'icon' || fields[m].type === 'choice') continue;
+          if (!holdsWords(fields[m])) continue;
           if (fields[m].type === 'list') {
             const k = listItems(v).findIndex((x) => clean(x) === h);
             if (k >= 0) return { row: n, field: m, item: k };
@@ -66,7 +71,7 @@ export class ShapesView extends DiagramElement {
         if (refs.length < 2) continue;
         const [x, y] = [clean(r.values[refs[0]]), clean(r.values[refs[1]])];
         if ((x === a && y === b) || (x === b && y === a)) {
-          const label = fieldsOf(form, r.kind).findIndex((f, m) => !refs.includes(m) && f.type !== 'icon' && f.type !== 'choice');
+          const label = fieldsOf(form, r.kind).findIndex((f, m) => !refs.includes(m) && holdsWords(f));
           return label >= 0 ? { row: n, field: label } : null;
         }
       }
@@ -86,14 +91,6 @@ export class ShapesView extends DiagramElement {
 
   /* ---------- adding and moving on the picture itself ---------- */
 
-  /** The kind a tap on empty space adds: the first that is a thing with words of its own (not a title, a divider or a line between things). */
-  private get mainKind(): number {
-    const form = this.spec.form;
-    if (!form) return -1;
-    const { kinds } = kindsOf(form);
-    return kinds.findIndex((k, n) => n < form.length && !k.once && k.is !== '' && !k.is.startsWith('#') && !k.head && !this.refFields(n).length && fieldsOf(form, n).some((f) => f.type !== 'icon' && f.type !== 'choice'));
-  }
-
   /**
    * A tap on empty space: a new thing there, drawn at once, its words ready
    * to type; gone again if none are. In a lane or a set, it goes to that.
@@ -105,13 +102,11 @@ export class ShapesView extends DiagramElement {
     const key = this.spec.keyAt?.(this.textOf(this.doc), px, py);
     if (key) return this.addTo(key);
     const fields = fieldsOf(form, kind);
-    const values = fields.map((f) => (f.type === 'choice' ? f.options[0] : ''));
+    const values = blankValues(form, kind);
     const m = this.spec.moves;
     if (m && m.kind === kind) {
       // Where it was tapped, in the picture's own units, if the kind keeps a place.
-      const d = this.spec.layout!(this.doc);
-      const x0 = Math.min(...d.shapes.filter((s) => !isLink(s.k)).map((s) => s.x), Infinity);
-      const y0 = Math.min(...d.shapes.filter((s) => !isLink(s.k)).map((s) => s.y), Infinity);
+      const [x0, y0] = corner(this.spec.layout!(this.doc).shapes);
       values[m.x] = String(Math.max(0, Math.round((px - (Number.isFinite(x0) ? x0 : px)) / m.unit)));
       values[m.y] = String(Math.max(0, Math.round((py - (Number.isFinite(y0) ? y0 : py)) / m.unit)));
       if (fields[1] && /width/i.test(fields[1].name)) (values[1] = '3'), (values[2] = '3');
@@ -125,8 +120,8 @@ export class ShapesView extends DiagramElement {
   protected draftElement(): Element | null {
     if (!this.draft) return null;
     const d = this.spec.layout!(this.drawnText());
-    const words = this.draftWords();
-    const i = d.shapes.findIndex((q) => !isLink(q.k) && q.text.split(/\s*[|:]\s*|\n/).some((part) => part.replace(/^:[a-z0-9-]+\s*/, '').trim() === words));
+    const words = fieldsOf(this.spec.form!, this.draft.row.kind)[this.draft.field].name;
+    const i = d.shapes.findIndex((q) => !isLink(q.k) && q.text.split(/\s*[|:]\s*|\n/).some((part) => unIcon(part).trim() === words));
     return i >= 0 ? this.querySelector(`.pic > svg g.pick[data-i="${i}"]`) : null;
   }
 
@@ -141,11 +136,11 @@ export class ShapesView extends DiagramElement {
     if (link >= 0 && this.listField(kind) < 0 && !kinds[kind].indent) {
       // "API > New": the thing first, the new one typed into the line's far end.
       const from = refs.length >= 2 ? (refs.includes(field) ? field : -1) : this.wordsField(kind);
-      const name = from >= 0 ? rows[i].values[from].replace(/^:[a-z0-9-]+\s*/, '').trim() : '';
+      const name = from >= 0 ? unIcon(rows[i].values[from]).trim() : '';
       if (name) {
-        const fields = fieldsOf(form, link);
         const ends = this.refFields(link);
-        const values = fields.map((f, n) => (n === ends[0] ? name : f.type === 'choice' ? f.options[0] : ''));
+        const values = blankValues(form, link);
+        values[ends[0]] = name;
         this.startDraft(link, i + 1, rows[i].depth, values, ends[1]);
         return;
       }
@@ -224,7 +219,7 @@ export class ShapesView extends DiagramElement {
       const kf = this.keyField(row.kind);
       if (kf < 0 || this.listField(row.kind) >= 0 || clean(this.keyOf(row)) === clean(key)) return;
       const read = this.keyRow(key);
-      if (read && read.kind === row.kind) this.putRows(rows.map((r, n) => (n === d.hit.row ? { ...r, values: r.values.map((v, m) => (m === kf ? read.values[kf] : v)) } : r)));
+      if (read && read.kind === row.kind) this.putRows(withValue(rows, d.hit.row, kf, () => read.values[kf]));
       return;
     }
     const m = this.spec.moves;
@@ -232,18 +227,13 @@ export class ShapesView extends DiagramElement {
       // Dropped on empty space: a thing that keeps a place moves there.
       const row = rows[d.hit.row];
       const s = shapes[d.i];
-      const all = shapes.filter((q) => !isLink(q.k));
-      const [x0, y0] = [Math.min(...all.map((q) => q.x)), Math.min(...all.map((q) => q.y))];
+      const [x0, y0] = corner(shapes);
       const was = row.values[m.x] === '' ? [(s.x - x0) / m.unit, (s.y - y0) / m.unit] : [+row.values[m.x], +row.values[m.y]];
       const values = row.values.map((v, n) => (n === m.x ? String(Math.max(0, Math.round((was[0] + (x - d.x) / m.unit) * 2) / 2)) : n === m.y ? String(Math.max(0, Math.round((was[1] + (y - d.y) / m.unit) * 2) / 2)) : v));
       this.putRows(rows.map((r, n) => (n === d.hit.row ? { ...r, values } : r)));
     }
   }
 
-  /** A picture of shapes is worked on the picture itself: no list beside it. */
-  protected get lists() {
-    return false;
-  }
   protected drawable() {
     return !!this.spec.layout?.(this.doc).shapes.length;
   }
@@ -271,7 +261,7 @@ export class ShapesView extends DiagramElement {
     // (The draft is drawn with its field's name for words, so the rows are read from what is drawn.)
     this.hit = spec.form ? this.hits(d.shapes, readLines(this.drawnText(), spec.form)) : d.shapes.map(() => null);
     const hits = this.hit;
-    const words = (s: Shape) => s.text.replace(/^:[a-z0-9-]+\s*/, '');
+    const words = (s: Shape) => unIcon(s.text);
     const tapped = (e: Event, i: number) => {
       e.stopPropagation();
       if (this.drag?.moved || performance.now() - this.droppedAt < 400) return;

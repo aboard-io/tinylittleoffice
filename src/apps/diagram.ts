@@ -13,7 +13,7 @@ import '../widgets/line-form.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { specOf, type DiagramSpec } from '../lib/diagram.ts';
 import { store } from '../lib/store.ts';
-import { blockEnd, fieldsOf, joinItems, kindsOf, listItems, moveItem, readLines, removeRow, writeLines, type Row } from '../lib/lines.ts';
+import { blankValues, blockEnd, fieldsOf, holdsWords, joinItems, kindsOf, listItems, moveItem, readLines, removeRow, withValue, writeLines, type Row } from '../lib/lines.ts';
 
 /** A pattern that opens "{Key}: {Words}" (as a list item, "- {Key}: {Words}"): a lane and its step, a date and its event, a table and its people. */
 const KEYED = /^\s*(?:- )?(?:\[:\{[^}]*\}\s*\])?\{[^}]*\}:\s\{[^}]*\}(?:\s*\[[^\]]*\])*\s*$/;
@@ -21,8 +21,24 @@ const KEYED = /^\s*(?:- )?(?:\[:\{[^}]*\}\s*\])?\{[^}]*\}:\s\{[^}]*\}(?:\s*\[[^\
 const HAS_KEY = /^[^:[\]]*\}:\s\{/;
 /** The fields that name another thing on the picture: the two ends of a line, the sets something is shared by. */
 const NAMES = /^(from|to|one set|other sets)$/i;
+/** Words without the picture written before them (":rocket Launch"). */
+export const unIcon = (v: string) => v.replace(/^:[a-z0-9-]+\s*/, '');
 /** A name as it is compared: without its picture, its case or its edges. */
-export const clean = (v: string) => v.replace(/^:[a-z0-9-]+\s*/, '').trim().toLowerCase();
+export const clean = (v: string) => unIcon(v).trim().toLowerCase();
+
+/**
+ * A thing being added: it shows in the picture (with its field's name
+ * for words) and has the box open, but is not in the text until something
+ * is typed. Abandoned, it goes without a trace. With `item`, the draft is
+ * a thing added to row `at`'s list (a person at a table), and the row
+ * stands in for the one written.
+ */
+interface Draft {
+  at: number;
+  row: Row;
+  field: number;
+  item?: number;
+}
 
 export class DiagramElement extends DocElement<string> {
   /** Which diagram app this is; set by defineDiagramEditor. */
@@ -49,6 +65,10 @@ export class DiagramElement extends DocElement<string> {
   protected get justClosed() {
     return performance.now() - this.closedAt < 400;
   }
+  private shut() {
+    this.editing = null;
+    this.closedAt = performance.now();
+  }
 
   /** Open the box over an element of the picture, for a row's field (or one thing of its list). */
   protected editOver(el: Element, row: number, field = -1, item?: number) {
@@ -57,7 +77,7 @@ export class DiagramElement extends DocElement<string> {
     const rows = this.drafted();
     if (!rows[row]) return;
     const fields = fieldsOf(form, rows[row].kind);
-    const f = field >= 0 ? field : fields.findIndex((x) => x.type !== 'icon' && x.type !== 'choice');
+    const f = field >= 0 ? field : fields.findIndex(holdsWords);
     if (f < 0) return;
     const pic = this.querySelector<HTMLElement>('.pic')!;
     const [b, p] = [el.getBoundingClientRect(), pic.getBoundingClientRect()];
@@ -80,17 +100,16 @@ export class DiagramElement extends DocElement<string> {
    */
   private renderEditBox() {
     const e = this.editing;
-    if (!e || !this.spec.form) return nothing;
     const form = this.spec.form;
-    const rows = this.drafted();
-    const row = rows[e.row];
+    if (!e || !form) return nothing;
+    const row = this.drafted()[e.row];
     if (!row) return nothing;
     const all = fieldsOf(form, row.kind).map((f, n) => ({ ...f, n }));
     const refs = this.refFields(row.kind);
     const link = refs.length >= 2;
     // One name (a thing of a list, or a thing named by a line's end); else the row's words, minus the ends of a line.
     const naming = e.item !== undefined || refs.includes(e.field);
-    const fields = naming ? [all[e.field]] : all.filter((f) => f.type !== 'icon' && f.type !== 'choice' && (link ? !refs.includes(f.n) : f.type !== 'pick' || f.n === e.field));
+    const fields = naming ? [all[e.field]] : all.filter((f) => holdsWords(f) && (link ? !refs.includes(f.n) : f.type !== 'pick' || f.n === e.field));
     const first = fields.findIndex((f) => f.n === e.field);
     const ordered = first > 0 ? [...fields.slice(first), ...fields.slice(0, first)] : fields;
     const value = (f: number) => (e.item !== undefined ? (listItems(row.values[f])[e.item] ?? '') : (row.values[f] ?? ''));
@@ -99,13 +118,12 @@ export class DiagramElement extends DocElement<string> {
       // A draft nothing was typed into goes; one with words is already in the text.
       const [at, f, item] = [e.row, e.field, e.item];
       const wasDraft = !!this.draft;
-      this.editing = null;
+      this.shut();
       this.draft = null;
-      this.closedAt = performance.now();
       this.unpick();
       // A list is left tidy: a thing emptied out is gone from it.
       const r = this.rows()[at];
-      if (!wasDraft && item !== undefined && r && listItems(r.values[f]).some((v) => !v)) this.putRows(this.rows().map((q, n) => (n === at ? { ...q, values: q.values.map((v, m) => (m === f ? joinItems(listItems(v).filter(Boolean)) : v)) } : q)));
+      if (!wasDraft && item !== undefined && r && listItems(r.values[f]).some((v) => !v)) this.putRows(withValue(this.rows(), at, f, (v) => joinItems(listItems(v).filter(Boolean))));
     };
     const done = (ev: FocusEvent) => {
       // Leaving the box altogether, not moving to its next field; and only this box, not one that has already given way to the next.
@@ -117,7 +135,7 @@ export class DiagramElement extends DocElement<string> {
       const was = this.drafted()[e.row];
       const old = value(f);
       const set = (v: string) => (e.item !== undefined ? joinItems(listItems(v).map((x, k) => (k === e.item ? typed : x))) : typed);
-      let next = this.drafted().map((r, n) => (n === e.row ? { ...r, values: r.values.map((v, m) => (m === f ? set(v) : v)) } : r));
+      let next = withValue(this.drafted(), e.row, f, set);
       if (this.draft) {
         // The first keystroke makes the draft real.
         if (!typed) return;
@@ -138,13 +156,11 @@ export class DiagramElement extends DocElement<string> {
         const name = (this.rows()[at]?.values[f] ?? '').trim();
         if (!name) return close();
         const values = row.values.map((_, n) => (n === refs[0] ? name : ''));
-        this.editing = null;
-        this.closedAt = performance.now();
+        this.shut();
         return this.startDraft(row.kind, at + 1, row.depth, values, refs[1]);
       }
       // The box gives way to the next one's; what was picked stays picked until the new draft has read it.
-      this.editing = null;
-      this.closedAt = performance.now();
+      this.shut();
       if (!this.rows()[at]) return this.unpick();
       if (item !== undefined) this.addItem(at, f, item + 1);
       else this.addAfter(at, f);
@@ -156,6 +172,7 @@ export class DiagramElement extends DocElement<string> {
     };
     const empty = ordered.every((f) => !value(f.n).trim());
     const name = kindsOf(form).kinds[row.kind].name.toLowerCase();
+    const another = e.item !== undefined ? 'Add one after it' : naming ? 'Add one joined to it' : 'Add one under it';
     return html`<div class="pic-edit ${ordered.length > 1 ? 'many' : ''}" style="left:${e.x}px;top:${e.y}px;width:${e.w}px;min-height:${e.h}px">
       ${ordered.map(
         (f) => html`<input
@@ -170,7 +187,7 @@ export class DiagramElement extends DocElement<string> {
       ${this.draft
         ? nothing
         : html`<div class="pic-edit-acts" role="group" aria-label="This thing">
-            ${link && e.item === undefined ? nothing : btn(e.item !== undefined ? 'Add one after it' : naming ? 'Add one joined to it' : 'Add one under it', 'plus', next, { keepFocus: true, size: 13, tip: `${e.item !== undefined ? 'Add one after it' : naming ? 'Add one joined to it' : 'Add one under it'} (Enter)` })}
+            ${link && e.item === undefined ? nothing : btn(another, 'plus', next, { keepFocus: true, size: 13, tip: `${another} (Enter)` })}
             ${this.linkKind() < 0 || link || e.item !== undefined ? nothing : btn('Join it to another thing', 'join', () => { const [at, f] = [e.row, e.field]; const from = clean(this.rows()[at]?.values[f] ?? ''); close(); if (from) this.joining = { from }; }, { keepFocus: true, size: 13 })}
             ${link && e.item === undefined ? nothing : btn('Give it a picture', 'smile', () => { const [at, f, item] = [e.row, e.field, e.item]; close(); void this.iconFor(at, f, item); }, { keepFocus: true, size: 13 })}
             ${btn(link && e.item === undefined ? `Take the ${name} away` : 'Take it away', 'trash', gone, { keepFocus: true, size: 13 })}
@@ -187,19 +204,11 @@ export class DiagramElement extends DocElement<string> {
     const m = store.get('tinyoffice.edit');
     return m === 'text' || m === 'form' ? m : 'picture';
   })();
-  protected get asText() {
-    return this.mode === 'text';
-  }
   private setMode(mode: 'picture' | 'form' | 'text') {
     this.mode = mode;
     if (mode === 'picture') store.remove('tinyoffice.edit');
     else store.set('tinyoffice.edit', mode);
   }
-  /** Whether the document can be shown as a list to fill in: a page or a sheet, not a picture of shapes. */
-  protected get lists(): boolean {
-    return true;
-  }
-
   protected get spec(): DiagramSpec {
     return specOf((this.constructor as typeof DiagramElement).app)!;
   }
@@ -239,7 +248,7 @@ export class DiagramElement extends DocElement<string> {
     // After the indent, and after "Who: " where a line has one; replacing an icon already there.
     const line = value.slice(from, end);
     const lead = /^\s*(?:[^:|>]{1,24}:\s+(?!\/))?/.exec(line)![0];
-    const rest = line.slice(lead.length).replace(/^:[a-z0-9-]+\s*/, '');
+    const rest = unIcon(line.slice(lead.length));
     this.type(value.slice(0, from) + lead + `:${name} ` + rest + value.slice(end));
   }
 
@@ -290,14 +299,8 @@ export class DiagramElement extends DocElement<string> {
 
   /* ---------- the rows of the form, from the picture ---------- */
 
-  /**
-   * A thing being added: it shows in the picture (with its field's name
-   * for words) and has the box open, but is not in the text until something
-   * is typed. Abandoned, it goes without a trace. With `item`, the draft is
-   * a thing added to row `at`'s list (a person at a table), and the row
-   * stands in for the one written.
-   */
-  @state() protected draft: { at: number; row: Row; field: number; item?: number } | null = null;
+  /** A thing being added, not yet in the text. */
+  @state() protected draft: Draft | null = null;
 
   /** A line being made from one thing to another: the first is chosen, the next tap on a thing is the other end. */
   @state() protected joining: { from: string } | null = null;
@@ -325,16 +328,11 @@ export class DiagramElement extends DocElement<string> {
       ...d.row,
       values: d.row.values.map((v, n) => {
         if (d.item !== undefined && n === d.field) return joinItems(listItems(v).map((x, k) => (k === d.item && !x ? fields[n].name : x)));
-        return !v && !fields[n].optional && fields[n].type !== 'icon' && fields[n].type !== 'choice' ? fields[n].name : v;
+        return !v && !fields[n].optional && holdsWords(fields[n]) ? fields[n].name : v;
       }),
     };
     const rows = this.rows();
     return writeLines(d.item !== undefined ? rows.map((r, n) => (n === d.at ? shown : r)) : [...rows.slice(0, d.at), shown, ...rows.slice(d.at)], form);
-  }
-  /** The words the draft shows for the thing being added: what to look for on the picture. */
-  protected draftWords(): string {
-    const d = this.draft;
-    return d ? fieldsOf(this.spec.form!, d.row.kind)[d.field].name : '';
   }
 
   /** The fields of a kind that name other things: the ends of a line, the sets a thing is shared by. */
@@ -348,7 +346,7 @@ export class DiagramElement extends DocElement<string> {
   /** The field a keyed kind ("{Who}: {What}") is keyed by, else -1. */
   protected keyField(kind: number): number {
     const fields = fieldsOf(this.spec.form!, kind);
-    return KEYED.test(kindsOf(this.spec.form!).kinds[kind].is) ? fields.findIndex((f) => f.type !== 'icon' && f.type !== 'choice') : -1;
+    return KEYED.test(kindsOf(this.spec.form!).kinds[kind].is) ? fields.findIndex(holdsWords) : -1;
   }
   /** What a row is keyed by, as written before its colon ("Sales", "Fast & Cheap"); '' for a kind with no key. */
   protected keyOf(row: Row): string {
@@ -370,6 +368,12 @@ export class DiagramElement extends DocElement<string> {
     const form = this.spec.form!;
     return form.findIndex((_, n) => this.refFields(n).length >= 2);
   }
+  /** The kind a tap on empty space adds: the first that is a thing with words of its own (not a title, a divider or a line between things). */
+  protected get mainKind(): number {
+    const form = this.spec.form;
+    if (!form) return -1;
+    return kindsOf(form).kinds.findIndex((k, n) => n < form.length && !k.once && k.is !== '' && !k.is.startsWith('#') && !k.head && !this.refFields(n).length && fieldsOf(form, n).some(holdsWords));
+  }
   /**
    * The field a kind's words go in: its list, if it has one (the people at
    * a table); else the words after its key ("{Who}: {What}"); else the
@@ -380,18 +384,13 @@ export class DiagramElement extends DocElement<string> {
     const fields = fieldsOf(form, kind);
     const list = this.listField(kind);
     if (list >= 0) return list;
-    const plain = fields.map((f, n) => (f.type !== 'icon' && f.type !== 'choice' && f.type !== 'pick' ? n : -1)).filter((n) => n >= 0);
+    const plain = fields.map((f, n) => (holdsWords(f) && f.type !== 'pick' ? n : -1)).filter((n) => n >= 0);
     if (plain.length >= 2 && this.keyField(kind) >= 0) return plain[1];
     return plain[0] ?? fields.findIndex((f) => f.type === 'pick');
   }
   /** Start a draft of `kind` at `at`, with any values given, and open the box on its words once drawn. */
-  protected startDraft(kind: number, at: number, depth: number, values?: string[], field = this.wordsField(kind)) {
-    const form = this.spec.form!;
-    const fields = fieldsOf(form, kind);
-    this.unpick();
-    this.editing = null;
-    this.draft = { at, row: { kind, values: values ?? fields.map((f) => (f.type === 'choice' ? f.options[0] : '')), depth }, field };
-    this.drawDraft(at, field);
+  protected startDraft(kind: number, at: number, depth: number, values = blankValues(this.spec.form!, kind), field = this.wordsField(kind)) {
+    this.beginDraft({ at, row: { kind, values, depth }, field });
   }
   /** Start a draft thing in row `at`'s list field, before its `item`th thing: it shows there, named for its field, until typed into. */
   protected addItem(at: number, field: number, item: number) {
@@ -400,16 +399,16 @@ export class DiagramElement extends DocElement<string> {
     const items = listItems(row.values[field]);
     item = Math.min(item, items.length);
     items.splice(item, 0, '');
-    this.unpick();
-    this.editing = null;
-    this.draft = { at, row: { ...row, values: row.values.map((v, n) => (n === field ? joinItems(items) : v)) }, field, item };
-    this.drawDraft(at, field, item);
+    this.beginDraft({ at, row: { ...row, values: row.values.map((v, n) => (n === field ? joinItems(items) : v)) }, field, item });
   }
   /** Once the draft is drawn, the box opens on it; a draft the picture has no room for goes, and says so. */
-  private drawDraft(at: number, field: number, item?: number) {
+  private beginDraft(draft: Draft) {
+    this.unpick();
+    this.editing = null;
+    this.draft = draft;
     void this.updateComplete.then(() => {
       const el = this.draftElement();
-      if (el) this.editOver(el, at, field, item);
+      if (el) this.editOver(el, draft.at, draft.field, draft.item);
       else if (this.draft) {
         toast(this, `There is no room on the picture for another ${kindsOf(this.spec.form!).kinds[this.draft.row.kind].name.toLowerCase()}`);
         this.draft = null;
@@ -420,9 +419,8 @@ export class DiagramElement extends DocElement<string> {
   protected draftElement(): Element | null {
     return null;
   }
-  protected putRows(rows: Row[], focus = -1) {
+  protected putRows(rows: Row[]) {
     this.type(writeLines(rows, this.spec.form!));
-    if (focus >= 0) void this.updateComplete.then(() => this.querySelector<HTMLElement>(`to-lines [data-row="${focus}"] :is(input, textarea, select)`)?.focus());
   }
 
   /** A row like row i, after it (under it, for an outline; a thing more in its list, for a row that has one): then the cursor is in it. */
@@ -434,7 +432,6 @@ export class DiagramElement extends DocElement<string> {
     if (list >= 0) return this.addItem(i, list, listItems(rows[i].values[list]).length);
     const at = k.indent ? blockEnd(rows, form, i) : i + 1;
     const depth = k.indent ? rows[i].depth + 1 : rows[i].depth;
-    this.unpick();
     // A draft on the picture until something is typed (the list beside, if showing, follows).
     // Like the one it came from: its key (the same lane, the same date), its size and place beside it; the rest to type.
     const words = this.wordsField(rows[i].kind);
@@ -452,19 +449,17 @@ export class DiagramElement extends DocElement<string> {
    * A key no row has yet is read as a line of its own ("Fast & Cheap: ").
    */
   protected addTo(key: string) {
-    const form = this.spec.form!;
     const rows = this.rows();
-    const at = rows.findIndex((r) => clean(this.keyOf(r)) === clean(key));
-    if (at >= 0) {
-      const list = this.listField(rows[at].kind);
-      if (list >= 0) return this.addItem(at, list, listItems(rows[at].values[list]).length);
-      const words = this.wordsField(rows[at].kind);
-      return this.startDraft(rows[at].kind, rows.length, rows[at].depth, rows[at].values.map((v, n) => (n < words && fieldsOf(form, rows[at].kind)[n].type !== 'icon' ? v : '')), words);
-    }
-    const read = this.keyRow(key);
-    if (!read) return;
-    const words = this.wordsField(read.kind);
-    this.startDraft(read.kind, rows.length, read.depth, read.values.map((v, n) => (n === words ? '' : v)), words);
+    const [keyed, at] = this.rowKeyed(rows, key);
+    if (at < 0) return;
+    const row = keyed[at];
+    const words = this.wordsField(row.kind);
+    // A key no row had yet: its new row is the draft.
+    if (keyed.length > rows.length) return this.startDraft(row.kind, at, row.depth, row.values, words);
+    const list = this.listField(row.kind);
+    if (list >= 0) return this.addItem(at, list, listItems(row.values[list]).length);
+    const fields = fieldsOf(this.spec.form!, row.kind);
+    this.startDraft(row.kind, rows.length, row.depth, row.values.map((v, n) => (n < words && fields[n].type !== 'icon' ? v : '')), words);
   }
 
   /** The row keyed `key`, made if no row has it yet: for a thing dropped into a lane or a set. */
@@ -493,15 +488,16 @@ export class DiagramElement extends DocElement<string> {
     const kind = this.linkKind();
     if (!from || kind < 0 || clean(to) === from) return;
     const form = this.spec.form!;
-    const fields = fieldsOf(form, kind);
     const refs = this.refFields(kind);
     const rows = this.rows();
     const name = (c: string) => {
       // The name as it is written somewhere, so the line finds it.
-      for (const r of rows) for (const [n, v] of r.values.entries()) if (fieldsOf(form, r.kind)[n]?.type !== 'icon' && clean(v) === c) return v.replace(/^:[a-z0-9-]+\s*/, '').trim();
+      for (const r of rows) for (const [n, v] of r.values.entries()) if (fieldsOf(form, r.kind)[n]?.type !== 'icon' && clean(v) === c) return unIcon(v).trim();
       return c;
     };
-    const values = fields.map((f, n) => (n === refs[0] ? name(from) : n === refs[1] ? name(clean(to)) : f.type === 'choice' ? f.options[0] : ''));
+    const values = blankValues(form, kind);
+    values[refs[0]] = name(from);
+    values[refs[1]] = name(clean(to));
     if (rows.some((r) => r.kind === kind && clean(r.values[refs[0]]) === clean(values[refs[0]]) && clean(r.values[refs[1]]) === clean(values[refs[1]]))) return;
     this.putRows([...rows, { kind, values, depth: 0 }]);
   }
@@ -514,7 +510,7 @@ export class DiagramElement extends DocElement<string> {
   protected renamed(rows: Row[], row: number, field: number, old: string, now: string): Row[] {
     const form = this.spec.form!;
     const was = clean(old);
-    const to = now.replace(/^:[a-z0-9-]+\s*/, '').trim();
+    const to = unIcon(now).trim();
     if (!was) return rows;
     const keyed = this.spec.keyAt && this.keyField(rows[row].kind) === field;
     return rows.map((r, n) => {
@@ -541,7 +537,7 @@ export class DiagramElement extends DocElement<string> {
     if (!r) return;
     if (item !== undefined) {
       const items = listItems(r.values[field]).filter((_, k) => k !== item);
-      return this.putRows(rows.map((q, n) => (n === row ? { ...q, values: q.values.map((v, m) => (m === field ? joinItems(items.filter(Boolean)) : v)) } : q)));
+      return this.putRows(withValue(rows, row, field, () => joinItems(items.filter(Boolean))));
     }
     const refs = this.refFields(r.kind);
     const named = clean(refs.includes(field) ? r.values[field] : r.values[this.wordsField(r.kind)] ?? '');
@@ -561,17 +557,15 @@ export class DiagramElement extends DocElement<string> {
     const row = rows[i];
     if (!row) return;
     const fields = fieldsOf(form, row.kind);
-    const put = (v: string) => `:${name} ${v.replace(/^:[a-z0-9-]+\s*/, '')}`;
-    if (item !== undefined) return this.putRows(rows.map((r, n) => (n === i ? { ...r, values: r.values.map((v, m) => (m === field ? joinItems(listItems(v).map((x, k) => (k === item ? put(x) : x))) : v)) } : r)));
+    const put = (v: string) => `:${name} ${unIcon(v)}`;
+    if (item !== undefined) return this.putRows(withValue(rows, i, field, (v) => joinItems(listItems(v).map((x, k) => (k === item ? put(x) : x)))));
     if (field >= 0 && this.refFields(row.kind).includes(field)) {
       // Named by its lines: the picture goes on the name, wherever it is written.
       const old = row.values[field];
-      return this.putRows(this.renamed(rows, i, field, old, put(old)).map((r, n) => (n === i ? { ...r, values: r.values.map((v, m) => (m === field ? put(v) : v)) } : r)));
+      return this.putRows(withValue(this.renamed(rows, i, field, old, put(old)), i, field, put));
     }
     const slot = fields.findIndex((f) => f.type === 'icon');
-    const words = fields.findIndex((f) => f.type !== 'icon' && f.type !== 'choice');
-    const values = row.values.map((v, n) => (n === slot ? name : slot < 0 && n === words ? put(v) : v));
-    this.putRows(rows.map((r, n) => (n === i ? { ...r, values } : r)));
+    this.putRows(slot >= 0 ? withValue(rows, i, slot, () => name) : withValue(rows, i, fields.findIndex(holdsWords), put));
   }
 
   /* ---------- the picture: one of three views ---------- */
@@ -600,7 +594,8 @@ export class DiagramElement extends DocElement<string> {
     const name = this.name;
     const inside = !!this.closest('sl-dialog');
     const form = this.form;
-    const lists = !!spec.form && this.lists;
+    // A page or a sheet can be shown as a list to fill in; a picture of shapes is worked on the picture itself.
+    const lists = !!spec.form && !!this.kind;
     const listing = lists && this.mode === 'form';
     const hint = !form
       ? spec.hint

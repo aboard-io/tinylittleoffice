@@ -58,7 +58,7 @@ export const COLOR_CYCLE: Color[] = ['b', 'g', 'o', 'p', 'r'];
  * diagram reads (and builds on a slide) as: a thing, the next thing, the
  * line between them, the next thing, its line...
  */
-export function weave(shapes: Shape[]): Shape[] {
+function weave(shapes: Shape[]): Shape[] {
   const order: number[] = [];
   const placed = new Set<number>();
   const links = shapes.map((s, i) => (isLink(s.k) ? i : -1)).filter((i) => i >= 0);
@@ -208,15 +208,14 @@ export function wordsOf(body: string): string[] {
  */
 export function definePage(app: Pick<AppDef, 'id' | 'name' | 'icon' | 'blurb'> & Partial<AppDef>, spec: DiagramSpec & { page(text: string, opts?: PageOpts): string }): AppDef {
   registerSpec(app.id, spec);
-  const lines = wordsOf;
   // Its title is its "# Heading", unless it says otherwise.
   const title = app.title ?? h1;
   return defineApp({
     title,
-    outline: (body) => lines(body).slice(0, 14),
-    view: (body, opts = {}) => [listPage(title(body) || app.name, lines(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
+    outline: (body) => wordsOf(body).slice(0, 14),
+    view: (body, opts = {}) => [listPage(title(body) || app.name, wordsOf(body).slice(1, opts.step === undefined ? 40 : 1 + opts.step), opts.w)],
     // On a slide, its lines arrive one at a time.
-    steps: (body) => Math.max(0, Math.min(40, lines(body).length - 1)),
+    steps: (body) => Math.max(0, Math.min(40, wordsOf(body).length - 1)),
     document: (body, ctx) => spec.page(body, { base: ctx.base }),
     shortcuts: OUTLINE_KEYS,
     ...app,
@@ -277,10 +276,7 @@ export function placeTree(roots: Node[]): Placed[] {
   return out;
 }
 
-/** The "# Title" of a text, and its other lines. */
+/** The "# Title" of a text. */
 export const h1 = (body: string) => /^#\s+(.*)$/m.exec(body)?.[1].trim() ?? '';
-export const rest = (body: string) => body.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('# '));
-/** A value written into a page's script, where nothing in it can end the script. */
-export const js = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c');
 /** A number from a text, the same every time: for shuffles that should not change as you watch. */
 export const seed = (s: string) => [...s].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 7) >>> 0;
