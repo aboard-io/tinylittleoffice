@@ -54,6 +54,8 @@ export interface BtnOpts {
   keys?: string;
   /** The button never takes the focus: an editor's selection stays where it is, and a phone's keyboard stays up. */
   keep?: boolean;
+  /** What more there is to say than the label's two words, as the tooltip ("Use the grid as the drawing's background"). */
+  hint?: string;
 }
 
 // Cancelled on mousedown, not pointerdown: a tap in WebKit whose pointerdown is cancelled fires no click at all, while
@@ -64,11 +66,11 @@ const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator
 /** "Mod+B" as this device writes it: ⌘B on a Mac, Ctrl+B elsewhere. */
 export const keysText = (keys: string) => (mac ? keys.replace('Mod+', '⌘').replace('Shift+', '⇧').replace('Alt+', '⌥') : keys.replace('Mod+', 'Ctrl+'));
 
-const tip = (o: BtnOpts) => (o.keys ? `${o.label} (${keysText(o.keys)})` : o.label);
+const tip = (o: BtnOpts) => (o.keys ? `${o.hint ?? o.label} (${keysText(o.keys)})` : (o.hint ?? o.label));
 
-/** A button with its words on it, and an icon before them if it has one. */
+/** A button with its words on it (two at most, so the bar never wraps them; `hint` says the rest), and an icon before them if it has one. */
 export const btn = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
+  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys || o.hint ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
 
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>

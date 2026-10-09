@@ -37,15 +37,15 @@ afterEach(() => history.replaceState(null, '', location.pathname));
 
 test('the home page lists the apps as tiles, each with its templates', async () => {
   const shell = await mount('');
-  const tile = shell.querySelector('.to-tile')!;
+  const tile = shell.querySelector('.to-app')!;
   expect(tile.querySelector('b')!.textContent).toBe('Word Processor');
-  expect(tile.querySelector<HTMLAnchorElement>('.to-tile-open')!.getAttribute('href')).toBe('#/v1/write');
+  expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v1/write');
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
   // The button is the affordance alone, to the right of the name: no "Blank" written on every tile.
   expect(picker.textContent!.trim()).toBe('');
   expect(picker.getAttribute('aria-label')).toBe('Templates for Word Processor');
-  expect(tile.querySelector('.to-tile-head')!.contains(picker)).toBe(true);
-  expect(picker.getBoundingClientRect().left).toBeGreaterThan(tile.querySelector('.to-tile-open')!.getBoundingClientRect().right - 1);
+  expect(tile.querySelector('.to-app-head')!.contains(picker)).toBe(true);
+  expect(picker.getBoundingClientRect().left).toBeGreaterThan(tile.querySelector('.to-app-open')!.getBoundingClientRect().right - 1);
   picker.click();
   await until(() => !!tile.querySelector('[role=option] svg'));
   const options = [...tile.querySelectorAll('[role=option]')];
@@ -60,15 +60,15 @@ test('the home page lists the apps as tiles, each with its templates', async () 
 test('the home page has no copy: every app, in order, its icon, its name and its templates; no lede, no blurbs, no headings but the hidden one', async () => {
   const shell = await mount('');
   const h1 = shell.querySelector('to-home h1')!;
-  expect(h1.textContent).toBe('TinyLittleOffice');
+  expect(h1.textContent).toBe('Tiny Little Office');
   expect(h1.classList.contains('sr-only')).toBe(true);
-  expect(shell.querySelector('to-home p, to-home h2, .to-tile-open small')).toBeNull();
+  expect(shell.querySelector('to-home p, to-home h2, .to-app-open small')).toBeNull();
   for (const a of apps()) expect(shell.textContent).not.toContain(a.blurb);
-  const tiles = [...shell.querySelectorAll('.to-tile')];
-  expect(tiles.map((t) => t.querySelector('.to-tile-open b')!.textContent)).toEqual(apps().map((a) => a.name));
+  const tiles = [...shell.querySelectorAll('.to-app')];
+  expect(tiles.map((t) => t.querySelector('.to-app-open b')!.textContent)).toEqual(apps().map((a) => a.name));
   for (const tile of tiles) {
-    expect(tile.querySelector('.to-tile-open svg')!.getAttribute('width')).toBe('20');
-    expect(tile.querySelector('.to-tile-open')!.textContent!.trim()).toBe(tile.querySelector('b')!.textContent);
+    expect(tile.querySelector('.to-app-open svg')!.getAttribute('width')).toBe('20');
+    expect(tile.querySelector('.to-app-open')!.textContent!.trim()).toBe(tile.querySelector('b')!.textContent);
     expect(tile.querySelector('to-templates .to-templates-btn')).not.toBeNull();
   }
 });
@@ -97,7 +97,7 @@ test('under Saved a document typed in Write is kept, listed under Write, opened 
     expect(history.state).toEqual({ kept: first.id });
     // The home page lists it under Write, with its time.
     shell = await mount('');
-    const write = shell.querySelector('.to-tile')!;
+    const write = shell.querySelector('.to-app')!;
     const rows = write.querySelectorAll('.to-drive li');
     expect(rows).toHaveLength(1);
     expect(rows[0].querySelector('.to-drive-open span')!.textContent).toBe('Launch notes');
@@ -124,7 +124,7 @@ test('more than five documents under an app: five, then "n more" unfolds the res
   saved(async () => {
     for (let i = 0; i < 8; i++) keep({ id: `d${i}`, app: 'write', title: i ? `Doc ${i}` : '', hash: `#/v1/write/y${i}`, at: Date.now() - i * 3600e3 });
     const shell = await mount('');
-    const write = shell.querySelector('.to-tile')!;
+    const write = shell.querySelector('.to-app')!;
     expect([...write.querySelectorAll('.to-drive-open span')].map((s) => s.textContent)).toEqual(['Untitled', 'Doc 1', 'Doc 2', 'Doc 3', 'Doc 4']);
     expect(write.querySelectorAll('.to-drive-open small')[2].textContent).toBe('2 hours ago');
     const more = write.querySelector<HTMLButtonElement>('.to-drive-more')!;
@@ -143,9 +143,9 @@ test('at 390px: one column, nothing wider than the screen, every tap target 44px
       const shell = await mount('');
       await tick(50);
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
-      const lefts = new Set([...shell.querySelectorAll('.to-tile')].map((t) => Math.round(t.getBoundingClientRect().left)));
+      const lefts = new Set([...shell.querySelectorAll('.to-app')].map((t) => Math.round(t.getBoundingClientRect().left)));
       expect(lefts.size).toBe(1);
-      for (const el of shell.querySelectorAll<HTMLElement>('.to-tile-open, .to-templates-btn, .to-drive-open, .to-drive button')) {
+      for (const el of shell.querySelectorAll<HTMLElement>('.to-app-open, .to-templates-btn, .to-drive-open, .to-drive button')) {
         const r = el.getBoundingClientRect();
         expect(r.height).toBeGreaterThanOrEqual(44);
         expect(r.right).toBeLessThanOrEqual(390);
@@ -160,7 +160,7 @@ test('a link opens its app, and every edit goes into the link', async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   // A document with no name is called by its app's noun, not the app's name.
-  expect(document.title).toBe('Untitled document · TinyLittleOffice');
+  expect(document.title).toBe('Untitled document · Tiny Little Office');
   expect(shell.querySelector<HTMLInputElement>('.to-title')!.placeholder).toBe('Untitled document');
   expect(shell.querySelector('.to-here')!.getAttribute('aria-label')).toBe('New document');
   const text = shell.querySelector<ToText>('to-text')!;
@@ -180,7 +180,7 @@ test('a link opens its app, and every edit goes into the link', async () => {
   title.dispatchEvent(new Event('change', { bubbles: true }));
   await shell.updateComplete;
   expect(decodeDoc(location.hash.split('/')[3])).toBe('---\ntitle: A note\n---\nHello, link.\n');
-  expect(document.title).toBe('A note · TinyLittleOffice');
+  expect(document.title).toBe('A note · Tiny Little Office');
   // The same link, opened again, is the same document.
   const again = await mount(location.hash);
   await until(() => !!again.querySelector('to-text .tx p'));

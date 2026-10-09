@@ -8,7 +8,7 @@
 import { svg, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import {
-  AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Calendar, Check, ChevronDown, Copy, Download, ExternalLink, FilePlus2,
+  AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Calendar, Check, ChevronDown, Copy, Download, ExternalLink, Eye, FilePlus2,
   FileText, Folder, Globe, HardDrive, Heading1, Heading2, Highlighter, Image, IndentDecrease, IndentIncrease, Info, Italic,
   Languages, LayoutGrid, Link, List, ListOrdered, Menu, Moon, Pencil, Plus, Printer, QrCode, Redo2, Search, Share2, ShieldCheck,
   Smile, Strikethrough, Sun, SunMoon, Superscript, Table2, Trash2, Underline, Undo2, Unlink, X,
@@ -26,7 +26,7 @@ export type { IconNode };
 
 export const UI = {
   alignCenter: AlignCenter, alignJustify: AlignJustify, alignLeft: AlignLeft, alignRight: AlignRight, bold: Bold, calendar: Calendar, check: Check,
-  down: ChevronDown, copy: Copy, download: Download, open: ExternalLink, insert: FilePlus2, text: FileText, folder: Folder, globe: Globe,
+  down: ChevronDown, copy: Copy, download: Download, open: ExternalLink, view: Eye, insert: FilePlus2, text: FileText, folder: Folder, globe: Globe,
   offline: HardDrive, heading1: Heading1, heading: Heading2, highlight: Highlighter, image: Image, outdent: IndentDecrease, indent: IndentIncrease,
   info: Info, italic: Italic, language: Languages, home: LayoutGrid, link: Link, list: List, listOrdered: ListOrdered, menu: Menu, moon: Moon,
   pen: Pencil, plus: Plus, print: Printer, qr: QrCode, redo: Redo2, search: Search, share: Share2, shield: ShieldCheck, icon: Smile,

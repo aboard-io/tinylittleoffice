@@ -360,7 +360,7 @@ test('Insert puts a document under the chosen item; a web address becomes a card
   expect(el.querySelector('.ol-page svg')!.outerHTML).toContain('Pricing');
 });
 
-test('loose words arriving are made an outline with one undoable splice; a pasted TinyLittleOffice link becomes that document', async () => {
+test('loose words arriving are made an outline with one undoable splice; a pasted Tiny Little Office link becomes that document', async () => {
   const { el, last } = await editor('# Plan\n\nFirst\nSecond\n');
   expect(last()).toBe('- Plan\n  - First\n  - Second\n');
   expect(rows(el)).toEqual([0, 1, 2]);

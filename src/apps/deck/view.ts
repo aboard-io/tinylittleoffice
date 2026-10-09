@@ -781,7 +781,7 @@ export function deckToHtml(text: string, title: string, link = ''): string {
 <title>${xml(title)}</title>
 <meta name="generator" content="TinyLittleOffice">
 <meta property="og:title" content="${xml(title)}">
-<meta name="description" content="${xml(slides.flatMap(slideText).join(' · ').slice(0, 200))}">${link ? `\n<link rel="alternate" href="${xml(link)}" title="Open in TinyLittleOffice">` : ''}
+<meta name="description" content="${xml(slides.flatMap(slideText).join(' · ').slice(0, 200))}">${link ? `\n<link rel="alternate" href="${xml(link)}" title="Open in Tiny Little Office">` : ''}
 <style>
 html,body{height:100%;margin:0}body{display:grid;grid-template-rows:1fr auto;background:#18181b;color:#fafafa;font:15px/1.4 ${FONT};-webkit-tap-highlight-color:transparent;user-select:none}
 main{position:relative;display:grid;place-items:center;min-height:0;padding:12px;overflow:hidden}
@@ -806,7 +806,7 @@ footer{text-align:center;padding:0 12px 10px;font-size:13px}footer a{color:#a5b4
 <main id="pages" aria-live="polite">
 ${pages.map((p, i) => `<section${i ? '' : ' class="on"'} aria-label="${xml(name(i))}">${pageSvg(p, `role="img" aria-label="${xml(p.alt || name(i))}"`)}</section>`).join('\n')}
 </main>
-<nav aria-label="${xml(t('Pages'))}"><button id="back">${xml(t('Back'))}</button><span id="where"></span><button id="next">${xml(t('Next'))}</button></nav>${link ? `\n<footer><a href="${xml(link)}">${xml(t('Open in TinyLittleOffice'))}</a></footer>` : ''}
+<nav aria-label="${xml(t('Pages'))}"><button id="back">${xml(t('Back'))}</button><span id="where"></span><button id="next">${xml(t('Next'))}</button></nav>${link ? `\n<footer><a href="${xml(link)}">${xml(t('Open in Tiny Little Office'))}</a></footer>` : ''}
 ${PLAYER}
 </body>
 </html>

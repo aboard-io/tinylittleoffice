@@ -1,5 +1,5 @@
 // The clipboard without a browser: copy writes TLO and marked HTML; paste picks its route (our own HTML, a
-// TinyLittleOffice link, a web address, pasted Markdown, plain words) and fits what it finds to the editor's shape.
+// Tiny Little Office link, a web address, pasted Markdown, plain words) and fits what it finds to the editor's shape.
 // (htmlToBlocks needs a DOM parser; it is tested in test/browser/text.test.ts.)
 import { expect, test } from 'vitest';
 import { parse } from '../src/doc/index.ts';
@@ -28,7 +28,7 @@ test('docToHtml: lists nest by depth, chips and links and pictures come through'
   expect(runsToHtml([{ t: 'a<b', b: true, i: true, u: true, s: true, h: true }, { t: 'x\ny' }])).toBe('<b><i><u><s><mark>a&lt;b</mark></s></u></i></b>x<br>y');
 });
 
-test('paste, in order: our HTML → the TLO; a TinyLittleOffice link → a fence; an address → a card; lines → TLO; words → words', () => {
+test('paste, in order: our HTML → the TLO; a Tiny Little Office link → a fence; an address → a card; lines → TLO; words → words', () => {
   const own = pasteFrom({ text: '# T\n\n- i\n', html: '<meta name="generator" content="TinyLittleOffice"><h1>T</h1>' }, 'doc');
   expect(own).toEqual({ blocks: parse('# T\n\n- i\n').blocks });
   const link = `https://tinylittleoffice.com/#/v1/sheet/${encodeDoc('A | B\n--- | ---\n1 | 2\n')}`;

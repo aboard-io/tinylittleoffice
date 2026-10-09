@@ -14,7 +14,7 @@ test('deck: on a phone, typing a slide neither scrolls the page nor moves the ba
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => m.type() === 'error' && !/interactive-widget/.test(m.text()) && errors.push(m.text()));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto('/#/v1/deck');
   const title = page.locator('to-deck-editor to-text.deck-title .tx');
   await expect(title).toBeVisible();

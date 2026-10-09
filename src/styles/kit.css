@@ -115,6 +115,11 @@
   to-bar > * {
     flex: none;
   }
+  /* A label in the bar is one line, always (round four: "The menu bars often wrap individual lines"). */
+  to-bar .to-btn,
+  to-bar .to-btn > span {
+    white-space: nowrap;
+  }
   /* dateNav(): back, what is on view, on, Today. */
   .to-datenav {
     display: flex;
@@ -715,6 +720,31 @@
   .to-find {
     margin-bottom: 8px;
   }
+  .to-drawer-apps .to-app-open {
+    flex: 1;
+  }
+  .to-found-words {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .to-found-words > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .to-found-words small {
+    color: var(--to-ink-3);
+    font-size: 13px;
+  }
+  .to-drawer-head3 {
+    margin: 8px 10px 2px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--to-ink-3);
+  }
   .to-drawer-section {
     display: flex;
     flex-direction: column;
@@ -901,66 +931,115 @@
     color: var(--to-ink-2);
   }
 
-  /* ---- home: the apps, each its templates and the documents kept here ---- */
-  .to-tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 10px;
-    align-items: start;
+  /* ---- the Display Link: the pages one under another, the title and Edit above them ---- */
+  .to-display-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: var(--to-max-w);
+    margin: 0 auto;
+    padding: 8px var(--to-gutter);
+    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
   }
-  .to-tile {
+  .to-display-title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .to-display {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: var(--to-max-w);
+    margin: 0 auto;
+    padding: 0 var(--to-gutter) var(--to-gutter);
+    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
+  }
+  .to-display-page svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--to-border);
+    border-radius: 3px;
+    box-shadow: var(--to-shadow);
+  }
+  @media print {
+    .to-display-head {
+      display: none;
+    }
+    .to-display {
+      padding: 0;
+      gap: 0;
+    }
+    .to-display-page {
+      break-after: page;
+    }
+    .to-display-page svg {
+      border: 0;
+      box-shadow: none;
+    }
+  }
+
+  /* ---- home: the apps as rows the page's width, each its templates and the documents kept here; one shape at every width ---- */
+  .to-apps {
+    display: flex;
+    flex-direction: column;
+  }
+  .to-app {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
-    box-shadow: var(--to-shadow);
+    border-bottom: 1px solid var(--to-border);
   }
-  /* The tile's one row: the app (icon and name) and, to its right, the templates button. */
-  .to-tile-head {
+  /* The row: the app (icon and name) and, at the right, the templates button. */
+  .to-app-head {
     display: flex;
     align-items: stretch;
   }
-  .to-tile-open {
+  .to-app-open {
     display: flex;
     flex: 1;
     min-width: 0;
     align-items: center;
     gap: 10px;
     min-height: var(--to-touch);
-    padding: 0 12px;
+    padding: 0 8px;
     color: var(--to-ink);
     text-decoration: none;
-    border-radius: var(--to-radius) 0 0 var(--to-radius);
+    border-radius: var(--to-radius-sm);
   }
-  .to-tile-open:hover {
+  .to-app-open:hover {
     background: var(--to-surface-2);
   }
-  .to-tile-open .to-icon {
+  .to-app-open .to-icon {
     color: var(--to-accent);
   }
-  .to-tile-open b {
+  .to-app-open b {
     font-size: 16px;
   }
-  .to-tile to-templates {
+  .to-app to-templates {
     display: flex;
-    border-left: 1px solid var(--to-border);
   }
   .to-templates-btn {
     width: auto;
     padding: 0 10px;
     gap: 2px;
     border: 0;
-    border-radius: 0 var(--to-radius) var(--to-radius) 0;
+    border-radius: var(--to-radius-sm);
     background: transparent;
     color: var(--to-ink-2);
   }
   .to-drive {
     list-style: none;
-    margin: 0;
-    padding: 0;
-    border-top: 1px solid var(--to-border);
+    margin: 0 0 6px;
+    padding: 0 0 0 38px;
   }
   .to-drive li {
     display: flex;
@@ -973,9 +1052,10 @@
     flex-direction: column;
     justify-content: center;
     min-height: var(--to-touch);
-    padding: 4px 0 4px 12px;
+    padding: 4px 0 4px 8px;
     color: var(--to-ink);
     text-decoration: none;
+    border-radius: var(--to-radius-sm);
   }
   .to-drive-open:hover {
     background: var(--to-surface-2);
@@ -996,9 +1076,9 @@
     color: var(--to-ink-3);
   }
   .to-drive-more {
+    align-self: flex-start;
+    margin: 0 0 6px 38px;
     border: 0;
-    border-top: 1px solid var(--to-border);
-    border-radius: 0 0 var(--to-radius) var(--to-radius);
     background: transparent;
     font-weight: 400;
     color: var(--to-ink-2);

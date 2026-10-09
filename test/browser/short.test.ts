@@ -22,10 +22,10 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(shell.link).not.toContain('?');
   expect(shell.link.endsWith(`#/v1/write/${encodeDoc('Hello')}`)).toBe(true);
   // Nothing changed yet: extend and forget are offered, an update is not.
-  expect(labels(shell)).toContain('Extend the short link…');
-  expect(labels(shell)).toContain('Forget this link');
-  expect(labels(shell)).not.toContain('Update the short link');
-  expect(labels(shell)).not.toContain('Shorter link that expires…');
+  expect(labels(shell)).toContain('Extend…');
+  expect(labels(shell)).toContain('Forget');
+  expect(labels(shell)).not.toContain('Update');
+  expect(labels(shell)).not.toContain('Short link…');
 
   // An edit: the address keeps the owner's query, the shared link still has none, and Update appears.
   const text = shell.querySelector<ToText>('to-text')!;
@@ -39,7 +39,7 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(location.hash).toContain(OWNED);
   expect(location.hash.startsWith(`#/v1/write/${again}?`)).toBe(true);
   expect(shell.link).toBe(`${location.origin}${location.pathname}#/v1/write/${again}`);
-  expect(labels(shell)).toContain('Update the short link');
+  expect(labels(shell)).toContain('Update');
 
   // One tap: a PUT with the new ciphertext and o, answered with the version; the toast says so.
   const sent: { url: string; method: string; body: Record<string, unknown> }[] = [];
@@ -47,7 +47,7 @@ test('opened from an owner link, the document can update its short link; the sha
     sent.push({ url, method: init?.method ?? 'GET', body: JSON.parse(String(init?.body)) });
     return new Response(JSON.stringify({ id: 'abcdefg', exp: Date.now() + 86_400_000, ver: 3, updated: Date.now() }), { status: 200, headers: { 'content-type': 'application/json' } });
   });
-  shell.querySelector<ToMenu>('to-menu.to-share')!.items.find((i) => i.label === 'Update the short link')!.does();
+  shell.querySelector<ToMenu>('to-menu.to-share')!.items.find((i) => i.label === 'Update')!.does();
   await until(() => document.querySelector('[role=status]')!.textContent === 'Updated · version 3');
   expect(sent.length).toBe(1);
   expect(sent[0].method).toBe('PUT');
@@ -56,10 +56,10 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(sent[0].body.ttl).toBeUndefined();
   expect(typeof sent[0].body.c).toBe('string');
   expect(JSON.stringify(sent[0].body)).not.toContain('Hello'); // ciphertext, not the link
-  await until(() => !labels(shell).includes('Update the short link'));
+  await until(() => !labels(shell).includes('Update'));
 
   // The owner's panel: the public link shown, Extend sends a lifetime, Forget asks first.
-  shell.querySelector<ToMenu>('to-menu.to-share')!.items.find((i) => i.label === 'Extend the short link…')!.does();
+  shell.querySelector<ToMenu>('to-menu.to-share')!.items.find((i) => i.label === 'Extend…')!.does();
   const dialog = shell.querySelector<ToDialog>('to-dialog.to-short')!;
   await until(() => dialog.dialog.open);
   expect(dialog.querySelector('.to-short-link')!.textContent).toBe(`https://tinier.tinylittleoffice.com/abcdefg#${'K'.repeat(43)}`);
@@ -88,7 +88,7 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(sent[2].method).toBe('DELETE');
   expect(sent[2].body).toEqual({ o: 'O'.repeat(43) });
   expect(location.hash).toBe(`#/v1/write/${again}`);
-  await until(() => labels(shell).includes('Shorter link that expires…'));
+  await until(() => labels(shell).includes('Short link…'));
 });
 
 test('a short link made here comes as two links, and the document owns it from then on', async () => {
@@ -101,7 +101,7 @@ test('a short link made here comes as two links, and the document owns it from t
     expect(body.ttl).toBe(86400);
     return new Response(JSON.stringify({ id: 'qrstuvw', exp: Date.now() + 86_400_000 }), { status: 201, headers: { 'content-type': 'application/json' } });
   });
-  shell.querySelector<ToMenu>('to-menu.to-share')!.items.find((i) => i.label === 'Shorter link that expires…')!.does();
+  shell.querySelector<ToMenu>('to-menu.to-share')!.items.find((i) => i.label === 'Short link…')!.does();
   const dialog = shell.querySelector<ToDialog>('to-dialog.to-short')!;
   await until(() => dialog.dialog.open);
   dialog.querySelector<HTMLButtonElement>('.to-btn.primary')!.click();
@@ -118,5 +118,5 @@ test('a short link made here comes as two links, and the document owns it from t
   expect(shell.link).not.toContain('?');
   dialog.close();
   await until(() => !dialog.dialog.open);
-  expect(labels(shell)).toContain('Extend the short link…');
+  expect(labels(shell)).toContain('Extend…');
 });

@@ -1,9 +1,13 @@
 /**
- * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side. Find an
- * app; Private or Saved; Keep the app on this device; Language; Theme; About.
+ * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side. Find an app, a
+ * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
+ * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
+ * Theme; About. Anything that opens a document closes the drawer (it follows the hash).
  */
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { apps } from './apps.ts';
+import { templateHash } from './home.ts';
+import { library } from './library.ts';
 import { icon, UI } from './icons.ts';
 import { routeHash } from './route.ts';
 import { chosenLanguage, languageName, languages, onLanguage, setLanguage, t } from './i18n.ts';
@@ -31,7 +35,9 @@ export class ToDrawer extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     const redraw = () => this.requestUpdate();
-    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw)];
+    const away = () => this.close();
+    window.addEventListener('hashchange', away);
+    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw), () => window.removeEventListener('hashchange', away)];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -62,21 +68,44 @@ export class ToDrawer extends LitElement {
     toast(keeping() ? t('Saved on this device from now on') : t('Private: nothing saved'));
   }
 
+  /** What Find finds: apps (by name and blurb), templates (by name, blurb and app), kept documents (by title), each under its heading. */
+  private renderFound(want: string, kept: ReturnType<typeof library>): TemplateResult {
+    const has = (...words: string[]) => words.some((w) => w.toLowerCase().includes(want));
+    const all = apps();
+    const found = all.filter((a) => has(a.name, a.blurb));
+    const templates = all.flatMap((a) => a.templates.filter((tpl) => has(tpl.name, tpl.blurb, a.name)).map((tpl) => ({ a, tpl })));
+    const docs = kept.filter((k) => has(k.title)).flatMap((k) => all.filter((a) => a.id === k.app).map((a) => ({ a, k })));
+    if (!found.length && !templates.length && !docs.length) return html`<p class="to-hint">${t('Nothing by that name')}</p>`;
+    const group = (heading: string, rows: TemplateResult[]) => (rows.length ? html`<h3 class="to-drawer-head3">${heading}</h3>${rows}` : nothing);
+    const row = (href: string, ico: Parameters<typeof icon>[0], name: string, sub = '') => html`<a class="to-found" href=${href} @click=${() => this.close()}>${icon(ico, 20)}<span class="to-found-words"><span>${name}</span>${sub ? html`<small>${sub}</small>` : nothing}</span></a>`;
+    return html`${group(t('Apps'), found.map((a) => row(routeHash(a.id), a.icon, a.name)))}
+      ${group(t('Templates'), templates.map(({ a, tpl }) => row(templateHash(a, tpl), a.icon, tpl.name, a.name)))}
+      ${group(t('Documents'), docs.map(({ a, k }) => row(k.hash, a.icon, k.title || t('Untitled'), a.name)))}`;
+  }
+
   render() {
     const want = this.find.trim().toLowerCase();
-    const found = apps().filter((a) => !want || a.name.toLowerCase().includes(want) || a.blurb.toLowerCase().includes(want));
+    const kept = library();
+    const placeholder = kept.length ? t('Find app, template, or doc') : t('Find app, template');
     const offline = offlineState();
     const chosen = chosenLanguage() ?? '';
-    return html`<dialog class="to-drawer" aria-label="TinyLittleOffice" @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
+    return html`<dialog class="to-drawer" aria-label="Tiny Little Office" @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-drawer-inner">
         <header class="to-drawer-head">
-          <a class="to-brand" href="#/" @click=${() => this.close()}>TinyLittleOffice</a>
+          <a class="to-brand" href="#/" @click=${() => this.close()}>Tiny Little Office</a>
           <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button>
         </header>
         ${this.open
           ? html`<nav class="to-drawer-apps" aria-label=${t('Apps')}>
-                <input class="to-find" type="search" placeholder=${t('Find an app')} aria-label=${t('Find an app')} autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.querySelector<HTMLElement>('.to-drawer-apps a')?.click()} />
-                ${found.length ? found.map((a) => html`<a href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>`) : html`<p class="to-hint">${t('No app by that name')}</p>`}
+                <input class="to-find" type="search" placeholder=${placeholder} aria-label=${placeholder} autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-drawer-apps a')?.click())} />
+                ${want
+                  ? this.renderFound(want, kept)
+                  : apps().map(
+                      (a) => html`<div class="to-app-head">
+                        <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>
+                        <to-templates .app=${a}></to-templates>
+                      </div>`,
+                    )}
               </nav>
               <section class="to-drawer-section">
                 <label class="to-switch">
@@ -105,7 +134,7 @@ export class ToDrawer extends LitElement {
           : nothing}
       </div>
     </dialog>
-    <to-dialog heading=${t('About TinyLittleOffice')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p>`}></to-dialog>`;
+    <to-dialog heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);

@@ -354,7 +354,7 @@ test('pixel mode has no contextual bar', async () => {
   const { el } = await editor(DRAWING);
   await tap(el, 96, 80);
   await until(() => ctxOpen(el));
-  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8 by 8');
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8×8');
   await el.updateComplete;
   expect(ctxOpen(el)).toBe(false);
 });
@@ -382,7 +382,7 @@ test('Insert places a shape in the middle; the alt dialog asks until written and
 
 test('pixel mode: the menu sets the grid, taps paint squares, fill floods, Use as background writes the tile and goes back to shapes', async () => {
   const { el, last } = await editor();
-  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8 by 8');
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8×8');
   expect(last()).toBe('---\ngrid: 8\n---\n');
   const grid = el.querySelector<SVGSVGElement>('svg.draw-pixels')!;
   const b = grid.getBoundingClientRect();
@@ -419,7 +419,7 @@ test('pixel mode: the menu sets the grid, taps paint squares, fill floods, Use a
   el.querySelector<HTMLButtonElement>('.draw-bar button:has(> span.to-swatch)')!.click();
   await el.updateComplete;
   expect(last()).toBe(n);
-  byWords(el, 'Use as background').click();
+  byWords(el, 'Background').click();
   await el.updateComplete;
   const doc = last()!;
   expect(doc.startsWith('---\ntile: 8:ccgggggg/cggggggg/gggggggg/gggggggg/gggggggg/gggggggg/gggggggg/gggggggg\n---\n')).toBe(true);
@@ -453,7 +453,7 @@ test('at phone width: the bar is one row of 44px buttons, the words typed on a s
     const ctxRect = el.querySelector('.draw-context .to-context')!.getBoundingClientRect();
     expect(ctxRect.left).toBeGreaterThanOrEqual(0);
     expect(ctxRect.right).toBeLessThanOrEqual(390);
-    await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '16 by 16');
+    await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '16×16');
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     expect(el.querySelector<HTMLElement>('to-bar')!.offsetHeight).toBeLessThanOrEqual(56);
   } finally {
@@ -505,7 +505,7 @@ test('§1 Undo/Redo: the last two tools of both bars, off with nothing to undo, 
   tools()[1].click();
   await el.updateComplete;
   expect(last()).not.toContain('Browser');
-  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8 by 8');
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8×8');
   expect(tools().map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
 });
 
@@ -601,7 +601,7 @@ test('§1 the canvas\'s keys never act from a bar button: Enter presses the butt
   expect(button(el, 'Select').getAttribute('aria-pressed')).toBe('true');
   await press(el, 'Delete', {}, zoom);
   expect(last()).toBeUndefined();
-  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8 by 8');
+  await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '8×8');
   const n = last();
   const pencil = button(el, 'Pencil');
   pencil.focus();

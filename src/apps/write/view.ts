@@ -443,7 +443,7 @@ export function docToHtml(doc: Doc, ctx: ExportContext): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${xml(title)}</title>
 <meta name="generator" content="TinyLittleOffice">
-<meta property="og:title" content="${xml(title)}">${ctx.link ? `\n<link rel="alternate" href="${xml(ctx.link)}" title="Open in TinyLittleOffice">` : ''}
+<meta property="og:title" content="${xml(title)}">${ctx.link ? `\n<link rel="alternate" href="${xml(ctx.link)}" title="Open in Tiny Little Office">` : ''}
 <style>
 @page{size:${paper.w === 816 ? 'letter' : 'A4'};margin:${paper.w === 816 ? '1in' : '25mm'}}
 body{font:16px/1.6 ${FONT};color:${INK};max-width:${paper.w - 2 * paper.m}px;margin:2em auto;padding:0 1em}
@@ -462,7 +462,7 @@ footer{margin-top:3em;color:${MUTED};font-size:.85em}
 <body>
 <main>
 ${bodyHtml(doc, siteOf(ctx.link))}
-</main>${ctx.link ? `\n<footer><p><a href="${xml(ctx.link)}">Open in TinyLittleOffice</a></p></footer>` : ''}
+</main>${ctx.link ? `\n<footer><p><a href="${xml(ctx.link)}">Open in Tiny Little Office</a></p></footer>` : ''}
 </body>
 </html>
 `;

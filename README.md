@@ -1,4 +1,4 @@
-# TinyLittleOffice
+# Tiny Little Office
 
 A tiny office suite that lives entirely in the URL. Every document is one text, written in TLO (Markdown
 with a few additions), compressed into the part of the address after `#`, which no server ever sees. Copy

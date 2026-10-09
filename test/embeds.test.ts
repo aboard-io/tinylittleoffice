@@ -1,5 +1,5 @@
 // A web address as a thing from the web (kit/embeds.ts): which provider, what to load, what the card says; an
-// ordinary link and a TinyLittleOffice link are nothing of the kind.
+// ordinary link and a Tiny Little Office link are nothing of the kind.
 import { expect, test } from 'vitest';
 import { embedCaption, embedOf, withAccount } from '../src/kit/embeds.ts';
 

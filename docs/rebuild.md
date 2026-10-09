@@ -1,6 +1,6 @@
 # The rebuild
 
-Decided 2026-10-09, before launch: rebuild TinyLittleOffice to the shape below. Greenfield (Paul: "It's okay to
+Decided 2026-10-09, before launch: rebuild Tiny Little Office to the shape below. Greenfield (Paul: "It's okay to
 greenfield this it has no users yet"): a fresh tree on the orphan branch `next` (worktree
 `~/workspace/tinyoffice-next`), which becomes `main` when it is whole; the old tree is tagged `v0-before-rebuild`
 and stays readable at `~/workspace/tinyoffice` for porting. Pure modules worth keeping are ported (the TLO grammar

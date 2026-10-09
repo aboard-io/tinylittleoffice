@@ -257,7 +257,7 @@ test('the web page plays the deck: a section a slide, the transition on the body
   expect(html).toContain('<body class="slide">');
   expect(html).toContain('aria-label="Slide 1"');
   expect(html).toContain('aria-label="A QR code of this deck"');
-  expect(html).toContain('Open in TinyLittleOffice');
+  expect(html).toContain('Open in Tiny Little Office');
   expect(html.match(/<script>/g)).toHaveLength(1);
   // A zine reads a page at a time, its pages named.
   const zine = deckToHtml(tpl('zine'), 'Small Joys');

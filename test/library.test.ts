@@ -106,3 +106,17 @@ test('when, as people say it', () => {
   expect(ago(now - 10e3, 'en', now)).toBe('now');
   expect(ago(Date.UTC(2026, 7, 1, 12), 'en', now)).toBe('Aug 1');
 });
+
+test('a new document is numbered by the first number its name for the day leaves free', async () => {
+  const { firstFree, localDay } = await import('../src/kit/library.ts');
+  expect(localDay(new Date(2026, 9, 9, 23, 59))).toBe('2026-10-09');
+  expect(localDay(new Date(2027, 0, 1, 0, 0))).toBe('2027-01-01');
+  const name = 'New Spreadsheet 2026-10-09 #{n}';
+  expect(firstFree([], name)).toBe(1);
+  expect(firstFree(['New Spreadsheet 2026-10-09 #1', 'Budget'], name)).toBe(2);
+  expect(firstFree(['New Spreadsheet 2026-10-09 #1', 'New Spreadsheet 2026-10-09 #3'], name)).toBe(2);
+  // Another day, another app, a renamed one, or words after the number: not taken.
+  expect(firstFree(['New Spreadsheet 2026-10-08 #1', 'New Drawing 2026-10-09 #1', 'New Spreadsheet 2026-10-09 #1 (copy)', 'New Spreadsheet 2026-10-09 #'], name)).toBe(1);
+  // The number may sit anywhere in a language's own order.
+  expect(firstFree(['Nº 1 · Hoja nueva', 'Nº 2 · Hoja nueva'], 'Nº {n} · Hoja nueva')).toBe(3);
+});

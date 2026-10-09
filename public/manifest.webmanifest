@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "TinyLittleOffice",
+  "name": "Tiny Little Office",
   "lang": "en",
-  "short_name": "TinyLittleOffice",
+  "short_name": "Tiny Little Office",
   "description": "A tiny office suite that lives entirely in the URL.",
   "start_url": "./",
   "scope": "./",

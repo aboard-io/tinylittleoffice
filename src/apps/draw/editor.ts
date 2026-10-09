@@ -7,7 +7,7 @@
  * chooses every shape inside its box. The clipboard carries shapes as a drawing of their own (TLO and our HTML).
  * Every change is operations on the document's table (model.ts).
  * In pixel mode (the Shapes/Pixels menu) the canvas is a grid of squares, painted with a pencil or a fill in
- * one of eight inks, and "Use as background" makes the grid the drawing's repeating tile.
+ * one of eight inks, and Background makes the grid the drawing's repeating tile.
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -1007,7 +1007,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const grid = this.view.grid;
     return [
       { label: t('Shapes'), icon: Shapes, checked: !grid, does: () => this.edit(setGrid(this.doc, 0)) },
-      ...TILE_SIDES.map((n) => ({ label: t('Pixels, {n} by {n}', { n }), icon: Grid2x2, checked: grid === n, does: () => this.edit(setGrid(this.doc, n)) })),
+      ...TILE_SIDES.map((n) => ({ label: t('Pixels {n}×{n}', { n }), icon: Grid2x2, checked: grid === n, does: () => this.edit(setGrid(this.doc, n)) })),
       ...(this.view.tile && !grid ? [{ group: t('Background'), label: t('Remove the background tile'), icon: Trash2, does: () => this.edit(setTile(this.doc, '')) }] : []),
     ];
   }
@@ -1118,7 +1118,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   private renderBar() {
     const v = this.view;
     const s = this.selected;
-    const label = v.grid ? t('Pixels, {n} by {n}', { n: v.grid }) : t('Shapes');
+    const label = v.grid ? t('Pixels {n}×{n}', { n: v.grid }) : t('Shapes');
     return html`<to-bar class="draw-bar">
       <to-insert .items=${this.inserts()}></to-insert>
       <to-menu class="draw-mode" .label=${label} .icon=${v.grid ? Grid2x2 : Shapes} caret .items=${this.modeItems()}></to-menu>
@@ -1135,13 +1135,13 @@ export class ToDrawEditor extends DocElement<DrawView> {
   private renderPixelBar() {
     const v = this.view;
     return html`<to-bar class="draw-bar">
-      <to-menu class="draw-mode" .label=${t('Pixels, {n} by {n}', { n: v.grid })} .icon=${Grid2x2} caret .items=${this.modeItems()}></to-menu>
+      <to-menu class="draw-mode" .label=${t('Pixels {n}×{n}', { n: v.grid })} .icon=${Grid2x2} caret .items=${this.modeItems()}></to-menu>
       ${PIXEL_INKS.map((ink) => html`<button type="button" class="to-btn to-tool draw-swatch" aria-label=${ink.name()} title=${ink.name()} aria-pressed=${String(this.ink === ink.k)} @click=${() => (this.ink = ink.k)}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`)}
       ${tool({ label: t('Eraser'), icon: Eraser, pressed: this.ink === '.', does: () => (this.ink = '.') })}
       ${tool({ label: t('Pencil'), icon: Pencil, pressed: this.pmode === 'pen', does: () => ((this.pmode = 'pen'), this.ink === '.' && (this.ink = 'a')) })}
       ${tool({ label: t('Fill'), icon: PaintBucket, pressed: this.pmode === 'fill', does: () => ((this.pmode = 'fill'), this.ink === '.' && (this.ink = 'a')) })}
       ${tool({ label: t('Clear the grid'), icon: Trash2, disabled: !tileFilled(v.pixels), does: () => this.clearPixels() })}
-      ${btn({ label: t('Use as background'), icon: Wallpaper, disabled: !tileFilled(v.pixels), does: () => this.useAsBackground() })}
+      ${btn({ label: t('Background'), hint: t('Use as background'), icon: Wallpaper, disabled: !tileFilled(v.pixels), does: () => this.useAsBackground() })}
       ${this.undoTools()}
     </to-bar>`;
   }

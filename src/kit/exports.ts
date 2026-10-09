@@ -81,14 +81,14 @@ export function htmlOf(pages: Page[], title: string, link = ''): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${xml(title)}</title>
 <meta name="generator" content="TinyLittleOffice">
-<meta property="og:title" content="${xml(title)}">${link ? `\n<link rel="alternate" href="${xml(link)}" title="Open in TinyLittleOffice">` : ''}
+<meta property="og:title" content="${xml(title)}">${link ? `\n<link rel="alternate" href="${xml(link)}" title="Open in Tiny Little Office">` : ''}
 <style>body{font:17px/1.6 ${FONT};color:${INK};max-width:46em;margin:2em auto;padding:0 1em}figure{margin:1em 0}figure svg{display:block;max-width:100%;height:auto;border:1px solid #d4d4d8;border-radius:8px}footer{color:${MUTED};font-size:.85em}</style>
 </head>
 <body>
 <main>
 <h1>${xml(title)}</h1>
 ${pages.map((p) => `<figure>${pageSvg(p, `role="img" aria-label="${xml(title)}"`)}</figure>`).join('\n')}
-</main>${link ? `\n<footer><p><a href="${xml(link)}">${xml(t('Open in TinyLittleOffice'))}</a></p></footer>` : ''}
+</main>${link ? `\n<footer><p><a href="${xml(link)}">${xml(t('Open in Tiny Little Office'))}</a></p></footer>` : ''}
 </body>
 </html>
 `;
