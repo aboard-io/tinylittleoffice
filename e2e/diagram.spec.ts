@@ -4,6 +4,9 @@
  * is one row, nothing is wider than the screen, axe finds nothing. Run on its own:
  *
  *   PW_PORT=4192 npx playwright test e2e/diagram.spec.ts --workers=1
+ *
+ * And on a phone, by finger: the context bar under the words of a thing tapped, 44px, inside the screen, its
+ * Duplicate, Copy and Paste; no selection bubble; a tap elsewhere closes the words.
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -34,5 +37,38 @@ test('diagram: the first idea and a branch typed on the picture', async ({ page 
   await expect(page.locator('.dg-pop')).toBeHidden();
   expect((await measure()).wide).toBeLessThanOrEqual(0);
   expect((await new AxeBuilder({ page }).disableRules(['meta-viewport']).analyze()).violations).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('diagram: on a phone, a tap on a thing opens its words with the context bar on screen, 44px to a finger; Duplicate and Copy/Paste by finger; no bubble', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/#/v1/diagram');
+  await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
+  const line = page.locator('.dg-pop to-text .tx');
+  await line.pressSequentially('Launch');
+  await line.press('Enter');
+  await line.pressSequentially('Pricing');
+  // A tap elsewhere keeps the words and closes them.
+  await page.locator('.dg-hint').tap();
+  await expect(page.locator('.dg-pop')).toBeHidden();
+  await page.locator('.dg-pic g.dg-thing[aria-label="Pricing"]').tap();
+  const bar = page.locator('to-context.dg-context .to-context');
+  await expect(bar).toBeVisible();
+  const b = (await bar.boundingBox())!;
+  expect(b.x).toBeGreaterThanOrEqual(0);
+  expect(b.x + b.width).toBeLessThanOrEqual(390);
+  for (const h of await bar.locator('button').evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) expect(h).toBeGreaterThanOrEqual(44);
+  await expect(page.locator('.tx-bubble .to-context:popover-open')).toHaveCount(0);
+  await bar.getByRole('button', { name: 'Duplicate' }).tap();
+  await expect(page.locator('.dg-pic g.dg-thing[aria-label="Pricing"]')).toHaveCount(2);
+  const value = () => page.evaluate(() => (document.querySelector('to-diagram-editor') as HTMLElement & { value: string }).value);
+  expect(await value()).toBe('- Launch\n  - Pricing\n  - Pricing\n');
+  await page.locator('.dg-pic g.dg-thing[aria-label="Launch"]').tap();
+  await bar.getByRole('button', { name: 'Copy' }).tap();
+  await bar.getByRole('button', { name: 'Paste' }).tap();
+  await expect.poll(value).toBe('- Launch\n  - Pricing\n  - Pricing\n  - Launch\n    - Pricing\n    - Pricing\n');
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.dg-pic')!).touchAction)).toBe('manipulation');
   expect(errors).toEqual([]);
 });
