@@ -22,7 +22,8 @@
  * row chosen, the step out of edit; on a range: the caret back), plain arrows
  * and Enter letting go to a caret; Mod+A; Delete/Backspace; Tab/Shift+Tab; Alt+Up/Down; Mod+D; Mod+C/X/V through
  * capturing document listeners that act only while the host holds the focus (or nothing does), with a module-level
- * clipboard (`lastCopied()`) for when the system's is refused; the <to-context> under the range in the standard's order
+ * clipboard (`lastCopied()`) for when the system's is refused; the <to-context> under the range (above it under a finger, so
+ * the rows below stay free for the tap that extends) in the standard's order
  * (Edit, Move up, Move down, [the app's], Indent, Bring out, Duplicate | Copy, Cut, Paste | Delete); a tap outside the host
  * letting the range go; and a drag by the handle with pointer events (setPointerCapture, a 6px threshold, a hit test by
  * elementFromPoint, a drawn insertion line, auto-scroll near the scroller's edges). Styles: `.to-rows-handle` (put it on
@@ -161,7 +162,8 @@ export class Rows<Id = number> implements ReactiveController {
     }
     const bar = this.bar();
     if (!bar) return;
-    if (this.range) bar.show(() => this.rect());
+    // Under a finger it sits above the range, so the rows below stay free for a second tap that extends it.
+    if (this.range) bar.show(() => this.rect(), matchMedia('(pointer: coarse)').matches ? 'above' : 'below');
     else if (bar.isOpen) bar.hide();
   }
 

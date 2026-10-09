@@ -5,6 +5,7 @@
  * below), kept inside the visual viewport (above a phone's keyboard) and moved with the anchor as the page
  * scrolls. Its buttons never take the focus (an editor's selection stays, a phone's keyboard stays up), so a
  * host sets `items` and calls show(anchor) and hide(); the anchor is an element or a function giving a rect.
+ * show(anchor, 'above') puts it above the anchor where there is room (below where there is not).
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { tool } from './bar.ts';
@@ -36,6 +37,7 @@ export class ToContext extends LitElement {
   declare items: ContextEntry[];
   declare label: string;
   private anchor: Anchor | null = null;
+  private side: 'below' | 'above' = 'below';
   private soon = 0;
 
   constructor() {
@@ -58,8 +60,9 @@ export class ToContext extends LitElement {
   }
 
   /** Up beside the anchor; called again, it moves to a new anchor. */
-  show(anchor: Anchor) {
+  show(anchor: Anchor, side: 'below' | 'above' = 'below') {
     this.anchor = anchor;
+    this.side = side;
     void this.updateComplete.then(() => {
       const pop = this.pop;
       if (!pop || !this.isConnected) return;
@@ -93,8 +96,10 @@ export class ToContext extends LitElement {
     const vw = vv?.width ?? window.innerWidth;
     const vh = vv?.height ?? window.innerHeight;
     const r = pop.getBoundingClientRect();
+    const above = rect.top - GAP - r.height;
     let top = rect.bottom + GAP;
-    if (top + r.height > top0 + vh - GAP && rect.top - GAP - r.height >= top0) top = rect.top - GAP - r.height;
+    if (this.side === 'above' && above >= top0) top = above;
+    else if (top + r.height > top0 + vh - GAP && above >= top0) top = above;
     top = Math.max(top0 + GAP, Math.min(top, top0 + vh - r.height - GAP));
     const left = Math.max(left0 + GAP, Math.min(rect.left + rect.width / 2 - r.width / 2, left0 + vw - r.width - GAP));
     pop.style.top = `${Math.round(top)}px`;

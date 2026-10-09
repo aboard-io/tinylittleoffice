@@ -54,3 +54,21 @@ test('shows under the anchor, centred, follows it, keeps the focus, hides', asyn
   ctx.hide();
   expect(ctx.isOpen).toBe(false);
 });
+
+test('asked for, it sits above the anchor where there is room, and under it where there is none', async () => {
+  document.body.innerHTML = '<div id="box" style="position:absolute;top:300px;left:200px;width:120px;height:40px"></div>';
+  const box = document.getElementById('box')!;
+  const ctx = document.createElement('to-context') as ToContext;
+  ctx.items = [{ label: 'Delete', icon: Trash2, does: () => undefined }];
+  document.body.append(ctx);
+  await ctx.updateComplete;
+  ctx.show(box, 'above');
+  await until(() => ctx.isOpen);
+  await tick(30);
+  const pop = ctx.querySelector<HTMLElement>('.to-context')!;
+  expect(pop.getBoundingClientRect().bottom).toBeLessThanOrEqual(box.getBoundingClientRect().top);
+  box.style.top = '4px';
+  ctx.refresh();
+  expect(pop.getBoundingClientRect().top).toBeGreaterThanOrEqual(box.getBoundingClientRect().bottom);
+  ctx.hide();
+});
