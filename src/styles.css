@@ -76,6 +76,8 @@
   --to-shadow-paper: 0 1px 3px rgba(0, 0, 0, 0.12);
   --to-shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.16);
   --to-header-h: 56px;
+  /* What the menu button, fixed at the top left, takes of the width. */
+  --to-burger-w: 66px;
   --to-max-w: 1080px;
   --to-gutter: 16px;
 }
@@ -236,16 +238,17 @@ sl-button[aria-pressed='true']::part(label) {
 }
 
 /* 3. Shell ----------------------------------------------------------------- */
-/* The header is one row held at the top of the screen: the menu, what the document is (its app, its title), then everything
-   to do with it. Too long for the screen, it scrolls sideways, an edge fading where there is more past it. */
+/* The header is one row: the menu, what the document is (its app, its title), then everything to do with it. Too long for
+   the screen, it scrolls sideways, an edge fading where there is more past it. It goes up with the page; what stays is the
+   menu button (top left) and the app's own bar (stuck to the top). */
 .to-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
   display: flex;
   align-items: center;
   height: var(--to-header-h);
-  padding-left: max(4px, env(safe-area-inset-left));
+  /* Room for the menu button, which is fixed over this end. */
+  padding-left: var(--to-burger-w);
   background: var(--to-surface);
   border-bottom: 1px solid var(--to-border);
 }
@@ -278,10 +281,30 @@ sl-button[aria-pressed='true']::part(label) {
 .to-header-inner > * {
   flex-shrink: 0;
 }
-/* The header's icons are big enough to hit with a thumb. */
-.to-header sl-button::part(base) {
+/* The header's and the apps' bars: controls big enough to hit with a thumb, their icons all one size. */
+.to-header,
+:is(.to-toolbar, .sheet-bar) {
+  --sl-input-height-small: 40px;
+}
+:is(.to-toolbar, .sheet-bar) :is(sl-button, .to-icon-btn, .to-insert-icon) svg {
+  width: 24px;
+  height: 24px;
+}
+/* An icon beside words sits on their middle. */
+:is(.to-header, .to-toolbar, .sheet-bar) sl-button::part(label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+:is(.to-toolbar, .sheet-bar) :is(.to-insert, .to-insert input) {
+  height: 40px;
   min-height: 40px;
-  line-height: 38px;
+}
+:is(.to-toolbar, .sheet-bar) .to-insert input {
+  padding-left: 40px;
+}
+:is(.to-toolbar, .sheet-bar) .deck-kind {
+  align-self: stretch;
 }
 
 .to-brand {
@@ -320,16 +343,52 @@ sl-button[aria-pressed='true']::part(label) {
   flex: 1;
 }
 .to-burger {
-  flex-shrink: 0;
+  position: fixed;
+  left: max(4px, env(safe-area-inset-left));
+  top: 6px;
+  z-index: 40;
 }
 .to-burger::part(base) {
   padding: 0 4px;
 }
-/* An app's own bar sticks under the header. */
+/* Over the app's bar once the header has gone, the menu button sits on a card of its own. */
+to-app[scrolled] .to-burger::part(base) {
+  background: var(--to-surface);
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+}
+/* An app's own bar sticks to the top of the screen once the header has gone; where the menu button would sit over it, it makes room. */
 .to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child {
   position: sticky;
-  top: var(--to-header-h);
+  top: 0;
   z-index: 15;
+}
+.to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
+.to-panel > div > * > .ol-bars > .to-toolbar {
+  transition: margin-left 0.2s ease;
+}
+/* (Narrowed rather than padded, so a bar that scrolls sideways on a phone never slides under it.) */
+to-app[scrolled] .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
+to-app[scrolled] .to-panel > div > * > .ol-bars > .to-toolbar {
+  margin-left: max(0px, calc(var(--to-burger-w) - max(0px, (100vw - var(--to-max-w)) / 2)));
+}
+/* Behind the stuck bar, the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
+to-app[scrolled]::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--to-stuck-h, 0px);
+  background: var(--to-surface);
+  border-bottom: 1px solid var(--to-border);
+  z-index: 14;
+}
+@media (prefers-reduced-motion: reduce) {
+  .to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child,
+  .to-panel > div > * > .ol-bars > .to-toolbar {
+    transition: none;
+  }
 }
 sl-menu-item svg.pre {
   vertical-align: -2px;

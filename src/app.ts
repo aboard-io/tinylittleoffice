@@ -173,6 +173,30 @@ export class ToApp extends LitElement {
     return this;
   }
 
+  /**
+   * Scrolled past the header: it has gone up with the page, and the app's
+   * own bar has stuck to the top, making room for the menu button, which
+   * stays at the top left. Said as an attribute, so styles alone move
+   * things; nothing is drawn again.
+   */
+  private headerWatch: IntersectionObserver | null = null;
+  /** The app's bar, measured: an opaque strip as tall as it fills the screen's width behind it once it is stuck (--to-stuck-h). */
+  private barWatch: ResizeObserver | null = null;
+  private bar: Element | null = null;
+  private watchHeader() {
+    const bar = this.querySelector('.to-panel > div > * > :is(.to-toolbar, .sheet-bar, .ol-bars):first-child');
+    if (bar !== this.bar && typeof ResizeObserver !== 'undefined') {
+      this.barWatch ??= new ResizeObserver(([e]) => this.style.setProperty('--to-stuck-h', `${(e.target as HTMLElement).offsetHeight}px`));
+      if (this.bar) this.barWatch.unobserve(this.bar);
+      if (bar) this.barWatch.observe(bar);
+      this.bar = bar;
+    }
+    const header = this.querySelector('.to-header');
+    if (!header || this.headerWatch || typeof IntersectionObserver === 'undefined') return;
+    this.headerWatch = new IntersectionObserver(([e]) => this.toggleAttribute('scrolled', !e.isIntersecting));
+    this.headerWatch.observe(header);
+  }
+
   connectedCallback() {
     super.connectedCallback();
     // No link in a document opens without showing where it goes and asking.
@@ -188,6 +212,11 @@ export class ToApp extends LitElement {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.headerWatch?.disconnect();
+    this.headerWatch = null;
+    this.barWatch?.disconnect();
+    this.barWatch = null;
+    this.bar = null;
     window.removeEventListener('resize', this.fadeEdges);
     window.removeEventListener('hashchange', this.onHash);
     window.removeEventListener('keydown', this.onGlobalKey);
@@ -503,6 +532,7 @@ export class ToApp extends LitElement {
   };
 
   protected updated() {
+    this.watchHeader();
     this.fadeEdges();
     // The kit knows this document's link (a QR code of it may be drawn inside it); embeds redraw when it changes.
     if (this.app && !this.sealed && this.link !== this.lastSelf) {
@@ -594,9 +624,10 @@ export class ToApp extends LitElement {
     const { available } = budgetFor(this.urlPrefix);
     return html`
       <button class="to-skip" @click=${() => this.querySelector<HTMLElement>('main')?.focus()}>Skip to the document</button>
+      <!-- The menu, always at the very top left, wherever the page is scrolled to: outside the header, which goes up with the page. -->
+      <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
       <header class="to-header">
-        <!-- One row, held at the top of the screen: the menu, then what this is (the document: its app and its title), then everything to do with it; the row scrolls sideways when it is too long. -->
-        <sl-button class="to-burger icon" variant="text" size="medium" aria-label="Menu" @click=${() => this.drawer()?.show()}>${icon(UI.menu, 33)}<span class="sr-only">Menu</span></sl-button>
+        <!-- One row: room for the menu, then what this is (the document: its app and its title), then everything to do with it; the row scrolls sideways when it is too long, and goes up with the page. -->
         <div class="to-header-inner" @scroll=${this.fadeEdges}>
           ${current ? this.renderTitleLine(current) : html`<a class="to-brand" href="#/" aria-label="TinyLittleOffice home"><span class="mark">${icon(UI.sparkles, 24)}</span><span>TinyLittleOffice</span></a>`}
           <span class="to-spacer"></span>

@@ -21,8 +21,9 @@ for (const w of [360, 390, 430, 461, 520, 600, 640, 700]) test(`header fits at $
   expect(fades).toBe(more);
 });
 
-// Layout and scrolling need a real browser. Scrolled down, the header is still at the top, and the app's own bar is stuck under it.
-for (const app of ['outline', 'sheet', 'write', 'deck', 'todo', 'org']) test(`scrolled in ${app}: the header at the top, its own bar under it`, async ({ page }) => {
+// Layout and scrolling need a real browser. Scrolled down, the header has gone up with the page; the app's own bar is stuck to the top,
+// and the menu button stays at the top left, the bar making room for it.
+for (const app of ['outline', 'sheet', 'write', 'deck', 'todo', 'org']) test(`scrolled in ${app}: its own bar at the top, the menu top left beside it`, async ({ page }) => {
   await page.goto(`/#/v0/${app}`);
   await page.locator(`to-${app}`).waitFor();
   const example = page.getByRole('button', { name: /Start from an example/ });
@@ -32,12 +33,23 @@ for (const app of ['outline', 'sheet', 'write', 'deck', 'todo', 'org']) test(`sc
     pad.style.height = '3000px';
     document.querySelector(`to-${a}`)!.append(pad);
   }, app);
+  const rect = (sel: string) => page.locator(sel).first().evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; });
+  expect((await rect('.to-header')).t).toBe(0);
   await page.mouse.wheel(0, 1500);
-  await page.waitForTimeout(150);
-  const top = (sel: string) => page.locator(sel).first().evaluate((e) => Math.round(e.getBoundingClientRect().top));
-  expect(await top('.to-header')).toBe(0);
-  const headerH = await page.locator('.to-header').evaluate((e) => Math.round(e.getBoundingClientRect().height));
-  expect(Math.abs((await top(`to-${app} > :is(.to-toolbar, .sheet-bar, .ol-bars)`)) - headerH)).toBeLessThanOrEqual(1);
-  await expect(page.locator('.to-burger')).toBeVisible();
-  await expect(page.locator('.to-undo').getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(page.locator('to-app')).toHaveAttribute('scrolled', '');
+  await page.waitForTimeout(400);
+  expect((await rect('.to-header')).b).toBeLessThanOrEqual(0);
+  const bar = await rect(`to-${app} > :is(.to-toolbar, .sheet-bar, .ol-bars)`);
+  expect(Math.round(bar.t)).toBe(0);
+  const burger = await rect('.to-burger');
+  expect(burger.l).toBeLessThanOrEqual(8);
+  expect(burger.t).toBeLessThanOrEqual(12);
+  // The bar's controls start past the menu button.
+  const first = await rect(`to-${app} > :is(.to-toolbar, .sheet-bar, .ol-bars) :is(sl-button, button, input, sl-select)`);
+  expect(first.l).toBeGreaterThanOrEqual(burger.r - 1);
+  // Behind it all, the screen's width is opaque.
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('to-app')!, '::before').position)).toBe('fixed');
+  // Back up, the header is back.
+  await page.mouse.wheel(0, -3000);
+  await expect(page.locator('to-app')).not.toHaveAttribute('scrolled', '');
 });
