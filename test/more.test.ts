@@ -4,7 +4,7 @@ import { evaluateGrid, parseGrid, pasteCells, serializeGrid, refToRC, rcToRef, p
 import { parseDoc, serializeDoc, docText, type Block } from '../src/lib/richtext.ts';
 import { encodeDoc, decodeDoc } from '../src/lib/codec.ts';
 import { partsToUtc, utcToParts, offsetMinutes, allZones, localZone } from '../src/lib/tz.ts';
-import { parseDeck, serializeDeck, MAX_SLIDES } from '../src/lib/deckmodel.ts';
+import { parseDeck, serializeDeck } from '../src/lib/deckmodel.ts';
 import { parseDrawing, serializeDrawing } from '../src/lib/drawmodel.ts';
 import { parseCalendar, serializeCalendar, spanEndMs } from '../src/lib/calmodel.ts';
 
@@ -122,7 +122,6 @@ test('deck: icon-only and title-only slides, max slides constant', () => {
   assert.equal(back[0].icon, 'star');
   assert.equal(back[1].title, 'T');
   assert.deepEqual(back[1].bullets, ['b']);
-  assert.equal(MAX_SLIDES, Infinity);
 });
 
 test('draw: labels with newlines, commas and bars, fill clamping, a table written loosely', () => {

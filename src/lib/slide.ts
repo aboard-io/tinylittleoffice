@@ -7,7 +7,7 @@ import { wrap, text, place, r, ACCENT, MUTED, type Page, type Span } from '../ki
 import { parseInline } from './richtext.ts';
 import { refPage, refSteps } from '../kit/embed.ts';
 import { ICON_SVG } from './icons.ts';
-import { ICON_COLORS, type Slide } from './deckmodel.ts';
+import { ICON_COLORS, depthOf, live, type Slide } from './deckmodel.ts';
 
 export const SW = 960;
 export const SH = 600;
@@ -28,19 +28,16 @@ export interface SlideLayout {
   sub?: Box;
 }
 
-export const live = (list: string[] = []) => list.filter((b) => b.trim() !== '');
-/** How far in a bullet goes: two spaces (or a tab) a level, up to three levels. */
-export const depthOf = (b: string) => Math.min(3, Math.floor(/^[ \t]*/.exec(b)![0].replace(/\t/g, '  ').length / 2));
+/** How far a bullet steps in a level, in the size of the type. */
 const IN = 1.4;
 
-/** Where everything on a slide goes, and how big the type is. */
-/** The page a slide is laid on: a slide's 960 by 600 unless told otherwise; `loud` makes the type bigger (a poster), `prose` drops the bullet dots. */
+/** The page a slide is laid on: a slide's 960 by 600 unless told otherwise; `loud` makes the type bigger (a poster). */
 export interface SlideSize {
   w?: number;
   h?: number;
   loud?: number;
-  prose?: boolean;
 }
+/** Where everything on a slide goes, and how big the type is. */
 export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   const SW = o.w ?? 960;
   const SH = o.h ?? 600;
@@ -97,7 +94,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   const split = kind === 'i' || kind === '2';
   const colsIn: (Box & { src: string[] })[] = [{ x: M, y: top, w: split ? half : SW - 2 * M, h: bodyH, src: left }];
   if (kind === '2') colsIn.push({ x: M + half + 40 * k, y: top, w: half, h: bodyH, src: right });
-  const body = fitBody(colsIn, sz([34, 30, 26, 23, 20, 18, 16, 14]), !o.prose);
+  const body = fitBody(colsIn, sz([34, 30, 26, 23, 20, 18, 16, 14]), true);
   const sideBox: Box = { x: M + half + 40 * k, y: top, w: half, h: bodyH };
   return {
     titlePx: t.px,
@@ -130,7 +127,6 @@ export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = '',
   const SH = o.h ?? 600;
   const L = layoutSlide(s, o);
   const cover = s.layout === 't';
-  const dots = !cover && !o.prose;
   let svg = L.icon ? iconAt(s.icon, L.icon, ICON_COLORS[tint]?.hex) : '';
   L.title.lines.forEach((line, i) => (svg += text(L.title.center ? SW / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), line, { px: L.titlePx, bold: true, anchor: L.title.center ? 'middle' : 'start' })));
   let n = 0;
@@ -141,8 +137,8 @@ export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = '',
       const x = col.x + L.bodyPx * d * IN;
       if (cover || n < bullets) {
         // A deeper bullet steps in, with a smaller, hollow dot.
-        if (dots) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : ACCENT}"${d ? ` stroke="${ACCENT}" stroke-width="2"` : ''}/>`;
-        item.forEach((line, i) => (svg += text(cover ? SW / 2 : x + (dots ? L.bodyPx * 1.1 : 0), y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? MUTED : undefined, anchor: cover ? 'middle' : 'start' })));
+        if (!cover) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : ACCENT}"${d ? ` stroke="${ACCENT}" stroke-width="2"` : ''}/>`;
+        item.forEach((line, i) => (svg += text(cover ? SW / 2 : x + L.bodyPx * 1.1, y + L.bodyPx + i * L.bodyPx * 1.3, line, { px: L.bodyPx, fill: cover ? MUTED : undefined, anchor: cover ? 'middle' : 'start' })));
       }
       n++;
       y += item.length * L.bodyPx * 1.3 + L.bodyPx * (cover ? 0 : 0.45);
@@ -151,4 +147,3 @@ export function slidePage(s: Slide, bullets = Infinity, sub?: number, tint = '',
   if (L.sub && s.sub) svg += `<g data-sub="${r(L.sub.x)},${r(L.sub.y)},${r(L.sub.w)},${r(L.sub.h)}">${place(refPage(s.sub, sub === undefined ? {} : { step: sub }), L.sub.x, L.sub.y, L.sub.w, L.sub.h)}</g>`;
   return { w: SW, h: SH, svg };
 }
-

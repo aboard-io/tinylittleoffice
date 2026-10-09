@@ -1,10 +1,9 @@
 /** Outline: what the shell knows about outlines. Format: a nested list, lib/outlinemodel.ts. */
-import { defineApp, utf8, wrap, text, xml, ACCENT, type Page } from '../kit/core.ts';
+import { defineApp, utf8, wrap, text, xml, place, textWidth, ACCENT, type Page } from '../kit/core.ts';
 import { parseInline, plainInline, type Run } from '../lib/richtext.ts';
 import { textPdf, type TextBlock } from '../kit/textpdf.ts';
 import { parseOutline, parseLinks, outlineLines, readOutline, toOpml, hasChildren, type Dir, type Item } from '../lib/outlinemodel.ts';
 import { refPage, resolve } from '../kit/embed.ts';
-import { place, textWidth } from '../kit/core.ts';
 
 /** How each kind of line looks, drawn and said. */
 export const ARROW: Record<Dir, string> = { '--': '—', '->': '→', '<-': '←', '<->': '↔' };
@@ -114,5 +113,3 @@ export default defineApp({
     { keys: 'Escape (while connecting)', does: 'Stop connecting' },
   ],
 });
-
-export type { Item };

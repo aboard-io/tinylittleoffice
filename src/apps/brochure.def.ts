@@ -2,7 +2,7 @@
 import { defineFold, side } from '../lib/fold.ts';
 
 export default defineFold(
-  { id: 'brochure', group: 'Print', under: 'zine', name: 'Brochure', icon: 'brochure', blurb: 'A trifold brochure: six panels on two sides of a sheet, each where the fold needs it.' },
+  { id: 'brochure', under: 'zine', name: 'Brochure', icon: 'brochure', blurb: 'A trifold brochure: six panels on two sides of a sheet, each where the fold needs it.' },
   {
     count: 6,
     size: () => ({ w: 352, h: 816 }),

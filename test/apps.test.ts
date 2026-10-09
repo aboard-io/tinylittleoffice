@@ -271,7 +271,7 @@ test('text: nested list items', async () => {
 
 test('deck: layouts, columns, embedded documents, transition', async () => {
   const { parseDeck, serializeDeck, deckTransition } = await import('../src/lib/deckmodel.ts');
-  const { layoutSlide, slidePage, slideSteps } = await import('../src/apps/deck.def.ts');
+  const { layoutSlide, slidePage, slideSteps } = await import('../src/lib/slide.ts');
   const text = [
     '---\ntransition: zoom\n---\n## :rocket: Big launch {.title}\n\n- Spring',
     '## Plan {.two}\n\n- left\n\n|\n\n- right one\n- right two',
@@ -940,7 +940,8 @@ test('a QR code of a link reads back as the link', async () => {
 
 test('slides take bold, italic and the rest, like a text does', async () => {
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
-  const { slidePage, deckToPptx } = await import('../src/apps/deck.def.ts');
+  const { slidePage } = await import('../src/lib/slide.ts');
+  const { deckToPptx } = await import('../src/apps/deck.def.ts');
   const { parseInline } = await import('../src/lib/richtext.ts');
   const [s] = parseDeck('## A **big** _day_\n\n- Ship ++it++ and ~~rest~~');
   const svg = slidePage(s, Infinity, undefined, '').svg;
@@ -966,8 +967,9 @@ test('a motion slide, held still, is at its end', async () => {
 });
 
 test('slides: bullets nest', async () => {
-  const { parseDeck, serializeDeck } = await import('../src/lib/deckmodel.ts');
-  const { slidePage, layoutSlide, depthOf, deckToPptx } = await import('../src/apps/deck.def.ts');
+  const { parseDeck, serializeDeck, depthOf } = await import('../src/lib/deckmodel.ts');
+  const { slidePage, layoutSlide } = await import('../src/lib/slide.ts');
+  const { deckToPptx } = await import('../src/apps/deck.def.ts');
   const text = '## Plan\n\n- Ship\n  - Beta first\n    - Then everyone\n- Rest\n';
   assert.deepEqual(parseDeck(text)[0].bullets.map(depthOf), [0, 1, 2, 0]);
   assert.equal(serializeDeck(parseDeck(text)), text);
@@ -1003,7 +1005,7 @@ test('a QR code document: a link as a code, labelled with what it is of', async 
   assert.ok(appOf('qr')!.view('x'.repeat(3000))[0].svg.includes('Too long'));
   // It can go on a slide.
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
-  const { slidePage } = await import('../src/apps/deck.def.ts');
+  const { slidePage } = await import('../src/lib/slide.ts');
   const slide = slidePage(parseDeck('## Scan this\n\n```qr\n' + link + '\n```')[0], Infinity, undefined, '').svg;
   assert.ok(slide.includes('shape-rendering="crispEdges"'));
 });
@@ -1026,7 +1028,7 @@ test('rich text: highlight, icons in the line, and alignment, in text and in pic
   // Drawn: a yellow box behind the highlight, a glyph for the icon.
   const svg = text(10, 20, parseInline('==hot== :rocket: x'), { px: 16 });
   assert.ok(svg.includes('fill="#fef08a"') && svg.includes('stroke-linecap="round"') && svg.includes('<tspan dx='));
-  const { slidePage } = await import('../src/apps/deck.def.ts');
+  const { slidePage } = await import('../src/lib/slide.ts');
   const { parseDeck } = await import('../src/lib/deckmodel.ts');
   assert.ok(slidePage(parseDeck('## Go :rocket:\n\n- ==now==')[0], Infinity, undefined, '').svg.includes('#fef08a'));
   assert.ok(appOf('write')!.html!('Hello ==there== :star: {.center}', { created: null }).includes('text-align:center') && appOf('write')!.html!('==x==', { created: null }).includes('<mark>'));

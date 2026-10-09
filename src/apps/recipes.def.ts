@@ -13,4 +13,4 @@ export const RECIPES: Format = {
   how: () => 'Download the PDF and print it on letter paper, at actual size. Cut along the dashes: two cards a sheet.',
 };
 
-export default defineFold({ id: 'recipes', under: undefined, group: 'Create', name: 'Recipe cards', icon: 'recipes', blurb: 'Recipe cards to print and cut: the dish, what goes in, what to do.' }, RECIPES);
+export default defineFold({ id: 'recipes', group: 'Create', name: 'Recipe cards', icon: 'recipes', blurb: 'Recipe cards to print and cut: the dish, what goes in, what to do.' }, RECIPES);

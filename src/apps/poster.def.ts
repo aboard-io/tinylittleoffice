@@ -10,4 +10,4 @@ export const POSTER: Format = {
   how: () => 'Download the PDF and print it on letter paper, at actual size.',
 };
 
-export default defineFold({ id: 'poster', group: 'Print', name: 'Poster', icon: 'poster', blurb: 'A poster or flyer: a headline and a few lines, as big as one page allows.' }, POSTER);
+export default defineFold({ id: 'poster', name: 'Poster', icon: 'poster', blurb: 'A poster or flyer: a headline and a few lines, as big as one page allows.' }, POSTER);
