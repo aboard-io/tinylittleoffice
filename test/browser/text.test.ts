@@ -117,8 +117,8 @@ test('Enter splits per shape: doc and lines split the block, a heading leaves a 
   const lines = await mount('- a\n- b\n', 'lines', caret(1, 1));
   await key(lines, 'Enter');
   expect(lines.tlo).toBe('- a\n- b\n-\n');
-  // Enter (or a line break) on an empty item takes it out of the list instead.
-  await key(lines, 'Shift+Enter');
+  // Enter on an empty item takes it out of the list instead.
+  await key(lines, 'Enter');
   expect(lines.doc.blocks).toHaveLength(3);
   expect(lines.doc.blocks[2]).toMatchObject({ k: 'p', runs: [] });
   const line = await mount('one\n', 'line', caret(0, 3));
@@ -540,4 +540,262 @@ test('in a line, Delete at the end says text-exit (forward) and Backspace at the
   e.el.addEventListener('text-selectall', () => empties++);
   e.el.tx.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, cancelable: true }));
   expect(empties).toBe(1);
+});
+
+/* ---------- after the editing audit (docs/editing.md §1, §2, §7) ---------- */
+
+const press = (target: EventTarget, init: KeyboardEventInit) => {
+  const ev = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+  target.dispatchEvent(ev);
+  return ev;
+};
+
+test('Mod+A in lines: the first press is the browser\'s, with the box already whole the host is asked for everything', async () => {
+  const h = await mount('- one\n- two\n', 'lines', caret(0, 1));
+  let all = 0;
+  h.el.addEventListener('text-selectall', () => all++);
+  expect(press(h.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(false);
+  expect(all).toBe(0);
+  h.el.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 1, offset: 3 } };
+  await h.el.updateComplete;
+  expect(press(h.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(true);
+  expect(all).toBe(1);
+  // A doc keeps the browser's Select All, always.
+  const d = await mount('a\n', 'doc', range(0, 0, 1));
+  d.el.addEventListener('text-selectall', () => all++);
+  expect(press(d.el.tx, { key: 'a', ctrlKey: true }).defaultPrevented).toBe(false);
+  expect(all).toBe(1);
+});
+
+test('Escape steps out one step per press: the link box closes (and the key stops), then a range collapses to its focus, then the host hears text-escape', async () => {
+  const h = await mount('see [this](https://x.y) words\n', 'doc', caret(0, 0));
+  // The caret put in the link by the DOM (a tap): the link bubble comes.
+  const linked = [...h.el.tx.querySelector('a')!.childNodes].find((n) => n.nodeType === Node.TEXT_NODE)!;
+  document.getSelection()!.collapse(linked, 2);
+  await until(() => !!document.querySelector('.to-link-pop:popover-open'));
+  let escapes = 0;
+  let reached = 0;
+  h.el.addEventListener('text-escape', () => escapes++);
+  document.body.addEventListener('keydown', () => reached++);
+  expect(press(h.el.tx, { key: 'Escape' }).defaultPrevented).toBe(true);
+  expect(document.querySelector('.to-link-pop:popover-open')).toBeNull();
+  expect(reached + escapes).toBe(0);
+  // A range: it collapses to where the selection was going.
+  h.el.sel = range(0, 9, 14);
+  await h.el.updateComplete;
+  await tick();
+  expect(press(h.el.tx, { key: 'Escape' }).defaultPrevented).toBe(true);
+  expect(h.el.sel).toEqual(caret(0, 14));
+  expect(reached + escapes).toBe(0);
+  // A caret: the host is told and the key goes on.
+  expect(press(h.el.tx, { key: 'Escape' }).defaultPrevented).toBe(false);
+  expect(escapes).toBe(1);
+  expect(reached).toBe(1);
+});
+
+test('Escape in the address box gives the focus and the selection back to the words; a tap outside hides the box', async () => {
+  const h = await mount('make this a link\n', 'doc', range(0, 5, 9));
+  h.el.exec('link');
+  await until(() => document.activeElement?.classList.contains('to-link-input') ?? false);
+  press(document.activeElement!, { key: 'Escape' });
+  await tick(30);
+  expect(h.el.hasFocus()).toBe(true);
+  expect(h.el.sel).toEqual(range(0, 5, 9));
+  expect(domSel().text).toBe('this');
+  // Asked again, then a tap on the page outside the box and the editor.
+  h.el.exec('link');
+  await until(() => !!document.querySelector('.to-link-pop:popover-open'));
+  const out = document.createElement('div');
+  out.style.height = '40px';
+  document.body.append(out);
+  out.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  await until(() => !document.querySelector('.to-link-pop:popover-open'));
+});
+
+test('Shift+Enter: a line break in a paragraph, an item and a quote, in doc and lines; a heading splits; a line says shift in text-enter', async () => {
+  const h = await mount('- ab\n\n> cd\n\n# ef\n', 'doc', caret(0, 1));
+  await key(h, 'Shift+Enter');
+  expect(h.doc.blocks[0]).toMatchObject({ k: 'li', runs: [{ t: 'a\nb' }] });
+  h.el.sel = caret(1, 1);
+  await key(h, 'Shift+Enter');
+  expect(h.doc.blocks[1]).toMatchObject({ k: 'quote', runs: [{ t: 'c\nd' }] });
+  h.el.sel = caret(2, 1);
+  await key(h, 'Shift+Enter');
+  expect(h.doc.blocks).toHaveLength(4);
+  // What is written reads back as the same blocks.
+  expect(parse(h.tlo).blocks.slice(0, 2)).toEqual(h.doc.blocks.slice(0, 2));
+  const lines = await mount('- ab\n', 'lines', caret(0, 1));
+  await key(lines, 'Shift+Enter');
+  expect(lines.doc.blocks).toEqual([{ k: 'li', depth: 0, runs: [{ t: 'a\nb' }] }]);
+  const line = await mount('one\n', 'line', caret(0, 1));
+  const shifts: boolean[] = [];
+  line.el.addEventListener('text-enter', (e) => shifts.push((e as CustomEvent<{ shift: boolean }>).detail.shift));
+  await key(line, 'Shift+Enter');
+  await key(line, 'Enter');
+  expect(shifts).toEqual([true, false]);
+  expect(line.tlo).toBe('one\n');
+});
+
+test('Backspace on an empty item with children takes it away and brings them out a level; the caret ends the block before', async () => {
+  const h = await mount('- a\n-\n  - b\n    - c\n- d\n', 'doc', caret(1, 0));
+  await key(h, 'Backspace');
+  expect(h.tlo).toBe('- a\n- b\n  - c\n- d\n');
+  expect(h.el.sel).toEqual(caret(0, 1));
+  expect(domSel().offset).toBe(1);
+});
+
+test('Enter at the end of an item whose children follow makes their first child; elsewhere a sibling', async () => {
+  const h = await mount('- a\n  - b\n', 'doc', caret(0, 1));
+  await key(h, 'Enter');
+  expect(h.doc.blocks.map((b) => (b.k === 'li' ? b.depth : -1))).toEqual([0, 1, 1]);
+  expect(h.el.sel).toEqual(caret(1, 0));
+  await typeIn(h, 'x');
+  expect(h.tlo).toBe('- a\n  - x\n  - b\n');
+});
+
+test('"> " makes a quote; a shortcut undoes in two steps, the kind and then the marker as typed', async () => {
+  const h = await mount('', 'doc');
+  await typeIn(h, '> ');
+  expect(h.doc.blocks[0]).toMatchObject({ k: 'quote', runs: [] });
+  await typeIn(h, 'hi');
+  expect(h.tlo).toBe('> hi\n');
+  const l = await mount('', 'doc');
+  await typeIn(l, '- ');
+  expect(l.doc.blocks[0]).toMatchObject({ k: 'li' });
+  l.step('undo');
+  await l.el.updateComplete;
+  expect(l.doc.blocks[0]).toMatchObject({ k: 'p', runs: [{ t: '- ' }] });
+  expect(l.el.sel).toEqual(caret(0, 2));
+  // The bar's Quote: setKind takes 'quote', and asking again makes it a paragraph.
+  l.el.exec('quote');
+  await l.el.updateComplete;
+  expect(l.doc.blocks[0].k).toBe('quote');
+  l.el.exec('quote');
+  await l.el.updateComplete;
+  expect(l.doc.blocks[0].k).toBe('p');
+});
+
+test('Tab is taken only when the item moves: on the first item it moves the focus; nothing during an IME composition', async () => {
+  const h = await mount('- a\n- b\n', 'doc', caret(0, 1));
+  expect(press(h.el.tx, { key: 'Tab' }).defaultPrevented).toBe(false);
+  expect(h.tlo).toBe('- a\n- b\n');
+  h.el.sel = caret(1, 1);
+  await h.el.updateComplete;
+  expect(press(h.el.tx, { key: 'Tab', isComposing: true }).defaultPrevented).toBe(false);
+  expect(h.tlo).toBe('- a\n- b\n');
+  expect(press(h.el.tx, { key: 'Tab' }).defaultPrevented).toBe(true);
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- a\n  - b\n');
+  // At the third level an item goes no deeper, and Tab goes on.
+  const deep = await mount('- a\n  - b\n    - c\n      - d\n', 'doc', caret(3, 0));
+  expect(press(deep.el.tx, { key: 'Tab' }).defaultPrevented).toBe(false);
+});
+
+test('Alt+Up/Down moves an item with its family past its neighbour; the caret goes with it', async () => {
+  const h = await mount('- a\n- b\n  - c\n- d\n', 'doc', caret(1, 1));
+  expect(press(h.el.tx, { key: 'ArrowDown', altKey: true }).defaultPrevented).toBe(true);
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- a\n- d\n- b\n  - c\n');
+  expect(h.el.sel).toEqual(caret(2, 1));
+  press(h.el.tx, { key: 'ArrowUp', altKey: true });
+  await h.el.updateComplete;
+  press(h.el.tx, { key: 'ArrowUp', altKey: true });
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- b\n  - c\n- a\n- d\n');
+  expect(h.el.sel).toEqual(caret(0, 1));
+  // At the top there is nowhere to go: the key is the browser's.
+  expect(press(h.el.tx, { key: 'ArrowUp', altKey: true }).defaultPrevented).toBe(false);
+  // Not in a paragraph.
+  const p = await mount('a\n\nb\n', 'doc', caret(0, 0));
+  expect(press(p.el.tx, { key: 'ArrowDown', altKey: true }).defaultPrevented).toBe(false);
+});
+
+test('Mod+Enter on a task item ticks and unticks it; on other words it is the host\'s', async () => {
+  const h = await mount('- [ ] buy milk\n\nwords\n', 'doc', caret(0, 3));
+  let reached = 0;
+  document.body.addEventListener('keydown', () => reached++);
+  expect(press(h.el.tx, { key: 'Enter', ctrlKey: true }).defaultPrevented).toBe(true);
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- [x] buy milk\n\nwords\n');
+  expect(h.el.tx.querySelector('li')!.dataset.done).toBe('true');
+  press(h.el.tx, { key: 'Enter', metaKey: true });
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- [ ] buy milk\n\nwords\n');
+  expect(reached).toBe(0);
+  h.el.sel = caret(1, 1);
+  await h.el.updateComplete;
+  expect(press(h.el.tx, { key: 'Enter', ctrlKey: true }).defaultPrevented).toBe(false);
+  expect(reached).toBe(1);
+});
+
+test('Mod+Shift+X strikes through and Mod+Shift+H highlights the words selected', async () => {
+  const h = await mount('make this\n', 'doc', range(0, 5, 9));
+  press(h.el.tx, { key: 'X', ctrlKey: true, shiftKey: true });
+  await h.el.updateComplete;
+  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'make ' }, { t: 'this', s: true }] });
+  press(h.el.tx, { key: 'H', ctrlKey: true, shiftKey: true });
+  await h.el.updateComplete;
+  expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'make ' }, { t: 'this', s: true, h: true }] });
+});
+
+test('no selection is written during an IME composition: a host\'s caret waits for compositionend', async () => {
+  const h = await mount('hello world\n', 'doc', caret(0, 5));
+  const p = h.el.tx.querySelector('p')!;
+  p.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  const text = [...p.childNodes].find((n) => n.nodeType === Node.TEXT_NODE) as Text;
+  document.getSelection()!.collapse(text, 5);
+  h.el.sel = caret(0, 0);
+  await tick(30);
+  expect(domSel().offset).toBe(5);
+  p.dispatchEvent(new CompositionEvent('compositionend', { data: '', bubbles: true }));
+  await tick(30);
+  expect(h.tlo).toBe('hello world\n');
+});
+
+test('the footnote box has its own undo: Mod+Z there takes back the note\'s words, never the document\'s', async () => {
+  const h = await mount('words\n', 'doc', caret(0, 5));
+  let docUndo = 0;
+  h.el.addEventListener('docundo', () => docUndo++);
+  h.el.exec('fn');
+  await until(() => !!document.querySelector('.to-note-pop:popover-open'));
+  const inner = document.querySelector<ToText>('to-note-pop to-text')!;
+  await inner.updateComplete;
+  await tick(30);
+  for (const ch of 'abc') {
+    inner.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
+    await inner.updateComplete;
+    await h.el.updateComplete;
+  }
+  expect(h.tlo).toBe('words^[abc]\n');
+  expect(press(inner.tx, { key: 'z', ctrlKey: true }).defaultPrevented).toBe(true);
+  await inner.updateComplete;
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('words^[]\n');
+  expect(inner.tx.textContent).toBe('');
+  press(inner.tx, { key: 'z', ctrlKey: true, shiftKey: true });
+  await inner.updateComplete;
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('words^[abc]\n');
+  // The browser's own undo in the box (historyUndo) is the box's too.
+  inner.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'historyUndo', bubbles: true, cancelable: true }));
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('words^[]\n');
+  expect(docUndo).toBe(0);
+});
+
+test('editing surfaces: touch-action manipulation on the box; under a finger the bubble\'s buttons and a task\'s box are 44px', async () => {
+  const h = await mount('- [ ] task\n', 'doc', caret(0, 0));
+  expect(getComputedStyle(h.el.tx).touchAction).toBe('manipulation');
+  const coarse: string[] = [];
+  const walk = (rules: CSSRuleList, inCoarse: boolean) => {
+    for (const r of rules) {
+      if (r instanceof CSSMediaRule) walk(r.cssRules, inCoarse || r.conditionText.includes('pointer: coarse'));
+      else if (r instanceof CSSStyleRule) inCoarse && coarse.push(`${r.selectorText} { ${r.style.cssText} }`);
+      else if ('cssRules' in r) walk((r as CSSGroupingRule).cssRules, inCoarse);
+    }
+  };
+  for (const s of document.styleSheets) walk(s.cssRules, false);
+  expect(coarse.some((r) => r.startsWith('.to-context .to-tool') && r.includes('var(--to-touch)'))).toBe(true);
+  expect(coarse.some((r) => r.startsWith('.to-context .to-btn') && r.includes('min-height: var(--to-touch)'))).toBe(true);
+  expect(coarse.some((r) => r.includes('li[data-done]') && r.includes('44px'))).toBe(true);
 });

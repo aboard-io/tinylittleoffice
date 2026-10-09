@@ -2,7 +2,7 @@
 // each of the editor's ops back exactly.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Block, type Doc } from '../src/doc/index.ts';
-import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, marksOf, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, type Edit, type Sel } from '../src/kit/textops.ts';
+import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, marksOf, moveItems, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, type Edit, type Sel } from '../src/kit/textops.ts';
 import { rng } from './doc/helpers.ts';
 
 const doc = (tlo: string): Doc => parse(tlo);
@@ -181,4 +181,60 @@ test('invert takes every one of the editor edits back, over random documents and
     expect(back).toStrictEqual(d);
     d = next;
   }
+});
+
+test('moveItems: an item with its family past the neighbouring family at its level; never out of its parent nor past a paragraph', () => {
+  const b = blocks('- a\n- b\n  - c\n- d\n\nafter\n');
+  const down = moveItems(b, sel([1, 1]), 1)!;
+  expect(tlo(after(b, down))).toBe('- a\n- d\n- b\n  - c\n\nafter\n');
+  expect(down.sel).toEqual(sel([2, 1]));
+  const up = moveItems(b, sel([1, 0]), -1)!;
+  expect(tlo(after(b, up))).toBe('- b\n  - c\n- a\n- d\n\nafter\n');
+  expect(up.sel).toEqual(sel([0, 0]));
+  // A child moves among its siblings only: c has none.
+  expect(moveItems(b, sel([2, 0]), -1)).toBeNull();
+  expect(moveItems(b, sel([2, 0]), 1)).toBeNull();
+  // The last item does not cross the paragraph; a paragraph does not move.
+  expect(moveItems(b, sel([3, 0]), 1)).toBeNull();
+  expect(moveItems(b, sel([4, 0]), -1)).toBeNull();
+  // Several items selected go together; the same blocks, only in another order (one splice, invertible).
+  const two = moveItems(b, sel([0, 0], [1, 1]), 1)!;
+  expect(tlo(after(b, two))).toBe('- d\n- a\n- b\n  - c\n\nafter\n');
+  expect(applyAll(applyAll({ head: {}, blocks: b }, two.ops), invertAll({ head: {}, blocks: b }, two.ops)).blocks).toEqual(b);
+});
+
+test('the "> " shortcut makes a quote in a doc (not in lines); setKind takes quote and gives it back as a paragraph', () => {
+  const b = blocks('>rest\n');
+  const q = shortcut(b, sel([0, 1]), 'doc')!;
+  expect(after(b, q)[0]).toEqual({ k: 'quote', runs: [{ t: 'rest' }] });
+  expect(shortcut(b, sel([0, 1]), 'lines')).toBeNull();
+  const p = blocks('words\n');
+  const made = after(p, setKind(p, sel([0, 0]), 'quote'));
+  expect(made[0].k).toBe('quote');
+  expect(kindAt(made, sel([0, 0]))).toBe('quote');
+  expect(after(made, setKind(made, sel([0, 0]), 'quote'))[0].k).toBe('p');
+});
+
+test('Backspace on an empty item with children takes it away and lifts them a level; Enter at the end of a parent makes a first child', () => {
+  const b = blocks('- a\n-\n  - b\n    - c\n- d\n');
+  const e = backspace(b, sel([1, 0]), 'doc');
+  expect(e && e !== 'exit' && tlo(after(b, e))).toBe('- a\n- b\n  - c\n- d\n');
+  expect(e && e !== 'exit' && e.sel).toEqual(sel([0, 1]));
+  // First in the editor: the caret goes to the first child's start.
+  const top = blocks('-\n  - b\n');
+  const t2 = backspace(top, sel([0, 0]), 'doc');
+  expect(t2 && t2 !== 'exit' && tlo(after(top, t2))).toBe('- b\n');
+  expect(t2 && t2 !== 'exit' && t2.sel).toEqual(sel([0, 0]));
+  // Without children an empty item still comes out of its list first.
+  const lone = blocks('- a\n-\n');
+  const l2 = backspace(lone, sel([1, 0]), 'doc');
+  expect(l2 && l2 !== 'exit' && after(lone, l2)[1]).toEqual({ k: 'p', runs: [] });
+  const parent = blocks('1. a\n   1. b\n');
+  const split = after(parent, splitAt(parent, sel([0, 1])));
+  expect(split.map((x) => (x.k === 'li' ? x.depth : -1))).toEqual([0, 1, 1]);
+  expect(split[1]).toEqual({ k: 'li', depth: 1, ord: true, runs: [] });
+  // In the middle, or with no children, a sibling as before.
+  expect(after(parent, splitAt(parent, sel([1, 1]))).map((x) => (x.k === 'li' ? x.depth : -1))).toEqual([0, 1, 1]);
+  const flat = blocks('- a\n- b\n');
+  expect(after(flat, splitAt(flat, sel([0, 1]))).map((x) => (x.k === 'li' ? x.depth : -1))).toEqual([0, 0, 0]);
 });
