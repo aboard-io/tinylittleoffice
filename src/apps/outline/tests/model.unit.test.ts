@@ -304,9 +304,9 @@ test('a document goes under an item after its family, at its depth; a web addres
   expect(after(DOC, (d, v) => insertDoc(d, v, -1, 'draw\n')).split('\n').slice(-3)).toEqual(['~ Pricing -> Marketing: feeds', '~ Ops -- Product', '']);
 });
 
-test('a mind map gets the plain list; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', () => {
+test('a mind map gets the tree and its joins as cross-links; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', () => {
   const v = readOutline(parse(DOC));
-  expect(outlineToMind(v)).toBe('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n');
+  expect(outlineToMind(v)).toBe('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n');
   expect(outlineToOrg(v, { title: 'Co' })).toBe('---\ntitle: Co\nkind: org\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -- Marketing: feeds\n~ Ops -- Product\n');
   expect(outlineToNet(v)).toBe('---\nkind: net\n---\n~ Launch -> Product\n~ Product -> Pricing: sets\n~ Launch <-> Marketing\n~ Launch -- Ops: part of\n~ Launch <- Support\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n');
   expect(outlineToNet(readOutline(parse('- Alone\n- A\n  - B\n')))).toBe('---\nkind: net\n---\n- Alone\n\n~ A -- B\n');

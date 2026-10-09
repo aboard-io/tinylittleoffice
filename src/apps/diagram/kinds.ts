@@ -23,9 +23,9 @@ export const lineHint = (k: KindId): string =>
 /** What the picture does, said once under the bar. */
 export const kindHint = (k: KindId): string =>
   ({
-    mind: t('Tap empty space for a branch; tap an idea to type on it, Enter for the next; drag one onto another to put it under.'),
+    mind: t('Tap empty space for a branch; tap an idea to type on it, Enter for the next; drag one onto another to put it under; Join links two across the map.'),
     org: t('Tap empty space for a person; tap one to type "Name | Role", Enter for the next; drag one onto another to put them under.'),
-    family: t('Tap a person to type, "Name + partner | years"; Enter for the next; drag one onto another to put them under.'),
+    family: t('Tap a person to type, "Name + partner | years"; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.'),
     lanes: t('Tap in a lane to add a step there; tap a step to type on it; drag it to another lane, or onto a step to go after it.'),
     timeline: t('Tap empty space for an event, "When: what happened"; years and dates are spaced as they fell; a span is a band.'),
     venn: t('Tap inside the circles to add a thing there; tap a set\'s name to rename it; drag a thing into other circles.'),

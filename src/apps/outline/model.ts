@@ -625,8 +625,11 @@ export function outlineToOrg(v: OutlineView, head: Doc['head'] = {}): string {
   return write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'org' }, blocks: [...plainTree(v), ...edges] });
 }
 
-/** The outline as a mind map: the plain tree. */
-export const outlineToMind = (v: OutlineView, head: Doc['head'] = {}): string => write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'mind' }, blocks: plainTree(v) });
+/** The outline as a mind map: the plain tree, each join a cross-link as it was (its kind of line and its words). */
+export function outlineToMind(v: OutlineView, head: Doc['head'] = {}): string {
+  const edges: Block[] = liveLinks(v).map((l) => ({ k: 'edge', from: l.from, to: l.to, dir: l.dir, ...(l.label ? { label: l.label } : {}) }));
+  return write({ head: { ...(head.title ? { title: head.title } : {}), kind: 'mind' }, blocks: [...plainTree(v), ...edges] });
+}
 
 /**
  * The outline as OPML, what every outliner reads. A document is named by its app. An item's footnotes are outlines
