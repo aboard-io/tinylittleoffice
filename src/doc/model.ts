@@ -11,6 +11,7 @@ import { parseInline } from './tlo.ts';
 /** The header: lowercase keys, string values (title, by, created, key, sig; an app's own settings). */
 export type Head = Record<string, string>;
 
+/** A document: its header and its blocks. */
 export interface Doc {
   head: Head;
   blocks: Block[];
@@ -23,8 +24,10 @@ export interface Attrs {
   kv?: Record<string, string>;
 }
 
+/** An edge's direction. */
 export type Dir = '->' | '<-' | '<->' | '--';
 
+/** The nine kinds of block. */
 export type Block =
   | { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; runs: Run[]; a?: Attrs }
   | { k: 'p'; runs: Run[]; a?: Attrs } // its lines stay lines: '\n' inside a run's t
@@ -38,6 +41,7 @@ export type Block =
 
 /** The four kinds that hold words: h, p, li, quote. */
 export type TextBlock = Extract<Block, { runs: Run[] }>;
+/** The table kind, and the fence kind, on their own. */
 export type TableBlock = Extract<Block, { k: 'table' }>;
 export type FenceBlock = Extract<Block, { k: 'fence' }>;
 
@@ -58,7 +62,9 @@ export interface Run {
   fn?: string;
 }
 
+/** What a table's column holds. */
 export type ColType = 'text' | 'number' | 'money' | 'percent' | 'date' | 'time' | 'check' | 'url' | 'rich' | 'long' | 'icon' | 'name';
+/** A column of a table: its name and what it holds. */
 export interface Column {
   name: string;
   type: ColType;
@@ -94,7 +100,9 @@ export function normalRuns(runs: Run[]): Run[] {
 /** A document with nothing in it. */
 export const blankDoc = (): Doc => ({ head: {}, blocks: [] });
 
+/** Whether a block carries a class in its attributes. */
 export const hasClass = (b: { a?: Attrs }, c: string): boolean => !!b.a?.cls?.includes(c);
+/** A key's value among a block's attributes, or undefined. */
 export const attr = (b: { a?: Attrs }, k: string): string | undefined => b.a?.kv?.[k];
 
 /**

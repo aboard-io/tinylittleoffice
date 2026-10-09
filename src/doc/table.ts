@@ -18,10 +18,13 @@ import type { Op } from './ops.ts';
 export const ROWS = 1000;
 /** One letter a column: A to Z. */
 export const MAX_COLS = 26;
+/** The columns' letters. */
 export const COL_NAMES = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
 const CHARTS = ['bar', 'line', 'pie', 'sankey'] as const;
+/** The chart a table asks for, or none. */
 export type Chart = '' | (typeof CHARTS)[number];
 
+/** A table block as a sheet sees it. */
 export interface Table {
   cols: Column[];
   /** The rows the block holds, each `cols.length` wide. */
@@ -98,6 +101,7 @@ export function withLock(lock: Range[], g: Range, on: boolean): Range[] {
 
 /** Where a row (or column) is after some move: its new place, or null when it is gone. */
 export type Moved = (i: number) => number | null;
+/** The move that moves nothing. */
 export const stays: Moved = (i) => i;
 /** Where each row (column) is once n are put in before `at`. */
 export const movedIn = (at: number, n: number): Moved => (i) => (i >= at ? i + n : i);

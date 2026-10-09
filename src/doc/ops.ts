@@ -16,6 +16,7 @@
 import { attr, isText, normalRuns, type Attrs, type Block, type Column, type Doc, type Run, type TableBlock } from './model.ts';
 import { inHead, isLocked, lockText, MAX_COLS, movedIn, movedOut, remapLock, remapRefs, stays, tableAt, type Moved } from './table.ts';
 
+/** The eight primitive edits. */
 export type Op =
   | { op: 'head'; key: string; value?: string } // set or (undefined) remove a header key
   | { op: 'splice'; at: number; n: number; blocks: Block[] } // insert (n = 0), remove (blocks = []), replace

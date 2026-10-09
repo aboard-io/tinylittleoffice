@@ -685,10 +685,12 @@ export function refFence(ref: string): FenceBlock {
   const nl = ref.indexOf('\n');
   return { k: 'fence', lang: nl < 0 ? ref : ref.slice(0, nl), body: nl < 0 ? '' : ref.slice(nl + 1) };
 }
+/** A fence as a ref: its app, a new line, its text. */
 export const fenceRef = (b: { lang: string; body: string }): string => `${b.lang}\n${b.body}`;
 
 /* ---------- typed columns ---------- */
 
+/** Every type a column heading may name. */
 export const COL_TYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name'];
 
 /** A column heading, "Price:money", as its name and type ("Price: money" reads too; "Time: 10am" is a name). */

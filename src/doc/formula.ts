@@ -84,6 +84,7 @@ export const serialToIso = (serial: number): string => {
   return ymdString(y, m, d);
 };
 
+/** What a cell works out to: a number, words (or an error code starting with #), or nothing. */
 export type CellValue = number | string | null;
 /** A table worked out: a value for every cell of every row, and where each name points. */
 export interface Evaluated {
