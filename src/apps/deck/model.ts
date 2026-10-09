@@ -233,14 +233,28 @@ export function addSlide(doc: Doc, after: number, layout: Layout = '', blocks: B
   return { ops: [{ op: 'splice', at: s.to, n: 0, blocks: [{ k: 'hr' }, ...blocks] }], at: Math.min(after, slides.length - 1) + 1 };
 }
 
-/** Slide i taken out, with the rule beside it; the only slide is emptied instead. */
-export function removeSlide(doc: Doc, i: number): Op[] {
+/** Slides i to j taken out, with the rules beside them; every slide taken is all of them emptied instead. */
+export function removeSlide(doc: Doc, i: number, j = i): Op[] {
   const slides = slidesOf(doc);
-  const s = slides[i];
-  if (!s) return [];
-  if (slides.length === 1) return s.to > s.from ? [{ op: 'splice', at: s.from, n: s.to - s.from, blocks: [] }] : [];
-  // The rule before it goes with it (the first slide takes the rule after).
-  return i > 0 ? [{ op: 'splice', at: s.from - 1, n: s.to - s.from + 1, blocks: [] }] : [{ op: 'splice', at: s.from, n: s.to - s.from + 1, blocks: [] }];
+  const a = slides[i];
+  const b = slides[j];
+  if (!a || !b || j < i) return [];
+  if (i === 0 && j === slides.length - 1) return b.to > a.from ? [{ op: 'splice', at: a.from, n: b.to - a.from, blocks: [] }] : [];
+  // The rule before them goes with them (from the first slide, the rule after).
+  return i > 0 ? [{ op: 'splice', at: a.from - 1, n: b.to - a.from + 1, blocks: [] }] : [{ op: 'splice', at: a.from, n: b.to - a.from + 1, blocks: [] }];
+}
+
+/** The blocks of slides i to j, the rules between them kept: what a copy of them holds. */
+export const slideBlocks = (doc: Doc, i: number, j = i): Block[] => {
+  const slides = slidesOf(doc);
+  return slides[i] && slides[j] ? doc.blocks.slice(slides[i].from, slides[j].to) : [];
+};
+
+/** Slides i to j again, right after j; the index the first copy will have. */
+export function duplicateSlides(doc: Doc, i: number, j = i): { ops: Op[]; at: number } {
+  const slides = slidesOf(doc);
+  if (!slides[i] || !slides[j] || j < i) return { ops: [], at: -1 };
+  return { ops: [{ op: 'splice', at: slides[j].to, n: 0, blocks: [{ k: 'hr' }, ...slideBlocks(doc, i, j)] }], at: j + 1 };
 }
 
 /** Slide i moved to be slide j: the slides between re-laid, every block the same object (the editor redraws nothing). */

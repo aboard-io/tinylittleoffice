@@ -700,6 +700,8 @@ export default {
   // ---- the Presentation Builder ----
   'presentation': 'presentation',
   'Slides': 'Slides',
+  'Chosen slides': 'Chosen slides',
+  'Move this slide: drag it onto another': 'Move this slide: drag it onto another',
   'Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold.': 'Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold.',
 
   // The layouts, the transitions, the formats
