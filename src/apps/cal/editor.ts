@@ -595,8 +595,10 @@ export class ToCalEditor extends DocElement<CalView> {
           ${Array.from({ length: to - from }, (_, k) => {
             const day = from + k;
             const { d, wd, y, m } = dayToYmd(day);
+            // The first column is named for its month only when the next month's name is not right behind it.
+            const roomy = k === 0 && Array.from({ length: Math.ceil(80 / z) }, (_, j) => dayToYmd(day + j + 1).d).every((n) => n !== 1);
             return svg`${wd === 0 || wd === 6 ? svg`<rect class="weekend" x=${k * z} y=${HEAD} width=${z} height=${height - HEAD} />` : nothing}
-              ${d === 1 || k === 0 ? svg`<text class="month" x=${k * z + 4} y="16">${months.format(Date.UTC(y, m - 1, 1))}</text>` : nothing}
+              ${d === 1 || roomy ? svg`<text class="month" x=${k * z + 4} y="16">${months.format(Date.UTC(y, m - 1, 1))}</text>` : nothing}
               ${z >= 18 || wd === 1 ? svg`<text class="day" x=${k * z + z / 2} y="36" text-anchor="middle">${d}</text>` : nothing}
               <line class=${wd === 1 ? 'week' : 'tick'} x1=${k * z} y1=${wd === 1 ? 22 : HEAD} x2=${k * z} y2=${height} />`;
           })}

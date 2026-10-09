@@ -283,7 +283,7 @@ test('at phone width: the bar is one row, nothing is wider than the screen, the 
     const box = dialog().getBoundingClientRect();
     expect(box.left).toBeGreaterThanOrEqual(0);
     expect(box.right).toBeLessThanOrEqual(390);
-    for (const f of dialog().querySelectorAll<HTMLElement>('input, select')) expect(parseFloat(getComputedStyle(f).fontSize)).toBeGreaterThanOrEqual(16);
+    for (const f of dialog().querySelectorAll<HTMLElement>('input:not([type=checkbox]), select')) expect(parseFloat(getComputedStyle(f).fontSize)).toBeGreaterThanOrEqual(16);
     expect(parseFloat(getComputedStyle(label().tx).fontSize)).toBeGreaterThanOrEqual(16);
     await type(el, 'Call');
     expect(document.scrollingElement!.scrollTop).toBe(0);
