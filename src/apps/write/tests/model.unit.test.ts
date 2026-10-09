@@ -7,7 +7,7 @@ import { applyAll, evaluate, firstTable, formatCell, parse, write } from '../../
 import write_ from '../def.ts';
 // The registry, so a document held in the text is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
-import { duplicateBlock, insertRowAfter, moveBlock, putAfter, removeBlock, retitle, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
+import { duplicateBlock, moveBlock, putAfter, removeBlock, retitle, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
 import { templates } from '../templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
 
