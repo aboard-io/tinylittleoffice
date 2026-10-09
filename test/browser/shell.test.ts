@@ -63,3 +63,43 @@ test('an unknown app is the home page', async () => {
   const shell = await mount('#/v1/nothing/abc');
   expect(shell.querySelector('to-home')).not.toBeNull();
 });
+
+test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, the header\'s title or the note box, it leaves the document alone', async () => {
+  const shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
+  const text = shell.querySelector<ToText>('to-text')!;
+  await text.updateComplete;
+  text.focus();
+  text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
+  for (const ch of 'abc') {
+    text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: ch, bubbles: true, cancelable: true }));
+    await text.updateComplete;
+  }
+  await shell.updateComplete;
+  const doc = () => decodeDoc(location.hash.split('/')[3] ?? '');
+  expect(doc()).toBe('abc\n');
+  const z = (target: EventTarget, init: KeyboardEventInit = {}) => {
+    const ev = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true, ...init });
+    target.dispatchEvent(ev);
+    return ev;
+  };
+  // A dialog inside the editor, with a field: its own undo.
+  const dialog = document.createElement('dialog');
+  const field = document.createElement('input');
+  dialog.append(field);
+  shell.editor!.append(dialog);
+  dialog.show();
+  field.focus();
+  expect(z(field).defaultPrevented).toBe(false);
+  dialog.remove();
+  // The header's title, and an IME composing in the words.
+  expect(z(shell.querySelector('.to-title')!).defaultPrevented).toBe(false);
+  expect(z(text.tx, { isComposing: true }).defaultPrevented).toBe(false);
+  await shell.updateComplete;
+  expect(doc()).toBe('abc\n');
+  // In the words, the document's undo.
+  expect(z(text.tx).defaultPrevented).toBe(true);
+  await text.updateComplete;
+  await shell.updateComplete;
+  expect(doc()).toBe('');
+});

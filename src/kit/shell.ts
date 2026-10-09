@@ -160,9 +160,14 @@ export class ToShell extends LitElement {
 
   /* ---------- keys ---------- */
 
-  /** Undo and redo are the editor's (the kernel's history): the keys are only passed on. Mod+P prints. */
+  /**
+   * Undo and redo are the editor's (the kernel's history): the keys are only passed on, and only from the
+   * editor itself (or from nowhere, the page's body). Typed in a dialog, a popover, the header, the link or
+   * note box, or a field of the kit's own, Mod+Z is that place's own; during an IME composition it is the
+   * IME's. Mod+P prints.
+   */
   private onKey = (e: KeyboardEvent) => {
-    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.isComposing) return;
     const k = e.key.toLowerCase();
     if (k === 'p' && this.def) {
       e.preventDefault();
@@ -170,10 +175,19 @@ export class ToShell extends LitElement {
       return;
     }
     const editor = this.editor;
-    if (!editor) return;
+    if (!editor || !this.fromEditor(e, editor)) return;
     const which = k === 'z' && !e.shiftKey ? 'docundo' : (k === 'z' && e.shiftKey) || k === 'y' ? 'docredo' : '';
     if (which && !editor.dispatchEvent(new CustomEvent(which, { cancelable: true, bubbles: true }))) e.preventDefault();
   };
+
+  /** Whether a key is the editor's: typed inside it, outside every dialog, popover, box and field of the kit's own (or with nothing focused). */
+  private fromEditor(e: KeyboardEvent, editor: Element): boolean {
+    const at = e.target as Element | null;
+    if (!at || at === document.body || at === document.documentElement) return true;
+    if (!(at instanceof Element) || !editor.contains(at)) return false;
+    // An app's own fields (a sheet's cells) are the app's to answer; the kit's (class to-…) keep their own undo.
+    return !at.closest('dialog, [popover], to-dialog, to-drawer, to-link-pop, to-note-pop, .to-header') && !at.matches('input[class*="to-"], textarea[class*="to-"]');
+  }
 
   /* ---------- sharing ---------- */
 

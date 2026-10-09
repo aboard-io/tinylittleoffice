@@ -11,9 +11,18 @@
  * Three shapes. `doc`: any block, Enter splits, embeds are cards the caret
  * skips. `lines`: items and paragraphs (a slide's words), Backspace at the
  * start says `text-exit` ({dir: 'back'}). `line`: one block, Enter says
- * `text-enter`, Delete at its end says `text-exit` ({dir: 'forward'}), and
- * Select All with the line already whole says `text-selectall`: the host
- * owns what is around the line.
+ * `text-enter` ({shift}: whether it was Shift+Enter), Delete at its end says
+ * `text-exit` ({dir: 'forward'}): the host owns what is around the line. In
+ * a line or lines, Select All with the box already whole says
+ * `text-selectall` (the host takes everything). Shift+Enter is a line break
+ * in a paragraph, an item or a quote; a heading splits.
+ *
+ * Escape steps out one step per press: the link or note box closes (and
+ * the press stops there), else a range of words collapses to its focus,
+ * else `text-escape` (bubbles, cancelable) tells the host, and the key goes
+ * on to it. Alt+Up/Down moves an item with its family past its neighbour;
+ * Mod+Enter ticks a task item (in a doc or lines; a line's host decides);
+ * Tab indents an item only when it can move, else it moves the focus.
  *
  * What is not words (a table, a picture, another document, a web address
  * alone on its line) is a card: `contenteditable=false`, skipped by the caret,
@@ -36,7 +45,7 @@ import { copyData, pasteFrom } from './clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
 import { t } from './i18n.ts';
 import { UI, type IconNode } from './icons.ts';
-import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
+import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import type { ToNotePop } from './note-pop.ts';
 import './context.ts';
@@ -338,7 +347,8 @@ export class ToText extends LitElement {
   };
   private flushSel() {
     const how = this.pendingSel;
-    if (!how) return;
+    // Never a selection written under an IME: it waits for compositionend.
+    if (!how || this.composing) return;
     this.pendingSel = null;
     this.writing = true;
     const go = () => {
@@ -378,10 +388,10 @@ export class ToText extends LitElement {
    * that property alone, whether the host applies the ops in the event or
    * in a render of its own).
    */
-  private emit(ops: Op[], sel: Sel, kind?: 'type', how: 'keep' | 'focus' | null = 'keep') {
+  private emit(ops: Op[], sel: Sel, kind?: 'type', how: 'keep' | 'focus' | null = 'keep', first = true) {
     if (!ops.length) return;
     const before = this._sel;
-    if (!this.blocks.length) ops = [{ op: 'splice', at: 0, n: 0, blocks: [EMPTY] }, ...ops];
+    if (first && !this.blocks.length) ops = [{ op: 'splice', at: 0, n: 0, blocks: [EMPTY] }, ...ops];
     this._sel = sel;
     if (how) this.pendingSel = how;
     this.dispatchEvent(new CustomEvent<TextOps>('text-ops', { detail: { ops, sel, before, ...(kind ? { kind } : {}) }, bubbles: true }));
@@ -416,9 +426,10 @@ export class ToText extends LitElement {
       case 'insertParagraph':
         return this.enter(sel);
       case 'insertLineBreak': {
+        // A line break inside a paragraph, an item or a quote; a heading splits; a line tells its host, saying it was Shift.
         const [a] = ordered(sel);
-        if (this.shape === 'doc' && model[a.block].k === 'p') return this.put(sel, [{ t: '\n' }]);
-        return this.enter(sel);
+        if (this.shape !== 'line' && ['p', 'li', 'quote'].includes(model[a.block].k)) return this.put(sel, [{ t: '\n' }]);
+        return this.enter(sel, true);
       }
       case 'deleteContentBackward':
         return edit(backspace(model, sel, this.shape));
@@ -448,7 +459,12 @@ export class ToText extends LitElement {
     const model = this.model;
     if (data === ' ') {
       const s = shortcut(model, sel, this.shape);
-      if (s) return this.emit(s.ops, s.sel);
+      // Two steps: the space as typed, then the kind; an undo gives the marker back as it was written.
+      if (s) {
+        const sp = insertRuns(model, sel, [{ t: ' ', ...this.fmt }]);
+        this.emit(sp.ops, sp.sel, 'type');
+        return this.emit(s.ops, s.sel, undefined, 'keep', false);
+      }
     }
     let words = data;
     if (data === '"' || data === "'") {
@@ -471,8 +487,8 @@ export class ToText extends LitElement {
     }
     this.emit(e.ops, e.sel, 'type');
   }
-  private enter(sel: Sel) {
-    if (this.shape === 'line') return void this.dispatchEvent(new CustomEvent('text-enter', { bubbles: true }));
+  private enter(sel: Sel, shift = false) {
+    if (this.shape === 'line') return void this.dispatchEvent(new CustomEvent<{ shift: boolean }>('text-enter', { detail: { shift }, bubbles: true }));
     const e = splitAt(this.model, sel);
     this.emit(e.ops, e.sel);
   }
@@ -484,18 +500,38 @@ export class ToText extends LitElement {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (this.ownEvent(e)) return;
+    if (this.ownEvent(e) || e.isComposing || this.composing) return;
     const chip = (e.target as HTMLElement).closest?.('.fn');
     if (chip && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       return this.openNoteOf(chip as HTMLElement);
     }
-    if (e.key === 'Escape') return this.closePops();
+    if (e.key === 'Escape') return this.escape(e);
     const mod = e.metaKey || e.ctrlKey;
+    const model = this.model;
+    // Alt+Up/Down: the item, with its family, past its neighbour.
+    if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && this.shape !== 'line') {
+      const r = moveItems(model, this.current(), e.key === 'ArrowUp' ? -1 : 1);
+      if (r) {
+        e.preventDefault();
+        this.emit(r.ops, r.sel, undefined, 'focus');
+      }
+      return;
+    }
+    if (mod && !e.altKey && e.key === 'Enter' && !e.shiftKey && this.shape !== 'line') {
+      // Mod+Enter on a task item ticks it (Docs' checklist key); anywhere else it is the host's.
+      const sel = this.current();
+      const at = ordered(sel)[0].block;
+      if (this.toggleDone(at, sel)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return;
+    }
     if (mod && !e.altKey) {
       const k = e.key.toLowerCase();
-      // Select all in a line: the first press takes the line (the browser's own); with the line already whole, or empty, the host is asked for everything (`text-selectall`).
-      if (k === 'a' && this.shape === 'line' && !e.shiftKey) {
+      // Select all in a line or lines: the first press takes the box (the browser's own); with the box already whole, or empty, the host is asked for everything (`text-selectall`).
+      if (k === 'a' && this.shape !== 'doc' && !e.shiftKey) {
         const m = this.model;
         const sel = this.current();
         const [a, b] = ordered(sel);
@@ -506,21 +542,47 @@ export class ToText extends LitElement {
         }
         return;
       }
-      const cmd = k === 'b' ? 'b' : k === 'i' ? 'i' : k === 'u' ? 'u' : k === 'k' ? 'link' : null;
-      if (cmd && !(e.shiftKey && cmd !== 'link')) {
+      const cmd = e.shiftKey ? (k === 'x' ? 's' : k === 'h' ? 'h' : null) : k === 'b' ? 'b' : k === 'i' ? 'i' : k === 'u' ? 'u' : k === 'k' ? 'link' : null;
+      if (cmd) {
         e.preventDefault();
         this.exec(cmd);
       }
       return;
     }
-    if (e.key === 'Tab' && this.shape !== 'line' && !e.altKey) {
+    // Tab shifts an item that can move; otherwise it moves the focus (never trapped).
+    if (e.key === 'Tab' && this.shape !== 'line' && !e.altKey && !mod) {
       const sel = this.current();
-      if (this.model[ordered(sel)[0].block].k === 'li') {
+      const r = model[ordered(sel)[0].block].k === 'li' ? shiftItems(model, sel, e.shiftKey ? -1 : 1) : null;
+      if (r) {
         e.preventDefault();
-        this.exec(e.shiftKey ? 'outdent' : 'indent');
+        this.emit(r.ops, r.sel, undefined, 'focus');
       }
     }
   };
+  /** Escape, one step per press: a box closes; else a range collapses to its focus; else the host hears `text-escape` and the key goes on. */
+  private escape(e: KeyboardEvent) {
+    if (this.closePops()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    const sel = this._sel;
+    if (sel && !collapsed(sel)) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.sel = { anchor: sel.focus, focus: sel.focus };
+      this.bubble?.hide();
+      return;
+    }
+    this.dispatchEvent(new CustomEvent('text-escape', { bubbles: true, cancelable: true }));
+  }
+  /** A task item ticked or unticked; false when the block is no task. */
+  private toggleDone(block: number, sel: Sel | null): boolean {
+    const b = this.model[block];
+    if (b?.k !== 'li' || b.done === undefined) return false;
+    this.emit([{ op: 'splice', at: block, n: 1, blocks: [{ ...b, done: !b.done }] }], sel ?? caret(block, 0), undefined, sel ? 'keep' : null);
+    return true;
+  }
   private onClick = (e: MouseEvent) => {
     if (this.ownEvent(e)) return;
     const el = e.target as HTMLElement;
@@ -532,12 +594,12 @@ export class ToText extends LitElement {
       this.dispatchEvent(new CustomEvent<{ block: number }>('text-embed', { detail: { block }, bubbles: true }));
       return;
     }
-    // A tap on a task's box ticks it: the box is drawn in the item's left padding.
+    // A tap on a task's box ticks it: the box is drawn in the item's left padding (44px wide under a finger, text.css).
     const li = el.closest?.('li[data-done]') as HTMLElement | null;
     if (li && this.tx.contains(li) && e.clientX < li.getBoundingClientRect().left + parseFloat(getComputedStyle(li).paddingLeft)) {
       const block = this.blockEls().indexOf(li);
       const b = this.model[block];
-      if (b?.k !== 'li') return;
+      if (b?.k !== 'li' || b.done === undefined) return;
       e.preventDefault();
       this.emit([{ op: 'splice', at: block, n: 1, blocks: [{ ...b, done: !b.done }] }], this._sel ?? caret(block, 0), undefined, null);
     }
@@ -586,7 +648,11 @@ export class ToText extends LitElement {
     const sel = this.readSel() ?? caret(i, runLength(runs));
     this.fresh = i;
     if (op) this.emit([op], sel, 'type');
-    else this._sel = sel;
+    else {
+      this._sel = sel;
+      // A selection the host asked for during the composition is written now.
+      if (this.pendingSel && !this.isUpdatePending) this.flushSel();
+    }
   };
 
   /* ---------- commands ---------- */
@@ -648,6 +714,7 @@ export class ToText extends LitElement {
       case 'h1':
       case 'h2':
       case 'p':
+      case 'quote':
       case 'ul':
       case 'ol':
         return go(setKind(model, sel, cmd));
@@ -723,10 +790,13 @@ export class ToText extends LitElement {
     if (!hit.fn.trim()) this.emit([{ op: 'text', at: n.block, from: hit.offset, to: hit.offset + 1, runs: [] }], caret(n.block, hit.offset), undefined, 'focus');
     else this.sel = caret(n.block, hit.offset + 1);
   };
-  private closePops() {
+  /** The link and note boxes closed, and the bubble; whether a box was open (an Escape that closed one goes no further). */
+  private closePops(): boolean {
+    const open = !!this.notePop?.isOpen || !!this.linkPop?.shown;
     this.notePop?.close();
     this.linkPop?.hide();
     this.bubble?.hide();
+    return open;
   }
   /** Whether the selection is whole blocks of words that can be a list (a paragraph, an item, a heading). */
   private wholeBlocks(sel: Sel): boolean {
@@ -740,7 +810,8 @@ export class ToText extends LitElement {
   private syncBubble() {
     const bub = this.bubble;
     if (!bub) return;
-    const sel = this._sel;
+    // Held within the blocks as they are now: a host may have taken blocks away under a selection it has not moved yet.
+    const sel = this._sel && clampSel(this.model, this._sel);
     const a = document.activeElement;
     const focused = this.hasFocus() || (!!a && bub.contains(a));
     // A DOM selection inside a card is the card's own (a grid's cell, a web thing's words), not words of ours.
@@ -753,8 +824,8 @@ export class ToText extends LitElement {
       mark('b', t('Bold'), UI.bold, 'Mod+B'),
       mark('i', t('Italic'), UI.italic, 'Mod+I'),
       mark('u', t('Underline'), UI.underline, 'Mod+U'),
-      mark('s', t('Strikethrough'), UI.strike),
-      mark('h', t('Highlight'), UI.highlight),
+      mark('s', t('Strikethrough'), UI.strike, 'Mod+Shift+X'),
+      mark('h', t('Highlight'), UI.highlight, 'Mod+Shift+H'),
       SEP,
       { label: t('Link'), icon: UI.link, keys: 'Mod+K', pressed: !!m.href, does: () => this.exec('link') },
       { label: t('Footnote'), icon: UI.footnote, does: () => this.exec('fn') },
@@ -797,6 +868,12 @@ export class ToText extends LitElement {
   private onLinkRemove = (e: Event) => {
     e.stopPropagation();
     this.exec('unlink');
+  };
+  /** The address box let go of (Escape, a tap outside): the focus and the selection come back to the words. */
+  private onLinkCancel = (e: Event) => {
+    e.stopPropagation();
+    if (this._sel) this.sel = this._sel;
+    else this.focus();
   };
   /** Events of the editors inside the popovers stay there. */
   private swallow = (e: Event) => e.stopPropagation();
@@ -923,8 +1000,8 @@ export class ToText extends LitElement {
         @cut=${this.onCopy}
         @paste=${this.onPaste}
       >${repeat(model, keyAt, (b, i) => this.renderBlock(b, i, numbers(b), next))}</div>
-      <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @text-selectall=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
-      <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove}></to-link-pop>
+      <to-note-pop @note-change=${this.onNoteChange} @note-remove=${this.onNoteRemove} @note-close=${this.onNoteClose} @text-ops=${this.swallow} @text-select=${this.swallow} @text-enter=${this.swallow} @text-exit=${this.swallow} @text-selectall=${this.swallow} @text-escape=${this.swallow} @docundo=${this.swallow} @docredo=${this.swallow}></to-note-pop>
+      <to-link-pop @link-set=${this.onLinkSet} @link-remove=${this.onLinkRemove} @link-cancel=${this.onLinkCancel}></to-link-pop>
       <to-context class="tx-bubble" .label=${t('Format')}></to-context>`;
   }
 }

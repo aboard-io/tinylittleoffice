@@ -18,6 +18,8 @@
     outline: none;
     caret-color: var(--to-accent);
     -webkit-tap-highlight-color: transparent;
+    /* A double tap selects a word; it never zooms the page. */
+    touch-action: manipulation;
   }
   to-text .tx.blank::before {
     content: attr(data-placeholder);
@@ -81,6 +83,16 @@
   }
   to-text .tx li[data-done='true'] {
     color: var(--to-ink-3);
+  }
+  /* Under a finger a task's box is a 44px target: the padding it is tapped in (text.ts onClick) is that wide and tall. */
+  @media (pointer: coarse) {
+    to-text .tx li[data-done] {
+      padding-left: calc(44px + var(--d, 0) * 1.5em);
+      min-height: 44px;
+    }
+    to-text .tx li[data-done]::before {
+      left: calc(var(--d, 0) * 1.5em + 12px);
+    }
   }
   to-text .tx blockquote {
     margin-left: 0;
