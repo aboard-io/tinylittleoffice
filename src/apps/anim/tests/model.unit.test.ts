@@ -1,7 +1,7 @@
 // Motion as a view of the document, and each command as the ops it produces: under node, no DOM.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { drawingOf, duplicateShape, follow, keysOf, loosen, readAnim, redraw, removeKey, removeShape, restKey, setLength, stateAt, withKey } from '../model.ts';
+import { drawingOf, duplicateShape, duplicateShapes, follow, keysOf, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShape, removeShapes, restKey, room, setLength, stateAt, withKey, withKeys } from '../model.ts';
 import { animFrames, animPage, animToSvg, frameSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -160,4 +160,46 @@ test('the definition: Draw hands its drawing over, and the hand-off is live now 
     expect(v.alt).not.toBe('');
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
   }
+});
+
+test('withKeys: the shapes in hand keyed in one splice; a shape keyed first at a later moment starts where it was drawn', () => {
+  const out = after(LIFT, (d) => withKeys(d, [{ i: 0, key: { ...restKey(5), dx: 8 } }, { i: 1, key: { ...restKey(5), dy: 16 } }]));
+  expect(keysTable(out)).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 5,8,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 5,0,16,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(withKeys(parse(LIFT), [{ i: 0, key: { ...restKey(5), dx: 8 } }]).filter((o) => o.op === 'splice')).toHaveLength(1);
+  const fresh = after(DRAWING, (d) => withKeys(d, [{ i: 0, key: { ...restKey(6), dx: 24 } }]));
+  expect(keysTable(fresh)).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 6,24,0,0,1,0\n');
+  // At the start, no second key.
+  expect(keysTable(after(DRAWING, (d) => withKeys(d, [{ i: 0, key: { ...restKey(0), dx: 24 } }])))).toBe('Shape | Keys\n--- | ---\n0 | 0,24,0,0,1,0\n');
+  // The room a shape has on the stage: the Browser box is at (32, 48), 128 by 64.
+  expect(room(readAnim(parse(DRAWING)), 0)).toEqual([-32, 640 - 32 - 128, -48, 400 - 48 - 64]);
+});
+
+test('removeShapes and duplicateShapes: several shapes at once, the keys following theirs', () => {
+  const gone = after(LIFT, (d) => removeShapes(d, [1, 0]));
+  expect(gone).not.toContain('rocket');
+  expect(gone).not.toContain('Lift off');
+  expect(gone).not.toContain('Shape | Keys');
+  const { ops, sel } = duplicateShapes(parse(LIFT), [0, 1]);
+  expect(sel).toEqual([2, 3]);
+  const two = write(applyAll(parse(LIFT), ops));
+  expect(keysTable(two)).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n2 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n3 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  // A join has no copy.
+  expect(duplicateShapes(parse(DRAWING), [2]).sel).toEqual([]);
+});
+
+test('motionOf and pasteMotion: the shapes in hand travel with their keys, and come back beside themselves, moving as they did', () => {
+  const clip = motionOf(parse(LIFT), [1])!;
+  expect(write(clip)).toBe('---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  // A join goes only with both its ends.
+  expect(motionOf(parse(DRAWING), [0, 2])!.blocks[0]).toMatchObject({ rows: [['o', '4', '6', '16', '8', '1b', 'Browser']] });
+  expect(write(motionOf(parse(DRAWING), [0, 1, 2])!)).toContain('\nk | 0 | 1 | 0 | 0 | 0 | asks\n');
+  const out = after(LIFT, (d) => pasteMotion(d, clip).ops);
+  expect(out).toContain('\ni | 8 | 36 | 8 | 8 | 0b | rocket\ni | 9 | 37 | 8 | 8 | 0b | rocket\n');
+  expect(keysTable(out)).toContain('\n2 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(pasteMotion(parse(LIFT), clip).sel).toEqual([2]);
+  // Into a shorter motion, the keys past its end are left out; a bare drawing pastes with no keys.
+  const short = after(LIFT.replace('frames: 24', 'frames: 12'), (d) => pasteMotion(d, clip).ops);
+  expect(keysTable(short)).toContain('\n2 | 0,0,0,0,1,0\n');
+  expect(after(DRAWING, (d) => pasteMotion(d, parse(DRAWING)).ops)).not.toContain('Shape | Keys');
+  expect(pasteMotion(parse(LIFT), parse('just words\n'))).toEqual({ ops: [], sel: [] });
 });

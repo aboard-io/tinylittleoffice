@@ -3,7 +3,7 @@
 import { expect, test } from 'vitest';
 import { html, render } from 'lit';
 import type { Doc, Op } from '../../src/doc/index.ts';
-import { DocElement, firstAt, type Entry } from '../../src/kit/element.ts';
+import { DocElement, firstAt, type DocChange, type Entry } from '../../src/kit/element.ts';
 import '../../src/styles.css';
 
 class Probe extends DocElement<Doc> {
@@ -50,4 +50,18 @@ test('an edit carries the host\'s mark to undone(); firstAt is the lowest block 
   expect(el.heard[1]).toEqual({ mark: { block: 2, offset: 1 }, redo: true, first: 1 });
   expect(firstAt({ ops: [{ op: 'head', key: 'title', value: 'T' }] })).toBe(-1);
   expect(firstAt({ ops: [{ op: 'move', at: 4, n: 1, to: 2 }] })).toBe(2);
+});
+
+test('a docchange carries the edit\'s burst key, so a host holding the editor keeps its bursts; an undo carries none', async () => {
+  document.body.innerHTML = '';
+  const host = document.body.appendChild(document.createElement('div'));
+  render(html`<to-probe .value=${'a\n'}></to-probe>`, host);
+  const el = host.querySelector<Probe>('to-probe')!;
+  await el.updateComplete;
+  const keys: (string | undefined)[] = [];
+  el.addEventListener('docchange', (e) => keys.push((e as DocChange).key));
+  el.change([{ op: 'text', at: 0, from: 1, to: 1, runs: [{ t: 'b' }] }], 'type:0');
+  el.change([{ op: 'text', at: 0, from: 0, to: 0, runs: [{ t: 'c' }] }]);
+  el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
+  expect(keys).toEqual(['type:0', undefined, undefined]);
 });

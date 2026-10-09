@@ -29,7 +29,7 @@
  * and the background tile are `head` ops. In every case the keys follow their shapes.
  */
 import { applyAll, column, columnsOf, plainText, type Block, type Doc, type Op, type Run, type TableBlock } from '../../doc/index.ts';
-import { duplicate as drawDuplicate, readDrawing, removeShape as drawRemove, isLink, ptsOf, ptsText, shapeCells, H, W, type DrawView, type Shape } from '../draw/model.ts';
+import { bounds, duplicate as drawDuplicate, readDrawing, removeShape as drawRemove, isLink, pasteShapes, ptsOf, ptsText, shapeCells, shapesTable, H, W, type DrawView, type Shape } from '../draw/model.ts';
 
 export const DEFAULT_FRAMES = 24;
 export const MAX_FRAMES = 120;
@@ -214,6 +214,31 @@ export function withKey(doc: Doc, i: number, key: Key): Op[] {
   return keys.length ? [...headOps(doc, v.frames, v.fps), ...keys] : [];
 }
 
+/**
+ * Several shapes keyed at once, each at its own key's frame, as one splice of the keys table: what a drag, a
+ * nudge, K, an effect or a slider does to the shapes in hand. A shape keyed for the first time at a later
+ * moment gets a key at the start too, where it was drawn, so it travels from there (its corners as drawn,
+ * when its corners are what is keyed).
+ */
+export function withKeys(doc: Doc, list: { i: number; key: Key }[]): Op[] {
+  const v = readAnim(doc);
+  let keys = v.keys;
+  for (const { i, key } of list) {
+    const s = v.shapes[i];
+    if (!s) continue;
+    if (!keys[i]?.length && key.t > 0) keys = keysWith({ ...v, keys }, i, key.pts ? { ...restKey(0), pts: s.pts } : restKey(0));
+    keys = keysWith({ ...v, keys }, i, key);
+  }
+  const ops = setKeys(doc, keys);
+  return ops.length ? [...headOps(doc, v.frames, v.fps), ...ops] : [];
+}
+
+/** How far shape i may go from where it was drawn and stay on the stage: [min dx, max dx, min dy, max dy]. */
+export function room(anim: AnimView, i: number): [number, number, number, number] {
+  const [x, y, w, h] = bounds(anim.shapes[i], anim.shapes);
+  return [-x, W - x - w, -y, H - y - h];
+}
+
 /** Shape i's key at frame t taken away. */
 export function removeKey(doc: Doc, i: number, t: number): Op[] {
   const v = readAnim(doc);
@@ -272,6 +297,78 @@ export function duplicateShape(doc: Doc, i: number): Op[] {
   if (!ops.length) return [];
   const after = applyAll(doc, ops);
   return [...ops, ...setKeys(after, [...v.keys, (v.keys[i] ?? []).map((k) => ({ ...k }))])];
+}
+
+/** Several shapes taken out, the last first, each with the joins to it, and the keys of the rest kept with their shapes. */
+export function removeShapes(doc: Doc, list: number[]): Op[] {
+  const ops: Op[] = [];
+  let now = doc;
+  for (const i of [...new Set(list)].sort((a, b) => b - a)) {
+    const step = removeShape(now, i);
+    ops.push(...step);
+    now = applyAll(now, step);
+  }
+  return ops;
+}
+
+/** Copies of several shapes, each moving as its own does; `sel` the copies' numbers. A join has no copy. */
+export function duplicateShapes(doc: Doc, list: number[]): { ops: Op[]; sel: number[] } {
+  const ops: Op[] = [];
+  const sel: number[] = [];
+  let now = doc;
+  for (const i of [...new Set(list)].sort((a, b) => a - b)) {
+    const step = duplicateShape(now, i);
+    if (!step.length) continue;
+    ops.push(...step);
+    now = applyAll(now, step);
+    sel.push(readDrawing(now).shapes.length - 1);
+  }
+  return { ops, sel };
+}
+
+/** Which of these shapes stay when they are a drawing of their own: every shape, and the joins whose two ends are there. */
+function keptOf(all: Shape[], list: number[]): number[] {
+  const order = [...new Set(list)].filter((i) => all[i]).sort((a, b) => a - b);
+  const there = (n: number) => order.includes(n) && !isLink(all[n].k);
+  return order.filter((i) => !isLink(all[i].k) || (there(all[i].x) && there(all[i].y) && all[i].x !== all[i].y));
+}
+
+/**
+ * Shapes in hand as a motion of their own, for the clipboard: their table (the joins among them renumbered),
+ * their keys with them, the length and the speed. Pasted into the Drawing Tool it is their drawing; into a
+ * motion, they move as they did.
+ */
+export function motionOf(doc: Doc, list: number[]): Doc | null {
+  const v = readAnim(doc);
+  const kept = keptOf(v.shapes, list);
+  if (!kept.length) return null;
+  const now = new Map(kept.map((old, n) => [old, n]));
+  const shapes = kept.map((i) => (isLink(v.shapes[i].k) ? { ...v.shapes[i], x: now.get(v.shapes[i].x)!, y: now.get(v.shapes[i].y)! } : v.shapes[i]));
+  const keys = keysBlock(kept.map((i) => v.keys[i] ?? []));
+  return { head: { frames: String(v.frames), fps: String(v.fps) }, blocks: keys ? [shapesTable(shapes), keys] : [shapesTable(shapes)] };
+}
+
+/**
+ * A motion (or a drawing) pasted in: its shapes added beside where they were (Draw's paste) and its keys
+ * following them, those past this motion's end left out. `sel` the shapes pasted, joins aside; [] when there
+ * were none.
+ */
+export function pasteMotion(doc: Doc, pasted: Doc): { ops: Op[]; sel: number[] } {
+  const from = readAnim(pasted);
+  const kept = keptOf(from.shapes, from.shapes.map((_, i) => i));
+  if (!kept.length) return { ops: [], sel: [] };
+  const now = new Map(kept.map((old, n) => [old, n]));
+  const shapes = kept.map((i) => (isLink(from.shapes[i].k) ? { ...from.shapes[i], x: now.get(from.shapes[i].x)!, y: now.get(from.shapes[i].y)! } : from.shapes[i]));
+  const v = readAnim(doc);
+  const base = v.shapes.length;
+  const { ops } = pasteShapes(doc, shapes);
+  if (!ops.length) return { ops: [], sel: [] };
+  const after = applyAll(doc, ops);
+  const keys = [...readAnim(after).shapes.map((_, j) => v.keys[j] ?? [])];
+  kept.forEach((old, n) => (keys[base + n] = (from.keys[old] ?? []).filter((k) => k.t < v.frames)));
+  const moving = keys.some((ks) => ks.length);
+  const keyOps = setKeys(after, keys);
+  return { ops: [...ops, ...(moving && keyOps.length ? headOps(after, v.frames, v.fps) : []), ...keyOps], sel: shapes.flatMap((s, n) => (isLink(s.k) ? [] : [base + n])) };
 }
 
 /** The drawing alone, as Draw's editor is given it in Draw mode: its alt, its tile and its table. */
