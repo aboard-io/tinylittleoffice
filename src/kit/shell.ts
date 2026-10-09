@@ -476,14 +476,16 @@ export class ToShell extends LitElement {
       <ul class="to-kept">${kept.map((l) => html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${t('Expires {when}', { when: new Date(l.expires).toLocaleString(lang) })}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`)}</ul>`;
   }
 
-  /** The Display Link: the pages one under another, to read or print; a line with the title and Edit above them. */
+  /** The Display Link: the pages one under another, to read or print (a website: the site itself, as a visitor has it); a line with the title and Edit above them. */
   private renderDisplay(def: AppDef) {
     const { payload } = parseHash(location.hash);
     return html`<header class="to-display-head">
         <h1 class="to-display-title">${this.docTitle}</h1>
         <a class="to-btn primary to-display-edit" href=${routeHash(def.id, payload, '', this.owned)}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a>
       </header>
-      <main class="to-display">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</main>
+      <main class="to-display">${def.page
+        ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${def.page(this.doc, `${location.origin}${location.pathname}`)}></iframe>`
+        : def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(pageSvg(p))}</div>`)}</main>
       <to-toast></to-toast>`;
   }
 
