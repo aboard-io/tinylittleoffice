@@ -1,6 +1,6 @@
-// Where a link fits: the costs the services charge.
+// Where a link fits: the costs the services charge, and the one line the Share dialog says it in.
 import { test, expect } from 'vitest';
-import { blueskyCost, roomFor, roomRows, shortLinkLength, TARGETS } from '../src/kit/limits.ts';
+import { blueskyCost, fitLine, roomFor, TARGETS } from '../src/kit/limits.ts';
 
 test('Bluesky counts the host and sixteen characters of the rest', () => {
   expect(blueskyCost('https://tinylittleoffice.com/')).toBe('tinylittleoffice.com'.length);
@@ -15,20 +15,29 @@ test('every target reports what is used and what is left', () => {
   const sms = rooms.find((r) => r.target.id === 'sms')!;
   expect(sms.used).toBe(url.length);
   expect(sms.left).toBeLessThan(0);
-  const rows = roomRows(rooms, 'en-US');
-  expect(rows.find((r) => r.name === 'Text message')!.over).toBe(true);
-  expect(rows.find((r) => r.name === 'Mastodon')!.used).toBe('23 (any length)');
-  expect(rows.find((r) => r.name === 'Any browser')!.left).toBe((2048 - url.length).toLocaleString('en-US'));
+  expect(rooms.find((r) => r.target.id === 'mastodon')!.used).toBe(23);
+  expect(rooms.find((r) => r.target.id === 'link')!.left).toBe(2048 - url.length);
 });
 
-test('the shortener is one of the rooms, and a short link has a known length of its own', () => {
+test('the shortener is one of the rooms', () => {
   const url = 'https://tinylittleoffice.com/#/v1/text/' + 'y'.repeat(200);
   const short = roomFor(url).find((r) => r.target.id === 'short')!;
   expect(short.target.max).toBe(16 * 1024);
   expect(short.used).toBe(Math.ceil(((url.length + 16) * 4) / 3));
   expect(short.left).toBeGreaterThan(15_000);
-  expect(roomRows([short], 'en-US')[0].name).toBe('Short link');
-  // The service's address, seven letters, "#" and a 43-character key; the owner's adds ".<o>".
-  expect(shortLinkLength()).toBe('https://tinier.tinylittleoffice.com/'.length + 7 + 1 + 43);
-  expect(shortLinkLength(true)).toBe(shortLinkLength() + 44);
+});
+
+test('one line: fits in a text message, or too long for the first place, from the roomiest down, it does not fit', () => {
+  const at = (n: number) => 'https://tinylittleoffice.com/#/v1/text/'.padEnd(n, 'y');
+  expect(fitLine(at(120))).toBe('This link: 120 characters, fits in a text message');
+  expect(fitLine(at(400))).toBe('This link: 400 characters, too long for a text message');
+  expect(fitLine(at(700))).toBe('This link: 700 characters, too long for a small NFC sticker');
+  expect(fitLine(at(1240))).toBe('This link: 1,240 characters, too long for an NFC sticker');
+  expect(fitLine(at(2010))).toBe('This link: 2,010 characters, too long for a Discord message');
+  expect(fitLine(at(2500))).toBe('This link: 2,500 characters, too long for some browsers');
+  expect(fitLine(at(3500))).toBe('This link: 3,500 characters, too long for a QR code');
+  expect(fitLine(at(5000))).toBe('This link: 5,000 characters, too long for a Telegram message');
+  // What the shortener holds is the ciphertext, a third longer than the link: 12,273 characters is past it.
+  expect(fitLine(at(12_272))).toMatch(/too long for a Telegram message$/);
+  expect(fitLine(at(12_273))).toBe('This link: 12,273 characters, too long for a short link');
 });

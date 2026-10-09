@@ -26,6 +26,37 @@ export const EXPIRIES: { seconds: number; name: () => string }[] = [
   { seconds: 365 * 86400, name: () => t('A year') },
 ];
 
+/** What a short link lives for unless the person chose otherwise (and Saved remembers): a week. */
+export const DEFAULT_TTL = 7 * 86400;
+
+const HOUR = 3600_000, DAY = 24 * HOUR;
+/** How long a short link has left, in the largest unit that says it, and how urgently: over a week, within one, the last day. */
+export interface Left {
+  n: number;
+  unit: 'day' | 'hour' | 'minute';
+  urgency: 'ok' | 'soon' | 'last';
+}
+export function timeLeft(expires: number, now = Date.now()): Left {
+  const ms = Math.max(0, expires - now);
+  if (ms >= DAY) {
+    const n = Math.round(ms / DAY);
+    return { n, unit: 'day', urgency: n >= 7 ? 'ok' : 'soon' };
+  }
+  if (ms >= HOUR) return { n: Math.round(ms / HOUR), unit: 'hour', urgency: 'last' };
+  return { n: Math.max(1, Math.round(ms / 60_000)), unit: 'minute', urgency: 'last' };
+}
+/** "This link expires in 12 days": the arrival banner's words. */
+export function expiresSentence(expires: number, now = Date.now()): string {
+  const { n, unit } = timeLeft(expires, now);
+  return unit === 'day' ? t('This link expires in {n|# day|# days}', { n }) : unit === 'hour' ? t('This link expires in {n|# hour|# hours}', { n }) : t('This link expires in {n|# minute|# minutes}', { n });
+}
+/** "Expires in 7 days (16 October)": the Share dialog's words under a short link. */
+export function expiresLine(expires: number, now = Date.now(), lang?: string): string {
+  const { n, unit } = timeLeft(expires, now);
+  const date = new Date(expires).toLocaleDateString(lang || undefined, { day: 'numeric', month: 'long' });
+  return unit === 'day' ? t('Expires in {n|# day|# days} ({date})', { n, date }) : unit === 'hour' ? t('Expires in {n|# hour|# hours} ({date})', { n, date }) : t('Expires in {n|# minute|# minutes} ({date})', { n, date });
+}
+
 export interface Shortened {
   /** The public link: opens the latest version. */
   short: string;

@@ -1,7 +1,7 @@
 // The short-link client against the shortener itself, in one process: fetch is the Worker's handle().
 import { test, expect, vi, afterEach } from 'vitest';
 import { handle } from '../tinier/tinier.ts';
-import { forget, ownerHash, ownerLink, publicLink, shortCost, shorten, shortLink, unshorten, update } from '../src/kit/short.ts';
+import { expiresLine, expiresSentence, forget, ownerHash, ownerLink, publicLink, shortCost, shorten, shortLink, timeLeft, unshorten, update } from '../src/kit/short.ts';
 import { MemStore } from './memstore.ts';
 
 const AT = 'https://tinier.test/';
@@ -90,4 +90,21 @@ test('update and forget with the wrong o fail as a missing link does; the brake 
   serve(store, async () => false);
   await expect(shorten(LONG, 3600, AT)).rejects.toThrow('Too many short links from here this hour.');
   await expect(update(made.owned, LONG, undefined, AT)).rejects.toThrow('Too many short links from here this hour.');
+});
+
+test('how long a short link has left: days over a week are green, within a week amber, the last day red', () => {
+  const now = Date.UTC(2026, 9, 9, 12);
+  const day = 86_400_000, hour = 3_600_000;
+  expect(timeLeft(now + 12 * day, now)).toEqual({ n: 12, unit: 'day', urgency: 'ok' });
+  expect(timeLeft(now + 7 * day - 1000, now)).toEqual({ n: 7, unit: 'day', urgency: 'ok' });
+  expect(timeLeft(now + 3 * day, now)).toEqual({ n: 3, unit: 'day', urgency: 'soon' });
+  expect(timeLeft(now + day, now)).toEqual({ n: 1, unit: 'day', urgency: 'soon' });
+  expect(timeLeft(now + 3 * hour, now)).toEqual({ n: 3, unit: 'hour', urgency: 'last' });
+  expect(timeLeft(now + 20 * 60_000, now)).toEqual({ n: 20, unit: 'minute', urgency: 'last' });
+  expect(timeLeft(now - 1, now)).toEqual({ n: 1, unit: 'minute', urgency: 'last' });
+  expect(expiresSentence(now + 12 * day, now)).toBe('This link expires in 12 days');
+  expect(expiresSentence(now + day, now)).toBe('This link expires in 1 day');
+  expect(expiresSentence(now + 3 * hour, now)).toBe('This link expires in 3 hours');
+  expect(expiresLine(now + 7 * day, now, 'en-GB')).toBe('Expires in 7 days (16 October)');
+  expect(expiresLine(now + hour, now, 'en-GB')).toBe('Expires in 1 hour (9 October)');
 });
