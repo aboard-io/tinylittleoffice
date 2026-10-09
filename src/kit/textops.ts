@@ -220,6 +220,8 @@ export function backspace(blocks: Block[], sel: Sel, shape: Shape): Edit | 'exit
   const { block, offset } = sel.anchor;
   const cur = text(blocks[block]);
   if (offset > 0) return { ops: [{ op: 'text', at: block, from: offset - 1, to: offset, runs: [] }], sel: caret(block, offset - 1) };
+  // A line-shaped editor owns one block: at its start the host decides (an outline takes an empty item away), whatever the block's kind.
+  if (shape === 'line') return 'exit';
   if (cur.k === 'li') return { ops: [{ op: 'splice', at: block, n: 1, blocks: [unlist(cur)] }], sel };
   if (block === 0) return shape === 'doc' ? null : 'exit';
   const prev = blocks[block - 1];

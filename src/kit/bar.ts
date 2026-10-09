@@ -54,6 +54,8 @@ export interface BtnOpts {
   keep?: boolean;
 }
 
+// Cancelled on mousedown, not pointerdown: a tap in WebKit whose pointerdown is cancelled fires no click at all, while
+// cancelling the compatibility mousedown (which is what would move the focus) still lets the click through.
 const keepFocus = (e: Event) => e.preventDefault();
 
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -64,8 +66,8 @@ const tip = (o: BtnOpts) => (o.keys ? `${o.label} (${keysText(o.keys)})` : o.lab
 
 /** A button with its words on it, and an icon before them if it has one. */
 export const btn = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys ? tip(o) : nothing} @pointerdown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
+  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys ? tip(o) : nothing} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
 
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @pointerdown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+  html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @mousedown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;

@@ -1,0 +1,395 @@
+/* Outline: a row is its bullet and its words, every item at a depth lined up, each level 22px further in.
+   What acts on a row (the drag handle, the fold arrow) sits in a gutter to the left of the bullet, so it never
+   moves the words; the bullet itself opens what can be said of the line. Type never under 16px. */
+@layer apps {
+  to-outline-editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .ol {
+    --ol-step: 22px;
+    --ol-row: 36px;
+    padding: 8px 8px 20px 44px;
+    max-width: 820px;
+  }
+  .ol-row {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    min-height: var(--ol-row);
+    padding-left: calc(var(--d, 0) * var(--ol-step));
+    border-radius: 6px;
+  }
+  .ol-row.sel {
+    background: var(--to-surface-2);
+  }
+
+  /* The gutter: drag handle and fold arrow, out to the left of the bullet. */
+  .ol-gutter {
+    position: absolute;
+    top: 0;
+    left: calc(var(--d, 0) * var(--ol-step) - 44px);
+    width: 44px;
+    height: var(--ol-row);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .ol-handle,
+  .ol-fold {
+    width: 22px;
+    height: var(--ol-row);
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    padding: 0;
+    background: none;
+    color: var(--to-ink-3);
+    border-radius: 5px;
+    cursor: pointer;
+    /* Shown where they are wanted: on the row under the pointer or being typed in; a folded item always shows its arrow. */
+    opacity: 0;
+  }
+  .ol-handle {
+    cursor: grab;
+  }
+  .ol-row:hover .ol-handle,
+  .ol-row:hover .ol-fold,
+  .ol-row.sel .ol-handle,
+  .ol-row.sel .ol-fold,
+  .ol-row.shut .ol-fold,
+  .ol-handle:focus-visible,
+  .ol-fold:focus-visible {
+    opacity: 1;
+  }
+  .ol-fold:hover,
+  .ol-handle:hover {
+    background: var(--to-surface-2);
+    color: var(--to-ink);
+  }
+
+  /* The bullet: the line to the parent (a dot, or an arrow which way it points); tapped, it turns. */
+  .ol-bullet {
+    position: relative;
+    flex: 0 0 var(--ol-step);
+    height: var(--ol-row);
+    display: grid;
+    place-items: center;
+  }
+  .ol-kind {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    padding: 0;
+    background: none;
+    border-radius: 50%;
+    color: var(--to-ink-3);
+    cursor: pointer;
+  }
+  button.ol-kind:hover {
+    background: var(--to-surface-2);
+    color: var(--to-ink);
+  }
+  .ol-kind span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    display: block;
+  }
+  .ol-kind.root {
+    cursor: default;
+    color: var(--to-accent);
+  }
+  .ol-kind.root span {
+    width: 7px;
+    height: 7px;
+  }
+  .ol-kind:not([data-dir='--']):not(.root) {
+    color: var(--to-accent);
+  }
+  /* Folded: a halo round the bullet says there is more inside. */
+  .ol-row.shut .ol-kind span,
+  .ol-row.shut .ol-kind svg {
+    box-shadow: 0 0 0 4px var(--to-border);
+    border-radius: 50%;
+  }
+
+  /* A line's name, once it has one: a chip before the words. */
+  .ol-label {
+    flex-shrink: 0;
+    align-self: center;
+    margin: 0 2px 0 4px;
+    font: inherit;
+    font-size: 12px;
+    border-radius: var(--to-radius-pill);
+    max-width: 12em;
+    padding: 1px 8px;
+    border: 0;
+    background: var(--to-accent-soft);
+    color: var(--to-accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  /* The shared menu's own button is never shown: it opens beside the bullet tapped. */
+  .ol-line-menu > button {
+    display: none;
+  }
+
+  /* The words: the row's editor, its item drawn bare (the bullet is the row's). */
+  .ol-row to-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: center;
+  }
+  .ol-row to-text .tx {
+    padding: 6px 6px 6px 4px;
+    font-size: 16px;
+    line-height: 24px;
+    min-height: var(--ol-row);
+    box-sizing: border-box;
+  }
+  .ol-row to-text .tx li {
+    padding-left: 0;
+  }
+  .ol-row to-text .tx li::before {
+    content: none;
+  }
+  .ol-row to-text .tx h1,
+  .ol-row to-text .tx h2,
+  .ol-row to-text .tx h3,
+  .ol-row to-text .tx h4 {
+    font: inherit;
+  }
+  .ol-row[aria-level='1'] to-text .tx {
+    font-weight: 600;
+  }
+  .ol-row to-text .tx.blank::before {
+    inset: 6px auto auto 4px;
+  }
+
+  /* Another document under an item: a card with its app, its first line, a way out and a way to take it away. */
+  .ol-doc {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 520px;
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 4px 4px 12px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface-2);
+    color: var(--to-ink-2);
+    font-size: 14px;
+  }
+  .ol-doc:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+  .ol-doc-kind {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--to-ink);
+  }
+  .ol-doc-gist {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ol-count {
+    align-self: center;
+    font-size: 11px;
+    margin-right: 6px;
+    color: var(--to-ink-3);
+  }
+  .ol-kind:focus-visible,
+  .ol-label:focus-visible,
+  .ol-crumbs button:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+
+  /* Where a drag would land: a line under the row, or stepped in. */
+  .ol-row.drop-after::after,
+  .ol-row.drop-under::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--d, 0) * var(--ol-step) + var(--ol-step));
+    right: 8px;
+    bottom: -1px;
+    height: 2px;
+    background: var(--to-accent);
+    border-radius: 1px;
+  }
+  .ol-row.drop-under::after {
+    left: calc((var(--d, 0) + 1) * var(--ol-step) + var(--ol-step));
+  }
+  /* The space under the last item: a tap there starts the next one. */
+  .ol-below {
+    height: 44px;
+    cursor: text;
+  }
+
+  /* One line under the bar while connecting; nothing else moves. */
+  .ol-hint {
+    margin: 4px 0 0;
+    padding: 0 4px;
+  }
+
+  /* Zoomed in: where, as a trail back out. */
+  .ol-crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 8px 0 44px;
+    font-size: 14px;
+    color: var(--to-ink-3);
+  }
+  .ol-crumbs button {
+    border: 0;
+    background: none;
+    color: var(--to-accent);
+    font: inherit;
+    cursor: pointer;
+    padding: 4px;
+    min-height: 32px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ol-crumbs button[aria-current='true'] {
+    color: var(--to-ink);
+    font-weight: 600;
+  }
+
+  /* Connecting: everything greys but the item it starts from; the one under the finger lights up. */
+  .ol.connecting .ol-row {
+    opacity: 0.38;
+    transition: opacity 0.12s;
+  }
+  .ol.connecting .ol-row.source,
+  .ol.connecting .ol-row:hover,
+  .ol.connecting .ol-row:focus-within {
+    opacity: 1;
+  }
+  .ol.connecting .ol-row.source {
+    background: var(--to-accent-soft);
+  }
+  .ol-pick {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: transparent;
+    cursor: crosshair;
+    border-radius: 6px;
+    z-index: 2;
+  }
+  .ol-pick:focus-visible {
+    outline: 2px solid var(--to-accent);
+  }
+
+  /* The joins, under the outline, lined up with it. */
+  .ol-links {
+    padding: 4px 8px 20px 44px;
+    max-width: 820px;
+  }
+  .ol-links h3 {
+    margin: 0 0 4px var(--ol-step, 22px);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--to-ink-3);
+  }
+  .ol-link {
+    position: relative;
+    margin-left: var(--ol-step, 22px);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 36px;
+    font-size: 16px;
+  }
+  .ol-link .ol-bullet {
+    flex: 0 0 28px;
+    height: 36px;
+  }
+  .ol-end {
+    font-weight: 500;
+    padding: 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ol-link > .to-tool {
+    margin-left: auto;
+  }
+
+  /* The two dialogs' fields, and the page shown. */
+  .ol-field {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .ol-field span {
+    color: var(--to-ink-2);
+    font-size: 14px;
+  }
+  .ol-field input {
+    font: 16px var(--to-font);
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+    background: var(--to-input-bg);
+    color: var(--to-ink);
+  }
+  .ol-name-dialog .to-row,
+  .ol-web-dialog .to-row {
+    justify-content: flex-end;
+  }
+  .ol-page svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+  }
+  @media (pointer: coarse) {
+    /* No hover on a touch screen: parents show their arrows; dragging is the arrange buttons' work. */
+    .ol-row.parent .ol-fold {
+      opacity: 1;
+    }
+    .ol-handle {
+      display: none;
+    }
+  }
+  @media (max-width: 600px) {
+    .ol,
+    .ol-links,
+    .ol-crumbs {
+      padding-left: 36px;
+    }
+    .ol-gutter {
+      left: calc(var(--d, 0) * var(--ol-step) - 36px);
+      width: 36px;
+    }
+    .ol {
+      --ol-step: 18px;
+    }
+  }
+}

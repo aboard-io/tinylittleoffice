@@ -1,0 +1,65 @@
+/**
+ * Outline: an outliner, ideas under ideas. The document is a nested list with lines to parents, documents
+ * under items and joins between any two (model.ts); the drawing is view.ts; the editor editor.ts. The same
+ * tree a deck, a mind map, an org chart or a network reads: those are hand-offs, shown once the apps exist.
+ */
+import { ListTree } from 'lucide';
+import { apply, parse, referenceNotes, write, type Doc as Kernel } from '../../doc/index.ts';
+import { defineApp, type Doc } from '../../kit/app.ts';
+import { utf8 } from '../../kit/draw.ts';
+import { t } from '../../kit/i18n.ts';
+import { liveItems, outlineLines, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
+import { outlinePage } from './view.ts';
+import { templates } from './templates.ts';
+
+const headOf = (doc: Doc): Kernel => parse(doc);
+/** The document's name: its title head field. */
+export const titleOf = (doc: Doc): string => headOf(doc).head.title ?? '';
+/** The document with this name: one head op, written back. */
+export const retitle = (doc: Doc, title: string): Doc => write(apply(headOf(doc), { op: 'head', key: 'title', value: title.replace(/\n/g, ' ').trim() || undefined }));
+
+/** What the outline is called in a file: its title, else its first words. */
+function nameFor(doc: Doc): string {
+  const d = headOf(doc);
+  const first = liveItems(readOutline(d)).find((it) => !it.doc);
+  return d.head.title || (first ? first.runs.map((r) => r.t).join('').trim() : '') || t('Outline');
+}
+
+const convert = (how: (v: ReturnType<typeof readOutline>, head: Kernel['head']) => string) => (doc: Doc) => {
+  const d = headOf(doc);
+  return how(readOutline(d), d.head);
+};
+
+export default defineApp({
+  id: 'outline',
+  get name() {
+    return t('Outline');
+  },
+  get group() {
+    return t('Words');
+  },
+  icon: ListTree,
+  get blurb() {
+    return t('An outliner: ideas under ideas, folded and unfolded, moved about and joined; the same tree a deck or a mind map reads.');
+  },
+  blank: () => '',
+  get templates() {
+    return templates();
+  },
+  editor: () => import('./editor.ts'),
+  title: titleOf,
+  retitle,
+  view: (doc, opts) => [outlinePage(parse(doc), 720, opts?.small)],
+  exports: [
+    { ext: 'opml', label: () => t('OPML (for outliners)'), mime: 'text/x-opml;charset=utf-8', build: (doc) => utf8(toOpml(readOutline(parse(doc)), nameFor(doc))) },
+    // Markdown as other readers know it: the notes in reference form at the end.
+    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => utf8(write(referenceNotes(parse(doc)))) },
+    { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', build: (doc) => utf8(outlineLines(readOutline(parse(doc))).join('\n') + '\n') },
+  ],
+  handoffs: [
+    { to: 'deck', label: () => t('Show as slides'), convert: convert(outlineToDeck) },
+    { to: 'diagram', label: () => t('Draw as a mind map'), convert: convert(outlineToMind) },
+    { to: 'diagram', label: () => t('Draw as an org chart'), convert: convert(outlineToOrg) },
+    { to: 'diagram', label: () => t('Draw as a network'), convert: convert(outlineToNet) },
+  ],
+});
