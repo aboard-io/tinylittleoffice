@@ -111,7 +111,11 @@ Rules:
 - The Animator: `,` and `.` step a frame; arrows nudge the selected shape (with nothing selected they step a frame); K keys the shape; Space plays. The Animator's Draw mode has no pixel mode.
 - The Trip Planner: the map keeps its own wheel and pinch (Leaflet's), and a double tap on it zooms (never adds two stops).
 - The Website Builder: words are edited in the panel, not in the frame; a picked section's bar is Edit, Move up, Move down, Duplicate, Delete.
-- The Outliner: Mod+Alt+Up/Down fold and unfold; Mod+Shift+. and Mod+Shift+, zoom in and out; Select All inside a zoom takes the zoomed family.
+- The Outliner: Mod+Alt+Up/Down fold and unfold; Mod+Shift+. and Mod+Shift+, zoom in and out; Select All inside a zoom takes the zoomed family. A document or a web thing under an item is a whole row, not a one-character card.
+- Lists inside a document (the Word Processor, the Presentation Builder, the Website Builder): items are words in one box, so Shift+arrows extend the selection by characters as Docs does, and there are no handles; Alt+Up/Down, Tab, cut and paste move items. The §3 node selection belongs to the Outliner and to rows.
+- The Drawing Tool: Alt+Up/Down move the chosen shapes one place in the stack (there is no "past a neighbour" on a canvas). The Diagram Maker drags the thing itself (a 6px threshold, `touch-action: none` on the thing alone) since a tap on it edits; it has no grip.
+- The Calendar's month: entries are drawn small (about 16px) so a cell can hold several; the finger's way to every entry is the month's list below, whose rows are 44px.
+- The Kanban Board: a card whose words are one web address shows that thing's preview under the line.
 
 ## 9. The audit
 
