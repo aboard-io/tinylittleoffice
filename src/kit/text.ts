@@ -288,7 +288,7 @@ export class ToText extends LitElement {
     this.pendingSel = null;
     const go = () => {
       const s = this._sel;
-      if (!s || !this.isConnected) return;
+      if (!s || !this.isConnected || !this.tx) return;
       if (how === 'focus') this.focus();
       else if (!this.hasFocus()) return;
       const a = this.domPoint(s.anchor);
