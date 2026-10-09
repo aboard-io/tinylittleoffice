@@ -83,7 +83,7 @@ Total | =SUM(B1:B2)
 
 ### write: a text
 
-Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only the address of a YouTube or Vimeo video, a Bluesky or X post, or a Markdown image `![what it shows](address)` is that thing, as a card that loads it only when tapped (in an outline, such an item; on a slide, the whole slide). `paper: a4` or `letter` in the header sets the PDF's paper. **contract** and **resume** are written the same way.
+Markdown as it stands. `# Words {.title}` is the title, set large; `#` and `##` are headings; `{.center}`, `{.right}` or `{.justify}` at the end of a paragraph aligns it. A table is an embedded sheet; a fence named for an app embeds that document. A line that is only the address of a YouTube or Vimeo video, a Bluesky or X post, or a Markdown image `![what it shows](address)` is that thing, as a card that loads it only when tapped (in an outline, such an item; on a slide, the whole slide). `paper: a4` or `letter` in the header sets the PDF's paper. **contract** is written the same way, its signatures following in a `signatures` fence.
 
 {{doc:write:Meeting notes}}
 # Meeting notes

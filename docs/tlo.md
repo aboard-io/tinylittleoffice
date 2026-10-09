@@ -36,7 +36,7 @@ Every app reads its document from it. The reader and writer are
 | --- | --- |
 | `---` / `key: value` lines / `---` at the very top | The header: the document's settings. The shell's own keys are `title`, `by`, `created`, `key` and `sig`, plus `app` in a .tlo file. |
 | `{#id .class key=value}` at the end of a block | Attributes: a node's id, a kind or layout (`.title`, `.two`), or a setting for that block. |
-| `Name:type` in a table's header row | A typed column. The types are `text`, `number`, `money`, `percent`, `date`, `time`, `check`, `url`, `rich`, `long` and `icon`. |
+| `Name:type` in a table's header row | A typed column. The types are `text`, `number`, `money`, `percent`, `date`, `time`, `check`, `url`, `rich`, `long`, `icon` and `name`. |
 | `~ A -> B: label` | An edge between two things in the document, by their words or `#id`. The kinds are `->`, `<-`, `<->` and `--`. |
 | A fenced block whose language is an app | Another document, embedded: its whole TLO text. `sheet`, `draw`, `trip` and so on. |
 | `![alt](a TinyLittleOffice link)` alone on a line | Another document, by its link. |
@@ -52,7 +52,7 @@ The examples are canonical: what the editor writes.
 headings. Lists nest by two spaces. `{.center}`, `{.right}` and
 `{.justify}` set alignment. An embedded document is a fence, and a
 Markdown table is an embedded sheet. **contract** is a write text followed
-by its signatures, in a `signatures` fence. **resume** is a write text.
+by its signatures, in a `signatures` fence.
 
 **outline**, **mind**, **family**: a nested list. The first level is the
 roots.
@@ -73,7 +73,7 @@ document under an item is a fence with `{depth=2}`.
 `~ Ben -- Eve: advises`.
 
 **deck** and the page apps (**zine**, **booklet**, **brochure**, **poster**,
-**recipes**, **badges**, **comic**): one slide or page per `---`. The
+**badges**, **comic**): one slide or page per `---`. The
 headline is `## :icon-name: Headline`. The layout is an attribute on the
 headline: `{.title}` (headline and subtitle), `{.two}` (a paragraph `|`
 between the columns) or `{.icon}` (bullets beside one big icon). The words
@@ -128,9 +128,6 @@ or `until=2027-06-01`; a timed span over midnight is
 `currency` and `terms`. The lines are a table `What | Qty:number | Units |
 Price:money`. Notes are paragraphs.
 
-**menu**: `# Name` and a paragraph about it. Each `## Section` is followed
-by a table `Dish | Price:money | About`.
-
 **site**: `# Name` and a line about it; each further `# Title` starts a
 page, and `## Section` a part of one. `- :icon: Point | detail` is a card,
 `> Label | https://…` a button, a line that is only a picture's address a
@@ -145,27 +142,14 @@ too.)
 of words, `> :icon: Label | https://…` buttons, and `- :icon: Label |
 https://…` small links at the foot.
 
-**adventure**: `# Title`, then `## scene` headings with the story as
-paragraphs. Choices are links to scenes: `- [Climb to the lamp](#lamp)`.
-
-**trivia**: the header holds `teams: A, B`. Each `## Round` is followed by a
-table `Question | Answer`. **hunt** is a table `Clue | Answer` with the
-ending as a paragraph. **flashcards** is a table `Front | Back`.
-
-**poll**: `# Question`, the choices as a `- ` list, and the answers as a
-table `Name | Choice`. **spinner** is a `- ` list of choices. **madlibs**
-is paragraphs with `[blanks]`. **split** has the header
-`between: Ann, Bo` and a table `Who | Amount:money | What`. **santa**
-lists the people as a `- ` list, and each draw is an edge `~ Ann -> Bo`.
+**spinner**: a `- ` list of choices. **split**: the header
+`between: Ann, Bo` and a table `Who | Amount:money | What`. **santa**:
+the people as a `- ` list, and each draw an edge `~ Ann -> Bo`.
 
 **lanes**: `- Who: what they do`, in order. **venn**: `- Set: thing, thing`
 and `- A & B: thing`. **net**: edges, plus `- name` for a node on its own.
-**floor**: `- Room: 4 x 3 at 0,0`. **seating**: `- Table: Ann, Bob`.
+**seating**: `- Table: Ann, Bob`.
 **timeline**: `- When: what happened`.
-
-**db**: each table is a `## name` heading followed by a table. A column
-that refers to another table is typed `team_id>teams`. Queries are a `sql`
-fence, each ending `;`.
 
 **draw**: a table `Kind | X | Y | W | H | Style | Label`; a join (`k`, `j`)
 holds the row numbers of the shapes it joins in X and Y, and a shape drawn

@@ -15,7 +15,7 @@ This folder is the command-line tool built from it. In a clone of the repository
 ## In code
 
 ```js
-import { link, linkFromMarkdown, parse, compare, evaluateSheet, runModel, lint, signed, verified, createSigner, memoryStore } from '@tinylittleoffice/doc';
+import { link, linkFromMarkdown, parse, compare, evaluateSheet, runModel, lint, signed, verified, sealed, open, createSigner, memoryStore } from '@tinylittleoffice/doc';
 
 // Make a document. The body is in the app's own plain-text format…
 const budget = link('sheet', 'Item\tCost\nRent\t1200\nFood\t600\nTotal\t=SUM(B2:B3)', { title: 'Budget', by: 'planner-agent' });
@@ -54,7 +54,7 @@ Every app's format is in the guide at <https://tinylittleoffice.com/llms.txt>; `
 
 ```sh
 tinyoffice apps                                  # every app, with a line on each
-tinyoffice example menu                          # an example body in the app's format
+tinyoffice example deck                          # an example body in the app's format
 echo "- [x] Sweep" | tinyoffice link todo --md --by chores-agent --title Chores
 tinyoffice read <link>                           # the document as Markdown (--json, --body)
 tinyoffice eval <link>                           # a sheet computed as CSV; a model run (--set visitors=10000)
@@ -72,11 +72,9 @@ Rendering opens the public site headlessly and takes the download; the document 
 ## The shape of a link
 
 ```
-https://tinylittleoffice.com/<app>/#/v2/<app>[.<view>]/<payload>
+https://tinylittleoffice.com/<app>/#/v0/<app>[.<view>]/<payload>
 ```
 
-The payload is one flag letter and base64url: the body (with a small envelope of created time, title, author and optional signature) deflated against a dictionary both sides know. Lengths: a link is kept under about 2,000 characters; `URL_LIMIT`. Links are forever: the dictionaries are frozen and every encoding ever written still decodes.
-
-There is a Python port of the codec with the same bytes in `packages/python`.
+The payload is one flag letter and base64url: the body (with a small envelope of created time, title, author and optional signature) deflated against a dictionary both sides know. Lengths: a link is kept under about 2,000 characters; `URL_LIMIT`. `v0` is the link format that launches; until then it changes freely. Once it has, the dictionaries are frozen and every link ever written still decodes.
 
 MIT.

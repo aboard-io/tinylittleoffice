@@ -2,38 +2,56 @@
 
 A tiny office suite that lives entirely in the URL.
 
-Sixteen small apps, no server, no accounts, nothing to save. Every document is
-encoded into the address bar, kept under 2,048 characters. Copy the link and
-you have copied the file.
+Three dozen small apps, no server, no accounts, nothing to save. Every
+document is encoded into the address bar, kept under 2,048 characters. Copy
+the link and you have copied the file.
 
 | App   | What it does                                                          |
 | ----- | --------------------------------------------------------------------- |
-| Drive | The documents saved on this device, in folders (nested with a slash): search inside them, move, rename, download the lot as a zip, or blow it all away. Private by default; the switch in the header turns it on. |
-| Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, named cells, locked cells, charts (a Sankey among them). Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT, and models of a subscription business, a café, a freelancer and a mutual aid fund, each flows drawn as a Sankey with its assumptions beside it; a training log. |
+| Sheet | A 1,000-row, 6-column spreadsheet: formulas, business functions, named and locked cells, charts (a Sankey among them). Templates: a budget, an expense log, an invoice, a project tracker, a comparison with a chart, loans compared with PMT, models of a subscription business, a café, a freelancer and a mutual aid fund (each its flows as a Sankey over named assumptions), and a training log. |
+| Write | A rich text editor: headings, bold, italic, lists, other documents and things from the web in the text, a PDF on letter or A4 paper. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
 | Outline | An outliner: items under items, folded and unfolded, dragged about, zoomed in on; the same text a mind map or an org chart reads. OPML out. |
-| Write | A rich text editor: headings, bold, italic, lists, things from the web, a PDF on letter or A4 paper. Templates: meeting notes, a letter, a memo, a bio, a weekly plan, and the business, marketing and go-to-market plans (the sections, with the questions each answers). |
-| Deck  | Slides with a headline, bullets and an icon. Press Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
-| Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid; a pen for any shape, corner by corner, and a freehand stroke. |
-| Calculator | Plain (a line to type any expression into, and the tape beneath as a little program: `a = 12`, then `a * 3`, `ans`), scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
+| Deck  | Slides with a headline, bullets and an icon, or another document filling the slide; themes; Present. Templates: a talk, a status update, a pitch, a lesson, a kickoff. |
+| Draw  | Boxes, ellipses, diamonds, lines, arrows and text labels on a grid; a pen for any shape, corner by corner, and a freehand stroke; joins that follow their shapes. |
 | Calendar | Labelled spans of time on a month grid, or the year at a glance, shown in any time zone. |
 | Todo  | Tasks to tick off, with stars and due dates.                          |
 | Board | A kanban board: the stages of a workflow, each in a colour if it likes; cards of rich text with checklists; limits per stage. |
-| Gantt | Tasks as bars on a calendar; drag to move, drag the edge to resize; the calendar's own date nav. |
+| Gantt | Tasks as bars on a calendar, nested under the ones they are part of; drag to move, drag the edge to resize. |
 | Trip  | A route on an OpenStreetMap map: stops in order, each with a note; or just dots on the map. |
 | Motion | A drawing that moves: any shape from Draw, given moments at which it is somewhere else, nearer, bigger, turned, or (a pen shape) a different shape, morphing between; effects for memes. |
-| Org chart, Mind map, Swimlanes, Venn, Network | Diagrams drawn from a few lines of text. |
-| Website | A site of little pages from a few lines, with a shop (a table of products, a cart, orders by email) if it lists what it sells; many themes; edited on the page itself, a "+" where anything can go; downloads as one HTML file with the pages switched by hash. |
+| Org chart | Who reports to whom, drawn from an indented list. |
+| Mind map | An idea and everything that branches from it. |
+| Swimlanes | A process, step by step, with a lane for each person or team that acts. |
+| Venn | Two or three sets as overlapping circles, with what belongs where. |
+| Network | Things and the connections between them, drawn round a circle. |
+| Website | A site of little pages from a few lines, edited on the page itself (a "+" where anything can go); sixteen themes; a shop (a table of products, a cart, orders by email) if it lists what it sells; downloads as one HTML file with the pages switched by hash. |
 | Quick Links | A link-in-bio page: a picture, a line about you, a stack of buttons, the places you are at the foot. |
 | Invoice | A form laid out like the paper: who, what, how much; the sums done as you type, a PDF to send. |
 | Contract | A plain-words agreement each party signs with a key held in their browser. Proves the words have not changed since; does not prove who holds a key. |
-| Zine | A tiny deck, edited as Deck is: eight pages on one letter sheet, one- or two-sided, imposed for folding; also a tap-to-read web page. |
-| Booklet, Brochure | The zine's kit with other folds: half-letter pages nested (8 to 20), a trifold. |
+| Zine | Eight pages on one letter sheet, one- or two-sided, imposed for folding; edited as a deck is; also a tap-to-read web page. |
+| Booklet | Half-letter pages nested, 8 to 20. |
+| Brochure | A trifold: six panels on two sides of a sheet, each where the fold needs it. |
 | Comic | A zine whose pages are panels, each typed into on the page; a folded mini comic out. |
-| Poster, Name badges | Pages typed into directly, laid out by the deck's engine (a page type is a template), tiled on letter sheets. |
-| Pixel art | A grid of squares to colour. |
-| Seating chart, Family tree, Timeline | More diagrams from a few lines; a timeline's years are spaced as they fell along one line, a span of years a band at its foot. |
-| Games | Word search, Spinner. |
-| Together | Secret Santa (a private link per person), Split the bill. |
+| Poster | A headline and a few lines, as big as one page allows. |
+| Name badges | A page per person, six to a sheet, ready to cut. |
+| Calculator | Plain (a line to type any expression into, and the tape beneath as a little program: `a = 12`, then `a * 3`, `ans`), scientific with a graph of y = f(x), mortgage, investment, cash flow (NPV, IRR, payback), interest; the working is the document, drawn as a page. |
+| Pixel art | A 16 by 16 grid of squares to colour. |
+| Seating chart | Tables, with their people round them. |
+| Family tree | People and couples, with their children beneath them. |
+| Timeline | Events along a line, spaced as they fell; a span of years a band at its foot. |
+| Word search | A puzzle from your own words, ready to print. |
+| Spinner | A wheel to spin: names or choices in, one picked at random. |
+| Secret Santa | Names in; a private link out for each person, showing only who they give to. |
+| Split the bill | Who paid what, what each owes, and the fewest payments to settle up. |
+
+That is `apps()` in `src/apps/index.ts`, in menu order; the diagrams sit
+under Draw in the menu, the folds under Zine, the badges under Poster. Two
+more are not in the menu, because they live inside other documents: Web
+embed (a video, a post or a picture from the web, as a card loaded only
+when tapped) and QR code (the one a deck ends with). Drive, at `#/drive`,
+is the documents saved on this device, in folders nested with a slash:
+search inside them, move, rename, download the lot as a zip, or blow it all
+away. It is private by default; the switch in the header turns it on.
 
 An empty Write, Sheet, Deck or Quick Links opens with its templates over it, Blank the
 first card, and offers them again from "Start from a template…" in the
@@ -101,7 +119,7 @@ the app name is the document:
    in its envelope (no time, title, author or signature) and goes without
    one. Because both ends already know the dictionaries, short
    documents come out 20 to 35 percent smaller than plain deflate. The
-   dictionaries (`src/lib/codec.ts`, `src/lib/dicts.ts`) are frozen once v0
+   dictionaries (`src/lib/codec.ts`) are frozen once v0
    launches: changing a byte would then break every link made with them.
 3. The shell writes the result into the fragment with `history.replaceState` on
    every edit, so the address bar is always current and nothing is ever sent to
@@ -166,118 +184,45 @@ message, a QR code and so on; the numbers are in `src/lib/limits.ts`.
 
 ### Formats
 
-Every format is plain text, chosen so deflate has something to chew on.
+Every document is one plain text in TLO: Markdown with a few additions.
+`docs/tlo.md` is the reference, with each app's shape; the reader and
+writer are `src/lib/tlo.ts`. Plain text gives deflate something to chew
+on, and a language model writes it the way it writes any Markdown. What
+the reference leaves to the apps:
 
-- **Sheet**: one Markdown table. Its header row names the columns, each
-  with its type after a colon (`Price:money`; `text`, `number`, `money`,
-  `percent`, `date`, `url`, `check`, `rich`, `name`), and its rows are rows 1, 2, 3,
-  so `A1` is the first row under the names. `chart: bar` (`line`, `pie`) in
-  the header asks for a chart: the first column is its labels, each other
-  column of numbers a series named by its column; `chart: sankey` draws the
-  rows that read as From | To | Amount (the columns found by those names,
-  else the first three) as flows between the things named.
-  Formulas start with `=` and support `+ - * / ^ %`, parentheses, cell
-  references (`B7`), ranges (`A1:C3`), `"words"`, comparisons (`= <> < > <= >=`) and
-  `SUM AVG MIN MAX COUNT SUMIF COUNTIF MEDIAN PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN
-  INT ABS SQRT MOD NPV IRR PMT FV PV`. A column of type `name`
-  (`Assumption:name`) names, with each of its cells, the cell to its right,
-  and a formula may use the name (`=visitors * signup_rate`: a space, or
-  anything that is not a letter or digit, is `_`; case does not matter).
-  That is what a model is: assumptions as named cells, flows as formulas over
-  them, `SUMIF` over the To column for what a stock holds. `lock: C1:C6, E7`
-  in the header names the cells that are the model's own: the editor shades
-  them and leaves them be when a reader types, pastes or fills (the author
-  unlocks them from the bar). Errors show as `#DIV/0`, `#REF`,
-  `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. Dates are day counts, so they
-  add and subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY`
-  work on them. A CSV, or a table without types, reads as a sheet too.
-- **Pixel art**: one paragraph, a line per row, a letter per square (`.`
-  empty, `a` to `h` the colours).
-  `#NAME`, `#CIRC`, `#VALUE`, `#NUM`, `#ERR`. A first line `!bar`, `!line` or
-  `!pie` asks for a chart of the table, and after a `|` come the columns'
-  types, a letter each (`!bar|td$`): text, number, money `$`, percent `%`,
-  date, link `u`, checkbox, rich text. Dates are day counts, so they add and
-  subtract; `TODAY DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on
-  them.
-- **Write**: Markdown (TLO, `docs/tlo.md`). `# Words {.title}` is the title,
-  `# ` and `## ` headings, `- ` and `1. ` list items nested by two spaces,
-  `{.center}`, `{.right}` or `{.justify}` at the end of a block to align it.
-  Inline `**bold**`, `*italic*`, `++underline++`, `~~strike~~`,
-  `==highlight==`, `:icon:`, `[words](address)`, with `\` as the escape
-  character. An embedded document is a fence named for its app, holding its
-  text; a Markdown table is an embedded sheet. A line that is only the
-  address of a YouTube or Vimeo video, a Bluesky or X post, or a picture
-  (`![what it shows](address)`) is that thing, shown as a card that loads it
-  only when tapped (`src/lib/embeds.ts`). `paper: a4` or `letter` in the
-  header is the paper the PDF prints on; without it, the reader's own. The
-  pages have inch margins, a heading never sits alone at the foot of one,
-  and more than one page are numbered.
-  A **contract** is a text followed by its signatures in a `signatures`
-  fence.
-- **Deck**: slides separated by a blank line. In each slide an optional
-  `:icon-name` line, then the headline, then one bullet per line. A layout
-  may follow the icon name: `:rocket:t` title slide, `::2` two columns (a
-  line `|` starts the right one), `:star:i` bullets beside a big icon. A line
-  `@@<app>/<payload>` shows another document on the slide. A first chunk
-  `!fade`, `!slide` or `!zoom` sets the deck's transition.
-- **Draw**: one shape per line, `kind,x,y,w,h,fill,label`. Kinds are `r`
-  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text. `fill`
-  may carry a colour letter and a text size digit after it (`1b3`).
-  Coordinates are in 8-pixel grid units on a 640 by 400 canvas.
-- **Deck**: TLO (`docs/tlo.md`), a slide between each `---`. The headline is
-  `## :icon-name: Headline`, its layout an attribute: `{.title}`, `{.two}`
-  (a paragraph `|` starts the right column) or `{.icon}`. The words are `- `
-  bullets, nested by two spaces; `> ` lines are speaker notes; a fence named
-  for an app (```` ```sheet ````) shows that document on the slide. The
-  header holds `theme: midnight` (plain unless said: boardroom, ivory, midnight, graphite; for fun confetti, sunset, ocean, bubblegum, arcade, chalkboard),
-  `transition: cut` (`slide`, `zoom`; a fade unless said), `color: red` and
-  `qr: no`. The print apps (zine, booklet, comic and the
-  rest) write their pages the same way, prose as paragraphs, with
-  `sides: 2` and `pages: 12` in the header.
-- **Draw**: a table, a row per shape, `Kind | X | Y | W | H | Style |
-  Label`, and the alt text in the header (`alt: ...`). Kinds are `r`
-  rectangle, `e` ellipse, `d` diamond, `l` line, `a` arrow, `t` text and
-  more (`src/lib/drawmodel.ts`); `v` is any shape and `w` an open stroke,
-  their corners in a `Points` column as hundredths of the box
-  (`0:0;50:100;100:0`); a join (`k`, `j`) names the rows of the two
-  shapes it joins, counting from 0, in X and Y. `Style` is the fill, and may
-  carry a colour letter and a text size digit after it (`1b3`). Coordinates
-  are in 8-pixel grid units on a 640 by 400 canvas. **Motion** is the same
-  table, a table `Shape | Keys` of what moves when, and `frames` and `fps`
-  in the header.
-- **Website** (TLO): `# Name` and a line about it, a further `# Title` for
-  each further page, `## Section` within a page, `- Point | detail` cards,
-  `> Label | url` buttons, `![](url)` (or a line that is only a picture's
-  address) a picture, a line that is only `:icon:` a big icon, a table
-  `Name | Price | About | Image` the products of a shop (with `currency:`
-  and `orders:` in the header), a fenced document for another document on
-  the page, `theme: forest serif dark` for the look (one of sixteen themes
-  in `src/lib/sitemodel.ts`, each a palette, a type and a corner; a type
-  and a mode after it change those alone). The home page is what comes
-  before the second `#`; a site with one is one page navigated by its
-  sections. The editor is the page itself: words typed where they stand, a
-  "+" at the end of each part for what can go there, icons tapped to
-  change, pages and sections moved or taken away by the buttons on their
-  headings (`src/lib/pageedit.ts`). **Quick Links** is the same with one
-  page: `- :icon: Label | url` lines are the small links at its foot.
-- **Calendar**: an optional `@Zone/Name` line (the zone the document was last
-  edited in), then one span per line. `d<start>,<days>,<label>` is an all-day
-  span whose start is a day count from 2020-01-01: a floating civil date, the
-  same in every country. `t<start>,<minutes>,<label>` is a timed span whose
-  start is a minute count from 2020-01-01T00:00Z: one absolute instant, shown
-  in whichever zone the viewer picks. Numbers are base 36. A star and a
-  letter after the length make a span repeat: `*d` daily, `*w` weekly, `*m`
-  monthly, `*y` yearly, for ever; `*w9` nine times; `*w<2pi` until that day
-  (counted like a start). It goes before the colour (`d1,2*w.g,Offsite`), so
-  a reader without repeats still sees the first time, in colour. A timed span
-  repeats at the same time of day in the document's zone. Time zone maths
-  comes from the browser's `Intl` support, so no zone database is bundled.
+- **Sheet** formulas (`src/lib/formula.ts`) start with `=` and support
+  `+ - * / ^ %`, parentheses, cell references (`B7`), ranges (`A1:C3`),
+  `"words"`, comparisons (`= <> < > <= >=`), the names a `name` column gives
+  the cells beside it, and `SUM AVG MIN MAX COUNT SUMIF COUNTIF MEDIAN
+  PRODUCT IF AND OR NOT ROUND ROUNDUP ROUNDDOWN INT ABS SQRT MOD NPV IRR PMT
+  FV PV`. Errors show as `#DIV/0`, `#REF`, `#NAME`, `#CIRC`, `#VALUE`,
+  `#NUM`, `#ERR`. Dates are day counts, so they add and subtract; `TODAY
+  DATE DAYS EDATE WORKDAYS YEAR MONTH DAY WEEKDAY` work on them. A CSV, or a
+  table without types, reads as a sheet too.
+- **Write** (`src/lib/richtext.ts`) shows a thing from the web as a card
+  that loads it only when tapped (`src/lib/embeds.ts`). `paper: a4` or
+  `letter` in the header is the paper the PDF prints on; without it, the
+  reader's own. The pages have inch margins, a heading never sits alone at
+  the foot of one, and more than one page are numbered.
+- **Draw** (`src/lib/drawmodel.ts`) counts in 8-pixel grid units on a 640
+  by 400 canvas. **Motion** (`src/lib/animmodel.ts`) is the same table with
+  a table of keys per shape.
+- **Website** and **Quick Links** (`src/lib/sitemodel.ts`) share sixteen
+  themes, each a palette, a type and a corner, with the type and the mode
+  changeable on their own; the page edits itself (`src/lib/pageedit.ts`).
+- **Calendar** (`src/lib/calmodel.ts`) keeps an all-day span as a floating
+  civil date, the same in every country, and a timed span as one absolute
+  instant, shown in whichever zone the viewer picks. Time zone maths comes
+  from the browser's `Intl` support (`src/lib/tz.ts`), so no zone database
+  is bundled.
 
 ## Styling: one stylesheet
 
 Every TinyLittleOffice component renders into light DOM, so there is no CSS hidden
-in shadow roots. The look lives in `src/styles.css` (three apps keep a
-sheet of their own beside their editor: `anim.css`, `calc.css`, `invoice.css`, `outline.css`, `site.css`, `web.css`):
+in shadow roots. The look lives in `src/styles.css`, and six apps keep a
+sheet of their own beside their editor, imported by it: `anim.css`,
+`calc.css`, `invoice.css`, `outline.css`, `site.css`, `web.css`. In
+`styles.css`:
 
 1. **Tokens.** Shoelace's design tokens are overridden at the top of the file
    (accent ramp, fonts, radii) and a small set of `--to-*` variables is built
@@ -287,8 +232,7 @@ sheet of their own beside their editor: `anim.css`, `calc.css`, `invoice.css`, `
 2. **Shared pieces.** The classes an app reaches for before writing a rule
    of its own: `.to-toolbar`, `.to-hint`, `.to-empty`, `.to-icon-btn` (what
    `btn()` makes), `.to-add` (a dashed pill that adds something),
-   `.to-count` (a number in a pill), `.to-eyebrow` (small capitals over a
-   group), `.to-swatches` (what `swatches()` makes), `.to-tip` (the tooltip).
+   `.to-count` (a number in a pill), `.to-swatches` (what `swatches()` makes), `.to-tip` (the tooltip).
 3. **Base, shell, apps, responsive.** Plain class names, prefixed by app
    (`.sheet-`, `.write-`, `.deck-`, `.draw-`, `.cal-`) and `.to-` for the
    shell. The responsive section at the end collapses the navigation into a
@@ -542,9 +486,11 @@ src/apps/index.ts     the list of apps
 src/apps/editors.ts   the editors, in one script; shared editors for the apps without one
 src/apps/<id>.def.ts  each app's definition: title, picture, downloads
 src/apps/<id>.ts      each app's editor
-src/lib/<id>model.ts  document formats (formula.ts, richtext.ts for sheet and write)
+src/lib/tlo.ts        the TLO reader and writer (docs/tlo.md)
+src/lib/<id>model.ts  each app's model over it (formula.ts, richtext.ts for sheet and write)
+src/lib/lines.ts      an app's lines as a form: what the picture's editing boxes come from
 src/lib/chart.ts      charts from a table
-src/lib/templates.ts  what Write, Sheet and Deck can start from (widgets/template-picker.ts offers them)
+src/lib/templates.ts  what Write, Sheet, Deck and Quick Links can start from (widgets/template-picker.ts offers them)
 src/lib/codec.ts      text <-> URL payload (deflate + dictionary + base64url)
 src/lib/envelope.ts   creation time + signature wrapper around a body
 src/lib/sign.ts       WebCrypto keys, signing, verification
@@ -573,9 +519,10 @@ same document is always the text itself (Mod+Shift+T). All of it comes from one 
 
 ```ts
 form: [
-  { name: 'Name', is: '# {Name}', once: true },
-  { name: 'Section', is: '## {Section}' },
-  { name: 'Dish', is: '{Dish} | {Price}[ | {What it is}]' },
+  { name: 'Title', is: '# {Title}', once: true },
+  { name: 'Heading', is: '## {Heading}', head: true },
+  { name: 'Point', is: '- {Point}', indent: true },
+  { name: 'Paragraph', is: '{Text:long}' },
 ]
 ```
 
