@@ -12,7 +12,8 @@
     min-height: 1.5em;
     font-size: max(16px, 1em);
     line-height: 1.5;
-    white-space: pre-wrap;
+    /* The box collapses the whitespace between its blocks (the template's own newlines); each block keeps its spaces and line breaks. */
+    white-space: normal;
     overflow-wrap: anywhere;
     outline: none;
     caret-color: var(--to-accent);
@@ -27,6 +28,7 @@
   }
   to-text .tx > * {
     margin: 0 0 0.6em;
+    white-space: pre-wrap;
   }
   to-text .tx > :last-child {
     margin-bottom: 0;

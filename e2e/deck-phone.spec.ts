@@ -1,0 +1,74 @@
+/**
+ * The Deck on a phone: a slide typed on in WebKit at 390 by 844 with a finger for a pointer. The bar stays
+ * one row and as tall as it started, the page never scrolls under a tap, every box is 16px, nothing is
+ * wider than the screen, the rail runs under the slide, Insert ▾ opens inside the screen and makes a slide,
+ * and the Look menu writes the theme. Run on its own:
+ *
+ *   PW_PORT=4187 npx playwright test e2e/deck-phone.spec.ts --project=phone --workers=1
+ */
+import { test, expect } from '@playwright/test';
+
+const SHOTS = process.env.SHOTS;
+
+test('deck: on a phone, typing a slide neither scrolls the page nor moves the bar; the rail is under the slide; the menus fit', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => m.type() === 'error' && !/interactive-widget/.test(m.text()) && errors.push(m.text()));
+  await page.goto('/#/v1/deck');
+  const title = page.locator('to-deck-editor to-text.deck-title .tx');
+  await expect(title).toBeVisible();
+  const measure = () =>
+    page.evaluate(() => {
+      const bar = document.querySelector<HTMLElement>('to-deck-editor to-bar')!;
+      const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
+      return { bar: bar.offsetHeight, rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    });
+  const first = await measure();
+  await title.tap();
+  await page.keyboard.type('Hello from the phone');
+  await expect(page).toHaveURL(/#\/v1\/deck\/[ryz]/);
+  const afterTitle = await measure();
+  await page.keyboard.press('Enter');
+  const words = page.locator('to-deck-editor to-text.deck-words .tx');
+  await expect(words).toBeFocused();
+  await page.keyboard.type('One thing');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Another');
+  await expect(words.locator('li')).toHaveCount(2);
+  const afterWords = await measure();
+  // The rail is under the slide, one row that scrolls sideways; the current slide is marked.
+  const canvas = page.locator('.deck-canvas');
+  const rail = page.locator('.deck-rail');
+  const [c, r] = [await canvas.boundingBox(), await rail.boundingBox()];
+  expect(r!.y).toBeGreaterThanOrEqual(c!.y + c!.height - 1);
+  await expect(page.locator('.deck-thumb[aria-current="true"]')).toHaveAttribute('aria-label', 'Slide 1: Hello from the phone');
+  // Insert ▾ opens inside the screen and makes a title slide; Escape would close it.
+  await page.getByRole('button', { name: 'Insert' }).tap();
+  const menu = page.locator('to-insert [role=menu]');
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.getByRole('menuitem', { name: 'Title slide' }).tap();
+  await expect(page.locator('.deck-thumb')).toHaveCount(2);
+  await expect(page.locator('.deck-thumb[aria-current="true"]')).toHaveAttribute('aria-label', 'Slide 2');
+  // The Look menu writes the theme into the header; the canvas wears it.
+  await page.getByRole('button', { name: /^Look:/ }).tap();
+  await page.getByRole('menuitemcheckbox', { name: 'Midnight' }).tap();
+  await expect(page.locator('.deck-canvas.themed.dark')).toBeVisible();
+  const last = await measure();
+  test.info().annotations.push({ type: 'measured', description: JSON.stringify({ first, afterTitle, afterWords, last }) });
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/deck-390.png`, fullPage: false });
+  // The page stays where it was; the bar is one row, as tall as it started, and never over 56px; nothing is wider than the screen.
+  expect([first.pageTop, afterTitle.pageTop, afterWords.pageTop, last.pageTop]).toEqual([0, 0, 0, 0]);
+  expect(new Set([first.bar, afterTitle.bar, afterWords.bar, last.bar]).size).toBe(1);
+  expect(first.bar).toBeLessThanOrEqual(56);
+  expect([first.rows, afterTitle.rows, afterWords.rows, last.rows]).toEqual([1, 1, 1, 1]);
+  expect(last.zoom).toBe(1);
+  expect(last.wide).toBeLessThanOrEqual(0);
+  // Every box a finger may land in is 16px or more, so Safari has no reason to zoom in.
+  const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('to-deck-editor .tx, to-deck-editor input')].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`));
+  expect(small).toEqual([]);
+  expect(errors).toEqual([]);
+});

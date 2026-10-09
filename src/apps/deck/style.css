@@ -1,0 +1,515 @@
+/* Deck: the current slide as a canvas in its format's shape, the headline and words typed on it at the size
+   they will be (the layout's sizes in the canvas's own width), the theme's paper and decoration behind, the
+   speaker notes under it, the rail of thumbnails beside or below, the sheets to print, and the show. */
+@layer apps {
+  to-deck-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--to-gutter);
+    min-height: 0;
+  }
+  .deck-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 168px;
+    gap: var(--to-gutter);
+    align-items: start;
+    min-width: 0;
+  }
+  .deck-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  /* ---- the canvas: the slide in its own shape, white paper in either theme, the deck's theme over it ---- */
+  .deck-canvas {
+    --deck-paper: var(--to-paper);
+    --deck-ink: var(--to-paper-ink);
+    --deck-muted: var(--to-paper-muted);
+    --deck-accent: var(--to-paper-accent);
+    --deck-m: 6.67cqw;
+    position: relative;
+    container-type: inline-size;
+    width: 100%;
+    aspect-ratio: var(--deck-w) / var(--deck-h);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: var(--deck-m);
+    color: var(--deck-ink);
+    background: var(--deck-paper) var(--deck-deco, none) center / 100% 100% no-repeat;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    box-shadow: var(--to-shadow);
+    font-family: var(--to-font);
+    overflow: hidden;
+  }
+  .deck-canvas[data-format='zine'],
+  .deck-canvas[data-format='comic'],
+  .deck-canvas[data-format='badges'] {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .deck-canvas[data-format='booklet'],
+  .deck-canvas[data-format='brochure'],
+  .deck-canvas[data-format='poster'] {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .deck-canvas .tx {
+    font-size: max(16px, var(--deck-body));
+    line-height: 1.3;
+    color: inherit;
+    caret-color: var(--deck-accent);
+  }
+  .deck-canvas .tx.blank::before {
+    color: var(--deck-muted);
+    opacity: 0.7;
+  }
+  .deck-head {
+    display: flex;
+    align-items: center;
+    gap: 2.5cqw;
+    min-height: 7.5cqw;
+    margin-bottom: 2.9cqw;
+  }
+  .deck-title {
+    flex: 1;
+    min-width: 0;
+  }
+  .deck-title .tx,
+  .deck-title .tx h1,
+  .deck-title .tx h2,
+  .deck-title .tx h3,
+  .deck-title .tx h4,
+  .deck-title .tx p,
+  .deck-title .tx li {
+    font-size: max(16px, var(--deck-title));
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .deck-title .tx li::before {
+    content: none;
+  }
+  /* The words take the room under the headline; more words than the shape holds make the canvas taller
+     rather than hide them (the rail shows the slide as it will really fit). */
+  .deck-words-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4.2cqw;
+    flex: 1;
+    min-height: auto;
+  }
+  .lay-2 .deck-words-row,
+  .lay-i .deck-words-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .deck-canvas .tx > * {
+    margin: 0 0 0.45em;
+  }
+  .deck-canvas .tx li {
+    padding-left: calc(1.1em + var(--d, 0) * 1.4em);
+  }
+  .deck-canvas .tx li::before {
+    color: var(--deck-accent);
+  }
+  .deck-canvas .tx a {
+    color: var(--deck-accent);
+  }
+  .deck-canvas .tx blockquote {
+    color: var(--deck-muted);
+    border-color: var(--deck-muted);
+  }
+  /* A title slide: everything centred; the words under the title are the subtitle, in the muted ink. */
+  .lay-t .deck-head {
+    flex-direction: column;
+    justify-content: center;
+    margin-top: auto;
+  }
+  .lay-t .deck-title .tx {
+    text-align: center;
+  }
+  .lay-t .deck-words-row {
+    flex: 0 0 auto;
+    margin-bottom: auto;
+  }
+  .lay-t .deck-words .tx {
+    text-align: center;
+    color: var(--deck-muted);
+  }
+  .lay-t .deck-words .tx li {
+    padding-left: 0;
+  }
+  .lay-t .deck-words .tx li::before {
+    content: none;
+  }
+  /* Prose on a printed page: paragraphs, from the top, at reading size. */
+  .deck-canvas.prose .tx {
+    line-height: 1.4;
+  }
+  /* The slide's icon: a button that is the icon, or a quiet place for one. */
+  .deck-pick {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 7.5cqw;
+    height: 7.5cqw;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    color: var(--deck-icon);
+    background: transparent;
+    border: 1px dashed transparent;
+    border-radius: var(--to-radius-sm);
+    cursor: pointer;
+  }
+  .deck-pick svg {
+    width: 100%;
+    height: 100%;
+  }
+  .deck-pick.empty {
+    color: var(--deck-muted);
+    border-color: color-mix(in srgb, var(--deck-muted) 40%, transparent);
+    opacity: 0.6;
+  }
+  .deck-pick:hover,
+  .deck-pick:focus-visible,
+  .deck-big:hover,
+  .deck-big:focus-visible {
+    opacity: 1;
+    border-color: var(--deck-accent);
+    outline: none;
+  }
+  .lay-t .deck-pick {
+    width: 10cqw;
+    height: 10cqw;
+  }
+  .deck-big {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--deck-icon);
+    background: transparent;
+    border: 1px dashed transparent;
+    border-radius: var(--to-radius);
+    cursor: pointer;
+    font: inherit;
+  }
+  .deck-big svg {
+    width: 60%;
+    height: auto;
+  }
+  .deck-big.empty {
+    color: var(--deck-muted);
+    border-color: color-mix(in srgb, var(--deck-muted) 40%, transparent);
+    font-size: 16px;
+  }
+  /* A document shown on the slide: its picture, a card to tap for its menu. */
+  .deck-sub {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .deck-sub:focus-visible {
+    outline: 2px solid var(--to-accent);
+  }
+  .deck-sub svg {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+  }
+  /* Footnotes at the slide's foot, numbered as their marks are. */
+  .deck-fn {
+    margin: auto 0 0;
+    padding: 0.6em 0 0 1.6em;
+    font-size: max(12px, 1.56cqw);
+    color: var(--deck-muted);
+    border-top: 1px solid color-mix(in srgb, var(--deck-muted) 40%, transparent);
+  }
+  .deck-fn li {
+    margin: 0.15em 0;
+  }
+  .deck-num {
+    position: absolute;
+    right: 2cqw;
+    bottom: 1.4cqw;
+    font-size: 12px;
+    color: var(--deck-muted);
+    pointer-events: none;
+  }
+  /* The menu a document on the slide opens has no button of its own in the bar. */
+  .deck-submenu > button {
+    display: none;
+  }
+  .lay-t .deck-words .tx.blank::before {
+    right: 0;
+    text-align: center;
+  }
+  .deck-notes .tx {
+    min-height: 2.4em;
+    padding: 8px 12px;
+    font-size: 16px;
+    color: var(--to-ink-2);
+    background: var(--to-surface);
+    border: 1px dashed var(--to-border);
+    border-radius: var(--to-radius);
+  }
+  .deck-notes .tx blockquote {
+    margin: 0;
+    padding-left: 0;
+    border: 0;
+    color: inherit;
+    font-style: normal;
+  }
+
+  /* ---- the rail ---- */
+  .deck-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: calc(100dvh - var(--to-header-h, 56px) - 120px);
+    overflow: auto;
+    padding: 2px;
+  }
+  .deck-thumb {
+    position: relative;
+    display: block;
+    padding: 0;
+    background: var(--to-paper);
+    border: 2px solid var(--to-border);
+    border-radius: 4px;
+    cursor: pointer;
+    overflow: hidden;
+    flex: none;
+  }
+  .deck-thumb svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .deck-thumb .n {
+    position: absolute;
+    left: 4px;
+    top: 2px;
+    font-size: 11px;
+    color: var(--to-ink-3);
+    background: var(--to-surface);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+  .deck-thumb[aria-current='true'] {
+    border-color: var(--to-accent);
+  }
+  .deck-thumb:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+  .deck-end {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    font-size: 11px;
+    text-align: center;
+    color: var(--to-ink-3);
+    border: 2px dashed var(--to-border);
+    border-radius: 4px;
+  }
+
+  /* ---- the sheets to print ---- */
+  .deck-sheets {
+    display: flex;
+    flex-direction: column;
+    gap: var(--to-gutter);
+    align-items: center;
+  }
+  .deck-sheet {
+    width: 100%;
+    max-width: 816px;
+    border: 1px solid var(--to-border);
+    border-radius: 3px;
+    box-shadow: var(--to-shadow);
+    background: #fff;
+  }
+  .deck-sheet svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ---- the show: the slide is one picture, as large as the screen allows ---- */
+  .deck-show {
+    user-select: none;
+    position: fixed;
+    inset: 0;
+    background: #111;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .deck-show .frame,
+  .deck-show .was {
+    position: absolute;
+    width: min(100vw, 160vh);
+    aspect-ratio: 16 / 10;
+    background: #fff;
+  }
+  .deck-show .frame > svg,
+  .deck-show .was svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .deck-show .ctl {
+    position: fixed;
+    right: 12px;
+    top: 12px;
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: rgb(0 0 0 / 55%);
+    border-radius: var(--to-radius-pill);
+  }
+  .deck-show .ctl .to-btn {
+    color: #fafafa;
+  }
+  .deck-show .pos {
+    position: fixed;
+    left: 14px;
+    bottom: 12px;
+    font-size: 12px;
+    color: #a1a1aa;
+  }
+  .deck-show .notes {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: 36px;
+    max-height: 30vh;
+    overflow: auto;
+    padding: 10px 14px;
+    font-size: 15px;
+    line-height: 1.4;
+    color: #fafafa;
+    background: rgb(0 0 0 / 70%);
+    border-radius: var(--to-radius);
+    cursor: auto;
+  }
+  .deck-show .notes p {
+    margin: 0.3em 0;
+  }
+  .deck-show .notes small {
+    color: #a1a1aa;
+  }
+  /* A new slide arrives over the one being left (.was), which stays put underneath: no flash of the
+     background between them. Each transition is its own motion, slow enough to follow. */
+  .deck-show .frame.tr-fade {
+    animation: deck-fade 0.6s ease-in-out both;
+  }
+  .deck-show .frame.tr-slide {
+    animation: deck-slide-in 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  }
+  .deck-show .frame.tr-slide.back {
+    animation-name: deck-slide-back;
+  }
+  .deck-show .was.tr-slide {
+    animation: deck-slide-out 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  }
+  .deck-show .was.tr-slide.back {
+    animation-name: deck-slide-out-back;
+  }
+  .deck-show .frame.tr-zoom {
+    animation: deck-zoom-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .deck-show .was.tr-zoom {
+    animation: deck-zoom-out 0.6s ease-in both;
+  }
+  .deck-show .was.tr-cut {
+    display: none;
+  }
+  @keyframes deck-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes deck-slide-in {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes deck-slide-back {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes deck-slide-out {
+    to {
+      transform: translateX(-30%);
+      opacity: 0.4;
+    }
+  }
+  @keyframes deck-slide-out-back {
+    to {
+      transform: translateX(30%);
+      opacity: 0.4;
+    }
+  }
+  @keyframes deck-zoom-in {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+  }
+  @keyframes deck-zoom-out {
+    to {
+      transform: scale(1.25);
+      opacity: 0;
+    }
+  }
+
+  /* ---- phones: the rail runs under the slide, a row that scrolls sideways ---- */
+  @media (max-width: 760px) {
+    .deck-body {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .deck-rail {
+      flex-direction: row;
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
+    }
+    .deck-thumb {
+      width: 96px;
+    }
+    .deck-end {
+      flex: none;
+      width: 96px;
+      box-sizing: border-box;
+    }
+    .deck-canvas {
+      --deck-m: 5cqw;
+    }
+    .lay-2 .deck-words-row,
+    .lay-i .deck-words-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
