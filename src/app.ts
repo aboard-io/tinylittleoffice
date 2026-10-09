@@ -97,7 +97,7 @@ function applyTheme(theme: Theme) {
 
 /** The app whose own page this is ("/deck/"), if any. */
 /** The rows that scroll sideways: the header's, and the bar of every app. */
-const BARS = '.to-header-inner, .to-toolbar, .sheet-bar';
+const BARS = '.to-header-inner, .to-toolbar';
 const pageApp = () => location.pathname.split('/').slice(-2)[0];
 
 export interface Route {
@@ -202,7 +202,7 @@ export class ToApp extends LitElement {
   private barWatch: ResizeObserver | null = null;
   private bar: Element | null = null;
   private watchBar() {
-    const bar = this.querySelector('.to-panel > div > * > :is(.to-toolbar, .sheet-bar):first-child');
+    const bar = this.querySelector('.to-panel > div > * > .to-toolbar:first-child');
     if (bar !== this.bar && typeof ResizeObserver !== 'undefined') {
       this.barWatch ??= new ResizeObserver(([e]) => {
         this.style.setProperty('--to-stuck-h', `${(e.target as HTMLElement).offsetHeight}px`);

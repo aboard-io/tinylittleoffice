@@ -5,6 +5,7 @@
  */
 import { LitElement, html } from 'lit';
 import { icon, UI } from '../lib/icons.ts';
+import { isoDay, today } from '../lib/calmodel.ts';
 import { store } from '../lib/store.ts';
 import type { SlDialog, SlInput } from '../lib/shoelace.ts';
 
@@ -13,7 +14,6 @@ const FORMATS: { id: string; say: (d: Date) => string }[] = [
   { id: 'day', say: (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) },
   { id: 'iso', say: (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` },
 ];
-const today = () => FORMATS[2].say(new Date());
 /** A "YYYY-MM-DD" as a date at noon where the reader is (so no time zone moves it to another day). */
 const dayOf = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number);
@@ -28,14 +28,14 @@ export class ToDateDialog extends LitElement {
   private answer: (s: string | null) => void = () => {};
   constructor() {
     super();
-    this.day = today();
+    this.day = isoDay(today());
     this.format = store.get('tinyoffice.dateformat') ?? 'long';
   }
   protected createRenderRoot() {
     return this;
   }
   async ask(): Promise<string | null> {
-    this.day = today();
+    this.day = isoDay(today());
     await this.updateComplete;
     void this.querySelector<SlDialog>('sl-dialog')!.show();
     return new Promise((done) => (this.answer = done));

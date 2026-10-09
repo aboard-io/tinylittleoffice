@@ -1,6 +1,6 @@
 /** Invoice: who, what, how much; the sums done for you. */
 import { readLines, writeLines, type Kind as LineKind, type Row } from '../lib/lines.ts';
-import { columnsOf, parse as parseTlo } from '../lib/tlo.ts';
+import { amountOf, columnsOf, parse as parseTlo } from '../lib/tlo.ts';
 import { definePage, htmlPage } from '../lib/diagram.ts';
 import { xml, text, rect, clip, wrapText, ACCENT, LINE, MUTED, SHADE, type Page } from '../kit/core.ts';
 
@@ -32,8 +32,6 @@ export const FORM: LineKind[] = [
 ];
 export const ITEM = FORM.findIndex((k) => k.name === 'Item');
 
-const num = (s: string) => parseFloat(s.replace(/[^0-9.-]/g, ''));
-
 /**
  * The settings as lines ("From: ...", "Tax: 8%"); the items as a table,
  * "What | Qty | Units | Price"; anything else is a note at the foot.
@@ -46,7 +44,7 @@ export function parseInvoice(body: string): Invoice {
   readLines(body, FORM).forEach((r, at) => {
     const [a = '', b = '', c = '', d = ''] = r.values;
     if (r.kind < ITEM) (fields[FORM[r.kind].name.toLowerCase()] = a), (rows.fields[FORM[r.kind].name.toLowerCase()] = at);
-    else if (r.kind === ITEM) items.push({ what: a, qty: b.trim() ? num(b) || 0 : 1, unit: c, price: num(d) || 0 }), rows.items.push(at);
+    else if (r.kind === ITEM) items.push({ what: a, qty: b.trim() ? amountOf(b) || 0 : 1, unit: c, price: amountOf(d) || 0 }), rows.items.push(at);
     else notes.push(a), rows.notes.push(at);
   });
   const currency = fields.currency || '$';
@@ -82,8 +80,8 @@ export function readInvoice(text: string): string {
     if (set && setting(set[1], set[2])) return;
     const parts = l.split(',').map((p) => p.trim());
     const [q, p] = parts.slice(-2);
-    if (!tabled && parts.length >= 3 && !isNaN(num(q)) && !isNaN(num(p))) item(parts.slice(0, -2).join(', '), q, '', p);
-    else if (!tabled && parts.length === 2 && !isNaN(num(p))) item(parts[0], '1', '', p);
+    if (!tabled && parts.length >= 3 && !isNaN(amountOf(q)) && !isNaN(amountOf(p))) item(parts.slice(0, -2).join(', '), q, '', p);
+    else if (!tabled && parts.length === 2 && !isNaN(amountOf(p))) item(parts[0], '1', '', p);
     else if (l.trim()) rows.push({ kind: FORM.length - 1, values: [l.trim().replace(/^notes?\s*:\s*/i, '')], depth: 0 });
   };
   for (const [k, v] of Object.entries(doc.head)) setting(k, v);

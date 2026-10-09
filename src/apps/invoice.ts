@@ -7,6 +7,7 @@
  */
 import { DocElement, defineElement, html, nothing, tool, btn, icon, UI } from '../kit.ts';
 import { readLines, writeLines, type Row } from '../lib/lines.ts';
+import { amountOf } from '../lib/tlo.ts';
 import { FORM, ITEM, parseInvoice, spec } from './invoice.def.ts';
 import '../widgets/insert-box.ts';
 import './invoice.css';
@@ -27,7 +28,6 @@ interface Doc {
 const SETTINGS = FORM.filter((k) => k.once);
 const NOTE = FORM.length - 1;
 const FIELDS: (keyof Item)[] = ['what', 'qty', 'unit', 'price'];
-const num = (s: string) => parseFloat(s.replace(/[^0-9.-]/g, '')) || 0;
 const ISO = /^\d{4}-\d\d-\d\d$/;
 
 export class ToInvoice extends DocElement<Doc> {
@@ -114,7 +114,7 @@ export class ToInvoice extends DocElement<Doc> {
   render() {
     const doc = this.doc;
     const inv = parseInvoice(this.serialize(doc));
-    const amount = (it: Item) => (it.qty.trim() ? num(it.qty) : 1) * num(it.price);
+    const amount = (it: Item) => (it.qty.trim() ? amountOf(it.qty) || 0 : 1) * (amountOf(it.price) || 0);
     const blank = this.serialize(doc) === '';
     return html`
       <div class="to-toolbar" role="toolbar" aria-label="Invoice">

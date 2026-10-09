@@ -502,7 +502,7 @@ export class ToSheet extends DocElement<Sheet> {
     const data = chartOfSheet(measured(this.doc, this.computed));
     const best = suggestChart(data);
     return html`
-      <div class="sheet-bar">
+      <div class="to-toolbar sheet-bar">
         <span class="ref" aria-label="Selected cells">${rangeRef(this.range)}</span>
         <sl-dropdown hoist @sl-select=${(e: CustomEvent) => this.insertFunction(e.detail.item.value)}>
           <sl-button slot="trigger" class="icon" size="small" caret aria-label="Functions">${icon(UI.fn, 14)}<span class="sr-only">Functions</span></sl-button>

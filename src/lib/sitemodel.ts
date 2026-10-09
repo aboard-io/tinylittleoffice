@@ -13,7 +13,7 @@
  * "- :icon: Label | url" a small link at the foot rather than a card.
  */
 import { readLines, writeLines, kindsOf, type Kind } from './lines.ts';
-import { refFence, parse as parseTlo, write as writeTlo, writeBlock, columnsOf, type Block } from './tlo.ts';
+import { refFence, parse as parseTlo, write as writeTlo, writeBlock, columnsOf, amountOf, type Block } from './tlo.ts';
 import { linkToRef, resolve } from '../kit/embed.ts';
 
 export interface Button {
@@ -190,8 +190,6 @@ const page = (title = '', row = -1): Page => ({ title, row, sections: [section()
 export const isPicture = (s: string) => /^https?:\/\/\S+\.(png|jpe?g|gif|webp|svg|avif)(\?\S*)?$/i.test(s);
 /** Where a button may go: out to the web, to mail, or to a page or section of the site. */
 export const safeUrl = (url: string) => (/^(https?:|mailto:|tel:|#)/.test(url) ? url : '#');
-const money = (s: string) => parseFloat(s.replace(/[^0-9.-]/g, '')) || 0;
-
 /**
  * The lines of a site (or of a Quick Links page, whose form is a part of
  * this one) read into pages and sections.
@@ -243,7 +241,7 @@ export function parseSite(text: string, form: Kind[] = FORM): Site {
         cur.rows.pics.push([i, 1]);
         break;
       case 'Product':
-        if (v[0]) cur.products.push({ name: v[0], price: money(v[1]), about: v[2] ?? '', image: /^https?:\/\//.test(v[3] ?? '') ? v[3] : '' });
+        if (v[0]) cur.products.push({ name: v[0], price: amountOf(v[1]) || 0, about: v[2] ?? '', image: /^https?:\/\//.test(v[3] ?? '') ? v[3] : '' });
         break;
       case 'Document':
         cur.embeds.push(v[0]);

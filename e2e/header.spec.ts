@@ -39,13 +39,13 @@ for (const app of ['outline', 'sheet', 'write', 'deck', 'todo', 'org']) test(`sc
   await expect(page.locator('to-app')).toHaveAttribute('scrolled', '');
   await page.waitForTimeout(400);
   expect((await rect('.to-header')).b).toBeLessThanOrEqual(0);
-  const bar = await rect(`to-${app} > :is(.to-toolbar, .sheet-bar, .ol-bars)`);
+  const bar = await rect(`to-${app} > .to-toolbar`);
   expect(Math.round(bar.t)).toBe(0);
   const burger = await rect('.to-burger');
   expect(burger.l).toBeLessThanOrEqual(8);
   expect(burger.t).toBeLessThanOrEqual(12);
   // The bar's controls start past the menu button.
-  const first = await rect(`to-${app} > :is(.to-toolbar, .sheet-bar, .ol-bars) :is(sl-button, button, input, sl-select)`);
+  const first = await rect(`to-${app} > .to-toolbar :is(sl-button, button, input, sl-select)`);
   expect(first.l).toBeGreaterThanOrEqual(burger.r - 1);
   // Behind it all, the screen's width is opaque.
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('to-app')!, '::before').position)).toBe('fixed');

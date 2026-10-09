@@ -601,6 +601,8 @@ export function columnsOf(table: { head: string[] }, ...want: RegExp[]): number[
   return want.map((re) => names.findIndex((n) => re.test(n)));
 }
 export const columnText = (name: string, type: ColType = 'text') => (type === 'text' ? name : `${name}:${type}`);
+/** An amount as a person types it ("$1,200.50", "12"), as a number; NaN where there is none. */
+export const amountOf = (s: string) => parseFloat(s.replace(/[^0-9.-]/g, ''));
 
 /* ---------- structure ---------- */
 

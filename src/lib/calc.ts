@@ -142,7 +142,7 @@ export interface Calc {
   /** The tape (calc, graph) or the inputs (the rest), as written. */
   lines: string[];
 }
-const isMoney = (mode: Mode): mode is Exclude<Mode, 'calc' | 'graph'> => mode !== 'calc' && mode !== 'graph';
+export const isMoney = (mode: Mode): mode is Exclude<Mode, 'calc' | 'graph'> => mode !== 'calc' && mode !== 'graph';
 
 export function parseCalc(text: string): Calc {
   const { head, blocks } = parse(text);

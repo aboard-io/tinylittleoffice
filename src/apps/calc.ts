@@ -8,7 +8,7 @@
  * drawn beside them (lib/calc.ts, calc.def.ts). The working is the document.
  */
 import { DocElement, defineElement, html, nothing, state, unsafeSVG, pageSvg, tool, btn } from '../kit.ts';
-import { MODES, FIELDS, evaluate, inputs, parseCalc, serializeCalc, shown, tape, withDefaults, type Calc, type Mode } from '../lib/calc.ts';
+import { MODES, FIELDS, evaluate, inputs, isMoney, parseCalc, serializeCalc, shown, tape, withDefaults, type Calc, type Mode } from '../lib/calc.ts';
 import { calcPage } from './calc.def.ts';
 import './calc.css';
 
@@ -22,8 +22,6 @@ const KEYS = [
 ];
 const TYPES: Record<string, string> = { '√': 'sqrt(', ans: 'ans', π: 'π' };
 const SCI = ['sin(', 'cos(', 'tan(', 'ln(', 'log(', 'e', 'x', '!', ',', 'abs('];
-const isMoney = (mode: Mode): mode is Exclude<Mode, 'calc' | 'graph'> => mode !== 'calc' && mode !== 'graph';
-
 export class ToCalc extends DocElement<Calc> {
   /** What is being typed into the line, not yet on the tape. */
   @state() private entry = '';
