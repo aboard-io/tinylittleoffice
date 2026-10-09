@@ -5,18 +5,23 @@
 import { svg, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import {
-  Bold, Check, ChevronDown, Copy, Download, FilePlus2, FileText, Folder, Globe, HardDrive, Heading2, Image, Info, Italic, Languages,
-  LayoutGrid, Link, List, Menu, Moon, Plus, Printer, QrCode, Redo2, Search, Share2, ShieldCheck, Sun, SunMoon, Table2, Undo2, X,
+  AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Calendar, Check, ChevronDown, Copy, Download, ExternalLink, FilePlus2, FileText,
+  Folder, Globe, HardDrive, Heading1, Heading2, Highlighter, Image, IndentDecrease, IndentIncrease, Info, Italic, Languages, LayoutGrid,
+  Link, List, ListOrdered, Menu, Moon, Pencil, Plus, Printer, QrCode, Redo2, Search, Share2, ShieldCheck, Smile, Strikethrough, Sun,
+  SunMoon, Superscript, Table2, Trash2, Underline, Undo2, Unlink, X,
   type IconNode,
 } from 'lucide';
 
 export type { IconNode };
 
 export const UI = {
-  bold: Bold, check: Check, down: ChevronDown, copy: Copy, download: Download, insert: FilePlus2, text: FileText, folder: Folder, globe: Globe,
-  offline: HardDrive, heading: Heading2, image: Image, info: Info, italic: Italic, language: Languages, home: LayoutGrid, link: Link, list: List,
-  menu: Menu, moon: Moon, plus: Plus, print: Printer, qr: QrCode, redo: Redo2, search: Search, share: Share2, shield: ShieldCheck, sun: Sun,
-  auto: SunMoon, table: Table2, undo: Undo2, close: X,
+  alignCenter: AlignCenter, alignJustify: AlignJustify, alignLeft: AlignLeft, alignRight: AlignRight, bold: Bold, calendar: Calendar, check: Check,
+  down: ChevronDown, copy: Copy, download: Download, open: ExternalLink, insert: FilePlus2, text: FileText, folder: Folder, globe: Globe,
+  offline: HardDrive, heading1: Heading1, heading: Heading2, highlight: Highlighter, image: Image, outdent: IndentDecrease, indent: IndentIncrease,
+  info: Info, italic: Italic, language: Languages, home: LayoutGrid, link: Link, list: List, listOrdered: ListOrdered, menu: Menu, moon: Moon,
+  pen: Pencil, plus: Plus, print: Printer, qr: QrCode, redo: Redo2, search: Search, share: Share2, shield: ShieldCheck, icon: Smile,
+  strike: Strikethrough, sun: Sun, auto: SunMoon, footnote: Superscript, table: Table2, trash: Trash2, underline: Underline, undo: Undo2,
+  unlink: Unlink, close: X,
 } as const;
 
 function attrs(a: Record<string, string | number | undefined>): string {

@@ -28,10 +28,12 @@ test('home loads, the Text app opens, nothing throws, axe passes', async ({ page
 
   await page.locator('.to-tile-open').first().click();
   await expect(page).toHaveURL(/#\/v1\/text$/);
-  const area = page.locator('to-text-editor textarea');
+  const area = page.locator('to-text-editor to-text .tx');
   await expect(area).toBeVisible();
-  await area.fill('# Hello\n\nA line written on the phone.');
+  await area.click();
+  await page.keyboard.type('A line written on the phone.');
   await expect(page).toHaveURL(/#\/v1\/text\/[ryz]/);
+  await expect(area.locator('p')).toHaveText('A line written on the phone.');
   await page.locator('.to-title').fill('Hello');
   await page.locator('.to-title').press('Enter');
   await expect(page).toHaveTitle('Hello · TinyLittleOffice');

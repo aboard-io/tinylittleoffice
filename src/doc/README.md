@@ -25,7 +25,8 @@ ride on the head for a sheet document (its first table) and on the table's attri
 
 TLO is Markdown with a few additions (docs/tlo.md). `parse(text)` reads leniently; `write(doc)` writes canonically.
 Markdown's reference footnotes (`[^id]` with `[^id]: note`) are folded into the inline form `^[note]` on read, for
-every app. Column headings `Price:money` carry the type; `Price: money` reads too and is written `Price:money`.
+every app. An empty paragraph is written `<br>` and read back as a paragraph with no runs (a blank line alone would
+not survive the read), so a blank line typed between two others keeps its place in the link. Column headings `Price:money` carry the type; `Price: money` reads too and is written `Price:money`.
 
 **The invariants.** For every canonical text `x`, `write(parse(x)) === x` byte for byte — the gate is
 `test/doc/corpus.test.ts` over every template and example of the old tree (84 documents). For any runs,

@@ -1,0 +1,276 @@
+/* The editor (<to-text>, src/kit/text.ts): the box, its blocks, the two chips, the cards that stand for what
+   is not words, and the two bubbles. Type never under 16px (an iPhone zooms on less); the caret in the
+   accent. An app's own look (Write's paper) goes over this in its own sheet. */
+@layer kit {
+  to-text {
+    display: block;
+    position: relative;
+    min-width: 0;
+  }
+  to-text .tx {
+    position: relative;
+    min-height: 1.5em;
+    font-size: max(16px, 1em);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    outline: none;
+    caret-color: var(--to-accent);
+    -webkit-tap-highlight-color: transparent;
+  }
+  to-text .tx.blank::before {
+    content: attr(data-placeholder);
+    position: absolute;
+    inset: 0 auto auto 0;
+    color: var(--to-placeholder);
+    pointer-events: none;
+  }
+  to-text .tx > * {
+    margin: 0 0 0.6em;
+  }
+  to-text .tx > :last-child {
+    margin-bottom: 0;
+  }
+  to-text[shape='line'] .tx > * {
+    margin: 0;
+  }
+  to-text .tx h1,
+  to-text .tx h2,
+  to-text .tx h3,
+  to-text .tx h4 {
+    line-height: 1.25;
+    font-weight: 700;
+  }
+  to-text .tx h1 {
+    font-size: 1.6em;
+  }
+  to-text .tx h1.title {
+    font-size: 2em;
+    letter-spacing: -0.01em;
+  }
+  to-text .tx h2 {
+    font-size: 1.3em;
+  }
+  to-text .tx h3,
+  to-text .tx h4 {
+    font-size: 1.1em;
+  }
+  to-text .tx li {
+    list-style: none;
+    position: relative;
+    padding-left: calc(1.5em + var(--d, 0) * 1.5em);
+  }
+  to-text .tx li::before {
+    content: '•';
+    position: absolute;
+    left: calc(var(--d, 0) * 1.5em + 0.25em);
+    color: var(--to-ink-3);
+  }
+  to-text .tx li[data-n]::before {
+    content: attr(data-n) '.';
+    font-variant-numeric: tabular-nums;
+  }
+  to-text .tx li[data-done]::before {
+    content: '☐';
+  }
+  to-text .tx li[data-done='true']::before {
+    content: '☑';
+    color: var(--to-success);
+  }
+  to-text .tx li[data-done='true'] {
+    color: var(--to-ink-3);
+  }
+  to-text .tx blockquote {
+    margin-left: 0;
+    padding-left: 12px;
+    border-left: 3px solid var(--to-border);
+    color: var(--to-ink-2);
+  }
+  to-text .tx .center {
+    text-align: center;
+  }
+  to-text .tx .right {
+    text-align: right;
+  }
+  to-text .tx .justify {
+    text-align: justify;
+  }
+  to-text .tx mark {
+    background: color-mix(in srgb, var(--to-warning) 35%, transparent);
+    color: inherit;
+  }
+  to-text .tx a {
+    color: var(--to-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* The icon chip: one thing the caret steps over. (Drawn by name until the icon registry lands.) */
+  to-text .tx .ic {
+    display: inline-block;
+    padding: 0 0.3em;
+    margin: 0 0.05em;
+    border-radius: 4px;
+    font-size: 0.8em;
+    line-height: 1.4;
+    color: var(--to-accent);
+    background: color-mix(in srgb, var(--to-accent) 10%, transparent);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  to-text .tx .ic::before {
+    content: ':' attr(data-icon) ':';
+  }
+  /* The footnote mark: a small raised number. */
+  to-text .tx .fn {
+    display: inline-block;
+    min-width: 1.2em;
+    padding: 0 0.25em;
+    margin: 0 0.05em;
+    border-radius: 4px;
+    font-size: 0.7em;
+    line-height: 1.4;
+    vertical-align: super;
+    text-align: center;
+    color: var(--to-accent);
+    background: color-mix(in srgb, var(--to-accent) 10%, transparent);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  to-text .tx .fn:hover,
+  to-text .tx .fn:focus-visible {
+    background: color-mix(in srgb, var(--to-accent) 22%, transparent);
+    outline: none;
+  }
+
+  /* A card for what is not words: another document, a picture, a table, a rule. The caret skips it. */
+  to-text .tx .tx-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--to-border);
+    border-radius: var(--to-radius);
+    background: var(--to-surface-2);
+    color: var(--to-ink-2);
+    font-size: 14px;
+    white-space: normal;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+  }
+  to-text .tx .tx-card:focus-visible {
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
+  to-text .tx .tx-card-kind {
+    flex: none;
+    font-weight: 600;
+    color: var(--to-ink);
+  }
+  to-text .tx .tx-card-gist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  to-text .tx figure.tx-card {
+    padding: 0;
+    overflow: hidden;
+  }
+  to-text .tx .tx-card img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  to-text .tx .tx-card[data-k='hr'] {
+    display: block;
+    padding: 8px 0;
+    border: 0;
+    background: none;
+  }
+  to-text .tx .tx-card hr {
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--to-border-strong);
+  }
+
+  /* ---- the two bubbles ---- */
+  .to-note-pop,
+  .to-link-pop {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: min(420px, calc(100vw - 16px));
+    padding: 6px 6px 6px 10px;
+    border: 1px solid var(--to-border);
+    border-radius: 10px;
+    background: var(--to-surface);
+    color: var(--to-ink);
+    box-shadow: var(--to-shadow-pop);
+    font-size: 14px;
+  }
+  .to-note-pop:not([open]):not(:popover-open) {
+    display: none;
+  }
+  .to-link-pop:not(:popover-open):not([popover]) {
+    display: flex;
+  }
+  .to-link-pop[hidden] {
+    display: none;
+  }
+  .to-note-n {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--to-accent);
+  }
+  .to-note-words {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .to-note-words .tx {
+    min-height: 0;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--to-bg);
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .to-link-pop {
+    width: auto;
+    max-width: calc(100vw - 16px);
+  }
+  .to-link-href {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--to-accent);
+  }
+  .to-link-input {
+    flex: 1 1 auto;
+    min-width: 200px;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 16px;
+    color: var(--to-ink);
+    background: var(--to-input-bg);
+    border: 1px solid var(--to-input-border);
+    border-radius: var(--to-radius-sm);
+  }
+  .to-link-input:focus {
+    outline: 2px solid var(--to-accent);
+    outline-offset: -1px;
+  }
+  @media print {
+    .to-note-pop,
+    .to-link-pop {
+      display: none !important;
+    }
+  }
+}

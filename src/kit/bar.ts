@@ -50,7 +50,11 @@ export interface BtnOpts {
   cls?: string;
   /** The keys, for the tooltip: "Mod+B" is written as the device writes it. */
   keys?: string;
+  /** The button never takes the focus: an editor's selection stays where it is, and a phone's keyboard stays up. */
+  keep?: boolean;
 }
+
+const keepFocus = (e: Event) => e.preventDefault();
 
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 /** "Mod+B" as this device writes it: ⌘B on a Mac, Ctrl+B elsewhere. */
@@ -60,8 +64,8 @@ const tip = (o: BtnOpts) => (o.keys ? `${o.label} (${keysText(o.keys)})` : o.lab
 
 /** A button with its words on it, and an icon before them if it has one. */
 export const btn = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys ? tip(o) : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
+  html`<button type="button" class="to-btn ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} title=${o.keys ? tip(o) : nothing} @pointerdown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}<span>${o.label}</span></button>`;
 
 /** An icon button: its name is spoken and shown as a tooltip. */
 export const tool = (o: BtnOpts): TemplateResult =>
-  html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
+  html`<button type="button" class="to-btn to-tool ${o.cls ?? ''}" ?disabled=${o.disabled} aria-pressed=${o.pressed === undefined ? nothing : String(o.pressed)} aria-label=${o.label} title=${tip(o)} @pointerdown=${o.keep ? keepFocus : nothing} @click=${o.does}>${o.icon ? icon(o.icon) : nothing}</button>`;
