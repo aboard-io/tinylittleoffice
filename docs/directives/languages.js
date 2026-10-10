@@ -3,6 +3,7 @@ export const meta = {
   description: 'Nine languages for Tiny Little Office: Opus builds the checks that make a translation safe to merge, then Sonnet translates en.ts into each language two at a time, and Sonnet merges one at a time',
   phases: [
     { title: 'Tools', detail: 'Opus: the checks, the gaps script, the tests', model: 'opus' },
+    { title: 'Review', detail: 'Sonnet reads the diff against the directive before it merges', model: 'sonnet' },
     { title: 'Translate', detail: 'Sonnet, two at a time, one file each', model: 'sonnet' },
     { title: 'Merge', detail: 'one at a time into next, checks green, push', model: 'sonnet' },
   ],
@@ -22,6 +23,11 @@ const LANGS = [
 ]
 const FIX_SCHEMA = { type: 'object', properties: { branch: { type: 'string' }, commit: { type: 'string' }, worktree: { type: 'string' }, done: { type: 'string' }, tests: { type: 'string' }, kitFiles: { type: 'string' }, left: { type: 'string' }, ok: { type: 'boolean' } }, required: ['branch', 'commit', 'worktree', 'done', 'tests', 'ok'] }
 const LANG_SCHEMA = { type: 'object', properties: { code: { type: 'string' }, branch: { type: 'string' }, commit: { type: 'string' }, worktree: { type: 'string' }, glossary: { type: 'string' }, tooLong: { type: 'string' }, ambiguous: { type: 'string' }, checks: { type: 'string' }, ok: { type: 'boolean' } }, required: ['code', 'branch', 'commit', 'worktree', 'checks', 'ok'] }
+const REVIEW_SCHEMA = { type: 'object', properties: { ready: { type: 'boolean' }, findings: { type: 'string' } }, required: ['ready', 'findings'] }
+const reviewPrompt = (r, directive) => `Review a finished branch of Tiny Little Office before it merges. The branch is ${r.branch} at ${r.commit}, in the worktree ${r.worktree}; its directive is ${directive} and the contract is ${S}/directive-r4-common.md. Read both in full, then \`git -C ${r.worktree} diff next...${r.branch}\` (and the files it touches where the diff is not enough). Do not run tests (the merge does) and change nothing. Judge only: (1) does the branch do what the directive asks, no less and nothing beyond it; (2) is each behaviour it claims covered by a test that would fail without it; (3) does it break a standing rule (a human never edits markup; strings through t(); no compat shim; native APIs first; one mechanism per idea; nothing committed that should not be, such as node_modules or a generated file edited by hand); (4) is the house voice kept in headers and the commit. Return ready=true when nothing needs changing before the merge, else ready=false with findings: a numbered list, each one line naming the file and what to change, concrete enough for the builder to act on without rereading everything. Taste is not a finding; a missing test, a wrong behaviour or a rule broken is.`
+const fixPrompt = (r, directive, findings) => `You are finishing a branch of Tiny Little Office that a review sent back. The branch is ${r.branch} in the worktree ${r.worktree} (work ONLY there; never push or touch another checkout; the node_modules link is never committed). Its directive is ${directive}; the contract is ${S}/directive-r4-common.md. The review's findings, each to act on or to answer in your report with a reason the directive supports:
+${findings}
+One test command at a time, never in the background. Commit on the branch in the house voice ending in "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>". Return the structured report (ok=true only when every check is green).`
 const MERGE_SCHEMA = { type: 'object', properties: { merged: { type: 'boolean' }, commit: { type: 'string' }, tests: { type: 'string' }, notes: { type: 'string' } }, required: ['merged', 'tests', 'notes'] }
 
 const worktreeSteps = (id) => `1. Create your worktree from the CURRENT next: \`git -C ${NEXT} worktree add -b next-${id} ${NEXT}-${id} next\` (if the path exists, use it), then \`ln -s ${NEXT}/node_modules ${NEXT}-${id}/node_modules\` (skip if present). NEVER commit that link: node_modules must never appear in \`git status\`; if it does, \`git rm --cached node_modules\` before committing. Work ONLY in that worktree. Never push, deploy, or touch ${NEXT} or another worktree.`
@@ -50,7 +56,15 @@ const merge = (label, r) => (mergeChain = mergeChain.then(() => { log(`merging $
 log('building the checks')
 const tools = await agent(toolsPrompt, { label: 'build:lang-tools', phase: 'Tools', model: 'opus', schema: FIX_SCHEMA })
 if (!(tools && tools.ok)) return { tools, languages: [] }
-const toolsMerge = await merge('lang-tools', tools)
+log('reviewing the checks')
+let toolsFinal = tools
+const review = await agent(reviewPrompt(tools, `${S}/directive-lang-tools.md`), { label: 'review:lang-tools', phase: 'Review', model: 'sonnet', schema: REVIEW_SCHEMA })
+if (review && !review.ready) {
+  log('the review sent the checks back')
+  const fixed = await agent(fixPrompt(tools, `${S}/directive-lang-tools.md`, review.findings), { label: 'fix:lang-tools', phase: 'Tools', model: 'opus', schema: FIX_SCHEMA })
+  if (fixed && fixed.ok) toolsFinal = fixed
+}
+const toolsMerge = await merge('lang-tools', toolsFinal)
 if (!(toolsMerge && toolsMerge.merged)) return { tools, toolsMerge, languages: [] }
 
 // Two translators at a time; each merged as it finishes.
@@ -68,4 +82,4 @@ const languages = await Promise.all(LANGS.map(async (l) => {
   const m = await merge(l.code, r)
   return { code: l.code, build: r, merge: m }
 }))
-return { tools, toolsMerge, languages }
+return { tools, review, toolsMerge, languages }
