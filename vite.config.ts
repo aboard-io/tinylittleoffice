@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { offlineList } from './scripts/offline-files.ts';
 import { fillHeaders, mediaSource } from './scripts/headers.ts';
 import { siteFrame } from './scripts/site-frame.ts';
+import { gitFacts, versionJson, versionOf } from './scripts/version.ts';
 import type { AppDef } from './src/kit/app.ts';
 
 /**
@@ -18,7 +19,8 @@ const fromSource = <T>(path: string): Promise<T> => import(pathToFileURL(resolve
 /**
  * After the build: a page per app (dist/<id>/index.html, the shell with that app's name and blurb in its
  * tags, so a shared link previews as that app); the Content-Security-Policy's script hashes and the picture
- * proxy written into _headers (public/_headers has the placeholders, scripts/headers.ts fills them); and the list of files the
+ * proxy written into _headers (public/_headers has the placeholders, scripts/headers.ts fills them); which build this is,
+ * dist/version.json (the commit, its tag and date, those hashes: scripts/version.ts); and the list of files the
  * device keeps for working offline (dist/files.json), whose hash versions the service worker (src/sw.ts).
  * Each app's page names its own share card (public/og/<id>.png, drawn by scripts/make-cards.ts) where there
  * is one; dist/embed/index.html is the shell again, at the one address another site may frame (the embed
@@ -53,6 +55,7 @@ function afterBuild(site: string, media: string | undefined): Plugin {
       }
       const hashes = pageScripts().map((code) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`);
       writeFileSync(resolve(dist, '_headers'), fillHeaders(readFileSync(resolve(dist, '_headers'), 'utf8'), { scripts: hashes, media: mediaSource(media) }));
+      writeFileSync(resolve(dist, 'version.json'), versionJson(versionOf(gitFacts(import.meta.dirname), hashes)));
       const built = (readdirSync(dist, { recursive: true, withFileTypes: true }) as import('node:fs').Dirent[])
         .filter((f) => f.isFile())
         .map((f) => ({ path: relative(dist, resolve(f.parentPath, f.name)).replaceAll('\\', '/'), bytes: statSync(resolve(f.parentPath, f.name)).size }));

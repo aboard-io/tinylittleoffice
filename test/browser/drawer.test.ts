@@ -2,6 +2,8 @@
 import { test, expect } from 'vitest';
 import { mount, until } from './helpers.ts';
 import { apps } from '../../src/kit/apps.ts';
+import { running } from '../../src/kit/version.ts';
+import { siteRoot } from '../../src/kit/offline.ts';
 
 test('the hamburger opens the drawer, the apps are rows with their templates, Find narrows them, Escape closes it', async () => {
   const shell = await mount('');
@@ -146,4 +148,36 @@ test('About links the threat model, a link that leaves and so is asked about', a
   expect(a.textContent).toBe('What this protects against, and what it does not');
   expect(a.href).toBe(THREAT_MODEL);
   expect(THREAT_MODEL).toMatch(/\/docs\/threat-model\.md$/);
+});
+
+test('About names the commit the site runs, from /version.json, asked when it opens, with a link to its source', async () => {
+  // The test server has no /version.json: let an ask still on its way from the test before come back empty (and be forgotten).
+  await running(siteRoot());
+  const real = window.fetch;
+  const asked: string[] = [];
+  const commit = '0123456789abcdef0123456789abcdef01234567';
+  window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (!url.endsWith('/version.json')) return real(input, init);
+    asked.push(url);
+    return new Response(JSON.stringify({ commit, tag: 'v1.0.0', built: '2026-10-10T00:00:00Z', csp: { scripts: ['sha256-x'] } }), { headers: { 'Content-Type': 'application/json' } });
+  }) as typeof fetch;
+  try {
+    const shell = await mount('');
+    shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+    await until(() => !!shell.querySelector<HTMLDialogElement>('dialog.to-drawer')?.open);
+    // Nothing is asked until About opens.
+    expect(asked).toEqual([]);
+    shell.querySelector<HTMLButtonElement>('.to-drawer-about')!.click();
+    await until(() => !!shell.querySelector('.to-about-dialog .to-about-version a'));
+    const a = shell.querySelector<HTMLAnchorElement>('.to-about-dialog .to-about-version a')!;
+    expect(a.textContent).toBe('Running commit 0123456');
+    expect(a.href).toBe(`https://github.com/ftrain/tinyoffice/commit/${commit}`);
+    expect(a.target).toBe('_blank');
+    expect(a.closest('p')!.textContent).toBe('Running commit 0123456 (v1.0.0)');
+    expect(asked.length).toBe(1);
+    expect(new URL(asked[0]).origin).toBe(location.origin);
+  } finally {
+    window.fetch = real;
+  }
 });

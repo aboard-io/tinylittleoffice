@@ -155,6 +155,14 @@ export const NETWORK = {
   codepen: tapFrame('codepen.io', 'A CodePen'),
   anyFrame: tapFrame('*', 'A thing on any server, by its address: a Mastodon post, a PeerTube video, a Wayback Machine page, a PDF'),
   anyMedia: { ...tapFrame('*', 'A sound or a film that is a file, played by the browser’s own player'), carries: 'The file’s address; no referrer', csp: ['media'] },
+  source: {
+    host: 'github.com',
+    what: 'The site’s source: the commit this copy was built from, named in About, a link',
+    when: 'after a tap',
+    carries: 'Which commit; it opens in a new tab, and nothing of the document goes with it',
+    stops: 'Not following the link: the commit’s name comes from the site’s own /version.json',
+    by: 'kit/drawer.ts, kit/version.ts',
+  },
   bskyShare: compose('bsky.app', 'Bluesky’s compose box'),
   xShare: compose('x.com', 'X’s compose box'),
   github: {

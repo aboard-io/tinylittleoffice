@@ -3,7 +3,7 @@
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
  * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
- * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts; and names the commit it runs, from /version.json, kit/version.ts, read when About opens). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt: kit/open.ts) and Compare… (this document beside another link:
  * kit/compare.ts) sit above the switches.
@@ -26,6 +26,7 @@ import { openFile, OPENS } from './open.ts';
 import { compareHash } from './compare.ts';
 import { parseHash } from './route.ts';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { commitUrl, running, type Version } from './version.ts';
 import './preview.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
@@ -37,15 +38,18 @@ import { origin } from './network.ts';
 export const THREAT_MODEL = `${origin('github')}/ftrain/tinyoffice/blob/main/docs/threat-model.md`;
 
 export class ToDrawer extends LitElement {
-  static properties = { find: { state: true }, open: { state: true } };
+  static properties = { find: { state: true }, open: { state: true }, version: { state: true } };
   declare find: string;
   declare open: boolean;
+  /** The build this is, once About has asked (null: there is no /version.json, as on the dev server). */
+  declare version: Version | null;
   private offs: (() => void)[] = [];
 
   constructor() {
     super();
     this.find = '';
     this.open = false;
+    this.version = null;
   }
   createRenderRoot() {
     return this;
@@ -184,13 +188,21 @@ export class ToDrawer extends LitElement {
                   : installByHand()
                     ? html`<p class="to-hint to-install-how">${t('To add Tiny Little Office to the home screen: Share, then Add to Home Screen.')}</p>`
                     : nothing}
-                <button type="button" class="to-btn to-drawer-about" @click=${() => void this.querySelector<ToDialog>('to-dialog.to-about-dialog')?.show()}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
+                <button type="button" class="to-btn to-drawer-about" @click=${() => this.about()}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
               </section>`
           : nothing}
       </div>
     </dialog>
     <to-privacy></to-privacy>
-    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>`}></to-dialog>`;
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>${this.version
+      ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
+      : nothing}`}></to-dialog>`;
+  }
+
+  /** About, and the build it runs, asked for the first time it opens. */
+  private about() {
+    void this.querySelector<ToDialog>('to-dialog.to-about-dialog')?.show();
+    void running(siteRoot()).then((v) => (this.version = v));
   }
 }
 customElements.define('to-drawer', ToDrawer);

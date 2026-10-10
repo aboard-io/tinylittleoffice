@@ -8,6 +8,7 @@
  *     new worker.
  *   - dist/_headers has the scripts' hashes in place of {{scripts}}: every script the apps' pages carry
  *     (src/kit/page.ts) and every inline script of a built page, or the browser would refuse to run it.
+ *   - dist/version.json has the shape of src/kit/version.ts and the same script hashes as the policy.
  *
  *   node scripts/check-build.ts      the build in dist/, checked; a line per problem, and exit 1
  */
@@ -16,6 +17,7 @@ import { existsSync, readFileSync, readdirSync, statSync, type Dirent } from 'no
 import { relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { offlineList, type OfflineList } from './offline-files.ts';
+import { isVersion } from '../src/kit/version.ts';
 
 const hash = (code: string) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`;
 
@@ -60,6 +62,17 @@ export function checkBuild(dist: string, scripts: string[] = []): string[] {
     if (!policies.length) problems.push('_headers has no script-src');
     const allowed = (h: string) => policies.every((p) => p.split(/\s+/).includes(h));
     for (const code of scripts) if (!allowed(hash(code))) problems.push(`a page script is not in the policy: ${code.slice(0, 40).replace(/\s+/g, ' ')}…`);
+    // /version.json names the same hashes, for anyone checking the site against its source.
+    let version: unknown = null;
+    try {
+      version = JSON.parse(readFileSync(at('version.json'), 'utf8'));
+    } catch {
+      problems.push('version.json is missing or not JSON');
+    }
+    if (version !== null) {
+      if (!isVersion(version)) problems.push('version.json is not { commit, tag, built, csp: { scripts } }');
+      else if (policies.length && version.csp.scripts.map((s) => `'${s}'`).join(' ') !== policies[0].split(/\s+/).filter((h) => h.startsWith("'sha256-")).join(' ')) problems.push('version.json’s script hashes are not the policy’s');
+    }
     for (const f of built.filter((b) => b.path.endsWith('.html'))) {
       const page = readFileSync(at(f.path), 'utf8');
       for (const m of page.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/g)) if (m[1].trim() && !allowed(hash(m[1]))) problems.push(`${f.path} has an inline script the policy does not allow`);

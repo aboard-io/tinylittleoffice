@@ -1,0 +1,54 @@
+# A release, from a tag v*: the site built from the tag, built again twice to show the bytes are the same
+# (scripts/reproducible.ts), checked (scripts/check-build.ts), attested by GitHub (build provenance for every
+# file of dist/ and for the archive), and published as the release's artifact with notes that name the
+# commit and the Content-Security-Policy's script hashes (scripts/release-notes.ts, from dist/version.json).
+# docs/transparency.md §1 item 3; signed tags: docs/github-setup.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # The address the site is published at (the link-preview tags); a fork sets the repository variable SITE_URL.
+      VITE_SITE_URL: ${{ vars.SITE_URL || 'https://tinylittleoffice.com/' }}
+      ARCHIVE: tinylittleoffice-${{ github.ref_name }}.tar.gz
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The whole history and the tags: version.json names the tag, and build:verify checks the commit out twice.
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build
+      - name: The same bytes, built twice more
+        run: npm run build:verify
+      - name: The offline list, the worker and the policy
+        run: node scripts/check-build.ts
+      - name: The archive (sorted, no times, no owners, so it is the same bytes too)
+        run: tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C dist -cf - . | gzip -n > "$ARCHIVE"
+      - name: Attest the build
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/**
+            ${{ env.ARCHIVE }}
+      - name: The notes
+        run: node scripts/release-notes.ts "$ARCHIVE" > notes.md
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "$ARCHIVE" --verify-tag --title "Tiny Little Office $GITHUB_REF_NAME" --notes-file notes.md

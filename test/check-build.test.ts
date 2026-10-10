@@ -12,14 +12,15 @@ const SCRIPT = 'document.title="cart"';
 const hash = (code: string) => `'sha256-${createHash('sha256').update(code).digest('base64')}'`;
 let dist = '';
 
-/** A build as vite.config.ts leaves it: pages, a chunk, the list, the worker with its version, the headers with the hashes. */
+/** A build as vite.config.ts leaves it: pages, a chunk, the list, the worker with its version, the headers with the hashes, version.json. */
 function build(opts: { inline?: string } = {}) {
   const put = (p: string, s: string) => (mkdirSync(join(dist, p, '..'), { recursive: true }), writeFileSync(join(dist, p), s));
   put('index.html', `<!doctype html><script src="./theme.js"></script>${opts.inline ? `<script>${opts.inline}</script>` : ''}<script type="application/ld+json">{"a":1}</script>`);
   put('write/index.html', '<!doctype html><title>Word Processor</title>');
   put('assets/main-abc.js', 'export {}');
   put('theme.js', '//');
-  const files = ['index.html', 'write/index.html', 'assets/main-abc.js', 'theme.js'].map((path) => ({ path, bytes: statSync(join(dist, path)).size }));
+  put('version.json', JSON.stringify({ commit: 'a'.repeat(40), tag: '', built: '2026-10-10T00:00:00Z', csp: { scripts: [hash(SCRIPT).slice(1, -1)] } }));
+  const files = ['index.html', 'write/index.html', 'assets/main-abc.js', 'theme.js', 'version.json'].map((path) => ({ path, bytes: statSync(join(dist, path)).size }));
   const list = offlineList(files);
   put('files.json', JSON.stringify(list));
   put('sw.js', `const VERSION = '${list.version}';`);
@@ -67,4 +68,14 @@ test('the policy: the placeholder left, a page script or an inline script withou
   expect(checkBuild(dist, [SCRIPT])).toEqual(['index.html has an inline script the policy does not allow']);
   build({ inline: SCRIPT });
   expect(checkBuild(dist, [SCRIPT])).toEqual([]);
+});
+
+test('version.json: missing, the wrong shape, or hashes that are not the policy’s', () => {
+  build();
+  writeFileSync(join(dist, 'version.json'), JSON.stringify({ commit: 'a', tag: '', built: '', csp: { scripts: ['sha256-other'] } }));
+  expect(checkBuild(dist, [SCRIPT])).toContain('version.json’s script hashes are not the policy’s');
+  writeFileSync(join(dist, 'version.json'), JSON.stringify({ commit: 'a' }));
+  expect(checkBuild(dist, [SCRIPT])).toContain('version.json is not { commit, tag, built, csp: { scripts } }');
+  rmSync(join(dist, 'version.json'));
+  expect(checkBuild(dist, [SCRIPT])).toContain('version.json is missing or not JSON');
 });

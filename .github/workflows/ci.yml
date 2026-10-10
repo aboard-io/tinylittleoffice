@@ -1,6 +1,7 @@
 # Every check a change must pass, on every push and pull request: the types, the strings, the generated
 # pages, the dependencies' advisories, the unit tests under node, the browser tests in Chromium, and the
-# build. Branch protection on main requires this job (docs/github-setup.md).
+# build, made twice more to show it is the same bytes. Branch protection on main requires this job
+# (docs/github-setup.md).
 name: CI
 
 on:
@@ -53,3 +54,5 @@ jobs:
         run: npx vitest run --project browser
       - name: Build
         run: npm run build
+      - name: The same bytes, built twice (scripts/reproducible.ts)
+        run: npm run build:verify

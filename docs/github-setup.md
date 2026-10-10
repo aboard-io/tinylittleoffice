@@ -71,8 +71,23 @@ change itself is last, and is Paul's click.
 
 ## Releases
 
-- [ ] Tags are signed (`git tag -s`); the release workflow (build, attest, publish `dist/` as the release's
-      artifact, the CSP's script hashes in the notes) is docs/transparency.md §1 item 3, not built yet.
+A release is a tag `v*`: `.github/workflows/release.yml` builds it, builds it twice more to show the bytes are
+the same, attests `dist/` and an archive of it, and publishes the archive with notes naming the commit and the
+CSP's script hashes (docs/transparency.md §1 item 3).
+
+- [ ] Tags are signed, so anyone can see who made a release as well as what it is:
+      `git tag -s v1.0.0 -m "Tiny Little Office v1.0.0" && git push origin v1.0.0`. `-s` signs with a GPG key,
+      or with an SSH key under `git config gpg.format ssh` and `user.signingkey`; add the same key to the
+      GitHub account as a **signing key**, so the tag shows as Verified. Anyone checks one with `git tag -v`.
+- [ ] A tag ruleset (Settings → Rules → Rulesets → New tag ruleset): target `refs/tags/v*`; **Restrict creations**,
+      **Restrict updates**, **Restrict deletions**, **Block force pushes**; bypass list: Paul, so only he makes
+      a release.
+- [ ] Settings → Actions → General → Workflow permissions: leave **Read repository contents** as the default;
+      the release workflow asks for its own (`contents: write`, `id-token: write`, `attestations: write`).
+
+A release is checked with `gh attestation verify tinylittleoffice-v1.0.0.tar.gz -R ftrain/tinyoffice` (built
+by that workflow, from that commit), and the live site against it with
+`npm run verify-deploy -- https://tinylittleoffice.com/ v1.0.0`.
 
 ## Last
 

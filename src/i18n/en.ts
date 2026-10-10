@@ -80,6 +80,8 @@ export default {
   'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.',
   'What leaves your browser': 'What leaves your browser',
   'What this protects against, and what it does not': 'What this protects against, and what it does not',
+  // About's last line, a link to the source of the build the site runs: "Running commit abc1234".
+  'Running commit {commit}': 'Running commit {commit}',
 
   // ---- the copy kept on the device (status lines under the switch) ----
   'Only on the built site': 'Only on the built site',
