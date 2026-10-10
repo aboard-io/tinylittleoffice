@@ -110,23 +110,34 @@ A nested list, two spaces a level. An item's tie to its parent can be an arrow, 
 Launch plan:
 
 ```
-- Launch
+---
+title: Fieldnote 2.0 launch
+---
+- Fieldnote 2.0, out on Thursday 12 November
   - Product
     - Pricing {.from label=sets}
+      - £4 a month or £36 a year; free for students^[Three rivals checked in September: £3 to £6 a month.]
     - Onboarding
+      - Three screens, then straight to the first note
+    - Freeze the build on Monday 2 November
   - Marketing
     - Press
+      - Review copies to six writers on 5 November, embargoed to the 12th
     - Newsletter
+      - To 4,200 readers at 8 am on launch day
+    - A ninety-second film of a note being made
   - Support
     - Help pages
-    - A reply within a day
+      - Twelve of them, the five most asked about first
+    - A reply within a day, Priya and Tom taking turns
 
 ~ Pricing -> Press: informs
+~ Help pages -> Newsletter: linked from
 ```
 
-As a link: <https://tinylittleoffice.com/outline/#doc=-+Launch%0A++-+Product%0A++++-+Pricing+%7B.from+label%3Dsets%7D%0A++++-+Onboarding%0A++-+Marketing%0A++++-+Press%0A++++-+Newsletter%0A++-+Support%0A++++-+Help+pages%0A++++-+A+reply+within+a+day%0A%0A~+Pricing+-%3E+Press%3A+informs>
+As a link: <https://tinylittleoffice.com/outline/#doc=---%0Atitle%3A+Fieldnote+2.0+launch%0A---%0A-+Fieldnote+2.0%2C+out+on+Thursday+12+November%0A++-+Product%0A++++-+Pricing+%7B.from+label%3Dsets%7D%0A++++++-+%C2%A34+a+month+or+%C2%A336+a+year%3B+free+for+students%5E%5BThree+rivals+checked+in+September%3A+%C2%A33+to+%C2%A36+a+month.%5D%0A++++-+Onboarding%0A++++++-+Three+screens%2C+then+straight+to+the+first+note%0A++++-+Freeze+the+build+on+Monday+2+November%0A++-+Marketing%0A++++-+Press%0A++++++-+Review+copies+to+six+writers+on+5+November%2C+embargoed+to+the+12th%0A++++-+Newsletter%0A++++++-+To+4%2C200+readers+at+8+am+on+launch+day%0A++++-+A+ninety-second+film+of+a+note+being+made%0A++-+Support%0A++++-+Help+pages%0A++++++-+Twelve+of+them%2C+the+five+most+asked+about+first%0A++++-+A+reply+within+a+day%2C+Priya+and+Tom+taking+turns%0A%0A~+Pricing+-%3E+Press%3A+informs%0A~+Help+pages+-%3E+Newsletter%3A+linked+from>
 
-Templates: Launch plan, A talk, A book, A decision. Its own files: `.opml`, `.md`, `.pdf`, `.txt`. (the `.pdf` is the outline's words as sections and bullets, selectable and bookmarked)
+Templates: Packing list, A decision, Launch plan, A talk, A speech, An essay plan, A research plan, A syllabus, A novel, A book, A company, A family, A decision tree, Troubleshooting. Its own files: `.opml`, `.md`, `.pdf`, `.txt`. (the `.pdf` is the outline's words as sections and bullets, selectable and bookmarked)
 
 ## Slides and things to print
 

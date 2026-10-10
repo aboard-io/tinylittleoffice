@@ -2,8 +2,8 @@
 // lines between items (their kinds and names as an item's attributes), joins as edges "~ A -> B: name",
 // documents as fences; loose words listified; the conversions a deck, a network and an org chart read.
 import { expect, test } from 'vitest';
-import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { appendItem, connect, copySpan, duplicateSpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink, notesApart, notesAsItems } from '../model.ts';
+import { applyAll, evaluate, parse, write, type Doc, type Op } from '../../../doc/index.ts';
+import { appendItem, connect, copySpan, duplicateSpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToFamily, outlineToMind, outlineToNet, outlineToOrg, personOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink, notesApart, notesAsItems } from '../model.ts';
 import { docGist, outlinePage, richText, wrapRuns } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -313,7 +313,7 @@ test('a mind map gets the tree and its joins as cross-links; an org chart its jo
   const deck = outlineToDeck(readOutline(parse('- Launch\n  - Product\n    - Pricing\n      - Tiers\n    - Onboarding\n  - Marketing\n    - Press\n\n```sheet {depth=1}\na | b\n--- | ---\n```\n\n  - Done\n')));
   expect(deck).toBe('## Launch {.title}\n\n- Product\n- Marketing\n- Done\n\n---\n\n## Product\n\n- Pricing\n- Onboarding\n\n---\n\n## Pricing\n\n- Tiers\n\n---\n\n## Marketing\n\n- Press\n\n---\n\n```sheet\na | b\n--- | ---\n```\n');
   expect(outlineToDeck(readOutline(parse('- A\n  - a1\n- B\n  - b1\n')))).toBe('## A\n\n- a1\n\n---\n\n## B\n\n- b1\n');
-  expect(def.handoffs!.map((h) => h.to)).toEqual(['deck', 'diagram', 'diagram', 'diagram']);
+  expect(def.handoffs!.map((h) => h.to)).toEqual(['deck', 'diagram', 'diagram', 'diagram', 'diagram']);
   expect(def.handoffs![0].convert('---\ntitle: Plan\n---\n' + TREE)).toBe('---\ntitle: Plan\n---\n## Launch {.title}\n\n- Product\n- Marketing\n\n---\n\n## Product\n\n- Pricing\n');
 });
 
@@ -346,6 +346,9 @@ test('OPML, plain text and Markdown, and the page', () => {
   expect(def.view('')[0].svg).toContain('An empty outline');
   expect(def.view(DOC, { small: true })[0].svg).not.toContain('Connections');
   expect(docGist('sheet\n---\nchart: pie\n---\na | b\n--- | ---')).toEqual({ app: 'sheet', gist: 'a | b' });
+  // A document with a title is named by it, never by a title further down in its words.
+  expect(docGist('sheet\n---\nchart: pie\ntitle: Budget\n---\na | b\n--- | ---')).toEqual({ app: 'sheet', gist: 'Budget' });
+  expect(docGist('write\n---\nlook: serif\n---\nDear Ana,\n\ntitle: not a head field\n')).toEqual({ app: 'write', gist: 'Dear Ana,' });
 });
 
 test('rich words wrap between words with their marks, and are drawn as tspans', () => {
@@ -362,22 +365,69 @@ test('rich words wrap between words with their marks, and are drawn as tspans', 
 
 test('every template is a real outline that round-trips byte for byte and draws', () => {
   const all = templates();
-  expect(all.map((x) => x.id)).toEqual(['launch', 'talk', 'book', 'decision']);
+  const ids = all.map((x) => x.id);
+  expect(ids.length).toBeGreaterThanOrEqual(13);
+  expect(new Set(ids).size).toBe(ids.length);
+  // The everyday ones first; the kept four are all there.
+  expect(ids.slice(0, 3)).toEqual(['packing', 'decision', 'launch']);
+  for (const id of ['talk', 'book', 'novel', 'research', 'choice', 'packing', 'syllabus', 'org', 'speech', 'troubleshoot', 'family']) expect(ids).toContain(id);
   for (const tpl of all) {
     expect(write(parse(tpl.doc)), tpl.id).toBe(tpl.doc);
     expect(tpl.doc.endsWith('\n')).toBe(true);
-    const v = readOutline(parse(tpl.doc));
+    expect(tpl.name, tpl.id).toBeTruthy();
+    expect(tpl.blurb, tpl.id).toMatch(/\.$/);
+    expect(tpl.doc, tpl.id).not.toMatch(/[Ll]orem|TODO|Your name/);
+    const d = parse(tpl.doc);
+    expect(d.head.title, tpl.id).toBeTruthy();
+    const v = readOutline(d);
     expect(v.loose, tpl.id).toBe(false);
-    expect(v.items.length, tpl.id).toBeGreaterThan(8);
+    expect(v.items.length, tpl.id).toBeGreaterThanOrEqual(9);
     expect(v.items.some((it) => it.depth > 1), tpl.id).toBe(true);
+    // Every join names two items of its own outline.
+    expect(v.links.every((l) => l.live), tpl.id).toBe(true);
     expect(def.view(tpl.doc)[0].svg.length, tpl.id).toBeGreaterThan(400);
+    expect(def.view(tpl.doc, { small: true })[0].svg, tpl.id).not.toContain(t_empty);
   }
-  expect(all[0].doc).toContain('{.from label=sets}');
-  expect(all[0].doc).toContain('\n~ Pricing -> Press: informs\n');
+  const doc = (id: string) => all.find((x) => x.id === id)!.doc;
+  expect(doc('launch')).toContain('{.from label=sets}');
+  expect(doc('launch')).toContain('\n~ Pricing -> Press: informs\n');
+  // The trees you walk: every answer is a yes or a no on its line.
+  for (const id of ['choice', 'troubleshoot']) {
+    const answers = readOutline(parse(doc(id))).items.filter((it) => it.label);
+    expect(answers.length, id).toBeGreaterThanOrEqual(6);
+    expect(new Set(answers.map((it) => `${it.dir} ${it.label}`)), id).toEqual(new Set(['-> yes', '-> no']));
+  }
+  // The research plan's budget is a sheet under its item, and it adds up.
+  const v = readOutline(parse(doc('research')));
+  const budget = v.items.find((it) => it.doc?.startsWith('sheet\n'))!;
+  expect(v.items[v.items.indexOf(budget) - 1].runs[0].t).toBe('Budget');
+  expect(docGist(budget.doc!)).toEqual({ app: 'sheet', gist: 'Budget' });
+  expect(evaluate(parse(budget.doc!.slice(6)))!.values[4][3]).toBe(2250);
+  // Footnotes and numbered items where they fit.
+  expect(all.filter((x) => x.doc.includes('^[')).length).toBeGreaterThanOrEqual(8);
+  expect(doc('syllabus').match(/^ {4}\d+\. /gm)).toHaveLength(10);
   expect(def.blank()).toBe('');
   expect(def.title('---\ntitle: Plan\n---\n' + TREE)).toBe('Plan');
   expect(def.retitle(TREE, 'Plan')).toBe('---\ntitle: Plan\n---\n' + TREE);
   expect(def.retitle('---\ntitle: Plan\n---\n' + TREE, '')).toBe(TREE);
+});
+const t_empty = 'An empty outline';
+
+test('people: "Name (role)" in the outline is "Name | role" in an org chart or a family tree, and the joins name them by name', () => {
+  expect(personOf('Ana Ruiz (head baker)')).toEqual({ name: 'Ana Ruiz', what: 'head baker' });
+  expect(personOf('Javier Moreno (1955 to 2019)')).toEqual({ name: 'Javier Moreno', what: '1955 to 2019' });
+  expect(personOf('Launch (May) plan')).toEqual({ name: 'Launch (May) plan' });
+  expect(personOf('Just a name')).toEqual({ name: 'Just a name' });
+  const text = '- Rose Hale (born 1926)\n  - Helen **Price**\n  - Tom Hale (born 1952)\n\n~ Helen Price -- Tom Hale (born 1952): twin\n';
+  const v = readOutline(parse(text));
+  expect(outlineToFamily(v, { title: 'Hales' })).toBe('---\ntitle: Hales\nkind: family\n---\n- Rose Hale | born 1926\n  - Helen **Price**\n  - Tom Hale | born 1952\n\n~ Helen Price -- Tom Hale: twin\n');
+  expect(outlineToOrg(v)).toBe('---\nkind: org\n---\n- Rose Hale | born 1926\n  - Helen **Price**\n  - Tom Hale | born 1952\n\n~ Helen Price -- Tom Hale: twin\n');
+  // The templates hand off: the company as an org chart, the family as a family tree.
+  const conv = (label: string, id: string) => def.handoffs!.find((h) => h.label() === label)!.convert(templates().find((x) => x.id === id)!.doc);
+  expect(conv('Draw as an org chart', 'org')).toContain('kind: org\n---\n- Hana Kowalski | owner\n  - Sam Okoro | head baker\n');
+  expect(conv('Draw as an org chart', 'org')).toContain('\n~ Ruth Adeyemi -- Mei Lin: learns pastry from\n');
+  expect(conv('Draw as a family tree', 'family')).toContain('kind: family\n---\n- Luis and Carmen Moreno | married 1951\n');
+  expect(conv('Draw as a family tree', 'family')).toContain('\n~ Rosa Moreno -- Lucía Byrne: godmother\n');
 });
 
 test('duplicateSpan: the span’s items again right after it, one splice; the joins stay at the end', () => {
