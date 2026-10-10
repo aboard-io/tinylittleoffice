@@ -10,6 +10,12 @@
  * (Paul: "The title is too small to edit"), a new document's automatic name (`fresh`) chosen whole so typing replaces
  * it; Enter keeps what was typed, Escape puts back what was there, a tap elsewhere closes it.
  *
+ * On a phone the bar comes with the focus (Paul, 2026-10-10: "We could also just hide the secondary bar unless we are
+ * editing"): `indoc` says something in the document has the focus (words, a cell, a canvas, a chosen row, the bar itself),
+ * and kit.css slides the bar under the column's foot while it is not set (reading), with the glide; an editor whose keys
+ * are the document says `data-bar="always"` (the Calculator). What of the bar needs nothing in hand is a row of the
+ * drawer's This document too (kit/drawer.ts). At the bar's end is the command palette's button (kit/palette.ts).
+ *
  * Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger. The secondary nav is now aligned
  * bottom." Under a coarse pointer, while a box has the focus (a `<to-text>`, a field in an app, a page in a frame)
  * from a person's tap or key (not the focus a document opens with, which raises no keyboard), `editing` is set and
@@ -93,6 +99,7 @@ export class ToChrome extends LitElement {
     fresh: { attribute: false },
     titling: { state: true },
     editing: { type: Boolean, reflect: true },
+    indoc: { type: Boolean, reflect: true },
     expires: { type: Number },
     extend: { type: Boolean },
     inDisplay: { type: Boolean },
@@ -114,6 +121,8 @@ export class ToChrome extends LitElement {
   private titleWas = '';
   /** A box has the focus: on a phone the header steps aside (kit.css). */
   declare editing: boolean;
+  /** Something in the document has the focus (words, a cell, a canvas, a chosen row, its bar): on a phone the bar is shown (kit.css). */
+  declare indoc: boolean;
   /** Arrived by a short link that expires then (ms since the epoch); 0: no banner. */
   declare expires: number;
   /** The banner offers Extend (the owner's link). */
@@ -135,6 +144,7 @@ export class ToChrome extends LitElement {
     this.fresh = '';
     this.titling = false;
     this.editing = false;
+    this.indoc = false;
     this.expires = 0;
     this.extend = false;
     this.inDisplay = false;
@@ -205,7 +215,7 @@ export class ToChrome extends LitElement {
   /** When the person last touched, clicked or pressed a key: a box focused by the page itself (a document opening) is not editing. */
   private touched = -Infinity;
   /** Another document opened: not editing it yet, whatever had the focus. */
-  private opened = () => ((this.editing = false), (this.touched = -Infinity));
+  private opened = () => ((this.editing = false), (this.indoc = false), (this.touched = -Infinity));
   private onPerson = (e: Event) => {
     // A tap on the bar, in a menu or on the header acts on the box in hand (or elsewhere) without being a tap into it.
     if ((e.target as Element | null)?.closest?.(`${ASIDE}, .to-burger, .to-header`)) return;
@@ -221,6 +231,10 @@ export class ToChrome extends LitElement {
     const typed = e.type === 'beforeinput';
     requestAnimationFrame(() => {
       const at = document.activeElement;
+      // The document has the focus (its bar, its menus and its dialogs are the document's too): on a phone its bar comes with it.
+      const main = this.column;
+      const indoc = !!at && !!main && main !== at && main.contains(at);
+      if (indoc !== this.indoc) this.indoc = indoc;
       if (at && at !== document.body && at.closest(ASIDE)) return;
       const box = !!at && this.contains(at) && !at.closest('.to-header') && !!at.closest(BOX);
       const editing = box && (this.editing || typed || performance.now() - this.touched < 1000);

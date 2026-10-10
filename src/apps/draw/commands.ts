@@ -166,10 +166,6 @@ const KEYS: Command<Dr>[] = [
   command<Dr>({ id: 'draw.pen.back', scope: 'draw', at: 'canvas', label: () => t('Delete'), keys: 'Backspace', where: ['keys-only'], when: (d) => d.pen.length > 0, does: (d) => void (d.pen = d.pen.slice(0, -1)) }),
   command<Dr>({ id: 'draw.out', scope: 'draw', at: 'canvas', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], does: (d) => d.stepOut() }),
   command<Dr>({ id: 'draw.joinkeys', scope: 'draw', at: 'canvas', label: () => t('Join two shapes'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown / Enter', where: ['keys-only'], when: (d) => d.tool === 'k', does: (d, e) => e instanceof KeyboardEvent && d.joinKey(e) }),
-  ...TOOLS.map((x) =>
-    // K with two shapes chosen joins them, Shift still held from the Shift+tap that chose the second.
-    command<Dr>({ id: `draw.tool.${x.id}`, scope: 'draw', at: 'canvas', label: x.name, icon: x.icon, keys: x.id === 'k' ? 'K / Shift+K' : x.key, where: ['bar'], pressed: (d) => d.tool === x.id, does: (d, e) => d.pickTool(x.id, e) }),
-  ),
   command<Dr>({ id: 'draw.all', scope: 'draw', at: 'canvas', label: () => t('Select all: the words of the box, then everything'), keys: 'Mod+A', where: ['keys-only'], does: (d) => d.chooseAll() }),
   ...ALIGN_KEYS,
   command<Dr>({ id: 'draw.restack', scope: 'draw', at: 'canvas', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], when: (d) => d.chosen.length > 0, does: (d, e) => d.reorder(!(e instanceof KeyboardEvent) || e.key === 'ArrowUp' ? 1 : -1) }),
@@ -196,7 +192,16 @@ const PIXELS: Command<Dr>[] = [
   command<Dr>({ id: 'draw.pixel.paint', scope: 'draw', at: 'pixels', label: () => t('Tap or drag to paint; the arrow keys move, Enter paints.'), keys: 'Enter / Space', where: ['keys-only'], when: (d) => !!d.view.grid, does: (d) => d.paintHere() }),
 ];
 
+/** The tools, a letter each: the bar's, and the first keys the shortcuts dialog lists. */
+const TOOL_CMDS: Command<Dr>[] = [
+  ...TOOLS.map((x) =>
+    // K with two shapes chosen joins them, Shift still held from the Shift+tap that chose the second.
+    command<Dr>({ id: `draw.tool.${x.id}`, scope: 'draw', at: 'canvas', label: x.name, icon: x.icon, keys: x.id === 'k' ? 'K / Shift+K' : x.key, where: ['bar'], pressed: (d) => d.tool === x.id, does: (d, e) => d.pickTool(x.id, e) }),
+  ),
+];
+
 const DRAW: Command<Dr>[] = [
+  ...TOOL_CMDS,
   command<Dr>({ id: 'draw.insert', scope: 'draw', label: () => t('Insert'), icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, when: canvas, does: () => undefined }),
   ...INSERTS,
   command<Dr>({ id: 'draw.mode', scope: 'draw', label: (d) => (d?.view.grid ? t('Pixels {n}×{n}', { n: d.view.grid }) : t('Shapes')), icon: Shapes, menu: 'mode', where: ['bar'], document: true, takesFocus: true, does: () => undefined }),
@@ -218,7 +223,7 @@ const DRAW: Command<Dr>[] = [
 /** The context bar while the words are typed: size and alignment | inks. */
 export const TYPING = [...SIZE, ...INK];
 /** The keys on the canvas, and in pixel mode. */
-export const CANVAS_KEYS = [...KEYS, ...DRAW.filter((c) => !KEYS.includes(c))].filter((c) => c.keys && !c.id.startsWith('draw.pixel.'));
+export const CANVAS_KEYS = [...KEYS, ...TOOL_CMDS, ...DRAW.filter((c) => !KEYS.includes(c) && !TOOL_CMDS.includes(c))].filter((c) => c.keys && !c.id.startsWith('draw.pixel.'));
 export const PIXEL_KEYS = PIXELS.filter((c) => c.keys);
 
 export default register(DRAW) as Command<Dr>[];

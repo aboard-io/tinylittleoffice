@@ -88,6 +88,8 @@ export class ToCalcEditor extends DocElement<CalcView> {
   }
   connectedCallback() {
     super.connectedCallback();
+    // Its keys are the document: on a phone its bar is shown whatever has the focus (kit/chrome.ts).
+    this.dataset.bar = 'always';
     if (!this.ready) void loadEngine().then(() => (this.ready = true));
   }
 

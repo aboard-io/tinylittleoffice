@@ -1,6 +1,8 @@
 /**
  * <to-bar>: the one bar an app has. A single row that scrolls sideways when it must; a fade at either edge
- * says there is more (data-fade-start, data-fade-end: set here, drawn by the stylesheet). The buttons in
+ * says there is more (data-fade-start, data-fade-end: set here, drawn by the stylesheet). It is a toolbar: Left and Right
+ * walk its buttons, Home and End go to its ends. Its buttons are the registry's commands (kit/commands.ts) drawn by
+ * cmdTool, cmdBtn and cmdMenu. The buttons in
  * it are made with tool() and btn(): real <button>s, named, 44px to the finger, aria-pressed when they
  * are a state; dateNav() is the group an app with dates has (back, what is on view, on, Today).
  */
@@ -17,6 +19,7 @@ export class ToBar extends HTMLElement {
   private soon = 0;
   connectedCallback() {
     this.setAttribute('role', 'toolbar');
+    this.addEventListener('keydown', this.walk);
     this.addEventListener('scroll', this.fade, { passive: true });
     this.watch = new ResizeObserver(() => this.fadeSoon());
     this.watch.observe(this);
@@ -24,6 +27,7 @@ export class ToBar extends HTMLElement {
     this.fadeSoon();
   }
   disconnectedCallback() {
+    this.removeEventListener('keydown', this.walk);
     this.removeEventListener('scroll', this.fade);
     this.watch?.disconnect();
     this.watch = null;
@@ -35,6 +39,26 @@ export class ToBar extends HTMLElement {
       this.fade();
     });
   }
+  /** The bar's buttons and menus, in order: what Left and Right walk (never one inside a menu that is open, nor one turned off). */
+  private stops(): HTMLElement[] {
+    return [...this.querySelectorAll<HTMLElement>('button')].filter((b) => !b.closest('[popover], dialog') && !(b as HTMLButtonElement).disabled && b.offsetParent !== null);
+  }
+  /**
+   * The bar is a toolbar (docs/editing.md §7): Left and Right walk its buttons and menus, round the ends, Home and End
+   * to its ends; Tab goes on out of it. A key inside a menu that is open, a field or a box of words is theirs.
+   */
+  private walk = (e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const at = e.target as HTMLElement;
+    if (at.tagName !== 'BUTTON' || at.closest('[popover], dialog')) return;
+    const stops = this.stops();
+    const i = stops.indexOf(at);
+    if (i < 0) return;
+    const to = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? stops.length - 1 : null;
+    if (to === null) return;
+    e.preventDefault();
+    stops[(to + stops.length) % stops.length].focus();
+  };
   /** What the edges say: scrolled past the start, more past the end. */
   fade = () => {
     const more = this.scrollWidth - this.clientWidth - this.scrollLeft;
