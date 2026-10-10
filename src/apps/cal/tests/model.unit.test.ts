@@ -11,6 +11,22 @@ import def from '../def.ts';
 import { offsetMinutes, partsToUtc, utcToParts, zoneAbbr, isValidZone } from '../tz.ts';
 
 const DOC = '---\nzone: Europe/London\ngreen: Sam\n---\n- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite {color=green}\n- 2027-03-10 09:00-10:30: Retro {every=week times=6}\n';
+/** A schedule: phases with their tasks, some done, some part done. */
+const SITE_PLAN = `---
+view: gantt
+---
+- 2027-03-01 to 2027-03-12: Discovery
+  - [x] 2027-03-01 to 2027-03-03: Stakeholder interviews
+  - [x] 2027-03-04 to 2027-03-05: Analytics review
+  - 2027-03-08 to 2027-03-12: Content audit {done=60%}
+- 2027-03-15 to 2027-04-02: Design
+  - 2027-03-15 to 2027-03-19: Wireframes {done=20%}
+  - 2027-03-22 to 2027-04-02: Visual design
+- 2027-04-05 to 2027-04-23: Build
+  - 2027-04-05 to 2027-04-16: Templates and pages {color=blue}
+  - 2027-04-19 to 2027-04-23: Testing on phones {color=blue}
+- 2027-04-26: Launch {color=red}
+`;
 const day = (y: number, m: number, d: number) => ymdToDay(y, m, d);
 /** The ops applied, written; and undone by their inverse, the document as it was. */
 function run(text: string, make: (doc: Doc) => Op[]): string {
@@ -118,7 +134,7 @@ test('edit, move, resize, remove, legend and view, each as operations that undo 
 });
 
 test('the schedule: a task with parts spans them and is as done as they are; a new task goes after the family it is added to', () => {
-  const plan = templates().find((x) => x.id === 'project')!.doc;
+  const plan = SITE_PLAN;
   const v = readCal(parse(plan));
   expect(v.gantt).toBe(true);
   const bars = ganttBars(v);
@@ -164,7 +180,7 @@ test('pages: months with every time a repeat comes round, the legend at the foot
   expect(calPages(weekly, true)).toHaveLength(1);
   expect(calPages(parse(DOC))[0].svg).toContain('>Sam</text>');
   expect(calPages(parse(DOC))[0].alt).toContain('1: Launch');
-  const plan = calPages(parse(templates().find((x) => x.id === 'project')!.doc));
+  const plan = calPages(parse(SITE_PLAN));
   expect(plan).toHaveLength(1);
   expect(plan[0].svg).toContain('>Discovery</text>');
   expect(plan[0].alt).toContain('Content audit: 2027-03-08, 5 days, 60%');
@@ -194,16 +210,40 @@ test('iCalendar: floating days, instants, repeats as RRULEs, lines folded at 75 
 
 test('CSV: a calendar\'s spans, a schedule\'s tasks with their level', () => {
   expect(calToCsv(parse(DOC))).toBe('What,Start,End,Repeats,Colour\r\nLaunch,2027-03-01,2027-03-01,,\r\nOffsite,2027-03-01,2027-03-03,,Sam\r\nRetro,2027-03-10 09:00,2027-03-10 10:30,"Every week, 6 times",\r\n');
-  const plan = calToCsv(parse(templates().find((x) => x.id === 'project')!.doc), ';');
+  const plan = calToCsv(parse(SITE_PLAN), ';');
   expect(plan.split('\r\n').slice(0, 3)).toEqual(['Task;Level;Start;End;Days;Done %', 'Discovery;1;2027-03-01;2027-03-12;12;80', 'Stakeholder interviews;2;2027-03-01;2027-03-03;3;100']);
 });
 
 test('the templates are canonical, and the definition names its exports', () => {
   for (const tpl of templates()) expect(write(parse(tpl.doc))).toBe(tpl.doc);
-  expect(def.templates.map((x) => x.id)).toEqual(['family', 'project', 'festival']);
+  expect(def.templates.map((x) => x.id)).toEqual(['family', 'school', 'bills', 'rota', 'holidays', 'fixtures', 'garden', 'content', 'editorial', 'training', 'project', 'conference', 'festival']);
   expect(def.exports!.map((e) => e.ext)).toEqual(['ics', 'csv']);
   expect(def.retitle(DOC, 'Team')).toBe(DOC.replace('green: Sam\n', 'green: Sam\ntitle: Team\n'));
   expect(def.title(def.retitle(DOC, 'Team'))).toBe('Team');
+});
+
+test('every template is a real calendar: a title, a name and a blurb, every list item a span with words, every colour named, and a page that draws', () => {
+  for (const tpl of templates()) {
+    const doc = parse(tpl.doc);
+    const v = readCal(doc);
+    expect([def.title(tpl.doc), tpl.name, tpl.blurb].every(Boolean), tpl.id).toBe(true);
+    expect(doc.blocks.every((b) => b.k === 'li'), tpl.id).toBe(true);
+    expect(v.items, tpl.id).toHaveLength(doc.blocks.length);
+    expect(v.items.every((i) => i.words.length > 2), tpl.id).toBe(true);
+    // A colour written on an item is a calendar colour, and (on a calendar) the head says what it stands for.
+    for (const i of v.items) if (i.block.a?.kv?.color) expect(v.gantt || !!v.legend[i.color], `${tpl.id}: ${i.words}`).toBe(true);
+    // A time needs the zone it is in.
+    if (v.items.some((i) => i.kind === 't')) expect(v.zone, tpl.id).not.toBe('');
+    const [page] = calPages(doc, true);
+    expect(page.svg.length, tpl.id).toBeGreaterThan(500);
+    expect(page.svg, tpl.id).not.toContain('No tasks yet');
+  }
+  // The schedules are the training plan and the project; the rest are months.
+  expect(templates().filter((x) => readCal(parse(x.doc)).gantt).map((x) => x.id)).toEqual(['training', 'project']);
+  // The training plan is part way through: two weeks ticked, the third most of the way.
+  const run = ganttBars(readCal(parse(templates().find((x) => x.id === 'training')!.doc)));
+  expect(run.slice(1, 4).map((b) => b.done)).toEqual([100, 100, 70]);
+  expect(run.at(-1)!.item.words).toBe('Race day: 9 am start, 1:55 the goal');
 });
 
 const PLAN = '---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: Draw\n- 2027-03-08 to 2027-03-10: Build\n';

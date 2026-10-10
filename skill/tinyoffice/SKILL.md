@@ -471,44 +471,50 @@ Family calendar:
 
 ```
 ---
+title: The Okafor family
 zone: Europe/London
 green: Sam
 orange: Ana
+blue: Everyone
 ---
-- 2027-03-02 16:30-17:15: Swimming lesson {color=green every=week times=10}
-- 2027-03-05: Ana's birthday {color=orange every=year}
-- 2027-03-09 08:40-09:20: Dentist, Dr Patel {color=green}
-- 2027-03-13 10:00-12:00: Football, home game {color=green every=week until=2027-05-22}
-- 2027-03-20 to 2027-03-21: Grandma visits
-- 2027-03-24: Bins out, garden waste too {every=week}
-- 2027-03-29 to 2027-04-09: Easter holidays {color=green}
-- 2027-04-01 19:30-22:00: Book club {color=orange every=month}
+- 2026-11-03 16:30-17:15: Swimming lesson, Sam {color=green every=week times=10}
+- 2026-11-04: Bins out, garden waste too {every=week}
+- 2026-11-05 18:30-20:00: Bonfire night at Victoria Park, bring gloves {color=blue}
+- 2026-11-07 10:00-11:30: Football, under-10s home game {color=green every=week until=2026-12-12}
+- 2026-11-09: Ana's birthday {color=orange every=year}
+- 2026-11-12 08:40-09:20: Dentist, Dr Patel, both children {color=blue}
+- 2026-11-21 to 2026-11-22: Grandma visits from Leeds {color=blue}
+- 2026-11-26 19:30-22:00: Book club at Jo's {color=orange every=month}
+- 2026-12-19 to 2027-01-04: Christmas holidays {color=green}
 ```
 
-As a link: <https://tinylittleoffice.com/cal/#doc=---%0Azone%3A+Europe%2FLondon%0Agreen%3A+Sam%0Aorange%3A+Ana%0A---%0A-+2027-03-02+16%3A30-17%3A15%3A+Swimming+lesson+%7Bcolor%3Dgreen+every%3Dweek+times%3D10%7D%0A-+2027-03-05%3A+Ana%27s+birthday+%7Bcolor%3Dorange+every%3Dyear%7D%0A-+2027-03-09+08%3A40-09%3A20%3A+Dentist%2C+Dr+Patel+%7Bcolor%3Dgreen%7D%0A-+2027-03-13+10%3A00-12%3A00%3A+Football%2C+home+game+%7Bcolor%3Dgreen+every%3Dweek+until%3D2027-05-22%7D%0A-+2027-03-20+to+2027-03-21%3A+Grandma+visits%0A-+2027-03-24%3A+Bins+out%2C+garden+waste+too+%7Bevery%3Dweek%7D%0A-+2027-03-29+to+2027-04-09%3A+Easter+holidays+%7Bcolor%3Dgreen%7D%0A-+2027-04-01+19%3A30-22%3A00%3A+Book+club+%7Bcolor%3Dorange+every%3Dmonth%7D>
+As a link: <https://tinylittleoffice.com/cal/#doc=---%0Atitle%3A+The+Okafor+family%0Azone%3A+Europe%2FLondon%0Agreen%3A+Sam%0Aorange%3A+Ana%0Ablue%3A+Everyone%0A---%0A-+2026-11-03+16%3A30-17%3A15%3A+Swimming+lesson%2C+Sam+%7Bcolor%3Dgreen+every%3Dweek+times%3D10%7D%0A-+2026-11-04%3A+Bins+out%2C+garden+waste+too+%7Bevery%3Dweek%7D%0A-+2026-11-05+18%3A30-20%3A00%3A+Bonfire+night+at+Victoria+Park%2C+bring+gloves+%7Bcolor%3Dblue%7D%0A-+2026-11-07+10%3A00-11%3A30%3A+Football%2C+under-10s+home+game+%7Bcolor%3Dgreen+every%3Dweek+until%3D2026-12-12%7D%0A-+2026-11-09%3A+Ana%27s+birthday+%7Bcolor%3Dorange+every%3Dyear%7D%0A-+2026-11-12+08%3A40-09%3A20%3A+Dentist%2C+Dr+Patel%2C+both+children+%7Bcolor%3Dblue%7D%0A-+2026-11-21+to+2026-11-22%3A+Grandma+visits+from+Leeds+%7Bcolor%3Dblue%7D%0A-+2026-11-26+19%3A30-22%3A00%3A+Book+club+at+Jo%27s+%7Bcolor%3Dorange+every%3Dmonth%7D%0A-+2026-12-19+to+2027-01-04%3A+Christmas+holidays+%7Bcolor%3Dgreen%7D>
 
 Project plan:
 
 ```
 ---
+title: A website for Hollow Pine Coffee
 view: gantt
 ---
-- 2027-03-01 to 2027-03-12: Discovery
-  - [x] 2027-03-01 to 2027-03-03: Stakeholder interviews
-  - [x] 2027-03-04 to 2027-03-05: Analytics review
-  - 2027-03-08 to 2027-03-12: Content audit {done=60%}
-- 2027-03-15 to 2027-04-02: Design
-  - 2027-03-15 to 2027-03-19: Wireframes {done=20%}
-  - 2027-03-22 to 2027-04-02: Visual design
-- 2027-04-05 to 2027-04-23: Build
-  - 2027-04-05 to 2027-04-16: Templates and pages {color=blue}
-  - 2027-04-19 to 2027-04-23: Testing on phones {color=blue}
-- 2027-04-26: Launch {color=red}
+- 2026-09-28 to 2026-10-09: Discovery
+  - [x] 2026-09-28 to 2026-09-30: Interviews with the staff and six regulars
+  - [x] 2026-10-01 to 2026-10-02: Analytics review
+  - 2026-10-05 to 2026-10-09: Content audit {done=80%}
+- 2026-10-12 to 2026-10-30: Design
+  - 2026-10-12 to 2026-10-16: Wireframes
+  - 2026-10-16: The logo chosen {color=red}
+  - 2026-10-19 to 2026-10-30: Visual design
+- 2026-11-02 to 2026-11-20: Build
+  - 2026-11-02 to 2026-11-13: Pages and the menu {color=blue}
+  - 2026-11-09 to 2026-11-13: Ordering ahead {color=blue}
+  - 2026-11-16 to 2026-11-20: Testing on phones {color=blue}
+- 2026-11-24: Launch {color=red}
 ```
 
-As a link: <https://tinylittleoffice.com/cal/#doc=---%0Aview%3A+gantt%0A---%0A-+2027-03-01+to+2027-03-12%3A+Discovery%0A++-+%5Bx%5D+2027-03-01+to+2027-03-03%3A+Stakeholder+interviews%0A++-+%5Bx%5D+2027-03-04+to+2027-03-05%3A+Analytics+review%0A++-+2027-03-08+to+2027-03-12%3A+Content+audit+%7Bdone%3D60%25%7D%0A-+2027-03-15+to+2027-04-02%3A+Design%0A++-+2027-03-15+to+2027-03-19%3A+Wireframes+%7Bdone%3D20%25%7D%0A++-+2027-03-22+to+2027-04-02%3A+Visual+design%0A-+2027-04-05+to+2027-04-23%3A+Build%0A++-+2027-04-05+to+2027-04-16%3A+Templates+and+pages+%7Bcolor%3Dblue%7D%0A++-+2027-04-19+to+2027-04-23%3A+Testing+on+phones+%7Bcolor%3Dblue%7D%0A-+2027-04-26%3A+Launch+%7Bcolor%3Dred%7D>
+As a link: <https://tinylittleoffice.com/cal/#doc=---%0Atitle%3A+A+website+for+Hollow+Pine+Coffee%0Aview%3A+gantt%0A---%0A-+2026-09-28+to+2026-10-09%3A+Discovery%0A++-+%5Bx%5D+2026-09-28+to+2026-09-30%3A+Interviews+with+the+staff+and+six+regulars%0A++-+%5Bx%5D+2026-10-01+to+2026-10-02%3A+Analytics+review%0A++-+2026-10-05+to+2026-10-09%3A+Content+audit+%7Bdone%3D80%25%7D%0A-+2026-10-12+to+2026-10-30%3A+Design%0A++-+2026-10-12+to+2026-10-16%3A+Wireframes%0A++-+2026-10-16%3A+The+logo+chosen+%7Bcolor%3Dred%7D%0A++-+2026-10-19+to+2026-10-30%3A+Visual+design%0A-+2026-11-02+to+2026-11-20%3A+Build%0A++-+2026-11-02+to+2026-11-13%3A+Pages+and+the+menu+%7Bcolor%3Dblue%7D%0A++-+2026-11-09+to+2026-11-13%3A+Ordering+ahead+%7Bcolor%3Dblue%7D%0A++-+2026-11-16+to+2026-11-20%3A+Testing+on+phones+%7Bcolor%3Dblue%7D%0A-+2026-11-24%3A+Launch+%7Bcolor%3Dred%7D>
 
-Templates: Family calendar, Project plan, Festival weekend. Its own files: `.ics`, `.csv`.
+Templates: Family calendar, School term, Bills and renewals, Volunteer rota, Holiday planner, League fixtures, Garden calendar, Content schedule, Editorial calendar, Training plan, Project plan, Conference agenda, Festival weekend. Its own files: `.ics`, `.csv`.
 
 ### trip: a route on a map
 
