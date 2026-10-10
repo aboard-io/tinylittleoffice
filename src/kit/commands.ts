@@ -30,8 +30,8 @@ export interface Command<C = any> {
   /** Its words, through t(); given the context where they say what is in hand ("Move slide up", "Pause"). */
   label: (c?: C) => string;
   icon?: IconNode;
-  /** A second line or a tooltip's longer words, through t(). */
-  hint?: () => string;
+  /** A second line or a tooltip's longer words, through t() (none, given the context, where there is nothing to add). */
+  hint?: (c?: C) => string | undefined;
   /** The keys that run it, alternatives joined by " / ". */
   keys?: string;
   /** 'kit', 'text', or an app's id. */
@@ -194,7 +194,7 @@ export function drawn<C>(cmd: Command<C>, c: C | null | undefined): Drawn {
   return {
     label: cmd.label(has ? c : undefined),
     icon: cmd.icon,
-    hint: cmd.hint?.(),
+    hint: cmd.hint?.(has ? c : undefined),
     ...(cmd.heading ? { group: cmd.heading(has ? c : undefined) } : {}),
     ...(cmd.swatch ? { swatch: cmd.swatch(has ? c : undefined) } : {}),
     ...(cmd.letter ? { text: cmd.letter() } : {}),
