@@ -1,43 +1,130 @@
 # Tiny Little Office
 
-A tiny office suite that lives entirely in the URL. Every document is one text, written in TLO (Markdown
-with a few additions), compressed into the part of the address after `#`, which no server ever sees. Copy
-the link and you have copied the file. No accounts, no saving, nothing sent anywhere unless you share it.
+**Tiny Little Office is a free office suite where your document is the link. There's no account, nothing is
+stored anywhere, and whoever has the link has the document.**
 
-This tree is the rebuild (branch `next`): one kit, apps as definitions on it, a document kernel at the
-heart and one editor over it. The plan is `docs/rebuild.md`, the kernel's design `docs/kernel.md`, the
-format `docs/tlo.md` (the agent's reference), and the files each app becomes `docs/exports.md` (written from
-the definitions by `npm run docs:exports`).
+Open it and start typing. A letter, a spreadsheet, a presentation, a drawing, a to-do list, a website. When
+you want to share it, copy the link. The whole document lives inside that link, so sending it is like
+handing someone the paper itself. Nothing is uploaded, there's no sign-up, and we never see what you write.
+If you want to keep working on it, keep the link; if you want it to stay private, don't share it. It works on
+a phone, works offline once you keep a copy, and it's free, with the code open for anyone to read.
 
-What leaves your browser: every request the site can make, when, what it carries and what stops it, is
-`docs/network.md` and [/network](https://tinylittleoffice.com/network) on the site, both written from the one list of
-hosts in `src/kit/network.ts` by `npm run docs:network` (the build runs it first). Every module that asks the web
-takes its host from that list, the Content-Security-Policy is written from it, and `test/network.test.ts` fails
-on a host not on it, or on any analytics, error-reporting, font-CDN or tag-manager host. There is no telemetry.
+## What it is not
 
-## Layout
+- **Not a server that holds your documents.** A document is one text, written in TLO (Markdown with a few
+  additions, docs/tlo.md), compressed into the part of the address after `#`, which browsers never send to
+  any server. The site is static files; there is no database of documents to breach, subpoena or leak.
+- **Not an account.** There is nothing to sign up for. "Saved", a switch in the menu, keeps documents on your
+  own device, and only there; "Private", the default, keeps nothing.
+- **Not watching.** No analytics, no error reporting, no fonts or scripts from anyone else, no request you
+  did not cause. Everything the site can ask of the web, and when, is listed in docs/network.md, and the
+  Content-Security-Policy (`public/_headers`) refuses anything else.
+
+Two small services exist, both optional, both in this repository: **tinier**, which makes a short link out
+of ciphertext it cannot read (the key stays in the link's fragment), and **media**, a picture proxy that
+logs nothing, so a picture's site never learns who read a document.
+
+## Running it
+
+Node 24 or later.
+
+```sh
+npm ci && npm run dev    # http://localhost:4178, every app
+```
+
+```sh
+npm run lint            # the type check (tsc is the lint); npm run typecheck adds the Workers
+npm run i18n:check      # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
+npm run i18n:extract    # append the missing keys to en.ts, at the end, to be sorted by hand
+npm test                # unit (node) and browser (Chromium) tests
+npm run test:e2e        # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots
+npm run build           # typecheck, then dist/ with a page per app, the CSP hashes, files.json, sw.js
+npm run docs:exports    # docs/exports.md, from the apps' definitions
+npm run docs:network   # docs/network.md and /network, from src/kit/network.ts (the build runs it first)
+npm run docs:deps       # docs/dependencies.md, from package.json and the lockfile (-- --sizes measures a build)
+npm run tinier:dev      # the link shortener on this machine (see "Living short links")
+npm run media:dev       # the picture proxy on this machine, port 8788; VITE_MEDIA_URL=/media uses it through the dev server
+npm run skill           # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
+npm run cards           # public/og/<app>.png, each app's share card (Chromium through Playwright)
+npm run tinyoffice -- link todo list.md   # the command line (packages/doc/README.md)
+npm run deploy          # build, then the site, tinier and media to Cloudflare (docs/self-host.md)
+```
+
+## How it is built
+
+Three layers, each small enough to read.
+
+- **The kernel** (`src/doc/`, docs/kernel.md): one typed model of a document, a head of fields and a list of
+  blocks (headings, paragraphs of rich runs, list items, tables with typed and named columns, embeds,
+  pictures, fences), with TLO as its one reader and writer, byte-stable through a parse and a write. Edits
+  are operations on the model, undone from one op log; the formula engine evaluates a table block.
+- **The kit** (`src/kit/`): the shell, the bar, Insert ▾, the menu, dialogs, the router, the codec, the
+  store, privacy (passwords, signatures, what the device holds), short links, exports, strings, icons; and
+  the one rich-text editor, `<to-text>`, over the kernel: every `beforeinput` becomes operations, and only
+  the blocks that changed are drawn again. There is no contenteditable anywhere else.
+- **The apps** (`src/apps/<id>/`): definitions on the kit. Each is a view of the kernel's document and the
+  commands it adds: the Word Processor, Spreadsheet, Presentation Builder, Outliner, To-Do List, Kanban
+  Board, Calculator, Calendar, Drawing Tool, Animator, Diagram Maker, Trip Planner and Website Builder.
+  Each is a chunk of its own; the home page loads the kit and nothing else.
+
+The plan of the rebuild is docs/rebuild.md; every document in `docs/` is listed in docs/README.md.
+
+## The standards it keeps
+
+- **docs/editing.md:** every app edits the way the editors people already use do, by keyboard, pointer and
+  finger; words are edited where they are drawn.
+- **docs/kernel.md:** one model, one parser, one editor, one undo; apps as definitions on one kit.
+- **Phone first,** at 390 pixels in WebKit; dark mode through tokens; accessible, checked with axe in light
+  and dark.
+- **Native web APIs first:** each dependency names the native API it beat and why (docs/dependencies.md).
+- **Nothing leaves the browser** that docs/network.md does not list.
+
+CONTRIBUTING.md says how to work to them.
+
+## Running your own copy
+
+`npm run deploy` against your own Cloudflare account puts up the site, the short-link service and the
+picture proxy, the same code as ours. docs/self-host.md takes about thirty minutes.
+
+## Reporting a security problem
+
+Write to security@tinylittleoffice.com, not an issue. SECURITY.md says what happens next.
+
+## Licence
+
+MIT (LICENSE). Contributors keep the code of conduct (CODE_OF_CONDUCT.md).
+
+## History
+
+This is the rebuilt tree. The first tree, the one that came before the rebuild, keeps its whole history in
+this repository, tagged `v0-before-rebuild`.
+
+## Details
+
+### Layout
 
 ```
+src/doc/        the document kernel (docs/kernel.md, src/doc/README.md)
 src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
                 privacy (Private or Saved, the password, the signature, the key, what the device holds),
                 privacy-dialog (<to-privacy>), crypt (a password: PBKDF2 to AES-GCM), sign (Ed25519, P-256 where
-                there is none), envelope (by, created, key, sig, and the signed message), link-guard (links that leave ask first), pictures (web pictures asked for first), media (the picture proxy's address, the whitelist, an export's picture bytes),
-                preview (a kept document's first page, small), mark (the Office mark), offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
-                privacy, link-guard (links that leave ask first), pictures (web pictures asked for first),
-                preview (a kept document's first page, small), mark (the Office mark), offline (and Add to home
-                screen), search (the library, by its words), find (Find in this document, Mod+F), keys (the
-                shortcuts dialog), zoom (the size of everything), steps (a document presented a part at a time),
-                qr-picture (a document's QR code as a fence), share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
-                icons (the UI set and the starter library a document may name), icons-search (keywords,
-                suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
-                the rest of Lucide and icons-meta, its tags and categories), app (the AppDef contract), apps
-                (registry), element (DocElement: every editor's base, with the op-log undo), draw (pages, the
-                palette), tile (a repeating background tile in one head field: `tile: 8:a..a/.a.a`), chart
-                (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded lines, escaped text), zip, xlsx (a table block as a workbook), embeds (a thing from the web by
-                its address: the providers and the click-to-load <to-embed> card); the editor: text (<to-text>), textops
-                (its maths), clipboard, history (the op log), notes (<to-notes>: footnotes typed where they are
-                drawn), link-pop
-src/doc/        the document kernel (docs/kernel.md)
+                there is none), envelope (by, created, key, sig, and the signed message), link-guard (links
+                that leave ask first), pictures (web pictures asked for first), media (the picture proxy's
+                address, the whitelist, an export's picture bytes), preview (a kept document's first page,
+                small), mark (the Office mark), offline (and Add to home screen), search (the library, by its
+                words), find (Find in this document, Mod+F), keys (the shortcuts dialog), zoom (the size of
+                everything), steps (a document presented a part at a time), qr-picture (a document's QR code
+                as a fence), share, short (links), links (the owner links kept), library (the documents
+                kept), exports, i18n, theme, icons (the UI set and the starter library a document may name),
+                icons-search (keywords, suggestions, search; no DOM), icons-picker (the library in a dialog: a
+                lazy chunk that brings the rest of Lucide and icons-meta, its tags and categories), app (the
+                AppDef contract), apps (registry), element (DocElement: every editor's base, with the op-log
+                undo), draw (pages, the palette), tile (a repeating background tile in one head field:
+                `tile: 8:a..a/.a.a`), chart (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded
+                lines, escaped text), zip, xlsx (a table block as a workbook), embeds (a thing from the web by
+                its address: the providers and the click-to-load <to-embed> card); the editor: text
+                (<to-text>), textops (its maths), clipboard, history (the op log), notes (<to-notes>:
+                footnotes typed where they are drawn), link-pop
 dev/            text.html: the editor alone, in its three shapes, at /dev/text.html on the dev server (not built)
 src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy chunk), style.css
                 (wrapped in @layer apps), templates.ts, tests/
@@ -45,36 +132,18 @@ src/i18n/       the strings: en.ts is every key, by hand; a sibling file is a la
 src/styles.css  declares the cascade: @layer tokens, kit, apps, responsive, a11y; src/styles/ holds each
 src/sw.ts       the service worker, for the copy kept on the device
 public/         _headers (the Content-Security-Policy), manifest, icons, theme.js, network.html (written by scripts/network-doc.ts)
-scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), network-doc.ts
-                (docs/network.md and /network from src/kit/network.ts), deploy.mjs (the
-                checks, then Cloudflare), check-build.ts (files.json, the worker's version, the policy's hashes)
+scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), deploy.mjs (the
+                checks, then Cloudflare), check-build.ts (files.json, the worker's version, the policy's
+                hashes), exports-doc.ts, dependencies.ts and network-doc.ts (the generated pages in docs/)
 test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode)
 e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
                 keyboard alone, axe over every app light and dark, the offline copy, and each app's own
 tinier/         the link shortener: a Worker, its D1 schema, its page (see "Living short links")
+media/          the picture proxy at media.tinylittleoffice.com: a Worker, no storage, no logs (docs/network.md)
 src/api.ts      the API for programs, served as /api.js (a build of its own: vite.api.config.ts)
 packages/doc/   the `tinyoffice` command line, over src/api.ts
 skill/          the agent skill (SKILL.md, written from SKILL.tpl.md by scripts/make-skill.ts; also /llms.txt)
-media/          the picture proxy at media.tinylittleoffice.com: a Worker, no storage, no logs (docs/network.md)
-```
-
-## Commands
-
-```sh
-npm ci
-npm run dev           # 0.0.0.0:4178 (pefdev.exe.xyz allowed)
-npm run build         # docs/network.md and /network, typecheck, then dist/ with a page per app, the CSP hashes, files.json, sw.js
-npm run typecheck     # tsc is the lint
-npm test              # unit (node) and browser (Chromium) tests
-npm run test:e2e      # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots
-npm run deploy        # the checks the change calls for, then the site and tinier to Cloudflare (-- --dry-run: no deploy)
-npm run i18n:check    # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
-npm run i18n:extract  # append the missing keys to en.ts, at the end, to be sorted by hand
-npm run tinier:dev    # the link shortener on this machine (see "Living short links")
-npm run skill         # skill/tinyoffice/SKILL.md and public/llms.txt, from the template and the registry
-npm run cards         # public/og/<app>.png, each app's share card (Chromium through Playwright)
-npm run tinyoffice -- link todo list.md   # the command line (packages/doc/README.md)
-npm run media:dev     # the picture proxy on this machine, port 8788; VITE_MEDIA_URL=/media uses it through the dev server
+.github/        CI (every check on every push and pull request), the issue and pull request templates
 ```
 
 The editor: `<to-text>` (src/kit/text.ts) is the one rich-text editor, model-driven over the kernel: every
@@ -124,18 +193,19 @@ The Office mark (`src/kit/mark.ts`) is the menu button, the drawer's heading and
 Strings: every string a person sees is `t('English words')`; English is the key, `{name}` a placeholder,
 `{n|one slide|# slides}` a plural (the forms in the language's own order, `#` the number). See `src/kit/i18n.ts`.
 
-Deploy: `npm run deploy` (scripts/deploy.mjs) ships a commit, never a working tree. It runs the types, the strings,
+Deploy: `node scripts/deploy.mjs` ships a commit, never a working tree. It runs the types, the strings,
 the unit and the browser tests, then the build, then checks what the build wrote after the bundler
 (scripts/check-build.ts: every file in `dist/files.json` there and none left out, `sw.js` carrying its version, the
 Content-Security-Policy in `dist/_headers` holding the hash of every page script and inline script); when something
 on screen changed since the last deploy (`.wrangler/deployed`), the smoke run on the built site instead of the bare
 build: e2e/smoke, keyboard, a11y (axe over every app at phone size, light and dark) and offline. Then
 `wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`) and for tinier.
-`-- --dry-run` checks and stops, `-- --visual` runs the smoke whatever changed, `-- --full` every e2e spec.
+`--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e spec. (`npm run deploy` is the
+shorter path a self-hoster takes: the build, then the site, tinier and media; docs/self-host.md.)
 
 The shortener (`tinier/`) and the picture proxy (`media/`) are Workers of their own, each with its wrangler config; nothing deploys by itself.
 
-## Link and Display Link
+### Link and Display Link
 
 Share → **Copy link** copies the editing link; **Copy display link** copies the same link with `?d` after the payload
 (`#/v1/<app>/<payload>?d`, never inside it), which opens the document as its pages, one under another, to
@@ -144,7 +214,7 @@ read or print, with an Edit button that drops the flag. The QR code and a short 
 A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the app's noun, the local date, and the
 first number the device's library leaves free that day); the name goes into the head with the first change.
 
-## Living short links
+### Living short links
 
 Share opens one dialog: the document's title and, in one line, where its link fits ("This link: 1,240
 characters, too long for an NFC sticker"); **Copy link** (opens in the editor) and **Copy display link** (opens
@@ -203,7 +273,7 @@ address. `SITE` is that address as the browser sees it: the only place a local s
 `npm run typecheck` generates the Worker's types (`tinier/worker-configuration.d.ts`, not committed) and
 checks `tinier/` with them.
 
-## Documents by URL, for agents and programs
+### Documents by URL, for agents and programs
 
 A document can be written as a plain link, by a person or an agent, with no codec: `/<app>/#title=…&doc=…`
 (`by=` says who made it, `view=` asks for a file or a deck's show; `md=` is `doc=` by another name, a text when no

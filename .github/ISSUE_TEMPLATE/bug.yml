@@ -1,0 +1,46 @@
+name: Something is wrong
+description: An app, the editor or the site does something it should not, or fails to do what it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. A security problem is not an issue: write to security@tinylittleoffice.com (SECURITY.md).
+        A link holds its whole document, so share one here only if everything in it may be public.
+  - type: input
+    id: app
+    attributes:
+      label: Which app
+      placeholder: Word Processor, Spreadsheet, the home page…
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps, one per line, from opening the app. A link to a document that shows it, if it may be public.
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Browser and device
+      placeholder: Safari on an iPhone 15, iOS 19; Firefox 140 on Windows 11
+    validations:
+      required: true
+  - type: dropdown
+    id: by
+    attributes:
+      label: Done by
+      multiple: true
+      options:
+        - Keyboard
+        - Mouse or trackpad
+        - Finger (touch)
+        - A screen reader

@@ -15,6 +15,6 @@
     { "pattern": "tinylittleoffice.com", "custom_domain": true },
     { "pattern": "www.tinylittleoffice.com", "custom_domain": true }
   ],
-  // A static site keeps no record of who asked for what; see "What the server sees" in the README.
+  // A static site keeps no record of who asked for what; see "What it is not" in the README.
   "observability": { "enabled": false }
 }

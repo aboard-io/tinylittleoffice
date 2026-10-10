@@ -1,0 +1,26 @@
+name: An idea
+description: Something Tiny Little Office could do, or do better.
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tiny Little Office is small on purpose: an idea that makes a thing simpler is likelier to land than one
+        that adds a setting. For a conversation rather than a proposal, Discussions → Ideas is the place.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you were trying to do
+      description: The document you were making, and where the app got in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Which app, if one

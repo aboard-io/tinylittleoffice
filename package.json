@@ -22,6 +22,7 @@
     "i18n:extract": "node scripts/i18n-extract.ts",
     "docs:exports": "node scripts/exports-doc.ts",
     "docs:network": "node scripts/network-doc.ts",
+    "docs:deps": "node scripts/dependencies.ts",
     "icons": "node scripts/icons.ts",
     "skill": "node scripts/make-skill.ts",
     "cards": "node scripts/make-cards.ts",
