@@ -291,6 +291,7 @@ Request flow:
 
 ```
 ---
+title: How a page loads
 alt: A browser asks a server, which reads the data.
 ---
 Kind | X | Y | W | H | Style | Label
@@ -302,7 +303,7 @@ k | 0 | 1 | 0 | 0 | 0 | asks
 k | 1 | 2 | 0 | 0 | 0 | reads
 ```
 
-As a link: <https://tinylittleoffice.com/draw/#doc=---%0Aalt%3A+A+browser+asks+a+server%2C+which+reads+the+data.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Ao+%7C+4+%7C+6+%7C+16+%7C+8+%7C+1b+%7C+Browser%0Ao+%7C+32+%7C+6+%7C+16+%7C+8+%7C+1b+%7C+Server%0Ac+%7C+60+%7C+5+%7C+14+%7C+10+%7C+1g+%7C+Data%0Ak+%7C+0+%7C+1+%7C+0+%7C+0+%7C+0+%7C+asks%0Ak+%7C+1+%7C+2+%7C+0+%7C+0+%7C+0+%7C+reads>
+As a link: <https://tinylittleoffice.com/draw/#doc=---%0Atitle%3A+How+a+page+loads%0Aalt%3A+A+browser+asks+a+server%2C+which+reads+the+data.%0A---%0AKind+%7C+X+%7C+Y+%7C+W+%7C+H+%7C+Style+%7C+Label%0A---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---+%7C+---%0Ao+%7C+4+%7C+6+%7C+16+%7C+8+%7C+1b+%7C+Browser%0Ao+%7C+32+%7C+6+%7C+16+%7C+8+%7C+1b+%7C+Server%0Ac+%7C+60+%7C+5+%7C+14+%7C+10+%7C+1g+%7C+Data%0Ak+%7C+0+%7C+1+%7C+0+%7C+0+%7C+0+%7C+asks%0Ak+%7C+1+%7C+2+%7C+0+%7C+0+%7C+0+%7C+reads>
 
 Pixel art: `grid: 16` (or 8, 32, 64) in the head, then a line per row and a letter per square, `.` clear and `a` to `h` the inks.
 
@@ -310,6 +311,7 @@ Pixel heart:
 
 ```
 ---
+title: A heart
 grid: 16
 ---
 ....cc....cc....
@@ -325,9 +327,9 @@ grid: 16
 .......cc.......
 ```
 
-As a link: <https://tinylittleoffice.com/draw/#doc=---%0Agrid%3A+16%0A---%0A....cc....cc....%0A...cccc..cccc...%0A..cccccccccccc..%0A..chccccccccccc.%0A..chccccccccccc.%0A..cccccccccccc..%0A...cccccccccc...%0A....cccccccc....%0A.....cccccc.....%0A......cccc......%0A.......cc.......>
+As a link: <https://tinylittleoffice.com/draw/#doc=---%0Atitle%3A+A+heart%0Agrid%3A+16%0A---%0A....cc....cc....%0A...cccc..cccc...%0A..cccccccccccc..%0A..chccccccccccc.%0A..chccccccccccc.%0A..cccccccccccc..%0A...cccccccccc...%0A....cccccccc....%0A.....cccccc.....%0A......cccc......%0A.......cc.......>
 
-Templates: Request flow, Flowchart, Three tiers, Floor plan, Pixel heart, Background tile. Its own files: `.svg`, `.tile.svg`, `.tile.png`.
+Templates: Flowchart, Birthday card, Event map, Floor plan, Room plan, Wireframe, Logo sketch, Badge, Order to doorstep, Request flow, Three tiers, Pixel heart, Weather icons, Game sprite, Background tile. Its own files: `.svg`, `.tile.svg`, `.tile.png`.
 
 ### diagram: a diagram drawn from a few lines
 
