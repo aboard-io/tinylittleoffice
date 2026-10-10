@@ -229,3 +229,10 @@ test('the templates: real routes, each canonical, every way of measuring among t
   expect([hike[0].lat, hike[0].lon]).toEqual([hike.at(-1)!.lat, hike.at(-1)!.lon]);
   expect(def.blank()).toBe('');
 });
+
+test('a walk fills its map as a road trip does: several stops a few streets apart are drawn far apart, one stop alone is a town', () => {
+  const pins = (doc: string) => [...tripPage(parse(doc), true).svg.matchAll(/<circle cx="([\d.-]+)"/g)].map((m) => +m[1]);
+  const crawl = pins(templates().find((x) => x.id === 'crawl')!.doc);
+  expect(Math.max(...crawl) - Math.min(...crawl)).toBeGreaterThan(300);
+  expect(pins('Place | Lat:number | Lon:number\n--- | --- | ---\nHere | 53.3446 | -6.2764\n')).toEqual([336]);
+});
