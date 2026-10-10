@@ -110,6 +110,7 @@ export class ToTemplates extends LitElement {
         ${icon(UI.text, 18)}${icon(UI.down, 14, 'to-caret')}
       </button>
       <div id=${this.uid} popover="auto" class="to-menu to-listbox" role="listbox" tabindex="-1" aria-label=${t('Templates')} @toggle=${this.onToggle} @keydown=${this.onKey}>
+        <div class="to-listbox-head"><span>${t('Templates')}</span><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.listbox.hidePopover()}>${icon(UI.close, 18)}</button></div>
         ${this.option(null)}${this.app.templates.map((tpl) => this.option(tpl))}
       </div>`;
   }

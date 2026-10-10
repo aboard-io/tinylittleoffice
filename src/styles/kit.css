@@ -335,6 +335,28 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+  /* The list's head: its name and a Close, stuck to the top as the list scrolls (Paul, 2026-10-10). */
+  .to-listbox-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -6px -6px 4px;
+    padding: 4px 4px 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--to-ink-3);
+    background: var(--to-surface);
+    border-bottom: 1px solid var(--to-border);
+  }
+  .to-listbox-close {
+    border: 0;
+    background: transparent;
+  }
   .to-thumb {
     flex: none;
     width: 56px;

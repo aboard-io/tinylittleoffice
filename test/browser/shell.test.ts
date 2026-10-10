@@ -351,3 +351,16 @@ test('home rows at 1100 and at 390: one column of full-width rows, the same shap
     expect(shapes[0]).toEqual({ lefts: 1, widths: [], border: '0px0px', shadow: 'none' });
     await page.viewport(1100, 800);
   }));
+
+test('the templates list has a Close at its top that dismisses it', async () => {
+  const shell = await mount('');
+  const tile = shell.querySelector('.to-app, .to-tile')!;
+  const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
+  picker.click();
+  await until(() => !!tile.querySelector('.to-listbox:popover-open'));
+  const close = tile.querySelector<HTMLButtonElement>('.to-listbox-close')!;
+  expect(close.getAttribute('aria-label')).toBe('Close');
+  expect(tile.querySelector('.to-listbox-head')!.getBoundingClientRect().top).toBeGreaterThanOrEqual(tile.querySelector('.to-listbox')!.getBoundingClientRect().top);
+  close.click();
+  await until(() => !tile.querySelector('.to-listbox:popover-open'));
+});
