@@ -662,7 +662,9 @@ export class ToShell extends LitElement {
     const main = def.page
       ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>`
       : this.pages(def);
-    return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, trust: this.trust() }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;
+    // A deck's reader can present it: the same link with "?show" (kit/route.ts), which opens the editor presenting.
+    const present = def.id === 'deck' && !this.sealed ? `${href}${href.includes('?') ? '&' : '?'}show` : undefined;
+    return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, present, trust: this.trust() }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;
   }
 
   /** The editor in the column, or the home page, the compare view, a locked or unreadable link, or Loading. */

@@ -195,6 +195,34 @@ test('presenting shows the slide large, reveals a line a click, and Escape comes
   await until(() => document.activeElement === button(el, 'Present'));
 });
 
+test('under a finger the notes start hidden while presenting, and the show’s Notes button (or N) brings them up (Paul, 2026-10-10)', async () => {
+  const real = window.matchMedia;
+  window.matchMedia = (q: string) =>
+    q.includes('pointer: coarse')
+      ? ({ matches: true, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => true } as MediaQueryList)
+      : real.call(window, q);
+  try {
+    const { el } = await editor(talk());
+    button(el, 'Present').click();
+    await el.updateComplete;
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    await el.updateComplete;
+    expect(el.querySelector('.deck-show .notes')).toBeNull();
+    const notes = el.querySelector<HTMLButtonElement>('.deck-show .ctl [aria-label^="Notes"]')!;
+    expect(notes.getAttribute('aria-pressed')).toBe('false');
+    notes.click();
+    await el.updateComplete;
+    expect(el.querySelector('.deck-show .notes')!.textContent).toContain('Twenty minutes');
+    // No hint about a key under a finger.
+    expect(el.querySelector('.deck-show .notes small')).toBeNull();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }));
+    await el.updateComplete;
+    expect(el.querySelector('.deck-show .notes')).toBeNull();
+  } finally {
+    window.matchMedia = real;
+  }
+});
+
 test('at phone width the bar is one row, nothing is wider than the screen, and the rail runs under the slide', async () => {
   await page.viewport(390, 844);
   const { el } = await editor(talk());

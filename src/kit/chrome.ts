@@ -81,6 +81,8 @@ export interface Plain {
   kind: 'display' | 'embed';
   title: string;
   href: string;
+  /** A deck's show link: the reader can present it without editing (Paul, 2026-10-10: on a phone there was no way to play a deck from its link). */
+  present?: string;
   trust?: TemplateResult;
   locked?: boolean;
 }
@@ -358,7 +360,7 @@ export class ToChrome extends LitElement {
     const head =
       p.kind === 'embed'
         ? html`<header class="to-embed-head"><span class="to-embed-title">${p.title}</span><a class="to-btn to-embed-open" href=${p.href} target="_blank" rel="noopener">${icon(UI.open, 16)}<span>${t('Open in Tiny Little Office')}</span></a></header>`
-        : html`<header class="to-display-head"><h1 class="to-display-title">${p.title}</h1>${p.trust}<a class="to-btn primary to-display-edit" href=${p.href}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a></header>`;
+        : html`<header class="to-display-head"><h1 class="to-display-title">${p.title}</h1>${p.trust}${p.present ? html`<a class="to-btn primary to-display-present" href=${p.present}>${icon(UI.play, 16)}<span>${t('Present')}</span></a>` : nothing}<a class="to-btn ${p.present ? '' : 'primary'} to-display-edit" href=${p.href}>${icon(UI.pen, 16)}<span>${t('Edit')}</span></a></header>`;
     const cls = p.kind === 'embed' ? `to-display to-embed ${p.locked ? 'to-embed-locked' : ''}` : 'to-display';
     // The pages scroll and hold nothing to tab to: the column itself is in the tab order, to scroll by the keys.
     return html`${head}${this.renderArrival()}<div class="to-column"><main class=${cls} tabindex="0" aria-label=${p.title}>${this.main}</main></div>`;

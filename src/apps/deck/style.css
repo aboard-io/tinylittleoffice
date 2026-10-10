@@ -496,6 +496,28 @@
   .deck-show .notes p {
     margin: 0.3em 0;
   }
+  /* A short screen (a phone on its side): the controls small and off the slide's corner, the notes a strip at the foot. */
+  @media (max-height: 500px) {
+    .deck-show .ctl {
+      top: auto;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      padding: 0.125rem;
+    }
+    .deck-show .ctl .to-btn {
+      width: 2rem;
+      height: 2rem;
+      min-width: 0;
+      min-height: 0;
+    }
+    .deck-show .notes {
+      max-height: 40dvh;
+      bottom: 0.5rem;
+      right: 9rem;
+      font-size: 0.8125rem;
+      padding: 0.5rem;
+    }
+  }
   .deck-show .notes small {
     color: #a1a1aa;
   }

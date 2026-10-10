@@ -453,3 +453,15 @@ test('§1 display mode and a locked document focus nothing; unlocked, the docume
   shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
   await until(() => !!shell.querySelector<ToText>('to-write-editor to-text')?.hasFocus());
 });
+
+// A deck's reader can present it (Paul, 2026-10-10: on a phone there was no way to play a deck from its link without editing).
+test('a deck’s Display Link has Present beside Edit, the same link with ?show; a text’s has Edit alone', async () => {
+  const deck = await mount(`#/v1/deck/${encodeDoc('## One\n\n- a\n\n---\n\n## Two\n\n- b\n')}?d`);
+  await until(() => !!deck.querySelector('.to-display-edit'));
+  const present = deck.querySelector<HTMLAnchorElement>('.to-display-present')!;
+  expect(present).not.toBeNull();
+  expect(present.getAttribute('href')).toBe(`${deck.querySelector<HTMLAnchorElement>('.to-display-edit')!.getAttribute('href')}?show`);
+  const text = await mount(`#/v1/write/${encodeDoc('Words\n')}?d`);
+  await until(() => !!text.querySelector('.to-display-edit'));
+  expect(text.querySelector('.to-display-present')).toBeNull();
+});

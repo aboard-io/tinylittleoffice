@@ -23,11 +23,11 @@ import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
 import { motion, reducedMotion } from '../../kit/motion.ts';
-import { ChevronDown, ChevronUp, GripVertical } from 'lucide';
+import { ChevronDown, ChevronUp, GripVertical, StickyNote } from 'lucide';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { cmdMenu, cmdTool, tool } from '../../kit/bar.ts';
-import { drawnIn, runKey } from '../../kit/commands.ts';
+import { coarse, drawnIn, runKey } from '../../kit/commands.ts';
 import { BOLD, FOOTNOTE, HIGHLIGHT, INDENT, ITALIC, LINK, OUTDENT, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
 import COMMANDS, { EDIT, SHOW } from './commands.ts';
 import { docToHtml, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
@@ -163,7 +163,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.showing = -1;
     this.shown = 0;
     this.leaving = -1;
-    this.noting = true;
+    // Under a finger the notes start hidden: a phone's screen is the slide's (Paul, 2026-10-10: the notes superimposed); the show's Notes button and N show them.
+    this.noting = !coarse();
     this.sheets = false;
     this.subMenu = false;
   }
@@ -941,10 +942,11 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       <div class="ctl" role="group" aria-label=${t('Presentation')} @click=${(e: Event) => e.stopPropagation()}>
         ${tool({ label: t('Previous'), icon: ChevronUp, disabled: this.showing === 0 && this.shown === 0, does: () => this.back() })}
         ${tool({ label: t('Next'), icon: ChevronDown, does: () => this.forward() })}
+        ${s?.noteLines.length ? tool({ label: t('Notes'), icon: StickyNote, keys: 'N', pressed: this.noting, does: () => (this.noting = !this.noting) }) : nothing}
         ${tool({ label: this.fromLink ? t('Edit this deck') : t('Stop presenting'), icon: UI.close, keys: 'Esc', does: () => this.show(-1) })}
       </div>
       <span class="pos">${this.showing + 1} / ${total}</span>
-      ${s?.noteLines.length && this.noting ? html`<div class="notes" @click=${(e: Event) => e.stopPropagation()}><b>${t('Notes')}</b> ${s.noteLines.map((ln) => html`<p>${ln}</p>`)}<small>${t('N hides them')}</small></div>` : nothing}
+      ${s?.noteLines.length && this.noting ? html`<div class="notes" @click=${(e: Event) => e.stopPropagation()}><b>${t('Notes')}</b> ${s.noteLines.map((ln) => html`<p>${ln}</p>`)}${coarse() ? nothing : html`<small>${t('N hides them')}</small>`}</div>` : nothing}
     </div>`;
   }
 
