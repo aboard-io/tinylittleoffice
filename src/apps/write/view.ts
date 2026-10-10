@@ -298,8 +298,8 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
     const kind = b.k === 'h' ? (b === title ? 'title' : b.level === 1 ? 'h1' : b.level === 2 ? 'h2' : 'h3') : b.k;
     const [size, bold, gap0] = SIZE[kind];
     const face = b.k === 'h' ? look.head : look.body;
-    // A newspaper's headline is larger; a typewriter's page a little smaller, as its letters are wider.
-    const px = kind === 'title' && cols > 1 ? 46 : look.body === 'mono' && kind !== 'title' ? size - 1 : size;
+    // A newspaper's headline is larger and its columns' words smaller; a typewriter's page a little smaller, as its letters are wider.
+    const px = kind === 'title' && cols > 1 ? 46 : cols > 1 && b.k !== 'h' ? 14 : look.body === 'mono' && kind !== 'title' ? size - 1 : size;
     // A book's paragraphs run on with no gap, each after the first indented; its headings in small capitals, centred.
     const run = look.indent && b.k === 'p' && doc.blocks[doc.blocks.indexOf(b) + 1]?.k === 'p';
     const gap = run ? 0 : gap0;
@@ -308,15 +308,16 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
     const d = b.k === 'li' ? b.depth : 0;
     const left = M + (b.k === 'li' ? 26 * (d + 1) : b.k === 'quote' ? 18 : 0);
     const spans = spansOf(b.runs, next);
-    const lead: Span[] = indent ? [{ t: '  ' }] : [];
-    // Wrapped as the sans is estimated, the measure narrowed by how much wider the look's face sets.
-    const lines = wrapSpans([...lead, ...(spans.length ? spans : [{ t: '' }])], (M + cw - left) / WIDTH[face], px, bold);
-    const lh = px * 1.45;
-    const mark = b.k === 'li' ? (b.done !== undefined ? (b.done ? '☑' : '☐') : b.ord ? `${n}.` : '•') : '';
+    const lead: Span[] = indent ? [{ t: '\u2003\u2003' }] : [];
     const cls = b.a?.cls ?? [];
     const centred = cls.includes('center') || (caps && !cls.includes('right')) || (look.indent && b === title);
+    const justify = !centred && !cls.includes('right') && (cls.includes('justify') || (look.justify && (b.k === 'p' || b.k === 'quote')));
+    // Wrapped as the sans is estimated, the measure narrowed by how much wider the look's face sets; a justified
+    // line is filled a little fuller, as it is fitted to its measure (squeezed a little rather than spaced out).
+    const lines = wrapSpans([...lead, ...(spans.length ? spans : [{ t: '' }])], (M + cw - left) / (justify ? 0.92 : WIDTH[face]), px, bold);
+    const lh = px * 1.45;
+    const mark = b.k === 'li' ? (b.done !== undefined ? (b.done ? '☑' : '☐') : b.ord ? `${n}.` : '•') : '';
     const [tx, anchor] = centred ? [(left + M + cw) / 2, 'middle' as const] : cls.includes('right') ? [M + cw, 'end' as const] : [left, 'start' as const];
-    const justify = !centred && anchor === 'start' && (cls.includes('justify') || (look.justify && (b.k === 'p' || b.k === 'quote')));
     const fill = b.k === 'quote' ? MUTED : INK;
     const f = font(b.k === 'h' ? 'head' : 'body');
     bits.push({
@@ -368,7 +369,9 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
       return;
     }
     // A heading goes to the next column or page rather than sit alone at the foot of this one.
-    const need = b.keep ? b.h + (bits[i + 1]?.first ?? 0) : b.h;
+    // (A strip is not split across pages, so it is the next strip whole, when that is short.)
+    const after = bits[i + 1];
+    const need = b.keep ? b.h + (after ? (after.h <= (PAGE_H - 2 * M) / 4 ? after.h : after.first) : 0) : b.h;
     if (b.wide || cols === 1) {
       // Across the page: under everything on it so far.
       y = Math.max(y, low);
