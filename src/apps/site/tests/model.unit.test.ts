@@ -6,6 +6,7 @@ import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Block } from '../../../doc/index.ts';
 // The registry, so a document held in a page is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
+import { embedOf } from '../../../kit/embeds.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
@@ -316,7 +317,10 @@ test('the pictures: a page each, the theme’s colours, the home page alone when
 });
 
 test('the templates: real sites and Quick Links pages, every icon one the page can draw; the download is the site itself', async () => {
-  expect(site.templates.map((t) => t.id)).toEqual(['cafe', 'shop', 'event', 'links-maker', 'links-group', 'links-band', 'links-business', 'links-writer']);
+  expect(site.templates.map((t) => t.id)).toEqual([
+    'cafe', 'shop', 'event', 'portfolio', 'wedding', 'band', 'clinic', 'campaign', 'mutual-aid', 'club', 'newsletter', 'cottage', 'trades', 'studio',
+    'links-maker', 'links-group', 'links-band', 'links-business', 'links-writer', 'links-one',
+  ]);
   for (const tpl of site.templates) {
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
     for (const [, name] of tpl.doc.matchAll(/:([a-z0-9-]+):/g)) expect(iconNamed(name), `${tpl.id}: ${name}`).toBeTruthy();
@@ -372,4 +376,18 @@ test('words typed in the page, as ops: one text op on the block, the rest of a l
   expect(Object.keys(w).slice(0, 6)).toEqual(['0:0', '1:0', '2.0:label', '2.1:label', '3:head', '3:detail']);
   expect(w['3:head'].kind).toBe('marks');
   expect(keptRuns([{ t: 'a', b: true }, { t: '', fn: 'n' }, { t: 'b\nc', href: 'x' }], 'plain')).toEqual([{ t: 'ab c' }]);
+});
+
+test('every template is a whole site: a name, every card and button filled, every embed one the page can draw, the shops with things to sell', () => {
+  for (const tpl of site.templates) {
+    const s = readSite(parse(tpl.doc));
+    expect(s.name, tpl.id).toBeTruthy();
+    expect(tpl.doc, tpl.id).not.toMatch(/[Ll]orem|ipsum|\bTODO\b|\bTBD\b/);
+    for (const sec of s.sections) {
+      for (const c of sec.cards) expect(c.head.length && c.detail.length, `${tpl.id}: a card`).toBeTruthy();
+      for (const b of [...sec.buttons, ...sec.socials]) expect(b.label && b.url !== '#', `${tpl.id}: ${b.label}`).toBeTruthy();
+      for (const e of sec.embeds) expect('lang' in e ? !!appOf(e.lang) || e.lang === 'qr' || e.lang === 'sheet' : !!embedOf(e.web), `${tpl.id}: an embed`).toBe(true);
+    }
+    if (/orders:/.test(tpl.doc)) expect(s.sections.some((x) => x.products.length), `${tpl.id}: a shop`).toBe(true);
+  }
 });

@@ -623,7 +623,7 @@ Potter in Lisbon. Mugs, bowls, the odd lamp.
 
 As a link: <https://tinylittleoffice.com/site/#doc=---%0Alook%3A+links%0Atheme%3A+rose%0A---%0A%23+Ada+Diaz%0A%0A%21%5B%5D%28https%3A%2F%2Fimages.unsplash.com%2Fphoto-1544005313-94ddf0286df2%3Fw%3D400%29%0A%0APotter+in+Lisbon.+Mugs%2C+bowls%2C+the+odd+lamp.%0A%0A%3E+%3Acart%3A+The+shop+%7C+https%3A%2F%2Fexample.com%2Fshop%0A%3E+%3Acalendar%3A+Book+a+class+%7C+https%3A%2F%2Fexample.com%2Fclasses%0A%3E+%3Amail%3A+Email+me+%7C+mailto%3Aada%40example.com%0A%0A-+%3Acamera%3A+Instagram+%7C+https%3A%2F%2Finstagram.com%2Fada%0A-+%3Afilm%3A+YouTube+%7C+https%3A%2F%2Fyoutube.com%2F%40ada>
 
-Templates: A café, A small shop, An event, Quick Links: a maker, Quick Links: a group, Quick Links: a band, Quick Links: a small business, Quick Links: a writer. Its own files: `.html`.
+Templates: A café, A small shop, An event, A portfolio, A wedding, A band, A clinic, A campaign, A mutual-aid group, A school club, A newsletter sign-up, A holiday cottage, A plumber, A yoga studio, Quick Links: a maker, Quick Links: a group, Quick Links: a band, Quick Links: a small business, Quick Links: a writer, Quick Links: one link. Its own files: `.html`.
 
 ## Every app's files
 
