@@ -75,9 +75,9 @@ npm run tinier:schema      # tinier/schema.sql, on the remote database; safe to 
 npm run deploy
 ```
 
-That builds the site (the type check first) and deploys the three Workers in turn. To check everything the
-way we do before shipping (the strings, the unit and browser tests, the smoke run on the built site, what
-the build wrote), run `node scripts/deploy.mjs --dry-run` first: it checks and deploys nothing.
+That runs the checks we run before shipping (the types, the strings, the unit and browser tests, the build,
+what the build wrote, and the smoke run on the built site when something on screen changed), then deploys
+the three Workers in turn. `npm run deploy -- --dry-run` checks and deploys nothing.
 
 Open your site, write something, make a short link and open it in another browser; put a picture from
 Wikimedia in a document and check that it comes from your `media.` address (the browser's network panel).

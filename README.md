@@ -199,9 +199,9 @@ the unit and the browser tests, then the build, then checks what the build wrote
 Content-Security-Policy in `dist/_headers` holding the hash of every page script and inline script); when something
 on screen changed since the last deploy (`.wrangler/deployed`), the smoke run on the built site instead of the bare
 build: e2e/smoke, keyboard, a11y (axe over every app at phone size, light and dark) and offline. Then
-`wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`) and for tinier.
-`--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e spec. (`npm run deploy` is the
-shorter path a self-hoster takes: the build, then the site, tinier and media; docs/self-host.md.)
+`wrangler deploy` for the site (`wrangler.jsonc`: `dist/` as static assets with its `_headers`), for tinier and
+for the picture proxy. `--dry-run` checks and stops, `--visual` runs the smoke whatever changed, `--full` every e2e
+spec. `npm run deploy` is the same script; a self-hoster runs it against their own account (docs/self-host.md).
 
 The shortener (`tinier/`) and the picture proxy (`media/`) are Workers of their own, each with its wrangler config; nothing deploys by itself.
 
