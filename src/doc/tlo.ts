@@ -66,7 +66,8 @@ export function attrsText(a?: Attrs): string {
 /* ---------- reading ---------- */
 
 const FENCE = /^(`{3,}|~{3,})\s*([\w-]*)\s*(.*)$/;
-const HEADING = /^(#{1,6})(?:\s+(.*?))?\s*#*\s*$/;
+// (A closing run of "#" is dropped, as Markdown's; an escaped "\#" at the end is the words'.)
+const HEADING = /^(#{1,6})(?:\s+(.*?))?\s*(?:(?<!\\)#+)?\s*$/;
 const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])(?:\s+(.*))?$/;
 const RULE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 const SEP = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
@@ -106,7 +107,8 @@ function readHead(lines: string[]): [Head, number] {
 /** What a line may not open with and still be words: the guard `write` puts a backslash before. */
 const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|\||\{)/;
 /** Undo the guard that kept a line from being read as a block of another kind (and only that: "\`" is an escaped backtick). */
-const unblock = (s: string) => (s[0] === '\\' && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) ? s.slice(1) : s);
+// (Words that are only "{...}" keep their backslash for splitAttrs: it is the one that says they are not attributes.)
+const unblock = (s: string) => (s[0] === '\\' && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
 
 /** A block as the line reader sees it: its words still inline Markdown. */
 type Raw = { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; a?: Attrs } | { k: 'p'; text: string; a?: Attrs } | { k: 'li'; depth: number; ord?: true; done?: boolean; text: string; a?: Attrs } | { k: 'quote'; text: string; a?: Attrs } | Exclude<Block, { runs: Run[] }>;
@@ -262,7 +264,7 @@ export function parse(text: string): Doc {
     // A line under a list item, indented, carries on that item.
     const last = blocks[blocks.length - 1];
     if (!para.length && last?.k === 'li' && /^\s/.test(line) && lines[i - 1]?.trim()) {
-      last.text += '\n' + t;
+      last.text += '\n' + unblock(t);
       continue;
     }
     if (paraKind !== 'p') flush();
@@ -344,7 +346,8 @@ export function writeBlock(b: Block, n = 1): string {
   const at = attrsText(b.a);
   switch (b.k) {
     case 'h':
-      return `${'#'.repeat(b.level)} ${guardEnd(writeLines(b.runs))}${at}`.trimEnd();
+      // Words that end in "#" escape it, or it would be read as the heading's closing hashes.
+      return `${'#'.repeat(b.level)} ${guardEnd(writeLines(b.runs).replace(/#+$/, (m) => m.replace(/#/g, '\\#')))}${at}`.trimEnd();
     case 'p':
       return (b.runs.length ? guardEnd(writeLines(b.runs).split('\n').map(guard).join('\n')) : '<br>') + at;
     case 'quote':
@@ -358,7 +361,7 @@ export function writeBlock(b: Block, n = 1): string {
       const [first, ...more] = writeLines(b.runs).split('\n');
       const pad = '  '.repeat(b.depth);
       const lead = (/^\[[ xX]\](\s|$)/.test(first) && b.done === undefined) || RULE.test(`- ${first}`) ? '\\' : '';
-      return `${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`.trimEnd() + more.map((l, i) => `\n${pad}  ${l}${i === more.length - 1 ? at : ''}`).join('');
+      return `${pad}${mark} ${task}${lead}${guardEnd(first)}${more.length ? '' : at}`.trimEnd() + more.map((l, i) => `\n${pad}  ${guard(l)}${i === more.length - 1 ? at : ''}`).join('');
     }
     case 'hr':
       return `---${at}`;
@@ -417,7 +420,7 @@ const MARKS: [string, 'b' | 'i' | 'u' | 's' | 'h'][] = [
 ];
 const LINK = /^\[((?:\\.|[^\]\\\n])*)\]\(\s*<?((?:https?:\/\/|mailto:|tel:|#)[^()\s>]*)>?\s*\)/;
 const ICON = /^:([a-z][a-z0-9-]*):/;
-/** A web or mail address, as far as it can go without taking in a mark that follows it. */
+/** A web or mail address, as far as it can go without taking in a mark that follows it (read at a line's start, after a space, a "(" or a link's "["). */
 const URL = '(?:https?:\\/\\/|mailto:)(?:(?!\\*\\*|~~|==|\\+\\+|__|:[a-z][a-z0-9-]*:)[^\\s<`\\\\[\\]*])+';
 
 /** One line of inline Markdown as runs of words with their marks. Lenient: what does not close is plain words. */
@@ -496,7 +499,7 @@ export function parseInline(s: string): Run[] {
       }
     }
     // A web address is taken whole: the marks inside it (an "=" in its query, an "_" in its path) are its own.
-    if ((c === 'h' || c === 'm') && (i === 0 || /[\s(]/.test(s[i - 1]))) {
+    if ((c === 'h' || c === 'm') && (i === 0 || /[\s([]/.test(s[i - 1]))) {
       const m = new RegExp('^' + URL).exec(s.slice(i));
       if (m) {
         const url = m[0].replace(/[.,;:!?)]+$/, '');
@@ -589,11 +592,18 @@ export function escapeInline(t: string): string {
 }
 
 function escapePlain(t: string): string {
-  return t
-    .replace(/[\\`*_]/g, '\\$&')
-    .replace(/(~~|==|\+\+)/g, (m) => '\\' + m[0] + '\\' + m[1])
-    .replace(/\[(?=(?:\\.|[^\]\\\n])*\]\()/g, '\\[')
-    .replace(/\^(?=\[)/g, '\\^')
+  // Words written beside other runs meet what those runs write: a "[" that no "]" closes before a link's "[...](...)",
+  // a "^" at their end before a "[", an "=" at their end beside a highlight's "==". So those are escaped too, as are
+  // an "=", "+" or "~" doubled or at either end of the words.
+  let out = '';
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    const pair = '=+~'.includes(c) && (i === 0 || i === t.length - 1 || t[i - 1] === c || t[i + 1] === c);
+    out += pair || '\\`*_'.includes(c) ? '\\' + c : c;
+  }
+  return out
+    .replace(/\[(?=(?:\\.|[^\]\\\n])*\]\()|\[(?![^\]]*\])/g, '\\[')
+    .replace(/\^(?=\[|$)/g, '\\^')
     .replace(/:(?=[a-z][a-z0-9-]*:)/g, '\\:')
     .replace(/<(?=\/?u>)/g, '\\<');
 }

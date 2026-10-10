@@ -636,3 +636,16 @@ test('§1 opens with the focus in the first slide\'s headline, the caret at its 
   expect(el.querySelectorAll('.deck-thumb')[0].getAttribute('aria-current')).toBe('true');
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
+
+test("a paste from Google Docs into a slide's words keeps the items and their depth; the heading is words there", async () => {
+  const { el, last } = await editor('## One\n');
+  await caretIn(el, 'words');
+  const dt = new DataTransfer();
+  dt.setData('text/html', '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><h2 dir="ltr"><span>Plan</span></h2><ul><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span style="font-weight:700;">Bold</span><span> start</span></p></li><ul><li dir="ltr" aria-level="2"><p dir="ltr" role="presentation"><span>nested</span></p></li></ul></ul></b>');
+  dt.setData('text/plain', 'Plan\nBold start\nnested');
+  box(el, 'words').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  await tick();
+  expect(last()).toBe('## One\n\nPlan\n\n- **Bold** start\n  - nested\n');
+  expect([...box(el, 'words').querySelectorAll('li')].map((li) => li.style.getPropertyValue('--d'))).toEqual(['0', '1']);
+});
