@@ -24,6 +24,12 @@ export interface Page {
 export interface ViewOpts {
   /** Drawn inside another document, or as a thumbnail: the gist rather than the whole thing. */
   small?: boolean;
+  /**
+   * Drawn as a thumbnail (the home page's templates, a kept document's preview), with `small`: a wide document
+   * on a landscape page holding what can be read at that size, not the whole thing shrunk. Never passed on a
+   * slide, a site, a print or a file, so none of them changes with it.
+   */
+  thumb?: boolean;
   /** Presented a step at a time (a slide that holds this document): draw only the first `upTo` of its `steps`, the rest keeping their places. */
   upTo?: number;
 }

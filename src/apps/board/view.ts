@@ -51,11 +51,23 @@ function rowsPage(stages: Stage[], max: number): Page {
   return { w, h: Math.max(160, y + 12), svg: svg || text(24, 60, '–', { px: 16, fill: INK }), alt: alt || undefined };
 }
 
-/** The board as a page; the first `max` cards of it (counting stage by stage). */
-export function boardPage(doc: Doc, max = Infinity): Page {
+/** How many stages a thumbnail holds, at full width; and its height over its width (a landscape page). */
+const THUMB_STAGES = 3;
+const THUMB_TALL = 0.6;
+
+/**
+ * The board as a page; the first `max` cards of it (counting stage by stage). As a thumbnail (`thumb`) a
+ * landscape page holding the first three stages at full width and the cards that fit in them whole.
+ */
+export function boardPage(doc: Doc, max = Infinity, thumb = false): Page {
   const board = readBoard(doc);
-  const stages = board.stages;
-  if (board.rows) return rowsPage(stages, max);
+  const stages = thumb ? board.stages.slice(0, THUMB_STAGES) : board.stages;
+  if (board.rows) {
+    const page = rowsPage(stages, max);
+    return thumb ? { ...page, h: Math.min(page.h, Math.round(page.w * THUMB_TALL)) } : page;
+  }
+  // A thumbnail's height is fixed by its width; a page's by its tallest stage.
+  const room = thumb ? Math.max(160, Math.round(Math.max(240, 48 + stages.length * (COL + 12) - 12) * THUMB_TALL)) - 28 : Infinity;
   let shown = 0;
   let tall = 0;
   let svg = '';
@@ -65,13 +77,13 @@ export function boardPage(doc: Doc, max = Infinity): Page {
     let cards = '';
     for (const c of s.cards) {
       const made = cardSvg(c, left + 8, y, STAGE_COLORS[s.hue].hex);
-      if (shown++ < max) cards += made.svg;
+      if (shown++ < max && y + made.h <= room) cards += made.svg;
       y += made.h + 8;
     }
     tall = Math.max(tall, y);
     svg += `<g data-col="${i}">` + text(left + 12, 46, clip(s.name, COL - 80, 15, true), { px: 15, bold: true }) + text(left + COL - 12, 46, `${s.cards.length}${s.limit ? ' / ' + s.limit : ''}`, { px: 13, fill: MUTED, anchor: 'end' }) + cards + '</g>';
   });
-  const h = Math.max(160, tall + 24);
+  const h = thumb ? room + 28 : Math.max(160, tall + 24);
   const back = stages.map((s, i) => rect(24 + i * (COL + 12), 20, COL, h - 40, SHADE, 'rx="10"') + rect(24 + i * (COL + 12), 20, COL, 5, STAGE_COLORS[s.hue].hex, 'rx="2"')).join('');
   const alt = stages.map((s) => `${s.name}: ${s.cards.map((c) => c.words).join(', ') || '–'}`).join('. ');
   return { w: Math.max(240, 48 + stages.length * (COL + 12) - 12), h, svg: back + svg || text(24, 60, '–', { px: 16, fill: INK }), alt: alt || undefined };

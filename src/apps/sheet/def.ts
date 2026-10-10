@@ -44,7 +44,7 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => sheetPages(doc, opts?.small),
+  view: (doc, opts) => sheetPages(doc, opts?.small, opts?.thumb),
   exports: [
     { ext: 'xlsx', label: () => t('Excel (XLSX)'), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', build: (doc) => xlsx(doc) },
     // The byte order mark is how Excel knows a CSV is UTF-8.

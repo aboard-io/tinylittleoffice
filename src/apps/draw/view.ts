@@ -9,7 +9,7 @@ import { glyphNamed, iconNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { TILE_INKS, tilePattern, type Tile } from '../../kit/tile.ts';
 import { sliceRuns, type Doc, type Run } from '../../doc/index.ts';
-import { COLORS, H, W, canTurn, describeDrawing, iconOf, isLine, isLink, labelLines, linkEnds, paint, pairs, readDrawing, type DrawView, type Shape } from './model.ts';
+import { COLORS, H, W, canTurn, describeDrawing, iconOf, isLine, isLink, labelLines, linkEnds, paint, pairs, readDrawing, turnedBounds, type DrawView, type Shape } from './model.ts';
 
 export interface Theme {
   ink: string;
@@ -181,11 +181,28 @@ export function pixelPage(v: DrawView): Page {
   return { w: 480, h: 480, svg, alt: v.alt || t('Pixel art, {n} by {n}: {filled|one square filled|# squares filled}.', { n, filled }) };
 }
 
-/** The drawing's one page: in pixel mode the grid; else the shapes over their tile, with the alt text its author wrote, or a description from the shapes. */
-export function drawingPage(doc: Doc, upTo = Infinity): Page {
+/** A page cut to the box at (x, y), w by h: what lies outside it is out of the picture. */
+export const cropPage = (p: Page, x: number, y: number, w: number, h: number): Page => (x || y || w !== p.w || h !== p.h ? { ...p, w, h, svg: `<g transform="translate(${r(-x)} ${r(-y)})">${p.svg}</g>` } : p);
+
+/** The box round the shapes as they show, `pad` on every side, inside the canvas; the whole canvas when there are none. */
+export function shapesBox(shapes: Shape[], pad = 24): [number, number, number, number] {
+  if (!shapes.length) return [0, 0, W, H];
+  const boxes = shapes.map((s) => turnedBounds(s, shapes));
+  const [x0, y0] = [Math.max(0, Math.min(...boxes.map((b) => b[0])) - pad), Math.max(0, Math.min(...boxes.map((b) => b[1])) - pad)];
+  const [x1, y1] = [Math.min(W, Math.max(...boxes.map((b) => b[0] + b[2])) + pad), Math.min(H, Math.max(...boxes.map((b) => b[1] + b[3])) + pad)];
+  return x1 > x0 && y1 > y0 ? [x0, y0, x1 - x0, y1 - y0] : [0, 0, W, H];
+}
+
+/**
+ * The drawing's one page: in pixel mode the grid; else the shapes over their tile, with the alt text its author
+ * wrote, or a description from the shapes. As a thumbnail (`thumb`) the page is the picture's own box (landscape
+ * when it is wider than tall), so a small drawing in a corner is not a speck; a tiled page stays whole.
+ */
+export function drawingPage(doc: Doc, upTo = Infinity, thumb = false): Page {
   const v = readDrawing(doc);
   if (v.grid) return pixelPage(v);
-  return { ...shapesPage(v.shapes, W, H, upTo, v.tile), alt: v.alt || describeDrawing(v.shapes) || t('An empty drawing') };
+  const page = { ...shapesPage(v.shapes, W, H, upTo, v.tile), alt: v.alt || describeDrawing(v.shapes) || t('An empty drawing') };
+  return thumb && !v.tile ? cropPage(page, ...shapesBox(v.shapes)) : page;
 }
 
 export const drawingToSvg = (doc: Doc) => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(drawingPage(doc)) + '\n';

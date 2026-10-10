@@ -49,7 +49,7 @@ export default defineApp({
   view: (doc, opts) => {
     const d = parse(doc);
     const max = opts?.small ? SMALL : Infinity;
-    if (opts?.upTo === undefined) return [boardPage(d, max)];
+    if (opts?.upTo === undefined) return [boardPage(d, max, opts?.thumb)];
     // A card a step, in the order the document holds them: the rest (and their checklists) left out of the drawing.
     const hidden = new Set(readBoard(d).stages.flatMap((s) => s.cards).slice(opts.upTo).flatMap((c) => Array.from({ length: c.end - c.at }, (_, i) => c.at + i)));
     return [partOf(boardPage(d, max), boardPage({ ...d, blocks: d.blocks.filter((_, i) => !hidden.has(i)) }, max))];

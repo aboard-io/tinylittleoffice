@@ -49,7 +49,7 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => [drawingPage(parse(doc), opts?.upTo)],
+  view: (doc, opts) => [drawingPage(parse(doc), opts?.upTo, opts?.thumb)],
   // Presented on a slide, a shape a step, in the order they were drawn.
   steps: (doc) => {
     const v = readDrawing(parse(doc));

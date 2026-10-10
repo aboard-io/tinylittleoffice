@@ -24,6 +24,14 @@ export function pageSvg(p: Page, attrs = ''): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.w} ${p.h}" width="${p.w}" height="${p.h}" font-family="${FONT}"${a ? ' ' + a : ''}>${alt ? `<title>${alt}</title>` : ''}<rect width="${p.w}" height="${p.h}" fill="${PAPER}"/>${p.svg}</svg>`;
 }
 
+/**
+ * A thumbnail's shape, width over height: a portrait page its own; a landscape one as wide as its shape, to
+ * twice its height (a 16:9 slide 128 by 72, a 4:3 page 96 by 72), a wider one drawn in the middle of that.
+ */
+export const thumbRatio = (p: { w: number; h: number }): number => (p.w > p.h ? Math.min(p.w / p.h, 2) : p.w / p.h);
+/** A thumbnail's width at this height: a landscape page by thumbRatio, a portrait one `portrait` wide (or its own shape). */
+export const thumbWidth = (p: { w: number; h: number }, height: number, portrait?: number): number => (p.w > p.h || portrait === undefined ? Math.round(height * thumbRatio(p)) : portrait);
+
 /** Several pages as one tall one. */
 export function stack(pages: Page[], gap = 16): Page {
   if (pages.length === 1) return pages[0];
