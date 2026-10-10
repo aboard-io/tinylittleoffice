@@ -1,5 +1,5 @@
 /* Diagram: the picture in a frame that scrolls when it is wider than the screen, the hint line under the bar, and the
-   line editor over the thing tapped (the things to do to it are a <to-context> under the words). */
+   words typed over the thing tapped (the things to do to it are a <to-context> under the words). */
 @layer apps {
   to-diagram-editor {
     display: flex;
@@ -74,37 +74,47 @@
     text-align: center;
     pointer-events: none;
   }
-  .dg-anchor {
+  /* The words, typed where they are drawn: over the thing, its own font at the size the picture shows it (set at
+     16px or more and scaled, so iOS does not zoom); the editor places it (placeWords, by Draw's wordsOver). */
+  .dg-words {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    pointer-events: none;
-  }
-  .dg-pop {
-    position: fixed;
+    display: block;
+    z-index: 1;
     margin: 0;
-    padding: 6px;
-    width: min(320px, calc(100vw - 24px));
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
-    background: var(--to-surface);
-    box-shadow: var(--to-shadow-pop);
-    color: var(--to-ink);
+    padding: 0 2px;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    outline: 1px solid var(--to-accent);
+    outline-offset: 2px;
+    font-family: var(--to-font);
+    line-height: 1.25;
+    text-align: center;
+    transform-origin: 0 0;
+    cursor: text;
+    touch-action: manipulation;
+    user-select: text;
+    -webkit-user-select: text;
   }
-  .dg-pop to-text .tx {
-    min-height: 40px;
-    padding: 8px 10px;
-    font-size: 16px;
-    border: 1px solid var(--to-input-border);
-    border-radius: var(--to-radius-sm);
-    background: var(--to-input-bg);
+  .dg-words > :not(.tx) {
+    position: absolute;
   }
-  /* The editor draws a list item with a bullet in its margin; here the line stands alone. */
-  .dg-pop to-text .tx li {
-    padding-left: 0;
-    list-style: none;
+  .dg-words .tx {
+    min-height: 0;
+    font-size: inherit;
+    line-height: 1.25;
   }
-  .dg-pop to-text .tx li::before {
-    content: none;
+  .dg-words .tx > * {
+    white-space: pre;
+  }
+  .dg-words.wrap .tx > * {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .dg-words.left {
+    text-align: left;
+  }
+  .dg-words[hidden] {
+    display: none;
   }
 }

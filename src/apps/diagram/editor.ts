@@ -1,18 +1,21 @@
 /**
- * <to-diagram-editor>: the picture is the editor. Tap empty space and a new thing is typed there (in a lane,
- * or in the circles tapped); tap a thing and its words open over it in a one-line <to-text>, with the few
+ * <to-diagram-editor>: the picture is the editor. Tap empty space and a new thing is made there (in a lane,
+ * or in the circles tapped), its words offered and chosen; tap a thing and its words are typed where they are
+ * drawn, in a <to-text> laid exactly over them (the Drawing Tool's overlay, placed by `wordsOver`), with the few
  * things to do to it underneath (one more like it, a picture, a connection, take it away); Enter starts the
  * next; drag a thing onto another to put it under or after it, into a lane or a set to move it there. The
- * kind is a menu in the one bar. Every change is the kernel's operations (model.ts): the line editor's own
- * `text` ops on the line, a `splice` when a thing comes or goes, a `move` when one moves; nothing else
+ * kind is a menu in the one bar. Every change is the kernel's operations (model.ts): a `text` op on the line
+ * for the words typed, a `splice` when a thing comes or goes, a `move` when one moves; nothing else
  * touches the document.
  *
  * The thing open (or, with its words closed, the thing that has the focus) is the thing in hand: under the words a
  * <to-context> in the standard's order (Move up, Move down, the kind's own, Duplicate | Copy, Cut, Paste | Delete),
  * and the keys of docs/editing.md on a focused thing (arrows go to the nearest thing that way, Alt+Up/Down move it
  * past its neighbour, Mod+Alt+Left/Right into the next lane or table, Mod+D, Mod+C/X/V, Delete, Enter). The words are
- * plain (`no-bubble`, no marks); Escape puts them back as they were when opened, Enter or Mod+Enter or a tap
- * elsewhere keeps them. Undo brings the focus back to the thing that changed.
+ * plain (`no-bubble`, no marks); Shift+Enter is a second line where the thing draws one ("Name | Role", a
+ * date and what happened); Escape puts them back as they were when opened, Enter or Mod+Enter or a tap
+ * elsewhere keeps them. No box ever holds the words apart from the picture (docs/editing.md §5). Undo brings
+ * the focus back to the thing that changed.
  *
  * A seating chart's bar has Print place cards: a card a guest, their name large and their table small, eight to
  * a letter sheet with lines to cut along (view.ts `placeCards`), through the kit's print path.
@@ -20,18 +23,19 @@
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { ArrowDown, ArrowRight, ArrowUp, ClipboardPaste, CopyPlus, CornerDownRight, Minus, Scissors, Smile, Spline, ZoomIn, ZoomOut } from 'lucide';
-import { applyAll, parse, write, type Block, type Doc, type Op } from '../../doc/index.ts';
+import { apply, applyAll, isAtomic, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
 import { GENERATOR, docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
 import { UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { place, type MenuItem } from '../../kit/menu.ts';
+import type { MenuItem } from '../../kit/menu.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { isLink } from '../draw/model.ts';
+import { caret, insertRuns } from '../../kit/textops.ts';
+import { isLink, wordsOver } from '../draw/model.ts';
 import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
-import { KIND_ICON, kindHint, kindName, lineHint, thingName } from './kinds.ts';
+import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
 import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, moveAcross, moveThing, nextThing, newThing, partFor, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
@@ -53,26 +57,31 @@ export interface DiagramView {
 }
 
 /**
- * What the line editor over the picture is editing: a line of the document (`at`), a thing not yet in it
- * (`draft`), or a name that is not one line's words (a lane, a thing only connections name, a connection's
- * words), held as a block of its own (`block`) whose words are written back wherever the name is.
+ * What the words over the picture are editing: a thing of a line of the document (`at`; the characters of the
+ * line its words take, `span`), or a name that is not one line's words (a lane, a thing only connections name, a
+ * connection's words), written back wherever the name is.
  */
 interface Target {
-  hit: Hit | null;
+  hit: Hit;
   at: number;
-  draft: Draft | null;
-  block: Extract<Block, { k: 'li' }> | null;
+  span: [number, number];
+  /** A second line is kept, as the line's " | " (a timeline's event: its date, then ": " and what happened). */
+  lines: boolean;
+  dated: boolean;
   /** The name as it stands, for a name renamed wherever it is. */
   name: string;
 }
 
 type Drag = { i: number; hit: Hit; x: number; y: number; moved: boolean };
 
-const shifted = (ops: Op[], by: number): Op[] => ops.map((o) => (o.op === 'head' ? o : o.op === 'move' ? { ...o, at: o.at + by, to: o.to + by } : { ...o, at: o.at + by }));
-const li = (words: string): Extract<Block, { k: 'li' }> => ({ k: 'li', depth: 0, runs: words ? [{ t: words }] : [] });
-const plain = (b: Block) => ('runs' in b ? charsOf(b.runs).replace(/￼/g, '').trim() : '');
-/** What the line editor holds while nothing is open: it is always there, so a tap can focus it at once. */
-const IDLE: Block[] = [{ k: 'li', depth: 0, runs: [] }];
+const OBJ = '￼';
+const plain = (runs: Run[]) => charsOf(runs).split(OBJ).join('').replace(/\s+/g, ' ').trim();
+/** A line's " | " as the words over it show it, a line break; and back. */
+const asLines = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.split(' | ').join('\n') }));
+const asBars = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.replace(/[ \t]*\n[ \t]*/g, ' | ') }));
+const oneLine = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.replace(/\s*\n\s*/g, ' ') }));
+/** What the words over the picture hold while nothing is open: they are always there, so a tap can focus them at once. */
+const IDLE: Block[] = [{ k: 'p', runs: [] }];
 const sameHit = (a: Hit | null | undefined, b: Hit | null | undefined) => !!a && !!b && JSON.stringify(a) === JSON.stringify(b);
 
 /** Where an edit leaves the thing in hand: before it (what undo comes back to) and after it (what redo does). */
@@ -94,7 +103,7 @@ function pastedBlocks(data: { text: string; html: string }): Block[] {
 
 export class ToDiagramEditor extends DocElement<DiagramView> {
   static properties: PropertyDeclarations = { target: { state: true }, joining: { state: true }, zoom: { state: true } };
-  /** The thing open in the line editor, or null. */
+  /** The thing whose words are open, or null. */
   declare target: Target | null;
   /**
    * Joining, armed (the bar's Join, the thing's own Join): the name of the thing the connection starts from, and the
@@ -106,12 +115,13 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private drag: Drag | null = null;
   /** When a drag last ended: the click that follows it is not a tap. */
   private quietUntil = 0;
-  private ones = new WeakMap<Block, Block[]>();
   /** Counts the times the words are opened: a burst of typing is one undo step within one opening only. */
   private session = 0;
   /** The document as it was when the words were opened (Escape puts it back), and the thing they were opened on. */
   private openText: string | null = null;
   private openHitAt: Hit | null = null;
+  /** The words over the thing open, as <to-text> holds them: one block, its lines the thing's lines. */
+  private wordsBlocks: Block[] = IDLE;
   /** Escape is taking the typing back: the undos it makes move nothing. */
   private restoring = false;
   /** A Mod+C, X or V whose clipboard event has not come (Safari sends none with nothing selected): done by hand. */
@@ -152,15 +162,16 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   }
   protected updated(changed: Map<string, unknown>) {
     super.updated(changed);
+    if (this.target) this.placeWords();
     this.syncContext();
   }
-  /** The things to do to the thing open sit under its words while there is a thing (not a draft) in hand. */
+  /** The things to do to the thing open sit under its words while a thing is in hand. */
   private syncContext() {
     const ctx = this.ctx;
-    const pop = this.pop;
+    const el = this.wordsEl;
     if (!ctx) return;
-    if (this.target?.hit && !this.target.draft && pop?.matches(':popover-open')) {
-      if (!ctx.isOpen) ctx.show(pop);
+    if (this.target && el && !el.hidden) {
+      if (!ctx.isOpen) ctx.show(el);
       else ctx.refresh();
     } else ctx.hide();
   }
@@ -182,149 +193,216 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     await this.updateComplete;
     (this.gOf(hit, at) ?? this.wrap)?.focus({ preventScroll: true });
   }
-  private one(b: Block): Block[] {
-    let a = this.ones.get(b);
-    if (!a) this.ones.set(b, (a = [b]));
-    return a;
-  }
 
-  /* ---------- the line editor over the picture ---------- */
+  /* ---------- the words, typed where they are drawn ---------- */
 
-  private get pop(): HTMLElement | null {
-    return this.querySelector<HTMLElement>('.dg-pop');
+  private get wordsEl(): ToText | null {
+    return this.querySelector<ToText>('to-text.dg-words');
   }
-  private get line(): ToText | null {
-    return this.querySelector<ToText>('.dg-pop to-text');
-  }
-  /** The block the line editor shows (for the target given, else the one open). */
-  private shown(tg = this.target): Block | null {
-    if (!tg) return null;
-    if (tg.draft) return tg.draft.block;
-    if (tg.at >= 0) return this.doc.blocks[tg.at]?.k === 'li' ? this.doc.blocks[tg.at] : null;
-    return tg.block;
-  }
-  /** What the line editor is called, and what it says while empty, for a target. */
+  /** What the words are called, and what they say while empty, for a target. */
   private wording(tg: Target | null): { label: string; placeholder: string } {
     const kind = this.view.kind;
-    const edge = tg?.hit?.k === 'edge';
-    return { label: edge ? t('What the connection says') : thingName(kind), placeholder: edge ? t('What the connection says') : tg?.hit?.k === 'lane' ? t('Who') : lineHint(kind) };
+    const h = tg?.hit;
+    if (h?.k === 'edge') return { label: t('What the connection says'), placeholder: t('What the connection says') };
+    if (h?.k === 'lane') return { label: t('The lane\'s name'), placeholder: t('Who') };
+    return { label: thingName(kind), placeholder: newWords(kind, h?.k === 'line' && typeof h.part === 'number') };
+  }
+  /**
+   * A thing's words as a target and as the words over it show them: the part of its line the thing draws (an
+   * icon in front left where it is, drawn on the thing), its " | " as line breaks; a timeline's date its first line.
+   */
+  private targetFor(hit: Hit): { tg: Target; runs: Run[] } | null {
+    if (hit.k !== 'line') {
+      const name = hit.k === 'edge' ? (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '') : hit.name;
+      return { tg: { hit, at: -1, span: [0, 0], lines: false, dated: false, name }, runs: name ? [{ t: name }] : [] };
+    }
+    const b = this.doc.blocks[hit.at];
+    if (b?.k !== 'li') return null;
+    const l = lineOf(b, hit.at);
+    const p = partFor(l, hit.part);
+    if (!p) return null;
+    let from = p.from;
+    while (from < p.to && (/\s/.test(l.chars[from]) || (l.chars[from] === OBJ && sliceRuns(l.runs, from, from + 1)[0]?.ic))) from++;
+    const lines = hit.part === 'all' || hit.part === 'words';
+    const dated = this.view.kind === 'timeline' && hit.part === 'all';
+    const tg: Target = { hit, at: hit.at, span: [from, p.to], lines, dated, name: '' };
+    if (dated && l.key && l.key.from >= from) return { tg, runs: [...asLines(sliceRuns(l.runs, from, l.key.to)), { t: '\n' }, ...asLines(sliceRuns(l.runs, l.words.from, p.to))] };
+    return { tg, runs: lines ? asLines(sliceRuns(l.runs, from, p.to)) : sliceRuns(l.runs, from, p.to) };
+  }
+  /** The words over a line's thing, as its line writes them: line breaks as " | " (a timeline's first as ": "). */
+  private lineRuns(tg: Target, runs: Run[]): Run[] {
+    if (!tg.lines) return normalRuns(oneLine(runs));
+    const chars = charsOf(runs);
+    const i = chars.indexOf('\n');
+    if (tg.dated && i >= 0) return normalRuns([...sliceRuns(runs, 0, i), { t: ': ' }, ...asBars(sliceRuns(runs, i + 1, chars.length))]);
+    return normalRuns(asBars(runs));
   }
 
   /**
-   * Open the line editor on a target, over `anchor`, the caret (or a selection) at [from, to). The words are focused
-   * here, synchronously, in the tap's, the key's or the menu's own handler, as the Drawing Tool's are: iOS lets the
-   * focus in and raises the keyboard only so. The selection is written once the words are drawn.
+   * The words of a thing, over it, the caret (or a selection) at [from, to) of them, all of them chosen when none
+   * is given. Focused here, synchronously, in the tap's, the key's or the menu's own handler, as the Drawing Tool's
+   * are: iOS lets the focus in and raises the keyboard only so.
    */
-  private open(tg: Target, anchor: Element, sel?: [number, number], fresh = true) {
+  private open(hit: Hit, sel?: [number, number], fresh = true) {
+    const found = this.targetFor(hit);
+    const el = this.wordsEl;
+    if (!found || !el) return;
     if (fresh) {
       this.session++;
       this.openText = write(this.doc);
-      this.openHitAt = tg.hit;
+      this.openHitAt = hit;
     }
-    this.target = tg;
-    const pop = this.pop;
-    const x = this.line;
-    if (!pop || !x) return;
-    const b = this.shown(tg);
-    x.blocks = b ? this.one(b) : IDLE;
-    Object.assign(x, this.wording(tg));
-    if (!pop.matches(':popover-open')) pop.showPopover();
-    place(pop, anchor as HTMLElement, 6);
-    x.focus();
-    const end = b && 'runs' in b ? charsOf(b.runs).length : 0;
-    const [from, to] = sel ?? [end, end];
-    x.sel = { anchor: { block: 0, offset: from }, focus: { block: 0, offset: to } };
+    this.target = found.tg;
+    this.wordsBlocks = [{ k: 'p', runs: found.runs }];
+    el.blocks = this.wordsBlocks;
+    Object.assign(el, this.wording(found.tg));
+    el.hidden = false;
+    this.placeWords();
+    el.tx?.focus({ preventScroll: true });
+    const [from, to] = sel ?? [0, runLength(found.runs)];
+    el.sel = { anchor: { block: 0, offset: from }, focus: { block: 0, offset: to } };
   }
-  /** A thing of the picture, tapped: its words open over it. */
-  private openHit(hit: Hit, anchor: Element) {
-    if (hit.k === 'line') {
-      const b = this.doc.blocks[hit.at];
-      if (b?.k !== 'li') return;
-      const p = partFor(lineOf(b, hit.at), hit.part);
-      return this.open({ hit, at: hit.at, draft: null, block: null, name: '' }, anchor, p ? [p.from, p.to] : undefined);
+  /**
+   * The words laid exactly over the thing's own (which it draws blank meanwhile): the same font at the size the
+   * picture shows it, in the wrap's frame so they scroll with the picture.
+   */
+  private placeWords() {
+    const el = this.wordsEl;
+    const tg = this.target;
+    const wrap = this.wrap;
+    const pic = this.querySelector<SVGSVGElement>('.dg-pic');
+    const { d } = this.view;
+    const s = tg ? d.shapes[this.indexOf(tg)] : undefined;
+    if (!el || !s || !wrap || !pic) return;
+    const r = pic.getBoundingClientRect();
+    const box = wrap.getBoundingClientRect();
+    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft, r.top - box.top + wrap.scrollTop, THEME);
+    Object.assign(el.style, w.style);
+    el.classList.toggle('left', w.left);
+    el.classList.toggle('wrap', w.wrap);
+  }
+  /**
+   * A new thing: in the document at once, its words offered (the kind's "New idea", "Name", a table's next name)
+   * and chosen, so the first letter typed replaces them; Escape takes it away again. The words open over it.
+   */
+  private openDraft(d: Draft) {
+    const kind = this.view.kind;
+    let block = d.block;
+    let [a, b] = d.sel;
+    if (a === b) {
+      const words = newWords(kind, isListed(kind) && /:(\s|$)/.test(charsOf(block.runs)));
+      block = { ...block, runs: normalRuns([...sliceRuns(block.runs, 0, a), { t: words }, ...sliceRuns(block.runs, a, runLength(block.runs))]) };
+      b = a + words.length;
     }
-    const name = hit.k === 'edge' ? (edgesOf(this.doc).find((e) => e.at === hit.at)?.label ?? '') : hit.name;
-    const block = li(name);
-    this.open({ hit, at: -1, draft: null, block, name }, anchor, [0, charsOf(block.runs).length]);
+    this.session++;
+    this.openText = write(this.doc);
+    const mark: Mark = { before: null, after: null };
+    this.edit(commitDraft(d, block), `line:${d.at}:${this.session}`, mark);
+    const hit = (mark.after = this.hitOn(d.at, a, b));
+    this.openHitAt = hit;
+    const tg = this.targetFor(hit)?.tg;
+    const at = tg ? tg.span[0] : 0;
+    this.open(hit, [Math.max(0, a - at), Math.max(0, b - at)], false);
   }
-  /** A new thing, typed over `anchor`: it is in the document from its first letter. */
-  private openDraft(d: Draft, anchor: Element) {
-    this.open({ hit: null, at: -1, draft: d, block: null, name: '' }, anchor, d.sel);
+  /** The thing drawn for the characters [a, b) of line `at`: the smallest part of it that holds them. */
+  private hitOn(at: number, a: number, b: number): Hit {
+    const blk = this.doc.blocks[at];
+    let best: Hit = { k: 'line', at, part: 'all' };
+    if (blk?.k !== 'li') return best;
+    const l = lineOf(blk, at);
+    let size = Infinity;
+    for (const s of this.view.d.shapes) {
+      const h = s.hit;
+      if (h?.k !== 'line' || h.at !== at) continue;
+      const p = partFor(l, h.part);
+      if (p && p.from <= a && p.to >= b && p.to - p.from < size) [best, size] = [h, p.to - p.from];
+    }
+    return best;
   }
-  /** The line editor closed; a list it leaves is tidied. */
+  /** Done with the words: hidden, and a list they leave tidied. */
   private shut(tidyUp = true) {
     const tg = this.target;
     if (!tg) return;
     this.target = null;
     this.openText = null;
-    const pop = this.pop;
-    if (pop?.matches(':popover-open')) pop.hidePopover();
+    this.wordsBlocks = IDLE;
+    const el = this.wordsEl;
+    if (el) {
+      el.hidden = true;
+      el.blocks = this.wordsBlocks;
+    }
     this.ctx?.hide();
-    if (tidyUp && tg.at >= 0 && !tg.draft) this.edit(tidy(this.doc, tg.at));
+    if (tidyUp && tg.at >= 0) this.edit(tidy(this.doc, tg.at));
   }
   /** Done: the words kept, the focus back on the thing they were opened on. */
   private shutAndFocus() {
-    const hit = this.target?.draft ? null : (this.target?.hit ?? null);
+    const hit = this.target?.hit ?? null;
     this.shut();
     void this.focusThing(hit);
   }
 
   private onOps = (e: CustomEvent<TextOps>) => {
     e.stopPropagation();
+    this.applyWords(e.detail.ops, e.detail.kind);
+  };
+  /** The words' ops: applied to their block, handed back, and the thing's words written where they belong, so the picture follows. */
+  private applyWords(ops: Op[], kind?: string) {
     const tg = this.target;
-    if (!tg) return;
-    const { ops, kind } = e.detail;
-    if (tg.draft) {
-      const block = applyAll({ head: {}, blocks: [tg.draft.block] }, ops).blocks[0] as Extract<Block, { k: 'li' }>;
-      const d = tg.draft;
-      // Nothing worth keeping typed yet: the draft waits, out of the document.
-      if (charsOf(block.runs).trim() === charsOf(d.block.runs).trim()) return void (this.target = { ...tg, draft: { ...d, block } });
-      this.change(commitDraft(d, block), null, { k: 'line', at: d.at, part: 'all' }, `line:${d.at}:${this.session}`);
-      this.target = { hit: { k: 'line', at: d.at, part: 'all' }, at: d.at, draft: null, block: null, name: '' };
-      return;
-    }
+    const el = this.wordsEl;
+    if (!tg || !el) return;
+    const blocks = applyAll({ head: {}, blocks: this.wordsBlocks }, ops).blocks;
+    // One block of words: anything that came as more is folded into the first, a line break between.
+    const runs = blocks.flatMap((b, n) => [...(n ? [{ t: '\n' }] : []), ...('runs' in b ? b.runs : [])]);
+    this.wordsBlocks = [{ k: 'p', runs }];
+    el.blocks = this.wordsBlocks;
     if (tg.at >= 0) {
       const before = this.doc;
-      const mine = shifted(ops, tg.at);
-      this.change([...mine, ...follow(before, applyAll(before, mine), tg.at)], tg.hit, tg.hit, kind ? `line:${tg.at}:${this.session}` : undefined);
+      const put = this.lineRuns(tg, runs);
+      const op: Op = { op: 'text', at: tg.at, from: tg.span[0], to: tg.span[1], runs: put };
+      this.target = { ...tg, span: [tg.span[0], tg.span[0] + runLength(put)] };
+      this.change([op, ...follow(before, apply(before, op), tg.at)], tg.hit, tg.hit, kind ? `line:${tg.at}:${this.session}` : undefined);
       return;
     }
-    if (!tg.block || !tg.hit) return;
-    const block = applyAll({ head: {}, blocks: [tg.block] }, ops).blocks[0] as Extract<Block, { k: 'li' }>;
-    const now = plain(block);
+    const now = plain(runs);
     const done = rename(this.doc, tg.hit, tg.name, now);
-    this.target = { ...tg, block, name: done.length || tg.hit.k === 'edge' ? now : tg.name, hit: tg.hit.k === 'lane' && done.length ? { k: 'lane', name: now } : tg.hit.k === 'node' && done.length ? { k: 'node', name: now } : tg.hit };
-    this.change(done, tg.hit, this.target.hit, `name:${tg.hit.k}:${this.session}`);
-  };
-  /** Enter: the next thing like this one, typed where this one is. */
-  private onEnter = (e: Event) => {
+    const hit: Hit = tg.hit.k === 'lane' && done.length ? { k: 'lane', name: now } : tg.hit.k === 'node' && done.length ? { k: 'node', name: now } : tg.hit;
+    this.target = { ...tg, name: done.length || tg.hit.k === 'edge' ? now : tg.name, hit };
+    this.change(done, tg.hit, hit, `name:${tg.hit.k}:${this.session}`);
+  }
+  /** Enter: the next thing like this one, made and its words open. Shift+Enter a second line, where the thing draws one. */
+  private onEnter = (e: CustomEvent<{ shift: boolean }>) => {
     e.stopPropagation();
     const tg = this.target;
-    const anchor = this.pop ? this.anchorOf(tg) : null;
-    const hit = tg?.hit;
-    if (!tg || !hit || tg.draft || hit.k === 'edge') return this.shutAndFocus();
-    const d = nextThing(this.doc, hit);
+    const el = this.wordsEl;
+    if (!tg) return;
+    if (e.detail?.shift && tg.lines && el) {
+      const runs = this.wordsBlocks[0]?.k === 'p' ? this.wordsBlocks[0].runs : [];
+      const r = insertRuns(this.wordsBlocks, el.sel ?? caret(0, runLength(runs)), [{ t: '\n' }]);
+      this.applyWords(r.ops, 'type');
+      el.sel = r.sel;
+      return;
+    }
+    if (tg.hit.k === 'edge') return this.shutAndFocus();
     this.shut();
-    if (d && anchor) this.openDraft(d, anchor);
+    const d = nextThing(this.doc, tg.hit);
+    if (d) this.openDraft(d);
+    else void this.focusThing(tg.hit);
   };
   /** Backspace at the start: a thing with no words left goes. */
   private onExit = (e: Event) => {
     e.stopPropagation();
     const tg = this.target;
-    const b = this.shown();
-    if (!tg || !b) return;
-    if (tg.draft) return this.shutAndFocus();
-    if (tg.hit?.k === 'line') {
-      const p = partFor(lineOf(b as Extract<Block, { k: 'li' }>, tg.at), tg.hit.part);
-      if (p && !p.words && !p.icon) {
-        const ops = removeThing(this.doc, tg.hit);
-        this.shut(false);
-        this.change(ops, tg.hit, null);
-        void this.focusThing(null);
-      }
+    if (tg?.hit.k !== 'line') return;
+    const b = this.doc.blocks[tg.at];
+    const p = b?.k === 'li' ? partFor(lineOf(b, tg.at), tg.hit.part) : null;
+    if (p && !p.words && !p.icon) {
+      const ops = removeThing(this.doc, tg.hit);
+      this.shut(false);
+      this.change(ops, tg.hit, null);
+      void this.focusThing(null);
     }
   };
-  /** Escape, once <to-text> has closed its boxes and collapsed its words: the words as they were when opened, and the focus back on the thing. */
+  /** Escape, once <to-text> has closed its boxes and collapsed its words: the words as they were when opened (a new thing gone again), the thing still in hand. */
   private onEscape = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
@@ -341,34 +419,33 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     this.shut(false);
     void this.focusThing(hit);
   };
-  /** Mod+A with the line already whole: there is no choosing every thing of a picture, so the words stay chosen. */
+  /** Mod+A with the words already whole: there is no choosing every thing of a picture, so the words stay chosen. */
   private onSelectAll = (e: Event) => e.stopPropagation();
   /**
    * Keys in the words, before <to-text> sees them: Mod+Enter is done; the words are plain, so the marks' keys do
    * nothing; Mod+D and Alt+Up/Down act on the thing open, as they do on a focused one.
    */
-  private onPopKey = (e: KeyboardEvent) => {
+  private onWordsKey = (e: KeyboardEvent) => {
     if (e.isComposing || !(e.target as Element).closest?.('to-text')) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
     const stop = () => (e.preventDefault(), e.stopPropagation());
     if (mod && !e.altKey && e.key === 'Enter') return void (stop(), this.shutAndFocus());
     if (mod && !e.altKey && (e.shiftKey ? k === 'x' || k === 'h' : k === 'b' || k === 'i' || k === 'u' || k === 'k')) return void stop();
-    const hit = this.target?.draft ? null : (this.target?.hit ?? null);
+    const hit = this.target?.hit ?? null;
     if (!hit) return;
     if (mod && !e.altKey && !e.shiftKey && k === 'd') return void (stop(), this.duplicate(hit));
     if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return void (stop(), this.move(hit, e.key === 'ArrowUp' ? -1 : 1));
   };
+  /** The focus gone from the words by the keys (Tab) to somewhere not the picture, the things under them or a box of theirs: done with them. */
+  private onWordsBlur = (e: FocusEvent) => {
+    const to = e.relatedTarget as Element | null;
+    if (!this.target || !to || this.contains(to) || to.closest?.('to-context, [popover], dialog')) return;
+    this.shut();
+  };
 
-  /** Where the line editor sits: over the shape it edits, else over the place it was opened. */
-  private anchorOf(tg: Target | null): Element | null {
-    const i = tg ? this.indexOf(tg) : -1;
-    return (i >= 0 ? this.querySelector(`.dg-pic g[data-i="${i}"]`) : null) ?? this.querySelector('.dg-anchor');
-  }
   private indexOf(tg: Target): number {
-    const h = tg.hit;
-    if (!h) return -1;
-    return this.view.d.shapes.findIndex((s) => s.hit && JSON.stringify(s.hit) === JSON.stringify(h));
+    return this.view.d.shapes.findIndex((s) => sameHit(s.hit, tg.hit));
   }
 
   /* ---------- the things to do to the thing open ---------- */
@@ -384,7 +461,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   /** The thing open, or the thing that has the focus. */
   private inHand(): Hit | null {
     const tg = this.target;
-    if (tg) return tg.draft ? null : tg.hit;
+    if (tg) return tg.hit;
     const g = (document.activeElement as Element | null)?.closest?.('g.dg-thing');
     return g && this.contains(g) ? (this.view.d.shapes[+(g as SVGGElement).dataset.i!]?.hit ?? null) : null;
   }
@@ -392,11 +469,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private async reopenOn(hit: Hit | null, open: boolean) {
     if (!open || hit?.k !== 'line') return this.focusThing(hit);
     await this.updateComplete;
-    const g = this.gOf(hit);
-    const b = this.doc.blocks[hit.at];
-    const p = b?.k === 'li' ? partFor(lineOf(b, hit.at), hit.part) : null;
-    if (!g || !p) return this.focusThing(hit);
-    this.open({ hit, at: hit.at, draft: null, block: null, name: '' }, g, [p.from, p.to], false);
+    if (!this.gOf(hit) || !this.targetFor(hit)) return this.focusThing(hit);
+    this.open(hit, undefined, false);
   }
   /** Past its neighbour (Alt+Up/Down, Move up/down); the words stay open on it if they were. */
   private move(hit: Hit, by: 1 | -1) {
@@ -497,12 +571,11 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   /** The things to do to the thing open, in the standard's order: Move up, Move down, the kind's own, Duplicate | Copy, Cut, Paste | Delete. */
   private contextItems(tg: Target | null): ContextEntry[] {
     const hit = tg?.hit;
-    if (!tg || !hit || tg.draft) return [];
+    if (!tg || !hit) return [];
     const kind = this.view.kind;
-    const anchor = () => this.anchorOf(tg) ?? this;
     const add = (d: Draft | null) => {
       this.shut();
-      if (d) this.openDraft(d, anchor());
+      if (d) this.openDraft(d);
     };
     const name = this.nameOf(hit);
     const out: ContextEntry[] = [];
@@ -539,24 +612,16 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
     return [p.x, p.y];
   }
-  /** Put the anchor where the pointer is, for a line editor opened on empty space. */
-  private anchorAt(e: { clientX: number; clientY: number }): HTMLElement {
-    const a = this.querySelector<HTMLElement>('.dg-anchor')!;
-    const box = this.querySelector<HTMLElement>('.dg-wrap')!.getBoundingClientRect();
-    a.style.left = `${e.clientX - box.left + (a.parentElement?.scrollLeft ?? 0)}px`;
-    a.style.top = `${e.clientY - box.top + (a.parentElement?.scrollTop ?? 0)}px`;
-    return a;
-  }
   /** A tap on the picture: on a thing, its words (or the other end of a connection being made); on empty space, a new thing there. */
   private onClick = (e: MouseEvent) => {
-    if (performance.now() < this.quietUntil) return;
+    if (performance.now() < this.quietUntil || (e.target as Element).closest('.dg-words')) return;
     const g = (e.target as Element).closest<SVGGElement>('g.dg-thing');
     const hit = g ? this.view.d.shapes[+g.dataset.i!]?.hit : undefined;
     if (this.target) return this.shut();
     if (this.joining !== null) return this.joinTo(hit);
-    if (hit && g) return this.openHit(hit, g);
+    if (hit) return this.open(hit);
     const [x, y] = this.point(e);
-    this.openDraft(newThing(this.doc, regionAt(this.view.d, x, y)), this.anchorAt(e));
+    this.openDraft(newThing(this.doc, regionAt(this.view.d, x, y)));
   };
   /**
    * Join, from the bar or the thing's own row: armed from the thing in hand (open or focused), the next thing tapped
@@ -590,7 +655,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onOutside = (e: PointerEvent) => {
     if (!this.target) return;
     const at = e.target as Element | null;
-    if (!at || this.pop?.contains(at) || this.wrap?.contains(at) || at.closest?.('to-context, dialog, [popover], to-bar')) return;
+    if (!at || this.wrap?.contains(at) || at.closest?.('to-context, dialog, [popover], to-bar')) return;
     this.shut();
   };
   /** The thing nearest the focused one in an arrow's direction. */
@@ -615,7 +680,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.isComposing) return;
     const at = e.target as Element;
-    if (at.closest('input, textarea, select, [contenteditable], dialog, [popover], to-bar, button')) return;
+    if (at.closest('input, textarea, select, [contenteditable], to-text, dialog, [popover], to-bar, button')) return;
     const mod = e.metaKey || e.ctrlKey;
     const k = e.key.toLowerCase();
     // Select all: never the page's words under the picture.
@@ -649,7 +714,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if ((e.key === 'Enter' || e.key === ' ') && !mod && !e.altKey) {
       e.preventDefault();
       if (this.joining !== null) return this.joinTo(hit);
-      this.openHit(hit, g);
+      this.open(hit);
     } else if ((e.key === 'Delete' || e.key === 'Backspace') && !mod && !e.altKey) {
       e.preventDefault();
       this.removeHit(hit);
@@ -735,8 +800,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
         icon: UI.plus,
         does: () => {
           this.shut();
-          const wrap = this.querySelector<HTMLElement>('.dg-wrap')!.getBoundingClientRect();
-          this.openDraft(newThing(this.doc), this.anchorAt({ clientX: wrap.left + Math.min(wrap.width / 2, 160), clientY: wrap.top + 24 }));
+          this.openDraft(newThing(this.doc));
         },
       },
     ];
@@ -757,7 +821,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   private thing(s: DShape, i: number, all: DShape[], on: number) {
     const hit = s.hit;
-    const body = unsafeSVG(shapeSvg(s, all, THEME, !!hit));
+    // The thing whose words are being typed is drawn without them: the words over it hold them, nothing doubles.
+    const body = unsafeSVG(shapeSvg(i === on ? { ...s, text: '' } : s, all, THEME, !!hit));
     if (!hit) return svg`<g>${body}</g>`;
     const words = s.text.replace(/^:[a-z0-9-]+\s*/, '') || (isLink(s.k) || hit.k === 'edge' ? t('a connection') : t('empty'));
     // A mind map's cross-link is a curve and its words beside it: one stop for the keys, the curve.
@@ -768,7 +833,6 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const { kind, d } = this.view;
     const tg = this.target;
     const on = tg ? this.indexOf(tg) : -1;
-    const shown = this.shown();
     const words = this.wording(tg);
     const width = this.zoom ? `width:${Math.round(d.w * this.zoom)}px;max-width:none` : `width:100%;max-width:${d.w}px`;
     const hint = this.joining === '' ? t('Tap the first thing to join, then the other; tap empty space to stop.') : this.joining !== null ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining }) : kindHint(kind);
@@ -789,11 +853,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
           ${d.shapes.map((s, i) => this.thing(s, i, d.shapes, on))}
         </svg>
         ${d.shapes.length ? nothing : html`<p class="dg-empty to-hint">${t('Tap here to add the first {thing}.', { thing: thingName(kind).toLowerCase() })}</p>`}
-        <span class="dg-anchor" aria-hidden="true"></span>
-      </div>
-      <div class="dg-pop" popover="manual" @keydown=${{ handleEvent: this.onPopKey, capture: true }}>
-        <to-text shape="line" .blocks=${shown ? this.one(shown) : IDLE} .label=${words.label} .placeholder=${words.placeholder}
-          no-bubble @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
+        <to-text class="dg-words" hidden shape="line" no-bubble .blocks=${this.wordsBlocks} .label=${words.label} .placeholder=${words.placeholder}
+          @keydown=${{ handleEvent: this.onWordsKey, capture: true }} @focusout=${this.onWordsBlur}
+          @text-ops=${this.onOps} @text-enter=${this.onEnter} @text-exit=${this.onExit} @text-escape=${this.onEscape} @text-selectall=${this.onSelectAll}></to-text>
       </div>
       <to-context class="dg-context" .label=${t('This thing')} .items=${this.contextItems(tg)}></to-context>`;
   }

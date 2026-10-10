@@ -1,8 +1,9 @@
-// The Diagram editor in a real browser: the picture from the document, a tap on a thing opens its words over it in a
-// one-line <to-text> and typing there is text ops on its line (a person's dotted lines follow a new name); Enter types
-// the next; a tap on empty space types a new thing there, gone if nothing is typed; the buttons under the words add,
-// join and take away; a drag puts one thing under another; the kind menu; undo; and at phone width the bar is one row,
-// the page never wider, the line editor on the screen.
+// The Diagram editor in a real browser: the picture from the document, a tap on a thing opens its words where they are
+// drawn, a <to-text> laid over them (the thing drawn blank meanwhile, no box apart from the picture), and typing there is
+// text ops on its line (a person's dotted lines follow a new name); Shift+Enter a second line; Enter makes the next; a
+// tap on empty space makes a new thing there with its words offered and chosen, gone again on Escape; the buttons under
+// the words add, join and take away; a drag puts one thing under another; the kind menu; undo; and at phone width the
+// bar is one row, the page never wider, the words on the thing.
 import { expect, test } from 'vitest';
 import { page } from 'vitest/browser';
 import '../../../styles.css';
@@ -34,9 +35,10 @@ const settle = async (el: ToDiagramEditor) => {
 };
 const things = (el: HTMLElement) => [...el.querySelectorAll<SVGGElement>('.dg-pic g.dg-thing')];
 const thing = (el: HTMLElement, words: string) => things(el).find((g) => g.getAttribute('aria-label')!.startsWith(words))!;
-const pop = (el: HTMLElement) => el.querySelector<HTMLElement>('.dg-pop')!;
-const line = (el: HTMLElement) => el.querySelector<ToText>('.dg-pop to-text')!;
-const isOpen = (el: HTMLElement) => pop(el).matches(':popover-open');
+const line = (el: HTMLElement) => el.querySelector<ToText>('to-text.dg-words')!;
+const isOpen = (el: HTMLElement) => !line(el).hidden;
+/** The words over the thing, as they hold them (a line break is "\n"). */
+const held = (el: HTMLElement) => line(el).blocks.map((b) => ('runs' in b ? b.runs.map((r) => r.t).join('') : '')).join('\n');
 const center = (g: Element) => {
   const r = g.getBoundingClientRect();
   return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
@@ -93,17 +95,23 @@ test('the picture from the document: a thing per person, each a button with its 
   const { el } = await editor(ORG);
   expect(things(el).map((g) => g.getAttribute('aria-label'))).toEqual(['Ada Diaz | Chief executive', 'Ben Okoro | Engineering', 'Eve Marsh | Design', 'design partner']);
   expect(el.querySelector('.dg-kind > button')!.textContent).toContain('Org chart');
-  expect(el.querySelector('.dg-hint')!.textContent).toContain('Name | Role');
+  expect(el.querySelector('.dg-hint')!.textContent).toContain('Shift+Enter for their role');
   expect(isOpen(el)).toBe(false);
+  // No box for words apart from the picture: the words are typed on it.
+  expect(el.querySelector('.dg-pop, [popover] to-text, dialog to-text')).toBeNull();
 });
 
 test('a tap opens the words over the thing; typing is text ops on its line, and the dotted line follows the new name; undo takes it back', async () => {
   const { el, last } = await editor(ORG);
   await tap(el, thing(el, 'Ben Okoro'));
   expect(isOpen(el)).toBe(true);
-  expect(line(el).tx.textContent).toBe('Ben Okoro | Engineering');
-  // The words tapped are selected: typing replaces them.
-  await type(el, 'Bea Okoro | Engineering');
+  // The role is the second line, as the thing draws it.
+  expect(held(el)).toBe('Ben Okoro\nEngineering');
+  // The words tapped are selected: typing replaces them; Shift+Enter is the line break, " | " in the line.
+  await type(el, 'Bea Okoro');
+  input(line(el), 'insertLineBreak');
+  await settle(el);
+  await type(el, 'Engineering');
   expect(last()).toContain('  - Bea Okoro | Engineering\n');
   expect(last()).toContain('~ Bea Okoro -- Eve Marsh: design partner');
   expect(thing(el, 'Bea Okoro')).toBeTruthy();
@@ -117,25 +125,30 @@ test('a tap opens the words over the thing; typing is text ops on its line, and 
   expect(document.activeElement).toBe(thing(el, 'Ben Okoro'));
 });
 
-test('Enter types the next one; a tap on empty space a new one, gone if nothing is typed', async () => {
+test('Enter makes the next one, its words offered and chosen; a tap on empty space a new one, gone again on Escape', async () => {
   const { el, last } = await editor(ORG);
   await tap(el, thing(el, 'Eve Marsh'));
   await key(el, 'Enter');
   expect(isOpen(el)).toBe(true);
-  expect(line(el).tx.textContent).toBe('');
-  expect(last()).toBe(ORG);
+  expect(held(el)).toBe('Name');
+  expect(last()).toContain('  - Eve Marsh | Design\n  - Name\n');
   await type(el, 'Flo');
   expect(last()).toContain('  - Eve Marsh | Design\n  - Flo\n');
   await key(el, 'Escape');
+  expect(last()).toBe(ORG);
   const n = things(el).length;
-  // Empty space: a draft, nothing in the document until typed into; a second tap closes it.
+  // Empty space: a new thing, in the picture at once, its words over it; Escape takes it away.
   const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
   const r = pic.getBoundingClientRect();
   await tap(el, pic, { clientX: r.left + 6, clientY: r.bottom - 6 });
   expect(isOpen(el)).toBe(true);
-  const before = last();
+  expect(things(el)).toHaveLength(n + 1);
+  // The first Escape lets go of the words chosen, the next takes the new thing away.
   await key(el, 'Escape');
-  expect(last()).toBe(before);
+  expect(isOpen(el)).toBe(true);
+  await key(el, 'Escape');
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toBe(ORG);
   expect(things(el)).toHaveLength(n);
 });
 
@@ -208,7 +221,8 @@ test('a tap in a lane adds a step to it, its name already written', async () => 
   const shopName = thing(el, 'Shop');
   const s = shopName.getBoundingClientRect();
   await tap(el, pic, { clientX: s.right + 5, clientY: s.top + s.height / 2 });
-  expect(line(el).tx.textContent).toBe('Shop: ');
+  expect(held(el)).toBe('Step');
+  expect(last()).toBe('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n- Shop: Step\n');
   await type(el, 'Packs');
   expect(last()).toBe('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n- Shop: Packs\n');
 });
@@ -223,10 +237,13 @@ test('at phone width: the bar one row, nothing wider than the screen, the line e
     expect(tops.size).toBe(1);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     await tap(el, thing(el, 'Social'));
-    const p = pop(el).getBoundingClientRect();
+    const p = line(el).getBoundingClientRect();
+    const g = thing(el, 'Social').getBoundingClientRect();
     expect(p.left).toBeGreaterThanOrEqual(0);
     expect(p.right).toBeLessThanOrEqual(390);
-    expect(parseFloat(getComputedStyle(line(el).tx).fontSize)).toBeGreaterThanOrEqual(16);
+    // On the thing itself, not beside it; 16px or more to iOS, scaled to the picture's size.
+    expect(Math.abs(p.top + p.height / 2 - (g.top + g.height / 2))).toBeLessThan(g.height / 2);
+    expect(parseFloat(getComputedStyle(line(el)).fontSize)).toBeGreaterThanOrEqual(16);
     expect(ctx(el).matches(':popover-open')).toBe(true);
     const c = ctx(el).getBoundingClientRect();
     expect(c.left).toBeGreaterThanOrEqual(0);
@@ -247,7 +264,8 @@ test('a Venn: a tap where two circles cross adds to what they share; a seat drag
   const r = pic.getBoundingClientRect();
   // Between the two names, halfway down the circles: inside both.
   await tap(el, pic, { clientX: (fast.right + cheap.left) / 2, clientY: r.top + r.height / 2 });
-  expect(line(el).tx.textContent).toBe('Fast & Cheap: ');
+  expect(held(el)).toBe('Thing');
+  expect(last()).toContain('- Fast & Cheap: Thing\n');
   await type(el, 'toast');
   expect(last()).toContain('- Fast & Cheap: toast\n');
   await key(el, 'Escape');
@@ -531,21 +549,23 @@ test('a new thing starts with its words in hand, on every kind: a tap on empty s
   }
 });
 
-test('Enter and the Add items open the next thing focused, its words empty; a table is offered by name, chosen whole so typing replaces it', async () => {
+test('Enter and the Add items open the next thing focused, its words offered and chosen; a table is offered by name, chosen whole so typing replaces it', async () => {
   const { el, last } = await editor(ORG);
   tapNow(thing(el, 'Eve Marsh'));
   await settle(el);
   input(line(el), 'insertParagraph');
   expect(focusedNow(el)).toBe(true);
   await settle(el);
-  expect(line(el).tx.textContent).toBe('');
+  expect(held(el)).toBe('Name');
+  expect(line(el).sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 4 } });
+  await key(el, 'Escape');
   await key(el, 'Escape');
   tapNow(thing(el, 'Ada Diaz'));
   await settle(el);
   action(el, 'Add under it').click();
   expect(focusedNow(el)).toBe(true);
   await settle(el);
-  expect(line(el).placeholder).toBe('Name | Role');
+  expect(line(el).placeholder).toBe('Name');
   await type(el, 'Gus');
   expect(last()).toContain('  - Eve Marsh | Design\n  - Gus\n');
   await key(el, 'Escape');
@@ -556,7 +576,7 @@ test('Enter and the Add items open the next thing focused, its words empty; a ta
   tapNow(pic, { clientX: r.left + 6, clientY: r.bottom - 6 });
   expect(focusedNow(seats.el)).toBe(true);
   await settle(seats.el);
-  expect(line(seats.el).tx.textContent).toBe('Table 2: ');
+  expect(held(seats.el)).toBe('Table 2');
   expect(line(seats.el).sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 7 } });
   await type(seats.el, 'Head');
   expect(seats.last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Sam\n- Head:\n');
@@ -664,4 +684,82 @@ test('a mind map joins: Join from an idea, a tap on another across the tree make
   action(el, 'Delete').click();
   await settle(el);
   expect(last()).not.toContain('~ ');
+});
+
+/* ---------- the words typed where they are drawn ---------- */
+
+test('every kind: a tap lays the words over the thing (drawn blank meanwhile), and the thing is drawn again with what was typed', async () => {
+  for (const [kind, doc] of Object.entries(SAMPLES)) {
+    const { el, last } = await editor(doc);
+    const g = things(el).find((x) => !x.classList.contains('edge'))!;
+    const label = g.getAttribute('aria-label')!;
+    expect(g.querySelectorAll('text').length, `${kind}: drawn`).toBeGreaterThan(0);
+    await tap(el, g);
+    expect(isOpen(el), kind).toBe(true);
+    const at = el.querySelector<SVGGElement>(`.dg-pic g[data-i="${g.dataset.i}"]`)!;
+    expect(at.querySelectorAll('text').length, `${kind}: blank while typed on`).toBe(0);
+    const [w, b] = [line(el).getBoundingClientRect(), at.getBoundingClientRect()];
+    const [cx, cy] = [w.left + w.width / 2, w.top + w.height / 2];
+    expect(cx > b.left - 4 && cx < b.right + 4 && cy > b.top - 4 && cy < b.bottom + 4, `${kind}: over ${label}`).toBe(true);
+    // The things to do to it sit under the words.
+    expect(ctx(el).matches(':popover-open'), kind).toBe(true);
+    await type(el, 'Zz');
+    expect(last(), kind).toContain('Zz');
+    await key(el, 'Enter', { ctrlKey: true });
+    expect(isOpen(el), kind).toBe(false);
+    expect(things(el).some((x) => x.getAttribute('aria-label')!.includes('Zz') && x.querySelector('text')), kind).toBe(true);
+  }
+});
+
+test('a timeline: the date is the first line and what happened the second; Shift+Enter writes the ": " between them', async () => {
+  const { el, last } = await editor(SAMPLES.timeline);
+  await tap(el, thing(el, '1990'));
+  expect(held(el)).toBe('1990\nBegan');
+  await type(el, '1991');
+  expect(last()).toContain('- 1991\n');
+  input(line(el), 'insertLineBreak');
+  await settle(el);
+  await type(el, 'Started');
+  expect(last()).toBe('---\nkind: timeline\n---\n- 1991: Started\n- 2000: Grew\n');
+});
+
+test('a lane\'s name, a table\'s name and a set\'s name are typed on the picture too, and every line that names them follows', async () => {
+  const lanes = await editor('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n- Shop: Packs\n');
+  const name = things(lanes.el).find((g) => g.getAttribute('aria-label') === 'Shop')!;
+  await tap(lanes.el, name);
+  expect(held(lanes.el)).toBe('Shop');
+  expect(line(lanes.el).classList.contains('left')).toBe(true);
+  await type(lanes.el, 'Store');
+  expect(lanes.last()).toBe('---\nkind: lanes\n---\n- Sales: Calls\n- Store: Sells\n- Store: Packs\n');
+
+  const seats = await editor(SAMPLES.seating);
+  await tap(seats.el, thing(seats.el, 'Top table'));
+  expect(held(seats.el)).toBe('Top table');
+  await type(seats.el, 'Head');
+  expect(seats.last()).toBe('---\nkind: seating\n---\n- Head: Jo, Sam\n');
+
+  const venn = await editor(SAMPLES.venn);
+  await tap(venn.el, thing(venn.el, 'Fast'));
+  await type(venn.el, 'Quick');
+  expect(venn.last()).toBe('---\nkind: venn\n---\n- Quick: cars\n- Cheap: bikes\n');
+});
+
+test('an icon in front stays on the thing: the words after it are what is typed', async () => {
+  const { el, last } = await editor('---\nkind: mind\n---\n- :rocket: Launch\n  - A\n');
+  await tap(el, thing(el, 'Launch'));
+  expect(held(el)).toBe('Launch');
+  await type(el, 'Go');
+  expect(last()).toBe('---\nkind: mind\n---\n- :rocket: Go\n  - A\n');
+});
+
+test('Tab out of the words keeps them and closes them', async () => {
+  const { el, last } = await editor(SAMPLES.mind);
+  await tap(el, thing(el, 'A'));
+  await type(el, 'Bee');
+  const out = document.createElement('button');
+  document.body.append(out);
+  out.focus();
+  await settle(el);
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toContain('  - Bee\n');
 });

@@ -291,6 +291,52 @@ export function bounds(s: Shape, all: Shape[]): [number, number, number, number]
   return [Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)];
 }
 
+/** The room for words across a shape, in canvas units, as the view wraps them (less in a round or pointed shape). */
+function wordsRoom(s: Shape): number {
+  const inside = s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
+  return Math.max(24, Math.abs(s.w) * inside - 16);
+}
+
+/**
+ * Where an editor of a shape's words goes, laid exactly over them: the same font at the size the picture shows
+ * it (`k` CSS pixels to a unit, the picture's corner at `ox`, `oy` in the editor's frame), centred in the shape
+ * (from the left, for a text), turned with it. Below 16px it is set at 16 and scaled down, so iOS does not zoom.
+ * The Drawing Tool's words and the Diagram Maker's are placed by it.
+ */
+export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: number, th: { ink: string; paper: string; shade: string }) {
+  const px = TEXT_PX[s.z ?? 2] * k;
+  const font = Math.max(16, px);
+  const shrink = px / font;
+  const left = s.k === 't';
+  let [cx, cy] = [s.x + s.w / 2, s.y + s.h / 2];
+  let room = wordsRoom(s);
+  if (isLine(s.k) || s.k === 'w') {
+    const [x, y, w, h] = bounds(s, all);
+    [cx, cy] = [x + w / 2, y + h / 2];
+    room = 48;
+  } else if (s.k === 'c') cy += Math.min(s.h * 0.16, 12) / 2;
+  else if (left) [cx, room] = [s.x + 4, Math.max(24, s.w - 8)];
+  // A turned shape's words turn with it, about the shape's centre.
+  const turn = s.rot && canTurn(s.k) ? s.rot : 0;
+  const [tx, ty] = turn ? [s.x + s.w / 2 - cx, s.y + s.h / 2 - cy] : [0, 0];
+  const wrap = !left && !isLine(s.k) && s.k !== 'w';
+  const about = turn ? `translate(${tx * k}px, ${ty * k}px) rotate(${turn}deg) translate(${-tx * k}px, ${-ty * k}px) ` : '';
+  const minWidth = `${(room * k) / shrink}px`;
+  return {
+    style: {
+      left: `${ox + cx * k}px`,
+      top: `${oy + cy * k}px`,
+      fontSize: `${font}px`,
+      transform: `${about}scale(${shrink}) translate(${left ? '0' : '-50%'}, -50%)`,
+      minWidth,
+      maxWidth: wrap ? minWidth : '',
+      color: paint(s, th.ink, th.paper, th.shade).text,
+    },
+    left,
+    wrap,
+  };
+}
+
 /** A point turned `deg` degrees clockwise about (cx, cy). */
 export function turnPoint(x: number, y: number, cx: number, cy: number, deg: number): [number, number] {
   const a = (deg * Math.PI) / 180;

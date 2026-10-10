@@ -146,8 +146,8 @@ export type Hit =
 
 /**
  * A thing about to be added: the line the editor opens on, and where it goes. `n` 0 puts the block in at
- * `at`; `n` 1 puts it in place of the line there (one thing more in a list). Nothing is in the document
- * until something is typed: the first keystroke is the one `splice` (`commitDraft`).
+ * `at`; `n` 1 puts it in place of the line there (one thing more in a list). The editor puts it in at once
+ * (`commitDraft`, one `splice`), its words offered at the caret and chosen, and opens them over the thing.
  */
 export interface Draft {
   at: number;
