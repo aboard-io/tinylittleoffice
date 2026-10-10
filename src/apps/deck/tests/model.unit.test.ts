@@ -224,14 +224,38 @@ test('the deck ends with a QR code of itself, unless told not to, unless printed
 });
 
 test('every template is canonical, has a name, and draws', () => {
-  expect(templates().map((x) => x.id)).toEqual(['talk', 'status', 'proposal', 'zine', 'booklet', 'brochure', 'comic', 'poster', 'badges']);
+  // The everyday decks, then the occasions, then the printed things, two of each format.
+  expect(templates().map((x) => x.id)).toEqual([
+    'talk', 'status', 'proposal', 'pitch', 'lesson', 'conference', 'quarterly', 'workshop', 'launch', 'townhall', 'trivia', 'wedding', 'photos',
+    'zine', 'soups', 'booklet', 'programme', 'brochure', 'farm', 'comic', 'umbrella', 'poster', 'lost', 'badges', 'speakers',
+  ]);
+  expect(new Set(templates().map((x) => x.name)).size).toBe(templates().length);
   for (const x of templates()) {
     expect(write(parse(x.doc)), x.id).toBe(x.doc);
     expect(titleOf(x.doc), x.id).toBeTruthy();
     expect(deck.view(x.doc).length, x.id).toBeGreaterThan(0);
+    // A real document: a blurb, no filler, no blank slide, dates this year's and next.
+    expect(x.blurb.length, x.id).toBeGreaterThan(20);
+    expect(x.doc, x.id).not.toMatch(/[Ll]orem|ipsum|TODO|TBD|xxx/);
+    expect(slidesOf(parse(x.doc)).some(isBlank), x.id).toBe(false);
+    for (const [y] of x.doc.matchAll(/\b20[2-9]\d\b/g)) expect(+y, x.id).toBeLessThanOrEqual(2027);
+    // Drawn small for the home page's list: the first page, with something on it.
+    const small = deck.view(x.doc, { small: true });
+    expect(small, x.id).toHaveLength(1);
+    expect(small[0].svg.length, x.id).toBeGreaterThan(200);
+    // Every icon exists in the starter library (drawn on the slide and in PowerPoint).
+    const d = parse(x.doc);
+    for (const s of slidesOf(d)) if (s.icon && !settingsOf(d).format) expect(slidePage(d, s, lookOf(settingsOf(d))).svg, `${x.id} ${s.icon}`).toContain('<g transform');
   }
-  // The decks' icons all exist in the starter library (drawn on the slide and in PowerPoint).
-  for (const id of ['talk', 'status', 'proposal']) for (const s of slidesOf(parse(tpl(id)))) if (s.icon) expect(slidePage(parse(tpl(id)), s, lookOf(settingsOf(parse(tpl(id))))).svg, `${id} ${s.icon}`).toContain('<g transform');
+  // What the decks use of the app: themes, a chart on a slide, another document on a slide, a footnote, notes kept off the room's code.
+  const head = (id: string) => settingsOf(parse(tpl(id)));
+  expect(new Set(templates().map((x) => settingsOf(parse(x.doc)).theme).filter(Boolean)).size).toBeGreaterThanOrEqual(10);
+  expect(parse(tpl('townhall')).blocks.find((b) => b.k === 'table')?.a?.kv?.chart).toBe('pie');
+  expect(slidesOf(parse(tpl('workshop'))).some((s) => s.sub >= 0 && parse(tpl('workshop')).blocks[s.sub].k === 'fence')).toBe(true);
+  expect(slidesOf(parse(tpl('conference'))).every((s, i) => i === 0 || s.noteLines.length > 0)).toBe(true);
+  expect([head('trivia').qr, head('wedding').qr, closingPage(tpl('trivia'))]).toEqual([false, false, null]);
+  // The quiz's scores add up.
+  expect(deck.view(tpl('trivia'))[6].svg).toContain('>14<');
 });
 
 test('PowerPoint: a slide a file, the theme as the colour scheme, the words with their marks, the parts Keynote wants', () => {

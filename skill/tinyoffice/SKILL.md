@@ -144,7 +144,7 @@ theme: boardroom
 ---
 ## :calendar: Acme Ltd site: status {.title}
 
-- Week of 9 March 2027 · Harbor Studio
+- Week of 2 November 2026 · Harbor Studio
 
 ---
 
@@ -158,7 +158,7 @@ theme: boardroom
 
 - Next: words for work, prices and news
 - Next: photographs on Thursday morning, weather allowing
-- Next: first build shown on Friday 20 March
+- Next: first build shown on Friday 13 November
 
 > Left, what shipped; right, what is planned. Keep it to the facts.
 
@@ -173,11 +173,11 @@ theme: boardroom
 
 ## :help: Asks
 
-- Dee Okafor to send the final prices by Wednesday 18 March
+- Dee Okafor to send the final prices by Wednesday 11 November
 - Someone from Acme at the Friday read-through, an hour
 ```
 
-As a link: <https://tinylittleoffice.com/deck/#doc=---%0Atheme%3A+boardroom%0A---%0A%23%23+%3Acalendar%3A+Acme+Ltd+site%3A+status+%7B.title%7D%0A%0A-+Week+of+9+March+2027+%C2%B7+Harbor+Studio%0A%0A---%0A%0A%23%23+This+week+and+next+%7B.two%7D%0A%0A-+Done%3A+the+six+pages+sketched+and+agreed%0A-+Done%3A+words+for+home%2C+about+and+contact%0A-+Done%3A+hosting+set+up%2C+the+old+address+kept%0A%0A%7C%0A%0A-+Next%3A+words+for+work%2C+prices+and+news%0A-+Next%3A+photographs+on+Thursday+morning%2C+weather+allowing%0A-+Next%3A+first+build+shown+on+Friday+20+March%0A%0A%3E+Left%2C+what+shipped%3B+right%2C+what+is+planned.+Keep+it+to+the+facts.%0A%0A---%0A%0A%23%23+%3Awarning%3A+Risks%0A%0A-+The+price+list+is+still+being+decided+by+Acme%3A+the+prices+page+waits+on+it%0A-+Thursday+may+rain%3A+Saturday+is+the+fallback+for+photographs%0A%0A---%0A%0A%23%23+%3Ahelp%3A+Asks%0A%0A-+Dee+Okafor+to+send+the+final+prices+by+Wednesday+18+March%0A-+Someone+from+Acme+at+the+Friday+read-through%2C+an+hour>
+As a link: <https://tinylittleoffice.com/deck/#doc=---%0Atheme%3A+boardroom%0A---%0A%23%23+%3Acalendar%3A+Acme+Ltd+site%3A+status+%7B.title%7D%0A%0A-+Week+of+2+November+2026+%C2%B7+Harbor+Studio%0A%0A---%0A%0A%23%23+This+week+and+next+%7B.two%7D%0A%0A-+Done%3A+the+six+pages+sketched+and+agreed%0A-+Done%3A+words+for+home%2C+about+and+contact%0A-+Done%3A+hosting+set+up%2C+the+old+address+kept%0A%0A%7C%0A%0A-+Next%3A+words+for+work%2C+prices+and+news%0A-+Next%3A+photographs+on+Thursday+morning%2C+weather+allowing%0A-+Next%3A+first+build+shown+on+Friday+13+November%0A%0A%3E+Left%2C+what+shipped%3B+right%2C+what+is+planned.+Keep+it+to+the+facts.%0A%0A---%0A%0A%23%23+%3Awarning%3A+Risks%0A%0A-+The+price+list+is+still+being+decided+by+Acme%3A+the+prices+page+waits+on+it%0A-+Thursday+may+rain%3A+Saturday+is+the+fallback+for+photographs%0A%0A---%0A%0A%23%23+%3Ahelp%3A+Asks%0A%0A-+Dee+Okafor+to+send+the+final+prices+by+Wednesday+11+November%0A-+Someone+from+Acme+at+the+Friday+read-through%2C+an+hour>
 
 Poster:
 
@@ -187,14 +187,14 @@ format: poster
 ---
 ## :music: Open mic night {.title}
 
-- Friday 12 March, 8pm
+- Friday 13 November, 8pm
 - The Anchor, 14 Quay Street
 - Free. Bring a song, a poem, or just your ears.
 ```
 
-As a link: <https://tinylittleoffice.com/deck/#doc=---%0Aformat%3A+poster%0A---%0A%23%23+%3Amusic%3A+Open+mic+night+%7B.title%7D%0A%0A-+Friday+12+March%2C+8pm%0A-+The+Anchor%2C+14+Quay+Street%0A-+Free.+Bring+a+song%2C+a+poem%2C+or+just+your+ears.>
+As a link: <https://tinylittleoffice.com/deck/#doc=---%0Aformat%3A+poster%0A---%0A%23%23+%3Amusic%3A+Open+mic+night+%7B.title%7D%0A%0A-+Friday+13+November%2C+8pm%0A-+The+Anchor%2C+14+Quay+Street%0A-+Free.+Bring+a+song%2C+a+poem%2C+or+just+your+ears.>
 
-Templates: A talk, Status update, A proposal, Zine, Booklet, Brochure, Comic, Poster, Name badges. Its own files: `.pptx`, `.html`, `.zip`, `.gif`.
+Templates: A talk, Status update, A proposal, A pitch, A lesson, Conference talk, Quarterly review, Workshop agenda, Product launch, Town-hall notice, Trivia night, Wedding slideshow, Photo story, Zine, Recipe zine, Booklet, Concert programme, Brochure, Farm brochure, Comic, Comic: the umbrella, Poster, Lost cat poster, Name badges, Conference badges. Its own files: `.pptx`, `.html`, `.zip`, `.gif`.
 
 ## Numbers
 
