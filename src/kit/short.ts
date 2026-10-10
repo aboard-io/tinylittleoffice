@@ -77,7 +77,7 @@ const utf8 = (s: string) => new TextEncoder().encode(s);
 /** What a link costs at the shortener: its ciphertext, in base64url characters (AES-GCM adds a 16-byte tag). */
 export const shortCost = (link: string): number => Math.ceil(((utf8(link).length + 16) * 4) / 3);
 /** The public short link: the owner's link, or any short link, without its ".<o>" (a key alone is left as it is). */
-export const publicLink = (link: string): string => link.replace(/(#[A-Za-z0-9_-]+)\.[A-Za-z0-9_-]+$/, '$1');
+export const publicLink = (link: string): string => link.replace(/(#[A-Za-z0-9_~-]+)\.[A-Za-z0-9_~-]+$/, '$1');
 /** The owner's link from what the shell carries. */
 export const ownerLink = ({ id, key, o }: Owned, at = TINIER) => `${at}${id}#${key}.${o}`;
 /** The public link from what the shell carries. */

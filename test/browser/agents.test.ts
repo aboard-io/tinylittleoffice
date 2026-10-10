@@ -53,7 +53,7 @@ async function choose(shell: HTMLElement, words: string) {
 test('a plain link becomes the packed link on arrival, the document and its name as written', async () => {
   const shell = await mount('#title=Shopping&app=todo&doc=-+%5B+%5D+Milk%0A-+%5Bx%5D+Eggs&by=chores-agent');
   await until(() => !!shell.querySelector('to-todo-editor'));
-  expect(location.hash).toMatch(/^#\/v1\/todo\/[yzr][A-Za-z0-9_-]+$/);
+  expect(location.hash).toMatch(/^#\/v1\/todo\/[yzr][A-Za-z0-9_~]+$/);
   expect(docNow()).toBe('---\nby: chores-agent\ntitle: Shopping\n---\n- [ ] Milk\n- [x] Eggs\n');
   expect(shell.querySelector<HTMLInputElement>('.to-title')!.value).toBe('Shopping');
   // md= with no app anywhere is a text.

@@ -45,7 +45,7 @@ test('tinier: the owner puts a new version under the same id; GET hands back the
   const store = new MemStore();
   const now = 1_700_000_000_000;
   const owner = await ownerHash(O);
-  expect(owner).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect(owner).toMatch(/^[A-Za-z0-9_~]{43}$/);
   const { id, exp } = (await (await handle(post({ c: 'one', iv: 'iv1', ttl: 86400, owner }), store, yes, PAGE, now)).json()) as { id: string; exp: number };
   expect(store.rows.get(id)).toMatchObject({ owner, ver: 1, updated: null });
 
@@ -163,4 +163,52 @@ test('tinier: the folder logs nothing, and neither does the site', async () => {
   for (const f of readdirSync(dir).filter((n) => (n.endsWith('.ts') && !n.endsWith('.d.ts')) || n.endsWith('.html'))) expect(readFileSync(new URL(f, dir), 'utf8'), f).not.toMatch(/console\.|\.log\(/);
   expect(readFileSync(new URL('wrangler.jsonc', dir), 'utf8')).toMatch(/"observability": \{ "enabled": false \}/);
   expect(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"observability": \{ "enabled": false \}/);
+});
+
+// Links are written with "~" for 62 now, never "-" (a hyphen is where a pasted link breaks across lines); every
+// row and owner key made before still holds "-", and both are the same bytes.
+test('tinier: "~" and "-" are both base64url; an owner key proves itself in either form, against a row of either form', async () => {
+  const store = new MemStore();
+  const now = 1_700_000_000_000;
+  const tilde = 'A~_'.repeat(14) + 'A', hyphen = tilde.replace(/~/g, '-');
+  const owner = await ownerHash(tilde);
+  expect(owner).toMatch(/^[A-Za-z0-9_~]{43}$/);
+  expect(await ownerHash(hyphen)).toBe(owner);
+  const made = await handle(post({ c: 'ab~_12-3', iv: 'x~z', ttl: 3600, owner }), store, yes, PAGE, now);
+  expect(made.status).toBe(201);
+  const { id } = (await made.json()) as { id: string };
+  expect((await handle(req('PUT', `/api/${id}`, { c: 'two~', iv: 'iv2', o: hyphen }), store, yes, PAGE, now)).status).toBe(200);
+  // A row made before, its hash written with "-": the key proves it as the client writes it now.
+  const old = await (await handle(post({ c: 'one', iv: 'iv1', ttl: 3600, owner: owner.replace(/~/g, '-') }), store, yes, PAGE, now)).json() as { id: string };
+  expect(store.rows.get(old.id)!.owner).toContain('-');
+  expect((await handle(req('PUT', `/api/${old.id}`, { c: 'two', iv: 'iv2', o: tilde }), store, yes, PAGE, now)).status).toBe(200);
+  expect((await handle(req('DELETE', `/api/${old.id}`, { o: WRONG }), store, yes, PAGE, now)).status).toBe(403);
+});
+
+test('tinier: the landing page opens a link whose key, IV, ciphertext and owner key are written with "~" or "-"', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { sealShortAt } = await import('../src/kit/short.ts');
+  const { toBase64Url } = await import('../src/kit/codec.ts');
+  const page = readFileSync(new URL('../tinier/page.html', import.meta.url), 'utf8');
+  const script = /<script>([\s\S]*)<\/script>/.exec(page)![1].replace("'{{id}}'", "'abcdefg'").replace("'{{site}}'", "'https://tinylittleoffice.com'");
+  const long = 'https://tinylittleoffice.com/text/#/v1/text/yA~b';
+  // A key and an IV whose base64url holds 62 and 63 in several places.
+  const raw = Uint8Array.from({ length: 32 }, (_, i) => (i % 3 ? 0xfb : 0xff));
+  const iv = Uint8Array.from({ length: 12 }, () => 0xfb);
+  const sealed = await sealShortAt(long, raw, iv);
+  const key = toBase64Url(raw), o = toBase64Url(Uint8Array.from({ length: 32 }, () => 0xfb));
+  expect(key + sealed.iv + o).toContain('~');
+  for (const form of [(s: string) => s, (s: string) => s.replace(/~/g, '-')]) {
+    let went = '';
+    const el = () => ({ textContent: '', hidden: true, href: '' });
+    const els: Record<string, ReturnType<typeof el>> = {};
+    const env = {
+      document: { getElementById: (n: string) => (els[n] ??= el()) },
+      location: { pathname: '/abcdefg', hash: `#${form(key)}.${form(o)}`, replace: (to: string) => (went = to) },
+      fetch: async () => ({ ok: true, json: async () => ({ c: form(sealed.c), iv: form(sealed.iv), exp: 1, ver: 1 }) }),
+    };
+    await new Function('document', 'location', 'fetch', `return (async () => { await ${script.trim().replace(/;\s*$/, '')}; })();`)(env.document, env.location, env.fetch);
+    expect(els.err?.hidden ?? true, els.err?.textContent).toBe(true);
+    expect(went).toBe(`${long}?s=abcdefg&k=${form(key)}&o=${form(o)}&x=1`);
+  }
 });

@@ -37,13 +37,13 @@
     const r = await fetch('api/' + id);
     if (!r.ok) return fail('No such link, or it has expired.');
     const { c, iv, exp, ver } = await r.json();
-    const un = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
+    const un = (s) => Uint8Array.from(atob(s.replace(/[-~]/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
     const k = await crypto.subtle.importKey('raw', un(key), 'AES-GCM', false, ['decrypt']);
     const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: un(iv) }, k, un(c)));
     const site = '{{site}}';
     if (![site, site.replace('://', '://www.')].some((s) => plain.startsWith(s + '/'))) return fail('That link does not go to Tiny Little Office.');
     // Everyone arrives knowing how long the link has left (s, x); the owner arrives able to update it too (k, o). All of it rides in the fragment's query, which the site strips from every link it shares.
-    const owner = o && /^[A-Za-z0-9_-]{43}$/.test(o) ? '&k=' + key + '&o=' + o : '';
+    const owner = o && /^[A-Za-z0-9_~-]{43}$/.test(o) ? '&k=' + key + '&o=' + o : '';
     const to = plain.includes('#') ? plain + '?s=' + id + owner + '&x=' + exp : plain;
     a.href = to; go.hidden = false;
     p.textContent = 'This short link expires ' + new Date(exp).toLocaleString() + (ver > 1 ? ' (version ' + ver + ')' : '') + '.';

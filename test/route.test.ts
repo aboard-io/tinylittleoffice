@@ -63,3 +63,23 @@ test('a sealed payload ("E…") is read as one, beside every other part of the l
   expect(parseHash('#/v1/write/yAbc').sealed).toBe(false);
   expect(parseHash(routeHash('write', 'EAbc')).sealed).toBe(true);
 });
+
+test('a payload and an owner\'s keys may hold "~" (what is written now) or "-" (what was written before)', () => {
+  expect(parseHash('#/v1/text/yA~b_C').payload).toBe('yA~b_C');
+  expect(parseHash('#/v1/text/yA-b_C').payload).toBe('yA-b_C');
+  const owned = { id: 'abcdefg', key: 'K~'.repeat(21) + 'K', o: 'O_~'.repeat(14) + 'O' };
+  expect(parseHash(routeHash('text', 'yA~b', '', owned)).owned).toEqual(owned);
+  expect(parseHash(`#/v1/text/yA~b?s=abcdefg&k=${'K-'.repeat(21)}K&o=O`).owned).toEqual({ id: 'abcdefg', key: 'K-'.repeat(21) + 'K', o: 'O' });
+});
+
+test('a compare fragment and a link to compare take payloads with "~" or "-"', async () => {
+  const { parseCompare, sideOf } = await import('../src/kit/compare.ts');
+  const { toBase64Url, decodeDoc } = await import('../src/kit/codec.ts');
+  expect(parseCompare('#/compare/write/yA~b/write/yA-b')).toEqual([{ app: 'write', payload: 'yA~b' }, { app: 'write', payload: 'yA-b' }]);
+  // A raw payload whose fourth character is 62.
+  const payload = 'r' + toBase64Url(new TextEncoder().encode('>>>'));
+  expect(payload).toBe('rPj4~');
+  expect(decodeDoc(payload)).toBe('>>>');
+  expect(sideOf(`https://tinylittleoffice.com/write/#/v1/write/${payload}`)).toEqual({ app: 'write', payload });
+  expect(sideOf(`https://tinylittleoffice.com/write/#/v1/write/${payload.replace(/~/g, '-')}`)).toEqual({ app: 'write', payload: payload.replace(/~/g, '-') });
+});

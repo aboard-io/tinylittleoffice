@@ -1,5 +1,5 @@
 {
-  "about": "Tiny Little Office short links (src/kit/short.ts, tinier/, docs/crypto/short-links.md). c = AES-256-GCM(key, iv, UTF-8 of the long link) with its 16-byte tag last and no additional data; key, iv, c and o travel as base64url without padding. The service stores c, iv and owner = base64url(SHA-256(the 32 bytes of o)); the public link is <service>/<id>#<key>, the owner's <service>/<id>#<key>.<o>. Fixed keys and IVs are for these vectors only: the site draws them from crypto.getRandomValues.",
+  "about": "Tiny Little Office short links (src/kit/short.ts, tinier/, docs/crypto/short-links.md). c = AES-256-GCM(key, iv, UTF-8 of the long link) with its 16-byte tag last and no additional data; key, iv, c and o travel as base64url without padding. The service stores c, iv and owner = base64url(SHA-256(the 32 bytes of o)); the public link is <service>/<id>#<key>, the owner's <service>/<id>#<key>.<o>. Fixed keys and IVs are for these vectors only: the site draws them from crypto.getRandomValues. Base64url here is RFC 4648's URL alphabet with '~' for 62 where the RFC has '-' (a hyphen is where a pasted link breaks a line), no padding; '-' is read as 62 too.",
   "cipher": {
     "name": "AES-GCM",
     "keyBits": 256,
@@ -17,7 +17,7 @@
       "iv": "QEFCQ0RFRkdISUpL",
       "o": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
       "oHex": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
-      "ownerHash": "TY0nT_fhdq-XepWgBVyMXzR404ZANDoGDO6JPlbzmVc",
+      "ownerHash": "TY0nT_fhdq~XepWgBVyMXzR404ZANDoGDO6JPlbzmVc",
       "id": "abcdefg",
       "short": "https://tinier.tinylittleoffice.com/abcdefg#ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
       "owner": "https://tinier.tinylittleoffice.com/abcdefg#ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"

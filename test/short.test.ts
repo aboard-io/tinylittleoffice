@@ -19,7 +19,7 @@ function serve(store: MemStore, allowed = yes) {
   return seen;
 }
 const parts = (link: string) => {
-  const m = /^https:\/\/tinier\.test\/([a-z0-9]{7})#([A-Za-z0-9_-]+)(?:\.([A-Za-z0-9_-]+))?$/.exec(link)!;
+  const m = /^https:\/\/tinier\.test\/([a-z0-9]{7})#([A-Za-z0-9_~]+)(?:\.([A-Za-z0-9_~]+))?$/.exec(link)!;
   return { id: m[1], key: m[2], o: m[3] };
 };
 const LONG = 'https://tinylittleoffice.com/text/#/v1/text/yAbCdEfGhIjKlMnOpQrStUv';
@@ -37,7 +37,7 @@ test('shorten: two links, the public one opening the latest version with the key
   expect(publicLink(made.short)).toBe(made.short);
   expect(ownerLink(made.owned, AT)).toBe(made.owner);
   expect(shortLink(made.owned, AT)).toBe(made.short);
-  expect(own.o).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect(own.o).toMatch(/^[A-Za-z0-9_~]{43}$/);
   expect(made.expires).toBeGreaterThan(Date.now());
   // The server holds the hash of o, never o; the request carried the hash alone.
   const row = store.rows.get(pub.id)!;
@@ -108,4 +108,10 @@ test('how long a short link has left: days over a week are green, within a week 
   expect(expiresSentence(now + 3 * hour, now)).toBe('This link expires in 3 hours');
   expect(expiresLine(now + 7 * day, now, 'en-GB')).toBe('Expires in 7 days (16 October)');
   expect(expiresLine(now + hour, now, 'en-GB')).toBe('Expires in 1 hour (9 October)');
+});
+
+test('the public link of an owner\'s link whose key and o hold "~" (written now) or "-" (written before)', () => {
+  const key = 'K~_'.repeat(14) + 'K', o = 'o~'.repeat(21) + 'o';
+  expect(publicLink(`${AT}abcdefg#${key}.${o}`)).toBe(`${AT}abcdefg#${key}`);
+  expect(publicLink(`${AT}abcdefg#${key.replace(/~/g, '-')}.${o.replace(/~/g, '-')}`)).toBe(`${AT}abcdefg#${key.replace(/~/g, '-')}`);
 });

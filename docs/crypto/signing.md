@@ -14,7 +14,8 @@ test key, so the kit is checked against the RFC as well as against itself.
 (`generateKey` throws). Its public key is 65 bytes (`04 | x | y`, uncompressed) and its signature 64 bytes
 (`r | s`, WebCrypto's form, not DER), different every time it signs.
 
-A public key travels as base64url (no padding) of its raw form, 43 or 87 characters. The verifier tells the
+A public key travels as base64url (no padding, `~` for 62 where RFC 4648 has `-`, and `-` read too; see
+password.md) of its raw form, 43 or 87 characters. The verifier tells the
 two apart by the raw key's length (32 or 65 bytes) and nothing else. A browser without Ed25519 cannot check
 an Ed25519 signature, and says so: the state reads "Cannot check here", grey, with the reason ("This browser
 cannot check this kind of signature"), never "does not match". Whether the browser has Ed25519 is asked of

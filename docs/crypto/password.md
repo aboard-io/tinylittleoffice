@@ -39,6 +39,10 @@ and its text form, which is what the link carries as `#/v1/<app>/<payload>`:
 "E" + base64url(those bytes), no padding
 ```
 
+Base64url throughout Tiny Little Office is RFC 4648's URL alphabet with `~` for 62 where the RFC has `-`
+(`src/kit/codec.ts`): a hyphen is a place a line may break, so a long link full of them was cut when pasted.
+Reading takes `-` as 62 too; a link made before is the same bytes.
+
 So a sealed payload is `E` and at least 60 characters (16 + 12 + 1 + 16 = 45 bytes for an empty document).
 Anything shorter, or not base64url, is not a sealed payload.
 
