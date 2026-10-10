@@ -112,7 +112,7 @@ document.addEventListener('keydown',function(ev){var k=ev.key.toLowerCase(),mod=
 if(mod&&(k==='z'||k==='y')){ev.preventDefault();send({do:k==='y'||ev.shiftKey?'redo':'undo'});return;}
 if(mod&&k==='a'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName))ev.preventDefault();});
 window.addEventListener('scroll',later,{passive:true});window.addEventListener('resize',later);
-[].forEach.call(document.querySelectorAll('body,[data-o],[data-sec]'),function(e){e.addEventListener('click',function(){});});
+[].forEach.call(document.querySelectorAll('html,body,[data-o],[data-sec]'),function(e){e.addEventListener('click',function(){});});
 window.addEventListener('hashchange',function(){send({do:'page',id:decodeURIComponent(location.hash.slice(1))});});
 if(D.y)window.scrollTo(0,D.y);mark(held);var e0=el(held);if(e0&&D.show)e0.scrollIntoView({block:'nearest'});
 send({do:'ready'});where();

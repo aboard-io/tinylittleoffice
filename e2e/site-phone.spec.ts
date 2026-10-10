@@ -1,9 +1,10 @@
 /**
  * Website on a phone, in WebKit at 390 by 844 with a finger: Insert ▾ is in reach and its Paragraph opens a
  * form at the top of the screen, inside it, its words typed and Done; the new paragraph is in hand with its bar
- * (Edit, Move up, Move down, Duplicate, Delete) inside the screen, 44px a button; a finger on it opens its form,
- * its type 16px so nothing zooms; Delete takes it away and Undo brings it back in
- * hand; Preview and Edit by a finger; the things in the page never zoom on a double tap. Run on its own:
+ * (Edit, Move up, Move down, Duplicate, Delete) inside the screen, 44px a button; one finger on a thing opens its
+ * form at once, its type 16px so nothing zooms, the thing's bar under the form and a tap away; Close leaves the
+ * thing in hand, a tap on the empty page lets it go; Delete takes it away and Undo brings it back in hand;
+ * Preview and Edit by a finger; the things in the page never zoom on a double tap. Run on its own:
  *
  *   PW_PORT=4404 npx playwright test e2e/site-phone.spec.ts --project=phone --workers=1
  */
@@ -45,7 +46,33 @@ test('website: on a phone, Insert, a form inside the screen, a thing in hand wit
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   for (const b of await bar.getByRole('button').all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  // A finger on the thing in hand: its form, inside the screen, nothing zoomed (WebKit counts the tap as a click where the thing listens itself).
+  // One finger on a thing not in hand: its form at once, inside the screen, nothing zoomed (WebKit counts the tap as a
+  // click where the thing listens itself), the thing's bar under the form, inside the screen; Close leaves it in hand.
+  const heading = site.getByRole('heading', { name: 'My site', level: 1 });
+  await heading.tap();
+  await expect(form).toBeVisible();
+  await fits();
+  const lent = form.locator('to-context.site-context .to-context');
+  await expect(lent).toBeVisible();
+  const [fr, lr] = [(await form.boundingBox())!, (await lent.boundingBox())!];
+  expect(lr.y).toBeGreaterThanOrEqual(fr.y + fr.height - 1);
+  expect(lr.x + lr.width).toBeLessThanOrEqual(390);
+  await form.getByRole('button', { name: 'Close' }).tap();
+  await expect(form).toHaveCount(0);
+  await expect(bar).toBeVisible();
+  // A tap on the page's empty room lets go.
+  const fb = (await page.locator('to-site-editor iframe.site-frame').boundingBox())!;
+  const room = await site.locator('body').evaluate((body) => {
+    for (let y = innerHeight - 6; y > 0; y -= 8) {
+      const at = body.ownerDocument.elementFromPoint(12, y);
+      if (at && !at.closest('[data-o], a, button, nav')) return y;
+    }
+    return -1;
+  });
+  expect(room).toBeGreaterThan(0);
+  await page.touchscreen.tap(fb.x + 12, fb.y + room);
+  await expect(bar).toBeHidden();
+  // The paragraph by one finger: its form, rich words at 16px; Close, and it is in hand.
   await words.tap();
   await expect(form).toBeVisible();
   await fits();
