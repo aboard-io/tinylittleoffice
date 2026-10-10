@@ -977,6 +977,22 @@ export default {
   'What to buy, ticked off in the shop.': 'What to buy, ticked off in the shop.',
   'What to take and what to do before you go.': 'What to take and what to do before you go.',
   'empty task': 'empty task',
+  // Its templates: the everyday lists, then a project's and an occasion's.
+  'A new starter\'s first two weeks, from the door code to the first one-to-one.': 'A new starter\'s first two weeks, from the door code to the first one-to-one.',
+  'A year in the garden from autumn on, each job dated to its season.': 'A year in the garden from autumn on, each job dated to its season.',
+  'Books to read, the favourites starred and the book-club one dated.': 'Books to read, the favourites starred and the book-club one dated.',
+  'Daily routine': 'Daily routine',
+  'Everything between the feature freeze and launch day, in the order it falls due.': 'Everything between the feature freeze and launch day, in the order it falls due.',
+  'From notice to the keys handed back: the van, the post, the cleaning and the deposit.': 'From notice to the keys handed back: the van, the post, the cleaning and the deposit.',
+  'Garden by season': 'Garden by season',
+  'Groceries by aisle': 'Groceries by aisle',
+  'Moving out': 'Moving out',
+  'Onboarding': 'Onboarding',
+  'Project launch': 'Project launch',
+  'The habits that hold a day together, from the first glass of water to the phone put away.': 'The habits that hold a day together, from the first glass of water to the phone put away.',
+  'The last months before a December wedding, the deadlines starred.': 'The last months before a December wedding, the deadlines starred.',
+  'The weekly shop in the order of the aisles, so nothing means walking back.': 'The weekly shop in the order of the aisles, so nothing means walking back.',
+  'Wedding checklist': 'Wedding checklist',
   // ---- the Presentation Builder ----
   // Its templates: the occasions and a second of each printed format.
   'A choir\'s winter concert: the welcome, both halves, notes on the music, the singers, and the words to sing along.': 'A choir\'s winter concert: the welcome, both halves, notes on the music, the singers, and the words to sing along.',
