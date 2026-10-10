@@ -417,13 +417,16 @@ Templates: Lift off, Bouncing ball, Loading spinner, Title card, Birthday card, 
 A project:
 
 ```
+---
+title: The Harbour Studio website
+---
 ## To do {color=b}
 
 - Write the words for the **About** page
-  - [x] Interview Mara
-  - [ ] First draft
+  - [x] Interview Mara about the first ten years
+  - [ ] First draft, about 400 words
   - [ ] Dee reads it
-- Photograph the studio
+- Photograph the studio on a bright morning
 - Set up the contact form
 
 ## Doing {limit=2 color=g}
@@ -431,18 +434,22 @@ A project:
 - Build the home page
   - [x] Layout
   - [x] Header and footer
-  - [ ] The gallery
-- Choose the typeface
+  - [ ] The gallery of twelve projects
+- Choose the typeface: a serif or a grotesque
+
+## Waiting on {color=y}
+
+- Pellow & Sons to send the logo as a vector file
 
 ## Done {color=p}
 
 - Pick the domain name
-- Sign the contract
+- Sign off the budget: £4,800, live by Monday 2 November
 ```
 
-As a link: <https://tinylittleoffice.com/board/#doc=%23%23+To+do+%7Bcolor%3Db%7D%0A%0A-+Write+the+words+for+the+%2A%2AAbout%2A%2A+page%0A++-+%5Bx%5D+Interview+Mara%0A++-+%5B+%5D+First+draft%0A++-+%5B+%5D+Dee+reads+it%0A-+Photograph+the+studio%0A-+Set+up+the+contact+form%0A%0A%23%23+Doing+%7Blimit%3D2+color%3Dg%7D%0A%0A-+Build+the+home+page%0A++-+%5Bx%5D+Layout%0A++-+%5Bx%5D+Header+and+footer%0A++-+%5B+%5D+The+gallery%0A-+Choose+the+typeface%0A%0A%23%23+Done+%7Bcolor%3Dp%7D%0A%0A-+Pick+the+domain+name%0A-+Sign+the+contract>
+As a link: <https://tinylittleoffice.com/board/#doc=---%0Atitle%3A+The+Harbour+Studio+website%0A---%0A%23%23+To+do+%7Bcolor%3Db%7D%0A%0A-+Write+the+words+for+the+%2A%2AAbout%2A%2A+page%0A++-+%5Bx%5D+Interview+Mara+about+the+first+ten+years%0A++-+%5B+%5D+First+draft%2C+about+400+words%0A++-+%5B+%5D+Dee+reads+it%0A-+Photograph+the+studio+on+a+bright+morning%0A-+Set+up+the+contact+form%0A%0A%23%23+Doing+%7Blimit%3D2+color%3Dg%7D%0A%0A-+Build+the+home+page%0A++-+%5Bx%5D+Layout%0A++-+%5Bx%5D+Header+and+footer%0A++-+%5B+%5D+The+gallery+of+twelve+projects%0A-+Choose+the+typeface%3A+a+serif+or+a+grotesque%0A%0A%23%23+Waiting+on+%7Bcolor%3Dy%7D%0A%0A-+Pellow+%26+Sons+to+send+the+logo+as+a+vector+file%0A%0A%23%23+Done+%7Bcolor%3Dp%7D%0A%0A-+Pick+the+domain+name%0A-+Sign+off+the+budget%3A+%C2%A34%2C800%2C+live+by+Monday+2+November>
 
-Templates: A project, Hiring, Content. Its own files: `.csv`.
+Templates: A project, A week, Moving house, Hiring, Content calendar, Editorial board, Sales pipeline, Bug triage, Class projects, Mutual aid. Its own files: `.csv`.
 
 ### todo: a to-do list
 
