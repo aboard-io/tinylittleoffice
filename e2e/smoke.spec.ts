@@ -20,7 +20,7 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   await page.goto('/');
-  await expect(page.locator('.to-app b').first()).toHaveText('Word Processor');
+  await expect(page.locator('.to-app-name').first()).toHaveText('Word Processor');
   expect(await overflow(page)).toBeLessThanOrEqual(0);
   await shot(page, 'home');
   expect((await axe(page)).violations).toEqual([]);

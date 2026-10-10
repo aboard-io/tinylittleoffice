@@ -17,9 +17,9 @@ test('an in-memory Spanish dictionary takes over the shell when chosen', async (
   expect(document.documentElement.dir).toBe('ltr');
   await until(() => shell.querySelector<HTMLInputElement>('.to-find')!.placeholder === 'Buscar app, plantilla');
   expect(shell.querySelector('.to-burger')!.getAttribute('aria-label')).toBe('Menú');
-  expect(shell.querySelector('.to-app b')!.textContent).toBe('Procesador de textos');
+  expect(shell.querySelector('.to-app-name')!.textContent).toBe('Procesador de textos');
   expect(shell.querySelector('.to-templates-btn')!.getAttribute('aria-label')).toBe('Plantillas de Procesador de textos');
   await setLanguage(null);
   await until(() => document.documentElement.lang === 'en');
-  expect(shell.querySelector('.to-app b')!.textContent).toBe('Word Processor');
+  expect(shell.querySelector('.to-app-name')!.textContent).toBe('Word Processor');
 });

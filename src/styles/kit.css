@@ -1137,8 +1137,8 @@
     /* The menu button is fixed, out of the flow: the words take its height and sit on its bottom edge. */
     height: var(--to-touch);
     align-items: flex-end;
-    padding-bottom: 2px;
-    font: 300 30px / 1 var(--to-font-serif);
+    padding-bottom: 0.125em;
+    font: 300 calc(1.875 * var(--to-scale)) / 1 var(--to-font-serif);
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
