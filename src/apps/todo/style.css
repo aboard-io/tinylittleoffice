@@ -8,9 +8,9 @@
     list-style: none;
     margin: 0;
     padding: 0;
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;
   }

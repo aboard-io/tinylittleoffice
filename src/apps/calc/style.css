@@ -20,8 +20,6 @@
     display: block;
     width: 100%;
     height: auto;
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
   }
   .calc-paper {
     grid-area: paper;
@@ -41,8 +39,6 @@
     margin: 0;
     padding: 0;
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
   }
   .calc-row {
     display: flex;
@@ -213,6 +209,14 @@
     outline-offset: 1px;
   }
 
+  /* One column: the graph and the tape run to the screen's edges on a phone (no frame round either, at any width). */
+  @media (max-width: 759px) {
+    .calc-graph,
+    .calc-tape {
+      margin-left: var(--to-bleed-l);
+      margin-right: var(--to-bleed-r);
+    }
+  }
   @media (min-width: 760px) {
     .calc {
       grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);

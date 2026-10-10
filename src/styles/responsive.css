@@ -1,6 +1,13 @@
 /* What changes with the width and the pointer: phones first, in WebKit at 390px. Fingers get 44px, type
    stays at 16px in every box (an iPhone zooms in on anything smaller), and the bar keeps one row. */
 @layer responsive {
+  /* On a phone, or under a finger, a document's frame runs to the screen's edges (kit.css, .to-main). */
+  @media (max-width: 640px), (pointer: coarse) {
+    .to-main {
+      --to-bleed-l: calc(-1 * var(--to-inset-l));
+      --to-bleed-r: calc(-1 * var(--to-inset-r));
+    }
+  }
   @media (max-width: 760px) {
     :root {
       --to-gutter: 12px;

@@ -17,9 +17,10 @@
   }
   .dg-wrap {
     position: relative;
-    padding: 12px;
-    background: var(--to-surface-2);
-    border-radius: var(--to-radius);
+    /* The picture is the page: no frame round it, to the screen's edges on a phone. */
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
+    background: var(--to-surface);
     overflow: auto;
     max-height: calc(100dvh - var(--to-header-h) - 150px);
     min-height: 220px;
@@ -37,8 +38,6 @@
     height: auto;
     margin: 0 auto;
     background: var(--to-surface);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
     /* Pans and pinches (the page zooms), never a double-tap zoom; a thing takes the finger only for its drag. */
     touch-action: manipulation;
     user-select: none;

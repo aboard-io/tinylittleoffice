@@ -9,21 +9,25 @@
     min-height: 0;
   }
 
-  /* The paper: as wide as its page at 96 px to the inch, the margin an inch, less on a phone. */
+  /* The paper is the page, not a card on it (Paul, 2026-10-10): its colour runs the column's width, to the screen's
+     edges on a phone, and the words keep the measure of a page at 96 px to the inch with its inch of margin (less
+     where the screen is narrower than the page, 16px on a phone). */
   .write-page {
     touch-action: manipulation;
     --write-w: 816px;
     --write-m: 96px;
-    width: 100%;
-    max-width: var(--write-w);
-    margin: 0 auto;
-    padding: clamp(20px, 6vw, var(--write-m)) clamp(16px, 6vw, var(--write-m));
+    --write-mx: clamp(16px, 6vw, var(--write-m));
+    margin-left: var(--to-bleed-l);
+    margin-right: var(--to-bleed-r);
+    padding: clamp(20px, 6vw, var(--write-m)) max(var(--write-mx), calc((100% - var(--write-w)) / 2 + var(--write-m)));
     color: var(--to-paper-ink);
     background: var(--to-paper);
-    border: 1px solid var(--to-border);
-    border-radius: var(--to-radius);
-    box-shadow: var(--to-shadow);
     font-family: var(--to-font);
+  }
+  @media (max-width: 640px) {
+    .write-page {
+      --write-mx: 16px;
+    }
   }
   .write-page[data-paper='a4'] {
     --write-w: 794px;
@@ -34,10 +38,6 @@
     font-size: 17px;
     line-height: 1.6;
     caret-color: var(--to-paper-accent);
-  }
-  .write-page:focus-within {
-    outline: 2px solid var(--to-accent);
-    outline-offset: 1px;
   }
   .write-page .tx h1 {
     margin-top: 0.6em;

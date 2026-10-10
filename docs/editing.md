@@ -37,6 +37,8 @@ Rules:
 - An app's single-letter tool keys (the Drawing Tool's V R E D L A T K P F) work only when the canvas has the focus and no words are being edited; they never fire inside a text box, an input or a popover.
 - Typing with a thing selected (not words) does nothing destructive: it does not replace the thing. (The exception is a grid cell, which behaves as a spreadsheet does: typing replaces the cell's content.)
 - Every destructive key path has an undo, and the undo puts the selection back where it was.
+- **The title is edited wide, where it is drawn:** a tap or focus on the header's title opens a second row of the header with the field across it at 20px (no dialog, no popover), a new document's automatic name chosen whole so typing replaces it; Enter keeps what was typed, Escape puts back what was there, and a tap elsewhere closes it.
+- **The header goes up with the page; the menu button and the app's bar stay:** the menu button is fixed at the top left (on a card of its own once the header has gone), and the app's bar sticks to the top of what can be seen, moving over to make room for the button, so its tools are always a tap away however long the document.
 
 ## 2. Words (`<to-text>`, everywhere words are typed)
 

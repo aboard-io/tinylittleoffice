@@ -2,7 +2,10 @@
  * <to-shell>: owns the URL. Routes "#/v1/<app>/<payload>" to an app, hands its editor the document's text,
  * and writes every change back into the link with history.replaceState, so the address bar is always the
  * document and nothing is ever sent anywhere. The header holds the title, the room left in the link,
- * Share and Download; the hamburger opens <to-drawer>; the home page is <to-home>. A Display Link ("?d",
+ * Share and Download; the hamburger opens <to-drawer>; the home page is <to-home>. The header goes up with the
+ * page; the menu button stays at the top left, fixed to the screen, and the app's bar sticks at the top once the
+ * header has gone, moving over to make room for it (`scrolled`). A tap on the title opens a second row of the
+ * header with the field across it, to type a name at a size that can be read. A Display Link ("?d",
  * kit/route.ts) shows the document's pages instead, to read or print, with an Edit button.
  *
  * Share opens one dialog (Paul, 2026-10-09: "The short link function modal needs to be redesigned"): the
@@ -99,7 +102,7 @@ function siteDir(): string {
 }
 
 export class ToShell extends LitElement {
-  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { state: true }, sealed: { state: true }, locker: { state: true }, signature: { state: true }, wrong: { state: true }, busyLock: { state: true }, signing: { state: true }, comparing: { state: true }, embed: { state: true }, askMastodon: { state: true }, other: { state: true }, newer: { state: true } };
+  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { type: Boolean, reflect: true }, titling: { state: true }, sealed: { state: true }, locker: { state: true }, signature: { state: true }, wrong: { state: true }, busyLock: { state: true }, signing: { state: true }, comparing: { state: true }, embed: { state: true }, askMastodon: { state: true }, other: { state: true }, newer: { state: true } };
   declare app: string | null;
   declare doc: Doc;
   /** The editor element's tag, once its chunk has arrived. */
@@ -126,8 +129,13 @@ export class ToShell extends LitElement {
   declare expires: number;
   /** Arrived by a short link this visit, its banner not closed. */
   declare arrived: boolean;
-  /** The page scrolled past the top: the banner goes small. */
+  /**
+   * The header has gone up past the top of what can be seen: the bar is stuck there with the menu button on its left
+   * (on a card of its own), and the banner goes small. An attribute, so styles alone move things.
+   */
   declare scrolled: boolean;
+  /** The title is being edited: the header opens a second row with the field across it. */
+  declare titling: boolean;
   /** The sealed payload waiting for its password; '' once opened, or when the link has none. */
   declare sealed: string;
   /** The password's key while this document has one: every change is sealed with it. Memory only. */
@@ -191,6 +199,7 @@ export class ToShell extends LitElement {
     this.expires = 0;
     this.arrived = false;
     this.scrolled = false;
+    this.titling = false;
     this.sealed = '';
     this.locker = null;
     this.signature = { state: 'none' };
@@ -212,6 +221,8 @@ export class ToShell extends LitElement {
     window.addEventListener('keydown', this.onKey);
     window.addEventListener('pagehide', this.flushKeep);
     window.addEventListener('scroll', this.onScroll, { passive: true });
+    window.visualViewport?.addEventListener('scroll', this.onScroll);
+    window.visualViewport?.addEventListener('resize', this.onScroll);
     window.addEventListener('dragover', this.onDragOver);
     window.addEventListener('drop', this.onDrop);
     this.addEventListener('to-keys', this.showKeys);
@@ -230,6 +241,8 @@ export class ToShell extends LitElement {
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pagehide', this.flushKeep);
     window.removeEventListener('scroll', this.onScroll);
+    window.visualViewport?.removeEventListener('scroll', this.onScroll);
+    window.visualViewport?.removeEventListener('resize', this.onScroll);
     window.removeEventListener('dragover', this.onDragOver);
     window.removeEventListener('drop', this.onDrop);
     this.removeEventListener('to-keys', this.showKeys);
@@ -427,6 +440,8 @@ export class ToShell extends LitElement {
 
   /** Once the editor is up, the focus goes where a person starts, or a show link starts presenting (an app with nothing to present ignores it). */
   protected updated() {
+    // A page drawn anew (another app, the home page) may have the header somewhere else.
+    this.onScroll();
     const editor = this.editor as (Editor & { present?: (fromLink?: boolean) => void }) | null;
     if (this.focusSoon && editor && !this.sealed) {
       this.focusSoon = false;
@@ -647,9 +662,52 @@ export class ToShell extends LitElement {
     section?.scrollIntoView({ block: 'start' });
     section?.querySelector<HTMLInputElement>('input[type=radio]:checked')?.focus({ preventScroll: true });
   }
+  /**
+   * Where the header is, once a frame: gone when its bottom is at or above the top of what can be seen. That top is
+   * the visual viewport's (--to-vv-top): when a phone's keyboard comes up, iOS slides the page up under the screen
+   * rather than making it shorter, and what is fixed or stuck to the top has to follow. The app's bar is measured
+   * then too (--to-stuck-h), for the opaque strip the screen's width behind it once it is stuck.
+   */
+  private scrollFrame = 0;
   private onScroll = () => {
-    const past = window.scrollY > 24;
-    if (past !== this.scrolled) this.scrolled = past;
+    if (this.scrollFrame) return;
+    this.scrollFrame = requestAnimationFrame(() => {
+      this.scrollFrame = 0;
+      const top = Math.max(0, window.visualViewport?.offsetTop ?? 0);
+      this.style.setProperty('--to-vv-top', `${top}px`);
+      const bar = this.querySelector<HTMLElement>('.to-editor to-bar');
+      this.style.setProperty('--to-stuck-h', `${bar?.offsetHeight ?? 0}px`);
+      const header = this.querySelector('.to-header')?.getBoundingClientRect();
+      const past = !!header?.height && header.bottom <= top;
+      if (past !== this.scrolled) this.scrolled = past;
+    });
+  };
+  /** The title tapped or focused: the wide row opens, a new document's own name chosen whole so typing replaces it. */
+  private openTitle = (e: Event) => {
+    const field = e.target as HTMLInputElement;
+    this.titleWas = field.value;
+    this.titling = true;
+    if (!this.fresh || this.def?.title(this.doc)) return;
+    field.select();
+    // The row drawn, and the tap or click that opened it over, put the caret where it landed (WebKit does so after the
+    // focus): the name is chosen whole again then, unless something else has been done to it in between.
+    const again = () => setTimeout(() => document.activeElement === field && field.value === this.fresh && field.select());
+    document.addEventListener('pointerup', again, { once: true, capture: true });
+    void this.updateComplete.then(again);
+  };
+  private titleWas = '';
+  /** Enter keeps what was typed, Escape puts back what was there; either closes the row (and so does a tap elsewhere). */
+  private titleKey = (e: KeyboardEvent) => {
+    const field = e.target as HTMLInputElement;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      field.value = this.titleWas;
+      field.blur();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      field.blur();
+    }
   };
   /** The lifetime chosen, remembered. */
   private setTtl(seconds: number) {
@@ -751,11 +809,11 @@ export class ToShell extends LitElement {
     const pct = Math.min(1, this.payloadLength / Math.max(1, available));
     const r = 9;
     const c = 2 * Math.PI * r;
-    return html`<header class="to-header" aria-label="Tiny Little Office">
+    return html`<header class="to-header ${this.titling ? 'titling' : ''}" aria-label="Tiny Little Office">
       ${burger}
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
-      <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" .value=${title || this.fresh} @focus=${(e: Event) => this.fresh && !title && (e.target as HTMLInputElement).select()} @change=${(e: Event) => this.retitle(def, (e.target as HTMLInputElement).value.trim())} />
+      <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" enterkeyhint="done" .value=${title || this.fresh} @focus=${this.openTitle} @keydown=${this.titleKey} @blur=${() => (this.titling = false)} @change=${(e: Event) => this.retitle(def, (e.target as HTMLInputElement).value.trim())} />
       ${this.renderTrust()}
       <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.openShare()}>
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
