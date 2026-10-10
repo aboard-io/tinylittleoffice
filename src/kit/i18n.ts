@@ -83,9 +83,17 @@ const plural = (code: string, n: number, forms: string[]): string => {
   return form.replaceAll('#', format(n));
 };
 
+/**
+ * In development only: the keys asked for in the language in use and not found there, so English showed
+ * through. A test clears it, draws, and reads it; a build drops the recording.
+ */
+export const missed = new Set<string>();
+
 /** The string in the language in use, its placeholders filled. */
 export function t(text: string, vars: Record<string, string | number> = {}): string {
-  const s = (current === 'en' ? undefined : dicts.get(current)?.[text]) ?? text;
+  const found = current === 'en' ? undefined : dicts.get(current)?.[text];
+  if (found === undefined && current !== 'en' && import.meta.env?.DEV) missed.add(text);
+  const s = found ?? text;
   return s.replace(/\{(\w+)(?:\|([^}]*))?\}/g, (whole, name: string, forms?: string) => {
     const v = vars[name];
     if (v === undefined) return whole;

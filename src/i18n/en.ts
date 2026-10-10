@@ -5,7 +5,11 @@
  * {n|one slide|# slides} give the forms your language has, in its order (zero, one, two, few, many, other),
  * "#" standing for the number. One string per line, in these sections; a comment only where the English
  * is ambiguous. `npm run i18n:check` reports anything missing or mismatched; `npm run i18n:extract` lands
- * new keys at the end, under a "sort me" heading, for a hand to place.
+ * new keys at the end, under a "sort me" heading, for a hand to place (take the heading out of a copy);
+ * `npm run i18n:gaps -- <code>` prints the lines a language lacks, in English, to translate and paste in.
+ *
+ * Length: a string on the bar or in a menu may be at most a third longer than the English, a button's label
+ * the same length or shorter. Everything else is free.
  */
 import type { Strings } from '../kit/i18n.ts';
 

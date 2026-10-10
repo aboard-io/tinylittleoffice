@@ -2218,7 +2218,10 @@
     font-size: 13px;
   }
 
-  /* ---- the size of everything, in the menu ---- */
+  /* ---- the size of everything, in the menu: the steps go under a label too long to sit beside them ---- */
+  .to-size {
+    flex-wrap: wrap;
+  }
   .to-size-step {
     display: inline-flex;
     align-items: center;
