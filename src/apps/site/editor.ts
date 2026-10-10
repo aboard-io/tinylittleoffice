@@ -495,7 +495,7 @@ export class ToSiteEditor extends DocElement<Site> {
       }
       case 'icon': {
         const { chooseIcon } = await import('../../kit/icons-picker.ts');
-        const name = await this.asked(chooseIcon({ current: b?.k === 'p' ? (b.runs[0]?.ic ?? '') : '' }));
+        const name = await this.asked(chooseIcon({ emoji: false, current: b?.k === 'p' ? (b.runs[0]?.ic ?? '') : '' }));
         if (name) ops = replace({ k: 'p', runs: [{ t: '', ic: name }] });
         break;
       }
@@ -556,7 +556,7 @@ export class ToSiteEditor extends DocElement<Site> {
       }
       case 'icon': {
         const { chooseIcon } = await import('../../kit/icons-picker.ts');
-        const name = await this.asked(chooseIcon());
+        const name = await this.asked(chooseIcon({ emoji: false }));
         if (name) block = { k: 'p', runs: [{ t: '', ic: name }] };
         break;
       }

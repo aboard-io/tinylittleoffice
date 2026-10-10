@@ -1,9 +1,14 @@
 /**
  * Icons: Lucide's, as inline SVG. UI is the set the kit and the bars reach for; an app's own icon is a
- * Lucide node too (see AppDef.icon). LIBRARY is the starter set a document may name (":rocket Launch" in a
- * drawing or on a slide), by short name, drawn under node as well as in a browser; the rest of Lucide
- * joins it from the lazy chunk (icons-picker.ts) under Lucide's own kebab-case names. (A dependency, where
- * native has nothing: there is no icon API.)
+ * Lucide node too (see AppDef.icon). (A dependency, where native has nothing: there is no icon API.)
+ *
+ * A document may name any Lucide icon; the starter set draws at once, the rest after one lazy load.
+ * LIBRARY is the starter set (":rocket Launch" in a drawing, ":rocket:" in words), by short name, drawn
+ * under node as well as in a browser; the rest of Lucide joins it from one lazy chunk (icons-full.ts, which
+ * the picker brings too) under Lucide's own kebab-case names. loadIcons() fetches that chunk once;
+ * onIcons() tells whoever drew a name it did not know yet (<to-text> draws again); ensureIcons(names) is
+ * what a caller awaits before drawing a view or an export that names an icon the starter set lacks
+ * (iconNames(doc) lists what a document names). A view itself stays synchronous.
  */
 import { svg, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -67,6 +72,53 @@ export function addIcons(more: Record<string, IconNode>): string[] {
   }
   return added;
 }
+
+/* ---------- the rest of Lucide, once ---------- */
+
+let full: Promise<void> | null = null;
+let joined = false;
+const listeners = new Set<() => void>();
+
+/** Called by icons-full.ts once the whole of Lucide has joined LIBRARY: everyone waiting draws again. */
+export function fullJoined() {
+  if (joined) return;
+  joined = true;
+  for (const f of [...listeners]) f();
+}
+/** Whether the whole of Lucide has joined (a name unknown now is unknown for good). */
+export const iconsComplete = () => joined;
+/** The whole of Lucide, loaded once (a lazy chunk); resolves when it has joined, never rejects (offline, the names stay names). */
+export function loadIcons(): Promise<void> {
+  if (joined) return Promise.resolve();
+  return (full ??= import('./icons-full.ts').then(
+    () => fullJoined(),
+    () => void (full = null),
+  ));
+}
+/** Told once the whole of Lucide has joined; returns the way to stop listening. */
+export function onIcons(f: () => void): () => void {
+  listeners.add(f);
+  return () => void listeners.delete(f);
+}
+/** Every name known, loading the rest of Lucide first when one is not: resolves at once when they all are. */
+export function ensureIcons(names: Iterable<string>): Promise<void> {
+  if (joined) return Promise.resolve();
+  for (const n of names) if (!(n in LIBRARY)) return loadIcons();
+  return Promise.resolve();
+}
+/**
+ * The icon names a document's text holds, each once: ":name:" in words, ":name" at the start of a label (a
+ * drawing's shape). A colon after a letter or digit ("10:30", "a:b") is not one. Generous on purpose: a word
+ * read as a name only costs a lazy load.
+ */
+export function iconNames(doc: string): string[] {
+  const out = new Set<string>();
+  for (const m of doc.matchAll(/(?<![A-Za-z0-9]):([a-z][a-z0-9-]*)(?=:|\s|$)/gm)) out.add(m[1]);
+  return [...out];
+}
+
+/** Whether what the picker gave is an icon's name ("car-front") rather than an emoji's character. */
+export const isIconName = (s: string): boolean => /^[a-z][a-z0-9-]*$/.test(s);
 
 /** The icon a document names, or undefined while nothing goes by that name. */
 export const iconNamed = (name: string): IconNode | undefined => LIBRARY[name];

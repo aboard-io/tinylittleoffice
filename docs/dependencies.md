@@ -46,6 +46,16 @@ vendored: every byte comes from npm through the committed lockfile.
 | `tiny-emitter` | 2.1.0 | MIT | `mathjs` | 678 B |
 | `typed-function` | 4.2.2 | MIT | `mathjs` | 19.3 KB |
 
+## Data, not packages
+
+The icon picker's Emoji set (`src/kit/emoji-data.ts`: every base emoji's character, name, keywords and
+group) is data, not code: the browser lists no emoji by name, and the characters themselves are drawn by the
+system's own font. It is written by `npm run emoji` (`scripts/emoji.ts`) from Unicode's
+[emoji-test.txt](https://unicode.org/Public/17.0.0/emoji/emoji-test.txt) (which emoji are fully qualified, and their groups) and CLDR's English
+[annotations](https://cdn.jsdelivr.net/npm/cldr-annotations-full@48.2.0/annotations/en/annotations.json) and [derived annotations](https://cdn.jsdelivr.net/npm/cldr-annotations-derived-full@48.2.0/annotationsDerived/en/annotations.json) (names and
+keywords), at those pinned versions, under the Unicode licence (Unicode-3.0), and checked in. It loads only with
+the picker; neither source is a dependency.
+
 ## For building and testing
 
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile

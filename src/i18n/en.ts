@@ -617,6 +617,21 @@ export default {
   'No icons match “{q}”.': 'No icons match “{q}”.',
   'Search by name or by what it means (“money”, “weather”, “ai”) to find any of {n} icons.': 'Search by name or by what it means (“money”, “weather”, “ai”) to find any of {n} icons.',
   'No icon': 'No icon',
+  'Icon or emoji': 'Icon or emoji',
+  'Search icons and emoji': 'Search icons and emoji',
+  'Icons or emoji': 'Icons or emoji',
+  'Emoji': 'Emoji',
+  'No icons or emoji match “{q}”.': 'No icons or emoji match “{q}”.',
+  // Unicode's emoji groups, as the picker's Emoji set names them.
+  'Smileys & Emotion': 'Smileys & Emotion',
+  'People & Body': 'People & Body',
+  'Animals & Nature': 'Animals & Nature',
+  'Food & Drink': 'Food & Drink',
+  'Travel & Places': 'Travel & Places',
+  'Activities': 'Activities',
+  'Objects': 'Objects',
+  'Symbols': 'Symbols',
+  'Flags': 'Flags',
 
   // ---- the Drawing Tool ----
   // The group heading the Drawing Tool sits under on the home page: Design. 'Draw' is the Animator's mode for drawing.

@@ -44,7 +44,8 @@ test('search by name, prefix and keyword', () => {
 
 test('the lazy chunk brings all of Lucide, found by name and tag, in categories', async () => {
   // (Under node the chunk's dialog is never opened; its import alone joins the icons.)
-  const { allIcons } = await import('../src/kit/icons-picker.ts');
+  await import('../src/kit/icons-picker.ts');
+  const { allIcons } = await import('../src/kit/icons-full.ts');
   expect(allIcons.length).toBeGreaterThan(1500);
   expect(iconCount()).toBeGreaterThan(1500);
   expect(iconNamed('accessibility')).toBeDefined();

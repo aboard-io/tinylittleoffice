@@ -56,7 +56,7 @@ import { copyData, pasteFrom } from './clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
 import { lookup } from './app.ts';
 import { t } from './i18n.ts';
-import { UI, type IconNode } from './icons.ts';
+import { UI, icon, iconNamed, iconsComplete, isIconName, loadIcons, onIcons, type IconNode } from './icons.ts';
 import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
@@ -187,13 +187,16 @@ export class ToText extends LitElement {
     super.connectedCallback();
     document.addEventListener('selectionchange', this.onSelectionChange);
     this.offPictures = onPictures(() => this.requestUpdate());
+    this.offIcons = onIcons(() => this.requestUpdate());
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('selectionchange', this.onSelectionChange);
     this.offPictures();
+    this.offIcons();
   }
   private offPictures = () => {};
+  private offIcons = () => {};
 
   /** The blocks as drawn: an editor with none shows one empty paragraph to type into. */
   get model(): Block[] {
@@ -687,7 +690,7 @@ export class ToText extends LitElement {
     return { sel: { anchor: { block: pos.block, offset: hit.start }, focus: { block: pos.block, offset: hit.start + hit.run.t.length } }, href: hit.run.href };
   }
 
-  /** Do a thing: a mark, a kind of block, an insertion. Some take a word: the address for 'link', the name for 'icon', the ref for 'embed'. */
+  /** Do a thing: a mark, a kind of block, an insertion. Some take a word: the address for 'link', the name for 'icon' (or an emoji, put in as words), the ref for 'embed'. */
   exec(cmd: Command, arg?: string) {
     const model = this.model;
     const sel = this.current();
@@ -730,7 +733,8 @@ export class ToText extends LitElement {
         return void this.dispatchEvent(new CustomEvent<NoteAt>('text-note', { detail: { block: a.block, nth }, bubbles: true }));
       }
       case 'icon':
-        return arg ? go(insertRuns(model, sel, [{ t: '', ic: arg }])) : undefined;
+        // An icon's name is an icon; an emoji (the picker's other set) is a character, typed in like any other.
+        return arg ? go(insertRuns(model, sel, [isIconName(arg) ? { t: '', ic: arg } : { t: arg, ...this.fmt }])) : undefined;
       case 'date':
         return go(insertRuns(model, sel, [{ t: new Date().toLocaleDateString(document.documentElement.lang || undefined, { dateStyle: 'long' }), ...this.fmt }]));
       case 'title':
@@ -878,7 +882,12 @@ export class ToText extends LitElement {
   private renderRuns(runs: Run[], notes: () => number): unknown[] {
     if (!runs.length) return [html`<br />`];
     const out: unknown[] = runs.map((r) => {
-      if (r.ic) return html`<span class="ic" data-icon=${r.ic} data-atomic contenteditable="false" role="img" aria-label=${r.ic}></span>`;
+      if (r.ic) {
+        // The icon itself; a name outside the starter set brings the rest of Lucide (drawn again when it joins); a name nothing has stays its name, small.
+        const node = iconNamed(r.ic);
+        if (!node && !iconsComplete()) void loadIcons();
+        return html`<span class="ic ${node ? '' : 'ic-name'}" data-icon=${r.ic} data-atomic contenteditable="false" role="img" aria-label=${r.ic}>${node ? icon(node, 16) : r.ic}</span>`;
+      }
       if (r.fn !== undefined) {
         const n = notes();
         return html`<sup class="fn" data-fn=${r.fn} data-atomic contenteditable="false" tabindex="0" role="button" aria-label=${t('Footnote {n}', { n })}>${n}</sup>`;

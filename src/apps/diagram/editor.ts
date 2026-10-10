@@ -471,7 +471,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
 
   private async iconFor(hit: Hit) {
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
-    const name = await chooseIcon({ none: true });
+    const name = await chooseIcon({ emoji: false, none: true });
     if (name === null) return;
     this.change(withIcon(this.doc, hit, name), hit);
   }

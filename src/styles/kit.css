@@ -662,6 +662,15 @@
   .to-icon-btn:hover {
     background: var(--to-surface-2);
   }
+  /* An emoji is drawn by the system's own emoji font, never a web font. */
+  .to-emoji-btn {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    font-size: 24px;
+    line-height: 1;
+  }
+  .to-icons-sets {
+    margin-bottom: 4px;
+  }
   .to-icon-btn[aria-pressed='true'] {
     border-color: var(--to-accent);
     background: var(--to-accent-soft);

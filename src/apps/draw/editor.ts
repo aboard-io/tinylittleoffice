@@ -386,7 +386,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   private async pickIcon() {
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const s = this.selected;
-    const name = await chooseIcon({ current: s ? iconOf(s.text)[0] : undefined, none: !!s && !!iconOf(s.text)[0] && s.k !== 'i' });
+    const name = await chooseIcon({ emoji: false, current: s ? iconOf(s.text)[0] : undefined, none: !!s && !!iconOf(s.text)[0] && s.k !== 'i' });
     this.focusCanvas();
     if (name === null) return;
     const i = this.sel;
