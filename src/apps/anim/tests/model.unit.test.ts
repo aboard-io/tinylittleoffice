@@ -8,6 +8,7 @@ import def from '../def.ts';
 import draw from '../../draw/def.ts';
 import { appOf } from '../../../kit/apps.ts';
 import { readDrawing } from '../../draw/model.ts';
+import { iconNamed } from '../../../kit/icons.ts';
 
 const LIFT = '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
 const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n';
@@ -155,15 +156,30 @@ test('the definition: Draw hands its drawing over, and the hand-off is live now 
   expect(def.title('---\ntitle: Up\n---\n')).toBe('Up');
   expect(def.retitle('', 'Up')).toBe('---\ntitle: Up\n---\n');
   expect(def.exports!.map((e) => e.ext)).toEqual(['gif', 'svg']);
-  expect(templates().map((x) => x.id)).toEqual(['liftoff', 'bounce', 'green', 'sunrise']);
-  expect(templates()[0].doc).toBe(LIFT.replace('---\n', '---\n').replace('fps: 8\n', 'fps: 8\nalt: A rocket lifts off and flies up and away to the right, under the words Lift off.\n'));
+  expect(templates().map((x) => x.id)).toEqual(['liftoff', 'bounce', 'spinner', 'curtain', 'birthday', 'standup', 'green', 'flip', 'weather', 'countdown', 'flight', 'neon', 'sunrise']);
+  expect(templates()[0].doc).toBe(LIFT.replace('---\n', '---\ntitle: Lift off\n').replace('fps: 8\n', 'fps: 8\nalt: A rocket lifts off and flies up and away to the right, under the words Lift off.\n'));
   for (const tpl of templates()) {
     const v = readAnim(parse(tpl.doc));
     expect(v.shapes.length).toBeGreaterThan(1);
     expect(v.keys.some((k) => k.length > 1)).toBe(true);
     expect(v.alt).not.toBe('');
+    expect(def.title(tpl.doc)).not.toBe('');
+    expect([tpl.name, tpl.blurb].every((w) => w && !/lorem|todo/i.test(w))).toBe(true);
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
+    // The home page's preview is the first frame: something is on the stage then, and every icon named is one the library draws.
+    expect(def.view(tpl.doc, { small: true })[0].svg).toMatch(/<(text|ellipse|rect|polygon|path)/);
+    for (const s of v.shapes) if (s.k === 'i') expect(iconNamed(s.text), s.text).toBeTruthy();
   }
+  // What each template claims to use, it uses: the loops, a turn, and the effects.
+  const of = (id: string) => readAnim(parse(templates().find((x) => x.id === id)!.doc));
+  expect([of('bounce').loop, of('curtain').loop, of('countdown').loop]).toEqual(['bounce', 'once', 'once']);
+  expect(of('flip').keys.flat().some((k) => k.u === 90)).toBe(true);
+  expect(of('standup').keys.flat().some((k) => k.fx.includes('i'))).toBe(true);
+  expect(of('birthday').keys.flat().some((k) => k.fx.includes('g'))).toBe(true);
+  // The spinner's bright dot runs round: at each even frame a different dot is the largest.
+  const ring = of('spinner');
+  const largest = (f: number) => ring.keys.slice(0, 8).map((_, i) => stateAt(ring, i, f).s).reduce((m, s, i, all) => (s > all[m] ? i : m), 0);
+  expect([0, 2, 4, 6, 8, 10, 12, 14].map(largest)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
 });
 
 test('withKeys: the shapes in hand keyed in one splice; a shape keyed first at a later moment starts where it was drawn', () => {
