@@ -9,10 +9,10 @@ import { appOf } from '../../../kit/apps.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
-import { cardFields, cardRuns, duplicateObj, fieldsOf, insertObj, kindsOf, linesOf, linkFields, linkRuns, linksOp, moveObj, moveOps, objBlocks, objectsOf, objId, pasteObj, readSite, removeObj, retitle, settingOp, themeOp, titleOf, withLine } from '../model.ts';
+import { cardFields, cardRuns, duplicateObj, fieldsOf, insertObj, keptRuns, kindsOf, linesOf, linkFields, linkRuns, linksOp, moveObj, moveOps, objBlocks, objectsOf, objId, pasteObj, readSite, removeObj, retitle, settingOp, splitOps, themeOp, titleOf, withLine, wordsOf, wordsOps } from '../model.ts';
 import { templates } from '../templates.ts';
 import { contrast, isDark, paletteOf, parseTheme, themeCss, themeWords, THEMES } from '../theme.ts';
-import { CART, EDIT, PEEK, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
+import { CART, PEEK, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
 
 const CAFE = templates().find((t) => t.id === 'cafe')!.doc;
 const SHOP = templates().find((t) => t.id === 'shop')!.doc;
@@ -61,7 +61,7 @@ test('the page: a nav of its pages, each a section switched by a registered scri
   const scripts = scriptsIn(html);
   expect(scripts).toEqual([code(ROUTER), code(WEB)]);
   for (const s of scripts) expect(pageScripts()).toContain(s);
-  for (const s of [ROUTER, WEB, CART, EDIT, PEEK]) expect(pageScripts()).toContain(code(s));
+  for (const s of [ROUTER, WEB, CART, PEEK]) expect(pageScripts()).toContain(code(s));
   // Dark: an ink accent goes pale; a site of one page has a nav of its sections.
   const dark = page('---\ntheme: ink dark\n---\n# A\n\nabout\n\n## B\n\n- x\n\n## C\n');
   expect(dark).toContain('--on:#18181b');
@@ -109,28 +109,34 @@ test('a shop: a table of products, one cart for the site, its words and the orde
   expect(page(bare)).toContain('Copy order');
 });
 
-test('the editor’s frame: every thing marked with its id, every section with its heading’s, the thing in hand in the data; none of it downloaded', () => {
+test('the editor’s frame: every thing marked with its id and its words with their part, the words and the thing in hand in the data, the frame’s script from the site; none of it downloaded', () => {
   const html = page(CAFE, { cur: 2, edit: { stamp: 7, held: '2.1', y: 120 } });
   // The site's name, its line, its two buttons (lines of one quote), its three big links; a page's heading; a section's.
-  expect(html).toContain('<h1 data-o="0">Harbor Coffee</h1><p data-o="1">Small-batch coffee, roasted on the quay every morning.</p>');
-  expect(html).toContain('<p class="go"><a class="btn" data-o="2.0" href="#menu">See the menu</a> <a class="btn quiet" data-o="2.1" href="#find-us">Find us</a></p>');
+  expect(html).toContain('<h1 data-o="0" data-w="0:0">Harbor Coffee</h1><p data-o="1" data-w="1:0" data-empty="Words for the page">Small-batch coffee, roasted on the quay every morning.</p>');
+  expect(html).toContain('<p class="go"><a class="btn" data-o="2.0" href="#menu"><span data-w="2.0:label" data-empty="Label">See the menu</span></a> <a class="btn quiet" data-o="2.1" href="#find-us"><span data-w="2.1:label" data-empty="Label">Find us</span></a></p>');
   expect(html).toContain('<ul class="cards"><li data-o="3"><svg');
+  expect(html).toMatch(/<li data-o="3"><svg[^]*?<\/svg><strong data-w="3:head" data-empty="Heading">Roasted daily<\/strong><span data-w="3:detail" data-empty="A line about it">Never more than a week old<\/span><\/li>/);
   expect(html).toContain('<div class="hero" data-sec="0">');
-  expect(html).toContain('<section class="part" id="coffee" data-sec="8"><div class="wrap"><h2 data-o="8">Coffee</h2>');
+  expect(html).toContain('<section class="part" id="coffee" data-sec="8"><div class="wrap"><h2 data-o="8" data-w="8:0">Coffee</h2>');
   expect(html).toContain('<figure class="embed" data-o="17">');
-  // What the frame's script needs: the stamp, the thing in hand, the scroll to keep; the page to show first.
-  expect(html).toContain('{"stamp":7,"held":"2.1","y":120,"show":false}');
+  // What the frame's script needs: the stamp, the thing in hand, the scroll to keep, every thing's words; the page to show first.
+  expect(html).toContain('{"stamp":7,"held":"2.1","y":120,"show":false,"dark":false,"words":{');
+  expect(html).toContain('"1:0":{"next":true,"breaks":true,"runs":[{"t":"Small-batch coffee, roasted on the quay every morning."}],"kind":"rich"');
+  expect(html).toContain('"2.1:label":{"next":false,"breaks":false,"runs":[{"t":"Find us"}],"kind":"plain"');
   expect(html).toContain('<script type="application/json" id="site-at">"menu"</script>');
-  expect(scriptsIn(html)).toEqual([code(ROUTER), code(WEB), code(EDIT)]);
+  // The editor's script is the frame's, from the site ('self' in the policy the frame inherits), never inline.
+  expect(html).toContain('<script src="/site-frame.js"></script>');
+  expect(page(CAFE, { edit: { stamp: 1, src: 'https://x.example/site-frame.js' } })).toContain('<script src="https://x.example/site-frame.js"></script>');
+  expect(scriptsIn(html)).toEqual([code(ROUTER), code(WEB)]);
   // None of it in the page as it is downloaded; the Preview carries only its Escape.
   const plain = page(CAFE);
-  for (const mark of ['data-o=', 'data-sec=', 'site-cur', 'site-edit', 'site-at"', 'site-peek']) expect(plain).not.toContain(mark);
+  for (const mark of ['data-o=', 'data-sec=', 'data-w=', 'site-cur', 'site-edit', 'site-at"', 'site-peek', 'site-frame.js']) expect(plain).not.toContain(mark);
   const peek = page(CAFE, { cur: 4, peek: 3 });
   expect(peek).not.toContain('data-o=');
   expect(peek).toContain('<script type="application/json" id="site-at">"find-us"</script>');
   expect(scriptsIn(peek)).toEqual([code(ROUTER), code(WEB), '{"stamp":3}', code(PEEK)].filter((x) => !x.startsWith('{')));
   // A home page with no name yet: its heading is still a thing to tap, its id -1.
-  expect(page('', { edit: { stamp: 1 } })).toContain('<h1 data-o="-1">My site</h1>');
+  expect(page('', { edit: { stamp: 1 } })).toContain('<h1 data-o="-1" data-w="-1:0">My site</h1>');
 });
 
 test('the things of a site in the order of the document, rows of cards, buttons and small links; a heading inside a section is a thing, not a section', () => {
@@ -157,6 +163,7 @@ test('Quick Links: one column, a picture, a name, a line, a stack of buttons, th
   // Edited: Insert offers what a links page takes; its small links are things to tap.
   expect(kindsOf(readSite(parse(MAKER)))).toEqual(['p', 'button', 'link', 'picture', 'icon', 'web']);
   expect(page(MAKER, { edit: { stamp: 1 } })).toContain('<li data-o="4"><a href="https://instagram.com/ada"');
+  expect(page(MAKER, { edit: { stamp: 1 } })).toMatch(/<li data-o="4"><a [^]*?<\/a><span class="site-label" data-w="4:label" data-empty="Label">Instagram<\/span><\/li>/);
   // The same lines with the shape changed are a website: the list items cards.
   const asSite = write(applyAll(parse(MAKER), [linksOp(false)]));
   expect(readSite(parse(asSite)).sections[0].cards.length).toBe(2);
@@ -319,4 +326,50 @@ test('the templates: real sites and Quick Links pages, every icon one the page c
   const out = (await html.build(CAFE, { title: 'Harbor Coffee', link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
   expect(out).toMatch(/^<!doctype html>/);
   expect(out).not.toContain('site-edit');
+});
+
+test('words typed in the page, as ops: one text op on the block, the rest of a line kept; Enter makes a paragraph; the site’s name put in where there is none', () => {
+  const doc = parse(CAFE);
+  const site = readSite(doc);
+  const ops = (id: string, part: Parameters<typeof wordsOps>[3], runs: Parameters<typeof wordsOps>[4]) => {
+    const o = wordsOps(doc, site, id, part, runs);
+    expect(o).not.toBeNull();
+    expect(o!.length).toBe(1);
+    expect(o![0].op).toBe('text');
+    return write(applyAll(doc, o!));
+  };
+  // A paragraph keeps its marks and its line breaks; a heading is plain words, whatever was pasted.
+  expect(ops('1', '0', [{ t: 'Fresh ', b: true }, { t: 'daily.\nOn the quay.' }])).toContain('\n\n**Fresh** daily.\nOn the quay.\n\n> See the menu');
+  expect(ops('8', '0', [{ t: 'Hot ', b: true }, { t: 'drinks' }])).toContain('\n\n## Hot drinks\n\n');
+  // A button's words: its line, where it goes kept; a "|" typed is never a separator.
+  expect(ops('2.1', 'label', [{ t: 'Where | when' }])).toContain('> See the menu | #menu\n> Where ¦ when | #find-us\n');
+  // A big link's words and the line under them: marks alone, its link and icon kept.
+  const card = ops('3', 'head', [{ t: 'Roasted ', i: true }, { t: 'fresh', href: 'https://x.y' }]);
+  expect(card).toContain('- :coffee: *Roasted* fresh | Never more than a week old\n');
+  expect(ops('3', 'detail', [{ t: 'Within the week' }])).toContain('- :coffee: Roasted daily | Within the week\n');
+  // A small link on a Quick Links page.
+  const links = parse(MAKER);
+  const lw = wordsOps(links, readSite(links), '4', 'label', [{ t: 'Insta' }])!;
+  expect(write(applyAll(links, lw))).toContain('- :camera: Insta | https://instagram.com/ada\n');
+  // The same words: nothing; a part the thing has not: nothing.
+  expect(wordsOps(doc, site, '1', '0', (doc.blocks[1] as Extract<Block, { k: 'p' }>).runs)).toBeNull();
+  expect(wordsOps(doc, site, '1', 'label', [{ t: 'x' }])).toBeNull();
+  // The site's name with no heading yet: one put in at the top.
+  const blank = parse('Words.\n');
+  const named = wordsOps(blank, readSite(blank), '-1', '0', [{ t: 'Harbor' }])!;
+  expect(write(applyAll(blank, named))).toBe('# Harbor\n\nWords.\n');
+  // Enter: the words before the caret stay, a paragraph after takes the rest (empty at the end), and is the thing next.
+  const c = splitOps(doc, site, '1', [{ t: 'Small-batch coffee,' }], [{ t: 'roasted on the quay.' }])!;
+  expect(c.id).toBe('2');
+  expect(write(applyAll(doc, c.ops))).toContain('# Harbor Coffee\n\nSmall-batch coffee,\n\nroasted on the quay.\n\n> See the menu');
+  const end = splitOps(doc, site, '8', [{ t: 'Coffee' }], [])!;
+  const after = applyAll(doc, end.ops);
+  expect(after.blocks[9]).toEqual({ k: 'p', runs: [] });
+  // A paragraph with no words yet is a thing on the page (it is being typed in).
+  expect(objectsOf(readSite(after)).find((o) => objId(o) === '9')!.kind).toBe('p');
+  // Every thing's words, for the page's editor.
+  const w = wordsOf(doc, site);
+  expect(Object.keys(w).slice(0, 6)).toEqual(['0:0', '1:0', '2.0:label', '2.1:label', '3:head', '3:detail']);
+  expect(w['3:head'].kind).toBe('marks');
+  expect(keptRuns([{ t: 'a', b: true }, { t: '', fn: 'n' }, { t: 'b\nc', href: 'x' }], 'plain')).toEqual([{ t: 'ab c' }]);
 });

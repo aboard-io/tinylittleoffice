@@ -16,6 +16,7 @@
  */
 import { apply, applyAll, columnsOf, evaluate, isAtomic, normalRuns, parse, plainText, runLength, sliceRuns, text, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { slug } from '../../kit/draw.ts';
+import { runsDiff } from '../../kit/textops.ts';
 import { embedOf } from '../../kit/embeds.ts';
 import { t } from '../../kit/i18n.ts';
 import { parseTheme, themeWords, type Theme } from './theme.ts';
@@ -204,7 +205,8 @@ export function readSite(doc: Doc): Site {
       if (ic && !rest.length) (cur.icon = ic), item('icon');
       else if (b.runs.length === 1 && isPicture(words)) cur.pics.push({ url: words, alt: '' }), item('picture');
       else if (b.runs.length === 1 && /^https?:\/\/\S+$/.test(words) && embedOf(words)) cur.embeds.push({ web: words }), item('web');
-      else if (words || ic) cur.text.push(...linesOf(b.runs).filter((l) => l.length)), item('p');
+      // (A paragraph with no words yet is one too: Enter has just made it, and it is being typed in.)
+      else cur.text.push(...linesOf(b.runs).filter((l) => l.length)), item('p');
     } else if (b.k === 'quote')
       linesOf(b.runs).forEach((l, k) => {
         if (!l.length) return;
@@ -534,3 +536,119 @@ export function themeOp(theme: Theme): Op {
 export const linksOp = (on: boolean): Op => ({ op: 'head', key: 'look', value: on ? 'links' : undefined });
 /** A shop setting: `currency:` or `orders:`, gone when empty. */
 export const settingOp = (key: 'currency' | 'orders', value: string): Op => ({ op: 'head', key, value: value.trim() || undefined });
+
+/* ---------- words typed in the page ---------- */
+
+/** How a thing's words are typed where they are drawn (frame.ts): rich (marks and links), marks alone, or plain words. */
+export type WordsKind = 'rich' | 'marks' | 'plain';
+/** One run of words on a thing, as the page's editor types it: its runs, its kind, and what Enter does there. */
+export interface WordsPart {
+  runs: Run[];
+  kind: WordsKind;
+  /** Enter makes the next paragraph (a heading's, a paragraph's); else Enter is done. */
+  next: boolean;
+  /** Shift+Enter is a line break (a paragraph's). */
+  breaks: boolean;
+  label: string;
+  placeholder: string;
+}
+/** Which of a thing's words: a heading's or a paragraph's ("0"), a button's or a small link's ("label"), a big link's ("head", "detail"). */
+export type PartName = '0' | 'label' | 'head' | 'detail';
+/** The kinds of thing whose words are typed in the page. */
+export const WORDS: ReadonlySet<ObjKind> = new Set(['page', 'section', 'heading', 'p', 'button', 'link', 'card']);
+export const partsOf = (k: ObjKind): PartName[] => (k === 'card' ? ['head', 'detail'] : k === 'button' || k === 'link' ? ['label'] : WORDS.has(k) ? ['0'] : []);
+const wordsKey = (id: string, part: PartName) => `${id}:${part}`;
+
+/** Every thing's words on the site, by "<id>:<part>", for the page's editor. */
+export function wordsOf(doc: Doc, site: Site): Record<string, WordsPart> {
+  const out: Record<string, WordsPart> = {};
+  for (const o of objectsOf(site)) {
+    if (!WORDS.has(o.kind)) continue;
+    const id = objId(o);
+    const b = o.at >= 0 ? doc.blocks[o.at] : undefined;
+    const runs = b && 'runs' in b ? b.runs : [];
+    const one = (part: PartName, w: Partial<WordsPart> & Pick<WordsPart, 'runs' | 'kind' | 'label' | 'placeholder'>) => (out[wordsKey(id, part)] = { next: false, breaks: false, ...w });
+    switch (o.kind) {
+      case 'page':
+      case 'section':
+      case 'heading': {
+        const home = o.kind === 'page' && site.sections[o.n].page === 0;
+        const name = site.links ? t('Quick Links') : t('My site');
+        one('0', { runs: plainRuns(plainText(runs)), kind: 'plain', next: true, label: home ? t('The site’s name') : o.kind === 'page' ? t('Page') : o.kind === 'section' ? t('Section') : t('Heading'), placeholder: home ? name : t('Heading') });
+        break;
+      }
+      case 'p':
+        one('0', { runs, kind: 'rich', next: true, breaks: true, label: t('Paragraph'), placeholder: t('Words for the page') });
+        break;
+      case 'button':
+      case 'link': {
+        const line = o.kind === 'button' ? (linesOf(runs)[o.line] ?? []) : runs;
+        one('label', { runs: plainRuns(linkFields(line).label), kind: 'plain', label: o.kind === 'button' ? t('Button') : t('Small link'), placeholder: t('Label') });
+        break;
+      }
+      case 'card': {
+        const c = cardFields(runs);
+        one('head', { runs: c.head, kind: 'marks', label: t('Big link'), placeholder: t('Heading') });
+        one('detail', { runs: c.detail, kind: 'marks', label: t('A line under them'), placeholder: t('A line about it') });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Words as a kind keeps them: plain words are one run of words on one line, marks alone lose their links, and no notes. */
+export function keptRuns(runs: Run[], kind: WordsKind): Run[] {
+  if (kind === 'plain') return normalRuns([{ t: plainText(runs.filter((r) => !isAtomic(r))).replace(/\n/g, ' ') }]).filter((r) => r.t);
+  const noted = runs.filter((r) => r.fn === undefined);
+  return kind === 'marks' ? noted.map(({ href: _h, ...r }) => r) : noted;
+}
+
+/**
+ * A thing's words typed in the page, as ops: one `text` op on its block (the line of a button, the words or the line
+ * under them of a big link, written by the code with the rest of the line as it was); the site's name, where there
+ * is none yet, a heading put in at the top. Null where nothing changes.
+ */
+export function wordsOps(doc: Doc, site: Site, id: string, part: PartName, typed: Run[]): Op[] | null {
+  const o = objectAt(site, id);
+  if (!o || !partsOf(o.kind).includes(part)) return null;
+  if (o.at < 0) return typed.length ? [{ op: 'splice', at: 0, n: 0, blocks: [{ k: 'h', level: 1, runs: keptRuns(typed, 'plain') }] }] : null;
+  const b = doc.blocks[o.at];
+  if (!b || !('runs' in b)) return null;
+  let next: Run[];
+  switch (o.kind) {
+    case 'button': {
+      if (b.k !== 'quote') return null;
+      const l = linkFields(linesOf(b.runs)[o.line] ?? []);
+      const q = withLine(b, o.line, linkRuns({ ...l, label: plainText(typed) }));
+      next = 'runs' in q ? q.runs : [];
+      break;
+    }
+    case 'link':
+      next = linkRuns({ ...linkFields(b.runs), label: plainText(typed) });
+      break;
+    case 'card': {
+      const c = cardFields(b.runs);
+      next = cardRuns({ ...c, [part === 'head' ? 'head' : 'detail']: keptRuns(typed, 'marks') });
+      break;
+    }
+    case 'p':
+      next = keptRuns(typed, 'rich');
+      break;
+    default:
+      next = keptRuns(typed, 'plain');
+  }
+  const op = runsDiff(o.at, b.runs, next);
+  return op ? [op] : null;
+}
+
+/**
+ * Enter in a heading's or a paragraph's words: the thing keeps the words before the caret and a new paragraph after
+ * it takes the rest. The ops and the new paragraph's id.
+ */
+export function splitOps(doc: Doc, site: Site, id: string, before: Run[], after: Run[]): Change | null {
+  const o = objectAt(site, id);
+  if (!o || o.at < 0 || !['page', 'section', 'heading', 'p'].includes(o.kind)) return null;
+  const words = wordsOps(doc, site, id, '0', before) ?? [];
+  return { ops: [...words, { op: 'splice', at: o.at + 1, n: 0, blocks: [{ k: 'p', runs: keptRuns(after, 'rich') }] }], id: String(o.at + 1) };
+}

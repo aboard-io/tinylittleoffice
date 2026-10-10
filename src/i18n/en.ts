@@ -1282,6 +1282,11 @@ export default {
   'Big link': 'Big link',
   'Edit the products…': 'Edit the products…',
   'Goes to': 'Goes to',
+  // The URL chip on the bar of a button or a link, said: where it goes ("Goes to #menu"), or, with nowhere yet, what it sets.
+  'Goes to {place}': 'Goes to {place}',
+  'Where it goes': 'Where it goes',
+  // The words a paragraph put in from Insert is given, chosen, so the first letter typed replaces them.
+  'New paragraph': 'New paragraph',
   'Icon: none': 'Icon: none',
   'Icon: {name}': 'Icon: {name}',
   'Preview': 'Preview',

@@ -1,16 +1,22 @@
 /**
  * <to-site-editor>: the Website app, edited in the page itself. The site as it will look fills the editor, in a
- * sandboxed frame (the generated page with its editing script: every thing on it marked, view.ts's EDIT). One tap
- * on a thing opens its mini form at once (forms.ts; a picture's, a thing from the web's and another document's are
- * the kit's own dialogs, a table's the Spreadsheet's), and the thing is in hand meanwhile: outlined in the page, and
- * its <to-context> (Edit, Move up, Move down, Move left and Move right in a row of cards, buttons or small links,
- * Duplicate and Delete, in the standard's order, docs/editing.md §6) under the form, inside it, so a move is a tap
- * away (a move closes the form unwritten first). Done writes the form as one op; Escape writes nothing and leaves the
- * thing in hand, its bar beside it; a tap on the page's empty room lets it go. Enter or Edit on the thing in hand
- * opens the form again. Nobody types a marker: the code writes every line.
+ * sandboxed frame (the generated page with the frame's own editing script, frame.ts: every thing on it marked). One
+ * tap on a thing takes it in hand: outlined in the page, and its <to-context> beside it (Edit, the URL chip of a
+ * button, a big link or a small link, Move up, Move down, Move left and Move right in a row of cards, buttons or
+ * small links, Duplicate and Delete, in the standard's order, docs/editing.md §6). The same tap on its words opens
+ * them where they are drawn, typed in the page (frame.ts): each change comes here as the thing's words and is
+ * written as one `text` op, the page left as it is meanwhile (the frame holds the words being typed); Enter in a
+ * heading or a paragraph goes on into a new paragraph; done (Enter elsewhere, Escape, which puts them back, a tap
+ * elsewhere), the page is drawn again. What is not words is a form (forms.ts: where a link goes and its icon, from
+ * the URL chip; the shop's settings) or the kit's own dialogs (a picture's, a thing from the web's, another
+ * document's; a table's the Spreadsheet's), opened by the tap; its bar is under the form, inside it, so a move is a
+ * tap away (a move closes the form unwritten first). Escape writes nothing and leaves the thing in hand, its bar
+ * beside it; a tap on the page's empty room lets it go. Enter or Edit on the thing in hand opens its words (or its
+ * form) again. Nobody types a marker: the code writes every line.
  *
  * The bar: Insert ▾ first, at the top left (what can go in here, put after the thing in hand, or at the end of
- * the section on view, its form opened at once and nothing written until Done), the look ▾, Preview (the page as
+ * the section on view: words with their words offered and chosen in the page, so the first letter typed replaces
+ * them; the rest through its dialog, nothing written until Done), the look ▾, Preview (the page as
  * a visitor has it, the editing script off, with one Edit button back; Escape comes back too), Undo and Redo.
  * Keys on the thing in hand: Enter edits, Delete and Backspace remove, Alt+Up/Down move it, Mod+Alt+Left/Right
  * move it along its row, Mod+D duplicates, Mod+C/X/V copy, cut and paste it (TLO text and our marked HTML),
@@ -32,13 +38,14 @@ import { t } from '../../kit/i18n.ts';
 import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import type { MenuItem } from '../../kit/menu.ts';
 import { webBlock } from '../write/model.ts';
-import { askCard, askLink, askParagraph, askShop, askWords, same, type Anchor } from './forms.ts';
+import { askPlace, askShop, same, type Anchor } from './forms.ts';
 import {
   cardFields, cardRuns, duplicateObj, insertObj, kindName, kindsOf, linesOf, linkFields, linkRuns, linksOp, moveObj, objBlocks, objectAt, objectsOf, objId, pasteObj, plainRuns,
-  productsBlock, readSite, removeObj, ROW, settingOp, themeOp, withLine, type Change, type Kind, type ObjKind, type Site,
+  productsBlock, readSite, removeObj, ROW, settingOp, splitOps, themeOp, withLine, WORDS, wordsOps, type Change, type Kind, type ObjKind, type PartName, type Site,
 } from './model.ts';
+import type { Run } from '../../doc/index.ts';
 import { FACES, THEMES, faceOf, isDark, type Face, type Theme } from './theme.ts';
-import { sitePage } from './view.ts';
+import { FRAME_SCRIPT, sitePage } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
@@ -51,9 +58,16 @@ export const tag = 'to-site-editor';
 /** A message from the frame: what was done, to which thing. */
 interface FrameMessage {
   site: number;
-  do: 'pick' | 'at' | 'page' | 'undo' | 'redo' | 'ready' | 'leave';
+  do: 'pick' | 'at' | 'page' | 'undo' | 'redo' | 'ready' | 'leave' | 'words' | 'split' | 'end';
   /** The thing's id (null: a tap on the page's empty room). */
   o?: string | null;
+  /** A pick on the thing's words: they are open in the page, typed there. */
+  words?: boolean;
+  /** Which of the thing's words, and what they are now; Enter's split: the words before the caret and after it. */
+  part?: PartName;
+  runs?: Run[];
+  before?: Run[];
+  after?: Run[];
   id?: string;
   /** Where the thing is in the frame: left, top, width, height. */
   r?: number[] | null;
@@ -79,6 +93,13 @@ export const objName = (k: ObjKind): string =>
     page: t('Page'), section: t('Section'), heading: t('Heading'), p: t('Paragraph'), card: t('Big link'), button: t('Button'), link: t('Small link'),
     picture: t('Web Picture'), icon: t('Big icon'), web: t('Web Embed'), doc: t('Tiny Little Office Doc'), table: t('Table'), products: t('Products'),
   })[k];
+/** A place as its chip shows it: a page of the site by its name, an address by its host, short. */
+function shortPlace(url: string): string {
+  const u = url.trim();
+  if (!u) return '';
+  const words = u.startsWith('#') ? u.slice(1) : u.replace(/^(https?:\/\/|mailto:|tel:)/, '').replace(/\/.*$/, '');
+  return words.length > 16 ? `${words.slice(0, 15)}…` : words;
+}
 const KIND_ICON: Record<Kind, IconNode> = {
   page: UI.heading1, section: UI.heading, heading: UI.heading, p: UI.text, button: UI.link, card: UI.list, link: UI.link, picture: UI.image, icon: UI.icon, web: UI.globe, doc: UI.insert, product: UI.table,
 };
@@ -103,6 +124,8 @@ export class ToSiteEditor extends DocElement<Site> {
   private stamp = 0;
   /** A form is open: the focus in it does not let the thing in hand go, and its bar waits. */
   private asking = false;
+  /** Once the page is drawn again, the words of this thing are opened in it, chosen (a thing just put in). */
+  private openNext: string | null = null;
 
   constructor() {
     super();
@@ -169,7 +192,7 @@ export class ToSiteEditor extends DocElement<Site> {
     const base = `${location.origin}${location.pathname}`;
     this.shown = this.preview
       ? sitePage(this.doc, { base, cur: this.cur, peek: this.stamp })
-      : sitePage(this.doc, { base, cur: this.cur, edit: { stamp: this.stamp, held: this.held, y: this.frameY, show: this.showHeld } });
+      : sitePage(this.doc, { base, cur: this.cur, edit: { stamp: this.stamp, held: this.held, y: this.frameY, show: this.showHeld, src: `${location.origin}/${FRAME_SCRIPT}`, dark: document.documentElement.dataset.theme === 'dark' } });
     this.showHeld = false;
   }
   /** The document and the mode the page in the frame is drawn from. */
@@ -187,16 +210,45 @@ export class ToSiteEditor extends DocElement<Site> {
   private tell(show = false) {
     this.frame?.contentWindow?.postMessage({ site: this.stamp, held: this.held, show }, '*');
   }
+  /** The page asked to open a thing's words where they are drawn (`all`: chosen, so the first letter replaces them). */
+  private openWords(id: string, all = false) {
+    this.frame?.contentWindow?.postMessage({ site: this.stamp, edit: id, all }, '*');
+  }
+  /** A change typed in the page: written, and the page left as it is (it holds the words being typed). */
+  private typedIn(ops: Op[], key: string | undefined, mark: Mark) {
+    this.edit(ops, key, mark);
+    this.drawnFor = [this.doc, this.preview];
+  }
   private onMessage = (e: MessageEvent) => {
     const m = e.data as FrameMessage | null;
     if (!m || typeof m !== 'object' || e.source !== this.frame?.contentWindow || m.site !== this.stamp) return;
     if (typeof m.y === 'number') this.frameY = m.y;
     const id = typeof m.o === 'string' ? m.o : null;
     if (m.do === 'pick' && id !== null) {
-      // One tap: the thing in hand and its form open at once.
-      this.hold(id, m.r ?? null);
-      void this.editObj(id);
+      // One tap: the thing in hand, and its words open in the page (the focus stays there) or its form open at once.
+      this.hold(id, m.r ?? null, false, !m.words);
+      if (!m.words) void this.editObj(id);
     } else if (m.do === 'pick') this.release();
+    else if (m.do === 'words' && id !== null && m.part && Array.isArray(m.runs)) {
+      const o = objectAt(this.view, id);
+      const ops = wordsOps(this.doc, this.view, id, m.part, m.runs);
+      if (!o || !ops) return;
+      // The site's name typed where there was none: a heading put in at the top, every thing after it one block on.
+      const after = o.at < 0 ? '0' : id;
+      this.typedIn(ops, `words:${after}:${m.part}`, { held: this.held, after });
+      if (this.held === id) this.held = after;
+    } else if (m.do === 'split' && id !== null && Array.isArray(m.before) && Array.isArray(m.after)) {
+      const c = splitOps(this.doc, this.view, id, m.before, m.after);
+      if (!c) return;
+      this.typedIn(c.ops, undefined, { held: id, after: c.id });
+      this.held = c.id;
+      this.cur = objectAt(this.view, c.id)?.n ?? this.cur;
+    } else if (m.do === 'end') this.endWords(id);
+    else if (m.do === 'ready' && this.openNext !== null) {
+      const next = this.openNext;
+      this.openNext = null;
+      if (next === this.held) this.openWords(next, true);
+    }
     else if (m.do === 'at') {
       if (id === null || id !== this.held) return;
       this.heldRect = m.r ?? null;
@@ -214,14 +266,17 @@ export class ToSiteEditor extends DocElement<Site> {
 
   /* ---------- the thing in hand ---------- */
 
-  /** Thing `id` in hand: the focus on the box round the frame, its bar beside it. `r` is where the frame says it is; without it the frame is asked. */
-  private hold(id: string | null, r: number[] | null = null, show = false) {
+  /**
+   * Thing `id` in hand: its bar beside it, and the focus on the box round the frame (`focus`; not when its words are
+   * open in the page, where the focus is). `r` is where the frame says it is; without it the frame is asked.
+   */
+  private hold(id: string | null, r: number[] | null = null, show = false, focus = true) {
     const o = objectAt(this.view, id);
     if (!o || id === null) return this.release();
     this.held = id;
     this.cur = o.n;
     this.heldRect = r;
-    this.box?.focus({ preventScroll: true });
+    if (focus) this.box?.focus({ preventScroll: true });
     if (r) void this.updateComplete.then(() => this.held === id && !this.lent && this.ctx?.show(this.heldAnchor));
     else this.tell(show);
   }
@@ -259,6 +314,16 @@ export class ToSiteEditor extends DocElement<Site> {
     if (!o) return;
     this.cur = o.n;
     this.showHeld = true;
+    this.box?.focus({ preventScroll: true });
+  }
+  /** Done with the words typed in the page: a paragraph left with none goes; the page is drawn again, the thing still in hand. */
+  private endWords(id: string | null) {
+    const o = objectAt(this.view, id);
+    const b = o ? this.doc.blocks[o.at] : undefined;
+    if (o && id !== null && o.kind === 'p' && b?.k === 'p' && !b.runs.length) return this.change(removeObj(this.doc, this.view, id));
+    this.drawnFor = null;
+    if (o && id !== null && this.held === id) this.showHeld = true;
+    this.requestUpdate();
     this.box?.focus({ preventScroll: true });
   }
   protected undone(entry: Entry, redo: boolean) {
@@ -331,8 +396,10 @@ export class ToSiteEditor extends DocElement<Site> {
     const move = (dir: 'up' | 'down' | 'left' | 'right', label: string, icon: IconNode, keys: string): ContextEntry => ({
       label, icon, keys, disabled: !moveObj(doc, view, id, dir), does: this.fromBar(() => this.change(moveObj(this.doc, this.view, id, dir))),
     });
+    const place = ROW.has(o.kind) ? this.placeOf(id) : null;
     return [
       { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editObj(id) },
+      ...(place ? [{ label: place.url ? t('Goes to {place}', { place: place.url }) : t('Where it goes'), text: shortPlace(place.url) || t('Link'), does: this.fromBar(() => void this.editPlace(id)) }] : []),
       move('up', t('Move up'), ArrowUp, 'Alt+ArrowUp'),
       move('down', t('Move down'), ArrowDown, 'Alt+ArrowDown'),
       ...(ROW.has(o.kind) ? [move('left', t('Move left'), ArrowLeft, 'Mod+Alt+ArrowLeft'), move('right', t('Move right'), ArrowRight, 'Mod+Alt+ArrowRight')] : []),
@@ -364,52 +431,45 @@ export class ToSiteEditor extends DocElement<Site> {
       if (this.held !== null && this.heldRect && !this.preview) this.ctx?.show(this.heldAnchor);
     }
   }
-  /** Thing `id`'s form; its Done written as ops (nothing when nothing changed). */
+  /** Where a button, a big link or a small link goes, and its icon. */
+  private placeOf(id: string): { url: string; icon: string } | null {
+    const o = objectAt(this.view, id);
+    const b = o ? this.doc.blocks[o.at] : undefined;
+    if (!o || !b) return null;
+    if (o.kind === 'button' && b.k === 'quote') return linkFields(linesOf(b.runs)[o.line] ?? []);
+    if (o.kind === 'link' && b.k === 'li') return linkFields(b.runs);
+    if (o.kind === 'card' && b.k === 'li') return cardFields(b.runs);
+    return null;
+  }
+  /** The URL chip's form: where the thing goes and its icon, written with its words as they are. */
+  async editPlace(id: string) {
+    const o = objectAt(this.view, id);
+    const place = this.placeOf(id);
+    const b = o ? this.doc.blocks[o.at] : undefined;
+    if (!o || !place || !b || this.asking) return;
+    const anchor: Anchor = this.held === id ? this.heldAnchor() : null;
+    const got = await this.asked(askPlace({ heading: objName(o.kind), value: { url: place.url, icon: place.icon }, anchors: this.places(), anchor, lend: this.held === id ? this.lend : undefined }));
+    if (!got) return;
+    let next: Block | null = null;
+    if (o.kind === 'button' && b.k === 'quote') next = withLine(b, o.line, linkRuns({ ...linkFields(linesOf(b.runs)[o.line] ?? []), ...got }));
+    else if (o.kind === 'link' && b.k === 'li') next = { ...b, runs: linkRuns({ ...linkFields(b.runs), ...got }) };
+    else if (o.kind === 'card' && b.k === 'li') next = { ...b, runs: cardRuns({ ...cardFields(b.runs), ...got }) };
+    if (next && !same(b, next)) this.change({ ops: [{ op: 'splice', at: o.at, n: 1, blocks: [next] }], id });
+  }
+  /** Thing `id`'s words opened in the page, or its form (what is not words); a form's Done written as ops (nothing when nothing changed). */
   async editObj(id: string) {
     const o = objectAt(this.view, id);
     if (!o || this.asking) return;
-    const anchor: Anchor = this.held === id ? this.heldAnchor() : null;
-    const lend = this.held === id ? this.lend : undefined;
+    if (WORDS.has(o.kind)) {
+      if (this.held !== id) this.hold(id, null, true, false);
+      return this.openWords(id);
+    }
     const b = this.doc.blocks[o.at] as Block | undefined;
     const replace = (next: Block | null): Op[] => (!next || (b && same(b, next)) ? [] : [{ op: 'splice', at: o.at, n: 1, blocks: [next] }]);
+    const anchor: Anchor = this.held === id ? this.heldAnchor() : null;
+    const lend = this.held === id ? this.lend : undefined;
     let ops: Op[] = [];
-    let after: string | null = id;
     switch (o.kind) {
-      case 'page':
-      case 'section':
-      case 'heading': {
-        const label = o.kind === 'page' && this.view.sections[o.n].page === 0 ? t('The site’s name') : t('Words');
-        const words = await this.asked(askWords({ heading: objName(o.kind), label, value: b?.k === 'h' ? plainText(b.runs) : '', anchor, lend }));
-        if (words === null) return;
-        if (b?.k === 'h') ops = replace({ ...b, runs: plainRuns(words) });
-        else if (o.at < 0 && words.trim()) (ops = [{ op: 'splice', at: 0, n: 0, blocks: [{ k: 'h', level: 1, runs: plainRuns(words) }] }]), (after = '0');
-        break;
-      }
-      case 'p': {
-        const runs = await this.asked(askParagraph({ runs: b?.k === 'p' ? b.runs : [], anchor, lend }));
-        if (runs === null) return;
-        if (runs.length) ops = replace({ k: 'p', runs });
-        else (ops = [{ op: 'splice', at: o.at, n: 1, blocks: [] }]), (after = null);
-        break;
-      }
-      case 'button': {
-        if (b?.k !== 'quote') return;
-        const l = await this.asked(askLink({ heading: objName('button'), value: linkFields(linesOf(b.runs)[o.line]), anchors: this.places(), anchor, lend }));
-        if (l) ops = replace(withLine(b, o.line, linkRuns(l)));
-        break;
-      }
-      case 'link': {
-        if (b?.k !== 'li') return;
-        const l = await this.asked(askLink({ heading: objName('link'), value: linkFields(b.runs), anchors: this.places(), anchor, lend }));
-        if (l) ops = replace({ ...b, runs: linkRuns(l) });
-        break;
-      }
-      case 'card': {
-        if (b?.k !== 'li') return;
-        const c = await this.asked(askCard({ value: cardFields(b.runs), anchors: this.places(), anchor, lend }));
-        if (c) ops = replace({ ...b, runs: cardRuns(c) });
-        break;
-      }
       case 'picture': {
         const url = b?.k === 'img' ? b.url : b?.k === 'p' ? plainText(b.runs).trim() : '';
         const p = await this.asked(askPicture({ url, alt: b?.k === 'img' ? b.alt : '' }));
@@ -445,45 +505,34 @@ export class ToSiteEditor extends DocElement<Site> {
         break;
       }
     }
-    if (ops.length) this.change({ ops, id: after });
+    if (ops.length) this.change({ ops, id });
   }
 
-  /** A new thing of kind `k`: its form first (nothing is written until Done), then put in after the thing in hand. */
+  /**
+   * A new thing of kind `k`, put in after the thing in hand: words with their words offered, opened in the page and
+   * chosen, so the first letter typed replaces them; the rest through its dialog first (nothing written until Done).
+   */
   async insert(k: Kind) {
     if (this.asking) return;
-    const anchor = this.held !== null ? this.heldAnchor() : null;
-    const words = async (heading: string) => {
-      const w = await this.asked(askWords({ heading, label: t('Words'), value: '', placeholder: heading, anchor }));
-      return w === null ? null : plainRuns(w.trim() || heading);
+    const offered = (b: Block) => {
+      const c = insertObj(this.doc, this.view, this.held, this.cur, b);
+      this.change(c);
+      this.openNext = c.id;
     };
     let block: Block | null = null;
     switch (k) {
       case 'page':
       case 'section':
-      case 'heading': {
-        const runs = await words(k === 'page' ? t('New page') : k === 'section' ? t('New section') : t('Heading'));
-        if (runs) block = { k: 'h', level: k === 'page' ? 1 : k === 'section' ? 2 : 3, runs };
-        break;
-      }
-      case 'p': {
-        const runs = await this.asked(askParagraph({ runs: [], anchor }));
-        if (runs?.length) block = { k: 'p', runs };
-        break;
-      }
+      case 'heading':
+        return offered({ k: 'h', level: k === 'page' ? 1 : k === 'section' ? 2 : 3, runs: plainRuns(k === 'page' ? t('New page') : k === 'section' ? t('New section') : t('Heading')) });
+      case 'p':
+        return offered({ k: 'p', runs: plainRuns(t('New paragraph')) });
       case 'button':
-      case 'link': {
-        const l = await this.asked(askLink({ heading: kindName(k), value: { icon: k === 'link' ? 'globe' : '', label: '', url: '' }, anchors: this.places(), anchor }));
-        if (l && (l.label.trim() || l.url.trim())) {
-          const runs = linkRuns({ ...l, label: l.label.trim() || l.url.trim() });
-          block = k === 'button' ? { k: 'quote', runs } : { k: 'li', depth: 0, runs };
-        }
-        break;
-      }
-      case 'card': {
-        const c = await this.asked(askCard({ value: { icon: '', head: [], detail: [], url: '' }, anchors: this.places(), anchor }));
-        if (c && (c.head.length || c.detail.length)) block = { k: 'li', depth: 0, runs: cardRuns(c) };
-        break;
-      }
+        return offered({ k: 'quote', runs: linkRuns({ icon: '', label: t('Button'), url: '' }) });
+      case 'link':
+        return offered({ k: 'li', depth: 0, runs: linkRuns({ icon: 'globe', label: t('Small link'), url: '' }) });
+      case 'card':
+        return offered({ k: 'li', depth: 0, runs: cardRuns({ icon: '', head: plainRuns(t('Big link')), detail: [], url: '' }) });
       case 'picture': {
         const p = await this.asked(askPicture());
         if (p) block = { k: 'img', url: p.url, alt: p.alt };

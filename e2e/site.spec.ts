@@ -1,15 +1,16 @@
 /**
  * Website on the built site, at desktop size in Chromium: the page is the editor. One tap on the blank site's
- * heading opens its form at once, the heading's bar under it, and the name typed there is the site's; Insert ▾ makes a
- * page through its form, then a button; the page's own nav goes between the pages; Preview shows it as a visitor
- * has it and Edit comes back. The bar is one row, nothing is wider than the screen, axe finds nothing. Run on its own:
+ * heading opens its words there, in the page, and the name typed is the site's; Insert ▾ makes a page, its words
+ * typed where they are, then a button, where it goes from the URL chip on its bar; the page's own nav goes between
+ * the pages; Preview shows it as a visitor has it and Edit comes back. The bar is one row, nothing is wider than the
+ * screen, axe finds nothing. Run on its own:
  *
  *   PW_PORT=4404 npx playwright test e2e/site.spec.ts --project=desktop --workers=1
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('website: the name in its form, a page and a button from Insert, the nav goes to it, Preview and back', async ({ page }) => {
+test('website: the name typed in the page, a page and a button from Insert, the nav goes to it, Preview and back', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/site');
@@ -23,17 +24,19 @@ test('website: the name in its form, a page and a button from Insert, the nav go
       return { rows: tops.size, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     });
   expect(await measure()).toEqual({ rows: 1, wide: 0 });
-  // One tap opens the heading's form, the heading in hand, its bar under the form.
+  // One tap opens the heading's words in the page, the heading in hand, its bar beside it; no form.
   await name.click();
-  const form = page.locator('.site-form-dialog dialog');
-  await expect(form).toBeVisible();
-  await expect(form.locator('to-context.site-context .to-context')).toBeVisible();
+  const words = site.locator('h1 to-text .tx');
+  await expect(words).toBeFocused();
+  await expect(page.locator('to-site-editor to-context.site-context .to-context')).toBeVisible();
+  await expect(page.locator('.site-form-dialog')).toHaveCount(0);
   await page.keyboard.type('Harbor Coffee');
-  await page.keyboard.press('Enter');
-  await expect(form).toHaveCount(0);
   await expect(page).toHaveURL(/#\/v1\/site\/[ryz]/);
+  // A tap on the page's foot keeps the words, and the page is drawn with them.
+  await site.locator('footer').click();
   await expect(site.getByRole('heading', { name: 'Harbor Coffee', level: 1 })).toBeVisible();
-  // Insert ▾, at the top left: a page, named in its form.
+  await expect(site.locator('to-text:not([hidden])')).toHaveCount(0);
+  // Insert ▾, at the top left: a page, its words offered; tapped, they are typed where they are.
   const insert = page.locator('to-site-editor to-insert button').first();
   const at = await insert.boundingBox();
   const frameBox = await page.locator('to-site-editor iframe.site-frame').boundingBox();
@@ -41,19 +44,31 @@ test('website: the name in its form, a page and a button from Insert, the nav go
   expect(at!.y).toBeLessThan(frameBox!.y);
   await insert.click();
   await page.getByRole('menuitem', { name: 'Page' }).click();
-  await expect(form).toBeVisible();
+  const fresh = site.getByRole('heading', { name: 'New page', level: 1 });
+  await expect(fresh).toBeVisible();
+  await fresh.click();
+  await expect(site.locator('h1 to-text .tx')).toBeFocused();
+  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('Menu');
-  await page.keyboard.press('Enter');
+  await site.locator('footer').click();
   const nav = site.getByRole('navigation', { name: 'Pages' });
   await expect(nav.getByRole('link', { name: 'Menu' })).toBeVisible();
-  // A button after the new page's heading: its words and where it goes.
+  // A button after the new page's heading: its words typed on it, where it goes from the URL chip.
+  await site.getByRole('heading', { name: 'Menu', level: 1 }).click();
   await insert.click();
   await page.getByRole('menuitem', { name: 'Button' }).click();
-  await expect(form).toBeVisible();
+  const button = site.getByRole('link', { name: 'Button' });
+  await expect(button).toBeVisible();
+  await button.click();
+  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.type('Call us');
+  const bar = page.locator('to-site-editor to-context.site-context .to-context');
+  await bar.getByRole('button', { name: 'Where it goes' }).click();
+  const form = page.locator('.site-form-dialog dialog');
+  await expect(form).toBeVisible();
   await form.getByLabel('Goes to').fill('tel:+12075550134');
   await form.getByRole('button', { name: 'Done' }).click();
-  await expect(site.getByRole('link', { name: 'Call us' })).toBeVisible();
+  await expect(site.getByRole('link', { name: 'Call us' })).toHaveAttribute('href', 'tel:+12075550134');
   await nav.getByRole('link', { name: 'Home' }).click();
   await expect(site.getByRole('heading', { name: 'Harbor Coffee', level: 1 })).toBeVisible();
   await expect(site.getByRole('link', { name: 'Call us' })).toBeHidden();
