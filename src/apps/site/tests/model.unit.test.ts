@@ -327,14 +327,14 @@ test('the templates: real sites and Quick Links pages, every icon one the page c
     expect(tpl.id.startsWith('links-')).toBe(readSite(parse(tpl.doc)).links);
   }
   const html = site.exports!.find((x) => x.ext === 'html')!;
-  const out = (await html.build(CAFE, { title: 'Harbor Coffee', link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
+  const out = (await html.build(CAFE, { def: site, title: 'Harbor Coffee', link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
   expect(out).toMatch(/^<!doctype html>/);
   expect(out).not.toContain('site-edit');
 });
 
 test('a table\'s money in its column\'s currency, else the site\'s: the plumber\'s prices and the cottage\'s weeks in pounds', async () => {
   const html = site.exports!.find((x) => x.ext === 'html')!;
-  const page = async (id: string) => (await html.build(templates().find((t) => t.id === id)!.doc, { title: id, link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
+  const page = async (id: string) => (await html.build(templates().find((t) => t.id === id)!.doc, { def: site, title: id, link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
   const trades = await page('trades');
   expect(trades).toContain('£85.00');
   expect(trades).not.toContain('$85.00');

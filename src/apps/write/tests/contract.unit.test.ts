@@ -8,12 +8,13 @@ import { createSigner, verify } from '../../../kit/sign.ts';
 import { checkContract, contractText, keyMark, parseContract, printedSignatures, readSignatures, serializeContract, signaturesAt, signaturesOf, signedMessage, signOps, verdictOf, writeSignatures } from '../contract.ts';
 import { templates } from '../templates.ts';
 import { docToDocx, docToHtml, docToRtf, pages } from '../view.ts';
+import def from '../def.ts';
 
 const memory = () => {
   let held: string | null = null;
   return { get: () => held, set: (v: string) => void (held = v), remove: () => void (held = null) };
 };
-const ctx = { title: 'Deal', link: '' };
+const ctx = { def, title: 'Deal', link: '' };
 const contract = () => templates().find((t) => t.id === 'contract')!.doc;
 
 /** Signed by the old tree (src/lib/sign.ts and contract.def.ts, three columns, no day), two parties. */

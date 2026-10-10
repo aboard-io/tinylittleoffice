@@ -1,9 +1,15 @@
 /**
- * Every document as a file, by one mechanism: the app's view() gives pages (SVG), and the kit turns them
- * into what the browser can make of them. Print (the browser's dialog, which saves a PDF too) through a
- * hidden srcdoc frame with @page at the page's size; a picture through a canvas; a web page; the text
- * itself. A file is handed over by showSaveFilePicker where there is one, the share sheet on a phone,
- * and <a download> everywhere else. (The ideas of the old tree's kit/core.ts printHtml and kit/browser.ts.)
+ * Every document as a file, by one mechanism: a format is one object (app.ts Export) that says what it is (its
+ * extension, type and words), whether the browser shows it, whether it is drawn still, and how it builds its bytes
+ * from the document alone. formatsOf(def) is the one list: the kit's five (KIT_FORMATS: the pages as a PDF, a picture
+ * and a web page through pdfOf, picture and htmlOf; Markdown; the text) less any the app makes its own way, then the
+ * app's own. The Download table, the ".<ext>" route, exportAs and the share sheet read that list and nothing else, so
+ * nothing here asks which extension it holds. (It replaced special cases in exportAs beside placeholder builders that
+ * returned empty bytes, with a second place deciding what the browser shows and a third what gets a link.)
+ *
+ * Print is not a format: the browser's dialog, through a hidden srcdoc frame with @page at the page's size, which
+ * saves a PDF too. A file is handed over by showSaveFilePicker where there is one, the share sheet on a phone, and
+ * <a download> everywhere else. (The ideas of the old tree's kit/core.ts printHtml and kit/browser.ts.)
  */
 import type { AppDef, Doc, Export, ExportContext, Page } from './app.ts';
 import { INK, MUTED, FONT, pageSvg, stack, fileName, slug, xml } from './draw.ts';
@@ -23,7 +29,7 @@ import { embedPictures } from './media.ts';
 
 export { xml, PAPER, INK, MUTED, FONT, pageSvg, stack, slug, fileName, utf8 } from './draw.ts';
 export { raster } from './raster.ts';
-import { jpeg, raster } from './raster.ts';
+import { drawn, jpeg, raster } from './raster.ts';
 import { zoomed } from './zoom.ts';
 
 /* ---------- handing a file over ---------- */
@@ -158,31 +164,49 @@ export async function printPages(pages: Page[], title: string): Promise<void> {
 /** Pages with every web picture's bytes inside them, fetched through the proxy: a file never asks a picture's site anything. */
 export const withPictures = (pages: Page[]): Promise<Page[]> => Promise.all(pages.map(async (p) => (p.svg.includes('<image') ? { ...p, svg: await embedPictures(p.svg) } : p)));
 
-/* ---------- the Download menu ---------- */
+/* ---------- the formats ---------- */
 
+/** The document in hand: what every format builds from. */
 export interface Current {
-  def: AppDef;
   doc: Doc;
   ctx: ExportContext;
 }
 
-/**
- * The formats every app has, after its own: the .pdf file, a picture, a web page, Markdown, the text. (The
- * drawn ones are made in exportAs, which has the pages; a .tlo carries its app, which only exportAs knows.)
- * Markdown is the document's own text (TLO is Markdown), its footnotes in the reference form other readers know.
- */
-export function kitExports(): Export[] {
-  return [
-    { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', build: () => new Uint8Array() },
-    { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', build: () => new Uint8Array() },
-    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: () => '' },
-    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => write(referenceNotes(parse(doc))) },
-    { ext: 'tlo', label: () => t('Text (TLO)'), mime: 'text/plain;charset=utf-8', build: (doc) => doc },
-  ];
-}
-
 /** Paper, a PDF and a PNG cannot move: an animation in them is drawn still (ViewOpts.still). A web page moves, so the HTML is drawn as the browser shows it. */
 const STILL = { still: true } as const;
+
+/** The document's name, or what one of the app's documents is called when untitled: a file's title. */
+const titleOf = (doc: Doc, { def, title }: ExportContext) => title || def.title(doc) || t('Untitled {noun}', { noun: def.noun });
+
+/** The pages, drawn still where the format says so, with every web picture's bytes inside them. */
+const pagesOf = (doc: Doc, ctx: ExportContext, still?: boolean) => withPictures(ctx.def.view(doc, still ? STILL : undefined));
+
+/**
+ * The formats every app has: the .pdf file, a picture, a web page, Markdown, the text. Each builds its own bytes
+ * through the pages (pdfOf, picture, htmlOf). Markdown is the document's own text (TLO is Markdown), its footnotes in
+ * the reference form other readers know; a .tlo carries its app (kit/plain.ts).
+ */
+export const KIT_FORMATS: readonly Export[] = [
+  { ext: 'pdf', label: () => t('PDF file'), mime: 'application/pdf', shows: 'own', still: true, build: async (doc, ctx) => drawn(await pdfOf(await pagesOf(doc, ctx, true), titleOf(doc, ctx))) },
+  { ext: 'png', label: () => t('Picture (PNG)'), mime: 'image/png', shows: 'own', still: true, build: async (doc, ctx) => drawn(await picture(await pagesOf(doc, ctx, true))) },
+  { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: async (doc, ctx) => htmlOf(await pagesOf(doc, ctx), titleOf(doc, ctx), ctx.link) },
+  { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => write(referenceNotes(parse(doc))) },
+  { ext: 'tlo', label: () => t('Text (TLO)'), mime: 'text/plain;charset=utf-8', shows: 'text', build: (doc, { def }) => tloText(def.id, doc) },
+];
+
+/**
+ * The one list of what a document of this app can become: the kit's formats less the ones the app makes its own way
+ * (write's HTML is the words, not pictures of its pages), then the app's own. The Download table, the ".<ext>" route,
+ * exportAs and the share sheet all read it; nothing anywhere asks which extension it is holding.
+ */
+export function formatsOf(def: AppDef): Export[] {
+  const own = def.exports ?? [];
+  const theirs = new Set(own.map((f) => f.ext));
+  return [...KIT_FORMATS.filter((f) => !theirs.has(f.ext)), ...own];
+}
+
+/** The app's format with this extension, if it has one. */
+export const formatOf = (def: AppDef, ext: string): Export | undefined => new Map(formatsOf(def).map((f) => [f.ext, f])).get(ext);
 
 /** A document made into a file: its name, its type and its bytes. */
 export interface Made {
@@ -191,61 +215,41 @@ export interface Made {
   data: Uint8Array | string;
 }
 
-/** The document as a kind of file, or null when there is no such kind ("print" is not a file). */
-export async function fileOf(ext: string, { def, doc, ctx }: Current): Promise<Made | null> {
-  const given = ctx.title || def.title(doc);
-  const title = given || t('Untitled {noun}', { noun: def.noun });
-  const name = fileName(given, slug(def.noun) || def.id, ext);
+/** The document built as a file of this format: every icon it names drawn first, and a web page holding its pictures' bytes. */
+export async function fileOf(format: Export, { doc, ctx }: Current): Promise<Made> {
+  const { def } = ctx;
   // Every icon the document names is drawn: one outside the starter set waits for the rest of Lucide.
   await ensureIcons(iconNames(doc));
-  // An app's own version of a kit format (a text as a real web page rather than pictures of its pages) comes first.
-  const theirs = def.exports?.find((x) => x.ext === ext);
-  if (theirs) {
-    const built = await theirs.build(doc, ctx);
-    // An app's own web page holds its pictures' bytes too.
-    return { name, mime: theirs.mime, data: typeof built === 'string' && theirs.mime.startsWith('text/html') ? await embedPictures(built) : built };
-  }
-  if (ext === 'pdf') {
-    const file = await pdfOf(await withPictures(def.view(doc, STILL)), title);
-    return file && { name, mime: 'application/pdf', data: file };
-  }
-  if (ext === 'tlo') return { name, mime: 'text/plain;charset=utf-8', data: tloText(def.id, doc) };
-  if (ext === 'png') {
-    const png = await picture(await withPictures(def.view(doc, STILL)));
-    return png && { name, mime: 'image/png', data: png };
-  }
-  if (ext === 'html') return { name, mime: 'text/html', data: htmlOf(await withPictures(def.view(doc)), title, ctx.link) };
-  const own = kitExports().find((x) => x.ext === ext);
-  return own ? { name, mime: own.mime, data: await own.build(doc, ctx) } : null;
+  const built = await format.build(doc, ctx);
+  // A web page, the kit's or an app's own, never asks a picture's site anything once saved.
+  const data = typeof built === 'string' && format.mime.startsWith('text/html') ? await embedPictures(built) : built;
+  return { name: fileName(ctx.title || def.title(doc), slug(def.noun) || def.id, format.ext), mime: format.mime, data };
 }
 
-/** Save the document as a kind of file (or print it); the file's name, or null when there is no such kind. */
+/** Save the document as one of its app's formats: find it, build it, hand it over. The file's name, or null when the app has no such format. */
 export async function exportAs(ext: string, current: Current, share = true): Promise<string | null> {
-  if (ext === 'print') {
-    const { def, doc, ctx } = current;
-    await ensureIcons(iconNames(doc));
-    await printPages(await withPictures(def.view(doc, STILL)), ctx.title || def.title(doc) || t('Untitled {noun}', { noun: def.noun }));
-    return null;
-  }
-  const made = await fileOf(ext, current);
-  if (!made) return null;
+  const format = formatOf(current.ctx.def, ext);
+  if (!format) return null;
+  const made = await fileOf(format, current);
   await saveFile(made.name, made.mime, made.data, share);
   return made.name;
 }
 
-/* ---------- a file shown, or shared ---------- */
-
-/** The type a file is shown in the browser as: its own where the browser draws it, plain text for a text it would only save; null where it shows nothing (a .docx). */
-export function shownAs(mime: string): string | null {
-  const base = mime.split(';')[0];
-  if (/^(application\/pdf|image\/(png|gif|jpeg|webp|svg\+xml)|text\/html)$/.test(base)) return base;
-  return /^text\/(markdown|plain|csv)$/.test(base) ? 'text/plain;charset=utf-8' : null;
+/** Print the document (not a format: the browser's dialog, which saves a PDF too), drawn still. */
+export async function printDoc({ doc, ctx }: Current): Promise<void> {
+  await ensureIcons(iconNames(doc));
+  await printPages(await pagesOf(doc, ctx, true), titleOf(doc, ctx));
 }
 
-/** Whether this device's share sheet takes a file of this kind (asked of an empty one, before any is made). */
-export function sharesFile(ext: string, mime: string): boolean {
+/* ---------- a file shown, or shared ---------- */
+
+/** The type a file of this format is shown in the browser as: its own, plain text, or null where the browser shows nothing. */
+export const shownAs = (format: Export): string | null => (format.shows === 'own' ? format.mime.split(';')[0] : format.shows === 'text' ? 'text/plain;charset=utf-8' : null);
+
+/** Whether this device's share sheet takes a file of this format (asked of an empty one, before any is made). */
+export function sharesFile(format: Export): boolean {
   try {
-    return typeof navigator.share === 'function' && !!navigator.canShare?.({ files: [new File([''], `file.${ext}`, { type: mime.split(';')[0] })] });
+    return typeof navigator.share === 'function' && !!navigator.canShare?.({ files: [new File([''], `file.${format.ext}`, { type: format.mime.split(';')[0] })] });
   } catch {
     return false;
   }
@@ -256,71 +260,70 @@ export function sharesFile(ext: string, mime: string): boolean {
  * browser's reason to allow it, and sent to the file once the file is made. (A blob's page is this site's, under
  * this site's Content-Security-Policy: no script the site did not write runs in it.)
  */
-export async function viewFile(ext: string, current: Current) {
+export async function viewFile(format: Export, current: Current) {
   const tab = window.open('', '_blank');
   if (tab) tab.opener = null;
   try {
-    const made = await fileOf(ext, current);
-    const shown = made && shownAs(made.mime);
-    if (!made || !shown) throw new Error('nothing to show');
+    const shown = shownAs(format);
+    if (!shown) throw new Error('nothing to show');
+    const made = await fileOf(format, current);
     const url = URL.createObjectURL(new Blob([typeof made.data === 'string' ? made.data : (made.data as BlobPart)], { type: shown }));
     setTimeout(() => URL.revokeObjectURL(url), 300_000);
     if (tab) tab.location.href = url;
-    else if (!window.open(url, '_blank', 'noopener')) toast(t('Could not show the .{ext}', { ext }));
+    else if (!window.open(url, '_blank', 'noopener')) toast(t('Could not show the .{ext}', { ext: format.ext }));
   } catch {
     tab?.close();
-    toast(t('Could not show the .{ext}', { ext }));
+    toast(t('Could not show the .{ext}', { ext: format.ext }));
   }
 }
 
 /** The file to the device's share sheet. */
-export async function shareFile(ext: string, current: Current) {
+export async function shareFile(format: Export, current: Current) {
   try {
-    const made = await fileOf(ext, current);
-    if (!made) throw new Error('no file');
+    const made = await fileOf(format, current);
     const file = new File([typeof made.data === 'string' ? made.data : (made.data as BlobPart)], made.name, { type: made.mime.split(';')[0] });
     await navigator.share({ files: [file], title: made.name });
   } catch (err) {
-    if (!(err instanceof DOMException && err.name === 'AbortError')) toast(t('Could not share the .{ext}', { ext }));
+    if (!(err instanceof DOMException && err.name === 'AbortError')) toast(t('Could not share the .{ext}', { ext: format.ext }));
   }
 }
 
+/* ---------- the Download menu ---------- */
+
 /**
- * The Download menu's items: Print first; then a row per format (the kit's, less any the app makes its own way, then
- * the app's own), each with View (where the browser shows it), Share (where the device's share sheet takes it),
+ * The Download menu's items: Print first; then a row per format in formatsOf, its words the format's label, each with
+ * View (where the format `shows`), Share (where the device's share sheet takes it),
  * Download, and Copy link (the link that downloads it as it opens, "#/v1/<app>.<ext>/<payload>"); then the
  * hand-offs to apps that exist.
  */
 export function exportItems(current: () => Current): MenuItem[] {
-  const run = async (ext: string) => {
+  const run = async (does: () => Promise<string | null | void>) => {
     try {
-      const name = await exportAs(ext, current(), false);
+      const name = await does();
       if (name) toast(t('Downloaded {name}', { name }));
     } catch {
       toast(t('Download failed'));
     }
   };
-  const { def } = current();
-  const theirs = new Set((def.exports ?? []).map((x) => x.ext));
+  const { def } = current().ctx;
   const linkTo = (ext: string) => {
     const u = new URL(current().ctx.link);
     u.hash = routeHash(def.id, parseHash(u.hash).payload, ext);
     return u.href;
   };
-  const row = (x: Export): MenuItem => ({
-    label: x.label(),
+  const row = (f: Export): MenuItem => ({
+    label: f.label(),
     actions: [
-      ...(shownAs(x.mime) ? [{ icon: UI.view, label: t('View the .{ext}', { ext: x.ext }), does: () => void viewFile(x.ext, current()) }] : []),
-      ...(sharesFile(x.ext, x.mime) ? [{ icon: UI.share, label: t('Share the .{ext}…', { ext: x.ext }), does: () => void shareFile(x.ext, current()) }] : []),
-      { icon: UI.download, label: t('Download the .{ext}', { ext: x.ext }), does: () => void run(x.ext) },
-      { icon: UI.link, label: t('Copy a link that downloads the .{ext}', { ext: x.ext }), does: () => void copyText(linkTo(x.ext)) },
+      ...(f.shows ? [{ icon: UI.view, label: t('View the .{ext}', { ext: f.ext }), does: () => void viewFile(f, current()) }] : []),
+      ...(sharesFile(f) ? [{ icon: UI.share, label: t('Share the .{ext}…', { ext: f.ext }), does: () => void shareFile(f, current()) }] : []),
+      { icon: UI.download, label: t('Download the .{ext}', { ext: f.ext }), does: () => void run(() => exportAs(f.ext, current(), false)) },
+      { icon: UI.link, label: t('Copy a link that downloads the .{ext}', { ext: f.ext }), does: () => void copyText(linkTo(f.ext)) },
     ],
     does: () => {},
   });
   return [
-    { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run('print') },
-    ...kitExports().filter((x) => !theirs.has(x.ext)).map(row),
-    ...(def.exports ?? []).map(row),
+    { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run(() => printDoc(current())) },
+    ...formatsOf(def).map(row),
     ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => void (location.hash = routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }

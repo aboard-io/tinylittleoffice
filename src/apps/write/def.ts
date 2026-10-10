@@ -46,11 +46,11 @@ export default defineApp({
   retitle,
   view: (doc, opts) => pages(doc, opts?.small, isStill(opts)),
   exports: [
-    { ext: 'docx', label: () => t('Word (DOCX)'), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', build: async (doc, ctx) => docToDocx(await checked(doc), ctx) },
-    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => docToMarkdown(parse(doc)) },
-    { ext: 'rtf', label: () => t('Rich Text (RTF)'), mime: 'application/rtf', build: async (doc, ctx) => utf8(docToRtf(await checked(doc), ctx)) },
+    { ext: 'docx', label: () => t('Word (DOCX)'), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', shows: null, build: async (doc, ctx) => docToDocx(await checked(doc), ctx) },
+    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => docToMarkdown(parse(doc)) },
+    { ext: 'rtf', label: () => t('Rich Text (RTF)'), mime: 'application/rtf', shows: null, build: async (doc, ctx) => utf8(docToRtf(await checked(doc), ctx)) },
     // In place of the kit's pictures of the pages: the words still words, in a page anyone can read.
-    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: async (doc, ctx) => docToHtml(await checked(doc), ctx) },
+    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: async (doc, ctx) => docToHtml(await checked(doc), ctx) },
   ],
   handoffs: [
     { to: 'deck', label: () => t('Show as slides'), convert: writeToDeck },

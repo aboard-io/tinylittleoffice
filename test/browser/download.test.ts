@@ -4,6 +4,7 @@ import { test, expect, afterEach, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { mount, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
+import { appOf } from '../../src/kit/apps.ts';
 import { parseHash } from '../../src/kit/route.ts';
 import { keepSize, stepSize } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -257,3 +258,57 @@ test('at size 2 the actions never overlap, each a whole target, and the table sc
     for (let i = 1; i < rects.length; i++) expect(rects[i].left).toBeGreaterThanOrEqual(rects[i - 1].right - 0.5);
   }
 });
+
+/** A row's actions, by what each does: view, share, download, link. */
+const kinds = (r: HTMLElement) => acts(r).map((b) => b.getAttribute('aria-label')!.replace(/^(\w+).*/, '$1').toLowerCase());
+
+test('the table reads each format: View where the browser shows the file, Share where the device takes it, Download and Copy link always (Write, Animator)', async () => {
+  await page.viewport(390, 844);
+  await shareSheet(async () => {
+    let shell = await mount(NOTES);
+    await until(() => !!shell.querySelector('to-write-editor'));
+    await openDownload(shell);
+    // The share sheet here takes PDFs, pictures and texts: a .docx it does not, and the browser shows a .docx not at all.
+    const want: Record<string, string[]> = {
+      'PDF file': ['view', 'share', 'download', 'copy'],
+      'Picture (PNG)': ['view', 'share', 'download', 'copy'],
+      'Web page (HTML)': ['view', 'share', 'download', 'copy'],
+      Markdown: ['view', 'share', 'download', 'copy'],
+      'Text (TLO)': ['view', 'share', 'download', 'copy'],
+      'Word (DOCX)': ['download', 'copy'],
+    };
+    for (const [name, has] of Object.entries(want)) expect(kinds(row(shell, name)), name).toEqual(has);
+    expect(menu(shell).getBoundingClientRect().right).toBeLessThanOrEqual(390);
+    menu(shell).hidePopover();
+    shell = await mount(`#/v1/anim/${encodeDoc(appOf('anim')!.blank())}`);
+    await until(() => !!shell.querySelector('to-anim-editor'));
+    await openDownload(shell);
+    expect(rows(shell).map((r) => r.getAttribute('aria-label'))).toEqual(['PDF file', 'Picture (PNG)', 'Web page (HTML)', 'Markdown', 'Text (TLO)', 'Animated GIF', 'Animated SVG']);
+    expect(kinds(row(shell, 'Animated GIF'))).toEqual(['view', 'share', 'download', 'copy']);
+    expect(acts(row(shell, 'Animated GIF')).map((b) => b.getAttribute('aria-label'))).toEqual(['View the .gif', 'Share the .gif…', 'Download the .gif', 'Copy a link that downloads the .gif']);
+    menu(shell).hidePopover();
+  });
+});
+
+test('a ".<ext>" link downloads any of the app\'s formats, a kit\'s or its own, and an extension it has not opens the document plainly', async () => {
+  const got = downloads();
+  const payload = NOTES.slice('#/v1/write/'.length);
+  for (const ext of ['tlo', 'docx']) {
+    const shell = await mount(`#/v1/write.${ext}/${payload}`);
+    await until(() => got.has(`notes.${ext}`), 8000);
+    await until(() => !!shell.querySelector('to-write-editor') && parseHash(location.hash).view === '');
+  }
+  expect(got.get('notes.docx')!.type).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  expect(await got.get('notes.tlo')!.text()).toContain('app: write');
+  // An animation's GIF, by its own link.
+  const anim = await mount(`#/v1/anim.gif/${encodeDoc(appOf('anim')!.blank())}`);
+  await until(() => [...got.keys()].some((n) => n.endsWith('.gif')), 15000);
+  await until(() => !!anim.querySelector('to-anim-editor'));
+  // No such format: the document, and nothing else (no file, no word about it).
+  got.clear();
+  const shell = await mount(`#/v1/write.nope/${payload}`);
+  await until(() => !!shell.querySelector('to-write-editor') && parseHash(location.hash).view === '');
+  await new Promise((r) => setTimeout(r, 300));
+  expect(got.size).toBe(0);
+  expect(shell.querySelector('to-toast [role=status]')?.textContent ?? '').toBe('');
+}, 40_000);

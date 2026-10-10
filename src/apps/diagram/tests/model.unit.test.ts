@@ -125,7 +125,7 @@ describe('the eight kinds drawn', () => {
     const tpl = templates().find((x) => x.id === 'org-company')!;
     expect(def.view(tpl.doc)).toHaveLength(1);
     expect(def.view('')).toHaveLength(1);
-    const svg = await def.exports![0].build(tpl.doc, { title: '', link: '' });
+    const svg = await def.exports![0].build(tpl.doc, { def, title: '', link: '' });
     expect(new TextDecoder().decode(svg as Uint8Array)).toMatch(/^<\?xml[\s\S]*<svg[\s\S]*Ada Diaz/);
     expect(def.title(tpl.doc)).toBe('Who reports to whom');
     expect(def.title(def.retitle(tpl.doc, 'People'))).toBe('People');

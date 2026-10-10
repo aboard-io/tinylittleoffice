@@ -9,7 +9,7 @@ import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8, pageSvg } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { raster } from '../../kit/raster.ts';
+import { drawn, raster } from '../../kit/raster.ts';
 import { tableToXlsx } from '../../kit/xlsx.ts';
 import { readSheet } from './model.ts';
 import { cellText, chartOf, sheetPages, sheetToCsv } from './view.ts';
@@ -46,17 +46,18 @@ export default defineApp({
   retitle,
   view: (doc, opts) => sheetPages(doc, opts?.small, opts?.thumb),
   exports: [
-    { ext: 'xlsx', label: () => t('Excel (XLSX)'), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', build: (doc) => xlsx(doc) },
+    { ext: 'xlsx', label: () => t('Excel (XLSX)'), mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', shows: null, build: (doc) => xlsx(doc) },
     // The byte order mark is how Excel knows a CSV is UTF-8.
-    { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', build: (doc) => utf8('\ufeff' + sheetToCsv(parse(doc))) },
-    { ext: 'chart.svg', label: () => t('Chart (SVG)'), mime: 'image/svg+xml', build: (doc) => chartSvg(doc) },
+    { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', shows: 'text', build: (doc) => utf8('\ufeff' + sheetToCsv(parse(doc))) },
+    { ext: 'chart.svg', label: () => t('Chart (SVG)'), mime: 'image/svg+xml', shows: 'own', build: (doc) => chartSvg(doc) },
     {
       ext: 'chart.png',
       label: () => t('Chart (PNG)'),
       mime: 'image/png',
+      shows: 'own',
       build: async (doc) => {
-        const p = chartOf(readSheet(parse(doc)));
-        return (p && (await raster(pageSvg(p), p.w, p.h, 2))) ?? new Uint8Array();
+        const p = chartPage(doc);
+        return drawn(await raster(pageSvg(p), p.w, p.h, 2));
       },
     },
   ],
@@ -76,8 +77,6 @@ function xlsx(doc: Doc): Uint8Array {
 }
 
 /** The chart as an SVG file; an empty chart's page when the sheet asks for none. */
-function chartSvg(doc: Doc): Uint8Array {
-  const v = readSheet(parse(doc));
-  const p = chartOf(v) ?? sheetPages(doc, true)[0];
-  return utf8(pageSvg(p));
-}
+/** The sheet's chart, drawn; the sheet itself where it has none. */
+const chartPage = (doc: Doc) => chartOf(readSheet(parse(doc))) ?? sheetPages(doc, true)[0];
+const chartSvg = (doc: Doc): Uint8Array => utf8(pageSvg(chartPage(doc)));

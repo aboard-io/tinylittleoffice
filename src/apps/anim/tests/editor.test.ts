@@ -177,7 +177,7 @@ test('an empty motion opens in Draw mode; a list of things is put on the stage a
 });
 
 test('the GIF export: GIF89a, the stage size, a frame for every frame', async () => {
-  const gif = (await def.exports!.find((e) => e.ext === 'gif')!.build(LIFT, { title: '', link: '' })) as Uint8Array;
+  const gif = (await def.exports!.find((e) => e.ext === 'gif')!.build(LIFT, { def, title: '', link: '' })) as Uint8Array;
   expect(new TextDecoder().decode(gif.slice(0, 6))).toBe('GIF89a');
   expect([gif[6] | (gif[7] << 8), gif[8] | (gif[9] << 8)]).toEqual([640, 400]);
   // Each frame starts with a graphic control extension (0x21 0xf9 0x04).
@@ -187,7 +187,7 @@ test('the GIF export: GIF89a, the stage size, a frame for every frame', async ()
 });
 
 test('the GIF repeats as the motion says (once: no loop block; bounce: there and back), and its frames draw a label\'s marks', async () => {
-  const build = (doc: string) => def.exports!.find((e) => e.ext === 'gif')!.build(doc, { title: '', link: '' }) as Promise<Uint8Array>;
+  const build = (doc: string) => def.exports!.find((e) => e.ext === 'gif')!.build(doc, { def, title: '', link: '' }) as Promise<Uint8Array>;
   const count = (gif: Uint8Array) => {
     let n = 0;
     for (let i = 0; i < gif.length - 2; i++) if (gif[i] === 0x21 && gif[i + 1] === 0xf9 && gif[i + 2] === 4) n++;

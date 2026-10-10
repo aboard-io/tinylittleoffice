@@ -43,8 +43,8 @@ export default defineApp({
   // Presented on a slide, a stop a step: the map stays fitted to them all, the route drawn as far as it has come.
   steps: (doc) => readTrip(parse(doc)).stops.length,
   exports: [
-    { ext: 'gpx', label: () => t('GPX route'), mime: 'application/gpx+xml', build: (doc) => utf8(tripToGpx(parse(doc))) },
-    { ext: 'geojson', label: () => t('GeoJSON'), mime: 'application/geo+json', build: (doc) => utf8(tripToGeoJson(parse(doc))) },
+    { ext: 'gpx', label: () => t('GPX route'), mime: 'application/gpx+xml', shows: null, build: (doc) => utf8(tripToGpx(parse(doc))) },
+    { ext: 'geojson', label: () => t('GeoJSON'), mime: 'application/geo+json', shows: null, build: (doc) => utf8(tripToGeoJson(parse(doc))) },
   ],
   keys: [
     { keys: 'Mod+Alt+Enter', does: () => t('Present: the map flies stop to stop') },

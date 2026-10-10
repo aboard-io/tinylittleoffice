@@ -60,8 +60,8 @@ export default defineApp({
     return [{ w: W, h: H, svg: frameSvg(anim, opts?.thumb ? 0 : Math.max(0, anim.frames - 1)), alt: altOf(anim) }];
   },
   exports: [
-    { ext: 'gif', label: () => t('Animated GIF'), mime: 'image/gif', build: (doc) => animGif(doc) },
-    { ext: 'svg', label: () => t('Animated SVG'), mime: 'image/svg+xml', build: (doc) => utf8(animToSvg(parse(doc))) },
+    { ext: 'gif', label: () => t('Animated GIF'), mime: 'image/gif', shows: 'own', build: (doc) => animGif(doc) },
+    { ext: 'svg', label: () => t('Animated SVG'), mime: 'image/svg+xml', shows: 'own', build: (doc) => utf8(animToSvg(parse(doc))) },
   ],
   keys: [
     { keys: 'Space', does: () => t('Play or pause') },

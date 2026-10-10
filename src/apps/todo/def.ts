@@ -54,8 +54,8 @@ export default defineApp({
   // On a slide (drawn small, the first eight), a task a step.
   steps: (doc) => Math.min(SMALL, readTodo(parse(doc)).tasks.length),
   exports: [
-    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => todoToMarkdown(parse(doc)) },
-    { ext: 'ics', label: () => t('Calendar to-dos (ICS)'), mime: 'text/calendar;charset=utf-8', build: (doc) => utf8(todoToIcs(parse(doc), Date.now())) },
+    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => todoToMarkdown(parse(doc)) },
+    { ext: 'ics', label: () => t('Calendar to-dos (ICS)'), mime: 'text/calendar;charset=utf-8', shows: null, build: (doc) => utf8(todoToIcs(parse(doc), Date.now())) },
   ],
   handoffs: [
     { to: 'board', label: () => t('Show on a board'), convert: todoToBoard },

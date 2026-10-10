@@ -34,7 +34,7 @@ Status key: **present**; **partial** (some of it is there); **missing**; **dropp
 | /tinyoffice.js link()/embed() helper | public/tinyoffice.js | A tiny script for pages to make links and iframes. | **restored** (RS-3): public/tinyoffice.js | Port and update to v1 links. |
 | Compare / diff two links | src/lib/diff.ts, widgets/compare.ts, `#/compare/...`, Share → "Compare with another link…" | Two documents side by side, with the lines the second changed (LCS diff). | **restored** (RS-3): block by block, src/kit/{diff,compare}.ts, Compare… in the menu | Port the pure code: diff.ts (20 lines). In the kit: a compare page routed at `#/compare/…` and a Share item. |
 | Open a .tlo / import Markdown or CSV | app.ts `renderImport`, lib/markdown.ts `fromMarkdown` | Paste or pick .md/.csv/.tlo. A .tlo opens as its own app and title. Markdown is shaped by the app's reader. | **dropped** for lenient importers (memory notes-round-two and the brief; no line found in rebuild.md). Opening a .tlo file is **restored** (RS-3): drop it on the page, or Open a file… in the menu. | In the kit: a file picker that reads a `.tlo` head `app:` and routes. TLO is parsed by the kernel, so no lenient reader is needed. |
-| Markdown export for every app | kit/core.ts `COMMON` (.md) | `.md` under Download in every app. | **restored** (RS-3): `md` in `kitExports()`; the `.tlo` carries `app:` | In the kit: add `md` to `kitExports()` (the TLO text, with `referenceNotes` for footnotes). |
+| Markdown export for every app | kit/core.ts `COMMON` (.md) | `.md` under Download in every app. | **restored** (RS-3): `md` in `KIT_FORMATS`; the `.tlo` carries `app:` | In the kit: add `md` to `KIT_FORMATS` (the TLO text, with `referenceNotes` for footnotes). |
 | Social share targets | app.ts `SERVICES` | Bluesky, Mastodon, X, LinkedIn and email compose boxes with the link. | **restored** (RS-3): Post the link in Share, through the link guard | In the kit: menu items in `shell.shareItems()`, intent URLs only. |
 | Save a picture (Share) | app.ts share 'png' | A PNG of the document from the Share menu. | **present** (Download → Picture (PNG)) | — |
 | Embed view and "Copy embed code" | app.ts `renderEmbedded`, `.embed` view, Share item | `#/v0/<app>.embed/…` shows the document alone with page arrows and "Open in TinyLittleOffice", for an `<iframe>`. Share copies a lazy-loading, no-referrer iframe snippet. | **restored** (RS-3): the `.embed` view at /embed/, the only framable address; Copy embed code | In the kit: an embed render in the shell (pages from `def.view`) and a Share item. Add a CSP `frame-ancestors` exception for the embed route only. |
@@ -111,7 +111,7 @@ Status key: **present**; **partial** (some of it is there); **missing**; **dropp
 
 ## 5. Exports per app
 
-Kit-wide (old `COMMON`: pdf, png, html, md, tlo, plus gif for moving things). New `kitExports()`: print/pdf (browser), png, html, tlo. `.md` for every app and the `.pdf` file (JPEG pages) **restored** (RS-3). File-extension aliases (`.xls`, `.doc`, `.ppt`, `.ical`, `.json`) are dropped (no aliases rule).
+Kit-wide (old `COMMON`: pdf, png, html, md, tlo, plus gif for moving things). New `KIT_FORMATS` (kit/exports.ts): print/pdf (browser), png, html, tlo. `.md` for every app and the `.pdf` file (JPEG pages) **restored** (RS-3). File-extension aliases (`.xls`, `.doc`, `.ppt`, `.ical`, `.json`) are dropped (no aliases rule).
 
 | App | Old exports | New exports | Status |
 |---|---|---|---|

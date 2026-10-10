@@ -266,7 +266,6 @@ export default {
   'Text (TLO)': 'テキスト（TLO）',
   'Downloaded {name}': '{name}をダウンロードしました',
   'Download failed': 'ダウンロードできませんでした',
-  'No .{ext} view here': '.{ext}では表示できません',
   'Open in Tiny Little Office': 'Tiny Little Officeで開く',
 
   // ---- the bar, shared by every app ----

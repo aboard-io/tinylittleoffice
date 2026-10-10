@@ -323,7 +323,7 @@ test('OPML, plain text and Markdown, and the page', () => {
     '<?xml version="1.0" encoding="UTF-8"?>\n<opml version="2.0">\n  <head><title>Launch</title></head>\n  <body>\n    <outline text="Launch">\n      <outline text="Product">\n        <outline text="Pricing"/>\n      </outline>\n      <outline text="Marketing"/>\n      <outline text="Ops"/>\n      <outline text="Support"/>\n    </outline>\n  </body>\n</opml>\n',
   );
   expect(outlineText(v)).toBe('- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n');
-  const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { title: '', link: '' }) as Uint8Array);
+  const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { def, title: '', link: '' }) as Uint8Array);
   expect(built('txt', TREE)).toBe('- Launch\n  - Product\n    - Pricing\n  - Marketing\n');
   expect(built('txt', '1. A\n2. B\n\n```draw {depth=0}\n```\n')).toBe('1. A\n2. B\n- [Drawing Tool]\n');
   // OPML has no numbers: plain words.
@@ -449,7 +449,7 @@ test('footnotes in the files: each an item right under its own, first among its 
   expect(apart.notes).toEqual(['After the *beta*, see https://example.com', 'Or June']);
   expect(write({ head: {}, blocks: [{ k: 'li', depth: 0, runs: apart.runs }] })).toBe('- Launch the **app**[1] in May[2]\n');
   expect(notesApart([{ t: 'plain' }]).runs).toEqual([{ t: 'plain' }]);
-  const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { title: '', link: '' }) as Uint8Array);
+  const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { def, title: '', link: '' }) as Uint8Array);
   // Plain text: the note's plain words, numbered under the item, before its children; the item's own numbering untouched.
   expect(built('txt', NOTED)).toBe('- Launch the app[1] in May[2]\n  1. After the beta, see https://example.com\n  2. Or June\n  - Product\n    - Pricing[1]\n      1. Per seat\n  1. Marketing\n- Wrap up\n');
   // Markdown: the same as a numbered list under the item, the note's marks kept as Markdown; no reference notes left.

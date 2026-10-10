@@ -44,13 +44,14 @@ export default defineApp({
   retitle,
   view: (doc, opts) => deckPages(doc, opts?.small, isStill(opts)),
   exports: [
-    { ext: 'pptx', label: () => t('PowerPoint (PPTX)'), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: (doc, ctx) => buildPptx(doc, ctx) },
+    { ext: 'pptx', label: () => t('PowerPoint (PPTX)'), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', shows: null, build: (doc, ctx) => buildPptx(doc, ctx) },
     // In place of the kit's pictures of the pages: a page that plays the deck, a slide at a time, with its transition.
-    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: (doc, ctx) => deckToHtml(doc, ctx.title || titleOf(doc) || t('Untitled {noun}', { noun: t('presentation') }), ctx.link) },
+    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: (doc, ctx) => deckToHtml(doc, ctx.title || titleOf(doc) || t('Untitled {noun}', { noun: t('presentation') }), ctx.link) },
     {
       ext: 'zip',
       label: () => t('A picture of every slide (ZIP of PNGs)'),
       mime: 'application/zip',
+      shows: null,
       build: async (doc) => {
         const files: Record<string, Uint8Array> = {};
         const pages = deckPages(doc, false, true);
@@ -65,6 +66,7 @@ export default defineApp({
       ext: 'gif',
       label: () => t('A film of the deck (GIF)'),
       mime: 'image/gif',
+      shows: 'own',
       build: async (doc) => {
         const frames: GifFrame[] = [];
         const pages = deckFrames(doc);

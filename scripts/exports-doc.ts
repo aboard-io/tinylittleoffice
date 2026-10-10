@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { apps, appOf } from '../src/kit/apps.ts';
-import { kitExports } from '../src/kit/exports.ts';
+import { KIT_FORMATS } from '../src/kit/exports.ts';
 
 const cell = (s: string) => s.replace(/\|/g, '\\|');
 
@@ -34,7 +34,7 @@ definitions by \`node scripts/exports-doc.ts\`; a test fails when it is out of d
 | Format | What the file holds |
 | --- | --- |
 | Print, or save as PDF | The browser's own print dialog, which saves a PDF: a page per page the app draws, at its own size, the words in the SVG still text. Mod+P. |
-${kitExports()
+${KIT_FORMATS
   .map((x) => `| \`.${x.ext}\` | ${cell(x.label())}${x.ext === 'png' ? ': the whole document as one picture, its pages stacked' : x.ext === 'html' ? ': a web page of its pages as pictures (an app with its own web page lists it below, and that one is used)' : ': the document exactly as its link holds it (docs/tlo.md)'}. |`)
   .join('\n')}
 

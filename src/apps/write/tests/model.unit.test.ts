@@ -12,7 +12,7 @@ import { templates } from '../templates.ts';
 import { LOOK_IDS, lookOf } from '../look.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
 
-const ctx = { title: 'Test', link: 'https://tinylittleoffice.com/#/v1/write/rAbc' };
+const ctx = { def: write_, title: 'Test', link: 'https://tinylittleoffice.com/#/v1/write/rAbc' };
 const invoice = () => templates().find((t) => t.id === 'invoice')!.doc;
 
 test('the name is the head title, else the title heading; retitle writes the head', () => {

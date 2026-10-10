@@ -268,7 +268,6 @@ export default {
   'Text (TLO)': 'نص (TLO)',
   'Downloaded {name}': 'تم تنزيل {name}',
   'Download failed': 'فشل التنزيل',
-  'No .{ext} view here': 'لا عرض بصيغة .{ext} هنا',
   'Open in Tiny Little Office': 'فتح في Tiny Little Office',
 
   // ---- the bar, shared by every app ----

@@ -40,6 +40,6 @@ export default defineApp({
   page: (doc, base) => sitePage(parse(doc), { base }),
   exports: [
     // In place of the kit's pictures of the pages: the site itself, every page in one file, ready to put on the web.
-    { ext: 'html', label: () => t('The website (HTML)'), mime: 'text/html', build: (doc, ctx) => sitePage(parse(doc), { base: siteOf(ctx.link) }) },
+    { ext: 'html', label: () => t('The website (HTML)'), mime: 'text/html', shows: 'own', build: (doc, ctx) => sitePage(parse(doc), { base: siteOf(ctx.link) }) },
   ],
 });

@@ -37,5 +37,5 @@ export default defineApp({
   title: titleOf,
   retitle,
   view: (doc, opts) => [calcPage(parse(doc), opts?.small)],
-  exports: [{ ext: 'txt', label: () => t('The tape (text)'), mime: 'text/plain;charset=utf-8', build: (doc) => tapeText(parse(doc)) }],
+  exports: [{ ext: 'txt', label: () => t('The tape (text)'), mime: 'text/plain;charset=utf-8', shows: 'text', build: (doc) => tapeText(parse(doc)) }],
 });

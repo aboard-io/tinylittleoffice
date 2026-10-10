@@ -15,7 +15,7 @@ import { closingPage, deckFrames, deckPages, deckToHtml, layoutSlide, lookOf, pa
 
 const TALK = templates().find((x) => x.id === 'talk')!.doc;
 const tpl = (id: string) => templates().find((x) => x.id === id)!.doc;
-const ctx = { title: 'Test', link: 'https://tinylittleoffice.com/#/v1/deck/rAbc' };
+const ctx = { def: deck, title: 'Test', link: 'https://tinylittleoffice.com/#/v1/deck/rAbc' };
 
 test('slides are spans between rules: headline, icon, layout, words, the right column, notes, a document', () => {
   const doc = parse('## :rocket: Hello {.title}\n\n- Sub\n\n---\n\n## Two {.two}\n\n- a\n  - a2\n\n|\n\n1. b\n2. c\n\n> say this\n> and this\n\n---\n\n```sheet\n| A | B |\n| --- | --- |\n| 1 | 2 |\n```\n');

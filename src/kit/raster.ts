@@ -25,6 +25,12 @@ async function paint(svg: string, w: number, h: number, scale: number, paper: st
   }
 }
 
+/** A picture that did not come out (a canvas the browser refused, or none at all) is a failed file, never an empty one. */
+export function drawn<T>(bytes: T | null | undefined): T {
+  if (!bytes) throw new Error('not drawn');
+  return bytes;
+}
+
 /** Draw SVG markup as a PNG. `scale` trades sharpness for size; `paper` is painted under it first, or nothing when null (a tile keeps its clear squares). */
 export async function raster(svg: string, w: number, h: number, scale = 1, paper: string | null = PAPER): Promise<Uint8Array | null> {
   const canvas = await paint(svg, w, h, scale, paper);

@@ -63,7 +63,7 @@ test('a text passes still through: its pages move, its print stands still, its w
   expect(write.view(text, { small: true })[0].svg).toMatch(SMIL);
   expect(write.view(text, { still: true }).map((p) => p.svg).join('')).not.toMatch(SMIL);
   expect(write.view(text, { small: true, thumb: true })[0].svg).not.toMatch(SMIL);
-  expect(docToHtml(parse(text), { title: 'A text', link: '' })).toMatch(SMIL);
+  expect(docToHtml(parse(text), { def: write, title: 'A text', link: '' })).toMatch(SMIL);
 });
 
 test('a document placed in a placed document carries still all the way down', () => {

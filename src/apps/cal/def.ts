@@ -41,8 +41,8 @@ export default defineApp({
   retitle,
   view: (doc, opts) => calPages(parse(doc), !!opts?.small),
   exports: [
-    { ext: 'ics', label: () => t('iCalendar (ICS)'), mime: 'text/calendar;charset=utf-8', build: (doc) => utf8(calToIcs(parse(doc), Date.now())) },
-    { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', build: (doc) => utf8('﻿' + calToCsv(parse(doc), csvSeparator())) },
+    { ext: 'ics', label: () => t('iCalendar (ICS)'), mime: 'text/calendar;charset=utf-8', shows: null, build: (doc) => utf8(calToIcs(parse(doc), Date.now())) },
+    { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', shows: 'text', build: (doc) => utf8('﻿' + calToCsv(parse(doc), csvSeparator())) },
   ],
   handoffs: [{ to: 'todo', label: () => t('Make a to-do list of it'), convert: calToTodo }],
 });

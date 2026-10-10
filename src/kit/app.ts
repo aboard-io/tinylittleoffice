@@ -60,19 +60,30 @@ export interface Template {
   doc: Doc;
 }
 
+/** What a format needs to build a file without the shell: the app (its `view`, its `title`, its `noun`), the document's name, its link. */
 export interface ExportContext {
-  /** The document's name, for the file's. */
+  def: AppDef;
+  /** The document's name, for the file's ('' where it has none: a format names it from the document or the app). */
   title: string;
   /** The link to the document, so a file can point home. */
   link: string;
 }
 
-/** A file an app can become, beyond what the kit gives every app (PDF, picture, web page, text). */
+/**
+ * A file a document can become, saying everything about itself: its extension and type, its words in the Download
+ * table, whether the browser shows it, whether it is drawn still, and how it is built. The kit's five (PDF, PNG,
+ * HTML, Markdown, TLO, in kit/exports.ts) and an app's own are the same shape; an app's own with a kit format's
+ * `ext` is used in its place (kit/exports.ts formatsOf, the one list everything reads).
+ */
 export interface Export {
   ext: string;
-  label: () => string;
   mime: string;
-  /** The file's bytes or text; a promise where drawing in the browser is needed (a picture). */
+  label: () => string;
+  /** How a browser shows the file: as itself (a PDF, a picture, a web page), as plain text (Markdown, CSV), or not at all (a .docx): the Download table's View. */
+  shows: 'own' | 'text' | null;
+  /** Drawn where nothing can move (ViewOpts.still): a PDF, a PNG. */
+  still?: boolean;
+  /** The file's bytes or text, built from the document alone; a promise where drawing in the browser is needed (a picture). */
   build(doc: Doc, ctx: ExportContext): Uint8Array | string | Promise<Uint8Array | string>;
 }
 

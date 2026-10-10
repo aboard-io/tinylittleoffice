@@ -50,7 +50,7 @@ import type { Locker } from './crypt.ts';
 import { ENVELOPE_KEYS, isoMinute, readEnvelope } from './envelope.ts';
 import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
-import { exportAs, exportItems, picture, raster, withPictures, saveFile, slug, utf8 } from './exports.ts';
+import { exportAs, exportItems, formatOf, printDoc, picture, raster, withPictures, saveFile, slug, utf8 } from './exports.ts';
 import { LINK_VERSION, onFlush, parseHash, routeHash, type Owned } from './route.ts';
 import { fitLine, roomFor } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, expiresSentence, forget, ownerLink, shorten, shortLink, timeLeft, update, type Shortened } from './short.ts';
@@ -480,15 +480,22 @@ export class ToShell extends LitElement {
     return withHead(doc, this.envelope);
   }
 
+  /**
+   * A ".<ext>" link: the document is shown behind, at its own link, and the file in its app's formats (formatsOf)
+   * downloads; ".print" prints. Any other extension opens the document plainly.
+   */
   private async doView() {
     const view = this.pendingView;
     this.pendingView = '';
-    if (!view || !this.def) return;
-    history.replaceState(this.state(), '', routeHash(this.def.id, parseHash(location.hash).payload, '', this.owned, false, this.tie));
+    const def = this.def;
+    if (!view || !def) return;
+    history.replaceState(this.state(), '', routeHash(def.id, parseHash(location.hash).payload, '', this.owned, false, this.tie));
+    const format = formatOf(def, view);
+    if (!format && view !== 'print') return;
     try {
-      const name = await exportAs(view, this.current());
+      if (!format) return void (await printDoc(this.current()));
+      const name = await exportAs(format.ext, this.current());
       if (name) toast(t('Downloaded {name}', { name }));
-      else if (view !== 'print' && view !== 'pdf') toast(t('No .{ext} view here', { ext: view }));
     } catch {
       toast(t('Download failed'));
     }
@@ -687,7 +694,7 @@ export class ToShell extends LitElement {
   private get shortTarget() {
     return this.shortDisplay ? this.displayLink : this.link;
   }
-  private current = () => (this.flushLink(), { def: this.def!, doc: this.doc, ctx: { title: this.def!.title(this.doc) || this.fresh, link: this.link } });
+  private current = () => (this.flushLink(), { doc: this.doc, ctx: { def: this.def!, title: this.def!.title(this.doc) || this.fresh, link: this.link } });
 
   /* ---------- keys ---------- */
 
@@ -704,7 +711,7 @@ export class ToShell extends LitElement {
     const k = e.key.toLowerCase();
     if (k === 'p' && this.def) {
       e.preventDefault();
-      void exportAs('print', this.current());
+      void printDoc(this.current());
       return;
     }
     // The page's own keys (kit/keys.ts PAGE): the shortcuts, find, keep.

@@ -141,7 +141,7 @@ test('motion(): off pauses; on starts from 0; with reduced motion it rests where
 });
 
 test('print, a PDF and a PNG ask for the document still; the web page does not', async () => {
-  const { exportAs } = await import('../../src/kit/exports.ts');
+  const { exportAs, printDoc } = await import('../../src/kit/exports.ts');
   const anim = appOf('anim')!;
   const asked: Record<string, boolean> = {};
   let ext = '';
@@ -150,7 +150,10 @@ test('print, a PDF and a PNG ask for the document still; the web page does not',
   const had = w.showSaveFilePicker;
   w.showSaveFilePicker = async () => ({ createWritable: async () => ({ write: async () => {}, close: async () => {} }) });
   try {
-    for (ext of ['print', 'pdf', 'png', 'html']) await exportAs(ext, { def, doc: LIFT, ctx: { title: 'Up', link: location.href } });
+    const current = { doc: LIFT, ctx: { def, title: 'Up', link: location.href } };
+    ext = 'print';
+    await printDoc(current);
+    for (ext of ['pdf', 'png', 'html']) await exportAs(ext, current);
   } finally {
     w.showSaveFilePicker = had;
     document.querySelector('.to-print')?.remove();

@@ -139,15 +139,11 @@ export async function formats(app: string): Promise<string[]> {
  * format the app does not have, or one that needs a browser.
  */
 export async function file(app: string, text: string, ext: string, ctx: { title?: string; link?: string } = {}): Promise<Uint8Array | string> {
-  if (ext === 'tlo') return tloText(app, text);
-  const { appOf } = await import('./kit/apps.ts');
+  const [{ appOf }, { formatOf }] = await Promise.all([import('./kit/apps.ts'), import('./kit/exports.ts')]);
   const def = appOf(app);
   if (!def) throw new Error(`No app "${app}"`);
-  const own = def.exports?.find((x) => x.ext === ext);
-  if (own) return own.build(text, { title: ctx.title ?? def.title(text), link: ctx.link ?? link(app, text) });
-  if (ext === 'md') {
-    const { referenceNotes } = await import('./doc/index.ts');
-    return writeDoc(referenceNotes(parseText(text)));
-  }
+  // The site's own formats (kit/exports.ts formatsOf), those it can build here.
+  const format = (await formats(app)).includes(ext) ? formatOf(def, ext) : undefined;
+  if (format) return format.build(text, { def, title: ctx.title ?? def.title(text), link: ctx.link ?? link(app, text) });
   throw new Error(`${def.name} makes no .${ext} without a browser: ${(await formats(app)).join(', ')}`);
 }

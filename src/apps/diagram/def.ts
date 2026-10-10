@@ -43,7 +43,7 @@ export default defineApp({
   view: (doc, opts) => [diagramPage(parse(doc), opts?.upTo, opts?.thumb)],
   // Presented on a slide, a shape a step: the picture builds as its kind lays it out.
   steps: (doc) => layout(parse(doc)).shapes.length,
-  exports: [{ ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(diagramSvg(parse(doc))) }],
+  exports: [{ ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', shows: 'own', build: (doc) => utf8(diagramSvg(parse(doc))) }],
   // Its picture as shapes to move about by hand.
   handoffs: [{ to: 'draw', label: () => t('Open in {app}', { app: lookup.appOf('draw')?.name ?? t('Drawing Tool') }), convert: (doc) => toDrawing(parse(doc)) }],
 });

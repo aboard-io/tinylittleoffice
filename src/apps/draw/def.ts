@@ -9,7 +9,7 @@ import { apply, parse, write, type Doc as Kernel } from '../../doc/index.ts';
 import { defineApp, type Doc } from '../../kit/app.ts';
 import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
-import { raster } from '../../kit/raster.ts';
+import { drawn, raster } from '../../kit/raster.ts';
 import { blankTile, tileSvg, type Tile } from '../../kit/tile.ts';
 import { readDrawing } from './model.ts';
 import { drawingPage, drawingToSvg } from './view.ts';
@@ -56,16 +56,17 @@ export default defineApp({
     return v.grid ? 0 : v.shapes.length;
   },
   exports: [
-    { ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(drawingToSvg(parse(doc))) },
-    { ext: 'tile.svg', label: () => t('Background tile (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(tileSvg(tileOfDoc(doc), tileSide(tileOfDoc(doc)))) },
+    { ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', shows: 'own', build: (doc) => utf8(drawingToSvg(parse(doc))) },
+    { ext: 'tile.svg', label: () => t('Background tile (SVG)'), mime: 'image/svg+xml', shows: 'own', build: (doc) => utf8(tileSvg(tileOfDoc(doc), tileSide(tileOfDoc(doc)))) },
     {
       ext: 'tile.png',
       label: () => t('Background tile (PNG)'),
       mime: 'image/png',
+      shows: 'own',
       build: async (doc) => {
         const tile = tileOfDoc(doc);
         const side = tileSide(tile);
-        return (await raster(tileSvg(tile, side), side, side, 1, null)) ?? new Uint8Array();
+        return drawn(await raster(tileSvg(tile, side), side, side, 1, null));
       },
     },
   ],

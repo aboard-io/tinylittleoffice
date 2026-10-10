@@ -64,12 +64,12 @@ export default defineApp({
   // On a slide (drawn small, the first twelve), an item a step.
   steps: (doc) => Math.min(12, readOutline(parse(doc)).items.length),
   exports: [
-    { ext: 'opml', label: () => t('OPML (for outliners)'), mime: 'text/x-opml;charset=utf-8', build: (doc) => utf8(toOpml(readOutline(parse(doc)), nameFor(doc))) },
+    { ext: 'opml', label: () => t('OPML (for outliners)'), mime: 'text/x-opml;charset=utf-8', shows: null, build: (doc) => utf8(toOpml(readOutline(parse(doc)), nameFor(doc))) },
     // Markdown as other readers know it: an item's notes a numbered list right under it (any other in reference form at the end).
-    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', build: (doc) => utf8(write(notesAsItems(parse(doc)))) },
+    { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => utf8(write(notesAsItems(parse(doc)))) },
     // The words as words: sections and bullets, selectable, linked, bookmarked (kit/textpdf.ts), in place of the kit's pictures of the page.
-    { ext: 'pdf', label: () => t('PDF: sections and bullets'), mime: 'application/pdf', build: (doc, ctx) => textPdf(outlineBlocks(readOutline(parse(doc)), ctx.title || titleOf(doc), t('Notes')), ctx.title || nameFor(doc)) },
-    { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', build: (doc) => utf8(outlineText(readOutline(parse(doc)), appName)) },
+    { ext: 'pdf', label: () => t('PDF: sections and bullets'), mime: 'application/pdf', shows: 'own', build: (doc, ctx) => textPdf(outlineBlocks(readOutline(parse(doc)), ctx.title || titleOf(doc), t('Notes')), ctx.title || nameFor(doc)) },
+    { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', shows: 'text', build: (doc) => utf8(outlineText(readOutline(parse(doc)), appName)) },
   ],
   handoffs: [
     { to: 'deck', label: () => t('Show as slides'), convert: convert(outlineToDeck) },

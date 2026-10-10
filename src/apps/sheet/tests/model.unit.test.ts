@@ -227,12 +227,12 @@ test('CSV and Excel: the names over the columns, then the values; formulas in Ex
   expect(toExcelFormula('=AVG(A1:A3)')).toBe('AVERAGE(A1:A3)');
   const named = new Map([['VISITORS', [0, 4] as [number, number]]]);
   expect(toExcelFormula('=visitors*2', named, 1)).toBe('E2*2');
-  const xlsx = def.exports!.find((x) => x.ext === 'xlsx')!.build(MODEL, { title: '', link: '' }) as Uint8Array;
+  const xlsx = def.exports!.find((x) => x.ext === 'xlsx')!.build(MODEL, { def, title: '', link: '' }) as Uint8Array;
   expect(xlsx.length).toBeGreaterThan(500);
   expect([xlsx[0], xlsx[1]]).toEqual([0x50, 0x4b]);
-  const csv = def.exports!.find((x) => x.ext === 'csv')!.build(SHEET, { title: '', link: '' }) as Uint8Array;
+  const csv = def.exports!.find((x) => x.ext === 'csv')!.build(SHEET, { def, title: '', link: '' }) as Uint8Array;
   expect(new TextDecoder('utf-8', { ignoreBOM: true }).decode(csv).startsWith('\ufeffItem')).toBe(true);
-  const svg = new TextDecoder().decode(def.exports!.find((x) => x.ext === 'chart.svg')!.build(MODEL, { title: '', link: '' }) as Uint8Array);
+  const svg = new TextDecoder().decode(def.exports!.find((x) => x.ext === 'chart.svg')!.build(MODEL, { def, title: '', link: '' }) as Uint8Array);
   expect(svg).toContain('<svg');
   expect(svg).toContain('<path');
 });
