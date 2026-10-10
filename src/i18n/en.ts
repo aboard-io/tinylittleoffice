@@ -744,7 +744,6 @@ export default {
   'Plain line': 'Plain line',
   'Plain text': 'Plain text',
   'Show as slides': 'Show as slides',
-  'Start with an idea; Enter for the next; Tab to put it under': 'Start with an idea; Enter for the next; Tab to put it under',
   'Take away the connection from {from} to {to}': 'Take away the connection from {from} to {to}',
   'Take it away': 'Take it away',
   'Take the connection away': 'Take the connection away',

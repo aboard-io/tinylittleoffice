@@ -69,7 +69,7 @@ const focusedRow = () => Number((document.activeElement as HTMLElement).closest<
 test('typing makes the first item, Enter the next, Tab puts it under, Shift+Tab brings it out, Backspace on an empty item takes it away', async () => {
   const { el, last } = await editor();
   expect(rows(el)).toEqual([-1]);
-  expect(textOf(el, -1).placeholder).toBe('Start with an idea; Enter for the next; Tab to put it under');
+  expect(textOf(el, -1).placeholder).toBe('');
   await choose(el, -1, 0);
   // The first letter typed brings the item into the document; the row is then the document's.
   await typeIn(el, -1, 'L');

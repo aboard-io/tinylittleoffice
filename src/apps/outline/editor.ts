@@ -874,7 +874,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       noteStart.set(it.at, noted);
       noted += it.runs.filter((r) => r.fn !== undefined).length;
     }
-    const first = t('Start with an idea; Enter for the next; Tab to put it under');
     // Numbered items show their numbers as the text writes them.
     const count = listNumbers();
     const numbers = this.doc.blocks.map((b) => count(b));
@@ -887,7 +886,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
         ${repeat(
           rows,
           (it) => it.at,
-          (it) => this.renderRow(it, noteStart.get(it.at) ?? 0, items.length <= 1 ? first : '', numbers[it.at], !!s && it.at >= s.from && it.at < s.to),
+          (it) => this.renderRow(it, noteStart.get(it.at) ?? 0, '', numbers[it.at], !!s && it.at >= s.from && it.at < s.to),
         )}
         <div class="ol-below" aria-hidden="true" @click=${() => (this.rows.release(), this.addItem())}></div>
       </div>
