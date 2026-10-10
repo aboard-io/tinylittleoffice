@@ -216,15 +216,30 @@ test('the definition: a blank board is three stages to type under; the templates
   expect(def.id).toBe('board');
   expect(readBoard(parse(def.blank())).stages.map((s) => s.name)).toEqual(['To do', 'Doing', 'Done']);
   expect(write(parse(def.blank()))).toBe(def.blank());
-  expect(templates().map((t) => t.id)).toEqual(['project', 'hiring', 'content']);
+  // The everyday ones first, then work, then the school and the street.
+  expect(templates().map((t) => t.id)).toEqual(['project', 'week', 'moving', 'hiring', 'content', 'editorial', 'sales', 'bugs', 'classroom', 'mutual-aid']);
+  expect(new Set(templates().map((t) => t.name)).size).toBe(templates().length);
   for (const tpl of templates()) {
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
-    const v = readBoard(parse(tpl.doc));
-    expect(v.stages.length).toBeGreaterThanOrEqual(3);
-    expect(v.cards).toBeGreaterThan(5);
+    const d = parse(tpl.doc);
+    // A real board: its own title, its stages coloured, cards in every stage and a checklist on one.
+    expect(d.head.title, tpl.id).toBeTruthy();
+    expect(tpl.blurb.length).toBeGreaterThan(20);
+    expect(tpl.doc).not.toMatch(/lorem|\bTODO\b|example\.com/i);
+    const v = readBoard(d);
+    expect(v.stages.length).toBeGreaterThanOrEqual(4);
+    expect(v.cards).toBeGreaterThanOrEqual(7);
+    expect(v.stages.every((s) => s.cards.length && s.color), tpl.id).toBe(true);
+    // A limit is kept: no template opens over one.
+    expect(v.stages.every((s) => !s.limit || s.cards.length <= s.limit), tpl.id).toBe(true);
     expect(v.stages.some((s) => s.cards.some((c) => c.items.length))).toBe(true);
+    // Drawn small on the home page, it shows nearly all of itself.
     expect(def.view(tpl.doc)).toHaveLength(1);
+    expect(def.view(tpl.doc, { small: true })[0].svg).toContain(v.stages[0].cards[0].words.slice(0, 12));
   }
+  // One draws its stages as rows; one carries a note in a card's words.
+  expect(templates().filter((tpl) => readBoard(parse(tpl.doc)).rows).map((tpl) => tpl.id)).toEqual(['mutual-aid']);
+  expect(templates().some((tpl) => parse(tpl.doc).blocks.some((b) => b.k === 'li' && b.runs.some((r) => r.fn)))).toBe(true);
   expect(def.retitle(def.blank(), 'Studio').startsWith('---\ntitle: Studio\n---\n## To do')).toBe(true);
   expect(def.exports!.map((e) => e.ext)).toEqual(['csv']);
 });
