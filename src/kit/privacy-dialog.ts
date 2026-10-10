@@ -180,6 +180,12 @@ export class ToPrivacy extends LitElement {
       this.busy = false;
     }
   }
+  /** Password…, from the Share dialog: Share hands over to it and comes back when it closes (one modal at a time). */
+  private passwordFrom(button: HTMLElement) {
+    const next = this.dialogOf('to-password-dialog');
+    const over = button.closest<ToDialog>('to-dialog');
+    if (next) void (over ? over.handOver(next, button) : next.show());
+  }
   /** A password set or changed (the document sealed again at once), or taken off (`password` empty). */
   private async setPassword(password: string) {
     if (this.busy) return;
@@ -371,7 +377,7 @@ export class ToPrivacy extends LitElement {
       <h3 id="to-share-protect-h">${t('Password and signature')}</h3>
       <div class="to-share-protect-row">
         <p class="to-trust-line quiet">${icon(this.protected ? UI.lock : UI.unlock, 18)}<span>${this.protected ? t('Protected by a password') : t('No password')}</span></p>
-        <button type="button" class="to-btn to-password-open" aria-haspopup="dialog" @click=${() => void this.dialogOf('to-password-dialog')?.show()}>${icon(UI.lock, 16)}<span>${t('Password…')}</span></button>
+        <button type="button" class="to-btn to-password-open" aria-haspopup="dialog" @click=${(e: Event) => void this.passwordFrom(e.currentTarget as HTMLElement)}>${icon(UI.lock, 16)}<span>${t('Password…')}</span></button>
       </div>
       <p class="to-trust-line ${signatureTone(sig)}">${icon(signatureIcon(sig), 18)}<span>${signatureWords(sig)}</span>${sig.fingerprint ? html`<small>${t('Key {fp}', { fp: sig.fingerprint })}</small>` : nothing}</p>
       ${sig.state === 'unchecked' ? html`<p class="to-hint to-unchecked-hint">${uncheckedHint()}</p>` : nothing}

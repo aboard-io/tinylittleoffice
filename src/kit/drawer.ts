@@ -15,6 +15,11 @@
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt: kit/open.ts) and Compare… (this document beside another link:
  * kit/compare.ts) sit above the switches.
+ *
+ * The drawer is a menu: a row that opens a dialog (Share…, an app's templates, Privacy and keys, Keyboard shortcuts,
+ * About, a command) closes the drawer first and opens it, one modal at a time, and when that dialog closes the focus is
+ * on the hamburger, where the drawer was opened from (handOver; Paul, 2026-10-10: "the outer one hands over"). The
+ * dialogs it opens are drawn beside its own <dialog>, not in it: an app's templates in one <to-templates bare>.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import type { AppDef } from './app.ts';
@@ -35,7 +40,8 @@ import { compareHash } from './compare.ts';
 import { currentHash, parseHash } from './route.ts';
 import { commitUrl, running, type Version } from './version.ts';
 import './preview.ts';
-import type { ToDialog } from './dialog.ts';
+import { handBack, type ToDialog } from './dialog.ts';
+import type { ToTemplates } from './home.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
 import { coarse, drawnIn, inScope, keysText, labelOf, run } from './commands.ts';
@@ -50,7 +56,7 @@ import { origin } from './network.ts';
 export const THREAT_MODEL = `${origin('github')}/ftrain/tinyoffice/blob/main/docs/threat-model.md`;
 
 export class ToDrawer extends LitElement {
-  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, downloads: { attribute: false }, def: { attribute: false }, page: { attribute: false }, commands: { attribute: false } };
+  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, templatesOf: { state: true }, downloads: { attribute: false }, def: { attribute: false }, page: { attribute: false }, commands: { attribute: false } };
   /** The open document's formats, for its Download; null on the home page (and no This document then). */
   declare downloads: MenuItem[] | null;
   /** What Share and Download act on: the shell. */
@@ -63,6 +69,8 @@ export class ToDrawer extends LitElement {
   declare open: boolean;
   /** The build this is, once About has asked (null: there is no /version.json, as on the dev server). */
   declare version: Version | null;
+  /** The app whose templates were asked for from its row: the one <to-templates bare> shows them. */
+  declare templatesOf: AppDef | null;
   private offs: (() => void)[] = [];
 
   constructor() {
@@ -70,6 +78,7 @@ export class ToDrawer extends LitElement {
     this.find = '';
     this.open = false;
     this.version = null;
+    this.templatesOf = null;
     this.downloads = null;
     this.def = null;
     this.page = null;
@@ -106,6 +115,17 @@ export class ToDrawer extends LitElement {
   }
   close() {
     if (this.dialog?.open) this.dialog.close();
+  }
+
+  /** A row that opens a dialog: the drawer closes, the focus goes to the hamburger, and the dialog opens; its way back is the hamburger. */
+  private handOver(open: () => unknown) {
+    return handBack(() => this.close(), document.querySelector<HTMLElement>('.to-burger'), open);
+  }
+  /** An app's templates, from its row: the drawer's one templates dialog, the drawer closed first. */
+  private async templates(app: AppDef) {
+    this.templatesOf = app;
+    await this.updateComplete;
+    this.querySelector<ToTemplates>('to-templates.to-drawer-templates')?.show();
   }
 
   private async togglePrivate(e: Event) {
@@ -169,7 +189,7 @@ export class ToDrawer extends LitElement {
           ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
               ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => this.close()}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
-              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
+              <button type="button" class="to-btn to-drawer-share" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
               <to-menu class="to-drawer-download" .label=${labelOf(DOWNLOAD)} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
               ${coarse() ? this.renderCommands() : nothing}
             </section>`
@@ -182,7 +202,7 @@ export class ToDrawer extends LitElement {
                   : apps().map(
                       (a) => html`<div class="to-app-head">
                         <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>
-                        <to-templates .app=${a}></to-templates>
+                        <to-templates .app=${a} .via=${(app: AppDef) => this.handOver(() => this.templates(app))}></to-templates>
                       </div>`,
                     )}
               </nav>
@@ -213,7 +233,7 @@ export class ToDrawer extends LitElement {
                     ${THEMES.map((th) => html`<option value=${th} ?selected=${th === theme()}>${themeName(th)}</option>`)}
                   </select>
                 </label>
-                <button type="button" class="to-btn to-drawer-privacy" @click=${() => void this.querySelector<ToPrivacy>('to-privacy')?.show()}>${icon(UI.key, 18)}<span>${t('Privacy and keys')}</span></button>
+                <button type="button" class="to-btn to-drawer-privacy" @click=${() => this.handOver(() => this.querySelector<ToPrivacy>('to-privacy')?.show())}>${icon(UI.key, 18)}<span>${t('Privacy and keys')}</span></button>
                 <div class="to-field to-size" role="group" aria-label=${t('Size of everything')}>${icon(UI.view, 18)}<span>${t('Size of everything')}</span>
                   <span class="to-size-step">
                     <button type="button" class="to-btn to-tool to-size-less" aria-label=${t('Everything a little smaller')} title=${t('Everything a little smaller')} ?disabled=${size() <= SIZE_MIN} @click=${() => (stepSize(-1), this.requestUpdate())}>${icon(UI.minus, 16)}</button>
@@ -221,18 +241,19 @@ export class ToDrawer extends LitElement {
                     <button type="button" class="to-btn to-tool to-size-more" aria-label=${t('Everything a little larger')} title=${t('Everything a little larger')} ?disabled=${size() >= SIZE_MAX} @click=${() => (stepSize(1), this.requestUpdate())}>${icon(UI.plus, 16)}</button>
                   </span>
                 </div>
-                <button type="button" class="to-btn to-drawer-keys" @click=${() => { this.close(); this.dispatchEvent(new CustomEvent('to-keys', { bubbles: true })); }}>${icon(UI.keys, 18)}<span>${t('Keyboard shortcuts')}</span></button>
+                <button type="button" class="to-btn to-drawer-keys" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-keys', { bubbles: true })))}>${icon(UI.keys, 18)}<span>${t('Keyboard shortcuts')}</span></button>
                 ${canInstall()
                   ? html`<button type="button" class="to-btn to-install" @click=${() => void install()}>${icon(UI.download, 18)}<span>${t('Add to home screen')}</span></button>`
                   : installByHand()
                     ? html`<p class="to-hint to-install-how">${t('To add Tiny Little Office to the home screen: Share, then Add to Home Screen.')}</p>`
                     : nothing}
-                <button type="button" class="to-btn to-drawer-about" @click=${() => this.about()}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
+                <button type="button" class="to-btn to-drawer-about" @click=${() => this.handOver(() => this.about())}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
               </section>`
           : nothing}
       </div>
     </dialog>
     <to-privacy></to-privacy>
+    ${this.templatesOf ? html`<to-templates class="to-drawer-templates" bare .app=${this.templatesOf}></to-templates>` : nothing}
     <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>${this.version
       ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
       : nothing}`}></to-dialog>`;
@@ -246,8 +267,8 @@ export class ToDrawer extends LitElement {
     return html`<h3 class="to-drawer-head3 to-drawer-app">${apps().find((a) => a.id === scope)?.name ?? ''}</h3>
       ${offers.map(({ cmd, c }) =>
         cmd.menu
-          ? html`<to-menu class="to-drawer-cmd" .label=${labelOf(cmd, c)} .icon=${cmd.icon ?? null} .items=${drawnIn(inScope(scope), `menu:${cmd.menu}`, c).map((d) => ({ ...d, does: () => (this.close(), d.does()) }))}></to-menu>`
-          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} @click=${() => (this.close(), void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, c)}</span>${cmd.keys ? html`<kbd class="to-menu-keys">${keysText(cmd.keys)}</kbd>` : nothing}</button>`,
+          ? html`<to-menu class="to-drawer-cmd" .label=${labelOf(cmd, c)} .icon=${cmd.icon ?? null} .items=${drawnIn(inScope(scope), `menu:${cmd.menu}`, c).map((d) => ({ ...d, does: () => this.handOver(() => d.does()) }))}></to-menu>`
+          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} @click=${() => this.handOver(() => void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, c)}</span>${cmd.keys ? html`<kbd class="to-menu-keys">${keysText(cmd.keys)}</kbd>` : nothing}</button>`,
       )}`;
   }
 

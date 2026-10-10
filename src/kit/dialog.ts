@@ -3,6 +3,10 @@
  * the backdrop too, and focus goes back where it was (the browser's own doing, and this element's where the browser's
  * finds nothing: a frame whose page had it). Give it `body`, a
  * template, and call show(); the body is drawn only while it is open.
+ *
+ * One modal at a time (Paul, 2026-10-10: "the outer one hands over"): a dialog opened from a control inside another is
+ * never stacked on it. A task with a step of its own (Share's Password…) steps aside with handOver() and comes back as it
+ * was; a menu (the drawer, kit/drawer.ts) closes first and names the way back with handBack().
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI } from './icons.ts';
@@ -20,6 +24,17 @@ export function focusBack(from: HTMLElement | null) {
   if (to?.isConnected) to.focus({ preventScroll: true });
   const at = document.activeElement;
   if (!at || at === document.body || at.closest('dialog:not([open])')) document.querySelector<HTMLElement>('main.to-main')?.focus({ preventScroll: true });
+}
+
+/**
+ * A menu's row that opens a dialog: the menu (`close`) closes first, the focus is put on `back` (the button the menu
+ * was opened from), and `open` opens the dialog. The dialog's way back is then `back`: the browser's own, and a
+ * <to-dialog>'s `from`, are where the focus was as it opened. The menu does not come back.
+ */
+export function handBack(close: () => void, back: HTMLElement | null, open: () => unknown) {
+  close();
+  if (back?.isConnected) back.focus({ preventScroll: true });
+  return open();
 }
 
 export class ToDialog extends LitElement {
@@ -43,18 +58,37 @@ export class ToDialog extends LitElement {
   }
   /** What had the focus when it opened: it has it again when it closes. */
   private from: HTMLElement | null = null;
+  /** Stepped aside for another (handOver): closed, its body, its scroll and its `from` kept, no to-close said. */
+  private aside: { back: HTMLElement; scrolled: [Element, number][] } | null = null;
   async show() {
-    if (!this.dialog?.open) this.from = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    if (!this.dialog?.open && !this.aside) this.from = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    const aside = this.aside;
+    this.aside = null;
     this.open = true;
     await this.updateComplete;
     if (!this.dialog.open) this.dialog.showModal();
+    if (!aside) return;
+    for (const [el, top] of aside.scrolled) el.scrollTop = top;
+    if (aside.back.isConnected) aside.back.focus({ preventScroll: true });
+  }
+  /**
+   * A step of this dialog's task in a dialog of its own (`next`, opened from `back`, a control in this one): this one
+   * closes and `next` opens, one modal at a time; when `next` closes (its Cancel, Escape, or the thing done) this one is
+   * open again as it was, nothing drawn again (what was typed, chosen and scrolled kept), the focus on `back`.
+   */
+  async handOver(next: ToDialog, back: HTMLElement) {
+    const scrolled = [this.dialog, ...this.dialog.querySelectorAll('.to-dialog-inner, .to-dialog-body')].map((el): [Element, number] => [el, el.scrollTop]);
+    this.aside = { back, scrolled };
+    this.dialog.close();
+    next.addEventListener('to-close', () => void (this.isConnected && this.aside && this.show()), { once: true });
+    await next.show();
   }
   close() {
     if (this.dialog?.open) this.dialog.close();
   }
   private onClose = () => {
     // The close event comes a moment after close(): shown again in between (a second link asked about), it stays open.
-    if (this.dialog.open) return;
+    if (this.dialog.open || this.aside) return;
     this.open = false;
     // The browser gives the focus back itself, but not to a frame whose page had it: then it is given here.
     const at = document.activeElement;

@@ -7,7 +7,8 @@
  * the page, not cards, so it looks on a desktop as it does on a phone (round four: "Don't make apps into cards.
  * Just make them into rows with docs below."). Each document shows its first page small at its left
  * (<to-preview>, drawn as it scrolls into sight: "When you list documents under apps, show them with
- * previews"). <to-templates> is the drawer's too.
+ * previews"). <to-templates> is the drawer's too: there a row's button (`via`) hands over to the drawer's one dialog
+ * (`bare`, drawn outside the drawer's own), the drawer closing first (one modal at a time: kit/drawer.ts).
  *
  * Above the apps, once something is kept, a search box over the library (kit/search.ts): every word of it
  * somewhere in a document's title or text, the best first, each found document with its title and the
@@ -28,6 +29,7 @@ import './preview.ts';
 import { go, parseHash, routeHash } from './route.ts';
 import { ago, forget, library, type Kept } from './library.ts';
 import { onPrivacy } from './privacy.ts';
+import { focusBack } from './dialog.ts';
 
 /** The documents shown under an app before "n more". */
 const SHOWN = 5;
@@ -38,8 +40,14 @@ let n = 0;
 export const templateHash = (app: AppDef, tpl: Template | null) => (tpl ? routeHash(app.id, encodeDoc(tpl.doc)) : routeHash(app.id));
 
 export class ToTemplates extends LitElement {
-  static properties = { app: { attribute: false }, chosen: { state: true }, drawn: { state: true } };
+  static properties = { app: { attribute: false }, via: { attribute: false }, bare: { type: Boolean }, chosen: { state: true }, drawn: { state: true } };
   declare app: AppDef;
+  /** The button opens the templates through this instead of a dialog of its own (a drawer's row: kit/drawer.ts). */
+  declare via: ((app: AppDef) => void) | null;
+  /** The dialog alone, no button: the one a drawer's rows hand over to. */
+  declare bare: boolean;
+  /** What had the focus as the dialog opened, for a bare one: it has it again when it closes. */
+  private from: HTMLElement | null = null;
   /** The template's id, '' for Blank (or, with no Blank in the list, the first template). */
   declare chosen: string;
   /** The thumbnails are drawn once the list first opens: a home page of many apps costs nothing until then. */
@@ -52,6 +60,8 @@ export class ToTemplates extends LitElement {
     super();
     this.chosen = '';
     this.drawn = false;
+    this.via = null;
+    this.bare = false;
   }
   createRenderRoot() {
     return this;
@@ -64,8 +74,8 @@ export class ToTemplates extends LitElement {
     super.disconnectedCallback();
     this.off();
   }
-  get button(): HTMLButtonElement {
-    return this.querySelector<HTMLButtonElement>(':scope > button')!;
+  get button(): HTMLButtonElement | null {
+    return this.querySelector<HTMLButtonElement>(':scope > button');
   }
   get dialog(): HTMLDialogElement {
     return this.querySelector<HTMLDialogElement>(':scope > dialog')!;
@@ -80,10 +90,12 @@ export class ToTemplates extends LitElement {
   show() {
     const pointer = openedByPointer();
     this.drawn = true;
+    const at = document.activeElement;
+    this.from = at instanceof HTMLElement && at !== document.body ? at : null;
     void this.updateComplete.then(() => {
       if (this.dialog.open) return;
       this.dialog.showModal();
-      this.button.setAttribute('aria-expanded', 'true');
+      this.button?.setAttribute('aria-expanded', 'true');
       // Opened by a key, the chosen template has the focus; by a pointer, the list itself, and the first arrow goes in.
       if (pointer) this.listbox.focus({ preventScroll: true });
       else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus({ preventScroll: true });
@@ -93,8 +105,9 @@ export class ToTemplates extends LitElement {
     if (this.dialog.open) this.dialog.close();
   }
   private onClose = () => {
-    this.button.setAttribute('aria-expanded', 'false');
-    if (document.activeElement === document.body || this.contains(document.activeElement)) this.button.focus();
+    const button = this.button;
+    button?.setAttribute('aria-expanded', 'false');
+    if (document.activeElement === document.body || this.contains(document.activeElement)) void (button ? button.focus() : focusBack(this.from));
   };
   /** The keys every menu here keeps (menu.ts). */
   private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.hide());
@@ -119,9 +132,11 @@ export class ToTemplates extends LitElement {
   render() {
     const chosen = this.app.templates.find((x) => x.id === this.chosen);
     // The button is the small arrow alone, no icon and no words (Paul, 2026-10-09: "don't use the word Blank over and over"; 2026-10-10: "just the small arrow to the right"); its name says what it holds.
-    return html`<button type="button" class="to-btn to-tool to-templates-btn" aria-haspopup="dialog" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')} @click=${() => this.show()}>
+    const button = html`<button type="button" class="to-btn to-tool to-templates-btn" aria-haspopup="dialog" aria-expanded="false" aria-label=${chosen ? t('Templates for {app}: {name}', { app: this.app.name, name: chosen.name }) : t('Templates for {app}', { app: this.app.name })} title=${t('Templates')} @click=${() => (this.via ? this.via(this.app) : this.show())}>
         ${icon(UI.down, 18, 'to-caret')}
-      </button>
+      </button>`;
+    if (this.via) return button;
+    return html`${this.bare ? nothing : button}
       <dialog class="to-dialog to-templates-dialog" aria-label=${t('Templates for {app}', { app: this.app.name })} @close=${this.onClose} @click=${(e: Event) => e.target === this.dialog && this.hide()}>
         <div class="to-dialog-inner">
           <header class="to-dialog-head to-listbox-head"><h2 id=${this.uid}>${t('Templates')}</h2><button type="button" class="to-btn to-tool to-listbox-close" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.hide()}>${icon(UI.close, 18)}</button></header>
