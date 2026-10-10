@@ -1490,4 +1490,7 @@ export default {
   'not checked': 'not checked',
   'not signed': 'not signed',
   'verified': 'verified',
+  'Generate a strong password': 'Generate a strong password',
+  'Password copied': 'Password copied',
+  'Twenty characters, made on this device and never sent anywhere. Copy it somewhere safe before you set it: there is no way to get it back.': 'Twenty characters, made on this device and never sent anywhere. Copy it somewhere safe before you set it: there is no way to get it back.',
 } satisfies Strings;

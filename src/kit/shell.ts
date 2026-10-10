@@ -58,6 +58,7 @@ import { ago, firstFree, firstWords, keep, library, localDay, type Kept } from '
 import { pageSvg } from './draw.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from './share.ts';
+import { generatePassword } from './passwords.ts';
 import { readPlain } from './plain.ts';
 import { openFile } from './open.ts';
 import { parseCompare, type Side } from './compare.ts';
@@ -813,11 +814,28 @@ export class ToShell extends LitElement {
       const [a, b] = [...this.querySelectorAll<HTMLInputElement>('.to-password-new')].map((f) => f.value);
       if (a && a === b) void this.setPassword(a);
     };
+    // Generate: a strong password made here, shown in both fields so it can be read and copied before it is set.
+    const generate = () => {
+      const made = generatePassword();
+      const fields = [...this.querySelectorAll<HTMLInputElement>('.to-password-new')];
+      for (const f of fields) {
+        f.type = 'text';
+        f.value = made;
+      }
+      this.querySelector<HTMLElement>('.to-password-made')?.toggleAttribute('hidden', false);
+      check();
+    };
+    const copyMade = () => void copyText(this.querySelector<HTMLInputElement>('.to-password-new')?.value ?? '', t('Password copied'));
     return html`<form class="to-password" @submit=${submit}>
       <p>${has ? t('This document has a password. The link, and any short link made from it, holds only ciphertext.') : t('Anyone with the link will need the password to open it. Nobody can reset it: lose it and the document is gone.')}</p>
       <label class="to-password-label"><span>${has ? t('New password') : t('Password')}</span><input type="password" class="to-password-new" autocomplete="new-password" @input=${check} /></label>
       <label class="to-password-label"><span>${t('Again')}</span><input type="password" class="to-password-new" autocomplete="new-password" @input=${check} /></label>
       <p class="to-password-differ to-hint" role="status"></p>
+      <div class="to-row">
+        <button type="button" class="to-btn to-password-generate" @click=${generate}>${icon(UI.key, 16)}<span>${t('Generate a strong password')}</span></button>
+        <button type="button" class="to-btn to-password-copy" @click=${copyMade}>${icon(UI.copy, 16)}<span>${t('Copy')}</span></button>
+      </div>
+      <p class="to-password-made to-hint" role="status" hidden>${t('Twenty characters, made on this device and never sent anywhere. Copy it somewhere safe before you set it: there is no way to get it back.')}</p>
       <div class="to-row">
         <button type="submit" class="to-btn primary to-password-set" disabled>${icon(UI.lock, 16)}<span>${this.busyLock ? t('Sealing…') : has ? t('Change password') : t('Set password')}</span></button>
         ${has ? html`<button type="button" class="to-btn to-password-remove" ?disabled=${this.busyLock} @click=${() => void this.setPassword('')}>${icon(UI.unlock, 16)}<span>${t('Remove password')}</span></button>` : nothing}

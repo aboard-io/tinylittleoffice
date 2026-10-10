@@ -350,3 +350,31 @@ test('words signed with this device\'s key under a name (a contract\'s signature
   forgetKey();
   expect(await myKey()).toBe(null);
 });
+
+test('Generate a strong password fills both fields, shows it, enables Set, and Copy copies it', async () => {
+  const shell = await mount('#/v1/write');
+  await until(() => !!shell.querySelector('to-text .tx'));
+  await openShare(shell);
+  shell.querySelector<HTMLButtonElement>('.to-password-open')!.click();
+  await until(() => !!shell.querySelector('.to-password-dialog dialog[open]'));
+  const fields = [...shell.querySelectorAll<HTMLInputElement>('.to-password-new')];
+  const set = shell.querySelector<HTMLButtonElement>('.to-password-set')!;
+  expect(set.disabled).toBe(true);
+  const written: string[] = [];
+  const clip = navigator.clipboard.writeText;
+  Object.defineProperty(navigator.clipboard, 'writeText', { value: (s: string) => (written.push(s), Promise.resolve()), configurable: true });
+  try {
+    shell.querySelector<HTMLButtonElement>('.to-password-generate')!.click();
+    await until(() => fields[0].value.length === 23);
+    expect(fields[1].value).toBe(fields[0].value);
+    expect(fields[0].type).toBe('text');
+    expect(fields[0].value).toMatch(/^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
+    expect(shell.querySelector<HTMLElement>('.to-password-made')!.hidden).toBe(false);
+    expect(set.disabled).toBe(false);
+    shell.querySelector<HTMLButtonElement>('.to-password-copy')!.click();
+    await until(() => written.length === 1);
+    expect(written[0]).toBe(fields[0].value);
+  } finally {
+    Object.defineProperty(navigator.clipboard, 'writeText', { value: clip, configurable: true });
+  }
+});
