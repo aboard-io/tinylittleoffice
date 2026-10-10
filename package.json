@@ -26,6 +26,7 @@
     "docs:network": "node scripts/network-doc.ts",
     "docs:deps": "node scripts/dependencies.ts",
     "icons": "node scripts/icons.ts",
+    "emoji": "node scripts/emoji.ts",
     "skill": "node scripts/make-skill.ts",
     "cards": "node scripts/make-cards.ts",
     "tinyoffice": "node packages/doc/tinyoffice.ts",

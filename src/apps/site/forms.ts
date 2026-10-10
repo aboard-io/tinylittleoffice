@@ -105,7 +105,7 @@ function iconField(o: { value: string; draw: () => void; set: (v: string) => voi
   const node = o.value ? iconNamed(o.value) : null;
   const pick = async () => {
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
-    const got = await chooseIcon({ current: o.value, none: true });
+    const got = await chooseIcon({ emoji: false, current: o.value, none: true });
     if (got === null) return;
     o.set(got);
     o.draw();

@@ -501,7 +501,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const s = this.slide;
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const { suggestIcons } = await import('../../kit/icons-search.ts');
-    const name = await chooseIcon({ current: s.icon, none: true, suggested: suggestIcons(plainText(s.title), s.items.map((it) => plainText(it.runs))) });
+    const name = await chooseIcon({ emoji: false, current: s.icon, none: true, suggested: suggestIcons(plainText(s.title), s.items.map((it) => plainText(it.runs))) });
     if (name === null) return;
     const made = this.existing();
     this.change([...made.ops, ...setIcon(made.doc, made.s, name)]);

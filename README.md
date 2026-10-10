@@ -116,9 +116,11 @@ src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, 
                 everything), steps (a document presented a part at a time), qr-picture (a document's QR code
                 as a fence), locked and locked-doc (a document locked with a password placed in another: the
                 locked card, and opened with its password in an editor), share, short (links), links (the owner links kept), library (the documents
-                kept), exports, i18n, theme, icons (the UI set and the starter library a document may name),
-                icons-search (keywords, suggestions, search; no DOM), icons-picker (the library in a dialog: a
-                lazy chunk that brings the rest of Lucide and icons-meta, its tags and categories), app (the
+                kept), exports, i18n, theme, icons (the UI set and the starter library; a document may name
+                any Lucide icon, the rest arriving in one lazy load, icons-full, that views and exports wait
+                for), icons-search (keywords, suggestions, search; no DOM), icons-picker (the library in a
+                dialog, with icons-meta, its tags and categories, and the Emoji set: emoji and emoji-data,
+                Unicode's and CLDR's names written by scripts/emoji.ts), app (the
                 AppDef contract), apps (registry), element (DocElement: every editor's base, with the op-log
                 undo), draw (pages, the palette), tile (a repeating background tile in one head field:
                 `tile: 8:a..a/.a.a`), chart (bars, lines, pie, Sankey), csv, ics (iCalendar, RFC 5545: folded

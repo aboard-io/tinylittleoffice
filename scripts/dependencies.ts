@@ -15,6 +15,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SOURCES as EMOJI_SOURCES } from './emoji.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const DOC = resolve(root, 'docs/dependencies.md');
@@ -166,6 +167,16 @@ ${runtime.map((n) => row(n, adds(n))).join('\n')}
 | Package | Version | Licence | Comes with | Adds |
 | --- | --- | --- | --- | --- |
 ${inner.join('\n')}
+
+## Data, not packages
+
+The icon picker's Emoji set (\`src/kit/emoji-data.ts\`: every base emoji's character, name, keywords and
+group) is data, not code: the browser lists no emoji by name, and the characters themselves are drawn by the
+system's own font. It is written by \`npm run emoji\` (\`scripts/emoji.ts\`) from Unicode's
+[emoji-test.txt](${EMOJI_SOURCES.test}) (which emoji are fully qualified, and their groups) and CLDR's English
+[annotations](${EMOJI_SOURCES.annotations}) and [derived annotations](${EMOJI_SOURCES.derived}) (names and
+keywords), at those pinned versions, under the Unicode licence (Unicode-3.0), and checked in. It loads only with
+the picker; neither source is a dependency.
 
 ## For building and testing
 

@@ -10,13 +10,17 @@ import { appOf } from './apps.ts';
 import { decodeDoc } from './codec.ts';
 import { pageSvg, thumbRatio } from './draw.ts';
 import { gateSvg } from './pictures.ts';
+import { iconNamed, iconNames, iconsComplete, loadIcons } from './icons.ts';
 import { parseHash } from './route.ts';
 
 /** A page with nothing on it, the shape of a sheet of paper. */
 const BLANK = pageSvg({ w: 85, h: 110, svg: '' });
 const drawn = new Map<string, string>();
 
-/** The preview of the document at this link, drawn once. */
+/** Links whose documents name an icon the starter set lacks, drawn before the rest of Lucide joined: drawn again, not kept. */
+const waiting = new Set<string>();
+
+/** The preview of the document at this link, drawn once (again once the rest of Lucide has joined, when it names an icon from there). */
 export function previewOf(hash: string): string {
   const had = drawn.get(hash);
   if (had !== undefined) return had;
@@ -26,6 +30,7 @@ export function previewOf(hash: string): string {
     const { app, payload } = parseHash(hash);
     const def = app ? appOf(app) : undefined;
     const doc = payload ? decodeDoc(payload) : '';
+    if (doc && !iconsComplete() && iconNames(doc).some((n) => !iconNamed(n))) waiting.add(hash);
     const page = def && doc ? def.view(doc, { small: true, thumb: true })[0] : undefined;
     if (page) [svg, shape] = [gateSvg(pageSvg(page), true), thumbRatio(page)];
   } catch {
@@ -33,7 +38,7 @@ export function previewOf(hash: string): string {
   }
   // The height is the box's (CSS), the width the page's shape (a landscape page to twice its height); the drawing keeps its shape inside it.
   svg = svg.replace(/^<svg([^>]*?) width="[^"]*" height="[^"]*"/, `<svg$1 aria-hidden="true" style="aspect-ratio:${+shape.toFixed(4)}"`);
-  drawn.set(hash, svg);
+  if (!waiting.has(hash)) drawn.set(hash, svg);
   return svg;
 }
 
@@ -70,6 +75,7 @@ export class ToPreview extends HTMLElement {
     const box = document.createElement('template');
     box.innerHTML = previewOf(hash);
     this.replaceChildren(box.content);
+    if (waiting.delete(hash)) void loadIcons().then(() => iconsComplete() && this.isConnected && this.getAttribute('hash') === hash && this.draw());
   }
 }
 if (!customElements.get('to-preview')) customElements.define('to-preview', ToPreview);

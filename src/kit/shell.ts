@@ -47,7 +47,7 @@ import { withHead, takeHead } from '../doc/tlo.ts';
 import type { Head } from '../doc/model.ts';
 import type { Locker } from './crypt.ts';
 import { ENVELOPE_KEYS, isoMinute, readEnvelope } from './envelope.ts';
-import { icon, UI } from './icons.ts';
+import { ensureIcons, icon, iconNames, onIcons, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportAs, exportItems, picture, raster, withPictures, saveFile, slug, utf8 } from './exports.ts';
 import { LINK_VERSION, parseHash, routeHash, type Owned } from './route.ts';
@@ -173,6 +173,7 @@ export class ToShell extends LitElement {
   private edited: Doc = '';
   private offLanguage = () => {};
   private offPictures = () => {};
+  private offIcons = () => {};
   /** A view asked for in the link ("text.png/…"): done once the editor is up. */
   private pendingView = '';
   private payloadLength = 0;
@@ -230,6 +231,11 @@ export class ToShell extends LitElement {
     this.addEventListener('to-keys', this.showKeys);
     this.offLanguage = onLanguage(() => this.requestUpdate());
     this.offPictures = onPictures(() => this.requestUpdate());
+    // The rest of Lucide joined (a document named an icon outside the starter set): the pages and the editor are drawn again.
+    this.offIcons = onIcons(() => {
+      this.requestUpdate();
+      (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.();
+    });
     // A key imported or forgotten changes whose signature this is.
     this.offPrivacy = onPrivacy(() => void this.checkSignature());
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
@@ -251,6 +257,7 @@ export class ToShell extends LitElement {
     this.flushKeep();
     this.offLanguage();
     this.offPictures();
+    this.offIcons();
     this.offPrivacy();
   }
 
@@ -298,6 +305,8 @@ export class ToShell extends LitElement {
     this.edited = this.doc;
     this.envelope = takeHead(this.doc, ENVELOPE_KEYS)[0];
     this.signature = { state: 'none' };
+    // An icon the starter set lacks: the rest of Lucide is fetched, and everything is drawn again when it joins (onIcons).
+    void ensureIcons(iconNames(this.doc));
     // Show pictures from the web is remembered for this document, as it arrived, for the visit.
     setPictureDoc(def ? routeHash(def.id, payload) : '');
     this.display = !!def && display && !!payload;
@@ -373,6 +382,7 @@ export class ToShell extends LitElement {
     this.locker = locker;
     this.doc = text;
     this.edited = text;
+    void ensureIcons(iconNames(text));
     this.envelope = takeHead(text, ENVELOPE_KEYS)[0];
     this.setTitle();
     void this.checkSignature();
@@ -947,7 +957,10 @@ export class ToShell extends LitElement {
   /** The one Share dialog: where the link fits, the two copies, the short link, the QR code, the short links kept here. */
   private renderShare() {
     const def = this.def!;
-    const share = async () => shareNative(this.docTitle, this.link, await picture(await withPictures(def.view(this.doc))));
+    const share = async () => {
+      await ensureIcons(iconNames(this.doc));
+      return shareNative(this.docTitle, this.link, await picture(await withPictures(def.view(this.doc))));
+    };
     const made = this.madeLine();
     return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}
       <div class="to-share-links">

@@ -119,21 +119,27 @@
     text-underline-offset: 2px;
   }
 
-  /* The icon chip: one thing the caret steps over. (Drawn by name until the icon registry lands.) */
+  /* The icon chip: one thing the caret steps over, drawn as the icon in the line's colour; a name nothing has is its name, small. */
   to-text .tx .ic {
     display: inline-block;
-    padding: 0 0.3em;
     margin: 0 0.05em;
-    border-radius: 4px;
-    font-size: 0.8em;
-    line-height: 1.4;
-    color: var(--to-accent);
-    background: color-mix(in srgb, var(--to-accent) 10%, transparent);
+    line-height: 1;
     user-select: none;
     -webkit-user-select: none;
   }
-  to-text .tx .ic::before {
-    content: ':' attr(data-icon) ':';
+  to-text .tx .ic svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    transform: translateY(0.1em);
+  }
+  to-text .tx .ic.ic-name {
+    padding: 0 0.3em;
+    border-radius: 4px;
+    font-size: 0.75em;
+    line-height: 1.4;
+    color: var(--to-ink-2);
+    background: color-mix(in srgb, var(--to-accent) 10%, transparent);
   }
   /* The footnote mark: a small raised number. */
   to-text .tx .fn {

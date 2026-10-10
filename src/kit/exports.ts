@@ -16,7 +16,7 @@ import { parse, referenceNotes, write } from '../doc/index.ts';
 import { pdf } from './pdf.ts';
 import { tloText } from './plain.ts';
 import { copyText } from './share.ts';
-import { UI } from './icons.ts';
+import { ensureIcons, iconNames, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
 import { embedPictures } from './media.ts';
@@ -182,6 +182,8 @@ export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise
   const given = ctx.title || def.title(doc);
   const title = given || t('Untitled {noun}', { noun: def.noun });
   const name = fileName(given, slug(def.noun) || def.id, ext);
+  // Every icon the document names is drawn: one outside the starter set waits for the rest of Lucide.
+  await ensureIcons(iconNames(doc));
   if (ext === 'print') {
     await printPages(await withPictures(def.view(doc)), title);
     return null;
