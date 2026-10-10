@@ -346,6 +346,26 @@ test('a table\'s money in its column\'s currency, else the site\'s: the plumber\
   expect(shop).toContain('€3.00');
 });
 
+test('a shop\'s prices in the Price column\'s currency, else the site\'s: a code through Intl, never "GBP12.00"; a symbol before the price', () => {
+  const gbp = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money(GBP) | About | Image\n--- | --- | --- | ---\nMug | 12 |  |\nJug | 1200 |  |\n';
+  const shop = readSite(parse(gbp)).sections[0].products;
+  expect(shop.map((p) => [p.name, p.price, p.currency])).toEqual([['Mug', 12, 'GBP'], ['Jug', 1200, 'GBP']]);
+  const pounds = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'GBP' });
+  const html = page(gbp);
+  expect(html).toContain(`<b class="price">${pounds.format(12)}</b>`);
+  expect(html).toContain(`<b class="price">${pounds.format(1200)}</b>`);
+  expect(html).not.toContain('GBP12');
+  expect(html).not.toContain('€12');
+  // The cart is given each thing's currency.
+  expect(html).toContain('"currency":"GBP"');
+  // A Price column that names none: the head's symbol, before the price.
+  const euros = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money | About | Image\n--- | --- | --- | ---\nTea | 3 |  |\n';
+  expect(readSite(parse(euros)).sections[0].products[0].currency).toBe('€');
+  expect(page(euros)).toContain('<b class="price">€3.00</b>');
+  // And none anywhere: dollars.
+  expect(page('# Shop\n\nName | Price:money\n--- | ---\nTea | 3\n')).toContain('<b class="price">$3.00</b>');
+});
+
 test('words typed in the page, as ops: one text op on the block, the rest of a line kept; Enter makes a paragraph; the site’s name put in where there is none', () => {
   const doc = parse(CAFE);
   const site = readSite(doc);

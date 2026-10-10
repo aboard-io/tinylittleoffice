@@ -125,7 +125,7 @@ test('a column head opens what it holds, a sort, add and remove; names follow th
 test('Money asks its currency: a code typed is written in the head and the cells show it; picked again, emptied, the document\'s', async () => {
   const { el, last } = await editor(SHEET);
   const head = (c: number) => el.querySelectorAll<HTMLButtonElement>('th .col-head')[c];
-  const field = () => document.querySelector<HTMLInputElement>('.sheet-currency-field');
+  const field = () => document.querySelector<HTMLInputElement>('.to-currency-field');
   await pick(el, head(1), 'Money');
   await until(() => !!field());
   // What the column names already is in the field (none), the common ones offered as it is typed in.
@@ -135,11 +135,11 @@ test('Money asks its currency: a code typed is written in the head and the cells
   field()!.value = 'pounds';
   field()!.dispatchEvent(new Event('input', { bubbles: true }));
   await tick();
-  expect(document.querySelector<HTMLButtonElement>('.sheet-currency .to-ask-ok')!.disabled).toBe(true);
+  expect(document.querySelector<HTMLButtonElement>('.to-currency .to-ask-ok')!.disabled).toBe(true);
   field()!.value = 'gbp';
   field()!.dispatchEvent(new Event('input', { bubbles: true }));
   await tick();
-  document.querySelector<HTMLButtonElement>('.sheet-currency .to-ask-ok')!.click();
+  document.querySelector<HTMLButtonElement>('.to-currency .to-ask-ok')!.click();
   await until(() => (last() ?? '').startsWith('Item | Cost:money(GBP)\n'));
   await until(() => !field());
   await el.updateComplete;
@@ -150,7 +150,7 @@ test('Money asks its currency: a code typed is written in the head and the cells
   expect(field()!.value).toBe('GBP');
   field()!.value = '£';
   field()!.dispatchEvent(new Event('input', { bubbles: true }));
-  document.querySelector<HTMLButtonElement>('.sheet-currency .to-ask-ok')!.click();
+  document.querySelector<HTMLButtonElement>('.to-currency .to-ask-ok')!.click();
   await until(() => (last() ?? '').startsWith('Item | Cost:money(£)\n'));
   await el.updateComplete;
   expect(cell(el, 'B2').value).toBe('£450.00');
@@ -159,7 +159,7 @@ test('Money asks its currency: a code typed is written in the head and the cells
   await until(() => !!field());
   field()!.value = '';
   field()!.dispatchEvent(new Event('input', { bubbles: true }));
-  document.querySelector<HTMLButtonElement>('.sheet-currency .to-ask-ok')!.click();
+  document.querySelector<HTMLButtonElement>('.to-currency .to-ask-ok')!.click();
   await until(() => (last() ?? '').startsWith('Item | Cost:money\n'));
   await el.updateComplete;
   expect(cell(el, 'B2').value).toBe('$450.00');
@@ -168,7 +168,7 @@ test('Money asks its currency: a code typed is written in the head and the cells
   expect(last()).toMatch(/^Item \| Cost:number\n/);
   await pick(el, head(1), 'Money');
   await until(() => !!field());
-  document.querySelector<HTMLButtonElement>('.sheet-currency-dialog .to-dialog-head button')!.click();
+  document.querySelector<HTMLButtonElement>('.to-currency-dialog .to-dialog-head button')!.click();
   await until(() => (last() ?? '').startsWith('Item | Cost:money\n'));
 });
 

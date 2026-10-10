@@ -151,9 +151,10 @@ driving where absent), `route: dots` for places that are not a route.
 
 **site** (Website Builder): `# Name` and a line about it; each further `# Title` a page, `## Section` a part of
 one. `- :icon: Point | detail` a card, `> Label | https://…` a button, a picture's address alone a picture,
-`:icon:` alone a big icon, a table `Name | Price:money | About | Image` a shop with a cart. Head: `theme: teal
-serif dark`, `currency`, `orders` (where orders are mailed); `look: links` makes it a Quick Links page (one
-column, the buttons stacked, `- ` items small links at the foot).
+`:icon:` alone a big icon, a table `Name | Price:money | About | Image` a shop with a cart (its prices, the
+cart's lines and total and the order mailed in the Price column's currency, `Price:money(GBP)`, else the
+head's). Head: `theme: teal serif dark`, `currency`, `orders` (where orders are mailed); `look: links` makes
+it a Quick Links page (one column, the buttons stacked, `- ` items small links at the foot).
 
 ## Opening another app's reading
 

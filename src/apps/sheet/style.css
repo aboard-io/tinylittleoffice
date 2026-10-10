@@ -490,19 +490,4 @@
       inset: -17px;
     }
   }
-
-  /* A money column's currency (currency.ts): one field and OK, narrow. */
-  .sheet-currency-dialog .to-dialog {
-    width: min(420px, calc(100vw - 32px));
-  }
-  .sheet-currency-label {
-    font-size: 14px;
-    color: var(--to-ink-2);
-  }
-  .sheet-currency .to-hint {
-    margin: 0;
-  }
-  .sheet-currency [aria-invalid='true'] {
-    border-color: var(--to-danger);
-  }
 }

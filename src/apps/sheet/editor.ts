@@ -42,7 +42,7 @@ import type { Found } from '../../kit/find.ts';
 import { fold } from '../../kit/search.ts';
 import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, applyAll, clearCells, columnText, copyCells, fillCells, isLocked, isText, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, runLength, writeInline, type Block, type ColType, type Column, type Doc, type Op, type Range, type Run } from '../../doc/index.ts';
 import { MIN_COLS, addColumn, currencyAt, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
-import { askCurrency } from './currency.ts';
+import { COLUMN_KINDS, choicesOf, kindItems } from '../../kit/columns.ts';
 import { cellText, chartOf, chartOfSheet } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
@@ -71,20 +71,7 @@ const tsv = (rows: string[][]) => rows.map((row) => row.map(flat).join('\t')).jo
 /** A table block's cells, its column names as the first row: what it is as a block of a sheet. */
 const tableCells = (b: Block) => (b.k === 'table' ? tsv([b.cols.map((c) => columnText(c.name, c.type, c.currency)), ...b.rows]) : '');
 
-/** What a column may hold, in the person's language. */
-const TYPES: { id: ColType; name: () => string; hint: () => string }[] = [
-  { id: 'text', name: () => t('Text'), hint: () => t('Shown as typed') },
-  { id: 'number', name: () => t('Number'), hint: () => '1,234.5' },
-  { id: 'money', name: () => t('Money'), hint: () => '$1,234.50' },
-  { id: 'percent', name: () => t('Percent'), hint: () => '12.5%' },
-  { id: 'date', name: () => t('Date'), hint: () => '2027-03-01' },
-  { id: 'url', name: () => t('Link'), hint: () => t('Opens when clicked') },
-  { id: 'check', name: () => t('Checkbox'), hint: () => '☑ ☐' },
-  { id: 'option', name: () => t('Option'), hint: () => t('One of the words the column holds, or a new one') },
-  { id: 'rich', name: () => t('Rich text'), hint: () => t('Bold, italic and links') },
-  { id: 'name', name: () => t('Name'), hint: () => t('Names the cell to its right') },
-];
-const typeOf = (id: ColType) => TYPES.find((x) => x.id === id) ?? TYPES[0];
+const typeOf = (id: ColType) => COLUMN_KINDS.find((x) => x.id === id) ?? COLUMN_KINDS[0];
 /** A rich cell, drawn as a <to-text>: any of a rich column's cells but one worked out by a formula. */
 const isRich = (type: ColType, raw: string) => type === 'rich' && !raw.startsWith('=');
 /** The words of a rich cell's paragraph, all of them selected. */
@@ -257,16 +244,6 @@ export class ToSheetEditor extends DocElement<SheetView> {
   private clear() {
     const g = this.range;
     this.edit(putRect(this.doc, clearCells(g)), undefined, this.markOf(g));
-  }
-  private setType(c: number, type: ColType) {
-    if (type === 'money') return void this.askMoney(c);
-    this.edit(setType(this.doc, c, type));
-  }
-  /** Money picked: the column's currency asked for (what it names already in the field); closed without OK, money in the currency it had. */
-  private async askMoney(c: number) {
-    const had = this.columns()[c]?.type === 'money' ? (this.columns()[c].currency ?? '') : '';
-    const got = await askCurrency(had);
-    this.edit(setType(this.doc, c, 'money', got ?? had));
   }
   private rename(c: number, name: string) {
     this.edit(rename(this.doc, c, name));
@@ -559,7 +536,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const letter = COL_NAMES[c];
     const may = removable(this.view, c);
     return [
-      ...TYPES.map((ty) => ({ group: t('Column {c} holds', { c: letter }), label: ty.name(), hint: ty.hint(), checked: cols[c].type === ty.id, does: () => this.setType(c, ty.id) })),
+      ...kindItems(cols[c], t('Column {c} holds', { c: letter }), (type, currency) => this.edit(setType(this.doc, c, type, currency))),
       { group: t('Sort the rows by it'), label: t('Low to high'), icon: ArrowDown, does: () => this.edit(sortBy(this.doc, c, false)) },
       { group: t('Sort the rows by it'), label: t('High to low'), icon: ArrowUp, does: () => this.edit(sortBy(this.doc, c, true)) },
       { group: t('Columns'), label: t('Fit this column to its text'), icon: MoveHorizontal, does: () => this.fitColumn(c) },
@@ -1108,7 +1085,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /** The words an option column offers: those its cells already hold, each once, in the order they first come (a formula's are its own). */
   private choices(c: number): string[] {
-    return [...new Set(this.view.table.rows.map((row) => (row[c] ?? '').trim()).filter((x) => x && !x.startsWith('=')))];
+    return choicesOf(this.view.table.rows, c);
   }
   /** An option cell's caret: the cell selected and its list opened, where the browser can open it (elsewhere its words come up as it is typed in). */
   private async openChoices(r: number, c: number) {

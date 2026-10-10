@@ -219,6 +219,56 @@ test('a table\'s money: a column that names its currency beats the head\'s; one 
   expect(cell(el, 'C1').value).toBe('€4.00');
 });
 
+test('a table column\'s menu says what it holds, the Spreadsheet\'s types: Money asks its currency, GBP shown through Intl; an Option column offers its words', async () => {
+  const { el, last } = await editor('---\ncurrency: €\n---\nItem | Cost | Kind\n--- | --- | ---\nTea | 3 | hot\nIce | 1200 | cold\nSoup | 4 | hot\n');
+  await until(() => !!cell(el, 'A1'));
+  const head = (c: number) => el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[c];
+  const field = () => document.querySelector<HTMLInputElement>('.to-currency-field');
+  // The types under the column's own group, the one it holds checked.
+  head(1).click();
+  await until(() => !!document.querySelector('[popover]:popover-open'));
+  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role=menuitemcheckbox]')].map((x) => [x.querySelector('.to-menu-words > span')!.textContent, x.getAttribute('aria-checked')]);
+  expect(items.map((x) => x[0])).toEqual(['Text', 'Number', 'Money', 'Percent', 'Date', 'Link', 'Checkbox', 'Option', 'Rich text', 'Name']);
+  expect(items.filter((x) => x[1] === 'true').map((x) => x[0])).toEqual(['Text']);
+  document.querySelector<HTMLElement>('[popover]:popover-open')!.hidePopover();
+  await tick();
+  // Money: the currency asked for, the head's € the placeholder's job, not the field's; GBP typed and kept.
+  await pick(el, head(1), 'Money');
+  await until(() => !!field());
+  expect(field()!.value).toBe('');
+  field()!.value = 'gbp';
+  field()!.dispatchEvent(new Event('input', { bubbles: true }));
+  await tick();
+  document.querySelector<HTMLButtonElement>('.to-currency .to-ask-ok')!.click();
+  await until(() => (last() ?? '').includes('Item | Cost:money(GBP) | Kind\n'));
+  await until(() => !field());
+  await el.updateComplete;
+  const pounds = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'GBP' });
+  await until(() => cell(el, 'B2').value === pounds.format(1200));
+  expect(cell(el, 'B3').value).toBe(pounds.format(4));
+  // The column stays in hand, its first cell typed in showing what it holds.
+  expect(document.activeElement).toBe(cell(el, 'B1'));
+  expect(cell(el, 'B1').value).toBe('3');
+  // Picked again, the field holds GBP; emptied, the column names none and takes the head's €.
+  await pick(el, head(1), 'Money');
+  await until(() => !!field());
+  expect(field()!.value).toBe('GBP');
+  field()!.value = '';
+  field()!.dispatchEvent(new Event('input', { bubbles: true }));
+  await tick();
+  document.querySelector<HTMLButtonElement>('.to-currency .to-ask-ok')!.click();
+  await until(() => (last() ?? '').includes('Item | Cost:money | Kind\n'));
+  await el.updateComplete;
+  await until(() => cell(el, 'B2').value === '€1,200.00');
+  // Option: the column's cells offer the words it holds, each once.
+  await pick(el, head(2), 'Option');
+  await until(() => (last() ?? '').includes('Item | Cost:money | Kind:option\n'));
+  await el.updateComplete;
+  const list = cell(el, 'C1').getAttribute('list')!;
+  expect([...el.querySelectorAll(`datalist[id="${list}"] option`)].map((o) => (o as HTMLOptionElement).value)).toEqual(['hot', 'cold']);
+  expect(cell(el, 'A1').getAttribute('list')).toBeNull();
+});
+
 test('a web address alone is a card that loads nothing until tapped; a tap on a task\'s box ticks it; the paper is a head field', async () => {
   const { el, last } = await editor('https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n- [ ] walk the dog\n');
   await until(() => !!el.querySelector('to-embed'));
