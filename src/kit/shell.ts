@@ -655,9 +655,9 @@ export class ToShell extends LitElement {
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
     // The Office mark is the menu: a button with a border, so it reads as something to press.
     const burger = html`<button type="button" class="to-btn to-tool to-burger" aria-label=${t('Menu')} title=${t('Tiny Little Office menu')} aria-haspopup="dialog" @click=${drawer}>${unsafeHTML(mark(26))}</button>`;
-    if (!def) return html`<header class="to-header">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
+    if (!def) return html`<header class="to-header" aria-label="Tiny Little Office">${burger}<a class="to-brand" href="#/">Tiny Little Office</a></header>`;
     if (this.sealed)
-      return html`<header class="to-header">
+      return html`<header class="to-header" aria-label="Tiny Little Office">
         ${burger}
         <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
         <h1 class="to-title to-title-locked">${this.docTitle}</h1>
@@ -670,7 +670,7 @@ export class ToShell extends LitElement {
     const pct = Math.min(1, this.payloadLength / Math.max(1, available));
     const r = 9;
     const c = 2 * Math.PI * r;
-    return html`<header class="to-header">
+    return html`<header class="to-header" aria-label="Tiny Little Office">
       ${burger}
       <a class="to-here" href=${routeHash(def.id)} title=${t('New {noun}', { noun: def.noun })} aria-label=${t('New {noun}', { noun: def.noun })}>${icon(def.icon, 24)}</a>
       <h1 class="sr-only">${this.docTitle}</h1>
@@ -1007,7 +1007,7 @@ export class ToShell extends LitElement {
       const tag = unsafeStatic(this.tag);
       main = staticHtml`<${tag} class="to-editor" .value=${this.edited} @docchange=${this.onDocChange}></${tag}>`;
     }
-    return html`${this.renderHeader()}${this.renderArrival()}<main class="to-main">${main}</main><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}`;
+    return html`${this.renderHeader()}${this.renderArrival()}<main class="to-main" aria-label=${this.def?.name ?? nothing}>${main}</main><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}`;
   }
 }
 customElements.define('to-shell', ToShell);

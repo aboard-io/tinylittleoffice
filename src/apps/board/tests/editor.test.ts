@@ -274,7 +274,7 @@ test('a tap on the grip chooses the card: the bar under it in the standard order
   await tapGrip(el, cardsOf(el, 0)[1]);
   expect(chosen(el)).toEqual(['Review the copy']);
   expect(document.activeElement).toBe(box(el));
-  expect(cardsOf(el, 0)[1].getAttribute('aria-selected')).toBe('true');
+  expect(cardsOf(el, 0)[1].querySelector('.board-grip')!.getAttribute('aria-pressed')).toBe('true');
   expect(contextLabels()).toEqual(['Edit', 'Move up', 'Move down', 'Move to the stage before', 'Move to Doing', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
   // Typing with a card chosen does nothing to it.
   const n = last();

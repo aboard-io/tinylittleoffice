@@ -977,7 +977,7 @@ export class ToText extends LitElement {
         if (b.level === 3) return html`<h3 class=${cls}>${inner}</h3>`;
         return html`<h4 class=${cls} data-level=${b.level}>${inner}</h4>`;
       case 'li':
-        return html`<li class=${cls} style=${`--d:${b.depth}`} data-n=${n ?? nothing} data-done=${b.done === undefined ? nothing : String(b.done)}>${inner}</li>`;
+        return html`<li role="none" class=${cls} style=${`--d:${b.depth}`} data-n=${n ?? nothing} data-done=${b.done === undefined ? nothing : String(b.done)}>${inner}</li>`;
       case 'quote':
         return html`<blockquote class=${cls}>${inner}</blockquote>`;
       default:

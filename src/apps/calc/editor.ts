@@ -444,8 +444,8 @@ export class ToCalcEditor extends DocElement<CalcView> {
         const n = i + 1;
         const colour = graph ? exprs.indexOf(l) : -1;
         const ranged = this.rows.has(i);
-        return html`<li class="calc-row ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}" aria-selected=${ranged ? 'true' : 'false'}>
-          <button type="button" class="calc-grip to-rows-handle" aria-label=${t('Choose line {n}: drag it to move it', { n })} title=${t('Drag to move; tap to choose')}>${icon(GripVertical, 16)}</button>
+        return html`<li class="calc-row ${ranged ? 'ranged' : ''} ${this.rows.drag?.id === i ? 'dragging' : ''}">
+          <button type="button" class="calc-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('Choose line {n}: drag it to move it', { n })} title=${t('Drag to move; tap to choose')}>${icon(GripVertical, 16)}</button>
           ${graph && colour >= 0 ? html`<span class="calc-swatch" style=${`--c:${SERIES[colour % SERIES.length]}`} aria-hidden="true"></span>` : nothing}
           <input class="calc-line" aria-label=${t('Line {n}', { n })} .value=${l} autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"
             @focus=${(e: Event) => this.settled.delete(e.target as HTMLInputElement)} @change=${(e: Event) => this.onLineChange(e, i)} @keydown=${(e: KeyboardEvent) => this.onLineKey(e, i)} @paste=${(e: ClipboardEvent) => this.onBoxPaste(e, i)} />

@@ -850,7 +850,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   private renderLinks(links: Link[]) {
     if (!links.length) return nothing;
     return html`<section class="ol-links" aria-label=${t('Connections')}>
-      <h3>${t('Connections')}</h3>
+      <h2>${t('Connections')}</h2>
       ${links.map((l) => {
         const ends = this.endsOf(l.at)!;
         return html`<div class="ol-link" data-at=${l.at}>

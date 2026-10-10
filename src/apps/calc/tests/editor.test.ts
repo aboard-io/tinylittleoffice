@@ -448,7 +448,7 @@ test('lines chosen whole: a tap on the grip, the bar in the standard order, Shif
   await tapGrip(el, 1);
   expect(chosen(el)).toEqual([1]);
   expect(document.activeElement).toBe(tapeBox(el));
-  expect(el.querySelectorAll('.calc-row')[1].getAttribute('aria-selected')).toBe('true');
+  expect(el.querySelectorAll('.calc-row')[1].querySelector('.calc-grip')!.getAttribute('aria-pressed')).toBe('true');
   expect(contextLabels()).toEqual(['Edit', 'Move up', 'Move down', 'Duplicate', 'Copy', 'Cut', 'Paste', 'Delete']);
   keyOn(tapeBox(el), 'ArrowDown', { shiftKey: true });
   await settle(el);

@@ -685,10 +685,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const dragging = this.drag === c.at;
     const before = this.over?.stage === this.view.stages.indexOf(s) && this.over.pos === j && this.drag !== null;
     const ranged = this.rows.has(c.at);
-    return html`<li class="board-card ${dragging ? 'dragging' : ''} ${before ? 'before' : ''} ${ranged ? 'ranged' : ''}" data-at=${c.at} aria-selected=${ranged ? 'true' : 'false'}>
+    return html`<li class="board-card ${dragging ? 'dragging' : ''} ${before ? 'before' : ''} ${ranged ? 'ranged' : ''}" data-at=${c.at}>
       <div class="board-main">
         <to-text shape="line" data-at=${c.at} .blocks=${this.one(c.block)} label=${t('Card')} placeholder=${t('Card')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, c.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onCardEnter(s, c))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(c.at, e.detail.dir))} @text-selectall=${this.onSelectAll} @focusin=${(e: Event) => this.at(c.at, e)}></to-text>
-        <button type="button" class="to-btn to-tool board-grip to-rows-handle" aria-label=${t('Choose this card: drag it to move it')} title=${t('Drag to move; tap to choose')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: MouseEvent) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
+        <button type="button" class="to-btn to-tool board-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('Choose this card: drag it to move it')} title=${t('Drag to move; tap to choose')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: MouseEvent) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
       </div>
       ${web ? html`<to-embed class="board-web" url=${web}></to-embed>` : nothing}
       ${c.items.length
