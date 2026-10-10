@@ -85,7 +85,7 @@ export function readSheet(doc: Doc): SheetView {
   return { at, table, cols, values, named: ev.named, used, big: bigOf(doc, at, table, ev.values, ev.named) };
 }
 
-/** The headline cell, if the table names one: `{big=Payment}` (a named cell) or `{big=D4}`. */
+/** The headline cell, if the table names one: `{big=Payment}` (a named cell) or `{big=D4}` (labelled by its column and row). */
 function bigOf(doc: Doc, at: number, t: Table, values: CellValue[][], named: Map<string, [number, number]>): SheetView['big'] {
   const b = doc.blocks[at];
   const want = b?.k === 'table' ? b.a?.kv?.big : undefined;
@@ -94,8 +94,15 @@ function bigOf(doc: Doc, at: number, t: Table, values: CellValue[][], named: Map
   if (!rc) return null;
   const [r, c] = rc;
   const nameCol = t.cols.findIndex((x) => x.type === 'name');
-  const label = named.has(nameKey(want)) ? (t.rows[r]?.[nameCol] ?? want) : want;
-  return { label, value: formatCell(values[r]?.[c] ?? null, t.cols[c]?.type) };
+  return { label: named.has(nameKey(want)) ? (t.rows[r]?.[nameCol] ?? want) : refLabel(t, r, c, want), value: formatCell(values[r]?.[c] ?? null, t.cols[c]?.type) };
+}
+
+/** What a headline given by reference is called: its column's name and the words its row starts with ("Raised so far, Oct 26"), or the reference where the column goes by its letter. */
+function refLabel(t: Table, r: number, c: number, ref: string): string {
+  const name = t.cols[c]?.name;
+  if (!name || isLetterName(name)) return ref;
+  const row = c > 0 ? (t.rows[r]?.[0] ?? '') : '';
+  return row && !row.startsWith('=') ? `${name}, ${row}` : name;
 }
 
 /* ---------- commands: each the ops that do it ---------- */

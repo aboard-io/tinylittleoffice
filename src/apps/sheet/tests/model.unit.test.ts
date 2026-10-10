@@ -31,6 +31,9 @@ test('read: three columns at the least, values worked out, the headline by name'
   expect(m.values[0][2]).toBe(100);
   expect(m.table.chart).toBe('sankey');
   expect(m.big).toEqual({ label: 'Visitors', value: '1,000' });
+  // By reference, the headline is called by its column and the words its row starts with; by its letter where the column has no name.
+  expect(readSheet(parse('Week | Raised:money\n--- | ---\nOct 5 | 900\nOct 12 | 1400\n{big=B2}\n')).big).toEqual({ label: 'Raised, Oct 12', value: '$1,400.00' });
+  expect(readSheet(parse('ColA | ColB\n--- | ---\nx | 1\n{big=B1}\n')).big).toEqual({ label: 'B1', value: '1' });
   expect(readSheet(parse('')).at).toBe(-1);
   expect(readSheet(parse('')).cols).toHaveLength(3);
 });
@@ -147,12 +150,28 @@ test('sort, fill, clear and paste write rectangles; a sort moves whole rows thro
 
 test('every template is a real document that round-trips byte for byte, and the headline is drawn', () => {
   const all = templates();
-  expect(all.map((x) => x.id)).toEqual(['budget', 'expenses', 'training', 'tracker', 'loan', 'subscription', 'cafe', 'freelancer', 'fund', 'months']);
+  // The everyday ones first (Blank is the app's own page, before them all), then work and groups, the calculators, the models.
+  expect(all.map((x) => x.id)).toEqual([
+    'budget', 'household', 'expenses', 'savings', 'habits', 'reading', 'workout', 'training', 'timesheet', 'split',
+    'tracker', 'schedule', 'grades', 'members', 'seating', 'poll', 'fundraising', 'invoices', 'inventory', 'pettycash',
+    'rates', 'mortgage', 'loan', 'converter', 'bracket', 'months', 'subscription', 'cafe', 'freelancer', 'fund',
+  ]);
+  expect(new Set(all.map((x) => x.name)).size).toBe(all.length);
   for (const tpl of all) {
     expect(write(parse(tpl.doc)), tpl.id).toBe(tpl.doc);
     expect(tpl.doc.endsWith('\n')).toBe(true);
+    // A real document: its own title, a blurb, no filler.
+    expect(def.title(tpl.doc), tpl.id).not.toBe('');
+    expect(tpl.blurb.length, tpl.id).toBeGreaterThan(20);
+    expect(tpl.doc, tpl.id).not.toMatch(/lorem|ipsum|TODO|TBD|xxx/i);
+    // Dates are this year's and next.
+    for (const [y] of tpl.doc.matchAll(/\b20\d\d(?=-\d\d-\d\d)/g)) expect(['2026', '2027'], tpl.id).toContain(y);
     const v = readSheet(parse(tpl.doc));
     expect(v.used.rows, tpl.id).toBeGreaterThan(2);
+    // Drawn small for the templates list: its chart, or the grid with the words in it.
+    const small = def.view(tpl.doc, { small: true });
+    expect(small, tpl.id).toHaveLength(1);
+    expect(small[0].svg.length, tpl.id).toBeGreaterThan(500);
     // No cell of a template is an error.
     expect(v.values.flat().filter((x) => typeof x === 'string' && x.startsWith('#')), tpl.id).toEqual([]);
   }
@@ -164,6 +183,19 @@ test('every template is a real document that round-trips byte for byte, and the 
     expect(tablePage(v).svg).toContain(v.big!.value);
     expect(sheetPages(all.find((x) => x.id === id)!.doc)).toHaveLength(2);
   }
+  // The working of a few, as a reader would check them by hand.
+  const value = (id: string, r: number, c: number) => readSheet(parse(all.find((x) => x.id === id)!.doc)).values[r][c];
+  expect(value('household', 11, 7)).toBe(5861);
+  expect(value('split', 4, 5)).toBeCloseTo(517.65);
+  expect(value('split', 2, 6)).toBeCloseTo(-954.95);
+  expect(value('grades', 0, 7)).toBe('A');
+  expect(value('inventory', 1, 7)).toBe('Order now');
+  expect(value('bracket', 6, 6)).toBe('Old Town Athletic');
+  expect(value('converter', 4, 2)).toBe(176.7);
+  expect(value('pettycash', 8, 5)).toBeCloseTo(147.16);
+  expect(readSheet(parse(all.find((x) => x.id === 'fundraising')!.doc)).big).toEqual({ label: 'Raised so far, Oct 26', value: '$21,730.00' });
+  expect(readSheet(parse(all.find((x) => x.id === 'savings')!.doc)).big).toEqual({ label: 'Still to go', value: '$2,300.00' });
+  for (const id of ['poll', 'fundraising']) expect(sheetPages(all.find((x) => x.id === id)!.doc)[0].svg, id).toBe(chartOf(readSheet(parse(all.find((x) => x.id === id)!.doc)))!.svg);
   expect(def.blank()).toBe('');
   expect(def.title('---\ntitle: Rent\n---\n' + SHEET)).toBe('Rent');
   expect(def.retitle(SHEET, 'Rent')).toBe('---\ntitle: Rent\n---\n' + SHEET);
