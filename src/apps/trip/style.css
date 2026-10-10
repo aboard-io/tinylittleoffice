@@ -16,7 +16,7 @@
     position: relative;
     isolation: isolate;
     z-index: 0;
-    height: max(15rem, 42dvh);
+    height: max(15rem, 0.42 * var(--to-col-h));
     background: var(--to-surface-2);
     font: 0.875rem var(--to-font);
   }
@@ -206,10 +206,10 @@
       align-items: start;
     }
     .trip .trip-map {
-      height: min(70dvh, 40rem);
+      height: min(0.7 * var(--to-col-h), 40rem);
     }
     .trip:not(.no-map) .trip-stops {
-      max-height: min(70dvh, 40rem);
+      max-height: min(0.7 * var(--to-col-h), 40rem);
       overflow-y: auto;
     }
   }

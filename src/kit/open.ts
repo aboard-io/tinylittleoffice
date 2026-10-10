@@ -8,7 +8,7 @@
 import { appOf } from './apps.ts';
 import { encodeDoc } from './codec.ts';
 import { t } from './i18n.ts';
-import { readFile } from './plain.ts';
+import { readFile, readPlain } from './plain.ts';
 import { routeHash } from './route.ts';
 import { toast } from './toast.ts';
 
@@ -38,4 +38,33 @@ export async function openFile(file: File, fallback: string): Promise<boolean> {
   location.hash = hash;
   toast(t('Opened {name}', { name: file.name }));
   return true;
+}
+
+/** A file dropped anywhere on the page opens (the shell's): `before` makes the link current first, `app` is the app open now. Returns the undo. */
+export function opensDropped(before: () => void, app: () => string): () => void {
+  const over = (e: DragEvent) => {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  const drop = (e: DragEvent) => {
+    const file = e.dataTransfer?.files[0];
+    if (!file) return;
+    e.preventDefault();
+    before();
+    void openFile(file, app());
+  };
+  window.addEventListener('dragover', over);
+  window.addEventListener('drop', drop);
+  return () => (window.removeEventListener('dragover', over), window.removeEventListener('drop', drop));
+}
+
+/** A plain-parameter link ("#title=…&doc=…", kit/plain.ts) made the packed link it stands for, the address replaced (Back does not return to it). */
+export function unplain(pageApp: string) {
+  const plain = readPlain(location.hash, pageApp, (id) => !!appOf(id));
+  if (!plain) return;
+  const def = appOf(plain.app)!;
+  const doc = plain.title ? def.retitle(plain.text, plain.title) : plain.text;
+  const view = plain.view === 'show' ? '' : plain.view;
+  history.replaceState(null, '', routeHash(def.id, encodeDoc(doc), view) + (plain.view === 'show' ? '?show' : ''));
 }

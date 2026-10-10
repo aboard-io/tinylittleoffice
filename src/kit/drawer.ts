@@ -1,5 +1,8 @@
 /**
- * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side. Find an app, a
+ * <to-drawer>: the menu behind the hamburger, a native <dialog> that slides in from the side the menu button is on
+ * (the inline end). With a document open it begins with This document: Share… and Download (the table of formats,
+ * `downloads`), since on a phone, while a box has the focus, the header steps aside and this is the one nav left
+ * (kit/chrome.ts). Then: find an app, a
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
  * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
@@ -27,6 +30,8 @@ import { currentHash, parseHash } from './route.ts';
 import { commitUrl, running, type Version } from './version.ts';
 import './preview.ts';
 import type { ToDialog } from './dialog.ts';
+import type { MenuItem } from './menu.ts';
+import './menu.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
 import './dialog.ts';
 import './privacy-dialog.ts';
@@ -36,7 +41,9 @@ import { origin } from './network.ts';
 export const THREAT_MODEL = `${origin('github')}/ftrain/tinyoffice/blob/main/docs/threat-model.md`;
 
 export class ToDrawer extends LitElement {
-  static properties = { find: { state: true }, open: { state: true }, version: { state: true } };
+  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, downloads: { attribute: false } };
+  /** The open document's formats, for its Download; null on the home page (and no This document then). */
+  declare downloads: MenuItem[] | null;
   declare find: string;
   declare open: boolean;
   /** The build this is, once About has asked (null: there is no /version.json, as on the dev server). */
@@ -48,6 +55,7 @@ export class ToDrawer extends LitElement {
     this.find = '';
     this.open = false;
     this.version = null;
+    this.downloads = null;
   }
   createRenderRoot() {
     return this;
@@ -138,6 +146,13 @@ export class ToDrawer extends LitElement {
           </label>
           <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button>
         </header>
+        ${this.open && this.downloads
+          ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
+              <h3 class="to-drawer-head3">${t('This document')}</h3>
+              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(UI.share, 18)}<span>${t('Share…')}</span></button>
+              <to-menu class="to-drawer-download" .label=${t('Download')} .icon=${UI.download} .items=${this.downloads}></to-menu>
+            </section>`
+          : nothing}
         ${this.open
           ? html`<nav class="to-drawer-apps" aria-label=${t('Apps')}>
                 <input class="to-find" type="search" placeholder=${placeholder} aria-label=${placeholder} autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-drawer-apps a')?.click())} />

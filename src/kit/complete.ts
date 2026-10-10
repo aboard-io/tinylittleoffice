@@ -14,6 +14,7 @@ import { LitElement, html, nothing } from 'lit';
 import { icon, iconNamed } from './icons.ts';
 import { completeIcons } from './icons-search.ts';
 import { t } from './i18n.ts';
+import { reveal, room } from './scroll.ts';
 
 const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 const MAX = 8;
@@ -130,11 +131,8 @@ export class ToComplete extends LitElement {
     const p = this.pop;
     const r = this.rect;
     if (!p || !r || !this.shown) return;
-    const vv = window.visualViewport;
-    const top0 = vv?.offsetTop ?? 0;
-    const left0 = vv?.offsetLeft ?? 0;
-    const w = vv?.width ?? innerWidth;
-    const h = vv?.height ?? innerHeight;
+    const box = room();
+    const [top0, left0, w, h] = [box.top, box.left, box.right - box.left, box.bottom - box.top];
     // On the screen, as the rest are.
     const { width: pw, height: ph } = p.getBoundingClientRect();
     let top = r.bottom + 4;
@@ -143,7 +141,8 @@ export class ToComplete extends LitElement {
     p.style.left = `${Math.round(Math.max(left0 + 4, Math.min(r.left, left0 + w - pw - 4)))}px`;
   };
   updated() {
-    this.querySelector(`[id="${this.activeId}"]`)?.scrollIntoView({ block: 'nearest' });
+    const active = this.querySelector(`[id="${this.activeId}"]`);
+    if (active) reveal(active);
   }
   disconnectedCallback() {
     super.disconnectedCallback();

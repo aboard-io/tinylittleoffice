@@ -18,6 +18,7 @@ import { t } from './i18n.ts';
 import { blockLength, caret } from './textops.ts';
 import type { TextOps, ToText } from './text.ts';
 import './text.ts';
+import { reveal } from './scroll.ts';
 
 /** A footnote's mark among blocks: its block, its offset there (one character), and its words. */
 export interface NoteMark {
@@ -78,7 +79,8 @@ export class ToNotes extends LitElement {
     await f.updateComplete;
     f.focus();
     f.sel = caret(0, blockLength(f.model[0]));
-    f.closest('li')?.scrollIntoView({ block: 'nearest' });
+    const li = f.closest('li');
+    if (li) reveal(li);
   }
   protected willUpdate(changed: Map<string, unknown>) {
     if (changed.has('notes')) this.held = this.notes.map((fn, i) => (this.held[i]?.fn === fn ? this.held[i] : { fn, blocks: [noteBlock(fn)] }));

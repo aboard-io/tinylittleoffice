@@ -33,6 +33,9 @@ test('home loads, the Word Processor opens, nothing throws, axe passes', async (
   await page.keyboard.type('A line written on the phone.');
   await expect(page).toHaveURL(/#\/v1\/write\/[ryz]/);
   await expect(area.locator('p')).toHaveText('A line written on the phone.');
+  // Done (the keyboard's, on a phone): the words let go, and the header, which steps aside on a phone while they have
+  // the focus (kit/chrome.ts), is back.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   // A new document has its name from the start: "New Document <today> #1".
   await expect(page.locator('.to-title')).toHaveValue(/^New Document \d{4}-\d{2}-\d{2} #1$/);
   await page.locator('.to-title').fill('Hello');

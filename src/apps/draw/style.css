@@ -19,7 +19,7 @@
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
     overflow: auto;
-    max-height: calc(100dvh - var(--to-header-h) - 9.375rem);
+    max-height: calc(var(--to-col-h) - 5.875rem);
     min-height: 12.5rem;
   }
   .draw-wrap:focus-visible {

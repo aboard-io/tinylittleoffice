@@ -14,6 +14,7 @@
  * second later.
  */
 import { keepSize, pinchSize, size } from './zoom.ts';
+import { scrollerOf } from './scroll.ts';
 
 export interface Pinch {
   /** The spread now over the spread when the second finger came down. */
@@ -198,7 +199,7 @@ export function pinchSizes() {
     if (!anchor?.el.isConnected) return;
     const r = anchor.el.getBoundingClientRect();
     const off = r.top + anchor.frac * r.height - at.y;
-    if (Math.abs(off) >= 1) window.scrollBy(0, off);
+    if (Math.abs(off) >= 1) scrollerOf(anchor.el).scrollTop += off;
   };
   const draw = () => {
     frame = 0;

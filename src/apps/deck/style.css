@@ -23,7 +23,7 @@
     gap: 0.625rem;
     min-width: 0;
     width: 100%;
-    max-width: max(20rem, (100dvh - 11.25rem) * var(--deck-w) / var(--deck-h));
+    max-width: max(20rem, (var(--to-col-h) - 4.25rem) * var(--deck-w) / var(--deck-h));
     margin-inline: auto;
     /* The canvas's margin (--deck-m, cqw) is a part of the slide's width: the stage is as wide as the canvas. */
     container-type: inline-size;
@@ -317,7 +317,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: calc(100dvh - var(--to-header-h, 3.5rem) - 7.5rem);
+    max-height: calc(var(--to-col-h) - 4rem);
     overflow: auto;
     padding: 0.125rem;
     touch-action: manipulation;

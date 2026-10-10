@@ -12,7 +12,7 @@ const measure = (page: Page) =>
   page.evaluate(() => {
     const bar = document.querySelector<HTMLElement>('to-anim-editor to-bar')!;
     const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-    return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.querySelector('.to-main')!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
   });
 
 test('motion: a shape drawn, then moved at the last moment, keys itself there', async ({ page }) => {
@@ -38,10 +38,12 @@ test('motion: a shape drawn, then moved at the last moment, keys itself there', 
   expect(first.wide).toBeLessThanOrEqual(0);
   await page.getByRole('slider', { name: 'Time' }).fill('23');
   const hit = stage.locator('g.hit rect').first();
+  // In the column, which scrolls (round eight): the shape brought into view before the finger goes to it.
+  await hit.scrollIntoViewIfNeeded();
   const h = (await hit.boundingBox())!;
   const [x, y] = [h.x + h.width / 2, h.y + h.height / 2];
   // (The rectangle drawn is still in hand, so its sliders are under the stage and the slider may have scrolled into view: from here the page stays put.)
-  const top = await page.evaluate(() => document.scrollingElement!.scrollTop);
+  const top = await page.evaluate(() => document.querySelector('.to-main')!.scrollTop);
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x + 60, y + 30, { steps: 5 });

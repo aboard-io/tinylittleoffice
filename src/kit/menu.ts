@@ -21,6 +21,7 @@ import { icon, UI, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
 import { fold } from './search.ts';
 import { keysText } from './bar.ts';
+import { room } from './scroll.ts';
 
 export interface MenuItem {
   label: string;
@@ -59,11 +60,8 @@ export interface MenuAction {
  * other side).
  */
 export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
-  const vv = window.visualViewport;
-  const top0 = vv?.offsetTop ?? 0;
-  const left0 = vv?.offsetLeft ?? 0;
-  const vw = vv?.width ?? window.innerWidth;
-  const vh = vv?.height ?? window.innerHeight;
+  const box = room();
+  const [top0, left0, vw, vh] = [box.top, box.left, box.right - box.left, box.bottom - box.top];
   const a = anchor.getBoundingClientRect();
   const below = top0 + vh - a.bottom - 2 * gap;
   const above = a.top - top0 - 2 * gap;

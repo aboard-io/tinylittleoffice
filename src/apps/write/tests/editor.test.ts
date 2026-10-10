@@ -17,10 +17,10 @@ import { remScale } from '../../../kit/zoom.ts';
 
 async function editor(value = ''): Promise<{ el: ToWriteEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
-  // At the top, whatever a test before left scrolled (the page is the size of everything's taller).
-  window.scrollTo(0, 0);
+  // In a column as the shell's (kit/chrome.ts): the page never scrolls, the column does.
   const main = document.createElement('main');
   main.className = 'to-main';
+  main.style.cssText = 'height: 100%; overflow-y: auto;';
   document.body.append(main);
   const el = document.createElement('to-write-editor') as ToWriteEditor;
   el.value = value;
@@ -291,7 +291,7 @@ test('a web address alone is a card that loads nothing until tapped; a tap on a 
   expect(el.querySelector('.write-page')!.getAttribute('data-paper')).toBe('a4');
 });
 
-test('at phone width: the bar is one row, nothing is wider than the screen, and focusing the text or a cell never scrolls the page', async () => {
+test('at phone width: the bar is one row, nothing is wider than the screen, and focusing the text or a cell never scrolls the column', async () => {
   await page.viewport(390, 844);
   try {
     const { el } = await editor(invoice());
@@ -304,13 +304,15 @@ test('at phone width: the bar is one row, nothing is wider than the screen, and 
     // At the normal size the invoice's head fills the first screen, so the page cannot start at its top with the words
     // in sight: the words' first line, where the caret goes, is scrolled to the top of the screen, and focusing them
     // must leave scrollTop exactly where it was just set (neither back to 0 nor on to the caret).
-    el.text.tx.scrollIntoView({ block: 'start' });
-    const y = document.scrollingElement!.scrollTop;
+    const column = el.closest('main')!;
+    column.scrollTop = el.text.tx.getBoundingClientRect().top - column.getBoundingClientRect().top;
+    const y = column.scrollTop;
     expect(y).toBeGreaterThan(0);
     el.text.focus();
     el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
     await tick();
-    expect(document.scrollingElement!.scrollTop).toBe(y);
+    expect(column.scrollTop).toBe(y);
+    expect(window.scrollY).toBe(0);
     for (const ref of ['A1', 'B2', 'C3']) {
       cell(el, ref).focus({ preventScroll: true });
       await el.updateComplete;

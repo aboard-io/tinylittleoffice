@@ -232,6 +232,22 @@ export async function exportAs(ext: string, current: Current, share = true): Pro
   return made.name;
 }
 
+/**
+ * A ".<ext>" link's view, once the document is up: the file in one of its app's formats (formatsOf) downloads; ".print"
+ * prints. Any other extension does nothing (the document opens plainly).
+ */
+export async function viewAs(view: string, current: () => Current): Promise<void> {
+  const format = formatOf(current().ctx.def, view);
+  if (!format && view !== 'print') return;
+  try {
+    if (!format) return void (await printDoc(current()));
+    const name = await exportAs(format.ext, current());
+    if (name) toast(t('Downloaded {name}', { name }));
+  } catch {
+    toast(t('Download failed'));
+  }
+}
+
 /** Print the document (not a format: the browser's dialog, which saves a PDF too), drawn still. */
 export async function printDoc({ doc, ctx }: Current): Promise<void> {
   await ensureIcons(iconNames(doc));

@@ -35,6 +35,7 @@ import '../../kit/embeds.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
+import { reveal } from '../../kit/scroll.ts';
 import './style.css';
 
 export const tag = 'to-board-editor';
@@ -187,7 +188,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     if (!x) return;
     const n = this.lengthOf(at);
     x.sel = how === 'all' ? { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: n } } : caret(0, how === 'end' ? n : how === 'start' ? 0 : Math.min(how, n));
-    x.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    reveal(x, { inline: true });
   }
 
   /** The caret is in the block at `at`: Insert is told, so it offers what makes sense there. */

@@ -57,6 +57,11 @@
     --to-shadow-pop: 0 0.25em 1em rgb(0 0 0 / 16%);
     /* The header is nav: its height is the nav's (kit.css, --to-nav-font), wherever it is reckoned with. */
     --to-header-h: calc(3.5 * var(--to-nav-font));
+    /* The app's bar, one row: a finger's target and its padding, in the nav's scale (kit.css, the bar's place). */
+    --to-bar-h: calc(3.5 * var(--to-nav-font));
+    /* The column's height, what a canvas, a map or a site's frame fills: <to-chrome> sets it as measured (kit/chrome.ts);
+       until then, and for an editor drawn alone, the screen less the header and the bar. */
+    --to-col-h: calc(100dvh - var(--to-header-h) - var(--to-bar-h));
     /* A finger's target, 44 of the stylesheet's pixels: the document's here, the nav's on every nav element (kit.css). */
     --to-touch: 2.75rem;
     --to-max-w: 67.5rem;

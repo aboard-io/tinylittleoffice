@@ -23,9 +23,9 @@
   svg.anim-stage {
     display: block;
     width: 100%;
-    max-height: calc(100dvh - var(--to-header-h) - 16.25rem);
+    max-height: calc(var(--to-col-h) - 12.75rem);
     /* As wide as that height allows in the stage's shape, centred in the window's width. */
-    max-width: max(16rem, (100dvh - var(--to-header-h) - 16.25rem) * 8 / 5);
+    max-width: max(16rem, (var(--to-col-h) - 12.75rem) * 8 / 5);
     min-height: 10rem;
     height: auto;
     aspect-ratio: 8 / 5;
