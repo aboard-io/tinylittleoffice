@@ -10,7 +10,7 @@
   to-text .tx {
     position: relative;
     min-height: 1.5em;
-    font-size: max(16px, 1em);
+    font-size: max(1rem, 1em);
     line-height: 1.5;
     /* The box collapses the whitespace between its blocks (the template's own newlines); each block keeps its spaces and line breaks. */
     white-space: normal;
@@ -87,17 +87,17 @@
   /* Under a finger a task's box is a 44px target: the padding it is tapped in (text.ts onClick) is that wide and tall. */
   @media (pointer: coarse) {
     to-text .tx li[data-done] {
-      padding-left: calc(44px + var(--d, 0) * 1.5em);
-      min-height: 44px;
+      padding-left: calc(var(--to-touch) + var(--d, 0) * 1.5em);
+      min-height: var(--to-touch);
     }
     to-text .tx li[data-done]::before {
-      left: calc(var(--d, 0) * 1.5em + 12px);
+      left: calc(var(--d, 0) * 1.5em + 0.75rem);
     }
   }
   to-text .tx blockquote {
     margin-left: 0;
-    padding-left: 12px;
-    border-left: 3px solid var(--to-border);
+    padding-left: 0.75rem;
+    border-left: 0.1875rem solid var(--to-border);
     color: var(--to-ink-2);
   }
   to-text .tx .center {
@@ -116,7 +116,7 @@
   to-text .tx a {
     color: var(--to-accent);
     text-decoration: underline;
-    text-underline-offset: 2px;
+    text-underline-offset: 0.125rem;
   }
 
   /* The icon chip: one thing the caret steps over, drawn as the icon in the line's colour; a name nothing has is its name, small. */
@@ -135,7 +135,7 @@
   }
   to-text .tx .ic.ic-name {
     padding: 0 0.3em;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     font-size: 0.75em;
     line-height: 1.4;
     color: var(--to-ink-2);
@@ -147,7 +147,7 @@
     min-width: 1.2em;
     padding: 0 0.25em;
     margin: 0 0.05em;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     font-size: 0.7em;
     line-height: 1.4;
     vertical-align: super;
@@ -168,13 +168,13 @@
   to-text .tx .tx-card {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     background: var(--to-surface-2);
     color: var(--to-ink-2);
-    font-size: 14px;
+    font-size: 0.875rem;
     white-space: normal;
     user-select: none;
     -webkit-user-select: none;
@@ -192,7 +192,7 @@
     -webkit-user-select: text;
   }
   to-text .tx .tx-card:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
     outline-offset: 1px;
   }
   to-text .tx .tx-card-kind {
@@ -216,7 +216,7 @@
   }
   to-text .tx .tx-card[data-k='hr'] {
     display: block;
-    padding: 8px 0;
+    padding: 0.5rem 0;
     border: 0;
     background: none;
   }
@@ -233,15 +233,15 @@
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
-    width: min(420px, calc(var(--to-vw) - 16px));
-    padding: 6px 6px 6px 10px;
+    gap: 0.4286em;
+    width: min(30em, calc(100vw - 1.1429em));
+    padding: 0.4286em 0.4286em 0.4286em 0.7143em;
     border: 1px solid var(--to-border);
-    border-radius: 10px;
+    border-radius: 0.7143em;
     background: var(--to-surface);
     color: var(--to-ink);
     box-shadow: var(--to-shadow-pop);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-link-pop:not(:popover-open):not([popover]) {
     display: flex;
@@ -259,17 +259,17 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    width: min(280px, calc(var(--to-vw) - 16px));
-    max-width: 390px;
-    max-height: min(320px, calc(50 * var(--to-vh) / 100));
+    width: min(20em, calc(100vw - 1.1429em));
+    max-width: 27.8571em;
+    max-height: min(22.8571em, 50dvh);
     overflow-y: auto;
-    padding: 4px;
+    padding: 0.2857em;
     border: 1px solid var(--to-border);
-    border-radius: 10px;
+    border-radius: 0.7143em;
     background: var(--to-surface);
     color: var(--to-ink);
     box-shadow: var(--to-shadow-pop);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-complete[popover]:not(:popover-open),
   .to-complete[hidden] {
@@ -278,10 +278,10 @@
   .to-complete-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 36px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    gap: 0.625em;
+    min-height: 2.25em;
+    padding: 0.25em 0.5em;
+    border-radius: 0.375em;
     cursor: pointer;
   }
   .to-complete-row[aria-selected='true'] {
@@ -290,8 +290,8 @@
   .to-complete-glyph {
     display: inline-flex;
     justify-content: center;
-    width: 22px;
-    font-size: 18px;
+    width: 1.2222em;
+    font-size: calc(1.125 * var(--to-scale));
     line-height: 1;
     /* An emoji is the system's own, never a web font's. */
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
@@ -323,11 +323,11 @@
   .to-note-words .tx {
     min-height: 1.4em;
     line-height: 1.4;
-    border-radius: 4px;
+    border-radius: 0.25rem;
   }
   .to-note-words .tx:focus {
     background: var(--to-accent-soft);
-    box-shadow: 0 0 0 3px var(--to-accent-soft);
+    box-shadow: 0 0 0 0.1875rem var(--to-accent-soft);
     color: var(--to-ink);
   }
   .to-note-back {
@@ -340,12 +340,12 @@
   }
   .to-link-pop {
     width: auto;
-    max-width: calc(var(--to-vw) - 16px);
+    max-width: calc(100vw - 1em);
   }
   .to-link-href {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: 240px;
+    max-width: 15em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -353,17 +353,17 @@
   }
   .to-link-input {
     flex: 1 1 auto;
-    min-width: 200px;
-    padding: 8px 10px;
+    min-width: 12.5em;
+    padding: 0.5em 0.625em;
     font: inherit;
-    font-size: 16px;
+    font-size: var(--to-scale);
     color: var(--to-ink);
     background: var(--to-input-bg);
     border: 1px solid var(--to-input-border);
     border-radius: var(--to-radius-sm);
   }
   .to-link-input:focus {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125em solid var(--to-accent);
     outline-offset: -1px;
   }
   @media print {

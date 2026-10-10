@@ -12,7 +12,7 @@ const measure = (page: Page) =>
   page.evaluate(() => {
     const bar = document.querySelector<HTMLElement>('to-anim-editor to-bar')!;
     const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-    return { bar: bar.offsetHeight, rows: tops.size, pageTop: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
   });
 
 test('motion: a shape drawn, then moved at the last moment, keys itself there', async ({ page }) => {

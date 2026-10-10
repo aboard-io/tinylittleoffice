@@ -11,9 +11,9 @@ import type { ToBoardEditor } from '../editor.ts';
 import { caret } from '../../../kit/textops.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import { zoomed } from '../../../kit/zoom.ts';
+import { remScale } from '../../../kit/zoom.ts';
 /** A length on the screen in the stylesheet's own pixels (the normal size draws at kit/zoom.ts BASE). */
-const css = (px: number) => px / zoomed();
+const css = (px: number) => px / remScale();
 
 const BOARD = `## To do {color=b}
 
@@ -628,7 +628,7 @@ test('at phone width: a stage and a bit across, controls a finger tall, the bar 
     const barEl = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...barEl.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     // A card's words are one line tall, the row a finger: nothing of the editor's own adds lines.
     expect(css(text(el, 1).tx.getBoundingClientRect().height)).toBeLessThanOrEqual(30);
     expect(css(el.querySelector<HTMLElement>('.board-main')!.getBoundingClientRect().height)).toBeCloseTo(44, 0);
@@ -638,7 +638,7 @@ test('at phone width: a stage and a bit across, controls a finger tall, the bar 
     await type(el, 1, ' now');
     expect(document.scrollingElement!.scrollTop).toBe(0);
     expect(parseFloat(getComputedStyle(text(el, 1).tx).fontSize)).toBeGreaterThanOrEqual(16);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     // The menu opens inside the screen.
     await pick(el, cols(el)[0].querySelector<HTMLButtonElement>('.board-more')!, 'Move right');

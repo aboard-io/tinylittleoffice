@@ -11,6 +11,7 @@ import '../editor.ts';
 import type { ToDeckEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { remScale } from '../../../kit/zoom.ts';
 
 async function editor(value = ''): Promise<{ el: ToDeckEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
@@ -200,7 +201,7 @@ test('at phone width the bar is one row, nothing is wider than the screen, and t
   const bar = el.querySelector<HTMLElement>('to-bar')!;
   const tops = new Set([...bar.children].filter((c) => (c as HTMLElement).offsetWidth > 0).map((c) => Math.round(c.getBoundingClientRect().top)));
   expect(tops.size).toBe(1);
-  expect(bar.offsetHeight).toBeLessThanOrEqual(56);
+  expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
   expect(document.documentElement.scrollWidth - document.documentElement.clientWidth).toBeLessThanOrEqual(0);
   const canvas = el.querySelector<HTMLElement>('.deck-canvas')!;
   const rail = el.querySelector<HTMLElement>('.deck-rail')!;
@@ -587,19 +588,20 @@ test('a document on a slide: Edit then Open in a new tab; Done writes it back, o
   await until(() => last() === '## Map\n\n```draw\nrect 10 10 100 60\n```\n');
 });
 
-test('the speaker notes have room round them, as the words do: 12px, the hint inside it, while editing and while presenting', async () => {
+test('the speaker notes have room round them, as the words do: 12 of the stylesheet’s 16 (0.75rem), the hint inside it, while editing and while presenting', async () => {
   const { el } = await editor('## Hello\n\n> Say hi\n');
   const notes = box(el, 'notes');
   const cs = getComputedStyle(notes);
-  expect([cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft]).toEqual(['12px', '12px', '12px', '12px']);
+  const twelve = (...v: string[]) => v.map((x) => Math.round((parseFloat(x) / remScale()) * 100) / 100);
+  expect(twelve(cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft)).toEqual([12, 12, 12, 12]);
   const empty = await editor('## Hello\n');
   await until(() => !!box(empty.el, 'notes')?.classList.contains('blank'));
   const hint = getComputedStyle(box(empty.el, 'notes'), '::before');
-  expect([hint.top, hint.left]).toEqual(['12px', '12px']);
+  expect(twelve(hint.top, hint.left)).toEqual([12, 12]);
   const { el: shown } = await editor('## Hello\n\n> Say hi\n');
   button(shown, 'Present').click();
   await until(() => !!shown.querySelector('.deck-show .notes'));
-  expect(getComputedStyle(shown.querySelector('.deck-show .notes')!).padding).toBe('12px');
+  expect(twelve(getComputedStyle(shown.querySelector('.deck-show .notes')!).padding)).toEqual([12]);
   key(window, 'Escape');
 });
 

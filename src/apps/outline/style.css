@@ -8,12 +8,12 @@
     min-height: 0;
   }
   .ol {
-    --ol-step: 22px;
-    --ol-row: 36px;
-    padding: 8px 8px 20px 44px;
+    --ol-step: 1.375rem;
+    --ol-row: 2.25rem;
+    padding: 0.5rem 0.5rem 1.25rem 2.75rem;
     /* The outline's measure, centred in the window's width (so are its joins, its trail and its footnotes). */
     width: 100%;
-    max-width: 820px;
+    max-width: 51.25rem;
     margin-inline: auto;
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;
@@ -24,7 +24,7 @@
     align-items: flex-start;
     min-height: var(--ol-row);
     padding-left: calc(var(--d, 0) * var(--ol-step));
-    border-radius: 6px;
+    border-radius: 0.375rem;
   }
   .ol-row.sel {
     background: var(--to-surface-2);
@@ -39,7 +39,7 @@
   }
   /* A numbered item's number, where its dot would be. */
   .ol-n {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--to-ink-2);
@@ -50,8 +50,8 @@
   .ol-gutter {
     position: absolute;
     top: 0;
-    left: calc(var(--d, 0) * var(--ol-step) - 44px);
-    width: 44px;
+    left: calc(var(--d, 0) * var(--ol-step) - 2.75rem);
+    width: 2.75rem;
     height: var(--ol-row);
     display: flex;
     align-items: center;
@@ -59,7 +59,7 @@
   }
   .ol-handle,
   .ol-fold {
-    width: 22px;
+    width: 1.375rem;
     height: var(--ol-row);
     display: inline-grid;
     place-items: center;
@@ -67,7 +67,7 @@
     padding: 0;
     background: none;
     color: var(--to-ink-3);
-    border-radius: 5px;
+    border-radius: 0.3125rem;
     cursor: pointer;
     /* Shown where they are wanted: on the row under the pointer or being typed in; a folded item always shows its arrow. */
     opacity: 0;
@@ -109,8 +109,8 @@
     place-items: center;
   }
   .ol-kind {
-    width: 28px;
-    height: 28px;
+    width: 1.75rem;
+    height: 1.75rem;
     display: grid;
     place-items: center;
     border: 0;
@@ -125,8 +125,8 @@
     color: var(--to-ink);
   }
   .ol-kind span {
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
     border-radius: 50%;
     background: currentColor;
     display: block;
@@ -136,8 +136,8 @@
     color: var(--to-accent);
   }
   .ol-kind.root span {
-    width: 7px;
-    height: 7px;
+    width: 0.4375rem;
+    height: 0.4375rem;
   }
   .ol-kind:not([data-dir='--']):not(.root) {
     color: var(--to-accent);
@@ -145,7 +145,7 @@
   /* Folded: a halo round the bullet says there is more inside. */
   .ol-row.shut .ol-kind span,
   .ol-row.shut .ol-kind svg {
-    box-shadow: 0 0 0 4px var(--to-border);
+    box-shadow: 0 0 0 0.25rem var(--to-border);
     border-radius: 50%;
   }
 
@@ -153,12 +153,12 @@
   .ol-label {
     flex-shrink: 0;
     align-self: center;
-    margin: 0 2px 0 4px;
+    margin: 0 0.125rem 0 0.25rem;
     font: inherit;
-    font-size: 12px;
+    font-size: 0.75rem;
     border-radius: var(--to-radius-pill);
     max-width: 12em;
-    padding: 1px 8px;
+    padding: 1px 0.5rem;
     border: 0;
     background: var(--to-accent-soft);
     color: var(--to-accent);
@@ -180,9 +180,9 @@
     align-self: center;
   }
   .ol-row to-text .tx {
-    padding: 6px 6px 6px 4px;
-    font-size: 16px;
-    line-height: 24px;
+    padding: 0.375rem 0.375rem 0.375rem 0.25rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
     min-height: var(--ol-row);
     box-sizing: border-box;
   }
@@ -202,34 +202,34 @@
     font-weight: 600;
   }
   .ol-row to-text .tx.blank::before {
-    inset: 6px auto auto 4px;
+    inset: 0.375rem auto auto 0.25rem;
   }
 
   /* Another document under an item: a card with its app, its first line, a way out and a way to take it away. */
   .ol-doc {
     flex: 1 1 auto;
     min-width: 0;
-    max-width: 520px;
-    margin: 4px 0;
+    max-width: 32.5rem;
+    margin: 0.25rem 0;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 4px 4px 12px;
+    gap: 0.5rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     background: var(--to-surface-2);
     color: var(--to-ink-2);
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .ol-doc:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
     outline-offset: 1px;
   }
   .ol-doc-kind {
     flex: none;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
     color: var(--to-ink);
   }
   .ol-doc-gist {
@@ -241,29 +241,29 @@
   }
   .ol-count {
     align-self: center;
-    font-size: 11px;
-    margin-right: 6px;
+    font-size: 0.6875rem;
+    margin-right: 0.375rem;
     color: var(--to-ink-3);
   }
   .ol-kind:focus-visible,
   .ol-label:focus-visible,
   .ol-crumbs button:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
     outline-offset: 1px;
   }
 
   /* The space under the last item: a tap there starts the next one. */
   .ol-below {
-    height: 44px;
+    height: 2.75rem;
     cursor: text;
   }
 
   /* One line under the bar while connecting; nothing else moves. */
   .ol-hint {
     width: 100%;
-    max-width: 820px;
-    margin: 4px auto 0;
-    padding: 0 4px;
+    max-width: 51.25rem;
+    margin: 0.25rem auto 0;
+    padding: 0 0.25rem;
   }
 
   /* Zoomed in: where, as a trail back out. */
@@ -271,12 +271,12 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
     width: 100%;
-    max-width: 820px;
+    max-width: 51.25rem;
     margin-inline: auto;
-    padding: 8px 8px 0 44px;
-    font-size: 14px;
+    padding: 0.5rem 0.5rem 0 2.75rem;
+    font-size: 0.875rem;
     color: var(--to-ink-3);
   }
   .ol-crumbs button {
@@ -285,12 +285,12 @@
     color: var(--to-accent);
     font: inherit;
     cursor: pointer;
-    padding: 4px;
-    min-height: 32px;
-    border-radius: 4px;
+    padding: 0.25rem;
+    min-height: 2rem;
+    border-radius: 0.25rem;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.25rem;
   }
   .ol-crumbs button[aria-current='true'] {
     color: var(--to-ink);
@@ -313,9 +313,9 @@
   /* The name being typed, where the chip is: as wide as it needs, 16px so iOS does not zoom. */
   .ol-label-in {
     width: 10em;
-    font-size: 16px;
+    font-size: 1rem;
     color: var(--to-ink);
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
     outline-offset: 1px;
   }
   .ol-pick {
@@ -324,26 +324,26 @@
     border: 0;
     background: transparent;
     cursor: crosshair;
-    border-radius: 6px;
+    border-radius: 0.375rem;
     z-index: 2;
   }
   .ol-pick:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
   }
 
   /* The joins, under the outline, lined up with it. */
   .ol-links {
-    padding: 4px 8px 20px 44px;
+    padding: 0.25rem 0.5rem 1.25rem 2.75rem;
     width: 100%;
-    max-width: 820px;
+    max-width: 51.25rem;
     margin-inline: auto;
   }
   /* The footnotes under the outline, numbered as their marks are: as a slide shows them at its foot. */
   .ol-fn {
-    max-width: 776px;
-    margin: 8px 0 20px calc(max(0px, (100% - 820px) / 2) + 44px);
-    padding: 8px 8px 0 var(--ol-step, 22px);
-    font-size: 14px;
+    max-width: 48.5rem;
+    margin: 0.5rem 0 1.25rem calc(max(0rem, (100% - 51.25rem) / 2) + 2.75rem);
+    padding: 0.5rem 0.5rem 0 var(--ol-step, 1.375rem);
+    font-size: 0.875rem;
     color: var(--to-ink-2);
     border-top: 1px solid var(--to-border);
   }
@@ -351,8 +351,8 @@
     margin: 0.2em 0;
   }
   .ol-links h2 {
-    margin: 0 0 4px var(--ol-step, 22px);
-    font-size: 12px;
+    margin: 0 0 0.25rem var(--ol-step, 1.375rem);
+    font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -360,20 +360,20 @@
   }
   .ol-link {
     position: relative;
-    margin-left: var(--ol-step, 22px);
+    margin-left: var(--ol-step, 1.375rem);
     display: flex;
     align-items: center;
-    gap: 2px;
-    min-height: 36px;
-    font-size: 16px;
+    gap: 0.125rem;
+    min-height: 2.25rem;
+    font-size: 1rem;
   }
   .ol-link .ol-bullet {
-    flex: 0 0 28px;
-    height: 36px;
+    flex: 0 0 1.75rem;
+    height: 2.25rem;
   }
   .ol-end {
     font-weight: 500;
-    padding: 0 4px;
+    padding: 0 0.25rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -403,21 +403,21 @@
     .ol,
     .ol-links,
     .ol-crumbs {
-      padding-left: 36px;
+      padding-left: 2.25rem;
     }
     .ol-fn {
-      margin-left: 36px;
+      margin-left: 2.25rem;
     }
     .ol-gutter {
-      left: calc(var(--d, 0) * var(--ol-step) - 36px);
-      width: 36px;
+      left: calc(var(--d, 0) * var(--ol-step) - 2.25rem);
+      width: 2.25rem;
     }
     .ol-handle,
     .ol-fold {
-      width: 18px;
+      width: 1.125rem;
     }
     .ol {
-      --ol-step: 18px;
+      --ol-step: 1.125rem;
     }
   }
 }

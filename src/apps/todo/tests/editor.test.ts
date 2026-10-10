@@ -10,6 +10,7 @@ import type { ToTodoEditor } from '../editor.ts';
 import { caret } from '../../../kit/textops.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { remScale } from '../../../kit/zoom.ts';
 
 const LIST = '- [x] Buy milk\n- [ ] Call the printer {.star due=2020-02-01}\n- [ ] Pay rent {due=2999-03-01}\n';
 
@@ -222,14 +223,14 @@ test('at phone width: a row is a finger tall, the bar is one row, nothing is wid
     const barEl = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...barEl.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     await focusEnd(el, 1);
     await type(el, 1, ' now');
     expect(document.scrollingElement!.scrollTop).toBe(0);
     expect(parseFloat(getComputedStyle(text(el, 1).tx).fontSize)).toBeGreaterThanOrEqual(16);
     expect(parseFloat(getComputedStyle(rows(el)[1].querySelector('input[type=date]')!).fontSize)).toBeGreaterThanOrEqual(16);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
   } finally {
     await page.viewport(1100, 800);

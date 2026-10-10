@@ -11,6 +11,7 @@ import '../editor.ts';
 import type { ToCalcEditor } from '../editor.ts';
 import { hasEngine } from '../model.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { remScale } from '../../../kit/zoom.ts';
 
 async function editor(value = ''): Promise<{ el: ToCalcEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
@@ -252,7 +253,7 @@ test('at phone width: keys and rows a finger tall, boxes 16px, the bar one row, 
     const barEl = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...barEl.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     // The keys are below the tape, the line just above them.
     expect(display(el).getBoundingClientRect().top).toBeGreaterThan(el.querySelector('.calc-tape')!.getBoundingClientRect().bottom);

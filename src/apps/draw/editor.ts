@@ -22,7 +22,6 @@ import { docToHtml, htmlToBlocks } from '../../kit/clipboard.ts';
 import { textWidth } from '../../kit/draw.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { toast } from '../../kit/toast.ts';
-import { zoomOf } from '../../kit/zoom.ts';
 import { TILE_INKS, TILE_SIDES, tileCss, tileFilled, tilePattern, tileRef } from '../../kit/tile.ts';
 import { applyAll, runLength, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
@@ -764,9 +763,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (!el || !s || !svg || !stage) return;
     const r = svg.getBoundingClientRect();
     const sr = stage.getBoundingClientRect();
-    // Measured on the screen, set in the stage's own lengths: under the size of everything those are `z` times smaller.
-    const z = zoomOf(stage);
-    const w = wordsOver(s, this.shapes, r.width / W / z, (r.left - sr.left) / z, (r.top - sr.top) / z, THEME);
+    // Measured on the screen, set in the stage's own lengths, which are the screen's.
+    const w = wordsOver(s, this.shapes, r.width / W, r.left - sr.left, r.top - sr.top, THEME);
     Object.assign(el.style, w.style);
     el.classList.toggle('left', w.left);
     el.classList.toggle('wrap', w.wrap);

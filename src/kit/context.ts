@@ -10,7 +10,6 @@
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { tool } from './bar.ts';
 import type { IconNode } from './icons.ts';
-import { zoomOf } from './zoom.ts';
 
 export interface ContextItem {
   label: string;
@@ -103,9 +102,8 @@ export class ToContext extends LitElement {
     else if (top + r.height > top0 + vh - GAP && above >= top0) top = above;
     top = Math.max(top0 + GAP, Math.min(top, top0 + vh - r.height - GAP));
     const left = Math.max(left0 + GAP, Math.min(rect.left + rect.width / 2 - r.width / 2, left0 + vw - r.width - GAP));
-    const z = zoomOf(pop);
-    pop.style.top = `${Math.round(top / z)}px`;
-    pop.style.left = `${Math.round(left / z)}px`;
+    pop.style.top = `${Math.round(top)}px`;
+    pop.style.left = `${Math.round(left)}px`;
   };
   private refreshSoon = () => {
     if (this.soon) return;

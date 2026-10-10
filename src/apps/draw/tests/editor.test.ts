@@ -8,7 +8,7 @@ import '../../../styles.css';
 import '../editor.ts';
 import type { ToDrawEditor } from '../editor.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import { BASE, zoomed } from '../../../kit/zoom.ts';
+import { BASE, remScale } from '../../../kit/zoom.ts';
 
 const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n';
 
@@ -256,9 +256,8 @@ test('a double tap puts the words on the shape: typed live into the model, Enter
   expect(getSelection()!.toString()).toBe('Browser');
   expect(w.tagName).toBe('TO-TEXT');
   expect(el.querySelector('.draw-label-pop, input.draw-label')).toBeNull();
-  // Over the shape: centred on it, the shape's size of words on the screen. At the normal size the page is zoomed
-  // (kit/zoom.ts BASE), so this fails if the overlay is placed from screen lengths without dividing by the zoom.
-  expect(zoomed()).toBe(BASE);
+  // Over the shape: centred on it, the shape's size of words on the screen, at the normal size (a rem BASE × 16px).
+  expect(remScale()).toBe(BASE);
   const r = w.getBoundingClientRect();
   const [cx, cy] = screen(el, 96, 80);
   expect(Math.abs(r.left + r.width / 2 - cx)).toBeLessThan(3);
@@ -440,10 +439,10 @@ test('at phone width: the bar is one row of 44px buttons, the words typed on a s
     const bar = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...bar.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(bar.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     await tap(el, 96, 80);
-    expect(bar.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.scrollingElement!.scrollTop).toBe(0);
     // The words typed on the shape are set at 16px or more (and scaled), so Safari does not zoom; the bar is inside the screen.
     key(el, 'Enter');
@@ -458,7 +457,7 @@ test('at phone width: the bar is one row of 44px buttons, the words typed on a s
     expect(ctxRect.right).toBeLessThanOrEqual(390);
     await pick(el, el.querySelector<HTMLButtonElement>('.draw-mode button')!, '16×16');
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
-    expect(el.querySelector<HTMLElement>('to-bar')!.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(el.querySelector<HTMLElement>('to-bar')!.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
   } finally {
     await page.viewport(1100, 800);
   }

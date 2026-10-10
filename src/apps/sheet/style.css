@@ -10,11 +10,11 @@
   .sheet-big {
     display: flex;
     align-items: baseline;
-    gap: 12px;
-    padding: 8px 0 4px;
+    gap: 0.75rem;
+    padding: 0.5rem 0 0.25rem;
   }
   .sheet-big b {
-    font-size: 34px;
+    font-size: 2.125rem;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
@@ -26,10 +26,10 @@
   .sheet-fx {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 44px;
+    gap: 0.5rem;
+    height: 2.75rem;
     flex: none;
-    padding: 0 10px;
+    padding: 0 0.625rem;
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
     background: var(--to-surface);
@@ -37,10 +37,10 @@
   .sheet-fx .ref {
     font-family: var(--to-font-mono);
     font-weight: 600;
-    font-size: 13px;
-    min-width: 48px;
+    font-size: 0.8125rem;
+    min-width: 3rem;
     text-align: center;
-    padding: 5px 6px;
+    padding: 0.3125rem 0.375rem;
     border-radius: var(--to-radius-sm);
     background: var(--to-surface-2);
     color: var(--to-ink-2);
@@ -49,24 +49,24 @@
   .sheet-fx .fx {
     flex: 1;
     min-width: 0;
-    height: 32px;
-    padding: 0 10px;
+    height: 2rem;
+    padding: 0 0.625rem;
     border: 1px solid var(--to-input-border);
     border-radius: var(--to-radius-sm);
     background: var(--to-input-bg);
     color: var(--to-ink);
-    font: 14px var(--to-font-mono);
+    font: 0.875rem var(--to-font-mono);
   }
   .sheet-fx .fx:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
     outline-offset: -1px;
   }
 
   /* The table scrolls in a box of its own, both ways, so the page under it holds still; the header rows and the row numbers are stuck to its edges. */
   .sheet-scroll {
     overflow: auto;
-    max-height: calc(var(--to-vh) - var(--to-header-h) - 190px);
-    min-height: 220px;
+    max-height: calc(100dvh - var(--to-header-h) - 11.875rem);
+    min-height: 13.75rem;
     overscroll-behavior: contain;
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
@@ -74,26 +74,26 @@
     background: var(--to-surface);
   }
   table.sheet {
-    --sheet-row-w: 40px;
-    --sheet-add-w: 44px;
+    --sheet-row-w: 2.5rem;
+    --sheet-add-w: 2.75rem;
     border-collapse: separate;
     border-spacing: 0;
     width: 100%;
     table-layout: fixed;
-    min-width: 420px;
+    min-width: 26.25rem;
   }
   table.sheet th,
   table.sheet td {
     border-right: 1px solid var(--to-border);
     border-bottom: 1px solid var(--to-border);
     padding: 0;
-    height: 32px;
+    height: 2rem;
   }
   table.sheet th {
     background: var(--to-surface-2);
     color: var(--to-ink-3);
     font-weight: 500;
-    font-size: 12px;
+    font-size: 0.75rem;
     text-align: center;
     user-select: none;
     position: sticky;
@@ -101,7 +101,7 @@
     z-index: 1;
   }
   table.sheet thead tr.names th {
-    top: 32px;
+    top: 2rem;
     border-top: 1px solid var(--to-border);
   }
   /* The letters over the columns, the numbers down the side and the corner are the sheet's own controls, not cells: no shading, no lines, muted type (opaque, as they are stuck over the cells scrolling under them). The side is as narrow as its widest number and 8px. */
@@ -114,7 +114,7 @@
   table.sheet col.gutter,
   table.sheet th.row {
     width: var(--sheet-row-w);
-    font-size: 12px;
+    font-size: 0.75rem;
   }
   table.sheet th.row {
     top: auto;
@@ -132,7 +132,7 @@
     z-index: 2;
   }
   table.sheet tr.names td.corner {
-    top: 32px;
+    top: 2rem;
   }
   /* A column's letter is a button opening what can be done to it. */
   table.sheet .col-head,
@@ -140,9 +140,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 0.125rem;
     width: 100%;
-    height: 32px;
+    height: 2rem;
     border: 0;
     border-radius: var(--to-radius-sm);
     background: transparent;
@@ -153,7 +153,7 @@
   }
   table.sheet .row-num {
     justify-content: flex-end;
-    padding: 0 4px;
+    padding: 0 0.25rem;
   }
   table.sheet .col-head:hover,
   table.sheet .row-num:hover,
@@ -165,18 +165,18 @@
   table.sheet .col-head:focus-visible,
   table.sheet .row-num:focus-visible,
   table.sheet .add-col-btn:focus-visible {
-    outline: 2px solid var(--to-accent);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
   }
   /* The columns' names, a row of their own under the letters: typed over where they stand. */
   table.sheet .cn {
     width: 100%;
-    height: 32px;
+    height: 2rem;
     border: 0;
-    padding: 0 8px;
+    padding: 0 0.5rem;
     background: transparent;
     color: var(--to-ink);
-    font: 600 14px var(--to-font);
+    font: 600 0.875rem var(--to-font);
     text-align: left;
   }
   table.sheet .cn::placeholder {
@@ -200,7 +200,7 @@
     display: grid;
     place-items: center;
     width: 100%;
-    min-height: 44px;
+    min-height: 2.75rem;
     border: 0;
     border-radius: var(--to-radius-sm);
     background: transparent;
@@ -222,8 +222,8 @@
   table.sheet .grip {
     position: absolute;
     top: 0;
-    right: -6px;
-    width: 12px;
+    right: -0.375rem;
+    width: 0.75rem;
     height: 100%;
     cursor: col-resize;
     touch-action: none;
@@ -232,7 +232,7 @@
   table.sheet .grip::after {
     content: '';
     position: absolute;
-    inset: 6px 5px;
+    inset: 0.375rem 0.3125rem;
     border-radius: 1px;
     background: var(--to-border-strong);
     opacity: 0;
@@ -242,8 +242,8 @@
     opacity: 1;
   }
   table.sheet .grip:focus-visible {
-    outline: 2px solid var(--to-accent);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
   }
   table.sheet.picking td:not(.sel) input {
     cursor: cell;
@@ -253,12 +253,12 @@
   }
   table.sheet td input {
     width: 100%;
-    height: 32px;
+    height: 2rem;
     border: 0;
-    padding: 0 8px;
+    padding: 0 0.5rem;
     background: transparent;
     color: var(--to-ink);
-    font: 14px var(--to-font-mono);
+    font: 0.875rem var(--to-font-mono);
     text-overflow: ellipsis;
     /* A double tap edits; it never zooms the page. */
     touch-action: manipulation;
@@ -302,10 +302,10 @@
     box-sizing: border-box;
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
-    border: 2px solid var(--to-ink);
-    border-radius: 4px;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0.125rem solid var(--to-ink);
+    border-radius: 0.25rem;
     color: var(--to-accent);
   }
   table.sheet td .tick-btn .box svg {
@@ -313,23 +313,23 @@
   }
   /* An option cell: the words its column holds come up as it is typed in (the browser's own list), and its caret opens them; the browser's own arrow is hidden for ours. */
   table.sheet td input.option {
-    padding-right: 28px;
+    padding-right: 1.75rem;
   }
   table.sheet td input.option::-webkit-calendar-picker-indicator {
     display: none !important;
   }
   table.sheet td .opt-btn {
     position: absolute;
-    right: 2px;
+    right: 0.125rem;
     top: 50%;
     transform: translateY(-50%);
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 1.5rem;
+    height: 1.5rem;
     padding: 0;
     border: 0;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     background: transparent;
     color: var(--to-ink-3);
     cursor: pointer;
@@ -341,9 +341,9 @@
   }
   /* A rich cell is its words' editor, one line high, in the cell's own type. */
   table.sheet td to-text.rich .tx {
-    min-height: 32px;
-    padding: 0 8px;
-    font: 14px/32px var(--to-font);
+    min-height: 2rem;
+    padding: 0 0.5rem;
+    font: 0.875rem/2rem var(--to-font);
     color: var(--to-ink);
     white-space: nowrap;
     overflow: hidden;
@@ -360,23 +360,23 @@
   }
   /* A link's cell: the address, and a small way to open it. */
   table.sheet td input.link {
-    padding-right: 28px;
+    padding-right: 1.75rem;
     color: var(--to-accent);
   }
   table.sheet td .go {
     position: absolute;
-    right: 4px;
+    right: 0.25rem;
     top: 50%;
     transform: translateY(-50%);
     display: grid;
     place-items: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 4px;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 0.25rem;
     color: var(--to-ink-3);
   }
   table.sheet td.sel {
-    box-shadow: inset 0 0 0 2px var(--to-accent);
+    box-shadow: inset 0 0 0 0.125rem var(--to-accent);
     background: var(--to-accent-soft);
   }
   table.sheet td.in {
@@ -392,11 +392,11 @@
   /* The handle at the block's corner: dragged, it carries the cells on. */
   table.sheet td .fill {
     position: absolute;
-    right: -5px;
-    bottom: -5px;
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
+    right: -0.3125rem;
+    bottom: -0.3125rem;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 0.125rem;
     background: var(--to-accent);
     border: 1px solid var(--to-surface);
     cursor: crosshair;
@@ -417,9 +417,9 @@
   .sheet-more {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin: 8px;
-    padding: 8px 12px;
+    gap: 0.375rem;
+    margin: 0.5rem;
+    padding: 0.5rem 0.75rem;
     border: 1px dashed var(--to-border);
     border-radius: var(--to-radius);
     background: transparent;
@@ -431,16 +431,16 @@
     margin: 0;
   }
   .sheet-chart {
-    margin: 16px 0 0;
+    margin: 1rem 0 0;
   }
   /* A chart put in goes above the table. */
   .sheet-chart.above {
-    margin: 0 0 12px;
+    margin: 0 0 0.75rem;
   }
   .sheet-chart svg {
     display: block;
     width: 100%;
-    max-width: 720px;
+    max-width: 45rem;
     height: auto;
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
@@ -454,7 +454,7 @@
     table.sheet td input,
     table.sheet .cn,
     .sheet-fx .fx {
-      font-size: 16px;
+      font-size: 1rem;
     }
     /* Under a finger, a row and a column's head are 44px: the row numbers and letters are buttons a thumb can hit. */
     table.sheet th,
@@ -463,31 +463,31 @@
     table.sheet .cn,
     table.sheet .col-head,
     table.sheet .row-num {
-      height: 44px;
+      height: 2.75rem;
     }
     table.sheet td to-text.rich .tx {
-      min-height: 44px;
-      font-size: 16px;
-      line-height: 44px;
+      min-height: 2.75rem;
+      font-size: 1rem;
+      line-height: 2.75rem;
     }
     table.sheet td .opt-btn {
       right: 0;
-      width: 32px;
-      height: 44px;
+      width: 2rem;
+      height: 2.75rem;
     }
     table.sheet thead tr.names th,
     table.sheet tr.names td.corner {
-      top: 44px;
+      top: 2.75rem;
     }
     table.sheet .grip {
-      right: -12px;
-      width: 24px;
+      right: -0.75rem;
+      width: 1.5rem;
     }
     table.sheet .grip::after {
-      inset: 6px 11px;
+      inset: 0.375rem 0.6875rem;
     }
     table.sheet td .fill::before {
-      inset: -17px;
+      inset: -1.0625rem;
     }
   }
 }

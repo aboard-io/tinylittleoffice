@@ -10,6 +10,7 @@ import '../editor.ts';
 import type { ToAnimEditor } from '../editor.ts';
 import def from '../def.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
+import { remScale } from '../../../kit/zoom.ts';
 
 const SHAPES = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n';
 const LIFT = '---\nframes: 24\nfps: 8\n---\n' + SHAPES + '\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
@@ -260,11 +261,11 @@ test('at phone width: the bar is one row, the stage fits, nothing is wider than 
     const bar = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...bar.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(bar.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     expect(stage(el).getBoundingClientRect().width).toBeLessThanOrEqual(390);
     await drag(el, 96, 320);
-    expect(bar.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.scrollingElement!.scrollTop).toBe(0);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     byWords(el, 'Draw').click();

@@ -47,9 +47,9 @@ import { cellText, chartOf, chartOfSheet } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
-import { zoomOf } from '../../kit/zoom.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
+import { remScale } from '../../kit/zoom.ts';
 import './style.css';
 
 export const tag = 'to-sheet-editor';
@@ -811,7 +811,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /* ---------- column widths ---------- */
 
-  /** Width in px that shows every value in column c without clipping. */
+  /** Width in the sheet's own pixels that shows every value in column c without clipping. */
   private naturalWidth(c: number): number {
     const sample = this.querySelector<HTMLInputElement>('table.sheet td input');
     const ctx = document.createElement('canvas').getContext('2d');
@@ -821,19 +821,20 @@ export class ToSheetEditor extends DocElement<SheetView> {
     let w = 0;
     const type = this.columns()[c].type;
     for (let r = 0; r < this.view.used.rows; r++) w = Math.max(w, ctx.measureText(cellText(this.val(r, c), type, currencyAt(this.view, c))).width);
-    return Math.max(MIN_COL, Math.ceil(w + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 6));
+    return Math.max(MIN_COL, Math.ceil((w + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)) / remScale() + 6));
   }
   private currentWidths(): number[] {
     if (this.widths) return this.widths.slice();
-    // Measured on the screen, kept in the sheet's own pixels: under the size of everything those are its zoom smaller.
-    return [...this.querySelectorAll<HTMLElement>('table.sheet thead th[scope=col]')].slice(0, this.cols).map((th) => th.getBoundingClientRect().width / zoomOf(th));
+    // Measured on the screen, kept in the sheet's own pixels.
+    const k = remScale();
+    return [...this.querySelectorAll<HTMLElement>('table.sheet thead th[scope=col]')].slice(0, this.cols).map((th) => th.getBoundingClientRect().width / k);
   }
   private onGripDown(e: PointerEvent, c: number) {
     e.preventDefault();
     const grip = e.currentTarget as HTMLElement;
     const base = this.currentWidths();
     const x0 = e.clientX;
-    const z = zoomOf(grip);
+    const z = remScale();
     grip.setPointerCapture(e.pointerId);
     follow(grip, (ev) => {
       const w = base.slice();
@@ -997,7 +998,7 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const chart = chartOf(v);
     const figure = chart ? html`<figure class="sheet-chart ${v.table.above ? 'above' : ''}"><svg viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label=${chart.alt ?? t('Chart of the table')}>${unsafeSVG(chart.svg)}</svg></figure>` : nothing;
     // The row numbers' side is as wide as the widest number drawn, and no wider.
-    const gutter = `--sheet-row-w: calc(${String(this.drawn).length}ch + 8px);`;
+    const gutter = `--sheet-row-w: calc(${String(this.drawn).length}ch + 0.5rem);`;
     // The bar holds the same tools whatever is selected (a tool that does not apply is disabled, not gone), so it never changes shape under a finger.
     return html`<to-bar class="sheet-bar">
         <to-insert .items=${this.inserts()}></to-insert>
@@ -1041,10 +1042,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
         />
       </div>
       <div class="sheet-scroll">
-        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${{ handleEvent: this.onCopy, capture: true }} @cut=${{ handleEvent: this.onCopy, capture: true }} @paste=${{ handleEvent: this.onPaste, capture: true }} style=${gutter + (w ? `width: calc(var(--sheet-row-w) + var(--sheet-add-w) + ${w.slice(0, n).reduce((a, b) => a + b, 0)}px)` : '')}>
+        <table class="sheet ${w ? 'sized' : ''} ${picking ? 'picking' : ''} ${this.many ? 'selecting' : ''}" @copy=${{ handleEvent: this.onCopy, capture: true }} @cut=${{ handleEvent: this.onCopy, capture: true }} @paste=${{ handleEvent: this.onPaste, capture: true }} style=${gutter + (w ? `width: calc(var(--sheet-row-w) + var(--sheet-add-w) + ${w.slice(0, n).reduce((a, b) => a + b, 0) / 16}rem)` : '')}>
           <colgroup>
             <col class="gutter" />
-            ${cols.map((_, c) => html`<col style=${w ? `width:${w[c] ?? NEW_COL}px` : ''} />`)}
+            ${cols.map((_, c) => html`<col style=${w ? `width:${(w[c] ?? NEW_COL) / 16}rem` : ''} />`)}
             <col class="add" />
           </colgroup>
           <thead>

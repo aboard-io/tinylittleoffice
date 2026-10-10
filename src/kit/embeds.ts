@@ -227,7 +227,7 @@ export class ToEmbed extends LitElement {
     // (The site answers every request with Referrer-Policy: no-referrer, so a sound or a film carries none either.)
     if (web.kind === 'audio') return html`<audio controls preload="none" src=${web.src} title=${title}></audio>`;
     if (web.file && web.kind === 'video') return html`<video controls preload="none" playsinline src=${web.src} title=${title}></video>`;
-    return html`<iframe class=${web.kind} src=${web.src} title=${title} style=${web.h ? `height:${web.h}px` : nothing} sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation" allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe>`;
+    return html`<iframe class=${web.kind} src=${web.src} title=${title} style=${web.h ? `height:${web.h / 16}rem` : nothing} sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation" allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="no-referrer" loading="lazy"></iframe>`;
   }
   render() {
     const asked = embedOf(this.url);

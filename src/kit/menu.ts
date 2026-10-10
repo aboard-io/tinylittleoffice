@@ -18,7 +18,6 @@
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from './icons.ts';
-import { zoomOf } from './zoom.ts';
 import { t } from './i18n.ts';
 import { fold } from './search.ts';
 import { keysText } from './bar.ts';
@@ -66,16 +65,13 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   const vw = vv?.width ?? window.innerWidth;
   const vh = vv?.height ?? window.innerHeight;
   const a = anchor.getBoundingClientRect();
-  // Under the size of everything (zoom.ts) a length set here is drawn larger, by the popover's own zoom (the nav's
-  // where it is nav): the page's coordinates are divided by it.
-  const z = zoomOf(pop);
   const below = top0 + vh - a.bottom - 2 * gap;
   const above = a.top - top0 - 2 * gap;
-  pop.style.maxHeight = `${Math.max(120, vh - 2 * gap) / z}px`;
+  pop.style.maxHeight = `${Math.max(120, vh - 2 * gap)}px`;
   let r = pop.getBoundingClientRect();
   const under = r.height <= below || (r.height > above && below >= above);
   if (r.height > (under ? below : above)) {
-    pop.style.maxHeight = `${Math.max(120, under ? below : above) / z}px`;
+    pop.style.maxHeight = `${Math.max(120, under ? below : above)}px`;
     r = pop.getBoundingClientRect();
   }
   let top = under ? a.bottom + gap : a.top - gap - r.height;
@@ -83,8 +79,8 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   let left = a.left;
   if (left + r.width > left0 + vw - gap) left = a.right - r.width;
   left = Math.max(left0 + gap, Math.min(left, left0 + vw - r.width - gap));
-  pop.style.top = `${Math.round(top / z)}px`;
-  pop.style.left = `${Math.round(left / z)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+  pop.style.left = `${Math.round(left)}px`;
 }
 
 let n = 0;

@@ -7,7 +7,7 @@
 // under it, inside it. Insert at the top left makes each kind after the thing in hand, words offered; the quick
 // actions and the keys; Preview on and off; copy, cut and paste; undo puts the thing back in hand; the frame's own
 // script, run same-origin so its page can be read; and at phone width the bar one row, the form inside the screen.
-import { beforeEach, expect, onTestFinished, test } from 'vitest';
+import { beforeEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { apps } from '../../../kit/apps.ts';
 import '../../../styles.css';
@@ -17,17 +17,7 @@ import type { ToSiteEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import { BASE, applySize, zoomOf, zoomed } from '../../../kit/zoom.ts';
-
-/**
- * Playwright aims a click inside a frame without the frame's CSS zoom (the size of everything, which the page in the
- * frame is drawn at too), so a test that clicks inside the page takes the zoom off for itself. A person's tap is
- * hit-tested by the browser, and the bar's place over the zoomed page is the phone test's.
- */
-function unzoomed() {
-  for (const k of ['zoom', '--to-size', '--to-nav-size', '--to-nav-zoom']) document.documentElement.style.removeProperty(k);
-  onTestFinished(() => applySize());
-}
+import { BASE, remScale } from '../../../kit/zoom.ts';
 
 const CAFE = templates().find((t) => t.id === 'cafe')!.doc;
 const SHOP = templates().find((t) => t.id === 'shop')!.doc;
@@ -191,7 +181,6 @@ test('a tap takes a thing in hand, its bar beside it in the standard’s order: 
 });
 
 test('words typed in the page: a tap on a heading opens it there, each letter one op and the page left as it is; Enter goes on into a new paragraph; a tap on the empty room keeps them and draws the page again', async () => {
-  unzoomed();
   const { el, changes, last } = await editor();
   await ready(el);
   const f = inFrame(el);
@@ -230,7 +219,6 @@ test('words typed in the page: a tap on a heading opens it there, each letter on
 });
 
 test('Escape in the words puts them back as they were and is done, the thing still in hand; another thing’s words tapped are typed next', async () => {
-  unzoomed();
   const { el, last } = await editor();
   await ready(el);
   const f = inFrame(el);
@@ -532,7 +520,6 @@ test('Mod+C, Mod+X, Mod+V on the thing in hand: TLO text and our marked HTML out
 });
 
 test('real taps inside the frame: a button’s words typed where they are, the button in hand with its bar; the nav still goes from page to page', async () => {
-  unzoomed();
   const { el, last } = await editor();
   await ready(el);
   const f = inFrame(el);
@@ -581,18 +568,17 @@ test('Preview: the page as a visitor has it, the bar one Edit button; Edit, Esca
 });
 
 test('on a wide screen at the normal size the form sits beside the thing in hand: its left at the thing\'s, its top just under it', async () => {
-  // 1100 wide (beforeEach), zoomed (kit/zoom.ts BASE): margins set from screen lengths without the zoom would land 30% off.
-  expect(zoomed()).toBe(BASE);
+  // 1100 wide (beforeEach), at the normal size (a rem kit/zoom.ts BASE × 16px): the page's frame is its own document, its lengths the screen's.
+  expect(remScale()).toBe(BASE);
   const { el } = await editor();
   await settle(el);
   await hold(el, '3');
   await until(() => ctxOpen(el));
   ctxButton(el, 'Where it goes').click();
   const f = await form();
-  // The thing, as the page said it ([20, 40, 300, 60] in the page's own lengths), on the screen at the frame's zoom.
-  const z = zoomOf(frame(el));
+  // The thing, as the page said it ([20, 40, 300, 60] in the page's own lengths, the screen's).
   const fr = frame(el).getBoundingClientRect();
-  const [left, top, bottom] = [fr.left + 20 * z, fr.top + 40 * z, fr.top + 100 * z];
+  const [left, top, bottom] = [fr.left + 20, fr.top + 40, fr.top + 100];
   const r = f.querySelector('dialog')!.getBoundingClientRect();
   expect(Math.abs(r.left - left), `the form's left (${r.left}) at the thing's (${left})`).toBeLessThan(3);
   // Under it where there is room, else above it: 8px from it either way.
@@ -606,16 +592,15 @@ test('a phone: the bar one row, the page the width of the screen, the URL chip�
   await page.viewport(390, 844);
   const { el } = await editor();
   await settle(el);
-  expect(el.querySelector<HTMLElement>('to-bar')!.getBoundingClientRect().height / zoomed()).toBeLessThanOrEqual(60);
+  expect(el.querySelector<HTMLElement>('to-bar')!.getBoundingClientRect().height / remScale()).toBeLessThanOrEqual(60);
   expect(frame(el).getBoundingClientRect().width).toBeLessThanOrEqual(390);
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
   await hold(el, '3');
   await until(() => ctxOpen(el));
-  // The bar goes by the thing as the page draws it, at the frame's zoom: [20, 40, 300, 60] in the page's own lengths.
+  // The bar goes by the thing as the page draws it: [20, 40, 300, 60] in the page's own lengths, the screen's.
   {
-    const z = zoomOf(frame(el));
     const fr = frame(el).getBoundingClientRect();
-    const [top, bottom] = [fr.top + 40 * z, fr.top + 100 * z];
+    const [top, bottom] = [fr.top + 40, fr.top + 100];
     const c = el.querySelector('to-context.site-context .to-context')!.getBoundingClientRect();
     expect(Math.abs(c.top - bottom) < 10 || Math.abs(c.bottom - top) < 10, `the bar (${c.top}–${c.bottom}) by the thing (${top}–${bottom})`).toBe(true);
   }

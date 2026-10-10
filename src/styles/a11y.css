@@ -24,7 +24,7 @@
   }
   @media (forced-colors: active) {
     .to-btn[aria-pressed='true'] {
-      outline: 2px solid currentColor;
+      outline: 0.1333em solid currentColor;
     }
     to-bar[data-fade-start],
     to-bar[data-fade-end] {

@@ -11,7 +11,7 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { routeHash } from '../../src/kit/route.ts';
 import { pages as rules, parse } from '../../src/doc/index.ts';
 import type { Page } from '../../src/kit/app.ts';
-import { BASE, zoomOf, zoomed } from '../../src/kit/zoom.ts';
+import { BASE, remScale } from '../../src/kit/zoom.ts';
 
 afterEach(() => history.replaceState(null, '', location.pathname));
 
@@ -79,32 +79,31 @@ test('Print in the Download menu puts the page in a hidden frame, which goes whe
   await until(() => frame.contentDocument?.readyState === 'complete' && frame.contentDocument.querySelectorAll('figure').length > 0);
   expect(frame.getAttribute('aria-hidden')).toBe('true');
   expect(frame.contentDocument!.querySelectorAll('figure')).toHaveLength(2);
-  // Paper is not the screen: the page is drawn at the normal size's zoom (1.3), the frame's page at none of it.
-  expect(zoomed()).toBe(BASE);
-  expect(frame.contentDocument!.documentElement.style.zoom).toBe('');
-  expect(zoomOf(frame)).toBeCloseTo(1, 4);
+  // Paper is not the screen: the page is drawn at the normal size (a rem 1.3 × 16px), the frame's page at none of it.
+  expect(remScale()).toBe(BASE);
+  expect(getComputedStyle(frame.contentDocument!.documentElement).fontSize).toBe('16px');
+  expect(getComputedStyle(frame).zoom).toBe('1');
   expect(frame.contentWindow!.devicePixelRatio).toBeCloseTo(window.devicePixelRatio, 4);
   frame.contentWindow!.dispatchEvent(new Event('afterprint'));
   await until(() => !document.querySelector('iframe.to-print'));
 });
 
-test('a page printed from the screen has the size of everything taken off: in print the root draws at zoom 1, its inline zoom 1.3 kept', async () => {
+test('a page printed from the screen has the size of everything taken off: in print both scales are 1 and a rem 16px, the root’s own 1.3 kept', async () => {
   const root = document.documentElement;
-  expect(root.style.getPropertyValue('zoom')).toBe(String(BASE));
-  expect(getComputedStyle(root).zoom).toBe(String(BASE));
+  expect(root.style.getPropertyValue('--to-doc')).toBe(String(BASE));
+  expect(getComputedStyle(root).fontSize).toBe(`${16 * BASE}px`);
   const session = cdp();
   await session.send('Emulation.setEmulatedMedia', { media: 'print' });
   try {
     expect(matchMedia('print').matches).toBe(true);
-    // kit.css's @media print rule outranks the root's inline zoom (an !important rule), and the lengths with it.
-    expect(root.style.getPropertyValue('zoom')).toBe(String(BASE));
+    // kit.css's @media print rule outranks the root's inline scales (an !important rule), and the lengths with them.
+    expect(root.style.getPropertyValue('--to-doc')).toBe(String(BASE));
     const look = getComputedStyle(root);
-    expect(look.zoom).toBe('1');
-    expect(look.getPropertyValue('--to-size').trim()).toBe('1');
-    expect(look.getPropertyValue('--to-nav-size').trim()).toBe('1');
-    expect(look.getPropertyValue('--to-nav-zoom').trim()).toBe('1');
+    expect(look.fontSize).toBe('16px');
+    expect(look.getPropertyValue('--to-doc').trim()).toBe('1');
+    expect(look.getPropertyValue('--to-nav').trim()).toBe('1');
   } finally {
     await session.send('Emulation.setEmulatedMedia', { media: '' });
   }
-  expect(getComputedStyle(root).zoom).toBe(String(BASE));
+  expect(getComputedStyle(root).fontSize).toBe(`${16 * BASE}px`);
 });

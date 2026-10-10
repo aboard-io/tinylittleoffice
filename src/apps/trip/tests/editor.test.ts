@@ -16,6 +16,7 @@ import { caret } from '../../../kit/textops.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { readTrip } from '../model.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { remScale } from '../../../kit/zoom.ts';
 
 const ROUTE = '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 | Port cellars\n';
 const TABLE = (rows: string) => `---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\n${rows}`;
@@ -491,7 +492,7 @@ test('at phone width: rows a finger tall, 16px words, the bar one row, the page 
     const barEl = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...barEl.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     // The map above the list, the full width.
     const map = el.querySelector<HTMLElement>('.trip-map')!.getBoundingClientRect();
     expect(map.bottom).toBeLessThanOrEqual(stops(el)[0].getBoundingClientRect().top);
@@ -500,7 +501,7 @@ test('at phone width: rows a finger tall, 16px words, the bar one row, the page 
     await caretIn(el, 0, 'note');
     await type(el, 0, 'note', ' now');
     expect(document.scrollingElement!.scrollTop).toBe(0);
-    expect(barEl.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(barEl.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
   } finally {
     await page.viewport(1100, 800);

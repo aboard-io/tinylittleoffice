@@ -29,12 +29,12 @@
  * elementFromPoint, a drawn insertion line, auto-scroll near the scroller's edges). Styles: `.to-rows-handle` (put it on
  * the handle: `touch-action: none` there only, a 44px hit area under a coarse pointer) and `.to-rows-target` (src/styles/kit.css).
  */
+import { remScale } from './zoom.ts';
 import { html, type ReactiveController, type ReactiveControllerHost, type TemplateResult } from 'lit';
 import { ArrowDown, ArrowUp, ClipboardPaste, CopyPlus, Copy, Scissors, SquarePen } from 'lucide';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
-import { zoomOf } from './zoom.ts';
 import './context.ts';
 
 /** Blocks [from, to): a row with its family, or a run of rows. */
@@ -565,14 +565,12 @@ export class Rows<Id = number> implements ReactiveController {
       this.target.setAttribute('aria-hidden', 'true');
       document.body.append(this.target);
     }
-    // Measured on the screen; the row's own lengths and the line's are each under their zoom (the size of everything).
+    // Measured on the screen, as the line is placed; stepped in by a step of the document's (1.5rem) for "under".
     const r = row.el.getBoundingClientRect();
-    const zr = zoomOf(row.el);
-    const z = zoomOf(this.target);
     const pad = parseFloat(getComputedStyle(row.el).paddingLeft) || 0;
-    const step = how === 'under' ? 24 : 0;
-    const left = (r.left + (pad + step) * zr) / z;
-    Object.assign(this.target.style, { left: `${Math.round(left)}px`, top: `${Math.round(r.bottom / z - 1)}px`, width: `${Math.max(24, Math.round(r.right / z - left - 8))}px` });
+    const step = how === 'under' ? 24 * remScale() : 0;
+    const left = r.left + pad + step;
+    Object.assign(this.target.style, { left: `${Math.round(left)}px`, top: `${Math.round(r.bottom - 1)}px`, width: `${Math.max(24, Math.round(r.right - left - 8))}px` });
     this.target.dataset.how = how;
     this.target.hidden = false;
   }

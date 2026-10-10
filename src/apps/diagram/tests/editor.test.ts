@@ -11,7 +11,7 @@ import '../editor.ts';
 import type { ToDiagramEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import { BASE, zoomed } from '../../../kit/zoom.ts';
+import { BASE, remScale } from '../../../kit/zoom.ts';
 
 const ORG = '---\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n  - Eve Marsh | Design\n\n~ Ben Okoro -- Eve Marsh: design partner\n';
 const NET = '---\nkind: net\n---\n- Web\n- API\n- Database\n';
@@ -895,9 +895,9 @@ test('a plus ending a family\'s name starts the partner\'s; inside the words it 
   expect(last()).toContain('  - H+elen\n');
 });
 
-test('at the normal size (zoomed by kit/zoom.ts BASE) the words sit on the thing on the screen, not a zoom away from it', async () => {
+test('at the normal size (a rem kit/zoom.ts BASE × 16px) the words sit on the thing on the screen, not a scale away from it', async () => {
   const { el } = await editor(ORG);
-  expect(zoomed()).toBe(BASE);
+  expect(remScale()).toBe(BASE);
   const g = thing(el, 'Eve Marsh');
   await tap(el, g);
   expect(isOpen(el)).toBe(true);

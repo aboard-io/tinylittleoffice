@@ -804,7 +804,7 @@ export class ToShell extends LitElement {
     const was = this.style.getPropertyValue('--to-vv-top');
     if (was !== `${top}px`) this.style.setProperty('--to-vv-top', `${top}px`);
     const bar = this.querySelector<HTMLElement>('.to-editor to-bar');
-    // On the screen, as the offset is: the CSS divides both by the size it draws them at.
+    // On the screen, as the offset is, and set as it is: a length here is a length in CSS.
     const h = `${Math.round(bar?.getBoundingClientRect().height ?? 0)}px`;
     if (this.style.getPropertyValue('--to-stuck-h') !== h) this.style.setProperty('--to-stuck-h', h);
     const header = this.querySelector('.to-header')?.getBoundingClientRect();
@@ -946,7 +946,7 @@ export class ToShell extends LitElement {
       <input class="to-title" type="text" placeholder=${t('Untitled {noun}', { noun: def.noun })} aria-label=${t('Title')} autocomplete="off" enterkeyhint="done" .value=${title || this.fresh} @focus=${this.openTitle} @keydown=${this.titleKey} @blur=${() => (this.titling = false)} @change=${(e: Event) => this.retitle(def, (e.target as HTMLInputElement).value.trim())} />
       ${this.renderTrust()}
       <button type="button" class="to-btn to-tool to-meter ${left < 0 ? 'over' : pct > 0.85 ? 'warn' : ''}" aria-label=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} title=${left < 0 ? t('{n} characters over the link limit', { n: -left }) : t('{n} of {max} link characters left', { n: left, max: available })} @click=${() => void this.openShare()}>
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
+        <svg class="to-icon" width="24" height="24" style="--i:1.5" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/><circle cx="12" cy="12" r=${r} fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray=${`${c * pct} ${c}`} transform="rotate(-90 12 12)"/></svg>
       </button>
       <button type="button" class="to-btn to-tool to-share" aria-label=${t('Share')} title=${t('Share')} aria-haspopup="dialog" @click=${() => void this.openShare()}>${icon(UI.share, 22)}</button>
       <to-menu class="to-download" icon-only .label=${t('Download')} .icon=${UI.download} .items=${exportItems(this.current)}></to-menu>
@@ -1324,7 +1324,7 @@ export class ToShell extends LitElement {
       ${this.renderArrival()}
       <main class="to-display">${def.page
         ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>`
-        : def.view(this.doc).map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w}px" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
+        : def.view(this.doc).map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
       <to-toast></to-toast>${this.renderDialogs()}`;
   }
 

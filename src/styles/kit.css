@@ -1,5 +1,15 @@
 /* The kit: base, the shell (header, home, drawer), and the pieces every app reaches for (bar, buttons,
-   menus, dialogs, fields, the toast). Plain class names, prefixed to-; light DOM throughout. */
+   menus, dialogs, fields, the toast). Plain class names, prefixed to-; light DOM throughout.
+
+   Lengths, one rule for every stylesheet: rem for the document, em inside a nav element, px only for hairlines and
+   media queries (test/stylesheets.test.ts holds every sheet to it). The size of everything (kit/zoom.ts) is two plain
+   numbers on the root: --to-doc, the root's font size (16px × it), which every rem follows; and --to-nav, the font
+   size of each nav element (the list below), which every em inside it follows and which stops at the nav's limit. A
+   font size inside the nav is a part of --to-scale (the 16px of the scale it is under: the document's rem, the nav's
+   font size), never of its parent's, so a small label in a small box is not smaller again. A length measured on the
+   screen is a length set here: nothing is zoomed, so nothing placed from the page's coordinates is divided by
+   anything. (Until round eight the root's CSS zoom did this, and each popover, the nav's second zoom and every
+   viewport length had to undo it.) */
 @layer kit {
   *,
   *::before,
@@ -11,26 +21,24 @@
     /* A pinch on a touch screen never zooms the browser: it is the size of everything (kit/pinch.ts), or a spatial
        canvas's own zoom. One finger pans as ever. */
     touch-action: pan-x pan-y;
-    /* The screen's width and height in the lengths of what is drawn here: a viewport unit is zoomed like a pixel, so
-       under the size of everything 100vw is that much wider than the screen. Every width or height taken from the
-       screen uses these; the nav (below) has its own. */
-    --to-vw: calc(100vw / var(--to-size, 1));
-    --to-vh: calc(100dvh / var(--to-size, 1));
+    /* The document's scale: what a rem is. */
+    font-size: calc(16px * var(--to-doc, 1));
+    /* The nav's: the font size of every nav element, which its ems follow. */
+    --to-nav-font: calc(16px * var(--to-nav, 1));
+    --to-scale: 1rem;
   }
   /* Paper is not the screen: a page printed from here (a Display Link's pages) is drawn at its own size, whatever the
      size of everything (kit/zoom.ts sets these on the root's style, which an !important rule outranks). */
   @media print {
     html {
-      zoom: 1 !important;
-      --to-size: 1 !important;
-      --to-nav-size: 1 !important;
-      --to-nav-zoom: 1 !important;
+      --to-doc: 1 !important;
+      --to-nav: 1 !important;
     }
   }
   /* The nav: everything that is nav, not document, grows with the size of everything up to 120% and no further
-     (zoom.ts NAV_MAX, --to-nav-zoom = navSize / size under the root's zoom), while the words, the cards and the
-     pictures go on to 200%. One list: an app's own bar (anything nav, not document) joins it rather than inventing
-     its own; only the outermost of them takes the zoom, the nav inside nav inheriting it. */
+     (zoom.ts NAV_MAX), while the words, the cards and the pictures go on to 200%. Each of these is drawn at the nav's
+     font size and its lengths inside are em; a finger's target and the gutter are the nav's too. One list: an app's
+     own bar (anything nav, not document) joins it rather than inventing its own. */
   :is(
     to-bar,
     .to-header,
@@ -46,32 +54,26 @@
     .to-pinch-pill,
     .anim-props,
     .anim-time
-  ):not(
-    :is(
-      to-bar,
-      .to-header,
-      .to-drawer,
-      .to-dialog,
-      .to-doc-dialog,
-      to-context,
-      .to-menu,
-      to-link-pop,
-      to-complete,
-      to-find,
-      .to-toast,
-      .to-pinch-pill,
-      .anim-props,
-      .anim-time
-    )
-      *
   ) {
-    zoom: var(--to-nav-zoom, 1);
-    --to-vw: calc(100vw / var(--to-nav-size, 1));
-    --to-vh: calc(100dvh / var(--to-nav-size, 1));
+    font-size: var(--to-nav-font);
+    --to-scale: var(--to-nav-font);
+    --to-touch: calc(2.75 * var(--to-nav-font));
+    --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
+    /* Where the menu button sits, fixed at the top left, and the room it takes (the header's and the bar's). */
+    --to-edge-l: max(var(--to-gutter), env(safe-area-inset-left));
+    --to-burger-w: calc(var(--to-edge-l) + var(--to-touch));
+  }
+  /* A control's words are the browser's own size (13.33px) unless a rule says otherwise: here a part of the scale it
+     is under, so they grow with the size of everything as the rest do. */
+  button,
+  input,
+  select,
+  textarea {
+    font-size: calc(0.8333 * var(--to-scale));
   }
   body {
     margin: 0;
-    font: 16px/1.5 var(--to-font);
+    font: 1rem/1.5 var(--to-font);
     color: var(--to-ink);
     background: var(--to-bg);
     min-height: 100dvh;
@@ -83,8 +85,8 @@
     display: none !important;
   }
   :focus-visible {
-    outline: 2px solid var(--to-accent);
-    outline-offset: 2px;
+    outline: 0.125em solid var(--to-accent);
+    outline-offset: 0.125em;
   }
   .to-hint {
     color: var(--to-ink-3);
@@ -92,7 +94,7 @@
   }
   .to-row {
     display: flex;
-    gap: 8px;
+    gap: 0.5em;
     flex-wrap: wrap;
   }
 
@@ -101,12 +103,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0.4em;
     min-height: var(--to-touch);
     min-width: var(--to-touch);
-    padding: 0 12px;
+    padding: 0 0.8em;
     font: inherit;
-    font-size: 15px;
+    font-size: calc(0.9375 * var(--to-scale));
     font-weight: 500;
     color: var(--to-ink);
     background: var(--to-surface);
@@ -138,47 +140,53 @@
     padding: 0;
     width: var(--to-touch);
   }
+  /* An icon is `--i` of the 16px of the scale it is under (icons.ts, mark.ts): the nav's in the nav, the document's in
+     the document, whatever the size of the words beside it. */
+  .to-icon,
+  .to-mark {
+    width: calc(var(--i, 1.25) * var(--to-scale));
+    height: calc(var(--i, 1.25) * var(--to-scale));
+  }
   .to-icon {
     flex: none;
   }
   .to-caret {
-    margin-left: -2px;
+    margin-left: -0.125em;
   }
 
   /* ---- the bar ---- */
   to-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px var(--to-gutter);
+    gap: 0.375em;
+    padding: 0.375em var(--to-gutter);
     margin: 0 calc(-1 * var(--to-gutter));
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
     /* Stuck to the top of what can be seen (a phone's keyboard slides the page up under it: --to-vv-top, kit/shell.ts,
-       measured on the screen and so divided by the nav's size). */
+       measured on the screen, which is what a length here is). */
     position: sticky;
-    top: calc(var(--to-vv-top, 0px) / var(--to-nav-size, 1));
+    top: var(--to-vv-top, 0rem);
     z-index: 2;
     background: var(--to-bg);
     transition: margin-left 0.2s ease;
   }
-  /* A bar in the document's own gutter: the gutter it reaches over is the document's, drawn at the size of everything,
-     the bar at the nav's. */
+  /* A bar in the document's own gutter: the gutter it reaches over is the document's (in rem), its own padding the nav's. */
   to-bar:not(:is(.to-dialog, .to-doc-dialog, .to-drawer) *) {
-    margin: 0 calc(-1 * var(--to-gutter) / var(--to-nav-zoom, 1));
+    margin: 0 calc(-1 * var(--to-gutter-k) * 1rem);
   }
   to-bar::-webkit-scrollbar {
     display: none;
   }
   to-bar[data-fade-end] {
-    mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 2.5em), transparent);
   }
   to-bar[data-fade-start] {
-    mask-image: linear-gradient(90deg, transparent, #000 40px);
+    mask-image: linear-gradient(90deg, transparent, #000 2.5em);
   }
   to-bar[data-fade-start][data-fade-end] {
-    mask-image: linear-gradient(90deg, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 2.5em, #000 calc(100% - 2.5em), transparent);
   }
   to-bar > * {
     flex: none;
@@ -192,11 +200,11 @@
   .to-datenav {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.125em;
   }
   .to-datenav-label {
     min-width: 8.5em;
-    padding: 0 4px;
+    padding: 0 0.25em;
     text-align: center;
     font-weight: 600;
     white-space: nowrap;
@@ -205,8 +213,8 @@
   /* A colour as a dot, in a menu item or a bar button (--swatch is the colour). */
   .to-swatch {
     display: inline-block;
-    width: 18px;
-    height: 18px;
+    width: 1.125em;
+    height: 1.125em;
     border-radius: 50%;
     background: var(--swatch);
     box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
@@ -223,9 +231,9 @@
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 4px;
-    max-width: calc(var(--to-vw) - 12px);
+    gap: 0.125em;
+    padding: 0.25em;
+    max-width: calc(100vw - 0.75em);
     overflow-x: auto;
     scrollbar-width: none;
     background: var(--to-surface);
@@ -243,11 +251,11 @@
   }
   .to-context .to-btn {
     border-color: transparent;
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 2.4em;
+    min-width: 2.4em;
   }
   .to-context .to-tool {
-    width: 36px;
+    width: 2.25em;
   }
   /* Under a finger the bubble's and the contextual bar's buttons are full size. */
   @media (pointer: coarse) {
@@ -263,14 +271,14 @@
     border-color: var(--to-accent);
   }
   .to-context-text {
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
     font-weight: 600;
-    padding: 0 6px;
+    padding: 0 0.4615em;
   }
   .to-context-sep {
     width: 1px;
-    height: 22px;
-    margin: 0 3px;
+    height: 1.375em;
+    margin: 0 0.1875em;
     background: var(--to-border);
     flex: none;
   }
@@ -287,7 +295,7 @@
   .to-rows-target {
     position: fixed;
     z-index: 30;
-    height: 2px;
+    height: 0.125rem;
     border-radius: 1px;
     background: var(--to-accent);
     pointer-events: none;
@@ -295,10 +303,10 @@
   .to-rows-target::before {
     content: '';
     position: absolute;
-    left: -4px;
-    top: -3px;
-    width: 8px;
-    height: 8px;
+    left: -0.25rem;
+    top: -0.1875rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border-radius: 50%;
     background: var(--to-accent);
   }
@@ -312,8 +320,8 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 44px;
-      height: 44px;
+      width: var(--to-touch);
+      height: var(--to-touch);
       transform: translate(-50%, -50%);
     }
   }
@@ -328,9 +336,9 @@
     position: fixed;
     inset: auto;
     margin: 0;
-    padding: 6px;
-    min-width: 200px;
-    max-width: min(360px, calc(var(--to-vw) - 16px));
+    padding: 0.375em;
+    min-width: 12.5em;
+    max-width: min(22.5em, calc(100vw - 1em));
     overflow: auto;
     background: var(--to-surface);
     color: var(--to-ink);
@@ -342,10 +350,10 @@
   .to-option {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625em;
     width: 100%;
     min-height: var(--to-touch);
-    padding: 6px 10px;
+    padding: 0.375em 0.625em;
     font: inherit;
     text-align: left;
     color: inherit;
@@ -360,7 +368,7 @@
   .to-menu:not(:focus-within) .to-option:hover,
   .to-option:focus {
     background: var(--to-surface-2);
-    outline-offset: -2px;
+    outline-offset: -0.125em;
   }
   .to-menu-item:focus:not(:focus-visible),
   .to-option:focus:not(:focus-visible),
@@ -393,13 +401,13 @@
   }
   .to-menu-keys {
     font: inherit;
-    font-size: 12px;
+    font-size: calc(0.75 * var(--to-scale));
     color: var(--to-ink-3);
     white-space: nowrap;
   }
   .to-menu-head {
-    padding: 8px 10px 2px;
-    font-size: 12px;
+    padding: 0.6667em 0.8333em 0.1667em;
+    font-size: calc(0.75 * var(--to-scale));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -408,14 +416,14 @@
   /* A menu of rows (the Download menu's formats): wider than a menu, the format's words at the left and its actions,
      each a 44px target, at the right. */
   .to-menu:has(.to-menu-row) {
-    width: min(360px, calc(var(--to-vw) - 2 * var(--to-gutter)));
+    width: min(22.5em, calc(100vw - 2 * var(--to-gutter)));
   }
   .to-menu-row {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.125em;
     min-height: var(--to-touch);
-    padding-left: 10px;
+    padding-left: 0.625em;
   }
   .to-menu-row + .to-menu-row {
     border-top: 1px solid var(--to-border);
@@ -437,7 +445,7 @@
   .to-menu:not(:focus-within) .to-menu-act:hover,
   .to-menu-act:focus {
     background: var(--to-surface-2);
-    outline-offset: -2px;
+    outline-offset: -0.125em;
   }
   .to-menu-act:focus:not(:focus-visible) {
     outline: none;
@@ -447,7 +455,7 @@
   }
   /* The templates list: wide enough for a name and its blurb beside the preview, and it scrolls (place() caps its height to the screen). */
   .to-listbox {
-    width: min(640px, calc(var(--to-vw) - 16px));
+    width: min(40em, calc(100vw - 1em));
     max-width: none;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -460,9 +468,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: -6px -6px 4px;
-    padding: 4px 4px 4px 12px;
-    font-size: 12px;
+    margin: -0.5em -0.5em 0.3333em;
+    padding: 0.3333em 0.3333em 0.3333em 1em;
+    font-size: calc(0.75 * var(--to-scale));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -477,12 +485,12 @@
   /* Every preview the one box, 4:3, the page cropped to it (CROPPED, kit/draw.ts): 96 by 72 in a list of templates. */
   .to-thumb {
     flex: none;
-    width: 96px;
-    height: 72px;
+    width: 6em;
+    height: 4.5em;
     overflow: hidden;
     background: var(--to-paper);
     border: 1px solid var(--to-border);
-    border-radius: 3px;
+    border-radius: 0.1875em;
   }
   .to-thumb svg {
     display: block;
@@ -506,15 +514,15 @@
   }
   /* Every dialog hangs from the top: what grows inside it (a preview arriving) grows downwards, and nothing above it moves. */
   .to-dialog {
-    margin: max(16px, calc(8 * var(--to-vh) / 100)) auto auto;
-    width: min(520px, calc(var(--to-vw) - 32px));
+    margin: max(1em, 8dvh) auto auto;
+    width: min(32.5em, calc(100vw - 2em));
   }
   .to-dialog-inner {
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     box-shadow: var(--to-shadow-pop);
-    max-height: calc(var(--to-vh) - 32px);
+    max-height: calc(100dvh - 2em);
     display: flex;
     flex-direction: column;
   }
@@ -523,16 +531,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 8px 8px 8px 16px;
+    gap: 0.5em;
+    padding: 0.5em 0.5em 0.5em 1em;
     border-bottom: 1px solid var(--to-border);
   }
   .to-dialog-head h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: calc(1.125 * var(--to-scale));
   }
   .to-dialog-body {
-    padding: 16px;
+    padding: 1em;
     overflow: auto;
   }
   .to-dialog-body > :first-child {
@@ -540,10 +548,10 @@
   }
   /* ---- A money column's currency (columns.ts): one field and OK, narrow ---- */
   .to-currency-dialog .to-dialog {
-    width: min(420px, calc(var(--to-vw) - 32px));
+    width: min(26.25em, calc(100vw - 2em));
   }
   .to-currency-label {
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
   }
   .to-currency .to-hint {
@@ -554,45 +562,45 @@
   }
   /* ---- Insert's address dialogs (insert-dialogs.ts): the address and OK in one row, what it will be under them ---- */
   .to-ask-dialog .to-dialog {
-    width: min(640px, calc(var(--to-vw) - 32px));
+    width: min(40em, calc(100vw - 2em));
   }
   .to-ask {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 0.75em;
   }
   .to-ask-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5em;
   }
   .to-ask-url {
     flex: 1 1 auto;
     min-width: 0;
-    height: 48px;
-    font-size: 16px;
+    height: 3em;
+    font-size: var(--to-scale);
   }
   .to-ask-ok {
     flex: none;
-    height: 48px;
-    min-width: 72px;
+    height: 3em;
+    min-width: 4.5em;
   }
   /* A phone is 300 of these pixels wide at the normal size: the address keeps three times OK's width. */
   @media (max-width: 640px) {
     .to-ask-ok {
-      min-width: 56px;
+      min-width: 3.5em;
     }
   }
   .to-ask-alt {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
+    gap: 0.2857em;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
   }
   .to-ask-alt input {
-    font-size: 16px;
+    font-size: var(--to-scale);
   }
   .to-ask-preview:empty {
     display: none;
@@ -603,7 +611,7 @@
   .to-ask-preview img {
     display: block;
     max-width: 100%;
-    max-height: calc(50 * var(--to-vh) / 100);
+    max-height: 50dvh;
     border-radius: var(--to-radius-sm);
   }
   .to-ask-preview img.broken {
@@ -615,7 +623,7 @@
   .to-ask-sources {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 0.375em;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -623,9 +631,9 @@
   .to-ask-sources li {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    font-size: 13px;
+    gap: 0.4615em;
+    padding: 0.3077em 0.7692em;
+    font-size: calc(0.8125 * var(--to-scale));
     color: var(--to-ink-2);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius-pill);
@@ -637,11 +645,11 @@
   .to-ask-page {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 0.75em;
     margin: 0;
   }
   .to-ask-page svg {
-    width: min(260px, 60%);
+    width: min(16.25em, 60%);
     height: auto;
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius-sm);
@@ -650,7 +658,7 @@
   .to-ask-page figcaption {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.125em;
     min-width: 0;
   }
   .to-ask-page small {
@@ -661,9 +669,9 @@
   .to-doc-dialog {
     padding: 0;
     border: 0;
-    margin: 16px auto auto;
-    width: min(1200px, calc(var(--to-vw) - 32px));
-    height: calc(var(--to-vh) - 32px);
+    margin: 1em auto auto;
+    width: min(75em, calc(100vw - 2em));
+    height: calc(100dvh - 2em);
     max-width: none;
     max-height: none;
     color: var(--to-ink);
@@ -682,15 +690,15 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 8px 8px 8px 16px;
+    gap: 0.5em;
+    padding: 0.5em 0.5em 0.5em 1em;
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
   }
   .to-doc-dialog-head h2 {
     margin: 0;
     min-width: 0;
-    font-size: 18px;
+    font-size: calc(1.125 * var(--to-scale));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -702,19 +710,19 @@
   .to-doc-dialog-size {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375em;
   }
   .to-doc-dialog-sizes {
-    margin-left: 8px;
+    margin-left: 0.5em;
   }
   .to-doc-dialog-size span {
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
   }
   .to-doc-dialog-size input {
-    width: 72px;
-    height: 40px;
-    font-size: 16px;
+    width: 4.5em;
+    height: 2.5em;
+    font-size: var(--to-scale);
   }
   .to-doc-dialog-body {
     flex: 1 1 auto;
@@ -722,7 +730,12 @@
     overflow: auto;
     padding: 0 var(--to-gutter) var(--to-gutter);
     /* The editor inside measures itself against the screen less the header; here the dialog's head and margins stand for it. */
-    --to-header-h: 112px;
+    --to-header-h: calc(7 * var(--to-nav-font));
+    /* The other document is document: the words, a finger's target and the gutter at the document's scale. */
+    font-size: 1rem;
+    --to-scale: 1rem;
+    --to-touch: 2.75rem;
+    --to-gutter: calc(var(--to-gutter-k) * 1rem);
   }
   .to-doc-dialog-body:focus {
     outline: none;
@@ -730,22 +743,22 @@
 
   /* The icon picker: a search box, then the library in named sections. */
   .to-icons .to-dialog {
-    width: min(720px, calc(var(--to-vw) - 32px));
+    width: min(45em, calc(100vw - 2em));
   }
   .to-icons-search {
     width: 100%;
-    height: 40px;
-    padding: 0 12px;
+    height: 2.5em;
+    padding: 0 0.75em;
     border: 1px solid var(--to-input-border);
     border-radius: var(--to-radius-sm);
     background: var(--to-input-bg);
     color: var(--to-ink);
-    font: 16px var(--to-font);
-    margin-bottom: 12px;
+    font: var(--to-scale) var(--to-font);
+    margin-bottom: 0.75em;
   }
   .to-icons-section h3 {
-    margin: 12px 0 6px;
-    font-size: 13px;
+    margin: 0.9231em 0 0.4615em;
+    font-size: calc(0.8125 * var(--to-scale));
     color: var(--to-ink-3);
     font-weight: 600;
   }
@@ -754,14 +767,14 @@
   }
   .to-icons-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-    gap: 2px;
+    grid-template-columns: repeat(auto-fill, minmax(2.75em, 1fr));
+    gap: 0.125em;
   }
   .to-icon-btn {
     display: grid;
     place-items: center;
     width: 100%;
-    min-height: 44px;
+    min-height: 2.75em;
     border: 1px solid transparent;
     border-radius: var(--to-radius-sm);
     background: transparent;
@@ -774,11 +787,11 @@
   /* An emoji is drawn by the system's own emoji font, never a web font. */
   .to-emoji-btn {
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-    font-size: 24px;
+    font-size: calc(1.5 * var(--to-scale));
     line-height: 1;
   }
   .to-icons-sets {
-    margin-bottom: 4px;
+    margin-bottom: 0.25em;
   }
   .to-icon-btn[aria-pressed='true'] {
     border-color: var(--to-accent);
@@ -789,10 +802,10 @@
   .to-share-fit {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin: 0 0 12px;
+    gap: 0.2857em;
+    margin: 0 0 0.8571em;
     color: var(--to-ink-3);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   /* The words open the rooms the link fits in: a button that reads as a line. */
   .to-share-fit .to-fit-words {
@@ -803,7 +816,7 @@
     border-color: transparent;
     background: transparent;
     color: inherit;
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     font-weight: 400;
     white-space: normal;
   }
@@ -812,15 +825,15 @@
     font-weight: 600;
   }
   .to-rooms {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 0.6154em 0.9231em;
+    font-size: calc(0.8125 * var(--to-scale));
   }
   .to-rooms table {
     border-collapse: collapse;
   }
   .to-rooms th,
   .to-rooms td {
-    padding: 3px 8px;
+    padding: 0.1875em 0.5em;
     text-align: start;
     white-space: nowrap;
   }
@@ -838,42 +851,42 @@
   .to-share-links {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 0.5em;
   }
   .to-share-copy {
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
-    padding: 10px 12px;
+    gap: 0.125em;
+    padding: 0.625em 0.75em;
     white-space: normal;
     text-align: left;
   }
   .to-share-copy > span {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375em;
     font-weight: 600;
   }
   .to-share-copy small {
     color: var(--to-ink-3);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
     font-weight: 400;
   }
   .to-share-native {
     grid-column: 1 / -1;
   }
   .to-share-section {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 1.25em;
+    padding-top: 1em;
     border-top: 1px solid var(--to-border);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 0.625em;
   }
   .to-share-section h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--to-scale);
   }
   .to-share-section .to-hint,
   .to-share-own {
@@ -884,26 +897,26 @@
   }
   .to-share-field {
     display: flex;
-    gap: 8px;
+    gap: 0.5em;
     width: 100%;
   }
   .to-share-field input {
     flex: 1 1 auto;
     min-width: 0;
-    height: 48px;
+    height: 3.6em;
     font-family: var(--to-font-mono);
   }
   .to-short-field {
-    font-size: 18px !important;
+    font-size: calc(1.125 * var(--to-scale)) !important;
     font-weight: 600;
   }
   .to-share-field .to-btn {
-    height: 48px;
+    height: 3.2em;
   }
   .to-share-extend {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5em;
     width: 100%;
   }
   /* A row of segments: a radio group (the lifetimes) or two pressed buttons (Link, Display Link). */
@@ -925,10 +938,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0.4286em;
     min-height: var(--to-touch);
-    padding: 0 8px;
-    font-size: 14px;
+    padding: 0 0.5714em;
+    font-size: calc(0.875 * var(--to-scale));
     font-weight: 500;
     white-space: nowrap;
     color: var(--to-ink);
@@ -963,8 +976,8 @@
     font-weight: 600;
   }
   .to-seg input:focus-visible + span {
-    outline: 2px solid var(--to-accent);
-    outline-offset: 2px;
+    outline: 0.125em solid var(--to-accent);
+    outline-offset: 0.125em;
     position: relative;
   }
   .to-owner,
@@ -982,7 +995,7 @@
   .to-owner summary::before,
   .to-kept-list summary::before {
     content: '▸';
-    margin-right: 8px;
+    margin-right: 0.5em;
     color: var(--to-ink-3);
   }
   .to-owner[open] summary::before,
@@ -1001,11 +1014,14 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 0.5em;
+  }
+  .to-qr-code {
+    align-self: stretch;
   }
   .to-qr-code svg {
     display: block;
-    width: min(100%, 280px);
+    width: min(100%, 17.5em);
     height: auto;
   }
   .to-short-link {
@@ -1015,14 +1031,14 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-kept li {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
-    gap: 0 8px;
-    padding: 6px 0;
+    gap: 0 0.5em;
+    padding: 0.375em 0;
     border-top: 1px solid var(--to-border);
   }
   .to-kept li small {
@@ -1036,13 +1052,13 @@
   /* ---- arriving by a short link: how long it has left, big and coloured; once the header has gone, small and stuck under the bar ---- */
   .to-arrival {
     position: sticky;
-    top: calc((var(--to-vv-top, 0px) + var(--to-stuck-h, 0px)) / var(--to-size, 1));
+    top: calc(var(--to-vv-top, 0rem) + var(--to-stuck-h, 0rem));
     z-index: 2;
     display: grid;
     grid-template-columns: 1fr auto auto;
     align-items: center;
-    gap: 8px 12px;
-    padding: 14px var(--to-gutter);
+    gap: 0.5rem 0.75rem;
+    padding: 0.875rem var(--to-gutter);
     padding-left: max(var(--to-gutter), env(safe-area-inset-left));
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
     background: var(--to-ok-bg);
@@ -1061,7 +1077,7 @@
   }
   .to-arrival-words {
     margin: 0;
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: 700;
     line-height: 1.25;
   }
@@ -1069,7 +1085,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
   }
   .to-arrival .to-btn {
     color: inherit;
@@ -1083,21 +1099,21 @@
     border-color: transparent;
   }
   .to-arrival.small {
-    padding-top: 4px;
-    padding-bottom: 4px;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
   }
   .to-arrival.small .to-arrival-words {
-    font-size: 15px;
+    font-size: 0.9375rem;
   }
   .to-arrival.small .to-btn {
-    min-height: 36px;
+    min-height: 2.25rem;
   }
 
   /* ---- the drawer ---- */
   .to-drawer {
     margin: 0;
-    height: var(--to-vh);
-    width: min(320px, calc(85 * var(--to-vw) / 100));
+    height: 100dvh;
+    width: min(20em, 85vw);
   }
   .to-drawer-inner {
     height: 100%;
@@ -1110,7 +1126,7 @@
   .to-brand {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5em;
     font-weight: 700;
     color: var(--to-ink);
     text-decoration: none;
@@ -1121,15 +1137,15 @@
   .to-drawer-apps {
     display: flex;
     flex-direction: column;
-    padding: 12px;
-    gap: 2px;
+    padding: 0.75em;
+    gap: 0.125em;
   }
   .to-drawer-apps a {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625em;
     min-height: var(--to-touch);
-    padding: 0 10px;
+    padding: 0 0.625em;
     color: var(--to-ink);
     text-decoration: none;
     border-radius: var(--to-radius-sm);
@@ -1138,7 +1154,7 @@
     background: var(--to-surface-2);
   }
   .to-find {
-    margin-bottom: 8px;
+    margin-bottom: 0.5em;
   }
   .to-drawer-apps .to-app-open {
     flex: 1;
@@ -1155,11 +1171,11 @@
   }
   .to-found-words small {
     color: var(--to-ink-3);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
   }
   .to-drawer-head3 {
-    margin: 8px 10px 2px;
-    font-size: 12px;
+    margin: 0.6667em 0.8333em 0.1667em;
+    font-size: calc(0.75 * var(--to-scale));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -1168,8 +1184,8 @@
   .to-drawer-section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 0.75em;
+    padding: 0.75em 1em;
     border-top: 1px solid var(--to-border);
   }
   .to-drawer-prefs {
@@ -1186,16 +1202,16 @@
   select,
   textarea {
     font: inherit;
-    font-size: 16px;
+    font-size: var(--to-scale);
     color: var(--to-ink);
     background: var(--to-input-bg);
     border: 1px solid var(--to-input-border);
     border-radius: var(--to-radius-sm);
     min-height: var(--to-touch);
-    padding: 0 10px;
+    padding: 0 0.625em;
   }
   textarea {
-    padding: 10px;
+    padding: 0.75em;
   }
   ::placeholder {
     color: var(--to-placeholder);
@@ -1204,7 +1220,7 @@
   .to-field {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5em;
   }
   .to-field > span {
     flex: 1;
@@ -1215,15 +1231,15 @@
   .to-switch {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 0.75em;
     cursor: pointer;
   }
   .to-switch input {
     appearance: none;
     flex: none;
-    width: 44px;
-    height: 26px;
-    margin: 2px 0 0;
+    width: 3.3em;
+    height: 1.95em;
+    margin: 0.15em 0 0;
     border-radius: var(--to-radius-pill);
     background: var(--to-border-strong);
     position: relative;
@@ -1232,10 +1248,10 @@
   .to-switch input::after {
     content: '';
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 20px;
-    height: 20px;
+    top: 0.225em;
+    left: 0.225em;
+    width: 1.5em;
+    height: 1.5em;
     border-radius: 50%;
     background: var(--to-surface);
     transition: left 0.15s;
@@ -1244,7 +1260,7 @@
     background: var(--to-accent);
   }
   .to-switch input:checked::after {
-    left: 21px;
+    left: 1.575em;
   }
   .to-switch-words {
     display: flex;
@@ -1258,9 +1274,9 @@
   .to-toast {
     position: fixed;
     left: 50%;
-    bottom: max(16px, env(safe-area-inset-bottom));
-    transform: translate(-50%, 8px);
-    padding: 10px 16px;
+    bottom: max(1em, env(safe-area-inset-bottom));
+    transform: translate(-50%, 0.5em);
+    padding: 0.625em 1em;
     background: var(--to-ink);
     color: var(--to-bg);
     border-radius: var(--to-radius);
@@ -1269,7 +1285,7 @@
     pointer-events: none;
     transition: opacity 0.15s, transform 0.15s;
     z-index: 10;
-    max-width: calc(var(--to-vw) - 32px);
+    max-width: calc(100vw - 2em);
   }
   .to-toast.shown {
     opacity: 1;
@@ -1278,15 +1294,15 @@
   /* The size of everything while a pinch is in hand (kit/pinch.ts): top centre, above everything, moving nothing. */
   .to-pinch-pill {
     position: fixed;
-    inset: max(8px, env(safe-area-inset-top)) auto auto 50%;
+    inset: max(0.5333em, env(safe-area-inset-top)) auto auto 50%;
     transform: translateX(-50%);
     margin: 0;
-    padding: 6px 14px;
+    padding: 0.4em 0.9333em;
     border: 0;
-    border-radius: 999px;
+    border-radius: 66.6em;
     background: var(--to-ink);
     color: var(--to-bg);
-    font: 600 15px/1.2 var(--to-font);
+    font: 600 calc(0.9375 * var(--to-scale))/1.2 var(--to-font);
     font-variant-numeric: tabular-nums;
     box-shadow: var(--to-shadow-pop);
     pointer-events: none;
@@ -1301,9 +1317,6 @@
   /* ---- the shell ---- */
   to-shell {
     display: block;
-    /* Where the menu button sits, fixed at the top left, and the room it takes. */
-    --to-edge-l: max(var(--to-gutter), env(safe-area-inset-left));
-    --to-burger-w: calc(var(--to-edge-l) + var(--to-touch));
   }
   /* The header goes up with the page (Paul, 2026-10-10); the menu button stays, fixed, and the app's bar sticks. */
   .to-header {
@@ -1311,10 +1324,10 @@
     flex-wrap: wrap;
     align-items: center;
     align-content: flex-start;
-    gap: 8px 6px;
+    gap: 0.5em 0.375em;
     height: var(--to-header-h);
     padding: calc((var(--to-header-h) - var(--to-touch)) / 2) var(--to-gutter);
-    padding-left: calc(var(--to-burger-w) + 6px);
+    padding-left: calc(var(--to-burger-w) + 0.375em);
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
@@ -1326,28 +1339,28 @@
   .to-header .to-burger {
     position: fixed;
     left: var(--to-edge-l);
-    top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0px) / var(--to-nav-size, 1));
+    top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0rem));
     z-index: 4;
     transition: box-shadow 0.2s ease;
   }
   to-shell[scrolled] .to-header .to-burger {
     background: var(--to-surface);
-    border-radius: 8px;
-    box-shadow: 0 1px 6px rgb(0 0 0 / 16%);
+    border-radius: 0.5em;
+    box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
   }
   /* Once the header has gone, the app's bar makes room for the menu button: narrowed rather than padded, so a bar
      that scrolls sideways on a phone never slides under it (none needed where the page's margin already holds it). */
   to-shell[scrolled] .to-editor to-bar {
-    margin-left: calc(var(--to-burger-w) - var(--to-gutter) / var(--to-nav-zoom, 1));
+    margin-left: calc(var(--to-burger-w) - var(--to-gutter-k) * 1rem);
   }
   /* Behind the stuck bar the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
   to-shell[scrolled]::before {
     content: '';
     position: fixed;
-    top: calc(var(--to-vv-top, 0px) / var(--to-size, 1));
+    top: var(--to-vv-top, 0rem);
     left: 0;
     right: 0;
-    height: calc(var(--to-stuck-h, 0px) / var(--to-size, 1));
+    height: var(--to-stuck-h, 0rem);
     background: var(--to-bg);
     box-shadow: 0 1px 0 var(--to-border);
     z-index: 2;
@@ -1355,17 +1368,17 @@
   /* The title edited wide (Paul: "The title is too small to edit"): the header opens a second row, the field across
      it at 20px; the first row keeps the rest, pushed to the right. The header holds still meanwhile. */
   .to-header.titling {
-    height: calc(var(--to-header-h) + 8px + var(--to-touch));
+    height: calc(var(--to-header-h) + 0.5em + var(--to-touch));
     overflow: hidden;
     position: sticky;
-    top: calc(var(--to-vv-top, 0px) / var(--to-nav-size, 1));
+    top: var(--to-vv-top, 0rem);
   }
   .to-header.titling .to-title {
     order: 1;
-    flex: 0 0 calc(100% + var(--to-touch) + 6px);
-    margin-left: calc(-1 * (var(--to-touch) + 6px));
+    flex: 0 0 calc(100% + var(--to-touch) + 0.3em);
+    margin-left: calc(-1 * (var(--to-touch) + 0.3em));
     height: var(--to-touch);
-    font-size: 20px;
+    font-size: calc(1.25 * var(--to-scale));
   }
   .to-header.titling .to-title + * {
     margin-left: auto;
@@ -1419,7 +1432,7 @@
   .to-header {
     container: to-header / inline-size;
   }
-  @container to-header (width < 300px) {
+  @container to-header (width < 18.75em) {
     .to-meter:not(.warn, .over),
     .to-trust.quiet {
       display: none;
@@ -1440,8 +1453,8 @@
   .to-main {
     --to-inset-l: max(var(--to-gutter), env(safe-area-inset-left));
     --to-inset-r: max(var(--to-gutter), env(safe-area-inset-right));
-    --to-bleed-l: 0px;
-    --to-bleed-r: 0px;
+    --to-bleed-l: 0rem;
+    --to-bleed-r: 0rem;
     max-width: var(--to-max-w);
     margin: 0 auto;
     padding: var(--to-gutter);
@@ -1458,20 +1471,20 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
-    padding: 32px 0;
+    gap: 0.75rem;
+    padding: 2rem 0;
     color: var(--to-ink-2);
   }
 
   /* ---- privacy: the signed state beside the title, the unlock and password dialogs, the Privacy dialog ---- */
   .to-header .to-trust,
   .to-trust {
-    gap: 4px;
-    padding: 0 10px;
+    gap: 0.2857em;
+    padding: 0 0.7143em;
     min-width: var(--to-touch);
     min-height: var(--to-touch);
     border-radius: var(--to-radius-pill);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-3);
   }
   .to-header .to-trust.signed,
@@ -1496,9 +1509,9 @@
   }
   .to-title-locked {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--to-scale);
     color: var(--to-ink-3);
-    padding: 0 10px;
+    padding: 0 0.625em;
     border: 0;
   }
   .to-locked {
@@ -1508,7 +1521,7 @@
   .to-trust-line {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375em;
     margin: 0;
     font-weight: 600;
   }
@@ -1517,7 +1530,7 @@
   }
   .to-trust-line .to-icon {
     align-self: flex-start;
-    margin-top: 3px;
+    margin-top: 0.1875em;
   }
   .to-trust-line.quiet {
     font-weight: 400;
@@ -1535,16 +1548,16 @@
     font-family: var(--to-font-mono);
   }
   .to-share-made {
-    margin: 0 0 4px;
+    margin: 0 0 0.2857em;
     color: var(--to-ink-2);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-share-protect-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 0.5em;
     width: 100%;
   }
   .to-sign,
@@ -1552,7 +1565,7 @@
   .to-unlock {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0.625em;
     width: 100%;
   }
   .to-sign-label,
@@ -1560,21 +1573,21 @@
   .to-privacy-keytext {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
+    gap: 0.2857em;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
   }
   .to-sign-name,
   .to-password-new,
   .to-unlock-field,
   .to-key-text {
-    font-size: 16px;
+    font-size: var(--to-scale);
     width: 100%;
   }
   .to-unlock .to-ask-row input {
     flex: 1 1 auto;
     min-width: 0;
-    height: 48px;
+    height: 3.6em;
   }
   .to-unlock p,
   .to-password p {
@@ -1587,22 +1600,22 @@
   }
   .to-key-text {
     font-family: var(--to-font-mono);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
   }
   .to-privacy-section {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 0.625em;
   }
   .to-privacy-section + .to-privacy-section {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 1.25em;
+    padding-top: 1em;
     border-top: 1px solid var(--to-border);
   }
   .to-privacy-section h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--to-scale);
   }
   .to-privacy-section p {
     margin: 0;
@@ -1610,7 +1623,7 @@
   .to-privacy-fp {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375em;
   }
   .to-privacy-fp code,
   .to-held-now {
@@ -1625,8 +1638,8 @@
   .to-held li {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 0;
+    gap: 0.5em;
+    padding: 0.375em 0;
     border-bottom: 1px solid var(--to-border);
   }
   .to-held-words {
@@ -1637,17 +1650,17 @@
   }
   .to-held-words small {
     color: var(--to-ink-3);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
   }
   .to-held-now {
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
     white-space: nowrap;
   }
   .to-check {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5em;
     min-height: var(--to-touch);
   }
   .to-key-file {
@@ -1658,10 +1671,10 @@
   .to-display-head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
     max-width: var(--to-max-w);
     margin: 0 auto;
-    padding: 8px var(--to-gutter);
+    padding: 0.5rem var(--to-gutter);
     padding-left: max(var(--to-gutter), env(safe-area-inset-left));
     padding-right: max(var(--to-gutter), env(safe-area-inset-right));
   }
@@ -1669,7 +1682,7 @@
     flex: 1;
     min-width: 0;
     margin: 0;
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1678,7 +1691,7 @@
   .to-display {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
     max-width: var(--to-max-w);
     margin: 0 auto;
     padding: 0 var(--to-gutter) var(--to-gutter);
@@ -1689,7 +1702,7 @@
   .to-display-site {
     display: block;
     width: 100%;
-    height: calc(var(--to-vh) - 72px);
+    height: calc(100dvh - 4.5rem);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     background: #fff;
@@ -1697,7 +1710,7 @@
   /* A page at its paper's width (a letter page about 816px), smaller only to fit a narrower screen, centred; never stretched. */
   .to-display-page {
     width: 100%;
-    max-width: var(--page-w, 816px);
+    max-width: var(--page-w, 51rem);
     margin: 0 auto;
   }
   .to-display-page svg {
@@ -1705,7 +1718,7 @@
     width: 100%;
     height: auto;
     border: 1px solid var(--to-border);
-    border-radius: 3px;
+    border-radius: 0.1875rem;
     box-shadow: var(--to-shadow);
   }
   @media print {
@@ -1746,9 +1759,9 @@
     flex: 1;
     min-width: 0;
     align-items: center;
-    gap: 10px;
+    gap: 0.625em;
     min-height: var(--to-touch);
-    padding: 0 8px;
+    padding: 0 0.5em;
     color: var(--to-ink);
     text-decoration: none;
     border-radius: var(--to-radius-sm);
@@ -1761,7 +1774,7 @@
   }
   /* A long name at a large size breaks rather than pushing the templates button off the screen. */
   .to-app-open b {
-    font-size: 16px;
+    font-size: var(--to-scale);
     min-width: 0;
     overflow-wrap: anywhere;
     hyphens: auto;
@@ -1771,8 +1784,8 @@
   }
   .to-templates-btn {
     width: auto;
-    padding: 0 10px;
-    gap: 2px;
+    padding: 0 0.625em;
+    gap: 0.125em;
     border: 0;
     border-radius: var(--to-radius-sm);
     background: transparent;
@@ -1780,8 +1793,8 @@
   }
   .to-drive {
     list-style: none;
-    margin: 0 0 6px;
-    padding: 0 0 0 38px;
+    margin: 0 0 0.375em;
+    padding: 0 0 0 2.375em;
   }
   .to-drive li {
     display: flex;
@@ -1792,9 +1805,9 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625em;
     min-height: var(--to-touch);
-    padding: 4px 0 4px 8px;
+    padding: 0.25em 0 0.25em 0.5em;
     color: var(--to-ink);
     text-decoration: none;
     border-radius: var(--to-radius-sm);
@@ -1812,11 +1825,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 15px;
+    font-size: calc(0.9375 * var(--to-scale));
   }
   .to-drive-words small {
     color: var(--to-ink-3);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
   }
   .to-drive .to-tool {
     border-color: transparent;
@@ -1825,7 +1838,7 @@
   }
   .to-drive-more {
     align-self: flex-start;
-    margin: 0 0 6px 38px;
+    margin: 0 0 0.375em 2.375em;
     border: 0;
     background: transparent;
     font-weight: 400;
@@ -1835,9 +1848,9 @@
   /* ---- a thing from the web (<to-embed>, kit/embeds.ts): the card until it is tapped, then the thing itself ---- */
   .to-embed {
     margin: 0;
-    max-width: 560px;
+    max-width: 35rem;
     border: 1px solid var(--to-border);
-    border-radius: 10px;
+    border-radius: 0.625rem;
     overflow: hidden;
     background: var(--to-surface);
     color: var(--to-ink);
@@ -1850,12 +1863,12 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
-    padding: 14px;
+    gap: 0.75rem;
+    padding: 0.875rem;
     color: var(--to-ink-2);
   }
   .to-embed-what {
-    flex: 1 1 160px;
+    flex: 1 1 10rem;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -1886,54 +1899,54 @@
     aspect-ratio: 4 / 3;
   }
   .to-embed iframe.post {
-    height: 520px;
+    height: 32.5rem;
   }
   .to-embed iframe.music {
-    height: 352px;
+    height: 22rem;
   }
   .to-embed iframe.code {
-    height: 400px;
+    height: 25rem;
   }
   .to-embed iframe.pdf,
   .to-embed iframe.page {
-    height: calc(70 * var(--to-vh) / 100);
+    height: 70dvh;
   }
   .to-embed img {
     display: block;
     max-width: 100%;
-    max-height: calc(70 * var(--to-vh) / 100);
+    max-height: 70dvh;
     height: auto;
     margin: 0 auto;
   }
   .to-embed video {
     display: block;
     width: 100%;
-    max-height: calc(70 * var(--to-vh) / 100);
+    max-height: 70dvh;
     background: #000;
   }
   .to-embed audio {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    padding: 18px 14px;
+    padding: 1.125rem 0.875rem;
   }
   .to-embed-summary {
     display: flex;
-    gap: 16px;
-    padding: 16px;
-    font-size: 15px;
+    gap: 1rem;
+    padding: 1rem;
+    font-size: 0.9375rem;
     line-height: 1.5;
   }
   .to-embed-summary img {
     flex: none;
-    width: 120px;
-    height: 120px;
+    width: 7.5rem;
+    height: 7.5rem;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: 0.5rem;
     margin: 0;
   }
   .to-embed-summary p {
-    margin: 4px 0 8px;
+    margin: 0.25rem 0 0.5rem;
   }
   .to-embed-summary a {
     font-weight: 600;
@@ -1942,11 +1955,11 @@
   .to-embed figcaption {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
     border-top: 1px solid var(--to-border);
     background: var(--to-surface-2);
-    font-size: 13.5px;
+    font-size: 0.8438rem;
   }
   .to-embed figcaption a {
     color: inherit;
@@ -1968,12 +1981,12 @@
   to-preview {
     flex: none;
     display: block;
-    width: 72px;
-    height: 54px;
+    width: 4.5rem;
+    height: 3.375rem;
     overflow: hidden;
     background: var(--to-paper);
     border: 1px solid var(--to-border);
-    border-radius: 2px;
+    border-radius: 0.125rem;
   }
   to-preview svg {
     display: block;
@@ -1981,8 +1994,8 @@
     height: 100%;
   }
   .to-found to-preview {
-    width: 48px;
-    height: 36px;
+    width: 3em;
+    height: 2.25em;
   }
 
   /* ---- a picture from the web, not yet asked for (kit/pictures.ts) ---- */
@@ -1990,16 +2003,16 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 12px;
-    padding: 12px;
-    min-height: 88px;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem;
+    min-height: 5.5rem;
     color: var(--to-ink-2);
     background: var(--to-surface-2);
     border: 1px dashed var(--to-border-strong);
     border-radius: var(--to-radius);
   }
   .to-webpic-words {
-    flex: 1 1 140px;
+    flex: 1 1 8.75rem;
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -2012,53 +2025,53 @@
     white-space: normal;
   }
   .to-webpic-svg:focus-visible {
-    outline: 3px solid var(--to-accent);
+    outline: 0.1875rem solid var(--to-accent);
   }
   .to-webpics-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    margin: 0 0 8px;
-    padding: 8px 12px;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem;
+    padding: 0.5rem 0.75rem;
     color: var(--to-ink-2);
     background: var(--to-surface-2);
     border-radius: var(--to-radius);
   }
   .to-webpics-bar span {
-    flex: 1 1 160px;
+    flex: 1 1 10rem;
   }
 
   /* ---- the question before a link leaves the site (kit/link-guard.ts) ---- */
   .to-link-guard .lg-what {
     margin: 0;
-    font-size: 20px;
+    font-size: calc(1.25 * var(--to-scale));
     font-weight: 600;
   }
   .to-link-guard .lg-host {
-    margin: 4px 0 12px;
-    font-size: clamp(26px, calc(8 * var(--to-vw) / 100), 36px);
+    margin: 0.25em 0 0.75em;
+    font-size: clamp(calc(1.625 * var(--to-scale)), 8vw, calc(2.25 * var(--to-scale)));
     font-weight: 800;
     line-height: 1.15;
     overflow-wrap: anywhere;
   }
   .to-link-guard .lg-warn {
     display: flex;
-    gap: 6px;
+    gap: 0.375em;
     align-items: center;
     color: var(--to-danger);
     font-weight: 600;
   }
   .to-link-guard .lg-label {
-    margin: 0 0 4px;
+    margin: 0 0 0.2857em;
     color: var(--to-ink-3);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-link-guard .lg-url {
     display: block;
-    padding: 8px 10px;
+    padding: 0.5714em 0.7143em;
     font-family: var(--to-font-mono);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     overflow-wrap: anywhere;
     white-space: pre-wrap;
     user-select: text;
@@ -2067,16 +2080,16 @@
   }
   .to-link-guard .lg-note {
     color: var(--to-ink-2);
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-link-guard .lg-buttons {
     display: flex;
-    gap: 12px;
+    gap: 0.75em;
   }
   .to-link-guard .lg-buttons .to-btn {
     flex: 1;
-    min-height: 52px;
-    font-size: 19px;
+    min-height: 2.7368em;
+    font-size: calc(1.1875 * var(--to-scale));
     font-weight: 700;
     color: var(--to-on-accent);
   }
@@ -2093,14 +2106,14 @@
   .to-post {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5em;
   }
   .to-mastodon {
-    max-width: 420px;
+    max-width: 26.25em;
   }
   .to-mastodon input {
     height: var(--to-touch) !important;
-    font-size: 16px;
+    font-size: var(--to-scale);
   }
   .to-mastodon .to-btn {
     height: var(--to-touch);
@@ -2110,8 +2123,8 @@
   .to-embed-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
   }
   .to-embed-title {
     flex: 1;
@@ -2122,13 +2135,13 @@
     white-space: nowrap;
   }
   .to-embed {
-    padding: 0 12px 12px;
+    padding: 0 0.75rem 0.75rem;
   }
   .to-embed-locked {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
   }
 
   /* ---- a document locked with a password, placed in another (kit/locked-doc.ts): the card a tap opens ---- */
@@ -2145,8 +2158,8 @@
     cursor: pointer;
   }
   .to-locked-open:focus-visible {
-    outline: 2px solid var(--to-accent);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: -0.125rem;
   }
   .to-locked-open svg {
     display: block;
@@ -2158,7 +2171,7 @@
   .to-drawer-files {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5em;
   }
   .to-drawer-files .to-btn {
     flex: 1 1 auto;
@@ -2169,39 +2182,39 @@
   .to-compare {
     max-width: var(--to-max-w);
     margin: 0 auto;
-    padding: 16px var(--to-gutter) 48px;
+    padding: 1rem var(--to-gutter) 3rem;
   }
   .to-compare h1 {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0 0 4px;
-    font-size: 22px;
+    gap: 0.5rem;
+    margin: 0 0 0.25rem;
+    font-size: 1.375rem;
   }
   .cmp-sides,
   .cmp-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 12px;
+    gap: 0.75rem;
   }
   .cmp-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.25rem;
     font-weight: 600;
   }
   .cmp-field input {
     width: 100%;
     min-height: var(--to-touch);
-    font-size: 16px;
+    font-size: 1rem;
     font-family: var(--to-font-mono);
   }
   .cmp-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    margin: 6px 0 0;
+    gap: 0.375rem;
+    margin: 0.375rem 0 0;
     color: var(--to-ink-2);
   }
   .cmp-bar {
@@ -2209,8 +2222,8 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    margin: 16px 0 8px;
+    gap: 0.5rem;
+    margin: 1rem 0 0.5rem;
   }
   .cmp-sum {
     margin: 0;
@@ -2219,14 +2232,14 @@
   .cmp-rows {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.25rem;
   }
   .cmp-cell {
     display: block;
-    padding: 6px 10px;
+    padding: 0.375rem 0.625rem;
     border-radius: var(--to-radius-sm);
     font-family: var(--to-font-mono);
-    font-size: 14px;
+    font-size: 0.875rem;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     text-decoration: none;
@@ -2245,22 +2258,22 @@
     .cmp-sides,
     .cmp-row {
       grid-template-columns: minmax(0, 1fr);
-      gap: 4px;
+      gap: 0.25rem;
     }
     .cmp-same,
     .cmp-none {
       display: none;
     }
     .cmp-row.changed {
-      padding: 4px 0;
+      padding: 0.25rem 0;
     }
   }
 
   /* ---- the skip link: off the page until it has the focus ---- */
   .to-skip {
     position: fixed;
-    top: 4px;
-    left: 4px;
+    top: 0.25rem;
+    left: 0.25rem;
     z-index: 10;
     transform: translateY(-200%);
   }
@@ -2272,15 +2285,15 @@
   .to-other {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
     max-width: var(--to-max-w);
-    margin: 8px auto 0;
-    padding: 6px 8px 6px 12px;
+    margin: 0.5rem auto 0;
+    padding: 0.375rem 0.5rem 0.375rem 0.75rem;
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     background: var(--to-surface-2);
     color: var(--to-ink-2);
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .to-other p {
     flex: 1;
@@ -2297,8 +2310,8 @@
   .to-find {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 4px 4px 8px;
+    gap: 0.25em;
+    padding: 0.25em 0.25em 0.25em 0.5em;
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
     background: var(--to-surface);
@@ -2307,7 +2320,7 @@
   .to-find-input {
     width: 14em;
     min-width: 0;
-    font-size: 16px;
+    font-size: var(--to-scale);
     border: 0;
     background: transparent;
     color: inherit;
@@ -2316,13 +2329,13 @@
     outline: none;
   }
   .to-find:focus-within {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125em solid var(--to-accent);
     outline-offset: 1px;
   }
   .to-find-count {
     min-width: 4.5em;
     color: var(--to-ink-3);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -2337,30 +2350,30 @@
   /* ---- the keyboard shortcuts: a table a group ---- */
   .to-keys {
     width: 100%;
-    margin: 0 0 16px;
+    margin: 0 0 1.1429em;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
   }
   .to-keys caption {
-    padding: 4px 0;
+    padding: 0.25em 0;
     text-align: start;
     font-weight: 600;
   }
   .to-keys th,
   .to-keys td {
-    padding: 5px 0;
+    padding: 0.3125em 0;
     border-top: 1px solid var(--to-border);
     text-align: start;
     vertical-align: top;
   }
   .to-keys th {
     width: 45%;
-    padding-right: 12px;
+    padding-right: 0.75em;
     font-weight: 400;
   }
   .to-keys kbd {
     font-family: var(--to-font-mono);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
   }
 
   /* ---- the size of everything, in the menu: the steps go under a label too long to sit beside them ---- */
@@ -2370,7 +2383,7 @@
   .to-size-step {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.125em;
     margin-left: auto;
   }
   .to-size-now {
@@ -2385,17 +2398,17 @@
   .to-search {
     display: block;
     width: 100%;
-    margin: 8px 0 4px;
-    font-size: 16px;
+    margin: 0.5rem 0 0.25rem;
+    font-size: 1rem;
   }
   .to-found-docs {
     list-style: none;
-    margin: 0 0 16px;
+    margin: 0 0 1rem;
     padding: 0;
   }
   .to-found-docs a {
     display: block;
-    padding: 8px 4px;
+    padding: 0.5rem 0.25rem;
     border-bottom: 1px solid var(--to-border);
     color: inherit;
     text-decoration: none;
@@ -2414,8 +2427,8 @@
 
   /* ---- Insert ▾ narrowed by the letters typed ---- */
   .to-menu-filter {
-    padding: 4px 10px 6px;
+    padding: 0.3077em 0.7692em 0.4615em;
     color: var(--to-ink-3);
-    font-size: 13px;
+    font-size: calc(0.8125 * var(--to-scale));
   }
 }
