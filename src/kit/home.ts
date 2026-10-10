@@ -74,8 +74,9 @@ export class ToTemplates extends LitElement {
     super.disconnectedCallback();
     this.off();
   }
-  get button(): HTMLButtonElement | null {
-    return this.querySelector<HTMLButtonElement>(':scope > button');
+  /** Its button (none when `bare`). */
+  get button(): HTMLButtonElement {
+    return this.querySelector<HTMLButtonElement>(':scope > button')!;
   }
   get dialog(): HTMLDialogElement {
     return this.querySelector<HTMLDialogElement>(':scope > dialog')!;
@@ -95,7 +96,7 @@ export class ToTemplates extends LitElement {
     void this.updateComplete.then(() => {
       if (this.dialog.open) return;
       this.dialog.showModal();
-      this.button?.setAttribute('aria-expanded', 'true');
+      if (!this.bare) this.button.setAttribute('aria-expanded', 'true');
       // Opened by a key, the chosen template has the focus; by a pointer, the list itself, and the first arrow goes in.
       if (pointer) this.listbox.focus({ preventScroll: true });
       else (this.options().find((o) => o.getAttribute('aria-selected') === 'true') ?? this.options()[0])?.focus({ preventScroll: true });
@@ -105,9 +106,8 @@ export class ToTemplates extends LitElement {
     if (this.dialog.open) this.dialog.close();
   }
   private onClose = () => {
-    const button = this.button;
-    button?.setAttribute('aria-expanded', 'false');
-    if (document.activeElement === document.body || this.contains(document.activeElement)) void (button ? button.focus() : focusBack(this.from));
+    if (!this.bare) this.button.setAttribute('aria-expanded', 'false');
+    if (document.activeElement === document.body || this.contains(document.activeElement)) void (this.bare ? focusBack(this.from) : this.button.focus());
   };
   /** The keys every menu here keeps (menu.ts). */
   private onKey = (e: KeyboardEvent) => menuKey(e, this.listbox, this.options(), () => this.hide());
