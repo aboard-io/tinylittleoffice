@@ -168,7 +168,7 @@ test('the bullet opens the kinds of line, each named for the items it joins; the
   bullet().click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
   const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')];
-  expect(items.map((x) => x.textContent!.trim())).toEqual(['Plain line', 'Arrow from Product to Pricing', 'Arrow from Pricing to Product', 'Arrows both ways', 'Name the line…']);
+  expect(items.map((x) => x.textContent!.trim())).toEqual(['Plain line', 'Arrow from Product to Pricing', 'Arrow from Pricing to Product', 'Arrows both ways', 'Name the line']);
   expect(document.querySelector('[popover]:popover-open [role=menuitemcheckbox][aria-checked=true]')!.textContent!.trim()).toBe('Plain line');
   items[1].click();
   await el.updateComplete;
@@ -176,27 +176,31 @@ test('the bullet opens the kinds of line, each named for the items it joins; the
   expect(bullet().getAttribute('aria-label')).toBe('Line from Product to Pricing: an arrow from the parent. Change it');
   await pick(el, bullet(), 'Arrows both');
   expect(last()!.split('\n')[2]).toBe('    - Pricing {.both}');
-  // Named: the dialog, Enter saves; the chip shows the name and opens the dialog again; emptied, the chip goes.
+  // Named: typed where the name is shown, no dialog; Enter keeps it; the chip shows the name and, tapped, is typed on again; emptied, the chip goes.
   await pick(el, bullet(), 'Name the line');
-  await until(() => !!el.querySelector('.ol-name-dialog dialog[open] input'));
-  const box = () => el.querySelector<HTMLInputElement>('.ol-name-dialog input')!;
+  const box = () => row(el, 2).querySelector<HTMLInputElement>('input.ol-label-in')!;
+  expect(document.activeElement).toBe(box());
+  expect(el.querySelector('dialog[open]')).toBeNull();
   expect(parseFloat(getComputedStyle(box()).fontSize)).toBeGreaterThanOrEqual(16);
   box().value = 'sets';
-  box().dispatchEvent(new Event('input', { bubbles: true }));
   box().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-  // (The dialog's close event comes a task after it shuts: wait for it, or it lands on the next opening.)
-  await until(() => !el.querySelector('.ol-name-dialog input'));
-  await tick();
+  await el.updateComplete;
   expect(last()!.split('\n')[2]).toBe('    - Pricing {.both label=sets}');
   const chip = row(el, 2).querySelector<HTMLButtonElement>('.ol-label')!;
   expect(chip.textContent).toBe('sets');
   chip.click();
-  await until(() => !!el.querySelector('.ol-name-dialog dialog[open] input'));
+  expect(document.activeElement).toBe(box());
   expect(box().value).toBe('sets');
+  // Escape leaves it be.
+  box().value = 'gone';
+  box().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await el.updateComplete;
+  expect(last()!.split('\n')[2]).toBe('    - Pricing {.both label=sets}');
+  // Emptied, and the focus gone elsewhere: kept, so the name goes.
+  row(el, 2).querySelector<HTMLButtonElement>('.ol-label')!.click();
   box().value = '';
-  box().dispatchEvent(new Event('input', { bubbles: true }));
-  el.querySelector<HTMLButtonElement>('.ol-name-done')!.click();
-  await until(() => !el.querySelector('.ol-name-dialog dialog[open]'));
+  box().blur();
+  await el.updateComplete;
   expect(last()!.split('\n')[2]).toBe('    - Pricing {.both}');
   expect(row(el, 2).querySelector('.ol-label')).toBeNull();
   // A parent's bullet zooms in too.
@@ -223,12 +227,11 @@ test('Connect greys the outline until the other end is tapped; the join is turne
   await pick(el, link().querySelector<HTMLButtonElement>('button.ol-kind')!, 'Arrow from Pricing to Marketing');
   expect(last()!.split('\n').at(-2)).toBe('~ Pricing -> Marketing');
   await pick(el, link().querySelector<HTMLButtonElement>('button.ol-kind')!, 'Name the line');
-  await until(() => !!el.querySelector('.ol-name-dialog dialog[open]'));
-  const box = el.querySelector<HTMLInputElement>('.ol-name-dialog input')!;
+  const box = link().querySelector<HTMLInputElement>('input.ol-label-in')!;
+  expect(document.activeElement).toBe(box);
   box.value = 'feeds';
-  box.dispatchEvent(new Event('input', { bubbles: true }));
-  el.querySelector<HTMLButtonElement>('.ol-name-done')!.click();
-  await until(() => !el.querySelector('.ol-name-dialog dialog[open]'));
+  box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await el.updateComplete;
   expect(last()!.split('\n').at(-2)).toBe('~ Pricing -> Marketing: feeds');
   expect(link().querySelector('.ol-label')!.textContent).toBe('feeds');
   // Renaming an item carries its joins with it.

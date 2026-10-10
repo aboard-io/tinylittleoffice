@@ -8,7 +8,7 @@
  * Shift+click and a drag stretch a range, which Delete clears and the clipboard carries as tab-separated
  * text with our table HTML; the handle at its corner fills; a tap on a cell while a formula wants a value
  * puts in its reference. A column's head and a row's number choose the column or the row and open what can
- * be done to it (put one in, take it out, name it), the + puts a column in at the end; a row is never added
+ * be done to it (put one in, take it out, name it: its name typed where it is shown, in the head), the + puts a column in at the end; a row is never added
  * by a key alone. The handle in the corner takes the table itself in hand (moved, copied, taken out).
  *
  * Every change is an event the host turns into ops: wt-cell (r, c, raw), wt-do (a command, and the cell to
@@ -30,7 +30,7 @@ import '../../kit/menu.ts';
 export const TABLE_TAG = 'to-write-table';
 
 /** What the grid asks its host to do; `focus` is the cell to be in afterwards (and `end` the range's far corner). */
-export type TableCmd = ({ cmd: 'put'; cells: Cells } | { cmd: 'rowsIn'; r: number; n: number } | { cmd: 'rowsOut'; r0: number; r1: number } | { cmd: 'colIn'; c: number } | { cmd: 'colOut'; c: number } | { cmd: 'rename'; c: number }) & { focus?: [number, number]; end?: [number, number] | null };
+export type TableCmd = ({ cmd: 'put'; cells: Cells } | { cmd: 'rowsIn'; r: number; n: number } | { cmd: 'rowsOut'; r0: number; r1: number } | { cmd: 'colIn'; c: number } | { cmd: 'colOut'; c: number } | { cmd: 'rename'; c: number; name: string }) & { focus?: [number, number]; end?: [number, number] | null };
 
 /** A reference fits wherever the formula is waiting for a value. */
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
@@ -51,7 +51,7 @@ function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {
 }
 
 export class ToWriteTable extends LitElement {
-  static properties = { view: { attribute: false }, currency: {}, commands: { type: Boolean }, focused: { state: true }, end: { state: true }, fillTo: { state: true }, menuRow: { state: true }, menuCol: { state: true } };
+  static properties = { view: { attribute: false }, currency: {}, commands: { type: Boolean }, focused: { state: true }, end: { state: true }, fillTo: { state: true }, menuRow: { state: true }, menuCol: { state: true }, naming: { state: true } };
   declare view: SheetView | null;
   declare currency: string;
   /** The host answers wt-do: the heads open menus, the corner holds the table's handle, the + adds a column. */
@@ -64,6 +64,8 @@ export class ToWriteTable extends LitElement {
   declare fillTo: Range | null;
   declare menuRow: number;
   declare menuCol: number;
+  /** The column whose name is being typed in its head, or -1. */
+  declare naming: number;
   /** The cell the range is anchored at (the last focused, kept while a menu has the focus). */
   private anchor: [number, number] = [0, 0];
   /** What the cell held when it took the focus, for Escape. */
@@ -84,6 +86,7 @@ export class ToWriteTable extends LitElement {
     this.fillTo = null;
     this.menuRow = 0;
     this.menuCol = 0;
+    this.naming = -1;
   }
   createRenderRoot() {
     return this;
@@ -374,11 +377,31 @@ export class ToWriteTable extends LitElement {
     const n = this.cols.length;
     const r = this.anchor[0];
     return [
-      { label: t('Name this column…'), icon: Pencil, does: () => this.do({ cmd: 'rename', c, focus: [r, c] }) },
+      { label: t('Name this column'), icon: Pencil, does: () => this.nameColumn(c) },
       { label: t('Add a column before'), icon: ArrowLeft, disabled: n >= MAX_COLS, does: () => this.do({ cmd: 'colIn', c, focus: [r, c] }) },
       { label: t('Add a column after'), icon: ArrowRight, disabled: n >= MAX_COLS, does: () => this.do({ cmd: 'colIn', c: c + 1, focus: [r, c + 1] }) },
       { label: t('Remove this column'), icon: Trash2, disabled: n < 2, does: () => this.do({ cmd: 'colOut', c, focus: [r, Math.max(0, c - 1)] }) },
     ];
+  }
+
+  /**
+   * The column's name typed where it is shown: its head becomes a field, drawn and focused at once, in the menu's
+   * own handler (iOS raises its keyboard only so). Enter or a tap elsewhere keeps it; Escape leaves the name be.
+   */
+  private nameColumn(c: number) {
+    this.naming = c;
+    this.performUpdate();
+    const box = this.querySelector<HTMLInputElement>('input.wt-cn');
+    box?.focus({ preventScroll: true });
+    box?.select();
+  }
+  private named(keep: boolean, value: string) {
+    const c = this.naming;
+    if (c < 0) return;
+    this.naming = -1;
+    const r = this.anchor[0];
+    if (keep) this.do({ cmd: 'rename', c, name: value.replace(/\s+/g, ' ').trim(), focus: [r, c] });
+    else void this.focusCell(r, c);
   }
 
   /* ---------- drawing ---------- */
@@ -447,7 +470,16 @@ export class ToWriteTable extends LitElement {
       </td>
       ${cols.map(
         (col, c) => html`<th scope="col" class=${isLetterName(col.name) ? 'letter' : ''}>
-          <button type="button" class="wt-col" aria-haspopup="menu" aria-expanded="false" aria-label=${t('Column {c}: choose it, add or remove a column', { c: name(col, c) })} @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>${name(col, c)}</button>
+          ${this.naming === c
+            ? html`<input class="wt-cn" aria-label=${t('Name of column {c}', { c: COL_NAMES[c] })} placeholder=${COL_NAMES[c]} .value=${isLetterName(col.name) ? '' : col.name} autocomplete="off" spellcheck="false"
+                @keydown=${(e: KeyboardEvent) => {
+                  e.stopPropagation();
+                  if (e.isComposing || (e.key !== 'Enter' && e.key !== 'Escape')) return;
+                  e.preventDefault();
+                  this.named(e.key === 'Enter', (e.target as HTMLInputElement).value);
+                }}
+                @blur=${(e: FocusEvent) => this.named(true, (e.target as HTMLInputElement).value)} />`
+            : html`<button type="button" class="wt-col" aria-haspopup="menu" aria-expanded="false" aria-label=${t('Column {c}: choose it, add or remove a column', { c: name(col, c) })} @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>${name(col, c)}</button>`}
         </th>`,
       )}
       <td class="wt-add">

@@ -26,7 +26,7 @@ import { TILE_INKS, TILE_SIDES, tileCss, tileFilled, tilePattern, tileRef } from
 import { applyAll, runLength, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { caret, insertRuns } from '../../kit/textops.ts';
-import { COLORS, GRID, H, TEXT_PX, W, addShape, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLine, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paint, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
+import { COLORS, GRID, H, TEXT_PX, W, addShape, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, wordsOver, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
 import { TILE_SIDE, arrowDefs, shapeSvg, turnOf, type Theme } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -140,12 +140,6 @@ const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: c
 
 /** The last shapes copied here, so a paste in this page finds them when the system clipboard is refused. */
 let copied: { text: string; html: string } | null = null;
-
-/** The room for words across a shape, in canvas units, as the view wraps them (less in a round or pointed shape). */
-function wordsRoom(s: Shape): number {
-  const inside = s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
-  return Math.max(24, Math.abs(s.w) * inside - 16);
-}
 
 /** A shape of the default size, for a tap or an Insert. */
 function sized(s: Shape): Shape {
@@ -747,35 +741,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const stage = svg?.parentElement;
     if (!el || !s || !svg || !stage) return;
     const r = svg.getBoundingClientRect();
-    const k = r.width / W;
     const sr = stage.getBoundingClientRect();
-    const px = TEXT_PX[s.z ?? 2] * k;
-    const font = Math.max(16, px);
-    const shrink = px / font;
-    const left = s.k === 't';
-    let [cx, cy] = [s.x + s.w / 2, s.y + s.h / 2];
-    let room = wordsRoom(s);
-    if (isLine(s.k) || s.k === 'w') {
-      const [x, y, w, h] = bounds(s, this.shapes);
-      [cx, cy] = [x + w / 2, y + h / 2];
-      room = 48;
-    } else if (s.k === 'c') cy += Math.min(s.h * 0.16, 12) / 2;
-    else if (left) [cx, room] = [s.x + 4, Math.max(24, s.w - 8)];
-    // A turned shape's words turn with it, about the shape's centre.
-    const turn = s.rot && canTurn(s.k) ? s.rot : 0;
-    const [ox, oy] = turn ? [s.x + s.w / 2 - cx, s.y + s.h / 2 - cy] : [0, 0];
-    const fixed = !left && !isLine(s.k) && s.k !== 'w';
-    const st = el.style;
-    st.left = `${r.left - sr.left + cx * k}px`;
-    st.top = `${r.top - sr.top + cy * k}px`;
-    st.fontSize = `${font}px`;
-    const about = turn ? `translate(${ox * k}px, ${oy * k}px) rotate(${turn}deg) translate(${-ox * k}px, ${-oy * k}px) ` : '';
-    st.transform = `${about}scale(${shrink}) translate(${left ? '0' : '-50%'}, -50%)`;
-    st.minWidth = `${(room * k) / shrink}px`;
-    st.maxWidth = fixed ? st.minWidth : '';
-    st.color = paint(s, THEME.ink, THEME.paper, THEME.shade).text;
-    el.classList.toggle('left', left);
-    el.classList.toggle('wrap', fixed);
+    const w = wordsOver(s, this.shapes, r.width / W, r.left - sr.left, r.top - sr.top, THEME);
+    Object.assign(el.style, w.style);
+    el.classList.toggle('left', w.left);
+    el.classList.toggle('wrap', w.wrap);
   }
   /** The editor's words as the label writes them: lines joined by " | ", the marks as inline Markdown, the icon put back in front. */
   private wordsText(): string {

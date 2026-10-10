@@ -1,11 +1,12 @@
 /**
  * Diagram on the built site, at desktop size in Chromium and at iPhone size in WebKit: a tap on the empty picture
- * opens a line to type the first idea, typing puts it in the link and on the picture, Enter types a branch; the bar
+ * makes the first idea, its words typed on it, typing puts it in the link and on the picture, Enter makes a branch; the bar
  * is one row, nothing is wider than the screen, axe finds nothing. Run on its own:
  *
  *   PW_PORT=4192 npx playwright test e2e/diagram.spec.ts --workers=1
  *
- * And on a phone, by finger: the context bar under the words of a thing tapped, 44px, inside the screen, its
+ * And on a phone, by finger: the words of a thing tapped focused at once (the keyboard's path) and laid on the thing, the
+ * context bar under them, 44px, inside the screen, its
  * Duplicate, Copy and Paste; no selection bubble; a tap elsewhere closes the words.
  */
 import { test, expect } from '@playwright/test';
@@ -25,7 +26,7 @@ test('diagram: the first idea and a branch typed on the picture', async ({ page 
     });
   expect(await measure()).toEqual({ rows: 1, wide: 0 });
   await wrap.click({ position: { x: 40, y: 40 } });
-  const line = page.locator('.dg-pop to-text .tx');
+  const line = page.locator('to-text.dg-words .tx');
   await expect(line).toBeVisible();
   await line.pressSequentially('Launch');
   await expect(page).toHaveURL(/#\/v1\/diagram\/[ryz]/);
@@ -34,7 +35,7 @@ test('diagram: the first idea and a branch typed on the picture', async ({ page 
   await line.pressSequentially('Pricing');
   await expect(page.locator('.dg-pic g.dg-thing[aria-label="Pricing"]')).toHaveCount(1);
   await line.press('Escape');
-  await expect(page.locator('.dg-pop')).toBeHidden();
+  await expect(page.locator('to-text.dg-words')).toBeHidden();
   expect((await measure()).wide).toBeLessThanOrEqual(0);
   expect((await new AxeBuilder({ page }).disableRules(['meta-viewport']).analyze()).violations).toEqual([]);
   expect(errors).toEqual([]);
@@ -46,14 +47,20 @@ test('diagram: on a phone, a tap on a thing opens its words with the context bar
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/diagram');
   await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
-  const line = page.locator('.dg-pop to-text .tx');
+  const line = page.locator('to-text.dg-words .tx');
   await line.pressSequentially('Launch');
   await line.press('Enter');
   await line.pressSequentially('Pricing');
   // A tap elsewhere keeps the words and closes them.
   await page.locator('.dg-hint').tap();
-  await expect(page.locator('.dg-pop')).toBeHidden();
-  await page.locator('.dg-pic g.dg-thing[aria-label="Pricing"]').tap();
+  await expect(page.locator('to-text.dg-words')).toBeHidden();
+  const pricing = page.locator('.dg-pic g.dg-thing[aria-label="Pricing"]');
+  await pricing.tap();
+  // The tap focused the words (WebKit shows no keyboard, but the focus is what raises it), on the thing itself.
+  await expect(line).toBeFocused();
+  const [w, g] = [(await page.locator('to-text.dg-words').boundingBox())!, (await pricing.boundingBox())!];
+  expect(Math.abs(w.y + w.height / 2 - (g.y + g.height / 2))).toBeLessThan(g.height / 2);
+  expect(Math.abs(w.x + w.width / 2 - (g.x + g.width / 2))).toBeLessThan(g.width / 2);
   const bar = page.locator('to-context.dg-context .to-context');
   await expect(bar).toBeVisible();
   const b = (await bar.boundingBox())!;
@@ -81,14 +88,14 @@ test('diagram: on a phone, Join in the bar joins the thing open to the next one 
   await page.locator('.dg-kind > button').tap();
   await page.locator('[popover]:popover-open [role^=menuitem]').getByText('Network').tap();
   await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
-  const line = page.locator('.dg-pop to-text .tx');
+  const line = page.locator('to-text.dg-words .tx');
   await expect(line).toBeFocused();
   await line.pressSequentially('Web');
   await line.press('Enter');
   await expect(line).toBeFocused();
   await line.pressSequentially('API');
   await page.locator('.dg-hint').tap();
-  await expect(page.locator('.dg-pop')).toBeHidden();
+  await expect(page.locator('to-text.dg-words')).toBeHidden();
   await page.locator('.dg-pic g.dg-thing[aria-label="Web"]').tap();
   const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
   const r = (await join.boundingBox())!;
@@ -108,14 +115,14 @@ test('diagram: on a phone, a mind map joins two ideas across the tree, and a fin
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/diagram');
   await page.locator('to-diagram-editor .dg-wrap').tap({ position: { x: 40, y: 40 } });
-  const line = page.locator('.dg-pop to-text .tx');
+  const line = page.locator('to-text.dg-words .tx');
   await expect(line).toBeFocused();
   for (const [i, w] of ['Root', 'Left', 'Right'].entries()) {
     if (i) await line.press('Enter');
     await line.pressSequentially(w);
   }
   await page.locator('.dg-hint').tap();
-  await expect(page.locator('.dg-pop')).toBeHidden();
+  await expect(page.locator('to-text.dg-words')).toBeHidden();
   await page.locator('.dg-pic g.dg-thing[aria-label="Left"]').tap();
   const join = page.locator('to-diagram-editor to-bar').getByRole('button', { name: 'Join' });
   await join.tap();

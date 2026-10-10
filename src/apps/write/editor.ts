@@ -374,11 +374,7 @@ export class ToWriteEditor extends DocElement<Doc> {
     else if (cmd.cmd === 'colIn') ops = tableColIn(this.doc, at, cmd.c);
     else if (cmd.cmd === 'colOut') ops = tableColOut(this.doc, at, cmd.c);
     else if (cmd.cmd === 'rename') {
-      const b = this.doc.blocks[at];
-      const now = b?.k === 'table' ? b.cols[cmd.c]?.name ?? '' : '';
-      const name = await this.ask(t('Name this column…'), t('Name'), '', /^Col[A-Z]$/.test(now) ? '' : now, 'text');
-      if (name === null) return void (cmd.focus && this.focusCell(at, ...cmd.focus));
-      ops = tableRename(this.doc, at, cmd.c, name);
+      ops = tableRename(this.doc, at, cmd.c, cmd.name);
     }
     const f = cmd.focus;
     const sel = this.text?.sel ?? null;

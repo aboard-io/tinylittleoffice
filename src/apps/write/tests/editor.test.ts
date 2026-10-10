@@ -491,13 +491,22 @@ test('§4 a column\'s head and a row\'s number open their menus; the + adds a co
   await until(() => last() === 'A | B | ColC\n--- | --- | ---\n1 | 2 |\n3 | 4 |\n');
   await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-num')[0], 'Delete row 1');
   await until(() => last() === 'A | B | ColC\n--- | --- | ---\n3 | 4 |\n');
-  // A column named from its menu (the dialog asks).
+  // A column named from its menu: typed in its head, where the name is shown, focused at once; no dialog.
   await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[2], 'Name this column');
-  await until(() => !!el.querySelector<HTMLInputElement>('.write-ask-form input'));
-  const field = el.querySelector<HTMLInputElement>('.write-ask-form input')!;
+  const field = el.querySelector<HTMLInputElement>('to-write-table th input.wt-cn')!;
+  expect(document.activeElement).toBe(field);
+  expect(el.querySelector('to-dialog.write-ask dialog[open]')).toBeNull();
   field.value = 'Notes';
-  el.querySelector<HTMLFormElement>('.write-ask-form')!.requestSubmit();
+  field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   await until(() => last() === 'A | B | Notes\n--- | --- | ---\n3 | 4 |\n');
+  await until(() => !el.querySelector('input.wt-cn'));
+  // Escape leaves the name be.
+  await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[0], 'Name this column');
+  const again = el.querySelector<HTMLInputElement>('input.wt-cn')!;
+  again.value = 'Gone';
+  again.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await until(() => !el.querySelector('input.wt-cn'));
+  expect(last()).toBe('A | B | Notes\n--- | --- | ---\n3 | 4 |\n');
 });
 
 test('§4 the fill handle carries a cell down; a tap on a cell while a formula waits puts in its reference', async () => {

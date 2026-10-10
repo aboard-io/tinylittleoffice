@@ -74,7 +74,7 @@ type Ends = { from: string; to: string; dir: Dir; label?: string; edge: boolean 
 const ft = (e: Ends) => ({ from: e.from, to: e.to });
 
 export class ToOutlineEditor extends DocElement<OutlineView> {
-  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, menuFor: { state: true }, naming: { state: true }, nameDraft: { state: true }, showing: { state: true } };
+  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, menuFor: { state: true }, naming: { state: true }, showing: { state: true } };
   /** Items folded shut, by block index. */
   declare folded: Set<number>;
   /** The item zoomed in on, by block index; -1 for the whole outline. */
@@ -87,7 +87,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   declare menuFor: number;
   /** The block whose line is being named, and the name so far; -1 when the dialog is closed. */
   declare naming: number;
-  declare nameDraft: string;
   /** The outline shown as a page, in a dialog. */
   declare showing: boolean;
   /** The row editor last focused: what the bar's text tools act on. */
@@ -127,7 +126,6 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.connecting = null;
     this.menuFor = -1;
     this.naming = -1;
-    this.nameDraft = '';
     this.showing = false;
   }
   protected read(doc: Doc) {
@@ -532,23 +530,30 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const i = indexAt(this.view, at);
     return [
       ...kinds.map(([dir, label]) => ({ group: said, label, icon: DIR_ICON[dir] ?? Minus, checked: ends.dir === dir, does: () => this.setDir(at, dir) })),
-      { label: t('Name the line…'), icon: UI.pen, hint: ends.label, does: () => this.openNaming(at) },
+      { label: t('Name the line'), icon: UI.pen, hint: ends.label, does: () => this.openNaming(at) },
       ...(i >= 0 && hasChildren(this.items, i) ? [{ label: t('Zoom in'), icon: ZoomIn, does: () => this.zoomTo(at) }] : []),
       ...(ends.edge ? [{ label: t('Take the connection away'), icon: UI.trash, does: () => this.edit(unlink(this.doc, at)) }] : []),
     ];
   }
+  /**
+   * The line's name typed where it is shown: its chip becomes a field (one comes where there was none), drawn and
+   * focused at once, in the menu's or the tap's own handler (iOS raises its keyboard only so). Enter or a tap
+   * elsewhere keeps it, emptied takes the name away; Escape leaves it be.
+   */
   private openNaming(at: number) {
     this.naming = at;
-    this.nameDraft = this.endsOf(at)?.label ?? '';
-    void this.updateComplete.then(() => this.querySelector<ToDialog>('.ol-name-dialog')?.show().then(() => this.querySelector<HTMLInputElement>('.ol-name-dialog input')?.focus()));
+    this.performUpdate();
+    const box = this.querySelector<HTMLInputElement>('input.ol-label-in');
+    box?.focus({ preventScroll: true });
+    box?.select();
   }
-  private saveName() {
+  private saveName(keep: boolean, value: string) {
     const at = this.naming;
     if (at < 0) return;
+    this.naming = -1;
     const b = this.doc.blocks[at];
-    const label = this.nameDraft.trim();
-    this.edit(b?.k === 'edge' ? setLink(this.doc, at, { label }) : setLine(this.doc, this.view, at, { label }));
-    this.querySelector<ToDialog>('.ol-name-dialog')?.close();
+    const label = value.replace(/\s+/g, ' ').trim();
+    if (keep && label !== (this.endsOf(at)?.label ?? '')) this.edit(b?.k === 'edge' ? setLink(this.doc, at, { label }) : setLine(this.doc, this.view, at, { label }));
   }
   /** Connect: start from the chosen item, or pick one first; everything else goes grey until the other end is tapped. */
   private connect() {
@@ -772,8 +777,17 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const label = `${ends.edge ? t('Connection from {from} to {to}', ft(ends)) : t('Line from {from} to {to}', ft(ends))}: ${DIR_NAME[ends.dir]()}${ends.label ? t(', named “{label}”', { label: ends.label }) : ''}. ${t('Change it')}`;
     return html`<button type="button" class="ol-kind" data-dir=${ends.dir} aria-label=${label} title=${label} aria-haspopup="menu" aria-expanded=${this.menuFor === at ? 'true' : 'false'} @mousedown=${(e: Event) => e.preventDefault()} @click=${(e: MouseEvent) => (e.shiftKey && this.itemAt(at) ? this.rows.choose(at, true) : void this.openLineMenu(at, e.currentTarget as HTMLElement))}>${n ? html`<b class="ol-n">${n}.</b>` : glyph ? icon(glyph, 14) : html`<span></span>`}</button>`;
   }
-  /** A line's name, as a chip before the words; tapped, it opens the name dialog. */
+  /** A line's name, as a chip before the words; tapped, its name is typed there. */
   private chip(at: number, label?: string) {
+    if (this.naming === at)
+      return html`<input class="ol-label ol-label-in" aria-label=${t('Name of the line')} placeholder=${t('e.g. owns, feeds, reports to')} .value=${label ?? ''} autocomplete="off" spellcheck="false"
+        @keydown=${(e: KeyboardEvent) => {
+          e.stopPropagation();
+          if (e.isComposing || (e.key !== 'Enter' && e.key !== 'Escape')) return;
+          e.preventDefault();
+          this.saveName(e.key === 'Enter', (e.target as HTMLInputElement).value);
+        }}
+        @blur=${(e: FocusEvent) => this.saveName(true, (e.target as HTMLInputElement).value)} />`;
     return label ? html`<button type="button" class="ol-label" aria-label=${t('Line named “{label}”: change it', { label })} @click=${() => this.openNaming(at)}>${label}</button>` : nothing;
   }
   /** Another document under an item: its app and first line, a way to open it in its own app, and the way back (its link pasted over the card). */
@@ -894,20 +908,9 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${this.rows.renderContext()}
       <to-menu class="ol-line-menu" .label=${t('Kind of line')} .items=${this.lineItems()}></to-menu>
       ${this.renderNotes(items)}
-      ${this.renderNameDialog()}
       ${this.renderPageDialog()}`;
   }
 
-  private renderNameDialog() {
-    const ends = this.naming >= 0 ? this.endsOf(this.naming) : null;
-    return html`<to-dialog class="ol-name-dialog" heading=${t('Name of the line')} @to-close=${() => (this.naming = -1)} .body=${html`
-      <label class="ol-field"><span>${ends ? t('From {from} to {to}', ft(ends)) : nothing}</span>
-        <input type="text" .value=${this.nameDraft} placeholder=${t('e.g. owns, feeds, reports to')} autocomplete="off" @input=${(e: Event) => (this.nameDraft = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.saveName())} />
-      </label>
-      <div class="to-row">
-        <button type="button" class="to-btn primary ol-name-done" @click=${() => this.saveName()}>${icon(UI.check, 16)}<span>${t('Done')}</span></button>
-      </div>`}></to-dialog>`;
-  }
   /** The footnotes, under the outline, numbered as their marks are (as a slide's are at its foot). */
   private renderNotes(items: Item[]) {
     const notes = items.flatMap((it) => it.runs.filter((r) => r.fn !== undefined).map((r) => r.fn!));
