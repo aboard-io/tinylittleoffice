@@ -57,7 +57,16 @@ import { origin } from './network.ts';
 export const THREAT_MODEL = `${origin('github')}/ftrain/tinyoffice/blob/main/docs/threat-model.md`;
 
 export class ToDrawer extends LitElement {
-  static properties = { find: { state: true }, open: { state: true }, version: { state: true }, templatesOf: { state: true }, downloads: { attribute: false }, def: { attribute: false }, page: { attribute: false }, commands: { attribute: false } };
+  static properties = {
+    find: { state: true },
+    open: { state: true },
+    version: { state: true },
+    templatesOf: { state: true },
+    downloads: { attribute: false },
+    def: { attribute: false },
+    page: { attribute: false },
+    commands: { attribute: false },
+  };
   /** The open document's formats, for its Download; null on the home page (and no This document then). */
   declare downloads: MenuItem[] | null;
   /** What Share and Download act on: the shell. */
@@ -95,7 +104,14 @@ export class ToDrawer extends LitElement {
     window.addEventListener('hashchange', away);
     // The size row says the size as a pinch changes it (kit/pinch.ts), the drawer open or not.
     window.addEventListener('to-size', redraw);
-    this.offs = [onLanguage(redraw), onPrivacy(redraw), onOffline(redraw), onPictures(redraw), () => window.removeEventListener('hashchange', away), () => window.removeEventListener('to-size', redraw)];
+    this.offs = [
+      onLanguage(redraw),
+      onPrivacy(redraw),
+      onOffline(redraw),
+      onPictures(redraw),
+      () => window.removeEventListener('hashchange', away),
+      () => window.removeEventListener('to-size', redraw),
+    ];
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -131,7 +147,12 @@ export class ToDrawer extends LitElement {
 
   private async togglePrivate(e: Event) {
     const box = e.target as HTMLInputElement;
-    if (keeping() && !confirm(t('Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).'))) {
+    if (
+      keeping() &&
+      !confirm(
+        t('Save nothing on this device from now on? Your preferences, the offline copy, the list of your documents and your signing key are forgotten (the documents themselves live in their links).'),
+      )
+    ) {
       // The browser flipped the switch before the question was asked: Cancel puts it back.
       box.checked = true;
       this.requestUpdate();
@@ -162,10 +183,20 @@ export class ToDrawer extends LitElement {
     const docs = kept.filter((k) => has(k.title)).flatMap((k) => all.filter((a) => a.id === k.app).map((a) => ({ a, k })));
     if (!found.length && !templates.length && !docs.length) return html`<p class="to-hint">${t('Nothing by that name')}</p>`;
     const group = (heading: string, rows: TemplateResult[]) => (rows.length ? html`<h3 class="to-drawer-head3">${heading}</h3>${rows}` : nothing);
-    const row = (href: string, ico: Parameters<typeof icon>[0], name: string, sub = '', preview = false) => html`<a class="to-found" href=${href} @click=${() => this.close()}>${preview ? html`<to-preview hash=${href}></to-preview>` : icon(ico, 20)}<span class="to-found-words"><span>${name}</span>${sub ? html`<small>${sub}</small>` : nothing}</span></a>`;
-    return html`${group(t('Apps'), found.map((a) => row(routeHash(a.id), a.icon, a.name)))}
-      ${group(t('Templates'), templates.map(({ a, tpl }) => row(templateHash(a, tpl), a.icon, tpl.name, a.name)))}
-      ${group(t('Documents'), docs.map(({ a, k }) => row(k.hash, a.icon, k.title || t('Untitled'), a.name, true)))}`;
+    const row = (href: string, ico: Parameters<typeof icon>[0], name: string, sub = '', preview = false) =>
+      html`<a class="to-found" href=${href} @click=${() => this.close()}>${preview ? html`<to-preview hash=${href}></to-preview>` : icon(ico, 20)}<span class="to-found-words"><span>${name}</span>${sub ? html`<small>${sub}</small>` : nothing}</span></a>`;
+    return html`${group(
+      t('Apps'),
+      found.map((a) => row(routeHash(a.id), a.icon, a.name)),
+    )}
+      ${group(
+        t('Templates'),
+        templates.map(({ a, tpl }) => row(templateHash(a, tpl), a.icon, tpl.name, a.name)),
+      )}
+      ${group(
+        t('Documents'),
+        docs.map(({ a, k }) => row(k.hash, a.icon, k.title || t('Untitled'), a.name, true)),
+      )}`;
   }
 
   render() {
@@ -186,28 +217,33 @@ export class ToDrawer extends LitElement {
           </label>
           <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button>
         </header>
-        ${this.open && this.downloads
-          ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
+        ${
+          this.open && this.downloads
+            ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
               ${this.def ? html`<a class="to-btn to-drawer-new" href=${routeHash(this.def.id)} @click=${() => this.close()}>${icon(this.def.icon, 18)}<span>${t('New {noun}', { noun: this.def.noun })}</span></a>` : nothing}
               <button type="button" class="to-btn to-drawer-share" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
               <to-menu class="to-drawer-download" .label=${labelOf(DOWNLOAD)} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
               ${coarse() ? this.renderCommands() : nothing}
             </section>`
-          : nothing}
-        ${this.open
-          ? html`<nav class="to-drawer-apps" aria-label=${t('Apps')}>
+            : nothing
+        }
+        ${
+          this.open
+            ? html`<nav class="to-drawer-apps" aria-label=${t('Apps')}>
                 <input class="to-find" type="search" placeholder=${placeholder} aria-label=${placeholder} autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-drawer-apps a')?.click())} />
-                                ${want
-                  ? this.renderFound(want, kept)
-                  : !this.downloads
-                    ? nothing
-                    : apps().map(
-                        (a) => html`<div class="to-app-head">
+                                ${
+                                  want
+                                    ? this.renderFound(want, kept)
+                                    : !this.downloads
+                                      ? nothing
+                                      : apps().map(
+                                          (a) => html`<div class="to-app-head">
                         <a class="to-app-open" href=${routeHash(a.id)} @click=${() => this.close()}>${icon(a.icon, 20)}<span>${a.name}</span></a>
                         <to-templates .app=${a} .via=${(app: AppDef) => this.handOver(() => this.templates(app))}></to-templates>
                       </div>`,
-                    )}
+                                        )
+                                }
               </nav>
               <section class="to-drawer-section to-drawer-files">
                 <button type="button" class="to-btn to-drawer-open" @click=${() => this.querySelector<HTMLInputElement>('.to-open-input')?.click()}>${icon(UI.openFile, 18)}<span>${t('Open a file…')}</span></button>
@@ -223,16 +259,21 @@ export class ToDrawer extends LitElement {
                   <input type="checkbox" role="switch" .checked=${offline.on} ?disabled=${offline.status === 'saving'} @change=${(e: Event) => void setOffline((e.target as HTMLInputElement).checked)} />
                   <span class="to-switch-words"><b>${t('Keep the app on this device')}</b><small>${offline.line}</small></span>
                 </label>
-                ${keeping()
-                  ? html`<label class="to-switch to-pictures-switch">
+                ${
+                  keeping()
+                    ? html`<label class="to-switch to-pictures-switch">
                       <input type="checkbox" role="switch" .checked=${alwaysPictures()} @change=${(e: Event) => setAlwaysPictures((e.target as HTMLInputElement).checked)} />
                       <span class="to-switch-words"><b>${t('Always show pictures from the web')}</b><small>${t('Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.')}</small></span>
                     </label>`
-                  : nothing}
+                    : nothing
+                }
               </section>
               <section class="to-drawer-section to-drawer-prefs">
                 <label class="to-field">${icon(theme() === 'dark' ? UI.moon : theme() === 'light' ? UI.sun : UI.auto, 18)}<span>${t('Theme')}</span>
-                  <select @change=${(e: Event) => { setTheme((e.target as HTMLSelectElement).value as Theme); this.requestUpdate(); }}>
+                  <select @change=${(e: Event) => {
+                    setTheme((e.target as HTMLSelectElement).value as Theme);
+                    this.requestUpdate();
+                  }}>
                     ${THEMES.map((th) => html`<option value=${th} ?selected=${th === theme()}>${themeName(th)}</option>`)}
                   </select>
                 </label>
@@ -245,21 +286,26 @@ export class ToDrawer extends LitElement {
                   </span>
                 </div>
                 <button type="button" class="to-btn to-drawer-keys" @click=${() => this.handOver(() => this.dispatchEvent(new CustomEvent('to-keys', { bubbles: true })))}>${icon(UI.keys, 18)}<span>${t('Keyboard shortcuts')}</span></button>
-                ${canInstall()
-                  ? html`<button type="button" class="to-btn to-install" @click=${() => void install()}>${icon(UI.download, 18)}<span>${t('Add to home screen')}</span></button>`
-                  : installByHand()
-                    ? html`<p class="to-hint to-install-how">${t('To add Tiny Little Office to the home screen: Share, then Add to Home Screen.')}</p>`
-                    : nothing}
+                ${
+                  canInstall()
+                    ? html`<button type="button" class="to-btn to-install" @click=${() => void install()}>${icon(UI.download, 18)}<span>${t('Add to home screen')}</span></button>`
+                    : installByHand()
+                      ? html`<p class="to-hint to-install-how">${t('To add Tiny Little Office to the home screen: Share, then Add to Home Screen.')}</p>`
+                      : nothing
+                }
                 <button type="button" class="to-btn to-drawer-about" @click=${() => this.handOver(() => this.about())}>${icon(UI.info, 18)}<span>${t('About')}</span></button>
               </section>`
-          : nothing}
+            : nothing
+        }
       </div>
     </dialog>
     <to-privacy></to-privacy>
     ${this.templatesOf ? html`<to-templates class="to-drawer-templates" bare .app=${this.templatesOf}></to-templates>` : nothing}
-    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>${this.version
-      ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
-      : nothing}`}></to-dialog>`;
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p><p class="to-hint"><a class="to-about-threats" href=${THREAT_MODEL}>${t('What this protects against, and what it does not')}</a></p>${
+      this.version
+        ? html`<p class="to-hint to-about-version"><a href=${commitUrl(this.version.commit)} target="_blank" rel="noopener">${t('Running commit {commit}', { commit: this.version.commit.slice(0, 7) })}</a>${this.version.tag ? ` (${this.version.tag})` : ''}</p>`
+        : nothing
+    }`}></to-dialog>`;
   }
 
   /** Under a finger, the app's own commands that need nothing in hand (Present, Look, Play, the views), under its name: a row each, a menu as a menu. */

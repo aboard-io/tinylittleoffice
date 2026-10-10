@@ -10,7 +10,12 @@ import type { Template } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
 import { column, write, type Block, type Doc } from '../../doc/index.ts';
 
-const table = (head: string[], rows: string[][], big?: string): Block => ({ k: 'table', cols: head.map(column), rows: rows.map((r) => head.map((_, c) => r[c] ?? '')), ...(big ? { a: { kv: { big } } } : {}) });
+const table = (head: string[], rows: string[][], big?: string): Block => ({
+  k: 'table',
+  cols: head.map(column),
+  rows: rows.map((r) => head.map((_, c) => r[c] ?? '')),
+  ...(big ? { a: { kv: { big } } } : {}),
+});
 const doc = (head: Doc['head'], block: Block): string => write({ head, blocks: [block] });
 /** A sheet with a title, and a chart, a lock and a headline where it asks for them. */
 const sheet = (head: Doc['head'], cols: string[], rows: string[][], big?: string) => doc(head, table(cols, rows, big));
@@ -488,7 +493,18 @@ export const templates = (): Template[] => [
           ['First Harbor Bank, 15-year fixed', '20%', '5.375%', '15', '610'],
           ['Lakeshore, 30-year with 10% down', '10%', '6.25%', '30', '790'],
           ['Pinewood Mortgage, 30-year, a point paid', '20%', '5.875%', '30', '610'],
-        ].map(([offer, down, rate, years, tax]) => (n: number) => [offer, '420000', down, `=B${n}*(1-C${n})`, rate, years, `=PMT(E${n}/12, F${n}*12, -D${n})`, tax, `=G${n}+H${n}`, `=G${n}*F${n}*12-D${n}`]),
+        ].map(([offer, down, rate, years, tax]) => (n: number) => [
+          offer,
+          '420000',
+          down,
+          `=B${n}*(1-C${n})`,
+          rate,
+          years,
+          `=PMT(E${n}/12, F${n}*12, -D${n})`,
+          tax,
+          `=G${n}+H${n}`,
+          `=G${n}*F${n}*12-D${n}`,
+        ]),
       ),
     ),
   },

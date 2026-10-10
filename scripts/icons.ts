@@ -42,9 +42,19 @@ async function main() {
   const preview = process.argv.indexOf('--preview');
   if (preview > 0) {
     const big = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">${marked(INK, 512)}</svg>`;
-    const tiny = await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">${marked(INK, 16)}</svg>`)).flatten({ background: PAPER }).resize(192, 192, { kernel: 'nearest' }).png().toBuffer();
+    const tiny = await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">${marked(INK, 16)}</svg>`))
+      .flatten({ background: PAPER })
+      .resize(192, 192, { kernel: 'nearest' })
+      .png()
+      .toBuffer();
     const bigPng = await sharp(Buffer.from(big)).flatten({ background: PAPER }).png().toBuffer();
-    await sharp({ create: { width: 760, height: 520, channels: 3, background: PAPER } }).composite([{ input: bigPng, left: 0, top: 0 }, { input: tiny, left: 548, top: 160 }]).png().toFile(process.argv[preview + 1]);
+    await sharp({ create: { width: 760, height: 520, channels: 3, background: PAPER } })
+      .composite([
+        { input: bigPng, left: 0, top: 0 },
+        { input: tiny, left: 548, top: 160 },
+      ])
+      .png()
+      .toFile(process.argv[preview + 1]);
     return;
   }
   writeFileSync(pub('favicon.svg'), favicon);

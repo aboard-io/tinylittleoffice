@@ -259,7 +259,7 @@ test('an unknown app is the home page', async () => {
   expect(shell.querySelector('to-home')).not.toBeNull();
 });
 
-test('Mod+Z is the editor\'s only from the editor: typed in a dialog\'s field, the header\'s title or the note box, it leaves the document alone', async () => {
+test("Mod+Z is the editor's only from the editor: typed in a dialog's field, the header's title or the note box, it leaves the document alone", async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const text = shell.querySelector<ToText>('to-text')!;
@@ -377,7 +377,10 @@ test('home rows at 1100 and at 390: one column of full-width rows, the same shap
   saved(async () => {
     keep({ id: 'x', app: 'write', title: 'Kept here', hash: '#/v1/write/yx', at: Date.now() });
     const shapes: { lefts: number; widths: number[]; border: string; shadow: string }[] = [];
-    for (const [w, h] of [[1100, 800], [390, 844]] as const) {
+    for (const [w, h] of [
+      [1100, 800],
+      [390, 844],
+    ] as const) {
       await page.viewport(w, h);
       const shell = await mount('');
       await tick(50);

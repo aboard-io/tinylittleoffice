@@ -34,11 +34,23 @@ test('the plural categories a language has: fr three, ja one, ar six, pl four', 
 });
 
 test('the check: missing keys fail, extra keys warn, placeholders once, plural forms by the language, no sort-me heading', () => {
-  const base = { Menu: 'Menu', 'Share': 'Share', '{n} more': '{n} more', '{n|one slide|# slides}': '{n|one slide|# slides}', '·': '·', 'Pixel art, {n} by {n}': 'Pixel art, {n} by {n}' };
-  const good = { Menu: 'Menu', Share: 'Partager', '{n} more': '{n} de plus', '{n|one slide|# slides}': '{n|# diapositive|# de diapositives|# diapositives}', '·': '·', 'Pixel art, {n} by {n}': 'Pixel art, {n} sur {n}' };
+  const base = { Menu: 'Menu', Share: 'Share', '{n} more': '{n} more', '{n|one slide|# slides}': '{n|one slide|# slides}', '·': '·', 'Pixel art, {n} by {n}': 'Pixel art, {n} by {n}' };
+  const good = {
+    Menu: 'Menu',
+    Share: 'Partager',
+    '{n} more': '{n} de plus',
+    '{n|one slide|# slides}': '{n|# diapositive|# de diapositives|# diapositives}',
+    '·': '·',
+    'Pixel art, {n} by {n}': 'Pixel art, {n} sur {n}',
+  };
   expect(checkLanguage('fr', base, good, "export default {\n  'Menu': 'Menu', // same\n}")).toEqual({ errors: [], warnings: [] });
   const { Share: _, ...lacking } = good;
-  const bad = checkLanguage('fr', base, { ...lacking, Gone: 'Parti', '{n} more': '{n} de plus {n}', '{n|one slide|# slides}': '{n|une diapositive|des diapositives}', 'Pixel art, {n} by {n}': 'Pixel art, {n} sur {x}' }, '  // New — sort me into a section\n');
+  const bad = checkLanguage(
+    'fr',
+    base,
+    { ...lacking, Gone: 'Parti', '{n} more': '{n} de plus {n}', '{n|one slide|# slides}': '{n|une diapositive|des diapositives}', 'Pixel art, {n} by {n}': 'Pixel art, {n} sur {x}' },
+    '  // New — sort me into a section\n',
+  );
   expect(bad.errors.join('\n')).toContain('1 missing (English would show):\n    Share');
   expect(bad.errors.some((e) => e.startsWith('{n} 2 times in: {n} more'))).toBe(true);
   expect(bad.errors.some((e) => e.startsWith('{n|…} has 2 forms, fr has 3'))).toBe(true);
@@ -49,14 +61,21 @@ test('the check: missing keys fail, extra keys warn, placeholders once, plural f
   expect(bad.warnings.join('\n')).toContain('1 not in en.ts (remove them):\n    Gone');
   // A value left in English fails, unless its line says it is meant ("// same") or it has no letters of its own.
   const same = checkLanguage('de', base, { ...base, '{n|one slide|# slides}': '{n|eine Folie|# Folien}' });
-  expect(same.errors).toEqual(['4 the same as the English, not decided (translate it, or end its line with "// same" where the English is the word):\n    Menu\n    Share\n    {n} more\n    Pixel art, {n} by {n}']);
+  expect(same.errors).toEqual([
+    '4 the same as the English, not decided (translate it, or end its line with "// same" where the English is the word):\n    Menu\n    Share\n    {n} more\n    Pixel art, {n} by {n}',
+  ]);
   const decided = "  'Menu': 'Menu', // same\n  'Share': 'Share', // same\n  '{n} more': '{n} more', // same\n  'Pixel art, {n} by {n}': 'Pixel art, {n} by {n}',  // same\n";
   expect(checkLanguage('de', base, { ...base, '{n|one slide|# slides}': '{n|eine Folie|# Folien}' }, decided).errors).toEqual([]);
   // A mark on a line translated since is stale; a draft the memory offered and nobody read fails.
-  const stale = checkLanguage('de', base, { ...base, Share: 'Teilen', '{n} more': '{n} mehr', 'Pixel art, {n} by {n}': 'Pixelkunst, {n} mal {n}', '{n|one slide|# slides}': '{n|eine Folie|# Folien}' }, decided);
+  const stale = checkLanguage(
+    'de',
+    base,
+    { ...base, Share: 'Teilen', '{n} more': '{n} mehr', 'Pixel art, {n} by {n}': 'Pixelkunst, {n} mal {n}', '{n|one slide|# slides}': '{n|eine Folie|# Folien}' },
+    decided,
+  );
   expect(stale.errors).toEqual(['3 marked "// same" but translated (take the mark off):\n    Share → Teilen\n    {n} more → {n} mehr\n    Pixel art, {n} by {n} → Pixelkunst, {n} mal {n}']);
   const draft = checkLanguage('de', { Menu: 'Menu' }, { Menu: 'Menü' }, `  'Menu': 'Menü', // draft from "Menus"\n`);
-  expect(draft.errors).toEqual(['1 // draft from left in (read each, make it right for its new key, take the comment off):\n    \'Menu\': \'Menü\', // draft from "Menus"']);
+  expect(draft.errors).toEqual(["1 // draft from left in (read each, make it right for its new key, take the comment off):\n    'Menu': 'Menü', // draft from \"Menus\""]);
   expect(checkLanguage('ja', { '{n|one slide|# slides}': '' }, { '{n|one slide|# slides}': '{n|# 枚}' }).errors).toEqual([]);
   expect(checkLanguage('pt_BR', {}, {}).errors).toEqual(['"pt_BR" is not a BCP 47 tag']);
   expect(checkLanguage('pt-BR', {}, {}).errors).toEqual(['"pt-BR" is not a lowercase BCP 47 tag']);
@@ -79,9 +98,9 @@ test('the translation memory: a key changed by a few words is offered its old tr
   expect(nearest('Share the link', ['Share the links', 'Share a link'])).toBe('Share the links');
   // gaps: the draft under the new key, the old key named; a key with nothing alike in English.
   const en = { 'Copy this link': 'Copy this link', Undo: 'Undo' };
-  const fr = { 'Copy the link': 'Copier le lien', 'Redo': 'Rétablir' };
+  const fr = { 'Copy the link': 'Copier le lien', Redo: 'Rétablir' };
   expect(gaps(en, fr)).toEqual(["  'Copy this link': 'Copier le lien', // draft from \"Copy the link\"", "  'Undo': 'Undo',"]);
-  expect(gaps({ 'Say "hi"': '' }, { 'Say "hi" now': 'Dis « salut »' })).toEqual(["  'Say \"hi\"': 'Dis « salut »', // draft from \"Say \\\"hi\\\" now\""]);
+  expect(gaps({ 'Say "hi"': '' }, { 'Say "hi" now': 'Dis « salut »' })).toEqual(['  \'Say "hi"\': \'Dis « salut »\', // draft from "Say \\"hi\\" now"']);
   // The draft, pasted in, is what i18n:check stops on.
   expect(checkLanguage('fr', en, { ...fr, 'Copy this link': 'Copier le lien', Undo: 'Annuler' }, gaps(en, fr)[0]).errors.some((e) => e.includes('// draft from'))).toBe(true);
 });
@@ -118,7 +137,17 @@ test('in development, a key the language in use lacks is recorded, so a test can
 });
 
 // Names a language file must be called by in the menu: each in itself.
-const NAMES: Record<string, string> = { es: 'español', fr: 'français', de: 'Deutsch', 'pt-br': 'português (Brasil)', it: 'italiano', nl: 'Nederlands', ja: '日本語', 'zh-hans': '简体中文', ar: 'العربية' };
+const NAMES: Record<string, string> = {
+  es: 'español',
+  fr: 'français',
+  de: 'Deutsch',
+  'pt-br': 'português (Brasil)',
+  it: 'italiano',
+  nl: 'Nederlands',
+  ja: '日本語',
+  'zh-hans': '简体中文',
+  ar: 'العربية',
+};
 
 test('each language named in itself, not in English', () => {
   for (const [code, name] of Object.entries(NAMES)) expect(languageName(code), code).toBe(name);

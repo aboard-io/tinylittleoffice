@@ -4,7 +4,40 @@ import { createHash } from 'node:crypto';
 import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { blankTile, parseTile, tileCss, tilePattern, tileRef, tileSvg } from '../../../kit/tile.ts';
-import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape, shapesWithin, labelLines, labelText, labelPlain, alignOp, nextAlign, wordsOver } from '../model.ts';
+import {
+  addShape,
+  describeDrawing,
+  type Shape,
+  duplicate,
+  pasteShapes,
+  pickShapes,
+  shapesFromText,
+  shapesToTlo,
+  floodSquare,
+  paintSquare,
+  patchShape,
+  readDrawing,
+  removeShape,
+  removeShapes,
+  patchShapes,
+  restack,
+  restackShapes,
+  restackTo,
+  duplicateShapes,
+  setAlt,
+  setGrid,
+  setPixels,
+  setTile,
+  simplify,
+  strokeShape,
+  shapesWithin,
+  labelLines,
+  labelText,
+  labelPlain,
+  alignOp,
+  nextAlign,
+  wordsOver,
+} from '../model.ts';
 import { drawingPage, drawingToSvg, shapeSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def, { tileOfDoc } from '../def.ts';
@@ -18,7 +51,10 @@ const after = (text: string, ops: (doc: Doc) => Op[]) => {
   const doc = parse(text);
   return write(applyAll(doc, ops(doc)));
 };
-const kinds = (text: string) => readDrawing(parse(text)).shapes.map((s) => s.k).join('');
+const kinds = (text: string) =>
+  readDrawing(parse(text))
+    .shapes.map((s) => s.k)
+    .join('');
 
 test('read: shapes from the table, leniently; the alt; no grid', () => {
   const v = readDrawing(parse(DRAWING));
@@ -30,8 +66,13 @@ test('read: shapes from the table, leniently; the alt; no grid', () => {
   expect(v.grid).toBe(0);
   expect(v.tile).toBeNull();
   // Kinds by name, columns in any order, rows that are no shape skipped (and remembered by row number).
-  const loose = readDrawing(parse('Label | Kind | X | Y | W | H | Style\n--- | --- | --- | --- | --- | --- | ---\nA | rectangle | 1 | 1 | 4 | 4 | 2r3\nnothing | ? | | | | |\nB | arrow | 2 | 2 | 6 | 0 | 1\n'));
-  expect(loose.shapes.map((s) => [s.k, s.text])).toEqual([['r', 'A'], ['a', 'B']]);
+  const loose = readDrawing(
+    parse('Label | Kind | X | Y | W | H | Style\n--- | --- | --- | --- | --- | --- | ---\nA | rectangle | 1 | 1 | 4 | 4 | 2r3\nnothing | ? | | | | |\nB | arrow | 2 | 2 | 6 | 0 | 1\n'),
+  );
+  expect(loose.shapes.map((s) => [s.k, s.text])).toEqual([
+    ['r', 'A'],
+    ['a', 'B'],
+  ]);
   expect(loose.shapes[0]).toMatchObject({ f: 2, c: 'r', z: 3 });
   expect(loose.rows).toEqual([0, 2]);
   expect(readDrawing(parse('')).at).toBe(-1);
@@ -94,7 +135,15 @@ test('restack: a row leaves and arrives at the far end; the joins follow; duplic
 });
 
 test('the pen: a Points column comes with the first drawn shape and goes with the last', () => {
-  const stroke = strokeShape([[0, 0], [96, 0], [96, 96], [0, 96]], true)!;
+  const stroke = strokeShape(
+    [
+      [0, 0],
+      [96, 0],
+      [96, 96],
+      [0, 96],
+    ],
+    true,
+  )!;
   expect(stroke.k).toBe('v');
   expect(addShape(parse(DRAWING), stroke).map((o) => o.op)).toEqual(['cols', 'rows']);
   const drawn = after(DRAWING, (d) => addShape(d, stroke));
@@ -102,11 +151,41 @@ test('the pen: a Points column comes with the first drawn shape and goes with th
   expect(drawn).toContain('v | 0 | 0 | 12 | 12 | 1 |  | 0:0;100:0;100:100;0:100\n');
   expect(after(drawn, (d) => removeShape(d, 3))).toBe(DRAWING);
   // An open line that does not come back to its start is a stroke; one that does is closed.
-  expect(strokeShape([[0, 0], [50, 50], [100, 0]])!.k).toBe('w');
-  expect(strokeShape([[0, 0], [50, 50], [100, 0], [3, 2]])!.k).toBe('v');
+  expect(
+    strokeShape([
+      [0, 0],
+      [50, 50],
+      [100, 0],
+    ])!.k,
+  ).toBe('w');
+  expect(
+    strokeShape([
+      [0, 0],
+      [50, 50],
+      [100, 0],
+      [3, 2],
+    ])!.k,
+  ).toBe('v');
   expect(strokeShape([[1, 1]])).toBeNull();
-  expect(simplify([[0, 0], [1, 0.1], [2, 0], [3, 0.2], [10, 0]])).toEqual([[0, 0], [10, 0]]);
-  expect(simplify([[0, 0], [5, 10], [10, 0]])).toHaveLength(3);
+  expect(
+    simplify([
+      [0, 0],
+      [1, 0.1],
+      [2, 0],
+      [3, 0.2],
+      [10, 0],
+    ]),
+  ).toEqual([
+    [0, 0],
+    [10, 0],
+  ]);
+  expect(
+    simplify([
+      [0, 0],
+      [5, 10],
+      [10, 0],
+    ]),
+  ).toHaveLength(3);
 });
 
 test('alt, grid and tile are head ops; nothing when nothing changes', () => {
@@ -172,7 +251,9 @@ test('the tile: its field, its pattern, one tile as SVG and CSS', () => {
 
 test('describing a drawing from its shapes', () => {
   expect(describeDrawing(readDrawing(parse(DRAWING)).shapes)).toBe('A drawing of Browser, Server. Browser leads to Server (asks).');
-  expect(describeDrawing(readDrawing(parse('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 4 | 4 | 0 |\n')).shapes)).toBe('A drawing of one unlabelled shape.');
+  expect(describeDrawing(readDrawing(parse('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 4 | 4 | 0 |\n')).shapes)).toBe(
+    'A drawing of one unlabelled shape.',
+  );
   expect(describeDrawing([])).toBe('');
 });
 
@@ -230,7 +311,11 @@ test('the clipboard: shapes picked out as a drawing of their own, the joins amon
   const all = readDrawing(parse(DRAWING + 'r | 10 | 20 | 4 | 4 | 0 | Cache\nj | 1 | 3 | 0 | 0 | 0 |\n')).shapes;
   // Server, the cache and the line between them: the join from Browser goes, the line is numbered within the copy.
   const picked = pickShapes(all, [3, 4, 1, 2]);
-  expect(picked.map((s) => [s.k, s.x, s.y])).toEqual([['o', 256, 48], ['r', 80, 160], ['j', 0, 1]]);
+  expect(picked.map((s) => [s.k, s.x, s.y])).toEqual([
+    ['o', 256, 48],
+    ['r', 80, 160],
+    ['j', 0, 1],
+  ]);
   expect(pickShapes(all, [2])).toEqual([]);
   const tlo = shapesToTlo(picked);
   expect(tlo).toBe('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 32 | 6 | 16 | 8 | 1b | Server\nr | 10 | 20 | 4 | 4 | 0 | Cache\nj | 0 | 1 | 0 | 0 | 0 |\n');
@@ -247,7 +332,19 @@ test('the clipboard: shapes pasted as one rows op, a grid step down and right (f
   const doc = parse(DRAWING);
   const copy = shapesFromText(shapesToTlo(pickShapes(readDrawing(doc).shapes, [0, 1, 2])));
   const { ops, sel } = pasteShapes(doc, copy);
-  expect(ops).toEqual([{ op: 'rows', at: 0, r: 3, n: 3, rows: [['o', '5', '7', '16', '8', '1b', 'Browser'], ['o', '33', '7', '16', '8', '1b', 'Server'], ['k', '3', '4', '0', '0', '0', 'asks']] }]);
+  expect(ops).toEqual([
+    {
+      op: 'rows',
+      at: 0,
+      r: 3,
+      n: 3,
+      rows: [
+        ['o', '5', '7', '16', '8', '1b', 'Browser'],
+        ['o', '33', '7', '16', '8', '1b', 'Server'],
+        ['k', '3', '4', '0', '0', '0', 'asks'],
+      ],
+    },
+  ]);
   expect(sel).toBe(4);
   const once = applyAll(doc, ops);
   // A second paste of the same copy lands a step further on, so it shows.
@@ -266,14 +363,27 @@ test('a text shape draws " | " as a new line, like a note', () => {
   expect(svg).not.toContain('|');
 });
 
-const FOUR = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 4 | 4 | 0 | A\nr | 8 | 1 | 4 | 4 | 0 | B\nk | 0 | 1 | 0 | 0 | 0 |\nr | 16 | 1 | 4 | 4 | 0 | C\n';
-const labels = (text: string) => readDrawing(parse(text)).shapes.map((s) => (s.k === 'k' ? `${s.x}>${s.y}` : s.text)).join(' ');
+const FOUR =
+  'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 4 | 4 | 0 | A\nr | 8 | 1 | 4 | 4 | 0 | B\nk | 0 | 1 | 0 | 0 | 0 |\nr | 16 | 1 | 4 | 4 | 0 | C\n';
+const labels = (text: string) =>
+  readDrawing(parse(text))
+    .shapes.map((s) => (s.k === 'k' ? `${s.x}>${s.y}` : s.text))
+    .join(' ');
 
 test('several shapes at once: removed with their joins, patched each its own way', () => {
   expect(labels(after(FOUR, (d) => removeShapes(d, [0, 3])))).toBe('B');
   expect(labels(after(FOUR, (d) => removeShapes(d, [3])))).toBe('A B 0>1');
   expect(removeShapes(parse(FOUR), [9])).toEqual([]);
-  const moved = readDrawing(parse(after(FOUR, (d) => patchShapes(d, [[0, { x: 16 }], [3, { x: 200, text: 'D' }]])))).shapes;
+  const moved = readDrawing(
+    parse(
+      after(FOUR, (d) =>
+        patchShapes(d, [
+          [0, { x: 16 }],
+          [3, { x: 200, text: 'D' }],
+        ]),
+      ),
+    ),
+  ).shapes;
   expect([moved[0].x, moved[3].x, moved[3].text, moved[1].x]).toEqual([16, 200, 'D', 64]);
 });
 
@@ -299,7 +409,8 @@ test('duplicateShapes: copies of the chosen shapes and the joins among them, two
 });
 
 test('rot: a Rot column read leniently, written only while a shape is turned, the text byte-stable; lines are never turned', () => {
-  const turned = 'Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 4 | 6 | 16 | 8 | 0 | A | 30\nl | 1 | 1 | 4 | 0 | 0 |  | 45\no | 2 | 2 | 4 | 4 | 0 | B |\n';
+  const turned =
+    'Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 4 | 6 | 16 | 8 | 0 | A | 30\nl | 1 | 1 | 4 | 0 | 0 |  | 45\no | 2 | 2 | 4 | 4 | 0 | B |\n';
   const v = readDrawing(parse(turned));
   expect(v.shapes[0].rot).toBe(30);
   expect(v.shapes[1].rot).toBeUndefined();
@@ -308,7 +419,9 @@ test('rot: a Rot column read leniently, written only while a shape is turned, th
   expect(readDrawing(parse(turned.replace('| 30', '| -90'))).shapes[0].rot).toBe(270);
   // Turning a shape adds the column; turning it back takes the column away again.
   const on = after(DRAWING, (d) => patchShape(d, 0, { rot: 45 }));
-  expect(on).toBe('Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser | 45\no | 32 | 6 | 16 | 8 | 1b | Server |\nk | 0 | 1 | 0 | 0 | 0 | asks |\n');
+  expect(on).toBe(
+    'Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser | 45\no | 32 | 6 | 16 | 8 | 1b | Server |\nk | 0 | 1 | 0 | 0 | 0 | asks |\n',
+  );
   expect(after(on, (d) => patchShape(d, 0, { rot: 360 }))).toBe(DRAWING);
   // Drawn turned about the centre; a copy keeps its turn.
   expect(shapeSvg(readDrawing(parse(on)).shapes[0])).toMatch(/^<g transform="rotate\(45 96 80\)">/);
@@ -348,7 +461,8 @@ test('a rich label: inline Markdown read as runs and written back the same; " | 
   expect(describeDrawing(readDrawing(parse(doc)).shapes)).toBe('A drawing of Bold and italic under | gone marked.');
 });
 
-const TEXTS = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 2 | 2 | 20 | 4 | 0 | Left\nt | 2 | 8 | 20 | 4 | 1b3= | Middle\nt | 2 | 14 | 20 | 4 | 0> | Right\nr | 2 | 20 | 20 | 4 | 0 | Box\n';
+const TEXTS =
+  'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 2 | 2 | 20 | 4 | 0 | Left\nt | 2 | 8 | 20 | 4 | 1b3= | Middle\nt | 2 | 14 | 20 | 4 | 0> | Right\nr | 2 | 20 | 20 | 4 | 0 | Box\n';
 
 test('align: a text\'s "=" (centred) and ">" (right) end its Style; read anywhere in the cell, written last, only for a text; byte-stable', () => {
   const v = readDrawing(parse(TEXTS));
@@ -377,7 +491,7 @@ test('alignOp: the texts among those given set left, centred or right; the other
   expect([nextAlign(undefined), nextAlign('c'), nextAlign('r')]).toEqual(['c', 'r', '']);
 });
 
-test('align drawn: a text\'s words from the left edge, the centre or the right edge; an icon stays with them', () => {
+test("align drawn: a text's words from the left edge, the centre or the right edge; an icon stays with them", () => {
   const at = (s: string) => [...s.matchAll(/<text x="([\d.]+)" text-anchor="(\w+)"/g)].map((m) => [+m[1], m[2]]);
   const t = { k: 't' as const, x: 16, y: 16, w: 160, h: 32, f: 0 as const, text: 'Hi' };
   expect(at(shapeSvg(t))).toEqual([[20, 'start']]);
@@ -400,7 +514,7 @@ test('align drawn: a text\'s words from the left edge, the centre or the right e
   expect(iconX(right)).toBeLessThan(172 - 20);
 });
 
-test('align over: the words editor sits as the text\'s words do, aligned the same way', () => {
+test("align over: the words editor sits as the text's words do, aligned the same way", () => {
   const th = { ink: '#000', paper: '#fff', shade: '#eee' };
   const t = { k: 't' as const, x: 16, y: 16, w: 160, h: 32, f: 0 as const, text: 'Hi' };
   const o = (s: typeof t & { al?: 'c' | 'r' }) => wordsOver(s, [s], 1, 0, 0, th).style;
@@ -414,10 +528,14 @@ test('align over: the words editor sits as the text\'s words do, aligned the sam
 
 // The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
 // unchanged by `thumb`.
-const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
-const REQUEST = "---\ntitle: How a page loads\nalt: A browser asks a server, which reads the data.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads\n";
+const sha1 = (pages: { w: number; h: number; svg: string }[]) =>
+  createHash('sha1')
+    .update(pages.map((p) => pageSvg(p)).join('\n'))
+    .digest('hex');
+const REQUEST =
+  '---\ntitle: How a page loads\nalt: A browser asks a server, which reads the data.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads\n';
 
-test('a thumbnail of a drawing is the picture\'s own box, landscape when the picture is wider than tall; a tiled page and pixel art stay whole; a page and a slide are as before', () => {
+test("a thumbnail of a drawing is the picture's own box, landscape when the picture is wider than tall; a tiled page and pixel art stay whole; a page and a slide are as before", () => {
   const [p] = def.view(REQUEST, { small: true, thumb: true });
   expect(p.w).toBeLessThan(W);
   expect(p.h).toBeLessThan(H);
@@ -433,9 +551,8 @@ test('a thumbnail of a drawing is the picture\'s own box, landscape when the pic
   expect(sha1(def.view(REQUEST, { small: true }))).toBe('0c75baadd90f457d2d4741b94e51deb04dc401c2');
 });
 
-test('a label keeps the spaces a person typed at its lines\' ends, through the document and back (round ten: no trim)', () => {
-  for (const label of ['Launch ', ' day one', 'a  | b ', 'two words '])
-    expect(labelText(labelLines(label))).toBe(label);
+test("a label keeps the spaces a person typed at its lines' ends, through the document and back (round ten: no trim)", () => {
+  for (const label of ['Launch ', ' day one', 'a  | b ', 'two words ']) expect(labelText(labelLines(label))).toBe(label);
   const doc = `Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 4 | 6 | 30 | 8 | 0 | Launch\\ \n`;
   expect(write(parse(doc))).toBe(doc);
   expect(readDrawing(parse(doc)).shapes[0].text).toBe('Launch ');

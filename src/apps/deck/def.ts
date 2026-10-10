@@ -46,7 +46,13 @@ export default defineApp({
   exports: [
     { ext: 'pptx', label: () => t('PowerPoint (PPTX)'), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', shows: null, build: (doc, ctx) => buildPptx(doc, ctx) },
     // In place of the kit's pictures of the pages: a page that plays the deck, a slide at a time, with its transition.
-    { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', shows: 'own', build: (doc, ctx) => deckToHtml(doc, ctx.title || titleOf(doc) || t('Untitled {noun}', { noun: t('presentation') }), ctx.link) },
+    {
+      ext: 'html',
+      label: () => t('Web page (HTML)'),
+      mime: 'text/html',
+      shows: 'own',
+      build: (doc, ctx) => deckToHtml(doc, ctx.title || titleOf(doc) || t('Untitled {noun}', { noun: t('presentation') }), ctx.link),
+    },
     {
       ext: 'zip',
       label: () => t('A picture of every slide (ZIP of PNGs)'),

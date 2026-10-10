@@ -131,7 +131,10 @@ export function dependenciesDoc(sizes: Record<string, string> = existsSync(DOC) 
     .sort((a, b) => nameOf(a.key).localeCompare(nameOf(b.key)))
     .map(({ key, by }) => {
       const name = nameOf(key);
-      return `| \`${name}\` | ${lock.packages[key]!.version} | ${licence(lock, key)} | ${[...by].sort().map((b) => `\`${b}\``).join(', ')} | ${sizes[name] ?? unmeasured} |`;
+      return `| \`${name}\` | ${lock.packages[key]!.version} | ${licence(lock, key)} | ${[...by]
+        .sort()
+        .map((b) => `\`${b}\``)
+        .join(', ')} | ${sizes[name] ?? unmeasured} |`;
     });
   /** A runtime dependency's bytes with what it brings, and its own where those differ. */
   const adds = (name: string) => {

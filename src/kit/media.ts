@@ -115,7 +115,12 @@ export async function pictureData(url: string, get: typeof fetch = fetch): Promi
   }
 }
 
-const unxml = (s: string) => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const unxml = (s: string) =>
+  s
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 
 /**
  * Markup (drawn pages, a web page) with every web picture's bytes inside it: the src or href of each <img>

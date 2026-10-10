@@ -37,7 +37,13 @@ test('todo: on a phone, a tap on the grip chooses the task with its bar on scree
     const grip = document.querySelector('.todo-grip')!;
     const before = getComputedStyle(grip, '::before');
     const ta = (sel: string) => getComputedStyle(document.querySelector(sel)!).touchAction;
-    return { grip: [parseFloat(before.width), parseFloat(before.height)], date: document.querySelector('.todo-due')!.getBoundingClientRect().height, list: ta('.todo-list'), gripTa: ta('.todo-grip'), row: ta('.todo-row') };
+    return {
+      grip: [parseFloat(before.width), parseFloat(before.height)],
+      date: document.querySelector('.todo-due')!.getBoundingClientRect().height,
+      list: ta('.todo-list'),
+      gripTa: ta('.todo-grip'),
+      row: ta('.todo-row'),
+    };
   });
   expect(Math.min(...sizes.grip)).toBeGreaterThanOrEqual(44);
   expect(sizes.date).toBeGreaterThanOrEqual(44);

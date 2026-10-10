@@ -2,10 +2,36 @@
 // back exactly, which a property test over random documents and operations holds to; the composed edits (Enter,
 // Backspace, families of items) are lists of primitives.
 import { expect, test } from 'vitest';
-import { apply, applyAll, family, invert, invertAll, joinBlocks, moveFamily, parse, placeFamily, putCells, removeItem, replaceSpan, runLength, shiftFamily, sliceRuns, splitBlock, tableAt, write, type Block, type Column, type Doc, type Op, type Run } from '../../src/doc/index.ts';
+import {
+  apply,
+  applyAll,
+  family,
+  invert,
+  invertAll,
+  joinBlocks,
+  moveFamily,
+  parse,
+  placeFamily,
+  putCells,
+  removeItem,
+  replaceSpan,
+  runLength,
+  shiftFamily,
+  sliceRuns,
+  splitBlock,
+  tableAt,
+  write,
+  type Block,
+  type Column,
+  type Doc,
+  type Op,
+  type Run,
+} from '../../src/doc/index.ts';
 import { rng } from './helpers.ts';
 
-const DOC = parse('---\ntitle: T\nlock: C1:C2\n---\n# Head\n\nSome **bold** words :star: and^[a note] more.\n\n- a\n  - b\n\nItem | Qty:number | Total:money\n--- | --- | ---\nPen | 2 | =B1*3\nInk | 1 | =SUM(B1:B2)+"B1"\n\n~ a -> b\n');
+const DOC = parse(
+  '---\ntitle: T\nlock: C1:C2\n---\n# Head\n\nSome **bold** words :star: and^[a note] more.\n\n- a\n  - b\n\nItem | Qty:number | Total:money\n--- | --- | ---\nPen | 2 | =B1*3\nInk | 1 | =SUM(B1:B2)+"B1"\n\n~ a -> b\n',
+);
 
 test('apply shares every block it did not touch', () => {
   const d = apply(DOC, { op: 'text', at: 1, from: 0, to: 4, runs: [{ t: 'Many' }] });
@@ -32,19 +58,38 @@ test('text: characters replaced by runs; an icon or a note counts one; runs merg
 });
 
 test('cells: a rectangle written, clipped to the table; a locked cell is left be unless forced', () => {
-  const d = apply(DOC, { op: 'cells', at: 4, r: 0, c: 1, values: [['5', '=B1*4', 'past the edge'], ['6', 'locked too']] });
-  expect(tableAt(d, 4)!.rows).toStrictEqual([['Pen', '5', '=B1*3'], ['Ink', '6', '=SUM(B1:B2)+"B1"']]);
+  const d = apply(DOC, {
+    op: 'cells',
+    at: 4,
+    r: 0,
+    c: 1,
+    values: [
+      ['5', '=B1*4', 'past the edge'],
+      ['6', 'locked too'],
+    ],
+  });
+  expect(tableAt(d, 4)!.rows).toStrictEqual([
+    ['Pen', '5', '=B1*3'],
+    ['Ink', '6', '=SUM(B1:B2)+"B1"'],
+  ]);
   const f = apply(DOC, { op: 'cells', at: 4, r: 0, c: 2, values: [['=B1*4']], force: true });
   expect(tableAt(f, 4)!.rows[0][2]).toBe('=B1*4');
   // Past the last row nothing is written; putCells gives the table the rows first.
   expect(apply(DOC, { op: 'cells', at: 4, r: 5, c: 0, values: [['x']] })).toBe(DOC);
   const g = applyAll(DOC, putCells(DOC, 4, 3, 0, [['x', '', '=A1']]));
-  expect(tableAt(g, 4)!.rows.slice(2)).toStrictEqual([['', '', ''], ['x', '', '=A1']]);
+  expect(tableAt(g, 4)!.rows.slice(2)).toStrictEqual([
+    ['', '', ''],
+    ['x', '', '=A1'],
+  ]);
 });
 
 test('rows: put in before r or taken out; formulas follow and so does the lock, in the header or on the table', () => {
   const d = apply(DOC, { op: 'rows', at: 4, r: 1, n: 1, rows: [['Tape', '3']] });
-  expect(tableAt(d, 4)!.rows).toStrictEqual([['Pen', '2', '=B1*3'], ['Tape', '3', ''], ['Ink', '1', '=SUM(B1:B3)+"B1"']]);
+  expect(tableAt(d, 4)!.rows).toStrictEqual([
+    ['Pen', '2', '=B1*3'],
+    ['Tape', '3', ''],
+    ['Ink', '1', '=SUM(B1:B3)+"B1"'],
+  ]);
   expect(d.head.lock).toBe('C1:C3');
   const e = apply(DOC, { op: 'rows', at: 4, r: 0, n: 1 });
   expect(tableAt(e, 4)!.rows).toStrictEqual([['Ink', '1', '=SUM(B1:B1)+"B1"']]);
@@ -55,7 +100,11 @@ test('rows: put in before r or taken out; formulas follow and so does the lock, 
   const two = parse('a | b\n--- | ---\n1 | 2\n\nx | y\n--- | ---\n=A2 | 4\n5 | 6\n{lock=A2}\n');
   const t = apply(two, { op: 'rows', at: 1, r: 0, n: 1, rows: [[]] });
   expect(t.blocks[1].a).toStrictEqual({ kv: { lock: 'A3' } });
-  expect(tableAt(t, 1)!.rows).toStrictEqual([['', ''], ['=A3', '4'], ['5', '6']]);
+  expect(tableAt(t, 1)!.rows).toStrictEqual([
+    ['', ''],
+    ['=A3', '4'],
+    ['5', '6'],
+  ]);
   expect(t.blocks[0]).toBe(two.blocks[0]);
 });
 
@@ -63,7 +112,10 @@ test('cols: put in (given, before c) or taken out; cells, names, types and the l
   const wider = apply(DOC, { op: 'cols', at: 4, c: 1, n: 1, cols: [{ name: '', type: 'text' }] });
   const t = tableAt(wider, 4)!;
   expect(t.cols.map((c) => c.type)).toStrictEqual(['text', 'text', 'number', 'money']);
-  expect(t.rows).toStrictEqual([['Pen', '', '2', '=C1*3'], ['Ink', '', '1', '=SUM(C1:C2)+"B1"']]);
+  expect(t.rows).toStrictEqual([
+    ['Pen', '', '2', '=C1*3'],
+    ['Ink', '', '1', '=SUM(C1:C2)+"B1"'],
+  ]);
   expect(wider.head.lock).toBe('D1:D2');
   expect(write(wider)).toContain('Item |  | Qty:number | Total:money\n--- | --- | --- | ---\nPen |  | 2 | =C1*3\n');
   const back = apply(wider, { op: 'cols', at: 4, c: 1, n: 1 });
@@ -71,7 +123,10 @@ test('cols: put in (given, before c) or taken out; cells, names, types and the l
   expect(back.head).toStrictEqual(DOC.head);
   // A column gone that formulas used: #REF; a range loses what it lost.
   const noB = apply(DOC, { op: 'cols', at: 4, c: 1, n: 1 });
-  expect(tableAt(noB, 4)!.rows).toStrictEqual([['Pen', '=#REF*3'], ['Ink', '=SUM(#REF)+"B1"']]);
+  expect(tableAt(noB, 4)!.rows).toStrictEqual([
+    ['Pen', '=#REF*3'],
+    ['Ink', '=SUM(#REF)+"B1"'],
+  ]);
   expect(apply(parse('a | b | c | d\n--- | --- | --- | ---\n1 | 2 | 3 | =SUM(A1:C1)\n'), { op: 'cols', at: 0, c: 1, n: 1 }).blocks[0]).toMatchObject({ rows: [['1', '3', '=SUM(A1:B1)']] });
   expect(() => apply(DOC, { op: 'cols', at: 4, c: 0, n: 3 })).toThrow(RangeError);
   expect(() => apply(DOC, { op: 'cols', at: 4, c: 0, n: 24, cols: Array.from({ length: 24 }, (): Column => ({ name: '', type: 'text' })) })).toThrow(RangeError);
@@ -90,7 +145,16 @@ test('invert: every primitive is taken back exactly; invertAll takes back a list
     { op: 'rows', at: 4, r: 1, n: 2, rows: [['x'], ['y', '=A1']] },
     { op: 'rows', at: 4, r: 0, n: 2 },
     { op: 'cols', at: 4, c: 2, n: 1 },
-    { op: 'cols', at: 4, c: 0, n: 2, cols: [{ name: 'N', type: 'name' }, { name: '', type: 'text' }] },
+    {
+      op: 'cols',
+      at: 4,
+      c: 0,
+      n: 2,
+      cols: [
+        { name: 'N', type: 'name' },
+        { name: '', type: 'text' },
+      ],
+    },
     { op: 'col', at: 4, c: 0, col: { name: 'Thing', type: 'rich' } },
   ];
   for (const op of ops) expect(applyAll(apply(DOC, op), invert(DOC, op)), op.op).toStrictEqual(DOC);
@@ -99,7 +163,7 @@ test('invert: every primitive is taken back exactly; invertAll takes back a list
 
 /** A random document: words with marks, icons, notes and line breaks; a table of formulas with a lock in the header; a second table with its own lock. */
 function randomDoc(r: () => number): Doc {
-  const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
+  const pick = <T>(xs: T[]) => xs[Math.floor(r() * xs.length)];
   const words = ['one', 'two words', ' ', 'x\ny', '5 * 3', 'snake_case', 'https://e.com/a'];
   const run = (): Run => {
     if (r() < 0.1) return { t: '', ic: 'star' };
@@ -111,7 +175,11 @@ function randomDoc(r: () => number): Doc {
   };
   const text = () => Array.from({ length: 1 + Math.floor(r() * 4) }, run);
   const cell = () => pick(['', '1', '2.5', 'words', '=A1+B2', '=SUM(A1:B3)', '=C2*2', '="B1"&A1', '=nothing']);
-  const table = (cols: number, rows: number): Block => ({ k: 'table', cols: Array.from({ length: cols }, (_, c): Column => ({ name: pick(['', 'Name', 'Qty']) + c, type: pick(['text', 'number', 'money', 'name']) })), rows: Array.from({ length: rows }, () => Array.from({ length: cols }, cell)) });
+  const table = (cols: number, rows: number): Block => ({
+    k: 'table',
+    cols: Array.from({ length: cols }, (_, c): Column => ({ name: pick(['', 'Name', 'Qty']) + c, type: pick(['text', 'number', 'money', 'name']) })),
+    rows: Array.from({ length: rows }, () => Array.from({ length: cols }, cell)),
+  });
   const blocks: Block[] = [];
   for (let k = 0; k < 2 + r() * 5; k++) {
     const kind = pick(['h', 'p', 'li', 'quote', 'hr', 'table', 'fence']);
@@ -133,7 +201,7 @@ function randomDoc(r: () => number): Doc {
 
 /** A random operation that applies to `doc`. */
 function randomOp(doc: Doc, r: () => number): Op {
-  const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
+  const pick = <T>(xs: T[]) => xs[Math.floor(r() * xs.length)];
   const n = doc.blocks.length;
   const tables = doc.blocks.map((b, i) => (b.k === 'table' ? i : -1)).filter((i) => i >= 0);
   const texts = doc.blocks.map((b, i) => ('runs' in b ? i : -1)).filter((i) => i >= 0);
@@ -161,7 +229,14 @@ function randomOp(doc: Doc, r: () => number): Op {
       return { op: 'text', at: i, from, to, runs };
     }
     case 'cells':
-      return { op: 'cells', at, r: Math.floor(r() * (t.rows.length + 1)), c: Math.floor(r() * (t.cols.length + 1)), values: Array.from({ length: 1 + Math.floor(r() * 3) }, () => Array.from({ length: 1 + Math.floor(r() * 3) }, cell)), ...(r() < 0.5 ? { force: true as const } : {}) };
+      return {
+        op: 'cells',
+        at,
+        r: Math.floor(r() * (t.rows.length + 1)),
+        c: Math.floor(r() * (t.cols.length + 1)),
+        values: Array.from({ length: 1 + Math.floor(r() * 3) }, () => Array.from({ length: 1 + Math.floor(r() * 3) }, cell)),
+        ...(r() < 0.5 ? { force: true as const } : {}),
+      };
     case 'rows': {
       const rr = Math.floor(r() * (t.rows.length + 1));
       if (r() < 0.5 || !t.rows.length) return { op: 'rows', at, r: rr, n: 1, rows: Array.from({ length: 1 + Math.floor(r() * 2) }, () => Array.from({ length: t.cols.length }, cell)) };
@@ -200,10 +275,22 @@ test('property: apply then invert gives the document back, over random documents
 
 test('splitBlock and joinBlocks: Enter and Backspace as splices', () => {
   const d = parse('# Head\n\nSome **bold** words\n\n- [ ] task one\n1. step\n');
-  expect(applyAll(d, splitBlock(d, 1, 7)).blocks.slice(1, 3)).toStrictEqual([{ k: 'p', runs: [{ t: 'Some ' }, { t: 'bo', b: true }] }, { k: 'p', runs: [{ t: 'ld', b: true }, { t: ' words' }] }]);
-  expect(applyAll(d, splitBlock(d, 0, 4)).blocks.slice(0, 2)).toStrictEqual([{ k: 'h', level: 1, runs: [{ t: 'Head' }] }, { k: 'p', runs: [] }]);
-  expect(applyAll(d, splitBlock(d, 2, 4)).blocks.slice(2, 4)).toStrictEqual([{ k: 'li', depth: 0, done: false, runs: [{ t: 'task' }] }, { k: 'li', depth: 0, done: false, runs: [{ t: ' one' }] }]);
-  expect(applyAll(d, splitBlock(d, 3, 4)).blocks.slice(3)).toStrictEqual([{ k: 'li', depth: 0, ord: true, runs: [{ t: 'step' }] }, { k: 'li', depth: 0, ord: true, runs: [] }]);
+  expect(applyAll(d, splitBlock(d, 1, 7)).blocks.slice(1, 3)).toStrictEqual([
+    { k: 'p', runs: [{ t: 'Some ' }, { t: 'bo', b: true }] },
+    { k: 'p', runs: [{ t: 'ld', b: true }, { t: ' words' }] },
+  ]);
+  expect(applyAll(d, splitBlock(d, 0, 4)).blocks.slice(0, 2)).toStrictEqual([
+    { k: 'h', level: 1, runs: [{ t: 'Head' }] },
+    { k: 'p', runs: [] },
+  ]);
+  expect(applyAll(d, splitBlock(d, 2, 4)).blocks.slice(2, 4)).toStrictEqual([
+    { k: 'li', depth: 0, done: false, runs: [{ t: 'task' }] },
+    { k: 'li', depth: 0, done: false, runs: [{ t: ' one' }] },
+  ]);
+  expect(applyAll(d, splitBlock(d, 3, 4)).blocks.slice(3)).toStrictEqual([
+    { k: 'li', depth: 0, ord: true, runs: [{ t: 'step' }] },
+    { k: 'li', depth: 0, ord: true, runs: [] },
+  ]);
   expect(applyAll(d, joinBlocks(d, 1)).blocks[0]).toStrictEqual({ k: 'h', level: 1, runs: [{ t: 'HeadSome ' }, { t: 'bold', b: true }, { t: ' words' }] });
   expect(joinBlocks(d, 0)).toStrictEqual([]);
   expect(joinBlocks(parse('a | b\n--- | ---\n\nx\n'), 1)).toStrictEqual([]);
@@ -213,7 +300,7 @@ test('splitBlock and joinBlocks: Enter and Backspace as splices', () => {
 const OUTLINE = parse('- Launch\n  - Product {.from}\n    - Pricing\n  - Marketing\n  - Ops\n\n~ Pricing -> Marketing: feeds\n');
 const shape = (d: Doc) => d.blocks.map((b) => (b.k === 'li' ? '  '.repeat(b.depth) + b.runs[0].t : b.k)).join('|');
 
-test('family: where an item\'s family ends; a block that is no item has none, and ends one', () => {
+test("family: where an item's family ends; a block that is no item has none, and ends one", () => {
   expect(family(OUTLINE, 0)).toBe(5);
   expect(family(OUTLINE, 1)).toBe(3);
   expect(family(OUTLINE, 3)).toBe(4);

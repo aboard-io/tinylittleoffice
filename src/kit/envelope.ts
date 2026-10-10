@@ -62,7 +62,7 @@ export function readEnvelope(text: string): Envelope {
   }
   if (head.title) env.title = head.title;
   if (head.by) env.by = head.by;
-  if (head.key && head.sig) (env.key = head.key), (env.sig = head.sig);
+  if (head.key && head.sig) ((env.key = head.key), (env.sig = head.sig));
   return env;
 }
 

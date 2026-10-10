@@ -36,7 +36,22 @@
  * and the background tile are `head` ops. In every case the keys follow their shapes.
  */
 import { applyAll, column, columnsOf, plainText, type Block, type Doc, type Op, type Run, type TableBlock } from '../../doc/index.ts';
-import { bounds, duplicate as drawDuplicate, readDrawing, removeShape as drawRemove, isLink, pasteShapes, ptsOf, ptsText, shapeCells, shapesTable, H, W, type DrawView, type Shape } from '../draw/model.ts';
+import {
+  bounds,
+  duplicate as drawDuplicate,
+  readDrawing,
+  removeShape as drawRemove,
+  isLink,
+  pasteShapes,
+  ptsOf,
+  ptsText,
+  shapeCells,
+  shapesTable,
+  H,
+  W,
+  type DrawView,
+  type Shape,
+} from '../draw/model.ts';
 
 export const DEFAULT_FRAMES = 24;
 export const MIN_FRAMES = 2;
@@ -103,7 +118,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 export const restKey = (t: number): Key => ({ t, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '' });
 
 /** How bright a shape is drawn at a depth: as drawn in front (0 and nearer), down to two thirds at the very back. Depth never changes the size. */
-export const depthDim = (z: number) => (z < 0 ? Math.round((1 - (Math.min(-z, MAX_Z) / MAX_Z) / 3) * 100) / 100 : 1);
+export const depthDim = (z: number) => (z < 0 ? Math.round((1 - Math.min(-z, MAX_Z) / MAX_Z / 3) * 100) / 100 : 1);
 /** How wide a shape turned about its upright axis is drawn: cos(turn), so it narrows to an edge at 90° and comes back mirrored. */
 export const turnScale = (u: number | undefined) => {
   const c = Math.cos(((u ?? 0) * Math.PI) / 180);
@@ -160,7 +175,8 @@ export const frameOrder = (frames: number, loop: Loop): number[] => {
 export const gifLoop = (loop: Loop): number | false => (loop === 'once' ? false : typeof loop === 'number' ? loop - 1 : 0);
 
 /** One key as the cell writes it. */
-const keyText = (k: Key) => `${k.t},${k.dx},${k.dy},${k.z},${k.s},${k.r}${k.fx || k.pts || k.u ? `,${letters(k.fx)}` : ''}${k.pts ? `,p${ptsText(k.pts).replace(/;/g, '/')}` : ''}${k.u ? `,u${k.u}` : ''}`;
+const keyText = (k: Key) =>
+  `${k.t},${k.dx},${k.dy},${k.z},${k.s},${k.r}${k.fx || k.pts || k.u ? `,${letters(k.fx)}` : ''}${k.pts ? `,p${ptsText(k.pts).replace(/;/g, '/')}` : ''}${k.u ? `,u${k.u}` : ''}`;
 
 /** A cell of keys read, for a motion `frames` long. */
 export function keysOf(cell: string, frames: number): Key[] {
@@ -170,7 +186,15 @@ export function keysOf(cell: string, frames: number): Key[] {
     const n = (v: string | undefined, dflt: number) => (v !== undefined && Number.isFinite(parseFloat(v)) ? parseFloat(v) : dflt);
     if (!Number.isFinite(parseInt(t, 10))) continue;
     const at = clamp(Math.round(n(t, 0)), 0, frames - 1);
-    const key: Key = { t: at, dx: Math.round(n(dx, 0)), dy: Math.round(n(dy, 0)), z: clamp(Math.round(n(z, 0)), -MAX_Z, MAX_Z), s: Math.max(0.1, Math.round(n(s, 1) * 10) / 10), r: Math.round(n(r, 0)), fx: letters(fx) };
+    const key: Key = {
+      t: at,
+      dx: Math.round(n(dx, 0)),
+      dy: Math.round(n(dy, 0)),
+      z: clamp(Math.round(n(z, 0)), -MAX_Z, MAX_Z),
+      s: Math.max(0.1, Math.round(n(s, 1) * 10) / 10),
+      r: Math.round(n(r, 0)),
+      fx: letters(fx),
+    };
     for (const m of more) {
       if (m.startsWith('p')) key.pts = ptsOf(m.slice(1).replace(/\//g, ';'));
       else if (m.startsWith('u') && Math.round(parseFloat(m.slice(1)))) key.u = Math.round(parseFloat(m.slice(1)));
@@ -206,7 +230,8 @@ export function keysBlock(keys: Key[][]): TableBlock | null {
   return rows.length ? { k: 'table', cols: [column('Shape'), column('Keys')], rows } : null;
 }
 
-const sameTable = (a: Block | undefined, b: TableBlock | null) => (!a && !b) || (!!a && !!b && a.k === 'table' && JSON.stringify(a.rows) === JSON.stringify(b.rows) && a.cols.map((c) => c.name).join('|') === b.cols.map((c) => c.name).join('|'));
+const sameTable = (a: Block | undefined, b: TableBlock | null) =>
+  (!a && !b) || (!!a && !!b && a.k === 'table' && JSON.stringify(a.rows) === JSON.stringify(b.rows) && a.cols.map((c) => c.name).join('|') === b.cols.map((c) => c.name).join('|'));
 
 /** The keys table written from these keys: put in, replaced, or taken out (a `splice`); [] when it is so already. */
 export function setKeys(doc: Doc, keys: Key[][]): Op[] {
@@ -249,7 +274,15 @@ export const hasKey = (anim: AnimView, i: number, t: number) => !!anim.keys[i]?.
 
 /** A key in the whole numbers the format keeps. */
 const tidyKey = (key: Key): Key => {
-  const k: Key = { t: Math.round(key.t), dx: Math.round(key.dx), dy: Math.round(key.dy), z: clamp(Math.round(key.z), -MAX_Z, MAX_Z), s: Math.max(0.1, Math.round(key.s * 10) / 10), r: Math.round(key.r), fx: letters(key.fx) };
+  const k: Key = {
+    t: Math.round(key.t),
+    dx: Math.round(key.dx),
+    dy: Math.round(key.dy),
+    z: clamp(Math.round(key.z), -MAX_Z, MAX_Z),
+    s: Math.max(0.1, Math.round(key.s * 10) / 10),
+    r: Math.round(key.r),
+    fx: letters(key.fx),
+  };
   if (key.pts) k.pts = key.pts.map(Math.round);
   if (Math.round(key.u ?? 0)) k.u = Math.round(key.u!);
   return k;
@@ -299,7 +332,10 @@ export function room(anim: AnimView, i: number): [number, number, number, number
 /** Shape i's key at frame t taken away. */
 export function removeKey(doc: Doc, i: number, t: number): Op[] {
   const v = readAnim(doc);
-  return setKeys(doc, v.keys.map((ks, j) => (j === i ? ks.filter((k) => k.t !== t) : ks)));
+  return setKeys(
+    doc,
+    v.keys.map((ks, j) => (j === i ? ks.filter((k) => k.t !== t) : ks)),
+  );
 }
 
 /** The length and the speed: `head` ops, and the keys past the new end taken out. */
@@ -308,7 +344,13 @@ export function setLength(doc: Doc, frames: number, fps: number): Op[] {
   const f = clamp(Math.round(frames) || v.frames, MIN_FRAMES, MAX_FRAMES);
   const s = clamp(Math.round(fps) || v.fps, MIN_FPS, MAX_FPS);
   if (f === v.frames && s === v.fps && doc.head.frames && doc.head.fps) return [];
-  return [...headOps(doc, f, s), ...setKeys(doc, v.keys.map((ks) => ks.filter((k) => k.t < f)))];
+  return [
+    ...headOps(doc, f, s),
+    ...setKeys(
+      doc,
+      v.keys.map((ks) => ks.filter((k) => k.t < f)),
+    ),
+  ];
 }
 
 /** How it repeats: a `head` op ([] when it is so already). */
@@ -342,7 +384,11 @@ export function follow(was: Shape[], now: Shape[]): number[] {
 }
 
 /** The keys table after the shapes went from `was` to the document's shapes now. */
-const keysFollow = (after: Doc, keys: Key[][], map: number[]): Op[] => setKeys(after, map.map((j) => (j >= 0 ? (keys[j] ?? []) : [])));
+const keysFollow = (after: Doc, keys: Key[][], map: number[]): Op[] =>
+  setKeys(
+    after,
+    map.map((j) => (j >= 0 ? (keys[j] ?? []) : [])),
+  );
 
 /** Shape i taken out, with the joins to it (Draw's ops), and the keys of the rest kept with their shapes. */
 export function removeShape(doc: Doc, i: number): Op[] {
@@ -420,7 +466,10 @@ export function motionOf(doc: Doc, list: number[]): Doc | null {
  */
 export function pasteMotion(doc: Doc, pasted: Doc): { ops: Op[]; sel: number[] } {
   const from = readAnim(pasted);
-  const kept = keptOf(from.shapes, from.shapes.map((_, i) => i));
+  const kept = keptOf(
+    from.shapes,
+    from.shapes.map((_, i) => i),
+  );
   if (!kept.length) return { ops: [], sel: [] };
   const now = new Map(kept.map((old, n) => [old, n]));
   const shapes = kept.map((i) => (isLink(from.shapes[i].k) ? { ...from.shapes[i], x: now.get(from.shapes[i].x)!, y: now.get(from.shapes[i].y)! } : from.shapes[i]));
@@ -460,8 +509,7 @@ export function redraw(doc: Doc, drawing: Doc): Op[] {
     if (at >= 0) ops.push({ op: 'splice', at, n: 1, blocks: table ? [table] : [] });
     else if (table) ops.push({ op: 'splice', at: 0, n: 0, blocks: [table] });
   }
-  for (const key of ['alt', 'tile'])
-    if ((doc.head[key] ?? '') !== (drawing.head[key] ?? '')) ops.push({ op: 'head', key, value: drawing.head[key] || undefined });
+  for (const key of ['alt', 'tile']) if ((doc.head[key] ?? '') !== (drawing.head[key] ?? '')) ops.push({ op: 'head', key, value: drawing.head[key] || undefined });
   if (!ops.length) return [];
   const after = applyAll(doc, ops);
   return [...ops, ...keysFollow(after, v.keys, follow(v.shapes, readDrawing(after).shapes))];
@@ -477,7 +525,10 @@ export function loosen(doc: Doc): Op[] {
   if (readDrawing(doc).at >= 0) return [];
   // (An icon in the words is its name between colons, as it was written.)
   const said = (runs: Run[]) => runs.map((r) => (r.ic ? `:${r.ic}:` : r.t)).join('');
-  const words = doc.blocks.flatMap((b) => (b.k === 'li' ? [said(b.runs)] : b.k === 'p' || b.k === 'h' ? said(b.runs).split('\n') : [])).map((s) => s.trim()).filter(Boolean);
+  const words = doc.blocks
+    .flatMap((b) => (b.k === 'li' ? [said(b.runs)] : b.k === 'p' || b.k === 'h' ? said(b.runs).split('\n') : []))
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (!words.length) return [];
   const quote = doc.blocks.find((b) => b.k === 'quote');
   const shapes = words.map((l, i): Shape => {
@@ -486,7 +537,14 @@ export function loosen(doc: Doc): Op[] {
     return ic ? { k: 'i', x: 80, y, w: 48, h: 48, f: 0, text: ic[1] } : { k: 't', x: 80, y, w: 160, h: 32, f: 0, text: l, z: 3 };
   });
   const cols = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label'];
-  const table: TableBlock = { k: 'table', cols: cols.map(column), rows: shapes.map((s) => { const c = shapeCells(s); return [c.kind, c.x, c.y, c.w, c.h, c.style, c.label]; }) };
+  const table: TableBlock = {
+    k: 'table',
+    cols: cols.map(column),
+    rows: shapes.map((s) => {
+      const c = shapeCells(s);
+      return [c.kind, c.x, c.y, c.w, c.h, c.style, c.label];
+    }),
+  };
   const keys = shapes.map(() => [restKey(0), { ...restKey(DEFAULT_FRAMES - 1), dx: Math.round(W * 0.6) }]);
   const ops: Op[] = [{ op: 'splice', at: 0, n: doc.blocks.length, blocks: [table, keysBlock(keys)!] }, ...headOps(doc, framesOf(doc.head.frames), fpsOf(doc.head.fps))];
   if (!doc.head.alt && quote?.k === 'quote') ops.push({ op: 'head', key: 'alt', value: plainText(quote.runs).replace(/\s+/g, ' ').trim() || undefined });

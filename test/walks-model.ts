@@ -127,4 +127,3 @@ export function allowed(s: Step, m: Model, cmd?: Command): boolean {
       return !modal && m.app !== m.home;
   }
 }
-

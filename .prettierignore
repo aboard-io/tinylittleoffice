@@ -1,0 +1,22 @@
+# Generated outputs are their scripts' (docs, the skill, llms.txt); Markdown and HTML are written as they are.
+node_modules/
+dist/
+docs/
+skill/
+public/
+test-results/
+playwright-report/
+.wrangler/
+package-lock.json
+*.md
+*.html
+*.d.ts
+# A language file is data in the extractor's own form, one 'key': 'value' line each (scripts/i18n-extract.ts reads it).
+src/i18n/
+# Data written by a script, one line each, kept as the script writes it.
+src/kit/icons-meta.ts
+src/kit/emoji-data.ts
+test/commands-covered.json
+test/doc/corpus/*.json
+# A built site, bytes and all: the chunk-budget lint weighs it.
+test/fixtures/lints/built/

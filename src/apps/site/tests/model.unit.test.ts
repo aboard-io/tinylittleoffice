@@ -10,7 +10,35 @@ import { embedOf } from '../../../kit/embeds.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 import { pageScripts } from '../../../kit/page.ts';
 import site from '../def.ts';
-import { cardFields, cardRuns, duplicateObj, fieldsOf, insertObj, keptRuns, kindsOf, linesOf, linkFields, linkRuns, linksOp, moveObj, moveOps, objBlocks, objectsOf, objId, pasteObj, readSite, removeObj, retitle, settingOp, splitOps, themeOp, titleOf, withLine, wordsOf, wordsOps } from '../model.ts';
+import {
+  cardFields,
+  cardRuns,
+  duplicateObj,
+  fieldsOf,
+  insertObj,
+  keptRuns,
+  kindsOf,
+  linesOf,
+  linkFields,
+  linkRuns,
+  linksOp,
+  moveObj,
+  moveOps,
+  objBlocks,
+  objectsOf,
+  objId,
+  pasteObj,
+  readSite,
+  removeObj,
+  retitle,
+  settingOp,
+  splitOps,
+  themeOp,
+  titleOf,
+  withLine,
+  wordsOf,
+  wordsOps,
+} from '../model.ts';
 import { templates } from '../templates.ts';
 import { contrast, isDark, paletteOf, parseTheme, themeCss, themeWords, THEMES } from '../theme.ts';
 import { CART, PEEK, ROUTER, WEB, sitePage, sitePictures } from '../view.ts';
@@ -23,17 +51,31 @@ const scriptsIn = (html: string) => [...html.matchAll(/<script>([\s\S]*?)<\/scri
 const code = (tag: string) => tag.slice('<script>'.length, -'</script>'.length);
 
 test('pages, sections, theme, pictures, icons, documents and buttons are read from the blocks, each with its span', () => {
-  const text = '---\ntheme: teal serif dark\n---\n# Harbor\n\nOn the quay.\n\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n```todo\n- grind\n```\n\n# Last\n\nLast.\n';
+  const text =
+    '---\ntheme: teal serif dark\n---\n# Harbor\n\nOn the quay.\n\n:coffee:\n\n> :mail: Write | mailto:a@b.c\n> Menu | #menu\n> Bad | javascript:alert(1)\n\n# Menu\n\nEspresso.\n\n## Coffee\n\n- :coffee: Espresso | 3.00\n\nhttps://example.com/beans.png\n\n```todo\n- grind\n```\n\n# Last\n\nLast.\n';
   const s = readSite(parse(text));
   expect(s.name).toBe('Harbor');
   expect(s.theme).toEqual({ id: 'teal', face: 'serif', dark: true });
-  expect(s.pages.map((p) => [p.title, p.id, p.from, p.to])).toEqual([['', 'home', 0, 4], ['Menu', 'menu', 4, 10], ['Last', 'last', 10, 12]]);
+  expect(s.pages.map((p) => [p.title, p.id, p.from, p.to])).toEqual([
+    ['', 'home', 0, 4],
+    ['Menu', 'menu', 4, 10],
+    ['Last', 'last', 10, 12],
+  ]);
   const [home, coffee] = [s.sections[0], s.sections[2]];
   expect(home.text.map((r) => r.map((x) => x.t).join(''))).toEqual(['On the quay.']);
   expect(home.icon).toBe('coffee');
-  expect(home.buttons).toEqual([{ icon: 'mail', label: 'Write', url: 'mailto:a@b.c' }, { icon: '', label: 'Menu', url: '#menu' }, { icon: '', label: 'Bad', url: '#' }]);
+  expect(home.buttons).toEqual([
+    { icon: 'mail', label: 'Write', url: 'mailto:a@b.c' },
+    { icon: '', label: 'Menu', url: '#menu' },
+    { icon: '', label: 'Bad', url: '#' },
+  ]);
   expect([home.title, home.at, home.from, home.to]).toEqual(['Harbor', 0, 0, 4]);
-  expect(s.sections.map((x) => [x.n, x.page, x.title, x.from, x.to])).toEqual([[0, 0, 'Harbor', 0, 4], [1, 1, 'Menu', 4, 6], [2, 1, 'Coffee', 6, 10], [3, 2, 'Last', 10, 12]]);
+  expect(s.sections.map((x) => [x.n, x.page, x.title, x.from, x.to])).toEqual([
+    [0, 0, 'Harbor', 0, 4],
+    [1, 1, 'Menu', 4, 6],
+    [2, 1, 'Coffee', 6, 10],
+    [3, 2, 'Last', 10, 12],
+  ]);
   expect(coffee.cards.map((c) => [c.icon, c.head[0].t, c.detail[0].t])).toEqual([['coffee', 'Espresso', '3.00']]);
   expect(coffee.pics).toEqual([{ url: 'https://example.com/beans.png', alt: '' }]);
   expect(coffee.embeds).toEqual([{ lang: 'todo', body: '- grind' }]);
@@ -41,8 +83,22 @@ test('pages, sections, theme, pictures, icons, documents and buttons are read fr
   expect(readSite(parse('# A\n\nabout\n\n## B\n\n- x\n')).pages[0].sections.map((x) => x.title)).toEqual(['A', 'B']);
   const li = parse('- **Big** one | small *words*\n').blocks[0];
   const [a, b] = fieldsOf(li.k === 'li' ? li.runs : []);
-  expect([a, b]).toEqual([[{ t: 'Big', b: true }, { t: ' one' }], [{ t: 'small ' }, { t: 'words', i: true }]]);
-  expect(linesOf([{ t: 'a\nb', b: true }, { t: '', ic: 'star' }])).toEqual([[{ t: 'a', b: true }], [{ t: 'b', b: true }, { t: '', ic: 'star' }]]);
+  expect([a, b]).toEqual([
+    [{ t: 'Big', b: true }, { t: ' one' }],
+    [{ t: 'small ' }, { t: 'words', i: true }],
+  ]);
+  expect(
+    linesOf([
+      { t: 'a\nb', b: true },
+      { t: '', ic: 'star' },
+    ]),
+  ).toEqual([
+    [{ t: 'a', b: true }],
+    [
+      { t: 'b', b: true },
+      { t: '', ic: 'star' },
+    ],
+  ]);
 });
 
 test('the page: a nav of its pages, each a section switched by a registered script, and the look asked for', () => {
@@ -94,7 +150,11 @@ test('a shop: a table of products, one cart for the site, its words and the orde
   const s = readSite(parse(SHOP));
   expect([s.currency, s.orders]).toEqual(['£', 'orders@quaypottery.example']);
   const shop = s.sections.find((x) => x.products.length)!;
-  expect(shop.products.map((p) => [p.name, p.price])).toEqual([['Harbour mug', 24], ['Breakfast bowl', 30], ['Bud vase', 18]]);
+  expect(shop.products.map((p) => [p.name, p.price])).toEqual([
+    ['Harbour mug', 24],
+    ['Breakfast bowl', 30],
+    ['Bud vase', 18],
+  ]);
   const html = page(SHOP);
   expect(html).toContain('data-add="0"');
   expect(html).toContain('data-add="2"');
@@ -114,9 +174,13 @@ test('the editor’s frame: every thing marked with its id and its words with th
   const html = page(CAFE, { cur: 2, edit: { stamp: 7, held: '2.1', y: 120 } });
   // The site's name, its line, its two buttons (lines of one quote), its three big links; a page's heading; a section's.
   expect(html).toContain('<h1 data-o="0" data-w="0:0">Harbor Coffee</h1><p data-o="1" data-w="1:0" data-empty="Words for the page">Small-batch coffee, roasted on the quay every morning.</p>');
-  expect(html).toContain('<p class="go"><a class="btn" data-o="2.0" href="#menu"><span data-w="2.0:label" data-empty="Label">See the menu</span></a> <a class="btn quiet" data-o="2.1" href="#find-us"><span data-w="2.1:label" data-empty="Label">Find us</span></a></p>');
+  expect(html).toContain(
+    '<p class="go"><a class="btn" data-o="2.0" href="#menu"><span data-w="2.0:label" data-empty="Label">See the menu</span></a> <a class="btn quiet" data-o="2.1" href="#find-us"><span data-w="2.1:label" data-empty="Label">Find us</span></a></p>',
+  );
   expect(html).toContain('<ul class="cards"><li data-o="3"><svg');
-  expect(html).toMatch(/<li data-o="3"><svg[^]*?<\/svg><strong data-w="3:head" data-empty="Heading">Roasted daily<\/strong><span data-w="3:detail" data-empty="A line about it">Never more than a week old<\/span><\/li>/);
+  expect(html).toMatch(
+    /<li data-o="3"><svg[^]*?<\/svg><strong data-w="3:head" data-empty="Heading">Roasted daily<\/strong><span data-w="3:detail" data-empty="A line about it">Never more than a week old<\/span><\/li>/,
+  );
   expect(html).toContain('<div class="hero" data-sec="0">');
   expect(html).toContain('<section class="part" id="coffee" data-sec="8"><div class="wrap"><h2 data-o="8" data-w="8:0">Coffee</h2>');
   expect(html).toContain('<figure class="embed" data-o="17">');
@@ -147,7 +211,9 @@ test('the things of a site in the order of the document, rows of cards, buttons 
   expect(objectsOf(s).map((o) => `${o.kind}:${objId(o)}`)).toEqual(['page:0', 'p:1', 'button:2.0', 'button:2.1', 'card:3', 'card:4', 'picture:5', 'section:6', 'heading:7', 'p:8', 'icon:9']);
   const html = page(write(doc));
   // In order: the words and buttons under the title; the cards, a row, begin the part below; the picture after them.
-  expect(html).toMatch(/<h1>Site<\/h1><p>Words\.<\/p><p class="go">.*<\/p><\/div><\/div>\n<div class="part"><div class="wrap"><ul class="cards">.*<\/ul><img class="pic" src="https:\/\/x\.example\/c\.png" alt="Cup"/);
+  expect(html).toMatch(
+    /<h1>Site<\/h1><p>Words\.<\/p><p class="go">.*<\/p><\/div><\/div>\n<div class="part"><div class="wrap"><ul class="cards">.*<\/ul><img class="pic" src="https:\/\/x\.example\/c\.png" alt="Cup"/,
+  );
   expect(html).toContain('<h2>Part</h2><h3>Under</h3><p>More.</p><svg class="ico"');
 });
 
@@ -175,7 +241,9 @@ test('a thing from the web in a section is a card on the page, loaded only by it
   const s = readSite(parse(text));
   expect(s.sections[0].embeds).toEqual([{ web: 'https://youtu.be/dQw4w9WgXcQ' }]);
   const html = page(text);
-  expect(html).toContain('<div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-title="Video dQw4w9WgXcQ"><button type="button" class="btn web-load">Play (loads it from YouTube)</button></div>');
+  expect(html).toContain(
+    '<div class="web-pic" data-as="frame" data-kind="video" data-src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" data-title="Video dQw4w9WgXcQ"><button type="button" class="btn web-load">Play (loads it from YouTube)</button></div>',
+  );
   expect(html).not.toContain('<iframe');
   expect(html).toContain('data-as="audio" data-kind="audio" data-src="https://example.org/talk.mp3"');
   // Wikipedia must be asked first: the link alone.
@@ -318,8 +386,26 @@ test('the pictures: a page each, the theme’s colours, the home page alone when
 
 test('the templates: real sites and Quick Links pages, every icon one the page can draw; the download is the site itself', async () => {
   expect(site.templates.map((t) => t.id)).toEqual([
-    'cafe', 'shop', 'event', 'portfolio', 'wedding', 'band', 'clinic', 'campaign', 'mutual-aid', 'club', 'newsletter', 'cottage', 'trades', 'studio',
-    'links-maker', 'links-group', 'links-band', 'links-business', 'links-writer', 'links-one',
+    'cafe',
+    'shop',
+    'event',
+    'portfolio',
+    'wedding',
+    'band',
+    'clinic',
+    'campaign',
+    'mutual-aid',
+    'club',
+    'newsletter',
+    'cottage',
+    'trades',
+    'studio',
+    'links-maker',
+    'links-group',
+    'links-band',
+    'links-business',
+    'links-writer',
+    'links-one',
   ]);
   for (const tpl of site.templates) {
     expect(write(parse(tpl.doc))).toBe(tpl.doc);
@@ -332,7 +418,7 @@ test('the templates: real sites and Quick Links pages, every icon one the page c
   expect(out).not.toContain('site-edit');
 });
 
-test('a table\'s money in its column\'s currency, else the site\'s: the plumber\'s prices and the cottage\'s weeks in pounds', async () => {
+test("a table's money in its column's currency, else the site's: the plumber's prices and the cottage's weeks in pounds", async () => {
   const html = site.exports!.find((x) => x.ext === 'html')!;
   const page = async (id: string) => (await html.build(templates().find((t) => t.id === id)!.doc, { def: site, title: id, link: 'https://tinylittleoffice.com/#/v1/site/abc' })) as string;
   const trades = await page('trades');
@@ -346,10 +432,13 @@ test('a table\'s money in its column\'s currency, else the site\'s: the plumber\
   expect(shop).toContain('€3.00');
 });
 
-test('a shop\'s prices in the Price column\'s currency, else the site\'s: a code through Intl, never "GBP12.00"; a symbol before the price', () => {
+test("a shop's prices in the Price column's currency, else the site's: a code through Intl, never \"GBP12.00\"; a symbol before the price", () => {
   const gbp = '---\ncurrency: €\n---\n# Shop\n\nName | Price:money(GBP) | About | Image\n--- | --- | --- | ---\nMug | 12 |  |\nJug | 1200 |  |\n';
   const shop = readSite(parse(gbp)).sections[0].products;
-  expect(shop.map((p) => [p.name, p.price, p.currency])).toEqual([['Mug', 12, 'GBP'], ['Jug', 1200, 'GBP']]);
+  expect(shop.map((p) => [p.name, p.price, p.currency])).toEqual([
+    ['Mug', 12, 'GBP'],
+    ['Jug', 1200, 'GBP'],
+  ]);
   const pounds = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'GBP' });
   const html = page(gbp);
   expect(html).toContain(`<b class="price">${pounds.format(12)}</b>`);
@@ -382,7 +471,10 @@ test('words typed in the page, as ops: one text op on the block, the rest of a l
   // A button's words: its line, where it goes kept; a "|" typed is never a separator.
   expect(ops('2.1', 'label', [{ t: 'Where | when' }])).toContain('> See the menu | #menu\n> Where ¦ when | #find-us\n');
   // A big link's words and the line under them: marks alone, its link and icon kept.
-  const card = ops('3', 'head', [{ t: 'Roasted ', i: true }, { t: 'fresh', href: 'https://x.y' }]);
+  const card = ops('3', 'head', [
+    { t: 'Roasted ', i: true },
+    { t: 'fresh', href: 'https://x.y' },
+  ]);
   expect(card).toContain('- :coffee: *Roasted* fresh | Never more than a week old\n');
   expect(ops('3', 'detail', [{ t: 'Within the week' }])).toContain('- :coffee: Roasted daily | Within the week\n');
   // A small link on a Quick Links page.
@@ -409,7 +501,16 @@ test('words typed in the page, as ops: one text op on the block, the rest of a l
   const w = wordsOf(doc, site);
   expect(Object.keys(w).slice(0, 6)).toEqual(['0:0', '1:0', '2.0:label', '2.1:label', '3:head', '3:detail']);
   expect(w['3:head'].kind).toBe('marks');
-  expect(keptRuns([{ t: 'a', b: true }, { t: '', fn: 'n' }, { t: 'b\nc', href: 'x' }], 'plain')).toEqual([{ t: 'ab c' }]);
+  expect(
+    keptRuns(
+      [
+        { t: 'a', b: true },
+        { t: '', fn: 'n' },
+        { t: 'b\nc', href: 'x' },
+      ],
+      'plain',
+    ),
+  ).toEqual([{ t: 'ab c' }]);
 });
 
 test('every template is a whole site: a name, every card and button filled, every embed one the page can draw, the shops with things to sell', () => {
@@ -422,6 +523,10 @@ test('every template is a whole site: a name, every card and button filled, ever
       for (const b of [...sec.buttons, ...sec.socials]) expect(b.label && b.url !== '#', `${tpl.id}: ${b.label}`).toBeTruthy();
       for (const e of sec.embeds) expect('lang' in e ? !!appOf(e.lang) || e.lang === 'qr' || e.lang === 'sheet' : !!embedOf(e.web), `${tpl.id}: an embed`).toBe(true);
     }
-    if (/orders:/.test(tpl.doc)) expect(s.sections.some((x) => x.products.length), `${tpl.id}: a shop`).toBe(true);
+    if (/orders:/.test(tpl.doc))
+      expect(
+        s.sections.some((x) => x.products.length),
+        `${tpl.id}: a shop`,
+      ).toBe(true);
   }
 });

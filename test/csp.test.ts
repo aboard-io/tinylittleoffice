@@ -7,7 +7,12 @@ import { NETWORK, reaches, type Directive } from '../src/kit/network.ts';
 
 const raw = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
 const policy = (text: string) => /Content-Security-Policy: (.+)/.exec(text)![1];
-const directive = (csp: string, name: string) => csp.split(';').map((d) => d.trim().split(/\s+/)).find((d) => d[0] === name)!.slice(1);
+const directive = (csp: string, name: string) =>
+  csp
+    .split(';')
+    .map((d) => d.trim().split(/\s+/))
+    .find((d) => d[0] === name)!
+    .slice(1);
 const csp = policy(fillHeaders(raw, { scripts: ["'sha256-x'"], media: mediaSource(undefined) }));
 const PROXY = 'https://media.tinylittleoffice.com';
 
@@ -22,7 +27,12 @@ test('img-src: the site, data:, blob:, the proxy and the map’s tiles; no https
 test('every directive that reaches the web is the site, the proxy and the registry’s hosts for it, and nothing else', () => {
   const own: Record<Directive, string[]> = { img: ["'self'", 'data:', 'blob:', PROXY], connect: ["'self'", 'data:', PROXY], frame: ["'self'", 'about:', 'blob:'], media: [] };
   for (const d of Object.keys(own) as Directive[]) {
-    const want = [...own[d], ...reaches().filter((r) => r !== NETWORK.media && r.csp?.includes(d)).map((r) => (r.host === '*' ? 'https:' : `https://${r.host}`))];
+    const want = [
+      ...own[d],
+      ...reaches()
+        .filter((r) => r !== NETWORK.media && r.csp?.includes(d))
+        .map((r) => (r.host === '*' ? 'https:' : `https://${r.host}`)),
+    ];
     expect(directive(csp, `${d}-src`).sort(), d).toEqual([...new Set(want)].sort());
   }
   // Each host the registry allows by a directive is in that one, and in no directive none of its entries names.
@@ -31,7 +41,15 @@ test('every directive that reaches the web is the site, the proxy and the regist
     const named = reaches().filter((o) => o.host === r.host);
     for (const d of ['img', 'connect', 'frame', 'media'] as Directive[]) expect(sources(d).includes(`https://${r.host}`), `${r.host} ${d}`).toBe(named.some((o) => o.csp?.includes(d)));
   }
-  expect(directive(csp, 'connect-src')).toEqual(["'self'", 'data:', PROXY, 'https://nominatim.openstreetmap.org', 'https://tinier.tinylittleoffice.com', 'https://public.api.bsky.app', 'https://*.wikipedia.org']);
+  expect(directive(csp, 'connect-src')).toEqual([
+    "'self'",
+    'data:',
+    PROXY,
+    'https://nominatim.openstreetmap.org',
+    'https://tinier.tinylittleoffice.com',
+    'https://public.api.bsky.app',
+    'https://*.wikipedia.org',
+  ]);
   // A thing tapped can be a post on any Mastodon server, so a frame and a sound may come from any https address.
   expect(directive(csp, 'frame-src')).toContain('https:');
   expect(directive(csp, 'media-src')).toEqual(['https:']);

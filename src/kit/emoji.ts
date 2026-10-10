@@ -32,7 +32,10 @@ export function searchEmoji(query: string, limit = 180): string[] {
     });
     if (ok) hits.push([e.char, rank]);
   }
-  return hits.sort((a, b) => a[1] - b[1]).slice(0, limit).map(([c]) => c);
+  return hits
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, limit)
+    .map(([c]) => c);
 }
 
 /** Emoji for a completion, best first (icons-search.ts rankMatches over the name and the keywords, a keyword typed whole counting as a name). */

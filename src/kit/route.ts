@@ -54,7 +54,9 @@ const B64 = /^[A-Za-z0-9_~-]+$/;
 
 /** The owner's query, "s=<id>&k=<key>&o=<o>", read; null unless all three are there and well formed. */
 function parseOwned(q: URLSearchParams): Owned | null {
-  const id = q.get('s') ?? '', key = q.get('k') ?? '', o = q.get('o') ?? '';
+  const id = q.get('s') ?? '',
+    key = q.get('k') ?? '',
+    o = q.get('o') ?? '';
   return /^[a-z0-9]{7}$/.test(id) && B64.test(key) && B64.test(o) ? { id, key, o } : null;
 }
 
@@ -71,9 +73,20 @@ export function parseHash(hash: string): Route {
   const m = ROUTE.exec(hash);
   if (!m) return { app: null, payload: '', version: LINK_VERSION, view: '', owned: null, display: false, arrived: null, sealed: false };
   const q = new URLSearchParams((m[5] ?? '').replace(/\?/g, '&'));
-  const id = q.get('s') ?? '', x = q.get('x') ?? '';
+  const id = q.get('s') ?? '',
+    x = q.get('x') ?? '';
   const arrived = /^[a-z0-9]{7}$/.test(id) && /^\d{1,15}$/.test(x) ? { id, expires: Number(x) } : null;
-  return { app: m[2], payload: m[4] ?? '', version: parseInt(m[1], 10), view: m[3] ?? '', owned: parseOwned(q), display: q.has('d'), arrived, sealed: isSealed(m[4] ?? ''), ...(q.has('show') ? { show: true as const } : {}) };
+  return {
+    app: m[2],
+    payload: m[4] ?? '',
+    version: parseInt(m[1], 10),
+    view: m[3] ?? '',
+    owned: parseOwned(q),
+    display: q.has('d'),
+    arrived,
+    sealed: isSealed(m[4] ?? ''),
+    ...(q.has('show') ? { show: true as const } : {}),
+  };
 }
 
 /** The fragment for a document, optionally as a view; with `owned`, carrying the short link its owner may update; with `display`, the Display Link; with `arrived`, the short link it came by and when that expires. */

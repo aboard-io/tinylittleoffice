@@ -34,7 +34,24 @@
  * `move` (a family by the kernel's `placeFamily`) or the `text` ops that take it out of one list and put it
  * in another; a connection is a `splice` of an edge block; the kind is a `head` op.
  */
-import { apply, depthOf, escapeInline, family, isAtomic, isText, moveFamily, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import {
+  apply,
+  depthOf,
+  escapeInline,
+  family,
+  isAtomic,
+  isText,
+  moveFamily,
+  normalRuns,
+  placeFamily,
+  removeItem,
+  sliceRuns,
+  type Block,
+  type Dir,
+  type Doc,
+  type Op,
+  type Run,
+} from '../../doc/index.ts';
 
 export const KINDS = ['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net'] as const;
 export type KindId = (typeof KINDS)[number];
@@ -273,11 +290,7 @@ export const partFor = (l: Line, which: Which): Part | null => (which === 'all' 
  * What a shape of the picture was drawn from, so a tap there edits it: a line's words (or one thing of its
  * list, or its key), a lane by its name, a thing of a network that only its connections name, a connection.
  */
-export type Hit =
-  | { k: 'line'; at: number; part: Which }
-  | { k: 'lane'; name: string }
-  | { k: 'node'; name: string }
-  | { k: 'edge'; at: number };
+export type Hit = { k: 'line'; at: number; part: Which } | { k: 'lane'; name: string } | { k: 'node'; name: string } | { k: 'edge'; at: number };
 
 /* ---------- commands ---------- */
 
@@ -322,7 +335,11 @@ function appendTo(doc: Doc, l: Line): Draft {
 
 /** The venn line naming exactly these sets, in any order. */
 const naming = (lines: Line[], key: string) => {
-  const sorted = (k: string) => setNames(k).map((n) => n.toLowerCase()).sort().join('&');
+  const sorted = (k: string) =>
+    setNames(k)
+      .map((n) => n.toLowerCase())
+      .sort()
+      .join('&');
   return lines.find((l) => sorted(l.key ? l.key.src : l.words.src) === sorted(key));
 };
 
@@ -410,7 +427,14 @@ export function removeThing(doc: Doc, hit: Hit): Op[] {
 
 /** A thing of a network taken out: its own line (if it has one) and every connection to it, from the last block back. */
 function removeNamed(doc: Doc, name: string, at: number): Op[] {
-  const gone = [at, ...edgesOf(doc).filter((e) => same(e.from, name) || same(e.to, name)).map((e) => e.at)].filter((i) => i >= 0).sort((a, b) => b - a);
+  const gone = [
+    at,
+    ...edgesOf(doc)
+      .filter((e) => same(e.from, name) || same(e.to, name))
+      .map((e) => e.at),
+  ]
+    .filter((i) => i >= 0)
+    .sort((a, b) => b - a);
   return gone.map((i): Op => ({ op: 'splice', at: i, n: 1, blocks: [] }));
 }
 
@@ -615,7 +639,10 @@ export const lineHit = (kind: KindId, at: number): Hit => ({ k: 'line', at, part
 export function thingBlocks(doc: Doc, hit: Hit): Block[] {
   if (hit.k === 'edge') return doc.blocks[hit.at]?.k === 'edge' ? [doc.blocks[hit.at]] : [];
   if (hit.k === 'node') return hit.name ? [li(0, [{ t: hit.name }])] : [];
-  if (hit.k === 'lane') return linesOf(doc).filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase()).map((l) => doc.blocks[l.at]);
+  if (hit.k === 'lane')
+    return linesOf(doc)
+      .filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase())
+      .map((l) => doc.blocks[l.at]);
   const b = doc.blocks[hit.at];
   if (!b || b.k !== 'li') return [];
   if (typeof hit.part === 'number') {
@@ -657,7 +684,11 @@ export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[], beside =
     // At a tree's root, under it (as Enter there makes a branch); at anything else, beside it.
     if (line && isTree(kind)) [to, depth] = [family(doc, at), line.depth === 0 && !beside ? 1 : line.depth];
     else if (line) to = at + 1;
-    else if (hit?.k === 'lane') to = (linesOf(doc).filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase()).at(-1)?.at ?? afterLines(doc) - 1) + 1;
+    else if (hit?.k === 'lane')
+      to =
+        (linesOf(doc)
+          .filter((l) => (l.key?.words ?? '').toLowerCase() === hit.name.toLowerCase())
+          .at(-1)?.at ?? afterLines(doc) - 1) + 1;
     else if (isTree(kind) && root) [to, depth] = [family(doc, root.at), 1];
     else to = afterLines(doc);
     const low = Math.min(...lis.map((b) => b.depth));

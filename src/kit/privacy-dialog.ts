@@ -22,7 +22,27 @@ import { toast } from './toast.ts';
 import { copyText } from './share.ts';
 import { saveFile } from './exports.ts';
 import { zip } from './zip.ts';
-import { everything, exportKey, forgetDocuments, forgetEverything, forgetKey, forgetLinks, forgetOffline, forgetPrefs, holdings, importKey, keeping, lockWith, onPrivacy, remember, signerName, signText, unlock, type Holdings, type Signature } from './privacy.ts';
+import {
+  everything,
+  exportKey,
+  forgetDocuments,
+  forgetEverything,
+  forgetKey,
+  forgetLinks,
+  forgetOffline,
+  forgetPrefs,
+  holdings,
+  importKey,
+  keeping,
+  lockWith,
+  onPrivacy,
+  remember,
+  signerName,
+  signText,
+  unlock,
+  type Holdings,
+  type Signature,
+} from './privacy.ts';
 import type { Locker } from './crypt.ts';
 import { generatePassword } from './passwords.ts';
 import { unlockForm } from './locked-doc.ts';
@@ -40,10 +60,8 @@ export function signatureWords(sig: Signature, sealed = false): string {
 }
 
 /** How a signature's state is drawn: green when it holds, red when it was checked and does not, grey otherwise. */
-export const signatureTone = (sig: Signature): string =>
-  sig.state === 'valid' ? 'signed' : sig.state === 'none' || sig.state === 'unchecked' ? 'quiet' : 'mismatch';
-export const signatureIcon = (sig: Signature) =>
-  sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : sig.state === 'unchecked' ? UI.unchecked : UI.mismatch;
+export const signatureTone = (sig: Signature): string => (sig.state === 'valid' ? 'signed' : sig.state === 'none' || sig.state === 'unchecked' ? 'quiet' : 'mismatch');
+export const signatureIcon = (sig: Signature) => (sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : sig.state === 'unchecked' ? UI.unchecked : UI.mismatch);
 /** Why a signature could not be checked, said beside it. */
 export const uncheckedHint = () => t('This browser cannot check this kind of signature');
 
@@ -57,7 +75,15 @@ export function trustButton(sig: Signature, sealed: boolean, locked: boolean, op
   const tone = sealed ? 'locked' : signatureTone(sig);
   const words = signatureWords(sig, sealed);
   const where = keeping() ? t('Saved on this device') : t('Private');
-  const tip = [words, sig.state === 'unchecked' && !sealed ? uncheckedHint() : '', sig.fingerprint && !sealed ? t('Key {fp}', { fp: sig.fingerprint }) : '', locked ? t('Protected by a password') : '', where].filter(Boolean).join(' · ');
+  const tip = [
+    words,
+    sig.state === 'unchecked' && !sealed ? uncheckedHint() : '',
+    sig.fingerprint && !sealed ? t('Key {fp}', { fp: sig.fingerprint }) : '',
+    locked ? t('Protected by a password') : '',
+    where,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return html`<button type="button" class="to-btn to-trust ${tone}" aria-haspopup="dialog" aria-label=${tip} title=${tip} @click=${open}>
     ${locked && !sealed ? icon(UI.lock, 16, 'to-trust-lock') : nothing}${icon(sealed ? UI.lock : signatureIcon(sig), 18)}<span class="to-trust-words">${words}</span>
   </button>`;
@@ -287,17 +313,21 @@ export class ToPrivacy extends LitElement {
         <button type="button" class="to-btn to-key-import" aria-pressed=${String(this.keyMode === 'import')} @click=${() => ((this.keyMode = this.keyMode === 'import' ? '' : 'import'), (this.keyText = ''))}>${icon(UI.upload, 16)}<span>${t('Import key')}</span></button>
         ${held.key ? html`<button type="button" class="to-btn to-key-forget" @click=${() => this.forgetKey()}>${icon(UI.trash, 16)}<span>${t('Forget key')}</span></button>` : nothing}
       </div>
-      ${this.keyMode === 'export'
-        ? html`<label class="to-privacy-keytext"><span>${t('Your key, as text: keep it secret, it signs as you')}</span><textarea class="to-key-text" readonly rows="4" .value=${this.keyText} @focus=${(e: Event) => (e.target as HTMLTextAreaElement).select()}></textarea></label>
+      ${
+        this.keyMode === 'export'
+          ? html`<label class="to-privacy-keytext"><span>${t('Your key, as text: keep it secret, it signs as you')}</span><textarea class="to-key-text" readonly rows="4" .value=${this.keyText} @focus=${(e: Event) => (e.target as HTMLTextAreaElement).select()}></textarea></label>
             <button type="button" class="to-btn to-key-copy" @click=${() => void copyText(this.keyText, t('Key copied'))}>${icon(UI.copy, 16)}<span>${t('Copy')}</span></button>`
-        : nothing}
-      ${this.keyMode === 'import'
-        ? html`<label class="to-privacy-keytext"><span>${t('Paste a key exported from another device')}</span><textarea class="to-key-text" rows="4" .value=${this.keyText} @input=${(e: Event) => (this.keyText = (e.target as HTMLTextAreaElement).value)}></textarea></label>
+          : nothing
+      }
+      ${
+        this.keyMode === 'import'
+          ? html`<label class="to-privacy-keytext"><span>${t('Paste a key exported from another device')}</span><textarea class="to-key-text" rows="4" .value=${this.keyText} @input=${(e: Event) => (this.keyText = (e.target as HTMLTextAreaElement).value)}></textarea></label>
             <div class="to-row">
               <button type="button" class="to-btn primary to-key-use" ?disabled=${!this.keyText.trim()} @click=${() => void this.importKey()}>${icon(UI.key, 16)}<span>${t('Use this key')}</span></button>
               <label class="to-btn to-key-file">${icon(UI.upload, 16)}<span>${t('From a file…')}</span><input type="file" accept=".json,application/json,text/plain" class="sr-only" @change=${(e: Event) => void this.importFile(e)} /></label>
             </div>`
-        : nothing}
+          : nothing
+      }
     </section>`;
   }
 

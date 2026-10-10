@@ -43,7 +43,11 @@ test('a sealed link on a phone: the unlock dialog inside 390px, a wrong password
   expect(pill.width).toBeGreaterThanOrEqual(44);
   const header = await page.evaluate(() => {
     const h = document.querySelector<HTMLElement>('.to-header')!;
-    return { tops: new Set([...h.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round(el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2))).size, right: Math.max(...[...h.children].map((el) => el.getBoundingClientRect().right)), wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return {
+      tops: new Set([...h.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round(el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2))).size,
+      right: Math.max(...[...h.children].map((el) => el.getBoundingClientRect().right)),
+      wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
   });
   expect(header.tops).toBe(1);
   expect(header.right).toBeLessThanOrEqual(390);

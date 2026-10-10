@@ -290,7 +290,7 @@ test('on the schedule a tap on a bar opens its task, with how far along it is; I
   expect(last()).toContain('  - [x] 2027-03-01 to 2027-03-02: Sketch\n  - 2027-03-03 to 2027-03-05: Review\n  - 2027-03-03');
 });
 
-test('at phone width: the bar is one row, nothing is wider than the screen, the dialog\'s fields are 16px and typing never scrolls the page', async () => {
+test("at phone width: the bar is one row, nothing is wider than the screen, the dialog's fields are 16px and typing never scrolls the page", async () => {
   await page.viewport(390, 844);
   try {
     const { el } = await editor();
@@ -340,7 +340,7 @@ test('at phone width: the bar is one row, nothing is wider than the screen, the 
 const G = '---\nview: gantt\n---\n';
 const BUILD = '- 2027-03-08 to 2027-03-10: Build\n';
 
-test('the bar ends with the kit\'s Undo and Redo; the month, its list and the tasks never zoom on a double tap, the grid pans only up and down', async () => {
+test("the bar ends with the kit's Undo and Redo; the month, its list and the tasks never zoom on a double tap, the grid pans only up and down", async () => {
   const { el } = await editor();
   const tools = [...el.querySelectorAll<HTMLButtonElement>('to-bar.cal-bar button')].filter((b) => b.closest('to-bar') === el.querySelector('to-bar.cal-bar') && !b.closest('[popover]'));
   expect(tools.slice(-2).map((b) => b.getAttribute('aria-label'))).toEqual(['Undo', 'Redo']);
@@ -351,7 +351,7 @@ test('the bar ends with the kit\'s Undo and Redo; the month, its list and the ta
   expect(getComputedStyle(plan.el.querySelector('.cal-grip')!).touchAction).toBe('none');
 });
 
-test('Mod+Z with the dialog open is the field\'s: the calendar underneath is not undone and the draft stays', async () => {
+test("Mod+Z with the dialog open is the field's: the calendar underneath is not undone and the draft stays", async () => {
   const { el, changes } = await editor();
   const launch = cell(el, '2027-03-01').querySelector<HTMLButtonElement>('.cal-chip')!;
   launch.focus();
@@ -492,7 +492,7 @@ test('an entry is copied and cut as TLO and our HTML; a paste onto a day lands t
   expect(last()).toContain('- 2027-03-21: Picnic\n');
 });
 
-test('a task\'s words are typed in place, one undo a burst; Enter at the end makes the next task, in the middle splits; Backspace joins, and takes an empty task away', async () => {
+test("a task's words are typed in place, one undo a burst; Enter at the end makes the next task, in the middle splits; Backspace joins, and takes an empty task away", async () => {
   const { el, last } = await editor(PLAN);
   let tx = await caretAt(el, 3, 5);
   await input(el, tx, 'insertText', 'e');
@@ -517,7 +517,7 @@ test('a task\'s words are typed in place, one undo a burst; Enter at the end mak
   expect(words(el, 0).sel?.focus.offset).toBe(3);
 });
 
-test('keys in a task\'s words: Tab nests it, Alt+arrows move it (the caret kept, an undo puts it back), the arrows go between tasks, Mod+D, Mod+Enter ticks, Mod+Alt+arrows move it a day', async () => {
+test("keys in a task's words: Tab nests it, Alt+arrows move it (the caret kept, an undo puts it back), the arrows go between tasks, Mod+D, Mod+Enter ticks, Mod+Alt+arrows move it a day", async () => {
   const { el, last } = await editor(PLAN);
   let tx = await caretAt(el, 3, 2);
   await key(el, tx, 'Tab');
@@ -555,7 +555,7 @@ test('keys in a task\'s words: Tab nests it, Alt+arrows move it (the caret kept,
   await until(() => words(el, 3).hasFocus());
 });
 
-test('a tap on a task\'s grip chooses it with its parts; the bar under it in the standard\'s order; its keys and buttons act on the chosen tasks, and an undo chooses them again', async () => {
+test("a tap on a task's grip chooses it with its parts; the bar under it in the standard's order; its keys and buttons act on the chosen tasks, and an undo chooses them again", async () => {
   const { el, last } = await editor(PLAN);
   trow(el, 0).querySelector<HTMLButtonElement>('.cal-grip')!.click();
   await settle(el);
@@ -601,7 +601,7 @@ test('a tap on a task\'s grip chooses it with its parts; the bar under it in the
   expect(ranged(el)).toEqual([0, 1, 2, 3, 4]);
 });
 
-test('chosen tasks are copied, cut and pasted as TLO and our HTML; lines pasted into a task\'s words are tasks after it', async () => {
+test("chosen tasks are copied, cut and pasted as TLO and our HTML; lines pasted into a task's words are tasks after it", async () => {
   const { el, last } = await editor(PLAN);
   const box = el.querySelector<HTMLElement>('.cal-tasks')!;
   trow(el, 1).querySelector<HTMLButtonElement>('.cal-grip')!.click();
@@ -625,7 +625,8 @@ test('a task carried by its grip (pointer events) goes under another; the tick o
   const grip = trow(el, 3).querySelector<HTMLElement>('.cal-grip')!;
   const h = grip.getBoundingClientRect();
   const d = trow(el, 0).getBoundingClientRect();
-  const at = (type: string, x: number, y: number) => grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  const at = (type: string, x: number, y: number) =>
+    grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
   at('pointerdown', h.left + 4, h.top + 4);
   at('pointermove', d.right - 10, d.top + d.height / 2);
   await settle(el);
@@ -648,7 +649,7 @@ test('a task carried by its grip (pointer events) goes under another; the tick o
   expect(trow(el, 0).querySelector('.cal-tick')).toBeNull();
 });
 
-test('the What field is one line: Markdown markers typed there stay words, and a footnote in an entry\'s words goes round the dialog unchanged', async () => {
+test("the What field is one line: Markdown markers typed there stay words, and a footnote in an entry's words goes round the dialog unchanged", async () => {
   const { el, last } = await editor();
   cell(el, '2027-03-05').click();
   await settle(el);
@@ -667,7 +668,7 @@ test('the What field is one line: Markdown markers typed there stay words, and a
   expect(n.last()).toBe(noted);
 });
 
-test('§1 opens with the focus on today\'s day, else the shown month\'s first; a Gantt chart in its first task\'s words; the page not scrolled', async () => {
+test("§1 opens with the focus on today's day, else the shown month's first; a Gantt chart in its first task's words; the page not scrolled", async () => {
   const { el: blank } = await editor('');
   await settle(blank);
   await blank.focusFirst();

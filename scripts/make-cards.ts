@@ -27,8 +27,16 @@ const ACCENT = '#4f46e5';
 
 /** An icon (Lucide's node) as an inline SVG. */
 const iconSvg = (node: AppDef['icon'], size: number, colour: string) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${colour}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${node.map(([tag, a]) => `<${tag} ${Object.entries(a).map(([k, v]) => `${k}="${xml(String(v))}"`).join(' ')}/>`).join('')}</svg>`;
-const markSvg = (size: number) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${markPaths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${colour}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${node
+    .map(
+      ([tag, a]) =>
+        `<${tag} ${Object.entries(a)
+          .map(([k, v]) => `${k}="${xml(String(v))}"`)
+          .join(' ')}/>`,
+    )
+    .join('')}</svg>`;
+const markSvg = (size: number) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${markPaths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
 
 /** The page a card shows: the first template's first page that is more than a blank one. */
 function pageOf(def: AppDef) {
@@ -66,7 +74,11 @@ async function main() {
     await tab.screenshot({ path: join(out, `${def.id}.png`), type: 'png' });
   }
   await browser.close();
-  console.log(`cards: ${apps().map((a) => `og/${a.id}.png`).join(', ')}`);
+  console.log(
+    `cards: ${apps()
+      .map((a) => `og/${a.id}.png`)
+      .join(', ')}`,
+  );
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

@@ -12,7 +12,7 @@ const keeps = (d: Doc, text: string) => {
   expect(write(parse(text))).toBe(text);
 };
 
-test('a space at a line\'s end or start is written escaped, and kept', () => {
+test("a space at a line's end or start is written escaped, and kept", () => {
   keeps(doc(p('One. ')), 'One.\\ \n');
   keeps(doc(p('One. One. One. ')), 'One. One. One.\\ \n');
   keeps(doc(p(' One.')), '\\ One.\n');
@@ -26,7 +26,7 @@ test('a space at a line\'s end or start is written escaped, and kept', () => {
   keeps(doc(p('a \n b')), 'a\\ \n\\ b\n');
 });
 
-test('a line break at a block\'s end, and an empty line inside one, are a line of one backslash', () => {
+test("a line break at a block's end, and an empty line inside one, are a line of one backslash", () => {
   keeps(doc(p('a\n')), 'a\n\\\n');
   keeps(doc(p('a\n\nb')), 'a\n\\\nb\n');
   keeps(doc(p('a\n\n')), 'a\n\\\n\\\n');
@@ -44,10 +44,23 @@ test('a heading, an item, a quote and a table cell keep the spaces at their ends
   keeps(doc({ k: 'quote', runs: [{ t: 'a\n' }], a: { id: 'q' } }), '> a\n> \\ {#q}\n');
   // A quote's empty line between two is ">" as it always was.
   keeps(doc({ k: 'quote', runs: [{ t: 'a\n\nb' }] }), '> a\n>\n> b\n');
-  keeps(doc({ k: 'table', cols: [{ name: 'A', type: 'text' }, { name: 'B', type: 'text' }], rows: [[' ', 'x '], [' y', '']] }), 'A | B\n--- | ---\n\\  | x\\ \n\\ y |\n');
+  keeps(
+    doc({
+      k: 'table',
+      cols: [
+        { name: 'A', type: 'text' },
+        { name: 'B', type: 'text' },
+      ],
+      rows: [
+        [' ', 'x '],
+        [' y', ''],
+      ],
+    }),
+    'A | B\n--- | ---\n\\  | x\\ \n\\ y |\n',
+  );
 });
 
-test('the space after an escape is the only one kept: plain spaces at a line\'s end are trimmed as ever', () => {
+test("the space after an escape is the only one kept: plain spaces at a line's end are trimmed as ever", () => {
   expect(parse('a  \n').blocks[0]).toStrictEqual(p('a'));
   expect(parse('a\\\\ \n').blocks[0]).toStrictEqual(p('a\\'));
   expect(parse('a \\  \n').blocks[0]).toStrictEqual(p('a  '));
@@ -60,7 +73,6 @@ test('the space after an escape is the only one kept: plain spaces at a line\'s 
   expect(parse(write(doc({ k: 'p', runs: linked })))).toStrictEqual(doc({ k: 'p', runs: [{ t: 'a', href: 'https://x.y/' }, { t: ' ' }] }));
 });
 
-test('a document with no space at a line\'s end writes exactly as it did', () => {
-  for (const text of ['Words\n', '# Title {.title}\n\nOne\ntwo\n', '- a\n  - b\n', '> a\n>\n> b\n', 'A | B\n--- | ---\n1 | 2\n', '<br>\n', '#\n', '-\n'])
-    expect(write(parse(text))).toBe(text);
+test("a document with no space at a line's end writes exactly as it did", () => {
+  for (const text of ['Words\n', '# Title {.title}\n\nOne\ntwo\n', '- a\n  - b\n', '> a\n>\n> b\n', 'A | B\n--- | ---\n1 | 2\n', '<br>\n', '#\n', '-\n']) expect(write(parse(text))).toBe(text);
 });

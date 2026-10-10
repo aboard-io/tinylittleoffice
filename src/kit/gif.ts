@@ -34,12 +34,19 @@ export function quantize(data: Uint8ClampedArray | Uint8Array): { palette: Uint8
   const boxes: number[][] = [colors];
   const chan = (c: number, k: number) => (c >> (16 - 8 * k)) & 255;
   while (boxes.length < limit) {
-    let best = -1, bestAxis = 0, bestRange = 0;
+    let best = -1,
+      bestAxis = 0,
+      bestRange = 0;
     boxes.forEach((box, i) => {
       if (box.length < 2) return;
       for (let k = 0; k < 3; k++) {
-        let lo = 255, hi = 0;
-        for (const c of box) { const v = chan(c, k); if (v < lo) lo = v; if (v > hi) hi = v; }
+        let lo = 255,
+          hi = 0;
+        for (const c of box) {
+          const v = chan(c, k);
+          if (v < lo) lo = v;
+          if (v > hi) hi = v;
+        }
         if (hi - lo > bestRange) [best, bestAxis, bestRange] = [i, k, hi - lo];
       }
     });
@@ -53,14 +60,26 @@ export function quantize(data: Uint8ClampedArray | Uint8Array): { palette: Uint8
   // Each box becomes its weighted average colour.
   const palette = new Uint8Array(boxes.length * 3);
   boxes.forEach((box, i) => {
-    let r = 0, g = 0, b = 0, n = 0;
-    for (const c of box) { const w = counts.get(c)!; r += chan(c, 0) * w; g += chan(c, 1) * w; b += chan(c, 2) * w; n += w; }
+    let r = 0,
+      g = 0,
+      b = 0,
+      n = 0;
+    for (const c of box) {
+      const w = counts.get(c)!;
+      r += chan(c, 0) * w;
+      g += chan(c, 1) * w;
+      b += chan(c, 2) * w;
+      n += w;
+    }
     if (n) palette.set([Math.round(r / n), Math.round(g / n), Math.round(b / n)], i * 3);
   });
   const indices = new Uint8Array(data.length / 4);
   const lookup = new Map<number, number>();
   for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-    if (data[i + 3] < 128) { indices[p] = boxes.length; continue; }
+    if (data[i + 3] < 128) {
+      indices[p] = boxes.length;
+      continue;
+    }
     const c = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
     let idx = lookup.get(c);
     if (idx === undefined) lookup.set(c, (idx = nearest(palette, data[i], data[i + 1], data[i + 2])));
@@ -70,7 +89,8 @@ export function quantize(data: Uint8ClampedArray | Uint8Array): { palette: Uint8
 }
 
 function nearest(palette: Uint8Array, r: number, g: number, b: number): number {
-  let best = 0, bestD = Infinity;
+  let best = 0,
+    bestD = Infinity;
   for (let i = 0; i < palette.length; i += 3) {
     const d = (palette[i] - r) ** 2 + (palette[i + 1] - g) ** 2 + (palette[i + 2] - b) ** 2;
     if (d < bestD) [best, bestD] = [i / 3, d];
@@ -81,9 +101,12 @@ function nearest(palette: Uint8Array, r: number, g: number, b: number): number {
 /** LZW as GIF wants it: variable code size, clear codes, 12 bits at most. */
 function lzw(indices: Uint8Array, minCodeSize: number): number[] {
   const out: number[] = [];
-  let acc = 0, nbits = 0;
-  const clear = 1 << minCodeSize, eoi = clear + 1;
-  let codeSize = minCodeSize + 1, next = eoi + 1;
+  let acc = 0,
+    nbits = 0;
+  const clear = 1 << minCodeSize,
+    eoi = clear + 1;
+  let codeSize = minCodeSize + 1,
+    next = eoi + 1;
   const emit = (code: number) => {
     acc |= code << nbits;
     nbits += codeSize;
@@ -95,7 +118,10 @@ function lzw(indices: Uint8Array, minCodeSize: number): number[] {
   for (let i = 1; i < indices.length; i++) {
     const key = (prefix << 8) | indices[i];
     const found = dict.get(key);
-    if (found !== undefined) { prefix = found; continue; }
+    if (found !== undefined) {
+      prefix = found;
+      continue;
+    }
     emit(prefix);
     if (next === 4096) {
       emit(clear);
@@ -141,7 +167,10 @@ export function encodeGif(width: number, height: number, frames: GifFrame[], opt
     out.push(transparent ? colors : 0, 0);
     // Image descriptor with a local colour table, padded to a power of two.
     out.push(0x2c);
-    u16(0); u16(0); u16(width); u16(height);
+    u16(0);
+    u16(0);
+    u16(width);
+    u16(height);
     out.push(0x80 | (bits - 1));
     const table = new Uint8Array(3 << bits);
     table.set(palette);

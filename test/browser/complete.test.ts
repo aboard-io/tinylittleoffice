@@ -166,7 +166,7 @@ test('moving the caret away closes the list; a tap on a row picks it', async () 
   expect(h.tlo).toBe('Go :cat:\n');
 });
 
-test('marks-only (a shape\'s label) and no-bubble (plain words): only emoji are offered, and a pick puts the character in', async () => {
+test("marks-only (a shape's label) and no-bubble (plain words): only emoji are offered, and a pick puts the character in", async () => {
   const h = await mount('Go\n', { marksOnly: true, shape: 'line' });
   await userEvent.keyboard(' :car');
   await until(() => labels().includes('🚗'), 8000);

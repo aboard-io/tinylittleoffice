@@ -100,7 +100,10 @@ function bigOf(doc: Doc, at: number, t: Table, values: CellValue[][], named: Map
   if (!rc) return null;
   const [r, c] = rc;
   const nameCol = t.cols.findIndex((x) => x.type === 'name');
-  return { label: named.has(nameKey(want)) ? (t.rows[r]?.[nameCol] ?? want) : refLabel(t, r, c, want), value: formatCell(values[r]?.[c] ?? null, t.cols[c]?.type, t.cols[c]?.currency || doc.head.currency) };
+  return {
+    label: named.has(nameKey(want)) ? (t.rows[r]?.[nameCol] ?? want) : refLabel(t, r, c, want),
+    value: formatCell(values[r]?.[c] ?? null, t.cols[c]?.type, t.cols[c]?.currency || doc.head.currency),
+  };
 }
 
 /** What a headline given by reference is called: its column's name and the words its row starts with ("Raised so far, Oct 26"), or the reference where the column goes by its letter. */
@@ -137,7 +140,8 @@ class Builder {
 
 /** The document given a table if it has none (three letter-named text columns), and columns out to `cols` where a command needs them. */
 function ensure(b: Builder, cols = 0): Builder {
-  if (b.at < 0) b.push({ op: 'splice', at: b.doc.blocks.length, n: 0, blocks: [{ k: 'table', cols: Array.from({ length: Math.max(MIN_COLS, Math.min(MAX_COLS, cols)) }, (_, c) => col(c)), rows: [] }] });
+  if (b.at < 0)
+    b.push({ op: 'splice', at: b.doc.blocks.length, n: 0, blocks: [{ k: 'table', cols: Array.from({ length: Math.max(MIN_COLS, Math.min(MAX_COLS, cols)) }, (_, c) => col(c)), rows: [] }] });
   const have = b.table.cols.length;
   if (cols > have) b.push({ op: 'cols', at: b.at, c: have, n: 0, cols: Array.from({ length: Math.min(MAX_COLS, cols) - have }, (_, i) => col(have + i)) });
   return b;

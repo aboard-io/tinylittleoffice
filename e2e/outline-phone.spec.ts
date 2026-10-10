@@ -18,7 +18,13 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-outline-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return {
+        bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+        rows: tops.size,
+        pageTop: document.scrollingElement!.scrollTop,
+        zoom: window.visualViewport?.scale ?? 1,
+        wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
     });
   const first = await measure();
   await row(-1).tap();
@@ -63,7 +69,11 @@ test('outline: on a phone, typing items neither scrolls the page nor moves the b
   expect(last.zoom).toBe(1);
   expect(last.wide).toBeLessThanOrEqual(0);
   // Every box a finger may land in is 16px or more, so Safari has no reason to zoom in.
-  const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('to-outline-editor .tx, to-outline-editor input')].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`));
+  const small = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('to-outline-editor .tx, to-outline-editor input')]
+      .filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16)
+      .map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`),
+  );
   expect(small).toEqual([]);
   // A bullet's menu opens inside the screen and Escape closes it; the caret is back in the row's words (the bullet never takes the focus).
   const bullet = page.locator('.ol-row[data-at="2"] button.ol-kind');
@@ -107,7 +117,9 @@ test('outline: on a phone, a tap on a row’s handle chooses it whole; the bar u
   expect(errors).toEqual([]);
 });
 
-test('outline: on a phone, a finger drags a row by its handle (pointer events, not a long press) onto another; the handle is 44px to the finger and alone stops the page panning', async ({ page }, info) => {
+test('outline: on a phone, a finger drags a row by its handle (pointer events, not a long press) onto another; the handle is 44px to the finger and alone stops the page panning', async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -138,7 +150,8 @@ test('outline: on a phone, a finger drags a row by its handle (pointer events, n
     const h = document.querySelector<HTMLElement>('.ol-row[data-at="0"] .ol-handle')!;
     const c = document.querySelector<HTMLElement>('.ol-row[data-at="2"]')!.getBoundingClientRect();
     const r = h.getBoundingClientRect();
-    const fire = (type: string, x: number, y: number) => h.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 11, isPrimary: true, button: 0, pointerType: 'touch', clientX: x, clientY: y }));
+    const fire = (type: string, x: number, y: number) =>
+      h.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 11, isPrimary: true, button: 0, pointerType: 'touch', clientX: x, clientY: y }));
     fire('pointerdown', r.left + r.width / 2, r.top + r.height / 2);
     fire('pointermove', r.left + r.width / 2, r.top + r.height / 2 + 10);
     fire('pointermove', c.left + 60, c.top + c.height / 2);
@@ -148,7 +161,9 @@ test('outline: on a phone, a finger drags a row by its handle (pointer events, n
   await page.evaluate(() => {
     const h = document.querySelector<HTMLElement>('.ol-row[data-at="0"] .ol-handle')!;
     const c = document.querySelector<HTMLElement>('.ol-row[data-at="2"]')!.getBoundingClientRect();
-    h.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 11, isPrimary: true, button: 0, pointerType: 'touch', clientX: c.left + 60, clientY: c.top + c.height / 2 }));
+    h.dispatchEvent(
+      new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 11, isPrimary: true, button: 0, pointerType: 'touch', clientX: c.left + 60, clientY: c.top + c.height / 2 }),
+    );
   });
   await expect.poll(() => page.locator('to-outline-editor').evaluate((el) => (el as HTMLElement & { value: string }).value)).toBe('- B\n- C\n- A\n');
   await expect(page.locator('.to-rows-target')).toHaveCount(0);

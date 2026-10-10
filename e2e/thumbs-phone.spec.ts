@@ -40,7 +40,13 @@ test('the templates list and the kept documents draw a wide document wide', asyn
     await expect(page).toHaveURL(/#\/v1\/\w+\//);
     // The editor settles the link (its name, its place in the library) before the page goes home.
     await expect(page.locator('.to-title')).toBeVisible();
-    await expect.poll(async () => { const was = page.url(); await page.waitForTimeout(300); return page.url() === was; }).toBe(true);
+    await expect
+      .poll(async () => {
+        const was = page.url();
+        await page.waitForTimeout(300);
+        return page.url() === was;
+      })
+      .toBe(true);
     kept.push({ app, hash: new URL(page.url()).hash });
     await page.goto('/');
   }

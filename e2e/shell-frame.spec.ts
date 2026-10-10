@@ -20,7 +20,13 @@ test('phone: the paper edge to edge, the column scrolls under the header and the
   await page.goto(`/#/v1/write/${encodeDoc(LONG)}`);
   const paper = page.locator('.write-page');
   await expect(paper).toBeVisible();
-  const p = await paper.evaluate((el) => ({ left: el.getBoundingClientRect().left, width: el.getBoundingClientRect().width, border: getComputedStyle(el).borderLeftWidth, radius: getComputedStyle(el).borderTopLeftRadius, shadow: getComputedStyle(el).boxShadow }));
+  const p = await paper.evaluate((el) => ({
+    left: el.getBoundingClientRect().left,
+    width: el.getBoundingClientRect().width,
+    border: getComputedStyle(el).borderLeftWidth,
+    radius: getComputedStyle(el).borderTopLeftRadius,
+    shadow: getComputedStyle(el).boxShadow,
+  }));
   expect(p.left).toBe(0);
   expect(p.width).toBe(390);
   expect(p.border).toBe('0px');
@@ -67,7 +73,12 @@ test('phone: the paper edge to edge, the column scrolls under the header and the
   const scale = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize) / 16);
   expect(Math.round(f.height / scale)).toBe(44);
   expect(f.width).toBeGreaterThan(340);
-  expect(await field.evaluate((el: HTMLInputElement) => [Math.round(parseFloat(getComputedStyle(el).fontSize) / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), el.value.slice(el.selectionStart!, el.selectionEnd!) === el.value])).toEqual([20, true]);
+  expect(
+    await field.evaluate((el: HTMLInputElement) => [
+      Math.round(parseFloat(getComputedStyle(el).fontSize) / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+      el.value.slice(el.selectionStart!, el.selectionEnd!) === el.value,
+    ]),
+  ).toEqual([20, true]);
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   await page.keyboard.type('Notes');
   await page.keyboard.press('Enter');
@@ -101,7 +112,14 @@ test('desktop: a five-stage board at 1280 is never clipped by the main; its last
     const main = document.querySelector('.to-main')!.getBoundingClientRect();
     const board = document.querySelector<HTMLElement>('.board')!;
     const last = [...document.querySelectorAll('.board-col')].at(-1)!.getBoundingClientRect();
-    return { main: [main.left, main.width], board: [board.getBoundingClientRect().left, board.getBoundingClientRect().right], scrolls: board.scrollWidth > board.clientWidth, overflow: getComputedStyle(board).overflowX, last: [last.left, last.right], page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return {
+      main: [main.left, main.width],
+      board: [board.getBoundingClientRect().left, board.getBoundingClientRect().right],
+      scrolls: board.scrollWidth > board.clientWidth,
+      overflow: getComputedStyle(board).overflowX,
+      last: [last.left, last.right],
+      page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
   });
   // The editor's main is the window's width.
   expect(m.main).toEqual([0, 1280]);

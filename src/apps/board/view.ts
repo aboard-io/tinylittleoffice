@@ -18,7 +18,14 @@ function cardSvg(c: Card, x: number, y: number, hex: string): { svg: string; h: 
   const lines = wrapText(c.words, COL - 40, 14).slice(0, 4);
   const done = progress(c);
   const h = lines.length * 19 + 18 + (done ? 16 : 0);
-  return { h, svg: rect(x, y, COL - 16, h, PAPER, `rx="6" stroke="${LINE}"`) + rect(x, y, COL - 16, 3, hex, 'rx="1.5"') + lines.map((l, k) => text(x + 12, y + 22 + k * 19, l, { px: 14 })).join('') + (done ? text(x + 12, y + h - 8, `☑ ${done}`, { px: 12, fill: MUTED }) : '') };
+  return {
+    h,
+    svg:
+      rect(x, y, COL - 16, h, PAPER, `rx="6" stroke="${LINE}"`) +
+      rect(x, y, COL - 16, 3, hex, 'rx="1.5"') +
+      lines.map((l, k) => text(x + 12, y + 22 + k * 19, l, { px: 14 })).join('') +
+      (done ? text(x + 12, y + h - 8, `☑ ${done}`, { px: 12, fill: MUTED }) : ''),
+  };
 }
 
 /** The board with its stages as bands, one under another, each card a sheet across it, wrapping. */
@@ -30,7 +37,8 @@ function rowsPage(stages: Stage[], max: number): Page {
   for (const s of stages) {
     const top = y;
     const hex = STAGE_COLORS[s.hue].hex;
-    let body = text(36, y + 26, clip(s.name, w - 140, 15, true), { px: 15, bold: true }) + text(w - 36, y + 26, `${s.cards.length}${s.limit ? ' / ' + s.limit : ''}`, { px: 13, fill: MUTED, anchor: 'end' });
+    let body =
+      text(36, y + 26, clip(s.name, w - 140, 15, true), { px: 15, bold: true }) + text(w - 36, y + 26, `${s.cards.length}${s.limit ? ' / ' + s.limit : ''}`, { px: 13, fill: MUTED, anchor: 'end' });
     let line = 0;
     let row = y + 40;
     s.cards.forEach((c, k) => {
@@ -81,7 +89,12 @@ export function boardPage(doc: Doc, max = Infinity, thumb = false): Page {
       y += made.h + 8;
     }
     tall = Math.max(tall, y);
-    svg += `<g data-col="${i}">` + text(left + 12, 46, clip(s.name, COL - 80, 15, true), { px: 15, bold: true }) + text(left + COL - 12, 46, `${s.cards.length}${s.limit ? ' / ' + s.limit : ''}`, { px: 13, fill: MUTED, anchor: 'end' }) + cards + '</g>';
+    svg +=
+      `<g data-col="${i}">` +
+      text(left + 12, 46, clip(s.name, COL - 80, 15, true), { px: 15, bold: true }) +
+      text(left + COL - 12, 46, `${s.cards.length}${s.limit ? ' / ' + s.limit : ''}`, { px: 13, fill: MUTED, anchor: 'end' }) +
+      cards +
+      '</g>';
   });
   const h = thumb ? room + 28 : Math.max(160, tall + 24);
   const back = stages.map((s, i) => rect(24 + i * (COL + 12), 20, COL, h - 40, SHADE, 'rx="10"') + rect(24 + i * (COL + 12), 20, COL, 5, STAGE_COLORS[s.hue].hex, 'rx="2"')).join('');

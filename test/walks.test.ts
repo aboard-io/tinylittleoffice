@@ -22,7 +22,11 @@ function states(family: string): Model[] {
 describe('the walks cover the registry', () => {
   test('every app is in one family', () => {
     const placed = Object.values(FAMILIES).flat();
-    expect(apps().map((a) => a.id).filter((id) => placed.filter((p) => p === id).length !== 1)).toStrictEqual([]);
+    expect(
+      apps()
+        .map((a) => a.id)
+        .filter((id) => placed.filter((p) => p === id).length !== 1),
+    ).toStrictEqual([]);
   });
 
   test('every registry command (but a menu’s opener) is a step of some family’s walk, allowed in at least one state', () => {

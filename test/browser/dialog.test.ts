@@ -28,7 +28,10 @@ test('Escape gives the focus back to the frame whose page had it, not to nothing
 test('opened over a menu (which the dialog closes), it gives the focus back to the menu’s button; with nothing to give it to, to the column (walks: site at a desktop, seed 97425194)', async () => {
   document.body.innerHTML = '';
   const host = document.body.appendChild(document.createElement('div'));
-  render(html`<main class="to-main" tabindex="-1"><to-menu .label=${'Look'} .items=${[{ label: 'Amber', does() {} }]}></to-menu><button class="gone">Gone</button></main><to-dialog heading="Asked" .body=${html`<button>OK</button>`}></to-dialog>`, host);
+  render(
+    html`<main class="to-main" tabindex="-1"><to-menu .label=${'Look'} .items=${[{ label: 'Amber', does() {} }]}></to-menu><button class="gone">Gone</button></main><to-dialog heading="Asked" .body=${html`<button>OK</button>`}></to-dialog>`,
+    host,
+  );
   const menu = document.querySelector<HTMLElement & { button: HTMLButtonElement; menu: HTMLElement }>('to-menu')!;
   await (menu as unknown as { updateComplete: Promise<unknown> }).updateComplete;
   await userEvent.click(menu.button);

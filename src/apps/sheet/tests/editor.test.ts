@@ -13,7 +13,8 @@ import { BASE, remScale } from '../../../kit/zoom.ts';
 const css = (px: number) => px / remScale();
 
 const SHEET = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)\n';
-const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n';
+const MODEL =
+  '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n';
 
 async function editor(value = ''): Promise<{ el: ToSheetEditor; last: () => string | undefined; changes: string[] }> {
   document.body.innerHTML = '';
@@ -142,7 +143,7 @@ test('a column’s name: Enter keeps it and Escape puts back what it was, and ei
   expect(document.activeElement).toBe(cell(el, 'B1'));
 });
 
-test('Money asks its currency: a code typed is written in the head and the cells show it; picked again, emptied, the document\'s', async () => {
+test("Money asks its currency: a code typed is written in the head and the cells show it; picked again, emptied, the document's", async () => {
   const { el, last } = await editor(SHEET);
   const head = (c: number) => el.querySelectorAll<HTMLButtonElement>('th .col-head')[c];
   const field = () => document.querySelector<HTMLInputElement>('.to-currency-field');
@@ -369,7 +370,7 @@ function focusOn(input: HTMLInputElement) {
   input.focus();
 }
 
-test('copy writes the cells as text and as our table HTML; paste reads our tables, another app\'s table and an outline\'s items', async () => {
+test("copy writes the cells as text and as our table HTML; paste reads our tables, another app's table and an outline's items", async () => {
   const { el, last } = await editor(SHEET);
   const a1 = await block(el, 'A1', 'ArrowDown', 'ArrowRight');
   const data = new DataTransfer();
@@ -388,7 +389,10 @@ test('copy writes the cells as text and as our table HTML; paste reads our table
     target.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
     await el.updateComplete;
   };
-  await paste('A5', { 'text/plain': 'Who | Paid:money\n--- | ---\nAnn | 3\n', 'text/html': '<meta name="generator" content="TinyLittleOffice"><table><tr><th>Who</th><th>Paid</th></tr><tr><td>Ann</td><td>3</td></tr></table>' });
+  await paste('A5', {
+    'text/plain': 'Who | Paid:money\n--- | ---\nAnn | 3\n',
+    'text/html': '<meta name="generator" content="TinyLittleOffice"><table><tr><th>Who</th><th>Paid</th></tr><tr><td>Ann</td><td>3</td></tr></table>',
+  });
   expect(last()).toContain('\nWho | Paid:money\nAnn | 3\n');
   // A table from anywhere else.
   await paste('A8', { 'text/plain': 'x y', 'text/html': '<table><tr><td>x</td><td>y</td></tr><tr><td>1</td><td>2</td></tr></table>' });
@@ -402,7 +406,14 @@ test('a block has the bar under it: fill, Copy, Cut, Paste, Clear, none taking t
   const { el, last } = await editor(SHEET);
   const b1 = await block(el, 'B1', 'ArrowDown');
   await until(() => !!contextBar()?.matches(':popover-open'));
-  expect([...contextBar().querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Fill down from the top row', 'Fill right from the first column', 'Copy', 'Cut', 'Paste', 'Clear these cells']);
+  expect([...contextBar().querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))).toEqual([
+    'Fill down from the top row',
+    'Fill right from the first column',
+    'Copy',
+    'Cut',
+    'Paste',
+    'Clear these cells',
+  ]);
   const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
   contextButton('Copy').dispatchEvent(down);
   expect(down.defaultPrevented).toBe(true);
@@ -745,7 +756,7 @@ test('a column head selects its column; the grip is resized from the keyboard, a
   expect(el.querySelector('table.sheet')!.classList.contains('sized')).toBe(true);
 });
 
-test('a column dragged by its grip grows by the drag in the sheet\'s own pixels: N on the screen is N / the zoom, not N', async () => {
+test("a column dragged by its grip grows by the drag in the sheet's own pixels: N on the screen is N / the zoom, not N", async () => {
   const { el } = await editor(SHEET);
   // The normal size draws a rem at BASE × 16px (kit/zoom.ts): a drag kept in screen pixels would widen the column 30% too much.
   expect(remScale()).toBe(BASE);
@@ -765,7 +776,7 @@ test('a column dragged by its grip grows by the drag in the sheet\'s own pixels:
   expect(Math.abs(th.getBoundingClientRect().width - (w0 * remScale() + N))).toBeLessThan(3);
 });
 
-test('the bar\'s tools keep the focus in the cell', async () => {
+test("the bar's tools keep the focus in the cell", async () => {
   const { el } = await editor(SHEET);
   for (const label of ['Fill down from the top row', 'Fill right from the first column', 'Fit the columns to the page', 'Show all the text']) {
     const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });

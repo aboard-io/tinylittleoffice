@@ -156,7 +156,10 @@ export function slideOf(blocks: Block[], from: number, to: number): Slide {
   const items = itemsOf(blocks, start, pipe >= 0 && layout === '2' ? pipe : notesFrom);
   const right = pipe >= 0 && layout === '2' ? itemsOf(blocks, pipe + 1, notesFrom) : [];
   if (pipe >= 0 && layout !== '2') items.push(...itemsOf(blocks, pipe + 1, notesFrom));
-  const noteLines = blocks.slice(notesFrom, to).flatMap((b) => (isText(b) ? plainText(b.runs).split('\n') : [])).filter((l) => l.trim());
+  const noteLines = blocks
+    .slice(notesFrom, to)
+    .flatMap((b) => (isText(b) ? plainText(b.runs).split('\n') : []))
+    .filter((l) => l.trim());
   return { from, to, head, layout, icon, title, words: [start, notesFrom], pipe, items, right, sub, notes: [notesFrom, to], noteLines };
 }
 
@@ -172,7 +175,13 @@ export function slidesOf(doc: Doc): Slide[] {
 }
 
 /** Nothing written on it, nothing shown on it. */
-export const isBlank = (s: Slide): boolean => !s.icon && !plainText(s.title).trim() && s.sub < 0 && !s.items.some((it) => plainText(it.runs).trim() || it.runs.some((r) => r.ic)) && !s.right.some((it) => plainText(it.runs).trim()) && !s.noteLines.length;
+export const isBlank = (s: Slide): boolean =>
+  !s.icon &&
+  !plainText(s.title).trim() &&
+  s.sub < 0 &&
+  !s.items.some((it) => plainText(it.runs).trim() || it.runs.some((r) => r.ic)) &&
+  !s.right.some((it) => plainText(it.runs).trim()) &&
+  !s.noteLines.length;
 
 /** The footnotes a slide holds, in the order their marks are drawn: the headline's, then the words', column by column. */
 export const slideNotes = (s: Slide): string[] => (s.sub >= 0 ? notesOf([{ runs: s.title }]) : notesOf([{ runs: s.title }, ...s.items, ...s.right]));
@@ -223,7 +232,8 @@ export const retitle = (text: string, title: string): string => write(apply(pars
 /* ---------- commands, as operations ---------- */
 
 /** The blocks a new slide is born with: nothing for the default layout; a headline that carries the layout otherwise, and for two columns the "|" between them. */
-export const blankSlideBlocks = (layout: Layout = ''): Block[] => (layout ? [{ k: 'h', level: 2, runs: [], a: { cls: [CLASS_OF[layout]] } }, ...(layout === '2' ? [{ k: 'p', runs: [{ t: '|' }] } as Block] : [])] : []);
+export const blankSlideBlocks = (layout: Layout = ''): Block[] =>
+  layout ? [{ k: 'h', level: 2, runs: [], a: { cls: [CLASS_OF[layout]] } }, ...(layout === '2' ? [{ k: 'p', runs: [{ t: '|' }] } as Block] : [])] : [];
 
 /** A new slide after slide `after` (-1: before the first), of a layout; the index it will have. */
 export function addSlide(doc: Doc, after: number, layout: Layout = '', blocks: Block[] = blankSlideBlocks(layout)): { ops: Op[]; at: number } {
@@ -326,7 +336,9 @@ export interface Panel {
 }
 export function panelOf(item: Item): Panel {
   const { icon, title } = splitHeadline(item.runs);
-  const [said = '', caption = ''] = plainText(title).split('|').map((p) => p.trim());
+  const [said = '', caption = ''] = plainText(title)
+    .split('|')
+    .map((p) => p.trim());
   return { glyph: icon, said, caption };
 }
 

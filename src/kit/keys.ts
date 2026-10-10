@@ -47,15 +47,47 @@ const history = (which: 'docundo' | 'docredo') => (p: HasEditor, e?: Event) => {
 
 export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: 'Undo', icon: UI.undo, keys: 'Mod+Z', where: ['bar'], when: (p) => !!p.editor, does: history('docundo') });
 export const REDO = command<HasEditor>({ id: 'kit.redo', scope: 'kit', label: 'Redo', icon: UI.redo, keys: 'Mod+Shift+Z / Mod+Y', where: ['bar'], when: (p) => !!p.editor, does: history('docredo') });
-export const SHARE = command<Page>({ id: 'kit.share', scope: 'kit', label: 'Share…', icon: UI.share, keys: 'Mod+Shift+S', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.share() });
-export const DOWNLOAD = command<Page>({ id: 'kit.download', scope: 'kit', label: 'Download', icon: UI.download, keys: 'Mod+Shift+D', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.download() });
+export const SHARE = command<Page>({
+  id: 'kit.share',
+  scope: 'kit',
+  label: 'Share…',
+  icon: UI.share,
+  keys: 'Mod+Shift+S',
+  where: ['drawer'],
+  document: true,
+  takesFocus: true,
+  when: (p) => p.editing,
+  does: (p) => p.share(),
+});
+export const DOWNLOAD = command<Page>({
+  id: 'kit.download',
+  scope: 'kit',
+  label: 'Download',
+  icon: UI.download,
+  keys: 'Mod+Shift+D',
+  where: ['drawer'],
+  document: true,
+  takesFocus: true,
+  when: (p) => p.editing,
+  does: (p) => p.download(),
+});
 export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: 'All commands…', icon: CommandIcon, keys: 'Mod+K', where: ['bar'], does: (p) => p.palette() });
 
 /** The page's commands, in the order the dialog lists them. */
 export const KIT_COMMANDS = register([
   UNDO,
   REDO,
-  command<Page>({ id: 'kit.find', scope: 'kit', label: 'Find in this document', icon: UI.search, keys: 'Mod+F', where: ['keys-only'], takesFocus: true, when: (p) => p.editing && !!p.editor, does: (p) => p.find() }),
+  command<Page>({
+    id: 'kit.find',
+    scope: 'kit',
+    label: 'Find in this document',
+    icon: UI.search,
+    keys: 'Mod+F',
+    where: ['keys-only'],
+    takesFocus: true,
+    when: (p) => p.editing && !!p.editor,
+    does: (p) => p.find(),
+  }),
   command<Page>({ id: 'kit.keep', scope: 'kit', label: 'Keep this document on the device', icon: UI.offline, keys: 'Mod+S', where: ['keys-only'], when: (p) => p.editing, does: (p) => p.keep() }),
   SHARE,
   DOWNLOAD,

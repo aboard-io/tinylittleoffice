@@ -70,7 +70,13 @@ test('numbered lists count as they come: an ordered item at its depth, a bullet 
 });
 
 test('web addresses in text are links, without being stored as anything but text', () => {
-  expect(linkify('See https://example.com/a?b=1, then (http://x.org/y). Done')).toStrictEqual([{ t: 'See ' }, { t: 'https://example.com/a?b=1', url: 'https://example.com/a?b=1' }, { t: ', then (' }, { t: 'http://x.org/y', url: 'http://x.org/y' }, { t: '). Done' }]);
+  expect(linkify('See https://example.com/a?b=1, then (http://x.org/y). Done')).toStrictEqual([
+    { t: 'See ' },
+    { t: 'https://example.com/a?b=1', url: 'https://example.com/a?b=1' },
+    { t: ', then (' },
+    { t: 'http://x.org/y', url: 'http://x.org/y' },
+    { t: '). Done' },
+  ]);
   expect(linkify('no links here: example.com')).toStrictEqual([{ t: 'no links here: example.com' }]);
   expect(linkify('')).toStrictEqual([]);
   expect(runLinks({ t: 'words', href: 'https://x.y/' })).toStrictEqual([{ t: 'words', url: 'https://x.y/' }]);

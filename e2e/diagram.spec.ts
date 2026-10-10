@@ -140,7 +140,10 @@ test('diagram: on a phone, a mind map joins two ideas across the tree, and a fin
   await expect(curve).toHaveCount(1);
   // The curve's middle, by finger.
   const mid = await curve.evaluate((el) => {
-    const pts = el.getAttribute('points')!.split(' ').map((p) => p.split(',').map(Number));
+    const pts = el
+      .getAttribute('points')!
+      .split(' ')
+      .map((p) => p.split(',').map(Number));
     const [x, y] = pts[Math.floor(pts.length / 2)];
     const p = new DOMPoint(x, y).matrixTransform((el as SVGGraphicsElement).getScreenCTM()!);
     return { x: p.x, y: p.y };

@@ -45,7 +45,16 @@ function press(at: EventTarget, spec: string) {
   const k = parts.pop() || '+';
   const key = k === 'Space' ? ' ' : k.length === 1 && /[A-Z]/.test(k) && !parts.includes('Shift') ? k.toLowerCase() : k;
   const code = /^[A-Z]$/.test(k) ? `Key${k}` : /^\d$/.test(k) ? `Digit${k}` : (CODES[k] ?? (k === 'Space' ? 'Space' : k));
-  const e = new KeyboardEvent('keydown', { key, code, ctrlKey: parts.includes('Mod'), altKey: parts.includes('Alt'), shiftKey: parts.includes('Shift'), bubbles: true, cancelable: true, composed: true });
+  const e = new KeyboardEvent('keydown', {
+    key,
+    code,
+    ctrlKey: parts.includes('Mod'),
+    altKey: parts.includes('Alt'),
+    shiftKey: parts.includes('Shift'),
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  });
   at.dispatchEvent(e);
 }
 
@@ -71,7 +80,12 @@ function nth(ed: Ed, sel: string, n: number): HTMLElement | null {
 /** For each scope and place (a command's `at`, '' for its scope's own), where its keys are pressed from. */
 const PLACES: Record<string, Record<string, Place[]>> = {
   kit: { '': [{ tpl: 'write:invoice', at: () => document.body }] },
-  text: { '': [{ tpl: 'write:invoice', set: (ed) => ed.focusFirst(), at: words('to-text.write-text') }, { tpl: 'deck:talk', set: (ed) => ed.focusBox('words'), at: words('to-text.deck-words') }] },
+  text: {
+    '': [
+      { tpl: 'write:invoice', set: (ed) => ed.focusFirst(), at: words('to-text.write-text') },
+      { tpl: 'deck:talk', set: (ed) => ed.focusBox('words'), at: words('to-text.deck-words') },
+    ],
+  },
   rows: {
     '': [
       ...[1, 2, 3, 4].map((i) => ({ tpl: 'outline:talk', set: (ed: Ed) => ed.rows.choose(ed.items[i].at), at: (ed: Ed) => ed.rows.o.box() })),
@@ -86,7 +100,11 @@ const PLACES: Record<string, Record<string, Place[]>> = {
   outline: {
     words: [
       ...[1, 2, 3, 4, 6].map((i) => ({ tpl: 'outline:talk', at: (ed: Ed) => nth(ed, '.ol-row to-text', i) })),
-      { tpl: 'outline:talk', set: (ed) => ed.zoomTo(ed.items.find((_: unknown, i: number) => ed.items[i + 1] && ed.items[i + 1].depth > ed.items[i].depth).at), at: (ed) => nth(ed, '.ol-row to-text', 1) },
+      {
+        tpl: 'outline:talk',
+        set: (ed) => ed.zoomTo(ed.items.find((_: unknown, i: number) => ed.items[i + 1] && ed.items[i + 1].depth > ed.items[i].depth).at),
+        at: (ed) => nth(ed, '.ol-row to-text', 1),
+      },
     ],
   },
   deck: {
@@ -111,7 +129,18 @@ const PLACES: Record<string, Record<string, Place[]>> = {
       { tpl: 'draw:flowchart', at: (ed) => ed.querySelector('.draw-wrap') },
       { tpl: 'draw:flowchart', set: (ed) => (ed.sel = 0), at: (ed) => ed.querySelector('.draw-wrap') },
       { tpl: 'draw:card', set: (ed) => (ed.sel = ed.shapes.findIndex((s: { k: string }) => s.k === 't')), at: (ed) => ed.querySelector('.draw-wrap') },
-      { tpl: 'draw:flowchart', set: (ed) => ((ed.tool = 'v'), (ed.pen = [[40, 40], [120, 40], [80, 120]])), at: (ed) => ed.querySelector('.draw-wrap') },
+      {
+        tpl: 'draw:flowchart',
+        set: (ed) => (
+          (ed.tool = 'v'),
+          (ed.pen = [
+            [40, 40],
+            [120, 40],
+            [80, 120],
+          ])
+        ),
+        at: (ed) => ed.querySelector('.draw-wrap'),
+      },
       { tpl: 'draw:flowchart', set: (ed) => ((ed.tool = 'k'), (ed.sel = 0)), at: (ed) => ed.querySelector('.draw-wrap') },
     ],
     pixels: [{ tpl: 'draw:flowchart', set: (ed) => ed.setMode(8), at: (ed) => ed.querySelector('.draw-wrap') }],

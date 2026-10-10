@@ -7,13 +7,13 @@ import { apps } from '../src/kit/apps.ts';
 import { formatsOf } from '../src/kit/exports.ts';
 import { looksLike } from './formats-bytes.ts';
 
-test('nothing in the kit\'s exports switches on an extension, nor the shell on a kit format\'s', () => {
+test("nothing in the kit's exports switches on an extension, nor the shell on a kit format's", () => {
   const read = (file: string) => readFileSync(new URL(file, import.meta.url), 'utf8');
   expect(read('../src/kit/exports.ts')).not.toMatch(/ext\s*[!=]==|[!=]==\s*'(pdf|png|html|md|tlo)'/);
   expect(read('../src/kit/shell.ts')).not.toMatch(/[!=]==\s*'(pdf|png|html|md|tlo)'|exportAs\('/);
 });
 
-test('every app\'s formats: the kit\'s less the ones it makes its own way, then its own, each saying what it is', () => {
+test("every app's formats: the kit's less the ones it makes its own way, then its own, each saying what it is", () => {
   for (const def of apps()) {
     const list = formatsOf(def);
     const exts = list.map((f) => f.ext);
@@ -34,9 +34,11 @@ test('every app\'s formats: the kit\'s less the ones it makes its own way, then 
 });
 
 /** Whether a build failed only for want of a browser (a canvas, the page; kit/exports.ts's "not drawn"): left to the browser test. */
-const wantsBrowser = (err: unknown) => (err instanceof Error && err.message === 'not drawn') || (err instanceof ReferenceError && /\b(document|window|navigator|OffscreenCanvas|Image|createImageBitmap|HTMLCanvasElement|Blob|FileReader|DOMParser|XMLSerializer|fetch)\b/.test(err.message));
+const wantsBrowser = (err: unknown) =>
+  (err instanceof Error && err.message === 'not drawn') ||
+  (err instanceof ReferenceError && /\b(document|window|navigator|OffscreenCanvas|Image|createImageBitmap|HTMLCanvasElement|Blob|FileReader|DOMParser|XMLSerializer|fetch)\b/.test(err.message));
 
-test('every format that needs no browser builds, for every app\'s blank document, to bytes of its type', async () => {
+test("every format that needs no browser builds, for every app's blank document, to bytes of its type", async () => {
   let built = 0;
   for (const def of apps()) {
     const doc = def.blank();

@@ -125,9 +125,15 @@ export interface Place {
 }
 export function askPlace(o: { heading: string; value: Place; anchors: [string, string][]; anchor: Anchor; lend?: Lend }): Promise<Place | null> {
   const v = { ...o.value };
-  return form<Place>(o.heading, 'site-form-place', o.anchor, () => v, (f) =>
-    html`${urlField({ value: v.url, anchors: o.anchors, first: true, input: (x) => (v.url = x) })}
-    ${iconField({ value: v.icon, draw: f.draw, set: (x) => (v.icon = x) })}`, o.lend,
+  return form<Place>(
+    o.heading,
+    'site-form-place',
+    o.anchor,
+    () => v,
+    (f) =>
+      html`${urlField({ value: v.url, anchors: o.anchors, first: true, input: (x) => (v.url = x) })}
+    ${iconField({ value: v.icon, draw: f.draw, set: (x) => (v.icon = x) })}`,
+    o.lend,
   );
 }
 
@@ -141,17 +147,24 @@ export function askShop(o: { value: Shop; anchor: Anchor; lend?: Lend }): Promis
   const v = { ...o.value };
   const edit = async (f: Form<Shop>) => {
     const got = await editTable(v.table);
-    if (got) (v.table = got), f.draw();
+    if (got) ((v.table = got), f.draw());
   };
-  return form<Shop>(t('Products'), 'site-form-shop', o.anchor, () => v, (f) => {
-    const n = v.table.rows.filter((r) => r.some((c) => c.trim())).length;
-    return html`<div class="site-form-field site-form-products">
+  return form<Shop>(
+    t('Products'),
+    'site-form-shop',
+    o.anchor,
+    () => v,
+    (f) => {
+      const n = v.table.rows.filter((r) => r.some((c) => c.trim())).length;
+      return html`<div class="site-form-field site-form-products">
         <span class="site-form-label">${t('{n|one thing|# things} for sale', { n })}</span>
         <button type="button" class="to-btn" data-first @click=${() => void edit(f)}>${icon(UI.table, 18)}<span>${t('Edit the products…')}</span></button>
       </div>
       ${wordsField({ label: t('Currency'), value: v.currency, placeholder: '$', cls: 'site-form-currency', input: (x) => (v.currency = x) })}
       ${wordsField({ label: t('Orders go to'), value: v.orders, placeholder: t('you@example.com, or orders are copied'), type: 'email', mode: 'email', input: (x) => (v.orders = x) })}`;
-  }, o.lend);
+    },
+    o.lend,
+  );
 }
 
 /** Whether two blocks are written alike (a form's Done that changed nothing writes nothing). */

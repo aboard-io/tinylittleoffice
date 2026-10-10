@@ -126,10 +126,10 @@ function offsetAt(host: HTMLElement, x: number, y: number): number | null {
   let n = 0;
   let found: number | null = null;
   const walk = (x: Node): boolean => {
-    if (x === node && x.nodeType === Node.TEXT_NODE) return (found = n + at), true;
+    if (x === node && x.nodeType === Node.TEXT_NODE) return ((found = n + at), true);
     if (x === node) {
       for (let i = 0; i < at && i < x.childNodes.length; i++) walk(x.childNodes[i]);
-      return (found = n), true;
+      return ((found = n), true);
     }
     if (x.nodeType === Node.TEXT_NODE) n += (x as Text).length;
     else if (x instanceof Element && (x.tagName === 'BR' || x.tagName.toLowerCase() === 'svg')) n += 1;
@@ -243,8 +243,7 @@ for (const type of ['text-exit', 'text-select', 'text-selectall']) editor.addEve
 /** Every id of a block from `from` on moved by `by` (the document's blocks moved by a paragraph put in). */
 function renumber(from: number, by: number) {
   const move = (id: string) => id.replace(/^(-?\d+)/, (n) => (Number(n) >= from ? String(Number(n) + by) : n));
-  for (const attr of ['data-o', 'data-sec', 'data-w'])
-    document.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((e) => e.setAttribute(attr, move(e.getAttribute(attr)!)));
+  for (const attr of ['data-o', 'data-sec', 'data-w']) document.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((e) => e.setAttribute(attr, move(e.getAttribute(attr)!)));
   for (const k of Object.keys(words).sort((a, b) => (by > 0 ? parseFloat(b) - parseFloat(a) : parseFloat(a) - parseFloat(b)))) {
     const to = move(k);
     if (to === k) continue;
@@ -324,7 +323,7 @@ document.addEventListener(
     const id = o.getAttribute('data-o')!;
     // The words under the finger, or the thing's first.
     const hit = tgt.closest<HTMLElement>('[data-w]');
-    const wEl = hit && o.contains(hit) ? hit : (o.matches('[data-w]') ? o : o.querySelector<HTMLElement>('[data-w]'));
+    const wEl = hit && o.contains(hit) ? hit : o.matches('[data-w]') ? o : o.querySelector<HTMLElement>('[data-w]');
     const part = wEl ? (wEl.getAttribute('data-w')!.split(':')[1] as PartName) : null;
     const at = wEl ? offsetAt(wEl, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY) : null;
     held = id;

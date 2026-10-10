@@ -35,7 +35,11 @@ export function collisions(cmds: Command[] = allCommands()): { id: string; key: 
       const shared = keyList(a.keys).filter((k) => keyList(b.keys).includes(k));
       if (!shared.length || !overlap(a, b)) continue;
       // Two apps never meet: each is in force only in its own editor.
-      const apps = new Set(scopes().map((s) => s.id).filter((s) => !['kit', 'text', 'rows'].includes(s)));
+      const apps = new Set(
+        scopes()
+          .map((s) => s.id)
+          .filter((s) => !['kit', 'text', 'rows'].includes(s)),
+      );
       if (apps.has(a.scope) && apps.has(b.scope) && a.scope !== b.scope) continue;
       const [x, y] = [a.id, b.id].sort();
       out.push({ id: `${x} ~ ${y}`, key: shared[0], a, b });

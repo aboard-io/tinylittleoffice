@@ -48,11 +48,20 @@ function worded(): Set<string> {
   const out = new Set<string>();
   for (const [path, text] of Object.entries(sources)) {
     const app = path.replace(/^.*\/apps\/([^/]+)\/.*$/, '$1');
-    const id = (m: RegExpMatchArray) => m[1] ? `${app}.${m[1]}` : m[2];
+    const id = (m: RegExpMatchArray) => (m[1] ? `${app}.${m[1]}` : m[2]);
     const ref = String.raw`(?:own\('([\w.-]+)'\)|COMMANDS\.find\(\(c\) => c\.id === '([\w.-]+)'\)!)`;
-    for (const m of text.matchAll(new RegExp(String.raw`cmdBtn\(${ref}`, 'g'))) out.add(id(m));
-    for (const m of text.matchAll(new RegExp(String.raw`cmdMenu\(${ref}[^\n]*words: true`, 'g'))) out.add(id(m));
-    for (const m of text.matchAll(new RegExp(String.raw`<to-menu(?![^\n]*icon-only)[^\n]*\.label=\$\{labelOf\(${ref}`, 'g'))) out.add(id(m));
+    // A call may be laid out over several lines (npm run format): its arguments run to the parenthesis that closes it.
+    const call = (from: number) => {
+      let depth = 0;
+      for (let i = from; i < text.length; i++) {
+        if (text[i] === '(') depth++;
+        else if (text[i] === ')' && --depth === 0) return text.slice(from, i);
+      }
+      return text.slice(from);
+    };
+    for (const m of text.matchAll(new RegExp(String.raw`cmdBtn\(\s*${ref}`, 'g'))) out.add(id(m));
+    for (const m of text.matchAll(new RegExp(String.raw`cmdMenu\(\s*${ref}`, 'g'))) if (/words: true/.test(call(m.index!))) out.add(id(m));
+    for (const m of text.matchAll(new RegExp(String.raw`<to-menu(?![^>]*icon-only)[^>]*\.label=\$\{labelOf\(${ref}`, 'g'))) out.add(id(m));
   }
   return out;
 }
@@ -203,7 +212,8 @@ afterAll(() => page.viewport(1100, 800));
 
 test('the slots are found: the bar commands that show their words, the menus’ rows, each with a font and a room', () => {
   // The scan of the apps' code finds the bar buttons with words; these are some it must find.
-  for (const id of ['site.preview', 'site.edit', 'outline.connect', 'draw.mode', 'draw.background', 'diagram.kind', 'sheet.chart', 'anim.draw', 'anim.move', 'anim.fx', 'cal.zone']) expect(wordedIds, id).toContain(id);
+  for (const id of ['site.preview', 'site.edit', 'outline.connect', 'draw.mode', 'draw.background', 'diagram.kind', 'sheet.chart', 'anim.draw', 'anim.move', 'anim.fx', 'cal.zone'])
+    expect(wordedIds, id).toContain(id);
   const bar = measures.filter((m) => m.slot === 'bar');
   const menu = measures.filter((m) => m.slot === 'menu');
   expect(bar.length).toBeGreaterThanOrEqual(8);

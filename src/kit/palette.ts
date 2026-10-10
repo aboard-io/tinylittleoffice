@@ -124,15 +124,20 @@ export class ToPalette extends LitElement {
           @keydown=${this.onKey}
         />
         <div id="to-palette-list" class="to-palette-list" role="listbox" aria-label=${t('All commands…')}>
-          ${shown.length
-            ? shown.map(
-                (o, i) => html`<div id="to-palette-${i}" class="to-palette-item" role="option" aria-selected=${String(i === active)} @pointermove=${() => (this.at = i)} @click=${() => this.choose(o)}>
+          ${
+            shown.length
+              ? shown.map(
+                  (
+                    o,
+                    i,
+                  ) => html`<div id="to-palette-${i}" class="to-palette-item" role="option" aria-selected=${String(i === active)} @pointermove=${() => (this.at = i)} @click=${() => this.choose(o)}>
                   ${o.cmd.icon ? icon(o.cmd.icon, 18) : html`<span class="to-palette-noicon"></span>`}<span class="to-palette-words">${labelOf(o.cmd, o.c)}</span>${o.cmd.keys ? html`<kbd class="to-menu-keys">${keysText(o.cmd.keys)}</kbd>` : nothing}
                 </div>`,
-              )
-            : this.query
-              ? html`<p class="to-hint" role="status">${t('Nothing starts “{q}”', { q: this.query })}</p>`
-              : nothing}
+                )
+              : this.query
+                ? html`<p class="to-hint" role="status">${t('Nothing starts “{q}”', { q: this.query })}</p>`
+                : nothing
+          }
         </div>
       </div>
     </dialog>`;

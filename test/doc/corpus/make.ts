@@ -20,7 +20,11 @@ const put = (file: string, source: string, docs: { name: string; text: string }[
 
 // Templates: the module's own bodies, as the old writer wrote them.
 const { TEMPLATES } = (await import(pathToFileURL(join(old, 'src/lib/templates.ts')).href)) as { TEMPLATES: Record<string, { id: string; body: string }[]> };
-put('templates.json', 'src/lib/templates.ts', Object.entries(TEMPLATES).flatMap(([app, ts]) => ts.map((t) => ({ name: `${app}/${t.id}`, text: t.body }))));
+put(
+  'templates.json',
+  'src/lib/templates.ts',
+  Object.entries(TEMPLATES).flatMap(([app, ts]) => ts.map((t) => ({ name: `${app}/${t.id}`, text: t.body }))),
+);
 
 // Fenced examples with no language: TLO as a person learns it.
 const fences = (text: string) => [...text.matchAll(/^```\n([\s\S]*?)\n```$/gm)].map((m) => m[1]);
@@ -29,7 +33,11 @@ for (const [file, source] of [
   ['skill.json', 'skill/tinyoffice/SKILL.md'],
 ] as const) {
   const text = readFileSync(join(old, source), 'utf8');
-  put(file, source, fences(text).map((t, i) => ({ name: `fence ${i + 1}`, text: t })));
+  put(
+    file,
+    source,
+    fences(text).map((t, i) => ({ name: `fence ${i + 1}`, text: t })),
+  );
 }
 
 // The documents behind the skill's links: the old guide checked each against its app.
@@ -43,7 +51,9 @@ put('skill-links.json', 'skill/tinyoffice/SKILL.md (doc= of each link)', links);
 
 // Each app definition's `example`: a string literal, read as JavaScript reads it.
 const apps = join(old, 'src/apps');
-for (const file of readdirSync(apps).filter((f) => f.endsWith('.def.ts')).sort()) {
+for (const file of readdirSync(apps)
+  .filter((f) => f.endsWith('.def.ts'))
+  .sort()) {
   const src = readFileSync(join(apps, file), 'utf8');
   const docs: { name: string; text: string }[] = [];
   for (const m of src.matchAll(/\bexample:\s*(['"`])/g)) {

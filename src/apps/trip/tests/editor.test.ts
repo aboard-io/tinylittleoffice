@@ -18,7 +18,8 @@ import { readTrip } from '../model.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
 import { remScale } from '../../../kit/zoom.ts';
 
-const ROUTE = '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 | Port cellars\n';
+const ROUTE =
+  '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nCoimbra | 40.2033 | -8.4103 |\nPorto | 41.1579 | -8.6291 | Port cellars\n';
 const TABLE = (rows: string) => `---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\n${rows}`;
 const L = 'Lisbon | 38.7223 | -9.1393 | Pastel de nata first\n';
 const C = 'Coimbra | 40.2033 | -8.4103 |\n';
@@ -87,7 +88,8 @@ async function pick(el: ToTripEditor, opener: HTMLElement, label: string) {
 async function tapNumber(el: ToTripEditor, i: number, o: PointerEventInit = {}) {
   const g = num(el, i);
   const r = g.getBoundingClientRect();
-  for (const type of ['pointerdown', 'pointerup']) g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 3, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3, ...o }));
+  for (const type of ['pointerdown', 'pointerup'])
+    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 3, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3, ...o }));
   g.click();
   await settle(el);
 }
@@ -384,7 +386,8 @@ test('a drag by the number (pointer events) moves the stop after another, with t
   const g = num(el, 0);
   const h = g.getBoundingClientRect();
   const c = stops(el)[2].getBoundingClientRect();
-  const at = (type: string, x: number, y: number) => g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  const at = (type: string, x: number, y: number) =>
+    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
   at('pointerdown', h.left + 4, h.top + 4);
   at('pointermove', c.left + 100, c.top + c.height / 2);
   await el.updateComplete;
@@ -583,7 +586,7 @@ test('the location refused, or a trip with stops: the map stays where it was (th
   }
 });
 
-test('§1 opens with the focus in the first stop\'s name, the caret at its end, else on the map; the page not scrolled', async () => {
+test("§1 opens with the focus in the first stop's name, the caret at its end, else on the map; the page not scrolled", async () => {
   const { el } = await editor();
   await settle(el);
   await el.focusFirst();

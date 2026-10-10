@@ -214,7 +214,21 @@ test('the Outliner’s row dragged to the column’s edge scrolls the column', a
   const handle = shell.querySelector<HTMLElement>('to-outline-editor .ol-handle')!;
   const h = handle.getBoundingClientRect();
   const bottom = main.getBoundingClientRect().bottom;
-  const fire = (type: string, x: number, y: number) => handle.dispatchEvent(new PointerEvent(type, { pointerId: 7, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y, bubbles: true, cancelable: true, composed: true }));
+  const fire = (type: string, x: number, y: number) =>
+    handle.dispatchEvent(
+      new PointerEvent(type, {
+        pointerId: 7,
+        pointerType: 'mouse',
+        isPrimary: true,
+        button: 0,
+        buttons: type === 'pointerup' ? 0 : 1,
+        clientX: x,
+        clientY: y,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      }),
+    );
   fire('pointerdown', h.left + 4, h.top + 4);
   fire('pointermove', h.left + 4, h.top + 40);
   fire('pointermove', h.left + 4, bottom - 8);

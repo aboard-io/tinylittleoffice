@@ -103,12 +103,14 @@ export function askPicture(now: Partial<Picture> = {}): Promise<Picture | null> 
       html`${urlRow({ label: t('Address of the picture'), placeholder: 'https://', value: url, ok, input: (v) => ((url = v), (state = 'loading'), f.draw()) })}
         <label class="to-ask-alt"><span>${t('Words for anyone who cannot see it (optional)')}</span><input class="to-ask-text" type="text" .value=${alt} autocomplete="off" enterkeyhint="done" @input=${(e: Event) => (alt = (e.target as HTMLInputElement).value)} /></label>
         <div class="to-ask-preview" aria-live="polite">
-          ${ok && !asked
-            ? picture(url.trim(), alt)
-            : ok
-            ? html`<img class=${state} src=${pictureSrc(url.trim())} alt=${alt} referrerpolicy="no-referrer" @load=${() => ((state = 'ok'), f.draw())} @error=${() => ((state = 'broken'), f.draw())} />
+          ${
+            ok && !asked
+              ? picture(url.trim(), alt)
+              : ok
+                ? html`<img class=${state} src=${pictureSrc(url.trim())} alt=${alt} referrerpolicy="no-referrer" @load=${() => ((state = 'ok'), f.draw())} @error=${() => ((state = 'broken'), f.draw())} />
                 ${state === 'broken' ? html`<p class="to-hint to-ask-broken">${t('No picture came from this address. Check it, or try another.')}</p>` : nothing}`
-            : html`<p class="to-hint">${t('Paste the address of a picture on the web: the picture shows here.')}</p>`}
+                : html`<p class="to-hint">${t('Paste the address of a picture on the web: the picture shows here.')}</p>`
+          }
         </div>`,
     );
   });
@@ -116,7 +118,19 @@ export function askPicture(now: Partial<Picture> = {}): Promise<Picture | null> 
 
 /* ---------- Web Embed ---------- */
 
-const KIND_ICON: Record<EmbedKind, IconNode> = { video: Video, audio: Music, music: Music, image: UI.image, pdf: FileIcon, post: MessageCircle, map: MapPin, code: Code, page: Landmark, article: BookOpen, link: UI.globe };
+const KIND_ICON: Record<EmbedKind, IconNode> = {
+  video: Video,
+  audio: Music,
+  music: Music,
+  image: UI.image,
+  pdf: FileIcon,
+  post: MessageCircle,
+  map: MapPin,
+  code: Code,
+  page: Landmark,
+  article: BookOpen,
+  link: UI.globe,
+};
 
 /** A thing from the web, by its address: the sources it can come from are shown, and the card it will be. Resolves the address. */
 export function askEmbed(now = ''): Promise<string | null> {
@@ -133,9 +147,7 @@ export function askEmbed(now = ''): Promise<string | null> {
           <li class=${known?.file ? 'on' : ''}>${icon(FileIcon, 18)}<span>${t('A film, a sound, a PDF or a picture')}</span></li>
         </ul>
         <div class="to-ask-preview" aria-live="polite">
-          ${ok
-            ? html`<to-embed url=${url.trim()}></to-embed>${known ? nothing : html`<p class="to-hint">${t('Not one of these: it goes in as a link to the page.')}</p>`}`
-            : nothing}
+          ${ok ? html`<to-embed url=${url.trim()}></to-embed>${known ? nothing : html`<p class="to-hint">${t('Not one of these: it goes in as a link to the page.')}</p>`}` : nothing}
         </div>`,
     );
   });
@@ -203,16 +215,18 @@ export function askDocLink(): Promise<Block | null> {
       () => b && f.finish(b),
       html`${urlRow({ label: t('A Tiny Little Office link'), placeholder: `${origin('site')}/#/v1/…`, value: url, ok: state === 'ok', input: typed })}
         <div class="to-ask-preview" aria-live="polite">
-          ${state === 'ok' && b?.k === 'fence'
-            ? html`<figure class="to-ask-page">
+          ${
+            state === 'ok' && b?.k === 'fence'
+              ? html`<figure class="to-ask-page">
                 ${page ? html`<svg viewBox="0 0 ${page.w} ${page.h}" role="img" aria-label=${page.alt || name}>${unsafeSVG(gateSvg(page.svg, true))}</svg>` : nothing}
                 <figcaption><b>${name}</b><small>${def?.name ?? b.lang}</small></figcaption>
               </figure>`
-            : state === 'opening'
-              ? html`<p class="to-hint">${t('Opening the short link…')}</p>`
-              : state === 'bad'
-                ? html`<p class="to-hint to-ask-broken">${t('This is not a Tiny Little Office link, or it has expired.')}</p>`
-                : html`<p class="to-hint">${t('Paste the link of another Tiny Little Office document, long or short: its first page shows here.')}</p>`}
+              : state === 'opening'
+                ? html`<p class="to-hint">${t('Opening the short link…')}</p>`
+                : state === 'bad'
+                  ? html`<p class="to-hint to-ask-broken">${t('This is not a Tiny Little Office link, or it has expired.')}</p>`
+                  : html`<p class="to-hint">${t('Paste the link of another Tiny Little Office document, long or short: its first page shows here.')}</p>`
+          }
         </div>`,
     );
   });

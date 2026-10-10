@@ -344,7 +344,8 @@ export function exportItems(current: () => Current): MenuItem[] {
   return [
     { label: t('Print, or save as PDF'), icon: UI.print, hint: keysText('Mod+P'), does: () => void run(() => printDoc(current())) },
     ...formatsOf(def).map(row),
-    ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => go(routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
+    ...(def.handoffs ?? [])
+      .filter((h) => appOf(h.to))
+      .map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => go(routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }
-

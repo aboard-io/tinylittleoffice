@@ -22,7 +22,13 @@ test('deck: on a phone, typing a slide neither scrolls the page nor moves the ba
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-deck-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return {
+        bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+        rows: tops.size,
+        pageTop: document.scrollingElement!.scrollTop,
+        zoom: window.visualViewport?.scale ?? 1,
+        wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
     });
   const first = await measure();
   await title.tap();
@@ -68,12 +74,18 @@ test('deck: on a phone, typing a slide neither scrolls the page nor moves the ba
   expect(last.zoom).toBe(1);
   expect(last.wide).toBeLessThanOrEqual(0);
   // Every box a finger may land in is 16px or more, so Safari has no reason to zoom in.
-  const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('to-deck-editor .tx, to-deck-editor input')].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`));
+  const small = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('to-deck-editor .tx, to-deck-editor input')]
+      .filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16)
+      .map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`),
+  );
   expect(small).toEqual([]);
   expect(errors).toEqual([]);
 });
 
-test('deck: on a phone, a tap on a thumbnail chooses the slide with its bar inside the screen; Duplicate works by finger; the icon button and the grip are 44px to a finger; a double tap never zooms', async ({ page }, info) => {
+test('deck: on a phone, a tap on a thumbnail chooses the slide with its bar inside the screen; Duplicate works by finger; the icon button and the grip are 44px to a finger; a double tap never zooms', async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   await page.goto('/#/v1/deck');
   const title = page.locator('to-deck-editor to-text.deck-title .tx');
@@ -106,7 +118,9 @@ test('deck: on a phone, a tap on a thumbnail chooses the slide with its bar insi
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
 });
 
-test('deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills the screen, with Done reachable by finger; Web Picture\'s field and OK are one row inside the screen', async ({ page }, info) => {
+test("deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills the screen, with Done reachable by finger; Web Picture's field and OK are one row inside the screen", async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -143,7 +157,9 @@ test('deck: on a phone, a drawing from Insert ▾ is made in a dialog that fills
   expect(errors).toEqual([]);
 });
 
-test('deck: on a phone, a footnote is typed at the slide\'s foot: Footnote puts the mark in and the caret in its note, 16px, nothing zoomed; a tap on the mark goes back to it', async ({ page }, info) => {
+test("deck: on a phone, a footnote is typed at the slide's foot: Footnote puts the mark in and the caret in its note, 16px, nothing zoomed; a tap on the mark goes back to it", async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));

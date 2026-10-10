@@ -21,7 +21,9 @@ test('a module is counted to the package it came from, scoped or not, the innerm
 });
 
 test("a chunk's bytes are shared among its modules by what each rendered", () => {
-  const sizes = measure([{ code: 'x'.repeat(100), modules: { '/n/node_modules/a/i.js': { renderedLength: 30 }, '/n/node_modules/b/i.js': { renderedLength: 10 }, '/n/src/main.ts': { renderedLength: 60 } } }]);
+  const sizes = measure([
+    { code: 'x'.repeat(100), modules: { '/n/node_modules/a/i.js': { renderedLength: 30 }, '/n/node_modules/b/i.js': { renderedLength: 10 }, '/n/src/main.ts': { renderedLength: 60 } } },
+  ]);
   expect(sizes).toEqual({ a: 30, b: 10 });
 });
 

@@ -233,7 +233,10 @@ export function drawn<C>(cmd: Command<C>, c: C | null | undefined): Drawn {
   };
 }
 /** The commands of a list drawn where `where` says, in force in this context, as menu items. */
-export const drawnIn = <C>(cmds: readonly Command<C>[], where: Where, c: C | null | undefined): Drawn[] => cmds.filter((cmd) => cmd.where.includes(where) && (c === null || c === undefined || ((!cmd.when || cmd.when(c)) && (where !== 'context' || !cmd.context || cmd.context(c))))).map((cmd) => drawn(cmd, c));
+export const drawnIn = <C>(cmds: readonly Command<C>[], where: Where, c: C | null | undefined): Drawn[] =>
+  cmds
+    .filter((cmd) => cmd.where.includes(where) && (c === null || c === undefined || ((!cmd.when || cmd.when(c)) && (where !== 'context' || !cmd.context || cmd.context(c)))))
+    .map((cmd) => drawn(cmd, c));
 /** The same as a context bar's entries (context.ts): a gap, "|", between groups. */
 export function contextOf<C>(cmds: readonly Command<C>[], c: C): (Drawn | '|')[] {
   const sep = '|' as const;

@@ -1,9 +1,9 @@
 {
- "source": "src/apps/timeline.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "- 1843: Lovelace publishes her notes\n- 1936: Turing describes his machine\n- 1945: ENIAC is switched on\n- 1969: The first ARPANET message\n- 1976: The Apple I\n- 1989: The web is proposed\n- 2007: The phone becomes a computer\n- 2022: Everyone talks to a machine\n- 1969–2007: The network grows"
-  }
- ]
+  "source": "src/apps/timeline.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "- 1843: Lovelace publishes her notes\n- 1936: Turing describes his machine\n- 1945: ENIAC is switched on\n- 1969: The first ARPANET message\n- 1976: The Apple I\n- 1989: The web is proposed\n- 2007: The phone becomes a computer\n- 2022: Everyone talks to a machine\n- 1969–2007: The network grows"
+    }
+  ]
 }

@@ -107,9 +107,15 @@ export type Moved = (i: number) => number | null;
 /** The move that moves nothing. */
 export const stays: Moved = (i) => i;
 /** Where each row (column) is once n are put in before `at`. */
-export const movedIn = (at: number, n: number): Moved => (i) => (i >= at ? i + n : i);
+export const movedIn =
+  (at: number, n: number): Moved =>
+  (i) =>
+    i >= at ? i + n : i;
 /** Where each row (column) is once `a` to `b` are taken out: null for one of those. */
-export const movedOut = (a: number, b: number): Moved => (i) => (i < a ? i : i > b ? i - (b - a + 1) : null);
+export const movedOut =
+  (a: number, b: number): Moved =>
+  (i) =>
+    i < a ? i : i > b ? i - (b - a + 1) : null;
 
 /** A formula as it reads after moving by (dr, dc): its references move with it. Words in quotes, and other text, are untouched. */
 export function shiftFormula(raw: string, dr: number, dc: number): string {
@@ -232,7 +238,11 @@ export function usedSize(t: { cols: Column[]; rows: string[][] }): { rows: numbe
 }
 
 /** A name as a formula writes it: upper case, anything that is not a letter or a digit as "_" ("One-off gifts" is ONE_OFF_GIFTS). */
-export const nameKey = (s: string): string => s.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+export const nameKey = (s: string): string =>
+  s
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
 
 /** The cells with names: each cell of a name column names the cell to its right. The first of a name, reading down, is the one. */
 export function namedCells(t: { cols: Column[]; rows: string[][] }): Map<string, [number, number]> {
@@ -275,7 +285,11 @@ export const clearCells = (g: Range): Cells => ({ r: g.r0, c: g.c0, values: Arra
  * past the table's last column or the thousandth row.
  */
 export function pasteCells(t: { cols: Column[] }, r: number, c: number, text: string, moved?: { dr: number; dc: number }, into?: Range): Cells & { range: Range } {
-  const rows = text.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').map((line) => line.split('\t'));
+  const rows = text
+    .replace(/\r\n?/g, '\n')
+    .replace(/\n$/, '')
+    .split('\n')
+    .map((line) => line.split('\t'));
   const single = rows.length === 1 && rows[0].length === 1;
   const g: Range = single && into ? into : { r0: r, c0: c, r1: Math.min(ROWS - 1, r + rows.length - 1), c1: Math.min(t.cols.length - 1, c + Math.max(...rows.map((x) => x.length)) - 1) };
   const values: string[][] = [];

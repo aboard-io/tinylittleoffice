@@ -20,16 +20,91 @@ function table(rows: Row[]): Block {
   return {
     k: 'table',
     cols: cols.map(column),
-    rows: rows.map(([k, x, y, w, h, s, label, turn, corners]) => [k, String(x), String(y), String(w), String(h), s, label, ...(rot ? [turn ? String(turn) : ''] : []), ...(pts ? [corners ?? ''] : [])]),
+    rows: rows.map(([k, x, y, w, h, s, label, turn, corners]) => [
+      k,
+      String(x),
+      String(y),
+      String(w),
+      String(h),
+      s,
+      label,
+      ...(rot ? [turn ? String(turn) : ''] : []),
+      ...(pts ? [corners ?? ''] : []),
+    ]),
   };
 }
 const shapes = (head: Doc['head'], ...rows: Row[]): string => write({ head, blocks: [table(rows)] });
 const pixels = (head: Doc['head'], ...rows: string[]): string => write({ head, blocks: [{ k: 'p', runs: [{ t: rows.join('\n') }] }] });
 
 /** Pip the frog, 32 by 32. */
-const FROG = ['.', '.', '.', '.', '.........aaa........aaa', '........afffa......afffa', '.......aff.ffa....aff.ffa', '......aff...ffaaaaff...ffa', '......af..aa.ffffff..aa.fa', '......aff.aaffffffff.aaffa', '......afff.ffffffffff.fffa', '.....affffffffffffffffffffa', '....affffffffffffffffffffffa', '....affffffffffffffffffffffa', '....afffhhfffffffffffffhhffa', '....afffffffafffffffaffffffa', '.....afffffffaaaaaaaffffffa', '......affffffffffffffffffa', '.....affffffffffffffffffffa', '....afffcccccccccccccccccffa', '....afffcccccccccccccccccffa', '...afffffffeeeeeeeeecccfffffa', '...afffffffeeeeeeeeecccfffffa', '....afffffeeeeeeeeeecccffffa', '....affffffeeeeeeeeecccffffa', '.....afafffeeeeeeeeeefffafa', '......a.afffeeeeeeeefffa.a', '........aafffeeeeeefffaa', '.......affffffffffffffffa', '.......affffffaaaaffffffa', '........aaffaa....aaffaa', '..........aa........aa'];
+const FROG = [
+  '.',
+  '.',
+  '.',
+  '.',
+  '.........aaa........aaa',
+  '........afffa......afffa',
+  '.......aff.ffa....aff.ffa',
+  '......aff...ffaaaaff...ffa',
+  '......af..aa.ffffff..aa.fa',
+  '......aff.aaffffffff.aaffa',
+  '......afff.ffffffffff.fffa',
+  '.....affffffffffffffffffffa',
+  '....affffffffffffffffffffffa',
+  '....affffffffffffffffffffffa',
+  '....afffhhfffffffffffffhhffa',
+  '....afffffffafffffffaffffffa',
+  '.....afffffffaaaaaaaffffffa',
+  '......affffffffffffffffffa',
+  '.....affffffffffffffffffffa',
+  '....afffcccccccccccccccccffa',
+  '....afffcccccccccccccccccffa',
+  '...afffffffeeeeeeeeecccfffffa',
+  '...afffffffeeeeeeeeecccfffffa',
+  '....afffffeeeeeeeeeecccffffa',
+  '....affffffeeeeeeeeecccffffa',
+  '.....afafffeeeeeeeeeefffafa',
+  '......a.afffeeeeeeeefffa.a',
+  '........aafffeeeeeefffaa',
+  '.......affffffffffffffffa',
+  '.......affffffaaaaffffffa',
+  '........aaffaa....aaffaa',
+  '..........aa........aa',
+];
 /** Sun, cloud, rain and storm, each 16 by 16, on a 32 grid. */
-const WEATHER = ['.', '........d', '........d', '...d..aaaa...d.........aaaa', '....daeeeea.d.........agggga', '....aeeeeeea.........agggggga', '...aeeeeeeeea.......aagggggga', '...aeeeeeeeea......aggggggggga', '.ddaeeeeeeeeadd...aggggggggggga', '...aeeeeeeeea....aggggggggggggga', '....aeeeeeea......agggggggggggga', '.....aeeeea........agggggggggga', '....d.aaaa..d.......aaaaaaaaaa', '...d....d....d', '........d', '.', '.......aaaa.............aa', '......abbbba..........aaaaaa', '.....abbbbbba.........aaaaaa', '...aaabbbbbba.......aaaaaaaaa', '..abbbbbbbbbba.....aaaaaaaaaaa', '..abbbbbbbbbbba....aaaaaaaaaaaa', '..abbbbbbbbbbbba...aaaaaaaaaaaa', '..abbbbbbbbbbba.....aaaaaaaaaa', '...abbbbbbbbbba..........e', '....aaaaaaaaaa..........e', '.........g..............e', '.....g..g....g.........eeee', '....g.......g............e', '........................e', '.......g...g...........e'];
+const WEATHER = [
+  '.',
+  '........d',
+  '........d',
+  '...d..aaaa...d.........aaaa',
+  '....daeeeea.d.........agggga',
+  '....aeeeeeea.........agggggga',
+  '...aeeeeeeeea.......aagggggga',
+  '...aeeeeeeeea......aggggggggga',
+  '.ddaeeeeeeeeadd...aggggggggggga',
+  '...aeeeeeeeea....aggggggggggggga',
+  '....aeeeeeea......agggggggggggga',
+  '.....aeeeea........agggggggggga',
+  '....d.aaaa..d.......aaaaaaaaaa',
+  '...d....d....d',
+  '........d',
+  '.',
+  '.......aaaa.............aa',
+  '......abbbba..........aaaaaa',
+  '.....abbbbbba.........aaaaaa',
+  '...aaabbbbbba.......aaaaaaaaa',
+  '..abbbbbbbbbba.....aaaaaaaaaaa',
+  '..abbbbbbbbbbba....aaaaaaaaaaaa',
+  '..abbbbbbbbbbbba...aaaaaaaaaaaa',
+  '..abbbbbbbbbbba.....aaaaaaaaaa',
+  '...abbbbbbbbbba..........e',
+  '....aaaaaaaaaa..........e',
+  '.........g..............e',
+  '.....g..g....g.........eeee',
+  '....g.......g............e',
+  '........................e',
+  '.......g...g...........e',
+];
 
 export const templates = (): Template[] => [
   {
@@ -37,7 +112,10 @@ export const templates = (): Template[] => [
     name: t('Flowchart'),
     blurb: t('Can we refund it? A shop’s returns rule as questions, answers and what to do.'),
     doc: shapes(
-      { title: 'Can we refund it?', alt: 'A flowchart for a refund. Bought in the last 30 days? No: offer a repair or a trade-in. Yes: is there a receipt? Yes: refund to the card. No: store credit. Every way ends in the returns book.' },
+      {
+        title: 'Can we refund it?',
+        alt: 'A flowchart for a refund. Bought in the last 30 days? No: offer a repair or a trade-in. Yes: is there a receipt? Yes: refund to the card. No: store credit. Every way ends in the returns book.',
+      },
       ['o', 26, 1, 28, 5, '1g', 'A customer asks for a refund'],
       ['d', 24, 8, 32, 11, '0', 'Bought in the last 30 days?'],
       ['d', 46, 20, 28, 11, '0', 'Got the receipt?'],
@@ -60,7 +138,11 @@ export const templates = (): Template[] => [
     name: t('Birthday card'),
     blurb: t('A card for a ninetieth, tilted on a background of confetti: big words, flowers, love from everyone.'),
     doc: shapes(
-      { title: 'Happy 90th, Nan', alt: 'A birthday card on confetti: Happy 90th, Nan! With love from all of us at 14 Marsh Lane, and flowers in the corners.', tile: '8:c/....g/..e/......h/.g/....c/e/......d' },
+      {
+        title: 'Happy 90th, Nan',
+        alt: 'A birthday card on confetti: Happy 90th, Nan! With love from all of us at 14 Marsh Lane, and flowers in the corners.',
+        tile: '8:c/....g/..e/......h/.g/....c/e/......d',
+      },
       ['r', 12, 4, 56, 42, '0', '', 357],
       ['i', 16, 7, 8, 8, '0r', 'flower', 357],
       ['i', 56, 33, 8, 8, '0p', 'flower', 357],
@@ -76,7 +158,10 @@ export const templates = (): Template[] => [
     name: t('Event map'),
     blurb: t('A street party from above: the stage, the stalls, first aid and where to meet if you are lost.'),
     doc: shapes(
-      { title: 'Elm Street block party', alt: 'A map of the Elm Street block party on Saturday 13 June 2026: the stage, tea and cakes, plants, and books and records on the north side of the street; first aid, toilets, face painting and the meeting point on the south side.' },
+      {
+        title: 'Elm Street block party',
+        alt: 'A map of the Elm Street block party on Saturday 13 June 2026: the stage, tea and cakes, plants, and books and records on the north side of the street; first aid, toilets, face painting and the meeting point on the south side.',
+      },
       ['r', 0, 21, 80, 10, '1', 'Elm Street | closed to cars 10 am to 8 pm'],
       ['r', 0, 20, 1, 12, '2r', ''],
       ['r', 79, 20, 1, 12, '2r', ''],
@@ -116,7 +201,10 @@ export const templates = (): Template[] => [
     name: t('Room plan'),
     blurb: t('The front room rearranged: sofa, rug, bookcase and desk to scale, the door’s swing drawn in.'),
     doc: shapes(
-      { title: 'The front room, rearranged', alt: 'A plan of a front room, 5.2 by 4.1 metres: a sofa facing the television across a rug and a low table, a bookcase on the left wall, a desk under the window and an armchair by the door.' },
+      {
+        title: 'The front room, rearranged',
+        alt: 'A plan of a front room, 5.2 by 4.1 metres: a sofa facing the television across a rug and a low table, a bookcase on the left wall, a desk under the window and an armchair by the door.',
+      },
       ['r', 8, 3, 54, 44, '0', ''],
       ['r', 20, 2, 24, 2, '2g', ''],
       ['t', 20, 4, 24, 3, '0g1=', 'Window'],
@@ -138,7 +226,10 @@ export const templates = (): Template[] => [
     name: t('Wireframe'),
     blurb: t('A phone screen sketched in boxes before anyone builds it, with notes on why each part is there.'),
     doc: shapes(
-      { title: 'Library app: a book’s page', alt: 'A wireframe of a phone screen for a library app: a header, a search box, a cover image, the title and author, how many copies are in, and a Borrow button, with three notes on the right.' },
+      {
+        title: 'Library app: a book’s page',
+        alt: 'A wireframe of a phone screen for a library app: a header, a search box, a cover image, the title and author, how many copies are in, and a Borrow button, with three notes on the right.',
+      },
       ['o', 4, 1, 26, 48, '0', ''],
       ['r', 6, 4, 22, 4, '1', '**Riverside Library**'],
       ['r', 6, 10, 22, 4, '0', ':search Find a book'],
@@ -161,7 +252,10 @@ export const templates = (): Template[] => [
     name: t('Logo sketch'),
     blurb: t('Three ideas for a coffee roaster’s mark side by side, the name set large, and a date to choose by.'),
     doc: shapes(
-      { title: 'Hollow Pine Coffee: logo ideas', alt: 'Three logo ideas for Hollow Pine Coffee: a mug in a green circle, pines in an orange hexagon, and a pine tree drawn as one shape, with the name set large beneath them.' },
+      {
+        title: 'Hollow Pine Coffee: logo ideas',
+        alt: 'Three logo ideas for Hollow Pine Coffee: a mug in a green circle, pines in an orange hexagon, and a pine tree drawn as one shape, with the name set large beneath them.',
+      },
       ['e', 5, 3, 20, 20, '1g', ''],
       ['i', 9, 7, 12, 12, '0g', 'coffee'],
       ['h', 30, 3, 20, 20, '1o', ''],
@@ -247,16 +341,26 @@ export const templates = (): Template[] => [
     id: 'heart',
     name: t('Pixel heart'),
     blurb: t('A 16 by 16 heart in pixels, to colour in or start over from.'),
-    doc: pixels({ title: 'A heart', grid: '16' }, '....cc....cc....', '...cccc..cccc...', '..cccccccccccc..', '..chccccccccccc.', '..chccccccccccc.', '..cccccccccccc..', '...cccccccccc...', '....cccccccc....', '.....cccccc.....', '......cccc......', '.......cc.......'),
+    doc: pixels(
+      { title: 'A heart', grid: '16' },
+      '....cc....cc....',
+      '...cccc..cccc...',
+      '..cccccccccccc..',
+      '..chccccccccccc.',
+      '..chccccccccccc.',
+      '..cccccccccccc..',
+      '...cccccccccc...',
+      '....cccccccc....',
+      '.....cccccc.....',
+      '......cccc......',
+      '.......cc.......',
+    ),
   },
   {
     id: 'icons',
     name: t('Weather icons'),
     blurb: t('Four 16 by 16 icons on one grid, sun, cloud, rain and storm, to copy for a forecast or a button.'),
-    doc: pixels(
-      { title: 'Weather icons', grid: '32' },
-      ...WEATHER,
-    ),
+    doc: pixels({ title: 'Weather icons', grid: '32' }, ...WEATHER),
   },
   {
     id: 'sprite',

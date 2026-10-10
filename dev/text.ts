@@ -68,7 +68,7 @@ class Pane {
   }
 }
 
-const panes = [new Pane('doc', SAMPLE), new Pane('lines', '- a slide\'s bullets\n- in a lines editor\n\nand a paragraph\n'), new Pane('line', 'One line, as a card or an outline row\n')];
+const panes = [new Pane('doc', SAMPLE), new Pane('lines', "- a slide's bullets\n- in a lines editor\n\nand a paragraph\n"), new Pane('line', 'One line, as a card or an outline row\n')];
 
 const pane = (p: Pane) => html`<section class="dev-pane">
   <h2>shape=${p.shape}</h2>

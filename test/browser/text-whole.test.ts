@@ -17,7 +17,8 @@ afterEach(async () => {
 });
 
 const frame = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-const MIXED = '# A heading\n\nThe first paragraph.\n\n- one item\n- another item\n\nCol | Two\n--- | ---\n1 | 2\n\n![a picture](https://example.com/a.png)\n\nThe last words.\n\n![the end](https://example.com/b.png)\n';
+const MIXED =
+  '# A heading\n\nThe first paragraph.\n\n- one item\n- another item\n\nCol | Two\n--- | ---\n1 | 2\n\n![a picture](https://example.com/a.png)\n\nThe last words.\n\n![the end](https://example.com/b.png)\n';
 
 async function write(tlo: string): Promise<{ shell: ToShell; el: ToWriteEditor }> {
   const shell = await mount(`#/v1/write/${encodeDoc(tlo)}`);

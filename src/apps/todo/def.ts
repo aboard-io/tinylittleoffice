@@ -49,7 +49,11 @@ export default defineApp({
     const max = opts?.small ? SMALL : Infinity;
     if (opts?.upTo === undefined) return [todoPage(d, max)];
     // A task a step: the tasks after the ones shown so far left out of the drawing, the page the whole list's.
-    const shown = new Set(readTodo(d).tasks.slice(0, opts.upTo).map((x) => x.at));
+    const shown = new Set(
+      readTodo(d)
+        .tasks.slice(0, opts.upTo)
+        .map((x) => x.at),
+    );
     return [partOf(todoPage(d, max), todoPage({ ...d, blocks: d.blocks.map((b, i) => (b.k === 'li' && !shown.has(i) ? { k: 'hr' as const } : b)) }, max))];
   },
   // On a slide (drawn small, the first eight), a task a step.

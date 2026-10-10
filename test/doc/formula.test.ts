@@ -1,12 +1,33 @@
 // The formula engine over a table block: arithmetic, references, functions, typed columns and dates, names; and
 // evaluate(doc, at) over a Write document holding a table.
 import { expect, test } from 'vitest';
-import { dateToSerial, evaluate, evaluateTable, firstTable, formatCell, formatValue, namedCells, nameKey, parse, parseLiteral, serialToIso, tableAt, todaySerial, type ColType, type Table } from '../../src/doc/index.ts';
+import {
+  dateToSerial,
+  evaluate,
+  evaluateTable,
+  firstTable,
+  formatCell,
+  formatValue,
+  namedCells,
+  nameKey,
+  parse,
+  parseLiteral,
+  serialToIso,
+  tableAt,
+  todaySerial,
+  type ColType,
+  type Table,
+} from '../../src/doc/index.ts';
 
 /** A table from rows of cells, its columns typed as given (text where not), with no names. */
 const grid = (rows: string[][], types: string[] = []): Table => {
   const n = Math.max(...rows.map((r) => r.length), types.length);
-  return { cols: Array.from({ length: n }, (_, c) => ({ name: '', type: (types[c] ?? 'text') as ColType })), rows: rows.map((r) => Array.from({ length: n }, (_, c) => r[c] ?? '')), lock: [], chart: '' };
+  return {
+    cols: Array.from({ length: n }, (_, c) => ({ name: '', type: (types[c] ?? 'text') as ColType })),
+    rows: rows.map((r) => Array.from({ length: n }, (_, c) => r[c] ?? '')),
+    lock: [],
+    chart: '',
+  };
 };
 const values = (t: Table) => evaluateTable(t).values;
 
@@ -16,12 +37,29 @@ test('arithmetic and precedence', () => {
 });
 
 test('refs, ranges and functions', () => {
-  const v = values(grid([['1', '2', '=A1+B1'], ['3', '4', '=SUM(A1:B2)'], ['5', 'x', '=AVG(A1:A3)'], ['', '', '=COUNT(A1:B3)'], ['', '', '=MAX(A1:A3)-MIN(A1:A3)'], ['', '', '=ROUND(SQRT(2),3)'], ['', '', '=MOD(7,3)+INT(2.9)+ABS(-1)']]));
+  const v = values(
+    grid([
+      ['1', '2', '=A1+B1'],
+      ['3', '4', '=SUM(A1:B2)'],
+      ['5', 'x', '=AVG(A1:A3)'],
+      ['', '', '=COUNT(A1:B3)'],
+      ['', '', '=MAX(A1:A3)-MIN(A1:A3)'],
+      ['', '', '=ROUND(SQRT(2),3)'],
+      ['', '', '=MOD(7,3)+INT(2.9)+ABS(-1)'],
+    ]),
+  );
   expect(v.map((r) => r[2])).toStrictEqual([3, 10, 3, 5, 4, 1.414, 4]);
 });
 
 test('errors', () => {
-  const v = values(grid([['=1/0', '=A1+1', '=foo(1)'], ['=A2', '=A3', '=x'], ['=B2', '=AA9', 'hello'], ['=C3+1', '=(1', '=1 2']]));
+  const v = values(
+    grid([
+      ['=1/0', '=A1+1', '=foo(1)'],
+      ['=A2', '=A3', '=x'],
+      ['=B2', '=AA9', 'hello'],
+      ['=C3+1', '=(1', '=1 2'],
+    ]),
+  );
   expect(v[0]).toStrictEqual(['#DIV/0', '#DIV/0', '#NAME']);
   expect(v[1]).toStrictEqual(['#CIRC', '#CIRC', '#NAME']);
   expect([v[2][0], v[2][1]]).toStrictEqual(['#CIRC', '#REF']);
@@ -39,7 +77,15 @@ test('format', () => {
 });
 
 test('comparisons, logic and business functions', () => {
-  const v = values(grid([['-1000', '300', '420', '680'], ['=IF(A1<0, 1, 1/0)', '=AND(B1>0, C1>=420)', '=OR(A1>0, D1<>680)', '=NOT(A1=-1000)'], ['=MEDIAN(A1:D1)', '=PRODUCT(B1:C1)', '=ROUNDUP(2.01, 0)', '=ROUNDDOWN(-2.99, 0)'], ['=NPV(0.1, B1:D1)', '=IRR(A1:D1)', '=PMT(0.05/12, 60, 20000)', '=FV(0.05, 10, -100)'], ['=PV(0.05, 10, -100)', '=IF(1=2, 5)', '=IRR(B1:D1)', '=E5+F30']]));
+  const v = values(
+    grid([
+      ['-1000', '300', '420', '680'],
+      ['=IF(A1<0, 1, 1/0)', '=AND(B1>0, C1>=420)', '=OR(A1>0, D1<>680)', '=NOT(A1=-1000)'],
+      ['=MEDIAN(A1:D1)', '=PRODUCT(B1:C1)', '=ROUNDUP(2.01, 0)', '=ROUNDDOWN(-2.99, 0)'],
+      ['=NPV(0.1, B1:D1)', '=IRR(A1:D1)', '=PMT(0.05/12, 60, 20000)', '=FV(0.05, 10, -100)'],
+      ['=PV(0.05, 10, -100)', '=IF(1=2, 5)', '=IRR(B1:D1)', '=E5+F30'],
+    ]),
+  );
   expect(v[1]).toStrictEqual([1, 1, 0, 0]);
   expect(v[2]).toStrictEqual([360, 126000, 3, -2]);
   const near = (a: unknown, b: number) => expect(typeof a === 'number' && Math.abs(a - b) < 0.005, `${a} vs ${b}`).toBe(true);
@@ -54,7 +100,9 @@ test('comparisons, logic and business functions', () => {
 test('typed columns: dates are numbers, and each type reads and shows its own way', () => {
   expect(dateToSerial(1900, 3, 1)).toBe(61);
   expect(serialToIso(dateToSerial(2027, 3, 1))).toBe('2027-03-01');
-  const doc = parse('---\nchart: line\n---\nWhen | Date:date | Cost:money | Share:percent | Link:url | Done:check\n--- | --- | --- | --- | --- | ---\nStart | 2027-03-01 | $1,200.5 | 12.5% | https://example.com/ | x\nEnd | 3/31/2027 | 80 | 7\n');
+  const doc = parse(
+    '---\nchart: line\n---\nWhen | Date:date | Cost:money | Share:percent | Link:url | Done:check\n--- | --- | --- | --- | --- | ---\nStart | 2027-03-01 | $1,200.5 | 12.5% | https://example.com/ | x\nEnd | 3/31/2027 | 80 | 7\n',
+  );
   const t = tableAt(doc, 0)!;
   expect(t.chart).toBe('line');
   expect(t.cols.map((c) => c.type)).toStrictEqual(['text', 'date', 'money', 'percent', 'url', 'check']);
@@ -77,7 +125,14 @@ test('typed columns: dates are numbers, and each type reads and shows its own wa
 });
 
 test('date math, as of a given day', () => {
-  const t = grid([['2027-01-31', '2027-03-01', '=B1-A1', '=A1+30', '=EDATE(A1, 1)', '=DAYS(B1, A1)'], ['=DATE(2027, 12, 25)', '=YEAR(A2)', '=MONTH(A2)', '=DAY(A2)', '=WEEKDAY(A2)', '=WORKDAYS(A1, B1)'], ['=TODAY()', '=A3-TODAY()', '=EDATE(A2, -10)', '=WORKDAYS(B1, A1)', '=IF(B1>A1, 1, 0)', '', 'today']], ['date', 'date', 'number', 'date', 'date', 'number', 'date']);
+  const t = grid(
+    [
+      ['2027-01-31', '2027-03-01', '=B1-A1', '=A1+30', '=EDATE(A1, 1)', '=DAYS(B1, A1)'],
+      ['=DATE(2027, 12, 25)', '=YEAR(A2)', '=MONTH(A2)', '=DAY(A2)', '=WEEKDAY(A2)', '=WORKDAYS(A1, B1)'],
+      ['=TODAY()', '=A3-TODAY()', '=EDATE(A2, -10)', '=WORKDAYS(B1, A1)', '=IF(B1>A1, 1, 0)', '', 'today'],
+    ],
+    ['date', 'date', 'number', 'date', 'date', 'number', 'date'],
+  );
   const today = dateToSerial(2027, 2, 1);
   const v = evaluateTable(t, today).values;
   const shown = v.map((row) => row.map((x, c) => formatCell(x, t.cols[c].type)));
@@ -93,7 +148,15 @@ test('date math, as of a given day', () => {
 });
 
 test('named cells: a name column names the cell to its right, and a formula may say so', () => {
-  const t = grid([['Visitors', 'Signups', '=visitors*signup_rate/100', 'Visitors', '20000'], ['Visitors', 'Bounced', '=visitors-signups', 'Signup rate', '6'], ['', '', '', 'Signups', '=SUMIF(B1:B9, "Signups", C1:C9)'], ['', '', '', 'Nobody', '=nothing+1']], ['text', 'text', 'number', 'name', 'number']);
+  const t = grid(
+    [
+      ['Visitors', 'Signups', '=visitors*signup_rate/100', 'Visitors', '20000'],
+      ['Visitors', 'Bounced', '=visitors-signups', 'Signup rate', '6'],
+      ['', '', '', 'Signups', '=SUMIF(B1:B9, "Signups", C1:C9)'],
+      ['', '', '', 'Nobody', '=nothing+1'],
+    ],
+    ['text', 'text', 'number', 'name', 'number'],
+  );
   const v = values(t);
   expect([v[0][2], v[1][2], v[2][4]]).toStrictEqual([1200, 18800, 1200]);
   // Case and spaces do not matter; a name nothing holds is #NAME; the name column itself is words.
@@ -105,19 +168,32 @@ test('named cells: a name column names the cell to its right, and a formula may 
 });
 
 test('SUMIF and COUNTIF: by words, by a cell, by a comparison; only the cells that match are worked out', () => {
-  const v = values(grid([['Run', '5', '=SUMIF(A1:A4, "run", B1:B4)'], ['Piano', '30', '=COUNTIF(A1:A4, "Run")'], ['Run', '7.5', '=SUMIF(B1:B4, ">6", B1:B4)'], ['Swim', '40', '=SUMIF(A1:A4, A2, B1:B4)'], ['Total', '=SUMIF(A1:A5, "Run", B1:B5)', '=COUNTIF(B1:B4, "<>5")']]));
+  const v = values(
+    grid([
+      ['Run', '5', '=SUMIF(A1:A4, "run", B1:B4)'],
+      ['Piano', '30', '=COUNTIF(A1:A4, "Run")'],
+      ['Run', '7.5', '=SUMIF(B1:B4, ">6", B1:B4)'],
+      ['Swim', '40', '=SUMIF(A1:A4, A2, B1:B4)'],
+      ['Total', '=SUMIF(A1:A5, "Run", B1:B5)', '=COUNTIF(B1:B4, "<>5")'],
+    ]),
+  );
   expect([v[0][2], v[1][2], v[2][2], v[3][2], v[4][1], v[4][2]]).toStrictEqual([12.5, 2, 77.5, 30, 12.5, 3]);
 });
 
-test('evaluate(doc, at): a table inside a Write document is worked out in place, as the sheet document\'s is', () => {
-  const doc = parse('# Invoice 0042 {.title}\n\nThank you for the work.\n\nWhat | Qty:number | Price:money | Amount:money\n--- | --- | --- | ---\nDesign | 12 | 150 | =B1*C1\nBuild | 20 | 140 | =B2*C2\nTotal | | | =SUM(D1:D2)\n\nPayment by bank transfer.\n\nQ | Sales:money\n--- | ---\nQ1 | 120\nQ2 | =B1+60\n');
+test("evaluate(doc, at): a table inside a Write document is worked out in place, as the sheet document's is", () => {
+  const doc = parse(
+    '# Invoice 0042 {.title}\n\nThank you for the work.\n\nWhat | Qty:number | Price:money | Amount:money\n--- | --- | --- | ---\nDesign | 12 | 150 | =B1*C1\nBuild | 20 | 140 | =B2*C2\nTotal | | | =SUM(D1:D2)\n\nPayment by bank transfer.\n\nQ | Sales:money\n--- | ---\nQ1 | 120\nQ2 | =B1+60\n',
+  );
   expect(firstTable(doc)).toBe(2);
   const e = evaluate(doc)!;
   expect(e.values.map((r) => r[3])).toStrictEqual([1800, 2800, 4600]);
   expect(e.values[2].slice(0, 3)).toStrictEqual(['Total', null, null]);
   expect(e.values[0].map((v, c) => formatCell(v, tableAt(doc, 2)!.cols[c].type))).toStrictEqual(['Design', '12', '$150.00', '$1,800.00']);
   // The second table is its own sheet: B1 is its own first row.
-  expect(evaluate(doc, 4)!.values).toStrictEqual([['Q1', 120], ['Q2', 180]]);
+  expect(evaluate(doc, 4)!.values).toStrictEqual([
+    ['Q1', 120],
+    ['Q2', 180],
+  ]);
   expect(evaluate(doc, 0)).toBeNull();
   expect(evaluate(parse('# No table\n'))).toBeNull();
 });

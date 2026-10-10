@@ -18,7 +18,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { apps, compare, file, fromTlo, link, plain, read, templates } from '../../src/api.ts';
 import { slug } from '../../src/kit/draw.ts';
 
-const USAGE = readFileSync(new URL(import.meta.url), 'utf8').match(/\/\*\*\n([\s\S]*?)\*\//)![1].replace(/^ \* ?/gm, '');
+const USAGE = readFileSync(new URL(import.meta.url), 'utf8')
+  .match(/\/\*\*\n([\s\S]*?)\*\//)![1]
+  .replace(/^ \* ?/gm, '');
 
 // Piped into `head`, the rest is not wanted: stop quietly.
 process.stdout.on('error', (e: NodeJS.ErrnoException) => (e.code === 'EPIPE' ? process.exit(0) : die(e.message)));
@@ -79,7 +81,13 @@ async function main() {
     }
     case 'diff': {
       const c = compare(args[0] ?? die('which links?'), args[1] ?? die('and the second?'));
-      for (const ch of c.changes) out(ch.line.split('\n').map((l, i) => `${i ? ' ' : ch.kind} ${l}`).join('\n'));
+      for (const ch of c.changes)
+        out(
+          ch.line
+            .split('\n')
+            .map((l, i) => `${i ? ' ' : ch.kind} ${l}`)
+            .join('\n'),
+        );
       if (!c.same) process.exitCode = 1;
       return;
     }

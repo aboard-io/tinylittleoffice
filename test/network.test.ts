@@ -98,12 +98,20 @@ test('no telemetry: no analytics, error-reporting, font-CDN or tag-manager host 
     for (const host of DENY) if (text.includes(host)) found.push(`${path}: ${host}`);
   }
   expect(found).toEqual([]);
-  for (const r of reaches()) expect(DENY.some((d) => r.host.endsWith(d)), r.host).toBe(false);
+  for (const r of reaches())
+    expect(
+      DENY.some((d) => r.host.endsWith(d)),
+      r.host,
+    ).toBe(false);
 });
 
 test('the list: every entry says what, when, what it carries, what stops it and who asks; the whitelist is its entries with a reason', () => {
   for (const r of reaches()) for (const k of ['host', 'what', 'carries', 'stops', 'by'] as const) expect(r[k], `${r.host} ${k}`).toMatch(/\S/);
-  expect(TRUSTED).toEqual(reaches().filter((r) => r.picture).map((r) => r.host));
+  expect(TRUSTED).toEqual(
+    reaches()
+      .filter((r) => r.picture)
+      .map((r) => r.host),
+  );
   expect(TRUSTED).toContain('upload.wikimedia.org');
 });
 

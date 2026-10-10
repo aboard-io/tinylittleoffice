@@ -20,10 +20,13 @@ const SLIDE_W = 12192000;
 const SLIDE_H = 7620000; // 16:10, the shape of a slide in the editor
 const MARGIN = 838200;
 const ICON = 1143000;
-const P_NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+const P_NS =
+  'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-const rels = (items: [string, string, string][]) => `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${items.map(([id, type, target]) => `<Relationship Id="${id}" Type="${REL}/${type}" Target="${target}"/>`).join('')}</Relationships>`;
-const GROUP = '<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>';
+const rels = (items: [string, string, string][]) =>
+  `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${items.map(([id, type, target]) => `<Relationship Id="${id}" Type="${REL}/${type}" Target="${target}"/>`).join('')}</Relationships>`;
+const GROUP =
+  '<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>';
 const xfrm = (px: number, py: number, cx: number, cy: number) => `<a:xfrm><a:off x="${Math.round(px)}" y="${Math.round(py)}"/><a:ext cx="${Math.round(cx)}" cy="${Math.round(cy)}"/></a:xfrm>`;
 const RECT = '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>';
 
@@ -43,7 +46,8 @@ const para = (runs: Run[], pPr = '', size = 0, next = noteNumbers()) => {
 const words = (s: string) => [{ t: s }];
 
 /** The deck's theme as PowerPoint's: its paper is the background (lt1), its ink the words (dk1), its accent the first accent. */
-const pptTheme = (T: DeckTheme) => `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Tiny Little Office"><a:themeElements><a:clrScheme name="Tiny Little Office"><a:dk1><a:srgbClr val="${T.ink.slice(1).toUpperCase()}"/></a:dk1><a:lt1><a:srgbClr val="${T.paper.slice(1).toUpperCase()}"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="${T.accent.slice(1).toUpperCase()}"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="${(T.link ?? T.accent).slice(1).toUpperCase()}"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="Tiny Little Office"><a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Tiny Little Office"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
+const pptTheme = (T: DeckTheme) =>
+  `${XML_HEAD}<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Tiny Little Office"><a:themeElements><a:clrScheme name="Tiny Little Office"><a:dk1><a:srgbClr val="${T.ink.slice(1).toUpperCase()}"/></a:dk1><a:lt1><a:srgbClr val="${T.paper.slice(1).toUpperCase()}"/></a:lt1><a:dk2><a:srgbClr val="3F3F46"/></a:dk2><a:lt2><a:srgbClr val="F4F4F5"/></a:lt2><a:accent1><a:srgbClr val="${T.accent.slice(1).toUpperCase()}"/></a:accent1><a:accent2><a:srgbClr val="0EA5E9"/></a:accent2><a:accent3><a:srgbClr val="16A34A"/></a:accent3><a:accent4><a:srgbClr val="D97706"/></a:accent4><a:accent5><a:srgbClr val="DC2626"/></a:accent5><a:accent6><a:srgbClr val="9333EA"/></a:accent6><a:hlink><a:srgbClr val="${(T.link ?? T.accent).slice(1).toUpperCase()}"/></a:hlink><a:folHlink><a:srgbClr val="7C3AED"/></a:folHlink></a:clrScheme><a:fontScheme name="Tiny Little Office"><a:majorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Tiny Little Office"><a:fillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:fillStyleLst><a:lnStyleLst>${'<a:ln w="9525"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>'.repeat(3)}</a:lnStyleLst><a:effectStyleLst>${'<a:effectStyle><a:effectLst/></a:effectStyle>'.repeat(3)}</a:effectStyleLst><a:bgFillStyleLst>${'<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'.repeat(3)}</a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`;
 
 const TITLE_FRAME = xfrm(MARGIN, 685800, SLIDE_W - 2 * MARGIN, ICON);
 const BODY_FRAME = xfrm(MARGIN, 2133600, SLIDE_W - 2 * MARGIN, SLIDE_H - 2133600 - 685800);
@@ -53,13 +57,19 @@ const MASTER = `${XML_HEAD}<p:sldMaster ${P_NS}><p:cSld><p:bg><p:bgPr><a:solidFi
 
 const LAYOUT = `${XML_HEAD}<p:sldLayout ${P_NS} type="obj" preserve="1"><p:cSld name="Title and Content"><p:spTree>${GROUP}${placeholder(2, 'title', para(words('Headline')))}${placeholder(3, 'body', para(words('Bullets')))}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`;
 
-const pic = (id: number, rel: string, name: string, frame: string) => `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="${x(name)}" descr="${x(name)}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${rel}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>${frame}${RECT}</p:spPr></p:pic>`;
+const pic = (id: number, rel: string, name: string, frame: string) =>
+  `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="${x(name)}" descr="${x(name)}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${rel}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr>${frame}${RECT}</p:spPr></p:pic>`;
 
 /** The pictures PowerPoint needs drawn: the theme's decoration, each icon used, and each document shown on a slide. */
 export function pictures(doc: Doc, slides: Slide[], look: Look): Record<string, { svg: string; w: number; h: number }> {
   const out: Record<string, { svg: string; w: number; h: number }> = {};
   const deco = look.themed ? look.theme.deco : '';
-  if (deco) out.theme = { w: SW * 2, h: SH * 2, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${SW * 2}" height="${SH * 2}" viewBox="0 0 ${SW} ${SH}"><rect width="${SW}" height="${SH}" fill="${look.theme.paper}"/>${deco}</svg>` };
+  if (deco)
+    out.theme = {
+      w: SW * 2,
+      h: SH * 2,
+      svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${SW * 2}" height="${SH * 2}" viewBox="0 0 ${SW} ${SH}"><rect width="${SW}" height="${SH}" fill="${look.theme.paper}"/>${deco}</svg>`,
+    };
   slides.forEach((s, i) => {
     const glyph = s.icon ? glyphNamed(s.icon, 0, 0, 256, look.icon) : '';
     if (glyph) out[`icon-${s.icon}`] = { w: 256, h: 256, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">${glyph}</svg>` };
@@ -126,7 +136,8 @@ export function deckToPptx(text: string, ctx: ExportContext, png: Record<string,
     const titleBox = s.sub >= 0 && !L.title.lines.length ? col : L.title;
     const titleFrame = xfrm(E(titleBox.x), E(titleBox.y), E(titleBox.w), E(Math.max(titleBox.h, 60)));
     const bodyFrame = xfrm(E(col.x), E(col.y), E(bodyW), E(Math.max(col.h, 80)));
-    files[`ppt/slides/slide${n}.xml`] = `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${pics}${placeholder(2, 'title', headline, titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+    files[`ppt/slides/slide${n}.xml`] =
+      `${XML_HEAD}<p:sld ${P_NS}><p:cSld><p:spTree>${GROUP}${pics}${placeholder(2, 'title', headline, titleFrame)}${placeholder(3, 'body', paras, bodyFrame)}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
     files[`ppt/slides/_rels/slide${n}.xml.rels`] = rels(links);
     slideRels.push([`rId${n + 2}`, 'slide', `slides/slide${n}.xml`]);
     types += `<Override PartName="/ppt/slides/slide${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`;
@@ -144,9 +155,19 @@ export function deckToPptx(text: string, ctx: ExportContext, png: Record<string,
     'ppt/viewProps.xml': `${XML_HEAD}<p:viewPr ${P_NS}><p:normalViewPr><p:restoredLeft sz="15620"/><p:restoredTop sz="94660"/></p:normalViewPr><p:gridSpacing cx="76200" cy="76200"/></p:viewPr>`,
     'ppt/tableStyles.xml': `${XML_HEAD}<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>`,
     'ppt/presentation.xml': `${XML_HEAD}<p:presentation ${P_NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>${slides.map((_, i) => `<p:sldId id="${256 + i}" r:id="rId${i + 3}"/>`).join('')}</p:sldIdLst><p:sldSz cx="${SLIDE_W}" cy="${SLIDE_H}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`,
-    'ppt/_rels/presentation.xml.rels': rels([['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml'], ...slideRels, ['rIdP', 'presProps', 'presProps.xml'], ['rIdV', 'viewProps', 'viewProps.xml'], ['rIdT', 'tableStyles', 'tableStyles.xml']]),
+    'ppt/_rels/presentation.xml.rels': rels([
+      ['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'],
+      ['rId2', 'theme', 'theme/theme1.xml'],
+      ...slideRels,
+      ['rIdP', 'presProps', 'presProps.xml'],
+      ['rIdV', 'viewProps', 'viewProps.xml'],
+      ['rIdT', 'tableStyles', 'tableStyles.xml'],
+    ]),
     'ppt/slideMasters/slideMaster1.xml': MASTER,
-    'ppt/slideMasters/_rels/slideMaster1.xml.rels': rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']]),
+    'ppt/slideMasters/_rels/slideMaster1.xml.rels': rels([
+      ['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'],
+      ['rId2', 'theme', '../theme/theme1.xml'],
+    ]),
     'ppt/slideLayouts/slideLayout1.xml': LAYOUT,
     'ppt/slideLayouts/_rels/slideLayout1.xml.rels': rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']]),
     'ppt/theme/theme1.xml': pptTheme(themeOf(settings.theme)),

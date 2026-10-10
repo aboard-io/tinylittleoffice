@@ -15,10 +15,28 @@ import { isAtomic, writeInline, type Block, type Doc, type Op, type Run } from '
 export type Mode = 'calc' | 'graph';
 
 const FN: Record<string, (a: number, b?: number) => number> = {
-  sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan,
-  sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, ln: Math.log, log: Math.log10, log2: Math.log2,
-  sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, exp: Math.exp, floor: Math.floor, ceil: Math.ceil, round: Math.round,
-  min: (a, b = a) => Math.min(a, b), max: (a, b = a) => Math.max(a, b), pow: (a, b = 2) => Math.pow(a, b),
+  sin: Math.sin,
+  cos: Math.cos,
+  tan: Math.tan,
+  asin: Math.asin,
+  acos: Math.acos,
+  atan: Math.atan,
+  sinh: Math.sinh,
+  cosh: Math.cosh,
+  tanh: Math.tanh,
+  ln: Math.log,
+  log: Math.log10,
+  log2: Math.log2,
+  sqrt: Math.sqrt,
+  cbrt: Math.cbrt,
+  abs: Math.abs,
+  exp: Math.exp,
+  floor: Math.floor,
+  ceil: Math.ceil,
+  round: Math.round,
+  min: (a, b = a) => Math.min(a, b),
+  max: (a, b = a) => Math.max(a, b),
+  pow: (a, b = 2) => Math.pow(a, b),
   fact: (n) => (n < 0 || n > 170 || n % 1 ? NaN : Array.from({ length: n }, (_, i) => i + 1).reduce((p, k) => p * k, 1)),
 };
 const CONST: Record<string, number> = { pi: Math.PI, π: Math.PI, e: Math.E, tau: 2 * Math.PI };
@@ -85,7 +103,8 @@ export function evaluate(src: string, x = NaN, names: Record<string, number> = {
     for (;;) {
       if (peek() === '*') (at++, (v *= power()));
       else if (peek() === '/') (at++, (v /= power()));
-      else if (peek() === '(' || /[a-zπ]/i.test(peek() ?? '')) v *= power(); // 2(3+4), 2x, 3sin(x)
+      else if (peek() === '(' || /[a-zπ]/i.test(peek() ?? ''))
+        v *= power(); // 2(3+4), 2x, 3sin(x)
       else return v;
     }
   };

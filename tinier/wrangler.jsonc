@@ -12,13 +12,13 @@
       "binding": "DB",
       "database_name": "tinier",
       // Filled in by `npx wrangler d1 create tinier` on the account the site deploys from.
-      "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5"
-    }
+      "database_id": "6ede155f-083c-4ab9-a33e-64eea0704bb5",
+    },
   ],
   // A gentle brake on one address making or changing many links. Counted per Cloudflare location, in memory, never written down.
   "ratelimits": [{ "name": "LIMITER", "namespace_id": "1", "simple": { "limit": 10, "period": 60 } }],
   // Expired links go every hour; a read of one goes sooner.
   "triggers": { "crons": ["17 * * * *"] },
   // No logs: the server learns that a link was made, and keeps even that to itself.
-  "observability": { "enabled": false }
+  "observability": { "enabled": false },
 }

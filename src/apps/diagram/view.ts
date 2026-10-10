@@ -116,7 +116,20 @@ function orgLayout(doc: Doc): Diagram {
   const BW = 156;
   const BH = 54;
   const placed = placeTree(forest(linesOf(doc)));
-  const boxes = placed.map((p) => shape('o', p.across * (BW + 20), p.node.depth * (BH + 44), BW, BH, labelOf(p.node.line.all), p.node.depth === 0 ? 2 : p.node.depth === 1 ? 1 : 0, p.node.depth < 2 ? 'b' : undefined, undefined, whole(p.node.line)));
+  const boxes = placed.map((p) =>
+    shape(
+      'o',
+      p.across * (BW + 20),
+      p.node.depth * (BH + 44),
+      BW,
+      BH,
+      labelOf(p.node.line.all),
+      p.node.depth === 0 ? 2 : p.node.depth === 1 ? 1 : 0,
+      p.node.depth < 2 ? 'b' : undefined,
+      undefined,
+      whole(p.node.line),
+    ),
+  );
   const at = (name: string) => placed.findIndex((p) => same(p.node.line.all.words, name));
   const dotted = edgesOf(doc).flatMap((e) => {
     const [a, b] = [at(e.from), at(e.to)];
@@ -179,7 +192,16 @@ function head(x: number, y: number, dx: number, dy: number, c: Color): DShape {
   const n = Math.hypot(dx, dy) || 1;
   const [ux, uy] = [dx / n, dy / n];
   const [L, Wd] = [11, 5];
-  return boxed('v', [[x, y], [x - ux * L - uy * Wd, y - uy * L + ux * Wd], [x - ux * L + uy * Wd, y - uy * L - ux * Wd]], 2, c);
+  return boxed(
+    'v',
+    [
+      [x, y],
+      [x - ux * L - uy * Wd, y - uy * L + ux * Wd],
+      [x - ux * L + uy * Wd, y - uy * L - ux * Wd],
+    ],
+    2,
+    c,
+  );
 }
 /**
  * A mind map's cross-link from box a to box b: a dashed quadratic curve bowing away from the idea in the middle (so it
@@ -209,7 +231,13 @@ function crossLink(a: DShape, b: DShape, boxes: DShape[], root: [number, number]
   const p0 = rim(a, cx, cy);
   const p2 = rim(b, cx, cy);
   const at = (t: number): [number, number] => [(1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * cx + t * t * p2[0], (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * cy + t * t * p2[1]];
-  const curve = boxed('w', Array.from({ length: 25 }, (_, i) => at(i / 24)), 1, C, hit);
+  const curve = boxed(
+    'w',
+    Array.from({ length: 25 }, (_, i) => at(i / 24)),
+    1,
+    C,
+    hit,
+  );
   const out: DShape[] = [curve];
   if (dir === '->' || dir === '<->') out.push(head(p2[0], p2[1], p2[0] - cx, p2[1] - cy, C));
   if (dir === '<-' || dir === '<->') out.push(head(p0[0], p0[1], p0[0] - cx, p0[1] - cy, C));
@@ -256,7 +284,11 @@ function lanesLayout(doc: Doc): Diagram {
   // A step that asks a question is a decision.
   const boxes = steps.map((s, i) => {
     const w = s.line.words;
-    return shape(w.words.endsWith('?') ? 'd' : 'o', LABEL + i * COL + 12, lanes.indexOf(s.lane) * ROW + 14, COL - 28, ROW - 36, labelOf(w), 0, undefined, undefined, { k: 'line', at: s.line.at, part: 'words' });
+    return shape(w.words.endsWith('?') ? 'd' : 'o', LABEL + i * COL + 12, lanes.indexOf(s.lane) * ROW + 14, COL - 28, ROW - 36, labelOf(w), 0, undefined, undefined, {
+      k: 'line',
+      at: s.line.at,
+      part: 'words',
+    });
   });
   return frame([...bands, ...boxes, ...steps.slice(1).map((_, i) => join(first + i, first + i + 1))]);
 }
@@ -371,7 +403,19 @@ export function vennOf(doc: Doc): { groups: Group[]; sets: string[] } {
 
 const R = 150;
 const D = R * 1.12;
-const centres = (n: number): [number, number][] => (n === 1 ? [[R, R]] : n === 2 ? [[R, R], [R + D, R]] : [[R, R], [R + D, R], [R + D / 2, R + D * 0.87]]);
+const centres = (n: number): [number, number][] =>
+  n === 1
+    ? [[R, R]]
+    : n === 2
+      ? [
+          [R, R],
+          [R + D, R],
+        ]
+      : [
+          [R, R],
+          [R + D, R],
+          [R + D / 2, R + D * 0.87],
+        ];
 
 /** The middle of a region (the circles it is in and not the others): the point farthest from every edge, and how far that is. */
 function regionCentre(idx: number[], all: [number, number][]): { cx: number; cy: number; room: number } {
@@ -381,7 +425,7 @@ function regionCentre(idx: number[], all: [number, number][]): { cx: number; cy:
   for (let x = 0; x <= span; x += 4) {
     for (let y = 0; y <= span; y += 4) {
       const clear = Math.min(...all.map(([cx, cy], i) => (idx.includes(i) ? R - Math.hypot(x - cx, y - cy) : Math.hypot(x - cx, y - cy) - R)));
-      if (clear > best) (best = clear), (at = [x, y]);
+      if (clear > best) ((best = clear), (at = [x, y]));
     }
   }
   return { cx: at[0], cy: at[1], room: best };
@@ -503,7 +547,14 @@ export function tile(cards: Page[], cols: number, rows: number, sheet = LETTER):
         return `<svg x="${r(x)}" y="${r(y)}" width="${w}" height="${h}" viewBox="0 0 ${c.w} ${c.h}">${c.svg}</svg>` + rect(x, y, w, h, 'none', 'stroke="#a1a1aa" stroke-dasharray="6 5"');
       })
       .join('');
-    out.push({ ...sheet, svg, alt: cards.slice(i, i + cols * rows).map((c) => c.alt).join('; ') });
+    out.push({
+      ...sheet,
+      svg,
+      alt: cards
+        .slice(i, i + cols * rows)
+        .map((c) => c.alt)
+        .join('; '),
+    });
   }
   return out;
 }
@@ -563,14 +614,25 @@ function netLayout(doc: Doc): Diagram {
 
 /* ---------- the kinds, and the page ---------- */
 
-const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = { mind: mindLayout, org: orgLayout, family: orgLayout, lanes: lanesLayout, timeline: timelineLayout, venn: vennLayout, seating: seatingLayout, net: netLayout };
+const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = {
+  mind: mindLayout,
+  org: orgLayout,
+  family: orgLayout,
+  lanes: lanesLayout,
+  timeline: timelineLayout,
+  venn: vennLayout,
+  seating: seatingLayout,
+  net: netLayout,
+};
 
 /** The document as its kind draws it. */
 export const layout = (doc: Doc): Diagram => LAYOUTS[kindOf(doc)](doc);
 
 /** The regions under a point of the picture: a lane by its plain name, or the sets of a Venn whose circles hold it as a key writes them ("Fast & Cheap", "R\&D & Sales"). */
 export function regionAt(d: Diagram, x: number, y: number): string | undefined {
-  const inside = d.shapes.filter((s) => s.region !== undefined && (s.k === 'e' ? ((x - s.x - s.w / 2) / (s.w / 2)) ** 2 + ((y - s.y - s.h / 2) / (s.h / 2)) ** 2 <= 1 : x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h));
+  const inside = d.shapes.filter(
+    (s) => s.region !== undefined && (s.k === 'e' ? ((x - s.x - s.w / 2) / (s.w / 2)) ** 2 + ((y - s.y - s.h / 2) / (s.h / 2)) ** 2 <= 1 : x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h),
+  );
   return inside.length ? inside.map((s) => s.region).join(' & ') : undefined;
 }
 
@@ -592,7 +654,9 @@ export function toDrawing(doc: Doc): string {
   const d = layout(doc);
   const k = Math.min(1, W / d.w, H / d.h);
   const g = (n: number) => Math.round((n * k) / GRID) * GRID;
-  const shapes: Shape[] = d.shapes.map(({ hit: _h, region: _r, ...s }) => (isLink(s.k) ? s : { ...s, x: g(s.x), y: g(s.y), w: Math.max(GRID, g(s.w)), h: Math.max(GRID, g(s.h)), ...(k < 0.75 ? { z: 1 as TextSize } : {}) }));
+  const shapes: Shape[] = d.shapes.map(({ hit: _h, region: _r, ...s }) =>
+    isLink(s.k) ? s : { ...s, x: g(s.x), y: g(s.y), w: Math.max(GRID, g(s.w)), h: Math.max(GRID, g(s.h)), ...(k < 0.75 ? { z: 1 as TextSize } : {}) },
+  );
   const fields = ['kind', 'x', 'y', 'w', 'h', 'style', 'label'] as const;
   const names = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label'];
   const head: Record<string, string> = doc.head.title ? { title: doc.head.title } : {};

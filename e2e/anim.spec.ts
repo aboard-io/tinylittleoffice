@@ -12,7 +12,12 @@ const measure = (page: Page) =>
   page.evaluate(() => {
     const bar = document.querySelector<HTMLElement>('to-anim-editor to-bar')!;
     const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-    return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.querySelector('.to-main')!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return {
+      bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+      rows: tops.size,
+      pageTop: document.querySelector('.to-main')!.scrollTop,
+      wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
   });
 
 test('motion: a shape drawn, then moved at the last moment, keys itself there', async ({ page }) => {
@@ -76,7 +81,9 @@ test('motion: a shape drawn, then moved at the last moment, keys itself there', 
   expect(errors).toEqual([]);
 });
 
-test('motion: a tap chooses a shape and its contextual bar comes up under it, 44px to the finger and inside the screen; two taps type its words; an empty stage lets a finger scroll', async ({ page }) => {
+test('motion: a tap chooses a shape and its contextual bar comes up under it, 44px to the finger and inside the screen; two taps type its words; an empty stage lets a finger scroll', async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/anim');

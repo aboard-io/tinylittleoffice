@@ -1,93 +1,93 @@
 {
- "source": "src/apps/calc/templates.ts (the rebuilt tree), and the old tree's example",
- "docs": [
-  {
-   "name": "calc/bill",
-   "text": "---\ntitle: Dinner for six\n---\nfood = 164.50\ndrinks = 58\ntip = (food + drinks) * 18%\ntotal = food + drinks + tip\ntotal / 6\n"
-  },
-  {
-   "name": "calc/shopping",
-   "text": "---\ntitle: Saturday at the market\n---\neggs = 6.50\nbread = 7\napples = 2.4 * 3.29\ncheese = 0.35 * 28\ncoffee = 16\nflowers = 12\nspent = eggs + bread + apples + cheese + coffee + flowers\n60 - spent\n"
-  },
-  {
-   "name": "calc/tax",
-   "text": "---\ntitle: Sales tax in New York City\n---\nrate = 8.875%\nlaptop = 1299\nlaptop * rate\nlaptop * (1 + rate)\nreceipt = 86.40\nbefore_tax = receipt / (1 + rate)\nreceipt - before_tax\n"
-  },
-  {
-   "name": "calc/percent",
-   "text": "---\ntitle: The rent is going up\n---\nlast_year = 1450\nthis_year = 1595\nrise = this_year - last_year\nrise / last_year * 100\nrise * 12\nraise = 3.5%\npay = 4800 * (1 + raise)\nshare = this_year / pay * 100\n"
-  },
-  {
-   "name": "calc/kitchen",
-   "text": "---\ntitle: Kitchen conversions\n---\n2 cups to ml\n180 celsius to fahrenheit\n3 tbsp + 2 tsp to ml\n450 g to lb\n8 floz to ml\n"
-  },
-  {
-   "name": "calc/recipe",
-   "text": "---\ntitle: Banana bread for twelve\n---\nserves = 8\nwant = 12\nscale = want / serves\nflour = 250 g * scale\nbutter = 115 g * scale\nsugar = 2/3 cup * scale\nbananas = 3 * scale\neggs = 2 * scale\nThe oven stays at 175 °C: check the loaf at 55 minutes.\n"
-  },
-  {
-   "name": "calc/units",
-   "text": "---\ntitle: Lengths, weights and temperatures\n---\n6 ft + 2 inch to cm\n26.2 mi to km\n5 km to mi\n70 kg to lb\n14 lb to kg\n98.6 fahrenheit to celsius\n-10 celsius to fahrenheit\n1 acre to m^2\n"
-  },
-  {
-   "name": "calc/currency",
-   "text": "---\ntitle: Four days in Lisbon, in dollars\n---\nrate = 1.17\nhotel = 4 * 138\nmeals = 4 * 65\ntrains = 2 * 24.80\nmuseums = 3 * 15\neuros = hotel + meals + trains + museums\ndollars = euros * rate\ndollars * 3%\ndollars / 4\n"
-  },
-  {
-   "name": "calc/fuel",
-   "text": "---\ntitle: Gas for the drive to Montreal\n---\nmiles = 2 * 312\nmpg = 31\nprice = 3.39\ngallons = miles / mpg\ncost = gallons * price\ncost / 4\n"
-  },
-  {
-   "name": "calc/paint",
-   "text": "---\ntitle: Painting the front room\n---\nwalls = 2 * (4.2 + 3.6) * 2.4\ndoors = 0.9 * 2.1\nwindows = 1.4 * 1.2 * 2\narea = walls - doors - windows\nlitres = area * 2 / 12\nceil(litres / 2.5)\n"
-  },
-  {
-   "name": "calc/zones",
-   "text": "---\ntitle: A 9 a.m. call on Monday 2 November\n---\nnew_york = 9\nlondon = new_york + 5\nberlin = new_york + 6\nmumbai = new_york + 10.5\ntokyo = mod(new_york + 14, 24)\nsydney = mod(new_york + 16, 24)\nHours on a 24-hour clock: .5 is half past, and in Sydney it is already Tuesday.\n"
-  },
-  {
-   "name": "calc/pace",
-   "text": "---\ntitle: Pace for the Prospect Park 10K\n---\ntime = 52 minute + 30 s\ndistance = 10 km\npace = time / distance\npace to minute / km\npace to minute / mi\npace * 21.0975 km to h\npace * 42.195 km to h\n"
-  },
-  {
-   "name": "calc/bmi",
-   "text": "---\ntitle: Body mass index\n---\nweight = 72\nheight = 1.78\nweight / height^2\npounds = 160\ninches = 70\n703 * pounds / inches^2\nA guide, not a diagnosis: 18.5 to 25 is the usual range for adults.\n"
-  },
-  {
-   "name": "calc/dose",
-   "text": "---\ntitle: A child's dose of acetaminophen\n---\nArithmetic only: check every dose with a doctor, a pharmacist or the label.\nweight = 18 kg\ndose = weight * 15 mg / kg\nstrength = 160 mg / 5 mL\ndose / strength\n4 * dose\nNo more than four doses in 24 hours, at least four hours apart.\n"
-  },
-  {
-   "name": "calc/power",
-   "text": "---\ntitle: What the space heater costs\n---\npower = 1500 W\nhours = 6 h * 30\nenergy = power * hours to kWh\nprice = 0.28\ncost = energy / kWh * price\ncost * 5\n"
-  },
-  {
-   "name": "calc/loan",
-   "text": "---\ntitle: A car loan over five years\n---\nprincipal = 24000\nr = 6.9% / 12\nn = 60\npayment = principal * r / (1 - (1 + r)^-n)\ntotal = payment * n\ntotal - principal\n"
-  },
-  {
-   "name": "calc/savings",
-   "text": "---\ntitle: Saving for ten years\n---\nstart = 5000\nmonthly = 200\nrate = 5% / 12\nmonths = 10 * 12\ngrown = start * (1 + rate)^months\nadded = monthly * ((1 + rate)^months - 1) / rate\ngrown + added\nstart + monthly * months\n"
-  },
-  {
-   "name": "calc/break-even",
-   "text": "---\ntitle: Break-even for a coffee cart\nmode: graph\n---\nx from 0 to 400\n1200 + 1.1x\n4.5x\n"
-  },
-  {
-   "name": "calc/slope",
-   "text": "---\ntitle: A curve and its slope\nmode: graph\n---\nx from -2.5 to 2.5\nx^3 - 3x\n3x^2 - 3\n-2\n"
-  },
-  {
-   "name": "calc/waves",
-   "text": "---\ntitle: Waves adding up\nmode: graph\n---\nx from -6.3 to 6.3\nsin(x)\nsin(3x)/3\nsin(x) + sin(3x)/3 + sin(5x)/5\n"
-  },
-  {
-   "name": "calc/example (old tree, src/api.ts)",
-   "text": "---\nmode: mortgage\n---\n- price = 400000\n- deposit = 80000\n- rate = 6.5\n- years = 30\n"
-  },
-  {
-   "name": "calc/escaped signs",
-   "text": "2\\*3\\*4\n\\- 3\nunit_price = 2.5\n"
-  }
- ]
+  "source": "src/apps/calc/templates.ts (the rebuilt tree), and the old tree's example",
+  "docs": [
+    {
+      "name": "calc/bill",
+      "text": "---\ntitle: Dinner for six\n---\nfood = 164.50\ndrinks = 58\ntip = (food + drinks) * 18%\ntotal = food + drinks + tip\ntotal / 6\n"
+    },
+    {
+      "name": "calc/shopping",
+      "text": "---\ntitle: Saturday at the market\n---\neggs = 6.50\nbread = 7\napples = 2.4 * 3.29\ncheese = 0.35 * 28\ncoffee = 16\nflowers = 12\nspent = eggs + bread + apples + cheese + coffee + flowers\n60 - spent\n"
+    },
+    {
+      "name": "calc/tax",
+      "text": "---\ntitle: Sales tax in New York City\n---\nrate = 8.875%\nlaptop = 1299\nlaptop * rate\nlaptop * (1 + rate)\nreceipt = 86.40\nbefore_tax = receipt / (1 + rate)\nreceipt - before_tax\n"
+    },
+    {
+      "name": "calc/percent",
+      "text": "---\ntitle: The rent is going up\n---\nlast_year = 1450\nthis_year = 1595\nrise = this_year - last_year\nrise / last_year * 100\nrise * 12\nraise = 3.5%\npay = 4800 * (1 + raise)\nshare = this_year / pay * 100\n"
+    },
+    {
+      "name": "calc/kitchen",
+      "text": "---\ntitle: Kitchen conversions\n---\n2 cups to ml\n180 celsius to fahrenheit\n3 tbsp + 2 tsp to ml\n450 g to lb\n8 floz to ml\n"
+    },
+    {
+      "name": "calc/recipe",
+      "text": "---\ntitle: Banana bread for twelve\n---\nserves = 8\nwant = 12\nscale = want / serves\nflour = 250 g * scale\nbutter = 115 g * scale\nsugar = 2/3 cup * scale\nbananas = 3 * scale\neggs = 2 * scale\nThe oven stays at 175 °C: check the loaf at 55 minutes.\n"
+    },
+    {
+      "name": "calc/units",
+      "text": "---\ntitle: Lengths, weights and temperatures\n---\n6 ft + 2 inch to cm\n26.2 mi to km\n5 km to mi\n70 kg to lb\n14 lb to kg\n98.6 fahrenheit to celsius\n-10 celsius to fahrenheit\n1 acre to m^2\n"
+    },
+    {
+      "name": "calc/currency",
+      "text": "---\ntitle: Four days in Lisbon, in dollars\n---\nrate = 1.17\nhotel = 4 * 138\nmeals = 4 * 65\ntrains = 2 * 24.80\nmuseums = 3 * 15\neuros = hotel + meals + trains + museums\ndollars = euros * rate\ndollars * 3%\ndollars / 4\n"
+    },
+    {
+      "name": "calc/fuel",
+      "text": "---\ntitle: Gas for the drive to Montreal\n---\nmiles = 2 * 312\nmpg = 31\nprice = 3.39\ngallons = miles / mpg\ncost = gallons * price\ncost / 4\n"
+    },
+    {
+      "name": "calc/paint",
+      "text": "---\ntitle: Painting the front room\n---\nwalls = 2 * (4.2 + 3.6) * 2.4\ndoors = 0.9 * 2.1\nwindows = 1.4 * 1.2 * 2\narea = walls - doors - windows\nlitres = area * 2 / 12\nceil(litres / 2.5)\n"
+    },
+    {
+      "name": "calc/zones",
+      "text": "---\ntitle: A 9 a.m. call on Monday 2 November\n---\nnew_york = 9\nlondon = new_york + 5\nberlin = new_york + 6\nmumbai = new_york + 10.5\ntokyo = mod(new_york + 14, 24)\nsydney = mod(new_york + 16, 24)\nHours on a 24-hour clock: .5 is half past, and in Sydney it is already Tuesday.\n"
+    },
+    {
+      "name": "calc/pace",
+      "text": "---\ntitle: Pace for the Prospect Park 10K\n---\ntime = 52 minute + 30 s\ndistance = 10 km\npace = time / distance\npace to minute / km\npace to minute / mi\npace * 21.0975 km to h\npace * 42.195 km to h\n"
+    },
+    {
+      "name": "calc/bmi",
+      "text": "---\ntitle: Body mass index\n---\nweight = 72\nheight = 1.78\nweight / height^2\npounds = 160\ninches = 70\n703 * pounds / inches^2\nA guide, not a diagnosis: 18.5 to 25 is the usual range for adults.\n"
+    },
+    {
+      "name": "calc/dose",
+      "text": "---\ntitle: A child's dose of acetaminophen\n---\nArithmetic only: check every dose with a doctor, a pharmacist or the label.\nweight = 18 kg\ndose = weight * 15 mg / kg\nstrength = 160 mg / 5 mL\ndose / strength\n4 * dose\nNo more than four doses in 24 hours, at least four hours apart.\n"
+    },
+    {
+      "name": "calc/power",
+      "text": "---\ntitle: What the space heater costs\n---\npower = 1500 W\nhours = 6 h * 30\nenergy = power * hours to kWh\nprice = 0.28\ncost = energy / kWh * price\ncost * 5\n"
+    },
+    {
+      "name": "calc/loan",
+      "text": "---\ntitle: A car loan over five years\n---\nprincipal = 24000\nr = 6.9% / 12\nn = 60\npayment = principal * r / (1 - (1 + r)^-n)\ntotal = payment * n\ntotal - principal\n"
+    },
+    {
+      "name": "calc/savings",
+      "text": "---\ntitle: Saving for ten years\n---\nstart = 5000\nmonthly = 200\nrate = 5% / 12\nmonths = 10 * 12\ngrown = start * (1 + rate)^months\nadded = monthly * ((1 + rate)^months - 1) / rate\ngrown + added\nstart + monthly * months\n"
+    },
+    {
+      "name": "calc/break-even",
+      "text": "---\ntitle: Break-even for a coffee cart\nmode: graph\n---\nx from 0 to 400\n1200 + 1.1x\n4.5x\n"
+    },
+    {
+      "name": "calc/slope",
+      "text": "---\ntitle: A curve and its slope\nmode: graph\n---\nx from -2.5 to 2.5\nx^3 - 3x\n3x^2 - 3\n-2\n"
+    },
+    {
+      "name": "calc/waves",
+      "text": "---\ntitle: Waves adding up\nmode: graph\n---\nx from -6.3 to 6.3\nsin(x)\nsin(3x)/3\nsin(x) + sin(3x)/3 + sin(5x)/5\n"
+    },
+    {
+      "name": "calc/example (old tree, src/api.ts)",
+      "text": "---\nmode: mortgage\n---\n- price = 400000\n- deposit = 80000\n- rate = 6.5\n- years = 30\n"
+    },
+    {
+      "name": "calc/escaped signs",
+      "text": "2\\*3\\*4\n\\- 3\nunit_price = 2.5\n"
+    }
+  ]
 }

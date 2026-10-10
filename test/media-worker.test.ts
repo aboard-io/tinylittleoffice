@@ -5,7 +5,10 @@ import { fetchable, handle, MAX_BYTES, type CacheLike, type Deps } from '../medi
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
 const CAT = 'https://images.unsplash.com/cat.png';
 const ask = (u: string | null, method = 'GET', headers: Record<string, string> = {}) =>
-  new Request(`https://media.tinylittleoffice.com/img${u === null ? '' : `?u=${encodeURIComponent(u)}`}`, { method, headers: { 'cf-connecting-ip': '1.2.3.4', cookie: 'who=me', referer: 'https://tinylittleoffice.com/write/', ...headers } });
+  new Request(`https://media.tinylittleoffice.com/img${u === null ? '' : `?u=${encodeURIComponent(u)}`}`, {
+    method,
+    headers: { 'cf-connecting-ip': '1.2.3.4', cookie: 'who=me', referer: 'https://tinylittleoffice.com/write/', ...headers },
+  });
 
 /** A web of addresses, each answering as told; every request it was asked is kept. */
 function web(pages: Record<string, () => Response>) {
@@ -18,7 +21,10 @@ function web(pages: Record<string, () => Response>) {
   };
   return { fetch, asked };
 }
-const png = (headers: Record<string, string> = {}) => () => new Response(PNG, { headers: { 'content-type': 'image/png', 'set-cookie': 'track=1', etag: '"x"', server: 'origin', ...headers } });
+const png =
+  (headers: Record<string, string> = {}) =>
+  () =>
+    new Response(PNG, { headers: { 'content-type': 'image/png', 'set-cookie': 'track=1', etag: '"x"', server: 'origin', ...headers } });
 const yes = async () => true;
 const deps = (pages: Record<string, () => Response>, more: Partial<Deps> = {}) => {
   const w = web(pages);
@@ -47,7 +53,21 @@ test('media: a picture is fetched once with nothing of the reader, and handed ba
 
 test('media: only https addresses with a public name on the default port', async () => {
   const { w, d } = deps({});
-  for (const bad of [null, '', 'nonsense', 'http://images.unsplash.com/a.png', 'ftp://x.org/a.png', 'data:image/png;base64,AA', 'https://127.0.0.1/a.png', 'https://[::1]/a.png', 'https://localhost/a.png', 'https://printer.local/a.png', 'https://intranet/a.png', 'https://x.org:8443/a.png', 'https://u:p@x.org/a.png']) {
+  for (const bad of [
+    null,
+    '',
+    'nonsense',
+    'http://images.unsplash.com/a.png',
+    'ftp://x.org/a.png',
+    'data:image/png;base64,AA',
+    'https://127.0.0.1/a.png',
+    'https://[::1]/a.png',
+    'https://localhost/a.png',
+    'https://printer.local/a.png',
+    'https://intranet/a.png',
+    'https://x.org:8443/a.png',
+    'https://u:p@x.org/a.png',
+  ]) {
     const res = await handle(ask(bad), d);
     expect(res.status, String(bad)).toBe(400);
     expect(res.headers.get('content-type')).toMatch(/^text\/plain/);
@@ -58,10 +78,21 @@ test('media: only https addresses with a public name on the default port', async
 
 test('media: redirects are followed by hand, three at most, each under the same rules', async () => {
   const hop = (to: string) => () => new Response(null, { status: 302, headers: { location: to } });
-  const three = deps({ [CAT]: hop('/b'), 'https://images.unsplash.com/b': hop('https://live.staticflickr.com/c'), 'https://live.staticflickr.com/c': hop('https://live.staticflickr.com/d.png'), 'https://live.staticflickr.com/d.png': png() });
+  const three = deps({
+    [CAT]: hop('/b'),
+    'https://images.unsplash.com/b': hop('https://live.staticflickr.com/c'),
+    'https://live.staticflickr.com/c': hop('https://live.staticflickr.com/d.png'),
+    'https://live.staticflickr.com/d.png': png(),
+  });
   expect((await handle(ask(CAT), three.d)).status).toBe(200);
   expect(three.w.asked.map((a) => a.url)).toEqual([CAT, 'https://images.unsplash.com/b', 'https://live.staticflickr.com/c', 'https://live.staticflickr.com/d.png']);
-  const four = deps({ [CAT]: hop('/b'), 'https://images.unsplash.com/b': hop('/c'), 'https://images.unsplash.com/c': hop('/d'), 'https://images.unsplash.com/d': hop('/e'), 'https://images.unsplash.com/e': png() });
+  const four = deps({
+    [CAT]: hop('/b'),
+    'https://images.unsplash.com/b': hop('/c'),
+    'https://images.unsplash.com/c': hop('/d'),
+    'https://images.unsplash.com/d': hop('/e'),
+    'https://images.unsplash.com/e': png(),
+  });
   expect((await handle(ask(CAT), four.d)).status).toBe(502);
   const inward = deps({ [CAT]: hop('http://127.0.0.1/admin.png') });
   expect((await handle(ask(CAT), inward.d)).status).toBe(502);

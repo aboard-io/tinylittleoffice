@@ -16,7 +16,24 @@ import { glyphNamed } from '../../kit/icons.ts';
 import { LOCKED_LANG, placedLink } from '../../kit/locked.ts';
 import { XML_HEAD, zip } from '../../kit/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/app.ts';
-import { formatCell, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, parse, plainText, referenceNotes, runLinks, write, isEmbed, isText, type Block, type Doc, type Run } from '../../doc/index.ts';
+import {
+  formatCell,
+  listNumbers,
+  markNotes,
+  noteNumbers,
+  noteRuns,
+  notesOf,
+  parse,
+  plainText,
+  referenceNotes,
+  runLinks,
+  write,
+  isEmbed,
+  isText,
+  type Block,
+  type Doc,
+  type Run,
+} from '../../doc/index.ts';
 import { currencyAt } from '../sheet/model.ts';
 import { tablePage } from '../sheet/view.ts';
 import { PAPERS, fenceTitle, fieldsOf, paperOf, tableView, titleBlock } from './model.ts';
@@ -54,7 +71,16 @@ function spansOf(runs: Run[], next: () => number): Span[] {
       out.push({ t: '\u2003', ic: run.ic });
       continue;
     }
-    for (const p of runLinks(run)) out.push({ t: p.t, ...(run.b ? { b: true } : {}), ...(run.i ? { i: true } : {}), ...(run.u ? { u: true } : {}), ...(run.s ? { s: true } : {}), ...(run.h ? { h: true } : {}), ...(p.url ? { link: true } : {}) });
+    for (const p of runLinks(run))
+      out.push({
+        t: p.t,
+        ...(run.b ? { b: true } : {}),
+        ...(run.i ? { i: true } : {}),
+        ...(run.u ? { u: true } : {}),
+        ...(run.s ? { s: true } : {}),
+        ...(run.h ? { h: true } : {}),
+        ...(p.url ? { link: true } : {}),
+      });
   }
   return out;
 }
@@ -162,7 +188,15 @@ interface Bit {
   wide?: true;
 }
 
-const SIZE: Record<string, [number, boolean, number]> = { title: [40, true, 20], h1: [28, true, 16], h2: [21, true, 12], h3: [17, true, 10], p: [16, false, 12], li: [16, false, 5], quote: [16, false, 12] };
+const SIZE: Record<string, [number, boolean, number]> = {
+  title: [40, true, 20],
+  h1: [28, true, 16],
+  h2: [21, true, 12],
+  h3: [17, true, 10],
+  p: [16, false, 12],
+  li: [16, false, 5],
+  quote: [16, false, 12],
+};
 
 /** The document's own head fields as a block under the title: each a small label over its value, two to a row. */
 function fieldBits(doc: Doc, M: number, W: number, font?: string): Bit[] {
@@ -207,7 +241,11 @@ function signatureBits(doc: Doc, at: number, M: number, inner: number): Bit[] {
           .map((p, j) => {
             const x = M + j * (colW + 32);
             const red = p.verdict === 'mismatch' ? '#b91c1c' : undefined;
-            return `<line x1="${r(x)}" y1="${y + 36}" x2="${r(x + colW)}" y2="${y + 36}" stroke="${red ?? INK}" stroke-width="1.5"/>` + svgText(x, y + 56, p.name, { px: 14, bold: true }) + p.lines.map((ln, n) => lineSvg(x, y + 74 + n * 15, ln, 11, { fill: red ?? MUTED })).join('');
+            return (
+              `<line x1="${r(x)}" y1="${y + 36}" x2="${r(x + colW)}" y2="${y + 36}" stroke="${red ?? INK}" stroke-width="1.5"/>` +
+              svgText(x, y + 56, p.name, { px: 14, bold: true }) +
+              p.lines.map((ln, n) => lineSvg(x, y + 74 + n * 15, ln, 11, { fill: red ?? MUTED })).join('')
+            );
           })
           .join(''),
     });
@@ -262,12 +300,27 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
         const caption = (def ? placedTitle(b.lang, b.body) || def.name : lang) + (def && placedTitle(b.lang, b.body) ? ` · ${def.name}` : '');
         if (page) {
           const h = Math.min(360, (page.h * cw) / page.w);
-          bits.push({ h: h + 40, first: h + 40, svg: (y) => `<rect x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" fill="#fff" stroke="${LINE}" rx="6"/>` + place(page, M, y, cw, h) + svgText(M, y + h + 20, caption, { px: 12, fill: MUTED }) });
+          bits.push({
+            h: h + 40,
+            first: h + 40,
+            svg: (y) =>
+              `<rect x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" fill="#fff" stroke="${LINE}" rx="6"/>` + place(page, M, y, cw, h) + svgText(M, y + h + 20, caption, { px: 12, fill: MUTED }),
+          });
           continue;
         }
-        const lines = b.body.split('\n').filter((l) => l.trim() && !/^---/.test(l)).slice(0, 6);
+        const lines = b.body
+          .split('\n')
+          .filter((l) => l.trim() && !/^---/.test(l))
+          .slice(0, 6);
         const h = 24 + lines.length * 18 + 12;
-        bits.push({ h: h + 24, first: h + 24, svg: (y) => rect(M, y, cw, h, SHADE, `stroke="${LINE}" rx="6"`) + svgText(M + 12, y + 17, caption, { px: 12, fill: MUTED }) + lines.map((l, i) => lineSvg(M + 12, y + 38 + i * 18, [{ t: l, mono: true }], 12)).join('') });
+        bits.push({
+          h: h + 24,
+          first: h + 24,
+          svg: (y) =>
+            rect(M, y, cw, h, SHADE, `stroke="${LINE}" rx="6"`) +
+            svgText(M + 12, y + 17, caption, { px: 12, fill: MUTED }) +
+            lines.map((l, i) => lineSvg(M + 12, y + 38 + i * 18, [{ t: l, mono: true }], 12)).join(''),
+        });
         continue;
       }
       const lines = b.body.split('\n');
@@ -277,7 +330,13 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
     }
     if (b.k === 'img') {
       const h = Math.min(360, cw * 0.6);
-      bits.push({ h: h + 36, first: h + 36, svg: (y) => `<image href="${xml(b.url)}" x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" preserveAspectRatio="xMidYMid meet"/>` + (b.alt ? svgText(M + cw / 2, y + h + 18, b.alt, { px: 12, fill: MUTED, anchor: 'middle' }) : '') });
+      bits.push({
+        h: h + 36,
+        first: h + 36,
+        svg: (y) =>
+          `<image href="${xml(b.url)}" x="${M}" y="${y}" width="${r(cw)}" height="${r(h)}" preserveAspectRatio="xMidYMid meet"/>` +
+          (b.alt ? svgText(M + cw / 2, y + h + 18, b.alt, { px: 12, fill: MUTED, anchor: 'middle' }) : ''),
+      });
       continue;
     }
     if (b.k === 'hr') {
@@ -292,7 +351,14 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
       // A thing from the web: a card with the provider and the address, which a reader can follow.
       const url = plainText(b.runs).trim();
       const { provider, title: what } = embedCaption(url);
-      bits.push({ h: 72, first: 72, svg: (y) => rect(M, y, cw, 56, '#fff', `stroke="${LINE}" rx="8"`) + svgText(M + 16, y + 24, what, { px: 14, bold: true }) + svgText(M + 16, y + 43, provider === what ? url : `${provider} · ${url}`, { px: 11, fill: MUTED }) });
+      bits.push({
+        h: 72,
+        first: 72,
+        svg: (y) =>
+          rect(M, y, cw, 56, '#fff', `stroke="${LINE}" rx="8"`) +
+          svgText(M + 16, y + 24, what, { px: 14, bold: true }) +
+          svgText(M + 16, y + 43, provider === what ? url : `${provider} · ${url}`, { px: 11, fill: MUTED }),
+      });
       continue;
     }
     if (!isText(b)) continue;
@@ -329,9 +395,20 @@ export function pages(textOrDoc: string | Doc, small = false, still = false): Pa
       svg: (y) =>
         (mark ? svgText(left - 8, y + px, mark, { px, anchor: 'end', fill: b.k === 'li' && b.done ? FAINT : INK }) : '') +
         (b.k === 'quote' ? rect(M, y, 3, lines.length * lh, LINE) : '') +
-        lines.map((l, i) => lineSvg(tx, y + px + i * lh, l, px, { bold: bold && !caps, anchor, fill, font: f, caps, fit: justify && i < lines.length - 1 && !l.some((sp) => sp.ic) ? M + cw - left : undefined })).join(''),
+        lines
+          .map((l, i) =>
+            lineSvg(tx, y + px + i * lh, l, px, { bold: bold && !caps, anchor, fill, font: f, caps, fit: justify && i < lines.length - 1 && !l.some((sp) => sp.ic) ? M + cw - left : undefined }),
+          )
+          .join(''),
     });
-    if (b === title && cols > 1) bits.push({ h: 18, first: 18, wide: true, svg: (y) => `<line x1="${M}" y1="${y + 2}" x2="${M + inner}" y2="${y + 2}" stroke="${INK}" stroke-width="2"/><line x1="${M}" y1="${y + 6}" x2="${M + inner}" y2="${y + 6}" stroke="${INK}" stroke-width="0.75"/>` });
+    if (b === title && cols > 1)
+      bits.push({
+        h: 18,
+        first: 18,
+        wide: true,
+        svg: (y) =>
+          `<line x1="${M}" y1="${y + 2}" x2="${M + inner}" y2="${y + 2}" stroke="${INK}" stroke-width="2"/><line x1="${M}" y1="${y + 6}" x2="${M + inner}" y2="${y + 6}" stroke="${INK}" stroke-width="0.75"/>`,
+      });
     if (b === title && !fieldsPlaced) {
       bits.push(...fields);
       fieldsPlaced = true;
@@ -468,7 +545,10 @@ function tableHtml(doc: Doc, at: number): string {
   if (!v) return '';
   const head = v.cols.map((c) => (/^Col[A-Z]$/.test(c.name) ? '' : c.name));
   const named = head.some(Boolean);
-  const rows = v.table.rows.map((row, ri) => `<tr>${row.map((_, c) => `<td${typeof v.values[ri]?.[c] === 'number' ? ' class="n"' : ''}>${xml(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c)))}</td>`).join('')}</tr>`);
+  const rows = v.table.rows.map(
+    (row, ri) =>
+      `<tr>${row.map((_, c) => `<td${typeof v.values[ri]?.[c] === 'number' ? ' class="n"' : ''}>${xml(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c)))}</td>`).join('')}</tr>`,
+  );
   return `<table>${named ? `<thead><tr>${head.map((h) => `<th scope="col">${xml(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${rows.join('')}</tbody></table>`;
 }
 
@@ -478,7 +558,17 @@ export function bodyHtml(doc: Doc, site = '', stem = 'fn'): string {
   const inner = (b: { runs: Run[] }) => b.runs.map((run) => (run.fn === undefined ? htmlRun(run) : noteMarkHtml(next(), stem))).join('');
   const title = titleBlock(doc);
   const fields = fieldsOf(doc);
-  const fieldsHtml = fields.length ? `<dl class="fields">${fields.map(([k, v]) => `<div><dt>${xml(k)}</dt><dd>${v.split(' | ').map((l, i) => (i ? xml(l) : `<strong>${xml(l)}</strong>`)).join('<br>')}</dd></div>`).join('')}</dl>` : '';
+  const fieldsHtml = fields.length
+    ? `<dl class="fields">${fields
+        .map(
+          ([k, v]) =>
+            `<div><dt>${xml(k)}</dt><dd>${v
+              .split(' | ')
+              .map((l, i) => (i ? xml(l) : `<strong>${xml(l)}</strong>`))
+              .join('<br>')}</dd></div>`,
+        )
+        .join('')}</dl>`
+    : '';
   const parts = blocksHtml(
     doc.blocks,
     (b) => (b.done === undefined ? '' : b.done ? '<input type="checkbox" checked disabled> ' : '<input type="checkbox" disabled> ') + inner(b),
@@ -534,7 +624,10 @@ export function lookCss(look: Look): string {
   if (look.justify) css.push('main>p,blockquote{text-align:justify;hyphens:auto}');
   if (look.indent) css.push('main>p{margin:0}main>p+p{text-indent:1.5em}h1.title{text-align:center;font-weight:500;letter-spacing:0}');
   if (look.caps) css.push('h1:not(.title),h2,h3{font-variant:small-caps;letter-spacing:.04em;text-align:center;font-weight:600}');
-  if (look.columns) css.push(`h1.title{font-size:3em;line-height:1.02;padding-bottom:.3em;border-bottom:3px double ${INK}}@media print{main{columns:${look.columns};column-gap:24px}main>h1.title,main>.fields{column-span:all}}`);
+  if (look.columns)
+    css.push(
+      `h1.title{font-size:3em;line-height:1.02;padding-bottom:.3em;border-bottom:3px double ${INK}}@media print{main{columns:${look.columns};column-gap:24px}main>h1.title,main>.fields{column-span:all}}`,
+    );
   return css.join('\n');
 }
 
@@ -621,7 +714,14 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
   const next = noteNumbers();
   const site = siteOf(ctx.link);
   const title = titleBlock(doc);
-  const fields = () => fieldsOf(doc).map(([k, v]) => `{\\pard\\sa60 {\\fs16\\cf2 ${rtfText(k.toUpperCase())}}\\line ${v.split(' | ').map((l, i) => (i ? rtfText(l) : `{\\b ${rtfText(l)}}`)).join('\\line ')}\\par}`);
+  const fields = () =>
+    fieldsOf(doc).map(
+      ([k, v]) =>
+        `{\\pard\\sa60 {\\fs16\\cf2 ${rtfText(k.toUpperCase())}}\\line ${v
+          .split(' | ')
+          .map((l, i) => (i ? rtfText(l) : `{\\b ${rtfText(l)}}`))
+          .join('\\line ')}\\par}`,
+    );
   // Two columns after the title and its fields, a section of their own that does not start a page.
   const columns = look.columns ? `\\sect\\sectd\\sbknone\\cols${look.columns}\\colsx360` : '';
   if (!title) out.push(...fields(), ...(columns ? [columns] : []));
@@ -651,12 +751,15 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
         continue;
       }
       if (b.lang === 'signatures') {
-        for (const p of printedSignatures(doc, doc.blocks.indexOf(b))) out.push(`{\\pard\\sb480\\sa120\\brdrt\\brdrs\\brdrw15\\brsp60 {\\b ${rtfText(p.name)}}\\line {\\fs18\\cf2 ${rtfText(p.detail)}}\\par}`);
+        for (const p of printedSignatures(doc, doc.blocks.indexOf(b)))
+          out.push(`{\\pard\\sb480\\sa120\\brdrt\\brdrs\\brdrw15\\brsp60 {\\b ${rtfText(p.name)}}\\line {\\fs18\\cf2 ${rtfText(p.detail)}}\\par}`);
         continue;
       }
       const def = appOfLazy(b.lang);
       const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
-      out.push(`{\\pard\\sb120\\sa60\\li360 {\\field{\\*\\fldinst HYPERLINK "${rtfText(fenceLink(b.lang, b.body, site))}"}{\\fldrslt {\\ul\\cf1\\b ${rtfText(name)}}}} {\\i (${rtfText(def?.name ?? b.lang)})}\\par}`);
+      out.push(
+        `{\\pard\\sb120\\sa60\\li360 {\\field{\\*\\fldinst HYPERLINK "${rtfText(fenceLink(b.lang, b.body, site))}"}{\\fldrslt {\\ul\\cf1\\b ${rtfText(name)}}}} {\\i (${rtfText(def?.name ?? b.lang)})}\\par}`,
+      );
       continue;
     }
     if (b.k === 'img') {
@@ -685,12 +788,19 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
       out.push(`{\\pard\\li${li}\\fi-360\\sa60${jc} ${mark}\\tab ${runs}\\par}`);
     } else if (b.k === 'h' && b === title) {
       out.push(`{\\pard\\sa240${jc || (look.indent ? '\\qc' : '')}\\f1\\b\\fs64 ${runs}\\par}`, ...fields(), ...(columns ? [columns] : []));
-    } else if (b.k === 'h') out.push(`{\\pard\\sb${b.level === 1 ? 240 : 200}\\sa${b.level === 1 ? 160 : 120}${jc}\\f1${look.caps ? '\\scaps' : '\\b'}\\fs${b.level === 1 ? 40 : b.level === 2 ? 30 : 26} ${runs}\\par}`);
+    } else if (b.k === 'h')
+      out.push(`{\\pard\\sb${b.level === 1 ? 240 : 200}\\sa${b.level === 1 ? 160 : 120}${jc}\\f1${look.caps ? '\\scaps' : '\\b'}\\fs${b.level === 1 ? 40 : b.level === 2 ? 30 : 26} ${runs}\\par}`);
     else if (b.k === 'quote') out.push(`{\\pard\\li360\\sa160${jc}\\cf2 ${runs}\\par}`);
     else out.push(`{\\pard\\sa160${book}${jc} ${runs}\\par}`);
   }
   // The notes at the end, small, under a rule.
-  notesOf(doc.blocks).forEach((fn, i) => out.push(`{\\pard${i ? '' : '\\brdrt\\brdrs\\brdrw10\\brsp120'}\\sa60\\fs18 {\\super ${i + 1}} ${noteRuns(fn).map((run) => rtfRun(run)).join('')}\\par}`));
+  notesOf(doc.blocks).forEach((fn, i) =>
+    out.push(
+      `{\\pard${i ? '' : '\\brdrt\\brdrs\\brdrw10\\brsp120'}\\sa60\\fs18 {\\super ${i + 1}} ${noteRuns(fn)
+        .map((run) => rtfRun(run))
+        .join('')}\\par}`,
+    ),
+  );
   return out.join('\n') + '\n}\n';
 }
 
@@ -707,7 +817,11 @@ function docxRun(run: Run, rel: (url: string) => string, next: () => number = no
   const size = small ? '<w:sz w:val="18"/>' : '';
   if (run.fn !== undefined) return `<w:r><w:rPr><w:vertAlign w:val="superscript"/>${size}</w:rPr><w:t>${next()}</w:t></w:r>`;
   const props = size + (run.b ? '<w:b/>' : '') + (run.i ? '<w:i/>' : '') + (run.u ? '<w:u w:val="single"/>' : '') + (run.s ? '<w:strike/>' : '') + (run.h ? '<w:highlight w:val="yellow"/>' : '');
-  const piece = (t: string, extra = '') => `<w:r>${props || extra ? `<w:rPr>${extra}${props}</w:rPr>` : ''}${t.split('\n').map((line) => `<w:t xml:space="preserve">${xml(line)}</w:t>`).join('<w:br/>')}</w:r>`;
+  const piece = (t: string, extra = '') =>
+    `<w:r>${props || extra ? `<w:rPr>${extra}${props}</w:rPr>` : ''}${t
+      .split('\n')
+      .map((line) => `<w:t xml:space="preserve">${xml(line)}</w:t>`)
+      .join('<w:br/>')}</w:r>`;
   return runLinks(run)
     .map((p) => (p.url ? `<w:hyperlink r:id="${rel(p.url)}">${piece(p.t, '<w:rStyle w:val="Hyperlink"/>')}</w:hyperlink>` : piece(p.t)))
     .join('');
@@ -740,7 +854,14 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
   const page = `<w:pgSz w:w="${paper.w}" w:h="${paper.h}"/><w:pgMar w:top="${paper.m}" w:right="${paper.m}" w:bottom="${paper.m}" w:left="${paper.m}" w:header="720" w:footer="720" w:gutter="0"/>`;
   // Two columns (a newspaper): the title and the fields a section of one column, the rest a section of two that does not start a page.
   const oneColumn = look.columns ? `<w:p><w:pPr><w:sectPr><w:type w:val="continuous"/>${page}<w:cols w:space="720"/></w:sectPr></w:pPr></w:p>` : '';
-  const fields = () => fieldsOf(doc).map(([k, v]) => `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr>${plain(k.toUpperCase(), '<w:sz w:val="16"/><w:color w:val="52525B"/>')}<w:r><w:br/></w:r>${v.split(' | ').map((l, i) => plain(l, i ? '' : '<w:b/>')).join('<w:r><w:br/></w:r>')}</w:p>`);
+  const fields = () =>
+    fieldsOf(doc).map(
+      ([k, v]) =>
+        `<w:p><w:pPr><w:spacing w:after="60"/></w:pPr>${plain(k.toUpperCase(), '<w:sz w:val="16"/><w:color w:val="52525B"/>')}<w:r><w:br/></w:r>${v
+          .split(' | ')
+          .map((l, i) => plain(l, i ? '' : '<w:b/>'))
+          .join('<w:r><w:br/></w:r>')}</w:p>`,
+    );
   if (!title) paras.push(...fields(), ...(oneColumn ? [oneColumn] : []));
   const blocks = doc.blocks;
   for (const [at, b] of blocks.entries()) {
@@ -748,34 +869,51 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
     const para = b.k === 'p' && !isEmbed(b);
     // A book's paragraphs justified, run on with no gap, each after the first indented (its headings are their styles').
     const how = cls.includes('center') ? 'center' : cls.includes('right') ? 'right' : cls.includes('justify') || (look.justify && para) ? 'both' : '';
-    const jc = (look.indent && para ? `${blocks[at + 1]?.k === 'p' ? '<w:spacing w:after="0"/>' : ''}${blocks[at - 1]?.k === 'p' ? '<w:ind w:firstLine="360"/>' : ''}` : '') + (how ? `<w:jc w:val="${how}"/>` : '');
+    const jc =
+      (look.indent && para ? `${blocks[at + 1]?.k === 'p' ? '<w:spacing w:after="0"/>' : ''}${blocks[at - 1]?.k === 'p' ? '<w:ind w:firstLine="360"/>' : ''}` : '') +
+      (how ? `<w:jc w:val="${how}"/>` : '');
     const last = prev;
     prev = b.k === 'li' ? (b.ord ? 'ol' : 'ul') : b.k;
     if (b.k === 'table') {
       const v = tableView(doc, doc.blocks.indexOf(b));
       if (!v) continue;
       const width = Math.floor(9000 / Math.max(1, v.cols.length));
-      const cell = (t: string, bold = false, right = false) => `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/>${right ? '<w:jc w:val="right"/>' : ''}</w:pPr>${plain(t, bold ? '<w:b/>' : '')}</w:p></w:tc>`;
+      const cell = (t: string, bold = false, right = false) =>
+        `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/>${right ? '<w:jc w:val="right"/>' : ''}</w:pPr>${plain(t, bold ? '<w:b/>' : '')}</w:p></w:tc>`;
       const names = v.cols.map((c) => (/^Col[A-Z]$/.test(c.name) ? '' : c.name));
       const rows = [
         ...(names.some(Boolean) ? [`<w:tr>${names.map((nm) => cell(nm, true)).join('')}</w:tr>`] : []),
-        ...v.table.rows.map((row, ri) => `<w:tr>${row.map((_, c) => cell(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c)), false, typeof v.values[ri]?.[c] === 'number')).join('')}</w:tr>`),
+        ...v.table.rows.map(
+          (row, ri) => `<w:tr>${row.map((_, c) => cell(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c)), false, typeof v.values[ri]?.[c] === 'number')).join('')}</w:tr>`,
+        ),
       ];
-      paras.push(`<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="D4D4D8"/><w:left w:val="single" w:sz="4" w:color="D4D4D8"/><w:bottom w:val="single" w:sz="4" w:color="D4D4D8"/><w:right w:val="single" w:sz="4" w:color="D4D4D8"/><w:insideH w:val="single" w:sz="4" w:color="D4D4D8"/><w:insideV w:val="single" w:sz="4" w:color="D4D4D8"/></w:tblBorders><w:tblCellMar><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${v.cols.map(() => `<w:gridCol w:w="${width}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl><w:p/>`);
+      paras.push(
+        `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="D4D4D8"/><w:left w:val="single" w:sz="4" w:color="D4D4D8"/><w:bottom w:val="single" w:sz="4" w:color="D4D4D8"/><w:right w:val="single" w:sz="4" w:color="D4D4D8"/><w:insideH w:val="single" w:sz="4" w:color="D4D4D8"/><w:insideV w:val="single" w:sz="4" w:color="D4D4D8"/></w:tblBorders><w:tblCellMar><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${v.cols.map(() => `<w:gridCol w:w="${width}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl><w:p/>`,
+      );
       continue;
     }
     if (b.k === 'fence') {
       if (!b.lang) {
-        paras.push(`<w:p>${b.body.split('\n').map((l) => plain(l, '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="18"/>')).join('<w:r><w:br/></w:r>')}</w:p>`);
+        paras.push(
+          `<w:p>${b.body
+            .split('\n')
+            .map((l) => plain(l, '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="18"/>'))
+            .join('<w:r><w:br/></w:r>')}</w:p>`,
+        );
         continue;
       }
       if (b.lang === 'signatures') {
-        for (const p of printedSignatures(doc, doc.blocks.indexOf(b))) paras.push(`<w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="8" w:space="4" w:color="${p.verdict === 'mismatch' ? 'B91C1C' : '18181B'}"/></w:pBdr><w:spacing w:before="600" w:after="120"/></w:pPr>${plain(p.name, '<w:b/>')}<w:r><w:br/></w:r>${plain(p.detail, `<w:sz w:val="18"/><w:color w:val="${p.verdict === 'mismatch' ? 'B91C1C' : '52525B'}"/>`)}</w:p>`);
+        for (const p of printedSignatures(doc, doc.blocks.indexOf(b)))
+          paras.push(
+            `<w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="8" w:space="4" w:color="${p.verdict === 'mismatch' ? 'B91C1C' : '18181B'}"/></w:pBdr><w:spacing w:before="600" w:after="120"/></w:pPr>${plain(p.name, '<w:b/>')}<w:r><w:br/></w:r>${plain(p.detail, `<w:sz w:val="18"/><w:color w:val="${p.verdict === 'mismatch' ? 'B91C1C' : '52525B'}"/>`)}</w:p>`,
+          );
         continue;
       }
       const def = appOfLazy(b.lang);
       const name = placedTitle(b.lang, b.body) || def?.name || b.lang;
-      paras.push(`<w:p><w:hyperlink r:id="${rel(fenceLink(b.lang, b.body, site))}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:b/></w:rPr><w:t xml:space="preserve">${xml(name)}</w:t></w:r></w:hyperlink>${plain(` (${def?.name ?? b.lang})`, '<w:i/>')}</w:p>`);
+      paras.push(
+        `<w:p><w:hyperlink r:id="${rel(fenceLink(b.lang, b.body, site))}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:b/></w:rPr><w:t xml:space="preserve">${xml(name)}</w:t></w:r></w:hyperlink>${plain(` (${def?.name ?? b.lang})`, '<w:i/>')}</w:p>`,
+      );
       continue;
     }
     if (b.k === 'img') {
@@ -793,7 +931,9 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
     if (isEmbed(b)) {
       const url = plainText(b.runs).trim();
       const { provider, title: what } = embedCaption(url);
-      paras.push(`<w:p><w:hyperlink r:id="${rel(url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">${xml(what)}</w:t></w:r></w:hyperlink>${plain(` (${provider})`, '<w:i/>')}</w:p>`);
+      paras.push(
+        `<w:p><w:hyperlink r:id="${rel(url)}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr><w:t xml:space="preserve">${xml(what)}</w:t></w:r></w:hyperlink>${plain(` (${provider})`, '<w:i/>')}</w:p>`,
+      );
       continue;
     }
     if (!isText(b)) continue;
@@ -803,7 +943,8 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
         paras.push(`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:ind w:left="${720 * (b.depth + 1)}" w:hanging="360"/>${jc}</w:pPr>${plain(b.done ? '☑ ' : '☐ ')}${runs}</w:p>`);
         continue;
       }
-      if (b.ord && last !== 'ol') nums.push(`<w:num w:numId="${(numbered = nums.length + 2)}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`);
+      if (b.ord && last !== 'ol')
+        nums.push(`<w:num w:numId="${(numbered = nums.length + 2)}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`);
       paras.push(`<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="${Math.min(b.depth, 2)}"/><w:numId w:val="${b.ord ? numbered : 1}"/></w:numPr>${jc}</w:pPr>${runs}</w:p>`);
       continue;
     }
@@ -812,7 +953,13 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
     if (b === title) paras.push(...fields(), ...(oneColumn ? [oneColumn] : []));
   }
   notesOf(doc.blocks).forEach((fn, i) =>
-    paras.push(`<w:p><w:pPr>${i ? '<w:spacing w:after="60"/>' : '<w:pBdr><w:top w:val="single" w:sz="4" w:space="6" w:color="A1A1AA"/></w:pBdr><w:spacing w:before="360" w:after="60"/>'}</w:pPr>${docxRun({ t: '', fn }, rel, () => i + 1, true)}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve"> </w:t></w:r>${noteRuns(fn).map((run) => docxRun(run, rel, noteNumbers(), true)).join('')}</w:p>`),
+    paras.push(
+      `<w:p><w:pPr>${i ? '<w:spacing w:after="60"/>' : '<w:pBdr><w:top w:val="single" w:sz="4" w:space="6" w:color="A1A1AA"/></w:pBdr><w:spacing w:before="360" w:after="60"/>'}</w:pPr>${docxRun({ t: '', fn }, rel, () => i + 1, true)}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve"> </w:t></w:r>${noteRuns(
+        fn,
+      )
+        .map((run) => docxRun(run, rel, noteNumbers(), true))
+        .join('')}</w:p>`,
+    ),
   );
   const sect = `<w:sectPr>${look.columns ? '<w:type w:val="continuous"/>' : ''}${page}${look.columns ? `<w:cols w:num="${look.columns}" w:space="360"/>` : ''}</w:sectPr>`;
   const bullets = ['•', '–', '·'];

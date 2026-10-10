@@ -136,7 +136,8 @@ function describeEl(el: Element | null): string {
 /** The open things, in the order they opened (the new ones after the old). */
 function openNow(prev: Layer[]): Layer[] {
   const open = [...document.querySelectorAll('dialog[open]'), ...[...document.querySelectorAll('[popover]')].filter((p) => p.matches(':popover-open') && !p.matches('.to-pinch-pill'))];
-  const kind = (el: Element): Layer['kind'] => (el.matches('dialog.to-drawer') ? 'drawer' : el.matches('dialog.to-palette') ? 'palette' : el.matches('dialog') ? 'dialog' : el.matches('.to-context') ? 'context' : 'menu');
+  const kind = (el: Element): Layer['kind'] =>
+    el.matches('dialog.to-drawer') ? 'drawer' : el.matches('dialog.to-palette') ? 'palette' : el.matches('dialog') ? 'dialog' : el.matches('.to-context') ? 'context' : 'menu';
   const kept = prev.filter((l) => open.includes(l.el));
   return [...kept, ...open.filter((el) => !kept.some((l) => l.el === el)).map((el) => ({ el, kind: kind(el) }))];
 }
@@ -147,7 +148,14 @@ async function settle(r: Real) {
   await frame();
   const moving = () =>
     document.querySelector('to-chrome[gliding]') ||
-    document.getAnimations().some((a) => a.playState === 'running' && (a.effect as KeyframeEffect | null)?.target instanceof Element && !!((a.effect as KeyframeEffect).target as Element).closest('to-bar, .to-header, .to-burger, .to-context, dialog, [popover]'));
+    document
+      .getAnimations()
+      .some(
+        (a) =>
+          a.playState === 'running' &&
+          (a.effect as KeyframeEffect | null)?.target instanceof Element &&
+          !!((a.effect as KeyframeEffect).target as Element).closest('to-bar, .to-header, .to-burger, .to-context, dialog, [popover]'),
+      );
   await until(() => !moving(), 1500).catch(() => undefined);
   if (r.shell.app && appOf(r.shell.app)) await until(() => !!r.shell.editor || !!r.shell.querySelector('.to-empty:not(.to-loading)'), 5000).catch(() => undefined);
   await (editorOf(r)?.updateComplete ?? Promise.resolve());
@@ -172,7 +180,10 @@ const KEY_SPELLED: Record<(typeof KEYS)[number], string> = {
 /** What the last tap landed on, by the thing it opened: a dialog a tap opens gives the focus back to what was tapped. */
 const tappedFor = new WeakMap<Element, Element>();
 let tapped: Element | null = null;
-const tapAt = (x: number, y: number) => ((tapped = document.elementFromPoint(x, y)), userEvent.click(document.documentElement, { position: { x: Math.round(x), y: Math.round(y) }, force: true } as never));
+const tapAt = (x: number, y: number) => (
+  (tapped = document.elementFromPoint(x, y)),
+  userEvent.click(document.documentElement, { position: { x: Math.round(x), y: Math.round(y) }, force: true } as never)
+);
 const visible = (el: Element | null): el is HTMLElement => !!el && (el as HTMLElement).offsetParent !== null;
 /** Whether a person could tap it now: laid out, not faded or slid away, and the thing under its middle. */
 function tappable(el: Element | null): el is HTMLElement {
@@ -205,7 +216,9 @@ function placeFocus(cmd: Command) {
   const menu = cmd.where.find((w) => w.startsWith('menu:'))?.slice(5);
   const opener = menu ? registered().find((c) => c.scope === cmd.scope && c.menu === menu) : undefined;
   // A menu drawn as the bar's <to-menu> carries its command's class; Insert ▾ is <to-insert>.
-  const menuEl = opener ? (document.querySelector<HTMLElement>(`to-menu${cls(opener.id)}:not([keep])`) ?? (menu === 'insert' ? document.querySelector<HTMLElement>('.to-editor to-bar to-insert') : null)) : null;
+  const menuEl = opener
+    ? (document.querySelector<HTMLElement>(`to-menu${cls(opener.id)}:not([keep])`) ?? (menu === 'insert' ? document.querySelector<HTMLElement>('.to-editor to-bar to-insert') : null))
+    : null;
   const button = menuEl?.querySelector<HTMLElement>(':scope > button') ?? (cmd.takesFocus && cmd.where.includes('bar') ? document.querySelector<HTMLElement>(`button${cls(cmd.id)}`) : null);
   if (!visible(button)) return;
   // Reaching it closes a menu open elsewhere, as the tap on its button would.
@@ -241,7 +254,9 @@ async function pinch(r: Real, wider: boolean) {
   const [cx, cy] = [box.left + box.width / 2, box.top + Math.min(box.height, innerHeight) / 2];
   const [from, to] = wider ? [30, 90] : [90, 30];
   const fire = (type: string, id: number, x: number, y: number) =>
-    (type === 'pointerdown' ? col : (document.elementFromPoint(x, y) ?? document.body)).dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 11, clientX: x, clientY: y, bubbles: true, cancelable: true, composed: true }));
+    (type === 'pointerdown' ? col : (document.elementFromPoint(x, y) ?? document.body)).dispatchEvent(
+      new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 11, clientX: x, clientY: y, bubbles: true, cancelable: true, composed: true }),
+    );
   fire('pointerdown', 11, cx - from, cy);
   fire('pointerdown', 12, cx + from, cy);
   for (let i = 1; i <= 4; i++) {
@@ -321,7 +336,9 @@ async function act(s: Step, r: Real): Promise<string> {
       const h = Math.min(box.bottom, r.vv?.height ?? innerHeight) - box.top;
       const [x, y] = [box.left + 12 + s.at * (box.width - 24), box.top + 8 + ((s.at * 7.3) % 1) * (h - 16)];
       const hit = document.elementFromPoint(x, y);
-      const on = hit ? describeEl(hit) : `nothing at ${Math.round(x)},${Math.round(y)} (the column ${Math.round(box.left)},${Math.round(box.top)}–${Math.round(box.right)},${Math.round(box.bottom)}; the window ${innerWidth}×${innerHeight}, the visible ${r.vv?.height ?? innerHeight})`;
+      const on = hit
+        ? describeEl(hit)
+        : `nothing at ${Math.round(x)},${Math.round(y)} (the column ${Math.round(box.left)},${Math.round(box.top)}–${Math.round(box.right)},${Math.round(box.bottom)}; the window ${innerWidth}×${innerHeight}, the visible ${r.vv?.height ?? innerHeight})`;
       await tapAt(x, y);
       return `on ${on}`;
     }
@@ -401,7 +418,14 @@ function broke(r: Real, rule: string, detail: string): void {
 function nameOf(el: Element): string {
   return nameOfEl(el);
 }
-const nameOfEl = (el: Element) => (el.getAttribute('aria-label') ?? (el.getAttribute('aria-labelledby') ?? '').split(/\s+/).map((id) => (id ? (document.getElementById(id)?.textContent ?? '') : '')).join(' ')).trim();
+const nameOfEl = (el: Element) =>
+  (
+    el.getAttribute('aria-label') ??
+    (el.getAttribute('aria-labelledby') ?? '')
+      .split(/\s+/)
+      .map((id) => (id ? (document.getElementById(id)?.textContent ?? '') : ''))
+      .join(' ')
+  ).trim();
 
 /** What clips an element sideways: the boxes round it, up to the top layer it is in, that hide what overflows them. */
 function clipped(el: Element, rect: DOMRect, cache: Map<Element, string>): { left: number; right: number } {
@@ -447,7 +471,8 @@ function check(r: Real, s: Step, before: Layer[]) {
   } else if (!at || at === document.body || !(at.closest('to-chrome, to-find, .to-skip') || r.layers.some(inLayer))) {
     broke(r, 'focus', `the focus is on ${describeEl(at)}, not in the document, the chrome or anything open`);
   }
-  if (at && at !== document.body && at.closest('[aria-hidden="true"], [inert]')) broke(r, 'focus', `${describeEl(at)} has the focus inside ${describeEl(at.closest('[aria-hidden="true"], [inert]'))}, which is hidden from a screen reader`);
+  if (at && at !== document.body && at.closest('[aria-hidden="true"], [inert]'))
+    broke(r, 'focus', `${describeEl(at)} has the focus inside ${describeEl(at.closest('[aria-hidden="true"], [inert]'))}, which is hidden from a screen reader`);
 
   // back: Escape (or a tap outside a dialog) closed the topmost thing, and nothing else opened.
   const closed = before.filter((l) => !r.layers.some((x) => x.el === l.el));
@@ -462,14 +487,16 @@ function check(r: Real, s: Step, before: Layer[]) {
       const stayed = !!focusBefore && !last.el.contains(focusBefore) && at === focusBefore;
       // Or a command's dialog, opened from a button (the bar's, a menu's, the palette's), gives the focus to the words it acts on.
       const onWords = !!was?.matches('button, [role^=menuitem]') && !!at?.closest('to-text') && !!editorOf(r)?.contains(at);
-      if (was && was !== document.body && was.isConnected && (was as HTMLElement).offsetParent !== null && at !== was && !onTapped && !onWords && !stayed) broke(r, 'back', `${describeEl(last.el)} closed and the focus is on ${describeEl(at)}, not back on ${describeEl(was)} where it was when it opened`);
+      if (was && was !== document.body && was.isConnected && (was as HTMLElement).offsetParent !== null && at !== was && !onTapped && !onWords && !stayed)
+        broke(r, 'back', `${describeEl(last.el)} closed and the focus is on ${describeEl(at)}, not back on ${describeEl(was)} where it was when it opened`);
     }
   }
 
   // window
   if (window.scrollX || window.scrollY) broke(r, 'window', `the window scrolled to ${window.scrollX}, ${window.scrollY}`);
   // Nor the chrome round the column (kit/chrome.ts): only the column's main scrolls.
-  for (const box of r.shell.querySelectorAll<HTMLElement>('to-chrome, .to-column')) if (box.scrollTop || box.scrollLeft) broke(r, 'window', `${describeEl(box)} scrolled to ${box.scrollLeft}, ${box.scrollTop}: only the column scrolls`);
+  for (const box of r.shell.querySelectorAll<HTMLElement>('to-chrome, .to-column'))
+    if (box.scrollTop || box.scrollLeft) broke(r, 'window', `${describeEl(box)} scrolled to ${box.scrollLeft}, ${box.scrollTop}: only the column scrolls`);
 
   // link
   if (r.shell.app && ed && !r.shell.sealed && !r.shell.unreadable) {
@@ -480,9 +507,11 @@ function check(r: Real, s: Step, before: Layer[]) {
       const held = (r.shell as unknown as { doc: string }).doc;
       if (link !== held) broke(r, 'link', `the address holds another document than the shell:\n${JSON.stringify(link).slice(0, 300)}\n  ≠\n${JSON.stringify(held).slice(0, 300)}`);
       const back = write(parse(link));
-      if (back !== link) broke(r, 'link', `the document in the address is not written back as it is read: ${JSON.stringify(link).slice(0, 300)}\n  written back: ${JSON.stringify(back).slice(0, 300)}`);
+      if (back !== link)
+        broke(r, 'link', `the document in the address is not written back as it is read: ${JSON.stringify(link).slice(0, 300)}\n  written back: ${JSON.stringify(back).slice(0, 300)}`);
       const value = ed.value as string;
-      if (!r.shell.fresh && appOf(app)!.title(value) && takeHead(link, ENVELOPE_KEYS)[1] !== takeHead(value, ENVELOPE_KEYS)[1]) broke(r, 'link', `the address is not the document the editor holds:\n${JSON.stringify(link).slice(0, 300)}\n  ≠\n${JSON.stringify(value).slice(0, 300)}`);
+      if (!r.shell.fresh && appOf(app)!.title(value) && takeHead(link, ENVELOPE_KEYS)[1] !== takeHead(value, ENVELOPE_KEYS)[1])
+        broke(r, 'link', `the address is not the document the editor holds:\n${JSON.stringify(link).slice(0, 300)}\n  ≠\n${JSON.stringify(value).slice(0, 300)}`);
     }
   }
 
@@ -495,12 +524,17 @@ function check(r: Real, s: Step, before: Layer[]) {
     if (look.opacity === '1' && look.transform === 'none') {
       const b = bar.getBoundingClientRect();
       const h = r.vv?.height ?? innerHeight;
-      if (b.top < -1 || b.bottom > h + 1 || b.left < -1 || b.right > innerWidth + 1) broke(r, 'bar', `the bar is at ${Math.round(b.left)},${Math.round(b.top)}–${Math.round(b.right)},${Math.round(b.bottom)}, outside the visible window ${innerWidth}×${h}`);
-      const stops = [...bar.querySelectorAll<HTMLElement>('button')].filter((x) => !x.closest('[popover], dialog') && x.offsetParent !== null).map((x) => x.getBoundingClientRect()).filter((x) => x.height > 0);
+      if (b.top < -1 || b.bottom > h + 1 || b.left < -1 || b.right > innerWidth + 1)
+        broke(r, 'bar', `the bar is at ${Math.round(b.left)},${Math.round(b.top)}–${Math.round(b.right)},${Math.round(b.bottom)}, outside the visible window ${innerWidth}×${h}`);
+      const stops = [...bar.querySelectorAll<HTMLElement>('button')]
+        .filter((x) => !x.closest('[popover], dialog') && x.offsetParent !== null)
+        .map((x) => x.getBoundingClientRect())
+        .filter((x) => x.height > 0);
       if (stops.length) {
         const tops = stops.map((x) => x.top);
         const least = Math.min(...stops.map((x) => x.height));
-        if (Math.max(...tops) - Math.min(...tops) >= least / 2) broke(r, 'bar', `the bar is more than one row: its buttons' tops run from ${Math.round(Math.min(...tops))} to ${Math.round(Math.max(...tops))}`);
+        if (Math.max(...tops) - Math.min(...tops) >= least / 2)
+          broke(r, 'bar', `the bar is more than one row: its buttons' tops run from ${Math.round(Math.min(...tops))} to ${Math.round(Math.max(...tops))}`);
       }
     }
   }
@@ -569,7 +603,9 @@ class Walk implements fc.AsyncCommand<Model, Real> {
 /** The steps of a family's walk: its commands (weighted: there are many), the keys, words, taps and the chrome's own. */
 function stepsOf(family: string): fc.Arbitrary<Walk>[] {
   // Sorted: the same seed is the same walk whatever was registered before.
-  const ids = familyCommands(registered(), family).map((c) => c.id).sort();
+  const ids = familyCommands(registered(), family)
+    .map((c) => c.id)
+    .sort();
   const others = [...FAMILIES[family].slice(1), ...(FAMILIES[family].length > 1 ? [] : ['write'])];
   const commandArb = fc.constantFrom(...ids).map((id) => new Walk({ kind: 'command', id }));
   return [
@@ -714,66 +750,88 @@ test('each rule of the walks breaks on the fault it is for, naming it', async ()
     return el;
   };
   expect(breaks(() => () => undefined)).toBe('');
-  expect(breaks(() => {
-    const d = add('div', 'position:fixed;top:10px;left:1300px;width:400px', 'Words off the edge');
-    return () => d.remove();
-  })).toMatch(/^walk broke "overflow": <div> "Words off the edge" runs off the screen sideways/);
-  expect(breaks(() => {
-    const b = add('button', 'position:fixed;top:0;left:0', 'Stray');
-    b.focus();
-    return () => b.remove();
-  })).toMatch(/^walk broke "focus": the focus is on <button> "Stray"/);
-  expect(breaks(() => {
-    const ed = real.shell.editor!;
-    ed.setAttribute('aria-hidden', 'true');
-    return () => ed.removeAttribute('aria-hidden');
-  })).toMatch(/^walk broke "focus": .* which is hidden from a screen reader/);
-  expect(breaks(() => {
-    const d = add('dialog', '', '');
-    d.append(document.createElement('button'));
-    d.showModal();
-    return () => (d.close(), d.remove());
-  })).toMatch(/^walk broke "names": <dialog> .*is open with no accessible name/);
-  expect(breaks(() => {
-    const [a, b] = [add('dialog', ''), add('dialog', '')];
-    for (const d of [a, b]) d.setAttribute('aria-label', 'A dialog'), d.showModal();
-    return () => ((stacked.length = 0), [a, b].forEach((d) => (d.close(), d.remove())));
-  })).toMatch(/^walk broke "modal": 2 modal dialogs open/);
+  expect(
+    breaks(() => {
+      const d = add('div', 'position:fixed;top:10px;left:1300px;width:400px', 'Words off the edge');
+      return () => d.remove();
+    }),
+  ).toMatch(/^walk broke "overflow": <div> "Words off the edge" runs off the screen sideways/);
+  expect(
+    breaks(() => {
+      const b = add('button', 'position:fixed;top:0;left:0', 'Stray');
+      b.focus();
+      return () => b.remove();
+    }),
+  ).toMatch(/^walk broke "focus": the focus is on <button> "Stray"/);
+  expect(
+    breaks(() => {
+      const ed = real.shell.editor!;
+      ed.setAttribute('aria-hidden', 'true');
+      return () => ed.removeAttribute('aria-hidden');
+    }),
+  ).toMatch(/^walk broke "focus": .* which is hidden from a screen reader/);
+  expect(
+    breaks(() => {
+      const d = add('dialog', '', '');
+      d.append(document.createElement('button'));
+      d.showModal();
+      return () => (d.close(), d.remove());
+    }),
+  ).toMatch(/^walk broke "names": <dialog> .*is open with no accessible name/);
+  expect(
+    breaks(() => {
+      const [a, b] = [add('dialog', ''), add('dialog', '')];
+      for (const d of [a, b]) (d.setAttribute('aria-label', 'A dialog'), d.showModal());
+      return () => ((stacked.length = 0), [a, b].forEach((d) => (d.close(), d.remove())));
+    }),
+  ).toMatch(/^walk broke "modal": 2 modal dialogs open/);
   // Shown over another and closed again before the step ended: still one modal over another.
-  expect(breaks(() => {
-    const [a, b] = [add('dialog', ''), add('dialog', '')];
-    for (const d of [a, b]) d.setAttribute('aria-label', 'A dialog'), d.showModal();
-    b.close();
-    return () => ((stacked.length = 0), [a, b].forEach((d) => (d.close(), d.remove())));
-  })).toMatch(/^walk broke "modal": <dialog> "A dialog" was shown over <dialog> "A dialog"/);
-  expect(breaks(() => {
-    const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
-    const was = bar.style.cssText;
-    bar.style.cssText = 'flex-wrap:wrap;width:200px;overflow:visible';
-    return () => (bar.style.cssText = was);
-  })).toMatch(/^walk broke "bar": the bar is more than one row/);
-  expect(breaks(() => {
-    const was = location.hash;
-    history.replaceState(history.state, '', routeHash('write', encodeDoc('# Another\n')));
-    return () => history.replaceState(history.state, '', was);
-  })).toMatch(/^walk broke "link": the address holds another document than the shell/);
-  expect(breaks(() => {
-    const chrome = real.shell.querySelector<HTMLElement>('to-chrome')!;
-    const pad = add('div', 'height:3000px;flex-shrink:0');
-    const was = chrome.style.overflow;
-    chrome.style.overflow = 'hidden';
-    chrome.append(pad);
-    chrome.scrollTop = 40;
-    return () => (pad.remove(), (chrome.style.overflow = was), (chrome.scrollTop = 0));
-  })).toMatch(/^walk broke "window": <to-chrome>.* scrolled to 0, 40: only the column scrolls/);
-  expect(breaks(() => {
-    slowWord = '"tiny" took 20 ms a letter';
-    return () => (slowWord = '');
-  })).toMatch(/^walk broke "keystroke"/);
-  expect(breaks(() => {
-    real.errors.push('boom');
-    return () => undefined;
-  })).toMatch(/^walk broke "errors": boom/);
+  expect(
+    breaks(() => {
+      const [a, b] = [add('dialog', ''), add('dialog', '')];
+      for (const d of [a, b]) (d.setAttribute('aria-label', 'A dialog'), d.showModal());
+      b.close();
+      return () => ((stacked.length = 0), [a, b].forEach((d) => (d.close(), d.remove())));
+    }),
+  ).toMatch(/^walk broke "modal": <dialog> "A dialog" was shown over <dialog> "A dialog"/);
+  expect(
+    breaks(() => {
+      const bar = real.shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
+      const was = bar.style.cssText;
+      bar.style.cssText = 'flex-wrap:wrap;width:200px;overflow:visible';
+      return () => (bar.style.cssText = was);
+    }),
+  ).toMatch(/^walk broke "bar": the bar is more than one row/);
+  expect(
+    breaks(() => {
+      const was = location.hash;
+      history.replaceState(history.state, '', routeHash('write', encodeDoc('# Another\n')));
+      return () => history.replaceState(history.state, '', was);
+    }),
+  ).toMatch(/^walk broke "link": the address holds another document than the shell/);
+  expect(
+    breaks(() => {
+      const chrome = real.shell.querySelector<HTMLElement>('to-chrome')!;
+      const pad = add('div', 'height:3000px;flex-shrink:0');
+      const was = chrome.style.overflow;
+      chrome.style.overflow = 'hidden';
+      chrome.append(pad);
+      chrome.scrollTop = 40;
+      return () => (pad.remove(), (chrome.style.overflow = was), (chrome.scrollTop = 0));
+    }),
+  ).toMatch(/^walk broke "window": <to-chrome>.* scrolled to 0, 40: only the column scrolls/);
+  expect(
+    breaks(() => {
+      slowWord = '"tiny" took 20 ms a letter';
+      return () => (slowWord = '');
+    }),
+  ).toMatch(/^walk broke "keystroke"/);
+  expect(
+    breaks(() => {
+      real.errors.push('boom');
+      return () => undefined;
+    }),
+  ).toMatch(/^walk broke "errors": boom/);
   // back: a dialog opened from the words, closed by Escape; the focus put back on the words is quiet, put elsewhere breaks.
   const escape: Step = { kind: 'key', key: 'Escape' };
   const elsewhere = [...real.shell.querySelectorAll<HTMLElement>('to-chrome button')].find((b) => visible(b) && !b.closest('to-write-editor'))!;

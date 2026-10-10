@@ -39,10 +39,34 @@ interface Canvas {
 const own = (el: { zoom: number }) => el.zoom;
 const CANVASES: Canvas[] = [
   { name: 'the Drawing Tool', hash: `#/v1/draw/${encodeDoc(DRAWING)}`, editor: 'to-draw-editor', frame: '.draw-wrap', picture: 'svg.draw-canvas', zoom: own, step: 0.25 },
-  { name: 'the Diagram Maker', hash: `#/v1/diagram/${encodeDoc('---\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n  - Eve Marsh | Design\n')}`, editor: 'to-diagram-editor', frame: '.dg-wrap', picture: 'svg.dg-pic', zoom: (el) => el.zoom, step: 0.25 },
+  {
+    name: 'the Diagram Maker',
+    hash: `#/v1/diagram/${encodeDoc('---\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n  - Eve Marsh | Design\n')}`,
+    editor: 'to-diagram-editor',
+    frame: '.dg-wrap',
+    picture: 'svg.dg-pic',
+    zoom: (el) => el.zoom,
+    step: 0.25,
+  },
   { name: 'the Animator', hash: `#/v1/anim/${encodeDoc(LIFT)}`, editor: 'to-anim-editor', frame: '.anim-wrap', picture: 'svg.anim-stage', zoom: own, step: 0.25 },
-  { name: 'the Outliner drawn as a mind map', hash: `#/v1/diagram/${encodeDoc(outlineToMind(readOutline(parse(OUTLINE))))}`, editor: 'to-diagram-editor', frame: '.dg-wrap', picture: 'svg.dg-pic', zoom: (el) => el.zoom, step: 0.25 },
-  { name: 'the Outliner drawn as a family tree', hash: `#/v1/diagram/${encodeDoc(outlineToFamily(readOutline(parse(FAMILY))))}`, editor: 'to-diagram-editor', frame: '.dg-wrap', picture: 'svg.dg-pic', zoom: (el) => el.zoom, step: 0.25 },
+  {
+    name: 'the Outliner drawn as a mind map',
+    hash: `#/v1/diagram/${encodeDoc(outlineToMind(readOutline(parse(OUTLINE))))}`,
+    editor: 'to-diagram-editor',
+    frame: '.dg-wrap',
+    picture: 'svg.dg-pic',
+    zoom: (el) => el.zoom,
+    step: 0.25,
+  },
+  {
+    name: 'the Outliner drawn as a family tree',
+    hash: `#/v1/diagram/${encodeDoc(outlineToFamily(readOutline(parse(FAMILY))))}`,
+    editor: 'to-diagram-editor',
+    frame: '.dg-wrap',
+    picture: 'svg.dg-pic',
+    zoom: (el) => el.zoom,
+    step: 0.25,
+  },
 ];
 
 type Pt = [number, number];
@@ -50,7 +74,20 @@ type Pt = [number, number];
 async function pinch(a: Pt, b: Pt, a2: Pt, b2: Pt, hold = false) {
   const fire = (type: string, id: number, [x, y]: Pt) => {
     const target = document.elementFromPoint(x, y) ?? document.body;
-    target.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 31, clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true, composed: true }));
+    target.dispatchEvent(
+      new PointerEvent(type, {
+        pointerId: id,
+        pointerType: 'touch',
+        isPrimary: id === 31,
+        clientX: x,
+        clientY: y,
+        button: 0,
+        buttons: type === 'pointerup' ? 0 : 1,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      }),
+    );
   };
   fire('pointerdown', 31, a);
   fire('pointerdown', 32, b);

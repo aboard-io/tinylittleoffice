@@ -10,5 +10,5 @@
   // A brake on one address asking for many pictures: 120 a minute, counted per Cloudflare location, in memory, never written down.
   "ratelimits": [{ "name": "LIMITER", "namespace_id": "2", "simple": { "limit": 120, "period": 60 } }],
   // No logs: the proxy learns which picture was asked for, and keeps even that to itself.
-  "observability": { "enabled": false }
+  "observability": { "enabled": false },
 }

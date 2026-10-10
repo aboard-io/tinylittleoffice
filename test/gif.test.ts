@@ -17,8 +17,13 @@ function decodeFirstFrame(gif: Uint8Array) {
   assert.deepEqual([...gif.subarray(0, 6)], ascii('GIF89a'));
   let p = 13;
   if (gif[10] & 0x80) p += 3 << ((gif[10] & 7) + 1);
-  let delay = 0, transparent = -1, disposal = 0;
-  const skipBlocks = () => { while (gif[p]) p += gif[p] + 1; p++; };
+  let delay = 0,
+    transparent = -1,
+    disposal = 0;
+  const skipBlocks = () => {
+    while (gif[p]) p += gif[p] + 1;
+    p++;
+  };
   while (gif[p] === 0x21) {
     if (gif[p + 1] === 0xf9) {
       disposal = (gif[p + 3] >> 2) & 7;
@@ -29,7 +34,8 @@ function decodeFirstFrame(gif: Uint8Array) {
     skipBlocks();
   }
   assert.equal(gif[p], 0x2c, 'image descriptor');
-  const width = u16(gif, p + 5), height = u16(gif, p + 7);
+  const width = u16(gif, p + 5),
+    height = u16(gif, p + 7);
   const packed = gif[p + 9];
   p += 10;
   const palSize = 1 << ((packed & 7) + 1);
@@ -37,21 +43,41 @@ function decodeFirstFrame(gif: Uint8Array) {
   p += palSize * 3;
   const minCodeSize = gif[p++];
   const data: number[] = [];
-  while (gif[p]) { data.push(...gif.subarray(p + 1, p + 1 + gif[p])); p += gif[p] + 1; }
+  while (gif[p]) {
+    data.push(...gif.subarray(p + 1, p + 1 + gif[p]));
+    p += gif[p] + 1;
+  }
 
   // LZW, the decoder side.
-  const clear = 1 << minCodeSize, eoi = clear + 1;
-  let codeSize = minCodeSize + 1, next = eoi + 1;
+  const clear = 1 << minCodeSize,
+    eoi = clear + 1;
+  let codeSize = minCodeSize + 1,
+    next = eoi + 1;
   let dict: number[][] = [];
-  const reset = () => { dict = Array.from({ length: eoi + 1 }, (_, i) => [i]); codeSize = minCodeSize + 1; next = eoi + 1; };
+  const reset = () => {
+    dict = Array.from({ length: eoi + 1 }, (_, i) => [i]);
+    codeSize = minCodeSize + 1;
+    next = eoi + 1;
+  };
   reset();
   const pixels: number[] = [];
-  let acc = 0, nbits = 0, pos = 0, prev: number[] | null = null;
+  let acc = 0,
+    nbits = 0,
+    pos = 0,
+    prev: number[] | null = null;
   for (;;) {
-    while (nbits < codeSize) { acc |= data[pos++] << nbits; nbits += 8; }
+    while (nbits < codeSize) {
+      acc |= data[pos++] << nbits;
+      nbits += 8;
+    }
     const code = acc & ((1 << codeSize) - 1);
-    acc >>>= codeSize; nbits -= codeSize;
-    if (code === clear) { reset(); prev = null; continue; }
+    acc >>>= codeSize;
+    nbits -= codeSize;
+    if (code === clear) {
+      reset();
+      prev = null;
+      continue;
+    }
     if (code === eoi) break;
     let entry: number[];
     if (code < next) entry = dict[code];
@@ -103,7 +129,8 @@ test('delay is in hundredths and never below 2', () => {
 });
 
 test('a 256-colour frame round-trips pixel for pixel', () => {
-  const w = 64, h = 64;
+  const w = 64,
+    h = 64;
   const data = new Uint8ClampedArray(w * h * 4);
   for (let p = 0; p < w * h; p++) {
     const c = (p * 7919) & 255; // 256 distinct colours, scattered so LZW works hard
@@ -121,7 +148,8 @@ test('a 256-colour frame round-trips pixel for pixel', () => {
 });
 
 test('a big noisy frame crosses the 4096-code boundary and still decodes', () => {
-  const w = 200, h = 200;
+  const w = 200,
+    h = 200;
   const data = new Uint8ClampedArray(w * h * 4);
   let seed = 1;
   for (let i = 0; i < data.length; i += 4) {

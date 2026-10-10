@@ -104,16 +104,28 @@ export const FRAME_SCRIPT = 'site-frame.js';
 
 export const iconSvg = (name: string, size: number, cls = '', attrs = '') => {
   const node = iconNamed(name);
-  return node ? `<svg${cls ? ` class="${cls}"` : ''}${attrs} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconInner(node)}</svg>` : '';
+  return node
+    ? `<svg${cls ? ` class="${cls}"` : ''}${attrs} viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconInner(node)}</svg>`
+    : '';
 };
-const MARKS = [['b', 'strong'], ['i', 'em'], ['u', 'u'], ['s', 's'], ['h', 'mark']] as const;
+const MARKS = [
+  ['b', 'strong'],
+  ['i', 'em'],
+  ['u', 'u'],
+  ['s', 's'],
+  ['h', 'mark'],
+] as const;
 /** Runs as HTML: their marks, their links (a bare web address too), their icons; a footnote as its words, on hover. */
 export const prose = (runs: Run[]) =>
   runs
     .map((r) => {
       if (r.ic) return iconSvg(r.ic, 20);
       if (r.fn !== undefined) return `<sup title="${xml(r.fn)}">*</sup>`;
-      let h = r.href ? xml(r.t) : linkify(r.t).map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t))).join('');
+      let h = r.href
+        ? xml(r.t)
+        : linkify(r.t)
+            .map((p) => (p.url ? `<a href="${xml(p.url)}">${xml(p.t)}</a>` : xml(p.t)))
+            .join('');
       for (const [f, tag] of MARKS) if (r[f]) h = `<${tag}>${h}</${tag}>`;
       return r.href ? `<a href="${xml(safeUrl(r.href))}">${h}</a>` : h;
     })
@@ -226,7 +238,7 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
   const mark = (x: Obj) => (o.edit ? ` data-o="${objId(x)}"` : '');
   const w = (x: Obj, part: PartName, empty = '') => (o.edit ? ` data-w="${objId(x)}:${part}"${empty ? ` data-empty="${xml(empty)}"` : ''}` : '');
   let out = '';
-  for (let i = 0; i < items.length; ) {
+  for (let i = 0; i < items.length;) {
     const x = items[i];
     let j = i + 1;
     if (ROW.has(x.kind)) while (j < items.length && items[j].kind === x.kind) j++;
@@ -239,7 +251,9 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
           .map((y) => {
             const r = doc.blocks[y.at];
             const f = cardFields(r.k === 'li' ? r.runs : []);
-            const head = f.url ? `<strong><a href="${xml(safeUrl(f.url))}"${w(y, 'head', t('Heading'))}>${prose(f.head)}</a></strong>` : `<strong${w(y, 'head', t('Heading'))}>${prose(f.head)}</strong>`;
+            const head = f.url
+              ? `<strong><a href="${xml(safeUrl(f.url))}"${w(y, 'head', t('Heading'))}>${prose(f.head)}</a></strong>`
+              : `<strong${w(y, 'head', t('Heading'))}>${prose(f.head)}</strong>`;
             return `<li${mark(y)}${f.url ? ' class="go-card"' : ''}>${iconSvg(f.icon, 28)}${head}${f.detail.length || o.edit ? `<span${w(y, 'detail', t('A line about it'))}>${prose(f.detail)}</span>` : ''}</li>`;
           })
           .join('')}</ul>`;
@@ -279,7 +293,11 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
       case 'picture': {
         const url = b.k === 'img' ? b.url : b.k === 'p' ? plainText(b.runs).trim() : '';
         const alt = b.k === 'img' ? b.alt : '';
-        out += /^https?:\/\//.test(url) ? `<img class="pic"${mark(x)} src="${xml(url)}" alt="${xml(alt)}" referrerpolicy="no-referrer" loading="lazy">` : o.edit ? `<span class="pic ph"${mark(x)} role="img" aria-label="${xml(t('Web Picture'))}"></span>` : '';
+        out += /^https?:\/\//.test(url)
+          ? `<img class="pic"${mark(x)} src="${xml(url)}" alt="${xml(alt)}" referrerpolicy="no-referrer" loading="lazy">`
+          : o.edit
+            ? `<span class="pic ph"${mark(x)} role="img" aria-label="${xml(t('Web Picture'))}"></span>`
+            : '';
         break;
       }
       case 'web':
@@ -311,10 +329,20 @@ function shopHtml(c: Ctx, s: Section, attrs: string): string {
     )
     .join('')}</ul>${
     first
-      ? `<aside class="cart" aria-label="${xml(t('Cart'))}"><h3>${xml(t('Cart'))} (<span id="count">0</span>)</h3><p id="empty">${xml(t('Nothing in it yet.'))}</p><ul id="lines"></ul><div class="tot"><span>${xml(t('Total'))}</span><span id="total"></span></div><button type="button" id="send">${xml(site.orders ? t('Send order by email') : t('Copy order'))}</button><p id="said" role="status" aria-live="polite"></p>${pageData('products', products)}${pageData('shop', {
-          orders: site.orders,
-          words: { total: t('Total'), fewer: t('One fewer'), more: t('One more'), added: t('added to the cart'), copied: t('Order copied'), order: t('Order from {site}', { site: site.name || t('My site') }) },
-        })}${CART}</aside>`
+      ? `<aside class="cart" aria-label="${xml(t('Cart'))}"><h3>${xml(t('Cart'))} (<span id="count">0</span>)</h3><p id="empty">${xml(t('Nothing in it yet.'))}</p><ul id="lines"></ul><div class="tot"><span>${xml(t('Total'))}</span><span id="total"></span></div><button type="button" id="send">${xml(site.orders ? t('Send order by email') : t('Copy order'))}</button><p id="said" role="status" aria-live="polite"></p>${pageData('products', products)}${pageData(
+          'shop',
+          {
+            orders: site.orders,
+            words: {
+              total: t('Total'),
+              fewer: t('One fewer'),
+              more: t('One more'),
+              added: t('added to the cart'),
+              copied: t('Order copied'),
+              order: t('Order from {site}', { site: site.name || t('My site') }),
+            },
+          },
+        )}${CART}</aside>`
       : ''
   }</div>`;
 }
@@ -361,7 +389,12 @@ ${rest.map((s) => `<section class="part" id="${s.id}"${sec(s)}><div class="wrap"
     };
     // The nav: the pages, or for a site of one page its sections.
     const multi = site.pages.length > 1;
-    const nav = multi ? site.pages.map((p, i) => [`#${p.id}`, i ? p.title || t('Page {n}', { n: i + 1 }) : t('Home')]) : site.pages[0].sections.slice(1).filter((s) => s.title).map((s) => [`#${s.id}`, s.title]);
+    const nav = multi
+      ? site.pages.map((p, i) => [`#${p.id}`, i ? p.title || t('Page {n}', { n: i + 1 }) : t('Home')])
+      : site.pages[0].sections
+          .slice(1)
+          .filter((s) => s.title)
+          .map((s) => [`#${s.id}`, s.title]);
     body = `<header><div class="wrap"><b>${xml(name)}</b><nav aria-label="${xml(multi ? t('Pages') : t('Sections'))}">${nav.map(([href, w]) => `<a href="${xml(href)}">${xml(w)}</a>`).join('')}</nav></div></header>
 <main>
 ${site.pages.map((_, i) => render(i)).join('\n')}
@@ -371,12 +404,17 @@ ${site.pages.map((_, i) => render(i)).join('\n')}
   const shown = o.cur !== undefined && !site.links ? (site.pages[site.sections[o.cur]?.page ?? 0]?.id ?? '') : '';
   // The frame's editor: its data (the words of every thing, the strings it shows), and its script from the site.
   const editing = edit
-    ? pageData('site-edit', { stamp: edit.stamp, held: edit.held ?? null, y: edit.y ?? 0, show: !!edit.show, dark: !!edit.dark, words: wordsOf(doc, site), strings: Object.fromEntries(FRAME_STRINGS.map((k) => [k, t(k)])) }) +
-      `<script src="${xml(edit.src ?? `/${FRAME_SCRIPT}`)}"></script>`
+    ? pageData('site-edit', {
+        stamp: edit.stamp,
+        held: edit.held ?? null,
+        y: edit.y ?? 0,
+        show: !!edit.show,
+        dark: !!edit.dark,
+        words: wordsOf(doc, site),
+        strings: Object.fromEntries(FRAME_STRINGS.map((k) => [k, t(k)])),
+      }) + `<script src="${xml(edit.src ?? `/${FRAME_SCRIPT}`)}"></script>`
     : '';
-  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${editing}${
-    o.peek !== undefined && !edit ? pageData('site-peek', { stamp: o.peek }) + PEEK : ''
-  }`;
+  const scripts = `${site.links ? '' : ROUTER}${hasWeb(site) ? WEB : ''}${editing}${o.peek !== undefined && !edit ? pageData('site-peek', { stamp: o.peek }) + PEEK : ''}`;
   const lang = typeof document !== 'undefined' ? document.documentElement.lang || 'en' : 'en';
   return `<!doctype html>
 <html lang="${lang}">
@@ -438,8 +476,8 @@ export function sitePictures(textDoc: string, small = false): Picture[] {
       const top = y;
       if (hero) {
         y += 48;
-        if (s.icon && iconNamed(s.icon)) svg += glyphNamed(s.icon, W / 2 - 28, y, 56, p.hex.a), (y += 72);
-        else if (s.pics.some((x) => x.url)) svg += `<circle cx="${W / 2}" cy="${y + 44}" r="44" fill="${p.hex.tint}" stroke="${p.line}"/>`, (y += 104);
+        if (s.icon && iconNamed(s.icon)) ((svg += glyphNamed(s.icon, W / 2 - 28, y, 56, p.hex.a)), (y += 72));
+        else if (s.pics.some((x) => x.url)) ((svg += `<circle cx="${W / 2}" cy="${y + 44}" r="44" fill="${p.hex.tint}" stroke="${p.line}"/>`), (y += 104));
         y += 34;
         svg += line(W / 2, y, clip(i ? pg.title || t('Page {n}', { n: i + 1 }) : name, inner, 34, true), { px: 34, bold: true, fill: p.ink, anchor: 'middle' });
         y += 10;
@@ -473,14 +511,22 @@ export function sitePictures(textDoc: string, small = false): Picture[] {
       if (s.socials.length) {
         y += 16;
         const x0 = W / 2 - (s.socials.length * 52 - 8) / 2;
-        s.socials.forEach((b, k) => (svg += `<circle cx="${x0 + k * 52 + 22}" cy="${y + 22}" r="22" fill="${p.hex.tint}"/>` + glyphNamed(b.icon && iconNamed(b.icon) ? b.icon : 'globe', x0 + k * 52 + 11, y + 11, 22, p.hex.deep)));
+        s.socials.forEach(
+          (b, k) =>
+            (svg +=
+              `<circle cx="${x0 + k * 52 + 22}" cy="${y + 22}" r="22" fill="${p.hex.tint}"/>` + glyphNamed(b.icon && iconNamed(b.icon) ? b.icon : 'globe', x0 + k * 52 + 11, y + 11, 22, p.hex.deep)),
+        );
         y += 56;
       }
       // Cards and products: boxes three across.
       const boxes: { head: string; detail: string; icon: string }[] = [
         ...s.cards.map((c) => ({ head: words(c.head), detail: words(c.detail), icon: c.icon })),
         ...s.products.map((x) => ({ head: x.name, detail: formatMoney(x.price, x.currency), icon: '' })),
-        ...s.embeds.map((e) => ({ head: 'lang' in e ? lookup.appOf(e.lang)?.title(e.body) || lookup.appOf(e.lang)?.name || e.lang : embedCaption(e.web).title, detail: 'lang' in e ? (lookup.appOf(e.lang)?.name ?? '') : embedCaption(e.web).provider, icon: '' })),
+        ...s.embeds.map((e) => ({
+          head: 'lang' in e ? lookup.appOf(e.lang)?.title(e.body) || lookup.appOf(e.lang)?.name || e.lang : embedCaption(e.web).title,
+          detail: 'lang' in e ? (lookup.appOf(e.lang)?.name ?? '') : embedCaption(e.web).provider,
+          icon: '',
+        })),
       ];
       if (boxes.length) {
         y += 24;
@@ -490,7 +536,7 @@ export function sitePictures(textDoc: string, small = false): Picture[] {
           const by = y + Math.floor(k / 3) * 112;
           svg += rect(x, by, bw, 96, p.bg, `rx="10" stroke="${p.line}"`);
           let ty = by + 30;
-          if (b.icon && iconNamed(b.icon)) svg += glyphNamed(b.icon, x + 16, by + 14, 22, p.hex.a), (ty += 22);
+          if (b.icon && iconNamed(b.icon)) ((svg += glyphNamed(b.icon, x + 16, by + 14, 22, p.hex.a)), (ty += 22));
           svg += line(x + 16, ty, clip(b.head, bw - 32, 15, true), { px: 15, bold: true, fill: p.ink });
           if (b.detail) svg += line(x + 16, ty + 22, clip(b.detail, bw - 32, 13), { px: 13, fill: p.ink3 });
         });

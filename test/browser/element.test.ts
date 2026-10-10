@@ -23,7 +23,7 @@ class Probe extends DocElement<Doc> {
 }
 customElements.define('to-probe', Probe);
 
-test('an edit carries the host\'s mark to undone(); firstAt is the lowest block the ops touch; Undo and Redo follow the log', async () => {
+test("an edit carries the host's mark to undone(); firstAt is the lowest block the ops touch; Undo and Redo follow the log", async () => {
   document.body.innerHTML = '';
   render(html`<to-probe .value=${'a\n\nb\n\nc\n'}></to-probe>`, document.body);
   const el = document.querySelector<Probe>('to-probe')!;
@@ -31,7 +31,14 @@ test('an edit carries the host\'s mark to undone(); firstAt is the lowest block 
   const [undo, redo] = el.querySelectorAll<HTMLButtonElement>('button');
   expect([undo.getAttribute('aria-label'), redo.getAttribute('aria-label')]).toEqual(['Undo', 'Redo']);
   expect(undo.disabled && redo.disabled).toBe(true);
-  el.change([{ op: 'text', at: 2, from: 1, to: 1, runs: [{ t: 'x' }] }, { op: 'text', at: 1, from: 0, to: 0, runs: [{ t: 'y' }] }], undefined, { block: 2, offset: 1 });
+  el.change(
+    [
+      { op: 'text', at: 2, from: 1, to: 1, runs: [{ t: 'x' }] },
+      { op: 'text', at: 1, from: 0, to: 0, runs: [{ t: 'y' }] },
+    ],
+    undefined,
+    { block: 2, offset: 1 },
+  );
   await el.updateComplete;
   expect(undo.disabled).toBe(false);
   // A press keeps the focus where it was (keep: true), and undoes.
@@ -52,7 +59,7 @@ test('an edit carries the host\'s mark to undone(); firstAt is the lowest block 
   expect(firstAt({ ops: [{ op: 'move', at: 4, n: 1, to: 2 }] })).toBe(2);
 });
 
-test('a docchange carries the edit\'s burst key, so a host holding the editor keeps its bursts; an undo carries none', async () => {
+test("a docchange carries the edit's burst key, so a host holding the editor keeps its bursts; an undo carries none", async () => {
   document.body.innerHTML = '';
   const host = document.body.appendChild(document.createElement('div'));
   render(html`<to-probe .value=${'a\n'}></to-probe>`, host);

@@ -11,13 +11,32 @@ test('pictureSrc: every https picture through the proxy; data:, blob:, this site
   expect(pictureSrc(CAT, AT)).toBe(`https://media.tinylittleoffice.com/img?u=${encodeURIComponent(CAT)}`);
   expect(pictureOf(pictureSrc(CAT, AT))).toBe(CAT);
   expect(pictureSrc('https://upload.wikimedia.org/a.jpg', AT)).toMatch(/^https:\/\/media\.tinylittleoffice\.com\/img\?u=https%3A%2F%2Fupload/);
-  for (const same of ['data:image/gif;base64,R0lGOD', 'blob:https://tinylittleoffice.com/1234', 'https://tinylittleoffice.com/og/write.png', '/og/write.png', pictureSrc(CAT, AT), 'http://plain.example/a.png'])
+  for (const same of [
+    'data:image/gif;base64,R0lGOD',
+    'blob:https://tinylittleoffice.com/1234',
+    'https://tinylittleoffice.com/og/write.png',
+    '/og/write.png',
+    pictureSrc(CAT, AT),
+    'http://plain.example/a.png',
+  ])
     expect(pictureSrc(same, AT)).toBe(same);
 });
 
 test('the whitelist: the hosts named, and names under a "*."; nothing else', () => {
   expect(TRUSTED).toContain('upload.wikimedia.org');
-  for (const h of ['upload.wikimedia.org', 'commons.wikimedia.org', 'archive.org', 'ia800.us.archive.org', 'images.unsplash.com', 'images.pexels.com', 'live.staticflickr.com', 'raw.githubusercontent.com', 'user-images.githubusercontent.com', 'avatars.githubusercontent.com', 'media.tinylittleoffice.com'])
+  for (const h of [
+    'upload.wikimedia.org',
+    'commons.wikimedia.org',
+    'archive.org',
+    'ia800.us.archive.org',
+    'images.unsplash.com',
+    'images.pexels.com',
+    'live.staticflickr.com',
+    'raw.githubusercontent.com',
+    'user-images.githubusercontent.com',
+    'avatars.githubusercontent.com',
+    'media.tinylittleoffice.com',
+  ])
     expect(trustedHost(h), h).toBe(true);
   for (const h of ['wikimedia.org', 'evilarchive.org', 'archive.org.evil.com', 'unsplash.com', 'githubusercontent.com.evil.io', 'pictures.example', 'tinylittleoffice.com'])
     expect(trustedHost(h), h).toBe(false);

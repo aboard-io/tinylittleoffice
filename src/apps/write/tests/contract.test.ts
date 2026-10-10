@@ -22,7 +22,8 @@ afterEach(() => {
 });
 
 /** Signed by the old tree, two parties. */
-const OLD = "# Dog-walking agreement\n\nBetween Paul Ford and Sam Reyes, from 1 March 2027.\n\n## What is agreed\n\n- Sam walks Biscuit every weekday at noon.\n- Paul pays $20 a walk, on Fridays.\n\n```signatures\nName | Key | Signature\n--- | --- | ---\nPaul Ford | gTuAwZkOkxT4natjwaGS687f67m7GMVJFyPXZGSgAzo | dz0LbgV6Xwvq5aRwVoIpgPOT28xlSq-lBjxAJ8Ye0zc36ukrn11i0S7VGlkqSG9r2KGK3MgYELqKAKbzjGCqBA\nSam Reyes | djJ8ndfQOrk4TI2nmSSn2Sy-QioX-i02t6PV_qZP224 | an7NrGCTv1Cmf-FGk9e7QG8CtvZaaD2RyvG0qZG6IQMi2O_zL-4hbyOGLqfQABFsypODpw6nU138lg16CUd2BA\n```";
+const OLD =
+  '# Dog-walking agreement\n\nBetween Paul Ford and Sam Reyes, from 1 March 2027.\n\n## What is agreed\n\n- Sam walks Biscuit every weekday at noon.\n- Paul pays $20 a walk, on Fridays.\n\n```signatures\nName | Key | Signature\n--- | --- | ---\nPaul Ford | gTuAwZkOkxT4natjwaGS687f67m7GMVJFyPXZGSgAzo | dz0LbgV6Xwvq5aRwVoIpgPOT28xlSq-lBjxAJ8Ye0zc36ukrn11i0S7VGlkqSG9r2KGK3MgYELqKAKbzjGCqBA\nSam Reyes | djJ8ndfQOrk4TI2nmSSn2Sy-QioX-i02t6PV_qZP224 | an7NrGCTv1Cmf-FGk9e7QG8CtvZaaD2RyvG0qZG6IQMi2O_zL-4hbyOGLqfQABFsypODpw6nU138lg16CUd2BA\n```';
 const contract = () => templates().find((t) => t.id === 'contract')!.doc;
 
 async function editor(value: string) {
@@ -39,7 +40,19 @@ async function editor(value: string) {
   await el.text.updateComplete;
   return { el, last: () => changes.at(-1) ?? value };
 }
-const rows = (el: ToWriteEditor) => [...el.querySelectorAll<HTMLElement>('.write-signatures .write-sig')].map((li) => [li.querySelector('b')!.textContent!.trim(), li.classList.contains('valid') ? 'valid' : li.classList.contains('mismatch') ? 'mismatch' : li.classList.contains('unsigned') ? 'unsigned' : li.classList.contains('unchecked') ? 'unchecked' : 'checking']);
+const rows = (el: ToWriteEditor) =>
+  [...el.querySelectorAll<HTMLElement>('.write-signatures .write-sig')].map((li) => [
+    li.querySelector('b')!.textContent!.trim(),
+    li.classList.contains('valid')
+      ? 'valid'
+      : li.classList.contains('mismatch')
+        ? 'mismatch'
+        : li.classList.contains('unsigned')
+          ? 'unsigned'
+          : li.classList.contains('unchecked')
+            ? 'unchecked'
+            : 'checking',
+  ]);
 const signButton = (el: ToWriteEditor) => el.querySelector<HTMLButtonElement>('.write-signatures .write-sign')!;
 /** The name asked for, answered. */
 async function answer(el: ToWriteEditor, name: string | null, expectGuess?: string) {
@@ -58,7 +71,10 @@ async function sign(el: ToWriteEditor, name: string, expectGuess?: string) {
 test('on open every row is checked: a contract the old tree signed shows both valid, with the key; a word changed shows both in red', async () => {
   const { el } = await editor(OLD);
   await until(() => rows(el).every((r) => r[1] === 'valid') && rows(el).length === 2);
-  expect(rows(el)).toEqual([['Paul Ford', 'valid'], ['Sam Reyes', 'valid']]);
+  expect(rows(el)).toEqual([
+    ['Paul Ford', 'valid'],
+    ['Sam Reyes', 'valid'],
+  ]);
   expect(el.querySelector('.write-sig small')!.textContent).toMatch(/^key [0-9a-f]{5}-[0-9a-f]{5}$/);
   expect(el.querySelector('.write-sig.valid .write-sig-state')!.textContent).toContain('Signed these words');
   const { el: changed } = await editor(OLD.replace('noon', 'one'));
@@ -72,7 +88,7 @@ test('on open every row is checked: a contract the old tree signed shows both va
   expect(none.querySelector('.write-signatures')!.textContent).toContain('No one has signed yet.');
 });
 
-test('Sign this contract: the name asked for, the words signed with this device\'s key, the row put in with the day; a word typed after makes it stale; signing again puts it right', async () => {
+test("Sign this contract: the name asked for, the words signed with this device's key, the row put in with the day; a word typed after makes it stale; signing again puts it right", async () => {
   const { el, last } = await editor('---\nby: Paul Ford\n---\n' + contract());
   // The name the document says made it, while nobody has signed under it.
   await sign(el, 'Paul Ford', 'Paul Ford');
@@ -115,7 +131,10 @@ test('a second signer opens the same text and signs under the first: both hold',
   await until(() => rows(sam).length === 1 && rows(sam)[0][1] === 'valid');
   await sign(sam, 'Sam Reyes', '');
   await until(() => rows(sam).length === 2 && rows(sam).every((r) => r[1] === 'valid'));
-  expect(rows(sam)).toEqual([['Paul Ford', 'valid'], ['Sam Reyes', 'valid']]);
+  expect(rows(sam)).toEqual([
+    ['Paul Ford', 'valid'],
+    ['Sam Reyes', 'valid'],
+  ]);
   // And opened again by Paul: both still hold.
   const { el: back } = await editor(samLast());
   await until(() => rows(back).length === 2 && rows(back).every((r) => r[1] === 'valid'));
@@ -138,7 +157,10 @@ test('printed: a signature block with the name, the day, the key and "verified";
   const { el, last } = await editor(contract());
   await sign(el, 'Paul Ford');
   await until(() => rows(el)[0]?.[1] === 'valid');
-  const svg = def.view(last()).map((p) => p.svg).join('');
+  const svg = def
+    .view(last())
+    .map((p) => p.svg)
+    .join('');
   expect(svg).toContain('>Paul Ford</text>');
   expect(svg).toMatch(/Signed \d{4}-\d{2}-\d{2} · key [0-9a-f]{5}-[0-9a-f]{5} · verified/);
   const html = String(await def.exports!.find((x) => x.ext === 'html')!.build(last(), { def, title: 'Deal', link: '' }));
@@ -148,13 +170,17 @@ test('printed: a signature block with the name, the day, the key and "verified";
   expect(file).toContain('does not match these words');
 });
 
-test('a browser without Ed25519: the old tree\'s Ed25519 rows say Cannot check here, grey with the Privacy dialog\'s icon and reason, still who and when; a P-256 row signed here is checked as ever', async () => {
+test("a browser without Ed25519: the old tree's Ed25519 rows say Cannot check here, grey with the Privacy dialog's icon and reason, still who and when; a P-256 row signed here is checked as ever", async () => {
   const real = crypto.subtle.importKey.bind(crypto.subtle);
   vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((fmt: string, data: unknown, alg: AlgorithmIdentifier, ...rest: unknown[]) =>
-    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof crypto.subtle.importKey);
+    (alg as Algorithm).name === 'Ed25519'
+      ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError'))
+      : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof crypto.subtle.importKey);
   const realGen = crypto.subtle.generateKey.bind(crypto.subtle);
   vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((alg: AlgorithmIdentifier, ...rest: unknown[]) =>
-    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (realGen as (...a: unknown[]) => unknown)(alg, ...rest)) as typeof crypto.subtle.generateKey);
+    (alg as Algorithm).name === 'Ed25519'
+      ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError'))
+      : (realGen as (...a: unknown[]) => unknown)(alg, ...rest)) as typeof crypto.subtle.generateKey);
   const { el } = await editor(OLD.replace('Fridays', 'Friday evenings'));
   await until(() => rows(el).length === 2 && rows(el).every((r) => r[1] === 'unchecked'));
   const row = el.querySelector<HTMLElement>('.write-sig.unchecked')!;

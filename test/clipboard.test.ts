@@ -43,7 +43,12 @@ test('paste, in order: our HTML → the TLO; a Tiny Little Office link → a fen
   expect(pasteFrom({ text: 'just words', html: '' }, 'doc')).toEqual({ runs: [{ t: 'just words' }] });
   expect(pasteFrom({ text: 'two\r\nlines', html: '' }, 'line')).toEqual({ runs: [{ t: 'two lines' }] });
   expect(pasteFrom({ text: 'two\nlines', html: '' }, 'lines')).toEqual({ blocks: [{ k: 'p', runs: [{ t: 'two\nlines' }] }] });
-  expect(pasteFrom({ text: '# H\n\n- i\n', html: '' }, 'lines')).toEqual({ blocks: [{ k: 'p', runs: [{ t: 'H' }] }, { k: 'li', depth: 0, runs: [{ t: 'i' }] }] });
+  expect(pasteFrom({ text: '# H\n\n- i\n', html: '' }, 'lines')).toEqual({
+    blocks: [
+      { k: 'p', runs: [{ t: 'H' }] },
+      { k: 'li', depth: 0, runs: [{ t: 'i' }] },
+    ],
+  });
   expect(pasteFrom({ text: '', html: '' }, 'doc')).toBeNull();
 });
 

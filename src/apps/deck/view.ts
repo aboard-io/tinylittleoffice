@@ -56,7 +56,13 @@ export function spansOf(runs: Run[], next: () => number = noteNumbers()): Span[]
       out.push({ t: '', ic: run.ic });
       continue;
     }
-    const marks = { ...(run.b ? { b: true as const } : {}), ...(run.i ? { i: true as const } : {}), ...(run.u ? { u: true as const } : {}), ...(run.s ? { s: true as const } : {}), ...(run.h ? { h: true as const } : {}) };
+    const marks = {
+      ...(run.b ? { b: true as const } : {}),
+      ...(run.i ? { i: true as const } : {}),
+      ...(run.u ? { u: true as const } : {}),
+      ...(run.s ? { s: true as const } : {}),
+      ...(run.h ? { h: true as const } : {}),
+    };
     for (const p of runLinks(run)) out.push({ t: p.t.replace(/\n/g, ' '), ...marks, ...(p.url ? { link: true } : {}) });
   }
   return out;
@@ -145,11 +151,18 @@ export function line(x: number, y: number, content: string | Span[], style: Line
       at += w;
       if (s.ic) return `<tspan dx="${r(w)}"></tspan>`;
       if (s.sup) return `<tspan font-size="${r(px * SUP)}" baseline-shift="super">${xml(s.t)}</tspan>`;
-      const a = (s.b && !bold ? ' font-weight="700"' : '') + (s.i ? ' font-style="italic"' : '') + (s.link ? ` fill="${linkFill}"` : s.h ? ` fill="${INK}"` : '') + (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
+      const a =
+        (s.b && !bold ? ' font-weight="700"' : '') +
+        (s.i ? ' font-style="italic"' : '') +
+        (s.link ? ` fill="${linkFill}"` : s.h ? ` fill="${INK}"` : '') +
+        (s.u || s.s || s.link ? ` text-decoration="${[(s.u || s.link) && 'underline', s.s && 'line-through'].filter(Boolean).join(' ')}"` : '');
       return a ? `<tspan${a}>${xml(s.t)}</tspan>` : xml(s.t);
     })
     .join('');
-  return before + `<text x="${r(x)}" y="${r(y)}" font-size="${r(px)}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`;
+  return (
+    before +
+    `<text x="${r(x)}" y="${r(y)}" font-size="${r(px)}"${bold ? ' font-weight="700"' : ''}${anchor !== 'start' ? ` text-anchor="${anchor}"` : ''} fill="${fill}" xml:space="preserve">${inner}</text>`
+  );
 }
 
 /** A page placed inside a box on another page, scaled to fit and centred. */
@@ -168,8 +181,16 @@ export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still =
     const def = lookup.appOf(b.lang);
     // Presented, the document as far as it has built (its app's steps); else whole.
     if (def) return def.view(b.body, { small: true, ...(still ? { still } : {}), ...(upTo !== undefined && def.steps ? { upTo } : {}), ...(open ? { open } : {}) })[0];
-    const lines = b.body.split('\n').filter((l) => l.trim() && !/^---/.test(l)).slice(0, 8);
-    return { w: 480, h: 40 + lines.length * 22, svg: line(24, 28, t('{app} document', { app: b.lang }), { px: 13, fill: MUTED }) + lines.map((l, i) => line(24, 56 + i * 22, l, { px: 14 })).join(''), alt: t('{app} document', { app: b.lang }) };
+    const lines = b.body
+      .split('\n')
+      .filter((l) => l.trim() && !/^---/.test(l))
+      .slice(0, 8);
+    return {
+      w: 480,
+      h: 40 + lines.length * 22,
+      svg: line(24, 28, t('{app} document', { app: b.lang }), { px: 13, fill: MUTED }) + lines.map((l, i) => line(24, 56 + i * 22, l, { px: 14 })).join(''),
+      alt: t('{app} document', { app: b.lang }),
+    };
   }
   if (b.k === 'table') {
     const sheet = lookup.appOf('sheet');
@@ -183,7 +204,15 @@ export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still =
   // A thing from the web: a card with the provider and the address, which a reader can follow.
   const url = plainText(b.k === 'p' ? b.runs : []).trim();
   const { provider, title } = embedCaption(url);
-  return { w: 640, h: 160, svg: rect(0, 0, 640, 160, '#fff', `stroke="${LINE}" rx="12"`) + line(32, 70, title, { px: 24, bold: true }) + line(32, 108, provider === title ? url : `${provider} · ${url}`, { px: 15, fill: MUTED }), alt: title };
+  return {
+    w: 640,
+    h: 160,
+    svg:
+      rect(0, 0, 640, 160, '#fff', `stroke="${LINE}" rx="12"`) +
+      line(32, 70, title, { px: 24, bold: true }) +
+      line(32, 108, provider === title ? url : `${provider} · ${url}`, { px: 15, fill: MUTED }),
+    alt: title,
+  };
 }
 
 /* ---------- the layout ---------- */
@@ -267,7 +296,14 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   const fitBody = (cols: (Box & { src: Item[] })[], sizes: number[], bullet: boolean) => {
     const spans = bodySpans(cols.map((c) => c.src));
     for (const px of sizes) {
-      const laid = cols.map((c, i) => c.src.map((it, j) => ({ lines: wrap(spans[i][j].length ? spans[i][j] : [{ t: ' ' }], c.w - (bullet && !it.para ? px * (1.1 + it.depth * IN) : 0), px), depth: it.depth, n: it.n, para: it.para })));
+      const laid = cols.map((c, i) =>
+        c.src.map((it, j) => ({
+          lines: wrap(spans[i][j].length ? spans[i][j] : [{ t: ' ' }], c.w - (bullet && !it.para ? px * (1.1 + it.depth * IN) : 0), px),
+          depth: it.depth,
+          n: it.n,
+          para: it.para,
+        })),
+      );
       const tall = (items: { lines: Span[][] }[]) => items.reduce((a, l) => a + l.lines.length * px * 1.3 + px * 0.45, 0);
       if (laid.every((items, i) => tall(items) <= cols[i].h) || px === sizes[sizes.length - 1]) return { px, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i] })) };
     }
@@ -308,7 +344,11 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
     bodyPx: body.px,
     title: { x: tx, y: M + (headH - tt.lines.length * tt.px * 1.15) / 2, w: W - M - tx, h: headH, lines: tt.lines, center: false },
     cols: body.cols,
-    icon: headIcon ? { x: M, y: M + (headH - 72 * k) / 2, w: 72 * k, h: 72 * k } : kind === 'i' && s.icon ? { x: sideBox.x + (sideBox.w - 260 * k) / 2, y: sideBox.y + (sideBox.h - 260 * k) / 2, w: 260 * k, h: 260 * k } : undefined,
+    icon: headIcon
+      ? { x: M, y: M + (headH - 72 * k) / 2, w: 72 * k, h: 72 * k }
+      : kind === 'i' && s.icon
+        ? { x: sideBox.x + (sideBox.w - 260 * k) / 2, y: sideBox.y + (sideBox.h - 260 * k) / 2, w: 260 * k, h: 260 * k }
+        : undefined,
     notes: foot,
   };
 }
@@ -346,9 +386,14 @@ export function slidePage(doc: Doc, s: Slide, look: Look, shown = Infinity, o: S
   const T = look.theme;
   const link = T.link ?? T.accent;
   // The plain theme is the page's own white; any other brings its paper and what is drawn on it.
-  let svg = look.themed ? rect(0, 0, W, H, T.paper) + (T.deco && W === SW && H === SH ? T.deco : T.deco ? `<svg viewBox="0 0 ${SW} ${SH}" width="${W}" height="${H}" preserveAspectRatio="none">${T.deco}</svg>` : '') : '';
+  let svg = look.themed
+    ? rect(0, 0, W, H, T.paper) + (T.deco && W === SW && H === SH ? T.deco : T.deco ? `<svg viewBox="0 0 ${SW} ${SH}" width="${W}" height="${H}" preserveAspectRatio="none">${T.deco}</svg>` : '')
+    : '';
   if (L.icon) svg += iconAt(s.icon, L.icon, look.icon);
-  L.title.lines.forEach((ln, i) => (svg += line(L.title.center ? W / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), ln, { px: L.titlePx, bold: true, fill: T.ink, link, anchor: L.title.center ? 'middle' : 'start' })));
+  L.title.lines.forEach(
+    (ln, i) =>
+      (svg += line(L.title.center ? W / 2 : L.title.x, L.title.y + L.titlePx * (0.95 + i * 1.15), ln, { px: L.titlePx, bold: true, fill: T.ink, link, anchor: L.title.center ? 'middle' : 'start' })),
+  );
   let n = 0;
   for (const col of L.cols) {
     let y = col.y;
@@ -359,8 +404,17 @@ export function slidePage(doc: Doc, s: Slide, look: Look, shown = Infinity, o: S
       if (cover || n < shown) {
         // A deeper bullet steps in, with a smaller, hollow dot; a numbered item carries its number.
         if (dot && item.n !== undefined) svg += line(x + L.bodyPx * 0.8, y + L.bodyPx, `${item.n}.`, { px: L.bodyPx, fill: T.accent, anchor: 'end' });
-        else if (dot) svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : T.accent}"${d ? ` stroke="${T.accent}" stroke-width="2"` : ''}/>`;
-        item.lines.forEach((ln, i) => (svg += line(cover ? W / 2 : x + (dot ? L.bodyPx * 1.1 : 0), y + L.bodyPx + i * L.bodyPx * 1.3, ln, { px: L.bodyPx, fill: cover ? T.muted : T.ink, link, anchor: cover ? 'middle' : 'start' })));
+        else if (dot)
+          svg += `<circle cx="${r(x + L.bodyPx * 0.35)}" cy="${r(y + L.bodyPx * 0.68)}" r="${r(L.bodyPx * (d ? 0.12 : 0.16))}" fill="${d ? 'none' : T.accent}"${d ? ` stroke="${T.accent}" stroke-width="2"` : ''}/>`;
+        item.lines.forEach(
+          (ln, i) =>
+            (svg += line(cover ? W / 2 : x + (dot ? L.bodyPx * 1.1 : 0), y + L.bodyPx + i * L.bodyPx * 1.3, ln, {
+              px: L.bodyPx,
+              fill: cover ? T.muted : T.ink,
+              link,
+              anchor: cover ? 'middle' : 'start',
+            })),
+        );
       }
       n++;
       y += item.lines.length * L.bodyPx * 1.3 + L.bodyPx * (cover ? 0 : 0.45);
@@ -371,7 +425,7 @@ export function slidePage(doc: Doc, s: Slide, look: Look, shown = Infinity, o: S
     const N = L.notes;
     svg += `<line x1="${r(N.x)}" y1="${r(N.y - 8)}" x2="${r(N.x + 72)}" y2="${r(N.y - 8)}" stroke="${T.muted}" stroke-width="1"/>`;
     let y = N.y;
-    for (const lines of N.lines) for (const ln of lines) (svg += line(N.x, y + N.px, ln, { px: N.px, fill: T.muted, link })), (y += N.px * 1.3);
+    for (const lines of N.lines) for (const ln of lines) ((svg += line(N.x, y + N.px, ln, { px: N.px, fill: T.muted, link })), (y += N.px * 1.3));
   }
   if (L.sub) {
     // Presented, the document as far as the clicks have built it.
@@ -428,7 +482,12 @@ export function fitted(doc: Doc, s: Slide, look: Look, w: number, h: number, o: 
     const lines = paras.map((p) => wrap(p.spans.length ? p.spans : [{ t: ' ' }], inner - (p.dot ? px * (1.1 + p.depth * IN) : 0), px));
     const npx = Math.max(6, px * 0.72);
     const noteLines = notes.map((fn, i) => wrap([{ t: `${i + 1}`, sup: true }, { t: ' ' }, ...spansOf(noteRuns(fn))], inner, npx));
-    const words = (ipx ? ipx + px * 0.6 : 0) + title.length * tpx * 1.15 + (title.length && paras.length ? px * 0.6 : 0) + lines.reduce((a, l) => a + l.length * px * 1.38 + px * 0.5, 0) + (notes.length ? px + noteLines.reduce((a, l) => a + l.length * npx * 1.3, 0) : 0);
+    const words =
+      (ipx ? ipx + px * 0.6 : 0) +
+      title.length * tpx * 1.15 +
+      (title.length && paras.length ? px * 0.6 : 0) +
+      lines.reduce((a, l) => a + l.length * px * 1.38 + px * 0.5, 0) +
+      (notes.length ? px + noteLines.reduce((a, l) => a + l.length * npx * 1.3, 0) : 0);
     return { px, tpx, ipx, npx, title, lines, noteLines, words };
   };
   const max = o.max ?? Math.min(cover ? 34 : 17, (cover ? 17 : 13) * k);
@@ -457,7 +516,8 @@ export function fitted(doc: Doc, s: Slide, look: Look, w: number, h: number, o: 
     const lx = p.dot ? m + px * (1.1 + p.depth * IN) : x;
     if (p.dot && !cover) {
       if (p.n !== undefined) svg += line(lx - px * 0.4, y + px * 1.38 - px * 0.35, `${p.n}.`, { px, fill: T.accent, anchor: 'end' });
-      else svg += `<circle cx="${r(lx - px * 0.75)}" cy="${r(y + px * 0.9)}" r="${r(px * (p.depth ? 0.12 : 0.16))}" fill="${p.depth ? 'none' : T.accent}"${p.depth ? ` stroke="${T.accent}" stroke-width="1"` : ''}/>`;
+      else
+        svg += `<circle cx="${r(lx - px * 0.75)}" cy="${r(y + px * 0.9)}" r="${r(px * (p.depth ? 0.12 : 0.16))}" fill="${p.depth ? 'none' : T.accent}"${p.depth ? ` stroke="${T.accent}" stroke-width="1"` : ''}/>`;
     }
     for (const ln of para) svg += line(cover ? x : lx, (y += px * 1.38) - px * 0.35, ln, { px, anchor, fill: T.ink, link: T.link ?? T.accent });
     y += px * 0.5;
@@ -498,7 +558,10 @@ export function panelsPage(s: Slide, look: Look): Page {
     if (speech.length) {
       // What is said, in a bubble with a tail toward the picture.
       const bh = speech.length * 11 + 6;
-      svg += `<path d="M${r(x + pw / 2 - 5)} ${r(y + 4 + bh - 1)}l3 8 6-8z" fill="#fff" stroke="${INK}"/>` + rect(x + 5, y + 5, pw - 10, bh, '#fff', `rx="8" stroke="${INK}"`) + rect(x + pw / 2 - 6, y + 4 + bh - 2, 10, 2.5, '#fff');
+      svg +=
+        `<path d="M${r(x + pw / 2 - 5)} ${r(y + 4 + bh - 1)}l3 8 6-8z" fill="#fff" stroke="${INK}"/>` +
+        rect(x + 5, y + 5, pw - 10, bh, '#fff', `rx="8" stroke="${INK}"`) +
+        rect(x + pw / 2 - 6, y + 4 + bh - 2, 10, 2.5, '#fff');
       speech.forEach((l, k) => (svg += line(x + pw / 2, y + 16 + k * 11, l, { px: 8.5, anchor: 'middle' })));
     }
     if (foot.length) {
@@ -511,7 +574,8 @@ export function panelsPage(s: Slide, look: Look): Page {
 
 /* ---------- laying pages on sheets ---------- */
 
-const guide = (x1: number, y1: number, x2: number, y2: number, cut = false) => `<line x1="${r(x1)}" y1="${r(y1)}" x2="${r(x2)}" y2="${r(y2)}" stroke="${cut ? '#71717a' : '#d4d4d8'}" stroke-width="1" stroke-dasharray="${cut ? '8 5' : '2 6'}"/>`;
+const guide = (x1: number, y1: number, x2: number, y2: number, cut = false) =>
+  `<line x1="${r(x1)}" y1="${r(y1)}" x2="${r(x2)}" y2="${r(y2)}" stroke="${cut ? '#71717a' : '#d4d4d8'}" stroke-width="1" stroke-dasharray="${cut ? '8 5' : '2 6'}"/>`;
 
 /**
  * One side of a sheet: rows of page numbers (0 for an empty place), each page in its cell of an even
@@ -531,9 +595,18 @@ export function side(pages: Page[], rows: number[][], o: { flip?: number[]; cut?
     }),
   );
   for (let c = 1; c < rows[0].length; c++) svg += guide(c * w, 0, c * w, H);
-  for (let ri = 1; ri < rows.length; ri++) svg += o.cut?.[0] === ri ? guide(0, ri * h, o.cut[1] * w, ri * h) + guide(o.cut[1] * w, ri * h, o.cut[2] * w, ri * h, true) + guide(o.cut[2] * w, ri * h, W, ri * h) : guide(0, ri * h, W, ri * h);
+  for (let ri = 1; ri < rows.length; ri++)
+    svg += o.cut?.[0] === ri ? guide(0, ri * h, o.cut[1] * w, ri * h) + guide(o.cut[1] * w, ri * h, o.cut[2] * w, ri * h, true) + guide(o.cut[2] * w, ri * h, W, ri * h) : guide(0, ri * h, W, ri * h);
   if (o.note) svg += line(w / 2, (o.cut?.[0] ?? rows.length) * h - 4, o.note, { px: 8, fill: FAINT, anchor: 'middle' });
-  return { w: W, h: H, svg, alt: pages.map((p) => p.alt).filter(Boolean).join('. ') };
+  return {
+    w: W,
+    h: H,
+    svg,
+    alt: pages
+      .map((p) => p.alt)
+      .filter(Boolean)
+      .join('. '),
+  };
 }
 
 /** Sheets folded in half and nested, as a booklet is: page n beside page 1, and so on inward. */
@@ -556,7 +629,15 @@ export function tile(cards: Page[], cols: number, rows: number, sheet = LETTER):
         return place(c, x, y, w, h) + rect(x, y, w, h, 'none', 'stroke="#a1a1aa" stroke-dasharray="6 5"');
       })
       .join('');
-    sheets.push({ ...sheet, svg, alt: cards.slice(i, i + cols * rows).map((c) => c.alt).filter(Boolean).join('. ') });
+    sheets.push({
+      ...sheet,
+      svg,
+      alt: cards
+        .slice(i, i + cols * rows)
+        .map((c) => c.alt)
+        .filter(Boolean)
+        .join('. '),
+    });
   }
   return sheets;
 }
@@ -594,8 +675,34 @@ export const ZINE: Geometry = {
   // One-sided: the top row is upside down, so that folding puts the pages in order.
   sheets: (p, two) =>
     two
-      ? [side(p, [[8, 1], [6, 3]], { cut: [1, 0, 2], note: t('cut along the dashes · this half goes outside') }), side(p, [[2, 7], [4, 5]], { cut: [1, 0, 2], note: t('print on the back, flipped on the long edge') })]
-      : [side(p, [[5, 4, 3, 2], [6, 7, 8, 1]], { flip: [0], cut: [1, 1, 3], note: t('cut along the dashes · fold along the dots') })],
+      ? [
+          side(
+            p,
+            [
+              [8, 1],
+              [6, 3],
+            ],
+            { cut: [1, 0, 2], note: t('cut along the dashes · this half goes outside') },
+          ),
+          side(
+            p,
+            [
+              [2, 7],
+              [4, 5],
+            ],
+            { cut: [1, 0, 2], note: t('print on the back, flipped on the long edge') },
+          ),
+        ]
+      : [
+          side(
+            p,
+            [
+              [5, 4, 3, 2],
+              [6, 7, 8, 1],
+            ],
+            { flip: [0], cut: [1, 1, 3], note: t('cut along the dashes · fold along the dots') },
+          ),
+        ],
   how: (two) =>
     two
       ? t('Print it double-sided on letter paper, flipping on the long edge, at actual size. Cut along the dashes, lay the top half over the bottom half, and fold them together down the middle.')
@@ -664,7 +771,21 @@ export function pageCount(doc: Doc, s: Settings, written = slidesOf(doc).length)
 export const pageSize = (s: Settings): { w: number; h: number } => geometryOf(s.format)?.size(s.two) ?? { w: SW, h: SH };
 
 /** An empty slide past what is written, for a page the format has and the document has not filled yet. */
-export const emptySlide = (at: number): Slide => ({ from: at, to: at, head: -1, layout: '', icon: '', title: [], words: [at, at], pipe: -1, items: [], right: [], sub: -1, notes: [at, at], noteLines: [] });
+export const emptySlide = (at: number): Slide => ({
+  from: at,
+  to: at,
+  head: -1,
+  layout: '',
+  icon: '',
+  title: [],
+  words: [at, at],
+  pipe: -1,
+  items: [],
+  right: [],
+  sub: -1,
+  notes: [at, at],
+  noteLines: [],
+});
 
 /** Page i of the document, drawn in its format: a slide, or a printed page (its cover first; inside pages numbered). */
 export function pageOf(doc: Doc, i: number, s: Settings = settingsOf(doc), slides = slidesOf(doc), look: Look = lookOf(s)): Page {

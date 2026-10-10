@@ -39,7 +39,26 @@ import type { ToDialog } from '../../kit/dialog.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { addStop, distanceKm, duplicateStops, formatLeg, MAX_STOPS, moveStops, pasteStops, placesIn, putAfter, readTrip, removeStops, routeKm, setPlace, setText, stopsTable, tabulate, type Stop, type TripView } from './model.ts';
+import {
+  addStop,
+  distanceKm,
+  duplicateStops,
+  formatLeg,
+  MAX_STOPS,
+  moveStops,
+  pasteStops,
+  placesIn,
+  putAfter,
+  readTrip,
+  removeStops,
+  routeKm,
+  setPlace,
+  setText,
+  stopsTable,
+  tabulate,
+  type Stop,
+  type TripView,
+} from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -219,7 +238,10 @@ export class ToTripEditor extends DocElement<TripView> {
     const r = row && (row.op === 'rows' || row.op === 'cells') ? row.r : 0;
     const stops = this.view.stops;
     if (!stops.length) return void (this.cur = -1);
-    const i = Math.max(0, stops.findIndex((s) => s.row >= r));
+    const i = Math.max(
+      0,
+      stops.findIndex((s) => s.row >= r),
+    );
     void this.focusField(stops[i] ? i : stops.length - 1, 'name', 'end');
   }
 
@@ -345,7 +367,11 @@ export class ToTripEditor extends DocElement<TripView> {
     const s = this.view.stops;
     if (!map || !s.length) return;
     if (s.length === 1) map.setView([s[0].lat, s[0].lon], 12, { animate });
-    else map.fitBounds(s.map((p) => [p.lat, p.lon] as [number, number]), { padding: [36, 36], animate });
+    else
+      map.fitBounds(
+        s.map((p) => [p.lat, p.lon] as [number, number]),
+        { padding: [36, 36], animate },
+      );
   }
   /* ---------- presenting: the map flies stop to stop ---------- */
 
@@ -565,7 +591,14 @@ export class ToTripEditor extends DocElement<TripView> {
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     // Mod+Alt+Enter presents, from anywhere in the editor (as the Deck does).
-    if (runKey(e, TRIP.filter((c) => c.id === 'trip.present'), this)) return;
+    if (
+      runKey(
+        e,
+        TRIP.filter((c) => c.id === 'trip.present'),
+        this,
+      )
+    )
+      return;
     const target = e.composedPath()[0] as HTMLElement;
     // Only words being typed in a stop: never a bar button, a field, the list, a popover or a dialog.
     if (target.closest?.('[popover], dialog')) return;
@@ -775,13 +808,15 @@ export class ToTripEditor extends DocElement<TripView> {
       </form>
       <p class="to-hint">${t('Searching sends the words you type to OpenStreetMap’s Nominatim, and nothing else.')}</p>
       ${this.searching ? html`<p class="to-hint" role="status">${t('Searching…')}</p>` : nothing}
-      ${this.found
-        ? this.found.length
-          ? html`<ul class="trip-found" aria-label=${t('Places found')}>
+      ${
+        this.found
+          ? this.found.length
+            ? html`<ul class="trip-found" aria-label=${t('Places found')}>
               ${this.found.map((p) => html`<li><button type="button" @click=${() => this.choose(p)}><b>${p.name}</b><span>${p.detail}</span></button></li>`)}
             </ul>`
-          : html`<p class="to-hint" role="status">${t('Nothing found.')}</p>`
-        : nothing}`;
+            : html`<p class="to-hint" role="status">${t('Nothing found.')}</p>`
+          : nothing
+      }`;
   }
   render() {
     const v = this.view;
@@ -797,15 +832,19 @@ export class ToTripEditor extends DocElement<TripView> {
         ${this.undoTools()}
       </to-bar>
       <div class="trip ${this.showMap ? '' : 'no-map'} ${this.presenting >= 0 ? 'presenting' : ''}">
-        ${this.showMap
-          ? html`<div class="trip-side">
+        ${
+          this.showMap
+            ? html`<div class="trip-side">
               <div class="trip-map" data-spatial role="region" aria-label=${t('Map: tap to add a stop')}></div>
               <p class="to-hint trip-privacy">${t('The map’s pictures come from OpenStreetMap while it is shown.')} ${n ? nothing : t('Your location is asked for only to centre the map, and is never written anywhere.')}</p>
             </div>`
-          : nothing}
-        ${n
-          ? html`<ol class="trip-stops" tabindex="-1" aria-label=${t('Stops')}>${v.stops.map((s, i) => this.row(s, i))}</ol>`
-          : html`<p class="to-hint trip-empty">${this.showMap ? t('Tap the map to add the first stop, or Insert a place by name.') : t('Insert a place by name.')}</p>`}
+            : nothing
+        }
+        ${
+          n
+            ? html`<ol class="trip-stops" tabindex="-1" aria-label=${t('Stops')}>${v.stops.map((s, i) => this.row(s, i))}</ol>`
+            : html`<p class="to-hint trip-empty">${this.showMap ? t('Tap the map to add the first stop, or Insert a place by name.') : t('Insert a place by name.')}</p>`
+        }
       </div>
       ${this.presenting >= 0 ? this.renderPresent() : nothing}
       ${this.rows.renderContext()}

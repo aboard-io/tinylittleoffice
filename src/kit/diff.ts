@@ -18,7 +18,7 @@ export function diffLines(x: string[], y: string[]): Change[] {
   let i = 0;
   let j = 0;
   while (i < n || j < m) {
-    if (i < n && j < m && x[i] === y[j]) out.push({ kind: ' ', line: x[i++] }), j++;
+    if (i < n && j < m && x[i] === y[j]) (out.push({ kind: ' ', line: x[i++] }), j++);
     else if (i < n && (j >= m || L[i + 1][j] >= L[i][j + 1])) out.push({ kind: '-', line: x[i++] });
     else out.push({ kind: '+', line: y[j++] });
   }

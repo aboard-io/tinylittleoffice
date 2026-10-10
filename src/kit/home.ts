@@ -237,9 +237,11 @@ export class ToHome extends LitElement {
     const want = this.query.trim();
     return html`<div class="to-home">
       <h1 class="sr-only">${t('Tiny Little Office')}</h1>
-      ${kept.length
-        ? html`<input class="to-search" type="search" placeholder=${t('Search your documents')} aria-label=${t('Search your documents')} autocomplete="off" .value=${this.query} @input=${(e: Event) => (this.query = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-found-docs a')?.click())} />`
-        : nothing}
+      ${
+        kept.length
+          ? html`<input class="to-search" type="search" placeholder=${t('Search your documents')} aria-label=${t('Search your documents')} autocomplete="off" .value=${this.query} @input=${(e: Event) => (this.query = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-found-docs a')?.click())} />`
+          : nothing
+      }
       ${want ? this.renderFound(kept) : nothing}
       <div class="to-apps" ?hidden=${!!want}>
         ${apps().map(
@@ -248,7 +250,10 @@ export class ToHome extends LitElement {
               <a class="to-app-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<span class="to-app-name">${a.name}</span></a>
               <to-templates .app=${a}></to-templates>
             </div>
-            ${this.drive(a, kept.filter((k) => k.app === a.id))}
+            ${this.drive(
+              a,
+              kept.filter((k) => k.app === a.id),
+            )}
           </section>`,
         )}
       </div>

@@ -11,7 +11,10 @@ import type { Template } from '../../kit/app.ts';
 import { t } from '../../kit/i18n.ts';
 
 const slides = (...each: string[]) => each.join('\n\n---\n\n') + '\n';
-const headed = (head: Record<string, string>, ...each: string[]) => `---\n${Object.entries(head).map(([k, v]) => `${k}: ${v}`).join('\n')}\n---\n${slides(...each)}`;
+const headed = (head: Record<string, string>, ...each: string[]) =>
+  `---\n${Object.entries(head)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n')}\n---\n${slides(...each)}`;
 
 const TALK = headed(
   { theme: 'midnight' },
@@ -47,7 +50,7 @@ const ZINE = headed(
   '## The first cup\n\nThe kettle takes four minutes, and in those four minutes nothing is asked of you. Stand at the window. The harbour is grey, then not.\n\nThe first cup is the only one that is really about the coffee.',
   '## The harbour at six\n\nThe fishing boats go out before the light does. From Quay Street you hear them before you see them: the engines, then a gull, then the water settling back.\n\nBy seven the tourists have the place. At six it is yours.',
   '## A letter\n\nNot an email. A letter, with a stamp, that someone chose a pen for. It can say almost nothing and still mean a great deal.\n\nWrite one this week. The post box on Quay Street is emptied at five.',
-  '## The dog\n\nBiscuit is eleven and has opinions about the morning walk. The route is not up for discussion. Neither is the bench by the harbour master\'s office, where we sit for exactly as long as he decides.',
+  "## The dog\n\nBiscuit is eleven and has opinions about the morning walk. The route is not up for discussion. Neither is the bench by the harbour master's office, where we sit for exactly as long as he decides.",
   '## Bread\n\nThe bakery opens at seven and the first loaves are on the counter by ten past. The crust cracks when you press it. Buy the one that is still warm; eat the end of it on the way home.',
   '## Doing nothing\n\nTen minutes with no phone and no plan. Look at the ceiling. Listen to the building. It is harder than it sounds and worth more than it costs.',
   '## :heart: Until next time\n\nMade by hand at Harbor Studio, Portland.\n\nSend us your small joys: hello@harborstudio.example',
@@ -79,17 +82,14 @@ const COMIC = headed(
   { format: 'comic' },
   '## :dog: Biscuit Goes Out\n\nA comic in six pages',
   '## Monday\n\n- :dog: Walk? | Seven in the morning.\n- :coffee: After coffee. | He knows what coffee means.\n- :dog: WALK. | He does not care.',
-  '## The route\n\n- :map-pin: Left at the gate. Always left. | Right has never been tried.\n- :bird: A gull. | Discussions follow.\n- :home: The harbour master\'s bench. | Here we sit.',
+  "## The route\n\n- :map-pin: Left at the gate. Always left. | Right has never been tried.\n- :bird: A gull. | Discussions follow.\n- :home: The harbour master's bench. | Here we sit.",
   '## The bench\n\n- :clock: How long do we sit? | As long as he decides.\n- :sun: The sun comes over the warehouses. | Worth it.',
   '## The bakery\n\n- :cart: The bakery is not on the route. | It is now.\n- :smile: The end of the loaf, on the way home. | Shared, under protest.',
   '## Home\n\n- :home: Back by eight. | Tail going.\n- :coffee: Now the second cup. | Nothing is asked of you.\n- :dog: Walk? | Tomorrow.',
   '## :heart: The end\n\nBiscuit is eleven and lives at Harbor Studio.',
 );
 
-const POSTER = headed(
-  { format: 'poster' },
-  '## :music: Open mic night {.title}\n\n- Friday 13 November, 8pm\n- The Anchor, 14 Quay Street\n- Free. Bring a song, a poem, or just your ears.',
-);
+const POSTER = headed({ format: 'poster' }, '## :music: Open mic night {.title}\n\n- Friday 13 November, 8pm\n- The Anchor, 14 Quay Street\n- Free. Bring a song, a poem, or just your ears.');
 
 const BADGES = headed(
   { format: 'badges' },
@@ -118,23 +118,23 @@ const PITCH = headed(
 const LESSON = headed(
   { theme: 'chalkboard' },
   '## :moon: Why the Moon has phases {.title}\n\n- Year 7 Science · Ms Achterberg · Thursday 15 October 2026',
-  '## :target: By the end of today\n\n- You can name the eight phases in order\n- You can explain why we see them\n- You can say why it is not the Earth\'s shadow\n\n> Read these out. Ask them to copy the first line only.',
+  "## :target: By the end of today\n\n- You can name the eight phases in order\n- You can explain why we see them\n- You can say why it is not the Earth's shadow\n\n> Read these out. Ask them to copy the first line only.",
   '## :help: What do you already know?\n\n- How long from one full Moon to the next?\n- Is the Moon making its own light?\n- Have you seen the Moon in the daytime?\n\n> Two minutes with a partner, then hands up. Write the answers on the side board; we come back to them at the end.',
   '## :sun: The model\n\n1. The Sun lights half of the Moon, always\n2. The Moon goes round the Earth once in about 29.5 days\n3. From the Earth we see a different share of the lit half\n4. That share is the phase\n\n> Lamp at the front, a polystyrene ball on a pencil each. Lights off.',
   '## :moon: The eight phases {.two}\n\n- New Moon\n- Waxing crescent\n- First quarter\n- Waxing gibbous\n\n|\n\n- Full Moon\n- Waning gibbous\n- Last quarter\n- Waning crescent',
-  '## :warning: Not the shadow {.icon}\n\n- The Earth\'s shadow only touches the Moon in an eclipse\n- That happens a couple of times a year, not every month\n- A phase is about where we stand, not what is in the way',
+  "## :warning: Not the shadow {.icon}\n\n- The Earth's shadow only touches the Moon in an eclipse\n- That happens a couple of times a year, not every month\n- A phase is about where we stand, not what is in the way",
   '## :check: Check\n\n- Draw the Moon at first quarter: which side is lit?\n- Why can you sometimes see the Moon at breakfast?\n- What phase comes after full?\n\n> Exit tickets on the way out. Answers: the right side; it is up in the day for half the month; waning gibbous.',
-  '## :book: For Tuesday\n\n- Look at the Moon three nights this week and draw it\n- Write the date and the time beside each drawing\n- Bring it in: we will put the class\'s together on the wall',
+  "## :book: For Tuesday\n\n- Look at the Moon three nights this week and draw it\n- Write the date and the time beside each drawing\n- Bring it in: we will put the class's together on the wall",
 );
 
 const CONFERENCE = headed(
   { theme: 'ocean' },
   '## :database: Ten thousand forms, no signal {.title}\n\n- Offline-first records at a rural clinic\n- Inês Carvalho · Offline Camp, Lisbon · Saturday 14 November 2026',
-  '## :map-pin: Where this happened\n\n- Mértola, Alentejo: one clinic, four villages, two nurses on the road\n- Mobile signal on about half the route\n- Every visit was a paper form, typed up on Friday\n\n> Show of hands: who has typed up somebody else\'s handwriting? That was our Friday.\n> Pause on the map. Say how far: the farthest village is 38 km on a road you cannot hurry.',
+  "## :map-pin: Where this happened\n\n- Mértola, Alentejo: one clinic, four villages, two nurses on the road\n- Mobile signal on about half the route\n- Every visit was a paper form, typed up on Friday\n\n> Show of hands: who has typed up somebody else's handwriting? That was our Friday.\n> Pause on the map. Say how far: the farthest village is 38 km on a road you cannot hurry.",
   '## :target: What we wanted\n\n- A form that works with no signal at all\n- Nothing lost if the tablet dies mid-visit\n- The clinic sees it the moment the car is back in range\n\n> Three sentences, and every decision after this slide goes back to one of them.',
-  '## :wrench: What we built {.two}\n\n- The form saves on every keystroke, on the tablet\n- Each visit is its own small record\n- A queue sends them when there is signal\n\n|\n\n- No accounts on the tablet: it is the clinic\'s, not the nurse\'s\n- Conflicts are rare: one nurse, one visit\n- The rare ones go to a person, not a rule\n\n> The point to land: we made the conflict case boring by giving each visit one author.',
+  "## :wrench: What we built {.two}\n\n- The form saves on every keystroke, on the tablet\n- Each visit is its own small record\n- A queue sends them when there is signal\n\n|\n\n- No accounts on the tablet: it is the clinic's, not the nurse's\n- Conflicts are rare: one nurse, one visit\n- The rare ones go to a person, not a rule\n\n> The point to land: we made the conflict case boring by giving each visit one author.",
   '## :bar-chart: Visits that waited for signal\n\nMonth | Visits | Waited | Lost\n--- | --- | --- | ---\nMay | 812 | 371 | 0\nJun | 864 | 402 | 0\nJul | 905 | 455 | 0\nAug | 790 | 368 | 0\nSep | 930 | 417 | 0\n{chart=bar}\n\n> Nearly half of all visits were written with no signal. None lost. That last column is the talk.\n> If asked: the longest wait was 31 hours, a tablet left in a car over a weekend.',
-  '## :warning: What went wrong\n\n- Tablets set to the wrong clock: visits dated 1970^[We now take the time from the clinic when the visit is sent, and keep the tablet\'s as a second opinion.]\n- A software update emptied one queue in July: 14 visits typed up again from memory\n- Nurses did not trust the green tick for a month\n\n> Be honest about July. It is the slide people remember.',
+  "## :warning: What went wrong\n\n- Tablets set to the wrong clock: visits dated 1970^[We now take the time from the clinic when the visit is sent, and keep the tablet's as a second opinion.]\n- A software update emptied one queue in July: 14 visits typed up again from memory\n- Nurses did not trust the green tick for a month\n\n> Be honest about July. It is the slide people remember.",
   '## :lightbulb: What we would tell you\n\n- Save first, send later, and show which is which\n- Give every record one author if you can\n- Test with the battery at four per cent\n- Ask the nurses what the tick should look like\n\n> These are the four things to write down. Slow down.',
   '## :heart: Obrigada\n\n- ines@saudemertola.example\n- The form and the queue are open source: search for "mertola-forms"\n- Questions, please\n\n> Leave this up through the questions.',
 );
@@ -145,7 +145,7 @@ const WEDDING = headed(
   '## :book: How they met {.icon}\n\n- A second-hand bookshop in Porto, March 2019\n- One copy of "The Summer Book", two hands on it\n- Theo let her have it. She made him read it anyway.',
   '## :plane: The first trip\n\n- Six days in the Azores, on a budget of one rental car\n- It rained for five of them\n- Ana says it was the best holiday of her life. Theo agrees, now.',
   '## :home: The flat on Rua da Rosa\n\n- Moved in together, autumn 2021\n- Forty-one stairs, no lift\n- One cat, Pimenta, who chose them at the shelter',
-  '## :star: The question\n\n- New Year\'s Eve 2025, on the roof, in a coat\n- Theo had practised the speech for a month\n- He forgot all of it. She said yes before he finished.',
+  "## :star: The question\n\n- New Year's Eve 2025, on the roof, in a coat\n- Theo had practised the speech for a month\n- He forgot all of it. She said yes before he finished.",
   '## :calendar: Seven years {.two}\n\n- 2019: the bookshop\n- 2020: the Azores\n- 2021: Rua da Rosa\n- 2022: Pimenta\n\n|\n\n- 2024: Theo learns to cook\n- 2025: the roof\n- 2026: today\n- And everything after',
   '## :gift: Thank you {.title}\n\n- For coming from Lisbon, London and Luanda\n- The dancing starts at nine. The bus back is at one.',
 );
@@ -171,7 +171,6 @@ const WORKSHOP = headed(
   '## :heart: Afterwards {.title}\n\n- Southside Bike Kitchen is open every Wednesday, 6 to 8pm\n- Tools, a stand and someone who knows: all free\n- Thank you to Southside Library for the room',
 );
 
-
 const LAUNCH = headed(
   { color: 'orange', transition: 'zoom' },
   '## :coffee: Tern {.title}\n\n- The kettle that tells you when it is ready\n- On sale Thursday 26 November 2026',
@@ -195,7 +194,7 @@ const TOWNHALL = headed(
 const TRIVIA = headed(
   { theme: 'arcade', transition: 'slide', qr: 'no' },
   '## :trophy: Quiz night at the Ship Inn {.title}\n\n- Thursday 19 November 2026 · Four rounds, teams of up to six\n- £2 a head, all of it to the Whitby lifeboat station',
-  '## :info: The rules\n\n- No phones on the table: a phone seen is a point lost\n- Answers on the sheet, team name at the top\n- The quizmaster\'s spelling is final\n\n> Read these slowly. Hand out the sheets and pens now.',
+  "## :info: The rules\n\n- No phones on the table: a phone seen is a point lost\n- Answers on the sheet, team name at the top\n- The quizmaster's spelling is final\n\n> Read these slowly. Hand out the sheets and pens now.",
   '## :globe: Round one: the world\n\n1. What is the capital of Australia?\n2. Which river flows through Cairo?\n3. How many countries share a border with Germany?\n4. In which country is the city of Porto?\n\n> Answers: Canberra; the Nile; nine; Portugal.',
   '## :music: Round two: music\n\n1. Which band was Freddie Mercury the singer of?\n2. How many strings does a standard violin have?\n3. Which Beatles album has a zebra crossing on the cover?\n4. What does "forte" tell a musician to do?\n\n> Answers: Queen; four; Abbey Road; play loudly.',
   '## :fish: Round three: the sea\n\n1. What is the largest ocean?\n2. How many arms does an octopus have?\n3. What is a baby seal called?\n4. Which lifeboat station is the busiest in Britain?\n\n> Answers: the Pacific; eight; a pup; Tower, on the Thames in London.',
@@ -219,13 +218,13 @@ const SOUPS = headed(
 
 const PROGRAMME = headed(
   { format: 'booklet' },
-  '## :music: Winter Concert\n\nEastside Community Choir\n\nSaturday 12 December 2026, 7.30pm · St Anne\'s Church, Mill Road',
+  "## :music: Winter Concert\n\nEastside Community Choir\n\nSaturday 12 December 2026, 7.30pm · St Anne's Church, Mill Road",
   '## Welcome\n\nThank you for coming out on a December night. We are forty-two singers from Eastside, and most of us could not read music when we joined.\n\nTonight is the end of our sixth year. The interval is about twenty minutes; mince pies and mulled apple are at the back, by donation.\n\nJoanna Pike, director',
   '## The first half\n\n1. In the Bleak Midwinter, Holst\n2. Shenandoah, arranged by James Erb\n3. The Rose, Ola Gjeilo\n4. Lay a Garland, Pearsall\n5. Hallelujah, Leonard Cohen, arranged for the choir by Tom Ashby',
   '## The second half\n\n1. Ding Dong! Merrily on High\n2. Bogoroditse Devo, Rachmaninov\n3. Sound the Trumpet, Purcell, with the Eastside Youth Brass\n4. Fix You, Coldplay\n5. Silent Night, with you singing too: the words are on the back cover',
   '## About the music\n\nShenandoah is a river song from the 1800s, sung by traders on the Missouri. The Erb arrangement keeps the tune in the altos and lets everyone else wander.\n\nThe Gjeilo is new to us this year and the hardest thing we have learned. The sopranos would like you to listen for the top G^[Bar 41. They have been practising it since August.].',
   '## The singers\n\nSopranos: Aisha, Brenda, Carys, Della, Fen, Grace, Hannah, Imogen, Jas, Kath, Lou, Maya\n\nAltos: Nell, Olu, Pat, Queenie, Rhi, Sue, Tash, Uma, Val, Wendy\n\nTenors: Ade, Bryn, Colm, Dafydd, Eli, Femi\n\nBasses: Gus, Huw, Idris, Jon, Kofi, Lars, Mo, Nick, Owen, Raj, Stan, Tom',
-  '## Thank you\n\nTo St Anne\'s for the church and the heating. To Eastside Youth Brass and their teacher, Lindy Moss. To Mill Road Bakery for the mince pies.\n\nTonight\'s collection goes to the Mill Road food bank.\n\nThe choir rehearses on Tuesdays at 7pm in St Anne\'s hall. No audition: come and try us in January.',
+  "## Thank you\n\nTo St Anne's for the church and the heating. To Eastside Youth Brass and their teacher, Lindy Moss. To Mill Road Bakery for the mince pies.\n\nTonight's collection goes to the Mill Road food bank.\n\nThe choir rehearses on Tuesdays at 7pm in St Anne's hall. No audition: come and try us in January.",
   '## Silent Night\n\nSilent night, holy night,\n\nAll is calm, all is bright,\n\nRound yon virgin mother and child,\n\nHoly infant so tender and mild,\n\nSleep in heavenly peace,\n\nSleep in heavenly peace.',
 );
 
@@ -242,7 +241,7 @@ const FARM = headed(
 const UMBRELLA = headed(
   { format: 'comic' },
   '## :cloud: The Umbrella\n\nA comic in eight pages, about lending something',
-  '## Tuesday\n\n- :cloud: Rain. | Of course.\n- :user: Take mine. | Mrs Okafor, from number 9.\n- :smile: I\'ll bring it back tomorrow! | He meant it.',
+  "## Tuesday\n\n- :cloud: Rain. | Of course.\n- :user: Take mine. | Mrs Okafor, from number 9.\n- :smile: I'll bring it back tomorrow! | He meant it.",
   '## Wednesday\n\n- :briefcase: Late for the bus. | No umbrella needed.\n- :sun: Sun all day. | The umbrella stays by the door.',
   '## Thursday\n\n- :bell: Knock on number 9? | Nobody in.\n- :clock: Later, then. | Later never comes.',
   '## The next week\n\n- :cloud: Rain again. | He takes it.\n- :user: Is that mine? | Mrs Okafor, also wet.\n- :frown: Ah. | Ah.',
@@ -271,18 +270,18 @@ export const templates = (): Template[] => [
   { id: 'status', name: t('Status update'), blurb: t('Done and next side by side, then risks, then asks.'), doc: STATUS },
   { id: 'proposal', name: t('A proposal'), blurb: t('What you heard, what you propose, when, what it costs.'), doc: PROPOSAL },
   { id: 'pitch', name: t('A pitch'), blurb: t('A seed pitch in eight slides: the problem, the product, traction on a chart, the business, the team, the ask.'), doc: PITCH },
-  { id: 'lesson', name: t('A lesson'), blurb: t('A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher\'s notes under each.'), doc: LESSON },
+  { id: 'lesson', name: t('A lesson'), blurb: t("A science lesson on the chalkboard: aims, what they know, the model, a check, homework; the teacher's notes under each."), doc: LESSON },
   { id: 'conference', name: t('Conference talk'), blurb: t('A twenty-minute talk with speaker notes on every slide, a chart of the results, a footnote and the lessons.'), doc: CONFERENCE },
-  { id: 'quarterly', name: t('Quarterly review'), blurb: t('A shop\'s quarter for its partners: revenue on a chart, wins and misses, the numbers that matter, next quarter.'), doc: QUARTERLY },
+  { id: 'quarterly', name: t('Quarterly review'), blurb: t("A shop's quarter for its partners: revenue on a chart, wins and misses, the numbers that matter, next quarter."), doc: QUARTERLY },
   { id: 'workshop', name: t('Workshop agenda'), blurb: t('A morning workshop: the timetable, a checklist of what to bring, the steps, and where to go next.'), doc: WORKSHOP },
   { id: 'launch', name: t('Product launch'), blurb: t('A product in a sentence, what it does, prices in a table, the launch dates and the press contact.'), doc: LAUNCH },
-  { id: 'townhall', name: t('Town-hall notice'), blurb: t('A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.'), doc: TOWNHALL },
+  { id: 'townhall', name: t('Town-hall notice'), blurb: t("A residents' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say."), doc: TOWNHALL },
   { id: 'trivia', name: t('Trivia night'), blurb: t('A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.'), doc: TRIVIA },
   { id: 'wedding', name: t('Wedding slideshow'), blurb: t('Their story for the reception, from how they met to the question, with a timeline and a thank-you.'), doc: WEDDING },
   { id: 'zine', name: t('Zine'), blurb: t('Eight small pages from one sheet of paper: print, fold and cut, or read it by tapping on a phone.'), doc: ZINE },
   { id: 'soups', name: t('Recipe zine'), blurb: t('Seven soups for a cold week, one a page, in a zine folded from one sheet.'), doc: SOUPS },
   { id: 'booklet', name: t('Booklet'), blurb: t('A booklet of half-letter pages, eight to twenty, laid out to print, nest and fold.'), doc: BOOKLET },
-  { id: 'programme', name: t('Concert programme'), blurb: t('A choir\'s winter concert: the welcome, both halves, notes on the music, the singers, and the words to sing along.'), doc: PROGRAMME },
+  { id: 'programme', name: t('Concert programme'), blurb: t("A choir's winter concert: the welcome, both halves, notes on the music, the singers, and the words to sing along."), doc: PROGRAMME },
   { id: 'brochure', name: t('Brochure'), blurb: t('A trifold brochure: six panels on two sides of a sheet, each where the fold needs it.'), doc: BROCHURE },
   { id: 'farm', name: t('Farm brochure'), blurb: t('A pick-your-own farm: what grows when, how it works, the prices, the barn and how to find it.'), doc: FARM },
   { id: 'comic', name: t('Comic'), blurb: t('A mini comic: panels with a picture, a speech bubble and a caption, folded from one sheet.'), doc: COMIC },

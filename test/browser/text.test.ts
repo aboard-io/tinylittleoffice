@@ -239,7 +239,10 @@ test('a footnote mark asks its host for its note: a tap, or Enter on it, says te
   expect([...chips].map((c) => c.textContent)).toEqual(['1', '2', '3']);
   chips[1].click();
   chips[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-  expect(h.notes).toEqual([{ block: 0, nth: 1 }, { block: 1, nth: 0 }]);
+  expect(h.notes).toEqual([
+    { block: 0, nth: 1 },
+    { block: 1, nth: 0 },
+  ]);
   // The mark numbers on from where the host says its span starts.
   h.el.noteStart = 4;
   await h.el.updateComplete;
@@ -260,7 +263,9 @@ test('cards for what is not words: drawn non-editable, skipped by the caret, a t
 });
 
 test('the selection round trip: every offset of every kind of block comes back as it was set', async () => {
-  const h = await mount('# Head {.title}\n\nSome **bold** [words](https://x.y) :star: and^[n] more\nline two\n\n- a\n  1. b\n\n> quoted\n\n```sheet\nA\n---\n1\n```\n\n![p](https://p.q/r.png)\n\n---\n\nA | B\n--- | ---\n1 | 2\n\n~ a -> b\n\nend\n');
+  const h = await mount(
+    '# Head {.title}\n\nSome **bold** [words](https://x.y) :star: and^[n] more\nline two\n\n- a\n  1. b\n\n> quoted\n\n```sheet\nA\n---\n1\n```\n\n![p](https://p.q/r.png)\n\n---\n\nA | B\n--- | ---\n1 | 2\n\n~ a -> b\n\nend\n',
+  );
   for (let i = 0; i < h.doc.blocks.length; i++) {
     const b = h.doc.blocks[i];
     if (!('runs' in b)) {
@@ -297,7 +302,10 @@ test('paste, each source: our HTML, a Tiny Little Office link, an address, HTML 
   await paste(url, { 'text/plain': 'https://example.com/x' });
   expect(url.tlo).toBe('a\n\nhttps://example.com/x\n\nb\n');
   const html = await mount('', 'doc');
-  await paste(html, { 'text/plain': 'x y z', 'text/html': '<b id="docs-internal-guid-1" style="font-weight:normal"><p><span style="font-weight:700">x</span> <i>y</i></p><ul><li>z</li><ul><li>deep</li></ul></ul></b>' });
+  await paste(html, {
+    'text/plain': 'x y z',
+    'text/html': '<b id="docs-internal-guid-1" style="font-weight:normal"><p><span style="font-weight:700">x</span> <i>y</i></p><ul><li>z</li><ul><li>deep</li></ul></ul></b>',
+  });
   expect(html.tlo).toBe('**x** *y*\n\n- z\n  - deep\n');
   const md = await mount('', 'doc');
   await paste(md, { 'text/plain': '## Two\n\n- one\n' });
@@ -312,10 +320,17 @@ test('paste, each source: our HTML, a Tiny Little Office link, an address, HTML 
 });
 
 test('htmlToBlocks reads tags, styles, lists, headings, pictures and tables', () => {
-  const blocks = htmlToBlocks('<h2>Head</h2><p>Plain <strong>b</strong> <em>i</em> <u>u</u> <s>s</s> <mark>h</mark> <a href="https://x.y/">link</a> <a href="https://z.w">https://z.w</a> <span style="background-color: yellow">bg</span></p><ol><li>one</li><li>two</li></ol><img src="https://p.q/r.png" alt="pic"><table><tr><th>A</th><th>N:number</th></tr><tr><td>a</td><td>1</td></tr></table><pre>  kept   spaces</pre>');
-  expect(write({ head: {}, blocks })).toBe('## Head\n\nPlain **b** *i* ++u++ ~~s~~ ==h== [link](https://x.y/) https://z.w ==bg==\n\n1. one\n2. two\n\n![pic](https://p.q/r.png)\n\nA | N:number\n--- | ---\na | 1\n\nkept   spaces\n');
+  const blocks = htmlToBlocks(
+    '<h2>Head</h2><p>Plain <strong>b</strong> <em>i</em> <u>u</u> <s>s</s> <mark>h</mark> <a href="https://x.y/">link</a> <a href="https://z.w">https://z.w</a> <span style="background-color: yellow">bg</span></p><ol><li>one</li><li>two</li></ol><img src="https://p.q/r.png" alt="pic"><table><tr><th>A</th><th>N:number</th></tr><tr><td>a</td><td>1</td></tr></table><pre>  kept   spaces</pre>',
+  );
+  expect(write({ head: {}, blocks })).toBe(
+    '## Head\n\nPlain **b** *i* ++u++ ~~s~~ ==h== [link](https://x.y/) https://z.w ==bg==\n\n1. one\n2. two\n\n![pic](https://p.q/r.png)\n\nA | N:number\n--- | ---\na | 1\n\nkept   spaces\n',
+  );
   // A <br> is a line break; Google Docs' bold-that-is-not is not bold.
-  expect(htmlToBlocks('<p>a<br>b</p><b style="font-weight:normal">c</b>')).toEqual([{ k: 'p', runs: [{ t: 'a\nb' }] }, { k: 'p', runs: [{ t: 'c' }] }]);
+  expect(htmlToBlocks('<p>a<br>b</p><b style="font-weight:normal">c</b>')).toEqual([
+    { k: 'p', runs: [{ t: 'a\nb' }] },
+    { k: 'p', runs: [{ t: 'c' }] },
+  ]);
 });
 
 test('copy writes the selection as TLO and as HTML with the marker; cut takes it out too', async () => {
@@ -334,7 +349,7 @@ test('copy writes the selection as TLO and as HTML with the marker; cut takes it
   expect(h.el.sel).toEqual(caret(0, 2));
 });
 
-test('the spaces at a copied fragment\'s ends survive the paste; a copy across whole blocks still pastes as blocks', async () => {
+test("the spaces at a copied fragment's ends survive the paste; a copy across whole blocks still pastes as blocks", async () => {
   // "a sentence " with its space, cut from the middle of a paragraph and pasted inside other words.
   const h = await mount('First a sentence here.\n\nSecond.\n', 'doc', { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 17 } });
   const dt = new DataTransfer();
@@ -549,7 +564,11 @@ test('the selection bubble: the lists over whole blocks of a doc or lines editor
 test('at 390px: focusing scrolls nothing, nothing is wider than the screen, the bubble sits inside the visual viewport', async () => {
   await page.viewport(390, 844);
   try {
-    const h = await mount(`${'A long paragraph of words that wraps on a phone screen more than once. '.repeat(3)}\n\n${Array.from({ length: 30 }, (_, i) => `Line ${i}^[a note on line ${i}]`).join('\n\n')}\n`, 'doc', null);
+    const h = await mount(
+      `${'A long paragraph of words that wraps on a phone screen more than once. '.repeat(3)}\n\n${Array.from({ length: 30 }, (_, i) => `Line ${i}^[a note on line ${i}]`).join('\n\n')}\n`,
+      'doc',
+      null,
+    );
     window.scrollTo(0, 0);
     h.el.focus();
     h.el.sel = caret(0, 10);
@@ -642,7 +661,7 @@ const press = (target: EventTarget, init: KeyboardEventInit) => {
   return ev;
 };
 
-test('Mod+A in lines: the first press is the browser\'s, with the box already whole the host is asked for everything; a doc takes it itself', async () => {
+test("Mod+A in lines: the first press is the browser's, with the box already whole the host is asked for everything; a doc takes it itself", async () => {
   const h = await mount('- one\n- two\n', 'lines', caret(0, 1));
   let all = 0;
   h.el.addEventListener('text-selectall', () => all++);
@@ -804,7 +823,7 @@ test('Alt+Up/Down moves an item with its family past its neighbour; the caret go
   expect(press(p.el.tx, { key: 'ArrowDown', altKey: true }).defaultPrevented).toBe(false);
 });
 
-test('Mod+Enter on a task item ticks and unticks it; on other words it is the host\'s', async () => {
+test("Mod+Enter on a task item ticks and unticks it; on other words it is the host's", async () => {
   const h = await mount('- [ ] buy milk\n\nwords\n', 'doc', caret(0, 3));
   let reached = 0;
   document.body.addEventListener('keydown', () => reached++);
@@ -822,7 +841,7 @@ test('Mod+Enter on a task item ticks and unticks it; on other words it is the ho
   expect(reached).toBe(1);
 });
 
-test('a click anywhere in a task\'s box ticks it, the box measured at the size of everything', async () => {
+test("a click anywhere in a task's box ticks it, the box measured at the size of everything", async () => {
   const h = await mount('- [ ] buy milk\n', 'doc', caret(0, 3));
   const li = h.el.tx.querySelector<HTMLElement>('li')!;
   const r = li.getBoundingClientRect();
@@ -847,7 +866,7 @@ test('Mod+Shift+X strikes through and Mod+Shift+H highlights the words selected'
   expect(h.doc.blocks[0]).toMatchObject({ runs: [{ t: 'make ' }, { t: 'this', s: true, h: true }] });
 });
 
-test('no selection is written during an IME composition: a host\'s caret waits for compositionend', async () => {
+test("no selection is written during an IME composition: a host's caret waits for compositionend", async () => {
   const h = await mount('hello world\n', 'doc', caret(0, 5));
   const p = h.el.tx.querySelector('p')!;
   p.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
@@ -861,7 +880,7 @@ test('no selection is written during an IME composition: a host\'s caret waits f
   expect(h.tlo).toBe('hello world\n');
 });
 
-test('editing surfaces: touch-action manipulation on the box; under a finger the bubble\'s buttons and a task\'s box are 44px', async () => {
+test("editing surfaces: touch-action manipulation on the box; under a finger the bubble's buttons and a task's box are 44px", async () => {
   const h = await mount('- [ ] task\n', 'doc', caret(0, 0));
   expect(getComputedStyle(h.el.tx).touchAction).toBe('manipulation');
   const coarse: string[] = [];

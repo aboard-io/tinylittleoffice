@@ -37,7 +37,11 @@ test('calc: keys and the line, units from the engine under the policy, a graph',
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-calc-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return {
+        bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+        rows: tops.size,
+        wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
     });
   const m = await measure();
   expect(m.rows).toBe(1);
@@ -75,7 +79,12 @@ test('calc: on a phone, a tape line is chosen by its grip and moved by the bar u
   await bar.getByRole('button', { name: 'Move up' }).tap();
   await expect.poll(() => page.locator('.calc-line').evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value))).toEqual(['a = 4', 'a + 1', 'a * 2']);
   await expect(page.locator('.calc-row').nth(1)).toHaveClass(/ranged/);
-  const state = await page.evaluate(() => ({ zoom: window.visualViewport?.scale ?? 1, top: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth, touch: getComputedStyle(document.querySelector('.calc')!).touchAction }));
+  const state = await page.evaluate(() => ({
+    zoom: window.visualViewport?.scale ?? 1,
+    top: document.scrollingElement!.scrollTop,
+    wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    touch: getComputedStyle(document.querySelector('.calc')!).touchAction,
+  }));
   expect(state).toMatchObject({ zoom: 1, touch: 'manipulation' });
   expect(state.wide).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);

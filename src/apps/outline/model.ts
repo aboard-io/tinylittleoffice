@@ -23,7 +23,38 @@
  * shiftFamily, moveFamily, placeFamily, removeItem, splitBlock); the rest are splices of one block, and
  * `text` ops come from the row's editor.
  */
-import { applyAll, attr, family, fenceRef, isAtomic, isText, listNumbers, markNotes, moveFamily, normalRuns, noteNumbers, noteRuns, notesOf, parse, placeFamily, plainText, referenceNotes, refFence, removeItem, runLength, shiftFamily, sliceRuns, write, writeInline, type Attrs, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import {
+  applyAll,
+  attr,
+  family,
+  fenceRef,
+  isAtomic,
+  isText,
+  listNumbers,
+  markNotes,
+  moveFamily,
+  normalRuns,
+  noteNumbers,
+  noteRuns,
+  notesOf,
+  parse,
+  placeFamily,
+  plainText,
+  referenceNotes,
+  refFence,
+  removeItem,
+  runLength,
+  shiftFamily,
+  sliceRuns,
+  write,
+  writeInline,
+  type Attrs,
+  type Block,
+  type Dir,
+  type Doc,
+  type Op,
+  type Run,
+} from '../../doc/index.ts';
 import type { TextBlock as PdfBlock } from '../../kit/textpdf.ts';
 
 export type { Dir };
@@ -260,7 +291,16 @@ function join(doc: Doc, into: number, from: number): Landing | null {
   if (!a || !b || !isText(a) || !isText(b)) return null;
   const joined: Block = { ...a, runs: normalRuns([...a.runs, ...b.runs]) };
   // The later block goes first, so the earlier one's index holds.
-  const ops: Op[] = into < from ? [{ op: 'splice', at: from, n: 1, blocks: [] }, { op: 'splice', at: into, n: 1, blocks: [joined] }] : [{ op: 'splice', at: into, n: 1, blocks: [joined] }, { op: 'splice', at: from, n: 1, blocks: [] }];
+  const ops: Op[] =
+    into < from
+      ? [
+          { op: 'splice', at: from, n: 1, blocks: [] },
+          { op: 'splice', at: into, n: 1, blocks: [joined] },
+        ]
+      : [
+          { op: 'splice', at: into, n: 1, blocks: [joined] },
+          { op: 'splice', at: from, n: 1, blocks: [] },
+        ];
   const next = applyAll(doc, ops);
   const renames = renameIn(next, readOutline(next), nameOf(a.runs), nameOf(joined.runs));
   return { ops: [...ops, ...renames], at: into < from ? into : into - 1, offset: runLength(a.runs) };
@@ -376,7 +416,10 @@ export function copySpan(doc: Doc, v: OutlineView, s: Span): Block[] {
 export const pasteText = (text: string): Block[] => parse(text.replace(/\r\n?/g, '\n')).blocks;
 /** Whether a paste into a row is items rather than words: more than one line, or a line that is a list item. */
 export function pastesAsItems(text: string): boolean {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .filter((l) => l.trim());
   return lines.length > 1 || (lines.length === 1 && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[0]));
 }
 /**
@@ -600,7 +643,10 @@ export function outlineToDeck(v: OutlineView, head: Doc['head'] = {}): string {
     if (it.doc) return void slides.push([it.doc.startsWith('web\n') ? { k: 'p', runs: [{ t: it.doc.slice(4) }] } : refFence(it.doc)]);
     if (!hasChildren(live, i)) return;
     const title = it.depth === 0 && roots.length === 1 && i === 0;
-    slides.push([{ k: 'h', level: 2, runs: it.runs, ...(title ? { a: { cls: ['title'] } } : {}) }, ...kids(i).map((k): Block => ({ k: 'li', depth: 0, ...(k.ord ? { ord: true as const } : {}), runs: k.runs }))]);
+    slides.push([
+      { k: 'h', level: 2, runs: it.runs, ...(title ? { a: { cls: ['title'] } } : {}) },
+      ...kids(i).map((k): Block => ({ k: 'li', depth: 0, ...(k.ord ? { ord: true as const } : {}), runs: k.runs })),
+    ]);
   });
   return write({ head: head.title ? { title: head.title } : {}, blocks: slides.flatMap((s, n) => (n ? [{ k: 'hr' } as Block, ...s] : s)) });
 }

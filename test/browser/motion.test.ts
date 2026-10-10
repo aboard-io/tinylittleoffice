@@ -12,7 +12,8 @@ import { motion, restOf } from '../../src/kit/motion.ts';
 import { pageSvg } from '../../src/kit/draw.ts';
 import { tick, until } from './helpers.ts';
 
-const LIFT = '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
+const LIFT =
+  '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
 const fence = '```anim\n' + LIFT + '```\n';
 /** A two-slide deck: words first, the animation on the second. */
 const DECK = `## Words first\n\n---\n\n## Then it moves\n\n${fence}`;
@@ -35,10 +36,12 @@ async function framed(html: string): Promise<Document> {
 const clockIn = (root: ParentNode) => [...root.querySelectorAll<SVGSVGElement>('svg:not(svg svg)')].find((s) => s.querySelector('animateTransform'))!;
 /** Where the shapes are drawn now: each moving shape's offset, as the animation has it (not the clock: the picture). */
 const drawnAt = (svg: SVGSVGElement) =>
-  [...svg.querySelectorAll('animateTransform[type="translate"]')].map((a) => {
-    const list = (a.parentElement as unknown as SVGGraphicsElement).transform.animVal;
-    return list.numberOfItems ? `${Math.round(list.getItem(0).matrix.e)},${Math.round(list.getItem(0).matrix.f)}` : '';
-  }).join(' ');
+  [...svg.querySelectorAll('animateTransform[type="translate"]')]
+    .map((a) => {
+      const list = (a.parentElement as unknown as SVGGraphicsElement).transform.animVal;
+      return list.numberOfItems ? `${Math.round(list.getItem(0).matrix.e)},${Math.round(list.getItem(0).matrix.f)}` : '';
+    })
+    .join(' ');
 /** The shapes move: what is drawn changes over a few frames. */
 async function moves(svg: SVGSVGElement) {
   const was = drawnAt(svg);

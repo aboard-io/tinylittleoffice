@@ -3,7 +3,50 @@
 // documents as fences; loose words listified; the conversions a deck, a network and an org chart read.
 import { expect, test } from 'vitest';
 import { applyAll, evaluate, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { appendItem, connect, copySpan, duplicateSpan, enterAt, insertDoc, joinBack, joinForward, listify, mapAt, moveItem, moveSpan, nameOf, outlineText, outlineToDeck, outlineToFamily, outlineToMind, outlineToNet, outlineToOrg, personOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, toggleOrdered, toOpml, topsOf, unlink, notesApart, notesAsItems } from '../model.ts';
+import {
+  appendItem,
+  connect,
+  copySpan,
+  duplicateSpan,
+  enterAt,
+  insertDoc,
+  joinBack,
+  joinForward,
+  listify,
+  mapAt,
+  moveItem,
+  moveSpan,
+  nameOf,
+  outlineText,
+  outlineToDeck,
+  outlineToFamily,
+  outlineToMind,
+  outlineToNet,
+  outlineToOrg,
+  personOf,
+  pasteBlocks,
+  pastesAsItems,
+  pasteText,
+  placeItem,
+  readOutline,
+  removeAt,
+  removeSpan,
+  renameIn,
+  setDoc,
+  setLine,
+  setLink,
+  setOrdered,
+  shiftItem,
+  shiftSpan,
+  siblingsOf,
+  spanOf,
+  toggleOrdered,
+  toOpml,
+  topsOf,
+  unlink,
+  notesApart,
+  notesAsItems,
+} from '../model.ts';
 import { docGist, outlinePage, richText, wrapRuns } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -77,7 +120,9 @@ test('loose words read as a tree, and listify is the one splice that makes them 
     [2, 'c d'],
     [2, 'web\nhttps://example.com/x'],
   ]);
-  expect(after('# Plan\n\n- a\n  - b\n\n## Later\n\nc\nd\n\nhttps://example.com/x\n\n~ a -> b\n', listify)).toBe('- Plan\n  - a\n    - b\n  - Later\n    - c\n    - d\n    - https://example.com/x\n\n~ a -> b\n');
+  expect(after('# Plan\n\n- a\n  - b\n\n## Later\n\nc\nd\n\nhttps://example.com/x\n\n~ a -> b\n', listify)).toBe(
+    '- Plan\n  - a\n    - b\n  - Later\n    - c\n    - d\n    - https://example.com/x\n\n~ a -> b\n',
+  );
   // Canonical text is left alone.
   expect(listify(parse(DOC))).toEqual([]);
   expect(listify(parse(''))).toEqual([]);
@@ -117,7 +162,11 @@ test('Enter: at the start of words the row is pushed down; at the end a first ch
   // At the start: one empty item before the row, at its depth; the words (attributes, children and all) move down a place, the caret with them.
   const push = enterAt(parse(DOC), readOutline(parse(DOC)), 1, 0);
   expect(push).toEqual({ ops: [{ op: 'splice', at: 1, n: 0, blocks: [{ k: 'li', depth: 1, runs: [] }] }], at: 2, offset: 0 });
-  expect(write(applyAll(parse(DOC), push.ops)).split('\n').slice(0, 4)).toEqual(['- Launch', '  -', '  - Product {.from}', '    - Pricing {.from label=sets}']);
+  expect(
+    write(applyAll(parse(DOC), push.ops))
+      .split('\n')
+      .slice(0, 4),
+  ).toEqual(['- Launch', '  -', '  - Product {.from}', '    - Pricing {.from label=sets}']);
   // An empty row at the start is the end.
   expect(enterAt(parse('- A\n-\n'), readOutline(parse('- A\n-\n')), 1, 0).at).toBe(2);
   // In the middle: a leaf splits in place; an open parent's words go to its first child; a folded parent's after its family.
@@ -141,7 +190,14 @@ test('Backspace at the start of words joins the row to the item before it in the
   const v = readOutline(d);
   // Into the previous item (here the row's parent); the row's block alone goes, the caret lands at the join.
   const back = joinBack(d, v, 2)!;
-  expect(back).toEqual({ ops: [{ op: 'splice', at: 2, n: 1, blocks: [] }, { op: 'splice', at: 1, n: 1, blocks: [{ k: 'li', depth: 1, runs: [{ t: 'ProductPricing' }] }] }], at: 1, offset: 7 });
+  expect(back).toEqual({
+    ops: [
+      { op: 'splice', at: 2, n: 1, blocks: [] },
+      { op: 'splice', at: 1, n: 1, blocks: [{ k: 'li', depth: 1, runs: [{ t: 'ProductPricing' }] }] },
+    ],
+    at: 1,
+    offset: 7,
+  });
   expect(after(TREE, (d, v) => joinBack(d, v, 2))).toBe('- Launch\n  - ProductPricing\n  - Marketing\n');
   // Its children stay where they are: now the joined item's (or its descendants', by position).
   expect(after(TREE, (d, v) => joinBack(d, v, 1))).toBe('- LaunchProduct\n    - Pricing\n  - Marketing\n');
@@ -154,7 +210,14 @@ test('Backspace at the start of words joins the row to the item before it in the
   expect(joinBack(withDoc, readOutline(withDoc), 2)).toBeNull();
   expect(joinForward(withDoc, readOutline(withDoc), 0)).toBeNull();
   // Forward: the next item's words come in, its block goes, the caret stays where it was.
-  expect(joinForward(d, v, 1)).toEqual({ ops: [{ op: 'splice', at: 2, n: 1, blocks: [] }, { op: 'splice', at: 1, n: 1, blocks: [{ k: 'li', depth: 1, runs: [{ t: 'ProductPricing' }] }] }], at: 1, offset: 7 });
+  expect(joinForward(d, v, 1)).toEqual({
+    ops: [
+      { op: 'splice', at: 2, n: 1, blocks: [] },
+      { op: 'splice', at: 1, n: 1, blocks: [{ k: 'li', depth: 1, runs: [{ t: 'ProductPricing' }] }] },
+    ],
+    at: 1,
+    offset: 7,
+  });
   expect(after(TREE, (d, v) => joinForward(d, v, 0))).toBe('- LaunchProduct\n    - Pricing\n  - Marketing\n');
   expect(joinForward(d, v, 3)).toBeNull();
   // A join that named the row joined into follows its new words.
@@ -194,7 +257,18 @@ test('a span shifts in and out as one splice, moves past its neighbour as one mo
   const d = parse(T);
   const v = readOutline(d);
   const bc = spanOf(d, v, [1, 3])!;
-  expect(shiftSpan(d, v, bc, 1)).toEqual([{ op: 'splice', at: 1, n: 3, blocks: [{ k: 'li', depth: 1, runs: [{ t: 'B' }] }, { k: 'li', depth: 2, runs: [{ t: 'b1' }] }, { k: 'li', depth: 1, runs: [{ t: 'C' }] }] }]);
+  expect(shiftSpan(d, v, bc, 1)).toEqual([
+    {
+      op: 'splice',
+      at: 1,
+      n: 3,
+      blocks: [
+        { k: 'li', depth: 1, runs: [{ t: 'B' }] },
+        { k: 'li', depth: 2, runs: [{ t: 'b1' }] },
+        { k: 'li', depth: 1, runs: [{ t: 'C' }] },
+      ],
+    },
+  ]);
   expect(itemsAt(shiftSpan(d, v, bc, 1)!, T)).toBe('- A\n  - B\n    - b1\n  - C\n');
   // In needs a sibling before the first row; out needs every item to stay at the floor or deeper.
   expect(shiftSpan(d, v, spanOf(d, v, [0])!, 1)).toBeNull();
@@ -235,7 +309,11 @@ test('copy: the span as blocks with the shallowest at the margin; paste: items r
   const j = parse('- A\n\n~ A -> B\n');
   expect(write(applyAll(j, pasteBlocks(j, readOutline(j), pasteText('- B\n- C\n\n~ B -> C\n'), null)!.ops))).toBe('- A\n- B\n- C\n\n~ A -> B\n~ B -> C\n');
   // Headings and paragraphs are made items first.
-  expect(write(applyAll(d, pasteBlocks(d, v, pasteText('# Plan\n\nFirst\n'), 3)!.ops)).split('\n').slice(4)).toEqual(['  - Plan', '    - First', '']);
+  expect(
+    write(applyAll(d, pasteBlocks(d, v, pasteText('# Plan\n\nFirst\n'), 3)!.ops))
+      .split('\n')
+      .slice(4),
+  ).toEqual(['  - Plan', '    - First', '']);
   expect(pasteBlocks(d, v, [], 1)).toBeNull();
   // What a row takes as items, and what as words.
   expect(pastesAsItems('one\ntwo')).toBe(true);
@@ -285,33 +363,67 @@ test('joins: connected by their words, turned, named, taken away; a renamed item
   expect(after(TREE, (d, v) => connect(d, v, 2, 3))).toBe(TREE + '\n~ Pricing -- Marketing\n');
   expect(connect(parse(TREE), readOutline(parse(TREE)), 2, 2)).toEqual([]);
   expect(connect(parse(DOC), readOutline(parse(DOC)), 3, 2)).toEqual([]);
-  expect(after(DOC, (d) => setLink(d, 7, { dir: '->' })).split('\n').at(-2)).toBe('~ Ops -> Product');
-  expect(after(DOC, (d) => setLink(d, 7, { label: 'runs' })).split('\n').at(-2)).toBe('~ Ops -- Product: runs');
-  expect(after(DOC, (d) => setLink(d, 6, { label: '' })).split('\n').at(-3)).toBe('~ Pricing -> Marketing');
-  expect(after(DOC, (d) => unlink(d, 6)).split('\n').at(-2)).toBe('~ Ops -- Product');
+  expect(
+    after(DOC, (d) => setLink(d, 7, { dir: '->' }))
+      .split('\n')
+      .at(-2),
+  ).toBe('~ Ops -> Product');
+  expect(
+    after(DOC, (d) => setLink(d, 7, { label: 'runs' }))
+      .split('\n')
+      .at(-2),
+  ).toBe('~ Ops -- Product: runs');
+  expect(
+    after(DOC, (d) => setLink(d, 6, { label: '' }))
+      .split('\n')
+      .at(-3),
+  ).toBe('~ Pricing -> Marketing');
+  expect(
+    after(DOC, (d) => unlink(d, 6))
+      .split('\n')
+      .at(-2),
+  ).toBe('~ Ops -- Product');
   expect(unlink(parse(DOC), 0)).toEqual([]);
   // Renamed: the edges follow, unless another item still has the old name.
   const renamed = parse(DOC.replace('- Marketing {.both}', '- Growth {.both}'));
-  expect(write(applyAll(renamed, renameIn(renamed, readOutline(renamed), 'Marketing', 'Growth'))).split('\n').at(-3)).toBe('~ Pricing -> Growth: feeds');
+  expect(
+    write(applyAll(renamed, renameIn(renamed, readOutline(renamed), 'Marketing', 'Growth')))
+      .split('\n')
+      .at(-3),
+  ).toBe('~ Pricing -> Growth: feeds');
   expect(renameIn(parse(DOC), readOutline(parse(DOC)), 'Marketing', 'Growth')).toEqual([]);
 });
 
 test('a document goes under an item after its family, at its depth; a web address is an item of its own', () => {
-  expect(after(TREE, (d, v) => insertDoc(d, v, 1, 'sheet\na | b\n--- | ---\n1 | 2'))).toBe('- Launch\n  - Product\n    - Pricing\n\n```sheet {depth=1}\na | b\n--- | ---\n1 | 2\n```\n\n  - Marketing\n');
+  expect(after(TREE, (d, v) => insertDoc(d, v, 1, 'sheet\na | b\n--- | ---\n1 | 2'))).toBe(
+    '- Launch\n  - Product\n    - Pricing\n\n```sheet {depth=1}\na | b\n--- | ---\n1 | 2\n```\n\n  - Marketing\n',
+  );
   expect(after(TREE, (d, v) => insertDoc(d, v, -1, 'draw\n'))).toBe(TREE + '\n```draw {depth=0}\n```\n');
   expect(after(TREE, (d, v) => insertDoc(d, v, 2, 'web\nhttps://example.com/v'))).toBe('- Launch\n  - Product\n    - Pricing\n    - https://example.com/v\n  - Marketing\n');
   // The edges stay last.
-  expect(after(DOC, (d, v) => insertDoc(d, v, -1, 'draw\n')).split('\n').slice(-3)).toEqual(['~ Pricing -> Marketing: feeds', '~ Ops -- Product', '']);
+  expect(
+    after(DOC, (d, v) => insertDoc(d, v, -1, 'draw\n'))
+      .split('\n')
+      .slice(-3),
+  ).toEqual(['~ Pricing -> Marketing: feeds', '~ Ops -- Product', '']);
 });
 
 test('a mind map gets the tree and its joins as cross-links; an org chart its joins as dotted lines; a network every line and join; a deck a slide per parent', () => {
   const v = readOutline(parse(DOC));
   expect(outlineToMind(v)).toBe('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n');
-  expect(outlineToOrg(v, { title: 'Co' })).toBe('---\ntitle: Co\nkind: org\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -- Marketing: feeds\n~ Ops -- Product\n');
-  expect(outlineToNet(v)).toBe('---\nkind: net\n---\n~ Launch -> Product\n~ Product -> Pricing: sets\n~ Launch <-> Marketing\n~ Launch -- Ops: part of\n~ Launch <- Support\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n');
+  expect(outlineToOrg(v, { title: 'Co' })).toBe(
+    '---\ntitle: Co\nkind: org\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n  - Ops\n  - Support\n\n~ Pricing -- Marketing: feeds\n~ Ops -- Product\n',
+  );
+  expect(outlineToNet(v)).toBe(
+    '---\nkind: net\n---\n~ Launch -> Product\n~ Product -> Pricing: sets\n~ Launch <-> Marketing\n~ Launch -- Ops: part of\n~ Launch <- Support\n~ Pricing -> Marketing: feeds\n~ Ops -- Product\n',
+  );
   expect(outlineToNet(readOutline(parse('- Alone\n- A\n  - B\n')))).toBe('---\nkind: net\n---\n- Alone\n\n~ A -- B\n');
-  const deck = outlineToDeck(readOutline(parse('- Launch\n  - Product\n    - Pricing\n      - Tiers\n    - Onboarding\n  - Marketing\n    - Press\n\n```sheet {depth=1}\na | b\n--- | ---\n```\n\n  - Done\n')));
-  expect(deck).toBe('## Launch {.title}\n\n- Product\n- Marketing\n- Done\n\n---\n\n## Product\n\n- Pricing\n- Onboarding\n\n---\n\n## Pricing\n\n- Tiers\n\n---\n\n## Marketing\n\n- Press\n\n---\n\n```sheet\na | b\n--- | ---\n```\n');
+  const deck = outlineToDeck(
+    readOutline(parse('- Launch\n  - Product\n    - Pricing\n      - Tiers\n    - Onboarding\n  - Marketing\n    - Press\n\n```sheet {depth=1}\na | b\n--- | ---\n```\n\n  - Done\n')),
+  );
+  expect(deck).toBe(
+    '## Launch {.title}\n\n- Product\n- Marketing\n- Done\n\n---\n\n## Product\n\n- Pricing\n- Onboarding\n\n---\n\n## Pricing\n\n- Tiers\n\n---\n\n## Marketing\n\n- Press\n\n---\n\n```sheet\na | b\n--- | ---\n```\n',
+  );
   expect(outlineToDeck(readOutline(parse('- A\n  - a1\n- B\n  - b1\n')))).toBe('## A\n\n- a1\n\n---\n\n## B\n\n- b1\n');
   expect(def.handoffs!.map((h) => h.to)).toEqual(['deck', 'diagram', 'diagram', 'diagram', 'diagram']);
   expect(def.handoffs![0].convert('---\ntitle: Plan\n---\n' + TREE)).toBe('---\ntitle: Plan\n---\n## Launch {.title}\n\n- Product\n- Marketing\n\n---\n\n## Product\n\n- Pricing\n');
@@ -338,7 +450,8 @@ test('OPML, plain text and Markdown, and the page', () => {
   expect(built('opml', '---\ntitle: Plan\n---\n' + TREE)).toContain('<title>Plan</title>');
   // The page: every item's words, the kind of line before a named one, the notes and the joins under it; a document as a card.
   const page = outlinePage(parse(DOC.replace('- Launch', '- **Launch**^[the plan]') + '\n```sheet {depth=1}\na | b\n--- | ---\n```\n'));
-  for (const w of ['Launch', 'Product', 'Pricing', 'Marketing', 'Ops', 'Support', '→ sets', '↔', '— part of', 'the plan', 'Connections', 'Pricing  → feeds  Marketing', 'Spreadsheet', 'a | b']) expect(page.svg).toContain(w);
+  for (const w of ['Launch', 'Product', 'Pricing', 'Marketing', 'Ops', 'Support', '→ sets', '↔', '— part of', 'the plan', 'Connections', 'Pricing  → feeds  Marketing', 'Spreadsheet', 'a | b'])
+    expect(page.svg).toContain(w);
   expect(page.svg).toContain('font-weight="700">Launch</tspan>');
   expect(page.svg).toContain('baseline-shift="super"');
   expect(page.alt).toBe('Launch');
@@ -355,8 +468,23 @@ test('rich words wrap between words with their marks, and are drawn as tspans', 
   const lines = wrapRuns([{ t: 'one two ', b: true }, { t: 'three four five six' }], 90, 16);
   expect(lines.length).toBeGreaterThan(1);
   expect(lines[0][0].b).toBe(true);
-  expect(lines.flat().map((p) => p.t).join('')).toBe('one two three four five six');
-  const svg = richText(10, 20, [{ t: 'a ', i: true }, { t: 'b', href: 'https://x.y' }, { t: '', ic: 'rocket' }, { t: '1', sup: true }], 16);
+  expect(
+    lines
+      .flat()
+      .map((p) => p.t)
+      .join(''),
+  ).toBe('one two three four five six');
+  const svg = richText(
+    10,
+    20,
+    [
+      { t: 'a ', i: true },
+      { t: 'b', href: 'https://x.y' },
+      { t: '', ic: 'rocket' },
+      { t: '1', sup: true },
+    ],
+    16,
+  );
   expect(svg).toContain('font-style="italic">a </tspan>');
   expect(svg).toContain('fill="#4f46e5">b</tspan>');
   expect(svg).toContain('<g transform=');
@@ -382,9 +510,15 @@ test('every template is a real outline that round-trips byte for byte and draws'
     const v = readOutline(d);
     expect(v.loose, tpl.id).toBe(false);
     expect(v.items.length, tpl.id).toBeGreaterThanOrEqual(9);
-    expect(v.items.some((it) => it.depth > 1), tpl.id).toBe(true);
+    expect(
+      v.items.some((it) => it.depth > 1),
+      tpl.id,
+    ).toBe(true);
     // Every join names two items of its own outline.
-    expect(v.links.every((l) => l.live), tpl.id).toBe(true);
+    expect(
+      v.links.every((l) => l.live),
+      tpl.id,
+    ).toBe(true);
     expect(def.view(tpl.doc)[0].svg.length, tpl.id).toBeGreaterThan(400);
     expect(def.view(tpl.doc, { small: true })[0].svg, tpl.id).not.toContain(t_empty);
   }
@@ -420,7 +554,9 @@ test('people: "Name (role)" in the outline is "Name | role" in an org chart or a
   expect(personOf('Just a name')).toEqual({ name: 'Just a name' });
   const text = '- Rose Hale (born 1926)\n  - Helen **Price**\n  - Tom Hale (born 1952)\n\n~ Helen Price -- Tom Hale (born 1952): twin\n';
   const v = readOutline(parse(text));
-  expect(outlineToFamily(v, { title: 'Hales' })).toBe('---\ntitle: Hales\nkind: family\n---\n- Rose Hale | born 1926\n  - Helen **Price**\n  - Tom Hale | born 1952\n\n~ Helen Price -- Tom Hale: twin\n');
+  expect(outlineToFamily(v, { title: 'Hales' })).toBe(
+    '---\ntitle: Hales\nkind: family\n---\n- Rose Hale | born 1926\n  - Helen **Price**\n  - Tom Hale | born 1952\n\n~ Helen Price -- Tom Hale: twin\n',
+  );
   expect(outlineToOrg(v)).toBe('---\nkind: org\n---\n- Rose Hale | born 1926\n  - Helen **Price**\n  - Tom Hale | born 1952\n\n~ Helen Price -- Tom Hale: twin\n');
   // The templates hand off: the company as an org chart, the family as a family tree.
   const conv = (label: string, id: string) => def.handoffs!.find((h) => h.label() === label)!.convert(templates().find((x) => x.id === id)!.doc);
@@ -451,7 +587,9 @@ test('footnotes in the files: each an item right under its own, first among its 
   expect(notesApart([{ t: 'plain' }]).runs).toEqual([{ t: 'plain' }]);
   const built = (ext: string, doc: string) => new TextDecoder().decode(def.exports!.find((x) => x.ext === ext)!.build(doc, { def, title: '', link: '' }) as Uint8Array);
   // Plain text: the note's plain words, numbered under the item, before its children; the item's own numbering untouched.
-  expect(built('txt', NOTED)).toBe('- Launch the app[1] in May[2]\n  1. After the beta, see https://example.com\n  2. Or June\n  - Product\n    - Pricing[1]\n      1. Per seat\n  1. Marketing\n- Wrap up\n');
+  expect(built('txt', NOTED)).toBe(
+    '- Launch the app[1] in May[2]\n  1. After the beta, see https://example.com\n  2. Or June\n  - Product\n    - Pricing[1]\n      1. Per seat\n  1. Marketing\n- Wrap up\n',
+  );
   // Markdown: the same as a numbered list under the item, the note's marks kept as Markdown; no reference notes left.
   const md = built('md', NOTED);
   expect(md).toBe('- Launch the **app**[1] in May[2]\n  1. After the *beta*, see https://example.com\n  2. Or June\n  - Product\n    - Pricing[1]\n      1. Per seat\n  1. Marketing\n- Wrap up\n');
@@ -461,8 +599,12 @@ test('footnotes in the files: each an item right under its own, first among its 
   expect(write(notesAsItems(parse('- plain\n')))).toBe('- plain\n');
   // OPML: the note an outline of its own, first under the item, its mark and its plain words; an item with only notes opens and closes.
   const opml = built('opml', NOTED);
-  expect(opml).toContain('    <outline text="Launch the app[1] in May[2]">\n      <outline text="[1] After the beta, see https://example.com"/>\n      <outline text="[2] Or June"/>\n      <outline text="Product">\n');
-  expect(opml).toContain('        <outline text="Pricing[1]">\n          <outline text="[1] Per seat"/>\n        </outline>\n      </outline>\n      <outline text="Marketing"/>\n    </outline>\n    <outline text="Wrap up"/>\n');
+  expect(opml).toContain(
+    '    <outline text="Launch the app[1] in May[2]">\n      <outline text="[1] After the beta, see https://example.com"/>\n      <outline text="[2] Or June"/>\n      <outline text="Product">\n',
+  );
+  expect(opml).toContain(
+    '        <outline text="Pricing[1]">\n          <outline text="[1] Per seat"/>\n        </outline>\n      </outline>\n      <outline text="Marketing"/>\n    </outline>\n    <outline text="Wrap up"/>\n',
+  );
   expect(built('opml', '- Only^[note & <more>]\n')).toContain('    <outline text="Only[1]">\n      <outline text="[1] note &amp; &lt;more>"/>\n    </outline>\n  </body>');
   // The document itself is untouched: the notes stay inline.
   expect(write(parse(NOTED))).toBe(NOTED);

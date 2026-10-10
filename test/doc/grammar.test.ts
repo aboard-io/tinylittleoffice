@@ -32,7 +32,12 @@ test('attributes: {#id .cls key=value key="a b"} at the end of a block; on a tab
 
 test('headings: #{1,6}, optional closing #s; # Words {.title} is the title', () => {
   const doc = parse('# One #\n## Two\n###### Six ###\n# Title {.title}\n');
-  expect(doc.blocks.map((b) => b.k === 'h' && [b.level, b.runs[0]?.t])).toStrictEqual([[1, 'One'], [2, 'Two'], [6, 'Six'], [1, 'Title']]);
+  expect(doc.blocks.map((b) => b.k === 'h' && [b.level, b.runs[0]?.t])).toStrictEqual([
+    [1, 'One'],
+    [2, 'Two'],
+    [6, 'Six'],
+    [1, 'Title'],
+  ]);
   expect(doc.blocks[3].a).toStrictEqual({ cls: ['title'] });
   same('# One\n\n## Two\n\n###### Six\n\n# Title {.title}\n');
 });
@@ -64,7 +69,17 @@ test('rules: three or more -, * or _ with optional spaces → ---; a rule ends t
 
 test('tables: header, separator, optional outer pipes, \\| and \\\\ escapes, <br> a newline, rows padded; edged when one column, when the first heading reads as a block, or when a row starts empty', () => {
   const doc = parse('| What | Qty:number |\n| :--- | ---: |\n| a \\| b | 1<br>2 |\n| short |\n');
-  expect(doc.blocks[0]).toStrictEqual({ k: 'table', cols: [{ name: 'What', type: 'text' }, { name: 'Qty', type: 'number' }], rows: [['a | b', '1\n2'], ['short', '']] });
+  expect(doc.blocks[0]).toStrictEqual({
+    k: 'table',
+    cols: [
+      { name: 'What', type: 'text' },
+      { name: 'Qty', type: 'number' },
+    ],
+    rows: [
+      ['a | b', '1\n2'],
+      ['short', ''],
+    ],
+  });
   same('What | Qty:number\n--- | ---\na \\| b | 1<br>2\nshort |\n');
   same('| Words |\n| --- |\n| a |\n| b \\\\ c |\n');
   same('| # of units | Cost |\n| --- | --- |\n| 3 | x\\|y |\n');
@@ -109,9 +124,12 @@ test('quotes: > lines merge into one block, written a line each', () => {
   same('> :cart: The shop | https://example.com/shop\n> :mail: Email me | mailto:ada@example.com\n');
 });
 
-test('paragraphs: consecutive lines merge, a blank separates, a line that reads as a block is guarded with \\, a lone | is itself, Write\'s empty paragraph is <br>', () => {
+test("paragraphs: consecutive lines merge, a blank separates, a line that reads as a block is guarded with \\, a lone | is itself, Write's empty paragraph is <br>", () => {
   const doc = parse('one\ntwo\n\nthree\n');
-  expect(doc.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'one\ntwo' }] }, { k: 'p', runs: [{ t: 'three' }] }]);
+  expect(doc.blocks).toStrictEqual([
+    { k: 'p', runs: [{ t: 'one\ntwo' }] },
+    { k: 'p', runs: [{ t: 'three' }] },
+  ]);
   same('one\ntwo\n\nthree\n');
   for (const t of ['# not a heading', '- not an item', '1. not a number', '> not a quote', '---', '~ a -> b', '| a | b', '```', '![x](y)', '[ ] not a task', '2026. A year']) {
     const d: Doc = { head: {}, blocks: [{ k: 'p', runs: [{ t }] }] };
@@ -127,7 +145,10 @@ test('paragraphs: consecutive lines merge, a blank separates, a line that reads 
 test('inline: the marks, no space just inside, backticks as plain words, links, icons, notes, escapes, a web address whole, marks close before trailing spaces', () => {
   same('a **b** *i* ++u++ ~~s~~ ==h== :rocket: [w *x*](https://x.y)\n');
   const doc = parse('__bold__ _it_ <u>under</u> `code` ** not** [x](y) 5 * 3 snake_case\n');
-  expect(doc.blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: 'bold', b: true }, { t: ' ' }, { t: 'it', i: true }, { t: ' ' }, { t: 'under', u: true }, { t: ' code ** not** [x](y) 5 * 3 snake_case' }] });
+  expect(doc.blocks[0]).toStrictEqual({
+    k: 'p',
+    runs: [{ t: 'bold', b: true }, { t: ' ' }, { t: 'it', i: true }, { t: ' ' }, { t: 'under', u: true }, { t: ' code ** not** [x](y) 5 * 3 snake_case' }],
+  });
   // Written back with the least escaping that reads the same: "** not**" and "5 * 3" are words as they stand.
   expect(write(doc)).toBe('**bold** *it* ++under++ code ** not** [x](y) 5 * 3 snake_case\n');
   expect(write({ head: {}, blocks: [{ k: 'p', runs: [{ t: 'a *b* c' }] }] })).toBe('a \\*b\\* c\n');
@@ -154,7 +175,19 @@ test('found by the fuzz: attributes end an item after its last line, and an edge
 });
 
 test('found by the fuzz: a table whose last heading is empty keeps its edges; a lone "-" or "- |" under a line with a pipe is an item', () => {
-  const t: Doc = { head: {}, blocks: [{ k: 'table', cols: [{ name: 'Name', type: 'text' }, { name: '', type: 'text' }], rows: [] }] };
+  const t: Doc = {
+    head: {},
+    blocks: [
+      {
+        k: 'table',
+        cols: [
+          { name: 'Name', type: 'text' },
+          { name: '', type: 'text' },
+        ],
+        rows: [],
+      },
+    ],
+  };
   expect(write(t)).toBe('| Name |  |\n| --- | --- |\n');
   expect(parse(write(t))).toStrictEqual(t);
   expect(parse('- a|b\n-\n').blocks.map((b) => b.k)).toStrictEqual(['li', 'li']);
@@ -165,7 +198,7 @@ test('found by the fuzz: a table whose last heading is empty keeps its edges; a 
   expect(parse(write(p))).toStrictEqual(p);
 });
 
-test('found by the fuzz: spaces at a line\'s end and inside a mark\'s ends, empty lines, marks on an icon', () => {
+test("found by the fuzz: spaces at a line's end and inside a mark's ends, empty lines, marks on an icon", () => {
   // A code span's spaces at a line's end, a link of a space: no writing keeps them.
   expect(parse('`- `\n').blocks[0]).toStrictEqual({ k: 'p', runs: [{ t: '-' }] });
   expect(parse('## [ ](https://x.y/) word\n').blocks[0]).toStrictEqual({ k: 'h', level: 2, runs: [{ t: 'word' }] });

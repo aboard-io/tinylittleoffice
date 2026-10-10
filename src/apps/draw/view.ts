@@ -61,7 +61,9 @@ function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
     [tx, ty] = [(x1 + x2) / 2, (y1 + y2) / 2];
     const dash = s.f === 1 ? ' stroke-dasharray="6 4"' : s.f === 2 ? ' stroke-dasharray="2 3"' : '';
     const at = `x1="${r(x1)}" y1="${r(y1)}" x2="${r(x2)}" y2="${r(y2)}"`;
-    body = (hit ? `<line ${at} stroke="transparent" stroke-width="14"/>` : '') + `<line ${at} stroke="${p.stroke}" stroke-width="2"${dash}${s.k === 'a' || s.k === 'k' ? ` marker-end="url(#${p.marker})"` : ''}/>`;
+    body =
+      (hit ? `<line ${at} stroke="transparent" stroke-width="14"/>` : '') +
+      `<line ${at} stroke="${p.stroke}" stroke-width="2"${dash}${s.k === 'a' || s.k === 'k' ? ` marker-end="url(#${p.marker})"` : ''}/>`;
   } else if (s.k === 'r') body = `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="2" ${look}/>`;
   else if (s.k === 'o') body = `<rect x="${X}" y="${Y}" width="${w}" height="${h}" rx="${r(Math.min(h / 2, 18))}" ${look}/>`;
   else if (s.k === 'e') body = `<ellipse cx="${X + w / 2}" cy="${Y + h / 2}" rx="${w / 2}" ry="${h / 2}" ${look}/>`;
@@ -79,7 +81,11 @@ function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
       .map(([px, py]) => `${r(X + (px / 100) * w)},${r(Y + (py / 100) * h)}`)
       .join(' ');
     const dash = s.f === 1 ? ' stroke-dasharray="6 4"' : s.f === 2 ? ' stroke-dasharray="2 3"' : '';
-    body = s.k === 'v' ? `<polygon points="${points}" ${look}/>` : (hit ? `<polyline points="${points}" fill="none" stroke="transparent" stroke-width="14"/>` : '') + `<polyline points="${points}" fill="none" stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${dash}/>`;
+    body =
+      s.k === 'v'
+        ? `<polygon points="${points}" ${look}/>`
+        : (hit ? `<polyline points="${points}" fill="none" stroke="transparent" stroke-width="14"/>` : '') +
+          `<polyline points="${points}" fill="none" stroke="${p.stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${dash}/>`;
   } else if (s.k === 'c') {
     // A cylinder: the classic database.
     const e = Math.min(h * 0.16, 12);
@@ -150,14 +156,21 @@ function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
   const anchor = al === 'l' ? 'start' : al === 'r' ? 'end' : 'middle';
   const top = ty - ((laid.lines.length - 1) * lh) / 2;
   const out = laid.lines
-    .map((l, i) => `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" font-size="${r(l.small ? fs * 0.8 : fs)}"${l.strong ? ' font-weight="600"' : ''} fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${runsSvg(l.runs, l.small ? fs * 0.8 : fs)}</text>`)
+    .map(
+      (l, i) =>
+        `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" font-size="${r(l.small ? fs * 0.8 : fs)}"${l.strong ? ' font-weight="600"' : ''} fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${runsSvg(l.runs, l.small ? fs * 0.8 : fs)}</text>`,
+    )
     .join('');
   return body + (mark ? glyphNamed(icon, start, ty - mark / 2, mark, p.text) : '') + out;
 }
 
 /** The arrowheads a drawing may use, one per colour. */
 export const arrowDefs = (ink: string = INK) =>
-  [['arrow', ink], ...Object.entries(COLORS).map(([c, hex]) => [`arrow-${c}`, hex])].map(([id, fill]) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${fill}"/></marker>`).join('');
+  [['arrow', ink], ...Object.entries(COLORS).map(([c, hex]) => [`arrow-${c}`, hex])]
+    .map(
+      ([id, fill]) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${fill}"/></marker>`,
+    )
+    .join('');
 
 /** The side of one repeat of a background tile on a page, in px. */
 export const TILE_SIDE = 64;
@@ -182,7 +195,8 @@ export function pixelPage(v: DrawView): Page {
 }
 
 /** A page cut to the box at (x, y), w by h: what lies outside it is out of the picture. */
-export const cropPage = (p: Page, x: number, y: number, w: number, h: number): Page => (x || y || w !== p.w || h !== p.h ? { ...p, w, h, svg: `<g transform="translate(${r(-x)} ${r(-y)})">${p.svg}</g>` } : p);
+export const cropPage = (p: Page, x: number, y: number, w: number, h: number): Page =>
+  x || y || w !== p.w || h !== p.h ? { ...p, w, h, svg: `<g transform="translate(${r(-x)} ${r(-y)})">${p.svg}</g>` } : p;
 
 /** The box round the shapes as they show, `pad` on every side, inside the canvas; the whole canvas when there are none. */
 export function shapesBox(shapes: Shape[], pad = 24): [number, number, number, number] {

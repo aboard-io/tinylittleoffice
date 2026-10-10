@@ -10,10 +10,13 @@ import { test, expect, type Page } from '@playwright/test';
 
 /** The caret put at a place in the words, written to the page (a frame later in WebKit). */
 async function caretAt(page: Page, block: number, offset: number) {
-  await page.evaluate(([b, o]) => {
-    const el = document.querySelector('to-write-editor to-text') as HTMLElement & { sel: unknown };
-    el.sel = { anchor: { block: b, offset: o }, focus: { block: b, offset: o } };
-  }, [block, offset]);
+  await page.evaluate(
+    ([b, o]) => {
+      const el = document.querySelector('to-write-editor to-text') as HTMLElement & { sel: unknown };
+      el.sel = { anchor: { block: b, offset: o }, focus: { block: b, offset: o } };
+    },
+    [block, offset],
+  );
   await expect(page.locator('to-write-editor .tx')).toBeFocused();
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
@@ -85,7 +88,7 @@ test('write: on a phone, a table is taken in hand by its handle and taken out fr
   expect(errors).toEqual([]);
 });
 
-test('write: on a phone, a table column\'s menu picks Money, its currency asked in a dialog inside the screen, and the cells show it', async ({ page }, info) => {
+test("write: on a phone, a table column's menu picks Money, its currency asked in a dialog inside the screen, and the cells show it", async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));

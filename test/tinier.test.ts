@@ -7,7 +7,12 @@ import { EXPIRIES, SHORT_MAX } from '../src/kit/short.ts';
 const PAGE = '<p>{{id}}</p>';
 const yes = async () => true;
 const no = async () => false;
-const req = (method: string, path: string, body?: unknown) => new Request(`https://tinier.test${path}`, { method, headers: { 'content-type': 'application/json', 'cf-connecting-ip': '1.2.3.4' }, body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body) });
+const req = (method: string, path: string, body?: unknown) =>
+  new Request(`https://tinier.test${path}`, {
+    method,
+    headers: { 'content-type': 'application/json', 'cf-connecting-ip': '1.2.3.4' },
+    body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
+  });
 const post = (body: unknown) => req('POST', '/api', body);
 // An owner key: 32 bytes in base64url (43 characters), and its hash as the server keeps it.
 const O = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -170,7 +175,8 @@ test('tinier: the folder logs nothing, and neither does the site', async () => {
 test('tinier: "~" and "-" are both base64url; an owner key proves itself in either form, against a row of either form', async () => {
   const store = new MemStore();
   const now = 1_700_000_000_000;
-  const tilde = 'A~_'.repeat(14) + 'A', hyphen = tilde.replace(/~/g, '-');
+  const tilde = 'A~_'.repeat(14) + 'A',
+    hyphen = tilde.replace(/~/g, '-');
   const owner = await ownerHash(tilde);
   expect(owner).toMatch(/^[A-Za-z0-9_~]{43}$/);
   expect(await ownerHash(hyphen)).toBe(owner);
@@ -179,7 +185,7 @@ test('tinier: "~" and "-" are both base64url; an owner key proves itself in eith
   const { id } = (await made.json()) as { id: string };
   expect((await handle(req('PUT', `/api/${id}`, { c: 'two~', iv: 'iv2', o: hyphen }), store, yes, PAGE, now)).status).toBe(200);
   // A row made before, its hash written with "-": the key proves it as the client writes it now.
-  const old = await (await handle(post({ c: 'one', iv: 'iv1', ttl: 3600, owner: owner.replace(/~/g, '-') }), store, yes, PAGE, now)).json() as { id: string };
+  const old = (await (await handle(post({ c: 'one', iv: 'iv1', ttl: 3600, owner: owner.replace(/~/g, '-') }), store, yes, PAGE, now)).json()) as { id: string };
   expect(store.rows.get(old.id)!.owner).toContain('-');
   expect((await handle(req('PUT', `/api/${old.id}`, { c: 'two', iv: 'iv2', o: tilde }), store, yes, PAGE, now)).status).toBe(200);
   expect((await handle(req('DELETE', `/api/${old.id}`, { o: WRONG }), store, yes, PAGE, now)).status).toBe(403);
@@ -196,7 +202,8 @@ test('tinier: the landing page opens a link whose key, IV, ciphertext and owner 
   const raw = Uint8Array.from({ length: 32 }, (_, i) => (i % 3 ? 0xfb : 0xff));
   const iv = Uint8Array.from({ length: 12 }, () => 0xfb);
   const sealed = await sealShortAt(long, raw, iv);
-  const key = toBase64Url(raw), o = toBase64Url(Uint8Array.from({ length: 32 }, () => 0xfb));
+  const key = toBase64Url(raw),
+    o = toBase64Url(Uint8Array.from({ length: 32 }, () => 0xfb));
   expect(key + sealed.iv + o).toContain('~');
   for (const form of [(s: string) => s, (s: string) => s.replace(/~/g, '-')]) {
     let went = '';

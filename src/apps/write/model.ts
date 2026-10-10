@@ -5,7 +5,29 @@
  * taken out, a card moved, copied or taken out). The view
  * Write draws is the Doc itself (docs/kernel.md §3); nothing is kept but the document.
  */
-import { apply, applyAll, evaluateTable, hasClass, isEmbed, isText, MAX_COLS, notesOf, noteRuns, parse, plainText, putCells, tableAt, usedSize, write, type Block, type Cells, type ColType, type Doc, type Op, type TableBlock } from '../../doc/index.ts';
+import {
+  apply,
+  applyAll,
+  evaluateTable,
+  hasClass,
+  isEmbed,
+  isText,
+  MAX_COLS,
+  notesOf,
+  noteRuns,
+  parse,
+  plainText,
+  putCells,
+  tableAt,
+  usedSize,
+  write,
+  type Block,
+  type Cells,
+  type ColType,
+  type Doc,
+  type Op,
+  type TableBlock,
+} from '../../doc/index.ts';
 import type { SheetView } from '../sheet/model.ts';
 import { addColumn, deleteRows, insertRows, isLetterName, letterName, putRect, rename, setType } from '../sheet/model.ts';
 

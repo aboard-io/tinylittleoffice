@@ -242,7 +242,12 @@ export class Rows<Id = number> implements ReactiveController {
   /** Where the chosen rows are on screen, from the first to the last. */
   rect(): DOMRect | null {
     const s = this.span();
-    const els = s ? this.o.rows().filter((x) => x.span.from >= s.from && x.span.from < s.to).map((x) => x.el) : [];
+    const els = s
+      ? this.o
+          .rows()
+          .filter((x) => x.span.from >= s.from && x.span.from < s.to)
+          .map((x) => x.el)
+      : [];
     if (!els.length) return null;
     const a = els[0].getBoundingClientRect();
     const b = els[els.length - 1].getBoundingClientRect();
@@ -507,10 +512,11 @@ export class Rows<Id = number> implements ReactiveController {
       const last = vis[vis.length - 1];
       const box = last.el.getBoundingClientRect();
       if (y > box.bottom) row = last;
-      else row = vis.find((r) => {
-        const b = r.el.getBoundingClientRect();
-        return y >= b.top && y <= b.bottom;
-      });
+      else
+        row = vis.find((r) => {
+          const b = r.el.getBoundingClientRect();
+          return y >= b.top && y <= b.bottom;
+        });
     }
     // Never inside its own family.
     if (!row || !from || (row.span.from >= from.span.from && row.span.from < from.span.to)) return this.draw(null, 'after');

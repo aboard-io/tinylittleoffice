@@ -218,7 +218,8 @@ test('Sign: the name asked once and kept, the envelope written; checked on open;
 
 test('the state beside the title, four ways: unsigned, signed (green), does not match (red), locked; it opens the Privacy dialog', async () => {
   // Signed elsewhere (the old tree, an Ed25519 key) and checked here.
-  const OLD = '---\ntitle: Q3 budget\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 9E3ieLH4GaPHFbLzA-gvCGg1PmAdTzYD6tiPYTW-S70\nsig: w8JnnS5IwMK42vdwH2XLmVVjO2NjNKX_lOu60fKIfDzxVRmQgkmBZz6nHqRffx5VNQYt27kWzgugnOEoIw3wBw\nchart: bar\n---\n# Budget\n\nQ | Sales:money\n--- | ---\nQ1 | 120\n';
+  const OLD =
+    '---\ntitle: Q3 budget\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 9E3ieLH4GaPHFbLzA-gvCGg1PmAdTzYD6tiPYTW-S70\nsig: w8JnnS5IwMK42vdwH2XLmVVjO2NjNKX_lOu60fKIfDzxVRmQgkmBZz6nHqRffx5VNQYt27kWzgugnOEoIw3wBw\nchart: bar\n---\n# Budget\n\nQ | Sales:money\n--- | ---\nQ1 | 120\n';
   let shell = await mount(`#/v1/sheet/${encodeDoc(OLD)}`);
   await until(() => pill(shell).classList.contains('signed'));
   expect(pill(shell).textContent!.trim()).toBe('Signed by Paul');
@@ -247,10 +248,13 @@ test('the state beside the title, four ways: unsigned, signed (green), does not 
 });
 
 test('a browser without Ed25519 shows an Ed25519 signature as cannot check here (grey, the reason given), never as not matching', async () => {
-  const OLD = '---\ntitle: Q3 budget\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 9E3ieLH4GaPHFbLzA-gvCGg1PmAdTzYD6tiPYTW-S70\nsig: w8JnnS5IwMK42vdwH2XLmVVjO2NjNKX_lOu60fKIfDzxVRmQgkmBZz6nHqRffx5VNQYt27kWzgugnOEoIw3wBw\nchart: bar\n---\n# Budget\n\nQ | Sales:money\n--- | ---\nQ1 | 120\n';
+  const OLD =
+    '---\ntitle: Q3 budget\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 9E3ieLH4GaPHFbLzA-gvCGg1PmAdTzYD6tiPYTW-S70\nsig: w8JnnS5IwMK42vdwH2XLmVVjO2NjNKX_lOu60fKIfDzxVRmQgkmBZz6nHqRffx5VNQYt27kWzgugnOEoIw3wBw\nchart: bar\n---\n# Budget\n\nQ | Sales:money\n--- | ---\nQ1 | 120\n';
   const real = crypto.subtle.importKey.bind(crypto.subtle);
   vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((fmt: string, data: unknown, alg: AlgorithmIdentifier, ...rest: unknown[]) =>
-    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof crypto.subtle.importKey);
+    (alg as Algorithm).name === 'Ed25519'
+      ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError'))
+      : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof crypto.subtle.importKey);
   // Untouched or changed, it cannot be checked here: neither is said to be valid or not.
   for (const text of [OLD, OLD.replace('120', '999')]) {
     const shell = await mount(`#/v1/sheet/${encodeDoc(text)}`);
@@ -268,7 +272,9 @@ test('a browser without Ed25519 shows an Ed25519 signature as cannot check here 
   // Signed here, the key is P-256 (this browser's fallback): checked, green; changed, red.
   const realGen = crypto.subtle.generateKey.bind(crypto.subtle);
   vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((alg: AlgorithmIdentifier, ...rest: unknown[]) =>
-    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (realGen as (...a: unknown[]) => unknown)(alg, ...rest)) as typeof crypto.subtle.generateKey);
+    (alg as Algorithm).name === 'Ed25519'
+      ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError'))
+      : (realGen as (...a: unknown[]) => unknown)(alg, ...rest)) as typeof crypto.subtle.generateKey);
   const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Terms\n---\nWe agree.\n')}`);
   await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
   await openShare(shell);
@@ -381,7 +387,7 @@ test('what this device holds, item by item with Forget, and Download everything:
   await tick();
 });
 
-test('words signed with this device\'s key under a name (a contract\'s signature): the key is this device\'s, the name kept to sign under next time', async () => {
+test("words signed with this device's key under a name (a contract's signature): the key is this device's, the name kept to sign under next time", async () => {
   expect(await myKey()).toBe(null);
   const { key, sig } = await signWords('tinyoffice-contract\nWords.\nPaul', '  Paul   Ford ');
   expect(await myKey()).toBe(key);

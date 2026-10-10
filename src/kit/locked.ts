@@ -95,7 +95,12 @@ export function unreadableCard(): Page {
   const w = 480;
   const h = 200;
   const words = t('This document cannot be read.');
-  return { w, h, svg: rect(0, 0, w, h, SHADE) + rect(1, 1, w - 2, h - 2, 'none', `stroke="${LINE}" stroke-width="2" rx="8"`) + text(w / 2, h / 2 + 6, words, { px: 16, fill: MUTED, anchor: 'middle' }), alt: words };
+  return {
+    w,
+    h,
+    svg: rect(0, 0, w, h, SHADE) + rect(1, 1, w - 2, h - 2, 'none', `stroke="${LINE}" stroke-width="2" rx="8"`) + text(w / 2, h / 2 + 6, words, { px: 16, fill: MUTED, anchor: 'middle' }),
+    alt: words,
+  };
 }
 
 /** A locked fence drawn: the locked card; in an editor (`open`), the document itself once opened this visit. */

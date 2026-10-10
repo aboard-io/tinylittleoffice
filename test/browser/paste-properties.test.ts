@@ -9,8 +9,12 @@ import { docToHtml, htmlToBlocks } from '../../src/kit/clipboard.ts';
 import { arbitraryDoc, RUNS } from '../doc/tlo-grammar.ts';
 
 function holds<T>(name: string, arb: fc.Arbitrary<T>, pred: (x: T) => void): void {
-  const out = fc.check(fc.property(arb, (x) => (pred(x), true)), { numRuns: RUNS });
-  if (out.failed) throw new Error(`${name} fails for ${fc.stringify(out.counterexample?.[0])}\n(seed ${out.seed})\n${out.errorInstance instanceof Error ? out.errorInstance.message : String(out.errorInstance)}`);
+  const out = fc.check(
+    fc.property(arb, (x) => (pred(x), true)),
+    { numRuns: RUNS },
+  );
+  if (out.failed)
+    throw new Error(`${name} fails for ${fc.stringify(out.counterexample?.[0])}\n(seed ${out.seed})\n${out.errorInstance instanceof Error ? out.errorInstance.message : String(out.errorInstance)}`);
 }
 
 const pasted = (blocks: Block[]): Block[] => htmlToBlocks(docToHtml(blocks));
@@ -36,12 +40,14 @@ test('property: pasting what was pasted changes nothing', () => {
  * mailto and tel links only, and those are the links kept here. Empty paragraphs and items are left out too.
  */
 const wordsOnly = (d: Doc): Block[] =>
-  d.blocks.map((b) => ('runs' in b ? { ...b, runs: b.runs.map(({ href, ...r }) => (href && !href.startsWith('#') ? { ...r, href } : r)) } : b)).flatMap((b): Block[] => {
-    if (b.k === 'p' && b.runs.length) return [{ k: 'p', runs: b.runs }];
-    // (An item with no words is no one's words in HTML; paste leaves it out, as it does an empty paragraph.)
-    if (b.k === 'li' && b.runs.length) return [{ k: 'li', depth: Math.min(b.depth, 3), ...(b.ord ? { ord: true as const } : {}), runs: b.runs }];
-    return [];
-  });
+  d.blocks
+    .map((b) => ('runs' in b ? { ...b, runs: b.runs.map(({ href, ...r }) => (href && !href.startsWith('#') ? { ...r, href } : r)) } : b))
+    .flatMap((b): Block[] => {
+      if (b.k === 'p' && b.runs.length) return [{ k: 'p', runs: b.runs }];
+      // (An item with no words is no one's words in HTML; paste leaves it out, as it does an empty paragraph.)
+      if (b.k === 'li' && b.runs.length) return [{ k: 'li', depth: Math.min(b.depth, 3), ...(b.ord ? { ord: true as const } : {}), runs: b.runs }];
+      return [];
+    });
 
 /**
  * What HTML from elsewhere carries of a document's words: it draws no space at a line's ends and no empty line (a

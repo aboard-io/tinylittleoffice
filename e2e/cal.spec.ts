@@ -12,7 +12,13 @@ const measure = (page: Page) =>
   page.evaluate(() => {
     const bar = document.querySelector<HTMLElement>('to-cal-editor to-bar')!;
     const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-    return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return {
+      bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+      rows: tops.size,
+      pageTop: document.scrollingElement!.scrollTop,
+      zoom: window.visualViewport?.scale ?? 1,
+      wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
   });
 
 test('calendar: on a phone, a tap on a day opens the dialog over a grid that stays put; the words are typed and Done writes the span', async ({ page }, info) => {
@@ -31,7 +37,12 @@ test('calendar: on a phone, a tap on a day opens the dialog over a grid that sta
   await expect(page.locator('to-text.cal-label .tx')).toBeFocused();
   await page.keyboard.type('Dentist');
   const typing = await measure(page);
-  const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('to-dialog.cal-dialog .tx, to-dialog.cal-dialog input:not([type=checkbox]), to-dialog.cal-dialog select')].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).length);
+  const small = await page.evaluate(
+    () =>
+      [...document.querySelectorAll<HTMLElement>('to-dialog.cal-dialog .tx, to-dialog.cal-dialog input:not([type=checkbox]), to-dialog.cal-dialog select')].filter(
+        (el) => parseFloat(getComputedStyle(el).fontSize) < 16,
+      ).length,
+  );
   await dialog.getByRole('button', { name: 'Done' }).tap();
   await expect(dialog).toBeHidden();
   expect(await value(page)).toMatch(/^- \d{4}-\d\d-\d\d: Dentist\n$/);
@@ -65,7 +76,9 @@ test('calendar: a drag across days is a span over them', async ({ page }, info) 
   await expect.poll(() => value(page)).toBe(`- ${iso(days[1])} to ${iso(days[3])}: Sprint\n`);
 });
 
-test('calendar: on a phone, the schedule\'s tasks are rows: a tap on a grip chooses a task, the bar\'s Move down and Indent act on it, the tick is 44px; the month pans only up and down', async ({ page }, info) => {
+test("calendar: on a phone, the schedule's tasks are rows: a tap on a grip chooses a task, the bar's Move down and Indent act on it, the tick is 44px; the month pans only up and down", async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));

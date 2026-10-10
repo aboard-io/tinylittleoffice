@@ -29,7 +29,8 @@ for (const alg of ['ed', 'ec'] as const) {
 test('the fallback is taken where Ed25519 is not there', async () => {
   const subtle = globalThis.crypto.subtle;
   const real = subtle.generateKey.bind(subtle);
-  subtle.generateKey = ((alg: AlgorithmIdentifier, ...rest: unknown[]) => ((alg as Algorithm).name === 'Ed25519' ? Promise.reject(new Error('NotSupported')) : (real as (...a: unknown[]) => unknown)(alg, ...rest))) as typeof subtle.generateKey;
+  subtle.generateKey = ((alg: AlgorithmIdentifier, ...rest: unknown[]) =>
+    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new Error('NotSupported')) : (real as (...a: unknown[]) => unknown)(alg, ...rest)) as typeof subtle.generateKey;
   try {
     const signer = createSigner(memStore());
     const { key, sig } = await signer.sign('m');
@@ -47,7 +48,9 @@ test('a browser without Ed25519 cannot check an Ed25519 signature, and says so; 
   const subtle = globalThis.crypto.subtle;
   const real = subtle.importKey.bind(subtle);
   subtle.importKey = ((fmt: string, data: unknown, alg: AlgorithmIdentifier, ...rest: unknown[]) =>
-    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof subtle.importKey;
+    (alg as Algorithm).name === 'Ed25519'
+      ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError'))
+      : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof subtle.importKey;
   try {
     expect(await canCheck(ed.key)).toBe(false);
     expect(await verify(ed.key, ed.sig, 'm')).toBe(false);

@@ -34,7 +34,10 @@ export function tapePage(lines: string[], title = '', max = Infinity): Page {
 export function graphPage(lines: string[], title = ''): Page {
   const { from, to, exprs } = curves(lines);
   const pts = exprs.map((e) => plot(e, from, to));
-  const ys = pts.flat().filter((p): p is readonly [number, number] => !!p).map((p) => p[1]);
+  const ys = pts
+    .flat()
+    .filter((p): p is readonly [number, number] => !!p)
+    .map((p) => p[1]);
   const lo = Math.min(-1, ...ys.filter((y) => y > -1e4));
   const hi = Math.max(1, ...ys.filter((y) => y < 1e4));
   const top = title ? 72 : 32;

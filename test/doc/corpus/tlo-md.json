@@ -1,13 +1,13 @@
 {
- "source": "docs/tlo.md",
- "docs": [
-  {
-   "name": "fence 1",
-   "text": "- Launch\n  - Product\n    - Pricing\n  - Marketing"
-  },
-  {
-   "name": "fence 2",
-   "text": "---\nchart: bar\n---\nQuarter | Sales:money\n--- | ---\nQ1 | 120\nQ2 | 180"
-  }
- ]
+  "source": "docs/tlo.md",
+  "docs": [
+    {
+      "name": "fence 1",
+      "text": "- Launch\n  - Product\n    - Pricing\n  - Marketing"
+    },
+    {
+      "name": "fence 2",
+      "text": "---\nchart: bar\n---\nQuarter | Sales:money\n--- | ---\nQ1 | 120\nQ2 | 180"
+    }
+  ]
 }

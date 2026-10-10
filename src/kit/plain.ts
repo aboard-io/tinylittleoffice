@@ -59,11 +59,19 @@ export function readPlain(hash: string, pageApp: string, known: (id: string) => 
 }
 
 /** URL-encoding as a form does it: a space is "+", and the characters a fragment would misread are escaped. */
-const enc = (s: string) => encodeURIComponent(s).replace(/%20/g, '+').replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+const enc = (s: string) =>
+  encodeURIComponent(s)
+    .replace(/%20/g, '+')
+    .replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
 
 /** A plain-parameter link for a document: what the skill teaches an agent to write. */
 export function plainLink(site: string, app: string, text: string, opts: { title?: string; by?: string; view?: string } = {}): string {
-  const parts = [...(opts.title ? [`title=${enc(opts.title)}`] : []), ...(opts.by ? [`by=${enc(opts.by)}`] : []), ...(opts.view ? [`view=${enc(opts.view)}`] : []), `doc=${enc(text.replace(/\n+$/, ''))}`];
+  const parts = [
+    ...(opts.title ? [`title=${enc(opts.title)}`] : []),
+    ...(opts.by ? [`by=${enc(opts.by)}`] : []),
+    ...(opts.view ? [`view=${enc(opts.view)}`] : []),
+    `doc=${enc(text.replace(/\n+$/, ''))}`,
+  ];
   return `${site.replace(/\/?$/, '/')}${app}/#${parts.join('&')}`;
 }
 

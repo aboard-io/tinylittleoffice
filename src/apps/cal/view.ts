@@ -35,7 +35,16 @@ export function monthPages(v: CalView, max = 3, now = new Date()): Page[] {
     const [a] = spanDays(s, zone);
     return occurrences(s, a, a + 100, zone).map((o) => spanDays(o, zone));
   });
-  const keys = [...new Set(days.flatMap(([a, b]) => [a, b]).map((d) => dayToYmd(d)).map((p) => p.y * 12 + p.m - 1))].sort((a, b) => a - b).slice(0, max);
+  const keys = [
+    ...new Set(
+      days
+        .flatMap(([a, b]) => [a, b])
+        .map((d) => dayToYmd(d))
+        .map((p) => p.y * 12 + p.m - 1),
+    ),
+  ]
+    .sort((a, b) => a - b)
+    .slice(0, max);
   if (!keys.length) keys.push(now.getFullYear() * 12 + now.getMonth());
   const used = Object.entries(v.legend).filter(([key]) => v.items.some((s) => s.color === key));
   return keys.map((key) => {
@@ -53,7 +62,10 @@ export function monthPages(v: CalView, max = 3, now = new Date()): Page[] {
       const [x, top] = [24 + (i % 7) * CW, 84 + Math.floor(i / 7) * CH];
       svg += rect(x, top, CW, CH, p.m === m ? 'none' : SHADE, `stroke="${LINE}"`) + text(x + 8, top + 18, String(p.d), { px: 12, fill: p.m === m ? MUTED : FAINT });
       let line = 0;
-      for (const { s, days: [a, b] } of chips) {
+      for (const {
+        s,
+        days: [a, b],
+      } of chips) {
         if (day < a || day > b || line >= 3) continue;
         const hex = CAL_COLORS[s.color]?.hex ?? ACCENT;
         const starts = day === a;
@@ -90,7 +102,10 @@ export function ganttPage(v: CalView, max = Infinity): Page {
   const z = Math.max(4, Math.min(28, 640 / days));
   const w = NAMES + days * z + 48;
   let svg = rect(24 + NAMES, 24, days * z, bars.length * ROW + 28, SHADE);
-  for (let d = 0; d <= days; d += Math.ceil(7 / Math.max(1, z / 12))) svg += `<line x1="${r(24 + NAMES + d * z)}" y1="24" x2="${r(24 + NAMES + d * z)}" y2="${52 + bars.length * ROW}" stroke="${LINE}"/>` + text(24 + NAMES + d * z + 4, 42, dayString(range.from + d).slice(5), { px: 11, fill: MUTED });
+  for (let d = 0; d <= days; d += Math.ceil(7 / Math.max(1, z / 12)))
+    svg +=
+      `<line x1="${r(24 + NAMES + d * z)}" y1="24" x2="${r(24 + NAMES + d * z)}" y2="${52 + bars.length * ROW}" stroke="${LINE}"/>` +
+      text(24 + NAMES + d * z + 4, 42, dayString(range.from + d).slice(5), { px: 11, fill: MUTED });
   bars.forEach((s, i) => {
     const y = 52 + i * ROW;
     const left = 24 + NAMES + (s.start - range.from) * z;
@@ -144,7 +159,13 @@ export function calToCsv(doc: Doc, sep = ','): string {
   const zone = v.zone || 'UTC';
   if (v.gantt) {
     const bars = ganttBars(v);
-    return csv([[t('Task'), t('Level'), t('Start'), t('End'), t('Days'), t('Done %')], ...bars.map((b) => [b.item.words, b.item.depth + 1, dayString(b.start), dayString(b.start + b.days - 1), b.days, b.done])], sep);
+    return csv(
+      [
+        [t('Task'), t('Level'), t('Start'), t('End'), t('Days'), t('Done %')],
+        ...bars.map((b) => [b.item.words, b.item.depth + 1, dayString(b.start), dayString(b.start + b.days - 1), b.days, b.done]),
+      ],
+      sep,
+    );
   }
   const at = (ms: number) => {
     const p = utcToParts(ms, zone);
@@ -153,7 +174,13 @@ export function calToCsv(doc: Doc, sep = ','): string {
   return csv(
     [
       [t('What'), t('Start'), t('End'), t('Repeats'), t('Colour')],
-      ...v.items.map((s) => [s.words, s.kind === 'd' ? dayString(s.start) : at(spanStartMs(s)), s.kind === 'd' ? dayString(s.start + s.dur - 1) : at(spanEndMs(s)), s.repeat ? repeatText(s.repeat) : '', v.legend[s.color] ?? (s.color ? CAL_COLORS[s.color].name() : '')]),
+      ...v.items.map((s) => [
+        s.words,
+        s.kind === 'd' ? dayString(s.start) : at(spanStartMs(s)),
+        s.kind === 'd' ? dayString(s.start + s.dur - 1) : at(spanEndMs(s)),
+        s.repeat ? repeatText(s.repeat) : '',
+        v.legend[s.color] ?? (s.color ? CAL_COLORS[s.color].name() : ''),
+      ]),
     ],
     sep,
   );

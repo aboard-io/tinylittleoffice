@@ -1,10 +1,42 @@
 // A table block as a sheet: A1 addresses, the lock, formulas and the lock following rows and columns, and what
 // copy, paste, fill, clear and sort write (the old formula and sheet-rows tests over the Table API).
 import { expect, test } from 'vitest';
-import { apply, applyAll, clearCells, copyCells, fillCells, isLocked, lockedRanges, lockText, movedIn, movedOut, parse, pasteCells, putCells, rangeOf, rangeRef, remapLock, seriesOf, shiftFormula, sortRows, tableAt, usedSize, withLock, withTable, write, type Doc, type Table } from '../../src/doc/index.ts';
+import {
+  apply,
+  applyAll,
+  clearCells,
+  copyCells,
+  fillCells,
+  isLocked,
+  lockedRanges,
+  lockText,
+  movedIn,
+  movedOut,
+  parse,
+  pasteCells,
+  putCells,
+  rangeOf,
+  rangeRef,
+  remapLock,
+  seriesOf,
+  shiftFormula,
+  sortRows,
+  tableAt,
+  usedSize,
+  withLock,
+  withTable,
+  write,
+  type Doc,
+  type Table,
+} from '../../src/doc/index.ts';
 
 /** A table with no names over its columns, from rows of cells. */
-const grid = (rows: string[][], cols = Math.max(...rows.map((r) => r.length))): Table => ({ cols: Array.from({ length: cols }, () => ({ name: '', type: 'text' })), rows: rows.map((r) => Array.from({ length: cols }, (_, c) => r[c] ?? '')), lock: [], chart: '' });
+const grid = (rows: string[][], cols = Math.max(...rows.map((r) => r.length))): Table => ({
+  cols: Array.from({ length: cols }, () => ({ name: '', type: 'text' })),
+  rows: rows.map((r) => Array.from({ length: cols }, (_, c) => r[c] ?? '')),
+  lock: [],
+  chart: '',
+});
 /** Cells as a spreadsheet's clipboard holds them, tabs between and lines down. */
 const tabs = (text: string, cols = 6) => {
   const t = grid([[]], cols);
@@ -42,7 +74,15 @@ test('the lock: ranges read as cells, kept as written, moved as rows and columns
 
 test('tableAt and withTable: lock and chart from the header for a sheet document, from the table itself anywhere else', () => {
   const sheet = parse('---\nchart: Pie\nlock: B1\n---\nWhat | Cost:money\n--- | ---\nRent | 1200\n');
-  expect(tableAt(sheet, 0)).toStrictEqual({ cols: [{ name: 'What', type: 'text' }, { name: 'Cost', type: 'money' }], rows: [['Rent', '1200']], lock: [{ r0: 0, c0: 1, r1: 0, c1: 1 }], chart: 'pie' });
+  expect(tableAt(sheet, 0)).toStrictEqual({
+    cols: [
+      { name: 'What', type: 'text' },
+      { name: 'Cost', type: 'money' },
+    ],
+    rows: [['Rent', '1200']],
+    lock: [{ r0: 0, c0: 1, r1: 0, c1: 1 }],
+    chart: 'pie',
+  });
   expect(tableAt(parse('---\nchart: radar\n---\na | b\n--- | ---\n'), 0)!.chart).toBe('');
   expect(tableAt(sheet, 1)).toBeNull();
   const text = parse('# Notes\n\nWords.\n\na | b\n--- | ---\n1 | 2\n{chart=bar lock=A1}\n\nc | d\n--- | ---\n3 | 4\n');
@@ -52,7 +92,18 @@ test('tableAt and withTable: lock and chart from the header for a sheet document
   expect(tableAt(text, 3)!.chart).toBe('');
   // Written back: to the header, or to the attributes.
   const t = tableAt(sheet, 0)!;
-  const changed = applyAll(sheet, withTable(sheet, 0, { ...t, chart: 'bar', lock: [], rows: [['Rent', '1300'], ['Food', '400']] }));
+  const changed = applyAll(
+    sheet,
+    withTable(sheet, 0, {
+      ...t,
+      chart: 'bar',
+      lock: [],
+      rows: [
+        ['Rent', '1300'],
+        ['Food', '400'],
+      ],
+    }),
+  );
   expect(write(changed)).toBe('---\nchart: bar\n---\nWhat | Cost:money\n--- | ---\nRent | 1300\nFood | 400\n');
   const second = applyAll(text, withTable(text, 3, { ...tableAt(text, 3)!, lock: [rangeOf([0, 1])], chart: 'line' }));
   expect(write(second)).toContain('c | d\n--- | ---\n3 | 4\n{lock=B1 chart=line}\n');
@@ -75,11 +126,22 @@ test('blocks of cells: copy, paste, clear and fill', () => {
   expect([spread.values[0][0], spread.values[1][0], spread.values[1][1]]).toStrictEqual(['=A1*2', '=A2*2', '=B2*2']);
   // Nothing is written off the edge of the table.
   expect(pasteCells(g, 999, 5, 'a\tb\nc\td').range).toStrictEqual({ r0: 999, c0: 5, r1: 999, c1: 5 });
-  expect(clearCells(rangeOf([0, 0], [1, 2]))).toStrictEqual({ r: 0, c: 0, values: [['', '', ''], ['', '', '']] });
+  expect(clearCells(rangeOf([0, 0], [1, 2]))).toStrictEqual({
+    r: 0,
+    c: 0,
+    values: [
+      ['', '', ''],
+      ['', '', ''],
+    ],
+  });
 
   // Fill down: numbers in step carry on, formulas follow, text repeats.
   const filled = fillCells(g, block, { ...block, r1: 4 });
-  expect(filled.values.slice(2)).toStrictEqual([['3', '30', '=A3+B3'], ['4', '40', '=A4+B4'], ['5', '50', '=A5+B5']]);
+  expect(filled.values.slice(2)).toStrictEqual([
+    ['3', '30', '=A3+B3'],
+    ['4', '40', '=A4+B4'],
+    ['5', '50', '=A5+B5'],
+  ]);
   const one = fillCells(tabs('7\tQ'), rangeOf([0, 0], [0, 1]), rangeOf([0, 0], [2, 1]));
   expect([one.values[1][0], one.values[2][0], one.values[2][1]]).toStrictEqual(['7', '7', 'Q']);
   // Fill right, and fill up.
@@ -114,13 +176,26 @@ test('series: numbers in step, dates by days or months, names round the year and
 
 test('sort: rows by a column, numbers first, blanks last (the names over the columns are no row); what to write from the top', () => {
   const g = tabs('Pear\t3\nApple\t10\n\t\nFig\t\nBerry\t2');
-  const rows = (x: { values: string[][] }) => x.values.filter((r) => r.some(Boolean)).map((r) => r.slice(0, 2).join(',')).join(' ');
+  const rows = (x: { values: string[][] }) =>
+    x.values
+      .filter((r) => r.some(Boolean))
+      .map((r) => r.slice(0, 2).join(','))
+      .join(' ');
   expect(rows(sortRows(g, 1))).toBe('Berry,2 Pear,3 Apple,10 Fig,');
   expect(rows(sortRows(g, 1, true))).toBe('Apple,10 Pear,3 Berry,2 Fig,');
   expect(rows(sortRows(g, 0))).toBe('Apple,10 Berry,2 Fig, Pear,3');
   expect(sortRows(grid([[]], 2), 0)).toStrictEqual({ r: 0, c: 0, values: [] });
   expect(usedSize(g)).toStrictEqual({ rows: 5, cols: 2 });
-  expect(usedSize({ cols: [{ name: '', type: 'text' }, { name: '', type: 'date' }, { name: 'Who', type: 'text' }], rows: [] })).toStrictEqual({ rows: 0, cols: 3 });
+  expect(
+    usedSize({
+      cols: [
+        { name: '', type: 'text' },
+        { name: '', type: 'date' },
+        { name: 'Who', type: 'text' },
+      ],
+      rows: [],
+    }),
+  ).toStrictEqual({ rows: 0, cols: 3 });
 });
 
 const SHEET = parse('N:number | Note\n--- | ---\n1 |\n2 |\n3 |\n4 |\n=SUM(A1:A4) |\n=A4*2 |\n="A3"&A3 |\n');

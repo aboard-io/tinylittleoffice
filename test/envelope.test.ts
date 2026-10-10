@@ -17,7 +17,7 @@ test('created keeps minute precision, and reads back as it was shown', () => {
   expect(isoMinute(Date.UTC(2026, 9, 5, 14, 32, 10))).toBe('2026-10-05T14:32Z');
 });
 
-test('the envelope is the head\'s five keys; the app keeps its own', () => {
+test("the envelope is the head's five keys; the app keeps its own", () => {
   const text = '---\ntitle: Q3 budget\nby: forecast-agent\ncreated: 2026-10-05T14:32Z\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 120';
   expect(readEnvelope(text)).toEqual({ created: Date.UTC(2026, 9, 5, 14, 32), title: 'Q3 budget', by: 'forecast-agent', body: '---\nchart: bar\n---\nQ | Sales\n--- | ---\nQ1 | 120' });
   // A model may write the time loosely; a key without a signature is no signature.

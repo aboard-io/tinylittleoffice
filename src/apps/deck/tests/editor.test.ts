@@ -239,7 +239,11 @@ test("at a wide window the speaker notes take the slide's width under it, and th
 /* ---------- the editing standard (docs/editing.md): slides chosen on the rail, the keys, undo ---------- */
 
 const FOUR = '## A\n\n- a\n\n---\n\n## B\n\n---\n\n## C\n\n---\n\n## D\n';
-const titles = (text: string | undefined) => (text ?? '').split('\n').filter((l) => l.startsWith('## ')).map((l) => l.slice(3));
+const titles = (text: string | undefined) =>
+  (text ?? '')
+    .split('\n')
+    .filter((l) => l.startsWith('## '))
+    .map((l) => l.slice(3));
 const key = (on: EventTarget, k: string, o: KeyboardEventInit = {}) => {
   const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o });
   on.dispatchEvent(e);
@@ -373,7 +377,8 @@ test('a slide dragged by its grip (pointer events) lands after the slide it is l
   expect(grip.getAttribute('draggable')).toBeNull();
   const g = grip.getBoundingClientRect();
   const c = thumbs(el)[2].getBoundingClientRect();
-  const at = (type: string, x: number, y: number) => grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 5, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  const at = (type: string, x: number, y: number) =>
+    grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 5, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
   at('pointerdown', g.left + 3, g.top + 3);
   at('pointermove', c.left + c.width / 3, c.top + c.height / 2);
   await settle(el);
@@ -540,7 +545,9 @@ test('Insert ▾ puts other local documents on the slide: a Kanban board is made
   await tick();
   await pick(el, opener, 'Kanban Board');
   await until(() => !!docDialog()?.querySelector('dialog[open] to-board-editor'));
-  docDialog()!.querySelector('to-board-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: '## To do\n\n- Write it\n', bubbles: true }));
+  docDialog()!
+    .querySelector('to-board-editor')!
+    .dispatchEvent(new CustomEvent('docchange', { detail: '## To do\n\n- Write it\n', bubbles: true }));
   docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
   await until(() => (last() ?? '').includes('```board'));
   // The slide has its headline, so the board goes on a new slide after it.
@@ -548,7 +555,7 @@ test('Insert ▾ puts other local documents on the slide: a Kanban board is made
   await until(() => !!el.querySelector('figure.deck-sub svg'));
 });
 
-test('the table on a slide: Insert ▾ Table opens the Spreadsheet at three by three; its menu\'s Edit opens it again; Cancel changes nothing', async () => {
+test("the table on a slide: Insert ▾ Table opens the Spreadsheet at three by three; its menu's Edit opens it again; Cancel changes nothing", async () => {
   const { el, last } = await editor('');
   await pick(el, el.querySelector<HTMLElement>('to-insert button')!, 'Table');
   await until(() => !!docDialog()?.querySelector('dialog[open] to-sheet-editor'));
@@ -581,7 +588,9 @@ test('a document on a slide: Edit then Open in a new tab; Done writes it back, o
   expect(items.map((x) => x.textContent!.trim())).toEqual(['Edit', 'Open in a new tab', 'Remove from the slide']);
   items[0].click();
   await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
-  docDialog()!.querySelector('to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 300 60\n', bubbles: true }));
+  docDialog()!
+    .querySelector('to-draw-editor')!
+    .dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 300 60\n', bubbles: true }));
   docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
   await until(() => last() === '## Map\n\n```draw\nrect 10 10 300 60\n```\n');
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true, bubbles: true }));
@@ -605,7 +614,7 @@ test('the speaker notes have room round them, as the words do: 12 of the stylesh
   key(window, 'Escape');
 });
 
-test('a footnote is typed at the slide\'s foot, in the foot\'s own words (not the headline\'s), numbered on through the slide', async () => {
+test("a footnote is typed at the slide's foot, in the foot's own words (not the headline's), numbered on through the slide", async () => {
   const { el, last } = await editor('## Big words\n\n- One^[first]\n');
   await caretIn(el, 'title');
   button(el, 'Footnote').click();
@@ -628,7 +637,7 @@ test('a footnote is typed at the slide\'s foot, in the foot\'s own words (not th
   expect(el.querySelector('.deck-thumb svg')!.innerHTML).toContain('first');
 });
 
-test('§1 opens with the focus in the first slide\'s headline, the caret at its end, the page not scrolled', async () => {
+test("§1 opens with the focus in the first slide's headline, the caret at its end, the page not scrolled", async () => {
   const doc = templates()[1].doc;
   const { el } = await editor(doc);
   el.focusFirst();
@@ -643,7 +652,10 @@ test("a paste from Google Docs into a slide's words keeps the items and their de
   const { el, last } = await editor('## One\n');
   await caretIn(el, 'words');
   const dt = new DataTransfer();
-  dt.setData('text/html', '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><h2 dir="ltr"><span>Plan</span></h2><ul><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span style="font-weight:700;">Bold</span><span> start</span></p></li><ul><li dir="ltr" aria-level="2"><p dir="ltr" role="presentation"><span>nested</span></p></li></ul></ul></b>');
+  dt.setData(
+    'text/html',
+    '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><h2 dir="ltr"><span>Plan</span></h2><ul><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span style="font-weight:700;">Bold</span><span> start</span></p></li><ul><li dir="ltr" aria-level="2"><p dir="ltr" role="presentation"><span>nested</span></p></li></ul></ul></b>',
+  );
   dt.setData('text/plain', 'Plan\nBold start\nnested');
   box(el, 'words').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
   await el.updateComplete;

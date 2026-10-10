@@ -399,7 +399,10 @@ test('near the scroller’s edge a drag scrolls it; the handle alone has touch-a
   expect(getComputedStyle(handle(el, 0)).touchAction).toBe('none');
   expect(getComputedStyle(el.querySelector('.row')!).touchAction).not.toBe('none');
   // The coarse-pointer rule: a finger's 44 (--to-touch) ::before round the handle.
-  const rule = [...document.styleSheets].flatMap((s) => [...s.cssRules]).flatMap((r) => (r instanceof CSSLayerBlockRule ? [...r.cssRules] : [r])).find((r) => r instanceof CSSMediaRule && r.conditionText.includes('pointer: coarse') && r.cssText.includes('.to-rows-handle::before')) as CSSMediaRule | undefined;
+  const rule = [...document.styleSheets]
+    .flatMap((s) => [...s.cssRules])
+    .flatMap((r) => (r instanceof CSSLayerBlockRule ? [...r.cssRules] : [r]))
+    .find((r) => r instanceof CSSMediaRule && r.conditionText.includes('pointer: coarse') && r.cssText.includes('.to-rows-handle::before')) as CSSMediaRule | undefined;
   expect(rule).toBeDefined();
   expect(rule!.cssText).toContain('width: var(--to-touch)');
   expect(rule!.cssText).toContain('height: var(--to-touch)');

@@ -28,7 +28,28 @@ import { pageSvg, SERIES } from '../../kit/draw.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { Rows, type Clip, type RowRange, type RowSpan } from '../../kit/rows.ts';
-import { addLine, clearTape, curves, dropLine, hasEngine, isNote, live, moveLines, pastedLines, readCalc, removeLine, replaceLines, setEngine, setLine, setMode, tape, tapeBlock, tidy, type CalcView, type Mode } from './model.ts';
+import {
+  addLine,
+  clearTape,
+  curves,
+  dropLine,
+  hasEngine,
+  isNote,
+  live,
+  moveLines,
+  pastedLines,
+  readCalc,
+  removeLine,
+  replaceLines,
+  setEngine,
+  setLine,
+  setMode,
+  tape,
+  tapeBlock,
+  tidy,
+  type CalcView,
+  type Mode,
+} from './model.ts';
 import { graphPage } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -445,7 +466,8 @@ export class ToCalcEditor extends DocElement<CalcView> {
     </div>`;
   }
   private tapeRows(v: CalcView) {
-    if (!v.lines.length) return html`<p class="to-hint calc-empty">${v.mode === 'graph' ? t('Type a curve in x, such as x^2 or sin(x), and press Enter to draw it.') : t('Type a sum, or 3 inch to cm, and press Enter. a = 12 keeps an answer by name.')}</p>`;
+    if (!v.lines.length)
+      return html`<p class="to-hint calc-empty">${v.mode === 'graph' ? t('Type a curve in x, such as x^2 or sin(x), and press Enter to draw it.') : t('Type a sum, or 3 inch to cm, and press Enter. a = 12 keeps an answer by name.')}</p>`;
     const graph = v.mode === 'graph';
     const texts = graph ? [] : tape(v.lines).texts;
     const exprs = graph ? curves(v.lines).exprs : [];

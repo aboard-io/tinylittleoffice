@@ -182,7 +182,37 @@ function carriedRuns(html: string): Run[] | null {
 
 /* ---------- HTML from elsewhere ---------- */
 
-const BLOCK_TAGS = new Set(['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'UL', 'OL', 'BLOCKQUOTE', 'PRE', 'TABLE', 'HR', 'IMG', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'MAIN', 'ASIDE', 'NAV', 'FIGURE', 'DL', 'DT', 'DD', 'TR', 'ADDRESS']);
+const BLOCK_TAGS = new Set([
+  'P',
+  'DIV',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+  'LI',
+  'UL',
+  'OL',
+  'BLOCKQUOTE',
+  'PRE',
+  'TABLE',
+  'HR',
+  'IMG',
+  'SECTION',
+  'ARTICLE',
+  'HEADER',
+  'FOOTER',
+  'MAIN',
+  'ASIDE',
+  'NAV',
+  'FIGURE',
+  'DL',
+  'DT',
+  'DD',
+  'TR',
+  'ADDRESS',
+]);
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'META', 'LINK', 'TITLE', 'NOSCRIPT', 'IFRAME', 'OBJECT', 'SVG', 'svg', 'BUTTON', 'SELECT', 'INPUT', 'TEXTAREA', 'HEAD']);
 
 type Marks = Partial<Pick<Run, 'b' | 'i' | 'u' | 's' | 'h' | 'href'>>;
@@ -386,7 +416,7 @@ export function htmlToBlocks(html: string): Block[] {
   // the text can say (a list copied from the middle of another starts deep).
   let depth = -1;
   return blocks.map((b) => {
-    if (b.k !== 'li') return (depth = -1), b;
+    if (b.k !== 'li') return ((depth = -1), b);
     const d = Math.min(b.depth, depth + 1);
     depth = d;
     return d === b.depth ? b : { ...b, depth: d };

@@ -5,10 +5,17 @@ import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url);
-const sheets = [
-  ...readdirSync(new URL('src/styles/', root)).map((f) => `src/styles/${f}`),
-  ...readdirSync(new URL('src/apps/', root)).map((a) => `src/apps/${a}/style.css`),
-].filter((f) => f.endsWith('.css') && (() => { try { return !!readFileSync(new URL(f, root)); } catch { return false; } })());
+const sheets = [...readdirSync(new URL('src/styles/', root)).map((f) => `src/styles/${f}`), ...readdirSync(new URL('src/apps/', root)).map((a) => `src/apps/${a}/style.css`)].filter(
+  (f) =>
+    f.endsWith('.css') &&
+    (() => {
+      try {
+        return !!readFileSync(new URL(f, root));
+      } catch {
+        return false;
+      }
+    })(),
+);
 
 /**
  * A sheet's declarations, each with the line it starts on: the text between one `;`, `{` or `}` and the next `;` or
@@ -38,11 +45,19 @@ test('the stylesheets are found', () => {
 });
 
 test('no length in px but a hairline, the two scales and a media query', () => {
-  const wrong = sheets.flatMap((f) => declarations(f).filter((d) => /\d(\.\d+)?px\b/.test(allowed(d.text))).map((d) => `${f}:${d.line}: ${d.text}`));
+  const wrong = sheets.flatMap((f) =>
+    declarations(f)
+      .filter((d) => /\d(\.\d+)?px\b/.test(allowed(d.text)))
+      .map((d) => `${f}:${d.line}: ${d.text}`),
+  );
   expect(wrong).toEqual([]);
 });
 
 test('nothing is zoomed: no zoom property, and no length divided by a size', () => {
-  const wrong = sheets.flatMap((f) => declarations(f).filter((d) => /^zoom:|--to-(size|nav-size|nav-zoom|vw|vh)\b/.test(d.text)).map((d) => `${f}:${d.line}: ${d.text}`));
+  const wrong = sheets.flatMap((f) =>
+    declarations(f)
+      .filter((d) => /^zoom:|--to-(size|nav-size|nav-zoom|vw|vh)\b/.test(d.text))
+      .map((d) => `${f}:${d.line}: ${d.text}`),
+  );
   expect(wrong).toEqual([]);
 });

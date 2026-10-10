@@ -5,7 +5,7 @@ import { apps } from '../../src/kit/apps.ts';
 import { running } from '../../src/kit/version.ts';
 import { siteRoot } from '../../src/kit/offline.ts';
 
-test('the hamburger opens the drawer, the home page\'s drawer has no app rows, Find narrows what there is, Escape closes it', async () => {
+test("the hamburger opens the drawer, the home page's drawer has no app rows, Find narrows what there is, Escape closes it", async () => {
   const shell = await mount('');
   const burger = shell.querySelector<HTMLButtonElement>('.to-burger')!;
   burger.focus();
@@ -79,7 +79,7 @@ test('Find finds apps, templates by name or app, and kept documents by title, ea
   }
 });
 
-test('a template from inside an app: each of the drawer\'s rows has its templates button, which closes the drawer and opens the templates listbox; choosing one opens it', async () => {
+test("a template from inside an app: each of the drawer's rows has its templates button, which closes the drawer and opens the templates listbox; choosing one opens it", async () => {
   const shell = await mount('#/v1/sheet');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   const dialog = shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!;

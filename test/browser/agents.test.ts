@@ -77,7 +77,9 @@ test('Download gives every app a .tlo that names its app, Markdown, and the .pdf
   expect(new TextDecoder('latin1').decode(pdf.slice(0, 8))).toBe('%PDF-1.4');
   expect(new TextDecoder('latin1').decode(pdf)).toContain('/Filter /DCTDecode');
   // An app with no Markdown of its own (a drawing) has the kit's: the text, notes in the reference form.
-  const draw = await mount(`#/v1/draw/${encodeDoc('---\ntitle: Boxes\nalt: Two boxes^[drawn by hand]\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 8 | 4 | 1 | A\n')}`);
+  const draw = await mount(
+    `#/v1/draw/${encodeDoc('---\ntitle: Boxes\nalt: Two boxes^[drawn by hand]\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 1 | 1 | 8 | 4 | 1 | A\n')}`,
+  );
   await until(() => !!draw.querySelector('to-draw-editor'));
   await choose(draw, 'Markdown');
   await until(() => got.has('boxes.md'));

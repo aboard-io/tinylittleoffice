@@ -104,7 +104,13 @@ export const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMo
  */
 export function firstFree(titles: string[], name: string): number {
   const [before, after = ''] = name.split('{n}');
-  const taken = new Set(titles.filter((s) => s.startsWith(before) && s.endsWith(after) && s.length > before.length + after.length).map((s) => s.slice(before.length, s.length - after.length)).filter((n) => /^\d+$/.test(n)).map(Number));
+  const taken = new Set(
+    titles
+      .filter((s) => s.startsWith(before) && s.endsWith(after) && s.length > before.length + after.length)
+      .map((s) => s.slice(before.length, s.length - after.length))
+      .filter((n) => /^\d+$/.test(n))
+      .map(Number),
+  );
   let n = 1;
   while (taken.has(n)) n++;
   return n;
@@ -145,6 +151,11 @@ export function newName(def: AppDef): string {
   const lang = document.documentElement.lang || undefined;
   const noun = def.noun.charAt(0).toLocaleUpperCase(lang) + def.noun.slice(1);
   const name = t('New {noun} {date} #{n}', { noun, date: localDay() });
-  const n = firstFree(library().filter((k) => k.app === def.id).map((k) => k.title), name);
+  const n = firstFree(
+    library()
+      .filter((k) => k.app === def.id)
+      .map((k) => k.title),
+    name,
+  );
   return name.replace('{n}', String(n));
 }

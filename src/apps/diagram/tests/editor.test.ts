@@ -41,7 +41,10 @@ const thing = (el: HTMLElement, words: string) => things(el).find((g) => g.getAt
 const line = (el: HTMLElement) => el.querySelector<ToText>('to-text.dg-words')!;
 const isOpen = (el: HTMLElement) => !line(el).hidden;
 /** The words over the thing, as they hold them (a line break is "\n"). */
-const held = (el: HTMLElement) => line(el).blocks.map((b) => ('runs' in b ? b.runs.map((r) => r.t).join('') : '')).join('\n');
+const held = (el: HTMLElement) =>
+  line(el)
+    .blocks.map((b) => ('runs' in b ? b.runs.map((r) => r.t).join('') : ''))
+    .join('\n');
 const center = (g: Element) => {
   const r = g.getBoundingClientRect();
   return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
@@ -461,7 +464,7 @@ test('§1 Tab/Shift+Tab in a tree: a thing with its children in under the thing 
   expect((await press(el, thing(el, 'A'), 'Tab')).defaultPrevented).toBe(false);
 });
 
-test('§5 a tree thing\'s bar has Indent and Bring out after its own items, disabled where the move cannot be; another kind has neither', async () => {
+test("§5 a tree thing's bar has Indent and Bring out after its own items, disabled where the move cannot be; another kind has neither", async () => {
   const { el, last } = await editor('---\nkind: org\n---\n- Ada\n  - Ben\n    - Cy\n  - Eve\n');
   const labels = () => [...ctx(el).querySelectorAll('button, .to-context-sep')].map((b) => (b.classList.contains('to-context-sep') ? '|' : b.getAttribute('aria-label')));
   await tap(el, thing(el, 'Ben'));
@@ -505,7 +508,7 @@ test('§1 Mod+D: a copy of the focused thing right after it, the focus on the co
   expect(last()).toContain('- 2000: Phones\n- 2000: Phones\n');
 });
 
-test('§1 Mod+B/I/U/K and §2 the bubble: the words are plain, no bubble, the marks\' keys do nothing', async () => {
+test("§1 Mod+B/I/U/K and §2 the bubble: the words are plain, no bubble, the marks' keys do nothing", async () => {
   const { el, last } = await editor(ORG);
   await tap(el, thing(el, 'Ben Okoro'));
   expect(line(el).noBubble).toBe(true);
@@ -726,7 +729,10 @@ test('a mind map joins: Join from an idea, a tap on another across the tree make
   expect(curve).not.toBeNull();
   expect(edge.getAttribute('aria-label')).toBe('a connection');
   // Its tap: its words open, typed in; its row has the kind of line and Delete.
-  const pts = curve.getAttribute('points')!.split(' ').map((p) => p.split(',').map(Number));
+  const pts = curve
+    .getAttribute('points')!
+    .split(' ')
+    .map((p) => p.split(',').map(Number));
   const [mx, my] = pts[Math.floor(pts.length / 2)];
   const m = (curve as SVGGraphicsElement).getScreenCTM()!;
   const at = new DOMPoint(mx, my).matrixTransform(m);
@@ -772,7 +778,10 @@ test('every kind: a tap lays the words over the thing (drawn blank meanwhile), a
     expect(last(), kind).toContain('Zz');
     await key(el, 'Enter', { ctrlKey: true });
     expect(isOpen(el), kind).toBe(false);
-    expect(things(el).some((x) => x.getAttribute('aria-label')!.includes('Zz') && x.querySelector('text')), kind).toBe(true);
+    expect(
+      things(el).some((x) => x.getAttribute('aria-label')!.includes('Zz') && x.querySelector('text')),
+      kind,
+    ).toBe(true);
   }
 });
 
@@ -788,7 +797,7 @@ test('a timeline: the date is the first line and what happened the second; Shift
   expect(last()).toBe('---\nkind: timeline\n---\n- 1991: Started\n- 2000: Grew\n');
 });
 
-test('a lane\'s name, a table\'s name and a set\'s name are typed on the picture too, and every line that names them follows', async () => {
+test("a lane's name, a table's name and a set's name are typed on the picture too, and every line that names them follows", async () => {
   const lanes = await editor('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n- Shop: Packs\n');
   const name = things(lanes.el).find((g) => g.getAttribute('aria-label') === 'Shop')!;
   await tap(lanes.el, name);
@@ -880,7 +889,7 @@ test('the separators are never typed: a comma ending a guest is the next guest, 
   expect(org.last()).toContain('~ Ben Okoro -- Eve Marsh: design partner');
 });
 
-test('a plus ending a family\'s name starts the partner\'s; inside the words it is a plus', async () => {
+test("a plus ending a family's name starts the partner's; inside the words it is a plus", async () => {
   const { el, last } = await editor('---\nkind: family\n---\n- Rose | m. 1948\n  - Helen\n');
   await tap(el, thing(el, 'Rose'));
   expect(held(el)).toBe('Rose\nm. 1948');

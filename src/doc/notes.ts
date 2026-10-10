@@ -17,7 +17,10 @@ export const notesOf = (blocks: readonly (Block | { runs: Run[] })[]): string[] 
 export const noteRuns = (fn: string): Run[] => parseInline(fn).filter((r) => r.fn === undefined);
 
 /** Numbers notes as they come: each call is the next number. */
-export const noteNumbers = (from = 0) => () => ++from;
+export const noteNumbers =
+  (from = 0) =>
+  () =>
+    ++from;
 
 /** Runs as they are drawn: a note's mark is its number, raised (`sup`), the numbers given by `next` (noteNumbers()). */
 export const markNotes = (runs: Run[], next: () => number): (Run & { sup?: boolean })[] => runs.map((r) => (r.fn === undefined ? r : { t: String(next()), sup: true }));

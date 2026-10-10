@@ -25,7 +25,31 @@ export interface Sel {
   focus: Pos;
 }
 /** What the editor can be told to do; some take a word (a link's address, an icon's name, an embed's ref). */
-export type Command = 'b' | 'i' | 'u' | 's' | 'h' | 'link' | 'unlink' | 'fn' | 'icon' | 'date' | 'title' | 'h1' | 'h2' | 'p' | 'quote' | 'ul' | 'ol' | 'indent' | 'outdent' | 'left' | 'center' | 'right' | 'justify' | 'embed';
+export type Command =
+  | 'b'
+  | 'i'
+  | 'u'
+  | 's'
+  | 'h'
+  | 'link'
+  | 'unlink'
+  | 'fn'
+  | 'icon'
+  | 'date'
+  | 'title'
+  | 'h1'
+  | 'h2'
+  | 'p'
+  | 'quote'
+  | 'ul'
+  | 'ol'
+  | 'indent'
+  | 'outdent'
+  | 'left'
+  | 'center'
+  | 'right'
+  | 'justify'
+  | 'embed';
 export type Mark = 'b' | 'i' | 'u' | 's' | 'h';
 /** The marks in force where the caret is: what the next letter typed will carry. */
 export type Fmt = Partial<Pick<Run, Mark | 'href'>>;
@@ -103,7 +127,9 @@ export function marksOf(blocks: Block[], sel: Sel): Fmt {
   const b = blocks[a.block];
   if (!b || !isText(b)) return {};
   if (collapsed(sel)) return marksAt(b.runs, a.offset);
-  const picked = sliceBlocks(blocks, sel).flatMap((x) => (isText(x) ? x.runs : [])).filter((r) => !isAtomic(r) && r.t);
+  const picked = sliceBlocks(blocks, sel)
+    .flatMap((x) => (isText(x) ? x.runs : []))
+    .filter((r) => !isAtomic(r) && r.t);
   if (!picked.length) return {};
   const out: Fmt = {};
   for (const m of MARKS) if (picked.every((r) => r[m])) out[m] = true;
@@ -291,7 +317,9 @@ function remark(runs: Run[], from: number, to: number, change: (r: Run) => Run):
 
 /** Every selected run of words, with the block it is in. */
 function selectedRuns(blocks: Block[], sel: Sel): Run[] {
-  return sliceBlocks(blocks, sel).flatMap((b) => (isText(b) ? b.runs : [])).filter((r) => !isAtomic(r) && r.t);
+  return sliceBlocks(blocks, sel)
+    .flatMap((b) => (isText(b) ? b.runs : []))
+    .filter((r) => !isAtomic(r) && r.t);
 }
 
 /** A mark put on the selection, or taken off when every selected word has it. One `text` op per block; the selection is kept. */
@@ -344,7 +372,8 @@ export function setKind(blocks: Block[], sel: Sel, kind: 'p' | 'h1' | 'h2' | 'ti
   const [from, to] = spanOf(sel);
   const span = blocks.slice(from, to);
   const items = span.filter(isText);
-  const already = kind === 'ul' ? items.every((b) => b.k === 'li' && !b.ord) : kind === 'ol' ? items.every((b) => b.k === 'li' && !!b.ord) : kind === 'quote' ? items.every((b) => b.k === 'quote') : false;
+  const already =
+    kind === 'ul' ? items.every((b) => b.k === 'li' && !b.ord) : kind === 'ol' ? items.every((b) => b.k === 'li' && !!b.ord) : kind === 'quote' ? items.every((b) => b.k === 'quote') : false;
   const want = already ? 'p' : kind;
   // A heading is one line (the format says no other): a block of several lines made a heading is its first line, and
   // the lines after it stay a paragraph, every one of them (nothing typed is lost: Paul, 2026-10-10). The selection

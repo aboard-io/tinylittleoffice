@@ -31,7 +31,37 @@ import type { ToMenu } from '../../kit/menu.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { STAGE_COLORS, addCard, addItem, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, setItemDone, shifted, splitCard, splitItem, stageOf, type BoardView, type Card, type Item, type Stage } from './model.ts';
+import {
+  STAGE_COLORS,
+  addCard,
+  addItem,
+  addStage,
+  asCards,
+  asItems,
+  blocksOf,
+  cardsIn,
+  carryCards,
+  duplicateCard,
+  duplicateCards,
+  joinLine,
+  moveCard,
+  moveCards,
+  moveItem,
+  moveStage,
+  progress,
+  readBoard,
+  removeCard,
+  removeCards,
+  setItemDone,
+  shifted,
+  splitCard,
+  splitItem,
+  stageOf,
+  type BoardView,
+  type Card,
+  type Item,
+  type Stage,
+} from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/embeds.ts';
@@ -405,7 +435,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const r = this.rows.range!;
     const flip = r.anchor > r.focus;
     this.edit(made.ops);
-    const moved = this.view.stages.flatMap((x) => x.cards).filter((c) => c.at >= made.at).slice(0, last + 1);
+    const moved = this.view.stages
+      .flatMap((x) => x.cards)
+      .filter((c) => c.at >= made.at)
+      .slice(0, last + 1);
     const a = moved[0].at;
     const b = moved[last].at;
     void this.updateComplete.then(() => this.rows.select(flip ? { anchor: b, focus: a } : { anchor: a, focus: b }));
@@ -549,7 +582,10 @@ export class ToBoardEditor extends DocElement<BoardView> {
   /** Where the carried card would land: the stage under the pointer, before the card whose middle is below it. */
   private aim() {
     const { x, y } = this.lastPoint;
-    const col = document.elementsFromPoint(x, y).map((el) => el.closest<HTMLElement>('.board-col')).find((el) => el && this.contains(el));
+    const col = document
+      .elementsFromPoint(x, y)
+      .map((el) => el.closest<HTMLElement>('.board-col'))
+      .find((el) => el && this.contains(el));
     if (!col) return void (this.over = null);
     const stage = Number(col.dataset.stage);
     const cards = [...col.querySelectorAll<HTMLElement>(':scope .board-card')];
@@ -696,10 +732,12 @@ export class ToBoardEditor extends DocElement<BoardView> {
         <button type="button" class="to-btn to-tool board-grip to-rows-handle" aria-pressed=${String(ranged)} aria-label=${t('Choose this card: drag it to move it')} title=${t('Drag to move; tap to choose')} @pointerdown=${(e: PointerEvent) => this.down(e, c)} @pointermove=${this.move} @pointerup=${this.up} @pointercancel=${this.cancel} @click=${(e: MouseEvent) => this.tapGrip(e, c)}>${icon(GripVertical, 18)}</button>
       </div>
       ${web ? html`<to-embed class="board-web" url=${web}></to-embed>` : nothing}
-      ${c.items.length
-        ? html`<ul class="board-items" aria-label=${t('Checklist')}>${c.items.map((it, k) => this.item(c, k, it))}</ul>
+      ${
+        c.items.length
+          ? html`<ul class="board-items" aria-label=${t('Checklist')}>${c.items.map((it, k) => this.item(c, k, it))}</ul>
             <span class="board-progress" aria-label=${t('{done} of {n} done', { done: c.items.filter((i) => i.done).length, n: c.items.length })}>☑ ${progress(c)}</span>`
-        : nothing}
+          : nothing
+      }
     </li>`;
   }
   private stage(s: Stage, i: number) {
@@ -708,9 +746,11 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const end = this.drag !== null && this.over?.stage === i && this.over.pos >= s.cards.length;
     return html`<section class="board-col ${over ? 'full' : ''} ${this.drag !== null && this.over?.stage === i ? 'over' : ''}" data-stage=${i} data-hue=${s.hue} style=${`--c:${STAGE_COLORS[s.hue].hex}`} aria-label=${s.name || t('Stage')}>
       <header class="board-head" @focusin=${(e: Event) => this.at(s.at, e)}>
-        ${s.block
-          ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onStageEnter(s))} @text-exit=${(e: Event) => e.stopPropagation()} @text-selectall=${this.onSelectAll}></to-text>`
-          : html`<h2 class="board-static">${s.name}</h2>`}
+        ${
+          s.block
+            ? html`<to-text shape="line" data-at=${s.at} .blocks=${this.one(s.block)} label=${t('Stage name')} placeholder=${t('Stage name')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(e, s.at)} @text-select=${this.onSelect} @text-enter=${(e: Event) => (e.stopPropagation(), this.onStageEnter(s))} @text-exit=${(e: Event) => e.stopPropagation()} @text-selectall=${this.onSelectAll}></to-text>`
+            : html`<h2 class="board-static">${s.name}</h2>`
+        }
         <span class="board-count" aria-label=${over ? t('{n} cards, over the limit of {limit}', { n: s.cards.length, limit: s.limit }) : s.limit ? t('{n} cards, limit {limit}', { n: s.cards.length, limit: s.limit }) : t('{n|one card|# cards}', { n: s.cards.length })}>${count}</span>
         <button type="button" class="to-btn to-tool board-more" aria-haspopup="menu" aria-label=${t('Stage options: {stage}', { stage: s.name || t('Stage') })} title=${t('Stage options')} @click=${(e: Event) => void this.openMenu(s.at, e.currentTarget as HTMLElement)}>${icon(Ellipsis, 18)}</button>
       </header>

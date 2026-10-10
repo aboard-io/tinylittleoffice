@@ -50,7 +50,13 @@ export function makeSkill(): string {
     .replace('{{functions}}', FUNCTIONS.map(([name]) => `\`${name}\``).join(', '))
     .replace('{{commands}}', () => skillCommands())
     .replace(/\{\{tpl:([a-z]+):([a-z0-9-]+)\}\}/g, (_, id: string, tpl: string) => example(id, tpl))
-    .replace(/\{\{templates:([a-z]+)\}\}/g, (_, id: string) => `Templates: ${app(id).templates.map((t) => t.name).join(', ')}.`)
+    .replace(
+      /\{\{templates:([a-z]+)\}\}/g,
+      (_, id: string) =>
+        `Templates: ${app(id)
+          .templates.map((t) => t.name)
+          .join(', ')}.`,
+    )
     .replace(/\{\{exports:([a-z]+)\}\}/g, (_, id: string) => {
       const own = (app(id).exports ?? []).map((x) => `\`.${x.ext}\``);
       return own.length ? `Its own files: ${own.join(', ')}.` : '';

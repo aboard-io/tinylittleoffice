@@ -525,7 +525,9 @@ test('chosen rows: Tab and Shift+Tab shift them all, Alt+arrows move them, the c
   await el.updateComplete;
   await tick();
   expect(ranged(el)).toEqual([1]);
-  row(el, 2).querySelector<HTMLButtonElement>('.ol-handle')!.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  row(el, 2)
+    .querySelector<HTMLButtonElement>('.ol-handle')!
+    .dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
   await el.updateComplete;
   await tick();
   expect(ranged(el)).toEqual([1, 2]);
@@ -561,8 +563,12 @@ test('chosen rows: Tab and Shift+Tab shift them all, Alt+arrows move them, the c
   expect(contextOpen(el)).toBe(false);
   // A Shift+click on a bullet extends from the chosen row.
   await choose(el, 0);
-  row(el, 1).querySelector<HTMLButtonElement>('button.ol-kind')?.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
-  row(el, 1).querySelector<HTMLElement>('.ol-bullet')!.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  row(el, 1)
+    .querySelector<HTMLButtonElement>('button.ol-kind')
+    ?.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+  row(el, 1)
+    .querySelector<HTMLElement>('.ol-bullet')!
+    .dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
   await el.updateComplete;
   await tick();
   expect(ranged(el)).toEqual([0, 1]);
@@ -767,7 +773,11 @@ test('Mod+D duplicates: a row with its family after it (the caret in the copy), 
   contextButton(el, 'Duplicate').click();
   await el.updateComplete;
   await tick();
-  expect(last()!.split('\n').filter((l) => l.trim() === '- Product')).toHaveLength(3);
+  expect(
+    last()!
+      .split('\n')
+      .filter((l) => l.trim() === '- Product'),
+  ).toHaveLength(3);
   expect(ranged(el)).toEqual([5, 6]);
   // Undo: the rows chosen before the duplicate are chosen again.
   await undo(el);
@@ -900,7 +910,8 @@ test('a drag by a row’s handle (pointer events) moves its family under or afte
   const handle = row(el, 1).querySelector<HTMLElement>('.ol-handle')!;
   const h = handle.getBoundingClientRect();
   const c = row(el, 3).getBoundingClientRect();
-  const at = (type: string, x: number, y: number) => handle.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  const at = (type: string, x: number, y: number) =>
+    handle.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
   at('pointerdown', h.left + 4, h.top + 4);
   at('pointermove', h.left + 5, h.top + 5);
   expect(el.rows.drag).toBeNull();
@@ -922,7 +933,8 @@ test('a drag by a row’s handle (pointer events) moves its family under or afte
   // A press that does not move is a tap: the row chosen.
   const h2 = row(el, 0).querySelector<HTMLElement>('.ol-handle')!;
   const r = h2.getBoundingClientRect();
-  for (const type of ['pointerdown', 'pointerup']) h2.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 8, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3 }));
+  for (const type of ['pointerdown', 'pointerup'])
+    h2.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 8, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3 }));
   h2.click();
   await el.updateComplete;
   expect(ranged(el)).toEqual([0]);
@@ -999,7 +1011,7 @@ test('footnotes are listed under the outline, numbered as their marks are, and t
   await until(() => last() === '- One^[x]^[The first note]\n  - Two^[The **second** note!]\n');
 });
 
-test('§1 opens with the focus in the first row\'s words, the caret at their end, the page not scrolled', async () => {
+test("§1 opens with the focus in the first row's words, the caret at their end, the page not scrolled", async () => {
   const { el } = await editor(TREE);
   await el.focusFirst();
   await until(() => textOf(el, 0).hasFocus());

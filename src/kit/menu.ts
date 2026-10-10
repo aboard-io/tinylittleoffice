@@ -96,7 +96,8 @@ export const openedByPointer = () => byPointer;
 /** The letters typed into each menu lately, for type-ahead. */
 const typed = new WeakMap<HTMLElement, { s: string; at: number }>();
 /** An item's name, as type-ahead reads it: its words, not its hint. */
-const nameOf = (el: HTMLElement) => (el.closest('.to-menu-row')?.getAttribute('aria-label') ?? el.querySelector(':scope > [class$=-words] > span')?.textContent ?? el.textContent ?? '').trim().toLowerCase();
+const nameOf = (el: HTMLElement) =>
+  (el.closest('.to-menu-row')?.getAttribute('aria-label') ?? el.querySelector(':scope > [class$=-words] > span')?.textContent ?? el.textContent ?? '').trim().toLowerCase();
 /** The row an action is in, or null for an item of its own. */
 const rowOf = (el: Element | null) => el?.closest<HTMLElement>('.to-menu-row') ?? null;
 
@@ -168,7 +169,17 @@ export function hoverFocus(e: PointerEvent) {
 }
 
 export class ToMenu extends LitElement {
-  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keys: {}, keep: { type: Boolean }, filter: { type: Boolean }, query: { state: true } };
+  static properties = {
+    label: {},
+    icon: { attribute: false },
+    items: { attribute: false },
+    caret: { type: Boolean },
+    iconOnly: { type: Boolean, attribute: 'icon-only' },
+    keys: {},
+    keep: { type: Boolean },
+    filter: { type: Boolean },
+    query: { state: true },
+  };
   declare label: string;
   /** Another button the menu was opened from (openAt): placed beside it, focus goes back to it. */
   private anchor: HTMLElement | null = null;
@@ -294,7 +305,13 @@ export class ToMenu extends LitElement {
   /** Whether an item stays while letters are typed: a word of its name starts with them. */
   private stays(item: MenuItem): boolean {
     const q = fold(this.query.trim());
-    return !q || fold(item.label).split(/[\s\-–—/(),.…]+/).some((w) => w.startsWith(q)) || fold(item.label).startsWith(q);
+    return (
+      !q ||
+      fold(item.label)
+        .split(/[\s\-–—/(),.…]+/)
+        .some((w) => w.startsWith(q)) ||
+      fold(item.label).startsWith(q)
+    );
   }
   /** A `keep` menu open while the focus stays in the editor: Up and Down take the focus into the menu, which is then an ordinary one. */
   private onKeptKey = (e: KeyboardEvent) => {
@@ -322,7 +339,8 @@ export class ToMenu extends LitElement {
     if (item.actions)
       return html`<div class="to-menu-row" role="group" aria-label=${item.label}>
         ${item.icon ? icon(item.icon, 18) : nothing}<span class="to-menu-words" aria-hidden="true"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.actions.map(
-          (a) => html`<button type="button" class="to-menu-act" role="menuitem" tabindex="-1" aria-label=${a.label} title=${a.label} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(a)}>${icon(a.icon, 20)}</button>`,
+          (a) =>
+            html`<button type="button" class="to-menu-act" role="menuitem" tabindex="-1" aria-label=${a.label} title=${a.label} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(a)}>${icon(a.icon, 20)}</button>`,
         )}
       </div>`;
     return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
@@ -337,7 +355,11 @@ export class ToMenu extends LitElement {
     let run: MenuItem[] = [];
     const flush = () => {
       if (!run.length) return;
-      parts.push(group ? html`<div role="group" aria-label=${group}><div class="to-menu-head" aria-hidden="true">${group}</div>${run.map((i) => this.renderItem(i))}</div>` : html`${run.map((i) => this.renderItem(i))}`);
+      parts.push(
+        group
+          ? html`<div role="group" aria-label=${group}><div class="to-menu-head" aria-hidden="true">${group}</div>${run.map((i) => this.renderItem(i))}</div>`
+          : html`${run.map((i) => this.renderItem(i))}`,
+      );
       run = [];
     };
     for (const item of this.items) {

@@ -59,7 +59,7 @@ the picker; neither source is a dependency.
 ## For building and testing
 
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile
-holds 197 packages for development.
+holds 198 packages for development.
 
 | Package | Version | Licence | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
@@ -71,6 +71,7 @@ holds 197 packages for development.
 | `@vitest/browser-playwright` | 5.0.3 | MIT | Lets Vitest run the DOM tests in a real Chromium through Playwright (test/browser/, src/apps/*/tests/). A simulated DOM would pass what a browser fails. Tests only. | not shipped |
 | `fast-check` | 4.10.2 | MIT | The properties fuzzed from TLO's grammar (test/doc/tlo-grammar.ts, test/doc/properties.test.ts): generators of documents, texts and operations, and shrinking a failure to its smallest case; and the random walks over the chrome (test/browser/walks.test.ts, its model-based testing: fc.commands and asyncModelRun). The native alternative is nothing: no browser or node API generates or shrinks test cases. Tests only. | not shipped |
 | `playwright` | 1.64.0 | Apache-2.0 | The browsers themselves (Chromium, WebKit) for the browser tests and e2e, pinned to @playwright/test's version. Tests only. | not shipped |
+| `prettier` | 3.9.10 | MIT | The one style of the code (npm run format writes it, npm run lint checks it: .prettierrc is single quotes, lines to 200, templates left as written). Node has no formatter, and a style held by hand drifted with every builder. Not built into the site. | not shipped |
 | `typescript` | 7.0.2 | Apache-2.0 | The type check (npm run lint), and its scanner reads the source for the lints of the code (test/lints.ts: the words in templates, the module graph). Node strips types natively and runs the scripts as written, but checks none of them, and has no tokenizer for TypeScript. Not built into the site. | not shipped |
 | `vite` | 8.3.4 | MIT | The build. Browsers load ES modules unbundled, but a page per app, hashed file names the offline copy can trust, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site. | not shipped |
 | `vitest` | 5.0.3 | MIT | The unit and browser tests. node:test runs the unit tests' shape but not in a browser; one runner for both layers keeps one way to write a test. Not built into the site. | not shipped |

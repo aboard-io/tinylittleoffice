@@ -119,7 +119,16 @@ export function checkLanguage(code: string, en: Strings, strings: Strings, sourc
 
 /** The words of an English key that carry its meaning, lower case, a plural's "s" off: placeholders by name, the little words left out. */
 const LITTLE = new Set(['a', 'an', 'the', 'this', 'that', 'these', 'those', 'of', 'to', 'in', 'on', 'at', 'for', 'by', 'and', 'or', 'it', 'its', 'is', 'as']);
-export const tokens = (s: string): string[] => [...new Set(s.toLowerCase().replace(/\{(\w+)[^}]*\}/g, ' $1 ').split(/[^\p{L}\p{N}]+/u).filter((w) => w && !LITTLE.has(w)).map((w) => (w.length > 3 ? w.replace(/s$/, '') : w)))];
+export const tokens = (s: string): string[] => [
+  ...new Set(
+    s
+      .toLowerCase()
+      .replace(/\{(\w+)[^}]*\}/g, ' $1 ')
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((w) => w && !LITTLE.has(w))
+      .map((w) => (w.length > 3 ? w.replace(/s$/, '') : w)),
+  ),
+];
 
 /** How alike two English keys are, 0 to 1: the words they share, twice, over the words of both (Dice's coefficient). */
 export function likeness(a: string, b: string): number {

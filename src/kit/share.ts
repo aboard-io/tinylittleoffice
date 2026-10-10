@@ -44,7 +44,12 @@ export const SERVICE_NAMES: Record<Service, string> = { bluesky: 'Bluesky', mast
 
 /** A Mastodon server as typed ("@me@mastodon.social", "https://hachyderm.io/"): its host alone, or '' when it is not one. */
 export function mastodonHost(typed: string): string {
-  const s = typed.trim().replace(/^https?:\/\//i, '').replace(/^@?[^@/\s]+@/, '').replace(/[/?#].*$/, '').toLowerCase();
+  const s = typed
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/^@?[^@/\s]+@/, '')
+    .replace(/[/?#].*$/, '')
+    .toLowerCase();
   return /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?$/.test(s) ? s : '';
 }
 

@@ -26,7 +26,7 @@ async function openDownload(shell: ToShell) {
   await until(() => !!menu(shell).style.top).catch(() => {});
 }
 
-test('at every size on a phone the drawer\'s Download row opens its menu under it, inside the screen, never off its left edge', async () => {
+test("at every size on a phone the drawer's Download row opens its menu under it, inside the screen, never off its left edge", async () => {
   await page.viewport(390, 844);
   for (const at of [1, 1.5, 2, 2.5]) {
     keepSize(at);
@@ -90,7 +90,7 @@ const rows = (shell: HTMLElement) => [...shell.querySelectorAll<HTMLElement>('.t
 const row = (shell: HTMLElement, name: string) => rows(shell).find((r) => r.getAttribute('aria-label') === name)!;
 const acts = (r: HTMLElement) => [...r.querySelectorAll<HTMLButtonElement>('[role=menuitem]')];
 
-test('the Word Processor\'s Download menu is a row per format, each with view, download and copy link, and share where the device takes the file', async () => {
+test("the Word Processor's Download menu is a row per format, each with view, download and copy link, and share where the device takes the file", async () => {
   await page.viewport(390, 844);
   let shell = await mount(NOTES);
   await until(() => !!shell.querySelector('to-write-editor'));
@@ -150,7 +150,9 @@ test('View opens the file in a new tab from a blob of its type; Share hands the 
     // Download downloads, the share sheet being Share's.
     const got = downloads();
     await openDownload(shell);
-    acts(row(shell, 'Text (TLO)')).find((b) => b.getAttribute('aria-label') === 'Download the .tlo')!.click();
+    acts(row(shell, 'Text (TLO)'))
+      .find((b) => b.getAttribute('aria-label') === 'Download the .tlo')!
+      .click();
     await until(() => got.has('notes.tlo'));
     expect(shared.length).toBe(1);
   });
@@ -161,7 +163,11 @@ test('Copy link gives the link that downloads the file, and opening it downloads
   await until(() => !!shell.querySelector('to-write-editor'));
   const links: Record<string, string> = {};
   await clipboard(async (copied) => {
-    for (const [name, ext] of [['PDF file', 'pdf'], ['Picture (PNG)', 'png'], ['Markdown', 'md']]) {
+    for (const [name, ext] of [
+      ['PDF file', 'pdf'],
+      ['Picture (PNG)', 'png'],
+      ['Markdown', 'md'],
+    ]) {
       await openDownload(shell);
       acts(row(shell, name)).at(-1)!.click();
       await until(() => copied().includes(`#/v1/write.${ext}/`));
@@ -179,7 +185,7 @@ test('Copy link gives the link that downloads the file, and opening it downloads
   expect(got.get('notes.png')!.type).toBe('image/png');
 });
 
-test('the keys: Up and Down between rows, Left and Right between a row\'s actions, Enter acts, Home and End', async () => {
+test("the keys: Up and Down between rows, Left and Right between a row's actions, Enter acts, Home and End", async () => {
   await page.viewport(390, 844);
   const shell = await mount(NOTES);
   await until(() => !!shell.querySelector('to-write-editor'));
@@ -261,7 +267,13 @@ test('at size 2 the actions never overlap, each a whole target, and the table sc
 });
 
 /** A row's actions, by what each does: view, share, download, link. */
-const kinds = (r: HTMLElement) => acts(r).map((b) => b.getAttribute('aria-label')!.replace(/^(\w+).*/, '$1').toLowerCase());
+const kinds = (r: HTMLElement) =>
+  acts(r).map((b) =>
+    b
+      .getAttribute('aria-label')!
+      .replace(/^(\w+).*/, '$1')
+      .toLowerCase(),
+  );
 
 test('the table reads each format: View where the browser shows the file, Share where the device takes it, Download and Copy link always (Write, Animator)', async () => {
   await page.viewport(390, 844);

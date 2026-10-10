@@ -74,7 +74,8 @@ const r = (n: number) => String(Math.round(n * 1000) / 1000);
 export const tilePattern = (t: Tile, id = 'tile', side = 64): string => `<pattern id="${xml(id)}" width="${side}" height="${side}" patternUnits="userSpaceOnUse">${tileRects(t, side)}</pattern>`;
 
 /** One tile as a complete SVG document, `side` px square (the file "Use as background" gives, and what the PNG is drawn from). */
-export const tileSvg = (t: Tile, side = 64): string => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${side} ${side}" width="${side}" height="${side}" shape-rendering="crispEdges">${tileRects(t, side)}</svg>`;
+export const tileSvg = (t: Tile, side = 64): string =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${side} ${side}" width="${side}" height="${side}" shape-rendering="crispEdges">${tileRects(t, side)}</svg>`;
 
 /** The tile as a CSS background for an HTML page: a data URL, repeating every `side` px. */
 export const tileCss = (t: Tile, side = 64): string => `url("data:image/svg+xml,${encodeURIComponent(tileSvg(t, side)).replace(/%20/g, ' ').replace(/%22/g, "'")}")`;

@@ -228,7 +228,20 @@ test('opened by a pointer, the menu itself has the focus and the first arrow goe
 test('the templates list keeps the same keys: the arrows wrap, letters find, Enter chooses, Escape closes to its button', async () => {
   document.body.innerHTML = '<div id="box"></div>';
   const page = { w: 10, h: 10, svg: '' };
-  const app = { id: 'demo', name: 'Demo', noun: 'demo', group: '', icon: UI.plus, blurb: '', blank: () => '', templates: ['Budget', 'Brief', 'Log'].map((name) => ({ id: name.toLowerCase(), name, blurb: '', doc: name })), editor: async () => ({ tag: 'x' }), title: () => '', retitle: (d: string) => d, view: () => [page] };
+  const app = {
+    id: 'demo',
+    name: 'Demo',
+    noun: 'demo',
+    group: '',
+    icon: UI.plus,
+    blurb: '',
+    blank: () => '',
+    templates: ['Budget', 'Brief', 'Log'].map((name) => ({ id: name.toLowerCase(), name, blurb: '', doc: name })),
+    editor: async () => ({ tag: 'x' }),
+    title: () => '',
+    retitle: (d: string) => d,
+    view: () => [page],
+  };
   render(html`<to-templates .app=${app}></to-templates>`, document.querySelector('#box')!);
   const el = document.querySelector<ToTemplates>('to-templates')!;
   await el.updateComplete;

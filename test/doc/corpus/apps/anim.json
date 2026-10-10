@@ -1,57 +1,57 @@
 {
- "source": "src/apps/anim/templates.ts (the rebuilt tree)",
- "docs": [
-  {
-   "name": "anim/liftoff",
-   "text": "---\ntitle: Lift off\nframes: 24\nfps: 8\nalt: A rocket lifts off and flies up and away to the right, under the words Lift off.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n"
-  },
-  {
-   "name": "anim/bounce",
-   "text": "---\ntitle: Bouncing ball\nframes: 12\nfps: 12\nloop: bounce\nalt: A red ball falls to the floor, gathering speed, and bounces back up, its shadow growing as it nears the ground.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nl | 4 | 46 | 72 | 0 | 0 |\ne | 34 | 44 | 12 | 2 | 1 |\ne | 36 | 4 | 8 | 8 | 2r |\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,0.4,0; 7,0,0,0,0.7,0; 11,0,0,0,1.2,0\n2 | 0,0,0,0,1,0; 3,0,20,0,1,0; 5,0,56,0,1,0; 7,0,110,0,1,0; 9,0,182,0,1,0; 10,0,225,0,1,0; 11,0,272,0,1,0\n"
-  },
-  {
-   "name": "anim/spinner",
-   "text": "---\ntitle: Saving\nframes: 16\nfps: 16\nalt: A ring of eight blue dots, each growing and shrinking in turn so the largest runs round clockwise, over the words Saving your changes.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ne | 39 | 9 | 2 | 2 | 2b |\ne | 46 | 12 | 2 | 2 | 2b |\ne | 49 | 19 | 2 | 2 | 2b |\ne | 46 | 26 | 2 | 2 | 2b |\ne | 39 | 29 | 2 | 2 | 2b |\ne | 32 | 26 | 2 | 2 | 2b |\ne | 29 | 19 | 2 | 2 | 2b |\ne | 32 | 12 | 2 | 2 | 2b |\nt | 28 | 36 | 48 | 4 | 03 | Saving your changes\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1.8,0; 6,0,0,0,1,0; 15,0,0,0,1,0\n1 | 0,0,0,0,1,0; 1,0,0,0,1,0; 2,0,0,0,1.8,0; 8,0,0,0,1,0; 15,0,0,0,1,0\n2 | 0,0,0,0,1,0; 3,0,0,0,1,0; 4,0,0,0,1.8,0; 10,0,0,0,1,0; 15,0,0,0,1,0\n3 | 0,0,0,0,1,0; 5,0,0,0,1,0; 6,0,0,0,1.8,0; 12,0,0,0,1,0; 15,0,0,0,1,0\n4 | 0,0,0,0,1,0; 7,0,0,0,1,0; 8,0,0,0,1.8,0; 14,0,0,0,1,0; 15,0,0,0,1,0\n5 | 0,0,0,0,1,0; 9,0,0,0,1,0; 10,0,0,0,1.8,0; 15,0,0,0,1.1,0\n6 | 0,0,0,0,1.3,0; 2,0,0,0,1,0; 11,0,0,0,1,0; 12,0,0,0,1.8,0; 15,0,0,0,1.4,0\n7 | 0,0,0,0,1.5,0; 4,0,0,0,1,0; 13,0,0,0,1,0; 14,0,0,0,1.8,0; 15,0,0,0,1.7,0\n"
-  },
-  {
-   "name": "anim/curtain",
-   "text": "---\ntitle: Harbour Lights opening night\nframes: 30\nfps: 12\nloop: once\nalt: Red curtains reading Opening night part to show the title Harbour Lights Film Festival, Halifax waterfront, 14 to 18 October 2026.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 12 | 14 | 56 | 20 | 1b4 | Harbour Lights Film Festival \\| Halifax waterfront · 14 to 18 October 2026\nr | 0 | 0 | 40 | 50 | 2r4 | Opening\nr | 40 | 0 | 40 | 50 | 2r4 | night\n\nShape | Keys\n--- | ---\n0 | 0,0,0,-120,0.8,0; 12,0,0,-120,0.8,0; 22,0,0,0,1.1,0; 29,0,0,0,1.1,0,d\n1 | 0,0,0,0,1,0; 6,0,0,0,1,0; 10,-60,0,0,1,0; 14,-180,0,0,1,0; 18,-330,0,0,1,0\n2 | 0,0,0,0,1,0; 6,0,0,0,1,0; 10,60,0,0,1,0; 14,180,0,0,1,0; 18,330,0,0,1,0\n"
-  },
-  {
-   "name": "anim/birthday",
-   "text": "---\ntitle: Happy birthday, Maya\nframes: 16\nfps: 8\nalt: A birthday card: the words Happy birthday, Maya in rainbow colours over a red present that hops, with stars and hearts swaying round it.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 4 | 72 | 8 | 0p4 | Happy birthday, Maya!\ni | 34 | 18 | 12 | 12 | 0r | gift\ni | 14 | 16 | 6 | 6 | 0o | star\ni | 60 | 14 | 6 | 6 | 0r | heart\ni | 20 | 32 | 5 | 5 | 0p | heart\ni | 56 | 30 | 5 | 5 | 0b | star\nt | 4 | 42 | 72 | 4 | 0 | With love from everyone on the fourth floor · 12 November 2026\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,g\n1 | 0,0,0,0,1,0; 3,0,-40,0,1,-8; 6,0,0,0,1,0; 8,0,0,0,1,0; 11,0,-40,0,1,8; 14,0,0,0,1,0\n2 | 0,0,0,0,1,-15; 8,0,-12,0,1.2,15; 15,0,-2,0,1,-11\n3 | 0,0,-12,0,1.2,10; 8,0,0,0,1,-10; 15,0,-10,0,1.2,8\n4 | 0,0,0,0,1,10; 8,0,-12,0,1.2,-10; 15,0,-2,0,1,8\n5 | 0,0,-12,0,1,-15; 8,0,0,0,1.2,15; 15,0,-10,0,1,-11\n"
-  },
-  {
-   "name": "anim/standup",
-   "text": "---\ntitle: Just a quick standup\nframes: 16\nfps: 12\nalt: A meme: the words Just a quick standup above a clock that spins wildly, and 47 minutes later below it.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 2 | 3 | 76 | 6 | 04 | Just a quick standup\ni | 32 | 17 | 16 | 16 | 0 | clock\nt | 2 | 40 | 76 | 6 | 04 | 47 minutes later\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,i\n1 | 0,0,0,0,1,0,w; 15,0,0,0,1,675,w\n2 | 0,0,0,0,1,0,i\n"
-  },
-  {
-   "name": "anim/green",
-   "text": "---\ntitle: When the build is green\nframes: 24\nfps: 8\nalt: A meme: the words When the build is green, and a trophy that spins in, grows, and glows.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 6 | 3 | 68 | 6 | 04 | When the build\nt | 14 | 40 | 52 | 6 | 04 | is green\ni | 34 | 17 | 12 | 12 | 0o | trophy\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,i\n1 | 0,0,0,0,1,0,i\n2 | 0,0,0,0,0.2,-180; 8,0,0,0,1.3,15; 10,0,0,0,1,0; 12,0,0,0,1,0,n; 23,0,0,0,1,0,nw\n"
-  },
-  {
-   "name": "anim/flip",
-   "text": "---\ntitle: Spanish, week 6: la biblioteca\nframes: 24\nfps: 8\nalt: A flash card reading la biblioteca turns over to show the library, then turns back.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 16 | 8 | 48 | 28 | 1b4 | la biblioteca \\| say it aloud before it turns\no | 16 | 8 | 48 | 28 | 2b4 | the library \\| a place to borrow books\nt | 4 | 41 | 72 | 4 | 0 | Spanish, week 6 · card 3 of 20\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 8,0,0,0,1,0; 11,0,0,0,1,0,,u90; 20,0,0,0,1,0,,u90; 23,0,0,0,1,0\n1 | 0,0,0,0,1,0,,u90; 11,0,0,0,1,0,,u90; 14,0,0,0,1,0; 17,0,0,0,1,0; 20,0,0,0,1,0,,u90; 23,0,0,0,1,0,,u90\n"
-  },
-  {
-   "name": "anim/weather",
-   "text": "---\ntitle: Lisbon this week\nframes: 16\nfps: 8\nalt: A forecast for Lisbon: Monday sunny and 24 degrees, Tuesday cloudy and 21, Wednesday storms and 19, Thursday sunny and 23, each icon moving.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 2 | 72 | 6 | 04 | Lisbon this week\ni | 6 | 13 | 8 | 8 | 0o | sun\ni | 26 | 13 | 8 | 8 | 0b | cloud\ni | 46 | 13 | 8 | 8 | 0p | zap\ni | 66 | 13 | 8 | 8 | 0o | sun\nt | 1 | 24 | 18 | 7 | 03 | Mon 12 \\| Sunny, 24°\nt | 21 | 24 | 18 | 7 | 03 | Tue 13 \\| Cloudy, 21°\nt | 41 | 24 | 18 | 7 | 03 | Wed 14 \\| Storms, 19°\nt | 61 | 24 | 18 | 7 | 03 | Thu 15 \\| Sunny, 23°\nt | 4 | 42 | 72 | 4 | 0 | Afternoon highs for Lisbon, Monday 12 to Thursday 15 October 2026\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,1,0; 15,0,0,0,1,42\n2 | 0,0,0,0,1,0; 8,14,0,0,1,0; 15,2,0,0,1,0\n3 | 0,0,0,0,1,0,w; 3,0,0,0,1.3,0,w; 5,0,0,0,1,0; 9,0,0,0,1,0; 10,0,0,0,1.3,0,w; 12,0,0,0,1,0; 15,0,0,0,1,0\n4 | 0,0,0,0,1,22; 15,0,0,0,1,64\n"
-  },
-  {
-   "name": "anim/countdown",
-   "text": "---\ntitle: New Year’s Eve at the Boathouse\nframes: 24\nfps: 4\nloop: once\nalt: A countdown at the Boathouse: a large 3, then 2, then 1, then Happy 2027! in rainbow letters, with stars spinning out beside it.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 3 | 72 | 4 | 03 | New Year’s Eve at the Boathouse\nt | 32 | 20 | 16 | 8 | 0r4 | 3\nt | 32 | 20 | 16 | 8 | 0o4 | 2\nt | 32 | 20 | 16 | 8 | 0g4 | 1\nt | 4 | 20 | 72 | 8 | 0p4 | Happy 2027!\ni | 10 | 34 | 6 | 6 | 0o | star\ni | 64 | 34 | 6 | 6 | 0b | star\nt | 4 | 44 | 72 | 3 | 0 | Thursday 31 December 2026 · doors at nine\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,3,0; 3,0,0,0,3.4,0; 4,0,-600,0,3,0\n2 | 0,0,-600,0,3,0; 3,0,-600,0,3,0; 4,0,0,0,3,0; 7,0,0,0,3.4,0; 8,0,-600,0,3,0\n3 | 0,0,-600,0,3,0; 7,0,-600,0,3,0; 8,0,0,0,3,0; 11,0,0,0,3.4,0; 12,0,-600,0,3,0\n4 | 0,0,-600,0,0.5,0; 11,0,-600,0,0.5,0; 12,0,0,0,0.5,0,g; 14,0,0,0,1.3,0,gd; 15,0,0,0,1.1,0,gd; 23,0,0,0,1.1,0,gd\n5 | 0,0,0,0,0.6,0; 12,0,0,0,0.6,0; 14,-40,-40,0,1.4,90; 23,-40,-40,0,1.2,180,d\n6 | 0,0,0,0,0.6,0; 12,0,0,0,0.6,0; 14,40,-40,0,1.4,-90; 23,40,-40,0,1.2,-180,d\n"
-  },
-  {
-   "name": "anim/flight",
-   "text": "---\ntitle: London to Lisbon, 24 October\nframes: 24\nfps: 8\nalt: A plane flies along a dotted line from a pin at London to a pin at Lisbon, growing as it climbs and shrinking as it lands.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 2 | 72 | 6 | 03 | Saturday 24 October 2026 \\| Heathrow 09:05, Lisbon 11:45\nl | 11 | 24 | 56 | 12 | 1 |\ni | 8 | 16 | 6 | 6 | 0r | map-pin\ni | 64 | 28 | 6 | 6 | 0r | map-pin\nt | 3 | 25 | 16 | 3 | 0 | London\nt | 59 | 37 | 16 | 3 | 0 | Lisbon\ni | 7 | 20 | 8 | 8 | 0b | plane\n\nShape | Keys\n--- | ---\n6 | 0,0,0,0,0.8,57; 3,56,12,0,1,57; 12,224,48,0,1.4,57; 21,392,84,0,1,57; 23,448,96,0,0.8,57\n"
-  },
-  {
-   "name": "anim/neon",
-   "text": "---\ntitle: Kafé Lindqvist sign\nframes: 16\nfps: 8\nalt: A sign for Kafé Lindqvist whose name flickers, with the words open till midnight below and a glowing coffee cup that swells.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 9 | 72 | 8 | 0p4 | Kafé Lindqvist\nt | 4 | 19 | 72 | 5 | 0o3 | open till midnight\ni | 36 | 27 | 8 | 8 | 0o | coffee\nt | 4 | 42 | 72 | 3 | 0 | Linnégatan 14, Göteborg · cardamom buns from seven\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,d; 5,0,0,0,1,0,d; 6,0,0,-200,1,0; 7,0,0,0,1,0,d; 8,0,0,-200,1,0; 9,0,0,0,1,0,d; 15,0,0,0,1,0,d\n1 | 0,0,0,0,1,0,d\n2 | 0,0,0,0,1,0,n; 8,0,-4,0,1.2,0,n; 15,0,0,0,1,0,n\n"
-  },
-  {
-   "name": "anim/sunrise",
-   "text": "---\ntitle: Good morning\nframes: 36\nfps: 12\nalt: The sun rises from behind green hills and grows larger, and the words Good morning slide in from the left.\n---\nKind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\ni | 35 | 30 | 10 | 10 | 0o | sun |\nv | 0 | 30 | 80 | 20 | 2g |  | 0:100;0:40;18:10;36:45;55:5;78:40;100:20;100:100\nt | 4 | 4 | 36 | 5 | 03 | Good morning |\n\nShape | Keys\n--- | ---\n0 | 0,0,0,-60,1,0; 35,0,-180,-60,1.6,0\n2 | 0,-400,0,0,1,0; 12,-400,0,0,1,0; 20,0,0,0,1,0\n"
-  }
- ]
+  "source": "src/apps/anim/templates.ts (the rebuilt tree)",
+  "docs": [
+    {
+      "name": "anim/liftoff",
+      "text": "---\ntitle: Lift off\nframes: 24\nfps: 8\nalt: A rocket lifts off and flies up and away to the right, under the words Lift off.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n"
+    },
+    {
+      "name": "anim/bounce",
+      "text": "---\ntitle: Bouncing ball\nframes: 12\nfps: 12\nloop: bounce\nalt: A red ball falls to the floor, gathering speed, and bounces back up, its shadow growing as it nears the ground.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nl | 4 | 46 | 72 | 0 | 0 |\ne | 34 | 44 | 12 | 2 | 1 |\ne | 36 | 4 | 8 | 8 | 2r |\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,0.4,0; 7,0,0,0,0.7,0; 11,0,0,0,1.2,0\n2 | 0,0,0,0,1,0; 3,0,20,0,1,0; 5,0,56,0,1,0; 7,0,110,0,1,0; 9,0,182,0,1,0; 10,0,225,0,1,0; 11,0,272,0,1,0\n"
+    },
+    {
+      "name": "anim/spinner",
+      "text": "---\ntitle: Saving\nframes: 16\nfps: 16\nalt: A ring of eight blue dots, each growing and shrinking in turn so the largest runs round clockwise, over the words Saving your changes.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ne | 39 | 9 | 2 | 2 | 2b |\ne | 46 | 12 | 2 | 2 | 2b |\ne | 49 | 19 | 2 | 2 | 2b |\ne | 46 | 26 | 2 | 2 | 2b |\ne | 39 | 29 | 2 | 2 | 2b |\ne | 32 | 26 | 2 | 2 | 2b |\ne | 29 | 19 | 2 | 2 | 2b |\ne | 32 | 12 | 2 | 2 | 2b |\nt | 28 | 36 | 48 | 4 | 03 | Saving your changes\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1.8,0; 6,0,0,0,1,0; 15,0,0,0,1,0\n1 | 0,0,0,0,1,0; 1,0,0,0,1,0; 2,0,0,0,1.8,0; 8,0,0,0,1,0; 15,0,0,0,1,0\n2 | 0,0,0,0,1,0; 3,0,0,0,1,0; 4,0,0,0,1.8,0; 10,0,0,0,1,0; 15,0,0,0,1,0\n3 | 0,0,0,0,1,0; 5,0,0,0,1,0; 6,0,0,0,1.8,0; 12,0,0,0,1,0; 15,0,0,0,1,0\n4 | 0,0,0,0,1,0; 7,0,0,0,1,0; 8,0,0,0,1.8,0; 14,0,0,0,1,0; 15,0,0,0,1,0\n5 | 0,0,0,0,1,0; 9,0,0,0,1,0; 10,0,0,0,1.8,0; 15,0,0,0,1.1,0\n6 | 0,0,0,0,1.3,0; 2,0,0,0,1,0; 11,0,0,0,1,0; 12,0,0,0,1.8,0; 15,0,0,0,1.4,0\n7 | 0,0,0,0,1.5,0; 4,0,0,0,1,0; 13,0,0,0,1,0; 14,0,0,0,1.8,0; 15,0,0,0,1.7,0\n"
+    },
+    {
+      "name": "anim/curtain",
+      "text": "---\ntitle: Harbour Lights opening night\nframes: 30\nfps: 12\nloop: once\nalt: Red curtains reading Opening night part to show the title Harbour Lights Film Festival, Halifax waterfront, 14 to 18 October 2026.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 12 | 14 | 56 | 20 | 1b4 | Harbour Lights Film Festival \\| Halifax waterfront · 14 to 18 October 2026\nr | 0 | 0 | 40 | 50 | 2r4 | Opening\nr | 40 | 0 | 40 | 50 | 2r4 | night\n\nShape | Keys\n--- | ---\n0 | 0,0,0,-120,0.8,0; 12,0,0,-120,0.8,0; 22,0,0,0,1.1,0; 29,0,0,0,1.1,0,d\n1 | 0,0,0,0,1,0; 6,0,0,0,1,0; 10,-60,0,0,1,0; 14,-180,0,0,1,0; 18,-330,0,0,1,0\n2 | 0,0,0,0,1,0; 6,0,0,0,1,0; 10,60,0,0,1,0; 14,180,0,0,1,0; 18,330,0,0,1,0\n"
+    },
+    {
+      "name": "anim/birthday",
+      "text": "---\ntitle: Happy birthday, Maya\nframes: 16\nfps: 8\nalt: A birthday card: the words Happy birthday, Maya in rainbow colours over a red present that hops, with stars and hearts swaying round it.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 4 | 72 | 8 | 0p4 | Happy birthday, Maya!\ni | 34 | 18 | 12 | 12 | 0r | gift\ni | 14 | 16 | 6 | 6 | 0o | star\ni | 60 | 14 | 6 | 6 | 0r | heart\ni | 20 | 32 | 5 | 5 | 0p | heart\ni | 56 | 30 | 5 | 5 | 0b | star\nt | 4 | 42 | 72 | 4 | 0 | With love from everyone on the fourth floor · 12 November 2026\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,g\n1 | 0,0,0,0,1,0; 3,0,-40,0,1,-8; 6,0,0,0,1,0; 8,0,0,0,1,0; 11,0,-40,0,1,8; 14,0,0,0,1,0\n2 | 0,0,0,0,1,-15; 8,0,-12,0,1.2,15; 15,0,-2,0,1,-11\n3 | 0,0,-12,0,1.2,10; 8,0,0,0,1,-10; 15,0,-10,0,1.2,8\n4 | 0,0,0,0,1,10; 8,0,-12,0,1.2,-10; 15,0,-2,0,1,8\n5 | 0,0,-12,0,1,-15; 8,0,0,0,1.2,15; 15,0,-10,0,1,-11\n"
+    },
+    {
+      "name": "anim/standup",
+      "text": "---\ntitle: Just a quick standup\nframes: 16\nfps: 12\nalt: A meme: the words Just a quick standup above a clock that spins wildly, and 47 minutes later below it.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 2 | 3 | 76 | 6 | 04 | Just a quick standup\ni | 32 | 17 | 16 | 16 | 0 | clock\nt | 2 | 40 | 76 | 6 | 04 | 47 minutes later\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,i\n1 | 0,0,0,0,1,0,w; 15,0,0,0,1,675,w\n2 | 0,0,0,0,1,0,i\n"
+    },
+    {
+      "name": "anim/green",
+      "text": "---\ntitle: When the build is green\nframes: 24\nfps: 8\nalt: A meme: the words When the build is green, and a trophy that spins in, grows, and glows.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 6 | 3 | 68 | 6 | 04 | When the build\nt | 14 | 40 | 52 | 6 | 04 | is green\ni | 34 | 17 | 12 | 12 | 0o | trophy\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,i\n1 | 0,0,0,0,1,0,i\n2 | 0,0,0,0,0.2,-180; 8,0,0,0,1.3,15; 10,0,0,0,1,0; 12,0,0,0,1,0,n; 23,0,0,0,1,0,nw\n"
+    },
+    {
+      "name": "anim/flip",
+      "text": "---\ntitle: Spanish, week 6: la biblioteca\nframes: 24\nfps: 8\nalt: A flash card reading la biblioteca turns over to show the library, then turns back.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 16 | 8 | 48 | 28 | 1b4 | la biblioteca \\| say it aloud before it turns\no | 16 | 8 | 48 | 28 | 2b4 | the library \\| a place to borrow books\nt | 4 | 41 | 72 | 4 | 0 | Spanish, week 6 · card 3 of 20\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 8,0,0,0,1,0; 11,0,0,0,1,0,,u90; 20,0,0,0,1,0,,u90; 23,0,0,0,1,0\n1 | 0,0,0,0,1,0,,u90; 11,0,0,0,1,0,,u90; 14,0,0,0,1,0; 17,0,0,0,1,0; 20,0,0,0,1,0,,u90; 23,0,0,0,1,0,,u90\n"
+    },
+    {
+      "name": "anim/weather",
+      "text": "---\ntitle: Lisbon this week\nframes: 16\nfps: 8\nalt: A forecast for Lisbon: Monday sunny and 24 degrees, Tuesday cloudy and 21, Wednesday storms and 19, Thursday sunny and 23, each icon moving.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 2 | 72 | 6 | 04 | Lisbon this week\ni | 6 | 13 | 8 | 8 | 0o | sun\ni | 26 | 13 | 8 | 8 | 0b | cloud\ni | 46 | 13 | 8 | 8 | 0p | zap\ni | 66 | 13 | 8 | 8 | 0o | sun\nt | 1 | 24 | 18 | 7 | 03 | Mon 12 \\| Sunny, 24°\nt | 21 | 24 | 18 | 7 | 03 | Tue 13 \\| Cloudy, 21°\nt | 41 | 24 | 18 | 7 | 03 | Wed 14 \\| Storms, 19°\nt | 61 | 24 | 18 | 7 | 03 | Thu 15 \\| Sunny, 23°\nt | 4 | 42 | 72 | 4 | 0 | Afternoon highs for Lisbon, Monday 12 to Thursday 15 October 2026\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,1,0; 15,0,0,0,1,42\n2 | 0,0,0,0,1,0; 8,14,0,0,1,0; 15,2,0,0,1,0\n3 | 0,0,0,0,1,0,w; 3,0,0,0,1.3,0,w; 5,0,0,0,1,0; 9,0,0,0,1,0; 10,0,0,0,1.3,0,w; 12,0,0,0,1,0; 15,0,0,0,1,0\n4 | 0,0,0,0,1,22; 15,0,0,0,1,64\n"
+    },
+    {
+      "name": "anim/countdown",
+      "text": "---\ntitle: New Year’s Eve at the Boathouse\nframes: 24\nfps: 4\nloop: once\nalt: A countdown at the Boathouse: a large 3, then 2, then 1, then Happy 2027! in rainbow letters, with stars spinning out beside it.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 3 | 72 | 4 | 03 | New Year’s Eve at the Boathouse\nt | 32 | 20 | 16 | 8 | 0r4 | 3\nt | 32 | 20 | 16 | 8 | 0o4 | 2\nt | 32 | 20 | 16 | 8 | 0g4 | 1\nt | 4 | 20 | 72 | 8 | 0p4 | Happy 2027!\ni | 10 | 34 | 6 | 6 | 0o | star\ni | 64 | 34 | 6 | 6 | 0b | star\nt | 4 | 44 | 72 | 3 | 0 | Thursday 31 December 2026 · doors at nine\n\nShape | Keys\n--- | ---\n1 | 0,0,0,0,3,0; 3,0,0,0,3.4,0; 4,0,-600,0,3,0\n2 | 0,0,-600,0,3,0; 3,0,-600,0,3,0; 4,0,0,0,3,0; 7,0,0,0,3.4,0; 8,0,-600,0,3,0\n3 | 0,0,-600,0,3,0; 7,0,-600,0,3,0; 8,0,0,0,3,0; 11,0,0,0,3.4,0; 12,0,-600,0,3,0\n4 | 0,0,-600,0,0.5,0; 11,0,-600,0,0.5,0; 12,0,0,0,0.5,0,g; 14,0,0,0,1.3,0,gd; 15,0,0,0,1.1,0,gd; 23,0,0,0,1.1,0,gd\n5 | 0,0,0,0,0.6,0; 12,0,0,0,0.6,0; 14,-40,-40,0,1.4,90; 23,-40,-40,0,1.2,180,d\n6 | 0,0,0,0,0.6,0; 12,0,0,0,0.6,0; 14,40,-40,0,1.4,-90; 23,40,-40,0,1.2,-180,d\n"
+    },
+    {
+      "name": "anim/flight",
+      "text": "---\ntitle: London to Lisbon, 24 October\nframes: 24\nfps: 8\nalt: A plane flies along a dotted line from a pin at London to a pin at Lisbon, growing as it climbs and shrinking as it lands.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 2 | 72 | 6 | 03 | Saturday 24 October 2026 \\| Heathrow 09:05, Lisbon 11:45\nl | 11 | 24 | 56 | 12 | 1 |\ni | 8 | 16 | 6 | 6 | 0r | map-pin\ni | 64 | 28 | 6 | 6 | 0r | map-pin\nt | 3 | 25 | 16 | 3 | 0 | London\nt | 59 | 37 | 16 | 3 | 0 | Lisbon\ni | 7 | 20 | 8 | 8 | 0b | plane\n\nShape | Keys\n--- | ---\n6 | 0,0,0,0,0.8,57; 3,56,12,0,1,57; 12,224,48,0,1.4,57; 21,392,84,0,1,57; 23,448,96,0,0.8,57\n"
+    },
+    {
+      "name": "anim/neon",
+      "text": "---\ntitle: Kafé Lindqvist sign\nframes: 16\nfps: 8\nalt: A sign for Kafé Lindqvist whose name flickers, with the words open till midnight below and a glowing coffee cup that swells.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 9 | 72 | 8 | 0p4 | Kafé Lindqvist\nt | 4 | 19 | 72 | 5 | 0o3 | open till midnight\ni | 36 | 27 | 8 | 8 | 0o | coffee\nt | 4 | 42 | 72 | 3 | 0 | Linnégatan 14, Göteborg · cardamom buns from seven\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,d; 5,0,0,0,1,0,d; 6,0,0,-200,1,0; 7,0,0,0,1,0,d; 8,0,0,-200,1,0; 9,0,0,0,1,0,d; 15,0,0,0,1,0,d\n1 | 0,0,0,0,1,0,d\n2 | 0,0,0,0,1,0,n; 8,0,-4,0,1.2,0,n; 15,0,0,0,1,0,n\n"
+    },
+    {
+      "name": "anim/sunrise",
+      "text": "---\ntitle: Good morning\nframes: 36\nfps: 12\nalt: The sun rises from behind green hills and grows larger, and the words Good morning slide in from the left.\n---\nKind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\ni | 35 | 30 | 10 | 10 | 0o | sun |\nv | 0 | 30 | 80 | 20 | 2g |  | 0:100;0:40;18:10;36:45;55:5;78:40;100:20;100:100\nt | 4 | 4 | 36 | 5 | 03 | Good morning |\n\nShape | Keys\n--- | ---\n0 | 0,0,0,-60,1,0; 35,0,-180,-60,1.6,0\n2 | 0,-400,0,0,1,0; 12,-400,0,0,1,0; 20,0,0,0,1,0\n"
+    }
+  ]
 }

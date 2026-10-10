@@ -118,7 +118,16 @@ function mapped([L, C, H]: Lch): Lch {
   return [L, lo, H];
 }
 export function lchToHex(c: Lch): string {
-  return '#' + lchToLinear(c).map((v) => Math.round(Math.min(1, Math.max(0, toGamma(Math.min(1, Math.max(0, v))))) * 255).toString(16).padStart(2, '0')).join('');
+  return (
+    '#' +
+    lchToLinear(c)
+      .map((v) =>
+        Math.round(Math.min(1, Math.max(0, toGamma(Math.min(1, Math.max(0, v))))) * 255)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')
+  );
 }
 const round = (c: Lch): Lch => [Math.round(c[0] * 1000) / 1000, Math.round(c[1] * 10000) / 10000, Math.round(c[2] * 10) / 10];
 export const lchCss = ([l, c, h]: Lch) => `oklch(${l} ${c} ${h})`;
@@ -175,7 +184,10 @@ export function themeCss(t: Theme): string {
 
 /** WCAG contrast of two hex colours. */
 export function contrast(x: string, y: string): number {
-  const lum = (hex: string) => rgbOf(hex).map(toLinear).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const lum = (hex: string) =>
+    rgbOf(hex)
+      .map(toLinear)
+      .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
   const [a, b] = [lum(x), lum(y)];
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }

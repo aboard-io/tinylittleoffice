@@ -34,8 +34,18 @@ async function only(selector: string): Promise<HTMLDialogElement> {
 const doc = () => `#/v1/write/${encodeDoc('# Letter\n\nDear Ada,\n')}`;
 
 for (const row of [
-  { name: 'an app’s templates', press: (d: HTMLElement) => d.querySelector<HTMLElement>('.to-drawer-apps .to-app-head to-templates > button')!, opens: 'dialog.to-templates-dialog', close: (m: HTMLDialogElement) => m.querySelector<HTMLElement>('.to-listbox-close')!.click() },
-  { name: 'Privacy and keys', press: (d: HTMLElement) => d.querySelector<HTMLElement>('.to-drawer-privacy')!, opens: 'to-dialog.to-privacy-dialog dialog', close: (m: HTMLDialogElement) => m.querySelector<HTMLElement>('.to-dialog-head button')!.click() },
+  {
+    name: 'an app’s templates',
+    press: (d: HTMLElement) => d.querySelector<HTMLElement>('.to-drawer-apps .to-app-head to-templates > button')!,
+    opens: 'dialog.to-templates-dialog',
+    close: (m: HTMLDialogElement) => m.querySelector<HTMLElement>('.to-listbox-close')!.click(),
+  },
+  {
+    name: 'Privacy and keys',
+    press: (d: HTMLElement) => d.querySelector<HTMLElement>('.to-drawer-privacy')!,
+    opens: 'to-dialog.to-privacy-dialog dialog',
+    close: (m: HTMLDialogElement) => m.querySelector<HTMLElement>('.to-dialog-head button')!.click(),
+  },
   { name: 'About', press: (d: HTMLElement) => d.querySelector<HTMLElement>('.to-drawer-about')!, opens: 'to-dialog.to-about-dialog dialog', close: (m: HTMLDialogElement) => m.close() },
 ])
   test(`${row.name} from the drawer: the drawer closes first, one modal at a time, and the focus comes back to the hamburger`, async () => {
@@ -55,7 +65,8 @@ for (const row of [
 
 test('a command from the drawer (under a finger, the app’s own: the calendar’s Time zone): the drawer closes first, and the focus comes back to the hamburger', async () => {
   const real = window.matchMedia;
-  window.matchMedia = (q: string) => (/^\(pointer: coarse\)$/.test(q.trim()) ? ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real.call(window, q));
+  window.matchMedia = (q: string) =>
+    /^\(pointer: coarse\)$/.test(q.trim()) ? ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real.call(window, q);
   try {
     const shell = await mount('#/v1/cal');
     await until(() => !!shell.querySelector('to-cal-editor'));
@@ -134,7 +145,7 @@ test('Password… from Share: Share closes, the password dialog alone is open; c
   // Done (a password set): Share is back too, saying so.
   share.querySelector<HTMLButtonElement>('.to-password-open')!.click();
   await only('to-dialog.to-password-dialog dialog');
-  for (const f of shell.querySelectorAll<HTMLInputElement>('.to-password-new')) (f.value = 'tulip'), f.dispatchEvent(new Event('input', { bubbles: true }));
+  for (const f of shell.querySelectorAll<HTMLInputElement>('.to-password-new')) ((f.value = 'tulip'), f.dispatchEvent(new Event('input', { bubbles: true })));
   shell.querySelector<HTMLButtonElement>('.to-password-set')!.click();
   await only('to-share dialog');
   await until(() => share.querySelector('.to-share-protect .to-trust-line')!.textContent!.includes('Protected by a password'));

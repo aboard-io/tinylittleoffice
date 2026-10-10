@@ -124,7 +124,10 @@ test('the pseudo-languages, a third longer than English: chosen, the direction f
     expect(document.documentElement.dir).toBe(directionOf(code));
     expect(document.documentElement.dir).toBe(code === 'ar-xb' ? 'rtl' : 'ltr');
     const problems = await check(pseudo(code, en));
-    expect(problems.filter((p) => p.startsWith('English shows')), code).toEqual([]);
+    expect(
+      problems.filter((p) => p.startsWith('English shows')),
+      code,
+    ).toEqual([]);
     all.push(...problems.map((p) => `${code}: ${p}`));
   }
   expect(all).toEqual([]);

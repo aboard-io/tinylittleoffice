@@ -1,9 +1,9 @@
 {
- "source": "src/apps/split.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "---\nbetween: Paul, Sam, Ada, Grace\n---\n# Weekend away\n\nWho | Amount:money | What\n--- | --- | ---\nPaul | 240 | the cottage\nSam | 86.50 | groceries\nAda | 45 | petrol"
-  }
- ]
+  "source": "src/apps/split.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "---\nbetween: Paul, Sam, Ada, Grace\n---\n# Weekend away\n\nWho | Amount:money | What\n--- | --- | ---\nPaul | 240 | the cottage\nSam | 86.50 | groceries\nAda | 45 | petrol"
+    }
+  ]
 }

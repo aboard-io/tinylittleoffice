@@ -22,7 +22,10 @@ describe('the registry is whole', () => {
       const got = (await a.commands!()).default;
       expect(got.length, `${a.id}'s commands`).toBeGreaterThan(0);
       for (const c of got) expect(c.scope, `${c.id}'s scope`).toBe(a.id);
-      expect(got.every((c) => all.includes(c)), `${a.id}: a command the tables do not list`).toBe(true);
+      expect(
+        got.every((c) => all.includes(c)),
+        `${a.id}: a command the tables do not list`,
+      ).toBe(true);
     }
   });
   test('ids are unique, each begins with its scope, and every keys string is written as it is read', () => {
@@ -46,14 +49,21 @@ describe('the graph lints', () => {
       .filter((c) => !(c.id in SHADOWS))
       .map((c) => `${c.key} binds ${c.id}`);
     expect(unlisted, 'a key bound twice: give one of them its place (`at`), or list the pair in test/commands-shadows.ts with why').toStrictEqual([]);
-    expect(Object.keys(SHADOWS).filter((id) => !found.includes(id)), 'an allowance for a pair that no longer meets').toStrictEqual([]);
+    expect(
+      Object.keys(SHADOWS).filter((id) => !found.includes(id)),
+      'an allowance for a pair that no longer meets',
+    ).toStrictEqual([]);
     for (const [id, why] of Object.entries(SHADOWS)) expect(why.length, `${id} needs a reason`).toBeGreaterThan(20);
   });
 
   test('every command in a bar or a menu has keys, or the bar’s arrows reach it (the bar is a toolbar; a menu’s items are walked by its arrows once it is open)', () => {
     const menus = new Map(all.filter((c) => c.menu).map((c) => [`${c.scope}:${c.menu}`, c]));
     const reached = (c: (typeof all)[number]): boolean =>
-      !!c.keys || c.where.includes('bar') || c.where.includes('drawer') || c.where.includes('in-doc') || c.where.some((w) => w.startsWith('menu:') && !!menus.get(`${c.scope}:${w.slice(5)}`) && reached(menus.get(`${c.scope}:${w.slice(5)}`)!));
+      !!c.keys ||
+      c.where.includes('bar') ||
+      c.where.includes('drawer') ||
+      c.where.includes('in-doc') ||
+      c.where.some((w) => w.startsWith('menu:') && !!menus.get(`${c.scope}:${w.slice(5)}`) && reached(menus.get(`${c.scope}:${w.slice(5)}`)!));
     expect(all.filter((c) => c.where.some((w) => w === 'bar' || w.startsWith('menu:')) && !reached(c)).map((c) => c.id)).toStrictEqual([]);
   });
 
@@ -141,7 +151,9 @@ describe('what the registry writes', () => {
     const data = all.filter((c) => c.data);
     expect(data.length).toBeGreaterThan(20);
     expect(data.filter((c) => c.keys).map((c) => c.id)).toStrictEqual([]);
-    const rows = editingTables().split('\n').filter((l) => /^\| [^K-]/.test(l) || /^\| \| /.test(l)).length;
+    const rows = editingTables()
+      .split('\n')
+      .filter((l) => /^\| [^K-]/.test(l) || /^\| \| /.test(l)).length;
     expect(rows).toBe(all.filter((c) => !c.menu && !c.data).length);
   });
   test('the skill lists the keys of every app', () => {

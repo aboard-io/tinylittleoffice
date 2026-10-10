@@ -8,7 +8,28 @@ import { afterEach, expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
 import { engine } from '../math.ts';
-import { addLine, clearTape, dropLine, evaluate, isNote, live, moveLines, pastedLines, plot, readCalc, removeLine, replaceLines, result, setEngine, setLine, setMode, shown, tape, tidy, type CalcView } from '../model.ts';
+import {
+  addLine,
+  clearTape,
+  dropLine,
+  evaluate,
+  isNote,
+  live,
+  moveLines,
+  pastedLines,
+  plot,
+  readCalc,
+  removeLine,
+  replaceLines,
+  result,
+  setEngine,
+  setLine,
+  setMode,
+  shown,
+  tape,
+  tidy,
+  type CalcView,
+} from '../model.ts';
 import { calcPage, graphPage, tapePage, tapeText } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -63,7 +84,13 @@ test('the tape is a little program: a name kept for the lines after it, ans the 
 test('the second engine: units convert, add and divide; big numbers stay numbers; derivative and simplify answer as algebra; nothing runs as code', () => {
   setEngine(engine);
   const texts = (lines: string[]) => tape(lines).texts;
-  expect(texts(['3 inch to cm', '60 mph in km/h', '2 cups + 3 tbsp', '100 celsius to fahrenheit', '5 km / 2 h to mph'])).toEqual(['7.62 cm', '96.56064 km / h', '2.190203878 cups', '212 fahrenheit', '1.553427981 mph']);
+  expect(texts(['3 inch to cm', '60 mph in km/h', '2 cups + 3 tbsp', '100 celsius to fahrenheit', '5 km / 2 h to mph'])).toEqual([
+    '7.62 cm',
+    '96.56064 km / h',
+    '2.190203878 cups',
+    '212 fahrenheit',
+    '1.553427981 mph',
+  ]);
   expect(texts(['171!', '2^100', '0.1 + 0.2'])).toEqual(['1.24101807e+309', '1.267651e+30', '0.3']);
   expect(texts(['derivative("x^2 + 3x", "x")', 'simplify("2x + 3x")'])).toEqual(['2 * x + 3', '5 * x']);
   // A quantity kept by name is a quantity to the lines after; a plain number is still the hand parser's.
@@ -81,7 +108,9 @@ test('the second engine: units convert, add and divide; big numbers stay numbers
 
 test('mathjs never makes code out of text: no eval, no Function constructor, in any file of it', () => {
   const root = dirname(createRequire(import.meta.url).resolve('mathjs/package.json'));
-  const files = readdirSync(join(root, 'lib/esm'), { recursive: true }).map(String).filter((f) => f.endsWith('.js'));
+  const files = readdirSync(join(root, 'lib/esm'), { recursive: true })
+    .map(String)
+    .filter((f) => f.endsWith('.js'));
   expect(files.length).toBeGreaterThan(300);
   for (const f of files) expect(/\bnew\s+Function\s*\(|\beval\s*\(|\bFunction\s*\(\s*['"`]/.test(readFileSync(join(root, 'lib/esm', f), 'utf8')), f).toBe(false);
   // And it is pinned exactly: a new version is a choice, read before it is made.
@@ -140,7 +169,13 @@ test('the commands: a line in, changed or out is a text op on the tape; its birt
   expect(run('a\nb\n', clearTape).text).toBe('');
   expect(run('', clearTape).ops).toEqual([]);
   // The mode: the head, and the tape starts again (its lines mean something else there).
-  expect(run('2+2\n', (v) => setMode(v, 'graph'))).toEqual({ ops: [{ op: 'head', key: 'mode', value: 'graph' }, { op: 'splice', at: 0, n: 1, blocks: [] }], text: '---\nmode: graph\n---\n' });
+  expect(run('2+2\n', (v) => setMode(v, 'graph'))).toEqual({
+    ops: [
+      { op: 'head', key: 'mode', value: 'graph' },
+      { op: 'splice', at: 0, n: 1, blocks: [] },
+    ],
+    text: '---\nmode: graph\n---\n',
+  });
   expect(run('---\nmode: graph\n---\n', (v) => setMode(v, 'calc')).text).toBe('');
   expect(run('2+2\n', (v) => setMode(v, 'calc')).ops).toEqual([]);
 });
@@ -176,7 +211,13 @@ test('the pages: the tape with its answers, the graph with its curves; the text;
   expect(page.svg).toContain('>Sums<');
   expect(page.svg).toContain('>= 42<');
   expect(page.alt).toBe('a = 6 = 6; a * 7 = 42; nope');
-  expect(tapePage(Array.from({ length: 20 }, (_, i) => String(i)), '', 8).alt!.split('; ')).toHaveLength(8);
+  expect(
+    tapePage(
+      Array.from({ length: 20 }, (_, i) => String(i)),
+      '',
+      8,
+    ).alt!.split('; '),
+  ).toHaveLength(8);
   const g = graphPage(['x from 0 to 4', 'x^2', 'sqrt(x)']);
   expect(g.svg).toContain('y = x^2');
   expect(g.svg).toContain('y = sqrt(x)');
@@ -213,8 +254,26 @@ test('the templates: real working, canonical, a tape already, every line an answ
   setEngine(engine);
   const all = templates();
   expect(all.map((x) => x.id)).toEqual([
-    'bill', 'shopping', 'tax', 'percent', 'kitchen', 'recipe', 'units', 'currency', 'fuel', 'paint',
-    'zones', 'pace', 'bmi', 'dose', 'power', 'loan', 'savings', 'break-even', 'slope', 'waves',
+    'bill',
+    'shopping',
+    'tax',
+    'percent',
+    'kitchen',
+    'recipe',
+    'units',
+    'currency',
+    'fuel',
+    'paint',
+    'zones',
+    'pace',
+    'bmi',
+    'dose',
+    'power',
+    'loan',
+    'savings',
+    'break-even',
+    'slope',
+    'waves',
   ]);
   expect(new Set(all.map((x) => x.name)).size).toBe(all.length);
   // The dose says plainly that it is arithmetic, not advice.

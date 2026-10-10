@@ -4,7 +4,37 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, ymdToDay, type Doc, type Op } from '../../../doc/index.ts';
 import { icsFold } from '../../../kit/ics.ts';
-import { copyTasks, duplicateTasks, enterTask, joinTask, mapAt, moveTasks, pasteItems, setLabel, shiftTasks, toggleDone, ganttBars, ganttRange, itemBlock, moveItem, nameColor, newDraft, occurrences, openingDay, putItem, readCal, readWhen, removeSpan, repeatText, resizeItem, setGantt, spanStartMs, draftOf, writeZone, type Span } from '../model.ts';
+import {
+  copyTasks,
+  duplicateTasks,
+  enterTask,
+  joinTask,
+  mapAt,
+  moveTasks,
+  pasteItems,
+  setLabel,
+  shiftTasks,
+  toggleDone,
+  ganttBars,
+  ganttRange,
+  itemBlock,
+  moveItem,
+  nameColor,
+  newDraft,
+  occurrences,
+  openingDay,
+  putItem,
+  readCal,
+  readWhen,
+  removeSpan,
+  repeatText,
+  resizeItem,
+  setGantt,
+  spanStartMs,
+  draftOf,
+  writeZone,
+  type Span,
+} from '../model.ts';
 import { calPages, calToCsv, calToIcs } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -38,9 +68,20 @@ function run(text: string, make: (doc: Doc) => Op[]): string {
 }
 
 test('a span an item: days, several days, a time, a time past midnight; the label is the words after the colon', () => {
-  const v = readCal(parse('- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-10 22:00 to 2027-03-11 01:00: Party\n- 2027-03-10 22:00-01:00: Late\n- 2027-03-12 08:00: Ping\n- someday: not a span\n\nA paragraph.\n'));
+  const v = readCal(
+    parse(
+      '- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite\n- 2027-03-10 09:00-10:30: Retro\n- 2027-03-10 22:00 to 2027-03-11 01:00: Party\n- 2027-03-10 22:00-01:00: Late\n- 2027-03-12 08:00: Ping\n- someday: not a span\n\nA paragraph.\n',
+    ),
+  );
   expect(v.zone).toBe('');
-  expect(v.items.map((i) => [i.kind, i.dur, i.words])).toEqual([['d', 1, 'Launch'], ['d', 3, 'Offsite'], ['t', 90, 'Retro'], ['t', 180, 'Party'], ['t', 180, 'Late'], ['t', 0, 'Ping']]);
+  expect(v.items.map((i) => [i.kind, i.dur, i.words])).toEqual([
+    ['d', 1, 'Launch'],
+    ['d', 3, 'Offsite'],
+    ['t', 90, 'Retro'],
+    ['t', 180, 'Party'],
+    ['t', 180, 'Late'],
+    ['t', 0, 'Ping'],
+  ]);
   expect(v.items[0].start).toBe(day(2027, 3, 1));
   // Without a zone, times are UTC.
   expect(spanStartMs(v.items[2])).toBe(Date.UTC(2027, 2, 10, 9, 0));
@@ -64,7 +105,12 @@ test('the label keeps its marks; colours, repeats, the legend and the zone come 
 });
 
 test('an item written back from its draft is the text it was read from', () => {
-  const v = readCal(parse(DOC + '- [x] 2027-03-20: Done one {#id .x color=blue every=year note=keep}\n  - 2027-03-21 to 2027-03-22: Half {done=50%}\n- 2027-03-23 22:00 to 2027-03-24 01:00: Party\n- 2027-03-25 08:00: Ping\n- 2027-03-26:\n'));
+  const v = readCal(
+    parse(
+      DOC +
+        '- [x] 2027-03-20: Done one {#id .x color=blue every=year note=keep}\n  - 2027-03-21 to 2027-03-22: Half {done=50%}\n- 2027-03-23 22:00 to 2027-03-24 01:00: Party\n- 2027-03-25 08:00: Ping\n- 2027-03-26:\n',
+    ),
+  );
   for (const i of v.items) expect(write({ head: {}, blocks: [itemBlock(draftOf(i), 'Europe/London', i.block)] })).toBe(write({ head: {}, blocks: [i.block] }));
   expect(v.items[3]).toMatchObject({ done: 100, color: 'b', depth: 0 });
   expect(v.items[4]).toMatchObject({ done: 50, depth: 1 });
@@ -72,7 +118,8 @@ test('an item written back from its draft is the text it was read from', () => {
 
 test('a repeat comes round across the months, a 31st skipping the short ones, a timed one keeping its clock in the zone', () => {
   const d = (date: [number, number, number], dur: number, repeat: Span['repeat']): Span => ({ kind: 'd', start: day(...date), dur, color: '', repeat });
-  const starts = (s: Span, from: [number, number, number], to: [number, number, number], zone = 'UTC') => occurrences(s, day(...from), day(...to), zone).map((o) => new Date(spanStartMs(o)).toISOString().slice(0, o.kind === 'd' ? 10 : 16));
+  const starts = (s: Span, from: [number, number, number], to: [number, number, number], zone = 'UTC') =>
+    occurrences(s, day(...from), day(...to), zone).map((o) => new Date(spanStartMs(o)).toISOString().slice(0, o.kind === 'd' ? 10 : 16));
   const weekly = d([2026, 1, 5], 1, { every: 'w', count: 4 });
   expect(starts(weekly, [2026, 1, 1], [2026, 1, 31])).toEqual(['2026-01-05', '2026-01-12', '2026-01-19', '2026-01-26']);
   expect(starts(weekly, [2026, 2, 1], [2026, 2, 28])).toEqual([]);
@@ -101,8 +148,10 @@ test('zones on Intl, with clock changes', () => {
   expect(isValidZone('Mars/Olympus')).toBe(false);
 });
 
-test('a new span goes in date order; a time written into a calendar with no zone gives it the viewer\'s', () => {
-  expect(run(DOC, (doc) => putItem(doc, readCal(doc), null, { ...newDraft(day(2027, 3, 5)), label: [{ t: 'Mid' }] }, 'Asia/Tokyo'))).toBe(DOC.replace('- 2027-03-10', '- 2027-03-05: Mid\n- 2027-03-10'));
+test("a new span goes in date order; a time written into a calendar with no zone gives it the viewer's", () => {
+  expect(run(DOC, (doc) => putItem(doc, readCal(doc), null, { ...newDraft(day(2027, 3, 5)), label: [{ t: 'Mid' }] }, 'Asia/Tokyo'))).toBe(
+    DOC.replace('- 2027-03-10', '- 2027-03-05: Mid\n- 2027-03-10'),
+  );
   expect(run(DOC, (doc) => putItem(doc, readCal(doc), null, newDraft(day(2027, 4, 1), day(2027, 4, 2), 'g'), 'UTC'))).toBe(DOC + '- 2027-04-01 to 2027-04-02: {color=green}\n');
   // A span of days is the same everywhere: no zone is written for it.
   expect(run('', (doc) => putItem(doc, readCal(doc), null, newDraft(day(2027, 4, 1)), 'Asia/Tokyo'))).toBe('- 2027-04-01:\n');
@@ -123,7 +172,9 @@ test('edit, move, resize, remove, legend and view, each as operations that undo 
   expect(edited).toBe(DOC.replace('Offsite {color=green}', '**Away day** {color=orange every=year}'));
   expect(run(DOC, (doc) => moveItem(readCal(doc), readCal(doc).items[1], 2))).toBe(DOC.replace('2027-03-01 to 2027-03-03', '2027-03-03 to 2027-03-05'));
   // A timed span moved a day keeps its clock: 09:00 in London either side of the change to summer time.
-  expect(run('---\nzone: Europe/London\n---\n- 2027-03-27 09:00-10:00: x\n', (doc) => moveItem(readCal(doc), readCal(doc).items[0], 1))).toBe('---\nzone: Europe/London\n---\n- 2027-03-28 09:00-10:00: x\n');
+  expect(run('---\nzone: Europe/London\n---\n- 2027-03-27 09:00-10:00: x\n', (doc) => moveItem(readCal(doc), readCal(doc).items[0], 1))).toBe(
+    '---\nzone: Europe/London\n---\n- 2027-03-28 09:00-10:00: x\n',
+  );
   expect(run(DOC, (doc) => resizeItem(readCal(doc), readCal(doc).items[0], 4))).toBe(DOC.replace('2027-03-01: Launch', '2027-03-01 to 2027-03-04: Launch'));
   expect(run(DOC, (doc) => removeSpan(doc, readCal(doc).items[0]))).toBe(DOC.replace('- 2027-03-01: Launch\n', ''));
   expect(run(DOC, () => nameColor('g', ''))).toBe(DOC.replace('green: Sam\n', ''));
@@ -190,7 +241,12 @@ test('pages: months with every time a repeat comes round, the legend at the foot
 });
 
 test('iCalendar: floating days, instants, repeats as RRULEs, lines folded at 75 octets', () => {
-  const ics = calToIcs(parse('---\nzone: America/New_York\n---\n- 2020-01-03 to 2020-01-04: Offsite {every=week times=9}\n- 2019-12-31 19:00-20:30: Call {every=month until=2020-01-04}\n- 2020-01-06: Birthday {every=year}\n- 2020-01-07: Once, with; marks\n- 2020-01-08: Half {done=50%}\n'), Date.UTC(2026, 0, 2, 3, 4));
+  const ics = calToIcs(
+    parse(
+      '---\nzone: America/New_York\n---\n- 2020-01-03 to 2020-01-04: Offsite {every=week times=9}\n- 2019-12-31 19:00-20:30: Call {every=month until=2020-01-04}\n- 2020-01-06: Birthday {every=year}\n- 2020-01-07: Once, with; marks\n- 2020-01-08: Half {done=50%}\n',
+    ),
+    Date.UTC(2026, 0, 2, 3, 4),
+  );
   expect(ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TinyLittleOffice//Calendar//EN\r\n')).toBe(true);
   expect(ics).toContain('DTSTAMP:20260102T030400Z');
   expect(ics).toContain('DTSTART;VALUE=DATE:20200103\r\nDTEND;VALUE=DATE:20200105\r\nRRULE:FREQ=WEEKLY;COUNT=9\r\nSUMMARY:Offsite');
@@ -204,12 +260,19 @@ test('iCalendar: floating days, instants, repeats as RRULEs, lines folded at 75 
   const long = icsFold('SUMMARY:' + 'é'.repeat(60));
   const enc = new TextEncoder();
   for (const line of long.split('\r\n')) expect(enc.encode(line).length).toBeLessThanOrEqual(75);
-  expect(long.split('\r\n').slice(1).every((l) => l.startsWith(' '))).toBe(true);
+  expect(
+    long
+      .split('\r\n')
+      .slice(1)
+      .every((l) => l.startsWith(' ')),
+  ).toBe(true);
   expect(long.replace(/\r\n /g, '')).toBe('SUMMARY:' + 'é'.repeat(60));
 });
 
-test('CSV: a calendar\'s spans, a schedule\'s tasks with their level', () => {
-  expect(calToCsv(parse(DOC))).toBe('What,Start,End,Repeats,Colour\r\nLaunch,2027-03-01,2027-03-01,,\r\nOffsite,2027-03-01,2027-03-03,,Sam\r\nRetro,2027-03-10 09:00,2027-03-10 10:30,"Every week, 6 times",\r\n');
+test("CSV: a calendar's spans, a schedule's tasks with their level", () => {
+  expect(calToCsv(parse(DOC))).toBe(
+    'What,Start,End,Repeats,Colour\r\nLaunch,2027-03-01,2027-03-01,,\r\nOffsite,2027-03-01,2027-03-03,,Sam\r\nRetro,2027-03-10 09:00,2027-03-10 10:30,"Every week, 6 times",\r\n',
+  );
   const plan = calToCsv(parse(SITE_PLAN), ';');
   expect(plan.split('\r\n').slice(0, 3)).toEqual(['Task;Level;Start;End;Days;Done %', 'Discovery;1;2027-03-01;2027-03-12;12;80', 'Stakeholder interviews;2;2027-03-01;2027-03-03;3;100']);
 });
@@ -227,9 +290,15 @@ test('every template is a real calendar: a title, a name and a blurb, every list
     const doc = parse(tpl.doc);
     const v = readCal(doc);
     expect([def.title(tpl.doc), tpl.name, tpl.blurb].every(Boolean), tpl.id).toBe(true);
-    expect(doc.blocks.every((b) => b.k === 'li'), tpl.id).toBe(true);
+    expect(
+      doc.blocks.every((b) => b.k === 'li'),
+      tpl.id,
+    ).toBe(true);
     expect(v.items, tpl.id).toHaveLength(doc.blocks.length);
-    expect(v.items.every((i) => i.words.length > 2), tpl.id).toBe(true);
+    expect(
+      v.items.every((i) => i.words.length > 2),
+      tpl.id,
+    ).toBe(true);
     // A colour written on an item is a calendar colour, and (on a calendar) the head says what it stands for.
     for (const i of v.items) if (i.block.a?.kv?.color) expect(v.gantt || !!v.legend[i.color], `${tpl.id}: ${i.words}`).toBe(true);
     // A time needs the zone it is in.
@@ -239,7 +308,11 @@ test('every template is a real calendar: a title, a name and a blurb, every list
     expect(page.svg, tpl.id).not.toContain('No tasks yet');
   }
   // The schedules are the training plan and the project; the rest are months.
-  expect(templates().filter((x) => readCal(parse(x.doc)).gantt).map((x) => x.id)).toEqual(['training', 'project']);
+  expect(
+    templates()
+      .filter((x) => readCal(parse(x.doc)).gantt)
+      .map((x) => x.id),
+  ).toEqual(['training', 'project']);
   // The training plan is part way through: two weeks ticked, the third most of the way.
   const run = ganttBars(readCal(parse(templates().find((x) => x.id === 'training')!.doc)));
   expect(run.slice(1, 4).map((b) => b.done)).toEqual([100, 100, 70]);
@@ -250,7 +323,9 @@ const PLAN = '---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n  - 202
 const item = (doc: Doc, at: number) => readCal(doc).items.find((i) => i.at === at)!;
 
 test('tasks as rows: a span moved past its neighbour, nested and brought out, duplicated, copied to the margin', () => {
-  expect(run(PLAN, (d) => moveTasks(d, { from: 0, to: 3 }, 1)!)).toBe('---\nview: gantt\n---\n- 2027-03-08 to 2027-03-10: Build\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: Draw\n');
+  expect(run(PLAN, (d) => moveTasks(d, { from: 0, to: 3 }, 1)!)).toBe(
+    '---\nview: gantt\n---\n- 2027-03-08 to 2027-03-10: Build\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: Draw\n',
+  );
   expect(moveTasks(parse(PLAN), { from: 0, to: 3 }, -1)).toBeNull();
   // A part moves among its siblings only.
   expect(moveTasks(parse(PLAN), { from: 2, to: 3 }, 1)).toBeNull();
@@ -265,7 +340,7 @@ test('tasks as rows: a span moved past its neighbour, nested and brought out, du
   expect(mapAt([{ op: 'splice', at: 0, n: 1, blocks: [] }], 0)).toBe(-1);
 });
 
-test('a task\'s words in place: set, ticked and unticked, Enter at the start, end and middle, Backspace and Delete joining, an empty task taken away', () => {
+test("a task's words in place: set, ticked and unticked, Enter at the start, end and middle, Backspace and Delete joining, an empty task taken away", () => {
   const doc = parse(PLAN);
   const v = readCal(doc);
   expect(run(PLAN, (d) => setLabel(v, item(d, 3), [{ t: 'Ship', b: true }]))).toBe(PLAN.replace(': Build', ': **Ship**'));

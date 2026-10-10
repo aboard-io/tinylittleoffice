@@ -1,105 +1,105 @@
 {
- "source": "src/apps/diagram/templates.ts (the rebuilt tree)",
- "docs": [
-  {
-   "name": "diagram/mind-launch",
-   "text": "---\ntitle: Launch plan\nkind: mind\n---\n- Launch :rocket:\n  - Product\n    - Pricing\n    - Onboarding\n    - The first ten customers\n  - Marketing\n    - Press\n    - Social\n    - A launch-day post\n  - Support\n    - Help pages\n    - Who answers, and when\n\n~ A launch-day post -> Help pages: links to\n"
-  },
-  {
-   "name": "diagram/mind-garden",
-   "text": "---\ntitle: The garden this year\nkind: mind\n---\n- The garden\n  - Vegetables\n    - Tomatoes against the south wall\n    - Beans up the old trellis\n    - Salad in the shade\n  - Flowers\n    - Sweet peas for cutting\n    - Dahlias\n  - Jobs\n    - Fix the water butt\n    - Compost bay\n    - A path to the shed\n"
-  },
-  {
-   "name": "diagram/mind-move",
-   "text": "---\ntitle: Moving to Lisbon\nkind: mind\n---\n- Lisbon by March :plane:\n  - Paperwork\n    - A NIF tax number\n    - Visa appointment, 14 January\n    - Register with the parish\n  - A flat\n    - Alfama or Campo de Ourique\n    - Under €1,400 a month\n    - Viewings from 2 February\n  - Work\n    - Tell the London office by 30 November\n    - A desk at a coworking space\n  - Life\n    - Portuguese lessons, twice a week\n    - A bank account\n    - Find a doctor\n\n~ Register with the parish -> Find a doctor: needed first\n~ A NIF tax number -> A bank account: needed first\n"
-  },
-  {
-   "name": "diagram/mind-revision",
-   "text": "---\ntitle: Revising for the biology mock\nkind: mind\n---\n- Biology mock, 8 December :graduation:\n  - Cells\n    - Organelles and what they do\n    - Mitosis\n    - Diffusion and osmosis\n  - The body\n    - The heart and blood\n    - Enzymes and digestion\n    - Hormones\n  - Ecology\n    - Food webs\n    - The carbon cycle\n  - How\n    - A past paper every Sunday\n    - Flashcards on the bus\n    - Ask Ms Shah about osmosis\n\n~ Diffusion and osmosis -> Ask Ms Shah about osmosis\n"
-  },
-  {
-   "name": "diagram/org-company",
-   "text": "---\ntitle: Who reports to whom\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n    - Cy Lund | Platform\n    - Di Shah | Apps\n  - Eve Marsh | Design\n  - Flo Reyes | Sales\n    - Gus Patel | Accounts\n\n~ Cy Lund -- Eve Marsh: design partner\n"
-  },
-  {
-   "name": "diagram/org-school",
-   "text": "---\ntitle: Hillside Primary staff\nkind: org\n---\n- Joan Achebe | Head teacher\n  - Tom Reilly | Deputy head\n    - Priya Nair | Year 5\n    - Owen Price | Year 6\n  - Laura Kim | Early years\n    - Ana Silva | Reception\n    - Dan Hughes | Year 1\n  - Grace Obi | Business manager\n    - Rob Lane | Site manager\n\n~ Priya Nair -- Dan Hughes: maths leads\n"
-  },
-  {
-   "name": "diagram/org-kitchen",
-   "text": "---\ntitle: The kitchen at Marlow's\nkind: org\n---\n- Nadia Haddad | Head chef\n  - Luca Bianchi | Sous chef\n    - Sam Wright | Sauce\n    - Mei Chen | Fish\n    - Jonah Ellis | Garnish\n    - Rosa Duarte | Pastry\n  - Kemi Adeyemi | Restaurant manager\n    - Theo Marsh | Head waiter\n    - Ivy Cole | Bar\n\n~ Rosa Duarte -- Ivy Cole: dessert wines\n"
-  },
-  {
-   "name": "diagram/family-hales",
-   "text": "---\ntitle: The Hales\nkind: family\n---\n- Rose + Albert Hale | m. 1948\n  - Helen + Tom Price | m. 1975\n    - Paul | b. 1978\n    - Sam | b. 1981\n  - David Hale | b. 1952\n    - Ada | b. 1985\n"
-  },
-  {
-   "name": "diagram/family-brontes",
-   "text": "---\ntitle: The Brontës of Haworth\nkind: family\n---\n- Patrick Brontë + Maria Branwell | m. 1812\n  - Maria | 1814–1825\n  - Elizabeth | 1815–1825\n  - Charlotte + Arthur Bell Nicholls | m. 1854\n  - Branwell | 1817–1848\n  - Emily | 1818–1848\n  - Anne | 1820–1849\n- Elizabeth Branwell | 1776–1842\n\n~ Elizabeth Branwell -- Patrick Brontë + Maria Branwell: kept house from 1821\n"
-  },
-  {
-   "name": "diagram/family-morenos",
-   "text": "---\ntitle: The Morenos\nkind: family\n---\n- Luis + Carmen Moreno | m. 1971\n  - Elena + Mark Davies | m. 1998\n    - Sofia | b. 2001\n    - Leo | b. 2004\n  - Javier + Amira Moreno | m. 2003\n    - Nadia | b. 2008\n    - Omar | b. 2011\n  - Pilar Moreno | b. 1979\n    - Rosa | b. 2015\n\n~ Pilar Moreno -- Sofia: godmother\n"
-  },
-  {
-   "name": "diagram/lanes-order",
-   "text": "---\ntitle: From order to doorstep\nkind: lanes\n---\n- Customer: Places an order\n- Shop: Checks the stock\n- Shop: In stock?\n- Warehouse: Picks and packs it\n- Courier: Collects the parcel\n- Courier: Delivers it\n- Customer: Signs for it\n"
-  },
-  {
-   "name": "diagram/lanes-hiring",
-   "text": "---\ntitle: Hiring someone\nkind: lanes\n---\n- Manager: Writes the job description\n- People team: Posts the job\n- Candidate: Applies\n- People team: Shortlists five\n- Manager: Interviews\n- Manager: The right one?\n- People team: Makes the offer\n- Candidate: Says yes\n"
-  },
-  {
-   "name": "diagram/lanes-expenses",
-   "text": "---\ntitle: An expenses claim\nkind: lanes\n---\n- Employee: Photographs the receipts\n- Employee: Fills in the claim\n- Manager: Within the policy?\n- Manager: Approves it\n- Finance: Checks the receipts\n- Finance: Pays it with the next salary\n- Employee: Sees it on the payslip\n"
-  },
-  {
-   "name": "diagram/timeline-computing",
-   "text": "---\ntitle: Computing, briefly\nkind: timeline\n---\n- 1843: Lovelace publishes her notes\n- 1936: Turing describes his machine\n- 1945: ENIAC is switched on\n- 1969: The first ARPANET message\n- 1976: The Apple I\n- 1989: The web is proposed\n- 2007: The phone becomes a computer\n- 2022: Everyone talks to a machine\n- 1969–2007: The network grows\n"
-  },
-  {
-   "name": "diagram/timeline-project",
-   "text": "---\ntitle: The new library, 2026\nkind: timeline\n---\n- 2026-02-09: Plans approved\n- 2026-03-02: Ground broken\n- 2026-06-15: Roof on\n- 2026-09-07: Shelves in\n- 2026-10-19: Books moved\n- 2026-11-02: Doors open\n- 2026-03-02 – 2026-09-07: Builders on site\n"
-  },
-  {
-   "name": "diagram/timeline-apollo",
-   "text": "---\ntitle: Apollo 11, eight days in July\nkind: timeline\n---\n- 1969-07-16: Launch from Florida\n- 1969-07-19: Into orbit round the Moon\n- 1969-07-20: Eagle lands\n- 1969-07-21: Armstrong steps out\n- 1969-07-22: Home from the Moon\n- 1969-07-24: Splashdown in the Pacific\n- 1969-07-16 – 1969-07-24: The mission\n"
-  },
-  {
-   "name": "diagram/venn-triangle",
-   "text": "---\ntitle: Fast, cheap, good\nkind: venn\n---\n- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking\n- Fast & Cheap: fast food\n- Cheap & Good: home cooking\n- Fast & Good: a great takeaway\n- Fast & Cheap & Good: toast\n"
-  },
-  {
-   "name": "diagram/venn-pets",
-   "text": "---\ntitle: Cats and dogs\nkind: venn\n---\n- Cats: purr, climb curtains, use a litter tray\n- Dogs: fetch, need walks, guard the house\n- Cats & Dogs: shed on the sofa, love a warm spot, wake you at six\n"
-  },
-  {
-   "name": "diagram/venn-skills",
-   "text": "---\ntitle: Who can do what\nkind: venn\n---\n- Design: Mira, Jonas\n- Writing: Esther\n- Code: Ravi, Tom\n- Design & Writing: Ines\n- Design & Code: Kai\n- Writing & Code: Ola\n- Design & Writing & Code: Bea\n"
-  },
-  {
-   "name": "diagram/seating-wedding",
-   "text": "---\ntitle: Jo and Sam's wedding dinner\nkind: seating\n---\n- Top table: Jo, Sam, Maria, Dev, Lin, Tom\n- Table 2: Aunt Pat, Uncle Ray, Gran, Cousin Amy, Ben\n- Table 3: Priya, Marco, Hannah, Leo, Zoe, Kit\n- Table 4: Mr and Mrs Okafor, Ellie, Josh, Ruth\n"
-  },
-  {
-   "name": "diagram/seating-games",
-   "text": "---\ntitle: Board game night, 14 November\nkind: seating\n---\n- Catan: Ruth, Ollie, Priya, Ade\n- Codenames: Jess, Tom, Mo, Sara, Fin, Lou\n- Ticket to Ride: Hana, Ben, Iris\n- Chess: Gus, Wren\n"
-  },
-  {
-   "name": "diagram/seating-class",
-   "text": "---\ntitle: Class 4B, autumn term\nkind: seating\n---\n- Blue table: Amara, Jack, Zainab, Leo, Ella\n- Green table: Noah, Maya, Isaac, Ruby, Kofi\n- Red table: Freya, Arjun, Lily, Sam, Hana\n- Yellow table: Oscar, Chloe, Yusuf, Grace, Theo\n- Reading corner: Mrs Patel, Evie\n"
-  },
-  {
-   "name": "diagram/net-webapp",
-   "text": "---\ntitle: How the app hangs together\nkind: net\n---\n- Monitoring\n\n~ Browser -> API: requests\n~ API -> Database: queries\n~ API -> Cache\n~ Worker -> Database\n~ API -- Worker: queue\n"
-  },
-  {
-   "name": "diagram/net-water",
-   "text": "---\ntitle: The water cycle\nkind: net\n---\n- Sea :fish:\n- Clouds :cloud:\n- Mountains :mountain:\n- Rivers\n- Groundwater\n- Plants :leaf:\n\n~ Sea -> Clouds: evaporation\n~ Clouds -> Mountains: rain and snow\n~ Mountains -> Rivers: meltwater\n~ Rivers -> Sea: flow\n~ Rivers -> Groundwater: soaks in\n~ Groundwater -> Plants: roots\n~ Plants -> Clouds: transpiration\n"
-  },
-  {
-   "name": "diagram/net-house",
-   "text": "---\ntitle: The house network\nkind: net\n---\n- Router :server:\n- Laptop :laptop:\n- Phone :phone2:\n- Printer :printer:\n- Television :film:\n- Doorbell :bell:\n\n~ Fibre line -> Router\n~ Router -- Laptop: wifi\n~ Router -- Phone: wifi\n~ Router -- Printer: wifi\n~ Router -- Television: cable\n~ Router -- Doorbell: wifi\n~ Laptop -> Printer: prints\n"
-  }
- ]
+  "source": "src/apps/diagram/templates.ts (the rebuilt tree)",
+  "docs": [
+    {
+      "name": "diagram/mind-launch",
+      "text": "---\ntitle: Launch plan\nkind: mind\n---\n- Launch :rocket:\n  - Product\n    - Pricing\n    - Onboarding\n    - The first ten customers\n  - Marketing\n    - Press\n    - Social\n    - A launch-day post\n  - Support\n    - Help pages\n    - Who answers, and when\n\n~ A launch-day post -> Help pages: links to\n"
+    },
+    {
+      "name": "diagram/mind-garden",
+      "text": "---\ntitle: The garden this year\nkind: mind\n---\n- The garden\n  - Vegetables\n    - Tomatoes against the south wall\n    - Beans up the old trellis\n    - Salad in the shade\n  - Flowers\n    - Sweet peas for cutting\n    - Dahlias\n  - Jobs\n    - Fix the water butt\n    - Compost bay\n    - A path to the shed\n"
+    },
+    {
+      "name": "diagram/mind-move",
+      "text": "---\ntitle: Moving to Lisbon\nkind: mind\n---\n- Lisbon by March :plane:\n  - Paperwork\n    - A NIF tax number\n    - Visa appointment, 14 January\n    - Register with the parish\n  - A flat\n    - Alfama or Campo de Ourique\n    - Under €1,400 a month\n    - Viewings from 2 February\n  - Work\n    - Tell the London office by 30 November\n    - A desk at a coworking space\n  - Life\n    - Portuguese lessons, twice a week\n    - A bank account\n    - Find a doctor\n\n~ Register with the parish -> Find a doctor: needed first\n~ A NIF tax number -> A bank account: needed first\n"
+    },
+    {
+      "name": "diagram/mind-revision",
+      "text": "---\ntitle: Revising for the biology mock\nkind: mind\n---\n- Biology mock, 8 December :graduation:\n  - Cells\n    - Organelles and what they do\n    - Mitosis\n    - Diffusion and osmosis\n  - The body\n    - The heart and blood\n    - Enzymes and digestion\n    - Hormones\n  - Ecology\n    - Food webs\n    - The carbon cycle\n  - How\n    - A past paper every Sunday\n    - Flashcards on the bus\n    - Ask Ms Shah about osmosis\n\n~ Diffusion and osmosis -> Ask Ms Shah about osmosis\n"
+    },
+    {
+      "name": "diagram/org-company",
+      "text": "---\ntitle: Who reports to whom\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n    - Cy Lund | Platform\n    - Di Shah | Apps\n  - Eve Marsh | Design\n  - Flo Reyes | Sales\n    - Gus Patel | Accounts\n\n~ Cy Lund -- Eve Marsh: design partner\n"
+    },
+    {
+      "name": "diagram/org-school",
+      "text": "---\ntitle: Hillside Primary staff\nkind: org\n---\n- Joan Achebe | Head teacher\n  - Tom Reilly | Deputy head\n    - Priya Nair | Year 5\n    - Owen Price | Year 6\n  - Laura Kim | Early years\n    - Ana Silva | Reception\n    - Dan Hughes | Year 1\n  - Grace Obi | Business manager\n    - Rob Lane | Site manager\n\n~ Priya Nair -- Dan Hughes: maths leads\n"
+    },
+    {
+      "name": "diagram/org-kitchen",
+      "text": "---\ntitle: The kitchen at Marlow's\nkind: org\n---\n- Nadia Haddad | Head chef\n  - Luca Bianchi | Sous chef\n    - Sam Wright | Sauce\n    - Mei Chen | Fish\n    - Jonah Ellis | Garnish\n    - Rosa Duarte | Pastry\n  - Kemi Adeyemi | Restaurant manager\n    - Theo Marsh | Head waiter\n    - Ivy Cole | Bar\n\n~ Rosa Duarte -- Ivy Cole: dessert wines\n"
+    },
+    {
+      "name": "diagram/family-hales",
+      "text": "---\ntitle: The Hales\nkind: family\n---\n- Rose + Albert Hale | m. 1948\n  - Helen + Tom Price | m. 1975\n    - Paul | b. 1978\n    - Sam | b. 1981\n  - David Hale | b. 1952\n    - Ada | b. 1985\n"
+    },
+    {
+      "name": "diagram/family-brontes",
+      "text": "---\ntitle: The Brontës of Haworth\nkind: family\n---\n- Patrick Brontë + Maria Branwell | m. 1812\n  - Maria | 1814–1825\n  - Elizabeth | 1815–1825\n  - Charlotte + Arthur Bell Nicholls | m. 1854\n  - Branwell | 1817–1848\n  - Emily | 1818–1848\n  - Anne | 1820–1849\n- Elizabeth Branwell | 1776–1842\n\n~ Elizabeth Branwell -- Patrick Brontë + Maria Branwell: kept house from 1821\n"
+    },
+    {
+      "name": "diagram/family-morenos",
+      "text": "---\ntitle: The Morenos\nkind: family\n---\n- Luis + Carmen Moreno | m. 1971\n  - Elena + Mark Davies | m. 1998\n    - Sofia | b. 2001\n    - Leo | b. 2004\n  - Javier + Amira Moreno | m. 2003\n    - Nadia | b. 2008\n    - Omar | b. 2011\n  - Pilar Moreno | b. 1979\n    - Rosa | b. 2015\n\n~ Pilar Moreno -- Sofia: godmother\n"
+    },
+    {
+      "name": "diagram/lanes-order",
+      "text": "---\ntitle: From order to doorstep\nkind: lanes\n---\n- Customer: Places an order\n- Shop: Checks the stock\n- Shop: In stock?\n- Warehouse: Picks and packs it\n- Courier: Collects the parcel\n- Courier: Delivers it\n- Customer: Signs for it\n"
+    },
+    {
+      "name": "diagram/lanes-hiring",
+      "text": "---\ntitle: Hiring someone\nkind: lanes\n---\n- Manager: Writes the job description\n- People team: Posts the job\n- Candidate: Applies\n- People team: Shortlists five\n- Manager: Interviews\n- Manager: The right one?\n- People team: Makes the offer\n- Candidate: Says yes\n"
+    },
+    {
+      "name": "diagram/lanes-expenses",
+      "text": "---\ntitle: An expenses claim\nkind: lanes\n---\n- Employee: Photographs the receipts\n- Employee: Fills in the claim\n- Manager: Within the policy?\n- Manager: Approves it\n- Finance: Checks the receipts\n- Finance: Pays it with the next salary\n- Employee: Sees it on the payslip\n"
+    },
+    {
+      "name": "diagram/timeline-computing",
+      "text": "---\ntitle: Computing, briefly\nkind: timeline\n---\n- 1843: Lovelace publishes her notes\n- 1936: Turing describes his machine\n- 1945: ENIAC is switched on\n- 1969: The first ARPANET message\n- 1976: The Apple I\n- 1989: The web is proposed\n- 2007: The phone becomes a computer\n- 2022: Everyone talks to a machine\n- 1969–2007: The network grows\n"
+    },
+    {
+      "name": "diagram/timeline-project",
+      "text": "---\ntitle: The new library, 2026\nkind: timeline\n---\n- 2026-02-09: Plans approved\n- 2026-03-02: Ground broken\n- 2026-06-15: Roof on\n- 2026-09-07: Shelves in\n- 2026-10-19: Books moved\n- 2026-11-02: Doors open\n- 2026-03-02 – 2026-09-07: Builders on site\n"
+    },
+    {
+      "name": "diagram/timeline-apollo",
+      "text": "---\ntitle: Apollo 11, eight days in July\nkind: timeline\n---\n- 1969-07-16: Launch from Florida\n- 1969-07-19: Into orbit round the Moon\n- 1969-07-20: Eagle lands\n- 1969-07-21: Armstrong steps out\n- 1969-07-22: Home from the Moon\n- 1969-07-24: Splashdown in the Pacific\n- 1969-07-16 – 1969-07-24: The mission\n"
+    },
+    {
+      "name": "diagram/venn-triangle",
+      "text": "---\ntitle: Fast, cheap, good\nkind: venn\n---\n- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking\n- Fast & Cheap: fast food\n- Cheap & Good: home cooking\n- Fast & Good: a great takeaway\n- Fast & Cheap & Good: toast\n"
+    },
+    {
+      "name": "diagram/venn-pets",
+      "text": "---\ntitle: Cats and dogs\nkind: venn\n---\n- Cats: purr, climb curtains, use a litter tray\n- Dogs: fetch, need walks, guard the house\n- Cats & Dogs: shed on the sofa, love a warm spot, wake you at six\n"
+    },
+    {
+      "name": "diagram/venn-skills",
+      "text": "---\ntitle: Who can do what\nkind: venn\n---\n- Design: Mira, Jonas\n- Writing: Esther\n- Code: Ravi, Tom\n- Design & Writing: Ines\n- Design & Code: Kai\n- Writing & Code: Ola\n- Design & Writing & Code: Bea\n"
+    },
+    {
+      "name": "diagram/seating-wedding",
+      "text": "---\ntitle: Jo and Sam's wedding dinner\nkind: seating\n---\n- Top table: Jo, Sam, Maria, Dev, Lin, Tom\n- Table 2: Aunt Pat, Uncle Ray, Gran, Cousin Amy, Ben\n- Table 3: Priya, Marco, Hannah, Leo, Zoe, Kit\n- Table 4: Mr and Mrs Okafor, Ellie, Josh, Ruth\n"
+    },
+    {
+      "name": "diagram/seating-games",
+      "text": "---\ntitle: Board game night, 14 November\nkind: seating\n---\n- Catan: Ruth, Ollie, Priya, Ade\n- Codenames: Jess, Tom, Mo, Sara, Fin, Lou\n- Ticket to Ride: Hana, Ben, Iris\n- Chess: Gus, Wren\n"
+    },
+    {
+      "name": "diagram/seating-class",
+      "text": "---\ntitle: Class 4B, autumn term\nkind: seating\n---\n- Blue table: Amara, Jack, Zainab, Leo, Ella\n- Green table: Noah, Maya, Isaac, Ruby, Kofi\n- Red table: Freya, Arjun, Lily, Sam, Hana\n- Yellow table: Oscar, Chloe, Yusuf, Grace, Theo\n- Reading corner: Mrs Patel, Evie\n"
+    },
+    {
+      "name": "diagram/net-webapp",
+      "text": "---\ntitle: How the app hangs together\nkind: net\n---\n- Monitoring\n\n~ Browser -> API: requests\n~ API -> Database: queries\n~ API -> Cache\n~ Worker -> Database\n~ API -- Worker: queue\n"
+    },
+    {
+      "name": "diagram/net-water",
+      "text": "---\ntitle: The water cycle\nkind: net\n---\n- Sea :fish:\n- Clouds :cloud:\n- Mountains :mountain:\n- Rivers\n- Groundwater\n- Plants :leaf:\n\n~ Sea -> Clouds: evaporation\n~ Clouds -> Mountains: rain and snow\n~ Mountains -> Rivers: meltwater\n~ Rivers -> Sea: flow\n~ Rivers -> Groundwater: soaks in\n~ Groundwater -> Plants: roots\n~ Plants -> Clouds: transpiration\n"
+    },
+    {
+      "name": "diagram/net-house",
+      "text": "---\ntitle: The house network\nkind: net\n---\n- Router :server:\n- Laptop :laptop:\n- Phone :phone2:\n- Printer :printer:\n- Television :film:\n- Doorbell :bell:\n\n~ Fibre line -> Router\n~ Router -- Laptop: wifi\n~ Router -- Phone: wifi\n~ Router -- Printer: wifi\n~ Router -- Television: cable\n~ Router -- Doorbell: wifi\n~ Laptop -> Printer: prints\n"
+    }
+  ]
 }

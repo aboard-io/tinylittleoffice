@@ -82,7 +82,7 @@ test('a link made before "~" (with "-") reads to the same bytes', () => {
 
 test('a link written by encodeDoc holds no hyphen, even for a document of noise', () => {
   let seed = 7;
-  const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   for (let n = 0; n < 20; n++) {
     const doc = Array.from({ length: 200 + n * 37 }, () => String.fromCharCode(32 + Math.floor(rand() * 0x2fd0))).join('');
     const link = encodeDoc(doc);

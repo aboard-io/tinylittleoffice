@@ -17,7 +17,13 @@ test('sheet: on a phone, tapping cells neither scrolls the page nor moves the ba
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-sheet-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return {
+        bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+        rows: tops.size,
+        pageTop: document.scrollingElement!.scrollTop,
+        zoom: window.visualViewport?.scale ?? 1,
+        wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
     });
   const first = await measure();
   // Ten cells, some of them typed into: a block, a formula, a cell shown again with its formula.
@@ -45,7 +51,11 @@ test('sheet: on a phone, tapping cells neither scrolls the page nor moves the ba
   expect(last.zoom).toBe(1);
   expect(last.wide).toBeLessThanOrEqual(0);
   // Every box a finger may land in is 16px or more, so Safari has no reason to zoom in.
-  const smallInputs = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('to-sheet-editor input')].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`));
+  const smallInputs = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('to-sheet-editor input')]
+      .filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16)
+      .map((el) => `${el.getAttribute('aria-label') ?? el.className}: ${getComputedStyle(el).fontSize}`),
+  );
   expect(smallInputs).toEqual([]);
   // A column's menu opens inside the screen and Escape closes it, focus back on the head.
   await page.getByRole('button', { name: /^Column C:/ }).tap();
@@ -77,7 +87,12 @@ test('sheet: under a finger, a tap selects a cell whole, heads and row numbers a
     const h = (sel: string) => document.querySelector<HTMLElement>(sel)!.getBoundingClientRect().height;
     const fill = document.querySelector<HTMLElement>('table.sheet td .fill')!;
     const hit = getComputedStyle(fill, '::before');
-    return { head: h('table.sheet .col-head'), row: h('table.sheet .row-num'), fill: fill.getBoundingClientRect().width - 2 * parseFloat(hit.left), touch: getComputedStyle(document.querySelector('table.sheet td input')!).touchAction };
+    return {
+      head: h('table.sheet .col-head'),
+      row: h('table.sheet .row-num'),
+      fill: fill.getBoundingClientRect().width - 2 * parseFloat(hit.left),
+      touch: getComputedStyle(document.querySelector('table.sheet td input')!).touchAction,
+    };
   });
   expect(sizes.head).toBeGreaterThanOrEqual(44);
   expect(sizes.row).toBeGreaterThanOrEqual(44);

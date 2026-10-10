@@ -79,7 +79,7 @@ test('a paragraph that ends in a line break, and one that is only spaces, come b
   expect(words(w).join('|')).toContain('Line one\n');
 });
 
-test('the walks\' replay: Enter where the letter\'s words leave a space or a break at a block\'s end, and the link is written back as it is read', async () => {
+test("the walks' replay: Enter where the letter's words leave a space or a break at a block's end, and the link is written back as it is read", async () => {
   // (VITE_WALK_SEED=1891995401, text at a desktop: "Portland,  {.right}" once lost its space in the link.)
   const letter = appOf('write')!.templates.find((x) => x.id === 'letter')!.doc;
   const { shell, text } = await open(letter);
@@ -88,7 +88,10 @@ test('the walks\' replay: Enter where the letter\'s words leave a space or a bre
   for (const at of [() => first().indexOf('Portland, ') + 10, () => first().indexOf('\n'), () => 0]) {
     text.sel = caret(0, at());
     await text.updateComplete;
-    for (const [inputType, data] of [['insertText', 'tiny '], ['insertParagraph', null]] as const) {
+    for (const [inputType, data] of [
+      ['insertText', 'tiny '],
+      ['insertParagraph', null],
+    ] as const) {
       text.tx.dispatchEvent(new InputEvent('beforeinput', { inputType, data, bubbles: true, cancelable: true, composed: true }));
       await text.updateComplete;
       await tick(20);

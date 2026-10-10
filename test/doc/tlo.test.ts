@@ -51,8 +51,15 @@ Q1 | 120
   expect(doc.blocks[1]).toStrictEqual({ k: 'p', runs: t('Thank you for the work.\nSecond line of it.') });
   expect(doc.blocks[2]).toStrictEqual({
     k: 'table',
-    cols: [{ name: 'What', type: 'text' }, { name: 'Qty', type: 'number' }, { name: 'Price', type: 'money' }],
-    rows: [['Design', '12', '150'], ['Build | test', '20', '140']],
+    cols: [
+      { name: 'What', type: 'text' },
+      { name: 'Qty', type: 'number' },
+      { name: 'Price', type: 'money' },
+    ],
+    rows: [
+      ['Design', '12', '150'],
+      ['Build | test', '20', '140'],
+    ],
   });
   expect(doc.blocks.filter((b) => b.k === 'li').map((b) => [b.depth, b.runs[0].t, b.done, b.ord])).toStrictEqual([
     [0, 'one', undefined, undefined],
@@ -74,24 +81,74 @@ Q1 | 120
 test('tlo: lists nest however far a model indents them', () => {
   const four = parse('- a\n    - b\n        - c\n    - d\n- e');
   expect(four.blocks.map((b) => (b.k === 'li' ? b.depth : -1))).toStrictEqual([0, 1, 2, 1, 0]);
-  expect(parse('* a\n+ b\n1) c').blocks.map((b) => b.k === 'li' && [b.runs[0].t, !!b.ord])).toStrictEqual([['a', false], ['b', false], ['c', true]]);
+  expect(parse('* a\n+ b\n1) c').blocks.map((b) => b.k === 'li' && [b.runs[0].t, !!b.ord])).toStrictEqual([
+    ['a', false],
+    ['b', false],
+    ['c', true],
+  ]);
 });
 
 test('tlo: words that look like syntax are written so they read back as words', () => {
   const tricky = ['# not a heading', '- not an item', '1. not a number', '> not a quote', '---', '~ a -> b', '| a | b', '```', '![x](y)', 'ends {#like-attrs}', '[ ] not a task', '2026. A year'];
   for (const text of tricky) {
-    const doc: Doc = { head: {}, blocks: [{ k: 'p', runs: t(text) }, { k: 'li', depth: 0, runs: t(text) }, { k: 'h', level: 2, runs: t(text + ' h') }] };
+    const doc: Doc = {
+      head: {},
+      blocks: [
+        { k: 'p', runs: t(text) },
+        { k: 'li', depth: 0, runs: t(text) },
+        { k: 'h', level: 2, runs: t(text + ' h') },
+      ],
+    };
     expect(parse(write(doc)), text).toStrictEqual(doc);
   }
 });
 
 test('tlo: every marker a pasted run could hold is escaped, in every kind of block and beside every other run', () => {
-  const markers = ['**b**', '*i*', '__b__', '_i_', '++u++', '~~s~~', '==h==', ':star:', '[a](https://b.c)', '^[n]', '<u>u</u>', '`c`', '- x', '* x', '+ x', '1. x', '1) x', '# x', '> x', '| x', '~ A -> B', '```', '~~~', '![a](https://b.c)', '---', '{#id}', '{.c}', 'x {k=v}', '[ ] x', 'C#', 'C# ##', '\\'];
-  const kinds = (w: string): Block[] => [{ k: 'p', runs: t(w) }, { k: 'li', depth: 0, runs: t(w) }, { k: 'quote', runs: t(w) }, { k: 'h', level: 2, runs: t(w) }];
+  const markers = [
+    '**b**',
+    '*i*',
+    '__b__',
+    '_i_',
+    '++u++',
+    '~~s~~',
+    '==h==',
+    ':star:',
+    '[a](https://b.c)',
+    '^[n]',
+    '<u>u</u>',
+    '`c`',
+    '- x',
+    '* x',
+    '+ x',
+    '1. x',
+    '1) x',
+    '# x',
+    '> x',
+    '| x',
+    '~ A -> B',
+    '```',
+    '~~~',
+    '![a](https://b.c)',
+    '---',
+    '{#id}',
+    '{.c}',
+    'x {k=v}',
+    '[ ] x',
+    'C#',
+    'C# ##',
+    '\\',
+  ];
+  const kinds = (w: string): Block[] => [
+    { k: 'p', runs: t(w) },
+    { k: 'li', depth: 0, runs: t(w) },
+    { k: 'quote', runs: t(w) },
+    { k: 'h', level: 2, runs: t(w) },
+  ];
   for (const w of markers) {
     for (const b of kinds(w)) expect(parse(write({ head: {}, blocks: [b] })).blocks, `${b.k} ${w}`).toStrictEqual([b]);
     // A line of an item, a quote or a paragraph past its first.
-    for (const b of kinds(`x\n${w}`).slice(0, 3)) expect(parse(write({ head: {}, blocks: [b, { k: 'li', depth: 0, runs: t('next') }] })).blocks, `${b.k} x/${w}`).toStrictEqual([b, { k: 'li', depth: 0, runs: t('next') }]);
+    for (const b of kinds(`x\n${w}`).slice(0, 3))
+      expect(parse(write({ head: {}, blocks: [b, { k: 'li', depth: 0, runs: t('next') }] })).blocks, `${b.k} x/${w}`).toStrictEqual([b, { k: 'li', depth: 0, runs: t('next') }]);
   }
   // Words beside a run whose own marks they would join: an unclosed "[" before a link, a "^" before one, an "=" before a highlight.
   const beside: Run[][] = [
@@ -137,8 +194,32 @@ test('tlo: inline marks both ways', () => {
 
 test('tlo: any runs survive being written and read', () => {
   const r = rng(7);
-  const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
-  const words = ['plain', 'a b', ' lead', 'trail ', '*', '_x_', '~~', '==', '++', '\\', '[x](y)', ':rocket:', 'snake_case', '`', '<u>', 'mid*dle', '5 * 3', '#', 'x', 'see https://e.com/a_b', 'https://e.com/q?a=1', '^[n]', 'a ] b'];
+  const pick = <T>(xs: T[]) => xs[Math.floor(r() * xs.length)];
+  const words = [
+    'plain',
+    'a b',
+    ' lead',
+    'trail ',
+    '*',
+    '_x_',
+    '~~',
+    '==',
+    '++',
+    '\\',
+    '[x](y)',
+    ':rocket:',
+    'snake_case',
+    '`',
+    '<u>',
+    'mid*dle',
+    '5 * 3',
+    '#',
+    'x',
+    'see https://e.com/a_b',
+    'https://e.com/q?a=1',
+    '^[n]',
+    'a ] b',
+  ];
   const norm = (runs: Run[]) => parseInline(writeInline(runs));
   for (let n = 0; n < 2000; n++) {
     const runs: Run[] = [];
@@ -150,7 +231,14 @@ test('tlo: any runs survive being written and read', () => {
     }
     const once = norm(runs);
     // The words are kept exactly, and so is every mark on every letter; a note's words are kept as the words they read as.
-    const letters = (rs: Run[]) => rs.flatMap((x) => (x.ic ? [`:${x.ic}`] : x.fn !== undefined ? [`^[${plainText(noteRuns(x.fn))}`] : [...x.t].map((ch) => ch + ['b', 'i', 'u', 's', 'h'].filter((f) => x[f as keyof Run] && ch.trim()).join('') + (x.href ?? ''))));
+    const letters = (rs: Run[]) =>
+      rs.flatMap((x) =>
+        x.ic
+          ? [`:${x.ic}`]
+          : x.fn !== undefined
+            ? [`^[${plainText(noteRuns(x.fn))}`]
+            : [...x.t].map((ch) => ch + ['b', 'i', 'u', 's', 'h'].filter((f) => x[f as keyof Run] && ch.trim()).join('') + (x.href ?? '')),
+      );
     expect(letters(once), JSON.stringify(runs) + ' → ' + writeInline(runs)).toStrictEqual(letters(runs));
     // And what is written once is written the same again: the writer is idempotent on its own output.
     expect(writeInline(once)).toBe(writeInline(runs));
@@ -159,7 +247,7 @@ test('tlo: any runs survive being written and read', () => {
 
 test('tlo: any blocks survive being written and read', () => {
   const r = rng(11);
-  const pick = <T,>(xs: T[]) => xs[Math.floor(r() * xs.length)];
+  const pick = <T>(xs: T[]) => xs[Math.floor(r() * xs.length)];
   const text = () => pick(['Words', 'Two\nlines', '# hash', '- dash', '1. one', 'a | pipe', 'x {#y}', '**bold**', 'trailing  ', '> gt', 'Q1: 120', 'x^[note] y']).trim();
   for (let n = 0; n < 500; n++) {
     const blocks: Block[] = [];
@@ -177,7 +265,18 @@ test('tlo: any blocks survive being written and read', () => {
       }
       if (kind === 'quote' && blocks[blocks.length - 1]?.k !== 'quote') blocks.push({ k: 'quote', runs: words(text()) });
       if (kind === 'hr') blocks.push({ k: 'hr' });
-      if (kind === 'table') blocks.push({ k: 'table', cols: [{ name: 'A', type: 'text' }, { name: 'B', type: 'number' }], rows: [[text(), '1'], ['', '2']] });
+      if (kind === 'table')
+        blocks.push({
+          k: 'table',
+          cols: [
+            { name: 'A', type: 'text' },
+            { name: 'B', type: 'number' },
+          ],
+          rows: [
+            [text(), '1'],
+            ['', '2'],
+          ],
+        });
       if (kind === 'fence') blocks.push({ k: 'fence', lang: 'sheet', body: '```\ninner\n```\nA | B' });
       if (kind === 'edge') blocks.push({ k: 'edge', from: 'A', to: 'B c', dir: pick(['->', '<-', '<->', '--'] as const), ...(r() < 0.5 ? { label: 'says' } : {}) });
       if (kind === 'img') blocks.push({ k: 'img', alt: 'A [b]', url: 'https://x.y/#/v0/deck/Zab' });
@@ -196,7 +295,10 @@ test('tlo: attributes, pages and sections', () => {
   expect(splitAttrs('just {braces} here')).toStrictEqual(['just {braces} here', undefined]);
   const doc = parse('# A\nx\n## B\ny\n---\n# C');
   expect(pages(doc.blocks).length).toBe(2);
-  expect(sections(doc.blocks, 1).map(([h, bs]) => [h?.runs[0].t, bs.length])).toStrictEqual([['A', 4], ['C', 0]]);
+  expect(sections(doc.blocks, 1).map(([h, bs]) => [h?.runs[0].t, bs.length])).toStrictEqual([
+    ['A', 4],
+    ['C', 0],
+  ]);
 });
 
 test('tlo: a web address is read whole, marks and all', () => {
@@ -207,7 +309,14 @@ test('tlo: a web address is read whole, marks and all', () => {
 test('tlo: tables of one column, first words like a heading, and backslashes keep their shape', () => {
   for (const b of [
     { k: 'table', cols: [{ name: 'Words', type: 'text' }], rows: [['a'], ['b \\ c']] },
-    { k: 'table', cols: [{ name: '# of units', type: 'text' }, { name: 'Cost', type: 'text' }], rows: [['3', 'x\\|y']] },
+    {
+      k: 'table',
+      cols: [
+        { name: '# of units', type: 'text' },
+        { name: 'Cost', type: 'text' },
+      ],
+      rows: [['3', 'x\\|y']],
+    },
   ] as Block[]) {
     const doc: Doc = { head: {}, blocks: [b] };
     expect(parse(write(doc)), write(doc)).toStrictEqual(doc);
@@ -231,7 +340,11 @@ test('tlo: lines of a paragraph are runs with a line break among the words; mark
 
 test('an empty paragraph is written <br> and read back empty, so a blank line typed between two others survives the link', () => {
   const d = parse('a\n\n<br>\n\nb\n');
-  expect(d.blocks).toStrictEqual([{ k: 'p', runs: [{ t: 'a' }] }, { k: 'p', runs: [] }, { k: 'p', runs: [{ t: 'b' }] }]);
+  expect(d.blocks).toStrictEqual([
+    { k: 'p', runs: [{ t: 'a' }] },
+    { k: 'p', runs: [] },
+    { k: 'p', runs: [{ t: 'b' }] },
+  ]);
   expect(write(d)).toBe('a\n\n<br>\n\nb\n');
   expect(write({ head: {}, blocks: [{ k: 'p', runs: [] }] })).toBe('<br>\n');
 });

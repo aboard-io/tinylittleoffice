@@ -18,7 +18,12 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-draw-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return {
+        bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+        rows: tops.size,
+        pageTop: document.scrollingElement!.scrollTop,
+        wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
     });
   const first = await measure();
   expect(first.rows).toBe(1);
@@ -48,7 +53,7 @@ test('draw: a shape from a key and a click, then a pixel grid that becomes the b
   expect(errors).toEqual([]);
 });
 
-test('draw: a shape tapped has its contextual bar inside the screen, and the bar\'s Delete takes the shape away', async ({ page }, info) => {
+test("draw: a shape tapped has its contextual bar inside the screen, and the bar's Delete takes the shape away", async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/draw');
@@ -121,7 +126,7 @@ test('draw: a shape tapped has its contextual bar inside the screen, and the bar
   expect(errors).toEqual([]);
 });
 
-test('draw by finger: two taps on a shape type its words; the fitted canvas and a shape keep the finger; the bar\'s Undo brings back a deleted shape, chosen', async ({ page }, info) => {
+test("draw by finger: two taps on a shape type its words; the fitted canvas and a shape keep the finger; the bar's Undo brings back a deleted shape, chosen", async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/draw');
@@ -166,7 +171,7 @@ test('draw by finger: two taps on a shape type its words; the fitted canvas and 
   expect(errors).toEqual([]);
 });
 
-test('draw: the turn handle is in reach above a chosen shape and turns it; a finger\'s drag on the empty canvas with Select in hand chooses the shapes inside its box', async ({ page }, info) => {
+test("draw: the turn handle is in reach above a chosen shape and turns it; a finger's drag on the empty canvas with Select in hand chooses the shapes inside its box", async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/draw');
@@ -197,13 +202,19 @@ test('draw: the turn handle is in reach above a chosen shape and turns it; a fin
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => (document.querySelector('to-draw-editor') as HTMLElement & { value: string }).value)).toContain('| Rot\n');
   // A finger's drag from the empty top left round both: both are chosen, and the bar is theirs.
-  await page.evaluate(([x0, y0, x1, y1]) => {
-    const svg = document.querySelector('svg.draw-canvas')!;
-    const send = (type: string, x: number, y: number) => (type === 'pointerdown' ? document.elementFromPoint(x, y) ?? svg : svg).dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 7, pointerType: 'touch', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }));
-    send('pointerdown', x0, y0);
-    for (let i = 1; i <= 5; i++) send('pointermove', x0 + ((x1 - x0) * i) / 5, y0 + ((y1 - y0) * i) / 5);
-    send('pointerup', x1, y1);
-  }, [box.x + 4, box.y + 4, box.x + (480 / 640) * box.width, box.y + (260 / 400) * box.height]);
+  await page.evaluate(
+    ([x0, y0, x1, y1]) => {
+      const svg = document.querySelector('svg.draw-canvas')!;
+      const send = (type: string, x: number, y: number) =>
+        (type === 'pointerdown' ? (document.elementFromPoint(x, y) ?? svg) : svg).dispatchEvent(
+          new PointerEvent(type, { clientX: x, clientY: y, pointerId: 7, pointerType: 'touch', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }),
+        );
+      send('pointerdown', x0, y0);
+      for (let i = 1; i <= 5; i++) send('pointermove', x0 + ((x1 - x0) * i) / 5, y0 + ((y1 - y0) * i) / 5);
+      send('pointerup', x1, y1);
+    },
+    [box.x + 4, box.y + 4, box.x + (480 / 640) * box.width, box.y + (260 / 400) * box.height],
+  );
   await expect(canvas.locator('rect[stroke-dasharray="4 3"]')).toHaveCount(2);
   const bar = page.locator('.draw-context .to-context');
   await expect(bar).toBeVisible();

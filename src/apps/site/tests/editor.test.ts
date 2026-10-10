@@ -56,7 +56,8 @@ const stamp = (el: HTMLElement) => Number(/"stamp":(\d+)/.exec(frame(el).srcdoc)
 /** The page in the frame drawn and its script running (it says so). */
 const ready = (el: HTMLElement) => until(() => heard.some((m) => m.from === frame(el).contentWindow && m.data?.do === 'ready' && m.data.site === stamp(el)), 15000);
 /** A message as the frame would send it. */
-const say = (el: HTMLElement, data: object, source: MessageEventSource | null = frame(el).contentWindow) => window.dispatchEvent(new MessageEvent('message', { data: { site: stamp(el), ...data }, source }));
+const say = (el: HTMLElement, data: object, source: MessageEventSource | null = frame(el).contentWindow) =>
+  window.dispatchEvent(new MessageEvent('message', { data: { site: stamp(el), ...data }, source }));
 const key = (target: EventTarget, k: string, o: KeyboardEventInit = {}) => {
   const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o });
   target.dispatchEvent(e);
@@ -90,7 +91,8 @@ async function form(): Promise<HTMLElement> {
   return document.querySelector<HTMLElement>('.site-form-dialog')!;
 }
 const done = (f: HTMLElement) => f.querySelector<HTMLButtonElement>('.site-form-done')!.click();
-const field = (f: HTMLElement, label: string) => [...f.querySelectorAll<HTMLLabelElement>('label.site-form-field')].find((l) => l.querySelector('.site-form-label')!.textContent === label)!.querySelector('input')!;
+const field = (f: HTMLElement, label: string) =>
+  [...f.querySelectorAll<HTMLLabelElement>('label.site-form-field')].find((l) => l.querySelector('.site-form-label')!.textContent === label)!.querySelector('input')!;
 const typeIn = (input: HTMLInputElement, value: string) => {
   input.value = value;
   input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -132,7 +134,23 @@ test('the page in its frame the whole width, its script running; no panel beside
   expect(el.querySelector('to-bar.site-bar > :first-child')!.tagName).toBe('TO-INSERT');
   expect(bar.slice(-3)).toEqual(['Preview', 'Undo', 'Redo']);
   // What a website can take; a Quick Links page takes less.
-  expect(await insertLabels(el)).toEqual(['Page', 'Section', 'Heading', 'Paragraph', 'Button', 'Big link', 'Web Picture', 'Big icon', 'Web Embed', 'Tiny Little Office Doc', 'Products', 'QR code of this document', ...apps().filter((a) => a.id !== 'site').map((a) => a.name)]);
+  expect(await insertLabels(el)).toEqual([
+    'Page',
+    'Section',
+    'Heading',
+    'Paragraph',
+    'Button',
+    'Big link',
+    'Web Picture',
+    'Big icon',
+    'Web Embed',
+    'Tiny Little Office Doc',
+    'Products',
+    'QR code of this document',
+    ...apps()
+      .filter((a) => a.id !== 'site')
+      .map((a) => a.name),
+  ]);
   const links = await editor(MAKER);
   expect(await insertLabels(links.el)).toEqual(['Paragraph', 'Button', 'Small link', 'Web Picture', 'Big icon', 'Web Embed', 'QR code of this document']);
 });
@@ -158,7 +176,11 @@ test('a tap takes a thing in hand, its bar beside it in the standard’s order: 
   await hold(el, '1');
   expect(labels(el)).toEqual(['Edit', 'Move up', 'Move down', 'Duplicate', 'Delete']);
   await hold(el, '0');
-  expect(ctxItems(el).filter((b) => b.disabled).map((b) => b.getAttribute('aria-label'))).toEqual(['Move up', 'Move down', 'Duplicate', 'Delete']);
+  expect(
+    ctxItems(el)
+      .filter((b) => b.disabled)
+      .map((b) => b.getAttribute('aria-label')),
+  ).toEqual(['Move up', 'Move down', 'Duplicate', 'Delete']);
   // A tap on its words leaves the focus in the page, where they are typed; nothing is asked of a form.
   (document.activeElement as HTMLElement).blur();
   say(el, { do: 'pick', o: '1', r: [0, 0, 10, 10], words: true });
@@ -567,7 +589,7 @@ test('Preview: the page as a visitor has it, the bar one Edit button; Edit, Esca
   expect(el.preview).toBe(false);
 });
 
-test('on a wide screen at the normal size the form sits beside the thing in hand: its left at the thing\'s, its top just under it', async () => {
+test("on a wide screen at the normal size the form sits beside the thing in hand: its left at the thing's, its top just under it", async () => {
   // 1100 wide (beforeEach), at the normal size (a rem kit/zoom.ts BASE × 16px): the page's frame is its own document, its lengths the screen's.
   expect(remScale()).toBe(BASE);
   const { el } = await editor();
@@ -730,7 +752,7 @@ test('the frame’s own script: a tap takes a thing and outlines it and opens it
   f.remove();
 });
 
-test('§1 opens with the site\'s name in hand, its words open in the page with the caret at their end; before the page is ready too', async () => {
+test("§1 opens with the site's name in hand, its words open in the page with the caret at their end; before the page is ready too", async () => {
   const { el, last } = await editor();
   await ready(el);
   await el.focusFirst();
@@ -750,7 +772,7 @@ test('§1 opens with the site\'s name in hand, its words open in the page with t
   await until(() => blank.last().startsWith('# Harbor'));
 });
 
-test('the cart counts in each thing\'s own currency: a Price column of GBP through Intl, the head\'s € before the price, the total the same', async () => {
+test("the cart counts in each thing's own currency: a Price column of GBP through Intl, the head's € before the price, the total the same", async () => {
   const { sitePage } = await import('../view.ts');
   const { parse } = await import('../../../doc/index.ts');
   const cart = async (text: string, picks: number[]) => {

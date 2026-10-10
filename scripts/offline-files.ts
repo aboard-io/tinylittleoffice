@@ -28,6 +28,9 @@ export function offlineList(built: Built[]): OfflineList {
     .filter((f) => !left(f.path))
     .map((f) => ({ name: f.path.replace(/(^|\/)index\.html$/, '$1'), bytes: f.bytes }))
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  const version = createHash('sha256').update(kept.map((f) => `${f.name}:${f.bytes}`).join('|')).digest('hex').slice(0, 12);
+  const version = createHash('sha256')
+    .update(kept.map((f) => `${f.name}:${f.bytes}`).join('|'))
+    .digest('hex')
+    .slice(0, 12);
   return { version, files: kept.map((f) => f.name) };
 }

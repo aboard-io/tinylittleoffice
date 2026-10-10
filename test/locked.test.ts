@@ -57,12 +57,18 @@ test('opened this visit: drawn open in an editor alone; the pages, the site and 
     expect(lockedPage(body, { small: true }).svg).toContain('Locked with a password');
     // The Word Processor's pages, its web page, a slide and a site page.
     const text = outer();
-    const pages = appOf('write')!.view(text).map((p) => p.svg).join('');
+    const pages = appOf('write')!
+      .view(text)
+      .map((p) => p.svg)
+      .join('');
     expect(pages).toContain('Locked with a password');
     expect(pages).toContain('Locked document');
     expect(pages).not.toContain('secret');
     const deck = write({ head: {}, blocks: [{ k: 'h', level: 2, runs: [{ t: 'Numbers' }] }, lockedFence('write', sealed)] });
-    const slides = appOf('deck')!.view(deck).map((p) => p.svg).join('');
+    const slides = appOf('deck')!
+      .view(deck)
+      .map((p) => p.svg)
+      .join('');
     expect(slides).toContain('Locked with a password');
     expect(slides).not.toContain('secret');
     const site = appOf('site')!.page!(write({ head: {}, blocks: [{ k: 'h', level: 1, runs: [{ t: 'Home' }] }, lockedFence('write', sealed)] }), 'https://tinylittleoffice.com/');

@@ -50,7 +50,11 @@ export const sheetToCsv = (doc: Doc, sep = csvSeparator()): string => csv(lines(
 export function chartOfSheet(v: SheetView): ChartData {
   const counts = ['text', 'name', 'number', 'money', 'percent'];
   return chartData(
-    v.values.slice(0, v.used.rows).map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' ? cellText(x, 'rich') : counts.includes(v.cols[c]?.type) || typeof x !== 'number' ? x : formatCell(x, v.cols[c]?.type, currencyAt(v, c))))),
+    v.values
+      .slice(0, v.used.rows)
+      .map((row) =>
+        row.map((x, c) => (v.cols[c]?.type === 'rich' ? cellText(x, 'rich') : counts.includes(v.cols[c]?.type) || typeof x !== 'number' ? x : formatCell(x, v.cols[c]?.type, currencyAt(v, c)))),
+      ),
     v.cols.map((c) => c.name),
   );
 }
@@ -71,7 +75,10 @@ export function tablePage(v: SheetView, upTo = Infinity): Page {
   const PX = 15;
   const H = 30;
   const widths = Array.from({ length: rows[0].length }, (_, c) => Math.min(240, Math.max(64, ...rows.map((row) => textWidth(row[c], PX) + 24))));
-  const w = Math.max(widths.reduce((a, b) => a + b, 0), big ? textWidth(big.value, 40, true) + 24 : 0);
+  const w = Math.max(
+    widths.reduce((a, b) => a + b, 0),
+    big ? textWidth(big.value, 40, true) + 24 : 0,
+  );
   let svg = '';
   if (big) svg += text(24, 52, clip(big.value, w, 40, true), { px: 40, bold: true }) + text(24, 76, clip(big.label, w, 14), { px: 14, fill: MUTED });
   let filled = 0;
@@ -85,7 +92,9 @@ export function tablePage(v: SheetView, upTo = Infinity): Page {
       const raw = names ? '' : (v.table.rows[r]?.[c] ?? '');
       const rich = v.cols[c]?.type === 'rich' && raw !== '' && !raw.startsWith('=');
       if (cell !== '' && (names || filled++ < upTo))
-        svg += rich ? richText(at + 12, top + i * H + 20, raw, widths[c] - 20, PX) : text(num ? at + widths[c] - 12 : at + 12, top + i * H + 20, clip(cell, widths[c] - 20, PX, names), { px: PX, bold: names, anchor: num ? 'end' : 'start' });
+        svg += rich
+          ? richText(at + 12, top + i * H + 20, raw, widths[c] - 20, PX)
+          : text(num ? at + widths[c] - 12 : at + 12, top + i * H + 20, clip(cell, widths[c] - 20, PX, names), { px: PX, bold: names, anchor: num ? 'end' : 'start' });
       at += widths[c];
     });
   });

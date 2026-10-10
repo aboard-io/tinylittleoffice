@@ -142,9 +142,11 @@ export class ToNotes extends LitElement {
             @focusin=${() => this.onFocusIn(nth)}
             @focusout=${(e: FocusEvent) => this.onFocusOut(nth, e)}
           ></to-text>
-          ${this.backs
-            ? html`<button type="button" class="to-note-back" role="doc-backlink" aria-label=${t('Back to footnote {n} in the text', { n: nth + 1 })} title=${t('Back to the text')} @click=${() => this.back(nth)}>↩</button>`
-            : nothing}
+          ${
+            this.backs
+              ? html`<button type="button" class="to-note-back" role="doc-backlink" aria-label=${t('Back to footnote {n} in the text', { n: nth + 1 })} title=${t('Back to the text')} @click=${() => this.back(nth)}>↩</button>`
+              : nothing
+          }
         </li>`,
       )}
     </ol>`;

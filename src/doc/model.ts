@@ -108,7 +108,8 @@ export const attr = (b: { a?: Attrs }, k: string): string | undefined => b.a?.kv
  * one web address and nothing else (a video, a post, a place; which one is
  * the view's to say).
  */
-export const isEmbed = (b: Block): boolean => (b.k === 'fence' && !!b.lang) || b.k === 'img' || (b.k === 'p' && b.runs.length === 1 && !isAtomic(b.runs[0]) && /^https?:\/\/\S+$/.test(b.runs[0].t.trim()));
+export const isEmbed = (b: Block): boolean =>
+  (b.k === 'fence' && !!b.lang) || b.k === 'img' || (b.k === 'p' && b.runs.length === 1 && !isAtomic(b.runs[0]) && /^https?:\/\/\S+$/.test(b.runs[0].t.trim()));
 
 /** The blocks between rules: a deck's slides, a booklet's pages. */
 export function pages(blocks: Block[]): Block[][] {

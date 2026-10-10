@@ -37,7 +37,11 @@ export const addressOf = (site: string, path: string) => new URL(path.replace(/(
 export function table(rows: Row[]): string {
   const w = Math.max(4, ...rows.map((r) => r.path.length));
   const line = (a: string, b: string, c: string, d: string) => `${a.padEnd(w)}  ${b.padEnd(12)}  ${c.padEnd(12)}  ${d}`;
-  return [line('file', 'built', 'live', ''), line('-'.repeat(w), '-'.repeat(12), '-'.repeat(12), '-'.repeat(7)), ...rows.map((r) => line(r.path, r.want.slice(0, 12), r.got?.slice(0, 12) ?? '-', r.status))].join('\n');
+  return [
+    line('file', 'built', 'live', ''),
+    line('-'.repeat(w), '-'.repeat(12), '-'.repeat(12), '-'.repeat(7)),
+    ...rows.map((r) => line(r.path, r.want.slice(0, 12), r.got?.slice(0, 12) ?? '-', r.status)),
+  ].join('\n');
 }
 
 /** Each file fetched from `site` and compared with the build's hash, six at a time. */

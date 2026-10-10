@@ -79,7 +79,12 @@ export default defineConfig(({ mode }) => ({
   base: './',
   server: {
     // The dev box's own name, beside localhost; VITE_ALLOWED_HOSTS adds more (comma-separated).
-    allowedHosts: ['pefdev.exe.xyz', ...(loadEnv(mode, import.meta.dirname).VITE_ALLOWED_HOSTS?.split(',').filter(Boolean) ?? [])],
+    allowedHosts: [
+      'pefdev.exe.xyz',
+      ...(loadEnv(mode, import.meta.dirname)
+        .VITE_ALLOWED_HOSTS?.split(',')
+        .filter(Boolean) ?? []),
+    ],
     // The shortener and the picture proxy on this machine (npm run tinier:dev, media:dev), under the dev server's own address.
     proxy: {
       '/tinier/': { target: 'http://127.0.0.1:8787', rewrite: (p) => p.slice('/tinier'.length) },

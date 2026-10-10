@@ -187,7 +187,7 @@ test('the GIF export: GIF89a, the stage size, a frame for every frame', async ()
   expect(frames).toBeGreaterThanOrEqual(24);
 });
 
-test('the GIF repeats as the motion says (once: no loop block; bounce: there and back), and its frames draw a label\'s marks', async () => {
+test("the GIF repeats as the motion says (once: no loop block; bounce: there and back), and its frames draw a label's marks", async () => {
   const build = (doc: string) => def.exports!.find((e) => e.ext === 'gif')!.build(doc, { def, title: '', link: '' }) as Promise<Uint8Array>;
   const count = (gif: Uint8Array) => {
     let n = 0;
@@ -217,7 +217,7 @@ test('the GIF repeats as the motion says (once: no loop block; bounce: there and
   expect(await ink(LIFT.replace('| Lift off', '| **Lift off**'))).toBeGreaterThan((await ink(LIFT)) * 1.1);
 });
 
-test('Move mode\'s length, speed and repeat: the frames and fps fields write the head (out of bounds held, nonsense refused), the seconds follow; the repeat menu; the Turn slider keys a turn; playing once stops at the end', async () => {
+test("Move mode's length, speed and repeat: the frames and fps fields write the head (out of bounds held, nonsense refused), the seconds follow; the repeat menu; the Turn slider keys a turn; playing once stops at the end", async () => {
   const { el, last } = await editor(LIFT);
   const secs = () => el.querySelector('.anim-secs')!.textContent;
   expect(secs()).toBe('3.0 s');
@@ -382,7 +382,7 @@ test('Mod+A takes every shape; Shift+tap adds one or takes it away; a drag moves
   expect(chosen(el)).toEqual(['0', '1']);
 });
 
-test('the keys are the stage\'s: K, Delete and the arrows do nothing from a bar button or the editor itself', async () => {
+test("the keys are the stage's: K, Delete and the arrows do nothing from a bar button or the editor itself", async () => {
   const { el, changes } = await editor(LIFT);
   await tap(el, 96, 320);
   const play = button(el, 'Play');
@@ -394,7 +394,7 @@ test('the keys are the stage\'s: K, Delete and the arrows do nothing from a bar 
   expect(scrub(el)).toBe('0');
 });
 
-test('a shape in hand has the contextual bar under it, in the standard\'s order, its buttons keeping the focus; the bar ends with Undo and Redo, which keep it too', async () => {
+test("a shape in hand has the contextual bar under it, in the standard's order, its buttons keeping the focus; the bar ends with Undo and Redo, which keep it too", async () => {
   const { el, last } = await editor(LIFT);
   const ctx = el.querySelector<HTMLElement>('to-context.anim-context')!;
   expect(ctx.querySelector('.to-context')!.matches(':popover-open')).toBe(false);
@@ -431,7 +431,9 @@ test('copy, cut and paste carry the shapes in hand with their keys, as TLO and o
   const { el, last } = await editor(LIFT);
   await tap(el, 96, 320);
   const copy = clipboard('copy');
-  expect(copy.getData('text/plain')).toBe('---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(copy.getData('text/plain')).toBe(
+    '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n',
+  );
   expect(copy.getData('text/html')).toContain('<meta name="generator" content="TinyLittleOffice">');
   expect(copy.getData('text/html')).toContain('<td>rocket</td>');
   clipboard('paste', { 'text/plain': copy.getData('text/plain') });
@@ -454,7 +456,7 @@ test('copy, cut and paste carry the shapes in hand with their keys, as TLO and o
   expect(el.querySelectorAll('.anim-stage .hit')).toHaveLength(3);
 });
 
-test('Enter, or two taps, on a shape in hand opens its words in place (Draw\'s own, on the same shape); undo with the words open takes the typing back and closes them', async () => {
+test("Enter, or two taps, on a shape in hand opens its words in place (Draw's own, on the same shape); undo with the words open takes the typing back and closes them", async () => {
   const { el, last, changes } = await editor(LIFT);
   await tap(el, 64, 176);
   await press(el, 'Enter');
@@ -493,7 +495,7 @@ test('Enter, or two taps, on a shape in hand opens its words in place (Draw\'s o
   expect(el.querySelector<HTMLElement>('to-draw-editor .draw-words')?.hidden).toBe(false);
 });
 
-test('Draw mode: the shapes in hand go in and come out with the mode; Draw\'s own Undo is Motion\'s; Draw offers no pixel mode, and a pixel grid from it is refused, not silently lost', async () => {
+test("Draw mode: the shapes in hand go in and come out with the mode; Draw's own Undo is Motion's; Draw offers no pixel mode, and a pixel grid from it is refused, not silently lost", async () => {
   const { el, last, changes } = await editor(LIFT);
   await tap(el, 96, 320);
   byWords(el, 'Draw').click();
@@ -571,7 +573,7 @@ test('§1 opens with the focus on the stage, the page not scrolled', async () =>
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
 
-test('Draw mode has Draw\'s Align for a text in hand: a title centred there is centred in the motion, its keys kept', async () => {
+test("Draw mode has Draw's Align for a text in hand: a title centred there is centred in the motion, its keys kept", async () => {
   const { el, last } = await editor(LIFT);
   await tap(el, 112, 176);
   byWords(el, 'Draw').click();

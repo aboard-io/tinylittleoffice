@@ -1,9 +1,9 @@
 {
- "source": "src/apps/seating.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "- Top table: Sam, Paul, Ada, Grace, Alan, Margaret\n- Table 2: Linus, Barbara, Ken, Dennis, Edsger\n- Table 3: Tim, Vint, Radia, Leslie"
-  }
- ]
+  "source": "src/apps/seating.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "- Top table: Sam, Paul, Ada, Grace, Alan, Margaret\n- Table 2: Linus, Barbara, Ken, Dennis, Edsger\n- Table 3: Tim, Vint, Radia, Leslie"
+    }
+  ]
 }

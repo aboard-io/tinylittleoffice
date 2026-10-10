@@ -1,9 +1,9 @@
 {
- "source": "src/apps/lanes.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "- Customer: Places order\n- Sales: Checks stock\n- Sales: In stock?\n- Warehouse: Packs it\n- Courier: Delivers\n- Customer: Signs for it"
-  }
- ]
+  "source": "src/apps/lanes.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "- Customer: Places order\n- Sales: Checks stock\n- Sales: In stock?\n- Warehouse: Packs it\n- Courier: Delivers\n- Customer: Signs for it"
+    }
+  ]
 }

@@ -4,7 +4,15 @@ import { register, setLanguage } from '../../src/kit/i18n.ts';
 import { mount, until } from './helpers.ts';
 
 test('an in-memory Spanish dictionary takes over the shell when chosen', async () => {
-  register('es', { 'Tiny Little Office': 'Oficinita Diminuta', 'Find app, template': 'Buscar app, plantilla', Menu: 'Menú', 'Word Processor': 'Procesador de textos', 'Templates for {app}': 'Plantillas de {app}', Language: 'Idioma', 'Match the device': 'Como el dispositivo' });
+  register('es', {
+    'Tiny Little Office': 'Oficinita Diminuta',
+    'Find app, template': 'Buscar app, plantilla',
+    Menu: 'Menú',
+    'Word Processor': 'Procesador de textos',
+    'Templates for {app}': 'Plantillas de {app}',
+    Language: 'Idioma',
+    'Match the device': 'Como el dispositivo',
+  });
   const shell = await mount('');
   shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => shell.querySelector<HTMLDialogElement>('dialog.to-drawer')!.open);

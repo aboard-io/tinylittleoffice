@@ -5,7 +5,41 @@ import { createHash } from 'node:crypto';
 import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
-import { AUTO, EDGE_MIX, STAGE_COLORS, addCard, addItem, autoHue, setLook, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeItem, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView } from '../model.ts';
+import {
+  AUTO,
+  EDGE_MIX,
+  STAGE_COLORS,
+  addCard,
+  addItem,
+  autoHue,
+  setLook,
+  addStage,
+  asCards,
+  asItems,
+  blocksOf,
+  cardsIn,
+  carryCards,
+  duplicateCard,
+  duplicateCards,
+  joinLine,
+  moveCard,
+  moveCards,
+  moveItem,
+  moveStage,
+  progress,
+  readBoard,
+  removeCard,
+  removeCards,
+  removeItem,
+  removeStage,
+  setItemDone,
+  setStage,
+  shifted,
+  splitCard,
+  splitItem,
+  stageOf,
+  type BoardView,
+} from '../model.ts';
 import { boardPage, boardToCsv } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -41,7 +75,10 @@ test('read: stages from the headings with their limit and colour, cards from the
   ]);
   const spec = v.stages[0].cards[0];
   expect([spec.at, spec.end, spec.words]).toEqual([1, 4, 'Write the spec']);
-  expect(spec.items.map((i) => [i.at, i.done, i.words])).toEqual([[2, true, 'Outline'], [3, false, 'Draft']]);
+  expect(spec.items.map((i) => [i.at, i.done, i.words])).toEqual([
+    [2, true, 'Outline'],
+    [3, false, 'Draft'],
+  ]);
   expect(progress(spec)).toBe('1/2');
   expect(progress(v.stages[0].cards[1])).toBe('');
   expect(v.cards).toBe(3);
@@ -50,7 +87,10 @@ test('read: stages from the headings with their limit and colour, cards from the
   expect(readBoard(parse('## A {limit=x color=z}\n')).stages[0]).toMatchObject({ limit: 0, color: '' });
   // Cards before any heading are a stage of their own, without a heading; anything else under a stage goes with it.
   const loose = readBoard(parse('- a\n- b\n\n## B\n\nA note.\n\n- c\n'));
-  expect(loose.stages.map((s) => [s.name, s.at, s.start, s.end, s.cards.map((c) => c.words)])).toEqual([['To do', -1, 0, 2, ['a', 'b']], ['B', 2, 2, 5, ['c']]]);
+  expect(loose.stages.map((s) => [s.name, s.at, s.start, s.end, s.cards.map((c) => c.words)])).toEqual([
+    ['To do', -1, 0, 2, ['a', 'b']],
+    ['B', 2, 2, 5, ['c']],
+  ]);
   // A depth-one item that is not a task is a card, and a task before any card is a card.
   expect(readBoard(parse('## A\n\n  - [x] odd\n- b\n  - plain\n')).stages[0].cards.map((c) => c.words)).toEqual(['odd', 'b', 'plain']);
 });
@@ -70,7 +110,9 @@ test('stages are added at the end, removed with their cards, and moved past a ne
   const right = run(BOARD, (v) => moveStage(v, 0, 1));
   expect(right.ops).toEqual([{ op: 'move', at: 0, n: 5, to: 2 }]);
   expect(right.text).toBe('## Doing {limit=1 color=g}\n\n- Ship it\n\n## To do {color=b}\n\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n- Review the copy\n\n## Done\n');
-  expect(run(BOARD, (v) => moveStage(v, 2, -1)).text).toBe('## To do {color=b}\n\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n- Review the copy\n\n## Done\n\n## Doing {limit=1 color=g}\n\n- Ship it\n');
+  expect(run(BOARD, (v) => moveStage(v, 2, -1)).text).toBe(
+    '## To do {color=b}\n\n- Write the **spec**\n  - [x] Outline\n  - [ ] Draft\n- Review the copy\n\n## Done\n\n## Doing {limit=1 color=g}\n\n- Ship it\n',
+  );
   expect(moveStage(readBoard(parse(BOARD)), 0, -1)).toEqual([]);
   expect(moveStage(readBoard(parse(BOARD)), 2, 1)).toEqual([]);
 });
@@ -195,7 +237,11 @@ test('the words of a line: Enter splits a card (its checklist stays with the fir
 
 test('ops from an editor over one block are carried to where the block is', () => {
   const text: Op = { op: 'text', at: 0, from: 0, to: 0, runs: [{ t: 'x' }] };
-  expect(shifted([text, { op: 'head', key: 'title', value: 'a' }, { op: 'move', at: 0, n: 1, to: 2 }], 3)).toEqual([{ ...text, at: 3 }, { op: 'head', key: 'title', value: 'a' }, { op: 'move', at: 3, n: 1, to: 5 }]);
+  expect(shifted([text, { op: 'head', key: 'title', value: 'a' }, { op: 'move', at: 0, n: 1, to: 2 }], 3)).toEqual([
+    { ...text, at: 3 },
+    { op: 'head', key: 'title', value: 'a' },
+    { op: 'move', at: 3, n: 1, to: 5 },
+  ]);
   expect(write(applyAll(parse(BOARD), shifted([{ op: 'text', at: 0, from: 5, to: 5, runs: [{ t: ' (soon)' }] }], 5)))).toContain('## Doing (soon) {limit=1 color=g}');
 });
 
@@ -231,16 +277,26 @@ test('the definition: a blank board is three stages to type under; the templates
     const v = readBoard(d);
     expect(v.stages.length).toBeGreaterThanOrEqual(4);
     expect(v.cards).toBeGreaterThanOrEqual(7);
-    expect(v.stages.every((s) => s.cards.length && s.color), tpl.id).toBe(true);
+    expect(
+      v.stages.every((s) => s.cards.length && s.color),
+      tpl.id,
+    ).toBe(true);
     // A limit is kept: no template opens over one.
-    expect(v.stages.every((s) => !s.limit || s.cards.length <= s.limit), tpl.id).toBe(true);
+    expect(
+      v.stages.every((s) => !s.limit || s.cards.length <= s.limit),
+      tpl.id,
+    ).toBe(true);
     expect(v.stages.some((s) => s.cards.some((c) => c.items.length))).toBe(true);
     // Drawn small on the home page, it shows nearly all of itself.
     expect(def.view(tpl.doc)).toHaveLength(1);
     expect(def.view(tpl.doc, { small: true })[0].svg).toContain(v.stages[0].cards[0].words.slice(0, 12));
   }
   // One draws its stages as rows; one carries a note in a card's words.
-  expect(templates().filter((tpl) => readBoard(parse(tpl.doc)).rows).map((tpl) => tpl.id)).toEqual(['mutual-aid']);
+  expect(
+    templates()
+      .filter((tpl) => readBoard(parse(tpl.doc)).rows)
+      .map((tpl) => tpl.id),
+  ).toEqual(['mutual-aid']);
   expect(templates().some((tpl) => parse(tpl.doc).blocks.some((b) => b.k === 'li' && b.runs.some((r) => r.fn)))).toBe(true);
   expect(def.retitle(def.blank(), 'Studio').startsWith('---\ntitle: Studio\n---\n## To do')).toBe(true);
   expect(def.exports!.map((e) => e.ext)).toEqual(['csv']);
@@ -249,7 +305,11 @@ test('the definition: a blank board is three stages to type under; the templates
 test('every stage has a colour: the one written, else the palette by its place; Automatic writes none', () => {
   const v = readBoard(parse(BOARD));
   // To do and Doing say theirs; Done, third, takes the palette's third.
-  expect(v.stages.map((s) => [s.color, s.hue])).toEqual([['b', 'b'], ['g', 'g'], ['', AUTO[2]]]);
+  expect(v.stages.map((s) => [s.color, s.hue])).toEqual([
+    ['b', 'b'],
+    ['g', 'g'],
+    ['', AUTO[2]],
+  ]);
   expect(readBoard(parse('## A\n\n## B\n\n## C\n\n## D\n\n## E\n\n## F\n\n## G\n\n## H\n')).stages.map((s) => s.hue)).toEqual([...AUTO, AUTO[0]]);
   // Cards before any heading are the first stage, and take the first colour.
   expect(readBoard(parse('- a\n\n## B\n')).stages.map((s) => s.hue)).toEqual([AUTO[0], AUTO[1]]);
@@ -335,7 +395,10 @@ test('the look: stages as rows is `look: rows` in the head, columns the default 
 
 // The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
 // unchanged by `thumb`.
-const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
+const sha1 = (pages: { w: number; h: number; svg: string }[]) =>
+  createHash('sha1')
+    .update(pages.map((p) => pageSvg(p)).join('\n'))
+    .digest('hex');
 const BOARD5 = '## Ideas\n\n- A blog\n\n## To do\n\n- Write the words\n- Photograph the studio\n\n## Doing\n\n- Build the home page\n\n## Review\n\n- The logo\n\n## Done\n\n- Pick the domain name\n';
 
 test('a thumbnail of a five-stage board is landscape and holds the first three stages at full width; a page and a slide are as before', () => {

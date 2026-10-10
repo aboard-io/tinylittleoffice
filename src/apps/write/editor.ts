@@ -47,7 +47,29 @@ import { myKey, signerName, signWords } from '../../kit/privacy.ts';
 import { signatureIcon, signatureTone, signatureWords, uncheckedHint } from '../../kit/privacy-dialog.ts';
 import { blockLength, caret, insertBlocks, isWords, type Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
-import { PAPERS, defaultPaper, duplicateBlock, fenceTitle, fieldsOf, moveBlock, paperOf, putAfter, removeBlock, setCellAt, tableColIn, tableColOut, tablePut, tableRename, tableSetType, tableRowsIn, tableRowsOut, tableView, webBlock, wordCount, type Paper } from './model.ts';
+import {
+  PAPERS,
+  defaultPaper,
+  duplicateBlock,
+  fenceTitle,
+  fieldsOf,
+  moveBlock,
+  paperOf,
+  putAfter,
+  removeBlock,
+  setCellAt,
+  tableColIn,
+  tableColOut,
+  tablePut,
+  tableRename,
+  tableSetType,
+  tableRowsIn,
+  tableRowsOut,
+  tableView,
+  webBlock,
+  wordCount,
+  type Paper,
+} from './model.ts';
 import COMMANDS, { CARD, alignIcon } from './commands.ts';
 import { lookOf, type LookId } from './look.ts';
 import { checkContract, contractText, printOf, readSignatures, signaturesAt, signedMessage, signOps, today, verdictOf } from './contract.ts';
@@ -318,9 +340,11 @@ export class ToWriteEditor extends DocElement<Doc> {
         return html`<div>
           <dt><label for="write-field-${k}">${k}</label></dt>
           <dd>
-            ${tall
-              ? html`<textarea id="write-field-${k}" rows=${Math.max(2, lines.length)} .value=${lines.join('\n')} @change=${(e: Event) => this.setField(k, (e.target as HTMLTextAreaElement).value)}></textarea>`
-              : html`<input id="write-field-${k}" type=${k === 'date' || k === 'due' ? 'date' : 'text'} .value=${v} @change=${(e: Event) => this.setField(k, (e.target as HTMLInputElement).value)} />`}
+            ${
+              tall
+                ? html`<textarea id="write-field-${k}" rows=${Math.max(2, lines.length)} .value=${lines.join('\n')} @change=${(e: Event) => this.setField(k, (e.target as HTMLTextAreaElement).value)}></textarea>`
+                : html`<input id="write-field-${k}" type=${k === 'date' || k === 'due' ? 'date' : 'text'} .value=${v} @change=${(e: Event) => this.setField(k, (e.target as HTMLInputElement).value)} />`
+            }
           </dd>
         </div>`;
       })}
@@ -446,7 +470,8 @@ export class ToWriteEditor extends DocElement<Doc> {
     const b = this.doc.blocks[at];
     if (!b) return null;
     if (b.k === 'fence' && b.lang === 'signatures') return { label: t('Sign this contract'), icon: UI.sign, keys: 'Enter', does: () => void this.signContract() };
-    if (b.k === 'table' || (b.k === 'fence' && b.lang && b.lang !== 'signatures' && lookup.appOf(b.lang))) return { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editCard(at) };
+    if (b.k === 'table' || (b.k === 'fence' && b.lang && b.lang !== 'signatures' && lookup.appOf(b.lang)))
+      return { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => void this.editCard(at) };
     if (b.k === 'img' || (b.k === 'p' && isEmbed(b))) {
       const swap = (next: Block) => this.change([{ op: 'splice', at, n: 1, blocks: [next] }], { before: null, after: null, card: at, cardAfter: at });
       return {
@@ -580,8 +605,9 @@ export class ToWriteEditor extends DocElement<Doc> {
     const text = contractText(this.doc);
     const words: Record<string, string> = { valid: t('Signed these words'), mismatch: t('The words have changed since this was signed'), unsigned: t('Not signed yet'), checking: t('Checking…') };
     return html`<div class="write-signatures" role="group" aria-label=${t('Signatures')}>
-      ${rows.length
-        ? html`<div class="write-sig-list" role="list">
+      ${
+        rows.length
+          ? html`<div class="write-sig-list" role="list">
             ${rows.map((s) => {
               const v = verdictOf(text, s) ?? 'checking';
               // A kind of signature this browser cannot check is said as the Privacy dialog says it: grey, never red.
@@ -594,7 +620,8 @@ export class ToWriteEditor extends DocElement<Doc> {
               </div>`;
             })}
           </div>`
-        : html`<span class="to-hint">${t('No one has signed yet.')}</span>`}
+          : html`<span class="to-hint">${t('No one has signed yet.')}</span>`
+      }
       <button type="button" class="to-btn write-sign" @click=${() => void this.signContract()}>${icon(UI.sign, 16)}<span>${t('Sign this contract')}</span></button>
     </div>`;
   }
@@ -671,7 +698,8 @@ export class ToWriteEditor extends DocElement<Doc> {
   private renderBar(): TemplateResult {
     const x = this.text ?? null;
     const own = (id: string) => COMMANDS.find((c) => c.id === `write.${id}`)!;
-    const menu = (id: string, cls: string, icon = own(id).icon!) => html`<to-menu class=${cls} icon-only keep .label=${labelOf(own(id), this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
+    const menu = (id: string, cls: string, icon = own(id).icon!) =>
+      html`<to-menu class=${cls} icon-only keep .label=${labelOf(own(id), this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
     return html`<to-bar class="write-bar">
         <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
         ${cmdTool(own('title'), this)} ${cmdTool(own('heading'), this)} ${cmdTool(own('subheading'), this)} ${cmdTool(own('paragraph'), this)}
@@ -697,12 +725,14 @@ export class ToWriteEditor extends DocElement<Doc> {
       </div>
       <div class="write-foot"><span>${t('{n|one word|# words}', { n: words })}</span><span>${PAPERS[paper].name}</span></div>
       <to-context class="write-cardbar" .label=${t('This card')} .items=${(this.cardAt >= 0 ? contextOf(CARD, this) : []) as ContextEntry[]}></to-context>
-      <to-dialog class="write-ask" heading=${a?.heading ?? ''} @to-close=${() => this.answer(null)} .body=${a
-        ? html`<form class="write-ask-form" @submit=${(e: Event) => (e.preventDefault(), this.answer((e.target as HTMLFormElement).querySelector('input')!.value))}>
+      <to-dialog class="write-ask" heading=${a?.heading ?? ''} @to-close=${() => this.answer(null)} .body=${
+        a
+          ? html`<form class="write-ask-form" @submit=${(e: Event) => (e.preventDefault(), this.answer((e.target as HTMLFormElement).querySelector('input')!.value))}>
             <label class="to-field"><span>${a.label}</span><input type=${a.type} name="answer" .value=${a.value} placeholder=${a.placeholder} autocomplete="off" autocapitalize="off" spellcheck="false" inputmode=${a.type === 'url' ? 'url' : 'text'} enterkeyhint="done" ?required=${a.type === 'url'} /></label>
             <div class="to-row"><button type="submit" class="to-btn primary">${icon(UI.check, 16)}<span>${t('OK')}</span></button></div>
           </form>`
-        : nothing}></to-dialog>`;
+          : nothing
+      }></to-dialog>`;
   }
   protected updated(changed: PropertyValues) {
     super.updated(changed);

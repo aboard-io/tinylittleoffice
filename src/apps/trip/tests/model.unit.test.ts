@@ -2,7 +2,30 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import def, { titleOf } from '../def.ts';
-import { addStop, distanceKm, duplicateStops, formatLeg, MAX_STOPS, moveStop, moveStops, pasteStops, placesIn, putAfter, readTrip, removeStop, removeStops, routeKm, routeName, setLinked, setPlace, setText, setUnits, stopsTable, tabulate, type TripView } from '../model.ts';
+import {
+  addStop,
+  distanceKm,
+  duplicateStops,
+  formatLeg,
+  MAX_STOPS,
+  moveStop,
+  moveStops,
+  pasteStops,
+  placesIn,
+  putAfter,
+  readTrip,
+  removeStop,
+  removeStops,
+  routeKm,
+  routeName,
+  setLinked,
+  setPlace,
+  setText,
+  setUnits,
+  stopsTable,
+  tabulate,
+  type TripView,
+} from '../model.ts';
 import { templates } from '../templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from '../view.ts';
 
@@ -29,7 +52,10 @@ test('read: a stop per row that is a place, its columns found by name; units and
   // Columns in any order and named loosely; a row that is not a place is left out (and its index kept by the others).
   const odd = readTrip(parse('# Trip\n\nlongitude | name | latitude\n--- | --- | ---\n-9.1393 | Lisbon | 38.7223\n0 | Nowhere | 91\n-8.6291 | Porto | 41.1579\n'));
   expect(odd.at).toBe(1);
-  expect(odd.stops.map((s) => [s.row, s.name, s.lat])).toEqual([[0, 'Lisbon', 38.7223], [2, 'Porto', 41.1579]]);
+  expect(odd.stops.map((s) => [s.row, s.name, s.lat])).toEqual([
+    [0, 'Lisbon', 38.7223],
+    [2, 'Porto', 41.1579],
+  ]);
   expect(readTrip(parse('---\nunits: miles\nroute: dots\n---\n' + ROUTE))).toMatchObject({ units: 'm', linked: false });
   expect(readTrip(parse('---\nunits: KM\n---\n')).units).toBe('k');
   expect(readTrip(parse('')).stops).toEqual([]);
@@ -96,7 +122,10 @@ test('several stops: moved past their neighbour as a block, removed from the las
   // The one-stop move is the same thing.
   expect(run(ROUTE, (d, v) => moveStop(d, v, 0, 1)).ops).toEqual(run(ROUTE, (d, v) => moveStops(d, v, 0, 1, 1)).ops);
   const gone = run(ROUTE, (_, v) => removeStops(v, [0, 2]));
-  expect(gone.ops).toEqual([{ op: 'rows', at: 0, r: 2, n: 1 }, { op: 'rows', at: 0, r: 0, n: 1 }]);
+  expect(gone.ops).toEqual([
+    { op: 'rows', at: 0, r: 2, n: 1 },
+    { op: 'rows', at: 0, r: 0, n: 1 },
+  ]);
   expect(names(gone.text)).toEqual(['London']);
   const twice = run(ROUTE, (d, v) => duplicateStops(d, v, 0, 2));
   expect(names(twice.text)).toEqual(['New York, NY', 'London', 'New York, NY', 'London', '-']);
@@ -155,7 +184,9 @@ test('loose words that say where become the table, in one splice, with the units
   expect(readTrip(words).loose).toBe(true);
   const ops = tabulate(words);
   expect(ops.map((o) => o.op)).toEqual(['splice', 'head']);
-  expect(write(applyAll(words, ops))).toBe('---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nPorto | 41.1579 | -8.6291 | Port cellars\n');
+  expect(write(applyAll(words, ops))).toBe(
+    '---\nunits: km\n---\nPlace | Lat:number | Lon:number | Note\n--- | --- | --- | ---\nLisbon | 38.7223 | -9.1393 | Pastel de nata first\nPorto | 41.1579 | -8.6291 | Port cellars\n',
+  );
   expect(tabulate(parse(ROUTE))).toEqual([]);
   expect(readTrip(parse('Just words.\n')).loose).toBe(false);
 });

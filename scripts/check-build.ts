@@ -71,11 +71,20 @@ export function checkBuild(dist: string, scripts: string[] = []): string[] {
     }
     if (version !== null) {
       if (!isVersion(version)) problems.push('version.json is not { commit, tag, built, csp: { scripts } }');
-      else if (policies.length && version.csp.scripts.map((s) => `'${s}'`).join(' ') !== policies[0].split(/\s+/).filter((h) => h.startsWith("'sha256-")).join(' ')) problems.push('version.json’s script hashes are not the policy’s');
+      else if (
+        policies.length &&
+        version.csp.scripts.map((s) => `'${s}'`).join(' ') !==
+          policies[0]
+            .split(/\s+/)
+            .filter((h) => h.startsWith("'sha256-"))
+            .join(' ')
+      )
+        problems.push('version.json’s script hashes are not the policy’s');
     }
     for (const f of built.filter((b) => b.path.endsWith('.html'))) {
       const page = readFileSync(at(f.path), 'utf8');
-      for (const m of page.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/g)) if (m[1].trim() && !allowed(hash(m[1]))) problems.push(`${f.path} has an inline script the policy does not allow`);
+      for (const m of page.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/g))
+        if (m[1].trim() && !allowed(hash(m[1]))) problems.push(`${f.path} has an inline script the policy does not allow`);
     }
   }
   return problems;

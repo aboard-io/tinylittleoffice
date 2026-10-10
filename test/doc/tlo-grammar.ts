@@ -85,7 +85,48 @@ escape     = "\\" , ( "*" | "_" | "{" | "[" | "]" | "#" | "|" | "~" | "=" | ":" 
 export const POOLS: Record<string, string[]> = {
   key: ['title', 'by', 'chart', 'lock', 'currency', 'zone', 'theme', 'mode', 'kind', 'x-y'],
   value: ['Hello', 'Two words', '"quoted"', 'bar', 'A1:B2', '$', 'Europe/London', 'שלום', '🚀 launch', 'a: b'],
-  words: ['word', 'Two words', 'a', 'x', '5 * 3', 'snake_case', '2*3', 'key=value', '{.cls}', '{#id}', '\\{', '~~', '**', '==', '++', '_', '*', '#', '- ', '1.', '>', '|', '[', ']', '(', ')', '^', '`', ':', ':x', '<u>', 'شكرا', 'שלום עולם', '🚀', '👩‍💻', '日本語', 'é', '…', 'a\\', 'done.'],
+  words: [
+    'word',
+    'Two words',
+    'a',
+    'x',
+    '5 * 3',
+    'snake_case',
+    '2*3',
+    'key=value',
+    '{.cls}',
+    '{#id}',
+    '\\{',
+    '~~',
+    '**',
+    '==',
+    '++',
+    '_',
+    '*',
+    '#',
+    '- ',
+    '1.',
+    '>',
+    '|',
+    '[',
+    ']',
+    '(',
+    ')',
+    '^',
+    '`',
+    ':',
+    ':x',
+    '<u>',
+    'شكرا',
+    'שלום עולם',
+    '🚀',
+    '👩‍💻',
+    '日本語',
+    'é',
+    '…',
+    'a\\',
+    'done.',
+  ],
   url: ['https://x.y/', 'https://e.com/a_b?q=1&r=_2_', 'http://x.y/a*b*', 'mailto:a@b.c', 'https://x.y/~~s~~'],
   href: ['https://x.y/', 'https://e.com/a_b?q=1', 'mailto:a@b.c', 'tel:+1', '#top', 'https://x.y/a%20b'],
   icon: ['star', 'rocket', 'map-pin', 'x', 'a1'],
@@ -104,7 +145,13 @@ type Expr = { k: 'lit'; s: string } | { k: 'ref'; name: string } | { k: 'pool'; 
 /** The tiny reader: EBNF text to rules. Throws on anything it does not know, naming where. */
 export function readGrammar(src: string): Map<string, Expr> {
   const toks = [...src.matchAll(/\s*(?:("(?:\\.|[^"\\])*")|(\?\s*[\w-]+\s*\?)|([\w-]+)|([=|,[\]{}();]))/gy)];
-  if (toks.map((m) => m[0]).join('').trim() !== src.trim()) throw new Error('grammar: unreadable near ' + JSON.stringify(src.slice(toks.map((m) => m[0]).join('').length, toks.map((m) => m[0]).join('').length + 40)));
+  if (
+    toks
+      .map((m) => m[0])
+      .join('')
+      .trim() !== src.trim()
+  )
+    throw new Error('grammar: unreadable near ' + JSON.stringify(src.slice(toks.map((m) => m[0]).join('').length, toks.map((m) => m[0]).join('').length + 40)));
   let i = 0;
   const peek = () => toks[i]?.[4] ?? (toks[i] ? 'term' : 'end');
   const want = (c: string) => {
@@ -113,7 +160,7 @@ export function readGrammar(src: string): Map<string, Expr> {
   };
   const alt = (): Expr => {
     const xs = [seq()];
-    while (peek() === '|') i++, xs.push(seq());
+    while (peek() === '|') (i++, xs.push(seq()));
     return xs.length === 1 ? xs[0] : { k: 'alt', xs };
   };
   const seq = (): Expr => {
@@ -121,13 +168,13 @@ export function readGrammar(src: string): Map<string, Expr> {
     for (;;) {
       const m = toks[i];
       if (!m) break;
-      if (m[1]) xs.push({ k: 'lit', s: JSON.parse(m[1]) as string }), i++;
-      else if (m[2]) xs.push({ k: 'pool', name: m[2].slice(1, -1).trim() }), i++;
-      else if (m[3]) xs.push({ k: 'ref', name: m[3] }), i++;
+      if (m[1]) (xs.push({ k: 'lit', s: JSON.parse(m[1]) as string }), i++);
+      else if (m[2]) (xs.push({ k: 'pool', name: m[2].slice(1, -1).trim() }), i++);
+      else if (m[3]) (xs.push({ k: 'ref', name: m[3] }), i++);
       else if (m[4] === ',') i++;
-      else if (m[4] === '[') i++, xs.push({ k: 'opt', x: alt() }), want(']');
-      else if (m[4] === '{') i++, xs.push({ k: 'rep', x: alt() }), want('}');
-      else if (m[4] === '(') i++, xs.push(alt()), want(')');
+      else if (m[4] === '[') (i++, xs.push({ k: 'opt', x: alt() }), want(']'));
+      else if (m[4] === '{') (i++, xs.push({ k: 'rep', x: alt() }), want('}'));
+      else if (m[4] === '(') (i++, xs.push(alt()), want(')'));
       else break;
     }
     return xs.length === 1 ? xs[0] : { k: 'seq', xs };
@@ -183,7 +230,7 @@ export function textOf(rule = 'document'): fc.Arbitrary<string> {
 
 /* ---------- the model, as far as the format can say it ---------- */
 
-const pick = <T,>(xs: readonly T[]) => fc.constantFrom(...xs);
+const pick = <T>(xs: readonly T[]) => fc.constantFrom(...xs);
 const MARK_KEYS = ['b', 'i', 'u', 's', 'h'] as const;
 
 /** Words for a run: the plain and the hard, now and then with spaces at their ends. */
@@ -194,16 +241,26 @@ const phrase = fc.tuple(spaces, fc.array(word, { minLength: 1, maxLength: 3 }), 
 /** A run of words with marks, an icon, or a footnote whose words are themselves runs written as inline Markdown. */
 export const arbitraryRun = (notes = true): fc.Arbitrary<Run> =>
   fc.oneof(
-    { weight: 6, arbitrary: fc.record({ t: phrase, marks: fc.subarray([...MARK_KEYS]), href: fc.option(pick(POOLS.href), { nil: undefined, freq: 4 }) }).map(({ t, marks, href }) => Object.assign({ t }, ...marks.map((m) => ({ [m]: true })), href ? { href } : {}) as Run) },
+    {
+      weight: 6,
+      arbitrary: fc
+        .record({ t: phrase, marks: fc.subarray([...MARK_KEYS]), href: fc.option(pick(POOLS.href), { nil: undefined, freq: 4 }) })
+        .map(({ t, marks, href }) => Object.assign({ t }, ...marks.map((m) => ({ [m]: true })), href ? { href } : {}) as Run),
+    },
     { weight: 2, arbitrary: pick([' ', '  ']).map((t): Run => ({ t })) },
     { weight: 1, arbitrary: pick(POOLS.icon).map((ic): Run => ({ t: '', ic })) },
-    ...(notes ? [{ weight: 1, arbitrary: fc.array(arbitraryRun(false), { minLength: 0, maxLength: 3 }).map((rs): Run => ({ t: '', fn: balanceNote(writeInline(sayableLine(normalRuns(rs)))) })) }] : []),
+    ...(notes
+      ? [{ weight: 1, arbitrary: fc.array(arbitraryRun(false), { minLength: 0, maxLength: 3 }).map((rs): Run => ({ t: '', fn: balanceNote(writeInline(sayableLine(normalRuns(rs)))) })) }]
+      : []),
   );
 
 /** One line of runs (no line break), as the format can say it. */
 const arbitraryLine = fc.array(arbitraryRun(), { minLength: 1, maxLength: 5 }).map((rs) => sayableLine(normalRuns(rs)));
 /** Lines of runs joined by '\n', some of them empty (a break at a block's end, two breaks). */
-const arbitraryLines = (max: number) => fc.array(fc.oneof({ weight: 4, arbitrary: arbitraryLine }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), { minLength: 1, maxLength: max }).map((ls) => normalRuns(ls.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l))));
+const arbitraryLines = (max: number) =>
+  fc
+    .array(fc.oneof({ weight: 4, arbitrary: arbitraryLine }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), { minLength: 1, maxLength: max })
+    .map((ls) => normalRuns(ls.flatMap((l, i) => (i ? [{ t: '\n' }, ...l] : l))));
 
 /**
  * What the format cannot say, kept out of a generated model (each a fact of
@@ -240,43 +297,96 @@ export function sayableLine(runs: Run[]): Run[] {
 const ident = pick(POOLS.ident);
 /** Attributes: an id, classes, keys and values (a value with spaces is quoted; one with a quote has it written as '). */
 export const arbitraryAttrs: fc.Arbitrary<Attrs | undefined> = fc.option(
-  fc.record({ id: fc.option(ident, { nil: undefined }), cls: fc.option(fc.uniqueArray(ident, { minLength: 1, maxLength: 2 }), { nil: undefined }), kv: fc.option(fc.dictionary(ident, pick(['1', 'bar', 'a b', '2027-03-01', 'x-y'])), { nil: undefined }) }).map((a) => {
-    const out: Attrs = {};
-    if (a.id) out.id = a.id;
-    if (a.cls) out.cls = a.cls;
-    // (fast-check's dictionaries have no prototype; the parser's objects do.)
-    if (a.kv && Object.keys(a.kv).length) out.kv = { ...a.kv };
-    return Object.keys(out).length ? out : undefined;
-  }),
+  fc
+    .record({
+      id: fc.option(ident, { nil: undefined }),
+      cls: fc.option(fc.uniqueArray(ident, { minLength: 1, maxLength: 2 }), { nil: undefined }),
+      kv: fc.option(fc.dictionary(ident, pick(['1', 'bar', 'a b', '2027-03-01', 'x-y'])), { nil: undefined }),
+    })
+    .map((a) => {
+      const out: Attrs = {};
+      if (a.id) out.id = a.id;
+      if (a.cls) out.cls = a.cls;
+      // (fast-check's dictionaries have no prototype; the parser's objects do.)
+      if (a.kv && Object.keys(a.kv).length) out.kv = { ...a.kv };
+      return Object.keys(out).length ? out : undefined;
+    }),
   { nil: undefined, freq: 3 },
 );
 const withA = <B extends Block>(b: B, a: Attrs | undefined): B => (a ? { ...b, a } : b);
 
 const COLTYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name', 'option'];
-const arbitraryColumn: fc.Arbitrary<Column> = fc.record({ name: pick(['Name', 'Qty', 'Price', '# of units', 'Time', '🚀 Launch', 'שם', 'a|b', 'Note', 'x\\y']), type: pick(COLTYPES), currency: fc.option(pick(['£', 'GBP', 'R$']), { nil: undefined }) }).map((c) => (c.type === 'money' && c.currency ? { name: c.name, type: c.type, currency: c.currency } : { name: c.name, type: c.type }));
+const arbitraryColumn: fc.Arbitrary<Column> = fc
+  .record({
+    name: pick(['Name', 'Qty', 'Price', '# of units', 'Time', '🚀 Launch', 'שם', 'a|b', 'Note', 'x\\y']),
+    type: pick(COLTYPES),
+    currency: fc.option(pick(['£', 'GBP', 'R$']), { nil: undefined }),
+  })
+  .map((c) => (c.type === 'money' && c.currency ? { name: c.name, type: c.type, currency: c.currency } : { name: c.name, type: c.type }));
 const arbitraryCell = pick(['', '1', '2.5', 'words', '=A1+B1', '=SUM(A1:B3)', 'a | b', 'x\\y', 'two\nlines', '🚀', 'שלום', '-', '#', '=C2*2', ' ', '  ', ' a', 'b ', 'x\\ ', 'two \n']);
 
 /** A table: typed columns, raw cells (empty ones too), rows as wide as the columns. */
 export const arbitraryTable = (maxCols = 4, maxRows = 4): fc.Arbitrary<Extract<Block, { k: 'table' }>> =>
-  fc.integer({ min: 1, max: maxCols }).chain((n) =>
-    fc.record({ cols: fc.array(arbitraryColumn, { minLength: n, maxLength: n }), rows: fc.array(fc.array(arbitraryCell, { minLength: n, maxLength: n }), { maxLength: maxRows }), a: arbitraryAttrs }).map(({ cols, rows, a }) => withA({ k: 'table' as const, cols, rows }, a)),
-  );
+  fc
+    .integer({ min: 1, max: maxCols })
+    .chain((n) =>
+      fc
+        .record({ cols: fc.array(arbitraryColumn, { minLength: n, maxLength: n }), rows: fc.array(fc.array(arbitraryCell, { minLength: n, maxLength: n }), { maxLength: maxRows }), a: arbitraryAttrs })
+        .map(({ cols, rows, a }) => withA({ k: 'table' as const, cols, rows }, a)),
+    );
 
 /** One block of any of the nine kinds. */
 export const arbitraryBlock: fc.Arbitrary<Block> = fc.oneof(
-  { weight: 4, arbitrary: fc.record({ runs: fc.oneof({ weight: 9, arbitrary: arbitraryLines(3) }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), a: arbitraryAttrs }).map(({ runs, a }): Block => withA({ k: 'p', runs }, a)) },
+  {
+    weight: 4,
+    arbitrary: fc
+      .record({ runs: fc.oneof({ weight: 9, arbitrary: arbitraryLines(3) }, { weight: 1, arbitrary: fc.constant<Run[]>([]) }), a: arbitraryAttrs })
+      .map(({ runs, a }): Block => withA({ k: 'p', runs }, a)),
+  },
   { weight: 2, arbitrary: fc.record({ level: pick([1, 2, 3, 4, 5, 6] as const), runs: arbitraryLine, a: arbitraryAttrs }).map(({ level, runs, a }): Block => withA({ k: 'h', level, runs }, a)) },
-  { weight: 4, arbitrary: fc.record({ depth: fc.integer({ min: 0, max: 4 }), ord: fc.boolean(), done: fc.option(fc.boolean(), { nil: undefined }), runs: arbitraryLines(2), a: arbitraryAttrs }).map(({ depth, ord, done, runs, a }): Block => withA({ k: 'li', depth, ...(ord ? { ord: true as const } : {}), ...(done === undefined ? {} : { done }), runs }, a)) },
+  {
+    weight: 4,
+    arbitrary: fc
+      .record({ depth: fc.integer({ min: 0, max: 4 }), ord: fc.boolean(), done: fc.option(fc.boolean(), { nil: undefined }), runs: arbitraryLines(2), a: arbitraryAttrs })
+      .map(({ depth, ord, done, runs, a }): Block => withA({ k: 'li', depth, ...(ord ? { ord: true as const } : {}), ...(done === undefined ? {} : { done }), runs }, a)),
+  },
   { weight: 2, arbitrary: fc.record({ runs: arbitraryLines(3), a: arbitraryAttrs }).map(({ runs, a }): Block => withA({ k: 'quote', runs }, a)) },
   { weight: 1, arbitrary: arbitraryAttrs.map((a): Block => withA({ k: 'hr' }, a)) },
   { weight: 2, arbitrary: arbitraryTable() },
-  { weight: 1, arbitrary: fc.record({ lang: pick(['', 'sheet', 'draw', 'js', 'qr']), body: fc.array(pick(POOLS.body), { maxLength: 3 }).map((ls) => ls.join('\n')), a: arbitraryAttrs }).map(({ lang, body, a }): Block => withA({ k: 'fence', lang, body }, a)) },
-  { weight: 1, arbitrary: fc.record({ from: pick(POOLS.node), to: pick(POOLS.node), dir: pick<Dir>(['->', '<-', '<->', '--']), label: fc.option(pick(['feeds', 'two words', '🚀', 'שלום']), { nil: undefined }), a: arbitraryAttrs }).map(({ label, a, ...e }): Block => withA({ k: 'edge', ...e, ...(label ? { label } : {}) }, a)) },
-  { weight: 1, arbitrary: fc.record({ alt: pick(['', 'A picture', 'a ] b', '🚀', 'a [b] c']), url: pick(['https://x.y/p.png', 'https://images.unsplash.com/photo?w=400', 'https://tinylittleoffice.com/#/v0/deck/abc']), a: arbitraryAttrs }).map(({ alt, url, a }): Block => withA({ k: 'img', alt, url }, a)) },
+  {
+    weight: 1,
+    arbitrary: fc
+      .record({ lang: pick(['', 'sheet', 'draw', 'js', 'qr']), body: fc.array(pick(POOLS.body), { maxLength: 3 }).map((ls) => ls.join('\n')), a: arbitraryAttrs })
+      .map(({ lang, body, a }): Block => withA({ k: 'fence', lang, body }, a)),
+  },
+  {
+    weight: 1,
+    arbitrary: fc
+      .record({
+        from: pick(POOLS.node),
+        to: pick(POOLS.node),
+        dir: pick<Dir>(['->', '<-', '<->', '--']),
+        label: fc.option(pick(['feeds', 'two words', '🚀', 'שלום']), { nil: undefined }),
+        a: arbitraryAttrs,
+      })
+      .map(({ label, a, ...e }): Block => withA({ k: 'edge', ...e, ...(label ? { label } : {}) }, a)),
+  },
+  {
+    weight: 1,
+    arbitrary: fc
+      .record({
+        alt: pick(['', 'A picture', 'a ] b', '🚀', 'a [b] c']),
+        url: pick(['https://x.y/p.png', 'https://images.unsplash.com/photo?w=400', 'https://tinylittleoffice.com/#/v0/deck/abc']),
+        a: arbitraryAttrs,
+      })
+      .map(({ alt, url, a }): Block => withA({ k: 'img', alt, url }, a)),
+  },
 );
 
 /** A head: the shell's keys and an app's, values on one line with no spaces at their ends. */
-const arbitraryHead = fc.dictionary(pick(['title', 'by', 'chart', 'lock', 'currency', 'zone', 'x-y']), pick(['Hello', 'Two words', 'bar', 'A1:B2', '$', 'שלום', '🚀 launch', 'a: b']), { maxKeys: 4 }).map((h) => ({ ...h }));
+const arbitraryHead = fc
+  .dictionary(pick(['title', 'by', 'chart', 'lock', 'currency', 'zone', 'x-y']), pick(['Hello', 'Two words', 'bar', 'A1:B2', '$', 'שלום', '🚀 launch', 'a: b']), { maxKeys: 4 })
+  .map((h) => ({ ...h }));
 
 /** A document of the kernel: a head and blocks, as the format can say them. */
 export const arbitraryDoc = (maxBlocks = 8): fc.Arbitrary<Doc> => fc.record({ head: arbitraryHead, blocks: fc.array(arbitraryBlock, { maxLength: maxBlocks }) }).map(sayableDoc);
@@ -316,14 +426,23 @@ export function arbitraryOp(doc: Doc): fc.Arbitrary<Op> {
   const tables = doc.blocks.flatMap((b, i) => (b.k === 'table' ? [i] : []));
   const ops: fc.Arbitrary<Op>[] = [
     fc.record({ key: pick(['title', 'lock', 'chart', 'new']), value: fc.option(pick(['x', 'A1:B2', 'bar']), { nil: undefined }) }).map(({ key, value }): Op => ({ op: 'head', key, value })),
-    fc.integer({ min: 0, max: n }).chain((at) => fc.record({ n: fc.integer({ min: 0, max: n - at }), blocks: fc.array(arbitraryBlock, { maxLength: 2 }) }).map((x): Op => ({ op: 'splice', at, ...x }))),
+    fc
+      .integer({ min: 0, max: n })
+      .chain((at) => fc.record({ n: fc.integer({ min: 0, max: n - at }), blocks: fc.array(arbitraryBlock, { maxLength: 2 }) }).map((x): Op => ({ op: 'splice', at, ...x }))),
   ];
-  if (n) ops.push(fc.integer({ min: 0, max: n - 1 }).chain((at) => fc.integer({ min: 1, max: n - at }).chain((len) => fc.integer({ min: 0, max: n - len }).map((to): Op => ({ op: 'move', at, n: len, to })))));
+  if (n)
+    ops.push(
+      fc.integer({ min: 0, max: n - 1 }).chain((at) => fc.integer({ min: 1, max: n - at }).chain((len) => fc.integer({ min: 0, max: n - len }).map((to): Op => ({ op: 'move', at, n: len, to })))),
+    );
   if (texts.length)
     ops.push(
       pick(texts).chain((at) => {
         const len = runLength((doc.blocks[at] as Extract<Block, { runs: Run[] }>).runs);
-        return fc.integer({ min: 0, max: len }).chain((from) => fc.record({ to: fc.integer({ min: from, max: len }), runs: fc.array(arbitraryRun(), { maxLength: 2 }) }).map(({ to, runs }): Op => ({ op: 'text', at, from, to, runs: normalRuns(runs) })));
+        return fc
+          .integer({ min: 0, max: len })
+          .chain((from) =>
+            fc.record({ to: fc.integer({ min: from, max: len }), runs: fc.array(arbitraryRun(), { maxLength: 2 }) }).map(({ to, runs }): Op => ({ op: 'text', at, from, to, runs: normalRuns(runs) })),
+          );
       }),
     );
   if (tables.length) {
@@ -334,13 +453,33 @@ export function arbitraryOp(doc: Doc): fc.Arbitrary<Op> {
         const w = t.cols.length;
         const h = t.rows.length;
         const kinds: fc.Arbitrary<Op>[] = [
-          fc.record({ r: fc.integer({ min: 0, max: h }), c: fc.integer({ min: 0, max: w }), values: fc.array(fc.array(cell, { minLength: 1, maxLength: 3 }), { minLength: 1, maxLength: 3 }), force: fc.boolean() }).map(({ force, ...x }): Op => ({ op: 'cells', at, ...x, ...(force ? { force: true as const } : {}) })),
-          fc.record({ r: fc.integer({ min: 0, max: h }), rows: fc.array(fc.array(cell, { minLength: w, maxLength: w }), { minLength: 1, maxLength: 2 }) }).map(({ r, rows }): Op => ({ op: 'rows', at, r, n: rows.length, rows })),
-          fc.record({ c: fc.integer({ min: 0, max: w }), cols: fc.array(arbitraryColumn, { minLength: 1, maxLength: 2 }) }).filter(({ cols }) => w + cols.length <= 26).map(({ c, cols }): Op => ({ op: 'cols', at, c, n: cols.length, cols })),
+          fc
+            .record({
+              r: fc.integer({ min: 0, max: h }),
+              c: fc.integer({ min: 0, max: w }),
+              values: fc.array(fc.array(cell, { minLength: 1, maxLength: 3 }), { minLength: 1, maxLength: 3 }),
+              force: fc.boolean(),
+            })
+            .map(({ force, ...x }): Op => ({ op: 'cells', at, ...x, ...(force ? { force: true as const } : {}) })),
+          fc
+            .record({ r: fc.integer({ min: 0, max: h }), rows: fc.array(fc.array(cell, { minLength: w, maxLength: w }), { minLength: 1, maxLength: 2 }) })
+            .map(({ r, rows }): Op => ({ op: 'rows', at, r, n: rows.length, rows })),
+          fc
+            .record({ c: fc.integer({ min: 0, max: w }), cols: fc.array(arbitraryColumn, { minLength: 1, maxLength: 2 }) })
+            .filter(({ cols }) => w + cols.length <= 26)
+            .map(({ c, cols }): Op => ({ op: 'cols', at, c, n: cols.length, cols })),
           fc.record({ c: fc.integer({ min: 0, max: w - 1 }), col: arbitraryColumn }).map(({ c, col }): Op => ({ op: 'col', at, c, col })),
         ];
         if (h) kinds.push(fc.integer({ min: 0, max: h - 1 }).chain((r) => fc.integer({ min: 1, max: h - r }).map((k): Op => ({ op: 'rows', at, r, n: k }))));
-        if (w > 1) kinds.push(fc.integer({ min: 0, max: w - 1 }).chain((c) => fc.integer({ min: 1, max: Math.max(1, w - 1 - c) }).filter((k) => c + k <= w && w - k >= 1).map((k): Op => ({ op: 'cols', at, c, n: k }))));
+        if (w > 1)
+          kinds.push(
+            fc.integer({ min: 0, max: w - 1 }).chain((c) =>
+              fc
+                .integer({ min: 1, max: Math.max(1, w - 1 - c) })
+                .filter((k) => c + k <= w && w - k >= 1)
+                .map((k): Op => ({ op: 'cols', at, c, n: k })),
+            ),
+          );
         return fc.oneof(...kinds);
       }),
     );
@@ -352,7 +491,10 @@ export function arbitraryOp(doc: Doc): fc.Arbitrary<Op> {
 export function arbitraryEdits(maxOps = 6): fc.Arbitrary<{ doc: Doc; ops: Op[] }> {
   return arbitraryDoc().chain((doc) => {
     const step = (d: Doc, left: number): fc.Arbitrary<Op[]> => (left ? arbitraryOp(d).chain((op) => step(applyOp(d, op), left - 1).map((rest) => [op, ...rest])) : fc.constant([]));
-    return fc.integer({ min: 1, max: maxOps }).chain((k) => step(doc, k)).map((ops) => ({ doc, ops }));
+    return fc
+      .integer({ min: 1, max: maxOps })
+      .chain((k) => step(doc, k))
+      .map((ops) => ({ doc, ops }));
   });
 }
 

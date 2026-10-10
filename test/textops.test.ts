@@ -2,7 +2,36 @@
 // each of the editor's ops back exactly.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Block, type Doc } from '../src/doc/index.ts';
-import { align, backspace, blockLength, caret, charAt, clampPos, forwardDelete, insertBlocks, insertRuns, kindAt, marksAt, marksOf, moveItems, ordered, runAt, runsDiff, setKind, setMark, shiftItems, shortcut, skipEmbed, sliceBlocks, smartQuote, splitAt, toggleMark, wholeSel, type Edit, type Sel } from '../src/kit/textops.ts';
+import {
+  align,
+  backspace,
+  blockLength,
+  caret,
+  charAt,
+  clampPos,
+  forwardDelete,
+  insertBlocks,
+  insertRuns,
+  kindAt,
+  marksAt,
+  marksOf,
+  moveItems,
+  ordered,
+  runAt,
+  runsDiff,
+  setKind,
+  setMark,
+  shiftItems,
+  shortcut,
+  skipEmbed,
+  sliceBlocks,
+  smartQuote,
+  splitAt,
+  toggleMark,
+  wholeSel,
+  type Edit,
+  type Sel,
+} from '../src/kit/textops.ts';
 import { rng } from './doc/helpers.ts';
 
 const doc = (tlo: string): Doc => parse(tlo);
@@ -19,7 +48,10 @@ test('positions: a chip and a line break count one; clamping; a caret on a card 
   expect(clampPos(B, { block: 9, offset: 99 })).toEqual({ block: 5, offset: 5 });
   expect(skipEmbed(B, { block: 4, offset: 0 }, 1)).toEqual({ block: 5, offset: 0 });
   expect(skipEmbed(B, { block: 4, offset: 0 }, -1)).toEqual({ block: 3, offset: 1 });
-  expect(ordered(sel([2, 1], [0, 3]))).toEqual([{ block: 0, offset: 3 }, { block: 2, offset: 1 }]);
+  expect(ordered(sel([2, 1], [0, 3]))).toEqual([
+    { block: 0, offset: 3 },
+    { block: 2, offset: 1 },
+  ]);
   const runs = (B[1] as Extract<Block, { k: 'p' }>).runs;
   expect(runAt(runs, 5)).toMatchObject({ run: { t: 'bold', b: true }, start: 5, index: 1 });
   expect(charAt(runs, 16)).toBe('');
@@ -181,7 +213,11 @@ test('a paste of blocks: words join the block around the caret, the rest stand b
   const one = insertBlocks(B, caret(5, 0), blocks('words\n'));
   expect(one.ops[0].op).toBe('text');
   const card = insertBlocks(B, caret(5, 2), [B[4]]);
-  expect(after(B, card).slice(5).map((b) => b.k)).toEqual(['p', 'fence', 'p']);
+  expect(
+    after(B, card)
+      .slice(5)
+      .map((b) => b.k),
+  ).toEqual(['p', 'fence', 'p']);
   expect(card.sel).toEqual(caret(7, 0));
 });
 
@@ -196,7 +232,7 @@ test('sliceBlocks cuts the ends; runsDiff finds the one op between two runs', ()
 
 test('invert takes every one of the editor edits back, over random documents and positions', () => {
   const r = rng(7);
-  const pick = <T,>(xs: T[]): T => xs[Math.floor(r() * xs.length)];
+  const pick = <T>(xs: T[]): T => xs[Math.floor(r() * xs.length)];
   let d: Doc = { head: {}, blocks: B };
   for (let step = 0; step < 300; step++) {
     const textAt = d.blocks.map((b, i) => (b.k === 'h' || b.k === 'p' || b.k === 'li' || b.k === 'quote' ? i : -1)).filter((i) => i >= 0);
@@ -291,7 +327,10 @@ test('the whole document selected (Select All): an edit over it takes the cards 
   expect(after(W, insertRuns(W, all, [{ t: 'x' }]))).toEqual([{ k: 'p', runs: [{ t: 'x' }] }]);
   expect(insertRuns(W, all, [{ t: 'x' }]).sel).toEqual(caret(0, 1));
   expect(tlo(after(W, insertBlocks(W, all, blocks('# One\n\nTwo\n'))))).toBe('# One\n\nTwo\n');
-  expect(after(W, splitAt(W, all))).toEqual([{ k: 'p', runs: [] }, { k: 'p', runs: [] }]);
+  expect(after(W, splitAt(W, all))).toEqual([
+    { k: 'p', runs: [] },
+    { k: 'p', runs: [] },
+  ]);
   // The words alone, a heading first, selected end to end: a paragraph is what is left there too.
   const H = blocks('# Head\n\nWords.\n');
   expect(after(H, insertRuns(H, wholeSel(H), []))).toEqual([{ k: 'p', runs: [] }]);

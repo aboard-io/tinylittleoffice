@@ -80,7 +80,11 @@ export const addAfter = (at: number): Op[] => [{ op: 'splice', at: at + 1, n: 0,
 /** A task taken out. */
 export const removeTask = (t: Task): Op[] => [{ op: 'splice', at: t.at, n: 1, blocks: [] }];
 /** Every ticked task taken out, last first so each index holds. */
-export const clearDone = (v: TodoView): Op[] => v.tasks.filter((t) => t.done).reverse().flatMap(removeTask);
+export const clearDone = (v: TodoView): Op[] =>
+  v.tasks
+    .filter((t) => t.done)
+    .reverse()
+    .flatMap(removeTask);
 /** Task `t` moved past its neighbour `over` (the task before or after it, as shown). */
 export function moveOver(t: Task, over: Task): Op[] {
   // `to` counts blocks in the document without the moved one: past a later neighbour is that neighbour's index, before an earlier one is its index too.
@@ -176,7 +180,10 @@ export const textTasks = (text: string): Task['block'][] =>
   );
 /** Whether pasted words are tasks rather than words for the task the caret is in: several lines, or one list item. */
 export function pastesAsTasks(text: string): boolean {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
+  const lines = text
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .filter((l) => l.trim());
   return lines.length > 1 || (lines.length === 1 && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[0]));
 }
 /**

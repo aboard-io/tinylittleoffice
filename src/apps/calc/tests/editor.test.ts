@@ -291,7 +291,8 @@ const clip = (type: string, on: Element, dt = new DataTransfer()) => {
   on.dispatchEvent(e);
   return { dt, e };
 };
-const pointer = (type: string, x: number, y: number, buttons = 1) => new PointerEvent(type, { clientX: x, clientY: y, button: 0, buttons, pointerId: 7, isPrimary: true, bubbles: true, pointerType: 'mouse' });
+const pointer = (type: string, x: number, y: number, buttons = 1) =>
+  new PointerEvent(type, { clientX: x, clientY: y, button: 0, buttons, pointerId: 7, isPrimary: true, bubbles: true, pointerType: 'mouse' });
 const mid = (e: Element) => {
   const r = e.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };

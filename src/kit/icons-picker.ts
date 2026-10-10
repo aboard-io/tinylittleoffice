@@ -57,7 +57,9 @@ export function chooseIcon(opts: IconChoice = {}): Promise<string | null> {
     };
     const button = (name: string) => {
       const node = iconNamed(name);
-      return node ? html`<button type="button" class="to-icon-btn" title=${name} aria-label=${name} aria-pressed=${opts.current === name ? 'true' : 'false'} @click=${() => pick(name)}>${icon(node, 22)}</button>` : nothing;
+      return node
+        ? html`<button type="button" class="to-icon-btn" title=${name} aria-label=${name} aria-pressed=${opts.current === name ? 'true' : 'false'} @click=${() => pick(name)}>${icon(node, 22)}</button>`
+        : nothing;
     };
     const emojiButton = (char: string) => {
       const name = emojiName(char);
@@ -81,12 +83,14 @@ export function chooseIcon(opts: IconChoice = {}): Promise<string | null> {
       const first = sections.find((x) => x.items.length)?.items[0];
       const label = withEmoji ? t('Search icons and emoji') : t('Search icons');
       return html`<input class="to-icons-search" type="search" placeholder=${label} aria-label=${label} autocomplete="off" .value=${query} @input=${(e: Event) => ((query = (e.target as HTMLInputElement).value), draw())} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && first && pick(first)} />
-        ${withEmoji
-          ? html`<div class="to-seg to-icons-sets" role="group" aria-label=${t('Icons or emoji')}>
+        ${
+          withEmoji
+            ? html`<div class="to-seg to-icons-sets" role="group" aria-label=${t('Icons or emoji')}>
               <button type="button" class="to-btn" aria-pressed=${String(set === 'icons')} @click=${() => ((set = 'icons'), draw())}>${t('Icons')}</button>
               <button type="button" class="to-btn" aria-pressed=${String(set === 'emoji')} @click=${() => ((set = 'emoji'), draw())}>${t('Emoji')}</button>
             </div>`
-          : nothing}
+            : nothing
+        }
         ${!typed && set === 'icons' && suggested.length ? section(t('Suggested'), suggested, button, false) : nothing}
         ${sections.map((x) => section(x.name, x.items, x.emoji ? emojiButton : button))}
         ${first ? nothing : html`<p class="to-hint">${withEmoji ? t('No icons or emoji match “{q}”.', { q: typed }) : t('No icons match “{q}”.', { q: typed })}</p>`}

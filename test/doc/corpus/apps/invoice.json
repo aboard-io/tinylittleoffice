@@ -1,9 +1,9 @@
 {
- "source": "src/apps/invoice.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "---\nfrom: Harbor Studio | 14 Quay Street\nto: Acme Ltd | Accounts payable\nnumber: 0042\ndate: 2027-03-01\ndue: 2027-03-31\ntax: 8%\n---\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150\nBuild | 20 | hours | 140\nHosting for a year | 1 |  | 480\n\nThank you. Payment by bank transfer."
-  }
- ]
+  "source": "src/apps/invoice.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "---\nfrom: Harbor Studio | 14 Quay Street\nto: Acme Ltd | Accounts payable\nnumber: 0042\ndate: 2027-03-01\ndue: 2027-03-31\ntax: 8%\n---\nWhat | Qty:number | Units | Price:money\n--- | --- | --- | ---\nDesign | 12 | hours | 150\nBuild | 20 | hours | 140\nHosting for a year | 1 |  | 480\n\nThank you. Payment by bank transfer."
+    }
+  ]
 }

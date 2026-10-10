@@ -93,9 +93,18 @@ export interface Evaluated {
   named: Map<string, [number, number]>;
 }
 
-type Tok = { t: 'num'; v: number } | { t: 'str'; v: string } | { t: 'name'; v: string } | { t: 'ref'; v: string } | { t: 'range'; v: [string, string] } | { t: 'fn'; v: string } | { t: 'op'; v: string };
+type Tok =
+  { t: 'num'; v: number } | { t: 'str'; v: string } | { t: 'name'; v: string } | { t: 'ref'; v: string } | { t: 'range'; v: [string, string] } | { t: 'fn'; v: string } | { t: 'op'; v: string };
 
-type Node = { k: 'num'; v: number } | { k: 'str'; v: string } | { k: 'name'; v: string } | { k: 'ref'; v: string } | { k: 'range'; v: [string, string] } | { k: 'neg'; a: Node } | { k: 'bin'; op: string; a: Node; b: Node } | { k: 'call'; fn: string; args: Node[] };
+type Node =
+  | { k: 'num'; v: number }
+  | { k: 'str'; v: string }
+  | { k: 'name'; v: string }
+  | { k: 'ref'; v: string }
+  | { k: 'range'; v: [string, string] }
+  | { k: 'neg'; a: Node }
+  | { k: 'bin'; op: string; a: Node; b: Node }
+  | { k: 'call'; fn: string; args: Node[] };
 
 class FormulaError extends Error {
   code: string;

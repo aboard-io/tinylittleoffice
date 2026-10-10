@@ -128,7 +128,7 @@ export function apply(doc: Doc, op: Op): Doc {
       }
       const last = op.c + op.n - 1;
       if (b.cols.length - op.n < 1) throw new RangeError('a table keeps a column');
-      const cut = <T,>(row: T[]) => [...row.slice(0, op.c), ...row.slice(last + 1)];
+      const cut = <T>(row: T[]) => [...row.slice(0, op.c), ...row.slice(last + 1)];
       const moved = movedOut(op.c, last);
       return withMovedTable(doc, op.at, { ...b, cols: cut(b.cols), rows: remapped(b.rows.map(cut), stays, moved, { cols: [op.c, last] }) }, stays, moved);
     }
@@ -201,7 +201,12 @@ export function splitBlock(doc: Doc, at: number, offset: number): Op[] {
   const left = sliceRuns(b.runs, 0, offset);
   const right = sliceRuns(b.runs, offset, runLength(b.runs));
   const first: Block = { ...b, runs: left };
-  const second: Block = b.k === 'li' ? { k: 'li', depth: b.depth, ...(b.ord ? { ord: true } : {}), ...(b.done === undefined ? {} : { done: false }), runs: right } : b.k === 'h' ? { k: 'p', runs: right } : { k: b.k, runs: right };
+  const second: Block =
+    b.k === 'li'
+      ? { k: 'li', depth: b.depth, ...(b.ord ? { ord: true } : {}), ...(b.done === undefined ? {} : { done: false }), runs: right }
+      : b.k === 'h'
+        ? { k: 'p', runs: right }
+        : { k: b.k, runs: right };
   return [{ op: 'splice', at, n: 1, blocks: [first, second] }];
 }
 
@@ -281,7 +286,10 @@ export function placeFamily(doc: Doc, i: number, to: number, how: 'under' | 'aft
   const depth = how === 'under' ? restDepths[at] + 1 : Math.max(0, restDepths[at]);
   const d = depth - Math.max(0, depths[i]);
   const where = family(rest, at, restDepths);
-  return [{ op: 'splice', at: i, n, blocks: doc.blocks.slice(i, end).map((b) => deeper(b, d)) }, { op: 'move', at: i, n, to: where }];
+  return [
+    { op: 'splice', at: i, n, blocks: doc.blocks.slice(i, end).map((b) => deeper(b, d)) },
+    { op: 'move', at: i, n, to: where },
+  ];
 }
 
 /** Take item i away; its family comes out a level to sit where it was. */

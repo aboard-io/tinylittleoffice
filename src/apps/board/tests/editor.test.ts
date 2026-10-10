@@ -761,7 +761,7 @@ test('stages as rows at phone width: the stages one under another, the cards top
   }
 });
 
-test('§1 opens with the focus in the first stage\'s first card, else the stage\'s name; the page not scrolled', async () => {
+test("§1 opens with the focus in the first stage's first card, else the stage's name; the page not scrolled", async () => {
   const { el } = await editor();
   await el.focusFirst();
   const card = cardsOf(el, 0)[0].querySelector<ToText>('.board-main to-text')!;

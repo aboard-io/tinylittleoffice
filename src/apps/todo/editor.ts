@@ -24,7 +24,26 @@ import type { ToMenu } from '../../kit/menu.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { addAfter, asTasks, duplicateTasks, enterAt, joinTasks, moveTasks, pastesAsTasks, pasteTasks, readTodo, removeTasks, setDone, setDue, setStar, shifted, textTasks, today, type Task, type TodoView } from './model.ts';
+import {
+  addAfter,
+  asTasks,
+  duplicateTasks,
+  enterAt,
+  joinTasks,
+  moveTasks,
+  pastesAsTasks,
+  pasteTasks,
+  readTodo,
+  removeTasks,
+  setDone,
+  setDue,
+  setStar,
+  shifted,
+  textTasks,
+  today,
+  type Task,
+  type TodoView,
+} from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -62,7 +81,11 @@ export class ToTodoEditor extends DocElement<TodoView> {
     move: (_s, by) => this.moveRange(by),
     duplicate: () => this.duplicateRange(),
     copy: () => this.clip(),
-    paste: (data) => this.pasteData(data, this.chosenTasks().map((x) => x.at)),
+    paste: (data) =>
+      this.pasteData(
+        data,
+        this.chosenTasks().map((x) => x.at),
+      ),
     drop: (at, to) => this.dropAfter(at, to),
   });
 
@@ -412,12 +435,14 @@ export class ToTodoEditor extends DocElement<TodoView> {
           @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(x, e.detail.dir))}
           @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())}
         ></to-text>
-        ${x.due || this.dueAt === x.at
-          ? html`<input class="todo-due" type="date" .value=${x.due} aria-label=${t('Due date of {task}', { task: name })} @change=${(e: Event) => {
-              this.dueAt = -1;
-              this.edit(setDue(x, (e.target as HTMLInputElement).value));
-            }} @blur=${() => this.dueAt === x.at && (this.dueAt = -1)} />`
-          : nothing}
+        ${
+          x.due || this.dueAt === x.at
+            ? html`<input class="todo-due" type="date" .value=${x.due} aria-label=${t('Due date of {task}', { task: name })} @change=${(e: Event) => {
+                this.dueAt = -1;
+                this.edit(setDue(x, (e.target as HTMLInputElement).value));
+              }} @blur=${() => this.dueAt === x.at && (this.dueAt = -1)} />`
+            : nothing
+        }
       </div>
       <button type="button" class="to-btn to-tool todo-star" aria-pressed=${String(x.star)} aria-label=${t('Star')} title=${t('Star')} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.edit(setStar(x, !x.star))}>${icon(Star, 18)}</button>
       <button type="button" class="to-btn to-tool todo-more" aria-haspopup="menu" aria-label=${t('Task options')} title=${t('Task options')} @click=${(e: Event) => void this.openMenu(x, e.currentTarget as HTMLElement)}>${icon(Ellipsis, 18)}</button>
@@ -429,8 +454,17 @@ export class ToTodoEditor extends DocElement<TodoView> {
     const now = today();
     return html`<to-bar class="todo-bar">
         <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
-        ${cmdMenu(COMMANDS.find((c) => c.id === 'todo.show')!, this, COMMANDS, 'todo-show')}
-        ${cmdTool(COMMANDS.find((c) => c.id === 'todo.clear')!, this, { keep: false })}
+        ${cmdMenu(
+          COMMANDS.find((c) => c.id === 'todo.show')!,
+          this,
+          COMMANDS,
+          'todo-show',
+        )}
+        ${cmdTool(
+          COMMANDS.find((c) => c.id === 'todo.clear')!,
+          this,
+          { keep: false },
+        )}
         <span class="to-hint todo-count">${t('{done} of {n} done', { done: v.ticked, n: v.tasks.length })}</span>
         ${this.undoTools()}
       </to-bar>

@@ -39,7 +39,16 @@ test('the Display Link is "?d" after the payload, outside it; with an owner, and
   expect(both).toBe(`#/v1/text/yABC?d&s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}`);
   expect(parseHash(both)).toEqual({ app: 'text', payload: 'yABC', version: 1, view: '', owned, display: true, arrived: null, sealed: false });
   // tinier adds "?s=…" to the link it held, which may already end in "?d".
-  expect(parseHash(`#/v1/text/yABC?d?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}`)).toEqual({ app: 'text', payload: 'yABC', version: 1, view: '', owned, display: true, arrived: null, sealed: false });
+  expect(parseHash(`#/v1/text/yABC?d?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}`)).toEqual({
+    app: 'text',
+    payload: 'yABC',
+    version: 1,
+    view: '',
+    owned,
+    display: true,
+    arrived: null,
+    sealed: false,
+  });
 });
 
 test('arriving by a short link: "?s=<id>&x=<expires>", from tinier for everyone; the owner\'s x rides beside o', () => {
@@ -75,7 +84,10 @@ test('a payload and an owner\'s keys may hold "~" (what is written now) or "-" (
 test('a compare fragment and a link to compare take payloads with "~" or "-"', async () => {
   const { parseCompare, sideOf } = await import('../src/kit/compare.ts');
   const { toBase64Url, decodeDoc } = await import('../src/kit/codec.ts');
-  expect(parseCompare('#/compare/write/yA~b/write/yA-b')).toEqual([{ app: 'write', payload: 'yA~b' }, { app: 'write', payload: 'yA-b' }]);
+  expect(parseCompare('#/compare/write/yA~b/write/yA-b')).toEqual([
+    { app: 'write', payload: 'yA~b' },
+    { app: 'write', payload: 'yA-b' },
+  ]);
   // A raw payload whose fourth character is 62.
   const payload = 'r' + toBase64Url(new TextEncoder().encode('>>>'));
   expect(payload).toBe('rPj4~');

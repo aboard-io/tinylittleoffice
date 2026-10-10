@@ -7,7 +7,26 @@ import { applyAll, parse, plainText, write } from '../../../doc/index.ts';
 import deck from '../def.ts';
 // The registry, so a sheet on a slide is drawn by its own app.
 import '../../../kit/apps.ts';
-import { addSlide, duplicateSlides, FORMATS, isBlank, loosen, moveSlide, panelOf, removeSlide, retitle, slideBlocks, setIcon, setLayout, setSub, settingsOf, slideNotes, slidesOf, titleOf, webBlock } from '../model.ts';
+import {
+  addSlide,
+  duplicateSlides,
+  FORMATS,
+  isBlank,
+  loosen,
+  moveSlide,
+  panelOf,
+  removeSlide,
+  retitle,
+  slideBlocks,
+  setIcon,
+  setLayout,
+  setSub,
+  settingsOf,
+  slideNotes,
+  slidesOf,
+  titleOf,
+  webBlock,
+} from '../model.ts';
 import { deckToPptx } from '../pptx.ts';
 import { templates } from '../templates.ts';
 import { contrast, THEMES } from '../theme.ts';
@@ -18,13 +37,21 @@ const tpl = (id: string) => templates().find((x) => x.id === id)!.doc;
 const ctx = { def: deck, title: 'Test', link: 'https://tinylittleoffice.com/#/v1/deck/rAbc' };
 
 test('slides are spans between rules: headline, icon, layout, words, the right column, notes, a document', () => {
-  const doc = parse('## :rocket: Hello {.title}\n\n- Sub\n\n---\n\n## Two {.two}\n\n- a\n  - a2\n\n|\n\n1. b\n2. c\n\n> say this\n> and this\n\n---\n\n```sheet\n| A | B |\n| --- | --- |\n| 1 | 2 |\n```\n');
+  const doc = parse(
+    '## :rocket: Hello {.title}\n\n- Sub\n\n---\n\n## Two {.two}\n\n- a\n  - a2\n\n|\n\n1. b\n2. c\n\n> say this\n> and this\n\n---\n\n```sheet\n| A | B |\n| --- | --- |\n| 1 | 2 |\n```\n',
+  );
   const [s1, s2, s3] = slidesOf(doc);
   expect([s1.from, s1.to, s1.head, s1.layout, s1.icon, plainText(s1.title)]).toEqual([0, 2, 0, 't', 'rocket', 'Hello']);
   expect(s1.items.map((it) => plainText(it.runs))).toEqual(['Sub']);
   expect([s2.from, s2.to, s2.layout, s2.pipe]).toEqual([3, 10, '2', 6]);
-  expect(s2.items.map((it) => [plainText(it.runs), it.depth])).toEqual([['a', 0], ['a2', 1]]);
-  expect(s2.right.map((it) => [plainText(it.runs), it.n])).toEqual([['b', 1], ['c', 2]]);
+  expect(s2.items.map((it) => [plainText(it.runs), it.depth])).toEqual([
+    ['a', 0],
+    ['a2', 1],
+  ]);
+  expect(s2.right.map((it) => [plainText(it.runs), it.n])).toEqual([
+    ['b', 1],
+    ['c', 2],
+  ]);
   expect(s2.notes).toEqual([9, 10]);
   expect(s2.noteLines).toEqual(['say this', 'and this']);
   expect(s2.words).toEqual([4, 9]);
@@ -35,7 +62,11 @@ test('slides are spans between rules: headline, icon, layout, words, the right c
   expect(web.items).toEqual([]);
   // An empty document is one blank slide.
   expect(slidesOf(parse('')).map(isBlank)).toEqual([true]);
-  expect(slidesOf(parse('a\n\n---\n\n---\n\nb\n')).map((s) => [s.from, s.to])).toEqual([[0, 1], [2, 2], [3, 4]]);
+  expect(slidesOf(parse('a\n\n---\n\n---\n\nb\n')).map((s) => [s.from, s.to])).toEqual([
+    [0, 1],
+    [2, 2],
+    [3, 4],
+  ]);
 });
 
 test('slides chosen together: removed, duplicated after the last of them, copied with the rules between', () => {
@@ -112,7 +143,11 @@ test('the header: theme, transition, colour, qr and format read leniently; the n
 
 test('loose Markdown becomes slides: each heading starts one, a lone top heading is the title slide', () => {
   const loose = loosen(parse('# Talk\n\nsub\n\n## One\n\n- a\n\n## Two\n\n- b\n'));
-  expect(slidesOf(loose).map((s) => [plainText(s.title), s.layout])).toEqual([['Talk', 't'], ['One', ''], ['Two', '']]);
+  expect(slidesOf(loose).map((s) => [plainText(s.title), s.layout])).toEqual([
+    ['Talk', 't'],
+    ['One', ''],
+    ['Two', ''],
+  ]);
   // A document with rules, or one heading, is left alone.
   const d = parse(TALK);
   expect(loosen(d)).toBe(d);
@@ -226,8 +261,30 @@ test('the deck ends with a QR code of itself, unless told not to, unless printed
 test('every template is canonical, has a name, and draws', () => {
   // The everyday decks, then the occasions, then the printed things, two of each format.
   expect(templates().map((x) => x.id)).toEqual([
-    'talk', 'status', 'proposal', 'pitch', 'lesson', 'conference', 'quarterly', 'workshop', 'launch', 'townhall', 'trivia', 'wedding',
-    'zine', 'soups', 'booklet', 'programme', 'brochure', 'farm', 'comic', 'umbrella', 'poster', 'lost', 'badges', 'speakers',
+    'talk',
+    'status',
+    'proposal',
+    'pitch',
+    'lesson',
+    'conference',
+    'quarterly',
+    'workshop',
+    'launch',
+    'townhall',
+    'trivia',
+    'wedding',
+    'zine',
+    'soups',
+    'booklet',
+    'programme',
+    'brochure',
+    'farm',
+    'comic',
+    'umbrella',
+    'poster',
+    'lost',
+    'badges',
+    'speakers',
   ]);
   expect(new Set(templates().map((x) => x.name)).size).toBe(templates().length);
   for (const x of templates()) {
@@ -249,7 +306,13 @@ test('every template is canonical, has a name, and draws', () => {
   }
   // What the decks use of the app: themes, a chart on a slide, another document on a slide, a footnote, notes kept off the room's code.
   const head = (id: string) => settingsOf(parse(tpl(id)));
-  expect(new Set(templates().map((x) => settingsOf(parse(x.doc)).theme).filter(Boolean)).size).toBeGreaterThanOrEqual(10);
+  expect(
+    new Set(
+      templates()
+        .map((x) => settingsOf(parse(x.doc)).theme)
+        .filter(Boolean),
+    ).size,
+  ).toBeGreaterThanOrEqual(10);
   expect(parse(tpl('townhall')).blocks.find((b) => b.k === 'table')?.a?.kv?.chart).toBe('pie');
   expect(slidesOf(parse(tpl('workshop'))).some((s) => s.sub >= 0 && parse(tpl('workshop')).blocks[s.sub].k === 'fence')).toBe(true);
   expect(slidesOf(parse(tpl('conference'))).every((s, i) => i === 0 || s.noteLines.length > 0)).toBe(true);

@@ -37,7 +37,12 @@ export const allCommands = (): Command[] => registered();
 
 /** The scopes in the order the tables list them: the page, the words, the rows, then each app as the home page lists them. */
 export function scopes(): { id: string; name: string }[] {
-  return [{ id: 'kit', name: 'Everywhere (the page)' }, { id: 'text', name: 'Words (wherever words are typed)' }, { id: 'rows', name: 'Rows chosen whole' }, ...apps().map((a) => ({ id: a.id, name: a.name }))];
+  return [
+    { id: 'kit', name: 'Everywhere (the page)' },
+    { id: 'text', name: 'Words (wherever words are typed)' },
+    { id: 'rows', name: 'Rows chosen whole' },
+    ...apps().map((a) => ({ id: a.id, name: a.name })),
+  ];
 }
 
 const esc = (s: string) => s.replace(/\|/g, '\\|').replace(/</g, '&lt;');
@@ -48,7 +53,13 @@ const whereOf = (c: Command) =>
     ...(c.at ? [`at: ${c.at}`] : []),
     ...(c.document && !c.where.includes('drawer') ? ['drawer on a phone'] : []),
   ].join(', ');
-const keysOf = (c: Command) => (c.keys ? c.keys.split(' / ').map((k) => `\`${k}\``).join(', ') : '');
+const keysOf = (c: Command) =>
+  c.keys
+    ? c.keys
+        .split(' / ')
+        .map((k) => `\`${k}\``)
+        .join(', ')
+    : '';
 
 /** docs/editing.md's generated part: a table a scope. */
 export function editingTables(): string {
@@ -71,7 +82,17 @@ export function skillCommands(): string {
   return scopes()
     .map((s) => {
       const keyed = all.filter((c) => c.scope === s.id && c.keys && !c.data);
-      return keyed.length ? `- **${s.name}**: ${keyed.map((c) => `${c.keys!.split(' / ').map((k) => `\`${k}\``).join('/')} ${labelOf(c).replace(/…$/, '')}`).join('; ')}.` : '';
+      return keyed.length
+        ? `- **${s.name}**: ${keyed
+            .map(
+              (c) =>
+                `${c
+                  .keys!.split(' / ')
+                  .map((k) => `\`${k}\``)
+                  .join('/')} ${labelOf(c).replace(/…$/, '')}`,
+            )
+            .join('; ')}.`
+        : '';
     })
     .filter(Boolean)
     .join('\n');

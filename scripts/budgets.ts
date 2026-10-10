@@ -47,7 +47,12 @@ export function preloads(code: string): Map<string, string[]> {
   const files = list ? [...list.matchAll(/["'`]\.\/([^"'`]+)["'`]/g)].map((m) => m[1]) : [];
   const out = new Map<string, string[]>();
   for (const m of code.matchAll(/import\(\s*["'`]\.\/([^"'`]+)["'`]\s*\)(?:\s*,\s*__vite__mapDeps\(\[([\d,\s]*)\]\))?/g)) {
-    const deps = m[2] ? m[2].split(',').filter((s) => s.trim()).map((i) => files[Number(i)]) : [m[1]];
+    const deps = m[2]
+      ? m[2]
+          .split(',')
+          .filter((s) => s.trim())
+          .map((i) => files[Number(i)])
+      : [m[1]];
     out.set(m[1], [...new Set([m[1], ...deps])]);
   }
   return out;

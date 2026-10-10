@@ -52,7 +52,12 @@ export function build(test: string, ann: Annotations, derived: Annotations): { g
     }
     const m = /^([0-9A-F ]+?)\s*; fully-qualified\s*# (\S+) E(\d+\.\d+) (.+)$/.exec(line);
     if (!m || group === 'Component') continue;
-    const char = String.fromCodePoint(...m[1].trim().split(/\s+/).map((h) => parseInt(h, 16)));
+    const char = String.fromCodePoint(
+      ...m[1]
+        .trim()
+        .split(/\s+/)
+        .map((h) => parseInt(h, 16)),
+    );
     if (SKIN.test(char) || HAIR.test(char) || parseFloat(m[3]) > NEWEST) continue;
     const key = char.replace(/️/g, '');
     const a = ann[key] ?? derived[key] ?? ann[char] ?? derived[char];

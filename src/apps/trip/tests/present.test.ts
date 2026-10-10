@@ -6,7 +6,8 @@ import '../editor.ts';
 import type { ToTripEditor } from '../editor.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
 
-const ROUTE = '| Place | Lat:number | Lon:number | Note |\n|---|---|---|---|\n| Lisbon | 38.7223 | -9.1393 | Pastel de nata first |\n| Coimbra | 40.2033 | -8.4103 | |\n| Porto | 41.1579 | -8.6291 | Port cellars |\n';
+const ROUTE =
+  '| Place | Lat:number | Lon:number | Note |\n|---|---|---|---|\n| Lisbon | 38.7223 | -9.1393 | Pastel de nata first |\n| Coimbra | 40.2033 | -8.4103 | |\n| Porto | 41.1579 | -8.6291 | Port cellars |\n';
 
 async function editor(value = ROUTE) {
   document.body.innerHTML = '';

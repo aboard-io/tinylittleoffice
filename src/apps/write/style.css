@@ -166,14 +166,32 @@
   }
 
   /* The Look menu: each sample drawn in its look's type, by its place in the menu (look.ts's order). */
-  .write-look .to-menu-item:nth-of-type(1) .to-menu-words { font-family: var(--to-font); }
-  .write-look .to-menu-item:nth-of-type(2) .to-menu-words { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
-  .write-look .to-menu-item:nth-of-type(3) .to-menu-words { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
-  .write-look .to-menu-item:nth-of-type(4) .to-menu-words > span { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
-  .write-look .to-menu-item:nth-of-type(5) .to-menu-words small { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
-  .write-look .to-menu-item:nth-of-type(6) .to-menu-words { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
-  .write-look .to-menu-item:nth-of-type(6) .to-menu-words > span { font-variant: small-caps; letter-spacing: 0.04em; }
-  .write-look .to-menu-item:nth-of-type(7) .to-menu-words > span { font-family: 'Bodoni 72', Didot, 'Times New Roman', Times, serif; font-weight: 700; }
+  .write-look .to-menu-item:nth-of-type(1) .to-menu-words {
+    font-family: var(--to-font);
+  }
+  .write-look .to-menu-item:nth-of-type(2) .to-menu-words {
+    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+  }
+  .write-look .to-menu-item:nth-of-type(3) .to-menu-words {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  .write-look .to-menu-item:nth-of-type(4) .to-menu-words > span {
+    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+  }
+  .write-look .to-menu-item:nth-of-type(5) .to-menu-words small {
+    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+  }
+  .write-look .to-menu-item:nth-of-type(6) .to-menu-words {
+    font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif;
+  }
+  .write-look .to-menu-item:nth-of-type(6) .to-menu-words > span {
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+  }
+  .write-look .to-menu-item:nth-of-type(7) .to-menu-words > span {
+    font-family: 'Bodoni 72', Didot, 'Times New Roman', Times, serif;
+    font-weight: 700;
+  }
 
   /* The document's own head fields (an invoice's from and to): small labels over boxes, two to a row. */
   .write-fields {

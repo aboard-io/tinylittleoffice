@@ -39,7 +39,42 @@ import { caret, insertRuns } from '../../kit/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
 import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
-import { charsOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, hasLines, isDated, wordsInto, wordsOn, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
+import {
+  charsOf,
+  commitDraft,
+  connect,
+  dropIn,
+  dropOn,
+  duplicateThing,
+  edgesOf,
+  follow,
+  isListed,
+  joins,
+  kindOf,
+  lineOf,
+  demoteThing,
+  moveAcross,
+  moveThing,
+  nextThing,
+  newThing,
+  partFor,
+  promoteThing,
+  hasLines,
+  isDated,
+  wordsInto,
+  wordsOn,
+  pasteThings,
+  removeThing,
+  rename,
+  setEdge,
+  setKind,
+  thingBlocks,
+  tidy,
+  withIcon,
+  type Draft,
+  type Hit,
+  type KindId,
+} from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
 import '../../kit/bar.ts';
@@ -233,7 +268,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const kind = this.view.kind;
     const h = tg?.hit;
     if (h?.k === 'edge') return { label: t('What the connection says'), placeholder: t('What the connection says') };
-    if (h?.k === 'lane') return { label: t('The lane\'s name'), placeholder: t('Who') };
+    if (h?.k === 'lane') return { label: t("The lane's name"), placeholder: t('Who') };
     return { label: thingName(kind), placeholder: newWords(kind, h?.k === 'line' && typeof h.part === 'number') };
   }
   /**
@@ -803,7 +838,12 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   };
   /** The thing under the pointer, the one being dragged aside. */
   private overAt(e: PointerEvent, dragged: Element | null): SVGGElement | null {
-    return (document.elementsFromPoint(e.clientX, e.clientY).map((el) => el.closest('g.dg-thing:not(.edge)')).find((el) => el && el !== dragged) as SVGGElement | null) ?? null;
+    return (
+      (document
+        .elementsFromPoint(e.clientX, e.clientY)
+        .map((el) => el.closest('g.dg-thing:not(.edge)'))
+        .find((el) => el && el !== dragged) as SVGGElement | null) ?? null
+    );
   }
   private onUp = (e: PointerEvent) => {
     const d = this.drag;
@@ -865,7 +905,12 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const on = tg ? this.indexOf(tg) : -1;
     const words = this.wording(tg);
     const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
-    const hint = this.joining === '' ? t('Tap the first thing to join, then the other; tap empty space to stop.') : this.joining !== null ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining }) : kindHint(kind);
+    const hint =
+      this.joining === ''
+        ? t('Tap the first thing to join, then the other; tap empty space to stop.')
+        : this.joining !== null
+          ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining })
+          : kindHint(kind);
     const own = (id: string) => COMMANDS.find((c) => c.id === `diagram.${id}`)!;
     return html`<to-bar class="dg-bar">
         ${cmdMenu(own('kind'), this, COMMANDS, 'dg-kind', { words: true, caret: true, icon: KIND_ICON[kind] })}

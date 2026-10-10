@@ -10,7 +10,7 @@
  * (kit/clipboard.ts: our TLO and our HTML); their keys stay the browser's (`native`), which raise the same events.
  */
 import { ClipboardPaste, Copy, Scissors } from 'lucide';
-import { coarse,  register, type Command, commandsOf } from './commands.ts';
+import { coarse, register, type Command, commandsOf } from './commands.ts';
 import { UI, type IconNode } from './icons.ts';
 import type { Mark } from './textops.ts';
 import type { ToText } from './text.ts';
@@ -24,8 +24,26 @@ const lists = (x: ToText) => !x.marksOnly && x.shape !== 'line';
 const mark = (m: Mark, name: string, label: string, icon: IconNode, keys: string): Command<ToText> =>
   cmd(name, label, { icon, keys, where: ['bar', 'context'], group: 'marks', pressed: (x) => !!x.sel && !!x.marks[m], does: (x) => x.exec(m) });
 
-export const CUT = cmd('cut', 'Cut', { icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', context: () => coarse(), disabled: (x) => !ranged(x), does: (x) => x.copyOut(true) });
-export const COPY = cmd('copy', 'Copy', { icon: Copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', context: () => coarse(), disabled: (x) => !ranged(x), does: (x) => x.copyOut(false) });
+export const CUT = cmd('cut', 'Cut', {
+  icon: Scissors,
+  keys: 'Mod+X',
+  native: true,
+  where: ['context'],
+  group: 'clip',
+  context: () => coarse(),
+  disabled: (x) => !ranged(x),
+  does: (x) => x.copyOut(true),
+});
+export const COPY = cmd('copy', 'Copy', {
+  icon: Copy,
+  keys: 'Mod+C',
+  native: true,
+  where: ['context'],
+  group: 'clip',
+  context: () => coarse(),
+  disabled: (x) => !ranged(x),
+  does: (x) => x.copyOut(false),
+});
 export const PASTE = cmd('paste', 'Paste', { icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', context: () => coarse(), does: (x) => x.pasteIn() });
 export const BOLD = mark('b', 'bold', 'Bold', UI.bold, 'Mod+B');
 export const ITALIC = mark('i', 'italic', 'Italic', UI.italic, 'Mod+I');
@@ -34,11 +52,41 @@ export const STRIKE = mark('s', 'strike', 'Strikethrough', UI.strike, 'Mod+Shift
 export const HIGHLIGHT = mark('h', 'highlight', 'Highlight', UI.highlight, 'Mod+Shift+H');
 export const LINK = cmd('link', 'Link', { icon: UI.link, keys: 'Mod+K', where: ['bar', 'context'], group: 'link', when: rich, pressed: (x) => !!x.sel && !!x.marks.href, does: (x) => x.exec('link') });
 export const FOOTNOTE = cmd('footnote', 'Footnote', { icon: UI.footnote, where: ['bar', 'context'], group: 'link', when: (x) => x.notes && !x.marksOnly, does: (x) => x.exec('fn') });
-export const BULLETS = cmd('bullets', 'Bulleted list', { icon: UI.list, where: ['bar', 'context'], group: 'lists', when: lists, context: (x) => x.listable(), pressed: (x) => x.kind === 'ul', does: (x) => x.exec('ul') });
-export const NUMBERS = cmd('numbers', 'Numbered list', { icon: UI.listOrdered, where: ['bar', 'context'], group: 'lists', when: lists, context: (x) => x.listable(), pressed: (x) => x.kind === 'ol', does: (x) => x.exec('ol') });
+export const BULLETS = cmd('bullets', 'Bulleted list', {
+  icon: UI.list,
+  where: ['bar', 'context'],
+  group: 'lists',
+  when: lists,
+  context: (x) => x.listable(),
+  pressed: (x) => x.kind === 'ul',
+  does: (x) => x.exec('ul'),
+});
+export const NUMBERS = cmd('numbers', 'Numbered list', {
+  icon: UI.listOrdered,
+  where: ['bar', 'context'],
+  group: 'lists',
+  when: lists,
+  context: (x) => x.listable(),
+  pressed: (x) => x.kind === 'ol',
+  does: (x) => x.exec('ol'),
+});
 /** Indent and Bring out: an item that can move moves; anywhere else Tab goes on to move the focus (never trapped). */
-export const OUTDENT = cmd('outdent', 'Bring out', { icon: UI.outdent, keys: 'Shift+Tab', where: ['bar'], when: lists, disabled: (x) => !x.sel || (x.kind !== 'ul' && x.kind !== 'ol'), does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(-1) : x.exec('outdent')) });
-export const INDENT = cmd('indent', 'Indent', { icon: UI.indent, keys: 'Tab', where: ['bar'], when: lists, disabled: (x) => !x.sel || (x.kind !== 'ul' && x.kind !== 'ol'), does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(1) : x.exec('indent')) });
+export const OUTDENT = cmd('outdent', 'Bring out', {
+  icon: UI.outdent,
+  keys: 'Shift+Tab',
+  where: ['bar'],
+  when: lists,
+  disabled: (x) => !x.sel || (x.kind !== 'ul' && x.kind !== 'ol'),
+  does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(-1) : x.exec('outdent')),
+});
+export const INDENT = cmd('indent', 'Indent', {
+  icon: UI.indent,
+  keys: 'Tab',
+  where: ['bar'],
+  when: lists,
+  disabled: (x) => !x.sel || (x.kind !== 'ul' && x.kind !== 'ol'),
+  does: (x, e) => (e instanceof KeyboardEvent ? x.shiftItem(1) : x.exec('indent')),
+});
 
 /** Every command of the words, in the order the bubble and the shortcuts dialog list them. */
 export const TEXT_COMMANDS = register([

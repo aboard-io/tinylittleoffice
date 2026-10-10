@@ -196,7 +196,10 @@ export function searchIcons(query: string, limit = 180): string[] {
     });
     if (ok) hits.push([e.name, rank]);
   }
-  return hits.sort((a, b) => a[1] - b[1]).slice(0, limit).map(([name]) => name);
+  return hits
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, limit)
+    .map(([name]) => name);
 }
 
 /**
@@ -208,7 +211,10 @@ export function searchIcons(query: string, limit = 180): string[] {
  * The matches come back as their indexes.
  */
 export function rankMatches(query: string, entries: readonly { nameWords: string[]; keywords: string[] }[], limit: number, alias = false): number[] {
-  const q = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const q = query
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
   if (!q.length) return [];
   const key = q.join('-');
   const hits: [number, number, string][] = [];
@@ -216,12 +222,17 @@ export function rankMatches(query: string, entries: readonly { nameWords: string
     const name = e.nameWords.join('-');
     const starts = (ws: string[]) => q.every((t) => ws.some((w) => w.startsWith(t)));
     const tier =
-      name === key ? 0
-      : q.length === 1 && (e.nameWords.includes(key) || (alias && e.keywords.includes(key))) ? 1
-      : name.startsWith(key) ? 2
-      : starts(e.nameWords) ? 3
-      : starts([...e.nameWords, ...e.keywords]) ? 4
-      : -1;
+      name === key
+        ? 0
+        : q.length === 1 && (e.nameWords.includes(key) || (alias && e.keywords.includes(key)))
+          ? 1
+          : name.startsWith(key)
+            ? 2
+            : starts(e.nameWords)
+              ? 3
+              : starts([...e.nameWords, ...e.keywords])
+                ? 4
+                : -1;
     if (tier >= 0) hits.push([i, tier, name]);
   });
   return hits

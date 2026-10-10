@@ -7,7 +7,24 @@ import { applyAll, evaluate, firstTable, formatCell, parse, write } from '../../
 import write_ from '../def.ts';
 // The registry, so a document held in the text is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
-import { duplicateBlock, fieldsOf, moveBlock, putAfter, removeBlock, retitle, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
+import {
+  duplicateBlock,
+  fieldsOf,
+  moveBlock,
+  putAfter,
+  removeBlock,
+  retitle,
+  tableColIn,
+  tableColOut,
+  tablePut,
+  tableRename,
+  tableRowsIn,
+  tableRowsOut,
+  setCellAt,
+  tableView,
+  titleOf,
+  wordCount,
+} from '../model.ts';
 import { templates } from '../templates.ts';
 import { LOOK_IDS, lookOf } from '../look.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
@@ -77,7 +94,7 @@ test('a cell typed into the blank row under a table adds the row; a row cleared 
   expect(setCellAt(doc, 0, 3, 0, '')).toEqual([]);
 });
 
-test('a table\'s rows and columns, by their menus: put in, taken out, named; a range written; each on the table where it stands', () => {
+test("a table's rows and columns, by their menus: put in, taken out, named; a range written; each on the table where it stands", () => {
   const doc = parse('Before\n\nA | B\n--- | ---\n1 | =A1*2\n2 | =A2*2\n\nAfter\n');
   const at = 1;
   const w = (ops: ReturnType<typeof tableRowsIn>) => write(applyAll(doc, ops));
@@ -87,7 +104,18 @@ test('a table\'s rows and columns, by their menus: put in, taken out, named; a r
   // A column taken out with what it holds: a formula that pointed into it says so.
   expect(w(tableColOut(doc, at, 0))).toBe('Before\n\n| B |\n| --- |\n| =#REF*2 |\n| =#REF*2 |\n\nAfter\n');
   expect(w(tableRename(doc, at, 0, 'Qty'))).toBe('Before\n\nQty | B\n--- | ---\n1 | =A1*2\n2 | =A2*2\n\nAfter\n');
-  expect(w(tablePut(doc, at, { r: 1, c: 0, values: [['5', '6'], ['7', '8']] }))).toBe('Before\n\nA | B\n--- | ---\n1 | =A1*2\n5 | 6\n7 | 8\n\nAfter\n');
+  expect(
+    w(
+      tablePut(doc, at, {
+        r: 1,
+        c: 0,
+        values: [
+          ['5', '6'],
+          ['7', '8'],
+        ],
+      }),
+    ),
+  ).toBe('Before\n\nA | B\n--- | ---\n1 | =A1*2\n5 | 6\n7 | 8\n\nAfter\n');
   // A range cleared at the end of the table takes its rows with it.
   expect(w(tablePut(doc, at, { r: 1, c: 0, values: [['', '']] }))).toBe('Before\n\nA | B\n--- | ---\n1 | =A1*2\n\nAfter\n');
   // Letter-named columns follow their places when one goes; a table keeps one column.
@@ -221,7 +249,7 @@ test('every template is a whole document: a name and a blurb, no placeholder wor
   expect(tables('minutes')[0].values[4][1]).toBe(1453);
 });
 
-test('the look is a head field, absent for sans, never one of the document\'s own fields, and stable through parse and write', () => {
+test("the look is a head field, absent for sans, never one of the document's own fields, and stable through parse and write", () => {
   expect(lookOf(parse('words\n')).id).toBe('sans');
   expect(lookOf(parse('---\nlook: nonsense\n---\nwords\n')).id).toBe('sans');
   const text = '---\nlook: book\n---\n# A title {.title}\n\nOne.\n\nTwo.\n';
@@ -230,9 +258,15 @@ test('the look is a head field, absent for sans, never one of the document\'s ow
   expect(fieldsOf(parse(text))).toEqual([]);
 });
 
-test('the pages wear the look: its faces, a book\'s justified lines and small capitals, a newspaper\'s two columns', () => {
-  const body = '# The title {.title}\n\n## A heading\n\n' + Array.from({ length: 16 }, (_, i) => `Paragraph ${i} goes on for long enough that it has to wrap across more than one line of the page, and then a little more besides.`).join('\n\n') + '\n';
-  const svg = (look: string) => pages(look ? `---\nlook: ${look}\n---\n${body}` : body).map((p) => p.svg).join('');
+test("the pages wear the look: its faces, a book's justified lines and small capitals, a newspaper's two columns", () => {
+  const body =
+    '# The title {.title}\n\n## A heading\n\n' +
+    Array.from({ length: 16 }, (_, i) => `Paragraph ${i} goes on for long enough that it has to wrap across more than one line of the page, and then a little more besides.`).join('\n\n') +
+    '\n';
+  const svg = (look: string) =>
+    pages(look ? `---\nlook: ${look}\n---\n${body}` : body)
+      .map((p) => p.svg)
+      .join('');
   expect(svg('')).not.toContain('font-family="Charter');
   expect(svg('serif')).toContain('font-family="Charter');
   expect(svg('mono')).toContain('font-family="ui-monospace');
@@ -249,7 +283,7 @@ test('the pages wear the look: its faces, a book\'s justified lines and small ca
   expect(news).toMatch(/<g transform="translate\(\d+ 0\)">/);
 });
 
-test('the files wear the look: the web page\'s CSS, Word\'s and RTF\'s font names, a newspaper\'s columns', () => {
+test("the files wear the look: the web page's CSS, Word's and RTF's font names, a newspaper's columns", () => {
   const doc = (look: string) => parse(`---\nlook: ${look}\n---\n# Headline {.title}\n\nOne.\n\nTwo.\n`);
   expect(docToHtml(doc('serif'), ctx)).toMatch(/body\{font-family:Charter/);
   expect(docToHtml(doc('news'), ctx)).toContain('columns:2');

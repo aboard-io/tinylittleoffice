@@ -1,7 +1,34 @@
 // Motion as a view of the document, and each command as the ops it produces: under node, no DOM.
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
-import { depthDim, drawingOf, duplicateShape, duplicateShapes, follow, frameOrder, gifLoop, keysOf, loopOf, loosen, motionOf, pasteMotion, playhead, readAnim, redraw, removeKey, removeShape, removeShapes, restKey, room, setLength, setLoop, stateAt, turnScale, withKey, withKeys } from '../model.ts';
+import {
+  depthDim,
+  drawingOf,
+  duplicateShape,
+  duplicateShapes,
+  follow,
+  frameOrder,
+  gifLoop,
+  keysOf,
+  loopOf,
+  loosen,
+  motionOf,
+  pasteMotion,
+  playhead,
+  readAnim,
+  redraw,
+  removeKey,
+  removeShape,
+  removeShapes,
+  restKey,
+  room,
+  setLength,
+  setLoop,
+  stateAt,
+  turnScale,
+  withKey,
+  withKeys,
+} from '../model.ts';
 import { animFrames, animPage, animToSvg, drawOrder, frameSvg, transformOf } from '../view.ts';
 import { templates } from '../templates.ts';
 import def from '../def.ts';
@@ -10,7 +37,8 @@ import { appOf } from '../../../kit/apps.ts';
 import { readDrawing } from '../../draw/model.ts';
 import { iconNamed } from '../../../kit/icons.ts';
 
-const LIFT = '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
+const LIFT =
+  '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n';
 const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n';
 
 /** A document edited: the ops applied, the text written; and the ops undone give the text back. */
@@ -34,7 +62,10 @@ test('read: length, speed, shapes, keys by shape number; defaults for a bare dra
   expect([loose.frames, loose.fps]).toEqual([120, 5]);
   expect(readAnim(parse('---\nfps: 99\n---\n' + DRAWING)).fps).toBe(30);
   expect(readAnim(parse('---\nfps: x\n---\n' + DRAWING)).fps).toBe(8);
-  expect(loose.keys[0]).toEqual([{ t: 3, dx: 9, dy: 9, z: 0, s: 1, r: 0, fx: '' }, { t: 119, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 50] }]);
+  expect(loose.keys[0]).toEqual([
+    { t: 3, dx: 9, dy: 9, z: 0, s: 1, r: 0, fx: '' },
+    { t: 119, dx: 0, dy: 0, z: 0, s: 1, r: 0, fx: '', pts: [0, 0, 100, 50] },
+  ]);
   expect(keysOf('2,0,0,999,0.04,0,ddz', 24)).toEqual([{ t: 2, dx: 0, dy: 0, z: 200, s: 0.1, r: 0, fx: 'd' }]);
 });
 
@@ -43,7 +74,11 @@ test('stateAt: straight lines between keys, held before the first and after the 
   expect(stateAt(v, 1, 11.5)).toMatchObject({ dx: 100, dy: -100, z: 40, r: -15, fx: '' });
   expect(stateAt(v, 1, 30)).toMatchObject({ dx: 200, fx: 'd' });
   expect(stateAt(v, 0, 0)).toMatchObject({ dx: 0, dy: 0 });
-  const pen = readAnim(parse('Kind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\nv | 0 | 0 | 10 | 10 | 1 | | 0:0;100:0;50:100\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,,p0:0/100:0/50:100; 10,0,0,0,1,0,,p0:0/100:0/50:0\n'));
+  const pen = readAnim(
+    parse(
+      'Kind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\nv | 0 | 0 | 10 | 10 | 1 | | 0:0;100:0;50:100\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0,,p0:0/100:0/50:100; 10,0,0,0,1,0,,p0:0/100:0/50:0\n',
+    ),
+  );
   expect(stateAt(pen, 0, 5).pts).toEqual([0, 0, 100, 0, 50, 50]);
   expect(readAnim(parse(DRAWING)).keys[0]).toEqual([]);
   expect(stateAt(readAnim(parse(DRAWING)), 0, 4)).toEqual(restKey(4));
@@ -55,7 +90,21 @@ test('withKey: the keys table replaced by one splice (put in with the first key)
   expect(ops).toEqual([
     { op: 'head', key: 'frames', value: '24' },
     { op: 'head', key: 'fps', value: '8' },
-    { op: 'splice', at: 1, n: 0, blocks: [{ k: 'table', cols: [{ name: 'Shape', type: 'text' }, { name: 'Keys', type: 'text' }], rows: [['1', '12,40,0,0,1.3,0,n']] }] },
+    {
+      op: 'splice',
+      at: 1,
+      n: 0,
+      blocks: [
+        {
+          k: 'table',
+          cols: [
+            { name: 'Shape', type: 'text' },
+            { name: 'Keys', type: 'text' },
+          ],
+          rows: [['1', '12,40,0,0,1.3,0,n']],
+        },
+      ],
+    },
   ]);
   const one = after(DRAWING, () => ops);
   expect(one).toBe('---\nframes: 24\nfps: 8\n---\n' + DRAWING + '\nShape | Keys\n--- | ---\n1 | 12,40,0,0,1.3,0,n\n');
@@ -70,15 +119,23 @@ test('withKey: the keys table replaced by one splice (put in with the first key)
 });
 
 test('setLength: head ops, and the keys past the new end gone', () => {
-  expect(after(LIFT, (d) => setLength(d, 12, 12))).toBe('---\nframes: 12\nfps: 12\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0\n1 | 0,0,0,0,1,0\n');
+  expect(after(LIFT, (d) => setLength(d, 12, 12))).toBe(
+    '---\nframes: 12\nfps: 12\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 4 | 20 | 20 | 4 | 04 | Lift off\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0\n1 | 0,0,0,0,1,0\n',
+  );
   expect(setLength(parse(LIFT), 24, 8)).toEqual([]);
-  expect(setLength(parse(LIFT), 999, 7)).toEqual([{ op: 'head', key: 'frames', value: '120' }, { op: 'head', key: 'fps', value: '7' }]);
+  expect(setLength(parse(LIFT), 999, 7)).toEqual([
+    { op: 'head', key: 'frames', value: '120' },
+    { op: 'head', key: 'fps', value: '7' },
+  ]);
   expect(setLength(parse(LIFT), 24, 0)).toEqual([]);
   expect(setLength(parse(LIFT), 24, 60)).toEqual([{ op: 'head', key: 'fps', value: '30' }]);
 });
 
 test('removeShape and duplicateShape: Draw ops on the shapes, and the keys go with their shapes', () => {
-  const text = LIFT.replace('i | 8 | 36 | 8 | 8 | 0b | rocket\n', 'i | 8 | 36 | 8 | 8 | 0b | rocket\no | 40 | 10 | 8 | 4 | 0 | Moon\nk | 1 | 2 | 0 | 0 | 0 |\n').replace('1 | 0,0,0,0,1,0; 23,200', '2 | 5,1,1,0,1,0\n1 | 0,0,0,0,1,0; 23,200');
+  const text = LIFT.replace('i | 8 | 36 | 8 | 8 | 0b | rocket\n', 'i | 8 | 36 | 8 | 8 | 0b | rocket\no | 40 | 10 | 8 | 4 | 0 | Moon\nk | 1 | 2 | 0 | 0 | 0 |\n').replace(
+    '1 | 0,0,0,0,1,0; 23,200',
+    '2 | 5,1,1,0,1,0\n1 | 0,0,0,0,1,0; 23,200',
+  );
   // Taking out the title: the rocket is now shape 0 and the moon shape 1, their keys with them; the join renumbered.
   const out = after(text, (d) => removeShape(d, 0));
   expect(out).toContain('\ni | 8 | 36 | 8 | 8 | 0b | rocket\no | 40 | 10 | 8 | 4 | 0 | Moon\nk | 0 | 1 | 0 | 0 | 0 |\n');
@@ -121,7 +178,9 @@ test('loosen: a list with no drawing becomes things on the stage that drift to t
   expect(loosen(parse(LIFT))).toEqual([]);
   expect(loosen(parse(''))).toEqual([]);
   const out = after('- :rocket:\n- Hello there\n\n> Hi, drifting.\n', loosen);
-  expect(out).toBe('---\nframes: 24\nfps: 8\nalt: Hi, drifting.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 10 | 15 | 6 | 6 | 0 | rocket\nt | 10 | 31 | 20 | 4 | 03 | Hello there\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,384,0,0,1,0\n1 | 0,0,0,0,1,0; 23,384,0,0,1,0\n');
+  expect(out).toBe(
+    '---\nframes: 24\nfps: 8\nalt: Hi, drifting.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 10 | 15 | 6 | 6 | 0 | rocket\nt | 10 | 31 | 20 | 4 | 03 | Hello there\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,384,0,0,1,0\n1 | 0,0,0,0,1,0; 23,384,0,0,1,0\n',
+  );
 });
 
 test('view: a frame drawn with its effects and the nearest last; the playing SVG; a frame a page for the GIF; a still for thumbnails', () => {
@@ -160,7 +219,9 @@ test('the definition: Draw hands its drawing over, and the hand-off is live now 
   expect(def.retitle('', 'Up')).toBe('---\ntitle: Up\n---\n');
   expect(def.exports!.map((e) => e.ext)).toEqual(['gif', 'svg']);
   expect(templates().map((x) => x.id)).toEqual(['liftoff', 'bounce', 'spinner', 'curtain', 'birthday', 'standup', 'green', 'flip', 'weather', 'countdown', 'flight', 'neon', 'sunrise']);
-  expect(templates()[0].doc).toBe(LIFT.replace('---\n', '---\ntitle: Lift off\n').replace('fps: 8\n', 'fps: 8\nalt: A rocket lifts off and flies up and away to the right, under the words Lift off.\n'));
+  expect(templates()[0].doc).toBe(
+    LIFT.replace('---\n', '---\ntitle: Lift off\n').replace('fps: 8\n', 'fps: 8\nalt: A rocket lifts off and flies up and away to the right, under the words Lift off.\n'),
+  );
   for (const tpl of templates()) {
     const v = readAnim(parse(tpl.doc));
     expect(v.shapes.length).toBeGreaterThan(1);
@@ -176,17 +237,38 @@ test('the definition: Draw hands its drawing over, and the hand-off is live now 
   // What each template claims to use, it uses: the loops, a turn, and the effects.
   const of = (id: string) => readAnim(parse(templates().find((x) => x.id === id)!.doc));
   expect([of('bounce').loop, of('curtain').loop, of('countdown').loop]).toEqual(['bounce', 'once', 'once']);
-  expect(of('flip').keys.flat().some((k) => k.u === 90)).toBe(true);
-  expect(of('standup').keys.flat().some((k) => k.fx.includes('i'))).toBe(true);
-  expect(of('birthday').keys.flat().some((k) => k.fx.includes('g'))).toBe(true);
+  expect(
+    of('flip')
+      .keys.flat()
+      .some((k) => k.u === 90),
+  ).toBe(true);
+  expect(
+    of('standup')
+      .keys.flat()
+      .some((k) => k.fx.includes('i')),
+  ).toBe(true);
+  expect(
+    of('birthday')
+      .keys.flat()
+      .some((k) => k.fx.includes('g')),
+  ).toBe(true);
   // The spinner's bright dot runs round: at each even frame a different dot is the largest.
   const ring = of('spinner');
-  const largest = (f: number) => ring.keys.slice(0, 8).map((_, i) => stateAt(ring, i, f).s).reduce((m, s, i, all) => (s > all[m] ? i : m), 0);
+  const largest = (f: number) =>
+    ring.keys
+      .slice(0, 8)
+      .map((_, i) => stateAt(ring, i, f).s)
+      .reduce((m, s, i, all) => (s > all[m] ? i : m), 0);
   expect([0, 2, 4, 6, 8, 10, 12, 14].map(largest)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
 });
 
 test('withKeys: the shapes in hand keyed in one splice; a shape keyed first at a later moment starts where it was drawn', () => {
-  const out = after(LIFT, (d) => withKeys(d, [{ i: 0, key: { ...restKey(5), dx: 8 } }, { i: 1, key: { ...restKey(5), dy: 16 } }]));
+  const out = after(LIFT, (d) =>
+    withKeys(d, [
+      { i: 0, key: { ...restKey(5), dx: 8 } },
+      { i: 1, key: { ...restKey(5), dy: 16 } },
+    ]),
+  );
   expect(keysTable(out)).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 5,8,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 5,0,16,0,1,0; 23,200,-200,80,1,-30,d\n');
   expect(withKeys(parse(LIFT), [{ i: 0, key: { ...restKey(5), dx: 8 } }]).filter((o) => o.op === 'splice')).toHaveLength(1);
   const fresh = after(DRAWING, (d) => withKeys(d, [{ i: 0, key: { ...restKey(6), dx: 24 } }]));
@@ -205,14 +287,18 @@ test('removeShapes and duplicateShapes: several shapes at once, the keys followi
   const { ops, sel } = duplicateShapes(parse(LIFT), [0, 1]);
   expect(sel).toEqual([2, 3]);
   const two = write(applyAll(parse(LIFT), ops));
-  expect(keysTable(two)).toBe('Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n2 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n3 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(keysTable(two)).toBe(
+    'Shape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n1 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n2 | 0,0,0,0,1,0; 23,0,-80,0,1,0,i\n3 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n',
+  );
   // A join has no copy.
   expect(duplicateShapes(parse(DRAWING), [2]).sel).toEqual([]);
 });
 
 test('motionOf and pasteMotion: the shapes in hand travel with their keys, and come back beside themselves, moving as they did', () => {
   const clip = motionOf(parse(LIFT), [1])!;
-  expect(write(clip)).toBe('---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n');
+  expect(write(clip)).toBe(
+    '---\nframes: 24\nfps: 8\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 8 | 36 | 8 | 8 | 0b | rocket\n\nShape | Keys\n--- | ---\n0 | 0,0,0,0,1,0; 23,200,-200,80,1,-30,d\n',
+  );
   // A join goes only with both its ends.
   expect(motionOf(parse(DRAWING), [0, 2])!.blocks[0]).toMatchObject({ rows: [['o', '4', '6', '16', '8', '1b', 'Browser']] });
   expect(write(motionOf(parse(DRAWING), [0, 1, 2])!)).toContain('\nk | 0 | 1 | 0 | 0 | 0 | asks\n');
@@ -241,7 +327,7 @@ test('loop: the head field read leniently and written only when not for ever; by
   expect(write(motionOf(parse(bounced), [0])!)).toContain('loop: bounce');
 });
 
-test('playback: for ever wraps, once and n times stop on the last frame, bounce goes there and back; the GIF\'s frames and loop count follow', () => {
+test("playback: for ever wraps, once and n times stop on the last frame, bounce goes there and back; the GIF's frames and loop count follow", () => {
   expect(playhead(4, 'forever', 5)).toEqual({ frame: 1, done: false });
   expect(playhead(4, 'once', 3.5)).toEqual({ frame: 3.5, done: false });
   expect(playhead(4, 'once', 4)).toEqual({ frame: 3, done: true });

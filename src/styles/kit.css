@@ -39,23 +39,7 @@
      (zoom.ts NAV_MAX), while the words, the cards and the pictures go on to 200%. Each of these is drawn at the nav's
      font size and its lengths inside are em; a finger's target and the gutter are the nav's too. One list: an app's
      own bar (anything nav, not document) joins it rather than inventing its own. */
-  :is(
-    to-bar,
-    .to-header,
-    .to-burger,
-    .to-drawer,
-    .to-dialog,
-    .to-doc-dialog,
-    to-context,
-    .to-menu,
-    to-link-pop,
-    to-complete,
-    to-find,
-    .to-toast,
-    .to-pinch-pill,
-    .anim-props,
-    .anim-time
-  ) {
+  :is(to-bar, .to-header, .to-burger, .to-drawer, .to-dialog, .to-doc-dialog, to-context, .to-menu, to-link-pop, to-complete, to-find, .to-toast, .to-pinch-pill, .anim-props, .anim-time) {
     font-size: var(--to-nav-font);
     --to-scale: var(--to-nav-font);
     --to-touch: calc(2.75 * var(--to-nav-font));
@@ -1371,7 +1355,9 @@
     box-shadow: var(--to-shadow-pop);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s, transform 0.15s;
+    transition:
+      opacity 0.15s,
+      transform 0.15s;
     z-index: 10;
     max-width: calc(100vw - 2em);
   }

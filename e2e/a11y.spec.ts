@@ -16,7 +16,10 @@ import { routeHash } from '../src/kit/route.ts';
 const axe = (page: Page) => new AxeBuilder({ page }).disableRules(['meta-viewport']).analyze();
 /** A violation in a line: the rule, and where. */
 const said = (v: Awaited<ReturnType<typeof axe>>['violations'][number]) =>
-  `${v.id} (${v.impact}): ${v.nodes.slice(0, 3).map((n) => `${n.target.map(String).join(' >> ')}${n.any[0]?.message ? ` [${n.any[0].message}]` : ''}`).join(', ')}${v.nodes.length > 3 ? ` and ${v.nodes.length - 3} more` : ''}`;
+  `${v.id} (${v.impact}): ${v.nodes
+    .slice(0, 3)
+    .map((n) => `${n.target.map(String).join(' >> ')}${n.any[0]?.message ? ` [${n.any[0].message}]` : ''}`)
+    .join(', ')}${v.nodes.length > 3 ? ` and ${v.nodes.length - 3} more` : ''}`;
 
 /** Until the editor's element is defined and drawn, and the fonts are in. */
 async function drawn(page: Page) {

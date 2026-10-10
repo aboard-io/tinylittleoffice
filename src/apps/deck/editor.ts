@@ -45,7 +45,27 @@ import { OPENED_EVENT, openPlaced } from '../../kit/locked-doc.ts';
 import { Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import type { Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
-import { addSlide, duplicateSlides, isBlank, joinHeadline, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slidesOf, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
+import {
+  addSlide,
+  duplicateSlides,
+  isBlank,
+  joinHeadline,
+  loosen,
+  moveSlide,
+  removeSlide,
+  setHead,
+  slideBlocks,
+  setIcon,
+  setLayout,
+  setSub,
+  settingsOf,
+  slidesOf,
+  webBlock,
+  type Format,
+  type Layout,
+  type Settings,
+  type Slide,
+} from './model.ts';
 import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/doc-dialog.ts';
@@ -301,7 +321,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     let moved = offset(ops, start);
     const first = moved[0];
     // The editor over an empty span puts a paragraph in first: here it is the block the box is for.
-    if (first?.op === 'splice' && first.n === 0 && first.blocks.length === 1 && first.blocks[0].k === 'p' && !first.blocks[0].runs.length) moved = [{ ...first, blocks: [this.born(field, s)] }, ...moved.slice(1)];
+    if (first?.op === 'splice' && first.n === 0 && first.blocks.length === 1 && first.blocks[0].k === 'p' && !first.blocks[0].runs.length)
+      moved = [{ ...first, blocks: [this.born(field, s)] }, ...moved.slice(1)];
     this.change([...made.ops, ...moved], key, mark);
   }
 
@@ -325,7 +346,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private onNoteChange = (e: CustomEvent<{ nth: number; fn: string }>) => {
     const x = this.marks()[e.detail.nth];
     if (!x || x.m.fn === e.detail.fn) return;
-    this.boxOps(x.field, [{ op: 'text', at: x.m.block, from: x.m.offset, to: x.m.offset + 1, runs: [{ t: '', fn: e.detail.fn }] }], `note:${this.cur}:${e.detail.nth}`, { slide: this.cur, note: e.detail.nth });
+    this.boxOps(x.field, [{ op: 'text', at: x.m.block, from: x.m.offset, to: x.m.offset + 1, runs: [{ t: '', fn: e.detail.fn }] }], `note:${this.cur}:${e.detail.nth}`, {
+      slide: this.cur,
+      note: e.detail.nth,
+    });
   };
   /** Back from a note to its box, the caret after the mark. */
   private onNoteBack = (e: CustomEvent<{ nth: number }>) => {
@@ -503,7 +527,15 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const s = this.slide;
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const { suggestIcons } = await import('../../kit/icons-search.ts');
-    const name = await chooseIcon({ emoji: false, current: s.icon, none: true, suggested: suggestIcons(plainText(s.title), s.items.map((it) => plainText(it.runs))) });
+    const name = await chooseIcon({
+      emoji: false,
+      current: s.icon,
+      none: true,
+      suggested: suggestIcons(
+        plainText(s.title),
+        s.items.map((it) => plainText(it.runs)),
+      ),
+    });
     if (name === null) return;
     const made = this.existing();
     this.change([...made.ops, ...setIcon(made.doc, made.s, name)]);
@@ -735,7 +767,14 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private onRailKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const mod = e.metaKey || e.ctrlKey;
-    if (runKey(e, EDIT.filter((c) => c.id === 'deck.rail'), this)) return;
+    if (
+      runKey(
+        e,
+        EDIT.filter((c) => c.id === 'deck.rail'),
+        this,
+      )
+    )
+      return;
     const thumb = (e.target as HTMLElement).closest?.<HTMLElement>('.deck-thumb');
     if (!thumb || this.rows.range) return;
     const i = Number(thumb.dataset.i);
@@ -793,7 +832,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const loud = this.settings.format === 'poster' ? 2 : this.settings.format && s.layout === 't' ? 1.6 : 1;
     const L = layoutSlide(s, { w: size.w, h: size.h, loud });
     const T = look.theme;
-    const deco = look.themed && T.deco ? `--deck-deco:url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}" preserveAspectRatio="none">${T.deco}</svg>`)}");` : '';
+    const deco =
+      look.themed && T.deco
+        ? `--deck-deco:url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}" preserveAspectRatio="none">${T.deco}</svg>`)}");`
+        : '';
     const colours = look.themed ? `--deck-paper:${T.paper};--deck-ink:${T.ink};--deck-muted:${T.muted};--deck-accent:${T.accent};` : '';
     const px = (n: number) => `${Math.round((n / size.w) * 10000) / 100}cqw`;
     return `--deck-w:${size.w};--deck-h:${size.h};--deck-title:${px(L.titlePx || 40)};--deck-body:${px(L.bodyPx || 20)};--deck-icon:${look.icon};${colours}${deco}`;
@@ -810,7 +852,14 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const notes = marks.map((x) => x.m.fn);
     const sub = s.sub >= 0 ? subPage(this.doc, s, undefined, true) : null;
     const prose = !!st.format && st.format !== 'comic' && !s.layout;
-    const wordsHint = st.format === 'comic' ? t('A panel a line: what is said | the caption. Icon gives it a picture.') : prose ? t('What this page says. The type shrinks to fit the page.') : s.layout === 't' ? t('A line or two under the title') : t('One bullet a line. Tab steps it in.');
+    const wordsHint =
+      st.format === 'comic'
+        ? t('A panel a line: what is said | the caption. Icon gives it a picture.')
+        : prose
+          ? t('What this page says. The type shrinks to fit the page.')
+          : s.layout === 't'
+            ? t('A line or two under the title')
+            : t('One bullet a line. Tab steps it in.');
     const foot = g ? g.name(this.cur, n) : t('{n} / {total}', { n: this.cur + 1, total: n });
     const pickLabel = s.icon ? t('Change the icon') : t('Add an icon');
     const pick = html`<button type="button" class="deck-pick ${s.icon ? '' : 'empty'}" aria-label=${pickLabel} title=${pickLabel} @click=${() => void this.pickIcon()}>${s.icon && iconNamed(s.icon) ? icon(iconNamed(s.icon)!, 32) : icon(UI.icon, 20)}</button>`;
@@ -819,21 +868,27 @@ export class ToDeckEditor extends DocElement<Slide[]> {
           ${s.layout === 'i' ? nothing : pick}
           <to-text class="deck-title" shape="line" notes .blocks=${titleBlocks} label=${t('Headline')} placeholder=${s.layout === 't' || (g && this.cur === 0) ? t('Title') : t('Headline')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('title', e)} @focusin=${() => (this.field = 'title')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('title', e)} @text-enter=${() => this.focusBox(sub ? 'notes' : 'words', 'start')} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => this.onTitleExit(e)} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('title', e)}></to-text>
         </div>
-        ${sub
-          ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
+        ${
+          sub
+            ? html`<figure class="deck-sub" tabindex="0" role="group" aria-label=${sub.alt || t('A document on the slide')} @click=${this.openSubMenu} @keydown=${this.onSubKey}>
               <svg viewBox="0 0 ${sub.w} ${sub.h}" aria-hidden="true">${unsafeSVG(gateSvg(sub.svg))}</svg>
             </figure>`
-          : html`<div class="deck-words-row">
+            : html`<div class="deck-words-row">
               <to-text class="deck-words" shape="lines" notes @paste=${this.onWordsPaste} .blocks=${wordsBlocks} note-start=${titleNotes} label=${s.layout === '2' ? t('Left column') : t('Words')} placeholder=${wordsHint} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('words', e)} @focusin=${() => (this.field = 'words')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('words', e)} @text-exit=${() => this.focusBox('title')} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('words', e)}></to-text>
-              ${s.layout === '2'
-                ? html`<to-text class="deck-right" shape="lines" notes .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @focusin=${() => (this.field = 'right')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('right', e)}></to-text>`
-                : s.layout === 'i'
-                  ? html`<button type="button" class="deck-big ${s.icon ? '' : 'empty'}" aria-label=${pickLabel} @click=${() => void this.pickIcon()}>${s.icon && iconNamed(s.icon) ? icon(iconNamed(s.icon)!, 120) : html`${icon(UI.icon, 40)}<span>${t('Pick an icon')}</span>`}</button>`
-                  : nothing}
-            </div>`}
-        ${notes.length
-          ? html`<to-notes class="deck-fn" role="group" aria-label=${t('Footnotes')} .notes=${notes} @note-change=${this.onNoteChange} @note-back=${this.onNoteBack} @note-remove=${this.onNoteRemove}></to-notes>`
-          : nothing}
+              ${
+                s.layout === '2'
+                  ? html`<to-text class="deck-right" shape="lines" notes .blocks=${rightBlocks} note-start=${titleNotes + leftNotes} label=${t('Right column')} placeholder=${t('One bullet a line.')} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps('right', e)} @focusin=${() => (this.field = 'right')} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect('right', e)} @text-exit=${() => this.focusBox('words')} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote('right', e)}></to-text>`
+                  : s.layout === 'i'
+                    ? html`<button type="button" class="deck-big ${s.icon ? '' : 'empty'}" aria-label=${pickLabel} @click=${() => void this.pickIcon()}>${s.icon && iconNamed(s.icon) ? icon(iconNamed(s.icon)!, 120) : html`${icon(UI.icon, 40)}<span>${t('Pick an icon')}</span>`}</button>`
+                    : nothing
+              }
+            </div>`
+        }
+        ${
+          notes.length
+            ? html`<to-notes class="deck-fn" role="group" aria-label=${t('Footnotes')} .notes=${notes} @note-change=${this.onNoteChange} @note-back=${this.onNoteBack} @note-remove=${this.onNoteRemove}></to-notes>`
+            : nothing
+        }
         <span class="deck-num">${foot}</span>
       </div>
       <h3 class="deck-notes-head" id="deck-notes-head">${t('Speaker notes')}</h3>
@@ -916,12 +971,14 @@ export class ToDeckEditor extends DocElement<Slide[]> {
         ${cmdTool(own('qr'), this)} ${cmdTool(own('up'), this)} ${cmdTool(own('down'), this)} ${cmdTool(own('delete'), this)}
         ${this.undoTools()}
       </to-bar>
-      ${this.sheets && g
-        ? this.renderSheets()
-        : html`<div class="deck-body">
+      ${
+        this.sheets && g
+          ? this.renderSheets()
+          : html`<div class="deck-body">
             <div class="deck-stage" style=${`--deck-w:${size.w};--deck-h:${size.h}`} data-format=${st.format || 'deck'}>${this.renderCanvas(s, look)}</div>
             ${this.renderRail(look)}
-          </div>`}
+          </div>`
+      }
       ${this.showing >= 0 ? this.renderShow(look) : nothing}
       ${this.rows.renderContext()}
       <to-menu class="deck-submenu" .label=${t('This document')} .items=${this.subMenu ? this.subItems() : []}></to-menu>`;

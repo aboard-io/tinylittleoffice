@@ -80,12 +80,20 @@ export function picture(url: string, alt: string, cls = ''): TemplateResult {
 }
 
 const attr = (tag: string, name: string): string | null => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1] ?? null;
-const unxml = (s: string) => s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const unxml = (s: string) =>
+  s
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 
 /** The card that stands for a web picture on a drawn page, in its box. */
 function svgCard(tag: string, url: string, quiet: boolean): string {
   const n = (k: string, d: number) => Number(attr(tag, k) ?? d) || d;
-  const x = n('x', 0), y = n('y', 0), w = n('width', 100), h = n('height', 100);
+  const x = n('x', 0),
+    y = n('y', 0),
+    w = n('width', 100),
+    h = n('height', 100);
   const box = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e4e4e7" rx="6"/>`;
   if (quiet) return box;
   const px = Math.max(10, Math.min(18, h / 8, w / 16));

@@ -94,7 +94,8 @@ test('update and forget with the wrong o fail as a missing link does; the brake 
 
 test('how long a short link has left: days over a week are green, within a week amber, the last day red', () => {
   const now = Date.UTC(2026, 9, 9, 12);
-  const day = 86_400_000, hour = 3_600_000;
+  const day = 86_400_000,
+    hour = 3_600_000;
   expect(timeLeft(now + 12 * day, now)).toEqual({ n: 12, unit: 'day', urgency: 'ok' });
   expect(timeLeft(now + 7 * day - 1000, now)).toEqual({ n: 7, unit: 'day', urgency: 'ok' });
   expect(timeLeft(now + 3 * day, now)).toEqual({ n: 3, unit: 'day', urgency: 'soon' });
@@ -111,7 +112,8 @@ test('how long a short link has left: days over a week are green, within a week 
 });
 
 test('the public link of an owner\'s link whose key and o hold "~" (written now) or "-" (written before)', () => {
-  const key = 'K~_'.repeat(14) + 'K', o = 'o~'.repeat(21) + 'o';
+  const key = 'K~_'.repeat(14) + 'K',
+    o = 'o~'.repeat(21) + 'o';
   expect(publicLink(`${AT}abcdefg#${key}.${o}`)).toBe(`${AT}abcdefg#${key}`);
   expect(publicLink(`${AT}abcdefg#${key.replace(/~/g, '-')}.${o.replace(/~/g, '-')}`)).toBe(`${AT}abcdefg#${key.replace(/~/g, '-')}`);
 });

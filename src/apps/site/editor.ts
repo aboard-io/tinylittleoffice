@@ -39,8 +39,32 @@ import { askDocLink, askEmbed, askPicture } from '../../kit/insert-dialogs.ts';
 import { webBlock } from '../write/model.ts';
 import { askPlace, askShop, same, type Anchor } from './forms.ts';
 import {
-  cardFields, cardRuns, insertObj, linesOf, linkFields, linkRuns, objBlocks, objectAt, objectsOf, objId, pasteObj, plainRuns,
-  productsBlock, readSite, removeObj, settingOp, splitOps, themeOp, withLine, WORDS, wordsOps, type Change, type Kind, type ObjKind, type PartName, type Site,
+  cardFields,
+  cardRuns,
+  insertObj,
+  linesOf,
+  linkFields,
+  linkRuns,
+  objBlocks,
+  objectAt,
+  objectsOf,
+  objId,
+  pasteObj,
+  plainRuns,
+  productsBlock,
+  readSite,
+  removeObj,
+  settingOp,
+  splitOps,
+  themeOp,
+  withLine,
+  WORDS,
+  wordsOps,
+  type Change,
+  type Kind,
+  type ObjKind,
+  type PartName,
+  type Site,
 } from './model.ts';
 import type { Run } from '../../doc/index.ts';
 import { type Theme } from './theme.ts';
@@ -83,8 +107,19 @@ interface Mark {
 /** What a thing is called, in its form's heading and its bar's name. */
 export const objName = (k: ObjKind): string =>
   ({
-    page: t('Page'), section: t('Section'), heading: t('Heading'), p: t('Paragraph'), card: t('Big link'), button: t('Button'), link: t('Small link'),
-    picture: t('Web Picture'), icon: t('Big icon'), web: t('Web Embed'), doc: t('Tiny Little Office Doc'), table: t('Table'), products: t('Products'),
+    page: t('Page'),
+    section: t('Section'),
+    heading: t('Heading'),
+    p: t('Paragraph'),
+    card: t('Big link'),
+    button: t('Button'),
+    link: t('Small link'),
+    picture: t('Web Picture'),
+    icon: t('Big icon'),
+    web: t('Web Embed'),
+    doc: t('Tiny Little Office Doc'),
+    table: t('Table'),
+    products: t('Products'),
   })[k];
 export class ToSiteEditor extends DocElement<Site> {
   static properties: PropertyDeclarations = { held: { state: true }, shown: { state: true }, preview: { type: Boolean, reflect: true } };
@@ -176,7 +211,11 @@ export class ToSiteEditor extends DocElement<Site> {
     const base = `${location.origin}${location.pathname}`;
     this.shown = this.preview
       ? sitePage(this.doc, { base, cur: this.cur, peek: this.stamp })
-      : sitePage(this.doc, { base, cur: this.cur, edit: { stamp: this.stamp, held: this.held, y: this.frameY, show: this.showHeld, src: `${location.origin}/${FRAME_SCRIPT}`, dark: document.documentElement.dataset.theme === 'dark' } });
+      : sitePage(this.doc, {
+          base,
+          cur: this.cur,
+          edit: { stamp: this.stamp, held: this.held, y: this.frameY, show: this.showHeld, src: `${location.origin}/${FRAME_SCRIPT}`, dark: document.documentElement.dataset.theme === 'dark' },
+        });
     this.showHeld = false;
   }
   /** The document and the mode the page in the frame is drawn from. */
@@ -235,8 +274,7 @@ export class ToSiteEditor extends DocElement<Site> {
       // Not when the person has gone elsewhere meanwhile (a menu, a dialog, the title): the page would take the focus from it.
       const at = document.activeElement;
       if (next && next.id === this.held && (!at || at === document.body || at === this.frame || at === this.box)) this.openWords(next.id, next.all);
-    }
-    else if (m.do === 'at') {
+    } else if (m.do === 'at') {
       if (id === null || id !== this.held) return;
       this.heldRect = m.r ?? null;
       if (this.lent) this.ctx?.show(this.lent);
@@ -574,16 +612,20 @@ export class ToSiteEditor extends DocElement<Site> {
     const framed = gateHtml(this.shown);
     const own = (id: string) => COMMANDS.find((c) => c.id === `site.${id}`)!;
     return html`<to-bar class="site-bar">
-        ${this.preview
-          ? cmdBtn(own('edit'), this, { cls: 'primary site-edit', keep: false })
-          : html`<to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${
+          this.preview
+            ? cmdBtn(own('edit'), this, { cls: 'primary site-edit', keep: false })
+            : html`<to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
               ${cmdMenu(own('look'), this, COMMANDS, 'site-look')}
-              ${cmdBtn(own('preview'), this, { cls: 'site-preview-btn', keep: false })} ${this.undoTools()}`}
+              ${cmdBtn(own('preview'), this, { cls: 'site-preview-btn', keep: false })} ${this.undoTools()}`
+        }
       </to-bar>
       <div class="site-page" tabindex="-1" role="group" aria-label=${label} @keydown=${this.onBoxKey}>
-        ${framed.hidden
-          ? html`<p class="to-webpics-bar">${icon(UI.image, 18)}<span>${t('{n|A picture from the web waits|# pictures from the web wait} to be asked for.', { n: framed.hidden })}</span><button type="button" class="to-btn" @click=${() => showPictures()}>${t('Show pictures from the web')}</button></p>`
-          : nothing}
+        ${
+          framed.hidden
+            ? html`<p class="to-webpics-bar">${icon(UI.image, 18)}<span>${t('{n|A picture from the web waits|# pictures from the web wait} to be asked for.', { n: framed.hidden })}</span><button type="button" class="to-btn" @click=${() => showPictures()}>${t('Show pictures from the web')}</button></p>`
+            : nothing
+        }
         <iframe class="site-frame" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.preview ? t('The website, as a visitor sees it') : label} .srcdoc=${framed.html}></iframe>
       </div>
       <to-context class="site-context" .label=${o ? objName(o.kind) : ''} .items=${this.heldItems()}></to-context>`;

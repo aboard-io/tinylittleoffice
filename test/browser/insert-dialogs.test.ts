@@ -83,7 +83,7 @@ test('Web Embed: the sources are a row of icons with names; an address shows the
   expect(await got).toBe('https://www.youtube.com/watch?v=abc123');
 });
 
-test('Tiny Little Office Doc: a long link shows the document\'s first page small; OK answers its fence', async () => {
+test("Tiny Little Office Doc: a long link shows the document's first page small; OK answers its fence", async () => {
   const got = askDocLink();
   await until(() => !!document.querySelector('.to-ask-doc dialog[open]'));
   expect(document.querySelector('.to-ask-doc h2')!.textContent).toBe('Tiny Little Office Doc');
@@ -136,7 +136,7 @@ test('every dialog hangs from the top of the screen, not its middle', async () =
 
 const DRAWING = 'rect 10 10 100 60\n';
 
-test('<to-doc-dialog>: the Drawing Tool\'s own editor over a drawing; Done answers the text as it now is', async () => {
+test("<to-doc-dialog>: the Drawing Tool's own editor over a drawing; Done answers the text as it now is", async () => {
   const got = editDoc({ app: 'draw', text: DRAWING });
   await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-draw-editor'));
   const d = document.querySelector('to-doc-dialog')!;
@@ -167,7 +167,7 @@ test('<to-doc-dialog>: Cancel answers nothing; Escape closes it only while nothi
   expect(await got).toBeNull();
 });
 
-test('<to-doc-dialog>: Mod+Z inside is the inner editor\'s own undo', async () => {
+test("<to-doc-dialog>: Mod+Z inside is the inner editor's own undo", async () => {
   void editDoc({ app: 'draw', text: DRAWING });
   await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-draw-editor'));
   const ed = document.querySelector('to-doc-dialog to-draw-editor')!;
@@ -181,7 +181,19 @@ test('<to-doc-dialog>: Mod+Z inside is the inner editor\'s own undo', async () =
 });
 
 test('a table in the Spreadsheet: three by three to start; Rows and Columns set its size; Done answers the block', async () => {
-  expect(newTable()).toEqual({ k: 'table', cols: [{ name: 'ColA', type: 'text' }, { name: 'ColB', type: 'text' }, { name: 'ColC', type: 'text' }], rows: [['', '', ''], ['', '', ''], ['', '', '']] });
+  expect(newTable()).toEqual({
+    k: 'table',
+    cols: [
+      { name: 'ColA', type: 'text' },
+      { name: 'ColB', type: 'text' },
+      { name: 'ColC', type: 'text' },
+    ],
+    rows: [
+      ['', '', ''],
+      ['', '', ''],
+      ['', '', ''],
+    ],
+  });
   const got = editTable(newTable());
   await until(() => !!document.querySelector('to-doc-dialog dialog[open] to-sheet-editor'));
   const [rows, cols] = [...document.querySelectorAll<HTMLInputElement>('.to-doc-dialog-size input')];
@@ -200,7 +212,23 @@ test('a table in the Spreadsheet: three by three to start; Rows and Columns set 
 });
 
 test('resizeTable keeps what fits and cuts what does not', () => {
-  const t = { k: 'table' as const, cols: [{ name: 'A', type: 'text' as const }, { name: 'B', type: 'number' as const }], rows: [['x', '1'], ['y', '2'], ['z', '3']] };
+  const t = {
+    k: 'table' as const,
+    cols: [
+      { name: 'A', type: 'text' as const },
+      { name: 'B', type: 'number' as const },
+    ],
+    rows: [
+      ['x', '1'],
+      ['y', '2'],
+      ['z', '3'],
+    ],
+  };
   expect(resizeTable(t, 2, 1)).toEqual({ k: 'table', cols: [{ name: 'A', type: 'text' }], rows: [['x'], ['y']] });
-  expect(resizeTable(t, 4, 3).rows).toEqual([['x', '1', ''], ['y', '2', ''], ['z', '3', ''], ['', '', '']]);
+  expect(resizeTable(t, 4, 3).rows).toEqual([
+    ['x', '1', ''],
+    ['y', '2', ''],
+    ['z', '3', ''],
+    ['', '', ''],
+  ]);
 });

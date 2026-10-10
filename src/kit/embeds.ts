@@ -103,7 +103,8 @@ export function embedOf(url: string): Embed | null {
   if (host === 'web.archive.org' && (m = /^\/web\/\d+[a-z_]*\/(.+)/.exec(path))) return frame('page', 'Wayback Machine', u, m[1].replace(/^https?:\/\//, '') + at.search);
   if (host === 'open.spotify.com' && (m = /^(?:\/intl-[a-z]+)?\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/.exec(path)))
     return frame('music', 'Spotify', `${origin('spotify')}/embed/${m[1]}/${m[2]}`, `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}`, m[1] === 'track' ? 152 : m[1] === 'episode' ? 232 : 352);
-  if (host === 'soundcloud.com' && (m = /^\/([^/]+)\/([^/]+)/.exec(path)) && m[1] !== 'discover') return frame('music', 'SoundCloud', `${origin('soundcloud')}/player/?url=${encodeURIComponent(u)}&visual=false`, decodeURIComponent(path.replace(/^\/|\/$/g, '')), 166);
+  if (host === 'soundcloud.com' && (m = /^\/([^/]+)\/([^/]+)/.exec(path)) && m[1] !== 'discover')
+    return frame('music', 'SoundCloud', `${origin('soundcloud')}/player/?url=${encodeURIComponent(u)}&visual=false`, decodeURIComponent(path.replace(/^\/|\/$/g, '')), 166);
   if (/^(?:openstreetmap|osm)\.org$/.test(host)) {
     const map = /#map=(\d+)\/(-?[\d.]+)\/(-?[\d.]+)/.exec(at.hash);
     const lat = Number(q.get('mlat') ?? map?.[2]);
@@ -115,15 +116,22 @@ export function embedOf(url: string): Embed | null {
     const dLon = 504 / 2 ** z;
     const dLat = dLon * 0.5625 * Math.max(0.1, Math.cos((lat * Math.PI) / 180));
     const r = (n: number) => n.toFixed(5);
-    return frame('map', 'OpenStreetMap', `${origin('osm')}/export/embed.html?bbox=${r(lon - dLon)},${r(lat - dLat)},${r(lon + dLon)},${r(lat + dLat)}&layer=mapnik&marker=${lat},${lon}`, `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+    return frame(
+      'map',
+      'OpenStreetMap',
+      `${origin('osm')}/export/embed.html?bbox=${r(lon - dLon)},${r(lat - dLat)},${r(lon + dLon)},${r(lat + dLat)}&layer=mapnik&marker=${lat},${lon}`,
+      `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+    );
   }
-  if (host === 'codepen.io' && (m = /^\/([^/]+)\/(?:pen|full|details|embed)\/([A-Za-z0-9]+)/.exec(path))) return frame('code', 'CodePen', `${origin('codepen')}/${m[1]}/embed/${m[2]}?default-tab=result`, `@${m[1]}`, 400);
+  if (host === 'codepen.io' && (m = /^\/([^/]+)\/(?:pen|full|details|embed)\/([A-Za-z0-9]+)/.exec(path)))
+    return frame('code', 'CodePen', `${origin('codepen')}/${m[1]}/embed/${m[2]}?default-tab=result`, `@${m[1]}`, 400);
   if ((m = /^([a-z]{2,3}(?:-[a-z]+)?)(?:\.m)?\.wikipedia\.org$/.exec(host)) && path.startsWith('/wiki/') && path.length > 6) {
     const title = path.slice(6).split('/')[0];
     return { ...frame('article', 'Wikipedia', '', decodeURIComponent(title).replace(/_/g, ' ')), lookup: `${origin('wikipedia', m[1])}/api/rest_v1/page/summary/${title}` };
   }
   // The fediverse: any host, known by the path's shape. Mastodon's embed page is the post's address and "/embed"; PeerTube's player is under /videos/embed.
-  if ((m = /^\/@([\w.-]+(?:@[\w.-]+)?)\/(\d+)\/?$/.exec(path)) || (m = /^\/users\/([\w.-]+)\/statuses\/(\d+)\/?$/.exec(path))) return frame('post', 'Mastodon', `https://${at.host}/@${m[1]}/${m[2]}/embed`, `@${m[1].split('@')[0]}@${host}`);
+  if ((m = /^\/@([\w.-]+(?:@[\w.-]+)?)\/(\d+)\/?$/.exec(path)) || (m = /^\/users\/([\w.-]+)\/statuses\/(\d+)\/?$/.exec(path)))
+    return frame('post', 'Mastodon', `https://${at.host}/@${m[1]}/${m[2]}/embed`, `@${m[1].split('@')[0]}@${host}`);
   if ((m = /^\/(?:w|videos\/watch)\/([A-Za-z0-9-]{8,})\/?$/.exec(path))) return frame('video', 'PeerTube', `https://${at.host}/videos/embed/${m[1]}`, `Video ${m[1]}`);
   for (const [re, provider] of LINK_ONLY) if (re.test(host) && path.length > 1) return { kind: 'link', provider, src: '', title: decodeURIComponent(path.replace(/^\/|\/$/g, '')), url: u };
   // Files, by their names: the browser plays, shows or reads them itself.
@@ -241,15 +249,19 @@ export class ToEmbed extends LitElement {
     const shown = this.alt || title;
     return html`<figure class="to-embed">
       <div class="to-embed-pic ${live ? 'live' : ''}">
-        ${live && web
-          ? this.live(web, summary)
-          : html`<div class="to-embed-card">
+        ${
+          live && web
+            ? this.live(web, summary)
+            : html`<div class="to-embed-card">
               ${icon(UI.globe, 28)}
               <span class="to-embed-what"><b>${shown}</b><small>${provider}</small></span>
-              ${out
-                ? html`<a class="to-btn primary to-embed-load" href=${this.url} target="_blank" rel="noopener noreferrer">${icon(UI.open, 16)}<span>${t('Open on {provider}', { provider })}</span></a>`
-                : html`<button type="button" class="to-btn primary to-embed-load" ?disabled=${this.loaded} @click=${() => void this.load(web!)}>${icon(UI.globe, 16)}<span>${plays ? t('Play (loads it from {provider})', { provider }) : t('Show (loads it from {provider})', { provider })}</span></button>`}
-            </div>`}
+              ${
+                out
+                  ? html`<a class="to-btn primary to-embed-load" href=${this.url} target="_blank" rel="noopener noreferrer">${icon(UI.open, 16)}<span>${t('Open on {provider}', { provider })}</span></a>`
+                  : html`<button type="button" class="to-btn primary to-embed-load" ?disabled=${this.loaded} @click=${() => void this.load(web!)}>${icon(UI.globe, 16)}<span>${plays ? t('Play (loads it from {provider})', { provider }) : t('Show (loads it from {provider})', { provider })}</span></button>`
+              }
+            </div>`
+        }
       </div>
       <figcaption><a href=${this.url} target="_blank" rel="noopener noreferrer">${shown}</a><small>${provider}</small></figcaption>
     </figure>`;

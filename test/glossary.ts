@@ -20,7 +20,10 @@ export const SHORT = 5;
 
 /** Words without placeholders: a plural's forms are words ({n|one card|# cards}: one card cards), a name is not. */
 const bare = (s: string) => s.replace(/\{\w+\|([^}]*)\}/g, (_, f: string) => ` ${f.replace(/[|#]/g, ' ')} `).replace(/\{[^}]*\}/g, ' ');
-const words = (s: string) => bare(s).split(/[^\p{L}\p{N}'’-]+/u).filter(Boolean);
+const words = (s: string) =>
+  bare(s)
+    .split(/[^\p{L}\p{N}'’-]+/u)
+    .filter(Boolean);
 /** A word without its placeholders, spaces, numbers, signs and the ordinal round a number (第 {n} 页: 页). */
 const core = (s: string) => [...bare(s).replace(/[\s\p{N}\p{P}第目]/gu, '')];
 /** How many words a key is, a plural read in its last form. */
@@ -29,7 +32,11 @@ const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 
 /** A key with the term alone: "Share", "Share…", "Key {fp}", "Paper:" (case aside; a plural is a longer key). */
 export function alone(key: string, term: string): boolean {
-  const k = bare(key).replace(/[…:.]+$/u, '').replace(/[…:.]+\s*$/u, '').trim().toLowerCase();
+  const k = bare(key)
+    .replace(/[…:.]+$/u, '')
+    .replace(/[…:.]+\s*$/u, '')
+    .trim()
+    .toLowerCase();
   const t = term.toLowerCase();
   return k === t;
 }
@@ -44,7 +51,10 @@ const excluded = (key: string, t: Term) => !!t.not?.some((n) => (typeof n === 's
 
 /** A word's stem, for a script that spaces its words: lower case, the last letters off a long word (a plural, a gender, a verb's ending). */
 export function stem(word: string): string {
-  const w = word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').replace(/['’]s$/u, '');
+  const w = word
+    .toLowerCase()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+    .replace(/['’]s$/u, '');
   if (w.length <= 3) return w;
   return w.slice(0, Math.max(3, w.length - 3));
 }
@@ -99,7 +109,9 @@ export function drift(en: Record<string, string>, strings: Record<string, string
     const found = new Map<string, string[]>();
     for (const key of Object.keys(en)) {
       if (!alone(key, t.term) || excluded(key, t) || !strings[key]) continue;
-      const value = bare(strings[key]).replace(/[…:：]+\s*$/u, '').trim();
+      const value = bare(strings[key])
+        .replace(/[…:：]+\s*$/u, '')
+        .trim();
       const like = [...found.keys()].find((w) => same(w, value));
       if (!like) found.set(value, [key]);
       else if (core(value).length < core(like).length) {

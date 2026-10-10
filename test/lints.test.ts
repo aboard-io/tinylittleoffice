@@ -33,7 +33,7 @@ describe('bare words: every word a person reads in an html`` or svg`` template g
     expect(found(tree)).toStrictEqual([]);
   });
   test('the allowlist and the non-words are each still needed, so the lists only shrink', () => {
-    const all = tree.flatMap((m) => [...m.source.matchAll(/html`|svg`/g)].length ? [m.source] : []).join('\n');
+    const all = tree.flatMap((m) => ([...m.source.matchAll(/html`|svg`/g)].length ? [m.source] : [])).join('\n');
     expect(Object.keys(ALLOWED).filter((p) => !all.includes(p))).toStrictEqual([]);
     expect([...NOT_WORDS].filter((w) => !new RegExp(`>${w}<|"${w}"`).test(all))).toStrictEqual([]);
   });
@@ -113,7 +113,11 @@ describe('chunk budgets: the built chunks within budgets.json', () => {
     const sizes = measure(join(FIXTURES, 'built'));
     // Opening Write adds its editor, its commands and the chunk they share; the icons are the home page's already.
     const gz = (f: string) => gzipSync(readFileSync(join(FIXTURES, 'built/assets', f)), { level: 9 }).length;
-    expect(sizes.editors.write).toStrictEqual({ editor: gz('write-editor-AAAAAAAA.js'), commands: gz('write-commands-AAAAAAAA.js'), open: gz('write-editor-AAAAAAAA.js') + gz('write-commands-AAAAAAAA.js') + gz('shared-AAAAAAAA.js') });
+    expect(sizes.editors.write).toStrictEqual({
+      editor: gz('write-editor-AAAAAAAA.js'),
+      commands: gz('write-commands-AAAAAAAA.js'),
+      open: gz('write-editor-AAAAAAAA.js') + gz('write-commands-AAAAAAAA.js') + gz('shared-AAAAAAAA.js'),
+    });
     expect(sizes.languages).toStrictEqual({ fr: gz('lang-fr-AAAAAAAA.js') });
     const budgets: Sizes = JSON.parse(JSON.stringify(sizes));
     budgets.main = 10;
@@ -122,7 +126,17 @@ describe('chunk budgets: the built chunks within budgets.json', () => {
   test('budgets.json has a budget for every chunk it weighs', () => {
     const budgets = readBudgets();
     for (const k of ['main', 'apps', 'home', 'icons', 'iconsFull'] as const) expect(typeof budgets[k], k).toBe('number');
-    expect(Object.keys(budgets.editors ?? {}).sort()).toStrictEqual(tree.filter((m) => /^src\/apps\/[^/]+\/editor\.ts$/.test(m.path)).map((m) => m.path.split('/')[2]).sort());
-    expect(Object.keys(budgets.languages ?? {}).sort()).toStrictEqual(tree.filter((m) => /^src\/i18n\/[^/]+\.ts$/.test(m.path) && !m.path.endsWith('/en.ts')).map((m) => m.path.split('/')[2].replace(/\.ts$/, '')).sort());
+    expect(Object.keys(budgets.editors ?? {}).sort()).toStrictEqual(
+      tree
+        .filter((m) => /^src\/apps\/[^/]+\/editor\.ts$/.test(m.path))
+        .map((m) => m.path.split('/')[2])
+        .sort(),
+    );
+    expect(Object.keys(budgets.languages ?? {}).sort()).toStrictEqual(
+      tree
+        .filter((m) => /^src\/i18n\/[^/]+\.ts$/.test(m.path) && !m.path.endsWith('/en.ts'))
+        .map((m) => m.path.split('/')[2].replace(/\.ts$/, ''))
+        .sort(),
+    );
   });
 });

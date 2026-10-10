@@ -74,7 +74,9 @@ export const labelText = (lines: Run[][]): string => lines.map((runs) => writeIn
 /** A label as plain words, the marks taken out (what is read aloud, measured, described). */
 export const labelPlain = (text: string): string => {
   const [ic, words] = iconOf(text);
-  const plain = labelLines(words).map((runs) => runs.map((r) => r.t).join('')).join(' | ');
+  const plain = labelLines(words)
+    .map((runs) => runs.map((r) => r.t).join(''))
+    .join(' | ');
   return ic ? (plain ? `:${ic} ${plain}` : `:${ic}`) : plain;
 };
 
@@ -117,8 +119,15 @@ export const normRot = (deg: number): number => ((Math.round(deg) % 360) + 360) 
 /** Points as x, y pairs (a stray last number is left out). */
 export const pairs = (pts: number[]): [number, number][] => Array.from({ length: Math.floor(pts.length / 2) }, (_, i) => [pts[2 * i], pts[2 * i + 1]]);
 /** Points as the text keeps them: "12:0;100:50;0:100". */
-export const ptsText = (pts: number[]) => pairs(pts).map(([x, y]) => `${Math.round(x)}:${Math.round(y)}`).join(';');
-export const ptsOf = (text: string): number[] => text.split(';').flatMap((p) => p.split(':').map((n) => +n)).filter((n) => isFinite(n));
+export const ptsText = (pts: number[]) =>
+  pairs(pts)
+    .map(([x, y]) => `${Math.round(x)}:${Math.round(y)}`)
+    .join(';');
+export const ptsOf = (text: string): number[] =>
+  text
+    .split(';')
+    .flatMap((p) => p.split(':').map((n) => +n))
+    .filter((n) => isFinite(n));
 
 /** The colours a shape may take (the kit's palette, by letter: told apart by every pair of eyes). */
 export const COLORS: Record<Color, string> = { r: '#b3261e', o: '#d55e00', g: '#009e73', b: '#0072b2', p: '#a05ca8' };
@@ -156,7 +165,30 @@ export function describeDrawing(shapes: Shape[]): string {
 /* ---------- reading ---------- */
 
 /** Kinds by name, for a table written by hand. */
-const NAMED: Record<string, Kind> = { rect: 'r', rectangle: 'r', box: 'o', rounded: 'o', ellipse: 'e', circle: 'e', oval: 'e', diamond: 'd', hexagon: 'h', parallelogram: 'p', cylinder: 'c', database: 'c', note: 'n', icon: 'i', line: 'l', arrow: 'a', text: 't', shape: 'v', stroke: 'w', freehand: 'w', join: 'k', link: 'j' };
+const NAMED: Record<string, Kind> = {
+  rect: 'r',
+  rectangle: 'r',
+  box: 'o',
+  rounded: 'o',
+  ellipse: 'e',
+  circle: 'e',
+  oval: 'e',
+  diamond: 'd',
+  hexagon: 'h',
+  parallelogram: 'p',
+  cylinder: 'c',
+  database: 'c',
+  note: 'n',
+  icon: 'i',
+  line: 'l',
+  arrow: 'a',
+  text: 't',
+  shape: 'v',
+  stroke: 'w',
+  freehand: 'w',
+  join: 'k',
+  link: 'j',
+};
 const FIELDS = ['kind', 'x', 'y', 'w', 'h', 'style', 'label', 'points', 'rot'] as const;
 type Field = (typeof FIELDS)[number];
 const NAMES: Record<Field, string> = { kind: 'Kind', x: 'X', y: 'Y', w: 'W', h: 'H', style: 'Style', label: 'Label', points: 'Points', rot: 'Rot' };
@@ -264,7 +296,12 @@ export function readDrawing(doc: Doc): DrawView {
   const { shapes, rows } = b ? tableShapes(b) : { shapes: [], rows: [] };
   const grid = gridOf(doc.head.grid);
   const pAt = pixelsAt(doc);
-  const lines = pAt >= 0 ? plainText((doc.blocks[pAt] as Extract<Block, { k: 'p' }>).runs).split('\n').map((l) => l.trim()) : [];
+  const lines =
+    pAt >= 0
+      ? plainText((doc.blocks[pAt] as Extract<Block, { k: 'p' }>).runs)
+          .split('\n')
+          .map((l) => l.trim())
+      : [];
   const side = grid || 16;
   return { at, shapes, rows, cols: b ? colsOf(b) : EMPTY, alt: doc.head.alt ?? '', grid, pixels: tileOf(side, lines), pixelsAt: pAt, tile: doc.head.tile ? parseTile(doc.head.tile) : null };
 }
@@ -403,7 +440,7 @@ export function simplify(pts: [number, number][], eps = 2.5): [number, number][]
   let at = 0;
   pts.forEach((p, i) => {
     const d = len ? Math.abs((b[0] - a[0]) * (a[1] - p[1]) - (a[0] - p[0]) * (b[1] - a[1])) / len : Math.hypot(p[0] - a[0], p[1] - a[1]);
-    if (d > far) (far = d), (at = i);
+    if (d > far) ((far = d), (at = i));
   });
   return far > eps ? [...simplify(pts.slice(0, at + 1), eps).slice(0, -1), ...simplify(pts.slice(at), eps)] : [a, b];
 }

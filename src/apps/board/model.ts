@@ -293,7 +293,17 @@ export function splitItem(i: Item, offset: number): { ops: Op[]; at: number } {
   const len = runLength(i.block.runs);
   if (offset <= 0 && len > 0) return { ops: [{ op: 'splice', at: i.at, n: 0, blocks: [{ k: 'li', depth: 1, done: false, runs: [] }] }], at: i.at + 1 };
   return {
-    ops: [{ op: 'splice', at: i.at, n: 1, blocks: [{ ...i.block, runs: sliceRuns(i.block.runs, 0, offset) }, { k: 'li', depth: 1, done: false, runs: sliceRuns(i.block.runs, offset, len) }] }],
+    ops: [
+      {
+        op: 'splice',
+        at: i.at,
+        n: 1,
+        blocks: [
+          { ...i.block, runs: sliceRuns(i.block.runs, 0, offset) },
+          { k: 'li', depth: 1, done: false, runs: sliceRuns(i.block.runs, offset, len) },
+        ],
+      },
+    ],
     at: i.at + 1,
   };
 }

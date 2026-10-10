@@ -31,7 +31,15 @@ import '../../kit/menu.ts';
 export const TABLE_TAG = 'to-write-table';
 
 /** What the grid asks its host to do; `focus` is the cell to be in afterwards (and `end` the range's far corner). */
-export type TableCmd = ({ cmd: 'put'; cells: Cells } | { cmd: 'rowsIn'; r: number; n: number } | { cmd: 'rowsOut'; r0: number; r1: number } | { cmd: 'colIn'; c: number } | { cmd: 'colOut'; c: number } | { cmd: 'rename'; c: number; name: string } | { cmd: 'type'; c: number; type: ColType; currency?: string }) & { focus?: [number, number]; end?: [number, number] | null };
+export type TableCmd = (
+  | { cmd: 'put'; cells: Cells }
+  | { cmd: 'rowsIn'; r: number; n: number }
+  | { cmd: 'rowsOut'; r0: number; r1: number }
+  | { cmd: 'colIn'; c: number }
+  | { cmd: 'colOut'; c: number }
+  | { cmd: 'rename'; c: number; name: string }
+  | { cmd: 'type'; c: number; type: ColType; currency?: string }
+) & { focus?: [number, number]; end?: [number, number] | null };
 
 /** A reference fits wherever the formula is waiting for a value. */
 const WANTS_REF = /[=+\-*/^(,:]\s*$/;
@@ -53,7 +61,16 @@ function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {
 }
 
 export class ToWriteTable extends LitElement {
-  static properties = { view: { attribute: false }, commands: { type: Boolean }, focused: { state: true }, end: { state: true }, fillTo: { state: true }, menuRow: { state: true }, menuCol: { state: true }, naming: { state: true } };
+  static properties = {
+    view: { attribute: false },
+    commands: { type: Boolean },
+    focused: { state: true },
+    end: { state: true },
+    fillTo: { state: true },
+    menuRow: { state: true },
+    menuCol: { state: true },
+    naming: { state: true },
+  };
   declare view: SheetView | null;
   /** The host answers wt-do: the heads open menus, the corner holds the table's handle, the + adds a column. */
   declare commands: boolean;
@@ -128,7 +145,8 @@ export class ToWriteTable extends LitElement {
     const ev = new CustomEvent<TableCmd>('wt-do', { detail: cmd, bubbles: true, cancelable: true });
     this.dispatchEvent(ev);
     // A host that takes no commands still gets a range written: a cell at a time.
-    if (!ev.defaultPrevented && cmd.cmd === 'put') cmd.cells.values.forEach((row, i) => row.forEach((raw, j) => this.raw(cmd.cells.r + i, cmd.cells.c + j) !== raw && this.setCell(cmd.cells.r + i, cmd.cells.c + j, raw)));
+    if (!ev.defaultPrevented && cmd.cmd === 'put')
+      cmd.cells.values.forEach((row, i) => row.forEach((raw, j) => this.raw(cmd.cells.r + i, cmd.cells.c + j) !== raw && this.setCell(cmd.cells.r + i, cmd.cells.c + j, raw)));
   }
   private setCell(r: number, c: number, raw: string) {
     this.dispatchEvent(new CustomEvent<{ r: number; c: number; raw: string }>('wt-cell', { detail: { r, c, raw }, bubbles: true }));
@@ -219,7 +237,8 @@ export class ToWriteTable extends LitElement {
       // A fill goes one way: whichever of down/up or across the pointer has gone furthest.
       const dr = at[0] > src.r1 ? at[0] - src.r1 : at[0] < src.r0 ? at[0] - src.r0 : 0;
       const dc = at[1] > src.c1 ? at[1] - src.c1 : at[1] < src.c0 ? at[1] - src.c0 : 0;
-      this.fillTo = !dr && !dc ? null : Math.abs(dr) >= Math.abs(dc) ? { ...src, r0: Math.min(src.r0, at[0]), r1: Math.max(src.r1, at[0]) } : { ...src, c0: Math.min(src.c0, at[1]), c1: Math.max(src.c1, at[1]) };
+      this.fillTo =
+        !dr && !dc ? null : Math.abs(dr) >= Math.abs(dc) ? { ...src, r0: Math.min(src.r0, at[0]), r1: Math.max(src.r1, at[0]) } : { ...src, c0: Math.min(src.c0, at[1]), c1: Math.max(src.c1, at[1]) };
     };
     follow(handle, move, () => {
       const dest = this.fillTo;
@@ -272,7 +291,12 @@ export class ToWriteTable extends LitElement {
     // A copy moves its formulas' references by how far it travelled; a cut keeps them as they were.
     const moved = ours && !ours.cut ? { dr: g.r0 - ours.r, dc: g.c0 - ours.c } : undefined;
     // A block wider than the table widens it, up to the last letter.
-    const widest = Math.max(...text.replace(/\n$/, '').split('\n').map((line) => line.split('\t').length));
+    const widest = Math.max(
+      ...text
+        .replace(/\n$/, '')
+        .split('\n')
+        .map((line) => line.split('\t').length),
+    );
     const cols = [...this.cols];
     while (block && cols.length < Math.min(MAX_COLS, g.c0 + widest)) cols.push({ name: `Col${COL_NAMES[cols.length]}`, type: 'text' });
     const done = pasteCells({ cols }, g.r0, g.c0, text, moved, this.many ? g : undefined);
@@ -463,10 +487,12 @@ export class ToWriteTable extends LitElement {
         </tbody>
       </table>
       ${cols.map((col, c) => (col.type === 'option' ? html`<datalist id="${this.uid}-o${c}">${choicesOf(v.table.rows, c).map((x) => html`<option value=${x}></option>`)}</datalist>` : nothing))}
-      ${this.commands
-        ? html`<to-menu class="wt-rowmenu" .label=${t('Row {n}', { n: this.menuRow + 1 })} .items=${this.rowItems()}></to-menu>
+      ${
+        this.commands
+          ? html`<to-menu class="wt-rowmenu" .label=${t('Row {n}', { n: this.menuRow + 1 })} .items=${this.rowItems()}></to-menu>
             <to-menu class="wt-colmenu" .label=${t('Column {c}', { c: COL_NAMES[this.menuCol] ?? '' })} .items=${this.colItems()}></to-menu>`
-        : nothing}`;
+          : nothing
+      }`;
   }
   /** The heads when the host takes commands: the table's handle, a button for each column, the + for one more. */
   private renderHeads(cols: Column[]) {
@@ -476,8 +502,9 @@ export class ToWriteTable extends LitElement {
       </td>
       ${cols.map(
         (col, c) => html`<th scope="col" class=${isLetterName(col.name) ? 'letter' : ''}>
-          ${this.naming === c
-            ? html`<input class="wt-cn" aria-label=${t('Name of column {c}', { c: COL_NAMES[c] })} placeholder=${COL_NAMES[c]} .value=${isLetterName(col.name) ? '' : col.name} autocomplete="off" spellcheck="false"
+          ${
+            this.naming === c
+              ? html`<input class="wt-cn" aria-label=${t('Name of column {c}', { c: COL_NAMES[c] })} placeholder=${COL_NAMES[c]} .value=${isLetterName(col.name) ? '' : col.name} autocomplete="off" spellcheck="false"
                 @keydown=${(e: KeyboardEvent) => {
                   e.stopPropagation();
                   if (e.isComposing || (e.key !== 'Enter' && e.key !== 'Escape')) return;
@@ -485,7 +512,8 @@ export class ToWriteTable extends LitElement {
                   this.named(e.key === 'Enter', (e.target as HTMLInputElement).value);
                 }}
                 @blur=${(e: FocusEvent) => this.named(true, (e.target as HTMLInputElement).value)} />`
-            : html`<button type="button" class="wt-col" aria-haspopup="menu" aria-expanded="false" aria-label=${t('Column {c}: what it holds, name it, add or remove a column', { c: name(col, c) })} @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>${name(col, c)}</button>`}
+              : html`<button type="button" class="wt-col" aria-haspopup="menu" aria-expanded="false" aria-label=${t('Column {c}: what it holds, name it, add or remove a column', { c: name(col, c) })} @click=${(e: Event) => void this.openColMenu(c, e.currentTarget as HTMLElement)}>${name(col, c)}</button>`
+          }
         </th>`,
       )}
       <td class="wt-add">

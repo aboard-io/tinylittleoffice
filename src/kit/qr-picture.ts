@@ -34,7 +34,10 @@ export function qrPage(link: string, caption = t('QR code of this document')): P
   const code = qrSvg(bytes);
   const n = Number(/viewBox="0 0 (\d+)/.exec(code)?.[1] ?? 0);
   const side = W - 40;
-  const svg = rect(0, 0, W, W + 24, '#fff') + `<svg x="20" y="12" width="${side}" height="${side}" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges">${code.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>` + text(W / 2, W + 8, caption, { px: 13, fill: MUTED, anchor: 'middle' });
+  const svg =
+    rect(0, 0, W, W + 24, '#fff') +
+    `<svg x="20" y="12" width="${side}" height="${side}" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges">${code.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>` +
+    text(W / 2, W + 8, caption, { px: 13, fill: MUTED, anchor: 'middle' });
   return { w: W, h: W + 24, svg, alt: caption };
 }
 

@@ -74,7 +74,11 @@ test('a tool and a tap make a shape of the default size; a drag draws one; the k
   expect(changes).toHaveLength(3);
   key(el, 'Delete');
   await el.updateComplete;
-  expect(last()!.split('\n').filter((l) => /^[a-z] \|/.test(l))).toHaveLength(1);
+  expect(
+    last()!
+      .split('\n')
+      .filter((l) => /^[a-z] \|/.test(l)),
+  ).toHaveLength(1);
   el.dispatchEvent(new CustomEvent('docundo', { cancelable: true }));
   await el.updateComplete;
   expect(last()).toContain('\ne | 38 | 25 | 12 | 10 | 0 |\n');
@@ -144,7 +148,31 @@ test('a shape tapped has the contextual bar under it: the inks, the style, the s
   expect(bar.top).toBeLessThan(bottom + 40);
   expect(Math.abs(bar.left + bar.width / 2 - cx) < 4 || bar.left <= 8).toBe(true);
   expect(ctx(el).querySelectorAll('.to-context-swatch')).toHaveLength(6);
-  expect(ctxLabels(el)).toEqual(['Black', 'Red', 'Orange', 'Green', 'Blue', 'Purple', 'No fill', 'Grey fill', 'Solid fill', 'Small text', 'Medium text', 'Large text', 'Extra large text', 'Rotate left', 'Rotate right', 'Edit the words', 'Duplicate', 'Bring to front', 'Send to back', 'Copy', 'Cut', 'Paste', 'Delete']);
+  expect(ctxLabels(el)).toEqual([
+    'Black',
+    'Red',
+    'Orange',
+    'Green',
+    'Blue',
+    'Purple',
+    'No fill',
+    'Grey fill',
+    'Solid fill',
+    'Small text',
+    'Medium text',
+    'Large text',
+    'Extra large text',
+    'Rotate left',
+    'Rotate right',
+    'Edit the words',
+    'Duplicate',
+    'Bring to front',
+    'Send to back',
+    'Copy',
+    'Cut',
+    'Paste',
+    'Delete',
+  ]);
   expect(ctxButton(el, 'Medium text').getAttribute('aria-pressed')).toBe('true');
   expect(ctxButton(el, 'Medium text').textContent).toBe('M');
   expect(ctxButton(el, 'Blue').getAttribute('aria-pressed')).toBe('true');
@@ -176,7 +204,7 @@ test('a shape tapped has the contextual bar under it: the inks, the style, the s
   await until(() => ctxOpen(el));
 });
 
-test('Delete after a real tap removes the shape (the canvas has the focus); the bar\'s Delete does the same; undo brings them back', async () => {
+test("Delete after a real tap removes the shape (the canvas has the focus); the bar's Delete does the same; undo brings them back", async () => {
   const { el, last } = await editor(DRAWING);
   await tap(el, 96, 80);
   expect(document.activeElement).toBe(el.querySelector('.draw-wrap'));
@@ -349,7 +377,11 @@ test('a new text shape starts with its words open and selected; typing replaces 
   await el.updateComplete;
   await tick();
   await wordsKey(el, 'Enter');
-  expect(last()!.split('\n').filter((l) => l.startsWith('t |'))).toHaveLength(1);
+  expect(
+    last()!
+      .split('\n')
+      .filter((l) => l.startsWith('t |')),
+  ).toHaveLength(1);
 });
 
 test('pixel mode has no contextual bar', async () => {
@@ -388,7 +420,15 @@ test('pixel mode: the menu sets the grid, taps paint squares, fill floods, Use a
   expect(last()).toBe('---\ngrid: 8\n---\n');
   const grid = el.querySelector<SVGSVGElement>('svg.draw-pixels')!;
   const b = grid.getBoundingClientRect();
-  const at = (x: number, y: number) => ({ clientX: b.left + ((x + 0.5) / 8) * b.width, clientY: b.top + ((y + 0.5) / 8) * b.height, button: 0, buttons: 1, pointerId: 1, bubbles: true, isPrimary: true });
+  const at = (x: number, y: number) => ({
+    clientX: b.left + ((x + 0.5) / 8) * b.width,
+    clientY: b.top + ((y + 0.5) / 8) * b.height,
+    button: 0,
+    buttons: 1,
+    pointerId: 1,
+    bubbles: true,
+    isPrimary: true,
+  });
   button(el, 'Red').click();
   await el.updateComplete;
   grid.dispatchEvent(new PointerEvent('pointerdown', at(0, 0)));
@@ -556,7 +596,7 @@ test('§1 paste with nothing in hand: Insert ▾ has Paste, which pastes what wa
   expect(handles(el)).toBe(1);
 });
 
-test('§1 Mod+A chooses every shape (never the page\'s text); Delete then takes them all, and undo brings them back all chosen', async () => {
+test("§1 Mod+A chooses every shape (never the page's text); Delete then takes them all, and undo brings them back all chosen", async () => {
   const { el, last } = await editor(DRAWING);
   expect(await press(el, 'a', { ctrlKey: true })).toBe(true);
   expect(outlines(el)).toBe(2);
@@ -592,7 +632,7 @@ test('§5 Escape: one step per press, the chosen shape first, then the tool back
   expect(button(el, 'Join two shapes').getAttribute('aria-pressed')).toBe('true');
 });
 
-test('§1 the canvas\'s keys never act from a bar button: Enter presses the button, a letter is no tool, Delete removes nothing; in pixel mode Space and Enter press the bar\'s buttons, and the arrows walk the bar', async () => {
+test("§1 the canvas's keys never act from a bar button: Enter presses the button, a letter is no tool, Delete removes nothing; in pixel mode Space and Enter press the bar's buttons, and the arrows walk the bar", async () => {
   const { el, last } = await editor(DRAWING);
   await tap(el, 96, 80);
   const zoom = button(el, 'Zoom in');
@@ -653,7 +693,7 @@ test('§5 arrows nudge by a grid step and never off the canvas, Shift+Arrows by 
   expect(rows(last()).map((r) => r.split(' | ').at(-1))).toEqual(['Browser', 'Server', 'asks']);
 });
 
-test('§1 Mod+D on the canvas is never the browser\'s, with or without a shape in hand; with one it duplicates', async () => {
+test("§1 Mod+D on the canvas is never the browser's, with or without a shape in hand; with one it duplicates", async () => {
   const { el, last } = await editor(DRAWING);
   expect(await press(el, 'd', { ctrlKey: true })).toBe(true);
   expect(last()).toBeUndefined();
@@ -766,7 +806,15 @@ test('§5 each pixel stroke is its own undo step, however soon the next one come
   const { el, last } = await editor('---\ngrid: 8\n---\n');
   const grid = el.querySelector<SVGSVGElement>('svg.draw-pixels')!;
   const b = grid.getBoundingClientRect();
-  const at = (x: number, y: number, more: PointerEventInit = {}) => ({ clientX: b.left + ((x + 0.5) / 8) * b.width, clientY: b.top + ((y + 0.5) / 8) * b.height, button: 0, buttons: 1, pointerId: 1, bubbles: true, ...more });
+  const at = (x: number, y: number, more: PointerEventInit = {}) => ({
+    clientX: b.left + ((x + 0.5) / 8) * b.width,
+    clientY: b.top + ((y + 0.5) / 8) * b.height,
+    button: 0,
+    buttons: 1,
+    pointerId: 1,
+    bubbles: true,
+    ...more,
+  });
   for (const y of [0, 1]) {
     grid.dispatchEvent(new PointerEvent('pointerdown', at(0, y)));
     grid.dispatchEvent(new PointerEvent('pointermove', at(1, y)));
@@ -830,7 +878,9 @@ test('turning: the round handle above a shape turns it about its centre (Shift h
   ptr(el, 'pointermove', 200, 82, { shiftKey: true });
   ptr(el, 'pointerup', 200, 82, { shiftKey: true });
   await el.updateComplete;
-  expect(last()).toBe('Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser | 90\no | 32 | 6 | 16 | 8 | 1b | Server |\nk | 0 | 1 | 0 | 0 | 0 | asks |\n');
+  expect(last()).toBe(
+    'Kind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser | 90\no | 32 | 6 | 16 | 8 | 1b | Server |\nk | 0 | 1 | 0 | 0 | 0 | asks |\n',
+  );
   // The shape, its outline and its handles are drawn turned.
   expect(canvas(el).querySelector('[data-idx="0"] > g')!.getAttribute('transform')).toBe('rotate(90 96 80)');
   expect(canvas(el).querySelector('rect[stroke-dasharray="4 3"]')!.getAttribute('transform')).toBe('rotate(90 96 80)');
@@ -853,7 +903,7 @@ test('turning: the round handle above a shape turns it about its centre (Shift h
   expect(await press(el, ']')).toBe(false);
 });
 
-test('one Mod+V is one paste: whether the browser\'s paste event comes before the editor does it by hand, or after', async () => {
+test("one Mod+V is one paste: whether the browser's paste event comes before the editor does it by hand, or after", async () => {
   const { el, last } = await editor(DRAWING);
   await tap(el, 320, 80);
   // Copied by the keys: the browser's copy event carries it.
@@ -946,7 +996,29 @@ test('a text in hand has one Align item beside its size: it shows the alignment 
   const { el, last } = await editor(TEXTS);
   await tap(el, 96, 32);
   await until(() => ctxOpen(el));
-  expect(ctxLabels(el)).toEqual(['Black', 'Red', 'Orange', 'Green', 'Blue', 'Purple', 'Small text', 'Medium text', 'Large text', 'Extra large text', 'Align: left', 'Rotate left', 'Rotate right', 'Edit the words', 'Duplicate', 'Bring to front', 'Send to back', 'Copy', 'Cut', 'Paste', 'Delete']);
+  expect(ctxLabels(el)).toEqual([
+    'Black',
+    'Red',
+    'Orange',
+    'Green',
+    'Blue',
+    'Purple',
+    'Small text',
+    'Medium text',
+    'Large text',
+    'Extra large text',
+    'Align: left',
+    'Rotate left',
+    'Rotate right',
+    'Edit the words',
+    'Duplicate',
+    'Bring to front',
+    'Send to back',
+    'Copy',
+    'Cut',
+    'Paste',
+    'Delete',
+  ]);
   const anchor = () => canvas(el).querySelector('[data-idx="0"] text')!.getAttribute('text-anchor');
   expect(anchor()).toBe('start');
   ctxButton(el, 'Align: left').click();

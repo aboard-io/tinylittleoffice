@@ -19,7 +19,7 @@ const utf8 = (s: string) => new TextEncoder().encode(s);
 const subtle = globalThis.crypto.subtle;
 const memKey = (k: unknown) => ({ get: () => JSON.stringify(k), set() {}, remove() {} });
 
-test('password: the parameters are the documents\' and the kit\'s', () => {
+test("password: the parameters are the documents' and the kit's", () => {
   const v = read('password.json');
   expect(v.kdf).toEqual({ name: 'PBKDF2', hash: 'SHA-256', iterations: PBKDF2_ITERATIONS, keyBytes: 32, saltBytes: 16, normalize: 'NFKC' });
   expect(v.cipher).toEqual({ name: 'AES-GCM', keyBits: 256, ivBytes: 12, tagBytes: 16, additionalData: null });
@@ -27,7 +27,8 @@ test('password: the parameters are the documents\' and the kit\'s', () => {
 
 for (const [i, v] of (read('password.json').vectors as Record<string, string>[]).entries()) {
   test(`password vector ${i + 1}: the key, the plaintext, the sealed text, and back`, async () => {
-    const salt = unhex(v.saltHex), iv = unhex(v.ivHex);
+    const salt = unhex(v.saltHex),
+      iv = unhex(v.ivHex);
     expect(hex(utf8(v.password.normalize('NFKC')))).toBe(v.passwordNfkcHex);
     // The key, as PBKDF2 gives it with no kit in between.
     const base = await subtle.importKey('raw', unhex(v.passwordNfkcHex), 'PBKDF2', false, ['deriveBits']);
@@ -51,7 +52,7 @@ for (const [i, v] of (read('password.json').vectors as Record<string, string>[])
   });
 }
 
-test('signing: the envelope\'s message, its bytes, and as read from a document', () => {
+test("signing: the envelope's message, its bytes, and as read from a document", () => {
   const { envelope: e } = read('signing.json');
   expect(encodeCreated(Date.parse(e.created))).toBe(e.createdBase36);
   expect(parseInt(e.createdBase36, 36)).toBe((Date.parse(e.created) - Date.UTC(2020, 0, 1)) / 60_000);
@@ -60,7 +61,7 @@ test('signing: the envelope\'s message, its bytes, and as read from a document',
   expect(messageOf(e.app, e.document)).toBe(e.message);
 });
 
-test('signing: Ed25519 (RFC 8032\'s own key), the exact signature, verified', async () => {
+test("signing: Ed25519 (RFC 8032's own key), the exact signature, verified", async () => {
   const { envelope: e, ed25519: v } = read('signing.json');
   const signer = createSigner(memKey(v.stored));
   // RFC 8032 §7.1 TEST 1: the empty message.
@@ -105,15 +106,17 @@ test('short links: the ciphertext, the owner hash on both sides, the two links',
     expect(await ownerHash(v.o)).toBe(v.ownerHash);
     expect(await serverHash(v.o)).toBe(v.ownerHash);
     expect(toBase64Url(new Uint8Array(await subtle.digest('SHA-256', unhex(v.oHex))))).toBe(v.ownerHash);
-    const owned = { id: v.id, key: v.key, o: v.o }, at = 'https://tinier.tinylittleoffice.com/';
+    const owned = { id: v.id, key: v.key, o: v.o },
+      at = 'https://tinier.tinylittleoffice.com/';
     expect(shortLink(owned, at)).toBe(v.short);
     expect(ownerLink(owned, at)).toBe(v.owner);
     expect(publicLink(v.owner)).toBe(v.short);
   }
 });
 
-test('the entry points that take an IV are the tests\' alone: nothing in the site calls them', () => {
-  const files = (dir: string): string[] => readdirSync(new URL(dir, import.meta.url), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? files(`${dir}${d.name}/`) : d.name.endsWith('.ts') ? [`${dir}${d.name}`] : []));
+test("the entry points that take an IV are the tests' alone: nothing in the site calls them", () => {
+  const files = (dir: string): string[] =>
+    readdirSync(new URL(dir, import.meta.url), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? files(`${dir}${d.name}/`) : d.name.endsWith('.ts') ? [`${dir}${d.name}`] : []));
   const callers = [...files('../src/'), ...files('../tinier/'), ...files('../media/')].filter((f) => {
     const text = readFileSync(new URL(f, import.meta.url), 'utf8');
     const uses = (text.match(/\bsealAt\(|\bsealShortAt\(/g) ?? []).length;

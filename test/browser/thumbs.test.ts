@@ -23,9 +23,23 @@ test('the templates list: every page, portrait, slide, wide or a strip, in the o
   const asked: (ViewOpts | undefined)[] = [];
   const long = 'A template whose name is far too long to sit beside a wide thumbnail on a phone, or beside one in the widest column a desktop gives it';
   const app = {
-    id: 'demo', name: 'Demo', noun: 'demo', group: '', icon: UI.plus, blurb: '', blank: () => 'Letter', blankInTemplates: true,
-    templates: [...Object.keys(SHAPES), long].map((name) => ({ id: name.toLowerCase(), name, blurb: name === long ? 'And a blurb that wraps onto a second line rather than pushing the row wider' : '', doc: SHAPES[name] ? name : 'Strip' })),
-    editor: async () => ({ tag: 'x' }), title: () => '', retitle: (d: string) => d,
+    id: 'demo',
+    name: 'Demo',
+    noun: 'demo',
+    group: '',
+    icon: UI.plus,
+    blurb: '',
+    blank: () => 'Letter',
+    blankInTemplates: true,
+    templates: [...Object.keys(SHAPES), long].map((name) => ({
+      id: name.toLowerCase(),
+      name,
+      blurb: name === long ? 'And a blurb that wraps onto a second line rather than pushing the row wider' : '',
+      doc: SHAPES[name] ? name : 'Strip',
+    })),
+    editor: async () => ({ tag: 'x' }),
+    title: () => '',
+    retitle: (d: string) => d,
     view: (doc: string, opts?: ViewOpts) => (asked.push(opts), [{ w: SHAPES[doc][0], h: SHAPES[doc][1], svg: '' }]),
   };
   render(html`<to-templates .app=${app}></to-templates>`, document.querySelector('#box')!);

@@ -28,7 +28,14 @@ const heldCard = (w: W) => w.cardAt >= 0 && w.isCard(w.cardAt);
 const block = (id: string, k: 'title' | 'h1' | 'h2' | 'p', label: string, icon: Command['icon']): Command<W> =>
   cmd(id, label, { icon, where: ['bar'], pressed: (w) => kind(w) === k, does: (w) => w.text.exec(k === 'p' || kind(w) !== k ? k : 'p') });
 const align = (how: Alignment, label: string, icon: Command['icon'], key: string): Command<W> =>
-  cmd(how, label, { at: 'words', icon, keys: `Mod+Shift+${key}`, where: ['menu:align'], pressed: (w) => (w.text?.sel ? w.text.alignment : 'left') === how, does: (w, e) => (inWords(w, e) ? w.text.exec(how) : false) });
+  cmd(how, label, {
+    at: 'words',
+    icon,
+    keys: `Mod+Shift+${key}`,
+    where: ['menu:align'],
+    pressed: (w) => (w.text?.sel ? w.text.alignment : 'left') === how,
+    does: (w, e) => (inWords(w, e) ? w.text.exec(how) : false),
+  });
 const ALIGN_ICON = { left: UI.alignLeft, center: UI.alignCenter, right: UI.alignRight, justify: UI.alignJustify };
 
 /** Insert ▾: what goes in at the caret. */
@@ -47,10 +54,36 @@ const INSERTS: Command<W>[] = [
 
 /** The bar under a card in hand (§6's order), and its keys. */
 export const CARD: Command<W>[] = [
-  cmd('card.edit', (w) => (w ? w.editLabel(w.cardAt) : t('Edit')), { at: 'card', icon: UI.pen, keys: 'Enter', where: ['context'], group: 'edit', when: (w) => heldCard(w) && !!w.editLabel(w.cardAt), does: (w) => w.editHeld() }),
+  cmd('card.edit', (w) => (w ? w.editLabel(w.cardAt) : t('Edit')), {
+    at: 'card',
+    icon: UI.pen,
+    keys: 'Enter',
+    where: ['context'],
+    group: 'edit',
+    when: (w) => heldCard(w) && !!w.editLabel(w.cardAt),
+    does: (w) => w.editHeld(),
+  }),
   cmd('card.open', 'Open in a new tab', { icon: UI.open, where: ['context'], group: 'edit', when: (w) => heldCard(w) && w.opensIn(w.cardAt), does: (w) => w.openHeld() }),
-  cmd('card.up', 'Move up', { at: 'card', icon: ArrowUp, keys: 'Alt+ArrowUp', where: ['context'], group: 'edit', when: heldCard, disabled: (w) => w.cardAt === 0, does: (w) => w.moveCard(w.cardAt, -1) }),
-  cmd('card.down', 'Move down', { at: 'card', icon: ArrowDown, keys: 'Alt+ArrowDown', where: ['context'], group: 'edit', when: heldCard, disabled: (w) => w.cardAt >= w.blockCount - 1, does: (w) => w.moveCard(w.cardAt, 1) }),
+  cmd('card.up', 'Move up', {
+    at: 'card',
+    icon: ArrowUp,
+    keys: 'Alt+ArrowUp',
+    where: ['context'],
+    group: 'edit',
+    when: heldCard,
+    disabled: (w) => w.cardAt === 0,
+    does: (w) => w.moveCard(w.cardAt, -1),
+  }),
+  cmd('card.down', 'Move down', {
+    at: 'card',
+    icon: ArrowDown,
+    keys: 'Alt+ArrowDown',
+    where: ['context'],
+    group: 'edit',
+    when: heldCard,
+    disabled: (w) => w.cardAt >= w.blockCount - 1,
+    does: (w) => w.moveCard(w.cardAt, 1),
+  }),
   cmd('card.duplicate', 'Duplicate', { at: 'card', icon: CopyPlus, keys: 'Mod+D', where: ['context'], group: 'edit', when: heldCard, does: (w) => w.duplicateCard(w.cardAt) }),
   cmd('card.copy', 'Copy', { at: 'card', icon: Copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.copyOut(w.cardAt, false) }),
   cmd('card.cut', 'Cut', { at: 'card', icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', when: heldCard, does: (w) => w.copyOut(w.cardAt, true) }),

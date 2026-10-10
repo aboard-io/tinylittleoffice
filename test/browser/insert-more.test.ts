@@ -94,7 +94,11 @@ test('Deck and Website offer the QR code too; every app that holds documents off
     const ins = await openInsert(shell, app);
     const items = [...ins.menu.querySelectorAll('[role=group]')].find((g) => g.getAttribute('aria-label') === 'A new document');
     expect(items, app).toBeTruthy();
-    expect([...items!.querySelectorAll('[role^=menuitem]')].map((b) => b.textContent!.trim())).toEqual(apps().filter((a) => a.id !== app).map((a) => a.name));
+    expect([...items!.querySelectorAll('[role^=menuitem]')].map((b) => b.textContent!.trim())).toEqual(
+      apps()
+        .filter((a) => a.id !== app)
+        .map((a) => a.name),
+    );
     if (app !== 'outline') expect(names(ins), app).toContain('QR code of this document');
     ins.close();
   }

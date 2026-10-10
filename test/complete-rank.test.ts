@@ -12,7 +12,11 @@ test('rankMatches: exact name, then a word of it, then a name begun, a word begu
   expect(rankMatches('car', list, 8).map((i) => list[i].nameWords.join('-'))).toEqual(['car', 'cable-car', 'car-front', 'carrot', 'bus']);
   expect(rankMatches('ca', list, 3).map((i) => list[i].nameWords.join('-'))).toEqual(['car', 'cat', 'carrot']);
   // A keyword typed whole counts as a name only with alias (an emoji's).
-  expect(rankMatches('car', list, 8, true).map((i) => list[i].nameWords.join('-')).slice(0, 3)).toEqual(['car', 'bus', 'cable-car']);
+  expect(
+    rankMatches('car', list, 8, true)
+      .map((i) => list[i].nameWords.join('-'))
+      .slice(0, 3),
+  ).toEqual(['car', 'bus', 'cable-car']);
   // Hyphens part the words typed; nothing typed, nothing found.
   expect(rankMatches('cable-c', list, 8).map((i) => list[i].nameWords.join('-'))).toEqual(['cable-car']);
   expect(rankMatches('', list, 8)).toEqual([]);

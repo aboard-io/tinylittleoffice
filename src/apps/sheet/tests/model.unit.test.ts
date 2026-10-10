@@ -12,10 +12,11 @@ import def from '../def.ts';
 import { fillCells, clearCells, sortRows } from '../../../doc/index.ts';
 
 const SHEET = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)\n';
-const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n{big=Visitors}\n';
+const MODEL =
+  '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n{big=Visitors}\n';
 
 /** A document edited: the ops applied, the text written. */
-const after = (text: string, ops: (doc: Doc) => (import('../../../doc/index.ts').Op[] | null)) => {
+const after = (text: string, ops: (doc: Doc) => import('../../../doc/index.ts').Op[] | null) => {
   const doc = parse(text);
   return write(applyAll(doc, ops(doc) ?? []));
 };
@@ -154,9 +155,36 @@ test('every template is a real document that round-trips byte for byte, and the 
   const all = templates();
   // The everyday ones first (Blank is the app's own page, before them all), then work and groups, the calculators, the models.
   expect(all.map((x) => x.id)).toEqual([
-    'budget', 'household', 'expenses', 'savings', 'habits', 'reading', 'workout', 'training', 'timesheet', 'split',
-    'tracker', 'schedule', 'grades', 'members', 'seating', 'poll', 'fundraising', 'invoices', 'inventory', 'pettycash',
-    'rates', 'mortgage', 'loan', 'converter', 'bracket', 'months', 'subscription', 'cafe', 'freelancer', 'fund',
+    'budget',
+    'household',
+    'expenses',
+    'savings',
+    'habits',
+    'reading',
+    'workout',
+    'training',
+    'timesheet',
+    'split',
+    'tracker',
+    'schedule',
+    'grades',
+    'members',
+    'seating',
+    'poll',
+    'fundraising',
+    'invoices',
+    'inventory',
+    'pettycash',
+    'rates',
+    'mortgage',
+    'loan',
+    'converter',
+    'bracket',
+    'months',
+    'subscription',
+    'cafe',
+    'freelancer',
+    'fund',
   ]);
   expect(new Set(all.map((x) => x.name)).size).toBe(all.length);
   for (const tpl of all) {
@@ -175,7 +203,10 @@ test('every template is a real document that round-trips byte for byte, and the 
     expect(small, tpl.id).toHaveLength(1);
     expect(small[0].svg.length, tpl.id).toBeGreaterThan(500);
     // No cell of a template is an error.
-    expect(v.values.flat().filter((x) => typeof x === 'string' && x.startsWith('#')), tpl.id).toEqual([]);
+    expect(
+      v.values.flat().filter((x) => typeof x === 'string' && x.startsWith('#')),
+      tpl.id,
+    ).toEqual([]);
   }
   for (const id of ['subscription', 'cafe', 'freelancer', 'fund']) {
     const v = readSheet(parse(all.find((x) => x.id === id)!.doc));
@@ -243,10 +274,28 @@ test('charts: labels from the first column, a series a column of numbers, flows 
   expect(d.labels).toEqual(['Jan', 'Feb', 'Mar', 'Apr']);
   expect(d.series.map((s) => s.name)).toEqual(['Sales', 'Costs']);
   expect(suggestChart(d)).toBe('line');
-  expect(suggestChart(chartData([['a', 1], ['b', 2], ['c', 3]]))).toBe('pie');
+  expect(
+    suggestChart(
+      chartData([
+        ['a', 1],
+        ['b', 2],
+        ['c', 3],
+      ]),
+    ),
+  ).toBe('pie');
   const m = chartOfSheet(readSheet(parse(MODEL)));
   expect(m.flows).toHaveLength(2);
-  expect(suggestChart(chartData([['A', 'B', 5], ['B', 'C', 3]], ['From', 'To', 'Amount']))).toBe('sankey');
+  expect(
+    suggestChart(
+      chartData(
+        [
+          ['A', 'B', 5],
+          ['B', 'C', 3],
+        ],
+        ['From', 'To', 'Amount'],
+      ),
+    ),
+  ).toBe('sankey');
   expect(chartOf(readSheet(parse(MODEL)))!.svg.match(/<path/g)).toHaveLength(2);
 });
 
@@ -312,8 +361,12 @@ test("a rich column's words are drawn with their marks and written to CSV and th
 
 // The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
 // unchanged by `thumb`.
-const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
-const SHEET10 = 'Month | Rent:money | Food:money | Power:money | Water:money | Phone:money | Travel:money | Fun:money | Gifts:money | Total:money\n--- | --- | --- | --- | --- | --- | --- | --- | --- | ---\nJan | 1200 | 450 | 80 | 30 | 40 | 120 | 90 | 20 | =SUM(B1:I1)\nFeb | 1200 | 430 | 85 | 30 | 40 | 110 | 60 | 0 | =SUM(B2:I2)\n';
+const sha1 = (pages: { w: number; h: number; svg: string }[]) =>
+  createHash('sha1')
+    .update(pages.map((p) => pageSvg(p)).join('\n'))
+    .digest('hex');
+const SHEET10 =
+  'Month | Rent:money | Food:money | Power:money | Water:money | Phone:money | Travel:money | Fun:money | Gifts:money | Total:money\n--- | --- | --- | --- | --- | --- | --- | --- | --- | ---\nJan | 1200 | 450 | 80 | 30 | 40 | 120 | 90 | 20 | =SUM(B1:I1)\nFeb | 1200 | 430 | 85 | 30 | 40 | 110 | 60 | 0 | =SUM(B2:I2)\n';
 
 test('a thumbnail of a ten-column sheet is landscape: the first six columns at a size to read, the rows that fit; a page and a slide are as before', () => {
   const thumb = def.view(SHEET10, { small: true, thumb: true });

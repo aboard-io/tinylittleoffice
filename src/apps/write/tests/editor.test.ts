@@ -191,7 +191,7 @@ test('Insert ▾ puts in a table: three by three, opened in the Spreadsheet firs
   expect(document.activeElement).toBe(b1);
 });
 
-test('the invoice: money in the head\'s currency, Amount locked, a quantity changed changes the amount; Enter goes down, a row comes from its menu inside the sum', async () => {
+test("the invoice: money in the head's currency, Amount locked, a quantity changed changes the amount; Enter goes down, a row comes from its menu inside the sum", async () => {
   const { el, last } = await editor(invoice().replace('currency: $', 'currency: €'));
   await until(() => !!cell(el, 'E7'));
   expect(cell(el, 'E7').value).toBe('€5,486.40');
@@ -215,14 +215,14 @@ test('the invoice: money in the head\'s currency, Amount locked, a quantity chan
   await until(() => (last() ?? '').includes('number: 0043'));
 });
 
-test('a table\'s money: a column that names its currency beats the head\'s; one that names none takes the head\'s', async () => {
+test("a table's money: a column that names its currency beats the head's; one that names none takes the head's", async () => {
   const { el } = await editor('---\ncurrency: €\n---\nItem | Here:money(£) | There:money\n--- | --- | ---\nTea | 3 | 4\n');
   await until(() => !!cell(el, 'A1'));
   expect(cell(el, 'B1').value).toBe('£3.00');
   expect(cell(el, 'C1').value).toBe('€4.00');
 });
 
-test('a table column\'s menu says what it holds, the Spreadsheet\'s types: Money asks its currency, GBP shown through Intl; an Option column offers its words', async () => {
+test("a table column's menu says what it holds, the Spreadsheet's types: Money asks its currency, GBP shown through Intl; an Option column offers its words", async () => {
   const { el, last } = await editor('---\ncurrency: €\n---\nItem | Cost | Kind\n--- | --- | ---\nTea | 3 | hot\nIce | 1200 | cold\nSoup | 4 | hot\n');
   await until(() => !!cell(el, 'A1'));
   const head = (c: number) => el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[c];
@@ -230,7 +230,10 @@ test('a table column\'s menu says what it holds, the Spreadsheet\'s types: Money
   // The types under the column's own group, the one it holds checked.
   head(1).click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
-  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role=menuitemcheckbox]')].map((x) => [x.querySelector('.to-menu-words > span')!.textContent, x.getAttribute('aria-checked')]);
+  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role=menuitemcheckbox]')].map((x) => [
+    x.querySelector('.to-menu-words > span')!.textContent,
+    x.getAttribute('aria-checked'),
+  ]);
   expect(items.map((x) => x[0])).toEqual(['Text', 'Number', 'Money', 'Percent', 'Date', 'Link', 'Checkbox', 'Option', 'Rich text', 'Name']);
   expect(items.filter((x) => x[1] === 'true').map((x) => x[0])).toEqual(['Text']);
   document.querySelector<HTMLElement>('[popover]:popover-open')!.hidePopover();
@@ -272,7 +275,7 @@ test('a table column\'s menu says what it holds, the Spreadsheet\'s types: Money
   expect(cell(el, 'A1').getAttribute('list')).toBeNull();
 });
 
-test('a web address alone is a card that loads nothing until tapped; a tap on a task\'s box ticks it; the paper is a head field', async () => {
+test("a web address alone is a card that loads nothing until tapped; a tap on a task's box ticks it; the paper is a head field", async () => {
   const { el, last } = await editor('https://www.youtube.com/watch?v=dQw4w9WgXcQ\n\n- [ ] walk the dog\n');
   await until(() => !!el.querySelector('to-embed'));
   const embed = el.querySelector<HTMLElement>('to-embed')!;
@@ -386,7 +389,7 @@ test('§1 Mod+Z after a cell edit puts the focus back in that cell', async () =>
   await until(() => document.activeElement === cell(el, 'B1'));
 });
 
-test('§1 Mod+Z in the Ask dialog is the field\'s own: the document behind it is left alone', async () => {
+test("§1 Mod+Z in the Ask dialog is the field's own: the document behind it is left alone", async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!shell.querySelector('to-write-editor to-text .tx'));
   const el = shell.querySelector<ToWriteEditor>('to-write-editor')!;
@@ -403,7 +406,7 @@ test('§1 Mod+Z in the Ask dialog is the field\'s own: the document behind it is
   document.querySelector<HTMLDialogElement>('.to-ask-picture dialog')!.close();
 });
 
-test('§1/§6 a card in hand: a tap takes it, the bar under it is in the standard\'s order, and Enter edits it', async () => {
+test("§1/§6 a card in hand: a tap takes it, the bar under it is in the standard's order, and Enter edits it", async () => {
   const { el } = await editor(`One\n\n${PIC}\n\nTwo\n`);
   await until(() => !!card(el, 1)?.classList.contains('tx-card'));
   card(el, 1).dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -590,8 +593,15 @@ test('§4 Mod+C/X/V on a range: tab-separated text with our table HTML; a block 
   await el.updateComplete;
   clip(b2, 'paste', { 'text/plain': 'x\ty\nz\tw' });
   await until(() => (last() ?? '').includes('ColC'));
-  const rows = () => { const b = parse(last()!).blocks[0]; return b.k === 'table' ? b.rows : []; };
-  expect(rows()).toEqual([['1', '2', ''], ['3', 'x', 'y'], ['', 'z', 'w']]);
+  const rows = () => {
+    const b = parse(last()!).blocks[0];
+    return b.k === 'table' ? b.rows : [];
+  };
+  expect(rows()).toEqual([
+    ['1', '2', ''],
+    ['3', 'x', 'y'],
+    ['', 'z', 'w'],
+  ]);
   // Our HTML alone (no text) is read too.
   await until(() => !!cell(el, 'C1'));
   const c1 = cell(el, 'C1');
@@ -602,7 +612,7 @@ test('§4 Mod+C/X/V on a range: tab-separated text with our table HTML; a block 
   expect(rows().map((r) => r[2])).toEqual(['p', 'q', 'w']);
 });
 
-test('§4 a column\'s head and a row\'s number open their menus; the + adds a column; never a key', async () => {
+test("§4 a column's head and a row's number open their menus; the + adds a column; never a key", async () => {
   const { el, last } = await editor('A | B\n--- | ---\n1 | 2\n3 | 4\n');
   await until(() => !!cell(el, 'A1'));
   await pick(el, el.querySelectorAll<HTMLElement>('to-write-table .wt-col')[0], 'Add a column after');
@@ -789,7 +799,9 @@ test('Mod+Shift+L, E, R and J align the block in hand left, centred, right and j
   el.querySelector<HTMLElement>('to-menu.write-align button')!.click();
   await until(() => !!document.querySelector('[popover]:popover-open'));
   const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role^=menuitem]')];
-  expect(items.map((x) => x.querySelector('kbd')?.textContent?.replace(/^Ctrl\+|^⌘/, ''))).toEqual(['Shift+L', 'Shift+E', 'Shift+R', 'Shift+J'].map((x) => (navigator.platform.startsWith('Mac') ? x.replace('Shift+', '⇧') : x)));
+  expect(items.map((x) => x.querySelector('kbd')?.textContent?.replace(/^Ctrl\+|^⌘/, ''))).toEqual(
+    ['Shift+L', 'Shift+E', 'Shift+R', 'Shift+J'].map((x) => (navigator.platform.startsWith('Mac') ? x.replace('Shift+', '⇧') : x)),
+  );
   key(document.querySelector('[popover]:popover-open')!, 'Escape');
   await tick();
   // Outside the words (the bar), Mod+Shift+R is the browser's.
@@ -817,7 +829,9 @@ test('Insert ▾ lists the web things by their names and every other app; a new 
   await pick(el, opener, 'Drawing Tool');
   await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
   expect(last()).toBeUndefined();
-  docDialog()!.querySelector('to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 100 60\n', bubbles: true }));
+  docDialog()!
+    .querySelector('to-draw-editor')!
+    .dispatchEvent(new CustomEvent('docchange', { detail: 'rect 10 10 100 60\n', bubbles: true }));
   docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-done')!.click();
   await until(() => (last() ?? '').includes('```draw'));
   expect(last()).toBe(`Before\n\n${FENCE}\n\n<br>\n`);
@@ -827,7 +841,7 @@ test('Insert ▾ lists the web things by their names and every other app; a new 
   await until(() => last() === 'Before\n');
 });
 
-test('Insert ▾ Web Picture: the kit\'s dialog; OK puts the picture in, with its words, where the caret was', async () => {
+test("Insert ▾ Web Picture: the kit's dialog; OK puts the picture in, with its words, where the caret was", async () => {
   const { el, last } = await editor('Before\n');
   el.text.focus();
   el.text.sel = { anchor: { block: 0, offset: 6 }, focus: { block: 0, offset: 6 } };
@@ -857,7 +871,9 @@ test('a document in the text: its bar is Edit then Open in a new tab; Edit opens
   await until(() => !!docDialog()?.querySelector('dialog[open] to-draw-editor'));
   expect(docDialog()!.querySelector<HTMLElement & { value: string }>('to-draw-editor')!.value).toBe('rect 10 10 100 60\n');
   expect(docDialog()!.querySelector('h2')!.textContent).toBe('Drawing Tool');
-  docDialog()!.querySelector('to-draw-editor')!.dispatchEvent(new CustomEvent('docchange', { detail: 'rect 0 0 5 5\n', bubbles: true }));
+  docDialog()!
+    .querySelector('to-draw-editor')!
+    .dispatchEvent(new CustomEvent('docchange', { detail: 'rect 0 0 5 5\n', bubbles: true }));
   docDialog()!.querySelector<HTMLButtonElement>('.to-doc-dialog-cancel')!.click();
   await until(() => document.activeElement === card(el, 1));
   expect(last()).toBeUndefined();
@@ -915,7 +931,8 @@ test('§1 opens with the focus in the first words: the caret at their start, the
 });
 
 /** What Google Docs puts on the clipboard for a heading and a list two deep: a <p> inside every <li>, styles for marks. */
-const DOCS_LIST = '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><h2 dir="ltr"><span style="font-weight:400;">Plan</span></h2><ul style="padding-inline-start:48px;"><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span style="font-weight:700;">Bold</span><span style="font-weight:400;"> start</span></p></li><ul><li dir="ltr" aria-level="2"><p dir="ltr" role="presentation"><span style="font-style:italic;">nested</span></p></li></ul><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span>**not bold**</span></p></li></ul></b>';
+const DOCS_LIST =
+  '<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><h2 dir="ltr"><span style="font-weight:400;">Plan</span></h2><ul style="padding-inline-start:48px;"><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span style="font-weight:700;">Bold</span><span style="font-weight:400;"> start</span></p></li><ul><li dir="ltr" aria-level="2"><p dir="ltr" role="presentation"><span style="font-style:italic;">nested</span></p></li></ul><li dir="ltr" aria-level="1"><p dir="ltr" role="presentation"><span>**not bold**</span></p></li></ul></b>';
 
 test('a paste from Google Docs keeps the heading, the items and their depth, the marks; words that look like syntax stay words', async () => {
   const { el, last } = await editor('');

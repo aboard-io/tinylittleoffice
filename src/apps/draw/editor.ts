@@ -28,7 +28,52 @@ import { TILE_INKS, tileCss, tileFilled, tilePattern, tileRef } from '../../kit/
 import { applyAll, runLength, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { caret, insertRuns } from '../../kit/textops.ts';
-import { GRID, H, TEXT_PX, W, addShape, alignOp, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, wordsOver, type Align, type DrawView, type Kind, type Shape } from './model.ts';
+import {
+  GRID,
+  H,
+  TEXT_PX,
+  W,
+  addShape,
+  alignOp,
+  bounds,
+  canTurn,
+  describeDrawing,
+  duplicateShapes,
+  floodSquare,
+  iconOf,
+  isLink,
+  labelLines,
+  labelPlain,
+  labelText,
+  linkEnds,
+  normRot,
+  paintSquare,
+  pasteShapes,
+  patchShape,
+  patchShapes,
+  pickShapes,
+  readDrawing,
+  removeShape,
+  removeShapes,
+  restackShapes,
+  setAlt,
+  setGrid,
+  setPixels,
+  setTile,
+  shapesFromText,
+  shapesTable,
+  shapesToTlo,
+  shapesWithin,
+  simplify,
+  strokeShape,
+  turnPoint,
+  turnedBounds,
+  wordsOver,
+  type Align,
+  type DrawView,
+  type Kind,
+  type Shape,
+} from './model.ts';
 import { TILE_SIDE, arrowDefs, shapeSvg, turnOf, type Theme } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -94,7 +139,20 @@ function sized(s: Shape): Shape {
 }
 
 export class ToDrawEditor extends DocElement<DrawView> {
-  static properties: PropertyDeclarations = { tool: { state: true }, picked: { state: true }, joinFrom: { state: true }, pen: { state: true }, drag: { state: true }, live: { state: true }, zoom: { state: true }, ink: { state: true }, pmode: { state: true }, cursor: { state: true }, altDraft: { state: true }, editing: { state: true } };
+  static properties: PropertyDeclarations = {
+    tool: { state: true },
+    picked: { state: true },
+    joinFrom: { state: true },
+    pen: { state: true },
+    drag: { state: true },
+    live: { state: true },
+    zoom: { state: true },
+    ink: { state: true },
+    pmode: { state: true },
+    cursor: { state: true },
+    altDraft: { state: true },
+    editing: { state: true },
+  };
   declare tool: Tool;
   /** The chosen shapes, in the order they were chosen (Shift+tap adds one; Mod+A takes them all). */
   declare picked: number[];
@@ -253,7 +311,14 @@ export class ToDrawEditor extends DocElement<DrawView> {
   patchSel(p: Partial<Shape>, key?: string) {
     const c = this.chosen;
     if (!c.length) return;
-    this.change(patchShapes(this.doc, c.map((i) => [i, p])), c, key);
+    this.change(
+      patchShapes(
+        this.doc,
+        c.map((i) => [i, p]),
+      ),
+      c,
+      key,
+    );
   }
   /** The texts in hand (or those given) set left, centred or right, as one step; false when none is a text. */
   alignSel(al: Align | '', which = this.chosen): boolean {
@@ -323,7 +388,14 @@ export class ToDrawEditor extends DocElement<DrawView> {
   turnBy(deg: number) {
     const c = this.chosen.filter((i) => canTurn(this.shapes[i].k));
     if (!c.length) return false;
-    this.change(patchShapes(this.doc, c.map((i) => [i, { rot: normRot((this.shapes[i].rot ?? 0) + deg) }])), this.chosen, `turn:${this.chosen.join(',')}`);
+    this.change(
+      patchShapes(
+        this.doc,
+        c.map((i) => [i, { rot: normRot((this.shapes[i].rot ?? 0) + deg) }]),
+      ),
+      this.chosen,
+      `turn:${this.chosen.join(',')}`,
+    );
     return true;
   }
   /** Whether any chosen shape can be turned. */
@@ -987,7 +1059,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
       const s = this.shapes[i];
       if (isLink(s.k)) {
         const ends = linkEnds(s, this.shapes);
-        return ends ? svg`<line x1=${ends[0]} y1=${ends[1]} x2=${ends[2]} y2=${ends[3]} stroke="var(--to-accent)" stroke-width="6" stroke-linecap="round" opacity="0.35" pointer-events="none" />` : nothing;
+        return ends
+          ? svg`<line x1=${ends[0]} y1=${ends[1]} x2=${ends[2]} y2=${ends[3]} stroke="var(--to-accent)" stroke-width="6" stroke-linecap="round" opacity="0.35" pointer-events="none" />`
+          : nothing;
       }
       const [x, y, w, h] = bounds(s, this.shapes);
       // A turned shape's outline turns with it.
@@ -1002,11 +1076,13 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const [rx, ry] = [s.x + s.w / 2, s.y - 22];
     return svg`${marks}<g transform=${turnOf(s) || nothing}>${hit > 12 ? svg`<rect class="handle handle-hit" x=${hx - hit / 2} y=${hy - hit / 2} width=${hit} height=${hit} fill="transparent" />` : nothing}
       <rect class="handle" x=${hx - 6} y=${hy - 6} width="12" height="12" fill="var(--to-surface)" stroke="var(--to-accent)" stroke-width="2" />
-      ${turns
-        ? svg`<g class="rotor" role="presentation"><line x1=${rx} y1=${s.y - 3} x2=${rx} y2=${ry + 6} stroke="var(--to-accent)" stroke-width="1.5" pointer-events="none" />
+      ${
+        turns
+          ? svg`<g class="rotor" role="presentation"><line x1=${rx} y1=${s.y - 3} x2=${rx} y2=${ry + 6} stroke="var(--to-accent)" stroke-width="1.5" pointer-events="none" />
           ${hit > 12 ? svg`<circle class="rotor-hit" cx=${rx} cy=${ry} r=${hit / 2} fill="transparent" />` : nothing}
           <circle cx=${rx} cy=${ry} r="6" fill="var(--to-surface)" stroke="var(--to-accent)" stroke-width="2" /></g>`
-        : nothing}</g>`;
+          : nothing
+      }</g>`;
   }
 
   private renderCanvas() {
@@ -1014,7 +1090,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const d = this.drag;
     const from = d?.mode === 'link' ? this.shapes[d.from] : null;
     const tile = v.tile;
-    return html`<div class="draw-wrap" data-spatial tabindex="0" role="application" aria-label=${t('Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.')} @wheel=${(e: WheelEvent) => {
+    return html`<div class="draw-wrap" data-spatial tabindex="0" role="application" aria-label=${t('Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.')} @wheel=${(
+      e: WheelEvent,
+    ) => {
       // Ctrl (or a pinch on a trackpad) and the wheel zoom; the wheel alone scrolls as usual.
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
@@ -1031,18 +1109,22 @@ export class ToDrawEditor extends DocElement<DrawView> {
         </defs>
         ${tile ? svg`<rect width=${W} height=${H} fill="url(#draw-tile)" />` : nothing}
         <rect width=${W} height=${H} fill="url(#draw-grid)" />
-        ${this.pen.length
-          ? svg`<polyline points=${this.pen.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="6 4"/>
+        ${
+          this.pen.length
+            ? svg`<polyline points=${this.pen.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="6 4"/>
               ${this.pen.map(([px, py], i) => svg`<circle cx=${px} cy=${py} r=${i === 0 ? 7 : 4} fill=${i === 0 ? 'var(--to-accent)' : 'var(--to-surface)'} stroke="var(--to-accent)" stroke-width="2"/>`)}`
-          : nothing}
+            : nothing
+        }
         ${this.shapes.map((sh, i) => this.renderShape(sh, i))}
         ${d?.mode === 'draw' ? this.renderShape(d.shape, -1, true) : nothing}
         ${d?.mode === 'free' ? svg`<polyline points=${d.pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="var(--to-accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>` : nothing}
         ${d?.mode === 'link' && from ? svg`<line x1=${from.x + from.w / 2} y1=${from.y + from.h / 2} x2=${d.to[0]} y2=${d.to[1]} stroke="var(--to-accent)" stroke-width="2" stroke-dasharray="5 4" pointer-events="none" />` : nothing}
         ${this.renderSelection()}
-        ${d?.mode === 'marquee' && Math.hypot(d.to[0] - d.from[0], d.to[1] - d.from[1]) >= 4
-          ? svg`<rect class="draw-marquee" x=${Math.min(d.from[0], d.to[0])} y=${Math.min(d.from[1], d.to[1])} width=${Math.abs(d.to[0] - d.from[0])} height=${Math.abs(d.to[1] - d.from[1])} fill="var(--to-accent)" fill-opacity="0.08" stroke="var(--to-accent)" stroke-dasharray="5 4" pointer-events="none" />`
-          : nothing}
+        ${
+          d?.mode === 'marquee' && Math.hypot(d.to[0] - d.from[0], d.to[1] - d.from[1]) >= 4
+            ? svg`<rect class="draw-marquee" x=${Math.min(d.from[0], d.to[0])} y=${Math.min(d.from[1], d.to[1])} width=${Math.abs(d.to[0] - d.from[0])} height=${Math.abs(d.to[1] - d.from[1])} fill="var(--to-accent)" fill-opacity="0.08" stroke="var(--to-accent)" stroke-dasharray="5 4" pointer-events="none" />`
+            : nothing
+        }
       </svg>
       <to-text class="draw-words" hidden shape="line" marks-only label=${t('The words of the shape')} .blocks=${this.wordsBlocks}
         @text-ops=${this.onWordsOps} @text-enter=${this.onWordsEnter} @text-selectall=${(e: Event) => e.stopPropagation()} @text-exit=${(e: Event) => e.stopPropagation()} @keydown=${this.onWordsKey} @focusout=${this.onWordsBlur}></to-text>
@@ -1089,7 +1171,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const suggestion = describeDrawing(this.view.shapes);
     return html`<to-dialog class="draw-alt-dialog" heading=${t('Alt text')} @to-close=${() => (this.altDraft = null)} .body=${html`
       <label class="draw-alt-field"><span>${t('What does this drawing show?')}</span>
-        <textarea rows="3" .value=${draft} placeholder=${suggestion || t('A diagram of…')} @input=${(e: Event) => (this.altDraft = (e.target as HTMLTextAreaElement).value)} @keydown=${(e: KeyboardEvent) => {
+        <textarea rows="3" .value=${draft} placeholder=${suggestion || t('A diagram of…')} @input=${(e: Event) => (this.altDraft = (e.target as HTMLTextAreaElement).value)} @keydown=${(
+          e: KeyboardEvent,
+        ) => {
           // Enter is Done (the alt text is one paragraph); Shift+Enter is left to the field.
           if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
           e.preventDefault();

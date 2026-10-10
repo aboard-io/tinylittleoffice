@@ -19,7 +19,22 @@ export interface Template {
 }
 
 /** After these a `/` divides; after anything else it starts a regular expression. */
-const ENDS = new Set([K.Identifier, K.NumericLiteral, K.BigIntLiteral, K.StringLiteral, K.NoSubstitutionTemplateLiteral, K.TemplateTail, K.CloseParenToken, K.CloseBracketToken, K.CloseBraceToken, K.ThisKeyword, K.SuperKeyword, K.TrueKeyword, K.FalseKeyword, K.NullKeyword]);
+const ENDS = new Set([
+  K.Identifier,
+  K.NumericLiteral,
+  K.BigIntLiteral,
+  K.StringLiteral,
+  K.NoSubstitutionTemplateLiteral,
+  K.TemplateTail,
+  K.CloseParenToken,
+  K.CloseBracketToken,
+  K.CloseBraceToken,
+  K.ThisKeyword,
+  K.SuperKeyword,
+  K.TrueKeyword,
+  K.FalseKeyword,
+  K.NullKeyword,
+]);
 
 export interface Token {
   k: K;
@@ -124,7 +139,11 @@ function wordsIn(text: string): string | null {
   const plain = text.replace(/&[#\w]+;/g, ' ');
   const words = plain.match(/\p{L}+/gu)?.filter((w) => !NOT_WORDS.has(w));
   if (!words?.length) return null;
-  const phrase = plain.split(HOLE).map((p) => p.replace(/\s+/g, ' ').trim()).filter((p) => /\p{L}/u.test(p)).join(' … ');
+  const phrase = plain
+    .split(HOLE)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => /\p{L}/u.test(p))
+    .join(' … ');
   return ALLOWED[phrase] !== undefined ? null : phrase;
 }
 
@@ -289,14 +308,18 @@ export function graphProblems(mods: Module[], shared: Record<string, string> = {
   const graph = new Map<string, string[]>();
   for (const m of mods) {
     const edges = edgesOf(m);
-    graph.set(m.path, edges.filter((e) => !e.type && !e.lazy && e.to.endsWith('.ts')).map((e) => e.to));
+    graph.set(
+      m.path,
+      edges.filter((e) => !e.type && !e.lazy && e.to.endsWith('.ts')).map((e) => e.to),
+    );
     for (const e of edges) {
       const edge = `${m.path} → ${e.to}`;
       const [from, to] = [appOfPath(m.path), appOfPath(e.to)];
       if (from && to && from !== to && !(e.to in shared)) problems.push(`an app imports another app: ${edge}`);
       if (m.path.startsWith('src/kit/') && e.to.startsWith('src/apps/') && m.path !== 'src/kit/apps.ts') problems.push(`the kit imports an app outside kit/apps.ts: ${edge}`);
       if (m.path.startsWith('src/doc/') && /^src\/(kit|apps)\//.test(e.to)) problems.push(`the kernel imports the kit or an app: ${edge}`);
-      if (e.to.startsWith('src/i18n/') && !(m.path === 'src/kit/i18n.ts' && e.lazy) && !m.path.startsWith('src/i18n/')) problems.push(`a language is imported outside kit/i18n.ts’s lazy load: ${edge}`);
+      if (e.to.startsWith('src/i18n/') && !(m.path === 'src/kit/i18n.ts' && e.lazy) && !m.path.startsWith('src/i18n/'))
+        problems.push(`a language is imported outside kit/i18n.ts’s lazy load: ${edge}`);
     }
   }
   for (const cycle of cyclesOf(graph)) problems.push(`an import cycle: ${[...cycle, cycle[0]].join(' → ')}`);
@@ -367,6 +390,13 @@ export function domNames(source: string): Bare[] {
   const lineOf = liner(source);
   const toks = tokensOf(source);
   return toks
-    .filter((t, i) => t.k === K.Identifier && DOM_NAMES.has(t.text) && toks[i - 1]?.k !== K.DotToken && toks[i - 1]?.k !== K.QuestionDotToken && !(toks[i + 1]?.k === K.ColonToken && (toks[i - 1]?.k === K.OpenBraceToken || toks[i - 1]?.k === K.CommaToken)))
+    .filter(
+      (t, i) =>
+        t.k === K.Identifier &&
+        DOM_NAMES.has(t.text) &&
+        toks[i - 1]?.k !== K.DotToken &&
+        toks[i - 1]?.k !== K.QuestionDotToken &&
+        !(toks[i + 1]?.k === K.ColonToken && (toks[i - 1]?.k === K.OpenBraceToken || toks[i - 1]?.k === K.CommaToken)),
+    )
     .map((t) => ({ line: lineOf(t.start), words: t.text }));
 }

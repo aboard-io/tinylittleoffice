@@ -241,14 +241,18 @@ test('at phone width: a row is a finger tall, the bar is one row, nothing is wid
 
 const key = (on: HTMLElement, k: string, o: KeyboardEventInit = {}) => on.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, composed: true, ...o }));
 const offsetIn = (el: HTMLElement, at: number) => text(el, at).sel?.focus.offset;
-const ranged = (el: HTMLElement) => rows(el).filter((r) => r.classList.contains('ranged')).map((r) => Number(r.dataset.at));
+const ranged = (el: HTMLElement) =>
+  rows(el)
+    .filter((r) => r.classList.contains('ranged'))
+    .map((r) => Number(r.dataset.at));
 const box = (el: HTMLElement) => el.querySelector<HTMLElement>('.todo-list')!;
 const contextButton = (el: HTMLElement, label: string) => el.querySelector<HTMLButtonElement>(`.todo-context button[aria-label="${label}"]`)!;
 const grip = (el: HTMLElement, i: number) => rows(el)[i].querySelector<HTMLElement>('.todo-grip')!;
 async function tapGrip(el: ToTodoEditor, i: number, o: PointerEventInit = {}) {
   const g = grip(el, i);
   const r = g.getBoundingClientRect();
-  for (const type of ['pointerdown', 'pointerup']) g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 3, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3, ...o }));
+  for (const type of ['pointerdown', 'pointerup'])
+    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 3, isPrimary: true, button: 0, pointerType: 'mouse', clientX: r.left + 3, clientY: r.top + 3, ...o }));
   g.click();
   await settle(el);
 }
@@ -454,7 +458,8 @@ test('a drag by the grip (pointer events) moves the task after another, with the
   const g = grip(el, 0);
   const h = g.getBoundingClientRect();
   const c = rows(el)[2].getBoundingClientRect();
-  const at = (type: string, x: number, y: number) => g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
+  const at = (type: string, x: number, y: number) =>
+    g.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, isPrimary: true, button: 0, pointerType: 'mouse', clientX: x, clientY: y }));
   at('pointerdown', h.left + 4, h.top + 4);
   at('pointermove', c.left + 100, c.top + c.height / 2);
   await el.updateComplete;
@@ -501,7 +506,7 @@ test('the bar ends with Undo and Redo; the star keeps the focus in the words; th
   expect(el.value).toBe(n);
 });
 
-test('§1 opens with the focus in the first task\'s words, the caret at their end, the page not scrolled', async () => {
+test("§1 opens with the focus in the first task's words, the caret at their end, the page not scrolled", async () => {
   const { el } = await editor();
   await el.focusFirst();
   expect(text(el, 0).hasFocus()).toBe(true);

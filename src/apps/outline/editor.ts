@@ -46,7 +46,52 @@ import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { parseHash, routeHash } from '../../kit/route.ts';
 import type { NoteAt, Sel, TextOps, ToText } from '../../kit/text.ts';
 import { caret } from '../../kit/textops.ts';
-import { appendItem, connect, copySpan, docBlock, duplicateSpan, enterAt, familyEnd, hasChildren, indexAt, insertDoc, itemBlock, itemsEnd, joinBack, joinForward, listify, liveLinks, mapAt, moveItem, moveSpan, nameOf, parentOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, topsOf, unlink, webAddress, type Dir, type Item, type Link, type OutlineView } from './model.ts';
+import {
+  appendItem,
+  connect,
+  copySpan,
+  docBlock,
+  duplicateSpan,
+  enterAt,
+  familyEnd,
+  hasChildren,
+  indexAt,
+  insertDoc,
+  itemBlock,
+  itemsEnd,
+  joinBack,
+  joinForward,
+  listify,
+  liveLinks,
+  mapAt,
+  moveItem,
+  moveSpan,
+  nameOf,
+  parentOf,
+  pasteBlocks,
+  pastesAsItems,
+  pasteText,
+  placeItem,
+  readOutline,
+  removeAt,
+  removeSpan,
+  renameIn,
+  setDoc,
+  setLine,
+  setLink,
+  setOrdered,
+  shiftItem,
+  shiftSpan,
+  siblingsOf,
+  spanOf,
+  topsOf,
+  unlink,
+  webAddress,
+  type Dir,
+  type Item,
+  type Link,
+  type OutlineView,
+} from './model.ts';
 import { appName, docGist, outlinePage } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -61,7 +106,12 @@ import './style.css';
 export const tag = 'to-outline-editor';
 
 /** How each kind of line is said. */
-export const DIR_NAME: Record<Dir, () => string> = { '--': () => t('a plain line'), '->': () => t('an arrow from the parent'), '<-': () => t('an arrow to the parent'), '<->': () => t('arrows both ways') };
+export const DIR_NAME: Record<Dir, () => string> = {
+  '--': () => t('a plain line'),
+  '->': () => t('an arrow from the parent'),
+  '<-': () => t('an arrow to the parent'),
+  '<->': () => t('arrows both ways'),
+};
 const DIR_ICON: Record<Dir, typeof ArrowRight | null> = { '--': null, '->': ArrowRight, '<-': ArrowLeft, '<->': ArrowLeftRight };
 
 /** A Tiny Little Office link as a ref ("<app>\n<text>"), or null when the words are not one. */
@@ -84,7 +134,15 @@ type Ends = { from: string; to: string; dir: Dir; label?: string; edge: boolean 
 const ft = (e: Ends) => ({ from: e.from, to: e.to });
 
 export class ToOutlineEditor extends DocElement<OutlineView> {
-  static properties: PropertyDeclarations = { folded: { state: true }, zoom: { state: true }, sel: { state: true }, connecting: { state: true }, menuFor: { state: true }, naming: { state: true }, showing: { state: true } };
+  static properties: PropertyDeclarations = {
+    folded: { state: true },
+    zoom: { state: true },
+    sel: { state: true },
+    connecting: { state: true },
+    menuFor: { state: true },
+    naming: { state: true },
+    showing: { state: true },
+  };
   /** Items folded shut, by block index. */
   declare folded: Set<number>;
   /** The item zoomed in on, by block index; -1 for the whole outline. */
@@ -114,7 +172,12 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     contextClass: 'ol-context',
     label: t('Chosen items'),
     current: () => (this.visible().some((x) => x.at === this.sel) ? this.sel : null),
-    span: (rows) => spanOf(this.doc, this.view, rows.map((r) => r.id)),
+    span: (rows) =>
+      spanOf(
+        this.doc,
+        this.view,
+        rows.map((r) => r.id),
+      ),
     edit: (at, offset) => this.focusRow(at, offset),
     remove: (s) => this.deleteSpan(s),
     canMove: (s, by) => !!moveSpan(this.doc, this.view, s, by),
@@ -673,8 +736,8 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       this.focusRow(to.at, this.columnIn(to.at, k === 'ArrowUp'));
       return true;
     }
-    if (k === 'ArrowLeft' && flat && tx && s.focus.offset === 0 && i > 0) return this.focusRow(vis[i - 1].at, 'end'), true;
-    if (k === 'ArrowRight' && flat && tx && s.focus.offset >= this.lengthOf(at) && i >= 0 && i < vis.length - 1) return this.focusRow(vis[i + 1].at, 0), true;
+    if (k === 'ArrowLeft' && flat && tx && s.focus.offset === 0 && i > 0) return (this.focusRow(vis[i - 1].at, 'end'), true);
+    if (k === 'ArrowRight' && flat && tx && s.focus.offset >= this.lengthOf(at) && i >= 0 && i < vis.length - 1) return (this.focusRow(vis[i + 1].at, 0), true);
     return false;
   }
   lengthOf(at: number): number {
@@ -708,10 +771,12 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     if (!line) return up ? 'end' : 0;
     const y = line.top + line.height / 2;
     const doc = document as Document & { caretPositionFromPoint?(x: number, y: number): { offsetNode: Node; offset: number } | null };
-    const hit = doc.caretPositionFromPoint?.(x, y) ?? (() => {
-      const r = document.caretRangeFromPoint?.(x, y);
-      return r ? { offsetNode: r.startContainer, offset: r.startOffset } : null;
-    })();
+    const hit =
+      doc.caretPositionFromPoint?.(x, y) ??
+      (() => {
+        const r = document.caretRangeFromPoint?.(x, y);
+        return r ? { offsetNode: r.startContainer, offset: r.startOffset } : null;
+      })();
     const pos = hit && tx.tx.contains(hit.offsetNode) ? tx.readPos(hit.offsetNode, hit.offset) : null;
     return pos ? pos.offset : x > line.right ? 'end' : 0;
   }
@@ -825,9 +890,11 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
         ${kids ? html`<button type="button" class="ol-fold" aria-label=${shut ? t('Unfold, {n|one inside|# inside}', { n: inside }) : t('Fold')} aria-expanded=${shut ? 'false' : 'true'} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.fold(at)}>${icon(shut ? ChevronRight : ChevronDown, 14)}</button>` : nothing}
       </span>
       ${ends ? html`<span class="ol-bullet">${this.bullet(at, ends, n)}</span>${this.chip(at, it.label)}` : html`<span class="ol-bullet" @click=${(e: MouseEvent) => e.shiftKey && this.rows.choose(at, true)}><span class="ol-kind root" aria-hidden="true">${n ? html`<b class="ol-n">${n}.</b>` : html`<span></span>`}</span></span>`}
-      ${asDoc
-        ? this.renderDoc(it)
-        : html`<to-text shape="line" notes .blocks=${this.blocksFor(block)} .noteStart=${noteStart} label=${t('Item {n}', { n: i + 1 })} placeholder=${placeholder} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(at, e)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(at))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(at, e.detail.dir))} @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect(at, e)} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote(at, e)} @focusin=${(e: FocusEvent) => (this.field = e.currentTarget as ToText)}></to-text>`}
+      ${
+        asDoc
+          ? this.renderDoc(it)
+          : html`<to-text shape="line" notes .blocks=${this.blocksFor(block)} .noteStart=${noteStart} label=${t('Item {n}', { n: i + 1 })} placeholder=${placeholder} @text-ops=${(e: CustomEvent<TextOps>) => this.onOps(at, e)} @text-enter=${(e: Event) => (e.stopPropagation(), this.onEnter(at))} @text-exit=${(e: CustomEvent<{ dir: 'back' | 'forward' }>) => (e.stopPropagation(), this.onExit(at, e.detail.dir))} @text-selectall=${(e: Event) => (e.stopPropagation(), this.rows.selectAll())} @text-select=${(e: CustomEvent<Sel | null>) => this.onSelect(at, e)} @text-note=${(e: CustomEvent<NoteAt>) => this.onNote(at, e)} @focusin=${(e: FocusEvent) => (this.field = e.currentTarget as ToText)}></to-text>`
+      }
       ${kids && shut ? html`<span class="ol-count" aria-hidden="true">${inside}</span>` : nothing}
       ${c && words && !it.doc && at !== c.from ? html`<button type="button" class="ol-pick" aria-label=${c.from < 0 ? t('Connect from “{words}”', { words }) : t('Connect “{from}” to “{to}”', { from: plainText(this.itemAt(c.from)?.runs ?? []).trim(), to: words })} @click=${() => this.pick(at)}></button>` : nothing}
     </div>`;

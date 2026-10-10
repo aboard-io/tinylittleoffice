@@ -41,7 +41,7 @@ export function parseCompare(hash: string): [Side | null, Side | null] | null {
 /** Changes as rows of two cells: kept on both sides; a run taken out paired with the run put in after it; the rest alone. */
 export function rowsOf(changes: Change[]): [Change | null, Change | null][] {
   const rows: [Change | null, Change | null][] = [];
-  for (let i = 0; i < changes.length; ) {
+  for (let i = 0; i < changes.length;) {
     if (changes[i].kind === ' ') {
       rows.push([changes[i], changes[i]]);
       i++;
@@ -111,13 +111,15 @@ export class ToCompare extends LitElement {
       <h1 id="cmp-h">${icon(UI.compare, 22)}<span>${t('Compare')}</span></h1>
       <p class="to-hint">${t('Two links to documents, side by side: what the second changed is marked. Nothing leaves this page.')}</p>
       <div class="cmp-sides">${this.renderSide('a', this.a)}${this.renderSide('b', this.b)}</div>
-      ${both
-        ? html`<div class="cmp-bar">
+      ${
+        both
+          ? html`<div class="cmp-bar">
               <p class="cmp-sum" role="status">${removed || added ? `${t('{n|# block taken out|# blocks taken out}', { n: removed })}, ${t('{n|# put in|# put in}', { n: added })}` : t('No difference')}${this.a!.app !== this.b!.app ? ` · ${t('different apps')}` : ''}</p>
               <button type="button" class="to-btn cmp-swap" @click=${this.swap}>${icon(UI.compare, 16)}<span>${t('Swap')}</span></button>
             </div>
             <div class="cmp-rows" role="list" aria-label=${t('Changes')}>${rowsOf(changes).map(([o, n]) => html`<div class="cmp-row ${o?.kind === ' ' ? '' : 'changed'}" role="listitem">${cell(o, 'old')}${o?.kind === ' ' ? html`<div class="cmp-cell cmp-same" aria-hidden="true">${o.line}</div>` : cell(n, 'new')}</div>`)}</div>`
-        : html`<p class="to-empty">${t('Paste a second link to see what changed.')}</p>`}
+          : html`<p class="to-empty">${t('Paste a second link to see what changed.')}</p>`
+      }
     </section>`;
   }
 }

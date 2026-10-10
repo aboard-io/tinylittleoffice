@@ -24,7 +24,25 @@
  * sees primitives only. Days are counted from 1970-01-01, as the kernel counts them; a timed span's start is
  * minutes since 1970 UTC. Nothing here touches the DOM.
  */
-import { applyAll, attr, dayToYmd, family, isAtomic, normalRuns, plainText, removeItem, runLength, sliceRuns, ymdString, ymdToDay, type Attrs, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import {
+  applyAll,
+  attr,
+  dayToYmd,
+  family,
+  isAtomic,
+  normalRuns,
+  plainText,
+  removeItem,
+  runLength,
+  sliceRuns,
+  ymdString,
+  ymdToDay,
+  type Attrs,
+  type Block,
+  type Doc,
+  type Op,
+  type Run,
+} from '../../doc/index.ts';
 import { ACCENT } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { clockString, dayString, isValidZone, partsToUtc, utcToParts } from './tz.ts';
@@ -433,7 +451,10 @@ export function shiftTasks(doc: Doc, s: BlockSpan, by: 1 | -1): Op[] | null {
 }
 
 /** The span's blocks again right after it; the copy starts at `at`. */
-export const duplicateTasks = (doc: Doc, s: BlockSpan): { ops: Op[]; at: number } => ({ ops: [{ op: 'splice', at: s.to, n: 0, blocks: doc.blocks.slice(s.from, s.to).map((b) => ({ ...b })) }], at: s.to });
+export const duplicateTasks = (doc: Doc, s: BlockSpan): { ops: Op[]; at: number } => ({
+  ops: [{ op: 'splice', at: s.to, n: 0, blocks: doc.blocks.slice(s.from, s.to).map((b) => ({ ...b })) }],
+  at: s.to,
+});
 
 /** The span's blocks as a clipboard holds them: the shallowest task at the margin. */
 export function copyTasks(doc: Doc, s: BlockSpan): Block[] {

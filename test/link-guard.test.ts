@@ -45,7 +45,8 @@ describe('pictures from the web', () => {
     expect(webPicture('data:image/png;base64,AAAA', base)).toBe(false);
     expect(webPicture('blob:https://tinylittleoffice.com/1', base)).toBe(false);
   });
-  const page = '<rect width="10" height="10"/><image href="https://example.com/a.png?x=1&amp;y=2" x="40" y="50" width="400" height="200" preserveAspectRatio="xMidYMid meet"/><image href="data:image/png;base64,AAAA" width="10" height="10"/>';
+  const page =
+    '<rect width="10" height="10"/><image href="https://example.com/a.png?x=1&amp;y=2" x="40" y="50" width="400" height="200" preserveAspectRatio="xMidYMid meet"/><image href="data:image/png;base64,AAAA" width="10" height="10"/>';
   // Shown, it is drawn from the picture proxy, never from its own site (kit/media.ts).
   const shownPage = page.replace('https://example.com/a.png?x=1&amp;y=2', pictureSrc('https://example.com/a.png?x=1&y=2'));
   test('a drawn page shows a web picture as its card, in its box; a data: picture as it is', () => {

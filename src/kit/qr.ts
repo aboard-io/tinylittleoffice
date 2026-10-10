@@ -169,7 +169,16 @@ export function qrCode(bytes: Uint8Array): boolean[][] {
       }
   }
   // The mask with the lowest penalty.
-  const masks = [(x: number, y: number) => (x + y) % 2, (_: number, y: number) => y % 2, (x: number) => x % 3, (x: number, y: number) => (x + y) % 3, (x: number, y: number) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2, (x: number, y: number) => ((x * y) % 2) + ((x * y) % 3), (x: number, y: number) => (((x * y) % 2) + ((x * y) % 3)) % 2, (x: number, y: number) => (((x + y) % 2) + ((x * y) % 3)) % 2];
+  const masks = [
+    (x: number, y: number) => (x + y) % 2,
+    (_: number, y: number) => y % 2,
+    (x: number) => x % 3,
+    (x: number, y: number) => (x + y) % 3,
+    (x: number, y: number) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2,
+    (x: number, y: number) => ((x * y) % 2) + ((x * y) % 3),
+    (x: number, y: number) => (((x * y) % 2) + ((x * y) % 3)) % 2,
+    (x: number, y: number) => (((x + y) % 2) + ((x * y) % 3)) % 2,
+  ];
   const apply = (k: number) => {
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x] && masks[k](x, y) === 0) m[y][x] = !m[y][x];
   };

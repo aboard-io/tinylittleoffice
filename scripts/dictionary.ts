@@ -112,7 +112,9 @@ if (import.meta.main) {
     console.log(`Templates: ${r.rows.length}. Link characters in all: ${r.totals.today} today, ${r.totals.trained} trained (${pct(1 - r.totals.trained / r.totals.today)} shorter).`);
     console.log(`Largest template: ${r.largest.name}, ${r.largest.chars} characters: ${r.largest.today} today, ${r.largest.trained} trained (${pct(r.win(r.largest))}).`);
     console.log(`Best win: ${r.best.name}, ${r.best.today} → ${r.best.trained} (${pct(r.win(r.best))}).`);
-    console.log(`Longer with the trained one: ${r.longer.length} templates${r.longer.length ? ` (worst: ${r.longer.sort((a, b) => b.trained - b.today - (a.trained - a.today))[0].name}, ${r.longer[0].today} → ${r.longer[0].trained})` : ''}.`);
+    console.log(
+      `Longer with the trained one: ${r.longer.length} templates${r.longer.length ? ` (worst: ${r.longer.sort((a, b) => b.trained - b.today - (a.trained - a.today))[0].name}, ${r.longer[0].today} → ${r.longer[0].trained})` : ''}.`,
+    );
     console.log(r.meets ? 'The rule is met: every template shorter or equal, the largest 5% shorter or more.' : 'The rule is not met: the dictionary stays as it is.');
   }
 }

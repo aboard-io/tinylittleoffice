@@ -1,65 +1,65 @@
 {
- "source": "src/apps/draw/templates.ts (the rebuilt tree)",
- "docs": [
-  {
-   "name": "draw/flowchart",
-   "text": "---\ntitle: Can we refund it?\nalt: A flowchart for a refund. Bought in the last 30 days? No: offer a repair or a trade-in. Yes: is there a receipt? Yes: refund to the card. No: store credit. Every way ends in the returns book.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 26 | 1 | 28 | 5 | 1g | A customer asks for a refund\nd | 24 | 8 | 32 | 11 | 0 | Bought in the last 30 days?\nd | 46 | 20 | 28 | 11 | 0 | Got the receipt?\nr | 3 | 34 | 22 | 7 | 1o | Offer a repair \\| or a trade-in\nr | 31 | 34 | 20 | 7 | 1p | Store credit \\| for the full price\nr | 57 | 34 | 21 | 7 | 1b | Refund to the card \\| back in 5 days\no | 24 | 44 | 32 | 5 | 2g | Note it in the returns book\nk | 0 | 1 | 0 | 0 | 0 |\nk | 1 | 2 | 0 | 0 | 0 | yes\nk | 1 | 3 | 0 | 0 | 0 | no\nk | 2 | 5 | 0 | 0 | 0 | yes\nk | 2 | 4 | 0 | 0 | 0 | no\nk | 3 | 6 | 0 | 0 | 0 |\nk | 4 | 6 | 0 | 0 | 0 |\nk | 5 | 6 | 0 | 0 | 0 |\n"
-  },
-  {
-   "name": "draw/card",
-   "text": "---\ntitle: Happy 90th, Nan\nalt: A birthday card on confetti: Happy 90th, Nan! With love from all of us at 14 Marsh Lane, and flowers in the corners.\ntile: 8:c/....g/..e/......h/.g/....c/e/......d\n---\nKind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 12 | 4 | 56 | 42 | 0 |  | 357\ni | 16 | 7 | 8 | 8 | 0r | flower | 357\ni | 56 | 33 | 8 | 8 | 0p | flower | 357\ni | 57 | 7 | 6 | 6 | 0r | heart | 357\nt | 18 | 16 | 46 | 7 | 0r4 | **Happy 90th, Nan!** | 357\nt | 19 | 25 | 40 | 4 | 0 | Ninety years of good advice and better cake. | 357\nt | 19 | 31 | 34 | 4 | 01 | With love from all of us at 14 Marsh Lane | 357\nt | 19 | 36 | 34 | 4 | 0p1 | *Sunday 22 November 2026* | 357\n"
-  },
-  {
-   "name": "draw/event",
-   "text": "---\ntitle: Elm Street block party\nalt: A map of the Elm Street block party on Saturday 13 June 2026: the stage, tea and cakes, plants, and books and records on the north side of the street; first aid, toilets, face painting and the meeting point on the south side.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 0 | 21 | 80 | 10 | 1 | Elm Street \\| closed to cars 10 am to 8 pm\nr | 0 | 20 | 1 | 12 | 2r |\nr | 79 | 20 | 1 | 12 | 2r |\nr | 2 | 3 | 22 | 14 | 2p | :music **Stage** \\| bands from 2 pm\no | 27 | 8 | 14 | 9 | 1o | :coffee Tea and cakes\no | 43 | 8 | 13 | 9 | 1g | :flower Plants\no | 58 | 8 | 15 | 9 | 1b | :book Books \\| and records\no | 3 | 34 | 18 | 9 | 1r | :heart First aid \\| and lost children\nr | 24 | 34 | 12 | 9 | 1 | Toilets\no | 39 | 34 | 20 | 9 | 1o | :smile Face painting \\| and chalk\ni | 65 | 34 | 7 | 7 | 0r | map-pin\nt | 61 | 42 | 18 | 4 | 0r1 | **Meet here** if you lose anyone\nt | 2 | 45 | 58 | 4 | 01 | Saturday 13 June 2026, 12 to 6 pm. Bring a chair; cars out by 10 am.\nt | 73 | 2 | 6 | 4 | 0 | N ↑\n"
-  },
-  {
-   "name": "draw/floorplan",
-   "text": "---\ntitle: Flat 4, 18 Albion Road\nalt: The floor plan of a one-bedroom flat: a living room and kitchen on the left, a hall in the middle, a bedroom and bathroom on the right.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 2 | 36 | 26 | 1 | Living room \\| 5.2 × 4.1 m\nr | 2 | 28 | 36 | 20 | 1g | Kitchen \\| 5.2 × 3.2 m\nr | 38 | 2 | 10 | 46 | 0 | Hall\nr | 48 | 2 | 30 | 28 | 1b | Bedroom \\| 4.3 × 4.4 m\nr | 48 | 30 | 30 | 18 | 1p | Bathroom\nl | 38 | 12 | 0 | 6 | 2 |\nl | 38 | 34 | 0 | 6 | 2 |\nl | 48 | 12 | 0 | 6 | 2 |\nl | 48 | 36 | 0 | 6 | 2 |\nt | 40 | 47 | 8 | 3 | 01 | N ↑\n"
-  },
-  {
-   "name": "draw/room",
-   "text": "---\ntitle: The front room, rearranged\nalt: A plan of a front room, 5.2 by 4.1 metres: a sofa facing the television across a rug and a low table, a bookcase on the left wall, a desk under the window and an armchair by the door.\n---\nKind | X | Y | W | H | Style | Label | Rot | Points\n--- | --- | --- | --- | --- | --- | --- | --- | ---\nr | 8 | 3 | 54 | 44 | 0 |  |  |\nr | 20 | 2 | 24 | 2 | 2g |  |  |\nt | 24 | 4 | 16 | 3 | 0g1 | Window |  |\nr | 0 | 22 | 24 | 5 | 1o | Bookcase | 90 |\nr | 50 | 22 | 18 | 3 | 2 | TV | 90 |\ne | 18 | 16 | 28 | 18 | 1o |  |  |\nr | 25 | 21 | 14 | 8 | 0 | Low table |  |\no | 18 | 37 | 28 | 8 | 1b | Sofa \\| 2.2 m |  |\nr | 46 | 5 | 15 | 7 | 1p | Desk |  |\no | 49 | 30 | 10 | 9 | 1b | Chair |  |\ni | 10 | 39 | 6 | 6 | 0g | leaf |  |\nw | 52 | 40 | 8 | 7 | 0 |  |  | 0:100;0:0;38:8;71:29;92:62;100:100\nn | 64 | 3 | 15 | 19 | 1 | Sofa off the radiator wall \\| rug from the hall \\| on 8 November |  |\nt | 64 | 24 | 15 | 3 | 01 | 5.2 × 4.1 m |  |\n"
-  },
-  {
-   "name": "draw/wireframe",
-   "text": "---\ntitle: Library app: a book’s page\nalt: A wireframe of a phone screen for a library app: a header, a search box, a cover image, the title and author, how many copies are in, and a Borrow button, with three notes on the right.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 1 | 26 | 48 | 0 |\nr | 6 | 4 | 22 | 4 | 1 | **Riverside Library**\nr | 6 | 10 | 22 | 4 | 0 | :search Find a book\nr | 9 | 16 | 16 | 13 | 1 |\nl | 9 | 16 | 16 | 13 | 1 |\nl | 25 | 16 | -16 | 13 | 1 |\nt | 6 | 30 | 22 | 3 | 0 | **The Overstory**\nt | 6 | 33 | 22 | 3 | 01 | Richard Powers · 2 of 3 in\no | 6 | 39 | 22 | 5 | 2b | Borrow\nn | 44 | 3 | 32 | 9 | 1o | Search at the top \\| most visits are to find one book\nn | 44 | 18 | 32 | 9 | 1g | The cover from the catalogue \\| a grey box until it loads\nn | 44 | 34 | 32 | 9 | 1b | One button \\| Borrow, or Join the queue when none are in\nk | 9 | 2 | 0 | 0 | 1 |\nk | 10 | 3 | 0 | 0 | 1 |\nk | 11 | 8 | 0 | 0 | 1 |\n"
-  },
-  {
-   "name": "draw/logo",
-   "text": "---\ntitle: Hollow Pine Coffee: logo ideas\nalt: Three logo ideas for Hollow Pine Coffee: a mug in a green circle, pines in an orange hexagon, and a pine tree drawn as one shape, with the name set large beneath them.\n---\nKind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\ne | 5 | 3 | 20 | 20 | 1g |  |\ni | 9 | 7 | 12 | 12 | 0g | coffee |\nh | 30 | 3 | 20 | 20 | 1o |  |\ni | 34 | 7 | 12 | 12 | 0o | trees |\nv | 58 | 2 | 16 | 18 | 2g |  | 50:0;78:38;64:38;90:72;10:72;36:38;22:38\nr | 64 | 20 | 4 | 4 | 2o |  |\nt | 8 | 24 | 16 | 3 | 01 | **A** · the mug |\nt | 32 | 24 | 18 | 3 | 01 | **B** · the woods |\nt | 58 | 25 | 18 | 3 | 01 | **C** · one pine |\nt | 4 | 30 | 72 | 7 | 0g4 | **Hollow Pine** Coffee |\nt | 5 | 38 | 70 | 4 | 0 | Roasted in Keswick since 2019 |\nn | 5 | 43 | 40 | 6 | 1o | Pick one by Friday 16 October |\n"
-  },
-  {
-   "name": "draw/badge",
-   "text": "---\ntitle: Volunteer of the year\nalt: A rosette badge with two ribbons: a star, Volunteer of the year, Hartley Food Bank 2026.\n---\nKind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 29 | 30 | 8 | 18 | 2r |  | 15\nr | 43 | 30 | 8 | 18 | 2b |  | 345\ne | 22 | 2 | 36 | 36 | 2o |  |\ne | 25 | 5 | 30 | 30 | 0o |  |\ni | 36 | 8 | 8 | 8 | 2o | star |\nt | 27 | 17 | 26 | 5 | 0o3 | **Volunteer** |\nt | 30 | 23 | 22 | 3 | 0 | of the year |\nt | 28 | 27 | 24 | 3 | 01 | Hartley Food Bank · 2026 |\n"
-  },
-  {
-   "name": "draw/order",
-   "text": "---\ntitle: From order to doorstep\nalt: How an order at Fernhill Tea travels: ordered, paid, packed in Leeds, out for delivery, delivered; the payment is written to the orders table.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 2 | 4 | 23 | 9 | 1b | :cart **Ordered** \\| Tuesday, 9:14 am\no | 29 | 4 | 22 | 9 | 1p | :dollar **Paid** \\| £42.50 by card\no | 55 | 4 | 23 | 9 | 1o | :package **Packed** \\| in Leeds\no | 55 | 24 | 23 | 9 | 1g | :truck **Out for delivery** \\| Wednesday\no | 29 | 24 | 22 | 9 | 2g | :home **Delivered** \\| by 6 pm\nc | 5 | 23 | 16 | 12 | 1 | Orders\nn | 55 | 38 | 23 | 11 | 1 | **Late?** \\| We email by noon \\| and refund the postage\nk | 0 | 1 | 0 | 0 | 0 |\nk | 1 | 2 | 0 | 0 | 0 |\nk | 2 | 3 | 0 | 0 | 0 | van\nk | 3 | 4 | 0 | 0 | 0 |\nj | 1 | 5 | 0 | 0 | 1 | saved\n"
-  },
-  {
-   "name": "draw/request",
-   "text": "---\ntitle: How a page loads\nalt: A browser asks a server, which reads the data.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads\n"
-  },
-  {
-   "name": "draw/tiers",
-   "text": "---\ntitle: Three tiers\nalt: A phone and a laptop talk to an API, which reads a database and a cache.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 6 | 4 | 8 | 8 | 0 | phone2\ni | 6 | 18 | 8 | 8 | 0 | laptop\no | 30 | 10 | 20 | 8 | 1b | :server API\nc | 60 | 2 | 14 | 10 | 1p | Postgres\nc | 60 | 18 | 14 | 10 | 1o | Cache\nn | 26 | 30 | 28 | 12 | 1 | Every request is logged \\| with its latency and status\nk | 0 | 2 | 0 | 0 | 0 | https\nk | 1 | 2 | 0 | 0 | 0 | https\nk | 2 | 3 | 0 | 0 | 0 | sql\nk | 2 | 4 | 0 | 0 | 1 | get\n"
-  },
-  {
-   "name": "draw/heart",
-   "text": "---\ntitle: A heart\ngrid: 16\n---\n....cc....cc....\n...cccc..cccc...\n..cccccccccccc..\n..chccccccccccc.\n..chccccccccccc.\n..cccccccccccc..\n...cccccccccc...\n....cccccccc....\n.....cccccc.....\n......cccc......\n.......cc.......\n"
-  },
-  {
-   "name": "draw/icons",
-   "text": "---\ntitle: Weather icons\ngrid: 32\n---\n.\n........d\n........d\n...d..aaaa...d.........aaaa\n....daeeeea.d.........agggga\n....aeeeeeea.........agggggga\n...aeeeeeeeea.......aagggggga\n...aeeeeeeeea......aggggggggga\n.ddaeeeeeeeeadd...aggggggggggga\n...aeeeeeeeea....aggggggggggggga\n....aeeeeeea......agggggggggggga\n.....aeeeea........agggggggggga\n....d.aaaa..d.......aaaaaaaaaa\n...d....d....d\n........d\n.\n.......aaaa.............aa\n......abbbba..........aaaaaa\n.....abbbbbba.........aaaaaa\n...aaabbbbbba.......aaaaaaaaa\n..abbbbbbbbbba.....aaaaaaaaaaa\n..abbbbbbbbbbba....aaaaaaaaaaaa\n..abbbbbbbbbbbba...aaaaaaaaaaaa\n..abbbbbbbbbbba.....aaaaaaaaaa\n...abbbbbbbbbba..........e\n....aaaaaaaaaa..........e\n.........g..............e\n.....g..g....g.........eeee\n....g.......g............e\n........................e\n.......g...g...........e\n"
-  },
-  {
-   "name": "draw/sprite",
-   "text": "---\ntitle: Pip the frog\ngrid: 32\n---\n.\n.\n.\n.\n.........aaa........aaa\n........afffa......afffa\n.......aff.ffa....aff.ffa\n......aff...ffaaaaff...ffa\n......af..aa.ffffff..aa.fa\n......aff.aaffffffff.aaffa\n......afff.ffffffffff.fffa\n.....affffffffffffffffffffa\n....affffffffffffffffffffffa\n....affffffffffffffffffffffa\n....afffhhfffffffffffffhhffa\n....afffffffafffffffaffffffa\n.....afffffffaaaaaaaffffffa\n......affffffffffffffffffa\n.....affffffffffffffffffffa\n....afffcccccccccccccccccffa\n....afffcccccccccccccccccffa\n...afffffffeeeeeeeeecccfffffa\n...afffffffeeeeeeeeecccfffffa\n....afffffeeeeeeeeeecccffffa\n....affffffeeeeeeeeecccffffa\n.....afafffeeeeeeeeeefffafa\n......a.afffeeeeeeeefffa.a\n........aafffeeeeeefffaa\n.......affffffffffffffffa\n.......affffffaaaaffffffa\n........aaffaa....aaffaa\n..........aa........aa\n"
-  },
-  {
-   "name": "draw/tile",
-   "text": "---\ntitle: Diamonds\ngrid: 8\n---\nb...b\n.b.b.b\n..b\n.b.b.b\nb...b\n.....b.b\n......b\n.....b.b\n"
-  }
- ]
+  "source": "src/apps/draw/templates.ts (the rebuilt tree)",
+  "docs": [
+    {
+      "name": "draw/flowchart",
+      "text": "---\ntitle: Can we refund it?\nalt: A flowchart for a refund. Bought in the last 30 days? No: offer a repair or a trade-in. Yes: is there a receipt? Yes: refund to the card. No: store credit. Every way ends in the returns book.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 26 | 1 | 28 | 5 | 1g | A customer asks for a refund\nd | 24 | 8 | 32 | 11 | 0 | Bought in the last 30 days?\nd | 46 | 20 | 28 | 11 | 0 | Got the receipt?\nr | 3 | 34 | 22 | 7 | 1o | Offer a repair \\| or a trade-in\nr | 31 | 34 | 20 | 7 | 1p | Store credit \\| for the full price\nr | 57 | 34 | 21 | 7 | 1b | Refund to the card \\| back in 5 days\no | 24 | 44 | 32 | 5 | 2g | Note it in the returns book\nk | 0 | 1 | 0 | 0 | 0 |\nk | 1 | 2 | 0 | 0 | 0 | yes\nk | 1 | 3 | 0 | 0 | 0 | no\nk | 2 | 5 | 0 | 0 | 0 | yes\nk | 2 | 4 | 0 | 0 | 0 | no\nk | 3 | 6 | 0 | 0 | 0 |\nk | 4 | 6 | 0 | 0 | 0 |\nk | 5 | 6 | 0 | 0 | 0 |\n"
+    },
+    {
+      "name": "draw/card",
+      "text": "---\ntitle: Happy 90th, Nan\nalt: A birthday card on confetti: Happy 90th, Nan! With love from all of us at 14 Marsh Lane, and flowers in the corners.\ntile: 8:c/....g/..e/......h/.g/....c/e/......d\n---\nKind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 12 | 4 | 56 | 42 | 0 |  | 357\ni | 16 | 7 | 8 | 8 | 0r | flower | 357\ni | 56 | 33 | 8 | 8 | 0p | flower | 357\ni | 57 | 7 | 6 | 6 | 0r | heart | 357\nt | 18 | 16 | 46 | 7 | 0r4 | **Happy 90th, Nan!** | 357\nt | 19 | 25 | 40 | 4 | 0 | Ninety years of good advice and better cake. | 357\nt | 19 | 31 | 34 | 4 | 01 | With love from all of us at 14 Marsh Lane | 357\nt | 19 | 36 | 34 | 4 | 0p1 | *Sunday 22 November 2026* | 357\n"
+    },
+    {
+      "name": "draw/event",
+      "text": "---\ntitle: Elm Street block party\nalt: A map of the Elm Street block party on Saturday 13 June 2026: the stage, tea and cakes, plants, and books and records on the north side of the street; first aid, toilets, face painting and the meeting point on the south side.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 0 | 21 | 80 | 10 | 1 | Elm Street \\| closed to cars 10 am to 8 pm\nr | 0 | 20 | 1 | 12 | 2r |\nr | 79 | 20 | 1 | 12 | 2r |\nr | 2 | 3 | 22 | 14 | 2p | :music **Stage** \\| bands from 2 pm\no | 27 | 8 | 14 | 9 | 1o | :coffee Tea and cakes\no | 43 | 8 | 13 | 9 | 1g | :flower Plants\no | 58 | 8 | 15 | 9 | 1b | :book Books \\| and records\no | 3 | 34 | 18 | 9 | 1r | :heart First aid \\| and lost children\nr | 24 | 34 | 12 | 9 | 1 | Toilets\no | 39 | 34 | 20 | 9 | 1o | :smile Face painting \\| and chalk\ni | 65 | 34 | 7 | 7 | 0r | map-pin\nt | 61 | 42 | 18 | 4 | 0r1 | **Meet here** if you lose anyone\nt | 2 | 45 | 58 | 4 | 01 | Saturday 13 June 2026, 12 to 6 pm. Bring a chair; cars out by 10 am.\nt | 73 | 2 | 6 | 4 | 0 | N ↑\n"
+    },
+    {
+      "name": "draw/floorplan",
+      "text": "---\ntitle: Flat 4, 18 Albion Road\nalt: The floor plan of a one-bedroom flat: a living room and kitchen on the left, a hall in the middle, a bedroom and bathroom on the right.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 2 | 2 | 36 | 26 | 1 | Living room \\| 5.2 × 4.1 m\nr | 2 | 28 | 36 | 20 | 1g | Kitchen \\| 5.2 × 3.2 m\nr | 38 | 2 | 10 | 46 | 0 | Hall\nr | 48 | 2 | 30 | 28 | 1b | Bedroom \\| 4.3 × 4.4 m\nr | 48 | 30 | 30 | 18 | 1p | Bathroom\nl | 38 | 12 | 0 | 6 | 2 |\nl | 38 | 34 | 0 | 6 | 2 |\nl | 48 | 12 | 0 | 6 | 2 |\nl | 48 | 36 | 0 | 6 | 2 |\nt | 40 | 47 | 8 | 3 | 01 | N ↑\n"
+    },
+    {
+      "name": "draw/room",
+      "text": "---\ntitle: The front room, rearranged\nalt: A plan of a front room, 5.2 by 4.1 metres: a sofa facing the television across a rug and a low table, a bookcase on the left wall, a desk under the window and an armchair by the door.\n---\nKind | X | Y | W | H | Style | Label | Rot | Points\n--- | --- | --- | --- | --- | --- | --- | --- | ---\nr | 8 | 3 | 54 | 44 | 0 |  |  |\nr | 20 | 2 | 24 | 2 | 2g |  |  |\nt | 24 | 4 | 16 | 3 | 0g1 | Window |  |\nr | 0 | 22 | 24 | 5 | 1o | Bookcase | 90 |\nr | 50 | 22 | 18 | 3 | 2 | TV | 90 |\ne | 18 | 16 | 28 | 18 | 1o |  |  |\nr | 25 | 21 | 14 | 8 | 0 | Low table |  |\no | 18 | 37 | 28 | 8 | 1b | Sofa \\| 2.2 m |  |\nr | 46 | 5 | 15 | 7 | 1p | Desk |  |\no | 49 | 30 | 10 | 9 | 1b | Chair |  |\ni | 10 | 39 | 6 | 6 | 0g | leaf |  |\nw | 52 | 40 | 8 | 7 | 0 |  |  | 0:100;0:0;38:8;71:29;92:62;100:100\nn | 64 | 3 | 15 | 19 | 1 | Sofa off the radiator wall \\| rug from the hall \\| on 8 November |  |\nt | 64 | 24 | 15 | 3 | 01 | 5.2 × 4.1 m |  |\n"
+    },
+    {
+      "name": "draw/wireframe",
+      "text": "---\ntitle: Library app: a book’s page\nalt: A wireframe of a phone screen for a library app: a header, a search box, a cover image, the title and author, how many copies are in, and a Borrow button, with three notes on the right.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 1 | 26 | 48 | 0 |\nr | 6 | 4 | 22 | 4 | 1 | **Riverside Library**\nr | 6 | 10 | 22 | 4 | 0 | :search Find a book\nr | 9 | 16 | 16 | 13 | 1 |\nl | 9 | 16 | 16 | 13 | 1 |\nl | 25 | 16 | -16 | 13 | 1 |\nt | 6 | 30 | 22 | 3 | 0 | **The Overstory**\nt | 6 | 33 | 22 | 3 | 01 | Richard Powers · 2 of 3 in\no | 6 | 39 | 22 | 5 | 2b | Borrow\nn | 44 | 3 | 32 | 9 | 1o | Search at the top \\| most visits are to find one book\nn | 44 | 18 | 32 | 9 | 1g | The cover from the catalogue \\| a grey box until it loads\nn | 44 | 34 | 32 | 9 | 1b | One button \\| Borrow, or Join the queue when none are in\nk | 9 | 2 | 0 | 0 | 1 |\nk | 10 | 3 | 0 | 0 | 1 |\nk | 11 | 8 | 0 | 0 | 1 |\n"
+    },
+    {
+      "name": "draw/logo",
+      "text": "---\ntitle: Hollow Pine Coffee: logo ideas\nalt: Three logo ideas for Hollow Pine Coffee: a mug in a green circle, pines in an orange hexagon, and a pine tree drawn as one shape, with the name set large beneath them.\n---\nKind | X | Y | W | H | Style | Label | Points\n--- | --- | --- | --- | --- | --- | --- | ---\ne | 5 | 3 | 20 | 20 | 1g |  |\ni | 9 | 7 | 12 | 12 | 0g | coffee |\nh | 30 | 3 | 20 | 20 | 1o |  |\ni | 34 | 7 | 12 | 12 | 0o | trees |\nv | 58 | 2 | 16 | 18 | 2g |  | 50:0;78:38;64:38;90:72;10:72;36:38;22:38\nr | 64 | 20 | 4 | 4 | 2o |  |\nt | 8 | 24 | 16 | 3 | 01 | **A** · the mug |\nt | 32 | 24 | 18 | 3 | 01 | **B** · the woods |\nt | 58 | 25 | 18 | 3 | 01 | **C** · one pine |\nt | 4 | 30 | 72 | 7 | 0g4 | **Hollow Pine** Coffee |\nt | 5 | 38 | 70 | 4 | 0 | Roasted in Keswick since 2019 |\nn | 5 | 43 | 40 | 6 | 1o | Pick one by Friday 16 October |\n"
+    },
+    {
+      "name": "draw/badge",
+      "text": "---\ntitle: Volunteer of the year\nalt: A rosette badge with two ribbons: a star, Volunteer of the year, Hartley Food Bank 2026.\n---\nKind | X | Y | W | H | Style | Label | Rot\n--- | --- | --- | --- | --- | --- | --- | ---\nr | 29 | 30 | 8 | 18 | 2r |  | 15\nr | 43 | 30 | 8 | 18 | 2b |  | 345\ne | 22 | 2 | 36 | 36 | 2o |  |\ne | 25 | 5 | 30 | 30 | 0o |  |\ni | 36 | 8 | 8 | 8 | 2o | star |\nt | 27 | 17 | 26 | 5 | 0o3 | **Volunteer** |\nt | 30 | 23 | 22 | 3 | 0 | of the year |\nt | 28 | 27 | 24 | 3 | 01 | Hartley Food Bank · 2026 |\n"
+    },
+    {
+      "name": "draw/order",
+      "text": "---\ntitle: From order to doorstep\nalt: How an order at Fernhill Tea travels: ordered, paid, packed in Leeds, out for delivery, delivered; the payment is written to the orders table.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 2 | 4 | 23 | 9 | 1b | :cart **Ordered** \\| Tuesday, 9:14 am\no | 29 | 4 | 22 | 9 | 1p | :dollar **Paid** \\| £42.50 by card\no | 55 | 4 | 23 | 9 | 1o | :package **Packed** \\| in Leeds\no | 55 | 24 | 23 | 9 | 1g | :truck **Out for delivery** \\| Wednesday\no | 29 | 24 | 22 | 9 | 2g | :home **Delivered** \\| by 6 pm\nc | 5 | 23 | 16 | 12 | 1 | Orders\nn | 55 | 38 | 23 | 11 | 1 | **Late?** \\| We email by noon \\| and refund the postage\nk | 0 | 1 | 0 | 0 | 0 |\nk | 1 | 2 | 0 | 0 | 0 |\nk | 2 | 3 | 0 | 0 | 0 | van\nk | 3 | 4 | 0 | 0 | 0 |\nj | 1 | 5 | 0 | 0 | 1 | saved\n"
+    },
+    {
+      "name": "draw/request",
+      "text": "---\ntitle: How a page loads\nalt: A browser asks a server, which reads the data.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads\n"
+    },
+    {
+      "name": "draw/tiers",
+      "text": "---\ntitle: Three tiers\nalt: A phone and a laptop talk to an API, which reads a database and a cache.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\ni | 6 | 4 | 8 | 8 | 0 | phone2\ni | 6 | 18 | 8 | 8 | 0 | laptop\no | 30 | 10 | 20 | 8 | 1b | :server API\nc | 60 | 2 | 14 | 10 | 1p | Postgres\nc | 60 | 18 | 14 | 10 | 1o | Cache\nn | 26 | 30 | 28 | 12 | 1 | Every request is logged \\| with its latency and status\nk | 0 | 2 | 0 | 0 | 0 | https\nk | 1 | 2 | 0 | 0 | 0 | https\nk | 2 | 3 | 0 | 0 | 0 | sql\nk | 2 | 4 | 0 | 0 | 1 | get\n"
+    },
+    {
+      "name": "draw/heart",
+      "text": "---\ntitle: A heart\ngrid: 16\n---\n....cc....cc....\n...cccc..cccc...\n..cccccccccccc..\n..chccccccccccc.\n..chccccccccccc.\n..cccccccccccc..\n...cccccccccc...\n....cccccccc....\n.....cccccc.....\n......cccc......\n.......cc.......\n"
+    },
+    {
+      "name": "draw/icons",
+      "text": "---\ntitle: Weather icons\ngrid: 32\n---\n.\n........d\n........d\n...d..aaaa...d.........aaaa\n....daeeeea.d.........agggga\n....aeeeeeea.........agggggga\n...aeeeeeeeea.......aagggggga\n...aeeeeeeeea......aggggggggga\n.ddaeeeeeeeeadd...aggggggggggga\n...aeeeeeeeea....aggggggggggggga\n....aeeeeeea......agggggggggggga\n.....aeeeea........agggggggggga\n....d.aaaa..d.......aaaaaaaaaa\n...d....d....d\n........d\n.\n.......aaaa.............aa\n......abbbba..........aaaaaa\n.....abbbbbba.........aaaaaa\n...aaabbbbbba.......aaaaaaaaa\n..abbbbbbbbbba.....aaaaaaaaaaa\n..abbbbbbbbbbba....aaaaaaaaaaaa\n..abbbbbbbbbbbba...aaaaaaaaaaaa\n..abbbbbbbbbbba.....aaaaaaaaaa\n...abbbbbbbbbba..........e\n....aaaaaaaaaa..........e\n.........g..............e\n.....g..g....g.........eeee\n....g.......g............e\n........................e\n.......g...g...........e\n"
+    },
+    {
+      "name": "draw/sprite",
+      "text": "---\ntitle: Pip the frog\ngrid: 32\n---\n.\n.\n.\n.\n.........aaa........aaa\n........afffa......afffa\n.......aff.ffa....aff.ffa\n......aff...ffaaaaff...ffa\n......af..aa.ffffff..aa.fa\n......aff.aaffffffff.aaffa\n......afff.ffffffffff.fffa\n.....affffffffffffffffffffa\n....affffffffffffffffffffffa\n....affffffffffffffffffffffa\n....afffhhfffffffffffffhhffa\n....afffffffafffffffaffffffa\n.....afffffffaaaaaaaffffffa\n......affffffffffffffffffa\n.....affffffffffffffffffffa\n....afffcccccccccccccccccffa\n....afffcccccccccccccccccffa\n...afffffffeeeeeeeeecccfffffa\n...afffffffeeeeeeeeecccfffffa\n....afffffeeeeeeeeeecccffffa\n....affffffeeeeeeeeecccffffa\n.....afafffeeeeeeeeeefffafa\n......a.afffeeeeeeeefffa.a\n........aafffeeeeeefffaa\n.......affffffffffffffffa\n.......affffffaaaaffffffa\n........aaffaa....aaffaa\n..........aa........aa\n"
+    },
+    {
+      "name": "draw/tile",
+      "text": "---\ntitle: Diamonds\ngrid: 8\n---\nb...b\n.b.b.b\n..b\n.b.b.b\nb...b\n.....b.b\n......b\n.....b.b\n"
+    }
+  ]
 }

@@ -32,7 +32,16 @@ test('every app opens with the focus where a person starts, the page not scrolle
     await page.goto('/');
     await page.goto(`/#/v1/${app}`);
     await expect(page.locator(start).first(), app).toBeVisible();
-    await expect.poll(() => page.locator(start).first().evaluate((el) => el === document.activeElement || el.contains(document.activeElement)), { message: app }).toBe(true);
+    await expect
+      .poll(
+        () =>
+          page
+            .locator(start)
+            .first()
+            .evaluate((el) => el === document.activeElement || el.contains(document.activeElement)),
+        { message: app },
+      )
+      .toBe(true);
     expect(await page.evaluate(() => document.activeElement?.matches('.to-title, body') ?? true), app).toBe(false);
     expect(await page.evaluate(() => document.scrollingElement!.scrollTop), app).toBe(0);
   }

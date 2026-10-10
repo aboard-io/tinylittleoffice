@@ -62,7 +62,7 @@ test('typed money is read with a symbol or a code before or after it, and its co
   expect(parseLiteral('twelve apples', 'money')).toBe('twelve apples');
 });
 
-test('the workbook gives each money column its own sign, the document\'s where it names none', () => {
+test("the workbook gives each money column its own sign, the document's where it names none", () => {
   const t = tableAt(parse('Job | Price:money(£) | Abroad:money(€) | Here:money\n--- | --- | --- | ---\nA | 85 | 90 | 3\n'), 0)!;
   const files = unzipSync(tableToXlsx(t, evaluateTable(t), null, 'CHF'));
   const styles = strFromU8(files['xl/styles.xml']);

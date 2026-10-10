@@ -11,13 +11,24 @@ function xrefHolds(s: string) {
   const at = Number(/startxref\n(\d+)\n%%EOF\n$/.exec(s)![1]);
   expect(s.slice(at, at + 4)).toBe('xref');
   const [, count] = /^xref\n0 (\d+)\n/.exec(s.slice(at))!;
-  const rows = s.slice(at).split('\n').slice(3, 2 + Number(count));
+  const rows = s
+    .slice(at)
+    .split('\n')
+    .slice(3, 2 + Number(count));
   rows.forEach((row, i) => expect(s.slice(Number(row.slice(0, 10)), Number(row.slice(0, 10)) + `${i + 1} 0 obj`.length)).toBe(`${i + 1} 0 obj`));
 }
 
 test('a page a JPEG, each the size of its page (px as 3/4 pt), numbered when there are more than one', () => {
   const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
-  const s = latin1(pdf([{ w: 960, h: 540, pw: 1920, ph: 1080, jpeg }, { w: 960, h: 540, pw: 1920, ph: 1080, jpeg }], 'Talk'));
+  const s = latin1(
+    pdf(
+      [
+        { w: 960, h: 540, pw: 1920, ph: 1080, jpeg },
+        { w: 960, h: 540, pw: 1920, ph: 1080, jpeg },
+      ],
+      'Talk',
+    ),
+  );
   expect(s.startsWith('%PDF-1.4\n')).toBe(true);
   expect(s).toContain('/Count 2');
   expect(s).toContain('/MediaBox [0 0 720 405]');

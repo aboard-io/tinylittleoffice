@@ -81,7 +81,43 @@ import type { ToContext } from './context.ts';
 import { lookup } from './app.ts';
 import { t } from './i18n.ts';
 import { icon, iconNamed, iconsComplete, isIconName, loadIcons, onIcons } from './icons.ts';
-import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collapsed, deleteSel, forwardDelete, insertBlocks, insertRuns, isWords, kindAt, marksOf, ordered, runAt, sameSel, moveItems, setKind, setMark, shiftItems, shortcut, skipEmbed, smartQuote, splitAt, toggleMark, runsDiff, wholeSel, type Command, type Fmt, type Mark, type Pos, type Sel, type Shape } from './textops.ts';
+import {
+  align,
+  alignAt,
+  backspace,
+  blockLength,
+  caret,
+  charAt,
+  clampSel,
+  collapsed,
+  deleteSel,
+  forwardDelete,
+  insertBlocks,
+  insertRuns,
+  isWords,
+  kindAt,
+  marksOf,
+  ordered,
+  runAt,
+  sameSel,
+  moveItems,
+  setKind,
+  setMark,
+  shiftItems,
+  shortcut,
+  skipEmbed,
+  smartQuote,
+  splitAt,
+  toggleMark,
+  runsDiff,
+  wholeSel,
+  type Command,
+  type Fmt,
+  type Mark,
+  type Pos,
+  type Sel,
+  type Shape,
+} from './textops.ts';
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import { completeNamed, completions, loadCompletions, type Completion, type ToComplete } from './complete.ts';
@@ -154,8 +190,31 @@ if (typeof document !== 'undefined') {
 /** Whether a selection written now answers something the person just did here. */
 const answering = () => acted > scrolled && performance.now() - acted < ANSWER_MS;
 const WEBKIT = typeof navigator !== 'undefined' && /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
-const DELETES = new Set(['deleteWordBackward', 'deleteWordForward', 'deleteSoftLineBackward', 'deleteSoftLineForward', 'deleteHardLineBackward', 'deleteHardLineForward', 'deleteContent', 'deleteByCut', 'deleteByDrag']);
-const FORMATS: Record<string, Command> = { formatBold: 'b', formatItalic: 'i', formatUnderline: 'u', formatStrikeThrough: 's', insertOrderedList: 'ol', insertUnorderedList: 'ul', formatIndent: 'indent', formatOutdent: 'outdent', formatJustifyLeft: 'left', formatJustifyCenter: 'center', formatJustifyRight: 'right', formatJustifyFull: 'justify' };
+const DELETES = new Set([
+  'deleteWordBackward',
+  'deleteWordForward',
+  'deleteSoftLineBackward',
+  'deleteSoftLineForward',
+  'deleteHardLineBackward',
+  'deleteHardLineForward',
+  'deleteContent',
+  'deleteByCut',
+  'deleteByDrag',
+]);
+const FORMATS: Record<string, Command> = {
+  formatBold: 'b',
+  formatItalic: 'i',
+  formatUnderline: 'u',
+  formatStrikeThrough: 's',
+  insertOrderedList: 'ol',
+  insertUnorderedList: 'ul',
+  formatIndent: 'indent',
+  formatOutdent: 'outdent',
+  formatJustifyLeft: 'left',
+  formatJustifyCenter: 'center',
+  formatJustifyRight: 'right',
+  formatJustifyFull: 'justify',
+};
 
 /**
  * A block's element read back as runs: text nodes with the marks of the
@@ -189,7 +248,17 @@ export function domToRuns(el: HTMLElement): Run[] {
 }
 
 export class ToText extends LitElement {
-  static properties = { blocks: { attribute: false }, shape: {}, noteStart: { type: Number, attribute: 'note-start' }, label: {}, placeholder: {}, card: { attribute: false }, noBubble: { type: Boolean, attribute: 'no-bubble' }, marksOnly: { type: Boolean, attribute: 'marks-only' }, notes: { type: Boolean } };
+  static properties = {
+    blocks: { attribute: false },
+    shape: {},
+    noteStart: { type: Number, attribute: 'note-start' },
+    label: {},
+    placeholder: {},
+    card: { attribute: false },
+    noBubble: { type: Boolean, attribute: 'no-bubble' },
+    marksOnly: { type: Boolean, attribute: 'marks-only' },
+    notes: { type: Boolean },
+  };
   /** The blocks it owns; `at` in its ops counts from the first. */
   declare blocks: Block[];
   declare shape: Shape;
@@ -494,7 +563,7 @@ export class ToText extends LitElement {
   }
   private current(): Sel {
     const m = this.model;
-    return this._sel ? clampSel(m, this._sel) : this.readSel() ?? caret(m.length - 1, blockLength(m[m.length - 1]));
+    return this._sel ? clampSel(m, this._sel) : (this.readSel() ?? caret(m.length - 1, blockLength(m[m.length - 1])));
   }
 
   /** What an edit replaces: the selection, or with everything selected (Select All in a doc) the whole document, its cards too. */
@@ -505,7 +574,10 @@ export class ToText extends LitElement {
   /** Whether an event comes from a control the host put inside a card (an input, a button): its own, not the editor's. */
   private ownEvent(e: Event): boolean {
     const el = e.target as HTMLElement | null;
-    return !!el?.closest?.('.tx-card') && (el.matches?.('input, textarea, select, button, a, [contenteditable="true"]') || !!el.closest?.('input, textarea, select, button, a, .tx-card [contenteditable="true"]'));
+    return (
+      !!el?.closest?.('.tx-card') &&
+      (el.matches?.('input, textarea, select, button, a, [contenteditable="true"]') || !!el.closest?.('input, textarea, select, button, a, .tx-card [contenteditable="true"]'))
+    );
   }
 
   private onBeforeInput = (e: InputEvent) => {
@@ -519,7 +591,8 @@ export class ToText extends LitElement {
     const type = e.inputType;
     const exit = (dir: 'back' | 'forward') => this.dispatchEvent(new CustomEvent<{ dir: 'back' | 'forward' }>('text-exit', { detail: { dir }, bubbles: true }));
     // Backspace at the very start says `text-exit` (back); in a line, Delete at the very end says it too (forward): the host owns what is around the line.
-    const edit = (r: ReturnType<typeof backspace>, forward = false) => (r === 'exit' ? exit('back') : r ? this.emit(r.ops, r.sel, 'type') : forward && this.shape === 'line' && collapsed(sel) ? exit('forward') : undefined);
+    const edit = (r: ReturnType<typeof backspace>, forward = false) =>
+      r === 'exit' ? exit('back') : r ? this.emit(r.ops, r.sel, 'type') : forward && this.shape === 'line' && collapsed(sel) ? exit('forward') : undefined;
     // Enter from a keyboard that sends no key (Android's) picks, as the key would.
     if (type === 'insertParagraph' && this.completeOpen()) return this.pickCompletion();
     switch (type) {
@@ -656,7 +729,7 @@ export class ToText extends LitElement {
    * box; with the box already whole, or empty, the host is asked for everything (`text-selectall`).
    */
   selectAllKey(): boolean {
-    if (this.shape === 'doc') return this.selectAll(), true;
+    if (this.shape === 'doc') return (this.selectAll(), true);
     const m = this.model;
     const [a, b] = ordered(this.current());
     if (!(a.offset === 0 && b.offset >= blockLength(m[m.length - 1]) && a.block === 0 && b.block === m.length - 1)) return false;

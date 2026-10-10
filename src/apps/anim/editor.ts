@@ -29,7 +29,29 @@ import { pinchZoom } from '../../kit/pinch.ts';
 import { applyAll, parse, write, type Doc, type Op } from '../../doc/index.ts';
 import { GRID, H, W, bounds, isDrawn, isLink, shapesTable, type Shape } from '../draw/model.ts';
 import { THEME } from '../draw/editor.ts';
-import { MAX_FPS, MAX_FRAMES, MAX_Z, MIN_FPS, MIN_FRAMES, drawingOf, playhead, duplicateShapes, loosen, motionOf, pasteMotion, readAnim, redraw, removeKey, removeShapes, room, setLength, stateAt, withKeys, type AnimView, type Key as AnimKey } from './model.ts';
+import {
+  MAX_FPS,
+  MAX_FRAMES,
+  MAX_Z,
+  MIN_FPS,
+  MIN_FRAMES,
+  drawingOf,
+  playhead,
+  duplicateShapes,
+  loosen,
+  motionOf,
+  pasteMotion,
+  readAnim,
+  redraw,
+  removeKey,
+  removeShapes,
+  room,
+  setLength,
+  stateAt,
+  withKeys,
+  type AnimView,
+  type Key as AnimKey,
+} from './model.ts';
 import { frameSvg, transformOf, altOf } from './view.ts';
 import { turnOf } from '../draw/view.ts';
 import '../../kit/bar.ts';
@@ -69,7 +91,16 @@ const TWICE_MS = 400;
 const FINGER = 44;
 
 export class ToAnimEditor extends DocElement<AnimView> {
-  static properties: PropertyDeclarations = { mode: { state: true }, frame: { state: true }, sels: { state: true }, playing: { state: true }, clock: { state: true }, live: { state: true }, zoom: { state: true }, held: { state: true } };
+  static properties: PropertyDeclarations = {
+    mode: { state: true },
+    frame: { state: true },
+    sels: { state: true },
+    playing: { state: true },
+    clock: { state: true },
+    live: { state: true },
+    zoom: { state: true },
+    held: { state: true },
+  };
   declare mode: 'draw' | 'move';
   declare frame: number;
   /** The shapes in hand, the last chosen last; [] for none. */
@@ -345,10 +376,13 @@ export class ToAnimEditor extends DocElement<AnimView> {
   /** The shapes in hand moved by (x, y) at this moment, never off the stage. */
   nudge(x: number, y: number) {
     const v = this.view;
-    this.key((at, i) => {
-      const [x0, x1, y0, y1] = room(v, i);
-      return { dx: clamp(at.dx + x, Math.min(x0, at.dx), Math.max(x1, at.dx)), dy: clamp(at.dy + y, Math.min(y0, at.dy), Math.max(y1, at.dy)) };
-    }, `nudge:${this.sels.join(',')}:${this.frame}`);
+    this.key(
+      (at, i) => {
+        const [x0, x1, y0, y1] = room(v, i);
+        return { dx: clamp(at.dx + x, Math.min(x0, at.dx), Math.max(x1, at.dx)), dy: clamp(at.dy + y, Math.min(y0, at.dy), Math.max(y1, at.dy)) };
+      },
+      `nudge:${this.sels.join(',')}:${this.frame}`,
+    );
   }
   /** The shapes in hand grown (or shrunk) a tenth at this moment. */
   grow(by: number) {
@@ -390,7 +424,11 @@ export class ToAnimEditor extends DocElement<AnimView> {
     if (!doc) return;
     let { ops, sel } = pasteMotion(this.doc, doc);
     if (!ops.length) {
-      const words = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(' | ');
+      const words = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join(' | ');
       if (!words) return;
       const s: Shape = { k: 't', x: Math.round((W / 2 - 80) / GRID) * GRID, y: Math.round((H / 2 - 16) / GRID) * GRID, w: 160, h: 32, f: 0, text: words };
       ({ ops, sel } = pasteMotion(this.doc, { head: {}, blocks: [shapesTable([s])] }));
@@ -626,12 +664,14 @@ export class ToAnimEditor extends DocElement<AnimView> {
 
   render() {
     const tile = !!this.view.draw.tile;
-    return html`${this.mode === 'draw'
+    return html`${
+      this.mode === 'draw'
         ? keyed(this.drawGen, html`<to-draw-editor class="anim-draw" ?data-tile=${tile} .value=${write(drawingOf(this.doc))} @docchange=${this.onDrawChange}></to-draw-editor>`)
         : html`${this.renderBar()}
             <p class="anim-hint to-hint">${this.hint()}</p>
             ${this.renderStage()}${this.renderProps()}
-            <to-context class="anim-context" .label=${t('The shapes in hand')} .items=${this.contextItems()}></to-context>`}
+            <to-context class="anim-context" .label=${t('The shapes in hand')} .items=${this.contextItems()}></to-context>`
+    }
       ${this.renderTime()}`;
   }
 
@@ -662,21 +702,23 @@ export class ToAnimEditor extends DocElement<AnimView> {
       <svg class="anim-stage ${this.held ? 'held' : ''}" style=${this.zoom === 1 ? '' : `width:${this.zoom * 100}%;max-height:none;max-width:none`} viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="application" aria-label=${t('Stage: {alt}. Arrow keys move the shape in hand (or the time), comma and full stop step a frame, Space plays, K keeps a key.', { alt: altOf(a) })} tabindex="0"
         @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         ${unsafeSVG(frameSvg(a, now, THEME))}
-        ${this.playing
-          ? nothing
-          : a.shapes.map((s, i) => {
-              const [x, y, w, h] = bounds(s, a.shapes);
-              const k = stateAt(a, i, now);
-              const chosen = this.sels.includes(i);
-              const pts = isDrawn(s.k) && i === one ? (k.pts ?? s.pts ?? []) : [];
-              const sized = i === one && !isLink(s.k);
-              return svg`<g class="hit ${chosen ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, a.shapes, k, now)}><rect x=${x - 6} y=${y - 6} width=${w + 12} height=${h + 12} rx="4" transform=${turnOf(s) || nothing} />
+        ${
+          this.playing
+            ? nothing
+            : a.shapes.map((s, i) => {
+                const [x, y, w, h] = bounds(s, a.shapes);
+                const k = stateAt(a, i, now);
+                const chosen = this.sels.includes(i);
+                const pts = isDrawn(s.k) && i === one ? (k.pts ?? s.pts ?? []) : [];
+                const sized = i === one && !isLink(s.k);
+                return svg`<g class="hit ${chosen ? 'sel' : ''}" data-idx=${i} transform=${transformOf(s, a.shapes, k, now)}><rect x=${x - 6} y=${y - 6} width=${w + 12} height=${h + 12} rx="4" transform=${turnOf(s) || nothing} />
                 ${sized ? svg`<g class="handle" data-handle="1"><circle class="reach" cx=${x + w + 6} cy=${y + h + 6} r=${reach(8)} /><rect x=${x + w} y=${y + h} width="12" height="12" /></g>` : nothing}
                 ${Array.from({ length: Math.floor(pts.length / 2) }, (_, c) => {
                   const [cx, cy] = [s.x + (pts[2 * c] / 100) * s.w, s.y + (pts[2 * c + 1] / 100) * s.h];
                   return svg`<g class="corner" data-corner=${c}><circle class="reach" cx=${cx} cy=${cy} r=${reach(7)} /><circle class="dot" cx=${cx} cy=${cy} r="7" /></g>`;
                 })}</g>`;
-            })}
+              })
+        }
       </svg>
     </div>`;
   }
@@ -733,12 +775,21 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return html`<div class="anim-time">
       <div class="anim-transport">
         <span class="anim-modes" role="group" aria-label=${t('Mode')}>
-          ${cmdBtn(COMMANDS.find((c) => c.id === 'anim.draw')!, this, { keep: false })} ${cmdBtn(COMMANDS.find((c) => c.id === 'anim.move')!, this, { keep: false })}
+          ${cmdBtn(
+            COMMANDS.find((c) => c.id === 'anim.draw')!,
+            this,
+            { keep: false },
+          )} ${cmdBtn(
+            COMMANDS.find((c) => c.id === 'anim.move')!,
+            this,
+            { keep: false },
+          )}
         </span>
         <span class="anim-clock to-hint">${t('{now} s of {all} s', { now: this.secs(shown), all: this.secs(frames - 1) })}</span>
       </div>
-      ${move
-        ? html`${this.renderLength()}<div class="anim-scrub">
+      ${
+        move
+          ? html`${this.renderLength()}<div class="anim-scrub">
               <input type="range" aria-label=${t('Time')} min="0" max=${frames - 1} step="1" .value=${String(shown)} @input=${(e: Event) => this.seek(parseInt((e.target as HTMLInputElement).value, 10))} />
               <div class="anim-keys">
                 ${keys.map((k) => html`<button type="button" class=${k.t === this.frame && !this.playing ? 'key on' : 'key'} style="left:${(k.t / Math.max(1, frames - 1)) * 100}%" aria-label=${t('Key at {s} s', { s: this.secs(k.t) })} @mousedown=${keep} @click=${() => this.seek(k.t)}></button>`)}
@@ -746,12 +797,15 @@ export class ToAnimEditor extends DocElement<AnimView> {
             </div>
             <div class="anim-thumbs" role="group" aria-label=${t('Moments')}>
               ${this.thumbnails().map(
-                (m) => html`<button type="button" class=${m.at === shown ? 'on' : ''} aria-label=${t('Frame {n}, {s} s', { n: m.at + 1, s: this.secs(m.at) })} aria-pressed=${String(m.at === shown)} @mousedown=${keep} @click=${() => this.seek(m.at)}>
+                (
+                  m,
+                ) => html`<button type="button" class=${m.at === shown ? 'on' : ''} aria-label=${t('Frame {n}, {s} s', { n: m.at + 1, s: this.secs(m.at) })} aria-pressed=${String(m.at === shown)} @mousedown=${keep} @click=${() => this.seek(m.at)}>
                   <svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${unsafeSVG(m.svg)}</svg>
                 </button>`,
               )}
             </div>`
-        : nothing}
+          : nothing
+      }
     </div>`;
   }
 }

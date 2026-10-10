@@ -151,7 +151,11 @@ export function addStop(doc: Doc, v: TripView, lat: number, lon: number, name = 
   const row = rowIn(b, v.cols, s);
   const r = rowAfter(doc, v, after);
   // A name with no Place column to go in: the column comes first, at the start.
-  if (v.cols.name < 0 && name) return [{ op: 'cols', at: v.at, c: 0, n: 1, cols: [column('Place')] }, { op: 'rows', at: v.at, r, n: 1, rows: [[flat(name), ...row]] }];
+  if (v.cols.name < 0 && name)
+    return [
+      { op: 'cols', at: v.at, c: 0, n: 1, cols: [column('Place')] },
+      { op: 'rows', at: v.at, r, n: 1, rows: [[flat(name), ...row]] },
+    ];
   return [{ op: 'rows', at: v.at, r, n: 1, rows: [row] }];
 }
 
@@ -190,7 +194,13 @@ export function moveStops(doc: Doc, v: TripView, from: number, to: number, by: -
   const rows = chosen.map((s) => b.rows[s.row]);
   // Without the moved rows, the neighbour's row is where they go: before an earlier one, after a later one.
   const r = by < 0 ? over.row : over.row - chosen.length + 1;
-  return [...removeStops(v, chosen.map((_, k) => from + k)), { op: 'rows', at: v.at, r, n: rows.length, rows }];
+  return [
+    ...removeStops(
+      v,
+      chosen.map((_, k) => from + k),
+    ),
+    { op: 'rows', at: v.at, r, n: rows.length, rows },
+  ];
 }
 
 /** Stop `i` carried to just after stop `to` (a drag by its number). Where it lands in the route: `to`'s place, or the one after. */
@@ -200,7 +210,13 @@ export function putAfter(doc: Doc, v: TripView, i: number, to: number): { ops: O
   if (!s || !over || i === to || i === to + 1) return { ops: [], at: i };
   const row = (doc.blocks[v.at] as TableBlock).rows[s.row];
   const r = over.row + 1 - (s.row < over.row ? 1 : 0);
-  return { ops: [{ op: 'rows', at: v.at, r: s.row, n: 1 }, { op: 'rows', at: v.at, r, n: 1, rows: [row] }], at: i < to ? to : to + 1 };
+  return {
+    ops: [
+      { op: 'rows', at: v.at, r: s.row, n: 1 },
+      { op: 'rows', at: v.at, r, n: 1, rows: [row] },
+    ],
+    at: i < to ? to : to + 1,
+  };
 }
 
 /** Some stops taken away (by their places in the route): their rows, from the last up, so each index holds. */
@@ -241,7 +257,10 @@ export function pasteStops(doc: Doc, v: TripView, places: Omit<Stop, 'row'>[], a
   const rows = put.map((p) => rowIn(b, v.cols, p));
   if ('replace' in at && gone.length) {
     const [from] = at.replace;
-    const ops = removeStops(v, gone.map((_, k) => from + k));
+    const ops = removeStops(
+      v,
+      gone.map((_, k) => from + k),
+    );
     return { ops: [...ops, { op: 'rows', at: v.at, r: gone[0].row, n: rows.length, rows }], at: from, n: put.length };
   }
   const after = 'after' in at ? at.after : null;
@@ -297,4 +316,3 @@ export function routeName(v: TripView): string {
   const named = v.stops.filter((s) => s.name);
   return named.length > 1 ? `${named[0].name} – ${named[named.length - 1].name}` : (named[0]?.name ?? '');
 }
-

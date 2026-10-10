@@ -55,7 +55,7 @@ test('a tap opens where the link fits; the size steps; Insert narrows; a trip pr
   expect(errors).toEqual([]);
 });
 
-test('at size 2 the drawer\'s Download row opens its table under it, every target whole', async ({ page }, info) => {
+test("at size 2 the drawer's Download row opens its table under it, every target whole", async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   await page.addInitScript(() => (localStorage.setItem('tinyoffice.keep', '1'), localStorage.setItem('tinyoffice.size', '2')));
   await page.goto(`/#/v1/write/${encodeDoc('# Notes\n\nWords.\n')}`);

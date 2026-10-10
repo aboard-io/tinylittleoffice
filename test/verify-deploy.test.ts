@@ -27,7 +27,12 @@ test('a build is every file and its hash, by path; two builds differ first where
 });
 
 test('every file but _headers is asked for, a page by its folder, under the site’s address', () => {
-  const built = new Map([['_headers', 'x'], ['index.html', 'x'], ['text/index.html', 'x'], ['assets/a.js', 'x']]);
+  const built = new Map([
+    ['_headers', 'x'],
+    ['index.html', 'x'],
+    ['text/index.html', 'x'],
+    ['assets/a.js', 'x'],
+  ]);
   expect(served(built)).toEqual(['index.html', 'text/index.html', 'assets/a.js']);
   expect(addressOf('https://example.com/', 'index.html')).toBe('https://example.com/');
   expect(addressOf('https://example.com/', 'text/index.html')).toBe('https://example.com/text/');

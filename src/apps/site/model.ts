@@ -167,7 +167,26 @@ const PRODUCT = [/^(name|product|item|thing)$/, /^(price|cost)$/, /^(about|descr
 export const isShop = (b: Block) => b.k === 'table' && (([n, p]) => n >= 0 && p >= 0)(columnsOf(b, ...PRODUCT));
 
 function section(n: number, page: number, title: string, at: number, from: number, front: boolean): Section {
-  return { n, page, title, at, from, to: from, id: '', text: [], cards: [], buttons: [], socials: [], pics: [], icon: '', embeds: [], shop: -1, products: [], head: { kind: front ? 'page' : 'section', at, line: -1, n }, items: [] };
+  return {
+    n,
+    page,
+    title,
+    at,
+    from,
+    to: from,
+    id: '',
+    text: [],
+    cards: [],
+    buttons: [],
+    socials: [],
+    pics: [],
+    icon: '',
+    embeds: [],
+    shop: -1,
+    products: [],
+    head: { kind: front ? 'page' : 'section', at, line: -1, n },
+    items: [],
+  };
 }
 
 export function readSite(doc: Doc): Site {
@@ -194,7 +213,7 @@ export function readSite(doc: Doc): Site {
         named = true;
         site.name = words;
         site.pages[0].at = i;
-        if (cur.n === 0) (cur.title = words), (cur.at = i), (cur.head.at = i);
+        if (cur.n === 0) ((cur.title = words), (cur.at = i), (cur.head.at = i));
       } else page(words, i, i);
     } else if (b.k === 'h' && b.level === 2) open(section(site.sections.length, site.pages.length - 1, plain(b.runs), i, i, false));
     else if (b.k === 'h') {
@@ -204,11 +223,11 @@ export function readSite(doc: Doc): Site {
     } else if (b.k === 'p') {
       const words = plain(b.runs);
       const [ic, rest] = iconOf(b.runs);
-      if (ic && !rest.length) (cur.icon = ic), item('icon');
-      else if (b.runs.length === 1 && isPicture(words)) cur.pics.push({ url: words, alt: '' }), item('picture');
-      else if (b.runs.length === 1 && /^https?:\/\/\S+$/.test(words) && embedOf(words)) cur.embeds.push({ web: words }), item('web');
+      if (ic && !rest.length) ((cur.icon = ic), item('icon'));
+      else if (b.runs.length === 1 && isPicture(words)) (cur.pics.push({ url: words, alt: '' }), item('picture'));
+      else if (b.runs.length === 1 && /^https?:\/\/\S+$/.test(words) && embedOf(words)) (cur.embeds.push({ web: words }), item('web'));
       // (A paragraph with no words yet is one too: Enter has just made it, and it is being typed in.)
-      else cur.text.push(...linesOf(b.runs).filter((l) => l.length)), item('p');
+      else (cur.text.push(...linesOf(b.runs).filter((l) => l.length)), item('p'));
     } else if (b.k === 'quote')
       linesOf(b.runs).forEach((l, k) => {
         if (!l.length) return;
@@ -216,14 +235,14 @@ export function readSite(doc: Doc): Site {
         item('button', k);
       });
     else if (b.k === 'li') {
-      if (links) cur.socials.push(linkOf(b.runs)), item('link');
+      if (links) (cur.socials.push(linkOf(b.runs)), item('link'));
       else {
         const [icon, rest] = iconOf(b.runs);
         const [head, detail] = fieldsOf(rest);
         cur.cards.push({ icon, head, detail });
         item('card');
       }
-    } else if (b.k === 'img') cur.pics.push({ url: /^https?:\/\//.test(b.url) ? b.url : '', alt: b.alt }), item('picture');
+    } else if (b.k === 'img') (cur.pics.push({ url: /^https?:\/\//.test(b.url) ? b.url : '', alt: b.alt }), item('picture'));
     else if (b.k === 'table') {
       if (isShop(b) && cur.shop < 0) {
         item('products');
@@ -239,8 +258,8 @@ export function readSite(doc: Doc): Site {
           const image = (r[im] ?? '').trim();
           cur.products.push({ name, price, currency, about: a >= 0 ? (r[a] ?? '').trim() : '', image: /^https?:\/\//.test(image) ? image : '' });
         });
-      } else cur.embeds.push({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }), item('table');
-    } else if (b.k === 'fence' && b.lang) cur.embeds.push({ lang: b.lang, body: b.body }), item('doc');
+      } else (cur.embeds.push({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }), item('table'));
+    } else if (b.k === 'fence' && b.lang) (cur.embeds.push({ lang: b.lang, body: b.body }), item('doc'));
   });
   // Spans: a section runs to the next one; a page to the next page.
   site.sections.forEach((s, k) => (s.to = site.sections[k + 1]?.from ?? doc.blocks.length));
@@ -283,14 +302,29 @@ export const kindsOf = (site: Site, n = 0): Kind[] =>
     : ['page', 'section', 'heading', 'p', 'button', 'card', 'picture', 'icon', 'web', 'doc', ...((site.sections[n]?.shop ?? -1) < 0 ? (['product'] as const) : [])];
 export const kindName = (k: Kind): string =>
   ({
-    page: t('Page'), section: t('Section'), heading: t('Heading'), p: t('Paragraph'), button: t('Button'), card: t('Big link'), link: t('Small link'),
-    picture: t('Web Picture'), icon: t('Big icon'), web: t('Web Embed'), doc: t('Tiny Little Office Doc'), product: t('Products'),
+    page: t('Page'),
+    section: t('Section'),
+    heading: t('Heading'),
+    p: t('Paragraph'),
+    button: t('Button'),
+    card: t('Big link'),
+    link: t('Small link'),
+    picture: t('Web Picture'),
+    icon: t('Big icon'),
+    web: t('Web Embed'),
+    doc: t('Tiny Little Office Doc'),
+    product: t('Products'),
   })[k];
 
 /** A new products table: what each thing is called, its price, a line about it, a picture; one thing to begin with. */
 export const productsBlock = (): Block => ({
   k: 'table',
-  cols: [{ name: 'Name', type: 'text' }, { name: 'Price', type: 'money' }, { name: 'About', type: 'text' }, { name: 'Image', type: 'text' }],
+  cols: [
+    { name: 'Name', type: 'text' },
+    { name: 'Price', type: 'money' },
+    { name: 'About', type: 'text' },
+    { name: 'Image', type: 'text' },
+  ],
   rows: [[t('New thing'), '10', '', '']],
 });
 
@@ -577,7 +611,13 @@ export function wordsOf(doc: Doc, site: Site): Record<string, WordsPart> {
       case 'heading': {
         const home = o.kind === 'page' && site.sections[o.n].page === 0;
         const name = site.links ? t('Quick Links') : t('My site');
-        one('0', { runs: plainRuns(plainText(runs)), kind: 'plain', next: true, label: home ? t('The site’s name') : o.kind === 'page' ? t('Page') : o.kind === 'section' ? t('Section') : t('Heading'), placeholder: home ? name : t('Heading') });
+        one('0', {
+          runs: plainRuns(plainText(runs)),
+          kind: 'plain',
+          next: true,
+          label: home ? t('The site’s name') : o.kind === 'page' ? t('Page') : o.kind === 'section' ? t('Section') : t('Heading'),
+          placeholder: home ? name : t('Heading'),
+        });
         break;
       }
       case 'p':

@@ -2,7 +2,28 @@
 import { expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
-import { addAfter, asTasks, clearDone, dueOf, duplicateTasks, enterAt, joinTasks, moveOver, moveTasks, pastesAsTasks, pasteTasks, readTodo, removeTask, removeTasks, setDone, setDue, setStar, shifted, textTasks, today } from '../model.ts';
+import {
+  addAfter,
+  asTasks,
+  clearDone,
+  dueOf,
+  duplicateTasks,
+  enterAt,
+  joinTasks,
+  moveOver,
+  moveTasks,
+  pastesAsTasks,
+  pasteTasks,
+  readTodo,
+  removeTask,
+  removeTasks,
+  setDone,
+  setDue,
+  setStar,
+  shifted,
+  textTasks,
+  today,
+} from '../model.ts';
 import { todoPage, todoToIcs, todoToMarkdown } from '../view.ts';
 import { templates } from '../templates.ts';
 
@@ -58,7 +79,11 @@ test('add, remove, clear done and move are splices and one move', () => {
 
 test('ops from an editor over one block are carried to where the block is', () => {
   const text: Op = { op: 'text', at: 0, from: 0, to: 0, runs: [{ t: 'x' }] };
-  expect(shifted([text, { op: 'head', key: 'title', value: 'a' }, { op: 'move', at: 0, n: 1, to: 2 }], 3)).toEqual([{ ...text, at: 3 }, { op: 'head', key: 'title', value: 'a' }, { op: 'move', at: 3, n: 1, to: 5 }]);
+  expect(shifted([text, { op: 'head', key: 'title', value: 'a' }, { op: 'move', at: 0, n: 1, to: 2 }], 3)).toEqual([
+    { ...text, at: 3 },
+    { op: 'head', key: 'title', value: 'a' },
+    { op: 'move', at: 3, n: 1, to: 5 },
+  ]);
   const typed = applyAll(parse('- [ ] a\n- [ ] b\n'), shifted([{ op: 'text', at: 0, from: 1, to: 1, runs: [{ t: '!' }] }], 1));
   expect(write(typed)).toBe('- [ ] a\n- [ ] b!\n');
 });

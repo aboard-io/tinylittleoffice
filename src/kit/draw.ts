@@ -73,7 +73,8 @@ export const SHADE = '#f4f4f5';
 export const ACCENT = '#4f46e5';
 
 export const r = (n: number) => String(Math.round(n * 100) / 100);
-export const rect = (x: number, y: number, w: number, h: number, fill: string, extra = '') => `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${fill}"${extra ? ' ' + extra : ''}/>`;
+export const rect = (x: number, y: number, w: number, h: number, fill: string, extra = '') =>
+  `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="${fill}"${extra ? ' ' + extra : ''}/>`;
 
 /** Width of text in px, estimated: a page is drawn the same under node and in a browser. */
 export const textWidth = (text: string, px: number, bold = false) => text.length * px * (bold ? 0.56 : 0.52);
@@ -147,6 +148,12 @@ export const SERIES = ['#0072b2', '#d55e00', '#009e73', '#a05ca8', '#56b4e9', '#
  */
 export function patternDefs(id = 'p'): string {
   const marks = ['', 'M0 0L6 6M-1 5L1 7M5 -1L7 1', 'M3 0V6', 'M0 3H6', 'M0 6L6 0M-1 1L1 -1M5 7L7 5', 'M3 3m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M0 0L6 6M0 6L6 0', 'M0 3H6M3 0V6'];
-  return marks.map((d, i) => (d ? `<pattern id="${id}${i}" width="6" height="6" patternUnits="userSpaceOnUse"><path d="${d}" stroke="#fff" stroke-width="1.2" fill="#fff" stroke-opacity="0.55" fill-opacity="0.55"/></pattern>` : '')).join('');
+  return marks
+    .map((d, i) =>
+      d
+        ? `<pattern id="${id}${i}" width="6" height="6" patternUnits="userSpaceOnUse"><path d="${d}" stroke="#fff" stroke-width="1.2" fill="#fff" stroke-opacity="0.55" fill-opacity="0.55"/></pattern>`
+        : '',
+    )
+    .join('');
 }
 export const patternFill = (i: number, id = 'p') => (i % 8 ? `url(#${id}${i % 8})` : '');

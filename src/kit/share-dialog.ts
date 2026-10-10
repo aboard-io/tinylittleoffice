@@ -233,7 +233,10 @@ export class ToShare extends LitElement {
   private madeLine(): string {
     const env = readEnvelope(this.doc);
     const lang = document.documentElement.lang || undefined;
-    const when = env.created === null ? '' : t('Created {date}', { date: new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(env.created) });
+    const when =
+      env.created === null
+        ? ''
+        : t('Created {date}', { date: new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(env.created) });
     const by = env.by ? (this.signature.state === 'valid' ? t('by {name}', { name: env.by }) : t('by {name} (unsigned)', { name: env.by })) : '';
     return [when, by].filter(Boolean).join(' · ');
   }
@@ -295,12 +298,14 @@ export class ToShare extends LitElement {
       <div class="to-post">${SERVICES.map(
         (s) => html`<button type="button" class="to-btn to-post-${s}" @click=${() => this.post(s)}>${icon(s === 'email' ? UI.mail : UI.post, 16)}<span>${SERVICE_NAMES[s]}</span></button>`,
       )}</div>
-      ${this.askMastodon || server
-        ? html`<form class="to-share-field to-mastodon" @submit=${(e: Event) => this.setMastodon(e)}>
+      ${
+        this.askMastodon || server
+          ? html`<form class="to-share-field to-mastodon" @submit=${(e: Event) => this.setMastodon(e)}>
             <input type="text" class="to-mastodon-server" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label=${t('Your Mastodon server')} placeholder="mastodon.social" .value=${server} />
             <button type="submit" class="to-btn">${server ? t('Change') : t('Post')}</button>
           </form>`
-        : nothing}
+          : nothing
+      }
       ${this.app === 'deck' ? html`<button type="button" class="to-btn to-copy-show" @click=${() => void copyText(this.showLink)}>${icon(UI.play, 16)}<span>${t('Copy show link')}</span></button><p class="to-hint">${t('Opens the deck already presenting.')}</p>` : nothing}
     </section>`;
   }
@@ -346,7 +351,8 @@ export class ToShare extends LitElement {
         <table>
           <thead><tr><th scope="col">${t('Where')}</th><th scope="col">${t('Uses')}</th><th scope="col">${t('Left')}</th></tr></thead>
           <tbody>${roomFor(this.link).map(
-            (r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th scope="row">${r.target.where()}</th><td>${n(r.used)} / ${n(r.target.max)}</td><td>${r.target.flat ? t('any length') : r.left < 0 ? t('{n} over', { n: n(-r.left) }) : n(r.left)}</td></tr>`,
+            (r) =>
+              html`<tr class=${r.left < 0 ? 'over' : ''}><th scope="row">${r.target.where()}</th><td>${n(r.used)} / ${n(r.target.max)}</td><td>${r.target.flat ? t('any length') : r.left < 0 ? t('{n} over', { n: n(-r.left) }) : n(r.left)}</td></tr>`,
           )}</tbody>
         </table>
       </div>
@@ -387,9 +393,11 @@ export class ToShare extends LitElement {
       <details class="to-owner">
         <summary>${t('Keep the owner link, to update it later')}</summary>
         ${this.renderField(short.owner, 'to-owner-field', t('Owner link'), false)}
-        ${keeping()
-          ? html`<button type="button" class="to-btn to-keep" ?disabled=${kept} @click=${() => this.keepShort(short)}>${icon(UI.check, 16)}<span>${kept ? t('Kept') : t('Keep on this device')}</span></button>`
-          : html`<p class="to-hint">${t('Turn on Saved on this device, in the menu, to keep owner links here.')}</p>`}
+        ${
+          keeping()
+            ? html`<button type="button" class="to-btn to-keep" ?disabled=${kept} @click=${() => this.keepShort(short)}>${icon(UI.check, 16)}<span>${kept ? t('Kept') : t('Keep on this device')}</span></button>`
+            : html`<p class="to-hint">${t('Turn on Saved on this device, in the menu, to keep owner links here.')}</p>`
+        }
       </details>`;
   }
   /** Opened from an owner link (or made here): the link, Update, the lifetimes with Extend, Forget. */
@@ -412,14 +420,16 @@ export class ToShare extends LitElement {
     const qr = fits ? qrSvg(bytes, 4) : '';
     return html`<section class="to-share-section to-share-qr" aria-labelledby="to-share-qr-h">
       <h3 id="to-share-qr-h">${t('QR code')}</h3>
-      ${fits
-        ? html`${this.renderWhich(this.qrDisplay, (d) => (this.qrDisplay = d))}
+      ${
+        fits
+          ? html`${this.renderWhich(this.qrDisplay, (d) => (this.qrDisplay = d))}
             <div class="to-qr-code" role="img" aria-label=${t('QR code of this document')}>${unsafeSVG(qr)}</div>
             <div class="to-row">
               <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'png')}>${icon(UI.download, 16)}<span>PNG</span></button>
               <button type="button" class="to-btn" @click=${() => void this.saveQr(qr, 'svg')}>${icon(UI.download, 16)}<span>SVG</span></button>
             </div>`
-        : html`<p class="to-hint to-qr-why">${t('This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`}
+          : html`<p class="to-hint to-qr-why">${t('This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.', { n: bytes.length, max: QR_MAX_BYTES, over: bytes.length - QR_MAX_BYTES })}</p>`
+      }
     </section>`;
   }
   /** The owner links kept on this device, folded: "2 short links kept here". */
@@ -430,7 +440,8 @@ export class ToShare extends LitElement {
     return html`<details class="to-share-section to-kept-list">
       <summary>${t('{n|# short link kept here|# short links kept here}', { n: kept.length })}</summary>
       <ul class="to-kept">${kept.map(
-        (l) => html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${expiresLine(l.expires, Date.now(), lang)}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`,
+        (l) =>
+          html`<li><a href=${l.owner} class="to-short-link">${l.title || l.owner}</a><small>${expiresLine(l.expires, Date.now(), lang)}</small><button type="button" class="to-btn to-tool" aria-label=${t('Remove')} title=${t('Remove')} @click=${() => (dropKept(l.owner), this.requestUpdate())}>${icon(UI.close, 16)}</button></li>`,
       )}</ul>
     </details>`;
   }

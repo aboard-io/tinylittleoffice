@@ -112,7 +112,15 @@ export function animPage(anim: AnimView, once = false): Page {
       const turns = keys.some((k) => k.u);
       const ahead = turns ? frameOrder(anim.frames, 'forever') : [...new Set([0, ...keys.map((k) => k.t), last])].sort((a, b) => a - b);
       // Bounce: the same moments again, backwards, on the second half of the time.
-      const times = bounce ? [...ahead, ...ahead.slice(0, -1).reverse().map((tm) => 2 * last - tm)] : ahead;
+      const times = bounce
+        ? [
+            ...ahead,
+            ...ahead
+              .slice(0, -1)
+              .reverse()
+              .map((tm) => 2 * last - tm),
+          ]
+        : ahead;
       const states = times.map((tm) => stateAt(anim, i, tm > last ? 2 * last - tm : tm));
       const at = once ? states[states.length - 1] : states[0];
       const body = effectsSvg(s, i, anim.shapes, at.fx, undefined, defs);

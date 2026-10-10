@@ -24,7 +24,16 @@ export const retitle = (doc: Doc, title: string): Doc => write(apply(headOf(doc)
 function nameFor(doc: Doc): string {
   const d = headOf(doc);
   const first = liveItems(readOutline(d)).find((it) => !it.doc);
-  return d.head.title || (first ? first.runs.map((r) => r.t).join('').trim() : '') || t('Untitled {noun}', { noun: t('outline') });
+  return (
+    d.head.title ||
+    (first
+      ? first.runs
+          .map((r) => r.t)
+          .join('')
+          .trim()
+      : '') ||
+    t('Untitled {noun}', { noun: t('outline') })
+  );
 }
 
 const convert = (how: (v: ReturnType<typeof readOutline>, head: Kernel['head']) => string) => (doc: Doc) => {
@@ -68,7 +77,13 @@ export default defineApp({
     // Markdown as other readers know it: an item's notes a numbered list right under it (any other in reference form at the end).
     { ext: 'md', label: () => t('Markdown'), mime: 'text/markdown;charset=utf-8', shows: 'text', build: (doc) => utf8(write(notesAsItems(parse(doc)))) },
     // The words as words: sections and bullets, selectable, linked, bookmarked (kit/textpdf.ts), in place of the kit's pictures of the page.
-    { ext: 'pdf', label: () => t('PDF: sections and bullets'), mime: 'application/pdf', shows: 'own', build: (doc, ctx) => textPdf(outlineBlocks(readOutline(parse(doc)), ctx.title || titleOf(doc), t('Notes')), ctx.title || nameFor(doc)) },
+    {
+      ext: 'pdf',
+      label: () => t('PDF: sections and bullets'),
+      mime: 'application/pdf',
+      shows: 'own',
+      build: (doc, ctx) => textPdf(outlineBlocks(readOutline(parse(doc)), ctx.title || titleOf(doc), t('Notes')), ctx.title || nameFor(doc)),
+    },
     { ext: 'txt', label: () => t('Plain text'), mime: 'text/plain;charset=utf-8', shows: 'text', build: (doc) => utf8(outlineText(readOutline(parse(doc)), appName)) },
   ],
   handoffs: [

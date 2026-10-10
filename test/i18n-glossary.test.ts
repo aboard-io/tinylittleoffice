@@ -114,7 +114,10 @@ test('the lint finds a term said two ways, and a label that says it otherwise', 
   expect([...d.words.keys()]).toEqual(['Compartir']);
   expect(d.elsewhere).toEqual([{ key: 'Share the link', value: 'Enviar el enlace' }]);
   const two = drift({ Share: '', 'Share…': '' }, { Share: 'Compartir', 'Share…': 'Enviar…' }, [{ term: 'Share' }])[0];
-  expect([...two.words]).toEqual([['Compartir', ['Share']], ['Enviar', ['Share…']]]);
+  expect([...two.words]).toEqual([
+    ['Compartir', ['Share']],
+    ['Enviar', ['Share…']],
+  ]);
 });
 
 const files = languageFiles(join(import.meta.dirname, '..')).filter(([code]) => code !== 'en');
@@ -137,6 +140,9 @@ for (const [lang, path] of files) {
     }
     expect(problems, `${lang}: say each term one way, or list it in ALLOW with the reason`).toEqual([]);
     const stale = ALLOW.filter((a) => a.lang === lang && !used.has(`${a.term}|${a.key ?? ''}`));
-    expect(stale.map((a) => `${a.term}: ${a.key ?? '(two words)'}`), `${lang}: allowed and no longer drifting; take them out of ALLOW`).toEqual([]);
+    expect(
+      stale.map((a) => `${a.term}: ${a.key ?? '(two words)'}`),
+      `${lang}: allowed and no longer drifting; take them out of ALLOW`,
+    ).toEqual([]);
   });
 }

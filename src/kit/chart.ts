@@ -77,7 +77,8 @@ export function suggestChart(d: ChartData): ChartKind | '' {
   // Parts of a whole: one series, a handful of positive numbers.
   if (d.series.length === 1 && first.length >= 2 && first.length <= 6 && first.every((v) => v > 0)) return 'pie';
   // Things in order (years, quarters, months, days) read best as lines.
-  if (first.length >= 4 && d.labels.every((l) => /^(\d{4}|q[1-4]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun|week|day|month|year|y\d|m\d)/i.test(l.trim()))) return 'line';
+  if (first.length >= 4 && d.labels.every((l) => /^(\d{4}|q[1-4]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun|week|day|month|year|y\d|m\d)/i.test(l.trim())))
+    return 'line';
   return 'bar';
 }
 
@@ -191,9 +192,12 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
       if (i >= upTo) return void (a = b);
       const p = (ang: number, k = rad) => `${r(cx + Math.cos(ang) * k)} ${r(cy + Math.sin(ang) * k)}`;
       svg += painted(i, (fill, pattern) =>
-        v >= total ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="${fill}"/>` : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="${fill}"${pattern ? '' : ' stroke="#fff" stroke-width="2"'}/>`,
+        v >= total
+          ? `<circle cx="${cx}" cy="${cy}" r="${r(rad)}" fill="${fill}"/>`
+          : `<path d="M${cx} ${cy}L${p(a)}A${r(rad)} ${r(rad)} 0 ${b - a > Math.PI ? 1 : 0} 1 ${p(b)}Z" fill="${fill}"${pattern ? '' : ' stroke="#fff" stroke-width="2"'}/>`,
       );
-      if (v / total >= 0.06) svg += text(cx + Math.cos((a + b) / 2) * rad * 0.62, cy + Math.sin((a + b) / 2) * rad * 0.62 + 5, `${Math.round((v / total) * 100)}%`, { px: 14, bold: true, fill: '#fff', anchor: 'middle' });
+      if (v / total >= 0.06)
+        svg += text(cx + Math.cos((a + b) / 2) * rad * 0.62, cy + Math.sin((a + b) / 2) * rad * 0.62 + 5, `${Math.round((v / total) * 100)}%`, { px: 14, bold: true, fill: '#fff', anchor: 'middle' });
       a = b;
     });
   } else {
@@ -201,7 +205,8 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
     const left = 64;
     const right = w - 24;
     const y = (v: number) => bottom - ((v - min) / (max - min)) * (bottom - top);
-    for (const v of ticks) svg += `<line x1="${left}" y1="${r(y(v))}" x2="${right}" y2="${r(y(v))}" stroke="${v === 0 ? MUTED : LINE}"/>` + text(left - 8, y(v) + 4, short(v), { px: 12, fill: MUTED, anchor: 'end' });
+    for (const v of ticks)
+      svg += `<line x1="${left}" y1="${r(y(v))}" x2="${right}" y2="${r(y(v))}" stroke="${v === 0 ? MUTED : LINE}"/>` + text(left - 8, y(v) + 4, short(v), { px: 12, fill: MUTED, anchor: 'end' });
     const n = d.labels.length;
     const band = (right - left) / n;
     const every = Math.ceil(n / Math.max(1, Math.floor((right - left) / 70)));
@@ -212,10 +217,14 @@ export function chartPage(d: ChartData, kind: ChartKind, title = '', w = 720, h 
       if (kind === 'line') {
         const color = SERIES[k % SERIES.length];
         const pts = s.values.slice(0, upTo).map((v, i) => [r(left + band * (i + 0.5)), r(y(v))]);
-        svg += `<polyline points="${pts.map((pt) => pt.join(',')).join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${['', ' stroke-dasharray="8 6"', ' stroke-dasharray="2 6"', ' stroke-dasharray="12 4 2 4"'][k % 4]}/>` + pts.map(([px, py]) => `<circle cx="${px}" cy="${py}" r="4" fill="${color}"/>`).join('');
+        svg +=
+          `<polyline points="${pts.map((pt) => pt.join(',')).join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${['', ' stroke-dasharray="8 6"', ' stroke-dasharray="2 6"', ' stroke-dasharray="12 4 2 4"'][k % 4]}/>` +
+          pts.map(([px, py]) => `<circle cx="${px}" cy="${py}" r="4" fill="${color}"/>`).join('');
       } else {
         const bw = (band * 0.76) / d.series.length;
-        s.values.slice(0, upTo).forEach((v, i) => (svg += painted(k, (fill) => rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), fill, 'rx="2"'))));
+        s.values
+          .slice(0, upTo)
+          .forEach((v, i) => (svg += painted(k, (fill) => rect(left + band * (i + 0.12) + bw * k, Math.min(y(v), y(0)), Math.max(1, bw - 2), Math.abs(y(v) - y(0)), fill, 'rx="2"'))));
       }
     });
   }

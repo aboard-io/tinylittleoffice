@@ -1,9 +1,9 @@
 {
- "source": "src/apps/venn.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking\n- Fast & Cheap: fast food\n- Cheap & Good: home cooking\n- Fast & Good: a great takeaway\n- Fast & Cheap & Good: toast"
-  }
- ]
+  "source": "src/apps/venn.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "- Fast: sprinting, espresso\n- Cheap: instant noodles, walking\n- Good: slow cooking\n- Fast & Cheap: fast food\n- Cheap & Good: home cooking\n- Fast & Good: a great takeaway\n- Fast & Cheap & Good: toast"
+    }
+  ]
 }

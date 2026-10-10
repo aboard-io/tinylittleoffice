@@ -9,7 +9,40 @@ import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, invertAll, parse, write, type Block, type Doc, type Op } from '../../../doc/index.ts';
 import { iconOf, labelLines, readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
-import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, partFor, wordsInto, wordsOn, type Which, kindOf, lineOf, linesOf, demoteThing, moveAcross, moveItem, moveThing, promoteThing, newThing, nextThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Hit } from '../model.ts';
+import {
+  charsOf,
+  childOf,
+  commitDraft,
+  connect,
+  dropIn,
+  dropOn,
+  duplicateThing,
+  edgesOf,
+  follow,
+  partFor,
+  wordsInto,
+  wordsOn,
+  type Which,
+  kindOf,
+  lineOf,
+  linesOf,
+  demoteThing,
+  moveAcross,
+  moveItem,
+  moveThing,
+  promoteThing,
+  newThing,
+  nextThing,
+  pasteThings,
+  removeThing,
+  rename,
+  setEdge,
+  setKind,
+  thingBlocks,
+  tidy,
+  withIcon,
+  type Hit,
+} from '../model.ts';
 import { templates } from '../templates.ts';
 import { diagramPage, era, lanesOf, layout, moment, places, regionAt, toDrawing, vennOf } from '../view.ts';
 
@@ -285,7 +318,7 @@ describe('commands as ops', () => {
 });
 
 describe('a thing whole: copied, pasted, duplicated, moved', () => {
-  test('a thing as blocks: a tree\'s line with its family at the margin, a seat as a line, a lane\'s steps, a connection', () => {
+  test("a thing as blocks: a tree's line with its family at the margin, a seat as a line, a lane's steps, a connection", () => {
     const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');
     expect(write({ head: {}, blocks: thingBlocks(t, { k: 'line', at: 1, part: 'all' }) })).toBe('- A\n  - A1\n');
     const s = doc('seating', '- Top: Jo, Sam\n');
@@ -296,7 +329,7 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     expect(thingBlocks(n, { k: 'edge', at: 1 })).toEqual([n.blocks[1]]);
     expect(write({ head: {}, blocks: thingBlocks(n, { k: 'node', name: 'API' }) })).toBe('- API\n');
   });
-  test('pasted at a thing: a tree\'s after its family at its level; a seat after the one in hand; a step into its lane; a connection once', () => {
+  test("pasted at a thing: a tree's after its family at its level; a seat after the one in hand; a step into its lane; a connection once", () => {
     const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');
     const p = pasteThings(t, { k: 'line', at: 1, part: 'all' }, parse('- X\n  - Y\n').blocks);
     expect(run(t, p.ops)).toBe('- Root\n  - A\n    - A1\n  - X\n    - Y\n  - B\n');
@@ -324,7 +357,7 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     expect(duplicateThing(doc('net', '~ A -> B\n'), { k: 'edge', at: 0 }).ops).toEqual([]);
     expect(duplicateThing(doc('net', '- A\n'), { k: 'line', at: 0, part: 'all' }).ops).toEqual([]);
   });
-  test('moved past a neighbour: a tree\'s family among its siblings, a step, a seat past the one beside it; none past the end', () => {
+  test("moved past a neighbour: a tree's family among its siblings, a step, a seat past the one beside it; none past the end", () => {
     const t = doc('mind', '- Root\n  - A\n    - A1\n  - B\n');
     const down = moveThing(t, { k: 'line', at: 1, part: 'all' }, 1)!;
     expect(run(t, down.ops)).toBe('- Root\n  - B\n  - A\n    - A1\n');
@@ -375,7 +408,7 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     expect(promoteThing(doc('lanes', '- Sales: a\n- Sales: b\n'), { k: 'line', at: 1, part: 'words' })).toBeNull();
     expect(demoteThing(doc('net', '- A\n- B\n'), L(1))).toBeNull();
   });
-  test('a family\'s couple carries its children, and a cross-link still joins the same two things', () => {
+  test("a family's couple carries its children, and a cross-link still joins the same two things", () => {
     const L = (at: number): Hit => ({ k: 'line', at, part: 'all' });
     const f = doc('family', '- Anne + Bo | 1790\n  - Ada + Charles | 1815\n    - Byron\n    - Ann\n  - Cy\n');
     expect(run(f, demoteThing(f, L(4))!.ops)).toBe('- Anne + Bo | 1790\n  - Ada + Charles | 1815\n    - Byron\n    - Ann\n    - Cy\n');
@@ -403,7 +436,7 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
   });
 });
 
-describe('joins across a tree: a mind map\'s cross-links, a family\'s dotted lines', () => {
+describe("joins across a tree: a mind map's cross-links, a family's dotted lines", () => {
   const MIND = '- Launch\n  - Product\n    - Pricing\n  - Marketing\n    - Press\n';
   test('read and written byte for byte, every kind of line; made once by Join, followed when a name changes, gone with the idea', () => {
     for (const dir of ['--', '->', '<-', '<->']) {
@@ -466,8 +499,12 @@ test('a seating chart’s place cards: one a guest, the name large and the table
 
 // The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
 // unchanged by `thumb`.
-const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
-const BRONTES = "---\ntitle: The Brontës of Haworth\nkind: family\n---\n- Patrick Brontë + Maria Branwell | m. 1812\n  - Maria | 1814–1825\n  - Elizabeth | 1815–1825\n  - Charlotte + Arthur Bell Nicholls | m. 1854\n  - Branwell | 1817–1848\n  - Emily | 1818–1848\n  - Anne | 1820–1849\n- Elizabeth Branwell | 1776–1842\n\n~ Elizabeth Branwell -- Patrick Brontë + Maria Branwell: kept house from 1821\n";
+const sha1 = (pages: { w: number; h: number; svg: string }[]) =>
+  createHash('sha1')
+    .update(pages.map((p) => pageSvg(p)).join('\n'))
+    .digest('hex');
+const BRONTES =
+  '---\ntitle: The Brontës of Haworth\nkind: family\n---\n- Patrick Brontë + Maria Branwell | m. 1812\n  - Maria | 1814–1825\n  - Elizabeth | 1815–1825\n  - Charlotte + Arthur Bell Nicholls | m. 1854\n  - Branwell | 1817–1848\n  - Emily | 1818–1848\n  - Anne | 1820–1849\n- Elizabeth Branwell | 1776–1842\n\n~ Elizabeth Branwell -- Patrick Brontë + Maria Branwell: kept house from 1821\n';
 
 test('a thumbnail of a family tree more than twice as wide as tall is its middle, twice as wide as tall; a page and a slide are as before', () => {
   const page = def.view(BRONTES)[0];
@@ -483,7 +520,7 @@ test('a thumbnail of a family tree more than twice as wide as tall is its middle
   expect(sha1(def.view(BRONTES, { small: true }))).toBe('78feff525a039b962741c71f16785f64d142ba18');
 });
 
-describe('the separators in a thing\'s words', () => {
+describe("the separators in a thing's words", () => {
   /** Plain words put on part `which` of line `at` as the editor puts them; the document written, read again, and that part's words, its line's other parts and its drawn label. */
   function put(d: Doc, at: number, which: Which, words: string) {
     const kind = kindOf(d);
@@ -493,11 +530,15 @@ describe('the separators in a thing\'s words', () => {
     const again = parse(write(applyAll(d, [{ op: 'text', at, from: p.from, to: p.to, runs: wordsInto(kind, l, which, [{ t: words }]) }])));
     const now = lineOf(again.blocks[at] as Extract<Block, { k: 'li' }>, at);
     const shape = layout(again).shapes.find((s) => JSON.stringify(s.hit) === JSON.stringify({ k: 'line', at, part: which }));
-    const drawn = shape ? labelLines(iconOf(shape.text)[1]).map((runs) => runs.map((r) => r.t).join('')).join('\n') : null;
+    const drawn = shape
+      ? labelLines(iconOf(shape.text)[1])
+          .map((runs) => runs.map((r) => r.t).join(''))
+          .join('\n')
+      : null;
     return { text, line: now, words: partFor(now, which)?.words, drawn, shown: charsOf(wordsOn(kind, now, which, partFor(now, which)!.from, partFor(now, which)!.to)) };
   }
 
-  test('a comma in a guest\'s or a set\'s thing is one thing; a colon, a bar and a backslash in it are plain', () => {
+  test("a comma in a guest's or a set's thing is one thing; a colon, a bar and a backslash in it are plain", () => {
     const seat = doc('seating', '- Top table: Jo, Sam\n');
     for (const w of ['Smith, Jones', 'Dr: Who', 'A | B', 'C:\\Users\\, me', 'Ann,']) {
       const r = put(seat, 0, 1, w);
@@ -512,7 +553,7 @@ describe('the separators in a thing\'s words', () => {
     expect(r.line.items).toHaveLength(1);
   });
 
-  test('a colon ending a word, an ampersand and a bar in a key are the key\'s own: a table\'s name, a set\'s, a lane\'s, a date', () => {
+  test("a colon ending a word, an ampersand and a bar in a key are the key's own: a table's name, a set's, a lane's, a date", () => {
     const seat = put(doc('seating', '- Top table: Jo, Sam\n'), 0, 'key', 'Sales: Q3 | west');
     expect([seat.words, seat.drawn, seat.line.items.map((p) => p.words)]).toEqual(['Sales: Q3 | west', 'Sales: Q3 | west', ['Jo', 'Sam']]);
     // A set's name keeps its ampersand: still one set, its circle and its things where they were.
@@ -541,7 +582,7 @@ describe('the separators in a thing\'s words', () => {
     expect(tl.drawn).toBe('10:30: am\nCoffee | tea: hot');
   });
 
-  test('a tree\'s or a network\'s words: a bar is plain, a second line is the line\'s " | "; a family\'s "+" is the couple\'s, plain words', () => {
+  test("a tree's or a network's words: a bar is plain, a second line is the line's \" | \"; a family's \"+\" is the couple's, plain words", () => {
     const org = put(doc('org', '- Ada | CEO\n  - Ben\n'), 0, 'all', 'Ada | Lovelace\nCEO, Board: chair');
     expect([org.words, org.drawn, org.text]).toEqual(['Ada | Lovelace\nCEO, Board: chair', 'Ada | Lovelace\nCEO, Board: chair', '- Ada \\\\| Lovelace | CEO, Board: chair\n  - Ben\n']);
     const fam = put(doc('family', '- Rose\n'), 0, 'all', 'Ada + Charles\n1815');
@@ -567,7 +608,10 @@ describe('the separators in a thing\'s words', () => {
     expect(write(joined)).toContain('~ A -- B -> C\n');
     expect(edgesOf(parse(write(joined)))).toMatchObject([{ from: 'A -- B', to: 'C', dir: '->', label: '' }]);
     const two = applyAll(joined, connect(joined, 'C', 'Q3: plan'));
-    expect(edgesOf(two).map((e) => [e.from, e.to, e.label])).toEqual([['A -- B', 'C', ''], ['C', 'Q3: plan', '']]);
+    expect(edgesOf(two).map((e) => [e.from, e.to, e.label])).toEqual([
+      ['A -- B', 'C', ''],
+      ['C', 'Q3: plan', ''],
+    ]);
     // Its words and its direction set; a name followed when it changes.
     const said = applyAll(two, setEdge(two, 4, { label: 'asks', dir: '--' }));
     expect(write(said)).toContain('~ C -- Q3: plan: asks\n');

@@ -42,8 +42,56 @@ import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { toast } from '../../kit/toast.ts';
 import type { Found } from '../../kit/find.ts';
 import { fold } from '../../kit/search.ts';
-import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, applyAll, clearCells, columnText, copyCells, fillCells, isLocked, isText, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, runLength, writeInline, type Block, type ColType, type Column, type Doc, type Op, type Range, type Run } from '../../doc/index.ts';
-import { MIN_COLS, addColumn, currencyAt, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
+import {
+  COL_NAMES,
+  FUNCTIONS,
+  MAX_COLS,
+  ROWS,
+  applyAll,
+  clearCells,
+  columnText,
+  copyCells,
+  fillCells,
+  isLocked,
+  isText,
+  parse,
+  parseInline,
+  pasteCells,
+  plainText,
+  rangeOf,
+  rangeRef,
+  rcToRef,
+  runLength,
+  writeInline,
+  type Block,
+  type ColType,
+  type Column,
+  type Doc,
+  type Op,
+  type Range,
+  type Run,
+} from '../../doc/index.ts';
+import {
+  MIN_COLS,
+  addColumn,
+  currencyAt,
+  deleteRows,
+  insertRows,
+  isLetterName,
+  moveRows,
+  putRect,
+  readSheet,
+  removable,
+  removeColumn,
+  rename,
+  setCell,
+  setChart,
+  setLock,
+  setType,
+  sortBy,
+  typeName,
+  type SheetView,
+} from './model.ts';
 import { COLUMN_KINDS, choicesOf, kindItems } from '../../kit/columns.ts';
 import { cellText, chartOf } from './view.ts';
 import '../../kit/bar.ts';
@@ -95,7 +143,17 @@ function follow(el: HTMLElement, move: (e: PointerEvent) => void, done = () => {
 }
 
 export class ToSheetEditor extends DocElement<SheetView> {
-  static properties: PropertyDeclarations = { sel: { state: true }, end: { state: true }, focused: { state: true }, rowsShown: { state: true }, colsShown: { state: true }, fillTo: { state: true }, widths: { state: true }, menuRow: { state: true }, menuCol: { state: true } };
+  static properties: PropertyDeclarations = {
+    sel: { state: true },
+    end: { state: true },
+    focused: { state: true },
+    rowsShown: { state: true },
+    colsShown: { state: true },
+    fillTo: { state: true },
+    widths: { state: true },
+    menuRow: { state: true },
+    menuCol: { state: true },
+  };
   /** The selected cell: where typing goes. */
   declare sel: [number, number];
   /** The far corner of a block of cells; `sel` is the corner it was started from. */
@@ -324,7 +382,12 @@ export class ToSheetEditor extends DocElement<SheetView> {
     const moved = ours && !ours.cut ? { dr: g.r0 - ours.r, dc: g.c0 - ours.c } : undefined;
     const block = /[\t\n]/.test(text.replace(/\n$/, ''));
     // A block wider than the sheet widens it, up to the last letter, rather than losing its right-hand columns.
-    const widest = Math.max(...text.replace(/\n$/, '').split('\n').map((line) => line.split('\t').length));
+    const widest = Math.max(
+      ...text
+        .replace(/\n$/, '')
+        .split('\n')
+        .map((line) => line.split('\t').length),
+    );
     const cols = this.columns();
     while (block && cols.length < Math.min(MAX_COLS, g.c0 + widest)) cols.push({ name: `Col${COL_NAMES[cols.length]}`, type: 'text' });
     const done = pasteCells({ cols }, g.r0, g.c0, text, moved, this.many ? g : undefined);
@@ -413,7 +476,8 @@ export class ToSheetEditor extends DocElement<SheetView> {
       // Fill goes one way: whichever of down/up or across the pointer has gone furthest.
       const dr = at[0] > src.r1 ? at[0] - src.r1 : at[0] < src.r0 ? at[0] - src.r0 : 0;
       const dc = at[1] > src.c1 ? at[1] - src.c1 : at[1] < src.c0 ? at[1] - src.c0 : 0;
-      this.fillTo = !dr && !dc ? null : Math.abs(dr) >= Math.abs(dc) ? { ...src, r0: Math.min(src.r0, at[0]), r1: Math.max(src.r1, at[0]) } : { ...src, c0: Math.min(src.c0, at[1]), c1: Math.max(src.c1, at[1]) };
+      this.fillTo =
+        !dr && !dc ? null : Math.abs(dr) >= Math.abs(dc) ? { ...src, r0: Math.min(src.r0, at[0]), r1: Math.max(src.r1, at[0]) } : { ...src, c0: Math.min(src.c0, at[1]), c1: Math.max(src.c1, at[1]) };
     };
     follow(handle, move, () => {
       const dest = this.fillTo;
@@ -520,7 +584,14 @@ export class ToSheetEditor extends DocElement<SheetView> {
       { group: t('Sort the rows by it'), label: t('High to low'), icon: ArrowUp, does: () => this.edit(sortBy(this.doc, c, true)) },
       { group: t('Columns'), label: t('Fit this column to its text'), icon: MoveHorizontal, does: () => this.fitColumn(c) },
       { group: t('Columns'), label: t('Add a column after'), icon: UI.plus, disabled: this.cols >= MAX_COLS, does: () => this.addColumn(c + 1) },
-      { group: t('Columns'), label: t('Remove this column'), icon: Trash2, disabled: !may, hint: may ? undefined : c < this.view.table.cols.length ? t('A sheet keeps one column') : t('Three at the least'), does: () => this.removeColumn(c) },
+      {
+        group: t('Columns'),
+        label: t('Remove this column'),
+        icon: Trash2,
+        disabled: !may,
+        hint: may ? undefined : c < this.view.table.cols.length ? t('A sheet keeps one column') : t('Three at the least'),
+        does: () => this.removeColumn(c),
+      },
     ];
   }
 
@@ -528,7 +599,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /** Insert ▾: the registry's (commands.ts), then the formula language's functions, by name. */
   private inserts(): MenuItem[] {
-    return [...drawnIn(COMMANDS, 'menu:insert', this), ...FUNCTIONS.map(([name, args, what]) => ({ group: t('Function'), label: `${name}(${args})`, hint: what, does: () => this.insertFunction(name) }))];
+    return [
+      ...drawnIn(COMMANDS, 'menu:insert', this),
+      ...FUNCTIONS.map(([name, args, what]) => ({ group: t('Function'), label: `${name}(${args})`, hint: what, does: () => this.insertFunction(name) })),
+    ];
   }
   /** Show all the text: every column as wide as its words. */
   showAll() {
@@ -923,7 +997,20 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (!h?.at) return false;
     const { r, c, at } = h;
     const k = e.key;
-    const move: [number, number] | null = k === 'Enter' ? (e.shiftKey ? [r - 1, c] : [r + 1, c]) : k === 'ArrowDown' ? [r + 1, c] : k === 'ArrowUp' ? [r - 1, c] : k === 'ArrowLeft' && at.atStart ? [r, c - 1] : k === 'ArrowRight' && at.atEnd ? [r, c + 1] : null;
+    const move: [number, number] | null =
+      k === 'Enter'
+        ? e.shiftKey
+          ? [r - 1, c]
+          : [r + 1, c]
+        : k === 'ArrowDown'
+          ? [r + 1, c]
+          : k === 'ArrowUp'
+            ? [r - 1, c]
+            : k === 'ArrowLeft' && at.atStart
+              ? [r, c - 1]
+              : k === 'ArrowRight' && at.atEnd
+                ? [r, c + 1]
+                : null;
     if (!move) return false;
     this.focusCell(move[0], move[1]);
     return true;
@@ -944,7 +1031,9 @@ export class ToSheetEditor extends DocElement<SheetView> {
     // A rich cell's words are its editor's: the strip shows them, plain and read-only.
     const richSel = isRich(cols[sc]?.type ?? 'text', this.raw(sr, sc));
     const chart = chartOf(v);
-    const figure = chart ? html`<figure class="sheet-chart ${v.table.above ? 'above' : ''}"><svg viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label=${chart.alt ?? t('Chart of the table')}>${unsafeSVG(chart.svg)}</svg></figure>` : nothing;
+    const figure = chart
+      ? html`<figure class="sheet-chart ${v.table.above ? 'above' : ''}"><svg viewBox="0 0 ${chart.w} ${chart.h}" role="img" aria-label=${chart.alt ?? t('Chart of the table')}>${unsafeSVG(chart.svg)}</svg></figure>`
+      : nothing;
     // The row numbers' side is as wide as the widest number drawn, and no wider.
     const gutter = `--sheet-row-w: calc(${String(this.drawn).length}ch + 0.5rem);`;
     const own = (id: string) => COMMANDS.find((x) => x.id === `sheet.${id}`)!;
@@ -1061,7 +1150,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
         const locked = this.locked(r, c);
         const inBlock = this.many && r >= g.r0 && r <= g.r1 && c >= g.c0 && c <= g.c1;
         const inFill = !!fill && r >= fill.r0 && r <= fill.r1 && c >= fill.c0 && c <= fill.c1;
-        const fillHandle = r === g.r1 && c === g.c1 ? html`<span class="fill" role="button" aria-label=${t('Fill: drag to carry these cells on')} title=${t('Drag to fill')} @pointerdown=${this.onFillDown}></span>` : nothing;
+        const fillHandle =
+          r === g.r1 && c === g.c1
+            ? html`<span class="fill" role="button" aria-label=${t('Fill: drag to carry these cells on')} title=${t('Drag to fill')} @pointerdown=${this.onFillDown}></span>`
+            : nothing;
         const td = (inner: unknown) =>
           html`<td data-r=${r} data-c=${c} class="${r === sr && c === sc ? 'sel' : ''} ${inBlock ? 'in' : ''} ${inFill ? 'filling' : ''}" @mousedown=${(e: MouseEvent) => this.onCellDown(e, r, c)} @mouseover=${(e: MouseEvent) => this.onCellOver(e, r, c)}>${inner}${fillHandle}</td>`;
         if (isRich(type, raw)) {
@@ -1095,7 +1187,13 @@ export class ToSheetEditor extends DocElement<SheetView> {
         // A checkbox is ticked by a tap on its cell (Space with the keyboard); one worked out by a formula is typed into.
         const tick = type === 'check' && !locked && !raw.startsWith('=');
         const option = type === 'option' && !locked;
-        const cls = (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') + (link && !isSel ? ' link' : '') + (tick ? ' tick' : '') + (option ? ' option' : '') + (locked ? ' locked' : '') + (type === 'name' ? ' named' : '');
+        const cls =
+          (typeof v === 'number' && type !== 'check' ? 'num' : typeof v === 'string' && v.startsWith('#') ? 'err' : '') +
+          (link && !isSel ? ' link' : '') +
+          (tick ? ' tick' : '') +
+          (option ? ' option' : '') +
+          (locked ? ' locked' : '') +
+          (type === 'name' ? ' named' : '');
         return td(html`<input
             id="c${r}_${c}"
             class=${cls}
@@ -1127,11 +1225,13 @@ export class ToSheetEditor extends DocElement<SheetView> {
             @compositionend=${(e: Event) => this.setCell(r, c, (e.target as HTMLInputElement).value)}
             @keydown=${(e: KeyboardEvent) => this.onKey(e, r, c, this.inputCaret(e.target as HTMLInputElement))}
           />
-          ${tick
-            ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Tick {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}>
+          ${
+            tick
+              ? html`<button type="button" class="tick-btn" tabindex="-1" aria-label=${t('Tick {ref}', { ref: rcToRef(r, c) })} aria-pressed=${String(!!v)} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => this.toggleTick(r, c)}>
                 <span class="box" aria-hidden="true">${v ? icon(UI.check, 18) : nothing}</span>
               </button>`
-            : nothing}
+              : nothing
+          }
           ${option ? html`<button type="button" class="opt-btn" tabindex="-1" aria-label=${t('Choices for {ref}', { ref: rcToRef(r, c) })} title=${t('Choices')} @mousedown=${(e: Event) => e.preventDefault()} @click=${() => void this.openChoices(r, c)}>${icon(UI.down, 14)}</button>` : nothing}
           ${link ? html`<a class="go" href=${link} target="_blank" rel="noopener" aria-label=${t('Open {link}', { link })} tabindex="-1">${icon(UI.link, 12)}</a>` : nothing}`);
       })}

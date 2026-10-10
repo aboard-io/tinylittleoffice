@@ -85,7 +85,25 @@ import './compare.ts';
 const PAUSE = 150;
 
 export class ToShell extends LitElement {
-  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, expires: { state: true }, arrived: { state: true }, sealed: { state: true }, locker: { state: true }, signature: { state: true }, comparing: { state: true }, embed: { state: true }, other: { state: true }, newer: { state: true } };
+  static properties = {
+    app: { state: true },
+    doc: { state: true },
+    tag: { state: true },
+    unreadable: { state: true },
+    owned: { state: true },
+    changed: { state: true },
+    display: { state: true },
+    fresh: { state: true },
+    expires: { state: true },
+    arrived: { state: true },
+    sealed: { state: true },
+    locker: { state: true },
+    signature: { state: true },
+    comparing: { state: true },
+    embed: { state: true },
+    other: { state: true },
+    newer: { state: true },
+  };
   declare app: string | null;
   declare doc: Doc;
   declare tag: string; // the editor element's tag, once its chunk has arrived
@@ -123,7 +141,25 @@ export class ToShell extends LitElement {
 
   constructor() {
     super();
-    Object.assign(this, { app: null, doc: '', tag: '', unreadable: false, owned: null, changed: false, display: false, fresh: '', expires: 0, arrived: false, sealed: '', locker: null, signature: { state: 'none' }, comparing: null, embed: false, other: null, newer: false });
+    Object.assign(this, {
+      app: null,
+      doc: '',
+      tag: '',
+      unreadable: false,
+      owned: null,
+      changed: false,
+      display: false,
+      fresh: '',
+      expires: 0,
+      arrived: false,
+      sealed: '',
+      locker: null,
+      signature: { state: 'none' },
+      comparing: null,
+      embed: false,
+      other: null,
+      newer: false,
+    });
   }
   createRenderRoot() {
     return this;
@@ -152,14 +188,22 @@ export class ToShell extends LitElement {
     on(this, 'click', this.onFollow as EventListener);
     on(window, 'to-leave', this.onGo);
     onFlush(this.flushLink);
-    this.offs.push(() => onFlush(() => {}), opensDropped(this.flushLink, () => this.app ?? this.pageApp()));
+    this.offs.push(
+      () => onFlush(() => {}),
+      opensDropped(this.flushLink, () => this.app ?? this.pageApp()),
+    );
     // The size of everything (kit/zoom.ts), and a pinch on a touch screen sets it outside the spatial canvases (kit/pinch.ts).
     applySize();
     pinchSizes();
     // The rest of Lucide joined (an icon outside the starter set): the editor is drawn again; a key imported or
     // forgotten changes whose signature this is.
     const redraw = () => this.requestUpdate();
-    this.offs.push(onLanguage(() => (this.setTitle(), redraw())), onPictures(redraw), onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())), onPrivacy(() => (void this.checkSignature(), this.guard())));
+    this.offs.push(
+      onLanguage(() => (this.setTitle(), redraw())),
+      onPictures(redraw),
+      onIcons(() => (redraw(), (this.editor as (Editor & { requestUpdate?: () => void }) | null)?.requestUpdate?.())),
+      onPrivacy(() => (void this.checkSignature(), this.guard())),
+    );
     // Every link that leaves the site asks first; every web picture drawn in a page asks before it is fetched.
     installLinkGuard();
     installPictures();
@@ -505,7 +549,19 @@ export class ToShell extends LitElement {
 
   /** What the page's commands act on (kit/keys.ts): print, the shortcuts, find, keep, share, download, the palette, and undo passed to the editor. */
   get page(): Page {
-    return { flush: this.flushLink, print: () => void printDoc(this.current()), shortcuts: this.showKeys, find: () => this.showFind(), keep: () => this.keepNow(), share: () => void (!this.sealed && this.openShare()), download: () => void this.openDownload(), palette: () => void this.showPalette(), doc: !!this.def, editing: !!this.def && !this.display, editor: this.editor };
+    return {
+      flush: this.flushLink,
+      print: () => void printDoc(this.current()),
+      shortcuts: this.showKeys,
+      find: () => this.showFind(),
+      keep: () => this.keepNow(),
+      share: () => void (!this.sealed && this.openShare()),
+      download: () => void this.openDownload(),
+      palette: () => void this.showPalette(),
+      doc: !!this.def,
+      editing: !!this.def && !this.display,
+      editor: this.editor,
+    };
   }
   /** The page's keys (kit/keys.ts pageKey), answered after the words' and the app's. */
   private onKey = (e: KeyboardEvent) => pageKey(e, this.page);
@@ -520,7 +576,12 @@ export class ToShell extends LitElement {
     const def = this.def;
     const out: Offer[] = [];
     if (text && editor?.contains(text)) out.push(...TEXT_COMMANDS.filter((c) => live(c, text)).map((cmd) => ({ cmd, c: text })));
-    if (editor && def) out.push(...inScope(def.id).filter((c) => !c.menu && live(c, editor)).map((cmd) => ({ cmd, c: editor as unknown })));
+    if (editor && def)
+      out.push(
+        ...inScope(def.id)
+          .filter((c) => !c.menu && live(c, editor))
+          .map((cmd) => ({ cmd, c: editor as unknown })),
+      );
     out.push(...KIT_COMMANDS.filter((c) => c !== PALETTE && live(c, page)).map((cmd) => ({ cmd, c: page as unknown })));
     return out;
   }
@@ -574,13 +635,13 @@ export class ToShell extends LitElement {
     this.change(doc);
   }
 
-
   /* ---------- drawing ---------- */
 
   private trust = () => trustButton(this.signature, !!this.sealed, !!this.locker, () => (this.sealed ? void this.askPassword() : void this.privacy?.show()));
 
   /** The pages one under another at their paper's width (scaled down only to fit), each with the web's pictures asked for first. */
-  private pages = (def: AppDef) => def.view(this.doc).map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`);
+  private pages = (def: AppDef) =>
+    def.view(this.doc).map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w / 16}rem" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`);
 
   /**
    * The Display Link: the pages, to read or print (a website: the site itself, as a visitor has it), with Edit. The
@@ -598,7 +659,9 @@ export class ToShell extends LitElement {
       return html`<to-chrome .plain=${{ kind: 'embed', title: this.docTitle, href: u.href, locked: !!this.sealed }} .main=${main}></to-chrome>`;
     }
     const href = routeHash(def.id, payload, '', this.owned, false, this.arrived && this.expires ? { id: arrived?.id ?? '', expires: this.expires } : null);
-    const main = def.page ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>` : this.pages(def);
+    const main = def.page
+      ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>`
+      : this.pages(def);
     return html`<to-chrome in-display .plain=${{ kind: 'display', title: this.docTitle, href, trust: this.trust() }} .main=${main} .expires=${this.arrived ? this.expires : 0} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)}></to-chrome>`;
   }
 
@@ -606,8 +669,10 @@ export class ToShell extends LitElement {
   private renderMain(def: AppDef | undefined) {
     if (this.comparing) return html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>`;
     if (!def) return html`<to-home></to-home>`;
-    if (this.sealed) return html`<div class="to-empty to-locked">${icon(UI.lock, 32)}<p>${t('This document is locked with a password.')}</p><button type="button" class="to-btn primary to-unlock-open" @click=${this.askPassword}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button></div>`;
-    if (this.unreadable) return html`<div class="to-empty"><p>${this.newer ? t('This link was made by a newer Tiny Little Office. Reload the page to get it.') : t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
+    if (this.sealed)
+      return html`<div class="to-empty to-locked">${icon(UI.lock, 32)}<p>${t('This document is locked with a password.')}</p><button type="button" class="to-btn primary to-unlock-open" @click=${this.askPassword}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button></div>`;
+    if (this.unreadable)
+      return html`<div class="to-empty"><p>${this.newer ? t('This link was made by a newer Tiny Little Office. Reload the page to get it.') : t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
     if (!this.tag) return html`<div class="to-empty to-loading" aria-busy="true">${t('Loading…')}</div>`;
     const tag = unsafeStatic(this.tag);
     return staticHtml`<${tag} class="to-editor" .value=${this.edited} @docchange=${this.onDocChange}></${tag}>`;
@@ -615,7 +680,9 @@ export class ToShell extends LitElement {
 
   /** Skip to the document: the first place to type or act in it, past the app's bar; else the column. */
   private skip = () => {
-    const inDoc = [...(this.editor?.querySelectorAll<HTMLElement>('to-text, [contenteditable=true], input, textarea, [tabindex="0"], svg[tabindex], button') ?? [])].find((el) => !el.closest('to-bar'));
+    const inDoc = [...(this.editor?.querySelectorAll<HTMLElement>('to-text, [contenteditable=true], input, textarea, [tabindex="0"], svg[tabindex], button') ?? [])].find(
+      (el) => !el.closest('to-bar'),
+    );
     (inDoc ?? this.querySelector<HTMLElement>('.to-main'))?.focus();
   };
 
@@ -631,10 +698,12 @@ export class ToShell extends LitElement {
             .expires=${this.arrived ? this.expires : 0} ?extend=${!!this.owned} .other=${this.other} ?newer=${this.newer && !this.unreadable}
             @to-drawer-open=${() => void this.querySelector<ToDrawer>('to-drawer')?.show()} @to-palette-open=${() => void this.showPalette()} @to-retitle=${(e: CustomEvent<string>) => this.retitle(def!, e.detail)} @to-copy-new=${this.copyIntoNew} @to-arrival-close=${() => (this.arrived = false)} @to-other-close=${() => (this.other = null)}></to-chrome>`;
     return html`${page}${plain ? nothing : html`<to-find></to-find><to-drawer .downloads=${this.unreadable ? null : downloads} .page=${this.page} .commands=${this.docCommands} .def=${def ?? null}></to-drawer><to-palette></to-palette>`}<to-toast></to-toast>
-      ${def
-        ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.docTitle} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
+      ${
+        def
+          ? html`<to-share .app=${def.id} .doc=${this.doc} .heading=${this.docTitle} .owned=${this.owned} .expires=${this.expires} .changed=${this.changed} .payloadLength=${this.payloadLength} .signature=${this.signature} .protect=${this.privacy?.renderProtect() ?? nothing} .displayOwner=${this.displayOwner} .linkTo=${this.linkTo} @to-owned=${this.onOwned}></to-share>
             <to-privacy doc .app=${def.id} .sealed=${this.sealed} .signature=${this.signature} ?protected=${!!this.locker} .by=${this.envelope.by ?? ''} ?signed=${!!this.envelope.sig} .signable=${this.signable} @to-unlock=${this.onUnlock} @to-lock=${this.onLock} @to-signed=${this.onSigned}></to-privacy>`
-        : nothing}
+          : nothing
+      }
       <to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>
       ${def && !plain ? html`<to-dialog class="to-leave-dialog" heading=${t('This document lives in its link')} .body=${this.renderLeave()}></to-dialog>` : nothing}`;
   }

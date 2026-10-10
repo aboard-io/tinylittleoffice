@@ -117,7 +117,7 @@ async function walk(app: string, s: State): Promise<string[]> {
   return failed;
 }
 
-const first = <T,>(xs: T[], f: (x: T) => boolean) => xs.find(f);
+const first = <T>(xs: T[], f: (x: T) => boolean) => xs.find(f);
 const PLAN: Record<string, State[]> = {
   write: [
     { name: 'words', tpl: 'invoice', set: (ed) => ed.focusFirst() },
@@ -147,7 +147,18 @@ const PLAN: Record<string, State[]> = {
     { name: 'a shape', tpl: 'flowchart', set: (ed) => (ed.sel = 0) },
     { name: 'shapes', tpl: 'flowchart', set: (ed) => (ed.picked = [0, 1]) },
     { name: 'a text', tpl: 'card', set: (ed) => (ed.sel = ed.shapes.findIndex((s: { k: string }) => s.k === 't')) },
-    { name: 'a pen', tpl: 'flowchart', set: (ed) => ((ed.tool = 'v'), (ed.pen = [[40, 40], [120, 40], [80, 120]])) },
+    {
+      name: 'a pen',
+      tpl: 'flowchart',
+      set: (ed) => (
+        (ed.tool = 'v'),
+        (ed.pen = [
+          [40, 40],
+          [120, 40],
+          [80, 120],
+        ])
+      ),
+    },
     { name: 'joining', tpl: 'flowchart', set: (ed) => ((ed.tool = 'k'), (ed.sel = 0)) },
     { name: 'a line', tpl: 'flowchart', set: (ed) => (ed.sel = ed.shapes.findIndex((s: { k: string }) => s.k === 'a' || s.k === 'l' || s.k === 'k' || s.k === 'j')) },
     { name: 'pixels', tpl: 'flowchart', set: async (ed) => (ed.view.grid ? undefined : (ed.setMode(8), await ed.updateComplete), ed.paint(1, 1)) },

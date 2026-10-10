@@ -26,7 +26,12 @@ test('trip: taps on the map add stops, pins mark them, a name is typed', async (
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-trip-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return {
+        bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)),
+        rows: tops.size,
+        pageTop: document.scrollingElement!.scrollTop,
+        wide: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
     });
   const first = await measure();
   expect(first.rows).toBe(1);

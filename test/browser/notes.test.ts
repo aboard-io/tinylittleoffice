@@ -31,7 +31,7 @@ async function mount(notes: string[], backs = false) {
 const input = (x: ToText, inputType: string, data: string | null = null) => x.tx.dispatchEvent(new InputEvent('beforeinput', { inputType, data, bubbles: true, cancelable: true }));
 const key = (x: ToText, k: string) => x.tx.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
 
-test('the marks among blocks: each one\'s block, offset and words; a mark of a block counted among them all', () => {
+test("the marks among blocks: each one's block, offset and words; a mark of a block counted among them all", () => {
   const blocks = parse('A :star: b^[one] c^[**two**]\n\nD^[three]\n').blocks;
   const marks = noteMarks(blocks);
   expect(marks).toEqual([
@@ -67,7 +67,7 @@ test('Enter and Escape go back to the mark (note-back); emptied and left, or Bac
   await el.focusNote(0);
   input(field(0), 'insertParagraph');
   key(field(1), 'Escape');
-  (el.querySelectorAll<HTMLButtonElement>('.to-note-back')[2]).click();
+  el.querySelectorAll<HTMLButtonElement>('.to-note-back')[2].click();
   expect(heard).toEqual([
     ['note-back', { nth: 0 }],
     ['note-back', { nth: 1 }],

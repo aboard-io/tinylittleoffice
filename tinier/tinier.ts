@@ -85,7 +85,8 @@ const HASH_LENGTH = 43;
 export const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(7)), (b) => ALPHABET[b % 32]).join('');
 const valid = (s: string) => /^[a-z0-9]{7}$/.test(s);
 
-const json = (body: unknown, site: string, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store' } });
+const json = (body: unknown, site: string, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'access-control-allow-origin': site, 'content-type': 'application/json', 'cache-control': 'no-store' } });
 const bad = (site: string) => json({ error: 'Bad request' }, site, 400);
 const gone = (site: string, status: 404 | 403) => json({ error: 'No such link, or it has expired, or the key does not fit.' }, site, status);
 const html = (page: string, status = 200) =>
@@ -102,7 +103,11 @@ const html = (page: string, status = 200) =>
 
 // base64url as the site writes it (src/kit/codec.ts): "~" for 62, never "-", where a pasted link would break a
 // line; "-" is still read as 62, so every row and owner key made before is the same bytes.
-const b64 = (bytes: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '~').replace(/\//g, '_').replace(/=+$/, '');
+const b64 = (bytes: ArrayBuffer) =>
+  btoa(String.fromCharCode(...new Uint8Array(bytes)))
+    .replace(/\+/g, '~')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 /** A base64url string in the one form b64 writes: an older row's "-" is the "~" written now. */
 const canon = (s: string) => s.replace(/-/g, '~');
 /** The owner hash of an owner key, as the client computes it: base64url(sha256(bytes of o)). */
@@ -160,7 +165,11 @@ async function prove(store: Store, id: string, o: unknown, now: number, site: st
 export async function handle(req: Request, store: Store, allowed: Limiter, page: string, now = Date.now(), site = SITE): Promise<Response> {
   const url = new URL(req.url);
   page = page.replaceAll('{{site}}', site);
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': site, 'access-control-allow-methods': 'POST, GET, PUT, DELETE', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' } });
+  if (req.method === 'OPTIONS')
+    return new Response(null, {
+      status: 204,
+      headers: { 'access-control-allow-origin': site, 'access-control-allow-methods': 'POST, GET, PUT, DELETE', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' },
+    });
 
   const writes = req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE';
   if (writes && url.pathname.startsWith('/api') && !(await allowed(req.headers.get('cf-connecting-ip') ?? ''))) return json({ error: 'Too many links from here just now.' }, site, 429);

@@ -62,7 +62,11 @@ function unescapeTail(line: string): string {
 /** Attributes as they are written: " {#id .cls key=value}", or nothing. */
 export function attrsText(a?: Attrs): string {
   if (!a) return '';
-  const parts = [...(a.id ? ['#' + a.id] : []), ...(a.cls ?? []).map((c) => '.' + c), ...Object.entries(a.kv ?? {}).map(([k, v]) => `${k}=${/^[^\s"{}]*$/.test(v) && v ? v : `"${v.replace(/"/g, "'")}"`}`)];
+  const parts = [
+    ...(a.id ? ['#' + a.id] : []),
+    ...(a.cls ?? []).map((c) => '.' + c),
+    ...Object.entries(a.kv ?? {}).map(([k, v]) => `${k}=${/^[^\s"{}]*$/.test(v) && v ? v : `"${v.replace(/"/g, "'")}"`}`),
+  ];
   return parts.length ? ` {${parts.join(' ')}}` : '';
 }
 
@@ -85,13 +89,17 @@ export function cells(line: string): string[] {
   const out: string[] = [];
   let cur = '';
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === '\\' && i + 1 < s.length) (cur += s[i] + s[i + 1]), i++;
-    else if (s[i] === '|') out.push(cur), (cur = '');
+    if (s[i] === '\\' && i + 1 < s.length) ((cur += s[i] + s[i + 1]), i++);
+    else if (s[i] === '|') (out.push(cur), (cur = ''));
     else cur += s[i];
   }
   out.push(cur);
   // (A cell's ends are trimmed up to an escaped space, "\\ ", which is a space; "\\|" is a pipe and "\\\\" a backslash.)
-  return out.map((c) => trimRaw(c).replace(/\\([|\\]|[^\S\n])/g, '$1').replace(/<br\s*\/?>/gi, '\n'));
+  return out.map((c) =>
+    trimRaw(c)
+      .replace(/\\([|\\]|[^\S\n])/g, '$1')
+      .replace(/<br\s*\/?>/gi, '\n'),
+  );
 }
 
 /** The header, if the text starts with one: "---", lines of "key: value", "---". */
@@ -115,13 +123,21 @@ const GUARDED = /^(#{1,6}(\s|$)|[-*+](\s|$)|\d{1,9}[.)](\s|$)|>|~\s|```|~~~|!\[|
 const unblock = (s: string) => (s[0] === '\\' && !/\s/.test(s[1] ?? '') && (GUARDED.test(s.slice(1)) || RULE.test(s.slice(1))) && !(s[1] === '{' && ATTRS.test(s.slice(1))) ? s.slice(1) : s);
 
 /** A block as the line reader sees it: its words still inline Markdown. */
-type Raw = { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; a?: Attrs } | { k: 'p'; text: string; a?: Attrs } | { k: 'li'; depth: number; ord?: true; done?: boolean; text: string; a?: Attrs } | { k: 'quote'; text: string; a?: Attrs } | Exclude<Block, { runs: Run[] }>;
+type Raw =
+  | { k: 'h'; level: 1 | 2 | 3 | 4 | 5 | 6; text: string; a?: Attrs }
+  | { k: 'p'; text: string; a?: Attrs }
+  | { k: 'li'; depth: number; ord?: true; done?: boolean; text: string; a?: Attrs }
+  | { k: 'quote'; text: string; a?: Attrs }
+  | Exclude<Block, { runs: Run[] }>;
 
 /** Inline Markdown, line by line, as runs: marks do not cross a line, and a line break is a '\n' among the words. */
 export function parseLines(s: string, blank = true): Run[] {
   // A line of one backslash is an empty line of its block, the last one too. (Any other line with no words in it,
   // "<u>" alone, is dropped from a paragraph or an item, and from a quote's end, as no writing makes one.)
-  const lines = s.replace(NUL, '').split('\n').map((line) => (line === '\\' ? null : readLine(line, !blank)));
+  const lines = s
+    .replace(NUL, '')
+    .split('\n')
+    .map((line) => (line === '\\' ? null : readLine(line, !blank)));
   let end = lines.length;
   while (end && lines[end - 1]?.length === 0) end--;
   const kept = blank ? lines.slice(0, end) : lines.filter((l) => l === null || l.length);
@@ -293,7 +309,7 @@ export function parse(text: string): Doc {
       let words = item[3] ?? '';
       let done: boolean | undefined;
       const task = /^\[( |x|X)\](?:\s+|$)(.*)$/.exec(words);
-      if (task) (done = task[1] !== ' '), (words = task[2]);
+      if (task) ((done = task[1] !== ' '), (words = task[2]));
       const [text, a] = splitAttrs(unblock(words));
       blocks.push({ k: 'li', depth: indents.length - 1, ...(/\d/.test(item[2]) ? { ord: true as const } : {}), ...(done !== undefined ? { done } : {}), text, ...(a ? { a } : {}) });
       continue;
@@ -363,7 +379,8 @@ function guard(line: string): string {
   return line;
 }
 /** A block's first two lines that would read as a table's head and separator ("a | b", "--- | ---"): the second is written "\---", which reads as the same words. */
-const unTable = (lines: string[]): string[] => (lines.length > 1 && lines[0].includes('|') && SEP.test(lines[1]) && lines[1].includes('-') && /^\s*[-:|]/.test(lines[1]) ? [lines[0], '\\' + lines[1].trimStart(), ...lines.slice(2)] : lines);
+const unTable = (lines: string[]): string[] =>
+  lines.length > 1 && lines[0].includes('|') && SEP.test(lines[1]) && lines[1].includes('-') && /^\s*[-:|]/.test(lines[1]) ? [lines[0], '\\' + lines[1].trimStart(), ...lines.slice(2)] : lines;
 const guardEnd = (s: string) => (ATTRS.test(s) ? s.replace(/\{(?=[^{]*$)/, '\\{') : s);
 
 /** The header as its lines, or nothing when it holds nothing. */
@@ -413,10 +430,12 @@ export function writeBlock(b: Block, n = 1): string {
     case 'p':
       return (b.runs.length ? guardEnd(unTable(writeLines(b.runs).split('\n').map(guard)).join('\n')) : '<br>') + at;
     case 'quote':
-      return guardEnd(writeLines(b.runs, true))
-        .split('\n')
-        .map((l) => trimEnd(`> ${l}`))
-        .join('\n') + at;
+      return (
+        guardEnd(writeLines(b.runs, true))
+          .split('\n')
+          .map((l) => trimEnd(`> ${l}`))
+          .join('\n') + at
+      );
     case 'li': {
       const mark = b.ord ? `${n}.` : '-';
       const task = b.done === undefined ? '' : b.done ? '[x] ' : '[ ] ';
@@ -525,7 +544,7 @@ export function parseInline(s: string, kept?: string[]): Run[] {
     return n % 2 === 1;
   };
   let linkEnd = -1;
-  for (let i = 0; i < s.length; ) {
+  for (let i = 0; i < s.length;) {
     if (i === linkEnd) {
       flush();
       href = undefined;
@@ -709,7 +728,11 @@ const FLAGS = [
  */
 export function writeInline(given: Run[]): string {
   // (What the reader would give back is what is written: an icon unmarked, no mark on a space at a run's end.)
-  return inline(sayable(given), (s) => s, (s) => parseInline(s));
+  return inline(
+    sayable(given),
+    (s) => s,
+    (s) => parseInline(s),
+  );
 }
 
 /**
@@ -726,7 +749,11 @@ function writeLine(given: Run[], start: boolean): string {
   const first = runs[0];
   const head = start && loose(first) ? /^\s+/.exec(first.t) : null;
   if (head && first.href) runs = normalRuns([{ t: head[0] }, { ...first, t: first.t.slice(head[0].length) }, ...runs.slice(1)]);
-  return inline(runs, (s) => edges(s, !!tail, !!head), (s) => readLine(s, start));
+  return inline(
+    runs,
+    (s) => edges(s, !!tail, !!head),
+    (s) => readLine(s, start),
+  );
 }
 
 /**
@@ -750,7 +777,8 @@ function inline(runs: Run[], ends: (s: string) => string, read: (s: string) => R
 const same = (a: Run[], b: Run[]) => a.length === b.length && a.every((r, i) => (['t', 'b', 'i', 'u', 's', 'h', 'href', 'ic', 'fn'] as const).every((k) => r[k] === b[i][k]));
 
 /** Runs as reading their writing gives them at best: an icon unmarked, a note's words balanced, no mark on a space at a run's end. */
-const sayable = (runs: Run[]): Run[] => normalRuns(runs.map((r): Run => (r.ic ? { t: '', ic: r.ic, ...(r.href ? { href: r.href } : {}) } : r.fn !== undefined ? { t: '', fn: balanceNote(r.fn) } : r)).flatMap(unspaced));
+const sayable = (runs: Run[]): Run[] =>
+  normalRuns(runs.map((r): Run => (r.ic ? { t: '', ic: r.ic, ...(r.href ? { href: r.href } : {}) } : r.fn !== undefined ? { t: '', fn: balanceNote(r.fn) } : r)).flatMap(unspaced));
 
 /** Every character a backslash can escape, escaped: the last resort. */
 const escapeAll = (t: string) => t.replace(/[\\`*_{}[\]()#+\-.!|~=:<>^]/g, '\\$&');
@@ -758,7 +786,7 @@ const escapeAll = (t: string) => t.replace(/[\\`*_{}[\]()#+\-.!|~=:<>^]/g, '\\$&
 function marked(runs: Run[], esc: (t: string) => string): string {
   let out = '';
   const linkOf = (r: Run) => (r.fn === undefined ? r.href : undefined);
-  for (let i = 0; i < runs.length; ) {
+  for (let i = 0; i < runs.length;) {
     const href = linkOf(runs[i]);
     let j = i + 1;
     while (j < runs.length && linkOf(runs[j]) === href) j++;
@@ -802,7 +830,7 @@ function markedPlain(runs: Run[], esc: (t: string) => string): string {
     }
     close(want);
     out += m[1];
-    for (const [f, d] of FLAGS) if (want.has(f) && !open.includes(f)) (out += d), open.push(f);
+    for (const [f, d] of FLAGS) if (want.has(f) && !open.includes(f)) ((out += d), open.push(f));
     out += esc(m[2]);
     if (m[3]) {
       close(new Set());

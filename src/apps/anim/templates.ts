@@ -12,7 +12,16 @@ const COLS = ['Kind', 'X', 'Y', 'W', 'H', 'Style', 'Label'];
 const table = (cols: string[], rows: string[][]): Block => ({ k: 'table', cols: cols.map(column), rows: rows.map((r) => cols.map((_, c) => r[c] ?? '')) });
 /** A motion: its head, its shapes (rows of Draw's table), and the keys of each shape that moves, by number. */
 const motion = (head: Doc['head'], shapes: string[][], keys: Record<number, string>, cols = COLS): string =>
-  write({ head, blocks: [table(cols, shapes), table(['Shape', 'Keys'], Object.entries(keys).map(([i, k]) => [i, k]))] });
+  write({
+    head,
+    blocks: [
+      table(cols, shapes),
+      table(
+        ['Shape', 'Keys'],
+        Object.entries(keys).map(([i, k]) => [i, k]),
+      ),
+    ],
+  });
 
 /**
  * The loading spinner's ring: eight dots round a centre, clockwise from the top, and the keys that swell each
@@ -81,7 +90,13 @@ export const templates = (): Template[] => [
     name: t('Title card'),
     blurb: t('Red curtains part on opening night and the festival’s name comes forward: played once, it rests on the title.'),
     doc: motion(
-      { title: 'Harbour Lights opening night', frames: '30', fps: '12', loop: 'once', alt: 'Red curtains reading Opening night part to show the title Harbour Lights Film Festival, Halifax waterfront, 14 to 18 October 2026.' },
+      {
+        title: 'Harbour Lights opening night',
+        frames: '30',
+        fps: '12',
+        loop: 'once',
+        alt: 'Red curtains reading Opening night part to show the title Harbour Lights Film Festival, Halifax waterfront, 14 to 18 October 2026.',
+      },
       [
         ['o', '12', '14', '56', '20', '1b4', 'Harbour Lights Film Festival | Halifax waterfront · 14 to 18 October 2026'],
         ['r', '0', '0', '40', '50', '2r4', 'Opening'],
@@ -99,7 +114,12 @@ export const templates = (): Template[] => [
     name: t('Birthday card'),
     blurb: t('A present hops, stars and hearts sway round it, and the greeting shines in rainbow letters.'),
     doc: motion(
-      { title: 'Happy birthday, Maya', frames: '16', fps: '8', alt: 'A birthday card: the words Happy birthday, Maya in rainbow colours over a red present that hops, with stars and hearts swaying round it.' },
+      {
+        title: 'Happy birthday, Maya',
+        frames: '16',
+        fps: '8',
+        alt: 'A birthday card: the words Happy birthday, Maya in rainbow colours over a red present that hops, with stars and hearts swaying round it.',
+      },
       [
         ['t', '4', '4', '72', '8', '0p4=', 'Happy birthday, Maya!'],
         ['i', '34', '18', '12', '12', '0r', 'gift'],
@@ -173,7 +193,12 @@ export const templates = (): Template[] => [
     name: t('Weather this week'),
     blurb: t('Four days of weather in Lisbon, each icon alive: the sun turns, the cloud drifts, the lightning jolts.'),
     doc: motion(
-      { title: 'Lisbon this week', frames: '16', fps: '8', alt: 'A forecast for Lisbon: Monday sunny and 24 degrees, Tuesday cloudy and 21, Wednesday storms and 19, Thursday sunny and 23, each icon moving.' },
+      {
+        title: 'Lisbon this week',
+        frames: '16',
+        fps: '8',
+        alt: 'A forecast for Lisbon: Monday sunny and 24 degrees, Tuesday cloudy and 21, Wednesday storms and 19, Thursday sunny and 23, each icon moving.',
+      },
       [
         ['t', '4', '2', '72', '6', '04=', 'Lisbon this week'],
         ['i', '6', '13', '8', '8', '0o', 'sun'],
@@ -199,7 +224,13 @@ export const templates = (): Template[] => [
     name: t('New Year countdown'),
     blurb: t('Three, two, one, a second each, then the new year arrives in rainbow letters: played once, it rests on the greeting.'),
     doc: motion(
-      { title: 'New Year’s Eve at the Boathouse', frames: '24', fps: '4', loop: 'once', alt: 'A countdown at the Boathouse: a large 3, then 2, then 1, then Happy 2027! in rainbow letters, with stars spinning out beside it.' },
+      {
+        title: 'New Year’s Eve at the Boathouse',
+        frames: '24',
+        fps: '4',
+        loop: 'once',
+        alt: 'A countdown at the Boathouse: a large 3, then 2, then 1, then Happy 2027! in rainbow letters, with stars spinning out beside it.',
+      },
       [
         ['t', '4', '3', '72', '4', '03=', 'New Year’s Eve at the Boathouse'],
         ['t', '32', '20', '16', '8', '0r4=', '3'],
@@ -225,7 +256,12 @@ export const templates = (): Template[] => [
     name: t('Flight path'),
     blurb: t('A plane crosses a dotted route from London to Lisbon, climbing as it goes, with the flight’s times above.'),
     doc: motion(
-      { title: 'London to Lisbon, 24 October', frames: '24', fps: '8', alt: 'A plane flies along a dotted line from a pin at London to a pin at Lisbon, growing as it climbs and shrinking as it lands.' },
+      {
+        title: 'London to Lisbon, 24 October',
+        frames: '24',
+        fps: '8',
+        alt: 'A plane flies along a dotted line from a pin at London to a pin at Lisbon, growing as it climbs and shrinking as it lands.',
+      },
       [
         ['t', '4', '2', '72', '6', '03=', 'Saturday 24 October 2026 | Heathrow 09:05, Lisbon 11:45'],
         ['l', '11', '24', '56', '12', '1', ''],

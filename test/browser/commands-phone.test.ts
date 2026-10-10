@@ -117,9 +117,9 @@ test('Paste in the row, where the browser allows it, reads our words and our HTM
   const { text } = await write();
   // What another document's Copy wrote (kit/clipboard.ts copyData): the TLO, and our HTML carrying the exact runs.
   const held = copyData(parse('Some **pasted** words\n').blocks, { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 17 } });
-  const read = vi.spyOn(navigator.clipboard, 'read').mockResolvedValue([
-    new ClipboardItem({ 'text/plain': new Blob([held.text], { type: 'text/plain' }), 'text/html': new Blob([held.html], { type: 'text/html' }) }),
-  ]);
+  const read = vi
+    .spyOn(navigator.clipboard, 'read')
+    .mockResolvedValue([new ClipboardItem({ 'text/plain': new Blob([held.text], { type: 'text/plain' }), 'text/html': new Blob([held.html], { type: 'text/html' }) })]);
   await userEvent.click(text.tx.querySelector('p')!);
   await choose(text);
   bubble(text).querySelector<HTMLButtonElement>('button[aria-label="Paste"]')!.click();
@@ -190,7 +190,8 @@ test('on a phone the drawer’s This document has the app’s own rows that need
   await until(() => !!deck.querySelector('to-deck-editor to-bar button'));
   deck.querySelector<HTMLButtonElement>('.to-burger')!.click();
   await until(() => !!deck.querySelector('dialog.to-drawer[open] .to-drawer-doc'));
-  const rows = () => [...deck.querySelectorAll<HTMLElement>('.to-drawer-doc .to-drawer-cmd')].map((r) => (r.matches('to-menu') ? r.querySelector('button')!.textContent!.trim() : r.textContent!.trim()));
+  const rows = () =>
+    [...deck.querySelectorAll<HTMLElement>('.to-drawer-doc .to-drawer-cmd')].map((r) => (r.matches('to-menu') ? r.querySelector('button')!.textContent!.trim() : r.textContent!.trim()));
   expect(deck.querySelector('.to-drawer-app')!.textContent).toBe('Presentation Builder');
   expect(rows().some((r) => r.startsWith('Present'))).toBe(true);
   expect(rows().some((r) => r.startsWith('Look:'))).toBe(true);

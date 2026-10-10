@@ -1,9 +1,9 @@
 {
- "source": "src/apps/org.def.ts",
- "docs": [
-  {
-   "name": "example 1",
-   "text": "- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n    - Cy Lund | Platform\n    - Di Shah | Apps\n  - Eve Marsh | Design\n  - Flo Reyes | Sales\n\n~ Cy Lund -- Eve Marsh: design partner"
-  }
- ]
+  "source": "src/apps/org.def.ts",
+  "docs": [
+    {
+      "name": "example 1",
+      "text": "- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n    - Cy Lund | Platform\n    - Di Shah | Apps\n  - Eve Marsh | Design\n  - Flo Reyes | Sales\n\n~ Cy Lund -- Eve Marsh: design partner"
+    }
+  ]
 }

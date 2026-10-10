@@ -24,7 +24,10 @@ function build(opts: { inline?: string } = {}) {
   const list = offlineList(files);
   put('files.json', JSON.stringify(list));
   put('sw.js', `const VERSION = '${list.version}';`);
-  put('_headers', `/*\n  Content-Security-Policy: default-src 'self'; script-src 'self' ${hash(SCRIPT)}; object-src 'none'\n/embed/\n  Content-Security-Policy: script-src 'self' ${hash(SCRIPT)}; frame-ancestors *\n`);
+  put(
+    '_headers',
+    `/*\n  Content-Security-Policy: default-src 'self'; script-src 'self' ${hash(SCRIPT)}; object-src 'none'\n/embed/\n  Content-Security-Policy: script-src 'self' ${hash(SCRIPT)}; frame-ancestors *\n`,
+  );
   return list;
 }
 
