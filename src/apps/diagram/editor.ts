@@ -43,12 +43,12 @@ import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
 import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, hasLines, isDated, wordsInto, wordsOn, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
-import { zoomOf } from '../../kit/zoom.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
+import { remScale } from '../../kit/zoom.ts';
 import './style.css';
 
 export const tag = 'to-diagram-editor';
@@ -277,9 +277,8 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (!el || !s || !wrap || !pic) return;
     const r = pic.getBoundingClientRect();
     const box = wrap.getBoundingClientRect();
-    // Measured on the screen, set in the wrap's own lengths: under the size of everything those are `z` times smaller.
-    const z = zoomOf(wrap);
-    const w = wordsOver(s, d.shapes, r.width / d.w / z, (r.left - box.left) / z + wrap.scrollLeft, (r.top - box.top) / z + wrap.scrollTop, THEME);
+    // Measured on the screen, set in the wrap's own lengths, which are the screen's.
+    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft, r.top - box.top + wrap.scrollTop, THEME);
     Object.assign(el.style, w.style);
     el.classList.toggle('left', w.left);
     el.classList.toggle('wrap', w.wrap);
@@ -860,7 +859,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   };
   private zoomBy(by: number) {
     const wrap = this.querySelector<HTMLElement>('.dg-wrap');
-    const now = this.zoom || Math.min(1, (wrap?.clientWidth ?? this.view.d.w) / this.view.d.w);
+    const now = this.zoom || Math.min(1, (wrap?.clientWidth ?? this.view.d.w) / (this.view.d.w * remScale()));
     this.zoom = Math.max(0.25, Math.min(3, Math.round((now + by) * 4) / 4));
   }
 
@@ -881,7 +880,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     const on = tg ? this.indexOf(tg) : -1;
     const words = this.wording(tg);
-    const width = this.zoom ? `width:${Math.round(d.w * this.zoom)}px;max-width:none` : `width:100%;max-width:${d.w}px`;
+    const width = this.zoom ? `width:${Math.round(d.w * this.zoom) / 16}rem;max-width:none` : `width:100%;max-width:${d.w / 16}rem`;
     const hint = this.joining === '' ? t('Tap the first thing to join, then the other; tap empty space to stop.') : this.joining !== null ? t('Tap the thing to join {name} to; tap empty space to stop.', { name: this.joining }) : kindHint(kind);
     return html`<to-bar class="dg-bar">
         <to-menu class="dg-kind" caret .label=${kindName(kind)} .icon=${KIND_ICON[kind]} .items=${this.kindItems()}></to-menu>

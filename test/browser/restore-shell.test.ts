@@ -7,7 +7,7 @@ import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { setKeeping } from '../../src/kit/store.ts';
-import { size, stepSize, zoomOf } from '../../src/kit/zoom.ts';
+import { remScale, size, stepSize } from '../../src/kit/zoom.ts';
 import { place } from '../../src/kit/menu.ts';
 import { keysWritten } from '../../src/kit/keys.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
@@ -224,11 +224,11 @@ test('the size of everything: 70% to 200% from the menu, on the root at 1.3 time
   for (let i = 0; i < 18; i++) (more.click(), await tick());
   expect(size()).toBe(2);
   expect(more.disabled).toBe(true);
-  expect(document.documentElement.style.zoom).toBe('2.6');
+  expect(document.documentElement.style.getPropertyValue('--to-doc')).toBe('2.6');
   expect(shell.querySelector('.to-size-now')!.textContent).toBe('200%');
   shell.querySelector<HTMLButtonElement>('.to-size-now')!.click();
   await tick();
-  expect(document.documentElement.style.zoom).toBe('1.3');
+  expect(document.documentElement.style.getPropertyValue('--to-doc')).toBe('1.3');
   for (let i = 0; i < 3; i++) (less.click(), await tick());
   expect(size()).toBe(0.7);
   expect(less.disabled).toBe(true);
@@ -316,8 +316,8 @@ test('the Display Link draws a letter page at its paper’s width, centred, neve
   await until(() => !!shell.querySelector('.to-display-page svg'));
   const svg = shell.querySelector('.to-display-page svg')!.getBoundingClientRect();
   const w = Number(shell.querySelector('.to-display-page svg')!.getAttribute('viewBox')!.split(' ')[2]);
-  // At its paper's width in the page's own lengths: on the screen, the size of everything times that.
-  expect(Math.abs(svg.width / zoomOf(shell.querySelector('.to-display-page svg')!) - w)).toBeLessThan(2);
+  // At its paper's width in the page's own lengths, sixteenths of a rem: on the screen, the size of everything times that.
+  expect(Math.abs(svg.width / remScale() - w)).toBeLessThan(2);
   expect(Math.abs(svg.left + svg.width / 2 - document.documentElement.clientWidth / 2)).toBeLessThan(10);
 });
 

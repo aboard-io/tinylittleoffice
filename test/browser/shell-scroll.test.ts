@@ -7,11 +7,11 @@ import { page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { localDay } from '../../src/kit/library.ts';
-import { zoomed } from '../../src/kit/zoom.ts';
+import { remScale } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 
-/** A length on the screen in the stylesheet's own pixels: the normal size draws everything at the root's zoom (kit/zoom.ts BASE). */
-const css = (px: number) => px / zoomed();
+/** A length on the screen in the stylesheet's own pixels, sixteenths of a rem: the normal size draws a rem at kit/zoom.ts BASE × 16px. */
+const css = (px: number) => px / remScale();
 
 afterEach(() => {
   vi.useRealTimers();
@@ -114,7 +114,7 @@ test('the title, focused, opens a wide row: the automatic name chosen whole, Ent
   await tick(300);
   const r = field.getBoundingClientRect();
   expect(css(r.height)).toBeCloseTo(44, 0);
-  expect(getComputedStyle(field).fontSize).toBe('20px');
+  expect(css(parseFloat(getComputedStyle(field).fontSize))).toBeCloseTo(20, 1);
   expect(r.width).toBeGreaterThan(small.width + 40);
   expect(r.top).toBeGreaterThanOrEqual(small.bottom);
   // Across the header, from one margin to the other; the rest stays on the first row.
@@ -200,7 +200,8 @@ test('desktop: the home page keeps its column', async () => {
   const shell = await mount('');
   const main = shell.querySelector<HTMLElement>('.to-main')!;
   expect(main.classList.contains('to-wide')).toBe(false);
-  expect(getComputedStyle(main).maxWidth).toBe(getComputedStyle(document.documentElement).getPropertyValue('--to-max-w').trim());
+  expect(getComputedStyle(document.documentElement).getPropertyValue('--to-max-w').trim()).toBe('67.5rem');
+  expect(css(parseFloat(getComputedStyle(main).maxWidth))).toBeCloseTo(1080, 1);
   expect(css(main.getBoundingClientRect().width)).toBeLessThanOrEqual(1080);
   await page.viewport(414, 896);
 });

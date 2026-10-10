@@ -23,7 +23,7 @@ test('a sealed link on a phone: the unlock dialog inside 390px, a wrong password
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   const field = page.locator('.to-unlock-field');
   await expect(field).toBeFocused();
-  expect(await field.evaluate((el) => getComputedStyle(el).fontSize)).toBe('16px');
+  expect(await field.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   const go = page.locator('.to-unlock-go');
   expect((await go.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect((await go.boundingBox())!.x + (await go.boundingBox())!.width).toBeLessThanOrEqual(390);

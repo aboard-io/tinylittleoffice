@@ -10,10 +10,10 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { routeHash } from '../../src/kit/route.ts';
 import { UI } from '../../src/kit/icons.ts';
 import { until } from './helpers.ts';
-import { zoomed } from '../../src/kit/zoom.ts';
+import { remScale } from '../../src/kit/zoom.ts';
 
-/** A box on the screen in the stylesheet's own pixels: the normal size draws everything at kit/zoom.ts BASE. */
-const css = (r: DOMRect) => ({ width: r.width / zoomed(), height: r.height / zoomed() });
+/** A box on the screen in sixteenths of a rem, at the default size (a rem is kit/zoom.ts BASE × 16px). */
+const css = (r: DOMRect) => ({ width: r.width / remScale(), height: r.height / remScale() });
 import '../../src/styles.css';
 
 const SHAPES: Record<string, [number, number]> = { Letter: [85, 110], Slide: [1600, 900], Page: [400, 300], Strip: [1300, 240] };

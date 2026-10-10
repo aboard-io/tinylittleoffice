@@ -10,18 +10,18 @@
   }
   @media (max-width: 760px) {
     :root {
-      --to-gutter: 12px;
+      --to-gutter-k: 0.75;
     }
     .to-dialog,
     .to-ask-dialog .to-dialog {
-      width: calc(var(--to-vw) - 16px);
-      margin-top: 8px;
+      width: calc(100vw - 1em);
+      margin-top: 0.5em;
     }
     /* Another document edited in place, and the Share dialog, take the whole screen on a phone. */
     .to-share-dialog .to-dialog {
       margin: 0;
-      width: var(--to-vw);
-      height: var(--to-vh);
+      width: 100vw;
+      height: 100dvh;
     }
     .to-share-dialog .to-dialog-inner {
       height: 100%;
@@ -47,7 +47,7 @@
       grid-template-columns: 1fr auto;
     }
     .to-arrival-words {
-      font-size: 20px;
+      font-size: 1.25rem;
     }
     .to-arrival-acts {
       grid-row: 2;
@@ -55,14 +55,14 @@
     }
     .to-doc-dialog {
       margin: 0;
-      width: var(--to-vw);
-      height: var(--to-vh);
+      width: 100vw;
+      height: 100dvh;
       border-radius: 0;
       padding-top: env(safe-area-inset-top);
     }
     .to-doc-dialog-head {
-      padding-left: max(12px, env(safe-area-inset-left));
-      padding-right: max(8px, env(safe-area-inset-right));
+      padding-left: max(0.75em, env(safe-area-inset-left));
+      padding-right: max(0.5em, env(safe-area-inset-right));
     }
     .to-doc-dialog-sizes {
       order: 1;
@@ -72,7 +72,7 @@
   }
   @media (pointer: coarse) {
     .to-btn {
-      font-size: 16px;
+      font-size: var(--to-scale);
     }
   }
   @media print {

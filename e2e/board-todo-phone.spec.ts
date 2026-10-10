@@ -12,7 +12,7 @@ const measure = (page: Page, tag: string) =>
   page.evaluate((tag) => {
     const bar = document.querySelector<HTMLElement>(`${tag} to-bar`)!;
     const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-    return { bar: bar.offsetHeight, rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, pageTop: document.scrollingElement!.scrollTop, zoom: window.visualViewport?.scale ?? 1, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
   }, tag);
 const value = (page: Page, tag: string) => page.evaluate((tag) => (document.querySelector(tag) as HTMLElement & { value: string }).value, tag);
 const small = (page: Page, tag: string) => page.evaluate((tag) => [...document.querySelectorAll<HTMLElement>(`${tag} .tx, ${tag} input:not([type=checkbox])`)].filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.getAttribute('aria-label') ?? el.className), tag);

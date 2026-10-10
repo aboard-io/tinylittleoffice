@@ -29,8 +29,8 @@
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
   .cal-wd {
-    padding: 6px 6px 4px;
-    font-size: 12px;
+    padding: 0.375rem 0.375rem 0.25rem;
+    font-size: 0.75rem;
     color: var(--to-ink-3);
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -38,10 +38,10 @@
   .cal-cell {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.125rem;
     min-width: 0;
-    min-height: 92px;
-    padding: 2px 3px 4px;
+    min-height: 5.75rem;
+    padding: 0.125rem 0.1875rem 0.25rem;
     border-top: 1px solid var(--to-border);
     cursor: pointer;
   }
@@ -58,15 +58,15 @@
     background: var(--to-accent-soft);
   }
   .cal-cell.picked {
-    box-shadow: inset 0 0 0 2px var(--to-accent);
+    box-shadow: inset 0 0 0 0.125rem var(--to-accent);
   }
   .cal-n {
     align-self: flex-start;
-    min-width: 28px;
-    height: 28px;
-    padding: 0 6px;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.375rem;
     font: inherit;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--to-ink-2);
     background: none;
     border: 0;
@@ -81,11 +81,11 @@
   .cal-chip {
     display: block;
     width: 100%;
-    min-height: 20px;
-    padding: 1px 4px;
+    min-height: 1.25rem;
+    padding: 1px 0.25rem;
     font: inherit;
-    font-size: 12px;
-    line-height: 18px;
+    font-size: 0.75rem;
+    line-height: 1.125rem;
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
@@ -93,8 +93,8 @@
     color: var(--to-ink);
     background: color-mix(in oklab, var(--c) 18%, var(--to-surface));
     border: 0;
-    border-left: 3px solid var(--c);
-    border-radius: 4px;
+    border-left: 0.1875rem solid var(--c);
+    border-radius: 0.25rem;
     cursor: pointer;
   }
   /* White words on the colour, the colour darkened a little so they read (4.5:1) on orange and green too. */
@@ -112,7 +112,7 @@
     border-bottom-right-radius: 0;
   }
   .cal-rep {
-    margin-right: 2px;
+    margin-right: 0.125rem;
     vertical-align: -1px;
   }
 
@@ -120,15 +120,15 @@
   .cal-legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 16px;
-    margin: 10px 2px 0;
+    gap: 0.25rem 1rem;
+    margin: 0.625rem 0.125rem 0;
     color: var(--to-ink-2);
   }
   .cal-legend i {
     display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-right: 6px;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.375rem;
     border-radius: 50%;
     background: var(--c);
     vertical-align: -1px;
@@ -140,7 +140,7 @@
   }
   .cal-agenda {
     list-style: none;
-    margin: 12px var(--to-bleed-r) 0 var(--to-bleed-l);
+    margin: 0.75rem var(--to-bleed-r) 0 var(--to-bleed-l);
     padding: 0;
     background: var(--to-surface);
   }
@@ -148,22 +148,22 @@
     border-top: 1px solid var(--to-border);
   }
   .cal-agenda li.to-hint {
-    padding: 12px;
+    padding: 0.75rem;
   }
   .cal-agenda-item {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px 12px;
+    gap: 0.125rem 0.75rem;
     align-items: baseline;
     width: 100%;
     min-height: var(--to-touch);
-    padding: 10px 12px;
+    padding: 0.625rem 0.75rem;
     font: inherit;
     text-align: left;
     color: var(--to-ink);
     background: none;
     border: 0;
-    border-left: 4px solid var(--c);
+    border-left: 0.25rem solid var(--c);
     cursor: pointer;
   }
   .cal-agenda-item .when {
@@ -175,18 +175,18 @@
     color: var(--to-ink-3);
   }
   .cal-empty {
-    padding: 16px 2px;
+    padding: 1rem 0.125rem;
   }
 
   /* ---- the year ---- */
   .cal-year {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(10.25rem, 1fr));
+    gap: 1rem;
   }
   .cal-mini-name {
-    min-height: 36px;
-    padding: 0 4px;
+    min-height: 2.25rem;
+    padding: 0 0.25rem;
     font: inherit;
     font-weight: 700;
     color: var(--to-ink);
@@ -201,7 +201,7 @@
     text-align: center;
   }
   .cal-mini-days .wd {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--to-ink-3);
   }
   .cal-mini-days .d {
@@ -209,7 +209,7 @@
     min-width: 0;
     padding: 0;
     font: inherit;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--to-ink-2);
     background: none;
     border: 0;
@@ -221,14 +221,14 @@
     background: color-mix(in oklab, var(--c) 32%, var(--to-surface));
   }
   .cal-mini-days .d.today {
-    box-shadow: inset 0 0 0 2px var(--to-accent);
+    box-shadow: inset 0 0 0 0.125rem var(--to-accent);
     font-weight: 700;
   }
 
   /* ---- the schedule ---- */
   .cal-gantt {
     display: grid;
-    grid-template-columns: minmax(112px, 32%) minmax(0, 1fr);
+    grid-template-columns: minmax(7rem, 32%) minmax(0, 1fr);
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
     background: var(--to-surface);
@@ -243,13 +243,13 @@
   }
   /* A row is as tall as the chart's (44px); its line is drawn inside it, so the two columns stay level. */
   .cal-tasks li {
-    height: 44px;
+    height: 2.75rem;
     box-shadow: inset 0 1px var(--to-border);
   }
   .cal-trow {
     display: flex;
     align-items: center;
-    padding-left: calc(var(--d) * 14px);
+    padding-left: calc(var(--d) * 0.875rem);
   }
   .cal-trow.cur {
     background: var(--to-accent-soft);
@@ -274,23 +274,23 @@
     color: var(--to-ink-3);
   }
   .cal-grip {
-    width: 22px;
-    height: 44px;
+    width: 1.375rem;
+    height: 2.75rem;
     cursor: grab;
   }
   /* The tick is a real 44px button on the row. */
   .cal-tick {
-    width: 44px;
-    height: 44px;
+    width: 2.75rem;
+    height: 2.75rem;
     color: var(--to-accent);
   }
   .cal-tick::before {
     content: '';
     grid-area: 1 / 1;
-    width: 18px;
-    height: 18px;
-    border: 1.5px solid var(--to-ink-3);
-    border-radius: 5px;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 0.0938rem solid var(--to-ink-3);
+    border-radius: 0.3125rem;
   }
   .cal-tick > * {
     grid-area: 1 / 1;
@@ -300,9 +300,9 @@
     min-width: 0;
   }
   .cal-trow to-text .tx {
-    padding: 10px 4px;
-    font-size: 16px;
-    line-height: 24px;
+    padding: 0.625rem 0.25rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -321,7 +321,6 @@
     touch-action: pan-x pan-y;
   }
   .cal-chart text {
-    font-size: 11px;
     fill: var(--to-ink-3);
   }
   .cal-chart text.month {
@@ -366,13 +365,13 @@
   /* ---- the dialog ---- */
   .cal-form {
     display: grid;
-    gap: 12px;
+    gap: 0.75em;
   }
   .cal-field {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 10px;
+    gap: 0.375em 0.625em;
   }
   .cal-field > span:first-child {
     flex: 0 0 6.5em;
@@ -382,7 +381,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: 0.375em;
   }
   .cal-what to-text {
     flex: 1 1 12em;
@@ -390,8 +389,8 @@
   }
   .cal-what to-text .tx {
     min-height: var(--to-touch);
-    padding: 10px;
-    line-height: 22px;
+    padding: 0.625em;
+    line-height: 1.375em;
     background: var(--to-input-bg);
     border: 1px solid var(--to-input-border);
     border-radius: var(--to-radius-sm);
@@ -404,9 +403,9 @@
   .cal-form input[type='number'],
   .cal-form input[type='text'] {
     min-height: var(--to-touch);
-    padding: 0 8px;
+    padding: 0 0.5em;
     font: inherit;
-    font-size: 16px;
+    font-size: var(--to-scale);
     color: var(--to-ink);
     background: var(--to-input-bg);
     border: 1px solid var(--to-input-border);
@@ -422,14 +421,14 @@
   .cal-swatches {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px;
+    gap: 0.125em;
   }
   .cal-swatch .to-swatch {
-    width: 22px;
-    height: 22px;
+    width: 1.375em;
+    height: 1.375em;
   }
   .cal-swatch[aria-pressed='true'] {
-    box-shadow: inset 0 0 0 2px var(--to-ink);
+    box-shadow: inset 0 0 0 0.125em var(--to-ink);
   }
   .cal-actions {
     justify-content: flex-end;
@@ -443,32 +442,32 @@
 
   @media (max-width: 599px) {
     .cal-cell {
-      min-height: 64px;
-      padding: 1px 1px 3px;
+      min-height: 4rem;
+      padding: 1px 1px 0.1875rem;
     }
     .cal-chip {
-      font-size: 11px;
-      padding: 0 2px;
-      min-height: 16px;
-      line-height: 16px;
+      font-size: 0.6875rem;
+      padding: 0 0.125rem;
+      min-height: 1rem;
+      line-height: 1rem;
     }
     /* No room for a time on a phone's chip: the list under the month has it. */
     .cal-chip b {
       display: none;
     }
     .cal-n {
-      min-width: 24px;
-      height: 24px;
-      padding: 0 4px;
+      min-width: 1.5rem;
+      height: 1.5rem;
+      padding: 0 0.25rem;
     }
     .cal-wd {
-      padding: 4px 2px 2px;
-      font-size: 11px;
+      padding: 0.25rem 0.125rem 0.125rem;
+      font-size: 0.6875rem;
       text-align: center;
     }
     /* The task's words need the room on a phone: the chart scrolls beside them. */
     .cal-gantt {
-      grid-template-columns: minmax(150px, 48%) minmax(0, 1fr);
+      grid-template-columns: minmax(9.375rem, 48%) minmax(0, 1fr);
     }
   }
 }

@@ -37,7 +37,7 @@ test('calc: keys and the line, units from the engine under the policy, a graph',
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-calc-editor to-bar')!;
       const tops = new Set([...bar.children].filter((el) => (el as HTMLElement).offsetWidth > 0).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().top)));
-      return { bar: bar.offsetHeight, rows: tops.size, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return { bar: Math.round(bar.getBoundingClientRect().height / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), rows: tops.size, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     });
   const m = await measure();
   expect(m.rows).toBe(1);

@@ -10,7 +10,6 @@ import { LitElement, html } from 'lit';
 import { fold, termsOf } from './search.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
-import { zoomOf } from './zoom.ts';
 
 /** What an editor found: how many, and a way to show the one in hand. */
 export interface Found {
@@ -140,7 +139,7 @@ export class ToFind extends LitElement {
   private place() {
     const bar = this.target?.querySelector('to-bar');
     const below = bar ? bar.getBoundingClientRect().bottom : (document.querySelector('.to-header')?.getBoundingClientRect().bottom ?? 0);
-    this.style.top = `${Math.round((Math.max(0, below) + 4) / zoomOf(this))}px`;
+    this.style.top = `${Math.round(Math.max(0, below) + 4)}px`;
   }
   /** Look again (the document may have changed) and show the `i`th. */
   private run(i: number) {

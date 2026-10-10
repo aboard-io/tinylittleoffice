@@ -8,9 +8,9 @@ import '../editor.ts';
 import type { ToSheetEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import { BASE, zoomed } from '../../../kit/zoom.ts';
+import { BASE, remScale } from '../../../kit/zoom.ts';
 /** A length on the screen in the stylesheet's own pixels (the normal size draws at kit/zoom.ts BASE). */
-const css = (px: number) => px / zoomed();
+const css = (px: number) => px / remScale();
 
 const SHEET = 'Item | Cost:money\n--- | ---\nRent | 1200\nFood | 450\nTotal | =SUM(B1:B2)\n';
 const MODEL = '---\nchart: sankey\nlock: C1:C2\n---\nFrom | To | Amount:number | Assumption:name | Value:number\n--- | --- | --- | --- | ---\nVisitors | Signups | =visitors*rate/100 | Visitors | 1000\nVisitors | Bounced | =visitors-C1 | Rate | 10\n';
@@ -273,7 +273,7 @@ test('at phone width: the bar is one row of 44px buttons, inputs are 16px, nothi
     const tops = new Set([...bar.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
     const h0 = bar.offsetHeight;
-    expect(h0).toBeLessThanOrEqual(56);
+    expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     // The grid at the default size (a phone is 300 of the stylesheet's pixels wide): its box inside the screen, the
     // columns side by side in it, what is wider scrolling there and not the page.
@@ -596,7 +596,7 @@ test('a checkbox is a 24px box with a 2px ink border, empty or holding a thick a
   const check = button(el, 'Tick B2').querySelector<SVGElement>('.box svg')!;
   expect(getComputedStyle(check).strokeWidth).toBe('4px');
   // The whole cell is the button; nothing of the value shows through.
-  expect(css(tickB1.getBoundingClientRect().height)).toBeCloseTo(tickB1.closest('td')!.clientHeight, 0);
+  expect(tickB1.getBoundingClientRect().height).toBeCloseTo(tickB1.closest('td')!.clientHeight, 0);
   expect(getComputedStyle(cell(el, 'B1')).color).toBe('rgba(0, 0, 0, 0)');
   const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
   tickB1.dispatchEvent(down);
@@ -615,15 +615,15 @@ test('a checkbox is a 24px box with a 2px ink border, empty or holding a thick a
 
 test('the row numbers are as narrow as their widest number and the heads are quiet: no shading, no lines, 32px on a mouse', async () => {
   const { el } = await editor(SHEET);
-  const side = () => css(el.querySelector<HTMLElement>('th.row')!.getBoundingClientRect().width);
-  // Thirty rows drawn: two digits, 12px type, and 8px.
+  const side = () => el.querySelector<HTMLElement>('th.row')!.getBoundingClientRect().width;
+  // Thirty rows drawn: two digits, 12px type, and 8px (the type measured on the screen, as the side is).
   const digit = (() => {
     const c = document.createElement('canvas').getContext('2d')!;
     const cs = getComputedStyle(el.querySelector('.row-num')!);
     c.font = `${cs.fontSize} ${cs.fontFamily}`;
     return c.measureText('0').width;
   })();
-  expect(Math.abs(side() - (2 * digit + 8))).toBeLessThan(2);
+  expect(Math.abs(side() - (2 * digit + 8 * remScale()))).toBeLessThan(2);
   const th = el.querySelector<HTMLElement>('th.row')!;
   const head = el.querySelector<HTMLElement>('thead tr:first-child th')!;
   const surface = getComputedStyle(el.querySelector('.sheet-scroll')!).backgroundColor;
@@ -723,15 +723,15 @@ test('a column head selects its column; the grip is resized from the keyboard, a
   await el.updateComplete;
   // Ten of the sheet's own pixels wider, from where it was: on the screen, ten times the size of everything.
   expect(Number(grip.getAttribute('aria-valuenow'))).toBe(Math.round(css(w0) + 10));
-  expect(Math.abs(grip.closest('th')!.getBoundingClientRect().width - (w0 + 10 * zoomed()))).toBeLessThan(3);
+  expect(Math.abs(grip.closest('th')!.getBoundingClientRect().width - (w0 + 10 * remScale()))).toBeLessThan(3);
   await pick(el, head, 'Fit this column to its text');
   expect(el.querySelector('table.sheet')!.classList.contains('sized')).toBe(true);
 });
 
 test('a column dragged by its grip grows by the drag in the sheet\'s own pixels: N on the screen is N / the zoom, not N', async () => {
   const { el } = await editor(SHEET);
-  // The normal size is zoomed (kit/zoom.ts BASE): a drag kept in screen pixels would widen the column 30% too much.
-  expect(zoomed()).toBe(BASE);
+  // The normal size draws a rem at BASE × 16px (kit/zoom.ts): a drag kept in screen pixels would widen the column 30% too much.
+  expect(remScale()).toBe(BASE);
   const grip = el.querySelectorAll<HTMLElement>('th .grip')[0];
   const th = grip.closest('th')!;
   const w0 = css(th.getBoundingClientRect().width);
@@ -743,9 +743,9 @@ test('a column dragged by its grip grows by the drag in the sheet\'s own pixels:
   grip.dispatchEvent(new PointerEvent('pointermove', at(x0 + N)));
   grip.dispatchEvent(new PointerEvent('pointerup', { ...at(x0 + N), buttons: 0 }));
   await el.updateComplete;
-  expect(Number(grip.getAttribute('aria-valuenow'))).toBe(Math.round(w0 + N / zoomed()));
+  expect(Number(grip.getAttribute('aria-valuenow'))).toBe(Math.round(w0 + N / remScale()));
   // On the screen the column is N wider, the pointer still on its edge.
-  expect(Math.abs(th.getBoundingClientRect().width - (w0 * zoomed() + N))).toBeLessThan(3);
+  expect(Math.abs(th.getBoundingClientRect().width - (w0 * remScale() + N))).toBeLessThan(3);
 });
 
 test('the bar\'s tools keep the focus in the cell', async () => {

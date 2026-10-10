@@ -12,6 +12,7 @@ import { verify } from '../../src/kit/sign.ts';
 import { keep, library } from '../../src/kit/library.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
+import { BASE } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
@@ -77,7 +78,8 @@ test('a sealed link opens with the unlock dialog: nothing of the document shown,
   await until(() => d.dialog.open);
   const field = shell.querySelector<HTMLInputElement>('.to-unlock-field')!;
   expect(field.type).toBe('password');
-  expect(getComputedStyle(field).fontSize).toBe('16px');
+  // 16 of the nav's pixels (a phone never zooms on less), at the normal size BASE × 16px.
+  expect(parseFloat(getComputedStyle(field).fontSize)).toBeCloseTo(16 * BASE, 1);
   // The title is the ciphertext's too: hidden.
   expect(document.title).toBe('Locked document · Tiny Little Office');
   expect(shell.textContent).not.toContain('Salaries');

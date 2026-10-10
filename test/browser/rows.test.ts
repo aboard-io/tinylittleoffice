@@ -11,7 +11,7 @@ import { caret } from '../../src/kit/textops.ts';
 import '../../src/kit/text.ts';
 import '../../src/styles.css';
 import { tick } from './helpers.ts';
-import { BASE, zoomed } from '../../src/kit/zoom.ts';
+import { BASE, remScale } from '../../src/kit/zoom.ts';
 
 type It = { w: string; d: number };
 
@@ -353,11 +353,11 @@ test('a drag by the handle: past 6px it carries the row, the target is drawn aft
   expect(el.rows.drag).toMatchObject({ id: 0, over: 2, how: 'after' });
   const line = document.querySelector<HTMLElement>('.to-rows-target')!;
   expect(line.hidden).toBe(false);
-  // At the normal size, which is zoomed (kit/zoom.ts BASE): the line on the screen lies along the row's bottom edge,
-  // starting at its left padding, both measured on the screen (a line placed without dividing by the zoom misses).
-  expect(zoomed()).toBe(BASE);
+  // At the normal size (a rem BASE × 16px, kit/zoom.ts): the line on the screen lies along the row's bottom edge,
+  // starting at its left padding, both measured on the screen.
+  expect(remScale()).toBe(BASE);
   const rowEl = el.querySelector<HTMLElement>('.row[data-i="2"]')!;
-  const pad = (parseFloat(getComputedStyle(rowEl).paddingLeft) || 0) * zoomed();
+  const pad = parseFloat(getComputedStyle(rowEl).paddingLeft) || 0;
   expect(Math.abs(line.getBoundingClientRect().top - row(2).bottom)).toBeLessThan(3);
   expect(Math.abs(line.getBoundingClientRect().left - (row(2).left + pad))).toBeLessThan(2);
   expect(line.getBoundingClientRect().right).toBeLessThanOrEqual(row(2).right);
@@ -398,9 +398,9 @@ test('near the scroller’s edge a drag scrolls it; the handle alone has touch-a
   await settle(el);
   expect(getComputedStyle(handle(el, 0)).touchAction).toBe('none');
   expect(getComputedStyle(el.querySelector('.row')!).touchAction).not.toBe('none');
-  // The coarse-pointer rule: a 44px ::before round the handle.
+  // The coarse-pointer rule: a finger's 44 (--to-touch) ::before round the handle.
   const rule = [...document.styleSheets].flatMap((s) => [...s.cssRules]).flatMap((r) => (r instanceof CSSLayerBlockRule ? [...r.cssRules] : [r])).find((r) => r instanceof CSSMediaRule && r.conditionText.includes('pointer: coarse') && r.cssText.includes('.to-rows-handle::before')) as CSSMediaRule | undefined;
   expect(rule).toBeDefined();
-  expect(rule!.cssText).toContain('width: 44px');
-  expect(rule!.cssText).toContain('height: 44px');
+  expect(rule!.cssText).toContain('width: var(--to-touch)');
+  expect(rule!.cssText).toContain('height: var(--to-touch)');
 });

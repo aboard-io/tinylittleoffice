@@ -138,7 +138,11 @@ export const iconInner = (node: IconNode): string => {
   return inner;
 };
 
-/** A complete inline <svg> for an icon, decorative (its button or line carries the words): made once per icon, size and class, as a bar is drawn again and again. */
+/**
+ * A complete inline <svg> for an icon, decorative (its button or line carries the words): made once per icon, size and
+ * class, as a bar is drawn again and again. `size` is in the stylesheet's sixteenths of the scale the icon is under (--i,
+ * kit.css's .to-icon): the nav's inside the nav, the document's in the document.
+ */
 const drawn = new WeakMap<IconNode, Map<string, TemplateResult>>();
 export function icon(node: IconNode, size = 20, cls = ''): TemplateResult {
   let sizes = drawn.get(node);
@@ -146,7 +150,7 @@ export function icon(node: IconNode, size = 20, cls = ''): TemplateResult {
   const key = `${size} ${cls}`;
   let made = sizes.get(key);
   if (!made) {
-    made = svg`<svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="to-icon ${cls}" aria-hidden="true">${unsafeSVG(iconInner(node))}</svg>`;
+    made = svg`<svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} style=${`--i:${size / 16}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="to-icon ${cls}" aria-hidden="true">${unsafeSVG(iconInner(node))}</svg>`;
     sizes.set(key, made);
   }
   return made;

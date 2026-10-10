@@ -12,7 +12,6 @@ import { History } from '../../src/kit/history.ts';
 import { caret, type Sel, type Shape } from '../../src/kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../src/kit/text.ts';
 import { tick, until } from './helpers.ts';
-import { zoomOf } from '../../src/kit/zoom.ts';
 import '../../src/styles.css';
 import '../../src/kit/text.ts';
 import { appOf } from '../../src/kit/apps.ts';
@@ -828,7 +827,7 @@ test('a click anywhere in a task\'s box ticks it, the box measured at the size o
   const li = h.el.tx.querySelector<HTMLElement>('li')!;
   const r = li.getBoundingClientRect();
   // The box's right edge on the screen: its padding, drawn at the zoom (1.3 at the normal size).
-  const edge = r.left + parseFloat(getComputedStyle(li).paddingLeft) * zoomOf(li);
+  const edge = r.left + parseFloat(getComputedStyle(li).paddingLeft);
   li.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: edge - 2, clientY: r.top + r.height / 2 }));
   await h.el.updateComplete;
   expect(h.tlo).toBe('- [x] buy milk\n');
@@ -876,5 +875,5 @@ test('editing surfaces: touch-action manipulation on the box; under a finger the
   for (const s of document.styleSheets) walk(s.cssRules, false);
   expect(coarse.some((r) => r.startsWith('.to-context .to-tool') && r.includes('var(--to-touch)'))).toBe(true);
   expect(coarse.some((r) => r.startsWith('.to-context .to-btn') && r.includes('min-height: var(--to-touch)'))).toBe(true);
-  expect(coarse.some((r) => r.includes('li[data-done]') && r.includes('44px'))).toBe(true);
+  expect(coarse.some((r) => r.includes('li[data-done]') && r.includes('var(--to-touch)'))).toBe(true);
 });

@@ -10,7 +10,7 @@ export const markPaths = [
   'M9 12.5h6M9 16.5h4', // two lines of words
 ];
 
-/** The mark as an SVG element, `size` pixels square, in the colour of the words around it. */
+/** The mark as an SVG element, `size` sixteenths of its scale square (--i, kit.css), in the colour of the words around it. */
 export function mark(size = 24, cls = 'to-mark'): string {
-  return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${markPaths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
+  return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" style="--i:${size / 16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${markPaths.map((d) => `<path d="${d}"/>`).join('')}</svg>`;
 }

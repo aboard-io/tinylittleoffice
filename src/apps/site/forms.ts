@@ -16,7 +16,6 @@ import type { ToDialog } from '../../kit/dialog.ts';
 import { editTable } from '../../kit/doc-dialog.ts';
 import { icon, iconNamed, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import { zoomOf } from '../../kit/zoom.ts';
 import '../../kit/dialog.ts';
 
 interface Form<T> {
@@ -83,10 +82,8 @@ function place(d: HTMLDialogElement, a: Anchor) {
   const below = a.bottom + gap;
   const top = below + r.height <= window.innerHeight - 16 ? below : Math.max(16, a.top - gap - r.height);
   const left = Math.max(16, Math.min(a.left, window.innerWidth - r.width - 16));
-  // Measured on the screen, set in the dialog's own lengths (under the size of everything's zoom).
-  const z = zoomOf(d);
-  d.style.marginTop = `${Math.round(Math.max(16, top) / z)}px`;
-  d.style.marginLeft = `${Math.round(left / z)}px`;
+  d.style.marginTop = `${Math.round(Math.max(16, top))}px`;
+  d.style.marginLeft = `${Math.round(left)}px`;
 }
 
 /* ---------- the fields ---------- */

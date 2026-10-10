@@ -10,7 +10,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    --todo-w: 820px;
+    --todo-w: 51.25rem;
     margin-left: max(var(--to-bleed-l), (100% - var(--todo-w)) / 2);
     margin-right: max(var(--to-bleed-r), (100% - var(--todo-w)) / 2);
     background: var(--to-surface);
@@ -23,9 +23,9 @@
   .todo-row {
     display: flex;
     align-items: flex-start;
-    gap: 2px;
+    gap: 0.125rem;
     min-height: var(--to-touch);
-    padding-right: 2px;
+    padding-right: 0.125rem;
   }
   .todo-row + .todo-row {
     border-top: 1px solid var(--to-border);
@@ -43,12 +43,12 @@
     flex: none;
     display: grid;
     place-items: center;
-    width: 20px;
+    width: 1.25rem;
     height: var(--to-touch);
-    margin-left: 2px;
+    margin-left: 0.125rem;
     padding: 0;
     border: 0;
-    border-radius: 5px;
+    border-radius: 0.3125rem;
     background: none;
     color: var(--to-ink-3);
     cursor: grab;
@@ -72,18 +72,18 @@
     cursor: pointer;
   }
   .todo-tick input {
-    width: 22px;
-    height: 22px;
+    width: 1.375rem;
+    height: 1.375rem;
     margin: 0;
     accent-color: var(--to-accent);
   }
   .todo-body {
     flex: 1;
     min-width: 0;
-    padding: 10px 0;
+    padding: 0.625rem 0;
   }
   .todo-body to-text .tx {
-    min-height: 24px;
+    min-height: 1.5rem;
   }
   /* The editor draws a list item with a bullet or a box in its margin; here the row has its own. */
   .todo-body to-text .tx li {
@@ -98,11 +98,11 @@
   }
   .todo-due {
     display: block;
-    margin-top: 4px;
-    min-height: 32px;
-    padding: 0 8px;
+    margin-top: 0.25rem;
+    min-height: 2rem;
+    padding: 0 0.5rem;
     font: inherit;
-    font-size: 16px;
+    font-size: 1rem;
     color: var(--to-ink-2);
     background: var(--to-input-bg);
     border: 1px solid var(--to-input-border);
@@ -134,7 +134,7 @@
     align-items: center;
     height: var(--to-touch);
     margin-left: auto;
-    padding: 0 6px;
+    padding: 0 0.375em;
     white-space: nowrap;
   }
   @media (pointer: coarse) {
@@ -147,9 +147,9 @@
     }
   }
   .todo-empty {
-    max-width: 820px;
+    max-width: 51.25rem;
     margin-inline: auto;
-    padding: 24px 0;
+    padding: 1.5rem 0;
     text-align: center;
   }
 }

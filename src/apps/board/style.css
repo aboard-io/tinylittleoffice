@@ -11,14 +11,14 @@
   .board {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 0.75rem;
     overflow-x: auto;
     /* The stages scroll to the screen's edges on a phone, the first starting at the page's margin. */
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
-    padding: 4px calc(2px - var(--to-bleed-r)) 16px calc(2px - var(--to-bleed-l));
+    padding: 0.25rem calc(0.125rem - var(--to-bleed-r)) 1rem calc(0.125rem - var(--to-bleed-l));
     scroll-snap-type: x proximity;
-    scroll-padding-inline: calc(2px - var(--to-bleed-l)) calc(2px - var(--to-bleed-r));
+    scroll-padding-inline: calc(0.125rem - var(--to-bleed-l)) calc(0.125rem - var(--to-bleed-r));
     overscroll-behavior-x: contain;
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;
@@ -29,13 +29,13 @@
   }
   .board-col {
     --edge: color-mix(in srgb, var(--c) 70%, var(--to-ink));
-    flex: 0 0 min(300px, calc(var(--to-vw) - 56px));
+    flex: 0 0 min(18.75rem, calc(100vw - 3.5rem));
     min-width: 0;
     scroll-snap-align: start;
-    padding: 8px;
+    padding: 0.5rem;
     background: var(--to-surface-2);
     border: 1px solid var(--to-border);
-    border-top: 4px solid var(--edge);
+    border-top: 0.25rem solid var(--edge);
     border-radius: var(--to-radius);
   }
   /* The stages as rows: bands one under another, the page scrolling, the cards across each band and wrapping. */
@@ -48,7 +48,7 @@
   .board.rows .board-col {
     flex: none;
     border-top-width: 1px;
-    border-left: 4px solid var(--edge);
+    border-left: 0.25rem solid var(--edge);
   }
   .board.rows .board-cards {
     flex-direction: row;
@@ -56,36 +56,36 @@
     align-items: flex-start;
   }
   .board.rows .board-card {
-    flex: 1 1 220px;
+    flex: 1 1 13.75rem;
     min-width: 0;
-    max-width: 340px;
+    max-width: 21.25rem;
   }
   .board.rows .board-card.before {
-    box-shadow: -5px 0 0 -1px var(--to-accent);
+    box-shadow: -0.3125rem 0 0 -1px var(--to-accent);
   }
   .board.rows .board-cards.end {
     padding-bottom: 0;
-    padding-right: 12px;
-    box-shadow: inset -3px 0 0 -1px var(--to-accent);
+    padding-right: 0.75rem;
+    box-shadow: inset -0.1875rem 0 0 -1px var(--to-accent);
   }
   .board-col.over {
-    outline: 2px dashed var(--to-accent);
-    outline-offset: 2px;
+    outline: 0.125rem dashed var(--to-accent);
+    outline-offset: 0.125rem;
   }
   .board-head {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0.125rem;
     min-height: var(--to-touch);
-    margin: -8px -8px 8px;
-    padding: 0 8px;
+    margin: -0.5rem -0.5rem 0.5rem;
+    padding: 0 0.5rem;
     border-radius: var(--to-radius) var(--to-radius) 0 0;
     background: color-mix(in srgb, var(--edge) 18%, var(--to-surface-2));
   }
   .board-head to-text {
     flex: 1;
     min-width: 0;
-    padding: 0 4px;
+    padding: 0 0.25rem;
     font-weight: 700;
   }
   .board-head to-text .tx :is(h1, h2, h3, h4),
@@ -96,12 +96,12 @@
   }
   .board-static {
     flex: 1;
-    padding: 0 4px;
+    padding: 0 0.25rem;
   }
   .board-count {
     flex: none;
-    padding: 0 6px;
-    font-size: 14px;
+    padding: 0 0.375rem;
+    font-size: 0.875rem;
     font-variant-numeric: tabular-nums;
     color: var(--to-ink-2);
   }
@@ -117,25 +117,25 @@
   .board-cards {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.5rem;
     list-style: none;
     margin: 0;
     padding: 0;
-    min-height: 8px;
+    min-height: 0.5rem;
   }
   .board-cards.end {
-    padding-bottom: 12px;
-    box-shadow: inset 0 -3px 0 -1px var(--to-accent);
+    padding-bottom: 0.75rem;
+    box-shadow: inset 0 -0.1875rem 0 -1px var(--to-accent);
   }
   .board-card {
     background: var(--to-surface);
     border: 1px solid var(--to-border);
-    border-top: 3px solid var(--edge);
+    border-top: 0.1875rem solid var(--edge);
     border-radius: var(--to-radius-sm);
     box-shadow: var(--to-shadow);
   }
   .board-card.before {
-    box-shadow: 0 -5px 0 -1px var(--to-accent);
+    box-shadow: 0 -0.3125rem 0 -1px var(--to-accent);
   }
   .board-card.ranged {
     background: var(--to-accent-soft);
@@ -155,7 +155,7 @@
   .board-main to-text {
     flex: 1;
     min-width: 0;
-    padding: 10px 0 10px 10px;
+    padding: 0.625rem 0 0.625rem 0.625rem;
   }
   .board-grip {
     touch-action: none;
@@ -176,12 +176,12 @@
   }
   .board-web {
     display: block;
-    padding: 0 10px 10px;
+    padding: 0 0.625rem 0.625rem;
   }
   .board-items {
     list-style: none;
     margin: 0;
-    padding: 0 0 0 4px;
+    padding: 0 0 0 0.25rem;
   }
   .board-item {
     display: flex;
@@ -197,15 +197,15 @@
     cursor: pointer;
   }
   .board-tick input {
-    width: 20px;
-    height: 20px;
+    width: 1.25rem;
+    height: 1.25rem;
     margin: 0;
     accent-color: var(--to-accent);
   }
   .board-item to-text {
     flex: 1;
     min-width: 0;
-    padding: 10px 10px 10px 0;
+    padding: 0.625rem 0.625rem 0.625rem 0;
   }
   .board-item.done to-text .tx {
     color: var(--to-ink-3);
@@ -213,12 +213,12 @@
   }
   .board-progress {
     display: block;
-    padding: 0 12px 10px;
-    font-size: 13px;
+    padding: 0 0.75rem 0.625rem;
+    font-size: 0.8125rem;
     color: var(--to-ink-3);
   }
   .board-none {
-    margin: 4px 4px 8px;
+    margin: 0.25rem 0.25rem 0.5rem;
   }
   .board-menu > button {
     display: none;
@@ -228,7 +228,7 @@
     align-items: center;
     height: var(--to-touch);
     margin-left: auto;
-    padding: 0 6px;
+    padding: 0 0.375em;
     white-space: nowrap;
   }
 }

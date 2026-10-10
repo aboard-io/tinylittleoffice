@@ -10,7 +10,7 @@
   }
   .deck-body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 168px;
+    grid-template-columns: minmax(0, 1fr) 10.5rem;
     gap: var(--to-gutter);
     align-items: start;
     min-width: 0;
@@ -20,21 +20,23 @@
   .deck-stage {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0.625rem;
     min-width: 0;
     width: 100%;
-    max-width: max(320px, (var(--to-vh) - 180px) * var(--deck-w) / var(--deck-h));
+    max-width: max(20rem, (100dvh - 11.25rem) * var(--deck-w) / var(--deck-h));
     margin-inline: auto;
+    /* The canvas's margin (--deck-m, cqw) is a part of the slide's width: the stage is as wide as the canvas. */
+    container-type: inline-size;
   }
   .deck-stage[data-format='zine'],
   .deck-stage[data-format='comic'],
   .deck-stage[data-format='badges'] {
-    max-width: 520px;
+    max-width: 32.5rem;
   }
   .deck-stage[data-format='booklet'],
   .deck-stage[data-format='brochure'],
   .deck-stage[data-format='poster'] {
-    max-width: 560px;
+    max-width: 35rem;
   }
 
   /* ---- the canvas: the slide in its own shape, white paper in either theme, the deck's theme over it ---- */
@@ -63,7 +65,7 @@
     touch-action: manipulation;
   }
   .deck-canvas .tx {
-    font-size: max(16px, var(--deck-body));
+    font-size: max(1rem, var(--deck-body));
     line-height: 1.3;
     color: inherit;
     caret-color: var(--deck-accent);
@@ -90,7 +92,7 @@
   .deck-title .tx h4,
   .deck-title .tx p,
   .deck-title .tx li {
-    font-size: max(16px, var(--deck-title));
+    font-size: max(1rem, var(--deck-title));
     font-weight: 700;
     line-height: 1.15;
     margin: 0;
@@ -162,8 +164,8 @@
     justify-content: center;
     width: 7.5cqw;
     height: 7.5cqw;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 2rem;
+    min-height: 2rem;
     padding: 0;
     color: var(--deck-icon);
     background: transparent;
@@ -179,8 +181,8 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: max(100%, 44px);
-      height: max(100%, 44px);
+      width: max(100%, 2.75rem);
+      height: max(100%, 2.75rem);
       transform: translate(-50%, -50%);
     }
   }
@@ -210,7 +212,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 0.5rem;
     color: var(--deck-icon);
     background: transparent;
     border: 1px dashed transparent;
@@ -225,7 +227,7 @@
   .deck-big.empty {
     color: var(--deck-muted);
     border-color: color-mix(in srgb, var(--deck-muted) 40%, transparent);
-    font-size: 16px;
+    font-size: 1rem;
   }
   /* A document shown on the slide: its picture, a card to tap for its menu. */
   .deck-sub {
@@ -242,7 +244,7 @@
     overflow: hidden;
   }
   .deck-sub:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
   }
   .deck-sub svg {
     display: block;
@@ -253,7 +255,7 @@
   .deck-fn {
     margin: auto 0 0;
     padding: 0.6em 0 0;
-    font-size: max(12px, 1.56cqw);
+    font-size: max(0.75rem, 1.56cqw);
     color: var(--deck-muted);
     border-top: 1px solid color-mix(in srgb, var(--deck-muted) 40%, transparent);
   }
@@ -261,7 +263,7 @@
     margin: 0.15em 0;
   }
   .deck-canvas .deck-fn .tx {
-    font-size: max(16px, 1em);
+    font-size: max(1rem, 1em);
     line-height: 1.3;
     caret-color: var(--deck-accent);
   }
@@ -269,7 +271,7 @@
     position: absolute;
     right: 2cqw;
     bottom: 1.4cqw;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--deck-muted);
     pointer-events: none;
   }
@@ -283,8 +285,8 @@
   }
   /* The speaker notes are labelled as such (Paul, 2026-10-10) and have room round them, as the slide's words do; the hint sits where the words will. */
   .deck-notes-head {
-    margin: 12px 0 4px;
-    font-size: 12px;
+    margin: 0.75rem 0 0.25rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -292,15 +294,15 @@
   }
   .deck-notes .tx {
     min-height: 2.4em;
-    padding: 12px;
-    font-size: 16px;
+    padding: 0.75rem;
+    font-size: 1rem;
     color: var(--to-ink-2);
     background: var(--to-surface);
     border: 1px dashed var(--to-border);
     border-radius: var(--to-radius);
   }
   .deck-notes .tx.blank::before {
-    inset: 12px 12px auto 12px;
+    inset: 0.75rem 0.75rem auto 0.75rem;
   }
   .deck-notes .tx blockquote {
     margin: 0;
@@ -314,10 +316,10 @@
   .deck-rail {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-height: calc(var(--to-vh) - var(--to-header-h, 56px) - 120px);
+    gap: 0.5rem;
+    max-height: calc(100dvh - var(--to-header-h, 3.5rem) - 7.5rem);
     overflow: auto;
-    padding: 2px;
+    padding: 0.125rem;
     touch-action: manipulation;
   }
   .deck-rail:focus {
@@ -333,22 +335,22 @@
   }
   .deck-slot.ranged .deck-thumb {
     border-color: var(--to-accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--to-accent) 45%, transparent);
+    box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--to-accent) 45%, transparent);
   }
   .deck-grip {
     position: absolute;
-    right: 4px;
-    top: 4px;
+    right: 0.25rem;
+    top: 0.25rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 1.375rem;
+    height: 1.375rem;
     padding: 0;
     color: var(--to-ink-3);
     background: var(--to-surface);
     border: 1px solid var(--to-border);
-    border-radius: 3px;
+    border-radius: 0.1875rem;
     cursor: grab;
     opacity: 0;
   }
@@ -368,8 +370,8 @@
     width: 100%;
     padding: 0;
     background: var(--to-paper);
-    border: 2px solid var(--to-border);
-    border-radius: 4px;
+    border: 0.125rem solid var(--to-border);
+    border-radius: 0.25rem;
     cursor: pointer;
     overflow: hidden;
     flex: none;
@@ -381,32 +383,32 @@
   }
   .deck-thumb .n {
     position: absolute;
-    left: 4px;
-    top: 2px;
-    font-size: 11px;
+    left: 0.25rem;
+    top: 0.125rem;
+    font-size: 0.6875rem;
     color: var(--to-ink-3);
     background: var(--to-surface);
-    padding: 0 4px;
-    border-radius: 3px;
+    padding: 0 0.25rem;
+    border-radius: 0.1875rem;
   }
   .deck-thumb[aria-current='true'] {
     border-color: var(--to-accent);
   }
   .deck-thumb:focus-visible {
-    outline: 2px solid var(--to-accent);
+    outline: 0.125rem solid var(--to-accent);
     outline-offset: 1px;
   }
   .deck-end {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 10px 6px;
-    font-size: 11px;
+    gap: 0.25rem;
+    padding: 0.625rem 0.375rem;
+    font-size: 0.6875rem;
     text-align: center;
     color: var(--to-ink-3);
-    border: 2px dashed var(--to-border);
-    border-radius: 4px;
+    border: 0.125rem dashed var(--to-border);
+    border-radius: 0.25rem;
   }
 
   /* ---- the sheets to print ---- */
@@ -418,9 +420,9 @@
   }
   .deck-sheet {
     width: 100%;
-    max-width: 816px;
+    max-width: 51rem;
     border: 1px solid var(--to-border);
-    border-radius: 3px;
+    border-radius: 0.1875rem;
     box-shadow: var(--to-shadow);
     background: #fff;
   }
@@ -446,7 +448,7 @@
   .deck-show .frame,
   .deck-show .was {
     position: absolute;
-    width: min(var(--to-vw), calc(160 * var(--to-vh) / 100));
+    width: min(100vw, 160dvh);
     aspect-ratio: 16 / 10;
     background: #fff;
   }
@@ -458,11 +460,11 @@
   }
   .deck-show .ctl {
     position: fixed;
-    right: 12px;
-    top: 12px;
+    right: 0.75rem;
+    top: 0.75rem;
     display: flex;
-    gap: 4px;
-    padding: 4px;
+    gap: 0.25rem;
+    padding: 0.25rem;
     background: rgb(0 0 0 / 55%);
     border-radius: var(--to-radius-pill);
   }
@@ -471,20 +473,20 @@
   }
   .deck-show .pos {
     position: fixed;
-    left: 14px;
-    bottom: 12px;
-    font-size: 12px;
+    left: 0.875rem;
+    bottom: 0.75rem;
+    font-size: 0.75rem;
     color: #a1a1aa;
   }
   .deck-show .notes {
     position: fixed;
-    left: 14px;
-    right: 14px;
-    bottom: 36px;
-    max-height: calc(30 * var(--to-vh) / 100);
+    left: 0.875rem;
+    right: 0.875rem;
+    bottom: 2.25rem;
+    max-height: 30dvh;
     overflow: auto;
-    padding: 12px;
-    font-size: 15px;
+    padding: 0.75rem;
+    font-size: 0.9375rem;
     line-height: 1.4;
     color: #fafafa;
     background: rgb(0 0 0 / 70%);
@@ -573,14 +575,14 @@
       max-height: none;
       overflow-x: auto;
       overflow-y: hidden;
-      padding-bottom: 4px;
+      padding-bottom: 0.25rem;
     }
     .deck-slot {
-      width: 96px;
+      width: 6rem;
     }
     .deck-end {
       flex: none;
-      width: 96px;
+      width: 6rem;
       box-sizing: border-box;
     }
     .deck-canvas {

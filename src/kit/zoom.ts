@@ -1,26 +1,28 @@
 /**
  * The size of everything: a stepper in the menu, 70% to 200% in steps of 10%, and on a touch screen a pinch outside a
  * spatial canvas (kit/pinch.ts), which sets it continuously and keeps it to the nearest 5%. Kept like any preference
- * (under Saved, on the device; under Private, for the visit). Every length in the stylesheet is a pixel, so the size is
- * the root's CSS `zoom` (native, in every browser now) rather than its font-size, which would move nothing.
+ * (under Saved, on the device; under Private, for the visit).
+ *
+ * The size is two plain numbers on the root, and the stylesheet does the rest (kit.css's header): `--to-doc`, the
+ * document's scale, which is the root's font size (16px × it), so every length in rem follows it; and `--to-nav`, the
+ * nav's, which is the font size of each nav element, so every length in em inside one follows that. A length measured
+ * on the screen is then a length set in CSS, and whatever is placed from the page's coordinates (a menu, the context
+ * bar, the link box) is placed by them as they are. Until round eight the size was the root's CSS `zoom`: every
+ * length a pixel, so nothing but a zoom could move them, and each thing placed by hand divided by it, and the nav
+ * needed a second zoom of its own to stop at its limit.
  *
  * The normal size, 100%, draws everything at BASE (1.3): the lengths in the stylesheet were too small to start from
- * (Paul, 2026-10-10, on his iPhone: "Start at what we now call 130%"). The root's zoom is BASE × the size, and the
- * stepper and the pill say the size alone, so 100% is normal. Nothing drawn outside the page (print, the PDF, the PNG,
- * the thumbnails, the cards) is under the root's zoom; a page printed from the screen has its zoom taken off (kit.css).
+ * (Paul, 2026-10-10, on his iPhone: "Start at what we now call 130%"). The stepper and the pill say the size alone, so
+ * 100% is normal. Nothing drawn outside the page (print, the PDF, the PNG, the thumbnails, the cards) is in rem; a page
+ * printed from the screen has both scales put back to 1 (kit.css).
  *
  * The nav has a natural limit: the bar, the header, the drawer, the dialogs, the context bar, the menus and the pills
  * grow with the size up to 120% (NAV_MAX) and no further, while the words, the cards and the pictures go on to 200%.
- * The root carries `--to-nav-zoom` (navSize / size), which kit.css applies as `zoom` to the nav's outermost elements,
- * and `--to-size` / `--to-nav-size` (each × BASE: what is drawn, not what is said), by which a length measured on the
- * screen (the keyboard's offset) is divided.
- * What places a popover by hand from the page's coordinates divides by `zoomOf(the popover)`, since a length set under
- * zoom is drawn that much larger.
  */
 import { store } from './store.ts';
 
 const KEY = 'tinyoffice.size';
-/** What the normal size draws at: a length in the stylesheet is this many pixels on the screen at 100%. */
+/** What the normal size draws at: at 100% a rem (and the nav's em) is this many times 16px. */
 export const BASE = 1.3;
 export const SIZE_MIN = 0.7;
 export const SIZE_MAX = 2;
@@ -28,7 +30,7 @@ export const SIZE_STEP = 0.1;
 /** The most the nav grows to: past it a larger size enlarges the document alone. */
 export const NAV_MAX = 1.2;
 
-/** A size as the zoom it is drawn at, free of float dust. */
+/** A size as the scale it is drawn at (BASE × it), free of float dust. */
 const drawn = (n: number) => Math.round(n * BASE * 10000) / 10000;
 
 /** Within 70%–200%, and free of float dust. */
@@ -47,20 +49,12 @@ export function size(): number {
 /** The size the nav is drawn at: the size, up to 120%. */
 export const navSize = (): number => Math.min(size(), NAV_MAX);
 
-/** The size, on the page: the root's zoom (BASE × the size), and the nav's own beside it. Says so with a `to-size` event on the window. */
+/** The size, on the page: the two scales on the root (`--to-doc`, `--to-nav`), and nothing else. Says so with a `to-size` event on the window. */
 export function applySize() {
   if (typeof document === 'undefined') return;
-  const n = size();
   const root = document.documentElement.style;
-  const nav = navSize() / n;
-  for (const [k, v] of [
-    ['zoom', String(drawn(n))],
-    ['--to-nav-zoom', nav === 1 ? '' : String(Math.round(nav * 10000) / 10000)],
-    ['--to-size', String(drawn(n))],
-    ['--to-nav-size', String(drawn(navSize()))],
-  ])
-    if (v) root.setProperty(k, v);
-    else root.removeProperty(k);
+  root.setProperty('--to-doc', String(drawn(size())));
+  root.setProperty('--to-nav', String(drawn(navSize())));
   window.dispatchEvent(new Event('to-size'));
 }
 
@@ -92,17 +86,9 @@ export function stepFrom(n: number, by: -1 | 0 | 1): number {
 /** A step larger (+1) or smaller (-1), or back to normal (0), kept. */
 export const stepSize = (by: -1 | 0 | 1): number => keepSize(stepFrom(size(), by));
 
-/** The root's zoom: what the document is drawn at (BASE × the size, once applied). */
-export const zoomed = (): number => (typeof document === 'undefined' ? 1 : Number(document.documentElement.style.getPropertyValue('zoom')) || 1);
-
 /**
- * The zoom an element is drawn at, all its ancestors' zooms multiplied (the nav's own under the root's): divide a page
- * coordinate by it to place the element there.
+ * A pixel of the document's own, on the screen: a sixteenth of a rem, at the size of everything now (as drawn, so
+ * BASE × the size once applied). For what keeps lengths of its own and draws them in rem (a sheet's column widths, a
+ * chart's days): a length measured on the screen is divided by this to be one of them again.
  */
-export function zoomOf(el: Element): number {
-  const native = (el as Element & { currentCSSZoom?: number }).currentCSSZoom;
-  if (typeof native === 'number' && native > 0) return native;
-  let z = 1;
-  for (let at: Element | null = el; at; at = at.parentElement) z *= Number(getComputedStyle(at).zoom) || 1;
-  return z;
-}
+export const remScale = (): number => (typeof document === 'undefined' ? 1 : parseFloat(getComputedStyle(document.documentElement).fontSize) / 16 || 1);

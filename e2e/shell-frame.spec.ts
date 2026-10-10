@@ -51,9 +51,11 @@ test('phone: the paper edge to edge, the header scrolls away, the bar sticks, th
   await page.waitForTimeout(300);
   const field = page.locator('.to-title');
   const f = (await field.boundingBox())!;
-  expect(f.height).toBe(44);
+  // In the stylesheet's own pixels: on the screen a rem is the size of everything (kit/zoom.ts) × 16px.
+  const scale = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize) / 16);
+  expect(Math.round(f.height / scale)).toBe(44);
   expect(f.width).toBeGreaterThan(340);
-  expect(await field.evaluate((el: HTMLInputElement) => [getComputedStyle(el).fontSize, el.value.slice(el.selectionStart!, el.selectionEnd!) === el.value])).toEqual(['20px', true]);
+  expect(await field.evaluate((el: HTMLInputElement) => [Math.round(parseFloat(getComputedStyle(el).fontSize) / (parseFloat(getComputedStyle(document.documentElement).fontSize) / 16)), el.value.slice(el.selectionStart!, el.selectionEnd!) === el.value])).toEqual([20, true]);
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   await page.keyboard.type('Notes');
   await page.keyboard.press('Enter');

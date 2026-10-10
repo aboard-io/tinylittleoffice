@@ -20,14 +20,14 @@
     outline: none;
   }
   .site-page:focus-visible {
-    outline: 2px solid var(--to-accent);
-    outline-offset: 2px;
+    outline: 0.125rem solid var(--to-accent);
+    outline-offset: 0.125rem;
   }
   .site-frame {
     display: block;
     width: 100%;
-    height: calc(var(--to-vh) - var(--to-header-h) - 96px);
-    min-height: 420px;
+    height: calc(100dvh - var(--to-header-h) - 6rem);
+    min-height: 26.25rem;
     border: 0;
     background: #fff;
   }
@@ -39,27 +39,27 @@
   .site-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.75em;
   }
   .site-form-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.25em;
     min-width: 0;
   }
   .site-form-label {
-    font-size: 14px;
+    font-size: calc(0.875 * var(--to-scale));
     color: var(--to-ink-2);
   }
   .site-form-field input {
     min-height: var(--to-touch);
-    font-size: 16px;
+    font-size: var(--to-scale);
   }
   /* The URL chip on the bar of what links: where it goes, in a few words. */
   .site-context .to-context-text {
     width: auto;
     max-width: 11em;
-    padding: 0 10px;
+    padding: 0 0.625em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -77,13 +77,13 @@
     justify-content: flex-end;
   }
   .site-form-done {
-    min-width: 96px;
+    min-width: 6em;
   }
   /* On a phone the frame takes the screen under the bar. */
   @media (max-width: 760px) {
     .site-frame {
-      height: calc(var(--to-vh) - var(--to-header-h) - 76px);
-      min-height: 320px;
+      height: calc(100dvh - var(--to-header-h) - 4.75rem);
+      min-height: 20rem;
     }
   }
 }

@@ -78,6 +78,7 @@ import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
 import '../../kit/context.ts';
+import { remScale } from '../../kit/zoom.ts';
 import './style.css';
 
 export const tag = 'to-cal-editor';
@@ -487,7 +488,7 @@ export class ToCalEditor extends DocElement<CalView> {
   private onBarMove = (e: PointerEvent) => {
     const d = this.bar;
     if (!d || e.pointerId !== d.id) return;
-    const days = Math.round((e.clientX - d.x0) / this.zoom);
+    const days = Math.round((e.clientX - d.x0) / (this.zoom * remScale()));
     if (days !== d.days) this.bar = { ...d, days };
   };
   private onBarUp = (e: PointerEvent) => {
@@ -840,8 +841,10 @@ export class ToCalEditor extends DocElement<CalView> {
   private scrollDays(by: number, to?: number) {
     const box = this.querySelector<HTMLElement>('.cal-gantt-scroll');
     if (!box) return;
-    box.scrollLeft = to === undefined ? box.scrollLeft + by * this.zoom : Math.max(0, (to - this.ganttFrom() - 1) * this.zoom);
-    this.scrolled = Math.floor(box.scrollLeft / this.zoom);
+    // A day is `zoom` of the chart's own pixels, drawn as sixteenths of a rem.
+    const day = this.zoom * remScale();
+    box.scrollLeft = to === undefined ? box.scrollLeft + by * day : Math.max(0, (to - this.ganttFrom() - 1) * day);
+    this.scrolled = Math.floor(box.scrollLeft / day);
   }
 
   /* ---------- the bar ---------- */
@@ -1044,11 +1047,11 @@ export class ToCalEditor extends DocElement<CalView> {
     const months = new Intl.DateTimeFormat(language(), { month: 'short', year: 'numeric', timeZone: 'UTC' });
     const drag = this.bar;
     return html`<div class="cal-gantt">
-      <ol class="cal-tasks" tabindex="-1" aria-label=${t('Tasks')} style="--head:${HEAD}px">
+      <ol class="cal-tasks" tabindex="-1" aria-label=${t('Tasks')} style="--head:${HEAD / 16}rem">
         ${bars.map((b) => this.renderTask(b.item, b.parent, b.done))}
       </ol>
-      <div class="cal-gantt-scroll" tabindex="0" role="group" aria-label=${t('Chart, scrolls sideways')} @scroll=${(e: Event) => (this.scrolled = Math.floor((e.target as HTMLElement).scrollLeft / z))}>
-        <svg class="cal-chart" width=${width} height=${height} viewBox="0 0 ${width} ${height}" aria-hidden="true" @pointermove=${this.onBarMove} @pointerup=${this.onBarUp} @pointercancel=${() => (this.bar = null)}>
+      <div class="cal-gantt-scroll" tabindex="0" role="group" aria-label=${t('Chart, scrolls sideways')} @scroll=${(e: Event) => (this.scrolled = Math.floor((e.target as HTMLElement).scrollLeft / (z * remScale())))}>
+        <svg class="cal-chart" width=${`${width / 16}rem`} height=${`${height / 16}rem`} font-size="11" viewBox="0 0 ${width} ${height}" aria-hidden="true" @pointermove=${this.onBarMove} @pointerup=${this.onBarUp} @pointercancel=${() => (this.bar = null)}>
           ${Array.from({ length: to - from }, (_, k) => {
             const day = from + k;
             const { d, wd, y, m } = dayToYmd(day);

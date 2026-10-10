@@ -14,7 +14,6 @@ import { tool } from './bar.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { openLink } from './link-guard.ts';
-import { zoomOf } from './zoom.ts';
 
 const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 
@@ -93,13 +92,12 @@ export class ToLinkPop extends LitElement {
     const left0 = vv?.offsetLeft ?? 0;
     const w = vv?.width ?? innerWidth;
     const h = vv?.height ?? innerHeight;
-    // On the screen, as the rest are: offsetWidth is in the box's own lengths, smaller under the size of everything.
+    // On the screen, as the rest are.
     const { width: pw, height: ph } = p.getBoundingClientRect();
     let top = r.bottom + 6;
     if (top + ph > top0 + h && r.top - ph - 6 >= top0) top = r.top - ph - 6;
-    const z = zoomOf(p);
-    p.style.top = `${Math.round(Math.max(top0 + 4, Math.min(top, top0 + h - ph - 4)) / z)}px`;
-    p.style.left = `${Math.round(Math.max(left0 + 4, Math.min(r.left, left0 + w - pw - 4)) / z)}px`;
+    p.style.top = `${Math.round(Math.max(top0 + 4, Math.min(top, top0 + h - ph - 4)))}px`;
+    p.style.left = `${Math.round(Math.max(left0 + 4, Math.min(r.left, left0 + w - pw - 4)))}px`;
   };
   private set() {
     const raw = (this.input?.value ?? '').trim();

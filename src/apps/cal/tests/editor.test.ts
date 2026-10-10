@@ -9,6 +9,7 @@ import '../editor.ts';
 import type { ToCalEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { remScale } from '../../../kit/zoom.ts';
 
 const DOC = '---\nzone: Europe/London\ngreen: Sam\n---\n- 2027-03-01: Launch\n- 2027-03-01 to 2027-03-03: Offsite {color=green}\n- 2027-03-10 09:00-10:30: Retro {every=week times=3}\n';
 const PLAN = '---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n  - 2027-03-01 to 2027-03-02: Sketch {done=50%}\n  - 2027-03-03 to 2027-03-05: Draw\n- 2027-03-08 to 2027-03-10: Build\n';
@@ -296,7 +297,7 @@ test('at phone width: the bar is one row, nothing is wider than the screen, the 
     const bar = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...bar.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);
-    expect(bar.offsetHeight).toBeLessThanOrEqual(56);
+    expect(Math.round(bar.getBoundingClientRect().height / remScale())).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     for (const b of bar.querySelectorAll<HTMLElement>('button')) if (b.offsetWidth) expect(b.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
     // The month at the default size (a phone is 300 of the stylesheet's pixels wide): seven columns a week, each row

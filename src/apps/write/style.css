@@ -15,30 +15,30 @@
      than the page, 16px on a phone). */
   .write-page {
     touch-action: manipulation;
-    --write-w: 816px;
-    --write-m: 96px;
-    --write-mx: clamp(16px, calc(6 * var(--to-vw) / 100), var(--write-m));
-    --write-bl: var(--to-inset-l, 0px);
-    --write-br: var(--to-inset-r, 0px);
+    --write-w: 51rem;
+    --write-m: 6rem;
+    --write-mx: clamp(1rem, 6vw, var(--write-m));
+    --write-bl: var(--to-inset-l, 0rem);
+    --write-br: var(--to-inset-r, 0rem);
     margin-left: calc(-1 * var(--write-bl));
     margin-right: calc(-1 * var(--write-br));
-    padding: clamp(20px, calc(6 * var(--to-vw) / 100), var(--write-m)) max(var(--write-mx), calc((100% + var(--write-bl) + var(--write-br) - var(--write-w)) / 2 + var(--write-m)));
+    padding: clamp(1.25rem, 6vw, var(--write-m)) max(var(--write-mx), calc((100% + var(--write-bl) + var(--write-br) - var(--write-w)) / 2 + var(--write-m)));
     color: var(--to-paper-ink);
     background: var(--to-paper);
     font-family: var(--to-font);
   }
   @media (max-width: 640px) {
     .write-page {
-      --write-mx: 16px;
+      --write-mx: 1rem;
     }
   }
   .write-page[data-paper='a4'] {
-    --write-w: 794px;
-    --write-m: 94px;
+    --write-w: 49.625rem;
+    --write-m: 5.875rem;
   }
   .write-page .write-text > .tx {
-    min-height: calc(50 * var(--to-vh) / 100);
-    font-size: 17px;
+    min-height: 50dvh;
+    font-size: 1.0625rem;
     line-height: 1.6;
     caret-color: var(--to-paper-accent);
   }
@@ -132,7 +132,7 @@
     font-family: var(--write-head);
   }
   .write-page[data-look='mono'] .tx {
-    font-size: 15px;
+    font-size: 0.9375rem;
   }
   .write-page[data-look='mono'] .tx h1.title {
     font-size: 1.9em;
@@ -179,19 +179,19 @@
   .write-fields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(12em, 1fr));
-    gap: 10px 16px;
-    margin: 0 0 20px;
-    padding: 0 0 16px;
+    gap: 0.625rem 1rem;
+    margin: 0 0 1.25rem;
+    padding: 0 0 1rem;
     border-bottom: 1px solid var(--to-paper-line);
   }
   .write-fields > div {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 0.1875rem;
     min-width: 0;
   }
   .write-fields dt {
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--to-paper-muted);
@@ -202,9 +202,9 @@
   .write-fields input,
   .write-fields textarea {
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.375rem 0.5rem;
     font: inherit;
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.4;
     color: var(--to-paper-ink);
     background: var(--to-paper-shade);
@@ -214,7 +214,7 @@
   }
   .write-fields input:focus-visible,
   .write-fields textarea:focus-visible {
-    outline: 2px solid var(--to-paper-accent);
+    outline: 0.125rem solid var(--to-paper-accent);
     outline-offset: -1px;
   }
 
@@ -222,10 +222,10 @@
   .write-break {
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 44px;
+    gap: 0.625rem;
+    min-height: 2.75rem;
     color: var(--to-paper-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     letter-spacing: 0.04em;
     cursor: pointer;
   }
@@ -238,8 +238,8 @@
 
   /* A card in hand (it has the focus): outlined, whichever way it was taken. */
   .write-page .tx .tx-card:focus {
-    outline: 2px solid var(--to-paper-accent);
-    outline-offset: 2px;
+    outline: 0.125rem solid var(--to-paper-accent);
+    outline-offset: 0.125rem;
   }
 
   /* A table block: a small grid, the names over the columns, numbers to the right, the locked cells shaded.
@@ -251,9 +251,9 @@
   }
   table.wt {
     width: 100%;
-    margin: 4px 0;
+    margin: 0.25rem 0;
     border-collapse: collapse;
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1.4;
     color: var(--to-paper-ink);
   }
@@ -263,10 +263,10 @@
     border: 1px solid var(--to-paper-line);
   }
   table.wt th {
-    padding: 6px 8px;
+    padding: 0.375rem 0.5rem;
     background: var(--to-paper-shade);
     font-weight: 600;
-    font-size: 13px;
+    font-size: 0.8125rem;
     text-align: left;
   }
   table.wt th.letter {
@@ -285,8 +285,8 @@
     display: flex;
     align-items: center;
     width: 100%;
-    min-height: 32px;
-    padding: 0 8px;
+    min-height: 2rem;
+    padding: 0 0.5rem;
     border: 0;
     background: none;
     color: inherit;
@@ -297,15 +297,15 @@
   /* A column's name typed in its head, where it is shown. */
   table.wt .wt-cn {
     width: 100%;
-    min-height: 32px;
-    padding: 0 8px;
+    min-height: 2rem;
+    padding: 0 0.5rem;
     border: 0;
-    outline: 2px solid var(--to-paper-accent);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--to-paper-accent);
+    outline-offset: -0.125rem;
     background: transparent;
     color: inherit;
     font: inherit;
-    font-size: max(16px, 1em);
+    font-size: max(1rem, 1em);
   }
   table.wt th.letter .wt-col,
   table.wt .wt-num,
@@ -323,12 +323,12 @@
   table.wt .wt-num:focus-visible,
   table.wt .wt-hand:focus-visible,
   table.wt .wt-add-col:focus-visible {
-    outline: 2px solid var(--to-paper-accent);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--to-paper-accent);
+    outline-offset: -0.125rem;
   }
   table.wt th.wt-row,
   table.wt .wt-corner {
-    width: 28px;
+    width: 1.75rem;
     padding: 0;
     background: var(--to-paper-shade);
   }
@@ -337,12 +337,12 @@
   table.wt .wt-add-col {
     padding: 0;
     color: var(--to-paper-muted);
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 500;
   }
   table.wt .wt-add,
   table.wt .wt-pad {
-    width: 28px;
+    width: 1.75rem;
     border: 0;
     background: none;
   }
@@ -374,10 +374,10 @@
   }
   table.wt .wt-fill {
     position: absolute;
-    right: -4px;
-    bottom: -4px;
-    width: 8px;
-    height: 8px;
+    right: -0.25rem;
+    bottom: -0.25rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border: 1px solid var(--to-paper);
     background: var(--to-paper-accent);
     cursor: crosshair;
@@ -390,8 +390,8 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 44px;
-      height: 44px;
+      width: 2.75rem;
+      height: 2.75rem;
       transform: translate(-50%, -50%);
     }
   }
@@ -402,13 +402,13 @@
   table.wt td input {
     width: 100%;
     min-width: 4em;
-    height: 36px;
-    padding: 0 8px;
+    height: 2.25rem;
+    padding: 0 0.5rem;
     border: 0;
     background: transparent;
     color: inherit;
     font: inherit;
-    font-size: 16px;
+    font-size: 1rem;
     text-overflow: ellipsis;
     touch-action: manipulation;
   }
@@ -424,8 +424,8 @@
     color: var(--to-paper-muted);
   }
   table.wt td input:focus-visible {
-    outline: 2px solid var(--to-paper-accent);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--to-paper-accent);
+    outline-offset: -0.125rem;
   }
   table.wt td:has(input:focus) {
     background: color-mix(in srgb, var(--to-paper-accent) 8%, transparent);
@@ -434,9 +434,9 @@
   /* Another document held in the text: a picture of its first page and its name; what signing wrote. */
   .write-doc {
     margin: 0;
-    max-width: 560px;
+    max-width: 35rem;
     border: 1px solid var(--to-paper-line);
-    border-radius: 10px;
+    border-radius: 0.625rem;
     overflow: hidden;
     background: #fff;
     cursor: pointer;
@@ -445,12 +445,12 @@
     display: block;
     width: 100%;
     height: auto;
-    max-height: calc(50 * var(--to-vh) / 100);
+    max-height: 50dvh;
   }
   .write-doc pre {
     margin: 0;
-    padding: 12px;
-    font: 13px/1.5 var(--to-font-mono);
+    padding: 0.75rem;
+    font: 0.8125rem/1.5 var(--to-font-mono);
     color: var(--to-paper-muted);
     white-space: pre-wrap;
   }
@@ -458,11 +458,11 @@
   .write-signatures {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
     border-top: 1px solid var(--to-paper-line);
     background: var(--to-paper-shade);
-    font-size: 13.5px;
+    font-size: 0.8438rem;
     color: var(--to-paper-ink);
   }
   .write-doc figcaption b {
@@ -477,31 +477,31 @@
   .write-signatures {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    padding: 12px;
+    gap: 0.75rem;
+    padding: 0.75rem;
     border: 1px solid var(--to-paper-line);
-    border-radius: 10px;
+    border-radius: 0.625rem;
   }
   .write-sig-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(14em, 1fr));
-    gap: 12px 24px;
+    gap: 0.75rem 1.5rem;
   }
   .write-sig {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
-    padding-top: 6px;
-    border-top: 2px solid var(--to-paper-ink);
+    gap: 0.125rem;
+    padding-top: 0.375rem;
+    border-top: 0.125rem solid var(--to-paper-ink);
     min-width: 0;
     overflow-wrap: anywhere;
   }
   .write-sig-state {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 1px 8px;
+    gap: 0.25rem;
+    padding: 1px 0.5rem;
     border-radius: var(--to-radius-pill);
     color: var(--to-paper-muted);
     background: var(--to-paper);
@@ -536,19 +536,19 @@
 
   /* The notes under the text: a thin rule, small type, each with the way back to its mark. */
   .write-notes {
-    margin-top: 24px;
-    font-size: 13px;
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
     line-height: 1.5;
     color: var(--to-paper-muted);
   }
   .write-notes hr {
-    width: 72px;
-    margin: 0 0 10px;
+    width: 4.5rem;
+    margin: 0 0 0.625rem;
     border: 0;
     border-top: 1px solid var(--to-paper-line);
   }
   .write-notes li {
-    margin: 0 0 4px;
+    margin: 0 0 0.25rem;
   }
   .write-notes li::marker {
     font-size: 0.85em;
@@ -557,8 +557,8 @@
     color: var(--to-paper-accent);
   }
   .write-notes .to-note-back {
-    padding: 0 4px;
-    border-radius: 4px;
+    padding: 0 0.25rem;
+    border-radius: 0.25rem;
   }
   .write-notes .to-note-back:hover,
   .write-notes .to-note-back:focus-visible {
@@ -570,21 +570,21 @@
   .write-foot {
     display: flex;
     justify-content: center;
-    gap: 16px;
-    font-size: 13px;
+    gap: 1rem;
+    font-size: 0.8125rem;
     color: var(--to-ink-3);
   }
 
   .write-ask-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.75em;
   }
   .write-ask-form input {
     width: 100%;
-    padding: 8px 10px;
+    padding: 0.5em 0.625em;
     font: inherit;
-    font-size: 16px;
+    font-size: var(--to-scale);
     color: var(--to-ink);
     background: var(--to-input-bg);
     border: 1px solid var(--to-input-border);

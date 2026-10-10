@@ -49,15 +49,21 @@
     --to-input-bg: var(--to-surface);
     --to-input-border: var(--to-border);
 
-    --to-radius: 8px;
-    --to-radius-sm: 6px;
-    --to-radius-pill: 999px;
-    --to-shadow: 0 1px 2px hsl(240 3.8% 46.1% / 12%);
-    --to-shadow-pop: 0 4px 16px rgb(0 0 0 / 16%);
-    --to-header-h: 56px;
-    --to-touch: 44px;
-    --to-max-w: 1080px;
-    --to-gutter: 16px;
+    /* Radii and shadows in em: as round and as deep as the words they hold are large, in the document or the nav. */
+    --to-radius: 0.5em;
+    --to-radius-sm: 0.375em;
+    --to-radius-pill: 999em;
+    --to-shadow: 0 1px 0.125em hsl(240 3.8% 46.1% / 12%);
+    --to-shadow-pop: 0 0.25em 1em rgb(0 0 0 / 16%);
+    /* The header is nav: its height is the nav's (kit.css, --to-nav-font), wherever it is reckoned with. */
+    --to-header-h: calc(3.5 * var(--to-nav-font));
+    /* A finger's target, 44 of the stylesheet's pixels: the document's here, the nav's on every nav element (kit.css). */
+    --to-touch: 2.75rem;
+    --to-max-w: 67.5rem;
+    /* The gutter: a number of the scale's 16px (12 on a narrow screen, responsive.css), the document's here and the
+       nav's on every nav element. */
+    --to-gutter-k: 1;
+    --to-gutter: calc(var(--to-gutter-k) * 1rem);
     color-scheme: light;
   }
   :root[data-theme='dark'] {
@@ -91,8 +97,8 @@
     --to-mismatch-ink: hsl(0 93.5% 81.8%);
     --to-mismatch-bg: hsl(0 62.8% 20%);
     --to-input-bg: hsl(240 5.9% 11%);
-    --to-shadow: 0 1px 2px rgb(0 0 0 / 24%);
-    --to-shadow-pop: 0 4px 16px rgb(0 0 0 / 50%);
+    --to-shadow: 0 1px 0.125em rgb(0 0 0 / 24%);
+    --to-shadow-pop: 0 0.25em 1em rgb(0 0 0 / 50%);
     color-scheme: dark;
   }
 }
