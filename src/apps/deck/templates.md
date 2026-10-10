@@ -17,7 +17,6 @@ holds every one).
 - **Town-hall notice**: a residents' meeting about a playground: why, what is proposed, the budget as a pie, when, how to have a say and access (Sunset).
 - **Trivia night**: a pub quiz in four rounds with the answers in the speaker notes, a score table that adds itself up, and no closing QR code (so the room cannot read the answers) (Arcade).
 - **Wedding slideshow**: a couple's story for the reception, from the bookshop to the question, a timeline, thank-you; no QR code (Bubblegum, red icons).
-- **Photo story**: a market day in eight big-icon slides, a time and a caption each, ready for a photograph in place of each icon (Ivory, zoom).
 - **Zine**: Small Joys, eight short pages about a morning.
 - **Recipe zine**: seven soups for a cold week, one a page.
 - **Booklet**: a studio's handbook of how it works.

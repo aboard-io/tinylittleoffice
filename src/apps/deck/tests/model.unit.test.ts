@@ -226,7 +226,7 @@ test('the deck ends with a QR code of itself, unless told not to, unless printed
 test('every template is canonical, has a name, and draws', () => {
   // The everyday decks, then the occasions, then the printed things, two of each format.
   expect(templates().map((x) => x.id)).toEqual([
-    'talk', 'status', 'proposal', 'pitch', 'lesson', 'conference', 'quarterly', 'workshop', 'launch', 'townhall', 'trivia', 'wedding', 'photos',
+    'talk', 'status', 'proposal', 'pitch', 'lesson', 'conference', 'quarterly', 'workshop', 'launch', 'townhall', 'trivia', 'wedding',
     'zine', 'soups', 'booklet', 'programme', 'brochure', 'farm', 'comic', 'umbrella', 'poster', 'lost', 'badges', 'speakers',
   ]);
   expect(new Set(templates().map((x) => x.name)).size).toBe(templates().length);

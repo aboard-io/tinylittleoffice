@@ -1027,7 +1027,6 @@ export default {
   // ---- the Presentation Builder ----
   // Its templates: the occasions and a second of each printed format.
   'A choir\'s winter concert: the welcome, both halves, notes on the music, the singers, and the words to sing along.': 'A choir\'s winter concert: the welcome, both halves, notes on the music, the singers, and the words to sing along.',
-  'A day in eight pictures, a time and a caption each: put a photograph on each slide in place of its icon.': 'A day in eight pictures, a time and a caption each: put a photograph on each slide in place of its icon.',
   'A lesson': 'A lesson',
   'A lost-pet poster in red: the name, what she looks like, where she was seen, a number to call.': 'A lost-pet poster in red: the name, what she looks like, where she was seen, a number to call.',
   'A morning workshop: the timetable, a checklist of what to bring, the steps, and where to go next.': 'A morning workshop: the timetable, a checklist of what to bring, the steps, and where to go next.',
@@ -1048,7 +1047,6 @@ export default {
   'Conference talk': 'Conference talk',
   'Farm brochure': 'Farm brochure',
   'Lost cat poster': 'Lost cat poster',
-  'Photo story': 'Photo story',
   'Product launch': 'Product launch',
   'Quarterly review': 'Quarterly review',
   'Recipe zine': 'Recipe zine',

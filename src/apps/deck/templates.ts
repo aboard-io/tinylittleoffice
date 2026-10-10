@@ -3,7 +3,7 @@
  * in TLO with real words, canonical as the kernel writes it so each round-trips byte for byte (the corpus
  * test holds every one). The decks people make most come first (a talk, a status, a proposal, a pitch, a
  * lesson), then the occasions (a conference talk with its notes, a quarterly review, a workshop, a launch,
- * a town hall, a quiz, a wedding, a photo story); then the printed things, two of each format. Every theme
+ * a town hall, a quiz, a wedding); then the printed things, two of each format. Every theme
  * a deck uses is a different one where it can be, so the list shows what the Look menu does. One line a
  * template on what it is for: templates.md.
  */
@@ -171,17 +171,6 @@ const WORKSHOP = headed(
   '## :heart: Afterwards {.title}\n\n- Southside Bike Kitchen is open every Wednesday, 6 to 8pm\n- Tools, a stand and someone who knows: all free\n- Thank you to Southside Library for the room',
 );
 
-const PHOTOS = headed(
-  { theme: 'ivory', transition: 'zoom', qr: 'no' },
-  '## :camera: Saturday at the Eastside market {.title}\n\n- A day in eight pictures · 24 October 2026 · photographs by Jun Watanabe',
-  '## :clock: 5.40 am {.icon}\n\nThe first van backs in under the railway arch. Halim has been setting up this pitch for twenty-two years, and he still counts the crates twice.',
-  '## :coffee: 6.15 am {.icon}\n\nThe coffee stall is the traders\' before it is anyone else\'s. Four sugars for the fish man. Nobody asks why.',
-  '## :fish: 7.30 am {.icon}\n\nMackerel from Brixham, on ice that was a block at five. The first customer knows exactly which one she wants.',
-  '## :flower: 9.00 am {.icon}\n\nDahlias, the last of the year. Ruth says they will be gone by eleven, and they are.',
-  '## :users: 11.45 am {.icon}\n\nThe busiest hour. You move through the middle aisle at the speed of the slowest pushchair, and that is fine.',
-  '## :music: 2.30 pm {.icon}\n\nA brass band from the school on Cotton Street plays the same three songs, well. A small boy conducts them from his father\'s shoulders.',
-  '## :moon: 5.10 pm {.icon}\n\nThe arch is swept. Halim counts the crates twice. Back next Saturday at twenty to six.',
-);
 
 const LAUNCH = headed(
   { color: 'orange', transition: 'zoom' },
@@ -290,7 +279,6 @@ export const templates = (): Template[] => [
   { id: 'townhall', name: t('Town-hall notice'), blurb: t('A residents\' meeting about a new playground: why, what is proposed, the budget as a pie, when, how to have a say.'), doc: TOWNHALL },
   { id: 'trivia', name: t('Trivia night'), blurb: t('A pub quiz in four rounds, the answers in the speaker notes where the room cannot see them, and a score table.'), doc: TRIVIA },
   { id: 'wedding', name: t('Wedding slideshow'), blurb: t('Their story for the reception, from how they met to the question, with a timeline and a thank-you.'), doc: WEDDING },
-  { id: 'photos', name: t('Photo story'), blurb: t('A day in eight pictures, a time and a caption each: put a photograph on each slide in place of its icon.'), doc: PHOTOS },
   { id: 'zine', name: t('Zine'), blurb: t('Eight small pages from one sheet of paper: print, fold and cut, or read it by tapping on a phone.'), doc: ZINE },
   { id: 'soups', name: t('Recipe zine'), blurb: t('Seven soups for a cold week, one a page, in a zine folded from one sheet.'), doc: SOUPS },
   { id: 'booklet', name: t('Booklet'), blurb: t('A booklet of half-letter pages, eight to twenty, laid out to print, nest and fold.'), doc: BOOKLET },

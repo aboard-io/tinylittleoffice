@@ -205,7 +205,7 @@ format: poster
 
 As a link: <https://tinylittleoffice.com/deck/#doc=---%0Aformat%3A+poster%0A---%0A%23%23+%3Amusic%3A+Open+mic+night+%7B.title%7D%0A%0A-+Friday+13+November%2C+8pm%0A-+The+Anchor%2C+14+Quay+Street%0A-+Free.+Bring+a+song%2C+a+poem%2C+or+just+your+ears.>
 
-Templates: A talk, Status update, A proposal, A pitch, A lesson, Conference talk, Quarterly review, Workshop agenda, Product launch, Town-hall notice, Trivia night, Wedding slideshow, Photo story, Zine, Recipe zine, Booklet, Concert programme, Brochure, Farm brochure, Comic, Comic: the umbrella, Poster, Lost cat poster, Name badges, Conference badges. Its own files: `.pptx`, `.html`, `.zip`, `.gif`.
+Templates: A talk, Status update, A proposal, A pitch, A lesson, Conference talk, Quarterly review, Workshop agenda, Product launch, Town-hall notice, Trivia night, Wedding slideshow, Zine, Recipe zine, Booklet, Concert programme, Brochure, Farm brochure, Comic, Comic: the umbrella, Poster, Lost cat poster, Name badges, Conference badges. Its own files: `.pptx`, `.html`, `.zip`, `.gif`.
 
 ## Numbers
 
