@@ -1,0 +1,11 @@
+---
+app: diagram
+kind: net
+---
+- Header
+- Hamburger
+- Drawer
+- Column
+
+~ Header -> Hamburger: keeps
+~ Drawer -> Column: opens

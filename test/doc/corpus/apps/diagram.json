@@ -27,7 +27,7 @@
     },
     {
       "name": "diagram/org-kitchen",
-      "text": "---\ntitle: The kitchen at Marlow's\nkind: org\n---\n- Nadia Haddad | Head chef\n  - Luca Bianchi | Sous chef\n    - Sam Wright | Sauce\n    - Mei Chen | Fish\n    - Jonah Ellis | Garnish\n    - Rosa Duarte | Pastry\n  - Kemi Adeyemi | Restaurant manager\n    - Theo Marsh | Head waiter\n    - Ivy Cole | Bar\n\n~ Rosa Duarte -- Ivy Cole: dessert wines\n"
+      "text": "---\ntitle: The kitchen at Marlow's\nkind: org\n---\n- Nadia Haddad | Head chef\n  - Luca Bianchi | Sous chef\n    - Sam Wright | Sauce\n    - Mei Chen | Fish\n    - Jonah Ellis | Garnish\n    - Rosa Duarte | Pastry\n  - Kemi Adeyemi | Restaurant manager\n    - Ivy Cole | Bar\n    - Theo Marsh | Head waiter\n\n~ Rosa Duarte -- Ivy Cole: wines\n"
     },
     {
       "name": "diagram/family-hales",

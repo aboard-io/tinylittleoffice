@@ -1,0 +1,9 @@
+---
+app: diagram
+kind: net
+---
+- Header
+- The column that holds the document and is as tall as the visible window while the keyboard is up
+- Bar
+
+~ Header -> Bar: keeps

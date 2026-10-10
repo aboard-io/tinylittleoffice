@@ -1,0 +1,9 @@
+---
+app: diagram
+kind: venn
+---
+- Grammar: generated documents
+- Walks: random steps
+- Grammar & Walks: replay from a seed
+
+~ Grammar -> Walks: feeds

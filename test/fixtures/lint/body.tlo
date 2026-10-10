@@ -1,0 +1,21 @@
+---
+app: deck
+---
+## Held by lints
+
+- No bare words in a template: every string goes through t(), nine languages measured in their own fonts, each label in its own slot
+- No import cycles; an app never imports another app without saying why, and the list of the shares only shrinks
+- Chunk budgets as tripwires: growth is fine when it buys simplicity, and a chunk that shrinks lowers its own budget
+- Generated outputs are never edited by hand; a stale one fails the build, and the script that writes it says which
+- The kernel names no window, no document, no navigator and no storage, so it runs under node as it is
+- Every command is reachable from a key, a bar or the palette, and none is bound twice at one place
+- Every template is written back by the kernel byte for byte, and its plain link reads back as itself
+- Every document the skill shows is one of an app's own templates
+- Again: No bare words in a template: every string goes through t(), nine languages measured in their own fonts, each label in its own slot
+- Again: No import cycles; an app never imports another app without saying why, and the list of the shares only shrinks
+- Again: Chunk budgets as tripwires: growth is fine when it buys simplicity, and a chunk that shrinks lowers its own budget
+- Again: Generated outputs are never edited by hand; a stale one fails the build, and the script that writes it says which
+- Again: The kernel names no window, no document, no navigator and no storage, so it runs under node as it is
+- Again: Every command is reachable from a key, a bar or the palette, and none is bound twice at one place
+- Again: Every template is written back by the kernel byte for byte, and its plain link reads back as itself
+- Again: Every document the skill shows is one of an app's own templates

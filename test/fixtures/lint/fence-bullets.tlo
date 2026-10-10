@@ -1,0 +1,19 @@
+---
+app: deck
+title: The weight of it
+---
+## :scale: The weight of it
+
+```sheet
+---
+chart: bar
+---
+Chunk | Kilobytes:number
+--- | ---
+Main | 40
+Apps | 163
+```
+
+- Measured at the end of round ten
+- The main chunk is the one to watch
+- A language loads only when chosen

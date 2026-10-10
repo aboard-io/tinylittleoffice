@@ -1,0 +1,11 @@
+---
+app: diagram
+title: The shell and the chrome
+kind: net
+---
+- Header
+- Drawer
+- Bar
+
+~ Header -> Drawer: opens
+~ Drawer -> Bar: lends commands

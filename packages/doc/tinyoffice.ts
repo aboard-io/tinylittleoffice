@@ -13,9 +13,13 @@
  *   tinyoffice file <link> [--as tlo|md|csv|…] [--out path|-]
  *                                                     the document as a file, named after its title (.tlo by default)
  *   tinyoffice diff <link> <link>                     what the second changed, block by block (exit 1 when they differ)
+ *   tinyoffice lint <link|file.tlo> [--json]          what the eye would have seen, a line a finding:
+ *                                                     app · slide or block · the finding · what to do (exit 1 on one)
+ *   tinyoffice measure <link|file.tlo>                the sizes the layouts chose, page by page, as JSON
+ *        (lint and measure also take <app> <file>, or <app> and stdin)
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { apps, compare, file, fromTlo, link, plain, read, templates } from '../../src/api.ts';
+import { apps, compare, file, fromTlo, lint, link, measure, plain, read, templates } from '../../src/api.ts';
 import { slug } from '../../src/kit/draw.ts';
 
 const USAGE = readFileSync(new URL(import.meta.url), 'utf8')
@@ -40,6 +44,18 @@ function die(message: string, code = 2): never {
   process.exit(code);
 }
 const words = (path?: string) => (path && path !== '-' ? (existsSync(path) ? readFileSync(path, 'utf8') : die(`no file ${path}`)) : readFileSync(0, 'utf8'));
+
+/** A document from a link, a .tlo file, or an app and a file (or stdin). */
+function documentOf(): { app: string; text: string } {
+  const [a, b] = args;
+  if (!a) die('which link or file?');
+  if (args.length === 1 && existsSync(a)) {
+    const tlo = fromTlo(words(a));
+    return tlo.app ? tlo : die(`${a} names no app in its head (app: deck); say which: tinyoffice ${cmd} <app> ${a}`);
+  }
+  if (/^https?:|#/.test(a)) return read(a);
+  return { app: a, text: words(b) };
+}
 
 async function main() {
   switch (cmd) {
@@ -90,6 +106,18 @@ async function main() {
         );
       if (!c.same) process.exitCode = 1;
       return;
+    }
+    case 'lint': {
+      const { app, text } = documentOf();
+      const found = await lint(app, text);
+      if (flags.json) out(JSON.stringify({ findings: found }, null, 2));
+      else for (const f of found) out(`${f.app} · ${f.at} · ${f.words} · ${f.fix}`);
+      if (found.length) process.exitCode = 1;
+      return;
+    }
+    case 'measure': {
+      const { app, text } = documentOf();
+      return out(JSON.stringify(await measure(app, text), null, 2));
     }
     case '':
     case 'help':

@@ -1,0 +1,11 @@
+---
+app: diagram
+title: Apps are definitions on one kit
+kind: org
+---
+- The kit | shell, chrome, drawer
+  - Words | Word Processor, Outliner
+  - Pictures | Drawing Tool, Diagram, Motion
+  - Plans | Kanban Board, Calendar
+
+~ Diagram -- Drawing Tool: draws with

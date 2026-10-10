@@ -145,6 +145,8 @@ Templates: Packing list, A decision, Launch plan, A talk, A speech, An essay pla
 
 A slide between each `---`. The headline is `## :icon-name: Headline`, its layout an attribute: `{.title}` (a title slide), `{.two}` (two columns, a paragraph `|` between them) or `{.icon}` (bullets beside one big icon). The words are `- ` bullets nested by two spaces; `> ` lines are speaker notes; a `^[footnote]` is shown at the foot of its slide. A sheet's table with `chart: bar` in its head, in a ```` ```sheet ```` fence, is a chart on the slide. The head may hold `theme:` (`boardroom`, `ivory`, `midnight`, `graphite`; for fun `confetti`, `sunset`, `ocean`, `bubblegum`, `arcade`, `chalkboard`; plain otherwise) and `transition:` (`cut`, `slide`, `zoom`; a fade otherwise).
 
+The rules, before they are broken: a slide with a fence (a chart, a diagram, a table) is the fence's, drawn alone under the headline: bullets on it are not drawn, so put them in the notes (`> ` lines) or on a slide of their own. A headline is a few words; a long one is set smaller, then cut after two lines. Bullets are set as large as they fit, down to 14px; more than that runs off the slide, so split it. Presenting reveals one bullet, or one item of a fenced document, per step; the notes show with N or the Notes button, and start hidden under a finger. `{.title}` is a cover (the headline large, the bullets beneath it as its subtitle); `{.two}` two columns, `|` alone on a line between them; `{.icon}` the bullets beside the headline's icon, drawn large.
+
 `format:` in the head makes the deck a thing to print and fold, a page between each `---`: `poster` (one page, as big as the page allows), `zine` (8 pages), `booklet` (8 to 20), `brochure` (6 panels), `comic` (a panel per bullet, `- :icon-name: What is said | caption`) or `badges` (a page per person, the name as the headline).
 
 Status update:
@@ -343,6 +345,10 @@ Templates: Flowchart, Birthday card, Event map, Floor plan, Room plan, Wireframe
 - `venn`: `- Set: thing, thing` for two or three sets, `- A & B: thing` for what they share.
 - `seating`: `- Table: Ann, Bob, Cy`.
 - `net`: `~ A -> B: label` connections; `- name` a thing on its own.
+
+What each is good for: `mind` ideas branching from one, `org` who reports to whom, `family` generations, `lanes` a process passed between people, `timeline` dates spaced as they fell, `venn` what two or three sets share, `seating` who sits where, `net` what talks to what.
+
+The rules, before they are broken: a thing is a name, short (two to four words; a box holds no more), and its other words go in a child, in a connection's label, or in the notes. A connection's ends are names in the list, written exactly as the line writes them (the words before ` | `); in a tree an end naming no thing is not drawn, and a network makes a second thing of it. In a `net` a line is one thing named by the whole line: `- Header: the logo` is a thing called "Header: the logo", so write `- Header` and put "the logo" in a label. In `venn` and `seating` a comma separates things, a comma in a number too: "2,000 cases" is two things, so write 2000 or two thousand. A label is a few words: longer ones lie over each other. `lanes`, `timeline`, `venn` and `seating` draw no connections.
 
 A small company:
 
@@ -631,6 +637,8 @@ Every document downloads as a `.pdf` (its pages as pictures; Print in the browse
 
 ## Short links
 
+The API below is this site's. Make a short link at the shortener of the site the link opens on, `tinier.<the site's host>`: the shortener opens only links to its own site. An agent on a development machine running its own copy of the site uses that site's `/tinier/` (the shortener started with `SITE` set to the site's address, `npm run tinier:dev`), and the link it makes opens there; production's shortener accepts only links to production.
+
 A long link can be shortened at tinier.tinylittleoffice.com for an hour, a day, a week, a month or a year. The link is encrypted where it is made (AES-256-GCM, a random key); only the ciphertext goes to the service, and the key travels in the short link's fragment, which browsers never send. A program can do the same:
 
 ```
@@ -655,7 +663,24 @@ compare(url, revised).changes;  // what the second link changed, block by block
 await templates('deck');        // what a deck can start from
 ```
 
-A page of your own can import `https://tinylittleoffice.com/tinyoffice.js` instead: `link({ app, doc, title })` writes the plain link and `embed({ app, doc, title })` the `<iframe>` that shows the document's pages. In the API, `encode`/`decode` are the codec, `parse`/`write` the kernel (the document as a head and blocks, and back), `tlo`/`fromTlo` a `.tlo` file's text, `file(app, text, ext)` a file of the app's own formats that needs no browser. In a clone of github.com/ftrain/tinyoffice, `node packages/doc/tinyoffice.ts` is the same from the command line: `link`, `read`, `file`, `diff`, `apps`, `templates`.
+A page of your own can import `https://tinylittleoffice.com/tinyoffice.js` instead: `link({ app, doc, title })` writes the plain link and `embed({ app, doc, title })` the `<iframe>` that shows the document's pages. In the API, `encode`/`decode` are the codec, `parse`/`write` the kernel (the document as a head and blocks, and back), `tlo`/`fromTlo` a `.tlo` file's text, `file(app, text, ext)` a file of the app's own formats that needs no browser. In a clone of github.com/ftrain/tinyoffice, `node packages/doc/tinyoffice.ts` is the same from the command line: `link`, `read`, `file`, `diff`, `lint`, `measure`, `apps`, `templates`.
+
+## Check it, do not look at it
+
+Before you share a link, lint it: `tinyoffice lint <link or file.tlo>` (or `await lint(app, text)` in the API). It says what a reader's eye would have seen, a line a finding, `app · slide or block · the finding · what to do`, and exits 1 when there is one; `--json` gives `{findings: [{app, at, block, kind, words, fix}]}`. The findings:
+
+- `edge-end`: a connection names a thing that is not in the list (a tree draws it not at all).
+- `edge-unused`: a connection in a kind that draws none.
+- `net-colon`: a network's `- Name: description` line, named by the whole line.
+- `comma-number`: a comma inside a number in a Venn's or a table's list, cutting it in two.
+- `label-long`: a thing's words too long for its box: set at the smallest size, or cut with "…".
+- `label-over`: a connection's label lying over another label or a thing's words.
+- `fence-bullets`: bullets on a slide that shows a document, not drawn.
+- `title-cut`, `title-small`: a headline cut after two lines, or set at its smallest size.
+- `body-over`, `body-small`: a slide's words running off its foot, or set at their smallest size.
+- `length`: a link past 2,000 characters, which some chat apps cut.
+
+A diagram fenced on a slide is linted too, at its slide. `tinyoffice measure <link or file>` (`measure(app, text)`) gives the numbers behind them as JSON: per slide, the headline's and the words' sizes, the lines they wrapped to, what was cut and the bullets a document hides; per diagram, its things, its connections drawn and dropped, and each label's size, lines and whether it was cut. Set your words from these numbers. `read` gives back the text exactly as written, so what you wrote is what the link holds. You never need a browser or a screenshot to check a document: the lint and the measures come from the same layout code that draws the pages.
 
 ## Driving the editors
 

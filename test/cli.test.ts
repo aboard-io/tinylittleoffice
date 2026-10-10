@@ -41,3 +41,29 @@ test('diff says what changed and exits 1; the same document exits 0; a bad link 
   expect(run(['templates', 'sheet'])).toContain('budget');
   expect(run(['apps'])).toContain('Spreadsheet');
 });
+
+test('lint says what the eye would have seen, a line a finding, and exits 1; a clean document exits 0', () => {
+  const FIX = fileURLToPath(new URL('./fixtures/lint/', import.meta.url));
+  const bad = spawnSync(process.execPath, [CLI, 'lint', join(FIX, 'fence-bullets.tlo')], { encoding: 'utf8' });
+  expect(bad.status).toBe(1);
+  expect(bad.stdout).toBe(
+    'deck · slide 1 · the slide shows the chart alone; the 3 lines beside it ("Measured at the end of round ten", …) are not drawn · put them in the notes (> lines) or on a slide of their own\n',
+  );
+  const json = JSON.parse(spawnSync(process.execPath, [CLI, 'lint', join(FIX, 'edge-end.tlo'), '--json'], { encoding: 'utf8' }).stdout);
+  expect(json.findings).toMatchObject([{ block: 4, kind: 'edge-end', app: 'diagram', at: 'block 5' }]);
+  expect(Object.keys(json.findings[0])).toEqual(expect.arrayContaining(['block', 'kind', 'words', 'fix']));
+  const ok = spawnSync(process.execPath, [CLI, 'lint', join(FIX, 'fence-bullets.ok.tlo')], { encoding: 'utf8' });
+  expect([ok.status, ok.stdout]).toStrictEqual([0, '']);
+  // A link, and an app with the document on stdin, as `link` takes them.
+  const url = run(['link', join(FIX, 'comma-number.tlo')]).trim();
+  expect(spawnSync(process.execPath, [CLI, 'lint', url], { encoding: 'utf8' }).stdout).toContain('reads as two things');
+  expect(spawnSync(process.execPath, [CLI, 'lint', 'deck'], { input: '## One\n\n```sheet\nA | B\n--- | ---\n1 | 2\n```\n\n- Hidden\n', encoding: 'utf8' }).status).toBe(1);
+});
+
+test('measure gives the sizes the layouts chose, as JSON', () => {
+  const FIX = fileURLToPath(new URL('./fixtures/lint/', import.meta.url));
+  const m = JSON.parse(run(['measure', join(FIX, 'body.tlo')]));
+  expect(m).toMatchObject({ app: 'deck', slides: [{ slide: 1, body: { px: 14, smallest: true } }] });
+  expect(m.slides[0].body.over).toBeGreaterThan(0);
+  expect(JSON.parse(run(['measure', join(FIX, 'edge-end.tlo')])).diagram.edges).toStrictEqual({ written: 1, drawn: 0, dropped: 1 });
+});

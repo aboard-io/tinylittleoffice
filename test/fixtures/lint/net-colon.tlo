@@ -1,0 +1,11 @@
+---
+app: diagram
+title: The shell and the chrome
+kind: net
+---
+- Header: the paper logo and the title
+- Drawer: the documents and the settings
+- Bar
+
+~ Header -> Drawer: opens
+~ Drawer -> Bar: lends commands
