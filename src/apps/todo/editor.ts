@@ -11,18 +11,20 @@
  * undo puts them back; the one bar holds Insert ▾, the filter, clear done, and ends with undo and redo.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
-import { ArrowDown, ArrowUp, CalendarDays, CopyPlus, Ellipsis, GripVertical, ListFilter, Star } from 'lucide';
+import { Ellipsis, GripVertical, Star } from 'lucide';
 import { runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
-import { tool } from '../../kit/bar.ts';
+import { cmdMenu, cmdTool } from '../../kit/bar.ts';
+import { drawnIn, runKey } from '../../kit/commands.ts';
+import COMMANDS, { WORDS } from './commands.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import { DocElement, firstAt, type Entry } from '../../kit/element.ts';
-import { icon, UI } from '../../kit/icons.ts';
+import { icon } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import type { MenuItem, ToMenu } from '../../kit/menu.ts';
+import type { ToMenu } from '../../kit/menu.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { addAfter, asTasks, clearDone, duplicateTasks, enterAt, joinTasks, moveTasks, pastesAsTasks, pasteTasks, readTodo, removeTasks, setDone, setDue, setStar, shifted, textTasks, today, type Task, type TodoView } from './model.ts';
+import { addAfter, asTasks, duplicateTasks, enterAt, joinTasks, moveTasks, pastesAsTasks, pasteTasks, readTodo, removeTasks, setDone, setDue, setStar, shifted, textTasks, today, type Task, type TodoView } from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -90,10 +92,10 @@ export class ToTodoEditor extends DocElement<TodoView> {
     if (!a) this.ones.set(b, (a = [b]));
     return a;
   }
-  private taskAt(at: number): Task | undefined {
+  taskAt(at: number): Task | undefined {
     return this.view.tasks.find((x) => x.at === at);
   }
-  private shown(): Task[] {
+  shown(): Task[] {
     return this.view.tasks.filter((x) => this.show === 'all' || (this.show === 'done') === x.done);
   }
 
@@ -190,7 +192,7 @@ export class ToTodoEditor extends DocElement<TodoView> {
     void this.focusTask(r.at, r.offset);
   };
   /** Alt+Up/Down in the words, or the menu's Move up/down: the task past its neighbour as shown, the caret where it was. */
-  private moveOne(x: Task, by: -1 | 1) {
+  moveOne(x: Task, by: -1 | 1) {
     const over = this.neighbour([x], by);
     if (!over) return;
     const offset = this.caretIn(x.at);
@@ -199,12 +201,15 @@ export class ToTodoEditor extends DocElement<TodoView> {
     void this.focusTask(r.ats[0], offset);
   }
   /** Mod+D in the words, or the menu's Duplicate: the task again after it, the caret in the copy where it was. */
-  private duplicateOne(x: Task) {
+  duplicateOne(x: Task) {
     const offset = this.caretIn(x.at);
     const d = duplicateTasks([x]);
     this.edit(d.ops);
     void this.focusTask(d.at, offset);
   }
+  /** The task a key is typed in, while the commands answer it (commands.ts). */
+  here: Task | null = null;
+  private hereTx: ToText | null = null;
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const target = e.composedPath()[0] as HTMLElement;
@@ -215,25 +220,31 @@ export class ToTodoEditor extends DocElement<TodoView> {
     if (!tx || !row) return;
     const x = this.taskAt(Number(row.dataset.at));
     if (!x) return;
-    const mod = e.metaKey || e.ctrlKey;
+    [this.here, this.hereTx] = [x, tx];
+    try {
+      runKey(e, WORDS, this);
+    } finally {
+      [this.here, this.hereTx] = [null, null];
+    }
+  };
+  /** The arrows at the edge of a task's words: Up and Down under where the caret was, Left at the start, Right at the end. */
+  stepKey(e: KeyboardEvent): boolean {
+    const x = this.here!;
+    const tx = this.hereTx!;
     const k = e.key;
-    const plain = !mod && !e.altKey && !e.shiftKey;
     const rows = this.shown();
     const i = rows.indexOf(x);
     const s = tx.sel;
     const flat = !!s && s.anchor.offset === s.focus.offset;
-    if (e.altKey && !mod && !e.shiftKey && (k === 'ArrowUp' || k === 'ArrowDown')) this.moveOne(x, k === 'ArrowUp' ? -1 : 1);
-    else if (mod && !e.altKey && !e.shiftKey && k === 'Enter') this.edit(setDone(x, !x.done));
-    else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd') this.duplicateOne(x);
-    else if (plain && (k === 'ArrowUp' || k === 'ArrowDown')) {
+    if (k === 'ArrowUp' || k === 'ArrowDown') {
       const to = rows[k === 'ArrowUp' ? i - 1 : i + 1];
-      if (!to || !this.atEdgeLine(tx, k === 'ArrowUp')) return;
+      if (!to || !this.atEdgeLine(tx, k === 'ArrowUp')) return false;
       void this.focusTask(to.at, s ? s.focus.offset : 0);
-    } else if (plain && k === 'ArrowLeft' && flat && s.focus.offset === 0 && i > 0) void this.focusTask(rows[i - 1].at, 'end');
-    else if (plain && k === 'ArrowRight' && flat && s.focus.offset >= runLength(x.runs) && i >= 0 && i < rows.length - 1) void this.focusTask(rows[i + 1].at, 0);
-    else return;
-    e.preventDefault();
-  };
+    } else if (k === 'ArrowLeft' && flat && s.focus.offset === 0 && i > 0) void this.focusTask(rows[i - 1].at, 'end');
+    else if (k === 'ArrowRight' && flat && s.focus.offset >= runLength(x.runs) && i >= 0 && i < rows.length - 1) void this.focusTask(rows[i + 1].at, 0);
+    else return false;
+    return true;
+  }
   /** Whether the caret is on the first (up) or last (down) line of a task's words, where Up/Down leave it; inside a long task they walk its lines. */
   private atEdgeLine(tx: ToText, up: boolean): boolean {
     const dom = document.getSelection();
@@ -276,7 +287,7 @@ export class ToTodoEditor extends DocElement<TodoView> {
     return by < 0 ? rows[rows.indexOf(ts[0]) - 1] : rows[rows.indexOf(ts[ts.length - 1]) + 1];
   }
   /** Tasks taken away (block indices); the caret into the task before them (or after, as it is then). */
-  private deleteTasks(ats: number[]) {
+  deleteTasks(ats: number[]) {
     if (!ats.length) return;
     const rows = this.shown();
     const set = new Set(ats);
@@ -357,51 +368,27 @@ export class ToTodoEditor extends DocElement<TodoView> {
     await menu?.updateComplete;
     menu?.openAt(button);
   }
-  private menuItems(): MenuItem[] {
-    const x = this.taskAt(this.menuAt);
-    if (!x) return [];
-    const rows = this.shown();
-    const i = rows.indexOf(x);
-    return [
-      {
-        label: x.due ? t('Change the due date…') : t('Due date…'),
-        icon: CalendarDays,
-        does: () => {
-          this.dueAt = x.at;
-          void this.updateComplete.then(() => {
-            const input = this.querySelector<HTMLInputElement>(`.todo-row[data-at="${x.at}"] input[type=date]`);
-            input?.focus();
-            try {
-              input?.showPicker();
-            } catch {
-              // No picker to show here: the focused input is typed into.
-            }
-          });
-        },
-      },
-      ...(x.due ? [{ label: t('No due date'), icon: UI.close, does: () => this.edit(setDue(x, '')) }] : []),
-      { label: t('Move up'), icon: ArrowUp, disabled: i <= 0, does: () => this.moveOne(x, -1) },
-      { label: t('Move down'), icon: ArrowDown, disabled: i < 0 || i >= rows.length - 1, does: () => this.moveOne(x, 1) },
-      { label: t('Duplicate'), icon: CopyPlus, does: () => this.duplicateOne(x) },
-      { label: t('Delete task'), icon: UI.trash, does: () => this.deleteTasks([x.at]) },
-    ];
-  }
-
-  /* ---------- the bar ---------- */
-
-  private inserts(): MenuItem[] {
-    return [{ label: t('Task'), icon: UI.plus, does: () => this.add(this.taskAt(this.cur)?.at ?? this.view.tasks.at(-1)?.at ?? -1) }];
-  }
-  private showItems(): MenuItem[] {
-    const pick = (show: Show, label: string): MenuItem => ({
-      label,
-      checked: this.show === show,
-      does: () => {
-        this.rows.release();
-        this.show = show;
-      },
+  /** The task's due date asked for: its field, with the browser's picker where there is one. */
+  askDue(x: Task) {
+    this.dueAt = x.at;
+    void this.updateComplete.then(() => {
+      const input = this.querySelector<HTMLInputElement>(`.todo-row[data-at="${x.at}"] input[type=date]`);
+      input?.focus();
+      try {
+        input?.showPicker();
+      } catch {
+        // No picker to show here: the focused input is typed into.
+      }
     });
-    return [pick('all', t('All')), pick('open', t('Open')), pick('done', t('Done'))];
+  }
+  /** Insert ▾ Task: after the task with the caret, else at the end. */
+  addHere() {
+    this.add(this.taskAt(this.cur)?.at ?? this.view.tasks.at(-1)?.at ?? -1);
+  }
+  /** Show ▾: all the tasks, the open ones or the done ones. */
+  showOnly(show: Show) {
+    this.rows.release();
+    this.show = show;
   }
 
   /* ---------- drawing ---------- */
@@ -441,14 +428,14 @@ export class ToTodoEditor extends DocElement<TodoView> {
     const rows = this.shown();
     const now = today();
     return html`<to-bar class="todo-bar">
-        <to-insert .items=${this.inserts()}></to-insert>
-        <to-menu class="todo-show" icon-only .label=${t('Show')} .icon=${ListFilter} .items=${this.showItems()}></to-menu>
-        ${tool({ label: t('Clear done'), icon: UI.trash, disabled: !v.ticked, does: () => this.edit(clearDone(v)) })}
+        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${cmdMenu(COMMANDS.find((c) => c.id === 'todo.show')!, this, COMMANDS, 'todo-show')}
+        ${cmdTool(COMMANDS.find((c) => c.id === 'todo.clear')!, this, { keep: false })}
         <span class="to-hint todo-count">${t('{done} of {n} done', { done: v.ticked, n: v.tasks.length })}</span>
         ${this.undoTools()}
       </to-bar>
       ${rows.length ? html`<ul class="todo-list" tabindex="-1" aria-label=${t('Tasks')}>${rows.map((x) => this.row(x, now))}</ul>` : html`<p class="to-hint todo-empty">${v.tasks.length ? t('Nothing here.') : t('Nothing to do yet. Insert a task.')}</p>`}
-      <to-menu class="todo-rowmenu" .label=${t('Task')} .items=${this.menuItems()}></to-menu>
+      <to-menu class="todo-rowmenu" .label=${t('Task')} .items=${this.taskAt(this.menuAt) ? drawnIn(COMMANDS, 'menu:task', this) : []}></to-menu>
       ${this.rows.renderContext()}`;
   }
 }
