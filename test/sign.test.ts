@@ -1,6 +1,6 @@
 // Signing (kit/sign.ts): Ed25519, with P-256 where a browser has none; tampering fails; a key moves between devices.
 import { test, expect } from 'vitest';
-import { createSigner, fingerprintOf, generate, verify, type KeyStore } from '../src/kit/sign.ts';
+import { canCheck, createSigner, fingerprintOf, generate, verify, type KeyStore } from '../src/kit/sign.ts';
 
 function memStore(): KeyStore {
   let v: string | null = null;
@@ -37,6 +37,25 @@ test('the fallback is taken where Ed25519 is not there', async () => {
     expect(await verify(key, sig, 'm')).toBe(true);
   } finally {
     subtle.generateKey = real;
+  }
+});
+
+test('a browser without Ed25519 cannot check an Ed25519 signature, and says so; P-256 it always can', async () => {
+  const ed = await createSigner(memStore(), () => generate('ed')).sign('m');
+  const ec = await createSigner(memStore(), () => generate('ec')).sign('m');
+  expect(await canCheck(ed.key)).toBe(true);
+  const subtle = globalThis.crypto.subtle;
+  const real = subtle.importKey.bind(subtle);
+  subtle.importKey = ((fmt: string, data: unknown, alg: AlgorithmIdentifier, ...rest: unknown[]) =>
+    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof subtle.importKey;
+  try {
+    expect(await canCheck(ed.key)).toBe(false);
+    expect(await verify(ed.key, ed.sig, 'm')).toBe(false);
+    expect(await canCheck(ec.key)).toBe(true);
+    expect(await verify(ec.key, ec.sig, 'm')).toBe(true);
+    expect(await canCheck('not base64url!')).toBe(true);
+  } finally {
+    subtle.importKey = real;
   }
 });
 

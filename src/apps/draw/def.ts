@@ -83,6 +83,7 @@ export default defineApp({
     { keys: 'P', does: () => t('Pen: any shape, a tap for each corner') },
     { keys: 'F', does: () => t('Freehand: drag to draw a line or a shape') },
     { keys: '[ / ]', does: () => t('Rotate left, rotate right') },
+    { keys: 'Mod+Shift+L / Mod+Shift+E / Mod+Shift+R', does: () => t('Align a text left, centred or right (the bar’s Align goes round the three)') },
     { keys: 'Arrows', does: () => t('Nudge the shapes in hand') },
   ],
 });

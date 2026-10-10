@@ -51,3 +51,10 @@ test('a document the old tree signed verifies here, and one changed word breaks 
   expect(await verify(env.key!, env.sig!, messageOf(OLD.app, OLD.text.replace('by: Paul', 'by: Mallory')))).toBe(false);
   expect(await verify(env.key!, env.sig!, messageOf('write', OLD.text))).toBe(false);
 });
+
+test('the signed message holds exactly two NULs, its separators: one in the text is dropped before it is built', () => {
+  const text = '---\ntitle: Ter\u0000ms\nby: Pa\u0000ul\n---\nWe\u0000 agree.\n';
+  const message = messageOf('write', text);
+  expect(message.split('\u0000')).toEqual(['tinyoffice\nwrite\n\nWe agree.\n', 'Terms', 'Paul']);
+  expect(message).toBe(messageOf('write', text.replace(/\u0000/g, '')));
+});

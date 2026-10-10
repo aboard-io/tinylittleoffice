@@ -241,6 +241,41 @@ test('the state beside the title, four ways: unsigned, signed (green), does not 
   expect(pill(shell).textContent!.trim()).toBe('Locked');
 });
 
+test('a browser without Ed25519 shows an Ed25519 signature as cannot check here (grey, the reason given), never as not matching', async () => {
+  const OLD = '---\ntitle: Q3 budget\nby: Paul\ncreated: 2026-10-05T14:32Z\nkey: 9E3ieLH4GaPHFbLzA-gvCGg1PmAdTzYD6tiPYTW-S70\nsig: w8JnnS5IwMK42vdwH2XLmVVjO2NjNKX_lOu60fKIfDzxVRmQgkmBZz6nHqRffx5VNQYt27kWzgugnOEoIw3wBw\nchart: bar\n---\n# Budget\n\nQ | Sales:money\n--- | ---\nQ1 | 120\n';
+  const real = crypto.subtle.importKey.bind(crypto.subtle);
+  vi.spyOn(crypto.subtle, 'importKey').mockImplementation(((fmt: string, data: unknown, alg: AlgorithmIdentifier, ...rest: unknown[]) =>
+    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (real as (...a: unknown[]) => unknown)(fmt, data, alg, ...rest)) as typeof crypto.subtle.importKey);
+  // Untouched or changed, it cannot be checked here: neither is said to be valid or not.
+  for (const text of [OLD, OLD.replace('120', '999')]) {
+    const shell = await mount(`#/v1/sheet/${encodeDoc(text)}`);
+    await until(() => pill(shell).textContent!.trim() === 'Cannot check here');
+    expect(pill(shell).classList.contains('quiet')).toBe(true);
+    expect(pill(shell).classList.contains('mismatch')).toBe(false);
+    expect(pill(shell).title).toMatch(/^Cannot check here · This browser cannot check this kind of signature · Key [0-9a-f]{5}-[0-9a-f]{5} · Private$/);
+    pill(shell).click();
+    const privacy = shell.querySelector<ToPrivacy>('to-privacy[doc]')!;
+    await until(() => !!privacy.querySelector('dialog')?.open && !!privacy.querySelector('.to-privacy-doc'));
+    expect(privacy.querySelector('.to-privacy-doc .to-trust-line')!.classList.contains('quiet')).toBe(true);
+    expect(privacy.querySelector('.to-unchecked-hint')!.textContent).toBe('This browser cannot check this kind of signature');
+    privacy.close();
+  }
+  // Signed here, the key is P-256 (this browser's fallback): checked, green; changed, red.
+  const realGen = crypto.subtle.generateKey.bind(crypto.subtle);
+  vi.spyOn(crypto.subtle, 'generateKey').mockImplementation(((alg: AlgorithmIdentifier, ...rest: unknown[]) =>
+    (alg as Algorithm).name === 'Ed25519' ? Promise.reject(new DOMException('Unrecognized name', 'NotSupportedError')) : (realGen as (...a: unknown[]) => unknown)(alg, ...rest)) as typeof crypto.subtle.generateKey);
+  const shell = await mount(`#/v1/write/${encodeDoc('---\ntitle: Terms\n---\nWe agree.\n')}`);
+  await until(() => !!shell.querySelector('to-write-editor to-text .tx p'));
+  await openShare(shell);
+  fill(shell.querySelector<HTMLInputElement>('.to-sign-name')!, 'Paul');
+  shell.querySelector<HTMLButtonElement>('.to-sign-go')!.click();
+  await until(() => pill(shell).classList.contains('signed'));
+  expect(decodeDoc(payload())).toMatch(/\nkey: [\w-]{87}\n/);
+  await type(shell, 'Now ');
+  await until(() => pill(shell).classList.contains('mismatch'));
+  expect(pill(shell).textContent!.trim()).toBe('Changed since signed');
+});
+
 test('the key: Export (a file, and the text), Import on another device signs as the same key, Forget asks first', async () => {
   const shell = await mount('#/v1/write');
   await until(() => !!pill(shell));

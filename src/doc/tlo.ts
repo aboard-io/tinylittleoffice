@@ -152,9 +152,15 @@ const finish = (b: Raw): Block => {
   return { ...rest, runs: parseLines(text) } as Block;
 };
 
+/**
+ * NUL (U+0000) never enters a document: no editor writes one, and the reader drops any it is given, so the
+ * NULs that separate the parts of a signed message (kit/envelope.ts) can only ever be those separators.
+ */
+const NUL = /\u0000/g;
+
 /** A text as a document: its header and its blocks, read leniently. */
 export function parse(text: string): Doc {
-  const lines = text.replace(/\r\n?/g, '\n').replace(/^﻿/, '').split('\n');
+  const lines = text.replace(NUL, '').replace(/\r\n?/g, '\n').replace(/^﻿/, '').split('\n');
   const [head, start] = readHead(lines);
   const blocks: Raw[] = [];
   // List nesting: the indents of the items we are inside, so two, three or four spaces all nest.
@@ -270,6 +276,7 @@ export function parse(text: string): Doc {
 
 /** A text's header and the text after it. */
 export function splitHead(text: string): [Head, string] {
+  text = text.replace(NUL, '');
   const lines = text.split('\n');
   const [head, start] = readHead(lines);
   return start ? [head, lines.slice(start).join('\n')] : [{}, text];
@@ -277,6 +284,7 @@ export function splitHead(text: string): [Head, string] {
 
 /** Some keys taken out of a text's header: [those keys, the text without them]. The rest of the header stays. */
 export function takeHead(text: string, keys: string[]): [Head, string] {
+  text = text.replace(NUL, '');
   const lines = text.split('\n');
   const [head, start] = readHead(lines);
   if (!start || !keys.some((k) => k in head)) return [{}, text];

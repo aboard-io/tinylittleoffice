@@ -55,7 +55,7 @@ import { fitLine, roomFor } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, expiresSentence, forget, ownerLink, shorten, shortLink, timeLeft, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
 import { checkSignature, keeping, lockWith, onPrivacy, pack, remember, reopen, signerName, signText, unlock, type Signature } from './privacy.ts';
-import { signatureWords, type ToPrivacy } from './privacy-dialog.ts';
+import { signatureIcon, signatureTone, signatureWords, uncheckedHint, type ToPrivacy } from './privacy-dialog.ts';
 import { store } from './store.ts';
 import { ago, firstFree, firstWords, keep, library, localDay, type Kept } from './library.ts';
 import { pageSvg } from './draw.ts';
@@ -825,16 +825,17 @@ export class ToShell extends LitElement {
 
   /**
    * The state beside the title: unsigned (quiet), signed by a name (green, the key's fingerprint on hover),
-   * changed since signed or not matching (red), locked (a lock). A lock rides beside the state while the
+   * changed since signed or not matching (red), cannot check here (quiet, the reason on hover: a browser
+   * without Ed25519), locked (a lock). A lock rides beside the state while the
    * document has a password. It opens the Privacy dialog; a locked one, the unlock dialog.
    */
   private renderTrust() {
     const sig = this.signature;
-    const tone = this.sealed ? 'locked' : sig.state === 'valid' ? 'signed' : sig.state === 'none' ? 'quiet' : 'mismatch';
+    const tone = this.sealed ? 'locked' : signatureTone(sig);
     const words = signatureWords(sig, !!this.sealed);
     const where = keeping() ? t('Saved on this device') : t('Private');
-    const tip = [words, sig.fingerprint && !this.sealed ? t('Key {fp}', { fp: sig.fingerprint }) : '', this.locker ? t('Protected by a password') : '', where].filter(Boolean).join(' · ');
-    const ico = this.sealed ? UI.lock : sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : UI.mismatch;
+    const tip = [words, sig.state === 'unchecked' && !this.sealed ? uncheckedHint() : '', sig.fingerprint && !this.sealed ? t('Key {fp}', { fp: sig.fingerprint }) : '', this.locker ? t('Protected by a password') : '', where].filter(Boolean).join(' · ');
+    const ico = this.sealed ? UI.lock : signatureIcon(sig);
     const open = () => (this.sealed ? void this.askPassword() : void this.querySelector<ToPrivacy>('to-privacy[doc]')?.show());
     return html`<button type="button" class="to-btn to-trust ${tone}" aria-haspopup="dialog" aria-label=${tip} title=${tip} @click=${open}>
       ${this.locker && !this.sealed ? icon(UI.lock, 16, 'to-trust-lock') : nothing}${icon(ico, 18)}<span class="to-trust-words">${words}</span>
@@ -926,7 +927,7 @@ export class ToShell extends LitElement {
   private renderProtect() {
     const sig = this.signature;
     const signed = !!this.envelope.sig;
-    const tone = sig.state === 'valid' ? 'signed' : sig.state === 'none' ? 'quiet' : 'mismatch';
+    const tone = signatureTone(sig);
     const name = () => this.querySelector<HTMLInputElement>('.to-sign-name')?.value ?? '';
     return html`<section class="to-share-section to-share-protect" aria-labelledby="to-share-protect-h">
       <h3 id="to-share-protect-h">${t('Password and signature')}</h3>
@@ -934,7 +935,8 @@ export class ToShell extends LitElement {
         <p class="to-trust-line quiet">${icon(this.locker ? UI.lock : UI.unlock, 18)}<span>${this.locker ? t('Protected by a password') : t('No password')}</span></p>
         <button type="button" class="to-btn to-password-open" aria-haspopup="dialog" @click=${() => void this.querySelector<ToDialog>('to-dialog.to-password-dialog')?.show()}>${icon(UI.lock, 16)}<span>${t('Password…')}</span></button>
       </div>
-      <p class="to-trust-line ${tone}">${icon(sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : UI.mismatch, 18)}<span>${signatureWords(sig)}</span>${sig.fingerprint ? html`<small>${t('Key {fp}', { fp: sig.fingerprint })}</small>` : nothing}</p>
+      <p class="to-trust-line ${tone}">${icon(signatureIcon(sig), 18)}<span>${signatureWords(sig)}</span>${sig.fingerprint ? html`<small>${t('Key {fp}', { fp: sig.fingerprint })}</small>` : nothing}</p>
+      ${sig.state === 'unchecked' ? html`<p class="to-hint to-unchecked-hint">${uncheckedHint()}</p>` : nothing}
       <form class="to-sign" @submit=${(e: Event) => (e.preventDefault(), void this.sign(name()))}>
         <label class="to-sign-label"><span>${t('Sign as')}</span><input type="text" class="to-sign-name" autocomplete="name" placeholder=${t('Your name')} .value=${readEnvelope(this.doc).by ?? signerName()} /></label>
         <div class="to-row">

@@ -25,7 +25,7 @@ with a keyboard (those have a button or a bar item too).
 | Alt+Arrow Up/Down | Move the selected item(s) up or down past a neighbour (lists, outlines, slides, cards, rows) | drag by the handle, the bar's Move up/down |
 | Mod+D | Duplicate the selected thing (shape, slide, card, row) | the contextual bar |
 | Mod+B / I / U, Mod+K | Bold, italic, underline, link on selected words (or the marks for what is typed next) | the bar; the selection bubble |
-| Mod+Shift+L / E / R / J | Align the block in hand left, centred, right or justified (Google Docs' and Word's keys): the Word Processor, while its words have the focus (so Mod+Shift+R, the browser's hard reload, is taken there alone); the Drawing Tool's texts take L, E and R (§8) | the bar's Align menu, which writes the keys beside each |
+| Mod+Shift+L / E / R / J | Align the block in hand left, centred, right or justified (Google Docs' and Word's keys): the Word Processor, while its words have the focus (so Mod+Shift+R, the browser's hard reload, is taken there alone); the Drawing Tool's texts take L, E and R (§8) | the bar's Align menu, which writes the keys beside each; the Keyboard shortcuts dialog lists them under each app |
 | Mod+Enter | On a task item (the To-Do List, a Kanban Board checklist, a task list in the Word Processor): tick or untick it. In a one-line box: done (Enter's meaning). Never anything else | the 44px box on the row |
 | Mod+Alt+Arrow Left/Right | Move the selected thing across stages or columns (the Kanban Board); fold/unfold is Mod+Alt+Up/Down (the Outliner). Alt+Left/Right alone are never taken: they move the caret by a word on a Mac | drag; the bar |
 | Space on a focused toggle | Tick/untick | tap |

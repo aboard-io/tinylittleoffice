@@ -16,7 +16,9 @@ test key, so the kit is checked against the RFC as well as against itself.
 
 A public key travels as base64url (no padding) of its raw form, 43 or 87 characters. The verifier tells the
 two apart by the raw key's length (32 or 65 bytes) and nothing else. A browser without Ed25519 cannot check
-an Ed25519 signature: it reports it as not matching rather than as not checkable.
+an Ed25519 signature, and says so: the state reads "Cannot check here", grey, with the reason ("This browser
+cannot check this kind of signature"), never "does not match". Whether the browser has Ed25519 is asked of
+WebCrypto by importing RFC 8032's test key (`canCheck` in sign.ts).
 
 ## What is signed
 
@@ -47,9 +49,10 @@ The signature is over the UTF-8 bytes of this message (`signingMessage` in envel
   link, so how the link compresses it does not matter.
 - `title` and `by` are the title and the name, empty strings when absent. The name is what the person typed
   in the signing dialog, its runs of white space made one space.
-- LF is byte 0x0A and NUL byte 0x00. The two NULs mark where the body ends and the title begins. Nothing
-  in the kit removes a NUL from a document's text, so for a text that held one the message could be read
-  two ways. No editor is meant to write one, but nothing checks.
+- LF is byte 0x0A and NUL byte 0x00. The two NULs mark where the body ends and the title begins, and where
+  the title ends and the name begins. A NUL never enters a document: the reader (`parse`, `takeHead` and
+  `splitHead` in src/doc/tlo.ts) drops any it is given, so the body, the title and the name the message is
+  built from hold none, and the message reads only one way.
 
 To check, a reader takes the document's text, removes `key` and `sig` (and reads `title`, `by` and
 `created`) from the head, rebuilds the message, and verifies. The vectors give the message as text and as
@@ -100,6 +103,7 @@ fingerprint.
 ## What the shell shows
 
 `checkSignature` in privacy.ts: **none** (no key and signature); **valid**; **stale** (this browser's key
-signed it and the text has changed since: sign again); **invalid** (it does not match, whoever signed it).
+signed it and the text has changed since: sign again); **invalid** (it was checked and does not match,
+whoever signed it); **unchecked** (this browser has no Ed25519, so it cannot check an Ed25519 signature).
 With a signature it shows the name it was signed under and the key's fingerprint, and whether the key is
 this browser's.

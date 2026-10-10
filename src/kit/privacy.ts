@@ -18,7 +18,7 @@ import { keeping, setKeeping, store } from './store.ts';
 import { dropOffline, offlineOn } from './offline.ts';
 import { decodeDoc, encodeDoc, isSealed, packDoc, unpackDoc } from './codec.ts';
 import { newLocker, PBKDF2_ITERATIONS, seal, unseal, unsealWith, type Locker } from './crypt.ts';
-import { createSigner, fingerprintOf, verify } from './sign.ts';
+import { canCheck, createSigner, fingerprintOf, verify } from './sign.ts';
 import { isoMinute, messageOf, readEnvelope } from './envelope.ts';
 import { withHead } from '../doc/tlo.ts';
 import { forgetAll, library } from './library.ts';
@@ -99,9 +99,10 @@ const signer = createSigner({ get: () => store.get(KEY), set: (v) => store.set(K
 
 /**
  * A document's signature as checked against its text now: none; valid; stale (this device's key signed it
- * and it has changed since: sign again); invalid (it does not match what is here, whoever signed it).
+ * and it has changed since: sign again); invalid (it was checked and does not match what is here, whoever
+ * signed it); unchecked (this browser cannot check this kind of signature: an Ed25519 one without Ed25519).
  */
-export type SigState = 'none' | 'valid' | 'stale' | 'invalid';
+export type SigState = 'none' | 'valid' | 'stale' | 'invalid' | 'unchecked';
 export interface Signature {
   state: SigState;
   /** The name it was signed under, if any. */
@@ -115,9 +116,9 @@ export interface Signature {
 export async function checkSignature(app: string, text: string): Promise<Signature> {
   const env = readEnvelope(text);
   if (!env.key || !env.sig) return { state: 'none' };
-  const [ok, fingerprint, me] = await Promise.all([verify(env.key, env.sig, messageOf(app, text)), fingerprintOf(env.key), signer.publicKey()]);
+  const [ok, can, fingerprint, me] = await Promise.all([verify(env.key, env.sig, messageOf(app, text)), canCheck(env.key), fingerprintOf(env.key), signer.publicKey()]);
   const mine = me === env.key;
-  return { state: ok ? 'valid' : mine ? 'stale' : 'invalid', ...(env.by ? { by: env.by } : {}), fingerprint, mine };
+  return { state: ok ? 'valid' : !can ? 'unchecked' : mine ? 'stale' : 'invalid', ...(env.by ? { by: env.by } : {}), fingerprint, mine };
 }
 
 /** The name signatures are made under, as given last; '' until one is. */

@@ -1840,4 +1840,7 @@ export default {
   'Align: centre': 'Align: centre',
   'Align: left': 'Align: left',
   'Align: right': 'Align: right',
+  'Align a text left, centred or right (the bar’s Align goes round the three)': 'Align a text left, centred or right (the bar’s Align goes round the three)',
+  'Cannot check here': 'Cannot check here',
+  'This browser cannot check this kind of signature': 'This browser cannot check this kind of signature',
 } satisfies Strings;

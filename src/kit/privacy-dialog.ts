@@ -22,8 +22,17 @@ export function signatureWords(sig: Signature, sealed = false): string {
   if (sig.state === 'valid') return sig.by ? t('Signed by {name}', { name: sig.by }) : t('Signed');
   if (sig.state === 'stale') return t('Changed since signed');
   if (sig.state === 'invalid') return t('Signature does not match');
+  if (sig.state === 'unchecked') return t('Cannot check here');
   return t('Unsigned');
 }
+
+/** How a signature's state is drawn: green when it holds, red when it was checked and does not, grey otherwise. */
+export const signatureTone = (sig: Signature): string =>
+  sig.state === 'valid' ? 'signed' : sig.state === 'none' || sig.state === 'unchecked' ? 'quiet' : 'mismatch';
+export const signatureIcon = (sig: Signature) =>
+  sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : sig.state === 'unchecked' ? UI.unchecked : UI.mismatch;
+/** Why a signature could not be checked, said beside it. */
+export const uncheckedHint = () => t('This browser cannot check this kind of signature');
 
 export class ToPrivacy extends LitElement {
   static properties = { doc: { type: Boolean }, signature: { attribute: false }, protected: { type: Boolean }, held: { state: true }, keyText: { state: true }, keyMode: { state: true }, withKey: { state: true } };
@@ -122,12 +131,13 @@ export class ToPrivacy extends LitElement {
 
   private renderDoc() {
     const sig = this.signature;
-    const tone = sig.state === 'valid' ? 'signed' : sig.state === 'none' ? 'quiet' : 'mismatch';
+    const tone = signatureTone(sig);
     return html`<section class="to-privacy-section to-privacy-doc" aria-labelledby="to-privacy-doc-h">
       <h3 id="to-privacy-doc-h">${t('This document')}</h3>
-      <p class="to-trust-line ${tone}">${icon(sig.state === 'valid' ? UI.shield : sig.state === 'none' ? UI.unsigned : UI.mismatch, 18)}<span>${signatureWords(sig)}</span></p>
+      <p class="to-trust-line ${tone}">${icon(signatureIcon(sig), 18)}<span>${signatureWords(sig)}</span></p>
       ${sig.fingerprint ? html`<p class="to-hint to-privacy-signer">${t('Key {fp}', { fp: sig.fingerprint })}${sig.mine ? html` · ${t('yours')}` : nothing}</p>` : nothing}
       ${sig.state === 'invalid' ? html`<p class="to-hint">${t('The words, the title, the name or the time are not what was signed: someone changed it, or signed something else.')}</p>` : nothing}
+      ${sig.state === 'unchecked' ? html`<p class="to-hint to-unchecked-hint">${uncheckedHint()}</p>` : nothing}
       ${sig.state === 'stale' ? html`<p class="to-hint">${t('You signed it, and it has changed since. Sign it again, in Share, to vouch for it as it is.')}</p>` : nothing}
       <p class="to-trust-line quiet">${icon(this.protected ? UI.lock : UI.unlock, 18)}<span>${this.protected ? t('Protected by a password') : t('No password')}</span></p>
       <button type="button" class="to-btn to-privacy-share" @click=${() => (this.close(), this.dispatchEvent(new Event('to-open-share', { bubbles: true })))}>${icon(UI.share, 16)}<span>${t('Sign, or set a password, in Share')}</span></button>

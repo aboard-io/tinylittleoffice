@@ -9,6 +9,7 @@ import { forgetAll, keep, library } from '../../src/kit/library.ts';
 import { setKeeping } from '../../src/kit/store.ts';
 import { size, stepSize } from '../../src/kit/zoom.ts';
 import { place } from '../../src/kit/menu.ts';
+import { keysWritten } from '../../src/kit/keys.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToFind } from '../../src/kit/find.ts';
 
@@ -145,8 +146,29 @@ test('Mod+/ and the menu open the keyboard shortcuts: the standard’s table, th
   expect(dialog().textContent).toContain('Find in this document');
   expect(dialog().textContent).toContain('Rectangle');
   expect(dialog().querySelector('kbd')!.textContent).toBe('V');
+  // The alignment keys, as this device writes them: the Drawing Tool's Align, round left, centre and right.
+  const rows = (d: HTMLDialogElement) => [...d.querySelectorAll('.to-keys')[0].querySelectorAll('tr')].map((r) => [r.querySelector('kbd')!.textContent, r.querySelector('td')!.textContent]);
+  const shift = (k: string) => keysWritten(`Mod+Shift+${k}`);
+  expect(rows(dialog())).toContainEqual([[shift('L'), shift('E'), shift('R')].join(' / '), 'Align a text left, centred or right (the bar’s Align goes round the three)']);
   dialog().close();
   await until(() => !dialog().open);
+  // The Word Processor's four.
+  const write = await mount(`#/v1/write`);
+  await until(() => !!write.querySelector('to-write-editor'));
+  write.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => !!write.querySelector('.to-drawer-keys'));
+  write.querySelector<HTMLButtonElement>('.to-drawer-keys')!.click();
+  const writeDialog = () => write.querySelector<HTMLDialogElement>('to-dialog.to-keys-dialog dialog')!;
+  await until(() => writeDialog().open);
+  expect(writeDialog().querySelector('.to-keys caption')!.textContent).toBe('Word Processor');
+  expect(rows(writeDialog())).toEqual([
+    [shift('L'), 'Align left'],
+    [shift('E'), 'Centre'],
+    [shift('R'), 'Align right'],
+    [shift('J'), 'Justify'],
+  ]);
+  writeDialog().close();
+  await until(() => !writeDialog().open);
   // On the home page, from the menu.
   const home = await mount('');
   home.querySelector<HTMLButtonElement>('.to-burger')!.click();

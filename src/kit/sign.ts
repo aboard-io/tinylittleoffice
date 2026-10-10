@@ -84,6 +84,30 @@ export async function verify(keyB64: string, sigB64: string, message: string): P
   return false;
 }
 
+/** RFC 8032's first test key: a public key every Ed25519 accepts, to ask the browser whether it has Ed25519. */
+const ED_PROBE = Uint8Array.from('d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a'.match(/../g)!, (h) => parseInt(h, 16));
+
+/**
+ * Whether this browser can check a signature by this key at all. P-256 is in every WebCrypto; Ed25519 is not
+ * (older Safari, some embedded browsers), and where it is missing an Ed25519 signature cannot be checked,
+ * which is not the same as not matching.
+ */
+export async function canCheck(keyB64: string): Promise<boolean> {
+  let raw: Uint8Array;
+  try {
+    raw = fromBase64Url(keyB64);
+  } catch {
+    return true;
+  }
+  if (raw.length !== 32) return true;
+  try {
+    await subtle().importKey('raw', ED_PROBE as BufferSource, ED, false, ['verify']);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** A signer over a place to keep its key; `make` makes the key when there is none (the tests force P-256 with it). */
 export function createSigner(store: KeyStore, make: () => Promise<StoredKey> = generate): Signer {
   const load = (): StoredKey | null => {

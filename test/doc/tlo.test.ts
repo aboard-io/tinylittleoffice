@@ -208,3 +208,10 @@ test('an empty paragraph is written <br> and read back empty, so a blank line ty
   expect(write(d)).toBe('a\n\n<br>\n\nb\n');
   expect(write({ head: {}, blocks: [{ k: 'p', runs: [] }] })).toBe('<br>\n');
 });
+
+test('tlo: a NUL never enters a document: the reader drops it, in the head and the words alike', () => {
+  const doc = parse('---\ntitle: Q3\u0000 budget\n---\n# Bud\u0000get\n\nWe \u0000agree.\n');
+  expect(doc.head).toEqual({ title: 'Q3 budget' });
+  expect(write(doc)).toBe('---\ntitle: Q3 budget\n---\n# Budget\n\nWe agree.\n');
+  expect(write(doc)).not.toContain('\u0000');
+});
