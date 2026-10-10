@@ -47,6 +47,7 @@ import '../../kit/dialog.ts';
 import '../../kit/text.ts';
 import './style.css';
 import { origin } from '../../kit/network.ts';
+import { reveal } from '../../kit/scroll.ts';
 
 export const tag = 'to-trip-editor';
 
@@ -420,7 +421,7 @@ export class ToTripEditor extends DocElement<TripView> {
     if (!toMap) {
       this.panned = i;
       this.rows.choose(i);
-      void this.updateComplete.then(() => this.querySelector(`.trip-stop[data-i="${i}"]`)?.scrollIntoView({ block: 'nearest' }));
+      void this.updateComplete.then(() => reveal(this.querySelector(`.trip-stop[data-i="${i}"]`)));
     }
   }
   /** A focused pin: the arrows nudge its stop (a burst is one undo), Delete takes it away, Escape gives the focus back to the map. */
@@ -505,7 +506,7 @@ export class ToTripEditor extends DocElement<TripView> {
     await x.updateComplete;
     const len = words(x.blocks).length;
     x.sel = caret(0, offset === 'end' ? len : Math.min(offset, len));
-    this.stopEl(i)?.scrollIntoView({ block: 'nearest' });
+    reveal(this.stopEl(i));
   }
   /** Where the caret is in a stop's name or note, or their end. */
   private caretIn(i: number, field: Field): number {

@@ -8,6 +8,7 @@ import { parseHash } from '../../src/kit/route.ts';
 import { parse, write } from '../../src/doc/index.ts';
 import type { ToText } from '../../src/kit/text.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import type { ToShare } from '../../src/kit/share-dialog.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
 
 const OWNED = `?s=abcdefg&k=${'K'.repeat(43)}&o=${'O'.repeat(43)}`;
@@ -44,7 +45,7 @@ test('opened from an owner link, the document can update its short link; the sha
   expect(s.querySelector<HTMLButtonElement>('.to-update')!.disabled).toBe(true);
   expect(s.querySelector('.to-make')).toBeNull();
   dialog.close();
-  await until(() => !shell.sharing); // the dialog's close event, a task later
+  await until(() => !shell.querySelector<ToShare>('to-share')!.sharing); // the dialog's close event, a task later
 
   // An edit: the address keeps the owner's query, the shared link still has none, and Update wakes.
   const text = shell.querySelector<ToText>('to-text')!;
@@ -157,7 +158,7 @@ test('a short link made here: the lifetime from the row, the link big with Copy,
   expect(location.hash).toContain(`?s=qrstuvw&k=${shell.owned!.key}&o=${shell.owned!.o}&x=${exp}`);
   expect(shell.link).not.toContain('?');
   dialog.close();
-  await until(() => !shell.sharing); // the dialog's close event, a task later
+  await until(() => !shell.querySelector<ToShare>('to-share')!.sharing); // the dialog's close event, a task later
   // Opened again: the owner's section.
   await open(shell);
   expect(section(shell).textContent).toContain('You own this short link');

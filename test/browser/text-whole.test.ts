@@ -1,7 +1,8 @@
 // Two faults Paul saw in the Word Processor (2026-10-10), with real keys through the shell: Mod+A did not select
 // the document ("that seems symptomatic"), and a long document would not stay scrolled up ("it just keeps pushing
 // me back down"). Select All in a doc is the editor's own model selection, cards and all; the page scrolls to the
-// caret only after an edit the person made, never after a draw, a restore or an autosave.
+// caret only after an edit the person made, never after a draw, a restore or an autosave. (Since round eight the words
+// scroll in the shell's column, .to-main, and the window never does.)
 import { afterEach, expect, test } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
@@ -11,7 +12,6 @@ import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToWriteEditor } from '../../src/apps/write/editor.ts';
 
 afterEach(async () => {
-  window.scrollTo(0, 0);
   history.replaceState(null, '', location.pathname);
   await page.viewport(414, 896);
 });
@@ -28,6 +28,9 @@ async function write(tlo: string): Promise<{ shell: ToShell; el: ToWriteEditor }
   await frame();
   return { shell, el };
 }
+/** How far the column is scrolled. */
+const scrolled = () => document.querySelector<HTMLElement>('.to-main')!.scrollTop;
+const scrollUp = () => (document.querySelector<HTMLElement>('.to-main')!.scrollTop = 0);
 
 test('Mod+A in the Word Processor selects the whole document, cards too: Backspace empties it, typing replaces it, Escape collapses', async () => {
   const { el } = await write(MIXED);
@@ -116,28 +119,28 @@ test('a long document stays where the reader scrolled it: no draw, restore or au
   await userEvent.keyboard('more');
   await until(() => (shell as unknown as { edited: string }).edited.includes('Paragmoreraph 300'));
   // Typed at the end: the caret is on the screen.
-  expect(window.scrollY).toBeGreaterThan(1000);
+  expect(scrolled()).toBeGreaterThan(1000);
   // The reader scrolls up at once (a wheel), and the editor's selection is written again under them (a restore, a draw).
   document.dispatchEvent(new WheelEvent('wheel', { deltaY: -5000, bubbles: true }));
-  window.scrollTo(0, 0);
+  scrollUp();
   text.sel = text.sel;
   await text.updateComplete;
   await frame();
-  expect(window.scrollY).toBe(0);
+  expect(scrolled()).toBe(0);
   // Two seconds with no key pressed: the link's projection, the library's keep, the word count, the history.
   await tick(2000);
   await frame();
-  expect(window.scrollY).toBe(0);
+  expect(scrolled()).toBe(0);
   // A selection put back by the host with nothing done (an undo point restored, a note left): still there.
   text.sel = caret(n - 1, 3);
   el.requestUpdate();
   await el.updateComplete;
   await text.updateComplete;
   await frame();
-  expect(window.scrollY).toBe(0);
+  expect(scrolled()).toBe(0);
   // A letter typed is the person's own edit: the caret is brought back into view.
   await userEvent.keyboard('Q');
-  await until(() => window.scrollY > 1000);
+  await until(() => scrolled() > 1000);
 });
 
 test('an arrow key with the caret off the screen brings it back; with it on the screen the page does not jump', async () => {
@@ -148,21 +151,21 @@ test('an arrow key with the caret off the screen brings it back; with it on the 
   text.sel = caret(3, 2);
   await text.updateComplete;
   await frame();
-  window.scrollTo(0, 0);
+  scrollUp();
   await frame();
   await userEvent.keyboard('{ArrowRight}');
   await frame();
   await tick(300);
-  expect(window.scrollY).toBe(0);
+  expect(scrolled()).toBe(0);
   // Typed at the end, scrolled up: a letter typed brings the caret back into view (an edit the person made).
   const n = text.blocks.length;
   text.sel = caret(n - 1, 0);
   await text.updateComplete;
   await frame();
-  window.scrollTo(0, 0);
+  scrollUp();
   await frame();
   await userEvent.keyboard('Q');
-  await until(() => window.scrollY > 1000);
+  await until(() => scrolled() > 1000);
 });
 
 test('in the Outliner and the Presentation Builder Select All is still the box first, then the host (lines and a line)', async () => {

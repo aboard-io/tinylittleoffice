@@ -26,7 +26,7 @@
   .site-frame {
     display: block;
     width: 100%;
-    height: calc(100dvh - var(--to-header-h) - 6rem);
+    height: calc(var(--to-col-h) - 2.5rem);
     min-height: 26.25rem;
     border: 0;
     background: #fff;
@@ -79,10 +79,10 @@
   .site-form-done {
     min-width: 6em;
   }
-  /* On a phone the frame takes the screen under the bar. */
+  /* On a phone the frame takes the column. */
   @media (max-width: 760px) {
     .site-frame {
-      height: calc(100dvh - var(--to-header-h) - 4.75rem);
+      height: calc(var(--to-col-h) - 1.25rem);
       min-height: 20rem;
     }
   }

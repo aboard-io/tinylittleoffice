@@ -30,6 +30,7 @@
  * the handle: `touch-action: none` there only, a 44px hit area under a coarse pointer) and `.to-rows-target` (src/styles/kit.css).
  */
 import { remScale } from './zoom.ts';
+import { scrollerOf } from './scroll.ts';
 import { html, type ReactiveController, type ReactiveControllerHost, type TemplateResult } from 'lit';
 import { ArrowDown, ArrowUp, ClipboardPaste, CopyPlus, Copy, Scissors, SquarePen } from 'lucide';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
@@ -574,19 +575,10 @@ export class Rows<Id = number> implements ReactiveController {
     this.target.dataset.how = how;
     this.target.hidden = false;
   }
-  private scroller(): HTMLElement {
-    const given = this.o.scroller?.();
-    if (given) return given;
-    for (let el = this.o.box() ?? null; el; el = el.parentElement) {
-      const oy = getComputedStyle(el).overflowY;
-      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
-    }
-    return (document.scrollingElement as HTMLElement) ?? document.documentElement;
-  }
-  /** Near the top or bottom of what scrolls, it scrolls to bring more rows under the finger. */
+  /** Near the top or bottom of what scrolls (the column, or a list's own box: kit/scroll.ts), it scrolls to bring more rows under the finger. */
   private edges() {
     if (this.scrolling) return;
-    const sc = this.scroller();
+    const sc = this.o.scroller?.() ?? scrollerOf(this.o.box() ?? null);
     const step = () => {
       this.scrolling = 0;
       if (!this.drag || !sc.isConnected) return;

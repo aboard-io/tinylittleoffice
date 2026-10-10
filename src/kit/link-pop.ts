@@ -14,6 +14,7 @@ import { tool } from './bar.ts';
 import { UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { openLink } from './link-guard.ts';
+import { room } from './scroll.ts';
 
 const POPOVER = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype;
 
@@ -87,11 +88,8 @@ export class ToLinkPop extends LitElement {
     const p = this.pop;
     const r = this.rect;
     if (!p || !r || !this.shown) return;
-    const vv = window.visualViewport;
-    const top0 = vv?.offsetTop ?? 0;
-    const left0 = vv?.offsetLeft ?? 0;
-    const w = vv?.width ?? innerWidth;
-    const h = vv?.height ?? innerHeight;
+    const box = room();
+    const [top0, left0, w, h] = [box.top, box.left, box.right - box.left, box.bottom - box.top];
     // On the screen, as the rest are.
     const { width: pw, height: ph } = p.getBoundingClientRect();
     let top = r.bottom + 6;

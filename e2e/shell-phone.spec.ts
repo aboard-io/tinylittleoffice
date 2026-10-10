@@ -61,14 +61,19 @@ test('at size 2 the Download button stays at the header\'s right and its table c
   await expect(page.locator('to-write-editor to-text .tx')).toBeVisible();
   const button = page.locator('.to-download > button');
   const b = (await button.boundingBox())!;
-  expect(b.x + b.width).toBeGreaterThan(390 - 24);
+  // At the header's right, beside the menu button at the inline end (round eight).
+  const burger = (await page.locator('.to-burger').boundingBox())!;
+  expect(b.x + b.width).toBeGreaterThan(burger.x - 16);
+  expect(b.x + b.width).toBeLessThanOrEqual(burger.x);
   await button.tap();
   const menu = page.locator('.to-download [popover]');
   await expect(menu).toBeVisible();
   const m = (await menu.boundingBox())!;
   expect(m.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
   expect(m.y).toBeLessThan(b.y + b.height + 20);
-  expect(Math.abs(m.x + m.width - (b.x + b.width))).toBeLessThan(16);
+  // Under it: its right edge near the button's, or past it where the table is wider than the room to its left.
+  expect(m.x + m.width).toBeGreaterThan(b.x + b.width - 16);
+  expect(m.x).toBeLessThanOrEqual(b.x);
   expect(m.x).toBeGreaterThanOrEqual(0);
   expect(m.y + m.height).toBeLessThanOrEqual(844);
   const pdf = menu.locator('.to-menu-row[aria-label="PDF file"] [role=menuitem]');

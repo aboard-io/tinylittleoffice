@@ -83,6 +83,7 @@ import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collap
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import { completeNamed, completions, loadCompletions, type Completion, type ToComplete } from './complete.ts';
+import { reveal, scrollerOf } from './scroll.ts';
 import './context.ts';
 import './link-pop.ts';
 import './complete.ts';
@@ -452,27 +453,23 @@ export class ToText extends LitElement {
         const a = this.domPoint(s.anchor);
         const f = this.domPoint(s.focus);
         if (!a || !f) return;
-        const y = window.scrollY;
+        const sc = scrollerOf(this);
+        const y = sc.scrollTop;
         dom.setBaseAndExtent(a[0], a[1], f[0], f[1]);
         if (answering()) this.keepCaretVisible(dom);
-        // Not answering anyone: the page stays where the reader put it, even where a browser reveals a selection written.
-        else if (window.scrollY !== y) window.scrollTo(window.scrollX, y);
+        // Not answering anyone: the column stays where the reader put it, even where a browser reveals a selection written.
+        else if (sc.scrollTop !== y) sc.scrollTop = y;
       }
       this.syncBubble();
     };
     // Safari drops a selection set in the same task as a DOM swap.
     WEBKIT ? requestAnimationFrame(go) : go();
   }
-  /** The caret kept inside the visual viewport (above a phone's keyboard) after an edit the person made moved it. */
+  /** The caret kept inside what can be seen of the column (above a phone's keyboard) after an edit the person made moved it (kit/scroll.ts). */
   private keepCaretVisible(dom: Selection) {
     if (!dom.rangeCount) return;
     const r = dom.getRangeAt(0).getBoundingClientRect();
-    if (!r.height) return;
-    const vv = window.visualViewport;
-    const top = (vv?.offsetTop ?? 0) + 8;
-    const bottom = (vv?.offsetTop ?? 0) + (vv?.height ?? window.innerHeight) - 8;
-    if (r.bottom > bottom) window.scrollBy({ top: r.bottom - bottom });
-    else if (r.top < top) window.scrollBy({ top: r.top - top });
+    if (r.height) reveal(this, { rect: r, margin: 8 });
   }
 
   /* ---------- edits ---------- */

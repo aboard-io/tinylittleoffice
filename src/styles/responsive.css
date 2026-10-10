@@ -74,13 +74,72 @@
     .to-btn {
       font-size: var(--to-scale);
     }
+    /* Under a finger the bar's place is the column's bottom: above the keyboard while one is up, since the column is
+       the visible window's height (kit/chrome.ts), and above the home indicator while none is. */
+    .to-column.barred {
+      padding-top: 0;
+      padding-bottom: var(--to-bar-h);
+    }
+    to-chrome:not([editing]) .to-column.barred {
+      padding-bottom: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+    }
+    .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+      top: auto;
+      bottom: 0;
+      border-bottom: 0;
+      border-top: 1px solid var(--to-border);
+    }
+    to-chrome:not([editing]) .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+      height: calc(var(--to-bar-h) + env(safe-area-inset-bottom));
+      padding-bottom: calc(0.375em + env(safe-area-inset-bottom));
+    }
+    /* While a box has the focus (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger"):
+       the header steps aside, the menu button floats on a card of its own, a short link's banner goes small. */
+    to-chrome[editing] .to-header {
+      display: none;
+    }
+    to-chrome[editing] .to-burger {
+      top: 0.375em;
+      border-radius: 0.5em;
+      box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
+    }
+    /* The column's top keeps the menu button's room, so what is first in it (a row's menu, a stage's) is never under the
+       button until the words are scrolled; the words then go on under it, the header's height theirs. */
+    to-chrome[editing] .to-column > main {
+      padding-top: calc(3.5 * var(--to-nav-font));
+    }
+    to-chrome[editing] .to-arrival {
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+    }
+    to-chrome[editing] :is(.to-arrival, .to-other) {
+      padding-inline-end: calc(3.5 * var(--to-nav-font));
+    }
+    to-chrome[editing] .to-arrival-words {
+      font-size: 0.9375rem;
+    }
+    to-chrome[editing] .to-arrival .to-btn {
+      min-height: 2.25rem;
+    }
   }
   @media print {
     .to-header,
+    .to-burger,
     to-bar,
     to-drawer,
     to-toast {
       display: none !important;
+    }
+    /* Paper flows on: the column is as long as what it holds. */
+    to-chrome,
+    .to-column,
+    .to-column > main {
+      display: block;
+      height: auto !important;
+      overflow: visible;
+    }
+    .to-column.barred {
+      padding: 0;
     }
   }
 }

@@ -5,6 +5,8 @@
  * is still, entirely, its link.
  */
 import { keeping, store } from './store.ts';
+import { t } from './i18n.ts';
+import type { AppDef } from './app.ts';
 
 export interface Kept {
   /** What makes it the same document after a change: made at its first keep, carried in the tab's history.state. */
@@ -106,4 +108,43 @@ export function firstFree(titles: string[], name: string): number {
   let n = 1;
   while (taken.has(n)) n++;
   return n;
+}
+
+/**
+ * One open document's entry in the library, as the shell keeps it: adopted on arrival by the tab's history.state or
+ * by its link, made at the first keep, written 800 ms after the last change (soon) or at once (flush: leaving the
+ * document or the page; Mod+S). `state` is what the tab carries in history.state, so the next change, and a reload,
+ * are the same entry.
+ */
+export class Keeper {
+  id: string | null = null;
+  private pending: Kept | null = null;
+  private timer = 0;
+  /** The entry this tab's document is: history.state's, else the kept one at this link, else none yet. */
+  adopt(hash: string) {
+    const kept = (history.state as { kept?: unknown } | null)?.kept;
+    this.id = typeof kept === 'string' ? kept : hash ? (library().find((k) => k.hash === hash)?.id ?? null) : null;
+  }
+  state = () => (this.id ? { kept: this.id } : null);
+  soon(entry: Omit<Kept, 'id' | 'at'>, wait = 800) {
+    this.id ??= crypto.randomUUID();
+    this.pending = { ...entry, id: this.id, at: Date.now() };
+    clearTimeout(this.timer);
+    this.timer = window.setTimeout(this.flush, wait);
+  }
+  flush = () => {
+    clearTimeout(this.timer);
+    const entry = this.pending;
+    this.pending = null;
+    if (entry) keep({ ...entry, at: Date.now() });
+  };
+}
+
+/** A new document's name, at once: "New Spreadsheet 2026-10-09 #2", the app's noun, today, and the first number the library leaves free (Paul, 2026-10-09). */
+export function newName(def: AppDef): string {
+  const lang = document.documentElement.lang || undefined;
+  const noun = def.noun.charAt(0).toLocaleUpperCase(lang) + def.noun.slice(1);
+  const name = t('New {noun} {date} #{n}', { noun, date: localDay() });
+  const n = firstFree(library().filter((k) => k.app === def.id).map((k) => k.title), name);
+  return name.replace('{n}', String(n));
 }

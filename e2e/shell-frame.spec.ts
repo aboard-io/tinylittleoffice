@@ -1,9 +1,10 @@
 /**
  * The document is the page (Paul, 2026-10-10): on a phone (WebKit, 390 by 844) the Word Processor's paper is as wide
- * as the screen with no border, and a long document scrolled has its bar at the top, the header gone and the menu
- * button still there; a tap on the title opens it wide, its automatic name chosen whole. On a desktop the words keep
- * the page's measure, and the editor has the window's width, not a column: a five-stage board is never cut off. Run
- * on its own:
+ * as the screen with no border; the page never scrolls, the words scroll in a column (round eight, kit/chrome.ts) with
+ * the header and the bar holding still, the bar at the column's bottom; a tap in the words hides the header, the menu
+ * button floating at the top right; a tap on the title opens it wide, its automatic name chosen whole. On a desktop the
+ * words keep the page's measure, and the editor has the window's width, not a column: a five-stage board is never cut
+ * off. Run on its own:
  *
  *   PW_PORT=4436 npx playwright test e2e/shell-frame.spec.ts --workers=1
  */
@@ -12,7 +13,7 @@ import { encodeDoc } from '../src/kit/codec.ts';
 
 const LONG = `---\ntitle: Long\n---\n${Array.from({ length: 60 }, (_, i) => `Paragraph ${i + 1}, long enough to take a line or two of the page.`).join('\n\n')}\n`;
 
-test('phone: the paper edge to edge, the header scrolls away, the bar sticks, the title opens wide', async ({ page }, info) => {
+test('phone: the paper edge to edge, the column scrolls under the header and the bar, a tap in the words hides the header, the title opens wide', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -25,23 +26,34 @@ test('phone: the paper edge to edge, the header scrolls away, the bar sticks, th
   expect(p.border).toBe('0px');
   expect(p.radius).toBe('0px');
   expect(p.shadow).toBe('none');
-  // The words keep an inset of 16px.
+  // The words keep an inset of 16 of the stylesheet's pixels (a rem is the size of everything, kit/zoom.ts, × 16px).
+  const unit = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize) / 16);
   const words = (await page.locator('.write-page .write-text').boundingBox())!;
-  expect(Math.round(words.x)).toBe(16);
+  expect(Math.round(words.x / unit)).toBe(16);
 
-  await page.evaluate(() => window.scrollTo(0, 1500));
-  await expect(page.locator('to-shell')).toHaveAttribute('scrolled', '');
+  // The column scrolls, the window never: the header at the top, the bar at the column's bottom, both holding still.
+  await page.locator('.to-main').evaluate((el) => (el.scrollTop = 1500));
   await page.waitForTimeout(300);
-  const bar = (await page.locator('to-write-editor to-bar').boundingBox())!;
-  expect(Math.round(bar.y)).toBe(0);
+  expect(await page.evaluate(() => [window.scrollY, document.querySelector('.to-main')!.scrollTop > 1000])).toEqual([0, true]);
   const header = (await page.locator('.to-header').boundingBox())!;
-  expect(header.y + header.height).toBeLessThanOrEqual(0);
+  expect(header.y).toBe(0);
+  const bar = (await page.locator('to-write-editor to-bar').boundingBox())!;
+  expect(Math.round(bar.y + bar.height)).toBe(await page.evaluate(() => Math.round(window.visualViewport!.height)));
   const burger = page.locator('.to-burger');
   await expect(burger).toBeInViewport();
-  const b = (await burger.boundingBox())!;
-  expect(b.y).toBeGreaterThanOrEqual(0);
-  expect(bar.x).toBeGreaterThanOrEqual(b.x + b.width - 0.5);
+  const r = (await burger.boundingBox())!;
+  expect(r.x + r.width).toBeGreaterThan(390 - 30);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  // A tap in the words: the header steps aside, the menu button floats at the column's top right, the bar stays at the bottom.
+  await page.locator('.write-page .write-text p').nth(30).tap();
+  await expect(page.locator('to-chrome')).toHaveAttribute('editing', '');
+  await expect(page.locator('.to-header')).toBeHidden();
+  const b = (await burger.boundingBox())!;
+  expect(b.y).toBeLessThan(20);
+  expect(b.x + b.width).toBeGreaterThan(390 - 30);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect(page.locator('.to-header')).toBeVisible();
 
   // A new document's title, tapped: the wide row, 20px, its name chosen whole so typing replaces it.
   await page.goto('/#/v1/write');
@@ -71,9 +83,10 @@ test('desktop: no frame round the paper, and the words no wider than the page’
   await expect(paper).toBeVisible();
   expect(await paper.evaluate((el) => [getComputedStyle(el).borderLeftWidth, getComputedStyle(el).boxShadow])).toEqual(['0px', 'none']);
   const words = (await page.locator('.write-page .write-text').boundingBox())!;
-  // A letter page is 816px with an inch (96px) each side: 624px of words.
-  expect(words.width).toBeLessThanOrEqual(624.5);
-  expect(words.width).toBeGreaterThan(600);
+  const unit = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize) / 16);
+  // A letter page is 816px with an inch (96px) each side: 624px of words, in the stylesheet's pixels.
+  expect(words.width / unit).toBeLessThanOrEqual(624.5);
+  expect(words.width / unit).toBeGreaterThan(600);
 });
 
 const FIVE = `---\ntitle: Five stages\n---\n${['Ideas', 'To do', 'Doing', 'Waiting on', 'Done'].map((s, i) => `## ${s}\n\n- A card in ${s.toLowerCase()}\n- Another card, number ${i + 1}\n`).join('\n')}`;
@@ -93,9 +106,10 @@ test('desktop: a five-stage board at 1280 is never clipped by the main; its last
   // The editor's main is the window's width.
   expect(m.main).toEqual([0, 1280]);
   expect(m.page).toBeLessThanOrEqual(0);
-  // The stages' scroller is the window's width less the gutters.
-  expect(m.board[0]).toBeLessThanOrEqual(16);
-  expect(m.board[1]).toBeGreaterThanOrEqual(1264);
+  // The stages' scroller is the window's width less the gutters (16 of the stylesheet's pixels each, a rem being the size of everything × 16px).
+  const gutter = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize));
+  expect(m.board[0]).toBeLessThanOrEqual(gutter + 0.5);
+  expect(m.board[1]).toBeGreaterThanOrEqual(1280 - gutter - 0.5);
   if (m.last[1] > m.board[1]) {
     expect(m.scrolls).toBe(true);
     expect(m.overflow).toBe('auto');

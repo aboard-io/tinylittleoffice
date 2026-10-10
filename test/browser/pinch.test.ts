@@ -175,7 +175,9 @@ function fits(shell: ToShell, where: string, nav = NAV_MAX) {
     }
   }
   const burger = shell.querySelector<HTMLElement>('.to-burger')!.getBoundingClientRect();
-  expect(burger.left, `${where}: the burger at the left`).toBeLessThan(40);
+  // At the inline end since round eight (kit/chrome.ts: the words begin at the other side).
+  expect(burger.right, `${where}: the burger at the right`).toBeGreaterThan(innerWidth - 40);
+  expect(burger.right, `${where}: the burger inside the screen`).toBeLessThanOrEqual(innerWidth + 0.5);
   expect(burger.top, `${where}: the burger at the top`).toBeLessThan(60);
   expect(burger.width).toBeLessThan(80);
 }
@@ -218,7 +220,7 @@ async function allFit(nav: number) {
   fits(shell, 'write', nav);
   const p = shell.querySelector<HTMLElement>('to-write-editor .tx p')!;
   expect(p.getBoundingClientRect().right).toBeLessThanOrEqual(innerWidth);
-  // The bar reaches across the screen, and once the header has gone it stands clear of the burger, the strip behind it its height.
+  // The bar reaches across the screen, and holds still under the header as the column scrolls, clear of the burger.
   const bar = shell.querySelector<HTMLElement>('.to-editor to-bar')!;
   expect(bar.getBoundingClientRect().left).toBeCloseTo(0, 0);
   expect(bar.getBoundingClientRect().right).toBeCloseTo(innerWidth, 0);
@@ -235,15 +237,14 @@ async function allFit(nav: number) {
   expect(m.left).toBeGreaterThanOrEqual(0);
   expect(m.right).toBeLessThanOrEqual(innerWidth + 0.5);
   pop.hidePopover();
-  window.scrollTo(0, 400);
-  await until(() => shell.hasAttribute('scrolled'));
-  await tick(300);
+  const top = bar.getBoundingClientRect().top;
+  shell.querySelector<HTMLElement>('.to-main')!.scrollTop = 400;
+  await tick(50);
   const burger = shell.querySelector('.to-burger')!.getBoundingClientRect();
-  expect(Math.round(bar.getBoundingClientRect().top)).toBe(0);
-  expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(burger.right - 0.5);
-  expect(burger.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom + 0.5);
-  expect(parseFloat(getComputedStyle(shell, '::before').height)).toBeCloseTo(bar.getBoundingClientRect().height, 0);
-  window.scrollTo(0, 0);
+  expect(bar.getBoundingClientRect().top).toBe(top);
+  expect(burger.bottom).toBeLessThanOrEqual(top + 0.5);
+  expect(window.scrollY).toBe(0);
+  shell.querySelector<HTMLElement>('.to-main')!.scrollTop = 0;
   shell.querySelector<HTMLButtonElement>('.to-header .to-share')!.click();
   const share = shell.querySelector<ToDialog>('to-dialog.to-share-dialog')!;
   await until(() => share.dialog.open && !!share.querySelector('.to-share-links'));
@@ -292,9 +293,8 @@ test('at the normal size on a 1440×900 desktop (1108 wide to the layout): the h
   const home = await mount('');
   await tick(100);
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(innerWidth);
-  const main = home.querySelector<HTMLElement>('.to-main')!.getBoundingClientRect();
-  expect(css(main.width)).toBeLessThanOrEqual(1080 + 0.5);
   const column = home.querySelector<HTMLElement>('.to-home')!.getBoundingClientRect();
+  expect(css(column.width)).toBeLessThanOrEqual(1080 + 0.5);
   for (const r of home.querySelectorAll<HTMLElement>('.to-app')) expect(Math.round(r.getBoundingClientRect().width)).toBe(Math.round(column.width));
   // The Word Processor: the paper the window's width, its words a letter page's measure, in the middle.
   const write = await mount(WRITE);

@@ -58,7 +58,9 @@ Three layers, each small enough to read.
   blocks (headings, paragraphs of rich runs, list items, tables with typed and named columns, embeds,
   pictures, fences), with TLO as its one reader and writer, byte-stable through a parse and a write. Edits
   are operations on the model, undone from one op log; the formula engine evaluates a table block.
-- **The kit** (`src/kit/`): the shell, the bar, Insert ▾, the menu, dialogs, the router, the codec, the
+- **The kit** (`src/kit/`): the shell (thin: the route and the document, with the chrome, the Share dialog and
+  privacy as elements of their own; the page is the visible window and the document scrolls in a column,
+  docs/kernel.md §9), the bar, Insert ▾, the menu, dialogs, the router, the codec, the
   store, privacy (passwords, signatures, what the device holds), short links, exports, strings, icons; and
   the one rich-text editor, `<to-text>`, over the kernel: every `beforeinput` becomes operations, and only
   the blocks that changed are drawn again. There is no contenteditable anywhere else.
@@ -105,7 +107,8 @@ this repository, tagged `v0-before-rebuild`.
 
 ```
 src/doc/        the document kernel (docs/kernel.md, src/doc/README.md)
-src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
+src/kit/        the kit: shell, chrome (<to-chrome>: the header and the column), share-dialog (<to-share>),
+                scroll (every scroll-to), bar, insert, menu, dialog, toast, drawer, home, routing, codec, store,
                 privacy (Private or Saved, the password, the signature, the key, what the device holds),
                 privacy-dialog (<to-privacy>), crypt (a password: PBKDF2 to AES-GCM), sign (Ed25519, P-256 where
                 there is none), envelope (by, created, key, sig, and the signed message), link-guard (links

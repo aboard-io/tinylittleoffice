@@ -32,11 +32,13 @@ test('website: on a phone, the words typed inside the frame, the name open at on
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   for (const b of await bar.getByRole('button').all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  // Insert ▾ in reach: a paragraph after the heading, its words offered, in hand.
+  // Insert ▾ in reach, in the bar at the column's bottom (round eight: above the keyboard when one is up): a paragraph
+  // after the heading, its words offered, in hand.
   const insert = page.locator('to-site-editor to-insert button').first();
   const reach = (await insert.boundingBox())!;
   expect(reach.x).toBeGreaterThanOrEqual(0);
-  expect(reach.y).toBeLessThan(200);
+  expect(reach.y + reach.height).toBeLessThanOrEqual(await page.evaluate(() => window.visualViewport!.height + 0.5));
+  expect(reach.y).toBeGreaterThan(844 - 200);
   await insert.tap();
   await page.getByRole('menuitem', { name: 'Paragraph' }).tap();
   const para = site.getByText('New paragraph');

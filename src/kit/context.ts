@@ -10,6 +10,7 @@
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { tool } from './bar.ts';
 import type { IconNode } from './icons.ts';
+import { room } from './scroll.ts';
 
 export interface ContextItem {
   label: string;
@@ -90,11 +91,8 @@ export class ToContext extends LitElement {
     if (!pop || !a || !pop.matches(':popover-open')) return;
     const rect = typeof a === 'function' ? a() : a.isConnected ? a.getBoundingClientRect() : null;
     if (!rect) return void this.hide();
-    const vv = window.visualViewport;
-    const top0 = vv?.offsetTop ?? 0;
-    const left0 = vv?.offsetLeft ?? 0;
-    const vw = vv?.width ?? window.innerWidth;
-    const vh = vv?.height ?? window.innerHeight;
+    const box = room();
+    const [top0, left0, vw, vh] = [box.top, box.left, box.right - box.left, box.bottom - box.top];
     const r = pop.getBoundingClientRect();
     const above = rect.top - GAP - r.height;
     let top = rect.bottom + GAP;

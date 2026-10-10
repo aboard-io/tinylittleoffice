@@ -9,6 +9,7 @@ import { decodeDoc } from '../../src/kit/codec.ts';
 import { keepLink } from '../../src/kit/links.ts';
 import { setKeeping, store } from '../../src/kit/store.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import type { ToShare } from '../../src/kit/share-dialog.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
 
 const DAY = 86_400_000;
@@ -53,7 +54,7 @@ test('the head: the title, and where the link fits in one line', async () => {
   expect([...d.querySelectorAll('table, dl')].every((x) => x.closest('.to-rooms'))).toBe(true);
   // The meter in the header opens the same dialog.
   d.close();
-  await until(() => !shell.sharing);
+  await until(() => !shell.querySelector<ToShare>('to-share')!.sharing);
   shell.querySelector<HTMLButtonElement>('.to-meter')!.click();
   await until(() => d.dialog.open);
 });
@@ -85,16 +86,16 @@ test('the lifetimes: one row of segments, a week by default, the choice written 
   const radios = () => [...d.querySelectorAll<HTMLInputElement>('.to-share-short .to-ttl input[type=radio]')];
   expect(radios().map((r) => r.parentElement!.textContent)).toEqual(['An hour', 'A day', 'A week', 'A month', 'A year']);
   expect(radios().find((r) => r.checked)!.value).toBe(String(7 * 86400));
-  expect(shell.shortTtl).toBe(7 * 86400);
+  expect(shell.querySelector<ToShare>('to-share')!.shortTtl).toBe(7 * 86400);
   // One row.
   expect(new Set(radios().map((r) => Math.round(r.parentElement!.getBoundingClientRect().top))).size).toBe(1);
   radios()[3].click();
   await shell.updateComplete;
-  expect(shell.shortTtl).toBe(30 * 86400);
+  expect(shell.querySelector<ToShare>('to-share')!.shortTtl).toBe(30 * 86400);
   expect(store.get('tinyoffice.shortTtl')).toBe(String(30 * 86400));
   // A new shell (the next document) starts at the choice.
   shell = await written(null!);
-  expect(shell.shortTtl).toBe(30 * 86400);
+  expect(shell.querySelector<ToShare>('to-share')!.shortTtl).toBe(30 * 86400);
   d = await open(shell);
   expect(radios().find((r) => r.checked)!.value).toBe(String(30 * 86400));
 });

@@ -1,15 +1,18 @@
 /**
- * <to-find>: Find in this document (Mod+F). A small bar under the app's bar: the words to find, how many
+ * <to-find>: Find in this document (Mod+F). A small bar beside the app's bar, on the column's side of it (under it
+ * on a wide screen, over it where the bar is at the column's bottom, a phone's): the words to find, how many
  * there are and which is in hand, previous and next, Close. Every word of the search is found (search.ts's
  * terms: words, "phrases in quotes", case and accents aside). Where the app shows words, they are marked
  * through the browser's own highlights (the CSS Custom Highlight API: nothing in the page is changed), the
- * one in hand stronger, scrolled into view. An editor whose words are not text on the page (a sheet's cells
- * are inputs) finds them itself: it has a `find(terms)` (Findable) that counts and goes to each.
+ * one in hand stronger, brought into view in the column (kit/scroll.ts). An editor whose words are not text on
+ * the page (a sheet's cells are inputs) finds them itself: it has a `find(terms)` (Findable) that counts and goes
+ * to each.
  */
 import { LitElement, html } from 'lit';
 import { fold, termsOf } from './search.ts';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
+import { reveal } from './scroll.ts';
 
 /** What an editor found: how many, and a way to show the one in hand. */
 export interface Found {
@@ -73,7 +76,7 @@ export function findInPage(root: Element, terms: string[]): Found {
       now = i;
       hl?.set('to-find-now', new Highlight(r));
       const el = r.startContainer.parentElement;
-      el?.scrollIntoView({ block: 'center', inline: 'nearest' });
+      if (el) reveal(el, { rect: r.getBoundingClientRect(), block: 'center', inline: true });
     },
     clear() {
       hl?.delete('to-find');
@@ -135,10 +138,15 @@ export class ToFind extends LitElement {
     this.at = -1;
     this.count = 0;
   }
-  /** Just under the app's bar, wherever that is now. */
+  /** Beside the app's bar, on the column's side of it: under it at the column's top, over it at the column's bottom (a phone's). */
   private place() {
-    const bar = this.target?.querySelector('to-bar');
-    const below = bar ? bar.getBoundingClientRect().bottom : (document.querySelector('.to-header')?.getBoundingClientRect().bottom ?? 0);
+    const bar = this.target?.querySelector('to-bar')?.getBoundingClientRect();
+    const col = this.target?.closest('main')?.getBoundingClientRect();
+    if (bar && col && bar.top >= col.bottom - 1) {
+      this.style.top = `${Math.round(bar.top - this.offsetHeight - 4)}px`;
+      return;
+    }
+    const below = bar ? bar.bottom : (document.querySelector('.to-header')?.getBoundingClientRect().bottom ?? 0);
     this.style.top = `${Math.round(Math.max(0, below) + 4)}px`;
   }
   /** Look again (the document may have changed) and show the `i`th. */

@@ -42,6 +42,7 @@
   :is(
     to-bar,
     .to-header,
+    .to-burger,
     .to-drawer,
     .to-dialog,
     .to-doc-dialog,
@@ -59,9 +60,9 @@
     --to-scale: var(--to-nav-font);
     --to-touch: calc(2.75 * var(--to-nav-font));
     --to-gutter: calc(var(--to-gutter-k) * var(--to-nav-font));
-    /* Where the menu button sits, fixed at the top left, and the room it takes (the header's and the bar's). */
-    --to-edge-l: max(var(--to-gutter), env(safe-area-inset-left));
-    --to-burger-w: calc(var(--to-edge-l) + var(--to-touch));
+    /* Where the menu button sits, at the top inline end, and the room it takes in the header. */
+    --to-edge-e: max(var(--to-gutter), env(safe-area-inset-right));
+    --to-burger-w: calc(var(--to-edge-e) + var(--to-touch));
   }
   /* A control's words are the browser's own size (13.33px) unless a rule says otherwise: here a part of the scale it
      is under, so they grow with the size of everything as the rest do. */
@@ -76,7 +77,16 @@
     font: 1rem/1.5 var(--to-font);
     color: var(--to-ink);
     background: var(--to-bg);
-    min-height: 100dvh;
+  }
+  /* The page is the visible window and never scrolls: the document's column does (<to-chrome>, kit/chrome.ts). Paper
+     is not the screen, so a page printed from here flows on as long as it is. */
+  @media screen {
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
   }
   a {
     color: var(--to-accent);
@@ -164,13 +174,7 @@
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
-    /* Stuck to the top of what can be seen (a phone's keyboard slides the page up under it: --to-vv-top, kit/shell.ts,
-       measured on the screen, which is what a length here is). */
-    position: sticky;
-    top: var(--to-vv-top, 0rem);
-    z-index: 2;
     background: var(--to-bg);
-    transition: margin-left 0.2s ease;
   }
   /* A bar in the document's own gutter: the gutter it reaches over is the document's (in rem), its own padding the nav's. */
   to-bar:not(:is(.to-dialog, .to-doc-dialog, .to-drawer) *) {
@@ -1049,11 +1053,8 @@
     grid-column: 2;
   }
 
-  /* ---- arriving by a short link: how long it has left, big and coloured; once the header has gone, small and stuck under the bar ---- */
+  /* ---- arriving by a short link: how long it has left, big and coloured, under the header; small while a box has the focus on a phone ---- */
   .to-arrival {
-    position: sticky;
-    top: calc(var(--to-vv-top, 0rem) + var(--to-stuck-h, 0rem));
-    z-index: 2;
     display: grid;
     grid-template-columns: 1fr auto auto;
     align-items: center;
@@ -1071,9 +1072,6 @@
   .to-arrival.last {
     background: var(--to-last-bg);
     color: var(--to-last-ink);
-  }
-  .to-arrival.in-display {
-    top: 0;
   }
   .to-arrival-words {
     margin: 0;
@@ -1098,20 +1096,12 @@
   .to-arrival .to-arrival-close {
     border-color: transparent;
   }
-  .to-arrival.small {
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-  }
-  .to-arrival.small .to-arrival-words {
-    font-size: 0.9375rem;
-  }
-  .to-arrival.small .to-btn {
-    min-height: 2.25rem;
-  }
 
   /* ---- the drawer ---- */
+  /* From the inline end, where the menu button is (the right in a left-to-right language). */
   .to-drawer {
     margin: 0;
+    margin-inline-start: auto;
     height: 100dvh;
     width: min(20em, 85vw);
   }
@@ -1120,8 +1110,18 @@
     display: flex;
     flex-direction: column;
     background: var(--to-surface);
-    border-right: 1px solid var(--to-border);
+    border-inline-start: 1px solid var(--to-border);
     overflow: auto;
+  }
+  .to-drawer-doc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    padding: 0.75em;
+  }
+  .to-drawer-doc .to-drawer-head3 {
+    flex-basis: 100%;
+    margin: 0;
   }
   .to-brand {
     display: inline-flex;
@@ -1134,7 +1134,7 @@
   /* On the home page the name is a light serif on the header's bottom line, beside the mark (Paul, 2026-10-10: a lighter
      serif, "don't make it so big just align it bottom"). The drawer's brand keeps the small bold form above. */
   .to-header .to-brand {
-    /* The menu button is fixed, out of the flow: the words take its height and sit on its bottom edge. */
+    /* The words take the menu button's height and sit on its bottom edge. */
     height: var(--to-touch);
     align-items: flex-end;
     padding-bottom: 0.125em;
@@ -1325,12 +1325,49 @@
     opacity: 1;
   }
 
-  /* ---- the shell ---- */
+  /* ---- the shell: a column the visible window's height (<to-chrome>, kit/chrome.ts) ---- */
   to-shell {
     display: block;
   }
-  /* The header goes up with the page (Paul, 2026-10-10); the menu button stays, fixed, and the app's bar sticks. */
+  /* The header, the banners, then the column: the bar's place and .to-main, which scrolls. Its height is the visual
+     viewport's, set as it resizes; 100% until then. */
+  to-chrome {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .to-column {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .to-column > main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* The bar's place: the app's bar is taken out of the document's flow and set in it, at the column's top here and at
+     its bottom under a finger (responsive.css), one row however the words are scrolled. Its height is the nav's. */
+  .to-column.barred {
+    padding-top: var(--to-bar-h);
+  }
+  .to-column.barred > main > .to-editor to-bar:not(:is(dialog, [popover], .to-dialog, .deck-show) *) {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    z-index: 3;
+    height: var(--to-bar-h);
+    margin: 0;
+    overflow-y: hidden;
+    border-bottom: 1px solid var(--to-border);
+  }
   .to-header {
+    flex: none;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1338,75 +1375,50 @@
     gap: 0.5em 0.375em;
     height: var(--to-header-h);
     padding: calc((var(--to-header-h) - var(--to-touch)) / 2) var(--to-gutter);
-    padding-left: calc(var(--to-burger-w) + 0.375em);
-    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
+    padding-inline-start: max(var(--to-gutter), env(safe-area-inset-left));
+    padding-inline-end: calc(var(--to-burger-w) + 0.375em);
     background: var(--to-surface);
     border-bottom: 1px solid var(--to-border);
-    position: relative;
-    z-index: 3;
     transition: height 0.2s ease;
   }
-  /* The menu, always at the very top left wherever the page is scrolled to; over the bar once the header has gone, on a card of its own. */
-  .to-header .to-burger {
-    position: fixed;
-    left: var(--to-edge-l);
-    top: calc((var(--to-header-h) - var(--to-touch)) / 2 + var(--to-vv-top, 0rem));
+  /* The menu, at the top inline end of the column on every screen (where the words are not: they begin at the other
+     side, and an iPhone's left edge is Safari's back swipe); on a card of its own once the header has stepped aside. */
+  .to-burger {
+    position: absolute;
+    top: calc((var(--to-header-h) - var(--to-touch)) / 2);
+    inset-inline-end: var(--to-edge-e);
     z-index: 4;
     transition: box-shadow 0.2s ease;
   }
-  to-shell[scrolled] .to-header .to-burger {
-    background: var(--to-surface);
-    border-radius: 0.5em;
-    box-shadow: 0 1px 0.375em rgb(0 0 0 / 16%);
-  }
-  /* Once the header has gone, the app's bar makes room for the menu button: narrowed rather than padded, so a bar
-     that scrolls sideways on a phone never slides under it (none needed where the page's margin already holds it). */
-  to-shell[scrolled] .to-editor to-bar {
-    margin-left: calc(var(--to-burger-w) - var(--to-gutter-k) * 1rem);
-  }
-  /* Behind the stuck bar the screen's whole width is opaque: nothing of the page shows beside it or behind the menu button. */
-  to-shell[scrolled]::before {
-    content: '';
-    position: fixed;
-    top: var(--to-vv-top, 0rem);
-    left: 0;
-    right: 0;
-    height: var(--to-stuck-h, 0rem);
-    background: var(--to-bg);
-    box-shadow: 0 1px 0 var(--to-border);
-    z-index: 2;
-  }
   /* The title edited wide (Paul: "The title is too small to edit"): the header opens a second row, the field across
-     it at 20px; the first row keeps the rest, pushed to the right. The header holds still meanwhile. */
+     it at 20px; the first row keeps the rest, pushed to the inline end. */
   .to-header.titling {
     height: calc(var(--to-header-h) + 0.5em + var(--to-touch));
     overflow: hidden;
-    position: sticky;
-    top: var(--to-vv-top, 0rem);
   }
+  /* The second row runs under the menu button's room too, from one margin to the other. */
   .to-header.titling .to-title {
     order: 1;
-    flex: 0 0 calc(100% + var(--to-touch) + 0.3em);
-    margin-left: calc(-1 * (var(--to-touch) + 0.3em));
+    flex: 0 0 calc(100% + var(--to-burger-w) + 0.375em - var(--to-gutter));
+    margin-inline-end: calc(var(--to-gutter) - var(--to-burger-w) - 0.375em);
     height: var(--to-touch);
     font-size: calc(1.25 * var(--to-scale));
   }
   .to-header.titling .to-title + * {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
-  .to-burger,
   .to-header .to-tool,
   .to-header .to-btn {
     border-color: transparent;
     background: transparent;
   }
   /* The Office mark is the menu: bordered, so it reads as a button. */
-  .to-header .to-burger {
+  .to-burger {
     width: var(--to-touch);
     height: var(--to-touch);
     border-color: var(--to-border-strong);
     color: var(--to-ink);
-    /* Opaque: whatever slides under it as the header goes is behind it. */
+    /* Opaque: the words scrolled under it while it floats are behind it. */
     background: var(--to-surface);
   }
   .to-header .to-tool:hover {
@@ -1466,14 +1478,14 @@
     --to-inset-r: max(var(--to-gutter), env(safe-area-inset-right));
     --to-bleed-l: 0rem;
     --to-bleed-r: 0rem;
-    max-width: var(--to-max-w);
-    margin: 0 auto;
     padding: var(--to-gutter);
-    padding-left: var(--to-inset-l);
-    padding-right: var(--to-inset-r);
+    /* The column scrolls the window's width (its scrollbar at the window's edge); what it holds is kept to the measure. */
+    padding-left: max(var(--to-inset-l), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
+    padding-right: max(var(--to-inset-r), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
   }
   .to-main.to-wide {
-    max-width: none;
+    padding-left: var(--to-inset-l);
+    padding-right: var(--to-inset-r);
   }
   .to-editor {
     display: block;
@@ -1683,6 +1695,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
     max-width: var(--to-max-w);
     margin: 0 auto;
     padding: 0.5rem var(--to-gutter);
@@ -1699,15 +1712,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* The column (kit/chrome.ts): it scrolls the window's width, what it holds kept to the measure in its middle. */
   .to-display {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-width: var(--to-max-w);
-    margin: 0 auto;
     padding: 0 var(--to-gutter) var(--to-gutter);
-    padding-left: max(var(--to-gutter), env(safe-area-inset-left));
-    padding-right: max(var(--to-gutter), env(safe-area-inset-right));
+    padding-left: max(var(--to-gutter), env(safe-area-inset-left), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
+    padding-right: max(var(--to-gutter), env(safe-area-inset-right), (100% - var(--to-max-w)) / 2 + var(--to-gutter));
   }
   /* A website's Display Link: the site itself, the screen's height under the line with Edit. */
   .to-display-site {
@@ -2298,6 +2310,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
     max-width: var(--to-max-w);
     margin: 0.5rem auto 0;
     padding: 0.375rem 0.5rem 0.375rem 0.75rem;
