@@ -39,6 +39,10 @@ ${kitExports()
 Text files are UTF-8; only CSV carries a byte order mark, which Excel needs. A file is named from the
 document's title, or from what one of the app's documents is called.
 
+An animation, on its own or placed in another document (a slide, a site's page, a text), plays wherever the
+page can move: the Display Link, an embed, a slideshow, a web page. Print, a PDF and a PNG cannot move, so
+there it is drawn still, at its resting moment (\`ViewOpts.still\`).
+
 ## Each app's own
 
 | App | Format | Menu item |

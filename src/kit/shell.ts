@@ -70,6 +70,7 @@ import { openLink } from './link-guard.ts';
 import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
 import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
+import { motion, reducedMotion } from './motion.ts';
 import { mark } from './mark.ts';
 import { setSelfLink } from './qr-picture.ts';
 import { lockedCard } from './locked.ts';
@@ -481,6 +482,9 @@ export class ToShell extends LitElement {
   protected updated() {
     // A page drawn anew (another app, the home page) may have the header somewhere else.
     this.onScroll();
+    // The Display Link and the embed show the pages as they move; with reduced motion, each animation rests where it ends (kit/motion.ts).
+    const shown = (this.display || this.embed) && reducedMotion() ? this.querySelector('main.to-display') : null;
+    if (shown) motion(shown, true);
     const editor = this.editor as (Editor & { present?: (fromLink?: boolean) => void }) | null;
     if (this.focusSoon && editor && !this.sealed) {
       this.focusSoon = false;
@@ -1020,7 +1024,7 @@ export class ToShell extends LitElement {
     const def = this.def!;
     const share = async () => {
       await ensureIcons(iconNames(this.doc));
-      return shareNative(this.docTitle, this.link, await picture(await withPictures(def.view(this.doc))));
+      return shareNative(this.docTitle, this.link, await picture(await withPictures(def.view(this.doc, { still: true }))));
     };
     const made = this.madeLine();
     return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}

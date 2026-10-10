@@ -196,7 +196,7 @@ export function askDocLink(): Promise<Block | null> {
     };
     const b = fence as Block | null;
     const def = b?.k === 'fence' ? lookup.appOf(b.lang) : undefined;
-    const page = b?.k === 'fence' && def ? def.view(b.body, { small: true })[0] : null;
+    const page = b?.k === 'fence' && def ? def.view(b.body, { small: true, still: true })[0] : null;
     const name = b?.k === 'fence' ? def?.title(b.body) || (b.lang === LOCKED_LANG ? def!.name : t('Untitled {noun}', { noun: def?.noun ?? b.lang })) : '';
     return form(
       'to-ask-doc-form',

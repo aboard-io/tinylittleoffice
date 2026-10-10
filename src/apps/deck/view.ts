@@ -12,6 +12,7 @@ import { FAINT, FONT, INK, LINE, MUTED, PAPER, pageSvg, r, rect, textWidth, xml 
 import { embedCaption } from '../../kit/embeds.ts';
 import { glyphNamed, iconNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
+import { MOTION_JS } from '../../kit/motion.ts';
 import { pageScript } from '../../kit/page.ts';
 import { QR_MAX_BYTES, qrSvg } from '../../kit/qr.ts';
 import { routeHash } from '../../kit/route.ts';
@@ -159,14 +160,14 @@ export function place(p: Page, x: number, y: number, w: number, h: number): stri
 
 /* ---------- the document a slide shows ---------- */
 
-/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture, or a thing from the web, a card. `open`: in the editor (a locked document opened this visit drawn open). */
-export function subPage(doc: Doc, s: Slide, upTo?: number, open = false): Page | null {
+/** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture, or a thing from the web, a card. `open`: in the editor (a locked document opened this visit drawn open). `still`: drawn where nothing can move (an animation a frame). */
+export function subPage(doc: Doc, s: Slide, upTo?: number, open = false, still = false): Page | null {
   const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
   if (!b) return null;
   if (b.k === 'fence' && b.lang) {
     const def = lookup.appOf(b.lang);
     // Presented, the document as far as it has built (its app's steps); else whole.
-    if (def) return def.view(b.body, { small: true, ...(upTo !== undefined && def.steps ? { upTo } : {}), ...(open ? { open } : {}) })[0];
+    if (def) return def.view(b.body, { small: true, ...(still ? { still } : {}), ...(upTo !== undefined && def.steps ? { upTo } : {}), ...(open ? { open } : {}) })[0];
     const lines = b.body.split('\n').filter((l) => l.trim() && !/^---/.test(l)).slice(0, 8);
     return { w: 480, h: 40 + lines.length * 22, svg: line(24, 28, t('{app} document', { app: b.lang }), { px: 13, fill: MUTED }) + lines.map((l, i) => line(24, 56 + i * 22, l, { px: 14 })).join(''), alt: t('{app} document', { app: b.lang }) };
   }
@@ -174,7 +175,7 @@ export function subPage(doc: Doc, s: Slide, upTo?: number, open = false): Page |
     const sheet = lookup.appOf('sheet');
     const chart = attr(b, 'chart');
     const body = write({ head: chart ? { chart } : {}, blocks: [{ k: 'table', cols: b.cols, rows: b.rows }] });
-    if (sheet) return sheet.view(body, { small: true })[0];
+    if (sheet) return sheet.view(body, { small: true, ...(still ? { still } : {}) })[0];
     const rows = [b.cols.map((c) => c.name), ...b.rows];
     return { w: 480, h: 24 + rows.length * 26, svg: rows.map((row, i) => line(24, 20 + i * 26, row.join('   '), { px: 14, bold: i === 0 })).join(''), alt: t('Table') };
   }
@@ -324,13 +325,14 @@ export const slideSteps = (s: Slide, doc?: Doc): number => (s.sub >= 0 ? (doc ? 
 
 const iconAt = (name: string, b: Box, color: string) => glyphNamed(name, b.x, b.y, b.w, color);
 
-/** The look a slide is drawn in: the theme, and the colour of its icons. */
+/** The look a slide is drawn in: the theme, the colour of its icons, and whether it is drawn where nothing can move (print, a picture, a thumbnail: a document on it is drawn still). */
 export interface Look {
   theme: DeckTheme;
   themed: boolean;
   icon: string;
+  still?: boolean;
 }
-export const lookOf = (s: Settings): Look => ({ theme: themeOf(s.theme), themed: !!s.theme, icon: iconHex(s) });
+export const lookOf = (s: Settings, still = false): Look => ({ theme: themeOf(s.theme), themed: !!s.theme, icon: iconHex(s), ...(still ? { still } : {}) });
 
 /**
  * A slide as a page. `shown` says how many lines have been revealed (absent: everything); unrevealed
@@ -373,7 +375,7 @@ export function slidePage(doc: Doc, s: Slide, look: Look, shown = Infinity, o: S
   }
   if (L.sub) {
     // Presented, the document as far as the clicks have built it.
-    const sub = subPage(doc, s, Number.isFinite(shown) ? shown : undefined);
+    const sub = subPage(doc, s, Number.isFinite(shown) ? shown : undefined, false, look.still);
     if (sub) {
       // A document is drawn for white paper: on a dark slide it sits on a white card.
       if (T.dark) svg += rect(L.sub.x, L.sub.y, L.sub.w, L.sub.h, '#ffffff', 'rx="12"');
@@ -665,7 +667,7 @@ export const pageSize = (s: Settings): { w: number; h: number } => geometryOf(s.
 export const emptySlide = (at: number): Slide => ({ from: at, to: at, head: -1, layout: '', icon: '', title: [], words: [at, at], pipe: -1, items: [], right: [], sub: -1, notes: [at, at], noteLines: [] });
 
 /** Page i of the document, drawn in its format: a slide, or a printed page (its cover first; inside pages numbered). */
-export function pageOf(doc: Doc, i: number, s: Settings = settingsOf(doc), slides = slidesOf(doc), look = lookOf(s)): Page {
+export function pageOf(doc: Doc, i: number, s: Settings = settingsOf(doc), slides = slidesOf(doc), look: Look = lookOf(s)): Page {
   const n = pageCount(doc, s, slides.length);
   const sl = slides[i] ?? emptySlide(doc.blocks.length);
   const g = geometryOf(s.format);
@@ -675,17 +677,17 @@ export function pageOf(doc: Doc, i: number, s: Settings = settingsOf(doc), slide
   return fitted(doc, sl, look, w, h, { cover: i === 0, foot: i === 0 || i === n - 1 ? '' : String(i + 1) });
 }
 
-/** Every page of the document in its format (blank pages included, where the format has them). */
-export function pagesOf(doc: Doc, s: Settings = settingsOf(doc)): Page[] {
+/** Every page of the document in its format (blank pages included, where the format has them); `still` where nothing can move. */
+export function pagesOf(doc: Doc, s: Settings = settingsOf(doc), still = false): Page[] {
   const slides = slidesOf(doc);
-  const look = lookOf(s);
+  const look = lookOf(s, still);
   return Array.from({ length: pageCount(doc, s, slides.length) }, (_, i) => pageOf(doc, i, s, slides, look));
 }
 
 /** The sheets to print: the pages laid where the fold needs them; a deck's slides are their own sheets. */
-export function sheetsOf(doc: Doc, s: Settings = settingsOf(doc)): Page[] {
+export function sheetsOf(doc: Doc, s: Settings = settingsOf(doc), still = false): Page[] {
   const g = geometryOf(s.format);
-  const pages = pagesOf(doc, s);
+  const pages = pagesOf(doc, s, still);
   return g ? g.sheets(pages, s.two) : pages;
 }
 
@@ -717,21 +719,21 @@ export function closingPage(text: string, doc: Doc = parse(text), s: Settings = 
   return { w: SW, h: SH, svg, alt: t('A QR code of this deck') };
 }
 
-/** The deck as shown and printed: every page in its format, then (for slides) the closing code. */
-export function deckPages(text: string, small = false): Page[] {
+/** The deck as shown and printed: every page in its format, then (for slides) the closing code. `still`: drawn where nothing can move (print, a picture, a thumbnail), so a document on a slide is too. */
+export function deckPages(text: string, small = false, still = false): Page[] {
   const doc = parse(text);
   const s = settingsOf(doc);
-  if (small) return [pageOf(doc, 0, s)];
+  if (small) return [pageOf(doc, 0, s, slidesOf(doc), lookOf(s, still))];
   const end = closingPage(text, doc, s);
-  const pages = sheetsOf(doc, s);
+  const pages = sheetsOf(doc, s, still);
   return end ? [...pages, end] : pages;
 }
 
-/** The slides as they play: every slide, every reveal, the closing code last. */
+/** The slides as they play, for a film: every slide, every reveal, the closing code last; each a still picture. */
 export function deckFrames(text: string): Page[] {
   const doc = parse(text);
   const s = settingsOf(doc);
-  const look = lookOf(s);
+  const look = lookOf(s, true);
   const out: Page[] = [];
   for (const sl of slidesOf(doc)) {
     const steps = slideSteps(sl, doc);
@@ -744,14 +746,18 @@ export function deckFrames(text: string): Page[] {
 
 /* ---------- the deck as a web page ---------- */
 
-/** The player's script: fixed, so the site's policy allows it by hash (kit/page.ts). Tap the right of the page to go on, the left to go back; the keys do the same. */
-const PLAYER = pageScript(`
+/**
+ * The player's script: fixed, so the site's policy allows it by hash (kit/page.ts). Tap the right of the page to
+ * go on, the left to go back; the keys do the same. A slide that comes on starts its animations from the
+ * beginning and the others are paused (kit/motion.ts).
+ */
+const PLAYER = pageScript(`${MOTION_JS}
 var pages = [].slice.call(document.querySelectorAll('section')), at = 0, was = -1;
 function go(n) {
   n = Math.max(0, Math.min(pages.length - 1, n));
   if (n === at && was >= 0) return;
   was = at; at = n;
-  pages.forEach(function (p, i) { p.className = i === at ? 'on ' + (at >= was ? 'fwd' : 'back') : i === was ? 'was ' + (at >= was ? 'fwd' : 'back') : ''; });
+  pages.forEach(function (p, i) { p.className = i === at ? 'on ' + (at >= was ? 'fwd' : 'back') : i === was ? 'was ' + (at >= was ? 'fwd' : 'back') : ''; motion(p, i === at); });
   document.getElementById('where').textContent = (at + 1) + ' / ' + pages.length;
   document.getElementById('back').disabled = at === 0;
   document.getElementById('next').disabled = at === pages.length - 1;

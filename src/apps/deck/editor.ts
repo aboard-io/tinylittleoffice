@@ -22,6 +22,7 @@ import { html, nothing, type PropertyValues } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
+import { motion, reducedMotion } from '../../kit/motion.ts';
 import { ChevronDown, ChevronUp, GripVertical, LayoutTemplate, Palette, Play, Printer, Scroll, Shuffle } from 'lucide';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
@@ -887,10 +888,12 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const slides = this.slides;
     const end = g ? null : this.end;
     const d = this.rows.drag;
+    // The rail's thumbnails stand still: a deck of ten animations runs no clocks on the side.
+    const still: Look = { ...look, still: true };
     return html`<nav class="deck-rail" tabindex="-1" aria-label=${g ? t('Pages') : t('Slides')} @keydown=${this.onRailKey}>
       ${Array.from({ length: n }, (_, i) => {
         const s = slides[i];
-        const p = pageOf(this.doc, i, st, slides, look);
+        const p = pageOf(this.doc, i, st, slides, still);
         const words = s ? plainText(s.title).trim() || plainText(s.items[0]?.runs ?? []).trim() : '';
         const name = (g ? g.name(i, n) : t('Slide {n}', { n: i + 1 })) + (words ? `: ${words}` : '');
         const ranged = !!s && this.rows.has(i);
@@ -978,8 +981,16 @@ export class ToDeckEditor extends DocElement<Slide[]> {
       ${this.rows.renderContext()}
       <to-menu class="deck-submenu" .label=${t('This document')} .items=${this.subMenu ? this.subItems() : []}></to-menu>`;
   }
-  protected updated() {
+  protected updated(changed: PropertyValues<this>) {
     if (this.focusNext) void this.updateComplete.then(() => this.placeFocus());
+    // A slide that comes on in the show starts its animations from the beginning; the one leaving is paused.
+    // With reduced motion, every animation here rests where it ends (kit/motion.ts).
+    const show = this.querySelector('.deck-show');
+    if (show && changed.has('showing')) {
+      const was = show.querySelector('.was');
+      if (was) motion(was, false);
+      motion(show.querySelector('.frame') ?? show, true);
+    } else if (reducedMotion()) motion(this, true);
   }
 }
 if (!customElements.get(tag)) customElements.define(tag, ToDeckEditor);

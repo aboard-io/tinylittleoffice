@@ -5,7 +5,7 @@
  */
 import { Clapperboard } from 'lucide';
 import { apply, parse, write } from '../../doc/index.ts';
-import { defineApp, type Doc } from '../../kit/app.ts';
+import { defineApp, isStill, type Doc } from '../../kit/app.ts';
 import { pageSvg, utf8 } from '../../kit/draw.ts';
 import { encodeGif, type GifFrame } from '../../kit/gif.ts';
 import { t } from '../../kit/i18n.ts';
@@ -51,10 +51,13 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  // A thumbnail is the first moment, still; a page is the whole, playing once and resting where it ends.
+  // Where nothing can move, one frame: a thumbnail the first moment (something is on the stage then), print, a
+  // PDF or a PNG the resting one (where a once-through ends). Anywhere else the motion plays, on its own or placed
+  // in another document (`small`), repeating as its loop says.
   view: (doc, opts) => {
     const anim = readAnim(parse(doc));
-    return [opts?.small ? { w: W, h: H, svg: frameSvg(anim, 0), alt: altOf(anim) } : animPage(anim, true)];
+    if (!isStill(opts)) return [animPage(anim)];
+    return [{ w: W, h: H, svg: frameSvg(anim, opts?.thumb ? 0 : Math.max(0, anim.frames - 1)), alt: altOf(anim) }];
   },
   exports: [
     { ext: 'gif', label: () => t('Animated GIF'), mime: 'image/gif', build: (doc) => animGif(doc) },

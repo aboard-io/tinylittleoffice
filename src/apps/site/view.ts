@@ -16,6 +16,7 @@ import { clip, pageSvg, rect, text as line, wrapText, xml } from '../../kit/draw
 import { embedOf, embedCaption } from '../../kit/embeds.ts';
 import { iconInner, iconNamed, glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
+import { MOTION_JS } from '../../kit/motion.ts';
 import { pageData, pageScript } from '../../kit/page.ts';
 import { fenceLink } from '../write/view.ts';
 import { cardFields, iconOf, linesOf, linkFields, objId, readSite, ROW, safeUrl, wordsOf, type Embed, type Obj, type ObjKind, type PartName, type Product, type Section, type Site } from './model.ts';
@@ -26,16 +27,17 @@ import { paletteOf, themeCss } from './theme.ts';
 /**
  * The pages, switched by hash: "#menu" shows the page called Menu, or the page holding the section called
  * that, and marks it in the nav. With no script the pages sit one under another, which still reads. A page
- * to show first may be named in the data "site-at" (the editor's preview, which keeps its place).
+ * to show first may be named in the data "site-at" (the editor's preview, which keeps its place). A page that
+ * comes on starts its animations from the beginning, and the pages not shown are paused (kit/motion.ts).
  */
 export const ROUTER = pageScript(`(function(){
-var pages=[].slice.call(document.querySelectorAll('main>.page')),links=[].slice.call(document.querySelectorAll('nav a')),name=document.title,was=null,at0=document.getElementById('site-at'),first=at0?JSON.parse(at0.textContent):'';
+${MOTION_JS}var pages=[].slice.call(document.querySelectorAll('main>.page')),links=[].slice.call(document.querySelectorAll('nav a')),name=document.title,was=null,at0=document.getElementById('site-at'),first=at0?JSON.parse(at0.textContent):'';
 document.addEventListener('click',function(ev){var a=ev.target&&ev.target.closest?ev.target.closest('a[href^="#"]'):null;if(!a||ev.defaultPrevented)return;ev.preventDefault();location.hash=a.getAttribute('href').slice(1);});
 function show(){var h=decodeURIComponent(location.hash.slice(1))||first,page=null,at=null;first='';
 for(var i=0;i<pages.length;i++)if(pages[i].id===h)page=pages[i];
 if(!page&&h){at=document.getElementById(h);if(at)page=at.closest('.page');}
 if(!page)page=pages[0];
-pages.forEach(function(p){p.hidden=p!==page;});
+pages.forEach(function(p){p.hidden=p!==page;if(page!==was)motion(p,p===page);});
 links.forEach(function(a){if(a.getAttribute('href')==='#'+page.id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
 var head=page.querySelector('h1,h2');
 document.title=page===pages[0]||!head?name:head.textContent+' \\u00b7 '+name;

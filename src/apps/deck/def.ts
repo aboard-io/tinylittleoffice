@@ -6,7 +6,7 @@
  * a film of the deck (GIF), and the kit's print (the sheets, for a fold) and text.
  */
 import { Presentation } from 'lucide';
-import { defineApp } from '../../kit/app.ts';
+import { defineApp, isStill } from '../../kit/app.ts';
 import { pageSvg } from '../../kit/draw.ts';
 import { encodeGif, type GifFrame } from '../../kit/gif.ts';
 import { t } from '../../kit/i18n.ts';
@@ -42,7 +42,7 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => deckPages(doc, opts?.small),
+  view: (doc, opts) => deckPages(doc, opts?.small, isStill(opts)),
   exports: [
     { ext: 'pptx', label: () => t('PowerPoint (PPTX)'), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: (doc, ctx) => buildPptx(doc, ctx) },
     // In place of the kit's pictures of the pages: a page that plays the deck, a slide at a time, with its transition.
@@ -53,7 +53,7 @@ export default defineApp({
       mime: 'application/zip',
       build: async (doc) => {
         const files: Record<string, Uint8Array> = {};
-        const pages = deckPages(doc);
+        const pages = deckPages(doc, false, true);
         for (const [i, p] of pages.entries()) {
           const png = await raster(pageSvg(p), p.w, p.h, 2);
           if (png) files[`slide-${String(i + 1).padStart(2, '0')}.png`] = png;
