@@ -351,7 +351,8 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     e.stopPropagation();
     if (e.detail) this.field = field;
     this.sel = e.detail;
-    this.requestUpdate();
+    const box = this.sel ? this.current : null;
+    if (this.selectionMoved(`${this.field} ${!!box} ${box?.kind} ${JSON.stringify(box?.marks ?? {})}`)) this.requestUpdate();
   }
   /** Where a person starts: the first slide, the caret at the end of its headline. */
   focusFirst() {

@@ -211,7 +211,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
     if (!e.detail) return;
     const x = e.currentTarget as ToText;
     if (this.mark !== x) this.mark = x;
-    else this.requestUpdate();
+    else if (this.selectionMoved(JSON.stringify(x.marks))) this.requestUpdate();
   };
   /**
    * Backspace at the very start of a line, or Delete at its very end (the line-shaped editor says which). Backspace joins

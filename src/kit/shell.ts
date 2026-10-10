@@ -1,7 +1,8 @@
 /**
  * <to-shell>: owns the URL. Routes "#/v1/<app>/<payload>" to an app, hands its editor the document's text,
- * and writes every change back into the link with history.replaceState, so the address bar is always the
- * document and nothing is ever sent anywhere. The header holds the title, the room left in the link,
+ * and writes every change back into the link with history.replaceState, so the address bar is the document
+ * and nothing is ever sent anywhere. A keystroke costs only what it changed: the link is projected when typing
+ * pauses (PAUSE), and flushed at once before anything reads it (flushLink; kit/route.ts currentHash outside). The header holds the title, the room left in the link,
  * Share and Download; the hamburger opens <to-drawer>; the home page is <to-home>. The header goes up with the
  * page; the menu button stays at the top left, fixed to the screen, and the app's bar sticks at the top once the
  * header has gone, moving over to make room for it (`scrolled`). A tap on the title opens a second row of the

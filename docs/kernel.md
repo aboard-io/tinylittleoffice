@@ -204,6 +204,8 @@ abstract class DocElement<V> extends LitElement {
 
 `commit(T)`/`serialize` go. The `docchange` contract with the shell (text in `value`, text out in the event; the shell's `History` of texts) is unchanged, so `test/dom/helpers.ts#mount` and every shell test keep passing.
 
+A keystroke costs only what it changed (round six): `docchange` still fires with the text on every edit, but the shell projects it into the link (pack, `replaceState`, the library's keep, the tab's title, the signature) only when typing pauses (150 ms), and flushes that projection at once before anything reads the link as the document (the window's blur, the focus leaving the editor, leaving the page, Share and every copy of the link, exports, the password, the title box; `currentHash()` in kit/route.ts outside the shell). A host never parses its own echo: `ours(value)` says the shell handed back the text it last wrote. A host draws again for a `text-select` only when `selectionMoved(key)` says its bar would show something else.
+
 ### Each app: the view, and its commands as ops
 
 What stays in the editor as state (not in the document) is listed last for each.
