@@ -273,7 +273,15 @@
     right: 0;
     text-align: center;
   }
-  /* The speaker notes have room round them, as the slide's words do; the hint sits where the words will. */
+  /* The speaker notes are labelled as such (Paul, 2026-10-10) and have room round them, as the slide's words do; the hint sits where the words will. */
+  .deck-notes-head {
+    margin: 12px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--to-ink-3);
+  }
   .deck-notes .tx {
     min-height: 2.4em;
     padding: 12px;

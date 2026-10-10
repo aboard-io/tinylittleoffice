@@ -925,7 +925,6 @@ export default {
   'What this page says. The type shrinks to fit the page.': 'What this page says. The type shrinks to fit the page.',
   'A panel a line: what is said | the caption. Icon gives it a picture.': 'A panel a line: what is said | the caption. Icon gives it a picture.',
   'Speaker notes': 'Speaker notes',
-  'Speaker notes: for you when presenting, never on the slide': 'Speaker notes: for you when presenting, never on the slide',
   '{n} / {total}': '{n} / {total}',
   'A document on the slide': 'A document on the slide',
   'Remove from the slide': 'Remove from the slide',
@@ -1493,4 +1492,5 @@ export default {
   'Generate a strong password': 'Generate a strong password',
   'Password copied': 'Password copied',
   'Twenty characters, made on this device and never sent anywhere. Copy it somewhere safe before you set it: there is no way to get it back.': 'Twenty characters, made on this device and never sent anywhere. Copy it somewhere safe before you set it: there is no way to get it back.',
+  'For you when presenting, never on the slide': 'For you when presenting, never on the slide',
 } satisfies Strings;
