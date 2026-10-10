@@ -7,7 +7,7 @@
  *
  * And on a phone, by finger: the words of a thing tapped focused at once (the keyboard's path) and laid on the thing, the
  * context bar under them, 44px, inside the screen, its
- * Duplicate, Copy and Paste; no selection bubble; a tap elsewhere closes the words.
+ * Duplicate, Copy and Paste, and Bring out; no selection bubble; a tap elsewhere closes the words.
  */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -41,7 +41,7 @@ test('diagram: the first idea and a branch typed on the picture', async ({ page 
   expect(errors).toEqual([]);
 });
 
-test('diagram: on a phone, a tap on a thing opens its words with the context bar on screen, 44px to a finger; Duplicate and Copy/Paste by finger; no bubble', async ({ page }, info) => {
+test('diagram: on a phone, a tap on a thing opens its words with the context bar on screen, 44px to a finger; Duplicate, Copy/Paste and Bring out by finger; no bubble', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'phone only');
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -76,6 +76,12 @@ test('diagram: on a phone, a tap on a thing opens its words with the context bar
   await bar.getByRole('button', { name: 'Copy' }).tap();
   await bar.getByRole('button', { name: 'Paste' }).tap();
   await expect.poll(value).toBe('- Launch\n  - Pricing\n  - Pricing\n  - Launch\n    - Pricing\n    - Pricing\n');
+  // Bring out by finger: the last idea comes out from under the second Launch, a branch of the first, its words still open.
+  await page.locator('.dg-hint').tap();
+  await page.locator('.dg-pic g.dg-thing[aria-label="Pricing"]').nth(3).tap();
+  await bar.getByRole('button', { name: 'Bring out' }).tap();
+  await expect.poll(value).toBe('- Launch\n  - Pricing\n  - Pricing\n  - Launch\n    - Pricing\n  - Pricing\n');
+  await expect(line).toBeFocused();
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('.dg-pic')!).touchAction)).toBe('manipulation');
   expect(errors).toEqual([]);
 });

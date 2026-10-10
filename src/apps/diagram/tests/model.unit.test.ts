@@ -7,7 +7,7 @@ import { describe, expect, test } from 'vitest';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
-import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, follow, kindOf, lineOf, linesOf, moveAcross, moveItem, moveThing, newThing, nextThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Hit } from '../model.ts';
+import { charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, follow, kindOf, lineOf, linesOf, demoteThing, moveAcross, moveItem, moveThing, promoteThing, newThing, nextThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Hit } from '../model.ts';
 import { templates } from '../templates.ts';
 import { diagramPage, era, layout, moment, places, regionAt, toDrawing } from '../view.ts';
 
@@ -330,6 +330,56 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     const tl = doc('timeline', '- 1990: a\n- 2000: b\n\n~ x -> y\n');
     expect(run(tl, moveThing(tl, { k: 'line', at: 0, part: 'all' }, 1)!.ops)).toBe('- 2000: b\n- 1990: a\n\n~ x -> y\n');
     expect(moveThing(tl, { k: 'line', at: 1, part: 'all' }, 1)).toBeNull();
+  });
+  test('brought out and indented in a tree: a thing with its family up to its grandparent or under the sibling before it', () => {
+    const L = (at: number): Hit => ({ k: 'line', at, part: 'all' });
+    const t = doc('mind', '- Root\n  - A\n    - A1\n      - A1a\n        - A1a1\n    - A2\n  - B\n');
+    // A leaf out: after its parent, a sibling of it.
+    const leaf = promoteThing(t, L(5))!;
+    expect(run(t, leaf.ops)).toBe('- Root\n  - A\n    - A1\n      - A1a\n        - A1a1\n  - A2\n  - B\n');
+    expect(leaf.hit).toEqual(L(5));
+    const deep = promoteThing(t, L(4))!;
+    expect(run(t, deep.ops)).toBe('- Root\n  - A\n    - A1\n      - A1a\n      - A1a1\n    - A2\n  - B\n');
+    // A thing with children and grandchildren: all a level out, right after its parent's family.
+    const fam = promoteThing(t, L(2))!;
+    expect(run(t, fam.ops)).toBe('- Root\n  - A\n    - A2\n  - A1\n    - A1a\n      - A1a1\n  - B\n');
+    expect(fam.hit).toEqual(L(3));
+    // A root, and a root's child: nowhere further out.
+    expect(promoteThing(t, L(0))).toBeNull();
+    expect(promoteThing(t, L(1))).toBeNull();
+    // Indented: the last child of the sibling before it, its family with it.
+    const under = demoteThing(t, L(6))!;
+    expect(run(t, under.ops)).toBe('- Root\n  - A\n    - A1\n      - A1a\n        - A1a1\n    - A2\n    - B\n');
+    expect(under.hit).toEqual(L(6));
+    const famIn = demoteThing(t, L(5))!;
+    expect(run(t, famIn.ops)).toBe('- Root\n  - A\n    - A1\n      - A1a\n        - A1a1\n      - A2\n  - B\n');
+    const back = demoteThing(applyAll(t, fam.ops), L(3))!;
+    expect(write(applyAll(applyAll(t, fam.ops), back.ops))).toBe(write(parse(`---\nkind: mind\n---\n- Root\n  - A\n    - A2\n    - A1\n      - A1a\n        - A1a1\n  - B\n`)));
+    // A first child, and a root: no sibling before it to go under.
+    expect(demoteThing(t, L(1))).toBeNull();
+    expect(demoteThing(t, L(2))).toBeNull();
+    expect(demoteThing(t, L(0))).toBeNull();
+    expect(demoteThing(doc('mind', '- One\n- Two\n'), L(1))).toBeNull();
+    // The other kinds have no hierarchy.
+    expect(promoteThing(doc('lanes', '- Sales: a\n- Sales: b\n'), { k: 'line', at: 1, part: 'words' })).toBeNull();
+    expect(demoteThing(doc('net', '- A\n- B\n'), L(1))).toBeNull();
+  });
+  test('a family\'s couple carries its children, and a cross-link still joins the same two things', () => {
+    const L = (at: number): Hit => ({ k: 'line', at, part: 'all' });
+    const f = doc('family', '- Anne + Bo | 1790\n  - Ada + Charles | 1815\n    - Byron\n    - Ann\n  - Cy\n');
+    expect(run(f, demoteThing(f, L(4))!.ops)).toBe('- Anne + Bo | 1790\n  - Ada + Charles | 1815\n    - Byron\n    - Ann\n    - Cy\n');
+    const inF = applyAll(f, demoteThing(f, L(4))!.ops);
+    expect(run(inF, demoteThing(inF, L(4))!.ops)).toBe('- Anne + Bo | 1790\n  - Ada + Charles | 1815\n    - Byron\n    - Ann\n      - Cy\n');
+    const o = doc('org', '- Ada | CEO\n  - Ben | CTO\n    - Cy | Dev\n      - Di | Intern\n\n~ Di -- Ada: mentor\n');
+    const up = promoteThing(o, L(2))!;
+    expect(run(o, up.ops)).toBe('- Ada | CEO\n  - Ben | CTO\n  - Cy | Dev\n    - Di | Intern\n\n~ Di -- Ada: mentor\n');
+    expect(count(applyAll(o, up.ops))).toEqual(count(o));
+    expect(layout(applyAll(o, up.ops)).shapes.some((x) => x.hit?.k === 'edge')).toBe(true);
+    const m = doc('mind', '- Idea\n  - A\n    - A1\n  - B\n\n~ A1 -> B\n');
+    const out = applyAll(m, promoteThing(m, L(2))!.ops);
+    expect(count(out)).toEqual(count(m));
+    // The cross-link is drawn only while both its ends are found.
+    expect(layout(out).shapes.some((x) => x.hit?.k === 'edge')).toBe(true);
   });
   test('moved across: a step to the next lane, a seat to the next table', () => {
     const l = doc('lanes', '- Sales: Calls\n- Shop: Sells\n');

@@ -425,6 +425,65 @@ test('§1 Alt+Up/Down and §6 Move up/down: a thing past its sibling, from the f
   expect(isOpen(el)).toBe(true);
 });
 
+test('§1 Tab/Shift+Tab in a tree: a thing with its children in under the thing before it and out to its grandparent; in its words they stay open on it; undo is one step', async () => {
+  const { el, last } = await editor('---\nkind: mind\n---\n- Root\n  - A\n    - A1\n      - A1a\n    - A2\n  - B\n');
+  // In the words of a child: Shift+Tab brings it out under its grandparent, its child with it, the words still open on it.
+  await tap(el, thing(el, 'A1'));
+  await type(el, 'x');
+  line(el).sel = { anchor: { block: 0, offset: 1 }, focus: { block: 0, offset: 1 } };
+  const e = await key(el, 'Tab', { shiftKey: true });
+  expect((e as KeyboardEvent).defaultPrevented).toBe(true);
+  expect(last()).toContain('- Root\n  - A\n    - A2\n  - x\n    - A1a\n  - B\n');
+  expect(isOpen(el)).toBe(true);
+  expect(held(el)).toBe('x');
+  expect(line(el).sel?.focus.offset).toBe(1);
+  expect(el.querySelector('.dg-pic g.dg-thing.on')?.getAttribute('aria-label')).toBe('x');
+  // Tab takes it back in, under the thing before it (A), as its last child.
+  await key(el, 'Tab');
+  expect(last()).toContain('- Root\n  - A\n    - A2\n    - x\n      - A1a\n  - B\n');
+  expect(isOpen(el)).toBe(true);
+  // Undo: one step back for the indent, one for the bringing out.
+  await undo(el);
+  expect(last()).toContain('- Root\n  - A\n    - A2\n  - x\n    - A1a\n  - B\n');
+  await undo(el);
+  expect(last()).toContain('- Root\n  - A\n    - x\n      - A1a\n    - A2\n  - B\n');
+  // On a focused thing: Tab puts B under A; the focus stays on B.
+  await press(el, thing(el, 'B'), 'Tab');
+  expect(last()).toContain('    - A2\n    - B\n');
+  expect(document.activeElement).toBe(thing(el, 'B'));
+  await press(el, thing(el, 'B'), 'Tab', { shiftKey: true });
+  expect(last()).toContain('    - A2\n  - B\n');
+  // Where it cannot go (a root's child out, a first child in) Tab is not taken: the focus moves on.
+  expect((await press(el, thing(el, 'B'), 'Tab', { shiftKey: true })).defaultPrevented).toBe(false);
+  expect((await press(el, thing(el, 'A'), 'Tab')).defaultPrevented).toBe(false);
+});
+
+test('§5 a tree thing\'s bar has Indent and Bring out after its own items, disabled where the move cannot be; another kind has neither', async () => {
+  const { el, last } = await editor('---\nkind: org\n---\n- Ada\n  - Ben\n    - Cy\n  - Eve\n');
+  const labels = () => [...ctx(el).querySelectorAll('button, .to-context-sep')].map((b) => (b.classList.contains('to-context-sep') ? '|' : b.getAttribute('aria-label')));
+  await tap(el, thing(el, 'Ben'));
+  expect(labels()).toEqual(['Move up', 'Move down', 'Add under it', 'Icon', 'Join', 'Indent', 'Bring out', 'Duplicate', '|', 'Copy', 'Cut', 'Paste', '|', 'Delete']);
+  expect(action(el, 'Indent').disabled).toBe(true);
+  expect(action(el, 'Bring out').disabled).toBe(true);
+  await tap(el, thing(el, 'Cy')); // the first tap closes Ben's words
+  await tap(el, thing(el, 'Cy'));
+  expect(action(el, 'Indent').disabled).toBe(true);
+  expect(action(el, 'Bring out').disabled).toBe(false);
+  action(el, 'Bring out').click();
+  await settle(el);
+  expect(last()).toContain('- Ada\n  - Ben\n  - Cy\n  - Eve\n');
+  expect(isOpen(el)).toBe(true);
+  expect(action(el, 'Indent').disabled).toBe(false);
+  expect(action(el, 'Bring out').disabled).toBe(true);
+  action(el, 'Indent').click();
+  await settle(el);
+  expect(last()).toContain('- Ada\n  - Ben\n    - Cy\n  - Eve\n');
+  const net = await editor(NET);
+  await tap(net.el, thing(net.el, 'API'));
+  expect(action(net.el, 'Indent')).toBeUndefined();
+  expect(action(net.el, 'Bring out')).toBeUndefined();
+});
+
 test('§1 Mod+Alt+Left/Right: a step into the next lane', async () => {
   const { el, last } = await editor('---\nkind: lanes\n---\n- Sales: Calls\n- Shop: Sells\n');
   await press(el, thing(el, 'Calls'), 'ArrowRight', { altKey: true, ctrlKey: true });

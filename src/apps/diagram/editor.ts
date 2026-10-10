@@ -11,7 +11,9 @@
  * The thing open (or, with its words closed, the thing that has the focus) is the thing in hand: under the words a
  * <to-context> in the standard's order (Move up, Move down, the kind's own, Duplicate | Copy, Cut, Paste | Delete),
  * and the keys of docs/editing.md on a focused thing (arrows go to the nearest thing that way, Alt+Up/Down move it
- * past its neighbour, Mod+Alt+Left/Right into the next lane or table, Mod+D, Mod+C/X/V, Delete, Enter). The words are
+ * past its neighbour, in a tree Tab and Shift+Tab indent it under the thing before it and bring it out to its grandparent
+ * with its children, as the Outliner does, Mod+Alt+Left/Right into the next lane or table, Mod+D, Mod+C/X/V, Delete,
+ * Enter). Where it cannot go further in or out Tab moves the focus on, so the keys are never trapped. The words are
  * plain (`no-bubble`, no marks); Shift+Enter is a second line where the thing draws one ("Name | Role", a
  * date and what happened); Escape puts them back as they were when opened, Enter or Mod+Enter or a tap
  * elsewhere keeps them. No box ever holds the words apart from the picture (docs/editing.md §5). Undo brings
@@ -36,7 +38,7 @@ import { caret, insertRuns } from '../../kit/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
 import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
-import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, moveAcross, moveThing, nextThing, newThing, partFor, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
+import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
 import '../../kit/bar.ts';
@@ -428,7 +430,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private onSelectAll = (e: Event) => e.stopPropagation();
   /**
    * Keys in the words, before <to-text> sees them: Mod+Enter is done; the words are plain, so the marks' keys do
-   * nothing; Mod+D and Alt+Up/Down act on the thing open, as they do on a focused one.
+   * nothing; Mod+D, Alt+Up/Down and, in a tree, Tab and Shift+Tab act on the thing open, as they do on a focused one.
    */
   private onWordsKey = (e: KeyboardEvent) => {
     if (e.isComposing || !(e.target as Element).closest?.('to-text')) return;
@@ -441,6 +443,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (!hit) return;
     if (mod && !e.altKey && !e.shiftKey && k === 'd') return void (stop(), this.duplicate(hit));
     if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) return void (stop(), this.move(hit, e.key === 'ArrowUp' ? -1 : 1));
+    if (e.key === 'Tab' && !mod && !e.altKey && this.canShift(hit, e.shiftKey ? -1 : 1)) return void (stop(), this.shift(hit, e.shiftKey ? -1 : 1));
   };
   /** The focus gone from the words by the keys (Tab) to somewhere not the picture, the things under them or a box of theirs: done with them. */
   private onWordsBlur = (e: FocusEvent) => {
@@ -471,11 +474,11 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     return g && this.contains(g) ? (this.view.d.shapes[+(g as SVGGElement).dataset.i!]?.hit ?? null) : null;
   }
   /** After an edit to the thing in hand: its words open on it again where it now is, or the focus on it. */
-  private async reopenOn(hit: Hit | null, open: boolean) {
+  private async reopenOn(hit: Hit | null, open: boolean, fresh = false, sel?: [number, number]) {
     if (!open || hit?.k !== 'line') return this.focusThing(hit);
     await this.updateComplete;
     if (!this.gOf(hit) || !this.targetFor(hit)) return this.focusThing(hit);
-    this.open(hit, undefined, false);
+    this.open(hit, sel, fresh);
   }
   /** Past its neighbour (Alt+Up/Down, Move up/down); the words stay open on it if they were. */
   private move(hit: Hit, by: 1 | -1) {
@@ -484,6 +487,24 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const open = !!this.target;
     this.change(r.ops, hit, r.hit);
     void this.reopenOn(r.hit, open);
+  }
+  /** Whether a tree's thing can go in under the thing before it (1) or out to its grandparent (-1). */
+  private canShift(hit: Hit, by: 1 | -1): boolean {
+    return !!(by > 0 ? demoteThing : promoteThing)(this.doc, hit);
+  }
+  /**
+   * Indent (Tab) or bring out (Shift+Tab) a tree's thing with its family. Open words are kept first, as Enter keeps
+   * them, and opened again on the thing where it now is, the caret where it was; one undo step takes the move back.
+   */
+  private shift(hit: Hit, by: 1 | -1) {
+    const r = (by > 0 ? demoteThing : promoteThing)(this.doc, hit);
+    if (!r) return;
+    const open = !!this.target;
+    const s = this.wordsEl?.sel;
+    const sel: [number, number] | undefined = open && s ? [s.anchor.offset, s.focus.offset] : undefined;
+    this.shut();
+    this.change(r.ops, hit, r.hit);
+    void this.reopenOn(r.hit, open, true, sel);
   }
   /** Into the next lane or to the next table (Mod+Alt+Left/Right). */
   private across(hit: Hit, by: 1 | -1) {
@@ -573,7 +594,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (blocks.length) this.paste(hit, blocks);
   }
 
-  /** The things to do to the thing open, in the standard's order: Move up, Move down, the kind's own, Duplicate | Copy, Cut, Paste | Delete. */
+  /** The things to do to the thing open, in the standard's order: Move up, Move down, the kind's own, a tree's Indent and Bring out, Duplicate | Copy, Cut, Paste | Delete. */
   private contextItems(tg: Target | null): ContextEntry[] {
     const hit = tg?.hit;
     if (!tg || !hit) return [];
@@ -597,6 +618,10 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       const e = edgesOf(this.doc).find((x) => x.at === hit.at);
       const arrow = e?.dir === '->' || e?.dir === '<-';
       out.push({ label: arrow ? t('Make it a plain line') : t('Make it an arrow'), icon: arrow ? Minus : ArrowRight, does: () => this.change(setEdge(this.doc, hit.at, { dir: arrow ? '--' : '->' }), hit) });
+    }
+    if (hit.k === 'line' && isTree(kind)) {
+      out.push({ label: t('Indent'), icon: UI.indent, keys: 'Tab', disabled: !this.canShift(hit, 1), does: () => this.shift(hit, 1) });
+      out.push({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', disabled: !this.canShift(hit, -1), does: () => this.shift(hit, -1) });
     }
     if (canDuplicate(this.doc, hit)) out.push({ label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', does: () => this.duplicate(hit) });
     out.push(SEP);
@@ -729,6 +754,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     } else if (e.altKey && !mod && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
       this.move(hit, e.key === 'ArrowUp' ? -1 : 1);
+    } else if (e.key === 'Tab' && !mod && !e.altKey && this.canShift(hit, e.shiftKey ? -1 : 1)) {
+      e.preventDefault();
+      this.shift(hit, e.shiftKey ? -1 : 1);
     } else if (e.altKey && mod && !e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       e.preventDefault();
       this.across(hit, e.key === 'ArrowLeft' ? -1 : 1);

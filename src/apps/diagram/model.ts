@@ -23,7 +23,7 @@
  * `move` (a family by the kernel's `placeFamily`) or the `text` ops that take it out of one list and put it
  * in another; a connection is a `splice` of an edge block; the kind is a `head` op.
  */
-import { apply, family, isAtomic, isText, moveFamily, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, depthOf, family, isAtomic, isText, moveFamily, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
 
 export const KINDS = ['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net'] as const;
 export type KindId = (typeof KINDS)[number];
@@ -593,4 +593,45 @@ export function moveAcross(doc: Doc, hit: Hit, by: 1 | -1): { ops: Op[]; hit: Hi
     return ops.length ? { ops, hit: { k: 'line', at: to.at, part: to.items.filter((p) => p.words || p.icon).length } } : null;
   }
   return null;
+}
+
+/** The nearest line before item i that is shallower than it: its parent in a tree (-1 for a root). */
+function parentOf(depths: number[], i: number): number {
+  for (let j = i - 1; j >= 0; j--) if (depths[j] >= 0 && depths[j] < depths[i]) return j;
+  return -1;
+}
+
+/** A tree's thing moved by `placeFamily`, and where it now is, so the editor keeps it in hand. */
+function placed(doc: Doc, hit: Hit, to: number, how: 'under' | 'after'): { ops: Op[]; hit: Hit } | null {
+  const ops = placeFamily(doc, hit.k === 'line' ? hit.at : -1, to, how);
+  const m = ops?.[1];
+  return ops && m?.op === 'move' ? { ops, hit: { ...hit, at: m.to } as Hit } : null;
+}
+
+/** A tree's line, by its hit: null for anything else. */
+const treeLine = (doc: Doc, hit: Hit): number => (hit.k === 'line' && isTree(kindOf(doc)) && doc.blocks[hit.at]?.k === 'li' ? hit.at : -1);
+
+/**
+ * Bring out (Shift+Tab): a tree's thing becomes a child of its grandparent, right after its parent, its whole
+ * family a level shallower with it. Null for a root or a root's child: there is nowhere further out to go.
+ */
+export function promoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null {
+  const i = treeLine(doc, hit);
+  if (i < 0) return null;
+  const depths = doc.blocks.map(depthOf);
+  const parent = parentOf(depths, i);
+  if (parent < 0 || parentOf(depths, parent) < 0) return null;
+  return placed(doc, hit, parent, 'after');
+}
+
+/** Indent (Tab): a tree's thing becomes the last child of the sibling before it, its family with it. Null for a first child or a root. */
+export function demoteThing(doc: Doc, hit: Hit): { ops: Op[]; hit: Hit } | null {
+  const i = treeLine(doc, hit);
+  if (i < 0) return null;
+  const depths = doc.blocks.map(depthOf);
+  if (parentOf(depths, i) < 0) return null;
+  let sib = i - 1;
+  while (sib >= 0 && !(depths[sib] >= 0 && depths[sib] <= depths[i])) sib--;
+  if (sib < 0 || depths[sib] !== depths[i]) return null;
+  return placed(doc, hit, sib, 'under');
 }
