@@ -1,0 +1,346 @@
+<!doctype html>
+<!-- Generated from src/kit/network.ts by scripts/network-doc.ts (npm run docs:network). Do not edit. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What leaves your browser · Tiny Little Office</title>
+<meta name="description" content="Every request Tiny Little Office can make: when, what it carries, and what stops it." />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<style>
+:root{--bg:hsl(0 0% 97.5%);--surface:hsl(0 0% 100%);--border:hsl(240 4.9% 83.9%);--ink:hsl(240 5.9% 10%);--ink-2:hsl(240 5.3% 26.1%);--ink-3:hsl(240 5.2% 33.9%);--accent:hsl(243.4 75.4% 58.6%);--code:hsl(240 4.8% 95.9%);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:hsl(240 6% 8%);--surface:hsl(240 5.1% 15%);--border:hsl(240 5.3% 58%);--ink:hsl(240 9.1% 91.8%);--ink-2:hsl(240 7.3% 84%);--ink-3:hsl(240 5.6% 73%);--accent:hsl(229.4 100% 78.3%);--code:hsl(240 5.7% 18.2%)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.75rem;line-height:1.2;margin:.5rem 0 1rem}
+h2{font-size:1.25rem;margin:2.25rem 0 .75rem}
+h3{font-size:1rem;margin:0 0 .25rem;overflow-wrap:anywhere}
+a{color:var(--accent)}
+code{font:.9em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:.05em .3em;border-radius:4px;overflow-wrap:anywhere}
+ul{padding-left:1.25rem}
+li{margin:.4rem 0}
+.home{font-size:.95rem}
+.reach{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin:12px 0}
+.reach p{margin:0 0 .5rem;color:var(--ink-2)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:0;font-size:.95rem}
+dt{color:var(--ink-3)}
+dd{margin:0}
+@media (max-width:480px){dl{grid-template-columns:1fr}dd{margin-bottom:6px}}
+.hosts li code{margin-right:.35em}
+.note{color:var(--ink-3);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+<p class="home"><a href="./">Tiny Little Office</a></p>
+<h1>What leaves your browser</h1>
+<p>Tiny Little Office keeps a document in its link. Opening one asks the site for its own files and nothing else. This page lists every other request the site can make: when it happens, what it carries, and what stops it. The Content-Security-Policy in <code>public/_headers</code> allows these places and no others, so a request not on this list is refused by the browser itself.</p>
+<h2>Every request the site can make</h2>
+<section class="reach">
+<h3><code>tinylittleoffice.com</code></h3>
+<p>The site’s own files: the apps, the fonts, the icon set’s chunk (loaded when the icon picker opens).</p>
+<dl>
+<dt>When</dt><dd>while shown</dd>
+<dt>Carries</dt><dd>Which file; never the document, which is after the &quot;#&quot; and stays in the browser</dd>
+<dt>Stopped by</dt><dd>“Keep the app on this device”, in the menu: then the files come from the device and nothing is asked</dd>
+<dt>Made by</dt><dd><code>the whole site</code></dd>
+<dt>Allowed by</dt><dd><code>'self'</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>media.tinylittleoffice.com</code></h3>
+<p>The picture proxy: every picture from the web, so its site never learns who is reading.</p>
+<dl>
+<dt>When</dt><dd>while shown</dd>
+<dt>Carries</dt><dd>The picture’s address, in ?u=; no cookie, no referrer, nothing of the document</dd>
+<dt>Stopped by</dt><dd>A picture from a host not on the list waits for “Show pictures from the web”; a preview never asks</dd>
+<dt>Made by</dt><dd><code>kit/media.ts pictureSrc</code></dd>
+<dt>Allowed by</dt><dd><code>img-src</code>, <code>connect-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3>Any https address</h3>
+<p>A picture from a site not on the list, asked of the proxy (above), so the site sees the proxy.</p>
+<dl>
+<dt>When</dt><dd>never until a switch</dd>
+<dt>Carries</dt><dd>The picture’s address, to the proxy</dd>
+<dt>Stopped by</dt><dd>“Show pictures from the web” (this document, this visit) or, under Saved, “Always show pictures from the web” in the menu: off by default</dd>
+<dt>Made by</dt><dd><code>kit/pictures.ts</code></dd>
+<dt>Allowed by</dt><dd>none: the proxy asks</dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>tile.openstreetmap.org</code></h3>
+<p>The map’s pictures (tiles) in the Trip Planner, asked directly as OpenStreetMap’s policy asks.</p>
+<dl>
+<dt>When</dt><dd>while shown</dd>
+<dt>Carries</dt><dd>Which squares of the map are on the screen; no referrer</dd>
+<dt>Stopped by</dt><dd>Map, in the Trip Planner’s bar, turned off</dd>
+<dt>Made by</dt><dd><code>apps/trip/editor.ts</code></dd>
+<dt>Allowed by</dt><dd><code>img-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>nominatim.openstreetmap.org</code></h3>
+<p>Place search in the Trip Planner.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>The words searched for; no referrer</dd>
+<dt>Stopped by</dt><dd>Not searching: typing a stop’s place by hand asks no one</dd>
+<dt>Made by</dt><dd><code>apps/trip/editor.ts</code></dd>
+<dt>Allowed by</dt><dd><code>connect-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>tinier.tinylittleoffice.com</code></h3>
+<p>Short links: made, opened, updated or forgotten.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>The long link encrypted here, which the service cannot read, and how long to keep it; the owner’s secret to update or forget it</dd>
+<dt>Stopped by</dt><dd>Not making a short link: the long link needs no one</dd>
+<dt>Made by</dt><dd><code>kit/short.ts</code></dd>
+<dt>Allowed by</dt><dd><code>connect-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>public.api.bsky.app</code></h3>
+<p>Who a Bluesky handle is, for a post’s frame.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>The handle; no referrer</dd>
+<dt>Stopped by</dt><dd>Not tapping the post’s card</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>connect-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>*.wikipedia.org</code></h3>
+<p>An article’s summary, for its card.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>The article’s title; no referrer</dd>
+<dt>Stopped by</dt><dd>Not tapping the article’s card</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>connect-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>www.youtube-nocookie.com</code></h3>
+<p>A YouTube video, from its privacy endpoint.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>player.vimeo.com</code></h3>
+<p>A Vimeo video, with do-not-track set.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>embed.bsky.app</code></h3>
+<p>A Bluesky post.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>platform.twitter.com</code></h3>
+<p>A post on X, with do-not-track set.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>embed.reddit.com</code></h3>
+<p>A Reddit post.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>archive.org</code></h3>
+<p>A film or a recording on the Internet Archive.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>open.spotify.com</code></h3>
+<p>A Spotify track, album, playlist or episode.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>w.soundcloud.com</code></h3>
+<p>A SoundCloud track.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>www.openstreetmap.org</code></h3>
+<p>A place on OpenStreetMap; and the Trip Planner’s credit to it, a link.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts, apps/trip/editor.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>codepen.io</code></h3>
+<p>A CodePen.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3>Any https address</h3>
+<p>A thing on any server, by its address: a Mastodon post, a PeerTube video, a Wayback Machine page, a PDF.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>What the address names (the video, the post, the song); no referrer, in a sandboxed frame</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>frame-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3>Any https address</h3>
+<p>A sound or a film that is a file, played by the browser’s own player.</p>
+<dl>
+<dt>When</dt><dd>after a tap</dd>
+<dt>Carries</dt><dd>The file’s address; no referrer</dd>
+<dt>Stopped by</dt><dd>Not tapping the card: until then it is the provider’s name and nothing is asked</dd>
+<dt>Made by</dt><dd><code>kit/embeds.ts</code></dd>
+<dt>Allowed by</dt><dd><code>media-src</code></dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>bsky.app</code></h3>
+<p>Bluesky’s compose box.</p>
+<dl>
+<dt>When</dt><dd>on share</dd>
+<dt>Carries</dt><dd>The document’s title and its link, which is the whole document (it is in the link)</dd>
+<dt>Stopped by</dt><dd>Not choosing that service in Share; it opens in a new tab, which you then post from or close</dd>
+<dt>Made by</dt><dd><code>kit/share.ts</code></dd>
+<dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>x.com</code></h3>
+<p>X’s compose box.</p>
+<dl>
+<dt>When</dt><dd>on share</dd>
+<dt>Carries</dt><dd>The document’s title and its link, which is the whole document (it is in the link)</dd>
+<dt>Stopped by</dt><dd>Not choosing that service in Share; it opens in a new tab, which you then post from or close</dd>
+<dt>Made by</dt><dd><code>kit/share.ts</code></dd>
+<dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
+</dl>
+</section>
+<section class="reach">
+<h3><code>www.linkedin.com</code></h3>
+<p>LinkedIn’s share box.</p>
+<dl>
+<dt>When</dt><dd>on share</dd>
+<dt>Carries</dt><dd>The document’s title and its link, which is the whole document (it is in the link)</dd>
+<dt>Stopped by</dt><dd>Not choosing that service in Share; it opens in a new tab, which you then post from or close</dd>
+<dt>Made by</dt><dd><code>kit/share.ts</code></dd>
+<dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
+</dl>
+</section>
+<section class="reach">
+<h3>Any https address</h3>
+<p>A Mastodon server’s compose box: the one you name.</p>
+<dl>
+<dt>When</dt><dd>on share</dd>
+<dt>Carries</dt><dd>The document’s title and its link, which is the whole document (it is in the link)</dd>
+<dt>Stopped by</dt><dd>Not choosing that service in Share; it opens in a new tab, which you then post from or close</dd>
+<dt>Made by</dt><dd><code>kit/share.ts</code></dd>
+<dt>Allowed by</dt><dd>none: it opens in a new tab</dd>
+</dl>
+</section>
+<p>&quot;Any https address&quot; is a thing the person chose by its address: a post on their own Mastodon server, a PeerTube video, a page in the Wayback Machine, a PDF or a sound file. It is asked only after a tap, in a sandboxed frame that sends no referrer, or by the browser's own player.</p>
+<h2>Pictures from the web: the proxy at media.tinylittleoffice.com</h2>
+<p>A document can hold a picture by its address on another site. If the reader's browser fetched it from that site, the site would learn who read the document, from where and when: a tracking pixel. So the site never fetches a web picture from its own site. Every picture from an https address is asked of <strong>media.tinylittleoffice.com</strong> (<code>media/</code> in this repository, a Cloudflare Worker), which fetches it once, keeps it at the edge for a week, and hands it back. The picture's site sees Cloudflare, not the reader.</p>
+<ul>
+<li><strong>When:</strong> a picture from a host on the list below shows at once. A picture from any other host waits for &quot;Show pictures from the web&quot;, which names the host (kit/pictures.ts); a picture the author put in during this visit shows at once; under Saved, a switch in the menu shows them always. A preview or a thumbnail never fetches one.</li>
+<li><strong>What it carries:</strong> the picture's address, in <code>?u=</code>. No cookie, no referrer, nothing of the document. The proxy passes nothing of the reader's request on, and keeps no log (observability is off; the Worker has no console call; a test holds it to that). Its rate limiter counts per address, in memory.</li>
+<li><strong>What it refuses:</strong> an address that is not https on the default port with a public name (400); more than three redirects, or a redirect somewhere it would not go (502); anything that does not say it is a picture (415; SVG only as <code>image/svg+xml</code>, served under a policy that lets it run nothing); more than 5 MB (413, cut off as it streams); a site that does not answer within ten seconds (502).</li>
+<li><strong>Exports:</strong> a PDF, a picture or a web page made from a document holds each picture's bytes, fetched through the proxy when the file is made, so reading the file asks no one anything.</li>
+<li><strong>Self-hosting:</strong> <code>VITE_MEDIA_URL</code> at build time names your own copy of the proxy (<code>npm run deploy</code> deploys <code>media/</code> beside the site). Set it empty and there is no proxy: pictures load from their own sites, every host waits to be asked for, and the policy's <code>img-src</code> becomes <code>https:</code>.</li>
+</ul>
+<h3>The hosts whose pictures show at once</h3>
+<p><code>src/kit/media.ts</code> <code>TRUSTED</code>, the entries of <code>src/kit/network.ts</code> with a reason. Each is a place that serves public, static pictures under an open or stated licence, at addresses that do not change per reader. Since the proxy fetches them, even such a host learns nothing of who reads the document; the list only spares the reader a question for pictures that are this safe and this common.</p>
+<ul class="hosts">
+<li><code>media.tinylittleoffice.com</code> The proxy itself: an address already its own</li>
+<li><code>upload.wikimedia.org</code> Wikimedia Commons’ files: freely licensed, static, the most-used source of public pictures</li>
+<li><code>commons.wikimedia.org</code> Commons’ own pages’ pictures (the same files, by another address)</li>
+<li><code>archive.org</code> The Internet Archive’s files: public-domain and archived pictures</li>
+<li><code>*.archive.org</code> The Internet Archive’s storage hosts (ia800…us.archive.org)</li>
+<li><code>images.unsplash.com</code> Unsplash’s image CDN: pictures under the Unsplash licence; the Website Builder’s templates use it</li>
+<li><code>images.pexels.com</code> Pexels’ image CDN: pictures under the Pexels licence</li>
+<li><code>live.staticflickr.com</code> Flickr’s static files: pictures with their licence stated, many Creative Commons</li>
+<li><code>raw.githubusercontent.com</code> Files in public GitHub repositories: static, the address names the file</li>
+<li><code>user-images.githubusercontent.com</code> Pictures in GitHub issues and READMEs</li>
+<li><code>*.githubusercontent.com</code> GitHub’s other file hosts, the same kind of file</li>
+</ul>
+<p>A host is added when it serves public pictures at stable addresses with a stated licence and nothing on the page it is part of. A host that serves pictures made for one reader (an email's images, an ad network, a tracker) never is.</p>
+<h2>Why each of the rest is asked directly</h2>
+<ul>
+<li><strong>Things from the web (embeds).</strong> A video, a post, a song, a map, a page by its address is a card until tapped (kit/embeds.ts). Tapped, it loads from the provider's privacy endpoint where there is one (youtube-nocookie.com), in a sandboxed frame that sends no referrer, or, for a sound or a film that is a file, through the browser's own element. A picture embedded this way comes through the proxy. Bluesky is asked who a handle is, and Wikipedia for an article's summary, only on that tap.</li>
+<li><strong>The map.</strong> Map tiles only while a map is on the screen; place search only when a search is tapped. They are not proxied: OpenStreetMap's usage policies are written for the browser that shows the map asking them directly, and a cache of ours in between would be the heavy, anonymous use they ask people not to make. The site sends no referrer.</li>
+<li><strong>Short links.</strong> Only when a short link is made, opened, updated or forgotten; the service holds ciphertext it cannot read, whose key is in the short link's fragment, which browsers never send (tinier/tinier.ts).</li>
+<li><strong>Sharing to a service.</strong> Share's Bluesky, Mastodon, X and LinkedIn open that service's own compose box in a new tab, with the title and the link in it: no script of theirs runs here. The link is the document, so whoever reads the post can read it.</li>
+<li><strong>Fonts and icons.</strong> Self-hosted, from the site itself; the full icon set is a chunk of the site's own, loaded when the icon picker opens.</li>
+<li><strong>Links.</strong> A link in a document that leaves the site opens only after the reader is shown where it goes and says Go (kit/link-guard.ts), in a new tab with no referrer.</li>
+</ul>
+<h2>Nothing else</h2>
+<p>No analytics, no error reporting, no fonts or scripts from a CDN, no tag manager, no fetch the person did not cause. <code>test/network.test.ts</code> reads the source (<code>src/</code>, the shortener in <code>tinier/</code> and the proxy in <code>media/</code>) and fails on any host that is not on this page, and on any analytics, error-reporting, font-CDN or tag-manager host anywhere in the site.</p>
+<h2>How this page is kept true</h2>
+<p>It is written from <code>src/kit/network.ts</code>, the one list of every host, by <code>scripts/network-doc.ts</code> (<code>npm run docs:network</code>, which <code>npm run build</code> runs first); a test fails when the committed page is not what the list says. Every module that asks the web takes its host from that list, so a new host cannot be reached without appearing here. The policy's <code>connect-src</code>, <code>img-src</code>, <code>frame-src</code> and <code>media-src</code> are written from the same list (scripts/headers.ts), and <code>test/csp.test.ts</code> holds each host to the directive the list names and nothing else.</p>
+<p class="note">Written from <code>src/kit/network.ts</code>; the same page is <code>docs/network.md</code> in the repository.</p>
+</main>
+</body>
+</html>

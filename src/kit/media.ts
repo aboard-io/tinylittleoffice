@@ -10,9 +10,11 @@
  * from their sites and every host waits to be asked for. Pure: no DOM, tested under node.
  */
 
+import { origin, reaches } from './network.ts';
+
 const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 /** The proxy this site uses unless VITE_MEDIA_URL says otherwise. */
-export const MEDIA_DEFAULT = 'https://media.tinylittleoffice.com';
+export const MEDIA_DEFAULT = origin('media');
 /** The proxy's address, without a trailing slash; '' when pictures load directly. */
 let base = (env?.VITE_MEDIA_URL ?? MEDIA_DEFAULT).replace(/\/+$/, '');
 
@@ -26,20 +28,9 @@ export function useMedia(next: string) {
 /**
  * Hosts whose pictures show at once: a host by name, or every host under a name with "*.". Public,
  * static, licensed pictures, and nothing a host could tell readers apart by, since the proxy fetches.
+ * They are the entries of kit/network.ts with a `picture` (the reason for each).
  */
-export const TRUSTED = [
-  'upload.wikimedia.org',
-  'commons.wikimedia.org',
-  'archive.org',
-  '*.archive.org',
-  'images.unsplash.com',
-  'images.pexels.com',
-  'live.staticflickr.com',
-  'raw.githubusercontent.com',
-  'user-images.githubusercontent.com',
-  '*.githubusercontent.com',
-  'media.tinylittleoffice.com',
-] as const;
+export const TRUSTED: readonly string[] = reaches().flatMap((r) => (r.picture ? [r.host] : []));
 
 const here = () => (typeof location === 'undefined' ? 'http://localhost/' : location.href);
 

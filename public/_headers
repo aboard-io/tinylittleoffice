@@ -2,17 +2,17 @@
 # script the apps' pages carry (pageScript in src/kit/page.ts), so no other inline script can run, even in a frame.
 # (The Website Builder's frame inherits this policy; its editing script is the site's own file, /site-frame.js, by 'self'.)
 # The site is its own only source of code and style; nothing may embed the editor (frame-ancestors 'none') but the
-# embed page, /embed/ (the embed view: the pages alone, for another site's frame), below. img-src is the site, the picture
-# proxy (its origin filled in by scripts/headers.ts: every web picture is fetched through it, docs/network.md) and the
-# map's tiles, which OpenStreetMap asks be fetched directly; nothing else. connect-src names the proxy (an export
-# fetches a picture's bytes), the short-link service and the places later apps ask (OpenStreetMap, Bluesky,
-# Wikipedia); frame-src and media-src allow a thing from the web only in a sandboxed frame made after a tap, as the
-# embeds do.
+# embed page, /embed/ (the embed view: the pages alone, for another site's frame), below. Where the site may reach is
+# filled in by scripts/headers.ts from src/kit/network.ts, the one list of every host (docs/network.md, /network):
+# {{media}} is the picture proxy (every web picture is fetched through it; an export fetches a picture's bytes), and
+# {{img}}, {{connect}}, {{frame}} and {{media-src}} the hosts the list allows by each directive: the map's tiles, place
+# search, the short-link service, Bluesky and Wikipedia, and a thing from the web only in a sandboxed frame made
+# after a tap, as the embeds do. Nothing else.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {{media}} https://tile.openstreetmap.org; font-src 'self' data:; media-src https:; connect-src 'self' data: {{media}} https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://tinier.tinylittleoffice.com https://public.api.bsky.app https://*.wikipedia.org; worker-src 'self'; frame-src 'self' about: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' {{scripts}}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {{media}} {{img}}; font-src 'self' data:; media-src {{media-src}}; connect-src 'self' data: {{media}} {{connect}}; worker-src 'self'; frame-src 'self' about: blob: {{frame}}; object-src 'none'; base-uri 'self'; form-action 'self' mailto:; frame-ancestors 'none'
   Cache-Control: no-cache
 # The pages themselves: no-transform, so Cloudflare does not rewrite them to add its analytics beacon (which the
 # policy above would block anyway). Only the HTML: the scripts keep their compression.

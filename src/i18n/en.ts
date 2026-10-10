@@ -77,6 +77,8 @@ export default {
   'Always show pictures from the web': 'Always show pictures from the web',
   'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.': 'Off, a picture another site holds waits for you to ask: fetching it tells that site who is reading.',
   'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.': 'A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.',
+  'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.': 'No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.',
+  'What leaves your browser': 'What leaves your browser',
 
   // ---- the copy kept on the device (status lines under the switch) ----
   'Only on the built site': 'Only on the built site',

@@ -5,6 +5,7 @@
  */
 import { t } from './i18n.ts';
 import { toast } from './toast.ts';
+import { origin } from './network.ts';
 
 export async function copyText(text: string, said = t('Link copied')): Promise<boolean> {
   try {
@@ -53,13 +54,13 @@ export function shareUrl(service: Service, title: string, link: string, mastodon
   const text = title ? `${title} ${link}` : link;
   switch (service) {
     case 'bluesky':
-      return `https://bsky.app/intent/compose?${q({ text })}`;
+      return `${origin('bskyShare')}/intent/compose?${q({ text })}`;
     case 'mastodon':
       return mastodon ? `https://${mastodon}/share?${q({ text })}` : '';
     case 'x':
-      return `https://x.com/intent/post?${q({ text: title, url: link })}`;
+      return `${origin('xShare')}/intent/post?${q({ text: title, url: link })}`;
     case 'linkedin':
-      return `https://www.linkedin.com/sharing/share-offsite/?${q({ url: link })}`;
+      return `${origin('linkedin')}/sharing/share-offsite/?${q({ url: link })}`;
     case 'email':
       return `mailto:?${q({ subject: title, body: link }).replace(/\+/g, '%20')}`;
   }

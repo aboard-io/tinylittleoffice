@@ -12,10 +12,11 @@
 import { toBase64Url, fromBase64Url } from './codec.ts';
 import { t } from './i18n.ts';
 import type { Owned } from './route.ts';
+import { origin } from './network.ts';
 
 // The dev server sets VITE_TINIER (.env.development) to its own /tinier/, which it hands on to the shortener on this machine.
 const local = import.meta.env?.VITE_TINIER as string | undefined;
-export const TINIER = local && typeof location !== 'undefined' ? new URL(local, location.href).href : 'https://tinier.tinylittleoffice.com/';
+export const TINIER = local && typeof location !== 'undefined' ? new URL(local, location.href).href : `${origin('tinier')}/`;
 /** The most ciphertext a short link may hold, in base64url characters: tinier's MAX_BYTES (tinier/tinier.ts), which a test holds equal to this. */
 export const SHORT_MAX = 16 * 1024;
 export const EXPIRIES: { seconds: number; name: () => string }[] = [

@@ -16,12 +16,13 @@ import { decodeDoc, encodeDoc, URL_LIMIT } from './kit/codec.ts';
 import { parseHash, routeHash } from './kit/route.ts';
 import { appInHead, plainLink, readPlain, tloText } from './kit/plain.ts';
 import { diff, tally, type Change } from './kit/diff.ts';
+import { origin } from './kit/network.ts';
 
 export type { Change, Doc };
 export { diff, URL_LIMIT };
 
 /** Where links point by default. Any copy of the site works: the document is in the link, not on the server. */
-export const SITE = 'https://tinylittleoffice.com/';
+export const SITE = `${origin('site')}/`;
 
 /** A document's text as a link's payload (the shortest of the codec's three forms). */
 export const encode = (text: string): string => encodeDoc(text);

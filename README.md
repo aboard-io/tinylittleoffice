@@ -9,6 +9,12 @@ heart and one editor over it. The plan is `docs/rebuild.md`, the kernel's design
 format `docs/tlo.md` (the agent's reference), and the files each app becomes `docs/exports.md` (written from
 the definitions by `npm run docs:exports`).
 
+What leaves your browser: every request the site can make, when, what it carries and what stops it, is
+`docs/network.md` and [/network](https://tinylittleoffice.com/network) on the site, both written from the one list of
+hosts in `src/kit/network.ts` by `npm run docs:network` (the build runs it first). Every module that asks the web
+takes its host from that list, the Content-Security-Policy is written from it, and `test/network.test.ts` fails
+on a host not on it, or on any analytics, error-reporting, font-CDN or tag-manager host. There is no telemetry.
+
 ## Layout
 
 ```
@@ -38,8 +44,9 @@ src/apps/<id>/  an app: def.ts (its definition), editor.ts (its element, a lazy 
 src/i18n/       the strings: en.ts is every key, by hand; a sibling file is a language
 src/styles.css  declares the cascade: @layer tokens, kit, apps, responsive, a11y; src/styles/ holds each
 src/sw.ts       the service worker, for the copy kept on the device
-public/         _headers (the Content-Security-Policy), manifest, icons, theme.js
-scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), deploy.mjs (the
+public/         _headers (the Content-Security-Policy), manifest, icons, theme.js, network.html (written by scripts/network-doc.ts)
+scripts/        offline-files.ts (what the device keeps), i18n-extract.ts (the strings, checked), network-doc.ts
+                (docs/network.md and /network from src/kit/network.ts), deploy.mjs (the
                 checks, then Cloudflare), check-build.ts (files.json, the worker's version, the policy's hashes)
 test/           unit tests under node; test/browser/ the shell in a real Chromium (Vitest browser mode)
 e2e/            the Playwright specs on the built site, desktop Chromium and iPhone-sized WebKit: the smoke, the
@@ -56,7 +63,7 @@ media/          the picture proxy at media.tinylittleoffice.com: a Worker, no st
 ```sh
 npm ci
 npm run dev           # 0.0.0.0:4178 (pefdev.exe.xyz allowed)
-npm run build         # typecheck, then dist/ with a page per app, the CSP hashes, files.json, sw.js
+npm run build         # docs/network.md and /network, typecheck, then dist/ with a page per app, the CSP hashes, files.json, sw.js
 npm run typecheck     # tsc is the lint
 npm test              # unit (node) and browser (Chromium) tests
 npm run test:e2e      # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots

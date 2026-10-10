@@ -46,11 +46,12 @@ import '../../kit/menu.ts';
 import '../../kit/dialog.ts';
 import '../../kit/text.ts';
 import './style.css';
+import { origin } from '../../kit/network.ts';
 
 export const tag = 'to-trip-editor';
 
-export const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const SEARCH = 'https://nominatim.openstreetmap.org/search';
+export const TILES = `${origin('tiles')}/{z}/{x}/{y}.png`;
+const SEARCH = `${origin('placeSearch')}/search`;
 /** The zoom a map opened on the device's position shows: a city. */
 const CITY = 12;
 /** How long a tap on the map waits to be sure it is not the first of a double tap (which zooms). */
@@ -237,7 +238,7 @@ export class ToTripEditor extends DocElement<TripView> {
     const L = await leaflet();
     if (this.mapEl !== el || !el.isConnected) return;
     const map = L.map(el, { worldCopyJump: true, attributionControl: true }).setView([25, 0], 2);
-    if (this.tiles) L.tileLayer(this.tiles, { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+    if (this.tiles) L.tileLayer(this.tiles, { maxZoom: 19, attribution: `&copy; <a href="${origin('osm')}/copyright">OpenStreetMap</a>` }).addTo(map);
     map.attributionControl.setPrefix('');
     this.layer = L.layerGroup().addTo(map);
     // A tap adds a stop once it is sure not to be the first of a double tap, which zooms (§8): never two stops.

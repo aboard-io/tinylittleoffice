@@ -21,8 +21,19 @@ leak. Everything here makes that checkable by a stranger.
    first; exports carry the bytes. docs/network.md has the rules, the whitelist with a reason for each host,
    and what else the site may ask and why. The CSP's `img-src` is the site, the proxy and the map's tiles
    (no `https:` at large), filled from `VITE_MEDIA_URL` by `scripts/headers.ts` and held by
-   `test/csp.test.ts`. *For this item's network test:* docs/network.md is hand-written until it is
-   generated; the generator should take the proxy's host from `scripts/headers.ts` `mediaSource`.
+   `test/csp.test.ts`.
+   *Built, 2026-10-10.* `src/kit/network.ts` is the one list of every host the site can reach (what, when,
+   what it carries, what stops it, the module, the CSP directive); every module that asks the web takes its
+   host from it, and the picture whitelist (`src/kit/media.ts` `TRUSTED`) is its entries with a reason.
+   `scripts/network-doc.ts` (`npm run docs:network`, run first by `npm run build`) writes `docs/network.md`
+   and `public/network.html` (`/network`, plain HTML, no script, linked from About and the README), the
+   proxy's host from `scripts/headers.ts` `mediaSource`. `scripts/headers.ts` writes `connect-src`, `img-src`,
+   `frame-src` and `media-src` from the list (`test/csp.test.ts`: every host in its directive and nothing
+   else; the map's tiles left `connect-src`, which nothing used). Builds are not run in tests, so
+   `test/network.test.ts` reads the source (`src/`, `tinier/`, `media/`) instead of the built site: every
+   host must be on the list (or localhost, or an XML namespace; tests and the Website Builder's sample
+   templates exempt, said why), `src/` names hosts only through the list, and the committed page must be
+   what the list says.
 2. **A threat model** (gate). `docs/threat-model.md`: what we protect against (the host learning a document;
    a short link's service reading one; a shared link altered in transit; a scam link or a tracking picture
    inside a document; a reader fetching a picture and revealing their IP), what we do not (someone you gave
@@ -45,6 +56,10 @@ leak. Everything here makes that checkable by a stranger.
    commit it runs so a self-hoster's copy is distinguishable.
 7. **No telemetry, asserted.** No analytics, no error reporting, no fonts from a CDN, no fetch the person did
    not cause; a test asserts the built site contains no such host, and the threat model says so.
+   *Built, 2026-10-10 (the threat model's sentence waits for item 2).* `test/network.test.ts` fails on any
+   analytics, error-reporting, font-CDN, tag-manager or session-recording host (a deny-list of 22) anywhere in
+   `src/`, `tinier/`, `media/`, `public/`, `index.html`, `vite.config.ts` and `wrangler.jsonc`; About says,
+   in one sentence, that the site asks the web for nothing you did not cause, and links /network.
 8. **Hygiene.** `SECURITY.md` (a disclosure address, a 72-hour acknowledgement, coordinated disclosure, no
    bounty yet, a thanks list); signed release tags; a changelog naming security-relevant changes;
    `LICENSE` (MIT); `CODE_OF_CONDUCT.md`; `CONTRIBUTING.md` that points at the standards (docs/editing.md,

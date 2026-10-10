@@ -3,7 +3,7 @@
  * template or a kept document; the apps as rows, each with its templates (<to-templates>, the home page's),
  * so a template is reachable from inside any app; Private or Saved; Keep the app on this device; Language;
  * Theme; the size of everything (zoom.ts); Keyboard shortcuts; Add to home screen where the browser offers it
- * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About. Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
+ * (on an iPhone, the line that says how); Privacy (<to-privacy>: the signing key, what this device holds, everything in one zip); About (which links /network, what leaves your browser: kit/network.ts). Under Saved, a switch shows pictures from the web always (kit/pictures.ts). The heading is
  * the Office mark beside the name. Anything that opens a document closes the drawer (it follows the hash).
  * Open a file… (a .tlo, a .md, a .txt: kit/open.ts) and Compare… (this document beside another link:
  * kit/compare.ts) sit above the switches.
@@ -17,7 +17,7 @@ import { routeHash } from './route.ts';
 import { chosenLanguage, languageName, languages, onLanguage, setLanguage, t } from './i18n.ts';
 import { THEMES, setTheme, theme, themeName, type Theme } from './theme.ts';
 import { keeping, onPrivacy, setPrivate } from './privacy.ts';
-import { canInstall, install, installByHand, offlineState, onOffline, setOffline } from './offline.ts';
+import { canInstall, install, installByHand, offlineState, onOffline, setOffline, siteRoot } from './offline.ts';
 import { size, SIZE_MAX, SIZE_MIN, stepSize } from './zoom.ts';
 import { toast } from './toast.ts';
 import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
@@ -186,7 +186,7 @@ export class ToDrawer extends LitElement {
       </div>
     </dialog>
     <to-privacy></to-privacy>
-    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p>`}></to-dialog>`;
+    <to-dialog class="to-about-dialog" heading=${t('About Tiny Little Office')} .body=${html`<p>${t('A tiny office suite that lives entirely in the URL. No server, no accounts, no saving: the link is the document.')}</p><p class="to-hint">${t('Nothing you write leaves your browser unless you share the link. A trip’s map is the one thing that asks the web by itself: its pictures come from OpenStreetMap while it is shown. Private by default: nothing is kept. Saved, the switch in this menu, keeps your settings and the documents you open on this device.')}</p><p class="to-hint">${t('A document can have a password: it is encrypted here, in the browser, and the link holds only ciphertext. It can be signed with a key this browser makes, so anyone can check that it is exactly what you signed, and under what name. Privacy and keys, in this menu, shows what this device holds.')}</p><p class="to-hint">${t('A picture a document holds by its address on another site is not fetched until you ask: fetching it would tell that site who is reading, and when. A link that leaves Tiny Little Office shows where it goes, and asks, before it opens.')}</p><p class="to-hint">${t('No analytics, no error reports, no fonts or scripts from anywhere else: the site asks the web for nothing you did not cause.')} <a class="to-about-network" href=${`${siteRoot()}network`} target="_blank" rel="noopener">${t('What leaves your browser')}</a></p>`}></to-dialog>`;
   }
 }
 customElements.define('to-drawer', ToDrawer);

@@ -122,3 +122,15 @@ test('Cancel on "Save nothing on this device" leaves things kept and puts the sw
     await setPrivate(true);
   }
 });
+
+test('About says nothing is asked that you did not cause, and links the page of what leaves your browser', async () => {
+  const shell = await mount('');
+  shell.querySelector<HTMLButtonElement>('.to-burger')!.click();
+  await until(() => !!shell.querySelector<HTMLDialogElement>('dialog.to-drawer')?.open);
+  shell.querySelector<HTMLButtonElement>('.to-drawer-about')!.click();
+  await until(() => !!shell.querySelector('.to-about-dialog a.to-about-network'));
+  const a = shell.querySelector<HTMLAnchorElement>('.to-about-dialog a.to-about-network')!;
+  expect(a.textContent).toBe('What leaves your browser');
+  expect(new URL(a.href).pathname).toMatch(/\/network$/);
+  expect(a.closest('p')!.textContent).toContain('No analytics, no error reports');
+});

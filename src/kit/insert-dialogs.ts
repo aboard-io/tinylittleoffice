@@ -28,6 +28,7 @@ import { authored, gateSvg, mayShow, onPictures, picture } from './pictures.ts';
 import { pictureSrc } from './media.ts';
 import { t } from './i18n.ts';
 import { TINIER, unshorten } from './short.ts';
+import { origin } from './network.ts';
 import './dialog.ts';
 import './embeds.ts';
 
@@ -148,7 +149,7 @@ export function shortParts(link: string): { at: string; id: string; key: string 
   const m = /^(https?:\/\/\S+\/)([A-Za-z0-9_-]{4,})#([A-Za-z0-9_-]{16,})(?:\.[A-Za-z0-9_-]+)?$/.exec(link.trim());
   if (!m) return null;
   // Only ever asked of the shortener itself, here or in production.
-  if (m[1] !== TINIER && m[1] !== 'https://tinier.tinylittleoffice.com/') return null;
+  if (m[1] !== TINIER && m[1] !== `${origin('tinier')}/`) return null;
   return { at: m[1], id: m[2], key: m[3] };
 }
 
@@ -198,7 +199,7 @@ export function askDocLink(): Promise<Block | null> {
     return form(
       'to-ask-doc-form',
       () => b && f.finish(b),
-      html`${urlRow({ label: t('A Tiny Little Office link'), placeholder: 'https://tinylittleoffice.com/#/v1/…', value: url, ok: state === 'ok', input: typed })}
+      html`${urlRow({ label: t('A Tiny Little Office link'), placeholder: `${origin('site')}/#/v1/…`, value: url, ok: state === 'ok', input: typed })}
         <div class="to-ask-preview" aria-live="polite">
           ${state === 'ok' && b?.k === 'fence'
             ? html`<figure class="to-ask-page">
