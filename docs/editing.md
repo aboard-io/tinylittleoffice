@@ -31,6 +31,7 @@ with a keyboard (those have a button or a bar item too).
 | Undo, Redo | The last two tools of every app's bar (`undoTools()` from DocElement), disabled when there is nothing to undo; the shell forwards the keys only when the focus is in the app's editor, never from a dialog, a popover, the header or a field of the kit's own | — |
 
 Rules:
+- **A document opens with the focus where a person starts**, without scrolling: the first words block (the Word Processor), cell A1 (the Spreadsheet), the first slide's headline, the first row, the first task, the first card's words, the entry line (the Calculator), the canvas or stage or picture (the Drawing Tool, the Animator, the Diagram Maker), today's day (the Calendar), the first stop's name (the Trip Planner), the site's name (the Website Builder). Never the title box, never the body. Display mode and a locked document focus nothing.
 - **Mod** is ⌘ on Apple devices and Ctrl elsewhere; tooltips write it the way the device does (`tip()` in bar.ts).
 - A shortcut means the same in every app. Nothing takes a shortcut from this table for another purpose.
 - An app's single-letter tool keys (the Drawing Tool's V R E D L A T K P F) work only when the canvas has the focus and no words are being edited; they never fire inside a text box, an input or a popover.
