@@ -384,13 +384,10 @@
     border: 1px solid var(--to-paper-line);
     border-radius: 10px;
   }
-  .write-signatures ul {
+  .write-sig-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(14em, 1fr));
     gap: 12px 24px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
   }
   .write-sig {
     display: flex;

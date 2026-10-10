@@ -588,16 +588,16 @@ export class ToWriteEditor extends DocElement<Doc> {
     const words: Record<string, string> = { valid: t('Signed these words'), mismatch: t('The words have changed since this was signed'), unsigned: t('Not signed yet'), checking: t('Checking…') };
     return html`<div class="write-signatures" role="group" aria-label=${t('Signatures')}>
       ${rows.length
-        ? html`<ul>
+        ? html`<div class="write-sig-list" role="list">
             ${rows.map((s) => {
               const v = verdictOf(text, s) ?? 'checking';
-              return html`<li class="write-sig ${v}">
+              return html`<div class="write-sig ${v}" role="listitem">
                 <b>${s.name || t('Unnamed')}</b>
                 <span class="write-sig-state">${icon(v === 'valid' ? UI.shield : v === 'mismatch' ? UI.mismatch : UI.unsigned, 14)}<span>${words[v]}</span></span>
                 ${s.key ? html`<small>${[s.date, t('key {fp}', { fp: printOf(s.key) })].filter(Boolean).join(' · ')}</small>` : nothing}
-              </li>`;
+              </div>`;
             })}
-          </ul>`
+          </div>`
         : html`<span class="to-hint">${t('No one has signed yet.')}</span>`}
       <button type="button" class="to-btn write-sign" @click=${() => void this.signContract()}>${icon(UI.sign, 16)}<span>${t('Sign this contract')}</span></button>
     </div>`;
