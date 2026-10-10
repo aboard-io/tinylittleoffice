@@ -1138,7 +1138,7 @@
     height: var(--to-touch);
     align-items: flex-end;
     padding-bottom: 0.125em;
-    font: 300 calc(1.875 * var(--to-scale)) / 1 var(--to-font-serif);
+    font: 300 min(calc(1.875 * var(--to-scale)), 7vw) / 1 var(--to-font-serif);
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
