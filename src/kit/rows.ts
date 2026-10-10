@@ -32,9 +32,9 @@
 import { remScale } from './zoom.ts';
 import { scrollerOf } from './scroll.ts';
 import { html, type ReactiveController, type ReactiveControllerHost, type TemplateResult } from 'lit';
-import { ArrowDown, ArrowUp, ClipboardPaste, CopyPlus, Copy, Scissors, SquarePen } from 'lucide';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
-import { UI } from './icons.ts';
+import { contextOf, runKey } from './commands.ts';
+import { ROWS_COMMANDS } from './rows-commands.ts';
 import { t } from './i18n.ts';
 import './context.ts';
 
@@ -124,7 +124,7 @@ export class Rows<Id = number> implements ReactiveController {
 
   constructor(
     private host: Host,
-    private o: RowsOptions<Id>,
+    readonly o: RowsOptions<Id>,
   ) {
     host.addController(this);
   }
@@ -313,31 +313,14 @@ export class Rows<Id = number> implements ReactiveController {
   private bar(): ToContext | null {
     return this.host.querySelector<ToContext>(`to-context.to-rows-context`);
   }
-  /** What the bar under the range offers, in the standard's order. */
+  /** What the bar under the range offers, in the standard's order (kit/rows-commands.ts), the app's own after Move down. */
   contextItems(): ContextEntry[] {
     const s = this.range ? this.span() : null;
     if (!s) return [];
-    const o = this.o;
-    const nest: ContextEntry[] = o.nests && o.shift
-      ? [
-          { label: t('Indent'), icon: UI.indent, keys: 'Tab', disabled: !(o.canShift?.(s, 1) ?? true), does: () => this.shift(1) },
-          { label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', disabled: !(o.canShift?.(s, -1) ?? true), does: () => this.shift(-1) },
-        ]
-      : [];
-    return [
-      { label: t('Edit'), icon: SquarePen, keys: 'Enter', does: () => this.range && this.release(this.range.focus) },
-      { label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', disabled: !o.canMove(s, -1), does: () => this.move(-1) },
-      { label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', disabled: !o.canMove(s, 1), does: () => this.move(1) },
-      ...(o.extra?.(s) ?? []),
-      ...nest,
-      { label: t('Duplicate'), icon: CopyPlus, keys: 'Mod+D', does: () => this.duplicate() },
-      SEP,
-      { label: t('Copy'), icon: Copy, keys: 'Mod+C', does: () => this.copyOut(false) },
-      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', does: () => this.copyOut(true) },
-      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn() },
-      SEP,
-      { label: t('Delete'), icon: UI.trash, keys: 'Delete', does: () => this.remove() },
-    ];
+    const items = contextOf(ROWS_COMMANDS, this as Rows<unknown>) as ContextEntry[];
+    const down = items.findIndex((it) => it !== SEP && it.label === ROWS_COMMANDS.find((c) => c.id === 'rows.down')!.label());
+    items.splice(down + 1, 0, ...(this.o.extra?.(s) ?? []));
+    return items;
   }
   /** The bar, for the host's template. */
   renderContext(): TemplateResult {
@@ -359,7 +342,7 @@ export class Rows<Id = number> implements ReactiveController {
     if (el.closest?.('[popover], dialog')) return;
     if (this.inWords(el)) return this.onWordsKey(e, el);
     if (!this.range) return;
-    if (this.onRangeKey(e)) e.preventDefault();
+    this.onRangeKey(e);
   };
   /** In a row's words: Shift+Up/Down step out to the row chosen whole. */
   private onWordsKey(e: KeyboardEvent, el: HTMLElement) {
@@ -380,34 +363,21 @@ export class Rows<Id = number> implements ReactiveController {
     e.preventDefault();
     this.choose(row.id);
   };
-  /** The keys a range answers to; true when the key was the range's. */
+  /** The keys a range answers to (kit/rows-commands.ts); true when the key was the range's. */
   private onRangeKey(e: KeyboardEvent): boolean {
-    const r = this.range!;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
-    const up = k === 'ArrowUp';
-    const vertical = up || k === 'ArrowDown';
-    if (k === 'Escape' || (k === 'Enter' && !mod && !e.altKey && !e.shiftKey)) this.release(r.focus);
-    else if (vertical && e.altKey && !mod) this.move(up ? -1 : 1);
-    else if (vertical && e.shiftKey && !mod) this.extend(up ? -1 : 1);
-    else if (vertical && !mod && !e.altKey) {
-      const rows = this.chosen();
-      const s = this.span();
-      const vis = this.o.rows();
-      const first = vis.findIndex((x) => x.id === rows[0].id);
-      const to = up ? (vis[first - 1] ?? rows[0]) : (vis.find((x) => s && x.span.from >= s.to) ?? rows[rows.length - 1]);
-      this.release(to.id, up ? 'end' : 0);
-    } else if ((k === 'ArrowLeft' || k === 'ArrowRight') && !mod && !e.altKey && !e.shiftKey) {
-      const rows = this.chosen();
-      this.release(k === 'ArrowLeft' ? rows[0].id : rows[rows.length - 1].id, k === 'ArrowLeft' ? 0 : 'end');
-    } else if (k === 'Backspace' || k === 'Delete') this.remove();
-    else if (k === 'Tab' && !mod && !e.altKey) {
-      if (!this.o.nests) return false;
-      this.shift(e.shiftKey ? -1 : 1);
-    } else if (mod && !e.altKey && k.toLowerCase() === 'a') this.selectAll();
-    else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd') this.duplicate();
-    else return false;
-    return true;
+    return runKey(e, ROWS_COMMANDS, this as Rows<unknown>);
+  }
+  /** A plain arrow on a range: the caret back in the rows' words, before them (Up, Left) or after them (Down, Right). */
+  leave(key: string) {
+    const rows = this.chosen();
+    if (!rows.length) return;
+    if (key === 'ArrowLeft' || key === 'ArrowRight') return this.release(key === 'ArrowLeft' ? rows[0].id : rows[rows.length - 1].id, key === 'ArrowLeft' ? 0 : 'end');
+    const up = key === 'ArrowUp';
+    const s = this.span();
+    const vis = this.o.rows();
+    const first = vis.findIndex((x) => x.id === rows[0].id);
+    const to = up ? (vis[first - 1] ?? rows[0]) : (vis.find((x) => s && x.span.from >= s.to) ?? rows[rows.length - 1]);
+    this.release(to.id, up ? 'end' : 0);
   }
   /** The focus going into words (a tap, a Tab) lets the range go. */
   private onFocusIn = (e: FocusEvent) => {

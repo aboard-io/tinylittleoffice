@@ -97,6 +97,24 @@ export function cmdTool<C>(cmd: Command<C>, c: C | null | undefined, over: Parti
   });
 }
 
+/** The same as a button with its words on it (btn): a command whose words say more than an icon would (Connect, Preview). */
+export function cmdBtn<C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing {
+  const has = c !== null && c !== undefined;
+  if (has && cmd.when && !cmd.when(c)) return nothing;
+  return btn({
+    label: cmd.label(has ? c : undefined),
+    icon: cmd.icon,
+    keys: cmd.keys,
+    hint: cmd.hint?.(),
+    keep: !cmd.takesFocus,
+    pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
+    disabled: !has || !!cmd.disabled?.(c),
+    does: (e) => void (has && run(cmd, c, e)),
+    ...over,
+    cls: `${over.cls ?? ''} cmd-${cmd.id.replace(/\./g, '-')}`.trim(),
+  });
+}
+
 export interface DateNavOpts {
   /** What is on view: "March 2027". */
   label: string;

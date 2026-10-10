@@ -97,6 +97,8 @@ export function run<C>(cmd: Command<C>, c: C, e?: Event): unknown {
 const MODS = ['Mod', 'Alt', 'Shift'] as const;
 /** The signs, by the key that types them (its place on the keyboard, whatever the layout or Alt makes of it). */
 const SIGNS: Record<string, string> = { Period: '.', Comma: ',', Slash: '/', Backslash: '\\', BracketLeft: '[', BracketRight: ']', Equal: '=', Minus: '-', Semicolon: ';', Quote: "'", Backquote: '`' };
+/** A sign typed with Shift, by the sign under it (a US keyboard's), for an event that says no key's place. */
+const SHIFTED: Record<string, string> = { '>': '.', '<': ',', '?': '/', '|': '\\', '{': '[', '}': ']', '+': '=', _: '-', ':': ';', '"': "'", '~': '`' };
 const NAMES: Record<string, string> = { ' ': 'Space', Esc: 'Escape', Del: 'Delete', Up: 'ArrowUp', Down: 'ArrowDown', Left: 'ArrowLeft', Right: 'ArrowRight' };
 
 /** One key's spelling put in order: "Shift+Mod+b" → "Mod+Shift+B". */
@@ -119,6 +121,7 @@ export function keyOf(e: Pick<KeyboardEvent, 'key' | 'code' | 'metaKey' | 'ctrlK
   else if (/^Key[A-Z]$/.test(e.code ?? '')) key = e.code.slice(3);
   else if (/^Digit\d$/.test(e.code ?? '')) key = e.code.slice(5);
   else if (SIGNS[e.code]) key = SIGNS[e.code];
+  else if (e.shiftKey && SHIFTED[key]) key = SHIFTED[key];
   else key = NAMES[key] ?? key;
   const mods = [e.metaKey || e.ctrlKey ? 'Mod' : '', e.altKey ? 'Alt' : '', e.shiftKey ? 'Shift' : ''].filter(Boolean);
   return [...mods, key].join('+');

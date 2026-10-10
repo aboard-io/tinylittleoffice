@@ -21,10 +21,14 @@ import { html, nothing, type PropertyDeclarations, type TemplateResult } from 'l
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
-import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, ChevronDown, ChevronRight, Eye, FoldVertical, GripVertical, Link2, ListOrdered, Minus, Plus, UnfoldVertical, ZoomIn, ZoomOut } from 'lucide';
+import { ArrowLeft, ArrowLeftRight, ArrowRight, ChevronDown, ChevronRight, GripVertical, ListOrdered, Minus, ZoomIn } from 'lucide';
 import { applyAll, family, fenceRef, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
-import { btn, tool } from '../../kit/bar.ts';
-import { appOf, apps } from '../../kit/apps.ts';
+import { cmdBtn, cmdTool, tool } from '../../kit/bar.ts';
+import { drawnIn, runKey } from '../../kit/commands.ts';
+import { BOLD, FOOTNOTE, HIGHLIGHT, ITALIC, LINK, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
+import type { Handoff } from '../../kit/app.ts';
+import COMMANDS from './commands.ts';
+import { appOf } from '../../kit/apps.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import type { ContextEntry } from '../../kit/context.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
@@ -44,7 +48,6 @@ import type { NoteAt, Sel, TextOps, ToText } from '../../kit/text.ts';
 import { caret } from '../../kit/textops.ts';
 import { appendItem, connect, copySpan, docBlock, duplicateSpan, enterAt, familyEnd, hasChildren, indexAt, insertDoc, itemBlock, itemsEnd, joinBack, joinForward, listify, liveLinks, mapAt, moveItem, moveSpan, nameOf, parentOf, pasteBlocks, pastesAsItems, pasteText, placeItem, readOutline, removeAt, removeSpan, renameIn, setDoc, setLine, setLink, setOrdered, shiftItem, shiftSpan, siblingsOf, spanOf, topsOf, unlink, webAddress, type Dir, type Item, type Link, type OutlineView } from './model.ts';
 import { appName, docGist, outlinePage } from './view.ts';
-import def from './def.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -97,7 +100,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
   /** The outline shown as a page, in a dialog. */
   declare showing: boolean;
   /** The row editor last focused: what the bar's text tools act on. */
-  private field: ToText | null = null;
+  field: ToText | null = null;
   /** One array per block, so a row's editor sees the same `blocks` until its block changes. */
   private rowBlocks = new WeakMap<Block, Block[]>();
   /** The block a row shows when the outline has none yet; it enters the document with the first letter typed. */
@@ -196,15 +199,15 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     if (!arr) this.rowBlocks.set(b, (arr = [b]));
     return arr;
   }
-  private get items(): Item[] {
+  get items(): Item[] {
     return this.view.items;
   }
-  private itemAt(at: number): Item | undefined {
+  itemAt(at: number): Item | undefined {
     return this.items[indexAt(this.view, at)];
   }
 
   /** The rows on screen: those inside the zoom, not hidden under a fold. */
-  private visible(): Item[] {
+  visible(): Item[] {
     const items = this.items;
     const z = indexAt(this.view, this.zoom);
     const from = z >= 0 ? z : 0;
@@ -233,7 +236,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     if (first) this.focusRow(Number(first.dataset.at));
   }
   /** Choose the row at `at` and put the caret in its words (at the end, or at `offset`). */
-  private focusRow(at: number, offset: number | 'end' = 'end') {
+  focusRow(at: number, offset: number | 'end' = 'end') {
     this.sel = at;
     void this.updateComplete.then(() => {
       const row = this.querySelector<HTMLElement>(`.ol-row[data-at="${at}"]`);
@@ -306,7 +309,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     return r && { anchor: r.anchor - s.from + d.at, focus: r.focus - s.from + d.at };
   }
   /** Mod+D in a row's words: the row and its family again after it, the caret in the copy where it was. */
-  private duplicateRow(at: number) {
+  duplicateRow(at: number) {
     const s = { from: at, to: family(this.doc, at, this.view.depths) };
     const offset = this.caretIn(at);
     const d = duplicateSpan(this.doc, this.view, s);
@@ -314,7 +317,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.focusRow(d.at, offset);
   }
   /** Numbered or not: the range's top rows, or the list the chosen row belongs to. */
-  private number() {
+  number() {
     const s = this.rows.range ? this.rows.span() : null;
     if (s) {
       const tops = topsOf(this.view, s).map((it) => it.at);
@@ -442,7 +445,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     for (let p = parentOf(this.items, i); p >= 0; p = parentOf(this.items, p)) f.delete(this.items[p].at);
     if (f.size !== this.folded.size) this.folded = f;
   }
-  private removeRow(at: number, forward = false) {
+  removeRow(at: number, forward = false) {
     const vis = this.visible();
     const i = vis.findIndex((x) => x.at === at);
     const to = (forward ? (vis[i + 1] ?? vis[i - 1]) : (vis[i - 1] ?? vis[i + 1]))?.at ?? -1;
@@ -453,14 +456,14 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- the tree ---------- */
 
-  private shiftBy(at: number, by: 1 | -1) {
+  shiftBy(at: number, by: 1 | -1) {
     const ops = shiftItem(this.doc, this.view, at, by);
     if (!ops) return;
     const offset = this.caretIn(at);
     this.edit(ops);
     this.focusRow(at, offset);
   }
-  private moveBy(at: number, by: 1 | -1) {
+  moveBy(at: number, by: 1 | -1) {
     const ops = moveItem(this.doc, this.view, at, by);
     if (!ops) return;
     const offset = this.caretIn(at);
@@ -472,27 +475,27 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     const move = ops.find((o) => o.op === 'move');
     return move && move.op === 'move' ? move.to : at;
   }
-  private fold(at: number, shut = !this.folded.has(at)) {
+  fold(at: number, shut = !this.folded.has(at)) {
     const f = new Set(this.folded);
     shut ? f.add(at) : f.delete(at);
     this.folded = f;
   }
-  private foldAll(shut: boolean) {
+  foldAll(shut: boolean) {
     this.folded = new Set(shut ? this.items.filter((_, i) => hasChildren(this.items, i)).map((it) => it.at) : []);
   }
-  private zoomTo(at: number) {
+  zoomTo(at: number) {
     this.zoom = at;
     if (at >= 0) this.fold(at, false);
     this.focusRow(at >= 0 ? at : (this.items[0]?.at ?? -1));
   }
-  private zoomOut() {
+  zoomOut() {
     const i = indexAt(this.view, this.zoom);
     if (i < 0) return;
     const p = parentOf(this.items, i);
     this.zoomTo(p >= 0 ? this.items[p].at : -1);
   }
   /** A new item at the end of what is shown, from Insert or a tap under the last row: at the margin, or last inside the zoomed item. */
-  private addItem() {
+  addItem() {
     const vis = this.visible();
     const last = vis[vis.length - 1];
     if (last && !last.doc && !plainText(last.runs).trim()) return this.focusRow(last.at);
@@ -570,7 +573,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     if (keep && label !== (this.endsOf(at)?.label ?? '')) this.edit(b?.k === 'edge' ? setLink(this.doc, at, { label }) : setLine(this.doc, this.view, at, { label }));
   }
   /** Connect: start from the chosen item, or pick one first; everything else goes grey until the other end is tapped. */
-  private connect() {
+  connect() {
     const it = this.itemAt(this.sel);
     this.connecting = this.connecting ? null : { from: it && !it.doc && plainText(it.runs).trim() ? it.at : -1 };
   }
@@ -591,17 +594,17 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     this.focusRow(r.at);
   }
   /** A new document of that app, made in its own editor in the dialog: Done puts it under the chosen item, Cancel puts nothing. */
-  private async insertApp(id: string) {
+  async insertApp(id: string) {
     const sel = this.sel;
     const fence = await makeDoc(id);
     if (fence) this.putDoc(sel, fenceRef(fence));
   }
-  private async insertWeb() {
+  async insertWeb() {
     const sel = this.sel;
     const url = await askEmbed();
     if (url) this.putDoc(sel, refOfLink(url) ?? `web\n${url}`);
   }
-  private async insertLinked() {
+  async insertLinked() {
     const sel = this.sel;
     const fence = await askDocLink();
     if (fence?.k === 'fence') this.putDoc(sel, fenceRef(fence));
@@ -634,47 +637,52 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     e.stopPropagation();
     this.connecting = null;
   };
+  /** The Outliner's keys (commands.ts), in a row: never from a popover or a dialog, nor while rows are chosen whole (the rows controller's). */
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const target = e.composedPath()[0] as HTMLElement;
     if (target.closest?.('[popover]') || target.closest?.('dialog')) return;
-    // Rows chosen whole: the rows controller has the keys.
     if (this.rows.range && !target.closest?.('to-text')) return;
-    const row = target.closest?.('.ol-row') as HTMLElement | null;
+    if (this.rowOfKey(e) < 0) return;
+    runKey(e, COMMANDS, this);
+  };
+  /** The row a key was typed in (-1: none). */
+  rowOfKey(e: KeyboardEvent): number {
+    const row = (e.composedPath()[0] as HTMLElement).closest?.('.ol-row') as HTMLElement | null;
     const at = row ? Number(row.dataset.at) : NaN;
-    if (!Number.isFinite(at) || at < 0) return;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
-    const plain = !mod && !e.altKey && !e.shiftKey;
+    return Number.isFinite(at) && at >= 0 ? at : -1;
+  }
+  /** Delete or Backspace on a document's row (not in words): the row goes. False anywhere else. */
+  removeDocRow(at: number, e?: Event): boolean {
+    if (!this.itemAt(at)?.doc || (e?.target as HTMLElement | null)?.closest?.('to-text')) return false;
+    this.removeRow(at);
+    return true;
+  }
+  /** A plain arrow at the edge of a row's words: on to the row before or after (Up and Down under where the caret was). False inside the words. */
+  stepRow(e: KeyboardEvent): boolean {
+    const at = this.rowOfKey(e);
     const vis = this.visible();
     const i = vis.findIndex((x) => x.at === at);
-    const tx = target.closest?.('to-text') as ToText | null;
+    const tx = (e.composedPath()[0] as HTMLElement).closest?.('to-text') as ToText | null;
     const s = tx?.sel;
     const flat = !!s && s.anchor.offset === s.focus.offset;
-    if (k === 'Tab' && !mod && !e.altKey) this.shiftBy(at, e.shiftKey ? -1 : 1);
-    else if (mod && e.altKey && k === 'ArrowUp') this.fold(at, true);
-    else if (mod && e.altKey && k === 'ArrowDown') this.fold(at, false);
-    else if (e.altKey && !mod && k === 'ArrowUp') this.moveBy(at, -1);
-    else if (e.altKey && !mod && k === 'ArrowDown') this.moveBy(at, 1);
-    else if (plain && (k === 'ArrowUp' || k === 'ArrowDown')) {
+    const k = e.key;
+    if (k === 'ArrowUp' || k === 'ArrowDown') {
       const to = vis[k === 'ArrowUp' ? i - 1 : i + 1];
-      if (!to || !tx || !this.atEdgeLine(tx, k === 'ArrowUp')) return;
+      if (!to || !tx || !this.atEdgeLine(tx, k === 'ArrowUp')) return false;
       this.focusRow(to.at, this.columnIn(to.at, k === 'ArrowUp'));
-    } else if (plain && k === 'ArrowLeft' && flat && tx && s.focus.offset === 0 && i > 0) this.focusRow(vis[i - 1].at, 'end');
-    else if (plain && k === 'ArrowRight' && flat && tx && s.focus.offset >= this.lengthOf(at) && i >= 0 && i < vis.length - 1) this.focusRow(vis[i + 1].at, 0);
-    else if (mod && e.shiftKey && !e.altKey && (e.code === 'Period' || k === '.' || k === '>')) this.zoomTo(at);
-    else if (mod && e.shiftKey && !e.altKey && (e.code === 'Comma' || k === ',' || k === '<')) this.zoomOut();
-    else if (mod && !e.shiftKey && !e.altKey && k.toLowerCase() === 'd') this.duplicateRow(at);
-    else if ((k === 'Backspace' || k === 'Delete') && this.itemAt(at)?.doc && !target.closest('to-text')) this.removeRow(at);
-    else return;
-    e.preventDefault();
-  };
-  private lengthOf(at: number): number {
+      return true;
+    }
+    if (k === 'ArrowLeft' && flat && tx && s.focus.offset === 0 && i > 0) return this.focusRow(vis[i - 1].at, 'end'), true;
+    if (k === 'ArrowRight' && flat && tx && s.focus.offset >= this.lengthOf(at) && i >= 0 && i < vis.length - 1) return this.focusRow(vis[i + 1].at, 0), true;
+    return false;
+  }
+  lengthOf(at: number): number {
     const b = this.doc.blocks[at];
     return b && isText(b) ? runLength(b.runs) : 0;
   }
   /** Whether the caret is on the first (up) or last (down) line of its words, where Up/Down leave the row; inside a long item they walk its lines. */
-  private atEdgeLine(tx: ToText, up: boolean): boolean {
+  atEdgeLine(tx: ToText, up: boolean): boolean {
     const dom = document.getSelection();
     if (!dom?.rangeCount) return true;
     const caretRect = [...dom.getRangeAt(0).getClientRects()].at(up ? 0 : -1);
@@ -688,7 +696,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
     return up ? caretRect.top - top < lh / 2 : bottom - caretRect.bottom < lh / 2;
   }
   /** Where the caret lands in the row it moves to: under where it was (its last line going up, its first going down). */
-  private columnIn(at: number, up: boolean): number | 'end' {
+  columnIn(at: number, up: boolean): number | 'end' {
     const dom = document.getSelection();
     const x = dom?.rangeCount ? dom.getRangeAt(0).getBoundingClientRect().left : NaN;
     const tx = this.querySelector<ToText>(`.ol-row[data-at="${at}"] to-text`);
@@ -720,65 +728,34 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- the bar ---------- */
 
-  private inserts(): MenuItem[] {
-    return [
-      { label: t('Item'), icon: Plus, does: () => this.addItem() },
-      { label: t('Web Embed…'), icon: UI.globe, does: () => void this.insertWeb() },
-      { label: t('Tiny Little Office Doc…'), icon: UI.insert, does: () => void this.insertLinked() },
-      ...apps()
-        .filter((a) => a.id !== def.id)
-        .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
-    ];
+  /** The outline opened as another kind of document, in that app, in a new tab. */
+  openAs(h: Handoff) {
+    window.open(location.pathname + routeHash(h.to, encodeDoc(h.convert(write(this.doc)))), '_blank', 'noopener');
   }
-  /** The outline seen as another kind of document: as a page here; in another app, in a new tab, where that app exists. */
-  private viewItems(): MenuItem[] {
-    return [
-      { label: t('As a page'), icon: UI.print, does: () => this.showPage() },
-      ...(def.handoffs ?? [])
-        .filter((h) => appOf(h.to))
-        .map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, does: () => window.open(location.pathname + routeHash(h.to, encodeDoc(h.convert(write(this.doc)))), '_blank', 'noopener') })),
-    ];
-  }
-  private showPage() {
+  showPage() {
     this.showing = true;
     void this.updateComplete.then(() => this.querySelector<ToDialog>('.ol-page-dialog')?.show());
   }
-  private async pickIcon() {
+  async pickIcon() {
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const name = await chooseIcon();
     if (name) this.field?.exec('icon', name);
   }
 
+  /** The bar, drawn from the registry (commands.ts): the marks are the words', the row's <to-text> their context. */
   private renderBar() {
-    const s = this.sel;
-    const it = this.itemAt(s);
-    const i = indexAt(this.view, s);
-    const none = !it;
-    const words = !!it && !it.doc;
-    const m = this.field?.marks ?? {};
-    const c = this.connecting;
-    const on = (k: 'b' | 'i' | 'u' | 's' | 'h') => !!m[k];
+    const it = this.itemAt(this.sel);
+    const x = it && !it.doc ? this.field : null;
+    const own = (id: string) => COMMANDS.find((c) => c.id === `outline.${id}`)!;
+    const view = own('view');
     return html`<to-bar class="ol-bar">
-      <to-insert .items=${this.inserts()}></to-insert>
-      ${tool({ label: t('Bold'), icon: UI.bold, keys: 'Mod+B', keep: true, pressed: on('b'), disabled: !words, does: () => this.field?.exec('b') })}
-      ${tool({ label: t('Italic'), icon: UI.italic, keys: 'Mod+I', keep: true, pressed: on('i'), disabled: !words, does: () => this.field?.exec('i') })}
-      ${tool({ label: t('Underline'), icon: UI.underline, keys: 'Mod+U', keep: true, pressed: on('u'), disabled: !words, does: () => this.field?.exec('u') })}
-      ${tool({ label: t('Strikethrough'), icon: UI.strike, keep: true, pressed: on('s'), disabled: !words, does: () => this.field?.exec('s') })}
-      ${tool({ label: t('Highlight'), icon: UI.highlight, keep: true, pressed: on('h'), disabled: !words, does: () => this.field?.exec('h') })}
-      ${tool({ label: t('Link'), icon: UI.link, keys: 'Mod+K', keep: true, pressed: !!m.href, disabled: !words, does: () => this.field?.exec('link') })}
-      ${tool({ label: t('Icon'), icon: UI.icon, keep: true, disabled: !words, does: () => void this.pickIcon() })}
-      ${tool({ label: t('Footnote'), icon: UI.footnote, keep: true, disabled: !words, does: () => this.field?.exec('fn') })}
-      ${tool({ label: t('Indent'), icon: UI.indent, keys: 'Tab', keep: true, disabled: none || !shiftItem(this.doc, this.view, s, 1), does: () => this.shiftBy(s, 1) })}
-      ${tool({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', keep: true, disabled: none || !shiftItem(this.doc, this.view, s, -1), does: () => this.shiftBy(s, -1) })}
-      ${tool({ label: t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', keep: true, disabled: none || !moveItem(this.doc, this.view, s, -1), does: () => this.moveBy(s, -1) })}
-      ${tool({ label: t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', keep: true, disabled: none || !moveItem(this.doc, this.view, s, 1), does: () => this.moveBy(s, 1) })}
-      ${tool({ label: t('Numbered'), icon: ListOrdered, keep: true, pressed: !!it?.ord, disabled: !words, does: () => this.number() })}
-      ${this.zoom >= 0 ? tool({ label: t('Zoom out'), icon: ZoomOut, keys: 'Mod+Shift+,', keep: true, does: () => this.zoomOut() }) : nothing}
-      ${tool({ label: t('Zoom in'), icon: ZoomIn, keys: 'Mod+Shift+.', keep: true, disabled: none || !hasChildren(this.items, i), does: () => this.zoomTo(s) })}
-      ${tool({ label: t('Fold all'), icon: FoldVertical, keep: true, does: () => this.foldAll(true) })}
-      ${tool({ label: t('Unfold all'), icon: UnfoldVertical, keep: true, does: () => this.foldAll(false) })}
-      ${btn({ label: c ? t('Cancel connecting') : t('Connect'), icon: c ? UI.close : Link2, pressed: !!c, keep: true, does: () => this.connect() })}
-      <to-menu class="ol-view-as" .label=${t('View as')} .icon=${Eye} caret .items=${this.viewItems()}></to-menu>
+      <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+      ${[BOLD, ITALIC, UNDERLINE, STRIKE, HIGHLIGHT, LINK].map((c) => cmdTool(c, x))}
+      ${cmdTool(own('icon'), this)}
+      ${cmdTool(FOOTNOTE, x)}
+      ${['indent', 'outdent', 'up', 'down', 'numbered', 'zoomout', 'zoomin', 'foldall', 'unfoldall'].map((id) => cmdTool(own(id), this))}
+      ${cmdBtn(own('connect'), this, { icon: this.connecting ? UI.close : undefined })}
+      <to-menu class="ol-view-as" .label=${view.label(this)} .icon=${view.icon} caret .items=${drawnIn(COMMANDS, 'menu:view', this)}></to-menu>
       ${this.undoTools()}
     </to-bar>`;
   }
