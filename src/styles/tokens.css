@@ -73,6 +73,13 @@
     --to-danger: hsl(0 98.6% 67.9%);
     --to-success: hsl(141.6 72.4% 55.2%);
     --to-go: var(--to-success);
+    /* The paper follows the theme (Paul, 2026-10-10: the Word Processor respects dark mode); print and the drawn pages stay white. */
+    --to-paper: hsl(240 5.3% 12.5%);
+    --to-paper-ink: hsl(240 9.1% 92%);
+    --to-paper-muted: hsl(240 6% 76%);
+    --to-paper-line: hsl(240 5% 42%);
+    --to-paper-shade: hsl(240 5.2% 18.5%);
+    --to-paper-accent: hsl(229.4 100% 78.3%);
     --to-warning: hsl(43.3 100% 53.4%);
     --to-ok-bg: hsl(142.8 64.2% 24.1%);
     --to-soon-bg: hsl(37.7 92.1% 50.2%);

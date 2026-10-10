@@ -1,4 +1,4 @@
-/* Write: the text as paper (white in either theme, a page stays a page), the document's fields over it, a
+/* Write: the text as paper (white in the light theme, dark in the dark one; printed pages stay white), the document's fields over it, a
    table block as a small grid, another document as a picture, the notes under the text, the count at the
    foot. Every app's sheet sits in the apps layer, above the kit's. */
 @layer apps {

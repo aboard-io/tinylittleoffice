@@ -328,6 +328,13 @@
   .to-option[aria-selected='true'] {
     background: var(--to-accent-soft);
   }
+  /* The templates list: wide enough for a name and its blurb beside the preview, and it scrolls (place() caps its height to the screen). */
+  .to-listbox {
+    width: min(640px, calc(100vw - 16px));
+    max-width: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   .to-thumb {
     flex: none;
     width: 56px;
