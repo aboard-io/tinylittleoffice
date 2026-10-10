@@ -1,0 +1,74 @@
+{
+  "$comment": "The chunk budgets the R9 command registry ended with (2026-10-10), in bytes of each built chunk gzipped at level 9, read per lazy chunk: main is the entry chunk the home page runs, apps the app definitions it imports, home everything the home page loads statically; an app’s editor and its commands chunk load only when it opens (draw’s commands share a chunk with its editor’s imports), and open is all that opening it adds to the home page’s load. Merge base 51a71fb had main 40202, apps 168472, home 311717. R9-lints holds these: a build over a budget fails unless the budget is raised here with its reason.",
+  "gzipLevel": 9,
+  "main": 40609,
+  "apps": 162532,
+  "home": 319618,
+  "editors": {
+    "anim": {
+      "editor": 7468,
+      "commands": 1605,
+      "open": 49969
+    },
+    "board": {
+      "editor": 7412,
+      "commands": 1505,
+      "open": 37313
+    },
+    "cal": {
+      "editor": 11005,
+      "commands": 1519,
+      "open": 40914
+    },
+    "calc": {
+      "editor": 4667,
+      "commands": 1138,
+      "open": 17107
+    },
+    "deck": {
+      "editor": 10322,
+      "commands": 2098,
+      "open": 45020
+    },
+    "diagram": {
+      "editor": 8253,
+      "commands": 1716,
+      "open": 33798
+    },
+    "draw": {
+      "editor": 11602,
+      "commands": 3690,
+      "open": 40269
+    },
+    "outline": {
+      "editor": 10286,
+      "commands": 1266,
+      "open": 44285
+    },
+    "sheet": {
+      "editor": 9760,
+      "commands": 1931,
+      "open": 36926
+    },
+    "site": {
+      "editor": 7275,
+      "commands": 2091,
+      "open": 19214
+    },
+    "todo": {
+      "editor": 4047,
+      "commands": 977,
+      "open": 33127
+    },
+    "trip": {
+      "editor": 7158,
+      "commands": 1231,
+      "open": 36695
+    },
+    "write": {
+      "editor": 12064,
+      "commands": 1747,
+      "open": 43596
+    }
+  }
+}

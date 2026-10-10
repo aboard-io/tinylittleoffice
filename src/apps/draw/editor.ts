@@ -13,7 +13,7 @@ import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { Accessibility, Grid2x2, Layers, Shapes } from 'lucide';
 import { cmdBtn, cmdMenu, cmdTool } from '../../kit/bar.ts';
-import { contextOf, drawnIn, run, runKey } from '../../kit/commands.ts';
+import { contextOf, drawnIn, labelOf, run, runKey } from '../../kit/commands.ts';
 import COMMANDS, { ALIGN_KEYS, CANVAS_KEYS, PIXEL_INKS, PIXEL_KEYS, TOOLS, TURN_STEP, TYPING, type Tool } from './commands.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
@@ -953,8 +953,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
       ${cmdMenu(own('mode'), this, COMMANDS, 'draw-mode', { words: true, caret: true, icon: v.grid ? Grid2x2 : Shapes })}
       ${TOOLS.map((x) => cmdTool(own(`tool.${x.id}`), this, { keep: false }))}
       ${cmdTool(own('icon'), this)}
-      <to-menu class="draw-arrange" icon-only .label=${own('arrange').label(this)} .icon=${Layers} .items=${drawnIn(arrange, 'menu:arrange', this).map((it) => ({ ...it, disabled: it.disabled || !this.selected }))}></to-menu>
-      <button type="button" class="to-btn draw-alt ${v.alt ? 'has' : ''}" aria-label=${alt.label(this)} title=${alt.label(this)} @click=${() => run(alt, this)}>${v.alt ? icon(UI.check, 16) : icon(Accessibility, 18)}<span>${t('Alt')}</span></button>
+      <to-menu class="draw-arrange" icon-only .label=${labelOf(own('arrange'), this)} .icon=${Layers} .items=${drawnIn(arrange, 'menu:arrange', this).map((it) => ({ ...it, disabled: it.disabled || !this.selected }))}></to-menu>
+      <button type="button" class="to-btn draw-alt ${v.alt ? 'has' : ''}" aria-label=${labelOf(alt, this)} title=${labelOf(alt, this)} @click=${() => run(alt, this)}>${v.alt ? icon(UI.check, 16) : icon(Accessibility, 18)}<span>${t('Alt')}</span></button>
       ${cmdTool(own('zoomout'), this, { keep: false })} ${cmdTool(own('zoomin'), this, { keep: false })}
       ${this.undoTools()}
     </to-bar>`;
@@ -966,7 +966,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
       ${cmdMenu(own('mode'), this, COMMANDS, 'draw-mode', { words: true, caret: true, icon: Grid2x2 })}
       ${PIXEL_INKS.map((ink) => {
         const c = own(`pixel.${ink.k}`);
-        return html`<button type="button" class="to-btn to-tool draw-swatch cmd-draw-pixel-${ink.k}" aria-label=${c.label()} title=${c.label()} aria-pressed=${String(this.ink === ink.k)} @click=${() => run(c, this)}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`;
+        return html`<button type="button" class="to-btn to-tool draw-swatch cmd-draw-pixel-${ink.k}" aria-label=${labelOf(c)} title=${labelOf(c)} aria-pressed=${String(this.ink === ink.k)} @click=${() => run(c, this)}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`;
       })}
       ${['eraser', 'pencil', 'bucket', 'clear'].map((id) => cmdTool(own(id), this, { keep: false }))}
       ${cmdBtn(own('background'), this, { keep: false })}
@@ -1067,7 +1067,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
         <rect width=${n} height=${n} fill="url(#draw-cells)" />
         <rect class="draw-cursor" x=${cx} y=${cy} width="1" height="1" fill="none" stroke="var(--to-accent)" stroke-width=${2 / (640 / n)} />
       </svg>
-      <span id="draw-cursor" class="sr-only">${t('Row {y}, column {x}: {ink}', { y: cy + 1, x: cx + 1, ink: PIXEL_INKS.find((i) => i.k === p.rows[cy]?.[cx])?.name() ?? t('clear') })}</span>
+      <span id="draw-cursor" class="sr-only">${t('Row {y}, column {x}: {ink}', { y: cy + 1, x: cx + 1, ink: t(PIXEL_INKS.find((i) => i.k === p.rows[cy]?.[cx])?.name ?? 'clear') })}</span>
       <div class="draw-tile-preview" style="background-image:${tileCss(p, 64)}" role="img" aria-label=${t('As a repeating background')}></div>
     </div>`;
   }

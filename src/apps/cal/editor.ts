@@ -22,7 +22,7 @@ import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { CalendarDays, ChartGantt, Check, CopyPlus, GripVertical, Grid3x3, Repeat as RepeatIcon } from 'lucide';
 import { applyAll, dayToYmd, family, parse, placeFamily, runLength, write, ymdString, ymdToDay, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { btn, cmdBtn, cmdMenu, dateNav } from '../../kit/bar.ts';
-import { drawnIn, run, runKey } from '../../kit/commands.ts';
+import { drawnIn, labelOf, run, runKey } from '../../kit/commands.ts';
 import COMMANDS, { AT } from './commands.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import type { ContextEntry } from '../../kit/context.ts';
@@ -864,7 +864,7 @@ export class ToCalEditor extends DocElement<CalView> {
     const own = (id: string) => COMMANDS.find((c) => c.id === `cal.${id}`)!;
     const p = this.view.gantt ? dayToYmd(this.ganttFrom() + this.scrolled) : this.shown;
     const label = this.view.gantt || this.mode !== 'year' ? this.monthName(p.y, p.m) : String(this.shown.y);
-    return dateNav({ label, prev: own('prev').label(this), next: own('next').label(this), onPrev: () => run(own('prev'), this), onNext: () => run(own('next'), this), onToday: () => run(own('today'), this) });
+    return dateNav({ label, prev: labelOf(own('prev'), this), next: labelOf(own('next'), this), onPrev: () => run(own('prev'), this), onNext: () => run(own('next'), this), onToday: () => run(own('today'), this) });
   }
   private monthName(y: number, m: number) {
     return new Intl.DateTimeFormat(language(), { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(y, m - 1, 1));

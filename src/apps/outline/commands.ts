@@ -8,7 +8,7 @@
  */
 import { ArrowDown, ArrowUp, Eye, FoldVertical, Link2, ListOrdered, Plus, UnfoldVertical, ZoomIn, ZoomOut } from 'lucide';
 import { appOf, apps } from '../../kit/apps.ts';
-import { command, register, type Command } from '../../kit/commands.ts';
+import { register, type Command, commandsOf } from '../../kit/commands.ts';
 import { t } from '../../kit/i18n.ts';
 import { UI } from '../../kit/icons.ts';
 import { hasChildren, indexAt, moveItem, shiftItem } from './model.ts';
@@ -16,43 +16,44 @@ import def from './def.ts';
 import type { ToOutlineEditor } from './editor.ts';
 
 type O = ToOutlineEditor;
+const cmd = commandsOf<O>('outline');
 /** The row a key was typed in, or the row with the caret for a button. */
 const at = (o: O, e?: Event) => (e instanceof KeyboardEvent ? o.rowOfKey(e) : o.sel);
 const none = (o: O) => !o.itemAt(o.sel);
 const words = (o: O) => !!o.itemAt(o.sel) && !o.itemAt(o.sel)!.doc;
 
 export const INSERTS: Command<O>[] = [
-  command<O>({ id: 'outline.insert.item', scope: 'outline', label: () => t('Item'), icon: Plus, where: ['menu:insert'], does: (o) => o.addItem() }),
-  command<O>({ id: 'outline.insert.web', scope: 'outline', label: () => t('Web Embed…'), icon: UI.globe, where: ['menu:insert'], does: (o) => o.insertWeb() }),
-  command<O>({ id: 'outline.insert.doc', scope: 'outline', label: () => t('Tiny Little Office Doc…'), icon: UI.insert, where: ['menu:insert'], does: (o) => o.insertLinked() }),
+  cmd('insert.item', 'Item', { icon: Plus, where: ['menu:insert'], does: (o) => o.addItem() }),
+  cmd('insert.web', 'Web Embed…', { icon: UI.globe, where: ['menu:insert'], does: (o) => o.insertWeb() }),
+  cmd('insert.doc', 'Tiny Little Office Doc…', { icon: UI.insert, where: ['menu:insert'], does: (o) => o.insertLinked() }),
   ...apps()
     .filter((a) => a.id !== 'outline')
-    .map((a) => command<O>({ id: `outline.insert.app.${a.id}`, scope: 'outline', label: () => a.name, icon: a.icon, heading: () => t('A new document'), where: ['menu:insert'], does: (o) => o.insertApp(a.id) })),
+    .map((a) => cmd(`insert.app.${a.id}`, () => a.name, { icon: a.icon, data: true, heading: 'A new document', where: ['menu:insert'], does: (o) => o.insertApp(a.id) })),
 ];
 
 const OUTLINE: Command<O>[] = [
-  command<O>({ id: 'outline.insert', scope: 'outline', label: () => t('Insert'), icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
+  cmd('insert', 'Insert', { icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
   ...INSERTS,
-  command<O>({ id: 'outline.icon', scope: 'outline', label: () => t('Icon'), icon: UI.icon, where: ['bar'], disabled: (o) => !words(o), does: (o) => o.pickIcon() }),
-  command<O>({ id: 'outline.indent', scope: 'outline', at: 'words', label: () => t('Indent'), icon: UI.indent, keys: 'Tab', where: ['bar'], disabled: (o) => none(o) || !shiftItem(o.doc, o.view, o.sel, 1), does: (o, e) => o.shiftBy(at(o, e), 1) }),
-  command<O>({ id: 'outline.outdent', scope: 'outline', at: 'words', label: () => t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', where: ['bar'], disabled: (o) => none(o) || !shiftItem(o.doc, o.view, o.sel, -1), does: (o, e) => o.shiftBy(at(o, e), -1) }),
-  command<O>({ id: 'outline.up', scope: 'outline', at: 'words', label: () => t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', where: ['bar'], disabled: (o) => none(o) || !moveItem(o.doc, o.view, o.sel, -1), does: (o, e) => o.moveBy(at(o, e), -1) }),
-  command<O>({ id: 'outline.down', scope: 'outline', at: 'words', label: () => t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', where: ['bar'], disabled: (o) => none(o) || !moveItem(o.doc, o.view, o.sel, 1), does: (o, e) => o.moveBy(at(o, e), 1) }),
-  command<O>({ id: 'outline.numbered', scope: 'outline', label: () => t('Numbered'), icon: ListOrdered, where: ['bar'], pressed: (o) => !!o.itemAt(o.sel)?.ord, disabled: (o) => !words(o), does: (o) => o.number() }),
-  command<O>({ id: 'outline.zoomout', scope: 'outline', at: 'words', label: () => t('Zoom out'), icon: ZoomOut, keys: 'Mod+Shift+,', where: ['bar'], document: true, when: (o) => o.zoom >= 0, does: (o) => o.zoomOut() }),
-  command<O>({ id: 'outline.zoomin', scope: 'outline', at: 'words', label: () => t('Zoom in'), icon: ZoomIn, keys: 'Mod+Shift+.', where: ['bar'], disabled: (o) => none(o) || !hasChildren(o.items, indexAt(o.view, o.sel)), does: (o, e) => o.zoomTo(at(o, e)) }),
-  command<O>({ id: 'outline.foldall', scope: 'outline', label: () => t('Fold all'), icon: FoldVertical, where: ['bar'], document: true, does: (o) => o.foldAll(true) }),
-  command<O>({ id: 'outline.unfoldall', scope: 'outline', label: () => t('Unfold all'), icon: UnfoldVertical, where: ['bar'], document: true, does: (o) => o.foldAll(false) }),
-  command<O>({ id: 'outline.connect', scope: 'outline', label: (o) => (o?.connecting ? t('Cancel connecting') : t('Connect')), icon: Link2, where: ['bar'], pressed: (o) => !!o.connecting, does: (o) => o.connect() }),
-  command<O>({ id: 'outline.view', scope: 'outline', label: () => t('View as'), icon: Eye, menu: 'view', where: ['bar'], document: true, takesFocus: true, does: () => undefined }),
-  command<O>({ id: 'outline.view.page', scope: 'outline', label: () => t('As a page'), icon: UI.print, where: ['menu:view'], does: (o) => o.showPage() }),
+  cmd('icon', 'Icon', { icon: UI.icon, where: ['bar'], disabled: (o) => !words(o), does: (o) => o.pickIcon() }),
+  cmd('indent', 'Indent', { at: 'words', icon: UI.indent, keys: 'Tab', where: ['bar'], disabled: (o) => none(o) || !shiftItem(o.doc, o.view, o.sel, 1), does: (o, e) => o.shiftBy(at(o, e), 1) }),
+  cmd('outdent', 'Bring out', { at: 'words', icon: UI.outdent, keys: 'Shift+Tab', where: ['bar'], disabled: (o) => none(o) || !shiftItem(o.doc, o.view, o.sel, -1), does: (o, e) => o.shiftBy(at(o, e), -1) }),
+  cmd('up', 'Move up', { at: 'words', icon: ArrowUp, keys: 'Alt+ArrowUp', where: ['bar'], disabled: (o) => none(o) || !moveItem(o.doc, o.view, o.sel, -1), does: (o, e) => o.moveBy(at(o, e), -1) }),
+  cmd('down', 'Move down', { at: 'words', icon: ArrowDown, keys: 'Alt+ArrowDown', where: ['bar'], disabled: (o) => none(o) || !moveItem(o.doc, o.view, o.sel, 1), does: (o, e) => o.moveBy(at(o, e), 1) }),
+  cmd('numbered', 'Numbered', { icon: ListOrdered, where: ['bar'], pressed: (o) => !!o.itemAt(o.sel)?.ord, disabled: (o) => !words(o), does: (o) => o.number() }),
+  cmd('zoomout', 'Zoom out', { at: 'words', icon: ZoomOut, keys: 'Mod+Shift+,', where: ['bar'], document: true, when: (o) => o.zoom >= 0, does: (o) => o.zoomOut() }),
+  cmd('zoomin', 'Zoom in', { at: 'words', icon: ZoomIn, keys: 'Mod+Shift+.', where: ['bar'], disabled: (o) => none(o) || !hasChildren(o.items, indexAt(o.view, o.sel)), does: (o, e) => o.zoomTo(at(o, e)) }),
+  cmd('foldall', 'Fold all', { icon: FoldVertical, where: ['bar'], document: true, does: (o) => o.foldAll(true) }),
+  cmd('unfoldall', 'Unfold all', { icon: UnfoldVertical, where: ['bar'], document: true, does: (o) => o.foldAll(false) }),
+  cmd('connect', (o) => (o?.connecting ? t('Cancel connecting') : t('Connect')), { icon: Link2, where: ['bar'], pressed: (o) => !!o.connecting, does: (o) => o.connect() }),
+  cmd('view', 'View as', { icon: Eye, menu: 'view', where: ['bar'], document: true, takesFocus: true, does: () => undefined }),
+  cmd('view.page', 'As a page', { icon: UI.print, where: ['menu:view'], does: (o) => o.showPage() }),
   ...(def.handoffs ?? []).map((h, i) =>
-    command<O>({ id: `outline.view.${h.to}${i}`, scope: 'outline', label: () => h.label(), icon: appOf(h.to)?.icon, where: ['menu:view'], when: () => !!appOf(h.to), does: (o) => o.openAs(h) }),
+    cmd(`view.${h.to}${i}`, () => h.label(), { icon: appOf(h.to)?.icon, where: ['menu:view'], when: () => !!appOf(h.to), does: (o) => o.openAs(h) }),
   ),
-  command<O>({ id: 'outline.fold', scope: 'outline', at: 'words', label: () => t('Fold, unfold'), keys: 'Mod+Alt+ArrowUp / Mod+Alt+ArrowDown', where: ['keys-only'], does: (o, e) => o.fold(at(o, e), !(e instanceof KeyboardEvent) || e.key === 'ArrowUp') }),
-  command<O>({ id: 'outline.duplicate', scope: 'outline', at: 'words', label: () => t('Duplicate'), keys: 'Mod+D', where: ['keys-only'], does: (o, e) => o.duplicateRow(at(o, e)) }),
-  command<O>({ id: 'outline.remove', scope: 'outline', at: 'words', label: () => t('Delete'), keys: 'Delete / Backspace', where: ['keys-only'], does: (o, e) => o.removeDocRow(at(o, e), e) }),
-  command<O>({ id: 'outline.step', scope: 'outline', at: 'words', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown / ArrowLeft / ArrowRight', where: ['keys-only'], does: (o, e) => e instanceof KeyboardEvent && o.stepRow(e) }),
+  cmd('fold', 'Fold, unfold', { at: 'words', keys: 'Mod+Alt+ArrowUp / Mod+Alt+ArrowDown', where: ['keys-only'], does: (o, e) => o.fold(at(o, e), !(e instanceof KeyboardEvent) || e.key === 'ArrowUp') }),
+  cmd('duplicate', 'Duplicate', { at: 'words', keys: 'Mod+D', where: ['keys-only'], does: (o, e) => o.duplicateRow(at(o, e)) }),
+  cmd('remove', 'Delete', { at: 'words', keys: 'Delete / Backspace', where: ['keys-only'], does: (o, e) => o.removeDocRow(at(o, e), e) }),
+  cmd('step', 'The next or the one before', { at: 'words', keys: 'ArrowUp / ArrowDown / ArrowLeft / ArrowRight', where: ['keys-only'], does: (o, e) => e instanceof KeyboardEvent && o.stepRow(e) }),
 ];
 
 export default register(OUTLINE) as Command<O>[];

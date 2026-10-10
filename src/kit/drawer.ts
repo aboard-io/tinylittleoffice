@@ -36,7 +36,7 @@ import './preview.ts';
 import type { ToDialog } from './dialog.ts';
 import type { MenuItem } from './menu.ts';
 import './menu.ts';
-import { coarse, drawnIn, inScope, keysText, run } from './commands.ts';
+import { coarse, drawnIn, inScope, keysText, labelOf, run } from './commands.ts';
 import { DOWNLOAD, SHARE, type Page } from './keys.ts';
 import type { Offer } from './palette.ts';
 import type { ToPrivacy } from './privacy-dialog.ts';
@@ -163,8 +163,8 @@ export class ToDrawer extends LitElement {
         ${this.open && this.downloads
           ? html`<section class="to-drawer-section to-drawer-doc" aria-label=${t('This document')}>
               <h3 class="to-drawer-head3">${t('This document')}</h3>
-              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${SHARE.label()}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
-              <to-menu class="to-drawer-download" .label=${DOWNLOAD.label()} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
+              <button type="button" class="to-btn to-drawer-share" @click=${() => (this.close(), this.dispatchEvent(new CustomEvent('to-share-open', { bubbles: true })))}>${icon(SHARE.icon!, 18)}<span>${labelOf(SHARE)}</span><kbd class="to-menu-keys">${keysText(SHARE.keys!)}</kbd></button>
+              <to-menu class="to-drawer-download" .label=${labelOf(DOWNLOAD)} .icon=${DOWNLOAD.icon} .keys=${DOWNLOAD.keys} .items=${this.downloads}></to-menu>
               ${coarse() ? this.renderCommands() : nothing}
             </section>`
           : nothing}
@@ -240,8 +240,8 @@ export class ToDrawer extends LitElement {
     return html`<h3 class="to-drawer-head3 to-drawer-app">${apps().find((a) => a.id === scope)?.name ?? ''}</h3>
       ${offers.map(({ cmd, c }) =>
         cmd.menu
-          ? html`<to-menu class="to-drawer-cmd" .label=${cmd.label(c)} .icon=${cmd.icon ?? null} .items=${drawnIn(inScope(scope), `menu:${cmd.menu}`, c).map((d) => ({ ...d, does: () => (this.close(), d.does()) }))}></to-menu>`
-          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} @click=${() => (this.close(), void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${cmd.label(c)}</span>${cmd.keys ? html`<kbd class="to-menu-keys">${keysText(cmd.keys)}</kbd>` : nothing}</button>`,
+          ? html`<to-menu class="to-drawer-cmd" .label=${labelOf(cmd, c)} .icon=${cmd.icon ?? null} .items=${drawnIn(inScope(scope), `menu:${cmd.menu}`, c).map((d) => ({ ...d, does: () => (this.close(), d.does()) }))}></to-menu>`
+          : html`<button type="button" class="to-btn to-drawer-cmd" ?disabled=${!!cmd.disabled?.(c)} @click=${() => (this.close(), void run(cmd, c))}>${cmd.icon ? icon(cmd.icon, 18) : nothing}<span>${labelOf(cmd, c)}</span>${cmd.keys ? html`<kbd class="to-menu-keys">${keysText(cmd.keys)}</kbd>` : nothing}</button>`,
       )}`;
   }
 

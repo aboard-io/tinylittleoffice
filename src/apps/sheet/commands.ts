@@ -10,13 +10,14 @@
  */
 import { ArrowDown, ArrowDownToLine, ArrowRightToLine, ArrowUp, ChartColumn, ClipboardPaste, Columns3, Copy, Eraser, Lock, Maximize2, Rows3, Scaling, Scissors, Trash2 } from 'lucide';
 import { CHART_KINDS, suggestChart } from '../../kit/chart.ts';
-import { command, register, type Command } from '../../kit/commands.ts';
+import { register, type Command, commandsOf } from '../../kit/commands.ts';
 import { t } from '../../kit/i18n.ts';
 import { MAX_COLS, ROWS } from '../../doc/index.ts';
 import { chartOfSheet } from './view.ts';
 import type { ToSheetEditor } from './editor.ts';
 
 type S = ToSheetEditor;
+const cmd = commandsOf<S>('sheet');
 const here = (s: S) => s.here ?? { r: s.sel[0], c: s.sel[1], at: null };
 /** The rows a row's menu is for, said: "row 3", "rows 2–5". */
 const which = (s: S) => {
@@ -32,41 +33,38 @@ const rowHead = (s?: S) => {
 const ARROWS: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
 
 const SHEET: Command<S>[] = [
-  command<S>({ id: 'sheet.insert', scope: 'sheet', label: () => t('Insert'), icon: Rows3, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
-  command<S>({ id: 'sheet.insert.above', scope: 'sheet', at: 'cell', label: () => t('Row above'), icon: Rows3, keys: 'Mod+Alt+=', where: ['menu:insert'], does: (s, e) => s.insertRowsAt(false, e instanceof KeyboardEvent ? here(s).r : undefined) }),
-  command<S>({ id: 'sheet.insert.below', scope: 'sheet', label: () => t('Row below'), icon: Rows3, where: ['menu:insert'], does: (s) => s.insertRowsAt(true) }),
-  command<S>({ id: 'sheet.insert.column', scope: 'sheet', label: () => t('Column after'), icon: Columns3, where: ['menu:insert'], disabled: (s) => s.cols >= MAX_COLS, does: (s) => s.addColumn(s.sel[1] + 1) }),
-  // A chart goes above the table, of the kind the numbers suggest; the Chart menu changes its kind.
-  command<S>({ id: 'sheet.insert.chart', scope: 'sheet', label: () => t('Chart'), icon: ChartColumn, hint: (s) => (s?.view.table.chart ? t('The sheet has one') : undefined), where: ['menu:insert'], disabled: (s) => !!s.view.table.chart, does: (s) => s.chart(suggestChart(chartOfSheet(s.view)) || 'bar') }),
-  command<S>({ id: 'sheet.chart', scope: 'sheet', label: () => t('Chart'), icon: ChartColumn, menu: 'chart', where: ['bar'], document: true, takesFocus: true, does: () => undefined }),
-  command<S>({ id: 'sheet.chart.none', scope: 'sheet', label: () => t('No chart'), where: ['menu:chart'], pressed: (s) => s.view.table.chart === '', does: (s) => s.chart('') }),
-  ...CHART_KINDS.map((k) => command<S>({ id: `sheet.chart.${k.id}`, scope: 'sheet', label: () => k.name(), hint: (s) => (s && k.id === suggestChart(chartOfSheet(s.view)) ? t('suggested') : undefined), where: ['menu:chart'], pressed: (s) => s.view.table.chart === k.id, does: (s) => s.chart(k.id) })),
-  command<S>({ id: 'sheet.filldown', scope: 'sheet', at: 'cell', label: () => t('Fill down from the top row'), icon: ArrowDownToLine, keys: 'Mod+D', where: ['bar', 'context'], group: 'fill', disabled: (s) => !s.many && s.here === null, does: (s) => s.fill(true) }),
-  command<S>({ id: 'sheet.fillright', scope: 'sheet', label: () => t('Fill right from the first column'), icon: ArrowRightToLine, where: ['bar', 'context'], group: 'fill', disabled: (s) => !s.many, does: (s) => s.fill(false) }),
-  command<S>({ id: 'sheet.fit', scope: 'sheet', label: () => t('Fit the columns to the page'), icon: Maximize2, where: ['bar'], document: true, pressed: (s) => !s.widths, does: (s) => (s.widths = null) }),
-  command<S>({ id: 'sheet.showall', scope: 'sheet', label: () => t('Show all the text'), icon: Scaling, where: ['bar'], document: true, pressed: (s) => !!s.widths, does: (s) => s.showAll() }),
-  command<S>({ id: 'sheet.lock', scope: 'sheet', label: (s) => (s && s.locked(s.sel[0], s.sel[1]) ? t('Unlock these cells') : t('Lock these cells, so a reader leaves them be')), icon: Lock, where: ['bar'], pressed: (s) => s.locked(s.sel[0], s.sel[1]), does: (s) => s.toggleLock() }),
-  command<S>({ id: 'sheet.copy', scope: 'sheet', at: 'cell', label: () => t('Copy'), icon: Copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', does: (s) => s.copyOut(false) }),
-  command<S>({ id: 'sheet.cut', scope: 'sheet', at: 'cell', label: () => t('Cut'), icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', does: (s) => s.copyOut(true) }),
-  command<S>({ id: 'sheet.paste', scope: 'sheet', at: 'cell', label: () => t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', does: (s) => s.pasteFromClipboard() }),
-  command<S>({ id: 'sheet.clear', scope: 'sheet', at: 'cell', label: () => t('Clear these cells'), icon: Eraser, keys: 'Delete / Backspace', where: ['context'], group: 'clear', when: (s) => s.many, does: (s) => s.clear() }),
-  // A row's menu (a tap on its number): the rows it is for under their name.
-  command<S>({ id: 'sheet.row', scope: 'sheet', label: (s) => t('Row {n}', { n: (s?.menuRow ?? 0) + 1 }), menu: 'row', where: ['in-doc'], does: () => undefined }),
-  command<S>({ id: 'sheet.row.above', scope: 'sheet', label: (s) => t('Insert {n|a row|# rows} above', { n: s ? rowsIn(s) : 1 }), icon: ArrowUp, heading: rowHead, where: ['menu:row'], disabled: (s) => s.view.used.rows > ROWS - rowsIn(s), does: (s) => s.insertRowsAt(false, s.menuRow) }),
-  command<S>({ id: 'sheet.row.below', scope: 'sheet', label: (s) => t('Insert {n|a row|# rows} below', { n: s ? rowsIn(s) : 1 }), icon: ArrowDown, heading: rowHead, where: ['menu:row'], disabled: (s) => s.view.used.rows > ROWS - rowsIn(s), does: (s) => s.insertRowsAt(true, s.menuRow) }),
-  command<S>({ id: 'sheet.row.up', scope: 'sheet', at: 'cell', label: () => t('Move up'), icon: ArrowUp, keys: 'Alt+ArrowUp', heading: rowHead, where: ['menu:row'], disabled: (s) => !s.here && s.rowsFor(s.menuRow)[0] === 0, does: (s, e) => s.moveRowsBy(-1, e instanceof KeyboardEvent ? here(s).r : s.menuRow) }),
-  command<S>({ id: 'sheet.row.down', scope: 'sheet', at: 'cell', label: () => t('Move down'), icon: ArrowDown, keys: 'Alt+ArrowDown', heading: rowHead, where: ['menu:row'], disabled: (s) => !s.here && s.rowsFor(s.menuRow)[1] >= ROWS - 1, does: (s, e) => s.moveRowsBy(1, e instanceof KeyboardEvent ? here(s).r : s.menuRow) }),
-  command<S>({ id: 'sheet.row.delete', scope: 'sheet', at: 'cell', label: (s) => t('Delete {which}', { which: s ? which(s) : '' }), icon: Trash2, keys: 'Mod+Alt+-', heading: rowHead, where: ['menu:row'], does: (s, e) => s.deleteRowsAt(e instanceof KeyboardEvent ? here(s).r : s.menuRow) }),
-  // The grid's keys in a cell.
-  command<S>({ id: 'sheet.all', scope: 'sheet', at: 'cell', label: () => t('Select all: the words of the box, then everything'), keys: 'Mod+A', where: ['keys-only'], does: (s) => s.selectAllKey() }),
-  command<S>({ id: 'sheet.done', scope: 'sheet', at: 'cell', label: () => t('Done'), keys: 'Mod+Enter', where: ['keys-only'], does: (s) => s.doneHere() }),
-  command<S>({ id: 'sheet.next', scope: 'sheet', at: 'cell', label: () => t('Indent or bring out in a list; the next cell in a grid'), keys: 'Tab / Shift+Tab', where: ['keys-only'], does: (s, e) => s.tabKey(e instanceof KeyboardEvent && e.shiftKey) }),
-  command<S>({ id: 'sheet.edit', scope: 'sheet', at: 'cell', label: () => t('Edit the cell, the caret at its end'), keys: 'F2', where: ['keys-only'], does: (s) => s.here?.at?.toEnd() }),
-  command<S>({ id: 'sheet.stretch', scope: 'sheet', at: 'cell', label: () => t('Extend the selection'), keys: 'Shift+ArrowUp / Shift+ArrowDown / Shift+ArrowLeft / Shift+ArrowRight', where: ['keys-only'], does: (s, e) => e instanceof KeyboardEvent && s.stretch(ARROWS[e.key]) }),
-  command<S>({ id: 'sheet.tick', scope: 'sheet', at: 'cell', label: () => t('Tick or untick a task'), keys: 'Space', where: ['keys-only'], does: (s) => s.tickHere() }),
-  command<S>({ id: 'sheet.letgo', scope: 'sheet', at: 'cell', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], when: (s) => s.many, does: (s) => void (s.end = null) }),
-  command<S>({ id: 'sheet.cancel', scope: 'sheet', at: 'cell', label: () => t('Put back what the cell held'), keys: 'Escape', where: ['keys-only'], does: (s) => s.cancelHere() }),
-  command<S>({ id: 'sheet.move', scope: 'sheet', at: 'cell', label: () => t('The next or the one before'), keys: 'Enter / Shift+Enter / ArrowDown / ArrowUp / ArrowLeft / ArrowRight', where: ['keys-only'], does: (s, e) => e instanceof KeyboardEvent && s.moveKey(e) }),
+  cmd('insert', 'Insert', { icon: Rows3, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
+  cmd('insert.above', 'Row above', { at: 'cell', icon: Rows3, keys: 'Mod+Alt+=', where: ['menu:insert'], does: (s, e) => s.insertRowsAt(false, e instanceof KeyboardEvent ? here(s).r : undefined) }),
+  cmd('insert.below', 'Row below', { icon: Rows3, where: ['menu:insert'], does: (s) => s.insertRowsAt(true) }),
+  cmd('insert.column', 'Column after', { icon: Columns3, where: ['menu:insert'], disabled: (s) => s.cols >= MAX_COLS, does: (s) => s.addColumn(s.sel[1] + 1) }),
+  cmd('insert.chart', 'Chart', { icon: ChartColumn, hint: (s) => (s?.view.table.chart ? t('The sheet has one') : undefined), where: ['menu:insert'], disabled: (s) => !!s.view.table.chart, does: (s) => s.chart(suggestChart(chartOfSheet(s.view)) || 'bar') }),
+  cmd('chart', 'Chart', { icon: ChartColumn, menu: 'chart', where: ['bar'], document: true, takesFocus: true, does: () => undefined }),
+  cmd('chart.none', 'No chart', { where: ['menu:chart'], pressed: (s) => s.view.table.chart === '', does: (s) => s.chart('') }),
+  ...CHART_KINDS.map((k) => cmd(`chart.${k.id}`, () => k.name(), { hint: (s) => (s && k.id === suggestChart(chartOfSheet(s.view)) ? t('suggested') : undefined), where: ['menu:chart'], pressed: (s) => s.view.table.chart === k.id, does: (s) => s.chart(k.id) })),
+  cmd('filldown', 'Fill down from the top row', { at: 'cell', icon: ArrowDownToLine, keys: 'Mod+D', where: ['bar', 'context'], group: 'fill', disabled: (s) => !s.many && s.here === null, does: (s) => s.fill(true) }),
+  cmd('fillright', 'Fill right from the first column', { icon: ArrowRightToLine, where: ['bar', 'context'], group: 'fill', disabled: (s) => !s.many, does: (s) => s.fill(false) }),
+  cmd('fit', 'Fit the columns to the page', { icon: Maximize2, where: ['bar'], document: true, pressed: (s) => !s.widths, does: (s) => (s.widths = null) }),
+  cmd('showall', 'Show all the text', { icon: Scaling, where: ['bar'], document: true, pressed: (s) => !!s.widths, does: (s) => s.showAll() }),
+  cmd('lock', (s) => (s && s.locked(s.sel[0], s.sel[1]) ? t('Unlock these cells') : t('Lock these cells, so a reader leaves them be')), { icon: Lock, where: ['bar'], pressed: (s) => s.locked(s.sel[0], s.sel[1]), does: (s) => s.toggleLock() }),
+  cmd('copy', 'Copy', { at: 'cell', icon: Copy, keys: 'Mod+C', native: true, where: ['context'], group: 'clip', does: (s) => s.copyOut(false) }),
+  cmd('cut', 'Cut', { at: 'cell', icon: Scissors, keys: 'Mod+X', native: true, where: ['context'], group: 'clip', does: (s) => s.copyOut(true) }),
+  cmd('paste', 'Paste', { at: 'cell', icon: ClipboardPaste, keys: 'Mod+V', native: true, where: ['context'], group: 'clip', does: (s) => s.pasteFromClipboard() }),
+  cmd('clear', 'Clear these cells', { at: 'cell', icon: Eraser, keys: 'Delete / Backspace', where: ['context'], group: 'clear', when: (s) => s.many, does: (s) => s.clear() }),
+  cmd('row', (s) => t('Row {n}', { n: (s?.menuRow ?? 0) + 1 }), { menu: 'row', where: ['in-doc'], does: () => undefined }),
+  cmd('row.above', (s) => t('Insert {n|a row|# rows} above', { n: s ? rowsIn(s) : 1 }), { icon: ArrowUp, heading: rowHead, where: ['menu:row'], disabled: (s) => s.view.used.rows > ROWS - rowsIn(s), does: (s) => s.insertRowsAt(false, s.menuRow) }),
+  cmd('row.below', (s) => t('Insert {n|a row|# rows} below', { n: s ? rowsIn(s) : 1 }), { icon: ArrowDown, heading: rowHead, where: ['menu:row'], disabled: (s) => s.view.used.rows > ROWS - rowsIn(s), does: (s) => s.insertRowsAt(true, s.menuRow) }),
+  cmd('row.up', 'Move up', { at: 'cell', icon: ArrowUp, keys: 'Alt+ArrowUp', heading: rowHead, where: ['menu:row'], disabled: (s) => !s.here && s.rowsFor(s.menuRow)[0] === 0, does: (s, e) => s.moveRowsBy(-1, e instanceof KeyboardEvent ? here(s).r : s.menuRow) }),
+  cmd('row.down', 'Move down', { at: 'cell', icon: ArrowDown, keys: 'Alt+ArrowDown', heading: rowHead, where: ['menu:row'], disabled: (s) => !s.here && s.rowsFor(s.menuRow)[1] >= ROWS - 1, does: (s, e) => s.moveRowsBy(1, e instanceof KeyboardEvent ? here(s).r : s.menuRow) }),
+  cmd('row.delete', (s) => t('Delete {which}', { which: s ? which(s) : '' }), { at: 'cell', icon: Trash2, keys: 'Mod+Alt+-', heading: rowHead, where: ['menu:row'], does: (s, e) => s.deleteRowsAt(e instanceof KeyboardEvent ? here(s).r : s.menuRow) }),
+  cmd('all', 'Select all: the words of the box, then everything', { at: 'cell', keys: 'Mod+A', where: ['keys-only'], does: (s) => s.selectAllKey() }),
+  cmd('done', 'Done', { at: 'cell', keys: 'Mod+Enter', where: ['keys-only'], does: (s) => s.doneHere() }),
+  cmd('next', 'Indent or bring out in a list; the next cell in a grid', { at: 'cell', keys: 'Tab / Shift+Tab', where: ['keys-only'], does: (s, e) => s.tabKey(e instanceof KeyboardEvent && e.shiftKey) }),
+  cmd('edit', 'Edit the cell, the caret at its end', { at: 'cell', keys: 'F2', where: ['keys-only'], does: (s) => s.here?.at?.toEnd() }),
+  cmd('stretch', 'Extend the selection', { at: 'cell', keys: 'Shift+ArrowUp / Shift+ArrowDown / Shift+ArrowLeft / Shift+ArrowRight', where: ['keys-only'], does: (s, e) => e instanceof KeyboardEvent && s.stretch(ARROWS[e.key]) }),
+  cmd('tick', 'Tick or untick a task', { at: 'cell', keys: 'Space', where: ['keys-only'], does: (s) => s.tickHere() }),
+  cmd('letgo', 'Step out: close, collapse, let go', { at: 'cell', keys: 'Escape', where: ['keys-only'], when: (s) => s.many, does: (s) => void (s.end = null) }),
+  cmd('cancel', 'Put back what the cell held', { at: 'cell', keys: 'Escape', where: ['keys-only'], does: (s) => s.cancelHere() }),
+  cmd('move', 'The next or the one before', { at: 'cell', keys: 'Enter / Shift+Enter / ArrowDown / ArrowUp / ArrowLeft / ArrowRight', where: ['keys-only'], does: (s, e) => e instanceof KeyboardEvent && s.moveKey(e) }),
 ];
 
 export default register(SHEET) as Command<S>[];

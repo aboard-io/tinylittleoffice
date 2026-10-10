@@ -3,9 +3,9 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { keyList, keyOf, keysText, normalKey, runKey, command } from '../src/kit/commands.ts';
+import { keyList, keyOf, keysText, labelOf, normalKey, runKey, command } from '../src/kit/commands.ts';
 import { definedKeys } from '../scripts/i18n-extract.ts';
-import { editingDoc } from '../scripts/commands.ts';
+import { editingDoc, editingTables } from '../scripts/commands.ts';
 import { makeSkill } from '../scripts/make-skill.ts';
 import { apps } from '../src/kit/apps.ts';
 import { allCommands, collisions } from './commands-graph.ts';
@@ -62,16 +62,17 @@ describe('the graph lints', () => {
     // The keys a label's function passes to t(), as written (the test's transform calls t as `(0, import.t)(…)`).
     const literals = (fn: unknown) => [...String(fn).matchAll(/(?:\bt|\.t\))\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)].map((m) => m[2].replace(/\\(['"`\\])/g, '$1'));
     const bad = all.filter((c) => {
+      if (typeof c.label === 'string') return !en.has(c.label);
       const literals_ = literals(c.label);
-      return literals_.length ? !literals_.every((k) => en.has(k)) : !en.has(c.label());
+      return literals_.length ? !literals_.every((k) => en.has(k)) : !en.has(labelOf(c));
     });
-    expect(bad.map((c) => `${c.id}: "${c.label()}"`)).toStrictEqual([]);
+    expect(bad.map((c) => `${c.id}: "${labelOf(c)}"`)).toStrictEqual([]);
   });
 
   test('no two commands of a scope share a label at one place, unless one of them is in force only sometimes', () => {
     const by = new Map<string, string[]>();
     for (const c of all.filter((x) => !x.menu && !x.when)) {
-      const k = `${c.scope} at ${c.at ?? 'everywhere'}: ${c.label()}`;
+      const k = `${c.scope} at ${c.at ?? 'everywhere'}: ${labelOf(c)}`;
       by.set(k, [...(by.get(k) ?? []), c.id]);
     }
     expect([...by].filter(([, ids]) => ids.length > 1).map(([k, ids]) => `${k} (${ids.join(', ')})`)).toStrictEqual([]);
@@ -137,6 +138,13 @@ describe('the keys as the registry reads them', () => {
 describe('what the registry writes is current (npm run commands)', () => {
   test('docs/editing.md’s tables are the registry’s', () => {
     expect(read('docs/editing.md'), 'run npm run commands').toBe(editingDoc());
+  });
+  test('rows of data (themes, inks, a new document of each app) are drawn but left out of the tables, and none has keys', () => {
+    const data = all.filter((c) => c.data);
+    expect(data.length).toBeGreaterThan(20);
+    expect(data.filter((c) => c.keys).map((c) => c.id)).toStrictEqual([]);
+    const rows = editingTables().split('\n').filter((l) => /^\| [^K-]/.test(l) || /^\| \| /.test(l)).length;
+    expect(rows).toBe(all.filter((c) => !c.menu && !c.data).length);
   });
   test('the skill lists the keys of every app', () => {
     const skill = makeSkill();

@@ -24,7 +24,7 @@ import { gateSvg } from '../../kit/pictures.ts';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, ChevronDown, ChevronRight, GripVertical, ListOrdered, Minus, ZoomIn } from 'lucide';
 import { applyAll, family, fenceRef, isAtomic, isText, listNumbers, plainText, runLength, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { cmdBtn, cmdTool, tool } from '../../kit/bar.ts';
-import { drawnIn, runKey } from '../../kit/commands.ts';
+import { drawnIn, labelOf, runKey } from '../../kit/commands.ts';
 import { BOLD, FOOTNOTE, HIGHLIGHT, ITALIC, LINK, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
 import type { Handoff } from '../../kit/app.ts';
 import COMMANDS from './commands.ts';
@@ -755,7 +755,7 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
       ${cmdTool(FOOTNOTE, x)}
       ${['indent', 'outdent', 'up', 'down', 'numbered', 'zoomout', 'zoomin', 'foldall', 'unfoldall'].map((id) => cmdTool(own(id), this))}
       ${cmdBtn(own('connect'), this, { icon: this.connecting ? UI.close : undefined })}
-      <to-menu class="ol-view-as" .label=${view.label(this)} .icon=${view.icon} caret .items=${drawnIn(COMMANDS, 'menu:view', this)}></to-menu>
+      <to-menu class="ol-view-as" .label=${labelOf(view, this)} .icon=${view.icon} caret .items=${drawnIn(COMMANDS, 'menu:view', this)}></to-menu>
       ${this.undoTools()}
     </to-bar>`;
   }

@@ -33,7 +33,7 @@ import { remScale } from './zoom.ts';
 import { scrollerOf } from './scroll.ts';
 import { html, type ReactiveController, type ReactiveControllerHost, type TemplateResult } from 'lit';
 import { SEP, type ContextEntry, type ToContext } from './context.ts';
-import { contextOf, runKey } from './commands.ts';
+import { contextOf, labelOf, runKey } from './commands.ts';
 import { ROWS_COMMANDS } from './rows-commands.ts';
 import { t } from './i18n.ts';
 import './context.ts';
@@ -318,7 +318,7 @@ export class Rows<Id = number> implements ReactiveController {
     const s = this.range ? this.span() : null;
     if (!s) return [];
     const items = contextOf(ROWS_COMMANDS, this as Rows<unknown>) as ContextEntry[];
-    const down = items.findIndex((it) => it !== SEP && it.label === ROWS_COMMANDS.find((c) => c.id === 'rows.down')!.label());
+    const down = items.findIndex((it) => it !== SEP && it.label === labelOf(ROWS_COMMANDS.find((c) => c.id === 'rows.down')!));
     items.splice(down + 1, 0, ...(this.o.extra?.(s) ?? []));
     return items;
   }

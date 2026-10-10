@@ -8,7 +8,7 @@ import editing from '../../docs/editing.md?raw';
 import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { appOf, apps } from '../../src/kit/apps.ts';
-import { keyList, register, registered, trace, type Command } from '../../src/kit/commands.ts';
+import { keyList, labelOf, register, registered, trace, type Command } from '../../src/kit/commands.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import { objectsOf, objId } from '../../src/apps/site/model.ts';
 import '../../src/kit/rows-commands.ts';
@@ -211,7 +211,7 @@ test('every key in docs/editing.md’s tables runs the command its row names, pr
   const all = registered();
   const missed: string[] = [];
   for (const row of table) {
-    const cmd = all.find((c) => c.scope === row.scope && c.label() === row.label && keyList(c.keys).join(' ') === row.keys.join(' '));
+    const cmd = all.find((c) => c.scope === row.scope && labelOf(c) === row.label && keyList(c.keys).join(' ') === row.keys.join(' '));
     if (!cmd) {
       missed.push(`${row.scope}: ${row.label}: no such command`);
       continue;

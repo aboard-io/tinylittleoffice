@@ -2,8 +2,9 @@
  * The command registry: every thing a person can do from a bar, a menu, a context bar, the drawer or a key, declared
  * once. A command is an id, its words (through t()), an icon, its keys, the scope it is bound in, where it is drawn,
  * when it is in force, and what it does to its scope's context: the shell for 'kit', a <to-text> for 'text', an app's
- * editor element for that app's id. The kit's are kit-commands.ts, the words' text-commands.ts, an app's its own
- * commands.ts beside its editor (reached through AppDef.commands). Everything else is drawn or checked from these:
+ * editor element for that app's id. The kit's are keys.ts, the words' text-commands.ts, the rows' rows-commands.ts,
+ * an app's its own commands.ts beside its editor (reached through AppDef.commands). Everything else is drawn or
+ * checked from these:
  *
  * - the bars (bar.ts `cmdTool`), the menus (`menuOf`), the context bars and the selection bubble (`entryOf`);
  * - the keys: each scope's element answers its own keydown with `runKey(e, its commands, its context)`, inner first
@@ -13,12 +14,26 @@
  * - the graph lints (test/commands.test.ts): no key bound twice in one chain of scopes unless allowed, every bar
  *   command reachable by its keys or the bar's arrows, every label a string of en.ts, every command run by a test.
  *
+ * A command's words are a key of en.ts, put through t() when drawn (a function of the context only where they say what
+ * is in hand), and a scope declares its commands through its maker (`commandsOf`), terse, since an app's load with it.
+ * Rows that are data rather than commands (themes, inks, a new document of each app) are `data: true`: drawn and found
+ * by the palette, left out of the generated tables. Menus whose rows are the document's data and not commands stay
+ * hand-built and are not to be moved here: the sheet's column kinds and formula functions, the deck's slide-document
+ * menu, the outline's line menu, the calendar's date and time-zone dialogs, and themes and inks wherever they are
+ * not rows of a menu here already.
+ *
  * Keys are written "Mod+Alt+Shift+Key" (Mod is ⌘ on Apple devices, Ctrl elsewhere), alternatives joined by " / ";
  * the key is a letter in capitals, a digit, a sign (".", ",", "[", "=", "/"), or a key's name (Enter, Escape, Tab,
  * Space, Delete, Backspace, ArrowUp…, Home, End, PageUp, PageDown, F2). keysText() is the one place they are spelled
  * for a person, a Mac's way or Windows'. Nothing here touches the DOM: the lints and the scripts read it under node.
  */
 import type { IconNode } from 'lucide';
+import { t } from './i18n.ts';
+
+/** Words a command shows: a key of en.ts, put through t() when drawn, or, where they say what is in hand, a function of the context. */
+export type Words<C, R = string> = string | ((c?: C) => R);
+/** Words drawn in this context (none in hand: undefined). */
+export const say = <C, R extends string | undefined>(w: Words<C, R> | undefined, c?: C): R | string | undefined => (typeof w === 'string' ? t(w) : w?.(c));
 
 /** Where a command is drawn: the app's bar, a menu of it (`menu:align`), the context bar, the drawer's This document, in the document itself (a row's number, a task's options), or nowhere (a key alone). */
 export type Where = 'bar' | `menu:${string}` | 'context' | 'drawer' | 'in-doc' | 'keys-only';
@@ -27,11 +42,11 @@ export type Where = 'bar' | `menu:${string}` | 'context' | 'drawer' | 'in-doc' |
 export interface Command<C = any> {
   /** "write.title", "text.bold", "kit.undo": the scope, a dot, a name. */
   id: string;
-  /** Its words, through t(); given the context where they say what is in hand ("Move slide up", "Pause"). */
-  label: (c?: C) => string;
+  /** Its words: a key of en.ts, or a function of the context where they say what is in hand ("Move slide up", "Pause"). */
+  label: Words<C>;
   icon?: IconNode;
   /** A second line or a tooltip's longer words, through t() (none, given the context, where there is nothing to add). */
-  hint?: (c?: C) => string | undefined;
+  hint?: Words<C, string | undefined>;
   /** The keys that run it, alternatives joined by " / ". */
   keys?: string;
   /** 'kit', 'text', or an app's id. */
@@ -55,11 +70,13 @@ export interface Command<C = any> {
   /** A menu (the bar draws a <to-menu>): its items are the commands drawn in `menu:<this>`. */
   menu?: string;
   /** Words drawn on the button in the icon's place ("S", "M", "L": a text size). */
-  letter?: (c?: C) => string;
+  letter?: Words<C>;
   /** A colour shown as a dot in the icon's place (a theme's, an ink's). */
   swatch?: (c?: C) => string;
   /** The heading a menu item sits under (Insert ▾'s "A new document"), through t(). */
-  heading?: (c?: C) => string;
+  heading?: Words<C>;
+  /** A row of data (a theme, an ink, a new document of each app), not a command a person learns: drawn and offered by the palette, but left out of the generated tables. */
+  data?: boolean;
   /** Needs nothing in hand: shown in the drawer's This document too, so a phone reaches it while the bar is away (reading). */
   document?: boolean;
   /** The key is the browser's (Copy, Cut, Paste raise their own events): listed and drawn, but never taken from a keydown. */
@@ -72,6 +89,12 @@ export interface Command<C = any> {
 
 /** A command typed for its context: an identity, for inference. */
 export const command = <C>(c: Command<C>): Command<C> => c;
+/** A scope's maker: `id` without the scope's prefix, the scope filled in (`const cmd = commandsOf<W>('write')`). */
+export const commandsOf =
+  <C>(scope: string) =>
+  (id: string, label: Words<C>, rest: Omit<Command<C>, 'id' | 'scope' | 'label'>): Command<C> => ({ id: `${scope}.${id}`, scope, label, ...rest });
+/** A command's words in this context. */
+export const labelOf = <C>(cmd: Command<C>, c?: C): string => say(cmd.label, c) as string;
 
 const all = new Map<string, Command>();
 
@@ -197,12 +220,12 @@ export function drawn<C>(cmd: Command<C>, c: C | null | undefined): Drawn {
   const has = c !== null && c !== undefined;
   const pressed = has && cmd.pressed ? cmd.pressed(c) : undefined;
   return {
-    label: cmd.label(has ? c : undefined),
+    label: labelOf(cmd, has ? c : undefined),
     icon: cmd.icon,
-    hint: cmd.hint?.(has ? c : undefined),
-    ...(cmd.heading ? { group: cmd.heading(has ? c : undefined) } : {}),
+    hint: say(cmd.hint, has ? c : undefined),
+    ...(cmd.heading ? { group: say(cmd.heading, has ? c : undefined) } : {}),
     ...(cmd.swatch ? { swatch: cmd.swatch(has ? c : undefined) } : {}),
-    ...(cmd.letter ? { text: cmd.letter(has ? c : undefined) } : {}),
+    ...(cmd.letter ? { text: say(cmd.letter, has ? c : undefined) } : {}),
     keys: cmd.keys,
     disabled: !has || !!cmd.disabled?.(c),
     ...(cmd.pressed ? { pressed: !!pressed, checked: !!pressed } : {}),

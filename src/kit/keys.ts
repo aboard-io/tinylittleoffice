@@ -11,7 +11,7 @@
 import { html, nothing, type TemplateResult } from 'lit';
 import { Command as CommandIcon } from 'lucide';
 import type { AppDef } from './app.ts';
-import { command, inScope, keysText, register, runKey, type Command } from './commands.ts';
+import { command, inScope, keysText, labelOf, register, runKey, type Command } from './commands.ts';
 import { t } from './i18n.ts';
 import { UI } from './icons.ts';
 import { TEXT_COMMANDS } from './text-commands.ts';
@@ -45,22 +45,22 @@ const history = (which: 'docundo' | 'docredo') => (p: HasEditor, e?: Event) => {
   return !editor.dispatchEvent(new CustomEvent(which, { cancelable: true, bubbles: true }));
 };
 
-export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: () => t('Undo'), icon: UI.undo, keys: 'Mod+Z', where: ['bar'], when: (p) => !!p.editor, does: history('docundo') });
-export const REDO = command<HasEditor>({ id: 'kit.redo', scope: 'kit', label: () => t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z / Mod+Y', where: ['bar'], when: (p) => !!p.editor, does: history('docredo') });
-export const SHARE = command<Page>({ id: 'kit.share', scope: 'kit', label: () => t('Share…'), icon: UI.share, keys: 'Mod+Shift+S', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.share() });
-export const DOWNLOAD = command<Page>({ id: 'kit.download', scope: 'kit', label: () => t('Download'), icon: UI.download, keys: 'Mod+Shift+D', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.download() });
-export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: () => t('All commands…'), icon: CommandIcon, keys: 'Mod+K', where: ['bar'], does: (p) => p.palette() });
+export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: 'Undo', icon: UI.undo, keys: 'Mod+Z', where: ['bar'], when: (p) => !!p.editor, does: history('docundo') });
+export const REDO = command<HasEditor>({ id: 'kit.redo', scope: 'kit', label: 'Redo', icon: UI.redo, keys: 'Mod+Shift+Z / Mod+Y', where: ['bar'], when: (p) => !!p.editor, does: history('docredo') });
+export const SHARE = command<Page>({ id: 'kit.share', scope: 'kit', label: 'Share…', icon: UI.share, keys: 'Mod+Shift+S', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.share() });
+export const DOWNLOAD = command<Page>({ id: 'kit.download', scope: 'kit', label: 'Download', icon: UI.download, keys: 'Mod+Shift+D', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.download() });
+export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: 'All commands…', icon: CommandIcon, keys: 'Mod+K', where: ['bar'], does: (p) => p.palette() });
 
 /** The page's commands, in the order the dialog lists them. */
 export const KIT_COMMANDS = register([
   UNDO,
   REDO,
-  command<Page>({ id: 'kit.find', scope: 'kit', label: () => t('Find in this document'), icon: UI.search, keys: 'Mod+F', where: ['keys-only'], takesFocus: true, when: (p) => p.editing && !!p.editor, does: (p) => p.find() }),
-  command<Page>({ id: 'kit.keep', scope: 'kit', label: () => t('Keep this document on the device'), icon: UI.offline, keys: 'Mod+S', where: ['keys-only'], when: (p) => p.editing, does: (p) => p.keep() }),
+  command<Page>({ id: 'kit.find', scope: 'kit', label: 'Find in this document', icon: UI.search, keys: 'Mod+F', where: ['keys-only'], takesFocus: true, when: (p) => p.editing && !!p.editor, does: (p) => p.find() }),
+  command<Page>({ id: 'kit.keep', scope: 'kit', label: 'Keep this document on the device', icon: UI.offline, keys: 'Mod+S', where: ['keys-only'], when: (p) => p.editing, does: (p) => p.keep() }),
   SHARE,
   DOWNLOAD,
-  command<Page>({ id: 'kit.print', scope: 'kit', label: () => t('Print, or save as PDF'), icon: UI.print, keys: 'Mod+P', where: ['keys-only'], when: (p) => p.doc, does: (p) => p.print() }),
-  command<Page>({ id: 'kit.shortcuts', scope: 'kit', label: () => t('Show these shortcuts'), icon: UI.keys, keys: 'Mod+/', where: ['keys-only'], takesFocus: true, does: (p) => p.shortcuts() }),
+  command<Page>({ id: 'kit.print', scope: 'kit', label: 'Print, or save as PDF', icon: UI.print, keys: 'Mod+P', where: ['keys-only'], when: (p) => p.doc, does: (p) => p.print() }),
+  command<Page>({ id: 'kit.shortcuts', scope: 'kit', label: 'Show these shortcuts', icon: UI.keys, keys: 'Mod+/', where: ['keys-only'], takesFocus: true, does: (p) => p.shortcuts() }),
   PALETTE as Command<Page>,
 ]) as Command<Page>[];
 
@@ -76,7 +76,7 @@ export function renderShortcuts(def?: AppDef): TemplateResult {
   return html`${shortcutGroups(def).map(
     (g) => html`<table class="to-keys">
       <caption>${g.heading}</caption>
-      <tbody>${g.keys.map((c) => html`<tr><th scope="row"><kbd>${keysText(c.keys!)}</kbd></th><td>${c.label()}</td></tr>`)}</tbody>
+      <tbody>${g.keys.map((c) => html`<tr><th scope="row"><kbd>${keysText(c.keys!)}</kbd></th><td>${labelOf(c)}</td></tr>`)}</tbody>
     </table>`,
   )}${nothing}`;
 }

@@ -32,7 +32,7 @@ import { SquarePen } from 'lucide';
 import { isEmbed, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
 import { cmdTool } from '../../kit/bar.ts';
-import { contextOf, drawnIn, runKey } from '../../kit/commands.ts';
+import { contextOf, drawnIn, labelOf, runKey } from '../../kit/commands.ts';
 import { BOLD, BULLETS, FOOTNOTE, HIGHLIGHT, INDENT, ITALIC, LINK, NUMBERS, OUTDENT, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
 import { copyData, linkToFence, pasteFrom, writeClip } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
@@ -671,7 +671,7 @@ export class ToWriteEditor extends DocElement<Doc> {
   private renderBar(): TemplateResult {
     const x = this.text ?? null;
     const own = (id: string) => COMMANDS.find((c) => c.id === `write.${id}`)!;
-    const menu = (id: string, cls: string, icon = own(id).icon!) => html`<to-menu class=${cls} icon-only keep .label=${own(id).label(this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
+    const menu = (id: string, cls: string, icon = own(id).icon!) => html`<to-menu class=${cls} icon-only keep .label=${labelOf(own(id), this)} .icon=${icon} .items=${drawnIn(COMMANDS, `menu:${own(id).menu}`, this)}></to-menu>`;
     return html`<to-bar class="write-bar">
         <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
         ${cmdTool(own('title'), this)} ${cmdTool(own('heading'), this)} ${cmdTool(own('subheading'), this)} ${cmdTool(own('paragraph'), this)}

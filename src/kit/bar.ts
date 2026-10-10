@@ -10,7 +10,7 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { ChevronLeft, ChevronRight } from 'lucide';
 import { icon, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
-import { drawnIn, keysText, run, type Command } from './commands.ts';
+import { drawnIn, keysText, labelOf, run, say, type Command } from './commands.ts';
 
 export { keysText };
 
@@ -105,14 +105,17 @@ export const tool = (o: BtnOpts): TemplateResult =>
  * at all where it is not in force (`when`). `over` changes what the bar needs changed (a class; `disabled` given, the
  * button stays in its place, off, where the command is not in force: a bar that keeps its buttons where they are).
  */
-export function cmdTool<C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing {
+export const cmdTool = <C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing => drawCmd(tool, cmd, c, over);
+/** The same as a button with its words on it (btn): a command whose words say more than an icon would (Connect, Preview). */
+export const cmdBtn = <C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing => drawCmd(btn, cmd, c, over);
+function drawCmd<C>(draw: (o: BtnOpts) => TemplateResult, cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts>): TemplateResult | typeof nothing {
   const has = c !== null && c !== undefined;
   if (has && cmd.when && !cmd.when(c) && over.disabled === undefined) return nothing;
-  return tool({
-    label: cmd.label(has ? c : undefined),
+  return draw({
+    label: labelOf(cmd, has ? c : undefined),
     icon: cmd.icon,
     keys: cmd.keys,
-    hint: cmd.hint?.(has ? c : undefined),
+    hint: say(cmd.hint, has ? c : undefined),
     keep: !cmd.takesFocus,
     pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
     disabled: !has || !!cmd.disabled?.(c),
@@ -123,25 +126,7 @@ export function cmdTool<C>(cmd: Command<C>, c: C | null | undefined, over: Parti
 }
 /** A command that is a menu (`menu`), as the bar's <to-menu>: its items the commands drawn in `menu:<name>` among `all`. */
 export const cmdMenu = <C>(cmd: Command<C>, c: C, all: readonly Command<C>[], cls = '', opts: { caret?: boolean; words?: boolean; icon?: IconNode; keep?: boolean } = {}): TemplateResult =>
-  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${cmd.label(c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
-
-/** The same as a button with its words on it (btn): a command whose words say more than an icon would (Connect, Preview). */
-export function cmdBtn<C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing {
-  const has = c !== null && c !== undefined;
-  if (has && cmd.when && !cmd.when(c) && over.disabled === undefined) return nothing;
-  return btn({
-    label: cmd.label(has ? c : undefined),
-    icon: cmd.icon,
-    keys: cmd.keys,
-    hint: cmd.hint?.(has ? c : undefined),
-    keep: !cmd.takesFocus,
-    pressed: cmd.pressed ? has && cmd.pressed(c) : undefined,
-    disabled: !has || !!cmd.disabled?.(c),
-    does: (e) => void (has && run(cmd, c, e)),
-    ...over,
-    cls: `${over.cls ?? ''} cmd-${cmd.id.replace(/\./g, '-')}`.trim(),
-  });
-}
+  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${labelOf(cmd, c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
 
 export interface DateNavOpts {
   /** What is on view: "March 2027". */

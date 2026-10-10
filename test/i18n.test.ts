@@ -3,7 +3,7 @@ import { test, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { t, register, setLanguage, browserLanguage, directionOf, languages } from '../src/kit/i18n.ts';
-import { definedKeys, placeholders, usedKeys, withMissing, MARK } from '../scripts/i18n-extract.ts';
+import { commandKeys, definedKeys, placeholders, usedKeys, withMissing, MARK } from '../scripts/i18n-extract.ts';
 import en from '../src/i18n/en.ts';
 
 const root = join(import.meta.dirname, '..');
@@ -67,6 +67,11 @@ test('every key the code uses is in en.ts, as itself, with matching placeholders
   // The file's lines read the same as the module: the extractor sees what the code sees.
   const lines = definedKeys(readFileSync(join(root, 'src/i18n/en.ts'), 'utf8'));
   expect(lines.map((l) => l.key).sort()).toEqual(Object.keys(en).sort());
+});
+
+test('a command file’s words are keys without t(): a label, hint, heading or letter given as a string always, any other string only when en.ts has it', () => {
+  const src = `cmd('bold', 'Bold', { heading: "Marks", keys: 'Mod+B' }); block('title', 'title', 'Title', UI.text); cmd('x', (c) => t('Look'), {})`;
+  expect(commandKeys(src, new Set(['Title', 'Bold']))).toEqual(['Marks', 'Bold', 'Title']);
 });
 
 test('the extractor reads t() calls, and appends what is new at the end under the mark', () => {

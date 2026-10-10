@@ -42,7 +42,7 @@ Rules:
 - **The title is edited wide, where it is drawn:** a tap or focus on the header's title opens a second row of the header with the field across it at 20px (no dialog, no popover), a new document's automatic name chosen whole so typing replaces it; Enter keeps what was typed, Escape puts back what was there, and a tap elsewhere closes it.
 - **The page is the visible window and the document scrolls in a column** (docs/kernel.md §9): the header, the menu button and the app's bar hold still while the words scroll, so the bar's tools are always a tap away however long the document. The menu button is at the top inline end on every screen (the right in a left-to-right language), where the words are not; the drawer slides in from that side. On a wide screen the bar is under the header; under a finger it is at the column's bottom, above the keyboard, as one scrolling row.
 - **The header is the title** on every screen: the app's icon (a new document), the title, the signed state, the meter and the menu button; Share and Download live in the drawer (Paul, 2026-10-10: "Let's get rid of share and download in the top nav and move that functionality to the hamburger … Now the title has room to breathe"). The drawer begins, under its head (the language, Close), with This document: a small heading over two full-width rows, Share… (Mod+Shift+S) and Download (Mod+Shift+D, which opens the drawer with the table of formats on its first item), the keys written at each row's right; then the search and the apps. On a touch screen the drawer's dialog holds the focus without a ring (it is not a control; the search would raise the keyboard), its edge one hairline against the backdrop.
-- **On a phone the bar comes with the focus and goes with it**: it is shown while something in the document has the focus (words with the caret, a cell of the Spreadsheet, a canvas touched or focused, a chosen row) and slides away while nothing does (reading), with the chrome's glide; the Calculator's always shows, its keys being the document. Whatever of the bar needs nothing in hand (Look, Present, Play, the zoom, the views, the registry's `document` commands) is also a row of the drawer's This document, under the app's name, so it is a tap away while reading. On a fine pointer the bar is always shown.
+- **On a phone the bar comes with the focus and goes with it**: it is shown while something in the document has the focus, which a tap or a key into the document gives it and arriving from a link never does (words with the caret, a cell of the Spreadsheet, a canvas touched or focused, a chosen row) and slides away while nothing does (reading), with the chrome's glide; the Calculator's always shows, its keys being the document. Whatever of the bar needs nothing in hand (Look, Present, Play, the zoom, the views, the registry's `document` commands) is also a row of the drawer's This document, under the app's name, so it is a tap away while reading. On a fine pointer the bar is always shown.
 - **On a phone the context bar is a row of the bottom bar**, not a bar floating by the thing in hand: iOS draws its selection callout over whatever floats near the words, and no page can stop it (Paul, 2026-10-10: "Our menu keeps getting obscured under the native copy paste menu"). While words are selected the row takes the bottom bar's place (the bar's own row slides back when the selection collapses) and begins with Cut, Copy and Paste, ours: Copy and Cut put our TLO and our HTML on the clipboard, Paste reads it where the browser allows (and, where it refuses, a line under the row says to use the keyboard's paste). On a fine pointer the context bar floats under the thing in hand, as ever.
 - **On a phone, while a box has the focus** (words, a field in an app, the Website Builder's page), the header steps aside and the menu button alone stays (Paul, 2026-10-10: "when editing, the top nav vanishes except for the hamburger. The secondary nav is now aligned bottom."), slid in a fifth of a second into the column's very top inline corner (0.25em in, within the safe area), on a card, translucent so the words under it show through, opaque under a hover, a key's focus and while the drawer is open, a 44px target as ever ("Make the hamburger translucent when I'm editing. Maybe even move it further top right"); it slides back into the header's row when the focus leaves the box (a tap outside, Escape, Done). The bar glides with the keyboard: the column's height follows the visible window through a fifth of a second, the bar fading out while it moves and back when it settles, and the caret is kept in sight once it has ("When the keyboard appears and disappears it jumps and it's overwhelming"). Under reduced motion nothing slides or glides: the height changes at once and only the bar's fade remains. The price of the column: Safari's toolbar no longer collapses as the words scroll, since the page never scrolls.
 
@@ -165,7 +165,9 @@ words, each at its place), and a key an inner scope takes from an outer one is l
 bar or a menu has keys or is reached by the bar's arrows; every label is a string of en.ts; every command is run by a
 test; every key is spelled by one function, a Mac's way or Windows'; no two commands of a scope share a label unless
 one of them is in force only sometimes. Keys are written `Mod+Alt+Shift+Key`; `at:` is where in the app the key is
-answered (the canvas, a cell, the rail, the show).
+answered (the canvas, a cell, the rail, the show). Rows of data rather than commands (a theme, an ink, a
+new document of each app: `data: true`) are left out of the tables, though the menus and the palette show them; menus
+whose rows are the document's own data (the sheet's column kinds, the formula functions) are not commands at all.
 
 <!-- commands:begin (generated by `npm run commands` from the registry, src/kit/commands.ts: do not edit by hand) -->
 
@@ -236,18 +238,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | QR code of this document | insert ▾ |
 |  | Date | insert ▾ |
 | `Mod+Shift+Enter` | Page break | insert ▾, at: words |
-|  | Outliner | insert ▾ |
-|  | Presentation Builder | insert ▾ |
-|  | Spreadsheet | insert ▾ |
-|  | Calculator | insert ▾ |
-|  | Drawing Tool | insert ▾ |
-|  | Diagram Maker | insert ▾ |
-|  | Animator | insert ▾ |
-|  | Kanban Board | insert ▾ |
-|  | To-Do List | insert ▾ |
-|  | Calendar | insert ▾ |
-|  | Trip Planner | insert ▾ |
-|  | Website Builder | insert ▾ |
 |  | Title | bar |
 |  | Heading | bar |
 |  | Subheading | bar |
@@ -257,13 +247,6 @@ answered (the canvas, a cell, the rail, the show).
 | `Mod+Shift+E` | Centre | align ▾, at: words |
 | `Mod+Shift+R` | Align right | align ▾, at: words |
 | `Mod+Shift+J` | Justify | align ▾, at: words |
-|  | Sans | look ▾ |
-|  | Serif | look ▾ |
-|  | Typewriter | look ▾ |
-|  | Serif and sans | look ▾ |
-|  | Sans and serif | look ▾ |
-|  | Book | look ▾ |
-|  | Newspaper | look ▾ |
 |  | Letter | paper ▾ |
 |  | A4 | paper ▾ |
 | `Enter` | Edit | context, at: card |
@@ -285,18 +268,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | Item | insert ▾ |
 |  | Web Embed… | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
-|  | Word Processor | insert ▾ |
-|  | Presentation Builder | insert ▾ |
-|  | Spreadsheet | insert ▾ |
-|  | Calculator | insert ▾ |
-|  | Drawing Tool | insert ▾ |
-|  | Diagram Maker | insert ▾ |
-|  | Animator | insert ▾ |
-|  | Kanban Board | insert ▾ |
-|  | To-Do List | insert ▾ |
-|  | Calendar | insert ▾ |
-|  | Trip Planner | insert ▾ |
-|  | Website Builder | insert ▾ |
 |  | Icon | bar |
 | `Tab` | Indent | bar, at: words |
 | `Shift+Tab` | Bring out | bar, at: words |
@@ -333,18 +304,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | Web Embed… | insert ▾ |
 |  | Tiny Little Office Doc… | insert ▾ |
 |  | QR code of this document | insert ▾ |
-|  | Word Processor | insert ▾ |
-|  | Outliner | insert ▾ |
-|  | Spreadsheet | insert ▾ |
-|  | Calculator | insert ▾ |
-|  | Drawing Tool | insert ▾ |
-|  | Diagram Maker | insert ▾ |
-|  | Animator | insert ▾ |
-|  | Kanban Board | insert ▾ |
-|  | To-Do List | insert ▾ |
-|  | Calendar | insert ▾ |
-|  | Trip Planner | insert ▾ |
-|  | Website Builder | insert ▾ |
 | `Mod+Alt+Enter` | Present | bar, at: slide, drawer on a phone |
 |  | See the sheets to print | bar, drawer on a phone |
 |  | Icon | bar |
@@ -352,24 +311,7 @@ answered (the canvas, a cell, the rail, the show).
 |  | Title | layout ▾ |
 |  | Two columns | layout ▾ |
 |  | Big icon | layout ▾ |
-|  | Plain | look ▾ |
-|  | Boardroom | look ▾ |
-|  | Ivory | look ▾ |
-|  | Midnight | look ▾ |
-|  | Graphite | look ▾ |
-|  | Confetti | look ▾ |
-|  | Sunset | look ▾ |
-|  | Ocean | look ▾ |
-|  | Bubblegum | look ▾ |
-|  | Arcade | look ▾ |
-|  | Chalkboard | look ▾ |
 |  | The theme's colour | look ▾ |
-|  | Black | look ▾ |
-|  | Red | look ▾ |
-|  | Orange | look ▾ |
-|  | Green | look ▾ |
-|  | Blue | look ▾ |
-|  | Purple | look ▾ |
 |  | Fade | transition ▾ |
 |  | Cut | transition ▾ |
 |  | Slide | transition ▾ |
@@ -506,12 +448,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | Add alt text: describe this drawing for people who cannot see it | bar, drawer on a phone |
 |  | Zoom out | bar, drawer on a phone |
 |  | Zoom in | bar, drawer on a phone |
-|  | Black | context |
-|  | Red | context |
-|  | Orange | context |
-|  | Green | context |
-|  | Blue | context |
-|  | Purple | context |
 |  | Solid line | context |
 |  | Dashed line | context |
 |  | Dotted line | context |
@@ -545,14 +481,6 @@ answered (the canvas, a cell, the rail, the show).
 | `Mod+Shift+R` | Align: right | keys only, at: canvas |
 | `Alt+ArrowUp`, `Alt+ArrowDown` | Move the selected items up or down | keys only, at: canvas |
 | `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Shift+ArrowLeft`, `Shift+ArrowRight`, `Shift+ArrowUp`, `Shift+ArrowDown`, `Mod+ArrowLeft`, `Mod+ArrowRight`, `Mod+ArrowUp`, `Mod+ArrowDown` | Nudge the shapes in hand | keys only, at: canvas |
-|  | Black | bar |
-|  | Indigo | bar |
-|  | Red | bar |
-|  | Orange | bar |
-|  | Yellow | bar |
-|  | Green | bar |
-|  | Sky | bar |
-|  | Pink | bar |
 |  | Eraser | bar |
 |  | Pencil | bar |
 |  | Fill | bar |
@@ -659,13 +587,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | 5 | stage ▾ |
 |  | 8 | stage ▾ |
 |  | Automatic | stage ▾ |
-|  | Blue | stage ▾ |
-|  | Sky | stage ▾ |
-|  | Green | stage ▾ |
-|  | Yellow | stage ▾ |
-|  | Orange | stage ▾ |
-|  | Red | stage ▾ |
-|  | Purple | stage ▾ |
 |  | Delete stage | stage ▾ |
 | `Mod+Alt+ArrowLeft` | Move to the stage before | context, at: rows |
 | `Mod+Alt+ArrowRight` | Move to the stage after | context, at: rows |
@@ -705,12 +626,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | Schedule | view ▾ |
 |  | Event | insert ▾ |
 |  | Task | insert ▾ |
-|  | Indigo | ink ▾ |
-|  | Red | ink ▾ |
-|  | Orange | ink ▾ |
-|  | Green | ink ▾ |
-|  | Blue | ink ▾ |
-|  | Purple | ink ▾ |
 |  | Time zone | bar, drawer on a phone |
 | `Mod+Alt+ArrowLeft` | A day earlier | context, at: rows |
 | `Mod+Alt+ArrowRight` | A day later | context, at: rows |
@@ -771,34 +686,6 @@ answered (the canvas, a cell, the rail, the show).
 |  | Tiny Little Office Doc | insert ▾ |
 |  | Products | insert ▾ |
 |  | QR code of this document | insert ▾ |
-|  | Word Processor | insert ▾ |
-|  | Outliner | insert ▾ |
-|  | Presentation Builder | insert ▾ |
-|  | Spreadsheet | insert ▾ |
-|  | Calculator | insert ▾ |
-|  | Drawing Tool | insert ▾ |
-|  | Diagram Maker | insert ▾ |
-|  | Animator | insert ▾ |
-|  | Kanban Board | insert ▾ |
-|  | To-Do List | insert ▾ |
-|  | Calendar | insert ▾ |
-|  | Trip Planner | insert ▾ |
-|  | Indigo | look ▾ |
-|  | Teal | look ▾ |
-|  | Rose | look ▾ |
-|  | Amber | look ▾ |
-|  | Ink | look ▾ |
-|  | Forest | look ▾ |
-|  | Ocean | look ▾ |
-|  | Sunset | look ▾ |
-|  | Plum | look ▾ |
-|  | Candy | look ▾ |
-|  | Olive | look ▾ |
-|  | Slate | look ▾ |
-|  | Paper | look ▾ |
-|  | Typewriter | look ▾ |
-|  | Midnight | look ▾ |
-|  | Coal | look ▾ |
 |  | As the theme is | look ▾ |
 |  | Light | look ▾ |
 |  | Dark | look ▾ |

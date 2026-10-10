@@ -18,7 +18,7 @@ import { live } from 'lit/directives/live.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { Pause, Play, Repeat, Sparkles } from 'lucide';
 import { cmdBtn, cmdTool } from '../../kit/bar.ts';
-import { contextOf, drawnIn, runKey } from '../../kit/commands.ts';
+import { contextOf, drawnIn, labelOf, runKey } from '../../kit/commands.ts';
 import COMMANDS, { loopName } from './commands.ts';
 import { DocElement, type DocChange, type Entry } from '../../kit/element.ts';
 import { t } from '../../kit/i18n.ts';
@@ -646,7 +646,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     const own = (id: string) => COMMANDS.find((c) => c.id === `anim.${id}`)!;
     return html`<to-bar class="anim-bar">
       ${cmdTool(own('play'), this, { icon: this.playing ? Pause : Play })}
-      <to-menu class="anim-fx" keep .label=${own('fx').label(this)} .icon=${Sparkles} caret ?disabled=${!s} .items=${drawnIn(COMMANDS, 'menu:fx', this)}></to-menu>
+      <to-menu class="anim-fx" keep .label=${labelOf(own('fx'), this)} .icon=${Sparkles} caret ?disabled=${!s} .items=${drawnIn(COMMANDS, 'menu:fx', this)}></to-menu>
       ${this.undoTools()}
     </to-bar>`;
   }
