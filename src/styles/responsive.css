@@ -142,7 +142,7 @@
     /* The column's top keeps the menu button's room, so what is first in it (a row's menu, a stage's) is never under the
        button until the words are scrolled; the words then go on under it, the header's height theirs. */
     to-chrome[editing] .to-column > main {
-      padding-top: calc(3 * var(--to-nav-font));
+      padding-top: calc(3.5 * var(--to-nav-font));
     }
     to-chrome[editing] .to-arrival {
       padding-top: 0.25rem;

@@ -380,3 +380,98 @@ test('the keys: Mod+Shift+S opens Share, Mod+Shift+D the drawer with its Downloa
   drawer.querySelector<HTMLElement>('.to-drawer-download [popover]')!.hidePopover();
   drawer.close();
 });
+
+test('390×844 with a finger, editing: the translucent burger is opaque under a hover, a key’s focus and while the drawer is open', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { shell, text, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+  const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
+  const opacity = () => parseFloat(getComputedStyle(burger).opacity);
+  text.tx.blur();
+  await userEvent.click(text.tx.querySelector('p')!);
+  await until(() => chrome.editing && opacity() < 0.7, 2000);
+  // A hover: opaque, and translucent again when the pointer leaves.
+  await userEvent.hover(burger);
+  await until(() => opacity() === 1, 2000);
+  await userEvent.unhover(burger);
+  await until(() => opacity() < 0.7, 2000);
+  // A key's focus: opaque at once (the transition aside), before the header comes back for the focus having left the box.
+  burger.style.transition = 'none';
+  await userEvent.keyboard('{Shift>}{Shift}'); // the last thing the person did was a key
+  burger.focus();
+  expect(burger.matches(':focus-visible')).toBe(true);
+  expect(chrome.editing).toBe(true);
+  expect(opacity()).toBe(1);
+  burger.style.transition = '';
+  // The drawer open: the focus is in the dialog (an aside), so editing holds, and the burger is opaque under it.
+  text.tx.blur();
+  await userEvent.click(text.tx.querySelector('p')!);
+  await until(() => chrome.editing && opacity() < 0.7, 2000);
+  const drawer = shell.querySelector<ToDrawer>('to-drawer')!;
+  burger.click();
+  await until(() => drawer.dialog.open);
+  await frame();
+  expect(chrome.editing).toBe(true);
+  await until(() => opacity() === 1, 2000);
+  drawer.close();
+  await until(() => !drawer.dialog.open);
+});
+
+test('390×844 with a finger, reduced motion: the burger goes to the corner at once, no slide', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  await cdp().send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  try {
+    const { text, main, chrome } = await write(`#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`);
+    const burger = chrome.querySelector<HTMLElement>('.to-burger')!;
+    const em = parseFloat(getComputedStyle(burger).fontSize);
+    const home = burger.getBoundingClientRect();
+    // No transition on where it sits: every duration 0s.
+    const look = getComputedStyle(burger);
+    expect(look.transitionDuration.split(',').every((d) => parseFloat(d) === 0)).toBe(true);
+    text.tx.blur();
+    await userEvent.click(text.tx.querySelector('p')!);
+    await until(() => chrome.editing);
+    await chrome.updateComplete;
+    // The first frame it is editing, it is in the corner: no glide through the frames between.
+    const b = burger.getBoundingClientRect();
+    expect(b.top).toBeLessThanOrEqual(0.5 * em);
+    expect(390 - b.right).toBeLessThanOrEqual(0.5 * em);
+    await userEvent.click(main, { position: { x: 5, y: main.clientHeight - 5 } });
+    await until(() => !chrome.editing);
+    await chrome.updateComplete;
+    expect(burger.getBoundingClientRect().top).toBeCloseTo(home.top, 0);
+    expect(burger.getBoundingClientRect().right).toBeCloseTo(home.right, 0);
+  } finally {
+    await cdp().send('Emulation.setEmulatedMedia', { features: [] });
+  }
+});
+
+test('390×844 with a finger: the caret is kept in sight after the column settles, not while it glides', async () => {
+  await page.viewport(390, 844);
+  await coarse(true);
+  const { text, main, chrome } = await write();
+  text.tx.focus();
+  const last = text.blocks.length - 1;
+  text.sel = { anchor: { block: last, offset: 5 }, focus: { block: last, offset: 5 } };
+  await text.updateComplete;
+  await frame();
+  // The caret placed there may have been scrolled to; the column back at its top, the caret far below what is seen.
+  main.scrollTop = 0;
+  await frame();
+  expect(main.scrollTop).toBe(0);
+  // In flight: an edit at the end of 300 paragraphs leaves the column where it is (kit/text.ts asks gliding()).
+  chrome.setAttribute('gliding', '');
+  await userEvent.keyboard('more');
+  await until(() => chrome.editing && text.tx.textContent!.includes('Paragmoreraph 300'), 2000);
+  await frame();
+  expect(main.scrollTop).toBeLessThan(100);
+  // Settled (the column's height transition ends): the caret is brought into what can be seen (kit/chrome.ts settle()).
+  chrome.dispatchEvent(new TransitionEvent('transitionend', { propertyName: 'height' }));
+  expect(chrome.hasAttribute('gliding')).toBe(false);
+  await until(() => main.scrollTop > 1000);
+  const caret = document.getSelection()!.getRangeAt(0).getBoundingClientRect();
+  const box = main.getBoundingClientRect();
+  expect(caret.top).toBeGreaterThanOrEqual(box.top);
+  expect(caret.bottom).toBeLessThanOrEqual(box.bottom);
+});
