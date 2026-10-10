@@ -364,9 +364,9 @@ export default {
   'Back to footnote {n} in the text': 'العودة إلى الحاشية {n} في النص',
   'Back to the text': 'العودة إلى النص',
   '{n|one word|# words}': '{n|لا كلمات|كلمة واحدة|كلمتان|# كلمات|# كلمة|# كلمة}',
-  'Word (DOCX)': 'Word (DOCX)',
-  'Markdown': 'Markdown',
-  'Rich Text (RTF)': 'Rich Text (RTF)',
+  'Word (DOCX)': 'Word (DOCX)', // same
+  'Markdown': 'Markdown', // same
+  'Rich Text (RTF)': 'Rich Text (RTF)', // same
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'إضافة عمود قبله',
   'Column {c}: what it holds, name it, add or remove a column': 'العمود {c}: ما يحتويه، سمِّه، أضف عمودًا أو أزله',
@@ -542,8 +542,8 @@ export default {
   'Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.': 'الأميال والكيلومترات، والأرطال والكيلوغرامات، والأفران والأكواب والغالونات: اكتب مقدارًا واقرأ الوحدة الأخرى.',
   'Tournament bracket': 'جدول البطولة',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': 'ثمانية فرق في خروج المغلوب: نتيجة كل مباراة، والفائز محسوب، والفائزون ينتقلون إلى النهائي.',
-  'Excel (XLSX)': 'Excel (XLSX)',
-  'CSV': 'CSV',
+  'Excel (XLSX)': 'Excel (XLSX)', // same
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'مخطط (SVG)',
   'Chart (PNG)': 'مخطط (PNG)',
   'Empty sheet': 'ورقة فارغة',
@@ -726,7 +726,7 @@ export default {
   'Place an icon': 'ضع أيقونة',
   'Zoom in': 'تكبير',
   'Zoom out': 'تصغير',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': 'النص البديل',
   'Alt text: {alt}': 'النص البديل: {alt}',
   'Add alt text: describe this drawing for people who cannot see it': 'أضف نصًا بديلًا: صف هذا الرسم لمن لا يستطيع رؤيته',
@@ -757,18 +757,18 @@ export default {
   'Edit the words': 'تحرير الكلمات',
   'Extra large text': 'نص كبير جدًا',
   'Grey fill': 'تعبئة رمادية',
-  'L': 'L',
+  'L': 'L', // same
   'Large text': 'نص كبير',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': 'نص متوسط',
-  'S': 'S',
+  'S': 'S', // same
   'Small text': 'نص صغير',
   'Solid fill': 'تعبئة مصمتة',
   'Solid line': 'خط متصل',
   'The shape in hand': 'الشكل الحالي',
   'The words of the shape': 'كلمات الشكل',
   'Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.': 'اكتب الكلمات؛ Enter للإنهاء، وShift+Enter لسطر جديد، وEscape لإعادتها.',
-  'XL': 'XL',
+  'XL': 'XL', // same
 
   'Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.': 'اسحب للتحريك؛ المقبض في الزاوية يغيّر الحجم، والدائري يدوّر؛ Enter أو نقرتان تحرران الكلمات.',
   'Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.': 'لوحة الرسم. V للتحديد؛ R وE وD وL وA وT للرسم؛ الأسهم للدفع؛ [ و ] للتدوير؛ Enter يحرر الكلمات؛ Delete يزيل.',
@@ -807,7 +807,7 @@ export default {
   'Animated GIF': 'GIF متحرك',
   'Animated SVG': 'SVG متحرك',
   'An empty stage': 'مسرح فارغ',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'أضف مفتاحًا هنا',
   'Blur': 'تمويه',
   'Depth': 'العمق',
@@ -1217,7 +1217,7 @@ export default {
   'A QR code of this deck': 'رمز QR لهذا العرض',
 
   // Downloads
-  'PowerPoint (PPTX)': 'PowerPoint (PPTX)',
+  'PowerPoint (PPTX)': 'PowerPoint (PPTX)', // same
   'A picture of every slide (ZIP of PNGs)': 'صورة لكل شريحة (ZIP من ملفات PNG)',
   'A film of the deck (GIF)': 'فيلم للعرض (GIF)',
 
@@ -1266,7 +1266,7 @@ export default {
   'Family calendar': 'تقويم العائلة',
   'Festival weekend': 'عطلة المهرجان',
   'How many times': 'كم مرة',
-  'iCalendar (ICS)': 'iCalendar (ICS)',
+  'iCalendar (ICS)': 'iCalendar (ICS)', // same
   'Its own zone': 'منطقتها الخاصة',
   'Last day': 'اليوم الأخير',
   'Lessons, birthdays and holidays, a colour for each person, the weekly things repeating.': 'دروس وأعياد ميلاد وعطلات، ولكل شخص لون، والأمور الأسبوعية تتكرر.',
@@ -1341,7 +1341,7 @@ export default {
   'Family tree': 'شجرة عائلة',
   'Swimlanes': 'مسارات',
   'Timeline': 'خط زمني',
-  'Venn': 'Venn',
+  'Venn': 'Venn', // same
   'Seating chart': 'مخطط جلوس',
   'Network': 'شبكة',
   'Idea': 'فكرة',
@@ -1424,7 +1424,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'مسار على خريطة: محطات بالترتيب، لكل منها ملاحظة، والمسافة بينها.',
   'GPX route': 'مسار GPX',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': 'مكان بالاسم…',
   'A stop at the middle of the map': 'محطة في منتصف الخريطة',
@@ -1622,11 +1622,11 @@ export default {
   'Take away line {n}': 'إزالة السطر {n}',
   'Sum': 'المجموع',
   'Type or tap': 'اكتب أو انقر',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'عند x = 1: {answer}',
   'Keys': 'المفاتيح',
-  'Backspace': 'Backspace',
+  'Backspace': 'Backspace', // same
   'Clear the line': 'مسح السطر',
   'The answer before': 'الناتج السابق',
   'Type a sum, or 3 inch to cm, and press Enter. a = 12 keeps an answer by name.': 'اكتب عملية حسابية، أو 3 inch to cm، واضغط Enter. a = 12 يحفظ ناتجًا باسم.',
@@ -1781,7 +1781,7 @@ export default {
   'Show on a board': 'عرض على لوحة',
   'Show these shortcuts': 'عرض هذه الاختصارات',
   'All commands…': 'كل الأوامر…',
-  'A4': 'A4',
+  'A4': 'A4', // same
   'Letter': 'ورق رسائل',
   'Back to the words': 'العودة إلى النص',
   'Extend the selection': 'توسيع التحديد',

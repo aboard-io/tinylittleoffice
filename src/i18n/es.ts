@@ -37,7 +37,7 @@ export default {
   '{n} more': '{n} más',
 
   // ---- the drawer (hamburger menu) ----
-  'Apps': 'Apps',
+  'Apps': 'Apps', // same
   'Close': 'Cerrar',
   'Private': 'Privado',
   'Private: nothing saved': 'Privado: no se guarda nada',
@@ -93,7 +93,7 @@ export default {
   'Updated, reload': 'Actualizado, recarga',
   'Could not save': 'No se pudo guardar',
   'Not kept': 'No se conserva',
-  '{mb} MB': '{mb} MB',
+  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'Una copia abierta en una pestaña nueva',
@@ -125,7 +125,7 @@ export default {
   'a text message': 'un mensaje de texto',
   'an NFC sticker': 'una etiqueta NFC',
   'some browsers': 'algunos navegadores',
-  '{n|# short link kept here|# short links kept here}': '{n|# enlace corto guardado aquí|# de enlaces cortos guardados aquí|# enlaces cortos guardados aquí}',
+  '{n|# short link kept here|# short links kept here}': '{n|# enlace corto conservado aquí|# de enlaces cortos conservados aquí|# enlaces cortos conservados aquí}',
   'Display Link': 'Enlace de vista',
   'Opens': 'Se abre',
   'Update': 'Actualizar',
@@ -133,7 +133,7 @@ export default {
   'Could not copy': 'No se pudo copiar',
   'Share…': 'Compartir…',
   'QR code': 'Código QR',
-  'QR code of this document': 'Código QR de este documento',
+  'QR code of this document': 'Código QR del documento',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Este documento pesa {n} bytes; el mayor código QR admite {max}. Acórtalo en {over} bytes y cabrá.',
   'Expires after': 'Caduca tras',
   'An hour': 'Una hora',
@@ -337,7 +337,7 @@ export default {
   'Justify': 'Justificar',
   'Paper: {paper}': 'Papel: {paper}',
   // The Look menu: each look's name, then a line about it drawn in its own type.
-  'Sans': 'Sans',
+  'Sans': 'Sans', // same
   'Clean and plain throughout': 'Limpia y sencilla en todo el texto',
   'A bookish serif throughout': 'Una serif de libro en todo el texto',
   'Monospace, ragged right': 'Monoespaciada, bandera a la derecha',
@@ -364,8 +364,8 @@ export default {
   'Back to footnote {n} in the text': 'Volver a la nota al pie {n} en el texto',
   'Back to the text': 'Volver al texto',
   '{n|one word|# words}': '{n|una palabra|# de palabras|# palabras}',
-  'Word (DOCX)': 'Word (DOCX)',
-  'Markdown': 'Markdown',
+  'Word (DOCX)': 'Word (DOCX)', // same
+  'Markdown': 'Markdown', // same
   'Rich Text (RTF)': 'Texto enriquecido (RTF)',
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'Añadir una columna antes',
@@ -468,7 +468,7 @@ export default {
   'Nothing to chart yet': 'Aún no hay nada que graficar',
   'Nothing to chart yet: rows of From | To | Amount': 'Aún no hay nada que graficar: filas de De | A | Cantidad',
   'Pie': 'Circular',
-  'Series': 'Series',
+  'Series': 'Series', // same
   '{kind} chart. {data}': 'Gráfico {kind}. {data}',
 
   // ---- the Spreadsheet ----
@@ -542,8 +542,8 @@ export default {
   'Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.': 'Millas y kilómetros, libras y kilogramos, hornos, tazas y galones: escribe una cantidad, lee la otra unidad.',
   'Tournament bracket': 'Cuadro de torneo',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': 'Ocho equipos en eliminatorias: el marcador de cada partido, el ganador calculado, y los ganadores pasan a la final.',
-  'Excel (XLSX)': 'Excel (XLSX)',
-  'CSV': 'CSV',
+  'Excel (XLSX)': 'Excel (XLSX)', // same
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'Gráfico (SVG)',
   'Chart (PNG)': 'Gráfico (PNG)',
   'Empty sheet': 'Hoja vacía',
@@ -621,7 +621,7 @@ export default {
   'Icon or emoji': 'Icono o emoji',
   'Search icons and emoji': 'Buscar iconos y emojis',
   'Icons or emoji': 'Iconos o emojis',
-  'Emoji': 'Emoji',
+  'Emoji': 'Emoji', // same
   'No icons or emoji match “{q}”.': 'Ningún icono ni emoji coincide con “{q}”.',
   // Unicode's emoji groups, as the picker's Emoji set names them.
   'Smileys & Emotion': 'Emoticonos y emociones',
@@ -726,7 +726,7 @@ export default {
   'Place an icon': 'Colocar un icono',
   'Zoom in': 'Acercar',
   'Zoom out': 'Alejar',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': 'Texto alternativo',
   'Alt text: {alt}': 'Texto alternativo: {alt}',
   'Add alt text: describe this drawing for people who cannot see it': 'Añade texto alternativo: describe este dibujo para quien no pueda verlo',
@@ -757,18 +757,18 @@ export default {
   'Edit the words': 'Editar las palabras',
   'Extra large text': 'Texto extragrande',
   'Grey fill': 'Relleno gris',
-  'L': 'L',
+  'L': 'L', // same
   'Large text': 'Texto grande',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': 'Texto mediano',
-  'S': 'S',
+  'S': 'S', // same
   'Small text': 'Texto pequeño',
   'Solid fill': 'Relleno sólido',
   'Solid line': 'Línea continua',
   'The shape in hand': 'La forma elegida',
   'The words of the shape': 'Las palabras de la forma',
   'Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.': 'Escribe las palabras; Enter termina, Shift+Enter empieza una línea nueva, Escape las devuelve como estaban.',
-  'XL': 'XL',
+  'XL': 'XL', // same
 
   'Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.': 'Arrastra para mover; el tirador de la esquina cambia el tamaño, el redondo gira; Enter o un doble toque edita las palabras.',
   'Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.': 'Lienzo de dibujo. V selecciona; R, E, D, L, A, T dibujan; las flechas desplazan; [ y ] giran; Enter edita las palabras; Suprimir elimina.',
@@ -807,13 +807,13 @@ export default {
   'Animated GIF': 'GIF animado',
   'Animated SVG': 'SVG animado',
   'An empty stage': 'Un escenario vacío',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'Añadir una clave aquí',
   'Blur': 'Desenfoque',
   'Depth': 'Profundidad',
   'Effects': 'Efectos',
   'Frame {n}, {s} s': 'Fotograma {n}, {s} s',
-  'Impact': 'Impact',
+  'Impact': 'Impact', // same
   'Key at {s} s': 'Clave a los {s} s',
   'Mirror': 'Espejo',
   'Mode': 'Modo',
@@ -851,7 +851,7 @@ export default {
   'Turns the shape round in the plane of the stage, like a wheel.': 'Hace girar la forma en el plano del escenario, como una rueda.',
   'Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.': 'Qué forma está delante: una forma más cercana se dibuja sobre una más lejana, y una lejana un poco más tenue. La profundidad nunca cambia el tamaño.',
   '{n} times': '{n} veces',
-  '{s} s': '{s} s',
+  '{s} s': '{s} s', // same
   // ---- the Outliner ----
   // The bullet is the line to the parent; a join between any two items is a connection. {from} and {to} are items' words.
   ', named “{label}”': ', llamada “{label}”',
@@ -984,7 +984,7 @@ export default {
   'Stages as rows': 'Etapas como filas',
   'No limit': 'Sin límite',
   'No stages. Insert a stage.': 'No hay etapas. Inserta una etapa.',
-  'Plan': 'Plan',
+  'Plan': 'Plan', // same
   'Stage': 'Etapa',
   'Stage name': 'Nombre de la etapa',
   'Stage options': 'Opciones de la etapa',
@@ -1104,8 +1104,8 @@ export default {
   'Fade': 'Fundido',
   'Cut': 'Corte',
   'Slide': 'Deslizar',
-  'Zoom': 'Zoom',
-  'Zine': 'Zine',
+  'Zoom': 'Zoom', // same
+  'Zine': 'Zine', // same
   'Booklet': 'Cuadernillo',
   'Brochure': 'Folleto',
   'Comic': 'Cómic',
@@ -1217,7 +1217,7 @@ export default {
   'A QR code of this deck': 'Un código QR de esta presentación',
 
   // Downloads
-  'PowerPoint (PPTX)': 'PowerPoint (PPTX)',
+  'PowerPoint (PPTX)': 'PowerPoint (PPTX)', // same
   'A picture of every slide (ZIP of PNGs)': 'Una imagen de cada diapositiva (ZIP de PNG)',
   'A film of the deck (GIF)': 'Una película de la presentación (GIF)',
 
@@ -1266,7 +1266,7 @@ export default {
   'Family calendar': 'Calendario familiar',
   'Festival weekend': 'Fin de semana de festival',
   'How many times': 'Cuántas veces',
-  'iCalendar (ICS)': 'iCalendar (ICS)',
+  'iCalendar (ICS)': 'iCalendar (ICS)', // same
   'Its own zone': 'Su propia zona',
   'Last day': 'Último día',
   'Lessons, birthdays and holidays, a colour for each person, the weekly things repeating.': 'Clases, cumpleaños y fiestas, un color para cada persona, lo semanal repitiéndose.',
@@ -1341,10 +1341,10 @@ export default {
   'Family tree': 'Árbol genealógico',
   'Swimlanes': 'Calles',
   'Timeline': 'Línea del tiempo',
-  'Venn': 'Venn',
+  'Venn': 'Venn', // same
   'Seating chart': 'Plano de mesas',
   'Network': 'Red',
-  'Idea': 'Idea',
+  'Idea': 'Idea', // same
   'Person': 'Persona',
   'Step': 'Paso',
   'Set': 'Conjunto',
@@ -1424,7 +1424,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'Una ruta en un mapa: paradas en orden, cada una con una nota, y la distancia entre ellas.',
   'GPX route': 'Ruta GPX',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': 'Un lugar por nombre…',
   'A stop at the middle of the map': 'Una parada en el centro del mapa',
@@ -1491,7 +1491,7 @@ export default {
   // ---- the Website Builder ----
   'site': 'sitio',
   // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
-  'Web': 'Web',
+  'Web': 'Web', // same
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'Un sitio web de páginas pequeñas, o una página de enlaces rápidos, descargado como un único archivo HTML; una tienda con carrito si enumeras lo que vendes.',
   'The website (HTML)': 'El sitio web (HTML)',
 
@@ -1542,8 +1542,8 @@ export default {
   'Light or dark': 'Claro u oscuro',
   'As the theme is': 'Como el tema',
   'Type': 'Letra',
-  'Sans serif': 'Sans serif',
-  'Serif': 'Serif',
+  'Sans serif': 'Sans serif', // same
+  'Serif': 'Serif', // same
   'Rounded': 'Redondeada',
   'Monospace': 'Monoespaciada',
   'Shape': 'Forma',
@@ -1561,7 +1561,7 @@ export default {
   'Add {thing} to the cart': 'Añadir {thing} al carrito',
   'Cart': 'Carrito',
   'Nothing in it yet.': 'Aún no hay nada.',
-  'Total': 'Total',
+  'Total': 'Total', // same
   'Send order by email': 'Enviar el pedido por correo',
   'Copy order': 'Copiar el pedido',
   'One fewer': 'Uno menos',
@@ -1607,7 +1607,7 @@ export default {
   'Log base ten': 'Logaritmo en base diez',
   'Square root': 'Raíz cuadrada',
   'Absolute value': 'Valor absoluto',
-  'Factorial': 'Factorial',
+  'Factorial': 'Factorial', // same
   'e, the number': 'e, el número',
   'x, for a graph': 'x, para una gráfica',
   'Units and algebra': 'Unidades y álgebra',
@@ -1622,8 +1622,8 @@ export default {
   'Take away line {n}': 'Quitar la línea {n}',
   'Sum': 'Suma',
   'Type or tap': 'Escribe o toca',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'en x = 1: {answer}',
   'Keys': 'Teclas',
   'Backspace': 'Retroceso',
@@ -1698,7 +1698,7 @@ export default {
   'Changes': 'Cambios',
   'Compare': 'Comparar',
   'Compare…': 'Comparar…',
-  'Copy embed code': 'Copiar el código para incrustar',
+  'Copy embed code': 'Copiar código para incrustar',
   'Copy show link': 'Copiar el enlace para mostrar',
   'Edit this deck': 'Editar esta presentación',
   'Embed': 'Incrustar',
@@ -1781,7 +1781,7 @@ export default {
   'Show on a board': 'Mostrar en un tablero',
   'Show these shortcuts': 'Mostrar estos atajos',
   'All commands…': 'Todos los comandos…',
-  'A4': 'A4',
+  'A4': 'A4', // same
   'Letter': 'Carta',
   'Back to the words': 'Volver al texto',
   'Extend the selection': 'Ampliar la selección',

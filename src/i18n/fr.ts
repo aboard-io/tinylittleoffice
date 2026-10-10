@@ -8,7 +8,7 @@ import type { Strings } from '../kit/i18n.ts';
 
 export default {
   // ---- the shell: header ----
-  'Menu': 'Menu',
+  'Menu': 'Menu', // same
   'Title': 'Titre',
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'Nouveau : {noun}',
@@ -38,7 +38,7 @@ export default {
   '{n} more': '{n} de plus',
 
   // ---- the drawer (hamburger menu) ----
-  'Apps': 'Apps',
+  'Apps': 'Apps', // same
   'Close': 'Fermer',
   'Private': 'Privé',
   'Private: nothing saved': 'Privé : rien n’est enregistré',
@@ -133,7 +133,7 @@ export default {
   'Link copied': 'Lien copié',
   'Could not copy': 'Copie impossible',
   'Share…': 'Partager…',
-  'QR code': 'QR code',
+  'QR code': 'QR code', // same
   'QR code of this document': 'QR code de ce document',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Ce document fait {n} octets ; le plus grand QR code en contient {max}. Raccourcissez-le de {over} octets et il tiendra.',
   'Expires after': 'Expire après',
@@ -289,7 +289,7 @@ export default {
   'Numbered list': 'Liste numérotée',
   'Table': 'Tableau',
   'Footnote': 'Note de bas de page',
-  'Date': 'Date',
+  'Date': 'Date', // same
   'Undo': 'Annuler',
   'Redo': 'Rétablir',
   'Today': 'Aujourd’hui',
@@ -301,7 +301,7 @@ export default {
   '{app} document': 'Document {app}',
   // The same card when its app is known; {noun} is the app's noun: "A spreadsheet".
   'A {noun}': 'Document : {noun}',
-  'Code': 'Code',
+  'Code': 'Code', // same
   'Connection': 'Connexion',
   '{n|one row|# rows}': '{n|# ligne|# de lignes|# lignes}',
   'The note\'s words': 'Le texte de la note',
@@ -313,7 +313,7 @@ export default {
   'Edit link': 'Modifier le lien',
   'Remove link': 'Retirer le lien',
   // The selection bubble's name: what can be done to the words selected.
-  'Format': 'Format',
+  'Format': 'Format', // same
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|# diapositive|# de diapositives|# diapositives}',
@@ -321,11 +321,11 @@ export default {
   // ---- the Word Processor ----
   'Word Processor': 'Traitement de texte',
   // What one of its documents is called, in running text: "Untitled document"; each app's noun is in its section.
-  'document': 'document',
+  'document': 'document', // same
   // The group heading the Word Processor sits under on the home page.
   'Words': 'Texte',
   'Words on a page: headings, lists, links and notes, a table that adds up, printed on letter or A4.': 'Des mots sur une page : titres, listes, liens et notes, un tableau qui calcule, imprimé en Letter ou en A4.',
-  'Document': 'Document',
+  'Document': 'Document', // same
   'Write here.': 'Écrivez ici.',
   'Subheading': 'Sous-titre',
   'Paragraph': 'Paragraphe',
@@ -354,19 +354,19 @@ export default {
   'Page break': 'Saut de page',
   'Address of the picture': 'Adresse de l’image',
   'Address of a video, a post, a song, a place, a page': 'Adresse d’une vidéo, d’un message, d’un morceau, d’un lieu, d’une page',
-  'OK': 'OK',
+  'OK': 'OK', // same
   'This card': 'Cette carte',
   'Open in {app}': 'Ouvrir dans {app}',
   'Change the address…': 'Changer l’adresse…',
-  'Signatures': 'Signatures',
+  'Signatures': 'Signatures', // same
   'No one has signed yet.': 'Personne n’a encore signé.',
   'Locked: worked out for you': 'Verrouillé : calculé pour vous',
   'Footnotes': 'Notes de bas de page',
   'Back to footnote {n} in the text': 'Retour à la note {n} dans le texte',
   'Back to the text': 'Retour au texte',
   '{n|one word|# words}': '{n|# mot|# de mots|# mots}',
-  'Word (DOCX)': 'Word (DOCX)',
-  'Markdown': 'Markdown',
+  'Word (DOCX)': 'Word (DOCX)', // same
+  'Markdown': 'Markdown', // same
   'Rich Text (RTF)': 'Texte enrichi (RTF)',
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'Ajouter une colonne avant',
@@ -483,7 +483,7 @@ export default {
   'spreadsheet': 'tableur',
   'Numbers': 'Chiffres',
   'A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them.': 'Un tableur avec formules, cellules nommées et graphiques ; trois colonnes au départ, d’autres selon vos besoins.',
-  'Budget': 'Budget',
+  'Budget': 'Budget', // same
   'Planned against actual, a line each, with the difference and totals.': 'Prévu face au réel, une ligne chacun, avec l’écart et les totaux.',
   'Expense log': 'Journal des dépenses',
   'Date, what, how much, which kind; a running total at the foot.': 'Date, quoi, combien, quel genre ; un total courant en bas.',
@@ -543,8 +543,8 @@ export default {
   'Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.': 'Miles et kilomètres, livres et kilogrammes, fours, tasses et gallons : tapez une quantité, lisez l’autre unité.',
   'Tournament bracket': 'Tableau de tournoi',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': 'Huit équipes en élimination directe : le score de chaque match, le vainqueur calculé, et les vainqueurs reportés jusqu’à la finale.',
-  'Excel (XLSX)': 'Excel (XLSX)',
-  'CSV': 'CSV',
+  'Excel (XLSX)': 'Excel (XLSX)', // same
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'Graphique (SVG)',
   'Chart (PNG)': 'Graphique (PNG)',
   'Empty sheet': 'Feuille vide',
@@ -640,7 +640,7 @@ export default {
   'Draw': 'Dessin',
   'Drawing Tool': 'Outil de dessin',
   'drawing': 'dessin',
-  'Design': 'Design',
+  'Design': 'Design', // same
   'Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile.': 'Des boîtes, des flèches, des icônes et des étiquettes sur une grille ; ou du pixel art, qui peut devenir un motif de fond.',
   'Request flow': 'Parcours d’une requête',
   'A browser asks a server, which reads the data: boxes joined by arrows.': 'Un navigateur interroge un serveur, qui lit les données : des boîtes reliées par des flèches.',
@@ -657,7 +657,7 @@ export default {
   'A phone screen sketched in boxes before anyone builds it, with notes on why each part is there.': 'Un écran de téléphone esquissé en boîtes avant que quiconque le construise, avec des notes sur la raison d’être de chaque partie.',
   'A rosette with ribbons for the volunteer of the year, to print, cut out and pin on.': 'Une rosette avec des rubans pour le bénévole de l’année, à imprimer, découper et épingler.',
   'A street party from above: the stage, the stalls, first aid and where to meet if you are lost.': 'Une fête de rue vue de dessus : la scène, les stands, les premiers secours et où se retrouver si l’on est perdu.',
-  'Badge': 'Badge',
+  'Badge': 'Badge', // same
   'Birthday card': 'Carte d’anniversaire',
   'Can we refund it? A shop’s returns rule as questions, answers and what to do.': 'Peut-on rembourser ? La règle de retour d’une boutique en questions, réponses et marche à suivre.',
   'Event map': 'Plan de l’événement',
@@ -684,8 +684,8 @@ export default {
   'Pixel art, {n} by {n}: {filled|one square filled|# squares filled}.': 'Pixel art, {n} par {n} : {filled|# case remplie|# de cases remplies|# cases remplies}.',
   'Pixel art, {n} by {n}': 'Pixel art, {n} par {n}',
   'Select': 'Choisir',
-  'Rectangle': 'Rectangle',
-  'Ellipse': 'Ellipse',
+  'Rectangle': 'Rectangle', // same
+  'Ellipse': 'Ellipse', // same
   'Diamond': 'Losange',
   'Line': 'Ligne',
   'Arrow': 'Flèche',
@@ -696,14 +696,14 @@ export default {
   'Hexagon': 'Hexagone',
   'Parallelogram': 'Parallélogramme',
   'Cylinder': 'Cylindre',
-  'Note': 'Note',
+  'Note': 'Note', // same
   'Black': 'Noir',
   'Red': 'Rouge',
-  'Orange': 'Orange',
+  'Orange': 'Orange', // same
   'Green': 'Vert',
   'Blue': 'Bleu',
   'Purple': 'Violet',
-  'Indigo': 'Indigo',
+  'Indigo': 'Indigo', // same
   'Yellow': 'Jaune',
   'Sky': 'Ciel',
   'Pink': 'Rose',
@@ -727,7 +727,7 @@ export default {
   'Place an icon': 'Placer une icône',
   'Zoom in': 'Zoom avant',
   'Zoom out': 'Zoom arrière',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': 'Texte alternatif',
   'Alt text: {alt}': 'Texte alternatif : {alt}',
   'Add alt text: describe this drawing for people who cannot see it': 'Ajouter un texte alternatif : décrire ce dessin pour les personnes qui ne peuvent pas le voir',
@@ -758,18 +758,18 @@ export default {
   'Edit the words': 'Modifier le texte',
   'Extra large text': 'Texte très grand',
   'Grey fill': 'Remplissage gris',
-  'L': 'L',
+  'L': 'L', // same
   'Large text': 'Grand texte',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': 'Texte moyen',
-  'S': 'S',
+  'S': 'S', // same
   'Small text': 'Petit texte',
   'Solid fill': 'Remplissage plein',
   'Solid line': 'Trait plein',
   'The shape in hand': 'La forme choisie',
   'The words of the shape': 'Le texte de la forme',
   'Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.': 'Saisissez le texte ; Enter valide, Shift+Enter passe à la ligne, Escape le remet comme avant.',
-  'XL': 'XL',
+  'XL': 'XL', // same
 
   'Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.': 'Glissez pour déplacer ; la poignée du coin redimensionne, la ronde fait pivoter ; Enter ou un double toucher modifie le texte.',
   'Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.': 'Canevas de dessin. V sélectionne ; R, E, D, L, A, T dessinent ; les flèches déplacent ; [ et ] font pivoter ; Enter modifie le texte ; Delete supprime.',
@@ -777,7 +777,7 @@ export default {
   'Rotate left': 'Pivoter à gauche',
   'Rotate right': 'Pivoter à droite',
   // ---- the Animator ----
-  'animation': 'animation',
+  'animation': 'animation', // same
   // The templates: what each motion is, in a line.
   'Lift off': 'Décollage',
   'A rocket climbs away with its shadow as the words rise: two shapes, two keys each.': 'Une fusée s’éloigne avec son ombre tandis que les mots s’élèvent : deux formes, deux images clés chacune.',
@@ -808,21 +808,21 @@ export default {
   'Animated GIF': 'GIF animé',
   'Animated SVG': 'SVG animé',
   'An empty stage': 'Une scène vide',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'Ajouter une image clé ici',
   'Blur': 'Flou',
   'Depth': 'Profondeur',
   'Effects': 'Effets',
   'Frame {n}, {s} s': 'Image {n}, {s} s',
-  'Impact': 'Impact',
+  'Impact': 'Impact', // same
   'Key at {s} s': 'Image clé à {s} s',
   'Mirror': 'Miroir',
-  'Mode': 'Mode',
-  'Moments': 'Moments',
+  'Mode': 'Mode', // same
+  'Moments': 'Moments', // same
   'Move': 'Déplacer',
-  'Neon': 'Neon',
+  'Neon': 'Neon', // same
   'Nothing here yet: switch to Draw and draw something.': 'Rien ici pour l’instant : passez à Dessin et dessinez quelque chose.',
-  'Pause': 'Pause',
+  'Pause': 'Pause', // same
   'Play': 'Lire',
   'Pixel art is made in the Drawing Tool; the Animator moves shapes.': 'Le pixel art se fait dans l’Outil de dessin ; l’Animateur anime les formes.',
   'Rainbow': 'Arc-en-ciel',
@@ -852,7 +852,7 @@ export default {
   'Turns the shape round in the plane of the stage, like a wheel.': 'Fait tourner la forme dans le plan de la scène, comme une roue.',
   'Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.': 'Quelle forme est devant : une forme plus proche est dessinée sur une plus lointaine, et une lointaine un peu plus pâle. La profondeur ne change jamais la taille.',
   '{n} times': '{n} fois',
-  '{s} s': '{s} s',
+  '{s} s': '{s} s', // same
   // ---- the Outliner ----
   // The bullet is the line to the parent; a join between any two items is a connection. {from} and {to} are items' words.
   ', named “{label}”': ', nommé « {label} »',
@@ -1105,10 +1105,10 @@ export default {
   'Fade': 'Fondu',
   'Cut': 'Coupe',
   'Slide': 'Glissement',
-  'Zoom': 'Zoom',
-  'Zine': 'Zine',
+  'Zoom': 'Zoom', // same
+  'Zine': 'Zine', // same
   'Booklet': 'Livret',
-  'Brochure': 'Brochure',
+  'Brochure': 'Brochure', // same
   'Comic': 'BD',
   'Poster': 'Affiche',
   'Name badges': 'Badges nominatifs',
@@ -1118,14 +1118,14 @@ export default {
   'Boardroom': 'Salle du conseil',
   'Ivory': 'Ivoire',
   'Midnight': 'Minuit',
-  'Graphite': 'Graphite',
+  'Graphite': 'Graphite', // same
   'Confetti': 'Confettis',
   'Sunset': 'Coucher de soleil',
   'Ocean': 'Océan',
   'Bubblegum': 'Chewing-gum',
-  'Arcade': 'Arcade',
+  'Arcade': 'Arcade', // same
   'Chalkboard': 'Tableau noir',
-  'Fun': 'Fun',
+  'Fun': 'Fun', // same
   'The theme\'s colour': 'La couleur du thème',
 
   // The bar
@@ -1153,14 +1153,14 @@ export default {
   'Title slide': 'Diapositive de titre',
   'Two-column slide': 'Diapositive à deux colonnes',
   'Big icon slide': 'Diapositive à grande icône',
-  'Page': 'Page',
+  'Page': 'Page', // same
   'Title page': 'Page de titre',
   'Two-column page': 'Page à deux colonnes',
   'Big icon page': 'Page à grande icône',
   'Four more pages': 'Quatre pages de plus',
   'On the slide': 'Sur la diapositive',
   'On the page': 'Sur la page',
-  'Pages': 'Pages',
+  'Pages': 'Pages', // same
 
   // The canvas
   'Add an icon': 'Ajouter une icône',
@@ -1182,14 +1182,14 @@ export default {
   'Slide {n}': 'Diapositive {n}',
   'Front cover': 'Couverture',
   'Back cover': 'Quatrième de couverture',
-  'Page {n}': 'Page {n}',
+  'Page {n}': 'Page {n}', // same
   'Front': 'Face',
   'Inside left': 'Intérieur gauche',
   'Inside middle': 'Intérieur centre',
   'Inside right': 'Intérieur droit',
   'Inside flap': 'Rabat intérieur',
   'Back': 'Dos',
-  'Badge {n}': 'Badge {n}',
+  'Badge {n}': 'Badge {n}', // same
   'Last slide, added for you: a QR code of this whole deck': 'Dernière diapositive, ajoutée pour vous : un QR code de toute cette présentation',
   'Ends with a QR code of this deck, so the room can take it home. The QR button turns it off.': 'Se termine par un QR code de cette présentation, pour que la salle l’emporte. Le bouton QR le retire.',
   'QR code of this deck': 'QR code de cette présentation',
@@ -1210,7 +1210,7 @@ export default {
   'Next': 'Suivant',
   'Stop presenting': 'Arrêter la présentation',
   'Slide {n} of {total}': 'Diapositive {n} sur {total}',
-  'Notes': 'Notes',
+  'Notes': 'Notes', // same
   'N hides them': 'N les masque',
   'Take this deck home': 'Emportez cette présentation',
   'Take this deck home: {title}': 'Emportez cette présentation : {title}',
@@ -1218,7 +1218,7 @@ export default {
   'A QR code of this deck': 'Un QR code de cette présentation',
 
   // Downloads
-  'PowerPoint (PPTX)': 'PowerPoint (PPTX)',
+  'PowerPoint (PPTX)': 'PowerPoint (PPTX)', // same
   'A picture of every slide (ZIP of PNGs)': 'Une image de chaque diapositive (ZIP de PNG)',
   'A film of the deck (GIF)': 'Un film de la présentation (GIF)',
 
@@ -1254,7 +1254,7 @@ export default {
   'Choose {task}': 'Choisir {task}',
   'A day earlier': 'Un jour avant',
   'A day later': 'Un jour après',
-  'Dates…': 'Dates…',
+  'Dates…': 'Dates…', // same
   'End': 'Fin',
   'End date': 'Date de fin',
   'End time': 'Heure de fin',
@@ -1267,7 +1267,7 @@ export default {
   'Family calendar': 'Calendrier familial',
   'Festival weekend': 'Week-end de festival',
   'How many times': 'Combien de fois',
-  'iCalendar (ICS)': 'iCalendar (ICS)',
+  'iCalendar (ICS)': 'iCalendar (ICS)', // same
   'Its own zone': 'Son propre fuseau',
   'Last day': 'Dernier jour',
   'Lessons, birthdays and holidays, a colour for each person, the weekly things repeating.': 'Cours, anniversaires et jours fériés, une couleur par personne, les choses hebdomadaires qui se répètent.',
@@ -1342,7 +1342,7 @@ export default {
   'Family tree': 'Arbre généalogique',
   'Swimlanes': 'Couloirs',
   'Timeline': 'Frise chronologique',
-  'Venn': 'Venn',
+  'Venn': 'Venn', // same
   'Seating chart': 'Plan de table',
   'Network': 'Réseau',
   'Idea': 'Idée',
@@ -1403,7 +1403,7 @@ export default {
   'A router and everything on it: laptop, phone, printer, television and doorbell.': 'Un routeur et tout ce qui s’y connecte : ordinateur, téléphone, imprimante, télévision et sonnette.',
   'A team by its skills: design, writing and code, and who does more than one.': 'Une équipe par ses compétences : design, écriture et code, et qui en fait plus d’une.',
   'An expenses claim': 'Une note de frais',
-  'Apollo 11': 'Apollo 11',
+  'Apollo 11': 'Apollo 11', // same
   'Board game night': 'Soirée jeux de société',
   'Class 4B at four tables by colour, and the reading corner.': 'La classe 4B à quatre tables par couleur, et le coin lecture.',
   'Eight days in July 1969, day by day, from launch to splashdown.': 'Huit jours en juillet 1969, jour par jour, du lancement à l’amerrissage.',
@@ -1425,13 +1425,13 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'Un itinéraire sur une carte : des arrêts dans l’ordre, chacun avec une note, et la distance entre eux.',
   'GPX route': 'Itinéraire GPX',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': 'Un lieu par son nom…',
   'A stop at the middle of the map': 'Un arrêt au milieu de la carte',
   'Measure in': 'Mesurer en',
   'Hours of driving': 'Heures de route',
-  'Miles': 'Miles',
+  'Miles': 'Miles', // same
   'Kilometres': 'Kilomètres',
   'Join the stops in order': 'Relier les arrêts dans l’ordre',
   'Show the whole route': 'Voir tout l’itinéraire',
@@ -1490,9 +1490,9 @@ export default {
   'For the guests: where the wedding is, where to sleep, how to get there.': 'Pour les invités : où a lieu le mariage, où dormir, comment s’y rendre.',
 
   // ---- the Website Builder ----
-  'site': 'site',
+  'site': 'site', // same
   // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
-  'Web': 'Web',
+  'Web': 'Web', // same
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'Un site web de petites pages, ou une page de liens rapides, téléchargé en un seul fichier HTML ; une boutique avec un panier si vous listez ce que vous vendez.',
   'The website (HTML)': 'Le site web (HTML)',
 
@@ -1518,7 +1518,7 @@ export default {
   // The words a new thing starts with
   'Button': 'Bouton',
   'Small link': 'Petit lien',
-  'Section': 'Section',
+  'Section': 'Section', // same
   'A line about it': 'Une ligne à son sujet',
   'New section': 'Nouvelle section',
   'New page': 'Nouvelle page',
@@ -1529,13 +1529,13 @@ export default {
 
   // The look: the themes, light or dark, the type, the shape
   'Teal': 'Sarcelle',
-  'Rose': 'Rose',
+  'Rose': 'Rose', // same
   'Amber': 'Ambre',
   'Ink': 'Encre',
   'Forest': 'Forêt',
   'Plum': 'Prune',
   'Candy': 'Bonbon',
-  'Olive': 'Olive',
+  'Olive': 'Olive', // same
   'Slate': 'Ardoise',
   'Paper': 'Papier',
   'Typewriter': 'Machine à écrire',
@@ -1543,8 +1543,8 @@ export default {
   'Light or dark': 'Clair ou sombre',
   'As the theme is': 'Comme le thème',
   'Type': 'Police',
-  'Sans serif': 'Sans serif',
-  'Serif': 'Serif',
+  'Sans serif': 'Sans serif', // same
+  'Serif': 'Serif', // same
   'Rounded': 'Arrondie',
   'Monospace': 'Chasse fixe',
   'Shape': 'Forme',
@@ -1555,14 +1555,14 @@ export default {
   'My site': 'Mon site',
   'Quick Links': 'Liens rapides',
   'Home': 'Accueil',
-  'Sections': 'Sections',
+  'Sections': 'Sections', // same
   'Elsewhere': 'Ailleurs',
   'Products': 'Produits',
   'Add to cart': 'Ajouter au panier',
   'Add {thing} to the cart': 'Ajouter {thing} au panier',
   'Cart': 'Panier',
   'Nothing in it yet.': 'Rien dedans pour l’instant.',
-  'Total': 'Total',
+  'Total': 'Total', // same
   'Send order by email': 'Envoyer la commande par e-mail',
   'Copy order': 'Copier la commande',
   'One fewer': 'Un de moins',
@@ -1623,8 +1623,8 @@ export default {
   'Take away line {n}': 'Retirer la ligne {n}',
   'Sum': 'Somme',
   'Type or tap': 'Tapez ou touchez',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'pour x = 1 : {answer}',
   'Keys': 'Touches',
   'Backspace': 'Retour arrière',
@@ -1685,14 +1685,14 @@ export default {
   'Choices': 'Choix',
   'Choices for {ref}': 'Choix pour {ref}',
   'One of the words the column holds, or a new one': 'Un des mots que contient la colonne, ou un nouveau',
-  'Option': 'Option',
+  'Option': 'Option', // same
   'The sheet has one': 'La feuille en a une',
-  'Documents': 'Documents',
+  'Documents': 'Documents', // same
   'Find app, template': 'Trouver une appli, un modèle',
   'Find app, template, or doc': 'Trouver une appli, un modèle ou un document',
   'New {noun} {date} #{n}': '{noun} {date} #{n}',
   'Nothing by that name': 'Rien sous ce nom',
-  'Pixels {n}×{n}': 'Pixels {n}×{n}',
+  'Pixels {n}×{n}': 'Pixels {n}×{n}', // same
   // Files, compare, posting and embedding: the agent and sharing surface.
   'A Mastodon server, like mastodon.social': 'Un serveur Mastodon, comme mastodon.social',
   'Change': 'Modification',
@@ -1782,7 +1782,7 @@ export default {
   'Show on a board': 'Afficher sur un tableau',
   'Show these shortcuts': 'Afficher ces raccourcis',
   'All commands…': 'Toutes les commandes…',
-  'A4': 'A4',
+  'A4': 'A4', // same
   'Letter': 'Lettre US',
   'Back to the words': 'Retour au texte',
   'Extend the selection': 'Étendre la sélection',

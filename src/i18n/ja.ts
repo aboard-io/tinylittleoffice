@@ -91,7 +91,7 @@ export default {
   'Updated, reload': '更新済み、再読み込みしてください',
   'Could not save': '保存できませんでした',
   'Not kept': '保管なし',
-  '{mb} MB': '{mb} MB',
+  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'コピーを新しいタブで開きました',
@@ -131,7 +131,7 @@ export default {
   'Could not copy': 'コピーできませんでした',
   'Share…': '共有…',
   'QR code': 'QRコード',
-  'QR code of this document': 'このドキュメントのQRコード',
+  'QR code of this document': 'ドキュメントのQRコード',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'このドキュメントは{n}バイトで、QRコードに入る最大は{max}バイトです。{over}バイト短くすれば収まります。',
   'Expires after': '期限',
   'An hour': '1時間',
@@ -351,7 +351,7 @@ export default {
   'Page break': '改ページ',
   'Address of the picture': '画像のアドレス',
   'Address of a video, a post, a song, a place, a page': '動画、投稿、曲、場所、ページのアドレス',
-  'OK': 'OK',
+  'OK': 'OK', // same
   'This card': 'このカード',
   'Open in {app}': '{app}で開く',
   'Change the address…': 'アドレスを変更…',
@@ -363,7 +363,7 @@ export default {
   'Back to the text': '本文に戻る',
   '{n|one word|# words}': '{n|#語}',
   'Word (DOCX)': 'Word（DOCX）',
-  'Markdown': 'Markdown',
+  'Markdown': 'Markdown', // same
   'Rich Text (RTF)': 'リッチテキスト（RTF）',
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': '前に列を追加',
@@ -541,7 +541,7 @@ export default {
   'Tournament bracket': 'トーナメント表',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': '8チームのノックアウト方式：各試合のスコア、勝者の計算、決勝に進む勝者。',
   'Excel (XLSX)': 'Excel（XLSX）',
-  'CSV': 'CSV',
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'グラフ（SVG）',
   'Chart (PNG)': 'グラフ（PNG）',
   'Empty sheet': '空のシート',
@@ -805,7 +805,7 @@ export default {
   'Animated GIF': 'アニメーションGIF',
   'Animated SVG': 'アニメーションSVG',
   'An empty stage': '空のステージ',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'ここにキーを追加',
   'Blur': 'ぼかし',
   'Depth': '奥行き',
@@ -1422,7 +1422,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': '地図上の経路：順番に並ぶ立ち寄り先、それぞれのメモ、間の距離。',
   'GPX route': 'GPX経路',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': '名前で場所を指定…',
   'A stop at the middle of the map': '地図の中央に立ち寄り先',
@@ -1620,8 +1620,8 @@ export default {
   'Take away line {n}': '{n}行目を削除',
   'Sum': '合計',
   'Type or tap': '入力またはタップ',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'x = 1のとき：{answer}',
   'Keys': 'キー',
   'Backspace': 'バックスペース',
@@ -1779,7 +1779,7 @@ export default {
   'Show on a board': 'ボードで表示',
   'Show these shortcuts': 'ショートカットを表示',
   'All commands…': 'すべてのコマンド…',
-  'A4': 'A4',
+  'A4': 'A4', // same
   'Letter': 'レター',
   'Back to the words': '文章に戻る',
   'Extend the selection': '選択範囲を広げる',

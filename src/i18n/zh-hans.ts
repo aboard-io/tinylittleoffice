@@ -92,7 +92,7 @@ export default {
   'Updated, reload': '已更新，请重新加载',
   'Could not save': '无法保存',
   'Not kept': '未保留',
-  '{mb} MB': '{mb} MB',
+  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': '在新标签页中打开的副本',
@@ -364,7 +364,7 @@ export default {
   'Back to the text': '返回正文',
   '{n|one word|# words}': '{n|# 个字}',
   'Word (DOCX)': 'Word（DOCX）',
-  'Markdown': 'Markdown',
+  'Markdown': 'Markdown', // same
   'Rich Text (RTF)': '富文本（RTF）',
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': '在前面添加一列',
@@ -542,7 +542,7 @@ export default {
   'Tournament bracket': '淘汰赛对阵表',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': '八支球队的淘汰赛：每场比分、算出的胜者，以及晋级决赛的胜者。',
   'Excel (XLSX)': 'Excel（XLSX）',
-  'CSV': 'CSV',
+  'CSV': 'CSV', // same
   'Chart (SVG)': '图表（SVG）',
   'Chart (PNG)': '图表（PNG）',
   'Empty sheet': '空工作表',
@@ -725,7 +725,7 @@ export default {
   'Place an icon': '放置图标',
   'Zoom in': '放大',
   'Zoom out': '缩小',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': '替代文字',
   'Alt text: {alt}': '替代文字：{alt}',
   'Add alt text: describe this drawing for people who cannot see it': '添加替代文字：为看不到的人描述这幅绘图',
@@ -756,18 +756,18 @@ export default {
   'Edit the words': '编辑文字',
   'Extra large text': '特大字',
   'Grey fill': '灰色填充',
-  'L': 'L',
+  'L': 'L', // same
   'Large text': '大字',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': '中字',
-  'S': 'S',
+  'S': 'S', // same
   'Small text': '小字',
   'Solid fill': '实心填充',
   'Solid line': '实线',
   'The shape in hand': '选中的形状',
   'The words of the shape': '形状里的文字',
   'Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.': '输入文字；Enter 完成，Shift+Enter 换行，Escape 恢复原样。',
-  'XL': 'XL',
+  'XL': 'XL', // same
 
   'Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.': '拖动移动；角上的手柄调整大小，圆形的手柄旋转；按 Enter 或双击可编辑文字。',
   'Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.': '绘图画布。V 选择；R、E、D、L、A、T 绘制；方向键微调；[ 和 ] 旋转；Enter 编辑文字；Delete 删除。',
@@ -806,7 +806,7 @@ export default {
   'Animated GIF': '动画 GIF',
   'Animated SVG': '动画 SVG',
   'An empty stage': '空舞台',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': '在此添加关键帧',
   'Blur': '模糊',
   'Depth': '景深',
@@ -1423,7 +1423,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': '地图上的路线：按顺序的各个站点，每站一条备注，以及站与站之间的距离。',
   'GPX route': 'GPX 路线',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': '按名称找地点…',
   'A stop at the middle of the map': '地图中央的一个站点',
@@ -1621,8 +1621,8 @@ export default {
   'Take away line {n}': '去掉第 {n} 行',
   'Sum': '求和',
   'Type or tap': '输入或点按',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'x = 1 时：{answer}',
   'Keys': '按键',
   'Backspace': '退格',
@@ -1780,7 +1780,7 @@ export default {
   'Show on a board': '在看板上显示',
   'Show these shortcuts': '显示这些快捷键',
   'All commands…': '所有命令…',
-  'A4': 'A4',
+  'A4': 'A4', // same
   'Letter': '美式信纸',
   'Back to the words': '回到文字',
   'Extend the selection': '扩大选择',

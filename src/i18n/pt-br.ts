@@ -7,7 +7,7 @@ import type { Strings } from '../kit/i18n.ts';
 
 export default {
   // ---- the shell: header ----
-  'Menu': 'Menu',
+  'Menu': 'Menu', // same
   'Title': 'Título',
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'Criar {noun}',
@@ -37,7 +37,7 @@ export default {
   '{n} more': 'mais {n}',
 
   // ---- the drawer (hamburger menu) ----
-  'Apps': 'Apps',
+  'Apps': 'Apps', // same
   'Close': 'Fechar',
   'Private': 'Privado',
   'Private: nothing saved': 'Privado: nada é salvo',
@@ -93,7 +93,7 @@ export default {
   'Updated, reload': 'Atualizado, recarregue',
   'Could not save': 'Não foi possível salvar',
   'Not kept': 'Não guardado',
-  '{mb} MB': '{mb} MB',
+  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'Uma cópia aberta em nova aba',
@@ -133,7 +133,7 @@ export default {
   'Could not copy': 'Não foi possível copiar',
   'Share…': 'Compartilhar…',
   'QR code': 'Código QR',
-  'QR code of this document': 'Código QR deste documento',
+  'QR code of this document': 'Código QR do documento',
   'This document is {n} bytes; the largest QR code holds {max}. Shorten it by {over} bytes and it will fit.': 'Este documento tem {n} bytes; o maior código QR comporta {max}. Encurte em {over} bytes e ele caberá.',
   'Expires after': 'Expira após',
   'An hour': 'Uma hora',
@@ -158,7 +158,7 @@ export default {
   'Extend': 'Prolongar',
   'Forget this short link? Anyone who has it will find nothing there.': 'Esquecer este link curto? Quem o tiver não encontrará nada ali.',
   'Forgotten': 'Esquecido',
-  'Link': 'Link',
+  'Link': 'Link', // same
   'Short link': 'Link curto',
 
   // ---- privacy (kit/privacy.ts, kit/privacy-dialog.ts): the password, the signature, the key, what the device holds ----
@@ -353,7 +353,7 @@ export default {
   'Page break': 'Quebra de página',
   'Address of the picture': 'Endereço da imagem',
   'Address of a video, a post, a song, a place, a page': 'Endereço de um vídeo, uma publicação, uma música, um lugar, uma página',
-  'OK': 'OK',
+  'OK': 'OK', // same
   'This card': 'Este cartão',
   'Open in {app}': 'Abrir em {app}',
   'Change the address…': 'Mudar o endereço…',
@@ -364,9 +364,9 @@ export default {
   'Back to footnote {n} in the text': 'Voltar à nota de rodapé {n} no texto',
   'Back to the text': 'Voltar ao texto',
   '{n|one word|# words}': '{n|# palavra|# de palavras|# palavras}',
-  'Word (DOCX)': 'Word (DOCX)',
-  'Markdown': 'Markdown',
-  'Rich Text (RTF)': 'Rich Text (RTF)',
+  'Word (DOCX)': 'Word (DOCX)', // same
+  'Markdown': 'Markdown', // same
+  'Rich Text (RTF)': 'Rich Text (RTF)', // same
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'Adicionar coluna antes',
   'Column {c}: what it holds, name it, add or remove a column': 'Coluna {c}: o que ela guarda, dê um nome, adicione ou remova uma coluna',
@@ -542,8 +542,8 @@ export default {
   'Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.': 'Milhas e quilômetros, libras e quilogramas, fornos, xícaras e galões: digite uma quantidade, leia a outra unidade.',
   'Tournament bracket': 'Chave de torneio',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': 'Oito times em mata-mata: o placar de cada partida, o vencedor calculado e os vencedores levados até a final.',
-  'Excel (XLSX)': 'Excel (XLSX)',
-  'CSV': 'CSV',
+  'Excel (XLSX)': 'Excel (XLSX)', // same
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'Gráfico (SVG)',
   'Chart (PNG)': 'Gráfico (PNG)',
   'Empty sheet': 'Planilha vazia',
@@ -621,7 +621,7 @@ export default {
   'Icon or emoji': 'Ícone ou emoji',
   'Search icons and emoji': 'Buscar ícones e emojis',
   'Icons or emoji': 'Ícones ou emojis',
-  'Emoji': 'Emoji',
+  'Emoji': 'Emoji', // same
   'No icons or emoji match “{q}”.': 'Nenhum ícone ou emoji corresponde a “{q}”.',
   // Unicode's emoji groups, as the picker's Emoji set names them.
   'Smileys & Emotion': 'Carinhas e emoções',
@@ -639,7 +639,7 @@ export default {
   'Draw': 'Desenhar',
   'Drawing Tool': 'Ferramenta de Desenho',
   'drawing': 'desenho',
-  'Design': 'Design',
+  'Design': 'Design', // same
   'Boxes, arrows, icons and labels on a grid; or pixel art, which can become a background tile.': 'Caixas, setas, ícones e rótulos numa grade; ou pixel art, que pode virar um ladrilho de fundo.',
   'Request flow': 'Fluxo de requisição',
   'A browser asks a server, which reads the data: boxes joined by arrows.': 'Um navegador consulta um servidor, que lê os dados: caixas ligadas por setas.',
@@ -670,7 +670,7 @@ export default {
   'Three ideas for a coffee roaster’s mark side by side, the name set large, and a date to choose by.': 'Três ideias para a marca de um torrefador de café lado a lado, o nome em tamanho grande e uma data para escolher.',
   'Weather icons': 'Ícones de clima',
   'What happens to a parcel from the moment it is bought: a process in steps, with icons and joins.': 'O que acontece com uma encomenda desde o momento da compra: um processo em etapas, com ícones e ligações.',
-  'Wireframe': 'Wireframe',
+  'Wireframe': 'Wireframe', // same
   'Picture (SVG)': 'Imagem (SVG)',
   'Background tile (SVG)': 'Ladrilho de fundo (SVG)',
   'Background tile (PNG)': 'Ladrilho de fundo (PNG)',
@@ -726,7 +726,7 @@ export default {
   'Place an icon': 'Colocar um ícone',
   'Zoom in': 'Ampliar',
   'Zoom out': 'Reduzir',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': 'Texto alternativo',
   'Alt text: {alt}': 'Texto alternativo: {alt}',
   'Add alt text: describe this drawing for people who cannot see it': 'Adicione texto alternativo: descreva este desenho para quem não pode vê-lo',
@@ -759,7 +759,7 @@ export default {
   'Grey fill': 'Preenchimento cinza',
   'L': 'G',
   'Large text': 'Texto grande',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': 'Texto médio',
   'S': 'P',
   'Small text': 'Texto pequeno',
@@ -807,13 +807,13 @@ export default {
   'Animated GIF': 'GIF animado',
   'Animated SVG': 'SVG animado',
   'An empty stage': 'Um palco vazio',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'Adicionar uma chave aqui',
   'Blur': 'Desfoque',
   'Depth': 'Profundidade',
   'Effects': 'Efeitos',
   'Frame {n}, {s} s': 'Quadro {n}, {s} s',
-  'Impact': 'Impact',
+  'Impact': 'Impact', // same
   'Key at {s} s': 'Chave em {s} s',
   'Mirror': 'Espelho',
   'Mode': 'Modo',
@@ -851,7 +851,7 @@ export default {
   'Turns the shape round in the plane of the stage, like a wheel.': 'Gira a forma no plano do palco, como uma roda.',
   'Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.': 'Qual forma fica na frente: a mais próxima é desenhada sobre a mais distante, e a distante um pouco mais escura. A profundidade nunca muda o tamanho.',
   '{n} times': '{n} vezes',
-  '{s} s': '{s} s',
+  '{s} s': '{s} s', // same
   // ---- the Outliner ----
   // The bullet is the line to the parent; a join between any two items is a connection. {from} and {to} are items' words.
   ', named “{label}”': ', com o nome “{label}”',
@@ -887,8 +887,8 @@ export default {
   'Fold': 'Recolher',
   'Fold all': 'Recolher tudo',
   'From the web: {url}': 'Da web: {url}',
-  'Item': 'Item',
-  'Item {n}': 'Item {n}',
+  'Item': 'Item', // same
+  'Item {n}': 'Item {n}', // same
   'Kind of line': 'Tipo de linha',
   'Launch plan': 'Plano de lançamento',
   'Line from {from} to {to}': 'Linha de {from} para {to}',
@@ -1092,7 +1092,7 @@ export default {
   'Wedding slideshow': 'Slideshow de casamento',
   'Workshop agenda': 'Pauta da oficina',
   'presentation': 'apresentação',
-  'Slides': 'Slides',
+  'Slides': 'Slides', // same
   'Chosen slides': 'Slides escolhidos',
   'Move this slide: drag it onto another': 'Mova este slide: arraste-o sobre outro',
   'Slides: titles, bullets, two columns, big icons, other documents on a slide; or a zine, booklet, brochure, comic, poster or name badges to print and fold.': 'Slides: títulos, marcadores, duas colunas, ícones grandes, outros documentos num slide; ou um zine, livreto, folheto, quadrinhos, cartaz ou crachás para imprimir e dobrar.',
@@ -1104,8 +1104,8 @@ export default {
   'Fade': 'Esmaecer',
   'Cut': 'Corte',
   'Slide': 'Deslizar',
-  'Zoom': 'Zoom',
-  'Zine': 'Zine',
+  'Zoom': 'Zoom', // same
+  'Zine': 'Zine', // same
   'Booklet': 'Livreto',
   'Brochure': 'Folheto',
   'Comic': 'Quadrinhos',
@@ -1178,7 +1178,7 @@ export default {
   'Remove from the slide': 'Remover do slide',
 
   // The rail and the sheets
-  'Slide {n}': 'Slide {n}',
+  'Slide {n}': 'Slide {n}', // same
   'Front cover': 'Capa',
   'Back cover': 'Contracapa',
   'Page {n}': 'Página {n}',
@@ -1217,7 +1217,7 @@ export default {
   'A QR code of this deck': 'Um código QR desta apresentação',
 
   // Downloads
-  'PowerPoint (PPTX)': 'PowerPoint (PPTX)',
+  'PowerPoint (PPTX)': 'PowerPoint (PPTX)', // same
   'A picture of every slide (ZIP of PNGs)': 'Uma imagem de cada slide (ZIP de PNGs)',
   'A film of the deck (GIF)': 'Um filme da apresentação (GIF)',
 
@@ -1266,7 +1266,7 @@ export default {
   'Family calendar': 'Calendário da família',
   'Festival weekend': 'Fim de semana do festival',
   'How many times': 'Quantas vezes',
-  'iCalendar (ICS)': 'iCalendar (ICS)',
+  'iCalendar (ICS)': 'iCalendar (ICS)', // same
   'Its own zone': 'Fuso próprio',
   'Last day': 'Último dia',
   'Lessons, birthdays and holidays, a colour for each person, the weekly things repeating.': 'Aulas, aniversários e feriados, uma cor para cada pessoa, as coisas semanais se repetindo.',
@@ -1341,7 +1341,7 @@ export default {
   'Family tree': 'Árvore genealógica',
   'Swimlanes': 'Raias',
   'Timeline': 'Linha do tempo',
-  'Venn': 'Venn',
+  'Venn': 'Venn', // same
   'Seating chart': 'Mapa de assentos',
   'Network': 'Rede',
   'Idea': 'Ideia',
@@ -1402,7 +1402,7 @@ export default {
   'A router and everything on it: laptop, phone, printer, television and doorbell.': 'Um roteador e tudo o que há nele: notebook, celular, impressora, televisão e campainha.',
   'A team by its skills: design, writing and code, and who does more than one.': 'Uma equipe por suas habilidades: design, redação e código, e quem faz mais de uma.',
   'An expenses claim': 'Um pedido de reembolso',
-  'Apollo 11': 'Apollo 11',
+  'Apollo 11': 'Apollo 11', // same
   'Board game night': 'Noite de jogos de tabuleiro',
   'Class 4B at four tables by colour, and the reading corner.': 'A turma 4B em quatro mesas por cor, e o cantinho da leitura.',
   'Eight days in July 1969, day by day, from launch to splashdown.': 'Oito dias de julho de 1969, dia a dia, do lançamento ao pouso no mar.',
@@ -1424,7 +1424,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'Uma rota num mapa: paradas em ordem, cada uma com uma nota, e a distância entre elas.',
   'GPX route': 'Rota GPX',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': 'Um lugar pelo nome…',
   'A stop at the middle of the map': 'Uma parada no meio do mapa',
@@ -1489,9 +1489,9 @@ export default {
   'For the guests: where the wedding is, where to sleep, how to get there.': 'Para os convidados: onde é o casamento, onde dormir, como chegar.',
 
   // ---- the Website Builder ----
-  'site': 'site',
+  'site': 'site', // same
   // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
-  'Web': 'Web',
+  'Web': 'Web', // same
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'Um site de páginas pequenas, ou uma página de links rápidos, baixado como um único arquivo HTML; uma loja com carrinho se você listar o que vende.',
   'The website (HTML)': 'O site (HTML)',
 
@@ -1561,7 +1561,7 @@ export default {
   'Add {thing} to the cart': 'Adicionar {thing} ao carrinho',
   'Cart': 'Carrinho',
   'Nothing in it yet.': 'Nada nele ainda.',
-  'Total': 'Total',
+  'Total': 'Total', // same
   'Send order by email': 'Enviar pedido por e-mail',
   'Copy order': 'Copiar pedido',
   'One fewer': 'Um a menos',
@@ -1622,8 +1622,8 @@ export default {
   'Take away line {n}': 'Remover a linha {n}',
   'Sum': 'Soma',
   'Type or tap': 'Digite ou toque',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'em x = 1: {answer}',
   'Keys': 'Teclas',
   'Backspace': 'Apagar',
@@ -1691,7 +1691,7 @@ export default {
   'Find app, template, or doc': 'Buscar app, modelo ou documento',
   'New {noun} {date} #{n}': '{noun} {date} n.º {n}',
   'Nothing by that name': 'Nada com esse nome',
-  'Pixels {n}×{n}': 'Pixels {n}×{n}',
+  'Pixels {n}×{n}': 'Pixels {n}×{n}', // same
   // Files, compare, posting and embedding: the agent and sharing surface.
   'A Mastodon server, like mastodon.social': 'Um servidor Mastodon, como mastodon.social',
   'Change': 'Mudança',
@@ -1781,7 +1781,7 @@ export default {
   'Show on a board': 'Mostrar num quadro',
   'Show these shortcuts': 'Mostrar estes atalhos',
   'All commands…': 'Todos os comandos…',
-  'A4': 'A4',
+  'A4': 'A4', // same
   'Letter': 'Carta',
   'Back to the words': 'Voltar ao texto',
   'Extend the selection': 'Ampliar a seleção',

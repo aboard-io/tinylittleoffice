@@ -5,7 +5,7 @@ import { test, expect, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { t, register, setLanguage, languages, languageName, missed } from '../src/kit/i18n.ts';
-import { checkLanguage, gaps, languageFiles, pluralCount, placeholders } from '../scripts/i18n-extract.ts';
+import { checkLanguage, gaps, languageFiles, likeness, nearest, pluralCount, placeholders, tokens } from '../scripts/i18n-extract.ts';
 import { pseudo } from './pseudo.ts';
 import en from '../src/i18n/en.ts';
 
@@ -36,7 +36,7 @@ test('the plural categories a language has: fr three, ja one, ar six, pl four', 
 test('the check: missing keys fail, extra keys warn, placeholders once, plural forms by the language, no sort-me heading', () => {
   const base = { Menu: 'Menu', 'Share': 'Share', '{n} more': '{n} more', '{n|one slide|# slides}': '{n|one slide|# slides}', '·': '·', 'Pixel art, {n} by {n}': 'Pixel art, {n} by {n}' };
   const good = { Menu: 'Menu', Share: 'Partager', '{n} more': '{n} de plus', '{n|one slide|# slides}': '{n|# diapositive|# de diapositives|# diapositives}', '·': '·', 'Pixel art, {n} by {n}': 'Pixel art, {n} sur {n}' };
-  expect(checkLanguage('fr', base, good, "export default {\n  'Menu': 'Menu',\n}")).toEqual({ errors: [], warnings: [] });
+  expect(checkLanguage('fr', base, good, "export default {\n  'Menu': 'Menu', // same\n}")).toEqual({ errors: [], warnings: [] });
   const { Share: _, ...lacking } = good;
   const bad = checkLanguage('fr', base, { ...lacking, Gone: 'Parti', '{n} more': '{n} de plus {n}', '{n|one slide|# slides}': '{n|une diapositive|des diapositives}', 'Pixel art, {n} by {n}': 'Pixel art, {n} sur {x}' }, '  // New — sort me into a section\n');
   expect(bad.errors.join('\n')).toContain('1 missing (English would show):\n    Share');
@@ -47,15 +47,43 @@ test('the check: missing keys fail, extra keys warn, placeholders once, plural f
   expect(bad.errors).toContain('{x} is not in the English: Pixel art, {n} by {n} → Pixel art, {n} sur {x}');
   expect(bad.errors.some((e) => e.includes('sort me'))).toBe(true);
   expect(bad.warnings.join('\n')).toContain('1 not in en.ts (remove them):\n    Gone');
-  // A value left in English is a warning, unless it is a shared word or has no letters of its own.
+  // A value left in English fails, unless its line says it is meant ("// same") or it has no letters of its own.
   const same = checkLanguage('de', base, { ...base, '{n|one slide|# slides}': '{n|eine Folie|# Folien}' });
-  expect(same.errors).toEqual([]);
-  expect(same.warnings).toEqual(['3 the same as the English:\n    Share\n    {n} more\n    Pixel art, {n} by {n}']);
+  expect(same.errors).toEqual(['4 the same as the English, not decided (translate it, or end its line with "// same" where the English is the word):\n    Menu\n    Share\n    {n} more\n    Pixel art, {n} by {n}']);
+  const decided = "  'Menu': 'Menu', // same\n  'Share': 'Share', // same\n  '{n} more': '{n} more', // same\n  'Pixel art, {n} by {n}': 'Pixel art, {n} by {n}',  // same\n";
+  expect(checkLanguage('de', base, { ...base, '{n|one slide|# slides}': '{n|eine Folie|# Folien}' }, decided).errors).toEqual([]);
+  // A mark on a line translated since is stale; a draft the memory offered and nobody read fails.
+  const stale = checkLanguage('de', base, { ...base, Share: 'Teilen', '{n} more': '{n} mehr', 'Pixel art, {n} by {n}': 'Pixelkunst, {n} mal {n}', '{n|one slide|# slides}': '{n|eine Folie|# Folien}' }, decided);
+  expect(stale.errors).toEqual(['3 marked "// same" but translated (take the mark off):\n    Share → Teilen\n    {n} more → {n} mehr\n    Pixel art, {n} by {n} → Pixelkunst, {n} mal {n}']);
+  const draft = checkLanguage('de', { Menu: 'Menu' }, { Menu: 'Menü' }, `  'Menu': 'Menü', // draft from "Menus"\n`);
+  expect(draft.errors).toEqual(['1 // draft from left in (read each, make it right for its new key, take the comment off):\n    \'Menu\': \'Menü\', // draft from "Menus"']);
   expect(checkLanguage('ja', { '{n|one slide|# slides}': '' }, { '{n|one slide|# slides}': '{n|# 枚}' }).errors).toEqual([]);
   expect(checkLanguage('pt_BR', {}, {}).errors).toEqual(['"pt_BR" is not a BCP 47 tag']);
   expect(checkLanguage('pt-BR', {}, {}).errors).toEqual(['"pt-BR" is not a lowercase BCP 47 tag']);
   expect(gaps(base, good)).toEqual([]);
   expect(gaps(base, lacking)).toEqual(["  'Share': 'Share',"]);
+});
+
+test('the translation memory: a key changed by a few words is offered its old translation as a draft, marked', () => {
+  // Alike by the words that carry the meaning; the little words and a placeholder's forms aside.
+  expect(tokens('Copy the {n|link|# links} to {name}')).toEqual(['copy', 'n', 'name']);
+  expect(tokens('Share the links')).toEqual(['share', 'link']);
+  expect(likeness('Copy the link', 'Copy this link')).toBe(1);
+  expect(likeness('Download everything', 'Download everything (.zip)')).toBe(0.8);
+  expect(likeness('Make a short link', 'Make a short link, kept for a year')).toBe(0.75);
+  expect(likeness('Add a column', 'Add a row')).toBe(0.5);
+  expect(likeness('Undo', 'Redo')).toBe(0);
+  expect(likeness('·', 'Share')).toBe(0);
+  expect(nearest('Copy this link', ['Copy link', 'Copy the display link', 'Paste'])).toBe('Copy link');
+  expect(nearest('Add a row', ['Add a column'])).toBeUndefined();
+  expect(nearest('Share the link', ['Share the links', 'Share a link'])).toBe('Share the links');
+  // gaps: the draft under the new key, the old key named; a key with nothing alike in English.
+  const en = { 'Copy this link': 'Copy this link', Undo: 'Undo' };
+  const fr = { 'Copy the link': 'Copier le lien', 'Redo': 'Rétablir' };
+  expect(gaps(en, fr)).toEqual(["  'Copy this link': 'Copier le lien', // draft from \"Copy the link\"", "  'Undo': 'Undo',"]);
+  expect(gaps({ 'Say "hi"': '' }, { 'Say "hi" now': 'Dis « salut »' })).toEqual(["  'Say \"hi\"': 'Dis « salut »', // draft from \"Say \\\"hi\\\" now\""]);
+  // The draft, pasted in, is what i18n:check stops on.
+  expect(checkLanguage('fr', en, { ...fr, 'Copy this link': 'Copier le lien', Undo: 'Annuler' }, gaps(en, fr)[0]).errors.some((e) => e.includes('// draft from'))).toBe(true);
 });
 
 test('en.ts passes its own check: its plurals have English’s two forms and a "#"', () => {
