@@ -242,7 +242,10 @@ export class ToShell extends LitElement {
     window.addEventListener('scroll', this.onScroll, { passive: true });
     window.visualViewport?.addEventListener('scroll', this.onScroll);
     window.visualViewport?.addEventListener('resize', this.onViewport);
+    this.addEventListener('focusin', this.onViewport);
     this.addEventListener('focusout', this.onViewport);
+    window.addEventListener('touchstart', this.onViewport, { passive: true });
+    window.addEventListener('touchend', this.onViewport, { passive: true });
     window.addEventListener('dragover', this.onDragOver);
     window.addEventListener('drop', this.onDrop);
     this.addEventListener('to-keys', this.showKeys);
@@ -272,8 +275,12 @@ export class ToShell extends LitElement {
     window.removeEventListener('scroll', this.onScroll);
     window.visualViewport?.removeEventListener('scroll', this.onScroll);
     window.visualViewport?.removeEventListener('resize', this.onViewport);
+    this.removeEventListener('focusin', this.onViewport);
     this.removeEventListener('focusout', this.onViewport);
-    for (const id of this.settling) clearTimeout(id);
+    window.removeEventListener('touchstart', this.onViewport);
+    window.removeEventListener('touchend', this.onViewport);
+    cancelAnimationFrame(this.watching);
+    this.watching = 0;
     window.removeEventListener('dragover', this.onDragOver);
     window.removeEventListener('drop', this.onDrop);
     this.removeEventListener('to-keys', this.showKeys);
@@ -749,33 +756,54 @@ export class ToShell extends LitElement {
    */
   private scrollFrame = 0;
   /**
-   * The viewport resized (a phone's keyboard coming or going) or the focus left a box (the keyboard going): measured
-   * now and again over the next half second. iOS reports the keyboard's offset while the keyboard is still sliding
-   * away and sends nothing more once it has gone, so one reading leaves the bar stuck mid-screen (Paul, 2026-10-10,
-   * an Outliner on an iPhone: the bar parked a third of the way down with the words scrolling under it).
+   * The viewport resized (a phone's keyboard coming or going), the focus came to or left a box, or a finger touched
+   * the page: the offset is watched every frame for the next second, and for as long as a box keeps the focus on a
+   * touch screen. iOS reports the keyboard's offset while the keyboard is still sliding away, and once the keyboard is
+   * dismissed by dragging the page it sends nothing more, so one reading per event left the bar parked a third of the
+   * way down with the words scrolling under it (Paul, 2026-10-10, an Outliner on an iPhone).
    */
-  private settling: number[] = [];
+  private watching = 0;
+  private watchUntil = 0;
   private onViewport = () => {
+    this.watchUntil = performance.now() + 1000;
     this.onScroll();
-    for (const id of this.settling) clearTimeout(id);
-    this.settling = [120, 300, 600].map((ms) => window.setTimeout(this.onScroll, ms));
+    if (this.watching) return;
+    const frame = () => {
+      this.watching = 0;
+      const coarse = matchMedia('(pointer: coarse)').matches;
+      if (!this.isConnected || !(performance.now() < this.watchUntil || (coarse && this.focusedBox()))) return;
+      this.measure();
+      this.watching = requestAnimationFrame(frame);
+    };
+    this.watching = requestAnimationFrame(frame);
   };
+  private focusedBox() {
+    const el = document.activeElement;
+    return !!el && el !== document.body && el !== document.documentElement;
+  }
   private onScroll = () => {
     if (this.scrollFrame) return;
     this.scrollFrame = requestAnimationFrame(() => {
       this.scrollFrame = 0;
-      // With nothing focused no keyboard is up, so unless the page is pinched in the offset can only be a stale one.
-      const vv = window.visualViewport;
-      const focused = !!document.activeElement && document.activeElement !== document.body;
-      const top = !vv || (!focused && vv.scale <= 1.01) ? 0 : Math.max(0, vv.offsetTop);
-      this.style.setProperty('--to-vv-top', `${top}px`);
-      const bar = this.querySelector<HTMLElement>('.to-editor to-bar');
-      this.style.setProperty('--to-stuck-h', `${bar?.offsetHeight ?? 0}px`);
-      const header = this.querySelector('.to-header')?.getBoundingClientRect();
-      const past = !!header?.height && header.bottom <= top;
-      if (past !== this.scrolled) this.scrolled = past;
+      this.measure();
     });
   };
+  private measure() {
+    // A keyboard up is a visual viewport shorter than the window (iOS leaves the window as it was). None up and the
+    // page not pinched in, or nothing focused to bring one up: the offset can only be a stale one, so it is 0.
+    const vv = window.visualViewport;
+    const flat = !vv || vv.scale <= 1.01;
+    const keyboard = !!vv && vv.height < window.innerHeight - 1;
+    const top = !vv || (flat && (!keyboard || !this.focusedBox())) ? 0 : Math.max(0, vv.offsetTop);
+    const was = this.style.getPropertyValue('--to-vv-top');
+    if (was !== `${top}px`) this.style.setProperty('--to-vv-top', `${top}px`);
+    const bar = this.querySelector<HTMLElement>('.to-editor to-bar');
+    const h = `${bar?.offsetHeight ?? 0}px`;
+    if (this.style.getPropertyValue('--to-stuck-h') !== h) this.style.setProperty('--to-stuck-h', h);
+    const header = this.querySelector('.to-header')?.getBoundingClientRect();
+    const past = !!header?.height && header.bottom <= top;
+    if (past !== this.scrolled) this.scrolled = past;
+  }
   /** The title tapped or focused: the wide row opens, a new document's own name chosen whole so typing replaces it. */
   private openTitle = (e: Event) => {
     const field = e.target as HTMLInputElement;
