@@ -752,7 +752,6 @@ export default {
   'Eight dots in a ring, each swelling in turn, so a bright spot runs round while a page saves.': 'Eight dots in a ring, each swelling in turn, so a bright spot runs round while a page saves.',
   'Title card': 'Title card',
   'Red curtains part on opening night and the festival’s name comes forward: played once, it rests on the title.': 'Red curtains part on opening night and the festival’s name comes forward: played once, it rests on the title.',
-  'Birthday card': 'Birthday card',
   'A present hops, stars and hearts sway round it, and the greeting shines in rainbow letters.': 'A present hops, stars and hearts sway round it, and the greeting shines in rainbow letters.',
   'Quick standup': 'Quick standup',
   'A meme with a caption above and one below, and a clock that spins and wobbles in between.': 'A meme with a caption above and one below, and a clock that spins and wobbles in between.',
