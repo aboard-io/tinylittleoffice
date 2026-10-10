@@ -58,8 +58,8 @@ export class ToDialog extends LitElement {
   }
   /** What had the focus when it opened: it has it again when it closes. */
   private from: HTMLElement | null = null;
-  /** Stepped aside for another (handOver): closed, its body, its scroll and its `from` kept, no to-close said. */
-  private aside: { back: HTMLElement; scrolled: [Element, number][] } | null = null;
+  /** Stepped aside for another (handOver): closed, its body (and so its scroll) and its `from` kept, no to-close said. */
+  private aside: { back: HTMLElement } | null = null;
   async show() {
     if (!this.dialog?.open && !this.aside) this.from = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     const aside = this.aside;
@@ -67,9 +67,7 @@ export class ToDialog extends LitElement {
     this.open = true;
     await this.updateComplete;
     if (!this.dialog.open) this.dialog.showModal();
-    if (!aside) return;
-    for (const [el, top] of aside.scrolled) el.scrollTop = top;
-    if (aside.back.isConnected) aside.back.focus({ preventScroll: true });
+    if (aside?.back.isConnected) aside.back.focus({ preventScroll: true });
   }
   /**
    * A step of this dialog's task in a dialog of its own (`next`, opened from `back`, a control in this one): this one
@@ -77,8 +75,7 @@ export class ToDialog extends LitElement {
    * open again as it was, nothing drawn again (what was typed, chosen and scrolled kept), the focus on `back`.
    */
   async handOver(next: ToDialog, back: HTMLElement) {
-    const scrolled = [this.dialog, ...this.dialog.querySelectorAll('.to-dialog-inner, .to-dialog-body')].map((el): [Element, number] => [el, el.scrollTop]);
-    this.aside = { back, scrolled };
+    this.aside = { back };
     this.dialog.close();
     next.addEventListener('to-close', () => void (this.isConnected && this.aside && this.show()), { once: true });
     await next.show();
