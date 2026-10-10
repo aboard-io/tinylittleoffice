@@ -2,7 +2,7 @@
  * Draw on the built site, at desktop size in Chromium and at iPhone size in WebKit: a key and a click make a
  * shape that lands in the link, the bar is one row, nothing is wider than the screen; pixel mode paints a
  * square and "Use as background" writes the tile; a shape tapped has its contextual bar inside the screen, its words
- * are typed on it, and the bar's Delete takes it away. Run on its own:
+ * are typed on it, a text is centred from the bar, and the bar's Delete takes it away. Run on its own:
  *
  *   PW_PORT=4184 npx playwright test e2e/draw.spec.ts --workers=1
  */
@@ -94,6 +94,12 @@ test('draw: a shape tapped has its contextual bar inside the screen, and the bar
   await page.keyboard.type('Note');
   await page.keyboard.press('Enter');
   await expect(canvas.locator('[data-idx="1"] text')).toHaveText('Note');
+  // The text in hand: its Align, beside the sizes, centres it under a finger as under a mouse, and says so.
+  const align = bar.getByRole('button', { name: 'Align: left' });
+  if (touch) await align.tap();
+  else await align.click();
+  await expect(canvas.locator('[data-idx="1"] text')).toHaveAttribute('text-anchor', 'middle');
+  await expect(bar.getByRole('button', { name: 'Align: centre' })).toBeVisible();
   if (touch) await canvas.tap(at(240, 144));
   else await canvas.click(at(240, 144));
   await expect(bar).toBeVisible();

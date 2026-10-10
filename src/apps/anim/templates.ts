@@ -72,7 +72,7 @@ export const templates = (): Template[] => [
     blurb: t('Eight dots in a ring, each swelling in turn, so a bright spot runs round while a page saves.'),
     doc: motion(
       { title: 'Saving', frames: '16', fps: '16', alt: 'A ring of eight blue dots, each growing and shrinking in turn so the largest runs round clockwise, over the words Saving your changes.' },
-      [...ringDots, ['t', '28', '36', '48', '4', '03', 'Saving your changes']],
+      [...ringDots, ['t', '16', '36', '48', '4', '03=', 'Saving your changes']],
       ringKeys,
     ),
   },
@@ -101,13 +101,13 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'Happy birthday, Maya', frames: '16', fps: '8', alt: 'A birthday card: the words Happy birthday, Maya in rainbow colours over a red present that hops, with stars and hearts swaying round it.' },
       [
-        ['t', '4', '4', '72', '8', '0p4', 'Happy birthday, Maya!'],
+        ['t', '4', '4', '72', '8', '0p4=', 'Happy birthday, Maya!'],
         ['i', '34', '18', '12', '12', '0r', 'gift'],
         ['i', '14', '16', '6', '6', '0o', 'star'],
         ['i', '60', '14', '6', '6', '0r', 'heart'],
         ['i', '20', '32', '5', '5', '0p', 'heart'],
         ['i', '56', '30', '5', '5', '0b', 'star'],
-        ['t', '4', '42', '72', '4', '0', 'With love from everyone on the fourth floor · 12 November 2026'],
+        ['t', '4', '42', '72', '4', '0=', 'With love from everyone on the fourth floor · 12 November 2026'],
       ],
       {
         0: '0,0,0,0,1,0,g',
@@ -126,9 +126,9 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'Just a quick standup', frames: '16', fps: '12', alt: 'A meme: the words Just a quick standup above a clock that spins wildly, and 47 minutes later below it.' },
       [
-        ['t', '2', '3', '76', '6', '04', 'Just a quick standup'],
+        ['t', '2', '3', '76', '6', '04=', 'Just a quick standup'],
         ['i', '32', '17', '16', '16', '0', 'clock'],
-        ['t', '2', '40', '76', '6', '04', '47 minutes later'],
+        ['t', '2', '40', '76', '6', '04=', '47 minutes later'],
       ],
       { 0: '0,0,0,0,1,0,i', 1: '0,0,0,0,1,0,w; 15,0,0,0,1,675,w', 2: '0,0,0,0,1,0,i' },
     ),
@@ -140,8 +140,8 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'When the build is green', frames: '24', fps: '8', alt: 'A meme: the words When the build is green, and a trophy that spins in, grows, and glows.' },
       [
-        ['t', '6', '3', '68', '6', '04', 'When the build'],
-        ['t', '14', '40', '52', '6', '04', 'is green'],
+        ['t', '4', '3', '72', '6', '04=', 'When the build'],
+        ['t', '4', '40', '72', '6', '04=', 'is green'],
         ['i', '34', '17', '12', '12', '0o', 'trophy'],
       ],
       {
@@ -160,7 +160,7 @@ export const templates = (): Template[] => [
       [
         ['o', '16', '8', '48', '28', '1b4', 'la biblioteca | say it aloud before it turns'],
         ['o', '16', '8', '48', '28', '2b4', 'the library | a place to borrow books'],
-        ['t', '4', '41', '72', '4', '0', 'Spanish, week 6 · card 3 of 20'],
+        ['t', '4', '41', '72', '4', '0=', 'Spanish, week 6 · card 3 of 20'],
       ],
       {
         0: '0,0,0,0,1,0; 8,0,0,0,1,0; 11,0,0,0,1,0,,u90; 20,0,0,0,1,0,,u90; 23,0,0,0,1,0',
@@ -175,16 +175,16 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'Lisbon this week', frames: '16', fps: '8', alt: 'A forecast for Lisbon: Monday sunny and 24 degrees, Tuesday cloudy and 21, Wednesday storms and 19, Thursday sunny and 23, each icon moving.' },
       [
-        ['t', '4', '2', '72', '6', '04', 'Lisbon this week'],
+        ['t', '4', '2', '72', '6', '04=', 'Lisbon this week'],
         ['i', '6', '13', '8', '8', '0o', 'sun'],
         ['i', '26', '13', '8', '8', '0b', 'cloud'],
         ['i', '46', '13', '8', '8', '0p', 'zap'],
         ['i', '66', '13', '8', '8', '0o', 'sun'],
-        ['t', '1', '24', '18', '7', '03', 'Mon 12 | Sunny, 24°'],
-        ['t', '21', '24', '18', '7', '03', 'Tue 13 | Cloudy, 21°'],
-        ['t', '41', '24', '18', '7', '03', 'Wed 14 | Storms, 19°'],
-        ['t', '61', '24', '18', '7', '03', 'Thu 15 | Sunny, 23°'],
-        ['t', '4', '42', '72', '4', '0', 'Afternoon highs for Lisbon, Monday 12 to Thursday 15 October 2026'],
+        ['t', '1', '24', '18', '7', '03=', 'Mon 12 | Sunny, 24°'],
+        ['t', '21', '24', '18', '7', '03=', 'Tue 13 | Cloudy, 21°'],
+        ['t', '41', '24', '18', '7', '03=', 'Wed 14 | Storms, 19°'],
+        ['t', '61', '24', '18', '7', '03=', 'Thu 15 | Sunny, 23°'],
+        ['t', '4', '42', '72', '4', '0=', 'Afternoon highs for Lisbon, Monday 12 to Thursday 15 October 2026'],
       ],
       {
         1: '0,0,0,0,1,0; 15,0,0,0,1,42',
@@ -201,14 +201,14 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'New Year’s Eve at the Boathouse', frames: '24', fps: '4', loop: 'once', alt: 'A countdown at the Boathouse: a large 3, then 2, then 1, then Happy 2027! in rainbow letters, with stars spinning out beside it.' },
       [
-        ['t', '4', '3', '72', '4', '03', 'New Year’s Eve at the Boathouse'],
-        ['t', '32', '20', '16', '8', '0r4', '3'],
-        ['t', '32', '20', '16', '8', '0o4', '2'],
-        ['t', '32', '20', '16', '8', '0g4', '1'],
-        ['t', '4', '20', '72', '8', '0p4', 'Happy 2027!'],
+        ['t', '4', '3', '72', '4', '03=', 'New Year’s Eve at the Boathouse'],
+        ['t', '32', '20', '16', '8', '0r4=', '3'],
+        ['t', '32', '20', '16', '8', '0o4=', '2'],
+        ['t', '32', '20', '16', '8', '0g4=', '1'],
+        ['t', '4', '20', '72', '8', '0p4=', 'Happy 2027!'],
         ['i', '10', '34', '6', '6', '0o', 'star'],
         ['i', '64', '34', '6', '6', '0b', 'star'],
-        ['t', '4', '44', '72', '3', '0', 'Thursday 31 December 2026 · doors at nine'],
+        ['t', '4', '44', '72', '3', '0=', 'Thursday 31 December 2026 · doors at nine'],
       ],
       {
         1: '0,0,0,0,3,0; 3,0,0,0,3.4,0; 4,0,-600,0,3,0',
@@ -227,12 +227,12 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'London to Lisbon, 24 October', frames: '24', fps: '8', alt: 'A plane flies along a dotted line from a pin at London to a pin at Lisbon, growing as it climbs and shrinking as it lands.' },
       [
-        ['t', '4', '2', '72', '6', '03', 'Saturday 24 October 2026 | Heathrow 09:05, Lisbon 11:45'],
+        ['t', '4', '2', '72', '6', '03=', 'Saturday 24 October 2026 | Heathrow 09:05, Lisbon 11:45'],
         ['l', '11', '24', '56', '12', '1', ''],
         ['i', '8', '16', '6', '6', '0r', 'map-pin'],
         ['i', '64', '28', '6', '6', '0r', 'map-pin'],
-        ['t', '3', '25', '16', '3', '0', 'London'],
-        ['t', '59', '37', '16', '3', '0', 'Lisbon'],
+        ['t', '3', '25', '16', '3', '0=', 'London'],
+        ['t', '59', '37', '16', '3', '0=', 'Lisbon'],
         ['i', '7', '20', '8', '8', '0b', 'plane'],
       ],
       { 6: '0,0,0,0,0.8,57; 3,56,12,0,1,57; 12,224,48,0,1.4,57; 21,392,84,0,1,57; 23,448,96,0,0.8,57' },
@@ -245,10 +245,10 @@ export const templates = (): Template[] => [
     doc: motion(
       { title: 'Kafé Lindqvist sign', frames: '16', fps: '8', alt: 'A sign for Kafé Lindqvist whose name flickers, with the words open till midnight below and a glowing coffee cup that swells.' },
       [
-        ['t', '4', '9', '72', '8', '0p4', 'Kafé Lindqvist'],
-        ['t', '4', '19', '72', '5', '0o3', 'open till midnight'],
+        ['t', '4', '9', '72', '8', '0p4=', 'Kafé Lindqvist'],
+        ['t', '4', '19', '72', '5', '0o3=', 'open till midnight'],
         ['i', '36', '27', '8', '8', '0o', 'coffee'],
-        ['t', '4', '42', '72', '3', '0', 'Linnégatan 14, Göteborg · cardamom buns from seven'],
+        ['t', '4', '42', '72', '3', '0=', 'Linnégatan 14, Göteborg · cardamom buns from seven'],
       ],
       {
         0: '0,0,0,0,1,0,d; 5,0,0,0,1,0,d; 6,0,0,-200,1,0; 7,0,0,0,1,0,d; 8,0,0,-200,1,0; 9,0,0,0,1,0,d; 15,0,0,0,1,0,d',

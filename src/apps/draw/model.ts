@@ -13,7 +13,9 @@
  *
  * Coordinates are in 8px grid units so they stay short. Lines and arrows use X, Y as the start and W, H as
  * the distance to the end. Style is the fill (0, 1 or 2), then optionally a colour letter and a text size
- * digit: "1", "2b", "0r3". Black and the normal text size are the defaults and are left out. A shape may be
+ * digit: "1", "2b", "0r3". Black and the normal text size are the defaults and are left out. A text ('t') may
+ * end its Style with how its words sit: "=" centred, ">" right ("1b3=", "0>"); left is the default and has
+ * no mark (read anywhere in the cell, written last, and only for a text). A shape may be
  * turned: a Rot column, in whole degrees clockwise about the shape's centre, there only while a shape is
  * turned and blank (0) for the others; lines, arrows and joins are never turned.
  *
@@ -87,6 +89,8 @@ export const isDrawn = (k: Kind) => k === 'v' || k === 'w';
 export type Fill = 0 | 1 | 2;
 export type Color = 'r' | 'o' | 'g' | 'b' | 'p';
 export type TextSize = 1 | 2 | 3 | 4;
+/** How a text's words sit in its box: 'c' centred, 'r' against the right; absent for the left. */
+export type Align = 'c' | 'r';
 export interface Shape {
   k: Kind;
   x: number;
@@ -99,6 +103,8 @@ export interface Shape {
   c?: Color;
   /** Text size; absent for the normal size (2). */
   z?: TextSize;
+  /** For a text ('t'): centred or right; absent for the left. */
+  al?: Align;
   /** For 'v' and 'w': the corners, x,y pairs as hundredths of the box, in order. */
   pts?: number[];
   /** Turned this many whole degrees clockwise about its centre (0 to 359); absent for none. */
@@ -172,7 +178,9 @@ export function rowShape(row: string[], cols: Cols): Shape | null {
   const k = ((KINDS as readonly string[]).includes(word) ? word : NAMED[word]) as Kind | undefined;
   if (!k) return null;
   const n = (f: Field) => Math.round(parseFloat(get(f))) || 0;
-  const f = get('style');
+  const style = get('style');
+  // A text's "=" or ">" is read wherever it stands; the rest is fill, colour, size.
+  const f = style.replace(/[=>]/g, '');
   const look = /^([0-2])([a-z]?)([1-4]?)$/.exec(f);
   const shape: Shape = {
     k,
@@ -187,6 +195,7 @@ export function rowShape(row: string[], cols: Cols): Shape | null {
   if (isDrawn(k)) shape.pts = ptsOf(get('points'));
   if (look && look[2] in COLORS) shape.c = look[2] as Color;
   if (look && look[3] && look[3] !== '2') shape.z = +look[3] as TextSize;
+  if (k === 't' && style !== f) shape.al = style.includes('=') ? 'c' : 'r';
   const rot = canTurn(k) ? normRot(parseFloat(get('rot')) || 0) : 0;
   if (rot) shape.rot = rot;
   return shape;
@@ -213,12 +222,14 @@ export function shapeCells(s: Shape): Record<Field, string> {
     y: isLink(s.k) ? String(s.y) : g(s.y),
     w: g(s.w),
     h: g(s.h),
-    style: `${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}`,
+    style: `${s.f}${s.c ?? ''}${s.z && s.z !== 2 ? s.z : ''}${s.k === 't' && s.al ? ALIGN_MARK[s.al] : ''}`,
     label: s.text.replace(/\n/g, ' '),
     points: isDrawn(s.k) ? ptsText(s.pts ?? []) : '',
     rot: s.rot && canTurn(s.k) ? String(normRot(s.rot)) : '',
   };
 }
+
+const ALIGN_MARK: Record<Align, string> = { c: '=', r: '>' };
 
 /** What the drawing draws, read from the document. */
 export interface DrawView {
@@ -300,7 +311,7 @@ function wordsRoom(s: Shape): number {
 /**
  * Where an editor of a shape's words goes, laid exactly over them: the same font at the size the picture shows
  * it (`k` CSS pixels to a unit, the picture's corner at `ox`, `oy` in the editor's frame), centred in the shape
- * (from the left, for a text), turned with it. Below 16px it is set at 16 and scaled down, so iOS does not zoom.
+ * (for a text, from the left, the centre or the right as it is aligned), turned with it. Below 16px it is set at 16 and scaled down, so iOS does not zoom.
  * The Drawing Tool's words and the Diagram Maker's are placed by it.
  */
 export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: number, th: { ink: string; paper: string; shade: string }) {
@@ -308,6 +319,7 @@ export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: num
   const font = Math.max(16, px);
   const shrink = px / font;
   const left = s.k === 't';
+  const al = left ? (s.al ?? 'l') : 'c';
   let [cx, cy] = [s.x + s.w / 2, s.y + s.h / 2];
   let room = wordsRoom(s);
   if (isLine(s.k) || s.k === 'w') {
@@ -315,7 +327,7 @@ export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: num
     [cx, cy] = [x + w / 2, y + h / 2];
     room = 48;
   } else if (s.k === 'c') cy += Math.min(s.h * 0.16, 12) / 2;
-  else if (left) [cx, room] = [s.x + 4, Math.max(24, s.w - 8)];
+  else if (left) [cx, room] = [al === 'c' ? s.x + s.w / 2 : al === 'r' ? s.x + s.w - 4 : s.x + 4, Math.max(24, s.w - 8)];
   // A turned shape's words turn with it, about the shape's centre.
   const turn = s.rot && canTurn(s.k) ? s.rot : 0;
   const [tx, ty] = turn ? [s.x + s.w / 2 - cx, s.y + s.h / 2 - cy] : [0, 0];
@@ -327,7 +339,8 @@ export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: num
       left: `${ox + cx * k}px`,
       top: `${oy + cy * k}px`,
       fontSize: `${font}px`,
-      transform: `${about}scale(${shrink}) translate(${left ? '0' : '-50%'}, -50%)`,
+      transform: `${about}scale(${shrink}) translate(${al === 'l' ? '0' : al === 'r' ? '-100%' : '-50%'}, -50%)`,
+      textAlign: al === 'l' ? 'left' : al === 'r' ? 'right' : 'center',
       minWidth,
       maxWidth: wrap ? minWidth : '',
       color: paint(s, th.ink, th.paper, th.shade).text,
@@ -336,6 +349,17 @@ export function wordsOver(s: Shape, all: Shape[], k: number, ox: number, oy: num
     wrap,
   };
 }
+
+/** The text shapes among `picked` set left (''), centred ('c') or right ('r'): their Style cells, the others left alone. */
+export function alignOp(doc: Doc, picked: number[], al: Align | ''): Op[] {
+  const shapes = readDrawing(doc).shapes;
+  return patchShapes(
+    doc,
+    picked.filter((i) => shapes[i]?.k === 't' && (shapes[i].al ?? '') !== al).map((i) => [i, { al: al || undefined }]),
+  );
+}
+/** The alignment after this one, for a button that goes round them: left, centred, right, left. */
+export const nextAlign = (al: Align | undefined): Align | '' => (!al ? 'c' : al === 'c' ? 'r' : '');
 
 /** A point turned `deg` degrees clockwise about (cx, cy). */
 export function turnPoint(x: number, y: number, cx: number, cy: number, deg: number): [number, number] {

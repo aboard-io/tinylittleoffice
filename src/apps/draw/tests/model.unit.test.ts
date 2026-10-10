@@ -2,7 +2,7 @@
 import { expect, test } from 'vitest';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { blankTile, parseTile, tileCss, tilePattern, tileRef, tileSvg } from '../../../kit/tile.ts';
-import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape, shapesWithin, labelLines, labelText, labelPlain } from '../model.ts';
+import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape, shapesWithin, labelLines, labelText, labelPlain, alignOp, nextAlign, wordsOver } from '../model.ts';
 import { drawingPage, drawingToSvg, shapeSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def, { tileOfDoc } from '../def.ts';
@@ -343,4 +343,68 @@ test('a rich label: inline Markdown read as runs and written back the same; " | 
   // A link's words are drawn, not its address; the description reads plain words.
   expect(labelText(labelLines('[Site](https://example.com) here'))).toBe('Site here');
   expect(describeDrawing(readDrawing(parse(doc)).shapes)).toBe('A drawing of Bold and italic under | gone marked.');
+});
+
+const TEXTS = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 2 | 2 | 20 | 4 | 0 | Left\nt | 2 | 8 | 20 | 4 | 1b3= | Middle\nt | 2 | 14 | 20 | 4 | 0> | Right\nr | 2 | 20 | 20 | 4 | 0 | Box\n';
+
+test('align: a text\'s "=" (centred) and ">" (right) end its Style; read anywhere in the cell, written last, only for a text; byte-stable', () => {
+  const v = readDrawing(parse(TEXTS));
+  expect(v.shapes.map((s) => s.al)).toEqual([undefined, 'c', 'r', undefined]);
+  expect(v.shapes[1]).toMatchObject({ f: 1, c: 'b', z: 3, al: 'c' });
+  expect(write(parse(TEXTS))).toBe(TEXTS);
+  // Leniently: the mark before the rest, or between; written back last.
+  const loose = (style: string, k = 't') => readDrawing(parse(`Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\n${k} | 1 | 1 | 4 | 4 | ${style} | A\n`));
+  expect(loose('=1b').shapes[0]).toMatchObject({ f: 1, c: 'b', al: 'c' });
+  expect(loose('2>r3').shapes[0]).toMatchObject({ f: 2, c: 'r', z: 3, al: 'r' });
+  const doc = parse('Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 1 | 1 | 4 | 4 | =1b | A\n');
+  expect(write(applyAll(doc, patchShape(doc, 0, { z: 4 })))).toContain('| 1b4= | A\n');
+  // Never on a shape that is not a text: read past, and written as nothing.
+  expect(loose('1=').shapes[0].al).toBe('c');
+  expect(loose('1=', 'r').shapes[0].al).toBeUndefined();
+  expect(loose('1=', 'r').shapes[0].f).toBe(1);
+  expect(after(TEXTS, (d) => patchShape(d, 3, { al: 'c' }))).toBe(TEXTS);
+});
+
+test('alignOp: the texts among those given set left, centred or right; the others left alone; nothing for no change', () => {
+  expect(after(TEXTS, (d) => alignOp(d, [0], 'c'))).toContain('| 0= | Left\n');
+  expect(after(TEXTS, (d) => alignOp(d, [1], ''))).toContain('| 1b3 | Middle\n');
+  expect(after(TEXTS, (d) => alignOp(d, [0, 1, 2, 3], 'r'))).toBe(TEXTS.replace('| 0 | Left', '| 0> | Left').replace('1b3=', '1b3>'));
+  expect(alignOp(parse(TEXTS), [2, 3], 'r')).toEqual([]);
+  expect(alignOp(parse(TEXTS), [3], 'c')).toEqual([]);
+  expect([nextAlign(undefined), nextAlign('c'), nextAlign('r')]).toEqual(['c', 'r', '']);
+});
+
+test('align drawn: a text\'s words from the left edge, the centre or the right edge; an icon stays with them', () => {
+  const at = (s: string) => [...s.matchAll(/<text x="([\d.]+)" text-anchor="(\w+)"/g)].map((m) => [+m[1], m[2]]);
+  const t = { k: 't' as const, x: 16, y: 16, w: 160, h: 32, f: 0 as const, text: 'Hi' };
+  expect(at(shapeSvg(t))).toEqual([[20, 'start']]);
+  expect(at(shapeSvg({ ...t, al: 'c' }))).toEqual([[96, 'middle']]);
+  expect(at(shapeSvg({ ...t, al: 'r' }))).toEqual([[172, 'end']]);
+  // A box's words are centred, whatever a stray alignment says.
+  expect(at(shapeSvg({ ...t, k: 'r', al: 'r' }))).toEqual([[96, 'middle']]);
+  // With an icon: on the left it leads; centred, icon and words are centred as one; on the right the words end at the edge and the icon is just before them.
+  const iconX = (s: string) => +/<g transform="translate\(([\d.-]+) /.exec(s)![1];
+  const ic = { ...t, text: ':star Hi' };
+  const left = shapeSvg(ic);
+  expect(iconX(left)).toBe(20);
+  const mid = shapeSvg({ ...ic, al: 'c' });
+  const [[mx]] = at(mid);
+  expect(iconX(mid)).toBeLessThan(96);
+  expect(mx).toBeGreaterThan(96);
+  const right = shapeSvg({ ...ic, al: 'r' });
+  expect(at(right)).toEqual([[172, 'end']]);
+  expect(iconX(right)).toBeGreaterThan(100);
+  expect(iconX(right)).toBeLessThan(172 - 20);
+});
+
+test('align over: the words editor sits as the text\'s words do, aligned the same way', () => {
+  const th = { ink: '#000', paper: '#fff', shade: '#eee' };
+  const t = { k: 't' as const, x: 16, y: 16, w: 160, h: 32, f: 0 as const, text: 'Hi' };
+  const o = (s: typeof t & { al?: 'c' | 'r' }) => wordsOver(s, [s], 1, 0, 0, th).style;
+  expect(o(t)).toMatchObject({ left: '20px', textAlign: 'left' });
+  expect(o(t).transform).toContain('translate(0, -50%)');
+  expect(o({ ...t, al: 'c' })).toMatchObject({ left: '96px', textAlign: 'center' });
+  expect(o({ ...t, al: 'c' }).transform).toContain('translate(-50%, -50%)');
+  expect(o({ ...t, al: 'r' })).toMatchObject({ left: '172px', textAlign: 'right' });
+  expect(o({ ...t, al: 'r' }).transform).toContain('translate(-100%, -50%)');
 });

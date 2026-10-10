@@ -936,3 +936,60 @@ test('§1 opens with the focus on the canvas, the select tool in hand and nothin
   expect(el.picked).toEqual([]);
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
+
+test('a text in hand has one Align item beside its size: it shows the alignment and goes on to the next, each one undo step; Mod+Shift+L, E and R set them, on the canvas and in the words', async () => {
+  const TEXTS = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nt | 2 | 2 | 20 | 4 | 0 | Hello\nr | 2 | 20 | 20 | 6 | 0 | Box\n';
+  const { el, last } = await editor(TEXTS);
+  await tap(el, 96, 32);
+  await until(() => ctxOpen(el));
+  expect(ctxLabels(el)).toEqual(['Black', 'Red', 'Orange', 'Green', 'Blue', 'Purple', 'Small text', 'Medium text', 'Large text', 'Extra large text', 'Align: left', 'Rotate left', 'Rotate right', 'Edit the words', 'Duplicate', 'Bring to front', 'Send to back', 'Copy', 'Cut', 'Paste', 'Delete']);
+  const anchor = () => canvas(el).querySelector('[data-idx="0"] text')!.getAttribute('text-anchor');
+  expect(anchor()).toBe('start');
+  ctxButton(el, 'Align: left').click();
+  await el.updateComplete;
+  expect(last()).toContain('| 0= | Hello\n');
+  expect(anchor()).toBe('middle');
+  ctxButton(el, 'Align: centre').click();
+  await el.updateComplete;
+  expect(last()).toContain('| 0> | Hello\n');
+  expect(anchor()).toBe('end');
+  await undo(el);
+  expect(last()).toContain('| 0= | Hello\n');
+  ctxButton(el, 'Align: centre').click();
+  await el.updateComplete;
+  ctxButton(el, 'Align: right').click();
+  await el.updateComplete;
+  expect(last()).toBe(TEXTS);
+  // The keys, on the canvas, never the browser's.
+  expect(await press(el, 'E', { ctrlKey: true, shiftKey: true })).toBe(true);
+  expect(last()).toContain('| 0= | Hello\n');
+  expect(await press(el, 'R', { metaKey: true, shiftKey: true })).toBe(true);
+  expect(last()).toContain('| 0> | Hello\n');
+  expect(await press(el, 'L', { ctrlKey: true, shiftKey: true })).toBe(true);
+  expect(last()).toBe(TEXTS);
+  // A box's words are always centred: no Align, and the keys do nothing to it.
+  await tap(el, 96, 184);
+  await until(() => ctxOpen(el) && !!ctxButton(el, 'No fill'));
+  expect(ctxLabels(el)).not.toContain('Align: left');
+  await press(el, 'E', { ctrlKey: true, shiftKey: true });
+  expect(last()).toBe(TEXTS);
+  // While the words are typed: the item beside the sizes, the keys in the words, the editor aligned as the words are drawn.
+  await tap(el, 96, 32);
+  canvas(el).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  await el.updateComplete;
+  await until(() => ctxOpen(el) && !!ctxButton(el, 'Align: left'));
+  expect(ctxLabels(el).slice(0, 6)).toEqual(['Small text', 'Medium text', 'Large text', 'Extra large text', 'Align: left', 'Black']);
+  await wordsKey(el, 'E', { ctrlKey: true, shiftKey: true });
+  expect(last()).toContain('| 0= | Hello\n');
+  await tick();
+  expect(words(el).style.textAlign).toBe('center');
+  const r = words(el).getBoundingClientRect();
+  const [cx] = screen(el, 96, 32);
+  expect(Math.abs(r.left + r.width / 2 - cx)).toBeLessThan(3);
+  expect(document.activeElement).toBe(box(el));
+  await wordsKey(el, 'R', { ctrlKey: true, shiftKey: true });
+  await tick();
+  expect(words(el).style.textAlign).toBe('right');
+  const [right] = screen(el, 172, 32);
+  expect(Math.abs(words(el).getBoundingClientRect().right - right)).toBeLessThan(4);
+});

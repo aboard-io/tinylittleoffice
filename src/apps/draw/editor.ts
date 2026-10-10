@@ -2,7 +2,7 @@
  * <to-draw-editor>: a little diagram tool, and pixel art as a grid mode. Shapes are drawn on a 640 by 400
  * canvas by tools in the bar (a key each), moved and resized by hand, their words typed on the shape itself (a
  * double tap, or Enter) in a one-line <to-text> whose bubble has the marks (the label keeps them as inline Markdown);
- * a shape in hand has the contextual bar under it (inks, style, text size, rotate, edit, duplicate, front/back, copy,
+ * a shape in hand has the contextual bar under it (inks, style, text size, a text's alignment, rotate, edit, duplicate, front/back, copy,
  * cut, paste, delete), a round handle above it that rotates it ([ and ] rotate it by 15°), and a drag on empty canvas
  * chooses every shape inside its box. The clipboard carries shapes as a drawing of their own (TLO and our HTML).
  * Every change is operations on the document's table (model.ts).
@@ -26,7 +26,7 @@ import { TILE_INKS, TILE_SIDES, tileCss, tileFilled, tilePattern, tileRef } from
 import { applyAll, runLength, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { caret, insertRuns } from '../../kit/textops.ts';
-import { COLORS, GRID, H, TEXT_PX, W, addShape, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, wordsOver, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
+import { COLORS, GRID, H, TEXT_PX, W, addShape, alignOp, nextAlign, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, wordsOver, type Align, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
 import { TILE_SIDE, arrowDefs, shapeSvg, turnOf, type Theme } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -118,6 +118,14 @@ const SIZES: { z: TextSize; name: () => string; letter: () => string }[] = [
   { z: 3, name: () => t('Large text'), letter: () => t('L') },
   { z: 4, name: () => t('Extra large text'), letter: () => t('XL') },
 ];
+/** A text's three alignments: the bar's one button shows the one it has and goes on to the next; Mod+Shift+L, E and R set each (the Word Processor's keys, and every word processor's). */
+const ALIGNS: { al: Align | ''; name: () => string; icon: typeof Square; key: string }[] = [
+  { al: '', name: () => t('Align: left'), icon: UI.alignLeft, key: 'l' },
+  { al: 'c', name: () => t('Align: centre'), icon: UI.alignCenter, key: 'e' },
+  { al: 'r', name: () => t('Align: right'), icon: UI.alignRight, key: 'r' },
+];
+const alignKey = (e: KeyboardEvent) => ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey ? ALIGNS.find((x) => x.key === e.key.toLowerCase()) : undefined);
+
 /** The pixel inks, by letter, named. */
 const PIXEL_INKS: { k: string; name: () => string }[] = [
   { k: 'a', name: () => t('Black') },
@@ -284,6 +292,12 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const c = this.chosen;
     if (!c.length) return;
     this.change(patchShapes(this.doc, c.map((i) => [i, p])), c, key);
+  }
+  /** The texts in hand (or those given) set left, centred or right, as one step; false when none is a text. */
+  private alignSel(al: Align | '', which = this.chosen): boolean {
+    if (!which.some((i) => this.shapes[i]?.k === 't')) return false;
+    this.change(alignOp(this.doc, which, al), this.chosen);
+    return true;
   }
   /** A new shape, chosen, and the select tool back in hand. */
   private add(s: Shape) {
@@ -649,6 +663,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
     // Mod+D is ours on the canvas, whatever is chosen (never the browser's bookmark).
     if (mod && !e.altKey && lower === 'd') return void (e.preventDefault(), this.duplicateSel());
     if (!chosen.length) return;
+    const align = alignKey(e);
+    if (align) return void (e.preventDefault(), this.alignSel(align.al));
     const arrow: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     const step = arrow[e.key];
     if (e.key === 'Delete' || e.key === 'Backspace') this.removeSel();
@@ -801,6 +817,8 @@ export class ToDrawEditor extends DocElement<DrawView> {
   };
   /** Escape, once <to-text> has closed its boxes and let a range go: the words as they were when editing began, in the same undo step as the typing. */
   private onWordsKey = (e: KeyboardEvent) => {
+    const align = !e.isComposing && !e.defaultPrevented ? alignKey(e) : undefined;
+    if (align) return void (e.preventDefault(), e.stopPropagation(), this.alignSel(align.al, [this.editing]));
     if (e.isComposing || e.key !== 'Escape' || e.defaultPrevented) return;
     e.preventDefault();
     e.stopPropagation();
@@ -1006,7 +1024,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (!s || this.view.grid) return [];
     const inks: ContextEntry[] = INKS.map((ink) => ({ label: ink.name(), swatch: ink.hex, pressed: (s.c ?? '') === ink.c, does: () => this.patchSel({ c: (ink.c || undefined) as Color | undefined }) }));
     const sizes: ContextEntry[] = s.k === 'i' ? [] : SIZES.map((x) => ({ label: x.name(), text: x.letter(), pressed: (s.z ?? 2) === x.z, does: () => this.patchSel({ z: x.z === 2 ? undefined : x.z }) }));
-    if (this.editing >= 0) return [...sizes, SEP, ...inks];
+    // A text's alignment, beside its size: the one it has, and a tap for the next.
+    const texts = this.editing >= 0 ? [i] : this.chosen;
+    const now = ALIGNS.find((x) => x.al === (s.al ?? '')) ?? ALIGNS[0];
+    const align: ContextEntry[] = texts.every((j) => this.shapes[j]?.k === 't') ? [{ label: now.name(), icon: now.icon, keys: `Mod+Shift+${now.key.toUpperCase()}`, does: () => this.alignSel(nextAlign(s.al), texts) }] : [];
+    if (this.editing >= 0) return [...sizes, ...align, SEP, ...inks];
     const turns: ContextEntry[] = this.turnable
       ? [
           { label: t('Rotate left'), icon: RotateCcw, keys: '[', does: () => this.turnBy(-TURN_STEP) },
@@ -1039,6 +1061,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
         ...(look.length ? [SEP as ContextEntry, ...look.map((x): ContextEntry => ({ label: x.label, icon: x.icon, pressed: same(x.f), does: () => this.patchSel({ f: x.f }) }))] : []),
         SEP,
         ...sizes,
+        ...align,
         SEP,
         ...turns,
         ...(pair ? [{ label: t('Join two shapes'), icon: Spline, keys: 'K', does: () => this.join(pair[0], pair[1]) }] : []),
@@ -1054,7 +1077,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     return [
       ...inks,
       ...style,
-      ...(sizes.length ? ([SEP, ...sizes] as ContextEntry[]) : []),
+      ...(sizes.length ? ([SEP, ...sizes, ...align] as ContextEntry[]) : []),
       SEP,
       ...turns,
       s.k === 'i' ? { label: t('Change the icon'), icon: Smile, keys: 'Enter', does: () => this.openWords() } : { label: t('Edit the words'), icon: Tag, keys: 'Enter', does: () => this.openWords() },

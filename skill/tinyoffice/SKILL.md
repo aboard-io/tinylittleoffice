@@ -285,7 +285,7 @@ Templates: Splitting the bill, A shopping total, Tax on a price, Percentage chan
 
 ### draw: a drawing, or pixel art
 
-A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid of 8px squares. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `i` icon (its label is the icon's name), `l` line, `a` arrow (X, Y the start; W, H the distance to the end). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid), then a colour letter (`r o g b p`) and a text size (`1` to `4`). `alt:` in the head describes the drawing for people who cannot see it. Prefer a diagram when one fits: it lays itself out.
+A table `Kind | X | Y | W | H | Style | Label`, a row per shape, on a grid of 8px squares. Kinds: `r` rectangle, `o` rounded box, `e` ellipse, `d` diamond, `h` hexagon, `p` parallelogram, `c` cylinder, `n` note, `t` text, `i` icon (its label is the icon's name), `l` line, `a` arrow (X, Y the start; W, H the distance to the end). `k` joins two shapes with an arrow and `j` with a line: their X and Y are the row numbers (from 0) of the shapes joined. Style is a fill (`0` none, `1` tint, `2` solid), then a colour letter (`r o g b p`) and a text size (`1` to `4`); a text (`t`) may end it with `=` to centre its words or `>` to set them right. `alt:` in the head describes the drawing for people who cannot see it. Prefer a diagram when one fits: it lays itself out.
 
 Request flow:
 

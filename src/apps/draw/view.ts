@@ -142,11 +142,12 @@ function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
   const lh = fs * 1.25;
   const mark = big ? fs * big : 0;
   const wide = Math.max(...laid.lines.map((l) => textWidth(l.t, l.small ? fs * 0.8 : fs, l.strong)));
-  const left = s.k === 't';
-  // Icon and words sit together, centred as one (or from the left edge, for plain text).
-  const start = left ? X + 4 : tx - (wide + (mark ? mark + (words ? 6 : 0) : 0)) / 2;
-  const textX = left ? start + (mark ? mark + 6 : 0) : tx + (mark ? (mark + 6) / 2 : 0);
-  const anchor = left ? 'start' : 'middle';
+  // Icon and words sit together, centred as one; a text's from the left edge, or centred, or against the right edge, as it is aligned.
+  const al = s.k === 't' ? (s.al ?? 'l') : 'c';
+  const both = wide + (mark ? mark + (words ? 6 : 0) : 0);
+  const start = al === 'l' ? X + 4 : al === 'r' ? X + w - 4 - both : tx - both / 2;
+  const textX = al === 'l' ? start + (mark ? mark + 6 : 0) : al === 'r' ? X + w - 4 : tx + (mark ? (mark + 6) / 2 : 0);
+  const anchor = al === 'l' ? 'start' : al === 'r' ? 'end' : 'middle';
   const top = ty - ((laid.lines.length - 1) * lh) / 2;
   const out = laid.lines
     .map((l, i) => `<text x="${r(textX)}" text-anchor="${anchor}" y="${r(top + i * lh)}" dominant-baseline="middle" font-size="${r(l.small ? fs * 0.8 : fs)}"${l.strong ? ' font-weight="600"' : ''} fill="${p.text}"${l.small ? ' fill-opacity="0.75"' : ''}${halo}>${runsSvg(l.runs, l.small ? fs * 0.8 : fs)}</text>`)

@@ -569,3 +569,20 @@ test('§1 opens with the focus on the stage, the page not scrolled', async () =>
   expect(document.activeElement).toBe(blank.querySelector('to-draw-editor .draw-wrap'));
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
+
+test('Draw mode has Draw\'s Align for a text in hand: a title centred there is centred in the motion, its keys kept', async () => {
+  const { el, last } = await editor(LIFT);
+  await tap(el, 112, 176);
+  byWords(el, 'Draw').click();
+  await el.updateComplete;
+  const draw = el.querySelector<HTMLElement & { updateComplete: Promise<unknown> }>('to-draw-editor')!;
+  await draw.updateComplete;
+  const align = () => draw.querySelector<HTMLButtonElement>('.draw-context .to-context button[aria-label^="Align: "]');
+  await until(() => !!align());
+  expect(align()!.getAttribute('aria-label')).toBe('Align: left');
+  align()!.click();
+  await el.updateComplete;
+  await tick();
+  expect(last()).toContain('\nt | 4 | 20 | 20 | 4 | 04= | Lift off\n');
+  expect(keysTable(last())).toBe(keysTable(LIFT));
+});

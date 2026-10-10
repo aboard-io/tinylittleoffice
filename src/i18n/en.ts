@@ -1832,4 +1832,7 @@ export default {
   'What the letter is, one button to subscribe, and the last three letters.': 'What the letter is, one button to subscribe, and the last three letters.',
   'When it meets, the big day, T-shirts for the coach fund, and what to bring.': 'When it meets, the big day, T-shirts for the coach fund, and what to bring.',
   'Why it matters in three numbers, what it costs added up, the hearing, and a QR code for the petition.': 'Why it matters in three numbers, what it costs added up, the hearing, and a QR code for the petition.',
+  'Align: centre': 'Align: centre',
+  'Align: left': 'Align: left',
+  'Align: right': 'Align: right',
 } satisfies Strings;
