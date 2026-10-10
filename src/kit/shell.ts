@@ -926,7 +926,6 @@ export class ToShell extends LitElement {
 
   /* ---------- drawing ---------- */
 
-
   private renderHeader() {
     const def = this.def;
     const drawer = () => void this.querySelector<ToDrawer>('to-drawer')?.show();
