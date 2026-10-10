@@ -46,7 +46,7 @@ test('the browser language is matched to what is present', () => {
   expect(browserLanguage(['pt', 'en'])).toBe('en');
   expect(browserLanguage(['pt-PT'])).toBe('en');
   expect(browserLanguage(['PL-pl'])).toBe('pl');
-  expect(browserLanguage(['fr'])).toBe('en');
+  expect(browserLanguage(['xx'])).toBe('en');
   expect(browserLanguage([])).toBe('en');
 });
 
