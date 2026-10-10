@@ -8,6 +8,7 @@ import '../../../styles.css';
 import '../editor.ts';
 import type { ToDrawEditor } from '../editor.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
+import { BASE, zoomed } from '../../../kit/zoom.ts';
 
 const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n';
 
@@ -255,7 +256,9 @@ test('a double tap puts the words on the shape: typed live into the model, Enter
   expect(getSelection()!.toString()).toBe('Browser');
   expect(w.tagName).toBe('TO-TEXT');
   expect(el.querySelector('.draw-label-pop, input.draw-label')).toBeNull();
-  // Over the shape: centred on it, the shape's size of words on the screen.
+  // Over the shape: centred on it, the shape's size of words on the screen. At the normal size the page is zoomed
+  // (kit/zoom.ts BASE), so this fails if the overlay is placed from screen lengths without dividing by the zoom.
+  expect(zoomed()).toBe(BASE);
   const r = w.getBoundingClientRect();
   const [cx, cy] = screen(el, 96, 80);
   expect(Math.abs(r.left + r.width / 2 - cx)).toBeLessThan(3);

@@ -237,6 +237,18 @@ test('at phone width: keys and rows a finger tall, boxes 16px, the bar one row, 
       expect(box.width).toBeGreaterThanOrEqual(44);
     }
     for (const r of el.querySelectorAll<HTMLElement>('.calc-row')) expect(r.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    // The keys at the default size (a phone is 300 of the stylesheet's pixels wide): a grid, five a row, every row
+    // inside the screen.
+    const keys = [...el.querySelectorAll<HTMLElement>('.calc-key')].map((k) => k.getBoundingClientRect());
+    const rows = new Map<number, DOMRect[]>();
+    for (const k of keys) rows.set(Math.round(k.top), [...(rows.get(Math.round(k.top)) ?? []), k]);
+    expect(rows.size).toBeGreaterThan(1);
+    for (const row of rows.values()) {
+      expect(row).toHaveLength(5);
+      for (let i = 1; i < row.length; i++) expect(row[i].left).toBeGreaterThanOrEqual(row[i - 1].right - 1);
+      expect(row[0].left).toBeGreaterThanOrEqual(0);
+      expect(row.at(-1)!.right).toBeLessThanOrEqual(390);
+    }
     const barEl = el.querySelector<HTMLElement>('to-bar')!;
     const tops = new Set([...barEl.children].filter((x) => (x as HTMLElement).offsetWidth > 0).map((x) => Math.round(x.getBoundingClientRect().top)));
     expect(tops.size).toBe(1);

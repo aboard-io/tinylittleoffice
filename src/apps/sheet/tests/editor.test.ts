@@ -8,7 +8,7 @@ import '../editor.ts';
 import type { ToSheetEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { until, tick } from '../../../../test/browser/helpers.ts';
-import { zoomed } from '../../../kit/zoom.ts';
+import { BASE, zoomed } from '../../../kit/zoom.ts';
 /** A length on the screen in the stylesheet's own pixels (the normal size draws at kit/zoom.ts BASE). */
 const css = (px: number) => px / zoomed();
 
@@ -275,6 +275,20 @@ test('at phone width: the bar is one row of 44px buttons, inputs are 16px, nothi
     const h0 = bar.offsetHeight;
     expect(h0).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+    // The grid at the default size (a phone is 300 of the stylesheet's pixels wide): its box inside the screen, the
+    // columns side by side in it, what is wider scrolling there and not the page.
+    const table = el.querySelector<HTMLElement>('table.sheet')!;
+    const scroller = (() => {
+      for (let x = table.parentElement; x && x !== el; x = x.parentElement) if (/auto|scroll/.test(getComputedStyle(x).overflowX)) return x;
+      return null;
+    })();
+    expect(scroller).not.toBeNull();
+    expect(scroller!.getBoundingClientRect().right).toBeLessThanOrEqual(390);
+    for (const tr of el.querySelectorAll<HTMLElement>('table.sheet thead tr')) {
+      const heads = [...tr.querySelectorAll<HTMLElement>('th[scope=col]')].map((x) => x.getBoundingClientRect());
+      expect(new Set(heads.map((h) => Math.round(h.top))).size).toBeLessThanOrEqual(1);
+      for (let i = 1; i < heads.length; i++) expect(heads[i].left).toBeGreaterThanOrEqual(heads[i - 1].right - 1);
+    }
     for (const ref of ['A1', 'B2', 'C3', 'A4', 'B5', 'C6', 'A7', 'B8', 'C9', 'A10']) {
       cell(el, ref).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
       cell(el, ref).focus({ preventScroll: true });
@@ -712,6 +726,26 @@ test('a column head selects its column; the grip is resized from the keyboard, a
   expect(Math.abs(grip.closest('th')!.getBoundingClientRect().width - (w0 + 10 * zoomed()))).toBeLessThan(3);
   await pick(el, head, 'Fit this column to its text');
   expect(el.querySelector('table.sheet')!.classList.contains('sized')).toBe(true);
+});
+
+test('a column dragged by its grip grows by the drag in the sheet\'s own pixels: N on the screen is N / the zoom, not N', async () => {
+  const { el } = await editor(SHEET);
+  // The normal size is zoomed (kit/zoom.ts BASE): a drag kept in screen pixels would widen the column 30% too much.
+  expect(zoomed()).toBe(BASE);
+  const grip = el.querySelectorAll<HTMLElement>('th .grip')[0];
+  const th = grip.closest('th')!;
+  const w0 = css(th.getBoundingClientRect().width);
+  const g = grip.getBoundingClientRect();
+  const at = (x: number) => ({ clientX: x, clientY: g.top + g.height / 2, pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, buttons: 1, bubbles: true, cancelable: true });
+  const x0 = g.left + g.width / 2;
+  const N = 65;
+  grip.dispatchEvent(new PointerEvent('pointerdown', at(x0)));
+  grip.dispatchEvent(new PointerEvent('pointermove', at(x0 + N)));
+  grip.dispatchEvent(new PointerEvent('pointerup', { ...at(x0 + N), buttons: 0 }));
+  await el.updateComplete;
+  expect(Number(grip.getAttribute('aria-valuenow'))).toBe(Math.round(w0 + N / zoomed()));
+  // On the screen the column is N wider, the pointer still on its edge.
+  expect(Math.abs(th.getBoundingClientRect().width - (w0 * zoomed() + N))).toBeLessThan(3);
 });
 
 test('the bar\'s tools keep the focus in the cell', async () => {

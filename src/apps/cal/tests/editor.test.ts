@@ -299,6 +299,16 @@ test('at phone width: the bar is one row, nothing is wider than the screen, the 
     expect(bar.offsetHeight).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
     for (const b of bar.querySelectorAll<HTMLElement>('button')) if (b.offsetWidth) expect(b.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    // The month at the default size (a phone is 300 of the stylesheet's pixels wide): seven columns a week, each row
+    // seven days side by side, the week inside the screen.
+    for (const row of el.querySelectorAll<HTMLElement>('.cal-grid > .cal-row')) {
+      const days = [...row.children].map((x) => x.getBoundingClientRect());
+      expect(days).toHaveLength(7);
+      expect(new Set(days.map((d) => Math.round(d.top))).size).toBe(1);
+      for (let i = 1; i < 7; i++) expect(days[i].left).toBeGreaterThanOrEqual(days[i - 1].right - 1);
+      expect(days[0].left).toBeGreaterThanOrEqual(0);
+      expect(days[6].right).toBeLessThanOrEqual(390);
+    }
     cell(el, '2027-03-12').click();
     await settle(el);
     const box = dialog().getBoundingClientRect();

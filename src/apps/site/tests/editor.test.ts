@@ -17,7 +17,7 @@ import type { ToSiteEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
-import { applySize, zoomOf, zoomed } from '../../../kit/zoom.ts';
+import { BASE, applySize, zoomOf, zoomed } from '../../../kit/zoom.ts';
 
 /**
  * Playwright aims a click inside a frame without the frame's CSS zoom (the size of everything, which the page in the
@@ -578,6 +578,28 @@ test('Preview: the page as a visitor has it, the bar one Edit button; Edit, Esca
   say(el, { do: 'leave' });
   await settle(el);
   expect(el.preview).toBe(false);
+});
+
+test('on a wide screen at the normal size the form sits beside the thing in hand: its left at the thing\'s, its top just under it', async () => {
+  // 1100 wide (beforeEach), zoomed (kit/zoom.ts BASE): margins set from screen lengths without the zoom would land 30% off.
+  expect(zoomed()).toBe(BASE);
+  const { el } = await editor();
+  await settle(el);
+  await hold(el, '3');
+  await until(() => ctxOpen(el));
+  ctxButton(el, 'Where it goes').click();
+  const f = await form();
+  // The thing, as the page said it ([20, 40, 300, 60] in the page's own lengths), on the screen at the frame's zoom.
+  const z = zoomOf(frame(el));
+  const fr = frame(el).getBoundingClientRect();
+  const [left, top, bottom] = [fr.left + 20 * z, fr.top + 40 * z, fr.top + 100 * z];
+  const r = f.querySelector('dialog')!.getBoundingClientRect();
+  expect(Math.abs(r.left - left), `the form's left (${r.left}) at the thing's (${left})`).toBeLessThan(3);
+  // Under it where there is room, else above it: 8px from it either way.
+  const below = Math.abs(r.top - (bottom + 8)) < 3;
+  const above = Math.abs(r.bottom - (top - 8)) < 3;
+  expect(below || above, `the form (${r.top}–${r.bottom}) beside the thing (${top}–${bottom})`).toBe(true);
+  f.querySelector<HTMLDialogElement>('dialog')!.close();
 });
 
 test('a phone: the bar one row, the page the width of the screen, the URL chip’s form at the top inside the screen, its type 16px', async () => {

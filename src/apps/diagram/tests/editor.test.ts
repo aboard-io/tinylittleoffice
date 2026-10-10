@@ -11,6 +11,7 @@ import '../editor.ts';
 import type { ToDiagramEditor } from '../editor.ts';
 import type { ToText } from '../../../kit/text.ts';
 import { tick, until } from '../../../../test/browser/helpers.ts';
+import { BASE, zoomed } from '../../../kit/zoom.ts';
 
 const ORG = '---\nkind: org\n---\n- Ada Diaz | Chief executive\n  - Ben Okoro | Engineering\n  - Eve Marsh | Design\n\n~ Ben Okoro -- Eve Marsh: design partner\n';
 const NET = '---\nkind: net\n---\n- Web\n- API\n- Database\n';
@@ -892,4 +893,18 @@ test('a plus ending a family\'s name starts the partner\'s; inside the words it 
   await type(el, '+');
   expect(held(el)).toBe('H+elen');
   expect(last()).toContain('  - H+elen\n');
+});
+
+test('at the normal size (zoomed by kit/zoom.ts BASE) the words sit on the thing on the screen, not a zoom away from it', async () => {
+  const { el } = await editor(ORG);
+  expect(zoomed()).toBe(BASE);
+  const g = thing(el, 'Eve Marsh');
+  await tap(el, g);
+  expect(isOpen(el)).toBe(true);
+  // The thing's own outline (its words drawn blank meanwhile), and the words laid over it: centred on it within 2px.
+  const shape = el.querySelector<SVGGElement>(`.dg-pic g[data-i="${g.dataset.i}"]`)!.querySelector<SVGGraphicsElement>('rect, path, circle, ellipse, polygon')!;
+  const [w, b] = [line(el).getBoundingClientRect(), shape.getBoundingClientRect()];
+  expect(Math.abs(w.left + w.width / 2 - (b.left + b.width / 2))).toBeLessThan(2);
+  expect(Math.abs(w.top + w.height / 2 - (b.top + b.height / 2))).toBeLessThan(2);
+  expect(w.width).toBeLessThanOrEqual(b.width + 2);
 });
