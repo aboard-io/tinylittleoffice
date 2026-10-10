@@ -59,7 +59,7 @@ the picker; neither source is a dependency.
 ## For building and testing
 
 None of these reaches the site; they build it, check it and deploy it. With what they bring, the lockfile
-holds 195 packages for development.
+holds 197 packages for development.
 
 | Package | Version | Licence | The native API it beat, and why | Adds |
 | --- | --- | --- | --- | --- |
@@ -69,6 +69,7 @@ holds 195 packages for development.
 | `@types/leaflet` | 1.9.22 | MIT | Types for leaflet, which ships none. Not built into the site. | not shipped |
 | `@types/node` | 26.6.4 | MIT | Types for the scripts and tests that run under node. Not built into the site. | not shipped |
 | `@vitest/browser-playwright` | 5.0.3 | MIT | Lets Vitest run the DOM tests in a real Chromium through Playwright (test/browser/, src/apps/*/tests/). A simulated DOM would pass what a browser fails. Tests only. | not shipped |
+| `fast-check` | 4.10.2 | MIT | The properties fuzzed from TLO's grammar (test/doc/tlo-grammar.ts, test/doc/properties.test.ts): generators of documents, texts and operations, and shrinking a failure to its smallest case. The native alternative is nothing: no browser or node API generates or shrinks test cases. Tests only. | not shipped |
 | `playwright` | 1.64.0 | Apache-2.0 | The browsers themselves (Chromium, WebKit) for the browser tests and e2e, pinned to @playwright/test's version. Tests only. | not shipped |
 | `typescript` | 7.0.2 | Apache-2.0 | The type check (npm run lint). Node strips types natively and runs the scripts as written, but checks none of them. Not built into the site. | not shipped |
 | `vite` | 8.3.4 | MIT | The build. Browsers load ES modules unbundled, but a page per app, hashed file names the offline copy can trust, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site. | not shipped |

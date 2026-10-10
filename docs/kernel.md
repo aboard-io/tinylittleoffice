@@ -462,3 +462,50 @@ and, as before, the editor, `<to-drawer>` (which, with a document open, begins w
 
 **Why, and the price.** Safari on iOS does not make the page shorter for the keyboard, only the visible window; a bar stuck to the page's top had to be measured into place (`--to-vv-top`, `--to-stuck-h`, a frame-by-frame watch after every resize, focus and touch) after events that came late or never, and was found parked a third of the way down. A column the visible window's height puts the bar where it belongs with nothing measured but the window. **The price is Safari's toolbar: it no longer collapses as the words scroll**, since the page itself never scrolls, so a phone shows a little less of the document than a page that scrolled the window would.
 
+
+---
+
+## 10. The grammar, written once, and the properties fuzzed from it (round nine, 2026-10-10)
+
+TLO's grammar is written formally once, in `test/doc/tlo-grammar.ts` (`TLO_EBNF`, ISO 14977 EBNF read by a forty-line
+reader, `readGrammar`): the head, the nine blocks, attributes, tables and their typed headings, fences, edges,
+images, and the inline marks, links, icons, notes and escapes, lenient forms and all. It is dev only: nothing in it
+ships, and the parser in `src/doc/tlo.ts` is not generated from it. The grammar documents the parser; where the two
+disagree, a property below fails naming the text, and §2's "Grammar the kernel must preserve" decides which is wrong.
+
+Two generators come from it, both with fast-check, both biased to the hard cases (marks at a block's edges,
+attributes that look like words, `\{`, `~~` beside a link, empty cells, items nested deep, icons and emoji in names,
+right-to-left words): `textOf(rule)` makes texts from the EBNF; `arbitraryDoc()` makes models of the kernel as far as
+the format can say them, and `sayableLine`/`sayableDoc` list, one rule a line, what it cannot (a line's words never
+begin or end with spaces; a mark never begins or ends with one; an item is at most one deeper than the item before it).
+`arbitraryOp(doc)` and `arbitraryEdits()` make operations that apply.
+
+The properties, each a `fc.assert`-style check whose failure names the shrunk counterexample (200 cases each;
+2,000 under `npm run fuzz`):
+
+| property | where |
+|---|---|
+| any text the grammar makes is read, and its writing is canonical: `write(parse(write(parse(x)))) === write(parse(x))` | test/doc/properties.test.ts |
+| a lenient text and its canonical writing read alike: `parse(write(parse(x)))` is `parse(x)` | " |
+| `write(parse(x)) === x` for every canonical text, and `parse(write(d))` is `d` for every model the format can say | " |
+| every op applied then its inverse gives the document back (untouched blocks keep their identity); a random run of ops then `invertAll` too | " |
+| `pages()` never throws, never gives no pages, and holds every block but the rules in order | " |
+| formulas: `a + b = b + a`, `a * b = b * a`, `(a + b) + c = a + (b + c)` within 1e-9 of the sum's scale; `=X` is X's value; a cell that reaches a cycle is `#CIRC` and one clear of cycles its sum, never a loop | " |
+| `decodeDoc(encodeDoc(x)) === x`, and the encoding chosen is never longer than the raw | " |
+| a document pasted as HTML (`docToHtml` → `htmlToBlocks`) is one the writer keeps; pasting it again changes nothing; paragraphs and items come back as they were | test/browser/paste-properties.test.ts |
+
+What the fuzz found on its first runs, each fixed with a test in test/doc/grammar.test.ts or test/browser/paste.test.ts:
+a rule's attributes (`--- {.big}`) read as words; an item's attributes, written after its last line, were read only
+from its first; an edge's attributes with no label were read into the thing it goes to; a table whose last heading is
+empty lost that column (`Name |` read as an edge); a line with a pipe over a lone `-` or `- |` item read as a table, and
+so did an item's own next line; words written `a | b` over `--- | ---` in one paragraph read as a table; spaces at a
+line's end (a code span's, a link of a space), and inside a mark's ends, came back moved; an empty line of a paragraph
+(`<u>` alone) or the last of a quote ended the block or was swallowed by its attributes; an icon kept marks the writer
+cannot say; words ending `:x` before an icon read as the icon `:x:` (the writer now checks its full escaping reads back
+and escapes every mark where it does not); our HTML put an ordered item after a bulleted one in the same list; a pasted
+list could start deeper than the text can say.
+
+**The dictionary, measured.** `npm run dictionary` (scripts/dictionary.ts) trains a deflate dictionary of the same
+size on the corpus (test/doc/corpus and generated documents) and reports every template's link under today's and the
+trained one. It changes only if every template is shorter or equal and the largest template's link is 5% shorter or
+more; a second dictionary would be read under a new flag letter beside `y`, so links made with the first still open.
