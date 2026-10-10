@@ -11,8 +11,8 @@
  * it; Enter keeps what was typed, Escape puts back what was there, a tap elsewhere closes it.
  *
  * On a phone the bar comes with the focus (Paul, 2026-10-10: "We could also just hide the secondary bar unless we are
- * editing"): `indoc` says something in the document has the focus (words, a cell, a canvas, a chosen row, the bar itself),
- * and kit.css slides the bar under the column's foot while it is not set (reading), with the glide; an editor whose keys
+ * editing"): `indoc` says something in the document has the focus from the person's own tap or key (words, a cell, a
+ * canvas, a chosen row, the bar itself; not the focus a document opens with), and kit.css slides the bar under the column's foot while it is not set (reading), with the glide; an editor whose keys
  * are the document says `data-bar="always"` (the Calculator). What of the bar needs nothing in hand is a row of the
  * drawer's This document too (kit/drawer.ts). At the bar's end is the command palette's button (kit/palette.ts).
  *
@@ -231,10 +231,16 @@ export class ToChrome extends LitElement {
     const typed = e.type === 'beforeinput';
     requestAnimationFrame(() => {
       const at = document.activeElement;
-      // The document has the focus (its bar, its menus and its dialogs are the document's too): on a phone its bar comes with it.
+      // The document has the focus from the person (its bar, its menus and its dialogs are the document's too): on a phone
+      // its bar comes with it. The focus a document opens with is not theirs (they are reading), as for `editing`.
       const main = this.column;
-      const indoc = !!at && !!main && main !== at && main.contains(at);
-      if (indoc !== this.indoc) this.indoc = indoc;
+      const inside = !!at && !!main && main !== at && main.contains(at);
+      const indoc = inside && (this.indoc || typed || performance.now() - this.touched < 1000);
+      if (indoc !== this.indoc) {
+        this.indoc = indoc;
+        // The bar arriving or leaving changes the column's room: the same glide as a keyboard's, the caret kept in sight once it settles.
+        if (matchMedia('(pointer: coarse)').matches) this.glide();
+      }
       if (at && at !== document.body && at.closest(ASIDE)) return;
       const box = !!at && this.contains(at) && !at.closest('.to-header') && !!at.closest(BOX);
       const editing = box && (this.editing || typed || performance.now() - this.touched < 1000);

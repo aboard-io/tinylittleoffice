@@ -49,7 +49,7 @@ export const UNDO = command<HasEditor>({ id: 'kit.undo', scope: 'kit', label: ()
 export const REDO = command<HasEditor>({ id: 'kit.redo', scope: 'kit', label: () => t('Redo'), icon: UI.redo, keys: 'Mod+Shift+Z / Mod+Y', where: ['bar'], when: (p) => !!p.editor, does: history('docredo') });
 export const SHARE = command<Page>({ id: 'kit.share', scope: 'kit', label: () => t('Share…'), icon: UI.share, keys: 'Mod+Shift+S', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.share() });
 export const DOWNLOAD = command<Page>({ id: 'kit.download', scope: 'kit', label: () => t('Download'), icon: UI.download, keys: 'Mod+Shift+D', where: ['drawer'], document: true, takesFocus: true, when: (p) => p.editing, does: (p) => p.download() });
-export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: () => t('All commands…'), icon: CommandIcon, keys: 'Mod+K', where: ['bar'], takesFocus: true, does: (p) => p.palette() });
+export const PALETTE = command<Pick<Page, 'palette'>>({ id: 'kit.palette', scope: 'kit', label: () => t('All commands…'), icon: CommandIcon, keys: 'Mod+K', where: ['bar'], does: (p) => p.palette() });
 
 /** The page's commands, in the order the dialog lists them. */
 export const KIT_COMMANDS = register([
