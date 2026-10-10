@@ -93,24 +93,30 @@ export function tablePage(v: SheetView, upTo = Infinity): Page {
   return { w: w + 48, h: rows.length * H + top + 24, svg, alt };
 }
 
+/** The columns a thumbnail of the grid holds at most: about six read at 96 pixels wide. */
+const THUMB_COLS = 6;
+
 /**
  * The table as a spreadsheet looks: a strip of column letters along the top, the names under them in
  * bold, row numbers down the side, grey grid lines, words at an ordinary size, numbers to the right. The
- * thumbnail, and what a table in a text being written is.
+ * thumbnail, and what a table in a text being written is. As a thumbnail (`thumb`) it is a landscape
+ * page, four by three, holding what can be read at that size: the first six columns at most, each at most
+ * 120 wide, and the rows that fit under them.
  */
-export function gridPage(v: SheetView): Page {
+export function gridPage(v: SheetView, thumb = false): Page {
   const head = headings(v);
   const rowsShown = lines(v);
   const PX = 13;
   const H = 24;
   const HEAD = 22;
   const NUM = 34;
-  const n = Math.max(5, v.used.rows);
-  const across = Math.max(3, v.used.cols);
   const top = head ? 1 : 0;
-  const widths = Array.from({ length: across }, (_, c) => Math.min(200, Math.max(72, ...rowsShown.map((row) => textWidth(row[c] ?? '', PX) + 18))));
+  const across = thumb ? Math.min(THUMB_COLS, Math.max(3, v.used.cols)) : Math.max(3, v.used.cols);
+  const widths = Array.from({ length: across }, (_, c) => Math.min(thumb ? 120 : 200, Math.max(72, ...rowsShown.map((row) => textWidth(row[c] ?? '', PX) + 18))));
   const w = NUM + widths.reduce((a, b) => a + b, 0);
-  const h = HEAD + (n + top) * H;
+  // A thumbnail is as tall as three quarters of its width, and holds the rows that fit; a page every used row (five at least).
+  const n = thumb ? Math.floor((Math.round((w * 3) / 4) - HEAD) / H) - top : Math.max(5, v.used.rows);
+  const h = thumb ? Math.round((w * 3) / 4) : HEAD + (n + top) * H;
   let svg = rect(0, 0, w, h, '#fff');
   // The strips: letters along the top, numbers down the side.
   svg += rect(0, 0, w, HEAD, SHADE) + rect(0, 0, NUM, h, SHADE);
@@ -121,7 +127,7 @@ export function gridPage(v: SheetView): Page {
   });
   for (let r = 0; r < n; r++) svg += text(NUM / 2, HEAD + (r + top) * H + 16, String(r + 1), { px: 11, fill: MUTED, anchor: 'middle' });
   // The names, then the cells.
-  rowsShown.forEach((row, i) => {
+  rowsShown.slice(0, n + top).forEach((row, i) => {
     let at = NUM;
     const names = !!head && i === 0;
     widths.forEach((cw, c) => {
@@ -141,11 +147,11 @@ export function gridPage(v: SheetView): Page {
   return { w, h, svg, alt: rowsShown.length ? rowsShown.map((row) => row.filter(Boolean).join(', ')).join('; ') : t('Empty sheet') };
 }
 
-/** A sheet document's pages: the table (its headline above it) and its chart, the chart first when it is drawn above the table; drawn small, the grid alone (or the chart). */
-export function sheetPages(text: string, small = false): Page[] {
+/** A sheet document's pages: the table (its headline above it) and its chart, the chart first when it is drawn above the table; drawn small, the grid alone (or the chart), as a thumbnail the grid's corner. */
+export function sheetPages(text: string, small = false, thumb = false): Page[] {
   const v = readSheet(parse(text));
   const chart = chartOf(v);
-  if (small) return [chart ?? gridPage(v)];
+  if (small) return [chart ?? gridPage(v, thumb)];
   if (!chart) return [tablePage(v)];
   return v.table.above ? [chart, tablePage(v)] : [tablePage(v), chart];
 }

@@ -11,7 +11,7 @@ import { MUTED, pageSvg, r, rect, text, textWidth, wrapText } from '../../kit/dr
 import { glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
-import { shapesPage } from '../draw/view.ts';
+import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
 import { edgesOf, kindOf, labelOf, linesOf, same, setNames, type Hit, type KindId, type Line } from './model.ts';
 
@@ -572,10 +572,15 @@ export function regionAt(d: Diagram, x: number, y: number): string | undefined {
   return inside.length ? inside.map((s) => s.region).join(' & ') : undefined;
 }
 
-/** The diagram's one page, with words for anyone who cannot see it. */
-export function diagramPage(doc: Doc, upTo = Infinity): Page {
+/**
+ * The diagram's one page, with words for anyone who cannot see it: as big as its kind lays it out. As a
+ * thumbnail (`thumb`) a picture more than twice as wide as tall (a family tree of many) is its middle, twice as
+ * wide as tall, so what shows can be read rather than a strip of specks.
+ */
+export function diagramPage(doc: Doc, upTo = Infinity, thumb = false): Page {
   const d = layout(doc);
-  return { ...shapesPage(d.shapes, d.w, d.h, upTo), alt: doc.head.alt || describeDrawing(d.shapes) || t('An empty diagram') };
+  const page = { ...shapesPage(d.shapes, d.w, d.h, upTo), alt: doc.head.alt || describeDrawing(d.shapes) || t('An empty diagram') };
+  return thumb && d.w > 2 * d.h ? cropPage(page, Math.round((d.w - 2 * d.h) / 2), 0, 2 * d.h, d.h) : page;
 }
 
 export const diagramSvg = (doc: Doc): string => '<?xml version="1.0" encoding="UTF-8"?>\n' + pageSvg(diagramPage(doc)) + '\n';

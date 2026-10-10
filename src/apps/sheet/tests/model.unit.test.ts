@@ -1,5 +1,7 @@
 // The sheet as a view of the document, and each command as the ops it produces: under node, no DOM.
 import { expect, test } from 'vitest';
+import { createHash } from 'node:crypto';
+import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, parse, tableAt, write, type Doc } from '../../../doc/index.ts';
 import { chartData, suggestChart } from '../../../kit/chart.ts';
 import { toExcelFormula } from '../../../kit/xlsx.ts';
@@ -306,4 +308,29 @@ test("a rich column's words are drawn with their marks and written to CSV and th
   expect(svg).toContain('<tspan font-style="italic">news</tspan>');
   expect(svg).not.toContain('**');
   expect(gridPage(v).svg).toContain('big news');
+});
+
+// The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
+// unchanged by `thumb`.
+const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
+const SHEET10 = 'Month | Rent:money | Food:money | Power:money | Water:money | Phone:money | Travel:money | Fun:money | Gifts:money | Total:money\n--- | --- | --- | --- | --- | --- | --- | --- | --- | ---\nJan | 1200 | 450 | 80 | 30 | 40 | 120 | 90 | 20 | =SUM(B1:I1)\nFeb | 1200 | 430 | 85 | 30 | 40 | 110 | 60 | 0 | =SUM(B2:I2)\n';
+
+test('a thumbnail of a ten-column sheet is landscape: the first six columns at a size to read, the rows that fit; a page and a slide are as before', () => {
+  const thumb = def.view(SHEET10, { small: true, thumb: true });
+  expect(thumb).toHaveLength(1);
+  const [p] = thumb;
+  expect(p.w).toBeGreaterThan(p.h);
+  expect(p.w / p.h).toBeCloseTo(4 / 3, 1);
+  expect(p.svg).toContain('>F<');
+  expect(p.svg).not.toContain('>G<');
+  expect(p.svg).toContain('Phone');
+  expect(p.svg).not.toContain('Travel');
+  // Every row number drawn sits inside the page.
+  const ys = [...p.svg.matchAll(/<text[^>]*y="([\d.]+)"/g)].map((m) => +m[1]);
+  expect(Math.max(...ys)).toBeLessThan(p.h);
+  expect(sha1(def.view(SHEET10))).toBe('1371797dd4e9ae106edf5419f41810cd15274c1f');
+  expect(sha1(def.view(SHEET10, { small: true }))).toBe('84803e2a92f4a909ae6a3d61b16e765032fb986d');
+  // A charted sheet's thumbnail is its chart, landscape already.
+  const chart = def.view('---\nchart: bar\n---\n' + SHEET10, { small: true, thumb: true })[0];
+  expect(chart.w).toBeGreaterThan(chart.h);
 });

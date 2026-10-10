@@ -312,6 +312,12 @@
     flex: 1;
     min-width: 0;
   }
+  /* Beside a wide thumbnail the words have less room: a name ellipsises, a blurb wraps. */
+  .to-option-words > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .to-menu-words small,
   .to-option-words small {
     color: var(--to-ink-3);
@@ -359,6 +365,7 @@
     border: 0;
     background: transparent;
   }
+  /* 56 by 72 for a portrait page; a landscape one as wide as its shape, to twice its height (the width set by home.ts, thumbWidth). */
   .to-thumb {
     flex: none;
     width: 56px;
@@ -1787,20 +1794,21 @@
     display: flex;
     justify-content: center;
     height: 56px;
-    min-width: 44px;
+    /* As wide as the widest page it can hold (twice its height), so the names beside a column of previews line up. */
+    width: 112px;
   }
+  /* Its width is the page's shape (aspect-ratio, set by preview.ts: a landscape page to twice its height). */
   to-preview svg {
     display: block;
     height: 100%;
     width: auto;
-    max-width: 100px;
     background: var(--to-paper);
     border: 1px solid var(--to-border);
     border-radius: 2px;
   }
   .to-found to-preview {
     height: 40px;
-    min-width: 32px;
+    width: 80px;
   }
 
   /* ---- a picture from the web, not yet asked for (kit/pictures.ts) ---- */

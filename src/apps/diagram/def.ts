@@ -40,7 +40,7 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => [diagramPage(parse(doc), opts?.upTo)],
+  view: (doc, opts) => [diagramPage(parse(doc), opts?.upTo, opts?.thumb)],
   // Presented on a slide, a shape a step: the picture builds as its kind lays it out.
   steps: (doc) => layout(parse(doc)).shapes.length,
   exports: [{ ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(diagramSvg(parse(doc))) }],
