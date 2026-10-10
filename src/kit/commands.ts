@@ -36,6 +36,11 @@ export interface Command<C = any> {
   keys?: string;
   /** 'kit', 'text', or an app's id. */
   scope: string;
+  /**
+   * Where in its scope the key is answered: the canvas, a cell, the rail, the show, a card, an entry line. Two commands
+   * of one scope may bind the same key at different places (the lints read it); none is everywhere in the scope.
+   */
+  at?: string;
   where: Where[];
   /** In force: drawn, offered by the palette, answered by its keys. Absent: always. */
   when?: (c: C) => boolean;
