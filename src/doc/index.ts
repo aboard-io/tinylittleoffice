@@ -7,7 +7,7 @@
 export type { Attrs, Block, ColType, Column, Dir, Doc, FenceBlock, Head, Run, TableBlock, TextBlock } from './model.ts';
 export { attr, blankDoc, hasClass, isAtomic, isEmbed, isText, normalRuns, pages, plainText, sameMarks, sections, text } from './model.ts';
 
-export { amountOf, attrsText, balanceNote, cells, column, columnsOf, columnText, COL_TYPES, escapeInline, fenceRef, parse, parseInline, parseLines, refFence, splitAttrs, splitHead, takeHead, withHead, write, writeBlock, writeHead, writeInline, writeLines } from './tlo.ts';
+export { amountOf, attrsText, balanceNote, cells, column, columnsOf, columnText, COL_TYPES, currencyOf, escapeInline, fenceRef, parse, parseInline, parseLines, refFence, splitAttrs, splitHead, takeHead, withHead, write, writeBlock, writeHead, writeInline, writeLines } from './tlo.ts';
 
 export type { Op } from './ops.ts';
 export { apply, applyAll, depthOf, family, invert, invertAll, joinBlocks, moveFamily, placeFamily, putCells, removeItem, replaceSpan, runLength, shiftFamily, sliceRuns, splitBlock } from './ops.ts';
@@ -53,4 +53,4 @@ export {
 } from './table.ts';
 
 export type { CellValue, Evaluated } from './formula.ts';
-export { COLUMN_TYPES, dateToSerial, evaluate, evaluateTable, formatCell, formatValue, FUNCTIONS, parseLiteral, serialToIso, todaySerial } from './formula.ts';
+export { COLUMN_TYPES, dateToSerial, evaluate, evaluateTable, formatCell, formatMoney, formatValue, FUNCTIONS, parseLiteral, serialToIso, todaySerial } from './formula.ts';

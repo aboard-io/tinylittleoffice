@@ -72,7 +72,7 @@ export default defineApp({
 function xlsx(doc: Doc): Uint8Array {
   const v = readSheet(parse(doc));
   const rows = v.table.rows.map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' && !x.startsWith('=') ? cellText(x, 'rich') : x)));
-  return tableToXlsx({ ...v.table, rows }, { values: v.values, named: v.named });
+  return tableToXlsx({ ...v.table, rows }, { values: v.values, named: v.named }, null, v.currency);
 }
 
 /** The chart as an SVG file; an empty chart's page when the sheet asks for none. */

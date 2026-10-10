@@ -561,6 +561,9 @@ export default {
   'Name': 'Name',
   'Name of column {c}': 'Name of column {c}',
   'Names the cell to its right': 'Names the cell to its right',
+  // A money column's currency (Money picked in a column's menu): the field's hint, and what it says of words it cannot read.
+  'A symbol, like £, or a code, like GBP. Empty is the document’s own.': 'A symbol, like £, or a code, like GBP. Empty is the document’s own.',
+  'A symbol of up to three characters, or a code of three letters.': 'A symbol of up to three characters, or a code of three letters.',
   'No chart': 'No chart',
   'Number': 'Number',
   'Open {link}': 'Open {link}',

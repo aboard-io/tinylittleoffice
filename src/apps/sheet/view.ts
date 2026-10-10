@@ -11,17 +11,17 @@ import { t } from '../../kit/i18n.ts';
 import { sheetHeadings } from '../../kit/xlsx.ts';
 import { formatCell, parse, parseInline, plainText, type CellValue, type Doc } from '../../doc/index.ts';
 import type { Page } from '../../kit/app.ts';
-import { readSheet, type SheetView } from './model.ts';
+import { currencyAt, readSheet, type SheetView } from './model.ts';
 
 /** The names over the used columns, or null when every column goes by its letter alone. */
 export const headings = (v: SheetView): string[] | null => sheetHeadings(v.table, v.used.cols);
 
-/** A value as its column shows it, in words: a rich cell's words without their marks. */
-export const cellText = (v: CellValue, type?: string): string => (type === 'rich' && typeof v === 'string' ? plainText(parseInline(v)) : formatCell(v, type));
+/** A value as its column shows it, in words: a rich cell's words without their marks, money in its currency. */
+export const cellText = (v: CellValue, type?: string, currency?: string): string => (type === 'rich' && typeof v === 'string' ? plainText(parseInline(v)) : formatCell(v, type, currency));
 
 /** The used cells as shown: computed values. */
 export function shown(v: SheetView): string[][] {
-  return Array.from({ length: v.used.rows }, (_, r) => Array.from({ length: v.used.cols }, (_, c) => cellText(v.values[r]?.[c] ?? null, v.cols[c]?.type)));
+  return Array.from({ length: v.used.rows }, (_, r) => Array.from({ length: v.used.cols }, (_, c) => cellText(v.values[r]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c))));
 }
 
 /** A rich cell drawn as one line with its marks (bold, italic, underline, strike), or its words alone, cut, when they do not fit. */
@@ -50,7 +50,7 @@ export const sheetToCsv = (doc: Doc, sep = csvSeparator()): string => csv(lines(
 export function chartOfSheet(v: SheetView): ChartData {
   const counts = ['text', 'name', 'number', 'money', 'percent'];
   return chartData(
-    v.values.slice(0, v.used.rows).map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' ? cellText(x, 'rich') : counts.includes(v.cols[c]?.type) || typeof x !== 'number' ? x : formatCell(x, v.cols[c]?.type)))),
+    v.values.slice(0, v.used.rows).map((row) => row.map((x, c) => (v.cols[c]?.type === 'rich' ? cellText(x, 'rich') : counts.includes(v.cols[c]?.type) || typeof x !== 'number' ? x : formatCell(x, v.cols[c]?.type, currencyAt(v, c))))),
     v.cols.map((c) => c.name),
   );
 }

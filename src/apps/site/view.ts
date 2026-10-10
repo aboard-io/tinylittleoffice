@@ -287,7 +287,8 @@ function things(c: Ctx, s: Section, items: Obj[], hero: boolean): string {
         if (b.k === 'fence') out += embedHtml({ lang: b.lang, body: b.body }, o.base ?? '', mark(x));
         break;
       case 'table':
-        out += embedHtml({ lang: 'sheet', body: write({ head: {}, blocks: [b] }).trimEnd() }, o.base ?? '', mark(x));
+        // A table's money in the site's currency where its column names none.
+        out += embedHtml({ lang: 'sheet', body: write({ head: doc.head.currency ? { currency: doc.head.currency } : {}, blocks: [b] }).trimEnd() }, o.base ?? '', mark(x));
         break;
       case 'products':
         out += shopHtml(c, s, mark(x));

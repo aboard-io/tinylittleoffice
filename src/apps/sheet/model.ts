@@ -12,6 +12,7 @@
 import {
   COL_NAMES,
   COLUMN_TYPES,
+  currencyOf,
   MAX_COLS,
   apply,
   evaluateTable,
@@ -57,7 +58,12 @@ export interface SheetView {
   used: { rows: number; cols: number };
   /** The headline (`{big=Payment}` or `{big=D4}`): a name or a reference, with its value as its column shows it. */
   big: { label: string; value: string } | null;
+  /** The document's currency (its head's `currency:`), for money columns that name none. */
+  currency?: string;
 }
+
+/** The currency column c's money is shown in: its own, else the document's, else none ("$"). */
+export const currencyAt = (v: Pick<SheetView, 'cols' | 'currency'>, c: number): string | undefined => v.cols[c]?.currency || v.currency || undefined;
 
 const blankTable = (): Table => ({ cols: [], rows: [], lock: [], chart: '' });
 /** The name a column goes by when nobody has named it: its letter. */
@@ -82,7 +88,7 @@ export function readSheet(doc: Doc): SheetView {
   const ev = evaluateTable(table);
   const values = ev.values.map((row) => cols.map((_, c) => row[c] ?? null));
   const used = usedSize(table);
-  return { at, table, cols, values, named: ev.named, used, big: bigOf(doc, at, table, ev.values, ev.named) };
+  return { at, table, cols, values, named: ev.named, used, big: bigOf(doc, at, table, ev.values, ev.named), ...(doc.head.currency ? { currency: doc.head.currency } : {}) };
 }
 
 /** The headline cell, if the table names one: `{big=Payment}` (a named cell) or `{big=D4}` (labelled by its column and row). */
@@ -94,7 +100,7 @@ function bigOf(doc: Doc, at: number, t: Table, values: CellValue[][], named: Map
   if (!rc) return null;
   const [r, c] = rc;
   const nameCol = t.cols.findIndex((x) => x.type === 'name');
-  return { label: named.has(nameKey(want)) ? (t.rows[r]?.[nameCol] ?? want) : refLabel(t, r, c, want), value: formatCell(values[r]?.[c] ?? null, t.cols[c]?.type) };
+  return { label: named.has(nameKey(want)) ? (t.rows[r]?.[nameCol] ?? want) : refLabel(t, r, c, want), value: formatCell(values[r]?.[c] ?? null, t.cols[c]?.type, t.cols[c]?.currency || doc.head.currency) };
 }
 
 /** What a headline given by reference is called: its column's name and the words its row starts with ("Raised so far, Oct 26"), or the reference where the column goes by its letter. */
@@ -276,13 +282,17 @@ export function removeColumn(doc: Doc, view: SheetView, c: number): Op[] {
   return reletter(b).ops;
 }
 
-/** What column c holds. A column that goes by a default name takes the name of what it now holds; one named by hand keeps its name. */
-export function setType(doc: Doc, c: number, type: ColType): Op[] {
+/**
+ * What column c holds. A column that goes by a default name takes the name of what it now holds; one named by hand
+ * keeps its name. A money column may name its currency ("£", "GBP"); none, or '', takes the document's.
+ */
+export function setType(doc: Doc, c: number, type: ColType, currency?: string): Op[] {
   const b = ensure(new Builder(doc), c + 1);
   const cols = b.table.cols;
   const name = isDefaultName(c, cols) ? typeName(c, cols, type) : cols[c].name;
-  if (cols[c].type === type && cols[c].name === name) return b.ops;
-  return b.push({ op: 'col', at: b.at, c, col: { name, type } }).ops;
+  const money = type === 'money' && currency?.trim() ? currencyOf(currency) : null;
+  if (cols[c].type === type && cols[c].name === name && (cols[c].currency ?? null) === money) return b.ops;
+  return b.push({ op: 'col', at: b.at, c, col: money ? { name, type, currency: money } : { name, type } }).ops;
 }
 
 /** Column c named; '' (or its default) gives it its default name back. */

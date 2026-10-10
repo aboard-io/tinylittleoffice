@@ -29,12 +29,30 @@ export function toExcelFormula(raw: string, named?: Map<string, [number, number]
     .replace(/\bAVG\s*\(/g, 'AVERAGE(');
 }
 
-export function tableToXlsx(t: Table, ev: Evaluated, created: number | null = null): Uint8Array {
+/** A currency as the sign Excel writes before an amount: a symbol as it is, a code ("GBP") as the browser writes it ("£"). */
+function moneySign(currency: string): string {
+  if (/^[A-Z]{3}$/.test(currency))
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).formatToParts(1).find((p) => p.type === 'currency')?.value ?? currency;
+    } catch {
+      // Not one the browser knows: the code itself.
+    }
+  return currency.replace(/"/g, '');
+}
+
+/** The workbook; `currency` is the document's, for money columns that name none ("$" where it names none either). */
+export function tableToXlsx(t: Table, ev: Evaluated, created: number | null = null, currency = '$'): Uint8Array {
   const { rows, cols } = usedSize(t);
   const types = t.cols.map((c) => c.type);
-  // Number formats for typed columns: 1 date, 2 money, 3 percent (see styles.xml below).
-  const styles: Partial<Record<string, string>> = { date: ' s="1"', money: ' s="2"', percent: ' s="3"' };
-  const styleOf = (c: number) => styles[types[c]] ?? '';
+  // Each money column in its own currency: one number format a sign, the first of them style 2, the rest after 3.
+  const signOf = (c: number) => moneySign(t.cols[c]?.currency || currency);
+  const signs = [...new Set(t.cols.flatMap((col, c) => (col.type === 'money' ? [signOf(c)] : [])))];
+  if (!signs.length) signs.push('$');
+  // Number formats for typed columns: 1 date, 2 money, 3 percent (see styles.xml below), 4 on more money.
+  const styles: Partial<Record<string, string>> = { date: ' s="1"', percent: ' s="3"' };
+  const styleOf = (c: number) => (types[c] === 'money' ? ((i) => ` s="${i ? 3 + i : 2}"`)(signs.indexOf(signOf(c))) : (styles[types[c]] ?? ''));
+  const moneyFmt = (i: number) => `<numFmt numFmtId="${165 + i}" formatCode="${xml(`"${signs[i]}"#,##0.00`)}"/>`;
+  const moneyXf = (i: number) => `<xf numFmtId="${165 + i}" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>`;
   const str = (ref: string, s: string) => `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xml(s)}</t></is></c>`;
   // The names go in Excel's first row, so every row of ours is one further down, and so is every reference.
   const h = sheetHeadings(t, cols);
@@ -67,7 +85,7 @@ export function tableToXlsx(t: Table, ev: Evaluated, created: number | null = nu
       '_rels/.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${rel}/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
       'xl/workbook.xml': `${XML_HEAD}<workbook xmlns="${ns}" xmlns:r="${rel}"><sheets><sheet name="Sheet" sheetId="1" r:id="rId1"/></sheets><calcPr fullCalcOnLoad="1"/></workbook>`,
       'xl/_rels/workbook.xml.rels': `${XML_HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${rel}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${rel}/styles" Target="styles.xml"/></Relationships>`,
-      'xl/styles.xml': `${XML_HEAD}<styleSheet xmlns="${ns}"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="165" formatCode="&quot;$&quot;#,##0.00"/></numFmts><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs></styleSheet>`,
+      'xl/styles.xml': `${XML_HEAD}<styleSheet xmlns="${ns}"><numFmts count="${1 + signs.length}"><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/>${signs.map((_, i) => moneyFmt(i)).join('')}</numFmts><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${3 + signs.length}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>${moneyXf(0)}<xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>${signs.slice(1).map((_, i) => moneyXf(i + 1)).join('')}</cellXfs></styleSheet>`,
       'xl/worksheets/sheet1.xml': `${XML_HEAD}<worksheet xmlns="${ns}"><sheetData>${data}</sheetData></worksheet>`,
     },
     created,

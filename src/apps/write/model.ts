@@ -44,9 +44,6 @@ export function wordCount(doc: Doc): number {
   return n;
 }
 
-/** Money as the sheet formats it ("$1,200.00"), with the head's currency in place of the dollar when it names one. */
-export const money = (s: string, currency: string | undefined): string => (currency && currency !== '$' ? s.replace(/^(-?)\$/, `$1${currency}`) : s);
-
 /** A table block as the sheet's renderer and the grid see it: its columns, the values worked out in place. */
 export function tableView(doc: Doc, at: number): SheetView | null {
   const table = tableAt(doc, at);
@@ -62,6 +59,8 @@ export function tableView(doc: Doc, at: number): SheetView | null {
     // Every named column is drawn, filled or not.
     used: { rows: used.rows, cols: Math.max(used.cols, table.cols.length) },
     big: null,
+    // Money in the head's currency, for the columns that name none.
+    ...(doc.head.currency ? { currency: doc.head.currency } : {}),
   };
 }
 

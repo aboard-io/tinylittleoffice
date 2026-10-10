@@ -17,8 +17,9 @@ import { routeHash } from '../../kit/route.ts';
 import { XML_HEAD, zip } from '../../kit/zip.ts';
 import { lookup, type ExportContext, type Page } from '../../kit/app.ts';
 import { formatCell, listNumbers, markNotes, noteNumbers, noteRuns, notesOf, parse, plainText, referenceNotes, runLinks, write, isEmbed, isText, type Block, type Doc, type Run } from '../../doc/index.ts';
+import { currencyAt } from '../sheet/model.ts';
 import { tablePage } from '../sheet/view.ts';
-import { PAPERS, fenceTitle, fieldsOf, money, paperOf, tableView, titleBlock } from './model.ts';
+import { PAPERS, fenceTitle, fieldsOf, paperOf, tableView, titleBlock } from './model.ts';
 import { printedSignatures } from './contract.ts';
 import { lookOf, NAMED, STACKS, WIDTH, type Look } from './look.ts';
 
@@ -241,8 +242,6 @@ export function pages(textOrDoc: string | Doc, small = false): Page[] {
       const v = tableView(doc, doc.blocks.indexOf(b));
       if (!v) continue;
       const page = tablePage(v);
-      // Money as the sheet draws it, in the head's currency when it names one.
-      if (doc.head.currency && doc.head.currency !== '$') page.svg = page.svg.replace(/(>-?)\$(?=\d)/g, `$1${xml(doc.head.currency)}`);
       const scale = Math.min(1, cw / page.w);
       const h = page.h * scale;
       bits.push({ h: h + 16, first: h + 16, svg: (y) => place(page, M, y, page.w * scale, h) });
@@ -467,7 +466,7 @@ function tableHtml(doc: Doc, at: number): string {
   if (!v) return '';
   const head = v.cols.map((c) => (/^Col[A-Z]$/.test(c.name) ? '' : c.name));
   const named = head.some(Boolean);
-  const rows = v.table.rows.map((row, ri) => `<tr>${row.map((_, c) => `<td${typeof v.values[ri]?.[c] === 'number' ? ' class="n"' : ''}>${xml(money(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type), doc.head.currency))}</td>`).join('')}</tr>`);
+  const rows = v.table.rows.map((row, ri) => `<tr>${row.map((_, c) => `<td${typeof v.values[ri]?.[c] === 'number' ? ' class="n"' : ''}>${xml(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c)))}</td>`).join('')}</tr>`);
   return `<table>${named ? `<thead><tr>${head.map((h) => `<th scope="col">${xml(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${rows.join('')}</tbody></table>`;
 }
 
@@ -640,7 +639,7 @@ export function docToRtf(doc: Doc, ctx: ExportContext): string {
       const row = (vals: string[], bold = false) => `{\\trowd\\trgaph80${cells}${vals.map((x) => `\\intbl ${bold ? '{\\b ' : ''}${rtfText(x)}${bold ? '}' : ''}\\cell`).join('')}\\row}`;
       const names = v.cols.map((c) => (/^Col[A-Z]$/.test(c.name) ? '' : c.name));
       if (names.some(Boolean)) out.push(row(names, true));
-      v.table.rows.forEach((r, ri) => out.push(row(r.map((_, c) => money(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type), doc.head.currency)))));
+      v.table.rows.forEach((r, ri) => out.push(row(r.map((_, c) => formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c))))));
       out.push('{\\pard\\sa120\\par}');
       continue;
     }
@@ -758,7 +757,7 @@ export function docToDocx(doc: Doc, ctx: ExportContext): Uint8Array {
       const names = v.cols.map((c) => (/^Col[A-Z]$/.test(c.name) ? '' : c.name));
       const rows = [
         ...(names.some(Boolean) ? [`<w:tr>${names.map((nm) => cell(nm, true)).join('')}</w:tr>`] : []),
-        ...v.table.rows.map((row, ri) => `<w:tr>${row.map((_, c) => cell(money(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type), doc.head.currency), false, typeof v.values[ri]?.[c] === 'number')).join('')}</w:tr>`),
+        ...v.table.rows.map((row, ri) => `<w:tr>${row.map((_, c) => cell(formatCell(v.values[ri]?.[c] ?? null, v.cols[c]?.type, currencyAt(v, c)), false, typeof v.values[ri]?.[c] === 'number')).join('')}</w:tr>`),
       ];
       paras.push(`<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="D4D4D8"/><w:left w:val="single" w:sz="4" w:color="D4D4D8"/><w:bottom w:val="single" w:sz="4" w:color="D4D4D8"/><w:right w:val="single" w:sz="4" w:color="D4D4D8"/><w:insideH w:val="single" w:sz="4" w:color="D4D4D8"/><w:insideV w:val="single" w:sz="4" w:color="D4D4D8"/></w:tblBorders><w:tblCellMar><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${v.cols.map(() => `<w:gridCol w:w="${width}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl><w:p/>`);
       continue;

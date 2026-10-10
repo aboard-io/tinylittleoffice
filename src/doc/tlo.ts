@@ -357,7 +357,7 @@ export function writeBlock(b: Block, n = 1): string {
     case 'table': {
       // A table of one column, or one whose first words would read as something else ("# of units"), keeps its edges;
       // so does a row starting with an empty cell, or the pipe would be taken for the table's edge.
-      const head = b.cols.map((c) => columnText(c.name, c.type));
+      const head = b.cols.map((c) => columnText(c.name, c.type, c.currency));
       const edged = head.length < 2 || guard(cell(head[0])) !== cell(head[0]);
       const row = (r: string[]) => (edged ? `| ${r.map(cell).join(' | ')} |` : (r[0] ? '' : '|') + r.map(cell).join(' | ')).trimEnd();
       return [row(head), row(head.map(() => '---')), ...b.rows.map(row), ...(at ? [at.trim()] : [])].join('\n');
@@ -694,17 +694,33 @@ export const fenceRef = (b: { lang: string; body: string }): string => `${b.lang
 /** Every type a column heading may name. */
 export const COL_TYPES: ColType[] = ['text', 'number', 'money', 'percent', 'date', 'time', 'check', 'url', 'rich', 'long', 'icon', 'name', 'option'];
 
-/** A column heading, "Price:money", as its name and type ("Price: money" reads too; "Time: 10am" is a name). */
+/**
+ * A currency as a column head names it, written canonically: an ISO 4217 code ("gbp" is GBP), or a symbol of one
+ * to three characters that are not all letters ("£", "R$"); null for anything else.
+ */
+export function currencyOf(s: string): string | null {
+  const c = s.trim();
+  if (/^[a-z]{3}$/i.test(c)) return c.toUpperCase();
+  const n = [...c].length;
+  return n >= 1 && n <= 3 && !/[\s\d()|:=]/.test(c) && !/^\p{L}+$/u.test(c) ? c : null;
+}
+/**
+ * A column heading, "Price:money", as its name and type ("Price: money" reads too; "Time: 10am" is a name). A money
+ * column may name its currency, "Price:money(£)" or "Price:money(GBP)"; another type with parentheses is a name.
+ */
 export function column(h: string): Column {
-  const m = /^(.*?):\s*(\w+)$/.exec(h.trim());
-  return m && COL_TYPES.includes(m[2] as ColType) ? { name: m[1].trim(), type: m[2] as ColType } : { name: h.trim(), type: 'text' };
+  const m = /^(.*?):\s*(\w+)\s*(?:\(([^()]*)\))?$/.exec(h.trim());
+  if (!m || !COL_TYPES.includes(m[2] as ColType)) return { name: h.trim(), type: 'text' };
+  if (m[3] === undefined) return { name: m[1].trim(), type: m[2] as ColType };
+  const currency = m[2] === 'money' ? currencyOf(m[3]) : null;
+  return currency ? { name: m[1].trim(), type: 'money', currency } : { name: h.trim(), type: 'text' };
 }
 /** Where in a table each column asked for is, found by its name (in any case, its type left off); -1 for one it has not got. */
 export function columnsOf(table: { cols: Column[] }, ...want: RegExp[]): number[] {
   const names = table.cols.map((c) => c.name.toLowerCase());
   return want.map((re) => names.findIndex((n) => re.test(n)));
 }
-/** A column heading as it is written: the name, and ":type" when it is not text. */
-export const columnText = (name: string, type: ColType = 'text'): string => (type === 'text' ? name : `${name}:${type}`);
+/** A column heading as it is written: the name, and ":type" when it is not text, a money column's currency after it. */
+export const columnText = (name: string, type: ColType = 'text', currency?: string): string => (type === 'text' ? name : `${name}:${type}${type === 'money' && currency ? `(${currency})` : ''}`);
 /** An amount as a person types it ("$1,200.50", "12"), as a number; NaN where there is none. */
 export const amountOf = (s: string): number => parseFloat(s.replace(/[^0-9.-]/g, ''));

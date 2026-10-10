@@ -708,7 +708,7 @@ Ashford households send about 1,900 tonnes of electrical goods and textiles to l
 
 ## The budget
 
-Item | Cost:money
+Item | Cost:money(£)
 --- | ---
 Room hire, 12 sessions at £60 | 720
 Tools and spare parts | 1600
