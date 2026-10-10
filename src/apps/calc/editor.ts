@@ -200,7 +200,7 @@ export class ToCalcEditor extends DocElement<CalcView> {
     if (box.value !== this.view.lines[i]) this.run((w) => setLine(w, i, box.value));
   }
   /** The tape line a key is typed in, while its commands answer it (commands.ts). */
-  private here: { i: number; box: HTMLInputElement; offset: number } | null = null;
+  here: { i: number; box: HTMLInputElement; offset: number } | null = null;
   private onLineKey(e: KeyboardEvent, i: number) {
     if (e.isComposing || e.keyCode === 229) return;
     const box = e.target as HTMLInputElement;

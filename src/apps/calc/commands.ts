@@ -44,14 +44,14 @@ const CALC: Command<K>[] = [
   command<K>({ id: 'calc.wipe', scope: 'calc', at: 'entry', label: () => t('Clear the line'), keys: 'Escape', where: ['keys-only'], when: (k) => !!k.entry, does: (k) => k.setEntry('') }),
   command<K>({ id: 'calc.all', scope: 'calc', at: 'entry', label: () => t('Select all: the words of the box, then everything'), keys: 'Mod+A', where: ['keys-only'], does: (k, e) => k.allKey(e) }),
   // A line of the tape.
-  command<K>({ id: 'calc.line.done', scope: 'calc', at: 'line', label: () => t('Done'), keys: 'Enter', where: ['keys-only'], does: (k) => k.lineDone() }),
-  command<K>({ id: 'calc.line.back', scope: 'calc', at: 'line', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], does: (k) => k.lineBack() }),
-  command<K>({ id: 'calc.line.move', scope: 'calc', at: 'line', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], does: (k, e) => k.lineMove(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
-  command<K>({ id: 'calc.line.choose', scope: 'calc', at: 'line', label: () => t('Extend the selection'), keys: 'Shift+ArrowUp / Shift+ArrowDown', where: ['keys-only'], does: (k) => k.lineChoose() }),
-  command<K>({ id: 'calc.line.step', scope: 'calc', at: 'line', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], does: (k, e) => k.lineStep(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
-  command<K>({ id: 'calc.line.duplicate', scope: 'calc', at: 'line', label: () => t('Duplicate'), keys: 'Mod+D', where: ['keys-only'], does: (k) => k.lineDuplicate() }),
+  command<K>({ id: 'calc.line.done', scope: 'calc', at: 'line', label: () => t('Done'), keys: 'Enter', when: (k) => !!k.here, where: ['keys-only'], does: (k) => k.lineDone() }),
+  command<K>({ id: 'calc.line.back', scope: 'calc', at: 'line', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', when: (k) => !!k.here, where: ['keys-only'], does: (k) => k.lineBack() }),
+  command<K>({ id: 'calc.line.move', scope: 'calc', at: 'line', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', when: (k) => !!k.here, where: ['keys-only'], does: (k, e) => k.lineMove(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
+  command<K>({ id: 'calc.line.choose', scope: 'calc', at: 'line', label: () => t('Extend the selection'), keys: 'Shift+ArrowUp / Shift+ArrowDown', when: (k) => !!k.here, where: ['keys-only'], does: (k) => k.lineChoose() }),
+  command<K>({ id: 'calc.line.step', scope: 'calc', at: 'line', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', when: (k) => !!k.here, where: ['keys-only'], does: (k, e) => k.lineStep(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
+  command<K>({ id: 'calc.line.duplicate', scope: 'calc', at: 'line', label: () => t('Duplicate'), keys: 'Mod+D', when: (k) => !!k.here, where: ['keys-only'], does: (k) => k.lineDuplicate() }),
   command<K>({ id: 'calc.line.all', scope: 'calc', at: 'line', label: () => t('Select all: the words of the box, then everything'), keys: 'Mod+A', where: ['keys-only'], does: (k, e) => k.allKey(e) }),
-  command<K>({ id: 'calc.line.remove', scope: 'calc', at: 'line', label: () => t('Delete'), keys: 'Backspace', where: ['keys-only'], does: (k) => k.lineRemove() }),
+  command<K>({ id: 'calc.line.remove', scope: 'calc', at: 'line', label: () => t('Delete'), keys: 'Backspace', when: (k) => !!k.here, where: ['keys-only'], does: (k) => k.lineRemove() }),
 ];
 export const ENTRY = CALC.filter((c) => c.at === 'entry');
 export const LINE = CALC.filter((c) => c.at === 'line');

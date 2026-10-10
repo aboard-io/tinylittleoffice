@@ -28,7 +28,8 @@ const beside = (b: B, by: -1 | 1) => {
   const i = from ? b.view.stages.indexOf(from) : -1;
   return i >= 0 ? b.view.stages[i + by] : undefined;
 };
-const stageMenu = (id: string, label: () => string, rest: Omit<Command<B>, 'id' | 'scope' | 'label' | 'where'>) => command<B>({ id: `board.stage.${id}`, scope: 'board', label, where: ['menu:stage'], ...rest });
+const stageMenu = (id: string, label: () => string, rest: Omit<Command<B>, 'id' | 'scope' | 'label' | 'where'>) =>
+  command<B>({ id: `board.stage.${id}`, scope: 'board', label, where: ['menu:stage'], ...rest, when: (b) => !!menuStage(b).s && (!rest.when || rest.when(b)) });
 
 const BOARD: Command<B>[] = [
   command<B>({ id: 'board.insert', scope: 'board', label: () => t('Insert'), icon: UI.insert, menu: 'insert', where: ['bar'], takesFocus: true, does: () => undefined }),
@@ -53,11 +54,11 @@ const BOARD: Command<B>[] = [
   command<B>({ id: 'board.before', scope: 'board', at: 'rows', label: (b) => (b && beside(b, -1) ? t('Move to {stage}', { stage: beside(b, -1)!.name || t('Stage') }) : t('Move to the stage before')), icon: ArrowLeft, keys: 'Mod+Alt+ArrowLeft', where: ['context'], disabled: (b) => !beside(b, -1), does: (b) => b.carryChosen(-1) }),
   command<B>({ id: 'board.after', scope: 'board', at: 'rows', label: (b) => (b && beside(b, 1) ? t('Move to {stage}', { stage: beside(b, 1)!.name || t('Stage') }) : t('Move to the stage after')), icon: ArrowRight, keys: 'Mod+Alt+ArrowRight', where: ['context'], disabled: (b) => !beside(b, 1), does: (b) => b.carryChosen(1) }),
   // The keys in a card's words (or a stage's name, or a checklist item's).
-  command<B>({ id: 'board.carry', scope: 'board', at: 'words', label: () => t('Move the cards to the stage before or after'), keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', where: ['keys-only'], does: (b, e) => b.carryKey(e instanceof KeyboardEvent && e.key === 'ArrowLeft' ? -1 : 1) }),
-  command<B>({ id: 'board.move', scope: 'board', at: 'words', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', where: ['keys-only'], does: (b, e) => b.moveKey(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
-  command<B>({ id: 'board.line', scope: 'board', at: 'words', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', where: ['keys-only'], does: (b, e) => b.lineKey(e instanceof KeyboardEvent && e.key === 'ArrowUp') }),
-  command<B>({ id: 'board.duplicate', scope: 'board', at: 'words', label: () => t('Duplicate'), keys: 'Mod+D', where: ['keys-only'], does: (b) => b.duplicateKey() }),
-  command<B>({ id: 'board.tick', scope: 'board', at: 'words', label: () => t('Tick or untick a task'), keys: 'Mod+Enter', where: ['keys-only'], does: (b) => b.tickKey() }),
+  command<B>({ id: 'board.carry', scope: 'board', at: 'words', label: () => t('Move the cards to the stage before or after'), keys: 'Mod+Alt+ArrowLeft / Mod+Alt+ArrowRight', when: (b) => !!b.here, where: ['keys-only'], does: (b, e) => b.carryKey(e instanceof KeyboardEvent && e.key === 'ArrowLeft' ? -1 : 1) }),
+  command<B>({ id: 'board.move', scope: 'board', at: 'words', label: () => t('Move the selected items up or down'), keys: 'Alt+ArrowUp / Alt+ArrowDown', when: (b) => !!b.here, where: ['keys-only'], does: (b, e) => b.moveKey(e instanceof KeyboardEvent && e.key === 'ArrowUp' ? -1 : 1) }),
+  command<B>({ id: 'board.line', scope: 'board', at: 'words', label: () => t('The next or the one before'), keys: 'ArrowUp / ArrowDown', when: (b) => !!b.here, where: ['keys-only'], does: (b, e) => b.lineKey(e instanceof KeyboardEvent && e.key === 'ArrowUp') }),
+  command<B>({ id: 'board.duplicate', scope: 'board', at: 'words', label: () => t('Duplicate'), keys: 'Mod+D', when: (b) => !!b.here, where: ['keys-only'], does: (b) => b.duplicateKey() }),
+  command<B>({ id: 'board.tick', scope: 'board', at: 'words', label: () => t('Tick or untick a task'), keys: 'Mod+Enter', when: (b) => !!b.here, where: ['keys-only'], does: (b) => b.tickKey() }),
 ];
 export const CHOSEN = BOARD.filter((c) => c.at === 'rows');
 export const WORDS = BOARD.filter((c) => c.at === 'words');

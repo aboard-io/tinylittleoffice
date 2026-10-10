@@ -281,7 +281,7 @@ export class ToBoardEditor extends DocElement<BoardView> {
    * Mod+Enter ticks an item. Chosen cards: Mod+Alt+Left/Right carry them (the rest are the rows controller's).
    */
   /** The line a key is typed in (a card's, a checklist item's, a stage's name), while the commands answer it. */
-  private here: { at: number; tx: ToText } | null = null;
+  here: { at: number; tx: ToText } | null = null;
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const target = e.composedPath()[0] as HTMLElement;

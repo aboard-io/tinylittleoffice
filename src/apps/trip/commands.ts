@@ -43,9 +43,9 @@ const TRIP: Command<R>[] = [
   command<R>({ id: 'trip.show.ends', scope: 'trip', at: 'show', label: () => t('The first, the last'), keys: 'Home / End', where: ['keys-only'], does: (r, e) => r.goStop(e instanceof KeyboardEvent && e.key === 'Home' ? 0 : r.view.stops.length - 1) }),
   command<R>({ id: 'trip.show.stop', scope: 'trip', at: 'show', label: () => t('Stop presenting'), icon: UI.close, keys: 'Escape', where: ['keys-only'], does: (r) => r.endPresenting() }),
   // A focused pin.
-  command<R>({ id: 'trip.pin.nudge', scope: 'trip', at: 'pin', label: () => t('Nudge the shapes in hand'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown / Shift+ArrowLeft / Shift+ArrowRight / Shift+ArrowUp / Shift+ArrowDown', where: ['keys-only'], does: (r, e) => e instanceof KeyboardEvent && r.nudgePin(e) }),
-  command<R>({ id: 'trip.pin.delete', scope: 'trip', at: 'pin', label: () => t('Delete'), keys: 'Delete / Backspace', where: ['keys-only'], does: (r) => r.deleteStops([r.pinAt]) }),
-  command<R>({ id: 'trip.pin.out', scope: 'trip', at: 'pin', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', where: ['keys-only'], does: (r) => r.leavePin() }),
+  command<R>({ id: 'trip.pin.nudge', scope: 'trip', at: 'pin', label: () => t('Nudge the shapes in hand'), keys: 'ArrowLeft / ArrowRight / ArrowUp / ArrowDown / Shift+ArrowLeft / Shift+ArrowRight / Shift+ArrowUp / Shift+ArrowDown', when: (r) => r.pinAt >= 0, where: ['keys-only'], does: (r, e) => e instanceof KeyboardEvent && r.nudgePin(e) }),
+  command<R>({ id: 'trip.pin.delete', scope: 'trip', at: 'pin', label: () => t('Delete'), keys: 'Delete / Backspace', when: (r) => r.pinAt >= 0, where: ['keys-only'], does: (r) => r.deleteStops([r.pinAt]) }),
+  command<R>({ id: 'trip.pin.out', scope: 'trip', at: 'pin', label: () => t('Step out: close, collapse, let go'), keys: 'Escape', when: (r) => r.pinAt >= 0, where: ['keys-only'], does: (r) => r.leavePin() }),
 ];
 export const AT = (at: string) => TRIP.filter((c) => c.at === at);
 
