@@ -552,7 +552,8 @@ function netLayout(doc: Doc): Diagram {
   const radius = n < 3 ? 110 : Math.max(120, (n * 150) / (2 * Math.PI));
   const nodes = names.map((name, i) => {
     const a = n < 3 ? Math.PI * i : (i / n) * Math.PI * 2 - Math.PI / 2;
-    const w = Math.max(84, Math.min(170, textWidth(name, 14) + 30));
+    // An icon on the thing stands before its name: room for it too, so the name is not wrapped.
+    const w = Math.max(84, Math.min(170, textWidth(name, 14) + 30 + (labels[i].startsWith(':') ? 24 : 0)));
     return shape('o', Math.cos(a) * radius * 1.35 - w / 2, Math.sin(a) * radius - 20, w, 40, labels[i], 1, 'b', undefined, hits[i]);
   });
   return frame([...nodes, ...links.filter((l) => l.a !== l.b).map((l) => join(l.a, l.b, l.arrow, l.label, undefined, 0, { k: 'edge', at: l.at }))], 30);

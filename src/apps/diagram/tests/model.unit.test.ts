@@ -77,6 +77,39 @@ describe('the eight kinds drawn', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.filter((id) => !id.includes('-'))).toEqual(['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net']);
   });
+  test('the templates: at least three real ones a kind, each a whole document with a title, a blurb and no filler', () => {
+    const real = templates().filter((x) => x.id.includes('-'));
+    expect(real.length).toBeGreaterThanOrEqual(24);
+    for (const k of ['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net']) expect(real.filter((x) => x.id.startsWith(`${k}-`)).length, k).toBeGreaterThanOrEqual(3);
+    // Each its kind's group, after that kind's blank page.
+    const ids = templates().map((x) => x.id);
+    for (const x of real) expect(ids.indexOf(x.id), x.id).toBeGreaterThan(ids.indexOf(x.id.split('-')[0]));
+    expect(new Set(real.map((x) => x.name)).size).toBe(real.length);
+    for (const x of real) {
+      const d = parse(x.doc);
+      expect(kindOf(d), x.id).toBe(x.id.split('-')[0]);
+      expect(d.head.title, x.id).toBeTruthy();
+      expect(x.blurb.length, x.id).toBeGreaterThan(20);
+      expect(x.doc, x.id).not.toMatch(/[Ll]orem|ipsum|TODO|TBD|xxx/);
+      for (const [y] of x.doc.matchAll(/\b20[2-9]\d\b/g)) expect(+y, x.id).toBeLessThanOrEqual(2027);
+      // Drawn small for the home page's list, with something on it.
+      const [small] = def.view(x.doc, { small: true });
+      expect(small.svg.length, x.id).toBeGreaterThan(500);
+    }
+    // What a diagram can do, used: icons on things, joins across a tree, decisions, eras, three sets, two-set overlaps.
+    const all = real.map((x) => x.doc).join('\n');
+    expect(all).toMatch(/:plane:/);
+    expect(real.filter((x) => /^~ /m.test(x.doc)).length).toBeGreaterThanOrEqual(10);
+    expect(all).toMatch(/\?\n/);
+    expect(all).toMatch(/ – /);
+    expect(all).toMatch(/& .* & /);
+  });
+  test('a network thing with an icon is wide enough for the icon and its whole name', () => {
+    const d = doc('net', '- Television :film:\n- Router\n\n~ Router -- Television\n');
+    const [tv, router] = layout(d).shapes;
+    expect(tv.text).toBe(':film Television');
+    expect(tv.w).toBeGreaterThan(router.w + 40);
+  });
   test('the definition: one page, an SVG file, a hand-off to Draw', async () => {
     const tpl = templates().find((x) => x.id === 'org-company')!;
     expect(def.view(tpl.doc)).toHaveLength(1);
