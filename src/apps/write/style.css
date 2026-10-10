@@ -209,6 +209,19 @@
     text-align: inherit;
     cursor: pointer;
   }
+  /* A column's name typed in its head, where it is shown. */
+  table.wt .wt-cn {
+    width: 100%;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 0;
+    outline: 2px solid var(--to-paper-accent);
+    outline-offset: -2px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: max(16px, 1em);
+  }
   table.wt th.letter .wt-col,
   table.wt .wt-num,
   table.wt .wt-hand,

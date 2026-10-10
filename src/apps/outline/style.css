@@ -302,6 +302,14 @@
   .ol.connecting .ol-row.source {
     background: var(--to-accent-soft);
   }
+  /* The name being typed, where the chip is: as wide as it needs, 16px so iOS does not zoom. */
+  .ol-label-in {
+    width: 10em;
+    font-size: 16px;
+    color: var(--to-ink);
+    outline: 2px solid var(--to-accent);
+    outline-offset: 1px;
+  }
   .ol-pick {
     position: absolute;
     inset: 0;
@@ -364,29 +372,7 @@
     margin-left: auto;
   }
 
-  /* The two dialogs' fields, and the page shown. */
-  .ol-field {
-    display: grid;
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-  .ol-field span {
-    color: var(--to-ink-2);
-    font-size: 14px;
-  }
-  .ol-field input {
-    font: 16px var(--to-font);
-    height: 40px;
-    padding: 0 10px;
-    border: 1px solid var(--to-input-border);
-    border-radius: var(--to-radius-sm);
-    background: var(--to-input-bg);
-    color: var(--to-ink);
-  }
-  .ol-name-dialog .to-row,
-  .ol-web-dialog .to-row {
-    justify-content: flex-end;
-  }
+  /* The page shown. */
   .ol-page svg {
     display: block;
     width: 100%;
