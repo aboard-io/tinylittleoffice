@@ -27,19 +27,19 @@
  */
 import { html, nothing, type PropertyDeclarations, type PropertyValues } from 'lit';
 import type * as Leaflet from 'leaflet';
-import { Crosshair, Map as MapIcon, Ruler, Scan, Spline } from 'lucide';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
-import { tool } from '../../kit/bar.ts';
+import { cmdMenu, cmdTool } from '../../kit/bar.ts';
+import { drawnIn, runKey } from '../../kit/commands.ts';
+import TRIP, { AT } from './commands.ts';
 import { docToHtml, GENERATOR, htmlToBlocks } from '../../kit/clipboard.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
-import type { MenuItem } from '../../kit/menu.ts';
 import { lastCopied, Rows, type Clip, type RowItem, type RowRange } from '../../kit/rows.ts';
 import { caret } from '../../kit/textops.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
-import { addStop, distanceKm, duplicateStops, formatLeg, MAX_STOPS, moveStops, pasteStops, placesIn, putAfter, readTrip, removeStops, routeKm, setLinked, setPlace, setText, setUnits, stopsTable, tabulate, type Stop, type TripView, type Units } from './model.ts';
+import { addStop, distanceKm, duplicateStops, formatLeg, MAX_STOPS, moveStops, pasteStops, placesIn, putAfter, readTrip, removeStops, routeKm, setPlace, setText, stopsTable, tabulate, type Stop, type TripView } from './model.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
 import '../../kit/menu.ts';
@@ -141,7 +141,7 @@ export class ToTripEditor extends DocElement<TripView> {
     copy: (s) => this.clip(s.from, s.to),
     paste: (data, s) => this.pasteData(data, s ? { replace: [s.from, s.to] } : { after: this.view.stops[this.cur] ? this.cur : null }),
     drop: (i, to) => this.dropAfter(i, to),
-    extra: (s) => [{ label: t('Show on the map'), icon: Crosshair, disabled: !this.map, does: () => this.pick(s.from) }],
+    extra: () => drawnIn(AT('rows'), 'context', this),
   });
 
   constructor() {
@@ -340,7 +340,7 @@ export class ToTripEditor extends DocElement<TripView> {
     }
   }
   /** The whole route in view. */
-  private fit(animate = true) {
+  fit(animate = true) {
     const map = this.map;
     const s = this.view.stops;
     if (!map || !s.length) return;
@@ -382,15 +382,7 @@ export class ToTripEditor extends DocElement<TripView> {
     });
   }
   private onPresentKey = (e: KeyboardEvent) => {
-    const k = e.key;
-    if (k === 'Escape') this.endPresenting();
-    else if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'Enter') this.goStop(this.presenting + 1);
-    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') this.goStop(this.presenting - 1);
-    else if (k === 'Home') this.goStop(0);
-    else if (k === 'End') this.goStop(this.view.stops.length - 1);
-    else return;
-    e.preventDefault();
-    e.stopPropagation();
+    if (runKey(e, AT('show'), this)) e.stopPropagation();
   };
   private renderPresent() {
     const stops = this.view.stops;
@@ -424,30 +416,38 @@ export class ToTripEditor extends DocElement<TripView> {
       void this.updateComplete.then(() => reveal(this.querySelector(`.trip-stop[data-i="${i}"]`)));
     }
   }
+  /** The pin with the focus, while its keys are answered (commands.ts). */
+  pinAt = -1;
   /** A focused pin: the arrows nudge its stop (a burst is one undo), Delete takes it away, Escape gives the focus back to the map. */
   private onPinKey(e: KeyboardEvent, i: number) {
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
+    if (!this.map || !this.view.stops[i]) return;
+    this.pinAt = i;
+    try {
+      // Not the map's own keys (Leaflet pans on the arrows): the pin's.
+      if (runKey(e, AT('pin'), this)) e.stopPropagation();
+    } finally {
+      this.pinAt = -1;
+    }
+  }
+  nudgePin(e: KeyboardEvent): boolean {
+    const i = this.pinAt;
     const map = this.map;
     const s = this.view.stops[i];
-    if (!map || !s || mod || e.altKey) return;
+    if (!map || !s) return false;
     const by = e.shiftKey ? NUDGE * 5 : NUDGE;
+    const k = e.key;
     const d = k === 'ArrowLeft' ? [-by, 0] : k === 'ArrowRight' ? [by, 0] : k === 'ArrowUp' ? [0, -by] : k === 'ArrowDown' ? [0, by] : null;
-    if (d) {
-      const p = map.latLngToContainerPoint([s.lat, s.lon]);
-      const to = map.containerPointToLatLng([p.x + d[0], p.y + d[1]]).wrap();
-      this.cur = i;
-      this.pinFocus = i;
-      this.edit(setPlace(this.view, s, to.lat, to.lng), `place:${s.row}`);
-    } else if (k === 'Delete' || k === 'Backspace') {
-      this.deleteStops([i]);
-    } else if (k === 'Escape') {
-      this.cur = -1;
-      this.mapEl?.focus({ preventScroll: true });
-    } else return;
-    // Not the map's own keys (Leaflet pans on the arrows): the pin's.
-    e.preventDefault();
-    e.stopPropagation();
+    if (!d) return false;
+    const p = map.latLngToContainerPoint([s.lat, s.lon]);
+    const to = map.containerPointToLatLng([p.x + d[0], p.y + d[1]]).wrap();
+    this.cur = i;
+    this.pinFocus = i;
+    this.edit(setPlace(this.view, s, to.lat, to.lng), `place:${s.row}`);
+    return true;
+  }
+  leavePin() {
+    this.cur = -1;
+    this.mapEl?.focus({ preventScroll: true });
   }
 
   /* ---------- the words ---------- */
@@ -545,7 +545,7 @@ export class ToTripEditor extends DocElement<TripView> {
     else void this.focusField(Math.min(i, n - 1), 'name', 0);
   }
   /** Alt+Up/Down in the words: the stop past its neighbour, the caret where it was. */
-  private moveOne(i: number, by: -1 | 1, field: Field) {
+  moveOne(i: number, by: -1 | 1, field: Field) {
     const ops = moveStops(this.doc, this.view, i, i + 1, by);
     if (!ops.length) return;
     const offset = this.caretIn(i, field);
@@ -553,21 +553,19 @@ export class ToTripEditor extends DocElement<TripView> {
     void this.focusField(i + by, field, offset);
   }
   /** Mod+D in the words: the stop again after it, the caret in the copy where it was. */
-  private duplicateOne(i: number, field: Field) {
+  duplicateOne(i: number, field: Field) {
     const ops = duplicateStops(this.doc, this.view, i, i + 1);
     if (!ops.length) return;
     const offset = this.caretIn(i, field);
     this.edit(ops);
     void this.focusField(i + 1, field, offset);
   }
+  /** The stop and the field a key is typed in, while the commands answer it (commands.ts). */
+  here: { i: number; field: Field } | null = null;
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     // Mod+Alt+Enter presents, from anywhere in the editor (as the Deck does).
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.altKey && !e.shiftKey && !e.isComposing) {
-      e.preventDefault();
-      void this.present();
-      return;
-    }
+    if (runKey(e, TRIP.filter((c) => c.id === 'trip.present'), this)) return;
     const target = e.composedPath()[0] as HTMLElement;
     // Only words being typed in a stop: never a bar button, a field, the list, a popover or a dialog.
     if (target.closest?.('[popover], dialog')) return;
@@ -576,18 +574,20 @@ export class ToTripEditor extends DocElement<TripView> {
     if (!row || !field) return;
     const i = Number(row.dataset.i);
     if (!this.view.stops[i]) return;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
-    const vertical = k === 'ArrowUp' || k === 'ArrowDown';
-    const by = k === 'ArrowUp' ? -1 : 1;
-    if (vertical && e.altKey && !mod && !e.shiftKey) this.moveOne(i, by, field);
-    else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd') this.duplicateOne(i, field);
-    else if (vertical && !mod && !e.altKey && !e.shiftKey) {
-      if (!this.view.stops[i + by]) return;
-      void this.focusField(i + by, field, this.caretIn(i, field));
-    } else return;
-    e.preventDefault();
+    this.here = { i, field };
+    try {
+      runKey(e, AT('words'), this);
+    } finally {
+      this.here = null;
+    }
   };
+  /** Up and Down in a stop's words: the same field of the stop before or after. */
+  stepStop(by: -1 | 1): boolean {
+    const { i, field } = this.here!;
+    if (!this.view.stops[i + by]) return false;
+    void this.focusField(i + by, field, this.caretIn(i, field));
+    return true;
+  }
   /** The focus gone from the editor altogether: no stop is in hand. */
   private onFocusOut = (e: FocusEvent) => {
     const to = e.relatedTarget as Node | null;
@@ -612,7 +612,7 @@ export class ToTripEditor extends DocElement<TripView> {
     }));
   }
   /** Stops taken away (by their places); the caret into the stop before them (or the one after, as it is then). */
-  private deleteStops(ids: number[]) {
+  deleteStops(ids: number[]) {
     if (!ids.length) return;
     const first = Math.min(...ids);
     this.edit(removeStops(this.view, ids));
@@ -683,7 +683,7 @@ export class ToTripEditor extends DocElement<TripView> {
 
   /* ---------- finding a place by name ---------- */
 
-  private async openSearch() {
+  async openSearch() {
     this.found = null;
     const d = this.querySelector<ToDialog>('to-dialog.trip-find');
     await d?.show();
@@ -715,34 +715,24 @@ export class ToTripEditor extends DocElement<TripView> {
 
   /* ---------- the bar ---------- */
 
-  /** Insert ▾: a stop after the one in hand. */
-  private inserts(): MenuItem[] {
-    const full = this.view.stops.length >= MAX_STOPS;
-    const after = () => (this.view.stops[this.cur] ? this.cur : null);
-    return [
-      {
-        label: t('A place by name…'),
-        icon: UI.search,
-        disabled: full,
-        does: () => {
-          this.findAfter = after();
-          void this.openSearch();
-        },
-      },
-      {
-        label: t('A stop at the middle of the map'),
-        icon: Crosshair,
-        disabled: full || !this.map,
-        does: () => {
-          const c = this.map?.getCenter().wrap();
-          if (c) this.add(c.lat, c.lng, '', after());
-        },
-      },
-    ];
+  /** Whether the map is drawn (Leaflet loaded and shown). */
+  get hasMap(): boolean {
+    return !!this.map;
   }
-  private unitItems(): MenuItem[] {
-    const pick = (u: Units, label: string): MenuItem => ({ label, checked: this.view.units === u, does: () => this.edit(setUnits(this.doc, u)) });
-    return [pick('h', t('Hours of driving')), pick('m', t('Miles')), pick('k', t('Kilometres'))];
+  /** Insert ▾: a place found by name, after the stop in hand. */
+  findPlace() {
+    this.findAfter = this.view.stops[this.cur] ? this.cur : null;
+    void this.openSearch();
+  }
+  /** Insert ▾: a stop at the middle of the map, after the stop in hand. */
+  addAtMiddle() {
+    const c = this.map?.getCenter().wrap();
+    if (c) this.add(c.lat, c.lng, '', this.view.stops[this.cur] ? this.cur : null);
+  }
+  /** The chosen stops' first, shown on the map. */
+  showChosen() {
+    const s = this.rows.span();
+    if (s) this.pick(s.from);
   }
 
   /* ---------- drawing ---------- */
@@ -797,13 +787,12 @@ export class ToTripEditor extends DocElement<TripView> {
     const v = this.view;
     const n = v.stops.length;
     const total = n > 1 && v.linked ? formatLeg(routeKm(v.stops), v.units) : '';
+    const own = (id: string) => TRIP.find((c) => c.id === `trip.${id}`)!;
     return html`<to-bar class="trip-bar">
-        <to-insert .items=${this.inserts()}></to-insert>
-        <to-menu class="trip-units" icon-only .label=${t('Measure in')} .icon=${Ruler} .items=${this.unitItems()}></to-menu>
-        ${tool({ label: t('Join the stops in order'), icon: Spline, pressed: v.linked, does: () => this.edit(setLinked(this.doc, !v.linked)) })}
-        ${tool({ label: t('Show the whole route'), icon: Scan, disabled: !n || !this.showMap, does: () => this.fit() })}
-        ${tool({ label: t('Map'), icon: MapIcon, pressed: this.showMap, does: () => (this.showMap = !this.showMap) })}
-        ${tool({ label: t('Present'), icon: UI.play, keys: 'Mod+Alt+Enter', cls: 'trip-present-btn', disabled: !n, does: () => void this.present() })}
+        <to-insert .items=${drawnIn(TRIP, 'menu:insert', this)}></to-insert>
+        ${cmdMenu(own('units'), this, TRIP, 'trip-units')}
+        ${['linked', 'fit', 'map'].map((id) => cmdTool(own(id), this, { keep: false }))}
+        ${cmdTool(own('present'), this, { cls: 'trip-present-btn' })}
         <span class="to-hint trip-count">${t('{n|one stop|# stops}', { n })}${total ? html` · <b>${total}</b>` : nothing}</span>
         ${this.undoTools()}
       </to-bar>
