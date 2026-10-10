@@ -14,6 +14,7 @@ import { ownerHash as serverHash } from '../tinier/tinier.ts';
 const read = (name: string) => JSON.parse(readFileSync(new URL(`vectors/${name}`, import.meta.url), 'utf8'));
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 const unhex = (h: string) => Uint8Array.from(h.match(/../g) ?? [], (x) => parseInt(x, 16));
+const b64 = (s: string) => Uint8Array.from(fromBase64Url(s));
 const utf8 = (s: string) => new TextEncoder().encode(s);
 const subtle = globalThis.crypto.subtle;
 const memKey = (k: unknown) => ({ get: () => JSON.stringify(k), set() {}, remove() {} });
@@ -36,7 +37,7 @@ for (const [i, v] of (read('password.json').vectors as Record<string, string>[])
     expect(await sealAt({ salt, key: await deriveKey(v.password, salt) }, v.flag, utf8(v.document), iv)).toBe(v.sealed);
     // The layout: "E", then base64url of salt | iv | ciphertext and tag; AES-GCM by hand opens it.
     expect(v.sealed[0]).toBe('E');
-    const all = fromBase64Url(v.sealed.slice(1));
+    const all = b64(v.sealed.slice(1));
     expect(hex(all.slice(0, 16))).toBe(v.saltHex);
     expect(hex(all.slice(16, 28))).toBe(v.ivHex);
     expect(hex(all.slice(28))).toBe(v.ciphertextAndTagHex);
@@ -63,25 +64,25 @@ test('signing: Ed25519 (RFC 8032\'s own key), the exact signature, verified', as
   const { envelope: e, ed25519: v } = read('signing.json');
   const signer = createSigner(memKey(v.stored));
   // RFC 8032 §7.1 TEST 1: the empty message.
-  expect(hex(fromBase64Url((await signer.sign('')).sig))).toBe(v.rfc8032.signatureHex);
+  expect(hex(b64((await signer.sign('')).sig))).toBe(v.rfc8032.signatureHex);
   const { key, sig } = await signer.sign(e.message);
   expect(key).toBe(v.publicKey);
-  expect(fromBase64Url(key).length).toBe(32);
+  expect(b64(key).length).toBe(32);
   expect(sig).toBe(v.signature);
-  expect(hex(fromBase64Url(sig))).toBe(v.signatureHex);
+  expect(hex(b64(sig))).toBe(v.signatureHex);
   expect(await fingerprintOf(key)).toBe(v.fingerprint);
   expect(await verify(v.publicKey, v.signature, e.message)).toBe(true);
   expect(await verify(v.publicKey, v.signature, e.message.replace('Paul', 'Pau1'))).toBe(false);
   // By hand: the raw public key verifies the signature over the UTF-8 bytes.
-  const pub = await subtle.importKey('raw', fromBase64Url(v.publicKey), { name: 'Ed25519' }, false, ['verify']);
-  expect(await subtle.verify({ name: 'Ed25519' }, pub, fromBase64Url(v.signature), unhex(e.messageHex))).toBe(true);
+  const pub = await subtle.importKey('raw', b64(v.publicKey), { name: 'Ed25519' }, false, ['verify']);
+  expect(await subtle.verify({ name: 'Ed25519' }, pub, b64(v.signature), unhex(e.messageHex))).toBe(true);
 });
 
 test('signing: the P-256 fallback, its raw key from the JWK, its signature verified', async () => {
   const { envelope: e, p256: v } = read('signing.json');
-  const raw = fromBase64Url(v.publicKey);
+  const raw = b64(v.publicKey);
   expect(raw.length).toBe(65);
-  expect(hex(raw)).toBe('04' + hex(fromBase64Url(v.stored.pub.x)) + hex(fromBase64Url(v.stored.pub.y)));
+  expect(hex(raw)).toBe('04' + hex(b64(v.stored.pub.x)) + hex(b64(v.stored.pub.y)));
   expect(await createSigner(memKey(v.stored)).publicKey()).toBe(v.publicKey);
   expect(await fingerprintOf(v.publicKey)).toBe(v.fingerprint);
   expect(await verify(v.publicKey, v.signature, e.message)).toBe(true);
@@ -98,9 +99,9 @@ test('short links: the ciphertext, the owner hash on both sides, the two links',
     expect(await sealShortAt(v.link, unhex(v.keyHex), unhex(v.ivHex))).toEqual({ c: v.c, iv: v.iv });
     expect(await unshorten(v.c, v.iv, v.key)).toBe(v.link);
     const k = await subtle.importKey('raw', unhex(v.keyHex), 'AES-GCM', false, ['decrypt']);
-    expect(new TextDecoder().decode(await subtle.decrypt({ name: 'AES-GCM', iv: unhex(v.ivHex) }, k, fromBase64Url(v.c)))).toBe(v.link);
-    expect(fromBase64Url(v.c).length).toBe(utf8(v.link).length + 16);
-    expect(hex(fromBase64Url(v.o))).toBe(v.oHex);
+    expect(new TextDecoder().decode(await subtle.decrypt({ name: 'AES-GCM', iv: unhex(v.ivHex) }, k, b64(v.c)))).toBe(v.link);
+    expect(b64(v.c).length).toBe(utf8(v.link).length + 16);
+    expect(hex(b64(v.o))).toBe(v.oHex);
     expect(await ownerHash(v.o)).toBe(v.ownerHash);
     expect(await serverHash(v.o)).toBe(v.ownerHash);
     expect(toBase64Url(new Uint8Array(await subtle.digest('SHA-256', unhex(v.oHex))))).toBe(v.ownerHash);
