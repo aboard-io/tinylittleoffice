@@ -308,3 +308,21 @@ describe('a thing whole: copied, pasted, duplicated, moved', () => {
     expect(m.hit).toEqual({ k: 'line', at: 1, part: 1 });
   });
 });
+
+test('a seating chart’s place cards: one a guest, the name large and the table small, eight to a letter sheet with lines to cut along', async () => {
+  const { placeCards, CARD, LETTER } = await import('../view.ts');
+  const wedding = parse(templates().find((x) => x.id === 'seating-wedding')!.doc);
+  const sheets = placeCards(wedding);
+  // 6 + 5 + 6 + 4 guests: 21 cards, three sheets.
+  expect(sheets.length).toBe(3);
+  expect(sheets.every((s) => s.w === LETTER.w && s.h === LETTER.h)).toBe(true);
+  expect(sheets.map((s) => (s.svg.match(/stroke-dasharray="6 5"/g) ?? []).length)).toEqual([8, 8, 5]);
+  expect(sheets[0].svg).toContain(`width="${CARD.w}" height="${CARD.h}"`);
+  expect(sheets[0].svg).toContain('>Jo</text>');
+  expect(sheets[0].svg).toContain('>Top table</text>');
+  expect(sheets[0].alt!.split('; ')[0]).toBe('Jo, Top table');
+  // Centred on the sheet: two across, four down.
+  expect(sheets[0].svg).toContain(`<svg x="${(LETTER.w - 2 * CARD.w) / 2}" y="${(LETTER.h - 4 * CARD.h) / 2}"`);
+  // A chart with nobody seated: one blank sheet.
+  expect(placeCards(parse('---\nkind: seating\n---\n'))).toEqual([{ ...LETTER, svg: '' }]);
+});

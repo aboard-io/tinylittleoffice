@@ -7,7 +7,8 @@
  * are regions (`region`), so a tap or a drop there means "in this lane", "in these sets".
  */
 import type { Page } from '../../kit/app.ts';
-import { pageSvg, textWidth, wrapText } from '../../kit/draw.ts';
+import { MUTED, pageSvg, r, rect, text, textWidth, wrapText } from '../../kit/draw.ts';
+import { glyphNamed } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { shapesPage } from '../draw/view.ts';
@@ -403,6 +404,53 @@ function seatingLayout(doc: Doc): Diagram {
     });
   });
   return frame(shapes);
+}
+
+/* ---------- place cards (a seating chart's) ---------- */
+
+/** A letter sheet, at 96 to the inch. */
+export const LETTER = { w: 816, h: 1056 };
+/** A place card, 4 by 2.5 inches. */
+export const CARD = { w: 384, h: 240 };
+
+/** Cards laid out on sheets, `cols` × `rows` to a sheet, centred, each with a dashed line round it to cut along. (The old tree's lib/print.ts `tile`.) */
+export function tile(cards: Page[], cols: number, rows: number, sheet = LETTER): Page[] {
+  if (!cards.length) return [{ ...sheet, svg: '' }];
+  const { w, h } = cards[0];
+  const [x0, y0] = [(sheet.w - cols * w) / 2, (sheet.h - rows * h) / 2];
+  const out: Page[] = [];
+  for (let i = 0; i < cards.length; i += cols * rows) {
+    const svg = cards
+      .slice(i, i + cols * rows)
+      .map((c, n) => {
+        const [x, y] = [x0 + (n % cols) * w, y0 + Math.floor(n / cols) * h];
+        return `<svg x="${r(x)}" y="${r(y)}" width="${w}" height="${h}" viewBox="0 0 ${c.w} ${c.h}">${c.svg}</svg>` + rect(x, y, w, h, 'none', 'stroke="#a1a1aa" stroke-dasharray="6 5"');
+      })
+      .join('');
+    out.push({ ...sheet, svg, alt: cards.slice(i, i + cols * rows).map((c) => c.alt).join('; ') });
+  }
+  return out;
+}
+
+/** One card: the person's name large (their icon above it, if they have one), their table small beneath. */
+function placeCard(name: string, icon: string, table: string): Page {
+  const { w, h } = CARD;
+  let px = 40;
+  while (px > 16 && textWidth(name, px, true) > w - 48) px -= 2;
+  const top = icon ? 56 : 0;
+  let svg = rect(0, 0, w, h, '#fff');
+  if (icon) svg += glyphNamed(icon, w / 2 - 22, 40, 44, '#18181b');
+  svg += text(w / 2, h / 2 + 10 + top / 2, name, { px, bold: true, anchor: 'middle' });
+  if (table) svg += text(w / 2, h / 2 + 44 + top / 2, table, { px: 16, fill: MUTED, anchor: 'middle' });
+  return { w, h, svg, alt: table ? `${name}, ${table}` : name };
+}
+
+/** A seating chart's place cards: one for each person at each table, eight to a letter sheet (two across, four down), to print and cut. */
+export function placeCards(doc: Doc): Page[] {
+  const cards = linesOf(doc)
+    .filter((l) => l.key)
+    .flatMap((l) => l.items.filter((p) => p.words || p.icon).map((p) => placeCard(p.words, p.icon, l.key!.words)));
+  return tile(cards, 2, 4);
 }
 
 /* ---------- network ---------- */

@@ -13,6 +13,9 @@
  * past its neighbour, Mod+Alt+Left/Right into the next lane or table, Mod+D, Mod+C/X/V, Delete, Enter). The words are
  * plain (`no-bubble`, no marks); Escape puts them back as they were when opened, Enter or Mod+Enter or a tap
  * elsewhere keeps them. Undo brings the focus back to the thing that changed.
+ *
+ * A seating chart's bar has Print place cards: a card a guest, their name large and their table small, eight to
+ * a letter sheet with lines to cut along (view.ts `placeCards`), through the kit's print path.
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -30,7 +33,8 @@ import { isLink } from '../draw/model.ts';
 import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, lineHint, thingName } from './kinds.ts';
 import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, moveAcross, moveThing, nextThing, newThing, partFor, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
-import { layout, regionAt, type DShape, type Diagram } from './view.ts';
+import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
+import { printPages } from '../../kit/exports.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
@@ -770,6 +774,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
         <to-menu class="dg-kind" caret .label=${kindName(kind)} .icon=${KIND_ICON[kind]} .items=${this.kindItems()}></to-menu>
         <to-insert .items=${this.inserts()}></to-insert>
         ${joins(kind) ? tool({ label: t('Join'), icon: Spline, keep: true, pressed: this.joining !== null, does: () => this.armJoin() }) : nothing}
+        ${kind === 'seating' ? tool({ label: t('Print place cards'), icon: UI.print, cls: 'dg-cards', hint: t('Print place cards: a card a guest, eight to a letter sheet, to cut out'), does: () => void printPages(placeCards(this.doc), this.doc.head.title || t('Place cards')) }) : nothing}
         ${tool({ label: t('Zoom out'), icon: ZoomOut, does: () => this.zoomBy(-0.25) })}
         ${tool({ label: t('Zoom in'), icon: ZoomIn, does: () => this.zoomBy(0.25) })}
         ${this.undoTools()}
