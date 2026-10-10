@@ -27,7 +27,7 @@ import { parseHash } from './route.ts';
 import { slug } from './draw.ts';
 
 /** The preferences this site may keep, by key. */
-export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name'];
+export const PREFS = ['to-theme', 'tinyoffice.lang', 'tinyoffice.pictures', 'tinyoffice.shortTtl', 'tinyoffice.name', 'tinyoffice.size'];
 /** Where the key, the signer's name and the owner links are kept. */
 const KEY = 'tinyoffice.key';
 const NAME = 'tinyoffice.name';

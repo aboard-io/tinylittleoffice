@@ -6,7 +6,8 @@ the link and you have copied the file. No accounts, no saving, nothing sent anyw
 
 This tree is the rebuild (branch `next`): one kit, apps as definitions on it, a document kernel at the
 heart and one editor over it. The plan is `docs/rebuild.md`, the kernel's design `docs/kernel.md`, the
-format `docs/tlo.md` in the old tree until it moves here.
+format `docs/tlo.md` (the agent's reference), and the files each app becomes `docs/exports.md` (written from
+the definitions by `npm run docs:exports`).
 
 ## Layout
 
@@ -16,6 +17,11 @@ src/kit/        the kit: shell, bar, insert, menu, dialog, toast, drawer, home, 
                 privacy-dialog (<to-privacy>), crypt (a password: PBKDF2 to AES-GCM), sign (Ed25519, P-256 where
                 there is none), envelope (by, created, key, sig, and the signed message), link-guard (links that leave ask first), pictures (web pictures asked for first), media (the picture proxy's address, the whitelist, an export's picture bytes),
                 preview (a kept document's first page, small), mark (the Office mark), offline, share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
+                privacy, link-guard (links that leave ask first), pictures (web pictures asked for first),
+                preview (a kept document's first page, small), mark (the Office mark), offline (and Add to home
+                screen), search (the library, by its words), find (Find in this document, Mod+F), keys (the
+                shortcuts dialog), zoom (the size of everything), steps (a document presented a part at a time),
+                qr-picture (a document's QR code as a fence), share, short (links), links (the owner links kept), library (the documents kept), exports, i18n, theme,
                 icons (the UI set and the starter library a document may name), icons-search (keywords,
                 suggestions, search; no DOM), icons-picker (the library in a dialog: a lazy chunk that brings
                 the rest of Lucide and icons-meta, its tags and categories), app (the AppDef contract), apps

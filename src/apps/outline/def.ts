@@ -12,6 +12,7 @@ import { t } from '../../kit/i18n.ts';
 import { liveItems, notesAsItems, outlineBlocks, outlineText, outlineToDeck, outlineToMind, outlineToNet, outlineToOrg, readOutline, toOpml } from './model.ts';
 import { appName, outlinePage } from './view.ts';
 import { templates } from './templates.ts';
+import { partOf } from '../../kit/steps.ts';
 
 const headOf = (doc: Doc): Kernel => parse(doc);
 /** The document's name: its title head field. */
@@ -53,7 +54,15 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => [outlinePage(parse(doc), 720, opts?.small)],
+  view: (doc, opts) => {
+    const d = parse(doc);
+    if (opts?.upTo === undefined) return [outlinePage(d, 720, opts?.small)];
+    // An item a step: the document cut after the last item shown (drawn from the top, nothing above it moves), the page the whole outline's.
+    const next = readOutline(d).items[opts.upTo];
+    return [partOf(outlinePage(d, 720, opts.small), outlinePage({ ...d, blocks: next ? d.blocks.slice(0, next.at) : d.blocks }, 720, opts.small))];
+  },
+  // On a slide (drawn small, the first twelve), an item a step.
+  steps: (doc) => Math.min(12, readOutline(parse(doc)).items.length),
   exports: [
     { ext: 'opml', label: () => t('OPML (for outliners)'), mime: 'text/x-opml;charset=utf-8', build: (doc) => utf8(toOpml(readOutline(parse(doc)), nameFor(doc))) },
     // Markdown as other readers know it: an item's notes a numbered list right under it (any other in reference form at the end).
@@ -67,5 +76,9 @@ export default defineApp({
     { to: 'diagram', label: () => t('Draw as a mind map'), convert: convert(outlineToMind) },
     { to: 'diagram', label: () => t('Draw as an org chart'), convert: convert(outlineToOrg) },
     { to: 'diagram', label: () => t('Draw as a network'), convert: convert(outlineToNet) },
+  ],
+  keys: [
+    { keys: 'Mod+Alt+ArrowUp / Mod+Alt+ArrowDown', does: () => t('Fold, unfold') },
+    { keys: 'Mod+Shift+. / Mod+Shift+,', does: () => t('Zoom in, zoom out') },
   ],
 });

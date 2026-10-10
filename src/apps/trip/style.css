@@ -209,4 +209,60 @@
       overflow-y: auto;
     }
   }
+
+  /* Presenting: the map the whole screen, the stop named in a band along its foot. */
+  .trip.presenting .trip-side {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: var(--to-bg);
+  }
+  .trip.presenting .trip-map {
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+  .trip.presenting .trip-privacy {
+    display: none;
+  }
+  .trip-present {
+    position: fixed;
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 21;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 10px 10px 10px 16px;
+    border-radius: var(--to-radius);
+    background: var(--to-surface);
+    box-shadow: var(--to-shadow);
+  }
+  .trip-present:focus-visible {
+    outline: 2px solid var(--to-accent);
+  }
+  .trip-present-words {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 17px;
+  }
+  .trip-present-words small,
+  .trip-present-words span {
+    color: var(--to-ink-2);
+    font-size: 14px;
+  }
+  .trip-present-ctl {
+    display: flex;
+    gap: 4px;
+  }
+  .trip-present-ctl .to-tool:first-child svg,
+  .trip-present-ctl .to-tool:nth-child(2) svg {
+    transform: rotate(-90deg);
+  }
 }

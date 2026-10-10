@@ -10,6 +10,8 @@ import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
 import { tripPage, tripToGeoJson, tripToGpx } from './view.ts';
+import { tripToCal } from './convert.ts';
+import { readTrip } from './model.ts';
 
 /** The document's own title ('' for none: a GPX or GeoJSON file falls back to the route's ends). */
 export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
@@ -37,9 +39,18 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc, opts) => [tripPage(parse(doc), opts?.small)],
+  view: (doc, opts) => [tripPage(parse(doc), opts?.small, opts?.upTo)],
+  // Presented on a slide, a stop a step: the map stays fitted to them all, the route drawn as far as it has come.
+  steps: (doc) => readTrip(parse(doc)).stops.length,
   exports: [
     { ext: 'gpx', label: () => t('GPX route'), mime: 'application/gpx+xml', build: (doc) => utf8(tripToGpx(parse(doc))) },
     { ext: 'geojson', label: () => t('GeoJSON'), mime: 'application/geo+json', build: (doc) => utf8(tripToGeoJson(parse(doc))) },
   ],
+  keys: [
+    { keys: 'Mod+Alt+Enter', does: () => t('Present: the map flies stop to stop') },
+    { keys: 'ArrowRight / Space', does: () => t('Presenting: the next stop') },
+    { keys: 'ArrowLeft', does: () => t('Presenting: the stop before') },
+    { keys: 'Escape', does: () => t('Stop presenting') },
+  ],
+  handoffs: [{ to: 'cal', label: () => t('Put the stops on a calendar, a day each'), convert: (doc) => tripToCal(doc) }],
 });

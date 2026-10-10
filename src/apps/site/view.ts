@@ -208,6 +208,8 @@ function embedHtml(e: Embed, base: string, attrs = ''): string {
     const def = lookup.appOf(e.lang);
     const page = def?.view(e.body, { small: true })[0];
     const name = (def && def.title(e.body)) || def?.name || e.lang;
+    // A QR code is a picture: nothing to open beneath it.
+    if (e.lang === 'qr') return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(page.alt ?? name)}"`) : ''}</figure>`;
     return `<figure class="embed"${attrs}>${page ? pageSvg(page, `role="img" aria-label="${xml(name)}"`) : ''}<figcaption><a href="${xml(fenceLink(e.lang, e.body, base))}">${xml(name)}</a> <small>${xml(def?.name ?? t('Document'))}</small></figcaption></figure>`;
   }
   // From the web: a card, a button that loads the thing in its place (WEB), and a link to it where it lives. What must be asked first (a Wikipedia summary), or embeds nothing, is the link alone.

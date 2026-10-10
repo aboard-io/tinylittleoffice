@@ -9,9 +9,15 @@
  * itself does, and the first arrow goes in.
  * `keep`: a menu that acts on an editor's selection (Align) never takes the focus from it by a pointer, so a
  * phone's keyboard stays up; opened from the keyboard, its items still take the focus to be walked.
+ * `filter` (Insert ▾ has it): letters typed narrow the list to the items with a word that starts with them
+ * (case and accents aside), said at the menu's top; Backspace takes a letter back, Escape the letters, then
+ * the menu. The arrows walk what is left.
  */
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI, type IconNode } from './icons.ts';
+import { zoomed } from './zoom.ts';
+import { t } from './i18n.ts';
+import { fold } from './search.ts';
 
 export interface MenuItem {
   label: string;
@@ -36,14 +42,16 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   const vw = vv?.width ?? window.innerWidth;
   const vh = vv?.height ?? window.innerHeight;
   const a = anchor.getBoundingClientRect();
-  pop.style.maxHeight = `${Math.max(120, vh - 2 * gap)}px`;
+  // Under the size of everything (zoom.ts) a length set here is drawn larger: the page's coordinates are divided by it.
+  const z = zoomed();
+  pop.style.maxHeight = `${Math.max(120, vh - 2 * gap) / z}px`;
   const r = pop.getBoundingClientRect();
   let top = a.bottom + gap;
   if (top + r.height > top0 + vh && a.top - gap - r.height >= top0) top = a.top - gap - r.height;
   top = Math.max(top0 + gap, Math.min(top, top0 + vh - r.height - gap));
   const left = Math.max(left0 + gap, Math.min(a.left, left0 + vw - r.width - gap));
-  pop.style.top = `${Math.round(top)}px`;
-  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top / z)}px`;
+  pop.style.left = `${Math.round(left / z)}px`;
 }
 
 let n = 0;
@@ -131,7 +139,7 @@ export function hoverFocus(e: PointerEvent) {
 }
 
 export class ToMenu extends LitElement {
-  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keep: { type: Boolean } };
+  static properties = { label: {}, icon: { attribute: false }, items: { attribute: false }, caret: { type: Boolean }, iconOnly: { type: Boolean, attribute: 'icon-only' }, keep: { type: Boolean }, filter: { type: Boolean }, query: { state: true } };
   declare label: string;
   /** Another button the menu was opened from (openAt): placed beside it, focus goes back to it. */
   private anchor: HTMLElement | null = null;
@@ -143,6 +151,10 @@ export class ToMenu extends LitElement {
   declare iconOnly: boolean;
   /** Never takes the focus by a pointer (it acts on an editor's selection). */
   declare keep: boolean;
+  /** Letters typed narrow the items (Insert ▾). */
+  declare filter: boolean;
+  /** The letters typed so far, while `filter`. */
+  declare query: string;
   /** This opening came from a pointer on a `keep` menu: the focus stays where it was. */
   private kept = false;
   readonly uid = `to-menu-${++n}`;
@@ -155,6 +167,8 @@ export class ToMenu extends LitElement {
     this.caret = false;
     this.iconOnly = false;
     this.keep = false;
+    this.filter = false;
+    this.query = '';
   }
   createRenderRoot() {
     return this;
@@ -200,6 +214,7 @@ export class ToMenu extends LitElement {
     } else {
       window.visualViewport?.removeEventListener('resize', this.replace);
       document.removeEventListener('keydown', this.onKeptKey, true);
+      this.query = '';
       // The focused item is gone with the menu: back to the button, unless the dismissing click put focus somewhere.
       if (document.activeElement === document.body || this.menu.contains(document.activeElement)) from.focus();
       this.anchor = null;
@@ -207,7 +222,32 @@ export class ToMenu extends LitElement {
     }
   };
   private replace = () => this.isOpen && place(this.menu, this.anchor ?? this.button);
-  private onKey = (e: KeyboardEvent) => menuKey(e, this.menu, this.menuItems(), () => this.close());
+  private onKey = (e: KeyboardEvent) => {
+    if (this.filter && this.narrow(e)) return;
+    menuKey(e, this.menu, this.menuItems(), () => this.close());
+  };
+  /** A letter typed into a menu that filters: the list narrowed (or widened by Backspace, or whole again by Escape). True when the key was this. */
+  private narrow(e: KeyboardEvent): boolean {
+    if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return false;
+    let q = this.query;
+    if (e.key === 'Backspace' && q) q = q.slice(0, -1);
+    else if (e.key === 'Escape' && q) q = '';
+    else if (e.key.length === 1 && (e.key !== ' ' || q)) q += e.key;
+    else return false;
+    e.preventDefault();
+    e.stopPropagation();
+    this.query = q;
+    void this.updateComplete.then(() => {
+      (this.menuItems()[0] ?? this.menu).focus({ preventScroll: true });
+      place(this.menu, this.anchor ?? this.button);
+    });
+    return true;
+  }
+  /** Whether an item stays while letters are typed: a word of its name starts with them. */
+  private stays(item: MenuItem): boolean {
+    const q = fold(this.query.trim());
+    return !q || fold(item.label).split(/[\s\-–—/(),.…]+/).some((w) => w.startsWith(q)) || fold(item.label).startsWith(q);
+  }
   /** A `keep` menu open while the focus stays in the editor: Up and Down take the focus into the menu, which is then an ordinary one. */
   private onKeptKey = (e: KeyboardEvent) => {
     if (!this.isOpen || this.menu.contains(document.activeElement) || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
@@ -247,6 +287,7 @@ export class ToMenu extends LitElement {
       run = [];
     };
     for (const item of this.items) {
+      if (!this.stays(item)) continue;
       if (item.group !== group) {
         flush();
         group = item.group;
@@ -257,7 +298,7 @@ export class ToMenu extends LitElement {
     return html`<button type="button" class="to-btn ${this.iconOnly ? 'to-tool' : ''}" popovertarget=${this.uid} aria-haspopup="menu" aria-expanded="false" aria-label=${this.iconOnly ? label : nothing} title=${this.iconOnly ? label : nothing} @mousedown=${this.hold}>
         ${this.icon ? icon(this.icon) : nothing}${this.iconOnly ? nothing : html`<span>${label}</span>`}${this.caret ? icon(UI.down, 14, 'to-caret') : nothing}
       </button>
-      <div id=${this.uid} popover="auto" class="to-menu" role="menu" tabindex="-1" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${parts}</div>`;
+      <div id=${this.uid} popover="auto" class="to-menu" role="menu" tabindex="-1" aria-label=${label} @toggle=${this.onToggle} @keydown=${this.onKey}>${this.query ? html`<div class="to-menu-filter" role="status">${parts.length ? t('Starting “{q}”', { q: this.query }) : t('Nothing starts “{q}”', { q: this.query })}</div>` : nothing}${parts}</div>`;
   }
 }
 customElements.define('to-menu', ToMenu);

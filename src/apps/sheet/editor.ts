@@ -22,6 +22,8 @@
  * the words its column already holds (a <datalist>, opened by its caret) and takes new ones; a rich cell is a
  * <to-text shape=line> (the selection bubble for its marks), its words written by the code in the kernel's
  * inline form, the grid's keys kept round it and the formula strip showing its plain words, read-only.
+ *
+ * Find in this document (Mod+F) goes from cell to matching cell: `find()` is the kit's Findable.
  */
 import { html, nothing, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
@@ -36,6 +38,8 @@ import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
 import type { MenuItem, ToMenu } from '../../kit/menu.ts';
 import { toast } from '../../kit/toast.ts';
+import type { Found } from '../../kit/find.ts';
+import { fold } from '../../kit/search.ts';
 import { COL_NAMES, FUNCTIONS, MAX_COLS, ROWS, applyAll, clearCells, columnText, copyCells, fillCells, isLocked, isText, parse, parseInline, pasteCells, plainText, rangeOf, rangeRef, rcToRef, runLength, writeInline, type Block, type ColType, type Column, type Doc, type Op, type Range, type Run } from '../../doc/index.ts';
 import { MIN_COLS, addColumn, deleteRows, insertRows, isLetterName, moveRows, putRect, readSheet, removable, removeColumn, rename, setCell, setChart, setLock, setType, sortBy, typeName, type SheetView } from './model.ts';
 import { cellText, chartOf, chartOfSheet } from './view.ts';
@@ -643,6 +647,35 @@ export class ToSheetEditor extends DocElement<SheetView> {
     if (e.relatedTarget instanceof Node && x.contains(e.relatedTarget)) return;
     this.focused = false;
     this.forget(e, r, c);
+  }
+
+  /* ---------- Find in this document (kit/find.ts): the cells that hold every word, in reading order ---------- */
+
+  /** The cells whose words (as typed, or as shown) hold every term; going to one selects it. */
+  find(terms: string[]): Found {
+    const cols = this.columns();
+    const hits: [number, number][] = [];
+    for (let r = 0; r < this.view.used.rows; r++)
+      for (let c = 0; c < cols.length; c++) {
+        const raw = this.raw(r, c);
+        if (!raw) continue;
+        const words = fold(`${raw} ${cellText(this.val(r, c), cols[c]?.type)}`);
+        if (terms.every((term) => words.includes(term))) hits.push([r, c]);
+      }
+    // Going to a cell selects it and shows it, the focus left in the find bar; leaving the bar puts the focus in it.
+    const go = (i: number) => {
+      const [r, c] = hits[i] ?? [];
+      if (r === undefined) return;
+      if (r >= this.drawn - 2) this.rowsShown = Math.min(ROWS, r + 20);
+      this.end = null;
+      this.entered = null;
+      this.sel = [r, c];
+      void this.updateComplete.then(() => {
+        const el = this.querySelector<HTMLElement>(`#c${r}_${c}`);
+        if (el) this.reveal(el);
+      });
+    };
+    return { count: hits.length, go, leave: () => this.focusCell(...this.sel) };
   }
 
   /* ---------- focus and the caret ---------- */

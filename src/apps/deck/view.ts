@@ -160,12 +160,13 @@ export function place(p: Page, x: number, y: number, w: number, h: number): stri
 /* ---------- the document a slide shows ---------- */
 
 /** The page another document makes on a slide: its own app draws it small; a table is a sheet; a picture, or a thing from the web, a card. */
-export function subPage(doc: Doc, s: Slide): Page | null {
+export function subPage(doc: Doc, s: Slide, upTo?: number): Page | null {
   const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
   if (!b) return null;
   if (b.k === 'fence' && b.lang) {
     const def = lookup.appOf(b.lang);
-    if (def) return def.view(b.body, { small: true })[0];
+    // Presented, the document as far as it has built (its app's steps); else whole.
+    if (def) return def.view(b.body, { small: true, ...(upTo !== undefined && def.steps ? { upTo } : {}) })[0];
     const lines = b.body.split('\n').filter((l) => l.trim() && !/^---/.test(l)).slice(0, 8);
     return { w: 480, h: 40 + lines.length * 22, svg: line(24, 28, t('{app} document', { app: b.lang }), { px: 13, fill: MUTED }) + lines.map((l, i) => line(24, 56 + i * 22, l, { px: 14 })).join(''), alt: t('{app} document', { app: b.lang }) };
   }
@@ -311,8 +312,15 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   };
 }
 
-/** What a slide reveals, a click at a time: its lines of words. */
-export const slideSteps = (s: Slide): number => (s.sub >= 0 || s.layout === 't' ? 0 : s.items.length + (s.layout === '2' ? s.right.length : 0));
+/** The steps a document on a slide builds up in, as its app counts them (AppDef.steps: a list an item, a trip a stop, a drawing a shape); 0 for one shown whole. */
+function subSteps(doc: Doc, s: Slide): number {
+  const b = s.sub >= 0 ? doc.blocks[s.sub] : null;
+  if (b?.k !== 'fence' || !b.lang) return 0;
+  return lookup.appOf(b.lang)?.steps?.(b.body) ?? 0;
+}
+
+/** What a slide reveals, a click at a time: its lines of words; a slide that shows a document, that document's steps (given `doc`). */
+export const slideSteps = (s: Slide, doc?: Doc): number => (s.sub >= 0 ? (doc ? subSteps(doc, s) : 0) : s.layout === 't' ? 0 : s.items.length + (s.layout === '2' ? s.right.length : 0));
 
 const iconAt = (name: string, b: Box, color: string) => glyphNamed(name, b.x, b.y, b.w, color);
 
@@ -364,7 +372,8 @@ export function slidePage(doc: Doc, s: Slide, look: Look, shown = Infinity, o: S
     for (const lines of N.lines) for (const ln of lines) (svg += line(N.x, y + N.px, ln, { px: N.px, fill: T.muted, link })), (y += N.px * 1.3);
   }
   if (L.sub) {
-    const sub = subPage(doc, s);
+    // Presented, the document as far as the clicks have built it.
+    const sub = subPage(doc, s, Number.isFinite(shown) ? shown : undefined);
     if (sub) {
       // A document is drawn for white paper: on a dark slide it sits on a white card.
       if (T.dark) svg += rect(L.sub.x, L.sub.y, L.sub.w, L.sub.h, '#ffffff', 'rx="12"');
@@ -725,7 +734,7 @@ export function deckFrames(text: string): Page[] {
   const look = lookOf(s);
   const out: Page[] = [];
   for (const sl of slidesOf(doc)) {
-    const steps = slideSteps(sl);
+    const steps = slideSteps(sl, doc);
     for (let shown = 0; shown <= steps; shown++) out.push(slidePage(doc, sl, look, shown));
   }
   const end = closingPage(text, doc, s, look);

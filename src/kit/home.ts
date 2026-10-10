@@ -8,12 +8,17 @@
  * Just make them into rows with docs below."). Each document shows its first page small at its left
  * (<to-preview>, drawn as it scrolls into sight: "When you list documents under apps, show them with
  * previews"). <to-templates> is the drawer's too.
+ *
+ * Above the apps, once something is kept, a search box over the library (kit/search.ts): every word of it
+ * somewhere in a document's title or text, the best first, each found document with its title and the
+ * lines that hold the words, the words marked. Each document's link is decoded once, when first searched.
  */
 import { LitElement, html, nothing } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import type { AppDef, Template } from './app.ts';
 import { apps } from './apps.ts';
-import { encodeDoc, isSealed } from './codec.ts';
+import { decodeDoc, encodeDoc, isSealed } from './codec.ts';
+import { linesOf, search, type Seg } from './search.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { hoverFocus, menuKey, openedByPointer, place } from './menu.ts';
@@ -111,8 +116,28 @@ export class ToTemplates extends LitElement {
 }
 customElements.define('to-templates', ToTemplates);
 
+/** A kept document's lines, by its link: decoded once a visit. */
+const linesCache = new Map<string, string[]>();
+function keptLines(k: Kept): string[] {
+  let lines = linesCache.get(k.hash);
+  if (!lines) {
+    const text = decodeDoc(parseHash(k.hash).payload) ?? '';
+    try {
+      lines = text ? linesOf(text) : [];
+    } catch {
+      lines = [];
+    }
+    linesCache.set(k.hash, lines);
+  }
+  return lines;
+}
+/** Stretches of words, the found ones marked. */
+const segs = (s: Seg[]) => s.map((x) => (x.hit ? html`<mark>${x.t}</mark>` : x.t));
+
 export class ToHome extends LitElement {
-  static properties = { unfolded: { state: true } };
+  static properties = { unfolded: { state: true }, query: { state: true } };
+  /** What the search box holds. */
+  declare query: string;
   /** The apps whose whole list of documents is shown, past the first five. */
   declare unfolded: Set<string>;
   private offs: (() => void)[] = [];
@@ -122,6 +147,7 @@ export class ToHome extends LitElement {
   constructor() {
     super();
     this.unfolded = new Set();
+    this.query = '';
   }
   createRenderRoot() {
     return this;
@@ -157,11 +183,32 @@ export class ToHome extends LitElement {
       </ul>
       ${kept.length > SHOWN && !all ? html`<button type="button" class="to-btn to-drive-more" @click=${() => (this.unfolded = new Set([...this.unfolded, app.id]))}>${t('{n} more', { n: kept.length - SHOWN })}</button>` : nothing}`;
   }
+  /** The kept documents the search finds, the best first: the title and up to two lines, the words marked. */
+  private renderFound(kept: Kept[]) {
+    const names = new Map(apps().map((a) => [a.id, a]));
+    const docs = kept.filter((k) => names.has(k.app)).map((k) => ({ id: k.id, title: k.title || t('Untitled'), app: names.get(k.app)!.name, folder: '', lines: keptLines(k), at: k.at }));
+    const found = search(docs, this.query);
+    const byId = new Map(kept.map((k) => [k.id, k]));
+    if (!found.length) return html`<p class="to-hint" role="status">${t('No document here has those words')}</p>`;
+    return html`<p class="sr-only" role="status">${t('{n|One document found|# documents found}', { n: found.length })}</p>
+      <ul class="to-found-docs" aria-label=${t('Documents found')}>
+        ${found.map((f) => {
+          const k = byId.get(f.id)!;
+          const a = names.get(k.app)!;
+          return html`<li><a href=${k.hash}><b>${segs(f.title)}</b> <small>${a.name} · ${ago(k.at, document.documentElement.lang)}</small>${f.context.map((c) => html`<small>${segs(c)}</small>`)}</a></li>`;
+        })}
+      </ul>`;
+  }
   render() {
     const kept = library();
+    const want = this.query.trim();
     return html`<div class="to-home">
       <h1 class="sr-only">Tiny Little Office</h1>
-      <div class="to-apps">
+      ${kept.length
+        ? html`<input class="to-search" type="search" placeholder=${t('Search your documents')} aria-label=${t('Search your documents')} autocomplete="off" .value=${this.query} @input=${(e: Event) => (this.query = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-found-docs a')?.click())} />`
+        : nothing}
+      ${want ? this.renderFound(kept) : nothing}
+      <div class="to-apps" ?hidden=${!!want}>
         ${apps().map(
           (a) => html`<section class="to-app" aria-label=${a.name}>
             <div class="to-app-head">

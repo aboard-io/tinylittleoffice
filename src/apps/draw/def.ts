@@ -49,7 +49,12 @@ export default defineApp({
   editor: () => import('./editor.ts'),
   title: titleOf,
   retitle,
-  view: (doc) => [drawingPage(parse(doc))],
+  view: (doc, opts) => [drawingPage(parse(doc), opts?.upTo)],
+  // Presented on a slide, a shape a step, in the order they were drawn.
+  steps: (doc) => {
+    const v = readDrawing(parse(doc));
+    return v.grid ? 0 : v.shapes.length;
+  },
   exports: [
     { ext: 'svg', label: () => t('Picture (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(drawingToSvg(parse(doc))) },
     { ext: 'tile.svg', label: () => t('Background tile (SVG)'), mime: 'image/svg+xml', build: (doc) => utf8(tileSvg(tileOfDoc(doc), tileSide(tileOfDoc(doc)))) },
@@ -66,4 +71,18 @@ export default defineApp({
   ],
   // Motion reads a drawing's table as it is; the entry shows once the Motion app is in the registry.
   handoffs: [{ to: 'anim', label: () => t('Animate this drawing'), convert: (doc) => doc }],
+  keys: [
+    { keys: 'V', does: () => t('Select') },
+    { keys: 'R', does: () => t('Rectangle') },
+    { keys: 'E', does: () => t('Ellipse') },
+    { keys: 'D', does: () => t('Diamond') },
+    { keys: 'L', does: () => t('Line') },
+    { keys: 'A', does: () => t('Arrow') },
+    { keys: 'T', does: () => t('Text') },
+    { keys: 'K', does: () => t('Join two shapes') },
+    { keys: 'P', does: () => t('Pen: any shape, a tap for each corner') },
+    { keys: 'F', does: () => t('Freehand: drag to draw a line or a shape') },
+    { keys: '[ / ]', does: () => t('Rotate left, rotate right') },
+    { keys: 'Arrows', does: () => t('Nudge the shapes in hand') },
+  ],
 });

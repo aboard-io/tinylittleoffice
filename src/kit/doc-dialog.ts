@@ -160,7 +160,8 @@ declare global {
 /** A document of an app, edited in the dialog: its text on Done, null on Cancel (or when no app goes by that name). */
 export async function editDoc(o: { app: string; text: string; heading?: string; sizing?: boolean }): Promise<string | null> {
   const def = lookup.appOf(o.app);
-  if (!def) return null;
+  // A QR code is drawn, not edited (kit/qr-picture.ts).
+  if (!def || o.app === 'qr') return null;
   const d = document.createElement('to-doc-dialog');
   d.heading = o.heading ?? '';
   d.sizing = !!o.sizing;

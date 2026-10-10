@@ -104,3 +104,32 @@ export async function setOffline(on: boolean) {
 export function keepOffline() {
   if (offlineOn() && offlineSupported()) void register();
 }
+
+/* ---------- installing as an app ("Add to home screen") ---------- */
+
+type InstallPrompt = Event & { prompt(): Promise<unknown> };
+let installer: InstallPrompt | null = null;
+if (typeof window !== 'undefined')
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Kept for the menu's button rather than shown by the browser whenever it likes.
+    e.preventDefault();
+    installer = e as InstallPrompt;
+    changed();
+  });
+
+/** The browser offers to install the site (Chrome, Edge, Android), and it has not been taken up. */
+export const canInstall = () => installer !== null;
+/** The browser's own prompt, once: it cannot be shown twice. */
+export async function install() {
+  const p = installer;
+  installer = null;
+  changed();
+  await p?.prompt();
+}
+/** iPhone and iPad have no prompt: the way is Share, then Add to Home Screen. True there, unless the site is already opened from the home screen. */
+export function installByHand(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return ios && !standalone;
+}

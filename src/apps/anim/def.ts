@@ -60,4 +60,11 @@ export default defineApp({
     { ext: 'gif', label: () => t('Animated GIF'), mime: 'image/gif', build: (doc) => animGif(doc) },
     { ext: 'svg', label: () => t('Animated SVG'), mime: 'image/svg+xml', build: (doc) => utf8(animToSvg(parse(doc))) },
   ],
+  keys: [
+    { keys: 'Space', does: () => t('Play or pause') },
+    { keys: ', / .', does: () => t('A frame back, a frame on') },
+    { keys: 'Home / End', does: () => t('The first frame, the last') },
+    { keys: 'K', does: () => t('Add a key here') },
+    { keys: 'Arrows', does: () => t('Nudge the shapes in hand; with none, step a frame') },
+  ],
 });

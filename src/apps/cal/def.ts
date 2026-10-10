@@ -11,6 +11,7 @@ import { utf8 } from '../../kit/draw.ts';
 import { t } from '../../kit/i18n.ts';
 import { templates } from './templates.ts';
 import { calPages, calToCsv, calToIcs } from './view.ts';
+import { calToTodo } from './convert.ts';
 
 export const titleOf = (doc: Doc): string => parse(doc).head.title ?? '';
 export const retitle = (doc: Doc, title: string): Doc => write(apply(parse(doc), { op: 'head', key: 'title', value: title.replace(/\n/g, ' ').trim() || undefined }));
@@ -43,4 +44,5 @@ export default defineApp({
     { ext: 'ics', label: () => t('iCalendar (ICS)'), mime: 'text/calendar;charset=utf-8', build: (doc) => utf8(calToIcs(parse(doc), Date.now())) },
     { ext: 'csv', label: () => t('CSV'), mime: 'text/csv;charset=utf-8', build: (doc) => utf8('﻿' + calToCsv(parse(doc), csvSeparator())) },
   ],
+  handoffs: [{ to: 'todo', label: () => t('Make a to-do list of it'), convert: calToTodo }],
 });

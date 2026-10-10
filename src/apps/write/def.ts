@@ -12,6 +12,7 @@ import { t } from '../../kit/i18n.ts';
 import { retitle, titleOf } from './model.ts';
 import { templates } from './templates.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from './view.ts';
+import { writeToDeck, writeToOutline, writeToSite } from './convert.ts';
 
 export default defineApp({
   id: 'write',
@@ -42,5 +43,10 @@ export default defineApp({
     { ext: 'rtf', label: () => t('Rich Text (RTF)'), mime: 'application/rtf', build: (doc, ctx) => utf8(docToRtf(parse(doc), ctx)) },
     // In place of the kit's pictures of the pages: the words still words, in a page anyone can read.
     { ext: 'html', label: () => t('Web page (HTML)'), mime: 'text/html', build: (doc, ctx) => docToHtml(parse(doc), ctx) },
+  ],
+  handoffs: [
+    { to: 'deck', label: () => t('Show as slides'), convert: writeToDeck },
+    { to: 'outline', label: () => t('Open as an outline'), convert: writeToOutline },
+    { to: 'site', label: () => t('Make it a website'), convert: writeToSite },
   ],
 });

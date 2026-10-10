@@ -14,6 +14,10 @@
  * were, so an undo puts them back. The bar holds Insert ▾, the units, whether the stops are a route or dots, the
  * whole route in view, the map on or off, and ends with undo and redo.
  *
+ * Present (Mod+Alt+Enter, or the bar's button) gives the map the whole screen and flies it from stop to stop,
+ * one a click (Space, the right arrow), each named with its note and the leg to it; Escape ends (as a slide
+ * that holds a trip builds a stop a step: AppDef.steps).
+ *
  * This is the one app that talks to the network by itself: while the map is on view its pictures come from
  * tile.openstreetmap.org. The route itself lives only in the link. A trip with no stops, opened with the map on
  * view, asks the browser once where the device is (no watching, 5 s at most) and centres the map there at a
@@ -83,6 +87,7 @@ export class ToTripEditor extends DocElement<TripView> {
     query: { state: true },
     found: { state: true },
     searching: { state: true },
+    presenting: { state: true },
   };
   /** Where the map's pictures come from; '' draws none (a test, or a map with no network). */
   declare tiles: string;
@@ -93,6 +98,8 @@ export class ToTripEditor extends DocElement<TripView> {
   /** What a search found; null before one. */
   declare found: Place[] | null;
   declare searching: boolean;
+  /** Presenting (Present in the bar): the stop the map has flown to, by its place in the route; -1 when not presenting. */
+  declare presenting: number;
   private map: Leaflet.Map | null = null;
   /** The browser has been asked where the device is (once per editor, for a trip with no stops). */
   private located = false;
@@ -143,6 +150,7 @@ export class ToTripEditor extends DocElement<TripView> {
     this.query = '';
     this.found = null;
     this.searching = false;
+    this.presenting = -1;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -337,6 +345,71 @@ export class ToTripEditor extends DocElement<TripView> {
     if (s.length === 1) map.setView([s[0].lat, s[0].lon], 12, { animate });
     else map.fitBounds(s.map((p) => [p.lat, p.lon] as [number, number]), { padding: [36, 36], animate });
   }
+  /* ---------- presenting: the map flies stop to stop ---------- */
+
+  /** Present: the map the whole screen, flown to the first stop; a click, Space or the right arrow on to the next, Escape ends. */
+  async present() {
+    if (!this.view.stops.length) return;
+    this.showMap = true;
+    this.presenting = 0;
+    await this.updateComplete;
+    // The map may still be on its way (Leaflet is a chunk of its own).
+    for (let n = 0; !this.map && this.mapEl && n < 100; n++) await new Promise((r) => setTimeout(r, 20));
+    this.map?.invalidateSize();
+    this.goStop(0);
+    this.querySelector<HTMLElement>('.trip-present')?.focus({ preventScroll: true });
+  }
+  /** The `i`th stop, flown to and named (round neither end: the first and the last stay put). */
+  goStop(i: number) {
+    const stops = this.view.stops;
+    if (this.presenting < 0 || !stops.length) return;
+    this.presenting = Math.max(0, Math.min(stops.length - 1, i));
+    const s = stops[this.presenting];
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const zoom = Math.max(this.map?.getZoom() ?? 0, 10);
+    if (still) this.map?.setView([s.lat, s.lon], zoom, { animate: false });
+    else this.map?.flyTo([s.lat, s.lon], zoom, { duration: 1.6 });
+  }
+  endPresenting() {
+    if (this.presenting < 0) return;
+    this.presenting = -1;
+    void this.updateComplete.then(() => {
+      this.map?.invalidateSize();
+      this.fit(false);
+      this.querySelector<HTMLElement>('.trip-bar .trip-present-btn')?.focus();
+    });
+  }
+  private onPresentKey = (e: KeyboardEvent) => {
+    const k = e.key;
+    if (k === 'Escape') this.endPresenting();
+    else if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'Enter') this.goStop(this.presenting + 1);
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') this.goStop(this.presenting - 1);
+    else if (k === 'Home') this.goStop(0);
+    else if (k === 'End') this.goStop(this.view.stops.length - 1);
+    else return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  private renderPresent() {
+    const stops = this.view.stops;
+    const s = stops[this.presenting];
+    if (!s) return nothing;
+    const n = stops.length;
+    const leg = this.presenting > 0 && this.view.linked ? formatLeg(distanceKm(stops[this.presenting - 1], s), this.view.units) : '';
+    return html`<div class="trip-present" role="dialog" aria-modal="true" tabindex="-1" aria-label=${t('Presenting the trip')} @keydown=${this.onPresentKey}>
+      <div class="trip-present-words" aria-live="polite">
+        <b>${t('{n} of {count}', { n: this.presenting + 1, count: n })} · ${s.name || `${s.lat}, ${s.lon}`}</b>
+        ${s.note ? html`<span>${s.note}</span>` : nothing}
+        ${leg ? html`<small>${leg}</small>` : nothing}
+      </div>
+      <div class="trip-present-ctl">
+        <button type="button" class="to-btn to-tool" aria-label=${t('The stop before')} title=${t('The stop before')} ?disabled=${this.presenting === 0} @click=${() => this.goStop(this.presenting - 1)}>${icon(UI.up, 20)}</button>
+        <button type="button" class="to-btn to-tool" aria-label=${t('The next stop')} title=${t('The next stop')} ?disabled=${this.presenting >= n - 1} @click=${() => this.goStop(this.presenting + 1)}>${icon(UI.down, 20)}</button>
+        <button type="button" class="to-btn to-tool" aria-label=${t('Stop presenting')} title=${t('Stop presenting')} @click=${() => this.endPresenting()}>${icon(UI.close, 20)}</button>
+      </div>
+    </div>`;
+  }
+
   /** A stop shown on the map (from the list's bar), or picked on it (a pin: the stop chosen, its row in view). */
   private pick(i: number, toMap = true) {
     const s = this.view.stops[i];
@@ -474,6 +547,12 @@ export class ToTripEditor extends DocElement<TripView> {
   }
   private onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
+    // Mod+Alt+Enter presents, from anywhere in the editor (as the Deck does).
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && e.altKey && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      void this.present();
+      return;
+    }
     const target = e.composedPath()[0] as HTMLElement;
     // Only words being typed in a stop: never a bar button, a field, the list, a popover or a dialog.
     if (target.closest?.('[popover], dialog')) return;
@@ -709,10 +788,11 @@ export class ToTripEditor extends DocElement<TripView> {
         ${tool({ label: t('Join the stops in order'), icon: Spline, pressed: v.linked, does: () => this.edit(setLinked(this.doc, !v.linked)) })}
         ${tool({ label: t('Show the whole route'), icon: Scan, disabled: !n || !this.showMap, does: () => this.fit() })}
         ${tool({ label: t('Map'), icon: MapIcon, pressed: this.showMap, does: () => (this.showMap = !this.showMap) })}
+        ${tool({ label: t('Present'), icon: UI.play, keys: 'Mod+Alt+Enter', cls: 'trip-present-btn', disabled: !n, does: () => void this.present() })}
         <span class="to-hint trip-count">${t('{n|one stop|# stops}', { n })}${total ? html` · <b>${total}</b>` : nothing}</span>
         ${this.undoTools()}
       </to-bar>
-      <div class="trip ${this.showMap ? '' : 'no-map'}">
+      <div class="trip ${this.showMap ? '' : 'no-map'} ${this.presenting >= 0 ? 'presenting' : ''}">
         ${this.showMap
           ? html`<div class="trip-side">
               <div class="trip-map" role="region" aria-label=${t('Map: tap to add a stop')}></div>
@@ -723,6 +803,7 @@ export class ToTripEditor extends DocElement<TripView> {
           ? html`<ol class="trip-stops" tabindex="-1" aria-label=${t('Stops')} aria-multiselectable="true">${v.stops.map((s, i) => this.row(s, i))}</ol>`
           : html`<p class="to-hint trip-empty">${this.showMap ? t('Tap the map to add the first stop, or Insert a place by name.') : t('Insert a place by name.')}</p>`}
       </div>
+      ${this.presenting >= 0 ? this.renderPresent() : nothing}
       ${this.rows.renderContext()}
       <to-dialog class="trip-find" heading=${t('A place by name')} .body=${this.findBody()}></to-dialog>`;
   }

@@ -52,6 +52,7 @@ import '../../kit/menu.ts';
 import '../../kit/text.ts';
 import './table.ts';
 import './style.css';
+import { qrBlock } from '../../kit/qr-picture.ts';
 
 export const tag = 'to-write-editor';
 
@@ -260,6 +261,7 @@ export class ToWriteEditor extends DocElement<Doc> {
       { label: t('Web Picture…'), icon: UI.image, does: () => void this.insertPicture() },
       { label: t('Web Embed…'), icon: UI.globe, does: () => void this.insertWeb() },
       { label: t('Tiny Little Office Doc…'), icon: UI.insert, does: () => void this.insertDocument() },
+      { label: t('QR code of this document'), icon: UI.qr, does: () => this.insertBlock(qrBlock()) },
       { label: t('Date'), icon: UI.calendar, does: () => this.text.exec('date') },
       { label: t('Page break'), icon: SeparatorHorizontal, hint: keysText('Mod+Shift+Enter'), does: () => this.insertBlock({ k: 'hr' }) },
       ...apps()

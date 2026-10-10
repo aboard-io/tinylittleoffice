@@ -18,6 +18,11 @@
  * are the shell's: `created` is stamped with the first change, and every change the editor makes keeps them.
  * The state beside the title says whether the document is signed, by whom, whether it still matches, and
  * whether it is locked; it opens the Privacy dialog. Share holds Password… and Sign.
+ * Around the document: a skip link to it; Find in this document (Mod+F, kit/find.ts); the keyboard
+ * shortcuts (Mod+/, kit/keys.ts); Mod+S keeps it on the device; and, opened from a link while the library
+ * holds another version of the same document (same app and name, another link), a quiet banner offering
+ * that one. The Share dialog's head line says where the link fits, with Copy, and opens a table of the
+ * rooms it fits in (kit/limits.ts) on a hover or a tap; red past the link's limit.
  *
  * A new document is named at once, "New Spreadsheet 2026-10-09 #1" (the first number that day's documents
  * of the app in the library leave free): the name is shown in the title box and goes into the head with the
@@ -42,14 +47,14 @@ import { ENVELOPE_KEYS, isoMinute, readEnvelope } from './envelope.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
 import { exportAs, exportItems, picture, raster, withPictures, saveFile, slug, utf8 } from './exports.ts';
-import { parseHash, routeHash, type Owned } from './route.ts';
-import { fitLine } from './limits.ts';
+import { LINK_VERSION, parseHash, routeHash, type Owned } from './route.ts';
+import { fitLine, roomFor } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, expiresSentence, forget, ownerLink, shorten, shortLink, timeLeft, update, type Shortened } from './short.ts';
 import { dropKept, isKept, keepLink, keptLinks } from './links.ts';
 import { checkSignature, keeping, lockWith, onPrivacy, pack, remember, reopen, signerName, signText, unlock, type Signature } from './privacy.ts';
 import { signatureWords, type ToPrivacy } from './privacy-dialog.ts';
 import { store } from './store.ts';
-import { firstFree, firstWords, keep, library, localDay, type Kept } from './library.ts';
+import { ago, firstFree, firstWords, keep, library, localDay, type Kept } from './library.ts';
 import { pageSvg } from './draw.ts';
 import { QR_MAX_BYTES, qrSvg } from './qr.ts';
 import { canShareNative, copyText, embedCode, mastodonHost, SERVICE_NAMES, SERVICES, shareNative, shareUrl, type Service } from './share.ts';
@@ -61,10 +66,14 @@ import { toast } from './toast.ts';
 import { installLinkGuard } from './link-guard.ts';
 import { gateHtml, gateSvg, installPictures, onPictures, setPictureDoc } from './pictures.ts';
 import { mark } from './mark.ts';
+import { setSelfLink } from './qr-picture.ts';
 import type { ToDialog } from './dialog.ts';
 import type { ToDrawer } from './drawer.ts';
+import type { ToFind } from './find.ts';
+import { renderShortcuts } from './keys.ts';
+import './find.ts';
 import './toast.ts';
-import './menu.ts';
+import { place } from './menu.ts';
 import './dialog.ts';
 import './drawer.ts';
 import './home.ts';
@@ -89,7 +98,7 @@ function siteDir(): string {
 }
 
 export class ToShell extends LitElement {
-  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { state: true }, sealed: { state: true }, locker: { state: true }, signature: { state: true }, wrong: { state: true }, busyLock: { state: true }, signing: { state: true }, comparing: { state: true }, embed: { state: true }, askMastodon: { state: true } };
+  static properties = { app: { state: true }, doc: { state: true }, tag: { state: true }, unreadable: { state: true }, short: { state: true }, shortTtl: { state: true }, busy: { state: true }, owned: { state: true }, changed: { state: true }, display: { state: true }, fresh: { state: true }, qrDisplay: { state: true }, shortDisplay: { state: true }, sharing: { state: true }, expires: { state: true }, arrived: { state: true }, scrolled: { state: true }, sealed: { state: true }, locker: { state: true }, signature: { state: true }, wrong: { state: true }, busyLock: { state: true }, signing: { state: true }, comparing: { state: true }, embed: { state: true }, askMastodon: { state: true }, other: { state: true }, newer: { state: true } };
   declare app: string | null;
   declare doc: Doc;
   /** The editor element's tag, once its chunk has arrived. */
@@ -143,6 +152,10 @@ export class ToShell extends LitElement {
   declare askMastodon: boolean;
   /** A deck's show link: presenting starts once the editor is up. */
   private presentSoon = false;
+  /** Opened from a link while the library holds another version of this document (the same app and name, another link): offered in a banner. */
+  declare other: Kept | null;
+  /** The link was made by a newer Tiny Little Office (its format's version is past this one's). */
+  declare newer: boolean;
   /** What the editor was last given or gave: the document without the new name the link carries for it. */
   private edited: Doc = '';
   private offLanguage = () => {};
@@ -184,6 +197,8 @@ export class ToShell extends LitElement {
     this.comparing = null;
     this.embed = false;
     this.askMastodon = false;
+    this.other = null;
+    this.newer = false;
   }
   createRenderRoot() {
     return this;
@@ -196,6 +211,7 @@ export class ToShell extends LitElement {
     window.addEventListener('scroll', this.onScroll, { passive: true });
     window.addEventListener('dragover', this.onDragOver);
     window.addEventListener('drop', this.onDrop);
+    this.addEventListener('to-keys', this.showKeys);
     this.offLanguage = onLanguage(() => this.requestUpdate());
     this.offPictures = onPictures(() => this.requestUpdate());
     // A key imported or forgotten changes whose signature this is.
@@ -213,6 +229,7 @@ export class ToShell extends LitElement {
     window.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('dragover', this.onDragOver);
     window.removeEventListener('drop', this.onDrop);
+    this.removeEventListener('to-keys', this.showKeys);
     this.flushKeep();
     this.offLanguage();
     this.offPictures();
@@ -245,8 +262,9 @@ export class ToShell extends LitElement {
     this.flushKeep();
     this.unplain();
     this.comparing = parseCompare(location.hash);
-    const { app, payload, view: asked, owned, display, arrived, sealed, show } = parseHash(location.hash);
+    const { app, payload, view: asked, owned, display, arrived, sealed, show, version } = parseHash(location.hash);
     const view = asked === 'embed' ? '' : asked;
+    this.querySelector<ToFind>('to-find')?.close();
     const id = app ?? (!location.hash && appOf(this.pageApp()) ? this.pageApp() : null);
     const def = id ? appOf(id) : undefined;
     this.app = def ? id : null;
@@ -275,6 +293,8 @@ export class ToShell extends LitElement {
     const state = history.state as { kept?: unknown } | null;
     const hash = def && payload ? routeHash(def.id, payload) : '';
     this.keptId = typeof state?.kept === 'string' ? state.kept : hash ? (library().find((k) => k.hash === hash)?.id ?? null) : null;
+    this.newer = !!def && version > LINK_VERSION;
+    this.other = def && hash && !this.keptId && !this.unreadable ? this.otherVersion(def, hash) : null;
     this.setTitle();
     if (def && this.tag !== `to-${def.id}-editor`) {
       this.tag = '';
@@ -442,6 +462,7 @@ export class ToShell extends LitElement {
     this.payloadLength = payload.length;
     this.keepSoon(payload);
     history.replaceState(this.state(), '', routeHash(app, payload, '', this.owned, false, this.tie));
+    this.setTitle();
   }
   /** The editor's change; a new document takes its name with the first one (and not while it is blank again). */
   private onDocChange = (e: Event) => {
@@ -486,8 +507,39 @@ export class ToShell extends LitElement {
     if (entry) keep({ ...entry, at: Date.now() });
   };
 
+  /** Another version of this document the library holds: the newest of the same app and the same name, at another link. */
+  private otherVersion(def: AppDef, hash: string): Kept | null {
+    const title = def.title(this.doc);
+    return title ? (library().find((k) => k.app === def.id && k.hash !== hash && k.title === title) ?? null) : null;
+  }
+  /** Mod+S: kept on the device now, under Saved; else said why not. */
+  keepNow() {
+    const def = this.def;
+    if (!def) return;
+    if (!keeping()) return void toast(t('Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.'));
+    if (!this.doc.trim() || this.doc === def.blank()) return void toast(t('Nothing to keep yet'));
+    this.keptId ??= crypto.randomUUID();
+    const payload = parseHash(location.hash).payload || encodeDoc(this.doc);
+    this.pending = { id: this.keptId, app: def.id, title: def.title(this.doc) || this.fresh || firstWords(this.doc), hash: routeHash(def.id, payload), at: Date.now() };
+    this.flushKeep();
+    history.replaceState(this.state(), '', location.href);
+    this.other = null;
+    toast(t('Kept on this device'));
+  }
+  /** The shortcuts dialog, open. */
+  showKeys = () => void this.querySelector<ToDialog>('to-dialog.to-keys-dialog')?.show();
+  /** Find in this document, open (or its words chosen again). */
+  showFind() {
+    const find = this.querySelector<ToFind>('to-find');
+    if (!find || !this.editor) return;
+    find.target = this.editor;
+    void find.show();
+  }
+
   private setTitle() {
     const def = this.def;
+    // A QR code the document holds of itself is drawn from its link as it now is.
+    setSelfLink(def ? this.link : '');
     document.title = def ? `${this.docTitle} · Tiny Little Office` : 'Tiny Little Office';
   }
   /** What the document is called: the name it was given, a new one's name, or "Untitled presentation" (a link that came with none). */
@@ -534,6 +586,22 @@ export class ToShell extends LitElement {
     if (k === 'p' && this.def) {
       e.preventDefault();
       void exportAs('print', this.current());
+      return;
+    }
+    // The page's own keys (kit/keys.ts PAGE): the shortcuts, find, keep.
+    if (k === '/' || k === '?') {
+      e.preventDefault();
+      this.showKeys();
+      return;
+    }
+    if (k === 'f' && !e.shiftKey && this.def && !this.display && this.editor) {
+      e.preventDefault();
+      this.showFind();
+      return;
+    }
+    if (k === 's' && !e.shiftKey && this.def && !this.display) {
+      e.preventDefault();
+      this.keepNow();
       return;
     }
     const editor = this.editor;
@@ -795,7 +863,7 @@ export class ToShell extends LitElement {
     const def = this.def!;
     const share = async () => shareNative(this.docTitle, this.link, await picture(await withPictures(def.view(this.doc))));
     const made = this.madeLine();
-    return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}<p class="to-share-fit">${fitLine(this.link)}</p>
+    return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}${this.renderFit()}
       <div class="to-share-links">
         <button type="button" class="to-btn to-share-copy to-copy-link" @click=${() => void copyText(this.link)}><span>${icon(UI.link, 18)}${t('Copy link')}</span><small>${t('Opens in the editor')}</small></button>
         <button type="button" class="to-btn to-share-copy to-copy-display" @click=${() => void copyText(this.displayLink)}><span>${icon(UI.view, 18)}${t('Copy display link')}</span><small>${t('Opens as pages to read')}</small></button>
@@ -880,6 +948,40 @@ export class ToShell extends LitElement {
         <a class="to-btn to-embed-open" href=${u.href} target="_blank" rel="noopener">${icon(UI.open, 16)}<span>${t('Open in Tiny Little Office')}</span></a>
       </header>
       <main class="to-display to-embed">${def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>`;
+  }
+
+  /**
+   * The head line: where the link fits, red once it is past the link's limit, with Copy; a hover or a tap on
+   * the words opens the rooms it fits in, a small table in a popover (kit/limits.ts).
+   */
+  private renderFit() {
+    const def = this.def!;
+    const { available } = budgetFor(`${location.origin}${location.pathname}${routeHash(def.id)}/`);
+    const over = this.payloadLength - available;
+    const hover = (show: boolean) => (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      const pop = this.querySelector<HTMLElement>('.to-rooms');
+      const btn = e.currentTarget as HTMLElement;
+      if (show && !pop?.matches(':popover-open')) (pop?.showPopover(), pop && place(pop, btn));
+      else if (!show && !pop?.matches(':hover')) pop?.hidePopover();
+    };
+    const lang = document.documentElement.lang || undefined;
+    const n = (x: number) => x.toLocaleString(lang);
+    return html`<div class="to-share-fit ${over > 0 ? 'over' : ''}">
+      <button type="button" class="to-btn to-fit-words" popovertarget="to-rooms" aria-haspopup="dialog" @pointerenter=${hover(true)} @pointerleave=${hover(false)} @click=${(e: Event) => {
+        const btn = e.currentTarget as HTMLElement;
+        requestAnimationFrame(() => this.querySelector<HTMLElement>('.to-rooms:popover-open') && place(this.querySelector<HTMLElement>('.to-rooms')!, btn));
+      }}>${over > 0 ? t('{n} characters over the link limit', { n: n(over) }) : fitLine(this.link)}</button>
+      <button type="button" class="to-btn to-tool to-fit-copy" aria-label=${t('Copy link')} title=${t('Copy link')} @click=${() => void copyText(this.link)}>${icon(UI.copy, 18)}</button>
+      <div id="to-rooms" class="to-rooms to-menu" popover="auto" role="dialog" aria-label=${t('Where the link fits')} @pointerleave=${(e: PointerEvent) => e.pointerType === 'mouse' && (e.currentTarget as HTMLElement).hidePopover()}>
+        <table>
+          <thead><tr><th scope="col">${t('Where')}</th><th scope="col">${t('Uses')}</th><th scope="col">${t('Left')}</th></tr></thead>
+          <tbody>${roomFor(this.link).map(
+            (r) => html`<tr class=${r.left < 0 ? 'over' : ''}><th scope="row">${r.target.where()}</th><td>${n(r.used)} / ${n(r.target.max)}</td><td>${r.target.flat ? t('any length') : r.left < 0 ? t('{n} over', { n: n(-r.left) }) : n(r.left)}</td></tr>`,
+          )}</tbody>
+        </table>
+      </div>
+    </div>`;
   }
 
   /** Link or Display Link: a pair of buttons, the one chosen pressed. */
@@ -978,7 +1080,19 @@ export class ToShell extends LitElement {
     </div>`;
   }
 
-  /** The Display Link: the pages one under another, to read or print (a website: the site itself, as a visitor has it); a line with the title and Edit above them. */
+  /** Another version of this document is kept on this device (or the link is from a newer Tiny Little Office): a quiet line above the bar. */
+  private renderOther() {
+    if (this.newer) return this.unreadable ? nothing : html`<div class="to-other" role="status"><p>${t('This link was made by a newer Tiny Little Office. Reload the page to get it.')}</p></div>`;
+    const k = this.other;
+    if (!k) return nothing;
+    return html`<div class="to-other" role="region" aria-label=${t('Another version')}>
+      <p>${t('This device keeps another version of “{title}”, from {when}.', { title: k.title, when: ago(k.at, document.documentElement.lang) })}</p>
+      <a class="to-btn to-other-open" href=${k.hash}>${t('Open it')}</a>
+      <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => (this.other = null)}>${icon(UI.close, 18)}</button>
+    </div>`;
+  }
+
+  /** The Display Link: the pages one under another at their paper's width (scaled down only to fit), to read or print (a website: the site itself, as a visitor has it); a line with the title and Edit above them. */
   private renderDisplay(def: AppDef) {
     const { payload } = parseHash(location.hash);
     return html`<header class="to-display-head">
@@ -989,7 +1103,7 @@ export class ToShell extends LitElement {
       ${this.renderArrival()}
       <main class="to-display">${def.page
         ? html`<iframe class="to-display-site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" title=${this.docTitle} .srcdoc=${gateHtml(def.page(this.doc, `${location.origin}${location.pathname}`)).html}></iframe>`
-        : def.view(this.doc).map((p, i) => html`<div class="to-display-page" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
+        : def.view(this.doc).map((p, i) => html`<div class="to-display-page" style="--page-w:${p.w}px" aria-label=${t('Page {n}', { n: i + 1 })} role="group">${unsafeSVG(gateSvg(pageSvg(p)))}</div>`)}</main>
       <to-toast></to-toast>${this.renderDialogs()}`;
   }
 
@@ -1001,13 +1115,19 @@ export class ToShell extends LitElement {
     if (this.comparing) main = html`<to-compare .a=${this.comparing[0]} .b=${this.comparing[1]}></to-compare>`;
     else if (!def) main = html`<to-home></to-home>`;
     else if (this.sealed) main = html`<div class="to-empty to-locked">${icon(UI.lock, 32)}<p>${t('This document is locked with a password.')}</p><button type="button" class="to-btn primary to-unlock-open" @click=${() => void this.askPassword()}>${icon(UI.unlock, 16)}<span>${t('Unlock…')}</span></button></div>`;
-    else if (this.unreadable) main = html`<div class="to-empty"><p>${t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
+    else if (this.unreadable) main = html`<div class="to-empty"><p>${this.newer ? t('This link was made by a newer Tiny Little Office. Reload the page to get it.') : t('This link holds something that cannot be read. It may have been cut short when it was copied.')}</p><a class="to-btn primary" href=${routeHash(def.id)}>${t('New {noun}', { noun: def.noun })}</a></div>`;
     else if (!this.tag) main = html`<div class="to-empty to-loading" aria-busy="true">${t('Loading…')}</div>`;
     else {
       const tag = unsafeStatic(this.tag);
       main = staticHtml`<${tag} class="to-editor" .value=${this.edited} @docchange=${this.onDocChange}></${tag}>`;
     }
-    return html`${this.renderHeader()}${this.renderArrival()}<main class="to-main">${main}</main><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}`;
+    const skip = () => {
+      // The first place to type or act in the document itself, past the app's bar; else the page's main part.
+      const inDoc = [...(this.editor?.querySelectorAll<HTMLElement>('to-text, [contenteditable=true], input, textarea, [tabindex="0"], svg[tabindex], button') ?? [])].find((el) => !el.closest('to-bar'));
+      const to = inDoc ?? this.querySelector<HTMLElement>('.to-main');
+      to?.focus();
+    };
+    return html`<button type="button" class="to-btn to-skip" @click=${skip}>${def ? t('Skip to the document') : t('Skip to the apps')}</button>${this.renderHeader()}${this.renderArrival()}${this.renderOther()}<main class="to-main" tabindex="-1">${main}</main><to-find></to-find><to-drawer></to-drawer><to-toast></to-toast>${this.renderDialogs()}<to-dialog class="to-keys-dialog" heading=${t('Keyboard shortcuts')} .body=${renderShortcuts(def)}></to-dialog>`;
   }
 }
 customElements.define('to-shell', ToShell);
