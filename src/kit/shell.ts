@@ -26,7 +26,9 @@
  * follows (the header's icon home, a drawer row, a kept document) and the kit's go() (a template, a file opened, a
  * hand-off) open one dialog, Copy the link and go, Keep on this device and go, Go without; Escape stays. The browser's
  * Back is not asked about: it is how the link comes back. Closing the tab in that state gets the browser's own warning
- * (beforeunload), and only then. Under Saved the library has it, and an unchanged document is in the link that brought it.
+ * (beforeunload), and only then. A link copied through Share lives somewhere now: neither the dialog nor the warning
+ * comes again until the document changes. Under Saved the library has it, and an unchanged document is in the link
+ * that brought it.
  */
 import { LitElement, html, nothing } from 'lit';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
@@ -360,9 +362,12 @@ export class ToShell extends LitElement {
 
   /* ---------- leaving a document that lives only in its link ---------- */
 
-  /** Private, the document changed (or being typed) and its link not copied since: leaving it loses it. */
+  /**
+   * Private, the document changed (or being typed) and its link not copied since: leaving it loses it. (A sealed link
+   * before its password, a Display Link and an embed cannot be changed, so they never get here.)
+   */
   private get onlyInLink(): boolean {
-    return !!this.def && !this.sealed && !this.display && !this.embed && !keeping() && (this.changed || this.staged !== null) && !this.copied;
+    return !!this.def && !keeping() && (this.changed || this.staged !== null) && !this.copied;
   }
   /** The browser's own warning on closing the tab, registered exactly while the document lives only in its link. */
   private guard() {

@@ -7,6 +7,7 @@ import { keeping } from '../../src/kit/store.ts';
 import { setPrivate } from '../../src/kit/privacy.ts';
 import { library } from '../../src/kit/library.ts';
 import { go } from '../../src/kit/route.ts';
+import { openFile } from '../../src/kit/open.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 
@@ -94,6 +95,83 @@ test('Copy the link and go: the link on the clipboard, then home', async () => {
   } finally {
     navigator.clipboard.writeText = clip;
   }
+});
+
+test('Copy the link and go: when the clipboard refuses, the dialog stays open and so does the document', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Not copied');
+  const was = location.hash;
+  const clip = navigator.clipboard.writeText;
+  let tried = false;
+  navigator.clipboard.writeText = async () => {
+    tried = true;
+    throw new DOMException('Denied', 'NotAllowedError');
+  };
+  try {
+    icon(shell).click();
+    await until(() => !!asked(shell)?.open);
+    shell.querySelector<HTMLButtonElement>('.to-leave-copy')!.click();
+    await until(() => tried);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(asked(shell)!.open).toBe(true);
+    expect(location.hash).toBe(was);
+  } finally {
+    navigator.clipboard.writeText = clip;
+  }
+});
+
+test('after Share’s Copy link the icon goes home at once; changed again, it asks again', async () => {
+  const clip = navigator.clipboard.writeText;
+  navigator.clipboard.writeText = async () => {};
+  try {
+    const { openShare } = await import('./helpers.ts');
+    let shell = await mount('#/v1/write');
+    await type(shell, 'Shared');
+    await openShare(shell);
+    await until(() => !!shell.querySelector('to-share .to-copy-link'));
+    shell.querySelector<HTMLButtonElement>('to-share .to-copy-link')!.click();
+    await until(() => !unloadAsks());
+    shell.querySelector<HTMLDialogElement>('to-share dialog')?.close();
+    icon(shell).click();
+    await until(() => location.hash === '#/');
+    expect(asked(shell)?.open ?? false).toBe(false);
+    history.replaceState(null, '', location.pathname);
+    shell = await mount('#/v1/write');
+    await type(shell, 'Shared');
+    await openShare(shell);
+    await until(() => !!shell.querySelector('to-share .to-copy-link'));
+    shell.querySelector<HTMLButtonElement>('to-share .to-copy-link')!.click();
+    await until(() => !unloadAsks());
+    shell.querySelector<HTMLDialogElement>('to-share dialog')?.close();
+    await type(shell, 'More ');
+    const was = location.hash;
+    icon(shell).click();
+    await until(() => !!asked(shell)?.open);
+    expect(location.hash).toBe(was);
+  } finally {
+    navigator.clipboard.writeText = clip;
+  }
+});
+
+test('a Download hand-off and a file opened ask the same way, and the hash holds', async () => {
+  const shell = await mount('#/v1/write');
+  await type(shell, 'Hand me off');
+  const was = location.hash;
+  await openDrawerDoc(shell);
+  shell.querySelector<HTMLButtonElement>('.to-drawer-download > button')!.click();
+  const menu = () => shell.querySelector<HTMLElement>('.to-drawer-download [popover]')!;
+  await until(() => menu().matches(':popover-open'));
+  const off = [...menu().querySelectorAll<HTMLElement>('[role=group][aria-label="Open in"] [role^=menuitem]')].find((el) => el.textContent!.includes('Show as slides'))!;
+  off.click();
+  await until(() => !!asked(shell)?.open);
+  expect(location.hash).toBe(was);
+  asked(shell)!.close();
+  await until(() => !asked(shell)!.open);
+  expect(await openFile(new File(['# Opened\n\nWords.\n'], 'opened.md', { type: 'text/markdown' }), 'write')).toBe(true);
+  await until(() => !!asked(shell)?.open);
+  expect(location.hash).toBe(was);
+  shell.querySelector<HTMLButtonElement>('.to-leave-go')!.click();
+  await until(() => location.hash !== was && location.hash.startsWith('#/v1/write/'));
 });
 
 test('Keep on this device and go: Saved turned on, the document kept, then home', async () => {
