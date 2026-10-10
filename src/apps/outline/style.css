@@ -11,7 +11,10 @@
     --ol-step: 22px;
     --ol-row: 36px;
     padding: 8px 8px 20px 44px;
+    /* The outline's measure, centred in the window's width (so are its joins, its trail and its footnotes). */
+    width: 100%;
     max-width: 820px;
+    margin-inline: auto;
     /* A double tap edits; the page never zooms on it. */
     touch-action: manipulation;
   }
@@ -257,7 +260,9 @@
 
   /* One line under the bar while connecting; nothing else moves. */
   .ol-hint {
-    margin: 4px 0 0;
+    width: 100%;
+    max-width: 820px;
+    margin: 4px auto 0;
     padding: 0 4px;
   }
 
@@ -267,6 +272,9 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
+    width: 100%;
+    max-width: 820px;
+    margin-inline: auto;
     padding: 8px 8px 0 44px;
     font-size: 14px;
     color: var(--to-ink-3);
@@ -326,12 +334,14 @@
   /* The joins, under the outline, lined up with it. */
   .ol-links {
     padding: 4px 8px 20px 44px;
+    width: 100%;
     max-width: 820px;
+    margin-inline: auto;
   }
   /* The footnotes under the outline, numbered as their marks are: as a slide shows them at its foot. */
   .ol-fn {
-    max-width: 820px;
-    margin: 8px 0 20px 44px;
+    max-width: 776px;
+    margin: 8px 0 20px calc(max(0px, (100% - 820px) / 2) + 44px);
     padding: 8px 8px 0 var(--ol-step, 22px);
     font-size: 14px;
     color: var(--to-ink-2);

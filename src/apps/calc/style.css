@@ -5,7 +5,10 @@
   to-calc-editor {
     display: block;
   }
+  /* The tape and the keys keep their measure, centred in the window's width. */
   .calc {
+    max-width: var(--to-max-w);
+    margin-inline: auto;
     display: grid;
     gap: 12px;
     grid-template-areas: 'graph' 'paper' 'pad';

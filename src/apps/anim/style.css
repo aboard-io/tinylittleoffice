@@ -24,6 +24,8 @@
     display: block;
     width: 100%;
     max-height: calc(100dvh - var(--to-header-h) - 260px);
+    /* As wide as that height allows in the stage's shape, centred in the window's width. */
+    max-width: max(256px, (100dvh - var(--to-header-h) - 260px) * 8 / 5);
     min-height: 160px;
     height: auto;
     aspect-ratio: 8 / 5;

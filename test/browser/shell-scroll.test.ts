@@ -149,3 +149,54 @@ test('Escape puts back the title it had and closes the row; a tap elsewhere clos
   await tick(300);
   expect(header.getBoundingClientRect().height).toBe(56);
 });
+
+// On a desktop the document has the window, not a 1080px column (Paul, 2026-10-10): the editor's main and its bar
+// span it, the gutter the only inset; the Word Processor's paper runs edge to edge, its words at the page's measure.
+test('desktop: the editor has the window; the bar starts at the gutter and makes room for the menu once stuck', async () => {
+  await page.viewport(1280, 800);
+  const shell = await long();
+  const main = shell.querySelector<HTMLElement>('.to-main')!;
+  const bar = shell.querySelector<HTMLElement>('to-write-editor to-bar')!;
+  expect(main.getBoundingClientRect().width).toBe(document.documentElement.clientWidth);
+  expect(Math.round(main.getBoundingClientRect().left)).toBe(0);
+  // The bar's box spans the window; what is on it starts at the gutter.
+  expect(Math.round(bar.getBoundingClientRect().left)).toBe(0);
+  expect(Math.round(bar.getBoundingClientRect().width)).toBe(document.documentElement.clientWidth);
+  expect(Math.round((bar.firstElementChild as HTMLElement).getBoundingClientRect().left)).toBe(16);
+  expect(document.documentElement.scrollWidth).toBe(document.documentElement.clientWidth);
+
+  await scrollTo(shell, 1200);
+  await until(() => shell.hasAttribute('scrolled'));
+  await tick(300);
+  const b = shell.querySelector<HTMLElement>('.to-burger')!.getBoundingClientRect();
+  expect(Math.round(bar.getBoundingClientRect().top)).toBe(0);
+  expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(b.right - 0.5);
+  expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(document.documentElement.clientWidth + 0.5);
+  await scrollTo(shell, 0);
+  await page.viewport(414, 896);
+});
+
+test('desktop: the paper is as wide as the window, its words no wider than the page’s measure and centred', async () => {
+  await page.viewport(1280, 800);
+  const shell = await long();
+  const paper = shell.querySelector<HTMLElement>('.write-page')!.getBoundingClientRect();
+  const words = shell.querySelector<HTMLElement>('.write-page .write-text')!.getBoundingClientRect();
+  const w = document.documentElement.clientWidth;
+  expect(Math.round(paper.left)).toBe(0);
+  expect(Math.round(paper.width)).toBe(w);
+  // A letter page is 816px with an inch (96px) each side: 624px of words, in the middle of the window.
+  expect(words.width).toBeLessThanOrEqual(624.5);
+  expect(words.width).toBeGreaterThan(600);
+  expect(Math.abs(words.left + words.width / 2 - w / 2)).toBeLessThanOrEqual(1);
+  await page.viewport(414, 896);
+});
+
+test('desktop: the home page keeps its column', async () => {
+  await page.viewport(1280, 800);
+  const shell = await mount('');
+  const main = shell.querySelector<HTMLElement>('.to-main')!;
+  expect(main.classList.contains('to-wide')).toBe(false);
+  expect(getComputedStyle(main).maxWidth).toBe(getComputedStyle(document.documentElement).getPropertyValue('--to-max-w').trim());
+  expect(main.getBoundingClientRect().width).toBeLessThanOrEqual(1080);
+  await page.viewport(414, 896);
+});
