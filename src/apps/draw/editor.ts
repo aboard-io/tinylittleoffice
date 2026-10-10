@@ -11,23 +11,24 @@
  */
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
-import { Accessibility, ArrowDownToLine, ArrowUpToLine, Blend, Brush, Circle, ClipboardPaste, Copy, Diamond, Ellipsis, Eraser, Grid2x2, GripHorizontal, Layers, Minus, MousePointer2, MoveRight, PaintBucket, PenTool, Pencil, RotateCcw, RotateCw, Scissors, Shapes, Smile, Spline, Square, Tag, Trash2, Type, Wallpaper, ZoomIn, ZoomOut } from 'lucide';
-import { btn, tool } from '../../kit/bar.ts';
+import { Accessibility, Grid2x2, Layers, Shapes } from 'lucide';
+import { cmdBtn, cmdMenu, cmdTool } from '../../kit/bar.ts';
+import { contextOf, drawnIn, run, runKey } from '../../kit/commands.ts';
+import COMMANDS, { ALIGN_KEYS, CANVAS_KEYS, PIXEL_INKS, PIXEL_KEYS, TOOLS, TURN_STEP, TYPING, type Tool } from './commands.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI } from '../../kit/icons.ts';
 import { t } from '../../kit/i18n.ts';
-import type { MenuItem } from '../../kit/menu.ts';
-import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
+import { type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { docToHtml, htmlToBlocks } from '../../kit/clipboard.ts';
 import { textWidth } from '../../kit/draw.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { toast } from '../../kit/toast.ts';
 import { pinchZoom } from '../../kit/pinch.ts';
-import { TILE_INKS, TILE_SIDES, tileCss, tileFilled, tilePattern, tileRef } from '../../kit/tile.ts';
+import { TILE_INKS, tileCss, tileFilled, tilePattern, tileRef } from '../../kit/tile.ts';
 import { applyAll, runLength, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
 import { caret, insertRuns } from '../../kit/textops.ts';
-import { COLORS, GRID, H, TEXT_PX, W, addShape, alignOp, nextAlign, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, wordsOver, type Align, type Color, type DrawView, type Fill, type Kind, type Shape, type TextSize } from './model.ts';
+import { GRID, H, TEXT_PX, W, addShape, alignOp, bounds, canTurn, describeDrawing, duplicateShapes, floodSquare, iconOf, isLink, labelLines, labelPlain, labelText, linkEnds, normRot, paintSquare, pasteShapes, patchShape, patchShapes, pickShapes, readDrawing, removeShape, removeShapes, restackShapes, setAlt, setGrid, setPixels, setTile, shapesFromText, shapesTable, shapesToTlo, shapesWithin, simplify, strokeShape, turnPoint, turnedBounds, wordsOver, type Align, type DrawView, type Kind, type Shape } from './model.ts';
 import { TILE_SIDE, arrowDefs, shapeSvg, turnOf, type Theme } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/insert.ts';
@@ -42,8 +43,6 @@ export const tag = 'to-draw-editor';
 const snap = (n: number) => Math.round(n / GRID) * GRID;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
-/** 'f' draws by hand: a drag is a stroke, closed into a shape when it ends where it began. */
-type Tool = 'select' | Kind | 'f';
 /** The page's own colours, so a drawing looks right in the dark too. */
 export const THEME: Theme = { ink: 'var(--to-ink)', paper: 'var(--to-surface)', shade: 'var(--to-surface-2)' };
 
@@ -56,8 +55,6 @@ type Drag =
   | { mode: 'marquee'; from: [number, number]; to: [number, number]; base: number[] }
   | { mode: 'free'; pts: [number, number][] };
 
-/** How far a turn goes by the keys and the bar, and the step Shift holds a dragged turn to. */
-const TURN_STEP = 15;
 /** How long a Mod+C, X or V waits for the browser's own clipboard event before doing it by hand (Safari's comes late, or never). */
 const CLIP_WAIT = 120;
 
@@ -79,65 +76,6 @@ export function blockWords(b: Block | undefined): string {
   while (lines.length > 1 && !lines[lines.length - 1].some((r) => r.t.trim())) lines.pop();
   return labelText(lines.map((l) => l.filter((r) => r.t))).replace(/^( \| )+|( \| )+$/g, '').trim();
 }
-
-/** The tools in the bar, a key each. */
-const TOOLS: { id: Tool; name: () => string; icon: typeof Square; key: string }[] = [
-  { id: 'select', name: () => t('Select'), icon: MousePointer2, key: 'V' },
-  { id: 'r', name: () => t('Rectangle'), icon: Square, key: 'R' },
-  { id: 'e', name: () => t('Ellipse'), icon: Circle, key: 'E' },
-  { id: 'd', name: () => t('Diamond'), icon: Diamond, key: 'D' },
-  { id: 'l', name: () => t('Line'), icon: Minus, key: 'L' },
-  { id: 'a', name: () => t('Arrow'), icon: MoveRight, key: 'A' },
-  { id: 't', name: () => t('Text'), icon: Type, key: 'T' },
-  { id: 'k', name: () => t('Join two shapes'), icon: Spline, key: 'K' },
-  { id: 'v', name: () => t('Pen: any shape, a tap for each corner'), icon: PenTool, key: 'P' },
-  { id: 'f', name: () => t('Freehand: drag to draw a line or a shape'), icon: Brush, key: 'F' },
-];
-/** Every shape Insert ▾ can place, the bar's and the rest. */
-const SHAPES: { id: Kind; name: () => string }[] = [
-  { id: 'r', name: () => t('Rectangle') },
-  { id: 'o', name: () => t('Rounded box') },
-  { id: 'e', name: () => t('Ellipse') },
-  { id: 'd', name: () => t('Diamond') },
-  { id: 'h', name: () => t('Hexagon') },
-  { id: 'p', name: () => t('Parallelogram') },
-  { id: 'c', name: () => t('Cylinder') },
-  { id: 'n', name: () => t('Note') },
-  { id: 't', name: () => t('Text') },
-];
-const INKS: { c: Color | ''; name: () => string; hex: string }[] = [
-  { c: '', name: () => t('Black'), hex: '#18181b' },
-  { c: 'r', name: () => t('Red'), hex: COLORS.r },
-  { c: 'o', name: () => t('Orange'), hex: COLORS.o },
-  { c: 'g', name: () => t('Green'), hex: COLORS.g },
-  { c: 'b', name: () => t('Blue'), hex: COLORS.b },
-  { c: 'p', name: () => t('Purple'), hex: COLORS.p },
-];
-const SIZES: { z: TextSize; name: () => string; letter: () => string }[] = [
-  { z: 1, name: () => t('Small text'), letter: () => t('S') },
-  { z: 2, name: () => t('Medium text'), letter: () => t('M') },
-  { z: 3, name: () => t('Large text'), letter: () => t('L') },
-  { z: 4, name: () => t('Extra large text'), letter: () => t('XL') },
-];
-/** A text's three alignments: the bar's one button shows the one it has and goes on to the next; Mod+Shift+L, E and R set each (the Word Processor's keys, and every word processor's). */
-const ALIGNS: { al: Align | ''; name: () => string; icon: typeof Square; key: string }[] = [
-  { al: '', name: () => t('Align: left'), icon: UI.alignLeft, key: 'l' },
-  { al: 'c', name: () => t('Align: centre'), icon: UI.alignCenter, key: 'e' },
-  { al: 'r', name: () => t('Align: right'), icon: UI.alignRight, key: 'r' },
-];
-const alignKey = (e: KeyboardEvent) => ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey ? ALIGNS.find((x) => x.key === e.key.toLowerCase()) : undefined);
-
-/** The pixel inks, by letter, named. */
-const PIXEL_INKS: { k: string; name: () => string }[] = [
-  { k: 'a', name: () => t('Black') },
-  { k: 'b', name: () => t('Indigo') },
-  { k: 'c', name: () => t('Red') },
-  { k: 'd', name: () => t('Orange') },
-  { k: 'e', name: () => t('Yellow') },
-  { k: 'f', name: () => t('Green') },
-  { k: 'g', name: () => t('Sky') },
-  { k: 'h', name: () => t('Pink') },
-];
 
 /** What an edit remembers of the selection: the shapes chosen before it, and after (undo and redo choose them again). */
 interface Mark {
@@ -187,11 +125,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
    * The last Mod+C, X or V on the canvas: done by the browser's own clipboard event when it comes, or by hand when
    * it does not; whichever is first marks it done, so the other never does it again (a paste is one paste).
    */
-  private press: { clip: 'copy' | 'cut' | 'paste'; done: boolean; at: number } | null = null;
+  press: { clip: 'copy' | 'cut' | 'paste'; done: boolean; at: number } | null = null;
   /** The words being typed on a shape, as the one block <to-text> holds. */
   private wordsBlocks: Block[] = [];
   /** The icon the next tap will place, when the icon tool is armed. */
-  private stamp = '';
+  stamp = '';
   private svgEl: SVGSVGElement | null = null;
   /** The last tap on a shape by a finger or a pen, so a second one soon after on the same shape edits its words. */
   private lastTap = { idx: -1, at: 0 };
@@ -283,11 +221,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
   }
 
   /** The shapes as drawn right now: the document's, or the ones in motion under the pointer. */
-  private get shapes(): Shape[] {
+  get shapes(): Shape[] {
     return this.live ?? this.view.shapes;
   }
   /** The chosen shapes that are there. */
-  private get chosen(): number[] {
+  get chosen(): number[] {
     return this.picked.filter((i) => i >= 0 && i < this.shapes.length);
   }
   /** The one shape in hand: the last chosen; -1 for none. Set, it is the only one chosen. */
@@ -298,7 +236,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   set sel(i: number) {
     this.picked = i >= 0 ? [i] : [];
   }
-  private get selected(): Shape | null {
+  get selected(): Shape | null {
     return this.sel >= 0 ? (this.shapes[this.sel] ?? null) : null;
   }
 
@@ -312,13 +250,13 @@ export class ToDrawEditor extends DocElement<DrawView> {
     this.picked = after;
   }
   /** Every chosen shape changed the same way (a colour, a style, a size). */
-  private patchSel(p: Partial<Shape>, key?: string) {
+  patchSel(p: Partial<Shape>, key?: string) {
     const c = this.chosen;
     if (!c.length) return;
     this.change(patchShapes(this.doc, c.map((i) => [i, p])), c, key);
   }
   /** The texts in hand (or those given) set left, centred or right, as one step; false when none is a text. */
-  private alignSel(al: Align | '', which = this.chosen): boolean {
+  alignSel(al: Align | '', which = this.chosen): boolean {
     if (!which.some((i) => this.shapes[i]?.k === 't')) return false;
     this.change(alignOp(this.doc, which, al), this.chosen);
     return true;
@@ -329,7 +267,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     this.tool = 'select';
   }
   /** A shape of the default size in the middle of the canvas (a little along for each one already there), from Insert. */
-  private insert(k: Kind, text = '') {
+  insert(k: Kind, text = '') {
     const n = this.view.shapes.length;
     const s = sized({ k, x: 0, y: 0, w: 0, h: 0, f: 0, text });
     // Words pasted on their own make the box as wide as they are.
@@ -337,28 +275,28 @@ export class ToDrawEditor extends DocElement<DrawView> {
     this.add({ ...s, x: snap(clamp(W / 2 - s.w / 2 + (n % 5) * GRID * 2, 0, W - s.w)), y: snap(clamp(H / 2 - s.h / 2 + (n % 5) * GRID * 2, 0, H - s.h)) });
     if (k === 't' && !text) this.openWords();
   }
-  private removeSel() {
+  removeSel() {
     if (!this.chosen.length) return;
     this.change(removeShapes(this.doc, this.chosen), []);
   }
-  private duplicateSel() {
+  duplicateSel() {
     const { ops, sel } = duplicateShapes(this.doc, this.chosen);
     this.change(ops, sel);
   }
   /** The chosen shapes to the front or the back, or a place forward or back (Alt+Up/Down), together. */
-  private reorder(how: boolean | 1 | -1) {
+  reorder(how: boolean | 1 | -1) {
     if (!this.chosen.length) return;
     const { ops, at } = restackShapes(this.doc, this.chosen, how === true ? 'front' : how === false ? 'back' : how);
     this.change(ops, at);
   }
   /** A join from one shape to another (neither a join, not the same). */
-  private join(from: number, to: number) {
+  join(from: number, to: number) {
     const [a, b] = [this.view.shapes[from], this.view.shapes[to]];
     if (!a || !b || from === to || isLink(a.k) || isLink(b.k)) return;
     this.add({ k: 'k', x: from, y: to, w: 0, h: 0, f: 0, text: '' });
   }
   /** The two chosen shapes, when exactly two shapes (no joins) are chosen. */
-  private get pair(): [number, number] | null {
+  get pair(): [number, number] | null {
     const c = this.chosen;
     return c.length === 2 && c.every((i) => !isLink(this.shapes[i].k)) ? [c[0], c[1]] : null;
   }
@@ -382,18 +320,18 @@ export class ToDrawEditor extends DocElement<DrawView> {
     return true;
   }
   /** The chosen shapes turned by `deg` about their own centres (lines and joins stay as they are); a run of presses is one undo step. */
-  private turnBy(deg: number) {
+  turnBy(deg: number) {
     const c = this.chosen.filter((i) => canTurn(this.shapes[i].k));
     if (!c.length) return false;
     this.change(patchShapes(this.doc, c.map((i) => [i, { rot: normRot((this.shapes[i].rot ?? 0) + deg) }])), this.chosen, `turn:${this.chosen.join(',')}`);
     return true;
   }
   /** Whether any chosen shape can be turned. */
-  private get turnable(): boolean {
+  get turnable(): boolean {
     return this.chosen.some((i) => canTurn(this.shapes[i].k));
   }
   /** The pen's corners become a shape: its box is theirs, its points hundredths of it. */
-  private closePen() {
+  closePen() {
     const pts = this.pen;
     this.pen = [];
     if (pts.length >= 3) this.stroke(pts, true);
@@ -403,14 +341,14 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (s) this.add(s);
   }
   /** Zoom in steps of a quarter, between half size and four times. */
-  private zoomBy(d: number) {
+  zoomBy(d: number) {
     this.zoomTo(this.zoom + d);
   }
   private zoomTo(z: number) {
     this.zoom = clamp(Math.round(z * 4) / 4, 0.5, 4);
   }
   /** The Icon button: on a selected shape the icon goes before its label (or is the icon, for an icon shape); with none selected, the next tap places it on its own. */
-  private async pickIcon() {
+  async pickIcon() {
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const s = this.selected;
     const name = await chooseIcon({ emoji: false, current: s ? iconOf(s.text)[0] : undefined, none: !!s && !!iconOf(s.text)[0] && s.k !== 'i' });
@@ -607,50 +545,15 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   /* ---------- keys ---------- */
 
+  /** The canvas's keys (commands.ts), for the canvas alone: never from a bar button, a field, a popover, a dialog or the words. */
   private onKey = (e: KeyboardEvent) => {
-    // The canvas's keys are for the canvas alone: never from a bar button, a field, a popover, a dialog or the words.
     const at = e.composedPath()[0] as HTMLElement;
     if (e.defaultPrevented || !at.classList?.contains('draw-wrap')) return;
-    if (this.view.grid) return this.onPixelKey(e);
+    if (this.view.grid) return void runKey(e, PIXEL_KEYS, this);
     const mod = e.metaKey || e.ctrlKey;
-    if (this.pen.length) {
-      if (e.key === 'Enter') return (e.preventDefault(), this.closePen());
-      if (e.key === 'Escape') return (e.preventDefault(), void (this.pen = []));
-      if (e.key === 'Backspace') return (e.preventDefault(), void (this.pen = this.pen.slice(0, -1)));
-    }
-    if (e.key === 'Escape') {
-      // One step out per press: a join begun, then the chosen shapes, then the tool back to Select.
-      if (this.drag?.mode === 'link') this.drag = null;
-      else if (this.joinFrom >= 0) this.joinFrom = -1;
-      else if (this.chosen.length) this.sel = -1;
-      else if (this.tool !== 'select') {
-        this.tool = 'select';
-        this.stamp = '';
-      } else return;
-      return void e.preventDefault();
-    }
-    if (this.tool === 'k' && !mod && !e.altKey && this.joinKey(e)) return void e.preventDefault();
-    const picked = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
-    if (picked && !mod && !e.altKey) {
-      // K with two shapes chosen joins them; otherwise a letter picks its tool.
-      const pair = this.pair;
-      if (picked.id === 'k' && pair) this.join(pair[0], pair[1]);
-      else {
-        this.tool = picked.id;
-        this.joinFrom = -1;
-      }
-      return;
-    }
-    const chosen = this.chosen;
     const lower = e.key.toLowerCase();
-    if (mod && !e.altKey && !e.shiftKey && lower === 'a') {
-      e.preventDefault();
-      this.tool = 'select';
-      this.picked = this.shapes.map((_, i) => i);
-      return;
-    }
     const clip = mod && !e.altKey && !e.shiftKey ? ({ c: 'copy', x: 'cut', v: 'paste' } as const)[lower as 'c' | 'x' | 'v'] : undefined;
-    if (clip && (chosen.length || clip === 'paste')) {
+    if (clip && !this.pen.length && (this.chosen.length || clip === 'paste')) {
       // Not prevented: the browser's own copy, cut or paste event follows and does it. If none comes, by hand; never both.
       const press = { clip, done: false, at: performance.now() };
       this.press = press;
@@ -662,33 +565,53 @@ export class ToDrawEditor extends DocElement<DrawView> {
       }, CLIP_WAIT);
       return;
     }
-    // Mod+D is ours on the canvas, whatever is chosen (never the browser's bookmark).
-    if (mod && !e.altKey && lower === 'd') return void (e.preventDefault(), this.duplicateSel());
-    if (!chosen.length) return;
-    const align = alignKey(e);
-    if (align) return void (e.preventDefault(), this.alignSel(align.al));
+    runKey(e, CANVAS_KEYS, this);
+  };
+  /** Escape, one step out per press: a join begun, then the chosen shapes, then the tool back to Select; false with nothing to step out of. */
+  stepOut(): boolean {
+    if (this.drag?.mode === 'link') this.drag = null;
+    else if (this.joinFrom >= 0) this.joinFrom = -1;
+    else if (this.chosen.length) this.sel = -1;
+    else if (this.tool !== 'select') {
+      this.tool = 'select';
+      this.stamp = '';
+    } else return false;
+    return true;
+  }
+  /** A tool's letter (or its button): K with two shapes chosen joins them; otherwise the tool is in hand. */
+  pickTool(id: Tool, e?: Event) {
+    const pair = this.pair;
+    if (id === 'k' && pair && e instanceof KeyboardEvent) return this.join(pair[0], pair[1]);
+    this.tool = id;
+    if (e instanceof KeyboardEvent) this.joinFrom = -1;
+  }
+  /** Mod+A: every shape chosen, the tool back to Select. */
+  chooseAll() {
+    this.tool = 'select';
+    this.picked = this.shapes.map((_, i) => i);
+  }
+  /** The arrows nudge the shapes in hand by a grid step, Shift+Arrows by five; Mod+Arrows resize by one. False where they cannot move. */
+  nudgeKey(e: KeyboardEvent): boolean {
     const arrow: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     const step = arrow[e.key];
-    if (e.key === 'Delete' || e.key === 'Backspace') this.removeSel();
-    else if ((e.key === '[' || e.key === ']') && !mod && !e.altKey) {
-      // [ and ] rotate the chosen shapes 15° back or on.
-      if (!this.turnBy(e.key === ']' ? TURN_STEP : -TURN_STEP)) return;
-    } else if (e.key === 'Enter') {
-      if (chosen.length !== 1) return;
-      this.openWords();
-    } else if (step && e.altKey) {
-      // Alt+Up/Down: a place forward or back in the stack; Alt+Left/Right are the caret's (a word at a time) and never taken.
-      if (mod || !step[1]) return;
-      this.reorder(step[1] < 0 ? 1 : -1);
-    } else if (step) {
-      // Arrows nudge by a grid step, Shift+Arrows by five; Mod+Arrows resize by one.
-      const by = GRID * (e.shiftKey && !mod ? 5 : 1);
-      if (!this.nudge(step[0] * by, step[1] * by, mod)) return;
-    } else return;
-    e.preventDefault();
-  };
+    const mod = e.metaKey || e.ctrlKey;
+    const by = GRID * (e.shiftKey && !mod ? 5 : 1);
+    return !!step && this.nudge(step[0] * by, step[1] * by, mod);
+  }
+  /** Shapes or a pixel grid of n squares. */
+  setMode(n: number) {
+    this.edit(setGrid(this.doc, n));
+  }
+  removeTile() {
+    this.edit(setTile(this.doc, ''));
+  }
+  /** The pencil or the fill, an ink in hand (the eraser gives way to black). */
+  paintWith(mode: 'pen' | 'fill') {
+    this.pmode = mode;
+    if (this.ink === '.') this.ink = 'a';
+  }
   /** The Join tool from the keys: the arrows go from shape to shape, Enter takes the first end and then the other, which makes the join. */
-  private joinKey(e: KeyboardEvent): boolean {
+  joinKey(e: KeyboardEvent): boolean {
     const ends = this.shapes.flatMap((s, i) => (isLink(s.k) ? [] : [i]));
     if (!ends.length) return false;
     const by = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
@@ -734,7 +657,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
    * the key's or the button's own handler, so iOS lets the focus in and raises the keyboard. An icon shape
    * opens the icon picker instead.
    */
-  private openWords(i = this.sel) {
+  openWords(i = this.sel) {
     const s = this.view.shapes[i];
     const el = this.wordsEl;
     if (!s || !el || this.view.grid) return;
@@ -820,8 +743,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   };
   /** Escape, once <to-text> has closed its boxes and let a range go: the words as they were when editing began, in the same undo step as the typing. */
   private onWordsKey = (e: KeyboardEvent) => {
-    const align = !e.isComposing && !e.defaultPrevented ? alignKey(e) : undefined;
-    if (align) return void (e.preventDefault(), e.stopPropagation(), this.alignSel(align.al, [this.editing]));
+    if (!e.isComposing && runKey(e, ALIGN_KEYS, this)) return void e.stopPropagation();
     if (e.isComposing || e.key !== 'Escape' || e.defaultPrevented) return;
     e.preventDefault();
     e.stopPropagation();
@@ -909,7 +831,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (e.type === 'cut') this.removeSel();
   };
   /** The bar's Copy and Cut: the system clipboard as the page may write it, and this page's own memory of it. */
-  private copyOut(cut: boolean) {
+  copyOut(cut: boolean) {
     const c = this.clip();
     if (!c) return;
     const plain = () => navigator.clipboard?.writeText(c.text).catch(() => undefined);
@@ -921,7 +843,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     if (cut) this.removeSel();
   }
   /** The bar's Paste: the system clipboard's words if the page may read them, else what was last copied here. */
-  private async pasteIn() {
+  async pasteIn() {
     let text = '';
     try {
       text = await navigator.clipboard.readText();
@@ -934,7 +856,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   /* ---------- pixel mode ---------- */
 
-  private paint(x: number, y: number, flood = false) {
+  paint(x: number, y: number, flood = false) {
     const p = this.view.pixels;
     const next = flood ? floodSquare(p, x, y, this.ink) : paintSquare(p, x, y, this.ink);
     if (next !== p) this.edit(setPixels(this.doc, next), flood || !this.painting ? undefined : `pixels:${this.strokes}`);
@@ -962,23 +884,25 @@ export class ToDrawEditor extends DocElement<DrawView> {
     } else if (e.type === 'pointermove' && e.buttons && at && this.pmode === 'pen') this.paint(at[0], at[1]);
     else if (e.type === 'pointerup' || e.type === 'pointercancel') this.painting = false;
   }
-  private onPixelKey(e: KeyboardEvent) {
+  /** The pixel grid's cursor moved by an arrow. */
+  moveCursor(key: string): boolean {
     const n = this.view.pixels.n;
     const [x, y] = this.cursor;
     const step: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-    if (step[e.key]) {
-      e.preventDefault();
-      this.cursor = [clamp(x + step[e.key][0], 0, n - 1), clamp(y + step[e.key][1], 0, n - 1)];
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      this.paint(x, y, this.pmode === 'fill');
-    }
+    if (!step[key]) return false;
+    this.cursor = [clamp(x + step[key][0], 0, n - 1), clamp(y + step[key][1], 0, n - 1)];
+    return true;
   }
-  private clearPixels() {
+  /** Enter or Space: the square under the cursor painted (filled, with the fill in hand). */
+  paintHere() {
+    const [x, y] = this.cursor;
+    this.paint(x, y, this.pmode === 'fill');
+  }
+  clearPixels() {
     this.edit(setPixels(this.doc, { n: this.view.pixels.n, rows: this.view.pixels.rows.map((r) => '.'.repeat(r.length)) }));
   }
   /** The grid becomes the drawing's background: written into the head as a tile, and the shapes are shown over it. */
-  private useAsBackground() {
+  useAsBackground() {
     const p = this.view.pixels;
     if (!tileFilled(p)) return;
     this.edit([...setTile(this.doc, tileRef(p)), ...setGrid(this.doc, 0)]);
@@ -987,108 +911,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   /* ---------- menus ---------- */
 
-  private inserts(): MenuItem[] {
-    return [
-      ...SHAPES.map((s) => ({ group: t('Shapes'), label: s.name(), does: () => this.insert(s.id) })),
-      { group: t('Lines'), label: t('Line'), icon: Minus, does: () => this.insert('l') },
-      { group: t('Lines'), label: t('Arrow'), icon: MoveRight, does: () => this.insert('a') },
-      { group: t('Lines'), label: t('Join two shapes'), icon: Spline, hint: t('Press on one shape and let go on another'), does: () => (this.tool = 'k') },
-      { group: t('More'), label: t('Icon…'), icon: Smile, does: () => void this.pickIcon() },
-      { group: t('More'), label: t('Pen: any shape, a tap for each corner'), icon: PenTool, does: () => (this.tool = 'v') },
-      { group: t('More'), label: t('Freehand: drag to draw a line or a shape'), icon: Brush, does: () => (this.tool = 'f') },
-      { group: t('More'), label: t('Paste'), icon: ClipboardPaste, hint: 'Mod+V', does: () => void this.pasteIn() },
-    ];
-  }
-  private modeItems(): MenuItem[] {
-    const grid = this.view.grid;
-    return [
-      { label: t('Shapes'), icon: Shapes, checked: !grid, does: () => this.edit(setGrid(this.doc, 0)) },
-      ...TILE_SIDES.map((n) => ({ label: t('Pixels {n}×{n}', { n }), icon: Grid2x2, checked: grid === n, does: () => this.edit(setGrid(this.doc, n)) })),
-      ...(this.view.tile && !grid ? [{ group: t('Background'), label: t('Remove the background tile'), icon: Trash2, does: () => this.edit(setTile(this.doc, '')) }] : []),
-    ];
-  }
-  private arrangeItems(): MenuItem[] {
-    const s = this.selected;
-    const many = this.chosen.length > 1;
-    return [
-      { label: t('Bring to front'), icon: ArrowUpToLine, disabled: !s, does: () => this.reorder(true) },
-      { label: t('Send to back'), icon: ArrowDownToLine, disabled: !s, does: () => this.reorder(false) },
-      { label: t('Duplicate'), icon: Copy, hint: 'Mod+D', disabled: !s || (!many && isLink(s.k)), does: () => this.duplicateSel() },
-      { label: t('Delete'), icon: Trash2, hint: 'Delete', disabled: !s, does: () => this.removeSel() },
-    ];
-  }
-  /**
-   * The contextual bar under the shape in hand: inks | fill or line style | text size | edit the words,
-   * duplicate, front, back | copy, cut, paste | delete. While its words are typed, under them: size and ink only.
-   */
+  /** The bar under the shape in hand (commands.ts), or under its words while they are typed. */
   private contextItems(): ContextEntry[] {
-    const i = this.editing >= 0 ? this.editing : this.sel;
-    const s = this.shapes[i];
+    const s = this.shapes[this.editing >= 0 ? this.editing : this.sel];
     if (!s || this.view.grid) return [];
-    const inks: ContextEntry[] = INKS.map((ink) => ({ label: ink.name(), swatch: ink.hex, pressed: (s.c ?? '') === ink.c, does: () => this.patchSel({ c: (ink.c || undefined) as Color | undefined }) }));
-    const sizes: ContextEntry[] = s.k === 'i' ? [] : SIZES.map((x) => ({ label: x.name(), text: x.letter(), pressed: (s.z ?? 2) === x.z, does: () => this.patchSel({ z: x.z === 2 ? undefined : x.z }) }));
-    // A text's alignment, beside its size: the one it has, and a tap for the next.
-    const texts = this.editing >= 0 ? [i] : this.chosen;
-    const now = ALIGNS.find((x) => x.al === (s.al ?? '')) ?? ALIGNS[0];
-    const align: ContextEntry[] = texts.every((j) => this.shapes[j]?.k === 't') ? [{ label: now.name(), icon: now.icon, keys: `Mod+Shift+${now.key.toUpperCase()}`, does: () => this.alignSel(nextAlign(s.al), texts) }] : [];
-    if (this.editing >= 0) return [...sizes, ...align, SEP, ...inks];
-    const turns: ContextEntry[] = this.turnable
-      ? [
-          { label: t('Rotate left'), icon: RotateCcw, keys: '[', does: () => this.turnBy(-TURN_STEP) },
-          { label: t('Rotate right'), icon: RotateCw, keys: ']', does: () => this.turnBy(TURN_STEP) },
-        ]
-      : [];
-    const tail: ContextEntry[] = [
-      SEP,
-      { label: t('Copy'), icon: UI.copy, keys: 'Mod+C', disabled: isLink(s.k) && this.chosen.length < 2, does: () => this.copyOut(false) },
-      { label: t('Cut'), icon: Scissors, keys: 'Mod+X', disabled: isLink(s.k) && this.chosen.length < 2, does: () => this.copyOut(true) },
-      { label: t('Paste'), icon: ClipboardPaste, keys: 'Mod+V', does: () => void this.pasteIn() },
-      SEP,
-      { label: t('Delete'), icon: Trash2, keys: 'Delete', does: () => this.removeSel() },
-    ];
-    const lineLike = (k: Kind) => k === 'l' || k === 'a' || isLink(k) || k === 'w';
-    const fillsOf = (line: boolean): { f: Fill; label: string; icon: typeof Square }[] =>
-      line
-        ? [{ f: 0, label: t('Solid line'), icon: Minus }, { f: 1, label: t('Dashed line'), icon: GripHorizontal }, { f: 2, label: t('Dotted line'), icon: Ellipsis }]
-        : [{ f: 0, label: t('No fill'), icon: Square }, { f: 1, label: t('Grey fill'), icon: Blend }, { f: 2, label: t('Solid fill'), icon: PaintBucket }];
-    if (this.chosen.length > 1) {
-      // Several in hand: what can be done to them all (a style when they are all lines, or all shapes with an inside), and a join when they are two.
-      const pair = this.pair;
-      const kinds = this.chosen.map((j) => this.shapes[j].k).filter((k) => k !== 't' && k !== 'i');
-      const allLines = kinds.length > 0 && kinds.every(lineLike);
-      const allShapes = kinds.length > 0 && kinds.every((k) => !lineLike(k));
-      const look = allLines || allShapes ? fillsOf(allLines) : [];
-      const same = (f: Fill) => this.chosen.every((j) => this.shapes[j].k === 't' || this.shapes[j].k === 'i' || this.shapes[j].f === f);
-      return [
-        ...inks,
-        ...(look.length ? [SEP as ContextEntry, ...look.map((x): ContextEntry => ({ label: x.label, icon: x.icon, pressed: same(x.f), does: () => this.patchSel({ f: x.f }) }))] : []),
-        SEP,
-        ...sizes,
-        ...align,
-        SEP,
-        ...turns,
-        ...(pair ? [{ label: t('Join two shapes'), icon: Spline, keys: 'K', does: () => this.join(pair[0], pair[1]) }] : []),
-        { label: t('Duplicate'), icon: Copy, keys: 'Mod+D', does: () => this.duplicateSel() },
-        { label: t('Bring to front'), icon: ArrowUpToLine, does: () => this.reorder(true) },
-        { label: t('Send to back'), icon: ArrowDownToLine, does: () => this.reorder(false) },
-        ...tail,
-      ];
-    }
-    const fills = fillsOf(lineLike(s.k));
-    const style: ContextEntry[] = s.k === 't' || s.k === 'i' ? [] : [SEP as ContextEntry, ...fills.map((x) => ({ label: x.label, icon: x.icon, pressed: s.f === x.f, does: () => this.patchSel({ f: x.f }) }))];
-    const link = isLink(s.k);
-    return [
-      ...inks,
-      ...style,
-      ...(sizes.length ? ([SEP, ...sizes, ...align] as ContextEntry[]) : []),
-      SEP,
-      ...turns,
-      s.k === 'i' ? { label: t('Change the icon'), icon: Smile, keys: 'Enter', does: () => this.openWords() } : { label: t('Edit the words'), icon: Tag, keys: 'Enter', does: () => this.openWords() },
-      { label: t('Duplicate'), icon: Copy, keys: 'Mod+D', disabled: link, does: () => this.duplicateSel() },
-      { label: t('Bring to front'), icon: ArrowUpToLine, does: () => this.reorder(true) },
-      { label: t('Send to back'), icon: ArrowDownToLine, does: () => this.reorder(false) },
-      ...tail,
-    ];
+    return contextOf(this.editing >= 0 ? TYPING : COMMANDS, this) as ContextEntry[];
   }
 
   /* ---------- drawing ---------- */
@@ -1118,31 +945,31 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   private renderBar() {
     const v = this.view;
-    const s = this.selected;
-    const label = v.grid ? t('Pixels {n}×{n}', { n: v.grid }) : t('Shapes');
+    const own = (id: string) => COMMANDS.find((c) => c.id === `draw.${id}`)!;
+    const alt = own('alt');
+    const arrange = ['front', 'back', 'duplicate', 'delete'].map(own);
     return html`<to-bar class="draw-bar">
-      <to-insert .items=${this.inserts()}></to-insert>
-      <to-menu class="draw-mode" .label=${label} .icon=${v.grid ? Grid2x2 : Shapes} caret .items=${this.modeItems()}></to-menu>
-      ${TOOLS.map((x) => tool({ label: x.name(), icon: x.icon, keys: x.key, pressed: this.tool === x.id, does: () => (this.tool = x.id) }))}
-      ${tool({ label: s && !isLink(s.k) ? t('Put an icon on this shape') : t('Place an icon'), icon: Smile, keep: true, pressed: this.tool === 'i', does: () => void this.pickIcon() })}
-      <to-menu class="draw-arrange" icon-only .label=${t('Arrange')} .icon=${Layers} .items=${this.arrangeItems()}></to-menu>
-      <button type="button" class="to-btn draw-alt ${v.alt ? 'has' : ''}" aria-label=${v.alt ? t('Alt text: {alt}', { alt: v.alt }) : t('Add alt text: describe this drawing for people who cannot see it')} title=${v.alt ? t('Alt text: {alt}', { alt: v.alt }) : t('Add alt text: describe this drawing for people who cannot see it')} @click=${() => this.openAlt()}>${v.alt ? icon(UI.check, 16) : icon(Accessibility, 18)}<span>${t('Alt')}</span></button>
-      ${tool({ label: t('Zoom out'), icon: ZoomOut, disabled: this.zoom <= 0.5, does: () => this.zoomBy(-0.25) })}
-      ${tool({ label: t('Zoom in'), icon: ZoomIn, disabled: this.zoom >= 4, does: () => this.zoomBy(0.25) })}
+      <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+      ${cmdMenu(own('mode'), this, COMMANDS, 'draw-mode', { words: true, caret: true, icon: v.grid ? Grid2x2 : Shapes })}
+      ${TOOLS.map((x) => cmdTool(own(`tool.${x.id}`), this, { keep: false }))}
+      ${cmdTool(own('icon'), this)}
+      <to-menu class="draw-arrange" icon-only .label=${own('arrange').label(this)} .icon=${Layers} .items=${drawnIn(arrange, 'menu:arrange', this).map((it) => ({ ...it, disabled: it.disabled || !this.selected }))}></to-menu>
+      <button type="button" class="to-btn draw-alt ${v.alt ? 'has' : ''}" aria-label=${alt.label(this)} title=${alt.label(this)} @click=${() => run(alt, this)}>${v.alt ? icon(UI.check, 16) : icon(Accessibility, 18)}<span>${t('Alt')}</span></button>
+      ${cmdTool(own('zoomout'), this, { keep: false })} ${cmdTool(own('zoomin'), this, { keep: false })}
       ${this.undoTools()}
     </to-bar>`;
   }
 
   private renderPixelBar() {
-    const v = this.view;
+    const own = (id: string) => COMMANDS.find((c) => c.id === `draw.${id}`)!;
     return html`<to-bar class="draw-bar">
-      <to-menu class="draw-mode" .label=${t('Pixels {n}×{n}', { n: v.grid })} .icon=${Grid2x2} caret .items=${this.modeItems()}></to-menu>
-      ${PIXEL_INKS.map((ink) => html`<button type="button" class="to-btn to-tool draw-swatch" aria-label=${ink.name()} title=${ink.name()} aria-pressed=${String(this.ink === ink.k)} @click=${() => (this.ink = ink.k)}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`)}
-      ${tool({ label: t('Eraser'), icon: Eraser, pressed: this.ink === '.', does: () => (this.ink = '.') })}
-      ${tool({ label: t('Pencil'), icon: Pencil, pressed: this.pmode === 'pen', does: () => ((this.pmode = 'pen'), this.ink === '.' && (this.ink = 'a')) })}
-      ${tool({ label: t('Fill'), icon: PaintBucket, pressed: this.pmode === 'fill', does: () => ((this.pmode = 'fill'), this.ink === '.' && (this.ink = 'a')) })}
-      ${tool({ label: t('Clear the grid'), icon: Trash2, disabled: !tileFilled(v.pixels), does: () => this.clearPixels() })}
-      ${btn({ label: t('Background'), hint: t('Use as background'), icon: Wallpaper, disabled: !tileFilled(v.pixels), does: () => this.useAsBackground() })}
+      ${cmdMenu(own('mode'), this, COMMANDS, 'draw-mode', { words: true, caret: true, icon: Grid2x2 })}
+      ${PIXEL_INKS.map((ink) => {
+        const c = own(`pixel.${ink.k}`);
+        return html`<button type="button" class="to-btn to-tool draw-swatch cmd-draw-pixel-${ink.k}" aria-label=${c.label()} title=${c.label()} aria-pressed=${String(this.ink === ink.k)} @click=${() => run(c, this)}><span class="to-swatch" style="--swatch:${TILE_INKS[ink.k]}" aria-hidden="true"></span></button>`;
+      })}
+      ${['eraser', 'pencil', 'bucket', 'clear'].map((id) => cmdTool(own(id), this, { keep: false }))}
+      ${cmdBtn(own('background'), this, { keep: false })}
       ${this.undoTools()}
     </to-bar>`;
   }
@@ -1247,7 +1074,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
 
   /* ---------- alt text ---------- */
 
-  private openAlt() {
+  openAlt() {
     this.altDraft = this.view.alt;
     void this.updateComplete.then(() => this.querySelector<ToDialog>('.draw-alt-dialog')?.show());
   }

@@ -49,6 +49,8 @@ export interface Command<C = any> {
   context?: (c: C) => boolean;
   /** A menu (the bar draws a <to-menu>): its items are the commands drawn in `menu:<this>`. */
   menu?: string;
+  /** Words drawn on the button in the icon's place ("S", "M", "L": a text size). */
+  letter?: () => string;
   /** A colour shown as a dot in the icon's place (a theme's, an ink's). */
   swatch?: (c?: C) => string;
   /** The heading a menu item sits under (Insert ▾'s "A new document"), through t(). */
@@ -175,6 +177,8 @@ export interface Drawn {
   /** A menu item's heading. */
   group?: string;
   swatch?: string;
+  /** Words in the icon's place (context.ts ContextItem.text). */
+  text?: string;
   icon?: IconNode;
   hint?: string;
   keys?: string;
@@ -193,6 +197,7 @@ export function drawn<C>(cmd: Command<C>, c: C | null | undefined): Drawn {
     hint: cmd.hint?.(),
     ...(cmd.heading ? { group: cmd.heading(has ? c : undefined) } : {}),
     ...(cmd.swatch ? { swatch: cmd.swatch(has ? c : undefined) } : {}),
+    ...(cmd.letter ? { text: cmd.letter() } : {}),
     keys: cmd.keys,
     disabled: !has || !!cmd.disabled?.(c),
     ...(cmd.pressed ? { pressed: !!pressed, checked: !!pressed } : {}),
