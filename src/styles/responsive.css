@@ -36,6 +36,16 @@
       padding-top: env(safe-area-inset-top);
     }
     /* The templates too (home.ts; Paul, 2026-10-10: "a large modal that takes over the screen"): one column of rows under the head. */
+    /* The reader's line: the title on a line of its own, its controls (Unsigned, Present, Edit) on the next, since a phone has no width for all four. */
+    .to-display-head {
+      flex-wrap: wrap;
+    }
+    .to-display-title {
+      flex: 1 0 100%;
+    }
+    .to-display-head .to-trust-words {
+      display: none;
+    }
     .to-dialog.to-templates-dialog {
       margin: 0;
       width: 100vw;
