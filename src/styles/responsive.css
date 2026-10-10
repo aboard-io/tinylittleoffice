@@ -7,6 +7,11 @@
       --to-bleed-l: calc(-1 * var(--to-inset-l));
       --to-bleed-r: calc(-1 * var(--to-inset-r));
     }
+    /* The paper meets the header's hairline: no strip of the page's grey between the border and the document (Paul,
+       2026-10-10: "it has a border that has a gap between border and the main menu area"). */
+    .to-main.to-wide:has(> to-write-editor) {
+      padding-top: 0;
+    }
   }
   @media (max-width: 760px) {
     :root {

@@ -129,6 +129,8 @@ test('on a phone the Word Processor shows no bar until the words are tapped, and
   await page.viewport(390, 844);
   await coarse(true);
   const { text, shell } = await write();
+  // The paper meets the header's hairline: no strip of grey between the border and the document (Paul, 2026-10-10).
+  expect(shell.querySelector('.write-page')!.getBoundingClientRect().top).toBeCloseTo(shell.querySelector('.to-header')!.getBoundingClientRect().bottom, 0);
   // Opened with the focus in the words (the page's own): reading, no bar.
   expect(text.hasFocus()).toBe(true);
   expect(shown(bar())).toBe(false);

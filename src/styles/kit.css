@@ -1159,7 +1159,11 @@
   .to-drawer-doc to-menu {
     display: block;
   }
-  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn) {
+  /* The app's own rows under its name (a phone's: the bar is away while reading). */
+  .to-drawer-doc .to-drawer-app {
+    margin-top: 0.75em;
+  }
+  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn, button.to-drawer-cmd, to-menu.to-drawer-cmd > .to-btn) {
     width: 100%;
     justify-content: flex-start;
     gap: 0.625em;
@@ -1170,7 +1174,7 @@
     background: transparent;
     border-radius: var(--to-radius-sm);
   }
-  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn):hover {
+  .to-drawer-doc :is(.to-drawer-share, .to-drawer-download > .to-btn, button.to-drawer-cmd, to-menu.to-drawer-cmd > .to-btn):hover {
     background: var(--to-surface-2);
   }
   .to-drawer-doc .to-menu-keys {
@@ -1453,6 +1457,9 @@
     border-radius: var(--to-radius);
     background: var(--to-surface);
     color: var(--to-ink);
+  }
+  .to-palette-find:focus-visible {
+    outline-offset: 0;
   }
   .to-palette-list {
     max-height: min(24em, 55vh);
