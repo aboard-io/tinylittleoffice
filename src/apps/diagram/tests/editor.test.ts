@@ -611,9 +611,57 @@ test('Join in the bar: with a thing open or focused it arms joining from it, the
   await settle(el);
   await tap(el, thing(el, 'Database'));
   expect(last()).toContain('~ API -> Database');
-  // An org chart has it too (a dotted line); a mind map, which has no joins, does not.
-  const org = await editor(ORG);
-  expect(org.el.querySelector('to-bar button[aria-label="Join"]')).not.toBeNull();
-  const mind = await editor(SAMPLES.mind);
-  expect(mind.el.querySelector('to-bar button[aria-label="Join"]')).toBeNull();
+  // Every tree has it too (an org chart's or a family's dotted line, a mind map's cross-link); a timeline does not.
+  for (const k of ['org', 'family', 'mind']) expect((await editor(SAMPLES[k])).el.querySelector('to-bar button[aria-label="Join"]')).not.toBeNull();
+  expect((await editor(SAMPLES.timeline)).el.querySelector('to-bar button[aria-label="Join"]')).toBeNull();
+});
+
+test('a mind map joins: Join from an idea, a tap on another across the tree makes a cross-link, drawn as a dashed curve; its tap opens its words, its kind of line and Delete; Escape disarms', async () => {
+  const { el, last } = await editor('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n    - Press\n');
+  const join = () => el.querySelector<HTMLButtonElement>('to-bar button[aria-label="Join"]')!;
+  // The idea's own row has Join; Escape on the picture disarms it, nothing joined.
+  await tap(el, thing(el, 'Pricing'));
+  action(el, 'Join').click();
+  await settle(el);
+  expect(join().getAttribute('aria-pressed')).toBe('true');
+  expect(el.querySelector('.dg-hint')!.textContent).toContain('join Pricing to');
+  const before = last();
+  document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await settle(el);
+  expect(join().getAttribute('aria-pressed')).toBe('false');
+  expect(last()).toBe(before);
+  // Armed again, then the other idea: one edge block, a dashed curve on the picture.
+  await tap(el, thing(el, 'Pricing'));
+  action(el, 'Join').click();
+  await settle(el);
+  await tap(el, thing(el, 'Press'));
+  expect(last()).toBe('---\nkind: mind\n---\n- Launch\n  - Product\n    - Pricing\n  - Marketing\n    - Press\n\n~ Pricing -- Press\n');
+  const edge = el.querySelector<SVGGElement>('.dg-pic g.dg-thing.edge')!;
+  const curve = edge.querySelector('polyline[stroke-dasharray]')!;
+  expect(curve).not.toBeNull();
+  expect(edge.getAttribute('aria-label')).toBe('a connection');
+  // Its tap: its words open, typed in; its row has the kind of line and Delete.
+  const pts = curve.getAttribute('points')!.split(' ').map((p) => p.split(',').map(Number));
+  const [mx, my] = pts[Math.floor(pts.length / 2)];
+  const m = (curve as SVGGraphicsElement).getScreenCTM()!;
+  const at = new DOMPoint(mx, my).matrixTransform(m);
+  await tap(el, edge, { clientX: at.x, clientY: at.y });
+  expect(isOpen(el)).toBe(true);
+  await type(el, 'feeds');
+  expect(last()).toContain('~ Pricing -- Press: feeds');
+  action(el, 'Make it an arrow').click();
+  await settle(el);
+  expect(last()).toContain('~ Pricing -> Press: feeds');
+  expect(el.querySelectorAll('.dg-pic polygon').length).toBe(1);
+  // Enter keeps the words; the words drawn beside the curve open it again.
+  await key(el, 'Enter');
+  expect(isOpen(el)).toBe(false);
+  expect(last()).toContain('~ Pricing -> Press: feeds');
+  const words = things(el).find((g) => g.getAttribute('aria-label') === 'feeds')!;
+  expect(words.getAttribute('tabindex')).toBe('-1');
+  await tap(el, words);
+  expect(isOpen(el)).toBe(true);
+  action(el, 'Delete').click();
+  await settle(el);
+  expect(last()).not.toContain('~ ');
 });

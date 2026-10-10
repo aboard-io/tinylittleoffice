@@ -1,7 +1,7 @@
 // The Website editor in a real browser, edited in the page: the site drawn in its sandboxed frame the whole width
-// of the editor, whose own script runs and talks back; a tap on a thing takes it in hand (the box focused, its bar
-// beside it in the standard's order), a tap on it again opens its mini form, whose Done writes one op and whose
-// Escape writes nothing; Insert at the top left makes each kind after the thing in hand through its form; the
+// of the editor, whose own script runs and talks back; one tap on a thing opens its mini form and takes it in hand
+// (its bar under the form, inside it), the form's Done writes one op and its Escape writes nothing and leaves the
+// thing in hand (the box focused, its bar beside it in the standard's order); a tap on the empty page lets go; Insert at the top left makes each kind after the thing in hand through its form; the
 // quick actions and the keys; Preview on and off; copy, cut and paste; undo puts the thing back in hand; the
 // frame's own script; and at phone width the bar one row, the form inside the screen.
 import { beforeEach, expect, test } from 'vitest';
@@ -54,10 +54,18 @@ const box = (el: HTMLElement) => el.querySelector<HTMLElement>('.site-page')!;
 const ctxItems = (el: HTMLElement) => [...el.querySelectorAll<HTMLButtonElement>('to-context.site-context .to-context button')];
 const ctxOpen = (el: HTMLElement) => !!el.querySelector('to-context.site-context .to-context:popover-open');
 const ctxButton = (el: HTMLElement, label: string) => ctxItems(el).find((b) => b.getAttribute('aria-label') === label)!;
-/** Thing `o` tapped in the frame, where the frame says it is. */
-async function hold(el: ToSiteEditor, o: string) {
+/** Thing `o` tapped in the frame, where the frame says it is: its form opens at once. */
+async function tapThing(el: ToSiteEditor, o: string) {
   await tick(30);
   say(el, { do: 'pick', o, r: [20, 40, 300, 60], y: 0 });
+  await settle(el);
+}
+/** Thing `o` in hand, its form not open: tapped, and the form that opens closed as Escape closes it. */
+async function hold(el: ToSiteEditor, o: string) {
+  await tapThing(el, o);
+  await until(() => !!document.querySelector('dialog[open]'));
+  for (const d of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) d.close();
+  await until(() => !document.querySelector('dialog[open]'));
   await settle(el);
 }
 /** The form open now, once it is. */
@@ -153,10 +161,9 @@ test('a tap takes a thing in hand: the box focused, its bar beside it in the sta
   expect(document.activeElement).toBe(frame(el));
 });
 
-test('a heading’s form: a tap on the thing in hand opens it near the thing; Done writes the words as one op; Escape writes nothing; Done unchanged writes nothing', async () => {
+test('a heading’s form: one tap opens it near the thing; Done writes the words as one op; Escape writes nothing; Done unchanged writes nothing', async () => {
   const { el, changes, last } = await editor();
-  await hold(el, '8');
-  say(el, { do: 'edit', o: '8' });
+  await tapThing(el, '8');
   let f = await form();
   expect(f.querySelector('h2')!.textContent).toBe('Section');
   const words = field(f, 'Words');
@@ -170,12 +177,13 @@ test('a heading’s form: a tap on the thing in hand opens it near the thing; Do
   await settle(el);
   expect(changes).toEqual([]);
   // Escape: nothing.
-  say(el, { do: 'edit', o: '8' });
+  await tapThing(el, '8');
   f = await form();
   typeIn(field(f, 'Words'), 'Tea');
   await userEvent.keyboard('{Escape}');
   await until(() => !document.querySelector('.site-form-dialog'));
   expect(changes).toEqual([]);
+  expect(el.held).toBe('8');
   // Enter's form, and its Done: the heading's words, plain; the thing still in hand; one undo takes it back.
   key(box(el), 'Enter');
   f = await form();
@@ -432,19 +440,71 @@ test('Mod+C, Mod+X, Mod+V on the thing in hand: TLO text and our marked HTML out
   expect(last()).toBe(CAFE);
 });
 
-test('real taps inside the frame: a tap takes a button in hand, a tap on it again opens its form; the nav still goes from page to page', async () => {
+test('real taps inside the frame: one tap on a button opens its form, the button in hand; the nav still goes from page to page', async () => {
   const { el } = await editor();
   const f = inFrame(el);
   await f.getByRole('link', { name: 'See the menu' }).click();
-  await until(() => el.held === '2.0');
-  await until(() => ctxOpen(el));
-  await f.getByRole('link', { name: 'See the menu' }).click();
   const opened = await form();
+  expect(el.held).toBe('2.0');
   expect(field(opened, 'Words').value).toBe('See the menu');
   opened.querySelector<HTMLDialogElement>('dialog')!.close();
   await settle(el);
+  await until(() => ctxOpen(el));
+  expect(el.held).toBe('2.0');
   await f.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Menu' }).click();
   await until(() => el.cur === 1);
+});
+
+test('one tap: the form and the thing in hand at once, its bar under the form and inside it; a move from the bar closes the form unwritten; Escape leaves it in hand; a tap on the empty page lets go', async () => {
+  const { el, changes, last } = await editor();
+  await tapThing(el, '2.1');
+  const f = await form();
+  expect(el.held).toBe('2.1');
+  // The bar, lent to the modal form (outside it the page is inert), under the form.
+  const bar = () => document.querySelector<HTMLElement>('to-context.site-context .to-context')!;
+  await until(() => !!bar()?.matches(':popover-open'));
+  const dialog = f.querySelector('dialog')!;
+  expect(dialog.contains(bar())).toBe(true);
+  expect(bar().getBoundingClientRect().top).toBeGreaterThanOrEqual(dialog.getBoundingClientRect().bottom - 1);
+  const items = () => [...bar().querySelectorAll<HTMLButtonElement>('button')];
+  expect(items().map((b) => b.getAttribute('aria-label'))).toEqual(['Edit', 'Move up', 'Move down', 'Move left', 'Move right', 'Duplicate', 'Delete']);
+  // A word typed, then Move left from the bar: the form closes unwritten, the button moves, still in hand.
+  typeIn(field(f, 'Words'), 'Lost');
+  items().find((b) => b.getAttribute('aria-label') === 'Move left')!.click();
+  await until(() => !document.querySelector('.site-form-dialog'));
+  await settle(el);
+  expect(changes.length).toBe(1);
+  expect(last()).toContain('> Find us | #find-us\n> See the menu | #menu\n');
+  expect(last()).not.toContain('Lost');
+  expect(el.held).toBe('2.0');
+  // The bar is home again, beside the thing.
+  expect(el.querySelector('to-context.site-context')).not.toBeNull();
+  await until(() => ctxOpen(el));
+  // Tapped again, then Escape: nothing written, the thing in hand, the focus on the box, its bar beside it.
+  await tapThing(el, '2.0');
+  await form();
+  await userEvent.keyboard('{Escape}');
+  await until(() => !document.querySelector('.site-form-dialog'));
+  await settle(el);
+  expect(changes.length).toBe(1);
+  expect(el.held).toBe('2.0');
+  expect(document.activeElement).toBe(box(el));
+  await until(() => ctxOpen(el));
+  // Delete from the bar inside the form: the form gone, the button gone.
+  await tapThing(el, '2.0');
+  await form();
+  await until(() => !!bar()?.matches(':popover-open'));
+  items().find((b) => b.getAttribute('aria-label') === 'Delete')!.click();
+  await until(() => !document.querySelector('.site-form-dialog'));
+  await settle(el);
+  expect(last()).not.toContain('Find us | #find-us\n> See');
+  // A tap on the page's empty room: let go.
+  await hold(el, '1');
+  say(el, { do: 'pick', o: null });
+  await settle(el);
+  expect(el.held).toBeNull();
+  expect(ctxOpen(el)).toBe(false);
+  expect(document.querySelector('dialog[open]')).toBeNull();
 });
 
 test('Preview: the page as a visitor has it, the bar one Edit button; Edit, Escape, or Escape in the page come back', async () => {
@@ -496,7 +556,7 @@ test('a phone: the bar one row, the page the width of the screen, a form at the 
   f.querySelector<HTMLDialogElement>('dialog')!.close();
 });
 
-test('the frame’s own script: a tap takes a thing and outlines it, a tap again asks for its form, a section’s room takes its heading; the editor’s word moves the outline; Select All never takes the page', async () => {
+test('the frame’s own script: a tap takes a thing and outlines it, and says so every time; a tap on the empty room lets go; the editor’s word moves the outline; Select All never takes the page', async () => {
   // The page drawn for the editor, run same-origin here so its document can be reached.
   const { sitePage } = await import('../view.ts');
   const { parse } = await import('../../../doc/index.ts');
@@ -522,13 +582,18 @@ test('the frame’s own script: a tap takes a thing and outlines it, a tap again
   expect(d.querySelector('[data-o="1"]')!.classList.contains('site-cur')).toBe(false);
   // Not followed: the page shown is the same.
   expect(w.location.hash).toBe('');
+  // Tapped again (its form was closed meanwhile): said again.
   btn.click();
-  await until(() => said.some((m) => m.do === 'edit'));
-  expect(said.find((m) => m.do === 'edit')).toMatchObject({ o: '2.0' });
-  // The room of a section, away from its things: its heading.
-  d.querySelector<HTMLElement>('#home > .part')!.click();
   await until(() => said.filter((m) => m.do === 'pick').length === 2);
-  expect(said.filter((m) => m.do === 'pick')[1]).toMatchObject({ o: '0' });
+  expect(said.filter((m) => m.do === 'pick')[1]).toMatchObject({ o: '2.0' });
+  // The room of a section, away from its things: let go, the outline gone; again, nothing more said.
+  d.querySelector<HTMLElement>('#home > .part')!.click();
+  await until(() => said.filter((m) => m.do === 'pick').length === 3);
+  expect(said.filter((m) => m.do === 'pick')[2]).toMatchObject({ o: null });
+  expect(btn.classList.contains('site-cur')).toBe(false);
+  d.querySelector<HTMLElement>('#home > .part')!.click();
+  await tick(30);
+  expect(said.filter((m) => m.do === 'pick').length).toBe(3);
   // The editor says another is in hand: the outline moves; a word from a page drawn before is not heard.
   w.postMessage({ site: 7, held: '3' }, '*');
   await until(() => d.querySelector('[data-o="3"]')!.classList.contains('site-cur'));

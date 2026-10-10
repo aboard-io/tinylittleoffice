@@ -4,7 +4,8 @@
  * (its bubble's marks; a link's words take marks alone), words that are drawn plain an <input>, where a thing
  * goes an address field offering the site's own pages and sections, an icon a button that opens the kit's
  * picker. Nothing typed is a marker or a separator: the code writes the line. Done (or Enter) resolves what the
- * fields hold; Escape, the Close button or a tap outside resolves null, and nothing is written.
+ * fields hold; Escape, the Close button or a tap outside resolves null, and nothing is written. A form about a thing
+ * in the page has the thing's own bar under it (`lend`), inside the modal dialog, so its moves are a tap away.
  *
  *   askWords()      a page's, a section's or a heading's words, plain.
  *   askParagraph()  a paragraph: rich words, Shift+Enter a line break.
@@ -34,14 +35,21 @@ interface Form<T> {
 
 /** Where a form hangs from: the thing's rect on the screen. */
 export type Anchor = DOMRect | null;
+/**
+ * What the editor lends a form about a thing already in the page: given the open <dialog>, it puts the thing's bar
+ * inside it (outside a modal dialog the page is inert, and Move, Duplicate and Delete stay a tap away so), and gives
+ * back what takes the bar home again when the form closes.
+ */
+export type Lend = (d: HTMLDialogElement) => () => void;
 
 /** A form on the page's body, hung under (or over) the anchor where the screen is wide; resolves what `done` gives, or null. */
-function form<T>(heading: string, cls: string, anchor: Anchor, done: () => T | null, body: (f: Form<T>) => TemplateResult): Promise<T | null> {
+function form<T>(heading: string, cls: string, anchor: Anchor, done: () => T | null, body: (f: Form<T>) => TemplateResult, lend?: Lend): Promise<T | null> {
   return new Promise((resolve) => {
     const dialog = document.createElement('to-dialog') as ToDialog;
     dialog.heading = heading;
     dialog.className = `site-form-dialog ${cls}`;
     let answer: T | null = null;
+    let back: (() => void) | null = null;
     const f: Form<T> = {
       draw: () => (dialog.body = frame(f, body(f))),
       finish: (v) => {
@@ -55,12 +63,14 @@ function form<T>(heading: string, cls: string, anchor: Anchor, done: () => T | n
     };
     f.draw();
     dialog.addEventListener('to-close', () => {
+      back?.();
       dialog.remove();
       resolve(answer);
     });
     document.body.append(dialog);
     void dialog.show().then(() => {
       place(dialog.dialog, anchor);
+      if (lend && dialog.dialog.open) back = lend(dialog.dialog);
       const first = dialog.querySelector<HTMLElement>('[data-first] .tx, input[data-first], button[data-first]');
       first?.focus({ preventScroll: true });
     });
@@ -146,37 +156,37 @@ function iconField(o: { value: string; draw: () => void; set: (v: string) => voi
 /* ---------- the forms ---------- */
 
 /** A page's, a section's or a heading's words. */
-export function askWords(o: { heading: string; label: string; value: string; placeholder?: string; anchor: Anchor }): Promise<string | null> {
+export function askWords(o: { heading: string; label: string; value: string; placeholder?: string; anchor: Anchor; lend?: Lend }): Promise<string | null> {
   let v = o.value;
-  return form<string>(o.heading, 'site-form-words', o.anchor, () => v, () => html`${wordsField({ label: o.label, value: v, placeholder: o.placeholder, first: true, input: (x) => (v = x) })}`);
+  return form<string>(o.heading, 'site-form-words', o.anchor, () => v, () => html`${wordsField({ label: o.label, value: v, placeholder: o.placeholder, first: true, input: (x) => (v = x) })}`, o.lend);
 }
 
 /** A paragraph's words: rich, a line break with Shift+Enter. */
-export function askParagraph(o: { runs: Run[]; anchor: Anchor; heading?: string }): Promise<Run[] | null> {
+export function askParagraph(o: { runs: Run[]; anchor: Anchor; heading?: string; lend?: Lend }): Promise<Run[] | null> {
   let runs = o.runs;
   return form<Run[]>(o.heading ?? t('Paragraph'), 'site-form-p', o.anchor, () => runs, (f) =>
-    richField({ label: t('Words'), runs, placeholder: t('Words for the page'), breaks: true, first: true, set: (r) => (runs = r), enter: f.submit }),
+    richField({ label: t('Words'), runs, placeholder: t('Words for the page'), breaks: true, first: true, set: (r) => (runs = r), enter: f.submit }), o.lend,
   );
 }
 
 /** A button or a small link: its words, where it goes, its icon. */
-export function askLink(o: { heading: string; value: Link; anchors: [string, string][]; anchor: Anchor }): Promise<Link | null> {
+export function askLink(o: { heading: string; value: Link; anchors: [string, string][]; anchor: Anchor; lend?: Lend }): Promise<Link | null> {
   const v = { ...o.value };
   return form<Link>(o.heading, 'site-form-link', o.anchor, () => v, (f) =>
     html`${wordsField({ label: t('Words'), value: v.label, placeholder: t('Label'), first: true, input: (x) => (v.label = x) })}
     ${urlField({ value: v.url, anchors: o.anchors, input: (x) => (v.url = x) })}
-    ${iconField({ value: v.icon, draw: f.draw, set: (x) => (v.icon = x) })}`,
+    ${iconField({ value: v.icon, draw: f.draw, set: (x) => (v.icon = x) })}`, o.lend,
   );
 }
 
 /** A big link: its words and the line under them, rich (marks alone: the words are a link already), where it goes, its icon. */
-export function askCard(o: { value: CardFields; anchors: [string, string][]; anchor: Anchor }): Promise<CardFields | null> {
+export function askCard(o: { value: CardFields; anchors: [string, string][]; anchor: Anchor; lend?: Lend }): Promise<CardFields | null> {
   const v = { ...o.value };
   return form<CardFields>(t('Big link'), 'site-form-card', o.anchor, () => v, (f) =>
     html`${richField({ label: t('Words'), runs: v.head, placeholder: t('Heading'), marksOnly: true, first: true, set: (r) => (v.head = r), enter: f.submit })}
     ${richField({ label: t('A line under them'), runs: v.detail, placeholder: t('A line about it'), marksOnly: true, set: (r) => (v.detail = r), enter: f.submit })}
     ${urlField({ value: v.url, anchors: o.anchors, input: (x) => (v.url = x) })}
-    ${iconField({ value: v.icon, draw: f.draw, set: (x) => (v.icon = x) })}`,
+    ${iconField({ value: v.icon, draw: f.draw, set: (x) => (v.icon = x) })}`, o.lend,
   );
 }
 
@@ -186,7 +196,7 @@ export interface Shop {
   table: TableBlock;
 }
 /** The shop: its currency, where orders go, and its products, edited in the Spreadsheet in a dialog of its own. */
-export function askShop(o: { value: Shop; anchor: Anchor }): Promise<Shop | null> {
+export function askShop(o: { value: Shop; anchor: Anchor; lend?: Lend }): Promise<Shop | null> {
   const v = { ...o.value };
   const edit = async (f: Form<Shop>) => {
     const got = await editTable(v.table);
@@ -200,7 +210,7 @@ export function askShop(o: { value: Shop; anchor: Anchor }): Promise<Shop | null
       </div>
       ${wordsField({ label: t('Currency'), value: v.currency, placeholder: '$', cls: 'site-form-currency', input: (x) => (v.currency = x) })}
       ${wordsField({ label: t('Orders go to'), value: v.orders, placeholder: t('you@example.com, or orders are copied'), type: 'email', mode: 'email', input: (x) => (v.orders = x) })}`;
-  });
+  }, o.lend);
 }
 
 /** Whether two blocks are written alike (a form's Done that changed nothing writes nothing). */
