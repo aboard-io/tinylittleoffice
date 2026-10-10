@@ -34,9 +34,19 @@ export async function newLocker(password: string, iterations = PBKDF2_ITERATIONS
   return { salt, key: await deriveKey(password, salt, iterations) };
 }
 
-/** Encrypt a flag and bytes into a link's payload. */
-export async function seal(locker: Locker, flag: string, bytes: Uint8Array): Promise<string> {
-  const iv = globalThis.crypto.getRandomValues(new Uint8Array(IV_LEN));
+/** Encrypt a flag and bytes into a link's payload, under a fresh IV. */
+export function seal(locker: Locker, flag: string, bytes: Uint8Array): Promise<string> {
+  return sealAt(locker, flag, bytes, globalThis.crypto.getRandomValues(new Uint8Array(IV_LEN)));
+}
+
+/**
+ * For the test vectors alone (test/crypto-vectors.test.ts, docs/crypto/password.md): seal() with the IV
+ * given rather than drawn, so a fixed input has one known output. An IV used twice under one key gives the
+ * key away; nothing in the site calls this, and a test holds it to that.
+ * @internal
+ */
+export async function sealAt(locker: Locker, flag: string, bytes: Uint8Array, iv: Uint8Array): Promise<string> {
+  if (iv.length !== IV_LEN) throw new Error('an IV is 12 bytes');
   const plain = new Uint8Array(bytes.length + 1);
   plain[0] = flag.charCodeAt(0);
   plain.set(bytes, 1);

@@ -82,8 +82,16 @@ export const ownerLink = ({ id, key, o }: Owned, at = TINIER) => `${at}${id}#${k
 /** The public link from what the shell carries. */
 export const shortLink = ({ id, key }: Owned, at = TINIER) => `${at}${id}#${key}`;
 
-async function seal(link: string, rawKey: Uint8Array<ArrayBuffer>): Promise<{ c: string; iv: string }> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+const seal = (link: string, rawKey: Uint8Array<ArrayBuffer>) => sealShortAt(link, rawKey, crypto.getRandomValues(new Uint8Array(12)));
+
+/**
+ * For the test vectors alone (test/crypto-vectors.test.ts, docs/crypto/short-links.md): a short link's
+ * ciphertext with the IV given rather than drawn. Every version of a short link shares its key, so an IV
+ * used twice would give both versions away; nothing in the site calls this, and a test holds it to that.
+ * @internal
+ */
+export async function sealShortAt(link: string, rawKey: Uint8Array<ArrayBuffer>, iv: Uint8Array<ArrayBuffer>): Promise<{ c: string; iv: string }> {
+  if (iv.length !== 12) throw new Error('an IV is 12 bytes');
   const key = await crypto.subtle.importKey('raw', rawKey, 'AES-GCM', false, ['encrypt']);
   const c = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, utf8(link)));
   const out = { c: toBase64Url(c), iv: toBase64Url(iv) };

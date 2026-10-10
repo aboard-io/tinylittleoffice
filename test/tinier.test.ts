@@ -156,3 +156,11 @@ test('tinier: a copy of the site on this machine names itself, and its short lin
   const real = await (await handle(req('GET', '/'), new MemStore(), yes, page)).text();
   expect(real).toMatch(/const site = 'https:\/\/tinylittleoffice\.com'/);
 });
+
+test('tinier: the folder logs nothing, and neither does the site', async () => {
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const dir = new URL('../tinier/', import.meta.url);
+  for (const f of readdirSync(dir).filter((n) => (n.endsWith('.ts') && !n.endsWith('.d.ts')) || n.endsWith('.html'))) expect(readFileSync(new URL(f, dir), 'utf8'), f).not.toMatch(/console\.|\.log\(/);
+  expect(readFileSync(new URL('wrangler.jsonc', dir), 'utf8')).toMatch(/"observability": \{ "enabled": false \}/);
+  expect(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')).toMatch(/"observability": \{ "enabled": false \}/);
+});
