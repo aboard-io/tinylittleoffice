@@ -57,7 +57,8 @@ test('the header scrolls with the page, the bar sticks, the menu button is fixed
   const b = burger.getBoundingClientRect();
   expect(b.top).toBeGreaterThanOrEqual(0);
   expect(b.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
-  expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(b.right - 0.5);
+  // The menu button is at the right: the bar stops short of it.
+  expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(b.left + 0.5);
   expect(getComputedStyle(burger).boxShadow).not.toBe('none');
   // The strip behind the stuck bar is as tall as the bar, across the screen (measured on the screen, drawn under the zoom).
   expect(shell.style.getPropertyValue('--to-stuck-h')).toBe(`${Math.round(bar.getBoundingClientRect().height)}px`);
@@ -156,7 +157,7 @@ test('Escape puts back the title it had and closes the row; a tap elsewhere clos
 
 // On a desktop the document has the window, not a 1080px column (Paul, 2026-10-10): the editor's main and its bar
 // span it, the gutter the only inset; the Word Processor's paper runs edge to edge, its words at the page's measure.
-test('desktop: the editor has the window; the bar starts at the gutter and makes room for the menu once stuck', async () => {
+test('desktop: the editor has the window; the bar starts at the gutter and stops short of the menu button at the right once stuck', async () => {
   await page.viewport(1280, 800);
   const shell = await long();
   const main = shell.querySelector<HTMLElement>('.to-main')!;
@@ -174,8 +175,8 @@ test('desktop: the editor has the window; the bar starts at the gutter and makes
   await tick(300);
   const b = shell.querySelector<HTMLElement>('.to-burger')!.getBoundingClientRect();
   expect(Math.round(bar.getBoundingClientRect().top)).toBe(0);
-  expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(b.right - 0.5);
-  expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(document.documentElement.clientWidth + 0.5);
+  expect(bar.getBoundingClientRect().right).toBeLessThanOrEqual(b.left + 0.5);
+  expect(bar.getBoundingClientRect().left).toBeGreaterThanOrEqual(-0.5);
   await scrollTo(shell, 0);
   await page.viewport(414, 896);
 });

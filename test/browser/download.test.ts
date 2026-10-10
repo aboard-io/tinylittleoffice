@@ -32,16 +32,19 @@ test('at every size on a phone the Download button stays at the header\'s right 
     await openDownload(shell);
     const b = shell.querySelector('.to-download > button')!.getBoundingClientRect();
     const m = menu(shell).getBoundingClientRect();
-    // The button itself stays in the header's one row, at the screen's right (Paul: "the download button just hovers in the left").
+    // The button itself stays in the header's one row, at the screen's right, just before the menu button (Paul: "the download button just hovers in the left").
     const header = shell.querySelector('.to-header')!.getBoundingClientRect();
-    expect(b.right, `size ${at}`).toBeGreaterThan(390 - 24);
+    const burger = shell.querySelector('.to-burger')!.getBoundingClientRect();
+    expect(b.right, `size ${at}`).toBeGreaterThan(390 / 2);
+    expect(b.right, `size ${at}`).toBeLessThanOrEqual(burger.left + 0.5);
     expect(b.bottom, `size ${at}`).toBeLessThanOrEqual(header.bottom);
     expect(shell.querySelector('.to-share')!.getBoundingClientRect().top, `size ${at}`).toBe(b.top);
     expect(m.top, `size ${at}`).toBeGreaterThanOrEqual(b.bottom - 1);
     expect(m.top, `size ${at}`).toBeLessThan(b.bottom + 20);
     expect(m.right, `size ${at}`).toBeLessThanOrEqual(390);
-    // Right-aligned to the button (the button is at the screen's right): its right edge near the button's.
-    expect(Math.abs(m.right - b.right), `size ${at}`).toBeLessThan(16);
+    // Under the button: the button within the menu's span, the menu within the screen (the menu button sits at the screen's edge beside it).
+    expect(m.left, `size ${at}`).toBeLessThanOrEqual(b.left + 0.5);
+    expect(m.right, `size ${at}`).toBeGreaterThanOrEqual(b.right - 0.5);
     expect(m.left, `size ${at}`).toBeGreaterThanOrEqual(0);
     menu(shell).hidePopover();
   }
