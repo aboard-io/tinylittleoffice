@@ -41,7 +41,7 @@ import type { Locker } from './crypt.ts';
 import { ENVELOPE_KEYS, isoMinute, readEnvelope } from './envelope.ts';
 import { icon, UI } from './icons.ts';
 import { onLanguage, t } from './i18n.ts';
-import { exportAs, exportItems, picture, raster, saveFile, slug, utf8 } from './exports.ts';
+import { exportAs, exportItems, picture, raster, withPictures, saveFile, slug, utf8 } from './exports.ts';
 import { parseHash, routeHash, type Owned } from './route.ts';
 import { fitLine } from './limits.ts';
 import { DEFAULT_TTL, EXPIRIES, expiresLine, expiresSentence, forget, ownerLink, shorten, shortLink, timeLeft, update, type Shortened } from './short.ts';
@@ -793,7 +793,7 @@ export class ToShell extends LitElement {
   /** The one Share dialog: where the link fits, the two copies, the short link, the QR code, the short links kept here. */
   private renderShare() {
     const def = this.def!;
-    const share = async () => shareNative(this.docTitle, this.link, await picture(def.view(this.doc)));
+    const share = async () => shareNative(this.docTitle, this.link, await picture(await withPictures(def.view(this.doc))));
     const made = this.madeLine();
     return html`${made ? html`<p class="to-share-made">${made}</p>` : nothing}<p class="to-share-fit">${fitLine(this.link)}</p>
       <div class="to-share-links">

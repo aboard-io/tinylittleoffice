@@ -5,8 +5,10 @@
  * asks; one tap shows every web picture of this document for the rest of the visit (in memory, by the
  * document the shell has open: setPictureDoc). A picture inserted in this visit is the author's own choice
  * and shows at once (authored). Saved on this device, a switch in the menu shows them always. data: and
- * blob: pictures, and this site's own, are not from the web and always show. Exports (PDF, PNG, HTML,
- * docx) draw the document as it is: the person exporting chose to.
+ * blob: pictures, and this site's own, are not from the web and always show. A picture from a host on the
+ * whitelist (kit/media.ts TRUSTED) shows at once. Every web picture shown is asked of the proxy
+ * (kit/media.ts pictureSrc), never of its own site. Exports (PDF, PNG, HTML) draw the document as it is,
+ * the person exporting chose to, with each picture's bytes inside the file (kit/media.ts embedPictures).
  *
  * picture() is an <img> or the card, for an editor; gateSvg() and gateHtml() do the same to drawn pages
  * (an SVG <image>) and to a generated web page (an <img>); with `quiet` (a preview, a thumbnail) a web
@@ -19,6 +21,7 @@ import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
 import { xml } from './draw.ts';
 import { keeping, store } from './store.ts';
+import { hostOf, pictureSrc, trusted, webPicture } from './media.ts';
 
 /** The per-device switch, kept only while Saved. */
 const ALWAYS = 'tinyoffice.pictures';
@@ -28,23 +31,7 @@ let current = '';
 const shown = new Set<string>();
 const mine = new Set<string>();
 
-/** Whether an address is a picture from another site (http or https, another origin). */
-export function webPicture(url: string, base = typeof location === 'undefined' ? 'http://localhost/' : location.href): boolean {
-  try {
-    const u = new URL(url, base);
-    return (u.protocol === 'http:' || u.protocol === 'https:') && u.origin !== new URL(base).origin;
-  } catch {
-    return false;
-  }
-}
-/** A web picture's site, as the card names it. */
-export function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-}
+export { hostOf, webPicture } from './media.ts';
 
 const say = () => typeof window !== 'undefined' && window.dispatchEvent(new Event(PICTURES));
 /** Called when what shows changes (a tap on Show, the switch); returns the way to stop. */
@@ -74,7 +61,7 @@ export function setAlwaysPictures(on: boolean) {
   say();
 }
 /** Whether this picture may be fetched now. */
-export const mayShow = (url: string): boolean => !webPicture(url) || mine.has(url) || shown.has(current) || alwaysPictures();
+export const mayShow = (url: string): boolean => !webPicture(url) || trusted(url) || mine.has(url) || shown.has(current) || alwaysPictures();
 /** For the tests: a visit begun again. */
 export function forgetPictures() {
   shown.clear();
@@ -84,7 +71,7 @@ export function forgetPictures() {
 
 /** A picture in an editor: the <img> (no referrer), or, from the web and not yet asked for, the card. */
 export function picture(url: string, alt: string, cls = ''): TemplateResult {
-  if (mayShow(url)) return html`<img class=${cls} src=${url} alt=${alt} referrerpolicy="no-referrer" />`;
+  if (mayShow(url)) return html`<img class=${cls} src=${pictureSrc(url)} alt=${alt} referrerpolicy="no-referrer" />`;
   return html`<span class="to-webpic ${cls}" role="group" aria-label=${t('A picture from {host}', { host: hostOf(url) })}>
     ${icon(UI.image, 22)}
     <span class="to-webpic-words"><b>${hostOf(url)}</b>${alt ? html`<small>${alt}</small>` : ''}</span>
@@ -112,7 +99,8 @@ export function gateSvg(svg: string, quiet = false): string {
   if (!svg.includes('<image')) return svg;
   return svg.replace(/<image\b[^>]*?(?:\/>|>\s*<\/image>)/g, (tag) => {
     const url = unxml(attr(tag, 'href') ?? attr(tag, 'xlink:href') ?? '');
-    if (!webPicture(url) || (!quiet && mayShow(url))) return tag;
+    if (!webPicture(url)) return tag;
+    if (!quiet && mayShow(url)) return tag.replace(/(\s(?:xlink:)?href=")[^"]*"/, (_, head: string) => `${head}${xml(pictureSrc(url))}"`);
     return svgCard(tag, url, quiet);
   });
 }
@@ -130,14 +118,19 @@ export function gateHtml(page: string): { html: string; hidden: number } {
     if (webPicture(url) && !mayShow(url)) {
       hidden++;
       next = next.replace(/\ssrc="[^"]*"/, ` src="${placeholder(url)}"`);
-    }
+    } else if (webPicture(url)) next = next.replace(/\ssrc="[^"]*"/, ` src="${xml(pictureSrc(url))}"`);
     return next;
   });
-  return { html: out, hidden };
+  // A picture in a card the page loads on a tap (an embed) is asked of the proxy too.
+  const boxed = out.replace(/<div class="web-pic" data-as="img"[^>]*>/g, (tag) => {
+    const url = unxml(attr(tag, 'data-src') ?? '');
+    return webPicture(url) ? tag.replace(/\sdata-src="[^"]*"/, ` data-src="${xml(pictureSrc(url))}"`) : tag;
+  });
+  return { html: boxed, hidden };
 }
 
 /** Whether drawn pages hold a web picture not yet asked for. */
-export const hidesPictures = (svg: string): boolean => gateSvg(svg) !== svg;
+export const hidesPictures = (svg: string): boolean => gateSvg(svg).includes('data-webpic=""');
 
 const caught = new WeakSet<Document>();
 /** One catcher for the cards drawn inside pages: a tap, or Enter or Space on one, shows the document's web pictures. */

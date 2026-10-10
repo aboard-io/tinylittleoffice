@@ -3,6 +3,7 @@
 import { describe, expect, test, beforeEach } from 'vitest';
 import { leaving } from '../src/kit/link-guard.ts';
 import { authored, forgetPictures, gateHtml, gateSvg, mayShow, setPictureDoc, showPictures, webPicture } from '../src/kit/pictures.ts';
+import { pictureSrc } from '../src/kit/media.ts';
 
 const BASE = 'https://tinylittleoffice.com/write/#/v1/write/abc';
 
@@ -45,6 +46,8 @@ describe('pictures from the web', () => {
     expect(webPicture('blob:https://tinylittleoffice.com/1', base)).toBe(false);
   });
   const page = '<rect width="10" height="10"/><image href="https://example.com/a.png?x=1&amp;y=2" x="40" y="50" width="400" height="200" preserveAspectRatio="xMidYMid meet"/><image href="data:image/png;base64,AAAA" width="10" height="10"/>';
+  // Shown, it is drawn from the picture proxy, never from its own site (kit/media.ts).
+  const shownPage = page.replace('https://example.com/a.png?x=1&amp;y=2', pictureSrc('https://example.com/a.png?x=1&y=2'));
   test('a drawn page shows a web picture as its card, in its box; a data: picture as it is', () => {
     const out = gateSvg(page);
     expect(out).not.toContain('https://example.com');
@@ -65,7 +68,7 @@ describe('pictures from the web', () => {
     setPictureDoc('#/v1/write/one');
     expect(mayShow('https://example.com/a.png')).toBe(false);
     showPictures();
-    expect(gateSvg(page)).toBe(page);
+    expect(gateSvg(page)).toBe(shownPage);
     setPictureDoc('#/v1/write/two');
     expect(mayShow('https://example.com/a.png')).toBe(false);
     setPictureDoc('#/v1/write/one');
@@ -73,7 +76,7 @@ describe('pictures from the web', () => {
   });
   test('a picture put in this visit is the author’s own', () => {
     authored('https://example.com/a.png?x=1&y=2');
-    expect(gateSvg(page)).toBe(page);
+    expect(gateSvg(page)).toBe(shownPage);
     expect(mayShow('https://example.com/other.png')).toBe(false);
   });
   test('a generated page: web pictures grey (counted), every picture without a referrer', () => {

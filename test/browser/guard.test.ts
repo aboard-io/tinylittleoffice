@@ -9,12 +9,15 @@ import { keep } from '../../src/kit/library.ts';
 import { setKeeping } from '../../src/kit/store.ts';
 import { alwaysPictures, forgetPictures } from '../../src/kit/pictures.ts';
 import { askPicture } from '../../src/kit/insert-dialogs.ts';
+import { pictureSrc } from '../../src/kit/media.ts';
 import { openLink } from '../../src/kit/link-guard.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToDrawer } from '../../src/kit/drawer.ts';
 import indexHtml from '../../index.html?raw';
 
 const CAT = 'https://pictures.example/cat.png';
+// Shown, a web picture is asked of the picture proxy, never of its own site (kit/media.ts).
+const VIA = pictureSrc(CAT);
 
 afterEach(() => {
   forgetPictures();
@@ -119,13 +122,13 @@ test('a web picture is a quiet card until asked for; Show shows every one of thi
   expect(card).not.toBeNull();
   expect(card.textContent).toContain('pictures.example');
   expect(card.textContent).toContain('A cat on a mat');
-  expect(shell.querySelector(`img[src="${CAT}"]`)).toBeNull();
+  expect(shell.querySelector(`img[src="${VIA}"]`)).toBeNull();
   card.querySelector<HTMLButtonElement>('.to-webpic-show')!.click();
-  await until(() => !!shell.querySelector(`to-text img[src="${CAT}"]`));
-  expect(shell.querySelector(`to-text img[src="${CAT}"]`)!.getAttribute('referrerpolicy')).toBe('no-referrer');
+  await until(() => !!shell.querySelector(`to-text img[src="${VIA}"]`));
+  expect(shell.querySelector(`to-text img[src="${VIA}"]`)!.getAttribute('referrerpolicy')).toBe('no-referrer');
   // The same document again, this visit: shown. Another document: asked again.
   shell = await write(text);
-  expect(shell.querySelector(`to-text img[src="${CAT}"]`)).not.toBeNull();
+  expect(shell.querySelector(`to-text img[src="${VIA}"]`)).not.toBeNull();
   shell = await write(`Other.\n\n![](${CAT})\n`);
   expect(shell.querySelector('to-text .to-webpic')).not.toBeNull();
 });
@@ -148,17 +151,17 @@ test('a picture the author put in this visit shows without asking', async () => 
   document.querySelector<HTMLFormElement>('.to-ask-picture-form')!.requestSubmit();
   expect((await asked)?.url).toBe(CAT);
   const shell = await write(`![](${CAT})\n`);
-  expect(shell.querySelector(`to-text img[src="${CAT}"]`)).not.toBeNull();
+  expect(shell.querySelector(`to-text img[src="${VIA}"]`)).not.toBeNull();
 });
 
 test('the Display Link: a web picture is a card in the page, and a tap on it shows it', async () => {
   const shell = await mount(`#/v1/write/${encodeDoc(`Words.\n\n![A cat](${CAT})\n`)}?d`);
   await until(() => !!shell.querySelector('.to-display-page svg'));
-  expect(shell.querySelector(`.to-display image[href="${CAT}"]`)).toBeNull();
+  expect(shell.querySelector(`.to-display image[href="${VIA}"]`)).toBeNull();
   const card = shell.querySelector<SVGGElement>('.to-display [data-webpic]')!;
   expect(card.textContent).toContain('pictures.example');
   card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-  await until(() => !!shell.querySelector(`.to-display image[href="${CAT}"]`));
+  await until(() => !!shell.querySelector(`.to-display image[href="${VIA}"]`));
 });
 
 test('Saved: a switch in the menu shows pictures from the web always; Private, there is none', async () => {
@@ -178,7 +181,7 @@ test('Saved: a switch in the menu shows pictures from the web always; Private, t
   expect(alwaysPictures()).toBe(true);
   drawer.close();
   const w = await write(`![](${CAT})\n`);
-  expect(w.querySelector(`to-text img[src="${CAT}"]`)).not.toBeNull();
+  expect(w.querySelector(`to-text img[src="${VIA}"]`)).not.toBeNull();
 });
 
 test('a kept document’s row holds its first page, small, once it is in sight; drawn once', async () => {

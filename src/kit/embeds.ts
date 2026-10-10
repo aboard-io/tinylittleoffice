@@ -4,7 +4,8 @@
  * it as a card with the provider's name and a way to load it, and asks the provider for nothing until that
  * is tapped. Loaded, it comes from the provider's own privacy endpoint where there is one, in a sandboxed
  * frame that sends no referrer, or, for a sound, a film, a PDF or a picture that is simply a file, through
- * the browser's own element. `embedOf` is a pure function of the address (tests under node); `<to-embed>`
+ * the browser's own element; a picture (and an article's thumbnail) comes through the picture proxy
+ * (kit/media.ts pictureSrc). `embedOf` is a pure function of the address (tests under node); `<to-embed>`
  * is the card. The site's Content-Security-Policy (public/_headers) allows a frame or a medium from any
  * https: address and asks only bsky.app (who a handle is) and Wikipedia (an article's summary).
  * (Ported from the old tree's src/lib/embeds.ts and the card in src/kit/browser.ts.)
@@ -12,6 +13,7 @@
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { icon, UI } from './icons.ts';
 import { t } from './i18n.ts';
+import { pictureSrc } from './media.ts';
 
 /**
  * What kind of thing it is, which is how it is shown once tapped:
@@ -217,10 +219,10 @@ export class ToEmbed extends LitElement {
     const title = this.alt || web.title;
     if (summary)
       return html`<div class="to-embed-summary">
-        ${summary.thumb ? html`<img src=${summary.thumb} alt="" referrerpolicy="no-referrer" loading="lazy" />` : nothing}
+        ${summary.thumb ? html`<img src=${pictureSrc(summary.thumb)} alt="" referrerpolicy="no-referrer" loading="lazy" />` : nothing}
         <div><b>${summary.title}</b><p>${summary.extract}</p><a href=${web.url} target="_blank" rel="noopener noreferrer">${t('Read on {provider}', { provider: web.provider })}</a></div>
       </div>`;
-    if (web.kind === 'image') return html`<img src=${web.src} alt=${title} referrerpolicy="no-referrer" loading="lazy" />`;
+    if (web.kind === 'image') return html`<img src=${pictureSrc(web.src)} alt=${title} referrerpolicy="no-referrer" loading="lazy" />`;
     // (The site answers every request with Referrer-Policy: no-referrer, so a sound or a film carries none either.)
     if (web.kind === 'audio') return html`<audio controls preload="none" src=${web.src} title=${title}></audio>`;
     if (web.file && web.kind === 'video') return html`<video controls preload="none" playsinline src=${web.src} title=${title}></video>`;
