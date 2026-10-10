@@ -210,6 +210,31 @@ test('at phone width the bar is one row, nothing is wider than the screen, and t
   await page.viewport(1100, 800);
 });
 
+test("at a wide window the speaker notes take the slide's width under it, and the rail stays at the right edge, its top level with the slide", async () => {
+  await page.viewport(1920, 1080);
+  try {
+    const { el } = await editor(talk());
+    // An editor's main is the window's width (the shell's .to-wide).
+    el.closest('main')!.classList.add('to-wide');
+    await tick();
+    const at = (sel: string) => el.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
+    const canvas = at('.deck-canvas');
+    // The slide is capped by the window's height, so narrower than the room beside the rail.
+    expect(canvas.width).toBeLessThan(at('.deck-body').width - at('.deck-rail').width - 40);
+    for (const sel of ['.deck-notes-head', '.deck-notes .tx']) {
+      const r = at(sel);
+      expect(Math.round(r.left)).toBe(Math.round(canvas.left));
+      expect(Math.round(r.right)).toBe(Math.round(canvas.right));
+      expect(r.top).toBeGreaterThanOrEqual(canvas.bottom);
+    }
+    const rail = at('.deck-rail');
+    expect(Math.abs(rail.top - canvas.top)).toBeLessThanOrEqual(1);
+    expect(Math.round(rail.right)).toBe(Math.round(at('.deck-body').right));
+  } finally {
+    await page.viewport(1100, 800);
+  }
+});
+
 /* ---------- the editing standard (docs/editing.md): slides chosen on the rail, the keys, undo ---------- */
 
 const FOUR = '## A\n\n- a\n\n---\n\n## B\n\n---\n\n## C\n\n---\n\n## D\n';

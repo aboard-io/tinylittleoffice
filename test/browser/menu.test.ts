@@ -261,3 +261,24 @@ test('the templates list keeps the same keys: the arrows wrap, letters find, Ent
   expect(location.hash).toContain('demo');
   history.replaceState(null, '', location.pathname);
 });
+
+test("an item's keys are written at its end as the device writes them, and type-ahead reads its name alone", async () => {
+  document.body.innerHTML = '<div id="box"></div>';
+  render(
+    html`<to-menu label="Align" .items=${[
+      { label: 'Align left', keys: 'Mod+Shift+L', checked: true, does: () => {} },
+      { label: 'Centre', keys: 'Mod+Shift+E', checked: false, does: () => {} },
+    ]}></to-menu>`,
+    document.querySelector('#box')!,
+  );
+  const el = document.querySelector<ToMenu>('to-menu')!;
+  await el.updateComplete;
+  await openByKey(el);
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const kbds = [...document.querySelectorAll('.to-menu-item kbd.to-menu-keys')].map((k) => k.textContent);
+  expect(kbds).toEqual(mac ? ['⌘⇧L', '⌘⇧E'] : ['Ctrl+Shift+L', 'Ctrl+Shift+E']);
+  // "c" finds Centre by its name, never "Ctrl" in a key.
+  await until(() => named() === 'Align left');
+  press('c');
+  expect(named()).toBe('Centre');
+});
