@@ -1115,6 +1115,17 @@
     color: var(--to-ink);
     text-decoration: none;
   }
+  /* On the home page the name is a light serif on the header's bottom line, beside the mark (Paul, 2026-10-10: a lighter
+     serif, "don't make it so big just align it bottom"). The drawer's brand keeps the small bold form above. */
+  .to-header .to-brand {
+    /* The menu button is fixed, out of the flow: the words take its height and sit on its bottom edge. */
+    height: var(--to-touch);
+    align-items: flex-end;
+    padding-bottom: 2px;
+    font: 300 30px / 1 var(--to-font-serif);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
   .to-brand .to-mark {
     flex: none;
   }
@@ -1759,9 +1770,10 @@
   .to-app-open .to-icon {
     color: var(--to-accent);
   }
-  /* A long name at a large size breaks rather than pushing the templates button off the screen. */
-  .to-app-open b {
+  /* The name is plain, not bold (Paul, 2026-10-10); a long one at a large size breaks rather than pushing the templates button off the screen. */
+  .to-app-open .to-app-name {
     font-size: 16px;
+    font-weight: 400;
     min-width: 0;
     overflow-wrap: anywhere;
     hyphens: auto;

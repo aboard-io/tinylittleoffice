@@ -50,7 +50,7 @@ const fresh = (n = 1) => `New Document ${localDay()} #${n}`;
 test('the home page lists the apps as rows, each with its templates', async () => {
   const shell = await mount('');
   const tile = shell.querySelector('.to-app')!;
-  expect(tile.querySelector('b')!.textContent).toBe('Word Processor');
+  expect(tile.querySelector('.to-app-name')!.textContent).toBe('Word Processor');
   expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v1/write');
   const picker = tile.querySelector<HTMLButtonElement>('.to-templates-btn')!;
   // The button is the affordance alone, to the right of the name: no "Blank" written on every tile.
@@ -73,7 +73,7 @@ test('the home page lists the apps as rows, each with its templates', async () =
 
 test('the Diagram Maker lists a blank page a kind and no Blank of its own, its first kind chosen; the Word Processor still starts with Blank', async () => {
   const shell = await mount('');
-  const tile = [...shell.querySelectorAll<HTMLElement>('.to-app')].find((x) => x.querySelector('.to-app-open b')!.textContent === 'Diagram Maker')!;
+  const tile = [...shell.querySelectorAll<HTMLElement>('.to-app')].find((x) => x.querySelector('.to-app-open .to-app-name')!.textContent === 'Diagram Maker')!;
   expect(tile.querySelector<HTMLAnchorElement>('.to-app-open')!.getAttribute('href')).toBe('#/v1/diagram');
   tile.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
   await until(() => !!tile.querySelector('[role=option] svg'));
@@ -103,10 +103,10 @@ test('the home page has no copy: every app, in order, its icon, its name and its
   expect(shell.querySelector('to-home p, to-home h2, .to-app-open small')).toBeNull();
   for (const a of apps()) expect(shell.textContent).not.toContain(a.blurb);
   const tiles = [...shell.querySelectorAll('.to-app')];
-  expect(tiles.map((t) => t.querySelector('.to-app-open b')!.textContent)).toEqual(apps().map((a) => a.name));
+  expect(tiles.map((t) => t.querySelector('.to-app-open .to-app-name')!.textContent)).toEqual(apps().map((a) => a.name));
   for (const tile of tiles) {
     expect(tile.querySelector('.to-app-open svg')!.getAttribute('width')).toBe('20');
-    expect(tile.querySelector('.to-app-open')!.textContent!.trim()).toBe(tile.querySelector('b')!.textContent);
+    expect(tile.querySelector('.to-app-open')!.textContent!.trim()).toBe(tile.querySelector('.to-app-name')!.textContent);
     expect(tile.querySelector('to-templates .to-templates-btn')).not.toBeNull();
   }
 });

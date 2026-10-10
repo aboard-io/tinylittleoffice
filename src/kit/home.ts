@@ -217,7 +217,7 @@ export class ToHome extends LitElement {
         ${apps().map(
           (a) => html`<section class="to-app" aria-label=${a.name}>
             <div class="to-app-head">
-              <a class="to-app-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<b>${a.name}</b></a>
+              <a class="to-app-open" href=${routeHash(a.id)}>${icon(a.icon, 20)}<span class="to-app-name">${a.name}</span></a>
               <to-templates .app=${a}></to-templates>
             </div>
             ${this.drive(a, kept.filter((k) => k.app === a.id))}

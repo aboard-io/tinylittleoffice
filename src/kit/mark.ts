@@ -1,17 +1,13 @@
 /**
- * The Office mark: a small office building seen straight on, drawn as the lucide icons are (a 24 grid,
- * 2px round strokes, no fill, currentColor) so it sits with them in the header. A flat roof line, two rows
- * of two windows, a door at the bottom middle; a hair wider than tall. It is the menu button, the drawer's
- * heading, the favicon (public/favicon.svg) and the app icons and share card (scripts/icons.ts draws those
- * from markPaths). No DOM here: the script reads it under node.
+ * The mark: a sheet of paper with its corner turned down and two lines of words on it, drawn as Lucide draws its
+ * icons (24 by 24, a 2px stroke, round caps) so it sits among them (Paul, 2026-10-10: "a logo that looks like a piece
+ * of paper"). The one drawing is the menu button, the drawer's head, the favicon and app icons (scripts/icons.ts) and
+ * the cards (scripts/make-cards.ts).
  */
-
-/** The drawing, inside a 24 by 24 box: roof, walls and ground, four windows, the door. */
 export const markPaths = [
-  'M1.5 4.5h21', // the flat roof, a little past the walls
-  'M3.5 4.5v15.5h17V4.5', // the walls and the ground
-  'M7.5 8.5h1.5M15 8.5h1.5M7.5 12.5h1.5M15 12.5h1.5', // two rows of two windows
-  'M10 20v-4h4v4', // the door
+  'M14 2.5H6.5a1 1 0 0 0-1 1v17a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V7z', // the sheet, its top right corner turned down
+  'M14 2.5V7h4.5', // the fold
+  'M9 12.5h6M9 16.5h4', // two lines of words
 ];
 
 /** The mark as an SVG element, `size` pixels square, in the colour of the words around it. */
