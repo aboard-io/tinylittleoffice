@@ -539,7 +539,9 @@ test('§5 Mod+wheel zooms the picture; the wheel alone does not', async () => {
   await settle(el);
   expect(e.defaultPrevented).toBe(true);
   expect(pic.getBoundingClientRect().width).toBeGreaterThan(w);
-  expect(getComputedStyle(pic).touchAction).toBe('manipulation');
+  // One finger pans the frame; two are the picture's own zoom (kit/pinch.ts), never the browser's.
+  expect(getComputedStyle(pic).touchAction).toBe('pan-x pan-y');
+  expect(wrap.hasAttribute('data-spatial')).toBe(true);
 });
 
 /** Whether the line editor holds the focus right now, in the very handler that opened it (iOS raises its keyboard only so). */
@@ -907,4 +909,30 @@ test('at the normal size (a rem kit/zoom.ts BASE × 16px) the words sit on the t
   expect(Math.abs(w.left + w.width / 2 - (b.left + b.width / 2))).toBeLessThan(2);
   expect(Math.abs(w.top + w.height / 2 - (b.top + b.height / 2))).toBeLessThan(2);
   expect(w.width).toBeLessThanOrEqual(b.width + 2);
+});
+
+test('a second finger is a pinch: the picture zooms about the fingers, and the drag the first finger began on a thing is let go', async () => {
+  const { el, last } = await editor(ORG);
+  const before = last();
+  const pic = el.querySelector<SVGSVGElement>('.dg-pic')!;
+  const w = pic.getBoundingClientRect().width;
+  const eve = center(thing(el, 'Eve'));
+  const fire = (type: string, id: number, x: number, y: number, on: Element = document.elementFromPoint(x, y) ?? pic) =>
+    on.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }));
+  const [x, y] = [eve.clientX, eve.clientY];
+  fire('pointerdown', 1, x, y);
+  fire('pointermove', 1, x + 20, y);
+  fire('pointerdown', 2, x + 60, y);
+  fire('pointermove', 2, x + 120, y);
+  await new Promise(requestAnimationFrame);
+  await settle(el);
+  fire('pointerup', 2, x + 120, y);
+  fire('pointerup', 1, x + 20, y);
+  pic.dispatchEvent(new MouseEvent('click', { clientX: x + 20, clientY: y, bubbles: true }));
+  await settle(el);
+  expect(pic.getBoundingClientRect().width).toBeGreaterThan(w * 1.4);
+  expect(el.zoom % 0.25).toBe(0);
+  expect(last()).toBe(before);
+  expect(isOpen(el)).toBe(false);
+  expect(el.querySelector('.dg-pic g.dragging')).toBeNull();
 });

@@ -14,13 +14,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* The canvas is the page: no frame round it, to the screen's edges on a phone (the pixel grid keeps its frame). */
+  /* The canvas is the page: no frame round it, to the screen's edges on a phone (the pixel grid keeps its frame). It
+     takes the column's height below the bar and the hint, whatever the zoom, so a zoomed drawing scrolls inside it and
+     two fingers keep their point of it under them (kit/pinch.ts); the pixel grid is as tall as it is. */
   .draw-wrap {
     margin-left: var(--to-bleed-l);
     margin-right: var(--to-bleed-r);
     overflow: auto;
     max-height: calc(var(--to-col-h) - 5.875rem);
     min-height: 12.5rem;
+  }
+  .draw-wrap[data-spatial] {
+    height: calc(var(--to-col-h) - 5.875rem);
   }
   .draw-wrap:focus-visible {
     outline: 0.125rem solid var(--to-accent);
@@ -37,7 +42,8 @@
     height: auto;
     margin: 0 auto;
     background: var(--to-surface);
-    /* A finger on empty canvas pans a zoomed drawing (or the page); a pinch is the editor's, and so is a double tap. */
+    /* A finger on empty canvas pans a zoomed drawing (or the page); a pinch is the canvas's zoom (kit/pinch.ts), and a
+       double tap the editor's. */
     touch-action: pan-x pan-y;
     user-select: none;
     -webkit-user-select: none;

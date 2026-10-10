@@ -22,7 +22,9 @@
     margin-right: var(--to-bleed-r);
     background: var(--to-surface);
     overflow: auto;
-    max-height: calc(var(--to-col-h) - 5.875rem);
+    /* The column's height below the bar and the hint, whatever the zoom: a zoomed picture scrolls inside it, and two
+       fingers keep their point of it under them (kit/pinch.ts). */
+    height: calc(var(--to-col-h) - 5.875rem);
     min-height: 13.75rem;
     cursor: copy;
   }
@@ -38,8 +40,8 @@
     height: auto;
     margin: 0 auto;
     background: var(--to-surface);
-    /* Pans and pinches (the page zooms), never a double-tap zoom; a thing takes the finger only for its drag. */
-    touch-action: manipulation;
+    /* One finger pans the frame; two are the picture's zoom (kit/pinch.ts); a thing takes the finger only for its drag. */
+    touch-action: pan-x pan-y;
     user-select: none;
     -webkit-user-select: none;
   }

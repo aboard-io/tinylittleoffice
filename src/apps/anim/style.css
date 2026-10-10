@@ -4,6 +4,8 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* Its width, for the stage's frame (cqw). */
+    container-type: inline-size;
   }
   /* One line, always there, so the stage never jumps. */
   .anim-hint {
@@ -14,8 +16,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* The stage's frame is the height the stage has when it fits, whatever the zoom: a zoomed stage scrolls inside it,
+     two fingers keep their point of it under them (kit/pinch.ts), and nothing under it moves. */
   .anim-wrap {
     padding: 0.75rem;
+    height: calc(max(10rem, min((100cqw - 1.5rem) * 5 / 8, var(--to-col-h) - 12.75rem)) + 1.5rem);
     overflow: auto;
     background: var(--to-surface-2);
     border-radius: var(--to-radius);
@@ -33,8 +38,9 @@
     background: var(--to-surface);
     border: 1px solid var(--to-border);
     border-radius: var(--to-radius);
-    /* A finger on the empty stage scrolls the page; on a shape, a corner or the handle, or while a drag is on, the stage keeps it. */
-    touch-action: manipulation;
+    /* A finger on the empty stage scrolls its frame and two zoom it (kit/pinch.ts); on a shape, a corner or the handle,
+       or while a drag is on, the stage keeps it. */
+    touch-action: pan-x pan-y;
     user-select: none;
     -webkit-user-select: none;
     overflow: hidden;

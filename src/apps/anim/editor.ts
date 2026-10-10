@@ -25,6 +25,7 @@ import type { MenuItem } from '../../kit/menu.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { GENERATOR, docToHtml, htmlToBlocks } from '../../kit/clipboard.ts';
 import { toast } from '../../kit/toast.ts';
+import { pinchZoom } from '../../kit/pinch.ts';
 import { applyAll, parse, write, type Doc, type Op } from '../../doc/index.ts';
 import { GRID, H, W, bounds, isDrawn, isLink, shapesTable, type Shape } from '../draw/model.ts';
 import { THEME } from '../draw/editor.ts';
@@ -112,6 +113,9 @@ export class ToAnimEditor extends DocElement<AnimView> {
   private lastTap: { i: number; at: number } | null = null;
   /** The last Mod+C, X or V on the stage: done by the browser's own event or by hand, whichever comes first, never both. */
   private press: { clip: 'copy' | 'cut' | 'paste'; done: boolean; at: number } | null = null;
+  /** Two fingers are on the stage: the pinch is kit/pinch.ts's, and the pointers are not the shapes'. */
+  private pinching = false;
+  private unpinch: (() => void) | null = null;
 
   constructor() {
     super();
@@ -173,6 +177,29 @@ export class ToAnimEditor extends DocElement<AnimView> {
     this.addEventListener('docredo', this.onInnerHistory, true);
     // On the document: with nothing selected a browser may send the event to the body rather than the stage.
     for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener);
+    // Two fingers zoom the stage about them and pan it, read as every spatial canvas reads them (in Draw mode, Draw's).
+    this.unpinch = pinchZoom(this, {
+      frame: () => (this.mode === 'move' ? this.querySelector<HTMLElement>('.anim-wrap') : null),
+      picture: () => this.stageEl,
+      zoom: () => this.zoom,
+      start: () => {
+        // A second finger: whatever the first one began is let go, as it was.
+        this.pinching = true;
+        this.drag = null;
+        this.live = null;
+        this.held = false;
+        this.lastTap = null;
+      },
+      set: (z) => {
+        this.zoom = clamp(z, 1, 4);
+        return this.updateComplete;
+      },
+      end: (z) => {
+        this.pinching = false;
+        this.zoom = clamp(Math.round(z * 4) / 4, 1, 4);
+        return this.updateComplete;
+      },
+    });
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -180,6 +207,8 @@ export class ToAnimEditor extends DocElement<AnimView> {
     this.removeEventListener('docundo', this.onInnerHistory, true);
     this.removeEventListener('docredo', this.onInnerHistory, true);
     for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener);
+    this.unpinch?.();
+    this.unpinch = null;
     this.querySelector<ToContext>('.anim-context')?.hide();
     cancelAnimationFrame(this.raf);
   }
@@ -506,7 +535,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     return new DOMRect(left, top, Math.max(...rects.map((r) => r.right)) - left, Math.max(...rects.map((r) => r.bottom)) - top);
   }
   private onDown(e: PointerEvent) {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || this.pinching) return;
     const target = e.target as Element;
     const idx = target.closest('[data-idx]')?.getAttribute('data-idx');
     const corner = target.closest('[data-corner]')?.getAttribute('data-corner');
@@ -684,7 +713,7 @@ export class ToAnimEditor extends DocElement<AnimView> {
     // A finger's 44px, in stage units, for the corners and the size handle; a mouse's is what is drawn.
     const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     const reach = (drawn: number) => (coarse ? Math.max(drawn, FINGER / 2 / this.scale()) : drawn);
-    return html`<div class="anim-wrap" @wheel=${this.onWheel}>
+    return html`<div class="anim-wrap" data-spatial @wheel=${this.onWheel}>
       <svg class="anim-stage ${this.held ? 'held' : ''}" style=${this.zoom === 1 ? '' : `width:${this.zoom * 100}%;max-height:none;max-width:none`} viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="application" aria-label=${t('Stage: {alt}. Arrow keys move the shape in hand (or the time), comma and full stop step a frame, Space plays, K keeps a key.', { alt: altOf(a) })} tabindex="0"
         @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         ${unsafeSVG(frameSvg(a, now, THEME))}

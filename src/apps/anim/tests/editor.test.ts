@@ -587,3 +587,31 @@ test('Draw mode has Draw\'s Align for a text in hand: a title centred there is c
   expect(last()).toContain('\nt | 4 | 20 | 20 | 4 | 04= | Lift off\n');
   expect(keysTable(last())).toBe(keysTable(LIFT));
 });
+
+test('a second finger is a pinch: the stage zooms about the fingers in its frame, and the drag the first finger began is let go', async () => {
+  const { el, last } = await editor(LIFT);
+  const before = last();
+  const svg = stage(el);
+  const w = svg.getBoundingClientRect().width;
+  const wrap = el.querySelector<HTMLElement>('.anim-wrap')!;
+  expect(wrap.hasAttribute('data-spatial')).toBe(true);
+  const frameH = wrap.getBoundingClientRect().height;
+  const { clientX: x, clientY: y } = screen(svg, 100, 100);
+  const fire = (type: string, id: number, cx: number, on: Element = document.elementFromPoint(cx, y) ?? svg) =>
+    on.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: cx, clientY: y, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }));
+  fire('pointerdown', 1, x);
+  fire('pointermove', 1, x + 10, svg);
+  fire('pointerdown', 2, x + 40);
+  fire('pointermove', 2, x + 80, svg);
+  await new Promise(requestAnimationFrame);
+  await el.updateComplete;
+  fire('pointerup', 2, x + 80, svg);
+  fire('pointerup', 1, x + 10, svg);
+  await el.updateComplete;
+  expect(el.zoom).toBeGreaterThan(1.5);
+  expect(el.zoom % 0.25).toBe(0);
+  expect(svg.getBoundingClientRect().width).toBeGreaterThan(w * 1.4);
+  // The frame holds still: what is under it does not move.
+  expect(wrap.getBoundingClientRect().height).toBeCloseTo(frameH, 0);
+  expect(last()).toBe(before);
+});

@@ -22,6 +22,7 @@ import { docToHtml, htmlToBlocks } from '../../kit/clipboard.ts';
 import { textWidth } from '../../kit/draw.ts';
 import type { ToDialog } from '../../kit/dialog.ts';
 import { toast } from '../../kit/toast.ts';
+import { pinchZoom } from '../../kit/pinch.ts';
 import { TILE_INKS, TILE_SIDES, tileCss, tileFilled, tilePattern, tileRef } from '../../kit/tile.ts';
 import { applyAll, runLength, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import type { TextOps, ToText } from '../../kit/text.ts';
@@ -194,9 +195,9 @@ export class ToDrawEditor extends DocElement<DrawView> {
   private svgEl: SVGSVGElement | null = null;
   /** The last tap on a shape by a finger or a pen, so a second one soon after on the same shape edits its words. */
   private lastTap = { idx: -1, at: 0 };
-  /** The fingers on the canvas, by pointer, and the pinch in hand when there are two. */
-  private fingers = new Map<number, [number, number]>();
-  private pinch: { dist: number; zoom: number } | null = null;
+  /** Two fingers are on the canvas: the pinch is kit/pinch.ts's, and the pointers are not the tools'. */
+  private pinching = false;
+  private unpinch: (() => void) | null = null;
   /** Counts the pixel strokes, so each stroke is one undo step. */
   private strokes = 0;
   private painting = false;
@@ -234,11 +235,34 @@ export class ToDrawEditor extends DocElement<DrawView> {
     this.addEventListener('keydown', this.onKey);
     // On the document: with nothing selected a browser may send the event to the body rather than the canvas.
     for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener);
+    // Two fingers zoom the canvas about them and pan it, read as every spatial canvas reads them.
+    this.unpinch = pinchZoom(this, {
+      frame: () => this.querySelector<HTMLElement>('.draw-wrap[data-spatial]'),
+      picture: () => this.querySelector('svg.draw-canvas'),
+      zoom: () => this.zoom,
+      start: () => {
+        // A second finger: whatever the first one began is let go.
+        this.pinching = true;
+        this.drag = null;
+        this.live = null;
+      },
+      set: (z) => {
+        this.zoom = clamp(z, 0.5, 4);
+        return this.updateComplete;
+      },
+      end: (z) => {
+        this.pinching = false;
+        this.zoomTo(z);
+        return this.updateComplete;
+      },
+    });
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('keydown', this.onKey);
     for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener);
+    this.unpinch?.();
+    this.unpinch = null;
     this.querySelector<ToContext>('.draw-context')?.hide();
     this.querySelector<ToContext>('.draw-words to-context')?.hide();
   }
@@ -380,7 +404,10 @@ export class ToDrawEditor extends DocElement<DrawView> {
   }
   /** Zoom in steps of a quarter, between half size and four times. */
   private zoomBy(d: number) {
-    this.zoom = clamp(Math.round((this.zoom + d) * 4) / 4, 0.5, 4);
+    this.zoomTo(this.zoom + d);
+  }
+  private zoomTo(z: number) {
+    this.zoom = clamp(Math.round(z * 4) / 4, 0.5, 4);
   }
   /** The Icon button: on a selected shape the icon goes before its label (or is the icon, for an icon shape); with none selected, the next tap places it on its own. */
   private async pickIcon() {
@@ -414,26 +441,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
     this.querySelector<HTMLElement>('.draw-wrap')?.focus({ preventScroll: true });
   }
 
-  /** Two fingers on the canvas: the distance between them. */
-  private spread(): number {
-    const [a, b] = [...this.fingers.values()];
-    return a && b ? Math.hypot(a[0] - b[0], a[1] - b[1]) : 0;
-  }
   private onDown(e: PointerEvent) {
     if (e.button !== 0) return;
     // No mouse events after a touch: their mousedown would take the focus from words just opened by this tap.
     e.preventDefault();
-    if (e.pointerType === 'touch') {
-      this.fingers.set(e.pointerId, [e.clientX, e.clientY]);
-      if (this.fingers.size === 2) {
-        // A second finger: a pinch, which zooms; whatever the first one began is let go.
-        this.drag = null;
-        this.live = null;
-        this.pinch = { dist: this.spread(), zoom: this.zoom };
-        return;
-      }
-    }
-    if (this.pinch) return;
+    if (this.pinching) return;
     // A tap away from words being typed is the end of them; if that took out an empty text, it is all the tap does.
     if (this.editing >= 0 && this.closeWords(false)) return;
     this.svgEl = e.currentTarget as SVGSVGElement;
@@ -494,13 +506,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   }
 
   private onMove(e: PointerEvent) {
-    if (this.fingers.has(e.pointerId)) this.fingers.set(e.pointerId, [e.clientX, e.clientY]);
-    if (this.pinch) {
-      const d = this.spread();
-      if (d && this.pinch.dist) this.zoom = clamp(Math.round(this.pinch.zoom * (d / this.pinch.dist) * 4) / 4, 0.5, 4);
-      return;
-    }
-    if (!this.drag) return;
+    if (this.pinching || !this.drag) return;
     const [x, y] = this.point(e);
     const d = this.drag;
     if (d.mode === 'free') {
@@ -556,11 +562,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
   }
 
   private onUp(e: PointerEvent) {
-    this.fingers.delete(e.pointerId);
-    if (this.pinch) {
-      if (this.fingers.size < 2) this.pinch = null;
-      return;
-    }
+    if (this.pinching) return;
     const d = this.drag;
     this.drag = null;
     if (!d) return;
@@ -1185,7 +1187,7 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const d = this.drag;
     const from = d?.mode === 'link' ? this.shapes[d.from] : null;
     const tile = v.tile;
-    return html`<div class="draw-wrap" tabindex="0" role="application" aria-label=${t('Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.')} @wheel=${(e: WheelEvent) => {
+    return html`<div class="draw-wrap" data-spatial tabindex="0" role="application" aria-label=${t('Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.')} @wheel=${(e: WheelEvent) => {
       // Ctrl (or a pinch on a trackpad) and the wheel zoom; the wheel alone scrolls as usual.
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();

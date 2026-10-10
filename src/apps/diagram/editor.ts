@@ -49,6 +49,7 @@ import '../../kit/insert.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
 import { remScale } from '../../kit/zoom.ts';
+import { pinchZoom } from '../../kit/pinch.ts';
 import './style.css';
 
 export const tag = 'to-diagram-editor';
@@ -127,6 +128,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
   private restoring = false;
   /** A Mod+C, X or V whose clipboard event has not come (Safari sends none with nothing selected): done by hand. */
   private clipPending: 'copy' | 'cut' | 'paste' | null = null;
+  private unpinch: (() => void) | null = null;
 
   constructor() {
     super();
@@ -143,11 +145,33 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     // On the document: with nothing selected a browser may send the event to the body rather than the thing.
     for (const type of ['copy', 'cut', 'paste']) document.addEventListener(type, this.onClipboard as EventListener);
     document.addEventListener('pointerdown', this.onOutside, true);
+    // Two fingers zoom the picture about them and pan it, read as every spatial canvas reads them.
+    this.unpinch = pinchZoom(this, {
+      frame: () => this.wrap,
+      picture: () => this.querySelector('svg.dg-pic'),
+      zoom: () => this.shown(),
+      start: () => {
+        // A second finger: the drag the first began is let go, and the tap it would end in is not one.
+        this.onCancel();
+        this.quietUntil = Infinity;
+      },
+      set: (z) => {
+        this.zoom = Math.max(0.25, Math.min(3, z));
+        return this.updateComplete;
+      },
+      end: (z) => {
+        this.quietUntil = performance.now() + 400;
+        this.zoom = Math.max(0.25, Math.min(3, Math.round(z * 4) / 4));
+        return this.updateComplete;
+      },
+    });
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     for (const type of ['copy', 'cut', 'paste']) document.removeEventListener(type, this.onClipboard as EventListener);
     document.removeEventListener('pointerdown', this.onOutside, true);
+    this.unpinch?.();
+    this.unpinch = null;
     this.ctx?.hide();
   }
   /** An edit that moves the thing in hand from `before` to `after`, so undo and redo can give it back. */
@@ -858,9 +882,12 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     this.zoomBy(-Math.sign(e.deltaY) * 0.25);
   };
   private zoomBy(by: number) {
-    const wrap = this.querySelector<HTMLElement>('.dg-wrap');
-    const now = this.zoom || Math.min(1, (wrap?.clientWidth ?? this.view.d.w) / (this.view.d.w * remScale()));
-    this.zoom = Math.max(0.25, Math.min(3, Math.round((now + by) * 4) / 4));
+    this.zoom = Math.max(0.25, Math.min(3, Math.round((this.shown() + by) * 4) / 4));
+  }
+  /** The zoom as the picture is drawn: its own, or (fitted to the width) the width it has over its natural one. */
+  private shown(): number {
+    const pic = this.querySelector<SVGSVGElement>('svg.dg-pic');
+    return this.zoom || (pic ? pic.getBoundingClientRect().width / (this.view.d.w * remScale()) : 1);
   }
 
   /* ---------- drawing ---------- */
@@ -892,7 +919,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
         ${this.undoTools()}
       </to-bar>
       <p class="dg-hint to-hint" aria-live="polite">${hint}</p>
-      <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel}>
+      <div class="dg-wrap ${this.joining !== null ? 'joining' : ''}" data-spatial tabindex="-1" @click=${this.onClick} @keydown=${this.onKey} @wheel=${this.onWheel}>
         <svg class="dg-pic" viewBox="0 0 ${d.w} ${d.h}" style=${width} xmlns="http://www.w3.org/2000/svg" role="group" aria-label=${kindName(kind)}
           @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>
           <defs>${unsafeSVG(arrowDefs('var(--to-ink)'))}</defs>

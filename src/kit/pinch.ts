@@ -12,6 +12,14 @@
  * the fingers kept under them (the element there and how far down it they were: the words reflow, so an element, not
  * a pixel), a pill top centre saying the size. Lifted, the size is kept to the nearest 5% and the pill goes half a
  * second later.
+ *
+ * A spatial canvas's use (`pinchZoom`: the Drawing Tool's canvas, the Diagram Maker's picture, the Animator's stage): its
+ * frame is marked `data-spatial`, and the same reading zooms the picture in it instead, live and unrounded, about the
+ * fingers: the point of the picture under them when the second finger came down is kept under their midpoint, by
+ * scrolling the frame, so two fingers moving together pan it. Lifted, the canvas rounds the zoom to its step. The
+ * browser is told not to pan under two fingers there (a touchmove with two touches is prevented), so the frame moves
+ * by the fingers once, not twice. One reading for every canvas: until round eight the Drawing Tool counted its own
+ * fingers and the others had no pinch at all.
  */
 import { keepSize, pinchSize, size } from './zoom.ts';
 import { scrollerOf } from './scroll.ts';
@@ -147,6 +155,92 @@ export function onPinch(el: Document | HTMLElement, h: PinchHandlers): () => voi
     el.removeEventListener('gesturestart', gStart, { capture: true });
     el.removeEventListener('gesturechange', gChange, { capture: true });
     el.removeEventListener('gestureend', gEnd, { capture: true });
+  };
+}
+
+export interface ZoomHandlers {
+  /** The frame that scrolls the picture (the `data-spatial` element); null when there is none to pinch. */
+  frame(): HTMLElement | null;
+  /** The picture the zoom scales: measured to keep the point under the fingers. */
+  picture(): Element | null;
+  /** The zoom as shown now. */
+  zoom(): number;
+  /** The second finger is down: whatever the first began is let go. */
+  start?(): void;
+  /** The zoom drawn while the fingers are down, unrounded (the canvas holds it to its range); resolves once drawn. */
+  set(z: number): unknown;
+  /** The fingers lifted: the zoom rounded to the canvas's step and kept; resolves once drawn. */
+  end(z: number): unknown;
+}
+
+/** A spatial canvas's pinch: on `host`, for gestures begun in its frame. Returns what stops it. */
+export function pinchZoom(host: HTMLElement, h: ZoomHandlers): () => void {
+  let z0 = 1;
+  let scale = 1;
+  let at = { x: 0, y: 0 };
+  /** Where the fingers came down, as a fraction of the picture's box. */
+  let point: [number, number] | null = null;
+  let frame = 0;
+  let wrap: HTMLElement | null = null;
+
+  /** The frame scrolled so the noted point of the picture is under the fingers again; what the frame cannot take
+   * (a frame that grows with its picture until its limit), the column round it does. */
+  const keep = (p: [number, number] | null) => {
+    const pic = h.picture();
+    if (!p || !pic || !wrap) return;
+    const off = () => {
+      const r = pic.getBoundingClientRect();
+      return [r.left + p[0] * r.width - at.x, r.top + p[1] * r.height - at.y];
+    };
+    let [dx, dy] = off();
+    wrap.scrollLeft += dx;
+    wrap.scrollTop += dy;
+    [dx, dy] = off();
+    if (Math.abs(dx) >= 1) scrollerOf(wrap.parentElement, 'x').scrollLeft += dx;
+    if (Math.abs(dy) >= 1) scrollerOf(wrap.parentElement).scrollTop += dy;
+  };
+  const draw = async () => {
+    frame = 0;
+    const p = point;
+    await h.set(z0 * scale);
+    if (p === point) keep(p);
+  };
+  const stop = onPinch(host, {
+    start(p) {
+      wrap = h.frame();
+      if (!wrap || !p.targets.some((t) => wrap!.contains(t))) return false;
+      h.start?.();
+      z0 = h.zoom();
+      scale = 1;
+      at = { x: p.x, y: p.y };
+      const r = h.picture()?.getBoundingClientRect();
+      point = r && r.width && r.height ? [(p.x - r.left) / r.width, (p.y - r.top) / r.height] : null;
+    },
+    move(p) {
+      scale = p.scale;
+      at = { x: p.x, y: p.y };
+      if (!frame) frame = requestAnimationFrame(() => void draw());
+    },
+    async end(p) {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      scale = p.scale;
+      at = { x: p.x, y: p.y };
+      const was = point;
+      point = null;
+      await h.end(z0 * scale);
+      keep(was);
+    },
+  });
+  // Two fingers in the frame are the canvas's: the browser neither pans nor zooms under them.
+  const hold = (e: TouchEvent) => {
+    const w = h.frame();
+    if (e.touches.length > 1 && e.cancelable && w?.contains(e.target as Node)) e.preventDefault();
+  };
+  host.addEventListener('touchmove', hold, { passive: false });
+  return () => {
+    stop();
+    host.removeEventListener('touchmove', hold);
   };
 }
 
