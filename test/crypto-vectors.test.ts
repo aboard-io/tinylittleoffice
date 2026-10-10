@@ -123,3 +123,18 @@ test('the entry points that take an IV are the tests\' alone: nothing in the sit
   });
   expect(callers).toEqual([]);
 });
+
+test('the vectors\' text is written with "~" for 62, and the same text with "-" (as written before) is the same bytes', () => {
+  const texts = [
+    ...(read('password.json').vectors as Record<string, string>[]).map((v) => v.sealed.slice(1)),
+    ...(read('short-links.json').vectors as Record<string, string>[]).flatMap((v) => [v.key, v.iv, v.c, v.o, v.ownerHash]),
+    read('signing.json').ed25519.signature,
+    read('signing.json').p256.publicKey,
+  ];
+  expect(texts.join('')).toContain('~');
+  for (const s of texts) {
+    expect(s).not.toContain('-');
+    expect(toBase64Url(b64(s))).toBe(s);
+    expect(hex(b64(s.replace(/~/g, '-')))).toBe(hex(b64(s)));
+  }
+});

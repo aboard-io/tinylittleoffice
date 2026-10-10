@@ -11,3 +11,14 @@ test('a QR code of a link has the standard shape', () => {
   expect(() => qrCode(new Uint8Array(QR_MAX_BYTES + 1))).toThrow();
   expect(qrSvg(new TextEncoder().encode('x')).startsWith('<svg')).toBe(true);
 });
+
+test('a link written with "~" (never "-", where a pasted link would break a line) is a code of the same size, in byte mode', () => {
+  const utf8 = (s: string) => new TextEncoder().encode(s);
+  for (const n of [40, 200, 1000]) {
+    const payload = 'yA~_'.repeat(n / 4);
+    const now = utf8(`https://tinylittleoffice.com/write/#/v1/write/${payload}`);
+    const before = utf8(`https://tinylittleoffice.com/write/#/v1/write/${payload.replace(/~/g, '-')}`);
+    expect(now.length).toBe(before.length);
+    expect(qrCode(now).length).toBe(qrCode(before).length);
+  }
+});

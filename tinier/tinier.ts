@@ -78,7 +78,7 @@ export const MAX_BYTES = 16 * 1024;
 export const TTLS = new Set([3600, 86400, 7 * 86400, 30 * 86400, 365 * 86400]);
 /** 32 letters and digits that are hard to misread: no l, 1, o or 0. */
 const ALPHABET = 'abcdefghijkmnpqrstuvwxyz23456789';
-const B64 = /^[A-Za-z0-9_-]+$/;
+const B64 = /^[A-Za-z0-9_~-]+$/;
 /** sha256 in base64url is always 43 characters; so is a 32-byte owner key. */
 const HASH_LENGTH = 43;
 
@@ -100,10 +100,14 @@ const html = (page: string, status = 200) =>
     },
   });
 
-const b64 = (bytes: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+// base64url as the site writes it (src/kit/codec.ts): "~" for 62, never "-", where a pasted link would break a
+// line; "-" is still read as 62, so every row and owner key made before is the same bytes.
+const b64 = (bytes: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '~').replace(/\//g, '_').replace(/=+$/, '');
+/** A base64url string in the one form b64 writes: an older row's "-" is the "~" written now. */
+const canon = (s: string) => s.replace(/-/g, '~');
 /** The owner hash of an owner key, as the client computes it: base64url(sha256(bytes of o)). */
 export async function ownerHash(o: string): Promise<string> {
-  const bytes = Uint8Array.from(atob(o.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(o.replace(/[-~]/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
   return b64(await crypto.subtle.digest('SHA-256', bytes));
 }
 /** Hashes compared in constant time: every character is looked at, whether or not an earlier one differed. */
@@ -147,7 +151,7 @@ const key = (o: unknown): o is string => typeof o === 'string' && B64.test(o) &&
 async function prove(store: Store, id: string, o: unknown, now: number, site: string): Promise<Link | Response> {
   const link = valid(id) ? await read(store, id, now) : null;
   const proof = key(o) ? await ownerHash(o) : NOBODY;
-  const ok = same(proof, link?.owner ?? NOBODY) && !!link?.owner;
+  const ok = same(proof, canon(link?.owner ?? NOBODY)) && !!link?.owner;
   if (!link) return gone(site, 404);
   return ok ? link : gone(site, 403);
 }

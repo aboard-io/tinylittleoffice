@@ -50,7 +50,7 @@ export interface Route {
 }
 
 const ROUTE = /^#\/v(\d+)\/([a-z][a-z0-9-]*)(?:\.([A-Za-z0-9.]+))?(?:\/([^?]*))?(?:\?(.*))?$/;
-const B64 = /^[A-Za-z0-9_-]+$/;
+const B64 = /^[A-Za-z0-9_~-]+$/;
 
 /** The owner's query, "s=<id>&k=<key>&o=<o>", read; null unless all three are there and well formed. */
 function parseOwned(q: URLSearchParams): Owned | null {

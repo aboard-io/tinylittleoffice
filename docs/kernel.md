@@ -74,7 +74,7 @@ export const text = (s: string): Run[] => parseInline(s);                 // the
 **The envelope** (`src/kit/envelope.ts`). Five head keys belong to the document rather than its app: `title` (the
 editor's), and `by`, `created`, `key`, `sig`, which the shell holds and puts into every change the editor makes, so
 an edit never drops them. `created` is stamped at the first change, to the minute, as `2026-10-05T14:32Z`; `by` is
-the name a signer gave; `key` and `sig` are base64url (an Ed25519 key is 43 characters, a P-256 one 87). A signature
+the name a signer gave; `key` and `sig` are base64url (an Ed25519 key is 43 characters, a P-256 one 87), written, as every payload in a link is (`src/kit/codec.ts`), with `~` for 62 where RFC 4648 has `-`, because a hyphen is where a pasted link breaks a line; `-` is still read as 62. A signature
 covers exactly the old tree's message, so its signed documents verify:
 
 ```

@@ -16,7 +16,9 @@ short link). WebCrypto alone: no crypto library. Test vectors: `test/vectors/sho
 | Additional data | none |
 | Plaintext | the UTF-8 of the long link (`https://tinylittleoffice.com/<app>/#/v1/…`) |
 
-`c`, `iv`, the key and the owner key all travel as base64url without padding. The ciphertext is the long
+`c`, `iv`, the key and the owner key all travel as base64url without padding, written with `~` for 62 where
+RFC 4648 has `-` (a hyphen is where a pasted link breaks a line); `-` is read as 62 too, by the site, the
+landing page and the service, which compares an owner hash in either form. The ciphertext is the long
 link's length plus 16 bytes, so the service knows roughly how long the document is. It may be at most 16,384
 base64url characters (`SHORT_MAX` in short.ts, `MAX_BYTES` in tinier.ts; a test holds them equal).
 

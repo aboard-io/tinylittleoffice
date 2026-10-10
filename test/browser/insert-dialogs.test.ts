@@ -111,6 +111,10 @@ test('Tiny Little Office Doc: a short link is opened from the shortener, and onl
   const asked: string[] = [];
   vi.stubGlobal('fetch', async (url: string) => (asked.push(url), new Response(JSON.stringify({ c: toBase64Url(c), iv: toBase64Url(iv) }), { status: 200 })));
   expect(shortParts(`https://elsewhere.example/abcdefg#${key}`)).toBeNull();
+  // A key is written with "~" for 62 now and was written with "-" before: both are the shortener's.
+  const tilde = 'K~_'.repeat(14) + 'K';
+  expect(shortParts(`${TINIER}abcdefg#${tilde}`)).toEqual({ at: TINIER, id: 'abcdefg', key: tilde });
+  expect(shortParts(`${TINIER}abcdefg#${tilde.replace(/~/g, '-')}.${'o~'.repeat(21)}o`)).toEqual({ at: TINIER, id: 'abcdefg', key: tilde.replace(/~/g, '-') });
   const got = askDocLink();
   await until(() => !!document.querySelector('.to-ask-doc dialog[open]'));
   await typeUrl(`${TINIER}abcdefg#${key}`);

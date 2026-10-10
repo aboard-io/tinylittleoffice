@@ -148,7 +148,7 @@ const asFence = (b: Block | null): Block | null => (b?.k === 'fence' ? { ...b, b
 
 /** A short link from the shortener, …/<id>#<key> (an owner's ".<o>" after the key too): where it is, its id and key. */
 export function shortParts(link: string): { at: string; id: string; key: string } | null {
-  const m = /^(https?:\/\/\S+\/)([A-Za-z0-9_-]{4,})#([A-Za-z0-9_-]{16,})(?:\.[A-Za-z0-9_-]+)?$/.exec(link.trim());
+  const m = /^(https?:\/\/\S+\/)([A-Za-z0-9_~-]{4,})#([A-Za-z0-9_~-]{16,})(?:\.[A-Za-z0-9_~-]+)?$/.exec(link.trim());
   if (!m) return null;
   // Only ever asked of the shortener itself, here or in production.
   if (m[1] !== TINIER && m[1] !== `${origin('tinier')}/`) return null;

@@ -12,7 +12,7 @@ test('encode and decode are the codec; parse and write the kernel', () => {
 
 test('link makes the packed link, with a title and by in the head; read takes it back', () => {
   const url = link('sheet', 'Item | Cost:money\n--- | ---\nRent | 1200\n', { title: 'Budget', by: 'planner' });
-  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/sheet\/#\/v1\/sheet\/[yzr][A-Za-z0-9_-]+$/);
+  expect(url).toMatch(/^https:\/\/tinylittleoffice\.com\/sheet\/#\/v1\/sheet\/[yzr][A-Za-z0-9_~]+$/);
   const r = read(url);
   expect(r).toEqual({ app: 'sheet', view: '', text: '---\ntitle: Budget\nby: planner\n---\nItem | Cost:money\n--- | ---\nRent | 1200\n', title: 'Budget', by: 'planner', display: false });
   expect(link('write', 'x', { view: 'pdf', site: 'http://localhost:4178' })).toMatch(/^http:\/\/localhost:4178\/write\/#\/v1\/write\.pdf\//);

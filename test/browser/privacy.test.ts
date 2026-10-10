@@ -189,7 +189,7 @@ test('Sign: the name asked once and kept, the envelope written; checked on open;
   expect(pill(shell).title).toMatch(/^Signed by Paul · Key [0-9a-f]{5}-[0-9a-f]{5} · Private$/);
   expect(store.get('tinyoffice.name')).toBe('Paul');
   const text = decodeDoc(payload());
-  expect(text).toMatch(/^---\ntitle: Terms\ncreated: \d{4}-\d\d-\d\dT\d\d:\d\dZ\nby: Paul\nkey: [\w-]{43}\nsig: [\w-]{86}\n---\nWe agree.\n$/);
+  expect(text).toMatch(/^---\ntitle: Terms\ncreated: \d{4}-\d\d-\d\dT\d\d:\d\dZ\nby: Paul\nkey: [\w~]{43}\nsig: [\w~]{86}\n---\nWe agree.\n$/);
   // The head line: when, and by whom.
   await until(() => /^Created .+ · by Paul$/.test(shell.querySelector('.to-share-made')?.textContent ?? ''));
   expect(shell.querySelector('.to-sign-go')!.textContent!.trim()).toBe('Sign again');
@@ -270,7 +270,7 @@ test('a browser without Ed25519 shows an Ed25519 signature as cannot check here 
   fill(shell.querySelector<HTMLInputElement>('.to-sign-name')!, 'Paul');
   shell.querySelector<HTMLButtonElement>('.to-sign-go')!.click();
   await until(() => pill(shell).classList.contains('signed'));
-  expect(decodeDoc(payload())).toMatch(/\nkey: [\w-]{87}\n/);
+  expect(decodeDoc(payload())).toMatch(/\nkey: [\w~]{87}\n/);
   await type(shell, 'Now ');
   await until(() => pill(shell).classList.contains('mismatch'));
   expect(pill(shell).textContent!.trim()).toBe('Changed since signed');
@@ -350,7 +350,7 @@ test('what this device holds, item by item with Forget, and Download everything:
     expect(files()[0].name).toBe('tiny-little-office.zip');
     expect(Object.keys(zip).sort()).toEqual(['sheet/untitled.tlo', 'write/launch-notes.tlo', 'write/locked.txt']);
     expect(strFromU8(zip['write/launch-notes.tlo'])).toBe('---\ntitle: Launch notes\n---\nGo.\n');
-    expect(strFromU8(zip['write/locked.txt'])).toMatch(/#\/v1\/write\/E[\w-]+\n$/);
+    expect(strFromU8(zip['write/locked.txt'])).toMatch(/#\/v1\/write\/E[\w~]+\n$/);
     // A key, once there is one, goes in when asked.
     await exportKey();
     const box = privacy.querySelector<HTMLInputElement>('.to-zip-key')!;

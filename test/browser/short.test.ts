@@ -119,7 +119,7 @@ test('a short link made here: the lifetime from the row, the link big with Copy,
   const exp = Date.now() + 86_400_000;
   vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body)) as { owner: string; ttl: number };
-    expect(body.owner).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(body.owner).toMatch(/^[A-Za-z0-9_~]{43}$/);
     expect(body.ttl).toBe(86400);
     return new Response(JSON.stringify({ id: 'qrstuvw', exp }), { status: 201, headers: { 'content-type': 'application/json' } });
   });
@@ -129,7 +129,7 @@ test('a short link made here: the lifetime from the row, the link big with Copy,
   await until(() => !!section(shell).querySelector('.to-owner'));
   const field = section(shell).querySelector<HTMLInputElement>('.to-short-field')!;
   expect(field.readOnly).toBe(true);
-  expect(field.value).toMatch(/^https:\/\/tinier\.tinylittleoffice\.com\/qrstuvw#[A-Za-z0-9_-]{43}$/);
+  expect(field.value).toMatch(/^https:\/\/tinier\.tinylittleoffice\.com\/qrstuvw#[A-Za-z0-9_~]{43}$/);
   expect(section(shell).querySelector('.to-short-expires')!.textContent).toMatch(/^Expires in 1 day \(/);
 
   // Copy at the field's right copies the short link.

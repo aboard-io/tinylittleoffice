@@ -29,7 +29,7 @@ test('/llms.txt and /api.js are served; the API makes a link that opens', async 
 
 test('a plain link becomes the packed link; the embed page shows the pages alone; an app’s page names its card', async ({ page, request }) => {
   await page.goto('/todo/#title=Packing&doc=-+%5B+%5D+Socks');
-  await expect(page).toHaveURL(/#\/v1\/todo\/[yzr][A-Za-z0-9_-]+$/);
+  await expect(page).toHaveURL(/#\/v1\/todo\/[yzr][A-Za-z0-9_~]+$/);
   await expect(page.locator('.to-title')).toHaveValue('Packing');
   const packed = new URL(page.url()).hash.replace('#/v1/todo/', '');
   await page.goto(`/embed/#/v1/todo.embed/${packed}`);

@@ -7,6 +7,10 @@
  * A document under a password is a fourth shape, E<base64url(salt | iv | AES-GCM(flag + packed bytes))>
  * (kit/crypt.ts): decodeDoc reads it as nothing, and the shell asks for the password instead.
  *
+ * "base64url" here is RFC 4648's URL alphabet with "~" for 62 where the RFC has "-": a hyphen is a place a line
+ * may break (UAX #14), so a long link full of them was cut wherever a mail client or a chat wrapped it, and "~"
+ * is unreserved in a URL and breaks nowhere. Reading is lenient: "-" is 62 too, so every link made before opens.
+ *
  * fflate rather than the browser's CompressionStream: the native API has no dictionary, is asynchronous,
  * and is absent under node for the tests; the dictionary is what makes short documents 20 to 35 percent
  * smaller. (Ported from the old tree's src/lib/codec.ts; the dictionary bytes are kept as they were.)
@@ -16,8 +20,8 @@ import { Inflate, deflateSync, strToU8, strFromU8 } from 'fflate';
 /** Hard ceiling for the full URL: 2 KB. */
 export const URL_LIMIT = 2048;
 
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-const B64_REV: Record<string, number> = {};
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~_';
+const B64_REV: Record<string, number> = { '-': 62 };
 for (let i = 0; i < B64.length; i++) B64_REV[B64[i]] = i;
 
 export function toBase64Url(bytes: Uint8Array): string {

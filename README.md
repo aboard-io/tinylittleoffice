@@ -282,7 +282,9 @@ checks `tinier/` with them.
 
 A document can be written as a plain link, by a person or an agent, with no codec: `/<app>/#title=…&doc=…`
 (`by=` says who made it, `view=` asks for a file or a deck's show; `md=` is `doc=` by another name, a text when no
-app is named). The shell turns it into the packed `#/v1/…` link on arrival (`src/kit/plain.ts`). The guide to every
+app is named). The shell turns it into the packed `#/v1/…` link on arrival (`src/kit/plain.ts`): one letter and
+base64url bytes, with `~` for 62 where RFC 4648 has `-`, since a hyphen is where a pasted link breaks across a
+line (`-` is still read). The guide to every
 app's format is the agent skill, `skill/tinyoffice/SKILL.md`, served as `/llms.txt`; every example in it is one of
 an app's templates, checked to round-trip (`npm run skill`, `test/skill.test.ts`).
 
