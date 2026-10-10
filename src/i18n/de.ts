@@ -10,7 +10,7 @@ export default {
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'Neu: {noun}',
   'Untitled {noun}': '{noun} ohne Titel',
-  'Download': 'Download',
+  'Download': 'Download', // same
   'Loading…': 'Lade …',
   'This link holds something that cannot be read. It may have been cut short when it was copied.': 'Dieser Link enthält etwas, das sich nicht lesen lässt. Beim Kopieren wurde er vielleicht abgeschnitten.',
   '{n} of {max} link characters left': 'Noch {n} von {max} Zeichen im Link frei',
@@ -35,7 +35,7 @@ export default {
   '{n} more': '{n} weitere',
 
   // ---- the drawer (hamburger menu) ----
-  'Apps': 'Apps',
+  'Apps': 'Apps', // same
   'Close': 'Schließen',
   'Private': 'Privat',
   'Private: nothing saved': 'Privat: nichts gespeichert',
@@ -91,7 +91,7 @@ export default {
   'Updated, reload': 'Aktualisiert, neu laden',
   'Could not save': 'Speichern fehlgeschlagen',
   'Not kept': 'Nicht behalten',
-  '{mb} MB': '{mb} MB',
+  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'Eine Kopie in einem neuen Tab geöffnet',
@@ -156,7 +156,7 @@ export default {
   'Extend': 'Verlängern',
   'Forget this short link? Anyone who has it will find nothing there.': 'Diesen Kurzlink vergessen? Wer ihn hat, findet dort nichts mehr.',
   'Forgotten': 'Vergessen',
-  'Link': 'Link',
+  'Link': 'Link', // same
   'Short link': 'Kurzlink',
 
   // ---- privacy (kit/privacy.ts, kit/privacy-dialog.ts): the password, the signature, the key, what the device holds ----
@@ -262,14 +262,14 @@ export default {
   // A menu of what can be done to the document as a whole (the Presentation Builder's submenu).
   'This document': 'Dieses Dokument',
   // A stage's most cards, on the Kanban Board.
-  'Limit': 'Limit',
+  'Limit': 'Limit', // same
 
   // ---- downloads ----
   'Print': 'Drucken',
   'Print, or save as PDF': 'Drucken oder als PDF sichern',
   'Picture (PNG)': 'Bild (PNG)',
   'Web page (HTML)': 'Webseite (HTML)',
-  'Text (TLO)': 'Text (TLO)',
+  'Text (TLO)': 'Text (TLO)', // same
   'Downloaded {name}': '{name} heruntergeladen',
   'Download failed': 'Download fehlgeschlagen',
   'Open in Tiny Little Office': 'In Winzig Kleines Büro öffnen',
@@ -298,7 +298,7 @@ export default {
   '{app} document': '{app}-Dokument',
   // The same card when its app is known; {noun} is the app's noun: "A spreadsheet".
   'A {noun}': '{noun}',
-  'Code': 'Code',
+  'Code': 'Code', // same
   'Connection': 'Verbindung',
   '{n|one row|# rows}': '{n|eine Zeile|# Zeilen}',
   'The note\'s words': 'Der Text der Notiz',
@@ -310,7 +310,7 @@ export default {
   'Edit link': 'Link ändern',
   'Remove link': 'Link entfernen',
   // The selection bubble's name: what can be done to the words selected.
-  'Format': 'Format',
+  'Format': 'Format', // same
 
   // ---- the example in the kit's own documentation ----
   '{n|one slide|# slides}': '{n|eine Folie|# Folien}',
@@ -351,7 +351,7 @@ export default {
   'Page break': 'Seitenumbruch',
   'Address of the picture': 'Adresse des Bildes',
   'Address of a video, a post, a song, a place, a page': 'Adresse eines Videos, eines Beitrags, eines Songs, eines Ortes, einer Seite',
-  'OK': 'OK',
+  'OK': 'OK', // same
   'This card': 'Diese Karte',
   'Open in {app}': 'In {app} öffnen',
   'Change the address…': 'Adresse ändern …',
@@ -362,9 +362,9 @@ export default {
   'Back to footnote {n} in the text': 'Zurück zu Fußnote {n} im Text',
   'Back to the text': 'Zurück zum Text',
   '{n|one word|# words}': '{n|ein Wort|# Wörter}',
-  'Word (DOCX)': 'Word (DOCX)',
-  'Markdown': 'Markdown',
-  'Rich Text (RTF)': 'Rich Text (RTF)',
+  'Word (DOCX)': 'Word (DOCX)', // same
+  'Markdown': 'Markdown', // same
+  'Rich Text (RTF)': 'Rich Text (RTF)', // same
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'Spalte davor einfügen',
   'Column {c}: what it holds, name it, add or remove a column': 'Spalte {c}: was sie enthält, benennen, Spalte hinzufügen oder entfernen',
@@ -398,7 +398,7 @@ export default {
   'The news in the first line, the detail, a quote, the hours, and who to call.': 'Die Neuigkeit in der ersten Zeile, die Einzelheiten, ein Zitat, die Zeiten und wen man anruft.',
   'News article': 'Zeitungsartikel',
   'A headline, a byline, the story in two columns on paper, and a chart of the figures.': 'Eine Schlagzeile, eine Autorenzeile, die Geschichte in zwei Spalten auf Papier und ein Diagramm der Zahlen.',
-  'Interview': 'Interview',
+  'Interview': 'Interview', // same
   'An introduction, then questions and answers, each speaker named.': 'Eine Einleitung, dann Fragen und Antworten, jede sprechende Person benannt.',
   'Book review': 'Buchkritik',
   'The book, the stars, what it is about, what worked and what did not.': 'Das Buch, die Sterne, worum es geht, was gelungen ist und was nicht.',
@@ -422,7 +422,7 @@ export default {
   'A life in a few minutes: where it began, who they were, what you will miss.': 'Ein Leben in wenigen Minuten: wo es begann, wer sie waren, was du vermissen wirst.',
   'Zine essay': 'Zine-Essay',
   'A personal essay for a small magazine, typewritten.': 'Ein persönlicher Essay für ein kleines Heft, mit Schreibmaschine getippt.',
-  'Petition': 'Petition',
+  'Petition': 'Petition', // same
   'What you ask, why, and the names of those who agree.': 'Was du forderst, warum, und die Namen derer, die zustimmen.',
   'Terms of service': 'Geschäftsbedingungen',
   'A small business\'s terms in plain words: booking, prices, keys, what if, ending.': 'Die Bedingungen eines kleinen Betriebs in einfachen Worten: Buchung, Preise, Schlüssel, was wenn, Ende.',
@@ -444,7 +444,7 @@ export default {
   'Paste the link of another Tiny Little Office document, long or short: its first page shows here.': 'Füge den Link eines anderen Winzig-Kleines-Büro-Dokuments ein, lang oder kurz: Seine erste Seite erscheint hier.',
   'This is not a Tiny Little Office link, or it has expired.': 'Das ist kein Tiny-Little-Office-Link, oder er ist abgelaufen.',
   'Tiny Little Office Doc': 'Winzig-Kleines-Büro-Dokument',
-  'Tiny Little Office Doc…': 'Winzig-Kleines-Büro-Dokument …',
+  'Tiny Little Office Doc…': 'Winzig-Kleines-Büro-Dokument…',
   'Web Embed': 'Web-Einbettung',
   'Web Embed…': 'Web-Einbettung …',
   'Web Picture': 'Web-Bild',
@@ -475,12 +475,12 @@ export default {
   'The cells in hand': 'Die gewählten Zellen',
   'Tick {ref}': '{ref} abhaken',
   // The column type that holds words as typed.
-  'Text': 'Text',
+  'Text': 'Text', // same
   'Spreadsheet': 'Tabellenkalkulation',
   'spreadsheet': 'Tabelle',
   'Numbers': 'Zahlen',
   'A spreadsheet with formulas, named cells and charts; three columns to start, more as you need them.': 'Eine Tabelle mit Formeln, benannten Zellen und Diagrammen; zum Start drei Spalten, mehr nach Bedarf.',
-  'Budget': 'Budget',
+  'Budget': 'Budget', // same
   'Planned against actual, a line each, with the difference and totals.': 'Geplant gegen tatsächlich, je eine Zeile, mit Differenz und Summen.',
   'Expense log': 'Ausgabenbuch',
   'Date, what, how much, which kind; a running total at the foot.': 'Datum, was, wie viel, welche Art; unten eine laufende Summe.',
@@ -540,8 +540,8 @@ export default {
   'Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.': 'Meilen und Kilometer, Pfund und Kilogramm, Ofenstufen, Tassen und Gallonen: Menge eintippen, andere Einheit ablesen.',
   'Tournament bracket': 'Turnierbaum',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': 'Acht Teams im K.-o.-System: das Ergebnis jedes Spiels, der Sieger ausgerechnet, und die Sieger weiter bis zum Finale.',
-  'Excel (XLSX)': 'Excel (XLSX)',
-  'CSV': 'CSV',
+  'Excel (XLSX)': 'Excel (XLSX)', // same
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'Diagramm (SVG)',
   'Chart (PNG)': 'Diagramm (PNG)',
   'Empty sheet': 'Leere Tabelle',
@@ -573,7 +573,7 @@ export default {
   'Locked: part of the model': 'Gesperrt: Teil des Modells',
   'Low to high': 'Aufsteigend',
   'Money': 'Geld',
-  'Name': 'Name',
+  'Name': 'Name', // same
   'Name of column {c}': 'Name der Spalte {c}',
   'Names the cell to its right': 'Benennt die Zelle rechts daneben',
   // A money column's currency (Money picked in a column's menu): the field's hint, and what it says of words it cannot read.
@@ -619,7 +619,7 @@ export default {
   'Icon or emoji': 'Symbol oder Emoji',
   'Search icons and emoji': 'Symbole und Emoji suchen',
   'Icons or emoji': 'Symbole oder Emoji',
-  'Emoji': 'Emoji',
+  'Emoji': 'Emoji', // same
   'No icons or emoji match “{q}”.': 'Keine Symbole oder Emoji passen zu „{q}“.',
   // Unicode's emoji groups, as the picker's Emoji set names them.
   'Smileys & Emotion': 'Smileys & Emotionen',
@@ -682,7 +682,7 @@ export default {
   'Pixel art, {n} by {n}': 'Pixelkunst, {n} mal {n}',
   'Select': 'Auswählen',
   'Rectangle': 'Rechteck',
-  'Ellipse': 'Ellipse',
+  'Ellipse': 'Ellipse', // same
   'Diamond': 'Raute',
   'Line': 'Linie',
   'Arrow': 'Pfeil',
@@ -696,11 +696,11 @@ export default {
   'Note': 'Notiz',
   'Black': 'Schwarz',
   'Red': 'Rot',
-  'Orange': 'Orange',
+  'Orange': 'Orange', // same
   'Green': 'Grün',
   'Blue': 'Blau',
   'Purple': 'Lila',
-  'Indigo': 'Indigo',
+  'Indigo': 'Indigo', // same
   'Yellow': 'Gelb',
   'Sky': 'Himmelblau',
   'Pink': 'Rosa',
@@ -724,7 +724,7 @@ export default {
   'Place an icon': 'Ein Symbol platzieren',
   'Zoom in': 'Vergrößern',
   'Zoom out': 'Verkleinern',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': 'Alternativtext',
   'Alt text: {alt}': 'Alternativtext: {alt}',
   'Add alt text: describe this drawing for people who cannot see it': 'Alternativtext hinzufügen: beschreibe diese Zeichnung für Menschen, die sie nicht sehen können',
@@ -755,18 +755,18 @@ export default {
   'Edit the words': 'Text bearbeiten',
   'Extra large text': 'Extragroßer Text',
   'Grey fill': 'Graue Füllung',
-  'L': 'L',
+  'L': 'L', // same
   'Large text': 'Großer Text',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': 'Mittlerer Text',
-  'S': 'S',
+  'S': 'S', // same
   'Small text': 'Kleiner Text',
   'Solid fill': 'Volle Füllung',
   'Solid line': 'Durchgezogene Linie',
   'The shape in hand': 'Die gewählte Form',
   'The words of the shape': 'Der Text der Form',
   'Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.': 'Tippe den Text; Enter ist fertig, Shift+Enter beginnt eine neue Zeile, Escape stellt ihn wieder her.',
-  'XL': 'XL',
+  'XL': 'XL', // same
 
   'Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.': 'Ziehen zum Verschieben; der Eckgriff ändert die Größe, der runde dreht; Enter oder ein Doppeltipp bearbeitet den Text.',
   'Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.': 'Zeichenfläche. V wählt aus; R, E, D, L, A, T zeichnen; Pfeile verschieben; [ und ] drehen; Enter bearbeitet den Text; Entf löscht.',
@@ -805,21 +805,21 @@ export default {
   'Animated GIF': 'Animiertes GIF',
   'Animated SVG': 'Animiertes SVG',
   'An empty stage': 'Eine leere Bühne',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'Hier ein Schlüsselbild setzen',
   'Blur': 'Unschärfe',
   'Depth': 'Tiefe',
   'Effects': 'Effekte',
   'Frame {n}, {s} s': 'Bild {n}, {s} s',
-  'Impact': 'Impact',
+  'Impact': 'Impact', // same
   'Key at {s} s': 'Schlüsselbild bei {s} s',
   'Mirror': 'Spiegeln',
   'Mode': 'Modus',
   'Moments': 'Momente',
   'Move': 'Bewegen',
-  'Neon': 'Neon',
+  'Neon': 'Neon', // same
   'Nothing here yet: switch to Draw and draw something.': 'Hier ist noch nichts: Wechsle zu „Zeichnen“ und zeichne etwas.',
-  'Pause': 'Pause',
+  'Pause': 'Pause', // same
   'Play': 'Abspielen',
   'Pixel art is made in the Drawing Tool; the Animator moves shapes.': 'Pixelkunst entsteht im Zeichenprogramm; der Animator bewegt Formen.',
   'Rainbow': 'Regenbogen',
@@ -849,7 +849,7 @@ export default {
   'Turns the shape round in the plane of the stage, like a wheel.': 'Dreht die Form in der Ebene der Bühne, wie ein Rad.',
   'Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.': 'Welche Form vorn liegt: Eine nähere Form wird über eine fernere gezeichnet, und eine ferne etwas dunkler. Die Tiefe ändert nie die Größe.',
   '{n} times': '{n}-mal',
-  '{s} s': '{s} s',
+  '{s} s': '{s} s', // same
   // ---- the Outliner ----
   // The bullet is the line to the parent; a join between any two items is a connection. {from} and {to} are items' words.
   ', named “{label}”': ', genannt „{label}“',
@@ -861,7 +861,7 @@ export default {
   'Arrow from {from} to {to}': 'Pfeil von {from} zu {to}',
   'Arrows both ways': 'Pfeile in beide Richtungen',
   'As a page': 'Als Seite',
-  'Board': 'Board',
+  'Board': 'Board', // same
   'Kanban Board': 'Kanban-Board',
   'Calculator': 'Rechner',
   'Calendar': 'Kalender',
@@ -891,7 +891,7 @@ export default {
   'Launch plan': 'Startplan',
   'Line from {from} to {to}': 'Linie von {from} zu {to}',
   'Line named “{label}”: change it': 'Linie „{label}“: ändern',
-  'Animator': 'Animator',
+  'Animator': 'Animator', // same
   'Move down': 'Nach unten',
   'Move this item: drag it onto another': 'Diesen Eintrag verschieben: auf einen anderen ziehen',
   'Move up': 'Nach oben',
@@ -1102,12 +1102,12 @@ export default {
   'Fade': 'Überblenden',
   'Cut': 'Schnitt',
   'Slide': 'Schieben',
-  'Zoom': 'Zoom',
-  'Zine': 'Zine',
+  'Zoom': 'Zoom', // same
+  'Zine': 'Zine', // same
   'Booklet': 'Heft',
   'Brochure': 'Faltblatt',
-  'Comic': 'Comic',
-  'Poster': 'Poster',
+  'Comic': 'Comic', // same
+  'Poster': 'Poster', // same
   'Name badges': 'Namensschilder',
 
   // The themes (the Look menu) and the icon colours
@@ -1130,10 +1130,10 @@ export default {
   'See the sheets to print': 'Druckbögen ansehen',
   'Back to the pages': 'Zurück zu den Seiten',
   'Headline': 'Schlagzeile',
-  'Layout: {layout}': 'Layout: {layout}',
-  'Look: {theme}': 'Look: {theme}',
+  'Layout: {layout}': 'Layout: {layout}', // same
+  'Look: {theme}': 'Look: {theme}', // same
   'Transition: {transition}': 'Übergang: {transition}',
-  'Format: {format}': 'Format: {format}',
+  'Format: {format}': 'Format: {format}', // same
   'Printing': 'Druck',
   'One-sided: fold and cut': 'Einseitig: falten und schneiden',
   'Two-sided: cut and nest': 'Zweiseitig: schneiden und ineinanderlegen',
@@ -1215,7 +1215,7 @@ export default {
   'A QR code of this deck': 'Ein QR-Code dieser Präsentation',
 
   // Downloads
-  'PowerPoint (PPTX)': 'PowerPoint (PPTX)',
+  'PowerPoint (PPTX)': 'PowerPoint (PPTX)', // same
   'A picture of every slide (ZIP of PNGs)': 'Ein Bild jeder Folie (ZIP mit PNGs)',
   'A film of the deck (GIF)': 'Ein Film der Präsentation (GIF)',
 
@@ -1264,7 +1264,7 @@ export default {
   'Family calendar': 'Familienkalender',
   'Festival weekend': 'Festivalwochenende',
   'How many times': 'Wie oft',
-  'iCalendar (ICS)': 'iCalendar (ICS)',
+  'iCalendar (ICS)': 'iCalendar (ICS)', // same
   'Its own zone': 'Eigene Zone',
   'Last day': 'Letzter Tag',
   'Lessons, birthdays and holidays, a colour for each person, the weekly things repeating.': 'Unterricht, Geburtstage und Feiertage, eine Farbe für jede Person, die wöchentlichen Dinge wiederholt.',
@@ -1287,7 +1287,7 @@ export default {
   'Repeats': 'Wiederholt',
   'Schedule': 'Zeitplan',
   'Show times in': 'Zeiten anzeigen in',
-  'Start': 'Start',
+  'Start': 'Start', // same
   'Start date': 'Startdatum',
   'Start time': 'Startzeit',
   'Starts': 'Beginnt',
@@ -1339,11 +1339,11 @@ export default {
   'Family tree': 'Stammbaum',
   'Swimlanes': 'Schwimmbahnen',
   'Timeline': 'Zeitstrahl',
-  'Venn': 'Venn',
+  'Venn': 'Venn', // same
   'Seating chart': 'Sitzplan',
   'Network': 'Netzwerk',
   'Idea': 'Idee',
-  'Person': 'Person',
+  'Person': 'Person', // same
   'Step': 'Schritt',
   'Set': 'Menge',
   'Thing': 'Element',
@@ -1400,7 +1400,7 @@ export default {
   'A router and everything on it: laptop, phone, printer, television and doorbell.': 'Ein Router und alles daran: Laptop, Handy, Drucker, Fernseher und Türklingel.',
   'A team by its skills: design, writing and code, and who does more than one.': 'Ein Team nach seinen Fähigkeiten: Design, Schreiben und Code, und wer mehr als eines kann.',
   'An expenses claim': 'Eine Spesenabrechnung',
-  'Apollo 11': 'Apollo 11',
+  'Apollo 11': 'Apollo 11', // same
   'Board game night': 'Spieleabend',
   'Class 4B at four tables by colour, and the reading corner.': 'Klasse 4b an vier Tischen nach Farbe, und die Leseecke.',
   'Eight days in July 1969, day by day, from launch to splashdown.': 'Acht Tage im Juli 1969, Tag für Tag, vom Start bis zur Wasserung.',
@@ -1422,7 +1422,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'Eine Route auf einer Karte: Stopps der Reihe nach, jeder mit einer Notiz, und wie weit es dazwischen ist.',
   'GPX route': 'GPX-Route',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': 'Ein Ort nach Name …',
   'A stop at the middle of the map': 'Ein Stopp in der Mitte der Karte',
@@ -1489,7 +1489,7 @@ export default {
   // ---- the Website Builder ----
   'site': 'Website',
   // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
-  'Web': 'Web',
+  'Web': 'Web', // same
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'Eine Website aus kleinen Seiten oder eine Seite mit Schnelllinks, als einzelne HTML-Datei geladen; ein Shop mit Warenkorb, wenn du auflistest, was du verkaufst.',
   'The website (HTML)': 'Die Website (HTML)',
 
@@ -1532,7 +1532,7 @@ export default {
   'Forest': 'Wald',
   'Plum': 'Pflaume',
   'Candy': 'Bonbon',
-  'Olive': 'Olive',
+  'Olive': 'Olive', // same
   'Slate': 'Schiefer',
   'Paper': 'Papier',
   'Typewriter': 'Schreibmaschine',
@@ -1541,7 +1541,7 @@ export default {
   'As the theme is': 'Wie im Look',
   'Type': 'Schrift',
   'Sans serif': 'Serifenlos',
-  'Serif': 'Serif',
+  'Serif': 'Serif', // same
   'Rounded': 'Abgerundet',
   'Monospace': 'Festbreite',
   'Shape': 'Form',
@@ -1593,7 +1593,7 @@ export default {
   'A calculator that keeps its working: names, units and conversions, and graphs of y = f(x).': 'Ein Rechner, der seinen Rechenweg behält: Namen, Einheiten und Umrechnungen, und Graphen von y = f(x).',
   'The tape (text)': 'Der Rechenstreifen (Text)',
   // The bar
-  'Graph': 'Graph',
+  'Graph': 'Graph', // same
   'Clear the tape': 'Streifen leeren',
   'Clear the graph': 'Graph leeren',
   // Insert: functions, and what the second engine reads
@@ -1620,8 +1620,8 @@ export default {
   'Take away line {n}': 'Zeile {n} entfernen',
   'Sum': 'Summe',
   'Type or tap': 'Tippen oder antippen',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'bei x = 1: {answer}',
   'Keys': 'Tasten',
   'Backspace': 'Rücktaste',
@@ -1779,8 +1779,8 @@ export default {
   'Show on a board': 'Auf einem Board zeigen',
   'Show these shortcuts': 'Diese Tastenkürzel zeigen',
   'All commands…': 'Alle Befehle…',
-  'A4': 'A4',
-  'Letter': 'Letter',
+  'A4': 'A4', // same
+  'Letter': 'Letter', // same
   'Back to the words': 'Zurück zum Text',
   'Extend the selection': 'Auswahl erweitern',
   'Find a command': 'Befehl suchen',

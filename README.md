@@ -34,7 +34,8 @@ npm ci && npm run dev    # http://localhost:4178, every app
 
 ```sh
 npm run lint            # the type check (tsc is the lint); npm run typecheck adds the Workers
-npm run i18n:check      # every t('…') in src/ is in src/i18n/en.ts, placeholders matching
+npm run i18n:check      # every t('…') in src/ is in src/i18n/en.ts, placeholders matching, nothing undecided
+npm run i18n:gaps -- fr # the lines fr.ts lacks, an old translation offered as a draft where a key changed a little
 npm run i18n:extract    # append the missing keys to en.ts, at the end, to be sorted by hand
 npm test                # unit (node) and browser (Chromium) tests
 npm run test:e2e        # every e2e spec, on a fresh build; SHOTS=<dir> saves the smoke's screenshots

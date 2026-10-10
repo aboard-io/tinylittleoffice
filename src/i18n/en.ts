@@ -6,10 +6,16 @@
  * "#" standing for the number. One string per line, in these sections; a comment only where the English
  * is ambiguous. `npm run i18n:check` reports anything missing or mismatched; `npm run i18n:extract` lands
  * new keys at the end, under a "sort me" heading, for a hand to place (take the heading out of a copy);
- * `npm run i18n:gaps -- <code>` prints the lines a language lacks, in English, to translate and paste in.
+ * `npm run i18n:gaps -- <code>` prints the lines a language lacks, in English, to translate and paste in; where the
+ * language still has a key this file has dropped that is the new one less a few words, its old translation comes as a
+ * draft, marked `// draft from "<old key>"`: read it, make it right, take the mark off (the check fails while it is in).
+ * A value left the same as its English fails the check unless its line ends `// same` (a name, a loanword): a
+ * decision per language and per key.
  *
- * Length: a string on the bar or in a menu may be at most a third longer than the English, a button's label
- * the same length or shorter. Everything else is free.
+ * Length: measured, not counted. test/browser/label-widths.test.ts measures every command's words in its slot, in
+ * each language, with the font it is drawn in: a bar button's words a third wider than the English at most, a menu
+ * row's within the menu, a dialog button's within the room its row leaves it. Everything else is free. The same
+ * product term is said one way throughout a language (test/i18n-glossary.test.ts).
  */
 import type { Strings } from '../kit/i18n.ts';
 

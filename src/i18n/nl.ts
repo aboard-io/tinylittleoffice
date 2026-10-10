@@ -7,7 +7,7 @@ import type { Strings } from '../kit/i18n.ts';
 
 export default {
   // ---- the shell: header ----
-  'Menu': 'Menu',
+  'Menu': 'Menu', // same
   'Title': 'Titel',
   // A new document of the app, and one not yet named; {noun} is the app's noun: "New presentation".
   'New {noun}': 'Nieuw: {noun}',
@@ -37,7 +37,7 @@ export default {
   '{n} more': 'nog {n}',
 
   // ---- the drawer (hamburger menu) ----
-  'Apps': 'Apps',
+  'Apps': 'Apps', // same
   'Close': 'Sluiten',
   'Private': 'Privé',
   'Private: nothing saved': 'Privé: niets opgeslagen',
@@ -93,7 +93,7 @@ export default {
   'Updated, reload': 'Bijgewerkt, herlaad',
   'Could not save': 'Opslaan mislukt',
   'Not kept': 'Niet bewaard',
-  '{mb} MB': '{mb} MB',
+  '{mb} MB': '{mb} MB', // same
 
   // ---- sharing: the Share dialog (kit/shell.ts), where the link fits (kit/limits.ts), the arrival banner ----
   'A copy opened in a new tab': 'Een kopie in een nieuw tabblad',
@@ -158,7 +158,7 @@ export default {
   'Extend': 'Verlengen',
   'Forget this short link? Anyone who has it will find nothing there.': 'Deze korte link vergeten? Wie hem heeft, vindt er niets meer.',
   'Forgotten': 'Vergeten',
-  'Link': 'Link',
+  'Link': 'Link', // same
   'Short link': 'Korte link',
 
   // ---- privacy (kit/privacy.ts, kit/privacy-dialog.ts): the password, the signature, the key, what the device holds ----
@@ -198,7 +198,7 @@ export default {
   'Password…': 'Wachtwoord…',
   'Paste a key exported from another device': 'Plak een sleutel die op een ander apparaat is geëxporteerd',
   'Preferences': 'Voorkeuren',
-  'Privacy': 'Privacy',
+  'Privacy': 'Privacy', // same
   'Privacy and keys': 'Privacy en sleutels',
   'Private: nothing is written to this device. What is listed lasts for this visit.': 'Privé: er wordt niets naar dit apparaat geschreven. Wat hier staat, geldt voor dit bezoek.',
   'Private: this key lasts for this visit only. Turn on Saved in the menu to keep it, or Export it.': 'Privé: deze sleutel geldt alleen voor dit bezoek. Zet Opgeslagen aan in het menu om hem te bewaren, of exporteer hem.',
@@ -300,7 +300,7 @@ export default {
   '{app} document': '{app}-document',
   // The same card when its app is known; {noun} is the app's noun: "A spreadsheet".
   'A {noun}': 'Een {noun}',
-  'Code': 'Code',
+  'Code': 'Code', // same
   'Connection': 'Verbinding',
   '{n|one row|# rows}': '{n|één rij|# rijen}',
   'The note\'s words': 'De woorden van de noot',
@@ -320,11 +320,11 @@ export default {
   // ---- the Word Processor ----
   'Word Processor': 'Tekstverwerker',
   // What one of its documents is called, in running text: "Untitled document"; each app's noun is in its section.
-  'document': 'document',
+  'document': 'document', // same
   // The group heading the Word Processor sits under on the home page.
   'Words': 'Tekst',
   'Words on a page: headings, lists, links and notes, a table that adds up, printed on letter or A4.': 'Woorden op een pagina: koppen, lijsten, links en noten, een tabel die optelt, te printen op letter of A4.',
-  'Document': 'Document',
+  'Document': 'Document', // same
   'Write here.': 'Schrijf hier.',
   'Subheading': 'Subkop',
   'Paragraph': 'Alinea',
@@ -337,7 +337,7 @@ export default {
   'Justify': 'Uitvullen',
   'Paper: {paper}': 'Papier: {paper}',
   // The Look menu: each look's name, then a line about it drawn in its own type.
-  'Sans': 'Sans',
+  'Sans': 'Sans', // same
   'Clean and plain throughout': 'Helder en eenvoudig',
   'A bookish serif throughout': 'Een boekachtige serif overal',
   'Monospace, ragged right': 'Monospace, rafelrechts',
@@ -353,7 +353,7 @@ export default {
   'Page break': 'Pagina-einde',
   'Address of the picture': 'Adres van de afbeelding',
   'Address of a video, a post, a song, a place, a page': 'Adres van een video, een bericht, een nummer, een plek, een pagina',
-  'OK': 'OK',
+  'OK': 'OK', // same
   'This card': 'Deze kaart',
   'Open in {app}': 'Openen in {app}',
   'Change the address…': 'Het adres wijzigen…',
@@ -364,9 +364,9 @@ export default {
   'Back to footnote {n} in the text': 'Terug naar voetnoot {n} in de tekst',
   'Back to the text': 'Terug naar de tekst',
   '{n|one word|# words}': '{n|één woord|# woorden}',
-  'Word (DOCX)': 'Word (DOCX)',
-  'Markdown': 'Markdown',
-  'Rich Text (RTF)': 'Rich Text (RTF)',
+  'Word (DOCX)': 'Word (DOCX)', // same
+  'Markdown': 'Markdown', // same
+  'Rich Text (RTF)': 'Rich Text (RTF)', // same
   // A table in the text: its heads, its handle, its column menu.
   'Add a column before': 'Kolom ervoor toevoegen',
   'Column {c}: what it holds, name it, add or remove a column': 'Kolom {c}: wat erin staat, geef een naam, voeg een kolom toe of verwijder er een',
@@ -378,13 +378,13 @@ export default {
   'Agenda, what was said, what was decided, who does what.': 'Agenda, wat er gezegd is, wat besloten is, wie wat doet.',
   'Résumé': 'Cv',
   'Name and contact, experience, education, skills: a résumé fitted to a page.': 'Naam en contact, ervaring, opleiding, vaardigheden: een cv op één pagina.',
-  'Contract': 'Contract',
+  'Contract': 'Contract', // same
   'A plain-words agreement, with room at the end for each party to sign.': 'Een afspraak in gewone woorden, met ruimte onderaan voor de handtekening van elke partij.',
   'Invoice': 'Factuur',
   'Who, what and how much, the sums done in the table; printed as paper to send.': 'Wie, wat en hoeveel, de sommen in de tabel; afgedrukt als papier om te versturen.',
   'Cover letter': 'Sollicitatiebrief',
   'Applying for a job: the post, what you have done, why them, in four short paragraphs.': 'Solliciteren naar een baan: de functie, wat je deed, waarom zij, in vier korte alinea’s.',
-  'Memo': 'Memo',
+  'Memo': 'Memo', // same
   'To, from, date and subject; the change in a sentence, why, and what you need back.': 'Aan, van, datum en onderwerp; de wijziging in één zin, waarom, en wat je terug nodig hebt.',
   'Minutes': 'Notulen',
   'A formal meeting: who came, the treasurer\'s sums, a motion and its vote, the actions.': 'Een formele vergadering: wie er kwamen, de cijfers van de penningmeester, een motie en de stemming, de acties.',
@@ -400,7 +400,7 @@ export default {
   'The news in the first line, the detail, a quote, the hours, and who to call.': 'Het nieuws in de eerste regel, de details, een citaat, de tijden en wie je kunt bellen.',
   'News article': 'Nieuwsartikel',
   'A headline, a byline, the story in two columns on paper, and a chart of the figures.': 'Een kop, een naamregel, het verhaal in twee kolommen op papier, en een grafiek van de cijfers.',
-  'Interview': 'Interview',
+  'Interview': 'Interview', // same
   'An introduction, then questions and answers, each speaker named.': 'Een inleiding, dan vragen en antwoorden, elke spreker bij naam.',
   'Book review': 'Boekrecensie',
   'The book, the stars, what it is about, what worked and what did not.': 'Het boek, de sterren, waar het over gaat, wat werkte en wat niet.',
@@ -542,8 +542,8 @@ export default {
   'Miles and kilometres, pounds and kilograms, ovens, cups and gallons: type an amount, read the other unit.': 'Mijlen en kilometers, ponden en kilogrammen, ovens, bekers en gallons: typ een hoeveelheid, lees de andere eenheid.',
   'Tournament bracket': 'Toernooischema',
   'Eight teams in a knockout: each match’s score, the winner worked out, and the winners carried on to the final.': 'Acht teams in een knock-outronde: de score van elke wedstrijd, de winnaar uitgerekend, en de winnaars doorgezet naar de finale.',
-  'Excel (XLSX)': 'Excel (XLSX)',
-  'CSV': 'CSV',
+  'Excel (XLSX)': 'Excel (XLSX)', // same
+  'CSV': 'CSV', // same
   'Chart (SVG)': 'Grafiek (SVG)',
   'Chart (PNG)': 'Grafiek (PNG)',
   'Empty sheet': 'Leeg blad',
@@ -621,7 +621,7 @@ export default {
   'Icon or emoji': 'Icoon of emoji',
   'Search icons and emoji': 'Iconen en emoji zoeken',
   'Icons or emoji': 'Iconen of emoji',
-  'Emoji': 'Emoji',
+  'Emoji': 'Emoji', // same
   'No icons or emoji match “{q}”.': 'Geen iconen of emoji voor “{q}”.',
   // Unicode's emoji groups, as the picker's Emoji set names them.
   'Smileys & Emotion': 'Smileys en emoties',
@@ -656,7 +656,7 @@ export default {
   'A phone screen sketched in boxes before anyone builds it, with notes on why each part is there.': 'Een telefoonscherm geschetst in vakken voordat iemand het bouwt, met notities over waarom elk deel er is.',
   'A rosette with ribbons for the volunteer of the year, to print, cut out and pin on.': 'Een rozet met linten voor de vrijwilliger van het jaar, om af te drukken, uit te knippen en op te spelden.',
   'A street party from above: the stage, the stalls, first aid and where to meet if you are lost.': 'Een straatfeest van bovenaf: het podium, de kraampjes, EHBO en waar je afspreekt als je kwijt bent.',
-  'Badge': 'Badge',
+  'Badge': 'Badge', // same
   'Birthday card': 'Verjaardagskaart',
   'Can we refund it? A shop’s returns rule as questions, answers and what to do.': 'Kunnen we het terugbetalen? De retourregel van een winkel als vragen, antwoorden en wat te doen.',
   'Event map': 'Evenementenkaart',
@@ -670,7 +670,7 @@ export default {
   'Three ideas for a coffee roaster’s mark side by side, the name set large, and a date to choose by.': 'Drie ideeën voor het merk van een koffiebranderij naast elkaar, de naam groot gezet, en een datum om te kiezen.',
   'Weather icons': 'Weericonen',
   'What happens to a parcel from the moment it is bought: a process in steps, with icons and joins.': 'Wat er met een pakket gebeurt vanaf het moment dat het gekocht is: een proces in stappen, met iconen en verbindingen.',
-  'Wireframe': 'Wireframe',
+  'Wireframe': 'Wireframe', // same
   'Picture (SVG)': 'Afbeelding (SVG)',
   'Background tile (SVG)': 'Achtergrondtegel (SVG)',
   'Background tile (PNG)': 'Achtergrondtegel (PNG)',
@@ -702,7 +702,7 @@ export default {
   'Green': 'Groen',
   'Blue': 'Blauw',
   'Purple': 'Paars',
-  'Indigo': 'Indigo',
+  'Indigo': 'Indigo', // same
   'Yellow': 'Geel',
   'Sky': 'Lucht',
   'Pink': 'Roze',
@@ -721,12 +721,12 @@ export default {
   'Duplicate': 'Dupliceren',
   'Edit': 'Bewerken',
   'Delete': 'Wissen',
-  'Label': 'Label',
+  'Label': 'Label', // same
   'Put an icon on this shape': 'Een icoon op deze vorm zetten',
   'Place an icon': 'Een icoon plaatsen',
   'Zoom in': 'Inzoomen',
   'Zoom out': 'Uitzoomen',
-  'Alt': 'Alt',
+  'Alt': 'Alt', // same
   'Alt text': 'Alt-tekst',
   'Alt text: {alt}': 'Alt-tekst: {alt}',
   'Add alt text: describe this drawing for people who cannot see it': 'Alt-tekst toevoegen: beschrijf deze tekening voor mensen die haar niet kunnen zien',
@@ -757,18 +757,18 @@ export default {
   'Edit the words': 'De woorden bewerken',
   'Extra large text': 'Extra grote tekst',
   'Grey fill': 'Grijze vulling',
-  'L': 'L',
+  'L': 'L', // same
   'Large text': 'Grote tekst',
-  'M': 'M',
+  'M': 'M', // same
   'Medium text': 'Middelgrote tekst',
-  'S': 'S',
+  'S': 'S', // same
   'Small text': 'Kleine tekst',
   'Solid fill': 'Effen vulling',
   'Solid line': 'Doorgetrokken lijn',
   'The shape in hand': 'De vorm in de hand',
   'The words of the shape': 'De woorden van de vorm',
   'Type the words; Enter is done, Shift+Enter starts a new line, Escape puts them back.': 'Typ de woorden; Enter is klaar, Shift+Enter begint een nieuwe regel, Escape zet ze terug.',
-  'XL': 'XL',
+  'XL': 'XL', // same
 
   'Drag to move; the corner handle resizes, the round one rotates; Enter or a double tap edits the words.': 'Sleep om te verplaatsen; de hoekgreep verandert het formaat, de ronde draait; Enter of dubbeltikken bewerkt de woorden.',
   'Drawing canvas. V selects; R, E, D, L, A, T draw; arrows nudge; [ and ] rotate; Enter edits the words; Delete removes.': 'Tekencanvas. V selecteert; R, E, D, L, A, T tekenen; pijlen schuiven; [ en ] draaien; Enter bewerkt de woorden; Delete verwijdert.',
@@ -807,19 +807,19 @@ export default {
   'Animated GIF': 'Geanimeerde GIF',
   'Animated SVG': 'Geanimeerde SVG',
   'An empty stage': 'Een leeg podium',
-  '3D': '3D',
+  '3D': '3D', // same
   'Add a key here': 'Sleutel toevoegen',
   'Blur': 'Vervagen',
   'Depth': 'Diepte',
   'Effects': 'Effecten',
   'Frame {n}, {s} s': 'Beeld {n}, {s} s',
-  'Impact': 'Impact',
+  'Impact': 'Impact', // same
   'Key at {s} s': 'Sleutel op {s} s',
   'Mirror': 'Spiegelen',
   'Mode': 'Modus',
   'Moments': 'Momenten',
   'Move': 'Verplaatsen',
-  'Neon': 'Neon',
+  'Neon': 'Neon', // same
   'Nothing here yet: switch to Draw and draw something.': 'Hier staat nog niets: schakel naar Tekenen en teken iets.',
   'Pause': 'Pauzeren',
   'Play': 'Afspelen',
@@ -851,7 +851,7 @@ export default {
   'Turns the shape round in the plane of the stage, like a wheel.': 'Draait de vorm rond in het vlak van het podium, als een wiel.',
   'Which shape is in front: a nearer shape is drawn over a farther one, and a far one a little dimmer. Depth never changes the size.': 'Welke vorm vooraan staat: een nabije vorm wordt over een verre getekend, en een verre iets doffer. Diepte verandert nooit het formaat.',
   '{n} times': '{n} keer',
-  '{s} s': '{s} s',
+  '{s} s': '{s} s', // same
   // ---- the Outliner ----
   // The bullet is the line to the parent; a join between any two items is a connection. {from} and {to} are items' words.
   ', named “{label}”': ', genaamd “{label}”',
@@ -887,13 +887,13 @@ export default {
   'Fold': 'Dicht',
   'Fold all': 'Alles dicht',
   'From the web: {url}': 'Van het web: {url}',
-  'Item': 'Item',
-  'Item {n}': 'Item {n}',
+  'Item': 'Item', // same
+  'Item {n}': 'Item {n}', // same
   'Kind of line': 'Soort lijn',
   'Launch plan': 'Lanceringsplan',
   'Line from {from} to {to}': 'Lijn van {from} naar {to}',
   'Line named “{label}”: change it': 'Lijn genaamd “{label}”: wijzigen',
-  'Animator': 'Animator',
+  'Animator': 'Animator', // same
   'Move down': 'Omlaag',
   'Move this item: drag it onto another': 'Dit item verplaatsen: sleep het op een ander',
   'Move up': 'Omhoog',
@@ -962,7 +962,7 @@ export default {
   'A project': 'Een project',
   'Add a card': 'Kaart erbij',
   'Card': 'Kaart',
-  'Checklist': 'Checklist',
+  'Checklist': 'Checklist', // same
   'Choose this card: drag it to move it': 'Kies deze kaart: sleep om te verplaatsen',
   'Chosen cards': 'Gekozen kaarten',
   'Checklist item': 'Checklistitem',
@@ -1030,7 +1030,7 @@ export default {
   'No due date': 'Geen deadline',
   'Nothing here.': 'Hier niets.',
   'Nothing to do yet. Insert a task.': 'Nog niets te doen. Voeg een taak toe.',
-  'Open': 'Open',
+  'Open': 'Open', // same
   'Packing for a trip': 'Inpakken voor een reis',
   'Shopping': 'Boodschappen',
   'Show': 'Tonen',
@@ -1104,12 +1104,12 @@ export default {
   'Fade': 'Vervagen',
   'Cut': 'Direct',
   'Slide': 'Schuiven',
-  'Zoom': 'Zoom',
-  'Zine': 'Zine',
+  'Zoom': 'Zoom', // same
+  'Zine': 'Zine', // same
   'Booklet': 'Boekje',
-  'Brochure': 'Brochure',
+  'Brochure': 'Brochure', // same
   'Comic': 'Strip',
-  'Poster': 'Poster',
+  'Poster': 'Poster', // same
   'Name badges': 'Naamkaartjes',
 
   // The themes (the Look menu) and the icon colours
@@ -1118,13 +1118,13 @@ export default {
   'Ivory': 'Ivoor',
   'Midnight': 'Middernacht',
   'Graphite': 'Grafiet',
-  'Confetti': 'Confetti',
+  'Confetti': 'Confetti', // same
   'Sunset': 'Zonsondergang',
   'Ocean': 'Oceaan',
   'Bubblegum': 'Kauwgom',
-  'Arcade': 'Arcade',
+  'Arcade': 'Arcade', // same
   'Chalkboard': 'Schoolbord',
-  'Fun': 'Fun',
+  'Fun': 'Fun', // same
   'The theme\'s colour': 'De themakleur',
 
   // The bar
@@ -1188,7 +1188,7 @@ export default {
   'Inside right': 'Binnenkant rechts',
   'Inside flap': 'Binnenflap',
   'Back': 'Achter',
-  'Badge {n}': 'Badge {n}',
+  'Badge {n}': 'Badge {n}', // same
   'Last slide, added for you: a QR code of this whole deck': 'Laatste dia, voor je toegevoegd: een QR-code van deze hele presentatie',
   'Ends with a QR code of this deck, so the room can take it home. The QR button turns it off.': 'Eindigt met een QR-code van deze presentatie, zodat de zaal hem mee naar huis kan nemen. De QR-knop zet dit uit.',
   'QR code of this deck': 'QR-code van deze presentatie',
@@ -1217,7 +1217,7 @@ export default {
   'A QR code of this deck': 'QR-code van deze presentatie',
 
   // Downloads
-  'PowerPoint (PPTX)': 'PowerPoint (PPTX)',
+  'PowerPoint (PPTX)': 'PowerPoint (PPTX)', // same
   'A picture of every slide (ZIP of PNGs)': 'Een afbeelding van elke dia (ZIP met PNG’s)',
   'A film of the deck (GIF)': 'Film van de presentatie (GIF)',
 
@@ -1266,7 +1266,7 @@ export default {
   'Family calendar': 'Gezinskalender',
   'Festival weekend': 'Festivalweekend',
   'How many times': 'Hoe vaak',
-  'iCalendar (ICS)': 'iCalendar (ICS)',
+  'iCalendar (ICS)': 'iCalendar (ICS)', // same
   'Its own zone': 'Eigen zone',
   'Last day': 'Laatste dag',
   'Lessons, birthdays and holidays, a colour for each person, the weekly things repeating.': 'Lessen, verjaardagen en feestdagen, een kleur voor elke persoon, de wekelijkse dingen herhaald.',
@@ -1331,7 +1331,7 @@ export default {
   'Who does which shift, a colour for each person, at a food bank before Christmas.': 'Wie welke dienst doet, een kleur voor elke persoon, bij een voedselbank voor kerst.',
 
   // ---- the Diagram Maker ----
-  'diagram': 'diagram',
+  'diagram': 'diagram', // same
   // One app, eight kinds (mind map, org chart…); a 'thing' is whatever the kind is made of: an idea, a person, a step.
   'Mind maps, org charts, family trees, swimlanes, timelines, Venns, seating charts and networks, drawn from a few lines.': 'Mindmaps, organigrammen, stambomen, swimlanes, tijdlijnen, venndiagrammen, zaalindelingen en netwerken, getekend uit een paar regels.',
   'An empty diagram': 'Een leeg diagram',
@@ -1339,9 +1339,9 @@ export default {
   'Mind map': 'Mindmap',
   'Org chart': 'Organigram',
   'Family tree': 'Stamboom',
-  'Swimlanes': 'Swimlanes',
+  'Swimlanes': 'Swimlanes', // same
   'Timeline': 'Tijdlijn',
-  'Venn': 'Venn',
+  'Venn': 'Venn', // same
   'Seating chart': 'Zaalindeling',
   'Network': 'Netwerk',
   'Idea': 'Idee',
@@ -1402,7 +1402,7 @@ export default {
   'A router and everything on it: laptop, phone, printer, television and doorbell.': 'Een router en alles wat eraan hangt: laptop, telefoon, printer, televisie en deurbel.',
   'A team by its skills: design, writing and code, and who does more than one.': 'Een team naar zijn vaardigheden: ontwerp, schrijven en code, en wie meer dan één doet.',
   'An expenses claim': 'Een onkostendeclaratie',
-  'Apollo 11': 'Apollo 11',
+  'Apollo 11': 'Apollo 11', // same
   'Board game night': 'Bordspelavond',
   'Class 4B at four tables by colour, and the reading corner.': 'Groep 4B aan vier tafels naar kleur, en de leeshoek.',
   'Eight days in July 1969, day by day, from launch to splashdown.': 'Acht dagen in juli 1969, dag voor dag, van lancering tot landing in zee.',
@@ -1424,7 +1424,7 @@ export default {
   // A stop is a place on the route; {n} is its number, {time} a drive such as "1 hr 38 min". 'Trip Planner' and 'Plan' are above.
   'A route on a map: stops in order, each with a note, and how far between them.': 'Een route op een kaart: stops op volgorde, elk met een notitie, en hoe ver ertussen.',
   'GPX route': 'GPX-route',
-  'GeoJSON': 'GeoJSON',
+  'GeoJSON': 'GeoJSON', // same
   // The bar and the map
   'A place by name…': 'Een plaats op naam…',
   'A stop at the middle of the map': 'Een stop in het midden van de kaart',
@@ -1439,7 +1439,7 @@ export default {
   'The map’s pictures come from OpenStreetMap while it is shown.': 'De kaartbeelden komen van OpenStreetMap zolang de kaart zichtbaar is.',
   'Your location is asked for only to centre the map, and is never written anywhere.': 'Je locatie wordt alleen gevraagd om de kaart te centreren en wordt nergens opgeschreven.',
   '{n|one stop|# stops}': '{n|één stop|# stops}',
-  'Stop {n}': 'Stop {n}',
+  'Stop {n}': 'Stop {n}', // same
   // A stop's number is its handle; the bar under stops chosen whole.
   'Stop {n}: a tap chooses it, a drag moves it': 'Stop {n}: een tik kiest hem, slepen verplaatst hem',
   'Chosen stops': 'Gekozen stops',
@@ -1489,9 +1489,9 @@ export default {
   'For the guests: where the wedding is, where to sleep, how to get there.': 'Voor de gasten: waar de bruiloft is, waar je slaapt, hoe je er komt.',
 
   // ---- the Website Builder ----
-  'site': 'site',
+  'site': 'site', // same
   // 'Web' is the group heading the Website Builder sits under on the home page; a part is a page or a section of the site.
-  'Web': 'Web',
+  'Web': 'Web', // same
   'A website of little pages, or a page of quick links, downloaded as a single HTML file; a shop with a cart if you list what you sell.': 'Een website van kleine pagina’s, of een pagina met snelle links, gedownload als één HTML-bestand; een winkel met winkelwagen als je opsomt wat je verkoopt.',
   'The website (HTML)': 'De website (HTML)',
 
@@ -1529,7 +1529,7 @@ export default {
   // The look: the themes, light or dark, the type, the shape
   'Teal': 'Blauwgroen',
   'Rose': 'Roos',
-  'Amber': 'Amber',
+  'Amber': 'Amber', // same
   'Ink': 'Inkt',
   'Forest': 'Bos',
   'Plum': 'Pruim',
@@ -1542,10 +1542,10 @@ export default {
   'Light or dark': 'Licht of donker',
   'As the theme is': 'Zoals het thema is',
   'Type': 'Letter',
-  'Sans serif': 'Sans serif',
-  'Serif': 'Serif',
+  'Sans serif': 'Sans serif', // same
+  'Serif': 'Serif', // same
   'Rounded': 'Afgerond',
-  'Monospace': 'Monospace',
+  'Monospace': 'Monospace', // same
   'Shape': 'Vorm',
   'A website of pages': 'Een website van pagina’s',
   'Quick links: one column': 'Snelle links: één kolom',
@@ -1622,11 +1622,11 @@ export default {
   'Take away line {n}': 'Regel {n} weghalen',
   'Sum': 'Som',
   'Type or tap': 'Typ of tik',
-  'y =': 'y =',
-  'y = …': 'y = …',
+  'y =': 'y =', // same
+  'y = …': 'y = …', // same
   'at x = 1: {answer}': 'bij x = 1: {answer}',
   'Keys': 'Toetsen',
-  'Backspace': 'Backspace',
+  'Backspace': 'Backspace', // same
   'Clear the line': 'De regel wissen',
   'The answer before': 'Het antwoord ervoor',
   'Type a sum, or 3 inch to cm, and press Enter. a = 12 keeps an answer by name.': 'Typ een som, of 3 inch naar cm, en druk op Enter. a = 12 bewaart een antwoord onder een naam.',
@@ -1666,7 +1666,7 @@ export default {
   '$24,000 at 6.9% over sixty months: the monthly payment and the interest in all.': '$24.000 tegen 6,9% over zestig maanden: de maandlast en de rente in totaal.',
   'Compound interest': 'Samengestelde rente',
   '$5,000 and $200 a month at 5% for ten years, against what went in.': '$5.000 en $200 per maand tegen 5% gedurende tien jaar, tegenover wat erin ging.',
-  'Break-even': 'Break-even',
+  'Break-even': 'Break-even', // same
   'Costs against takings for a coffee cart: where the lines cross is the cups a day it needs.': 'Kosten tegenover opbrengst voor een koffiekarretje: waar de lijnen elkaar kruisen zijn de kopjes per dag die het nodig heeft.',
   'A curve and its slope': 'Een kromme en zijn helling',
   'x³ − 3x, its derivative, and the flat tangent at the bottom of the dip.': 'x³ − 3x, de afgeleide, en de vlakke raaklijn onderin het dal.',
@@ -1691,7 +1691,7 @@ export default {
   'Find app, template, or doc': 'App, sjabloon of document zoeken',
   'New {noun} {date} #{n}': '{noun} {date} #{n}',
   'Nothing by that name': 'Niets met die naam',
-  'Pixels {n}×{n}': 'Pixels {n}×{n}',
+  'Pixels {n}×{n}': 'Pixels {n}×{n}', // same
   // Files, compare, posting and embedding: the agent and sharing surface.
   'A Mastodon server, like mastodon.social': 'Een Mastodon-server, zoals mastodon.social',
   'Change': 'Wijzigen',
@@ -1769,7 +1769,7 @@ export default {
   'Presenting: the next line or slide': 'Presenteren: de volgende regel of dia',
   'Presenting: the next stop': 'Presenteren: de volgende stop',
   'Presenting: the stop before': 'Presenteren: de vorige stop',
-  'Print place cards': 'Plaatskaartjes printen',
+  'Print place cards': 'Plaatskaartjes afdrukken',
   'Print place cards: a card a guest, eight to a letter sheet, to cut out': 'Plaatskaartjes afdrukken: een kaartje per gast, acht op een vel letter, om uit te knippen',
   'Private: nothing is kept on this device. Turn on Saved in the menu to keep your documents here.': 'Privé: er wordt niets op dit apparaat bewaard. Zet Opgeslagen aan in het menu om je documenten hier te bewaren.',
   'Put back what the cell held': 'Terugzetten wat de cel bevatte',
@@ -1781,8 +1781,8 @@ export default {
   'Show on a board': 'Op een bord tonen',
   'Show these shortcuts': 'Deze sneltoetsen tonen',
   'All commands…': 'Alle opdrachten…',
-  'A4': 'A4',
-  'Letter': 'Letter',
+  'A4': 'A4', // same
+  'Letter': 'Letter', // same
   'Back to the words': 'Terug naar de tekst',
   'Extend the selection': 'Selectie uitbreiden',
   'Find a command': 'Opdracht zoeken',

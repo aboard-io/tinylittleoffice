@@ -6,11 +6,14 @@
  *   - checks every language file against en.ts (checkLanguage): the same keys (a missing one fails, since the
  *     English would show through; an extra one is a warning), each placeholder of the key once in the value,
  *     each plural with as many forms as the language has plural categories and "#" in one of them, no
- *     "sort me" heading left in; a value the same as its English is a warning unless SAME allows it.
+ *     "sort me" heading left in, no "draft from" left in; a value the same as its English fails unless its line
+ *     says it is meant (`// same`), a decision made per language and per key, so the list never grows unread.
  *
  *   node scripts/i18n-extract.ts             write the missing keys into en.ts, report the rest
  *   node scripts/i18n-extract.ts --check     write nothing; fail if a key is missing or a language file is wrong
- *   node scripts/i18n-extract.ts --gaps fr   print the en.ts lines fr.ts lacks, ready to translate and paste in
+ *   node scripts/i18n-extract.ts --gaps fr   print the en.ts lines fr.ts lacks, ready to translate and paste in; where
+ *                                            a key fr.ts still has (one en.ts has dropped) is the new one less a few
+ *                                            words, its translation is offered as a draft (the translation memory)
  */
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -52,11 +55,17 @@ export function definedKeys(source: string): { key: string; value: string }[] {
 /** The placeholder names in a string: {name}, {n|one|# many}. */
 export const placeholders = (s: string): string[] => [...s.matchAll(/\{(\w+)(?:\|[^}]*)?\}/g)].map((m) => m[1]).sort();
 
-/**
- * Words a translation may keep exactly as the English, unwarned: names, units and words most languages share.
- * A key with no letters outside its placeholders ("{n}", "·", "{a} → {b}") is allowed without being listed.
- */
-export const SAME = new Set(['OK', 'CSV', 'GeoJSON', 'Markdown', 'Emoji', 'Tiny Little Office', 'OpenStreetMap', 'L', 'M', 'S', 'XL', '3D', 'Menu', 'Design', 'Zoom', 'Neon', 'Zine', 'Web', 'Alt']);
+/** A line a translator has decided may stay as the English: `'Apps': 'Apps', // same`. */
+export const SAME_MARK = '// same';
+/** A line the translation memory offered and nobody has read yet: `'Copy this link': 'Copier le lien', // draft from "Copy the link"`. */
+export const DRAFT_MARK = '// draft from';
+
+/** The keys of a language file whose lines say `// same`. */
+export function sameKeys(source: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of source.matchAll(/^\s*'((?:\\.|[^'\\])*)'\s*:\s*'(?:\\.|[^'\\])*'\s*,?\s*\/\/ same\s*$/gm)) out.add(unquote(m[1]));
+  return out;
+}
 
 /** The plural categories a language has, in Intl's order: fr has one, many, other; ja other; ar six. */
 export const pluralCount = (code: string): number => new Intl.PluralRules(code).resolvedOptions().pluralCategories.length;
@@ -82,7 +91,11 @@ export function checkLanguage(code: string, en: Strings, strings: Strings, sourc
   if (missing.length) errors.push(`${missing.length} missing (English would show):\n    ${missing.join('\n    ')}`);
   if (extra.length) warnings.push(`${extra.length} not in en.ts (remove them):\n    ${extra.join('\n    ')}`);
   if (source.includes('// New — sort me')) errors.push('a "// New — sort me" heading is left in: take the heading out, keep its lines');
+  const drafts = source.split('\n').filter((l) => l.includes(DRAFT_MARK));
+  if (drafts.length) errors.push(`${drafts.length} ${DRAFT_MARK} left in (read each, make it right for its new key, take the comment off):\n    ${drafts.map((l) => l.trim()).join('\n    ')}`);
+  const decided = sameKeys(source);
   const same: string[] = [];
+  const stale: string[] = [];
   for (const [key, value] of Object.entries(strings)) {
     if (!(key in en)) continue;
     for (const name of new Set(placeholders(key))) {
@@ -95,14 +108,54 @@ export function checkLanguage(code: string, en: Strings, strings: Strings, sourc
       if (forms && f.length !== forms) errors.push(`{${m[1]}|…} has ${f.length} forms, ${code} has ${forms}: ${key} → ${value}`);
       if (!f.some((x) => x.includes('#'))) errors.push(`{${m[1]}|…} has no "#" in any form: ${key} → ${value}`);
     }
-    if (code !== 'en' && value === key && /\p{L}/u.test(key.replace(/\{[^}]*\}/g, '')) && !SAME.has(key)) same.push(key);
+    if (code === 'en') continue;
+    if (value === key && /\p{L}/u.test(key.replace(/\{[^}]*\}/g, '')) && !decided.has(key)) same.push(key);
+    if (value !== key && decided.has(key)) stale.push(`${key} → ${value}`);
   }
-  if (same.length) warnings.push(`${same.length} the same as the English:\n    ${same.join('\n    ')}`);
+  if (same.length) errors.push(`${same.length} the same as the English, not decided (translate it, or end its line with "${SAME_MARK}" where the English is the word):\n    ${same.join('\n    ')}`);
+  if (stale.length) errors.push(`${stale.length} marked "${SAME_MARK}" but translated (take the mark off):\n    ${stale.join('\n    ')}`);
   return { errors, warnings };
 }
 
-/** The keys a language lacks, as en.ts lines: the English on both sides, for a translator to fill in. */
-export const gaps = (en: Strings, strings: Strings): string[] => Object.keys(en).filter((k) => !(k in strings)).map((k) => `  ${quote(k)}: ${quote(en[k])},`);
+/** The words of an English key that carry its meaning, lower case, a plural's "s" off: placeholders by name, the little words left out. */
+const LITTLE = new Set(['a', 'an', 'the', 'this', 'that', 'these', 'those', 'of', 'to', 'in', 'on', 'at', 'for', 'by', 'and', 'or', 'it', 'its', 'is', 'as']);
+export const tokens = (s: string): string[] => [...new Set(s.toLowerCase().replace(/\{(\w+)[^}]*\}/g, ' $1 ').split(/[^\p{L}\p{N}]+/u).filter((w) => w && !LITTLE.has(w)).map((w) => (w.length > 3 ? w.replace(/s$/, '') : w)))];
+
+/** How alike two English keys are, 0 to 1: the words they share, twice, over the words of both (Dice's coefficient). */
+export function likeness(a: string, b: string): number {
+  const [x, y] = [tokens(a), tokens(b)];
+  if (!x.length || !y.length) return 0;
+  return (2 * x.filter((w) => y.includes(w)).length) / (x.length + y.length);
+}
+
+/** Two keys this alike are one key changed by a few words: the old one's translation is a draft for the new one. */
+export const LIKE = 0.6;
+
+/** The old key most like a new one, among those given (none at least LIKE alike: undefined). */
+export function nearest(key: string, olds: string[], at = LIKE): string | undefined {
+  let best: string | undefined;
+  let score = at;
+  for (const old of olds) {
+    const s = likeness(key, old);
+    if (s > score || (s === score && !best)) [best, score] = [old, s];
+  }
+  return best;
+}
+
+/**
+ * The keys a language lacks, as lines to paste in: the English on both sides, for a translator to fill in; or, where
+ * the language still has a key en.ts has dropped that is this one less a few words, that key's translation, marked
+ * `// draft from "<old key>"` for a reader (i18n:check fails while the mark is in). Never written into a file.
+ */
+export function gaps(en: Strings, strings: Strings): string[] {
+  const olds = Object.keys(strings).filter((k) => !(k in en));
+  return Object.keys(en)
+    .filter((k) => !(k in strings))
+    .map((k) => {
+      const old = nearest(k, olds);
+      return old === undefined ? `  ${quote(k)}: ${quote(en[k])},` : `  ${quote(k)}: ${quote(strings[old])}, ${DRAFT_MARK} "${old.replace(/"/g, '\\"')}"`;
+    });
+}
 
 /** The language files present: code → path. */
 export const languageFiles = (root: string): [string, string][] =>
