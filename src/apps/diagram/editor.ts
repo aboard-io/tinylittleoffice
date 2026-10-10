@@ -188,6 +188,11 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (i < 0 && at >= 0) i = shapes.findIndex((s) => s.hit?.k === 'line' && s.hit.at === at);
     return i >= 0 ? this.querySelector<SVGGElement>(`.dg-pic g.dg-thing[data-i="${i}"]`) : null;
   }
+  /** Where a person starts: the picture itself, nothing being edited. */
+  async focusFirst() {
+    await this.updateComplete;
+    this.wrap?.focus({ preventScroll: true });
+  }
   /** The focus on a thing once the picture is drawn again; on the picture itself when the thing is gone. */
   private async focusThing(hit: Hit | null, at = -1) {
     await this.updateComplete;

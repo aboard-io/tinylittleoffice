@@ -163,6 +163,14 @@ export class ToCalcEditor extends DocElement<CalcView> {
   private lineBox(i: number) {
     return this.querySelectorAll<HTMLInputElement>('.calc-line')[i] ?? null;
   }
+  /** Where a person starts: the entry line, the caret at its end. */
+  async focusFirst() {
+    await this.updateComplete;
+    const d = this.display;
+    if (!d) return;
+    d.focus({ preventScroll: true });
+    d.setSelectionRange(d.value.length, d.value.length);
+  }
   /** The caret into line i's box, once it is drawn. */
   private focusLine(i: number, offset: number | 'end') {
     void this.updateComplete.then(() => {

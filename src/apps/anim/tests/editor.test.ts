@@ -558,3 +558,14 @@ test('the size handle grows the shape in hand at this moment; Mod and the wheel 
   expect(wheel.defaultPrevented).toBe(true);
   expect(stage(el).getBoundingClientRect().width).toBeGreaterThan(b.width * 1.2);
 });
+
+test('§1 opens with the focus on the stage, the page not scrolled', async () => {
+  const { el } = await editor(LIFT);
+  await el.focusFirst();
+  expect(document.activeElement).toBe(stage(el));
+  // A new animation opens with its drawing: Draw's canvas.
+  const { el: blank } = await editor('');
+  await blank.focusFirst();
+  expect(document.activeElement).toBe(blank.querySelector('to-draw-editor .draw-wrap'));
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

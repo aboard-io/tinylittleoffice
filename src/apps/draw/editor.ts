@@ -390,6 +390,11 @@ export class ToDrawEditor extends DocElement<DrawView> {
     const b = this.svgEl!.getBoundingClientRect();
     return [((e.clientX - b.left) * W) / b.width, ((e.clientY - b.top) * H) / b.height];
   }
+  /** Where a person starts: the canvas, with the select tool and nothing chosen. */
+  async focusFirst() {
+    await this.updateComplete;
+    this.focusCanvas();
+  }
   private focusCanvas() {
     // (Without scrolling: the page must not jump under a drag that has just begun.)
     this.querySelector<HTMLElement>('.draw-wrap')?.focus({ preventScroll: true });

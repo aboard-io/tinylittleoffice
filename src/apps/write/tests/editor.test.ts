@@ -11,6 +11,7 @@ import { parse } from '../../../doc/index.ts';
 import '../editor.ts';
 import type { ToWriteEditor } from '../editor.ts';
 import { templates } from '../templates.ts';
+import { isWords } from '../../../kit/textops.ts';
 import { mount, tick, until } from '../../../../test/browser/helpers.ts';
 
 async function editor(value = ''): Promise<{ el: ToWriteEditor; changes: string[]; last: () => string | undefined }> {
@@ -804,4 +805,16 @@ test('the Look menu: each look a sample in its own type, the chosen one checked;
   await pick(el, opener, 'Sans');
   await until(() => last() === '# A title {.title}\n\nOne.\n\nTwo.\n');
   expect(el.querySelector('.write-page')!.getAttribute('data-look')).toBe('sans');
+});
+
+test('§1 opens with the focus in the first words: the caret at their start, the page not scrolled', async () => {
+  const { el } = await editor('');
+  await el.focusFirst();
+  expect(el.text.hasFocus()).toBe(true);
+  expect(el.text.sel).toEqual({ anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } });
+  const { el: opened } = await editor(templates()[3].doc);
+  await opened.focusFirst();
+  const first = parse(templates()[3].doc).blocks.findIndex(isWords);
+  expect(opened.text.sel?.focus).toEqual({ block: first, offset: 0 });
+  expect(document.scrollingElement!.scrollTop).toBe(0);
 });

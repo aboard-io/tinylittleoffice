@@ -680,6 +680,10 @@ export class ToSheetEditor extends DocElement<SheetView> {
 
   /* ---------- focus and the caret ---------- */
 
+  /** Where a person starts: A1, its words selected as a keyboard move leaves them. */
+  focusFirst() {
+    this.focusCell(0, 0);
+  }
   private focusCell(row: number, col: number, keepBlock = false) {
     const [r, c] = this.onSheet(row, col);
     // Near the bottom of what is drawn, more rows appear.

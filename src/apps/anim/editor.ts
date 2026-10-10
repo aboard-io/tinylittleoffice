@@ -204,6 +204,12 @@ export class ToAnimEditor extends DocElement<AnimView> {
   private get drawEl(): DrawEl | null {
     return this.querySelector<DrawEl>('to-draw-editor');
   }
+  /** Where a person starts: the stage (Draw's canvas while the drawing is open). */
+  async focusFirst() {
+    await this.updateComplete;
+    if (this.mode === 'draw') this.drawEl?.querySelector<HTMLElement>('.draw-wrap')?.focus({ preventScroll: true });
+    else this.focusStage();
+  }
   private focusStage() {
     this.stageEl?.focus({ preventScroll: true });
   }

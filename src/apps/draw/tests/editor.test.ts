@@ -927,3 +927,12 @@ test('a label is rich: words chosen and Bold from the bubble write **…** and t
   box(el).dispatchEvent(k);
   expect(k.defaultPrevented).toBe(false);
 });
+
+test('§1 opens with the focus on the canvas, the select tool in hand and nothing chosen; the page not scrolled', async () => {
+  const { el } = await editor(DRAWING);
+  await el.focusFirst();
+  expect(document.activeElement).toBe(el.querySelector('.draw-wrap'));
+  expect(el.tool).toBe('select');
+  expect(el.picked).toEqual([]);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

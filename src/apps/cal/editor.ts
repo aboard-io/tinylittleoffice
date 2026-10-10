@@ -516,6 +516,17 @@ export class ToCalEditor extends DocElement<CalView> {
   private item(at: number): Item | undefined {
     return this.view.items.find((i) => i.at === at);
   }
+  /** Where a person starts: today's day in the month (else the month's first), the first task's words in a Gantt chart, today in the year. */
+  async focusFirst() {
+    await this.updateComplete;
+    if (this.view.gantt) {
+      const row = this.querySelector<HTMLElement>('.cal-trow[data-at]');
+      if (row) return this.focusWords(Number(row.dataset.at));
+      return this.querySelector<HTMLElement>('.cal-gantt-scroll')?.focus({ preventScroll: true });
+    }
+    const day = this.mode === 'year' ? (this.querySelector<HTMLElement>('.cal-year [aria-current=date]') ?? this.querySelector<HTMLElement>('.cal-year button')) : this.querySelector<HTMLElement>('.cal-n[tabindex="0"]');
+    day?.focus({ preventScroll: true });
+  }
   /** The caret into a task's words (at the end, or at `offset`). */
   private focusWords(at: number, offset: number | 'end' = 'end') {
     this.cur = at;

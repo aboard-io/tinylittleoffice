@@ -171,6 +171,14 @@ export class ToBoardEditor extends DocElement<BoardView> {
     const s = this.textAt(at)?.sel;
     return s ? s.focus.offset : this.lengthOf(at);
   }
+  /** Where a person starts: the first stage's first card's words, else the stage's name, the caret at their end (the page held still). */
+  async focusFirst() {
+    await this.updateComplete;
+    const s = this.view.stages[0];
+    const at = s?.cards[0]?.at ?? (s?.block ? s.at : -1);
+    const x = at >= 0 ? this.textAt(at) : null;
+    if (x) x.sel = caret(0, this.lengthOf(at));
+  }
   /** Focus the words of the block at `at`, once it is drawn; `end` puts the caret after them, `all` selects them, a number there. */
   private async focusText(at: number, how: 'start' | 'end' | 'all' | number = 'start') {
     await this.updateComplete;

@@ -499,3 +499,14 @@ test('the bar ends with Undo and Redo; the star keeps the focus in the words; th
   await settle(el);
   expect(el.value).toBe(n);
 });
+
+test('§1 opens with the focus in the first task\'s words, the caret at their end, the page not scrolled', async () => {
+  const { el } = await editor();
+  await el.focusFirst();
+  expect(text(el, 0).hasFocus()).toBe(true);
+  expect(text(el, 0).sel?.focus).toEqual({ block: 0, offset: 'Buy milk'.length });
+  const { el: blank } = await editor('- [ ]\n');
+  await blank.focusFirst();
+  expect(text(blank, 0).hasFocus()).toBe(true);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});

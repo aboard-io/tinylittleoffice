@@ -223,6 +223,12 @@ export class ToOutlineEditor extends DocElement<OutlineView> {
 
   /* ---------- focus ---------- */
 
+  /** Where a person starts: the first row's words, the caret at their end (the empty outline's one row). */
+  async focusFirst() {
+    await this.updateComplete;
+    const first = this.querySelector<HTMLElement>('.ol-row');
+    if (first) this.focusRow(Number(first.dataset.at));
+  }
   /** Choose the row at `at` and put the caret in its words (at the end, or at `offset`). */
   private focusRow(at: number, offset: number | 'end' = 'end') {
     this.sel = at;

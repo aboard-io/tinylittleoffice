@@ -153,6 +153,8 @@ export class ToShell extends LitElement {
   declare askMastodon: boolean;
   /** A deck's show link: presenting starts once the editor is up. */
   private presentSoon = false;
+  /** A document just opened for editing: once its editor is drawn, the focus goes where a person starts. */
+  private focusSoon = false;
   /** Opened from a link while the library holds another version of this document (the same app and name, another link): offered in a banner. */
   declare other: Kept | null;
   /** The link was made by a newer Tiny Little Office (its format's version is past this one's). */
@@ -286,6 +288,7 @@ export class ToShell extends LitElement {
     this.display = !!def && display && !!payload;
     this.embed = !!def && asked === 'embed' && !!payload;
     this.presentSoon = !!def && !!show && !display && !this.embed;
+    this.focusSoon = !!def && !this.display && !this.embed && !this.presentSoon && !this.unreadable && !this.sealed && !view;
     // The owner of a short link that opens the pages arrives with "?d": the short link goes on opening them.
     if (owned && display) this.shortDisplay = true;
     this.expires = def && arrived ? arrived.expires : 0;
@@ -357,6 +360,7 @@ export class ToShell extends LitElement {
     this.envelope = takeHead(text, ENVELOPE_KEYS)[0];
     this.setTitle();
     void this.checkSignature();
+    this.focusSoon = !this.display && !this.pendingView;
     if (this.pendingView) void this.updateComplete.then(() => this.doView());
   }
   /** A password set or changed (the document sealed again at once), or taken off (`password` empty). */
@@ -421,9 +425,17 @@ export class ToShell extends LitElement {
     }
   }
 
-  /** Once the editor is up, a show link starts presenting (an app with nothing to present ignores it). */
+  /** Once the editor is up, the focus goes where a person starts, or a show link starts presenting (an app with nothing to present ignores it). */
   protected updated() {
     const editor = this.editor as (Editor & { present?: (fromLink?: boolean) => void }) | null;
+    if (this.focusSoon && editor && !this.sealed) {
+      this.focusSoon = false;
+      void (editor as unknown as { updateComplete?: Promise<unknown> }).updateComplete?.then(() => {
+        // Not when the person has gone elsewhere meanwhile: another document, or a dialog open.
+        if (this.editor !== editor || document.activeElement?.closest('dialog[open]')) return;
+        void editor.focusFirst?.();
+      });
+    }
     if (!this.presentSoon || !editor) return;
     this.presentSoon = false;
     void (editor as unknown as { updateComplete?: Promise<unknown> }).updateComplete?.then(() => editor.present?.(true));

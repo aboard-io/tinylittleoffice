@@ -9,6 +9,7 @@ import { decodeDoc } from '../../src/kit/codec.ts';
 import { keep, library, localDay } from '../../src/kit/library.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
 import { keeping, setKeeping } from '../../src/kit/store.ts';
+import { lockWith, pack } from '../../src/kit/privacy.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToText } from '../../src/kit/text.ts';
 
@@ -365,4 +366,42 @@ test('the templates list has a Close at its top that dismisses it', async () => 
   expect(tile.querySelector('.to-listbox-head')!.getBoundingClientRect().top).toBeGreaterThanOrEqual(tile.querySelector('.to-listbox')!.getBoundingClientRect().top);
   close.click();
   await until(() => !tile.querySelector('.to-listbox:popover-open'));
+});
+
+test('§1 a document opens with the focus where a person starts: a new one, an opened one, from home and from the address; never the title box or the body', async () => {
+  const typing = (shell: ToShell) => shell.querySelector<ToText>('to-write-editor to-text.write-text');
+  const shell = await mount('#/v1/write');
+  await until(() => !!typing(shell)?.hasFocus());
+  expect(document.activeElement).not.toBe(shell.querySelector('.to-title'));
+  expect(typing(shell)!.sel?.focus).toEqual({ block: 0, offset: 0 });
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+  // Another document in the same editor, from a link: its first words.
+  location.hash = `#/v1/write/${encodeDoc('# Plans\n\nWords.\n')}`;
+  await until(() => typing(shell)?.querySelector('h1')?.textContent === 'Plans');
+  typing(shell)!.sel = { anchor: { block: 1, offset: 2 }, focus: { block: 1, offset: 2 } };
+  location.hash = `#/v1/write/${encodeDoc('# Other\n\nMore.\n')}`;
+  await until(() => typing(shell)?.querySelector('h1')?.textContent === 'Other' && typing(shell)!.sel?.focus.block === 0);
+  expect(typing(shell)!.hasFocus()).toBe(true);
+  // From the home page: the Spreadsheet's A1.
+  location.hash = '';
+  await until(() => !!shell.querySelector('to-home'));
+  shell.querySelector<HTMLAnchorElement>('.to-app-open[href="#/v1/sheet"]')!.click();
+  await until(() => document.activeElement?.getAttribute('aria-label') === 'A1');
+});
+
+test('§1 display mode and a locked document focus nothing; unlocked, the document takes the focus', async () => {
+  const payload = encodeDoc('---\ntitle: Notes\n---\nFirst words.\n');
+  const display = await mount(`#/v1/write/${payload}?d`);
+  await until(() => !!display.querySelector('.to-display-page svg'));
+  await tick(100);
+  expect(document.activeElement).toBe(document.body);
+  const shell = await mount(`#/v1/write/${await pack('Secret words.\n', await lockWith('pw'))}`);
+  await until(() => !!document.querySelector('to-dialog.to-unlock-dialog dialog[open]'));
+  await tick(100);
+  const field = shell.querySelector<HTMLInputElement>('.to-unlock-field')!;
+  expect(document.activeElement).toBe(field);
+  field.value = 'pw';
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  shell.querySelector<HTMLButtonElement>('.to-unlock-go')!.click();
+  await until(() => !!shell.querySelector<ToText>('to-write-editor to-text')?.hasFocus());
 });

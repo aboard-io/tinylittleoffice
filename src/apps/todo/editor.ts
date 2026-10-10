@@ -134,6 +134,11 @@ export class ToTodoEditor extends DocElement<TodoView> {
     const mark: Mark = { at, offset: before ? before.focus.offset : 0 };
     this.edit(shifted(ops, at), kind ? `type:${at}` : undefined, mark);
   };
+  /** Where a person starts: the first task's words, the caret at their end. */
+  async focusFirst() {
+    const first = this.shown()[0];
+    if (first) await this.focusTask(first.at, 'end');
+  }
   /** The words of the task at block `at`, once it is drawn, with the caret at `offset`. */
   private async focusTask(at: number, offset: number | 'end' = 0) {
     this.cur = at;

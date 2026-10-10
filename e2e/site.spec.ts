@@ -1,6 +1,6 @@
 /**
- * Website on the built site, at desktop size in Chromium: the page is the editor. One tap on the blank site's
- * heading opens its words there, in the page, and the name typed is the site's; Insert ▾ makes a page, its words
+ * Website on the built site, at desktop size in Chromium: the page is the editor. A blank site opens with its
+ * heading's words open there, in the page, and the name typed is the site's; Insert ▾ makes a page, its words
  * typed where they are, then a button, where it goes from the URL chip on its bar; the page's own nav goes between
  * the pages; Preview shows it as a visitor has it and Edit comes back. The bar is one row, nothing is wider than the
  * screen, axe finds nothing. Run on its own:
@@ -15,8 +15,8 @@ test('website: the name typed in the page, a page and a button from Insert, the 
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/#/v1/site');
   const site = page.frameLocator('to-site-editor iframe.site-frame');
-  const name = site.getByRole('heading', { name: 'My site', level: 1 });
-  await expect(name).toBeVisible();
+  const words = site.locator('h1 to-text .tx');
+  await expect(words).toBeVisible();
   const measure = () =>
     page.evaluate(() => {
       const bar = document.querySelector<HTMLElement>('to-site-editor to-bar')!;
@@ -24,9 +24,7 @@ test('website: the name typed in the page, a page and a button from Insert, the 
       return { rows: tops.size, wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     });
   expect(await measure()).toEqual({ rows: 1, wide: 0 });
-  // One tap opens the heading's words in the page, the heading in hand, its bar beside it; no form.
-  await name.click();
-  const words = site.locator('h1 to-text .tx');
+  // A new site opens with its name's words open in the page (docs/editing.md §1), the heading in hand, its bar beside it; no form.
   await expect(words).toBeFocused();
   await expect(page.locator('to-site-editor to-context.site-context .to-context')).toBeVisible();
   await expect(page.locator('.site-form-dialog')).toHaveCount(0);

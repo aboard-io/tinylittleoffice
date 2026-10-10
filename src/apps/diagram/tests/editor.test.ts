@@ -763,3 +763,11 @@ test('Tab out of the words keeps them and closes them', async () => {
   expect(isOpen(el)).toBe(false);
   expect(last()).toContain('  - Bee\n');
 });
+
+test('§1 opens with the focus on the picture, nothing being edited; the page not scrolled', async () => {
+  const { el } = await editor(ORG);
+  await el.focusFirst();
+  expect(document.activeElement).toBe(el.querySelector('.dg-wrap'));
+  expect(isOpen(el)).toBe(false);
+  expect(document.scrollingElement!.scrollTop).toBe(0);
+});
