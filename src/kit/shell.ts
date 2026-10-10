@@ -88,6 +88,7 @@ import './home.ts';
 import './privacy-dialog.ts';
 import './compare.ts';
 import { pinchSizes } from './pinch.ts';
+import { applySize } from './zoom.ts';
 
 /** The Mastodon server a link is posted to, asked once and remembered (under Saved; for the visit under Private). */
 const MASTODON_KEY = 'tinyoffice.mastodon';
@@ -248,7 +249,9 @@ export class ToShell extends LitElement {
     window.addEventListener('touchstart', this.onViewport, { passive: true });
     window.addEventListener('touchend', this.onViewport, { passive: true });
     window.addEventListener('dragover', this.onDragOver);
-    // A pinch on a touch screen is the size of everything (kit/pinch.ts), outside the spatial canvases.
+    // The size of everything, drawn (kit/zoom.ts: the normal size is BASE), and a pinch on a touch screen sets it
+    // (kit/pinch.ts), outside the spatial canvases.
+    applySize();
     pinchSizes();
     window.addEventListener('drop', this.onDrop);
     this.addEventListener('to-keys', this.showKeys);

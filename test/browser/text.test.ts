@@ -12,6 +12,7 @@ import { History } from '../../src/kit/history.ts';
 import { caret, type Sel, type Shape } from '../../src/kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../src/kit/text.ts';
 import { tick, until } from './helpers.ts';
+import { zoomOf } from '../../src/kit/zoom.ts';
 import '../../src/styles.css';
 import '../../src/kit/text.ts';
 import { appOf } from '../../src/kit/apps.ts';
@@ -820,6 +821,21 @@ test('Mod+Enter on a task item ticks and unticks it; on other words it is the ho
   await h.el.updateComplete;
   expect(press(h.el.tx, { key: 'Enter', ctrlKey: true }).defaultPrevented).toBe(false);
   expect(reached).toBe(1);
+});
+
+test('a click anywhere in a task\'s box ticks it, the box measured at the size of everything', async () => {
+  const h = await mount('- [ ] buy milk\n', 'doc', caret(0, 3));
+  const li = h.el.tx.querySelector<HTMLElement>('li')!;
+  const r = li.getBoundingClientRect();
+  // The box's right edge on the screen: its padding, drawn at the zoom (1.3 at the normal size).
+  const edge = r.left + parseFloat(getComputedStyle(li).paddingLeft) * zoomOf(li);
+  li.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: edge - 2, clientY: r.top + r.height / 2 }));
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- [x] buy milk\n');
+  // Past it, in the words: nothing ticks.
+  li.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: edge + 4, clientY: r.top + r.height / 2 }));
+  await h.el.updateComplete;
+  expect(h.tlo).toBe('- [x] buy milk\n');
 });
 
 test('Mod+Shift+X strikes through and Mod+Shift+H highlights the words selected', async () => {

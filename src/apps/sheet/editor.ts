@@ -47,6 +47,7 @@ import { cellText, chartOf, chartOfSheet } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
+import { zoomOf } from '../../kit/zoom.ts';
 import '../../kit/menu.ts';
 import '../../kit/text.ts';
 import './style.css';
@@ -824,17 +825,19 @@ export class ToSheetEditor extends DocElement<SheetView> {
   }
   private currentWidths(): number[] {
     if (this.widths) return this.widths.slice();
-    return [...this.querySelectorAll<HTMLElement>('table.sheet thead th[scope=col]')].slice(0, this.cols).map((th) => th.getBoundingClientRect().width);
+    // Measured on the screen, kept in the sheet's own pixels: under the size of everything those are its zoom smaller.
+    return [...this.querySelectorAll<HTMLElement>('table.sheet thead th[scope=col]')].slice(0, this.cols).map((th) => th.getBoundingClientRect().width / zoomOf(th));
   }
   private onGripDown(e: PointerEvent, c: number) {
     e.preventDefault();
     const grip = e.currentTarget as HTMLElement;
     const base = this.currentWidths();
     const x0 = e.clientX;
+    const z = zoomOf(grip);
     grip.setPointerCapture(e.pointerId);
     follow(grip, (ev) => {
       const w = base.slice();
-      w[c] = Math.max(MIN_COL, Math.round(base[c] + ev.clientX - x0));
+      w[c] = Math.max(MIN_COL, Math.round(base[c] + (ev.clientX - x0) / z));
       this.widths = w;
     });
   }

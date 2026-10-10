@@ -17,9 +17,19 @@
     --to-vw: calc(100vw / var(--to-size, 1));
     --to-vh: calc(100dvh / var(--to-size, 1));
   }
-  /* The nav: everything that is nav, not document, grows with the size of everything up to 150% and no further
+  /* Paper is not the screen: a page printed from here (a Display Link's pages) is drawn at its own size, whatever the
+     size of everything (kit/zoom.ts sets these on the root's style, which an !important rule outranks). */
+  @media print {
+    html {
+      zoom: 1 !important;
+      --to-size: 1 !important;
+      --to-nav-size: 1 !important;
+      --to-nav-zoom: 1 !important;
+    }
+  }
+  /* The nav: everything that is nav, not document, grows with the size of everything up to 120% and no further
      (zoom.ts NAV_MAX, --to-nav-zoom = navSize / size under the root's zoom), while the words, the cards and the
-     pictures go on to 250%. One list: an app's own bar (anything nav, not document) joins it rather than inventing
+     pictures go on to 200%. One list: an app's own bar (anything nav, not document) joins it rather than inventing
      its own; only the outermost of them takes the zoom, the nav inside nav inheriting it. */
   :is(
     to-bar,
@@ -530,6 +540,12 @@
     flex: none;
     height: 48px;
     min-width: 72px;
+  }
+  /* A phone is 300 of these pixels wide at the normal size: the address keeps three times OK's width. */
+  @media (max-width: 640px) {
+    .to-ask-ok {
+      min-width: 56px;
+    }
   }
   .to-ask-alt {
     display: flex;

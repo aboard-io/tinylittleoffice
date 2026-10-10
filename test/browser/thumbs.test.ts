@@ -10,6 +10,10 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { routeHash } from '../../src/kit/route.ts';
 import { UI } from '../../src/kit/icons.ts';
 import { until } from './helpers.ts';
+import { zoomed } from '../../src/kit/zoom.ts';
+
+/** A box on the screen in the stylesheet's own pixels: the normal size draws everything at kit/zoom.ts BASE. */
+const css = (r: DOMRect) => ({ width: r.width / zoomed(), height: r.height / zoomed() });
 import '../../src/styles.css';
 
 const SHAPES: Record<string, [number, number]> = { Letter: [85, 110], Slide: [1600, 900], Page: [400, 300], Strip: [1300, 240] };
@@ -29,7 +33,7 @@ test('the templates list: a portrait page 56 by 72, a landscape one as wide as i
   await el.updateComplete;
   el.button.click();
   await until(() => el.listbox.matches(':popover-open') && !!el.listbox.querySelector('.to-thumb svg'));
-  const thumbs = [...el.listbox.querySelectorAll<HTMLElement>('.to-thumb')].map((x) => x.getBoundingClientRect());
+  const thumbs = [...el.listbox.querySelectorAll<HTMLElement>('.to-thumb')].map((x) => css(x.getBoundingClientRect()));
   expect(thumbs.map((r) => Math.round(r.width))).toEqual([56, 128, 96, 144, 144]);
   for (const r of thumbs) expect(Math.round(r.height)).toBe(72);
   expect(asked.every((o) => o?.small && o.thumb)).toBe(true);
@@ -48,7 +52,7 @@ test('a kept document’s preview: a slide is as wide as its shape, a portrait p
   document.body.innerHTML = `<div style="display:flex"><to-preview hash="${slide}"></to-preview><to-preview hash="${letter}"></to-preview></div><div class="to-found" style="display:flex"><to-preview hash="${slide}"></to-preview></div>`;
   const all = [...document.querySelectorAll<ToPreview>('to-preview')];
   for (const p of all) p.draw();
-  const box = (p: Element) => p.querySelector('svg')!.getBoundingClientRect();
+  const box = (p: Element) => css(p.querySelector('svg')!.getBoundingClientRect());
   await until(() => all.every((p) => box(p).width > 0));
   const [wide, tall, found] = all.map(box);
   expect(Math.round(wide.height)).toBe(56);

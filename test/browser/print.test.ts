@@ -10,6 +10,7 @@ import { encodeDoc } from '../../src/kit/codec.ts';
 import { routeHash } from '../../src/kit/route.ts';
 import { pages as rules, parse } from '../../src/doc/index.ts';
 import type { Page } from '../../src/kit/app.ts';
+import { BASE, zoomOf, zoomed } from '../../src/kit/zoom.ts';
 
 afterEach(() => history.replaceState(null, '', location.pathname));
 
@@ -77,6 +78,11 @@ test('Print in the Download menu puts the page in a hidden frame, which goes whe
   await until(() => frame.contentDocument?.readyState === 'complete' && frame.contentDocument.querySelectorAll('figure').length > 0);
   expect(frame.getAttribute('aria-hidden')).toBe('true');
   expect(frame.contentDocument!.querySelectorAll('figure')).toHaveLength(2);
+  // Paper is not the screen: the page is drawn at the normal size's zoom (1.3), the frame's page at none of it.
+  expect(zoomed()).toBe(BASE);
+  expect(frame.contentDocument!.documentElement.style.zoom).toBe('');
+  expect(zoomOf(frame)).toBeCloseTo(1, 4);
+  expect(frame.contentWindow!.devicePixelRatio).toBeCloseTo(window.devicePixelRatio, 4);
   frame.contentWindow!.dispatchEvent(new Event('afterprint'));
   await until(() => !document.querySelector('iframe.to-print'));
 });

@@ -31,6 +31,7 @@ import { docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
 import { editFence, editTable, makeDoc } from '../../kit/doc-dialog.ts';
 import { apps } from '../../kit/apps.ts';
+import { zoomOf } from '../../kit/zoom.ts';
 import { DocElement, type Entry } from '../../kit/element.ts';
 import { icon, UI, type IconNode } from '../../kit/icons.ts';
 import { gateHtml, showPictures } from '../../kit/pictures.ts';
@@ -310,10 +311,13 @@ export class ToSiteEditor extends DocElement<Site> {
     const r = this.heldRect;
     if (!f || !r || this.held === null) return null;
     const fr = f.getBoundingClientRect();
-    const top = Math.max(fr.top, fr.top + r[1]);
-    const bottom = Math.min(fr.bottom, fr.top + r[1] + r[3]);
+    // The frame says it in its own lengths; its page is drawn at the frame's zoom (the size of everything).
+    const z = zoomOf(f);
+    const [x, y, w, h] = r.map((n) => n * z);
+    const top = Math.max(fr.top, fr.top + y);
+    const bottom = Math.min(fr.bottom, fr.top + y + h);
     if (bottom <= top) return null;
-    return new DOMRect(fr.left + r[0], top, r[2], bottom - top);
+    return new DOMRect(fr.left + x, top, w, bottom - top);
   };
   /** A change made: its ops, and the thing it leaves in hand (scrolled into view when the page is drawn again). */
   private change(c: Change | null) {

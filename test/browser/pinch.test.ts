@@ -1,12 +1,13 @@
 // A pinch on a touch screen is the size of everything (kit/pinch.ts, kit/zoom.ts): two fingers spreading over the Word
-// Processor change the size live with a pill showing it, lifting keeps it to the nearest 5%, the nav stops at 150%
-// while the words go on to 250%, a pinch begun on a spatial canvas changes nothing, the paragraph under the fingers
-// stays in view, and at 250% on a 390px screen the home page, Write, Outline and Board all fit.
+// Processor change the size live with a pill showing it, lifting keeps it to the nearest 5%, the nav stops at 120%
+// while the words go on to 200%, a pinch begun on a spatial canvas changes nothing, the paragraph under the fingers
+// stays in view, and at 200% on a 390px screen the home page, Write, Outline and Board all fit. Every size is drawn at
+// BASE (1.3) times itself: the root's zoom, and any zoomOf, is BASE × the size.
 import { test, expect, afterEach } from 'vitest';
 import { page } from 'vitest/browser';
 import { mount, tick, until } from './helpers.ts';
 import { encodeDoc } from '../../src/kit/codec.ts';
-import { NAV_MAX, SIZE_MAX, size, stepSize, keepSize, zoomOf } from '../../src/kit/zoom.ts';
+import { BASE, NAV_MAX, SIZE_MAX, size, stepSize, keepSize, zoomOf } from '../../src/kit/zoom.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
 import type { ToDialog } from '../../src/kit/dialog.ts';
 import type { ToContext } from '../../src/kit/context.ts';
@@ -61,11 +62,11 @@ test('two fingers spreading over the Word Processor change the size live, a pill
   const p = shell.querySelector<HTMLElement>('to-write-editor .tx p')!;
   const r = p.getBoundingClientRect();
   const y = r.top + 10;
-  const lift = await pinch(p, [150, y], [240, y], [110, y], [280, y], true);
-  // 90px apart to 170px: the size follows, about 1.89, not yet kept.
-  expect(size()).toBeGreaterThan(1.7);
-  expect(size()).toBeLessThan(2);
-  expect(document.documentElement.style.zoom).toBe(String(size()));
+  const lift = await pinch(p, [150, y], [240, y], [130, y], [260, y], true);
+  // 90px apart to 130px: the size follows, about 1.44, not yet kept.
+  expect(size()).toBeGreaterThan(1.3);
+  expect(size()).toBeLessThan(1.6);
+  expect(Number(document.documentElement.style.zoom)).toBeCloseTo(BASE * size(), 3);
   expect(pill()?.matches(':popover-open, .shown')).toBe(true);
   expect(pill()!.textContent).toBe(`${Math.round(size() * 100)}%`);
   const live = size();
@@ -81,10 +82,10 @@ test('two fingers spreading over the Word Processor change the size live, a pill
   expect(stepSize(-1)).toBeCloseTo(Math.floor(was * 10 + 1e-6) / 10, 5);
   // Pinching in brings it back down, never below the least.
   await pinch(p, [100, y], [300, y], [190, y], [210, y]);
-  expect(size()).toBe(0.9);
+  expect(size()).toBe(0.7);
 });
 
-test('at 250% the bar and the burger are the size they are at 150%, while the words are 2.5 times their normal size', async () => {
+test('at 200% the bar and the burger are the size they are at 120%, while the words are twice their normal size', async () => {
   await page.viewport(390, 844);
   let shell = await write();
   const font = () => parseFloat(getComputedStyle(shell.querySelector('to-write-editor .tx p')!).fontSize) * zoomOf(shell.querySelector('to-write-editor .tx p')!);
@@ -95,14 +96,14 @@ test('at 250% the bar and the burger are the size they are at 150%, while the wo
   const burger15 = shell.querySelector('.to-burger')!.getBoundingClientRect();
   keepSize(SIZE_MAX);
   shell = await write();
-  expect(size()).toBe(2.5);
+  expect(size()).toBe(2);
   expect(shell.querySelector('.to-editor to-bar')!.getBoundingClientRect().height).toBeCloseTo(bar15, 0);
   const burger = shell.querySelector('.to-burger')!.getBoundingClientRect();
   expect(burger.width).toBeCloseTo(burger15.width, 0);
   expect(burger.left).toBeCloseTo(burger15.left, 0);
   expect(burger.top).toBeCloseTo(burger15.top, 0);
-  expect(font()).toBeCloseTo(normal * 2.5, 0);
-  expect(zoomOf(shell.querySelector('.to-burger')!)).toBeCloseTo(1.5, 5);
+  expect(font()).toBeCloseTo(normal * 2, 0);
+  expect(zoomOf(shell.querySelector('.to-burger')!)).toBeCloseTo(BASE * NAV_MAX, 5);
 });
 
 test('the same gesture begun inside a spatial element changes nothing', async () => {
@@ -117,7 +118,7 @@ test('the same gesture begun inside a spatial element changes nothing', async ()
   shell.append(canvas);
   await pinch(inner, [150, 400], [240, 400], [60, 400], [330, 400]);
   expect(size()).toBe(1);
-  expect(document.documentElement.style.zoom).toBe('');
+  expect(document.documentElement.style.zoom).toBe(String(BASE));
   expect(pill()?.matches('.shown') ?? false).toBe(false);
   canvas.remove();
 });
@@ -131,7 +132,7 @@ test('a pinch keeps the paragraph under the fingers in view', async () => {
   const r = p.getBoundingClientRect();
   const y = r.top + r.height / 2;
   await pinch(p, [160, y], [230, y], [80, y], [310, y]);
-  expect(size()).toBeGreaterThan(2);
+  expect(size()).toBeGreaterThan(1.9);
   const after = p.getBoundingClientRect();
   expect(after.top).toBeLessThan(innerHeight);
   expect(after.bottom).toBeGreaterThan(0);
@@ -140,14 +141,14 @@ test('a pinch keeps the paragraph under the fingers in view', async () => {
   expect(after.bottom).toBeGreaterThanOrEqual(y - 1);
 });
 
-/** One row of nav at 150% and nothing wider than the screen. */
-function fits(shell: ToShell, where: string) {
+/** One row of nav, at `nav` (the size it is said at), and nothing wider than the screen. */
+function fits(shell: ToShell, where: string, nav = NAV_MAX) {
   expect(document.documentElement.scrollWidth, `${where}: no sideways scroll`).toBeLessThanOrEqual(innerWidth);
   const bar = shell.querySelector<HTMLElement>('.to-editor to-bar');
   if (bar) {
     const kids = [...bar.children].filter((x) => (x as HTMLElement).offsetWidth > 0);
     expect(new Set(kids.map((x) => Math.round(x.getBoundingClientRect().top))).size, `${where}: the bar is one row`).toBe(1);
-    expect(zoomOf(bar), `${where}: the bar is at 150%`).toBeCloseTo(1.5, 5);
+    expect(zoomOf(bar), `${where}: the bar is at ${nav * 100}%`).toBeCloseTo(BASE * nav, 5);
     for (const b of bar.querySelectorAll<HTMLElement>('.to-btn > span')) {
       if (!b.getClientRects().length || !b.textContent!.trim()) continue;
       expect(b.getBoundingClientRect().height, `${where}: "${b.textContent}" on one line`).toBeLessThan(parseFloat(getComputedStyle(b).fontSize) * zoomOf(b) * 2);
@@ -159,18 +160,17 @@ function fits(shell: ToShell, where: string) {
   expect(burger.width).toBeLessThan(80);
 }
 
-test('at 250% on a 390px screen: the home page, the drawer, Write and its dialogs, Outline and Board all fit', async () => {
-  await page.viewport(390, 844);
-  keepSize(SIZE_MAX);
+/** At the size kept now on a 390px screen (the nav at `nav`): the home page, the drawer, Write and its dialogs, Outline and Board all fit. */
+async function allFit(nav: number) {
   // The home page and the drawer.
   const home = await mount('');
   await tick(100);
-  fits(home, 'home');
+  fits(home, 'home', nav);
   home.querySelector<HTMLButtonElement>('.to-burger')!.click();
   const drawer = home.querySelector<HTMLDialogElement>('dialog.to-drawer')!;
   await until(() => drawer.open && !!drawer.querySelector('.to-drawer-prefs'));
   await tick(300);
-  expect(zoomOf(drawer)).toBeCloseTo(1.5, 5);
+  expect(zoomOf(drawer)).toBeCloseTo(BASE * nav, 5);
   const edge = drawer.getBoundingClientRect();
   expect(edge.right).toBeLessThanOrEqual(innerWidth + 0.5);
   for (const el of drawer.querySelectorAll<HTMLElement>('a, button, label, b, small, h2, h3, p')) {
@@ -181,7 +181,7 @@ test('at 250% on a 390px screen: the home page, the drawer, Write and its dialog
   // The size row is there and its steps reachable.
   const more = drawer.querySelector<HTMLElement>('.to-size-more')!.getBoundingClientRect();
   expect(more.right).toBeLessThanOrEqual(edge.right + 0.5);
-  expect(drawer.querySelector('.to-size-now')!.textContent).toBe('250%');
+  expect(drawer.querySelector('.to-size-now')!.textContent).toBe(`${Math.round(size() * 100)}%`);
   drawer.close();
   // The templates list of an app's row fits the screen.
   home.querySelector<HTMLButtonElement>('.to-templates-btn')!.click();
@@ -195,7 +195,7 @@ test('at 250% on a 390px screen: the home page, the drawer, Write and its dialog
   list.hidePopover();
   // Write: the words reflow to the width, the Share dialog fits with its buttons reachable.
   const shell = await write();
-  fits(shell, 'write');
+  fits(shell, 'write', nav);
   const p = shell.querySelector<HTMLElement>('to-write-editor .tx p')!;
   expect(p.getBoundingClientRect().right).toBeLessThanOrEqual(innerWidth);
   // The bar reaches across the screen, and once the header has gone it stands clear of the burger, the strip behind it its height.
@@ -240,19 +240,65 @@ test('at 250% on a 390px screen: the home page, the drawer, Write and its dialog
   const outline = await mount(`#/v1/outline/${encodeDoc('- One long line about the harbour and the ferry that leaves at nine\n  - Two, under it, also long enough to wrap\n- Three\n')}`);
   await until(() => !!outline.querySelector('.to-editor to-bar button'));
   await tick(100);
-  fits(outline, 'outline');
+  fits(outline, 'outline', nav);
   for (const row of outline.querySelectorAll<HTMLElement>('to-text')) expect(row.getBoundingClientRect().right, 'outline: a row reflows').toBeLessThanOrEqual(innerWidth + 0.5);
   // Board: a column is still a column.
   const board = await mount(`#/v1/board/${encodeDoc('## To do\n\n- Post the letter\n- Buy coffee\n\n## Done\n\n- Walk the dog\n')}`);
   await until(() => !!board.querySelector('.to-editor to-bar button'));
   await tick(100);
-  fits(board, 'board');
+  fits(board, 'board', nav);
   const col = board.querySelector<HTMLElement>('.board-col')!.getBoundingClientRect();
   expect(col.width, 'board: a column is a column, within the screen').toBeLessThanOrEqual(innerWidth);
   expect(col.height).toBeGreaterThan(col.width / 2);
+}
+
+test('at the normal size, nothing stored, on a 390px screen: the home page, the drawer, Write and its dialogs, Outline and Board all fit', async () => {
+  await page.viewport(390, 844);
+  stepSize(0);
+  expect(size()).toBe(1);
+  await allFit(1);
 });
 
-test('at 250% the context bar, the link box, the completion list and the find bar land where they belong', async () => {
+test('at 200% on a 390px screen: the home page, the drawer, Write and its dialogs, Outline and Board all fit', async () => {
+  await page.viewport(390, 844);
+  keepSize(SIZE_MAX);
+  await allFit(NAV_MAX);
+});
+
+test('at the normal size on a 1440×900 desktop (1108 wide to the layout): the home page keeps its column, the paper its measure, and the rail stands beside the slide', async () => {
+  await page.viewport(1440, 900);
+  stepSize(0);
+  const css = (px: number) => px / BASE;
+  const home = await mount('');
+  await tick(100);
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(innerWidth);
+  const main = home.querySelector<HTMLElement>('.to-main')!.getBoundingClientRect();
+  expect(css(main.width)).toBeLessThanOrEqual(1080 + 0.5);
+  const column = home.querySelector<HTMLElement>('.to-home')!.getBoundingClientRect();
+  for (const r of home.querySelectorAll<HTMLElement>('.to-app')) expect(Math.round(r.getBoundingClientRect().width)).toBe(Math.round(column.width));
+  // The Word Processor: the paper the window's width, its words a letter page's measure, in the middle.
+  const write = await mount(WRITE);
+  await until(() => !!write.querySelector('.write-page .write-text'));
+  await tick(50);
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(innerWidth);
+  const words = write.querySelector<HTMLElement>('.write-page .write-text')!.getBoundingClientRect();
+  expect(css(words.width)).toBeLessThanOrEqual(624.5);
+  expect(css(words.width)).toBeGreaterThan(600);
+  expect(Math.abs(words.left + words.width / 2 - innerWidth / 2)).toBeLessThanOrEqual(2);
+  // The Presentation Builder: the rail at the right, level with the slide, beside it and inside the window.
+  const deck = await mount(`#/v1/deck/${encodeDoc('## One\n\n- a point\n\n---\n\n## Two\n')}`);
+  await until(() => !!deck.querySelector('.deck-rail') && !!deck.querySelector('.deck-canvas'));
+  await tick(100);
+  expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(innerWidth);
+  const canvas = deck.querySelector<HTMLElement>('.deck-canvas')!.getBoundingClientRect();
+  const rail = deck.querySelector<HTMLElement>('.deck-rail')!.getBoundingClientRect();
+  expect(rail.left).toBeGreaterThanOrEqual(canvas.right);
+  expect(Math.abs(rail.top - canvas.top)).toBeLessThanOrEqual(1);
+  expect(rail.right).toBeLessThanOrEqual(innerWidth + 0.5);
+  expect(canvas.width).toBeGreaterThan(rail.width * 2);
+});
+
+test('at 200% the context bar, the link box, the completion list and the find bar land where they belong', async () => {
   await page.viewport(390, 844);
   keepSize(SIZE_MAX);
   document.body.innerHTML = '<div id="words" tabindex="0" style="position:absolute;top:60px;left:30px;width:40px;height:16px;background:#ccc"></div>';

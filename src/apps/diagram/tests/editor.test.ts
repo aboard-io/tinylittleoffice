@@ -17,6 +17,8 @@ const NET = '---\nkind: net\n---\n- Web\n- API\n- Database\n';
 
 async function editor(value: string): Promise<{ el: ToDiagramEditor; last: () => string }> {
   document.body.innerHTML = '';
+  // At the top, whatever a test before left scrolled (the page is the size of everything's taller).
+  window.scrollTo(0, 0);
   const main = document.createElement('main');
   main.className = 'to-main';
   document.body.append(main);

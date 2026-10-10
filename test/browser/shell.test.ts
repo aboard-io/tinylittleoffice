@@ -376,8 +376,9 @@ test('home rows at 1100 and at 390: one column of full-width rows, the same shap
       // The documents sit under their app, indented past its icon.
       const doc = rows[0].querySelector('.to-drive-open')!.getBoundingClientRect();
       expect(doc.left).toBeGreaterThan(rows[0].querySelector('.to-app-open')!.getBoundingClientRect().left + 20);
-      // A thin rule between rows.
-      expect(css.borderBottomWidth).toBe('1px');
+      // A thin rule between rows: a pixel, or the one device pixel the browser snaps it to under the size of everything.
+      expect(parseFloat(css.borderBottomWidth)).toBeGreaterThan(0.5);
+      expect(parseFloat(css.borderBottomWidth)).toBeLessThanOrEqual(1);
     }
     expect(shapes[0]).toEqual(shapes[1]);
     expect(shapes[0]).toEqual({ lefts: 1, widths: [], border: '0px0px', shadow: 'none' });

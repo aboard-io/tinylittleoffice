@@ -16,6 +16,8 @@ import { mount, tick, until } from '../../../../test/browser/helpers.ts';
 
 async function editor(value = ''): Promise<{ el: ToWriteEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
+  // At the top, whatever a test before left scrolled (the page is the size of everything's taller).
+  window.scrollTo(0, 0);
   const main = document.createElement('main');
   main.className = 'to-main';
   document.body.append(main);
@@ -298,10 +300,13 @@ test('at phone width: the bar is one row, nothing is wider than the screen, and 
     expect(tops.size).toBe(1);
     expect(bar.offsetHeight).toBeLessThanOrEqual(56);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(390);
+    // The words in sight (at the normal size the invoice's head fills the first screen): focusing them moves nothing.
+    el.text.tx.scrollIntoView({ block: 'center' });
+    const y = document.scrollingElement!.scrollTop;
     el.text.focus();
     el.text.sel = { anchor: { block: 0, offset: 0 }, focus: { block: 0, offset: 0 } };
     await tick();
-    expect(document.scrollingElement!.scrollTop).toBe(0);
+    expect(document.scrollingElement!.scrollTop).toBe(y);
     for (const ref of ['A1', 'B2', 'C3']) {
       cell(el, ref).focus({ preventScroll: true });
       await el.updateComplete;

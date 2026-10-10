@@ -83,6 +83,7 @@ import { align, alignAt, backspace, blockLength, caret, charAt, clampSel, collap
 import { onPictures, picture } from './pictures.ts';
 import type { ToLinkPop } from './link-pop.ts';
 import { completeNamed, completions, loadCompletions, type Completion, type ToComplete } from './complete.ts';
+import { zoomOf } from './zoom.ts';
 import './context.ts';
 import './link-pop.ts';
 import './complete.ts';
@@ -725,9 +726,10 @@ export class ToText extends LitElement {
       this.dispatchEvent(new CustomEvent<{ block: number }>('text-embed', { detail: { block }, bubbles: true }));
       return;
     }
-    // A tap on a task's box ticks it: the box is drawn in the item's left padding (44px wide under a finger, text.css).
+    // A tap on a task's box ticks it: the box is drawn in the item's left padding (44px wide under a finger, text.css;
+    // a length of its own, on the screen that times the size of everything).
     const li = el.closest?.('li[data-done]') as HTMLElement | null;
-    if (li && this.tx.contains(li) && e.clientX < li.getBoundingClientRect().left + parseFloat(getComputedStyle(li).paddingLeft)) {
+    if (li && this.tx.contains(li) && e.clientX < li.getBoundingClientRect().left + parseFloat(getComputedStyle(li).paddingLeft) * zoomOf(li)) {
       const block = this.blockEls().indexOf(li);
       const b = this.model[block];
       if (b?.k !== 'li' || b.done === undefined) return;

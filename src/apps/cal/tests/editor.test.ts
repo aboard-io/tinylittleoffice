@@ -15,6 +15,8 @@ const PLAN = '---\nview: gantt\n---\n- 2027-03-01 to 2027-03-05: Design\n  - 202
 
 async function editor(value = DOC): Promise<{ el: ToCalEditor; changes: string[]; last: () => string | undefined }> {
   document.body.innerHTML = '';
+  // At the top, whatever a test before left scrolled (the page is the size of everything's taller).
+  window.scrollTo(0, 0);
   const main = document.createElement('main');
   main.className = 'to-main';
   document.body.append(main);

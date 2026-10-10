@@ -2,6 +2,11 @@
 import '../../src/styles.css';
 import '../../src/kit/shell.ts';
 import type { ToShell } from '../../src/kit/shell.ts';
+import { applySize } from '../../src/kit/zoom.ts';
+
+// Every test is at the size of everything the shell draws (kit/zoom.ts: the normal size is BASE, 1.3), an editor
+// mounted without the shell too: a length measured on the screen is BASE times the stylesheet's.
+applySize();
 
 export async function mount(hash = ''): Promise<ToShell> {
   document.body.innerHTML = '';
@@ -22,3 +27,4 @@ export async function until(test: () => boolean, ms = 3000): Promise<void> {
     await tick(20);
   }
 }
+

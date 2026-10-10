@@ -43,6 +43,7 @@ import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
 import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, hasLines, isDated, wordsInto, wordsOn, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
+import { zoomOf } from '../../kit/zoom.ts';
 import '../../kit/bar.ts';
 import '../../kit/context.ts';
 import '../../kit/insert.ts';
@@ -276,7 +277,9 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (!el || !s || !wrap || !pic) return;
     const r = pic.getBoundingClientRect();
     const box = wrap.getBoundingClientRect();
-    const w = wordsOver(s, d.shapes, r.width / d.w, r.left - box.left + wrap.scrollLeft, r.top - box.top + wrap.scrollTop, THEME);
+    // Measured on the screen, set in the wrap's own lengths: under the size of everything those are `z` times smaller.
+    const z = zoomOf(wrap);
+    const w = wordsOver(s, d.shapes, r.width / d.w / z, (r.left - box.left) / z + wrap.scrollLeft, (r.top - box.top) / z + wrap.scrollTop, THEME);
     Object.assign(el.style, w.style);
     el.classList.toggle('left', w.left);
     el.classList.toggle('wrap', w.wrap);
