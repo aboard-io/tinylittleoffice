@@ -21,11 +21,9 @@ import { canInstall, install, installByHand, offlineState, onOffline, setOffline
 import { size, SIZE_MAX, SIZE_MIN, stepSize } from './zoom.ts';
 import { toast } from './toast.ts';
 import { alwaysPictures, onPictures, setAlwaysPictures } from './pictures.ts';
-import { mark } from './mark.ts';
 import { openFile, OPENS } from './open.ts';
 import { compareHash } from './compare.ts';
 import { currentHash, parseHash } from './route.ts';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { commitUrl, running, type Version } from './version.ts';
 import './preview.ts';
 import type { ToDialog } from './dialog.ts';
@@ -130,14 +128,20 @@ export class ToDrawer extends LitElement {
     const chosen = chosenLanguage() ?? '';
     return html`<dialog class="to-drawer" aria-label=${t('Tiny Little Office')} @close=${() => (this.open = false)} @click=${(e: Event) => e.target === this.dialog && this.close()}>
       <div class="to-drawer-inner">
+        <!-- The head is the language picker and Close, the name not said again here (Paul, 2026-10-10: "make the language picker the first option to the side of the hamburger. Then put the search below those"). -->
         <header class="to-drawer-head">
-          <a class="to-brand" href="#/" @click=${() => this.close()}>${unsafeHTML(mark(24))}<span>${t('Tiny Little Office')}</span></a>
+          <label class="to-field to-drawer-lang" title=${t('Language')}>
+            <select aria-label=${t('Language')} @change=${(e: Event) => void setLanguage((e.target as HTMLSelectElement).value || null)}>
+              <option value="" ?selected=${!chosen}>${t('Match the device')}</option>
+              ${languages().map((c) => html`<option value=${c} ?selected=${c === chosen}>${languageName(c)}</option>`)}
+            </select>
+          </label>
           <button type="button" class="to-btn to-tool" aria-label=${t('Close')} title=${t('Close')} @click=${() => this.close()}>${icon(UI.close)}</button>
         </header>
         ${this.open
           ? html`<nav class="to-drawer-apps" aria-label=${t('Apps')}>
                 <input class="to-find" type="search" placeholder=${placeholder} aria-label=${placeholder} autocomplete="off" .value=${this.find} @input=${(e: Event) => (this.find = (e.target as HTMLInputElement).value)} @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && (e.preventDefault(), this.querySelector<HTMLElement>('.to-drawer-apps a')?.click())} />
-                ${want
+                                ${want
                   ? this.renderFound(want, kept)
                   : apps().map(
                       (a) => html`<div class="to-app-head">
@@ -168,12 +172,6 @@ export class ToDrawer extends LitElement {
                   : nothing}
               </section>
               <section class="to-drawer-section to-drawer-prefs">
-                <label class="to-field">${icon(UI.language, 18)}<span>${t('Language')}</span>
-                  <select @change=${(e: Event) => void setLanguage((e.target as HTMLSelectElement).value || null)}>
-                    <option value="" ?selected=${!chosen}>${t('Match the device')}</option>
-                    ${languages().map((c) => html`<option value=${c} ?selected=${c === chosen}>${languageName(c)}</option>`)}
-                  </select>
-                </label>
                 <label class="to-field">${icon(theme() === 'dark' ? UI.moon : theme() === 'light' ? UI.sun : UI.auto, 18)}<span>${t('Theme')}</span>
                   <select @change=${(e: Event) => { setTheme((e.target as HTMLSelectElement).value as Theme); this.requestUpdate(); }}>
                     ${THEMES.map((th) => html`<option value=${th} ?selected=${th === theme()}>${themeName(th)}</option>`)}
