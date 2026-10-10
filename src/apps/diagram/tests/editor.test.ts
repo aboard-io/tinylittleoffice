@@ -830,3 +830,64 @@ test('§1 opens with the focus on the picture, nothing being edited; the page no
   expect(isOpen(el)).toBe(false);
   expect(document.scrollingElement!.scrollTop).toBe(0);
 });
+
+test('the separators are never typed: a comma ending a guest is the next guest, inside the words a comma; a colon, a bar in a name are plain', async () => {
+  const { el, last } = await editor(SAMPLES.seating);
+  await tap(el, thing(el, 'Sam'));
+  await type(el, 'Smith,');
+  // The comma at the end made the next guest, its words offered and chosen, as Enter does.
+  expect(isOpen(el)).toBe(true);
+  expect(held(el)).toBe('Guest');
+  expect(last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Smith, Guest\n');
+  await type(el, 'Jones');
+  await key(el, 'Enter', { ctrlKey: true });
+  expect(last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Smith, Jones\n');
+  // Inside the words a comma is a comma: one guest, written escaped, drawn plain.
+  await tap(el, thing(el, 'Smith'));
+  await type(el, 'Smith Jr');
+  line(el).sel = { anchor: { block: 0, offset: 5 }, focus: { block: 0, offset: 5 } };
+  await type(el, ',');
+  expect(held(el)).toBe('Smith, Jr');
+  expect(last()).toBe('---\nkind: seating\n---\n- Top table: Jo, Smith\\\\, Jr, Jones\n');
+  await key(el, 'Enter', { ctrlKey: true });
+  expect(things(el).map((g) => g.getAttribute('aria-label'))).toEqual(['Top table', 'Jo', 'Smith, Jr', 'Jones']);
+  // Opened again, the words are the plain ones.
+  await tap(el, thing(el, 'Smith, Jr'));
+  expect(held(el)).toBe('Smith, Jr');
+  await key(el, 'Escape');
+  await key(el, 'Escape');
+  // A table's name with a colon in it stays the table's.
+  await tap(el, thing(el, 'Top table'));
+  await type(el, 'Sales: west');
+  await key(el, 'Enter', { ctrlKey: true });
+  expect(last()).toBe('---\nkind: seating\n---\n- Sales\\\\: west: Jo, Smith\\\\, Jr, Jones\n');
+  expect(things(el).map((g) => g.getAttribute('aria-label'))).toEqual(['Sales: west', 'Jo', 'Smith, Jr', 'Jones']);
+
+  // A role with a bar in it: the bar is the role's, the second line still Shift+Enter's.
+  const org = await editor(ORG);
+  await tap(org.el, thing(org.el, 'Eve Marsh'));
+  await type(org.el, 'Eve Marsh');
+  input(line(org.el), 'insertLineBreak');
+  await settle(org.el);
+  await type(org.el, 'Design | Brand');
+  expect(org.last()).toContain('  - Eve Marsh | Design \\\\| Brand\n');
+  expect(org.last()).toContain('~ Ben Okoro -- Eve Marsh: design partner');
+});
+
+test('a plus ending a family\'s name starts the partner\'s; inside the words it is a plus', async () => {
+  const { el, last } = await editor('---\nkind: family\n---\n- Rose | m. 1948\n  - Helen\n');
+  await tap(el, thing(el, 'Rose'));
+  expect(held(el)).toBe('Rose\nm. 1948');
+  line(el).sel = { anchor: { block: 0, offset: 4 }, focus: { block: 0, offset: 4 } };
+  await type(el, '+');
+  expect(held(el)).toBe('Rose + \nm. 1948');
+  await type(el, 'Albert');
+  expect(last()).toBe('---\nkind: family\n---\n- Rose + Albert | m. 1948\n  - Helen\n');
+  await key(el, 'Enter', { ctrlKey: true });
+  // Inside the name, a plus is a plus; at the end of the years too.
+  await tap(el, thing(el, 'Helen'));
+  line(el).sel = { anchor: { block: 0, offset: 1 }, focus: { block: 0, offset: 1 } };
+  await type(el, '+');
+  expect(held(el)).toBe('H+elen');
+  expect(last()).toContain('  - H+elen\n');
+});

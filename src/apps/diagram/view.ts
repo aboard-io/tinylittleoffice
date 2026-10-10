@@ -13,7 +13,7 @@ import { t } from '../../kit/i18n.ts';
 import { GRID, H, W, describeDrawing, isLink, shapeCells, type Color, type Fill, type Kind, type Shape, type TextSize } from '../draw/model.ts';
 import { cropPage, shapesPage } from '../draw/view.ts';
 import { write, type Dir, type Doc } from '../../doc/index.ts';
-import { edgesOf, kindOf, labelOf, linesOf, same, setNames, type Hit, type KindId, type Line } from './model.ts';
+import { asLabel, edgesOf, kindOf, labelOf, linesOf, same, setKey, setNames, type Hit, type KindId, type Line } from './model.ts';
 
 /** A shape of a diagram: Draw's, with what it was drawn from, and the region it is (a lane, a set). */
 export type DShape = Shape & { hit?: Hit; region?: string };
@@ -135,7 +135,8 @@ function mindLayout(doc: Doc): Diagram {
   const sized = placed.map((p) => {
     const d = p.node.depth;
     const px = d === 0 ? 17 : 14;
-    const { words, icon } = p.node.line.all;
+    const { icon } = p.node.line.all;
+    const words = p.node.line.all.words.replace(/\n/g, ' | ');
     const mark = icon ? px * 1.4 : 0;
     const w = Math.max(72, Math.min(220, textWidth(words, px, d === 0) + 32 + mark));
     const lines = Math.min(5, wrapText(words, w - 16 - mark, px, d === 0).length);
@@ -249,7 +250,7 @@ function lanesLayout(doc: Doc): Diagram {
     const c = COLOR_CYCLE[i % COLOR_CYCLE.length];
     const band = shape('r', 0, i * ROW, width, ROW - 8, '', 1, c);
     band.region = lane;
-    return [band, shape('t', 8, i * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, lane || '—', 0, c, undefined, { k: 'lane', name: lane })];
+    return [band, shape('t', 8, i * ROW + (ROW - 8) / 2 - 12, LABEL - 12, 24, lane ? asLabel(lane) : '—', 0, c, undefined, { k: 'lane', name: lane })];
   });
   const first = bands.length;
   // A step that asks a question is a decision.
@@ -322,7 +323,7 @@ function timelineLayout(doc: Doc): Diagram {
     const [[ta, xa], [tb, xb]] = [known[i], known[i + 1]];
     return xa + ((v - ta) / (tb - ta || 1)) * (xb - xa);
   };
-  const label = (r: (typeof rows)[number]) => labelOf({ ...r.l.all, words: r.what ? `${r.when} | ${r.what}` : r.when });
+  const label = (r: (typeof rows)[number]) => labelOf({ ...r.l.all, words: r.what ? `${r.when}\n${r.what}` : r.when });
   const shapes: DShape[] = [];
   const joins: DShape[] = [];
   const ends = [...xs, ...eras.flatMap((e) => [at(e.span[0]), at(e.span[1])])];
@@ -356,7 +357,7 @@ interface Group {
 export function vennOf(doc: Doc): { groups: Group[]; sets: string[] } {
   const groups: Group[] = [];
   for (const l of linesOf(doc)) {
-    const names = setNames(l.key ? l.key.words : l.words.words);
+    const names = setNames(l.key ? l.key.src : l.words.src);
     if (!names.length) continue;
     const items = l.key ? l.items.flatMap((p, item) => (p.words || p.icon ? [{ line: l, item, label: labelOf(p) }] : [])) : [];
     const sameGroup = groups.find((g) => g.names.length === names.length && g.names.every((n) => names.some((m) => m.toLowerCase() === n.toLowerCase())));
@@ -394,14 +395,15 @@ function vennLayout(doc: Doc): Diagram {
   const at = centres(sets.length);
   const circles: DShape[] = sets.map((name, i) => {
     const c = shape('e', at[i][0] - R, at[i][1] - R, R * 2, R * 2, '', 1, COLOR_CYCLE[i]);
-    c.region = name;
+    // The region names the set as a line's key writes it, so "R&D" stays one set in "R\&D & Sales".
+    c.region = setKey([name]);
     return c;
   });
   const names: DShape[] = sets.map((name, i) => {
     const below = sets.length === 3 && i === 2;
     const w = textWidth(name, 20, true) + 16;
     const g = groups.find((x) => x.names.length === 1 && x.names[0].toLowerCase() === name.toLowerCase())!;
-    return shape('t', at[i][0] - w / 2, below ? at[i][1] + R + 8 : at[i][1] - R - 34, w, 26, name, 0, COLOR_CYCLE[i], 3, { k: 'line', at: g.line.at, part: 'key' });
+    return shape('t', at[i][0] - w / 2, below ? at[i][1] + R + 8 : at[i][1] - R - 34, w, 26, asLabel(name), 0, COLOR_CYCLE[i], 3, { k: 'line', at: g.line.at, part: 'key' });
   });
   // The things of each region, one under another from its middle, each as wide as its words; more than fit in one column
   // stand in two or three beside each other, the block kept inside its circles and out of the others.
@@ -566,7 +568,7 @@ const LAYOUTS: Record<KindId, (doc: Doc) => Diagram> = { mind: mindLayout, org: 
 /** The document as its kind draws it. */
 export const layout = (doc: Doc): Diagram => LAYOUTS[kindOf(doc)](doc);
 
-/** The regions under a point of the picture: a lane, or the sets of a Venn whose circles hold it ("Fast & Cheap"). */
+/** The regions under a point of the picture: a lane by its plain name, or the sets of a Venn whose circles hold it as a key writes them ("Fast & Cheap", "R\&D & Sales"). */
 export function regionAt(d: Diagram, x: number, y: number): string | undefined {
   const inside = d.shapes.filter((s) => s.region !== undefined && (s.k === 'e' ? ((x - s.x - s.w / 2) / (s.w / 2)) ** 2 + ((y - s.y - s.h / 2) / (s.h / 2)) ** 2 <= 1 : x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h));
   return inside.length ? inside.map((s) => s.region).join(' & ') : undefined;

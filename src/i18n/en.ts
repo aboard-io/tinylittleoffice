@@ -1334,11 +1334,9 @@ export default {
   'Set': 'Set',
   'Thing': 'Thing',
   // The picture, and the line editor over a thing
-  'Tap empty space for a table; tap a table or a person to type; drag a person to another table.': 'Tap empty space for a table; tap a table or a person to type; drag a person to another table.',
   'Tap empty space for a thing; Join in the bar, then the two things, connects them; or drag one onto another.': 'Tap empty space for a thing; Join in the bar, then the two things, connects them; or drag one onto another.',
   'Tap here to add the first {thing}.': 'Tap here to add the first {thing}.',
   'Tap in a lane to add a step there; tap a step to type on it; drag it to another lane, or onto a step to go after it.': 'Tap in a lane to add a step there; tap a step to type on it; drag it to another lane, or onto a step to go after it.',
-  'Tap inside the circles to add a thing there; tap a set\'s name to rename it; drag a thing into other circles.': 'Tap inside the circles to add a thing there; tap a set\'s name to rename it; drag a thing into other circles.',
   'Tap the thing to join {name} to; tap empty space to stop.': 'Tap the thing to join {name} to; tap empty space to stop.',
   'Tap the first thing to join, then the other; tap empty space to stop.': 'Tap the first thing to join, then the other; tap empty space to stop.',
   'This thing': 'This thing',
@@ -1819,7 +1817,6 @@ export default {
   'Name the line': 'Name the line',
   'Name this column': 'Name this column',
   'New idea': 'New idea',
-  'Tap a person to type on them, Shift+Enter for their years under the name; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.': 'Tap a person to type on them, Shift+Enter for their years under the name; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.',
   'Tap empty space for a person; tap one to type on it, Shift+Enter for their role under the name, Enter for the next; drag one onto another to put them under.': 'Tap empty space for a person; tap one to type on it, Shift+Enter for their role under the name, Enter for the next; drag one onto another to put them under.',
   'Tap empty space for an event: type when, Shift+Enter, then what happened; years and dates are spaced as they fell; a span is a band.': 'Tap empty space for an event: type when, Shift+Enter, then what happened; years and dates are spaced as they fell; a span is a band.',
   'The lane\'s name': 'The lane\'s name',
@@ -1854,4 +1851,7 @@ export default {
   'Align a text left, centred or right (the bar’s Align goes round the three)': 'Align a text left, centred or right (the bar’s Align goes round the three)',
   'Cannot check here': 'Cannot check here',
   'This browser cannot check this kind of signature': 'This browser cannot check this kind of signature',
+  'Tap a person to type on them, + after the name for their partner, Shift+Enter for their years under the name; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.': 'Tap a person to type on them, + after the name for their partner, Shift+Enter for their years under the name; Enter for the next; drag one onto another to put them under; Join draws a dotted line between two.',
+  'Tap empty space for a table; tap a table or a person to type, a comma after a name for the next guest; drag a person to another table.': 'Tap empty space for a table; tap a table or a person to type, a comma after a name for the next guest; drag a person to another table.',
+  'Tap inside the circles to add a thing there, a comma after it for the next; tap a set\'s name to rename it; drag a thing into other circles.': 'Tap inside the circles to add a thing there, a comma after it for the next; tap a set\'s name to rename it; drag a thing into other circles.',
 } satisfies Strings;

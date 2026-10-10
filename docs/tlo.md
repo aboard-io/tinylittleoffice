@@ -134,7 +134,12 @@ line) holds the row numbers of the two shapes in X and Y; `Points` and `Rot` col
 `mind` and `family` (a nested list), `org` (`- Name | Role`, a dotted line an edge `~ Ben -- Eve: advises`),
 `lanes` (`- Who: what they do`), `timeline` (`- When: what happened`), `venn` (`- Set: thing, thing`, and
 `- A & B: thing`), `seating` (`- Table: Ann, Bob`; its place cards print eight to a sheet), `net` (edges, and
-`- name` for a thing on its own).
+`- name` for a thing on its own). A thing's own words never separate: where one of them would read as a separator the
+code writes a backslash before it, `\,` a comma in a thing of a list, `\:` a colon ending a word in a key (or in a
+line with none), `\|` a bar that is not a second line, `\&` an ampersand in a set's name, `\\` a backslash before
+one of them; the backslash is in the item's words, so the text holds it doubled (`- Top table: Smith\\, Jones, Ann`
+is two guests). An unescaped separator still separates. A connection names things by their plain words, and a name
+holding an arrow or `: ` (`~ A -- B -> C`) is read against the things there are, a whole name first.
 
 **board** (Kanban Board): `## Stage {limit=2 color=g}` headings, each with `- card` items; a card's checklist is
 the task items one level under it. `look: rows` in the head draws the stages as bands.

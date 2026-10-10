@@ -14,9 +14,11 @@
  * past its neighbour, in a tree Tab and Shift+Tab indent it under the thing before it and bring it out to its grandparent
  * with its children, as the Outliner does, Mod+Alt+Left/Right into the next lane or table, Mod+D, Mod+C/X/V, Delete,
  * Enter). Where it cannot go further in or out Tab moves the focus on, so the keys are never trapped. The words are
- * plain (`no-bubble`, no marks); Shift+Enter is a second line where the thing draws one ("Name | Role", a
- * date and what happened); Escape puts them back as they were when opened, Enter or Mod+Enter or a tap
- * elsewhere keeps them. No box ever holds the words apart from the picture (docs/editing.md §5). Undo brings
+ * plain (`no-bubble`, no marks), and plain whatever they hold: the line is written with its separators escaped
+ * (model.ts `wordsInto`). Shift+Enter is a second line where the thing draws one ("Name | Role", a
+ * date and what happened); a comma ending a thing of a list is the next, as Enter is, and a "+" ending a family's
+ * name starts the partner's (anywhere else they are characters). Escape puts them back as they were when opened,
+ * Enter or Mod+Enter or a tap elsewhere keeps them. No box ever holds the words apart from the picture (docs/editing.md §5). Undo brings
  * the focus back to the thing that changed.
  *
  * A seating chart's bar has Print place cards: a card a guest, their name large and their table small, eight to
@@ -25,7 +27,7 @@
 import { html, nothing, svg, type PropertyDeclarations } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { ArrowDown, ArrowRight, ArrowUp, ClipboardPaste, CopyPlus, CornerDownRight, Minus, Scissors, Smile, Spline, ZoomIn, ZoomOut } from 'lucide';
-import { apply, applyAll, isAtomic, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, applyAll, normalRuns, parse, runLength, sliceRuns, write, type Block, type Doc, type Op, type Run } from '../../doc/index.ts';
 import { tool } from '../../kit/bar.ts';
 import { GENERATOR, docToHtml, pasteFrom } from '../../kit/clipboard.ts';
 import { SEP, type ContextEntry, type ToContext } from '../../kit/context.ts';
@@ -38,7 +40,7 @@ import { caret, insertRuns } from '../../kit/textops.ts';
 import { isLink, wordsOver } from '../draw/model.ts';
 import { arrowDefs, shapeSvg, type Theme } from '../draw/view.ts';
 import { KIND_ICON, kindHint, kindName, newWords, thingName } from './kinds.ts';
-import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
+import { KINDS, canDuplicate, charsOf, childOf, commitDraft, connect, dropIn, dropOn, duplicateThing, edgesOf, follow, isListed, isTree, joins, kindOf, lineOf, demoteThing, moveAcross, moveThing, nextThing, newThing, partFor, promoteThing, hasLines, isDated, wordsInto, wordsOn, pasteThings, removeThing, rename, setEdge, setKind, thingBlocks, tidy, withIcon, type Draft, type Hit, type KindId } from './model.ts';
 import { layout, placeCards, regionAt, type DShape, type Diagram } from './view.ts';
 import { printPages } from '../../kit/exports.ts';
 import '../../kit/bar.ts';
@@ -78,10 +80,6 @@ type Drag = { i: number; hit: Hit; x: number; y: number; moved: boolean };
 
 const OBJ = '￼';
 const plain = (runs: Run[]) => charsOf(runs).split(OBJ).join('').replace(/\s+/g, ' ').trim();
-/** A line's " | " as the words over it show it, a line break; and back. */
-const asLines = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.split(' | ').join('\n') }));
-const asBars = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.replace(/[ \t]*\n[ \t]*/g, ' | ') }));
-const oneLine = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.replace(/\s*\n\s*/g, ' ') }));
 /** What the words over the picture hold while nothing is open: they are always there, so a tap can focus them at once. */
 const IDLE: Block[] = [{ k: 'p', runs: [] }];
 const sameHit = (a: Hit | null | undefined, b: Hit | null | undefined) => !!a && !!b && JSON.stringify(a) === JSON.stringify(b);
@@ -230,19 +228,14 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     if (!p) return null;
     let from = p.from;
     while (from < p.to && (/\s/.test(l.chars[from]) || (l.chars[from] === OBJ && sliceRuns(l.runs, from, from + 1)[0]?.ic))) from++;
-    const lines = hit.part === 'all' || hit.part === 'words';
-    const dated = this.view.kind === 'timeline' && hit.part === 'all';
-    const tg: Target = { hit, at: hit.at, span: [from, p.to], lines, dated, name: '' };
-    if (dated && l.key && l.key.from >= from) return { tg, runs: [...asLines(sliceRuns(l.runs, from, l.key.to)), { t: '\n' }, ...asLines(sliceRuns(l.runs, l.words.from, p.to))] };
-    return { tg, runs: lines ? asLines(sliceRuns(l.runs, from, p.to)) : sliceRuns(l.runs, from, p.to) };
+    const kind = this.view.kind;
+    const tg: Target = { hit, at: hit.at, span: [from, p.to], lines: hasLines(hit.part), dated: isDated(kind, hit.part), name: '' };
+    return { tg, runs: wordsOn(kind, l, hit.part, from, p.to) };
   }
-  /** The words over a line's thing, as its line writes them: line breaks as " | " (a timeline's first as ": "). */
+  /** The words over a line's thing, as its line writes them (model.ts `wordsInto`). */
   private lineRuns(tg: Target, runs: Run[]): Run[] {
-    if (!tg.lines) return normalRuns(oneLine(runs));
-    const chars = charsOf(runs);
-    const i = chars.indexOf('\n');
-    if (tg.dated && i >= 0) return normalRuns([...sliceRuns(runs, 0, i), { t: ': ' }, ...asBars(sliceRuns(runs, i + 1, chars.length))]);
-    return normalRuns(asBars(runs));
+    const b = this.doc.blocks[tg.at];
+    return b?.k === 'li' && tg.hit.k === 'line' ? wordsInto(this.view.kind, lineOf(b, tg.at), tg.hit.part, runs) : runs;
   }
 
   /**
@@ -297,7 +290,7 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     let block = d.block;
     let [a, b] = d.sel;
     if (a === b) {
-      const words = newWords(kind, isListed(kind) && /:(\s|$)/.test(charsOf(block.runs)));
+      const words = newWords(kind, isListed(kind) && !!lineOf(block, d.at).key);
       block = { ...block, runs: normalRuns([...sliceRuns(block.runs, 0, a), { t: words }, ...sliceRuns(block.runs, a, runLength(block.runs))]) };
       b = a + words.length;
     }
@@ -357,11 +350,25 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
     const tg = this.target;
     const el = this.wordsEl;
     if (!tg || !el) return;
+    const was = charsOf(this.wordsBlocks[0]?.k === 'p' ? this.wordsBlocks[0].runs : []);
     const blocks = applyAll({ head: {}, blocks: this.wordsBlocks }, ops).blocks;
     // One block of words: anything that came as more is folded into the first, a line break between.
-    const runs = blocks.flatMap((b, n) => [...(n ? [{ t: '\n' }] : []), ...('runs' in b ? b.runs : [])]);
+    let runs: Run[] = blocks.flatMap((b, n) => [...(n ? [{ t: '\n' }] : []), ...('runs' in b ? b.runs : [])]);
+    // The keys that act at the end of the words: a comma in a list is the next thing, as Enter is; a plus after a
+    // family's name starts the partner's. Anywhere else they are the characters they are.
+    let after: number | null = null;
+    if (kind === 'type' && tg.hit.k === 'line') {
+      const now = charsOf(runs);
+      const head = was.split('\n')[0];
+      if (typeof tg.hit.part === 'number' && isListed(this.view.kind) && now === was + ',' && was.trim()) return this.next(tg);
+      if (this.view.kind === 'family' && tg.hit.part === 'all' && now === head + '+' + was.slice(head.length) && head.trim() && !head.trimEnd().endsWith('+')) {
+        after = head.trimEnd().length + 3;
+        runs = normalRuns([...sliceRuns(runs, 0, head.trimEnd().length), { t: ' + ' }, ...sliceRuns(runs, head.length + 1, now.length)]);
+      }
+    }
     this.wordsBlocks = [{ k: 'p', runs }];
     el.blocks = this.wordsBlocks;
+    if (after !== null) el.sel = caret(0, after);
     if (tg.at >= 0) {
       const before = this.doc;
       const put = this.lineRuns(tg, runs);
@@ -390,11 +397,15 @@ export class ToDiagramEditor extends DocElement<DiagramView> {
       return;
     }
     if (tg.hit.k === 'edge') return this.shutAndFocus();
+    this.next(tg);
+  };
+  /** Done with these words, and the next thing like this one made, its words open (Enter; a comma ending a thing of a list). */
+  private next(tg: Target) {
     this.shut();
     const d = nextThing(this.doc, tg.hit);
     if (d) this.openDraft(d);
     else void this.focusThing(tg.hit);
-  };
+  }
   /** Backspace at the start: a thing with no words left goes. */
   private onExit = (e: Event) => {
     e.stopPropagation();

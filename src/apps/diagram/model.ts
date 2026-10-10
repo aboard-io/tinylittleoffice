@@ -17,13 +17,24 @@
  * key ("Sales: …", "Top table: …") the key is the words before the first ": ". A connection names its two
  * things by their words ("Name | Role" by the name alone), as the Outliner's joins do.
  *
+ * The separators are the code's, never a person's: a thing's own words may hold any of them, and where one would
+ * be read as structure the code writes it with a backslash in front, as the kernel writes "\|" in a table's cell:
+ * "\," a comma in a guest's or a set's thing ("Smith\, Jones"), "\:" a colon ending a word in a key or in a line
+ * with none ("Sales\: Q3"), "\|" a bar that is not a second line, "\&" an ampersand in a set's name ("R\&D"), and
+ * "\\" a backslash before any of them. The reader takes the backslash off (`unescapeWords`), so `Part.words` and
+ * every drawn label are the plain words; a separator written without one still separates, as it always has. (The
+ * backslash is in the line's words, so the text writes it doubled: "- Top table: Smith\\, Jones, Ann".) A family's
+ * couple, "Ada + Charles", is a person's words and nothing is read from it, so a "+" needs no escape. A
+ * connection names things by their plain words, and when a name holds an arrow or ": " (`~ A -- B -> C`) it is
+ * read against the things there are, a whole name first (`edgesOf`).
+ *
  * Every command is pure: the document and what to do in, the `Op[]` out. A line edited is `text` ops on its
  * item (from the line editor, plus the follow-ups when a name others refer to changes); a thing added is a
  * `splice` of an item (or, for one thing more in a list, a `text` op on that list's line); a thing moved is
  * `move` (a family by the kernel's `placeFamily`) or the `text` ops that take it out of one list and put it
  * in another; a connection is a `splice` of an edge block; the kind is a `head` op.
  */
-import { apply, depthOf, family, isAtomic, isText, moveFamily, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
+import { apply, depthOf, escapeInline, family, isAtomic, isText, moveFamily, normalRuns, placeFamily, removeItem, sliceRuns, type Block, type Dir, type Doc, type Op, type Run } from '../../doc/index.ts';
 
 export const KINDS = ['mind', 'org', 'family', 'lanes', 'timeline', 'venn', 'seating', 'net'] as const;
 export type KindId = (typeof KINDS)[number];
@@ -46,10 +57,85 @@ export const joins = (k: KindId) => isTree(k) || k === 'net';
 const OBJ = '￼';
 export const charsOf = (runs: Run[]): string => runs.map((r) => (isAtomic(r) ? OBJ : r.t)).join('');
 
-/** A stretch of a line: where it is (in the line editor's characters), its plain words and the icon in it. */
+/* ---------- the separators, escaped ---------- */
+
+/** The characters a backslash escapes in a thing's words: the separators, and itself. */
+const ESCAPED = /\\([\\,:|&])/g;
+/** Words as they are drawn: every escape taken off. */
+export const unescapeWords = (s: string): string => s.replace(ESCAPED, '$1');
+/** Whether the character at i follows an odd run of backslashes, and so is a plain character. */
+const escapedAt = (chars: string, i: number) => {
+  let n = 0;
+  while (i - n - 1 >= 0 && chars[i - n - 1] === '\\') n++;
+  return n % 2 === 1;
+};
+
+/** Which separators would be read as structure where a part's words go: a colon (a key), a comma (a list), an ampersand (sets). A bar always is. */
+export interface Seps {
+  colon?: boolean;
+  comma?: boolean;
+  amp?: boolean;
+}
+
+/** Plain words as a part of a line writes them: whatever would be read as a separator there escaped, and a backslash before one. */
+export function escapeWords(s: string, seps: Seps = {}): string {
+  let out = s.replace(/\\(?=[\\,:|&]|$)/g, '\\\\').replace(/\|/g, '\\|');
+  if (seps.colon) out = out.replace(/:(?=\s|$)/g, '\\:');
+  if (seps.comma) out = out.replace(/,/g, '\\,');
+  if (seps.amp) out = out.replace(/&/g, '\\&');
+  return out;
+}
+/** Runs' words escaped (an icon as it is). */
+export const escapeRuns = (runs: Run[], seps: Seps = {}): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: escapeWords(r.t, seps) }));
+/** Runs' words with their escapes taken off. */
+export const unescapeRuns = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: unescapeWords(r.t) }));
+
+/**
+ * What a part of a line escapes, by its kind: a thing of a list its commas; a key (a lane's, a date, a table's or a
+ * set's name, a set's its ampersands too) and the words of a line with no key their colons; any part its bars.
+ */
+export function sepsFor(kind: KindId, l: Line, which: Which): Seps {
+  if (typeof which === 'number') return { comma: true };
+  if (isTree(kind) || kind === 'net') return {};
+  if (which === 'key') return { colon: true, amp: kind === 'venn' };
+  return { colon: !l.key };
+}
+
+/** Whether a part of a line is shown with its second lines (a thing's own words, a step's), or is one line (a key, a thing of a list). */
+export const hasLines = (which: Which) => which === 'all' || which === 'words';
+/** Whether a part is a timeline's event whole: its date the first line, what happened the next. */
+export const isDated = (kind: KindId, which: Which) => kind === 'timeline' && which === 'all';
+/** A line's " | " as the words over it show them, a line break; and back. */
+const asLines = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.split(' | ').join('\n') }));
+const asBars = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.replace(/[ \t]*\n[ \t]*/g, ' | ') }));
+const oneLine = (runs: Run[]): Run[] => runs.map((r) => (isAtomic(r) ? r : { ...r, t: r.t.replace(/\s*\n\s*/g, ' ') }));
+const shown = (runs: Run[]): Run[] => unescapeRuns(asLines(runs));
+
+/** The words of part `which` of line l, its characters [from, to), as they are typed: plain, a second line after a line break. */
+export function wordsOn(kind: KindId, l: Line, which: Which, from: number, to: number): Run[] {
+  if (isDated(kind, which) && l.key && l.key.from >= from) return [...shown(sliceRuns(l.runs, from, l.key.to)), { t: '\n' }, ...shown(sliceRuns(l.runs, l.words.from, to))];
+  return hasLines(which) ? shown(sliceRuns(l.runs, from, to)) : unescapeRuns(sliceRuns(l.runs, from, to));
+}
+/**
+ * Words typed on part `which` of line l, as the line writes them: whatever would be read as a separator there
+ * escaped (`sepsFor`), then a line break as " | " (a timeline's first as ": ", its date escaped as a key is); a
+ * part of one line has its breaks as spaces.
+ */
+export function wordsInto(kind: KindId, l: Line, which: Which, runs: Run[]): Run[] {
+  if (!hasLines(which)) return normalRuns(escapeRuns(oneLine(runs), sepsFor(kind, l, which)));
+  const chars = charsOf(runs);
+  const i = chars.indexOf('\n');
+  if (isDated(kind, which) && i >= 0) return normalRuns([...escapeRuns(sliceRuns(runs, 0, i), { colon: true }), { t: ': ' }, ...asBars(escapeRuns(sliceRuns(runs, i + 1, chars.length)))]);
+  return normalRuns(asBars(escapeRuns(runs, isDated(kind, which) ? { colon: true } : sepsFor(kind, l, which))));
+}
+
+/** A stretch of a line: where it is (in the line editor's characters), its words as written and as drawn, and the icon in it. */
 export interface Part {
   from: number;
   to: number;
+  /** The words as the line writes them, escapes and all (a Venn's key is cut into its sets from these). */
+  src: string;
+  /** The plain words: escapes taken off, a second line (the line's " | ") after a line break. */
   words: string;
   icon: string;
 }
@@ -58,9 +144,10 @@ export interface Part {
 export function partOf(runs: Run[], chars: string, from: number, to: number): Part {
   while (from < to && /\s/.test(chars[from])) from++;
   while (to > from && /\s/.test(chars[to - 1])) to--;
-  const words = chars.slice(from, to).split(OBJ).join('').replace(/\s+/g, ' ').trim();
+  const src = chars.slice(from, to).split(OBJ).join('').replace(/\s+/g, ' ').trim();
+  const words = src.split(' | ').map(unescapeWords).join('\n');
   const icon = sliceRuns(runs, from, to).find((r) => r.ic)?.ic ?? '';
-  return { from, to, words, icon };
+  return { from, to, src, words, icon };
 }
 
 /** A list item of the document, read as a line of a diagram. */
@@ -83,15 +170,15 @@ export function lineOf(b: Extract<Block, { k: 'li' }>, at: number): Line {
   const runs = b.runs;
   const chars = charsOf(runs);
   const all = partOf(runs, chars, 0, chars.length);
-  const m = /:(\s|$)/.exec(chars);
-  const ci = m ? m.index : -1;
+  let ci = -1;
+  for (let i = 0; i < chars.length && ci < 0; i++) if (chars[i] === ':' && (i + 1 === chars.length || /\s/.test(chars[i + 1])) && !escapedAt(chars, i)) ci = i;
   const key = ci >= 0 ? partOf(runs, chars, 0, ci) : null;
   const words = ci >= 0 ? partOf(runs, chars, ci + 1, chars.length) : all;
   const items: Part[] = [];
   if (words.from < words.to) {
     let start = words.from;
     for (let i = words.from; i <= words.to; i++) {
-      if (i === words.to || chars[i] === ',') {
+      if (i === words.to || (chars[i] === ',' && !escapedAt(chars, i))) {
         items.push(partOf(runs, chars, start, i));
         start = i + 1;
       }
@@ -111,21 +198,71 @@ export interface Edge {
   dir: Dir;
   label: string;
 }
-export const edgesOf = (doc: Doc): Edge[] => doc.blocks.flatMap((b, at) => (b.k === 'edge' ? [{ at, from: b.from.trim(), to: b.to.trim(), dir: b.dir, label: b.label?.trim() ?? '' }] : []));
 
+const ARROW = / (<->|->|<-|--) /g;
+/**
+ * A connection read against the things there are. The text cuts "~ A -- B -> C: says" at its first arrow and its
+ * first ": " after it; where that leaves an end naming nothing, every other cut is tried, and the one naming the most
+ * things wins (the text's own on a tie), so a thing called "A -- B", or "Q3: plan", is matched whole.
+ */
+function resolveEdge(b: Extract<Block, { k: 'edge' }>, at: number, known: (name: string) => boolean): Edge {
+  const score = (e: Edge) => +known(e.from) + +known(e.to);
+  let best: Edge = { at, from: b.from.trim(), to: b.to.trim(), dir: b.dir, label: b.label?.trim() ?? '' };
+  let most = score(best);
+  if (most === 2) return best;
+  const raw = `${b.from} ${b.dir} ${b.to}${b.label ? ': ' + b.label : ''}`;
+  for (const m of raw.matchAll(new RegExp(ARROW.source, 'g'))) {
+    const rest = raw.slice(m.index + m[0].length);
+    const cuts: [string, string][] = [[rest, '']];
+    for (let j = rest.indexOf(': '); j >= 0; j = rest.indexOf(': ', j + 1)) cuts.push([rest.slice(0, j), rest.slice(j + 2)]);
+    for (const [to, label] of cuts) {
+      const e: Edge = { at, from: raw.slice(0, m.index).trim(), to: to.trim(), dir: m[1] as Dir, label: label.trim() };
+      if (e.from && e.to && score(e) > most) [best, most] = [e, score(e)];
+    }
+  }
+  return best;
+}
+/** Every connection of the document, its ends read against its things. */
+export function edgesOf(doc: Doc): Edge[] {
+  const names = new Set(linesOf(doc).map((l) => who(l.all.words)));
+  const known = (n: string) => names.has(who(n));
+  return doc.blocks.flatMap((b, at) => (b.k === 'edge' ? [resolveEdge(b, at, known)] : []));
+}
+/** A connection as its block, with what it now says. */
+function edgeBlock(doc: Doc, e: Edge, patch: Partial<Edge> = {}): Block {
+  const b = doc.blocks[e.at] as Extract<Block, { k: 'edge' }>;
+  const n = { ...e, ...patch };
+  return { k: 'edge', from: n.from, to: n.to, dir: n.dir, ...(n.label ? { label: n.label } : {}), ...(b.a ? { a: b.a } : {}) };
+}
+
+/** Plain words as a label of Draw's (whose words are inline Markdown, " | " a second line): each line escaped, a plain bar too. */
+export const asLabel = (words: string): string =>
+  words
+    .split('\n')
+    .map((w) => escapeInline(w).replace(/\|/g, '\\|'))
+    .join(' | ');
 /** A part as a shape's label: ":rocket Launch", the icon first (as Draw's shapes take it). */
-export const labelOf = (p: Part): string => (p.icon ? `:${p.icon}${p.words ? ' ' + p.words : ''}` : p.words);
+export const labelOf = (p: Pick<Part, 'words' | 'icon'>): string => (p.icon ? `:${p.icon}${p.words ? ' ' + asLabel(p.words) : ''}` : asLabel(p.words));
 
-/** A name as it is compared: its words alone, before any " | ", in any case. */
+/** A name as it is compared: its words alone, its first line, in any case. */
 export const same = (a: string, b: string) => who(a) === who(b);
-export const who = (s: string) => s.split(' | ')[0].replace(/\s+/g, ' ').trim().toLowerCase();
+export const who = (s: string) => nameOf(s).replace(/\s+/g, ' ').toLowerCase();
+/** A thing's name: its words' first line ("Name" of "Name | Role"). */
+export const nameOf = (s: string) => s.split('\n')[0].trim();
 
-/** The sets a venn key names: "Fast & Cheap" is two. */
-export const setNames = (key: string): string[] =>
-  key
-    .split('&')
-    .map((n) => n.trim())
-    .filter(Boolean);
+/** The sets a venn key names, plain: "Fast & Cheap" is two, "R\&D" one. */
+export const setNames = (key: string): string[] => {
+  const names: string[] = [];
+  let start = 0;
+  for (let i = 0; i <= key.length; i++) {
+    if (i < key.length && (key[i] !== '&' || escapedAt(key, i))) continue;
+    names.push(unescapeWords(key.slice(start, i)).trim());
+    start = i + 1;
+  }
+  return names.filter(Boolean);
+};
+/** Set names as a Venn line's key: "Fast & R\&D". */
+export const setKey = (names: string[]): string => names.map((n) => escapeWords(n, { colon: true, amp: true })).join(' & ');
 
 /** Which part of a line a shape shows: all of it, its key, its words after the key, or one thing of its list. */
 export type Which = 'all' | 'key' | 'words' | number;
@@ -186,7 +323,7 @@ function appendTo(doc: Doc, l: Line): Draft {
 /** The venn line naming exactly these sets, in any order. */
 const naming = (lines: Line[], key: string) => {
   const sorted = (k: string) => setNames(k).map((n) => n.toLowerCase()).sort().join('&');
-  return lines.find((l) => sorted(l.key ? l.key.words : l.words.words) === sorted(key));
+  return lines.find((l) => sorted(l.key ? l.key.src : l.words.src) === sorted(key));
 };
 
 /**
@@ -203,7 +340,7 @@ export function newThing(doc: Doc, key?: string): Draft {
   }
   if (kind === 'lanes' && key) {
     const last = [...lines].reverse().find((l) => (l.key?.words ?? '').toLowerCase() === key.toLowerCase());
-    return draftOf(last ? last.at + 1 : afterLines(doc), 0, li(0, last ? keyRuns(last) : [{ t: `${key}: ` }]));
+    return draftOf(last ? last.at + 1 : afterLines(doc), 0, li(0, last ? keyRuns(last) : [{ t: `${escapeWords(key, { colon: true })}: ` }]));
   }
   if (kind === 'venn' && key) {
     const l = naming(lines, key);
@@ -297,8 +434,8 @@ class Builder {
   }
 }
 
-/** Line l given this key (its words before ": "), in place of the one it had. */
-function setKey(l: Line, key: Run[]): Op[] {
+/** Line l given this key (its words before ": ", as written), in place of the one it had. */
+function keyed(l: Line, key: Run[]): Op[] {
   if (l.key) return [{ op: 'text', at: l.at, from: l.key.from, to: l.key.to, runs: key }];
   return [{ op: 'text', at: l.at, from: 0, to: 0, runs: [...key, { t: ': ' }] }];
 }
@@ -348,7 +485,7 @@ export function dropOn(doc: Doc, hit: Hit, onto: Hit): Op[] {
   const [l, o] = [lineOf(doc.blocks[hit.at] as Extract<Block, { k: 'li' }>, hit.at), lineOf(doc.blocks[onto.at] as Extract<Block, { k: 'li' }>, onto.at)];
   const key = o.key ? sliceRuns(o.runs, o.key.from, o.key.to) : [];
   const same = (l.key?.words ?? '') === (o.key?.words ?? '');
-  return [...(same || !o.key ? [] : setKey(l, key)), move];
+  return [...(same || !o.key ? [] : keyed(l, key)), move];
 }
 
 /** A thing dragged into a region: a step into another lane; a thing of a set into the circles round where it was let go. */
@@ -359,7 +496,7 @@ export function dropIn(doc: Doc, hit: Hit, key: string): Op[] {
   if (kind === 'lanes') {
     if ((l.key?.words ?? '').toLowerCase() === key.toLowerCase()) return [];
     const lane = linesOf(doc).find((x) => (x.key?.words ?? '').toLowerCase() === key.toLowerCase());
-    return setKey(l, lane?.key ? sliceRuns(lane.runs, lane.key.from, lane.key.to) : [{ t: key }]);
+    return keyed(l, lane?.key ? sliceRuns(lane.runs, lane.key.from, lane.key.to) : [{ t: escapeWords(key, { colon: true }) }]);
   }
   if (kind === 'venn' && typeof hit.part === 'number') {
     const to = naming(linesOf(doc), key);
@@ -374,27 +511,24 @@ export function connect(doc: Doc, from: string, to: string): Op[] {
   const [a, b] = [from.trim(), to.trim()];
   if (!a || !b || same(a, b)) return [];
   if (edgesOf(doc).some((e) => (same(e.from, a) && same(e.to, b)) || (same(e.from, b) && same(e.to, a)))) return [];
-  const name = (s: string) => s.split(' | ')[0].trim();
-  return [{ op: 'splice', at: doc.blocks.length, n: 0, blocks: [{ k: 'edge', from: name(a), to: name(b), dir: kindOf(doc) === 'net' ? '->' : '--' }] }];
+  return [{ op: 'splice', at: doc.blocks.length, n: 0, blocks: [{ k: 'edge', from: nameOf(a), to: nameOf(b), dir: kindOf(doc) === 'net' ? '->' : '--' }] }];
 }
 
 /** A connection's words, or its direction: the edge block replaced. */
 export function setEdge(doc: Doc, at: number, patch: { label?: string; dir?: Dir }): Op[] {
-  const b = doc.blocks[at];
-  if (!b || b.k !== 'edge') return [];
-  const label = (patch.label ?? b.label ?? '').replace(/\s+/g, ' ').trim();
-  const next: Block = { ...b, dir: patch.dir ?? b.dir, ...(label ? { label } : { label: undefined }) };
-  if (!label) delete (next as { label?: string }).label;
-  return [{ op: 'splice', at, n: 1, blocks: [next] }];
+  const e = edgesOf(doc).find((x) => x.at === at);
+  if (!e) return [];
+  const label = (patch.label ?? e.label).replace(/\s+/g, ' ').trim();
+  return [{ op: 'splice', at, n: 1, blocks: [edgeBlock(doc, e, { dir: patch.dir ?? e.dir, label })] }];
 }
 
 /** Every connection naming `old` names `now` instead. */
 function renameEdges(doc: Doc, old: string, now: string): Op[] {
-  const to = now.split(' | ')[0].trim();
+  const to = nameOf(now);
   if (!who(old) || !to || same(old, now)) return [];
   return edgesOf(doc)
     .filter((e) => same(e.from, old) || same(e.to, old))
-    .map((e): Op => ({ op: 'splice', at: e.at, n: 1, blocks: [{ ...(doc.blocks[e.at] as Extract<Block, { k: 'edge' }>), from: same(e.from, old) ? to : e.from, to: same(e.to, old) ? to : e.to }] }));
+    .map((e): Op => ({ op: 'splice', at: e.at, n: 1, blocks: [edgeBlock(doc, e, { from: same(e.from, old) ? to : e.from, to: same(e.to, old) ? to : e.to })] }));
 }
 
 /**
@@ -408,7 +542,7 @@ export function follow(before: Doc, after: Doc, at: number): Op[] {
   const [a, b] = [lineOf(was, at), lineOf(now, at)];
   if (joins(kind)) return renameEdges(after, a.all.words, b.all.words);
   if (kind === 'venn') {
-    const [x, y] = [setNames(a.key?.words ?? ''), setNames(b.key?.words ?? '')];
+    const [x, y] = [setNames(a.key?.src ?? ''), setNames(b.key?.src ?? '')];
     if (x.length !== 1 || y.length !== 1 || x[0].toLowerCase() === y[0].toLowerCase()) return [];
     return renameSet(after, x[0], y[0], at);
   }
@@ -419,9 +553,9 @@ export function follow(before: Doc, after: Doc, at: number): Op[] {
 function renameSet(doc: Doc, old: string, now: string, skip: number): Op[] {
   return linesOf(doc).flatMap((l): Op[] => {
     if (l.at === skip || !l.key) return [];
-    const names = setNames(l.key.words);
+    const names = setNames(l.key.src);
     if (names.length < 2 || !names.some((n) => n.toLowerCase() === old.toLowerCase())) return [];
-    return [{ op: 'text', at: l.at, from: l.key.from, to: l.key.to, runs: [{ t: names.map((n) => (n.toLowerCase() === old.toLowerCase() ? now : n)).join(' & ') }] }];
+    return [{ op: 'text', at: l.at, from: l.key.from, to: l.key.to, runs: [{ t: setKey(names.map((n) => (n.toLowerCase() === old.toLowerCase() ? now : n))) }] }];
   });
 }
 
@@ -433,7 +567,7 @@ export function rename(doc: Doc, hit: Hit, old: string, now: string): Op[] {
   if (hit.k === 'edge') return setEdge(doc, hit.at, { label: now });
   if (hit.k === 'node') return renameEdges(doc, old, now);
   if (hit.k === 'lane') {
-    const to = now.replace(/:\s/g, ' ').trim();
+    const to = escapeWords(now.replace(/\s+/g, ' ').trim(), { colon: true });
     if (!to) return [];
     return linesOf(doc)
       .filter((l) => l.key && l.key.words.toLowerCase() === old.toLowerCase())
@@ -527,13 +661,15 @@ export function pasteThings(doc: Doc, hit: Hit | null, blocks: Block[], beside =
     else if (isTree(kind) && root) [to, depth] = [family(doc, root.at), 1];
     else to = afterLines(doc);
     const low = Math.min(...lis.map((b) => b.depth));
-    const lane = kind === 'lanes' ? (line?.key ? keyRuns(line) : hit?.k === 'lane' && hit.name ? [{ t: `${hit.name}: ` }] : []) : [];
+    const lane = kind === 'lanes' ? (line?.key ? keyRuns(line) : hit?.k === 'lane' && hit.name ? [{ t: `${escapeWords(hit.name, { colon: true })}: ` }] : []) : [];
     const put = lis.map((b) => li(isTree(kind) ? b.depth - low + depth : 0, lane.length && !lineOf(b, 0).key ? [...lane, ...b.runs] : b.runs));
     bd.push({ op: 'splice', at: to, n: 0, blocks: put });
     first = lineHit(kind, to);
   }
   for (const e of edges) {
-    if (!connect(bd.doc, e.from, e.to).length) continue;
+    const names = new Set(linesOf(bd.doc).map((l) => who(l.all.words)));
+    const r = resolveEdge(e, 0, (n) => names.has(who(n)));
+    if (!connect(bd.doc, r.from, r.to).length) continue;
     bd.push({ op: 'splice', at: bd.doc.blocks.length, n: 0, blocks: [e] });
     first ??= { k: 'edge', at: bd.doc.blocks.length - 1 };
   }
