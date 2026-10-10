@@ -4,6 +4,7 @@
  * emoji is drawn by the system, as words are. Loaded with the picker, never before.
  */
 import { EMOJI, EMOJI_GROUPS } from './emoji-data.ts';
+import { rankMatches } from './icons-search.ts';
 
 export { EMOJI_GROUPS };
 
@@ -33,3 +34,9 @@ export function searchEmoji(query: string, limit = 180): string[] {
   }
   return hits.sort((a, b) => a[1] - b[1]).slice(0, limit).map(([c]) => c);
 }
+
+/** Emoji for a completion, best first (icons-search.ts rankMatches over the name and the keywords, a keyword typed whole counting as a name). */
+export const completeEmoji = (query: string, limit = 8): string[] => rankMatches(query, ENTRIES, limit, true).map((i) => ENTRIES[i].char);
+
+/** The emoji whose name is this, written with hyphens ("red-heart" is ❤️), or '' for none. */
+export const emojiNamed = (name: string): string => ENTRIES.find((e) => e.nameWords.join('-') === name.toLowerCase())?.char ?? '';
