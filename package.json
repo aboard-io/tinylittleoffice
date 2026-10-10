@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 4178 --strictPort",
     "build": "node scripts/network-doc.ts && tsc --noEmit && vite build && vite build -c vite.api.config.ts --logLevel warn",
+    "build:verify": "node scripts/reproducible.ts",
+    "verify-deploy": "node scripts/verify-deploy.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && npm run -s tinier:types && tsc -p tinier && npm run -s media:types && tsc -p media",
     "lint": "tsc --noEmit",

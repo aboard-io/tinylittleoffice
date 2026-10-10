@@ -43,6 +43,23 @@ leak. Everything here makes that checkable by a stranger.
    `scripts/verify-deploy.ts` fetches the live site, hashes every file and compares with the tag's build;
    the live site serves `/version.json` (commit, tag, build time, the CSP hashes) and a build attestation
    (GitHub's artifact attestation on the release). The CSP's script hashes are listed in the release notes.
+   *Built, 2026-10-10.* Two builds of one commit are the same bytes: `scripts/reproducible.ts`
+   (`npm run build:verify`) builds it twice in fresh checkouts at different paths and depths
+   (`scripts/builds.ts`), hashes every file and prints the first difference, and compares this checkout's
+   `dist/` too when it is that commit's build. The one source of difference was the API build
+   (`vite.api.config.ts`): a library build keeps the bundler's `//#region <path>` notes, which named where
+   node_modules was on the building machine; they are off. The build writes `dist/version.json`
+   (`scripts/version.ts`: the commit, its tag or "", the commit's own date in UTC, the policy's script
+   hashes; the shape is `src/kit/version.ts`), listed in files.json for the copy kept offline and checked by
+   `scripts/check-build.ts`; About reads it when it opens and says "Running commit abc1234", a link to the
+   commit on GitHub (`github.com` is on the list, `src/kit/network.ts` `source`). `scripts/verify-deploy.ts`
+   (`npm run verify-deploy -- <url> [commit]`) reads the site's `/version.json`, builds that commit in a fresh
+   checkout (or uses `dist/` when it is that build), fetches every file but `_headers`, and prints a table;
+   exit 1 on any difference. `.github/workflows/release.yml`, on a tag `v*`: `npm ci`, build,
+   `build:verify`, `check-build`, a byte-stable archive, `actions/attest-build-provenance` over `dist/**` and
+   the archive, and a release with the archive and notes (`scripts/release-notes.ts`: the commit, the tag,
+   the script hashes, how to check). Signed tags: `docs/github-setup.md`. CI (`.github/workflows/ci.yml`) runs
+   `npm run build:verify` after its build.
 4. **Dependencies you can read in one sitting.** `docs/dependencies.md` generated from package.json: each
    dependency, its exact version, its licence, the native API it beat and why (the standing rule), and the
    size it adds. Nothing vendored minified; the lockfile committed; `npm audit` in CI with no ignores.

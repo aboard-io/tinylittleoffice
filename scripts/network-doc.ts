@@ -23,7 +23,7 @@ const requests = () => reaches().filter((r) => !r.picture || r.csp);
 const pictures = () => reaches().filter((r) => r.picture);
 const hostWords = (r: Reach) => (r.host === '*' ? 'any https address' : `\`${r.host}\``);
 const allowedBy = (r: Reach) =>
-  r.csp ? r.csp.map((d) => `\`${CSP[d]}\``).join(', ') : r === NETWORK.site ? "`'self'`" : r.when === 'on share' ? 'none: it opens in a new tab' : 'none: the proxy asks';
+  r.csp ? r.csp.map((d) => `\`${CSP[d]}\``).join(', ') : r === NETWORK.site ? "`'self'`" : r.picture || r === NETWORK.anyPicture ? 'none: the proxy asks' : 'none: it opens in a new tab';
 
 const PROSE = `# What leaves your browser
 

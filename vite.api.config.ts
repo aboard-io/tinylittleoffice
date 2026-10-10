@@ -27,6 +27,9 @@ export default defineConfig({
     copyPublicDir: false,
     minify: true,
     lib: { entry: resolve(import.meta.dirname, 'src/api.ts'), formats: ['es'], fileName: () => 'api.js' },
-    rollupOptions: { output: { chunkFileNames: 'api/[name]-[hash].js' } },
+    // A library build keeps its whitespace, and with it the bundler's "//#region <path>" notes, which name where the
+    // modules were on the building machine (a checkout elsewhere, node_modules linked in): none, so a build is the
+    // same bytes wherever it is made (scripts/reproducible.ts).
+    rollupOptions: { experimental: { attachDebugInfo: 'none' }, output: { chunkFileNames: 'api/[name]-[hash].js' } },
   },
 });
