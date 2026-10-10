@@ -83,6 +83,7 @@ Under Download, "Open in": the document as another app reads it, converted by a 
 | Outliner | Diagram Maker | Draw as a network |
 | Spreadsheet | Calendar | Put the dated rows on a calendar |
 | Drawing Tool | Animator | Animate this drawing |
+| Diagram Maker | Outliner | Show as outline |
 | Diagram Maker | Drawing Tool | Open in Drawing Tool |
 | Kanban Board | To-Do List | Make a to-do list of the cards |
 | To-Do List | Kanban Board | Show on a board |
