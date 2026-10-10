@@ -1,0 +1,15 @@
+---
+app: deck
+title: How Tiny Little Office hangs together
+---
+## :layers: Apps are definitions on one kit
+
+```diagram
+---
+kind: org
+---
+- The kit
+  - Pictures | Drawing Tool, Diagram, Motion
+
+~ Diagram -- Drawing Tool: draws with
+```

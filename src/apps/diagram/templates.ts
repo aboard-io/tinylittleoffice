@@ -250,10 +250,10 @@ kind: org
     - Jonah Ellis | Garnish
     - Rosa Duarte | Pastry
   - Kemi Adeyemi | Restaurant manager
-    - Theo Marsh | Head waiter
     - Ivy Cole | Bar
+    - Theo Marsh | Head waiter
 
-~ Rosa Duarte -- Ivy Cole: dessert wines
+~ Rosa Duarte -- Ivy Cole: wines
 `;
 
 const BRONTES = `---

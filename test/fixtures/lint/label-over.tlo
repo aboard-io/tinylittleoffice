@@ -1,0 +1,11 @@
+---
+app: diagram
+kind: net
+---
+- Header
+- Hamburger
+- Drawer
+- Column
+
+~ Header -> Drawer: keeps the hamburger in reach while the person is editing
+~ Hamburger -> Column: opens the drawer over the column from the left side

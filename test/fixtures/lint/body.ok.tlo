@@ -1,0 +1,9 @@
+---
+app: deck
+---
+## Held by lints
+
+- No bare words in a template
+- No import cycles
+- Chunk budgets as tripwires
+- Generated outputs never edited by hand

@@ -113,6 +113,24 @@ export function compare(a: string, b: string): { same: boolean; removed: number;
   return { same: ra.app === rb.app && changes.every((c) => c.kind === ' '), ...tally(changes), changes };
 }
 
+export type { Finding, Measure } from './lint.ts';
+
+/**
+ * What the eye would have seen in a document, said in words, so nothing need be opened to check it: a diagram's
+ * connection that names no thing, a comma splitting a number into two things, a label too long for its box or
+ * lying over another, a slide's bullets under a chart (not drawn), a headline shrunk or cut, a link too long to
+ * paste. Each finding has its app, where it is ("slide 3"), its block, its kind, its words and what to do; a
+ * document fenced inside another is linted too. [] is a clean document. The measures are the layouts' own.
+ */
+export async function lint(app: string, text: string, opts: LinkOptions = {}): Promise<import('./lint.ts').Finding[]> {
+  return (await import('./lint.ts')).lint(app, text, link(app, text, opts));
+}
+
+/** The numbers the layouts chose, so words can be set from them: per slide the headline's and the words' sizes, lines and what was cut; per diagram its things and connections, drawn and dropped, and how each label was set. */
+export async function measure(app: string, text: string, opts: LinkOptions = {}): Promise<import('./lint.ts').Measure> {
+  return (await import('./lint.ts')).measure(app, text, link(app, text, opts));
+}
+
 /** Every app: its id, name, what one document is called, its group and a line on what it is for. */
 export async function apps(): Promise<{ id: string; name: string; noun: string; group: string; blurb: string }[]> {
   const { apps: all } = await import('./kit/apps.ts');

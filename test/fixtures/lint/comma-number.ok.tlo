@@ -1,0 +1,8 @@
+---
+app: diagram
+title: Tested by mathematics
+kind: venn
+---
+- Grammar: TLO as EBNF, two thousand cases a run
+- Walks: a model of the chrome, 200 steps
+- Grammar & Walks: shrinks, replays

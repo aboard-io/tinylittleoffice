@@ -233,6 +233,13 @@ export interface SlideLayout {
   sub?: Box;
   /** The slide's footnotes, at its foot: each note's lines, and the size of their type. */
   notes?: Box & { lines: Span[][][]; px: number };
+  /** What fitting cost (what the lint reads, src/lint.ts): a headline set at its smallest size, its lines cut off; words set at their smallest, and how far they still run past their box. */
+  fit: Fitting;
+}
+
+export interface Fitting {
+  title: { smallest: boolean; cut: number };
+  body: { smallest: boolean; over: number };
 }
 
 /** How far a bullet steps in a level, in the size of the type. */
@@ -258,13 +265,14 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
   const titleSpans = () => spansOf(s.title, noteNumbers());
   const titleNotes = s.title.filter((r) => r.fn !== undefined).length;
   const fitTitle = (w: number, sizes: number[], maxLines: number) => {
-    if (!hasTitle) return { px: sizes[0], lines: [] as Span[][] };
+    if (!hasTitle) return { px: sizes[0], lines: [] as Span[][], smallest: false, cut: 0 };
     for (const px of sizes) {
       const lines = wrap(titleSpans(), w, px, true);
-      if (lines.length <= maxLines) return { px, lines };
+      if (lines.length <= maxLines) return { px, lines, smallest: px === sizes[sizes.length - 1] && sizes.length > 1, cut: 0 };
     }
     const px = sizes[sizes.length - 1];
-    return { px, lines: wrap(titleSpans(), w, px, true).slice(0, maxLines) };
+    const lines = wrap(titleSpans(), w, px, true);
+    return { px, lines: lines.slice(0, maxLines), smallest: true, cut: lines.length - maxLines };
   };
   // A document on the slide takes the room under the headline (the whole slide when there is none).
   if (s.sub >= 0) {
@@ -279,6 +287,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
       cols: [],
       icon: s.icon && headH ? { x: M, y: M * 0.6 + (headH - 72 * k) / 2, w: 72 * k, h: 72 * k } : undefined,
       sub: { x: PAD, y: top, w: W - 2 * PAD, h: H - top - PAD },
+      fit: { title: { smallest: tt.smallest, cut: tt.cut }, body: { smallest: false, over: 0 } },
     };
   }
   const kind = s.layout;
@@ -305,7 +314,9 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
         })),
       );
       const tall = (items: { lines: Span[][] }[]) => items.reduce((a, l) => a + l.lines.length * px * 1.3 + px * 0.45, 0);
-      if (laid.every((items, i) => tall(items) <= cols[i].h) || px === sizes[sizes.length - 1]) return { px, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i] })) };
+      const over = Math.max(0, ...laid.map((items, i) => tall(items) - cols[i].h));
+      if (!over || px === sizes[sizes.length - 1])
+        return { px, smallest: px === sizes[sizes.length - 1] && laid.some((items) => items.length), over, cols: cols.map((c, i) => ({ x: c.x, y: c.y, w: c.w, h: c.h, items: laid[i] })) };
     }
     throw new Error('unreachable');
   };
@@ -324,6 +335,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
       cols: [{ ...sub.cols[0], y: ty + tt.lines.length * tt.px * 1.15 + 24 }],
       icon: s.icon ? { x: W / 2 - 48 * k, y: top, w: 96 * k, h: 96 * k } : undefined,
       notes: foot,
+      fit: { title: { smallest: tt.smallest, cut: tt.cut }, body: { smallest: sub.smallest, over: sub.over } },
     };
   }
 
@@ -350,6 +362,7 @@ export function layoutSlide(s: Slide, o: SlideSize = {}): SlideLayout {
         ? { x: sideBox.x + (sideBox.w - 260 * k) / 2, y: sideBox.y + (sideBox.h - 260 * k) / 2, w: 260 * k, h: 260 * k }
         : undefined,
     notes: foot,
+    fit: { title: { smallest: tt.smallest, cut: tt.cut }, body: { smallest: body.smallest, over: body.over } },
   };
 }
 

@@ -15,7 +15,13 @@ tinyoffice link sheet budget.md --plain          # the readable form: /sheet/#ti
 tinyoffice read <link>                           # the document's TLO text (--json for app, title, by)
 tinyoffice file <link>                           # <title>.tlo; --as md|csv|ics|docx|… for the app's own formats
 tinyoffice diff <old link> <new link>            # what the second changed, block by block; exit 1 when they differ
+tinyoffice lint talk.tlo                         # what the eye would have seen, a line a finding; exit 1 on one
+tinyoffice measure <link>                        # the sizes the layouts chose, slide by slide, as JSON
 ```
+
+Check a document with `lint` and `measure`, never by opening it: they read the same layout code that draws the
+pages (a connection naming no thing, a comma splitting a number, a label too long for its box, bullets under a
+chart that are not drawn, a headline shrunk or cut, a link too long to paste), so no browser is needed.
 
 `file` makes what needs no browser: `.tlo` and `.md` for every app, and the app's own formats that are text or
 zipped XML (a sheet's `.csv` and `.xlsx`, a calendar's `.ics`, a text's `.docx`…). Pictures and the `.pdf` are
@@ -24,13 +30,15 @@ drawn by a browser: open the link with `view=pdf` (or `#/v1/<app>.pdf/…`) to h
 ## In code
 
 ```js
-import { link, plain, read, compare, encode, decode, parse, write, apps, templates, file } from 'https://tinylittleoffice.com/api.js';
+import { link, plain, read, compare, encode, decode, parse, write, apps, templates, file, lint, measure } from 'https://tinylittleoffice.com/api.js';
 
 const url = link('sheet', 'Item | Cost:money\n--- | ---\nRent | 1200\n', { title: 'Budget', by: 'planner-agent' });
 read(url);               // { app: 'sheet', view: '', text: '---\ntitle: Budget\nby: planner-agent\n---\n…', title, by, display }
 compare(url, revised);   // { same, removed, added, changes: [{ kind: ' ' | '-' | '+', line }…] }
 parse(read(url).text);   // the kernel's document: { head, blocks }; write() gives the text back
 await templates('deck'); // [{ id, name, blurb, text }…]
+await lint('deck', text); // [{ app, at: 'slide 3', block, kind, words, fix }…]; [] when clean
+await measure('deck', text); // { app, length, slides: [{ slide, title: { px, lines, cut }, body: { px, over }, hidden }…] }
 ```
 
 The guide to every app's format is the skill, `skill/tinyoffice/SKILL.md`, served as `/llms.txt`.

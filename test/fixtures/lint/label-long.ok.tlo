@@ -1,0 +1,10 @@
+---
+app: diagram
+kind: net
+---
+- Header
+- Column
+- Bar
+
+~ Header -> Bar: keeps
+~ Column -> Bar: carries

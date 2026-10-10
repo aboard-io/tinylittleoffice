@@ -103,47 +103,7 @@ function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
   }
   if (!s.text) return body;
   const halo = isLine(s.k) || s.k === 'w' ? ` stroke="${th.paper}" stroke-width="4" paint-order="stroke"` : '';
-  // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note's and a text's lines are all alike). The words are runs with marks.
-  const [icon, words] = iconOf(s.text);
-  const parts = labelLines(words);
-  const even = s.k === 'n' || s.k === 't';
-  const plain = (runs: Run[]) => runs.map((x) => x.t).join('');
-  // The words wrap to the room inside the shape (less in a round or pointed one), and get smaller if they still do not fit; past that, the last line ends in "…".
-  const inside = isLine(s.k) || s.k === 'w' ? Infinity : s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
-  const big = icon && iconNamed(icon) ? 1.35 : 0;
-  type Line = { runs: Run[]; t: string; small: boolean; strong: boolean };
-  const fit = (scale: number) => {
-    const px = p.px * scale;
-    const room = inside === Infinity ? Infinity : Math.max(24, w * inside - (s.k === 't' ? 8 : 16) - (big ? px * big + 6 : 0));
-    const lines: Line[] = [];
-    parts.forEach((part, i) => {
-      const small = i > 0 && !even;
-      const strong = !i && parts.length > 1 && !even;
-      const text = plain(part);
-      let from = 0;
-      for (const line of room === Infinity ? [text] : wrapText(text, room, small ? px * 0.8 : px, strong || part.some((x) => x.b))) {
-        const at = Math.max(from, text.indexOf(line, from));
-        lines.push({ runs: sliceRuns(part, at, at + line.length), t: line, small, strong });
-        from = at + line.length;
-      }
-    });
-    return { px, lines, room };
-  };
-  let laid = fit(1);
-  const tall = (l: typeof laid) => l.lines.length * l.px * 1.25;
-  const height = isLine(s.k) || s.k === 't' || s.k === 'w' ? Infinity : h * (s.k === 'd' ? 0.6 : s.k === 'e' ? 0.8 : 1) - 6;
-  for (let k = 0.9; tall(laid) > height && k >= 0.6; k -= 0.1) laid = fit(k);
-  if (tall(laid) > height) {
-    const keep = Math.max(1, Math.floor(height / (laid.px * 1.25)));
-    const cut = laid.lines.slice(0, keep);
-    const end = cut[keep - 1];
-    const t = clip(end.t + '…', laid.room, end.small ? laid.px * 0.8 : laid.px, end.strong).replace(/……$/, '…');
-    const n = t.endsWith('…') ? t.length - 1 : t.length;
-    const runs = sliceRuns(end.runs, 0, n);
-    const last = runs[runs.length - 1];
-    cut[keep - 1] = { ...end, t, runs: [...runs, { ...(last ?? {}), t: t.slice(n) }] };
-    laid = { ...laid, lines: cut };
-  }
+  const { icon, words, big, laid } = fitLabel(s, p.px);
   const fs = laid.px;
   const lh = fs * 1.25;
   const mark = big ? fs * big : 0;
@@ -162,6 +122,68 @@ function flatSvg(s: Shape, all: Shape[], th: Theme, hit: boolean): string {
     )
     .join('');
   return body + (mark ? glyphNamed(icon, start, ty - mark / 2, mark, p.text) : '') + out;
+}
+
+/** A shape's words as they are set in it: wrapped to the room inside, made smaller (to 0.6 of their size) while they do not fit, and past that cut short with "…". */
+export interface LabelFit {
+  icon: string;
+  words: string;
+  /** The icon's size beside the words, in the size of the type (0 for none). */
+  big: number;
+  laid: { px: number; room: number; lines: { runs: Run[]; t: string; small: boolean; strong: boolean }[] };
+  /** How much smaller than the shape's own size the words had to be set (1: not at all). */
+  scale: number;
+  /** Whether the words were cut short, the last line ending in "…". */
+  cut: boolean;
+}
+
+/** How a shape's words fit it (`base` its type's size): what shapeSvg draws, and what the lint reads (src/lint.ts). */
+export function fitLabel(s: Shape, base: number = paint(s, INK, PAPER, SHADE).px): LabelFit {
+  const { w, h } = s;
+  // ":rocket Launch" is an icon and then the words; "Name | Role" is two lines (a note's and a text's lines are all alike). The words are runs with marks.
+  const [icon, words] = iconOf(s.text);
+  const parts = labelLines(words);
+  const even = s.k === 'n' || s.k === 't';
+  const plain = (runs: Run[]) => runs.map((x) => x.t).join('');
+  // The words wrap to the room inside the shape (less in a round or pointed one), and get smaller if they still do not fit; past that, the last line ends in "…".
+  const inside = isLine(s.k) || s.k === 'w' ? Infinity : s.k === 'd' ? 0.55 : s.k === 'e' ? 0.72 : s.k === 'h' ? 0.8 : 1;
+  const big = icon && iconNamed(icon) ? 1.35 : 0;
+  type Line = { runs: Run[]; t: string; small: boolean; strong: boolean };
+  const fit = (scale: number) => {
+    const px = base * scale;
+    const room = inside === Infinity ? Infinity : Math.max(24, w * inside - (s.k === 't' ? 8 : 16) - (big ? px * big + 6 : 0));
+    const lines: Line[] = [];
+    parts.forEach((part, i) => {
+      const small = i > 0 && !even;
+      const strong = !i && parts.length > 1 && !even;
+      const text = plain(part);
+      let from = 0;
+      for (const line of room === Infinity ? [text] : wrapText(text, room, small ? px * 0.8 : px, strong || part.some((x) => x.b))) {
+        const at = Math.max(from, text.indexOf(line, from));
+        lines.push({ runs: sliceRuns(part, at, at + line.length), t: line, small, strong });
+        from = at + line.length;
+      }
+    });
+    return { px, lines, room };
+  };
+  let laid = fit(1);
+  let cutShort = false;
+  const tall = (l: typeof laid) => l.lines.length * l.px * 1.25;
+  const height = isLine(s.k) || s.k === 't' || s.k === 'w' ? Infinity : h * (s.k === 'd' ? 0.6 : s.k === 'e' ? 0.8 : 1) - 6;
+  for (let k = 0.9; tall(laid) > height && k >= 0.6; k -= 0.1) laid = fit(k);
+  if (tall(laid) > height) {
+    const keep = Math.max(1, Math.floor(height / (laid.px * 1.25)));
+    const cut = laid.lines.slice(0, keep);
+    const end = cut[keep - 1];
+    const t = clip(end.t + '…', laid.room, end.small ? laid.px * 0.8 : laid.px, end.strong).replace(/……$/, '…');
+    const n = t.endsWith('…') ? t.length - 1 : t.length;
+    const runs = sliceRuns(end.runs, 0, n);
+    const last = runs[runs.length - 1];
+    cut[keep - 1] = { ...end, t, runs: [...runs, { ...(last ?? {}), t: t.slice(n) }] };
+    laid = { ...laid, lines: cut };
+    cutShort = true;
+  }
+  return { icon, words, big, laid, scale: laid.px / base, cut: cutShort };
 }
 
 /** The arrowheads a drawing may use, one per colour. */
