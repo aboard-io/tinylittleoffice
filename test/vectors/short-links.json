@@ -1,0 +1,26 @@
+{
+  "about": "Tiny Little Office short links (src/kit/short.ts, tinier/, docs/crypto/short-links.md). c = AES-256-GCM(key, iv, UTF-8 of the long link) with its 16-byte tag last and no additional data; key, iv, c and o travel as base64url without padding. The service stores c, iv and owner = base64url(SHA-256(the 32 bytes of o)); the public link is <service>/<id>#<key>, the owner's <service>/<id>#<key>.<o>. Fixed keys and IVs are for these vectors only: the site draws them from crypto.getRandomValues.",
+  "cipher": {
+    "name": "AES-GCM",
+    "keyBits": 256,
+    "ivBytes": 12,
+    "tagBytes": 16,
+    "additionalData": null
+  },
+  "vectors": [
+    {
+      "keyHex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "key": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+      "ivHex": "404142434445464748494a4b",
+      "link": "https://tinylittleoffice.com/#/v1/text/yA-UoYJZLVQAlK2AOAibQZGCRVqzHBQA",
+      "c": "qiDJ8SNM6iQmWz5R6SMlBn_r8uWTKcS7QJ37bU_J4HT7PGt7TqiOXwy6aOvEmumjiMmoXPbYkbI_jasxfOIXQ2OR0sBXcn03r4P6w3mly9Rw1dofzits",
+      "iv": "QEFCQ0RFRkdISUpL",
+      "o": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+      "oHex": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+      "ownerHash": "TY0nT_fhdq-XepWgBVyMXzR404ZANDoGDO6JPlbzmVc",
+      "id": "abcdefg",
+      "short": "https://tinier.tinylittleoffice.com/abcdefg#ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+      "owner": "https://tinier.tinylittleoffice.com/abcdefg#ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+    }
+  ]
+}

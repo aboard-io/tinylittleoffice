@@ -157,6 +157,14 @@ export const NETWORK = {
   anyMedia: { ...tapFrame('*', 'A sound or a film that is a file, played by the browser’s own player'), carries: 'The file’s address; no referrer', csp: ['media'] },
   bskyShare: compose('bsky.app', 'Bluesky’s compose box'),
   xShare: compose('x.com', 'X’s compose box'),
+  github: {
+    host: 'github.com',
+    what: 'The threat model, read where the code is: a link in About that opens in a new tab',
+    when: 'after a tap',
+    carries: 'Nothing of the document; the tab asks GitHub for a page, as any link does',
+    stops: 'Not tapping the link; it names where it goes and asks before it opens',
+    by: 'kit/drawer.ts',
+  },
   linkedin: compose('www.linkedin.com', 'LinkedIn’s share box'),
   mastodon: compose('*', 'A Mastodon server’s compose box: the one you name'),
 } as const satisfies Record<string, Reach>;
