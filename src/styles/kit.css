@@ -1788,7 +1788,8 @@
     display: flex;
     justify-content: center;
     height: 56px;
-    min-width: 44px;
+    /* As wide as the widest page it can hold (twice its height), so the names beside a column of previews line up. */
+    width: 112px;
   }
   /* Its width is the page's shape (aspect-ratio, set by preview.ts: a landscape page to twice its height). */
   to-preview svg {
@@ -1801,7 +1802,7 @@
   }
   .to-found to-preview {
     height: 40px;
-    min-width: 32px;
+    width: 80px;
   }
 
   /* ---- a picture from the web, not yet asked for (kit/pictures.ts) ---- */

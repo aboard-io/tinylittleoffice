@@ -1,11 +1,14 @@
 // The drawing as a view of the document, and each command as the ops it produces: under node, no DOM.
 import { expect, test } from 'vitest';
+import { createHash } from 'node:crypto';
+import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { blankTile, parseTile, tileCss, tilePattern, tileRef, tileSvg } from '../../../kit/tile.ts';
 import { addShape, describeDrawing, type Shape, duplicate, pasteShapes, pickShapes, shapesFromText, shapesToTlo, floodSquare, paintSquare, patchShape, readDrawing, removeShape, removeShapes, patchShapes, restack, restackShapes, restackTo, duplicateShapes, setAlt, setGrid, setPixels, setTile, simplify, strokeShape, shapesWithin, labelLines, labelText, labelPlain, alignOp, nextAlign, wordsOver } from '../model.ts';
 import { drawingPage, drawingToSvg, shapeSvg } from '../view.ts';
 import { templates } from '../templates.ts';
 import def, { tileOfDoc } from '../def.ts';
+import { H, W } from '../model.ts';
 
 const DRAWING = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nk | 0 | 1 | 0 | 0 | 0 | asks\n';
 const PIXELS = '---\ngrid: 8\n---\na..b\n.\nc\n';
@@ -407,4 +410,25 @@ test('align over: the words editor sits as the text\'s words do, aligned the sam
   expect(o({ ...t, al: 'c' }).transform).toContain('translate(-50%, -50%)');
   expect(o({ ...t, al: 'r' })).toMatchObject({ left: '172px', textAlign: 'right' });
   expect(o({ ...t, al: 'r' }).transform).toContain('translate(-100%, -50%)');
+});
+
+// The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
+// unchanged by `thumb`.
+const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
+const REQUEST = "---\ntitle: How a page loads\nalt: A browser asks a server, which reads the data.\n---\nKind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\no | 4 | 6 | 16 | 8 | 1b | Browser\no | 32 | 6 | 16 | 8 | 1b | Server\nc | 60 | 5 | 14 | 10 | 1g | Data\nk | 0 | 1 | 0 | 0 | 0 | asks\nk | 1 | 2 | 0 | 0 | 0 | reads\n";
+
+test('a thumbnail of a drawing is the picture\'s own box, landscape when the picture is wider than tall; a tiled page and pixel art stay whole; a page and a slide are as before', () => {
+  const [p] = def.view(REQUEST, { small: true, thumb: true });
+  expect(p.w).toBeLessThan(W);
+  expect(p.h).toBeLessThan(H);
+  expect(p.w).toBeGreaterThan(p.h);
+  expect(p.svg).toMatch(/^<g transform="translate\(-?[\d.]+ -?[\d.]+\)">/);
+  // One tall shape: a portrait thumbnail.
+  const tall = 'Kind | X | Y | W | H | Style | Label\n--- | --- | --- | --- | --- | --- | ---\nr | 30 | 2 | 6 | 30 | 1b | Tower\n';
+  const [q] = def.view(tall, { small: true, thumb: true });
+  expect(q.h).toBeGreaterThan(q.w);
+  // Nothing drawn: the whole canvas.
+  expect(def.view('', { small: true, thumb: true })[0]).toMatchObject({ w: W, h: H });
+  expect(sha1(def.view(REQUEST))).toBe('0c75baadd90f457d2d4741b94e51deb04dc401c2');
+  expect(sha1(def.view(REQUEST, { small: true }))).toBe('0c75baadd90f457d2d4741b94e51deb04dc401c2');
 });

@@ -4,6 +4,8 @@
 import { readFileSync } from 'node:fs';
 import { join as joinPath } from 'node:path';
 import { describe, expect, test } from 'vitest';
+import { createHash } from 'node:crypto';
+import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, invertAll, parse, write, type Doc, type Op } from '../../../doc/index.ts';
 import { readDrawing } from '../../draw/model.ts';
 import def from '../def.ts';
@@ -460,4 +462,23 @@ test('a seating chart’s place cards: one a guest, the name large and the table
   expect(sheets[0].svg).toContain(`<svg x="${(LETTER.w - 2 * CARD.w) / 2}" y="${(LETTER.h - 4 * CARD.h) / 2}"`);
   // A chart with nobody seated: one blank sheet.
   expect(placeCards(parse('---\nkind: seating\n---\n'))).toEqual([{ ...LETTER, svg: '' }]);
+});
+
+// The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
+// unchanged by `thumb`.
+const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
+const BRONTES = "---\ntitle: The Brontës of Haworth\nkind: family\n---\n- Patrick Brontë + Maria Branwell | m. 1812\n  - Maria | 1814–1825\n  - Elizabeth | 1815–1825\n  - Charlotte + Arthur Bell Nicholls | m. 1854\n  - Branwell | 1817–1848\n  - Emily | 1818–1848\n  - Anne | 1820–1849\n- Elizabeth Branwell | 1776–1842\n\n~ Elizabeth Branwell -- Patrick Brontë + Maria Branwell: kept house from 1821\n";
+
+test('a thumbnail of a family tree more than twice as wide as tall is its middle, twice as wide as tall; a page and a slide are as before', () => {
+  const page = def.view(BRONTES)[0];
+  expect(page.w / page.h).toBeGreaterThan(2);
+  const [p] = def.view(BRONTES, { small: true, thumb: true });
+  expect(p.w / p.h).toBe(2);
+  expect(p.h).toBe(page.h);
+  expect(p.svg).toContain(`translate(-${Math.round((page.w - 2 * page.h) / 2)} 0)`);
+  // A diagram no wider than twice its height is drawn whole.
+  const mind = templates().find((x) => x.id === 'mind-launch')!.doc;
+  expect(def.view(mind, { small: true, thumb: true })).toEqual(def.view(mind, { small: true }));
+  expect(sha1(def.view(BRONTES))).toBe('78feff525a039b962741c71f16785f64d142ba18');
+  expect(sha1(def.view(BRONTES, { small: true }))).toBe('78feff525a039b962741c71f16785f64d142ba18');
 });

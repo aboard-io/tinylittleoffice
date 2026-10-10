@@ -1,6 +1,8 @@
 // Board as a view of the document, each command as the ops it produces, and the files: under node, no DOM.
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
+import { createHash } from 'node:crypto';
+import { pageSvg } from '../../../kit/draw.ts';
 import { applyAll, invertAll, parse, write, type Op } from '../../../doc/index.ts';
 import def from '../def.ts';
 import { AUTO, EDGE_MIX, STAGE_COLORS, addCard, addItem, autoHue, setLook, addStage, asCards, asItems, blocksOf, cardsIn, carryCards, duplicateCard, duplicateCards, joinLine, moveCard, moveCards, moveItem, moveStage, progress, readBoard, removeCard, removeCards, removeItem, removeStage, setItemDone, setStage, shifted, splitCard, splitItem, stageOf, type BoardView } from '../model.ts';
@@ -329,4 +331,26 @@ test('the look: stages as rows is `look: rows` in the head, columns the default 
   // Four cards are one line across; a fifth wraps onto a second line of the band, a card taller.
   expect(band(4)).toBe(band(1));
   expect(band(5)).toBe(band(4) + 37 + 8);
+});
+
+// The drawings as they were before thumbnails (sha1 of every page's SVG): a page, and drawn small on a slide, are
+// unchanged by `thumb`.
+const sha1 = (pages: { w: number; h: number; svg: string }[]) => createHash('sha1').update(pages.map((p) => pageSvg(p)).join('\n')).digest('hex');
+const BOARD5 = '## Ideas\n\n- A blog\n\n## To do\n\n- Write the words\n- Photograph the studio\n\n## Doing\n\n- Build the home page\n\n## Review\n\n- The logo\n\n## Done\n\n- Pick the domain name\n';
+
+test('a thumbnail of a five-stage board is landscape and holds the first three stages at full width; a page and a slide are as before', () => {
+  const [p] = def.view(BOARD5, { small: true, thumb: true });
+  expect(p.w).toBeGreaterThan(p.h);
+  expect(p.w).toBe(boardPage(parse(BOARD5)).w - 2 * 232);
+  expect(p.svg).toContain('Doing');
+  expect(p.svg).not.toContain('Review');
+  expect(p.svg).not.toContain('Pick the domain name');
+  // A stage of many cards keeps the ones that fit whole, inside the page.
+  const long = '## Many\n\n' + Array.from({ length: 30 }, (_, i) => `- Card ${i + 1}`).join('\n') + '\n';
+  const [q] = def.view(long, { small: true, thumb: true });
+  expect(q.w).toBeGreaterThan(q.h);
+  expect(q.svg).toContain('Card 1<');
+  expect(q.svg).not.toContain('Card 12<');
+  expect(sha1(def.view(BOARD5))).toBe('09e6df47b7a6dfab327530b3a28c4cc9cd3330d1');
+  expect(sha1(def.view(BOARD5, { small: true }))).toBe('09e6df47b7a6dfab327530b3a28c4cc9cd3330d1');
 });
