@@ -60,10 +60,12 @@ test('the home page lists the apps as rows, each with its templates', async () =
   picker.click();
   await until(() => !!tile.querySelector('[role=option] svg'));
   const options = [...tile.querySelectorAll('[role=option]')];
-  expect(options.map((o) => o.querySelector('.to-option-words span')!.textContent)).toEqual(['Blank', 'A letter', 'Meeting notes', 'Résumé', 'Contract', 'Invoice']);
+  const names = options.map((o) => o.querySelector('.to-option-words span')!.textContent);
+  expect(names.slice(0, 5)).toEqual(['Blank', 'A letter', 'Cover letter', 'Memo', 'Meeting notes']);
+  expect(names.length).toBeGreaterThanOrEqual(26);
   expect(options[0].getAttribute('aria-selected')).toBe('true');
   // Choosing a template opens the app with that document.
-  (options[2] as HTMLElement).click();
+  (options[4] as HTMLElement).click();
   await until(() => location.hash.startsWith('#/v1/write/'));
   expect(decodeDoc(location.hash.slice('#/v1/write/'.length))).toContain('# Launch meeting {.title}');
 });

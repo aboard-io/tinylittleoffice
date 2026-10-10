@@ -90,6 +90,88 @@
     border-top-color: var(--to-paper-line);
   }
 
+  /* The look (look.ts): the type the document is set in, its faces as two properties the page passes down.
+     The stacks are look.ts's STACKS, as CSS needs them written out. */
+  .write-page {
+    --write-sans: var(--to-font);
+    --write-serif: Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Noto Serif', serif;
+    --write-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --write-narrow: 'Bodoni 72', Didot, 'Times New Roman', Times, 'Noto Serif', serif;
+    --write-head: var(--write-sans);
+    --write-body: var(--write-sans);
+  }
+  .write-page[data-look='serif'],
+  .write-page[data-look='book'] {
+    --write-head: var(--write-serif);
+    --write-body: var(--write-serif);
+  }
+  .write-page[data-look='mono'] {
+    --write-head: var(--write-mono);
+    --write-body: var(--write-mono);
+  }
+  .write-page[data-look='mixed'] {
+    --write-head: var(--write-serif);
+  }
+  .write-page[data-look='inverse'] {
+    --write-body: var(--write-serif);
+  }
+  .write-page[data-look='news'] {
+    --write-head: var(--write-narrow);
+  }
+  .write-page .tx,
+  .write-notes {
+    font-family: var(--write-body);
+  }
+  .write-page .tx h1,
+  .write-page .tx h2,
+  .write-page .tx h3,
+  .write-page .tx h4 {
+    font-family: var(--write-head);
+  }
+  .write-page[data-look='mono'] .tx {
+    font-size: 15px;
+  }
+  .write-page[data-look='mono'] .tx h1.title {
+    font-size: 1.9em;
+    letter-spacing: 0;
+  }
+  .write-page[data-look='book'] .tx p {
+    margin: 0;
+    text-align: justify;
+    hyphens: auto;
+  }
+  .write-page[data-look='book'] .tx p + p {
+    text-indent: 1.5em;
+  }
+  .write-page[data-look='book'] .tx h1:not(.title),
+  .write-page[data-look='book'] .tx h2,
+  .write-page[data-look='book'] .tx h3 {
+    font-variant: small-caps;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+  .write-page[data-look='book'] .tx h1.title {
+    text-align: center;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+  .write-page[data-look='news'] .tx h1.title {
+    font-size: 2.8em;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+  }
+
+  /* The Look menu: each sample drawn in its look's type, by its place in the menu (look.ts's order). */
+  .write-look .to-menu-item:nth-of-type(1) .to-menu-words { font-family: var(--to-font); }
+  .write-look .to-menu-item:nth-of-type(2) .to-menu-words { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
+  .write-look .to-menu-item:nth-of-type(3) .to-menu-words { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+  .write-look .to-menu-item:nth-of-type(4) .to-menu-words > span { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
+  .write-look .to-menu-item:nth-of-type(5) .to-menu-words small { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
+  .write-look .to-menu-item:nth-of-type(6) .to-menu-words { font-family: Charter, 'Iowan Old Style', Georgia, 'Noto Serif', serif; }
+  .write-look .to-menu-item:nth-of-type(6) .to-menu-words > span { font-variant: small-caps; letter-spacing: 0.04em; }
+  .write-look .to-menu-item:nth-of-type(7) .to-menu-words > span { font-family: 'Bodoni 72', Didot, 'Times New Roman', Times, serif; font-weight: 700; }
+
   /* The document's own head fields (an invoice's from and to): small labels over boxes, two to a row. */
   .write-fields {
     display: grid;

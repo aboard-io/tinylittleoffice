@@ -716,3 +716,30 @@ test('a document in the text: its bar is Edit then Open in a new tab; Edit opens
   undo(el);
   await until(() => last() === `One\n\n${FENCE}\n\nTwo\n`);
 });
+
+test('the Look menu: each look a sample in its own type, the chosen one checked; a pick is the head field, Sans takes it away, and the page wears it', async () => {
+  const { el, last } = await editor('# A title {.title}\n\nOne.\n\nTwo.\n');
+  const opener = el.querySelector<HTMLElement>('to-menu.write-look button')!;
+  expect(opener.getAttribute('aria-label')).toBe('Look: Sans');
+  expect(el.querySelector('.write-page')!.getAttribute('data-look')).toBe('sans');
+  await pick(el, opener, 'Book');
+  await until(() => last() === '---\nlook: book\n---\n# A title {.title}\n\nOne.\n\nTwo.\n');
+  const page = el.querySelector<HTMLElement>('.write-page')!;
+  expect(page.getAttribute('data-look')).toBe('book');
+  const second = page.querySelectorAll<HTMLElement>('.tx p')[1];
+  expect(getComputedStyle(second).textIndent).not.toBe('0px');
+  expect(getComputedStyle(second).textAlign).toBe('justify');
+  expect(getComputedStyle(page.querySelector('.tx h1')!).fontFamily).toMatch(/Charter|Georgia|serif/);
+  // The menu again: the samples are drawn in their looks' type, Book is the one checked.
+  opener.click();
+  await until(() => !!document.querySelector('[popover]:popover-open'));
+  const items = [...document.querySelectorAll<HTMLElement>('[popover]:popover-open [role=menuitemcheckbox]')];
+  expect(items.map((x) => x.querySelector('.to-menu-words > span')!.textContent)).toEqual(['Sans', 'Serif', 'Typewriter', 'Serif and sans', 'Sans and serif', 'Book', 'Newspaper']);
+  expect(items.find((x) => x.getAttribute('aria-checked') === 'true')!.textContent).toContain('Book');
+  expect(getComputedStyle(items[2].querySelector('.to-menu-words')!).fontFamily).toMatch(/mono|Menlo|Consolas/i);
+  items[6].click();
+  await until(() => (last() ?? '').startsWith('---\nlook: news\n---\n'));
+  await pick(el, opener, 'Sans');
+  await until(() => last() === '# A title {.title}\n\nOne.\n\nTwo.\n');
+  expect(el.querySelector('.write-page')!.getAttribute('data-look')).toBe('sans');
+});

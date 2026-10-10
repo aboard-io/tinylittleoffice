@@ -7,8 +7,9 @@ import { applyAll, evaluate, firstTable, formatCell, parse, write } from '../../
 import write_ from '../def.ts';
 // The registry, so a document held in the text is drawn by its own app.
 import { appOf } from '../../../kit/apps.ts';
-import { duplicateBlock, moveBlock, putAfter, removeBlock, retitle, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
+import { duplicateBlock, fieldsOf, moveBlock, putAfter, removeBlock, retitle, tableColIn, tableColOut, tablePut, tableRename, tableRowsIn, tableRowsOut, setCellAt, tableView, titleOf, wordCount } from '../model.ts';
 import { templates } from '../templates.ts';
+import { LOOK_IDS, lookOf } from '../look.ts';
 import { docToDocx, docToHtml, docToMarkdown, docToRtf, pages } from '../view.ts';
 
 const ctx = { title: 'Test', link: 'https://tinylittleoffice.com/#/v1/write/rAbc' };
@@ -27,7 +28,11 @@ test('words are counted in the text and its notes, not in a web address alone', 
 });
 
 test('every template is canonical and parses as the kernel wrote it', () => {
-  expect(write_.templates.map((t) => t.id)).toEqual(['letter', 'meeting', 'resume', 'contract', 'invoice']);
+  const ids = write_.templates.map((t) => t.id);
+  expect(ids.length).toBeGreaterThanOrEqual(25);
+  expect(new Set(ids).size).toBe(ids.length);
+  expect(ids.slice(0, 4)).toEqual(['letter', 'cover', 'memo', 'meeting']);
+  for (const id of ['thesis', 'book-review', 'news', 'interview', 'music-review', 'complaint', 'politician', 'love']) expect(ids).toContain(id);
   for (const t of write_.templates) {
     expect(write(parse(t.doc)), t.id).toBe(t.doc);
     expect(t.doc.endsWith('\n')).toBe(true);
@@ -197,4 +202,69 @@ test('a page break: the next page on paper (never a blank one), break-after in p
   expect(docXml).toContain('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
   expect(docToRtf(parse(text), ctx)).toMatch(/One\.\\par\}\n\\page\n\{\\pard[^\n]* Two\./);
   expect(docToMarkdown(parse(text))).toBe(text);
+});
+
+test('every template is a whole document: a name and a blurb, no placeholder words, and a look only where one is known', () => {
+  for (const t of write_.templates) {
+    expect(t.name, t.id).toBeTruthy();
+    expect(t.blurb, t.id).toMatch(/\.$/);
+    expect(t.doc, t.id).not.toMatch(/[Ll]orem ipsum|TODO|Your name|Day Month Year/);
+    const look = parse(t.doc).head.look;
+    if (look) expect(LOOK_IDS, t.id).toContain(look);
+  }
+  // The tables of sample data add up.
+  const doc = (id: string) => parse(templates().find((t) => t.id === id)!.doc);
+  const tables = (id: string) => doc(id).blocks.flatMap((b, i) => (b.k === 'table' ? [tableView(doc(id), i)!] : []));
+  expect(tables('grant')[0].values[6][1]).toBe(4800);
+  expect(tables('syllabus')[1].values[4][1]).toBeCloseTo(1);
+  expect(tables('recipe')[0].values[7][3]).toBe(9);
+  expect(tables('minutes')[0].values[4][1]).toBe(1453);
+});
+
+test('the look is a head field, absent for sans, never one of the document\'s own fields, and stable through parse and write', () => {
+  expect(lookOf(parse('words\n')).id).toBe('sans');
+  expect(lookOf(parse('---\nlook: nonsense\n---\nwords\n')).id).toBe('sans');
+  const text = '---\nlook: book\n---\n# A title {.title}\n\nOne.\n\nTwo.\n';
+  expect(write(parse(text))).toBe(text);
+  expect(lookOf(parse(text)).id).toBe('book');
+  expect(fieldsOf(parse(text))).toEqual([]);
+});
+
+test('the pages wear the look: its faces, a book\'s justified lines and small capitals, a newspaper\'s two columns', () => {
+  const body = '# The title {.title}\n\n## A heading\n\n' + Array.from({ length: 16 }, (_, i) => `Paragraph ${i} goes on for long enough that it has to wrap across more than one line of the page, and then a little more besides.`).join('\n\n') + '\n';
+  const svg = (look: string) => pages(look ? `---\nlook: ${look}\n---\n${body}` : body).map((p) => p.svg).join('');
+  expect(svg('')).not.toContain('font-family="Charter');
+  expect(svg('serif')).toContain('font-family="Charter');
+  expect(svg('mono')).toContain('font-family="ui-monospace');
+  const mixed = svg('mixed');
+  expect(mixed).toMatch(/font-size="40" font-family="Charter/);
+  expect(mixed).toMatch(/font-size="16"(?! font-family)/);
+  const book = svg('book');
+  expect(book).toContain('font-variant="small-caps"');
+  expect(book).toContain('lengthAdjust="spacing"');
+  expect(book).toContain('\u2003\u2003Paragraph 1');
+  expect(book).not.toContain('\u2003\u2003Paragraph 0');
+  const news = svg('news');
+  expect(news).toContain(`font-family="'Bodoni 72'`);
+  expect(news).toMatch(/<g transform="translate\(\d+ 0\)">/);
+});
+
+test('the files wear the look: the web page\'s CSS, Word\'s and RTF\'s font names, a newspaper\'s columns', () => {
+  const doc = (look: string) => parse(`---\nlook: ${look}\n---\n# Headline {.title}\n\nOne.\n\nTwo.\n`);
+  expect(docToHtml(doc('serif'), ctx)).toMatch(/body\{font-family:Charter/);
+  expect(docToHtml(doc('news'), ctx)).toContain('columns:2');
+  expect(docToHtml(doc('book'), ctx)).toContain('main>p+p{text-indent:1.5em}');
+  const styles = (look: string) => strFromU8(unzipSync(docToDocx(doc(look), ctx))['word/styles.xml']);
+  expect(styles('sans')).toContain('w:ascii="Calibri"');
+  expect(styles('serif')).toContain('w:ascii="Georgia"');
+  expect(styles('mono')).toContain('w:ascii="Courier New"');
+  expect(styles('book')).toContain('<w:smallCaps/>');
+  const news = strFromU8(unzipSync(docToDocx(doc('news'), ctx))['word/document.xml']);
+  expect(news).toContain('<w:cols w:num="2"');
+  const bookXml = strFromU8(unzipSync(docToDocx(doc('book'), ctx))['word/document.xml']);
+  expect(bookXml).toContain('<w:ind w:firstLine="360"/><w:jc w:val="both"/>');
+  expect(docToRtf(doc('sans'), ctx)).toContain('{\\f0\\fswiss\\fcharset0 Helvetica;}');
+  expect(docToRtf(doc('mixed'), ctx)).toContain('{\\f0\\fswiss\\fcharset0 Helvetica;}{\\f1\\froman\\fcharset0 Georgia;}');
+  expect(docToRtf(doc('news'), ctx)).toContain('\\cols2');
+  expect(docToRtf(doc('book'), ctx)).toContain('\\fi360');
 });
