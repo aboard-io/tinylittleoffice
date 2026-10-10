@@ -53,3 +53,33 @@ test('a tap opens where the link fits; the size steps; Insert narrows; a trip pr
   expect(await wide(page)).toBeLessThanOrEqual(0);
   expect(errors).toEqual([]);
 });
+
+test('at size 2 the Download button stays at the header\'s right and its table comes down under it, every target whole', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'phone only');
+  await page.addInitScript(() => (localStorage.setItem('tinyoffice.keep', '1'), localStorage.setItem('tinyoffice.size', '2')));
+  await page.goto(`/#/v1/write/${encodeDoc('# Notes\n\nWords.\n')}`);
+  await expect(page.locator('to-write-editor to-text .tx')).toBeVisible();
+  const button = page.locator('.to-download > button');
+  const b = (await button.boundingBox())!;
+  expect(b.x + b.width).toBeGreaterThan(390 - 24);
+  await button.tap();
+  const menu = page.locator('.to-download [popover]');
+  await expect(menu).toBeVisible();
+  const m = (await menu.boundingBox())!;
+  expect(m.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
+  expect(m.y).toBeLessThan(b.y + b.height + 20);
+  expect(Math.abs(m.x + m.width - (b.x + b.width))).toBeLessThan(16);
+  expect(m.x).toBeGreaterThanOrEqual(0);
+  expect(m.y + m.height).toBeLessThanOrEqual(844);
+  const pdf = menu.locator('.to-menu-row[aria-label="PDF file"] [role=menuitem]');
+  const labels = await pdf.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
+  expect(labels[0]).toBe('View the .pdf');
+  expect(labels.at(-1)).toBe('Copy a link that downloads the .pdf');
+  const boxes = await pdf.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON() as DOMRect));
+  for (const [i, r] of boxes.entries()) {
+    expect(r.width).toBeGreaterThanOrEqual(44);
+    expect(r.right).toBeLessThanOrEqual(390);
+    if (i) expect(r.left).toBeGreaterThanOrEqual(boxes[i - 1].right - 0.5);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+});

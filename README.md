@@ -298,8 +298,9 @@ no build and no other code.
 A `.tlo` file is a document's text with `app:` in its head: Download → Text (TLO) makes one, and dropping one on the
 page, or Open a file… in the menu, opens it as its own app (a `.md` or `.txt` opens in the app at hand). Every app
 also downloads Markdown and a `.pdf` file (its pages as JPEGs, `src/kit/pdf.ts`; Print saves a PDF whose words stay
-words); the Outliner's `.pdf` is its words, as sections and bullets (`src/kit/textpdf.ts`). Download's last group
-copies a link that downloads a file as it opens (`#/v1/<app>.<ext>/…`).
+words); the Outliner's `.pdf` is its words, as sections and bullets (`src/kit/textpdf.ts`). Download is a row per
+format, each with View (a new tab, where the browser shows the file), Share (the share sheet, where the device takes
+it), Download, and Copy link: a link that downloads the file as it opens (`#/v1/<app>.<ext>/…`).
 
 Compare… in the menu (`#/compare/<app>/<payload>/<app>/<payload>`) puts two links side by side, block by block,
 with what the second changed marked (`src/kit/compare.ts`, `src/kit/diff.ts`). Share posts the link to Bluesky,

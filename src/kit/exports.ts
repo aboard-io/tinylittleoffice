@@ -32,9 +32,10 @@ type Picker = (o: { suggestedName: string; types: { accept: Record<string, strin
 
 /**
  * Hand a file to the person: the browser's own "save as" where it has one (the File System Access API),
- * the share sheet on a phone (which has Save to Files), and a download everywhere else or when refused.
+ * the share sheet on a phone (which has Save to Files) unless `share` is false (the Download menu has a Share of
+ * its own beside it), and a download everywhere else or when refused.
  */
-export async function saveFile(name: string, mime: string, data: Uint8Array | string) {
+export async function saveFile(name: string, mime: string, data: Uint8Array | string, share = true) {
   const file = new File([typeof data === 'string' ? data : (data as BlobPart)], name, { type: mime });
   const picker = (window as Window & { showSaveFilePicker?: Picker }).showSaveFilePicker;
   if (!phone() && picker && window.isSecureContext) {
@@ -48,7 +49,7 @@ export async function saveFile(name: string, mime: string, data: Uint8Array | st
       if (err instanceof DOMException && err.name === 'AbortError') return;
     }
   }
-  if (phone() && navigator.canShare?.({ files: [file] })) {
+  if (share && phone() && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: name });
       return;
@@ -180,56 +181,117 @@ export function kitExports(): Export[] {
 /** Paper, a PDF and a PNG cannot move: an animation in them is drawn still (ViewOpts.still). A web page moves, so the HTML is drawn as the browser shows it. */
 const STILL = { still: true } as const;
 
-/** Save the document as a kind of file; the file's name, or null when there is no such kind. */
-export async function exportAs(ext: string, { def, doc, ctx }: Current): Promise<string | null> {
+/** A document made into a file: its name, its type and its bytes. */
+export interface Made {
+  name: string;
+  mime: string;
+  data: Uint8Array | string;
+}
+
+/** The document as a kind of file, or null when there is no such kind ("print" is not a file). */
+export async function fileOf(ext: string, { def, doc, ctx }: Current): Promise<Made | null> {
   const given = ctx.title || def.title(doc);
   const title = given || t('Untitled {noun}', { noun: def.noun });
   const name = fileName(given, slug(def.noun) || def.id, ext);
   // Every icon the document names is drawn: one outside the starter set waits for the rest of Lucide.
   await ensureIcons(iconNames(doc));
-  if (ext === 'print') {
-    await printPages(await withPictures(def.view(doc, STILL)), title);
-    return null;
-  }
   // An app's own version of a kit format (a text as a real web page rather than pictures of its pages) comes first.
   const theirs = def.exports?.find((x) => x.ext === ext);
   if (theirs) {
     const built = await theirs.build(doc, ctx);
     // An app's own web page holds its pictures' bytes too.
-    await saveFile(name, theirs.mime, typeof built === 'string' && theirs.mime.startsWith('text/html') ? await embedPictures(built) : built);
-    return name;
+    return { name, mime: theirs.mime, data: typeof built === 'string' && theirs.mime.startsWith('text/html') ? await embedPictures(built) : built };
   }
   if (ext === 'pdf') {
     const file = await pdfOf(await withPictures(def.view(doc, STILL)), title);
-    if (!file) return null;
-    await saveFile(name, 'application/pdf', file);
-    return name;
+    return file && { name, mime: 'application/pdf', data: file };
   }
-  if (ext === 'tlo') {
-    await saveFile(name, 'text/plain;charset=utf-8', tloText(def.id, doc));
-    return name;
-  }
+  if (ext === 'tlo') return { name, mime: 'text/plain;charset=utf-8', data: tloText(def.id, doc) };
   if (ext === 'png') {
     const png = await picture(await withPictures(def.view(doc, STILL)));
-    if (!png) return null;
-    await saveFile(name, 'image/png', png);
-    return name;
+    return png && { name, mime: 'image/png', data: png };
   }
-  if (ext === 'html') {
-    await saveFile(name, 'text/html', htmlOf(await withPictures(def.view(doc)), title, ctx.link));
-    return name;
-  }
+  if (ext === 'html') return { name, mime: 'text/html', data: htmlOf(await withPictures(def.view(doc)), title, ctx.link) };
   const own = kitExports().find((x) => x.ext === ext);
-  if (!own) return null;
-  await saveFile(name, own.mime, await own.build(doc, ctx));
-  return name;
+  return own ? { name, mime: own.mime, data: await own.build(doc, ctx) } : null;
 }
 
-/** The Download menu's items for a document: the kit's formats, then the app's own, then its hand-offs to apps that exist. */
+/** Save the document as a kind of file (or print it); the file's name, or null when there is no such kind. */
+export async function exportAs(ext: string, current: Current, share = true): Promise<string | null> {
+  if (ext === 'print') {
+    const { def, doc, ctx } = current;
+    await ensureIcons(iconNames(doc));
+    await printPages(await withPictures(def.view(doc, STILL)), ctx.title || def.title(doc) || t('Untitled {noun}', { noun: def.noun }));
+    return null;
+  }
+  const made = await fileOf(ext, current);
+  if (!made) return null;
+  await saveFile(made.name, made.mime, made.data, share);
+  return made.name;
+}
+
+/* ---------- a file shown, or shared ---------- */
+
+/** The type a file is shown in the browser as: its own where the browser draws it, plain text for a text it would only save; null where it shows nothing (a .docx). */
+export function shownAs(mime: string): string | null {
+  const base = mime.split(';')[0];
+  if (/^(application\/pdf|image\/(png|gif|jpeg|webp|svg\+xml)|text\/html)$/.test(base)) return base;
+  return /^text\/(markdown|plain|csv)$/.test(base) ? 'text/plain;charset=utf-8' : null;
+}
+
+/** Whether this device's share sheet takes a file of this kind (asked of an empty one, before any is made). */
+export function sharesFile(ext: string, mime: string): boolean {
+  try {
+    return typeof navigator.share === 'function' && !!navigator.canShare?.({ files: [new File([''], `file.${ext}`, { type: mime.split(';')[0] })] });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The file opened in a new tab, from a blob URL. The tab is opened now, while the click that asked is still the
+ * browser's reason to allow it, and sent to the file once the file is made. (A blob's page is this site's, under
+ * this site's Content-Security-Policy: no script the site did not write runs in it.)
+ */
+export async function viewFile(ext: string, current: Current) {
+  const tab = window.open('', '_blank');
+  if (tab) tab.opener = null;
+  try {
+    const made = await fileOf(ext, current);
+    const shown = made && shownAs(made.mime);
+    if (!made || !shown) throw new Error('nothing to show');
+    const url = URL.createObjectURL(new Blob([typeof made.data === 'string' ? made.data : (made.data as BlobPart)], { type: shown }));
+    setTimeout(() => URL.revokeObjectURL(url), 300_000);
+    if (tab) tab.location.href = url;
+    else if (!window.open(url, '_blank', 'noopener')) toast(t('Could not show the .{ext}', { ext }));
+  } catch {
+    tab?.close();
+    toast(t('Could not show the .{ext}', { ext }));
+  }
+}
+
+/** The file to the device's share sheet. */
+export async function shareFile(ext: string, current: Current) {
+  try {
+    const made = await fileOf(ext, current);
+    if (!made) throw new Error('no file');
+    const file = new File([typeof made.data === 'string' ? made.data : (made.data as BlobPart)], made.name, { type: made.mime.split(';')[0] });
+    await navigator.share({ files: [file], title: made.name });
+  } catch (err) {
+    if (!(err instanceof DOMException && err.name === 'AbortError')) toast(t('Could not share the .{ext}', { ext }));
+  }
+}
+
+/**
+ * The Download menu's items: Print first; then a row per format (the kit's, less any the app makes its own way, then
+ * the app's own), each with View (where the browser shows it), Share (where the device's share sheet takes it),
+ * Download, and Copy link (the link that downloads it as it opens, "#/v1/<app>.<ext>/<payload>"); then the
+ * hand-offs to apps that exist.
+ */
 export function exportItems(current: () => Current): MenuItem[] {
   const run = async (ext: string) => {
     try {
-      const name = await exportAs(ext, current());
+      const name = await exportAs(ext, current(), false);
       if (name) toast(t('Downloaded {name}', { name }));
     } catch {
       toast(t('Download failed'));
@@ -237,19 +299,25 @@ export function exportItems(current: () => Current): MenuItem[] {
   };
   const { def } = current();
   const theirs = new Set((def.exports ?? []).map((x) => x.ext));
-  // A link that downloads the file as it opens ("#/v1/<app>.<ext>/<payload>"): for the .pdf and the app's own formats.
   const linkTo = (ext: string) => {
     const u = new URL(current().ctx.link);
     u.hash = routeHash(def.id, parseHash(u.hash).payload, ext);
     return u.href;
   };
-  const linked = [...new Set(['pdf', ...theirs])];
+  const row = (x: Export): MenuItem => ({
+    label: x.label(),
+    actions: [
+      ...(shownAs(x.mime) ? [{ icon: UI.view, label: t('View the .{ext}', { ext: x.ext }), does: () => void viewFile(x.ext, current()) }] : []),
+      ...(sharesFile(x.ext, x.mime) ? [{ icon: UI.share, label: t('Share the .{ext}…', { ext: x.ext }), does: () => void shareFile(x.ext, current()) }] : []),
+      { icon: UI.download, label: t('Download the .{ext}', { ext: x.ext }), does: () => void run(x.ext) },
+      { icon: UI.link, label: t('Copy a link that downloads the .{ext}', { ext: x.ext }), does: () => void copyText(linkTo(x.ext)) },
+    ],
+    does: () => {},
+  });
   return [
     { label: t('Print, or save as PDF'), icon: UI.print, hint: keysHint('Mod+P'), does: () => void run('print') },
-    // The kit's formats, less any the app makes in its own way (listed among its own below).
-    ...kitExports().filter((x) => !theirs.has(x.ext)).map((x) => ({ label: x.label(), icon: x.ext === 'png' ? UI.image : x.ext === 'html' ? UI.globe : UI.text, does: () => void run(x.ext) })),
-    ...(def.exports ?? []).map((x) => ({ label: x.label(), icon: UI.download, does: () => void run(x.ext) })),
-    ...linked.map((ext) => ({ label: t('Link to the .{ext}', { ext }), icon: UI.link, group: t('Copy a link that downloads'), does: () => void copyText(linkTo(ext)) })),
+    ...kitExports().filter((x) => !theirs.has(x.ext)).map(row),
+    ...(def.exports ?? []).map(row),
     ...(def.handoffs ?? []).filter((h) => appOf(h.to)).map((h) => ({ label: h.label(), icon: appOf(h.to)!.icon, group: t('Open in'), does: () => void (location.hash = routeHash(h.to, encodeDoc(h.convert(current().doc)))) })),
   ];
 }

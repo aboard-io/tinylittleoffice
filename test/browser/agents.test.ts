@@ -43,11 +43,12 @@ function downloads(): Map<string, File> {
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   return got;
 }
-/** Download ▾ opened, and the item with these words chosen. */
-async function choose(shell: HTMLElement, words: string) {
+/** Download ▾ opened, and on the format with these words the action starting so ("Download", "Copy a link") chosen. */
+async function choose(shell: HTMLElement, words: string, action = 'Download') {
   shell.querySelector<HTMLButtonElement>('.to-download > button')!.click();
   await until(() => !!shell.querySelector('.to-download [popover]:popover-open'));
-  [...shell.querySelectorAll<HTMLButtonElement>('.to-download .to-menu-item')].find((b) => b.textContent!.includes(words))!.click();
+  const row = [...shell.querySelectorAll<HTMLElement>('.to-download .to-menu-row')].find((r) => r.getAttribute('aria-label') === words)!;
+  [...row.querySelectorAll<HTMLButtonElement>('[role=menuitem]')].find((b) => b.getAttribute('aria-label')!.startsWith(action))!.click();
 }
 
 test('a plain link becomes the packed link on arrival, the document and its name as written', async () => {
@@ -81,10 +82,10 @@ test('Download gives every app a .tlo that names its app, Markdown, and the .pdf
   await until(() => got.has('boxes.md'));
   expect(await got.get('boxes.md')!.text()).toContain('Kind | X | Y | W | H | Style | Label');
   await clipboard(async (copied) => {
-    await choose(draw, 'Link to the .svg');
+    await choose(draw, 'Picture (SVG)', 'Copy a link');
     await until(() => copied().includes('#/v1/draw.svg/'));
     expect(parseHash(new URL(copied()).hash).payload).toBe(parseHash(location.hash).payload);
-    await choose(draw, 'Link to the .pdf');
+    await choose(draw, 'PDF file', 'Copy a link');
     await until(() => copied().includes('#/v1/draw.pdf/'));
   });
 });

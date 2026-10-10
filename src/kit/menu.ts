@@ -9,6 +9,9 @@
  * itself does, and the first arrow goes in.
  * `keep`: a menu that acts on an editor's selection (Align) never takes the focus from it by a pointer, so a
  * phone's keyboard stays up; opened from the keyboard, its items still take the focus to be walked.
+ * A row (an item with `actions`) is one stop for Up and Down, its first action the focus when it is reached; Left and
+ * Right go between its actions, and Enter or Space does the one in hand. A screen reader hears the row's words (its
+ * group's name) and then the action.
  * `filter` (Insert ▾ has it): letters typed narrow the list to the items with a word that starts with them
  * (case and accents aside), said at the menu's top; Backspace takes a letter back, Escape the letters, then
  * the menu. The arrows walk what is left.
@@ -34,10 +37,28 @@ export interface MenuItem {
   keys?: string;
   /** Given, the item is a checkbox (role=menuitemcheckbox). */
   checked?: boolean;
+  /**
+   * Given, the item is a row: its words at the left, these as icon buttons at the right, each a menu item of its own
+   * (the Download menu's formats: view, share, download, copy link). The row's own `does` is not called.
+   */
+  actions?: MenuAction[];
   does(): void;
 }
 
-/** Put a popover beside what opened it, inside the visual viewport (above the keyboard on a phone). */
+/** One of a row's actions: an icon, the words a screen reader says and a hover shows, and what it does. */
+export interface MenuAction {
+  icon: IconNode;
+  label: string;
+  does(): void;
+}
+
+/**
+ * Put a popover beside what opened it, inside the visual viewport (above the keyboard on a phone): under it, or
+ * over it where only that side has the room; where neither has, on the side with more, as tall as that side
+ * allows, scrolling inside. Its left edge at the opener's; where that would run off the screen, its right edge
+ * at the opener's (a menu from a button at the right comes down under that button, not against the screen's
+ * other side).
+ */
 export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   const vv = window.visualViewport;
   const top0 = vv?.offsetTop ?? 0;
@@ -48,12 +69,20 @@ export function place(pop: HTMLElement, anchor: HTMLElement, gap = 4) {
   // Under the size of everything (zoom.ts) a length set here is drawn larger, by the popover's own zoom (the nav's
   // where it is nav): the page's coordinates are divided by it.
   const z = zoomOf(pop);
+  const below = top0 + vh - a.bottom - 2 * gap;
+  const above = a.top - top0 - 2 * gap;
   pop.style.maxHeight = `${Math.max(120, vh - 2 * gap) / z}px`;
-  const r = pop.getBoundingClientRect();
-  let top = a.bottom + gap;
-  if (top + r.height > top0 + vh && a.top - gap - r.height >= top0) top = a.top - gap - r.height;
+  let r = pop.getBoundingClientRect();
+  const under = r.height <= below || (r.height > above && below >= above);
+  if (r.height > (under ? below : above)) {
+    pop.style.maxHeight = `${Math.max(120, under ? below : above) / z}px`;
+    r = pop.getBoundingClientRect();
+  }
+  let top = under ? a.bottom + gap : a.top - gap - r.height;
   top = Math.max(top0 + gap, Math.min(top, top0 + vh - r.height - gap));
-  const left = Math.max(left0 + gap, Math.min(a.left, left0 + vw - r.width - gap));
+  let left = a.left;
+  if (left + r.width > left0 + vw - gap) left = a.right - r.width;
+  left = Math.max(left0 + gap, Math.min(left, left0 + vw - r.width - gap));
   pop.style.top = `${Math.round(top / z)}px`;
   pop.style.left = `${Math.round(left / z)}px`;
 }
@@ -73,7 +102,9 @@ export const openedByPointer = () => byPointer;
 /** The letters typed into each menu lately, for type-ahead. */
 const typed = new WeakMap<HTMLElement, { s: string; at: number }>();
 /** An item's name, as type-ahead reads it: its words, not its hint. */
-const nameOf = (el: HTMLElement) => (el.querySelector(':scope > [class$=-words] > span')?.textContent ?? el.textContent ?? '').trim().toLowerCase();
+const nameOf = (el: HTMLElement) => (el.closest('.to-menu-row')?.getAttribute('aria-label') ?? el.querySelector(':scope > [class$=-words] > span')?.textContent ?? el.textContent ?? '').trim().toLowerCase();
+/** The row an action is in, or null for an item of its own. */
+const rowOf = (el: Element | null) => el?.closest<HTMLElement>('.to-menu-row') ?? null;
 
 /**
  * A key pressed in a menu (or a listbox) whose items are `items`, the same in every one: ArrowDown and
@@ -82,10 +113,10 @@ const nameOf = (el: HTMLElement) => (el.querySelector(':scope > [class$=-words] 
  * with them; Enter or Space chooses (a click on the item); Escape and Tab close (`close` puts the focus back
  * on the opener). Shift, Alt, Ctrl and ⌘ change none of these. True, the key stopped here, when it was the menu's.
  */
-export function menuKey(e: KeyboardEvent, box: HTMLElement, items: HTMLElement[], close: () => void): boolean {
+export function menuKey(e: KeyboardEvent, box: HTMLElement, items: HTMLElement[], close: () => void, focused = document.activeElement as HTMLElement | null): boolean {
   if (e.isComposing) return false;
   const n = items.length;
-  const at = items.indexOf(document.activeElement as HTMLElement);
+  const at = items.indexOf(focused as HTMLElement);
   const go = (i: number) => n && items[((i % n) + n) % n].focus({ preventScroll: true });
   switch (e.key) {
     case 'ArrowDown':
@@ -201,8 +232,9 @@ export class ToMenu extends LitElement {
   close() {
     if (this.isOpen) this.menu.hidePopover();
   }
+  /** The stops Up and Down go between: every item, and of a row its first action. */
   private menuItems(): HTMLElement[] {
-    return [...this.querySelectorAll<HTMLElement>('[role^=menuitem]:not([disabled])')];
+    return [...this.querySelectorAll<HTMLElement>('[role^=menuitem]:not([disabled])')].filter((el) => (rowOf(el)?.querySelector('[role=menuitem]') ?? el) === el);
   }
   private onToggle = (e: Event) => {
     const open = (e as ToggleEvent).newState === 'open';
@@ -228,7 +260,22 @@ export class ToMenu extends LitElement {
   private replace = () => this.isOpen && place(this.menu, this.anchor ?? this.button);
   private onKey = (e: KeyboardEvent) => {
     if (this.filter && this.narrow(e)) return;
-    menuKey(e, this.menu, this.menuItems(), () => this.close());
+    const now = document.activeElement as HTMLElement | null;
+    const row = rowOf(now);
+    if (row && now && !e.isComposing) {
+      const acts = [...row.querySelectorAll<HTMLElement>('[role=menuitem]')];
+      const i = acts.indexOf(now);
+      const by = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (by || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (by) acts[(i + by + acts.length) % acts.length].focus({ preventScroll: true });
+        else now.click();
+        return;
+      }
+    }
+    // In a row, the row's first action stands for the focus: Up and Down go on from the row.
+    menuKey(e, this.menu, this.menuItems(), () => this.close(), row ? row.querySelector<HTMLElement>('[role=menuitem]') : now);
   };
   /** A letter typed into a menu that filters: the list narrowed (or widened by Backspace, or whole again by Escape). True when the key was this. */
   private narrow(e: KeyboardEvent): boolean {
@@ -259,7 +306,7 @@ export class ToMenu extends LitElement {
     document.removeEventListener('keydown', this.onKeptKey, true);
     menuKey(e, this.menu, this.menuItems(), () => this.close());
   };
-  private choose(item: MenuItem) {
+  private choose(item: MenuItem | MenuAction) {
     if (!this.isOpen) return;
     const from = this.anchor ?? this.button;
     const kept = this.kept;
@@ -275,6 +322,12 @@ export class ToMenu extends LitElement {
     if (!this.isOpen) this.kept = true;
   };
   private renderItem(item: MenuItem): TemplateResult {
+    if (item.actions)
+      return html`<div class="to-menu-row" role="group" aria-label=${item.label}>
+        ${item.icon ? icon(item.icon, 18) : nothing}<span class="to-menu-words" aria-hidden="true"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.actions.map(
+          (a) => html`<button type="button" class="to-menu-act" role="menuitem" tabindex="-1" aria-label=${a.label} title=${a.label} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(a)}>${icon(a.icon, 20)}</button>`,
+        )}
+      </div>`;
     return html`<button type="button" class="to-menu-item" role=${item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked=${item.checked === undefined ? nothing : String(item.checked)} ?disabled=${item.disabled} tabindex="-1" @mousedown=${(e: Event) => this.keep && e.preventDefault()} @pointermove=${(e: PointerEvent) => !this.kept && hoverFocus(e)} @click=${() => this.choose(item)}>
       ${item.icon ? icon(item.icon, 18) : item.swatch ? html`<span class="to-swatch" style="--swatch:${item.swatch}" aria-hidden="true"></span>` : nothing}<span class="to-menu-words"><span>${item.label}</span>${item.hint ? html`<small>${item.hint}</small>` : nothing}</span>${item.keys ? html`<kbd class="to-menu-keys">${keysText(item.keys)}</kbd>` : nothing}${item.checked ? icon(UI.check, 16, 'to-menu-check') : nothing}
     </button>`;

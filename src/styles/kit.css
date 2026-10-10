@@ -395,6 +395,43 @@
     letter-spacing: 0.04em;
     color: var(--to-ink-3);
   }
+  /* A menu of rows (the Download menu's formats): wider than a menu, the format's words at the left and its actions,
+     each a 44px target, at the right. */
+  .to-menu:has(.to-menu-row) {
+    width: min(360px, calc(var(--to-vw) - 2 * var(--to-gutter)));
+  }
+  .to-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: var(--to-touch);
+    padding-left: 10px;
+  }
+  .to-menu-row + .to-menu-row {
+    border-top: 1px solid var(--to-border);
+  }
+  .to-menu-act {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--to-touch);
+    height: var(--to-touch);
+    padding: 0;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: var(--to-radius-sm);
+    cursor: pointer;
+  }
+  .to-menu:not(:focus-within) .to-menu-act:hover,
+  .to-menu-act:focus {
+    background: var(--to-surface-2);
+    outline-offset: -2px;
+  }
+  .to-menu-act:focus:not(:focus-visible) {
+    outline: none;
+  }
   .to-option[aria-selected='true'] {
     background: var(--to-accent-soft);
   }
@@ -1359,6 +1396,18 @@
   }
   .to-meter {
     color: var(--to-accent);
+  }
+  /* A header too narrow for all of it (a phone with the nav at its limit) keeps one row: the meter goes while the link
+     is far from full (Share says how full) and the trust while it has nothing to say (unsigned), so the title keeps a
+     little room and Share and Download stay at the right rather than wrapping under the rest. */
+  .to-header {
+    container: to-header / inline-size;
+  }
+  @container to-header (width < 300px) {
+    .to-meter:not(.warn, .over),
+    .to-trust.quiet {
+      display: none;
+    }
   }
   .to-meter.warn {
     color: var(--to-warning);
