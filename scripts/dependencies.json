@@ -1,0 +1,19 @@
+{
+  "d3-sankey": "Sankey charts (src/kit/chart.ts). SVG draws the picture, but no browser API lays out a flow: placing the nodes in columns and relaxing the links so they cross least is the library's whole job.",
+  "fflate": "The link codec and every zip (src/kit/codec.ts, src/kit/zip.ts). CompressionStream has no preset dictionary, which makes short documents 20 to 35 percent smaller, is asynchronous, and writes a gzip stream, not a zip archive (.docx, .xlsx, .pptx, Download everything).",
+  "leaflet": "The Trip Planner's map (src/apps/trip/editor.ts). The browser has no map: panning and pinch-zooming a grid of OpenStreetMap tiles, with markers and a route, would be a library written here instead. Loaded only with the Trip Planner.",
+  "lit": "Every element's drawing (the kit and the editors). Custom elements are native; lit adds the drawing of a template again with only its changed parts, which the browser does not do, and reactive properties that ask for it.",
+  "lucide": "The icons (src/kit/icons.ts). The browser has no icon set and emoji draw differently on every system; Lucide is SVG paths, each a module, so only the icons used are built in and the rest come as a lazy chunk with the picker.",
+  "mathjs": "The Calculator's units, big numbers and algebra (src/apps/calc/math.ts). The browser's only expression reader is eval, which the page's policy forbids, and Intl formats units without converting them. A custom build, in the Calculator's chunk alone.",
+  "@axe-core/playwright": "The accessibility checks in e2e/a11y.spec.ts. Chromium exposes its accessibility tree but no rules to judge it by; axe is the rule set. Tests only.",
+  "@playwright/test": "The end-to-end runner (e2e/). node:test has no browser; WebDriver BiDi is a protocol, not a runner, and WebKit at phone size is what an iPhone gets. Tests only.",
+  "@types/d3-sankey": "Types for d3-sankey, which ships none. Not built into the site.",
+  "@types/leaflet": "Types for leaflet, which ships none. Not built into the site.",
+  "@types/node": "Types for the scripts and tests that run under node. Not built into the site.",
+  "@vitest/browser-playwright": "Lets Vitest run the DOM tests in a real Chromium through Playwright (test/browser/, src/apps/*/tests/). A simulated DOM would pass what a browser fails. Tests only.",
+  "playwright": "The browsers themselves (Chromium, WebKit) for the browser tests and e2e, pinned to @playwright/test's version. Tests only.",
+  "typescript": "The type check (npm run lint). Node strips types natively and runs the scripts as written, but checks none of them. Not built into the site.",
+  "vite": "The build. Browsers load ES modules unbundled, but a page per app, hashed file names the offline copy can trust, lazy chunks per editor, minified code and the CSP's script hashes are a build's work. Not built into the site.",
+  "vitest": "The unit and browser tests. node:test runs the unit tests' shape but not in a browser; one runner for both layers keeps one way to write a test. Not built into the site.",
+  "wrangler": "Deploys the three Workers and runs them locally (npm run deploy, tinier:dev, media:dev). Cloudflare's REST API could, by hand; wrangler is Cloudflare's own tool for it. Not built into the site."
+}

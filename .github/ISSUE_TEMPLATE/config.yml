@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security
+    url: https://github.com/ftrain/tinyoffice/blob/main/SECURITY.md
+    about: A security problem goes to security@tinylittleoffice.com, never an issue. SECURITY.md says how.
+  - name: Questions
+    url: https://github.com/ftrain/tinyoffice/discussions/categories/q-a
+    about: Ask in Discussions.

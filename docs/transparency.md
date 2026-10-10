@@ -35,6 +35,10 @@ leak. Everything here makes that checkable by a stranger.
 4. **Dependencies you can read in one sitting.** `docs/dependencies.md` generated from package.json: each
    dependency, its exact version, its licence, the native API it beat and why (the standing rule), and the
    size it adds. Nothing vendored minified; the lockfile committed; `npm audit` in CI with no ignores.
+   *Built, 2026-10-10.* `npm run docs:deps` (`scripts/dependencies.ts`) writes it from package.json, the
+   lockfile and `scripts/dependencies.json`, the one-line reasons it refuses to run without; the sizes come
+   from a build (`-- --sizes`), shared among each chunk's modules; `test/dependencies.test.ts` and CI hold
+   the page current; CI runs `npm audit` with no ignores.
 5. **The crypto in the open** (gate). One short document each, with test vectors in the repo and the fact
    that it is WebCrypto with no library: `docs/crypto/password.md` (PBKDF2 → AES-GCM: parameters, the sealed
    payload form), `docs/crypto/signing.md` (Ed25519 with the P-256 fallback, the envelope's signed message,
@@ -43,12 +47,17 @@ leak. Everything here makes that checkable by a stranger.
 6. **Self-hosting as a first-class path.** `npm run deploy` against anyone's Cloudflare account (the
    shortener included), a `docs/self-host.md` that takes thirty minutes, and the site's About naming the
    commit it runs so a self-hoster's copy is distinguishable.
+   *Built, 2026-10-10:* `docs/self-host.md` (the three Workers, D1, the names to change, the policy's
+   `connect-src`, `npm run deploy`). The About dialog's commit waits for `/version.json` (item 3).
 7. **No telemetry, asserted.** No analytics, no error reporting, no fonts from a CDN, no fetch the person did
    not cause; a test asserts the built site contains no such host, and the threat model says so.
 8. **Hygiene.** `SECURITY.md` (a disclosure address, a 72-hour acknowledgement, coordinated disclosure, no
    bounty yet, a thanks list); signed release tags; a changelog naming security-relevant changes;
    `LICENSE` (MIT); `CODE_OF_CONDUCT.md`; `CONTRIBUTING.md` that points at the standards (docs/editing.md,
    the kit's rules) so contributions keep them.
+   *Built, 2026-10-10:* `SECURITY.md` (security@tinylittleoffice.com, which Paul makes before the repo is
+   public), `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`. Signed tags and the changelog wait for the
+   first release.
 9. **Later:** an independent audit of the crypto and the shortener, published in full; a public test
    dashboard; a signed SBOM with each release.
 
@@ -73,6 +82,13 @@ Done once, before the repo goes public (the visibility change itself is Paul's c
 - The old tree's history is in the same repo (tagged `v0-before-rebuild`): keep it; the README says what
   it is.
 - A `docs/` index page listing every document in the folder, so a reader starts from one place.
+
+*Built, 2026-10-10:* the README (the sentence and the paragraph, then the rest in this order), `docs/README.md`
+(the index, held to the folder by `test/docs-index.test.ts`), `SECURITY.md`, `LICENSE`, `CODE_OF_CONDUCT.md`,
+`CONTRIBUTING.md`, and `.github/`: the CI workflow, the bug and idea templates, the chooser's Security link to
+SECURITY.md (no security template), the pull request template. The settings (description, topics,
+Discussions, labels, the ruleset on `main`) are a checklist in `docs/github-setup.md`. Not yet: the release
+workflow, which is §1 item 3.
 
 ## 3. How to explain it
 
