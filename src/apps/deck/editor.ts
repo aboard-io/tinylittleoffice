@@ -23,11 +23,13 @@ import { keyed } from 'lit/directives/keyed.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { gateSvg } from '../../kit/pictures.ts';
 import { motion, reducedMotion } from '../../kit/motion.ts';
-import { ChevronDown, ChevronUp, GripVertical, LayoutTemplate, Palette, Play, Printer, Scroll, Shuffle } from 'lucide';
+import { ChevronDown, ChevronUp, GripVertical } from 'lucide';
 import { applyAll, parse, plainText, write, type Block, type Doc, type Op } from '../../doc/index.ts';
 import { lookup } from '../../kit/app.ts';
-import { apps } from '../../kit/apps.ts';
-import { tool } from '../../kit/bar.ts';
+import { cmdMenu, cmdTool, tool } from '../../kit/bar.ts';
+import { drawnIn, runKey } from '../../kit/commands.ts';
+import { BOLD, FOOTNOTE, HIGHLIGHT, INDENT, ITALIC, LINK, OUTDENT, STRIKE, UNDERLINE } from '../../kit/text-commands.ts';
+import COMMANDS, { EDIT, SHOW } from './commands.ts';
 import { docToHtml, linkToFence, pasteFrom } from '../../kit/clipboard.ts';
 import { encodeDoc } from '../../kit/codec.ts';
 import { editFence, editTable, makeDoc, newTable } from '../../kit/doc-dialog.ts';
@@ -43,9 +45,7 @@ import { OPENED_EVENT, openPlaced } from '../../kit/locked-doc.ts';
 import { Rows, type Clip, type RowItem, type RowRange, type RowSpan } from '../../kit/rows.ts';
 import type { Sel } from '../../kit/textops.ts';
 import type { NoteAt, TextOps, ToText } from '../../kit/text.ts';
-import { addSlide, duplicateSlides, FORMATS, isBlank, joinHeadline, LAYOUTS, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slidesOf, TRANSITIONS, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
-import def from './def.ts';
-import { ICON_COLORS, THEMES } from './theme.ts';
+import { addSlide, duplicateSlides, isBlank, joinHeadline, loosen, moveSlide, removeSlide, setHead, slideBlocks, setIcon, setLayout, setSub, settingsOf, slidesOf, webBlock, type Format, type Layout, type Settings, type Slide } from './model.ts';
 import { closingPage, emptySlide, geometryOf, layoutSlide, lookOf, pageCount, pageOf, pageSize, sheetsOf, SH, slidePage, slideSteps, subPage, SW, type Look } from './view.ts';
 import '../../kit/bar.ts';
 import '../../kit/doc-dialog.ts';
@@ -246,7 +246,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     return r ? { slide: this.cur, range: { ...r } } : { slide: this.cur, field: this.field, sel: this.sel };
   }
   /** Ops from anywhere: applied, recorded with where the selection was, the shell told. */
-  private change(ops: Op[], key?: string, mark: Mark = this.mark()) {
+  change(ops: Op[], key?: string, mark: Mark = this.mark()) {
     this.edit(ops, key, mark);
   }
   /** After an undo or a redo: the slide it changed shown, and the slides chosen or the caret put back as they were. */
@@ -361,7 +361,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.focusBox('title', 'end');
   }
   /** The caret into a box: at its start, its end, or a selection. */
-  private focusBox(field: Field, at: 'start' | 'end' | Sel = 'end') {
+  focusBox(field: Field, at: 'start' | 'end' | Sel = 'end') {
     this.focusNext = { field, at };
     this.requestUpdate();
   }
@@ -384,12 +384,12 @@ export class ToDeckEditor extends DocElement<Slide[]> {
 
   /* ---------- slides ---------- */
 
-  private go(i: number) {
+  go(i: number) {
     this.cur = Math.max(0, Math.min(this.count - 1, i));
     this.sheets = false;
   }
   /** A new slide after this one, of a layout, opened with the caret in its headline. */
-  private newSlide(layout: Layout = '', blocks?: Block[]) {
+  newSlide(layout: Layout = '', blocks?: Block[]) {
     const g = geometryOf(this.settings.format);
     if (g?.grow && this.count >= g.grow) return;
     const made = this.ensure(this.cur);
@@ -399,12 +399,12 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.cur = added.at;
     this.focusBox('title');
   }
-  private deleteSlide() {
+  deleteSlide() {
     if (this.cur >= this.slides.length) return;
     this.change(removeSlide(this.doc, this.cur));
     this.cur = Math.max(0, Math.min(this.cur, this.count - 1));
   }
-  private move(by: 1 | -1) {
+  move(by: 1 | -1) {
     const j = this.cur + by;
     if (j < 0 || j >= this.count) return;
     // Moving against a page not yet written: the rules are written first, so that both exist.
@@ -455,7 +455,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     return { anchor: d.at, focus: d.at + hi - lo };
   }
   /** Mod+D with the caret in a slide's words: the slide again after it, the caret in the copy's headline. */
-  private duplicateSlide() {
+  duplicateSlide() {
     if (this.cur >= this.slides.length) return;
     const d = duplicateSlides(this.doc, this.cur);
     this.change(d.ops);
@@ -494,12 +494,12 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const doc = applyAll(this.doc, made.ops);
     return { ops: made.ops, doc, s: made.start >= 0 ? emptySlide(made.start) : this.slide };
   }
-  private setLayout(layout: Layout) {
+  setLayout(layout: Layout) {
     const { ops, doc, s } = this.existing();
     this.change([...ops, ...setLayout(doc, s, layout)]);
   }
   /** The slide's icon, from the library, its own words suggesting; the deck's icon colour is in the Look menu. */
-  private async pickIcon() {
+  async pickIcon() {
     const s = this.slide;
     const { chooseIcon } = await import('../../kit/icons-picker.ts');
     const { suggestIcons } = await import('../../kit/icons-search.ts');
@@ -576,85 +576,41 @@ export class ToDeckEditor extends DocElement<Slide[]> {
 
   /* ---------- putting things on the slide ---------- */
 
-  private async insertPicture() {
+  async insertPicture() {
     const pic = await askPicture();
     if (pic) this.putSub({ k: 'img', alt: pic.alt, url: pic.url });
   }
-  private async insertWeb() {
+  async insertWeb() {
     const url = await askEmbed();
     if (url) this.putSub(linkToFence(url) ?? webBlock(url));
   }
-  private async insertDocument() {
+  async insertDocument() {
     const fence = await askDocLink();
     if (fence) this.putSub(fence);
   }
   /** A table, three by three, made in the Spreadsheet in the dialog; Cancel puts it on blank. */
-  private async insertTable() {
+  async insertTable() {
     const blank = newTable();
     this.putSub((await editTable(blank)) ?? blank);
   }
   /** A new document of another app, made in its own editor in the dialog: Done puts it on the slide, Cancel puts nothing. */
-  private async insertApp(id: string) {
+  async insertApp(id: string) {
     const fence = await makeDoc(id);
     if (fence) this.putSub(fence);
   }
-  private inserts(): MenuItem[] {
+  /** Insert ▾'s QR code of this document, on the slide. */
+  insertQr() {
+    this.putSub(qrBlock());
+  }
+  /** Four more pages, in a format that grows by sheets. */
+  morePages() {
     const g = geometryOf(this.settings.format);
-    const full = !!g?.grow && this.count >= g.grow;
-    const page = !!g;
-    const group = page ? t('Pages') : t('Slides');
-    const name = (l: Layout) => (page ? { '': t('Page'), t: t('Title page'), '2': t('Two-column page'), i: t('Big icon page') }[l] : { '': t('Bullets slide'), t: t('Title slide'), '2': t('Two-column slide'), i: t('Big icon slide') }[l]);
-    const icons: Record<Layout, typeof UI.list> = { '': UI.list, t: UI.heading1, '2': LayoutTemplate, i: UI.icon };
-    const bySheet = !!g?.grow && (g.by ?? 4) > 1;
-    const onSlide = page ? t('On the page') : t('On the slide');
-    return [
-      ...(bySheet
-        ? [{ label: t('Four more pages'), icon: UI.plus, group, disabled: full, does: () => this.change(setHead('pages', String(Math.min(g!.grow!, this.count + (g!.by ?? 4))))) }]
-        : LAYOUTS.map((l) => ({ label: name(l.id), icon: icons[l.id], group, disabled: full, does: () => this.newSlide(l.id) }))),
-      { label: t('Web Picture…'), icon: UI.image, group: onSlide, does: () => void this.insertPicture() },
-      { label: t('Table'), icon: UI.table, group: onSlide, does: () => void this.insertTable() },
-      { label: t('Web Embed…'), icon: UI.globe, group: onSlide, does: () => void this.insertWeb() },
-      { label: t('Tiny Little Office Doc…'), icon: UI.insert, group: onSlide, does: () => void this.insertDocument() },
-      { label: t('QR code of this document'), icon: UI.qr, group: onSlide, does: () => this.putSub(qrBlock()) },
-      ...apps()
-        .filter((a) => a.id !== def.id)
-        .map((a) => ({ group: t('A new document'), label: a.name, icon: a.icon, does: () => void this.insertApp(a.id) })),
-    ];
+    if (g?.grow) this.change(setHead('pages', String(Math.min(g.grow, this.count + (g.by ?? 4)))));
   }
 
   /* ---------- the menus ---------- */
 
-  private layoutItems(): MenuItem[] {
-    const now = this.slide.layout;
-    return LAYOUTS.map((l) => ({ label: l.name(), checked: l.id === now, does: () => this.setLayout(l.id) }));
-  }
-  private lookItems(): MenuItem[] {
-    const s = this.settings;
-    const theme = (id: string) => ({ label: THEMES[id].name(), swatch: THEMES[id].dark ? THEMES[id].paper : THEMES[id].accent, group: THEMES[id].fun ? t('Fun') : t('Theme'), checked: s.theme === id, does: () => this.change(setHead('theme', id)) });
-    return [
-      ...Object.keys(THEMES).map(theme),
-      { label: t('The theme\'s colour'), swatch: THEMES[s.theme].accent, group: t('Icons'), checked: !s.color, does: () => this.change(setHead('color', '')) },
-      ...Object.entries(ICON_COLORS).map(([id, c]) => ({ label: c.name(), swatch: c.hex, group: t('Icons'), checked: s.color === id, does: () => this.change(setHead('color', id)) })),
-    ];
-  }
-  private transitionItems(): MenuItem[] {
-    const now = this.settings.transition;
-    return TRANSITIONS.map((x) => ({ label: x.name(), checked: x.id === now, does: () => this.change(setHead('transition', x.id)) }));
-  }
-  private formatItems(): MenuItem[] {
-    const s = this.settings;
-    const g = geometryOf(s.format);
-    return [
-      ...FORMATS.map((f) => ({ label: f.name(), group: t('Format'), checked: f.id === s.format, does: () => this.setFormat(f.id) })),
-      ...(g?.sides
-        ? [
-            { label: t('One-sided: fold and cut'), group: t('Printing'), checked: !s.two, does: () => this.change(setHead('sides', '')) },
-            { label: t('Two-sided: cut and nest'), group: t('Printing'), checked: s.two, does: () => this.change(setHead('sides', '2')) },
-          ]
-        : []),
-    ];
-  }
-  private setFormat(format: Format) {
+  setFormat(format: Format) {
     this.change([...setHead('format', format), ...setHead('sides', ''), ...setHead('pages', '')]);
     this.sheets = false;
   }
@@ -668,10 +624,10 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private total(): number {
     return this.slides.length + (this.end ? 1 : 0);
   }
-  private steps(i = this.showing): number {
+  steps(i = this.showing): number {
     return i < this.slides.length ? slideSteps(this.slides[i], this.doc) : 0;
   }
-  private show(i: number, shown = 0) {
+  show(i: number, shown = 0) {
     clearTimeout(this.settle);
     this.leaving = i >= 0 && this.showing >= 0 && i !== this.showing ? this.showing : -1;
     this.forwards = i >= this.showing;
@@ -693,12 +649,12 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     this.fromLink = fromLink;
     if (this.slides.length) this.show(0);
   }
-  private forward() {
+  forward() {
     if (this.shown < this.steps()) this.shown++;
     else if (this.showing + 1 < this.total()) this.show(this.showing + 1);
     else this.show(-1);
   }
-  private back() {
+  back() {
     if (this.shown > 0) this.shown--;
     else if (this.showing > 0) this.show(this.showing - 1, this.steps(this.showing - 1));
   }
@@ -709,17 +665,11 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     else this.forward();
     this.lastClick = now;
   };
-  /** While presenting, the keys are the show's: nothing reaches the boxes behind it. */
+  /** While presenting, the keys are the show's (commands.ts SHOW): nothing reaches the boxes behind it. */
   private onShowKey = (e: KeyboardEvent) => {
     if (!this.isConnected || this.showing < 0) return;
-    const mod = e.metaKey || e.ctrlKey;
-    if (e.key === 'Escape') this.show(-1);
-    else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') this.forward();
-    else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') this.back();
-    else if (e.key === 'End') this.shown = this.steps();
-    else if (e.key.toLowerCase() === 'n' && !mod) this.noting = !this.noting;
-    else if (e.key.length !== 1 || mod) return;
-    e.preventDefault();
+    if (runKey(e, SHOW, this)) return;
+    if (e.key.length === 1 && !(e.metaKey || e.ctrlKey)) e.preventDefault();
   };
   /**
    * The editor's own keys, after the boxes and the rows controller have had theirs: Mod+Shift+Enter a new slide
@@ -731,26 +681,40 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     if (e.defaultPrevented || this.showing >= 0) return;
     const el = e.target as HTMLElement;
     if (el.closest?.('dialog, [popover], input, textarea, select, to-bar, to-context, .deck-show')) return;
-    const words = el.closest?.('to-text');
-    if (this.rows.range && !words) return;
-    const mod = e.metaKey || e.ctrlKey;
-    const k = e.key;
-    const inTitle = !!words?.classList.contains('deck-title');
-    if (mod && e.shiftKey && !e.altKey && k === 'Enter') this.newSlide();
-    else if (mod && e.altKey && !e.shiftKey && k === 'Enter') {
-      if (this.settings.format) return;
-      this.show(this.cur);
-    } else if (mod && !e.altKey && !e.shiftKey && k === 'Enter' && inTitle) this.focusBox(this.slide.sub >= 0 ? 'notes' : 'words', 'start');
-    else if (mod && !e.altKey && !e.shiftKey && k.toLowerCase() === 'd' && (words || el.closest?.('.deck-canvas'))) this.duplicateSlide();
-    else if (e.altKey && !mod && !e.shiftKey && (k === 'ArrowUp' || k === 'ArrowDown') && inTitle) {
-      const sel = this.text('title')?.sel ?? null;
-      const by = k === 'ArrowUp' ? -1 : 1;
-      if (this.cur + by < 0 || this.cur + by >= this.count) return;
-      this.move(by);
-      this.focusNext = { field: 'title', at: sel ?? 'end' };
-    } else return;
-    e.preventDefault();
+    if (this.rows.range && !el.closest?.('to-text')) return;
+    runKey(e, EDIT, this);
   };
+  /** Whether a key was typed in the headline. */
+  private inTitle(e?: Event): boolean {
+    return !!(e?.target as HTMLElement | null)?.closest?.('to-text')?.classList.contains('deck-title');
+  }
+  /** Move slide up or down: from the bar; from the keys only in the headline (the slide past its neighbour, the caret staying). */
+  moveKey(by: 1 | -1, e?: Event): boolean | void {
+    if (!(e instanceof KeyboardEvent)) return this.move(by);
+    if (!this.inTitle(e)) return false;
+    const sel = this.text('title')?.sel ?? null;
+    if (this.cur + by < 0 || this.cur + by >= this.count) return false;
+    this.move(by);
+    this.focusNext = { field: 'title', at: sel ?? 'end' };
+  }
+  /** Mod+Enter in the headline: on to the words (a line's "done"). */
+  ontoWords(e?: Event): boolean | void {
+    if (!this.inTitle(e)) return false;
+    this.focusBox(this.slide.sub >= 0 ? 'notes' : 'words', 'start');
+  }
+  /** Mod+D in the words or on the slide: the slide again. */
+  duplicateKey(e?: Event): boolean | void {
+    const el = e?.target as HTMLElement | null;
+    if (!el?.closest?.('to-text') && !el?.closest?.('.deck-canvas')) return false;
+    this.duplicateSlide();
+  }
+  /** PageUp and PageDown on the rail (not in a box): the slide before or after. */
+  railStep(e?: Event): boolean | void {
+    if (!(e instanceof KeyboardEvent) || !(e.target as HTMLElement).closest?.('.deck-rail')) return false;
+    this.rows.release();
+    this.go(this.cur + (e.key === 'PageDown' ? 1 : -1));
+    void this.updateComplete.then(() => this.querySelectorAll<HTMLElement>('.deck-thumb')[this.cur]?.focus({ preventScroll: true }));
+  }
   /** Escape in a box, once it has closed its boxes and collapsed its words: out of the words, the slide chosen on the rail. */
   private onTextEscape = (e: Event) => {
     if (e.defaultPrevented || this.cur >= this.slides.length) return;
@@ -771,13 +735,7 @@ export class ToDeckEditor extends DocElement<Slide[]> {
   private onRailKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     const mod = e.metaKey || e.ctrlKey;
-    if ((e.key === 'PageDown' || e.key === 'PageUp') && !mod && !e.altKey) {
-      e.preventDefault();
-      this.rows.release();
-      this.go(this.cur + (e.key === 'PageDown' ? 1 : -1));
-      void this.updateComplete.then(() => this.querySelectorAll<HTMLElement>('.deck-thumb')[this.cur]?.focus({ preventScroll: true }));
-      return;
-    }
+    if (runKey(e, EDIT.filter((c) => c.id === 'deck.rail'), this)) return;
     const thumb = (e.target as HTMLElement).closest?.<HTMLElement>('.deck-thumb');
     if (!thumb || this.rows.range) return;
     const i = Number(thumb.dataset.i);
@@ -941,34 +899,21 @@ export class ToDeckEditor extends DocElement<Slide[]> {
     const g = geometryOf(st.format);
     const s = this.slide;
     const box = this.sel ? this.current : null;
-    const m = box?.marks ?? {};
-    const on = (c: 'b' | 'i' | 'u' | 's' | 'h') => !!m[c];
     const canIndent = this.field !== 'title' && box?.kind === 'ul';
-    const n = this.count;
     const size = pageSize(st);
+    const own = (id: string) => COMMANDS.find((c) => c.id === `deck.${id}`)!;
+    const x = this.current;
     return html`<to-bar class="deck-bar">
-        <to-insert .items=${this.inserts()}></to-insert>
-        ${g
-          ? tool({ label: this.sheets ? t('Back to the pages') : t('See the sheets to print'), icon: Printer, pressed: this.sheets, cls: 'deck-present', does: () => (this.sheets = !this.sheets) })
-          : tool({ label: t('Present'), icon: Play, keys: 'Mod+Alt+Enter', cls: 'deck-present', does: () => this.show(this.cur) })}
-        ${tool({ label: t('Bold'), icon: UI.bold, keys: 'Mod+B', keep: true, pressed: on('b'), does: () => this.current?.exec('b') })}
-        ${tool({ label: t('Italic'), icon: UI.italic, keys: 'Mod+I', keep: true, pressed: on('i'), does: () => this.current?.exec('i') })}
-        ${tool({ label: t('Underline'), icon: UI.underline, keys: 'Mod+U', keep: true, pressed: on('u'), does: () => this.current?.exec('u') })}
-        ${tool({ label: t('Strikethrough'), icon: UI.strike, keep: true, pressed: on('s'), does: () => this.current?.exec('s') })}
-        ${tool({ label: t('Highlight'), icon: UI.highlight, keep: true, pressed: on('h'), does: () => this.current?.exec('h') })}
-        ${tool({ label: t('Link'), icon: UI.link, keys: 'Mod+K', keep: true, pressed: !!m.href, does: () => this.current?.exec('link') })}
-        ${tool({ label: t('Footnote'), icon: UI.footnote, keep: true, does: () => this.current?.exec('fn') })}
-        ${tool({ label: t('Icon'), icon: UI.icon, does: () => void this.pickIcon() })}
-        ${tool({ label: t('Bring out'), icon: UI.outdent, keys: 'Shift+Tab', keep: true, disabled: !canIndent, does: () => this.current?.exec('outdent') })}
-        ${tool({ label: t('Indent'), icon: UI.indent, keys: 'Tab', keep: true, disabled: !canIndent, does: () => this.current?.exec('indent') })}
-        <to-menu class="deck-layout" icon-only .label=${t('Layout: {layout}', { layout: LAYOUTS.find((l) => l.id === s.layout)!.name() })} .icon=${LayoutTemplate} .items=${this.layoutItems()}></to-menu>
-        <to-menu class="deck-look" icon-only .label=${t('Look: {theme}', { theme: THEMES[st.theme].name() })} .icon=${Palette} .items=${this.lookItems()}></to-menu>
-        ${g ? nothing : html`<to-menu class="deck-transition" icon-only .label=${t('Transition: {transition}', { transition: TRANSITIONS.find((x) => x.id === st.transition)!.name() })} .icon=${Shuffle} .items=${this.transitionItems()}></to-menu>`}
-        <to-menu class="deck-format" icon-only .label=${t('Format: {format}', { format: FORMATS.find((f) => f.id === st.format)!.name() })} .icon=${Scroll} .items=${this.formatItems()}></to-menu>
-        ${g ? nothing : tool({ label: t('End with a QR code of this deck'), icon: UI.qr, pressed: st.qr, does: () => this.change(setHead('qr', st.qr ? 'no' : '')) })}
-        ${tool({ label: g ? t('Move page up') : t('Move slide up'), icon: ChevronUp, disabled: this.cur === 0, does: () => this.move(-1) })}
-        ${tool({ label: g ? t('Move page down') : t('Move slide down'), icon: ChevronDown, disabled: this.cur >= n - 1, does: () => this.move(1) })}
-        ${tool({ label: g ? t('Delete page') : t('Delete slide'), icon: UI.trash, disabled: this.cur >= this.slides.length, does: () => this.deleteSlide() })}
+        <to-insert .items=${drawnIn(COMMANDS, 'menu:insert', this)}></to-insert>
+        ${g ? cmdTool(own('sheets'), this, { cls: 'deck-present' }) : cmdTool(own('present'), this, { cls: 'deck-present' })}
+        ${[BOLD, ITALIC, UNDERLINE, STRIKE, HIGHLIGHT, LINK].map((c) => cmdTool(c, x))}
+        ${cmdTool(FOOTNOTE, x, { disabled: !x })}
+        ${cmdTool(own('icon'), this)}
+        ${cmdTool(OUTDENT, x, { disabled: !canIndent })} ${cmdTool(INDENT, x, { disabled: !canIndent })}
+        ${cmdMenu(own('layout'), this, COMMANDS, 'deck-layout')} ${cmdMenu(own('look'), this, COMMANDS, 'deck-look')}
+        ${g ? nothing : cmdMenu(own('transition'), this, COMMANDS, 'deck-transition')}
+        ${cmdMenu(own('format'), this, COMMANDS, 'deck-format')}
+        ${cmdTool(own('qr'), this)} ${cmdTool(own('up'), this)} ${cmdTool(own('down'), this)} ${cmdTool(own('delete'), this)}
         ${this.undoTools()}
       </to-bar>
       ${this.sheets && g

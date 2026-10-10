@@ -80,12 +80,5 @@ export default defineApp({
       },
     },
   ],
-  keys: [
-    { keys: 'Mod+Alt+Enter', does: () => t('Present') },
-    { keys: 'Mod+Shift+Enter', does: () => t('A new slide') },
-    { keys: 'PageUp / PageDown', does: () => t('The slide before, the slide after (on the rail)') },
-    { keys: 'ArrowRight / Space', does: () => t('Presenting: the next line or slide') },
-    { keys: 'ArrowLeft', does: () => t('Presenting: back') },
-    { keys: 'Escape', does: () => t('Stop presenting') },
-  ],
+  commands: () => import('./commands.ts'),
 });

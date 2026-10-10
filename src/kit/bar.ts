@@ -8,7 +8,7 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { ChevronLeft, ChevronRight } from 'lucide';
 import { icon, type IconNode } from './icons.ts';
 import { t } from './i18n.ts';
-import { keysText, run, type Command } from './commands.ts';
+import { drawnIn, keysText, run, type Command } from './commands.ts';
 
 export { keysText };
 
@@ -78,11 +78,12 @@ export const tool = (o: BtnOpts): TemplateResult =>
 /**
  * A command of the registry (kit/commands.ts) as a bar's icon button, in its context: its words, icon and keys, its
  * pressed state, disabled where it is not to be done now (or where there is no context: nothing in hand), and nothing
- * at all where it is not in force (`when`). `over` changes what the bar needs changed (a class).
+ * at all where it is not in force (`when`). `over` changes what the bar needs changed (a class; `disabled` given, the
+ * button stays in its place, off, where the command is not in force: a bar that keeps its buttons where they are).
  */
 export function cmdTool<C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing {
   const has = c !== null && c !== undefined;
-  if (has && cmd.when && !cmd.when(c)) return nothing;
+  if (has && cmd.when && !cmd.when(c) && over.disabled === undefined) return nothing;
   return tool({
     label: cmd.label(has ? c : undefined),
     icon: cmd.icon,
@@ -96,11 +97,14 @@ export function cmdTool<C>(cmd: Command<C>, c: C | null | undefined, over: Parti
     cls: `${over.cls ?? ''} cmd-${cmd.id.replace(/\./g, '-')}`.trim(),
   });
 }
+/** A command that is a menu (`menu`), as the bar's <to-menu>: its items the commands drawn in `menu:<name>` among `all`. */
+export const cmdMenu = <C>(cmd: Command<C>, c: C, all: readonly Command<C>[], cls = '', opts: { caret?: boolean; words?: boolean; icon?: IconNode; keep?: boolean } = {}): TemplateResult =>
+  html`<to-menu class="${cls} cmd-${cmd.id.replace(/\./g, '-')}" ?icon-only=${!opts.words} ?caret=${!!opts.caret} ?keep=${!!opts.keep} .label=${cmd.label(c)} .icon=${opts.icon ?? cmd.icon ?? null} .items=${drawnIn(all, `menu:${cmd.menu}`, c)}></to-menu>`;
 
 /** The same as a button with its words on it (btn): a command whose words say more than an icon would (Connect, Preview). */
 export function cmdBtn<C>(cmd: Command<C>, c: C | null | undefined, over: Partial<BtnOpts> = {}): TemplateResult | typeof nothing {
   const has = c !== null && c !== undefined;
-  if (has && cmd.when && !cmd.when(c)) return nothing;
+  if (has && cmd.when && !cmd.when(c) && over.disabled === undefined) return nothing;
   return btn({
     label: cmd.label(has ? c : undefined),
     icon: cmd.icon,

@@ -49,8 +49,10 @@ export interface Command<C = any> {
   context?: (c: C) => boolean;
   /** A menu (the bar draws a <to-menu>): its items are the commands drawn in `menu:<this>`. */
   menu?: string;
+  /** A colour shown as a dot in the icon's place (a theme's, an ink's). */
+  swatch?: (c?: C) => string;
   /** The heading a menu item sits under (Insert ▾'s "A new document"), through t(). */
-  heading?: () => string;
+  heading?: (c?: C) => string;
   /** Needs nothing in hand: shown in the drawer's This document too, so a phone reaches it while the bar is away (reading). */
   document?: boolean;
   /** The key is the browser's (Copy, Cut, Paste raise their own events): listed and drawn, but never taken from a keydown. */
@@ -172,6 +174,7 @@ export interface Drawn {
   label: string;
   /** A menu item's heading. */
   group?: string;
+  swatch?: string;
   icon?: IconNode;
   hint?: string;
   keys?: string;
@@ -188,7 +191,8 @@ export function drawn<C>(cmd: Command<C>, c: C | null | undefined): Drawn {
     label: cmd.label(has ? c : undefined),
     icon: cmd.icon,
     hint: cmd.hint?.(),
-    ...(cmd.heading ? { group: cmd.heading() } : {}),
+    ...(cmd.heading ? { group: cmd.heading(has ? c : undefined) } : {}),
+    ...(cmd.swatch ? { swatch: cmd.swatch(has ? c : undefined) } : {}),
     keys: cmd.keys,
     disabled: !has || !!cmd.disabled?.(c),
     ...(cmd.pressed ? { pressed: !!pressed, checked: !!pressed } : {}),
